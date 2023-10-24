@@ -26,6 +26,8 @@ formats::json::Value Serialize(const Warning& entry,
 enum class WarningCode {
   kInf,
   kNan,
+  kHistogramBucketsCount,
+
   kLabelsCount,
 
   kReservedLabelApplication,

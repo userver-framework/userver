@@ -9,7 +9,7 @@
 #include <userver/engine/io/socket.hpp>
 #include <userver/server/http/http_request.hpp>
 #include <userver/tracing/span.hpp>
-#include <userver/utils/impl/span.hpp>
+#include <userver/utils/span.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -95,7 +95,7 @@ class WebSocketConnection {
   void SendBinary(const ContiguousContainer& message) {
     static_assert(sizeof(typename ContiguousContainer::value_type) == 1,
                   "SendBinary() should send either std::bytes or chars");
-    DoSendBinary(utils::impl::Span(
+    DoSendBinary(utils::span(
         reinterpret_cast<const std::byte*>(message.data()),
         reinterpret_cast<const std::byte*>(message.data() + message.size())));
   }
@@ -108,7 +108,7 @@ class WebSocketConnection {
   virtual void AddStatistics(Statistics& stats) const = 0;
 
  protected:
-  virtual void DoSendBinary(utils::impl::Span<const std::byte> message) = 0;
+  virtual void DoSendBinary(utils::span<const std::byte> message) = 0;
 };
 
 std::shared_ptr<WebSocketConnection> MakeWebSocket(

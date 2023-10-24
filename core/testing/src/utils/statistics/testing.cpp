@@ -11,6 +11,7 @@
 #include <boost/range/iterator_range.hpp>
 
 #include <userver/utils/statistics/fmt.hpp>
+#include <userver/utils/statistics/histogram.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -38,6 +39,7 @@ namespace impl {
 
 struct SnapshotData final {
   std::unordered_multimap<std::string, SnapshotDataEntry> metrics;
+  std::vector<Histogram> histogram_storage;
 };
 
 }  // namespace impl
@@ -55,6 +57,10 @@ class SnapshotVisitor final : public BaseFormatBuilder {
       labels_owned.emplace(std::string{l.Name()}, std::string{l.Value()});
     }
     SnapshotDataEntry entry{std::move(labels_owned), value};
+    if (value.IsHistogram()) {
+      data_.histogram_storage.emplace_back(value.AsHistogram());
+      entry.value = MetricValue{data_.histogram_storage.back().GetView()};
+    }
     data_.metrics.emplace(std::string{path}, std::move(entry));
   }
 
@@ -127,7 +133,7 @@ std::ostream& operator<<(std::ostream& out, const Snapshot& data) {
   for (const auto& [path, entry] : data.data_->metrics) {
     out << fmt::format("{};{} {}", path, fmt::join(entry.labels, ";"),
                        entry.value);
-    out << ";" << std::endl;
+    out << ";\n";
   }
   out << "}";
 

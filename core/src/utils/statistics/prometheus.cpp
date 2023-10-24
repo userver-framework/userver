@@ -29,6 +29,13 @@ class FormatBuilder final : public utils::statistics::BaseFormatBuilder {
 
   void HandleMetric(std::string_view path, utils::statistics::LabelsSpan labels,
                     const MetricValue& value) override {
+    if (value.IsHistogram()) {
+      // TODO support histogram metrics using 'le', or better yet,
+      //  using Prometheus native histograms.
+      UASSERT_MSG(false,
+                  "Histogram metrics are not supported for Prometheus yet");
+      return;
+    }
     DumpMetricNameAndType(path, value);
     DumpLabels(labels);
     fmt::format_to(std::back_inserter(buf_), FMT_COMPILE(" {}\n"), value);
@@ -52,14 +59,28 @@ class FormatBuilder final : public utils::statistics::BaseFormatBuilder {
 
   void DumpMetricType([[maybe_unused]] std::string_view prometheus_name,
                       [[maybe_unused]] const MetricValue& value) {
-    if constexpr (IsTyped == Typed::kYes) {
-      const auto type = value.Visit(utils::Overloaded{
-          [](const Rate&) -> std::string_view { return "counter"; },
-          [](const auto&) -> std::string_view { return "gauge"; }});
-      fmt::format_to(std::back_inserter(buf_), FMT_COMPILE("# TYPE {} {}\n"),
-                     prometheus_name, type);
+    if constexpr (IsTyped == Typed::kNo) {
+      const bool should_skip = value.Visit(utils::Overloaded{
+          [](std::int64_t) { return true; },
+          [](double) { return true; },
+          [](Rate) { return false; },
+          [](HistogramView) { return false; },
+      });
+      if (should_skip) return;
     }
-  }
+
+    const auto type = value.Visit(utils::Overloaded{
+        [](std::int64_t) -> std::string_view { return "gauge"; },
+        [](double) -> std::string_view { return "gauge"; },
+        [](Rate) -> std::string_view { return "counter"; },
+        [](HistogramView) -> std::string_view {
+          UINVARIANT(false,
+                     "Histogram metrics are not supported for Prometheus yet");
+        },
+    });
+    fmt::format_to(std::back_inserter(buf_), FMT_COMPILE("# TYPE {} {}\n"),
+                   prometheus_name, type);
+  }  // namespace
 
   void DumpLabels(utils::statistics::LabelsSpan labels) {
     buf_.push_back('{');
@@ -81,7 +102,7 @@ class FormatBuilder final : public utils::statistics::BaseFormatBuilder {
 
   fmt::memory_buffer buf_;
   utils::impl::TransparentMap<std::string, std::string> metrics_;
-};
+};  // namespace impl
 
 }  // namespace
 
@@ -112,7 +133,7 @@ std::string ToPrometheusLabel(std::string_view name) {
   if (pos > 0) {
     --pos;
   }
-  return converted.substr(pos);
+  return std::move(converted).substr(pos);
 }
 
 }  // namespace impl

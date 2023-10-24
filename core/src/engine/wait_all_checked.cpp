@@ -9,7 +9,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
 
-FutureStatus DoWaitAllChecked(utils::impl::Span<ContextAccessor*> targets,
+FutureStatus DoWaitAllChecked(utils::span<ContextAccessor*> targets,
                               Deadline deadline) {
   UASSERT_MSG(AreUniqueValues(targets),
               "Same tasks/futures were detected in WaitAny* call");

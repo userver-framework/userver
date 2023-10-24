@@ -15,21 +15,18 @@ namespace server::websocket {
 
 namespace {
 inline void SendExactly(engine::io::WritableBase& writable,
-                        utils::impl::Span<const char> data1,
-                        utils::impl::Span<const std::byte> data2) {
+                        utils::span<const char> data1,
+                        utils::span<const std::byte> data2) {
   if (writable.WriteAll(
           {{data1.data(), data1.size()}, {data2.data(), data2.size()}}, {}) !=
       data1.size() + data2.size())
     throw(engine::io::IoException() << "Socket closed during transfer");
 }
 
-using utils::impl::Span;
-
 Message CloseMessage(CloseStatus status) { return {{}, status, false}; }
 
-Span<const std::byte> MakeBinarySpan(Span<const char> span) {
-  return {reinterpret_cast<const std::byte*>(span.data()),
-          reinterpret_cast<const std::byte*>(span.data() + span.size())};
+utils::span<const std::byte> MakeBinarySpan(utils::span<const char> span) {
+  return utils::as_bytes(span);
 }
 
 }  // namespace
@@ -48,8 +45,8 @@ class WebSocketConnectionImpl final : public WebSocketConnection {
   std::unique_ptr<engine::io::RwBase> io;
 
   struct MessageExtended final {
-    Span<const std::byte> data;
-    impl::WSOpcodes opcode;
+    utils::span<const std::byte> data;
+    impl::WSOpcodes opcode{};
     std::optional<CloseStatus> close_status;
   };
 
@@ -81,40 +78,38 @@ class WebSocketConnectionImpl final : public WebSocketConnection {
     stats_.msg_sent++;
     stats_.bytes_sent += message.data.size();
 
-    std::unique_lock lock(write_mutex_);
+    const std::unique_lock lock(write_mutex_);
 
     LOG_TRACE() << "Write message " << message.data.size() << " bytes";
     if (message.opcode == impl::WSOpcodes::kPing) {
       SendExactly(*io, impl::frames::PingFrame(), {});
     } else if (message.opcode == impl::WSOpcodes::kPong) {
-      SendExactly(
-          *io,
-          impl::frames::MakeControlFrame(impl::WSOpcodes::kPong, message.data),
-          message.data);
+      const auto control_frame =
+          impl::frames::MakeControlFrame(impl::WSOpcodes::kPong, message.data);
+      SendExactly(*io, control_frame, message.data);
     } else if (message.close_status.has_value()) {
-      SendExactly(*io,
-                  impl::frames::CloseFrame(
-                      static_cast<int>(message.close_status.value())),
-                  {});
-    } else if (message.data.size() > 0) {
-      Span<const std::byte> dataToSend{message.data};
+      const auto close_frame = impl::frames::CloseFrame(
+          static_cast<int>(message.close_status.value()));
+      SendExactly(*io, close_frame, {});
+    } else if (!message.data.empty()) {
+      utils::span<const std::byte> data_to_send{message.data};
       auto continuation = impl::frames::Continuation::kNo;
-      while (dataToSend.size() > config.fragment_size &&
+      while (data_to_send.size() > config.fragment_size &&
              config.fragment_size > 0) {
-        SendExactly(*io,
-                    impl::frames::DataFrameHeader(
-                        dataToSend.first(config.fragment_size),
-                        message.opcode == impl::WSOpcodes::kText, continuation,
-                        impl::frames::Final::kNo),
-                    dataToSend.first(config.fragment_size));
+        const auto data_frame_header = impl::frames::DataFrameHeader(
+            data_to_send.first(config.fragment_size),
+            message.opcode == impl::WSOpcodes::kText, continuation,
+            impl::frames::Final::kNo);
+        SendExactly(*io, data_frame_header,
+                    data_to_send.first(config.fragment_size));
         continuation = impl::frames::Continuation::kYes;
-        dataToSend = dataToSend.last(dataToSend.size() - config.fragment_size);
+        data_to_send =
+            data_to_send.last(data_to_send.size() - config.fragment_size);
       }
-      SendExactly(*io,
-                  impl::frames::DataFrameHeader(
-                      dataToSend, message.opcode == impl::WSOpcodes::kText,
-                      continuation, impl::frames::Final::kYes),
-                  dataToSend);
+      const auto data_frame_header = impl::frames::DataFrameHeader(
+          data_to_send, message.opcode == impl::WSOpcodes::kText, continuation,
+          impl::frames::Final::kYes);
+      SendExactly(*io, data_frame_header, data_to_send);
     }
   }
 
@@ -131,7 +126,7 @@ class WebSocketConnectionImpl final : public WebSocketConnection {
     SendExtended(mext);
   }
 
-  void DoSendBinary(utils::impl::Span<const std::byte> message) override {
+  void DoSendBinary(utils::span<const std::byte> message) override {
     MessageExtended mext{message, impl::WSOpcodes::kBinary, {}};
     SendExtended(mext);
   }

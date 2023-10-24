@@ -12,6 +12,7 @@
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/formats/serialize/common_containers.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/overloaded.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
 #include <utils/statistics/solomon_limits.hpp>
@@ -30,18 +31,30 @@ class PortabilityInfoCollector final
                     const MetricValue& value) override {
     const std::string path{path_view};
 
-    value.Visit([&, this](auto f) {
-      if constexpr (std::is_same_v<decltype(f), double>) {
-        if (std::isinf(f)) {
-          ReportError(info_[WarningCode::kInf], path, labels,
-                      "Value is +/-INF");
-        }
+    value.Visit(utils::Overloaded{
+        [](std::int64_t) {},
+        [&, this](double x) {
+          if (std::isinf(x)) {
+            ReportError(info_[WarningCode::kInf], path, labels,
+                        "Value is +/-INF");
+          }
 
-        if (std::isnan(f)) {
-          ReportError(info_[WarningCode::kNan], path, labels,
-                      "Value is +/-NAN");
-        }
-      }
+          if (std::isnan(x)) {
+            ReportError(info_[WarningCode::kNan], path, labels,
+                        "Value is +/-NAN");
+          }
+        },
+        [](Rate) {},
+        [&, this](HistogramView x) {
+          if (x.GetBucketCount() > impl::solomon::kMaxHistogramBuckets) {
+            ReportError(info_[WarningCode::kHistogramBucketsCount], path,
+                        labels,
+                        fmt::format("Too many histogram buckets: {} while "
+                                    "recommended value is not more than {}",
+                                    x.GetBucketCount(),
+                                    impl::solomon::kMaxHistogramBuckets));
+          }
+        },
     });
 
     static constexpr std::size_t kMaxLabelsPortableValue =
@@ -50,7 +63,7 @@ class PortabilityInfoCollector final
       ReportError(
           info_[WarningCode::kLabelsCount], path, labels,
           fmt::format(
-              "To many labels: {} while recommended value is not more than {}",
+              "Too many labels: {} while recommended value is not more than {}",
               labels.size(), kMaxLabelsPortableValue));
     }
 
@@ -90,7 +103,7 @@ class PortabilityInfoCollector final
     if (path.size() > kMaxPathLen) {
       ReportError(
           info_[WarningCode::kPathLength], path, labels,
-          fmt::format("Path exceeeds recommended length {}", kMaxPathLen));
+          fmt::format("Path exceeds recommended length {}", kMaxPathLen));
     }
 
     auto it = path_labels_.find(path);
@@ -170,6 +183,9 @@ std::string_view ToString(WarningCode code) {
       return "inf";
     case WarningCode::kNan:
       return "nan";
+    case WarningCode::kHistogramBucketsCount:
+      return "histogram_buckets_count";
+
     case WarningCode::kLabelsCount:
       return "labels_count";
 

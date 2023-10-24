@@ -3,9 +3,9 @@
 #include <string_view>
 
 #include <userver/formats/json/value_builder.hpp>
-#include <userver/utils/assert.hpp>
 #include <userver/utils/overloaded.hpp>
 #include <userver/utils/statistics/storage.hpp>
+#include <utils/statistics/impl/histogram_serialization.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -23,8 +23,11 @@ class JsonFormat final : public utils::statistics::BaseFormatBuilder {
     value.Visit([&node](const auto& v) { node["value"] = v; });
     node["labels"] = BuildLabels(labels);
     node["type"] = value.Visit(utils::Overloaded{
-        [](const Rate&) -> std::string_view { return "RATE"; },
-        [](const auto&) -> std::string_view { return "GAUGE"; }});
+        [](std::int64_t) -> std::string_view { return "GAUGE"; },
+        [](double) -> std::string_view { return "GAUGE"; },
+        [](Rate) -> std::string_view { return "RATE"; },
+        [](HistogramView) -> std::string_view { return "HIST_RATE"; },
+    });
 
     builder_[std::string{path}].PushBack(std::move(node));
   }

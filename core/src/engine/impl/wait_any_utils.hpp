@@ -6,7 +6,7 @@
 
 #include <engine/task/task_context.hpp>
 #include <userver/engine/impl/context_accessor.hpp>
-#include <userver/utils/impl/span.hpp>
+#include <userver/utils/span.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -14,8 +14,7 @@ namespace engine::impl {
 
 class WaitAnyWaitStrategy final : public WaitStrategy {
  public:
-  WaitAnyWaitStrategy(Deadline deadline,
-                      utils::impl::Span<ContextAccessor*> targets,
+  WaitAnyWaitStrategy(Deadline deadline, utils::span<ContextAccessor*> targets,
                       TaskContext& current)
       : WaitStrategy(deadline), current_(current), targets_(targets) {}
 
@@ -25,7 +24,7 @@ class WaitAnyWaitStrategy final : public WaitStrategy {
 
       target->AppendWaiter(current_);
       if (target->IsReady()) {
-        active_targets_ = {targets_.begin(), &target + 1};
+        active_targets_ = {targets_.data(), &target + 1};
         current_.Wakeup(TaskContext::WakeupSource::kWaitList,
                         TaskContext::NoEpoch{});
         return;
@@ -45,11 +44,11 @@ class WaitAnyWaitStrategy final : public WaitStrategy {
 
  private:
   TaskContext& current_;
-  const utils::impl::Span<ContextAccessor*> targets_;
-  utils::impl::Span<ContextAccessor*> active_targets_;
+  const utils::span<ContextAccessor*> targets_;
+  utils::span<ContextAccessor*> active_targets_;
 };
 
-inline bool AreUniqueValues(utils::impl::Span<ContextAccessor*> targets) {
+inline bool AreUniqueValues(utils::span<ContextAccessor*> targets) {
   std::vector<ContextAccessor*> sorted;
   sorted.reserve(targets.size());
   std::copy_if(targets.begin(), targets.end(), std::back_inserter(sorted),

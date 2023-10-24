@@ -2,6 +2,10 @@
 
 #include <limits>
 
+#include <boost/range/irange.hpp>
+
+#include <userver/utils/algo.hpp>
+#include <userver/utils/statistics/histogram.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
 #include <userver/utest/utest.hpp>
@@ -182,6 +186,22 @@ UTEST(MetricsPortabilityInfo, LabelsMismatch) {
   EXPECT_EQ(WarningCode::kLabelNameMismatch, code);
   ASSERT_EQ(1, entries.size());
   EXPECT_EQ(entries[0].path, "a.mismatch");
+}
+
+UTEST(MetricsPortabilityInfo, HistogramBucketsCount) {
+  Storage storage;
+  auto holder = storage.RegisterWriter("test", [](Writer& writer) {
+    writer = utils::statistics::Histogram{
+        utils::AsContainer<std::vector<double>>(boost::irange(1, 300))};
+  });
+
+  const auto warnings = GetPortabilityWarnings(storage, {});
+
+  ASSERT_EQ(1, warnings.size());
+  const auto& [code, entries] = *warnings.begin();
+  EXPECT_EQ(WarningCode::kHistogramBucketsCount, code);
+  ASSERT_EQ(1, entries.size());
+  EXPECT_EQ(entries[0].path, "test");
 }
 
 }  // namespace utils::statistics

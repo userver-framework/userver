@@ -8,8 +8,8 @@
 #include <vector>
 
 #include <userver/engine/deadline.hpp>
-#include <userver/utils/impl/span.hpp>
 #include <userver/utils/meta.hpp>
+#include <userver/utils/span.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -73,8 +73,8 @@ namespace impl {
 
 class ContextAccessor;
 
-std::optional<std::size_t> DoWaitAny(
-    utils::impl::Span<ContextAccessor*> targets, Deadline deadline);
+std::optional<std::size_t> DoWaitAny(utils::span<ContextAccessor*> targets,
+                                     Deadline deadline);
 
 template <typename Container>
 std::optional<std::size_t> WaitAnyFromContainer(Deadline deadline,

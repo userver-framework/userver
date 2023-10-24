@@ -8,7 +8,7 @@
 
 #include <userver/engine/io/common.hpp>
 #include <userver/tracing/span.hpp>
-#include <userver/utils/impl/span.hpp>
+#include <userver/utils/span.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -76,10 +76,10 @@ enum class Final {
 };
 
 boost::container::small_vector<char, impl::kMaxFrameHeaderSize> DataFrameHeader(
-    utils::impl::Span<const std::byte> data, bool is_text,
+    utils::span<const std::byte> data, bool is_text,
     Continuation is_continuation, Final is_final);
 std::array<char, sizeof(WSHeader)> MakeControlFrame(
-    WSOpcodes opcode, utils::impl::Span<const std::byte> data = {});
+    WSOpcodes opcode, utils::span<const std::byte> data = {});
 std::string CloseFrame(CloseStatusInt status_code);
 
 const std::array<char, sizeof(WSHeader)>& PingFrame();

@@ -4,20 +4,24 @@
 /// @brief @copybrief utils::statistics::MetricValue
 
 #include <cstdint>
+#include <type_traits>
 #include <variant>
 
+#include <userver/utils/statistics/histogram_view.hpp>
 #include <userver/utils/statistics/rate.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
 
-/// @brief The value of a metric. Only integer and floating-point metrics are
-/// allowed.
+/// @brief The value of a metric.
+///
+/// Cheap to copy, expected to be passed around by value.
 class MetricValue final {
  public:
-  using RawType = std::variant<std::int64_t, double, Rate>;
+  using RawType = std::variant<std::int64_t, double, Rate, HistogramView>;
 
+  // trivially copyable
   MetricValue(const MetricValue&) = default;
   MetricValue& operator=(const MetricValue&) = default;
 
@@ -41,8 +45,17 @@ class MetricValue final {
   /// @throws std::exception on type mismatch.
   Rate AsRate() const { return std::get<Rate>(value_); }
 
-  /// @brief Returns whether metric is Rate metric
+  /// @brief Returns whether metric is Rate metric.
   bool IsRate() const noexcept { return std::holds_alternative<Rate>(value_); }
+
+  /// @brief Retrieve the value of a HistogramView metric.
+  /// @throws std::exception on type mismatch.
+  HistogramView AsHistogram() const { return std::get<HistogramView>(value_); }
+
+  /// @brief Returns whether metric is HistogramView metric.
+  bool IsHistogram() const noexcept {
+    return std::holds_alternative<HistogramView>(value_);
+  }
 
   /// @brief Calls @p visitor with either a `std::int64_t` or a `double` value.
   /// @returns Whatever @p visitor returns.

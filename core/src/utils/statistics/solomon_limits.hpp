@@ -16,6 +16,8 @@ inline constexpr std::size_t kMaxLabels = 16 - kReservedLabelNames.size() - 1;
 inline constexpr std::size_t kMaxLabelNameLen = 31;
 inline constexpr std::size_t kMaxLabelValueLen = 200;
 
+inline constexpr std::size_t kMaxHistogramBuckets = 50;
+
 }  // namespace utils::statistics::impl::solomon
 
 USERVER_NAMESPACE_END

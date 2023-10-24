@@ -36,6 +36,14 @@ class FormatBuilder final : public utils::statistics::BaseFormatBuilder {
 
   void HandleMetric(std::string_view path, utils::statistics::LabelsSpan labels,
                     const MetricValue& value) override {
+    if (value.IsHistogram()) {
+      // TODO support histogram metrics using 'le', or better yet,
+      //  using Prometheus native histograms.
+      UASSERT_MSG(false,
+                  "Histogram metrics are not supported for Graphite yet");
+      return;
+    }
+
     AppendGraphiteSafe(buf_, path);
 
     for (const auto& label : labels) {

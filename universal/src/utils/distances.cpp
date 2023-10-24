@@ -5,7 +5,7 @@
 
 #include <fmt/format.h>
 
-#include <userver/utils/impl/span.hpp>
+#include <userver/utils/span.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -18,8 +18,8 @@ std::size_t GetLevenshteinDistance(RandomIt begin1, RandomIt end1,
                                    RandomIt begin2, RandomIt end2) {
   const std::size_t line_size = end1 - begin1 + 1;
   std::vector<std::size_t> lines(2 * line_size);
-  Span prev_line(lines.data(), lines.data() + line_size);
-  Span cur_line(lines.data() + line_size, lines.data() + 2 * line_size);
+  span prev_line(lines.data(), lines.data() + line_size);
+  span cur_line(lines.data() + line_size, lines.data() + 2 * line_size);
   for (std::size_t i = 0; i < prev_line.size(); ++i) {
     prev_line[i] = i;
   }
@@ -43,9 +43,9 @@ std::size_t GetDamerauLevenshteinDistance(RandomIt begin1, RandomIt end1,
   const std::size_t line_size = end1 - begin1 + 1;
   std::vector<std::size_t> lines(3 * line_size);
 
-  Span first_prev_line(lines.data(), lines.data() + line_size);
-  Span second_prev_line(lines.data() + line_size, lines.data() + 2 * line_size);
-  Span cur_line(lines.data() + 2 * line_size, lines.data() + 3 * line_size);
+  span first_prev_line(lines.data(), lines.data() + line_size);
+  span second_prev_line(lines.data() + line_size, lines.data() + 2 * line_size);
+  span cur_line(lines.data() + 2 * line_size, lines.data() + 3 * line_size);
   for (std::size_t i = 0; i < line_size; ++i) {
     first_prev_line[i] = i;
   }

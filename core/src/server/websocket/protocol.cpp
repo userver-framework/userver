@@ -9,7 +9,7 @@
 #include <userver/crypto/base64.hpp>
 #include <userver/engine/io/exception.hpp>
 #include <userver/engine/task/cancel.hpp>
-#include <userver/utils/impl/span.hpp>
+#include <userver/utils/span.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -18,24 +18,21 @@ namespace server::websocket::impl {
 namespace {
 
 inline void RecvExactly(engine::io::ReadableBase& readable,
-                        utils::impl::Span<char> buffer,
-                        engine::Deadline deadline) {
+                        utils::span<char> buffer, engine::Deadline deadline) {
   if (readable.ReadAll(buffer.data(), buffer.size(), deadline) != buffer.size())
     throw(engine::io::IoException() << "Socket closed during transfer ");
 }
 
 template <class T>
-utils::impl::Span<char> AsWritableBytes(utils::impl::Span<T> s) noexcept {
-  return utils::impl::Span<char>{reinterpret_cast<char*>(s.begin()),
-                                 reinterpret_cast<char*>(s.end())};
+utils::span<char> AsWritableBytes(utils::span<T> s) noexcept {
+  return utils::span<char>{reinterpret_cast<char*>(s.data()),
+                           reinterpret_cast<char*>(s.data() + s.size())};
 }
 
 template <class T>
-utils::impl::Span<T> MakeSpan(T* ptr, size_t count) {
-  return utils::impl::Span<T>(ptr, ptr + count);
+utils::span<T> MakeSpan(T* ptr, size_t count) {
+  return utils::span<T>(ptr, ptr + count);
 }
-
-using utils::impl::Span;
 
 union Mask32 {
   uint32_t mask32 = 0;
@@ -61,9 +58,10 @@ void PushRaw(const T& value, V& data) {
 }  // namespace
 
 namespace frames {
+
 boost::container::small_vector<char, impl::kMaxFrameHeaderSize> DataFrameHeader(
-    Span<const std::byte> data, bool is_text, Continuation is_continuation,
-    Final is_final) {
+    utils::span<const std::byte> data, bool is_text,
+    Continuation is_continuation, Final is_final) {
   boost::container::small_vector<char, impl::kMaxFrameHeaderSize> frame;
 
   frame.resize(sizeof(WSHeader));
@@ -103,7 +101,7 @@ std::string CloseFrame(CloseStatusInt status_code) {
 }
 
 std::array<char, sizeof(WSHeader)> MakeControlFrame(
-    WSOpcodes opcode, Span<const std::byte> data) {
+    WSOpcodes opcode, utils::span<const std::byte> data) {
   std::array<char, sizeof(WSHeader)> frame{};
 
   auto* hdr = reinterpret_cast<WSHeader*>(frame.data());

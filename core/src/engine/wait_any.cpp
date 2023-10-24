@@ -8,8 +8,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
 
-std::optional<std::size_t> DoWaitAny(
-    utils::impl::Span<ContextAccessor*> targets, Deadline deadline) {
+std::optional<std::size_t> DoWaitAny(utils::span<ContextAccessor*> targets,
+                                     Deadline deadline) {
   UASSERT_MSG(AreUniqueValues(targets),
               "Same tasks/futures were detected in WaitAny* call");
   bool none_valid = true;

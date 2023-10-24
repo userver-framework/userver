@@ -10,7 +10,6 @@
 #include <userver/storages/redis/impl/base.hpp>
 #include <userver/storages/redis/impl/redis_state.hpp>
 #include <userver/storages/redis/impl/types.hpp>
-#include <userver/utils/statistics/aggregated_values.hpp>
 #include <userver/utils/statistics/percentile.hpp>
 #include <userver/utils/statistics/recentperiod.hpp>
 

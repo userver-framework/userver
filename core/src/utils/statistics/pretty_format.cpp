@@ -43,8 +43,11 @@ class FormatBuilder final : public utils::statistics::BaseFormatBuilder {
     }
 
     const auto type = value.Visit(utils::Overloaded{
-        [](const Rate&) -> std::string_view { return "RATE"; },
-        [](const auto&) -> std::string_view { return "GAUGE"; }});
+        [](std::int64_t) -> std::string_view { return "GAUGE"; },
+        [](double) -> std::string_view { return "GAUGE"; },
+        [](Rate) -> std::string_view { return "RATE"; },
+        [](HistogramView) -> std::string_view { return "HIST_RATE"; },
+    });
     fmt::format_to(std::back_inserter(buf_), FMT_COMPILE("\t{}\t{}\n"), type,
                    value);
   }

@@ -7,6 +7,7 @@
 #include <string_view>
 #include <type_traits>
 
+#include <userver/utils/statistics/histogram_view.hpp>
 #include <userver/utils/statistics/labels.hpp>
 #include <userver/utils/statistics/rate.hpp>
 
@@ -104,7 +105,8 @@ class Writer final {
   template <class T>
   void operator=(const T& value) {
     if constexpr (std::is_arithmetic_v<T> ||
-                  std::is_same_v<std::decay_t<T>, Rate>) {
+                  std::is_same_v<std::decay_t<T>, Rate> ||
+                  std::is_same_v<std::decay_t<T>, HistogramView>) {
       Write(value);
     } else {
       if (state_) {
@@ -157,6 +159,7 @@ class Writer final {
   void Write(long long value);
   void Write(double value);
   void Write(Rate value);
+  void Write(HistogramView value);
 
   void Write(float value) { Write(static_cast<double>(value)); }
 

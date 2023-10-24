@@ -68,8 +68,7 @@ bool CanSubPathSucceedStartsWith(std::string_view current_path,
                                  current_path.substr(initial_path_size));
 }
 
-void CheckAndWrite(impl::WriterState& state,
-                   std::variant<std::int64_t, double, Rate> value) {
+void CheckAndWrite(impl::WriterState& state, MetricValue value) {
   UINVARIANT(!state.path.empty(),
              "Detected an attempt to write a metric by empty path");
 
@@ -138,28 +137,36 @@ Writer Writer::MakeChild() {
 void Writer::Write(unsigned long long value) {
   if (state_) {
     ValidateUsage();
-    CheckAndWrite(*state_, boost::numeric_cast<std::int64_t>(value));
+    CheckAndWrite(*state_,
+                  MetricValue{boost::numeric_cast<std::int64_t>(value)});
   }
 }
 
 void Writer::Write(long long value) {
   if (state_) {
     ValidateUsage();
-    CheckAndWrite(*state_, static_cast<std::int64_t>(value));
+    CheckAndWrite(*state_, MetricValue{static_cast<std::int64_t>(value)});
   }
 }
 
 void Writer::Write(double value) {
   if (state_) {
     ValidateUsage();
-    CheckAndWrite(*state_, value);
+    CheckAndWrite(*state_, MetricValue{value});
   }
 }
 
 void Writer::Write(Rate value) {
   if (state_) {
     ValidateUsage();
-    CheckAndWrite(*state_, value);
+    CheckAndWrite(*state_, MetricValue{value});
+  }
+}
+
+void Writer::Write(HistogramView value) {
+  if (state_) {
+    ValidateUsage();
+    CheckAndWrite(*state_, MetricValue{value});
   }
 }
 

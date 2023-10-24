@@ -4,8 +4,10 @@
 
 #include <userver/formats/json/string_builder.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/utils/overloaded.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
+#include <utils/statistics/impl/histogram_serialization.hpp>
 #include <utils/statistics/solomon_limits.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -19,6 +21,7 @@ constexpr bool IsReservedLabelName(std::string_view name) {
   }
   return false;
 }
+
 class SolomonJsonBuilder final : public utils::statistics::BaseFormatBuilder {
  public:
   explicit SolomonJsonBuilder(formats::json::StringBuilder& builder)
@@ -26,16 +29,27 @@ class SolomonJsonBuilder final : public utils::statistics::BaseFormatBuilder {
 
   void HandleMetric(std::string_view path, utils::statistics::LabelsSpan labels,
                     const MetricValue& value) override {
-    formats::json::StringBuilder::ObjectGuard guard{builder_};
+    const formats::json::StringBuilder::ObjectGuard guard{builder_};
     builder_.Key("labels");
     DumpLabels(path, labels);
-    builder_.Key("value");
-    value.Visit([this](auto x) { WriteToStream(x, builder_); });
-
-    if (value.IsRate()) {
-      builder_.Key("type");
-      builder_.WriteString("RATE");
-    }
+    value.Visit(utils::Overloaded{
+        [this](HistogramView x) {
+          builder_.Key("hist");
+          WriteToStream(x, builder_);
+          builder_.Key("type");
+          builder_.WriteString("HIST_RATE");
+        },
+        [this](Rate x) {
+          builder_.Key("value");
+          WriteToStream(x, builder_);
+          builder_.Key("type");
+          builder_.WriteString("RATE");
+        },
+        [this](const auto& x) {
+          builder_.Key("value");
+          WriteToStream(x, builder_);
+        },
+    });
   }
 
   void AddCommonLabels(
@@ -49,7 +63,7 @@ class SolomonJsonBuilder final : public utils::statistics::BaseFormatBuilder {
 
  private:
   void DumpLabels(std::string_view path, utils::statistics::LabelsSpan labels) {
-    formats::json::StringBuilder::ObjectGuard guard{builder_};
+    const formats::json::StringBuilder::ObjectGuard guard{builder_};
     builder_.Key("sensor");
 
     if (path.size() > impl::solomon::kMaxLabelValueLen) {
@@ -100,7 +114,7 @@ class SolomonJsonBuilder final : public utils::statistics::BaseFormatBuilder {
   }
 
   formats::json::StringBuilder& builder_;
-};
+};  // namespace utils::statistics
 
 }  // namespace
 
