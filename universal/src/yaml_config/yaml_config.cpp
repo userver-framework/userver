@@ -3,6 +3,9 @@
 #include <fmt/format.h>
 #include <boost/algorithm/string/predicate.hpp>
 
+#include <userver/formats/common/conversion_stack.hpp>
+#include <userver/formats/json/value.hpp>
+#include <userver/formats/json/value_builder.hpp>
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/string_to_duration.hpp>
@@ -252,6 +255,12 @@ std::chrono::milliseconds Parse(const YamlConfig& value,
     throw ParseException(
         fmt::format("While parsing '{}': {}", value.GetPath(), ex.what()));
   }
+}
+
+formats::json::Value Parse(const YamlConfig& value,
+                           formats::parse::To<formats::json::Value>) {
+  return formats::common::PerformMinimalFormatConversion<formats::json::Value>(
+      value);
 }
 
 }  // namespace yaml_config

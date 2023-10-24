@@ -30,7 +30,6 @@ components_manager:
         dynamic-config:
             fs-cache-path: ''
         dynamic-config-fallbacks:
-            fallback-path: /etc/mysql_basic_chaos/dynamic_config_fallback.json
         dns-client:
             fs-task-processor: fs-task-processor
     coro_pool:

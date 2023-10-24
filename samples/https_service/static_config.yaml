@@ -30,7 +30,6 @@ components_manager:
         dynamic-config:                      # Dynamic config storage options, do nothing
             fs-cache-path: ''
         dynamic-config-fallbacks:            # Load options from file and push them into the dynamic config storage.
-            fallback-path: dynamic_config_fallback.json
 
         handler-hello-sample:             # Finally! Our handler.
             path: /hello                  # Registering handler by URL '/hello'.

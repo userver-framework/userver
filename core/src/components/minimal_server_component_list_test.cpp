@@ -5,7 +5,6 @@
 
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/components/run.hpp>
-#include <userver/formats/json/value_builder.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>  // for fs::blocking::TempDirectory
 #include <userver/fs/blocking/write.hpp>  // for fs::blocking::RewriteFileContents
@@ -65,10 +64,11 @@ components_manager:
           file_path: '@null'
           level: warning
     dynamic-config:
-      fs-cache-path: $runtime_config_path
+      fs-cache-path: ''
       fs-task-processor: main-task-processor
     dynamic-config-fallbacks:
-        fallback-path: $runtime_config_path
+      defaults: $dynamic-config-default-overrides
+      defaults#fallback: {}
     server:
       listener:
           port: $server-port
@@ -85,10 +85,6 @@ config_vars: )";
 class ServerMinimalComponentList : public ComponentList {
  protected:
   const std::string& GetTempRoot() const { return temp_root_.GetPath(); }
-
-  std::string GetRuntimeConfigPath() const {
-    return temp_root_.GetPath() + "/runtime_config.json";
-  }
 
   std::string GetConfigVarsPath() const {
     return temp_root_.GetPath() + "/config_vars.yaml";
@@ -164,14 +160,10 @@ auto TestsComponentList() {
 
 TEST_F(ServerMinimalComponentList, Basic) {
   constexpr std::string_view kConfigVarsTemplate = R"(
-    runtime_config_path: {0}
-    server-port: {1}
+    server-port: {0}
   )";
-  const auto config_vars =
-      fmt::format(kConfigVarsTemplate, GetRuntimeConfigPath(), GetServerPort());
+  const auto config_vars = fmt::format(kConfigVarsTemplate, GetServerPort());
 
-  fs::blocking::RewriteFileContents(GetRuntimeConfigPath(),
-                                    tests::GetRuntimeConfig());
   fs::blocking::RewriteFileContents(GetConfigVarsPath(), config_vars);
 
   components::RunOnce(components::InMemoryConfig{GetStaticConfig()},
@@ -180,17 +172,13 @@ TEST_F(ServerMinimalComponentList, Basic) {
 
 TEST_F(ServerMinimalComponentList, InitLogsClose) {
   constexpr std::string_view kConfigVarsTemplate = R"(
-    runtime_config_path: {0}
-    init_log_path: {1}
-    server-port: {2}
+    init_log_path: {0}
+    server-port: {1}
   )";
   const std::string init_logs_path = GetTempRoot() + "/init_log.txt";
   const auto config_vars =
-      fmt::format(kConfigVarsTemplate, GetRuntimeConfigPath(), init_logs_path,
-                  GetServerPort());
+      fmt::format(kConfigVarsTemplate, init_logs_path, GetServerPort());
 
-  fs::blocking::RewriteFileContents(GetRuntimeConfigPath(),
-                                    tests::GetRuntimeConfig());
   fs::blocking::RewriteFileContents(GetConfigVarsPath(), config_vars);
 
   components::RunOnce(components::InMemoryConfig{GetStaticConfig()},
@@ -201,16 +189,13 @@ TEST_F(ServerMinimalComponentList, InitLogsClose) {
 
 TEST_F(ServerMinimalComponentList, TraceSwitching) {
   constexpr std::string_view kConfigVarsTemplate = R"(
-    runtime_config_path: {0}
-    tracer_log_path: {1}
-    server-port: {2}
+    tracer_log_path: {0}
+    server-port: {1}
   )";
   const std::string logs_path = GetTempRoot() + "/tracing_log.txt";
-  const auto config_vars = fmt::format(
-      kConfigVarsTemplate, GetRuntimeConfigPath(), logs_path, GetServerPort());
+  const auto config_vars =
+      fmt::format(kConfigVarsTemplate, logs_path, GetServerPort());
 
-  fs::blocking::RewriteFileContents(GetRuntimeConfigPath(),
-                                    tests::GetRuntimeConfig());
   fs::blocking::RewriteFileContents(GetConfigVarsPath(), config_vars);
 
   components::RunOnce(components::InMemoryConfig{GetStaticConfig()},
@@ -227,19 +212,15 @@ TEST_F(ServerMinimalComponentList, TraceSwitching) {
 
 TEST_F(ServerMinimalComponentList, TraceStacktraces) {
   constexpr std::string_view kConfigVarsTemplate = R"(
-    runtime_config_path: {0}
-    tracer_log_path: {1}
+    tracer_log_path: {0}
     tracer_level: debug
-    server-port: {2}
+    server-port: {1}
   )";
   const std::string logs_path = GetTempRoot() + "/tracing_st_log.txt";
 
-  fs::blocking::RewriteFileContents(GetRuntimeConfigPath(),
-                                    tests::GetRuntimeConfig());
   fs::blocking::RewriteFileContents(
       GetConfigVarsPath(),
-      fmt::format(kConfigVarsTemplate, GetRuntimeConfigPath(), logs_path,
-                  GetServerPort()));
+      fmt::format(kConfigVarsTemplate, logs_path, GetServerPort()));
 
   components::RunOnce(components::InMemoryConfig{GetStaticConfig()},
                       TestsComponentList());
@@ -253,28 +234,23 @@ TEST_F(ServerMinimalComponentList, TraceStacktraces) {
   EXPECT_NE(logs.find("stacktrace= 0# "), std::string::npos);
 }
 
-TEST_F(ServerMinimalComponentList, MissingRuntimeConfigParam) {
+TEST_F(ServerMinimalComponentList, InvalidDynamicConfigParam) {
   constexpr std::string_view kConfigVarsTemplate = R"(
-    runtime_config_path: {0}
-    server-port: {1}
+    dynamic-config-default-overrides:
+      USERVER_LOG_DYNAMIC_DEBUG:
+        force-disabled: []
+        force-enabled: 42  // <== error
+    server-port: {0}
   )";
-  const auto config_vars =
-      fmt::format(kConfigVarsTemplate, GetRuntimeConfigPath(), GetServerPort());
 
-  formats::json::ValueBuilder runtime_config{
-      formats::json::FromString(tests::GetRuntimeConfig())};
-  runtime_config.Remove("USERVER_LOG_REQUEST_HEADERS");
-  const auto runtime_config_missing_param =
-      formats::json::ToString(runtime_config.ExtractValue());
-
-  fs::blocking::RewriteFileContents(GetRuntimeConfigPath(),
-                                    runtime_config_missing_param);
-  fs::blocking::RewriteFileContents(GetConfigVarsPath(), config_vars);
+  fs::blocking::RewriteFileContents(
+      GetConfigVarsPath(), fmt::format(kConfigVarsTemplate, GetServerPort()));
 
   UEXPECT_THROW_MSG(
       components::RunOnce(components::InMemoryConfig{GetStaticConfig()},
                           TestsComponentList()),
-      std::exception, "USERVER_LOG_REQUEST_HEADERS");
+      std::exception,
+      "Field 'USERVER_LOG_DYNAMIC_DEBUG.force-enabled' is of a wrong type");
 }
 
 USERVER_NAMESPACE_END

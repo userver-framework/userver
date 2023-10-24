@@ -136,7 +136,6 @@ components_manager:
     dynamic-config-client-updater:
       config-settings: false
       config-url: $config_server_url
-      fallback-path: /etc/yandex/taxi/device-notify/dynamic_config_fallback.json
       full-update-interval: 1m
       http-retries: 5
       http-timeout: 1000ms

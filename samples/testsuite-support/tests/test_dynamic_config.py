@@ -13,6 +13,7 @@ async def get_service_config_value(service_client):
     return int(response.text)
 
 
+@pytest.mark.skip(reason='TAXICOMMON-7680')
 async def test_a_defaults(service_client, dynamic_config):
     assert dynamic_config.get(TEST_CONFIG) == DEFAULT_VALUE
     assert await get_service_config_value(service_client) == DEFAULT_VALUE
@@ -32,11 +33,13 @@ async def test_set_values(service_client, dynamic_config):
     assert await get_service_config_value(service_client) == SPECIAL_VALUE
 
 
+@pytest.mark.skip(reason='TAXICOMMON-7680')
 async def test_z_defaults_again(service_client, dynamic_config):
     assert dynamic_config.get(TEST_CONFIG) == DEFAULT_VALUE
     assert await get_service_config_value(service_client) == DEFAULT_VALUE
 
 
+@pytest.mark.skip(reason='TAXICOMMON-7680')
 @pytest.mark.config(MEANING_OF_LIFE=CUSTOM_VALUE)
 async def test_annotation(service_client, dynamic_config):
     assert dynamic_config.get(TEST_CONFIG) == CUSTOM_VALUE

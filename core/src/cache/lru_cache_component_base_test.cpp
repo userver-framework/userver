@@ -15,7 +15,7 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 // BEWARE! No separate fs-task-processor. Testing almost single thread mode
-constexpr std::string_view kStaticConfigTemplate = R"(
+constexpr std::string_view kStaticConfig = R"(
 components_manager:
   coro_pool:
     initial_size: 50
@@ -53,15 +53,9 @@ components_manager:
       testsuite-redis-timeout-single: 1s
       testsuite-redis-timeout-all: 750ms
     dynamic-config:
-      fs-cache-path: $runtime_config_path
+      fs-cache-path: ''
       fs-task-processor: main-task-processor
-    dynamic-config-fallbacks:
-      fallback-path: $runtime_config_path
-config_vars: {0})";
-
-constexpr std::string_view kConfigVarsTemplate = R"(
-  runtime_config_path: {0}
-)";
+    dynamic-config-fallbacks:)";
 
 void ValidateExampleCacheConfig(const formats::yaml::Value& static_config) {
   yaml_config::impl::Validate(
@@ -73,15 +67,6 @@ void ValidateExampleCacheConfig(const formats::yaml::Value& static_config) {
 
 TEST_F(ComponentList, LruCacheComponentSample) {
   const auto temp_root = fs::blocking::TempDirectory::Create();
-  const std::string dynamic_config_path =
-      temp_root.GetPath() + "/dynamic_config.json";
-  const std::string config_vars_path =
-      temp_root.GetPath() + "/config_vars.json";
-
-  const std::string static_config =
-      fmt::format(kStaticConfigTemplate, config_vars_path);
-  const std::string kConfigVariables =
-      fmt::format(kConfigVarsTemplate, dynamic_config_path);
 
   /// [Sample lru cache component registration]
   auto component_list = components::MinimalComponentList();
@@ -89,17 +74,13 @@ TEST_F(ComponentList, LruCacheComponentSample) {
   /// [Sample lru cache component registration]
   component_list.Append<components::TestsuiteSupport>();
 
-  fs::blocking::RewriteFileContents(dynamic_config_path,
-                                    tests::GetRuntimeConfig());
-  fs::blocking::RewriteFileContents(config_vars_path, kConfigVariables);
-
-  components::RunOnce(components::InMemoryConfig{static_config},
+  components::RunOnce(components::InMemoryConfig{kStaticConfig},
                       component_list);
 }
 
 TEST(StaticConfigValidator, ValidConfig) {
   ValidateExampleCacheConfig(formats::yaml::FromString(
-      std::string{kStaticConfigTemplate})["components_manager"]["components"]);
+      std::string{kStaticConfig})["components_manager"]["components"]);
 }
 
 TEST(StaticConfigValidator, InvalidFieldName) {

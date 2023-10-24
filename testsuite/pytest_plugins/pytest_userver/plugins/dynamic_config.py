@@ -156,7 +156,10 @@ def config_service_defaults(
 
     @ingroup userver_testsuite_fixtures
     """
-    if config_fallback_path and pathlib.Path(config_fallback_path).exists():
+    if not config_fallback_path:
+        return {}
+
+    if pathlib.Path(config_fallback_path).exists():
         with open(config_fallback_path, 'r', encoding='utf-8') as file:
             fallback = json.load(file)
         fallback.update(dynamic_config_fallback_patch)
@@ -190,6 +193,7 @@ def userver_config_dynconf_cache(service_tmpdir):
 
 
 _COMPONENTS_WITH_FALLBACK = {
+    'dynamic-config',
     'dynamic-config-fallbacks',
     'dynamic-config-client-updater',
 }
@@ -210,7 +214,12 @@ def userver_config_dynconf_fallback(
 
     def _patch_config(config_yaml, _config_vars):
         components = config_yaml['components_manager']['components']
-        if not (components.keys() & _COMPONENTS_WITH_FALLBACK):
+        for component_name in _COMPONENTS_WITH_FALLBACK & components.keys():
+            if components[component_name] is None:
+                components[component_name] = {}
+            if 'fallback-path' in components[component_name]:
+                break
+        else:
             return
 
         fallback_path = (
@@ -220,11 +229,10 @@ def userver_config_dynconf_fallback(
         with open(fallback_path, 'w', encoding='utf-8') as file:
             json.dump(config_service_defaults, file)
 
-        for component_name in _COMPONENTS_WITH_FALLBACK:
-            if component_name not in components:
-                continue
+        for component_name in _COMPONENTS_WITH_FALLBACK & components.keys():
             component = components[component_name]
-            component['fallback-path'] = str(fallback_path)
+            if 'fallback-path' in component:
+                component['fallback-path'] = str(fallback_path)
 
     return _patch_config
 

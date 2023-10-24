@@ -48,6 +48,46 @@ const ComponentConfig& EnsureDoesNotDependOnDynamicConfig(
   return component_config;
 }
 
+// TODO deduplicate with DynamicConfigFallbacks
+dynamic_config::DocsMap ParseFallbacksAndOverrides(
+    const ComponentConfig& component_config,
+    engine::TaskProcessor& fs_task_processor) {
+  dynamic_config::DocsMap config_values;
+  {
+    const auto fallback_path =
+        component_config["fallback-path"].As<std::optional<std::string>>();
+    if (fallback_path) {
+      try {
+        const auto fallback_config_contents =
+            fs::ReadFileContents(fs_task_processor, *fallback_path);
+        config_values.Parse(fallback_config_contents, false);
+      } catch (const std::exception& ex) {
+        throw std::runtime_error(
+            std::string("Cannot load fallback dynamic config: ") + ex.what());
+      }
+    } else {
+      try {
+        config_values = dynamic_config::impl::MakeDefaultDocsMap();
+      } catch (const std::exception& ex) {
+        throw std::runtime_error(fmt::format(
+            "Failed to create dynamic config defaults: {}", ex.what()));
+      }
+    }
+  }
+  {
+    auto default_overrides =
+        component_config["defaults"].As<std::optional<formats::json::Value>>();
+    if (default_overrides) {
+      dynamic_config::DocsMap overrides;
+      for (const auto& [key, value] : Items(*default_overrides)) {
+        overrides.Set(key, value);
+      }
+      config_values.MergeOrAssign(std::move(overrides));
+    }
+  }
+  return config_values;
+}
+
 }  // namespace
 
 DynamicConfigClientUpdater::DynamicConfigClientUpdater(
@@ -69,19 +109,10 @@ DynamicConfigClientUpdater::DynamicConfigClientUpdater(
   auto& tp = tp_name ? component_context.GetTaskProcessor(*tp_name)
                      : engine::current_task::GetTaskProcessor();
 
-  auto fallback_config_contents = fs::ReadFileContents(
-      tp, component_config["fallback-path"].As<std::string>());
+  fallback_config_ = ParseFallbacksAndOverrides(component_config, tp);
 
-  try {
-    fallback_config_.Parse(fallback_config_contents, false);
-
-    // There are all required configs in the fallbacks file
-    docs_map_keys_ =
-        utils::AsContainer<DocsMapKeys>(fallback_config_.GetNames());
-  } catch (const std::exception& ex) {
-    throw std::runtime_error(
-        std::string("Cannot load fallback dynamic config: ") + ex.what());
-  }
+  // There are all required configs in the fallbacks file
+  docs_map_keys_ = utils::AsContainer<DocsMapKeys>(fallback_config_.GetNames());
 
   try {
     StartPeriodicUpdates();
@@ -280,6 +311,12 @@ properties:
     fallback-path:
         type: string
         description: a path to the fallback config to load the required config names from it
+        defaultDescription: defaults are taken from dynamic_config::Key definitions
+    defaults:
+        type: object
+        description: optional values for configs that override the defaults specified in dynamic_config::Key definitions
+        properties: {}
+        additionalProperties: true
     fs-task-processor:
         type: string
         description: name of the task processor to run the blocking file write operations

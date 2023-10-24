@@ -5,9 +5,9 @@
 
 #include <grpcpp/channel.h>
 
-#include <userver/dynamic_config/benchmark_helpers.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/dynamic_config/storage_mock.hpp>
+#include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/utils/statistics/labels.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
@@ -25,9 +25,7 @@ class ServiceBase {
   explicit ServiceBase(dynamic_config::StorageMock&& dynconf,
                        server::ServerConfig&& server_config);
 
-#if defined(DEFAULT_DYNAMIC_CONFIG_FILENAME) || defined(DOXYGEN)
   ServiceBase() : ServiceBase(dynamic_config::MakeDefaultStorage({}), {}) {}
-#endif
 
   virtual ~ServiceBase();
 

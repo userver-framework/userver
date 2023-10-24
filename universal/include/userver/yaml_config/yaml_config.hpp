@@ -9,6 +9,7 @@
 #include <string>
 #include <string_view>
 
+#include <userver/formats/json_fwd.hpp>
 #include <userver/formats/parse/common.hpp>
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/yaml/value.hpp>
@@ -250,6 +251,11 @@ std::chrono::seconds Parse(const YamlConfig& value,
 /// @throws On invalid type and invalid string format
 std::chrono::milliseconds Parse(const YamlConfig& value,
                                 formats::parse::To<std::chrono::milliseconds>);
+
+/// @brief Converts YAML to JSON
+/// @throws formats::json::Value::Exception if `value.IsMissing()`
+formats::json::Value Parse(const YamlConfig& value,
+                           formats::parse::To<formats::json::Value>);
 
 }  // namespace yaml_config
 

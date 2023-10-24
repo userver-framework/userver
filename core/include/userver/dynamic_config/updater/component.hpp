@@ -60,6 +60,8 @@ namespace components {
 /// store-enabled | store the retrieved values into the updates sink determined by the `updates-sink` option | -
 /// load-only-my-values | request from the client only the values used by this service | -
 /// fallback-path | a path to the fallback config to load the required config names from it | -
+/// fallback-path | a path to the fallback config | defaults are taken from dynamic_config::Key definitions
+/// defaults | overrides the defaults from dynamic_config::Key definitions in code | {}
 /// fs-task-processor | name of the task processor to run the blocking file write operations | -
 /// deduplicate-update-types | update types for best-effort update event deduplication, see above | `full-and-incremental`
 ///

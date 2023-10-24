@@ -377,11 +377,9 @@ function(userver_testsuite_add_simple)
       endif()
     endforeach()
   endif()
-  if(NOT dynamic_config_fallback_path)
-    message(FATAL_ERROR
-        "Failed to find dynamic_config_fallback.json for testsuite. "
-        "Please pass it to ${CMAKE_CURRENT_FUNCTION} "
-        "as DYNAMIC_CONFIG_FALLBACK_PATH arg.")
+  if(dynamic_config_fallback_path)
+    list(APPEND pytest_additional_args
+        "--config-fallback=${dynamic_config_fallback_path}")
   endif()
 
   if(ARG_SECDIST_PATH)
@@ -418,7 +416,6 @@ function(userver_testsuite_add_simple)
       "--service-config=${config_path}"
       "--service-source-dir=${CMAKE_CURRENT_SOURCE_DIR}"
       "--service-binary=${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}"
-      "--config-fallback=${dynamic_config_fallback_path}"
       ${pytest_additional_args}
       ${ARG_PYTEST_ARGS}
       REQUIREMENTS ${ARG_REQUIREMENTS}

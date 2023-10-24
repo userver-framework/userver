@@ -31,7 +31,6 @@ components_manager:
 
         dynamic-config:
             fs-cache-path: ''
-
         dynamic-config-fallbacks:
             load-enabled: false
         dynamic-config-client:
@@ -41,11 +40,16 @@ components_manager:
             service-name: testsuite-support
         dynamic-config-client-updater:
             config-settings: false
-            fallback-path: $config-fallback
             full-update-interval: 1m
             load-only-my-values: true
             store-enabled: true
             update-interval: 5s
+            defaults:
+                REDIS_DEADLINE_PROPAGATION_VERSION: 1
+                REDIS_REPLICA_MONITORING_SETTINGS:
+                    __default__:
+                        enable-monitoring: true
+                        forbid-requests-to-syncing-replicas: true
 
         dns-client:
             fs-task-processor: fs-task-processor

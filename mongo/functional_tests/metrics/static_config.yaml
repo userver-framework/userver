@@ -43,7 +43,6 @@ components_manager:
         dynamic-config:
             fs-cache-path: ''
         dynamic-config-fallbacks:
-            fallback-path: /etc/mongo_basic_chaos/dynamic_config_fallback.json
 
         testsuite-support:
 

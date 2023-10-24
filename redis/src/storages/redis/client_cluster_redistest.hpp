@@ -33,8 +33,7 @@ class RedisClusterClientTest : public ::testing::Test {
   };
 
   static void SetUpTestSuite() {
-    static auto config_mock = dynamic_config::MakeDefaultStorage(
-        {{redis::kRedisAutoTopologyEnabled, true}});
+    static auto config_mock = MakeDynamicConfigStorage();
     utils::impl::UserverExperimentsScope scope;
     scope.Set(utils::impl::kRedisClusterAutoTopologyExperiment, true);
     auto configs_source = config_mock.GetSource();
@@ -117,6 +116,21 @@ class RedisClusterClientTest : public ::testing::Test {
     if (!result) return {};
     return {std::stoi(matches[1]), std::stoi(matches[2]),
             std::stoi(matches[3])};
+  }
+
+  static dynamic_config::StorageMock MakeDynamicConfigStorage() {
+    auto docs_map = dynamic_config::impl::GetDefaultDocsMap();
+    docs_map.Set("REDIS_REPLICA_MONITORING_SETTINGS",
+                 formats::json::FromString(R"(
+      {
+        "__default__": {
+          "enable-monitoring": true,
+          "forbid-requests-to-syncing-replicas": true
+        }
+      }
+    )"));
+    return dynamic_config::StorageMock(
+        docs_map, {{redis::kRedisAutoTopologyEnabled, true}});
   }
 };
 

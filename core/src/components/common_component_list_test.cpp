@@ -3,8 +3,9 @@
 #include <fmt/format.h>
 
 #include <userver/components/run.hpp>
-#include <userver/fs/blocking/temp_directory.hpp>  // for fs::blocking::TempDirectory
-#include <userver/fs/blocking/write.hpp>  // for fs::blocking::RewriteFileContents
+#include <userver/dynamic_config/test_helpers.hpp>
+#include <userver/fs/blocking/temp_directory.hpp>
+#include <userver/fs/blocking/write.hpp>
 
 #include <components/component_list_test.hpp>
 #include <userver/utest/utest.hpp>
@@ -15,7 +16,7 @@ namespace {
 
 constexpr std::string_view kConfigVarsTemplate = R"(
   userver-dumps-root: {0}
-  runtime_config_path: {1}
+  dynamic-config-cache-path: {1}
   access_log_path: {0}/access.log
   access_tskv_log_path: {0}/access_tskv.log
   default_log_path: '@stderr'
@@ -122,7 +123,6 @@ components_manager:
     dynamic-config-client-updater:
       store-enabled: true
       load-only-my-values: true
-      fallback-path: $runtime_config_path
       fs-task-processor: fs-task-processor
 
       # options from components::CachingComponentBase
@@ -171,7 +171,7 @@ components_manager:
 # /// [Sample dynamic config component config]
 # yaml
     dynamic-config:
-      fs-cache-path: $runtime_config_path
+      fs-cache-path: $dynamic-config-cache-path
       fs-task-processor: fs-task-processor
 # /// [Sample dynamic config component config]
     http-client-statistics:
@@ -189,16 +189,19 @@ config_vars: )";
 
 TEST_F(ComponentList, Common) {
   const auto temp_root = fs::blocking::TempDirectory::Create();
-  const std::string runtime_config_path =
+  const std::string dynamic_config_cache_path =
       temp_root.GetPath() + "/dynamic_config.json";
   const std::string config_vars_path =
       temp_root.GetPath() + "/config_vars.json";
 
-  fs::blocking::RewriteFileContents(runtime_config_path,
-                                    tests::GetRuntimeConfig());
+  fs::blocking::RewriteFileContents(
+      dynamic_config_cache_path,
+      dynamic_config::impl::GetDefaultDocsMap().AsJsonString());
+
   fs::blocking::RewriteFileContents(
       config_vars_path,
-      fmt::format(kConfigVarsTemplate, temp_root.GetPath(), runtime_config_path,
+      fmt::format(kConfigVarsTemplate, temp_root.GetPath(),
+                  dynamic_config_cache_path,
                   ToString(logging::GetDefaultLoggerLevel())));
 
   components::RunOnce(

@@ -33,10 +33,6 @@ class DefaultLoggerGuardTest {
 
 }  // namespace impl
 
-inline std::string GetRuntimeConfig() {
-  return dynamic_config::impl::GetDefaultDocsMap().AsJsonString();
-};
-
 // BEWARE! No separate fs-task-processor. Testing almost single thread mode
 inline constexpr std::string_view kMinimalStaticConfig = R"(
 components_manager:
@@ -61,12 +57,11 @@ components_manager:
     statistics-storage:
       # Nothing
     dynamic-config:
-      fs-cache-path: $runtime_config_path
+      fs-cache-path: ''
       fs-task-processor: main-task-processor
 # /// [Sample dynamic config fallback component]
 # yaml
     dynamic-config-fallbacks:
-      fallback-path: $runtime_config_path
 # /// [Sample dynamic config fallback component]
 config_vars: )";
 

@@ -55,11 +55,27 @@ components_manager:
             service-name: testsuite-support
         dynamic-config-client-updater:
             config-settings: false
-            fallback-path: $config-fallback
             full-update-interval: 1m
             load-only-my-values: true
             store-enabled: true
             update-interval: 5s
+            defaults:
+                POSTGRES_CONNECTION_POOL_SETTINGS:
+                    key-value-database:
+                        max_pool_size: 15
+                        max_queue_size: 200
+                        min_pool_size: 8
+                POSTGRES_STATEMENT_METRICS_SETTINGS:
+                    key-value-database:
+                        max_statement_metrics: 5
+                POSTGRES_DEFAULT_COMMAND_CONTROL:
+                    network_timeout_ms: 30000
+                    statement_timeout_ms: 15000
+                POSTGRES_CONNECTION_SETTINGS:
+                    __default__:
+                        user-types-enabled: false
+                        recent-errors-threshold: 100000
+                POSTGRES_DEADLINE_PROPAGATION_VERSION: 1
 
         dns-client:
             fs-task-processor: fs-task-processor

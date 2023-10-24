@@ -65,7 +65,6 @@ components_manager:
             fs-cache-path: ''
         dynamic-config-fallbacks:
             load-enabled: false
-            fallback-path: /etc/redis_basic_chaos/dynamic_config_fallback.json
         dynamic-config-client:
             config-url: $config-server-url
             http-retries: 5
@@ -73,7 +72,6 @@ components_manager:
             service-name: testsuite-support
         dynamic-config-client-updater:
             config-settings: false
-            fallback-path: /etc/redis_basic_chaos/dynamic_config_fallback.json
             full-update-interval: 1m
             load-only-my-values: true
             store-enabled: true

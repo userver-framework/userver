@@ -24,8 +24,8 @@ namespace components {
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// updates-sink | name of the component derived from components::DynamicConfigUpdatesSinkBase to be used for storing fallback config | dynamic-config
-/// fallback-path | a path to the fallback config | -
-/// overrides-path | a path to the file containing overrides for a subset of fallback config parameters | -
+/// fallback-path | a path to the fallback config | defaults are taken from dynamic_config::Key definitions
+/// defaults | overrides the defaults from dynamic_config::Key definitions in code | {}
 ///
 /// If you use this component, you have to disable loading of other updaters
 /// (like DynamicConfigClientUpdater) as there must be only a single component

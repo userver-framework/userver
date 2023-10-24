@@ -25,8 +25,7 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 constexpr std::string_view kConfigVarsTemplate = R"(
-  runtime_config_path: {0}
-  sink1_updates_sink: {1}
+  sink1_updates_sink: {0}
 )";
 
 constexpr std::string_view kStaticConfig = R"(
@@ -51,7 +50,7 @@ components_manager:
     statistics-storage:
       # Nothing
     dynamic-config:
-      fs-cache-path: $runtime_config_path
+      fs-cache-path: ''
       fs-task-processor: main-task-processor
 # /// [Sample dynamic config updates sink component]
 # yaml
@@ -63,7 +62,6 @@ components_manager:
 # /// [Sample dynamic config fallback component]
 # yaml
     dynamic-config-fallbacks:
-      fallback-path: $runtime_config_path
       updates-sink: dynamic-config-test-updates-sink1
 # /// [Sample dynamic config fallback component]
 # /// [Verifier of the observed updates sink chain]
@@ -184,18 +182,14 @@ TEST_F(ComponentList, DynamicConfigUpdatesSink) {
       "dynamic-config-fallbacks dynamic-config-test-updates-sink1 "
       "dynamic-config-test-updates-sink2 dynamic-config";
   const auto temp_root = fs::blocking::TempDirectory::Create();
-  const std::string runtime_config_path =
-      temp_root.GetPath() + "/runtime_config.json";
   const std::string config_vars_path =
       temp_root.GetPath() + "/config_vars.json";
   const std::string static_config =
       std::string{kStaticConfig} + config_vars_path + '\n';
 
-  fs::blocking::RewriteFileContents(runtime_config_path,
-                                    tests::GetRuntimeConfig());
   fs::blocking::RewriteFileContents(
-      config_vars_path, fmt::format(kConfigVarsTemplate, runtime_config_path,
-                                    "dynamic-config-test-updates-sink2"));
+      config_vars_path,
+      fmt::format(kConfigVarsTemplate, "dynamic-config-test-updates-sink2"));
 
   components::RunOnce(components::InMemoryConfig{static_config},
                       MakeComponentList());
@@ -203,18 +197,13 @@ TEST_F(ComponentList, DynamicConfigUpdatesSink) {
 
 TEST_F(ComponentList, DynamicConfigUpdatesSinkUsedByMultipleSources) {
   const auto temp_root = fs::blocking::TempDirectory::Create();
-  const std::string runtime_config_path =
-      temp_root.GetPath() + "/runtime_config.json";
   const std::string config_vars_path =
       temp_root.GetPath() + "/config_vars.json";
   const std::string static_config =
       std::string{kStaticConfig} + config_vars_path + '\n';
 
-  fs::blocking::RewriteFileContents(runtime_config_path,
-                                    tests::GetRuntimeConfig());
   fs::blocking::RewriteFileContents(
-      config_vars_path,
-      fmt::format(kConfigVarsTemplate, runtime_config_path, "dynamic-config"));
+      config_vars_path, fmt::format(kConfigVarsTemplate, "dynamic-config"));
 
   try {
     components::RunOnce(components::InMemoryConfig{static_config},

@@ -142,9 +142,6 @@ if (USERVER_IS_THE_ROOT_PROJECT)
       ${PROJECT_NAME}-unittest-proto
   )
   add_google_tests(${PROJECT_NAME}-unittest)
-  target_compile_definitions(${PROJECT_NAME}-unittest PRIVATE
-      DEFAULT_DYNAMIC_CONFIG_FILENAME="${CMAKE_SOURCE_DIR}/grpc/tests/dynamic_config_fallback.json"
-  )
 
   add_executable(${PROJECT_NAME}-benchmark ${BENCH_SOURCES})
   target_link_libraries(${PROJECT_NAME}-benchmark
@@ -157,9 +154,6 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
   )
   add_google_benchmark_tests(${PROJECT_NAME}-benchmark)
-  target_compile_definitions(${PROJECT_NAME}-benchmark PRIVATE
-      DEFAULT_DYNAMIC_CONFIG_FILENAME="${CMAKE_SOURCE_DIR}/grpc/tests/dynamic_config_fallback.json"
-  )
 
   add_subdirectory(functional_tests)
 endif()

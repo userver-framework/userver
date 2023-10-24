@@ -154,7 +154,6 @@ components_manager:
             service-name: $service-name
         dynamic-config-client-updater:
             config-settings: false
-            fallback-path: $config-fallback
             full-update-interval: 1m
             load-only-my-values: true
             store-enabled: true

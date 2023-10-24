@@ -31,7 +31,34 @@ components_manager:
         dynamic-config:                      # Dynamic config storage options, do nothing
             fs-cache-path: ''
         dynamic-config-fallbacks:            # Load options from file and push them into the dynamic config storage.
-            fallback-path: /etc/postgres_service/dynamic_config_fallback.json
+            defaults:
+                POSTGRES_CONNECTION_POOL_SETTINGS:
+                    key-value-database:
+                        max_pool_size: 15
+                        max_queue_size: 200
+                        min_pool_size: 8
+                POSTGRES_CONNECTION_SETTINGS:
+                    key-value-database:
+                        max-ttl-sec: 60
+                        recent-errors-threshold: 100000
+                POSTGRES_DEFAULT_COMMAND_CONTROL:
+                    network_timeout_ms: 750
+                    statement_timeout_ms: 500
+                POSTGRES_HANDLERS_COMMAND_CONTROL:
+                    /v1/key-value:
+                        DELETE:
+                            network_timeout_ms: 500
+                            statement_timeout_ms: 250
+                POSTGRES_QUERIES_COMMAND_CONTROL:
+                    sample_select_value:
+                        network_timeout_ms: 70
+                        statement_timeout_ms: 40
+                    sample_transaction_insert_key_value:
+                        network_timeout_ms: 200
+                        statement_timeout_ms: 150
+                POSTGRES_STATEMENT_METRICS_SETTINGS:
+                    key-value-database:
+                        max_statement_metrics: 5
         dns-client:
             fs-task-processor: fs-task-processor
 

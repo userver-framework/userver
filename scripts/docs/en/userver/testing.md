@@ -146,8 +146,8 @@ Use `engine::RunStandalone` to run parts of your benchmark in a coroutine enviro
 
 See the [equivalent utest section](#utest-dynamic-config).
 
-Default dynamic configs are available
-in `<userver/dynamic_config/benchmark_helpers.hpp>`.
+Default dynamic configs are available in
+in `<userver/dynamic_config/test_helpers.hpp>`.
 
 
 ----------

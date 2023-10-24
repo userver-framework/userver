@@ -102,9 +102,6 @@ if (USERVER_FEATURE_UTEST)
     userver-utest
     ${PROJECT_NAME}
   )
-  target_compile_definitions(${PROJECT_NAME}-utest PRIVATE
-      DEFAULT_DYNAMIC_CONFIG_FILENAME="${CMAKE_CURRENT_SOURCE_DIR}/tests/dynamic_config_fallback.json"
-  )
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
@@ -124,9 +121,6 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   target_include_directories (${PROJECT_NAME}-unittest PRIVATE
     $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
   )
-  target_compile_definitions(${PROJECT_NAME}-unittest PRIVATE
-      DEFAULT_DYNAMIC_CONFIG_FILENAME="${CMAKE_CURRENT_SOURCE_DIR}/tests/dynamic_config_fallback.json"
-  )
   add_google_tests(${PROJECT_NAME}-unittest)
 
   add_executable(${PROJECT_NAME}-redistest ${REDIS_TEST_SOURCES})
@@ -134,9 +128,6 @@ if (USERVER_IS_THE_ROOT_PROJECT)
       $<TARGET_PROPERTY:userver-redis,INCLUDE_DIRECTORIES>
   )
   target_link_libraries(${PROJECT_NAME}-redistest userver-utest ${PROJECT_NAME})
-  target_compile_definitions(${PROJECT_NAME}-redistest PRIVATE
-      DEFAULT_DYNAMIC_CONFIG_FILENAME="${CMAKE_CURRENT_SOURCE_DIR}/tests/dynamic_config_fallback.json"
-  )
   add_test(${PROJECT_NAME}-redistest
     env
       ${CMAKE_BINARY_DIR}/testsuite/env
