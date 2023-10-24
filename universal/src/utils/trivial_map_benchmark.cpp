@@ -85,6 +85,30 @@ constexpr utils::TrivialBiMap kHugeTrivialBiMap = [](auto selector) {
       .Case("aaaaaaaaaaaaaaaa_x9", 42);
 };
 
+constexpr std::string_view kHugeTrivialBiMapKeys[] = {
+    "aaaaaaaaaaaaaaaa_hello", "aaaaaaaaaaaaaaaa_world", "aaaaaaaaaaaaaaaa_a",
+    "aaaaaaaaaaaaaaaa_b",     "aaaaaaaaaaaaaaaa_c",     "aaaaaaaaaaaaaaaa_d",
+    "aaaaaaaaaaaaaaaa_e",     "aaaaaaaaaaaaaaaa_f",     "aaaaaaaaaaaaaaaa_f1",
+    "aaaaaaaaaaaaaaaa_f2",    "aaaaaaaaaaaaaaaa_f3",    "aaaaaaaaaaaaaaaa_f4",
+    "aaaaaaaaaaaaaaaa_f5",    "aaaaaaaaaaaaaaaa_f6",    "aaaaaaaaaaaaaaaa_f7",
+    "aaaaaaaaaaaaaaaa_f8",    "aaaaaaaaaaaaaaaa_f9",    "aaaaaaaaaaaaaaaa_z",
+    "aaaaaaaaaaaaaaaa_z1",    "aaaaaaaaaaaaaaaa_z2",    "aaaaaaaaaaaaaaaa_z3",
+    "aaaaaaaaaaaaaaaa_z4",    "aaaaaaaaaaaaaaaa_z5",    "aaaaaaaaaaaaaaaa_z6",
+    "aaaaaaaaaaaaaaaa_z7",    "aaaaaaaaaaaaaaaa_z8",    "aaaaaaaaaaaaaaaa_z9",
+    "aaaaaaaaaaaaaaaa_x",     "aaaaaaaaaaaaaaaa_x1",    "aaaaaaaaaaaaaaaa_x2",
+    "aaaaaaaaaaaaaaaa_x3",    "aaaaaaaaaaaaaaaa_x4",    "aaaaaaaaaaaaaaaa_x5",
+    "aaaaaaaaaaaaaaaa_x6",    "aaaaaaaaaaaaaaaa_x7",    "aaaaaaaaaaaaaaaa_x8",
+    "aaaaaaaaaaaaaaaa_x9",
+};
+
+constexpr int kHugeTrivialBiMapValues[] = {
+    1,  2,  3,  4,  5,  6,  7,  8,  8,  8,  8,  8,  8,  8,  8,  8,  8,  42, 42,
+    42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42, 42,
+};
+
+constexpr auto kHugeTrivialBiMapAlt =
+    utils::MakeTrivialBiMap<kHugeTrivialBiMapKeys, kHugeTrivialBiMapValues>();
+
 const auto kHugeUnorderedMapping = std::unordered_map<std::string_view, int>{
     {"aaaaaaaaaaaaaaaa_hello", 1}, {"aaaaaaaaaaaaaaaa_world", 2},
     {"aaaaaaaaaaaaaaaa_a", 3},     {"aaaaaaaaaaaaaaaa_b", 4},
@@ -346,6 +370,35 @@ void MappingHugeTrivialBiMap(benchmark::State& state) {
   }
 }
 BENCHMARK(MappingHugeTrivialBiMap);
+
+void MappingHugeTrivialBiMapZip(benchmark::State& state) {
+  auto hello = MyLaunder("aaaaaaaaaaaaaaaa_hello");
+  auto world = MyLaunder("aaaaaaaaaaaaaaaa_world");
+  auto a = MyLaunder("aaaaaaaaaaaaaaaa_a");
+  auto b = MyLaunder("aaaaaaaaaaaaaaaa_b");
+  auto c = MyLaunder("aaaaaaaaaaaaaaaa_c");
+
+  auto d = MyLaunder("aaaaaaaaaaaaaaaa_d");
+  auto e = MyLaunder("aaaaaaaaaaaaaaaa_e");
+  auto f9 = MyLaunder("aaaaaaaaaaaaaaaa_f9");
+  auto z = MyLaunder("aaaaaaaaaaaaaaaa_z");
+  auto z9 = MyLaunder("aaaaaaaaaaaaaaaa_z9");
+
+  for ([[maybe_unused]] auto _ : state) {
+    benchmark::DoNotOptimize(kHugeTrivialBiMapAlt.TryFind(hello));
+    benchmark::DoNotOptimize(kHugeTrivialBiMapAlt.TryFind(world));
+    benchmark::DoNotOptimize(kHugeTrivialBiMapAlt.TryFind(a));
+    benchmark::DoNotOptimize(kHugeTrivialBiMapAlt.TryFind(b));
+    benchmark::DoNotOptimize(kHugeTrivialBiMapAlt.TryFind(c));
+
+    benchmark::DoNotOptimize(kHugeTrivialBiMapAlt.TryFind(d));
+    benchmark::DoNotOptimize(kHugeTrivialBiMapAlt.TryFind(e));
+    benchmark::DoNotOptimize(kHugeTrivialBiMapAlt.TryFind(f9));
+    benchmark::DoNotOptimize(kHugeTrivialBiMapAlt.TryFind(z));
+    benchmark::DoNotOptimize(kHugeTrivialBiMapAlt.TryFind(z9));
+  }
+}
+BENCHMARK(MappingHugeTrivialBiMapZip);
 
 void MappingHugeUnordered(benchmark::State& state) {
   auto hello = MyLaunder("aaaaaaaaaaaaaaaa_hello");

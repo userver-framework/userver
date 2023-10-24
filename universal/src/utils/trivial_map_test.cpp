@@ -17,8 +17,8 @@ constexpr utils::TrivialBiMap kToInt = [](auto selector) {
 TEST(TrivialBiMap, StringBasic) {
   EXPECT_FALSE(kToInt.TryFind(42));
 
-  EXPECT_EQ(kToInt.TryFind("one").value(), 1);
-  EXPECT_EQ(kToInt.TryFind(2).value(), "two");
+  EXPECT_EQ(kToInt.TryFind("one"), 1);
+  EXPECT_EQ(kToInt.TryFind(2), "two");
 
   EXPECT_EQ(kToInt.TryFind("ten").value_or(-1), -1);
 }
@@ -54,14 +54,11 @@ constexpr utils::TrivialBiMap kColorSwitch = [](auto selector) {
 };
 
 TEST(TrivialBiMap, EnumToEnum) {
-  EXPECT_EQ(kColorSwitch.TryFind(ThirdPartyColor::kRed).value(), Colors::kRed);
-  EXPECT_EQ(kColorSwitch.TryFind(ThirdPartyColor::kBlue).value(),
-            Colors::kBlue);
+  EXPECT_EQ(kColorSwitch.TryFind(ThirdPartyColor::kRed), Colors::kRed);
+  EXPECT_EQ(kColorSwitch.TryFind(ThirdPartyColor::kBlue), Colors::kBlue);
 
-  EXPECT_EQ(kColorSwitch.TryFind(Colors::kGreen).value(),
-            ThirdPartyColor::kGreen);
-  EXPECT_EQ(kColorSwitch.TryFind(Colors::kOrange).value(),
-            ThirdPartyColor::kOrange);
+  EXPECT_EQ(kColorSwitch.TryFind(Colors::kGreen), ThirdPartyColor::kGreen);
+  EXPECT_EQ(kColorSwitch.TryFind(Colors::kOrange), ThirdPartyColor::kOrange);
 }
 /// [sample bidir bimap]
 
@@ -144,15 +141,29 @@ TEST(TrivialBiMap, StringToString) {
         .Case("three", "drei");
   };
 
-  EXPECT_EQ(*kEnglishToGerman.TryFindByFirst("zero"), "null");
-  EXPECT_EQ(*kEnglishToGerman.TryFindICaseByFirst("ZeRo"), "null");
-  EXPECT_EQ(*kEnglishToGerman.TryFindICaseByFirst("three"), "drei");
-  EXPECT_EQ(*kEnglishToGerman.TryFindICaseByFirst("Three"), "drei");
+  EXPECT_EQ(kEnglishToGerman.TryFindByFirst("zero"), "null");
+  EXPECT_EQ(kEnglishToGerman.TryFindICaseByFirst("ZeRo"), "null");
+  EXPECT_EQ(kEnglishToGerman.TryFindICaseByFirst("three"), "drei");
+  EXPECT_EQ(kEnglishToGerman.TryFindICaseByFirst("Three"), "drei");
 
-  EXPECT_EQ(*kEnglishToGerman.TryFindBySecond("null"), "zero");
-  EXPECT_EQ(*kEnglishToGerman.TryFindICaseBySecond("NULL"), "zero");
-  EXPECT_EQ(*kEnglishToGerman.TryFindICaseBySecond("DrEi"), "three");
-  EXPECT_EQ(*kEnglishToGerman.TryFindICaseBySecond("Drei"), "three");
+  EXPECT_EQ(kEnglishToGerman.TryFindBySecond("null"), "zero");
+  EXPECT_EQ(kEnglishToGerman.TryFindICaseBySecond("NULL"), "zero");
+  EXPECT_EQ(kEnglishToGerman.TryFindICaseBySecond("DrEi"), "three");
+  EXPECT_EQ(kEnglishToGerman.TryFindICaseBySecond("Drei"), "three");
+}
+
+TEST(TrivialBiMap, MakeTrivialBiMap) {
+  static constexpr std::string_view kToIntKeys[] = {"zero", "one", "two",
+                                                    "three"};
+  static constexpr int kToIntValues[] = {0, 1, 2, 3};
+
+  static constexpr auto kMap =
+      utils::MakeTrivialBiMap<kToIntKeys, kToIntValues>();
+
+  EXPECT_EQ(kMap.TryFind("one"), 1);
+  EXPECT_EQ(kMap.TryFind("ten"), std::nullopt);
+  EXPECT_EQ(kMap.TryFind(2), "two");
+  EXPECT_EQ(kMap.TryFind(42), std::nullopt);
 }
 
 TEST(TrivialBiMap, FindICaseBySecond) {
@@ -161,10 +172,10 @@ TEST(TrivialBiMap, FindICaseBySecond) {
         3, "drei");
   };
 
-  EXPECT_EQ(*kNumToGerman.TryFind("null"), 0);
-  EXPECT_EQ(*kNumToGerman.TryFindICase("NULL"), 0);
-  EXPECT_EQ(*kNumToGerman.TryFindICase("DrEi"), 3);
-  EXPECT_EQ(*kNumToGerman.TryFindICase("Drei"), 3);
+  EXPECT_EQ(kNumToGerman.TryFind("null"), 0);
+  EXPECT_EQ(kNumToGerman.TryFindICase("NULL"), 0);
+  EXPECT_EQ(kNumToGerman.TryFindICase("DrEi"), 3);
+  EXPECT_EQ(kNumToGerman.TryFindICase("Drei"), 3);
 }
 
 constexpr utils::TrivialBiMap kICaseCheck = [](auto selector) {
@@ -197,22 +208,16 @@ constexpr utils::TrivialBiMap kICaseCheck = [](auto selector) {
 
 TEST(TrivialBiMap, StringICase) {
   EXPECT_EQ(
-      kICaseCheck
-          .TryFindICase(
-              "qwertyuiop[]asdfghjkl;'zxcvbnm,./`1234567890-=+_)(*&^%$#@!~==5")
-          .value(),
+      kICaseCheck.TryFindICase(
+          "qwertyuiop[]asdfghjkl;'zxcvbnm,./`1234567890-=+_)(*&^%$#@!~==5"),
       5);
   EXPECT_EQ(
-      kICaseCheck
-          .TryFindICase(
-              "QWERTYUIOP[]ASDFGHJKL;'ZXCVBNM,./`1234567890-=+_)(*&^%$#@!~==5")
-          .value(),
+      kICaseCheck.TryFindICase(
+          "QWERTYUIOP[]ASDFGHJKL;'ZXCVBNM,./`1234567890-=+_)(*&^%$#@!~==5"),
       5);
   EXPECT_EQ(
-      kICaseCheck
-          .TryFindICase(
-              "QwErTYUiOP[]ASDFGhJKL;'ZXCVBnM,./`1234567890-=+_)(*&^%$#@!~==5")
-          .value(),
+      kICaseCheck.TryFindICase(
+          "QwErTYUiOP[]ASDFGhJKL;'ZXCVBnM,./`1234567890-=+_)(*&^%$#@!~==5"),
       5);
 
   EXPECT_FALSE(kICaseCheck.TryFind(
@@ -220,56 +225,44 @@ TEST(TrivialBiMap, StringICase) {
   EXPECT_FALSE(kICaseCheck.TryFind(
       "QwErTYUiOP[]ASDFGhJKL;'ZXCVBnM,./`1234567890-=+_)(*&^%$#@!~==5"));
 
-  EXPECT_EQ(
-      kICaseCheck
-          .TryFindICase(
-              "\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f")
-          .value(),
-      6);
-  EXPECT_EQ(kICaseCheck
-                .TryFindICase("\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b"
-                              "\x1c\x1d\x1e\x1f")
-                .value(),
+  EXPECT_EQ(kICaseCheck.TryFindICase(
+                "\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f"),
+            6);
+  EXPECT_EQ(kICaseCheck.TryFindICase(
+                "\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b"
+                "\x1c\x1d\x1e\x1f"),
             7);
-  EXPECT_EQ(kICaseCheck
-                .TryFindICase("\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b"
-                              "\x8c\x8d\x8e\x8f")
-                .value(),
+  EXPECT_EQ(kICaseCheck.TryFindICase(
+                "\x80\x81\x82\x83\x84\x85\x86\x87\x88\x89\x8a\x8b"
+                "\x8c\x8d\x8e\x8f"),
             8);
-  EXPECT_EQ(kICaseCheck
-                .TryFindICase("\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b"
-                              "\x9c\x9d\x9e\x9f")
-                .value(),
+  EXPECT_EQ(kICaseCheck.TryFindICase(
+                "\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99\x9a\x9b"
+                "\x9c\x9d\x9e\x9f"),
             9);
-  EXPECT_EQ(kICaseCheck
-                .TryFindICase("\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab"
-                              "\xac\xad\xae\xaf")
-                .value(),
+  EXPECT_EQ(kICaseCheck.TryFindICase(
+                "\xa0\xa1\xa2\xa3\xa4\xa5\xa6\xa7\xa8\xa9\xaa\xab"
+                "\xac\xad\xae\xaf"),
             10);
-  EXPECT_EQ(kICaseCheck
-                .TryFindICase("\xb0\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb"
-                              "\xbc\xbd\xbe\xbf")
-                .value(),
+  EXPECT_EQ(kICaseCheck.TryFindICase(
+                "\xb0\xb1\xb2\xb3\xb4\xb5\xb6\xb7\xb8\xb9\xba\xbb"
+                "\xbc\xbd\xbe\xbf"),
             11);
-  EXPECT_EQ(kICaseCheck
-                .TryFindICase("\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb"
-                              "\xcc\xcd\xce\xcf")
-                .value(),
+  EXPECT_EQ(kICaseCheck.TryFindICase(
+                "\xc0\xc1\xc2\xc3\xc4\xc5\xc6\xc7\xc8\xc9\xca\xcb"
+                "\xcc\xcd\xce\xcf"),
             12);
-  EXPECT_EQ(kICaseCheck
-                .TryFindICase("\xd0\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb"
-                              "\xdc\xdd\xde\xdf")
-                .value(),
+  EXPECT_EQ(kICaseCheck.TryFindICase(
+                "\xd0\xd1\xd2\xd3\xd4\xd5\xd6\xd7\xd8\xd9\xda\xdb"
+                "\xdc\xdd\xde\xdf"),
             13);
-  EXPECT_EQ(kICaseCheck
-                .TryFindICase("\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xeb"
-                              "\xec\xed\xee\xef")
-                .value(),
+  EXPECT_EQ(kICaseCheck.TryFindICase(
+                "\xe0\xe1\xe2\xe3\xe4\xe5\xe6\xe7\xe8\xe9\xea\xeb"
+                "\xec\xed\xee\xef"),
             14);
-  EXPECT_EQ(kICaseCheck
-                .TryFindICase("\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb"
-                              "\xfc\xfd\xfe\xff")
-                .value(),
+  EXPECT_EQ(kICaseCheck.TryFindICase(
+                "\xf0\xf1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb"
+                "\xfc\xfd\xfe\xff"),
             15);
 
   // This attempts to test the
