@@ -10,6 +10,7 @@ A directory with samples:
 * http_caching - sample implementation of low-level caching component. [Documentation](https://userver.tech/dc/d8a/md_en_2userver_2tutorial_2http__caching.html)
 * mongo_service - sample service that uses MongoDB. [Documentation](https://userver.tech/d5/d81/md_en_2userver_2tutorial_2mongo__service.html)
 * mongo-support - distlock using MongoDB
+* multipart_service - sample on how to receive files and deal with multipart/form-data requests
 * postgres_auth - custom "Bearer" authentication that uses PostgreSQL. [Documentation](https://userver.tech/da/d24/md_en_2userver_2tutorial_2auth__postgres.html)
 * postgres_service - sample service that uses PostgreSQL. [Documentation](https://userver.tech/d4/d31/md_en_2userver_2tutorial_2postgres__service.html)
 * postgres-support - distlock using PostgreSQL

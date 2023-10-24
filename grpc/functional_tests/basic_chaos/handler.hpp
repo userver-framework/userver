@@ -20,8 +20,8 @@ class GreeterHttpHandler final : public server::handlers::HttpHandlerBase {
   inline std::string HandleRequestThrow(
       const server::http::HttpRequest& request,
       server::request::RequestContext&) const override {
-    const auto arg_case = request.GetArg("case");
-    const auto arg_timeout = request.GetArg("timeout");
+    const auto& arg_case = request.GetArg("case");
+    const auto& arg_timeout = request.GetArg("timeout");
     bool is_small_timeout = false;
     if (arg_timeout == "small") {
       is_small_timeout = true;

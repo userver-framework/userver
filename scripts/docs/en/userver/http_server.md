@@ -8,7 +8,7 @@
 
 * HTTP 1.1/1.0 support;
 * HTTPS;
-* WebSocket;
+* @ref scripts/docs/en/userver/tutorial/websocket_service.md "WebSocket";
 * Body decompression with "Content-Encoding: gzip";
 * HTTP pipelining;
 * Custom authorization @ref scripts/docs/en/userver/tutorial/auth_postgres.md ;
@@ -17,6 +17,7 @@
 * Requests-in-flight inspection via server::handlers::InspectRequests ;
 * Body size / headers count / URL length / etc. limits;
 * Streaming;
+* @ref scripts/docs/en/userver/tutorial/multipart_service.md "File uploads and multipart/form-data"
 * @ref scripts/docs/en/userver/deadline_propagation.md .
 
 ## Streaming API

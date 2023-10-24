@@ -31,7 +31,7 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
   std::string HandleRequestThrow(
       const server::http::HttpRequest& request,
       server::request::RequestContext&) const override {
-    const auto sleep_ms = request.GetArg("sleep_ms");
+    const auto& sleep_ms = request.GetArg("sleep_ms");
     if (!sleep_ms.empty()) {
       engine::SleepFor(std::chrono::milliseconds{
           utils::FromString<std::chrono::milliseconds::rep>(sleep_ms)});

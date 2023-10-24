@@ -69,8 +69,8 @@ HandlerMetricsClickhouse::HandlerMetricsClickhouse(
 std::string HandlerMetricsClickhouse::HandleRequestThrow(
     const server::http::HttpRequest& request,
     server::request::RequestContext&) const {
-  auto key = request.GetArg("key");
-  auto value = request.GetArg("value");
+  const auto& key = request.GetArg("key");
+  const auto& value = request.GetArg("value");
   if (key.empty()) {
     request.GetHttpResponse().SetStatus(server::http::HttpStatus::kBadRequest);
   }

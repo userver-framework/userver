@@ -238,8 +238,11 @@ void HttpRequestConstructor::ParseArgs(const http_parser_url& url) {
 }
 
 void HttpRequestConstructor::ParseArgs(const char* data, size_t size) {
-  return USERVER_NAMESPACE::http::parser::ParseArgs(
-      std::string_view(data, size), request_->request_args_);
+  USERVER_NAMESPACE::http::parser::ParseAndConsumeArgs(
+      std::string_view(data, size),
+      [this](std::string&& key, std::string&& value) {
+        request_->request_args_[std::move(key)].push_back(std::move(value));
+      });
 }
 
 void HttpRequestConstructor::AddHeader() {

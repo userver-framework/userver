@@ -47,16 +47,16 @@ std::chrono::duration<double> HttpRequest::GetResponseTime() const {
 
 const std::string& HttpRequest::GetHost() const { return impl_.GetHost(); }
 
-const std::string& HttpRequest::GetArg(const std::string& arg_name) const {
+const std::string& HttpRequest::GetArg(std::string_view arg_name) const {
   return impl_.GetArg(arg_name);
 }
 
 const std::vector<std::string>& HttpRequest::GetArgVector(
-    const std::string& arg_name) const {
+    std::string_view arg_name) const {
   return impl_.GetArgVector(arg_name);
 }
 
-bool HttpRequest::HasArg(const std::string& arg_name) const {
+bool HttpRequest::HasArg(std::string_view arg_name) const {
   return impl_.HasArg(arg_name);
 }
 
@@ -67,16 +67,16 @@ std::vector<std::string> HttpRequest::ArgNames() const {
 }
 
 const FormDataArg& HttpRequest::GetFormDataArg(
-    const std::string& arg_name) const {
+    std::string_view arg_name) const {
   return impl_.GetFormDataArg(arg_name);
 }
 
 const std::vector<FormDataArg>& HttpRequest::GetFormDataArgVector(
-    const std::string& arg_name) const {
+    std::string_view arg_name) const {
   return impl_.GetFormDataArgVector(arg_name);
 }
 
-bool HttpRequest::HasFormDataArg(const std::string& arg_name) const {
+bool HttpRequest::HasFormDataArg(std::string_view arg_name) const {
   return impl_.HasFormDataArg(arg_name);
 }
 
@@ -88,7 +88,7 @@ std::vector<std::string> HttpRequest::FormDataArgNames() const {
   return impl_.FormDataArgNames();
 }
 
-const std::string& HttpRequest::GetPathArg(const std::string& arg_name) const {
+const std::string& HttpRequest::GetPathArg(std::string_view arg_name) const {
   return impl_.GetPathArg(arg_name);
 }
 
@@ -96,7 +96,7 @@ const std::string& HttpRequest::GetPathArg(size_t index) const {
   return impl_.GetPathArg(index);
 }
 
-bool HttpRequest::HasPathArg(const std::string& arg_name) const {
+bool HttpRequest::HasPathArg(std::string_view arg_name) const {
   return impl_.HasPathArg(arg_name);
 }
 

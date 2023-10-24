@@ -34,6 +34,9 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-json2yaml)
 add_subdirectory(hello_service)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-hello_service)
 
+add_subdirectory(multipart_service)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-multipart_service)
+
 add_subdirectory(websocket_service)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-websocket_service)
 

@@ -80,18 +80,17 @@ class HttpRequest final {
   /// @return First argument value with name arg_name or an empty string if no
   /// such argument. Arguments are extracted from query part of the URL and from
   /// the HTTP body.
-  const std::string& GetArg(const std::string& arg_name) const;
+  const std::string& GetArg(std::string_view arg_name) const;
 
   /// @return Argument values with name arg_name or an empty string if no
   /// such argument. Arguments are extracted from query part of the URL and from
   /// the HTTP body.
-  const std::vector<std::string>& GetArgVector(
-      const std::string& arg_name) const;
+  const std::vector<std::string>& GetArgVector(std::string_view arg_name) const;
 
   /// @return true if argument with name arg_name exists, false otherwise.
   /// Arguments are extracted from query part of the URL and from
   /// the HTTP body.
-  bool HasArg(const std::string& arg_name) const;
+  bool HasArg(std::string_view arg_name) const;
 
   /// @return Count of arguments. Arguments are extracted from query part of the
   /// URL and from the HTTP body.
@@ -103,16 +102,16 @@ class HttpRequest final {
 
   /// @return First argument value with name arg_name from multipart/form-data
   /// request or an empty FormDataArg if no such argument.
-  const FormDataArg& GetFormDataArg(const std::string& arg_name) const;
+  const FormDataArg& GetFormDataArg(std::string_view arg_name) const;
 
   /// @return Argument values with name arg_name from multipart/form-data
   /// request or an empty FormDataArg if no such argument.
   const std::vector<FormDataArg>& GetFormDataArgVector(
-      const std::string& arg_name) const;
+      std::string_view arg_name) const;
 
   /// @return true if argument with name arg_name exists in multipart/form-data
   /// request, false otherwise.
-  bool HasFormDataArg(const std::string& arg_name) const;
+  bool HasFormDataArg(std::string_view arg_name) const;
 
   /// @return Count of multipart/form-data arguments.
   size_t FormDataArgCount() const;
@@ -121,14 +120,14 @@ class HttpRequest final {
   std::vector<std::string> FormDataArgNames() const;
 
   /// @return Named argument from URL path with wildcards.
-  const std::string& GetPathArg(const std::string& arg_name) const;
+  const std::string& GetPathArg(std::string_view arg_name) const;
 
   /// @return Argument from URL path with wildcards by its 0-based index
   const std::string& GetPathArg(size_t index) const;
 
   /// @return true if named argument from URL path with wildcards exists, false
   /// otherwise.
-  bool HasPathArg(const std::string& arg_name) const;
+  bool HasPathArg(std::string_view arg_name) const;
 
   /// @return true if argument with index from URL path with wildcards exists,
   /// false otherwise.

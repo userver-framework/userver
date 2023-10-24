@@ -160,7 +160,7 @@ std::string EvalSha::HandleRequestThrow(
 
 std::string EvalSha::EvalShaRequest(
     const server::http::HttpRequest& request) const {
-  const auto script_hash = request.GetArg("hash");
+  const auto& script_hash = request.GetArg("hash");
   if (script_hash.empty()) {
     throw server::handlers::ClientError(
         server::handlers::ExternalBody{"No 'hash' query argument"});
@@ -187,7 +187,7 @@ std::string EvalSha::EvalShaRequest(
 
 std::string EvalSha::ScriptLoad(
     const server::http::HttpRequest& request) const {
-  const auto script = request.GetArg("script");
+  const auto& script = request.GetArg("script");
   if (script.empty()) {
     throw server::handlers::ClientError(
         server::handlers::ExternalBody{"No 'script' query argument"});

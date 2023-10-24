@@ -13,6 +13,7 @@
 #include <userver/server/http/http_response.hpp>
 #include <userver/server/request/request_base.hpp>
 #include <userver/utils/datetime/wall_coarse_clock.hpp>
+#include <userver/utils/impl/transparent_hash.hpp>
 #include <userver/utils/str_icase.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -44,23 +45,22 @@ class HttpRequestImpl final : public request::RequestBase {
 
   const std::string& GetHost() const;
 
-  const std::string& GetArg(const std::string& arg_name) const;
-  const std::vector<std::string>& GetArgVector(
-      const std::string& arg_name) const;
-  bool HasArg(const std::string& arg_name) const;
+  const std::string& GetArg(std::string_view arg_name) const;
+  const std::vector<std::string>& GetArgVector(std::string_view arg_name) const;
+  bool HasArg(std::string_view arg_name) const;
   size_t ArgCount() const;
   std::vector<std::string> ArgNames() const;
 
-  const FormDataArg& GetFormDataArg(const std::string& arg_name) const;
+  const FormDataArg& GetFormDataArg(std::string_view arg_name) const;
   const std::vector<FormDataArg>& GetFormDataArgVector(
-      const std::string& arg_name) const;
-  bool HasFormDataArg(const std::string& arg_name) const;
+      std::string_view arg_name) const;
+  bool HasFormDataArg(std::string_view arg_name) const;
   size_t FormDataArgCount() const;
   std::vector<std::string> FormDataArgNames() const;
 
-  const std::string& GetPathArg(const std::string& arg_name) const;
+  const std::string& GetPathArg(std::string_view arg_name) const;
   const std::string& GetPathArg(size_t index) const;
-  bool HasPathArg(const std::string& arg_name) const;
+  bool HasPathArg(std::string_view arg_name) const;
   bool HasPathArg(size_t index) const;
   size_t PathArgCount() const;
 
@@ -150,12 +150,14 @@ class HttpRequestImpl final : public request::RequestBase {
   std::string request_path_;
   std::string request_body_;
   std::string path_suffix_;
-  std::unordered_map<std::string, std::vector<std::string>, utils::StrCaseHash>
+  utils::impl::TransparentMap<std::string, std::vector<std::string>,
+                              utils::StrCaseHash>
       request_args_;
-  std::unordered_map<std::string, std::vector<FormDataArg>, utils::StrCaseHash>
+  utils::impl::TransparentMap<std::string, std::vector<FormDataArg>,
+                              utils::StrCaseHash>
       form_data_args_;
   std::vector<std::string> path_args_;
-  std::unordered_map<std::string, size_t, utils::StrCaseHash>
+  utils::impl::TransparentMap<std::string, size_t, utils::StrCaseHash>
       path_args_by_name_index_;
   HttpRequest::HeadersMap headers_;
   HttpRequest::CookiesMap cookies_;

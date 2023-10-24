@@ -97,22 +97,25 @@ const std::string& HttpRequestImpl::GetHost() const {
   return GetHeader(USERVER_NAMESPACE::http::headers::kHost);
 }
 
-const std::string& HttpRequestImpl::GetArg(const std::string& arg_name) const {
-  auto it = request_args_.find(arg_name);
-  if (it == request_args_.end()) return kEmptyString;
-  return it->second.at(0);
+const std::string& HttpRequestImpl::GetArg(std::string_view arg_name) const {
+  const auto* ptr =
+      utils::impl::FindTransparentOrNullptr(request_args_, arg_name);
+  if (!ptr) return kEmptyString;
+  return ptr->at(0);
 }
 
 const std::vector<std::string>& HttpRequestImpl::GetArgVector(
-    const std::string& arg_name) const {
-  auto it = request_args_.find(arg_name);
-  if (it == request_args_.end()) return kEmptyVector;
-  return it->second;
+    std::string_view arg_name) const {
+  const auto* ptr =
+      utils::impl::FindTransparentOrNullptr(request_args_, arg_name);
+  if (!ptr) return kEmptyVector;
+  return *ptr;
 }
 
-bool HttpRequestImpl::HasArg(const std::string& arg_name) const {
-  auto it = request_args_.find(arg_name);
-  return (it != request_args_.end());
+bool HttpRequestImpl::HasArg(std::string_view arg_name) const {
+  const auto* ptr =
+      utils::impl::FindTransparentOrNullptr(request_args_, arg_name);
+  return !!ptr;
 }
 
 size_t HttpRequestImpl::ArgCount() const { return request_args_.size(); }
@@ -125,26 +128,29 @@ std::vector<std::string> HttpRequestImpl::ArgNames() const {
 }
 
 const FormDataArg& HttpRequestImpl::GetFormDataArg(
-    const std::string& arg_name) const {
+    std::string_view arg_name) const {
   static const FormDataArg kEmptyFormDataArg{};
 
-  auto it = form_data_args_.find(arg_name);
-  if (it == form_data_args_.end()) return kEmptyFormDataArg;
-  return it->second.at(0);
+  const auto* ptr =
+      utils::impl::FindTransparentOrNullptr(form_data_args_, arg_name);
+  if (!ptr) return kEmptyFormDataArg;
+  return ptr->at(0);
 }
 
 const std::vector<FormDataArg>& HttpRequestImpl::GetFormDataArgVector(
-    const std::string& arg_name) const {
+    std::string_view arg_name) const {
   static const std::vector<FormDataArg> kEmptyFormDataArgVector{};
 
-  auto it = form_data_args_.find(arg_name);
-  if (it == form_data_args_.end()) return kEmptyFormDataArgVector;
-  return it->second;
+  const auto* ptr =
+      utils::impl::FindTransparentOrNullptr(form_data_args_, arg_name);
+  if (!ptr) return kEmptyFormDataArgVector;
+  return *ptr;
 }
 
-bool HttpRequestImpl::HasFormDataArg(const std::string& arg_name) const {
-  auto it = form_data_args_.find(arg_name);
-  return (it != form_data_args_.end());
+bool HttpRequestImpl::HasFormDataArg(std::string_view arg_name) const {
+  const auto* ptr =
+      utils::impl::FindTransparentOrNullptr(form_data_args_, arg_name);
+  return !!ptr;
 }
 
 size_t HttpRequestImpl::FormDataArgCount() const {
@@ -159,20 +165,21 @@ std::vector<std::string> HttpRequestImpl::FormDataArgNames() const {
 }
 
 const std::string& HttpRequestImpl::GetPathArg(
-    const std::string& arg_name) const {
-  auto it = path_args_by_name_index_.find(arg_name);
-  if (it == path_args_by_name_index_.end()) return kEmptyString;
-  UASSERT(it->second < path_args_.size());
-  return path_args_[it->second];
+    std::string_view arg_name) const {
+  const auto* ptr =
+      utils::impl::FindTransparentOrNullptr(path_args_by_name_index_, arg_name);
+  if (!ptr) return kEmptyString;
+  UASSERT(*ptr < path_args_.size());
+  return path_args_[*ptr];
 }
 
 const std::string& HttpRequestImpl::GetPathArg(size_t index) const {
   return index < PathArgCount() ? path_args_[index] : kEmptyString;
 }
 
-bool HttpRequestImpl::HasPathArg(const std::string& arg_name) const {
-  return path_args_by_name_index_.find(arg_name) !=
-         path_args_by_name_index_.end();
+bool HttpRequestImpl::HasPathArg(std::string_view arg_name) const {
+  return !!utils::impl::FindTransparentOrNullptr(path_args_by_name_index_,
+                                                 arg_name);
 }
 
 bool HttpRequestImpl::HasPathArg(size_t index) const {
@@ -251,7 +258,13 @@ void HttpRequestImpl::SetRequestBody(std::string body) {
 }
 
 void HttpRequestImpl::ParseArgsFromBody() {
-  USERVER_NAMESPACE::http::parser::ParseArgs(request_body_, request_args_);
+  UASSERT_MSG(
+      request_args_.empty(),
+      "References to arguments could be invalidated by ParseArgsFromBody()");
+  USERVER_NAMESPACE::http::parser::ParseAndConsumeArgs(
+      request_body_, [this](std::string&& key, std::string&& value) {
+        request_args_[std::move(key)].push_back(std::move(value));
+      });
 }
 
 bool HttpRequestImpl::IsBodyCompressed() const {

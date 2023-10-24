@@ -28,6 +28,7 @@
         <tab type="user" url="@ref md_en_2userver_2tutorial_2redis__service" title="Redis service"/>
         <tab type="user" url="@ref md_en_2userver_2tutorial_2auth__postgres" title="Custom Authorization/Authentication via PostgreSQL"/>
         <tab type="user" url="@ref md_en_2userver_2tutorial_2websocket__service" title="Writing your WebSocket service"/>
+        <tab type="user" url="@ref md_en_2userver_2tutorial_2multipart__service" title="File uploads and multipart/form-data testing"/>
         <tab type="user" url="@ref md_en_2userver_2tutorial_2json__to__yaml" title="Non-Coroutine Console Tool"/>
       </tab>
       <tab type="usergroup" title="Generic development" url="@ref md_en_2index">

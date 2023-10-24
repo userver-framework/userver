@@ -66,7 +66,7 @@ std::string PostgresHandler::HandleRequestThrow(
         server::handlers::ExternalBody{"No 'type' query argument"});
   }
 
-  auto sleep_ms = request.GetArg("sleep_ms");
+  const auto& sleep_ms = request.GetArg("sleep_ms");
   if (!sleep_ms.empty()) {
     LOG_DEBUG() << "Sleep for " << sleep_ms << "ms";
     const std::chrono::milliseconds ms{utils::FromString<int>(sleep_ms)};

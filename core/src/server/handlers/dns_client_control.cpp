@@ -18,11 +18,11 @@ DnsClientControl::DnsClientControl(const components::ComponentConfig& config,
 std::string DnsClientControl::HandleRequestThrow(
     const http::HttpRequest& request, request::RequestContext&) const {
   UASSERT(resolver_);
-  const auto command = request.GetPathArg("command");
+  const auto& command = request.GetPathArg("command");
   if (command == "reload_hosts") {
     resolver_->ReloadHosts();
   } else if (command == "flush_cache") {
-    const auto name = request.GetArg("name");
+    const auto& name = request.GetArg("name");
     if (name.empty()) {
       request.SetResponseStatus(http::HttpStatus::kBadRequest);
       return "Missing or empty name parameter";

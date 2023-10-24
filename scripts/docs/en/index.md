@@ -39,6 +39,7 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 * @ref scripts/docs/en/userver/tutorial/auth_postgres.md
 * @ref scripts/docs/en/userver/tutorial/digest_auth_postgres.md
 * @ref scripts/docs/en/userver/tutorial/websocket_service.md
+* @ref scripts/docs/en/userver/tutorial/multipart_service.md
 * @ref scripts/docs/en/userver/tutorial/json_to_yaml.md
 
 

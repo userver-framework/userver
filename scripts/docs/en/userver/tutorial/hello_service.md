@@ -40,12 +40,15 @@ HTTP response code will be set to `500`.
 
 ### Static config
 
-Now we have to configure the service by providing `coro_pool`, `task_processors` and `default_task_processor` options for the components::ManagerControllerComponent and
-configuring each component in `components` section:
+Now we have to configure the service by providing `task_processors` and
+`default_task_processor` options for the components::ManagerControllerComponent
+and configuring each component in `components` section:
 
 @include samples/hello_service/static_config.yaml
 
-Note that all the @ref userver_components "components" and @ref userver_http_handlers "handlers" have their static options additionally described in docs.
+Note that all the @ref userver_components "components" and
+@ref userver_http_handlers "handlers" have their static options additionally
+described in docs.
 
 ### Dynamic config
 
