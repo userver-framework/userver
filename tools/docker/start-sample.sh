@@ -23,5 +23,4 @@ if [ ! -f ${BUILD_DIR}/samples/${SERVICE_NAME}/userver-samples-${SERVICE_NAME} ]
 fi
 
 mkdir -p /etc/$SERVICE_NAME
-cp /userver/samples/$SERVICE_NAME/dynamic_config_fallback.json /etc/$SERVICE_NAME/
 /tools/run_as_user.sh /userver/build/samples/$SERVICE_NAME/userver-samples-${SERVICE_NAME} --config /userver/samples/$SERVICE_NAME/static_config.yaml

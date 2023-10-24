@@ -141,8 +141,7 @@ should be provided:
 ### Dynamic configuration
 
 Dynamic configuration is close to the basic configuration from
-@ref scripts/docs/en/userver/tutorial/hello_service.md but should have additional options
-for HTTP client: @ref samples/http_caching/dynamic_config_fallback.json
+@ref scripts/docs/en/userver/tutorial/hello_service.md .
 
 All the values are described in at @ref scripts/docs/en/schemas/dynamic_configs.md.
 
@@ -260,7 +259,6 @@ implemented using the testsuite. To do that you have to:
 See the full example:
 * @ref samples/http_caching/http_caching.cpp
 * @ref samples/http_caching/static_config.yaml
-* @ref samples/http_caching/dynamic_config_fallback.json
 * @ref samples/http_caching/CMakeLists.txt
 * @ref samples/http_caching/tests/conftest.py
 * @ref samples/http_caching/tests/test_http_caching.py
@@ -273,7 +271,6 @@ See the full example:
 
 @example samples/http_caching/http_caching.cpp
 @example samples/http_caching/static_config.yaml
-@example samples/http_caching/dynamic_config_fallback.json
 @example samples/http_caching/CMakeLists.txt
 @example samples/http_caching/tests/conftest.py
 @example samples/http_caching/tests/test_http_caching.py

@@ -50,10 +50,6 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   )
   target_link_libraries(${PROJECT_NAME}-unittest userver-utest ${PROJECT_NAME})
   add_google_tests(${PROJECT_NAME}-unittest)
-
-  target_compile_definitions(${PROJECT_NAME}-unittest PRIVATE
-      DEFAULT_DYNAMIC_CONFIG_FILENAME="${CMAKE_SOURCE_DIR}/clickhouse/tests/dynamic_config_fallback.json"
-  )
   
   add_executable(${PROJECT_NAME}-chtest ${CLICKHOUSE_TEST_SOURCES})
   target_include_directories(${PROJECT_NAME}-chtest PRIVATE

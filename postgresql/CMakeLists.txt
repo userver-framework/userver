@@ -75,10 +75,6 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   )
   add_google_tests(${PROJECT_NAME}-unittest)
 
-  target_compile_definitions(${PROJECT_NAME}-unittest PRIVATE
-      DEFAULT_DYNAMIC_CONFIG_FILENAME="${CMAKE_SOURCE_DIR}/postgresql/tests/dynamic_config_fallback.json"
-  )
-
   add_executable(${PROJECT_NAME}-benchmark ${BENCH_SOURCES})
   target_link_libraries(${PROJECT_NAME}-benchmark PRIVATE
       userver-ubench
@@ -102,9 +98,6 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   add_executable(${PROJECT_NAME}-pgtest ${PG_TEST_SOURCES})
   target_include_directories (${PROJECT_NAME}-pgtest PRIVATE
       $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
-  )
-  target_compile_definitions(${PROJECT_NAME}-pgtest PRIVATE
-      DEFAULT_DYNAMIC_CONFIG_FILENAME="${CMAKE_CURRENT_SOURCE_DIR}/tests/dynamic_config_fallback.json"
   )
   target_link_libraries(${PROJECT_NAME}-pgtest userver-utest ${PROJECT_NAME})
   add_test(NAME ${PROJECT_NAME}_pgtest COMMAND env

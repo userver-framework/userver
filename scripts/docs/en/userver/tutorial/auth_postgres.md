@@ -181,7 +181,6 @@ See the full example:
 * @ref samples/postgres_auth/auth_bearer.cpp
 * @ref samples/postgres_auth/postgres_service.cpp
 * @ref samples/postgres_auth/static_config.yaml
-* @ref samples/postgres_auth/dynamic_config_fallback.json
 * @ref samples/postgres_auth/CMakeLists.txt
 * @ref samples/postgres_auth/schemas/postgresql/auth/migrations.txt
 * @ref samples/postgres_auth/schemas/postgresql/auth/migrations/V001__create_db.sql
@@ -201,7 +200,6 @@ See the full example:
 @example samples/postgres_auth/auth_bearer.cpp
 @example samples/postgres_auth/postgres_service.cpp
 @example samples/postgres_auth/static_config.yaml
-@example samples/postgres_auth/dynamic_config_fallback.json
 @example samples/postgres_auth/CMakeLists.txt
 @example samples/postgres_auth/schemas/postgresql/auth/migrations.txt
 @example samples/postgres_auth/schemas/postgresql/auth/migrations/V001__create_db.sql

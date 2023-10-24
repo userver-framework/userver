@@ -80,7 +80,7 @@ It supports the following file structure (and a few others):
 
 * `configs/config.yaml`
 * `configs/config_vars.[testsuite|tests].yaml` [optional]
-* `configs/dynamic_config_fallback.json`
+* `configs/dynamic_config_fallback.json` [optional]
 * `configs/[secdist|secure_data].json` [optional]
 * `[testsuite|tests]/conftest.py`
 

@@ -83,9 +83,7 @@ Static configuration of service is quite close to the configuration from @ref sc
 ### Dynamic config
 
 We are not planning to get new dynamic config values in this sample. Because of
-that we just write the defaults to the fallback file of
-the `components::DynamicConfigFallbacks` component:
-@ref samples/redis_service/dynamic_config_fallback.json
+that we just use the defaults for all configs.
 
 All the values are described in a separate section
 @ref scripts/docs/en/schemas/dynamic_configs.md .
@@ -182,7 +180,6 @@ implemented using the testsuite. To do that you have to:
 See the full example:
 * @ref samples/redis_service/redis_service.cpp
 * @ref samples/redis_service/static_config.yaml
-* @ref samples/redis_service/dynamic_config_fallback.json
 * @ref samples/redis_service/CMakeLists.txt
 
 ----------
@@ -193,5 +190,4 @@ See the full example:
 
 @example samples/redis_service/redis_service.cpp
 @example samples/redis_service/static_config.yaml
-@example samples/redis_service/dynamic_config_fallback.json
 @example samples/redis_service/CMakeLists.txt

@@ -61,13 +61,10 @@ statistics:
 
 ### Dynamic config
 
-We are not planning to get updates for dynamic config values in this sample. Because of
-that we just write the defaults to the fallback file of
-the `components::DynamicConfigFallbacks` component.
+We are not planning to get new dynamic config values in this sample. Because of
+that we just use the defaults for all configs.
 
 All the values are described in a separate section @ref scripts/docs/en/schemas/dynamic_configs.md .
-
-@include samples/tcp_full_duplex_service/dynamic_config_fallback.json
 
 A production ready service would dynamically retrieve the above options at
 runtime from a configuration service. See
@@ -172,7 +169,6 @@ is ready to accept requests. To do that, override the
 See the full example at:
 * @ref samples/tcp_full_duplex_service/tcp_full_duplex_service.cpp
 * @ref samples/tcp_full_duplex_service/static_config.yaml
-* @ref samples/tcp_full_duplex_service/dynamic_config_fallback.json
 * @ref samples/tcp_full_duplex_service/CMakeLists.txt
 * @ref samples/tcp_full_duplex_service/tests/conftest.py
 * @ref samples/tcp_full_duplex_service/tests/test_echo.py
@@ -185,7 +181,6 @@ See the full example at:
 
 @example samples/tcp_full_duplex_service/tcp_full_duplex_service.cpp
 @example samples/tcp_full_duplex_service/static_config.yaml
-@example samples/tcp_full_duplex_service/dynamic_config_fallback.json
 @example samples/tcp_full_duplex_service/CMakeLists.txt
 @example samples/tcp_full_duplex_service/tests/conftest.py
 @example samples/tcp_full_duplex_service/tests/test_echo.py

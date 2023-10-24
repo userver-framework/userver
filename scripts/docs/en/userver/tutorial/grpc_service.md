@@ -125,7 +125,6 @@ See the full example at:
 * @ref samples/grpc_service/static_config.yaml
 * @ref samples/grpc_service/tests/conftest.py
 * @ref samples/grpc_service/tests/test_grpc.py
-* @ref samples/grpc_service/dynamic_config_fallback.json
 * @ref samples/grpc_service/CMakeLists.txt
 
 ----------
@@ -139,5 +138,4 @@ See the full example at:
 @example samples/grpc_service/static_config.yaml
 @example samples/grpc_service/tests/conftest.py
 @example samples/grpc_service/tests/test_grpc.py
-@example samples/grpc_service/dynamic_config_fallback.json
 @example samples/grpc_service/CMakeLists.txt

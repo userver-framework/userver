@@ -194,9 +194,7 @@ use this component in production environments.
 
 ## Dynamic config
 
-Initial values of the dynamic config could be seen at @ref samples/production_service/dynamic_config_fallback.json
-
-Those are described in details at @ref scripts/docs/en/schemas/dynamic_configs.md .
+Dynamic configs are described in details at @ref scripts/docs/en/schemas/dynamic_configs.md .
 
 ### Build
 
@@ -238,7 +236,6 @@ See the full example at
 * @ref samples/production_service/production_service.cpp
 * @ref samples/production_service/static_config.yaml
 * @ref samples/production_service/config_vars.yaml
-* @ref samples/production_service/dynamic_config_fallback.json
 * @ref samples/production_service/CMakeLists.txt
 * @ref samples/production_service/tests/conftest.py
 * @ref samples/production_service/tests/test_ping.py
@@ -254,7 +251,6 @@ See the full example at
 @example samples/production_service/static_config.yaml
 @example samples/production_service/config_vars.yaml
 @example samples/production_service/CMakeLists.txt
-@example samples/production_service/dynamic_config_fallback.json
 @example samples/production_service/tests/conftest.py
 @example samples/production_service/tests/test_ping.py
 @example samples/production_service/tests/test_production.py

@@ -107,7 +107,6 @@ See the full example:
 * @ref samples/digest_auth_service/auth_digest.hpp
 * @ref samples/digest_auth_service/auth_digest.cpp
 * @ref samples/digest_auth_service/static_config.yaml
-* @ref samples/digest_auth_service/dynamic_config_fallback.json
 * @ref samples/digest_auth_service/CMakeLists.txt
 * @ref samples/digest_auth_service/tests/conftest.py
 * @ref samples/digest_auth_service/tests/test_digest.py
@@ -124,7 +123,6 @@ See the full example:
 @example samples/digest_auth_service/auth_digest.hpp
 @example samples/digest_auth_service/auth_digest.cpp
 @example samples/digest_auth_service/static_config.yaml
-@example samples/digest_auth_service/dynamic_config_fallback.json
 @example samples/digest_auth_service/CMakeLists.txt
 @example samples/digest_auth_service/tests/conftest.py
 @example samples/digest_auth_service/tests/test_digest.py

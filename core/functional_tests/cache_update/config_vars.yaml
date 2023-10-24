@@ -15,4 +15,3 @@ access-tskv-log-path: /var/log/test_cache_update/access_tskv.log
 default-log-path: /var/log/test_cache_update/server.log
 
 config-cache: /var/cache/test_cache_update/config_cache.json
-config-fallback: /etc/test_cache_update/dynamic_config_fallback.json

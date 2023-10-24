@@ -37,12 +37,9 @@ described in docs.
 ### Dynamic config
 
 We are not planning to get new dynamic config values in this sample. Because of
-that we just write the defaults to the fallback file of
-the `components::DynamicConfigFallbacks` component.
+that we just use the defaults for all configs.
 
 All the values are described in a separate section @ref scripts/docs/en/schemas/dynamic_configs.md .
-
-@include samples/websocket_service/dynamic_config_fallback.json
 
 A production ready service would dynamically retrieve the above options at runtime from a configuration service. See
 @ref scripts/docs/en/userver/tutorial/config_service.md for insights on how to change the
@@ -77,7 +74,7 @@ To start the service manually run
 (do not forget to prepare the configuration files!).
 
 @note Without file path to `static_config.yaml` `userver-samples-websocket_service` will look for a file with name `config_dev.yaml`
-@note CMake doesn't copy `static_config.yaml` and `dynamic_config_fallback.json` files from `samples` directory into build directory.
+@note CMake doesn't copy `static_config.yaml` file from `samples` directory into build directory.
 
 Now you can send messages to your server from another terminal:
 ```
@@ -106,7 +103,6 @@ Do not forget to add the plugin in conftest.py:
 See the full example at:
 * @ref samples/websocket_service/websocket_service.cpp
 * @ref samples/websocket_service/static_config.yaml
-* @ref samples/websocket_service/dynamic_config_fallback.json
 * @ref samples/websocket_service/CMakeLists.txt
 * @ref samples/websocket_service/tests/conftest.py
 * @ref samples/websocket_service/tests/test_websocket.py
@@ -120,7 +116,6 @@ See the full example at:
 
 @example samples/websocket_service/websocket_service.cpp
 @example samples/websocket_service/static_config.yaml
-@example samples/websocket_service/dynamic_config_fallback.json
 @example samples/websocket_service/CMakeLists.txt
 @example samples/websocket_service/tests/conftest.py
 @example samples/websocket_service/tests/test_websocket.py

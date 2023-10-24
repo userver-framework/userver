@@ -69,9 +69,7 @@ them are described at components::Mongo.
 ### Dynamic config
 
 We are not planning to get new dynamic config values in this sample. Because of
-that we just write the defaults to the fallback file of the
-`components::DynamicConfigFallbacks` component:
-@ref samples/mongo_service/dynamic_config_fallback.json
+that we just use the defaults for all configs.
 
 All the values are described in a separate section
 @ref scripts/docs/en/schemas/dynamic_configs.md .
@@ -150,7 +148,6 @@ implemented using the testsuite. To do that you have to:
 See the full example:
 * @ref samples/mongo_service/mongo_service.cpp
 * @ref samples/mongo_service/static_config.yaml
-* @ref samples/mongo_service/dynamic_config_fallback.json
 * @ref samples/mongo_service/CMakeLists.txt
 * @ref samples/mongo_service/tests/conftest.py
 * @ref samples/mongo_service/tests/test_mongo.py
@@ -164,7 +161,6 @@ See the full example:
 
 @example samples/mongo_service/mongo_service.cpp
 @example samples/mongo_service/static_config.yaml
-@example samples/mongo_service/dynamic_config_fallback.json
 @example samples/mongo_service/CMakeLists.txt
 @example samples/mongo_service/tests/conftest.py
 @example samples/mongo_service/tests/test_mongo.py

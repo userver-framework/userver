@@ -185,7 +185,6 @@ dynamic config updates and keep developing without a supplementary service.
 See the full example:
 * @ref samples/config_service/config_service.cpp
 * @ref samples/config_service/static_config.yaml
-* @ref samples/config_service/dynamic_config_fallback.json
 * @ref samples/config_service/CMakeLists.txt
 * @ref samples/config_service/tests/conftest.py
 * @ref samples/config_service/tests/test_config.py
@@ -200,7 +199,6 @@ See the full example:
 
 @example samples/config_service/config_service.cpp
 @example samples/config_service/static_config.yaml
-@example samples/config_service/dynamic_config_fallback.json
 @example samples/config_service/CMakeLists.txt
 @example samples/config_service/tests/conftest.py
 @example samples/config_service/tests/test_config.py

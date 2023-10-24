@@ -16,4 +16,3 @@ default-log-path: /var/log/test_core_uctl/server.log
 secdist-path: /etc/test_core_uctl/secure_data.json
 
 config-cache: /var/cache/test_core_uctl/config_cache.json
-config-fallback: /etc/test_core_uctl/dynamic_config_fallback.json
