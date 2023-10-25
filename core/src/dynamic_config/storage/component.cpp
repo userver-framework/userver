@@ -253,7 +253,7 @@ void DynamicConfig::Impl::WriteFsCache(
 
   const tracing::Span span("dynamic_config_fs_cache_write");
   try {
-    const auto contents = docs_map.AsJsonString();
+    const auto contents = formats::json::ToString(docs_map.AsJson());
     using perms = boost::filesystem::perms;
     auto mode = perms::owner_read | perms::owner_write | perms::group_read |
                 perms::others_read;

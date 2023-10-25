@@ -66,9 +66,8 @@ std::unordered_set<std::string> DocsMap::GetNames() const {
   return names;
 }
 
-std::string DocsMap::AsJsonString() const {
-  return formats::json::ToString(
-      formats::json::ValueBuilder{docs_}.ExtractValue());
+formats::json::Value DocsMap::AsJson() const {
+  return formats::json::ValueBuilder{docs_}.ExtractValue();
 }
 
 bool DocsMap::AreContentsEqual(const DocsMap& other) const {

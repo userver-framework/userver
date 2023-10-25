@@ -2,10 +2,7 @@ import pytest
 
 
 async def test_expired(service_client, dynamic_config):
-    # TODO(TAXICOMMON-7680)
-    fixed = False
-    if fixed:
-        assert dynamic_config.get('POSTGRES_DEADLINE_PROPAGATION_VERSION') == 1
+    assert dynamic_config.get('POSTGRES_DEADLINE_PROPAGATION_VERSION') == 1
 
     async with service_client.capture_logs() as capture:
         response = await service_client.post(

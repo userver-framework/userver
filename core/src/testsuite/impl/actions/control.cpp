@@ -67,4 +67,5 @@ formats::json::Value Control::Perform(
 }
 
 }  // namespace testsuite::impl::actions
+
 USERVER_NAMESPACE_END

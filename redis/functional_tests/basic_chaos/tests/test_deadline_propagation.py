@@ -4,10 +4,7 @@ DP_TIMEOUT_MS = 'X-YaTaxi-Client-TimeoutMs'
 
 
 async def test_expired(service_client, dynamic_config, sentinel_gate, gate):
-    # TODO(TAXICOMMON-7680)
-    fixed = False
-    if fixed:
-        assert dynamic_config.get('REDIS_DEADLINE_PROPAGATION_VERSION') == 1
+    assert dynamic_config.get('REDIS_DEADLINE_PROPAGATION_VERSION') == 1
 
     async with service_client.capture_logs() as capture:
         response = await service_client.post(

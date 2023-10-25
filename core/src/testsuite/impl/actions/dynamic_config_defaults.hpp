@@ -1,7 +1,7 @@
 #pragma once
 
+#include <userver/dynamic_config/fwd.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
-#include <userver/utils/statistics/fwd.hpp>
 
 #include <testsuite/impl/actions/base.hpp>
 
@@ -9,16 +9,16 @@ USERVER_NAMESPACE_BEGIN
 
 namespace testsuite::impl::actions {
 
-class MetricsPortability final : public BaseTestsuiteAction {
+class DynamicConfigDefaults final : public BaseTestsuiteAction {
  public:
-  explicit MetricsPortability(
+  explicit DynamicConfigDefaults(
       const components::ComponentContext& component_context);
 
   formats::json::Value Perform(
       const formats::json::Value& request_body) const override;
 
  private:
-  utils::statistics::Storage& statistics_storage_;
+  const dynamic_config::DocsMap& defaults_;
 };
 
 }  // namespace testsuite::impl::actions

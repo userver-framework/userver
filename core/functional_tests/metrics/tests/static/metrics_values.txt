@@ -176,6 +176,7 @@ http.handler.rate-limit-reached: http_handler=handler-server-monitor, http_path=
 http.handler.rate-limit-reached: http_handler=tests-control, http_path=/tests/_action_, version=2	RATE	0
 http.handler.reply-codes: http_code=200, http_handler=handler-ping, http_path=/ping, version=2	RATE	0
 http.handler.reply-codes: http_code=200, http_handler=handler-server-monitor, http_path=/service/monitor, version=2	RATE	0
+http.handler.reply-codes: http_code=200, http_handler=tests-control, http_path=/tests/_action_, version=2	RATE	0
 http.handler.reply-codes: http_code=300, http_handler=handler-dns-client-control, http_path=/service/dnsclient/_command_, version=2	RATE	0
 http.handler.reply-codes: http_code=300, http_handler=handler-dynamic-debug-log, http_path=/service/log/dynamic-debug, version=2	RATE	0
 http.handler.reply-codes: http_code=300, http_handler=handler-inspect-requests, http_path=/service/inspect-requests, version=2	RATE	0

@@ -9,6 +9,8 @@
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/updates_sink/component.hpp>
+#include <userver/dynamic_config/value.hpp>
+#include <userver/utils/internal_tag_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -44,10 +46,13 @@ class DynamicConfigFallbacks final : public LoggableComponentBase {
 
   DynamicConfigFallbacks(const ComponentConfig&, const ComponentContext&);
 
+  const dynamic_config::DocsMap& GetDefaults(utils::InternalTag) const;
+
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   DynamicConfigUpdatesSinkBase& updates_sink_;
+  dynamic_config::DocsMap defaults_;
 };
 
 template <>

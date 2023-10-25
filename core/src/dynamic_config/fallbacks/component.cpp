@@ -9,6 +9,7 @@
 #include <userver/dynamic_config/value.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
+#include <utils/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -62,13 +63,18 @@ DynamicConfigFallbacks::DynamicConfigFallbacks(const ComponentConfig& config,
     : LoggableComponentBase(config, context),
       updates_sink_(dynamic_config::FindUpdatesSink(config, context)) {
   try {
-    auto config_values = ParseFallbacksAndOverrides(config);
-    updates_sink_.SetConfig(kName, std::move(config_values));
+    defaults_ = ParseFallbacksAndOverrides(config);
+    updates_sink_.SetConfig(kName, defaults_);
   } catch (const std::exception& ex) {
     throw std::runtime_error(
         std::string("Cannot load fallback dynamic config or its overrides: ") +
         ex.what());
   }
+}
+
+const dynamic_config::DocsMap& DynamicConfigFallbacks::GetDefaults(
+    utils::InternalTag) const {
+  return defaults_;
 }
 
 yaml_config::Schema DynamicConfigFallbacks::GetStaticConfigSchema() {

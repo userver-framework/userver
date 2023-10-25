@@ -28,7 +28,7 @@ class DocsMap final {
   void MergeMissing(const DocsMap& source);
 
   std::unordered_set<std::string> GetNames() const;
-  std::string AsJsonString() const;
+  formats::json::Value AsJson() const;
   bool AreContentsEqual(const DocsMap& other) const;
 
   /// @cond

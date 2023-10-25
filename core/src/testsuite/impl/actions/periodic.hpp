@@ -11,7 +11,7 @@ namespace testsuite::impl::actions {
 
 class PeriodicTaskRun final : public BaseTestsuiteAction {
  public:
-  PeriodicTaskRun(components::TestsuiteSupport& testsuite_support)
+  explicit PeriodicTaskRun(components::TestsuiteSupport& testsuite_support)
       : testsuite_support_(testsuite_support) {}
 
   formats::json::Value Perform(
@@ -28,7 +28,7 @@ class PeriodicTaskRun final : public BaseTestsuiteAction {
 
 class PeriodicTaskSuspend final : public BaseTestsuiteAction {
  public:
-  PeriodicTaskSuspend(components::TestsuiteSupport& testsuite_support)
+  explicit PeriodicTaskSuspend(components::TestsuiteSupport& testsuite_support)
       : testsuite_support_(testsuite_support) {}
 
   formats::json::Value Perform(

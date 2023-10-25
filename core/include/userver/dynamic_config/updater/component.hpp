@@ -21,6 +21,7 @@
 #include <userver/dynamic_config/updates_sink/component.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/utils/impl/transparent_hash.hpp>
+#include <userver/utils/internal_tag_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -72,7 +73,7 @@ namespace components {
 /// @snippet components/common_component_list_test.cpp  Sample dynamic config client updater component config
 
 // clang-format on
-class DynamicConfigClientUpdater
+class DynamicConfigClientUpdater final
     : public CachingComponentBase<dynamic_config::DocsMap> {
  public:
   /// @ingroup userver_component_names
@@ -88,14 +89,16 @@ class DynamicConfigClientUpdater
   dynamic_config::AdditionalKeysToken SetAdditionalKeys(
       std::vector<std::string> keys);
 
+  const dynamic_config::DocsMap& GetDefaults(utils::InternalTag) const;
+
+  static yaml_config::Schema GetStaticConfigSchema();
+
+ private:
   void Update(cache::UpdateType update_type,
               const std::chrono::system_clock::time_point& last_update,
               const std::chrono::system_clock::time_point& now,
               cache::UpdateStatisticsScope&) override;
 
-  static yaml_config::Schema GetStaticConfigSchema();
-
- private:
   dynamic_config::DocsMap MergeDocsMap(const dynamic_config::DocsMap& current,
                                        dynamic_config::DocsMap&& update);
   void StoreIfEnabled();

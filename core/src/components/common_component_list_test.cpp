@@ -196,7 +196,8 @@ TEST_F(ComponentList, Common) {
 
   fs::blocking::RewriteFileContents(
       dynamic_config_cache_path,
-      dynamic_config::impl::GetDefaultDocsMap().AsJsonString());
+      formats::json::ToString(
+          dynamic_config::impl::GetDefaultDocsMap().AsJson()));
 
   fs::blocking::RewriteFileContents(
       config_vars_path,

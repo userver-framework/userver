@@ -249,7 +249,8 @@ class CommonServerComponentList : public ComponentList {
   CommonServerComponentList() {
     fs::blocking::RewriteFileContents(
         GetDynamicConfigCachePath(),
-        dynamic_config::impl::GetDefaultDocsMap().AsJsonString());
+        formats::json::ToString(
+            dynamic_config::impl::GetDefaultDocsMap().AsJson()));
   }
 
   std::string GetDynamicConfigCachePath() const {

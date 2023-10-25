@@ -3,6 +3,7 @@ Supply dynamic configs for the service in testsuite.
 """
 
 import copy
+import dataclasses
 import datetime
 import json
 import pathlib
@@ -85,8 +86,8 @@ def dynamic_config(
         search_path,
         load_json,
         object_substitute,
-        config_service_defaults,
         cache_invalidation_state,
+        _config_service_defaults_updated,
 ) -> DynamicConfig:
     """
     Fixture that allows to control dynamic config values used by the service.
@@ -100,7 +101,7 @@ def dynamic_config(
 
     @ingroup userver_testsuite_fixtures
     """
-    all_values = config_service_defaults.copy()
+    all_values = _config_service_defaults_updated.snapshot.copy()
     for path in reversed(list(search_path('config.json'))):
         values = load_json(path)
         all_values.update(values)
@@ -171,6 +172,27 @@ def config_service_defaults(
         f'{config_service_defaults.__name__} fixture to provide custom '
         'dynamic config loading behavior.',
     )
+
+
+@dataclasses.dataclass(frozen=False)
+class _ConfigDefaults:
+    snapshot: typing.Dict[str, typing.Any]
+
+    async def update(self, client, dynamic_config) -> None:
+        if not self.snapshot:
+            values = await client.get_dynamic_config_defaults()
+            # There may already be some config overrides from the current test.
+            values.update(dynamic_config.get_values())
+            self.snapshot = values
+            dynamic_config.set_values(self.snapshot)
+
+
+# If there is no config_fallback_path, then we want to ask the service
+# for the dynamic config defaults after it's launched. It's enough to update
+# defaults once per service launch.
+@pytest.fixture(scope='package')
+def _config_service_defaults_updated(config_service_defaults):
+    return _ConfigDefaults(snapshot=config_service_defaults)
 
 
 @pytest.fixture(scope='session')

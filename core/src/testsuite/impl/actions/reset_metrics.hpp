@@ -11,7 +11,7 @@ namespace testsuite::impl::actions {
 
 class ResetMetrics final : public BaseTestsuiteAction {
  public:
-  ResetMetrics(const components::ComponentContext& component_context);
+  explicit ResetMetrics(const components::ComponentContext& component_context);
 
   formats::json::Value Perform(
       const formats::json::Value& request_body) const override;

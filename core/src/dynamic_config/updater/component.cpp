@@ -188,6 +188,11 @@ DynamicConfigClientUpdater::SetAdditionalKeys(std::vector<std::string> keys) {
   return dynamic_config::AdditionalKeysToken{std::move(keys_ptr)};
 }
 
+const dynamic_config::DocsMap& DynamicConfigClientUpdater::GetDefaults(
+    utils::InternalTag) const {
+  return fallback_config_;
+}
+
 void DynamicConfigClientUpdater::Update(
     cache::UpdateType update_type,
     const std::chrono::system_clock::time_point& /*last_update*/,

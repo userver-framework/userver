@@ -14,10 +14,7 @@ async def put_foo_value(service_client):
 
 
 async def test_works(service_client, put_foo_value, dynamic_config):
-    # TODO(TAXICOMMON-7680)
-    fixed = False
-    if fixed:
-        assert dynamic_config.get('MONGO_DEADLINE_PROPAGATION_ENABLED_V2')
+    assert dynamic_config.get('MONGO_DEADLINE_PROPAGATION_ENABLED_V2')
 
     async with service_client.capture_logs() as capture:
         response = await service_client.get(

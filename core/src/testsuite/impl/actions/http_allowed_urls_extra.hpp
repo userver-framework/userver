@@ -13,7 +13,7 @@ namespace testsuite::impl::actions {
 
 class HttpAllowedUrlsExtra final : public BaseTestsuiteAction {
  public:
-  HttpAllowedUrlsExtra(components::TestsuiteSupport& testsuite_support)
+  explicit HttpAllowedUrlsExtra(components::TestsuiteSupport& testsuite_support)
       : http_client_(testsuite_support.GetHttpAllowedUrlsExtra()) {}
 
   formats::json::Value Perform(

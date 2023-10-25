@@ -1206,6 +1206,8 @@
   "core/src/testsuite/impl/actions/caches.hpp":"taxi/uservices/userver/core/src/testsuite/impl/actions/caches.hpp",
   "core/src/testsuite/impl/actions/control.cpp":"taxi/uservices/userver/core/src/testsuite/impl/actions/control.cpp",
   "core/src/testsuite/impl/actions/control.hpp":"taxi/uservices/userver/core/src/testsuite/impl/actions/control.hpp",
+  "core/src/testsuite/impl/actions/dynamic_config_defaults.cpp":"taxi/uservices/userver/core/src/testsuite/impl/actions/dynamic_config_defaults.cpp",
+  "core/src/testsuite/impl/actions/dynamic_config_defaults.hpp":"taxi/uservices/userver/core/src/testsuite/impl/actions/dynamic_config_defaults.hpp",
   "core/src/testsuite/impl/actions/http_allowed_urls_extra.cpp":"taxi/uservices/userver/core/src/testsuite/impl/actions/http_allowed_urls_extra.cpp",
   "core/src/testsuite/impl/actions/http_allowed_urls_extra.hpp":"taxi/uservices/userver/core/src/testsuite/impl/actions/http_allowed_urls_extra.hpp",
   "core/src/testsuite/impl/actions/logcapture.cpp":"taxi/uservices/userver/core/src/testsuite/impl/actions/logcapture.cpp",

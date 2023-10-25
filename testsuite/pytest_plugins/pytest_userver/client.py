@@ -863,6 +863,13 @@ class AiohttpClient(service_client.AiohttpClient):
         else:
             await self.update_server_state()
 
+    async def get_dynamic_config_defaults(
+            self,
+    ) -> typing.Dict[str, typing.Any]:
+        return await self._testsuite_action(
+            'get_dynamic_config_defaults', testsuite_skip_prepare=True,
+        )
+
     async def _tests_control(self, body: dict) -> typing.Dict[str, typing.Any]:
         with self._state_manager.updating_state(body):
             async with await self._do_testsuite_action(
@@ -1080,6 +1087,12 @@ class Client(ClientWrapper):
         rid of data from previous test.
         """
         await self._client.enable_testpoints(*args, **kwargs)
+
+    @_wrap_client_error
+    async def get_dynamic_config_defaults(
+            self,
+    ) -> typing.Dict[str, typing.Any]:
+        return await self._client.get_dynamic_config_defaults()
 
 
 @dataclasses.dataclass

@@ -75,10 +75,12 @@ def auto_client_deps(request) -> None:
 async def service_client(
         ensure_daemon_started,
         service_daemon,
+        dynamic_config,
         mock_configs_service,
         cleanup_userver_dumps,
         extra_client_deps,
         auto_client_deps,
+        _config_service_defaults_updated,
         _testsuite_client_config: client.TestsuiteClientConfig,
         _service_client_base,
         _service_client_testsuite,
@@ -94,9 +96,13 @@ async def service_client(
     # to allow '*_client_deps' to be active during service start
     await ensure_daemon_started(service_daemon)
 
-    if _testsuite_client_config.testsuite_action_path:
-        return _service_client_testsuite
-    return _service_client_base
+    if not _testsuite_client_config.testsuite_action_path:
+        return _service_client_base
+
+    await _config_service_defaults_updated.update(
+        _service_client_testsuite, dynamic_config,
+    )
+    return _service_client_testsuite
 
 
 @pytest.fixture
@@ -175,7 +181,7 @@ def _service_client_testsuite(
         testpoint_control,
         cache_invalidation_state,
         _testsuite_client_config: client.TestsuiteClientConfig,
-):
+) -> client.Client:
     aiohttp_client = client.AiohttpClient(
         service_baseurl,
         config=_testsuite_client_config,
