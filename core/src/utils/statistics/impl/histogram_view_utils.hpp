@@ -130,8 +130,10 @@ class MutableView final {
     UASSERT_MSG(HasSameBounds(*this, other),
                 "Mismatch in added Histogram bounds");
     AddNonAtomic(buckets_[0].counter, other.GetValueAtInf());
-    for (const auto [self_bucket, other_value] :
+    for (const auto tuple_of_refs :
          boost::combine(Access::Buckets(*this), Access::Values(other))) {
+      auto& self_bucket = boost::get<0>(tuple_of_refs);
+      const auto other_value = boost::get<1>(tuple_of_refs);
       AddNonAtomic(self_bucket.counter, other_value);
     }
   }
