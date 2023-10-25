@@ -43,7 +43,7 @@ struct DynamicConfigStatistics final {
 bool AreCacheDumpsEnabled(const components::ComponentContext& context) {
   auto* const testsuite_support =
       context.FindComponentOptional<components::TestsuiteSupport>();
-  if (!testsuite_support) return false;
+  if (!testsuite_support) return true;
   return testsuite_support->GetDumpControl().GetPeriodicsMode() ==
          testsuite::DumpControl::PeriodicsMode::kEnabled;
 }
