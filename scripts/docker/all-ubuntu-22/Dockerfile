@@ -1,72 +1,26 @@
 # main system for docker
-FROM ubuntu:22.04
+FROM ghcr.io/userver-framework/ubuntu-userver-core:v1
 
 # Set UTC timezone
-ENV TZ=Etc/UTC
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-
 ENV DEBIAN_FRONTEND noninteractive
 
 # install main packages
 RUN apt-get update && apt-get install -y --allow-unauthenticated \
-    binutils-dev \
     build-essential \
-    ccache \
-    chrpath \
-    clang \
-    clang-format \
-    clang-tidy \
-    cmake \
-    libboost1.74-dev \
-    libboost-program-options1.74-dev \
-    libboost-filesystem1.74-dev \
-    libboost-locale1.74-dev \
-    libboost-regex1.74-dev \
-    libboost-iostreams1.74-dev \
-    libboost-context1.74-dev \
-    libboost-coroutine1.74-dev \
-    libev-dev \
-    zlib1g-dev \
-    libcurl4-openssl-dev \
-    curl \
-    libyaml-cpp-dev \
-    libssl-dev \
-    libfmt-dev \
-    libcctz-dev \
-    libhttp-parser-dev \
-    libnghttp2-dev \
-    libjemalloc-dev \
+    binutils-dev \
     libmongoc-dev \
     libbson-dev \
-    libldap2-dev \
     libpq-dev \
     postgresql-server-dev-all \
-    libkrb5-dev \
     libhiredis-dev \
-    python3-dev \
+    clang-format \
+    clang-tidy \
+    postgresql \
     python3-protobuf \
     python3-jinja2 \
     python3-virtualenv \
-    virtualenv \
-    python3-voluptuous \
-    python3-yaml \
-    libc-ares-dev \
-    libbenchmark-dev \
-    libgmock-dev \
-    libgtest-dev \
-    ccache \
-    git \
-    postgresql \
-    redis-server \
     vim \
-    sudo \
-    gnupg \
-    gnupg2 \
-    wget \
-    dirmngr \
-    libcrypto++-dev \
-    libabsl-dev \
-    liblz4-dev
+    redis-server
 
 RUN apt-get clean all
 
@@ -99,7 +53,6 @@ RUN apt-get install -y --allow-unauthenticated \
     mongodb-org-mongos \
     mongodb-org-tools \
     postgresql-common \
-    locales \
     clickhouse-server \
     clickhouse-client
 
@@ -109,21 +62,6 @@ RUN chmod +x mariadb_repo_setup
 RUN ./mariadb_repo_setup
 
 RUN apt-get install -y libmariadb-dev mariadb-server
-
-# Generating locale
-RUN sed -i 's/^# *\(en_US.UTF-8\)/\1/' /etc/locale.gen
-RUN echo "export LC_ALL=en_US.UTF-8" >> ~/.bashrc
-RUN echo "export LANG=en_US.UTF-8" >> ~/.bashrc
-RUN echo "export LANGUAGE=en_US.UTF-8" >> ~/.bashrc
-
-RUN locale-gen ru_RU.UTF-8
-RUN locale-gen en_US.UTF-8
-RUN echo LANG=en_US.UTF-8 >> /etc/default/locale
-
-RUN mkdir -p /home/user
-RUN chmod 777 /home/user
-
-RUN pip3 install pep8
 
 # convoluted setup of rabbitmq + erlang taken from https://www.rabbitmq.com/install-debian.html#apt-quick-start-packagecloud
 ## Team RabbitMQ's main signing key
@@ -163,6 +101,8 @@ EXPOSE 8080-8100
 EXPOSE 15672
 EXPOSE 5672
 
+RUN pip3 install pep8
+
 # build and install additional dev packages
 COPY src/ /app
 
@@ -185,8 +125,5 @@ RUN rm -rf /app/amqp-cpp && rm -rf /app/clickhouse-cpp && rm -rf /app/grpc
 # install pip requirements
 RUN pip3 install -r /app/requirements.txt
 
-# fix for work porto layers
-RUN mkdir -p /place/berkanavt/ && apt install fuse dupload libuv1 libuv1-dev
-
 # add paths
-ENV PATH /usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/postgresql/14/bin:${PATH}
+ENV PATH /usr/lib/postgresql/14/bin:${PATH}
