@@ -67,13 +67,6 @@ class TestPackageConan(ConanFile):
                 'runtests-testsuite-conan-samples-hello_service',
             )
             command = ' '
-            folder = os.path.join(
-                self.recipe_folder,
-                '..',
-                '..',
-                'samples',
-                'hello_service',
-                'tests',
-            )
+            folder = os.path.join(self.source_folder, 'hello_service')
             args = [bin_path, '--service-logs-pretty', '-vv', folder]
             self.run(command.join(args), env='conanrun')

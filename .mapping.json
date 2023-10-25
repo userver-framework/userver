@@ -177,6 +177,7 @@
   "conan/test_package/hello.hpp":"taxi/uservices/userver/conan/test_package/hello.hpp",
   "conan/test_package/hello_service.cpp":"taxi/uservices/userver/conan/test_package/hello_service.cpp",
   "conan/test_package/hello_service/CMakeLists.txt":"taxi/uservices/userver/conan/test_package/hello_service/CMakeLists.txt",
+  "conan/test_package/hello_service/conftest.py":"taxi/uservices/userver/conan/test_package/hello_service/conftest.py",
   "conan/test_package/hello_service/hello_service.cpp":"taxi/uservices/userver/conan/test_package/hello_service/hello_service.cpp",
   "conan/test_package/hello_service/requirements.txt":"taxi/uservices/userver/conan/test_package/hello_service/requirements.txt",
   "conan/test_package/hello_service/static_config.yaml":"taxi/uservices/userver/conan/test_package/hello_service/static_config.yaml",
