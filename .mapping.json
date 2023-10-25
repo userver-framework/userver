@@ -2468,6 +2468,7 @@
   "samples/multipart_service/service.cpp":"taxi/uservices/userver/samples/multipart_service/service.cpp",
   "samples/multipart_service/static_config.yaml":"taxi/uservices/userver/samples/multipart_service/static_config.yaml",
   "samples/multipart_service/tests/conftest.py":"taxi/uservices/userver/samples/multipart_service/tests/conftest.py",
+  "samples/multipart_service/tests/static/logo_in_circle.png":"taxi/uservices/userver/samples/multipart_service/tests/static/logo_in_circle.png",
   "samples/multipart_service/tests/test_multipart.py":"taxi/uservices/userver/samples/multipart_service/tests/test_multipart.py",
   "samples/mysql_service/CMakeLists.txt":"taxi/uservices/userver/samples/mysql_service/CMakeLists.txt",
   "samples/mysql_service/mysql_service.cpp":"taxi/uservices/userver/samples/mysql_service/mysql_service.cpp",

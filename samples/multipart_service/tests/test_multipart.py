@@ -1,19 +1,15 @@
 # /// [Functional test]
 import json
-import pathlib
 
 import aiohttp
 
 
-async def test_ok(service_client):
+async def test_ok(service_client, load_binary):
     form_data = aiohttp.FormData()
 
     # Uploading file
-    userver_root_dir = pathlib.Path(__file__).parent.parent.parent.parent
-    image_path = userver_root_dir / 'scripts' / 'docs' / 'logo_in_circle.png'
-    with open(image_path, mode='rb') as image_file:
-        image = image_file.read()
-        form_data.add_field('profileImage', image, filename=image_path.name)
+    image = load_binary('logo_in_circle.png')
+    form_data.add_field('profileImage', image, filename='logo_in_circle.png')
 
     # Adding JSON payload
     address = {'street': '3, Garden St', 'city': 'Hillsbery, UT'}
