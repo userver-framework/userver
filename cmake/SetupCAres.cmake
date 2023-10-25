@@ -27,3 +27,6 @@ CPMAddPackage(
     "CARES_SHARED OFF"
     "CARES_STATIC ON"
 )
+
+set(c-ares_FOUND TRUE)
+write_package_stub(c-ares)

@@ -221,8 +221,6 @@ if (USERVER_IS_THE_ROOT_PROJECT)
       userver-core-internal
     )
 
-    # We keep testing deprecated functions, no need to warn about that
-    target_compile_options(${PROJECT_NAME}-unittest PRIVATE "-Wno-deprecated-declarations")
     add_google_tests(${PROJECT_NAME}-unittest)
     add_subdirectory(functional_tests)
 endif()

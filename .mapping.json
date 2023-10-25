@@ -150,6 +150,7 @@
   "cmake/RequireDWCAS.cpp":"taxi/uservices/userver/cmake/RequireDWCAS.cpp",
   "cmake/RequireLTO.cmake":"taxi/uservices/userver/cmake/RequireLTO.cmake",
   "cmake/Sanitizers.cmake":"taxi/uservices/userver/cmake/Sanitizers.cmake",
+  "cmake/SetupAbseil.cmake":"taxi/uservices/userver/cmake/SetupAbseil.cmake",
   "cmake/SetupAmqpCPP.cmake":"taxi/uservices/userver/cmake/SetupAmqpCPP.cmake",
   "cmake/SetupCAres.cmake":"taxi/uservices/userver/cmake/SetupCAres.cmake",
   "cmake/SetupCCTZ.cmake":"taxi/uservices/userver/cmake/SetupCCTZ.cmake",

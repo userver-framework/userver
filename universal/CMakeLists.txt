@@ -222,12 +222,9 @@ if (USERVER_IS_THE_ROOT_PROJECT)
         ${PROJECT_NAME}-internal-utest
     )
 
-    # We keep testing deprecated functions, no need to warn about that
-    target_compile_options(${PROJECT_NAME}-unittest PRIVATE "-Wno-deprecated-declarations")
     add_google_tests(${PROJECT_NAME}-unittest)
 
     add_executable(${PROJECT_NAME}-benchmark ${BENCH_SOURCES})
-    #    find_package(absl REQUIRED)
 
     target_include_directories (${PROJECT_NAME}-benchmark SYSTEM PRIVATE
         $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
