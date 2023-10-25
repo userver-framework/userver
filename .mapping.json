@@ -2604,7 +2604,7 @@
   "scripts/docs/doxygen.conf":"taxi/uservices/userver/scripts/docs/doxygen.conf",
   "scripts/docs/en/cpp/def_groups.hpp":"taxi/uservices/userver/scripts/docs/en/cpp/def_groups.hpp",
   "scripts/docs/en/deps/arch.md":"taxi/uservices/userver/scripts/docs/en/deps/arch.md",
-  "scripts/docs/en/deps/debian-11x32.md":"taxi/uservices/userver/scripts/docs/en/deps/debian-11x32.md",
+  "scripts/docs/en/deps/debian-11.md":"taxi/uservices/userver/scripts/docs/en/deps/debian-11.md",
   "scripts/docs/en/deps/fedora-35.md":"taxi/uservices/userver/scripts/docs/en/deps/fedora-35.md",
   "scripts/docs/en/deps/fedora-36.md":"taxi/uservices/userver/scripts/docs/en/deps/fedora-36.md",
   "scripts/docs/en/deps/gentoo.md":"taxi/uservices/userver/scripts/docs/en/deps/gentoo.md",

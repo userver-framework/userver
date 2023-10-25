@@ -99,7 +99,7 @@ Follow the platforms specific instructions:
   mkdir build_release
   cd build_release
   cmake -DCMAKE_BUILD_TYPE=Release ..
-  make -j$(nproc)
+  cmake --build . -j$(nproc)
   ```
 
 
@@ -116,7 +116,7 @@ Follow the platforms specific instructions:
   mkdir build_release
   cd build_release
   cmake -DCMAKE_BUILD_TYPE=Release ..
-  make -j$(nproc)
+  cmake --build . -j$(nproc)
   ```
 
 ### Ubuntu 20.04 (Focal Fossa)
@@ -132,7 +132,7 @@ Follow the platforms specific instructions:
   mkdir build_release
   cd build_release
   cmake -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1 -DCMAKE_BUILD_TYPE=Release ..
-  make -j$(nproc)
+  cmake --build . -j$(nproc)
   ```
 
 
@@ -152,7 +152,7 @@ Follow the platforms specific instructions:
   cmake -DCMAKE_CXX_COMPILER=g++-8 -DCMAKE_C_COMPILER=gcc-8 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 \
         -DUSERVER_FEATURE_CRYPTOPP_BASE64_URL=0 -DUSERVER_FEATURE_GRPC=0 -DUSERVER_FEATURE_POSTGRESQL=0 \
         -DUSERVER_FEATURE_MONGODB=0 -DUSERVER_USE_LD=gold -DCMAKE_BUILD_TYPE=Release ..
-  make -j$(nproc)
+  cmake --build . -j$(nproc)
   ```
 
 ### Fedora 35
@@ -169,7 +169,7 @@ Follow the platforms specific instructions:
   mkdir build_release
   cd build_release
   cmake -DUSERVER_FEATURE_STACKTRACE=0 -DUSERVER_FEATURE_PATCH_LIBPQ=0 -DCMAKE_BUILD_TYPE=Release ..
-  make -j$(nproc)
+  cmake --build . -j$(nproc)
   ```
 
 ### Fedora 36
@@ -186,15 +186,15 @@ Follow the platforms specific instructions:
   mkdir build_release
   cd build_release
   cmake -DUSERVER_FEATURE_STACKTRACE=0 -DUSERVER_FEATURE_PATCH_LIBPQ=0 -DCMAKE_BUILD_TYPE=Release ..
-  make -j$(nproc)
+  cmake --build . -j$(nproc)
   ```
 
-### Debian 11 32-bit
+### Debian 11
 
-1. Install the build and test dependencies from debian-11x32.md file:
+1. Install the build and test dependencies from debian-11.md file:
   ```
   bash
-  sudo apt install -y $(cat scripts/docs/en/deps/debian-11x32.md | tr '\n' ' ')
+  sudo apt install -y $(cat scripts/docs/en/deps/debian-11.md | tr '\n' ' ')
   ```
 
 2. Build the userver:
@@ -202,10 +202,19 @@ Follow the platforms specific instructions:
   bash
   mkdir build_release
   cd build_release
-  cmake -DCMAKE_C_FLAGS='-D_FILE_OFFSET_BITS=64' -DCMAKE_CXX_FLAGS='-D_FILE_OFFSET_BITS=64' \
-        -DCMAKE_BUILD_TYPE=Release ..
-  make -j$(nproc)
+  cmake -DCMAKE_BUILD_TYPE=Release ..
+  cmake --build . -j$(nproc)
   ```
+
+##### Debian 11 32-bit
+
+Follow the instructions above, but pass additional flags to CMake:
+
+```
+bash
+cmake -DCMAKE_C_FLAGS='-D_FILE_OFFSET_BITS=64' -DCMAKE_CXX_FLAGS='-D_FILE_OFFSET_BITS=64' \
+      -DCMAKE_BUILD_TYPE=Release ..
+```
 
 ### Gentoo
 
@@ -222,13 +231,13 @@ Follow the platforms specific instructions:
   cd build_release
   cmake -DUSERVER_CHECK_PACKAGE_VERSIONS=0 -DUSERVER_FEATURE_GRPC=0 \
         -DUSERVER_FEATURE_CLICKHOUSE=0 -DCMAKE_BUILD_TYPE=Release ..
-  make -j$(nproc)
+  cmake --build . -j$(nproc)
   ```
   If you have multiple python version installed and get ModuleNotFoundError
   use -DPython3_EXECUTABLE="/path/to/python" (e.g. /usr/bin/python3.10)
   to choose working python version.
 
-### Arch
+### Arch, Monjaro
 
 1. Install the build and test dependencies from arch.md file:
 
@@ -258,7 +267,7 @@ cat scripts/docs/en/deps/arch.md | grep -oP '^makepkg\|\K.*' | while read ;\
   mkdir build_release
   cd build_release
   cmake -DUSERVER_FEATURE_PATCH_LIBPQ=0 -DCMAKE_BUILD_TYPE=Release ..
-  make -j$(nproc)
+  cmake --build . -j$(nproc)
   ```
 
 ### MacOS
