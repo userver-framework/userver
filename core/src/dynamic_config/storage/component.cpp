@@ -16,6 +16,7 @@
 #include <userver/engine/mutex.hpp>
 #include <userver/fs/read.hpp>
 #include <userver/fs/write.hpp>
+#include <userver/testsuite/testsuite_support.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
@@ -38,6 +39,14 @@ struct DynamicConfigStatistics final {
   std::atomic<bool> was_last_parse_successful{true};
   utils::statistics::RateCounter parse_errors;
 };
+
+bool AreCacheDumpsEnabled(const components::ComponentContext& context) {
+  auto* const testsuite_support =
+      context.FindComponentOptional<components::TestsuiteSupport>();
+  if (!testsuite_support) return false;
+  return testsuite_support->GetDumpControl().GetPeriodicsMode() ==
+         testsuite::DumpControl::PeriodicsMode::kEnabled;
+}
 
 }  // namespace
 
@@ -75,10 +84,11 @@ class DynamicConfig::Impl final {
   engine::TaskProcessor* fs_task_processor_;
   std::string fs_loading_error_msg_;
 
+  const bool fs_write_enabled_;
   std::atomic<bool> is_loaded_{false};
+  bool config_load_cancelled_{false};
   mutable engine::Mutex loaded_mutex_;
   mutable engine::ConditionVariable loaded_cv_;
-  bool config_load_cancelled_{false};
   DynamicConfigStatistics stats_;
 
   // Must be the last field
@@ -92,7 +102,8 @@ DynamicConfig::Impl::Impl(const ComponentConfig& config,
           fs_cache_path_.empty()
               ? nullptr
               : &context.GetTaskProcessor(
-                    config["fs-task-processor"].As<std::string>())) {
+                    config["fs-task-processor"].As<std::string>())),
+      fs_write_enabled_(AreCacheDumpsEnabled(context)) {
   UINVARIANT(dynamic_config::impl::has_updater,
              fmt::format("At least one dynamic config updater component "
                          "responsible for DynamicConfig initialization should "
@@ -211,7 +222,7 @@ bool DynamicConfig::Impl::Has() const { return is_loaded_.load(); }
 bool DynamicConfig::Impl::IsFsCacheEnabled() const {
   UASSERT_MSG(fs_cache_path_.empty() || fs_task_processor_,
               "fs_task_processor_ must be set if there is a fs_cache_path_");
-  return !fs_cache_path_.empty();
+  return !fs_cache_path_.empty() && fs_write_enabled_;
 }
 
 void DynamicConfig::Impl::ReadFsCache() {
