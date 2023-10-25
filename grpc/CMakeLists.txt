@@ -151,7 +151,7 @@ if (USERVER_IS_THE_ROOT_PROJECT)
       ${PROJECT_NAME}-unittest-proto
   )
   target_include_directories(${PROJECT_NAME}-benchmark PRIVATE
-    $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
+    $<TARGET_PROPERTY:${PROJECT_NAME}-internal,INCLUDE_DIRECTORIES>
   )
   add_google_benchmark_tests(${PROJECT_NAME}-benchmark)
 
