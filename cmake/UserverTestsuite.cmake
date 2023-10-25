@@ -96,7 +96,7 @@ function(userver_venv_setup)
     execute_process(
         COMMAND
         "${TESTSUITE_VIRTUALENV}"
-        "--python=${PYTHON}"
+        "--python=${USERVER_PYTHON}"
         "${venv_dir}"
         ${ARG_VIRTUALENV_ARGS}
         RESULT_VARIABLE status
