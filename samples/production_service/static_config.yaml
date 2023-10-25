@@ -52,6 +52,10 @@ components_manager:
             path: /service/monitor
             method: GET
             task_processor: monitor-task-processor
+        handler-fired-alerts:
+            path: /service/fired-alerts
+            method: GET
+            task_processor: monitor-task-processor
         # /// [Production service sample - static config utility handlers]
 
         # /// [Production service sample - static config ping]

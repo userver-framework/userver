@@ -3,6 +3,7 @@
 #include <fmt/format.h>
 
 #include <userver/compiler/demangle.hpp>
+#include <userver/dynamic_config/exception.hpp>
 #include <userver/dynamic_config/storage_mock.hpp>
 #include <userver/utils/cpu_relax.hpp>
 #include <userver/utils/enumerate.hpp>
@@ -125,8 +126,8 @@ SnapshotData::SnapshotData(const DocsMap& defaults,
       try {
         user_configs_[id] = metadata.factory(defaults);
       } catch (const std::exception& ex) {
-        throw std::runtime_error(
-            fmt::format("While parsing dynamic config values: ({}) ({})",
+        throw ConfigParseError(
+            fmt::format("While parsing dynamic config values: {} ({})",
                         ex.what(), compiler::GetTypeName(typeid(ex))));
       }
     }

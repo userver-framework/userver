@@ -1,6 +1,7 @@
 #include <userver/components/common_server_component_list.hpp>
 
 #include <server/handlers/implicit_options_http_handler.hpp>
+#include <userver/alerts/component.hpp>
 #include <userver/congestion_control/component.hpp>
 #include <userver/server/component.hpp>
 #include <userver/server/handlers/auth/auth_checker_settings_component.hpp>

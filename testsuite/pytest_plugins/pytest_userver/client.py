@@ -510,6 +510,12 @@ class ClientMonitor(ClientWrapper):
         """
         return await self._client.get_metric(metric_name)
 
+    @_wrap_client_error
+    async def fired_alerts(self):
+        response = await self._client.get('/service/fired-alerts')
+        assert response.status == 200
+        return (await response.json())['alerts']
+
 
 class MetricsDiffer:
     """

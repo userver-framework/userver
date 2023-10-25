@@ -1,6 +1,7 @@
 #include <userver/clients/dns/component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 
+#include <userver/alerts/handler.hpp>
 #include <userver/components/logging_configurator.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/dynamic_config/client/component.hpp>
@@ -27,6 +28,7 @@ int main(int argc, char* argv[]) {
           .Append<server::handlers::TestsControl>()
           .Append<server::handlers::ServerMonitor>()
           .Append<clients::dns::Component>()
+          .Append<alerts::Handler>()
           .Append<components::DynamicConfigClient>()
           .Append<components::DynamicConfigClientUpdater>();
   return utils::DaemonMain(argc, argv, component_list);

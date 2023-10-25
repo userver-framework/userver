@@ -4,6 +4,7 @@
 #include <userver/clients/http/component.hpp>
 #include <userver/components/component.hpp>
 #include <userver/dynamic_config/client/component.hpp>
+#include <userver/dynamic_config/exception.hpp>
 #include <userver/dynamic_config/updates_sink/find.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/fs/read.hpp>
@@ -103,7 +104,9 @@ DynamicConfigClientUpdater::DynamicConfigClientUpdater(
           component_config["deduplicate-update-types"])),
       config_client_(
           component_context.FindComponent<components::DynamicConfigClient>()
-              .GetClient()) {
+              .GetClient()),
+      alert_storage_(component_context.FindComponent<alerts::StorageComponent>()
+                         .GetStorage()) {
   auto tp_name =
       component_config["fs-task-processor"].As<std::optional<std::string>>();
   auto& tp = tp_name ? component_context.GetTaskProcessor(*tp_name)
@@ -142,7 +145,16 @@ dynamic_config::DocsMap DynamicConfigClientUpdater::MergeDocsMap(
 void DynamicConfigClientUpdater::StoreIfEnabled() {
   if (store_enabled_) {
     auto ptr = Get();
-    updates_sink_.SetConfig(kName, *ptr);
+    try {
+      updates_sink_.SetConfig(kName, *ptr);
+      alert_storage_.StopAlertNow("config_parse_error");
+    } catch (const dynamic_config::ConfigParseError& e) {
+      alert_storage_.FireAlert("config_parse_error",
+                               std::string("Failed to parse dynamic config, go "
+                                           "and fix it in tariff-editor: ") +
+                                   e.what());
+      throw;
+    }
   }
 }
 

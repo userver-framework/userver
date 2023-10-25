@@ -9,6 +9,7 @@
 #include <string>
 #include <unordered_set>
 
+#include <userver/alerts/component.hpp>
 #include <userver/cache/cache_statistics.hpp>
 #include <userver/cache/caching_component_base.hpp>
 #include <userver/cache/update_type.hpp>
@@ -131,6 +132,7 @@ class DynamicConfigClientUpdater final
 
   DocsMapKeys docs_map_keys_;
   concurrent::Variable<AdditionalDocsMapKeys> additional_docs_map_keys_;
+  alerts::Storage& alert_storage_;
 };
 
 template <>

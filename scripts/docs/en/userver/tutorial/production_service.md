@@ -167,6 +167,15 @@ a much more mature approach is to write a component that pushes the metrics dire
 to write a handle that provides the metrics in the native aggregation service format.
 
 
+# Alerts
+
+Alerts is a way to propagate critical errors from your service to a monitoring system.
+
+When the code identifies that something bad happened and a user should be notified about that,
+`alert_storage.FireAlert()` is called with the appropriate arguments. Then the alert subsystem
+notifies an external monitoring system (or a user) about the alert event though the specific HTTP handler.
+
+
 ### Secdist - secrets distributor
 
 Storing sensitive data aside from the configs is a good practice that allows you to set different access rights for the two files.

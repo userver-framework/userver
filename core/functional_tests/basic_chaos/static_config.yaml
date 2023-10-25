@@ -91,6 +91,11 @@ components_manager:
 
         dns-client:
             fs-task-processor: fs-task-processor
+
+        handler-fired-alerts:
+            path: /service/fired-alerts
+            method: GET
+            task_processor: main-task-processor
     coro_pool:
         initial_size: 500
         max_size: 1000

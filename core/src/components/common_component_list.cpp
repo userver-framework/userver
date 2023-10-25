@@ -1,5 +1,6 @@
 #include <userver/components/common_component_list.hpp>
 
+#include <userver/alerts/storage.hpp>
 #include <userver/clients/dns/component.hpp>
 #include <userver/clients/http/component.hpp>
 #include <userver/components/dump_configurator.hpp>
@@ -38,6 +39,7 @@ ComponentList CommonComponentList() {
       .Append<components::HttpClient>("http-client-statistics")
       .Append<tracing::DefaultTracingManagerLocator>()
       .Append<clients::dns::Component>()
+      .Append<alerts::StorageComponent>()
       .Append<components::DynamicConfigClient>()
       .Append<components::DynamicConfigClientUpdater>()
 

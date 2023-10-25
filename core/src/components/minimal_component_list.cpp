@@ -1,5 +1,6 @@
 #include <userver/components/minimal_component_list.hpp>
 
+#include <userver/alerts/component.hpp>
 #include <userver/components/headers_propagator_component.hpp>
 #include <userver/components/manager_controller_component.hpp>
 #include <userver/components/statistics_storage.hpp>
@@ -21,6 +22,7 @@ ComponentList MinimalComponentList() {
       .Append<components::Tracer>()
       .Append<components::ManagerControllerComponent>()
       .Append<components::StatisticsStorage>()
+      .Append<alerts::StorageComponent>()
       .Append<components::DynamicConfig>()
       .Append<components::DynamicConfigFallbacks>()
       .Append<tracing::DefaultTracingManagerLocator>();
