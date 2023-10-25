@@ -152,11 +152,10 @@ TEST(TrivialBiMap, StringToString) {
   EXPECT_EQ(kEnglishToGerman.TryFindICaseBySecond("Drei"), "three");
 }
 
-TEST(TrivialBiMap, MakeTrivialBiMap) {
-  static constexpr std::string_view kToIntKeys[] = {"zero", "one", "two",
-                                                    "three"};
-  static constexpr int kToIntValues[] = {0, 1, 2, 3};
+constexpr std::string_view kToIntKeys[] = {"zero", "one", "two", "three"};
+constexpr int kToIntValues[] = {0, 1, 2, 3};
 
+TEST(TrivialBiMap, MakeTrivialBiMap) {
   static constexpr auto kMap =
       utils::MakeTrivialBiMap<kToIntKeys, kToIntValues>();
 
