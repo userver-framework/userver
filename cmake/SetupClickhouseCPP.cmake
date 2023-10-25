@@ -25,4 +25,4 @@ CPMAddPackage(
 )
 
 add_library(clickhouse-cpp ALIAS clickhouse-cpp-lib)
-target_compile_options(absl_int128 PUBLIC -Wno-pedantic)
+target_compile_options(clickhouse-cpp-lib PRIVATE -Wno-pedantic)
