@@ -2,12 +2,12 @@
 
 #include <iostream>
 
+#include <boost/exception/diagnostic_information.hpp>
 #include <boost/program_options.hpp>
 
 #include <userver/components/run.hpp>
 #include <userver/logging/log.hpp>
-
-#include <boost/exception/diagnostic_information.hpp>
+#include <userver/utils/impl/static_registration.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -26,6 +26,8 @@ std::optional<std::string> ToOptional(std::string&& s) {
 
 int DaemonMain(const int argc, const char* const argv[],
                const components::ComponentList& components_list) {
+  utils::impl::FinishStaticRegistration();
+
   namespace po = boost::program_options;
 
   po::variables_map vm;
