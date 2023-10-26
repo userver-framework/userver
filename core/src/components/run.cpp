@@ -16,6 +16,9 @@
 #include <crypto/openssl.hpp>
 #include <logging/config.hpp>
 #include <logging/tp_logger_utils.hpp>
+#include <userver/dynamic_config/snapshot.hpp>
+#include <userver/dynamic_config/value.hpp>
+#include <userver/formats/json/serialize.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/logging/null_logger.hpp>
@@ -248,7 +251,9 @@ void RunOnce(const InMemoryConfig& config,
   DoRun(config, {}, {}, component_list, RunMode::kOnce);
 }
 
-void RunForPrintConfigSchema(const ComponentList& component_list) {
+namespace impl {
+
+std::string GetStaticConfigSchema(const ComponentList& component_list) {
   auto manager_schema = components::GetManagerConfigSchema();
   UASSERT(manager_schema.properties);
   (*manager_schema.properties)
@@ -262,9 +267,15 @@ void RunForPrintConfigSchema(const ComponentList& component_list) {
   schema.properties->emplace("components_manager",
                              yaml_config::SchemaPtr(std::move(manager_schema)));
 
-  std::cout << ToString(formats::yaml::ValueBuilder{schema}.ExtractValue())
-            << "\n";
+  return ToString(formats::yaml::ValueBuilder{schema}.ExtractValue()) + "\n";
 }
+
+std::string GetDynamicConfigDefaults() {
+  return formats::json::ToPrettyString(
+      dynamic_config::impl::MakeDefaultDocsMap().AsJson());
+}
+
+}  // namespace impl
 
 }  // namespace components
 

@@ -76,10 +76,11 @@ TEST(JsonToString, DeepObjectToString) {
 
   engine::RunStandalone(kWorkerThreads, config, [] {
     constexpr std::size_t kDepth = 16 * 1024;
-    std::string json_str = MakeStringOfDeepObject(kDepth);
+    auto json_str = MakeStringOfDeepObject(kDepth);
     auto value = formats::json::FromString(json_str);
 
     EXPECT_EQ(formats::json::ToString(value), json_str);
+    EXPECT_GE(formats::json::ToPrettyString(value).length(), json_str.length());
     EXPECT_EQ(formats::json::ToStableString(std::move(value)), json_str);
   });
 }
@@ -91,10 +92,11 @@ TEST(JsonToString, DeepArrayToString) {
 
   engine::RunStandalone(kWorkerThreads, config, [] {
     constexpr std::size_t kDepth = 16 * 1024;
-    std::string json_str = MakeStringOfDeepArray(kDepth);
+    auto json_str = MakeStringOfDeepArray(kDepth);
     auto value = formats::json::FromString(json_str);
 
     EXPECT_EQ(formats::json::ToString(value), json_str);
+    EXPECT_GE(formats::json::ToPrettyString(value).length(), json_str.length());
     EXPECT_EQ(formats::json::ToStableString(std::move(value)), json_str);
   });
 }

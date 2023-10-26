@@ -1,9 +1,14 @@
 #include <gtest/gtest.h>
 
+#include <map>
+
+#include <boost/range/adaptor/reversed.hpp>
+
 #include <formats/common/serialize_test.hpp>
 #include <userver/formats/json/exception.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value_builder.hpp>
+#include <userver/formats/parse/common_containers.hpp>
 #include <userver/utils/fmt_compat.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -280,6 +285,46 @@ TEST(JsonToSortedString, NonASCII) {
       formats::json::FromString(R"({"元":1})");
   ASSERT_EQ(formats::json::ToStableString(escaped),
             formats::json::ToStableString(unescaped));
+}
+
+TEST(JsonToPrettyStringCycle, IsPretty) {
+  static constexpr std::string_view kInitialJson =
+      R"({"a":1,"b":[],"c":{},"d":{"x":[42]},"e":[5,"foo"]})";
+
+  static constexpr std::string_view kPrettyJson = R"({
+   "a": 1,
+   "b": [],
+   "c": {},
+   "d": {
+      "x": [
+         42
+      ]
+   },
+   "e": [
+      5,
+      "foo"
+   ]
+})";
+
+  const auto json = formats::json::FromString(kInitialJson);
+
+  formats::json::PrettyFormat format;
+  format.indent_char_count = 3;
+  EXPECT_EQ(kPrettyJson, formats::json::ToPrettyString(json, format));
+}
+
+// TODO make ToPrettyString sort object keys and re-enable.
+TEST(JsonToPrettyStringCycle, DISABLED_SortsObjectKeys) {
+  static constexpr std::string_view kInitialJson = R"({"c":1,"b":1,"a":1})";
+
+  static constexpr std::string_view kPrettyJson = R"({
+  "a": 1,
+  "b": 1,
+  "c": 1,
+})";
+
+  const auto json = formats::json::FromString(kInitialJson);
+  EXPECT_EQ(kPrettyJson, formats::json::ToPrettyString(json));
 }
 
 USERVER_NAMESPACE_END

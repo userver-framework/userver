@@ -34,6 +34,7 @@ impl::Value MakeJsonStringViewValue(std::string_view view);
 }  // namespace impl
 
 class ValueBuilder;
+struct PrettyFormat;
 
 namespace parser {
 class JsonValueParser;
@@ -305,6 +306,8 @@ class Value final {
   friend std::string ToString(const formats::json::Value&);
   friend std::string ToStableString(const formats::json::Value&);
   friend std::string ToStableString(formats::json::Value&&);
+  friend std::string ToPrettyString(const formats::json::Value& doc,
+                                    PrettyFormat format);
   friend logging::LogHelper& operator<<(logging::LogHelper&, const Value&);
 };
 

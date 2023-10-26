@@ -12,6 +12,7 @@
 #include <rapidjson/error/en.h>
 #include <rapidjson/istreamwrapper.h>
 #include <rapidjson/ostreamwrapper.h>
+#include <rapidjson/prettywriter.h>
 #include <rapidjson/writer.h>
 
 #include <formats/json/impl/accept.hpp>
@@ -164,6 +165,16 @@ std::string ToStableString(Value&& doc) {
     return std::string{buffer.GetString(), buffer.GetLength()};
   }
   return ToStableString(doc.Clone());
+}
+
+std::string ToPrettyString(const formats::json::Value& doc,
+                           PrettyFormat format) {
+  rapidjson::StringBuffer buffer;
+  rapidjson::PrettyWriter writer(buffer);
+  writer.SetIndent(format.indent_char, format.indent_char_count);
+  // TODO add kInplaceSorting
+  AcceptNoRecursion<ObjectProcessing::kNone>(doc.GetNative(), writer);
+  return std::string{buffer.GetString(), buffer.GetLength()};
 }
 
 logging::LogHelper& operator<<(logging::LogHelper& lh, const Value& doc) {

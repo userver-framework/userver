@@ -40,6 +40,7 @@ int DaemonMain(const int argc, const char* const argv[],
   desc.add_options()
     ("help,h", "produce this help message")
     ("print-config-schema", "print config.yaml YAML Schema")
+    ("print-dynamic-config-defaults", "print JSON object with dynamic config defaults")
     ("config,c", po::value(&config_path)->default_value(config_path), "path to server config")
     ("config_vars", po::value(&config_vars_path), "path to config_vars.yaml; if set, config_vars in config.yaml are ignored")
     ("config_vars_override", po::value(&config_vars_override_path), "path to an additional config_vars.yaml, which overrides vars of config_vars.yaml")
@@ -62,7 +63,13 @@ int DaemonMain(const int argc, const char* const argv[],
   }
 
   if (vm.count("print-config-schema")) {
-    components::RunForPrintConfigSchema(components_list);
+    std::cout << components::impl::GetStaticConfigSchema(components_list)
+              << "\n";
+    return 0;
+  }
+
+  if (vm.count("print-dynamic-config-defaults")) {
+    std::cout << components::impl::GetDynamicConfigDefaults() << "\n";
     return 0;
   }
 

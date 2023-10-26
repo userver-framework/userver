@@ -6,10 +6,9 @@
 
 #include <string>
 
+#include <userver/components/component_list.hpp>
 #include <userver/logging/format.hpp>
 #include <userver/utils/strong_typedef.hpp>
-
-#include "component_list.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -23,7 +22,7 @@ struct InMemoryConfig : utils::StrongTypedef<InMemoryConfig, std::string> {
 };
 
 /// Starts a server with the provided component list and config loaded from
-/// file. Ropens the logging files on SIGUSR1.
+/// file. Reopens the logging files on SIGUSR1.
 ///
 /// @see utils::DaemonMain
 void Run(const std::string& config_path,
@@ -32,7 +31,7 @@ void Run(const std::string& config_path,
          const ComponentList& component_list);
 
 /// Starts a server with the provided component list and config.
-/// Ropens the logging files on SIGUSR1.
+/// Reopens the logging files on SIGUSR1.
 ///
 /// @see utils::DaemonMain
 void Run(const InMemoryConfig& config, const ComponentList& component_list);
@@ -50,7 +49,14 @@ void RunOnce(const std::string& config_path,
 /// @see utils::DaemonMain
 void RunOnce(const InMemoryConfig& config, const ComponentList& component_list);
 
-void RunForPrintConfigSchema(const ComponentList& component_list);
+namespace impl {
+
+// Composes a single static config schema from all components.
+std::string GetStaticConfigSchema(const ComponentList& component_list);
+
+std::string GetDynamicConfigDefaults();
+
+}  // namespace impl
 
 }  // namespace components
 

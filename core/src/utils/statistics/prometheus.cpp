@@ -80,7 +80,7 @@ class FormatBuilder final : public utils::statistics::BaseFormatBuilder {
     });
     fmt::format_to(std::back_inserter(buf_), FMT_COMPILE("# TYPE {} {}\n"),
                    prometheus_name, type);
-  }  // namespace
+  }
 
   void DumpLabels(utils::statistics::LabelsSpan labels) {
     buf_.push_back('{');
@@ -102,7 +102,7 @@ class FormatBuilder final : public utils::statistics::BaseFormatBuilder {
 
   fmt::memory_buffer buf_;
   utils::impl::TransparentMap<std::string, std::string> metrics_;
-};  // namespace impl
+};
 
 }  // namespace
 

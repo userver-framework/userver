@@ -163,10 +163,10 @@ class ComponentList final {
   ComponentList& Append(impl::ComponentAdderPtr&& added) &;
 
   yaml_config::Schema GetStaticConfigSchema() const;
+  /// @endcond
 
  private:
   Adders adders_;
-  /// @endcond
 };
 
 template <typename Component>

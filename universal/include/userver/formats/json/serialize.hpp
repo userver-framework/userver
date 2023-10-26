@@ -38,7 +38,18 @@ std::string ToString(const formats::json::Value& doc);
 /// are sorted and character escaping is stabilized
 std::string ToStableString(const formats::json::Value& doc);
 
+/// @overload
 std::string ToStableString(formats::json::Value&& doc);
+
+/// @see formats::json::ToPrettyString
+struct PrettyFormat final {
+  char indent_char{' '};
+  std::size_t indent_char_count{2};
+};
+
+/// Serialize JSON to a string, using `\n` and indents for objects and arrays.
+std::string ToPrettyString(const formats::json::Value& doc,
+                           PrettyFormat format = {});
 
 /// Log JSON
 logging::LogHelper& operator<<(logging::LogHelper&,

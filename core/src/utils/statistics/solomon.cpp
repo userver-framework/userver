@@ -114,7 +114,7 @@ class SolomonJsonBuilder final : public utils::statistics::BaseFormatBuilder {
   }
 
   formats::json::StringBuilder& builder_;
-};  // namespace utils::statistics
+};
 
 }  // namespace
 
