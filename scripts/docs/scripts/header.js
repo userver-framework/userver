@@ -61,9 +61,24 @@ const remove_legacy_searchbox = () => {
     mobileSearchBox.parentNode.removeChild(mobileSearchBox);
 }
 
+const add_docs_versioning = () => {
+    // const breif = document.getElementById('projectbrief').getElementsByTagName('a')[0];
+    // breif.textContent += " v1.0";
+
+    const footer = document.getElementById('nav-path').getElementsByTagName('ul')[0];
+    footer.innerHTML = `
+    <li style="box-shadow: inset -1px 0 0 0 var(--separator-color); background-image: none; margin-right: 48px;">
+        <span style="color: var(--toc-foreground);">Docs version:</span>
+        <a href="/docs/v1.0` + window.location.pathname + `">v1.0</a>, 
+        <span style="background-image: none; color: var(--toc-active-color); font-weight: bold;">trunk/develop</span>
+    </li>`
+    + footer.innerHTML;
+}
+
 const init_header = () => {
     addModal();
     create_nav_wrapper();
     remove_legacy_searchbox();
     onBurger();
+    add_docs_versioning();
 }
