@@ -24,12 +24,14 @@
 #include <sys/mman.h>
 
 #include <atomic>
+#include <chrono>
 #include <vector>
 
 #include <fmt/format.h>
 
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 #include <utils/impl/assert_extra.hpp>
 
@@ -79,12 +81,18 @@ inline auto GetOriginalDlIteratePhdr() {
 class MlockProcessDebugInfoScope final {
  public:
   void Initialize(const dl_phdr_info& self) {
-    if (!Bootstrap(self)) {
+    const bool success = Bootstrap(self);
+    const auto total_duration_ms =
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            mlock_total_duration_);
+
+    if (!success) {
       Teardown();
-      LOG_WARNING() << "Failed to mlock(2) process debug info";
+      LOG_WARNING() << "Failed to mlock(2) process debug info, an attempt took "
+                    << total_duration_ms;
     } else {
       LOG_INFO() << "mlock(2)-ed approx " << mlocked_size_approx_
-                 << " of process debug info";
+                 << " of process debug info within " << total_duration_ms;
     }
   }
 
@@ -124,9 +132,19 @@ class MlockProcessDebugInfoScope final {
     }
     mlocked_sections_.clear();
     mlocked_size_approx_ = 0;
-  }
+    mlock_total_duration_ = decltype(mlock_total_duration_){0};
+  };
 
-  static bool DoMlock(const void* start, std::size_t len) {
+  bool DoMlock(const void* start, std::size_t len) {
+    const auto now = [] { return std::chrono::steady_clock::now(); };
+
+    const auto start_ts = now();
+    const auto mlock_duration_scope =
+        utils::FastScopeGuard{[this, start_ts, &now]() noexcept {
+          const auto finish_ts = now();
+          mlock_total_duration_ += finish_ts - start_ts;
+        }};
+
     if (mlock(start, len)) {
       const auto err = errno;
 
@@ -143,6 +161,7 @@ class MlockProcessDebugInfoScope final {
     std::size_t len;
   };
 
+  std::chrono::steady_clock::duration mlock_total_duration_{0};
   std::size_t mlocked_size_approx_{0};
   std::vector<Section> mlocked_sections_;
 };
