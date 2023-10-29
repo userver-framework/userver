@@ -77,27 +77,36 @@ class HttpRequest final {
   /// @return Host from the URL.
   const std::string& GetHost() const;
 
-  /// @return First argument value with name arg_name or an empty string if no
-  /// such argument. Arguments are extracted from query part of the URL and from
-  /// the HTTP body.
+  /// @return First argument value with name `arg_name` or an empty string if no
+  /// such argument.
+  /// Arguments are extracted from:
+  /// - query part of the URL,
+  /// - the HTTP body (only if `parse_args_from_body: true` for handler is set).
   const std::string& GetArg(std::string_view arg_name) const;
 
-  /// @return Argument values with name arg_name or an empty string if no
-  /// such argument. Arguments are extracted from query part of the URL and from
-  /// the HTTP body.
+  /// @return Argument values with name `arg_name` or an empty vector if no
+  /// such argument.
+  /// Arguments are extracted from:
+  /// - query part of the URL,
+  /// - the HTTP body (only if `parse_args_from_body: true` for handler is set).
   const std::vector<std::string>& GetArgVector(std::string_view arg_name) const;
 
   /// @return true if argument with name arg_name exists, false otherwise.
-  /// Arguments are extracted from query part of the URL and from
-  /// the HTTP body.
+  /// Arguments are extracted from:
+  /// - query part of the URL,
+  /// - the HTTP body (only if `parse_args_from_body: true` for handler is set).
   bool HasArg(std::string_view arg_name) const;
 
-  /// @return Count of arguments. Arguments are extracted from query part of the
-  /// URL and from the HTTP body.
+  /// @return Count of arguments.
+  /// Arguments are extracted from:
+  /// - query part of the URL,
+  /// - the HTTP body (only if `parse_args_from_body: true` for handler is set).
   size_t ArgCount() const;
 
-  /// @return List of names of arguments. Arguments are extracted from query
-  /// part of the URL and from the HTTP body.
+  /// @return List of names of arguments.
+  /// Arguments are extracted from:
+  /// - query part of the URL,
+  /// - the HTTP body (only if `parse_args_from_body: true` for handler is set).
   std::vector<std::string> ArgNames() const;
 
   /// @return First argument value with name arg_name from multipart/form-data
