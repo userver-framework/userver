@@ -59,12 +59,8 @@ namespace components {
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// updates-sink | name of the component derived from components::DynamicConfigUpdatesSinkBase to be used for storing received updates | dynamic-config
-/// store-enabled | store the retrieved values into the updates sink determined by the `updates-sink` option | -
-/// load-only-my-values | request from the client only the values used by this service | -
-/// fallback-path | a path to the fallback config to load the required config names from it | -
-/// fallback-path | a path to the fallback config | defaults are taken from dynamic_config::Key definitions
-/// defaults | overrides the defaults from dynamic_config::Key definitions in code | {}
-/// fs-task-processor | name of the task processor to run the blocking file write operations | -
+/// store-enabled | store the retrieved values into the updates sink determined by the `updates-sink` option | true
+/// load-only-my-values | request from the client only the values used by this service | true
 /// deduplicate-update-types | update types for best-effort update event deduplication, see above | `full-and-incremental`
 ///
 /// See also the options for components::CachingComponentBase.
@@ -116,20 +112,15 @@ class DynamicConfigClientUpdater final
   bool IsDuplicate(cache::UpdateType update_type,
                    const dynamic_config::DocsMap& new_value) const;
 
-  dynamic_config::DocsMap fallback_config_;
-  dynamic_config::Client::Timestamp server_timestamp_;
-
   DynamicConfigUpdatesSinkBase& updates_sink_;
-
   const bool load_only_my_values_;
   const bool store_enabled_;
   const std::optional<cache::AllowedUpdateTypes> deduplicate_update_types_;
-
   dynamic_config::Client& config_client_;
 
+  dynamic_config::Client::Timestamp server_timestamp_;
   // for atomic updates of cached data
   engine::Mutex update_config_mutex_;
-
   DocsMapKeys docs_map_keys_;
   concurrent::Variable<AdditionalDocsMapKeys> additional_docs_map_keys_;
   alerts::Storage& alert_storage_;

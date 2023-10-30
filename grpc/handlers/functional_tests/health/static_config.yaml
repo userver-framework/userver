@@ -10,8 +10,6 @@ components_manager:
                     level: debug
                     overflow_behavior: discard
         dynamic-config:
-            fs-cache-path: ''
-        dynamic-config-fallbacks:
 
         grpc-server:
             port: 8091

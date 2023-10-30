@@ -50,8 +50,8 @@ components_manager:
     statistics-storage:
       # Nothing
     dynamic-config:
-      fs-cache-path: ''
-      fs-task-processor: main-task-processor
+      updates-enabled: true
+      fallback-path: $runtime_config_path
 # /// [Sample dynamic config updates sink component]
 # yaml
     dynamic-config-test-updates-sink1:
@@ -61,7 +61,7 @@ components_manager:
 # /// [Sample dynamic config updates sink component]
 # /// [Sample dynamic config fallback component]
 # yaml
-    dynamic-config-fallbacks:
+    dynamic-config-test-fallbacks-producer:
       updates-sink: dynamic-config-test-updates-sink1
 # /// [Sample dynamic config fallback component]
 # /// [Verifier of the observed updates sink chain]
@@ -78,6 +78,39 @@ const dynamic_config::Key<std::string> kUpdatesSinkChain{
     kUpdatesSinkChainConfigName, ""};
 
 std::string expected_updates_sink_chain;
+
+class TestFallbacksProducer final : public components::LoggableComponentBase {
+ public:
+  static constexpr std::string_view kName =
+      "dynamic-config-test-fallbacks-producer";
+
+  TestFallbacksProducer(const components::ComponentConfig& config,
+                        const components::ComponentContext& context);
+
+  static yaml_config::Schema GetStaticConfigSchema();
+};
+
+TestFallbacksProducer::TestFallbacksProducer(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context)
+    : components::LoggableComponentBase(config, context) {
+  const auto& defaults =
+      context.FindComponent<components::DynamicConfig>().GetDefaultDocsMap();
+  dynamic_config::FindUpdatesSink(config, context).SetConfig(kName, defaults);
+}
+
+yaml_config::Schema TestFallbacksProducer::GetStaticConfigSchema() {
+  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+type: object
+description: Test updates sink component.
+additionalProperties: false
+properties:
+    updates-sink:
+        type: string
+        description: components::DynamicConfigUpdatesSinkBase descendant to be used for storing fallback config
+        defaultDescription: dynamic-config
+)");
+}
 
 class TestUpdatesSink final : public components::DynamicConfigUpdatesSinkBase {
  public:
@@ -136,7 +169,7 @@ properties:
     updates-sink:
         type: string
         description: components::DynamicConfigUpdatesSinkBase descendant to be used for storing fallback config
-        defaultDescription: empty string, treated as if `dynamic-config` was specified
+        defaultDescription: dynamic-config
 )");
 }
 
@@ -170,6 +203,7 @@ properties: {}
 
 components::ComponentList MakeComponentList() {
   return components::MinimalComponentList()
+      .Append<TestFallbacksProducer>()
       .Append<TestUpdatesSink>("dynamic-config-test-updates-sink1")
       .Append<TestUpdatesSink>("dynamic-config-test-updates-sink2")
       .Append<ChainVerifier>();
@@ -179,7 +213,8 @@ components::ComponentList MakeComponentList() {
 
 TEST_F(ComponentList, DynamicConfigUpdatesSink) {
   expected_updates_sink_chain =
-      "dynamic-config-fallbacks dynamic-config-test-updates-sink1 "
+      "dynamic-config-test-fallbacks-producer "
+      "dynamic-config-test-updates-sink1 "
       "dynamic-config-test-updates-sink2 dynamic-config";
   const auto temp_root = fs::blocking::TempDirectory::Create();
   const std::string config_vars_path =

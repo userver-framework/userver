@@ -123,7 +123,6 @@ components_manager:
     dynamic-config-client-updater:
       store-enabled: true
       load-only-my-values: true
-      fs-task-processor: fs-task-processor
 
       # options from components::CachingComponentBase
       update-types: full-and-incremental
@@ -171,6 +170,7 @@ components_manager:
 # /// [Sample dynamic config component config]
 # yaml
     dynamic-config:
+      updates-enabled: true
       fs-cache-path: $dynamic-config-cache-path
       fs-task-processor: fs-task-processor
 # /// [Sample dynamic config component config]

@@ -136,7 +136,7 @@ components::DynamicConfigClient, components::DynamicConfig,
 components::DynamicConfigClientUpdater.
 
 Service starts with dynamic config values from `dynamic-config.fs-cache-path` file
-or from `dynamic-config-client-updater.fallback-path` file. Service updates dynamic
+or from `dynamic-config.fallback-path` file. Service updates dynamic
 values from a @ref scripts/docs/en/userver/tutorial/config_service.md "configs service".
 
 @snippet samples/production_service/static_config.yaml Production service sample - static config dynamic configs

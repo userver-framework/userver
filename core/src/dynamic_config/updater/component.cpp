@@ -5,6 +5,7 @@
 #include <userver/components/component.hpp>
 #include <userver/dynamic_config/client/component.hpp>
 #include <userver/dynamic_config/exception.hpp>
+#include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/updates_sink/find.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/fs/read.hpp>
@@ -49,46 +50,6 @@ const ComponentConfig& EnsureDoesNotDependOnDynamicConfig(
   return component_config;
 }
 
-// TODO deduplicate with DynamicConfigFallbacks
-dynamic_config::DocsMap ParseFallbacksAndOverrides(
-    const ComponentConfig& component_config,
-    engine::TaskProcessor& fs_task_processor) {
-  dynamic_config::DocsMap config_values;
-  {
-    const auto fallback_path =
-        component_config["fallback-path"].As<std::optional<std::string>>();
-    if (fallback_path) {
-      try {
-        const auto fallback_config_contents =
-            fs::ReadFileContents(fs_task_processor, *fallback_path);
-        config_values.Parse(fallback_config_contents, false);
-      } catch (const std::exception& ex) {
-        throw std::runtime_error(
-            std::string("Cannot load fallback dynamic config: ") + ex.what());
-      }
-    } else {
-      try {
-        config_values = dynamic_config::impl::MakeDefaultDocsMap();
-      } catch (const std::exception& ex) {
-        throw std::runtime_error(fmt::format(
-            "Failed to create dynamic config defaults: {}", ex.what()));
-      }
-    }
-  }
-  {
-    auto default_overrides =
-        component_config["defaults"].As<std::optional<formats::json::Value>>();
-    if (default_overrides) {
-      dynamic_config::DocsMap overrides;
-      for (const auto& [key, value] : Items(*default_overrides)) {
-        overrides.Set(key, value);
-      }
-      config_values.MergeOrAssign(std::move(overrides));
-    }
-  }
-  return config_values;
-}
-
 }  // namespace
 
 DynamicConfigClientUpdater::DynamicConfigClientUpdater(
@@ -98,25 +59,20 @@ DynamicConfigClientUpdater::DynamicConfigClientUpdater(
                            component_context),
       updates_sink_(
           dynamic_config::FindUpdatesSink(component_config, component_context)),
-      load_only_my_values_(component_config["load-only-my-values"].As<bool>()),
-      store_enabled_(component_config["store-enabled"].As<bool>()),
+      load_only_my_values_(
+          component_config["load-only-my-values"].As<bool>(true)),
+      store_enabled_(component_config["store-enabled"].As<bool>(true)),
       deduplicate_update_types_(ParseDeduplicateUpdateTypes(
           component_config["deduplicate-update-types"])),
       config_client_(
           component_context.FindComponent<components::DynamicConfigClient>()
               .GetClient()),
+      docs_map_keys_(utils::AsContainer<DocsMapKeys>(
+          component_context.FindComponent<components::DynamicConfig>()
+              .GetDefaultDocsMap()
+              .GetNames())),
       alert_storage_(component_context.FindComponent<alerts::StorageComponent>()
                          .GetStorage()) {
-  auto tp_name =
-      component_config["fs-task-processor"].As<std::optional<std::string>>();
-  auto& tp = tp_name ? component_context.GetTaskProcessor(*tp_name)
-                     : engine::current_task::GetTaskProcessor();
-
-  fallback_config_ = ParseFallbacksAndOverrides(component_config, tp);
-
-  // There are all required configs in the fallbacks file
-  docs_map_keys_ = utils::AsContainer<DocsMapKeys>(fallback_config_.GetNames());
-
   try {
     StartPeriodicUpdates();
   } catch (const std::exception& e) {
@@ -200,11 +156,6 @@ DynamicConfigClientUpdater::SetAdditionalKeys(std::vector<std::string> keys) {
   return dynamic_config::AdditionalKeysToken{std::move(keys_ptr)};
 }
 
-const dynamic_config::DocsMap& DynamicConfigClientUpdater::GetDefaults(
-    utils::InternalTag) const {
-  return fallback_config_;
-}
-
 void DynamicConfigClientUpdater::Update(
     cache::UpdateType update_type,
     const std::chrono::system_clock::time_point& /*last_update*/,
@@ -218,23 +169,21 @@ void DynamicConfigClientUpdater::Update(
 
     stats.IncreaseDocumentsReadCount(docs_map.Size());
 
-    /* Don't check for timestamp, accept any timestamp.
-     * Otherwise we might end up with constantly failing to make full update
-     * as every full update we get a bit outdated reply.
-     */
+    // Don't check for timestamp, accept any timestamp.
+    // Otherwise, we might end up with constantly failing to make full update
+    // as every full update we get a bit outdated reply.
 
-    auto combined = MergeDocsMap(fallback_config_, std::move(docs_map));
-    auto size = combined.Size();
+    const auto size = docs_map.Size();
 
     {
-      std::lock_guard<engine::Mutex> lock(update_config_mutex_);
-      if (IsDuplicate(update_type, combined)) {
+      const std::lock_guard lock(update_config_mutex_);
+      if (IsDuplicate(update_type, docs_map)) {
         stats.FinishNoChanges();
         server_timestamp_ = reply.timestamp;
         return;
       }
 
-      Set(std::move(combined));
+      Set(std::move(docs_map));
       StoreIfEnabled();
     }
 
@@ -261,7 +210,7 @@ void DynamicConfigClientUpdater::Update(
     stats.IncreaseDocumentsReadCount(docs_map.Size());
 
     {
-      std::lock_guard<engine::Mutex> lock(update_config_mutex_);
+      const std::lock_guard lock(update_config_mutex_);
       auto ptr = Get();
       auto combined = MergeDocsMap(*ptr, std::move(docs_map));
 
@@ -287,7 +236,7 @@ void DynamicConfigClientUpdater::UpdateAdditionalKeys(
   auto& additional_configs = reply.docs_map;
 
   {
-    std::lock_guard<engine::Mutex> lock(update_config_mutex_);
+    const std::lock_guard lock(update_config_mutex_);
     auto ptr = Get();
     dynamic_config::DocsMap docs_map = *ptr;
     auto combined = MergeDocsMap(additional_configs, std::move(docs_map));
@@ -322,21 +271,11 @@ properties:
     store-enabled:
         type: boolean
         description: store the retrieved values into the updates sink component
+        defaultDescription: true
     load-only-my-values:
         type: boolean
         description: request from the client only the values used by this service
-    fallback-path:
-        type: string
-        description: a path to the fallback config to load the required config names from it
-        defaultDescription: defaults are taken from dynamic_config::Key definitions
-    defaults:
-        type: object
-        description: optional values for configs that override the defaults specified in dynamic_config::Key definitions
-        properties: {}
-        additionalProperties: true
-    fs-task-processor:
-        type: string
-        description: name of the task processor to run the blocking file write operations
+        defaultDescription: true
     deduplicate-update-types:
         type: string
         description: config update types for best-effort deduplication
@@ -346,6 +285,9 @@ properties:
           - only-full
           - only-incremental
           - full-and-incremental
+    fallback-path:
+        type: string
+        description: TODO REMOVE THE UNUSED SCHEMA FIELD
 )");
 }
 

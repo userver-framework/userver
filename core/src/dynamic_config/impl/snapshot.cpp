@@ -86,8 +86,8 @@ DocsMap MakeDefaultDocsMap() {
                               /*empty_ok=*/true);
     } catch (const std::exception& ex) {
       throw std::runtime_error(
-          fmt::format("Invalid default JSON value '{}' for dynamic config "
-                      "variable '{}': {}",
+          fmt::format("Invalid in-code default JSON value '{}' for dynamic "
+                      "config variable '{}': {}",
                       variable_metadata.default_docs_map_string,
                       variable_metadata.name, ex.what()));
     }

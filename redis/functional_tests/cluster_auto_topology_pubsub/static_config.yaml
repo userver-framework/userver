@@ -73,8 +73,6 @@ components_manager:
         dynamic-config-client-updater:
             config-settings: false
             full-update-interval: 1m
-            load-only-my-values: true
-            store-enabled: true
             update-interval: 5s
         dns-client:
             fs-task-processor: fs-task-processor

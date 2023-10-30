@@ -64,9 +64,6 @@ components_manager:
           file_path: '@null'
           level: warning
     dynamic-config:
-      fs-cache-path: ''
-      fs-task-processor: main-task-processor
-    dynamic-config-fallbacks:
       defaults: $dynamic-config-default-overrides
       defaults#fallback: {}
     server:

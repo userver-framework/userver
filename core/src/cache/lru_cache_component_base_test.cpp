@@ -53,9 +53,7 @@ components_manager:
       testsuite-redis-timeout-single: 1s
       testsuite-redis-timeout-all: 750ms
     dynamic-config:
-      fs-cache-path: ''
-      fs-task-processor: main-task-processor
-    dynamic-config-fallbacks:)";
+)";
 
 void ValidateExampleCacheConfig(const formats::yaml::Value& static_config) {
   yaml_config::impl::Validate(

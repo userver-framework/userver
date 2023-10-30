@@ -28,8 +28,6 @@ components_manager:
                     overflow_behavior: discard
 
         dynamic-config:
-            fs-cache-path: ''
-        dynamic-config-fallbacks:
         dns-client:
             fs-task-processor: fs-task-processor
     coro_pool:

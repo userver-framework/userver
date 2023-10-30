@@ -58,8 +58,6 @@ components_manager:
                     overflow_behavior: discard
 
         dynamic-config:
-            fs-cache-path: ''
-        dynamic-config-fallbacks:
             defaults:
                 REDIS_REPLICA_MONITORING_SETTINGS:
                     __default__:

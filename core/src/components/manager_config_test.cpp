@@ -139,9 +139,6 @@ components_manager:
       full-update-interval: 1m
       http-retries: 5
       http-timeout: 1000ms
-      load-enabled: true
-      load-only-my-values: true
-      store-enabled: true
       update-interval: 5s
     tests-control:
       enabled: false

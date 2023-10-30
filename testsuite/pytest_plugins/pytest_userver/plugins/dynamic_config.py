@@ -199,7 +199,7 @@ def _config_service_defaults_updated(config_service_defaults):
 def userver_config_dynconf_cache(service_tmpdir):
     def patch_config(config, _config_vars) -> None:
         components = config['components_manager']['components']
-        dynamic_config_component = components.get('dynamic-config', {})
+        dynamic_config_component = components.get('dynamic-config', None) or {}
         if dynamic_config_component.get('fs-cache-path', '') == '':
             return
 
@@ -228,8 +228,7 @@ def userver_config_dynconf_fallback(
     """
     Returns a function that adjusts the static configuration file for
     the testsuite.
-    Sets the `fallback-path` of the `dynamic-config-client-updater` and
-    `dynamic-config-fallbacks` according to `config_service_defaults`.
+    Sets `dynamic-config.fallback-path` according to `config_service_defaults`.
 
     @ingroup userver_testsuite_fixtures
     """

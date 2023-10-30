@@ -59,8 +59,6 @@ components_manager:
             task_processor: main-task-processor
 
         dynamic-config:
-            fs-cache-path: ''
-        dynamic-config-fallbacks:
         dns-client:
             fs-task-processor: fs-task-processor
     coro_pool:

@@ -57,6 +57,7 @@ components_manager:
     statistics-storage:
       # Nothing
     dynamic-config:
+      updates-enabled: true
       fs-cache-path: $dynamic-config-cache-path
       fs-task-processor: main-task-processor
     server:
@@ -97,11 +98,6 @@ components_manager:
       http-retries: 5
       config-url: http://localhost:8083/
     dynamic-config-client-updater:
-      store-enabled: true
-      load-only-my-values: true
-      fallback-path#fallback: /some/path/to/runtime_config.json
-
-      # options from components::CachingComponentBase
       update-types: full-and-incremental
       update-interval: 5s
       update-jitter: 2s

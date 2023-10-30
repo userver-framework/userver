@@ -11,7 +11,6 @@
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage_mock.hpp>
-#include <userver/dynamic_config/updates_sink/find.hpp>
 #include <userver/engine/condition_variable.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/fs/read.hpp>
@@ -57,10 +56,12 @@ class DynamicConfig::Impl final {
   dynamic_config::Source GetSource();
   auto& GetChannel() { return cache_.GetChannel(); }
 
+  const dynamic_config::DocsMap& GetDefaultDocsMap() const;
+  bool AreUpdatesEnabled() const;
+
   void OnLoadingCancelled();
 
-  void SetConfig(std::string_view updater,
-                 const dynamic_config::DocsMap& value);
+  void SetConfig(std::string_view updater, dynamic_config::DocsMap&& value);
   void NotifyLoadingFailed(std::string_view updater, std::string_view error);
 
  private:
@@ -72,18 +73,22 @@ class DynamicConfig::Impl final {
   bool Has() const;
   void WaitUntilLoaded();
 
+  void ReadFallback(const ComponentConfig& config);
+
   bool IsFsCacheEnabled() const;
   void ReadFsCache();
   void WriteFsCache(const dynamic_config::DocsMap&);
 
   void WriteStatistics(utils::statistics::Writer& writer) const;
 
-  dynamic_config::impl::StorageData cache_;
-
   const std::string fs_cache_path_;
   engine::TaskProcessor* fs_task_processor_;
-  std::string fs_loading_error_msg_;
 
+  dynamic_config::impl::StorageData cache_;
+  std::string fs_loading_error_msg_;
+  dynamic_config::DocsMap fallback_config_;
+
+  const bool updates_enabled_;
   const bool fs_write_enabled_;
   std::atomic<bool> is_loaded_{false};
   bool config_load_cancelled_{false};
@@ -97,25 +102,15 @@ class DynamicConfig::Impl final {
 
 DynamicConfig::Impl::Impl(const ComponentConfig& config,
                           const ComponentContext& context)
-    : fs_cache_path_(config["fs-cache-path"].As<std::string>()),
-      fs_task_processor_(
-          fs_cache_path_.empty()
-              ? nullptr
-              : &context.GetTaskProcessor(
-                    config["fs-task-processor"].As<std::string>())),
+    : fs_cache_path_(config["fs-cache-path"].As<std::string>({})),
+      fs_task_processor_([&] {
+        const auto name =
+            config["fs-task-processor"].As<std::optional<std::string>>();
+        return name ? &context.GetTaskProcessor(*name) : nullptr;
+      }()),
+      updates_enabled_(config["updates-enabled"].As<bool>(false)),
       fs_write_enabled_(AreCacheDumpsEnabled(context)) {
-  UINVARIANT(dynamic_config::impl::has_updater,
-             fmt::format("At least one dynamic config updater component "
-                         "responsible for DynamicConfig initialization should "
-                         "be defined in a static config!"));
-
-  // Check that defaults are parseable.
-  {
-    const auto default_docs_map = dynamic_config::impl::MakeDefaultDocsMap();
-    [[maybe_unused]] const dynamic_config::impl::SnapshotData defaults{
-        default_docs_map, {}};
-  }
-
+  ReadFallback(config);
   ReadFsCache();
 
   statistics_holder_ =
@@ -129,6 +124,12 @@ dynamic_config::Source DynamicConfig::Impl::GetSource() {
   WaitUntilLoaded();
   return dynamic_config::Source{cache_};
 }
+
+const dynamic_config::DocsMap& DynamicConfig::Impl::GetDefaultDocsMap() const {
+  return fallback_config_;
+}
+
+bool DynamicConfig::Impl::AreUpdatesEnabled() const { return updates_enabled_; }
 
 void DynamicConfig::Impl::WaitUntilLoaded() {
   if (Has()) return;
@@ -199,8 +200,9 @@ void DynamicConfig::Impl::DoSetConfig(const dynamic_config::DocsMap& value) {
 }
 
 void DynamicConfig::Impl::SetConfig(std::string_view updater,
-                                    const dynamic_config::DocsMap& value) {
+                                    dynamic_config::DocsMap&& value) {
   LOG_DEBUG() << "Setting new dynamic config value from '" << updater << "'";
+  value.MergeMissing(fallback_config_);
   DoSetConfig(value);
   WriteFsCache(value);
 }
@@ -218,6 +220,47 @@ void DynamicConfig::Impl::OnLoadingCancelled() {
 }
 
 bool DynamicConfig::Impl::Has() const { return is_loaded_.load(); }
+
+void DynamicConfig::Impl::ReadFallback(const ComponentConfig& config) {
+  fallback_config_ = dynamic_config::impl::MakeDefaultDocsMap();
+
+  const auto fallback_path =
+      config["fallback-path"].As<std::optional<std::string>>();
+
+  const auto default_overrides =
+      config["defaults"].As<std::optional<formats::json::Value>>();
+
+  if (fallback_path && default_overrides) {
+    throw std::runtime_error(
+        "Static config options dynamic-config.fallback-path and "
+        "dynamic-config.defaults are incompatible");
+  }
+
+  if (fallback_path) {
+    if (!fs_task_processor_) {
+      throw std::runtime_error(
+          "dynamic-config.fallback-path option requires specifying "
+          "dynamic-config.fs-task-processor");
+    }
+
+    const tracing::Span span("dynamic_config_fallback_read");
+    try {
+      const auto fallback_contents =
+          fs::ReadFileContents(*fs_task_processor_, *fallback_path);
+      fallback_config_.Parse(fallback_contents, false);
+    } catch (const std::exception& ex) {
+      throw std::runtime_error(
+          fmt::format("Failed to load dynamic config fallback from '{}': {}",
+                      *fallback_path, ex.what()));
+    }
+  }
+
+  if (default_overrides) {
+    for (const auto& [key, value] : Items(*default_overrides)) {
+      fallback_config_.Set(key, value);
+    }
+  }
+}
 
 bool DynamicConfig::Impl::IsFsCacheEnabled() const {
   UASSERT_MSG(fs_cache_path_.empty() || fs_task_processor_,
@@ -242,6 +285,7 @@ void DynamicConfig::Impl::ReadFsCache() {
     dynamic_config::DocsMap docs_map;
     docs_map.Parse(contents, false);
 
+    docs_map.MergeMissing(fallback_config_);
     DoSetConfig(docs_map);
     LOG_INFO() << "Successfully read dynamic_config from FS cache";
   } catch (const std::exception& e) {
@@ -299,22 +343,31 @@ DynamicConfig::NoblockSubscriber::GetEventSource() noexcept {
 DynamicConfig::DynamicConfig(const ComponentConfig& config,
                              const ComponentContext& context)
     : DynamicConfigUpdatesSinkBase(config, context),
-      impl_(std::make_unique<Impl>(config, context)) {}
+      impl_(std::make_unique<Impl>(config, context)) {
+  if (!impl_->AreUpdatesEnabled()) {
+    dynamic_config::impl::RegisterUpdater(*this, kName, kName);
+    SetConfig(kName, impl_->GetDefaultDocsMap());
+  }
+}
 
 DynamicConfig::~DynamicConfig() = default;
 
 dynamic_config::Source DynamicConfig::GetSource() { return impl_->GetSource(); }
 
+const dynamic_config::DocsMap& DynamicConfig::GetDefaultDocsMap() const {
+  return impl_->GetDefaultDocsMap();
+}
+
 void DynamicConfig::OnLoadingCancelled() { impl_->OnLoadingCancelled(); }
 
 void DynamicConfig::SetConfig(std::string_view updater,
                               dynamic_config::DocsMap&& value) {
-  impl_->SetConfig(updater, value);
+  impl_->SetConfig(updater, std::move(value));
 }
 
 void DynamicConfig::SetConfig(std::string_view updater,
                               const dynamic_config::DocsMap& value) {
-  impl_->SetConfig(updater, value);
+  impl_->SetConfig(updater, dynamic_config::DocsMap{value});
 }
 
 void DynamicConfig::NotifyLoadingFailed(std::string_view updater,
@@ -328,12 +381,26 @@ type: object
 description: Component that stores the runtime config.
 additionalProperties: false
 properties:
+    updates-enabled:
+        type: boolean
+        description: should be set to 'true' if there is an updater component
+        defaultDescription: false
+    defaults:
+        type: object
+        description: optional values for configs that override the defaults specified in dynamic_config::Key definitions
+        properties: {}
+        additionalProperties: true
+    fallback-path:
+        type: string
+        description: a path to the fallback config to load the required config names from it
     fs-cache-path:
         type: string
         description: path to the file to read and dump a config cache; set to empty string to disable reading and dumping configs to FS
+        defaultDescription: no fs cache
     fs-task-processor:
         type: string
         description: name of the task processor to run the blocking file write operations
+        defaultDescription: required if fallback-path or fs-cache-path is specified
 )");
 }
 

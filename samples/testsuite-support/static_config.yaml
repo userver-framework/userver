@@ -35,9 +35,7 @@ components_manager:
                     overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
 
         dynamic-config:
-            fs-cache-path: ''
-        dynamic-config-fallbacks:
-            load-enabled: false
+            updates-enabled: true
         dynamic-config-client:
             config-url: $config-server-url
             http-retries: 5
@@ -46,8 +44,6 @@ components_manager:
         dynamic-config-client-updater:
             config-settings: false
             full-update-interval: 1m
-            load-only-my-values: true
-            store-enabled: true
             update-interval: 5s
 
         # /// [monitor - config.yaml]

@@ -13,21 +13,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace dynamic_config {
 
-namespace impl {
-
-components::DynamicConfigUpdatesSinkBase& FindUpdatesSink(
-    const components::ComponentConfig&, const components::ComponentContext&);
-
-inline bool has_updater = true;
-
-template <typename Dummy = void>
-struct RegisterUpdater {
-  static_assert(std::is_same_v<Dummy, void>);
-  static inline const bool done = ((has_updater = true), true);
-};
-
-}  // namespace impl
-
 /// @brief Returns component to which incoming dynamic config updates should be
 /// forwarded.
 ///
@@ -40,13 +25,9 @@ struct RegisterUpdater {
 /// creation of the requested component.
 ///
 /// @note It is illegal to use the same updates sink from several components.
-template <typename Dummy = void>
 components::DynamicConfigUpdatesSinkBase& FindUpdatesSink(
     const components::ComponentConfig& config,
-    const components::ComponentContext& context) {
-  (void)impl::RegisterUpdater<Dummy>::done;
-  return impl::FindUpdatesSink(config, context);
-}
+    const components::ComponentContext& context);
 
 }  // namespace dynamic_config
 

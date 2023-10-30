@@ -16,8 +16,9 @@ class DynamicConfigUpdatesSinkBase;
 }  // namespace components
 
 namespace dynamic_config::impl {
-components::DynamicConfigUpdatesSinkBase& FindUpdatesSink(
-    const components::ComponentConfig&, const components::ComponentContext&);
+void RegisterUpdater(components::DynamicConfigUpdatesSinkBase& sink,
+                     std::string_view sink_component_name,
+                     std::string_view updater_component_name);
 }  // namespace dynamic_config::impl
 
 namespace components {
@@ -70,9 +71,10 @@ class DynamicConfigUpdatesSinkBase : public LoggableComponentBase {
  private:
   struct UsedByInfo;
 
-  friend components::DynamicConfigUpdatesSinkBase&
-  dynamic_config::impl::FindUpdatesSink(const components::ComponentConfig&,
-                                        const components::ComponentContext&);
+  friend void dynamic_config::impl::RegisterUpdater(
+      components::DynamicConfigUpdatesSinkBase& sink,
+      std::string_view sink_component_name,
+      std::string_view updater_component_name);
 
   std::unique_ptr<UsedByInfo> used_by_;
 };

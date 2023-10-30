@@ -47,7 +47,7 @@ components_manager:
       thread_name: main-worker
       worker_threads: 1
   components:
-    manager-controller:  # Nothing
+    manager-controller:
     logging:
       fs-task-processor: main-task-processor
       loggers:
@@ -55,14 +55,7 @@ components_manager:
           file_path: $logger_file_path
           format: ltsv
     statistics-storage:
-      # Nothing
     dynamic-config:
-      fs-cache-path: ''
-      fs-task-processor: main-task-processor
-# /// [Sample dynamic config fallback component]
-# yaml
-    dynamic-config-fallbacks:
-# /// [Sample dynamic config fallback component]
 config_vars: )";
 
 struct TracingGuard final {

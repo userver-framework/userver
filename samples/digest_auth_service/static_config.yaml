@@ -70,8 +70,6 @@ components_manager:
             task_processor: main-task-processor
 
         dynamic-config:                      # Dynamic config storage options, do nothing
-            fs-cache-path: ''
-        dynamic-config-fallbacks:            # Load options from file and push them into the dynamic config storage.
         dns-client:
             fs-task-processor: fs-task-processor
 

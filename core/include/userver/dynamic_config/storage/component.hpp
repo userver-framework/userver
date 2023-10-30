@@ -24,11 +24,32 @@ namespace components {
 ///
 /// @brief Component that stores the runtime config.
 ///
-/// ## Static options:
+/// ## Behavior on missing configs
+///
+/// If a config variable is entirely missing the fetched config, the value from
+/// `dynamic_config_fallback.json` is used (see `fallback-path` static config
+/// option).
+///
+/// ## Behavior on config parsing failure
+///
+/// If a config variable from the fetched config fails to be parsed (the parser
+/// fails with an exception), then the whole config update fails. It means that:
+///
+/// - If the service is just starting, it will shut down
+/// - If the service is already running, the config updates will stop until
+///   the config in the config service changes to a valid one. You can
+///   monitor this situation using the metric at path
+///   `cache.any.time.time-from-last-successful-start-ms`
+///
+/// ## Static options
+///
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// fs-cache-path | path to the file to read and dump a config cache; set to empty string to disable reading and dumping configs to FS | -
-/// fs-task-processor | name of the task processor to run the blocking file write operations | -
+/// updates-enabled | should be set to 'true' if there is an updater component | false
+/// defaults | overrides the defaults from dynamic_config::Key definitions in code | {}
+/// fallback-path | a path to the fallback config | defaults are taken from dynamic_config::Key definitions
+/// fs-cache-path | path to the file to read and dump a config cache; set to empty string to disable reading and dumping configs to FS | cache is disabled
+/// fs-task-processor | name of the task processor to run the blocking file write operations | required if `fs-cache-path` is present
 ///
 /// ## Static configuration example:
 ///
@@ -52,6 +73,10 @@ class DynamicConfig final : public DynamicConfigUpdatesSinkBase {
   /// Use `dynamic_config::Source` to get up-to-date config values, or to do
   /// something special on config updates
   dynamic_config::Source GetSource();
+
+  /// Get config defaults with overrides applied. Useful in the implementation
+  /// of custom config clients. Most code does not need to deal with these
+  const dynamic_config::DocsMap& GetDefaultDocsMap() const;
 
   static yaml_config::Schema GetStaticConfigSchema();
 

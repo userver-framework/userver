@@ -41,8 +41,6 @@ components_manager:
                     overflow_behavior: discard
 
         dynamic-config:
-            fs-cache-path: ''
-        dynamic-config-fallbacks:
 
         testsuite-support:
 

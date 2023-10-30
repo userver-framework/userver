@@ -112,6 +112,7 @@ components_manager:
             fs-task-processor: fs-task-processor
 
         dynamic-config:
+            updates-enabled: true
             fs-cache-path: $config-cache
             fs-task-processor: fs-task-processor
         dynamic-config-client:
@@ -122,8 +123,6 @@ components_manager:
         dynamic-config-client-updater:
             config-settings: false
             full-update-interval: 1m
-            load-only-my-values: true
-            store-enabled: true
             update-interval: 5s
 
         tests-control:

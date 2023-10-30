@@ -44,10 +44,6 @@ components_manager:
                     level: debug
                     overflow_behavior: discard
 
-        dynamic-config:
-            fs-cache-path: ''
-        dynamic-config-fallbacks:
-            load-enabled: false
         dynamic-config-client:
             config-url: $config-server-url
             http-retries: 5
@@ -56,9 +52,9 @@ components_manager:
         dynamic-config-client-updater:
             config-settings: false
             full-update-interval: 1m
-            load-only-my-values: true
-            store-enabled: true
             update-interval: 5s
+        dynamic-config:
+            updates-enabled: true
             defaults:
                 POSTGRES_CONNECTION_POOL_SETTINGS:
                     key-value-database:

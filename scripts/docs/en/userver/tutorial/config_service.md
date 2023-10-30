@@ -32,9 +32,6 @@ In previous example we made a simple HTTP server with some dynamic configs set i
                                        # by bypassing proxy from USERVER_HTTP_PROXY dynamic config
 
     dynamic-config-client-updater:        # A component that periodically uses `dynamic-config-client` to retrieve new values
-        fallback-path: /var/cache/service-name/dynamic_cfg.json  # Fallback to the values from this file on error
-        load-only-my-values: true      # Do not request all the configs, only the ask for the ones we are using right 
-        store-enabled: true            # Store the retrieved values into the components::DynamicConfig
         update-interval: 5s            # Request for new configs every 5 seconds
         full-update-interval: 1m
         config-settings: false
