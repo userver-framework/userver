@@ -7,9 +7,11 @@
 
 #include <fmt/format.h>
 
+#include <userver/alerts/component.hpp>
 #include <userver/compiler/demangle.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
+#include <userver/dynamic_config/exception.hpp>
 #include <userver/dynamic_config/storage_mock.hpp>
 #include <userver/engine/condition_variable.hpp>
 #include <userver/engine/mutex.hpp>
@@ -81,6 +83,7 @@ class DynamicConfig::Impl final {
 
   void WriteStatistics(utils::statistics::Writer& writer) const;
 
+  alerts::Storage& alert_storage_;
   const std::string fs_cache_path_;
   engine::TaskProcessor* fs_task_processor_;
 
@@ -102,7 +105,9 @@ class DynamicConfig::Impl final {
 
 DynamicConfig::Impl::Impl(const ComponentConfig& config,
                           const ComponentContext& context)
-    : fs_cache_path_(config["fs-cache-path"].As<std::string>({})),
+    : alert_storage_(
+          context.FindComponent<alerts::StorageComponent>().GetStorage()),
+      fs_cache_path_(config["fs-cache-path"].As<std::string>({})),
       fs_task_processor_([&] {
         const auto name =
             config["fs-task-processor"].As<std::optional<std::string>>();
@@ -171,14 +176,20 @@ void DynamicConfig::Impl::NotifyLoadingFailed(std::string_view updater,
 
 dynamic_config::impl::SnapshotData DynamicConfig::Impl::ParseConfig(
     const dynamic_config::DocsMap& value) {
-  utils::FastScopeGuard report_parse_error([&]() noexcept {
+  try {
+    dynamic_config::impl::SnapshotData config(value, {});
+    stats_.was_last_parse_successful = true;
+    alert_storage_.StopAlertNow("config_parse_error");
+    return config;
+  } catch (const dynamic_config::ConfigParseError& e) {
     stats_.was_last_parse_successful = false;
     ++stats_.parse_errors;
-  });
-  dynamic_config::impl::SnapshotData config(value, {});
-  report_parse_error.Release();
-  stats_.was_last_parse_successful = true;
-  return config;
+    alert_storage_.FireAlert("config_parse_error",
+                             std::string("Failed to parse dynamic config, go "
+                                         "and fix it in tariff-editor: ") +
+                                 e.what());
+    throw;
+  }
 }
 
 void DynamicConfig::Impl::DoSetConfig(const dynamic_config::DocsMap& value) {

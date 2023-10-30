@@ -4,7 +4,6 @@
 #include <userver/clients/http/component.hpp>
 #include <userver/components/component.hpp>
 #include <userver/dynamic_config/client/component.hpp>
-#include <userver/dynamic_config/exception.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/updates_sink/find.hpp>
 #include <userver/formats/json/serialize.hpp>
@@ -70,9 +69,7 @@ DynamicConfigClientUpdater::DynamicConfigClientUpdater(
       docs_map_keys_(utils::AsContainer<DocsMapKeys>(
           component_context.FindComponent<components::DynamicConfig>()
               .GetDefaultDocsMap()
-              .GetNames())),
-      alert_storage_(component_context.FindComponent<alerts::StorageComponent>()
-                         .GetStorage()) {
+              .GetNames())) {
   try {
     StartPeriodicUpdates();
   } catch (const std::exception& e) {
@@ -101,16 +98,7 @@ dynamic_config::DocsMap DynamicConfigClientUpdater::MergeDocsMap(
 void DynamicConfigClientUpdater::StoreIfEnabled() {
   if (store_enabled_) {
     auto ptr = Get();
-    try {
-      updates_sink_.SetConfig(kName, *ptr);
-      alert_storage_.StopAlertNow("config_parse_error");
-    } catch (const dynamic_config::ConfigParseError& e) {
-      alert_storage_.FireAlert("config_parse_error",
-                               std::string("Failed to parse dynamic config, go "
-                                           "and fix it in tariff-editor: ") +
-                                   e.what());
-      throw;
-    }
+    updates_sink_.SetConfig(kName, *ptr);
   }
 }
 

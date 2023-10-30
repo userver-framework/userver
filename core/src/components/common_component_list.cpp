@@ -1,6 +1,6 @@
 #include <userver/components/common_component_list.hpp>
 
-#include <userver/alerts/storage.hpp>
+#include <userver/alerts/component.hpp>
 #include <userver/clients/dns/component.hpp>
 #include <userver/clients/http/component.hpp>
 #include <userver/components/dump_configurator.hpp>
