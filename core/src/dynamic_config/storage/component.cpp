@@ -235,34 +235,34 @@ bool DynamicConfig::Impl::Has() const { return is_loaded_.load(); }
 void DynamicConfig::Impl::ReadFallback(const ComponentConfig& config) {
   fallback_config_ = dynamic_config::impl::MakeDefaultDocsMap();
 
-  const auto fallback_path =
-      config["fallback-path"].As<std::optional<std::string>>();
+  const auto default_overrides_path =
+      config["defaults-path"].As<std::optional<std::string>>();
 
   const auto default_overrides =
       config["defaults"].As<std::optional<formats::json::Value>>();
 
-  if (fallback_path && default_overrides) {
+  if (default_overrides_path && default_overrides) {
     throw std::runtime_error(
-        "Static config options dynamic-config.fallback-path and "
-        "dynamic-config.defaults are incompatible");
+        "Static config options dynamic-config.defaults and "
+        "dynamic-config.defaults-path are incompatible");
   }
 
-  if (fallback_path) {
+  if (default_overrides_path) {
     if (!fs_task_processor_) {
       throw std::runtime_error(
-          "dynamic-config.fallback-path option requires specifying "
+          "dynamic-config.defaults-path option requires specifying "
           "dynamic-config.fs-task-processor");
     }
 
     const tracing::Span span("dynamic_config_fallback_read");
     try {
       const auto fallback_contents =
-          fs::ReadFileContents(*fs_task_processor_, *fallback_path);
+          fs::ReadFileContents(*fs_task_processor_, *default_overrides_path);
       fallback_config_.Parse(fallback_contents, false);
     } catch (const std::exception& ex) {
       throw std::runtime_error(
           fmt::format("Failed to load dynamic config fallback from '{}': {}",
-                      *fallback_path, ex.what()));
+                      *default_overrides_path, ex.what()));
     }
   }
 
@@ -399,11 +399,13 @@ properties:
     defaults:
         type: object
         description: optional values for configs that override the defaults specified in dynamic_config::Key definitions
+        defaultDescription: values from dynamic_config::Key definitions are used
         properties: {}
         additionalProperties: true
-    fallback-path:
+    defaults-path:
         type: string
-        description: a path to the fallback config to load the required config names from it
+        description: optional file with config values that override the defaults specified in dynamic_config::Key definitions
+        defaultDescription: values from dynamic_config::Key definitions are used
     fs-cache-path:
         type: string
         description: path to the file to read and dump a config cache; set to empty string to disable reading and dumping configs to FS
@@ -411,7 +413,7 @@ properties:
     fs-task-processor:
         type: string
         description: name of the task processor to run the blocking file write operations
-        defaultDescription: required if fallback-path or fs-cache-path is specified
+        defaultDescription: required if defaults-path or fs-cache-path is specified
 )");
 }
 

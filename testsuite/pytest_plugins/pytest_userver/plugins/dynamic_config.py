@@ -228,7 +228,7 @@ def userver_config_dynconf_fallback(
     """
     Returns a function that adjusts the static configuration file for
     the testsuite.
-    Sets `dynamic-config.fallback-path` according to `config_service_defaults`.
+    Sets `dynamic-config.defaults-path` according to `config_service_defaults`.
 
     @ingroup userver_testsuite_fixtures
     """
@@ -238,7 +238,9 @@ def userver_config_dynconf_fallback(
         for component_name in _COMPONENTS_WITH_FALLBACK & components.keys():
             if components[component_name] is None:
                 components[component_name] = {}
-            if 'fallback-path' in components[component_name]:
+            if {'defaults-path', 'fallback-path'} & components[
+                    component_name
+            ].keys():
                 break
         else:
             return
@@ -252,7 +254,9 @@ def userver_config_dynconf_fallback(
 
         for component_name in _COMPONENTS_WITH_FALLBACK & components.keys():
             component = components[component_name]
-            if 'fallback-path' in component:
+            if 'defaults-path' in component:
+                component['defaults-path'] = str(fallback_path)
+            elif 'fallback-path' in component:
                 component['fallback-path'] = str(fallback_path)
 
     return _patch_config

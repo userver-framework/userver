@@ -51,7 +51,7 @@ components_manager:
       # Nothing
     dynamic-config:
       updates-enabled: true
-      fallback-path: $runtime_config_path
+      defaults-path: $runtime_config_path
 # /// [Sample dynamic config updates sink component]
 # yaml
     dynamic-config-test-updates-sink1:

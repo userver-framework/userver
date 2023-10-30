@@ -85,8 +85,6 @@ class DynamicConfigClientUpdater final
   dynamic_config::AdditionalKeysToken SetAdditionalKeys(
       std::vector<std::string> keys);
 
-  const dynamic_config::DocsMap& GetDefaults(utils::InternalTag) const;
-
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
