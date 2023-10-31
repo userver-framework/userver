@@ -8,6 +8,7 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/meta_light.hpp>
 
+#include <userver/storages/clickhouse/io/columns/array_column.hpp>
 #include <userver/storages/clickhouse/io/columns/base_column.hpp>
 #include <userver/storages/clickhouse/io/columns/common_columns.hpp>
 #include <userver/storages/clickhouse/io/columns/nullable_column.hpp>

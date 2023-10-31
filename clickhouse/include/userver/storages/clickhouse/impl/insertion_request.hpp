@@ -10,6 +10,7 @@
 #include <userver/storages/clickhouse/impl/block_wrapper_fwd.hpp>
 #include <userver/storages/clickhouse/io/impl/validate.hpp>
 
+#include <userver/storages/clickhouse/io/columns/array_column.hpp>
 #include <userver/storages/clickhouse/io/columns/column_wrapper.hpp>
 #include <userver/storages/clickhouse/io/columns/common_columns.hpp>
 #include <userver/storages/clickhouse/io/columns/nullable_column.hpp>
