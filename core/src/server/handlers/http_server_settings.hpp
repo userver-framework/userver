@@ -13,8 +13,6 @@ extern const dynamic_config::Key<bool> kLogRequest;
 
 extern const dynamic_config::Key<bool> kLogRequestHeaders;
 
-extern const dynamic_config::Key<bool> kCheckAuthInHandlers;
-
 extern const dynamic_config::Key<bool> kCancelHandleRequestByDeadline;
 
 struct CcCustomStatus final {

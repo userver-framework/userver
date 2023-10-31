@@ -677,10 +677,8 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
         });
 
     request_processor.ProcessRequestStep(
-        "check_auth", [this, &http_request, &context, &request_processor] {
-          CheckAuth(http_request, context,
-                    request_processor.GetInitialDynamicConfig());
-        });
+        "check_auth",
+        [this, &http_request, &context] { CheckAuth(http_request, context); });
 
     if (GetConfig().decompress_request) {
       request_processor.ProcessRequestStep(
@@ -825,14 +823,8 @@ tracing::Span HttpHandlerBase::MakeSpan(const http::HttpRequest& http_request,
   return span;
 }
 
-void HttpHandlerBase::CheckAuth(
-    const http::HttpRequest& http_request, request::RequestContext& context,
-    const dynamic_config::Snapshot& initial_config) const {
-  if (!initial_config[kCheckAuthInHandlers]) {
-    LOG_DEBUG() << "auth checks are disabled for current service";
-    return;
-  }
-
+void HttpHandlerBase::CheckAuth(const http::HttpRequest& http_request,
+                                request::RequestContext& context) const {
   if (!NeedCheckAuth()) {
     LOG_DEBUG() << "auth checks are disabled for current handler";
     return;

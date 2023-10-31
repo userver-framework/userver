@@ -13,9 +13,6 @@ const dynamic_config::Key<bool> kLogRequest{"USERVER_LOG_REQUEST", true};
 const dynamic_config::Key<bool> kLogRequestHeaders{
     "USERVER_LOG_REQUEST_HEADERS", false};
 
-const dynamic_config::Key<bool> kCheckAuthInHandlers{
-    "USERVER_CHECK_AUTH_IN_HANDLERS", true};
-
 const dynamic_config::Key<bool> kCancelHandleRequestByDeadline{
     "USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE", false};
 

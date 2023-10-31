@@ -131,7 +131,6 @@ $ curl -X POST -d '{}' 127.0.0.1:8083/configs/values | jq
     },
     "USERVER_TASK_PROCESSOR_PROFILER_DEBUG": {},
     "USERVER_LOG_REQUEST_HEADERS": true,
-    "USERVER_CHECK_AUTH_IN_HANDLERS": false,
     "USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE": false,
     "USERVER_HTTP_PROXY": ""
   },

@@ -30,7 +30,6 @@ namespace components {
 /// ## Dynamic config
 /// * @ref USERVER_LOG_REQUEST
 /// * @ref USERVER_LOG_REQUEST_HEADERS
-/// * @ref USERVER_CHECK_AUTH_IN_HANDLERS
 /// * @ref USERVER_DEADLINE_PROPAGATION_ENABLED
 /// * @ref USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE
 ///

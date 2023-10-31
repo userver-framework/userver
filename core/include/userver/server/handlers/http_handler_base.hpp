@@ -173,8 +173,7 @@ class HttpHandlerBase : public HandlerBase {
                          const std::string& meta_type) const;
 
   void CheckAuth(const http::HttpRequest& http_request,
-                 request::RequestContext& context,
-                 const dynamic_config::Snapshot& initial_config) const;
+                 request::RequestContext& context) const;
 
   void CheckRatelimit(const http::HttpRequest& http_request) const;
 

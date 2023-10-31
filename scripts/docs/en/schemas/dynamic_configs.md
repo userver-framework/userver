@@ -726,24 +726,6 @@ schema:
 Used by all the caches derived from components::CachingComponentBase.
 
 
-@anchor USERVER_CHECK_AUTH_IN_HANDLERS
-## USERVER_CHECK_AUTH_IN_HANDLERS
-
-Controls whether authentication checks are performed in handlers.
-
-```
-yaml
-schema:
-    type: boolean
-```
-
-**Example:**
-```
-true
-```
-
-Used by components::Server.
-
 @anchor USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE
 ## USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE
 
