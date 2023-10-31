@@ -6,19 +6,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace clients::http {
 
-namespace {
-
-struct FullInstanceStatisticsView {
-  const InstanceStatistics& data;
-};
-
-void DumpMetric(utils::statistics::Writer& writer,
-                FullInstanceStatisticsView stats) {
-  DumpMetric(writer, stats.data, FormatMode::kModeDestination);
-}
-
-}  // namespace
-
 std::shared_ptr<RequestStats>
 DestinationStatistics::GetStatisticsForDestination(
     const std::string& destination) {
@@ -93,8 +80,8 @@ void DumpMetric(utils::statistics::Writer& writer,
                 const DestinationStatistics& stats) {
   for (const auto& [url, stat_ptr] : stats) {
     const InstanceStatistics instance_stat{*stat_ptr};
-    writer.ValueWithLabels(FullInstanceStatisticsView{instance_stat},
-                           {"http_destination", url});
+    writer.ValueWithLabels(DestinationStatisticsView{instance_stat},
+                           {{"http_destination", url}, {"version", "2"}});
   }
 }
 

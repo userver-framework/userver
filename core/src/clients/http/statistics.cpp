@@ -29,16 +29,17 @@ RequestStats::~RequestStats() { stats_.easy_handles_--; }
 
 void RequestStats::Start() { start_time_ = std::chrono::steady_clock::now(); }
 
-void RequestStats::FinishOk(int code, int attempts) noexcept {
+void RequestStats::FinishOk(int code, unsigned int attempts) noexcept {
   stats_.AccountError(Statistics::ErrorGroup::kOk);
   stats_.AccountStatus(code);
-  if (attempts > 1) stats_.retries_ += attempts - 1;
+  if (attempts > 1) stats_.retries_ += utils::statistics::Rate{attempts - 1};
   StoreTiming();
 }
 
-void RequestStats::FinishEc(std::error_code ec, int attempts) noexcept {
+void RequestStats::FinishEc(std::error_code ec,
+                            unsigned int attempts) noexcept {
   stats_.AccountError(Statistics::ErrorCodeToGroup(ec));
-  if (attempts > 1) stats_.retries_ += attempts - 1;
+  if (attempts > 1) stats_.retries_ += utils::statistics::Rate{attempts - 1};
   StoreTiming();
 }
 
@@ -58,7 +59,7 @@ void RequestStats::StoreTimeToStart(
 }
 
 void RequestStats::AccountOpenSockets(size_t sockets) noexcept {
-  stats_.socket_open_ += sockets;
+  stats_.socket_open_ += utils::statistics::Rate{sockets};
 }
 
 void RequestStats::AccountTimeoutUpdatedByDeadline() noexcept {
@@ -139,7 +140,9 @@ void Statistics::AccountError(ErrorGroup error) {
 void Statistics::AccountStatus(int code) { reply_status_.Account(code); }
 
 void DumpMetric(utils::statistics::Writer& writer,
-                const InstanceStatistics& stats, FormatMode format_mode) {
+                const DestinationStatisticsView& view) {
+  const auto& stats = view.stats;
+
   writer["timings"] = stats.timings_percentile;
 
   for (std::size_t i = 0; i < Statistics::kErrorGroupCount; i++) {
@@ -149,8 +152,7 @@ void DumpMetric(utils::statistics::Writer& writer,
         {"http_error", Statistics::ToString(error_group)});
   }
 
-  writer["reply-statuses"] =
-      utils::statistics::impl::HttpCodesAsGauge{stats.reply_status};
+  writer["reply-statuses"] = stats.reply_status;
 
   writer["retries"] = stats.retries;
   writer["pending-requests"] = stats.easy_handles;
@@ -158,22 +160,25 @@ void DumpMetric(utils::statistics::Writer& writer,
   writer["timeout-updated-by-deadline"] = stats.timeout_updated_by_deadline;
   writer["cancelled-by-deadline"] = stats.cancelled_by_deadline;
 
-  if (format_mode == FormatMode::kModeAll) {
-    writer["last-time-to-start-us"] =
-        SumToMean(stats.last_time_to_start_us, stats.instances_aggregated);
-    writer["event-loop-load"][utils::statistics::DurationToString(
-        utils::statistics::kDefaultMaxPeriod)] =
-        SumToMean(stats.multi.current_load, stats.instances_aggregated);
-
-    // Destinations may reuse sockets from other destination,
-    // it is very unjust to account active/closed sockets
-    writer["sockets"]["close"] = stats.multi.socket_close;
-    writer["sockets"]["throttled"] = stats.multi.socket_ratelimit;
-    writer["sockets"]["active"] =
-        stats.multi.socket_open - stats.multi.socket_close;
-  }
-
   writer["sockets"]["open"] = stats.multi.socket_open;
+}
+
+void DumpMetric(utils::statistics::Writer& writer,
+                const InstanceStatistics& stats) {
+  writer = DestinationStatisticsView{stats};
+
+  writer["last-time-to-start-us"] =
+      SumToMean(stats.last_time_to_start_us, stats.instances_aggregated);
+  writer["event-loop-load"][utils::statistics::DurationToString(
+      utils::statistics::kDefaultMaxPeriod)] =
+      SumToMean(stats.multi.current_load, stats.instances_aggregated);
+
+  // Destinations may reuse sockets from other destination,
+  // it is very unjust to account active/closed sockets
+  writer["sockets"]["close"] = stats.multi.socket_close;
+  writer["sockets"]["throttled"] = stats.multi.socket_ratelimit;
+  writer["sockets"]["active"] = utils::statistics::Rate{
+      stats.multi.socket_open.value - stats.multi.socket_close.value};
 }
 
 void DumpMetric(utils::statistics::Writer& writer,
@@ -184,20 +189,20 @@ void DumpMetric(utils::statistics::Writer& writer,
     sum_stats += stat;
   }
 
-  writer = sum_stats;
+  writer.ValueWithLabels(sum_stats, {"version", "2"});
 }
 
 InstanceStatistics::InstanceStatistics(const Statistics& other)
     : easy_handles(other.easy_handles_.load()),
       last_time_to_start_us(other.last_time_to_start_us_.load()),
       timings_percentile(other.timings_percentile_.GetStatsForPeriod()),
-      retries(other.retries_.load()),
-      timeout_updated_by_deadline(other.timeout_updated_by_deadline_.load()),
-      cancelled_by_deadline(other.cancelled_by_deadline_.load()),
+      retries(other.retries_.Load()),
+      timeout_updated_by_deadline(other.timeout_updated_by_deadline_.Load()),
+      cancelled_by_deadline(other.cancelled_by_deadline_.Load()),
       reply_status(other.reply_status_) {
   for (size_t i = 0; i < error_count.size(); i++)
-    error_count[i] = other.error_count_[i].load();
-  multi.socket_open = other.socket_open_;
+    error_count[i] = other.error_count_[i].Load();
+  multi.socket_open = other.socket_open_.Load();
 }
 
 uint64_t InstanceStatistics::GetNotOkErrorCount() const {
@@ -207,7 +212,7 @@ uint64_t InstanceStatistics::GetNotOkErrorCount() const {
     auto error_group = static_cast<Statistics::ErrorGroup>(i);
     if (error_group == ErrorGroup::kOk) continue;
 
-    result += error_count[i];
+    result += error_count[i].value;
   }
   return result;
 }

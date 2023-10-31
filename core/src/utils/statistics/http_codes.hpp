@@ -31,16 +31,6 @@ class HttpCodes final {
   std::array<RateCounter, kMaxHttpStatus - kMinHttpStatus> codes_{};
 };
 
-namespace impl {
-
-struct HttpCodesAsGauge final {
-  const HttpCodes::Snapshot& snapshot;
-};
-
-void DumpMetric(Writer& writer, HttpCodesAsGauge as_gauge);
-
-}  // namespace impl
-
 class HttpCodes::Snapshot final {
  public:
   Snapshot() = default;
@@ -54,8 +44,6 @@ class HttpCodes::Snapshot final {
   friend void DumpMetric(Writer& writer, const Snapshot& snapshot);
 
  private:
-  friend void impl::DumpMetric(Writer& writer, impl::HttpCodesAsGauge as_gauge);
-
   std::array<Rate, kMaxHttpStatus - kMinHttpStatus> codes_{};
 };
 

@@ -201,10 +201,10 @@ InstanceStatistics Client::GetMultiStatistics(size_t n) const {
 
   /* There is a race between close/open updates, so at least make open>=close
    * to observe non-negative current socket count. */
-  s.multi.socket_close = multi_stats.close_socket_total();
-  s.multi.socket_open = multi_stats.open_socket_total();
+  s.multi.socket_close.value = multi_stats.close_socket_total();
+  s.multi.socket_open.value = multi_stats.open_socket_total();
   s.multi.current_load = multi_stats.get_busy_storage().GetCurrentLoad();
-  s.multi.socket_ratelimit = multi_stats.socket_ratelimited_total();
+  s.multi.socket_ratelimit.value = multi_stats.socket_ratelimited_total();
   return s;
 }
 

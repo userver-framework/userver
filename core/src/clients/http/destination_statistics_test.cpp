@@ -53,10 +53,10 @@ UTEST(DestinationStatistics, Ok) {
 
     auto stats = clients::http::InstanceStatistics(*stat_ptr);
     auto ok = static_cast<size_t>(clients::http::Statistics::ErrorGroup::kOk);
-    EXPECT_EQ(1, stats.error_count[ok]);
+    EXPECT_EQ(utils::statistics::Rate{1}, stats.error_count[ok]);
     for (size_t i = 0; i < clients::http::Statistics::kErrorGroupCount; i++) {
       if (i != ok) {
-        EXPECT_EQ(0, stats.error_count[i]);
+        EXPECT_EQ(utils::statistics::Rate{0}, stats.error_count[i]);
       }
     }
   }
@@ -81,11 +81,15 @@ UTEST(DestinationStatistics, CancelledFuture) {
 
   const auto& pool_stats = client->GetPoolStatistics();
   EXPECT_EQ(pool_stats.multi.size(), 1);
-  EXPECT_EQ(pool_stats.multi[0].error_count[static_cast<size_t>(
-                clients::http::Statistics::ErrorGroup::kUnknown)],
+  EXPECT_EQ(pool_stats.multi[0]
+                .error_count[static_cast<size_t>(
+                    clients::http::Statistics::ErrorGroup::kUnknown)]
+                .value,
             0);
-  EXPECT_EQ(pool_stats.multi[0].error_count[static_cast<size_t>(
-                clients::http::Statistics::ErrorGroup::kCancelled)],
+  EXPECT_EQ(pool_stats.multi[0]
+                .error_count[static_cast<size_t>(
+                    clients::http::Statistics::ErrorGroup::kCancelled)]
+                .value,
             1);
 }
 
@@ -124,10 +128,11 @@ UTEST(DestinationStatistics, Multiple) {
 
     auto stats = clients::http::InstanceStatistics(*stat_ptr);
     auto ok = static_cast<size_t>(clients::http::Statistics::ErrorGroup::kOk);
-    EXPECT_EQ(1, stats.error_count[ok]);
+    EXPECT_EQ(utils::statistics::Rate{1}, stats.error_count[ok]);
     for (size_t i = 0; i < clients::http::Statistics::kErrorGroupCount; i++) {
       if (i != ok) {
-        EXPECT_EQ(0, stats.error_count[i]) << i << " errors must be zero";
+        EXPECT_EQ(utils::statistics::Rate{0}, stats.error_count[i])
+            << i << " errors must be zero";
       }
     }
   }

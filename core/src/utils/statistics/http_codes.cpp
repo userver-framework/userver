@@ -51,20 +51,6 @@ void DumpMetric(Writer& writer, const HttpCodes::Snapshot& snapshot) {
   }
 }
 
-namespace impl {
-
-void DumpMetric(Writer& writer, HttpCodesAsGauge as_gauge) {
-  for (const auto& [base_code, count] :
-       utils::enumerate(as_gauge.snapshot.codes_)) {
-    if (count || IsForcedStatusCode(base_code)) {
-      const auto code = base_code + HttpCodes::kMinHttpStatus;
-      writer.ValueWithLabels(count.value, {"http_code", std::to_string(code)});
-    }
-  }
-}
-
-}  // namespace impl
-
 static_assert(kHasWriterSupport<HttpCodes::Snapshot>);
 
 }  // namespace utils::statistics

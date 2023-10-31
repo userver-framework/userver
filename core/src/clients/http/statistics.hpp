@@ -7,6 +7,8 @@
 
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/statistics/percentile.hpp>
+#include <userver/utils/statistics/rate.hpp>
+#include <userver/utils/statistics/rate_counter.hpp>
 #include <userver/utils/statistics/recentperiod.hpp>
 #include <userver/utils/statistics/writer.hpp>
 #include <utils/statistics/http_codes.hpp>
@@ -23,8 +25,8 @@ class RequestStats final {
   ~RequestStats();
 
   void Start();
-  void FinishOk(int code, int attempts) noexcept;
-  void FinishEc(std::error_code ec, int attempts) noexcept;
+  void FinishOk(int code, unsigned int attempts) noexcept;
+  void FinishEc(std::error_code ec, unsigned int attempts) noexcept;
 
   void StoreTimeToStart(std::chrono::microseconds micro_seconds) noexcept;
 
@@ -41,9 +43,9 @@ class RequestStats final {
 };
 
 struct MultiStats {
-  uint64_t socket_open{0};
-  uint64_t socket_close{0};
-  uint64_t socket_ratelimit{0};
+  utils::statistics::Rate socket_open;
+  utils::statistics::Rate socket_close;
+  utils::statistics::Rate socket_ratelimit;
   double current_load{0};
 
   MultiStats& operator+=(const MultiStats& other) {
@@ -96,13 +98,11 @@ class Statistics {
   utils::statistics::RecentPeriod<Percentile, Percentile,
                                   utils::datetime::SteadyClock>
       timings_percentile_;
-  std::array<std::atomic<uint64_t>, kErrorGroupCount> error_count_{
-      {0, 0, 0, 0, 0, 0, 0}};
-  std::atomic_llong retries_{0};
-  std::atomic_llong socket_open_{0};
-
-  std::atomic<std::uint64_t> timeout_updated_by_deadline_{0};
-  std::atomic<std::uint64_t> cancelled_by_deadline_{0};
+  std::array<utils::statistics::RateCounter, kErrorGroupCount> error_count_;
+  utils::statistics::RateCounter retries_;
+  utils::statistics::RateCounter socket_open_{0};
+  utils::statistics::RateCounter timeout_updated_by_deadline_;
+  utils::statistics::RateCounter cancelled_by_deadline_;
   utils::statistics::HttpCodes reply_status_;
 
   friend struct InstanceStatistics;
@@ -125,12 +125,11 @@ struct InstanceStatistics {
   uint64_t easy_handles{0};
   uint64_t last_time_to_start_us{0};
   Percentile timings_percentile;
-  std::array<uint64_t, Statistics::kErrorGroupCount> error_count{
-      {0, 0, 0, 0, 0, 0, 0}};
-  uint64_t retries{0};
+  std::array<utils::statistics::Rate, Statistics::kErrorGroupCount> error_count;
+  utils::statistics::Rate retries{0};
 
-  std::uint64_t timeout_updated_by_deadline{0};
-  std::uint64_t cancelled_by_deadline{0};
+  utils::statistics::Rate timeout_updated_by_deadline;
+  utils::statistics::Rate cancelled_by_deadline;
   utils::statistics::HttpCodes::Snapshot reply_status;
 
   MultiStats multi;
@@ -140,14 +139,15 @@ struct PoolStatistics {
   std::vector<InstanceStatistics> multi;
 };
 
-enum class FormatMode {
-  kModeAll,
-  kModeDestination,
+struct DestinationStatisticsView {
+  const InstanceStatistics& stats;
 };
 
 void DumpMetric(utils::statistics::Writer& writer,
-                const InstanceStatistics& stats,
-                FormatMode format_mode = FormatMode::kModeAll);
+                const DestinationStatisticsView& view);
+
+void DumpMetric(utils::statistics::Writer& writer,
+                const InstanceStatistics& stats);
 
 void DumpMetric(utils::statistics::Writer& writer, const PoolStatistics& stats);
 
