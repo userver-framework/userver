@@ -90,6 +90,16 @@ Read the documentation on gRPC streams:
 
 On connection errors, exceptions from userver/ugrpc/server/exceptions.hpp are thrown. It is recommended not to catch them, leading to RPC interruption. You can catch exceptions for [specific gRPC error codes](https://grpc.github.io/grpc/core/md_doc_statuscodes.html) or all at once.
 
+### Custom server credentials
+
+By default, gRPC server uses `grpc::InsecureServerCredentials`. To pass a custom credentials:
+
+1. Do not pass `grpc-server.port` in the static config
+2. Create a custom component, e.g. `GrpcServerConfigurator`
+3. `context.FindComponent<ugrpc::server::ServerComponent>().GetServer()`
+4. Call ugrpc::server::Server::WithServerBuilder
+5. Using grpc::ServerBuilder API, add a port with your custom credentials
+
 ### Middlewares
 
 The gRPC server can be extended by middlewares. Middleware is called on each incoming RPC request. Different middlewares handle the call subsequently. A middleware may decide to reject the call or call the next middleware in the stack. Middlewares may implement almost any enhancement to the gRPC server including authorization and authentication, ratelimiting, logging, tracing, audit, etc.
