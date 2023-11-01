@@ -26,8 +26,9 @@ RedisWaitConnected Parse(const formats::json::Value& elem,
 CommandsBufferingSettings Parse(const formats::json::Value& elem,
                                 formats::parse::To<CommandsBufferingSettings>);
 
-MetricsSettings Parse(const formats::json::Value& elem,
-                      formats::parse::To<MetricsSettings>);
+MetricsSettings::DynamicSettings Parse(
+    const formats::json::Value& elem,
+    formats::parse::To<MetricsSettings::DynamicSettings>);
 
 ReplicationMonitoringSettings Parse(
     const formats::json::Value& elem,
@@ -48,7 +49,7 @@ struct Config final {
   USERVER_NAMESPACE::redis::RedisWaitConnected redis_wait_connected;
   USERVER_NAMESPACE::redis::CommandsBufferingSettings
       commands_buffering_settings;
-  USERVER_NAMESPACE::redis::MetricsSettings metrics_settings;
+  USERVER_NAMESPACE::redis::MetricsSettings::DynamicSettings metrics_settings;
   USERVER_NAMESPACE::redis::PubsubMetricsSettings pubsub_metrics_settings;
   dynamic_config::ValueDict<
       USERVER_NAMESPACE::redis::ReplicationMonitoringSettings>

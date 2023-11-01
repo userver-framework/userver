@@ -131,20 +131,69 @@ enum class ConnectionMode {
 };
 
 struct MetricsSettings {
-  bool timings_enabled{true};
-  bool command_timings_enabled{false};
-  bool request_sizes_enabled{false};
-  bool reply_sizes_enabled{false};
+  enum class Level { kCluster, kShard, kInstance };
+
+  struct DynamicSettings {
+    bool timings_enabled{true};
+    bool command_timings_enabled{false};
+    bool request_sizes_enabled{false};
+    bool reply_sizes_enabled{false};
+
+    constexpr bool operator==(const DynamicSettings& rhs) const {
+      return timings_enabled == rhs.timings_enabled &&
+             command_timings_enabled == rhs.command_timings_enabled &&
+             request_sizes_enabled == rhs.request_sizes_enabled &&
+             reply_sizes_enabled == rhs.reply_sizes_enabled;
+    }
+
+    constexpr bool operator!=(const DynamicSettings& rhs) const {
+      return !(*this == rhs);
+    }
+  };
+
+  struct StaticSettings {
+    Level level{Level::kInstance};
+
+    constexpr bool operator==(const StaticSettings& rhs) const {
+      return level == rhs.level;
+    }
+
+    constexpr bool operator!=(const StaticSettings& rhs) const {
+      return !(*this == rhs);
+    }
+  };
+
+  StaticSettings static_settings;
+  DynamicSettings dynamic_settings;
+
+  MetricsSettings(const DynamicSettings& dynamic_settings,
+                  const StaticSettings& static_settings)
+      : static_settings(static_settings), dynamic_settings(dynamic_settings) {}
+  MetricsSettings() = default;
+  MetricsSettings(const MetricsSettings&) = default;
+  MetricsSettings(MetricsSettings&&) = default;
+  MetricsSettings& operator=(const MetricsSettings&) = default;
+  MetricsSettings& operator=(MetricsSettings&&) = default;
 
   constexpr bool operator==(const MetricsSettings& rhs) const {
-    return timings_enabled == rhs.timings_enabled &&
-           command_timings_enabled == rhs.command_timings_enabled &&
-           request_sizes_enabled == rhs.request_sizes_enabled &&
-           reply_sizes_enabled == rhs.reply_sizes_enabled;
+    return static_settings == rhs.static_settings &&
+           dynamic_settings == rhs.dynamic_settings;
   }
 
   constexpr bool operator!=(const MetricsSettings& rhs) const {
     return !(*this == rhs);
+  }
+
+  Level GetMetricsLevel() const { return static_settings.level; }
+  bool IsTimingsEnabled() const { return dynamic_settings.timings_enabled; }
+  bool IsCommandTimingsEnabled() const {
+    return dynamic_settings.command_timings_enabled;
+  }
+  bool IsRequestSizesEnabled() const {
+    return dynamic_settings.request_sizes_enabled;
+  }
+  bool IsReplySizesEnabled() const {
+    return dynamic_settings.reply_sizes_enabled;
   }
 };
 

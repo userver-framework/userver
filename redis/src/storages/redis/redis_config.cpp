@@ -96,9 +96,10 @@ USERVER_NAMESPACE::redis::CommandsBufferingSettings Parse(
   return result;
 }
 
-MetricsSettings Parse(const formats::json::Value& elem,
-                      formats::parse::To<MetricsSettings>) {
-  MetricsSettings result;
+MetricsSettings::DynamicSettings Parse(
+    const formats::json::Value& elem,
+    formats::parse::To<MetricsSettings::DynamicSettings>) {
+  MetricsSettings::DynamicSettings result;
   result.timings_enabled =
       elem["timings-enabled"].As<bool>(result.timings_enabled);
   result.command_timings_enabled =

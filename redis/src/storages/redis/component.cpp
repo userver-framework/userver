@@ -16,6 +16,7 @@
 #include <userver/storages/secdist/secdist.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/statistics/writer.hpp>
+#include <userver/utils/trivial_map.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <userver/storages/redis/client.hpp>
@@ -110,6 +111,23 @@ RedisPools Parse(const yaml_config::YamlConfig& value,
   return pools;
 }
 
+redis::MetricsSettings::Level Parse(
+    const yaml_config::YamlConfig& value,
+    formats::parse::To<redis::MetricsSettings::Level>) {
+  constexpr utils::TrivialBiMap converter = [](auto selector) {
+    return selector()
+        .Case("instance", redis::MetricsSettings::Level::kInstance)
+        .Case("shard", redis::MetricsSettings::Level::kShard)
+        .Case("cluster", redis::MetricsSettings::Level::kCluster);
+  };
+  const auto level_str = value.As<std::string>("instance");
+  const auto ret = converter.TryFindByFirst(level_str);
+  if (!ret) {
+    throw std::runtime_error("Invalid metrics_level value: " + level_str);
+  }
+  return *ret;
+}
+
 Redis::Redis(const ComponentConfig& config,
              const ComponentContext& component_context)
     : LoggableComponentBase(config, component_context),
@@ -171,6 +189,9 @@ void Redis::Connect(const ComponentConfig& config,
   auto config_source =
       component_context.FindComponent<DynamicConfig>().GetSource();
 
+  static_metrics_settings_.level =
+      Parse(config["metrics_level"],
+            formats::parse::To<redis::MetricsSettings::Level>());
   const auto redis_pools = config["thread_pools"].As<RedisPools>();
 
   thread_pools_ = std::make_shared<redis::ThreadPools>(
@@ -292,8 +313,9 @@ void Redis::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
   }
 
   auto metrics_settings = metrics_settings_.Read();
-  if (*metrics_settings != redis_config.metrics_settings) {
-    metrics_settings_.Assign(redis_config.metrics_settings);
+  if (metrics_settings->dynamic_settings != redis_config.metrics_settings) {
+    metrics_settings_.Assign(redis::MetricsSettings(
+        redis_config.metrics_settings, static_metrics_settings_));
   }
 
   auto pubsub_metrics_settings = pubsub_metrics_settings_.Read();
@@ -346,6 +368,14 @@ properties:
                     type: boolean
                     description: allows read requests from master instance
                     defaultDescription: false
+    metrics_level:
+        type: string
+        description: set metrics detail level
+        defaultDescription: "Instance"
+        enum:
+          - cluster
+          - shard
+          - instance
     subscribe_groups:
         type: array
         description: array of redis clusters to work with in subscribe mode

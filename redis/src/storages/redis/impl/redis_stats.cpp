@@ -167,17 +167,17 @@ void DumpMetric(utils::statistics::Writer& writer,
                 const InstanceStatistics& stats, bool real_instance) {
   writer["reconnects"] = stats.reconnects;
 
-  if (stats.settings.request_sizes_enabled) {
+  if (stats.settings.IsRequestSizesEnabled()) {
     writer["request_sizes"] = stats.request_size_percentile;
   }
-  if (stats.settings.reply_sizes_enabled) {
+  if (stats.settings.IsReplySizesEnabled()) {
     writer["reply_sizes"] = stats.reply_size_percentile;
   }
-  if (stats.settings.timings_enabled) {
+  if (stats.settings.IsTimingsEnabled()) {
     writer["timings"] = stats.timings_percentile;
   }
 
-  if (stats.settings.command_timings_enabled &&
+  if (stats.settings.IsCommandTimingsEnabled() &&
       !stats.command_timings_percentile.empty()) {
     for (const auto& [command, percentile] : stats.command_timings_percentile) {
       writer["command_timings"].ValueWithLabels(percentile,
@@ -215,6 +215,7 @@ void DumpMetric(utils::statistics::Writer& writer,
 
 void DumpMetric(utils::statistics::Writer& writer,
                 const ShardStatistics& stats) {
+  const auto& settings = stats.shard_total.settings;
   const auto not_ready =
       std::chrono::duration_cast<std::chrono::milliseconds>(
           std::chrono::steady_clock::now() - stats.last_ready_time)
@@ -224,23 +225,28 @@ void DumpMetric(utils::statistics::Writer& writer,
   // writer["shard-total"] = stats.shard_total;
   writer["instances_count"] = stats.instances.size();
   DumpMetric(writer, stats.shard_total, false);
-  for (const auto& [inst_name, inst_stats] : stats.instances) {
-    writer.ValueWithLabels(inst_stats, {"redis_instance", inst_name});
+  if (settings.GetMetricsLevel() >= MetricsSettings::Level::kInstance) {
+    for (const auto& [inst_name, inst_stats] : stats.instances) {
+      writer.ValueWithLabels(inst_stats, {"redis_instance", inst_name});
+    }
   }
 }
 
 void DumpMetric(utils::statistics::Writer& writer,
                 const SentinelStatistics& stats) {
+  const auto& settings = stats.shard_group_total.settings;
   DumpMetric(writer, stats.shard_group_total, false);
   writer["errors"].ValueWithLabels(stats.internal.redis_not_ready.load(),
                                    {"redis_error", "redis_not_ready"});
-  for (const auto& [shard_name, shard_stats] : stats.masters) {
-    writer.ValueWithLabels(shard_stats, {{"redis_instance_type", "masters"},
-                                         {"redis_shard", shard_name}});
-  }
-  for (const auto& [shard_name, shard_stats] : stats.slaves) {
-    writer.ValueWithLabels(shard_stats, {{"redis_instance_type", "slaves"},
-                                         {"redis_shard", shard_name}});
+  if (settings.GetMetricsLevel() >= MetricsSettings::Level::kShard) {
+    for (const auto& [shard_name, shard_stats] : stats.masters) {
+      writer.ValueWithLabels(shard_stats, {{"redis_instance_type", "masters"},
+                                           {"redis_shard", shard_name}});
+    }
+    for (const auto& [shard_name, shard_stats] : stats.slaves) {
+      writer.ValueWithLabels(shard_stats, {{"redis_instance_type", "slaves"},
+                                           {"redis_shard", shard_name}});
+    }
   }
   if (stats.sentinel) {
     writer.ValueWithLabels(*stats.sentinel,

@@ -132,6 +132,7 @@ class Redis : public LoggableComponentBase {
   utils::statistics::Entry statistics_holder_;
   utils::statistics::Entry subscribe_statistics_holder_;
 
+  redis::MetricsSettings::StaticSettings static_metrics_settings_;
   rcu::Variable<redis::MetricsSettings> metrics_settings_;
   rcu::Variable<redis::PubsubMetricsSettings> pubsub_metrics_settings_;
 };
