@@ -592,6 +592,17 @@ void ClientImpl::Publish(std::string channel, std::string message,
               publish_settings.master, cc);
 }
 
+void ClientImpl::Spublish(std::string channel, std::string message,
+                          const CommandControl& command_control) {
+  const auto shard = ShardByKey(channel, command_control);
+  auto cc = GetCommandControl(command_control);
+  /// allow send publish not only to master but also to replicas
+  cc.allow_reads_from_master = true;
+  cc.strategy = CommandControl::Strategy::kEveryDc;
+  MakeRequest(CmdArgs{"spublish", std::move(channel), std::move(message)},
+              shard, false, std::move(cc));
+}
+
 RequestRename ClientImpl::Rename(std::string key, std::string new_key,
                                  const CommandControl& command_control) {
   auto shard = ShardByKey(key, command_control);

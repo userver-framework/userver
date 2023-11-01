@@ -268,6 +268,9 @@ class Client {
                        const CommandControl& command_control,
                        PubShard policy) = 0;
 
+  virtual void Spublish(std::string channel, std::string message,
+                        const CommandControl& command_control) = 0;
+
   virtual RequestRename Rename(std::string key, std::string new_key,
                                const CommandControl& command_control) = 0;
 

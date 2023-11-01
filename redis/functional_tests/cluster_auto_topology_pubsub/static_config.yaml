@@ -62,9 +62,7 @@ components_manager:
             service-name: postgres-basic-chaos
 
         dynamic-config:
-            fs-cache-path: ''
-        dynamic-config-fallbacks:
-            load-enabled: false
+            updates-enabled: true
         dynamic-config-client:
             config-url: $config-server-url
             http-retries: 5

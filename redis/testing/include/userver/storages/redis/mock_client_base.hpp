@@ -236,6 +236,9 @@ class MockClientBase : public Client,
   void Publish(std::string channel, std::string message,
                const CommandControl& command_control, PubShard policy) override;
 
+  void Spublish(std::string channel, std::string message,
+                const CommandControl& command_control) override;
+
   RequestRename Rename(std::string key, std::string new_key,
                        const CommandControl& command_control) override;
 

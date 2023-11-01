@@ -1,5 +1,7 @@
 import asyncio
 
+import redis
+
 
 # Some messages may be lost (it's a Redis limitation)
 REDIS_PORT = 6379
@@ -11,6 +13,7 @@ REQUESTS_RELAX_TIME = 1.0
 INPUT_CHANNEL_PREFIX = 'input_channel@'
 INPUT_CHANNELS_COUNT = 5
 OUTPUT_CHANNEL_NAME = 'output_channel'
+OUTPUT_SCHANNELS_COUNT = 10
 
 
 async def _validate_pubsub(redis_db, service_client, msg):
@@ -114,6 +117,76 @@ async def _validate_service_publish(service_client, nodes, shards_range):
             await _validate(service_client, pubsub, msg, '')
 
 
+async def _validate_service_spublish(service_client, nodes):
+    """
+    Check publishing by service with 'spublish' command in each shard is heard
+    by redis
+    """
+
+    async def _get_message(pubsub, retries=5, delay=0.5):
+        ret = None
+        for _ in range(retries):
+            ret = pubsub.get_sharded_message()
+            if ret is not None:
+                return ret
+            await asyncio.sleep(delay)
+        return ret
+
+    async def _ensure_published(
+            pubsub, channel, expected_message, retries=5, delay=0.5,
+    ):
+        for _ in range(retries):
+            ret = pubsub.get_sharded_message()
+            if (
+                    ret is not None
+                    and ret['type'] == 'smessage'
+                    and ret['channel'] == channel
+                    and ret['data'] == expected_message
+            ):
+                return
+            await asyncio.sleep(delay)
+        assert False, 'Retries exceeded'
+
+    async def _validate(service_client, pubsub, msg, channel_name):
+        for _ in range(REQUESTS_RETRIES):
+            try:
+                response = await service_client.get(
+                    '/redis-cluster',
+                    params={'spublish': msg, 'channel': channel_name},
+                )
+                assert response.status == 200
+
+                await _ensure_published(
+                    pubsub, channel_name.encode(), msg.encode(),
+                )
+                return
+            except Exception as e:  # pylint: disable=broad-except
+                print(f'Spubsub validation failed for {channel_name}: {e}')
+            asyncio.sleep(REQUESTS_RELAX_TIME)
+        assert False, f'Retries exceeded: shard={channel_name}'
+
+    # create redis cluster client
+    for node in nodes:
+        try:
+            redis_cluster = redis.RedisCluster(host=node.host, port=node.port)
+        except redis.exceptions.RedisClusterException:
+            pass
+
+    for i in range(OUTPUT_SCHANNELS_COUNT):
+        channel_name = OUTPUT_CHANNEL_NAME + str(i)
+        channel_name_bytes = channel_name.encode()
+        pubsub = redis_cluster.pubsub()
+        pubsub.ssubscribe(channel_name)
+        subscribed_msg = await _get_message(pubsub)
+        assert subscribed_msg == {
+            'type': 'ssubscribe',
+            'pattern': None,
+            'channel': channel_name_bytes,
+            'data': 1,
+        }
+        await _validate(service_client, pubsub, channel_name, channel_name)
+
+
 async def _check_shard_count(service_client, expected_shard_count):
     """
     Check redis_cluster_client knows how many shard has redis cluster
@@ -175,6 +248,9 @@ async def test_cluster_happy_path(service_client, redis_cluster_topology):
     await _check_shard_count(service_client, 3)
     await _validate_service_publish(
         service_client, redis_cluster_topology.nodes, range(3),
+    )
+    await _validate_service_spublish(
+        service_client, redis_cluster_topology.nodes,
     )
 
 

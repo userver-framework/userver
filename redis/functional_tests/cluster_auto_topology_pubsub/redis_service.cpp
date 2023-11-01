@@ -134,21 +134,35 @@ std::string ReadStoreReturn::Get(
     return std::to_string(redis_subscribe_client_->ShardsCount());
   }
 
-  const auto& publish_msg = request.GetArg("publish");
-  if (!publish_msg.empty()) {
-    const auto& shard_str = request.GetArg("shard");
-    if (!shard_str.empty()) {
-      /// Publish message to specified shard
-      const auto shard = std::stol(shard_str);
-      auto shard_client = redis_client_->GetClientForShard(shard);
-      shard_client->Publish("output_channel", publish_msg,
-                            redis::CommandControl());
+  {
+    const auto& publish_msg = request.GetArg("publish");
+    if (!publish_msg.empty()) {
+      const auto& shard_str = request.GetArg("shard");
+      if (!shard_str.empty()) {
+        /// Publish message to specified shard
+        const auto shard = std::stol(shard_str);
+        auto shard_client = redis_client_->GetClientForShard(shard);
+        shard_client->Publish("output_channel", publish_msg,
+                              redis::CommandControl());
+        return {};
+      }
+      /// Publish to any accessible shard
+      redis_client_->Publish("output_channel", publish_msg,
+                             redis::CommandControl());
       return {};
     }
-    /// Publish to any accessible shard
-    redis_client_->Publish("output_channel", publish_msg,
-                           redis::CommandControl());
-    return {};
+  }
+
+  {
+    const auto& publish_msg = request.GetArg("spublish");
+    if (!publish_msg.empty()) {
+      const auto& channel = request.GetArg("channel");
+      if (!channel.empty()) {
+        redis_client_->Spublish(channel, publish_msg, redis::CommandControl());
+        return {};
+      }
+      return {};
+    }
   }
 
   const auto& input_channel = request.GetArg("read");

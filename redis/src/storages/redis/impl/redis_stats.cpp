@@ -79,6 +79,7 @@ const std::string_view kCommandTypes[] = {
     "setex",
     "sismember",
     "smembers",
+    "spublish",
     "srandmember",
     "srem",
     "sscan",

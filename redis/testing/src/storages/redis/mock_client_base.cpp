@@ -410,6 +410,9 @@ void MockClientBase::Publish(std::string /*channel*/, std::string /*message*/,
                              const CommandControl& /*command_control*/,
                              PubShard /*policy*/) {}
 
+void MockClientBase::Spublish(std::string /*channel*/, std::string /*message*/,
+                              const CommandControl& /*command_control*/) {}
+
 RequestRename MockClientBase::Rename(
     std::string /*key*/, std::string /*new_key*/,
     const CommandControl& /*command_control*/) {

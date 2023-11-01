@@ -221,8 +221,8 @@ class RedisClusterTopology:
             self.get_masters(),
         ) and _expected_connections(self.get_replicas())
 
-    def get_masters(self):
-        ret = []
+    def get_masters(self) -> list[_RedisClusterNode]:
+        ret: list[_RedisClusterNode] = []
         for node in self.nodes:
             addrs = node.get_primary_addresses()
             if not addrs:
@@ -236,8 +236,8 @@ class RedisClusterTopology:
                 return ret
         return ret
 
-    def get_replicas(self):
-        ret = []
+    def get_replicas(self) -> list[_RedisClusterNode]:
+        ret: list[_RedisClusterNode] = []
         for node in self.nodes:
             addrs = node.get_replica_addresses()
             if not addrs:
@@ -313,8 +313,27 @@ class RedisClusterTopology:
         slot_count = 16384 // 3 // 4
         for master in original_masters:
             self._move_hash_slots(new_master, master, slot_count)
-        self._remove_node_from_cluster(original_masters[0], new_master)
-        self._remove_node_from_cluster(original_masters[0], new_replica)
+        new_master_id = new_master.get_client().cluster('myid').decode()
+        new_replica_id = new_replica.get_client().cluster('myid').decode()
+        t0 = time.time()
+        for node in original_masters:
+            client = node.get_client()
+            client.cluster('forget', new_master_id)
+            client.cluster('forget', new_replica_id)
+        for node in original_replicas:
+            client = node.get_client()
+            client.cluster('forget', new_master_id)
+            client.cluster('forget', new_replica_id)
+        t1 = time.time()
+        # Try to debug test flaps (TAXICOMMON-7684) with removing shard.
+        # Maybe we somehow remove nodes so long that ban-list period of first
+        # notified node elapses and it is getting removed node from gossip
+        # again
+        if t1 - t0 >= 60.0:
+            raise RuntimeError(
+                'Failed to notify all cluster nodes about deleted'
+                ' nodes within 1 minute',
+            )
 
         self._wait_cluster_nodes_ready(original_masters, 6)
         self._wait_cluster_nodes_ready(original_replicas, 6)
@@ -389,12 +408,6 @@ class RedisClusterTopology:
         args += ['--cluster-yes']
         _call_binary(_get_prefixed_path('bin', 'redis-cli'), *args)
         self._wait_cluster_nodes_ready(self.nodes, CLUSTER_MINIMUM_NODES_COUNT)
-
-    def _remove_node_from_cluster(self, entry_node, deleting_node):
-        deleting_client = deleting_node.get_client()
-        deleting_id = deleting_client.cluster('myid').decode()
-        args = ['--cluster', 'del-node', entry_node.get_address(), deleting_id]
-        _call_binary(_get_prefixed_path('bin', 'redis-cli'), *args)
 
     def _wait_cluster_nodes_known(self, nodes, expected_nodes_count) -> bool:
         for node in nodes:
