@@ -81,16 +81,12 @@ UTEST(DestinationStatistics, CancelledFuture) {
 
   const auto& pool_stats = client->GetPoolStatistics();
   EXPECT_EQ(pool_stats.multi.size(), 1);
-  EXPECT_EQ(pool_stats.multi[0]
-                .error_count[static_cast<size_t>(
-                    clients::http::Statistics::ErrorGroup::kUnknown)]
-                .value,
-            0);
-  EXPECT_EQ(pool_stats.multi[0]
-                .error_count[static_cast<size_t>(
-                    clients::http::Statistics::ErrorGroup::kCancelled)]
-                .value,
-            1);
+  EXPECT_EQ(pool_stats.multi[0].error_count[static_cast<size_t>(
+                clients::http::Statistics::ErrorGroup::kUnknown)],
+            utils::statistics::Rate{0});
+  EXPECT_EQ(pool_stats.multi[0].error_count[static_cast<size_t>(
+                clients::http::Statistics::ErrorGroup::kCancelled)],
+            utils::statistics::Rate{1});
 }
 
 UTEST(DestinationStatistics, Multiple) {
