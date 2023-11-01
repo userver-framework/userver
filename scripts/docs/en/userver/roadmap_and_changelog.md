@@ -26,6 +26,60 @@ Changelog news also go to the
 ## Changelog
 
 
+### October 2023
+
+* Added from-code alerts via alerts::Storage client and alerts::StorageComponent
+  component.
+* Added utils::statistics::Histogram.
+* HTTP client now uses RATE metrics were possible.
+* tracing::DefaultTracingManagerLocator now has `incoming-format`
+  and `new-requests-format` static config options to configure the tracing
+  headers to receive and send.
+* Clickhouse now supports Array(T) type
+* Added `max-ttl-sec` to the @ref POSTGRES_CONNECTION_SETTINGS dynamic config to
+  force connections reopening.
+* RabbitMQ now provides a Get() command to retrieve a single message. Thanks to
+  [Vladislav Nepogodin](https://github.com/vnepogodin) for the PR!
+* Optimizations:
+  * Coroutines working set was reduced, leading to significantly less memory
+    usage under most of the loads that do not use all the coroutines from pool
+    at once.
+  * ugrpc::server::ServerComponent now provides a `completion-queue-count` to
+    scale better under heavy load.
+  * Primary address string is now cached in HTTP server connection, leading to
+    minor performance improvement.
+  * cache::NWayLRU now works faster due to improved hashing logic.
+  * Internal per-task timer size was reduced by 176 bytes.
+  * Removed rcu::Variable usage on hot path of tracing::Span destruction,
+    optimized writing of Opentracing files.
+* Dynamic configs were changed:
+    * dynamic_config::Key now requires config defaults at construction.
+    * `dynamic-config-fallbacks` component was merged into `dynamic-config`,
+      see components::DynamicConfig for more info.
+    * utils::DaemonMain now has `--print-dynamic-config-defaults` program option
+      that prints all the in-code defaults of the dynamic configs.
+    * In-code defaults now could be overridden in static config of
+      components::DynamicConfig via `defaults` option.
+    * `USERVER_CHECK_AUTH_IN_HANDLERS` was removed.
+* Documentation:
+    * Documentation version switch was added to the bottom of the page.
+    * gRPC SSL server credentials setup info was added into
+      @ref scripts/docs/en/userver/grpc.md
+    * Clarified behavior of server::http::HttpRequest::GetArg()
+    * Added @ref scripts/docs/en/userver/tutorial/multipart_service.md
+    * More clarifications for the
+      @ref scripts/docs/en/userver/component_system.md.
+    * @see @ref scripts/docs/en/userver/periodics.md now gives hints on
+      tracing::Span usage.
+    * More info on cancellations and different
+      @ref scripts/docs/en/userver/synchronization.md
+    * Simplified samples.
+* Build:
+  * Multiple build fixes and improvements for gRPC, including gRPC download via
+    [CPM](https://github.com/cpm-cmake/CPM.cmake).
+  * Conan was updated, thanks to [Anton](https://github.com/Jihadist)
+    for the PR.
+
 ### Release v1.0.0
 
 Big new features since the Beta announcement:

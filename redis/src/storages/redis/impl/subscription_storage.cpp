@@ -727,7 +727,7 @@ void SubscriptionStorage::SubscribeImpl(const std::string& channel,
                                         CommandControl control,
                                         SubscriptionId id) {
   /// In non cluster mode we are using our pubsub in specific environment
-  /// where we actualy use multiple non-clustered redises to prevent full
+  /// where we actually use multiple non-clustered redises to prevent full
   /// connected network and save network bandwidth consumption (we do it so
   /// because ssubscribe/spublish was not available before redis 7.0). So we
   /// have to subscribe to every shard to be able to receive published message.

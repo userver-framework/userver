@@ -17,6 +17,8 @@ namespace utils {
 /// * --config CONFIG - path to config.yaml
 /// * --config_vars CONFIG_VARS - path to config_vars.yaml
 /// * --config_vars_override CONFIG_VARS - path to config_vars.override.yaml
+/// * --print-config-schema - print config.yaml YAML Schema
+/// * --print-dynamic-config-defaults - print JSON with dynamic config defaults
 int DaemonMain(int argc, const char* const argv[],
                const components::ComponentList& components_list);
 

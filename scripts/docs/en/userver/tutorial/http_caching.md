@@ -138,19 +138,6 @@ should be provided:
 @snippet samples/http_caching/static_config.yaml  HTTP caching sample - static config deps
 
 
-### Dynamic configuration
-
-Dynamic configuration is close to the basic configuration from
-@ref scripts/docs/en/userver/tutorial/hello_service.md .
-
-All the values are described in at @ref scripts/docs/en/schemas/dynamic_configs.md.
-
-A production ready service would dynamically retrieve the above options at
-runtime from a configuration service. See
-@ref scripts/docs/en/userver/tutorial/config_service.md for insights on how to change the
-above options on the fly, without restarting the service.
-
-
 ### Cache component usage
 
 Now the cache could be used just as any other component. For example, a handler
@@ -164,8 +151,7 @@ Note that the cache is concurrency safe
 
 ### int main()
 
-Finally, after writing down the dynamic configuration values into file at
-`dynamic-config-fallbacks.fallback-path`, we
+Finally, we
 add our component to the `components::MinimalServerComponentList()`,
 and start the server with static configuration `kStaticConfig`.
 

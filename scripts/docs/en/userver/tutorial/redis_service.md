@@ -80,18 +80,6 @@ Static configuration of service is quite close to the configuration from @ref sc
 
 @snippet samples/redis_service/static_config.yaml Redis service sample - static config
 
-### Dynamic config
-
-We are not planning to get new dynamic config values in this sample. Because of
-that we just use the defaults for all configs.
-
-All the values are described in a separate section
-@ref scripts/docs/en/schemas/dynamic_configs.md .
-
-A production ready service would dynamically retrieve the above options at
-runtime from a configuration service. See
-@ref scripts/docs/en/userver/tutorial/config_service.md for insights on how to change the
-above options on the fly, without restarting the service.
 
 ### int main()
 
@@ -122,8 +110,7 @@ paths in the configuration files, prepares and starts the DB, and starts the
 service.
 
 To start the service manually start the DB server and run
-`./samples/redis_service/userver-samples-redis_service -c </path/to/static_config.yaml>`
-(do not forget to prepare the configuration files!).
+`./samples/redis_service/userver-samples-redis_service -c </path/to/static_config.yaml>`.
 
 Now you can send a request to
 your service from another terminal:

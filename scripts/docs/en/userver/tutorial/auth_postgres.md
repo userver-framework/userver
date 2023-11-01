@@ -126,8 +126,7 @@ paths in the configuration files, prepares and starts the DB, and starts the
 service.
 
 To start the service manually start the DB server and run
-`./samples/postgres_service/userver-samples-postgres_auth -c </path/to/static_config.yaml>`
-(do not forget to prepare the configuration files!).
+`./samples/postgres_service/userver-samples-postgres_auth -c </path/to/static_config.yaml>`.
 
 Now you can send a request to your service from another terminal:
 ```

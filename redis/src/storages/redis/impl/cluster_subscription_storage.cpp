@@ -41,7 +41,7 @@ void ClusterSubscriptionStorage::SetUnsubscribeCallback(CommandCb cb) {
 size_t ClusterSubscriptionStorage::GetShardByChannel(
     const std::string& /*name*/) {
   /// For cluster redis and commands SUBSCIBE/PSUBSCRIBE/PUBLISH there no
-  /// difference in wich shard we send message. We can listen any node in
+  /// difference in which shard we send message. We can listen any node in
   /// cluster and receive messages sent to any other node.
   return ClusterTopology::kUnknownShard;
 }

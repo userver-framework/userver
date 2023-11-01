@@ -88,11 +88,6 @@ Note that all the @ref userver_components "components" and
 @ref userver_http_handlers "handlers" have their static options additionally
 described in docs.
 
-### Dynamic config
-
-We are not planning to get new dynamic config values in this sample. Because of
-that we just use the defaults.
-
 
 ### int main()
 
@@ -119,8 +114,7 @@ The sample could be started by running
 paths in the configuration files and starts the service.
 
 To start the service manually run
-`./samples/multipart_service/userver-samples-multipart_service -c </path/to/static_config.yaml>`
-(do not forget to prepare the configuration files!).
+`./samples/multipart_service/userver-samples-multipart_service -c </path/to/static_config.yaml>`.
 
 @note Without file path to `static_config.yaml` `userver-samples-multipart_service` will look for a file with name `config_dev.yaml`
 @note CMake doesn't copy `static_config.yaml` files from `samples` directory into build directory.

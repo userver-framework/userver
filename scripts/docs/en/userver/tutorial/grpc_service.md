@@ -72,8 +72,7 @@ The sample could be started by running
 paths in the configuration files and starts the service.
 
 To start the service manually run
-`./samples/grpc_service/userver-samples-grpc_service -c </path/to/static_config.yaml>`
-(do not forget to prepare the configuration files!).
+`./samples/grpc_service/userver-samples-grpc_service -c </path/to/static_config.yaml>`.
 
 The service is available locally at port 8091 (as per our `static_config.yaml`).
 

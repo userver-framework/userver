@@ -135,11 +135,19 @@ Here's a configuration of a dynamic config related components
 components::DynamicConfigClient, components::DynamicConfig,
 components::DynamicConfigClientUpdater.
 
-Service starts with dynamic config values from `dynamic-config.fs-cache-path` file
-or from `dynamic-config.fallback-path` file. Service updates dynamic
-values from a @ref scripts/docs/en/userver/tutorial/config_service.md "configs service".
+Service starts with some dynamic config values from `dynamic-config.fs-cache-path`
+file and updates dynamic values from a
+@ref scripts/docs/en/userver/tutorial/config_service.md "configs service"
+at startup.
 
 @snippet samples/production_service/static_config.yaml Production service sample - static config dynamic configs
+
+@note Dynamic configs is an essential part of a reliable service with high
+      availability. Those could be used as an emergency switch for new
+      functionality, selector for experiments, limits/timeouts/log-level setup,
+      proxy setup. See @ref scripts/docs/en/schemas/dynamic_configs.md for
+      more info and @ref scripts/docs/en/userver/tutorial/config_service.md for
+      insights on how to implement such service.
 
 
 ### Congestion Control

@@ -105,8 +105,7 @@ The sample could be started by running
 paths in the configuration files and starts the service.
 
 To start the service manually run
-`./samples/config_service/userver-samples-config_service -c </path/to/static_config.yaml>`
-(do not forget to prepare the configuration files!).
+`./samples/config_service/userver-samples-config_service -c </path/to/static_config.yaml>`.
 
 Now you can send a request to your server from another terminal:
 ```

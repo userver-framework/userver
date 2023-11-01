@@ -18,7 +18,7 @@ OUTPUT_SCHANNELS_COUNT = 10
 
 async def _validate_pubsub(redis_db, service_client, msg):
     """
-    publish to redis_db and expect data acessable in service via handler
+    publish to redis_db and expect data accessible in service via handler
     """
     url = '/redis-cluster'
 

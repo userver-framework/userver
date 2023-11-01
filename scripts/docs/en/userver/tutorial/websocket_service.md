@@ -10,7 +10,6 @@ Make sure that you can compile and run core tests as described at
 Typical WebSocket server application in userver consists of the following parts:
 * WebSocket handler component - main logic of your application
 * Static config - startup config that does not change for the whole lifetime of an application
-* Dynamic config - config that could be changed at runtime
 * int main() - startup code
 
 Let's write a simple chat server that echoes incoming messages as outgoing messages for any websocket connected to `/chat` URL.
@@ -34,21 +33,10 @@ Note that all the @ref userver_components "components" and
 @ref userver_http_handlers "handlers" have their static options additionally
 described in docs.
 
-### Dynamic config
-
-We are not planning to get new dynamic config values in this sample. Because of
-that we just use the defaults for all configs.
-
-All the values are described in a separate section @ref scripts/docs/en/schemas/dynamic_configs.md .
-
-A production ready service would dynamically retrieve the above options at runtime from a configuration service. See
-@ref scripts/docs/en/userver/tutorial/config_service.md for insights on how to change the
-above options on the fly, without restarting the service.
-
 
 ### int main()
 
-Finally, after writing down the dynamic config values into file at `dynamic-config-fallbacks.fallback-path`, we
+Finally, we
 add our component to the `components::MinimalServerComponentList()`,
 and start the server with static configuration file passed from command line.
 
@@ -70,8 +58,7 @@ The sample could be started by running
 paths in the configuration files and starts the service.
 
 To start the service manually run
-`./samples/websocket_service/userver-samples-websocket_service -c </path/to/static_config.yaml>`
-(do not forget to prepare the configuration files!).
+`./samples/websocket_service/userver-samples-websocket_service -c </path/to/static_config.yaml>`.
 
 @note Without file path to `static_config.yaml` `userver-samples-websocket_service` will look for a file with name `config_dev.yaml`
 @note CMake doesn't copy `static_config.yaml` file from `samples` directory into build directory.

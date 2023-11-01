@@ -547,8 +547,8 @@ void SentinelImpl::SetReplicationMonitoringSettings(
 }
 
 PublishSettings SentinelImpl::GetPublishSettings() {
-  /// Why do we always publish to master? We can actualy publish to any host in
-  /// shard to distrubute load evenly
+  /// Why do we always publish to master? We can actually publish to any host in
+  /// shard to distribute load evenly
   return PublishSettings{++publish_shard_ % ShardsCount(), true,
                          CommandControl::Strategy::kDefault};
 }

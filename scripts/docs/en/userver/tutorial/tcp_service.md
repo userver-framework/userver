@@ -37,19 +37,6 @@ Now lets configure our component in the `components` section:
 @snippet samples/tcp_service/static_config.yaml  TCP component
 
 
-### Dynamic config
-
-We are not planning to get new dynamic config values in this sample. Because of
-that we just use the defaults for all configs.
-
-All the values are described in a separate section @ref scripts/docs/en/schemas/dynamic_configs.md .
-
-A production ready service would dynamically retrieve the above options at
- runtime from a configuration service. See
-@ref scripts/docs/en/userver/tutorial/config_service.md for insights on how to change the
-above options on the fly, without restarting the service.
-
-
 ### ProcessSocket
 
 It's time to deal with new sockets. The code is quite straightforward:
@@ -81,8 +68,7 @@ The sample could be started by running
 paths in the configuration files and starts the service.
 
 To start the service manually run
-`./samples/tcp_service/userver-samples-tcp_service -c </path/to/static_config.yaml>`
-(do not forget to prepare the configuration files!).
+`./samples/tcp_service/userver-samples-tcp_service -c </path/to/static_config.yaml>`.
 
 Now you can send a request to your server from another terminal:
 ```

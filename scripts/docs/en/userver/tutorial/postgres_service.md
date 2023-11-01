@@ -76,23 +76,16 @@ except for the handler and DB:
 
 @snippet samples/postgres_service/static_config.yaml  Postgres service sample - static config
 
-
-### Dynamic config
-
-We are not planning to get new dynamic config values in this sample. Because of
-that we just use the defaults for all configs.
-
-All the values are described in a separate section
-@ref scripts/docs/en/schemas/dynamic_configs.md .
-
-A production ready service would dynamically retrieve the above options at runtime from a configuration service. See
-@ref scripts/docs/en/userver/tutorial/config_service.md for insights on how to change the
-above options on the fly, without restarting the service.
+Note the `dynamic-config.defaults` usage. In
+@ref scripts/docs/en/userver/tutorial/production_service.md "production ready service"
+those values are usually retrieved from remote server, so that they could be
+changed at runtime without any need to restart the service. See
+@ref scripts/docs/en/schemas/dynamic_configs.md for more info.
 
 
 ### int main()
 
-Finally, after writing down the dynamic config values into file at `dynamic-config-fallbacks.fallback-path`, we
+Finally, we
 add our component to the components::MinimalServerComponentList(),
 and start the server with static config `kStaticConfig`.
 
@@ -116,8 +109,7 @@ paths in the configuration files, prepares and starts the DB, and starts the
 service.
 
 To start the service manually start the DB server and run
-`./samples/postgres_service/userver-samples-postgres_service -c </path/to/static_config.yaml>`
-(do not forget to prepare the configuration files!).
+`./samples/postgres_service/userver-samples-postgres_service -c </path/to/static_config.yaml>`.
 
 Now you can send a request to your service from another terminal:
 ```
