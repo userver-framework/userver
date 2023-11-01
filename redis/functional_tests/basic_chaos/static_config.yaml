@@ -33,10 +33,7 @@ components_manager:
             updates-enabled: true
             defaults:
                 REDIS_DEADLINE_PROPAGATION_VERSION: 1
-                REDIS_REPLICA_MONITORING_SETTINGS:
-                    __default__:
-                        enable-monitoring: true
-                        forbid-requests-to-syncing-replicas: true
+
         dynamic-config-client:
             config-url: $config-server-url
             http-retries: 5

@@ -58,11 +58,7 @@ components_manager:
                     overflow_behavior: discard
 
         dynamic-config:
-            defaults:
-                REDIS_REPLICA_MONITORING_SETTINGS:
-                    __default__:
-                        enable-monitoring: true
-                        forbid-requests-to-syncing-replicas: true
+
         dns-client:
             fs-task-processor: fs-task-processor
     coro_pool:
