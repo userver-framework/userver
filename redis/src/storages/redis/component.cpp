@@ -192,6 +192,8 @@ void Redis::Connect(const ComponentConfig& config,
   static_metrics_settings_.level =
       Parse(config["metrics_level"],
             formats::parse::To<redis::MetricsSettings::Level>());
+  metrics_settings_.Assign(
+      redis::MetricsSettings({}, static_metrics_settings_));
   const auto redis_pools = config["thread_pools"].As<RedisPools>();
 
   thread_pools_ = std::make_shared<redis::ThreadPools>(
