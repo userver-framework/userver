@@ -21,14 +21,23 @@ def _for_dns_gate_port(request) -> int:
     return 11455
 
 
+@pytest.fixture(name='for_dns_gate_port2', scope='session')
+def _for_dns_gate_port2(request) -> int:
+    # This fixture might be defined in an outer scope.
+    if 'for_dns_gate_port2_override' in request.fixturenames:
+        return request.getfixturevalue('for_dns_gate_port2_override')
+    return 11456
+
+
 @pytest.fixture(scope='session')
-def _userver_config_dns_link(for_dns_gate_port):
+def _userver_config_dns_link(for_dns_gate_port, for_dns_gate_port2):
     def patch_config(config, _config_vars) -> None:
         components = config['components_manager']['components']
 
-        component = 'handler-chaos-dns-resolver'
-        if component in components:
-            components[component]['dns-server'] = f'[::1]:{for_dns_gate_port}'
+        component = components.get('handler-chaos-dns-resolver', {})
+        if component:
+            component['dns-servers'][0] = f'[::1]:{for_dns_gate_port}'
+            component['dns-servers'][1] = f'[::1]:{for_dns_gate_port2}'
 
     return patch_config
 

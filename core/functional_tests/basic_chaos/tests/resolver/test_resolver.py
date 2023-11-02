@@ -170,3 +170,63 @@ async def test_limit_bytes(call, gate, check_restore):
 
     await gate.stop()
     gate.start()
+
+
+async def test_dns_switch(
+        service_client, gate, check_restore, dns_mock2_lazy, gen_domain_name,
+):
+    await gate.stop()
+
+    async with dns_mock2_lazy as server:
+        params = {
+            'type': 'resolve',
+            'host_to_resolve': gen_domain_name(),
+            'timeout': 30,
+        }
+        response = await service_client.get('/chaos/resolver', params=params)
+        assert server.get_stats() > 0
+        assert response.status == 200
+        assert SUCCESS_IPV4 in response.text or SUCCESS_IPV6 in response.text
+
+    gate.start()
+
+
+async def test_dns_switch_small_timeout(
+        service_client,
+        gate,
+        check_restore,
+        dns_mock2_lazy,
+        gen_domain_name,
+        testpoint,
+):
+    await gate.stop()
+
+    class _local_testpoint_data:
+        data = {}
+
+    @testpoint('net-resolver')
+    def _net_resolve_testpoint(data):
+        _local_testpoint_data.data = data
+
+    params = {
+        'type': 'resolve',
+        'host_to_resolve': gen_domain_name(),
+        'timeout': 10,  # less than network timeout of the resolver
+    }
+    async with dns_mock2_lazy as server:
+        # First resolve attempt fails due to a small timeout and irresponsive
+        # first DNS server.
+        response = await service_client.get('/chaos/resolver', params=params)
+        assert response.status != 200
+
+        # Should succeed, because resolving continues in background.
+        await _net_resolve_testpoint.wait_call()
+        assert _local_testpoint_data.data['name'] == params['host_to_resolve']
+        assert _local_testpoint_data.data['status'] == 0
+
+        response = await service_client.get('/chaos/resolver', params=params)
+        assert server.get_stats() > 0
+        assert response.status == 200
+        assert SUCCESS_IPV4 in response.text or SUCCESS_IPV6 in response.text
+
+    gate.start()

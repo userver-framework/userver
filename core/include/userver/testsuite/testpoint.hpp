@@ -35,7 +35,7 @@ class TestpointScope final {
   utils::FastPimpl<Impl, 24, 8> impl_;
 };
 
-bool IsTestpointEnabled(std::string_view name);
+bool IsTestpointEnabled(std::string_view name) noexcept;
 
 void ExecuteTestpointBlocking(const std::string& name,
                               const formats::json::Value& json,
@@ -55,6 +55,9 @@ USERVER_NAMESPACE_END
 /// Example usage:
 /// @snippet samples/testsuite-support/src/testpoint.cpp Sample TESTPOINT_CALLBACK usage cpp
 /// @snippet samples/testsuite-support/tests/test_testpoint.py Sample TESTPOINT_CALLBACK usage python
+///
+/// `noexcept` if server::handlers::TestsControl is not loaded or it is disabled
+/// in static config via `load-enabled: false`.
 ///
 /// @hideinitializer
 
@@ -79,6 +82,9 @@ USERVER_NAMESPACE_END
 /// @snippet samples/testsuite-support/src/testpoint.cpp Testpoint - TESTPOINT()
 /// @snippet samples/testsuite-support/tests/test_testpoint.py Testpoint - fixture
 ///
+/// `noexcept` if server::handlers::TestsControl is not loaded or it is disabled
+/// in static config via `load-enabled: false`.
+///
 /// @hideinitializer
 
 // clang-format on
@@ -87,6 +93,9 @@ USERVER_NAMESPACE_END
 
 /// @brief Same as `TESTPOINT_CALLBACK` but must be called outside of
 /// coroutine (e.g. from std::thread routine).
+///
+/// `noexcept` if server::handlers::TestsControl is not loaded or it is disabled
+/// in static config via `load-enabled: false`.
 ///
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
@@ -99,6 +108,9 @@ USERVER_NAMESPACE_END
 
 /// @brief Same as `TESTPOINT` but must be called outside of
 /// coroutine (e.g. from std::thread routine).
+///
+/// `noexcept` if server::handlers::TestsControl is not loaded or it is disabled
+/// in static config via `load-enabled: false`.
 ///
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)

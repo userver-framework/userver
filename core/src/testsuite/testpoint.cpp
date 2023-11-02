@@ -51,15 +51,24 @@ const TestpointClientBase& TestpointScope::GetClient() const noexcept {
   return *impl_->client;
 }
 
-bool IsTestpointEnabled(std::string_view name) {
+bool IsTestpointEnabled(std::string_view name) noexcept {
   if (!client_instance) return false;
-  const auto enabled_names = enabled_testpoints.Read();
-  return std::visit(utils::Overloaded{[](const EnableAll&) { return true; },
-                                      [&](const EnableOnly& names) {
-                                        return utils::impl::FindTransparent(
-                                                   names, name) != names.end();
-                                      }},
-                    *enabled_names);
+
+  // Test facility that should not throw in production
+  try {
+    const auto enabled_names = enabled_testpoints.Read();
+    return std::visit(utils::Overloaded{[](const EnableAll&) { return true; },
+                                        [&](const EnableOnly& names) {
+                                          return utils::impl::FindTransparent(
+                                                     names, name) !=
+                                                 names.end();
+                                        }},
+                      *enabled_names);
+  } catch (const std::exception& e) {
+    UASSERT_MSG(false, e.what());
+  }
+
+  return false;
 }
 
 void ExecuteTestpointBlocking(

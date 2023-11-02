@@ -20,6 +20,7 @@ namespace testsuite {
 /// testpoints.
 class TestpointClientBase {
  public:
+  // TODO: use utils::function_ref<void(const formats::json::Value&) const>
   using Callback = std::function<void(const formats::json::Value&)>;
 
   virtual ~TestpointClientBase();

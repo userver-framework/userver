@@ -21,7 +21,9 @@ components_manager:
             path: /chaos/resolver
             task_processor: main-task-processor
             method: GET,DELETE,POST
-            dns-server: 127.0.0.1:123
+            dns-servers:
+              - 127.0.0.1:123
+              - 127.0.0.1:456
             hosts-file: /etc/hosts
             cache-max-ttl: 99999
             cache-failure-ttl: 99999

@@ -29,8 +29,8 @@ class ResolverHandler final : public server::handlers::HttpHandlerBase {
       : HttpHandlerBase(config, context),
         resolver_{engine::current_task::GetTaskProcessor(), [&config] {
                     clients::dns::ResolverConfig resolver_config;
-                    resolver_config.network_custom_servers = {
-                        config["dns-server"].As<std::string>()};
+                    resolver_config.network_custom_servers =
+                        config["dns-servers"].As<std::vector<std::string>>();
                     resolver_config.file_path =
                         config["hosts-file"].As<std::string>();
                     resolver_config.file_update_interval =
@@ -46,10 +46,7 @@ class ResolverHandler final : public server::handlers::HttpHandlerBase {
                     resolver_config.cache_size_per_way =
                         config["cache-size-per-way"].As<int64_t>();
                     return resolver_config;
-                  }()} {
-    LOG_DEBUG() << "Connect to dns-server "
-                << config["dns-server"].As<std::string>();
-  }
+                  }()} {}
 
   std::string HandleRequestThrow(
       const server::http::HttpRequest& request,
@@ -59,8 +56,6 @@ class ResolverHandler final : public server::handlers::HttpHandlerBase {
     const std::chrono::seconds timeout_secs{
         timeout.empty() ? kResolverTimeoutSecs : std::stoi(timeout)};
     const auto& to_resolve = request.GetArg("host_to_resolve");
-    LOG_DEBUG() << "Timeout ms " << timeout_secs << " but should be "
-                << timeout;
     if (type == "resolve") {
       auto res = resolver_.Resolve(
           to_resolve, engine::Deadline::FromDuration(timeout_secs));
@@ -80,9 +75,12 @@ class ResolverHandler final : public server::handlers::HttpHandlerBase {
     description: Handler for clients::dns::Resolver testing
     additionalProperties: false
     properties:
-      dns-server:
-          type: string
-          description: address of for mocked dns-server
+      dns-servers:
+          type: array
+          description: addresses of for mocked dns-server
+          items:
+            description: IPv6 address
+            type: string
       hosts-file:
           type: string
           description: hosts file instead of /etc/hosts

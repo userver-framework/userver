@@ -22,8 +22,10 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task.hpp>
+#include <userver/formats/json.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/rcu/rcu.hpp>
+#include <userver/testsuite/testpoint.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/mock_now.hpp>
@@ -52,6 +54,19 @@ class NetResolver::Impl {
     engine::Promise<Response> promise;
   };
 
+  Impl(engine::TaskProcessor& fs_task_processor,
+       std::chrono::milliseconds query_timeout, int query_attempts,
+       std::string servers_csv)
+      : fs_task_processor(fs_task_processor),
+        query_timeout(query_timeout),
+        query_attempts(query_attempts),
+        servers_csv(std::move(servers_csv)) {}
+
+  engine::TaskProcessor& fs_task_processor;
+  const std::chrono::milliseconds query_timeout;
+  const int query_attempts;
+  const std::string servers_csv;
+
   engine::io::Poller poller;
   impl::ChannelPtr channel;
   moodycamel::ConcurrentQueue<std::unique_ptr<Request>> requests_queue;
@@ -71,6 +86,10 @@ class NetResolver::Impl {
                                struct ares_addrinfo* result) {
     std::unique_ptr<Request> request{static_cast<Request*>(arg)};
     UASSERT(request);
+    const utils::FastScopeGuard debug_guard{[&request, status]() noexcept {
+      TESTPOINT("net-resolver", formats::json::MakeObject("name", request->name,
+                                                          "status", status));
+    }};
 
     Response response;
     response.received_at = utils::datetime::MockNow();
@@ -156,6 +175,47 @@ class NetResolver::Impl {
     }
   }
 
+  void InitChannel() {
+    constexpr int kOptmask = ARES_OPT_FLAGS | ARES_OPT_TIMEOUTMS |
+                             ARES_OPT_TRIES | ARES_OPT_DOMAINS |
+                             ARES_OPT_LOOKUPS | ARES_OPT_SOCK_STATE_CB;
+    struct ares_options options {};
+    options.flags = ARES_FLAG_STAYOPEN |  // do not close idle sockets
+                    ARES_FLAG_NOALIASES;  // ignore HOSTALIASES from env
+    options.timeout = query_timeout.count();
+    options.tries = query_attempts;
+    options.domains = nullptr;
+    options.ndomains = 0;
+    options.sock_state_cb = &Impl::SockStateCallback;
+    options.sock_state_cb_data = this;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+    options.lookups = const_cast<char*>("b");  // network lookups only
+
+    channel.reset();
+
+    channel = utils::Async(fs_task_processor, "net-resolver-init", [&options] {
+                ares_channel native_channel = nullptr;
+                const int init_ret =
+                    ::ares_init_options(&native_channel, &options, kOptmask);
+                if (init_ret != ARES_SUCCESS) {
+                  throw ResolverException(
+                      fmt::format("Failed to create ares channel: {}",
+                                  ::ares_strerror(init_ret)));
+                }
+                return impl::ChannelPtr{native_channel};
+              }).Get();
+
+    if (!servers_csv.empty()) {
+      const int set_servers_ret =
+          ::ares_set_servers_ports_csv(channel.get(), servers_csv.c_str());
+      if (set_servers_ret != ARES_SUCCESS) {
+        throw ResolverException(
+            fmt::format("Cannot install custom server list: {}",
+                        ::ares_strerror(set_servers_ret)));
+      }
+    }
+  }
+
   void Worker() {
     static constexpr struct ares_addrinfo_hints kHints {
       /*ai_flags=*/ARES_AI_NUMERICSERV | ARES_AI_NOSORT,
@@ -186,7 +246,10 @@ class NetResolver::Impl {
 NetResolver::NetResolver(engine::TaskProcessor& fs_task_processor,
                          std::chrono::milliseconds query_timeout,
                          int query_attempts,
-                         const std::vector<std::string>& custom_servers) {
+                         const std::vector<std::string>& custom_servers)
+    : impl_{std::make_unique<Impl>(
+          fs_task_processor, query_timeout, query_attempts,
+          fmt::to_string(fmt::join(custom_servers, ",")))} {
   static const impl::GlobalInitializer kInitCAres;
 
   if (query_timeout.count() < 0 ||
@@ -201,42 +264,7 @@ NetResolver::NetResolver(engine::TaskProcessor& fs_task_processor,
         "Invalid network resolver config: number of attempts must be positive");
   }
 
-  constexpr int kOptmask = ARES_OPT_FLAGS | ARES_OPT_TIMEOUTMS |
-                           ARES_OPT_TRIES | ARES_OPT_DOMAINS |
-                           ARES_OPT_LOOKUPS | ARES_OPT_SOCK_STATE_CB;
-  struct ares_options options {};
-  options.flags = ARES_FLAG_STAYOPEN |  // do not close idle sockets
-                  ARES_FLAG_NOALIASES;  // ignore HOSTALIASES from env
-  options.timeout = query_timeout.count();
-  options.tries = query_attempts;
-  options.domains = nullptr;
-  options.ndomains = 0;
-  options.sock_state_cb = &Impl::SockStateCallback;
-  options.sock_state_cb_data = &*impl_;
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-  options.lookups = const_cast<char*>("b");  // network lookups only
-
-  impl_->channel =
-      utils::Async(fs_task_processor, "net-resolver-init", [&options] {
-        ares_channel channel = nullptr;
-        const int init_ret = ::ares_init_options(&channel, &options, kOptmask);
-        if (init_ret != ARES_SUCCESS) {
-          throw ResolverException(fmt::format(
-              "Failed to create ares channel: {}", ::ares_strerror(init_ret)));
-        }
-        return impl::ChannelPtr{channel};
-      }).Get();
-
-  if (!custom_servers.empty()) {
-    auto servers_csv = fmt::to_string(fmt::join(custom_servers, ","));
-    const int set_servers_ret =
-        ::ares_set_servers_ports_csv(impl_->channel.get(), servers_csv.c_str());
-    if (set_servers_ret != ARES_SUCCESS) {
-      throw ResolverException(
-          fmt::format("Cannot install custom server list: {}",
-                      ::ares_strerror(set_servers_ret)));
-    }
-  }
+  impl_->InitChannel();
 
   // NOLINTNEXTLINE(cppcoreguidelines-slicing)
   impl_->worker_task = engine::AsyncNoSpan([this] { impl_->Worker(); });

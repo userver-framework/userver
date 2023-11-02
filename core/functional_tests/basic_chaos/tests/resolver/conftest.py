@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+import datetime
 import logging
 import random
 import socket
@@ -26,12 +27,13 @@ def _set_response(value: bytes) -> bytes:
 
 @dataclass
 class DnsInfo:
-    host: str = 'localhost'
+    host: str = '::1'
     port: int = 1053
 
 
 class DnsServerProtocol:
-    def __init__(self):
+    def __init__(self, name: str):
+        self.name = name
         self.times_called = 0
         self.queries: list = []
 
@@ -48,10 +50,13 @@ class DnsServerProtocol:
         self.transport = transport
 
     def connection_lost(self, exc):
-        logger.info('Dns server lost connection')
+        logger.info('Dns server "%s" lost connection', self.name)
 
     def datagram_received(self, data, addr):
-        logger.info(f'Dns server received {len(data)} bytes from {addr}')
+        logger.info(
+            f'Dns server "{self.name}" received {len(data)} bytes from {addr} '
+            f'at {datetime.datetime.now()}',
+        )
         self.times_called += 1
 
         assert len(data) == 32
@@ -87,7 +92,10 @@ class DnsServerProtocol:
         else:
             raise Exception('unknown type')
 
-        logger.info(f'Dns sends {len(response)} bytes to {addr}')
+        logger.info(
+            f'Dns "{self.name}" sends {len(response)} bytes to {addr} '
+            f'at {datetime.datetime.now()}',
+        )
         self.transport.sendto(response, addr)
 
 
@@ -100,10 +108,10 @@ def _bind_udp_socket(hostname, port, family=socket.AF_INET6):
 
 
 @asynccontextmanager
-async def create_server(dns_info, loop):
+async def create_server(dns_info, loop, name):
     sock = _bind_udp_socket(dns_info.host, dns_info.port)
     transport, protocol = await loop.create_datagram_endpoint(
-        lambda: DnsServerProtocol(),  # pylint: disable=unnecessary-lambda
+        lambda: DnsServerProtocol(name),  # pylint: disable=unnecessary-lambda
         sock=sock,
     )
     try:
@@ -114,8 +122,13 @@ async def create_server(dns_info, loop):
 
 @pytest.fixture(scope='session', name='dns_mock')
 async def _dns_mock(loop, dns_info):
-    async with create_server(dns_info, loop) as server:
+    async with create_server(dns_info, loop, 'primary') as server:
         yield server
+
+
+@pytest.fixture(scope='function', name='dns_mock2_lazy')
+async def _dns_mock2_lazy(loop, dns_info2):
+    return create_server(dns_info2, loop, 'secondary')
 
 
 @pytest.fixture(name='for_dns_mock_port', scope='session')
@@ -128,7 +141,12 @@ def _for_dns_mock_port(request) -> int:
 
 @pytest.fixture(scope='session', name='dns_info')
 def _dns_info(for_dns_mock_port) -> DnsInfo:
-    return DnsInfo('localhost', for_dns_mock_port)
+    return DnsInfo('::1', for_dns_mock_port)
+
+
+@pytest.fixture(scope='session', name='dns_info2')
+def _dns_info2(for_dns_gate_port2) -> DnsInfo:
+    return DnsInfo('::1', for_dns_gate_port2)
 
 
 @pytest.fixture(scope='function', name='dns_mock_stats')
