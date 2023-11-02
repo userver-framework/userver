@@ -8,7 +8,11 @@ set(USERVER_SANITIZE "" CACHE STRING "Sanitizer, possible values: ${USERVER_SANI
 
 add_library(sanitize-target INTERFACE)
 
-if (USERVER_SANITIZE)
+if (USERVER_SANITIZE AND MACOS)
+    message(WARNING "Sanitizers on aarch64 MacOS produce false positive on coroutine-context switching. Disabling")
+endif()
+
+if (USERVER_SANITIZE AND NOT MACOS)
   if (CLANG)
     set(USERVER_BLACKLIST ${CMAKE_CURRENT_LIST_DIR}/sanitize.blacklist.txt)
     target_compile_options(sanitize-target INTERFACE -fsanitize-blacklist=${USERVER_BLACKLIST})

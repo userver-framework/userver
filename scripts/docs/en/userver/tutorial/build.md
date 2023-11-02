@@ -280,12 +280,7 @@ At least MacOS 10.15 required with [Xcode](https://apps.apple.com/us/app/xcode/i
   brew install $(cat scripts/docs/en/deps/macos.md | tr '\n' ' ')
   ```
 
-2. Force link OpenSSL 1.1:
-  ```bash
-  brew link --force openssl@1.1
-  ```
-
-3. Build the userver:
+2. Build the userver:
   ```bash
   mkdir build_release
   cd build_release
@@ -295,7 +290,7 @@ At least MacOS 10.15 required with [Xcode](https://apps.apple.com/us/app/xcode/i
       -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_DOWNLOAD_PACKAGE_CRYPTOPP=1 \
       -DUSERVER_FEATURE_CLICKHOUSE=0 \
       -DUSERVER_FEATURE_RABBITMQ=0 \
-      -DOPENSSL_ROOT_DIR=$(brew --prefix openssl@1.1) \
+      -DOPENSSL_ROOT_DIR=$(brew --prefix openssl) \
       -DUSERVER_PG_LIBRARY_DIR=$(pg_config --libdir) -DUSERVER_PG_INCLUDE_DIR=$(pg_config --includedir) \
       -DUSERVER_PG_SERVER_LIBRARY_DIR=$(pg_config --pkglibdir) -DUSERVER_PG_SERVER_INCLUDE_DIR=$(pg_config --includedir-server) \
       ..

@@ -15,9 +15,9 @@ jemalloc
 krb5
 nghttp2
 protobuf
-openssl@1.1
+openssl
 yaml-cpp
-postgresql@13
+postgresql@14
 redis
 zlib
 amqp-cpp
