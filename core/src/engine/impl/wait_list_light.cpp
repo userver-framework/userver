@@ -118,13 +118,16 @@ bool WaitListLight::GetSignalOrAppend(
 
 void WaitListLight::WakeupOne() {
   // seq_cst is important for the "Append-Check-Wakeup" sequence.
-  const auto old_waiter = impl_->waiter.load<std::memory_order_seq_cst>();
+  const auto old_waiter =
+      impl_->waiter.exchange<std::memory_order_seq_cst>(Waiter{});
   if (old_waiter.context == nullptr) return;
 
   UASSERT_MSG(old_waiter.context != kSignaled,
               "Use SetSignalAndWakeupOne for dealing with signals instead");
+
+  const boost::intrusive_ptr<TaskContext> context{old_waiter.context,
+                                                  /*add_ref=*/false};
   DoWakeup(old_waiter);
-  // The waiter will Remove itself later.
 }
 
 void WaitListLight::SetSignalAndWakeupOne() {
