@@ -125,5 +125,10 @@ RUN rm -rf /app/amqp-cpp && rm -rf /app/clickhouse-cpp && rm -rf /app/grpc
 # install pip requirements
 RUN pip3 install -r /app/requirements.txt
 
+# set up ramdisk symlink for working tmpfs directory in tests
+RUN mkdir -p /ramdrive
+RUN mkdir -p /mnt
+RUN ln -s /ramdrive /mnt/ramdisk
+
 # add paths
 ENV PATH /usr/lib/postgresql/14/bin:${PATH}
