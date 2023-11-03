@@ -258,9 +258,10 @@ void ConnectionPool::Release(Connection* connection) {
       USERVER_NAMESPACE::utils::statistics::RelaxedCounter<uint32_t>>;
   DecGuard dg{stats_.connection.used, DecGuard::DontIncrement{}};
 
+  std::optional<Connection::Statistics> connection_stats{};
   // Grab stats only if connection is not in transaction
   if (!connection->IsInTransaction()) {
-    AccountConnectionStats(connection->GetStatsAndReset());
+    connection_stats.emplace(connection->GetStatsAndReset());
   }
 
   if (!connection->IsConnected() || connection->IsBroken()) {
@@ -276,6 +277,13 @@ void ConnectionPool::Release(Connection* connection) {
               << "Released connection in busy state. Trying to clean up...";
           CleanupConnection(connection);
         }));
+  }
+
+  // We want to account the stats AFTER the connection is returned to the pool,
+  // because the procedure is somewhat heavy and there's no point to prevent the
+  // connection from being reused
+  if (connection_stats.has_value()) {
+    AccountConnectionStats(std::move(*connection_stats));
   }
 }
 

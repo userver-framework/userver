@@ -5,15 +5,18 @@
 #define HAS_TSAN 1
 #endif
 #if __has_feature(memory_sanitizer)
-#include <sanitizer/msan_interface.h>
 #define HAS_MSAN 1
 #endif
 #endif
 
 // Thread Sanitizer uses dl_iterate_phdr function on initialization and fails if
 // we provide our own.
+//
+// Memory sanitizer gets crazy with uninstumented dl_phdr_info and conveniently
+// segfaults with stackoverflow trying to report the backtrace from within
+// dl_iterate_phdr.
 #if !defined(USERVER_DISABLE_PHDR_CACHE) && defined(__linux__) && \
-    !defined(HAS_TSAN)
+    !defined(HAS_TSAN) && !defined(HAS_MSAN)
 #define USE_PHDR_CACHE 1  // NOLINT
 #endif
 
@@ -51,31 +54,7 @@ inline auto GetOriginalDlIteratePhdr() {
         "Cannot find dl_iterate_phdr function with dlsym");
   }
 
-  auto* original_func = reinterpret_cast<DlIterateFn>(func);
-
-#ifdef HAS_MSAN
-  // `dl_iterate_phdr` is not instrumented by MSAN. Returning our lambda
-  // that unpoisons data before passing it to callback.
-  return [original_func](DlIterateCb callback, void* data) {
-    struct DataHolder {
-      DlIterateCb callback;
-      void* data;
-    };
-
-    DataHolder data_holder{callback, data};
-    auto unpoisoning_callback = [](struct dl_phdr_info* info, size_t size,
-                                   void* data) {
-      __msan_unpoison(info, sizeof(*info));
-      auto* data_holder = static_cast<DataHolder*>(data);
-      UASSERT(data_holder);
-      return data_holder->callback(info, size, data_holder->data);
-    };
-
-    return original_func(unpoisoning_callback, &data_holder);
-  };
-#else
-  return original_func;
-#endif
+  return reinterpret_cast<DlIterateFn>(func);
 }
 
 class MlockProcessDebugInfoScope final {
