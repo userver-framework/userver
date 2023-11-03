@@ -217,7 +217,9 @@ void ConnectionImpl::AsyncConnect(const Dsn& dsn, engine::Deadline deadline) {
   conn_wrapper_.FillSpanTags(span);
   scope.Reset(scopes::kGetConnectData);
   // We cannot handle exceptions here, so we let them got to the caller
-  ExecuteCommandNoPrepare("DISCARD ALL", deadline);
+  if (settings_.discard_all_on_acquire_connection) {
+  	ExecuteCommandNoPrepare("DISCARD ALL", deadline);
+  }
   SetParameter("client_encoding", "UTF8", Connection::ParameterScope::kSession,
                deadline);
   RefreshReplicaState(deadline);

@@ -47,6 +47,8 @@ extern const dynamic_config::Key<Config> kConfig;
 
 extern const dynamic_config::Key<PipelineMode> kPipelineModeKey;
 
+extern const dynamic_config::Key<bool> kDiscardAllOnAcquireConnection;
+
 extern const dynamic_config::Key<bool> kConnlimitModeAutoEnabled;
 
 extern const dynamic_config::Key<int> kDeadlinePropagationVersionConfig;

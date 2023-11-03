@@ -186,6 +186,9 @@ const dynamic_config::Key<PipelineMode> kPipelineModeKey{
     "POSTGRES_CONNECTION_PIPELINE_EXPERIMENT", ParsePipelineMode,
     dynamic_config::DefaultAsJsonString{"0"}};
 
+const dynamic_config::Key<bool> kDiscardAllOnAcquireConnection{
+    "POSTGRES_DISCARD_ALL_ON_ACQUIRE_CONNECTION", false};
+
 const dynamic_config::Key<bool> kConnlimitModeAutoEnabled{
     "POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED", false};
 

@@ -232,6 +232,9 @@ struct ConnectionSettings {
   /// Turns on connection pipeline mode
   PipelineMode pipeline_mode = PipelineMode::kDisabled;
 
+  // Tunrs on 'DISCARD ALL' on connection acquire
+  bool discard_all_on_acquire_connection = false;
+
   /// This many connection errors in 15 seconds block new connections opening
   size_t recent_errors_threshold = 2;
 
