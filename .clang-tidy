@@ -15,6 +15,7 @@ Checks:
   ,performance-*\
   ,portability-*\
   ,readability-*\
+  ,unchecked-optional-access\
   ,-bugprone-easily-swappable-parameters\
   ,-bugprone-exception-escape\
   ,-bugprone-implicit-widening-of-multiplication-result\
