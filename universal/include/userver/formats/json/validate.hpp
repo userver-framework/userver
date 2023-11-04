@@ -6,6 +6,7 @@
 #include <iosfwd>
 #include <string_view>
 
+#include <userver/formats/json/value.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -14,8 +15,7 @@ namespace formats::json {
 
 class Schema final {
  public:
-  explicit Schema(std::string_view doc);
-  explicit Schema(std::istream& is);
+  explicit Schema(const formats::json::Value& doc);
   ~Schema();
 
  private:
@@ -24,13 +24,10 @@ class Schema final {
   static constexpr std::size_t kAlignment = 8;
   utils::FastPimpl<Impl, kSize, kAlignment> pimpl_;
 
-  friend bool Validate(std::string_view doc,
-                       const formats::json::Schema& schema);
-  friend bool Validate(std::istream& is, const formats::json::Schema& schema);
+  friend bool Validate(const formats::json::Value&, const formats::json::Schema&);
 };
 
-bool Validate(std::string_view doc, const formats::json::Schema& schema);
-bool Validate(std::istream& is, const formats::json::Schema& schema);
+bool Validate(const formats::json::Value& doc, const formats::json::Schema& schema);
 
 }  // namespace formats::json
 

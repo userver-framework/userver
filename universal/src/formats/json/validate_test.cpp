@@ -1,9 +1,7 @@
 #include <gtest/gtest.h>
 
-#include <userver/formats/json/exception.hpp>
 #include <userver/formats/json/validate.hpp>
-
-#include <sstream>
+#include <userver/formats/json/value.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -46,8 +44,7 @@ constexpr std::string_view kSchemaJson{R"(
                 "required": ["length", "width", "height"]
             },
             "warehouseLocation": {
-                "description": "Coordinates of the warehouse with the product",
-                "$ref": "http://json-schema.org/geo"
+                "description": "Coordinates of the warehouse with the product"
             }
         },
         "required": ["id", "name", "price"]
@@ -123,29 +120,19 @@ constexpr std::string_view kInvalidInputJson{R"(
 ]
 )"};
 
-TEST(FormatsJsonValidate, ValidSchemaJsonString) {
-  formats::json::Schema schema(kSchemaJson);
-}
-
-TEST(FormatsJsonValidate, ValidSchemaJsonStream) {
-  std::istringstream iss{std::string(kSchemaJson)};
-  formats::json::Schema schema(iss);
-}
-
-TEST(FormatsJsonValidate, ValidInputString) {
-  formats::json::Schema schema(kSchemaJson);
-  EXPECT_TRUE(formats::json::Validate(kValidInputJson, schema));
-}
-
-TEST(FormatsJsonValidate, ValidInputStream) {
-  formats::json::Schema schema(kSchemaJson);
-  std::istringstream iss{std::string(kValidInputJson)};
-  EXPECT_TRUE(formats::json::Validate(iss, schema));
+TEST(FormatsJsonValidate, ValidInput) {
+  auto schemaDocument = formats::json::FromString(kSchemaJson);
+  auto jsonDocument = formats::json::FromString(kValidInputJson);
+  formats::json::Schema schema(schemaDocument);
+  EXPECT_TRUE(formats::json::Validate(jsonDocument, schema));
 }
 
 TEST(FormatsJsonValidate, InvalidInput) {
-  formats::json::Schema schema(kSchemaJson);
-  EXPECT_FALSE(formats::json::Validate(kInvalidInputJson, schema));
+  auto schemaDocument = formats::json::FromString(kSchemaJson);
+  auto jsonDocument = formats::json::FromString(kInvalidInputJson);
+
+  formats::json::Schema schema(schemaDocument);
+  EXPECT_FALSE(formats::json::Validate(jsonDocument, schema));
 }
 
 USERVER_NAMESPACE_END
