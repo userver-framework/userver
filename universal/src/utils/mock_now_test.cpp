@@ -38,6 +38,50 @@ TEST(MockNow, Timer) {
 }
 /// [Mocked time sample]
 
+TEST(MockSteadyNow, StdStdSeqAlwaysValid) {
+  EXPECT_NO_THROW({
+    utils::datetime::MockNowUnset();
+    [[maybe_unused]] const auto prev_now = utils::datetime::MockSteadyNow();
+    [[maybe_unused]] const auto curr_now = utils::datetime::MockSteadyNow();
+  });
+}
+
+TEST(MockSteadyNow, StdMockedSeqAlwaysValid) {
+  using utils::datetime::Stringtime;
+
+  EXPECT_NO_THROW({
+    utils::datetime::MockNowUnset();
+    [[maybe_unused]] const auto prev_value = utils::datetime::MockSteadyNow();
+    utils::datetime::MockNowSet(Stringtime("1900-01-01T00:00:00+0000"));
+    [[maybe_unused]] const auto current_value =
+        utils::datetime::MockSteadyNow();
+  });
+}
+
+TEST(MockSteadyNow, MockedStdSeqAlwaysValid) {
+  using utils::datetime::Stringtime;
+
+  EXPECT_NO_THROW({
+    utils::datetime::MockNowSet(Stringtime("2050-01-01T00:00:00+0000"));
+    [[maybe_unused]] const auto prev_value = utils::datetime::MockSteadyNow();
+    utils::datetime::MockNowUnset();
+    [[maybe_unused]] const auto current_value =
+        utils::datetime::MockSteadyNow();
+  });
+}
+
+TEST(MockSteadyNow, MockedValidSeq) {
+  using utils::datetime::Stringtime;
+
+  EXPECT_NO_THROW({
+    utils::datetime::MockNowSet(Stringtime("2000-01-01T00:00:00+0000"));
+    [[maybe_unused]] const auto prev_value = utils::datetime::MockSteadyNow();
+    utils::datetime::MockNowSet(Stringtime("2000-01-02T00:00:00+0000"));
+    [[maybe_unused]] const auto current_value =
+        utils::datetime::MockSteadyNow();
+  });
+}
+
 }  // namespace
 
 USERVER_NAMESPACE_END

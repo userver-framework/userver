@@ -29,6 +29,17 @@ std::chrono::system_clock::time_point MockNow() noexcept {
 
 std::chrono::steady_clock::time_point MockSteadyNow() noexcept {
   const auto mocked_now_value = now.load();
+
+  static std::atomic<std::chrono::system_clock::time_point> prev_now{
+      mocked_now_value};
+
+  const auto mocked_prev_value = prev_now.load();
+
+  UASSERT(mocked_now_value != kNotMocked || mocked_prev_value != kNotMocked ||
+          (mocked_prev_value <= mocked_now_value));
+
+  prev_now = mocked_now_value;
+
   return mocked_now_value == kNotMocked
              ? std::chrono::steady_clock::now()
              : std::chrono::steady_clock::time_point{
