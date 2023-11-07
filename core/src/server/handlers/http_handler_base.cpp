@@ -200,7 +200,7 @@ class RequestProcessor final {
   void ProcessRequestStep(std::string_view step_name,
                           const Func& process_step_func) {
     if (process_finished_) return;
-    const tracing::ScopeTime scope_time{utils::StrCat("http_", step_name)};
+    const tracing::ScopeTime scope_time{std::string{step_name}};
     DoProcessRequestStep(step_name, process_step_func);
   }
 
@@ -667,7 +667,7 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
     SetUpBaggage(http_request, request_processor.GetInitialDynamicConfig());
     LogYandexHeaders(http_request);
 
-    request_processor.ProcessRequestStep(
+    request_processor.ProcessRequestStepNoScopeTime(
         "check_ratelimit",
         [this, &http_request] { CheckRatelimit(http_request); });
 
@@ -677,17 +677,17 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
         });
 
     request_processor.ProcessRequestStep(
-        "check_auth",
+        "http_check_auth",
         [this, &http_request, &context] { CheckAuth(http_request, context); });
 
     if (GetConfig().decompress_request) {
       request_processor.ProcessRequestStep(
-          "decompress_request_body",
+          "http_decompress_request_body",
           [this, &http_request] { DecompressRequestBody(http_request); });
     }
 
     request_processor.ProcessRequestStep(
-        "parse_request_data", [this, &http_request, &context] {
+        "http_parse_request_data", [this, &http_request, &context] {
           ParseRequestData(http_request, context);
         });
 
@@ -708,7 +708,7 @@ void HttpHandlerBase::HandleRequest(request::RequestBase& request,
     }
 
     request_processor.ProcessRequestStep(
-        "handle_request", [this, &response, &http_request, &context] {
+        "http_handle_request", [this, &response, &http_request, &context] {
           if (response.IsBodyStreamed()) {
             HandleRequestStream(http_request, context);
           } else {
