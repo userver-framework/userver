@@ -5,8 +5,6 @@
 
 #include <cstdint>
 
-#include <userver/formats/serialize/to.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
@@ -26,28 +24,33 @@ struct Rate {
 
   explicit operator bool() const noexcept { return value != 0; }
 
-  bool operator==(const Rate& rhs) const noexcept { return value == rhs.value; }
+  bool operator==(Rate rhs) const noexcept { return value == rhs.value; }
 
-  bool operator!=(const Rate& rhs) const noexcept { return !(*this == rhs); }
+  bool operator!=(Rate rhs) const noexcept { return !(*this == rhs); }
 
-  bool operator<(const Rate& rhs) const noexcept { return value < rhs.value; }
+  bool operator<(Rate rhs) const noexcept { return value < rhs.value; }
 
-  bool operator>(const Rate& rhs) const noexcept { return rhs < *this; }
+  bool operator>(Rate rhs) const noexcept { return rhs < *this; }
 
-  bool operator<=(const Rate& rhs) const noexcept { return !(rhs < *this); }
+  bool operator<=(Rate rhs) const noexcept { return !(rhs < *this); }
 
-  bool operator>=(const Rate& rhs) const noexcept { return !(*this < rhs); }
+  bool operator>=(Rate rhs) const noexcept { return !(*this < rhs); }
+
+  bool operator==(std::uint64_t rhs) const noexcept { return value == rhs; }
+
+  bool operator!=(std::uint64_t rhs) const noexcept { return value == rhs; }
+
+  bool operator<(std::uint64_t rhs) const noexcept { return value < rhs; }
+
+  bool operator>(std::uint64_t rhs) const noexcept { return value > rhs; }
+
+  bool operator<=(std::uint64_t rhs) const noexcept { return value <= rhs; }
+
+  bool operator>=(std::uint64_t rhs) const noexcept { return value >= rhs; }
 };
 
 inline Rate operator+(Rate first, Rate second) noexcept {
   return Rate{first.value + second.value};
-}
-
-template <typename ValueType>
-ValueType Serialize(const Rate& rate,
-                    USERVER_NAMESPACE::formats::serialize::To<ValueType>) {
-  using ValueBuilder = typename ValueType::Builder;
-  return ValueBuilder{rate.value}.ExtractValue();
 }
 
 }  // namespace utils::statistics

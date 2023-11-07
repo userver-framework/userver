@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <sstream>
 #include <unordered_map>
 #include <utility>
 
@@ -128,19 +129,15 @@ MetricValue Snapshot::SingleMetric(std::string path,
   return result.value;
 }
 
-std::ostream& operator<<(std::ostream& out, const Snapshot& data) {
-  out << "{";
+void PrintTo(const Snapshot& data, std::ostream* out) {
+  *out << "{";
   for (const auto& [path, entry] : data.data_->metrics) {
-    out << fmt::format("{};{} {}", path, fmt::join(entry.labels, ";"),
-                       entry.value);
-    out << ";\n";
+    *out << fmt::format("{};{} {}", path, fmt::join(entry.labels, ";"),
+                        entry.value);
+    *out << ";\n";
   }
-  out << "}";
-
-  return out;
+  *out << "}";
 }
-
-void PrintTo(const Snapshot& data, std::ostream* out) { *out << data; }
 
 }  // namespace utils::statistics
 

@@ -67,15 +67,15 @@ class LoggingTestCoro : public LoggingTestBase {
     return logger;
   }
 
-  int64_t GetMetric(std::string metric = {},
-                    utils::statistics::Label label = {}) {
+  utils::statistics::Rate GetMetric(std::string metric = {},
+                                    utils::statistics::Label label = {}) {
     std::vector<utils::statistics::Label> labels{};
     if (!label.Name().empty()) {
       labels.push_back(label);
     }
     const auto snapshot =
         utils::statistics::Snapshot(stats_storage_, "logger", labels);
-    return snapshot.SingleMetric(metric).AsRate().value;
+    return snapshot.SingleMetric(metric).AsRate();
   }
 
   void LogTestMT(std::shared_ptr<logging::impl::TpLogger> logger,

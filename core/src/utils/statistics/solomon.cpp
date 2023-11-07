@@ -1,7 +1,5 @@
 #include <userver/utils/statistics/solomon.hpp>
 
-#include <array>
-
 #include <userver/formats/json/string_builder.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/overloaded.hpp>
@@ -41,7 +39,7 @@ class SolomonJsonBuilder final : public utils::statistics::BaseFormatBuilder {
         },
         [this](Rate x) {
           builder_.Key("value");
-          WriteToStream(x, builder_);
+          WriteToStream(x.value, builder_);
           builder_.Key("type");
           builder_.WriteString("RATE");
         },

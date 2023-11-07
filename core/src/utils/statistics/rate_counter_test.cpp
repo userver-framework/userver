@@ -46,10 +46,10 @@ UTEST(RateCounter, DumpMetric) {
   const auto rate_counter_scope = storage.RegisterWriter(
       "test", [&rate_counter](Writer& writer) { writer = rate_counter; });
 
-  EXPECT_EQ(Snapshot{storage}.SingleMetric("test"), MetricValue{Rate{10}});
+  EXPECT_EQ(Snapshot{storage}.SingleMetric("test").AsRate(), 10);
 
   ResetMetric(rate_counter);
-  EXPECT_EQ(Snapshot{storage}.SingleMetric("test"), MetricValue{Rate{0}});
+  EXPECT_EQ(Snapshot{storage}.SingleMetric("test").AsRate(), 0);
 }
 
 }  // namespace utils::statistics

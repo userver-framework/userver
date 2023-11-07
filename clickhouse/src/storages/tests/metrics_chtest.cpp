@@ -36,9 +36,7 @@ UTEST(Metrics, Basic) {
   cluster->Insert("tmp", {"value"}, data);
 
   const auto snapshot = cluster.GetStatistics("clickhouse.connections");
-  EXPECT_EQ(
-
-      snapshot.SingleMetric("active").AsInt(), 1);
+  EXPECT_EQ(snapshot.SingleMetric("active").AsInt(), 1);
 
   // unsuccessful query
   EXPECT_ANY_THROW(cluster->Execute("invalid_query_format"));

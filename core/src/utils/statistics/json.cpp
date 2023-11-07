@@ -6,6 +6,7 @@
 #include <userver/utils/overloaded.hpp>
 #include <userver/utils/statistics/storage.hpp>
 #include <utils/statistics/impl/histogram_serialization.hpp>
+#include <utils/statistics/impl/rate_serialization.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

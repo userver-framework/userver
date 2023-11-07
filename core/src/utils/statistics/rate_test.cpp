@@ -27,15 +27,6 @@ UTEST(Rate, Basic) {
 
 UTEST(Rate, Fmt) { EXPECT_EQ("10", fmt::format("{}", Rate{10})); }
 
-UTEST(Rate, JsonSerialization) {
-  formats::json::ValueBuilder builder{formats::common::Type::kObject};
-  builder["test"] = Rate{10};
-
-  const auto val = builder.ExtractValue();
-
-  EXPECT_EQ(10, val["test"].As<int>());
-}
-
 }  // namespace utils::statistics
 
 USERVER_NAMESPACE_END

@@ -50,15 +50,28 @@ class Snapshot final {
 
  private:
   friend void PrintTo(const Snapshot& data, std::ostream*);
-  friend std::ostream& operator<<(std::ostream&, const Snapshot& data);
 
   Request request_;
   utils::SharedRef<const impl::SnapshotData> data_;
 };
 
-// Support for PrintTo method in google tests
+/// @brief Support for gtest diagnostics for utils::statistics::Snapshot.
+///
+/// @warning Never check the printed value programmatically! The string is not
+/// stable and may change, depending on the version of stdlib and userver.
+///
+/// **Valid usage:**
+/// @code
+/// EXPECT_EQ(..., ...) << testing::PrintToString(snapshot);
+/// @endcode
+///
+/// **Invalid usage:**
+/// @code
+/// std::ostringstream stream;
+/// PrintTo(snapshot, &stream);
+/// EXPECT_EQ(stream.str(), ...);
+/// @endcode
 void PrintTo(const Snapshot& data, std::ostream*);
-std::ostream& operator<<(std::ostream&, const Snapshot& data);
 
 }  // namespace utils::statistics
 
