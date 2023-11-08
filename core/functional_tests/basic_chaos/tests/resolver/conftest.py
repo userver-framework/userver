@@ -16,11 +16,15 @@ logger = logging.getLogger(__name__)
 sys_random = random.SystemRandom()
 
 RESPONSE_FLAG = struct.unpack('!H', b'\x80\x00')[0]
+REFUSED_RESPONSE_FLAG = struct.unpack('!H', b'\x80\x05')[0]
 
 
-def _set_response(value: bytes) -> bytes:
+def _set_response(value: bytes, refuse: bool) -> bytes:
     res = struct.unpack('!H', value)[0]
-    res |= RESPONSE_FLAG
+    if refuse:
+        res |= REFUSED_RESPONSE_FLAG
+    else:
+        res |= RESPONSE_FLAG
 
     return struct.pack('!H', res)
 
@@ -36,6 +40,13 @@ class DnsServerProtocol:
         self.name = name
         self.times_called = 0
         self.queries: list = []
+        self.refuse = False
+
+    def set_refuse_responses(self) -> None:
+        self.refuse = True
+
+    def set_ok_responses(self) -> None:
+        self.refuse = False
 
     def reset_stats(self) -> None:
         self.times_called = 0
@@ -64,7 +75,7 @@ class DnsServerProtocol:
         # Copy request data
         response: bytes = b''
         response += data[0:2]  # 2 bytes txn id
-        response += _set_response(data[2:4])  # 2 bytes flags
+        response += _set_response(data[2:4], self.refuse)  # 2 bytes flags
         response += data[4:6]  # 2 bytes queries count
         response += b'\x00\x01'  # 2 bytes answers count
         response += data[8:]  # Copy queries
@@ -94,7 +105,7 @@ class DnsServerProtocol:
 
         logger.info(
             f'Dns "{self.name}" sends {len(response)} bytes to {addr} '
-            f'at {datetime.datetime.now()}',
+            f'at {datetime.datetime.now()} (refuse = {self.refuse})',
         )
         self.transport.sendto(response, addr)
 

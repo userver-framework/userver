@@ -1,3 +1,4 @@
+import asyncio
 import enum
 import typing
 
@@ -191,6 +192,36 @@ async def test_dns_switch(
     gate.start()
 
 
+async def test_dns_switch_on_in_flight_request(
+        service_client,
+        gate,
+        check_restore,
+        dns_mock2_lazy,
+        gen_domain_name,
+        testpoint,
+):
+    await gate.stop()
+
+    params = {
+        'type': 'resolve',
+        'host_to_resolve': gen_domain_name(),
+        'timeout': 10,  # less than network timeout of the resolver
+    }
+
+    @testpoint('net-resolver')
+    def _net_resolve_testpoint(data):
+        assert data['status'] == 0
+
+    async with dns_mock2_lazy:
+        response = await service_client.get('/chaos/resolver', params=params)
+        assert response.status != 200
+
+    gate.start()
+
+    response = await service_client.get('/chaos/resolver', params=params)
+    assert response.status == 200
+
+
 async def test_dns_switch_small_timeout(
         service_client,
         gate,
@@ -201,18 +232,16 @@ async def test_dns_switch_small_timeout(
 ):
     await gate.stop()
 
-    class _local_testpoint_data:
-        data = {}
-
-    @testpoint('net-resolver')
-    def _net_resolve_testpoint(data):
-        _local_testpoint_data.data = data
-
     params = {
         'type': 'resolve',
         'host_to_resolve': gen_domain_name(),
         'timeout': 10,  # less than network timeout of the resolver
     }
+
+    @testpoint('net-resolver')
+    def _net_resolve_testpoint(data):
+        assert data['status'] == 0
+
     async with dns_mock2_lazy as server:
         # First resolve attempt fails due to a small timeout and irresponsive
         # first DNS server.
@@ -221,8 +250,6 @@ async def test_dns_switch_small_timeout(
 
         # Should succeed, because resolving continues in background.
         await _net_resolve_testpoint.wait_call()
-        assert _local_testpoint_data.data['name'] == params['host_to_resolve']
-        assert _local_testpoint_data.data['status'] == 0
 
         response = await service_client.get('/chaos/resolver', params=params)
         assert server.get_stats() > 0
@@ -230,3 +257,58 @@ async def test_dns_switch_small_timeout(
         assert SUCCESS_IPV4 in response.text or SUCCESS_IPV6 in response.text
 
     gate.start()
+
+
+async def test_dns_switch_erefused(
+        service_client, check_restore, dns_mock, gen_domain_name, testpoint,
+):
+    # Constants from include/ares.h
+    ARES_EREFUSED = 6
+    ARES_ECONNREFUSED = 11
+
+    last_resolve_status = 0
+
+    @testpoint('net-resolver')
+    def _net_resolve_testpoint(data):
+        nonlocal last_resolve_status
+        last_resolve_status = data['status']
+
+    async def _request_and_wait_for_update():
+        params = {'type': 'resolve', 'host_to_resolve': gen_domain_name()}
+        done, _ = await asyncio.wait(
+            {
+                asyncio.create_task(
+                    service_client.get('/chaos/resolver', params=params),
+                    name='request',
+                ),
+                asyncio.create_task(_net_resolve_testpoint.wait_call()),
+            },
+            return_when=asyncio.ALL_COMPLETED,
+        )
+        for task in done:
+            if task.get_name() == 'request':
+                return task.result()
+
+    dns_mock.set_refuse_responses()
+    response = await _request_and_wait_for_update()
+    dns_mock.set_ok_responses()
+
+    assert response.text == ''
+
+    on_refuse_status = last_resolve_status
+    assert on_refuse_status in {ARES_EREFUSED, ARES_ECONNREFUSED}
+
+    response = await _request_and_wait_for_update()
+    assert response.status == 200, (
+        f'{response.status} != 200 after '
+        f'on_refuse_status={on_refuse_status}'
+    )
+    assert response.text == SUCCESS_RESOLVE, (
+        f'Unexpected {response.text} after '
+        f'on_refuse_status={on_refuse_status}'
+    )
+
+    assert last_resolve_status == 0, (
+        f'Unexpected resolve status {last_resolve_status} after '
+        f'on_refuse_status={on_refuse_status}'
+    )
