@@ -1,7 +1,7 @@
-#include <gtest/gtest.h>
-
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/mock_now.hpp>
+
+#include <userver/utest/assert_macros.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -24,6 +24,8 @@ class Timer final {
   std::chrono::system_clock::time_point loop_start_{utils::datetime::Now()};
 };
 
+using utils::datetime::MockNowSet;
+
 TEST(MockNow, Timer) {
   using utils::datetime::Stringtime;
 
@@ -37,6 +39,39 @@ TEST(MockNow, Timer) {
   EXPECT_EQ(timer.NextLoop(), 24h - 9001s);
 }
 /// [Mocked time sample]
+
+TEST(MockSteadyNow, StdStdSeqAlwaysValid) {
+  UEXPECT_NO_THROW(utils::datetime::MockNowUnset());
+  UEXPECT_NO_THROW(utils::datetime::MockSteadyNow());
+  UEXPECT_NO_THROW(utils::datetime::MockSteadyNow());
+}
+
+TEST(MockSteadyNow, StdMockedSeqAlwaysValid) {
+  using utils::datetime::Stringtime;
+
+  UEXPECT_NO_THROW(utils::datetime::MockNowUnset());
+  UEXPECT_NO_THROW(utils::datetime::MockSteadyNow());
+  UEXPECT_NO_THROW(MockNowSet(Stringtime("1900-01-01T00:00:00+0000")));
+  UEXPECT_NO_THROW(utils::datetime::MockSteadyNow());
+}
+
+TEST(MockSteadyNow, MockedStdSeqAlwaysValid) {
+  using utils::datetime::Stringtime;
+
+  UEXPECT_NO_THROW(MockNowSet(Stringtime("2050-01-01T00:00:00+0000")));
+  UEXPECT_NO_THROW(utils::datetime::MockSteadyNow());
+  UEXPECT_NO_THROW(utils::datetime::MockNowUnset());
+  UEXPECT_NO_THROW(utils::datetime::MockSteadyNow());
+}
+
+TEST(MockSteadyNow, MockedValidSeq) {
+  using utils::datetime::Stringtime;
+
+  UEXPECT_NO_THROW(MockNowSet(Stringtime("2000-01-01T00:00:00+0000")));
+  UEXPECT_NO_THROW(utils::datetime::MockSteadyNow());
+  UEXPECT_NO_THROW(MockNowSet(Stringtime("2000-01-02T00:00:00+0000")));
+  UEXPECT_NO_THROW(utils::datetime::MockSteadyNow());
+}
 
 }  // namespace
 
