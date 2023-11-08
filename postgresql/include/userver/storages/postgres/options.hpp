@@ -309,7 +309,7 @@ struct ClusterSettings {
   std::string db_name;
 
   /// connection limit change mode
-  ConnlimitMode connlimit_mode = ConnlimitMode::kManual;
+  ConnlimitMode connlimit_mode = ConnlimitMode::kAuto;
 
   /// congestion control settings
   congestion_control::v2::LinearController::StaticConfig cc_config;

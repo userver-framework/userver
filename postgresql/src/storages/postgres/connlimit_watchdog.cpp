@@ -29,12 +29,17 @@ ConnlimitWatchdog::ConnlimitWatchdog(detail::ClusterImpl& cluster,
       shard_number_(shard_number) {}
 
 void ConnlimitWatchdog::Start() {
-  auto trx = cluster_.Begin({ClusterHostType::kMaster}, {}, kCommandControl);
-  trx.Execute(
-      "CREATE TABLE IF NOT EXISTS u_clients (hostname TEXT PRIMARY KEY, "
-      "updated "
-      "TIMESTAMPTZ NOT NULL, max_connections INTEGER NOT NULL)");
-  trx.Commit();
+  try {
+    auto trx = cluster_.Begin({ClusterHostType::kMaster}, {}, kCommandControl);
+    trx.Execute(
+        "CREATE TABLE IF NOT EXISTS u_clients (hostname TEXT PRIMARY KEY, "
+        "updated "
+        "TIMESTAMPTZ NOT NULL, max_connections INTEGER NOT NULL)");
+    trx.Commit();
+  } catch (const storages::postgres::UniqueViolation& e) {
+    // Possible in some CREATE TABLE IF NOT EXISTS races with other services
+    LOG_WARNING() << "Table already exists (not a fatal error): " << e;
+  }
 
   if (testsuite_tasks_.IsEnabled()) {
     connlimit_ = kTestsuiteConnlimit;

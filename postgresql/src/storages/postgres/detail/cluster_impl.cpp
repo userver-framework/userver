@@ -20,9 +20,6 @@ namespace storages::postgres::detail {
 
 namespace {
 
-USERVER_NAMESPACE::utils::impl::UserverExperiment kConnlimitAutoExperiment(
-    "pg-connlimit-auto");
-
 ClusterHostType Fallback(ClusterHostType ht) {
   switch (ht) {
     case ClusterHostType::kMaster:
@@ -117,8 +114,7 @@ ClusterImpl::ClusterImpl(DsnList dsns, clients::dns::Resolver* resolver,
 
   // Do not use IsConnlimitModeAuto() here because we don't care about
   // the current dynamic config value
-  if (cluster_settings.connlimit_mode == ConnlimitMode::kAuto &&
-      kConnlimitAutoExperiment.IsEnabled()) {
+  if (cluster_settings.connlimit_mode == ConnlimitMode::kAuto) {
     connlimit_watchdog_.Start();
   }
 }
@@ -347,8 +343,6 @@ void ClusterImpl::OnConnlimitChanged() {
 
 bool ClusterImpl::IsConnlimitModeAuto(const ClusterSettings& settings) const {
   if (settings.connlimit_mode == ConnlimitMode::kManual) return false;
-
-  if (!kConnlimitAutoExperiment.IsEnabled()) return false;
 
   auto snapshot = config_source_.GetSnapshot();
   // NOLINTNEXTLINE(readability-simplify-boolean-expr)
