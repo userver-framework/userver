@@ -49,7 +49,7 @@ async def client_metrics(service_client, monitor_client):
     return monitor_client.metrics_diff(prefix='httpclient', diff_gauge=True)
 
 
-@pytest.mark.parametrize('timeout,deadline', [(400, 500), (500, 400)])
+@pytest.mark.parametrize('timeout,deadline', [(2000, 3000), (3000, 2000)])
 async def test_deadline_ok(call, client_metrics, slow_mock, timeout, deadline):
     async with client_metrics:
         response = await call(
