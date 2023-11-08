@@ -281,7 +281,7 @@ async def test_dns_switch_erefused(
                     service_client.get('/chaos/resolver', params=params),
                     name='request',
                 ),
-                asyncio.create_task(_net_resolve_testpoint.wait_call()),
+                asyncio.create_task(_net_resolve_testpoint.wait_call(timeout=DEFAULT_TIMEOUT + 5.0)),
             },
             return_when=asyncio.ALL_COMPLETED,
         )
