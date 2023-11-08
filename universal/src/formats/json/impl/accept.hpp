@@ -55,11 +55,11 @@ class StackCell final {
   using ArrayIterator = typename ValueTypes<kProcessing>::ArrayIterator;
 
   StackCell(MemberIterator cur_it, MemberIterator end)
-      : sub_range_(SubRange<MemberIterator>{cur_it, end}), 
+      : sub_range_(SubRange<MemberIterator>{cur_it, end}),
         size_(static_cast<std::size_t>(std::distance(cur_it, end))) {}
 
   StackCell(ArrayIterator cur_it, ArrayIterator end)
-      : sub_range_(SubRange<ArrayIterator>{cur_it, end}), 
+      : sub_range_(SubRange<ArrayIterator>{cur_it, end}),
         size_(static_cast<std::size_t>(std::distance(cur_it, end))) {}
 
   template <typename Func1, typename Func2>
@@ -100,14 +100,10 @@ bool WriteEnd(Handler& handler, const Cell& cell) {
   using ArrayIterator = typename Cell::ArrayIterator;
 
   return cell.Visit(
-      [&handler, size = cell.GetSize()](
-          const SubRange<MemberIterator>&) mutable -> bool {
-        return handler.EndObject(size);
-      },
-      [&handler, size = cell.GetSize()](
-          const SubRange<ArrayIterator>&) mutable -> bool {
-        return handler.EndArray(size);
-      });
+      [&handler, size = cell.GetSize()](const SubRange<MemberIterator>&) mutable
+      -> bool { return handler.EndObject(size); },
+      [&handler, size = cell.GetSize()](const SubRange<ArrayIterator>&) mutable
+      -> bool { return handler.EndArray(size); });
 }
 
 void InplaceSortObjectChildren(impl::Value& value);
@@ -139,7 +135,8 @@ bool WriteStartAndEnterValue(Stack<kProcessing>& stack, Handler& handler) {
           const SubRange<MemberIterator>& member_sub_range) mutable -> Value& {
         was_written =
             handler.Key(member_sub_range.begin->name.GetString(),
-                        member_sub_range.begin->name.GetStringLength(), true);
+                        member_sub_range.begin->name.GetStringLength(),
+                        /*copy=*/true);
         return member_sub_range.begin->value;
       },
       [](const SubRange<ArrayIterator>& array_sub_range) mutable -> Value& {
