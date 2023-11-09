@@ -262,10 +262,6 @@ async def test_dns_switch_small_timeout(
 async def test_dns_switch_erefused(
         service_client, check_restore, dns_mock, gen_domain_name, testpoint,
 ):
-    # Constants from include/ares.h
-    ARES_EREFUSED = 6
-    ARES_ECONNREFUSED = 11
-
     last_resolve_status = 0
 
     @testpoint('net-resolver')
@@ -300,7 +296,10 @@ async def test_dns_switch_erefused(
     assert response.text == ''
 
     on_refuse_status = last_resolve_status
-    assert on_refuse_status in {ARES_EREFUSED, ARES_ECONNREFUSED}
+    # ARES_ECONNREFUSED(11) and ARES_EREFUSED(6) statuses are the most common
+    # ones. Depending on the c-ares version ARES_ETIMEOUT(12) and other errors
+    # could be reported.
+    assert on_refuse_status != 0
 
     response = await _request_and_wait_for_update()
     assert response.status == 200, (
