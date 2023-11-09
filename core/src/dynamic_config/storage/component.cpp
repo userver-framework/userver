@@ -187,7 +187,8 @@ dynamic_config::impl::SnapshotData DynamicConfig::Impl::ParseConfig(
     alert_storage_.FireAlert("config_parse_error",
                              std::string("Failed to parse dynamic config, go "
                                          "and fix it in tariff-editor: ") +
-                                 e.what());
+                                 e.what(),
+                             alerts::kInfinity);
     throw;
   }
 }
