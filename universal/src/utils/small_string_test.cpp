@@ -70,6 +70,21 @@ TEST(SmallString, SizeCapacity) {
   EXPECT_GT(str.capacity(), capacity);
 }
 
+TEST(SmallString, ResizeAndOverwrite) {
+  utils::SmallString<4> small_str("abcd");
+
+  size_t count = 3;
+  std::string str = "mnkp";
+
+  small_str.resize_and_overwrite(16, [&](char* data, size_t size) {
+    for (size_t ind = 0; ind < count; ++ind) {
+      std::copy(str.data(), str.data() + str.size(), data + ind * str.size());
+    }
+    return count * str.size();
+  });
+  EXPECT_EQ(small_str, "mnkpmnkpmnkp");
+}
+
 TEST(SmallString, Assign) {
   utils::SmallString<10> str("abcd");
   utils::SmallString<10> str2;

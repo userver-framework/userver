@@ -86,6 +86,11 @@ class SmallString final {
   /// fill new chars with %c.
   void resize(std::size_t n, char c);
 
+  /// @brief Resize the string. Use op to write into the string and replace a
+  /// sequence of characters
+  template <class Operation>
+  void resize_and_overwrite(std::size_t size, Operation op);
+
   /// @brief Get current capacity.
   std::size_t capacity() const noexcept;
 
@@ -250,6 +255,13 @@ void SmallString<N>::pop_back() {
 template <std::size_t N>
 void SmallString<N>::resize(std::size_t n, char c) {
   data_.resize(n, c);
+}
+
+template <std::size_t N>
+template <class Operation>
+void SmallString<N>::resize_and_overwrite(std::size_t size, Operation op) {
+  data_.resize(size);
+  data_.erase(data_.begin() + op(data_.data(), size), data_.end());
 }
 
 template <std::size_t N>
