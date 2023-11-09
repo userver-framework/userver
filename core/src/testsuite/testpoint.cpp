@@ -8,6 +8,7 @@
 #include <userver/testsuite/testpoint_control.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/async.hpp>
+#include <userver/utils/function_ref.hpp>
 #include <userver/utils/impl/transparent_hash.hpp>
 #include <userver/utils/overloaded.hpp>
 
@@ -71,16 +72,18 @@ bool IsTestpointEnabled(std::string_view name) noexcept {
   return false;
 }
 
-void ExecuteTestpointBlocking(
-    const std::string& name, const formats::json::Value& json,
-    const std::function<void(const formats::json::Value&)>& callback,
-    engine::TaskProcessor& task_processor) {
+void ExecuteTestpointBlocking(std::string_view name,
+                              const formats::json::Value& json,
+                              TestpointClientBase::Callback callback,
+                              engine::TaskProcessor& task_processor) {
   engine::CriticalAsyncNoSpan(task_processor, [&] {
     TestpointScope tp_scope;
     if (!tp_scope) return;
     tp_scope.GetClient().Execute(name, json, callback);
   }).BlockingWait();
 }
+
+void DoNothing(const formats::json::Value&) {}
 
 }  // namespace impl
 

@@ -8,6 +8,7 @@
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/testsuite/testpoint_control.hpp>
+#include <userver/utils/function_ref.hpp>
 
 // TODO remove extra includes
 #include <fmt/format.h>
@@ -37,10 +38,12 @@ class TestpointScope final {
 
 bool IsTestpointEnabled(std::string_view name) noexcept;
 
-void ExecuteTestpointBlocking(const std::string& name,
+void ExecuteTestpointBlocking(std::string_view name,
                               const formats::json::Value& json,
-                              const TestpointClientBase::Callback& callback,
+                              TestpointClientBase::Callback callback,
                               engine::TaskProcessor& task_processor);
+
+void DoNothing(const formats::json::Value&);
 
 }  // namespace testsuite::impl
 
@@ -89,7 +92,8 @@ USERVER_NAMESPACE_END
 
 // clang-format on
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define TESTPOINT(name, json) TESTPOINT_CALLBACK(name, json, {})
+#define TESTPOINT(name, json) \
+  TESTPOINT_CALLBACK(name, json, USERVER_NAMESPACE::testsuite::impl::DoNothing)
 
 /// @brief Same as `TESTPOINT_CALLBACK` but must be called outside of
 /// coroutine (e.g. from std::thread routine).
@@ -114,5 +118,6 @@ USERVER_NAMESPACE_END
 ///
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define TESTPOINT_NONCORO(name, json, task_processor) \
-  TESTPOINT_CALLBACK_NONCORO(name, json, task_processor, {})
+#define TESTPOINT_NONCORO(name, json, task_processor)    \
+  TESTPOINT_CALLBACK_NONCORO(name, json, task_processor, \
+                             USERVER_NAMESPACE::testsuite::impl::DoNothing)
