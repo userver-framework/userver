@@ -55,6 +55,9 @@ class HttpRequest final {
   const HttpMethod& GetMethod() const;
   const std::string& GetMethodStr() const;
 
+  const HttpMethod& GetOrigMethod() const;
+  const std::string& GetOrigMethodStr() const;
+
   /// @return Major version of HTTP. For example, for HTTP 1.0 it returns 1
   int GetHttpMajor() const;
 

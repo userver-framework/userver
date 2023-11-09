@@ -23,6 +23,10 @@ const std::string& HttpRequest::GetMethodStr() const {
   return impl_.GetMethodStr();
 }
 
+const HttpMethod& HttpRequest::GetOrigMethod() const { return impl_.GetOrigMethod(); }
+
+const std::string& HttpRequest::GetOrigMethodStr() const { return impl_.GetOrigMethodStr(); }
+
 int HttpRequest::GetHttpMajor() const { return impl_.GetHttpMajor(); }
 
 int HttpRequest::GetHttpMinor() const { return impl_.GetHttpMinor(); }
