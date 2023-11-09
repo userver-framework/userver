@@ -158,7 +158,7 @@ def config_service_defaults(
     @ingroup userver_testsuite_fixtures
     """
     if not config_fallback_path:
-        return {}
+        return dynamic_config_fallback_patch
 
     if pathlib.Path(config_fallback_path).exists():
         with open(config_fallback_path, 'r', encoding='utf-8') as file:
