@@ -13,7 +13,6 @@ using HttpMethod = server::http::HttpMethod;
 
 struct MethodsData {
   std::string method_query;
-  HttpMethod orig_method;
   HttpMethod method;
 };
 
@@ -31,21 +30,19 @@ std::string PrintMethodsDataTestName(
 INSTANTIATE_UTEST_SUITE_P(
     /**/, HttpRequestMethods,
     ::testing::Values(
-        MethodsData{"DELETE", HttpMethod::kDelete, HttpMethod::kDelete},
-        MethodsData{"GET", HttpMethod::kGet, HttpMethod::kGet},
-        // HEAD should works as GET except response sending and access logs
-        // writing
-        MethodsData{"HEAD", HttpMethod::kHead, HttpMethod::kGet},
-        MethodsData{"POST", HttpMethod::kPost, HttpMethod::kPost},
-        MethodsData{"PUT", HttpMethod::kPut, HttpMethod::kPut},
-        MethodsData{"CONNECT", HttpMethod::kConnect, HttpMethod::kConnect},
-        MethodsData{"PATCH", HttpMethod::kPatch, HttpMethod::kPatch},
-        MethodsData{"OPTIONS", HttpMethod::kOptions, HttpMethod::kOptions},
-        MethodsData{"GE", HttpMethod::kUnknown, HttpMethod::kUnknown},
-        MethodsData{"GETT", HttpMethod::kUnknown, HttpMethod::kUnknown},
-        MethodsData{"get", HttpMethod::kUnknown, HttpMethod::kUnknown},
-        MethodsData{"", HttpMethod::kUnknown, HttpMethod::kUnknown},
-        MethodsData{"XXX", HttpMethod::kUnknown, HttpMethod::kUnknown}),
+        MethodsData{"DELETE", HttpMethod::kDelete},
+        MethodsData{"GET", HttpMethod::kGet},
+        MethodsData{"HEAD", HttpMethod::kHead},
+        MethodsData{"POST", HttpMethod::kPost},
+        MethodsData{"PUT", HttpMethod::kPut},
+        MethodsData{"CONNECT", HttpMethod::kConnect},
+        MethodsData{"PATCH", HttpMethod::kPatch},
+        MethodsData{"OPTIONS", HttpMethod::kOptions},
+        MethodsData{"GE", HttpMethod::kUnknown},
+        MethodsData{"GETT", HttpMethod::kUnknown},
+        MethodsData{"get", HttpMethod::kUnknown},
+        MethodsData{"", HttpMethod::kUnknown},
+        MethodsData{"XXX", HttpMethod::kUnknown}),
     PrintMethodsDataTestName);
 
 UTEST_P(HttpRequestMethods, Test) {
@@ -58,7 +55,6 @@ UTEST_P(HttpRequestMethods, Test) {
         auto& http_request_impl =
             dynamic_cast<server::http::HttpRequestImpl&>(*request);
         const server::http::HttpRequest http_request(http_request_impl);
-        EXPECT_EQ(http_request_impl.GetOrigMethod(), param.orig_method);
         EXPECT_EQ(http_request.GetMethod(), param.method);
       });
 

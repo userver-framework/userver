@@ -293,7 +293,7 @@ void HttpResponse::SendResponse(engine::io::RwBase& socket) {
 std::size_t HttpResponse::SetBodyNotStreamed(engine::io::RwBase& socket,
                                              std::string& header) {
   const bool is_body_forbidden = IsBodyForbiddenForStatus(status_);
-  const bool is_head_request = request_.GetOrigMethod() == HttpMethod::kHead;
+  const bool is_head_request = request_.GetMethod() == HttpMethod::kHead;
   const auto& data = GetData();
 
   if (!is_body_forbidden) {

@@ -32,9 +32,7 @@ class HttpRequestImpl final : public request::RequestBase {
   ~HttpRequestImpl() override;
 
   const HttpMethod& GetMethod() const { return method_; }
-  const HttpMethod& GetOrigMethod() const { return orig_method_; }
   const std::string& GetMethodStr() const { return ToString(method_); }
-  const std::string& GetOrigMethodStr() const { return ToString(orig_method_); }
   int GetHttpMajor() const { return http_major_; }
   int GetHttpMinor() const { return http_minor_; }
   const std::string& GetUrl() const { return url_; }
@@ -141,9 +139,7 @@ class HttpRequestImpl final : public request::RequestBase {
   friend class HttpRequestConstructor;
 
  private:
-  // method_ = (orig_method_ == kHead ? kGet : orig_method_)
   HttpMethod method_{HttpMethod::kUnknown};
-  HttpMethod orig_method_{HttpMethod::kUnknown};
   unsigned short http_major_{1};
   unsigned short http_minor_{1};
   std::string url_;
