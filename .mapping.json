@@ -2215,6 +2215,7 @@
   "redis/functional_tests/cluster_auto_topology/static_config.yaml":"taxi/uservices/userver/redis/functional_tests/cluster_auto_topology/static_config.yaml",
   "redis/functional_tests/cluster_auto_topology/tests/conftest.py":"taxi/uservices/userver/redis/functional_tests/cluster_auto_topology/tests/conftest.py",
   "redis/functional_tests/cluster_auto_topology/tests/test_redis_cluster.py":"taxi/uservices/userver/redis/functional_tests/cluster_auto_topology/tests/test_redis_cluster.py",
+  "redis/functional_tests/cluster_auto_topology/tests/ya.make":"taxi/uservices/userver/redis/functional_tests/cluster_auto_topology/tests/ya.make",
   "redis/functional_tests/cluster_auto_topology_pubsub/CMakeLists.txt":"taxi/uservices/userver/redis/functional_tests/cluster_auto_topology_pubsub/CMakeLists.txt",
   "redis/functional_tests/cluster_auto_topology_pubsub/redis_service.cpp":"taxi/uservices/userver/redis/functional_tests/cluster_auto_topology_pubsub/redis_service.cpp",
   "redis/functional_tests/cluster_auto_topology_pubsub/static_config.yaml":"taxi/uservices/userver/redis/functional_tests/cluster_auto_topology_pubsub/static_config.yaml",
