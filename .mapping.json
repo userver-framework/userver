@@ -1023,6 +1023,7 @@
   "core/src/logging/impl/file_sinks_test.cpp":"taxi/uservices/userver/core/src/logging/impl/file_sinks_test.cpp",
   "core/src/logging/impl/null_sink.hpp":"taxi/uservices/userver/core/src/logging/impl/null_sink.hpp",
   "core/src/logging/impl/open_file_helper.hpp":"taxi/uservices/userver/core/src/logging/impl/open_file_helper.hpp",
+  "core/src/logging/impl/open_file_helper_test.cpp":"taxi/uservices/userver/core/src/logging/impl/open_file_helper_test.cpp",
   "core/src/logging/impl/reopen_mode.hpp":"taxi/uservices/userver/core/src/logging/impl/reopen_mode.hpp",
   "core/src/logging/impl/sink_helper_test.cpp":"taxi/uservices/userver/core/src/logging/impl/sink_helper_test.cpp",
   "core/src/logging/impl/sink_helper_test.hpp":"taxi/uservices/userver/core/src/logging/impl/sink_helper_test.hpp",
