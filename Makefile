@@ -73,6 +73,10 @@ docker-cmake-debug docker-build-debug docker-test-debug docker-cmake-release doc
 docker-clean-data:
 	@docker-compose down -v
 
+.PHONY: docker-enter
+docker-enter:
+	@docker-compose run --rm userver-ubuntu bash
+
 # clean build folders
 .PHONY: dist-clean
 dist-clean:
