@@ -260,8 +260,9 @@ void SmallString<N>::resize(std::size_t n, char c) {
 template <std::size_t N>
 template <class Operation>
 void SmallString<N>::resize_and_overwrite(std::size_t size, Operation op) {
-  data_.resize(size);
-  data_.erase(data_.begin() + op(data_.data(), size), data_.end());
+  data_.resize(size, boost::container::default_init);
+  data_.resize(std::move(op(data_.data(), size)),
+               boost::container::default_init);
 }
 
 template <std::size_t N>
