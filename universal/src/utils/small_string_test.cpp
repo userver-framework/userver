@@ -73,7 +73,7 @@ TEST(SmallString, SizeCapacity) {
 TEST(SmallString, ResizeAndOverwrite) {
   utils::SmallString<4> small_str("abcd");
 
-  size_t count = 3;
+  std::size_t count = 3;
   std::string str = "mnkp";
 
   small_str.resize_and_overwrite(16, [&](char* data, size_t size) {

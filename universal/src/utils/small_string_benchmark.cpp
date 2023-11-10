@@ -99,7 +99,7 @@ BENCHMARK(SmallString_Small_Move)
     ->Range(2, 2 << 10)
     ->Unit(benchmark::kMicrosecond);
 
-static void SmallString_Resize_and_Overwrite(benchmark::State& state) {
+static void SmallString_Resize_And_Overwrite(benchmark::State& state) {
   auto s = GenerateString(state.range(0));
   std::array<utils::SmallString<1000>, kArraySize> str;
   std::array<utils::SmallString<1>, kArraySize> str2;
@@ -116,11 +116,11 @@ static void SmallString_Resize_and_Overwrite(benchmark::State& state) {
     state.ResumeTiming();
   }
 }
-BENCHMARK(SmallString_Resize_and_Overwrite)
+BENCHMARK(SmallString_Resize_And_Overwrite)
     ->Range(2, 2 << 12)
     ->Unit(benchmark::kMicrosecond);
 
-static void SmallString_Resize_then_Overwrite(benchmark::State& state) {
+static void SmallString_Resize_Then_Overwrite(benchmark::State& state) {
   auto s = GenerateString(state.range(0));
   std::array<utils::SmallString<1000>, kArraySize> str;
   std::array<utils::SmallString<1>, kArraySize> str2;
@@ -135,7 +135,7 @@ static void SmallString_Resize_then_Overwrite(benchmark::State& state) {
     state.ResumeTiming();
   }
 }
-BENCHMARK(SmallString_Resize_then_Overwrite)
+BENCHMARK(SmallString_Resize_Then_Overwrite)
     ->Range(2, 2 << 12)
     ->Unit(benchmark::kMicrosecond);
 
