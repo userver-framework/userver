@@ -30,117 +30,117 @@ namespace engine::ev {
 
 class ThreadControl;
 
-}  // namespace engine::ev
+} // namespace engine::ev
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define IMPLEMENT_CURL_OPTION(FUNCTION_NAME, OPTION_NAME, OPTION_TYPE) \
-  inline void FUNCTION_NAME(OPTION_TYPE arg) {                         \
-    std::error_code ec;                                                \
-    FUNCTION_NAME(arg, ec);                                            \
-    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                      \
-  }                                                                    \
-  inline void FUNCTION_NAME(OPTION_TYPE arg, std::error_code& ec) {    \
-    ec = std::error_code(static_cast<errc::EasyErrorCode>(             \
-        native::curl_easy_setopt(handle_, OPTION_NAME, arg)));         \
+#define IMPLEMENT_CURL_OPTION(FUNCTION_NAME, OPTION_NAME, OPTION_TYPE)         \
+  inline void FUNCTION_NAME(OPTION_TYPE arg) {                                 \
+    std::error_code ec;                                                        \
+    FUNCTION_NAME(arg, ec);                                                    \
+    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                              \
+  }                                                                            \
+  inline void FUNCTION_NAME(OPTION_TYPE arg, std::error_code &ec) {            \
+    ec = std::error_code(static_cast<errc::EasyErrorCode>(                     \
+        native::curl_easy_setopt(handle_, OPTION_NAME, arg)));                 \
   }
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define IMPLEMENT_CURL_OPTION_BOOLEAN(FUNCTION_NAME, OPTION_NAME)            \
-  inline void FUNCTION_NAME(bool enabled) {                                  \
-    std::error_code ec;                                                      \
-    FUNCTION_NAME(enabled, ec);                                              \
-    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                            \
-  }                                                                          \
-  inline void FUNCTION_NAME(bool enabled, std::error_code& ec) {             \
-    ec = std::error_code(static_cast<errc::EasyErrorCode>(                   \
-        native::curl_easy_setopt(handle_, OPTION_NAME, enabled ? 1L : 0L))); \
+#define IMPLEMENT_CURL_OPTION_BOOLEAN(FUNCTION_NAME, OPTION_NAME)              \
+  inline void FUNCTION_NAME(bool enabled) {                                    \
+    std::error_code ec;                                                        \
+    FUNCTION_NAME(enabled, ec);                                                \
+    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                              \
+  }                                                                            \
+  inline void FUNCTION_NAME(bool enabled, std::error_code &ec) {               \
+    ec = std::error_code(static_cast<errc::EasyErrorCode>(                     \
+        native::curl_easy_setopt(handle_, OPTION_NAME, enabled ? 1L : 0L)));   \
   }
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define IMPLEMENT_CURL_OPTION_ENUM(FUNCTION_NAME, OPTION_NAME, ENUM_TYPE, \
-                                   OPTION_TYPE)                           \
-  inline void FUNCTION_NAME(ENUM_TYPE arg) {                              \
-    std::error_code ec;                                                   \
-    FUNCTION_NAME(arg, ec);                                               \
-    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                         \
-  }                                                                       \
-  inline void FUNCTION_NAME(ENUM_TYPE arg, std::error_code& ec) {         \
-    ec = std::error_code(                                                 \
-        static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(        \
-            handle_, OPTION_NAME, static_cast<OPTION_TYPE>(arg))));       \
+#define IMPLEMENT_CURL_OPTION_ENUM(FUNCTION_NAME, OPTION_NAME, ENUM_TYPE,      \
+                                   OPTION_TYPE)                                \
+  inline void FUNCTION_NAME(ENUM_TYPE arg) {                                   \
+    std::error_code ec;                                                        \
+    FUNCTION_NAME(arg, ec);                                                    \
+    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                              \
+  }                                                                            \
+  inline void FUNCTION_NAME(ENUM_TYPE arg, std::error_code &ec) {              \
+    ec = std::error_code(                                                      \
+        static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(             \
+            handle_, OPTION_NAME, static_cast<OPTION_TYPE>(arg))));            \
   }
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define IMPLEMENT_CURL_OPTION_STRING(FUNCTION_NAME, OPTION_NAME)           \
-  inline void FUNCTION_NAME(const char* str) {                             \
-    std::error_code ec;                                                    \
-    FUNCTION_NAME(str, ec);                                                \
-    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                          \
-  }                                                                        \
-  inline void FUNCTION_NAME(const char* str, std::error_code& ec) {        \
-    ec = std::error_code(static_cast<errc::EasyErrorCode>(                 \
-        native::curl_easy_setopt(handle_, OPTION_NAME, str)));             \
-  }                                                                        \
-  inline void FUNCTION_NAME(const std::string& str) {                      \
-    std::error_code ec;                                                    \
-    FUNCTION_NAME(str, ec);                                                \
-    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                          \
-  }                                                                        \
-  inline void FUNCTION_NAME(const std::string& str, std::error_code& ec) { \
-    ec = std::error_code(static_cast<errc::EasyErrorCode>(                 \
-        native::curl_easy_setopt(handle_, OPTION_NAME, str.c_str())));     \
+#define IMPLEMENT_CURL_OPTION_STRING(FUNCTION_NAME, OPTION_NAME)               \
+  inline void FUNCTION_NAME(const char *str) {                                 \
+    std::error_code ec;                                                        \
+    FUNCTION_NAME(str, ec);                                                    \
+    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                              \
+  }                                                                            \
+  inline void FUNCTION_NAME(const char *str, std::error_code &ec) {            \
+    ec = std::error_code(static_cast<errc::EasyErrorCode>(                     \
+        native::curl_easy_setopt(handle_, OPTION_NAME, str)));                 \
+  }                                                                            \
+  inline void FUNCTION_NAME(const std::string &str) {                          \
+    std::error_code ec;                                                        \
+    FUNCTION_NAME(str, ec);                                                    \
+    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                              \
+  }                                                                            \
+  inline void FUNCTION_NAME(const std::string &str, std::error_code &ec) {     \
+    ec = std::error_code(static_cast<errc::EasyErrorCode>(                     \
+        native::curl_easy_setopt(handle_, OPTION_NAME, str.c_str())));         \
   }
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define IMPLEMENT_CURL_OPTION_GET_STRING_VIEW(FUNCTION_NAME, OPTION_NAME) \
-  inline std::string_view FUNCTION_NAME() {                               \
-    std::error_code ec;                                                   \
-    auto info = FUNCTION_NAME(ec);                                        \
-    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                         \
-    return info;                                                          \
-  }                                                                       \
-  inline std::string_view FUNCTION_NAME(std::error_code& ec) {            \
-    char* info = nullptr;                                                 \
-    ec = std::error_code(static_cast<errc::EasyErrorCode>(                \
-        native::curl_easy_getinfo(handle_, OPTION_NAME, &info)));         \
-    return info ? info : std::string_view{};                              \
+#define IMPLEMENT_CURL_OPTION_GET_STRING_VIEW(FUNCTION_NAME, OPTION_NAME)      \
+  inline std::string_view FUNCTION_NAME() {                                    \
+    std::error_code ec;                                                        \
+    auto info = FUNCTION_NAME(ec);                                             \
+    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                              \
+    return info;                                                               \
+  }                                                                            \
+  inline std::string_view FUNCTION_NAME(std::error_code &ec) {                 \
+    char *info = nullptr;                                                      \
+    ec = std::error_code(static_cast<errc::EasyErrorCode>(                     \
+        native::curl_easy_getinfo(handle_, OPTION_NAME, &info)));              \
+    return info ? info : std::string_view{};                                   \
   }
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define IMPLEMENT_CURL_OPTION_GET_LONG(FUNCTION_NAME, OPTION_NAME)         \
-  inline long FUNCTION_NAME() {                                            \
-    long info;                                                             \
-    std::error_code ec = std::error_code(static_cast<errc::EasyErrorCode>( \
-        native::curl_easy_getinfo(handle_, OPTION_NAME, &info)));          \
-    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                          \
-    return info;                                                           \
+#define IMPLEMENT_CURL_OPTION_GET_LONG(FUNCTION_NAME, OPTION_NAME)             \
+  inline long FUNCTION_NAME() {                                                \
+    long info;                                                                 \
+    std::error_code ec = std::error_code(static_cast<errc::EasyErrorCode>(     \
+        native::curl_easy_getinfo(handle_, OPTION_NAME, &info)));              \
+    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                              \
+    return info;                                                               \
   }
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define IMPLEMENT_CURL_OPTION_GET_CURL_OFF_T(FUNCTION_NAME, OPTION_NAME)   \
-  inline long FUNCTION_NAME() {                                            \
-    native::curl_off_t info;                                               \
-    std::error_code ec = std::error_code(static_cast<errc::EasyErrorCode>( \
-        native::curl_easy_getinfo(handle_, OPTION_NAME, &info)));          \
-    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                          \
-    return info;                                                           \
+#define IMPLEMENT_CURL_OPTION_GET_CURL_OFF_T(FUNCTION_NAME, OPTION_NAME)       \
+  inline long FUNCTION_NAME() {                                                \
+    native::curl_off_t info;                                                   \
+    std::error_code ec = std::error_code(static_cast<errc::EasyErrorCode>(     \
+        native::curl_easy_getinfo(handle_, OPTION_NAME, &info)));              \
+    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                              \
+    return info;                                                               \
   }
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define IMPLEMENT_CURL_OPTION_GET_LIST(FUNCTION_NAME, OPTION_NAME)         \
-  inline std::vector<std::string> FUNCTION_NAME() {                        \
-    struct native::curl_slist* info;                                       \
-    std::vector<std::string> results;                                      \
-    std::error_code ec = std::error_code(static_cast<errc::EasyErrorCode>( \
-        native::curl_easy_getinfo(handle_, OPTION_NAME, &info)));          \
-    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                          \
-    struct native::curl_slist* it = info;                                  \
-    while (it) {                                                           \
-      results.emplace_back(it->data);                                      \
-      it = it->next;                                                       \
-    }                                                                      \
-    native::curl_slist_free_all(info);                                     \
-    return results;                                                        \
+#define IMPLEMENT_CURL_OPTION_GET_LIST(FUNCTION_NAME, OPTION_NAME)             \
+  inline std::vector<std::string> FUNCTION_NAME() {                            \
+    struct native::curl_slist *info;                                           \
+    std::vector<std::string> results;                                          \
+    std::error_code ec = std::error_code(static_cast<errc::EasyErrorCode>(     \
+        native::curl_easy_getinfo(handle_, OPTION_NAME, &info)));              \
+    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                              \
+    struct native::curl_slist *it = info;                                      \
+    while (it) {                                                               \
+      results.emplace_back(it->data);                                          \
+      it = it->next;                                                           \
+    }                                                                          \
+    native::curl_slist_free_all(info);                                         \
+    return results;                                                            \
   }
 
 namespace curl {
@@ -150,38 +150,38 @@ class share;
 class string_list;
 
 class easy final : public std::enable_shared_from_this<easy> {
- public:
+public:
   using handler_type = std::function<void(std::error_code err)>;
   using time_point = std::chrono::steady_clock::time_point;
 
-  static easy* from_native(native::CURL* native_easy);
+  static easy *from_native(native::CURL *native_easy);
 
   // Creates an initialized but unbound easy, use GetBound() for usable
   // instances. May block on resolver initialization.
   static std::shared_ptr<const easy> CreateBlocking();
 
-  easy(native::CURL*, multi*);
-  easy(const easy&) = delete;
+  easy(native::CURL *, multi *);
+  easy(const easy &) = delete;
   ~easy();
 
   // Makes a clone of an initialized easy, hopefully non-blocking (skips full
   // resolver initialization).
-  std::shared_ptr<easy> GetBoundBlocking(multi&) const;
+  std::shared_ptr<easy> GetBoundBlocking(multi &) const;
 
-  const multi* GetMulti() const { return multi_; }
+  const multi *GetMulti() const { return multi_; }
 
-  inline native::CURL* native_handle() { return handle_; }
-  engine::ev::ThreadControl& GetThreadControl();
+  inline native::CURL *native_handle() { return handle_; }
+  engine::ev::ThreadControl &GetThreadControl();
 
   void perform();
-  void perform(std::error_code& ec);
+  void perform(std::error_code &ec);
   void async_perform(handler_type handler);
   void cancel();
   void reset();
   void set_source(std::shared_ptr<std::istream> source);
-  void set_source(std::shared_ptr<std::istream> source, std::error_code& ec);
-  void set_sink(std::string* sink);
-  void set_sink(std::string* sink, std::error_code& ec);
+  void set_source(std::shared_ptr<std::istream> source, std::error_code &ec);
+  void set_sink(std::string *sink);
+  void set_sink(std::string *sink, std::error_code &ec);
 
   using progress_callback_t =
       std::function<bool(native::curl_off_t dltotal, native::curl_off_t dlnow,
@@ -200,95 +200,97 @@ class easy final : public std::enable_shared_from_this<easy> {
 
   // callback options
 
-  using write_function_t = size_t (*)(char* ptr, size_t size, size_t nmemb,
-                                      void* userdata);
+  using write_function_t = size_t (*)(char *ptr, size_t size, size_t nmemb,
+                                      void *userdata);
   IMPLEMENT_CURL_OPTION(set_write_function, native::CURLOPT_WRITEFUNCTION,
                         write_function_t);
-  IMPLEMENT_CURL_OPTION(set_write_data, native::CURLOPT_WRITEDATA, void*);
-  using read_function_t = size_t (*)(void* ptr, size_t size, size_t nmemb,
-                                     void* userdata);
+  IMPLEMENT_CURL_OPTION(set_write_data, native::CURLOPT_WRITEDATA, void *);
+  using read_function_t = size_t (*)(void *ptr, size_t size, size_t nmemb,
+                                     void *userdata);
   IMPLEMENT_CURL_OPTION(set_read_function, native::CURLOPT_READFUNCTION,
                         read_function_t);
-  IMPLEMENT_CURL_OPTION(set_read_data, native::CURLOPT_READDATA, void*);
-  using ioctl_function_t = native::curlioerr (*)(native::CURL* handle, int cmd,
-                                                 void* clientp);
+  IMPLEMENT_CURL_OPTION(set_read_data, native::CURLOPT_READDATA, void *);
+  using ioctl_function_t = native::curlioerr (*)(native::CURL *handle, int cmd,
+                                                 void *clientp);
   IMPLEMENT_CURL_OPTION(set_ioctl_function, native::CURLOPT_IOCTLFUNCTION,
                         ioctl_function_t);
-  IMPLEMENT_CURL_OPTION(set_ioctl_data, native::CURLOPT_IOCTLDATA, void*);
-  using seek_function_t = int (*)(void* instream, native::curl_off_t offset,
+  IMPLEMENT_CURL_OPTION(set_ioctl_data, native::CURLOPT_IOCTLDATA, void *);
+  using seek_function_t = int (*)(void *instream, native::curl_off_t offset,
                                   int origin);
   IMPLEMENT_CURL_OPTION(set_seek_function, native::CURLOPT_SEEKFUNCTION,
                         seek_function_t);
-  IMPLEMENT_CURL_OPTION(set_seek_data, native::CURLOPT_SEEKDATA, void*);
-  using sockopt_function_t = int (*)(void* clientp,
+  IMPLEMENT_CURL_OPTION(set_seek_data, native::CURLOPT_SEEKDATA, void *);
+  using sockopt_function_t = int (*)(void *clientp,
                                      native::curl_socket_t curlfd,
                                      native::curlsocktype purpose);
   IMPLEMENT_CURL_OPTION(set_sockopt_function, native::CURLOPT_SOCKOPTFUNCTION,
                         sockopt_function_t);
-  IMPLEMENT_CURL_OPTION(set_sockopt_data, native::CURLOPT_SOCKOPTDATA, void*);
+  IMPLEMENT_CURL_OPTION(set_sockopt_data, native::CURLOPT_SOCKOPTDATA, void *);
   using opensocket_function_t =
-      native::curl_socket_t (*)(void* clientp, native::curlsocktype purpose,
-                                struct native::curl_sockaddr* address);
+      native::curl_socket_t (*)(void *clientp, native::curlsocktype purpose,
+                                struct native::curl_sockaddr *address);
   IMPLEMENT_CURL_OPTION(set_opensocket_function,
                         native::CURLOPT_OPENSOCKETFUNCTION,
                         opensocket_function_t);
   IMPLEMENT_CURL_OPTION(set_opensocket_data, native::CURLOPT_OPENSOCKETDATA,
-                        void*);
-  using closesocket_function_t = int (*)(void* clientp,
+                        void *);
+  using closesocket_function_t = int (*)(void *clientp,
                                          native::curl_socket_t item);
   IMPLEMENT_CURL_OPTION(set_closesocket_function,
                         native::CURLOPT_CLOSESOCKETFUNCTION,
                         closesocket_function_t);
   IMPLEMENT_CURL_OPTION(set_closesocket_data, native::CURLOPT_CLOSESOCKETDATA,
-                        void*);
-  using progress_function_t = int (*)(void* clientp, double dltotal,
+                        void *);
+  using progress_function_t = int (*)(void *clientp, double dltotal,
                                       double dlnow, double ultotal,
                                       double ulnow);
   IMPLEMENT_CURL_OPTION(set_progress_function, native::CURLOPT_PROGRESSFUNCTION,
                         progress_function_t);
-  IMPLEMENT_CURL_OPTION(set_progress_data, native::CURLOPT_PROGRESSDATA, void*);
-  using xferinfo_function_t = int (*)(void* clientp, native::curl_off_t dltotal,
+  IMPLEMENT_CURL_OPTION(set_progress_data, native::CURLOPT_PROGRESSDATA,
+                        void *);
+  using xferinfo_function_t = int (*)(void *clientp, native::curl_off_t dltotal,
                                       native::curl_off_t dlnow,
                                       native::curl_off_t ultotal,
                                       native::curl_off_t ulnow);
   IMPLEMENT_CURL_OPTION(set_xferinfo_function, native::CURLOPT_XFERINFOFUNCTION,
                         xferinfo_function_t);
-  IMPLEMENT_CURL_OPTION(set_xferinfo_data, native::CURLOPT_XFERINFODATA, void*);
-  using header_function_t = size_t (*)(void* ptr, size_t size, size_t nmemb,
-                                       void* userdata);
+  IMPLEMENT_CURL_OPTION(set_xferinfo_data, native::CURLOPT_XFERINFODATA,
+                        void *);
+  using header_function_t = size_t (*)(void *ptr, size_t size, size_t nmemb,
+                                       void *userdata);
   IMPLEMENT_CURL_OPTION(set_header_function, native::CURLOPT_HEADERFUNCTION,
                         header_function_t);
-  IMPLEMENT_CURL_OPTION(set_header_data, native::CURLOPT_HEADERDATA, void*);
-  using debug_callback_t = int (*)(native::CURL*, native::curl_infotype, char*,
-                                   size_t, void*);
+  IMPLEMENT_CURL_OPTION(set_header_data, native::CURLOPT_HEADERDATA, void *);
+  using debug_callback_t = int (*)(native::CURL *, native::curl_infotype,
+                                   char *, size_t, void *);
   IMPLEMENT_CURL_OPTION(set_debug_callback, native::CURLOPT_DEBUGFUNCTION,
                         debug_callback_t);
-  IMPLEMENT_CURL_OPTION(set_debug_data, native::CURLOPT_DEBUGDATA, void*);
-  using ssl_ctx_function_t = native::CURLcode (*)(native::CURL* curl,
-                                                  void* sslctx, void* parm);
+  IMPLEMENT_CURL_OPTION(set_debug_data, native::CURLOPT_DEBUGDATA, void *);
+  using ssl_ctx_function_t = native::CURLcode (*)(native::CURL *curl,
+                                                  void *sslctx, void *parm);
   IMPLEMENT_CURL_OPTION(set_ssl_ctx_function, native::CURLOPT_SSL_CTX_FUNCTION,
                         ssl_ctx_function_t);
-  IMPLEMENT_CURL_OPTION(set_ssl_ctx_data, native::CURLOPT_SSL_CTX_DATA, void*);
-  using interleave_function_t = size_t (*)(void* ptr, size_t size, size_t nmemb,
-                                           void* userdata);
+  IMPLEMENT_CURL_OPTION(set_ssl_ctx_data, native::CURLOPT_SSL_CTX_DATA, void *);
+  using interleave_function_t = size_t (*)(void *ptr, size_t size, size_t nmemb,
+                                           void *userdata);
   IMPLEMENT_CURL_OPTION(set_interleave_function,
                         native::CURLOPT_INTERLEAVEFUNCTION,
                         interleave_function_t);
   IMPLEMENT_CURL_OPTION(set_interleave_data, native::CURLOPT_INTERLEAVEDATA,
-                        void*);
+                        void *);
 
   // error options
 
-  IMPLEMENT_CURL_OPTION(set_error_buffer, native::CURLOPT_ERRORBUFFER, char*);
-  IMPLEMENT_CURL_OPTION(set_stderr, native::CURLOPT_STDERR, FILE*);
+  IMPLEMENT_CURL_OPTION(set_error_buffer, native::CURLOPT_ERRORBUFFER, char *);
+  IMPLEMENT_CURL_OPTION(set_stderr, native::CURLOPT_STDERR, FILE *);
   IMPLEMENT_CURL_OPTION_BOOLEAN(set_fail_on_error, native::CURLOPT_FAILONERROR);
 
   // network options
 
   void set_url(std::string url_str);
-  void set_url(std::string url_str, std::error_code& ec);
-  const std::string& get_original_url() const;
-  const url& get_easy_url() const;
+  void set_url(std::string url_str, std::error_code &ec);
+  const std::string &get_original_url() const;
+  const url &get_easy_url() const;
 
   IMPLEMENT_CURL_OPTION(set_protocols, native::CURLOPT_PROTOCOLS, long);
   IMPLEMENT_CURL_OPTION(set_redir_protocols, native::CURLOPT_REDIR_PROTOCOLS,
@@ -321,7 +323,7 @@ class easy final : public std::enable_shared_from_this<easy> {
   IMPLEMENT_CURL_OPTION_STRING(set_unix_socket_path,
                                native::CURLOPT_UNIX_SOCKET_PATH);
   IMPLEMENT_CURL_OPTION(set_connect_to, native::CURLOPT_CONNECT_TO,
-                        native::curl_slist*);
+                        native::curl_slist *);
   // authentication options
 
   enum netrc_t {
@@ -352,7 +354,7 @@ class easy final : public std::enable_shared_from_this<easy> {
     throw_error(ec, "set_http_auth failed");
   }
   inline void set_http_auth(httpauth_t auth, bool auth_only,
-                            std::error_code& ec) {
+                            std::error_code &ec) {
     auto l = static_cast<long>(auth | (auth_only ? CURLAUTH_ONLY : 0UL));
     ec = std::error_code(static_cast<errc::EasyErrorCode>(
         native::curl_easy_setopt(handle_, native::CURLOPT_HTTPAUTH, l)));
@@ -390,43 +392,43 @@ class easy final : public std::enable_shared_from_this<easy> {
   IMPLEMENT_CURL_OPTION(set_post_redir, native::CURLOPT_POSTREDIR, long);
   IMPLEMENT_CURL_OPTION_BOOLEAN(set_post, native::CURLOPT_POST);
   IMPLEMENT_CURL_OPTION_BOOLEAN(set_put, native::CURLOPT_PUT);
-  void set_post_fields(std::string&& post_fields);
-  void set_post_fields(std::string&& post_fields, std::error_code& ec);
-  IMPLEMENT_CURL_OPTION(set_post_fields, native::CURLOPT_POSTFIELDS, void*);
+  void set_post_fields(std::string &&post_fields);
+  void set_post_fields(std::string &&post_fields, std::error_code &ec);
+  IMPLEMENT_CURL_OPTION(set_post_fields, native::CURLOPT_POSTFIELDS, void *);
   IMPLEMENT_CURL_OPTION(set_post_field_size, native::CURLOPT_POSTFIELDSIZE,
                         long);
   IMPLEMENT_CURL_OPTION(set_post_field_size_large,
                         native::CURLOPT_POSTFIELDSIZE_LARGE,
                         native::curl_off_t);
 
-  void set_http_post(std::shared_ptr<form> form);
-  void set_http_post(std::shared_ptr<form> form, std::error_code& ec);
+  void set_http_post(form *form);
+  void set_http_post(form *form, std::error_code &ec);
 
   IMPLEMENT_CURL_OPTION_STRING(set_referer, native::CURLOPT_REFERER);
   IMPLEMENT_CURL_OPTION_STRING(set_user_agent, native::CURLOPT_USERAGENT);
   enum class EmptyHeaderAction { kSend, kDoNotSend };
   enum class DuplicateHeaderAction { kAdd, kSkip, kReplace };
-  void add_header(
-      std::string_view name, std::string_view value,
-      EmptyHeaderAction empty_header_action = EmptyHeaderAction::kSend,
-      DuplicateHeaderAction duplicate_header_action =
-          DuplicateHeaderAction::kAdd);
-  void add_header(
-      std::string_view name, std::string_view value, std::error_code& ec,
-      EmptyHeaderAction empty_header_action = EmptyHeaderAction::kSend,
-      DuplicateHeaderAction duplicate_header_action =
-          DuplicateHeaderAction::kAdd);
+  void
+  add_header(std::string_view name, std::string_view value,
+             EmptyHeaderAction empty_header_action = EmptyHeaderAction::kSend,
+             DuplicateHeaderAction duplicate_header_action =
+                 DuplicateHeaderAction::kAdd);
+  void
+  add_header(std::string_view name, std::string_view value, std::error_code &ec,
+             EmptyHeaderAction empty_header_action = EmptyHeaderAction::kSend,
+             DuplicateHeaderAction duplicate_header_action =
+                 DuplicateHeaderAction::kAdd);
   void add_header(std::string_view name, std::string_view value,
                   DuplicateHeaderAction duplicate_header_action);
   void add_header(std::string_view name, std::string_view value,
-                  std::error_code& ec,
+                  std::error_code &ec,
                   DuplicateHeaderAction duplicate_header_action);
-  void add_header(const char* header);
-  void add_header(const char* header, std::error_code& ec);
-  void add_header(const std::string& header);
-  void add_header(const std::string& header, std::error_code& ec);
+  void add_header(const char *header);
+  void add_header(const char *header, std::error_code &ec);
+  void add_header(const std::string &header);
+  void add_header(const std::string &header, std::error_code &ec);
   void set_headers(std::shared_ptr<string_list> headers);
-  void set_headers(std::shared_ptr<string_list> headers, std::error_code& ec);
+  void set_headers(std::shared_ptr<string_list> headers, std::error_code &ec);
   std::optional<std::string_view> FindHeaderByName(std::string_view name) const;
   void add_proxy_header(
       std::string_view name, std::string_view value,
@@ -434,16 +436,16 @@ class easy final : public std::enable_shared_from_this<easy> {
       DuplicateHeaderAction duplicate_header_action =
           DuplicateHeaderAction::kAdd);
   void add_proxy_header(
-      std::string_view name, std::string_view value, std::error_code& ec,
+      std::string_view name, std::string_view value, std::error_code &ec,
       EmptyHeaderAction empty_header_action = EmptyHeaderAction::kSend,
       DuplicateHeaderAction duplicate_header_action =
           DuplicateHeaderAction::kAdd);
-  void add_proxy_header(const char* header, std::error_code& ec);
-  void add_http200_alias(const std::string& http200_alias);
-  void add_http200_alias(const std::string& http200_alias, std::error_code& ec);
+  void add_proxy_header(const char *header, std::error_code &ec);
+  void add_http200_alias(const std::string &http200_alias);
+  void add_http200_alias(const std::string &http200_alias, std::error_code &ec);
   void set_http200_aliases(std::shared_ptr<string_list> http200_aliases);
   void set_http200_aliases(std::shared_ptr<string_list> http200_aliases,
-                           std::error_code& ec);
+                           std::error_code &ec);
   IMPLEMENT_CURL_OPTION_STRING(set_cookie, native::CURLOPT_COOKIE);
   IMPLEMENT_CURL_OPTION_STRING(set_cookie_file, native::CURLOPT_COOKIEFILE);
   IMPLEMENT_CURL_OPTION_STRING(set_cookie_jar, native::CURLOPT_COOKIEJAR);
@@ -537,13 +539,13 @@ class easy final : public std::enable_shared_from_this<easy> {
   };
   IMPLEMENT_CURL_OPTION_ENUM(set_use_ssl, native::CURLOPT_USE_SSL, use_ssl_t,
                              long);
-  void add_resolve(const std::string& host, const std::string& port,
-                   const std::string& addr);
-  void add_resolve(const std::string& host, const std::string& port,
-                   const std::string& addr, std::error_code& ec);
+  void add_resolve(const std::string &host, const std::string &port,
+                   const std::string &addr);
+  void add_resolve(const std::string &host, const std::string &port,
+                   const std::string &addr, std::error_code &ec);
   void set_resolves(std::shared_ptr<string_list> resolved_hosts);
   void set_resolves(std::shared_ptr<string_list> resolved_hosts,
-                    std::error_code& ec);
+                    std::error_code &ec);
   IMPLEMENT_CURL_OPTION_STRING(set_dns_servers, native::CURLOPT_DNS_SERVERS);
   IMPLEMENT_CURL_OPTION(set_accept_timeout_ms, native::CURLOPT_ACCEPTTIMEOUT_MS,
                         long);
@@ -577,7 +579,7 @@ class easy final : public std::enable_shared_from_this<easy> {
     set_ssl_verify_host(verify_host, ec);
     throw_error(ec, "set_ssl_verify_host failed");
   }
-  inline void set_ssl_verify_host(bool verify_host, std::error_code& ec) {
+  inline void set_ssl_verify_host(bool verify_host, std::error_code &ec) {
     ec = std::error_code{
         static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(
             handle_, native::CURLOPT_SSL_VERIFYHOST, verify_host ? 2L : 0L))};
@@ -607,14 +609,14 @@ class easy final : public std::enable_shared_from_this<easy> {
   IMPLEMENT_CURL_OPTION_STRING(set_ssh_known_hosts,
                                native::CURLOPT_SSH_KNOWNHOSTS);
   IMPLEMENT_CURL_OPTION(set_ssh_key_function, native::CURLOPT_SSH_KEYFUNCTION,
-                        void*);  // TODO curl_sshkeycallback?
-  IMPLEMENT_CURL_OPTION(set_ssh_key_data, native::CURLOPT_SSH_KEYDATA, void*);
+                        void *); // TODO curl_sshkeycallback?
+  IMPLEMENT_CURL_OPTION(set_ssh_key_data, native::CURLOPT_SSH_KEYDATA, void *);
 
   // other options
 
-  IMPLEMENT_CURL_OPTION(set_private, native::CURLOPT_PRIVATE, void*);
+  IMPLEMENT_CURL_OPTION(set_private, native::CURLOPT_PRIVATE, void *);
   void set_share(std::shared_ptr<share> share);
-  void set_share(std::shared_ptr<share> share, std::error_code& ec);
+  void set_share(std::shared_ptr<share> share, std::error_code &ec);
   IMPLEMENT_CURL_OPTION(set_new_file_perms, native::CURLOPT_NEW_FILE_PERMS,
                         long);
   IMPLEMENT_CURL_OPTION(set_new_directory_perms,
@@ -726,13 +728,13 @@ class easy final : public std::enable_shared_from_this<easy> {
 
   bool has_post_data() const;
 
-  const std::string& get_post_data() const;
+  const std::string &get_post_data() const;
 
   std::string extract_post_data();
 
-  inline bool operator<(const easy& other) const { return (this < &other); }
+  inline bool operator<(const easy &other) const { return (this < &other); }
 
-  void handle_completion(const std::error_code& err);
+  void handle_completion(const std::error_code &err);
 
   void mark_retry();
 
@@ -742,27 +744,27 @@ class easy final : public std::enable_shared_from_this<easy> {
 
   time_point::duration time_to_start() const;
 
- private:
-  static size_t header_function(void* ptr, size_t size, size_t nmemb,
-                                void* userdata);
+private:
+  static size_t header_function(void *ptr, size_t size, size_t nmemb,
+                                void *userdata);
 
-  native::curl_socket_t open_tcp_socket(native::curl_sockaddr* address);
+  native::curl_socket_t open_tcp_socket(native::curl_sockaddr *address);
   void cancel(size_t request_num);
 
-  static size_t write_function(char* ptr, size_t size, size_t nmemb,
-                               void* userdata) noexcept;
-  static size_t read_function(void* ptr, size_t size, size_t nmemb,
-                              void* userdata) noexcept;
-  static int seek_function(void* instream, native::curl_off_t offset,
+  static size_t write_function(char *ptr, size_t size, size_t nmemb,
+                               void *userdata) noexcept;
+  static size_t read_function(void *ptr, size_t size, size_t nmemb,
+                              void *userdata) noexcept;
+  static int seek_function(void *instream, native::curl_off_t offset,
                            int origin) noexcept;
-  static int xferinfo_function(void* clientp, native::curl_off_t dltotal,
+  static int xferinfo_function(void *clientp, native::curl_off_t dltotal,
                                native::curl_off_t dlnow,
                                native::curl_off_t ultotal,
                                native::curl_off_t ulnow) noexcept;
-  static native::curl_socket_t opensocket(
-      void* clientp, native::curlsocktype purpose,
-      struct native::curl_sockaddr* address) noexcept;
-  static int closesocket(void* clientp, native::curl_socket_t item) noexcept;
+  static native::curl_socket_t
+  opensocket(void *clientp, native::curlsocktype purpose,
+             struct native::curl_sockaddr *address) noexcept;
+  static int closesocket(void *clientp, native::curl_socket_t item) noexcept;
 
   // do_ev_* methods run in libev thread
   void do_ev_async_perform(handler_type handler, size_t request_num);
@@ -771,8 +773,8 @@ class easy final : public std::enable_shared_from_this<easy> {
   void mark_start_performing();
   void mark_open_socket();
 
-  native::CURL* handle_{nullptr};
-  multi* multi_;
+  native::CURL *handle_{nullptr};
+  multi *multi_;
   size_t request_counter_{0};
   size_t cancelled_request_max_{0};
   bool multi_registered_{false};
@@ -780,9 +782,9 @@ class easy final : public std::enable_shared_from_this<easy> {
   url url_;
   handler_type handler_;
   std::shared_ptr<std::istream> source_;
-  std::string* sink_{nullptr};
+  std::string *sink_{nullptr};
   std::string post_fields_;
-  std::shared_ptr<form> form_;
+  form *form_{nullptr};
   std::shared_ptr<string_list> headers_;
   std::shared_ptr<string_list> proxy_headers_;
   std::shared_ptr<string_list> http200_aliases_;
@@ -796,7 +798,7 @@ class easy final : public std::enable_shared_from_this<easy> {
   time_point start_performing_ts_{};
   const time_point construct_ts_;
 };
-}  // namespace curl
+} // namespace curl
 
 #undef IMPLEMENT_CURL_OPTION
 #undef IMPLEMENT_CURL_OPTION_BOOLEAN

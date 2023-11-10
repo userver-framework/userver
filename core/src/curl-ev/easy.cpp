@@ -41,15 +41,18 @@ bool IsHeaderMatchingName(std::string_view header, std::string_view name) {
          (header[name.size()] == ':' || header[name.size()] == ';');
 }
 
-std::optional<std::string_view> FindHeaderByNameImpl(
-    const std::shared_ptr<string_list>& headers, std::string_view name) {
-  if (!headers) return std::nullopt;
+std::optional<std::string_view>
+FindHeaderByNameImpl(const std::shared_ptr<string_list> &headers,
+                     std::string_view name) {
+  if (!headers)
+    return std::nullopt;
   auto result = headers->FindIf([name](std::string_view header) {
     return IsHeaderMatchingName(header, name);
   });
   if (result) {
     result->remove_prefix(name.size() + 1);
-    while (!result->empty() && result->front() == ' ') result->remove_prefix(1);
+    while (!result->empty() && result->front() == ' ')
+      result->remove_prefix(1);
   }
   return result;
 }
@@ -70,18 +73,19 @@ fmt::memory_buffer CreateHeaderBuffer(std::string_view name,
   return buf;
 }
 
-bool AddHeaderDoSkip(const std::shared_ptr<string_list>& headers,
+bool AddHeaderDoSkip(const std::shared_ptr<string_list> &headers,
                      std::string_view name,
                      easy::DuplicateHeaderAction action) {
   if (action == easy::DuplicateHeaderAction::kSkip && headers) {
-    if (FindHeaderByNameImpl(headers, name)) return true;
+    if (FindHeaderByNameImpl(headers, name))
+      return true;
   }
 
   return false;
 }
 
-bool AddHeaderDoReplace(const std::shared_ptr<string_list>& headers,
-                        const fmt::memory_buffer& buf, std::string_view name,
+bool AddHeaderDoReplace(const std::shared_ptr<string_list> &headers,
+                        const fmt::memory_buffer &buf, std::string_view name,
                         easy::DuplicateHeaderAction action) {
   if (action == easy::DuplicateHeaderAction::kReplace && headers) {
     const bool replaced = headers->ReplaceFirstIf(
@@ -90,19 +94,19 @@ bool AddHeaderDoReplace(const std::shared_ptr<string_list>& headers,
         },
         buf.data());
 
-    if (replaced) return true;
+    if (replaced)
+      return true;
   }
 
   return false;
 }
 
-}  // namespace
+} // namespace
 
 using BusyMarker = utils::statistics::BusyMarker;
 
-easy::easy(native::CURL* easy_handle, multi* multi_handle)
-    : handle_(easy_handle),
-      multi_(multi_handle),
+easy::easy(native::CURL *easy_handle, multi *multi_handle)
+    : handle_(easy_handle), multi_(multi_handle),
       construct_ts_(std::chrono::steady_clock::now()) {
   UASSERT(handle_);
   set_private(this);
@@ -121,7 +125,7 @@ std::shared_ptr<const easy> easy::CreateBlocking() {
   impl::CurlGlobal::Init();
 
   // Note: curl_easy_init() is blocking.
-  auto* handle = native::curl_easy_init();
+  auto *handle = native::curl_easy_init();
   if (!handle) {
     throw std::bad_alloc();
   }
@@ -129,9 +133,9 @@ std::shared_ptr<const easy> easy::CreateBlocking() {
   return std::make_shared<const easy>(handle, nullptr);
 }
 
-std::shared_ptr<easy> easy::GetBoundBlocking(multi& multi_handle) const {
+std::shared_ptr<easy> easy::GetBoundBlocking(multi &multi_handle) const {
   // Note: curl_easy_init() is blocking.
-  auto* cloned = native::curl_easy_duphandle(handle_);
+  auto *cloned = native::curl_easy_duphandle(handle_);
   if (!cloned) {
     throw std::bad_alloc();
   }
@@ -139,14 +143,14 @@ std::shared_ptr<easy> easy::GetBoundBlocking(multi& multi_handle) const {
   return std::make_shared<easy>(cloned, &multi_handle);
 }
 
-easy* easy::from_native(native::CURL* native_easy) {
-  easy* easy_handle = nullptr;
+easy *easy::from_native(native::CURL *native_easy) {
+  easy *easy_handle = nullptr;
   native::curl_easy_getinfo(native_easy, native::CURLINFO_PRIVATE,
                             &easy_handle);
   return easy_handle;
 }
 
-engine::ev::ThreadControl& easy::GetThreadControl() {
+engine::ev::ThreadControl &easy::GetThreadControl() {
   return multi_->GetThreadControl();
 }
 
@@ -233,12 +237,16 @@ void easy::reset() {
   LOG_TRACE() << "easy::reset start " << this;
 
   orig_url_str_.clear();
-  std::string{}.swap(post_fields_);  // forced memory freeing
-  form_.reset();
-  if (headers_) headers_->clear();
-  if (proxy_headers_) proxy_headers_->clear();
-  if (http200_aliases_) http200_aliases_->clear();
-  if (resolved_hosts_) resolved_hosts_->clear();
+  std::string{}.swap(post_fields_); // forced memory freeing
+  form_ = nullptr;
+  if (headers_)
+    headers_->clear();
+  if (proxy_headers_)
+    proxy_headers_->clear();
+  if (http200_aliases_)
+    http200_aliases_->clear();
+  if (resolved_hosts_)
+    resolved_hosts_->clear();
   share_.reset();
   retries_count_ = 0;
   sockets_opened_ = 0;
@@ -278,28 +286,32 @@ void easy::set_source(std::shared_ptr<std::istream> source) {
 }
 
 void easy::set_source(std::shared_ptr<std::istream> source,
-                      std::error_code& ec) {
+                      std::error_code &ec) {
   source_ = std::move(source);
   set_read_function(&easy::read_function, ec);
-  if (!ec) set_read_data(this, ec);
-  if (!ec) set_seek_function(&easy::seek_function, ec);
-  if (!ec) set_seek_data(this, ec);
+  if (!ec)
+    set_read_data(this, ec);
+  if (!ec)
+    set_seek_function(&easy::seek_function, ec);
+  if (!ec)
+    set_seek_data(this, ec);
 }
 
-void easy::set_sink(std::string* sink) {
+void easy::set_sink(std::string *sink) {
   std::error_code ec;
   set_sink(sink, ec);
   throw_error(ec, "set_sink");
 }
 
-size_t easy::header_function(void*, size_t size, size_t nmemb, void*) {
+size_t easy::header_function(void *, size_t size, size_t nmemb, void *) {
   return size * nmemb;
 }
 
-void easy::set_sink(std::string* sink, std::error_code& ec) {
+void easy::set_sink(std::string *sink, std::error_code &ec) {
   sink_ = sink;
   set_write_function(&easy::write_function);
-  if (!ec) set_write_data(this);
+  if (!ec)
+    set_write_data(this);
 }
 
 void easy::unset_progress_callback() {
@@ -321,7 +333,7 @@ void easy::set_url(std::string url_str) {
   throw_error(ec, "set_url");
 }
 
-void easy::set_url(std::string url_str, std::error_code& ec) {
+void easy::set_url(std::string url_str, std::error_code &ec) {
   orig_url_str_ = std::move(url_str);
   url_.SetAbsoluteUrl(orig_url_str_.c_str(), ec);
   if (!ec) {
@@ -335,17 +347,17 @@ void easy::set_url(std::string url_str, std::error_code& ec) {
   }
 }
 
-const std::string& easy::get_original_url() const { return orig_url_str_; }
+const std::string &easy::get_original_url() const { return orig_url_str_; }
 
-const url& easy::get_easy_url() const { return url_; }
+const url &easy::get_easy_url() const { return url_; }
 
-void easy::set_post_fields(std::string&& post_fields) {
+void easy::set_post_fields(std::string &&post_fields) {
   std::error_code ec;
   set_post_fields(std::move(post_fields), ec);
   throw_error(ec, "set_post_fields");
 }
 
-void easy::set_post_fields(std::string&& post_fields, std::error_code& ec) {
+void easy::set_post_fields(std::string &&post_fields, std::error_code &ec) {
   post_fields_ = std::move(post_fields);
   ec =
       std::error_code{static_cast<errc::EasyErrorCode>(native::curl_easy_setopt(
@@ -356,14 +368,14 @@ void easy::set_post_fields(std::string&& post_fields, std::error_code& ec) {
         static_cast<native::curl_off_t>(post_fields_.length()), ec);
 }
 
-void easy::set_http_post(std::shared_ptr<form> form) {
+void easy::set_http_post(form *form) {
   std::error_code ec;
-  set_http_post(std::move(form), ec);
+  set_http_post(form, ec);
   throw_error(ec, "set_http_post");
 }
 
-void easy::set_http_post(std::shared_ptr<form> form, std::error_code& ec) {
-  form_ = std::move(form);
+void easy::set_http_post(form *form, std::error_code &ec) {
+  form_ = form;
 
   if (form_) {
     ec = std::error_code{
@@ -384,7 +396,7 @@ void easy::add_header(std::string_view name, std::string_view value,
 }
 
 void easy::add_header(std::string_view name, std::string_view value,
-                      std::error_code& ec,
+                      std::error_code &ec,
                       EmptyHeaderAction empty_header_action,
                       DuplicateHeaderAction duplicate_header_action) {
   if (AddHeaderDoSkip(headers_, name, duplicate_header_action)) {
@@ -408,24 +420,24 @@ void easy::add_header(std::string_view name, std::string_view value,
 }
 
 void easy::add_header(std::string_view name, std::string_view value,
-                      std::error_code& ec,
+                      std::error_code &ec,
                       DuplicateHeaderAction duplicate_header_action) {
   add_header(name, value, ec, EmptyHeaderAction::kSend,
              duplicate_header_action);
 }
 
-std::optional<std::string_view> easy::FindHeaderByName(
-    std::string_view name) const {
+std::optional<std::string_view>
+easy::FindHeaderByName(std::string_view name) const {
   return FindHeaderByNameImpl(headers_, name);
 }
 
-void easy::add_header(const char* header) {
+void easy::add_header(const char *header) {
   std::error_code ec;
   add_header(header, ec);
   throw_error(ec, "add_header");
 }
 
-void easy::add_header(const char* header, std::error_code& ec) {
+void easy::add_header(const char *header, std::error_code &ec) {
   if (!headers_) {
     headers_ = std::make_shared<string_list>();
   }
@@ -436,9 +448,9 @@ void easy::add_header(const char* header, std::error_code& ec) {
           handle_, native::CURLOPT_HTTPHEADER, headers_->native_handle()))};
 }
 
-void easy::add_header(const std::string& header) { add_header(header.c_str()); }
+void easy::add_header(const std::string &header) { add_header(header.c_str()); }
 
-void easy::add_header(const std::string& header, std::error_code& ec) {
+void easy::add_header(const std::string &header, std::error_code &ec) {
   add_header(header.c_str(), ec);
 }
 
@@ -449,7 +461,7 @@ void easy::set_headers(std::shared_ptr<string_list> headers) {
 }
 
 void easy::set_headers(std::shared_ptr<string_list> headers,
-                       std::error_code& ec) {
+                       std::error_code &ec) {
   headers_ = std::move(headers);
 
   if (headers_) {
@@ -472,7 +484,7 @@ void easy::add_proxy_header(std::string_view name, std::string_view value,
 }
 
 void easy::add_proxy_header(std::string_view name, std::string_view value,
-                            std::error_code& ec,
+                            std::error_code &ec,
                             EmptyHeaderAction empty_header_action,
                             DuplicateHeaderAction duplicate_header_action) {
   if (AddHeaderDoSkip(proxy_headers_, name, duplicate_header_action)) {
@@ -488,7 +500,7 @@ void easy::add_proxy_header(std::string_view name, std::string_view value,
   add_proxy_header(buf.data(), ec);
 }
 
-void easy::add_proxy_header(const char* header, std::error_code& ec) {
+void easy::add_proxy_header(const char *header, std::error_code &ec) {
   if (!proxy_headers_) {
     proxy_headers_ = std::make_shared<string_list>();
   }
@@ -499,14 +511,14 @@ void easy::add_proxy_header(const char* header, std::error_code& ec) {
                                proxy_headers_->native_handle()))};
 }
 
-void easy::add_http200_alias(const std::string& http200_alias) {
+void easy::add_http200_alias(const std::string &http200_alias) {
   std::error_code ec;
   add_http200_alias(http200_alias, ec);
   throw_error(ec, "add_http200_alias");
 }
 
-void easy::add_http200_alias(const std::string& http200_alias,
-                             std::error_code& ec) {
+void easy::add_http200_alias(const std::string &http200_alias,
+                             std::error_code &ec) {
   if (!http200_aliases_) {
     http200_aliases_ = std::make_shared<string_list>();
   }
@@ -524,7 +536,7 @@ void easy::set_http200_aliases(std::shared_ptr<string_list> http200_aliases) {
 }
 
 void easy::set_http200_aliases(std::shared_ptr<string_list> http200_aliases,
-                               std::error_code& ec) {
+                               std::error_code &ec) {
   http200_aliases_ = std::move(http200_aliases);
 
   if (http200_aliases) {
@@ -538,15 +550,15 @@ void easy::set_http200_aliases(std::shared_ptr<string_list> http200_aliases,
   }
 }
 
-void easy::add_resolve(const std::string& host, const std::string& port,
-                       const std::string& addr) {
+void easy::add_resolve(const std::string &host, const std::string &port,
+                       const std::string &addr) {
   std::error_code ec;
   add_resolve(host, port, addr, ec);
   throw_error(ec, "add_resolve");
 }
 
-void easy::add_resolve(const std::string& host, const std::string& port,
-                       const std::string& addr, std::error_code& ec) {
+void easy::add_resolve(const std::string &host, const std::string &port,
+                       const std::string &addr, std::error_code &ec) {
   if (!resolved_hosts_) {
     resolved_hosts_ = std::make_shared<string_list>();
   }
@@ -555,7 +567,7 @@ void easy::add_resolve(const std::string& host, const std::string& port,
                                         host_port_addr.size() - addr.size()};
 
   if (!resolved_hosts_->ReplaceFirstIf(
-          [host_port_view](const auto& entry) {
+          [host_port_view](const auto &entry) {
             // host_port_addr, of which we hold a string_view, might be moved in
             // ReplaceFirstIf, but it's guaranteed that this
             // lambda is not called after that.
@@ -581,7 +593,7 @@ void easy::set_resolves(std::shared_ptr<string_list> resolved_hosts) {
 }
 
 void easy::set_resolves(std::shared_ptr<string_list> resolved_hosts,
-                        std::error_code& ec) {
+                        std::error_code &ec) {
   resolved_hosts_ = std::move(resolved_hosts);
 
   if (resolved_hosts_) {
@@ -600,7 +612,7 @@ void easy::set_share(std::shared_ptr<share> share) {
   throw_error(ec, "set_share");
 }
 
-void easy::set_share(std::shared_ptr<share> share, std::error_code& ec) {
+void easy::set_share(std::shared_ptr<share> share, std::error_code &ec) {
   share_ = std::move(share);
 
   if (share) {
@@ -615,7 +627,7 @@ void easy::set_share(std::shared_ptr<share> share, std::error_code& ec) {
 
 bool easy::has_post_data() const { return !post_fields_.empty() || form_; }
 
-const std::string& easy::get_post_data() const { return post_fields_; }
+const std::string &easy::get_post_data() const { return post_fields_; }
 
 std::string easy::extract_post_data() {
   auto data = std::move(post_fields_);
@@ -623,7 +635,7 @@ std::string easy::extract_post_data() {
   return data;
 }
 
-void easy::handle_completion(const std::error_code& err) {
+void easy::handle_completion(const std::error_code &err) {
   LOG_TRACE() << "easy::handle_completion easy=" << this;
 
   multi_registered_ = false;
@@ -660,7 +672,7 @@ easy::time_point::duration easy::time_to_start() const {
   return {};
 }
 
-native::curl_socket_t easy::open_tcp_socket(native::curl_sockaddr* address) {
+native::curl_socket_t easy::open_tcp_socket(native::curl_sockaddr *address) {
   std::error_code ec;
 
   LOG_TRACE() << "open_tcp_socket family=" << address->family;
@@ -672,13 +684,14 @@ native::curl_socket_t easy::open_tcp_socket(native::curl_sockaddr* address) {
                 << utils::strerror(old_errno);
     return CURL_SOCKET_BAD;
   }
-  if (multi_) multi_->BindEasySocket(*this, fd);
+  if (multi_)
+    multi_->BindEasySocket(*this, fd);
   return fd;
 }
 
-size_t easy::write_function(char* ptr, size_t size, size_t nmemb,
-                            void* userdata) noexcept {
-  easy* self = static_cast<easy*>(userdata);
+size_t easy::write_function(char *ptr, size_t size, size_t nmemb,
+                            void *userdata) noexcept {
+  easy *self = static_cast<easy *>(userdata);
   size_t actual_size = size * nmemb;
 
   if (!actual_size) {
@@ -687,7 +700,7 @@ size_t easy::write_function(char* ptr, size_t size, size_t nmemb,
 
   try {
     self->sink_->append(ptr, actual_size);
-  } catch (const std::exception&) {
+  } catch (const std::exception &) {
     // out of memory
     return 0;
   }
@@ -695,21 +708,22 @@ size_t easy::write_function(char* ptr, size_t size, size_t nmemb,
   return actual_size;
 }
 
-size_t easy::read_function(void* ptr, size_t size, size_t nmemb,
-                           void* userdata) noexcept {
+size_t easy::read_function(void *ptr, size_t size, size_t nmemb,
+                           void *userdata) noexcept {
   // FIXME readsome doesn't work with TFTP (see cURL docs)
 
-  easy* self = static_cast<easy*>(userdata);
+  easy *self = static_cast<easy *>(userdata);
   size_t actual_size = size * nmemb;
 
-  if (!self->source_) return CURL_READFUNC_ABORT;
+  if (!self->source_)
+    return CURL_READFUNC_ABORT;
 
   if (self->source_->eof()) {
     return 0;
   }
 
   std::streamsize chars_stored =
-      self->source_->readsome(static_cast<char*>(ptr), actual_size);
+      self->source_->readsome(static_cast<char *>(ptr), actual_size);
 
   if (!*self->source_) {
     return CURL_READFUNC_ABORT;
@@ -718,32 +732,32 @@ size_t easy::read_function(void* ptr, size_t size, size_t nmemb,
   }
 }
 
-int easy::seek_function(void* instream, native::curl_off_t offset,
+int easy::seek_function(void *instream, native::curl_off_t offset,
                         int origin) noexcept {
   // TODO we could allow the user to define an offset which this library
   // should consider as position zero for uploading chunks of the file
   // alternatively do tellg() on the source stream when it is first passed to
   // use_source() and use that as origin
 
-  easy* self = static_cast<easy*>(instream);
+  easy *self = static_cast<easy *>(instream);
 
   std::ios::seekdir dir = std::ios::beg;
 
   switch (origin) {
-    case SEEK_SET:
-      dir = std::ios::beg;
-      break;
+  case SEEK_SET:
+    dir = std::ios::beg;
+    break;
 
-    case SEEK_CUR:
-      dir = std::ios::cur;
-      break;
+  case SEEK_CUR:
+    dir = std::ios::cur;
+    break;
 
-    case SEEK_END:
-      dir = std::ios::end;
-      break;
+  case SEEK_END:
+    dir = std::ios::end;
+    break;
 
-    default:
-      return CURL_SEEKFUNC_FAIL;
+  default:
+    return CURL_SEEKFUNC_FAIL;
   }
 
   if (!self->source_->seekg(offset, dir)) {
@@ -753,24 +767,24 @@ int easy::seek_function(void* instream, native::curl_off_t offset,
   }
 }
 
-int easy::xferinfo_function(void* clientp, native::curl_off_t dltotal,
+int easy::xferinfo_function(void *clientp, native::curl_off_t dltotal,
                             native::curl_off_t dlnow,
                             native::curl_off_t ultotal,
                             native::curl_off_t ulnow) noexcept {
-  easy* self = static_cast<easy*>(clientp);
+  easy *self = static_cast<easy *>(clientp);
   try {
     return self->progress_callback_(dltotal, dlnow, ultotal, ulnow) ? 0 : 1;
-  } catch (const std::exception& ex) {
+  } catch (const std::exception &ex) {
     LOG_LIMITED_WARNING() << "Progress callback failed: " << ex;
     return 1;
   }
 }
 
-native::curl_socket_t easy::opensocket(
-    void* clientp, native::curlsocktype purpose,
-    struct native::curl_sockaddr* address) noexcept {
-  easy* self = static_cast<easy*>(clientp);
-  multi* multi_handle = self->multi_;
+native::curl_socket_t
+easy::opensocket(void *clientp, native::curlsocktype purpose,
+                 struct native::curl_sockaddr *address) noexcept {
+  easy *self = static_cast<easy *>(clientp);
+  multi *multi_handle = self->multi_;
   native::curl_socket_t s = -1;
 
   if (multi_handle) {
@@ -807,8 +821,8 @@ native::curl_socket_t easy::opensocket(
   return CURL_SOCKET_BAD;
 }
 
-int easy::closesocket(void* clientp, native::curl_socket_t item) noexcept {
-  auto* multi_handle = static_cast<multi*>(clientp);
+int easy::closesocket(void *clientp, native::curl_socket_t item) noexcept {
+  auto *multi_handle = static_cast<multi *>(clientp);
   multi_handle->UnbindEasySocket(item);
 
   int ret = close(item);
@@ -821,6 +835,6 @@ int easy::closesocket(void* clientp, native::curl_socket_t item) noexcept {
   return 0;
 }
 
-}  // namespace curl
+} // namespace curl
 
 USERVER_NAMESPACE_END
