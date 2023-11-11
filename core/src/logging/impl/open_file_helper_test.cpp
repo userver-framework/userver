@@ -2,10 +2,12 @@
 
 #include <stdexcept>
 
+#include <fmt/format.h>
 #include <gmock/gmock.h>
 #include <boost/filesystem.hpp>
 
 #include <userver/fs/blocking/temp_directory.hpp>
+#include <userver/utest/assert_macros.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -16,17 +18,10 @@ TEST(OpenFileHelperTest, ReopenFail) {
   EXPECT_NO_THROW(
       logging::impl::OpenFile<fs::blocking::FileDescriptor>(filename));
   boost::filesystem::permissions(filename, boost::filesystem::perms::no_perms);
-  EXPECT_THROW(logging::impl::OpenFile<fs::blocking::FileDescriptor>(filename),
-               std::runtime_error);
-  try {
-    logging::impl::OpenFile<fs::blocking::FileDescriptor>(filename);
-  } catch (std::runtime_error& e) {
-    const std::string err = e.what();
-    EXPECT_TRUE(err.rfind("Filename ", 0) == 0);
-    const std::string end = " cannot be created or opened";
-    EXPECT_TRUE(end.size() < err.size());
-    EXPECT_TRUE(std::equal(end.rbegin(), end.rend(), err.rbegin()));
-  }
+  UASSERT_THROW_MSG(
+      logging::impl::OpenFile<fs::blocking::FileDescriptor>(filename),
+      std::runtime_error,
+      fmt::format("Filename {} cannot be created or opened", filename));
 }
 
 USERVER_NAMESPACE_END
