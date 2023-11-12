@@ -261,8 +261,7 @@ template <std::size_t N>
 template <class Operation>
 void SmallString<N>::resize_and_overwrite(std::size_t size, Operation op) {
   data_.resize(size, boost::container::default_init);
-  data_.resize(std::move(op(data_.data(), size)),
-               boost::container::default_init);
+  data_.resize(std::move(op)(data_.data(), size));
 }
 
 template <std::size_t N>

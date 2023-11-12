@@ -76,7 +76,7 @@ TEST(SmallString, ResizeAndOverwrite) {
   std::size_t count = 3;
   std::string str = "mnkp";
 
-  small_str.resize_and_overwrite(16, [&](char* data, size_t size) {
+  small_str.resize_and_overwrite(16, [&](char* data, [[maybe_unused]] size_t size) {
     for (size_t ind = 0; ind < count; ++ind) {
       std::copy(str.data(), str.data() + str.size(), data + ind * str.size());
     }
