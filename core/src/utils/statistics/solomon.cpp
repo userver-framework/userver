@@ -31,8 +31,17 @@ class SolomonJsonBuilder final : public utils::statistics::BaseFormatBuilder {
     builder_.Key("labels");
     DumpLabels(path, labels);
     value.Visit(utils::Overloaded{
-        [this](HistogramView x) {
+        [&, this](HistogramView x) {
           builder_.Key("hist");
+          if (x.GetBucketCount() > impl::solomon::kMaxHistogramBuckets) {
+            LOG_LIMITED_ERROR()
+                << "Histogram at '" << path << "' has " << x.GetBucketCount()
+                << " buckets, which is more than the maximum of "
+                << impl::solomon::kMaxHistogramBuckets
+                << " that Solomon allows. Skipping the metric";
+            UASSERT(false);
+            return;
+          }
           WriteToStream(x, builder_);
           builder_.Key("type");
           builder_.WriteString("HIST_RATE");
