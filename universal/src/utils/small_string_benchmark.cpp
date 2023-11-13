@@ -2,6 +2,8 @@
 
 #include <array>
 
+#include <utils/gbench_auxilary.hpp>
+
 #include <benchmark/benchmark.h>
 
 USERVER_NAMESPACE_BEGIN
@@ -14,7 +16,6 @@ std::string GenerateString(size_t size) {
   std::string_view chars{"0123456789"};
   std::string result;
   for (size_t i = 0; i < size; i++) result += chars[i % 10];
-  return result;
 }
 
 static void SmallString_Std(benchmark::State& state) {
@@ -99,7 +100,7 @@ BENCHMARK(SmallString_Small_Move)
     ->Range(2, 2 << 10)
     ->Unit(benchmark::kMicrosecond);
 
-static void SmallString_Resize_And_Overwrite(benchmark::State& state) {
+static void SmallStringResizeAndOverwrite(benchmark::State& state) {
   auto s = GenerateString(state.range(0));
   std::array<utils::SmallString<1000>, kArraySize> str;
   std::array<utils::SmallString<1>, kArraySize> str2;
@@ -116,11 +117,11 @@ static void SmallString_Resize_And_Overwrite(benchmark::State& state) {
     state.ResumeTiming();
   }
 }
-BENCHMARK(SmallString_Resize_And_Overwrite)
-    ->Range(2, 2 << 12)
+BENCHMARK(SmallStringResizeAndOverwrite)
+    ->Range(2, 2 << 10)
     ->Unit(benchmark::kMicrosecond);
 
-static void SmallString_Resize_Then_Overwrite(benchmark::State& state) {
+static void SmallStringResizeThenOverwrite(benchmark::State& state) {
   auto s = GenerateString(state.range(0));
   std::array<utils::SmallString<1000>, kArraySize> str;
   std::array<utils::SmallString<1>, kArraySize> str2;
@@ -135,8 +136,8 @@ static void SmallString_Resize_Then_Overwrite(benchmark::State& state) {
     state.ResumeTiming();
   }
 }
-BENCHMARK(SmallString_Resize_Then_Overwrite)
-    ->Range(2, 2 << 12)
+BENCHMARK(SmallStringResizeThenOverwrite)
+    ->Range(2, 2 << 10)
     ->Unit(benchmark::kMicrosecond);
 
 USERVER_NAMESPACE_END
