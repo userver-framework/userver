@@ -116,7 +116,7 @@ class PGConnectionWrapper {
   bool TryConsumeInput(Deadline deadline);
 
   /// @brief Fills current span with connection info
-  void FillSpanTags(tracing::Span&) const;
+  void FillSpanTags(tracing::Span&, const CommandControl& cc) const;
 
   /// Logs a server-originated notice
   void LogNotice(const PGresult*) const;
