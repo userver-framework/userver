@@ -16,6 +16,7 @@ std::string GenerateString(size_t size) {
   std::string_view chars{"0123456789"};
   std::string result;
   for (size_t i = 0; i < size; i++) result += chars[i % 10];
+  return Launder(std::move(result));
 }
 
 static void SmallString_Std(benchmark::State& state) {
