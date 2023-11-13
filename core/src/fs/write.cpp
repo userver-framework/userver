@@ -4,7 +4,6 @@
 
 #include <userver/engine/async.hpp>
 #include <userver/fs/blocking/write.hpp>
-#include <userver/utils/boost_uuid4.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -51,19 +50,9 @@ void RewriteFileContentsAtomically(engine::TaskProcessor& async_tp,
                                    const std::string& path,
                                    std::string_view contents,
                                    boost::filesystem::perms perms) {
-  engine::AsyncNoSpan(async_tp, [&]() {
-    auto tmp_path =
-        fmt::format("{}{}.tmp", path, utils::generators::GenerateBoostUuid());
-    fs::blocking::RewriteFileContents(tmp_path, contents);
-
-    boost::filesystem::path file_path(path);
-    auto directory_path = file_path.parent_path();
-
-    fs::blocking::Rename(tmp_path, path);
-    fs::blocking::SyncDirectoryContents(directory_path.string());
-
-    fs::blocking::Chmod(path, perms);
-  }).Get();
+  engine::AsyncNoSpan(async_tp, &fs::blocking::RewriteFileContentsAtomically,
+                      path, contents, perms)
+      .Get();
 }
 
 bool RemoveSingleFile(engine::TaskProcessor& async_tp,

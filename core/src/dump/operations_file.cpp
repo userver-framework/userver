@@ -46,12 +46,13 @@ void FileWriter::WriteRaw(std::string_view data) {
 
 void FileWriter::Finish() {
   try {
+    // Flush must be performed at some point before Rename, otherwise after a
+    // system's hard reset the file might end up in a state where it is renamed,
+    // but truncated.
     file_.Flush();
     std::move(file_).Close();
     fs::blocking::Chmod(path_, perms_);  // drop perms::owner_write
     fs::blocking::Rename(path_, final_path_);
-    fs::blocking::SyncDirectoryContents(
-        boost::filesystem::path(final_path_).parent_path().string());
   } catch (const std::exception& ex) {
     throw Error(fmt::format("Failed to finalize dump \"{}\". Reason: {}", path_,
                             ex.what()));
