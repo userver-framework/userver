@@ -1294,6 +1294,7 @@
   "core/src/utils/statistics/entry_impl.hpp":"taxi/uservices/userver/core/src/utils/statistics/entry_impl.hpp",
   "core/src/utils/statistics/graphite.cpp":"taxi/uservices/userver/core/src/utils/statistics/graphite.cpp",
   "core/src/utils/statistics/histogram.cpp":"taxi/uservices/userver/core/src/utils/statistics/histogram.cpp",
+  "core/src/utils/statistics/histogram_benchmark.cpp":"taxi/uservices/userver/core/src/utils/statistics/histogram_benchmark.cpp",
   "core/src/utils/statistics/histogram_test.cpp":"taxi/uservices/userver/core/src/utils/statistics/histogram_test.cpp",
   "core/src/utils/statistics/histogram_view.cpp":"taxi/uservices/userver/core/src/utils/statistics/histogram_view.cpp",
   "core/src/utils/statistics/http_codes.cpp":"taxi/uservices/userver/core/src/utils/statistics/http_codes.cpp",
