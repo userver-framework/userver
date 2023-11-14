@@ -10,6 +10,8 @@
 
 #include <boost/container/small_vector.hpp>
 
+#include <userver/utils/assert.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils {
@@ -262,6 +264,7 @@ template <class Operation>
 void SmallString<N>::resize_and_overwrite(std::size_t size, Operation op) {
   data_.resize(size, boost::container::default_init);
   data_.resize(std::move(op)(data_.data(), size), boost::container::default_init);
+  UASSERT(data_.size() <= size);
 }
 
 template <std::size_t N>

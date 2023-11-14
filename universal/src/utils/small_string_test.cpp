@@ -100,6 +100,14 @@ TEST(SmallString, ResizeAndOverwriteRvalueCall) {
   small_str.resize_and_overwrite(16, CheckRvalueCall());
 }
 
+TEST(SmallString, InvalidOpReturnValue) {
+  utils::SmallString<4> small_str("abcd");
+  ASSERT_DEBUG_DEATH(small_str.resize_and_overwrite(
+      16, [&]([[maybe_unused]] char* data, [[maybe_unused]] std::size_t size) {
+        return 20;
+      }), "");
+}
+
 TEST(SmallString, Assign) {
   utils::SmallString<10> str("abcd");
   utils::SmallString<10> str2;
