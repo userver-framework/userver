@@ -363,9 +363,7 @@ void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline,
         // This is an obsolete state, just ignore it
         break;
       case PGRES_POLLING_FAILED:
-        PGCW_LOG_LIMITED_WARNING() << " libpq polling failed";
-        CheckError<ConnectionError>("PQconnectPoll", 0);
-        break;
+        // Handled right after PQconnectPoll
       default:
         UASSERT(!"Unexpected enumeration value");
         break;
@@ -375,7 +373,11 @@ void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline,
     poll_res = engine::CriticalAsyncNoSpan(bg_task_processor_, [this] {
                  return PQconnectPoll(conn_);
                }).Get();
-    HandleSocketPostClose();
+
+    // Handled here so as not to loose the error message
+    if (poll_res == PGRES_POLLING_FAILED) {
+      CheckError<ConnectionError>("PQconnectPoll", 0);
+    }
 
     PGCW_LOG_TRACE() << MsgForStatus(PQstatus(conn_));
 
