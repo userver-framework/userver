@@ -74,7 +74,8 @@ class Server::Impl final {
                 dynamic_config::Source);
   ~Impl();
 
-  void AddService(ServiceBase& service, ServiceConfig&& config);
+  void AddService(ServiceBase& service, ServiceConfig&& config,
+                  Middlewares& middlewares);
 
   std::vector<std::string_view> GetServiceNames() const;
 
@@ -161,7 +162,8 @@ void Server::Impl::AddListeningPort(int port) {
                                     grpc::InsecureServerCredentials(), &*port_);
 }
 
-void Server::Impl::AddService(ServiceBase& service, ServiceConfig&& config) {
+void Server::Impl::AddService(ServiceBase& service, ServiceConfig&& config,
+                              Middlewares& middlewares) {
   const std::lock_guard lock(configuration_mutex_);
   UASSERT(state_ == State::kConfiguration);
 
@@ -169,7 +171,7 @@ void Server::Impl::AddService(ServiceBase& service, ServiceConfig&& config) {
       *queue_,
       config.task_processor,
       statistics_storage_,
-      std::move(config.middlewares),
+      std::move(middlewares),
       access_tskv_logger_,
       config_source_,
   }));
@@ -278,8 +280,9 @@ Server::Server(ServerConfig&& config,
 
 Server::~Server() = default;
 
-void Server::AddService(ServiceBase& service, ServiceConfig&& config) {
-  impl_->AddService(service, std::move(config));
+void Server::AddService(ServiceBase& service, ServiceConfig&& config,
+                        Middlewares& middlewares) {
+  impl_->AddService(service, std::move(config), middlewares);
 }
 
 std::vector<std::string_view> Server::GetServiceNames() const {

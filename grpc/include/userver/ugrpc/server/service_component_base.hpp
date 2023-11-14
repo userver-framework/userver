@@ -46,6 +46,7 @@ class ServiceComponentBase : public components::LoggableComponentBase {
  private:
   ServerComponent& server_;
   ServiceConfig config_;
+  Middlewares middlewares_;
   std::atomic<bool> registered_{false};
 };
 

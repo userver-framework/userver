@@ -72,7 +72,8 @@ class Server final {
   /// @brief Register a service implementation in the server. The user or the
   /// component is responsible for keeping `service` and `middlewares` alive at
   /// least until `Stop` is called.
-  void AddService(ServiceBase& service, ServiceConfig&& config);
+  void AddService(ServiceBase& service, ServiceConfig&& config,
+                  Middlewares& middlewares);
 
   /// @brief Get names of all registered services
   std::vector<std::string_view> GetServiceNames() const;

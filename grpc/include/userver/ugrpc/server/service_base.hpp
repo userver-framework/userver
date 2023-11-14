@@ -17,8 +17,8 @@ struct ServiceConfig final {
   /// TaskProcessor to use for serving RPCs.
   engine::TaskProcessor& task_processor;
 
-  /// Server middlewares to use for the gRPC service.
-  Middlewares middlewares;
+  /// Server middlewares names to use for the gRPC service.
+  std::vector<std::string> middlewares_names;
 };
 
 /// @brief The type-erased base class for all gRPC service implementations

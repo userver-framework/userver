@@ -44,16 +44,15 @@ engine::TaskProcessor& ParseTaskProcessor(
   return context.GetTaskProcessor(field.As<std::string>());
 }
 
-Middlewares ParseMiddlewares(const yaml_config::YamlConfig& field,
-                             const components::ComponentContext& context) {
-  Middlewares middlewares;
-  middlewares.reserve(field.GetSize());
+std::vector<std::string> ParseMiddlewares(const yaml_config::YamlConfig& field,
+                                          const components::ComponentContext&) {
+  std::vector<std::string> middlewares_names;
+  middlewares_names.reserve(field.GetSize());
   for (const auto& name_yaml : field) {
     const auto name = name_yaml.As<std::string>();
-    auto& component = context.FindComponent<MiddlewareComponentBase>(name);
-    middlewares.push_back(component.GetMiddleware());
+    middlewares_names.push_back(std::move(name));
   }
-  return middlewares;
+  return middlewares_names;
 }
 
 }  // namespace
@@ -74,7 +73,7 @@ server::ServiceConfig ParseServiceConfig(
   return server::ServiceConfig{
       MergeField(value[kTaskProcessorKey], defaults.task_processor, context,
                  ParseTaskProcessor),
-      MergeField(value[kMiddlewaresKey], defaults.middlewares, context,
+      MergeField(value[kMiddlewaresKey], defaults.middlewares_names, context,
                  ParseMiddlewares),
   };
 }

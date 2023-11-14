@@ -18,11 +18,17 @@ ServiceComponentBase::ServiceComponentBase(
     const components::ComponentContext& context)
     : LoggableComponentBase(config, context),
       server_(context.FindComponent<ServerComponent>()),
-      config_(server_.ParseServiceConfig(config, context)) {}
+      config_(server_.ParseServiceConfig(config, context)) {
+  middlewares_.reserve(config_.middlewares_names.size());
+  for (const auto& name : config_.middlewares_names) {
+    auto& component = context.FindComponent<MiddlewareComponentBase>(name);
+    middlewares_.push_back(component.GetMiddleware());
+  }
+}
 
 void ServiceComponentBase::RegisterService(ServiceBase& service) {
   UINVARIANT(!registered_.exchange(true), "Register must only be called once");
-  server_.GetServer().AddService(service, std::move(config_));
+  server_.GetServer().AddService(service, std::move(config_), middlewares_);
 }
 
 yaml_config::Schema ServiceComponentBase::GetStaticConfigSchema() {
