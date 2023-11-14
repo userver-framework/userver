@@ -10,6 +10,14 @@
 
 USERVER_NAMESPACE_BEGIN
 
+struct CheckRvalueCall {
+  std::size_t operator()(char*, std::size_t s) const& {
+    ADD_FAILURE() << "Wrond overload called";
+    return s;
+  }
+  std::size_t operator()(char*, std::size_t s) && { return s; }
+};
+
 TEST(SmallString, Empty) {
   utils::SmallString<10> str;
   EXPECT_TRUE(str.empty());
@@ -68,6 +76,28 @@ TEST(SmallString, SizeCapacity) {
   auto capacity = str.capacity();
   str.reserve(capacity + 1);
   EXPECT_GT(str.capacity(), capacity);
+}
+
+TEST(SmallString, ResizeAndOverwrite) {
+  utils::SmallString<4> small_str("abcd");
+
+  std::size_t count = 3;
+  std::string str = "mnkp";
+
+  small_str.resize_and_overwrite(16, [&](char* data,
+                                         [[maybe_unused]] size_t size) {
+    for (size_t ind = 0; ind < count; ++ind) {
+      std::copy(str.data(), str.data() + str.size(), data + ind * str.size());
+    }
+    return count * str.size();
+  });
+  EXPECT_EQ(small_str, "mnkpmnkpmnkp");
+}
+
+TEST(SmallString, ResizeAndOverwriteRvalueCall) {
+  utils::SmallString<4> small_str("abcd");
+
+  small_str.resize_and_overwrite(16, CheckRvalueCall());
 }
 
 TEST(SmallString, Assign) {
