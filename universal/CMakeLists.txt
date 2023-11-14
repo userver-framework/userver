@@ -105,6 +105,36 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
   CRYPTOPP_ENABLE_NAMESPACE_WEAK=1
 )
 
+set(USERVER_LOG_LEVEL_ENUM "trace, info, debug, warning, error")
+set(USERVER_FEATURE_ERASE_LOG_WITH_LEVEL_DEFAULT "")
+
+set(USERVER_FEATURE_ERASE_LOG_WITH_LEVEL ${USERVER_FEATURE_ERASE_LOG_WITH_LEVEL_DEFAULT} CACHE STRING "Logs of this and below levels are removed from binary, possible values: ${USERVER_LOG_LEVEL_ENUM}")
+set(USERVER_ERASE_LOG_WITH_LEVEL_PENDING ${USERVER_FEATURE_ERASE_LOG_WITH_LEVEL})
+separate_arguments(USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
+list(REMOVE_DUPLICATES USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
+
+if ("error" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC
+      "USERVER_FEATURE_ERASE_LOG_WITH_LEVEL=4"
+    )
+elseif ("warning" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC
+      "USERVER_FEATURE_ERASE_LOG_WITH_LEVEL=3"
+    )
+elseif ("info" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC
+      "USERVER_FEATURE_ERASE_LOG_WITH_LEVEL=2"
+    )
+elseif ("debug" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC
+      "USERVER_FEATURE_ERASE_LOG_WITH_LEVEL=1"
+    )
+elseif ("trace" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC
+      "USERVER_FEATURE_ERASE_LOG_WITH_LEVEL=0"
+    )
+endif ()
+
 # Suppress OpenSSL 3 warnings: we still primarily support OpenSSL 1.1.x
 target_compile_definitions(${PROJECT_NAME} PRIVATE OPENSSL_SUPPRESS_DEPRECATED=)
 
