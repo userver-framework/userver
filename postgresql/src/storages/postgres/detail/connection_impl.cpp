@@ -673,7 +673,6 @@ const ConnectionImpl::PreparedStatementInfo& ConnectionImpl::PrepareStatement(
     engine::Deadline deadline, tracing::Span& span, tracing::ScopeTime& scope) {
   auto query_hash = QueryHash(statement, params);
   Connection::StatementId query_id{query_hash};
-  std::string statement_name = "q" + std::to_string(query_hash) + "_" + uuid_;
 
   error_injection::Hook ei_hook(ei_settings_, deadline);
   ei_hook.PreHook<ConnectionTimeoutError, CommandError>();
@@ -683,6 +682,7 @@ const ConnectionImpl::PreparedStatementInfo& ConnectionImpl::PrepareStatement(
     LOG_TRACE() << "Query " << statement << " is already prepared.";
     return *statement_info;
   } else {
+    std::string statement_name = "q" + std::to_string(query_hash) + "_" + uuid_;
     if (prepared_.GetSize() >= settings_.max_prepared_cache_size) {
       statement_info = prepared_.GetLeastUsed();
       UASSERT(statement_info);
