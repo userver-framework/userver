@@ -314,9 +314,12 @@ void ClusterImpl::SetPoolSettings(const PoolSettings& new_settings) {
     cluster->pool_settings = new_settings;
     auto& settings = cluster->pool_settings;
     if (IsConnlimitModeAuto(*cluster)) {
-      settings.max_size = connlimit_watchdog_.GetConnlimit();
-      if (settings.min_size > settings.max_size)
-        settings.min_size = settings.max_size;
+      auto connlimit = connlimit_watchdog_.GetConnlimit();
+      if (connlimit > 0) {
+        settings.max_size = connlimit;
+        if (settings.min_size > settings.max_size)
+          settings.min_size = settings.max_size;
+      }
     }
 
     cluster.Commit();
