@@ -100,6 +100,7 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 * @ref pg_user_row_types
 * @ref pg_errors
 * @ref pg_topology
+* @ref scripts/docs/en/userver/pg_connlimit_mode_auto.md
 * @ref pg_user_types
   * @ref pg_composite_types
   * @ref pg_enum

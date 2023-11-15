@@ -54,7 +54,7 @@
 /// ----------
 ///
 /// @htmlonly <div class="bottom-nav"> @endhtmlonly
-/// ⇦ @ref pg_errors | @ref pg_user_types ⇨
+/// ⇦ @ref pg_errors | @ref scripts/docs/en/userver/pg_connlimit_mode_auto.md ⇨
 /// @htmlonly </div> @endhtmlonly
 
 USERVER_NAMESPACE_BEGIN

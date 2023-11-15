@@ -392,6 +392,8 @@ schema:
   type: boolean
 ```
 
+Used by components::Postgres.
+
 @anchor POSTGRES_STATEMENT_METRICS_SETTINGS
 ## POSTGRES_STATEMENT_METRICS_SETTINGS
 

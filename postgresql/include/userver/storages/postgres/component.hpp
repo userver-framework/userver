@@ -129,7 +129,7 @@ namespace components {
 /// max_pool_size           | maximum number of created connections                     | 15
 /// max_queue_size          | maximum number of clients waiting for a connection        | 200
 /// connecting_limit        | limit for concurrent establishing connections number per pool (0 - unlimited) | 0
-/// connlimit_mode          | max_connections setup mode (manual or auto)               | auto
+/// connlimit_mode          | max_connections setup mode (manual or auto), also see @ref scripts/docs/en/userver/pg_connlimit_mode_auto.md | auto
 /// error-injection         | artificial error injection settings, error_injection::Settings | --
 
 // clang-format on
