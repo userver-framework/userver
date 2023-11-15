@@ -41,10 +41,8 @@ components_manager:
 # yaml
   task_processors:
     fs-task-processor:
-      thread_name: fs-worker
       worker_threads: 2
     main-task-processor:
-      thread_name: main-worker
       worker_threads: 4
       task-trace:
         every: 1
@@ -70,9 +68,6 @@ components_manager:
       listener:
           port: $server-port
           task_processor: main-task-processor
-    statistics-storage: # Nothing
-    auth-checker-settings: # Nothing
-    manager-controller:  # Nothing
 
     init-open-file-checker:
         init-logger-path: $init_log_path

@@ -13,6 +13,26 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
+namespace {
+
+std::string GenerateWorkerThreadName(std::string_view tp_name) {
+  static constexpr std::string_view kExpectedSuffix = "-task-processor";
+  if (utils::text::EndsWith(tp_name, kExpectedSuffix)) {
+    std::string_view short_name{tp_name};
+    short_name.remove_suffix(kExpectedSuffix.size());
+    if (!short_name.empty() && short_name.size() <= 5) {
+      return fmt::format("{}-worker", short_name);
+    }
+  }
+  throw std::runtime_error(fmt::format(
+      "thread_name is only automatically derived for task processors with "
+      "names in the form: \"\\w{{1,5}}-task-processor\". Please specify "
+      "thread_name in the config explicitly for '{}' task processor",
+      tp_name));
+}
+
+}  // namespace
+
 OsScheduling Parse(const yaml_config::YamlConfig& value,
                    formats::parse::To<OsScheduling>) {
   static constexpr utils::TrivialBiMap kMap([](auto selector) {
@@ -52,8 +72,7 @@ TaskProcessorConfig Parse(const yaml_config::YamlConfig& value,
 void TaskProcessorConfig::SetName(const std::string& new_name) {
   name = new_name;
   if (thread_name.empty()) {
-    auto parts = utils::text::SplitIntoStringViewVector(new_name, "-");
-    thread_name = fmt::format("{}-worker", parts.at(0));
+    thread_name = GenerateWorkerThreadName(name);
   }
 }
 

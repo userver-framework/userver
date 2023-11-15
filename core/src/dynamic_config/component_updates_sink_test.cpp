@@ -30,25 +30,18 @@ constexpr std::string_view kConfigVarsTemplate = R"(
 
 constexpr std::string_view kStaticConfig = R"(
 components_manager:
-  coro_pool:
-    initial_size: 50
-    max_size: 500
   default_task_processor: main-task-processor
   event_thread_pool:
     threads: 1
   task_processors:
     main-task-processor:
-      thread_name: main-worker
       worker_threads: 1
   components:
-    manager-controller:  # Nothing
     logging:
       fs-task-processor: main-task-processor
       loggers:
         default:
           file_path: '@null'
-    statistics-storage:
-      # Nothing
     dynamic-config:
       updates-enabled: true
       defaults-path: $runtime_config_path

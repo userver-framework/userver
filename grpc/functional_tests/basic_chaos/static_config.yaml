@@ -9,7 +9,6 @@ components_manager:
                     file_path: '@stderr'
                     level: debug
                     overflow_behavior: discard
-        dynamic-config:
 
         # gRPC server and service
         grpc-server:
@@ -48,7 +47,6 @@ components_manager:
             listener:
                 port: 8092
                 task_processor: main-task-processor
-        auth-checker-settings:
 
         # http handler for test case
         greeter-http-handler:
@@ -76,16 +74,12 @@ components_manager:
         grpc-client-baggage:
 
     default_task_processor: main-task-processor
+
     task_processors:
         grpc-blocking-task-processor:  # For blocking gRPC channel creation
             thread_name: grpc-worker
             worker_threads: 2
         main-task-processor:           # For non-blocking operations
-            thread_name: main-worker
             worker_threads: 4
         fs-task-processor:             # For blocking filesystem operations
-            thread_name: fs-worker
             worker_threads: 2
-    coro_pool:
-        initial_size: 500
-        max_size: 1000

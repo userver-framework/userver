@@ -55,15 +55,11 @@ namespace {
 
 constexpr std::string_view kStaticConfigBase = R"(
 components_manager:
-  coro_pool:
-    initial_size: 50
-    max_size: 500
-  default_task_processor: main-task-processor
   event_thread_pool:
     threads: 1
+  default_task_processor: main-task-processor
   task_processors:
     main-task-processor:
-      thread_name: main-worker
       worker_threads: 1
   components:
     logging:
@@ -71,8 +67,6 @@ components_manager:
       loggers:
         default:
           file_path: '@null'
-    tracer:
-      service-name: config-service
 )";
 
 constexpr std::string_view kCustomGreetingConfig = R"(

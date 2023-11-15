@@ -57,21 +57,13 @@ components_manager:
                     level: debug
                     overflow_behavior: discard
 
-        dynamic-config:
-
         dns-client:
             fs-task-processor: fs-task-processor
-    coro_pool:
-        initial_size: 500
-        max_size: 1000
 
     task_processors:
         main-task-processor:
             worker_threads: 4
-            thread_name: main-worker
-
         fs-task-processor:
-            thread_name: fs-worker
             worker_threads: 4
 
     default_task_processor: main-task-processor

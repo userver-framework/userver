@@ -68,6 +68,8 @@ class ManagerControllerComponent final : public impl::ComponentBase {
 
   ~ManagerControllerComponent() override;
 
+  /// @ingroup userver_component_names
+  /// @brief The default name of components::ManagerControllerComponent
   static constexpr std::string_view kName = "manager-controller";
 
  private:

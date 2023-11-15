@@ -7,7 +7,6 @@
 #include <string>
 
 #include <userver/components/component_list.hpp>
-#include <userver/logging/format.hpp>
 #include <userver/utils/strong_typedef.hpp>
 
 USERVER_NAMESPACE_BEGIN

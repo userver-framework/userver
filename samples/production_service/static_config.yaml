@@ -173,15 +173,14 @@ components_manager:
             throttling_enabled: false
         testsuite-support:
             testsuite-periodic-dumps-enabled: $userver-dumps-periodic
-        tracer:  # Component that helps to trace execution times and requests in logs.
-            service-name: $service-name
-            tracer: native
     coro_pool:
         initial_size: $coro-pool-initial-size
         initial_size#fallback: 5000
         max_size: $coro-pool-max-size
         max_size#fallback: 50000
-    default_task_processor: main-task-processor
+
+    default_task_processor: main-task-processor  # Task processor in which components start.
+
     # /// [Production service sample - static config task processors]
     # yaml
     task_processors:

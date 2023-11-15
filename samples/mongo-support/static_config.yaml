@@ -10,8 +10,9 @@ components_manager:
 
         monitor-task-processor:       # for monitoring
             worker_threads: 1
+            thread_name: mon-worker
 
-    default_task_processor: main-task-processor
+    default_task_processor: main-task-processor  # Task processor in which components start.
 
     components:                       # Configuring components that were registered via component_list
         server:
@@ -33,8 +34,6 @@ components_manager:
                     file_path: '@stderr'
                     level: debug
                     overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
-
-        dynamic-config:                      # Dynamic config storage options, do nothing
 
         http-client:
             fs-task-processor: fs-task-processor

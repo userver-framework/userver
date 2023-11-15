@@ -44,18 +44,14 @@ components_manager:
     threads: 1
   task_processors:
     main-task-processor:
-      thread_name: main-worker
       worker_threads: 1
   components:
-    manager-controller:
     logging:
       fs-task-processor: main-task-processor
       loggers:
         default:
           file_path: $logger_file_path
           format: ltsv
-    statistics-storage:
-    dynamic-config:
 config_vars: )";
 
 struct TracingGuard final {

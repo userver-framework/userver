@@ -30,7 +30,6 @@ components_manager:
     threads: 1
   task_processors:
     main-task-processor:
-      thread_name: main-worker
       worker_threads: 1
   components: {}
 )";
@@ -65,7 +64,6 @@ components_manager:
     threads: 1
   task_processors:
     main-task-processor:
-      thread_name: main-worker
       worker_threads: 1
   components:
     logging:
@@ -132,7 +130,6 @@ components_manager:
     threads: 1
   task_processors:
     main-task-processor:
-      thread_name: main-worker
       worker_threads: 1
   components:
     logging:

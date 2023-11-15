@@ -26,6 +26,8 @@ constexpr std::string_view kConfigVarsTemplate = R"(
   server-monitor-port: {6}
 )";
 
+// We deliberately have some defaulted options explicitly specified here, for
+// testing and documentation purposes.
 // BEWARE! No separate fs-task-processor. Testing almost single thread mode
 constexpr std::string_view kStaticConfig = R"(
 components_manager:

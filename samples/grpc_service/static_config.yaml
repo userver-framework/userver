@@ -9,7 +9,6 @@ components_manager:
                     file_path: '@stderr'
                     level: debug
                     overflow_behavior: discard
-        dynamic-config:
 
 # /// [gRPC sample - static config client]
 # yaml
@@ -50,7 +49,6 @@ components_manager:
             listener:
                 port: 8092
                 task_processor: main-task-processor
-        auth-checker-settings:
         greeter-http-handler:
             path: /hello
             method: POST
@@ -58,12 +56,14 @@ components_manager:
 
         testsuite-support:
 
-    default_task_processor: main-task-processor
+    default_task_processor: main-task-processor  # Task processor in which components start.
+
 # /// [gRPC sample - task processor]
 # yaml
     task_processors:
         grpc-blocking-task-processor:  # For blocking gRPC channel creation
             worker_threads: 2
+            thread_name: grpc-worker
 # /// [gRPC sample - task processor]
         main-task-processor:           # For non-blocking operations
             worker_threads: 8
