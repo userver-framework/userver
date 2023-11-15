@@ -23,7 +23,7 @@ auto try_sigdescr_np(Int signal_num) noexcept
 template <class... Args>
 const char* try_sigdescr_np(Args...) noexcept {
 #if ((__GLIBC__ * 100 + __GLIBC_MINOR__) >= 232)
-  static_assert(sizeof...(Args) != 0,
+  static_assert(sizeof...(Args) && false,
                 "This version of glibc is known to have sigdescr_np. Error in "
                 "function detection");
 #endif

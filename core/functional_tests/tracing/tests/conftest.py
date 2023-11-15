@@ -45,43 +45,51 @@ async def assert_ids_in_file(taxi_test_service, jaeger_logs_path):
     with open(jaeger_logs_path, 'w') as jaeger_file:
         jaeger_file.truncate(0)
 
+    trace_id = ''
+
+    # Cheking the capture only after the capturing was stopped, to make shure
+    # that the logs were flushed
+    async def _check_the_files(check_trace_id: str):
+        nonlocal trace_id
+        assert not trace_id, 'Fixture assert_ids_in_file was invoked twice'
+        trace_id = check_trace_id
+
     async with taxi_test_service.capture_logs() as capture:
-
-        async def _check_the_files(trace_id: str):
-            records = capture.select(trace_id=trace_id)
-            assert len(records) >= 1, capture.select()
-
-            retries = 100
-            required_data = {
-                f'\ttrace_id={trace_id}',
-                'service_name=http-tracing-test',
-                'duration=',
-                'operation_name=external',
-                'tags=[{"',
-                'test-service/echo-no-body"',
-                '"key":"http.url"',
-                '"key":"http.status_code"',
-                '"value":"200"',
-                '}]',
-            }
-
-            for _ in range(retries):
-                probable_lines = []
-                with open(jaeger_logs_path, 'r') as jaeger_file:
-                    for line in reversed(jaeger_file.read().split('\n')):
-                        if trace_id in line:
-                            probable_lines.append(line)
-
-                        if all(substr in line for substr in required_data):
-                            return
-
-                await asyncio.sleep(0.5)
-            assert False, (
-                f'Missing substrings {required_data} in opentracing file '
-                f'for trace id {trace_id}. Lines:\n {probable_lines}'
-            )
-
         yield _check_the_files
+        assert trace_id, 'Fixture assert_ids_in_file was not invoked'
+
+    records = capture.select(trace_id=trace_id)
+    assert len(records) >= 1, capture.select()
+
+    retries = 100
+    required_data = {
+        f'\ttrace_id={trace_id}',
+        'service_name=http-tracing-test',
+        'duration=',
+        'operation_name=external',
+        'tags=[{"',
+        'test-service/echo-no-body"',
+        '"key":"http.url"',
+        '"key":"http.status_code"',
+        '"value":"200"',
+        '}]',
+    }
+
+    for _ in range(retries):
+        probable_lines = []
+        with open(jaeger_logs_path, 'r') as jaeger_file:
+            for line in reversed(jaeger_file.read().split('\n')):
+                if trace_id in line:
+                    probable_lines.append(line)
+
+                if all(substr in line for substr in required_data):
+                    return
+
+        await asyncio.sleep(0.5)
+    assert False, (
+        f'Missing substrings {required_data} in opentracing file '
+        f'for trace id {trace_id}. Lines:\n {probable_lines}'
+    )
 
 
 @pytest.fixture
