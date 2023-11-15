@@ -13,6 +13,7 @@
 #include <userver/formats/json/iterator.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/string_builder_fwd.hpp>
+#include <userver/formats/json/validate.hpp>
 #include <userver/formats/parse/common.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -35,6 +36,7 @@ impl::Value MakeJsonStringViewValue(std::string_view view);
 
 class ValueBuilder;
 struct PrettyFormat;
+class Schema;
 
 namespace parser {
 class JsonValueParser;
@@ -294,6 +296,7 @@ class Value final {
   friend class Iterator;
   friend class ValueBuilder;
   friend class StringBuilder;
+  friend class Schema;
   friend class impl::InlineObjectBuilder;
   friend class impl::InlineArrayBuilder;
   friend class impl::MutableValueWrapper;
@@ -309,6 +312,8 @@ class Value final {
   friend std::string ToPrettyString(const formats::json::Value& doc,
                                     PrettyFormat format);
   friend logging::LogHelper& operator<<(logging::LogHelper&, const Value&);
+  friend bool Validate(const formats::json::Value&,
+                       const formats::json::Schema&);
 };
 
 template <typename T>

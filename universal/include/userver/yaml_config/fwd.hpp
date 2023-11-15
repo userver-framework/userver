@@ -12,6 +12,7 @@ namespace yaml_config {
 
 class YamlConfig;
 
+// NOLINTNEXTLINE(bugprone-forward-declaration-namespace)
 struct Schema;
 
 }  // namespace yaml_config
