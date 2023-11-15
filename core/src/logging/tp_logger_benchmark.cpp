@@ -6,6 +6,7 @@
 #include <userver/engine/run_standalone.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/logging/logger.hpp>
+#include <userver/tracing/span.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 #include <utils/gbench_auxilary.hpp>
 
@@ -63,5 +64,36 @@ BENCHMARK_REGISTER_F(TpLoggerBenchmark, LogString)
     ->RangeMultiplier(2)
     ->Range(8, 8 << 10)
     ->Complexity();
+
+namespace {
+
+__attribute__((noinline)) void LogDebug() { LOG_DEBUG() << 42; }
+
+__attribute__((noinline)) void LogInfo() { LOG_INFO() << 42; }
+
+}  // namespace
+
+BENCHMARK_DEFINE_F(TpLoggerBenchmark, LogCheck)
+(benchmark::State& state) {
+  engine::RunStandalone(2, [&] {
+    auto scope = StartAsyncLoggerScope();
+    for ([[maybe_unused]] auto _ : state) {
+      LogDebug();
+    }
+  });
+}
+BENCHMARK_REGISTER_F(TpLoggerBenchmark, LogCheck);
+
+BENCHMARK_DEFINE_F(TpLoggerBenchmark, LogCheckSpan)
+(benchmark::State& state) {
+  engine::RunStandalone(2, [&] {
+    auto scope = StartAsyncLoggerScope();
+    tracing::Span::CurrentSpan().SetLocalLogLevel(logging::Level::kError);
+    for ([[maybe_unused]] auto _ : state) {
+      LogInfo();
+    }
+  });
+}
+BENCHMARK_REGISTER_F(TpLoggerBenchmark, LogCheckSpan);
 
 USERVER_NAMESPACE_END

@@ -151,9 +151,7 @@ void TpLogger::PrependCommonTags(TagWriter writer) const {
   writer.PutTag("thread_id", Hex{thread_id});
 }
 
-bool TpLogger::ShouldLog(Level level) const noexcept {
-  if (!LoggerBase::ShouldLog(level)) return false;
-
+bool TpLogger::DoShouldLog(Level level) const noexcept {
   const auto* const span = tracing::Span::CurrentSpanUnchecked();
   if (span) {
     const auto local_log_level = span->GetLocalLogLevel();

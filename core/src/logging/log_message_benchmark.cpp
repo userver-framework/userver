@@ -88,17 +88,14 @@ BENCHMARK_REGISTER_F(LogHelperBenchmark, LogChar)
     ->Range(8, 8 << 10)
     ->Complexity();
 
+__attribute__((noinline)) void LogTrace() { LOG_TRACE() << 42; }
+
 BENCHMARK_DEFINE_F(LogHelperBenchmark, LogCheck)(benchmark::State& state) {
-  const auto msg = Launder(std::string(state.range(0), '*'));
   for ([[maybe_unused]] auto _ : state) {
-    LOG_TRACE() << msg.c_str();
+    LogTrace();
   }
-  state.SetComplexityN(state.range(0));
 }
-BENCHMARK_REGISTER_F(LogHelperBenchmark, LogCheck)
-    ->RangeMultiplier(2)
-    ->Range(8, 8 << 10)
-    ->Complexity();
+BENCHMARK_REGISTER_F(LogHelperBenchmark, LogCheck);
 
 struct StreamedStruct {
   int64_t intVal;

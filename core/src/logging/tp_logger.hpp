@@ -76,7 +76,6 @@ class TpLogger final : public LoggerBase {
   void Log(Level level, std::string_view msg) override;
   void Flush() override;
   void PrependCommonTags(TagWriter writer) const override;
-  bool ShouldLog(Level level) const noexcept override;
 
   void AddSink(impl::SinkPtr&& sink);
   const std::vector<impl::SinkPtr>& GetSinks() const;
@@ -85,6 +84,9 @@ class TpLogger final : public LoggerBase {
   std::string_view GetLoggerName() const noexcept;
 
   statistics::LogStatistics& GetStatistics() noexcept;
+
+ protected:
+  bool DoShouldLog(Level level) const noexcept override;
 
  private:
   struct ActionVisitor;
