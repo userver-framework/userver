@@ -2,8 +2,10 @@
 
 #include <rapidjson/reader.h>
 #include <rapidjson/schema.h>
+#include <optional>
 
 #include <formats/json/impl/accept.hpp>
+#include <formats/json/impl/types_impl.hpp>
 #include <userver/formats/json/impl/types.hpp>
 #include <userver/formats/json/value.hpp>
 
@@ -31,10 +33,17 @@ Schema::Schema(const formats::json::Value& doc)
 
 Schema::~Schema() = default;
 
-bool Validate(const formats::json::Value& doc,
-              const formats::json::Schema& schema) {
+std::optional<formats::json::Value> Validate(
+    const formats::json::Value& doc, const formats::json::Schema& schema) {
   impl::SchemaValidator validator(schema.pimpl_->schemaDocument);
-  return AcceptNoRecursion(doc.GetNative(), validator);
+  if (!AcceptNoRecursion(doc.GetNative(), validator)) {
+    impl::Document json;
+    json.Swap(validator.GetError());
+    return formats::json::Value(
+        impl::VersionedValuePtr::Create(std::move(json)));
+  }
+
+  return {};
 }
 
 }  // namespace formats::json
