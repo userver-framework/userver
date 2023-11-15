@@ -12,7 +12,10 @@ class Plugin;
 
 class Component final : public plugin::ComponentBase {
  public:
-  static constexpr auto kName = "http-client-plugin-yandex-tracing";
+  /// @ingroup userver_component_names
+  /// @brief The default name of
+  /// clients::http::plugins::yandex_tracing::Component component
+  static constexpr std::string_view kName = "http-client-plugin-yandex-tracing";
 
   Component(const components::ComponentConfig&,
             const components::ComponentContext&);

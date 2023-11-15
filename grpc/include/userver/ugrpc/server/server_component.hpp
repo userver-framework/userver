@@ -39,6 +39,8 @@ struct ServiceDefaults;
 // clang-format on
 class ServerComponent final : public components::LoggableComponentBase {
  public:
+  /// @ingroup userver_component_names
+  /// @brief The default name of ugrpc::server::ServerComponent
   static constexpr std::string_view kName = "grpc-server";
 
   ServerComponent(const components::ComponentConfig& config,

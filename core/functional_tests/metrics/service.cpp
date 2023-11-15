@@ -44,7 +44,7 @@ class CachedTranslations final
 class LruCachedTranslations final
     : public cache::LruCacheComponent<std::string, std::string> {
  public:
-  static constexpr auto kName = "sample-lru-cache";
+  static constexpr std::string_view kName = "sample-lru-cache";
 
   LruCachedTranslations(const components::ComponentConfig& config,
                         const components::ComponentContext& context)

@@ -18,6 +18,9 @@ namespace ugrpc::server::middlewares::deadline_propagation {
 /// @see @ref scripts/docs/en/userver/deadline_propagation.md
 class Component final : public MiddlewareComponentBase {
  public:
+  /// @ingroup userver_component_names
+  /// @brief The default name of
+  // ugrpc::server::middlewares::deadline_propagation::Component
   static constexpr std::string_view kName = "grpc-server-deadline-propagation";
 
   Component(const components::ComponentConfig& config,

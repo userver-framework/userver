@@ -14,15 +14,9 @@ namespace components {
 /// @brief Returns a list of components to start a basic HTTP server.
 ///
 /// The list contains:
-/// * components::HttpServerSettings
+/// * all of components::MinimalComponentList
 /// * components::Server
 /// * components::AuthCheckerSettings
-/// * components::Logging
-/// * components::Tracer
-/// * components::ManagerControllerComponent
-/// * components::StatisticsStorage
-/// * components::DynamicConfig
-/// * components::DynamicConfigFallbacksComponent
 ComponentList MinimalServerComponentList();
 
 }  // namespace components

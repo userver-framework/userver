@@ -25,7 +25,6 @@ namespace server::handlers {
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// warmup-time-secs | how much time it needs to warmup the server | 0
-///
 class Ping final : public HttpHandlerBase {
  public:
   Ping(const components::ComponentConfig& config,

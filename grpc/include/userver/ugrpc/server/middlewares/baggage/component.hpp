@@ -14,9 +14,10 @@ namespace ugrpc::server::middlewares::baggage {
 /// @ingroup userver_components userver_base_classes
 ///
 /// @brief Component for gRPC server baggage
-
 class Component final : public MiddlewareComponentBase {
  public:
+  /// @ingroup userver_component_names
+  /// @brief The default name of ugrpc::server::middlewares::baggage::Component
   static constexpr std::string_view kName = "grpc-server-baggage";
 
   Component(const components::ComponentConfig& config,

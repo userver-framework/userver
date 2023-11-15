@@ -34,7 +34,7 @@ namespace {
 
 // Don't take this as an example! A good example is SampleComponentWithDumps.
 struct DummyEntity final : public dump::DumpableEntity {
-  static constexpr auto kName = "dummy";
+  static constexpr std::string_view kName = "dummy";
 
   void GetAndWrite(dump::Writer& writer) const override {
     std::unique_lock lock(check_no_data_race_mutex, std::try_to_lock);
@@ -356,7 +356,7 @@ namespace {
 class SampleComponentWithDumps final : public components::LoggableComponentBase,
                                        private dump::DumpableEntity {
  public:
-  static constexpr auto kName = "component-with-dumps";
+  static constexpr std::string_view kName = "component-with-dumps";
 
   SampleComponentWithDumps(const components::ComponentConfig& config,
                            const components::ComponentContext& context)

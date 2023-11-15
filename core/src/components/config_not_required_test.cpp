@@ -19,7 +19,7 @@ std::string expected_greeting;
 class ConfigNotRequiredComponent final
     : public components::LoggableComponentBase {
  public:
-  static constexpr auto kName = "config-not-required";
+  static constexpr std::string_view kName = "config-not-required";
 
   ConfigNotRequiredComponent(const components::ComponentConfig& config,
                              const components::ComponentContext& context)

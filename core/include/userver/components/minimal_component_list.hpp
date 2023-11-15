@@ -21,7 +21,6 @@ namespace components {
 /// * components::ManagerControllerComponent
 /// * components::StatisticsStorage
 /// * components::DynamicConfig
-/// * components::DynamicConfigFallbacksComponent
 /// * tracing::DefaultTracingManagerLocator
 ComponentList MinimalComponentList();
 
