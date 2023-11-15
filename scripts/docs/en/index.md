@@ -123,6 +123,7 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 ## Opensource
 * @ref scripts/docs/en/userver/development/stability.md
 * @ref scripts/docs/en/userver/driver_guide.md
+* @ref scripts/docs/en/userver/tutorial/build_userver.md
 * @ref scripts/docs/en/userver/publications.md
 * @ref CONTRIBUTING.md
 * @ref SECURITY.md
