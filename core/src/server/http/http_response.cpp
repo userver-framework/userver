@@ -15,6 +15,7 @@
 #include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/datetime/wall_coarse_clock.hpp>
+#include <userver/utils/small_string.hpp>
 
 #include <server/http/http_cached_date.hpp>
 
@@ -85,22 +86,27 @@ namespace server::http {
 
 namespace impl {
 
-void OutputHeader(std::string& header, std::string_view key,
+template <std::size_t N>
+void OutputHeader(utils::SmallString<N>& header, std::string_view key,
                   std::string_view val) {
   const auto old_size = header.size();
-  header.resize(old_size + key.size() + kKeyValueHeaderSeparator.size() +
-                val.size() + kCrlf.size());
 
-  char* append_position = header.data() + old_size;
-  const auto append = [&append_position](std::string_view what) {
-    std::memcpy(append_position, what.data(), what.size());
-    append_position += what.size();
-  };
+  header.resize_and_overwrite(
+      old_size + key.size() + kKeyValueHeaderSeparator.size() + val.size() +
+          kCrlf.size(),
+      [&](char* data, std::size_t size) {
+        char* append_position = data + old_size;
+        const auto append = [&append_position](std::string_view what) {
+          std::memcpy(append_position, what.data(), what.size());
+          append_position += what.size();
+        };
 
-  append(key);
-  append(kKeyValueHeaderSeparator);
-  append(val);
-  append(kCrlf);
+        append(key);
+        append(kKeyValueHeaderSeparator);
+        append(val);
+        append(kCrlf);
+        return size;
+      });
 }
 
 }  // namespace impl
@@ -243,17 +249,26 @@ void HttpResponse::SendResponse(engine::io::RwBase& socket) {
   // Adjusting it to 1KiB to fit jemalloc size class
   static constexpr auto kTypicalHeadersSize = 1024;
 
-  // TODO : this could very well be small_vector<char> instead, or we could
-  // pass a string from connection and reuse it.
-  std::string header;
-  header.reserve(kTypicalHeadersSize);
-
-  header.append("HTTP/");
-  fmt::format_to(std::back_inserter(header), FMT_COMPILE("{}.{} {} "),
-                 request_.GetHttpMajor(), request_.GetHttpMinor(),
-                 static_cast<int>(status_));
-  header.append(HttpStatusString(status_));
-  header.append(kCrlf);
+  utils::SmallString<0> header;
+  std::size_t old_size = header.size();
+  char* append_position = header.data() + old_size;
+  const auto append = [&append_position](std::string_view what) {
+    std::memcpy(append_position, what.data(), what.size());
+    append_position += what.size();
+  };
+  header.resize_and_overwrite(
+      kTypicalHeadersSize, [&]([[maybe_unused]] char* data, std::size_t size) {
+        const auto append = [&append_position](std::string_view what) {
+          std::memcpy(append_position, what.data(), what.size());
+          append_position += what.size();
+        };
+        append(std::string_view("HTTP/"));
+        append(fmt::format(FMT_COMPILE("{}.{} {} "), request_.GetHttpMajor(),
+                           request_.GetHttpMinor(), static_cast<int>(status_)));
+        append(HttpStatusString(status_));
+        append(kCrlf);
+        return size;
+      });
 
   headers_.erase(USERVER_NAMESPACE::http::headers::kContentLength);
   const auto end = headers_.end();
@@ -272,10 +287,24 @@ void HttpResponse::SendResponse(engine::io::RwBase& socket) {
                        (request_.IsFinal() ? kClose : kKeepAlive));
   }
   for (const auto& cookie : cookies_) {
-    header.append(USERVER_NAMESPACE::http::headers::kSetCookie);
-    header.append(kKeyValueHeaderSeparator);
+    old_size = header.size();
+    append_position = header.data() + old_size;
+
+    header.resize_and_overwrite(
+        old_size +
+            USERVER_NAMESPACE::http::headers::kSetCookie
+                .
+                operator std::string_view()
+                .size() +
+            kKeyValueHeaderSeparator.size() + kCrlf.size(),
+        [&]([[maybe_unused]] char* data, std::size_t size) {
+          append(USERVER_NAMESPACE::http::headers::kSetCookie);
+          append(kKeyValueHeaderSeparator);
+          return size;
+        });
+
     cookie.second.AppendToString(header);
-    header.append(kCrlf);
+    append(kCrlf);
   }
 
   std::size_t sent_bytes{};
@@ -290,8 +319,9 @@ void HttpResponse::SendResponse(engine::io::RwBase& socket) {
   SetSent(sent_bytes, std::chrono::steady_clock::now());
 }
 
+template <std::size_t N>
 std::size_t HttpResponse::SetBodyNotStreamed(engine::io::RwBase& socket,
-                                             std::string& header) {
+                                             utils::SmallString<N>& header) {
   const bool is_body_forbidden = IsBodyForbiddenForStatus(status_);
   const bool is_head_request = request_.GetMethod() == HttpMethod::kHead;
   const auto& data = GetData();
@@ -300,7 +330,12 @@ std::size_t HttpResponse::SetBodyNotStreamed(engine::io::RwBase& socket,
     impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kContentLength,
                        fmt::format(FMT_COMPILE("{}"), data.size()));
   }
-  header.append(kCrlf);
+  const std::size_t old_size = header.size();
+  header.resize_and_overwrite(header.size() + kCrlf.size(),
+                              [&old_size](char* data, std::size_t size) {
+                                std::memcpy(data + old_size, kCrlf.begin(), kCrlf.size());
+                                return size;
+                              });
 
   if (is_body_forbidden && !data.empty()) {
     LOG_LIMITED_WARNING()
@@ -322,14 +357,15 @@ std::size_t HttpResponse::SetBodyNotStreamed(engine::io::RwBase& socket,
   return sent_bytes;
 }
 
+template <std::size_t N>
 std::size_t HttpResponse::SetBodyStreamed(engine::io::RwBase& socket,
-                                          std::string& header) {
+                                          utils::SmallString<N>& header) {
   impl::OutputHeader(
       header, USERVER_NAMESPACE::http::headers::kTransferEncoding, "chunked");
 
   // send HTTP headers
   size_t sent_bytes = socket.WriteAll(header.data(), header.size(), {});
-  std::string{}.swap(header);  // free memory before time-consuming operation
+  header.clear();  // free memory before time-consuming operation
 
   // Transmit HTTP response body
   std::string body_part;
