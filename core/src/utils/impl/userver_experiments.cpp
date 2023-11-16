@@ -99,8 +99,6 @@ void UserverExperimentsScope::EnableOnly(
 UserverExperiment kRedisClusterAutoTopologyExperiment{
     "redis-cluster-autotopology"};
 
-UserverExperiment kPhdrCacheExperiment{"phdr-cache"};
-
 }  // namespace utils::impl
 
 USERVER_NAMESPACE_END

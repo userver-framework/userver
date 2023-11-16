@@ -151,11 +151,12 @@ std::atomic<PhdrCacheStorage*> phdr_cache_ptr{nullptr};
 class PhdrCache final {
  public:
   void Initialize() {
-    if (!utils::impl::kPhdrCacheExperiment.IsEnabled()) {
+    if (phdr_cache_ptr.load() != nullptr) {
       return;
     }
     LOG_INFO() << "Initializing phdr cache";
 
+    cache_.clear();
     GetOriginalDlIteratePhdr()(
         [](dl_phdr_info* info, size_t /* size */, void* data) {
           reinterpret_cast<PhdrCacheStorage*>(data)->push_back(*info);
@@ -163,8 +164,7 @@ class PhdrCache final {
         },
         &cache_);
 
-    [[maybe_unused]] const auto* old_cache = phdr_cache_ptr.exchange(&cache_);
-    UASSERT(!old_cache);
+    phdr_cache_ptr.exchange(&cache_);
 
     LOG_INFO() << "Initialized phdr cache for " << cache_.size() << " objects";
   }
