@@ -38,13 +38,6 @@ components_manager:
         default:
           file_path: '@null'
     testsuite-support:
-      testsuite-periodic-update-enabled: true
-      testsuite-pg-execute-timeout: 300ms
-      testsuite-pg-statement-timeout: 300ms
-      testsuite-pg-readonly-master-expected: false
-      testsuite-redis-timeout-connect: 5s
-      testsuite-redis-timeout-single: 1s
-      testsuite-redis-timeout-all: 750ms
 )";
 
 void ValidateExampleCacheConfig(const formats::yaml::Value& static_config) {

@@ -130,7 +130,6 @@ components_manager:
             testpoint-url: $mockserver/testpoint
             throttling_enabled: false
         testsuite-support:
-            testsuite-periodic-dumps-enabled: $userver-dumps-periodic
         sample-cache:
             update-types: full-and-incremental
             full-update-interval: 1h

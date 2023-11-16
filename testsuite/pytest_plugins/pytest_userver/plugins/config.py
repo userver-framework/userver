@@ -415,6 +415,9 @@ def userver_config_testsuite_support(pytestconfig):
         if not service_runner:
             _disable_cache_periodic_update(testsuite_support)
         testsuite_support['testsuite-tasks-enabled'] = not service_runner
+        testsuite_support[
+            'testsuite-periodic-dumps-enabled'
+        ] = '$userver-dumps-periodic'
         components['testsuite-support'] = testsuite_support
 
     return patch_config

@@ -131,7 +131,6 @@ components_manager:
             testpoint-url: $mockserver/testpoint
             throttling_enabled: false
         testsuite-support:
-            testsuite-periodic-dumps-enabled: $userver-dumps-periodic
     coro_pool:
         initial_size: $coro-pool-initial-size
         initial_size#fallback: 5000
