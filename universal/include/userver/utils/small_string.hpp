@@ -93,6 +93,9 @@ class SmallString final {
   template <class Operation>
   void resize_and_overwrite(std::size_t size, Operation op);
 
+  /// @brief Shrink the string's size to fit all contents
+  void shrink_to_fit();
+
   /// @brief Get current capacity.
   std::size_t capacity() const noexcept;
 
@@ -265,6 +268,11 @@ void SmallString<N>::resize_and_overwrite(std::size_t size, Operation op) {
   data_.resize(size, boost::container::default_init);
   data_.resize(std::move(op)(data_.data(), size), boost::container::default_init);
   UASSERT(data_.size() <= size);
+}
+
+template <std::size_t N>
+void SmallString<N>::shrink_to_fit() {
+  data_.shrink_to_fit();
 }
 
 template <std::size_t N>
