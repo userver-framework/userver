@@ -46,7 +46,7 @@
 ///
 /// @htmlonly <div class="bottom-nav"> @endhtmlonly
 /// ⇦ @ref scripts/docs/en/userver/grpc.md |
-/// @ref scripts/docs/en/schemas/dynamic_configs.md ⇨
+/// @ref scripts/docs/en/userver/dynamic_config.md ⇨
 /// @htmlonly </div> @endhtmlonly
 
 USERVER_NAMESPACE_BEGIN

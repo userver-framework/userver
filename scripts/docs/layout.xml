@@ -63,7 +63,8 @@
         </tab>
       </tab>
       <tab type="usergroup" title="Runtime service features" url="@ref md_en_2index">
-        <tab type="user" url="@ref md_en_2schemas_2dynamic__configs" title="Dynamic configs"/>
+        <tab type="user" url="@ref md_en_2userver_2dynamic__config" title="Dynamic config"/>
+        <tab type="user" url="@ref md_en_2schemas_2dynamic__configs" title="Dynamic config schemas"/>
         <tab type="user" url="@ref md_en_2userver_2log__level__running__service" title="Changing the log level at runtime"/>
         <tab type="user" url="@ref md_en_2userver_2requests__in__flight" title="Inspecting in-flight requests"/>
         <tab type="user" url="@ref md_en_2userver_2service__monitor" title="Service Statistics and Metrics (Prometheus/Graphite/...)"/>

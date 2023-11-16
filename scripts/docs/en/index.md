@@ -74,6 +74,7 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 
 
 ## Runtime service features
+* @ref scripts/docs/en/userver/dynamic_config.md
 * @ref scripts/docs/en/schemas/dynamic_configs.md
 * @ref scripts/docs/en/userver/log_level_running_service.md
 * @ref scripts/docs/en/userver/requests_in_flight.md

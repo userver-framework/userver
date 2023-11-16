@@ -2645,6 +2645,7 @@
   "scripts/docs/en/userver/dns_control.md":"taxi/uservices/userver/scripts/docs/en/userver/dns_control.md",
   "scripts/docs/en/userver/docker.md":"taxi/uservices/userver/scripts/docs/en/userver/docker.md",
   "scripts/docs/en/userver/driver_guide.md":"taxi/uservices/userver/scripts/docs/en/userver/driver_guide.md",
+  "scripts/docs/en/userver/dynamic_config.md":"taxi/uservices/userver/scripts/docs/en/userver/dynamic_config.md",
   "scripts/docs/en/userver/faq.md":"taxi/uservices/userver/scripts/docs/en/userver/faq.md",
   "scripts/docs/en/userver/formats.md":"taxi/uservices/userver/scripts/docs/en/userver/formats.md",
   "scripts/docs/en/userver/framework_comparison.md":"taxi/uservices/userver/scripts/docs/en/userver/framework_comparison.md",
