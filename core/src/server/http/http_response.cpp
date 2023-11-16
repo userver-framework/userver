@@ -15,7 +15,6 @@
 #include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/datetime/wall_coarse_clock.hpp>
-#include <userver/utils/small_string.hpp>
 
 #include <server/http/http_cached_date.hpp>
 
@@ -76,6 +75,11 @@ bool IsBodyForbiddenForStatus(server::http::HttpStatus status) {
   return status == server::http::HttpStatus::kNoContent ||
          status == server::http::HttpStatus::kNotModified ||
          (static_cast<int>(status) >= 100 && static_cast<int>(status) < 200);
+}
+
+void AppendToCharArray(char* data, std::string_view what) {
+  char* append_position = data + strlen(data);
+  std::memcpy(append_position, what.begin(), what.size());
 }
 
 const std::string kEmptyString{};
@@ -249,24 +253,17 @@ void HttpResponse::SendResponse(engine::io::RwBase& socket) {
   // Adjusting it to 1KiB to fit jemalloc size class
   static constexpr auto kTypicalHeadersSize = 1024;
 
-  utils::SmallString<0> header;
+  utils::SmallString<kTypicalHeadersSize> header;
   std::size_t old_size = header.size();
-  char* append_position = header.data() + old_size;
-  const auto append = [&append_position](std::string_view what) {
-    std::memcpy(append_position, what.data(), what.size());
-    append_position += what.size();
-  };
   header.resize_and_overwrite(
       kTypicalHeadersSize, [&]([[maybe_unused]] char* data, std::size_t size) {
-        const auto append = [&append_position](std::string_view what) {
-          std::memcpy(append_position, what.data(), what.size());
-          append_position += what.size();
-        };
-        append(std::string_view("HTTP/"));
-        append(fmt::format(FMT_COMPILE("{}.{} {} "), request_.GetHttpMajor(),
-                           request_.GetHttpMinor(), static_cast<int>(status_)));
-        append(HttpStatusString(status_));
-        append(kCrlf);
+        AppendToCharArray(data, std::string_view("HTTP/"));
+        AppendToCharArray(
+            data,
+            fmt::format(FMT_COMPILE("{}.{} {} "), request_.GetHttpMajor(),
+                        request_.GetHttpMinor(), static_cast<int>(status_)));
+        AppendToCharArray(data, HttpStatusString(status_));
+        AppendToCharArray(data, kCrlf);
         return size;
       });
 
@@ -288,7 +285,6 @@ void HttpResponse::SendResponse(engine::io::RwBase& socket) {
   }
   for (const auto& cookie : cookies_) {
     old_size = header.size();
-    append_position = header.data() + old_size;
 
     header.resize_and_overwrite(
         old_size +
@@ -297,14 +293,15 @@ void HttpResponse::SendResponse(engine::io::RwBase& socket) {
                 operator std::string_view()
                 .size() +
             kKeyValueHeaderSeparator.size() + kCrlf.size(),
-        [&]([[maybe_unused]] char* data, std::size_t size) {
-          append(USERVER_NAMESPACE::http::headers::kSetCookie);
-          append(kKeyValueHeaderSeparator);
+        [&](char* data, std::size_t size) {
+          AppendToCharArray(data, USERVER_NAMESPACE::http::headers::kSetCookie);
+          AppendToCharArray(data, kKeyValueHeaderSeparator);
           return size;
         });
 
     cookie.second.AppendToString(header);
-    append(kCrlf);
+
+    AppendToCharArray(header.data(), kCrlf);
   }
 
   std::size_t sent_bytes{};
@@ -319,9 +316,8 @@ void HttpResponse::SendResponse(engine::io::RwBase& socket) {
   SetSent(sent_bytes, std::chrono::steady_clock::now());
 }
 
-template <std::size_t N>
 std::size_t HttpResponse::SetBodyNotStreamed(engine::io::RwBase& socket,
-                                             utils::SmallString<N>& header) {
+                                             HeadersString& header) {
   const bool is_body_forbidden = IsBodyForbiddenForStatus(status_);
   const bool is_head_request = request_.GetMethod() == HttpMethod::kHead;
   const auto& data = GetData();
@@ -331,11 +327,11 @@ std::size_t HttpResponse::SetBodyNotStreamed(engine::io::RwBase& socket,
                        fmt::format(FMT_COMPILE("{}"), data.size()));
   }
   const std::size_t old_size = header.size();
-  header.resize_and_overwrite(header.size() + kCrlf.size(),
-                              [&old_size](char* data, std::size_t size) {
-                                std::memcpy(data + old_size, kCrlf.begin(), kCrlf.size());
-                                return size;
-                              });
+  header.resize_and_overwrite(
+      header.size() + kCrlf.size(), [&old_size](char* data, std::size_t size) {
+        std::memcpy(data + old_size, kCrlf.begin(), kCrlf.size());
+        return size;
+      });
 
   if (is_body_forbidden && !data.empty()) {
     LOG_LIMITED_WARNING()
@@ -357,15 +353,15 @@ std::size_t HttpResponse::SetBodyNotStreamed(engine::io::RwBase& socket,
   return sent_bytes;
 }
 
-template <std::size_t N>
 std::size_t HttpResponse::SetBodyStreamed(engine::io::RwBase& socket,
-                                          utils::SmallString<N>& header) {
+                                          HeadersString& header) {
   impl::OutputHeader(
       header, USERVER_NAMESPACE::http::headers::kTransferEncoding, "chunked");
 
   // send HTTP headers
   size_t sent_bytes = socket.WriteAll(header.data(), header.size(), {});
   header.clear();  // free memory before time-consuming operation
+  header.shrink_to_fit();
 
   // Transmit HTTP response body
   std::string body_part;
