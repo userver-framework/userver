@@ -77,7 +77,7 @@ bool IsBodyForbiddenForStatus(server::http::HttpStatus status) {
          (static_cast<int>(status) >= 100 && static_cast<int>(status) < 200);
 }
 
-void AppendToCharArray(char* data, std::string_view what) {
+void AppendToCharArray(char* data, const std::string_view& what) {
   char* append_position = data + strlen(data);
   std::memcpy(append_position, what.begin(), what.size());
 }
@@ -255,17 +255,23 @@ void HttpResponse::SendResponse(engine::io::RwBase& socket) {
 
   utils::SmallString<kTypicalHeadersSize> header;
   std::size_t old_size = header.size();
-  header.resize_and_overwrite(
-      kTypicalHeadersSize, [&]([[maybe_unused]] char* data, std::size_t size) {
-        AppendToCharArray(data, std::string_view("HTTP/"));
-        AppendToCharArray(
-            data,
-            fmt::format(FMT_COMPILE("{}.{} {} "), request_.GetHttpMajor(),
-                        request_.GetHttpMinor(), static_cast<int>(status_)));
-        AppendToCharArray(data, HttpStatusString(status_));
-        AppendToCharArray(data, kCrlf);
-        return size;
-      });
+
+  const std::string_view http_string = "HTTP/";
+  const std::string protocol_and_status =
+      fmt::format(FMT_COMPILE("{}.{} {} "), request_.GetHttpMajor(),
+                  request_.GetHttpMinor(), static_cast<int>(status_));
+  const std::string_view status_string = HttpStatusString(status_);
+
+  header.resize_and_overwrite(http_string.size() + protocol_and_status.size() +
+                                  status_string.size() + kCrlf.size(),
+                              [&](char* data, std::size_t size) {
+                                AppendToCharArray(data,
+                                                  std::string_view("HTTP/"));
+                                AppendToCharArray(data, protocol_and_status);
+                                AppendToCharArray(data, status_string);
+                                AppendToCharArray(data, kCrlf);
+                                return size;
+                              });
 
   headers_.erase(USERVER_NAMESPACE::http::headers::kContentLength);
   const auto end = headers_.end();
