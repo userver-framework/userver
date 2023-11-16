@@ -285,6 +285,11 @@ void SmallString<N>::reserve(std::size_t n) {
   return data_.reserve(n);
 }
 
+template <std::size_t N>
+void SmallString<N>::clear() noexcept {
+  data_.clear();
+}
+
 }  // namespace utils
 
 USERVER_NAMESPACE_END
