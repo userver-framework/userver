@@ -99,16 +99,10 @@ void OutputHeader(utils::SmallString<N>& header, std::string_view key,
       old_size + key.size() + kKeyValueHeaderSeparator.size() + val.size() +
           kCrlf.size(),
       [&](char* data, std::size_t size) {
-        char* append_position = data + old_size;
-        const auto append = [&append_position](std::string_view what) {
-          std::memcpy(append_position, what.data(), what.size());
-          append_position += what.size();
-        };
-
-        append(key);
-        append(kKeyValueHeaderSeparator);
-        append(val);
-        append(kCrlf);
+        AppendToCharArray(data, key);
+        AppendToCharArray(data, kKeyValueHeaderSeparator);
+        AppendToCharArray(data, val);
+        AppendToCharArray(data, kCrlf);
         return size;
       });
 }
