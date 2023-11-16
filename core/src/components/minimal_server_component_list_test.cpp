@@ -3,17 +3,19 @@
 #include <fmt/format.h>
 #include <gmock/gmock.h>
 
+#include <userver/components/component.hpp>
 #include <userver/components/loggable_component_base.hpp>
+#include <userver/components/manager_controller_component.hpp>
 #include <userver/components/run.hpp>
+#include <userver/engine/sleep.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>  // for fs::blocking::TempDirectory
 #include <userver/fs/blocking/write.hpp>  // for fs::blocking::RewriteFileContents
 #include <userver/logging/component.hpp>
-#include <userver/yaml_config/merge_schemas.hpp>
+#include <userver/utils/async.hpp>
 
 #include <components/component_list_test.hpp>
 #include <userver/internal/net/net_listener.hpp>
-#include <userver/utest/current_process_open_files.hpp>
 #include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -68,10 +70,6 @@ components_manager:
       listener:
           port: $server-port
           task_processor: main-task-processor
-
-    init-open-file-checker:
-        init-logger-path: $init_log_path
-        init-logger-path#fallback: ''
 config_vars: )";
 
 class ServerMinimalComponentList : public ComponentList {
@@ -93,62 +91,28 @@ class ServerMinimalComponentList : public ComponentList {
   std::string static_config_ = std::string{kStaticConfig} + GetConfigVarsPath();
 };
 
-class InitOpenFileChecker final : public components::LoggableComponentBase {
+class TaskTraceProducer final : public components::LoggableComponentBase {
  public:
-  static constexpr std::string_view kName = "init-open-file-checker";
+  static constexpr std::string_view kName = "task-trace-producer";
 
-  InitOpenFileChecker(const components::ComponentConfig& conf,
-                      const components::ComponentContext& ctx)
-      : LoggableComponentBase(conf, ctx) {
-    init_path_ = conf["init-logger-path"].As<std::string>();
-    if (init_path_.empty()) {
-      return;
-    }
+  TaskTraceProducer(const components::ComponentConfig& config,
+                    const components::ComponentContext& context)
+      : components::LoggableComponentBase(config, context) {
+    // Task tracing is set up by ManagerControllerComponent.
+    // It may not work in constructors of components that don't depend on it.
+    [[maybe_unused]] const auto& manager_controller_component =
+        context.FindComponent<components::ManagerControllerComponent>();
+
+    // Task tracing is guaranteed to work for this task.
+    utils::Async(std::string{kName}, [] { engine::Yield(); }).Get();
   }
-
-  void OnAllComponentsAreStopping() override {
-    if (init_path_.empty()) {
-      return;
-    }
-
-    const auto files = utest::CurrentProcessOpenFiles();
-    ASSERT_THAT(files, testing::Not(testing::Contains(init_path_)))
-        << "Initial log file should be closed after the component system "
-           "started. Otherwise the open file descriptor prevents log file "
-           "deletion/rotation";
-
-    const auto logs = fs::blocking::ReadFileContents(init_path_);
-    EXPECT_THAT(logs, testing::HasSubstr("Using config_vars from config.yaml."))
-        << "Initial logs were not written to the init log. Init log content: "
-        << logs;
-  }
-
-  static void AssertFilesWereChecked() {
-    ASSERT_FALSE(init_path_.empty());
-    init_path_ = {};
-  }
-
-  static yaml_config::Schema GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
-type: object
-description: Sigusr1Checker component
-additionalProperties: false
-properties:
-    init-logger-path:
-        type: string
-        description: init logger path
-)");
-  }
-
- private:
-  inline static std::string init_path_{};
 };
 
-auto TestsComponentList() {
-  return components::MinimalServerComponentList().Append<InitOpenFileChecker>();
-}
-
 }  // namespace
+
+template <>
+inline constexpr auto components::kConfigFileMode<TaskTraceProducer> =
+    ConfigFileMode::kNotRequired;
 
 TEST_F(ServerMinimalComponentList, Basic) {
   constexpr std::string_view kConfigVarsTemplate = R"(
@@ -159,24 +123,7 @@ TEST_F(ServerMinimalComponentList, Basic) {
   fs::blocking::RewriteFileContents(GetConfigVarsPath(), config_vars);
 
   components::RunOnce(components::InMemoryConfig{GetStaticConfig()},
-                      TestsComponentList());
-}
-
-TEST_F(ServerMinimalComponentList, InitLogsClose) {
-  constexpr std::string_view kConfigVarsTemplate = R"(
-    init_log_path: {0}
-    server-port: {1}
-  )";
-  const std::string init_logs_path = GetTempRoot() + "/init_log.txt";
-  const auto config_vars =
-      fmt::format(kConfigVarsTemplate, init_logs_path, GetServerPort());
-
-  fs::blocking::RewriteFileContents(GetConfigVarsPath(), config_vars);
-
-  components::RunOnce(components::InMemoryConfig{GetStaticConfig()},
-                      TestsComponentList());
-
-  InitOpenFileChecker::AssertFilesWereChecked();
+                      components::MinimalServerComponentList());
 }
 
 TEST_F(ServerMinimalComponentList, TraceSwitching) {
@@ -190,16 +137,18 @@ TEST_F(ServerMinimalComponentList, TraceSwitching) {
 
   fs::blocking::RewriteFileContents(GetConfigVarsPath(), config_vars);
 
-  components::RunOnce(components::InMemoryConfig{GetStaticConfig()},
-                      TestsComponentList());
+  components::RunOnce(
+      components::InMemoryConfig{GetStaticConfig()},
+      components::MinimalServerComponentList().Append<TaskTraceProducer>());
 
   logging::LogFlush();
 
   const auto logs = fs::blocking::ReadFileContents(logs_path);
-  EXPECT_NE(logs.find(" changed state to kQueued"), std::string::npos);
-  EXPECT_NE(logs.find(" changed state to kRunning"), std::string::npos);
-  EXPECT_NE(logs.find(" changed state to kCompleted"), std::string::npos);
-  EXPECT_EQ(logs.find("stacktrace= 0# "), std::string::npos);
+  // Assert not to print all logs multiple times on failure.
+  ASSERT_THAT(logs, testing::HasSubstr(" changed state to kQueued"));
+  ASSERT_THAT(logs, testing::HasSubstr(" changed state to kRunning"));
+  ASSERT_THAT(logs, testing::HasSubstr(" changed state to kCompleted"));
+  ASSERT_THAT(logs, testing::Not(testing::HasSubstr("stacktrace= 0# ")));
 }
 
 TEST_F(ServerMinimalComponentList, TraceStacktraces) {
@@ -214,16 +163,17 @@ TEST_F(ServerMinimalComponentList, TraceStacktraces) {
       GetConfigVarsPath(),
       fmt::format(kConfigVarsTemplate, logs_path, GetServerPort()));
 
-  components::RunOnce(components::InMemoryConfig{GetStaticConfig()},
-                      TestsComponentList());
+  components::RunOnce(
+      components::InMemoryConfig{GetStaticConfig()},
+      components::MinimalServerComponentList().Append<TaskTraceProducer>());
 
   logging::LogFlush();
 
   const auto logs = fs::blocking::ReadFileContents(logs_path);
-  EXPECT_NE(logs.find(" changed state to kQueued"), std::string::npos);
-  EXPECT_NE(logs.find(" changed state to kRunning"), std::string::npos);
-  EXPECT_NE(logs.find(" changed state to kCompleted"), std::string::npos);
-  EXPECT_NE(logs.find("stacktrace= 0# "), std::string::npos);
+  ASSERT_THAT(logs, testing::HasSubstr(" changed state to kQueued"));
+  ASSERT_THAT(logs, testing::HasSubstr(" changed state to kRunning"));
+  ASSERT_THAT(logs, testing::HasSubstr(" changed state to kCompleted"));
+  ASSERT_THAT(logs, testing::HasSubstr("stacktrace= 0# "));
 }
 
 TEST_F(ServerMinimalComponentList, InvalidDynamicConfigParam) {
@@ -240,7 +190,7 @@ TEST_F(ServerMinimalComponentList, InvalidDynamicConfigParam) {
 
   UEXPECT_THROW_MSG(
       components::RunOnce(components::InMemoryConfig{GetStaticConfig()},
-                          TestsComponentList()),
+                          components::MinimalServerComponentList()),
       std::exception,
       "Field 'USERVER_LOG_DYNAMIC_DEBUG.force-enabled' is of a wrong type");
 }
