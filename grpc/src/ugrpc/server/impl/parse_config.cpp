@@ -1,8 +1,11 @@
 #include <ugrpc/server/impl/parse_config.hpp>
 
+#include <boost/range/adaptor/transformed.hpp>
+
 #include <userver/logging/component.hpp>
 #include <userver/logging/level_serialization.hpp>
 #include <userver/logging/null_logger.hpp>
+#include <userver/utils/algo.hpp>
 
 #include <userver/ugrpc/server/middlewares/base.hpp>
 
@@ -44,16 +47,19 @@ engine::TaskProcessor& ParseTaskProcessor(
   return context.GetTaskProcessor(field.As<std::string>());
 }
 
-Middlewares ParseMiddlewares(const yaml_config::YamlConfig& field,
-                             const components::ComponentContext& context) {
-  Middlewares middlewares;
-  middlewares.reserve(field.GetSize());
-  for (const auto& name_yaml : field) {
-    const auto name = name_yaml.As<std::string>();
-    auto& component = context.FindComponent<MiddlewareComponentBase>(name);
-    middlewares.push_back(component.GetMiddleware());
-  }
-  return middlewares;
+std::vector<std::string> ParseMiddlewares(
+    const yaml_config::YamlConfig& field,
+    const components::ComponentContext& /*context*/) {
+  return field.As<std::vector<std::string>>();
+}
+
+Middlewares FindMiddlewares(const std::vector<std::string>& names,
+                            const components::ComponentContext& context) {
+  return utils::AsContainer<Middlewares>(
+      names | boost::adaptors::transformed([&](const std::string& name) {
+        return context.FindComponent<MiddlewareComponentBase>(name)
+            .GetMiddleware();
+      }));
 }
 
 }  // namespace
@@ -62,7 +68,9 @@ ServiceDefaults ParseServiceDefaults(
     const yaml_config::YamlConfig& value,
     const components::ComponentContext& context) {
   return ServiceDefaults{
-      ParseOptional(value[kTaskProcessorKey], context, ParseTaskProcessor),
+      /*task_processor=*/ParseOptional(value[kTaskProcessorKey], context,
+                                       ParseTaskProcessor),
+      /*middleware_names=*/
       ParseOptional(value[kMiddlewaresKey], context, ParseMiddlewares),
   };
 }
@@ -72,10 +80,14 @@ server::ServiceConfig ParseServiceConfig(
     const components::ComponentContext& context,
     const ServiceDefaults& defaults) {
   return server::ServiceConfig{
-      MergeField(value[kTaskProcessorKey], defaults.task_processor, context,
-                 ParseTaskProcessor),
-      MergeField(value[kMiddlewaresKey], defaults.middlewares, context,
-                 ParseMiddlewares),
+      /*task_processor=*/MergeField(value[kTaskProcessorKey],
+                                    defaults.task_processor, context,
+                                    ParseTaskProcessor),
+      /*middlewares=*/
+      FindMiddlewares(
+          MergeField(value[kMiddlewaresKey], defaults.middleware_names, context,
+                     ParseMiddlewares),
+          context),
   };
 }
 
