@@ -73,6 +73,9 @@ components_manager:
             updates-enabled: true
             defaults:
                 USERVER_HANDLER_STREAM_API_ENABLED: true
+                # Test that non-existent lines in USERVER_LOG_DYNAMIC_DEBUG
+                # do not prevent the service from starting or updating
+                # dynamic config.
                 USERVER_LOG_DYNAMIC_DEBUG:
                     force-enabled:
                       - garbage

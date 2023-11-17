@@ -214,50 +214,92 @@ def userver_config_dynconf_cache(service_tmpdir):
     return patch_config
 
 
-_COMPONENTS_WITH_FALLBACK = {
+# TODO legacy, just use 'dynamic-config'
+_COMPONENTS_WITH_FALLBACK = [
     'dynamic-config',
-    'dynamic-config-fallbacks',
     'dynamic-config-client-updater',
-}
+    'dynamic-config-fallbacks',
+]
+
+_DEFAULTS_MESSAGE_START = (
+    'The service uses static config option `dynamic-config.defaults` '
+    '(not `dynamic-config.defaults-path`), so its dynamic config should be '
+    'overridden for testsuite using dynamic_config_fallback_patch fixture, '
+)
+_DEFAULTS_CONFLICT_MESSAGE = (
+    _DEFAULTS_MESSAGE_START + 'not by passing `--config-fallback` to pytest.'
+)
+_DEFAULTS_MISMATCH_MESSAGE = (
+    _DEFAULTS_MESSAGE_START
+    + 'not config_fallback_path or config_service_defaults.'
+)
 
 
 @pytest.fixture(scope='session')
 def userver_config_dynconf_fallback(
-        pytestconfig, config_service_defaults, service_tmpdir,
+        pytestconfig,
+        service_tmpdir,
+        config_service_defaults,
+        config_fallback_path,
+        dynamic_config_fallback_patch,
 ):
     """
     Returns a function that adjusts the static configuration file for
     the testsuite.
     Sets `dynamic-config.defaults-path` according to `config_service_defaults`.
+    Updates `dynamic-config.defaults` with `dynamic_config_fallback_patch`.
 
     @ingroup userver_testsuite_fixtures
     """
 
-    def _patch_config(config_yaml, _config_vars):
-        components = config_yaml['components_manager']['components']
-        for component_name in _COMPONENTS_WITH_FALLBACK & components.keys():
-            if components[component_name] is None:
-                components[component_name] = {}
-            if {'defaults-path', 'fallback-path'} & components[
-                    component_name
-            ].keys():
-                break
-        else:
-            return
-
-        fallback_path = (
-            service_tmpdir / 'configs' / 'dynamic_config_fallback.json'
+    def extract_defaults_dict(component_config, config_vars) -> dict:
+        defaults_field = component_config['defaults']
+        if isinstance(defaults_field, dict):
+            return defaults_field
+        elif isinstance(defaults_field, str):
+            if defaults_field.startswith('$'):
+                return config_vars.get(defaults_field[1:], {})
+        assert False, (
+            f'Unexpected static config option '
+            f'`dynamic-config.defaults`: {defaults_field!r}'
         )
-        fallback_path.parent.mkdir(exist_ok=True)
-        with open(fallback_path, 'w', encoding='utf-8') as file:
-            json.dump(config_service_defaults, file)
 
-        for component_name in _COMPONENTS_WITH_FALLBACK & components.keys():
-            component = components[component_name]
+    def _patch_config(config_yaml, config_vars):
+        components = config_yaml['components_manager']['components']
+        components_with_defaults_list = [
+            components[component_name]
+            for component_name in components.keys() & _COMPONENTS_WITH_FALLBACK
+            # TODO legacy, don't use 'fallback-path'
+            if {'defaults-path', 'fallback-path', 'defaults'}
+            & (components[component_name] or {}).keys()
+        ]
+        if not components_with_defaults_list:
+            return
+        assert len(components_with_defaults_list) == 1
+        component = components_with_defaults_list[0]
+
+        if 'defaults' in component:
+            assert not config_fallback_path, _DEFAULTS_CONFLICT_MESSAGE
+            assert (
+                config_service_defaults == dynamic_config_fallback_patch
+            ), _DEFAULTS_MISMATCH_MESSAGE
+            defaults = extract_defaults_dict(component, config_vars)
+            defaults.update(config_service_defaults)
+            component['defaults'] = defaults
+        else:
+            defaults = config_service_defaults
+            # TODO legacy, should use dynamic-config.defaults instead of file
+            defaults_path = (
+                service_tmpdir / 'configs' / 'dynamic_config_fallback.json'
+            )
+            defaults_path.parent.mkdir(exist_ok=True)
+            with open(defaults_path, 'w', encoding='utf-8') as file:
+                json.dump(defaults, file)
             if 'defaults-path' in component:
-                component['defaults-path'] = str(fallback_path)
+                component['defaults-path'] = str(defaults_path)
+            # TODO legacy, don't use 'fallback-path'
             elif 'fallback-path' in component:
-                component['fallback-path'] = str(fallback_path)
+                component['fallback-path'] = str(defaults_path)
 
     return _patch_config
 
