@@ -145,7 +145,7 @@ class UserverConan(ConanFile):
             )
 
     def validate(self):
-        if self.dependencies['mongo-c-driver'].options.with_sasl != 'cyrus':
+        if self.options.with_mongodb and self.dependencies['mongo-c-driver'].options.with_sasl != 'cyrus':
             raise errors.ConanInvalidConfiguration(
                 f'{self.ref} requires mongo-c-driver with_sasl cyrus',
             )
