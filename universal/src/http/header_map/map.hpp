@@ -6,6 +6,7 @@
 
 #include <userver/http/header_map.hpp>
 #include <userver/http/predefined_header.hpp>
+#include <userver/utils/small_string.hpp>
 #include <userver/utils/str_icase.hpp>
 
 #include <http/header_map/danger.hpp>
@@ -94,7 +95,8 @@ class Map final {
 
   bool operator==(const Map& other) const noexcept;
 
-  void OutputInHttpFormat(std::string& buffer) const;
+  template <std::size_t N>
+  void OutputInHttpFormat(utils::SmallString<N>& buffer) const;
 
  private:
   friend class http::headers::TestsHelper;

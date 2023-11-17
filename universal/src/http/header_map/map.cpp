@@ -683,7 +683,8 @@ bool Map::operator==(const Map& other) const noexcept {
   return true;
 }
 
-void Map::OutputInHttpFormat(std::string& buffer) const {
+template <std::size_t N>
+void Map::OutputInHttpFormat(utils::SmallString<N>& buffer) const {
   static constexpr std::string_view kCrlf = "\r\n";
   static constexpr std::string_view kKeyValueHeaderSeparator = ": ";
 
@@ -697,27 +698,23 @@ void Map::OutputInHttpFormat(std::string& buffer) const {
     return total;
   }();
 
-  // one day we will have resize_and_overwrite, one day.. (in C++23)
-  // https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2021/p1072r8.html#examples
-  //
-  // anyway, compiler doesn't really optimize the pattern we have here that well
-  // (https://godbolt.org/z/61Eb4dh7z, call + memcpy (coming from append) for
-  // 2 constexpr symbols, :/), so doing it this way is measurably faster.
-  buffer.resize(old_buffer_size + amount_to_add);
+  buffer.resize_and_overwrite(
+      old_buffer_size + amount_to_add, [&](char* data, std::size_t size) {
+        char* append_position = data + old_buffer_size;
+        const auto append = [&append_position](std::string_view what) {
+          std::memcpy(append_position, what.data(), what.size());
+          append_position += what.size();
+        };
+        for (const auto& entry : entries_) {
+          const auto& [name, value] = entry.Get();
+          append(name);
+          append(kKeyValueHeaderSeparator);
+          append(value);
+          append(kCrlf);
+        }
+        return size;
+      });
 
-  char* append_position = buffer.data() + old_buffer_size;
-  const auto append = [&append_position](std::string_view what) {
-    std::memcpy(append_position, what.data(), what.size());
-    append_position += what.size();
-  };
-
-  for (const auto& entry : entries_) {
-    const auto& [name, value] = entry.Get();
-    append(name);
-    append(kKeyValueHeaderSeparator);
-    append(value);
-    append(kCrlf);
-  }
   UASSERT(buffer.size() == old_buffer_size + amount_to_add);
 }
 

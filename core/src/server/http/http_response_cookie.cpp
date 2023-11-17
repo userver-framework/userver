@@ -451,6 +451,19 @@ void Cookie::AppendToString(std::string& os) const {
   data_->AppendToString(os);
 }
 
+template <std::size_t N>
+void Cookie::AppendToString(utils::SmallString<N>& os) const {
+  std::string data_to_append;
+  data_->AppendToString(data_to_append);
+  std::size_t old_size = os.size();
+  os.resize_and_overwrite(
+      old_size + data_to_append.size(), [&](char* data, std::size_t size) {
+        std::memcpy(data + old_size, std::move(data_to_append.data()),
+                    data_to_append.size());
+        return size;
+      });
+}
+
 }  // namespace server::http
 
 USERVER_NAMESPACE_END

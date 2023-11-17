@@ -9,6 +9,7 @@
 #include <string>
 #include <unordered_map>
 
+#include <userver/utils/small_string.hpp>
 #include <userver/utils/str_icase.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -63,6 +64,8 @@ class Cookie final {
   std::string ToString() const;
 
   void AppendToString(std::string& os) const;
+  template <std::size_t N>
+  void AppendToString(utils::SmallString<N>& os) const;
 
  private:
   class CookieData;

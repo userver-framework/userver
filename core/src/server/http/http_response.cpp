@@ -77,9 +77,11 @@ bool IsBodyForbiddenForStatus(server::http::HttpStatus status) {
          (static_cast<int>(status) >= 100 && static_cast<int>(status) < 200);
 }
 
-void AppendToCharArray(char* data, const std::string_view& what) {
-  char* append_position = data + strlen(data);
+void AppendToCharArray(char* data, std::size_t& begin,
+                       const std::string_view& what) {
+  char* append_position = data + begin;
   std::memcpy(append_position, what.begin(), what.size());
+  begin += what.size();
 }
 
 const std::string kEmptyString{};
@@ -99,10 +101,11 @@ void OutputHeader(utils::SmallString<N>& header, std::string_view key,
       old_size + key.size() + kKeyValueHeaderSeparator.size() + val.size() +
           kCrlf.size(),
       [&](char* data, std::size_t size) {
-        AppendToCharArray(data, key);
-        AppendToCharArray(data, kKeyValueHeaderSeparator);
-        AppendToCharArray(data, val);
-        AppendToCharArray(data, kCrlf);
+        std::size_t begin = old_size;
+        AppendToCharArray(data, begin, key);
+        AppendToCharArray(data, begin, kKeyValueHeaderSeparator);
+        AppendToCharArray(data, begin, val);
+        AppendToCharArray(data, begin, kCrlf);
         return size;
       });
 }
@@ -248,7 +251,7 @@ void HttpResponse::SendResponse(engine::io::RwBase& socket) {
   static constexpr auto kTypicalHeadersSize = 1024;
 
   utils::SmallString<kTypicalHeadersSize> header;
-  std::size_t old_size = header.size();
+  std::size_t append_position = 0;
 
   const std::string_view http_string = "HTTP/";
   const std::string protocol_and_status =
@@ -256,16 +259,16 @@ void HttpResponse::SendResponse(engine::io::RwBase& socket) {
                   request_.GetHttpMinor(), static_cast<int>(status_));
   const std::string_view status_string = HttpStatusString(status_);
 
-  header.resize_and_overwrite(http_string.size() + protocol_and_status.size() +
-                                  status_string.size() + kCrlf.size(),
-                              [&](char* data, std::size_t size) {
-                                AppendToCharArray(data,
-                                                  std::string_view("HTTP/"));
-                                AppendToCharArray(data, protocol_and_status);
-                                AppendToCharArray(data, status_string);
-                                AppendToCharArray(data, kCrlf);
-                                return size;
-                              });
+  header.resize_and_overwrite(
+      http_string.size() + protocol_and_status.size() + status_string.size() +
+          kCrlf.size(),
+      [&](char* data, std::size_t size) {
+        AppendToCharArray(data, append_position, http_string);
+        AppendToCharArray(data, append_position, protocol_and_status);
+        AppendToCharArray(data, append_position, status_string);
+        AppendToCharArray(data, append_position, kCrlf);
+        return size;
+      });
 
   headers_.erase(USERVER_NAMESPACE::http::headers::kContentLength);
   const auto end = headers_.end();
@@ -284,7 +287,7 @@ void HttpResponse::SendResponse(engine::io::RwBase& socket) {
                        (request_.IsFinal() ? kClose : kKeepAlive));
   }
   for (const auto& cookie : cookies_) {
-    old_size = header.size();
+    const std::size_t old_size = header.size();
 
     header.resize_and_overwrite(
         old_size +
@@ -294,14 +297,15 @@ void HttpResponse::SendResponse(engine::io::RwBase& socket) {
                 .size() +
             kKeyValueHeaderSeparator.size() + kCrlf.size(),
         [&](char* data, std::size_t size) {
-          AppendToCharArray(data, USERVER_NAMESPACE::http::headers::kSetCookie);
-          AppendToCharArray(data, kKeyValueHeaderSeparator);
+          AppendToCharArray(data, append_position,
+                            USERVER_NAMESPACE::http::headers::kSetCookie);
+          AppendToCharArray(data, append_position, kKeyValueHeaderSeparator);
           return size;
         });
 
     cookie.second.AppendToString(header);
 
-    AppendToCharArray(header.data(), kCrlf);
+    AppendToCharArray(header.data(), append_position, kCrlf);
   }
 
   std::size_t sent_bytes{};
@@ -326,12 +330,12 @@ std::size_t HttpResponse::SetBodyNotStreamed(engine::io::RwBase& socket,
     impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kContentLength,
                        fmt::format(FMT_COMPILE("{}"), data.size()));
   }
-  const std::size_t old_size = header.size();
-  header.resize_and_overwrite(
-      header.size() + kCrlf.size(), [&old_size](char* data, std::size_t size) {
-        std::memcpy(data + old_size, kCrlf.begin(), kCrlf.size());
-        return size;
-      });
+  std::size_t old_size = header.size();
+  header.resize_and_overwrite(old_size + kCrlf.size(),
+                              [&](char* data, std::size_t size) {
+                                AppendToCharArray(data, old_size, kCrlf);
+                                return size;
+                              });
 
   if (is_body_forbidden && !data.empty()) {
     LOG_LIMITED_WARNING()

@@ -134,8 +134,8 @@ HeaderMap::Iterator HeaderMap::find(const PredefinedHeader& key) noexcept {
   return HeaderMap::Iterator{impl_->Find(key)};
 }
 
-HeaderMap::ConstIterator HeaderMap::find(const PredefinedHeader& key) const
-    noexcept {
+HeaderMap::ConstIterator HeaderMap::find(
+    const PredefinedHeader& key) const noexcept {
   return HeaderMap::ConstIterator{impl_->Find(key)};
 }
 
@@ -234,7 +234,8 @@ bool HeaderMap::operator==(const HeaderMap& other) const noexcept {
   return *impl_ == *other.impl_;
 }
 
-void HeaderMap::OutputInHttpFormat(std::string& buffer) const {
+template <std::size_t N>
+void HeaderMap::OutputInHttpFormat(utils::SmallString<N>& buffer) const {
   impl_->OutputInHttpFormat(buffer);
 }
 
