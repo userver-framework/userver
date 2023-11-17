@@ -34,7 +34,7 @@ def extra_client_deps() -> None:
 def auto_client_deps(request) -> None:
     """
     Service client dependencies hook that knows about pgsql, mongodb,
-    clickhouse, rabbitmq, redis_store and mysql dependencies.
+    clickhouse, rabbitmq, redis_store, ydb, and mysql dependencies.
     To add some other dependencies prefer overriding the
     extra_client_deps() fixture.
 
@@ -48,6 +48,7 @@ def auto_client_deps(request) -> None:
         'redis_cluster_store',
         'redis_store',
         'mysql',
+        'ydb',
     }
 
     try:
