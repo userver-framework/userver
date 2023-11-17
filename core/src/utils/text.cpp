@@ -51,6 +51,11 @@ std::string ToLower(std::string_view str, const std::string& locale) {
                                  GetLocale(locale));
 }
 
+std::string ToUpper(std::string_view str, const std::string& locale) {
+  return boost::locale::to_upper(str.data(), str.data() + str.size(),
+                                 GetLocale(locale));
+}
+
 std::string Capitalize(std::string_view str, const std::string& locale) {
   return boost::locale::to_title(str.data(), str.data() + str.size(),
                                  GetLocale(locale));
