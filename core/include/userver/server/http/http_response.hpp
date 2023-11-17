@@ -24,10 +24,8 @@ namespace server::http {
 
 namespace impl {
 
-void OutputHeader(userver::http::headers::HeadersString& header,
+void OutputHeader(USERVER_NAMESPACE::http::headers::HeadersString& header,
                   std::string_view key, std::string_view val);
-void OutputHeader(std::string& header, std::string_view key,
-                  std::string_view val);
 
 }  // namespace impl
 
@@ -141,12 +139,14 @@ class HttpResponse final : public request::ResponseBase {
 
  private:
   // Returns total size of the response
-  std::size_t SetBodyStreamed(engine::io::RwBase& socket,
-                              userver::http::headers::HeadersString& header);
+  std::size_t SetBodyStreamed(
+      engine::io::RwBase& socket,
+      USERVER_NAMESPACE::http::headers::HeadersString& header);
 
   // Returns total size of the response
-  std::size_t SetBodyNotStreamed(engine::io::RwBase& socket,
-                                 userver::http::headers::HeadersString& header);
+  std::size_t SetBodyNotStreamed(
+      engine::io::RwBase& socket,
+      USERVER_NAMESPACE::http::headers::HeadersString& header);
 
   const HttpRequestImpl& request_;
   HttpStatus status_ = HttpStatus::kOk;

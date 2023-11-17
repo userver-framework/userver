@@ -21,13 +21,29 @@ const server::http::HttpResponse::HeadersMap kHeaders = [] {
 
 void http_headers_serialization_no_ostreams(benchmark::State& state) {
   for ([[maybe_unused]] auto _ : state) {
-    std::string os;
-    os.reserve(1024);
+    USERVER_NAMESPACE::http::headers::HeadersString os;
 
-    os.append("HTTP/");
-    fmt::format_to(std::back_inserter(os), FMT_COMPILE("{}.{} {} "), 1, 1, 200);
-    os.append(HttpStatusString(server::http::HttpStatus::kOk));
-    os.append("\r\n");
+    const std::string_view kHttpString = "HTTP/";
+    const std::string kProtocol =
+        fmt::format(FMT_COMPILE("{}.{} {} "), 1, 1, 200);
+    const std::string_view kStatusString =
+        HttpStatusString(server::http::HttpStatus::kOk);
+    const std::string_view kCrlf = "\r\n";
+
+    os.resize_and_overwrite(
+        kHttpString.size() + kProtocol.size() + kStatusString.size() +
+            kCrlf.size(),
+        [&](char* data, std::size_t size) {
+          const auto append = [&data](std::string_view what) {
+            std::memcpy(data, what.begin(), what.size());
+            data += what.size();
+          };
+          append(kHttpString);
+          append(kProtocol);
+          append(kStatusString);
+          append(kCrlf);
+          return size;
+        });
 
     for (const auto& header : kHeaders) {
       server::http::impl::OutputHeader(os, header.first, header.second);

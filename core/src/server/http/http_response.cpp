@@ -90,8 +90,8 @@ namespace server::http {
 
 namespace impl {
 
-void OutputHeader(userver::http::headers::HeadersString& header, std::string_view key,
-                  std::string_view val) {
+void OutputHeader(USERVER_NAMESPACE::http::headers::HeadersString& header,
+                  std::string_view key, std::string_view val) {
   const auto old_size = header.size();
 
   header.resize_and_overwrite(
@@ -105,12 +105,6 @@ void OutputHeader(userver::http::headers::HeadersString& header, std::string_vie
         AppendToCharArray(data, kCrlf);
         return size;
       });
-}
-
-void OutputHeader(std::string& header, std::string_view key, std::string_view val) {
-  userver::http::headers::HeadersString header_small_str;
-  OutputHeader(header_small_str, key, val);
-  header.append(header_small_str);
 }
 
 }  // namespace impl
@@ -248,7 +242,8 @@ void HttpResponse::SetHeadersEnd() { headers_end_.Send(); }
 bool HttpResponse::WaitForHeadersEnd() { return headers_end_.WaitForEvent(); }
 
 void HttpResponse::SendResponse(engine::io::RwBase& socket) {
-  utils::SmallString<userver::http::headers::kTypicalHeadersSize> header;
+  utils::SmallString<USERVER_NAMESPACE::http::headers::kTypicalHeadersSize>
+      header;
 
   const std::string_view http_string = "HTTP/";
   const std::string protocol_and_status =
@@ -318,8 +313,9 @@ void HttpResponse::SendResponse(engine::io::RwBase& socket) {
   SetSent(sent_bytes, std::chrono::steady_clock::now());
 }
 
-std::size_t HttpResponse::SetBodyNotStreamed(engine::io::RwBase& socket,
-                                             userver::http::headers::HeadersString& header) {
+std::size_t HttpResponse::SetBodyNotStreamed(
+    engine::io::RwBase& socket,
+    USERVER_NAMESPACE::http::headers::HeadersString& header) {
   const bool is_body_forbidden = IsBodyForbiddenForStatus(status_);
   const bool is_head_request = request_.GetMethod() == HttpMethod::kHead;
   const auto& data = GetData();
@@ -356,8 +352,9 @@ std::size_t HttpResponse::SetBodyNotStreamed(engine::io::RwBase& socket,
   return sent_bytes;
 }
 
-std::size_t HttpResponse::SetBodyStreamed(engine::io::RwBase& socket,
-                                          userver::http::headers::HeadersString& header) {
+std::size_t HttpResponse::SetBodyStreamed(
+    engine::io::RwBase& socket,
+    USERVER_NAMESPACE::http::headers::HeadersString& header) {
   impl::OutputHeader(
       header, USERVER_NAMESPACE::http::headers::kTransferEncoding, "chunked");
 
