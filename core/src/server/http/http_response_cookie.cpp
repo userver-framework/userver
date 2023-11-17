@@ -451,8 +451,7 @@ void Cookie::AppendToString(std::string& os) const {
   data_->AppendToString(os);
 }
 
-template <std::size_t N>
-void Cookie::AppendToString(utils::SmallString<N>& os) const {
+void Cookie::AppendToString(userver::http::headers::HeadersString& os) const {
   std::string data_to_append;
   data_->AppendToString(data_to_append);
   std::size_t old_size = os.size();

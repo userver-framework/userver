@@ -14,7 +14,6 @@
 #include <userver/server/http/http_response_cookie.hpp>
 #include <userver/server/request/response_base.hpp>
 #include <userver/utils/impl/projecting_view.hpp>
-#include <userver/utils/small_string.hpp>
 #include <userver/utils/str_icase.hpp>
 
 #include "http_status.hpp"
@@ -139,16 +138,13 @@ class HttpResponse final : public request::ResponseBase {
   Queue::Producer GetBodyProducer();
 
  private:
-  static constexpr std::size_t kTypicalHeaderSize = 1024;
-
-  using HeadersString = utils::SmallString<kTypicalHeaderSize>;
   // Returns total size of the response
   std::size_t SetBodyStreamed(engine::io::RwBase& socket,
-                              HeadersString& header);
+                              userver::http::headers::HeadersString& header);
 
   // Returns total size of the response
   std::size_t SetBodyNotStreamed(engine::io::RwBase& socket,
-                                 HeadersString& header);
+                                 userver::http::headers::HeadersString& header);
 
   const HttpRequestImpl& request_;
   HttpStatus status_ = HttpStatus::kOk;

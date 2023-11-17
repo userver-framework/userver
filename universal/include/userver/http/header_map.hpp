@@ -9,7 +9,6 @@
 #include <userver/formats/parse/to.hpp>
 #include <userver/http/predefined_header.hpp>
 #include <userver/utils/fast_pimpl.hpp>
-#include <userver/utils/small_string.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -259,8 +258,7 @@ class HeaderMap final {
   /// ...
   /// @endcode
   /// resizing buffer as needed.
-  template<std::size_t N>
-  void OutputInHttpFormat(utils::SmallString<N>& buffer) const;
+  void OutputInHttpFormat(HeadersString& buffer) const;
 
  private:
   friend class TestsHelper;

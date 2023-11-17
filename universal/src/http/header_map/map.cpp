@@ -683,8 +683,7 @@ bool Map::operator==(const Map& other) const noexcept {
   return true;
 }
 
-template <std::size_t N>
-void Map::OutputInHttpFormat(utils::SmallString<N>& buffer) const {
+void Map::OutputInHttpFormat(HeadersString& buffer) const {
   static constexpr std::string_view kCrlf = "\r\n";
   static constexpr std::string_view kKeyValueHeaderSeparator = ": ";
 

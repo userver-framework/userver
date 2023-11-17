@@ -234,8 +234,7 @@ bool HeaderMap::operator==(const HeaderMap& other) const noexcept {
   return *impl_ == *other.impl_;
 }
 
-template <std::size_t N>
-void HeaderMap::OutputInHttpFormat(utils::SmallString<N>& buffer) const {
+void HeaderMap::OutputInHttpFormat(HeadersString& buffer) const {
   impl_->OutputInHttpFormat(buffer);
 }
 
