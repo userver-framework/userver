@@ -123,6 +123,9 @@ class SmallString final {
   /// @brief Append a character to the string.
   void push_back(char c);
 
+  /// @brief Append contents of a string_view to the string.
+  void append(std::string_view str);
+
   /// @brief Remove the last character from the string.
   void pop_back();
 
@@ -250,6 +253,15 @@ const char& SmallString<N>::back() const {
 template <std::size_t N>
 void SmallString<N>::push_back(char c) {
   data_.push_back(c);
+}
+
+template <std::size_t N>
+void SmallString<N>::append(std::string_view str) {
+  const std::size_t old_size = data_.size();
+  resize_and_overwrite(data_.size() + str.size(), [&](char* data, std::size_t size) {
+    std::memcpy(data + old_size, str.begin(), str.size());
+    return size;
+  });
 }
 
 template <std::size_t N>
