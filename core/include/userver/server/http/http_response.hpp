@@ -24,10 +24,12 @@ namespace server::http {
 
 namespace impl {
 
+void OutputHeader(userver::http::headers::HeadersString& header,
+                  std::string_view key, std::string_view val);
 void OutputHeader(std::string& header, std::string_view key,
                   std::string_view val);
 
-}
+}  // namespace impl
 
 class HttpRequestImpl;
 

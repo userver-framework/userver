@@ -90,8 +90,7 @@ namespace server::http {
 
 namespace impl {
 
-template <std::size_t N>
-void OutputHeader(utils::SmallString<N>& header, std::string_view key,
+void OutputHeader(userver::http::headers::HeadersString& header, std::string_view key,
                   std::string_view val) {
   const auto old_size = header.size();
 
@@ -106,6 +105,12 @@ void OutputHeader(utils::SmallString<N>& header, std::string_view key,
         AppendToCharArray(data, kCrlf);
         return size;
       });
+}
+
+void OutputHeader(std::string& header, std::string_view key, std::string_view val) {
+  userver::http::headers::HeadersString header_small_str;
+  OutputHeader(header_small_str, key, val);
+  header.append(header_small_str);
 }
 
 }  // namespace impl
