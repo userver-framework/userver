@@ -286,7 +286,7 @@ void HttpResponse::SendResponse(engine::io::RwBase& socket) {
                 .
                 operator std::string_view()
                 .size() +
-            kKeyValueHeaderSeparator.size() + kCrlf.size(),
+            kKeyValueHeaderSeparator.size(),
         [&](char* data, std::size_t size) {
           data += old_size;
           AppendToCharArray(data, USERVER_NAMESPACE::http::headers::kSetCookie);
@@ -296,9 +296,7 @@ void HttpResponse::SendResponse(engine::io::RwBase& socket) {
 
     cookie.second.AppendToString(header);
 
-    char* append_position = header.data() + header.size() - kCrlf.size();
-
-    AppendToCharArray(append_position, kCrlf);
+    header.append(kCrlf);
   }
 
   std::size_t sent_bytes{};
