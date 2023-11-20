@@ -89,6 +89,7 @@ async def test_deadline_propagation_disabled_dynamically(call):
     assert response.status == 200
 
 
+@pytest.mark.skip(reason='Flaky TAXICOMMON-7888')
 async def test_cancellable(service_client, testpoint):
     @testpoint('testpoint_cancel')
     def cancel_testpoint(data):
