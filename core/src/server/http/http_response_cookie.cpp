@@ -442,18 +442,10 @@ Cookie& Cookie::SetSameSite(std::string value) {
   return *this;
 }
 
-USERVER_NAMESPACE::http::headers::HeadersString Cookie::ToSmallString() const {
+USERVER_NAMESPACE::http::headers::HeadersString Cookie::ToString() const {
   USERVER_NAMESPACE::http::headers::HeadersString os;
   data_->AppendToString(os);
   return USERVER_NAMESPACE::http::headers::HeadersString(os);
-}
-
-std::string Cookie::ToString() const {
-  USERVER_NAMESPACE::http::headers::HeadersString small_os;
-  std::string os;
-  data_->AppendToString(small_os);
-  os.append(small_os);
-  return os;
 }
 
 void Cookie::AppendToString(
