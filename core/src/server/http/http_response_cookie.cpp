@@ -197,7 +197,8 @@ class Cookie::CookieData final {
   [[nodiscard]] std::string SameSite() const;
   void SetSameSite(std::string value);
 
-  void AppendToString(std::string& os) const;
+  void AppendToString(
+      USERVER_NAMESPACE::http::headers::HeadersString& os) const;
 
  private:
   void ValidateName() const;
@@ -276,7 +277,8 @@ void Cookie::CookieData::SetSameSite(std::string value) {
   same_site_ = std::move(value);
 }
 
-void Cookie::CookieData::AppendToString(std::string& os) const {
+void Cookie::CookieData::AppendToString(
+    USERVER_NAMESPACE::http::headers::HeadersString& os) const {
   os.append(name_);
   os.append("=");
   os.append(value_);
@@ -296,8 +298,7 @@ void Cookie::CookieData::AppendToString(std::string& os) const {
   }
   if (max_age_.has_value()) {
     os.append("; Max-Age=");
-    fmt::format_to(std::back_inserter(os), FMT_COMPILE("{}"),
-                   max_age_.value().count());
+    os.append(fmt::format(FMT_COMPILE("{}"), max_age_.value().count()));
   }
   if (secure_) {
     os.append("; Secure");
@@ -441,27 +442,29 @@ Cookie& Cookie::SetSameSite(std::string value) {
   return *this;
 }
 
-std::string Cookie::ToString() const {
-  std::string os;
+USERVER_NAMESPACE::http::headers::HeadersString Cookie::ToSmallString() const {
+  USERVER_NAMESPACE::http::headers::HeadersString os;
   data_->AppendToString(os);
+  return USERVER_NAMESPACE::http::headers::HeadersString(os);
+}
+
+std::string Cookie::ToString() const {
+  USERVER_NAMESPACE::http::headers::HeadersString small_os;
+  std::string os;
+  data_->AppendToString(small_os);
+  os.append(small_os);
   return os;
 }
 
 void Cookie::AppendToString(std::string& os) const {
-  data_->AppendToString(os);
+  USERVER_NAMESPACE::http::headers::HeadersString small_os;
+  data_->AppendToString(small_os);
+  os.append(small_os);
 }
 
 void Cookie::AppendToString(
     USERVER_NAMESPACE::http::headers::HeadersString& os) const {
-  std::string data_to_append;
-  data_->AppendToString(data_to_append);
-  std::size_t old_size = os.size();
-  os.resize_and_overwrite(
-      old_size + data_to_append.size(), [&](char* data, std::size_t size) {
-        std::memcpy(data + old_size, std::move(data_to_append.data()),
-                    data_to_append.size());
-        return size;
-      });
+  data_->AppendToString(os);
 }
 
 }  // namespace server::http

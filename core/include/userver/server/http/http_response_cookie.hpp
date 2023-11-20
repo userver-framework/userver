@@ -61,6 +61,7 @@ class Cookie final {
   std::string SameSite() const;
   Cookie& SetSameSite(std::string value);
 
+  USERVER_NAMESPACE::http::headers::HeadersString ToSmallString() const;
   std::string ToString() const;
 
   void AppendToString(std::string& os) const;
