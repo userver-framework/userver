@@ -64,7 +64,6 @@ class Cookie final {
   USERVER_NAMESPACE::http::headers::HeadersString ToSmallString() const;
   std::string ToString() const;
 
-  void AppendToString(std::string& os) const;
   void AppendToString(USERVER_NAMESPACE::http::headers::HeadersString& os) const;
 
  private:

@@ -456,12 +456,6 @@ std::string Cookie::ToString() const {
   return os;
 }
 
-void Cookie::AppendToString(std::string& os) const {
-  USERVER_NAMESPACE::http::headers::HeadersString small_os;
-  data_->AppendToString(small_os);
-  os.append(small_os);
-}
-
 void Cookie::AppendToString(
     USERVER_NAMESPACE::http::headers::HeadersString& os) const {
   data_->AppendToString(os);

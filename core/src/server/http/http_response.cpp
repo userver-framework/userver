@@ -245,21 +245,18 @@ void HttpResponse::SendResponse(engine::io::RwBase& socket) {
   utils::SmallString<USERVER_NAMESPACE::http::headers::kTypicalHeadersSize>
       header;
 
-  const std::string_view http_string = "HTTP/";
-  const std::string protocol_and_status =
-      fmt::format(FMT_COMPILE("{}.{} {} "), request_.GetHttpMajor(),
-                  request_.GetHttpMinor(), static_cast<int>(status_));
-  const std::string_view status_string = HttpStatusString(status_);
-
-  header.resize_and_overwrite(http_string.size() + protocol_and_status.size() +
-                                  status_string.size() + kCrlf.size(),
-                              [&](char* data, std::size_t size) {
-                                AppendToCharArray(data, http_string);
-                                AppendToCharArray(data, protocol_and_status);
-                                AppendToCharArray(data, status_string);
-                                AppendToCharArray(data, kCrlf);
-                                return size;
-                              });
+  header.resize_and_overwrite(
+      USERVER_NAMESPACE::http::headers::kTypicalHeadersSize,
+      [&](char* data, std::size_t) {
+        char* old_data_pointer = data;
+        AppendToCharArray(data, "HTTP/");
+        data = fmt::format_to(data, FMT_COMPILE("{}.{} {} "),
+                              request_.GetHttpMajor(), request_.GetHttpMinor(),
+                              static_cast<int>(status_));
+        AppendToCharArray(data, HttpStatusString(status_));
+        AppendToCharArray(data, kCrlf);
+        return data - old_data_pointer;
+      });
 
   headers_.erase(USERVER_NAMESPACE::http::headers::kContentLength);
   const auto end = headers_.end();
@@ -322,13 +319,7 @@ std::size_t HttpResponse::SetBodyNotStreamed(
     impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kContentLength,
                        fmt::format(FMT_COMPILE("{}"), data.size()));
   }
-  std::size_t old_size = header.size();
-  header.resize_and_overwrite(old_size + kCrlf.size(),
-                              [&](char* data, std::size_t size) {
-                                data += old_size;
-                                AppendToCharArray(data, kCrlf);
-                                return size;
-                              });
+  header.append(kCrlf);
 
   if (is_body_forbidden && !data.empty()) {
     LOG_LIMITED_WARNING()
