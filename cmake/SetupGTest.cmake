@@ -24,7 +24,7 @@ include(DownloadUsingCPM)
 CPMAddPackage(
     NAME googletest
     VERSION 1.14.0
-    GIT_TAG release-1.14.0
+    GIT_TAG v1.14.0
     GITHUB_REPOSITORY google/googletest
     OPTIONS "INSTALL_GTEST OFF"
 )
