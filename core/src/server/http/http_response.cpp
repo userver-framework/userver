@@ -90,7 +90,8 @@ namespace server::http {
 
 namespace impl {
 
-void OutputHeader(std::string& header, std::string_view key, std::string_view val) {
+void OutputHeader(std::string& header, std::string_view key,
+                  std::string_view val) {
   const auto old_size = header.size();
   header.resize(old_size + key.size() + kKeyValueHeaderSeparator.size() +
                 val.size() + kCrlf.size());

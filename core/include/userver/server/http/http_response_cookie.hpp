@@ -9,8 +9,8 @@
 #include <string>
 #include <unordered_map>
 
-#include <userver/utils/str_icase.hpp>
 #include <userver/http/predefined_header.hpp>
+#include <userver/utils/str_icase.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -61,9 +61,10 @@ class Cookie final {
   std::string SameSite() const;
   Cookie& SetSameSite(std::string value);
 
-   USERVER_NAMESPACE::http::headers::HeadersString ToString() const;
+  USERVER_NAMESPACE::http::headers::HeadersString ToString() const;
 
-  void AppendToString(USERVER_NAMESPACE::http::headers::HeadersString& os) const;
+  void AppendToString(
+      USERVER_NAMESPACE::http::headers::HeadersString& os) const;
 
  private:
   class CookieData;
