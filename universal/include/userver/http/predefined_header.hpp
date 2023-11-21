@@ -14,8 +14,7 @@ namespace http::headers {
 
 // According to https://www.chromium.org/spdy/spdy-whitepaper/
 // "typical header sizes of 700-800 bytes is common"
-// Adjusting it to 1KiB to fit jemalloc size class
-static constexpr std::size_t kTypicalHeadersSize = 1024;
+inline constexpr std::size_t kTypicalHeadersSize = 1024;
 using HeadersString = utils::SmallString<kTypicalHeadersSize>;
 
 namespace impl {
