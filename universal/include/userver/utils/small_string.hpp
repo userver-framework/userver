@@ -257,11 +257,9 @@ void SmallString<N>::push_back(char c) {
 
 template <std::size_t N>
 void SmallString<N>::append(std::string_view str) {
-  const std::size_t old_size = data_.size();
-  resize_and_overwrite(old_size + str.size(), [&](char* data, std::size_t size) {
-    std::memcpy(data + old_size, str.begin(), str.size());
-    return size;
-  });
+  std::size_t old_size = data_.size();
+  data_.resize(old_size + str.size(), boost::container::default_init);
+  std::memcpy(data_.data() + old_size, str.data(), str.size());
 }
 
 template <std::size_t N>
