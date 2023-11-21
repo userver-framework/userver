@@ -47,9 +47,12 @@ ConnectionSettings ParseConnectionSettings(const ConfigType& config) {
       config["persistent-prepared-statements"].template As<bool>(true)
           ? ConnectionSettings::kCachePreparedStatements
           : ConnectionSettings::kNoPreparedStatements;
-  settings.user_types = config["user-types-enabled"].template As<bool>(true)
-                            ? ConnectionSettings::kUserTypesEnabled
-                            : ConnectionSettings::kPredefinedTypesOnly;
+  settings.user_types =
+      config["user-types-enabled"].template As<bool>(true)
+          ? config["check-user-types"].template As<bool>(false)
+                ? ConnectionSettings::kUserTypesEnforced
+                : ConnectionSettings::kUserTypesEnabled
+          : ConnectionSettings::kPredefinedTypesOnly;
   // TODO: use hyphens in config keys, TAXICOMMON-5606
   settings.max_prepared_cache_size =
       config["max-prepared-cache-size"].template As<size_t>(

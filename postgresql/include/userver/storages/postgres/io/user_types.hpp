@@ -124,6 +124,9 @@ class UserTypes {
   /// May return nullptr if the type was not loaded from the database
   const DBTypeDescription* GetTypeDescription(Oid) const;
 
+  /// @throws UserTypeError if not all registered cpp types are added
+  void CheckRegisteredTypes() const;
+
  private:
   using DescriptionSet =
       std::unordered_set<DBTypeDescription, DBTypeDescription::NameHash,

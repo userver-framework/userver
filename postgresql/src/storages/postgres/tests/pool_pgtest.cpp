@@ -371,6 +371,18 @@ UTEST_P(PostgrePool, DefaultCmdCtl) {
   EXPECT_EQ(kTestCmdCtl, pool->GetDefaultCommandControl());
 }
 
+UTEST_P(PostgrePool, CheckUserTypes) {
+  std::shared_ptr<pg::detail::ConnectionPool> pool;
+  auto conn_settings = kCachePreparedStatements;
+  conn_settings.user_types = pg::ConnectionSettings::kUserTypesEnforced;
+  UEXPECT_THROW(
+      pool = pg::detail::ConnectionPool::Create(
+          GetDsnFromEnv(), nullptr, GetTaskProcessor(), "", GetParam(),
+          {1, 10, 10}, conn_settings, {}, GetTestCmdCtls(), {}, {}, {},
+          dynamic_config::GetDefaultSource()),
+      pg::UserTypeError);
+}
+
 INSTANTIATE_UTEST_SUITE_P(
     PoolTests, PostgrePool,
     ::testing::Values(pg::InitMode::kAsync, pg::InitMode::kSync),

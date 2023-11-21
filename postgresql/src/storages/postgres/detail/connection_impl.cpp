@@ -223,7 +223,7 @@ void ConnectionImpl::AsyncConnect(const Dsn& dsn, engine::Deadline deadline) {
                deadline);
   RefreshReplicaState(deadline);
   SetConnectionStatementTimeout(GetDefaultCommandControl().statement, deadline);
-  if (settings_.user_types == ConnectionSettings::kUserTypesEnabled) {
+  if (settings_.user_types != ConnectionSettings::kPredefinedTypesOnly) {
     LoadUserTypes(deadline);
   }
   if (settings_.pipeline_mode == PipelineMode::kEnabled) {
@@ -842,7 +842,7 @@ void ConnectionImpl::SetParameter(std::string_view name, std::string_view value,
 }
 
 void ConnectionImpl::LoadUserTypes(engine::Deadline deadline) {
-  UASSERT(settings_.user_types == ConnectionSettings::kUserTypesEnabled);
+  UASSERT(settings_.user_types != ConnectionSettings::kPredefinedTypesOnly);
   try {
     auto types = ExecuteCommand(kGetUserTypesSQL, deadline)
                      .AsSetOf<DBTypeDescription>(kRowTag);

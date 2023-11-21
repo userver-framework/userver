@@ -209,6 +209,7 @@ struct ConnectionSettings {
   };
   enum UserTypesOptions {
     kUserTypesEnabled,
+    kUserTypesEnforced,
     kPredefinedTypesOnly,
   };
   enum CheckQueryParamsOptions {

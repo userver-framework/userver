@@ -247,6 +247,12 @@ properties:
         type: boolean
         description: disabling will disallow use of user-defined types
         defaultDescription: true
+    check-user-types:
+        type: boolean
+        description: |
+            check on startup that all user types have been loaded, which helps
+            to detect missing migrations
+        defaultDescription: false
     ignore_unused_query_params:
         type: boolean
         description: disable check for not-NULL query params that are not used in query
