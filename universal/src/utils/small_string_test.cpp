@@ -58,6 +58,17 @@ TEST(SmallString, PushBack) {
   EXPECT_EQ(str, "a");
 }
 
+TEST(SmallString, Append) {
+  utils::SmallString<2> str("a");
+
+  str.append("b");
+  EXPECT_EQ(str, "ab");
+  str.append("cd");
+  EXPECT_EQ(str, "abcd");
+  str.append(str);
+  EXPECT_EQ(str, "abcdabcd");
+}
+
 TEST(SmallString, SizeCapacity) {
   utils::SmallString<10> str("abcd");
   str.resize(3, '1');
