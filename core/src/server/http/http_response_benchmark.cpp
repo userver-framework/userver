@@ -11,6 +11,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
+constexpr std::string_view kCrlf = "\r\n";
+constexpr std::string_view kKeyValueHeaderSeparator = ": ";
+
 const server::http::HttpResponse::HeadersMap kHeaders = [] {
   server::http::HttpResponse::HeadersMap map{};
   for (std::size_t i = 1; i <= 7; ++i) {
@@ -18,6 +21,24 @@ const server::http::HttpResponse::HeadersMap kHeaders = [] {
   }
   return map;
 }();
+
+void OutputHeader(std::string& header, std::string_view key,
+                  std::string_view val) {
+  const auto old_size = header.size();
+  header.resize(old_size + key.size() + kKeyValueHeaderSeparator.size() +
+                val.size() + kCrlf.size());
+
+  char* append_position = header.data() + old_size;
+  const auto append = [&append_position](std::string_view what) {
+    std::memcpy(append_position, what.data(), what.size());
+    append_position += what.size();
+  };
+
+  append(key);
+  append(kKeyValueHeaderSeparator);
+  append(val);
+  append(kCrlf);
+}
 
 void http_headers_serialization_inplace(benchmark::State& state) {
   for ([[maybe_unused]] auto _ : state) {
@@ -62,14 +83,13 @@ void http_headers_serialization_no_ostreams(benchmark::State& state) {
     os.append("\r\n");
 
     for (const auto& header : kHeaders) {
-      server::http::impl::OutputHeader(os, header.first, header.second);
+      OutputHeader(os, header.first, header.second);
     }
 
     if (kHeaders.find(USERVER_NAMESPACE::http::headers::kContentLength) ==
         kHeaders.end()) {
-      server::http::impl::OutputHeader(
-          os, USERVER_NAMESPACE::http::headers::kContentLength,
-          fmt::format(FMT_COMPILE("{}"), 1024));
+      OutputHeader(os, USERVER_NAMESPACE::http::headers::kContentLength,
+                   fmt::format(FMT_COMPILE("{}"), 1024));
     }
 
     benchmark::DoNotOptimize(os);

@@ -24,9 +24,6 @@ namespace server::http {
 
 namespace impl {
 
-void OutputHeader(std::string& header, std::string_view key,
-                  std::string_view val);
-
 void OutputHeader(USERVER_NAMESPACE::http::headers::HeadersString& header,
                   std::string_view key, std::string_view val);
 

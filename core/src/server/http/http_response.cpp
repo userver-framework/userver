@@ -90,24 +90,6 @@ namespace server::http {
 
 namespace impl {
 
-void OutputHeader(std::string& header, std::string_view key,
-                  std::string_view val) {
-  const auto old_size = header.size();
-  header.resize(old_size + key.size() + kKeyValueHeaderSeparator.size() +
-                val.size() + kCrlf.size());
-
-  char* append_position = header.data() + old_size;
-  const auto append = [&append_position](std::string_view what) {
-    std::memcpy(append_position, what.data(), what.size());
-    append_position += what.size();
-  };
-
-  append(key);
-  append(kKeyValueHeaderSeparator);
-  append(val);
-  append(kCrlf);
-}
-
 void OutputHeader(USERVER_NAMESPACE::http::headers::HeadersString& header,
                   std::string_view key, std::string_view val) {
   const auto old_size = header.size();
