@@ -31,7 +31,7 @@ class SmallString final {
   SmallString() = default;
 
   /// @brief Create a string from another one.
-  explicit SmallString(const SmallString<N>&) = default;
+  SmallString(const SmallString<N>&) = default;
 
   /// @brief Create a string from another one.
   explicit SmallString(SmallString<N>&&) noexcept = default;

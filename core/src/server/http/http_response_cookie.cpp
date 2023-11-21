@@ -445,7 +445,7 @@ Cookie& Cookie::SetSameSite(std::string value) {
 USERVER_NAMESPACE::http::headers::HeadersString Cookie::ToString() const {
   USERVER_NAMESPACE::http::headers::HeadersString os;
   data_->AppendToString(os);
-  return USERVER_NAMESPACE::http::headers::HeadersString(os);
+  return os;
 }
 
 void Cookie::AppendToString(
