@@ -297,9 +297,8 @@ void HttpResponse::SendResponse(engine::io::RwBase& socket) {
 
     header.resize_and_overwrite(
         old_size +
-            USERVER_NAMESPACE::http::headers::kSetCookie
-                .
-                operator std::string_view()
+            static_cast<std::string_view>(
+                USERVER_NAMESPACE::http::headers::kSetCookie)
                 .size() +
             kKeyValueHeaderSeparator.size(),
         [&](char* data, std::size_t size) {
@@ -367,8 +366,8 @@ std::size_t HttpResponse::SetBodyStreamed(
 
   // send HTTP headers
   size_t sent_bytes = socket.WriteAll(header.data(), header.size(), {});
-  header.clear();  // free memory before time-consuming operation
-  header.shrink_to_fit();
+  header.clear();
+  header.shrink_to_fit();  // free memory before time-consuming operation
 
   // Transmit HTTP response body
   std::string body_part;
