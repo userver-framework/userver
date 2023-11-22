@@ -71,6 +71,11 @@ ConnectionSettings ParseConnectionSettings(const ConfigType& config) {
   settings.max_ttl =
       config["max-ttl-sec"].template As<std::optional<std::chrono::seconds>>();
 
+  settings.discard_on_connect =
+      config["discard-all-on-connect"].template As<bool>(true)
+          ? ConnectionSettings::kDiscardAll
+          : ConnectionSettings::kDiscardNone;
+
   return settings;
 }
 

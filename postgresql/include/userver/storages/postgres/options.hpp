@@ -216,6 +216,10 @@ struct ConnectionSettings {
     kIgnoreUnused,
     kCheckUnused,
   };
+  enum DiscardOnConnectOptions {
+    kDiscardNone,
+    kDiscardAll,
+  };
   using SettingsVersion = size_t;
 
   /// Cache prepared statements or not
@@ -239,17 +243,15 @@ struct ConnectionSettings {
   /// The maximum lifetime of the connection after which it will be closed
   std::optional<std::chrono::seconds> max_ttl{};
 
+  /// Execute discard all after establishing a new connection
+  DiscardOnConnectOptions discard_on_connect = kDiscardAll;
+
   /// Helps keep track of the changes in settings
   SettingsVersion version{0U};
 
   bool operator==(const ConnectionSettings& rhs) const {
-    return prepared_statements == rhs.prepared_statements &&
-           user_types == rhs.user_types &&
-           ignore_unused_query_params == rhs.ignore_unused_query_params &&
-           max_prepared_cache_size == rhs.max_prepared_cache_size &&
-           pipeline_mode == rhs.pipeline_mode &&
-           recent_errors_threshold == rhs.recent_errors_threshold &&
-           max_ttl == rhs.max_ttl;
+    return !RequiresConnectionReset(rhs) &&
+           recent_errors_threshold == rhs.recent_errors_threshold;
   }
 
   bool operator!=(const ConnectionSettings& rhs) const {
@@ -262,7 +264,8 @@ struct ConnectionSettings {
            user_types != rhs.user_types ||
            ignore_unused_query_params != rhs.ignore_unused_query_params ||
            max_prepared_cache_size != rhs.max_prepared_cache_size ||
-           pipeline_mode != rhs.pipeline_mode || max_ttl != rhs.max_ttl;
+           pipeline_mode != rhs.pipeline_mode || max_ttl != rhs.max_ttl ||
+           discard_on_connect != rhs.discard_on_connect;
   }
 };
 
