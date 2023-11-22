@@ -85,6 +85,8 @@ class Mongo : public LoggableComponentBase {
 
  private:
   storages::mongo::PoolPtr pool_;
+
+  // Subscriptions must be the last fields.
   utils::statistics::Entry statistics_holder_;
 };
 
@@ -181,6 +183,8 @@ class MultiMongo : public LoggableComponentBase {
 
  private:
   storages::mongo::MultiMongo multi_mongo_;
+
+  // Subscriptions must be the last fields.
   utils::statistics::Entry statistics_holder_;
 };
 

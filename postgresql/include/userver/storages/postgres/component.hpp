@@ -171,14 +171,15 @@ class Postgres : public LoggableComponentBase {
  private:
   void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
 
-  concurrent::AsyncEventSubscriberScope config_subscription_;
-
-  utils::statistics::Entry statistics_holder_;
-
   std::string name_;
   std::string db_name_;
   storages::postgres::ClusterSettings initial_settings_;
   storages::postgres::DatabasePtr database_;
+
+  // Subscriptions must be the last fields, because the fields above are used
+  // from callbacks.
+  concurrent::AsyncEventSubscriberScope config_subscription_;
+  utils::statistics::Entry statistics_holder_;
 };
 
 template <>
