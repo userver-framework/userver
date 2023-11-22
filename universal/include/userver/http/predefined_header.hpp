@@ -6,7 +6,7 @@
 #include <fmt/core.h>
 
 #include <userver/utils/trivial_map.hpp>
-#include <userver/utils/small_string.hpp>
+#include <userver/utils/small_string_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

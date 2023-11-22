@@ -1,4 +1,5 @@
 #include <http/header_map/map.hpp>
+#include <userver/utils/small_string.hpp>
 
 // Inspired by
 // https://github.com/hyperium/http/blob/f0ba97fe20054d6ef83834f92a0842be947996bd/src/header/map.rs

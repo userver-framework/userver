@@ -15,6 +15,7 @@
 #include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/datetime/wall_coarse_clock.hpp>
+#include <userver/utils/small_string.hpp>
 
 #include <server/http/http_cached_date.hpp>
 

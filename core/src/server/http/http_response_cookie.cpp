@@ -10,6 +10,7 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/trivial_map.hpp>
+#include <userver/utils/small_string.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

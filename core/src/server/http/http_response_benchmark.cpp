@@ -6,6 +6,7 @@
 #include <userver/http/common_headers.hpp>
 #include <userver/server/http/http_response.hpp>
 #include <userver/server/http/http_status.hpp>
+#include <userver/utils/small_string.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
