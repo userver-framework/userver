@@ -3,6 +3,7 @@
 /// @file userver/formats/json/value.hpp
 /// @brief @copybrief formats::json::Value
 
+#include <chrono>
 #include <string_view>
 #include <type_traits>
 
@@ -401,6 +402,13 @@ T Value::ConvertTo(First&& default_arg, Rest&&... more_default_args) const {
 }
 
 inline Value Parse(const Value& value, parse::To<Value>) { return value; }
+
+std::chrono::milliseconds Parse(const Value& value,
+                                parse::To<std::chrono::milliseconds>);
+
+std::chrono::minutes Parse(const Value& value, parse::To<std::chrono::minutes>);
+
+std::chrono::hours Parse(const Value& value, parse::To<std::chrono::hours>);
 
 /// @brief Wrapper for handy python-like iteration over a map
 ///

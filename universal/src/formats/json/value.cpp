@@ -62,6 +62,12 @@ bool IsNonOverflowingIntegral(const double val) {
            val <= std::numeric_limits<Int>::max() && IsIntegral(val);
   }
 }
+
+template <typename Duration>
+Duration ParseJsonDuration(const Value& value) {
+  return Duration{value.As<typename Duration::rep>()};
+}
+
 }  // namespace
 
 namespace impl {
@@ -478,6 +484,20 @@ Value::LazyDetachedPath Value::LazyDetachedPath::Chain(
       formats::common::MakeChildPath(std::move(result.virtual_path_), key);
 
   return result;
+}
+
+std::chrono::milliseconds Parse(const Value& value,
+                                parse::To<std::chrono::milliseconds>) {
+  return ParseJsonDuration<std::chrono::milliseconds>(value);
+}
+
+std::chrono::minutes Parse(const Value& value,
+                           parse::To<std::chrono::minutes>) {
+  return ParseJsonDuration<std::chrono::minutes>(value);
+}
+
+std::chrono::hours Parse(const Value& value, parse::To<std::chrono::hours>) {
+  return ParseJsonDuration<std::chrono::hours>(value);
 }
 
 }  // namespace formats::json
