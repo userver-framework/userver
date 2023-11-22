@@ -27,7 +27,12 @@ struct TpLogger::ActionVisitor final {
   }
 
   void operator()(impl::async::ReopenCoro&& reopen) const noexcept {
-    logger.BackendReopen(reopen.reopen_mode);
+    try {
+      logger.BackendReopen(reopen.reopen_mode);
+    } catch (...) {
+      reopen.promise.set_exception(std::current_exception());
+      return;
+    }
     reopen.promise.set_value();
   }
 
@@ -317,15 +322,19 @@ void TpLogger::BackendFlush() const {
 }
 
 void TpLogger::BackendReopen(ReopenMode reopen_mode) const {
+  std::string result_messages{};
   for (const auto& [index, sink] : utils::enumerate(GetSinks())) {
     try {
       sink->Reopen(reopen_mode);
     } catch (const std::exception& e) {
-      UASSERT_MSG(false, fmt::format("Exception while reopening log files : {}",
-                                     e.what()));
+      result_messages += e.what();
+      result_messages += "; ";
       LOG_ERROR() << "Exception on log reopen in sink #" << index
                   << " of logger '" << GetLoggerName() << "': " << e;
     }
+  }
+  if (!result_messages.empty()) {
+    throw std::runtime_error("BackendReopen errors: " + result_messages);
   }
 }
 

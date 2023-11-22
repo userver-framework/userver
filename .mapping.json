@@ -1051,6 +1051,8 @@
   "core/src/logging/split_location.hpp":"taxi/uservices/userver/core/src/logging/split_location.hpp",
   "core/src/logging/split_location_test.cpp":"taxi/uservices/userver/core/src/logging/split_location_test.cpp",
   "core/src/logging/stacktrace_cache_test.cpp":"taxi/uservices/userver/core/src/logging/stacktrace_cache_test.cpp",
+  "core/src/logging/statistics/log_file_state.cpp":"taxi/uservices/userver/core/src/logging/statistics/log_file_state.cpp",
+  "core/src/logging/statistics/log_file_state.hpp":"taxi/uservices/userver/core/src/logging/statistics/log_file_state.hpp",
   "core/src/logging/statistics/log_stats.cpp":"taxi/uservices/userver/core/src/logging/statistics/log_stats.cpp",
   "core/src/logging/statistics/log_stats.hpp":"taxi/uservices/userver/core/src/logging/statistics/log_stats.hpp",
   "core/src/logging/tp_logger.cpp":"taxi/uservices/userver/core/src/logging/tp_logger.cpp",

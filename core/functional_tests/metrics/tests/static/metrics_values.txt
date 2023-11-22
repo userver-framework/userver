@@ -390,6 +390,7 @@ logger.by_level: level=trace, logger=default	RATE	0
 logger.by_level: level=warning, logger=default	RATE	0
 logger.dropped: logger=default, version=2	RATE	0
 logger.total: logger=default	RATE	0
+logger.log_file_state:	GAUGE	0
 major_pagefaults:	GAUGE	0
 open_files:	GAUGE	0
 rss_kb:	GAUGE	0
