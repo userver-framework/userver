@@ -220,7 +220,7 @@ constexpr auto structure_tie(T&&, std::enable_if_t< std::is_rvalue_reference<T&&
 ///     assert(sum == 42);
 /// \endcode
 template <class T, class F>
-void for_each_field(T&& value, F&& func) {
+constexpr void for_each_field(T&& value, F&& func) {
     constexpr std::size_t fields_count_val = boost::pfr::detail::fields_count<std::remove_reference_t<T>>();
 
     ::boost::pfr::detail::for_each_field_dispatcher(
