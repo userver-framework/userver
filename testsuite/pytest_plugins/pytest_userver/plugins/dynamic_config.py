@@ -221,27 +221,10 @@ _COMPONENTS_WITH_FALLBACK = [
     'dynamic-config-fallbacks',
 ]
 
-_DEFAULTS_MESSAGE_START = (
-    'The service uses static config option `dynamic-config.defaults` '
-    '(not `dynamic-config.defaults-path`), so its dynamic config should be '
-    'overridden for testsuite using dynamic_config_fallback_patch fixture, '
-)
-_DEFAULTS_CONFLICT_MESSAGE = (
-    _DEFAULTS_MESSAGE_START + 'not by passing `--config-fallback` to pytest.'
-)
-_DEFAULTS_MISMATCH_MESSAGE = (
-    _DEFAULTS_MESSAGE_START
-    + 'not config_fallback_path or config_service_defaults.'
-)
-
 
 @pytest.fixture(scope='session')
 def userver_config_dynconf_fallback(
-        pytestconfig,
-        service_tmpdir,
-        config_service_defaults,
-        config_fallback_path,
-        dynamic_config_fallback_patch,
+        pytestconfig, service_tmpdir, config_service_defaults,
 ):
     """
     Returns a function that adjusts the static configuration file for
@@ -279,10 +262,6 @@ def userver_config_dynconf_fallback(
         component = components_with_defaults_list[0]
 
         if 'defaults' in component:
-            assert not config_fallback_path, _DEFAULTS_CONFLICT_MESSAGE
-            assert (
-                config_service_defaults == dynamic_config_fallback_patch
-            ), _DEFAULTS_MISMATCH_MESSAGE
             defaults = extract_defaults_dict(component, config_vars)
             defaults.update(config_service_defaults)
             component['defaults'] = defaults

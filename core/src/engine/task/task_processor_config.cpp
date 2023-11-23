@@ -78,6 +78,7 @@ void TaskProcessorConfig::SetName(const std::string& new_name) {
 
 using OverloadAction = TaskProcessorSettings::OverloadAction;
 
+/// [sample enum parser]
 OverloadAction Parse(const formats::json::Value& value,
                      formats::parse::To<OverloadAction>) {
   static constexpr utils::TrivialBiMap kMap([](auto selector) {
@@ -88,6 +89,7 @@ OverloadAction Parse(const formats::json::Value& value,
 
   return utils::ParseFromValueString(value, kMap);
 }
+/// [sample enum parser]
 
 TaskProcessorSettings Parse(const formats::json::Value& value,
                             formats::parse::To<TaskProcessorSettings>) {

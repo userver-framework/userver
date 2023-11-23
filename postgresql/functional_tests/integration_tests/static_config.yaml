@@ -49,6 +49,7 @@ components_manager:
             method: GET
             task_processor: main-task-processor
 
+        # /// [dynamic config]
         dynamic-config:
             defaults:
                 POSTGRES_CONNECTION_SETTINGS:
@@ -65,6 +66,7 @@ components_manager:
                     sample_transaction_insert_key_value:
                         network_timeout_ms: 200
                         statement_timeout_ms: 150
+        # /// [dynamic config]
 
         dns-client:
             fs-task-processor: fs-task-processor

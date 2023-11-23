@@ -39,9 +39,8 @@ Component::~Component() = default;
 /// [Sample user component runtime config source]
 namespace myservice::smth {
 
-namespace {
-const dynamic_config::Key kMyConfig{"SAMPLE_INTEGER_FROM_RUNTIME_CONFIG", 42};
-}  // namespace
+inline const dynamic_config::Key kMyConfig{"SAMPLE_INTEGER_FROM_RUNTIME_CONFIG",
+                                           42};
 
 int Component::DoSomething() const {
   // Getting a snapshot of dynamic config.
