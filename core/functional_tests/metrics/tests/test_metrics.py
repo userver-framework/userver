@@ -45,13 +45,15 @@ async def test_metrics(monitor_client, load):
     )
 
 
-async def test_metrics_log_file_state(monitor_client, service_config_yaml):
+async def test_metrics_has_reopening_error(
+        monitor_client, service_config_yaml,
+):
     metrics = await monitor_client.metrics()
     assert len(metrics) > 1
-    log_file_state = await monitor_client.single_metric(
-        'logger.log_file_state',
+    has_reopening_error = await monitor_client.single_metric(
+        'logger.has_reopening_error',
     )
-    assert log_file_state.value == 0
+    assert has_reopening_error.value == 0
 
     log_file_name = service_config_yaml['components_manager']['components'][
         'logging'
@@ -61,16 +63,16 @@ async def test_metrics_log_file_state(monitor_client, service_config_yaml):
     response = await monitor_client.post('/service/on-log-rotate/')
     assert response.status == 500
 
-    log_file_state = await monitor_client.single_metric(
-        'logger.log_file_state',
+    has_reopening_error = await monitor_client.single_metric(
+        'logger.has_reopening_error',
     )
-    assert log_file_state.value == 1
+    assert has_reopening_error.value == 1
 
     os.chmod(log_file_name, 0o777)
     response = await monitor_client.post('/service/on-log-rotate/')
     assert response.status == 200
 
-    log_file_state = await monitor_client.single_metric(
-        'logger.log_file_state',
+    has_reopening_error = await monitor_client.single_metric(
+        'logger.has_reopening_error',
     )
-    assert log_file_state.value == 0
+    assert has_reopening_error.value == 0

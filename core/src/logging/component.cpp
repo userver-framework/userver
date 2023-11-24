@@ -5,7 +5,6 @@
 
 #include <logging/config.hpp>
 #include <logging/impl/tcp_socket_sink.hpp>
-#include <logging/statistics/log_file_state.hpp>
 #include <logging/tp_logger.hpp>
 #include <logging/tp_logger_utils.hpp>
 #include <userver/components/component.hpp>
@@ -41,8 +40,7 @@ Logging::Logging(const ComponentConfig& config, const ComponentContext& context)
     : signal_subscriber_(context.FindComponent<os_signals::ProcessorComponent>()
                              .Get()
                              .AddListener(this, kName, os_signals::kSigUsr1,
-                                          &Logging::OnLogRotate)),
-      log_file_state_(logging::statistics::LogFileState())
+                                          &Logging::OnLogRotate))
 /// [Signals sample - init]
 {
   try {
@@ -190,14 +188,11 @@ void Logging::TryReopenFiles() {
   LOG_INFO() << "Log rotated";
 
   if (!result_messages.empty()) {
-    log_file_state_->SetStateToClosed();
     throw std::runtime_error("ReopenAll errors: " + result_messages);
   }
-  log_file_state_->SetStateToWrite();
 }
 
 void Logging::WriteStatistics(utils::statistics::Writer& writer) const {
-  writer = *log_file_state_;
   for (const auto& [name, logger] : loggers_) {
     writer.ValueWithLabels(logger->GetStatistics(),
                            {"logger", logger->GetLoggerName()});

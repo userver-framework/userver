@@ -23,10 +23,6 @@ USERVER_NAMESPACE_BEGIN
 namespace logging {
 struct LoggerConfig;
 
-namespace statistics {
-struct LogFileState;
-}  // namespace statistics
-
 namespace impl {
 class TpLogger;
 class TcpSocketSink;
@@ -124,9 +120,6 @@ class Logging final : public impl::ComponentBase {
   logging::impl::TcpSocketSink* socket_sink_{nullptr};
   os_signals::Subscriber signal_subscriber_;
   utils::statistics::Entry statistics_holder_;
-  utils::FastPimpl<logging::statistics::LogFileState, sizeof(size_t),
-                   alignof(size_t)>
-      log_file_state_;
 };
 
 template <>

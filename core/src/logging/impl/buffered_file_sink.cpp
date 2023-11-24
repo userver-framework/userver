@@ -17,7 +17,7 @@ void BufferedFileSink::Reopen(ReopenMode mode) {
   file_.FlushLight();
   auto new_file = OpenFile<fs::blocking::CFile>(filename_, mode);
   std::move(file_).Close();
-  std::swap(new_file, file_);
+  file_ = std::move(new_file);
 }
 
 BufferedFileSink::~BufferedFileSink() = default;

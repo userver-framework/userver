@@ -116,7 +116,7 @@ class TpLogger final : public LoggerBase {
 
   const std::string logger_name_;
   std::vector<impl::SinkPtr> sinks_;
-  statistics::LogStatistics stats_{};
+  mutable statistics::LogStatistics stats_{};
 
   engine::Mutex capacity_waiters_mutex_;
   engine::ConditionVariable capacity_waiters_cv_;

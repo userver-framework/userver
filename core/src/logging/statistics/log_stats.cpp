@@ -19,6 +19,7 @@ void DumpMetric(utils::statistics::Writer& writer, const LogStatistics& stats) {
   }
 
   writer["total"] = total;
+  writer["has_reopening_error"] = stats.has_reopening_error.load();
 }
 
 }  // namespace logging::statistics

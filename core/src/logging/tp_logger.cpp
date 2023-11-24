@@ -29,11 +29,12 @@ struct TpLogger::ActionVisitor final {
   void operator()(impl::async::ReopenCoro&& reopen) const noexcept {
     try {
       logger.BackendReopen(reopen.reopen_mode);
-    } catch (...) {
-      reopen.promise.set_exception(std::current_exception());
-      return;
+      reopen.promise.set_value();
+    } catch (const std::exception& e) {
+      // For exceptions not inherited from std::exception, a broken promise will
+      // be thrown out of the future.
+      reopen.promise.set_exception(std::make_exception_ptr(e));
     }
-    reopen.promise.set_value();
   }
 
   template <class Flush>
@@ -334,8 +335,10 @@ void TpLogger::BackendReopen(ReopenMode reopen_mode) const {
     }
   }
   if (!result_messages.empty()) {
+    stats_.has_reopening_error.store(true);
     throw std::runtime_error("BackendReopen errors: " + result_messages);
   }
+  stats_.has_reopening_error.store(false);
 }
 
 }  // namespace logging::impl
