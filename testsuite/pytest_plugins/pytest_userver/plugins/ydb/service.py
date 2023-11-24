@@ -8,15 +8,12 @@ from testsuite.environment import utils
 
 
 DEFAULT_HOST = 'localhost'
-DEFAULT_GRPC_PORT = 19000
-DEFAULT_MON_PORT = 19001
-DEFAULT_IC_PORT = 19002
+DEFAULT_GRPC_TLS_PORT = 2135
+DEFAULT_GRPC_PORT = 2136
+DEFAULT_MON_PORT = 8765
 DEFAULT_DATABASE = 'local'
-
-DEFAULT_PDISK_SIZE = 8 * 1024 * 1024 * 1024  # 8gb
-DEFAULT_PDISK_CHUNK_SIZE = 32 * 1024 * 1024  # 32mb
-DEFAULT_PDISK_SECTOR_SIZE = 2 * 1024  # 4kb
-DEFAULT_PDISK_MASTER_KEY = 2748
+DEFAULT_CONTAINER_NAME = 'ydb-local-testsuite'
+DEFAULT_DOCKER_IMAGE = 'cr.yandex/yc/yandex-docker-local-ydb:latest'
 
 PLUGIN_DIR = pathlib.Path(__file__).parent
 SCRIPTS_DIR = PLUGIN_DIR.joinpath('scripts')
@@ -31,7 +28,7 @@ class ServiceSettings:
     database: str
 
 
-def create_service(
+def create_ydb_service(
         service_name: str,
         working_dir: str,
         settings: typing.Optional[ServiceSettings] = None,
@@ -46,17 +43,15 @@ def create_service(
         environment={
             'YDB_TMPDIR': working_dir,
             'YDB_SCRIPTS_DIR': str(SCRIPTS_DIR),
-            'YDB_HOST': settings.host,
+            'YDB_HOSTNAME': settings.host,
             'YDB_GRPC_PORT': str(settings.grpc_port),
+            'YDB_GRPC_TLS_PORT': str(DEFAULT_GRPC_TLS_PORT),
             'YDB_MON_PORT': str(settings.mon_port),
-            'YDB_IC_PORT': str(settings.ic_port),
-            'YDB_PDISK_SIZE': str(DEFAULT_PDISK_SIZE),
-            'YDB_PDISK_CHUNK_SIZE': str(DEFAULT_PDISK_CHUNK_SIZE),
-            'YDB_PDISK_SECTOR_SIZE': str(DEFAULT_PDISK_SECTOR_SIZE),
-            'YDB_PDISK_MASTER_KEY': str(DEFAULT_PDISK_MASTER_KEY),
+            'YDB_CONTAINER_NAME': DEFAULT_CONTAINER_NAME,
+            'YDB_DOCKER_IMAGE': DEFAULT_DOCKER_IMAGE,
             **(env or {}),
         },
-        check_ports=[settings.grpc_port, settings.mon_port, settings.ic_port],
+        check_ports=[settings.grpc_port, settings.mon_port],
     )
 
 
@@ -67,6 +62,6 @@ def get_service_settings():
             'TESTSUITE_YDB_GRPC_PORT', DEFAULT_GRPC_PORT,
         ),
         mon_port=utils.getenv_int('TESTSUITE_YDB_MON_PORT', DEFAULT_MON_PORT),
-        ic_port=utils.getenv_int('TESTSUITE_YDB_IC_PORT', DEFAULT_IC_PORT),
+        ic_port=utils.getenv_int('TESTSUITE_YDB_IC_PORT', 0),
         database=os.getenv('TESTSUITE_YDB_DATABASE', DEFAULT_DATABASE),
     )

@@ -38,6 +38,12 @@ if(USERVER_FEATURE_POSTGRESQL)
   message(STATUS "Add postgresql python depends")
 endif()
 
+if(USERVER_FEATURE_YDB)
+  list(APPEND TESTSUITE_REQUIREMENTS
+    ${USERVER_ROOT_DIR}/testsuite/requirements-ydb.txt)
+message(STATUS "Add YDB python depends")
+endif()
+
 if(USERVER_FEATURE_REDIS)
   list(APPEND TESTSUITE_REQUIREMENTS
     ${USERVER_ROOT_DIR}/testsuite/requirements-redis.txt)

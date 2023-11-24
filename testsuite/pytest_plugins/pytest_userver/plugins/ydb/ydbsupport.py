@@ -20,6 +20,10 @@ def _ydb_client(_ydb_service, _ydb_service_settings):
     return client.YdbClient(endpoint, _ydb_service_settings.database)
 
 
+def pytest_service_register(register_service):
+    register_service('ydb', service.create_ydb_service)
+
+
 @pytest.fixture
 def _ydb_service(pytestconfig, ensure_service_started, _ydb_service_settings):
     if os.environ.get('YDB_ENDPOINT') or pytestconfig.option.ydb_host:
