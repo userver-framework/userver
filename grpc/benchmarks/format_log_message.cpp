@@ -20,12 +20,12 @@ void FormatLogMessage(benchmark::State& state) {
   // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
   for (auto _ : state) {
     auto result = ugrpc::server::impl::FormatLogMessage(
-        metadata, peer, start_time, call_name, 0);
+        metadata, peer, start_time, call_name, grpc::StatusCode::OK);
     benchmark::DoNotOptimize(result);
   }
 
-  auto result = ugrpc::server::impl::FormatLogMessage(metadata, peer,
-                                                      start_time, call_name, 0);
+  auto result = ugrpc::server::impl::FormatLogMessage(
+      metadata, peer, start_time, call_name, grpc::StatusCode::OK);
 
   UINVARIANT(utils::text::StartsWith(result, "tskv\ttimestamp=1971-05-"),
              "Fail");
@@ -37,7 +37,9 @@ void FormatLogMessage(benchmark::State& state) {
                          "upstream_response_time_ms=") != std::string::npos,
              "Fail 2");
 
-  UINVARIANT(result.find("\tgrpc_status=0\n") != std::string::npos, "Fail 3");
+  UINVARIANT(result.find("\tgrpc_status=0\t") != std::string::npos, "Fail 3");
+  UINVARIANT(result.find("\tgrpc_status_code=OK\n") != std::string::npos,
+             "Fail 4");
 }
 
 BENCHMARK(FormatLogMessage);
