@@ -34,6 +34,11 @@ components_manager:
             method: GET
             task_processor: main-task-processor
 
+        handler-on-log-rotate:
+            path: /service/on-log-rotate/
+            method: POST
+            task_processor: monitor-task-processor
+
         testsuite-support:
 
         http-client:
@@ -103,5 +108,9 @@ components_manager:
             worker_threads: 4
         fs-task-processor:
             worker_threads: 2
+        monitor-task-processor:
+            thread_name: mon-worker
+            worker_threads: $monitor_worker_threads
+            worker_threads#fallback: 1
 
     default_task_processor: main-task-processor

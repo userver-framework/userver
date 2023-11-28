@@ -6,6 +6,7 @@
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/dynamic_config/client/component.hpp>
 #include <userver/dynamic_config/updater/component.hpp>
+#include <userver/server/handlers/on_log_rotate.hpp>
 #include <userver/server/handlers/server_monitor.hpp>
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/utest/using_namespace_userver.hpp>
@@ -30,6 +31,8 @@ int main(int argc, char* argv[]) {
           .Append<clients::dns::Component>()
           .Append<alerts::Handler>()
           .Append<components::DynamicConfigClient>()
-          .Append<components::DynamicConfigClientUpdater>();
+          .Append<components::DynamicConfigClientUpdater>()
+          .Append<server::handlers::OnLogRotate>();
+
   return utils::DaemonMain(argc, argv, component_list);
 }

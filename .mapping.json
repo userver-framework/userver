@@ -214,6 +214,7 @@
   "core/functional_tests/basic_chaos/tests-nonchaos/dynamic_configs/conftest.py":"taxi/uservices/userver/core/functional_tests/basic_chaos/tests-nonchaos/dynamic_configs/conftest.py",
   "core/functional_tests/basic_chaos/tests-nonchaos/dynamic_configs/test_fixtures.py":"taxi/uservices/userver/core/functional_tests/basic_chaos/tests-nonchaos/dynamic_configs/test_fixtures.py",
   "core/functional_tests/basic_chaos/tests-nonchaos/dynamic_configs/test_invalid_update.py":"taxi/uservices/userver/core/functional_tests/basic_chaos/tests-nonchaos/dynamic_configs/test_invalid_update.py",
+  "core/functional_tests/basic_chaos/tests-nonchaos/metrics/test_has_reopening_error_metric.py":"taxi/uservices/userver/core/functional_tests/basic_chaos/tests-nonchaos/metrics/test_has_reopening_error_metric.py",
   "core/functional_tests/basic_chaos/tests/conftest.py":"taxi/uservices/userver/core/functional_tests/basic_chaos/tests/conftest.py",
   "core/functional_tests/basic_chaos/tests/httpclient/conftest.py":"taxi/uservices/userver/core/functional_tests/basic_chaos/tests/httpclient/conftest.py",
   "core/functional_tests/basic_chaos/tests/httpclient/test_httpclient.py":"taxi/uservices/userver/core/functional_tests/basic_chaos/tests/httpclient/test_httpclient.py",
