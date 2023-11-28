@@ -227,6 +227,7 @@
   "core/functional_tests/cache_update/service.cpp":"taxi/uservices/userver/core/functional_tests/cache_update/service.cpp",
   "core/functional_tests/cache_update/static_config.yaml":"taxi/uservices/userver/core/functional_tests/cache_update/static_config.yaml",
   "core/functional_tests/cache_update/tests/conftest.py":"taxi/uservices/userver/core/functional_tests/cache_update/tests/conftest.py",
+  "core/functional_tests/cache_update/tests/test_cache_alerts.py":"taxi/uservices/userver/core/functional_tests/cache_update/tests/test_cache_alerts.py",
   "core/functional_tests/cache_update/tests/test_cache_update.py":"taxi/uservices/userver/core/functional_tests/cache_update/tests/test_cache_update.py",
   "core/functional_tests/metrics/CMakeLists.txt":"taxi/uservices/userver/core/functional_tests/metrics/CMakeLists.txt",
   "core/functional_tests/metrics/config_vars.yaml":"taxi/uservices/userver/core/functional_tests/metrics/config_vars.yaml",

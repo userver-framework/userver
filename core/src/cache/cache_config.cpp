@@ -43,6 +43,8 @@ constexpr std::string_view kConfigSettings = "config-settings";
 
 constexpr std::string_view kFirstUpdateMode = "first-update-mode";
 constexpr std::string_view kFirstUpdateType = "first-update-type";
+constexpr std::string_view kAlertOnFailingToUpdateTimes =
+    "alert-on-failing-to-update-times";
 
 constexpr auto kDefaultCleanupInterval = std::chrono::seconds{10};
 
@@ -104,8 +106,10 @@ ConfigPatch Parse(const formats::json::Value& value,
                   formats::parse::To<ConfigPatch>) {
   ConfigPatch config{ParseMs(value[kUpdateIntervalMs]),
                      ParseMs(value[kUpdateJitterMs]),
-                     ParseMs(value[kFullUpdateIntervalMs]), std::nullopt,
-                     value[kUpdatesEnabled].As<bool>(true)};
+                     ParseMs(value[kFullUpdateIntervalMs]),
+                     std::nullopt,
+                     value[kUpdatesEnabled].As<bool>(true),
+                     value[kAlertOnFailingToUpdateTimes].As<size_t>(0)};
 
   if (!config.update_interval.count() && !config.full_update_interval.count()) {
     throw utils::impl::AttachTraceToException(
@@ -154,7 +158,9 @@ Config::Config(const yaml_config::YamlConfig& config,
           config[kFullUpdateInterval].As<std::chrono::milliseconds>(0)),
       exception_interval(config[kExceptionInterval]
                              .As<std::optional<std::chrono::milliseconds>>()),
-      updates_enabled(config[kUpdatesEnabled].As<bool>(true)) {
+      updates_enabled(config[kUpdatesEnabled].As<bool>(true)),
+      alert_on_failing_to_update_times(
+          config[kAlertOnFailingToUpdateTimes].As<size_t>(0)) {
   switch (allowed_update_types) {
     case AllowedUpdateTypes::kFullAndIncremental:
       if (!update_interval.count() || !full_update_interval.count()) {
@@ -233,6 +239,8 @@ Config Config::MergeWith(const ConfigPatch& patch) const {
   copy.update_jitter = patch.update_jitter;
   copy.full_update_interval = patch.full_update_interval;
   copy.updates_enabled = patch.updates_enabled;
+  copy.alert_on_failing_to_update_times =
+      patch.alert_on_failing_to_update_times;
   if (patch.exception_interval)
     copy.exception_interval = patch.exception_interval;
   return copy;

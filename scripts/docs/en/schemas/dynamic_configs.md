@@ -692,6 +692,15 @@ schema:
             full-update-interval-ms:
                 type: integer
                 minimum: 0
+            updates-enabled:
+                type: boolean
+                default: true
+            exception-interval-ms:
+                type: integer
+                minimum: 0
+            alert-on-failing-to-update-times:
+                type: integer
+                minimum: 0
         required:
           - update-interval-ms
           - update-jitter-ms
@@ -704,7 +713,8 @@ schema:
   "some-cache-name": {
     "full-update-interval-ms": 86400000,
     "update-interval-ms": 30000,
-    "update-jitter-ms": 1000
+    "update-jitter-ms": 1000,
+    "alert-on-failing-to-update-times": 2
   }
 }
 ```

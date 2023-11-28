@@ -4,6 +4,10 @@ components_manager:
             path: /cache/state
             method: GET
             task_processor: main-task-processor
+        handler-fired-alerts:
+            path: /service/fired-alerts
+            method: GET
+            task_processor: monitor-task-processor
         congestion-control:
             fake-mode: $testsuite-enabled
             load-enabled: true
@@ -135,6 +139,13 @@ components_manager:
             full-update-interval: 1h
             update-interval: 10m
             has-pre-assign-check: true
+        alert-cache:
+            update-types: full-and-incremental
+            full-update-interval: 10m
+            update-jitter: 1s
+            update-interval: 2s
+            first-update-fail-ok: true
+            alert-on-failing-to-update-times: 2
 
     default_task_processor: main-task-processor
 

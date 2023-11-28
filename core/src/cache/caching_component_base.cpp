@@ -64,6 +64,11 @@ properties:
     testsuite-force-periodic-update:
         type: boolean
         description: override testsuite-periodic-update-enabled in TestsuiteSupport component config
+    alert-on-failing-to-update-times:
+        type: integer
+        description: fire alerts if the cache update is failed for (value * update-interval) times. If zero - alerts are disabled. Value from dynamic config takes priority over static
+        defaultDescription: 0
+        minimum: 0
     dump:
         type: object
         description: manages dumps
