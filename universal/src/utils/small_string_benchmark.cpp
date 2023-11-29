@@ -141,4 +141,20 @@ BENCHMARK(SmallStringResizeThenOverwrite)
     ->Range(2, 2 << 10)
     ->Unit(benchmark::kMicrosecond);
 
+static void SmallStringAppend(benchmark::State& state) {
+  auto s = GenerateString(state.range(0));
+  std::array<utils::SmallString<1000>, kArraySize> str;
+  std::array<utils::SmallString<1>, kArraySize> str2;
+  for (auto& x : str) x = s;
+  for ([[maybe_unused]] auto _ : state) {
+    for (size_t i = 0; i < str.size(); i++) {
+      str2[i].append(str[i]);
+    }
+    state.PauseTiming();
+    str2.fill({});
+    state.ResumeTiming();
+  }
+}
+BENCHMARK(SmallStringAppend)->Range(2, 2 << 10)->Unit(benchmark::kMicrosecond);
+
 USERVER_NAMESPACE_END

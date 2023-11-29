@@ -94,7 +94,7 @@ class Map final {
 
   bool operator==(const Map& other) const noexcept;
 
-  void OutputInHttpFormat(std::string& buffer) const;
+  void OutputInHttpFormat(HeadersString& buffer) const;
 
  private:
   friend class http::headers::TestsHelper;

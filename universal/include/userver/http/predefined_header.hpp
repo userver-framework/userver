@@ -5,11 +5,17 @@
 
 #include <fmt/core.h>
 
+#include <userver/utils/small_string_fwd.hpp>
 #include <userver/utils/trivial_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace http::headers {
+
+// According to https://www.chromium.org/spdy/spdy-whitepaper/
+// "typical header sizes of 700-800 bytes is common"
+inline constexpr std::size_t kTypicalHeadersSize = 1024;
+using HeadersString = utils::SmallString<kTypicalHeadersSize>;
 
 namespace impl {
 

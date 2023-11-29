@@ -58,6 +58,17 @@ TEST(SmallString, PushBack) {
   EXPECT_EQ(str, "a");
 }
 
+TEST(SmallString, Append) {
+  utils::SmallString<2> str("a");
+
+  str.append("b");
+  EXPECT_EQ(str, "ab");
+  str.append("cd");
+  EXPECT_EQ(str, "abcd");
+  str.append(str);
+  EXPECT_EQ(str, "abcdabcd");
+}
+
 TEST(SmallString, SizeCapacity) {
   utils::SmallString<10> str("abcd");
   str.resize(3, '1');
@@ -98,6 +109,15 @@ TEST(SmallString, ResizeAndOverwriteRvalueCall) {
   utils::SmallString<4> small_str("abcd");
 
   small_str.resize_and_overwrite(16, CheckRvalueCall());
+}
+
+TEST(SmallString, InvalidOpReturnValue) {
+  utils::SmallString<4> small_str("abcd");
+  ASSERT_DEBUG_DEATH(
+      small_str.resize_and_overwrite(
+          16, [&]([[maybe_unused]] char* data,
+                  [[maybe_unused]] std::size_t size) { return 20; }),
+      "");
 }
 
 TEST(SmallString, Assign) {
