@@ -1,6 +1,12 @@
 import os
+import pathlib
+import subprocess
+from typing import List
 
 import pytest
+import yatest
+
+from testsuite.environment import shell
 
 from . import client
 from . import discover
@@ -93,11 +99,78 @@ def _ydb_state():
 
 
 @pytest.fixture
+def ydb_migrate_dir(service_source_dir) -> pathlib.Path:
+    return service_source_dir / 'ydb' / 'migrations'
+
+
+def _ydb_migrate(_ydb_service_settings, ydb_migrate_dir):
+    if not ydb_migrate_dir.exists():
+        return
+    if not list(ydb_migrate_dir.iterdir()):
+        return
+
+    host = _ydb_service_settings.host
+    port = _ydb_service_settings.grpc_port
+
+    command = [
+        str(_get_goose()),
+        '-dir',
+        str(ydb_migrate_dir),
+        'ydb',
+        (
+            f'grpc://{host}:{port}/local?go_query_mode=scripting&'
+            'go_fake_tx=scripting&go_query_bind=declare,numeric'
+        ),
+        'up',
+    ]
+    try:
+        shell.execute(command, verbose=True, command_alias='ydb/migrations')
+    except shell.SubprocessFailed as exc:
+        raise Exception(f'YDB run migration failed:\n\n{exc}')
+
+
+def _get_goose() -> pathlib.Path:
+    return yatest.common.runtime.binary_path(
+        'contrib/go/patched/goose/cmd/goose/goose',
+    )
+
+
+def _ydb_fetch_table_names(_ydb_service_settings) -> List[str]:
+    host = _ydb_service_settings.host
+    port = _ydb_service_settings.grpc_port
+    output = subprocess.check_output(
+        [
+            yatest.common.runtime.binary_path('contrib/ydb/apps/ydb/ydb'),
+            '-e',
+            f'grpc://{host}:{port}',
+            '-d',
+            '/local',
+            'scheme',
+            'ls',
+            '-lR',
+        ],
+        encoding='utf-8',
+    )
+    tables = []
+
+    for line in output.split('\n'):
+        if ' table ' not in line:
+            continue
+        if '.sys' in line:
+            continue
+        path = line.split('│')[6].strip()
+        tables.append(path)
+    return tables
+
+
+@pytest.fixture
 def _ydb_init(
         request,
         _ydb_service_schemas,
         _ydb_client,
         _ydb_state,
+        _ydb_service_settings,
+        ydb_migrate_dir,
         load,
         load_yaml,
 ):
@@ -109,7 +182,13 @@ def _ydb_init(
         return result_queries
 
     if not _ydb_state.init:
-        _ydb_state.init = True
+        if _ydb_service_schemas and ydb_migrate_dir.exists():
+            raise Exception(
+                'Both ydb/schema and ydb/migrations exist, '
+                'which are mutually exclusive',
+            )
+
+        # testsuite legacy
         for schema_path in _ydb_service_schemas:
             tables_schemas = load_yaml(schema_path)
             for table_schema in tables_schemas:
@@ -117,7 +196,17 @@ def _ydb_init(
                 client.create_table(_ydb_client, table_schema)
                 _ydb_state.tables.append(table_schema['path'])
 
+        # goose
+        _ydb_migrate(_ydb_service_settings, ydb_migrate_dir)
+
+        _ydb_state.init = True
+
+    # testsuite legacy
     for table in _ydb_state.tables:
+        _ydb_client.execute('DELETE FROM `{}`'.format(table))
+
+    # goose
+    for table in _ydb_fetch_table_names(_ydb_service_settings):
         _ydb_client.execute('DELETE FROM `{}`'.format(table))
 
     for mark in request.node.iter_markers('ydb'):
