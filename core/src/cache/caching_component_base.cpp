@@ -15,7 +15,7 @@ additionalProperties: false
 properties:
     update-types:
         type: string
-        description: specifies whether incremental and/or full updates will be used
+        description: specifies whether incremental and/or full updates are used
         enum:
           - full-and-incremental
           - only-full
@@ -59,28 +59,50 @@ properties:
         defaultDescription: false
     has-pre-assign-check:
         type: boolean
-        description: enables the check before changing the value in the cache, by default it is the check that the new value is not empty
+        description: |
+            enables the check before changing the value in the cache, by
+            default it is the check that the new value is not empty
         defaultDescription: false
     testsuite-force-periodic-update:
         type: boolean
-        description: override testsuite-periodic-update-enabled in TestsuiteSupport component config
+        description: |
+            override testsuite-periodic-update-enabled in TestsuiteSupport
+            component config
     alert-on-failing-to-update-times:
         type: integer
-        description: fire alerts if the cache update is failed for (value * update-interval) times. If zero - alerts are disabled. Value from dynamic config takes priority over static
+        description: |
+            fire an alert if the cache update failed specified amount of times
+            in a row. If zero - alerts are disabled. Value from dynamic config
+            takes priority over static
         defaultDescription: 0
         minimum: 0
     dump:
         type: object
-        description: manages dumps
+        description: Manages cache behavior after dump load
         additionalProperties: false
         properties:
             first-update-mode:
                 type: string
-                description: specifies whether required or best-effort first update will be used
-                defaultDescription: skip
+                description: |
+                    Behavior of update after successful load from dump.
+                    `skip` - after successful load from dump, do nothing;
+                    `required` - make a synchronous update of type
+                    `first-update-type`, stop the service on failure;
+                    `best-effort` - make a synchronous update of type
+                    `first-update-type`, keep working and use data from dump
+                    on failure.
+                enum:
+                  - skip
+                  - required
+                  - best-effort
             first-update-type:
                 type: string
-                description: specifies whether incremental and/or full first update will be used
+                description: |
+                    Update type after successful load from dump.
+                enum:
+                  - full
+                  - incremental
+                  - incremental-then-async-full
                 defaultDescription: full
 )");
 }

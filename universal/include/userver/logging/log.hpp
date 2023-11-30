@@ -154,7 +154,7 @@ struct EntryStorage final {
 #ifdef USERVER_FEATURE_ERASE_LOG_WITH_LEVEL
 
 // Helper macro to erase the logging related code from binary. Erases the
-// * logging registartion via EntryStorage
+// * logging registration via EntryStorage
 // * ShouldLog() calls and related `if` statements and runtime checks
 // * SourceLocation info
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)

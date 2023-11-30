@@ -137,6 +137,10 @@ components_manager:
 
 ```
 
+Use ugrpc::server::MiddlewareBase and ugrpc::client::MiddlewareBase to implement
+new middlewares.
+
+
 ## Metrics
 
 * Client metrics are put inside `grpc.client.by-destination {grpc_destination=FULL_SERVICE_NAME/METHOD_NAME}`

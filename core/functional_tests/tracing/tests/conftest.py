@@ -47,7 +47,7 @@ async def assert_ids_in_file(taxi_test_service, jaeger_logs_path):
 
     trace_id = ''
 
-    # Cheking the capture only after the capturing was stopped, to make shure
+    # Checking the capture only after the capturing was stopped, to make sure
     # that the logs were flushed
     async def _check_the_files(check_trace_id: str):
         nonlocal trace_id

@@ -121,7 +121,7 @@ namespace components {
 /// dns_resolver            | server hostname resolver type (getaddrinfo or async)      | 'async'
 /// persistent-prepared-statements | cache prepared statements or not                   | true
 /// user-types-enabled      | allow use of user-defined types                           | true
-/// check-user-types        | check that all user-defined types exist in database       | false
+/// check-user-types        | cancel service start if some user types have not been loaded, which helps to detect missing migrations | false
 /// ignore_unused_query_params| disable check for not-NULL query params that are not used in query| false
 /// monitoring-dbalias      | name of the database for monitorings                      | calculated from dbalias or dbconnection options
 /// max_prepared_cache_size | prepared statements cache size limit                      | 5000

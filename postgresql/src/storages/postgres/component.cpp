@@ -250,8 +250,8 @@ properties:
     check-user-types:
         type: boolean
         description: |
-            check on startup that all user types have been loaded, which helps
-            to detect missing migrations
+            cancel service start if some user types have not been loaded, which
+            helps to detect missing migrations
         defaultDescription: false
     ignore_unused_query_params:
         type: boolean

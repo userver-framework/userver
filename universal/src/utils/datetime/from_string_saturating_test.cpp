@@ -59,9 +59,9 @@ TEST(FromStringSaturation, MicroSeconds) {
 }
 
 TEST(FromStringSaturation, NotSupported) {
-  constexpr auto bad_foramt = "%Y-%m-%dT%H:%M:%S.%f";
+  constexpr auto bad_format = "%Y-%m-%dT%H:%M:%S.%f";
   EXPECT_THROW(utils::datetime::FromStringSaturating(
-                   "2023-06-06T15:23:19.231934", bad_foramt),
+                   "2023-06-06T15:23:19.231934", bad_format),
                utils::datetime::DateParseError);
 }
 

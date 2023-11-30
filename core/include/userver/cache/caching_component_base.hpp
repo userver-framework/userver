@@ -69,7 +69,10 @@ namespace components {
 /// testsuite-force-periodic-update | override testsuite-periodic-update-enabled in TestsuiteSupport component config | --
 /// failed-updates-before-expiration | the number of consecutive failed updates for data expiration | --
 /// has-pre-assign-check | enables the check before changing the value in the cache, by default it is the check that the new value is not empty | false
-///
+/// alert-on-failing-to-update-times | fire an alert if the cache update failed specified amount of times in a row. If zero - alerts are disabled. Value from dynamic config takes priority over static | 0
+/// dump.* | Manages cache behavior after dump load | -
+/// dump.first-update-mode | Behavior of update after successful load from dump. See info on modes below | skip
+/// dump.first-update-type | Update type after successful load from dump (`full`, `incremental` or `incremental-then-async-full`) | full
 /// ### Update types
 ///  * `full-and-incremental`: both `update-interval` and `full-update-interval`
 ///    must be specified. Updates with UpdateType::kIncremental will be triggered
@@ -80,6 +83,13 @@ namespace components {
 ///  * `only-incremental`: only `update-interval` must be specified. UpdateType::kFull is triggered
 ///    on the first update, afterwards UpdateType::kIncremental will be triggered
 ///    each `update-interval` (adjusted by jitter).
+///
+/// ### `first-update-mode` modes
+/// Mode          | Description
+/// ------------- | -----------
+/// `skip`        | after successful load from dump, do nothing
+/// `required`    | make a synchronous update of type `first-update-type`, stop the service on failure
+/// `best-effort` | make a synchronous update of type `first-update-type`, keep working and use data from dump on failure
 ///
 /// ### testsuite-force-periodic-update
 ///  use it to enable periodic cache update for a component in testsuite environment
