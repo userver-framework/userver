@@ -29,9 +29,9 @@ def _grpc_client_port(request) -> int:
 async def _gate_started(loop, grpc_client_port):
     gate_config = chaos.GateRoute(
         name='grpc client tcp proxy',
-        host_for_client='localhost',
+        host_for_client='::1',
         port_for_client=0,
-        host_to_server='localhost',
+        host_to_server='::1',
         port_to_server=grpc_client_port,
     )
     logger.info(
@@ -96,7 +96,7 @@ async def server_run(grpc_client_port):
 @pytest.fixture(scope='session')
 async def _grpc_session_ch(server_run, grpc_service_port_local):
     async with grpc.aio.insecure_channel(
-            f'localhost:{grpc_service_port_local}',
+            f'[::1]:{grpc_service_port_local}',
     ) as channel:
         yield channel
 
@@ -108,6 +108,6 @@ async def grpc_ch(_grpc_session_ch, grpc_service_port_local):
     except asyncio.TimeoutError:
         raise RuntimeError(
             'Failed to connect to remote gRPC server by '
-            f'address localhost:{grpc_service_port_local}',
+            f'address [::1]:{grpc_service_port_local}',
         )
     return _grpc_session_ch
