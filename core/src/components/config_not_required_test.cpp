@@ -1,6 +1,7 @@
 #include <userver/utest/utest.hpp>
 
 #include <components/component_list_test.hpp>
+#include <userver/alerts/component.hpp>
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/components/run.hpp>
 #include <userver/components/statistics_storage.hpp>
@@ -80,7 +81,8 @@ components::ComponentList MakeComponentList() {
       .Append<components::StatisticsStorage>()
       .Append<components::Logging>()
       .Append<components::Tracer>()
-      .Append<ConfigNotRequiredComponent>();
+      .Append<ConfigNotRequiredComponent>()
+      .Append<alerts::StorageComponent>();
 }
 
 }  // namespace

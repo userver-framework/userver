@@ -4,6 +4,7 @@
 #include <gmock/gmock.h>
 
 #include <components/component_list_test.hpp>
+#include <userver/alerts/component.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/component_list.hpp>
 #include <userver/components/loggable_component_base.hpp>
@@ -80,7 +81,8 @@ components::ComponentList MakeNoDefaultLoggerComponentList() {
   return components::ComponentList()
       .Append<os_signals::ProcessorComponent>()
       .Append<components::Logging>()
-      .Append<components::Tracer>();
+      .Append<components::Tracer>()
+      .Append<alerts::StorageComponent>();
 }
 
 }  // namespace
@@ -156,7 +158,8 @@ components::ComponentList MakeTwoLoggersComponentList() {
       .Append<os_signals::ProcessorComponent>()
       .Append<components::Logging>()
       .Append<components::Tracer>()
-      .Append<TwoLoggersComponent>();
+      .Append<TwoLoggersComponent>()
+      .Append<alerts::StorageComponent>();
 }
 
 }  // namespace
