@@ -74,13 +74,13 @@ class Value final {
   using Builder = ValueBuilder;
 
   /// @brief Constructs a Value that holds a null.
-  Value() noexcept = default;
+  Value();
 
   Value(const Value&) = default;
-  Value(Value&&) noexcept = default;
+  Value(Value&&) noexcept;
 
   Value& operator=(const Value&) & = default;
-  Value& operator=(Value&& other) & noexcept = default;
+  Value& operator=(Value&&) noexcept;
 
   template <class T>
   Value& operator=(T&&) && {
@@ -255,7 +255,7 @@ class Value final {
   Value(impl::VersionedValuePtr root, LazyDetachedPath&& lazy_detached_path);
 
   bool IsUniqueReference() const;
-  void EnsureNotMissing();
+  void EnsureNotMissing() const;
   const impl::Value& GetNative() const;
   impl::Value& GetNative();
   void SetNative(impl::Value&);  // does not copy

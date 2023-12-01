@@ -1002,6 +1002,7 @@
   "core/src/engine/wait_any_test.cpp":"taxi/uservices/userver/core/src/engine/wait_any_test.cpp",
   "core/src/error_injection/hook.cpp":"taxi/uservices/userver/core/src/error_injection/hook.cpp",
   "core/src/error_injection/settings.cpp":"taxi/uservices/userver/core/src/error_injection/settings.cpp",
+  "core/src/formats/json/racy_lazy_allocation_test.cpp":"taxi/uservices/userver/core/src/formats/json/racy_lazy_allocation_test.cpp",
   "core/src/formats/json/stack_overflow_test.cpp":"taxi/uservices/userver/core/src/formats/json/stack_overflow_test.cpp",
   "core/src/fs/fs_cache_client.cpp":"taxi/uservices/userver/core/src/fs/fs_cache_client.cpp",
   "core/src/fs/read.cpp":"taxi/uservices/userver/core/src/fs/read.cpp",
