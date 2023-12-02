@@ -28,7 +28,15 @@ async def test_ping(websocket_client):
         assert response == 'hello'
 
 
-async def test_big(websocket_client):
+async def test_big_16(websocket_client):
+    async with websocket_client.get('chat') as chat:
+        msg = 'a' * 200
+        await chat.send(msg)
+        response = await chat.recv()
+        assert response == msg
+
+
+async def test_big_32(websocket_client):
     async with websocket_client.get('chat') as chat:
         msg = 'hello' * 10000
         await chat.send(msg)
