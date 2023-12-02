@@ -280,37 +280,46 @@ void Cookie::CookieData::SetSameSite(std::string value) {
 
 void Cookie::CookieData::AppendToString(
     USERVER_NAMESPACE::http::headers::HeadersString& os) const {
-  os.append(name_);
-  os.append("=");
-  os.append(value_);
-
-  if (!domain_.empty()) {
-    os.append("; Domain=");
-    os.append(domain_);
-  }
-  if (!path_.empty()) {
-    os.append("; Path=");
-    os.append(path_);
-  }
-  if (expires_.has_value()) {
-    os.append("; Expires=");
-    os.append(
-        utils::datetime::Timestring(expires_.value(), "GMT", kTimeFormat));
-  }
-  if (max_age_.has_value()) {
-    os.append("; Max-Age=");
-    os.append(fmt::format(FMT_COMPILE("{}"), max_age_.value().count()));
-  }
-  if (secure_) {
-    os.append("; Secure");
-  }
-  if (!same_site_.empty()) {
-    os.append("; SameSite=");
-    os.append(same_site_);
-  }
-  if (http_only_) {
-    os.append("; HttpOnly");
-  }
+  os.resize_and_overwrite(
+      USERVER_NAMESPACE::http::headers::kTypicalHeadersSize,
+      [this](char* data, std::size_t) {
+        auto append = [&data](const std::string_view what) {
+          std::memcpy(data, what.begin(), what.size());
+          data += what.size();
+        };
+        char* old_data_pointer = data;
+        append(name_);
+        append("=");
+        append(value_);
+        if (!domain_.empty()) {
+          append("; Domain=");
+          append(domain_);
+        }
+        if (!path_.empty()) {
+          append("; Path=");
+          append(path_);
+        }
+        if (expires_.has_value()) {
+          append("; Expires=");
+          append(utils::datetime::Timestring(expires_.value(), "GMT",
+                                             kTimeFormat));
+        }
+        if (max_age_.has_value()) {
+          append("; Max-Age=");
+          append(fmt::format(FMT_COMPILE("{}"), max_age_.value().count()));
+        }
+        if (secure_) {
+          append("; Secure");
+        }
+        if (!same_site_.empty()) {
+          append("; SameSite=");
+          append(same_site_);
+        }
+        if (http_only_) {
+          append("; HttpOnly");
+        }
+        return data - old_data_pointer;
+      });
 }
 
 void Cookie::CookieData::ValidateName() const {
