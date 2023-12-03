@@ -115,6 +115,10 @@ class DynamicConfig::NoblockSubscriber final {
 template <>
 inline constexpr bool kHasValidate<DynamicConfig> = true;
 
+template <>
+inline constexpr auto kConfigFileMode<DynamicConfig> =
+    ConfigFileMode::kNotRequired;
+
 }  // namespace components
 
 USERVER_NAMESPACE_END

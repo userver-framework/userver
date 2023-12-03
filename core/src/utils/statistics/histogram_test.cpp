@@ -2,7 +2,11 @@
 
 #include <limits>
 
+#include <boost/range/irange.hpp>
+
 #include <userver/utest/utest.hpp>
+#include <userver/utils/algo.hpp>
+#include <userver/utils/enumerate.hpp>
 #include <userver/utils/statistics/fmt.hpp>
 #include <userver/utils/statistics/graphite.hpp>
 #include <userver/utils/statistics/json.hpp>
@@ -51,6 +55,29 @@ UTEST(StatisticsHistogram, ValueOnBucketBorder) {
   histogram.Account(5);
   EXPECT_EQ(fmt::to_string(histogram.GetView()),
             "[1.5]=0,[5]=1,[42]=0,[60]=0,[inf]=0");
+}
+
+UTEST(StatisticsHistogram, AccountForEachBucketCount) {
+  constexpr double kInf = 9001;
+  constexpr std::uint64_t kInfCount = 42;
+
+  for (std::size_t i = 1; i < 100; ++i) {
+    const auto bounds = boost::irange(std::size_t{1}, i + 1);
+    utils::statistics::Histogram histogram{
+        utils::AsContainer<std::vector<double>>(bounds)};
+
+    ASSERT_EQ(histogram.GetView().GetBucketCount(), i);
+    for (const auto bound : bounds) {
+      histogram.Account(bound, bound);
+    }
+    histogram.Account(kInf, kInfCount);
+
+    const auto view = histogram.GetView();
+    for (const auto [idx, bound] : utils::enumerate(bounds)) {
+      EXPECT_EQ(view.GetValueAt(idx), bound);
+    }
+    EXPECT_EQ(view.GetValueAtInf(), kInfCount);
+  }
 }
 
 UTEST(StatisticsHistogram, Sample) {

@@ -16,6 +16,13 @@ void HandlerMethodIndex::AddHandler(const handlers::HttpHandlerBase& handler,
   for (auto method : handler.GetAllowedMethods()) {
     AddHandlerInfoData(method, handler_info_data);
   }
+
+  const auto* get_method =
+      pmethods_[static_cast<std::size_t>(HttpMethod::kGet)];
+  auto& head_method = pmethods_[static_cast<std::size_t>(HttpMethod::kHead)];
+  if (get_method && !head_method) {
+    head_method = get_method;
+  }
 }
 
 const HandlerMethodIndex::HandlerInfoData*

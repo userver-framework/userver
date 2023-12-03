@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <atomic>
 
 #include <userver/logging/level.hpp>
 #include <userver/utils/statistics/rate_counter.hpp>
@@ -16,6 +17,7 @@ struct LogStatistics final {
   Counter dropped{};
 
   std::array<Counter, kLevelMax + 1> by_level{};
+  std::atomic<bool> has_reopening_error{false};
 };
 
 void DumpMetric(utils::statistics::Writer& writer, const LogStatistics& stats);

@@ -42,6 +42,9 @@ class TimezoneLookupError : public std::runtime_error {
 };
 
 /// @brief std::chrono::system_clock::now() that could be mocked
+///
+/// Returns last time point passed to utils::datetime::MockNowSet(), or
+/// std::chrono::system_clock::now() if the timepoint is not mocked.
 std::chrono::system_clock::time_point Now() noexcept;
 
 /// @brief Returns std::chrono::system_clock::time_point from the start of the
@@ -49,6 +52,9 @@ std::chrono::system_clock::time_point Now() noexcept;
 std::chrono::system_clock::time_point Epoch() noexcept;
 
 /// @brief std::chrono::steady_clock::now() that could be mocked
+///
+/// Returns last time point passed to utils::datetime::MockNowSet(), or
+/// std::chrono::steady_clock::now() if the timepoint is not mocked.
 ///
 /// It is only intended for period-based structures/algorithms testing.
 ///

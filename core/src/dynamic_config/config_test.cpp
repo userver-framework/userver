@@ -5,11 +5,52 @@
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/dynamic_config/source.hpp>
 #include <userver/dynamic_config/storage_mock.hpp>
+#include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/formats/json/serialize.hpp>
+
+using namespace std::chrono_literals;
 
 USERVER_NAMESPACE_BEGIN
 
 namespace {
+
+/// [struct config hpp]
+// hpp
+struct SampleStructConfig final {
+  bool is_foo_enabled;
+  std::chrono::milliseconds bar_period;
+};
+
+extern const dynamic_config::Key<SampleStructConfig> kSampleStructConfig;
+/// [struct config hpp]
+
+/// [struct config cpp]
+// cpp
+// Parser for a type must be defined in the same namespace as the type itself.
+// In this example, JSON parser is only needed for dynamic config, so declaring
+// it in hpp is not strictly necessary.
+SampleStructConfig Parse(const formats::json::Value& value,
+                         formats::parse::To<SampleStructConfig>) {
+  return SampleStructConfig{
+      /*is_foo_enabled=*/value["is_foo_enabled"].As<bool>(),
+      /*bar_period=*/value["bar_period_ms"].As<std::chrono::milliseconds>(),
+  };
+}
+
+const dynamic_config::Key<SampleStructConfig> kSampleStructConfig{
+    "SAMPLE_STRUCT_CONFIG", dynamic_config::DefaultAsJsonString{R"(
+  {
+    "is_foo_enabled": false,
+    "bar_period_ms": 42000
+  }
+)"}};
+/// [struct config cpp]
+
+UTEST(DynamicConfig, SampleStructConfig) {
+  const auto& config = dynamic_config::GetDefaultSnapshot();
+  EXPECT_EQ(config[kSampleStructConfig].is_foo_enabled, false);
+  EXPECT_EQ(config[kSampleStructConfig].bar_period, 42s);
+}
 
 struct DummyConfig final {
   int foo;
@@ -21,8 +62,6 @@ DummyConfig Parse(const formats::json::Value& value,
   return {value["foo"].As<int>(), value["bar"].As<std::string>()};
 }
 
-// TODO add some tests that declare actual configs together with their defaults.
-//  Currently, all configs in this tests are constant configs.
 const dynamic_config::Key kDummyConfig{dynamic_config::ConstantConfig{},
                                        DummyConfig{42, "what"}};
 
@@ -136,10 +175,14 @@ UTEST(DynamicConfig, Snippet) {
 /// [Sample StorageMock usage]
 
 UTEST(DynamicConfig, Extend) {
-  std::vector<dynamic_config::KeyValue> vars1{{kIntConfig, 5},
-                                              {kBoolConfig, true}};
-  std::vector<dynamic_config::KeyValue> vars2{{kIntConfig, 10},
-                                              {kDummyConfig, {42, "what"}}};
+  const std::vector<dynamic_config::KeyValue> vars1{
+      {kIntConfig, 5},
+      {kBoolConfig, true},
+  };
+  const std::vector<dynamic_config::KeyValue> vars2{
+      {kIntConfig, 10},
+      {kDummyConfig, {42, "what"}},
+  };
 
   dynamic_config::StorageMock storage{vars1};
   storage.Extend(vars2);
@@ -190,8 +233,6 @@ UTEST(DynamicConfig, Extend2) {
   EXPECT_EQ(config[kIntConfig], 5);
 }
 
-namespace {
-
 class Subscriber final {
  public:
   void OnConfigUpdate(const dynamic_config::Snapshot&) { counter_++; }
@@ -201,19 +242,17 @@ class Subscriber final {
   int counter_{};
 };
 
-}  // namespace
-
 [[maybe_unused]] bool operator==(const DummyConfig& lhs,
                                  const DummyConfig& rhs) {
   return lhs.foo == rhs.foo && lhs.bar == rhs.bar;
 }
 
 UTEST(DynamicConfig, SingleSubscription) {
-  std::vector<dynamic_config::KeyValue> vars1{
+  const std::vector<dynamic_config::KeyValue> vars1{
       {kDummyConfig, {0, "bar"}}, {kIntConfig, 1}, {kBoolConfig, false}};
-  std::vector<dynamic_config::KeyValue> vars2{
+  const std::vector<dynamic_config::KeyValue> vars2{
       {kDummyConfig, {0, "foo"}}, {kIntConfig, 2}, {kBoolConfig, false}};
-  std::vector<dynamic_config::KeyValue> vars3{
+  const std::vector<dynamic_config::KeyValue> vars3{
       {kDummyConfig, {1, "foo"}}, {kIntConfig, 2}, {kBoolConfig, true}};
 
   dynamic_config::StorageMock storage;
@@ -254,12 +293,18 @@ UTEST(DynamicConfig, SingleSubscription) {
 }
 
 UTEST(DynamicConfig, GetEventChannel) {
-  std::vector<dynamic_config::KeyValue> vars1{{kIntConfig, 1},
-                                              {kBoolConfig, false}};
-  std::vector<dynamic_config::KeyValue> vars2{{kIntConfig, 1},
-                                              {kBoolConfig, true}};
-  std::vector<dynamic_config::KeyValue> vars3{{kIntConfig, 2},
-                                              {kBoolConfig, true}};
+  const std::vector<dynamic_config::KeyValue> vars1{
+      {kIntConfig, 1},
+      {kBoolConfig, false},
+  };
+  const std::vector<dynamic_config::KeyValue> vars2{
+      {kIntConfig, 1},
+      {kBoolConfig, true},
+  };
+  const std::vector<dynamic_config::KeyValue> vars3{
+      {kIntConfig, 2},
+      {kBoolConfig, true},
+  };
 
   dynamic_config::StorageMock storage;
   storage.Extend(vars1);
@@ -295,12 +340,21 @@ UTEST(DynamicConfig, GetEventChannel) {
 }
 
 UTEST(DynamicConfig, SubsetSubscription) {
-  std::vector<dynamic_config::KeyValue> vars1{
-      {kDummyConfig, {0, "bar"}}, {kIntConfig, 1}, {kBoolConfig, false}};
-  std::vector<dynamic_config::KeyValue> vars2{
-      {kDummyConfig, {0, "foo"}}, {kIntConfig, 1}, {kBoolConfig, true}};
-  std::vector<dynamic_config::KeyValue> vars3{
-      {kDummyConfig, {0, "foo"}}, {kIntConfig, 0}, {kBoolConfig, true}};
+  const std::vector<dynamic_config::KeyValue> vars1{
+      {kDummyConfig, {0, "bar"}},
+      {kIntConfig, 1},
+      {kBoolConfig, false},
+  };
+  const std::vector<dynamic_config::KeyValue> vars2{
+      {kDummyConfig, {0, "foo"}},
+      {kIntConfig, 1},
+      {kBoolConfig, true},
+  };
+  const std::vector<dynamic_config::KeyValue> vars3{
+      {kDummyConfig, {0, "foo"}},
+      {kIntConfig, 0},
+      {kBoolConfig, true},
+  };
 
   dynamic_config::StorageMock storage;
   auto source = storage.GetSource();
@@ -334,8 +388,6 @@ UTEST(DynamicConfig, SubsetSubscription) {
   EXPECT_EQ(subscribers[1].GetCounter(), 3);
 }
 
-namespace {
-
 class CustomSubscriber final {
  public:
   void OnConfigUpdate(const dynamic_config::Diff&) { counter_++; }
@@ -344,8 +396,6 @@ class CustomSubscriber final {
  private:
   int counter_{};
 };
-
-}  // namespace
 
 UTEST(DynamicConfig, CustomSubscription) {
   dynamic_config::StorageMock storage;
@@ -359,8 +409,6 @@ UTEST(DynamicConfig, CustomSubscription) {
   storage.Extend({});
   EXPECT_EQ(subscriber.GetCounter(), 2);
 }
-
-namespace {
 
 class ConfigSubscriber final {
  public:
@@ -393,8 +441,6 @@ class ConfigSubscriber final {
   std::size_t foo_interesting_event_counter_{};
 };
 
-}  // namespace
-
 UTEST(DynamicConfigSubscription, Snippet) {
   dynamic_config::StorageMock storage;
   auto source = storage.GetSource();
@@ -419,18 +465,14 @@ UTEST(DynamicConfigSubscription, Snippet) {
   EXPECT_EQ(subscriber.GetFooInterestingEventCounter(), 1);
 }
 
-namespace {
-
 const dynamic_config::Key<formats::json::Value> kJsonConfig{
     dynamic_config::ConstantConfig{}, {}};
-
-}  // namespace
 
 UTEST(DynamicConfig, JsonConfig) {
   // KeyValue automatically parses any config from formats::json::Value. But the
   // config itself can also have the type of formats::json::Value. In this case
   // both approaches are correct. Check that there is no ambiguity.
-  dynamic_config::StorageMock storage{{kJsonConfig, kJson}};
+  const dynamic_config::StorageMock storage{{kJsonConfig, kJson}};
   const auto snapshot = storage.GetSnapshot();
   EXPECT_EQ(snapshot[kJsonConfig], kJson);
 }

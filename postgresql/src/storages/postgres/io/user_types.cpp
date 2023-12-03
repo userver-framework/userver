@@ -216,6 +216,17 @@ const DBTypeDescription* UserTypes::GetTypeDescription(Oid oid) const {
   return f != by_oid_.end() ? &*f->second : nullptr;
 }
 
+void UserTypes::CheckRegisteredTypes() const {
+  for (const auto& [pg_name, cpp_name] : Parsers()) {
+    auto it = by_name_.find(pg_name);
+    if (it == by_name_.end()) {
+      throw UserTypeError{fmt::format(
+          "Registered user type {}.{} not found. Forgot a migration?",
+          pg_name.schema, pg_name.name)};
+    }
+  }
+}
+
 namespace io {
 
 bool HasParser(DBTypeName name) { return Parsers().count(name) > 0; }

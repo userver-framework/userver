@@ -33,7 +33,6 @@ components_manager:
                     level: debug
                     overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
 
-        dynamic-config:                      # Dynamic config storage options, do nothing
         dns-client:
             fs-task-processor: fs-task-processor
 
@@ -45,4 +44,4 @@ components_manager:
         fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
             worker_threads: 4
 
-    default_task_processor: main-task-processor
+    default_task_processor: main-task-processor  # Task processor in which components start.

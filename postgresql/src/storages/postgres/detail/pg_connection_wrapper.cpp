@@ -363,9 +363,7 @@ void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline,
         // This is an obsolete state, just ignore it
         break;
       case PGRES_POLLING_FAILED:
-        PGCW_LOG_LIMITED_WARNING() << " libpq polling failed";
-        CheckError<ConnectionError>("PQconnectPoll", 0);
-        break;
+        // Handled right after PQconnectPoll
       default:
         UASSERT(!"Unexpected enumeration value");
         break;
@@ -375,7 +373,11 @@ void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline,
     poll_res = engine::CriticalAsyncNoSpan(bg_task_processor_, [this] {
                  return PQconnectPoll(conn_);
                }).Get();
-    HandleSocketPostClose();
+
+    // Handled here so as not to loose the error message
+    if (poll_res == PGRES_POLLING_FAILED) {
+      CheckError<ConnectionError>("PQconnectPoll", 0);
+    }
 
     PGCW_LOG_TRACE() << MsgForStatus(PQstatus(conn_));
 
@@ -572,11 +574,14 @@ void PGConnectionWrapper::DiscardInput(Deadline deadline) {
   } while (IsSyncingPipeline() && PQstatus(conn_) != CONNECTION_BAD);
 }
 
-void PGConnectionWrapper::FillSpanTags(tracing::Span& span) const {
+void PGConnectionWrapper::FillSpanTags(tracing::Span& span,
+                                       const CommandControl& cc) const {
   // With inheritable tags, they would end up being duplicated in current Span
   // and in log_extra_ (passed by PGCW_LOG_ macros).
   span.AddNonInheritableTags(log_extra_,
                              USERVER_NAMESPACE::utils::InternalTag{});
+  span.AddTag("network_timeout_ms", cc.execute.count());
+  span.AddTag("statement_timeout_ms", cc.statement.count());
 }
 
 PGresult* PGConnectionWrapper::ReadResult(Deadline deadline) {

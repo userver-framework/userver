@@ -85,8 +85,6 @@ enum class UpdateType {
 /// `min-interval` | `string` (duration) | `WriteDumpAsync` calls performed in a fast succession are ignored | `0s`
 /// `fs-task-processor` | `string` | `TaskProcessor` for blocking disk IO | `fs-task-processor`
 /// `encrypted` | `boolean` | Whether to encrypt the dump | `false`
-/// `first-update-mode` | `string` | specifies whether required or best-effort first update will be used | skip
-/// `first-update-type` | `string` | specifies whether incremental and/or full first update will be used | full
 ///
 /// ## Sample usage
 /// @snippet core/src/dump/dumper_test.cpp  Sample Dumper usage

@@ -47,7 +47,7 @@ void Rename(engine::TaskProcessor& async_tp, const std::string& source,
 /// @brief Rewrite file contents atomically
 /// Write contents to temporary file in the same directory,
 /// then atomically replaces the destination file with the temporary file.
-/// Effectively does open()+write()+sync()+close()+rename()+sync(directory).
+/// Effectively does write()+sync()+rename()+sync(directory).
 /// It does both sync(2) for file and on the directory, so after successful
 /// return the file must persist on the filesystem.
 /// @param async_tp TaskProcessor for synchronous waiting

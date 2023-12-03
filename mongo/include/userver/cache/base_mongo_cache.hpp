@@ -56,7 +56,7 @@ std::chrono::milliseconds GetMongoCacheUpdateCorrection(const ComponentConfig&);
 /// ```
 /// struct MongoCacheTraitsExample {
 ///   // Component name for component
-///   static constexpr auto kName = "mongo-dynamic-config";
+///   static constexpr std::string_view kName = "mongo-dynamic-config";
 ///
 ///   // Collection to read from
 ///   static constexpr auto kMongoCollectionsField =

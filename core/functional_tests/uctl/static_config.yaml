@@ -1,7 +1,3 @@
-# yaml
-
-config_vars: /etc/test_core_uctl/config_vars.yaml
-
 components_manager:
     components:
 
@@ -135,15 +131,12 @@ components_manager:
             testpoint-url: $mockserver/testpoint
             throttling_enabled: false
         testsuite-support:
-            testsuite-periodic-dumps-enabled: $userver-dumps-periodic
-        tracer:
-            service-name: $service-name
-            tracer: native
     coro_pool:
         initial_size: $coro-pool-initial-size
         initial_size#fallback: 5000
         max_size: $coro-pool-max-size
         max_size#fallback: 50000
+
     default_task_processor: main-task-processor
 
     task_processors:

@@ -14,6 +14,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
 
+namespace impl::histogram {
+struct BoundsBlock;
+}  // namespace impl::histogram
+
 /// @brief A histogram with a dynamically-allocated array of buckets.
 ///
 /// ## Histogram metrics
@@ -87,7 +91,13 @@ class Histogram final {
   /// @endcond
 
  private:
+  void UpdateBounds();
+
   std::unique_ptr<impl::histogram::Bucket[]> buckets_;
+  // B+ tree of bucket bounds for optimization of Account.
+  std::unique_ptr<impl::histogram::BoundsBlock[]> bounds_;
+  // Duplicate size here to avoid loading an extra cache line in Account.
+  std::size_t bucket_count_;
 };
 
 /// Metric serialization support for Histogram.

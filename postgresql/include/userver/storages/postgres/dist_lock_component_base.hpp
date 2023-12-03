@@ -122,9 +122,11 @@ class DistLockComponentBase : public components::LoggableComponentBase {
 
  private:
   std::unique_ptr<dist_lock::DistLockedWorker> worker_;
-  USERVER_NAMESPACE::utils::statistics::Entry statistics_holder_;
   bool autostart_;
   bool testsuite_enabled_{false};
+
+  // Subscriptions must be the last fields.
+  USERVER_NAMESPACE::utils::statistics::Entry statistics_holder_;
 };
 
 }  // namespace storages::postgres

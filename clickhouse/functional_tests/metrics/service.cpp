@@ -45,7 +45,7 @@ struct Result {
 class HandlerMetricsClickhouse final
     : public server::handlers::HttpHandlerBase {
  public:
-  static constexpr const char* kName = "handler-metrics-clickhouse";
+  static constexpr std::string_view kName = "handler-metrics-clickhouse";
 
   HandlerMetricsClickhouse(const components::ComponentConfig& config,
                            const components::ComponentContext& context);

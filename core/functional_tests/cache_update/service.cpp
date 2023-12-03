@@ -1,5 +1,7 @@
 #include <userver/utest/using_namespace_userver.hpp>
 
+#include <userver/alerts/component.hpp>
+#include <userver/alerts/handler.hpp>
 #include <userver/cache/caching_component_base.hpp>
 #include <userver/components/common_component_list.hpp>
 #include <userver/components/common_server_component_list.hpp>
@@ -18,6 +20,30 @@ namespace functional_tests {
 using Data = std::unordered_map<int, int>;
 
 class HandlerCacheState;
+
+class AlertCache final : public components::CachingComponentBase<Data> {
+ public:
+  static constexpr std::string_view kName = "alert-cache";
+
+  AlertCache(const components::ComponentConfig& config,
+             const components::ComponentContext& context)
+      : CachingComponentBase(config, context) {
+    CacheUpdateTrait::StartPeriodicUpdates();
+  }
+
+  ~AlertCache() override { CacheUpdateTrait::StopPeriodicUpdates(); }
+
+  void Update(cache::UpdateType type,
+              const std::chrono::system_clock::time_point& /*last_update*/,
+              const std::chrono::system_clock::time_point& /*now*/,
+              cache::UpdateStatisticsScope& stats_scope) override {
+    if (type == cache::UpdateType::kIncremental) {
+      stats_scope.FinishWithError();
+    } else {
+      stats_scope.FinishNoChanges();
+    }
+  }
+};
 
 class CacheSample final : public components::CachingComponentBase<Data> {
  public:
@@ -87,6 +113,8 @@ int main(int argc, const char* const argv[]) {
           .AppendComponentList(components::CommonServerComponentList())
           .Append<functional_tests::CacheSample>()
           .Append<functional_tests::HandlerCacheState>()
+          .Append<functional_tests::AlertCache>()
+          .Append<alerts::Handler>()
           .Append<server::handlers::Ping>();
   return utils::DaemonMain(argc, argv, component_list);
 }

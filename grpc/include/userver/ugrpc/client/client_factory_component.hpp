@@ -56,6 +56,8 @@ namespace ugrpc::client {
 
 class ClientFactoryComponent final : public components::LoggableComponentBase {
  public:
+  /// @ingroup userver_component_names
+  /// @brief The default name of ugrpc::client::middlewares::log::Component
   static constexpr std::string_view kName = "grpc-client-factory";
 
   ClientFactoryComponent(const components::ComponentConfig& config,

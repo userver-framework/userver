@@ -20,8 +20,8 @@ namespace components {
 /// * components::Tracer
 /// * components::ManagerControllerComponent
 /// * components::StatisticsStorage
+/// * alerts::StorageComponent
 /// * components::DynamicConfig
-/// * components::DynamicConfigFallbacksComponent
 /// * tracing::DefaultTracingManagerLocator
 ComponentList MinimalComponentList();
 

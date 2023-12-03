@@ -33,7 +33,7 @@ class SingleThreadedTaskProcessors final : public LoggableComponentBase {
  public:
   /// @ingroup userver_component_names
   /// @brief The default name of components::SingleThreadedTaskProcessors
-  static constexpr auto kName = "single-threaded-task-processors";
+  static constexpr std::string_view kName = "single-threaded-task-processors";
 
   SingleThreadedTaskProcessors(const ComponentConfig& config,
                                const ComponentContext&);

@@ -45,14 +45,7 @@ void SetLogLevel(logging::Level log_level) {
   logging::SetDefaultLoggerLevel(log_level);
 }
 
-void InitPhdrCache() {
-  static USERVER_NAMESPACE::utils::impl::UserverExperimentsScope
-      phdr_cache_scope{};
-  phdr_cache_scope.Set(USERVER_NAMESPACE::utils::impl::kPhdrCacheExperiment,
-                       true);
-
-  USERVER_NAMESPACE::engine::impl::InitPhdrCache();
-}
+void InitPhdrCache() { USERVER_NAMESPACE::engine::impl::InitPhdrCache(); }
 
 void TeardownPhdrCache() {
   USERVER_NAMESPACE::engine::impl::TeardownPhdrCacheAndEnableDynamicLoading();

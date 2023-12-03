@@ -58,7 +58,7 @@ class HttpClient final : public LoggableComponentBase {
  public:
   /// @ingroup userver_component_names
   /// @brief The default name of components::HttpClient component
-  static constexpr auto kName = "http-client";
+  static constexpr std::string_view kName = "http-client";
 
   HttpClient(const ComponentConfig&, const ComponentContext&);
 

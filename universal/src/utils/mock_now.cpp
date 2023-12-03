@@ -42,10 +42,6 @@ void MockNowSet(std::chrono::system_clock::time_point new_mocked_now) {
   now = new_mocked_now;
 }
 
-void MockSleep(std::chrono::seconds duration) {
-  MockSleep(std::chrono::duration_cast<std::chrono::milliseconds>(duration));
-}
-
 void MockSleep(std::chrono::milliseconds duration) {
   utils::AtomicUpdate(now, [duration](auto old) {
     UINVARIANT(old != kNotMocked,
@@ -54,9 +50,9 @@ void MockSleep(std::chrono::milliseconds duration) {
   });
 }
 
-void MockNowUnset() { now = kNotMocked; }
+void MockNowUnset() noexcept { now = kNotMocked; }
 
-bool IsMockNow() { return now.load() != kNotMocked; }
+bool IsMockNow() noexcept { return now.load() != kNotMocked; }
 
 }  // namespace utils::datetime
 

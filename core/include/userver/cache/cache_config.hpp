@@ -52,6 +52,7 @@ struct ConfigPatch final {
   std::chrono::milliseconds full_update_interval;
   std::optional<std::chrono::milliseconds> exception_interval;
   bool updates_enabled;
+  std::uint64_t alert_on_failing_to_update_times;
 };
 
 ConfigPatch Parse(const formats::json::Value& value,
@@ -81,6 +82,7 @@ struct Config final {
   std::chrono::milliseconds full_update_interval;
   std::optional<std::chrono::milliseconds> exception_interval;
   bool updates_enabled;
+  std::uint64_t alert_on_failing_to_update_times;
 };
 
 extern const dynamic_config::Key<std::unordered_map<std::string, ConfigPatch>>

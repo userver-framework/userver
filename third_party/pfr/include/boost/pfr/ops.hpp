@@ -78,7 +78,7 @@ namespace detail {
 } // namespace detail
 
 
-/// \brief Compares lhs and rhs for equality using their own comparison and conversion operators; if no operators avalable returns \forcedlink{eq_fields}(lhs, rhs).
+/// \brief Compares lhs and rhs for equality using their own comparison and conversion operators; if no operators available returns \forcedlink{eq_fields}(lhs, rhs).
 ///
 /// \returns true if lhs is equal to rhs; false otherwise
 template <class T, class U>
@@ -93,7 +93,7 @@ constexpr detail::enable_eq_comp_t<T, U> eq(const T& lhs, const U& rhs) {
 }
 
 
-/// \brief Compares lhs and rhs for inequality using their own comparison and conversion operators; if no operators avalable returns \forcedlink{ne_fields}(lhs, rhs).
+/// \brief Compares lhs and rhs for inequality using their own comparison and conversion operators; if no operators available returns \forcedlink{ne_fields}(lhs, rhs).
 ///
 /// \returns true if lhs is not equal to rhs; false otherwise
 template <class T, class U>
@@ -108,7 +108,7 @@ constexpr detail::enable_ne_comp_t<T, U> ne(const T& lhs, const U& rhs) {
 }
 
 
-/// \brief Compares lhs and rhs for less-than using their own comparison and conversion operators; if no operators avalable returns \forcedlink{lt_fields}(lhs, rhs).
+/// \brief Compares lhs and rhs for less-than using their own comparison and conversion operators; if no operators available returns \forcedlink{lt_fields}(lhs, rhs).
 ///
 /// \returns true if lhs is less than rhs; false otherwise
 template <class T, class U>
@@ -123,7 +123,7 @@ constexpr detail::enable_lt_comp_t<T, U> lt(const T& lhs, const U& rhs) {
 }
 
 
-/// \brief Compares lhs and rhs for greater-than using their own comparison and conversion operators; if no operators avalable returns \forcedlink{lt_fields}(lhs, rhs).
+/// \brief Compares lhs and rhs for greater-than using their own comparison and conversion operators; if no operators available returns \forcedlink{lt_fields}(lhs, rhs).
 ///
 /// \returns true if lhs is greater than rhs; false otherwise
 template <class T, class U>
@@ -138,7 +138,7 @@ constexpr detail::enable_gt_comp_t<T, U> gt(const T& lhs, const U& rhs) {
 }
 
 
-/// \brief Compares lhs and rhs for less-equal using their own comparison and conversion operators; if no operators avalable returns \forcedlink{le_fields}(lhs, rhs).
+/// \brief Compares lhs and rhs for less-equal using their own comparison and conversion operators; if no operators available returns \forcedlink{le_fields}(lhs, rhs).
 ///
 /// \returns true if lhs is less or equal to rhs; false otherwise
 template <class T, class U>
@@ -153,7 +153,7 @@ constexpr detail::enable_le_comp_t<T, U> le(const T& lhs, const U& rhs) {
 }
 
 
-/// \brief Compares lhs and rhs for greater-equal using their own comparison and conversion operators; if no operators avalable returns \forcedlink{ge_fields}(lhs, rhs).
+/// \brief Compares lhs and rhs for greater-equal using their own comparison and conversion operators; if no operators available returns \forcedlink{ge_fields}(lhs, rhs).
 ///
 /// \returns true if lhs is greater or equal to rhs; false otherwise
 template <class T, class U>
@@ -168,7 +168,7 @@ constexpr detail::enable_ge_comp_t<T, U> ge(const T& lhs, const U& rhs) {
 }
 
 
-/// \brief Hashes value using its own std::hash specialization; if no std::hash specialization avalable returns \forcedlink{hash_fields}(value).
+/// \brief Hashes value using its own std::hash specialization; if no std::hash specialization available returns \forcedlink{hash_fields}(value).
 ///
 /// \returns std::size_t with hash of the value
 template <class T>

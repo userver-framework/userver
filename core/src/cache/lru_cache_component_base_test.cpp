@@ -17,18 +17,13 @@ namespace {
 // BEWARE! No separate fs-task-processor. Testing almost single thread mode
 constexpr std::string_view kStaticConfig = R"(
 components_manager:
-  coro_pool:
-    initial_size: 50
-    max_size: 500
   default_task_processor: main-task-processor
   event_thread_pool:
     threads: 1
   task_processors:
     main-task-processor:
-      thread_name: main-worker
       worker_threads: 1
   components:
-    manager-controller:  # Nothing
 # /// [Sample lru cache component config]
 # yaml
     example-cache:
@@ -42,17 +37,7 @@ components_manager:
       loggers:
         default:
           file_path: '@null'
-    statistics-storage:
-      # Nothing
     testsuite-support:
-      testsuite-periodic-update-enabled: true
-      testsuite-pg-execute-timeout: 300ms
-      testsuite-pg-statement-timeout: 300ms
-      testsuite-pg-readonly-master-expected: false
-      testsuite-redis-timeout-connect: 5s
-      testsuite-redis-timeout-single: 1s
-      testsuite-redis-timeout-all: 750ms
-    dynamic-config:
 )";
 
 void ValidateExampleCacheConfig(const formats::yaml::Value& static_config) {

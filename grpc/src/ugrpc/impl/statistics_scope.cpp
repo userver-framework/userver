@@ -33,6 +33,20 @@ void RpcStatisticsScope::OnDeadlinePropagated() {
 }
 
 void RpcStatisticsScope::OnCancelled() {
+  // If the task is cancelled, then this is what typically happens:
+  //
+  // 1. after cancelling the wait, the task calls OnCancelled
+  // 2. the task calls ClientContext::TryCancel
+  // 3. grpc-core thread notifies CompletionQueue
+  // 4. FinishAsyncMethodInvocation::Notify calls Flush, which accounts
+  //    is_cancelled_
+  // 5. Notify wakes up the task
+  //
+  // However, there is a small chance the request completes on its own
+  // between (1) and (2). It will call Notify and Flush, which might miss
+  // is_cancelled_ from the task, which is being cancelled in parallel, and just
+  // write normal request completion stats. This is fine, because the actual
+  // request was not cancelled because of the task cancellation.
   is_cancelled_.store(true, std::memory_order_relaxed);
 }
 

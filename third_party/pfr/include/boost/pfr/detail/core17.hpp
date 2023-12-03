@@ -57,7 +57,7 @@ constexpr auto tie_as_tuple(T& val) noexcept {
 }
 
 template <class T, class F, std::size_t... I>
-void for_each_field_dispatcher(T& t, F&& f, std::index_sequence<I...>) {
+constexpr void for_each_field_dispatcher(T& t, F&& f, std::index_sequence<I...>) {
     static_assert(
         !std::is_union<T>::value,
         "====================> Boost.PFR: For safety reasons it is forbidden to reflect unions. See `Reflection of unions` section in the docs for more info."

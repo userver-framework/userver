@@ -111,8 +111,10 @@ class DistLockComponentBase : public components::LoggableComponentBase {
 
  private:
   std::unique_ptr<dist_lock::DistLockedWorker> worker_;
-  utils::statistics::Entry statistics_holder_;
   bool testsuite_enabled_{false};
+
+  // Subscriptions must be the last fields.
+  utils::statistics::Entry statistics_holder_;
 };
 
 }  // namespace storages::mongo

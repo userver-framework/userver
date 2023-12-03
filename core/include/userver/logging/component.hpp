@@ -6,11 +6,13 @@
 #include <string>
 #include <unordered_map>
 
+#include <userver/alerts/storage.hpp>
 #include <userver/components/component_fwd.hpp>
 #include <userver/components/impl/component_base.hpp>
 #include <userver/concurrent/async_event_source.hpp>
 #include <userver/os_signals/component.hpp>
 
+#include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/periodic_task.hpp>
 #include <userver/utils/statistics/entry.hpp>
 #include <userver/utils/statistics/writer.hpp>
@@ -117,6 +119,9 @@ class Logging final : public impl::ComponentBase {
       loggers_;
   utils::PeriodicTask flush_task_;
   logging::impl::TcpSocketSink* socket_sink_{nullptr};
+  alerts::Storage& alert_storage_;
+
+  // Subscriptions must be the last fields.
   os_signals::Subscriber signal_subscriber_;
   utils::statistics::Entry statistics_holder_;
 };

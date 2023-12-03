@@ -15,6 +15,7 @@
 #include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/datetime/wall_coarse_clock.hpp>
+#include <userver/utils/small_string.hpp>
 
 #include <server/http/http_cached_date.hpp>
 
@@ -77,6 +78,11 @@ bool IsBodyForbiddenForStatus(server::http::HttpStatus status) {
          (static_cast<int>(status) >= 100 && static_cast<int>(status) < 200);
 }
 
+void AppendToCharArray(char*& data, const std::string_view what) {
+  std::memcpy(data, what.begin(), what.size());
+  data += what.size();
+}
+
 const std::string kEmptyString{};
 
 }  // namespace
@@ -85,22 +91,21 @@ namespace server::http {
 
 namespace impl {
 
-void OutputHeader(std::string& header, std::string_view key,
-                  std::string_view val) {
+void OutputHeader(USERVER_NAMESPACE::http::headers::HeadersString& header,
+                  std::string_view key, std::string_view val) {
   const auto old_size = header.size();
-  header.resize(old_size + key.size() + kKeyValueHeaderSeparator.size() +
-                val.size() + kCrlf.size());
 
-  char* append_position = header.data() + old_size;
-  const auto append = [&append_position](std::string_view what) {
-    std::memcpy(append_position, what.data(), what.size());
-    append_position += what.size();
-  };
-
-  append(key);
-  append(kKeyValueHeaderSeparator);
-  append(val);
-  append(kCrlf);
+  header.resize_and_overwrite(
+      old_size + key.size() + kKeyValueHeaderSeparator.size() + val.size() +
+          kCrlf.size(),
+      [&](char* data, std::size_t size) {
+        data += old_size;
+        AppendToCharArray(data, key);
+        AppendToCharArray(data, kKeyValueHeaderSeparator);
+        AppendToCharArray(data, val);
+        AppendToCharArray(data, kCrlf);
+        return size;
+      });
 }
 
 }  // namespace impl
@@ -238,22 +243,21 @@ void HttpResponse::SetHeadersEnd() { headers_end_.Send(); }
 bool HttpResponse::WaitForHeadersEnd() { return headers_end_.WaitForEvent(); }
 
 void HttpResponse::SendResponse(engine::io::RwBase& socket) {
-  // According to https://www.chromium.org/spdy/spdy-whitepaper/
-  // "typical header sizes of 700-800 bytes is common"
-  // Adjusting it to 1KiB to fit jemalloc size class
-  static constexpr auto kTypicalHeadersSize = 1024;
+  utils::SmallString<USERVER_NAMESPACE::http::headers::kTypicalHeadersSize>
+      header;
 
-  // TODO : this could very well be small_vector<char> instead, or we could
-  // pass a string from connection and reuse it.
-  std::string header;
-  header.reserve(kTypicalHeadersSize);
-
-  header.append("HTTP/");
-  fmt::format_to(std::back_inserter(header), FMT_COMPILE("{}.{} {} "),
-                 request_.GetHttpMajor(), request_.GetHttpMinor(),
-                 static_cast<int>(status_));
-  header.append(HttpStatusString(status_));
-  header.append(kCrlf);
+  header.resize_and_overwrite(
+      USERVER_NAMESPACE::http::headers::kTypicalHeadersSize,
+      [&](char* data, std::size_t) {
+        char* old_data_pointer = data;
+        AppendToCharArray(data, "HTTP/");
+        data = fmt::format_to(data, FMT_COMPILE("{}.{} {} "),
+                              request_.GetHttpMajor(), request_.GetHttpMinor(),
+                              static_cast<int>(status_));
+        AppendToCharArray(data, HttpStatusString(status_));
+        AppendToCharArray(data, kCrlf);
+        return data - old_data_pointer;
+      });
 
   headers_.erase(USERVER_NAMESPACE::http::headers::kContentLength);
   const auto end = headers_.end();
@@ -272,9 +276,23 @@ void HttpResponse::SendResponse(engine::io::RwBase& socket) {
                        (request_.IsFinal() ? kClose : kKeepAlive));
   }
   for (const auto& cookie : cookies_) {
-    header.append(USERVER_NAMESPACE::http::headers::kSetCookie);
-    header.append(kKeyValueHeaderSeparator);
+    const std::size_t old_size = header.size();
+
+    header.resize_and_overwrite(
+        old_size +
+            static_cast<std::string_view>(
+                USERVER_NAMESPACE::http::headers::kSetCookie)
+                .size() +
+            kKeyValueHeaderSeparator.size(),
+        [&](char* data, std::size_t size) {
+          data += old_size;
+          AppendToCharArray(data, USERVER_NAMESPACE::http::headers::kSetCookie);
+          AppendToCharArray(data, kKeyValueHeaderSeparator);
+          return size;
+        });
+
     cookie.second.AppendToString(header);
+
     header.append(kCrlf);
   }
 
@@ -290,10 +308,11 @@ void HttpResponse::SendResponse(engine::io::RwBase& socket) {
   SetSent(sent_bytes, std::chrono::steady_clock::now());
 }
 
-std::size_t HttpResponse::SetBodyNotStreamed(engine::io::RwBase& socket,
-                                             std::string& header) {
+std::size_t HttpResponse::SetBodyNotStreamed(
+    engine::io::RwBase& socket,
+    USERVER_NAMESPACE::http::headers::HeadersString& header) {
   const bool is_body_forbidden = IsBodyForbiddenForStatus(status_);
-  const bool is_head_request = request_.GetOrigMethod() == HttpMethod::kHead;
+  const bool is_head_request = request_.GetMethod() == HttpMethod::kHead;
   const auto& data = GetData();
 
   if (!is_body_forbidden) {
@@ -322,14 +341,16 @@ std::size_t HttpResponse::SetBodyNotStreamed(engine::io::RwBase& socket,
   return sent_bytes;
 }
 
-std::size_t HttpResponse::SetBodyStreamed(engine::io::RwBase& socket,
-                                          std::string& header) {
+std::size_t HttpResponse::SetBodyStreamed(
+    engine::io::RwBase& socket,
+    USERVER_NAMESPACE::http::headers::HeadersString& header) {
   impl::OutputHeader(
       header, USERVER_NAMESPACE::http::headers::kTransferEncoding, "chunked");
 
   // send HTTP headers
   size_t sent_bytes = socket.WriteAll(header.data(), header.size(), {});
-  std::string{}.swap(header);  // free memory before time-consuming operation
+  header.clear();
+  header.shrink_to_fit();  // free memory before time-consuming operation
 
   // Transmit HTTP response body
   std::string body_part;

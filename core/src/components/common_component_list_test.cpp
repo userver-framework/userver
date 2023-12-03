@@ -23,6 +23,8 @@ constexpr std::string_view kConfigVarsTemplate = R"(
   log_level: {2}
 )";
 
+// We deliberately have some defaulted options explicitly specified here, for
+// testing and documentation purposes.
 // clang-format off
 constexpr std::string_view kStaticConfig = R"(
 # /// [Sample components manager config component config]

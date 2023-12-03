@@ -26,6 +26,71 @@ Changelog news also go to the
 ## Changelog
 
 
+### November 2023
+
+* formats::json::Schema and validation function for it formats::json::Validate
+  were implemented. Many thanks to [Aleksej Kamenev](https://github.com/ishiku) for
+  the PR!
+* PostgreSQL driver now auto detects the max pool size, see
+  @ref scripts/docs/en/userver/pg_connlimit_mode_auto.md
+* server::http::HttpRequest:GetMethod() now can return
+  server::http::HttpMethod::kHEAD. Thanks
+  to [Kirill Zimnikov](https://github.com/lirik90) for the bugreport and PR!
+* PostgreSQL now has the following static config options:
+  * `check-user-types` option to prevent service from starting if
+    database is not ready for work (for example: some migrations were
+    not applied).
+  * `discard-all-on-connect` - to force running `DISCARD ALL` on new
+    connections, which could be useful for some PostgreSQLs smart-proxies
+    that reuse the same connections. 
+* Boost.PFR 2.2.0 is now in use. The door for compile time reflection pull
+  requests is now open!
+* More metrics and fallbacks for logging errors.
+* More tests for utils::datetime::MockSteadyNow. Thanks to
+  [Aleksej Kamenev](https://github.com/ishiku) for the PR!
+* components::CachingComponentBase now has a static config option
+  `alert-on-failing-to-update-times` to fire an alert if the cache update failed
+  specified amount of times in a row.
+* Optimizations:
+  * Caching of `dl_phdr_info` items is not ON by default, leading up to
+    multiple seconds faster exception handling under heavy load when parts of
+    the executable still being on hard drive rather than in memory.
+    Use `USERVER_DISABLE_PHDR_CACHE` CMake option to disable it, if the
+    framework reports `dlopen` usage after component start and there's no way
+    to avoid it.
+  * Optimized discarding logs by log level from 4ns to 2ns. Added CMake option
+    `USERVER_FEATURE_ERASE_LOG_WITH_LEVEL` to totally eliminate all the CPU
+    and binary size overhead from logging.
+  * Implemented utils::SmallString::resize_and_overwrite() function as in C++23
+    std::string. Thanks to [Илья Оплачкин](https://github.com/IoplachkinI) for
+    the PR.
+  * Up to an order of magnitude faster generation of HTTP response header via
+    utils::SmallString usage. Thanks to
+    [Илья Оплачкин](https://github.com/IoplachkinI) for the PR.
+  * Faster logging of durations in tracing::Span, tracing::ScopeTime and
+    friends.
+  * Parsing inside storages::postgres::ResultSet now does not compute
+    parsing-failure diagnostic information if parsing is successful.
+  * Return PostgreSQL connection to pool earlier, before updating the
+    statistics.
+  * fs::RewriteFileContents() now does not `fsync` directories, dumping caches
+    now also do not `fsync` directories leading to better performance while
+    still properly restoring after server power-off. 
+  * PostgreSQL typed parsing was optimized to not copy std::shared_ptrs.
+  * TESTPOINT() and TESTPOINT_CALLBACK() now produce less instructions and
+    guaranteed to not throw it the testpoints are disabled.
+* Documentation:
+  * @ref scripts/docs/en/userver/grpc.md now has a deeper explanation of
+    middlewares
+  * New @ref scripts/docs/en/userver/dynamic_config.md page and related samples.
+  * Samples were significantly simplified, more static configuration options
+    now have good defaults and do not require explicit setup.
+  * @ref scripts/docs/en/userver/tutorial/build.md now contains information on
+    how to build service templates. Information on how to build the framework
+    tests was moved to scripts/docs/en/userver/tutorial/build_userver.md
+  * Documented the server::handlers::ImplicitOptions.
+
+
 ### October 2023
 
 * Added from-code alerts via alerts::Storage client and alerts::StorageComponent

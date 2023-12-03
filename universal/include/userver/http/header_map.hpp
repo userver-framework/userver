@@ -258,7 +258,7 @@ class HeaderMap final {
   /// ...
   /// @endcode
   /// resizing buffer as needed.
-  void OutputInHttpFormat(std::string& buffer) const;
+  void OutputInHttpFormat(HeadersString& buffer) const;
 
  private:
   friend class TestsHelper;

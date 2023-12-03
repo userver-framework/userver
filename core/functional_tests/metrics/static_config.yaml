@@ -1,7 +1,3 @@
-# yaml
-
-config_vars: /etc/test_core_metrics/config_vars.yaml
-
 components_manager:
     components:
 
@@ -135,7 +131,6 @@ components_manager:
             testpoint-url: $mockserver/testpoint
             throttling_enabled: false
         testsuite-support:
-            testsuite-periodic-dumps-enabled: $userver-dumps-periodic
         sample-cache:
             update-types: full-and-incremental
             full-update-interval: 1h
@@ -150,23 +145,14 @@ components_manager:
             size: 1024
             ways: 32
             lifetime: 1s
-        tracer:
-            service-name: $service-name
-            tracer: native
-    coro_pool:
-        initial_size: $coro-pool-initial-size
-        initial_size#fallback: 5000
-        max_size: $coro-pool-max-size
-        max_size#fallback: 50000
+
     default_task_processor: main-task-processor
 
     task_processors:
         fs-task-processor:
-            thread_name: fs-worker
             worker_threads: $fs_worker_threads
             worker_threads#fallback: 2
         main-task-processor:
-            thread_name: main-worker
             worker_threads: $main_worker_threads
             worker_threads#fallback: 6
         monitor-task-processor:

@@ -7,6 +7,7 @@
 #include <logging/impl/tcp_socket_sink.hpp>
 #include <logging/tp_logger.hpp>
 #include <logging/tp_logger_utils.hpp>
+#include <userver/alerts/component.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/engine/async.hpp>
@@ -29,7 +30,7 @@ namespace {
 
 constexpr std::chrono::seconds kDefaultFlushInterval{2};
 
-void ReopenAll(const std::shared_ptr<logging::impl::TpLogger>& logger) {
+void ReopenLoggerFile(const std::shared_ptr<logging::impl::TpLogger>& logger) {
   logger->Reopen(logging::impl::ReopenMode::kAppend);
 }
 
@@ -37,7 +38,9 @@ void ReopenAll(const std::shared_ptr<logging::impl::TpLogger>& logger) {
 
 /// [Signals sample - init]
 Logging::Logging(const ComponentConfig& config, const ComponentContext& context)
-    : signal_subscriber_(context.FindComponent<os_signals::ProcessorComponent>()
+    : alert_storage_(
+          context.FindComponent<alerts::StorageComponent>().GetStorage()),
+      signal_subscriber_(context.FindComponent<os_signals::ProcessorComponent>()
                              .Get()
                              .AddListener(this, kName, os_signals::kSigUsr1,
                                           &Logging::OnLogRotate))
@@ -162,35 +165,44 @@ void Logging::StopSocketLoggingDebug() {
 void Logging::OnLogRotate() {
   try {
     TryReopenFiles();
-
   } catch (const std::exception& e) {
     LOG_ERROR() << "An error occurred while ReopenAll: " << e;
   }
 }
 
 void Logging::TryReopenFiles() {
-  std::vector<engine::TaskWithResult<void>> tasks;
+  std::unordered_map<std::string_view, engine::TaskWithResult<void>> tasks;
   tasks.reserve(loggers_.size() + 1);
-  for (const auto& item : loggers_) {
-    tasks.push_back(engine::CriticalAsyncNoSpan(*fs_task_processor_, ReopenAll,
-                                                item.second));
+  for (const auto& [name, logger] : loggers_) {
+    tasks.emplace(name, engine::CriticalAsyncNoSpan(*fs_task_processor_,
+                                                    ReopenLoggerFile, logger));
   }
 
   std::string result_messages;
+  std::vector<std::string_view> failed_loggers;
 
-  for (auto& task : tasks) {
+  for (auto& [name, task] : tasks) {
     try {
       task.Get();
     } catch (const std::exception& e) {
       result_messages += e.what();
       result_messages += ";";
+      failed_loggers.push_back(name);
     }
   }
   LOG_INFO() << "Log rotated";
 
   if (!result_messages.empty()) {
+    alert_storage_.FireAlert(
+        "log_reopening_error",
+        fmt::format("loggers [{}] failed to reopen the log "
+                    "file: logs are getting lost now",
+                    fmt::join(failed_loggers, ", ")),
+        alerts::kInfinity);
+
     throw std::runtime_error("ReopenAll errors: " + result_messages);
   }
+  alert_storage_.StopAlertNow("log_reopening_error");
 }
 
 void Logging::WriteStatistics(utils::statistics::Writer& writer) const {

@@ -36,6 +36,9 @@ void ConnlimitWatchdog::Start() {
         "updated "
         "TIMESTAMPTZ NOT NULL, max_connections INTEGER NOT NULL)");
     trx.Commit();
+  } catch (const storages::postgres::AccessRuleViolation& e) {
+    // Possible in some CREATE TABLE IF NOT EXISTS races with other services
+    LOG_WARNING() << "Table already exists (not a fatal error): " << e;
   } catch (const storages::postgres::UniqueViolation& e) {
     // Possible in some CREATE TABLE IF NOT EXISTS races with other services
     LOG_WARNING() << "Table already exists (not a fatal error): " << e;

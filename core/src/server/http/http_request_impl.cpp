@@ -355,7 +355,7 @@ void HttpRequestImpl::WriteAccessLog(
           utils::datetime::LocalTimezoneTimestring(tp,
                                                    "%Y-%m-%d %H:%M:%E6S %Ez"),
           EscapeForAccessLog(GetHost()), EscapeForAccessLog(remote_address),
-          EscapeForAccessLog(GetOrigMethodStr()), EscapeForAccessLog(GetUrl()),
+          EscapeForAccessLog(GetMethodStr()), EscapeForAccessLog(GetUrl()),
           GetHttpMajor(), GetHttpMinor(),
           static_cast<int>(response_.GetStatus()),
           EscapeForAccessLog(GetHeader("Referer")),
@@ -394,7 +394,7 @@ void HttpRequestImpl::WriteAccessTskvLog(
                   utils::datetime::LocalTimezoneTimestring(
                       tp, "timestamp=%Y-%m-%dT%H:%M:%S\ttimezone=%Ez"),
                   static_cast<int>(response_.GetStatus()), GetHttpMajor(),
-                  GetHttpMinor(), EscapeForAccessTskvLog(GetOrigMethodStr()),
+                  GetHttpMinor(), EscapeForAccessTskvLog(GetMethodStr()),
                   EscapeForAccessTskvLog(GetUrl()),
                   EscapeForAccessTskvLog(GetHeader("Referer")),
                   EscapeForAccessTskvLog(GetHeader("Cookie")),

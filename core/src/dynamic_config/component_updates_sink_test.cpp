@@ -30,25 +30,18 @@ constexpr std::string_view kConfigVarsTemplate = R"(
 
 constexpr std::string_view kStaticConfig = R"(
 components_manager:
-  coro_pool:
-    initial_size: 50
-    max_size: 500
   default_task_processor: main-task-processor
   event_thread_pool:
     threads: 1
   task_processors:
     main-task-processor:
-      thread_name: main-worker
       worker_threads: 1
   components:
-    manager-controller:  # Nothing
     logging:
       fs-task-processor: main-task-processor
       loggers:
         default:
           file_path: '@null'
-    statistics-storage:
-      # Nothing
     dynamic-config:
       updates-enabled: true
       defaults-path: $runtime_config_path
@@ -81,8 +74,10 @@ std::string expected_updates_sink_chain;
 
 class TestFallbacksProducer final : public components::LoggableComponentBase {
  public:
-  static constexpr std::string_view kName =
-      "dynamic-config-test-fallbacks-producer";
+  // DO NOT replace with std::string_view, we want to have a check somewhere
+  // that 'const char*' still works. If this component ends up being removed,
+  // move the check to some other tests outside of samples.
+  static constexpr const char* kName = "dynamic-config-test-fallbacks-producer";
 
   TestFallbacksProducer(const components::ComponentConfig& config,
                         const components::ComponentContext& context);

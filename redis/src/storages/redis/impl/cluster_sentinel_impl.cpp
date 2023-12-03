@@ -158,7 +158,7 @@ class ClusterTopologyHolder
                               CreateNodes();
                               create_nodes_watch_.Start();
                             }),
-        sentinels_process_creation_(
+        sentinels_process_creation_timer_(
             ev_thread_,
             [this] {
               if (sentinels_) {
@@ -167,6 +167,22 @@ class ClusterTopologyHolder
               }
             },
             kProcessCreationInterval),
+        sentinels_process_creation_watch_(
+            ev_thread_,
+            [this] {
+              if (sentinels_) {
+                sentinels_->ProcessCreation(redis_thread_pool_);
+              }
+              sentinels_process_creation_watch_.Start();
+            }),
+        sentinels_process_state_update_watch_(
+            ev_thread_,
+            [this] {
+              if (sentinels_) {
+                sentinels_->ProcessStateUpdate();
+              }
+              sentinels_process_state_update_watch_.Start();
+            }),
         is_topology_received_(false),
         update_cluster_slots_flag_(false) {
     LOG_DEBUG() << "Created ClusterTopologyHolder, shard_group_name="
@@ -182,7 +198,7 @@ class ClusterTopologyHolder
     shard_options.connection_infos = conns_;
     shard_options.ready_change_callback = [this](bool ready) {
       if (ready) {
-        this->sentinels_->ProcessCreation(redis_thread_pool_);
+        sentinels_process_creation_watch_.Send();
         SendUpdateClusterTopology();
       }
     };
@@ -192,7 +208,8 @@ class ClusterTopologyHolder
         [this](ServerId id, Redis::State state) {
           LOG_TRACE() << "Signaled server " << id.GetDescription()
                       << " state=" << Redis::StateToString(state);
-          if (state != Redis::State::kInit) ProcessStateUpdate();
+          if (state != Redis::State::kInit)
+            sentinels_process_state_update_watch_.Send();
         });
     sentinels_->SignalInstanceReady().connect([](ServerId, bool /*ready*/) {});
     sentinels_->ProcessCreation(redis_thread_pool_);
@@ -203,14 +220,16 @@ class ClusterTopologyHolder
     update_topology_timer_.Start();
     create_nodes_watch_.Start();
     explore_nodes_timer_.Start();
-    sentinels_process_creation_.Start();
+    sentinels_process_creation_watch_.Start();
+    sentinels_process_state_update_watch_.Start();
+    sentinels_process_creation_timer_.Start();
   }
 
   void Stop() {
     ev_thread_.RunInEvLoopBlocking([this] {
       update_topology_timer_.Stop();
       explore_nodes_timer_.Stop();
-      sentinels_process_creation_.Stop();
+      sentinels_process_creation_timer_.Stop();
     });
     sentinels_->Clean();
     topology_.Cleanup();
@@ -312,7 +331,9 @@ class ClusterTopologyHolder
   engine::ev::AsyncWatcher create_nodes_watch_;
   void CreateNodes();
 
-  engine::ev::PeriodicWatcher sentinels_process_creation_;
+  engine::ev::PeriodicWatcher sentinels_process_creation_timer_;
+  engine::ev::AsyncWatcher sentinels_process_creation_watch_;
+  engine::ev::AsyncWatcher sentinels_process_state_update_watch_;
 
   ///{ Wait ready
   std::mutex mutex_;

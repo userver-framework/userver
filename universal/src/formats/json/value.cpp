@@ -3,6 +3,7 @@
 #include <cmath>
 #include <functional>
 #include <limits>
+#include <utility>
 
 #include <rapidjson/allocators.h>
 #include <rapidjson/document.h>
@@ -62,6 +63,12 @@ bool IsNonOverflowingIntegral(const double val) {
            val <= std::numeric_limits<Int>::max() && IsIntegral(val);
   }
 }
+
+template <typename Duration>
+Duration ParseJsonDuration(const Value& value) {
+  return Duration{value.As<typename Duration::rep>()};
+}
+
 }  // namespace
 
 namespace impl {
@@ -71,6 +78,25 @@ impl::Value MakeJsonStringViewValue(std::string_view view) {
 }
 
 }  // namespace impl
+
+Value::Value()
+    : root_{impl::VersionedValuePtr::Create(::rapidjson::Type::kNullType)},
+      value_ptr_{root_.Get()} {}
+
+Value::Value(Value&& other) noexcept
+    : root_{std::move(other.root_)},
+      value_ptr_{std::exchange(other.value_ptr_, nullptr)},
+      depth_{other.depth_},
+      lazy_detached_path_{std::move(other.lazy_detached_path_)} {}
+
+Value& Value::operator=(Value&& other) noexcept {
+  root_ = std::move(other.root_);
+  value_ptr_ = std::exchange(other.value_ptr_, nullptr);
+  depth_ = other.depth_;
+  lazy_detached_path_ = std::move(other.lazy_detached_path_);
+
+  return *this;
+}
 
 Value::Value(impl::VersionedValuePtr root) noexcept
     : root_(std::move(root)), value_ptr_(root_.Get()) {}
@@ -232,7 +258,7 @@ int64_t Value::As<int64_t>() const {
   const auto& native = GetNative();
   if (native.IsInt64()) return native.GetInt64();
   if (native.IsDouble()) {
-    double val = native.GetDouble();
+    const double val = native.GetDouble();
     if (IsNonOverflowingIntegral<int64_t>(val))
       return static_cast<int64_t>(val);
   }
@@ -245,7 +271,7 @@ uint64_t Value::As<uint64_t>() const {
   const auto& native = GetNative();
   if (native.IsUint64()) return native.GetUint64();
   if (native.IsDouble()) {
-    double val = native.GetDouble();
+    const double val = native.GetDouble();
     if (IsNonOverflowingIntegral<uint64_t>(val))
       return static_cast<uint64_t>(val);
   }
@@ -360,20 +386,14 @@ Value Value::Clone() const {
   return Value{impl::VersionedValuePtr::Create(GetNative(), g_allocator)};
 }
 
-// Value states
-//
-// !!root_ | !!value_ptr_ | Description
-// ------- | ------------ | ------------------
-//  false  |     false    | Implicitly `kNull`
-//  false  |     true     | ---
-//  true   |     false    | Missing
-//  true   |     true     | Valid
-void Value::EnsureNotMissing() {
+void Value::EnsureNotMissing() const {
+  // We should never get here if the value is missing, in the first place.
   CheckNotMissing();
-  if (!root_) {
-    root_ = impl::VersionedValuePtr::Create(::rapidjson::Type::kNullType);
-    value_ptr_ = root_.Get();
-  }
+
+  UINVARIANT(!!root_, "A moved-from Value is accessed");
+
+  UINVARIANT(value_ptr_ != nullptr,
+             "Something is terribly broken in userver json");
 }
 
 bool Value::IsRoot() const noexcept { return root_.Get() == value_ptr_; }
@@ -381,8 +401,7 @@ bool Value::IsRoot() const noexcept { return root_.Get() == value_ptr_; }
 bool Value::IsUniqueReference() const { return root_.IsUnique(); }
 
 const impl::Value& Value::GetNative() const {
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-  const_cast<Value*>(this)->EnsureNotMissing();
+  EnsureNotMissing();
   return *value_ptr_;
 }
 
@@ -478,6 +497,20 @@ Value::LazyDetachedPath Value::LazyDetachedPath::Chain(
       formats::common::MakeChildPath(std::move(result.virtual_path_), key);
 
   return result;
+}
+
+std::chrono::milliseconds Parse(const Value& value,
+                                parse::To<std::chrono::milliseconds>) {
+  return ParseJsonDuration<std::chrono::milliseconds>(value);
+}
+
+std::chrono::minutes Parse(const Value& value,
+                           parse::To<std::chrono::minutes>) {
+  return ParseJsonDuration<std::chrono::minutes>(value);
+}
+
+std::chrono::hours Parse(const Value& value, parse::To<std::chrono::hours>) {
+  return ParseJsonDuration<std::chrono::hours>(value);
 }
 
 }  // namespace formats::json

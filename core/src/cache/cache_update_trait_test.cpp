@@ -36,7 +36,7 @@ constexpr std::size_t kDummyDocumentsCount = 42;
 
 class FakeCache final : public cache::CacheMockBase {
  public:
-  static constexpr auto kName = "fake-cache";
+  static constexpr std::string_view kName = "fake-cache";
 
   FakeCache(const yaml_config::YamlConfig& config,
             cache::MockEnvironment& environment)
@@ -94,7 +94,7 @@ namespace {
 
 class DumpedCache final : public cache::CacheMockBase {
  public:
-  static constexpr auto kName = "dumped-cache";
+  static constexpr std::string_view kName = "dumped-cache";
 
   DumpedCache(const yaml_config::YamlConfig& config,
               cache::MockEnvironment& environment,
@@ -238,7 +238,7 @@ class CacheUpdateTraitDumped : public ::testing::TestWithParam<TestParams> {
   void InitDumpAndData() {
     if (std::get<DumpAvailable>(GetParam())) {
       dump::CreateDump(dump::ToBinary(std::uint64_t{10}),
-                       {DumpedCache::kName, config_[dump::kDump],
+                       {std::string{DumpedCache::kName}, config_[dump::kDump],
                         environment_.dump_root.GetPath()});
     }
 
@@ -533,7 +533,7 @@ namespace {
 
 class FaultyDumpedCache final : public cache::CacheMockBase {
  public:
-  static constexpr auto kName = "faulty-dumped-cache";
+  static constexpr std::string_view kName = "faulty-dumped-cache";
 
   FaultyDumpedCache(const yaml_config::YamlConfig& config,
                     cache::MockEnvironment& environment)
@@ -597,7 +597,7 @@ namespace {
 
 class ExpirableCache : public cache::CacheMockBase {
  public:
-  static constexpr auto kName = "expirable-cache";
+  static constexpr std::string_view kName = "expirable-cache";
 
   ExpirableCache(const yaml_config::YamlConfig& config,
                  cache::MockEnvironment& environment,
@@ -674,7 +674,7 @@ using FirstSyncUpdate = utils::StrongTypedef<struct SyncFirstUpdateTag, bool>;
 
 class ForcedUpdateCache : public cache::CacheMockBase {
  public:
-  static constexpr auto kName = "forced-update-cache";
+  static constexpr std::string_view kName = "forced-update-cache";
 
   struct Settings {
     InvalidateBeforeStartPeriodicUpdates
@@ -866,7 +866,7 @@ namespace {
 
 class FinishWithErrorCache final : public cache::CacheMockBase {
  public:
-  static constexpr auto kName = "fake-cache";
+  static constexpr std::string_view kName = "fake-cache";
 
   FinishWithErrorCache(const yaml_config::YamlConfig& config,
                        cache::MockEnvironment& environment)

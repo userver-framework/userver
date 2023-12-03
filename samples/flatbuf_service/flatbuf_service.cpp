@@ -45,7 +45,7 @@ namespace samples::fbs_request {
 /// [Flatbuf service sample - http component]
 class FbsRequest final : public components::LoggableComponentBase {
  public:
-  static constexpr auto kName = "fbs-request";
+  static constexpr std::string_view kName = "fbs-request";
 
   FbsRequest(const components::ComponentConfig& config,
              const components::ComponentContext& context)

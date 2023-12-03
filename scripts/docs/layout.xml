@@ -63,7 +63,8 @@
         </tab>
       </tab>
       <tab type="usergroup" title="Runtime service features" url="@ref md_en_2index">
-        <tab type="user" url="@ref md_en_2schemas_2dynamic__configs" title="Dynamic configs"/>
+        <tab type="user" url="@ref md_en_2userver_2dynamic__config" title="Dynamic config"/>
+        <tab type="user" url="@ref md_en_2schemas_2dynamic__configs" title="Dynamic config schemas"/>
         <tab type="user" url="@ref md_en_2userver_2log__level__running__service" title="Changing the log level at runtime"/>
         <tab type="user" url="@ref md_en_2userver_2requests__in__flight" title="Inspecting in-flight requests"/>
         <tab type="user" url="@ref md_en_2userver_2service__monitor" title="Service Statistics and Metrics (Prometheus/Graphite/...)"/>
@@ -87,6 +88,7 @@
         <tab type="user" url="@ref pg_user_row_types" title="uPg: Typed PostgreSQL results"/>
         <tab type="user" url="@ref pg_errors" title="uPg: Postgres errors"/>
         <tab type="user" url="@ref pg_topology" title="uPg: Cluster topology discovery"/>
+        <tab type="user" url="@ref md_en_2userver_2pg__connlimit__mode__auto" title="uPg: Automatic connection limit"/>
         <tab type="usergroup" url="@ref pg_user_types" title="uPg: Mapping a C++ type to PostgreSQL user type">
           <tab type="user" url="@ref pg_composite_types" title="uPg: Composite user types"/>
           <tab type="user" url="@ref pg_enum" title="uPg: Mapping a C++ enum to PostgreSQL enum type."/>
@@ -108,6 +110,7 @@
       <tab type="usergroup" title="Opensource" url="@ref md_en_2index">
         <tab type="user" url="@ref md_en_2userver_2development_2stability" title="API and ABI stability, versioning"/>
         <tab type="user" url="@ref md_en_2userver_2driver__guide" title="Driver Writing Guide"/>
+        <tab type="user" url="@ref md_en_2userver_2tutorial_2build__userver" title="Build instructions for userver"/>
         <tab type="user" url="@ref md_en_2userver_2publications" title="Publications and Videos"/>
         <tab type="user" url="@ref md__2data_2code_2service__template_2third__party_2userver_2CONTRIBUTING" title="Notice to external contributors"/>
         <tab type="user" url="@ref md__2data_2code_2service__template_2third__party_2userver_2SECURITY" title="Security Policy"/>

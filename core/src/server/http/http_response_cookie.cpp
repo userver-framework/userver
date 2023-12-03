@@ -9,6 +9,7 @@
 
 #include <userver/logging/log.hpp>
 #include <userver/utils/datetime.hpp>
+#include <userver/utils/small_string.hpp>
 #include <userver/utils/trivial_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -197,7 +198,8 @@ class Cookie::CookieData final {
   [[nodiscard]] std::string SameSite() const;
   void SetSameSite(std::string value);
 
-  void AppendToString(std::string& os) const;
+  void AppendToString(
+      USERVER_NAMESPACE::http::headers::HeadersString& os) const;
 
  private:
   void ValidateName() const;
@@ -276,7 +278,8 @@ void Cookie::CookieData::SetSameSite(std::string value) {
   same_site_ = std::move(value);
 }
 
-void Cookie::CookieData::AppendToString(std::string& os) const {
+void Cookie::CookieData::AppendToString(
+    USERVER_NAMESPACE::http::headers::HeadersString& os) const {
   os.append(name_);
   os.append("=");
   os.append(value_);
@@ -296,8 +299,7 @@ void Cookie::CookieData::AppendToString(std::string& os) const {
   }
   if (max_age_.has_value()) {
     os.append("; Max-Age=");
-    fmt::format_to(std::back_inserter(os), FMT_COMPILE("{}"),
-                   max_age_.value().count());
+    os.append(fmt::format(FMT_COMPILE("{}"), max_age_.value().count()));
   }
   if (secure_) {
     os.append("; Secure");
@@ -442,12 +444,13 @@ Cookie& Cookie::SetSameSite(std::string value) {
 }
 
 std::string Cookie::ToString() const {
-  std::string os;
+  USERVER_NAMESPACE::http::headers::HeadersString os;
   data_->AppendToString(os);
-  return os;
+  return std::string(os);
 }
 
-void Cookie::AppendToString(std::string& os) const {
+void Cookie::AppendToString(
+    USERVER_NAMESPACE::http::headers::HeadersString& os) const {
   data_->AppendToString(os);
 }
 

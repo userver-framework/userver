@@ -107,6 +107,8 @@ UTEST_P(PostgreConnection, LoadUserTypes) {
 
   CheckConnection(GetConn());
   ASSERT_FALSE(GetConn()->IsReadOnly()) << "Expect a read-write connection";
+  UEXPECT_THROW(GetConn()->GetUserTypes().CheckRegisteredTypes(),
+                pg::UserTypeError);
 
   pg::ResultSet res{nullptr};
   UASSERT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";

@@ -6,7 +6,6 @@
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/formats/yaml/value_builder.hpp>
-#include <userver/logging/log.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 #include <userver/yaml_config/impl/validate_static_config.hpp>
 #include <userver/yaml_config/map_to_array.hpp>

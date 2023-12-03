@@ -15,6 +15,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres {
 namespace io {
+// clang-format off
+//
 /// @page pg_user_types uPg: Mapping a C++ type to PostgreSQL user type
 ///
 /// In PosgtgreSQL the following kinds of user types are available:
@@ -53,8 +55,10 @@ namespace io {
 /// ----------
 ///
 /// @htmlonly <div class="bottom-nav"> @endhtmlonly
-/// ⇦ @ref pg_topology | @ref pg_composite_types ⇨
+/// ⇦ @ref scripts/docs/en/userver/pg_connlimit_mode_auto.md | @ref pg_composite_types ⇨
 /// @htmlonly </div> @endhtmlonly
+
+// clang-format on
 }  // namespace io
 
 /// @brief PostgreSQL composite type description
@@ -119,6 +123,9 @@ class UserTypes {
   /// Get type description by oid.
   /// May return nullptr if the type was not loaded from the database
   const DBTypeDescription* GetTypeDescription(Oid) const;
+
+  /// @throws UserTypeError if not all registered cpp types are added
+  void CheckRegisteredTypes() const;
 
  private:
   using DescriptionSet =

@@ -27,7 +27,7 @@ struct Result {
 
 class HandlerDb final : public server::handlers::HttpHandlerBase {
  public:
-  static constexpr const char* kName = "handler-db";
+  static constexpr std::string_view kName = "handler-db";
 
   HandlerDb(const components::ComponentConfig& config,
             const components::ComponentContext& context);

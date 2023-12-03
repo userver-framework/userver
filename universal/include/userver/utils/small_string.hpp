@@ -10,6 +10,8 @@
 
 #include <boost/container/small_vector.hpp>
 
+#include <userver/utils/assert.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils {
@@ -29,7 +31,7 @@ class SmallString final {
   SmallString() = default;
 
   /// @brief Create a string from another one.
-  explicit SmallString(const SmallString<N>&) = default;
+  SmallString(const SmallString<N>&) = default;
 
   /// @brief Create a string from another one.
   explicit SmallString(SmallString<N>&&) noexcept = default;
@@ -86,6 +88,14 @@ class SmallString final {
   /// fill new chars with %c.
   void resize(std::size_t n, char c);
 
+  /// @brief Resize the string. Use op to write into the string and replace a
+  /// sequence of characters
+  template <class Operation>
+  void resize_and_overwrite(std::size_t size, Operation op);
+
+  /// @brief Shrink the string's size to fit all contents
+  void shrink_to_fit();
+
   /// @brief Get current capacity.
   std::size_t capacity() const noexcept;
 
@@ -112,6 +122,9 @@ class SmallString final {
 
   /// @brief Append a character to the string.
   void push_back(char c);
+
+  /// @brief Append contents of a string_view to the string.
+  void append(std::string_view str);
 
   /// @brief Remove the last character from the string.
   void pop_back();
@@ -243,6 +256,12 @@ void SmallString<N>::push_back(char c) {
 }
 
 template <std::size_t N>
+void SmallString<N>::append(std::string_view str) {
+  std::size_t old_size = data_.size();
+  data_.insert(data_.begin() + old_size, str.begin(), str.end());
+}
+
+template <std::size_t N>
 void SmallString<N>::pop_back() {
   data_.pop_back();
 }
@@ -253,6 +272,20 @@ void SmallString<N>::resize(std::size_t n, char c) {
 }
 
 template <std::size_t N>
+template <class Operation>
+void SmallString<N>::resize_and_overwrite(std::size_t size, Operation op) {
+  data_.resize(size, boost::container::default_init);
+  data_.resize(std::move(op)(data_.data(), size),
+               boost::container::default_init);
+  UASSERT(data_.size() <= size);
+}
+
+template <std::size_t N>
+void SmallString<N>::shrink_to_fit() {
+  data_.shrink_to_fit();
+}
+
+template <std::size_t N>
 std::size_t SmallString<N>::capacity() const noexcept {
   return data_.capacity();
 }
@@ -260,6 +293,11 @@ std::size_t SmallString<N>::capacity() const noexcept {
 template <std::size_t N>
 void SmallString<N>::reserve(std::size_t n) {
   return data_.reserve(n);
+}
+
+template <std::size_t N>
+void SmallString<N>::clear() noexcept {
+  data_.clear();
 }
 
 }  // namespace utils

@@ -49,8 +49,7 @@ HttpRequestConstructor::HttpRequestConstructor(
       request_(std::make_shared<HttpRequestImpl>(data_accounter)) {}
 
 void HttpRequestConstructor::SetMethod(HttpMethod method) {
-  request_->orig_method_ = method;
-  request_->method_ = (method == HttpMethod::kHead ? HttpMethod::kGet : method);
+  request_->method_ = method;
 }
 
 void HttpRequestConstructor::SetHttpMajor(unsigned short http_major) {
@@ -167,8 +166,7 @@ void HttpRequestConstructor::SetIsFinal(bool is_final) {
 }
 
 std::shared_ptr<request::RequestBase> HttpRequestConstructor::Finalize() {
-  LOG_TRACE() << "method=" << request_->GetMethodStr()
-              << " orig_method=" << request_->GetOrigMethodStr();
+  LOG_TRACE() << "method=" << request_->GetMethodStr();
 
   FinalizeImpl();
 

@@ -247,10 +247,24 @@ properties:
         type: boolean
         description: disabling will disallow use of user-defined types
         defaultDescription: true
+    check-user-types:
+        type: boolean
+        description: |
+            cancel service start if some user types have not been loaded, which
+            helps to detect missing migrations
+        defaultDescription: false
     ignore_unused_query_params:
         type: boolean
         description: disable check for not-NULL query params that are not used in query
         defaultDescription: false
+    max-ttl-sec:
+        type: integer
+        minimum: 1
+        description: the maximum lifetime for connections
+    discard-all-on-connect:
+        type: boolean
+        description: execute discard all on new connections
+        defaultDescription: true
     monitoring-dbalias:
         type: string
         description: name of the database for monitorings

@@ -131,6 +131,7 @@ components_manager:
       logger_access_tskv: ''
     statistics-storage: null
     dynamic-config:
+      updates-enabled: true
       fs-cache-path: /var/cache/yandex/taxi-device-notify/config_cache.json
       fs-task-processor: fs-task-processor
     dynamic-config-client-updater:

@@ -7,7 +7,7 @@ namespace tests::handlers {
 
 class TasksSample final : public components::LoggableComponentBase {
  public:
-  static constexpr auto kName = "tasks-sample";
+  static constexpr std::string_view kName = "tasks-sample";
 
   TasksSample(const components::ComponentConfig&,
               const components::ComponentContext&);

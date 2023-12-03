@@ -117,7 +117,8 @@ class ConnectionImpl {
 
   void CheckBusy() const;
   void CheckDeadlineReached(const engine::Deadline& deadline);
-  tracing::Span MakeQuerySpan(const Query& query) const;
+  tracing::Span MakeQuerySpan(const Query& query,
+                              const CommandControl& cc) const;
   engine::Deadline MakeCurrentDeadline() const;
 
   void SetTransactionCommandControl(CommandControl cmd_ctl);

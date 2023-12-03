@@ -60,7 +60,7 @@ ValueBuilder::ValueBuilder(const std::string& str)
     : value_(impl::VersionedValuePtr::Create(str, g_allocator)) {}
 
 ValueBuilder::ValueBuilder(std::string_view str)
-    : value_(impl::VersionedValuePtr{}) {
+    : value_(impl::VersionedValuePtr::Create(::rapidjson::Type::kNullType)) {
   // GenericValue ctor has an invalid type for size
   value_->GetNative().SetString(rapidjson::StringRef(str.data(), str.size()),
                                 g_allocator);

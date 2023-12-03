@@ -79,7 +79,9 @@ boost::container::small_vector<char, impl::kMaxFrameHeaderSize> DataFrameHeader(
     hdr->bits.payloadLen = data.size();
   } else if (data.size() <= INT16_MAX) {
     hdr->bits.payloadLen = 126;
-    PushRaw(boost::endian::native_to_big(data.size()), frame);
+    PushRaw(
+        boost::endian::native_to_big(static_cast<std::int16_t>(data.size())),
+        frame);
   } else {
     hdr->bits.payloadLen = 127;
     PushRaw(boost::endian::native_to_big(data.size()), frame);

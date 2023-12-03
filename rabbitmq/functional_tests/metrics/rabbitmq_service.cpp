@@ -98,12 +98,14 @@ class MyRabbitConsumer final : public urabbitmq::ConsumerComponentBase {
 
 class RequestHandler final : public server::handlers::HttpHandlerJsonBase {
  public:
-  static constexpr const char* kName = "my-http-handler";
+  static constexpr std::string_view kName = "my-http-handler";
+
   RequestHandler(const components::ComponentConfig& config,
                  const components::ComponentContext& context)
       : server::handlers::HttpHandlerJsonBase{config, context},
         my_rabbit_{context.FindComponent<MyRabbitComponent>()},
         my_consumer_{context.FindComponent<MyRabbitConsumer>()} {}
+
   ~RequestHandler() override = default;
 
   formats::json::Value HandleRequestJsonThrow(

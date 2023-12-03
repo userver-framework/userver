@@ -74,6 +74,7 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 
 
 ## Runtime service features
+* @ref scripts/docs/en/userver/dynamic_config.md
 * @ref scripts/docs/en/schemas/dynamic_configs.md
 * @ref scripts/docs/en/userver/log_level_running_service.md
 * @ref scripts/docs/en/userver/requests_in_flight.md
@@ -100,6 +101,7 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 * @ref pg_user_row_types
 * @ref pg_errors
 * @ref pg_topology
+* @ref scripts/docs/en/userver/pg_connlimit_mode_auto.md
 * @ref pg_user_types
   * @ref pg_composite_types
   * @ref pg_enum
@@ -122,6 +124,7 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 ## Opensource
 * @ref scripts/docs/en/userver/development/stability.md
 * @ref scripts/docs/en/userver/driver_guide.md
+* @ref scripts/docs/en/userver/tutorial/build_userver.md
 * @ref scripts/docs/en/userver/publications.md
 * @ref CONTRIBUTING.md
 * @ref SECURITY.md

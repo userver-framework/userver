@@ -4,6 +4,7 @@
 
 #include <userver/error_injection/hook.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/testsuite/testpoint.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/assert.hpp>
@@ -210,19 +211,22 @@ void ConnectionImpl::AsyncConnect(const Dsn& dsn, engine::Deadline deadline) {
   auto scope = span.CreateScopeTime();
   // While connecting there are several network roundtrips, so give them
   // some allowance.
-  deadline = testsuite_pg_ctl_.MakeExecuteDeadline(
-      std::chrono::duration_cast<std::chrono::milliseconds>(
-          deadline.TimeLeft()));
+  auto timeout = std::chrono::duration_cast<std::chrono::milliseconds>(
+      deadline.TimeLeft());
+  deadline = testsuite_pg_ctl_.MakeExecuteDeadline(timeout);
   conn_wrapper_.AsyncConnect(dsn, deadline, scope);
-  conn_wrapper_.FillSpanTags(span);
+  conn_wrapper_.FillSpanTags(span, {timeout, GetStatementTimeout()});
+
   scope.Reset(scopes::kGetConnectData);
   // We cannot handle exceptions here, so we let them got to the caller
-  ExecuteCommandNoPrepare("DISCARD ALL", deadline);
+  if (settings_.discard_on_connect == ConnectionSettings::kDiscardAll) {
+    ExecuteCommandNoPrepare("DISCARD ALL", deadline);
+  }
   SetParameter("client_encoding", "UTF8", Connection::ParameterScope::kSession,
                deadline);
   RefreshReplicaState(deadline);
   SetConnectionStatementTimeout(GetDefaultCommandControl().statement, deadline);
-  if (settings_.user_types == ConnectionSettings::kUserTypesEnabled) {
+  if (settings_.user_types != ConnectionSettings::kPredefinedTypesOnly) {
     LoadUserTypes(deadline);
   }
   if (settings_.pipeline_mode == PipelineMode::kEnabled) {
@@ -445,7 +449,7 @@ Connection::StatementId ConnectionImpl::PortalBind(
   SetStatementTimeout(std::move(statement_cmd_ctl));
 
   tracing::Span span{scopes::kQuery};
-  conn_wrapper_.FillSpanTags(span);
+  conn_wrapper_.FillSpanTags(span, {network_timeout, GetStatementTimeout()});
   span.AddTag(tracing::kDatabaseStatement, statement);
   CheckDeadlineReached(deadline);
   auto scope = span.CreateScopeTime();
@@ -479,7 +483,7 @@ ResultSet ConnectionImpl::PortalExecute(
               "statements");
 
   tracing::Span span{scopes::kQuery};
-  conn_wrapper_.FillSpanTags(span);
+  conn_wrapper_.FillSpanTags(span, {network_timeout, GetStatementTimeout()});
   span.AddTag(tracing::kDatabaseStatement, prepared_info->statement);
   if (deadline.IsReached()) {
     ++stats_.execute_timeout;
@@ -601,9 +605,10 @@ void ConnectionImpl::CheckDeadlineReached(const engine::Deadline& deadline) {
   }
 }
 
-tracing::Span ConnectionImpl::MakeQuerySpan(const Query& query) const {
+tracing::Span ConnectionImpl::MakeQuerySpan(const Query& query,
+                                            const CommandControl& cc) const {
   tracing::Span span{scopes::kQuery};
-  conn_wrapper_.FillSpanTags(span);
+  conn_wrapper_.FillSpanTags(span, cc);
   query.FillSpanTags(span);
   return span;
 }
@@ -671,7 +676,6 @@ const ConnectionImpl::PreparedStatementInfo& ConnectionImpl::PrepareStatement(
     engine::Deadline deadline, tracing::Span& span, tracing::ScopeTime& scope) {
   auto query_hash = QueryHash(statement, params);
   Connection::StatementId query_id{query_hash};
-  std::string statement_name = "q" + std::to_string(query_hash) + "_" + uuid_;
 
   error_injection::Hook ei_hook(ei_settings_, deadline);
   ei_hook.PreHook<ConnectionTimeoutError, CommandError>();
@@ -681,6 +685,7 @@ const ConnectionImpl::PreparedStatementInfo& ConnectionImpl::PrepareStatement(
     LOG_TRACE() << "Query " << statement << " is already prepared.";
     return *statement_info;
   } else {
+    std::string statement_name = "q" + std::to_string(query_hash) + "_" + uuid_;
     if (prepared_.GetSize() >= settings_.max_prepared_cache_size) {
       statement_info = prepared_.GetLeastUsed();
       UASSERT(statement_info);
@@ -762,11 +767,19 @@ ResultSet ConnectionImpl::ExecuteCommand(const Query& query,
 
   DiscardOldPreparedStatements(deadline);
   CheckDeadlineReached(deadline);
-  auto span = MakeQuerySpan(query);
-  auto scope = span.CreateScopeTime();
   TimeoutDuration network_timeout =
       std::chrono::duration_cast<std::chrono::milliseconds>(
           deadline.TimeLeft());
+  auto span = MakeQuerySpan(query, {network_timeout, GetStatementTimeout()});
+  if (query.GetName()) {
+    try {
+      TESTPOINT("sql_statement", formats::json::MakeObject(
+                                     "name", query.GetName()->GetUnderlying()));
+    } catch (const std::exception& e) {
+      LOG_WARNING() << e;
+    }
+  }
+  auto scope = span.CreateScopeTime();
   CountExecute count_execute(stats_);
 
   auto const& prepared_info =
@@ -788,13 +801,13 @@ ResultSet ConnectionImpl::ExecuteCommandNoPrepare(const Query& query,
                                                   const QueryParameters& params,
                                                   engine::Deadline deadline) {
   const auto& statement = query.Statement();
-  CheckBusy();
-  CheckDeadlineReached(deadline);
-  auto span = MakeQuerySpan(query);
-  auto scope = span.CreateScopeTime();
   TimeoutDuration network_timeout =
       std::chrono::duration_cast<std::chrono::milliseconds>(
           deadline.TimeLeft());
+  CheckBusy();
+  CheckDeadlineReached(deadline);
+  auto span = MakeQuerySpan(query, {network_timeout, GetStatementTimeout()});
+  auto scope = span.CreateScopeTime();
   CountExecute count_execute(stats_);
   conn_wrapper_.SendQuery(statement, params, scope);
   return WaitResult(statement, deadline, network_timeout, count_execute, span,
@@ -812,7 +825,10 @@ void ConnectionImpl::SendCommandNoPrepare(const Query& query,
                                           engine::Deadline deadline) {
   CheckBusy();
   CheckDeadlineReached(deadline);
-  auto span = MakeQuerySpan(query);
+  auto span = MakeQuerySpan(
+      query, {std::chrono::duration_cast<std::chrono::milliseconds>(
+                  deadline.TimeLeft()),
+              GetStatementTimeout()});
   auto scope = span.CreateScopeTime();
   ++stats_.execute_total;
   conn_wrapper_.SendQuery(query.Statement(), params, scope);
@@ -837,7 +853,7 @@ void ConnectionImpl::SetParameter(std::string_view name, std::string_view value,
 }
 
 void ConnectionImpl::LoadUserTypes(engine::Deadline deadline) {
-  UASSERT(settings_.user_types == ConnectionSettings::kUserTypesEnabled);
+  UASSERT(settings_.user_types != ConnectionSettings::kPredefinedTypesOnly);
   try {
     auto types = ExecuteCommand(kGetUserTypesSQL, deadline)
                      .AsSetOf<DBTypeDescription>(kRowTag);

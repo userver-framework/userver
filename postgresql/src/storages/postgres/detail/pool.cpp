@@ -155,22 +155,27 @@ void ConnectionPool::Init(InitMode mode) {
              << settings->min_size << " connections to "
              << DsnCutPassword(dsn_);
 
-  if (mode == InitMode::kAsync) {
-    for (std::size_t i = 0; i < settings->min_size; ++i) {
-      connect_task_storage_.Detach(
-          Connect(engine::SemaphoreLock{size_semaphore_, std::try_to_lock}));
-    }
-    LOG_INFO() << "Pool initialization is ongoing";
-    StartMaintainTask();
-    return;
-  }
-
   std::vector<engine::TaskWithResult<bool>> tasks;
   tasks.reserve(settings->min_size);
   for (std::size_t i = 0; i < settings->min_size; ++i) {
     tasks.push_back(
         Connect(engine::SemaphoreLock{size_semaphore_, std::try_to_lock}));
   }
+
+  auto conn_settings = conn_settings_.Read();
+  if (conn_settings->user_types == ConnectionSettings::kUserTypesEnforced) {
+    CheckUserTypes();
+  }
+
+  if (mode == InitMode::kAsync) {
+    for (auto& task : tasks) {
+      connect_task_storage_.Detach(std::move(task));
+    }
+    LOG_INFO() << "Pool initialization is ongoing";
+    StartMaintainTask();
+    return;
+  }
+
   for (auto& t : tasks) {
     try {
       const auto success = t.Get();
@@ -692,6 +697,15 @@ void ConnectionPool::StopConnectTasks() {
                << " background tasks to complete";
   }
   connect_task_storage_.CancelAndWait();
+}
+
+void ConnectionPool::CheckUserTypes() {
+  try {
+    auto conn = Acquire(engine::Deadline::FromDuration(kConnectingTimeout));
+    conn->GetUserTypes().CheckRegisteredTypes();
+  } catch (const PoolError& err) {
+    LOG_WARNING() << "Failed to check registered user types: " << err;
+  }
 }
 
 }  // namespace storages::postgres::detail

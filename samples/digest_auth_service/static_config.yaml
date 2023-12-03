@@ -69,7 +69,6 @@ components_manager:
             method: POST
             task_processor: main-task-processor
 
-        dynamic-config:                      # Dynamic config storage options, do nothing
         dns-client:
             fs-task-processor: fs-task-processor
 
@@ -81,4 +80,4 @@ components_manager:
         fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
             worker_threads: 4
 
-    default_task_processor: main-task-processor
+    default_task_processor: main-task-processor  # Task processor in which components start.

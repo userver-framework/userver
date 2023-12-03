@@ -1,6 +1,5 @@
-#include "implicit_options_http_handler.hpp"
+#include <userver/server/handlers/implicit_options.hpp>
 
-#include <fmt/compile.h>
 #include <fmt/format.h>
 
 #include <server/handlers/auth/auth_checker.hpp>
@@ -20,9 +19,10 @@ USERVER_NAMESPACE_BEGIN
 namespace server::handlers {
 namespace {
 
-ImplicitOptionsHttpHandler::AuthCheckers MakeAuthCheckers(
-    const components::ComponentConfig& config,
-    const components::ComponentContext& context) {
+using AuthCheckers = std::unordered_map<std::string, auth::AuthCheckerBasePtr>;
+
+AuthCheckers MakeAuthCheckers(const components::ComponentConfig& config,
+                              const components::ComponentContext& context) {
   constexpr auto kAuthCheckers = "auth_checkers";
 
   if (!config.HasMember(kAuthCheckers)) return {};
@@ -32,7 +32,7 @@ ImplicitOptionsHttpHandler::AuthCheckers MakeAuthCheckers(
   const auto& auth_settings =
       context.FindComponent<components::AuthCheckerSettings>().Get();
 
-  ImplicitOptionsHttpHandler::AuthCheckers checkers;
+  AuthCheckers checkers;
   for (const auto& type : auth_config.GetTypes()) {
     try {
       const auto& auth_factory = auth::GetAuthCheckerFactory(type);
@@ -56,15 +56,16 @@ ImplicitOptionsHttpHandler::AuthCheckers MakeAuthCheckers(
 
 }  // namespace
 
-ImplicitOptionsHttpHandler::ImplicitOptionsHttpHandler(
-    const components::ComponentConfig& config,
-    const components::ComponentContext& component_context, bool is_monitor)
-    : HttpHandlerBase(config, component_context, is_monitor),
-      server_(
-          component_context.FindComponent<components::Server>().GetServer()),
-      auth_checkers_(MakeAuthCheckers(config, component_context)) {}
+ImplicitOptions::ImplicitOptions(const components::ComponentConfig& config,
+                                 const components::ComponentContext& context,
+                                 bool is_monitor)
+    : HttpHandlerBase(config, context, is_monitor),
+      server_(context.FindComponent<components::Server>().GetServer()),
+      auth_checkers_(MakeAuthCheckers(config, context)) {}
 
-std::string ImplicitOptionsHttpHandler::ExtractAllowedMethods(
+ImplicitOptions::~ImplicitOptions() = default;
+
+std::string ImplicitOptions::ExtractAllowedMethods(
     const std::string& path) const {
   std::vector<std::string> allowed_methods = {
       ToString(http::HttpMethod::kOptions)};
@@ -89,8 +90,7 @@ std::string ImplicitOptionsHttpHandler::ExtractAllowedMethods(
   return fmt::to_string(fmt::join(allowed_methods, ", "));
 }
 
-const http::HandlerInfoIndex& ImplicitOptionsHttpHandler::GetHandlerInfoIndex()
-    const {
+const http::HandlerInfoIndex& ImplicitOptions::GetHandlerInfoIndex() const {
   if (handler_info_index_) return *handler_info_index_;
 
   std::lock_guard lock(handler_info_index_mutex_);
@@ -100,7 +100,7 @@ const http::HandlerInfoIndex& ImplicitOptionsHttpHandler::GetHandlerInfoIndex()
   return *handler_info_index_;
 }
 
-std::string ImplicitOptionsHttpHandler::HandleRequestThrow(
+std::string ImplicitOptions::HandleRequestThrow(
     const server::http::HttpRequest& request,
     server::request::RequestContext& context) const {
   auto& response = request.GetHttpResponse();
@@ -134,11 +134,10 @@ std::string ImplicitOptionsHttpHandler::HandleRequestThrow(
             USERVER_NAMESPACE::http::headers::kXYaTaxiAllowAuthResponse});
   }
 
-  static const std::string kEmpty;
-  return kEmpty;
+  return {};
 }
 
-yaml_config::Schema ImplicitOptionsHttpHandler::GetStaticConfigSchema() {
+yaml_config::Schema ImplicitOptions::GetStaticConfigSchema() {
   return yaml_config::MergeSchemas<HttpHandlerBase>(R"(
 type: object
 description: handler-implicit-http-options config
@@ -147,6 +146,7 @@ properties:
     auth_checkers:
         type: object
         description: server::handlers::auth::HandlerAuthConfig authorization config
+        defaultDescription: auth checker testing is disabled
         additionalProperties: false
         properties:
             type:

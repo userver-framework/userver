@@ -1,37 +1,8 @@
-## Dynamic configs
+## Dynamic config schemas
 
-Here you can find the description of dynamic configs - options that can be
-changed at run-time without stopping the service.
-
-For an information on how to write a service that distributes dynamic configs
-see @ref scripts/docs/en/userver/tutorial/config_service.md.
-
-
-## Adding and using your own dynamic configs
-
-Dynamic config values could be obtained via the dynamic_config::Source client
-that could be retrieved from components::DynamicConfig:
-
-@snippet components/component_sample_test.cpp  Sample user component source
-
-
-To get a specific value you need a parser for it. For example, here's how you
-could parse and get the `SAMPLE_INTEGER_FROM_RUNTIME_CONFIG` option:
-
-@snippet components/component_sample_test.cpp  Sample user component runtime config source
-
-If utils::DaemonMain is used, then the dynamic configs of the service could
-be printed by passing `--print-dynamic-config-defaults` command line option.
-
-
-## Why your service needs Dynamic configs
-
-Dynamic configs are an essential part of a reliable service with high
-availability. The configs could be used as an emergency switch for new
-functionality, selector for experiments, limits/timeouts/log-level setup,
-proxy setup and so forth.
-
-See @ref scripts/docs/en/userver/tutorial/production_service.md setup example.
+Here you can find schemas of dynamic configs used by userver itself.
+For general information on dynamic configs, see
+@ref scripts/docs/en/userver/dynamic_config.md
 
 
 @anchor HTTP_CLIENT_CONNECT_THROTTLE
@@ -392,6 +363,8 @@ schema:
   type: boolean
 ```
 
+Used by components::Postgres.
+
 @anchor POSTGRES_STATEMENT_METRICS_SETTINGS
 ## POSTGRES_STATEMENT_METRICS_SETTINGS
 
@@ -719,6 +692,15 @@ schema:
             full-update-interval-ms:
                 type: integer
                 minimum: 0
+            updates-enabled:
+                type: boolean
+                default: true
+            exception-interval-ms:
+                type: integer
+                minimum: 0
+            alert-on-failing-to-update-times:
+                type: integer
+                minimum: 0
         required:
           - update-interval-ms
           - update-jitter-ms
@@ -731,7 +713,8 @@ schema:
   "some-cache-name": {
     "full-update-interval-ms": 86400000,
     "update-interval-ms": 30000,
-    "update-jitter-ms": 1000
+    "update-jitter-ms": 1000,
+    "alert-on-failing-to-update-times": 2
   }
 }
 ```
@@ -806,7 +789,6 @@ schema:
 {
   "some-cache-name": {
     "dumps-enabled": true,
-    "update-interval-ms": 30000,
     "min-dump-interval": 100000
   }
 }
@@ -1274,5 +1256,5 @@ Used by server::handlers::HttpHandlerStatic
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref rabbitmq_driver | @ref scripts/docs/en/userver/log_level_running_service.md ⇨
+⇦ @ref scripts/docs/en/userver/dynamic_config.md | @ref scripts/docs/en/userver/log_level_running_service.md ⇨
 @htmlonly </div> @endhtmlonly

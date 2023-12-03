@@ -27,6 +27,10 @@ std::string Format(boost::multiprecision::cpp_dec_float_50 value, int ndigits);
 std::string ToLower(std::string_view str,
                     const std::string& locale = kEnLocale);
 
+/// Transform letters to upper case
+std::string ToUpper(std::string_view str,
+                    const std::string& locale = kEnLocale);
+
 /// Capitalizes the first letter of the str
 std::string Capitalize(std::string_view str, const std::string& locale);
 

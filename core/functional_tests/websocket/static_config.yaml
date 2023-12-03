@@ -1,16 +1,9 @@
 components_manager:
-    coro_pool:
-        initial_size: 500             # Preallocate 500 coroutines at startup.
-        max_size: 1000                # Do not keep more than 1000 preallocated coroutines.
 
     task_processors:                  # Task processor is an executor for coroutine tasks
-
         main-task-processor:          # Make a task processor for CPU-bound couroutine tasks.
             worker_threads: 4         # Process tasks in 4 threads.
-            thread_name: main-worker  # OS will show the threads of this task processor with 'main-worker' prefix.
-
         fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
-            thread_name: fs-worker
             worker_threads: 4
 
     default_task_processor: main-task-processor
@@ -27,8 +20,6 @@ components_manager:
                     file_path: '@stderr'
                     level: debug
                     overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
-
-        dynamic-config:               # Dynamic config storage options, do nothing
 
         websocket-handler:            # Finally! Websocket handler.
             path: /chat               # Registering handlers '/*' find files.

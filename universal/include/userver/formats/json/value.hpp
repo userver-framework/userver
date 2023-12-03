@@ -3,6 +3,7 @@
 /// @file userver/formats/json/value.hpp
 /// @brief @copybrief formats::json::Value
 
+#include <chrono>
 #include <string_view>
 #include <type_traits>
 
@@ -13,6 +14,7 @@
 #include <userver/formats/json/iterator.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/string_builder_fwd.hpp>
+#include <userver/formats/json/validate.hpp>
 #include <userver/formats/parse/common.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -35,6 +37,7 @@ impl::Value MakeJsonStringViewValue(std::string_view view);
 
 class ValueBuilder;
 struct PrettyFormat;
+class Schema;
 
 namespace parser {
 class JsonValueParser;
@@ -71,13 +74,13 @@ class Value final {
   using Builder = ValueBuilder;
 
   /// @brief Constructs a Value that holds a null.
-  Value() noexcept = default;
+  Value();
 
   Value(const Value&) = default;
-  Value(Value&&) noexcept = default;
+  Value(Value&&) noexcept;
 
   Value& operator=(const Value&) & = default;
-  Value& operator=(Value&& other) & noexcept = default;
+  Value& operator=(Value&&) noexcept;
 
   template <class T>
   Value& operator=(T&&) && {
@@ -252,7 +255,7 @@ class Value final {
   Value(impl::VersionedValuePtr root, LazyDetachedPath&& lazy_detached_path);
 
   bool IsUniqueReference() const;
-  void EnsureNotMissing();
+  void EnsureNotMissing() const;
   const impl::Value& GetNative() const;
   impl::Value& GetNative();
   void SetNative(impl::Value&);  // does not copy
@@ -294,6 +297,7 @@ class Value final {
   friend class Iterator;
   friend class ValueBuilder;
   friend class StringBuilder;
+  friend class Schema;
   friend class impl::InlineObjectBuilder;
   friend class impl::InlineArrayBuilder;
   friend class impl::MutableValueWrapper;
@@ -309,6 +313,8 @@ class Value final {
   friend std::string ToPrettyString(const formats::json::Value& doc,
                                     PrettyFormat format);
   friend logging::LogHelper& operator<<(logging::LogHelper&, const Value&);
+  friend bool Validate(const formats::json::Value&,
+                       const formats::json::Schema&);
 };
 
 template <typename T>
@@ -396,6 +402,13 @@ T Value::ConvertTo(First&& default_arg, Rest&&... more_default_args) const {
 }
 
 inline Value Parse(const Value& value, parse::To<Value>) { return value; }
+
+std::chrono::milliseconds Parse(const Value& value,
+                                parse::To<std::chrono::milliseconds>);
+
+std::chrono::minutes Parse(const Value& value, parse::To<std::chrono::minutes>);
+
+std::chrono::hours Parse(const Value& value, parse::To<std::chrono::hours>);
 
 /// @brief Wrapper for handy python-like iteration over a map
 ///

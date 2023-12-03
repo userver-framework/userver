@@ -34,10 +34,13 @@ class LoggerBase {
 
   virtual void SetLevel(Level level);
   Level GetLevel() const noexcept;
-  virtual bool ShouldLog(Level level) const noexcept;
+  bool ShouldLog(Level level) const noexcept;
 
   void SetFlushOn(Level level);
   bool ShouldFlush(Level level) const;
+
+ protected:
+  virtual bool DoShouldLog(Level level) const noexcept;
 
  private:
   const Format format_;

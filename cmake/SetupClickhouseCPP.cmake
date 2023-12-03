@@ -17,7 +17,7 @@ include(SetupAbseil)
 
 CPMAddPackage(
     NAME clickhouse-cpp
-    VERSION 2.4.0
+    VERSION 2.5.1
     GITHUB_REPOSITORY ClickHouse/clickhouse-cpp
     SYSTEM
     OPTIONS

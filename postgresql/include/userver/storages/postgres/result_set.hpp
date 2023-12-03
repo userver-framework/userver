@@ -224,6 +224,70 @@ class ResultSet;
 template <typename T, typename ExtractionTag>
 class TypedResultSet;
 
+class FieldView final {
+ public:
+  using size_type = std::size_t;
+
+  FieldView(const detail::ResultWrapper& res, size_type row_index,
+            size_type field_index)
+      : res_{res}, row_index_{row_index}, field_index_{field_index} {}
+
+  template <typename T>
+  size_type To(T&& val) const {
+    using ValueType = typename std::decay<T>::type;
+    auto fb = GetBuffer();
+    return ReadNullable(fb, std::forward<T>(val),
+                        io::traits::IsNullable<ValueType>{});
+  }
+
+ private:
+  io::FieldBuffer GetBuffer() const;
+  std::string_view Name() const;
+  const io::TypeBufferCategory& GetTypeBufferCategories() const;
+
+  template <typename T>
+  size_type ReadNullable(const io::FieldBuffer& fb, T&& val,
+                         std::true_type) const {
+    using ValueType = typename std::decay<T>::type;
+    using NullSetter = io::traits::GetSetNull<ValueType>;
+    if (fb.is_null) {
+      NullSetter::SetNull(val);
+    } else {
+      Read(fb, std::forward<T>(val));
+    }
+    return fb.length;
+  }
+
+  template <typename T>
+  size_type ReadNullable(const io::FieldBuffer& buffer, T&& val,
+                         std::false_type) const {
+    if (buffer.is_null) {
+      throw FieldValueIsNull{field_index_, Name(), val};
+    } else {
+      Read(buffer, std::forward<T>(val));
+    }
+    return buffer.length;
+  }
+
+  template <typename T>
+  void Read(const io::FieldBuffer& buffer, T&& val) const {
+    using ValueType = typename std::decay<T>::type;
+    io::traits::CheckParser<ValueType>();
+    try {
+      io::ReadBuffer(buffer, std::forward<T>(val), GetTypeBufferCategories());
+    } catch (ResultSetError& ex) {
+      ex.AddMsgSuffix(fmt::format(
+          " (field #{} name `{}` C++ type `{}`. Postgres ResultSet error)",
+          field_index_, Name(), compiler::GetTypeName<T>()));
+      throw;
+    }
+  }
+
+  const detail::ResultWrapper& res_;
+  const size_type row_index_;
+  const size_type field_index_;
+};
+
 /// @brief Accessor to a single field in a result set's row
 class Field {
  public:
@@ -250,10 +314,7 @@ class Field {
   ///                           not nullable.
   template <typename T>
   size_type To(T&& val) const {
-    using ValueType = typename std::decay<T>::type;
-    auto fb = GetBuffer();
-    return ReadNullable(fb, std::forward<T>(val),
-                        io::traits::IsNullable<ValueType>{});
+    return FieldView{*res_, row_index_, field_index_}.To(std::forward<T>(val));
   }
 
   /// Read the field's buffer into user-provided variable.
@@ -286,37 +347,11 @@ class Field {
   //@}
   const io::TypeBufferCategory& GetTypeBufferCategories() const;
 
- private:
-  io::FieldBuffer GetBuffer() const;
-
  protected:
   friend class Row;
 
   Field(detail::ResultWrapperPtr res, size_type row, size_type col)
       : res_{std::move(res)}, row_index_{row}, field_index_{col} {}
-
-  template <typename T>
-  size_type ReadNullable(const io::FieldBuffer& fb, T&& val,
-                         std::true_type) const {
-    using ValueType = typename std::decay<T>::type;
-    using NullSetter = io::traits::GetSetNull<ValueType>;
-    if (fb.is_null) {
-      NullSetter::SetNull(val);
-    } else {
-      Read(fb, std::forward<T>(val));
-    }
-    return fb.length;
-  }
-  template <typename T>
-  size_type ReadNullable(const io::FieldBuffer& buffer, T&& val,
-                         std::false_type) const {
-    if (buffer.is_null) {
-      throw FieldValueIsNull{field_index_, Name(), val};
-    } else {
-      Read(buffer, std::forward<T>(val));
-    }
-    return buffer.length;
-  }
 
   //@{
   /** @name Iteration support */
@@ -327,20 +362,6 @@ class Field {
   //@}
 
  private:
-  template <typename T>
-  void Read(const io::FieldBuffer& buffer, T&& val) const {
-    using ValueType = typename std::decay<T>::type;
-    io::traits::CheckParser<ValueType>();
-    try {
-      io::ReadBuffer(buffer, std::forward<T>(val), GetTypeBufferCategories());
-    } catch (ResultSetError& ex) {
-      ex.AddMsgSuffix(fmt::format(
-          " (field #{} name `{}` C++ type `{}`. Postgres ResultSet error)",
-          field_index_, Name(), compiler::GetTypeName<T>()));
-      throw;
-    }
-  }
-
   detail::ResultWrapperPtr res_;
   size_type row_index_;
   size_type field_index_;
@@ -507,6 +528,8 @@ class Row {
   //@}
 
   size_type IndexOfName(const std::string&) const;
+
+  FieldView GetFieldView(size_type index) const;
 
  protected:
   friend class ResultSet;
@@ -717,36 +740,27 @@ struct RowDataExtractorBase<std::index_sequence<Indexes...>, T...> {
   static void ExtractValues(const Row& row, T&&... val) {
     static_assert(sizeof...(Indexes) == sizeof...(T));
 
-    // We do it this way instead of row[Indexes...] to avoid Row::operator[]
-    // overhead - it copies + destroys a shared_ptr to ResultSet
-    auto it = row.begin();
+    std::size_t field_index = 0;
     const auto perform = [&](auto&& arg) {
-      it->To(std::forward<decltype(arg)>(arg));
-      ++it;
+      row.GetFieldView(field_index++).To(std::forward<decltype(arg)>(arg));
     };
     (perform(std::forward<T>(val)), ...);
   }
   static void ExtractTuple(const Row& row, std::tuple<T...>& val) {
     static_assert(sizeof...(Indexes) == sizeof...(T));
 
-    // We do it this way instead of row[Indexes...] to avoid Row::operator[]
-    // overhead - it copies + destroys a shared_ptr to ResultSet
-    auto it = row.begin();
+    std::size_t field_index = 0;
     const auto perform = [&](auto& arg) {
-      it->To(arg);
-      ++it;
+      row.GetFieldView(field_index++).To(arg);
     };
     (perform(std::get<Indexes>(val)), ...);
   }
   static void ExtractTuple(const Row& row, std::tuple<T...>&& val) {
     static_assert(sizeof...(Indexes) == sizeof...(T));
 
-    // We do it this way instead of row[Indexes...] to avoid Row::operator[]
-    // overhead - it copies + destroys a shared_ptr to ResultSet
-    auto it = row.begin();
+    std::size_t field_index = 0;
     const auto perform = [&](auto& arg) {
-      it->To(arg);
-      ++it;
+      row.GetFieldView(field_index++).To(arg);
     };
     (perform(std::get<Indexes>(val)), ...);
   }
@@ -937,7 +951,13 @@ Container ResultSet::AsContainer() const {
     c.reserve(Size());
   }
   auto res = AsSetOf<ValueType>();
-  std::copy(res.begin(), res.end(), io::traits::Inserter(c));
+
+  auto inserter = io::traits::Inserter(c);
+  auto row_it = res.begin();
+  for (std::size_t i = 0; i < res.Size(); ++i, ++row_it, ++inserter) {
+    *inserter = *row_it;
+  }
+
   return c;
 }
 
@@ -950,7 +970,13 @@ Container ResultSet::AsContainer(RowTag) const {
     c.reserve(Size());
   }
   auto res = AsSetOf<ValueType>(kRowTag);
-  std::copy(res.begin(), res.end(), io::traits::Inserter(c));
+
+  auto inserter = io::traits::Inserter(c);
+  auto row_it = res.begin();
+  for (std::size_t i = 0; i < res.Size(); ++i, ++row_it, ++inserter) {
+    *inserter = *row_it;
+  }
+
   return c;
 }
 

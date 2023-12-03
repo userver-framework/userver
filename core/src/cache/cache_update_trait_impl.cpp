@@ -78,9 +78,10 @@ void CacheUpdateTrait::Impl::UpdateSyncDebug(UpdateType update_type) {
     return;
   }
 
-  utils::CriticalAsync(task_processor_, update_task_name_, [this, update_type] {
-    DoUpdate(update_type);
-  }).Get();
+  utils::CriticalAsync(
+      task_processor_, update_task_name_,
+      [this, update_type, &config] { DoUpdate(update_type, *config); })
+      .Get();
 }
 
 const std::string& CacheUpdateTrait::Impl::Name() const { return name_; }
@@ -91,6 +92,7 @@ CacheUpdateTrait::Impl::Impl(CacheDependencies&& dependencies,
       static_config_(dependencies.config),
       config_(static_config_),
       cache_control_(dependencies.cache_control),
+      alerts_storage_(dependencies.alerts_storage_),
       name_(std::move(dependencies.name)),
       update_task_name_("update-task/" + name_),
       task_processor_(dependencies.task_processor),
@@ -318,18 +320,17 @@ void CacheUpdateTrait::Impl::DoPeriodicUpdate() {
 
   const auto update_type = NextUpdateType(*config);
   try {
-    DoUpdate(update_type);
+    DoUpdate(update_type, *config);
     // Note: "on update success" logic goes inside DoUpdate
   } catch (const std::exception& ex) {
     LOG_WARNING() << "Error while updating cache " << name_
                   << " (update_type=" << ToString(update_type)
                   << "). Reason: " << ex;
-    OnPeriodicUpdateFailure();
     throw;
   }
 }
 
-void CacheUpdateTrait::Impl::OnPeriodicUpdateFailure() {
+void CacheUpdateTrait::Impl::OnUpdateFailure(const Config& config) {
   const auto failed_updates_before_expiration =
       static_config_.failed_updates_before_expiration;
   failed_updates_counter_++;
@@ -339,6 +340,14 @@ void CacheUpdateTrait::Impl::OnPeriodicUpdateFailure() {
         << "Cache is marked as expired because the number of "
            "failed updates has reached 'failed-updates-before-expiration' ("
         << failed_updates_before_expiration << ")";
+  }
+  if (config.alert_on_failing_to_update_times != 0 &&
+      failed_updates_counter_ >= config.alert_on_failing_to_update_times) {
+    alerts_storage_.FireAlert(
+        "cache_update_error",
+        fmt::format("cache '{}' hasn't been updated for {} times", Name(),
+                    failed_updates_counter_),
+        alerts::kInfinity);
   }
 }
 
@@ -358,7 +367,8 @@ engine::TaskProcessor& CacheUpdateTrait::Impl::GetCacheTaskProcessor() const {
   return task_processor_;
 }
 
-void CacheUpdateTrait::Impl::DoUpdate(UpdateType update_type) {
+void CacheUpdateTrait::Impl::DoUpdate(UpdateType update_type,
+                                      const Config& config) {
   const auto steady_now = utils::datetime::SteadyNow();
   const auto now =
       std::chrono::round<dump::TimePoint::duration>(utils::datetime::Now());
@@ -371,9 +381,34 @@ void CacheUpdateTrait::Impl::DoUpdate(UpdateType update_type) {
   LOG_INFO() << "Updating cache update_type=" << update_type_str
              << " name=" << name_;
 
-  customized_trait_.Update(update_type, last_update_, now, stats);
+  try {
+    customized_trait_.Update(update_type, last_update_, now, stats);
+    CheckUpdateState(stats.GetState(utils::InternalTag{}), update_type_str);
+  } catch (const std::exception& e) {
+    OnUpdateFailure(config);
+    throw;
+  }
 
-  switch (stats.GetState(utils::InternalTag{})) {
+  // Update success
+  if (update_type == UpdateType::kFull) {
+    force_full_update_ = false;
+    last_full_update_ = steady_now;
+  }
+  dump_first_update_type_ = {};
+  failed_updates_counter_ = 0;
+
+  last_update_ = now;
+  alerts_storage_.StopAlertNow("cache_update_error");
+  if (dumper_) {
+    dumper_->OnUpdateCompleted(now, cache_modified_.exchange(false)
+                                        ? dump::UpdateType::kModified
+                                        : dump::UpdateType::kAlreadyUpToDate);
+  }
+}
+
+void CacheUpdateTrait::Impl::CheckUpdateState(
+    impl::UpdateState update_state, std::string_view update_type_str) {
+  switch (update_state) {
     case impl::UpdateState::kNotFinished:
       // TODO add UASSERT
       LOG_ERROR() << fmt::format(
@@ -390,21 +425,6 @@ void CacheUpdateTrait::Impl::DoUpdate(UpdateType update_type) {
       break;
     case impl::UpdateState::kFailure:
       throw std::runtime_error("FinishWithError");
-  }
-
-  // Update success
-  if (update_type == UpdateType::kFull) {
-    force_full_update_ = false;
-    last_full_update_ = steady_now;
-  }
-  dump_first_update_type_ = {};
-  failed_updates_counter_ = 0;
-
-  last_update_ = now;
-  if (dumper_) {
-    dumper_->OnUpdateCompleted(now, cache_modified_.exchange(false)
-                                        ? dump::UpdateType::kModified
-                                        : dump::UpdateType::kAlreadyUpToDate);
   }
 }
 

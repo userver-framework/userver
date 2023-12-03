@@ -7,6 +7,7 @@
 #include <userver/compiler/impl/constexpr.hpp>
 #include <userver/logging/impl/logger_base.hpp>
 #include <userver/logging/logger.hpp>
+#include <userver/ugrpc/status_codes.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/encoding/tskv.hpp>
 #include <userver/utils/text.hpp>
@@ -70,7 +71,7 @@ namespace impl {
 std::string FormatLogMessage(
     const std::multimap<grpc::string_ref, grpc::string_ref>& metadata,
     std::string_view peer, std::chrono::system_clock::time_point start_time,
-    std::string_view call_name, int code) {
+    std::string_view call_name, grpc::StatusCode code) {
   static const auto timezone =
       utils::datetime::LocalTimezoneTimestring(start_time, "%Ez");
 
@@ -98,11 +99,12 @@ std::string FormatLogMessage(
       "\tx_real_ip={}"
       "\trequest={}"
       "\tupstream_response_time_ms={}.{:0>3}"
-      "\tgrpc_status={}\n",
+      "\tgrpc_status={}"
+      "\tgrpc_status_code={}\n",
       GetCurrentTimeString(start_time), timezone,
       EscapeForAccessTskvLog(user_agent), ip, ip,
       EscapeForAccessTskvLog(call_name), response_time / 1000,
-      response_time % 1000, code);
+      response_time % 1000, static_cast<int>(code), ToString(code));
 }
 
 }  // namespace impl
@@ -118,10 +120,10 @@ void CallAnyBase::LogFinish(grpc::Status status) const {
     return;
   }
 
-  auto str = impl::FormatLogMessage(
-      params_.context.client_metadata(), params_.context.peer(),
-      params_.call_span.GetStartSystemTime(), params_.call_name,
-      static_cast<int>(status.error_code()));
+  auto str = impl::FormatLogMessage(params_.context.client_metadata(),
+                                    params_.context.peer(),
+                                    params_.call_span.GetStartSystemTime(),
+                                    params_.call_name, status.error_code());
   params_.access_tskv_logger.Log(logging::Level::kInfo, std::move(str));
 }
 

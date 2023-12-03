@@ -94,8 +94,11 @@ async def test_cancellable(service_client, testpoint):
     def cancel_testpoint(data):
         pass
 
+    less_than_handler_sleep_time = 1.0
     with pytest.raises(asyncio.TimeoutError):
         await service_client.get(
-            '/chaos/httpserver', params={'type': 'cancel'}, timeout=0.1,
+            '/chaos/httpserver',
+            params={'type': 'cancel'},
+            timeout=less_than_handler_sleep_time,
         )
     await cancel_testpoint.wait_call()

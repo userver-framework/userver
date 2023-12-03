@@ -1,10 +1,11 @@
-#include <userver/storages/postgres/query.hpp>
+#include <userver/storages/query.hpp>
+
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::postgres {
+namespace storages {
 
 Query::Query(const char* statement, std::optional<Name> name, LogMode log_mode)
     : statement_(statement), name_(std::move(name)), log_mode_(log_mode) {}
@@ -30,6 +31,6 @@ void Query::FillSpanTags(tracing::Span& span) const {
   }
 }
 
-}  // namespace storages::postgres
+}  // namespace storages
 
 USERVER_NAMESPACE_END

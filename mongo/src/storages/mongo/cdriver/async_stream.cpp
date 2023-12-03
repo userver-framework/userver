@@ -317,6 +317,8 @@ mongoc_stream_t* MakeAsyncStream(const mongoc_uri_t* uri,
   if (!socket) return nullptr;
 
   auto stream = AsyncStream::Create(std::move(socket));
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+  auto* const async_stream_ptr = static_cast<AsyncStream*>(stream.get());
 
   // from mongoc_client_default_stream_initiator
   // enable TLS if needed
@@ -343,8 +345,10 @@ mongoc_stream_t* MakeAsyncStream(const mongoc_uri_t* uri,
 
   // enable read buffering
   UASSERT(stream);
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-  static_cast<AsyncStream*>(&*stream)->SetCreated();
+  UASSERT(stream.get() == async_stream_ptr ||
+          (mongoc_stream_get_tls_stream(stream.get()) == stream.get() &&
+           mongoc_stream_get_base_stream(stream.get()) == async_stream_ptr));
+  async_stream_ptr->SetCreated();
   return stream.release();
 }
 
@@ -522,7 +526,7 @@ ssize_t AsyncStream::Readv(mongoc_stream_t* stream, mongoc_iovec_t* iov,
   try {
     engine::TaskCancellationBlocker block_cancel;
     size_t curr_iov = 0;
-    while (curr_iov < iovcnt && (min_bytes < recvd_total || !recvd_total)) {
+    while (curr_iov < iovcnt && (min_bytes > recvd_total || !recvd_total)) {
       const auto recvd_now =
           self->BufferedRecv(iov[curr_iov].iov_base, iov[curr_iov].iov_len,
                              min_bytes - recvd_total, deadline);

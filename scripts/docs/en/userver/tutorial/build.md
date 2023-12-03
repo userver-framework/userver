@@ -32,6 +32,7 @@ The following options could be used to control `cmake`:
 | USERVER_LTO                            | Use link time optimizations                                                                                           | OFF for Debug build, ON for all the other builds                  |
 | USERVER_NO_WERROR                      | Do not treat warnings as errors                                                                                       | ON                                                                |
 | USERVER_PYTHON_PATH                    | Path to the python3 binary for use in testsuite tests                                                                 | python3                                                           |
+| USERVER_FEATURE_ERASE_LOG_WITH_LEVEL   | Logs of this and below levels are removed from binary. Possible values: trace, info, debug, warning, error            | OFF                                                               |
 | USERVER_DOWNLOAD_PACKAGES              | Download missing third party packages and use the downloaded versions                                                 | ON                                                                |
 | USERVER_DOWNLOAD_PACKAGE_CARES         | Download and setup c-ares if no c-ares of matching version was found                                                  | ${USERVER_DOWNLOAD_PACKAGES}                                      |
 | USERVER_DOWNLOAD_PACKAGE_CCTZ          | Download and setup cctz if no cctz of matching version was found                                                      | ${USERVER_DOWNLOAD_PACKAGES}                                      |
@@ -79,212 +80,191 @@ Some advice:
 - `CPM_SOURCE_CACHE` helps to avoid re-downloads with multiple userver build modes or multiple CPM-using projects;
 - `CPM_USE_NAMED_CACHE_DIRECTORIES` (which userver enables by default) avoids junk library names shown in IDEs.
 
-## Installation instructions
 
-Download and extract the latest release from https://github.com/userver-framework/userver
+## Build dependencies and instructions for userver based services
 
-Follow the platforms specific instructions:
+There are prepared and ready to use service templates at the github:
+
+* https://github.com/userver-framework/service_template
+* https://github.com/userver-framework/pg_service_template
+* https://github.com/userver-framework/pg_grpc_service_template
+
+Just use the template to make your own service:
+1. Press the green "Use this template" button at the top of the github template page
+2. Clone the service `git clone your-service-repo && cd your-service-repo && git submodule update --init`
+3. Give a proper name to your service and replace all the occurrences of "*service_template" string with that name.
+4. Feel free to tweak, adjust or fully rewrite the source code of your service.
+
+For local development of your service either
+* use the docker build and tests run via `make docker-test`;
+* or install the build dependencies on your local system and
+  adjust the `Makefile.local` file to provide \b platform-specific \b CMake
+  options to the template:
+
 
 ### Ubuntu 22.04 (Jammy Jellyfish)
 
-1. Install the build and test dependencies from ubuntu-22.04.md file, configure git:
+\b Dependencies: @ref scripts/docs/en/deps/ubuntu-22.04.md "third_party/userver/scripts/docs/en/deps/ubuntu-22.04.md"
+
+Dependencies could be installed via:
   ```
   bash
-  sudo apt install $(cat scripts/docs/en/deps/ubuntu-22.04.md | tr '\n' ' ')
-  git config --global --add safe.directory $(pwd)/third_party/clickhouse-cpp
-  ```
-2. Build the userver:
-  ```
-  bash
-  mkdir build_release
-  cd build_release
-  cmake -DCMAKE_BUILD_TYPE=Release ..
-  cmake --build . -j$(nproc)
+  sudo apt install --allow-downgrades -y $(cat third_party/userver/scripts/docs/en/deps/ubuntu-22.04.md | tr '\n' ' ')
   ```
 
 
 ### Ubuntu 21.10 (Impish Indri)
 
-1. Install the build and test dependencies from ubuntu-21.10.md file:
+\b Dependencies: @ref scripts/docs/en/deps/ubuntu-21.10.md "third_party/userver/scripts/docs/en/deps/ubuntu-21.10.md"
+
+Dependencies could be installed via:
   ```
   bash
-  sudo apt install $(cat scripts/docs/en/deps/ubuntu-21.10.md | tr '\n' ' ')
+  sudo apt install --allow-downgrades -y $(cat third_party/userver/scripts/docs/en/deps/ubuntu-21.10.md | tr '\n' ' ')
   ```
-2. Build the userver:
-  ```
-  bash
-  mkdir build_release
-  cd build_release
-  cmake -DCMAKE_BUILD_TYPE=Release ..
-  cmake --build . -j$(nproc)
-  ```
+
 
 ### Ubuntu 20.04 (Focal Fossa)
 
-1. Install the build and test dependencies from ubuntu-20.04.md file:
+\b Dependencies: @ref scripts/docs/en/deps/ubuntu-20.04.md "third_party/userver/scripts/docs/en/deps/ubuntu-20.04.md"
+
+Dependencies could be installed via:
   ```
   bash
-  sudo apt install --allow-downgrades -y $(cat scripts/docs/en/deps/ubuntu-20.04.md | tr '\n' ' ')
+  sudo apt install --allow-downgrades -y $(cat third_party/userver/scripts/docs/en/deps/ubuntu-20.04.md | tr '\n' ' ')
   ```
-2. Build the userver:
+
+\b Recommended \b Makefile.local:
   ```
-  bash
-  mkdir build_release
-  cd build_release
-  cmake -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1 -DCMAKE_BUILD_TYPE=Release ..
-  cmake --build . -j$(nproc)
+  CMAKE_COMMON_FLAGS += -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
   ```
 
 
 ### Ubuntu 18.04 (Bionic Beaver)
 
-1. Install the build and test dependencies from ubuntu-18.04.md file:
+\b Dependencies: @ref scripts/docs/en/deps/ubuntu-18.04.md "third_party/userver/scripts/docs/en/deps/ubuntu-18.04.md"
+
+Dependencies could be installed via:
   ```
   bash
-  sudo apt install --allow-downgrades -y $(cat scripts/docs/en/deps/ubuntu-18.04.md | tr '\n' ' ')
+  sudo apt install --allow-downgrades -y $(cat third_party/userver/scripts/docs/en/deps/ubuntu-18.04.md | tr '\n' ' ')
   ```
 
-2. Build the userver:
+\b Recommended \b Makefile.local:
   ```
-  bash
-  mkdir build_release
-  cd build_release
-  cmake -DCMAKE_CXX_COMPILER=g++-8 -DCMAKE_C_COMPILER=gcc-8 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 \
-        -DUSERVER_FEATURE_CRYPTOPP_BASE64_URL=0 -DUSERVER_FEATURE_GRPC=0 -DUSERVER_FEATURE_POSTGRESQL=0 \
-        -DUSERVER_FEATURE_MONGODB=0 -DUSERVER_USE_LD=gold -DCMAKE_BUILD_TYPE=Release ..
-  cmake --build . -j$(nproc)
+  CMAKE_COMMON_FLAGS += -DCMAKE_CXX_COMPILER=g++-8 -DCMAKE_C_COMPILER=gcc-8 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 \
+    -DUSERVER_FEATURE_CRYPTOPP_BASE64_URL=0 -DUSERVER_FEATURE_GRPC=0 -DUSERVER_FEATURE_POSTGRESQL=0 \
+    -DUSERVER_FEATURE_MONGODB=0 -DUSERVER_USE_LD=gold
+  ```
+
+
+### Debian 11
+
+\b Dependencies: @ref scripts/docs/en/deps/debian-11.md "third_party/userver/scripts/docs/en/deps/debian-11.md"
+
+
+### Debian 11 32-bit
+
+\b Dependencies: @ref scripts/docs/en/deps/debian-11.md "third_party/userver/scripts/docs/en/deps/debian-11.md" (same as above)
+
+\b Recommended \b Makefile.local:
+  ```
+  CMAKE_COMMON_FLAGS += -DCMAKE_C_FLAGS='-D_FILE_OFFSET_BITS=64' -DCMAKE_CXX_FLAGS='-D_FILE_OFFSET_BITS=64'
   ```
 
 ### Fedora 35
 
-1. Install the build and test dependencies from fedora-35.md file:
+\b Dependencies: @ref scripts/docs/en/deps/fedora-36.md "third_party/userver/scripts/docs/en/deps/fedora-35.md"
+
+Fedora dependencies could be installed via:
   ```
   bash
-  sudo dnf install -y $(cat scripts/docs/en/deps/fedora-35.md | tr '\n' ' ')
+  sudo dnf install -y $(cat third_party/userver/scripts/docs/en/deps/fedora-35.md | tr '\n' ' ')
   ```
 
-2. Build the userver:
+\b Recommended \b Makefile.local:
   ```
-  bash
-  mkdir build_release
-  cd build_release
-  cmake -DUSERVER_FEATURE_STACKTRACE=0 -DUSERVER_FEATURE_PATCH_LIBPQ=0 -DCMAKE_BUILD_TYPE=Release ..
-  cmake --build . -j$(nproc)
+  CMAKE_COMMON_FLAGS += -DUSERVER_FEATURE_STACKTRACE=0 -DUSERVER_FEATURE_PATCH_LIBPQ=0
   ```
 
 ### Fedora 36
 
-1. Install the build and test dependencies from fedora-36.md file:
+\b Dependencies: @ref scripts/docs/en/deps/fedora-36.md "third_party/userver/scripts/docs/en/deps/fedora-36.md"
+
+Fedora dependencies could be installed via:
   ```
   bash
-  sudo dnf install -y $(cat scripts/docs/en/deps/fedora-36.md | tr '\n' ' ')
+  sudo dnf install -y $(cat third_party/userver/scripts/docs/en/deps/fedora-36.md | tr '\n' ' ')
   ```
 
-2. Build the userver:
+\b Recommended \b Makefile.local:
   ```
-  bash
-  mkdir build_release
-  cd build_release
-  cmake -DUSERVER_FEATURE_STACKTRACE=0 -DUSERVER_FEATURE_PATCH_LIBPQ=0 -DCMAKE_BUILD_TYPE=Release ..
-  cmake --build . -j$(nproc)
+  CMAKE_COMMON_FLAGS += -DUSERVER_FEATURE_STACKTRACE=0 -DUSERVER_FEATURE_PATCH_LIBPQ=0
   ```
-
-### Debian 11
-
-1. Install the build and test dependencies from debian-11.md file:
-  ```
-  bash
-  sudo apt install -y $(cat scripts/docs/en/deps/debian-11.md | tr '\n' ' ')
-  ```
-
-2. Build the userver:
-  ```
-  bash
-  mkdir build_release
-  cd build_release
-  cmake -DCMAKE_BUILD_TYPE=Release ..
-  cmake --build . -j$(nproc)
-  ```
-
-##### Debian 11 32-bit
-
-Follow the instructions above, but pass additional flags to CMake:
-
-```
-bash
-cmake -DCMAKE_C_FLAGS='-D_FILE_OFFSET_BITS=64' -DCMAKE_CXX_FLAGS='-D_FILE_OFFSET_BITS=64' \
-      -DCMAKE_BUILD_TYPE=Release ..
-```
 
 ### Gentoo
 
-1. Install the build and test dependencies from gentoo.md file:
+\b Dependencies: @ref scripts/docs/en/deps/gentoo.md "third_party/userver/scripts/docs/en/deps/gentoo.md"
+
+Dependencies could be installed via:
   ```
   bash
   sudo emerge --ask --update --oneshot $(cat scripts/docs/en/deps/gentoo.md | tr '\n' ' ')
   ```
 
-2. Build the userver:
+\b Recommended \b Makefile.local:
   ```
-  bash
-  mkdir build_release
-  cd build_release
-  cmake -DUSERVER_CHECK_PACKAGE_VERSIONS=0 -DUSERVER_FEATURE_GRPC=0 \
-        -DUSERVER_FEATURE_CLICKHOUSE=0 -DCMAKE_BUILD_TYPE=Release ..
-  cmake --build . -j$(nproc)
+  CMAKE_COMMON_FLAGS += -DUSERVER_CHECK_PACKAGE_VERSIONS=0 -DUSERVER_FEATURE_GRPC=0 \
+    -DUSERVER_FEATURE_CLICKHOUSE=0
   ```
-  If you have multiple python version installed and get ModuleNotFoundError
-  use -DPython3_EXECUTABLE="/path/to/python" (e.g. /usr/bin/python3.10)
-  to choose working python version.
+
 
 ### Arch, Monjaro
 
-1. Install the build and test dependencies from arch.md file:
+\b Dependencies: @ref scripts/docs/en/deps/arch.md "third_party/userver/scripts/docs/en/deps/arch.md"
 
-    * Using an AUR helper (pikaur in this example)
-```
-bash
-pikaur -S $(cat scripts/docs/en/deps/arch.md | sed 's/^makepkg|//g' | tr '\n' ' ')
-```
-    * No AUR helper
-```
-bash
-sudo pacman -S $(cat scripts/docs/en/deps/arch.md | grep -v -- 'makepkg|' | tr '\n' ' ')
-cat scripts/docs/en/deps/arch.md | grep -oP '^makepkg\|\K.*' | while read ;\
-  do \
-    DIR=$(mktemp -d) ;\
-    git clone https://aur.archlinux.org/$REPLY.git $DIR ;\
-    pushd $DIR ;\
-    yes|makepkg -si ;\
-    popd ;\
-    rm -rf $DIR ;\
-  done
-```
-
-2. Build the userver:
+Using an AUR helper (pikaur in this example) the dependencies could be installed as:
   ```
   bash
-  mkdir build_release
-  cd build_release
-  cmake -DUSERVER_FEATURE_PATCH_LIBPQ=0 -DCMAKE_BUILD_TYPE=Release ..
-  cmake --build . -j$(nproc)
+  pikaur -S $(cat third_party/userver/scripts/docs/en/deps/arch.md | sed 's/^makepkg|//g' | tr '\n' ' ')
   ```
+
+Without AUR:
+  ```
+  bash
+  sudo pacman -S $(cat third_party/userver/scripts/docs/en/deps/arch.md | grep -v -- 'makepkg|' | tr '\n' ' ')
+  cat third_party/userver/scripts/docs/en/deps/arch.md | grep -oP '^makepkg\|\K.*' | while read ;\
+    do \
+      DIR=$(mktemp -d) ;\
+      git clone https://aur.archlinux.org/$REPLY.git $DIR ;\
+      pushd $DIR ;\
+      yes|makepkg -si ;\
+      popd ;\
+      rm -rf $DIR ;\
+    done
+  ```
+
+\b Recommended \b Makefile.local:
+  ```
+  CMAKE_COMMON_FLAGS += -DUSERVER_FEATURE_PATCH_LIBPQ=0
+  ```
+
 
 ### MacOS
 
-MacOS is recommended only for development as it may have performance issues in some cases.
-At least MacOS 10.15 required with [Xcode](https://apps.apple.com/us/app/xcode/id497799835) and [Homebrew](https://brew.sh/).
-
-1. Install the build and test dependencies from macos.md file:
+\b Dependencies: @ref scripts/docs/en/deps/macos.md "third_party/userver/scripts/docs/en/deps/macos.md".
+At least MacOS 10.15 required with
+[Xcode](https://apps.apple.com/us/app/xcode/id497799835) and
+[Homebrew](https://brew.sh/).
+  
+Dependencies could be installed via:
   ```bash
-  brew install $(cat scripts/docs/en/deps/macos.md | tr '\n' ' ')
+  brew install $(cat third_party/userver/scripts/docs/en/deps/macos.md | tr '\n' ' ')
   ```
 
-2. Build the userver:
-  ```bash
-  mkdir build_release
-  cd build_release
-  cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+\b Recommended \b Makefile.local:
+  ```
+  CMAKE_COMMON_FLAGS += -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
       -DUSERVER_NO_WERROR=1 -DUSERVER_CHECK_PACKAGE_VERSIONS=0 \
       -DUSERVER_FEATURE_REDIS_HI_MALLOC=1 \
       -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_DOWNLOAD_PACKAGE_CRYPTOPP=1 \
@@ -292,16 +272,13 @@ At least MacOS 10.15 required with [Xcode](https://apps.apple.com/us/app/xcode/i
       -DUSERVER_FEATURE_RABBITMQ=0 \
       -DOPENSSL_ROOT_DIR=$(brew --prefix openssl) \
       -DUSERVER_PG_LIBRARY_DIR=$(pg_config --libdir) -DUSERVER_PG_INCLUDE_DIR=$(pg_config --includedir) \
-      -DUSERVER_PG_SERVER_LIBRARY_DIR=$(pg_config --pkglibdir) -DUSERVER_PG_SERVER_INCLUDE_DIR=$(pg_config --includedir-server) \
-      ..
+      -DUSERVER_PG_SERVER_LIBRARY_DIR=$(pg_config --pkglibdir) -DUSERVER_PG_SERVER_INCLUDE_DIR=$(pg_config --includedir-server)
   ```
 
-  Follow the cmake hints for the installation of required packets and keep calling cmake with the options.
+After that the `make test` would build and run the service tests.
 
-  To run the tests, increase the limits of open files count via:
-  ```
-  ulimit -n 4096
-  ```
+@warning MacOS is recommended only for development as it may have performance issues in some cases.
+
 
 ### Other POSIX based platforms
 
@@ -309,9 +286,13 @@ At least MacOS 10.15 required with [Xcode](https://apps.apple.com/us/app/xcode/i
 
 Feel free to provide a PR with instructions for your favorite platform at https://github.com/userver-framework/userver.
 
+If there's a strong need to build \b only the userver and run its tests, then see
+@ref scripts/docs/en/userver/tutorial/build_userver.md
+
+
 
 @anchor POSTGRES_LIBS
-### PostgreSQL versions
+## PostgreSQL versions
 If CMake option `USERVER_FEATURE_PATCH_LIBPQ` is on, then the same developer
 version of libpq, libpgport and libpgcommon libraries should be available on
 the system. If there are multiple versions of those libraries use USERVER_PG_*
@@ -335,93 +316,6 @@ printf "Package: libpq5\nPin: version 14.5*\nPin-Priority: 1001\n" | sudo tee -a
 printf "Package: libpq-dev\nPin: version 14.5*\nPin-Priority: 1001\n"| sudo tee -a /etc/apt/preferences.d/libpq-dev
 sudo apt install --allow-downgrades -y libpq5 libpq-dev
 ```
-
-@anchor DOCKER_BUILD
-### Docker
-
-@note Currently, only x86_64 and x86 architectures support ClickHouse and MongoDB drivers
-as the native libraries for those databases do not support other architectures.
-Those drivers are disabled on other architectures via CMake options.
-
-Docker images in userver provide the following functionality:
-- build and start all userver tests:
-```
-bash
-docker-compose run --rm userver-tests
-```
-- build `hello_service` sample:
-```
-bash
-docker-compose run --rm userver-service-sample
-```
-or
-```
-bash
-SERVICE_NAME=hello_service docker-compose run --rm userver-service-sample
-```
-- execute commands in userver development environment:
-```
-bash
-docker-compose run --rm userver-ubuntu bash
-```
-
-
-Each step of the `userver-tests` could be executed separately:
-
-Start CMake:
-```
-docker-compose run --rm userver-ubuntu bash -c 'cmake $CMAKE_OPTS -B./build -S./'
-```
-Build userver:
-```
-docker-compose run --rm userver-ubuntu bash -c 'cd /userver/build && make -j $(nproc)'
-```
-Run all test:
-```
-docker-compose run --rm userver-ubuntu bash -c 'cd /userver/build && ulimit -n 4096 && ctest -V'
-```
-
-##### Using make, you can build the service easier
-
-Start cmake:
-```
-make docker-cmake-debug
-```
-Build userver:
-```
-make docker-build-debug
-```
-Run tests:
-```
-make docker-test-debug
-```
-You can replace the debug with a release
-
-
-### Run framework tests
-To run tests and make sure that the framework works fine use the following command:
-```
-bash
-cd build_release && ulimit -n 4096 && ctest -V
-```
-
-If you need to edit or make your own docker image with custom configuration, read about
-it @ref scripts/docs/en/userver/docker.md "here"
-
-
-### Conan
-
-@note conan must have version >= 1.51, but < 2.0
-
-Thanks to Open-Source community we have Conan support.
-
-You must run the following in the userver directory:
-```
-conan profile new --detect default && conan profile update settings.compiler.libcxx=libstdc++11 default
-conan create . --build=missing -pr:b=default -tf conan/test_package/
-```
-
-Now you can use userver as conan package and build it in your services.
 
 ----------
 

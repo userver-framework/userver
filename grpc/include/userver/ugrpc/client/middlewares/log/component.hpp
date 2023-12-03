@@ -26,6 +26,8 @@ namespace ugrpc::client::middlewares::log {
 
 class Component final : public MiddlewareComponentBase {
  public:
+  /// @ingroup userver_component_names
+  /// @brief The default name of ugrpc::client::middlewares::log::Component
   static constexpr std::string_view kName = "grpc-client-logging";
 
   Component(const components::ComponentConfig& config,
