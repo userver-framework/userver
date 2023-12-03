@@ -3,6 +3,7 @@
 #include <sys/param.h>
 
 #include <userver/server/http/http_response_cookie.hpp>
+#include <userver/utils/small_string.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -187,6 +188,24 @@ TEST(HttpCookie, FromString) {
     auto cookie = server::http::Cookie::FromString(cookie_as_str);
     EXPECT_FALSE(equal(cookie.value().ToString(), cookie_as_str));
   }
+}
+
+TEST(HttpCookie, AppendToString) {
+  auto cookie = server::http::Cookie::FromString(
+      "name1=value1; Domain=domain.com; Path=/; Expires=Wed, 12 Jun 2019 "
+      "16:51:45 GMT; Max-Age=3600; Secure; SameSite=None; HttpOnly");
+  utils::SmallString<http::headers::kTypicalHeadersSize> str{
+      "*Previous string content *"};
+  cookie->AppendToString(str);
+  EXPECT_EQ(str,
+            "*Previous string content *name1=value1; Domain=domain.com; "
+            "Path=/; Expires=Wed, 12 Jun 2019 "
+            "16:51:45 GMT; Max-Age=3600; Secure; SameSite=None; HttpOnly");
+  str.clear();
+  cookie->AppendToString(str);
+  EXPECT_EQ(str,
+            "name1=value1; Domain=domain.com; Path=/; Expires=Wed, 12 Jun 2019 "
+            "16:51:45 GMT; Max-Age=3600; Secure; SameSite=None; HttpOnly");
 }
 
 USERVER_NAMESPACE_END
