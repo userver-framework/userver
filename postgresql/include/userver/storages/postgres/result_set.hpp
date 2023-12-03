@@ -685,6 +685,17 @@ class ResultSet {
   auto AsSingleRow(RowTag) const;
   template <typename T>
   auto AsSingleRow(FieldTag) const;
+
+  /// @brief Extract first row into user type.
+  /// @returns A single row result set if non empty result was returned, empty
+  /// std::optional otherwise
+  /// @throws exception when result set size > 1
+  template <typename T>
+  std::optional<T> AsOptionalSingleRow() const;
+  template <typename T>
+  std::optional<T> AsOptionalSingleRow(RowTag) const;
+  template <typename T>
+  std::optional<T> AsOptionalSingleRow(FieldTag) const;
   //@}
  private:
   friend class detail::ConnectionImpl;
@@ -1001,6 +1012,21 @@ auto ResultSet::AsSingleRow(FieldTag) const {
     throw NonSingleRowResultSet{Size()};
   }
   return Front().As<T>(kFieldTag);
+}
+
+template <typename T>
+std::optional<T> ResultSet::AsOptionalSingleRow() const {
+  return AsOptionalSingleRow<T>(kFieldTag);
+}
+
+template <typename T>
+std::optional<T> ResultSet::AsOptionalSingleRow(RowTag) const {
+  return IsEmpty() ? std::nullopt : std::optional<T>{AsSingleRow<T>(kRowTag)};
+}
+
+template <typename T>
+std::optional<T> ResultSet::AsOptionalSingleRow(FieldTag) const {
+  return IsEmpty() ? std::nullopt : std::optional<T>{AsSingleRow<T>(kFieldTag)};
 }
 
 }  // namespace storages::postgres
