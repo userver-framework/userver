@@ -202,9 +202,10 @@ Add testsuite components to `config.yaml`:
 
 @snippet samples/testsuite-support/static_config.yaml testsuite - config.yaml
 
-@warning Please note that the testsuite support must be disabled in production environment.
-Testsuite sets the `testsuite-enabled` variable into `true` when runs the service.
-In the example above this variable controls whether or `tests-control` component is loaded.
+@warning Please note that the variable `testsuite-enabled` must be disabled in production environment.
+Testsuite sets the `testsuite-enabled` variable into `true` when it runs the service.
+In the example above this variable controls whether `tests-control` component is loaded.
+This component must be disabled for production.
 
 ### Features
 
