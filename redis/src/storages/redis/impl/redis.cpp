@@ -319,10 +319,8 @@ const std::string& Redis::StateToString(State state) {
 Redis::Redis(const std::shared_ptr<engine::ev::ThreadPool>& thread_pool,
              const RedisCreationSettings& redis_settings)
     : thread_control_(thread_pool->NextThread()) {
-  thread_control_.RunInEvLoopBlocking([&]() {
-    impl_ = std::make_shared<RedisImpl>(thread_pool, thread_control_, *this,
-                                        redis_settings);
-  });
+  impl_ = std::make_shared<RedisImpl>(thread_pool, thread_control_, *this,
+                                      redis_settings);
 }
 
 Redis::~Redis() {
