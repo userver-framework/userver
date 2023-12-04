@@ -1,5 +1,7 @@
 #include <storages/redis/impl/redis_stats.hpp>
 
+#include <array>
+
 #include <storages/redis/impl/command.hpp>
 #include <storages/redis/impl/redis.hpp>
 #include <userver/logging/log.hpp>
@@ -101,6 +103,34 @@ const std::string_view kCommandTypes[] = {
     "zscan",
     "zscore",
 };
+
+struct ConnStateStatistic {
+  std::array<size_t, static_cast<size_t>(Redis::State::kDisconnectError) + 1>
+      statistic{};
+
+  void Add(const ShardStatistics& shard_stats) {
+    for (const auto& [_, stats] : shard_stats.instances) {
+      UASSERT(stats.state <= Redis::State::kDisconnectError);
+      statistic.at(static_cast<size_t>(stats.state))++;
+    }
+  }
+
+  size_t Get(Redis::State state) const {
+    UASSERT(state <= Redis::State::kDisconnectError);
+    return statistic.at(static_cast<size_t>(state));
+  }
+};
+
+void DumpMetric(utils::statistics::Writer& writer,
+                const ConnStateStatistic& stats) {
+  for (size_t i = 0; i <= static_cast<int>(Redis::State::kDisconnectError);
+       ++i) {
+    const auto state = static_cast<Redis::State>(i);
+    writer["cluster_states"].ValueWithLabels(
+        stats.Get(state),
+        {"redis_instance_state", redis::Redis::StateToString(state)});
+  }
+}
 
 }  // namespace
 
@@ -239,19 +269,34 @@ void DumpMetric(utils::statistics::Writer& writer,
   DumpMetric(writer, stats.shard_group_total, false);
   writer["errors"].ValueWithLabels(stats.internal.redis_not_ready.load(),
                                    {"redis_error", "redis_not_ready"});
-  if (settings.GetMetricsLevel() >= MetricsSettings::Level::kShard) {
-    for (const auto& [shard_name, shard_stats] : stats.masters) {
+
+  ConnStateStatistic conn_stat_masters;
+  for (const auto& [shard_name, shard_stats] : stats.masters) {
+    if (settings.GetMetricsLevel() >= MetricsSettings::Level::kShard) {
       writer.ValueWithLabels(shard_stats, {{"redis_instance_type", "masters"},
                                            {"redis_shard", shard_name}});
     }
-    for (const auto& [shard_name, shard_stats] : stats.slaves) {
+    conn_stat_masters.Add(shard_stats);
+  }
+  writer.ValueWithLabels(conn_stat_masters,
+                         {{"redis_instance_type", "masters"}});
+
+  ConnStateStatistic conn_stat_slaves;
+  for (const auto& [shard_name, shard_stats] : stats.slaves) {
+    if (settings.GetMetricsLevel() >= MetricsSettings::Level::kShard) {
       writer.ValueWithLabels(shard_stats, {{"redis_instance_type", "slaves"},
                                            {"redis_shard", shard_name}});
     }
+    conn_stat_slaves.Add(shard_stats);
   }
+  writer.ValueWithLabels(conn_stat_slaves, {{"redis_instance_type", "slaves"}});
+
   if (stats.sentinel) {
     writer.ValueWithLabels(*stats.sentinel,
                            {"redis_instance_type", "sentinels"});
+    ConnStateStatistic conn_stat;
+    conn_stat.Add(stats.sentinel.value());
+    writer.ValueWithLabels(conn_stat, {{"redis_instance_type", "sentinels"}});
   }
 }
 

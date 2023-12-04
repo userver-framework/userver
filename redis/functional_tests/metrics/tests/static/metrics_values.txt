@@ -286,6 +286,19 @@ redis.state: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_
 redis.state: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_state=init_error, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0
 redis.state: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_state=init_error, redis_instance_type=sentinels	GAUGE	0
 
+redis.cluster_states: redis_database=metrics_test, redis_instance_state=connected, redis_instance_type=masters	GAUGE	0
+redis.cluster_states: redis_database=metrics_test, redis_instance_state=connected, redis_instance_type=sentinels	GAUGE	0
+redis.cluster_states: redis_database=metrics_test, redis_instance_state=disconnect_error, redis_instance_type=masters	GAUGE	0
+redis.cluster_states: redis_database=metrics_test, redis_instance_state=disconnect_error, redis_instance_type=sentinels	GAUGE	0
+redis.cluster_states: redis_database=metrics_test, redis_instance_state=disconnected, redis_instance_type=masters	GAUGE	0
+redis.cluster_states: redis_database=metrics_test, redis_instance_state=disconnected, redis_instance_type=sentinels	GAUGE	0
+redis.cluster_states: redis_database=metrics_test, redis_instance_state=disconnecting, redis_instance_type=masters	GAUGE	0
+redis.cluster_states: redis_database=metrics_test, redis_instance_state=disconnecting, redis_instance_type=sentinels	GAUGE	0
+redis.cluster_states: redis_database=metrics_test, redis_instance_state=init, redis_instance_type=masters	GAUGE	0
+redis.cluster_states: redis_database=metrics_test, redis_instance_state=init, redis_instance_type=sentinels	GAUGE	0
+redis.cluster_states: redis_database=metrics_test, redis_instance_state=init_error, redis_instance_type=masters	GAUGE	0
+redis.cluster_states: redis_database=metrics_test, redis_instance_state=init_error, redis_instance_type=sentinels	GAUGE	0
+
 redis.timings: percentile=p0, redis_database=metrics_test	GAUGE	0
 redis.timings: percentile=p0, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0
 redis.timings: percentile=p0, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0
