@@ -280,11 +280,22 @@ void Cookie::CookieData::SetSameSite(std::string value) {
 
 void Cookie::CookieData::AppendToString(
     USERVER_NAMESPACE::http::headers::HeadersString& os) const {
-  const std::size_t old_size = os.size();
-  const std::size_t additional_size = 90;
-  std::size_t new_size = old_size + name_.size() + value_.size() +
+  constexpr std::string_view kEquals = "=";
+  constexpr std::string_view kDomain = "; Domain=";
+  constexpr std::string_view kPath = "; Path=";
+  constexpr std::string_view kExpires = "; Expires=";
+  constexpr std::string_view kMaxAge = "; Max-Age=";
+  constexpr std::string_view kSecure = "; Secure";
+  constexpr std::string_view kSameSite = "; SameSite=";
+  constexpr std::string_view kHttpOnly = "; HttpOnly";
+
+  const std::size_t kOldSize = os.size();
+
+  std::size_t new_size = kOldSize + name_.size() + value_.size() +
                          domain_.size() + path_.size() + same_site_.size() +
-                         additional_size;
+                         kEquals.size() + kDomain.size() + kPath.size() +
+                         kExpires.size() + kMaxAge.size() + kSecure.size() +
+                         kSameSite.size() + kHttpOnly.size();
   std::string time_string{};
   std::string age_string{};
   if (expires_.has_value()) {
@@ -297,42 +308,41 @@ void Cookie::CookieData::AppendToString(
     new_size += age_string.size();
   }
 
-  os.resize_and_overwrite(new_size, [this, &old_size, &time_string,
-                                     &age_string](char* data, std::size_t) {
+  os.resize_and_overwrite(new_size, [&](char* data, std::size_t) {
     char* old_data_pointer = data;
-    data += old_size;
+    data += kOldSize;
     auto append = [&data](const std::string_view what) {
       std::memcpy(data, what.begin(), what.size());
       data += what.size();
     };
     append(name_);
-    append("=");
+    append(kEquals);
     append(value_);
     if (!domain_.empty()) {
-      append("; Domain=");
+      append(kDomain);
       append(domain_);
     }
     if (!path_.empty()) {
-      append("; Path=");
+      append(kPath);
       append(path_);
     }
     if (expires_.has_value()) {
-      append("; Expires=");
+      append(kExpires);
       append(time_string);
     }
     if (max_age_.has_value()) {
-      append("; Max-Age=");
+      append(kMaxAge);
       append(age_string);
     }
     if (secure_) {
-      append("; Secure");
+      append(kSecure);
     }
     if (!same_site_.empty()) {
-      append("; SameSite=");
+      append(kSameSite);
       append(same_site_);
     }
     if (http_only_) {
-      append("; HttpOnly");
+      append(kHttpOnly);
     }
     return data - old_data_pointer;
   });
