@@ -257,6 +257,11 @@ static void pqxParseInput3(PGconn* conn) {
         if (pqGetErrorNotice3(conn, false /* treat as notice */)) return;
       } else if (id == 'S') {
         if (getParameterStatus(conn)) return;
+      } else if (id == 'Z') {
+        /*
+         * Message 'Z' (ReadyForQuery) is expected as a result of PQXSendPortalBind
+         */
+        conn->inCursor += msgLength;
       } else {
         /* Any other case is unexpected and we summarily skip it */
         pqInternalNotice(&conn->noticeHooks,
