@@ -1,6 +1,7 @@
 #include <userver/utils/async.hpp>
 
 #include <tracing/span_impl.hpp>
+#include <userver/baggage/baggage_manager.hpp>
 #include <userver/engine/task/inherited_variable.hpp>
 #include <userver/tracing/span.hpp>
 
@@ -18,9 +19,14 @@ struct SpanWrapCall::Impl {
 
 SpanWrapCall::Impl::Impl(std::string&& name, InheritVariables inherit_variables)
     : span_impl_(std::move(name)), span_(span_impl_) {
-  if (engine::current_task::IsTaskProcessorThread() &&
-      inherit_variables == InheritVariables::kYes) {
+  if (!engine::current_task::IsTaskProcessorThread()) {
+    return;
+  }
+  if (inherit_variables == InheritVariables::kYes) {
     storage_.InheritFrom(engine::impl::task_local::GetCurrentStorage());
+  } else {
+    baggage::kInheritedBaggage.InheritTo(
+        storage_, engine::impl::task_local::InternalTag{});
   }
 }
 

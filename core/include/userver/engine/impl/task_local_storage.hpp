@@ -95,6 +95,11 @@ class Storage final {
   // 'this' must not contain any variables
   void InheritFrom(Storage& other);
 
+  // Copies pointers to specific inherited variables from 'other'
+  // 'this' must not contain the variable being copied
+  // does nothing if there is nothing to copy
+  void InheritNodeIfExists(Storage& other, Key key);
+
   // Moves other's variables into 'this', leaving 'other' in an empty state
   // 'this' must not contain any variables
   void InitializeFrom(Storage&& other) noexcept;
@@ -150,6 +155,8 @@ class Storage final {
 
   void EraseInherited(Key key) noexcept;
 
+  void InheritNode(InheritedDataBase&);
+
   // Provides strong exception guarantee. Does not delete the old data, if any.
   template <typename T, VariableKind Kind, typename... Args>
   T& DoEmplace(Key key, bool has_existing_variable, Args&&... args) {
@@ -179,6 +186,10 @@ class Variable final {
 };
 
 Storage& GetCurrentStorage() noexcept;
+
+struct InternalTag final {
+  explicit InternalTag() = default;
+};
 
 }  // namespace engine::impl::task_local
 

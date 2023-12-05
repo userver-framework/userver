@@ -56,6 +56,15 @@ class TaskInheritedVariable final {
   /// @note The variable might not actually be destroyed immediately.
   void Erase() { Storage().Erase<T, kVariableKind>(impl_.GetKey()); }
 
+  /// @cond
+  // For internal use only
+  // inherits data to another storage
+  void InheritTo(impl::task_local::Storage& other,
+                 impl::task_local::InternalTag) {
+    other.InheritNodeIfExists(Storage(), impl_.GetKey());
+  }
+  /// @endcond
+
  private:
   static constexpr auto kVariableKind =
       impl::task_local::VariableKind::kInherited;

@@ -109,14 +109,40 @@ void Storage::InheritFrom(Storage& other) {
     UASSERT(their_ptr.ptr);
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
     auto& node = static_cast<InheritedDataBase&>(*their_ptr.ptr);
-    UASSERT(node.GetKey() < variable_count);
 
-    auto& our_ptr = impl_->data[node.GetKey()];
-    UASSERT(!our_ptr.ptr);
-    our_ptr.ptr = &node;
-    impl_->inherited_data_storage.push_front(our_ptr);
-    node.AddRef();
+    InheritNode(node);
   }
+}
+
+void Storage::InheritNodeIfExists(Storage& other, Key key) {
+  UASSERT(key < variable_count);
+
+  // we want to stop asap if there is nothing to copy
+  if (!other.impl_->data) {
+    return;
+  }
+  auto& their_ptr = other.impl_->data[key];
+  if (!their_ptr.ptr) {
+    return;
+  }
+
+  if (!impl_->data) {
+    impl_->data = std::make_unique<DataPtr[]>(variable_count);
+  }
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+  auto& node = static_cast<InheritedDataBase&>(*their_ptr.ptr);
+
+  InheritNode(node);
+}
+
+void Storage::InheritNode(InheritedDataBase& node) {
+  UASSERT(node.GetKey() < variable_count);
+
+  auto& our_ptr = impl_->data[node.GetKey()];
+  UASSERT(!our_ptr.ptr);
+  our_ptr.ptr = &node;
+  impl_->inherited_data_storage.push_front(our_ptr);
+  node.AddRef();
 }
 
 void Storage::InitializeFrom(Storage&& other) noexcept {

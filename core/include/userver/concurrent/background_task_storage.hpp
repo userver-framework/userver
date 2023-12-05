@@ -76,7 +76,8 @@ class BackgroundTaskStorage final {
   ///
   /// The task is started as non-Critical, it may be cancelled due to
   /// `TaskProcessor` overload. engine::TaskInheritedVariable instances are not
-  /// inherited from the caller. See utils::AsyncBackground for details.
+  /// inherited from the caller except baggage::Baggage. See
+  /// utils::AsyncBackground for details.
   template <typename... Args>
   void AsyncDetach(std::string name, Args&&... args) {
     core_.Detach(utils::AsyncBackground(std::move(name), task_processor_,
