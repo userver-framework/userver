@@ -50,7 +50,7 @@ class ValueBuilder final {
   using iterator = Iterator<IterTraits>;
 
   /// Constructs a ValueBuilder that holds kNull
-  ValueBuilder() noexcept = default;
+  ValueBuilder() = default;
 
   /// Constructs a valueBuilder that holds default value for provided `type`.
   ValueBuilder(Type type);

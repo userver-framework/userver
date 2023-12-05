@@ -29,7 +29,7 @@ struct MutableValueWrapper::JsonPath {
 };
 
 struct MutableValueWrapper::Impl {
-  Impl() noexcept = default;
+  Impl() = default;
 
   Impl(VersionedValuePtr&& root, size_t version)
       : value(std::move(root)), current_version(version) {}
@@ -45,7 +45,7 @@ struct MutableValueWrapper::Impl {
   mutable size_t current_version{VersionedValuePtr::kInvalidVersion};
 };
 
-MutableValueWrapper::MutableValueWrapper() noexcept = default;
+MutableValueWrapper::MutableValueWrapper() = default;
 
 MutableValueWrapper::MutableValueWrapper(VersionedValuePtr root)
     : impl_(std::move(root), root.Version()) {}

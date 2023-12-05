@@ -18,7 +18,7 @@ namespace formats::json::impl {
 
 class MutableValueWrapper {
  public:
-  MutableValueWrapper() noexcept;
+  MutableValueWrapper();
   explicit MutableValueWrapper(VersionedValuePtr root);
   ~MutableValueWrapper();
 
