@@ -111,6 +111,26 @@ TEST(SmallString, ResizeAndOverwriteRvalueCall) {
   small_str.resize_and_overwrite(16, CheckRvalueCall());
 }
 
+TEST(SmallString, ResizeAndOverwriteDynamicAllocations) {
+  utils::SmallString<4> small_str("abcd");
+
+  small_str.resize_and_overwrite(2000, [](char*, std::size_t size){
+    return size;
+  });
+  small_str.resize_and_overwrite(2001, [](char*, std::size_t size){
+    return size;
+  });
+  EXPECT_GT(small_str.capacity(), 2001);
+  small_str.resize_and_overwrite(2002, [](char*, std::size_t size){
+    return size;
+  });
+  EXPECT_GT(small_str.capacity(), 2002);
+  small_str.resize_and_overwrite(2003, [](char*, std::size_t size){
+    return size;
+  });
+  EXPECT_GT(small_str.capacity(), 2003);
+}
+
 TEST(SmallString, InvalidOpReturnValue) {
   utils::SmallString<4> small_str("abcd");
   ASSERT_DEBUG_DEATH(
