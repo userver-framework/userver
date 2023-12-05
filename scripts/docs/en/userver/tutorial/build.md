@@ -109,7 +109,7 @@ For local development of your service either
 Dependencies could be installed via:
   ```
   bash
-  sudo apt install --allow-downgrades -y $(cat third_party/userver/scripts/docs/en/deps/ubuntu-22.04.md | tr '\n' ' ')
+  sudo apt install --allow-downgrades -y $(cat scripts/docs/en/deps/ubuntu-22.04.md | tr '\n' ' ')
   ```
 
 
@@ -120,7 +120,7 @@ Dependencies could be installed via:
 Dependencies could be installed via:
   ```
   bash
-  sudo apt install --allow-downgrades -y $(cat third_party/userver/scripts/docs/en/deps/ubuntu-21.10.md | tr '\n' ' ')
+  sudo apt install --allow-downgrades -y $(cat scripts/docs/en/deps/ubuntu-21.10.md | tr '\n' ' ')
   ```
 
 
@@ -131,7 +131,7 @@ Dependencies could be installed via:
 Dependencies could be installed via:
   ```
   bash
-  sudo apt install --allow-downgrades -y $(cat third_party/userver/scripts/docs/en/deps/ubuntu-20.04.md | tr '\n' ' ')
+  sudo apt install --allow-downgrades -y $(cat scripts/docs/en/deps/ubuntu-20.04.md | tr '\n' ' ')
   ```
 
 \b Recommended \b Makefile.local:
@@ -147,7 +147,7 @@ Dependencies could be installed via:
 Dependencies could be installed via:
   ```
   bash
-  sudo apt install --allow-downgrades -y $(cat third_party/userver/scripts/docs/en/deps/ubuntu-18.04.md | tr '\n' ' ')
+  sudo apt install --allow-downgrades -y $(cat scripts/docs/en/deps/ubuntu-18.04.md | tr '\n' ' ')
   ```
 
 \b Recommended \b Makefile.local:
@@ -179,7 +179,7 @@ Dependencies could be installed via:
 Fedora dependencies could be installed via:
   ```
   bash
-  sudo dnf install -y $(cat third_party/userver/scripts/docs/en/deps/fedora-35.md | tr '\n' ' ')
+  sudo dnf install -y $(cat scripts/docs/en/deps/fedora-35.md | tr '\n' ' ')
   ```
 
 \b Recommended \b Makefile.local:
@@ -194,7 +194,7 @@ Fedora dependencies could be installed via:
 Fedora dependencies could be installed via:
   ```
   bash
-  sudo dnf install -y $(cat third_party/userver/scripts/docs/en/deps/fedora-36.md | tr '\n' ' ')
+  sudo dnf install -y $(cat scripts/docs/en/deps/fedora-36.md | tr '\n' ' ')
   ```
 
 \b Recommended \b Makefile.local:
@@ -226,14 +226,14 @@ Dependencies could be installed via:
 Using an AUR helper (pikaur in this example) the dependencies could be installed as:
   ```
   bash
-  pikaur -S $(cat third_party/userver/scripts/docs/en/deps/arch.md | sed 's/^makepkg|//g' | tr '\n' ' ')
+  pikaur -S $(cat scripts/docs/en/deps/arch.md | sed 's/^makepkg|//g' | tr '\n' ' ')
   ```
 
 Without AUR:
   ```
   bash
-  sudo pacman -S $(cat third_party/userver/scripts/docs/en/deps/arch.md | grep -v -- 'makepkg|' | tr '\n' ' ')
-  cat third_party/userver/scripts/docs/en/deps/arch.md | grep -oP '^makepkg\|\K.*' | while read ;\
+  sudo pacman -S $(cat scripts/docs/en/deps/arch.md | grep -v -- 'makepkg|' | tr '\n' ' ')
+  cat scripts/docs/en/deps/arch.md | grep -oP '^makepkg\|\K.*' | while read ;\
     do \
       DIR=$(mktemp -d) ;\
       git clone https://aur.archlinux.org/$REPLY.git $DIR ;\
@@ -256,10 +256,10 @@ Without AUR:
 At least MacOS 10.15 required with
 [Xcode](https://apps.apple.com/us/app/xcode/id497799835) and
 [Homebrew](https://brew.sh/).
-  
+
 Dependencies could be installed via:
   ```bash
-  brew install $(cat third_party/userver/scripts/docs/en/deps/macos.md | tr '\n' ' ')
+  brew install $(cat scripts/docs/en/deps/macos.md | tr '\n' ' ')
   ```
 
 \b Recommended \b Makefile.local:
