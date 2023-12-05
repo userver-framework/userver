@@ -269,6 +269,12 @@ void DumpMetric(utils::statistics::Writer& writer,
   DumpMetric(writer, stats.shard_group_total, false);
   writer["errors"].ValueWithLabels(stats.internal.redis_not_ready.load(),
                                    {"redis_error", "redis_not_ready"});
+  if (stats.internal.is_autotoplogy.load()) {
+    writer["cluster_topology_checks"] =
+        stats.internal.cluster_topology_checks.load();
+    writer["cluster_topology_updates"] =
+        stats.internal.cluster_topology_updates.load();
+  }
 
   ConnStateStatistic conn_stat_masters;
   for (const auto& [shard_name, shard_stats] : stats.masters) {

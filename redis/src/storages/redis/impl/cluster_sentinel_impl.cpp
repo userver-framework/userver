@@ -545,12 +545,24 @@ ClusterTopologyHolder::CreateRedisInstance(const std::string& host_port) {
       *replication_monitoring_settings_ptr);
 }
 
+namespace {
+
+template <typename Callback>
+std::shared_ptr<utils::FastScopeGuard<Callback>> MakeSharedScopeGuard(
+    Callback cb) {
+  return std::make_shared<utils::FastScopeGuard<Callback>>(std::move(cb));
+}
+
+}  // namespace
+
 void ClusterTopologyHolder::UpdateClusterTopology() {
   if (!is_nodes_received_) {
     LOG_DEBUG() << "Skip updating cluster topology: no nodes yet";
     return;
   };
   if (update_cluster_slots_flag_.exchange(true)) return;
+  auto reset_update_cluster_slots_ = MakeSharedScopeGuard(
+      [&]() noexcept { update_cluster_slots_flag_ = false; });
   /// Update sentinel
   sentinels_->ProcessCreation(redis_thread_pool_);
 
@@ -558,16 +570,15 @@ void ClusterTopologyHolder::UpdateClusterTopology() {
   /// ...
   ProcessGetClusterHostsRequest(
       shards_names_, GetClusterHostsRequest(*sentinels_, password_),
-      [this](ClusterShardHostInfos shard_infos, size_t requests_sent,
-             size_t responses_parsed, bool is_non_cluster_error) {
+      [this, reset{std::move(reset_update_cluster_slots_)}](
+          ClusterShardHostInfos shard_infos, size_t requests_sent,
+          size_t responses_parsed, bool is_non_cluster_error) {
         LOG_DEBUG()
             << "Parsing response from cluster slots: shard_infos.size(): "
             << shard_infos.size() << ", requests_sent=" << requests_sent
             << ", responses_parsed=" << responses_parsed;
-        const auto deferred = utils::FastScopeGuard([&]() noexcept {
-          update_cluster_slots_flag_ = false;
-          ++cluster_slots_call_counter_;
-        });
+        const auto deferred = utils::FastScopeGuard(
+            [&]() noexcept { ++cluster_slots_call_counter_; });
         if (is_non_cluster_error) {
           LOG_DEBUG() << "Non cluster error: shard_infos.size(): "
                       << shard_infos.size();
@@ -613,6 +624,11 @@ void ClusterTopologyHolder::GetStatistics(
   if (sentinels_) {
     stats.sentinel.emplace(sentinels_->GetStatistics(true, settings));
   }
+  stats.internal.is_autotoplogy = true;
+  stats.internal.cluster_topology_checks =
+      cluster_slots_call_counter_.load(std::memory_order_relaxed);
+  stats.internal.cluster_topology_updates =
+      current_topology_version_.load(std::memory_order_relaxed);
 
   auto topology = GetTopology();
   topology->GetStatistics(settings, stats);
