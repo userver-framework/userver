@@ -206,6 +206,17 @@ TEST(HttpCookie, AppendToString) {
   EXPECT_EQ(str,
             "name1=value1; Domain=domain.com; Path=/; Expires=Wed, 12 Jun 2019 "
             "16:51:45 GMT; Max-Age=3600; Secure; SameSite=None; HttpOnly");
+  str.clear();
+  const std::string large_name(2048, 'a');
+  cookie = server::http::Cookie::FromString(
+      "name1=" + large_name +
+      "; Domain=domain.com; Path=/; Expires=Wed, 12 Jun 2019 "
+      "16:51:45 GMT; Max-Age=3600; Secure; SameSite=None; HttpOnly");
+  cookie->AppendToString(str);
+  EXPECT_EQ(str,
+            "name1=" + large_name +
+                "; Domain=domain.com; Path=/; Expires=Wed, 12 Jun 2019 "
+                "16:51:45 GMT; Max-Age=3600; Secure; SameSite=None; HttpOnly");
 }
 
 USERVER_NAMESPACE_END
