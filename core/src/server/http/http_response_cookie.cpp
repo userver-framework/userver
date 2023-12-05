@@ -289,9 +289,9 @@ void Cookie::CookieData::AppendToString(
   constexpr std::string_view kSameSite = "; SameSite=";
   constexpr std::string_view kHttpOnly = "; HttpOnly";
 
-  const std::size_t kOldSize = os.size();
+  const std::size_t old_size = os.size();
 
-  std::size_t new_size = kOldSize + name_.size() + value_.size() +
+  std::size_t new_size = old_size + name_.size() + value_.size() +
                          domain_.size() + path_.size() + same_site_.size() +
                          kEquals.size() + kDomain.size() + kPath.size() +
                          kExpires.size() + kMaxAge.size() + kSecure.size() +
@@ -310,7 +310,7 @@ void Cookie::CookieData::AppendToString(
 
   os.resize_and_overwrite(new_size, [&](char* data, std::size_t) {
     char* old_data_pointer = data;
-    data += kOldSize;
+    data += old_size;
     auto append = [&data](const std::string_view what) {
       std::memcpy(data, what.begin(), what.size());
       data += what.size();
