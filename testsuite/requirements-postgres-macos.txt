@@ -1,0 +1,2 @@
+yandex-taxi-testsuite[postgresql-binary]
+yandex-pgmigrate >= 1.0.7

@@ -1,1 +1,2 @@
+yandex-taxi-testsuite[redis]
 redis >= 4.4.0
