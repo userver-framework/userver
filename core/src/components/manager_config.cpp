@@ -190,6 +190,10 @@ properties:
         type: boolean
         description: whether to mlock(2) process debug info
         defaultDescription: true
+    disable_phdr_cache:
+        type: boolean
+        description: whether to disable caching of phdr_info objects
+        defaultDescription: false
     static_config_validation:
         type: object
         description: settings for basic syntax validation in config.yaml
@@ -228,6 +232,8 @@ ManagerConfig Parse(const yaml_config::YamlConfig& value,
           ValidationMode::kAll);
   config.mlock_debug_info =
       value["mlock_debug_info"].As<bool>(config.mlock_debug_info);
+  config.disable_phdr_cache =
+      value["disable_phdr_cache"].As<bool>(config.disable_phdr_cache);
   return config;
 }
 

@@ -39,6 +39,7 @@ class Manager;
 /// default_task_processor | name of the default task processor to use in components | -
 /// task_processors.*NAME*.*OPTIONS* | dictionary of task processors to create and their options. See description below | -
 /// mlock_debug_info | whether to mlock(2) process debug info to prevent major page faults on unwinding | true
+/// disable_phdr_cache | whether to disable caching of phdr_info objects. Usable if rebuilding with cmake variable USERVER_DISABLE_PHDR_CACHE is off limits, and has the same effect | false
 ///
 /// ## Static task_processor options:
 /// Name | Description | Default value

@@ -27,6 +27,7 @@ struct ManagerConfig {
   utils::impl::UserverExperimentSet enabled_experiments;
   bool experiments_force_enabled{false};
   bool mlock_debug_info{true};
+  bool disable_phdr_cache{false};
 
   static ManagerConfig FromString(
       const std::string&, const std::optional<std::string>& config_vars_path,

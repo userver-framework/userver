@@ -179,7 +179,9 @@ Manager::Manager(std::unique_ptr<ManagerConfig>&& config,
     CreateComponentContext(component_list);
   });
 
-  engine::impl::InitPhdrCache();
+  if (!config_->disable_phdr_cache) {
+    engine::impl::InitPhdrCache();
+  }
 
   LOG_INFO() << "Started components manager. All the components have started "
                 "successfully.";
