@@ -199,6 +199,11 @@ function(userver_testsuite_add)
   endif()
 
   if (ARG_REQUIREMENTS)
+    # These requirements are needed for testing all userver-based services.
+    # Adding it here for all services to avoid breakage when userver starts
+    # requiring a new package for testsuite tests.
+    list(APPEND ARG_REQUIREMENTS "${USERVER_TESTSUITE_DIR}/requirements.txt")
+
     userver_venv_setup(
       NAME ${TESTSUITE_TARGET}
       REQUIREMENTS ${ARG_REQUIREMENTS}

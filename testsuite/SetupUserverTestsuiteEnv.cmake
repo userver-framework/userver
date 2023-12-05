@@ -1,3 +1,6 @@
+# This script sets up venv for tests of userver itself.
+# It is not used for testing services based on userver.
+
 # /// [testsuite - UserverTestsuite]
 include(UserverTestsuite)
 # /// [testsuite - UserverTestsuite]
