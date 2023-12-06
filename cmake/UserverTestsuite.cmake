@@ -173,6 +173,9 @@ function(userver_testsuite_requirements)
       "${USERVER_TESTSUITE_DIR}/requirements.txt")
 
   if(USERVER_FEATURE_GRPC OR TARGET userver::grpc)
+    if(USERVER_CONAN AND NOT Protobuf_FOUND)
+      find_package(Protobuf REQUIRED)
+    endif()
     if(NOT Protobuf_FOUND)
       message(FATAL_ERROR
           "SetupProtobuf should be run before setting up testsuite")
