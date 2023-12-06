@@ -22,6 +22,9 @@ namespace {
 USERVER_IMPL_PREVENT_TLS_CACHING
 std::minstd_rand& GetFastRandomBitsGenerator() {
   thread_local std::minstd_rand rand{utils::Rand()};
+
+  // NOLINTNEXTLINE
+  USERVER_IMPL_PREVENT_TLS_CACHING_ASM;
   return rand;
 }
 

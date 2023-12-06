@@ -27,6 +27,9 @@ thread_local USERVER_IMPL_CONSTINIT LocalTaskCounterData
 
 USERVER_IMPL_PREVENT_TLS_CACHING LocalTaskCounterData
 GetLocalTaskCounterData() noexcept {
+  // NOLINTNEXTLINE
+  USERVER_IMPL_PREVENT_TLS_CACHING_ASM;
+
   return local_task_counter_data;
 }
 

@@ -11,6 +11,7 @@
 #include <logging/log_extra_stacktrace.hpp>
 #include <logging/log_helper_impl.hpp>
 #include <userver/compiler/demangle.hpp>
+#include <userver/compiler/impl/tls.hpp>
 #include <userver/logging/impl/logger_base.hpp>
 #include <userver/logging/impl/tag_writer.hpp>
 #include <userver/logging/level.hpp>
@@ -58,7 +59,11 @@ template <typename T>
 class ThreadLocalMemPool {
  public:
   template <typename... Args>
-  static std::unique_ptr<T> Pop(Args&&... args) {
+  USERVER_IMPL_PREVENT_TLS_CACHING static std::unique_ptr<T> Pop(
+      Args&&... args) {
+    // NOLINTNEXTLINE
+    USERVER_IMPL_PREVENT_TLS_CACHING_ASM;
+
     auto& pool = pool_;
     if (pool.IsEmpty()) {
       return std::make_unique<T>(std::forward<Args>(args)...);
@@ -77,7 +82,11 @@ class ThreadLocalMemPool {
   // NOTE: Push might be called from a different thread than the one we got
   // the object from (where the Pop() has been called). Because of this
   // the object state must be completely torn down.
+  USERVER_IMPL_PREVENT_TLS_CACHING
   static void Push(std::unique_ptr<T> obj) noexcept {
+    // NOLINTNEXTLINE
+    USERVER_IMPL_PREVENT_TLS_CACHING_ASM;
+
     auto& pool = pool_;
     if (pool.IsFull()) return;
 

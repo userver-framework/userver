@@ -2,6 +2,8 @@
 
 #include <array>
 
+#include <userver/compiler/impl/tls.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils {
@@ -34,13 +36,21 @@ class RandomImpl final : public RandomBase {
 
 }  // namespace
 
+USERVER_IMPL_PREVENT_TLS_CACHING
 RandomBase& DefaultRandom() {
   thread_local RandomImpl random;
+
+  // NOLINTNEXTLINE
+  USERVER_IMPL_PREVENT_TLS_CACHING_ASM;
   return random;
 }
 
+USERVER_IMPL_PREVENT_TLS_CACHING
 RandomBase& impl::DefaultRandomForHashSeed() {
   thread_local RandomImpl random;
+
+  // NOLINTNEXTLINE
+  USERVER_IMPL_PREVENT_TLS_CACHING_ASM;
   return random;
 }
 

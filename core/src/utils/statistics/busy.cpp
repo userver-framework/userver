@@ -125,6 +125,9 @@ namespace {
 thread_local std::vector<const BusyStorage*> this_thread_busy_storages;
 
 USERVER_IMPL_PREVENT_TLS_CACHING auto& GetThisThreadBusyStorages() noexcept {
+  // NOLINTNEXTLINE
+  USERVER_IMPL_PREVENT_TLS_CACHING_ASM;
+
   return this_thread_busy_storages;
 }
 

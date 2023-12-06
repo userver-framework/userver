@@ -50,8 +50,10 @@ inline const unsigned char* GetBytes(const T& data) {
 
 USERVER_IMPL_PREVENT_TLS_CACHING IV GenerateIv() {
   unsigned char iv[kIvSize];
-
   thread_local ::CryptoPP::AutoSeededRandomPool pool;
+
+  // NOLINTNEXTLINE
+  USERVER_IMPL_PREVENT_TLS_CACHING_ASM;
   pool.GenerateBlock(iv, kIvSize);
 
   return IV(iv, iv + kIvSize);

@@ -54,6 +54,9 @@ USERVER_IMPL_PREVENT_TLS_CACHING std::string_view GetCurrentTimeString(
   thread_local USERVER_IMPL_CONSTINIT char
       cached_time_string[kTemplate.size()]{};
 
+  // NOLINTNEXTLINE
+  USERVER_IMPL_PREVENT_TLS_CACHING_ASM;
+
   const auto rounded_now =
       std::chrono::time_point_cast<std::chrono::seconds>(start_time);
   if (rounded_now != cached_time) {

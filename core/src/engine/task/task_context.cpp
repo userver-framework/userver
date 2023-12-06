@@ -51,11 +51,18 @@ impl::TaskContext& GetCurrentTaskContext() noexcept {
         "current_task::GetCurrentTaskContext() has been called "
         "outside of coroutine context");
   }
+
+  // NOLINTNEXTLINE
+  USERVER_IMPL_PREVENT_TLS_CACHING_ASM;
+
   return *current_task_context_ptr;
 }
 
 USERVER_IMPL_PREVENT_TLS_CACHING
 impl::TaskContext* GetCurrentTaskContextUnchecked() noexcept {
+  // NOLINTNEXTLINE
+  USERVER_IMPL_PREVENT_TLS_CACHING_ASM;
+
   return current_task_context_ptr;
 }
 

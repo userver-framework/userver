@@ -67,6 +67,8 @@ template <typename T, typename RcuTraits>
 USERVER_IMPL_PREVENT_TLS_CACHING CachedData<T, RcuTraits>& GetCachedData() {
   thread_local CachedData<T, RcuTraits> cache;
 
+  // NOLINTNEXTLINE
+  USERVER_IMPL_PREVENT_TLS_CACHING_ASM;
   return cache;
 }
 

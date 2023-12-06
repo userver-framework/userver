@@ -28,6 +28,9 @@ USERVER_IMPL_PREVENT_TLS_CACHING std::string_view GetCachedDate() {
   static thread_local char last_time_string[kMaxDateHeaderLength]{};
   static thread_local std::string_view result_view{};
 
+  // NOLINTNEXTLINE
+  USERVER_IMPL_PREVENT_TLS_CACHING_ASM;
+
   const auto now = utils::datetime::WallCoarseClock::now();
   const auto now_seconds =
       std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch())
