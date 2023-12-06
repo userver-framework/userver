@@ -1,11 +1,12 @@
 #include <userver/utils/statistics/busy.hpp>
 
-#include <boost/lockfree/queue.hpp>
 #include <optional>
 #include <vector>
 
-#include <userver/logging/log.hpp>
+#include <boost/lockfree/queue.hpp>
 
+#include <userver/compiler/impl/tls.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/utils/datetime.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -120,13 +121,18 @@ bool BusyStorage::UpdateCurrentWorkerLoad(std::vector<Duration>& load) const {
 }
 
 namespace {
+
 thread_local std::vector<const BusyStorage*> this_thread_busy_storages;
+
+USERVER_IMPL_PREVENT_TLS_CACHING auto& GetThisThreadBusyStorages() noexcept {
+  return this_thread_busy_storages;
 }
 
+}  // namespace
+
 bool BusyStorage::IsAlreadyStarted() const {
-  return std::find(this_thread_busy_storages.begin(),
-                   this_thread_busy_storages.end(),
-                   this) != this_thread_busy_storages.end();
+  auto& storages = GetThisThreadBusyStorages();
+  return std::find(storages.begin(), storages.end(), this) != storages.end();
 }
 
 BusyStorage::WorkerId BusyStorage::StartWork() {
@@ -147,7 +153,8 @@ void BusyStorage::StopWork(WorkerId worker_id) {
   value = value.load() + not_committed_load;
   pimpl->start_work[worker_id] = std::nullopt;
 
-  const auto* busy_storage_back = this_thread_busy_storages.back();
+  auto& storages = GetThisThreadBusyStorages();
+  const auto* busy_storage_back = storages.back();
   if (busy_storage_back != this) {
     LOG_ERROR()
         << "StopWork() found wrong BusyStorage on this_thread's "
@@ -156,7 +163,7 @@ void BusyStorage::StopWork(WorkerId worker_id) {
            "Current load of this BusyStorage is now broken and must not be "
            "trusted.";
   } else {
-    this_thread_busy_storages.pop_back();
+    storages.pop_back();
     pimpl->free_worker_ids.push(worker_id);
   }
 }
@@ -167,7 +174,7 @@ BusyStorage::WorkerId BusyStorage::PopWorkerId() {
     LOG_ERROR() << "Failed to obtain worker_id, load statistics is accounted "
                    "with some error";
   } else {
-    this_thread_busy_storages.push_back(this);
+    GetThisThreadBusyStorages().push_back(this);
   }
   return id;
 }

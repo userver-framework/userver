@@ -3,8 +3,8 @@
 #include <algorithm>
 #include <thread>
 
-#include <compiler/tls.hpp>
 #include <userver/compiler/impl/constexpr.hpp>
+#include <userver/compiler/impl/tls.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -25,7 +25,7 @@ struct LocalTaskCounterData final {
 thread_local USERVER_IMPL_CONSTINIT LocalTaskCounterData
     local_task_counter_data;
 
-USERVER_PREVENT_TLS_CACHING LocalTaskCounterData
+USERVER_IMPL_PREVENT_TLS_CACHING LocalTaskCounterData
 GetLocalTaskCounterData() noexcept {
   return local_task_counter_data;
 }

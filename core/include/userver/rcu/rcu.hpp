@@ -8,6 +8,7 @@
 #include <list>
 #include <unordered_set>
 
+#include <userver/compiler/impl/tls.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/logging/log.hpp>
@@ -63,7 +64,7 @@ struct CachedData {
 };
 
 template <typename T, typename RcuTraits>
-__attribute__((noinline)) CachedData<T, RcuTraits>& GetCachedData() {
+USERVER_IMPL_PREVENT_TLS_CACHING CachedData<T, RcuTraits>& GetCachedData() {
   thread_local CachedData<T, RcuTraits> cache;
 
   return cache;

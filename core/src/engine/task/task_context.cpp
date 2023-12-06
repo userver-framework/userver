@@ -15,12 +15,12 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/underlying_value.hpp>
 
-#include <compiler/tls.hpp>
 #include <engine/ev/thread_pool.hpp>
 #include <engine/impl/generic_wait_list.hpp>
 #include <engine/task/coro_unwinder.hpp>
 #include <engine/task/cxxabi_eh_globals.hpp>
 #include <engine/task/task_processor.hpp>
+#include <userver/compiler/impl/tls.hpp>
 #include <utils/impl/assert_extra.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -39,7 +39,7 @@ void SetCurrentTaskContext(impl::TaskContext* context) {
 
 }  // namespace
 
-USERVER_PREVENT_TLS_CACHING
+USERVER_IMPL_PREVENT_TLS_CACHING
 impl::TaskContext& GetCurrentTaskContext() noexcept {
   if (!current_task_context_ptr) {
     // AbortWithStacktrace MUST be a separate function! Putting the body of this
@@ -54,7 +54,7 @@ impl::TaskContext& GetCurrentTaskContext() noexcept {
   return *current_task_context_ptr;
 }
 
-USERVER_PREVENT_TLS_CACHING
+USERVER_IMPL_PREVENT_TLS_CACHING
 impl::TaskContext* GetCurrentTaskContextUnchecked() noexcept {
   return current_task_context_ptr;
 }

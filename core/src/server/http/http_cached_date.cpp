@@ -2,6 +2,7 @@
 
 #include <cstring>
 
+#include <userver/compiler/impl/tls.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/datetime/wall_coarse_clock.hpp>
 
@@ -20,7 +21,7 @@ std::string MakeHttpDate(std::chrono::system_clock::time_point date) {
   return cctz::format(kFormatString, date, tz);
 }
 
-std::string_view GetCachedDate() {
+USERVER_IMPL_PREVENT_TLS_CACHING std::string_view GetCachedDate() {
   constexpr size_t kMaxDateHeaderLength = 128;
 
   static thread_local std::chrono::seconds::rep last_second = 0;

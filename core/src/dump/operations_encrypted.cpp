@@ -8,6 +8,7 @@
 #include <cryptopp/modes.h>
 #include <cryptopp/osrng.h>
 
+#include <userver/compiler/impl/tls.hpp>
 #include <userver/fs/blocking/write.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/cpu_relax.hpp>
@@ -47,7 +48,7 @@ inline const unsigned char* GetBytes(const T& data) {
   return reinterpret_cast<const unsigned char*>(data.GetUnderlying().data());
 }
 
-IV GenerateIv() {
+USERVER_IMPL_PREVENT_TLS_CACHING IV GenerateIv() {
   unsigned char iv[kIvSize];
 
   thread_local ::CryptoPP::AutoSeededRandomPool pool;

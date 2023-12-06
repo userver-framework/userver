@@ -32,34 +32,31 @@ constexpr std::string_view kTimeUnitsTag = "stopwatch_units";
 constexpr std::string_view kStartTimestampTag = "start_timestamp";
 
 constexpr std::string_view kReferenceType = "span_ref_type";
-const std::string kReferenceTypeChild = "child";
-const std::string kReferenceTypeFollows = "follows";
+constexpr std::string_view kReferenceTypeChild = "child";
+constexpr std::string_view kReferenceTypeFollows = "follows";
 
-std::string_view StartTsToString(std::chrono::system_clock::time_point start) {
+struct TsBuffer final {
+  // digits + dot + fract + (to be sure)
+  char data[32]{};
+  std::size_t size{};
+
+  std::string_view ToStringView() const& noexcept { return {data, size}; }
+  std::string_view ToStringView() && noexcept = delete;
+};
+
+TsBuffer StartTsToString(std::chrono::system_clock::time_point start) {
   const auto start_ts_epoch =
       std::chrono::duration_cast<std::chrono::microseconds>(
           start.time_since_epoch())
           .count();
-  // digits + dot + fract + (to be sure)
-  thread_local char buffer[32];
-
-  // Avoiding `return fmt::format("{:.6}", float)` because it calls a slow
-  // snprintf or gives incorrect results with -DFMT_USE_GRISU=1:
-  // 3.1414999961853027 instead of 3.1415
-
-  // TODO: In C++17 with to_chars(float) uncomment the following lines:
-  // constexpr std::size_t kBufferSize = 64;
-  // std::array<char, kBufferSize> data;
-  // auto [out_it, errc] = std::to_chars(data.begin(), data.end(),
-  //                    start_ts_epoch * 0.000001, std::chars_format::fixed, 6);
-  // UASSERT(errc == 0);
-  // return std::string(data.data(), out_it - data.data());
-
+  TsBuffer buffer;
   const auto integral_part = start_ts_epoch / 1000000;
   const auto fractional_part = start_ts_epoch % 1000000;
-  auto size = fmt::format_to_n(buffer, sizeof(buffer), FMT_COMPILE("{}.{:0>6}"),
-                               integral_part, fractional_part);
-  return std::string_view{&buffer[0], size.size};
+  buffer.size =
+      fmt::format_to_n(std::data(buffer.data), std::size(buffer.data),
+                       FMT_COMPILE("{}.{:0>6}"), integral_part, fractional_part)
+          .size;
+  return buffer;
 }
 
 // Maintain coro-local span stack to identify "current span" in O(1).
@@ -120,17 +117,17 @@ void Span::Impl::PutIntoLogger(logging::impl::TagWriter writer) && {
   const auto duration = steady_now - start_steady_time_;
   const auto total_time_ms =
       std::chrono::duration_cast<RealMilliseconds>(duration).count();
-
-  const auto& ref_type = GetReferenceType() == ReferenceType::kChild
-                             ? kReferenceTypeChild
-                             : kReferenceTypeFollows;
+  const auto timestamp_buffer = StartTsToString(start_system_time_);
+  const auto ref_type = GetReferenceType() == ReferenceType::kChild
+                            ? kReferenceTypeChild
+                            : kReferenceTypeFollows;
 
   tracer_->LogSpanContextTo(*this, writer);
   writer.PutTag(kStopWatchTag, name_);
   writer.PutTag(kTotalTimeTag, total_time_ms);
   writer.PutTag(kReferenceType, ref_type);
   writer.PutTag(kTimeUnitsTag, "ms");
-  writer.PutTag(kStartTimestampTag, StartTsToString(start_system_time_));
+  writer.PutTag(kStartTimestampTag, timestamp_buffer.ToStringView());
 
   time_storage_.MergeInto(writer);
 

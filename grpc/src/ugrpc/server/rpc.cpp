@@ -5,6 +5,7 @@
 #include <fmt/format.h>
 
 #include <userver/compiler/impl/constexpr.hpp>
+#include <userver/compiler/impl/tls.hpp>
 #include <userver/logging/impl/logger_base.hpp>
 #include <userver/logging/logger.hpp>
 #include <userver/ugrpc/status_codes.hpp>
@@ -43,7 +44,7 @@ std::string ParseIp(std::string_view sv) {
   return EscapeForAccessTskvLog(sv);
 }
 
-std::string_view GetCurrentTimeString(
+USERVER_IMPL_PREVENT_TLS_CACHING std::string_view GetCurrentTimeString(
     std::chrono::system_clock::time_point start_time) noexcept {
   using SecondsTimePoint =
       std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds>;

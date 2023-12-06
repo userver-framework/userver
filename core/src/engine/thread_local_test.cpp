@@ -16,13 +16,13 @@ namespace {
 
 thread_local std::atomic<int> kThreadLocal{1};
 
-// NOTE: adding USERVER_PREVENT_TLS_CACHING helps make the test pass, but users
-// have no access to it, and not all thread_locals are protected this way.
-/* USERVER_PREVENT_TLS_CACHING */ int LoadThreadLocal() noexcept {
+// NOTE: adding USERVER_IMPL_PREVENT_TLS_CACHING helps make the test pass, but
+// users have no access to it, and not all thread_locals are protected this way.
+/* USERVER_IMPL_PREVENT_TLS_CACHING */ int LoadThreadLocal() noexcept {
   return kThreadLocal.load(std::memory_order_relaxed);
 }
 
-/* USERVER_PREVENT_TLS_CACHING */ void MultiplyThreadLocal(
+/* USERVER_IMPL_PREVENT_TLS_CACHING */ void MultiplyThreadLocal(
     int new_value) noexcept {
   kThreadLocal.store(kThreadLocal.load(std::memory_order_relaxed) * new_value,
                      std::memory_order_relaxed);
