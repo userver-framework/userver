@@ -54,7 +54,72 @@ class BackgroundTaskStorageCore final {
 /// the BackgroundTaskStorage is alive.
 ///
 /// ## Usage synopsis
+///
 /// @snippet concurrent/background_task_storage_test.cpp  Sample
+///
+/// ## Lifetime of task's captures
+///
+/// All the advice from utils::Async is applicable here.
+///
+/// BackgroundTaskStorage is always stored as a class field. Tasks that are
+/// launched inside it (or moved inside it, for BackgroundTaskStorageCore)
+/// can safely access fields declared before it, but not after it:
+///
+/// @code
+/// class Frobnicator {
+///   // ...
+///
+///  private:
+///   void Launch(const Dependencies& stuff);
+///
+///   // ...
+///   Foo foo_;
+///   concurrent::BackgroundTaskStorage bts_;
+///   Bar bar_;
+///   // ...
+/// };
+///
+/// void Frobnicator::Launch(const Dependencies& stuff) {
+///   int x{};
+///   bts_.AsyncDetach([this, &stuff, &x] {
+///     // BUG! All local variables will be gone.
+///     // They should be captured by move or by copy.
+///     Use(x);
+///
+///     // OK, because foo_ will be destroyed after bts_.
+///     Use(foo_);
+///
+///     // BUG, because bar_ will be destroyed before bts_.
+///     Use(bar_);
+///
+///     // Most likely a BUG! Unless `stuff` is contained within other fields,
+///     // there is probably no guarantee that it outlives `bts_`.
+///     // It should have been captured by move or by copy instead.
+///     Use(stuff);
+///   });
+/// }
+/// @endcode
+///
+/// Generally, it's a good idea to declare `bts_` after most other fields
+/// to avoid lifetime bugs. An example of fool-proof code:
+///
+/// @code
+///  private:
+///   Foo foo_;
+///   Bar bar_;
+///
+///   // bts_ must be the last field for lifetime reasons.
+///   concurrent::BackgroundTaskStorage bts_;
+/// };
+/// @endcode
+///
+/// Components and their clients can always be safely captured by reference:
+///
+/// @see @ref scripts/docs/en/userver/component_system.md
+///
+/// So for a BackgroundTaskStorage stored in a component, its tasks can only
+/// safely use the fields declared before the BTS field, as well as everything
+/// from the components, on which the current component depends.
 class BackgroundTaskStorage final {
  public:
   /// Creates a BTS that launches tasks in the engine::TaskProcessor used at the
