@@ -38,6 +38,7 @@
   [Монолит vs Микросервисы, и Как эффективно работать с последними в C++](https://youtu.be/5QtAFKgS938)
 * 📖 Retries, exponential backoff, jitter, rate limits, circuit breakers, deadline propagations and other
   important features for stability (ru): [Хороший ретрай, плохой ретрай, или История одного падения](https://habr.com/ru/companies/yandex/articles/762678/)
+* 📖 [Story of website design at Behance](https://www.behance.net/gallery/185906583/Userver-C)
 
 
 ## Fun
