@@ -280,37 +280,72 @@ void Cookie::CookieData::SetSameSite(std::string value) {
 
 void Cookie::CookieData::AppendToString(
     USERVER_NAMESPACE::http::headers::HeadersString& os) const {
-  os.append(name_);
-  os.append("=");
-  os.append(value_);
+  constexpr std::string_view kEquals = "=";
+  constexpr std::string_view kDomain = "; Domain=";
+  constexpr std::string_view kPath = "; Path=";
+  constexpr std::string_view kExpires = "; Expires=";
+  constexpr std::string_view kMaxAge = "; Max-Age=";
+  constexpr std::string_view kSecure = "; Secure";
+  constexpr std::string_view kSameSite = "; SameSite=";
+  constexpr std::string_view kHttpOnly = "; HttpOnly";
 
-  if (!domain_.empty()) {
-    os.append("; Domain=");
-    os.append(domain_);
-  }
-  if (!path_.empty()) {
-    os.append("; Path=");
-    os.append(path_);
-  }
+  const std::size_t old_size = os.size();
+
+  std::size_t new_size = old_size + name_.size() + value_.size() +
+                         domain_.size() + path_.size() + same_site_.size() +
+                         kEquals.size() + kDomain.size() + kPath.size() +
+                         kExpires.size() + kMaxAge.size() + kSecure.size() +
+                         kSameSite.size() + kHttpOnly.size();
+  std::string time_string{};
+  std::string age_string{};
   if (expires_.has_value()) {
-    os.append("; Expires=");
-    os.append(
-        utils::datetime::Timestring(expires_.value(), "GMT", kTimeFormat));
+    time_string =
+        utils::datetime::Timestring(expires_.value(), "GMT", kTimeFormat);
+    new_size += time_string.size();
   }
   if (max_age_.has_value()) {
-    os.append("; Max-Age=");
-    os.append(fmt::format(FMT_COMPILE("{}"), max_age_.value().count()));
+    age_string = fmt::format(FMT_COMPILE("{}"), max_age_.value().count());
+    new_size += age_string.size();
   }
-  if (secure_) {
-    os.append("; Secure");
-  }
-  if (!same_site_.empty()) {
-    os.append("; SameSite=");
-    os.append(same_site_);
-  }
-  if (http_only_) {
-    os.append("; HttpOnly");
-  }
+
+  os.resize_and_overwrite(new_size, [&](char* data, std::size_t) {
+    char* old_data_pointer = data;
+    data += old_size;
+    auto append = [&data](const std::string_view what) {
+      std::memcpy(data, what.begin(), what.size());
+      data += what.size();
+    };
+    append(name_);
+    append(kEquals);
+    append(value_);
+    if (!domain_.empty()) {
+      append(kDomain);
+      append(domain_);
+    }
+    if (!path_.empty()) {
+      append(kPath);
+      append(path_);
+    }
+    if (expires_.has_value()) {
+      append(kExpires);
+      append(time_string);
+    }
+    if (max_age_.has_value()) {
+      append(kMaxAge);
+      append(age_string);
+    }
+    if (secure_) {
+      append(kSecure);
+    }
+    if (!same_site_.empty()) {
+      append(kSameSite);
+      append(same_site_);
+    }
+    if (http_only_) {
+      append(kHttpOnly);
+    }
+    return data - old_data_pointer;
+  });
 }
 
 void Cookie::CookieData::ValidateName() const {

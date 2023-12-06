@@ -1161,6 +1161,7 @@
   "core/src/server/http/http_response_benchmark.cpp":"taxi/uservices/userver/core/src/server/http/http_response_benchmark.cpp",
   "core/src/server/http/http_response_body_stream.cpp":"taxi/uservices/userver/core/src/server/http/http_response_body_stream.cpp",
   "core/src/server/http/http_response_cookie.cpp":"taxi/uservices/userver/core/src/server/http/http_response_cookie.cpp",
+  "core/src/server/http/http_response_cookie_benchmark.cpp":"taxi/uservices/userver/core/src/server/http/http_response_cookie_benchmark.cpp",
   "core/src/server/http/http_response_cookie_test.cpp":"taxi/uservices/userver/core/src/server/http/http_response_cookie_test.cpp",
   "core/src/server/http/http_response_test.cpp":"taxi/uservices/userver/core/src/server/http/http_response_test.cpp",
   "core/src/server/http/http_status.cpp":"taxi/uservices/userver/core/src/server/http/http_status.cpp",
