@@ -1,4 +1,0 @@
-yandex-taxi-testsuite >= 0.1.7.2
-pytest >= 7.3.0
-py >= 1.10
-websockets >= 11.0.3
