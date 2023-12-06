@@ -63,7 +63,11 @@ struct CachedData {
 };
 
 template <typename T, typename RcuTraits>
-thread_local CachedData<T, RcuTraits> cache;
+__attribute__((noinline)) CachedData<T, RcuTraits>& GetCachedData() {
+  thread_local CachedData<T, RcuTraits> cache;
+
+  return cache;
+}
 
 uint64_t GetNextEpoch() noexcept;
 
@@ -409,7 +413,7 @@ class Variable final {
   T* GetCurrent() const { return current_.load(); }
 
   impl::HazardPointerRecord<T, RcuTraits>* MakeHazardPointerCached() const {
-    auto& cache = impl::cache<T, RcuTraits>;
+    auto& cache = impl::GetCachedData<T, RcuTraits>();
     auto* hp = cache.hp;
     T* ptr = nullptr;
     if (hp && cache.variable == this && cache.variable_epoch == epoch_) {
@@ -447,7 +451,7 @@ class Variable final {
       // all buckets are full, create a new one
       if (!hp) hp = MakeHazardPointerSlow();
 
-      auto& cache = impl::cache<T, RcuTraits>;
+      auto& cache = impl::GetCachedData<T, RcuTraits>();
       cache.hp = hp;
       cache.variable = this;
       cache.variable_epoch = epoch_;
