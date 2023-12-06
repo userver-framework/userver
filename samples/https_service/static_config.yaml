@@ -32,7 +32,8 @@ components_manager:
             method: GET,POST              # It will only reply to GET (HEAD) and POST requests.
             task_processor: main-task-processor  # Run it on CPU bound task processor
 
-        secdist: {}
+        secdist:
+            provider: default-secdist-provider
 
         default-secdist-provider:
             config: /etc/https_service/secure_data.json

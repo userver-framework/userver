@@ -22,7 +22,8 @@ components_manager:
             prefetch_count: 5
 # /// [RabbitMQ consumer sample - static config]
 
-        secdist: {}                                           # Component that stores configuration of hosts and passwords
+        secdist:                                              # Component that stores configuration of hosts and passwords
+            provider: default-secdist-provider
         default-secdist-provider:                             # Component that loads configuration of hosts and passwords  
             config: /etc/rabbitmq_service/secure_data.json    # Values are supposed to be stored in this file
             missing-ok: true                                  # ... but if the file is missing it is still ok
