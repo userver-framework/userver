@@ -10,9 +10,12 @@ REQUESTS_RELAX_TIME = 1.0
 INPUT_CHANNEL_NAME = 'input_channel'
 
 
-async def _validate_pubsub(redis_db, service_client, msg, redis_type):
-    url = f'/redis-{redis_type}'
+def _get_url(redis_type):
+    return f'/redis-{redis_type}'
 
+
+async def _validate_pubsub(redis_db, service_client, msg, redis_type):
+    url = _get_url(redis_type)
     for _ in range(REQUESTS_RETRIES):
         redis_db.publish(INPUT_CHANNEL_NAME, msg)
 
@@ -33,6 +36,15 @@ async def _validate_pubsub(redis_db, service_client, msg, redis_type):
 
 async def test_happy_path_sentinel(service_client, redis_store):
     msg = 'sentinel_message'
+    assert await _validate_pubsub(redis_store, service_client, msg, 'sentinel')
+
+
+async def test_happy_path_sentinel_with_resubscription(
+        service_client, redis_store,
+):
+    msg = 'sentinel_message'
+    response = await service_client.put(_get_url('sentinel'))
+    assert response.status == 200
     assert await _validate_pubsub(redis_store, service_client, msg, 'sentinel')
 
 

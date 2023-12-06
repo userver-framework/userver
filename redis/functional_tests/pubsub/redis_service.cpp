@@ -42,13 +42,16 @@ class ReadStoreReturn final : public server::handlers::HttpHandlerBase {
  private:
   std::string Get() const;
   std::string Delete() const;
+  std::string Update() const;
+
+  storages::redis::SubscriptionToken Subscribe() const;
 
   using Data = concurrent::Variable<std::vector<std::string>>;
 
   const std::shared_ptr<storages::redis::SubscribeClient> redis_client_;
 
   mutable Data accumulated_data_with_queue_;
-  storages::redis::SubscriptionToken token_with_queue_;
+  mutable storages::redis::SubscriptionToken token_with_queue_;
 };
 
 ReadStoreReturn::ReadStoreReturn(const components::ComponentConfig& config,
@@ -56,14 +59,8 @@ ReadStoreReturn::ReadStoreReturn(const components::ComponentConfig& config,
     : server::handlers::HttpHandlerBase(config, context),
       redis_client_{
           context.FindComponent<components::Redis>("key-value-database")
-              .GetSubscribeClient(config["db"].As<std::string>())} {
-  token_with_queue_ = redis_client_->Subscribe(
-      "input_channel", [this](const auto&, const auto& data) {
-        UASSERT(engine::current_task::IsTaskProcessorThread());
-        auto locked = accumulated_data_with_queue_.Lock();
-        locked->push_back(data);
-      });
-}
+              .GetSubscribeClient(config["db"].As<std::string>())},
+      token_with_queue_(Subscribe()) {}
 
 ReadStoreReturn::~ReadStoreReturn() { token_with_queue_.Unsubscribe(); }
 
@@ -75,6 +72,8 @@ std::string ReadStoreReturn::HandleRequestThrow(
       return Get();
     case server::http::HttpMethod::kDelete:
       return Delete();
+    case server::http::HttpMethod::kPut:
+      return Update();
     default:
       throw server::handlers::ClientError(server::handlers::ExternalBody{
           fmt::format("Unsupported method {}", request.GetMethod())});
@@ -105,6 +104,22 @@ std::string ReadStoreReturn::Delete() const {
   auto locked = accumulated_data_with_queue_.Lock();
   locked->clear();
   return {};
+}
+
+std::string ReadStoreReturn::Update() const {
+  auto temp = Subscribe();
+  token_with_queue_.Unsubscribe();
+  token_with_queue_ = std::move(temp);
+  return {};
+}
+
+storages::redis::SubscriptionToken ReadStoreReturn::Subscribe() const {
+  return redis_client_->Subscribe(
+      "input_channel", [this](const auto&, const auto& data) {
+        UASSERT(engine::current_task::IsTaskProcessorThread());
+        auto locked = accumulated_data_with_queue_.Lock();
+        locked->push_back(data);
+      });
 }
 
 }  // namespace chaos

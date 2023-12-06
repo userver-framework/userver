@@ -5,13 +5,13 @@ components_manager:
             db: redis-sentinel
             path: /redis-sentinel
             task_processor: main-task-processor
-            method: GET,DELETE
+            method: GET,DELETE,PUT
 
         handler-cluster:
             db: redis-cluster
             path: /redis-cluster
             task_processor: main-task-processor
-            method: GET,DELETE
+            method: GET,DELETE,PUT
 
         key-value-database:
             groups: []
