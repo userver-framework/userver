@@ -161,8 +161,99 @@ function(userver_venv_setup)
   endif()
 endfunction()
 
-function(userver_testsuite_add)
+function(userver_testsuite_requirements)
   set(options)
+  set(oneValueArgs REQUIREMENT_FILES_VAR)
+  set(multiValueArgs)
+
+  cmake_parse_arguments(
+      ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}")
+
+  list(APPEND requirements_files
+      "${USERVER_TESTSUITE_DIR}/requirements.txt")
+
+  if(USERVER_FEATURE_GRPC OR TARGET userver::grpc)
+    if(USERVER_CONAN AND NOT Protobuf_FOUND)
+      find_package(Protobuf REQUIRED)
+    endif()
+    if(NOT Protobuf_FOUND)
+      message(FATAL_ERROR
+          "SetupProtobuf should be run before setting up testsuite")
+    endif()
+
+    if(Protobuf_VERSION VERSION_GREATER 3.20.0)
+      list(APPEND requirements_files
+          "${USERVER_TESTSUITE_DIR}/requirements-grpc.txt")
+    else()
+      list(APPEND requirements_files
+          "${USERVER_TESTSUITE_DIR}/requirements-grpc-old.txt")
+      message(STATUS "Forcing old protobuf version for testsuite")
+    endif()
+  endif()
+
+  if(USERVER_FEATURE_MONGODB OR TARGET userver::mongo)
+    list(APPEND requirements_files
+        "${USERVER_TESTSUITE_DIR}/requirements-mongo.txt")
+    list(APPEND testsuite_modules mongodb)
+  endif()
+
+  if(USERVER_FEATURE_POSTGRESQL OR TARGET userver::postgresql)
+    list(APPEND requirements_files
+        "${USERVER_TESTSUITE_DIR}/requirements-postgres.txt")
+    if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+      list(APPEND testsuite_modules postgresql-binary)
+    else()
+      list(APPEND testsuite_modules postgresql)
+    endif()
+  endif()
+
+  if(USERVER_FEATURE_YDB OR TARGET userver::ydb)
+    list(APPEND requirements_files
+        "${USERVER_TESTSUITE_DIR}/requirements-ydb.txt")
+  endif()
+
+  if(USERVER_FEATURE_REDIS OR TARGET userver::redis)
+    list(APPEND requirements_files
+        "${USERVER_TESTSUITE_DIR}/requirements-redis.txt")
+    list(APPEND testsuite_modules redis)
+  endif()
+
+  if(USERVER_FEATURE_CLICKHOUSE OR TARGET userver::clickhouse)
+    list(APPEND testsuite_modules clickhouse)
+  endif()
+
+  if(USERVER_FEATURE_RABBITMQ OR TARGET userver::rabbitmq)
+    list(APPEND testsuite_modules rabbitmq)
+  endif()
+
+  if(USERVER_FEATURE_MYSQL OR TARGET userver::mysql)
+    list(APPEND testsuite_modules mysql)
+  endif()
+
+  file(READ "${USERVER_TESTSUITE_DIR}/requirements-testsuite.txt"
+      requirements_testsuite_text)
+  if(testsuite_modules)
+    list(JOIN testsuite_modules "," testsuite_modules_str)
+    string(
+        REPLACE
+        "yandex-taxi-testsuite[]"
+        "yandex-taxi-testsuite[${testsuite_modules_str}]"
+        requirements_testsuite_text
+        "${requirements_testsuite_text}"
+    )
+  endif()
+  set(requirements_testsuite_file
+      "${CMAKE_BINARY_DIR}/requirements-userver-testsuite.txt")
+  file(WRITE "${requirements_testsuite_file}" "${requirements_testsuite_text}")
+  list(APPEND requirements_files "${requirements_testsuite_file}")
+
+  set("${ARG_REQUIREMENT_FILES_VAR}" ${requirements_files} PARENT_SCOPE)
+endfunction()
+
+function(userver_testsuite_add)
+  set(options
+      USE_USERVER_REQUIREMENTS
+  )
   set(oneValueArgs
       SERVICE_TARGET
       WORKING_DIRECTORY
@@ -198,19 +289,21 @@ function(userver_testsuite_add)
     return()
   endif()
 
-  if (ARG_REQUIREMENTS)
-    # These requirements are needed for testing all userver-based services.
-    # Adding it here for all services to avoid breakage when userver starts
-    # requiring a new package for testsuite tests.
-    list(APPEND ARG_REQUIREMENTS "${USERVER_TESTSUITE_DIR}/requirements.txt")
+  if(ARG_USE_USERVER_REQUIREMENTS)
+    userver_testsuite_requirements(REQUIREMENT_FILES_VAR requirement_files)
+    list(APPEND requirement_files ${ARG_REQUIREMENTS})
+  else()
+    set(requirement_files ${ARG_REQUIREMENTS})
+  endif()
 
+  if(requirement_files)
     userver_venv_setup(
-      NAME ${TESTSUITE_TARGET}
-      REQUIREMENTS ${ARG_REQUIREMENTS}
-      PYTHON_OUTPUT_VAR PYTHON_BINARY
-      VIRTUALENV_ARGS ${ARG_VIRTUALENV_ARGS}
+        NAME "${TESTSUITE_TARGET}"
+        REQUIREMENTS ${requirement_files}
+        PYTHON_OUTPUT_VAR PYTHON_BINARY
+        VIRTUALENV_ARGS ${ARG_VIRTUALENV_ARGS}
     )
-  elseif (ARG_PYTHON_BINARY)
+  elseif(ARG_PYTHON_BINARY)
     set(PYTHON_BINARY "${ARG_PYTHON_BINARY}")
   else()
     set(PYTHON_BINARY "${TESTSUITE_VENV_PYTHON}")
@@ -265,7 +358,9 @@ endfunction()
 # - configs/[secdist|secure_data].json [optional]
 # - [testsuite|tests]/conftest.py
 function(userver_testsuite_add_simple)
-  set(options)
+  set(options
+      USE_USERVER_REQUIREMENTS
+  )
   set(oneValueArgs
       SERVICE_TARGET
       WORKING_DIRECTORY
@@ -412,7 +507,13 @@ function(userver_testsuite_add_simple)
     list(APPEND ARG_PYTHONPATH "${CMAKE_CURRENT_BINARY_DIR}/proto")
   endif()
 
+  set(use_userver_requirements)
+  if(ARG_USE_USERVER_REQUIREMENTS)
+    list(APPEND use_userver_requirements USE_USERVER_REQUIREMENTS)
+  endif()
+
   userver_testsuite_add(
+      ${use_userver_requirements}
       SERVICE_TARGET "${ARG_SERVICE_TARGET}"
       WORKING_DIRECTORY "${ARG_WORKING_DIRECTORY}"
       PYTHON_BINARY "${ARG_PYTHON_BINARY}"
