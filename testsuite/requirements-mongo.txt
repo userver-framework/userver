@@ -1,2 +1,1 @@
-yandex-taxi-testsuite[mongodb]
 pymongo >= 4.0.0
