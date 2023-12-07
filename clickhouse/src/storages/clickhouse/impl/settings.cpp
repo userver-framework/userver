@@ -8,6 +8,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/trivial_map.hpp>
 
+#include <boost/range/adaptor/map.hpp>
+
 #include <fmt/format.h>
 
 USERVER_NAMESPACE_BEGIN
@@ -108,8 +110,9 @@ const ClickhouseSettings& ClickhouseSettingsMulti::Get(
     const std::string& dbname) const {
   const auto it = databases_.find(dbname);
   if (it == databases_.end()) {
-    throw std::runtime_error{
-        fmt::format("database '{}' is not found in secdist", dbname)};
+    throw std::runtime_error{fmt::format(
+        "database '{}' is not found in secdist. Available databases: [{}]",
+        dbname, fmt::join(databases_ | boost::adaptors::map_keys, ", "))};
   }
 
   return it->second;

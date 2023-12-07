@@ -7,6 +7,8 @@
 
 #include <userver/logging/log.hpp>
 
+#include <boost/range/adaptor/map.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres::secdist {
@@ -90,8 +92,10 @@ std::vector<DsnList> PostgresSettings::GetShardedClusterDescription(
       throw storages::secdist::SecdistError(
           "dbalias " + dbalias + " secdist config is in unsupported format");
     }
-    throw storages::secdist::UnknownPostgresDbAlias(
-        "dbalias " + dbalias + " not found in secdist config");
+    throw storages::secdist::UnknownPostgresDbAlias(fmt::format(
+        "dbalias {} not found in secdist config. Available aliases: [{}]",
+        dbalias,
+        fmt::join(sharded_cluster_descs_ | boost::adaptors::map_keys, ", ")));
   }
   return it->second;
 }

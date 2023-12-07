@@ -12,6 +12,8 @@
 #include <userver/storages/secdist/helpers.hpp>
 #include <userver/utils/assert.hpp>
 
+#include <boost/range/adaptor/map.hpp>
+
 #include <fmt/format.h>
 
 USERVER_NAMESPACE_BEGIN
@@ -98,8 +100,9 @@ const RabbitEndpoints& RabbitEndpointsMulti::Get(
     const std::string& name) const {
   const auto it = endpoints_.find(name);
   if (it == endpoints_.end()) {
-    throw std::runtime_error{
-        fmt::format("RMQ broken '{}' is not found in secdist", name)};
+    throw std::runtime_error{fmt::format(
+        "RMQ broken '{}' is not found in secdist. Available endpoints: [{}]",
+        name, fmt::join(endpoints_ | boost::adaptors::map_keys, ", "))};
   }
 
   return it->second;

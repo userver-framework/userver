@@ -4,6 +4,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include <boost/range/adaptor/map.hpp>
+
 #include <fmt/format.h>
 
 #include <userver/components/component_config.hpp>
@@ -109,8 +111,9 @@ MysqlSettingsMulti::MysqlSettingsMulti(const formats::json::Value& secdist) {
 const MysqlSettings& MysqlSettingsMulti::Get(const std::string& dbname) const {
   const auto it = databases_.find(dbname);
   if (it == databases_.end()) {
-    throw std::runtime_error{
-        fmt::format("Database '{}' is not found in secdist", dbname)};
+    throw std::runtime_error{fmt::format(
+        "Database '{}' is not found in secdist. Available databases: [{}]",
+        dbname, fmt::join(databases_ | boost::adaptors::map_keys, ", "))};
   }
 
   return it->second;

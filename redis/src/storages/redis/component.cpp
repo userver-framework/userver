@@ -31,6 +31,8 @@
 #include "redis_secdist.hpp"
 #include "subscribe_client_impl.hpp"
 
+#include <boost/range/adaptor/map.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace {
@@ -159,7 +161,9 @@ std::shared_ptr<storages::redis::Client> Redis::GetClient(
     USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected) const {
   auto it = clients_.find(name);
   if (it == clients_.end())
-    throw std::runtime_error(name + " redis client not found");
+    throw std::runtime_error(
+        fmt::format("{} redis client not found. Available clients: [{}]", name,
+                    fmt::join(clients_ | boost::adaptors::map_keys, ", ")));
   it->second->WaitConnectedOnce(wait_connected);
   return it->second;
 }
@@ -167,7 +171,9 @@ std::shared_ptr<storages::redis::Client> Redis::GetClient(
 std::shared_ptr<redis::Sentinel> Redis::Client(const std::string& name) const {
   auto it = sentinels_.find(name);
   if (it == sentinels_.end())
-    throw std::runtime_error(name + " redis client not found");
+    throw std::runtime_error(
+        fmt::format("{} redis client not found. Available clients: [{}]", name,
+                    fmt::join(clients_ | boost::adaptors::map_keys, ", ")));
   return it->second;
 }
 
@@ -176,7 +182,10 @@ std::shared_ptr<storages::redis::SubscribeClient> Redis::GetSubscribeClient(
     USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected) const {
   auto it = subscribe_clients_.find(name);
   if (it == subscribe_clients_.end())
-    throw std::runtime_error(name + " redis subscribe-client not found");
+    throw std::runtime_error(fmt::format(
+        "{} redis subscribe-client not found. Available subscribe-clients: "
+        "[{}]",
+        name, fmt::join(subscribe_clients_ | boost::adaptors::map_keys, ", ")));
   it->second->WaitConnectedOnce(wait_connected);
   return std::static_pointer_cast<storages::redis::SubscribeClient>(it->second);
 }
