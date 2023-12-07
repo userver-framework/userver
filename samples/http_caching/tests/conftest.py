@@ -36,8 +36,8 @@ def mock_translations(mockserver, translations, mocked_time):
 
 
 # /// [translations]
-@pytest.fixture
-def translations():
+@pytest.fixture(name='translations')
+def _translations():
     return {
         'hello': {'en': 'hello', 'ru': 'Привет'},
         'welcome': {'ru': 'Добро пожаловать', 'en': 'Welcome'},

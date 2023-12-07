@@ -12,8 +12,8 @@ def dynamic_config_fallback_patch() -> typing.Dict[str, typing.Any]:
 
 
 # redefinition fixture to change log_file path
-@pytest.fixture(scope='session')
-def userver_config_logging(userver_config_logging, service_tmpdir):
+@pytest.fixture(name='userver_config_logging', scope='session')
+def _userver_config_logging(userver_config_logging, service_tmpdir):
     def _patch_config(config_yaml, config_vars):
         userver_config_logging(config_yaml, config_vars)
         components = config_yaml['components_manager']['components']

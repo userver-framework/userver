@@ -1,5 +1,4 @@
 import pytest
-
 from pytest_userver import chaos
 
 from testsuite.databases.pgsql import connection
@@ -9,8 +8,8 @@ pytest_plugins = ['pytest_userver.plugins.postgresql']
 
 
 # /// [gate start]
-@pytest.fixture(scope='session')
-def pgsql_local(service_source_dir, pgsql_local_create):
+@pytest.fixture(name='pgsql_local', scope='session')
+def _pgsql_local(service_source_dir, pgsql_local_create):
     databases = discover.find_schemas(
         'pg', [service_source_dir.joinpath('schemas/postgresql')],
     )
@@ -33,10 +32,10 @@ def extra_client_deps(_gate_started):
     pass
 
 
-@pytest.fixture(name='userver_config_testsuite_support', scope='session')
-def _userver_config_testsuite_support(userver_config_testsuite_support):
+@pytest.fixture(name='userver_config_testsuite', scope='session')
+def _userver_config_testsuite(userver_config_testsuite):
     def patch_config(config_yaml, config_vars):
-        userver_config_testsuite_support(config_yaml, config_vars)
+        userver_config_testsuite(config_yaml, config_vars)
 
         components: dict = config_yaml['components_manager']['components']
         testsuite_support = components['testsuite-support']

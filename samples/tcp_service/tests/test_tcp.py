@@ -1,6 +1,8 @@
 # /// [Functional test]
 import socket
 
+import pytest
+
 
 async def test_basic(service_client, loop, tcp_service_port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -11,9 +13,6 @@ async def test_basic(service_client, loop, tcp_service_port):
     assert hello == b'hello'
 
     await loop.sock_sendall(sock, b'whats up?')
-    try:
+    with pytest.raises(ConnectionResetError):
         await loop.sock_recv(sock, 1)
-        assert False
-    except ConnectionResetError:
-        pass
     # /// [Functional test]

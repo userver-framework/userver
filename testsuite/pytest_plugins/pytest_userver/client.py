@@ -98,6 +98,7 @@ class ClientWrapper:
     async def post(
             self,
             path: str,
+            # pylint: disable=redefined-outer-name
             json: annotations.JsonAnyOptional = None,
             data: typing.Any = None,
             params: typing.Optional[typing.Dict[str, str]] = None,
@@ -124,6 +125,7 @@ class ClientWrapper:
     async def put(
             self,
             path,
+            # pylint: disable=redefined-outer-name
             json: annotations.JsonAnyOptional = None,
             data: typing.Any = None,
             params: typing.Optional[typing.Dict[str, str]] = None,
@@ -150,6 +152,7 @@ class ClientWrapper:
     async def patch(
             self,
             path,
+            # pylint: disable=redefined-outer-name
             json: annotations.JsonAnyOptional = None,
             data: typing.Any = None,
             params: typing.Optional[typing.Dict[str, str]] = None,
@@ -620,7 +623,7 @@ class MetricsDiffer:
         self._current = None
         return self
 
-    async def __aexit__(self, exc_type, exc, tb) -> None:
+    async def __aexit__(self, exc_type, exc, exc_tb) -> None:
         self.current = await self.fetch()
 
 

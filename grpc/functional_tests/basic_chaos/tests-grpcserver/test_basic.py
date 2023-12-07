@@ -25,13 +25,11 @@ async def test_grpc_cc_enabled(grpc_client, service_client, testpoint):
     await tp_cc_apply.wait_call()
 
     # Random non-ping handler is throttled
-    try:
+    with pytest.raises(grpc.RpcError) as error:
         request = greeter_pb2.GreetingRequest(name='Python')
         await grpc_client.SayHello(request, wait_for_ready=True)
-        assert False
-    except grpc.RpcError as error:
-        assert error.details() == 'Congestion control: rate limit exceeded'
-        assert error.code() == grpc.StatusCode.RESOURCE_EXHAUSTED
+    assert error.value.details() == 'Congestion control: rate limit exceeded'
+    assert error.value.code() == grpc.StatusCode.RESOURCE_EXHAUSTED
 
     # A hack to disable CC for other tests
     @testpoint('congestion-control')
@@ -49,12 +47,10 @@ async def test_grpc_cancellation(grpc_client, service_client, testpoint):
 
     await service_client.enable_testpoints()
 
-    try:
+    with pytest.raises(grpc.RpcError) as error:
         request = greeter_pb2.GreetingRequest(name='test_payload_cancellation')
         await grpc_client.SayHello(request, wait_for_ready=True, timeout=0.1)
-        assert False
-    except grpc.RpcError as error:
-        assert error.details() == 'Deadline Exceeded'
-        assert error.code() == grpc.StatusCode.DEADLINE_EXCEEDED
+    assert error.value.details() == 'Deadline Exceeded'
+    assert error.value.code() == grpc.StatusCode.DEADLINE_EXCEEDED
 
     await cancel_testpoint.wait_call()

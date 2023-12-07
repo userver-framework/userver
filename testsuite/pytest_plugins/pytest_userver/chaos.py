@@ -68,8 +68,8 @@ async def _yield() -> None:
     # Minamal delay can be 0. This will be fast path for coroutine switching
     # https://docs.python.org/3/library/asyncio-task.html#sleeping
 
-    _MIN_DELAY = 0
-    await asyncio.sleep(_MIN_DELAY)
+    min_delay = 0
+    await asyncio.sleep(min_delay)
 
 
 def _try_get_message(
@@ -78,11 +78,11 @@ def _try_get_message(
 
     try:
         return recv_socket.recvfrom(RECV_MAX_SIZE, socket.MSG_PEEK)
-    except socket.error as e:
-        err = e.args[0]
+    except socket.error as exc:
+        err = exc.args[0]
         if err in {errno.EAGAIN, errno.EWOULDBLOCK}:
             return None, None
-        raise e
+        raise exc
 
 
 async def _wait_for_message_task(

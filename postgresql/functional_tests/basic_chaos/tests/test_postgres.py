@@ -2,7 +2,6 @@ import logging
 import socket
 
 import pytest
-
 from pytest_userver import chaos
 
 import utils
@@ -310,11 +309,11 @@ async def _intercept_server_terminated(
     # then send an error message instead of 'Z' and
     # close the socket immediately after that.
     data = b''
-    n = -1
-    while n < 0:
+    n_bytes = -1
+    while n_bytes < 0:
         data += await loop.sock_recv(socket_from, 4096)
-        n = data.find(ready_for_query)
-    await loop.sock_sendall(socket_to, data[:n])
+        n_bytes = data.find(ready_for_query)
+    await loop.sock_sendall(socket_to, data[:n_bytes])
     await loop.sock_sendall(socket_to, error_msg)
     raise chaos.GateInterceptException('Closing socket after error')
 

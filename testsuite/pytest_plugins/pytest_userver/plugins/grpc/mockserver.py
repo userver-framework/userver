@@ -76,10 +76,10 @@ def grpc_mockserver_endpoint(pytestconfig, _grpc_port) -> str:
 def _find_free_port() -> int:
     with contextlib.closing(
             socket.socket(socket.AF_INET6, socket.SOCK_STREAM),
-    ) as s:
-        s.bind(('', 0))
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        return s.getsockname()[1]
+    ) as sock:
+        sock.bind(('', 0))
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        return sock.getsockname()[1]
 
 
 @pytest.fixture(scope='session')

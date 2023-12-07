@@ -1,3 +1,4 @@
+import pytest
 import websockets
 
 
@@ -11,11 +12,9 @@ async def test_echo(websocket_client):
 async def test_close_by_server(websocket_client):
     async with websocket_client.get('chat') as chat:
         await chat.send('close')
-        try:
+        with pytest.raises(websockets.exceptions.ConnectionClosedOK) as exc:
             await chat.recv()
-            assert False
-        except websockets.exceptions.ConnectionClosedOK as e:
-            assert e.rcvd.code == 1001
+        assert exc.value.rcvd.code == 1001
 
 
 async def test_ping(websocket_client):
@@ -56,12 +55,10 @@ async def test_cycle(websocket_client):
 async def test_too_big(websocket_client):
     async with websocket_client.get('chat') as chat:
         msg = 'hello' * 100000
-        try:
+        with pytest.raises(websockets.exceptions.ConnectionClosed) as exc:
             await chat.send(msg)
             await chat.recv()
-            assert False
-        except websockets.exceptions.ConnectionClosed as e:
-            assert e.rcvd.code == 1009
+        assert exc.value.rcvd.code == 1009
 
 
 async def test_origin(service_client, service_port):

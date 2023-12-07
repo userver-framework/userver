@@ -31,7 +31,6 @@ USERVER_CONFIG_HOOKS = [
     'userver_config_http_client',
     'userver_config_logging',
     'userver_config_testsuite',
-    'userver_config_testsuite_support',
     'userver_config_secdist',
 ]
 
@@ -103,8 +102,8 @@ def pytest_addoption(parser) -> None:
 # @endcond
 
 
-@pytest.fixture(scope='session')
-def service_config_path(pytestconfig) -> pathlib.Path:
+@pytest.fixture(name='service_config_path', scope='session')
+def _service_config_path(pytestconfig) -> pathlib.Path:
     """
     Returns the path to service.yaml file set by command line
     `--service-config` option.
@@ -116,8 +115,8 @@ def service_config_path(pytestconfig) -> pathlib.Path:
     return pytestconfig.option.service_config
 
 
-@pytest.fixture(scope='session')
-def service_config_vars_path(pytestconfig) -> typing.Optional[pathlib.Path]:
+@pytest.fixture(name='service_config_vars_path', scope='session')
+def _service_config_vars_path(pytestconfig) -> typing.Optional[pathlib.Path]:
     """
     Returns the path to config_vars.yaml file set by command line
     `--service-config-vars` option.
@@ -130,8 +129,8 @@ def service_config_vars_path(pytestconfig) -> typing.Optional[pathlib.Path]:
     return pytestconfig.option.service_config_vars
 
 
-@pytest.fixture(scope='session')
-def service_secdist_path(pytestconfig) -> typing.Optional[pathlib.Path]:
+@pytest.fixture(name='service_secdist_path', scope='session')
+def _service_secdist_path(pytestconfig) -> typing.Optional[pathlib.Path]:
     """
     Returns the path to secure_data.json file set by command line
     `--service-secdist` option.
@@ -158,8 +157,8 @@ def config_fallback_path(pytestconfig) -> pathlib.Path:
     return pytestconfig.option.config_fallback
 
 
-@pytest.fixture(scope='session')
-def service_tmpdir(service_binary, tmp_path_factory):
+@pytest.fixture(name='service_tmpdir', scope='session')
+def _service_tmpdir(service_binary, tmp_path_factory):
     """
     Returns the path for temporary files. The path is the same for the whole
     session and files are not removed (at least by this fixture) between
@@ -194,8 +193,8 @@ def service_config_path_temp(
     return dst_path
 
 
-@pytest.fixture(scope='session')
-def service_config_yaml(_service_config) -> dict:
+@pytest.fixture(name='service_config_yaml', scope='session')
+def _service_config_yaml(_service_config) -> dict:
     """
     Returns the static config values after the USERVER_CONFIG_HOOKS were
     applied (if any).
@@ -287,8 +286,8 @@ def userver_config_http_server(service_port, monitor_port):
     return _patch_config
 
 
-@pytest.fixture(scope='session')
-def allowed_url_prefixes_extra() -> typing.List[str]:
+@pytest.fixture(name='allowed_url_prefixes_extra', scope='session')
+def _allowed_url_prefixes_extra() -> typing.List[str]:
     """
     By default, userver HTTP client is only allowed to talk to mockserver
     when running in testsuite. This makes tests repeatable and encapsulated.
@@ -358,35 +357,18 @@ def userver_config_logging(pytestconfig):
 
 
 @pytest.fixture(scope='session')
-def userver_config_testsuite(mockserver_info):
+def userver_config_testsuite(pytestconfig, mockserver_info):
     """
     Returns a function that adjusts the static configuration file for testsuite.
-    Sets the `testsuite-enabled` in config_vars.yaml to `True`; sets the
-    `tests-control.testpoint-url` to mockserver URL.
 
-    @ingroup userver_testsuite_fixtures
-    """
-
-    def _patch_config(config_yaml, config_vars):
-        config_vars['testsuite-enabled'] = True
-        components = config_yaml['components_manager']['components']
-        if 'tests-control' in components:
-            components['tests-control']['testpoint-url'] = mockserver_info.url(
-                'testpoint',
-            )
-
-    return _patch_config
-
-
-@pytest.fixture(scope='session')
-def userver_config_testsuite_support(pytestconfig):
-    """
-    Returns a function that adjusts the static configuration file for testsuite.
     Sets up `testsuite-support` component, which:
 
     - increases timeouts for userver drivers
     - disables periodic cache updates
     - enables testsuite tasks
+
+    Sets the `testsuite-enabled` in config_vars.yaml to `True`; sets the
+    `tests-control.testpoint-url` to mockserver URL.
 
     @ingroup userver_testsuite_fixtures
     """
@@ -419,6 +401,12 @@ def userver_config_testsuite_support(pytestconfig):
             'testsuite-periodic-dumps-enabled'
         ] = '$userver-dumps-periodic'
         components['testsuite-support'] = testsuite_support
+
+        config_vars['testsuite-enabled'] = True
+        if 'tests-control' in components:
+            components['tests-control']['testpoint-url'] = mockserver_info.url(
+                'testpoint',
+            )
 
     return patch_config
 

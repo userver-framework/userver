@@ -28,11 +28,11 @@ class RedisClusterTopologyError(Exception):
 
 
 def _get_base_path() -> str:
-    PACKAGE_DIR = (
+    package_dir = (
         'taxi/uservices/userver/redis/'
         'functional_tests/pytest_redis_cluster_topology_plugin/package'
     )
-    return yatest.common.build_path(PACKAGE_DIR)
+    return yatest.common.build_path(package_dir)
 
 
 def _get_prefixed_path(*path_parts: str) -> str:
@@ -68,7 +68,7 @@ def _get_data_directory():
 
 class _RedisClusterNode:
     def __init__(self, host: str, port: int, cluster_port: int):
-        CONFIG_NAME = 'cluster.conf'
+        config_name = 'cluster.conf'
         self.host = host
         self.port = port
         self.cluster_port = cluster_port
@@ -76,7 +76,7 @@ class _RedisClusterNode:
             _get_data_directory(), f'redis_{host}:{port}',
         )
         self.pid_path = os.path.join(self.data_directory, 'redis.pid')
-        self.config_path = os.path.join(self.data_directory, CONFIG_NAME)
+        self.config_path = os.path.join(self.data_directory, config_name)
         self.log_path = os.path.join(self.data_directory, 'redis.log')
         shutil.rmtree(self.data_directory, ignore_errors=True)
         os.makedirs(self.data_directory, exist_ok=True)
@@ -315,7 +315,7 @@ class RedisClusterTopology:
             self._move_hash_slots(new_master, master, slot_count)
         new_master_id = new_master.get_client().cluster('myid').decode()
         new_replica_id = new_replica.get_client().cluster('myid').decode()
-        t0 = time.time()
+        time0 = time.time()
         for node in original_masters:
             client = node.get_client()
             client.cluster('forget', new_master_id)
@@ -324,12 +324,12 @@ class RedisClusterTopology:
             client = node.get_client()
             client.cluster('forget', new_master_id)
             client.cluster('forget', new_replica_id)
-        t1 = time.time()
+        time1 = time.time()
         # Try to debug test flaps (TAXICOMMON-7684) with removing shard.
         # Maybe we somehow remove nodes so long that ban-list period of first
         # notified node elapses and it is getting removed node from gossip
         # again
-        if t1 - t0 >= 60.0:
+        if time1 - time0 >= 60.0:
             raise RuntimeError(
                 'Failed to notify all cluster nodes about deleted'
                 ' nodes within 1 minute',

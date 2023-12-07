@@ -8,7 +8,6 @@ import string
 import struct
 
 import pytest
-
 from pytest_userver import chaos
 
 

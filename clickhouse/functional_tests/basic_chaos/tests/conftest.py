@@ -2,7 +2,6 @@ import json
 import typing
 
 import pytest
-
 from pytest_userver import chaos
 
 from testsuite.databases.clickhouse import discover
@@ -10,14 +9,14 @@ from testsuite.databases.clickhouse import discover
 pytest_plugins = ['pytest_userver.plugins.clickhouse']
 
 
-@pytest.fixture(scope='session')
-def gate_settings() -> typing.Tuple[str, int]:
+@pytest.fixture(name='gate_settings', scope='session')
+def _gate_settings() -> typing.Tuple[str, int]:
     return ('localhost', 19354)
 
 
 @pytest.fixture(scope='session')
 def service_env(gate_settings) -> dict:
-    SECDIST_CONFIG = {
+    secdist_config = {
         'clickhouse_settings': {
             'clickhouse-database-alias': {
                 'hosts': [gate_settings[0]],
@@ -29,7 +28,7 @@ def service_env(gate_settings) -> dict:
         },
     }
 
-    return {'SECDIST_CONFIG': json.dumps(SECDIST_CONFIG)}
+    return {'SECDIST_CONFIG': json.dumps(secdist_config)}
 
 
 @pytest.fixture(scope='session')

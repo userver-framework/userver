@@ -68,7 +68,7 @@ def pytest_addoption(parser) -> None:
     )
 
 
-def pytest_override_testsuite_logger(
+def pytest_override_testsuite_logger(  # pylint: disable=invalid-name
         config, line_logger: logger.LineLogger, colors_enabled: bool,
 ) -> typing.Optional[logger.Logger]:
     pretty_logs = config.option.service_logs_pretty
@@ -81,8 +81,8 @@ def pytest_override_testsuite_logger(
     )
 
 
-@pytest.fixture(scope='session')
-def service_env():
+@pytest.fixture(name='service_env', scope='session')
+def _service_env():
     """
     Override this to pass extra environment variables to the service.
 
@@ -92,8 +92,8 @@ def service_env():
     return None
 
 
-@pytest.fixture(scope='session')
-async def service_http_ping_url(
+@pytest.fixture(name='service_http_ping_url', scope='session')
+async def _service_http_ping_url(
         service_config_yaml, service_baseurl,
 ) -> typing.Optional[str]:
     """
@@ -113,12 +113,14 @@ async def service_http_ping_url(
     return None
 
 
-@pytest.fixture(scope='session')
-def service_non_http_health_checks(service_config_yaml) -> net.HealthChecks:
+@pytest.fixture(name='service_non_http_health_checks', scope='session')
+def _service_non_http_health_checks(  # pylint: disable=invalid-name
+        service_config_yaml,
+) -> net.HealthChecks:
     """
     Returns a health checks info.
 
-    By default returns pytest_userver.utils.net.get_health_checks_info().
+    By default, returns pytest_userver.utils.net.get_health_checks_info().
 
     Override this fixture to change the way testsuite detects the tested
     service being alive.
@@ -160,19 +162,19 @@ async def service_daemon(
         service_non_http_health_checks,
     )
 
-    class _local_counters:
+    class LocalCounters:
         last_log_time = 0.0
         attempts = 0
 
     async def _checker(*, session, process) -> bool:
-        _local_counters.attempts += 1
+        LocalCounters.attempts += 1
         new_log_time = time.monotonic()
-        if new_log_time - _local_counters.last_log_time > 1.0:
-            _local_counters.last_log_time = new_log_time
+        if new_log_time - LocalCounters.last_log_time > 1.0:
+            LocalCounters.last_log_time = new_log_time
             logger_testsuite.debug(
                 'userver fixture "service_daemon" checking "%s", attempt %s',
                 service_non_http_health_checks,
-                _local_counters.attempts,
+                LocalCounters.attempts,
             )
 
         return await net.check_availability(service_non_http_health_checks)

@@ -1,14 +1,13 @@
 # /// [service_non_http_health_checker]
 import pytest
-
 from pytest_userver.utils import net
 
 
 pytest_plugins = ['pytest_userver.plugins.core']
 
 
-@pytest.fixture(scope='session')
-def tcp_service_port(service_config_yaml) -> int:
+@pytest.fixture(name='tcp_service_port', scope='session')
+def _tcp_service_port(service_config_yaml) -> int:
     components = service_config_yaml['components_manager']['components']
     tcp_hello = components.get('tcp-hello')
     assert tcp_hello, 'No "tcp-hello" component found'

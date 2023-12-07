@@ -3,8 +3,8 @@ import pytest
 DP_TIMEOUT_MS = 'X-YaTaxi-Client-TimeoutMs'
 
 
-@pytest.fixture
-async def put_foo_value(service_client):
+@pytest.fixture(name='put_foo_value')
+async def _put_foo_value(service_client):
     response = await service_client.get('/v1/key-value?key=foo')
     if response.status_code == 200:
         return

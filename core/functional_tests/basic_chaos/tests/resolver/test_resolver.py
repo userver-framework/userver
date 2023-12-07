@@ -18,8 +18,8 @@ class CheckQuery(enum.Enum):
     NO_CHECK = 3
 
 
-@pytest.fixture
-def call(service_client, gen_domain_name, dns_mock_stats):
+@pytest.fixture(name='call')
+def _call(service_client, gen_domain_name, dns_mock_stats):
     async def _call(
             resolve: typing.Optional[str] = None,
             htype: str = 'resolve',
@@ -52,8 +52,8 @@ def call(service_client, gen_domain_name, dns_mock_stats):
     return _call
 
 
-@pytest.fixture
-def flush_resolver_cache(service_client):
+@pytest.fixture(name='flush_resolver_cache')
+def _flush_resolver_cache(service_client):
     async def _flush_resolver_cache():
         result = await service_client.get(
             '/chaos/resolver', params={'type': 'flush'},
@@ -70,9 +70,9 @@ async def _do_flush(flush_resolver_cache):
     await flush_resolver_cache()
 
 
-@pytest.fixture
-def check_restore(gate, call, flush_resolver_cache, gen_domain_name):
-    async def _check_restore(domain: typing.Optional[str] = None):
+@pytest.fixture(name='check_restore')
+def _check_restore(gate, call, flush_resolver_cache, gen_domain_name):
+    async def _do_restore(domain: typing.Optional[str] = None):
         gate.to_server_pass()
         gate.to_client_pass()
 
@@ -88,7 +88,7 @@ def check_restore(gate, call, flush_resolver_cache, gen_domain_name):
         assert response.status == 200
         assert response.text == SUCCESS_RESOLVE
 
-    return _check_restore
+    return _do_restore
 
 
 @pytest.fixture(autouse=True)

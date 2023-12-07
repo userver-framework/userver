@@ -16,8 +16,8 @@ def prepare_service_config():
     return patch_config
 
 
-@pytest.fixture(scope='session')
-def service_source_dir():
+@pytest.fixture(name='service_source_dir', scope='session')
+def _service_source_dir():
     """Path to root directory service."""
     return pathlib.Path(__file__).parent.parent
 

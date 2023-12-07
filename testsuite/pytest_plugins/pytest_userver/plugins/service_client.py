@@ -16,8 +16,8 @@ from pytest_userver import client
 logger = logging.getLogger(__name__)
 
 
-@pytest.fixture
-def extra_client_deps() -> None:
+@pytest.fixture(name='extra_client_deps')
+def _extra_client_deps() -> None:
     """
     Service client dependencies hook. Feel free to override, e.g.:
 
@@ -30,8 +30,8 @@ def extra_client_deps() -> None:
     """
 
 
-@pytest.fixture
-def auto_client_deps(request) -> None:
+@pytest.fixture(name='auto_client_deps')
+def _auto_client_deps(request) -> None:
     """
     Service client dependencies hook that knows about pgsql, mongodb,
     clickhouse, rabbitmq, redis_store, ydb, and mysql dependencies.
@@ -52,18 +52,18 @@ def auto_client_deps(request) -> None:
     }
 
     try:
-        FixtureLookupError = pytest.FixtureLookupError
+        fixture_lookup_error = pytest.FixtureLookupError
     except AttributeError:
         # support for an older version of the pytest
         import _pytest.fixtures
-        FixtureLookupError = _pytest.fixtures.FixtureLookupError
+        fixture_lookup_error = _pytest.fixtures.FixtureLookupError
 
     resolved_deps = []
     for dep in known_deps:
         try:
             request.getfixturevalue(dep)
             resolved_deps.append(dep)
-        except FixtureLookupError:
+        except fixture_lookup_error:
             pass
 
     logger.debug(
@@ -72,8 +72,8 @@ def auto_client_deps(request) -> None:
     )
 
 
-@pytest.fixture
-async def service_client(
+@pytest.fixture(name='service_client')
+async def _service_client(
         ensure_daemon_started,
         service_daemon,
         dynamic_config,
@@ -155,8 +155,10 @@ def monitor_client(
     return client.ClientMonitor(aiohttp_client)
 
 
-@pytest.fixture
-async def _service_client_base(service_baseurl, service_client_options):
+@pytest.fixture(name='_service_client_base')
+async def _service_client_base_fixture(
+        service_baseurl, service_client_options,
+):
     class _ClientDiagnose(base_service_client.Client):
         def __getattr__(self, name: str) -> None:
             raise AttributeError(
@@ -172,8 +174,8 @@ async def _service_client_base(service_baseurl, service_client_options):
     return _ClientDiagnose(service_baseurl, **service_client_options)
 
 
-@pytest.fixture
-def _service_client_testsuite(
+@pytest.fixture(name='_service_client_testsuite')
+def _service_client_testsuite_fixture(
         service_baseurl,
         service_client_options,
         mocked_time,
@@ -196,8 +198,8 @@ def _service_client_testsuite(
     return client.Client(aiohttp_client)
 
 
-@pytest.fixture(scope='session')
-def service_baseurl(service_port) -> str:
+@pytest.fixture(name='service_baseurl', scope='session')
+def _service_baseurl(service_port) -> str:
     """
     Returns the main listener URL of the service.
 
@@ -209,8 +211,8 @@ def service_baseurl(service_port) -> str:
     return f'http://localhost:{service_port}/'
 
 
-@pytest.fixture(scope='session')
-def monitor_baseurl(monitor_port) -> str:
+@pytest.fixture(name='monitor_baseurl', scope='session')
+def _monitor_baseurl(monitor_port) -> str:
     """
     Returns the main monitor URL of the service.
 

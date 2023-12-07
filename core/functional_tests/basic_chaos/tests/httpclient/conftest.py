@@ -1,7 +1,6 @@
 import logging
 
 import pytest
-
 from pytest_userver import chaos
 
 

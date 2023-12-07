@@ -4,8 +4,8 @@ import pytest
 MULTIPLE_CHUNKS_BODY_SIZE = 1000000
 
 
-@pytest.fixture
-def call(service_client, for_client_gate_port):
+@pytest.fixture(name='call')
+def _call(service_client, for_client_gate_port):
     async def _call(**args):
         return await service_client.get(
             '/chaos/httpclient/stream',
@@ -66,15 +66,15 @@ async def test_stop_accepting(call, gate, mockserver):
 async def test_close_after_headers(call, gate, mockserver):
     @mockserver.handler('/test')
     async def mock(request):
-        if on:
+        if should_close_sockets:
             await gate.sockets_close()
         return mockserver.make_response('OK!')
 
-    on = True
+    should_close_sockets = True
     response = await call()
     assert response.status == 500
 
-    on = False
+    should_close_sockets = False
     # It takes some time in Arcadia CI to restore connection
     response = await call(timeout=30)
     assert response.status == 200

@@ -1,8 +1,8 @@
 import pytest
 
 
-@pytest.fixture
-def call(service_client, for_client_gate_port, gate):
+@pytest.fixture(name='call')
+def _call(service_client, for_client_gate_port, gate):
     async def _call(htype='common', headers=None, **args):
         return await service_client.get(
             '/chaos/httpclient',
@@ -13,8 +13,8 @@ def call(service_client, for_client_gate_port, gate):
     return _call
 
 
-@pytest.fixture
-def ok_mock(mockserver):
+@pytest.fixture(name='ok_mock')
+def _ok_mock(mockserver):
     @mockserver.handler('/test')
     async def mock(_request):
         return mockserver.make_response('OK!')
@@ -51,15 +51,15 @@ async def test_stop_accepting(call, gate, ok_mock):
 async def test_close_after_headers(call, gate, mockserver):
     @mockserver.handler('/test')
     async def _mock(request):
-        if on:
+        if should_close_sockets:
             await gate.sockets_close()
         return mockserver.make_response('OK!')
 
-    on = True
+    should_close_sockets = True
     response = await call()
     assert response.status == 500
 
-    on = False
+    should_close_sockets = False
     response = await call()
     assert response.status == 200
 

@@ -7,8 +7,8 @@ DP_DEADLINE_EXPIRED = 'X-YaTaxi-Deadline-Expired'
 VERSION = {'version': '2'}
 
 
-@pytest.fixture
-def call(service_client, mockserver_info):
+@pytest.fixture(name='call')
+def _call(service_client, mockserver_info):
     async def _call(htype='common', headers=None, **args):
         return await service_client.get(
             '/chaos/httpclient',
@@ -19,8 +19,8 @@ def call(service_client, mockserver_info):
     return _call
 
 
-@pytest.fixture
-def ok_mock(mockserver):
+@pytest.fixture(name='ok_mock')
+def _ok_mock(mockserver):
     @mockserver.handler('/test')
     async def mock(_request):
         return mockserver.make_response('OK!')
@@ -28,8 +28,8 @@ def ok_mock(mockserver):
     return mock
 
 
-@pytest.fixture
-def slow_mock(mockserver):
+@pytest.fixture(name='slow_mock')
+def _slow_mock(mockserver):
     @mockserver.handler('/test')
     async def mock(request):
         assert DP_TIMEOUT_MS in request.headers
@@ -39,8 +39,8 @@ def slow_mock(mockserver):
     return mock
 
 
-@pytest.fixture
-async def client_metrics(service_client, monitor_client):
+@pytest.fixture(name='client_metrics')
+async def _client_metrics(service_client, monitor_client):
     # Give metrics and logs from the previous tests some time
     # to be written out asynchronously.
     await asyncio.sleep(0.1)
@@ -191,8 +191,8 @@ async def test_deadline_expired(
     assert 'clients::http::CancelException' in logs[0]['text']
 
 
-@pytest.fixture
-def fake_deadline_expired_mock(mockserver):
+@pytest.fixture(name='fake_deadline_expired_mock')
+def _fake_deadline_expired_mock(mockserver):
     @mockserver.handler('/test')
     async def mock(request):
         assert DP_TIMEOUT_MS in request.headers

@@ -94,9 +94,9 @@ async def _validate_service_publish(service_client, nodes, shards_range):
 
                 await _ensure_published(pubsub, msg.encode())
                 return
-            except Exception as e:  # pylint: disable=broad-except
-                print(f'Pubsub validation failed for shard {shard}: {e}')
-            asyncio.sleep(REQUESTS_RELAX_TIME)
+            except Exception as exc:  # pylint: disable=broad-except
+                print(f'Pubsub validation failed for shard {shard}: {exc}')
+            await asyncio.sleep(REQUESTS_RELAX_TIME)
         assert False, f'Retries exceeded: shard={shard}'
 
     for node, redis_client in redis_clients:
@@ -160,9 +160,9 @@ async def _validate_service_spublish(service_client, nodes):
                     pubsub, channel_name.encode(), msg.encode(),
                 )
                 return
-            except Exception as e:  # pylint: disable=broad-except
-                print(f'Spubsub validation failed for {channel_name}: {e}')
-            asyncio.sleep(REQUESTS_RELAX_TIME)
+            except Exception as exc:  # pylint: disable=broad-except
+                print(f'Spubsub validation failed for {channel_name}: {exc}')
+            await asyncio.sleep(REQUESTS_RELAX_TIME)
         assert False, f'Retries exceeded: shard={channel_name}'
 
     # create redis cluster client
@@ -200,8 +200,8 @@ async def _check_shard_count(service_client, expected_shard_count):
             assert response.status == 200
             if response.content == expected:
                 return
-        except Exception as e:  # pylint: disable=broad-except
-            print(f'Exception in _check_shard_count: {e}')
+        except Exception as exc:  # pylint: disable=broad-except
+            print(f'Exception in _check_shard_count: {exc}')
         await asyncio.sleep(REQUESTS_RELAX_TIME)
     assert False, 'Retries exceeded'
 

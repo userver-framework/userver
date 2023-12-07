@@ -21,8 +21,8 @@ pytest_plugins = [
 USERVER_CONFIG_HOOKS = ['userver_pg_config']
 
 
-@pytest_asyncio.fixture(scope='session')
-async def testenv(
+@pytest_asyncio.fixture(name='testenv', scope='session')
+async def _testenv(
         service_source_dir: pathlib.Path,
 ) -> it.databases.pgsql.EnvPgsqlDocker:
     env = it.databases.pgsql.EnvPgsqlDocker(pgsql_replicas=1)

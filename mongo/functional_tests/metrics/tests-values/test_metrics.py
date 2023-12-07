@@ -16,8 +16,8 @@ class MetricsDiff:
         return self.after.value_at(**kwargs) - self.before.value_at(**kwargs)
 
 
-@pytest.fixture
-def collect_metrics(service_client, monitor_client, mocked_time):
+@pytest.fixture(name='collect_metrics')
+def _collect_metrics(service_client, monitor_client, mocked_time):
     @contextlib.asynccontextmanager
     async def func(**kwargs):
         # Let old RecentPeriod metrics fall out of range

@@ -9,7 +9,7 @@ pytest_plugins = ['pytest_userver.plugins.clickhouse']
 
 @pytest.fixture(scope='session')
 def service_env(clickhouse_conn_info) -> dict:
-    SECDIST_CONFIG = {
+    secdist_config = {
         'clickhouse_settings': {
             'clickhouse-database-alias': {
                 'hosts': [clickhouse_conn_info.host],
@@ -21,7 +21,7 @@ def service_env(clickhouse_conn_info) -> dict:
         },
     }
 
-    return {'SECDIST_CONFIG': json.dumps(SECDIST_CONFIG)}
+    return {'SECDIST_CONFIG': json.dumps(secdist_config)}
 
 
 @pytest.fixture(scope='session')

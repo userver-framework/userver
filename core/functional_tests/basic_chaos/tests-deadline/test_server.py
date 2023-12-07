@@ -13,8 +13,8 @@ DP_TIMEOUT_MS = 'X-YaTaxi-Client-TimeoutMs'
 DP_DEADLINE_EXPIRED = 'X-YaTaxi-Deadline-Expired'
 
 
-@pytest.fixture
-def call(service_client):
+@pytest.fixture(name='call')
+def _call(service_client):
     async def _call(
             htype: str = 'common',
             data: typing.Any = None,
@@ -47,8 +47,8 @@ def _check_deadline_propagation_response(response):
     assert response.json()['message'] == 'Deadline expired'
 
 
-@pytest.fixture
-async def handler_metrics(monitor_client):
+@pytest.fixture(name='handler_metrics')
+async def _handler_metrics(monitor_client):
     return monitor_client.metrics_diff(
         prefix='http.handler.total', diff_gauge=True,
     )

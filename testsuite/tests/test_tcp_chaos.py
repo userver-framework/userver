@@ -500,11 +500,8 @@ async def test_wait_for_connections(
     await _assert_data_from_to(server_connection, tcp_client, loop)
     await _assert_data_from_to(tcp_client, server_connection, loop)
 
-    try:
+    with pytest.raises(asyncio.TimeoutError):
         await gate.wait_for_connections(count=2, timeout=_NOTICEABLE_DELAY)
-        assert False
-    except asyncio.TimeoutError:
-        pass
 
     tcp_client2 = await _make_client(loop, gate)
     server_connection2 = await tcp_server.accept()
@@ -528,14 +525,11 @@ async def test_start_stop_accepting(
 
     tcp_client2 = await _make_client(loop, gate)
 
-    try:
+    with pytest.raises(asyncio.TimeoutError):
         await asyncio.wait_for(
             asyncio.create_task(tcp_server.accept()),
             timeout=_NOTICEABLE_DELAY,
         )
-        assert False
-    except asyncio.TimeoutError:
-        pass
 
     gate.start_accepting()
 
@@ -553,20 +547,14 @@ async def test_start_stop_gate(
     await gate.stop()
     assert gate.connections_count() == 0
 
-    try:
+    with pytest.raises(ConnectionRefusedError):
         await _make_client(loop, gate)
-        assert False
-    except ConnectionRefusedError:
-        pass
 
-    try:
+    with pytest.raises(asyncio.TimeoutError):
         await asyncio.wait_for(
             asyncio.create_task(tcp_server.accept()),
             timeout=_NOTICEABLE_DELAY,
         )
-        assert False
-    except asyncio.TimeoutError:
-        pass
 
     gate.start()
     tcp_client2 = await _make_client(loop, gate)

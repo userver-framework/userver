@@ -2,7 +2,6 @@ import json
 import typing
 
 import pytest
-
 from pytest_userver import chaos
 
 from testsuite.databases.redis import service
@@ -10,13 +9,13 @@ from testsuite.databases.redis import service
 pytest_plugins = ['pytest_userver.plugins.redis']
 
 
-@pytest.fixture(scope='session')
-def sentinel_gate_settings() -> typing.Tuple[str, int]:
+@pytest.fixture(name='sentinel_gate_settings', scope='session')
+def _sentinel_gate_settings() -> typing.Tuple[str, int]:
     return ('localhost', 27379)
 
 
-@pytest.fixture(scope='session')
-def master_gate_settings() -> typing.Tuple[str, int]:
+@pytest.fixture(name='master_gate_settings', scope='session')
+def _master_gate_settings() -> typing.Tuple[str, int]:
     return ('localhost', 17379)
 
 

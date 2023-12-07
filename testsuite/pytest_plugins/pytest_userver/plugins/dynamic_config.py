@@ -80,8 +80,8 @@ class DynamicConfig:
         )
 
 
-@pytest.fixture
-def dynamic_config(
+@pytest.fixture(name='dynamic_config')
+def _dynamic_config(
         request,
         search_path,
         load_json,
@@ -123,8 +123,8 @@ def taxi_config(dynamic_config) -> DynamicConfig:
     return dynamic_config
 
 
-@pytest.fixture(scope='session')
-def dynamic_config_fallback_patch() -> typing.Dict[str, typing.Any]:
+@pytest.fixture(name='dynamic_config_fallback_patch', scope='session')
+def _dynamic_config_fallback_patch() -> typing.Dict[str, typing.Any]:
     """
     Override this fixture to replace some dynamic config values specifically
     for testsuite tests:
@@ -140,8 +140,8 @@ def dynamic_config_fallback_patch() -> typing.Dict[str, typing.Any]:
     return {}
 
 
-@pytest.fixture(scope='session')
-def config_service_defaults(
+@pytest.fixture(name='config_service_defaults', scope='session')
+def _config_service_defaults(
         config_fallback_path, dynamic_config_fallback_patch,
 ) -> typing.Dict[str, typing.Any]:
     """
@@ -169,7 +169,7 @@ def config_service_defaults(
     raise RuntimeError(
         'Either provide the path to dynamic config defaults file using '
         '--config-fallback pytest option, or override '
-        f'{config_service_defaults.__name__} fixture to provide custom '
+        f'{_config_service_defaults.__name__} fixture to provide custom '
         'dynamic config loading behavior.',
     )
 

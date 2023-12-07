@@ -98,8 +98,8 @@ def _ydb_state():
     return State()
 
 
-@pytest.fixture
-def ydb_migrate_dir(service_source_dir) -> pathlib.Path:
+@pytest.fixture(name='ydb_migrate_dir')
+def _ydb_migrate_dir(service_source_dir) -> pathlib.Path:
     return service_source_dir / 'ydb' / 'migrations'
 
 

@@ -26,8 +26,8 @@ def mongodb_settings():
     return MONGO_COLLECTIONS
 
 
-@pytest.fixture
-async def force_mocked_time_for_metrics(service_client):
+@pytest.fixture(name='force_mocked_time_for_metrics')
+async def _force_mocked_time_for_metrics(service_client):
     # mocked_time is not automatically propagated to the service
     # when using service_monitor.
     await service_client.update_server_state()

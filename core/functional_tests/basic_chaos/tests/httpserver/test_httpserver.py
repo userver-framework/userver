@@ -33,8 +33,8 @@ class ErrorType(enum.Enum):
     UNKNOWN = -1
 
 
-@pytest.fixture
-def call(modified_service_client, gate):
+@pytest.fixture(name='call')
+def _call(modified_service_client, gate):
     async def _call(
             htype: str = 'common',
             data: typing.Any = None,
@@ -63,15 +63,15 @@ def call(modified_service_client, gate):
             return ErrorType.RESET_BY_PEER
         except exceptions.ClientResponseError:
             return ErrorType.BAD_REQUEST
-        except Exception as ex:
-            logger.error(f'Unknown exception {ex}')
+        except Exception as exception:
+            logger.error(f'Unknown exception {exception}')
             return ErrorType.UNKNOWN
 
     return _call
 
 
-@pytest.fixture
-def check_restore(gate, call):
+@pytest.fixture(name='check_restore')
+def _check_restore(gate, call):
     async def _check_restore():
         gate.to_server_pass()
         gate.to_client_pass()
@@ -127,14 +127,14 @@ async def test_stop_accepting(call, gate, check_restore):
 async def test_close_during_request(call, gate, testpoint):
     @testpoint('testpoint_request')
     async def _hook(_data):
-        if on:
+        if should_close_sockets:
             await gate.sockets_close()
 
-    on = True
+    should_close_sockets = True
     response = await call()
     assert response == ErrorType.DISCONNECT
 
-    on = False
+    should_close_sockets = False
     response = await call()
     assert response.status == 200
     assert gate.connections_count() >= 1
@@ -221,8 +221,8 @@ def _check_deadline_propagation_response(response):
     assert response.json()['message'] == 'Deadline expired'
 
 
-@pytest.fixture
-async def handler_metrics(monitor_client, gate):
+@pytest.fixture(name='handler_metrics')
+async def _handler_metrics(monitor_client, gate):
     # Give metrics and logs from the previous tests some time
     # to be written out asynchronously.
     await asyncio.sleep(0.1)

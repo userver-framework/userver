@@ -28,21 +28,18 @@ def validate_alerts(alerts):
     assert re.match(CONFIG_PATTERN, alerts[0]['message'])
 
 
-@pytest.fixture
-def break_config(service_client, dynamic_config):
+@pytest.fixture(name='break_config')
+def _break_config(service_client, dynamic_config):
     async def do_break():
         dynamic_config.set(HTTP_CLIENT_CONNECTION_POOL_SIZE='invalid')
-        try:
+        with pytest.raises(http.HttpResponseError):
             await service_client.update_server_state()
-            assert False, 'Dynamic config cache update should fail'
-        except http.HttpResponseError:
-            pass
 
     return do_break
 
 
-@pytest.fixture
-def fix_config(service_client, dynamic_config):
+@pytest.fixture(name='fix_config')
+def _fix_config(service_client, dynamic_config):
     async def do_fix():
         dynamic_config.set(HTTP_CLIENT_CONNECTION_POOL_SIZE=1000)
         await service_client.update_server_state()

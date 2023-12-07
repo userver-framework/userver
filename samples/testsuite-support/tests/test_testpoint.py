@@ -1,5 +1,4 @@
 import pytest
-
 import pytest_userver.plugins.testpoint
 
 

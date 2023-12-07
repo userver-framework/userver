@@ -1,5 +1,4 @@
 import pytest
-
 from pytest_userver import chaos
 
 from testsuite.databases.mongo import connection
