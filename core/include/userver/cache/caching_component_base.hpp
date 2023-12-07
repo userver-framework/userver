@@ -84,6 +84,18 @@ namespace components {
 ///    on the first update, afterwards UpdateType::kIncremental will be triggered
 ///    each `update-interval` (adjusted by jitter).
 ///
+/// ### Avoiding memory leaks
+/// If you don't implement the deletion of objects that are deleted from the data source and don't use full updates,
+/// you may get an effective memory leak, because garbage objects will pile up in the cached data.
+///
+/// Calculation example:
+/// * size of database: 1000 objects
+/// * removal rate: 30 objects per minute (0.5 objects per second)
+///
+/// Let's say we allow 20% extra garbage objects in cache in addition to the actual objects from the database. In this case we need:
+///
+/// full-update-interval = (size-of-database * 20% / removal-rate) = 400s
+///
 /// ### `first-update-mode` modes
 /// Mode          | Description
 /// ------------- | -----------

@@ -57,6 +57,9 @@ namespace components {
 ///
 /// Optionally the operation timeouts for cache loading can be specified.
 ///
+/// ### Avoiding memory leaks
+/// components::CachingComponentBase
+///
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// full-update-op-timeout | timeout for a full update | 1m
