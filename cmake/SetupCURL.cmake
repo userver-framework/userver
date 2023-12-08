@@ -8,6 +8,13 @@ if (NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
   endif()
 
   if (CURL_FOUND)
+      if (${CURL_VERSION_STRING} VERSION_GREATER_EQUAL "7.88.0" AND
+          ${CURL_VERSION_STRING} VERSION_LESS_EQUAL "8.1.2")
+          message(FATAL_ERROR
+              "libcurl versions from 7.88.0 to 8.1.2 may crash on HTTP/2 "
+              "requests and thus unsupported, upgrade or turn on USERVER_DOWNLOAD_PACKAGE_CURL"
+          )
+      endif()
       return()
   endif()
 endif()
