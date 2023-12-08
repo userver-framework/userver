@@ -1,5 +1,7 @@
 #include <userver/clients/http/component.hpp>
 
+#include <curl/curlver.h>
+
 #include <userver/clients/dns/resolver_utils.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/headers_propagator_component.hpp>
