@@ -48,6 +48,11 @@ Transaction Cluster::Begin(const std::string& name, ClusterHostTypeFlags flags,
   return pimpl_->Begin(flags, options, GetHandlersCmdCtl(GetQueryCmdCtl(name)));
 }
 
+NotifyScope Cluster::Listen(std::string_view channel,
+                            OptionalCommandControl cmd_ctl) {
+  return pimpl_->Listen(channel, cmd_ctl);
+}
+
 void Cluster::SetDefaultCommandControl(CommandControl cmd_ctl) {
   pimpl_->SetDefaultCommandControl(cmd_ctl,
                                    detail::DefaultCommandControlSource::kUser);

@@ -280,6 +280,11 @@ NonTransaction ClusterImpl::Start(ClusterHostTypeFlags flags,
   return FindPool(flags)->Start(cmd_ctl);
 }
 
+NotifyScope ClusterImpl::Listen(std::string_view channel,
+                                OptionalCommandControl cmd_ctl) {
+  return FindPool(ClusterHostType::kMaster)->Listen(channel, cmd_ctl);
+}
+
 void ClusterImpl::SetDefaultCommandControl(CommandControl cmd_ctl,
                                            DefaultCommandControlSource source) {
   default_cmd_ctls_.UpdateDefaultCmdCtl(cmd_ctl, source);

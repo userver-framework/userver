@@ -87,6 +87,10 @@ class ConnectionImpl {
                           const std::string& portal_name, std::uint32_t n_rows,
                           OptionalCommandControl statement_cmd_ctl);
 
+  void Listen(std::string_view channel, OptionalCommandControl);
+  void Unlisten(std::string_view channel, OptionalCommandControl);
+  Notification WaitNotify(engine::Deadline deadline);
+
   void CancelAndCleanup(TimeoutDuration timeout);
   bool Cleanup(TimeoutDuration timeout);
 
@@ -123,6 +127,7 @@ class ConnectionImpl {
 
   void SetTransactionCommandControl(CommandControl cmd_ctl);
 
+  TimeoutDuration ExecuteTimeout(OptionalCommandControl) const;
   TimeoutDuration CurrentExecuteTimeout() const;
 
   void SetConnectionStatementTimeout(TimeoutDuration timeout,

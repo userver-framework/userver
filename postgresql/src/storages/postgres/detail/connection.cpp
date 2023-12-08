@@ -158,6 +158,20 @@ const UserTypes& Connection::GetUserTypes() const {
   return pimpl_->GetUserTypes();
 }
 
+void Connection::Listen(std::string_view channel,
+                        OptionalCommandControl cmd_ctl) {
+  pimpl_->Listen(channel, cmd_ctl);
+}
+
+void Connection::Unlisten(std::string_view channel,
+                          OptionalCommandControl cmd_ctl) {
+  pimpl_->Unlisten(channel, cmd_ctl);
+}
+
+Notification Connection::WaitNotify(engine::Deadline deadline) {
+  return pimpl_->WaitNotify(deadline);
+}
+
 TimeoutDuration Connection::GetIdleDuration() const {
   return pimpl_->GetIdleDuration();
 }

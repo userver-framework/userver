@@ -18,6 +18,7 @@
 #include <storages/postgres/detail/topology/base.hpp>
 #include <userver/storages/postgres/cluster_types.hpp>
 #include <userver/storages/postgres/detail/non_transaction.hpp>
+#include <userver/storages/postgres/notify.hpp>
 #include <userver/storages/postgres/options.hpp>
 #include <userver/storages/postgres/statistics.hpp>
 #include <userver/storages/postgres/transaction.hpp>
@@ -45,6 +46,8 @@ class ClusterImpl {
                     OptionalCommandControl);
 
   NonTransaction Start(ClusterHostTypeFlags, OptionalCommandControl);
+
+  NotifyScope Listen(std::string_view channel, OptionalCommandControl);
 
   void SetDefaultCommandControl(CommandControl, DefaultCommandControlSource);
   CommandControl GetDefaultCommandControl() const;

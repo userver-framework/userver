@@ -399,4 +399,34 @@ UTEST_F(PostgreCluster, NonTransactionExecuteWithParameterStoreMove) {
   }
 }
 
+UTEST_F(PostgreCluster, ListenNotify) {
+  constexpr auto kListenChannel = std::string_view{"foo"};
+  constexpr auto kNotifyPayload = std::string_view{"bar"};
+  static const auto kNotifyDeadline =
+      engine::Deadline::FromDuration(std::chrono::milliseconds{100});
+
+  testsuite::TestsuiteTasks testsuite_tasks{true};
+  auto cluster = CreateCluster(GetDsnListFromEnv(), GetTaskProcessor(), 2,
+                               testsuite_tasks);
+
+  auto scope = cluster.Listen(kListenChannel);
+
+  UEXPECT_NO_THROW(cluster.Execute(pg::ClusterHostType::kMaster,
+                                   "select pg_notify($1, NULL)",
+                                   kListenChannel));
+  UEXPECT_NO_THROW(cluster.Execute(pg::ClusterHostType::kMaster,
+                                   "select pg_notify($1, $2)", kListenChannel,
+                                   kNotifyPayload));
+
+  auto ntf = scope.WaitNotify(kNotifyDeadline);
+  EXPECT_EQ(ntf.channel, kListenChannel);
+  EXPECT_FALSE(ntf.payload);
+
+  ntf = scope.WaitNotify(kNotifyDeadline);
+  EXPECT_EQ(ntf.channel, kListenChannel);
+  EXPECT_TRUE(ntf.payload && *ntf.payload == kNotifyPayload);
+
+  UEXPECT_THROW(scope.WaitNotify(kNotifyDeadline), pg::ConnectionTimeoutError);
+}
+
 USERVER_NAMESPACE_END

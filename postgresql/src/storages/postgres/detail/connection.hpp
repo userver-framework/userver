@@ -17,6 +17,7 @@
 #include <userver/storages/postgres/detail/query_parameters.hpp>
 #include <userver/storages/postgres/detail/time_types.hpp>
 #include <userver/storages/postgres/dsn.hpp>
+#include <userver/storages/postgres/notify.hpp>
 #include <userver/storages/postgres/options.hpp>
 #include <userver/storages/postgres/parameter_store.hpp>
 #include <userver/storages/postgres/result_set.hpp>
@@ -258,6 +259,11 @@ class Connection {
   /// @brief Reload user types after creating a type
   void ReloadUserTypes();
   const UserTypes& GetUserTypes() const;
+
+  void Listen(std::string_view channel, OptionalCommandControl);
+  void Unlisten(std::string_view channel, OptionalCommandControl);
+
+  Notification WaitNotify(engine::Deadline deadline);
   //@}
 
   /// Get duration since last network operation

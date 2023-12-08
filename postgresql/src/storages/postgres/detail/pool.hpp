@@ -26,6 +26,7 @@
 #include <userver/congestion_control/controllers/linear.hpp>
 #include <userver/storages/postgres/detail/connection_ptr.hpp>
 #include <userver/storages/postgres/detail/non_transaction.hpp>
+#include <userver/storages/postgres/notify.hpp>
 #include <userver/storages/postgres/options.hpp>
 #include <userver/storages/postgres/statistics.hpp>
 #include <userver/storages/postgres/transaction.hpp>
@@ -75,6 +76,9 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
                                   OptionalCommandControl trx_cmd_ctl = {});
 
   [[nodiscard]] NonTransaction Start(OptionalCommandControl cmd_ctl = {});
+
+  NotifyScope Listen(std::string_view channel,
+                     OptionalCommandControl cmd_ctl = {});
 
   CommandControl GetDefaultCommandControl() const;
 

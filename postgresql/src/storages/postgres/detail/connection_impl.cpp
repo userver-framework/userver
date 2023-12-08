@@ -33,6 +33,8 @@ namespace {
 
 constexpr std::string_view kStatementTimeoutParameter = "statement_timeout";
 constexpr std::string_view kStatementVacuum = "vacuum";
+constexpr std::string_view kStatementListen = "listen {}";
+constexpr std::string_view kStatementUnlisten = "unlisten {}";
 
 // we hope lc_messages is en_US, we don't control it anyway
 const std::string kBadCachedPlanErrorMessage =
@@ -355,10 +357,8 @@ ResultSet ConnectionImpl::ExecuteCommand(
     pipeline_guard.emplace([this]() { conn_wrapper_.EnterPipelineMode(); });
   }
 
-  TimeoutDuration execute_timeout = !!statement_cmd_ctl
-                                        ? statement_cmd_ctl->execute
-                                        : CurrentExecuteTimeout();
-  auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(execute_timeout);
+  auto deadline =
+      testsuite_pg_ctl_.MakeExecuteDeadline(ExecuteTimeout(statement_cmd_ctl));
   SetStatementTimeout(std::move(statement_cmd_ctl));
   return ExecuteCommand(query, params, deadline);
 }
@@ -442,9 +442,7 @@ Connection::StatementId ConnectionImpl::PortalBind(
   }  // TODO Prepare unnamed query instead
 
   CheckBusy();
-  TimeoutDuration network_timeout = !!statement_cmd_ctl
-                                        ? statement_cmd_ctl->execute
-                                        : CurrentExecuteTimeout();
+  TimeoutDuration network_timeout = ExecuteTimeout(statement_cmd_ctl);
   auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(network_timeout);
   SetStatementTimeout(std::move(statement_cmd_ctl));
 
@@ -470,9 +468,7 @@ Connection::StatementId ConnectionImpl::PortalBind(
 ResultSet ConnectionImpl::PortalExecute(
     Connection::StatementId statement_id, const std::string& portal_name,
     std::uint32_t n_rows, OptionalCommandControl statement_cmd_ctl) {
-  TimeoutDuration network_timeout = !!statement_cmd_ctl
-                                        ? statement_cmd_ctl->execute
-                                        : CurrentExecuteTimeout();
+  TimeoutDuration network_timeout = ExecuteTimeout(statement_cmd_ctl);
 
   auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(network_timeout);
   SetStatementTimeout(std::move(statement_cmd_ctl));
@@ -499,6 +495,25 @@ ResultSet ConnectionImpl::PortalExecute(
 
   return WaitResult(prepared_info->statement, deadline, network_timeout,
                     count_execute, span, scope, &prepared_info->description);
+}
+
+void ConnectionImpl::Listen(std::string_view channel,
+                            OptionalCommandControl cmd_ctl) {
+  ExecuteCommandNoPrepare(
+      fmt::format(kStatementListen, conn_wrapper_.EscapeIdentifier(channel)),
+      testsuite_pg_ctl_.MakeExecuteDeadline(ExecuteTimeout(cmd_ctl)));
+}
+
+void ConnectionImpl::Unlisten(std::string_view channel,
+                              OptionalCommandControl cmd_ctl) {
+  ExecuteCommandNoPrepare(
+      fmt::format(kStatementUnlisten, conn_wrapper_.EscapeIdentifier(channel)),
+      testsuite_pg_ctl_.MakeExecuteDeadline(ExecuteTimeout(cmd_ctl)));
+}
+
+Notification ConnectionImpl::WaitNotify(engine::Deadline deadline) {
+  CheckBusy();
+  return conn_wrapper_.WaitNotify(deadline);
 }
 
 void ConnectionImpl::CancelAndCleanup(TimeoutDuration timeout) {
@@ -625,6 +640,14 @@ void ConnectionImpl::SetTransactionCommandControl(CommandControl cmd_ctl) {
   transaction_cmd_ctl_ = cmd_ctl;
   SetStatementTimeout(cmd_ctl.statement,
                       testsuite_pg_ctl_.MakeExecuteDeadline(cmd_ctl.execute));
+}
+
+TimeoutDuration ConnectionImpl::ExecuteTimeout(
+    OptionalCommandControl cmd_ctl) const {
+  if (!!cmd_ctl) {
+    return cmd_ctl->execute;
+  }
+  return CurrentExecuteTimeout();
 }
 
 TimeoutDuration ConnectionImpl::CurrentExecuteTimeout() const {

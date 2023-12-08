@@ -16,6 +16,7 @@
 #include <storages/postgres/detail/result_wrapper.hpp>
 #include <userver/engine/semaphore.hpp>
 #include <userver/storages/postgres/dsn.hpp>
+#include <userver/storages/postgres/notify.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -106,8 +107,12 @@ class PGConnectionWrapper {
   /// Will return result or throw an exception
   ResultSet WaitResult(Deadline deadline, tracing::ScopeTime&);
 
+  /// @brief Wait for notification
+  Notification WaitNotify(Deadline deadline);
+
   /// Consume input from connection
   void ConsumeInput(Deadline deadline);
+
   /// Consume all input discarding all result sets
   void DiscardInput(Deadline deadline);
 
@@ -128,6 +133,10 @@ class PGConnectionWrapper {
   bool IsBroken() const;
 
   bool IsInAbortedPipeline() const;
+
+  /// Escape a string for use as an SQL identifier, such as a table, column, or
+  /// function name
+  std::string EscapeIdentifier(std::string_view);
 
  private:
   PGTransactionStatusType GetTransactionStatus() const;

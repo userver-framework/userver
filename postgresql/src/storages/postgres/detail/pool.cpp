@@ -320,6 +320,15 @@ NonTransaction ConnectionPool::Start(OptionalCommandControl cmd_ctl) {
   return NonTransaction{std::move(conn), start_time};
 }
 
+NotifyScope ConnectionPool::Listen(std::string_view channel,
+                                   OptionalCommandControl cmd_ctl) {
+  const auto deadline =
+      testsuite_pg_ctl_.MakeExecuteDeadline(GetExecuteTimeout(cmd_ctl));
+  auto conn = Acquire(deadline);
+  UASSERT(conn);
+  return NotifyScope{std::move(conn), channel, cmd_ctl};
+}
+
 TimeoutDuration ConnectionPool::GetExecuteTimeout(
     OptionalCommandControl cmd_ctl) const {
   if (cmd_ctl) return cmd_ctl->execute;

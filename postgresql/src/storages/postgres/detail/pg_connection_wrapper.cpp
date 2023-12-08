@@ -552,6 +552,24 @@ ResultSet PGConnectionWrapper::WaitResult(Deadline deadline,
   return MakeResult(std::move(handle));
 }
 
+Notification PGConnectionWrapper::WaitNotify(Deadline deadline) {
+  auto notify = std::unique_ptr<PGnotify, decltype(&PQfreemem)>(
+      PQnotifies(conn_), &PQfreemem);
+  while (!notify) {
+    if (!WaitSocketReadable(deadline)) {
+      throw ConnectionTimeoutError(
+          "Socket has not become readable in WaitNotify");
+    }
+    CheckError<CommandError>("PQconsumeInput", PQconsumeInput(conn_));
+    UpdateLastUse();
+    notify.reset(PQnotifies(conn_));
+  }
+  Notification result;
+  result.channel = notify->relname;
+  if (*notify->extra) result.payload = notify->extra;
+  return result;
+}
+
 void PGConnectionWrapper::DiscardInput(Deadline deadline) {
   Flush(deadline);
   auto handle = MakeResultHandle(nullptr);
@@ -838,6 +856,16 @@ bool PGConnectionWrapper::IsInAbortedPipeline() const {
 #else
   return false;
 #endif
+}
+
+std::string PGConnectionWrapper::EscapeIdentifier(std::string_view str) {
+  auto result = std::unique_ptr<char, decltype(&PQfreemem)>(
+      PQescapeIdentifier(conn_, str.data(), str.length()), &PQfreemem);
+  if (!result) {
+    throw CommandError{
+        fmt::format("PQescapeIdentifier error: ", PQerrorMessage(conn_))};
+  }
+  return {result.get()};
 }
 
 }  // namespace storages::postgres::detail

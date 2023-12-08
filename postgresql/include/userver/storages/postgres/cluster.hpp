@@ -16,6 +16,7 @@
 #include <userver/storages/postgres/cluster_types.hpp>
 #include <userver/storages/postgres/database.hpp>
 #include <userver/storages/postgres/detail/non_transaction.hpp>
+#include <userver/storages/postgres/notify.hpp>
 #include <userver/storages/postgres/options.hpp>
 #include <userver/storages/postgres/query.hpp>
 #include <userver/storages/postgres/statistics.hpp>
@@ -194,6 +195,11 @@ class Cluster {
                     OptionalCommandControl statement_cmd_ctl,
                     const Query& query, const ParameterStore& store);
   /// @}
+
+  /// @brief Listen for notifications on channel
+  /// @warning Each NotifyScope owns a single connection taken from the pool,
+  /// which effectively decreases the number of usable connections
+  NotifyScope Listen(std::string_view channel, OptionalCommandControl = {});
 
   /// Replaces globally updated command control with a static user-provided one
   void SetDefaultCommandControl(CommandControl);
