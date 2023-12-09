@@ -255,9 +255,6 @@ function(userver_testsuite_requirements)
 endfunction()
 
 function(userver_testsuite_add)
-  set(options
-      USE_USERVER_REQUIREMENTS
-  )
   set(oneValueArgs
       SERVICE_TARGET
       WORKING_DIRECTORY
@@ -293,27 +290,24 @@ function(userver_testsuite_add)
     return()
   endif()
 
-  if(ARG_USE_USERVER_REQUIREMENTS)
+  if(ARG_PYTHON_BINARY)
+    if(ARG_REQUIREMENTS)
+      message(FATAL_ERROR
+          "PYTHON_BINARY and REQUIREMENTS options are incompatible")
+    endif()
+    set(python_binary "${ARG_PYTHON_BINARY}")
+  else()
     userver_testsuite_requirements(REQUIREMENT_FILES_VAR requirement_files)
     list(APPEND requirement_files ${ARG_REQUIREMENTS})
-  else()
-    set(requirement_files ${ARG_REQUIREMENTS})
-  endif()
-
-  if(requirement_files)
     userver_venv_setup(
         NAME "${TESTSUITE_TARGET}"
         REQUIREMENTS ${requirement_files}
-        PYTHON_OUTPUT_VAR PYTHON_BINARY
+        PYTHON_OUTPUT_VAR python_binary
         VIRTUALENV_ARGS ${ARG_VIRTUALENV_ARGS}
     )
-  elseif(ARG_PYTHON_BINARY)
-    set(PYTHON_BINARY "${ARG_PYTHON_BINARY}")
-  else()
-    set(PYTHON_BINARY "${TESTSUITE_VENV_PYTHON}")
   endif()
 
-  if (NOT PYTHON_BINARY)
+  if(NOT python_binary)
     message(FATAL_ERROR "No python binary given.")
   endif()
 
@@ -322,9 +316,9 @@ function(userver_testsuite_add)
 
   execute_process(
     COMMAND
-    ${PYTHON_BINARY} ${USERVER_TESTSUITE_DIR}/create_runner.py
+    "${python_binary}" ${USERVER_TESTSUITE_DIR}/create_runner.py
     -o ${TESTSUITE_RUNNER}
-    --python=${PYTHON_BINARY}
+    --python=${python_binary}
     "--python-path=${ARG_PYTHONPATH}"
     --
     --build-dir=${CMAKE_BINARY_DIR}
@@ -362,9 +356,6 @@ endfunction()
 # - configs/[secdist|secure_data].json [optional]
 # - [testsuite|tests]/conftest.py
 function(userver_testsuite_add_simple)
-  set(options
-      USE_USERVER_REQUIREMENTS
-  )
   set(oneValueArgs
       SERVICE_TARGET
       WORKING_DIRECTORY
@@ -511,13 +502,7 @@ function(userver_testsuite_add_simple)
     list(APPEND ARG_PYTHONPATH "${CMAKE_CURRENT_BINARY_DIR}/proto")
   endif()
 
-  set(use_userver_requirements)
-  if(ARG_USE_USERVER_REQUIREMENTS)
-    list(APPEND use_userver_requirements USE_USERVER_REQUIREMENTS)
-  endif()
-
   userver_testsuite_add(
-      ${use_userver_requirements}
       SERVICE_TARGET "${ARG_SERVICE_TARGET}"
       WORKING_DIRECTORY "${ARG_WORKING_DIRECTORY}"
       PYTHON_BINARY "${ARG_PYTHON_BINARY}"

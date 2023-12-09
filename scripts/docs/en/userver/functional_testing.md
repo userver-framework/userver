@@ -89,9 +89,10 @@ It supports the following file structure (and a few others):
 You may want to create new virtual environment with its own set of packages. Or reuse existing one.
 That could be done this way:
 
-- If REQUIREMENTS is given then new virtualenv is created
-- Else if PYTHON_BINARY is specified it's used
-- Otherwise value of ${TESTSUITE_VENV_PYTHON} is used
+- If `PYTHON_BINARY` is specified then it is used.
+- Otherwise, a new test virtualenv is created. Passed `REQUIREMENTS`, if any,
+  are installed. Requirements of userver itself
+  (based on selected `USERVER_FEATURE_*` flags) are installed as well.
 
 Basic `requirements.txt` file may look like this:
 
