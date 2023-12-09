@@ -1,6 +1,9 @@
 #include <gtest/gtest.h>
 
 #include <map>
+#include <string>
+#include <filesystem>
+#include <stdexcept>
 
 #include <boost/range/adaptor/reversed.hpp>
 
@@ -12,6 +15,19 @@
 #include <userver/utils/fmt_compat.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+std::string readFixture(const std::string &fpath) {
+    std::filesystem::path path(fpath);
+    if (!std::filesystem::exists(path)) {
+        throw std::runtime_error("Failed to read exceeding json depth limit fixture");
+    }
+
+    std::ifstream file(path.string());
+    std::string fixture((std::istreambuf_iterator<char>(file)), (std::istreambuf_iterator<char>()));
+    file.close();
+
+    return fixture;
+}
 
 template <>
 struct Serialization<formats::json::Value> : public ::testing::Test {
@@ -221,6 +237,18 @@ TEST(JsonToSortedString, KeysSortedLexicographically) {
   ASSERT_EQ(
       formats::json::ToStableString(example),
       R"({"A":1,"Sam":1,"Sample":1,"SampleA":1,"SampleTest":1,"SampleZ":1,"Sz":1,"Z":1})");
+}
+
+TEST(JsonToSortedString, ExceededJsonDepth) {
+  std::string fixture = readFixture("../../../universal/src/formats/json/exceeding_json_depth_limit_fixture");
+  EXPECT_THROW(
+      formats::json::FromString(fixture),
+      formats::json::ParseException);
+  try {
+    formats::json::FromString(fixture);
+  } catch (const formats::json::ParseException& e) {
+    EXPECT_EQ(std::string(e.what()), "Exceeded maximum allowed JSON depth of: 128");
+  }
 }
 
 TEST(JsonToSortedString, DuplicatedKeys) {
