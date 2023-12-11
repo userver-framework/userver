@@ -1,5 +1,7 @@
 #include <userver/clients/http/component.hpp>
 
+#include <curl/curlver.h>
+
 #include <userver/clients/dns/resolver_utils.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/headers_propagator_component.hpp>
@@ -41,6 +43,18 @@ clients::http::impl::ClientSettings GetClientSettings(
   return settings;
 }
 
+void ValidateCurlVersion() {
+  const auto curr_ver = std::make_tuple(
+      LIBCURL_VERSION_MAJOR, LIBCURL_VERSION_MINOR, LIBCURL_VERSION_PATCH);
+  if (std::make_tuple(7, 88, 0) <= curr_ver &&
+      std::make_tuple(8, 1, 2) >= curr_ver) {
+    // See TAXICOMMON-7844
+    throw std::runtime_error("Unsupported libcurl " LIBCURL_VERSION
+                             ", versions from 7.88.0 to 8.1.2 are known to "
+                             "crash on HTTP/2 requests");
+  }
+}
+
 /// [docs map config sample]
 constexpr dynamic_config::DefaultAsJsonString kThrottleDefaults{R"(
 {
@@ -79,6 +93,8 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
           FindPlugins(component_config["plugins"].As<std::vector<std::string>>(
                           std::vector<std::string>()),
                       context)) {
+  ValidateCurlVersion();
+
   http_client_.SetDestinationMetricsAutoMaxSize(
       component_config["destination-metrics-auto-max-size"].As<size_t>(
           kDestinationMetricsAutoMaxSizeDefault));
