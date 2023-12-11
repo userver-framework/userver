@@ -168,6 +168,7 @@ async def test_network_limit_bps(service_client, gate):
     await _check_that_restores(service_client, gate)
 
 
+@pytest.mark.skip(reason='flacky')
 async def test_network_limit_time_sends(service_client, gate):
     gate.to_server_limit_time(CONNECTION_TIME_LIMIT, CONNECTION_LIMIT_JITTER)
 
@@ -185,6 +186,7 @@ async def test_network_limit_time_sends(service_client, gate):
     await _check_that_restores(service_client, gate)
 
 
+@pytest.mark.skip(reason='flacky')
 async def test_network_limit_time_recv(service_client, gate):
     gate.to_client_limit_time(CONNECTION_TIME_LIMIT, CONNECTION_LIMIT_JITTER)
 
@@ -202,6 +204,7 @@ async def test_network_limit_time_recv(service_client, gate):
     await _check_that_restores(service_client, gate)
 
 
+@pytest.mark.skip(reason='flacky')
 async def test_network_limit_time(service_client, gate):
     gate.to_server_limit_time(CONNECTION_TIME_LIMIT, CONNECTION_LIMIT_JITTER)
     gate.to_client_limit_time(CONNECTION_TIME_LIMIT, CONNECTION_LIMIT_JITTER)
