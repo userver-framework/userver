@@ -181,7 +181,7 @@ See the full example:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/tutorial/grpc_service.md | @ref scripts/docs/en/userver/tutorial/mongo_service.md ⇨
+⇦ @ref scripts/docs/en/userver/tutorial/grpc_middleware_service.md | @ref scripts/docs/en/userver/tutorial/mongo_service.md ⇨
 @htmlonly </div> @endhtmlonly
 
 @example samples/postgres_service/postgres_service.cpp

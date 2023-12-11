@@ -26,6 +26,9 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-testsuite-support)
 if (USERVER_FEATURE_GRPC)
   add_subdirectory(grpc_service)
   add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-grpc_service)
+
+  add_subdirectory(grpc_middleware_service)
+  add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-grpc_middleware_service)
 endif()
 
 add_subdirectory(json2yaml)

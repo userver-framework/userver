@@ -129,7 +129,7 @@ See the full example at:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/tutorial/flatbuf_service.md | @ref scripts/docs/en/userver/tutorial/postgres_service.md ⇨
+⇦ @ref scripts/docs/en/userver/tutorial/flatbuf_service.md | @ref scripts/docs/en/userver/tutorial/grpc_middleware_service.md ⇨
 @htmlonly </div> @endhtmlonly
 
 @example samples/grpc_service/grpc_service.cpp

@@ -33,6 +33,7 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 * @ref scripts/docs/en/userver/tutorial/http_caching.md
 * @ref scripts/docs/en/userver/tutorial/flatbuf_service.md
 * @ref scripts/docs/en/userver/tutorial/grpc_service.md
+* @ref scripts/docs/en/userver/tutorial/grpc_middleware_service.md
 * @ref scripts/docs/en/userver/tutorial/postgres_service.md
 * @ref scripts/docs/en/userver/tutorial/mongo_service.md
 * @ref scripts/docs/en/userver/tutorial/redis_service.md
