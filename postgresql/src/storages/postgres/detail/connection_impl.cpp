@@ -4,6 +4,7 @@
 
 #include <userver/error_injection/hook.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/testsuite/testpoint.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/assert.hpp>
@@ -793,6 +794,14 @@ ResultSet ConnectionImpl::ExecuteCommand(const Query& query,
       std::chrono::duration_cast<std::chrono::milliseconds>(
           deadline.TimeLeft());
   auto span = MakeQuerySpan(query, {network_timeout, GetStatementTimeout()});
+  if (query.GetName()) {
+    try {
+      TESTPOINT("sql_statement", formats::json::MakeObject(
+                                     "name", query.GetName()->GetUnderlying()));
+    } catch (const std::exception& e) {
+      LOG_WARNING() << e;
+    }
+  }
   auto scope = span.CreateScopeTime();
   CountExecute count_execute(stats_);
 
