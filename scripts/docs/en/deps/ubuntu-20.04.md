@@ -33,6 +33,7 @@ libpq5=12.*
 libprotoc-dev
 libssl-dev
 libyaml-cpp-dev
+ninja-build
 pkg-config
 postgresql-12
 postgresql-server-dev-12

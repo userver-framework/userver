@@ -14,8 +14,9 @@ http-parser
 jemalloc
 krb5
 libev
-mongo-c-driver
 libnghttp2
+mongo-c-driver
+ninja
 openssl
 postgresql
 postgresql-libs

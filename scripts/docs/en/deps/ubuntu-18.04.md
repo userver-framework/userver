@@ -30,6 +30,7 @@ libpq5=10.*
 libprotoc-dev
 libssl-dev
 libyaml-cpp-dev
+ninja-build
 postgresql-server-dev-10
 protobuf-compiler-grpc
 python3-dev

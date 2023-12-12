@@ -21,6 +21,7 @@ dev-python/virtualenv
 dev-python/voluptuous
 dev-util/ccache
 dev-util/cmake
+dev-util/ninja
 dev-vcs/git
 net-dns/c-ares
 net-libs/grpc

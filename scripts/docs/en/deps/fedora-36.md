@@ -21,6 +21,7 @@ libpq-devel
 libubsan
 mongo-c-driver-devel
 nghttp2-devel
+ninja
 openldap-devel
 openssl-devel
 postgresql-server

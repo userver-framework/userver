@@ -33,6 +33,7 @@ libpq-dev
 libprotoc-dev
 libssl-dev
 libyaml-cpp-dev
+ninja-build
 postgresql-14
 postgresql-server-dev-14
 protobuf-compiler-grpc

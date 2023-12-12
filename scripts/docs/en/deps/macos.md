@@ -14,6 +14,7 @@ http-parser
 jemalloc
 krb5
 nghttp2
+ninja
 protobuf
 openssl
 yaml-cpp
