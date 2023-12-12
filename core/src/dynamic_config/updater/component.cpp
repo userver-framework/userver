@@ -273,9 +273,6 @@ properties:
           - only-full
           - only-incremental
           - full-and-incremental
-    fallback-path:
-        type: string
-        description: TODO REMOVE THE UNUSED SCHEMA FIELD
 )");
 }
 
