@@ -47,7 +47,6 @@ void CheckKeyUniqueness(const impl::Value* root) {
   stack.emplace_back();  // fake "top" frame to avoid extra checks for an empty
                          // stack inside walker loop
   KeysStack keys;
-  size_t depth = 1;
   for (;;) {
     stack.back().Advance();
     if (value->IsObject()) {
@@ -70,15 +69,19 @@ void CheckKeyUniqueness(const impl::Value* root) {
 
     if ((value->IsObject() && value->MemberCount() > 0) ||
         (value->IsArray() && value->Size() > 0)) {
-      depth++;
-      if (depth > kJsonDepthLimit) {
-        throw ParseException("Exceeded maximum allowed JSON depth of: " + std::to_string(kJsonDepthLimit));
+      if (stack.size() >= kJsonDepthLimit) {
+        while (!stack.back().HasMoreElements()) {
+          stack.pop_back();
+          if (stack.empty()) {
+            throw ParseException("Exceeded maximum allowed JSON depth of: " +
+                                 std::to_string(kJsonDepthLimit));
+          }
+        }
       }
       // descend
       stack.emplace_back(value);
     } else {
       while (!stack.back().HasMoreElements()) {
-        depth--;
         stack.pop_back();
         if (stack.empty()) return;
       }
