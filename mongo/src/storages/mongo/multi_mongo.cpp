@@ -51,7 +51,13 @@ void MultiMongo::PoolSet::AddPool(std::string dbalias) {
 }
 
 bool MultiMongo::PoolSet::RemovePool(const std::string& dbalias) {
-  return pool_map_ptr_->erase(dbalias);
+  auto it = pool_map_ptr_->find(dbalias);
+  if (it != pool_map_ptr_->end()) {
+    it->second->Stop();
+    return pool_map_ptr_->erase(it) != pool_map_ptr_->end();
+  } else {
+    return false;
+  }
 }
 
 void MultiMongo::PoolSet::Activate() {

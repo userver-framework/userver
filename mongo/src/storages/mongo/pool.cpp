@@ -28,6 +28,8 @@ Pool::Pool(std::string id, const std::string& uri,
 
 void Pool::Start() { impl_->Start(); }
 
+void Pool::Stop() { impl_->Stop(); }
+
 Pool::~Pool() = default;
 
 void Pool::DropDatabase() {

@@ -68,7 +68,11 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
       {{"mongo_database", section_name}});
 }
 
-Mongo::~Mongo() { statistics_holder_.Unregister(); }
+Mongo::~Mongo() {
+  pool_->Stop();
+
+  statistics_holder_.Unregister();
+}
 
 storages::mongo::PoolPtr Mongo::GetPool() const { return pool_; }
 

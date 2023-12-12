@@ -34,6 +34,7 @@ class Controller {
   virtual ~Controller() = default;
 
   void Start();
+  void Stop();
 
   void Step();
 

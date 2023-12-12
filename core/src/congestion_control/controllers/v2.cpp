@@ -38,6 +38,8 @@ void Controller::Start() {
   }
 }
 
+void Controller::Stop() { periodic_.Stop(); }
+
 std::string_view Controller::LogFakeMode() const {
   if (config_.fake_mode)
     return " (fake mode)";

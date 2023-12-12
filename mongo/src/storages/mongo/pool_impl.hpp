@@ -21,6 +21,7 @@ class PoolImpl {
   virtual ~PoolImpl() = default;
 
   void Start();
+  void Stop();
 
   const std::string& Id() const;
   const stats::PoolStatistics& GetStatistics() const;

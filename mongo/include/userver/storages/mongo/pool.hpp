@@ -48,6 +48,8 @@ class Pool {
   ~Pool();
 
   void Start();
+
+  void Stop();
   /// @endcond
 
   /// Checks whether a collection exists
