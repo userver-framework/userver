@@ -72,6 +72,7 @@ Checks:
   ,-hicpp-special-member-functions\
   ,-hicpp-uppercase-literal-suffix\
   ,-hicpp-vararg\
+  ,-misc-include-cleaner\
   ,-misc-no-recursion\
   ,-misc-unconventional-assign-operator\
   ,-modernize-avoid-c-arrays\

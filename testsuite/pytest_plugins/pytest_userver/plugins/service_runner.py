@@ -5,7 +5,6 @@ Helpers to make the `make start-*` commands work.
 # pylint: disable=no-member,missing-kwoa
 import pathlib
 
-import py.path
 import pytest
 
 
@@ -41,7 +40,8 @@ class UserviceRunner:
         tests_root = min(paths, key=lambda p: len(p.parts))
 
         module = ServiceRunnerModule.from_parent(
-            parent=session, fspath=py.path.local(tests_root / '__service__'),
+            parent=session,
+            fspath=(pathlib.Path(tests_root) / '__service__').resolve(),
         )
         function = pytest.Function.from_parent(
             parent=module,

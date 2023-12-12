@@ -336,14 +336,26 @@ function(userver_testsuite_add)
 
   # Without WORKING_DIRECTORY the `add_test` prints better diagnostic info
   add_test(
-    NAME ${TESTSUITE_TARGET}
-    COMMAND ${TESTSUITE_RUNNER} ${PRETTY_LOGS_MODE} -vv ${ARG_WORKING_DIRECTORY}
+      NAME "${TESTSUITE_TARGET}"
+      COMMAND
+      "${TESTSUITE_RUNNER}"
+      ${PRETTY_LOGS_MODE}
+      -vv
+      "${ARG_WORKING_DIRECTORY}"
   )
 
   add_custom_target(
-    start-${ARG_SERVICE_TARGET}
-    COMMAND ${TESTSUITE_RUNNER} --service-runner-mode ${PRETTY_LOGS_MODE} -vvs ${ARG_WORKING_DIRECTORY}
-    DEPENDS ${TESTSUITE_RUNNER} ${ARG_SERVICE_TARGET}
+      "start-${ARG_SERVICE_TARGET}"
+      COMMAND
+      "${TESTSUITE_RUNNER}"
+      ${PRETTY_LOGS_MODE}
+      --service-runner-mode
+      -vvs
+      "${ARG_WORKING_DIRECTORY}"
+      DEPENDS
+      "${TESTSUITE_RUNNER}"
+      "${ARG_SERVICE_TARGET}"
+      USES_TERMINAL
   )
 endfunction()
 
