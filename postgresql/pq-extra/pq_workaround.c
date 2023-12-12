@@ -927,7 +927,7 @@ static int getNotify(PGconn* conn) {
   }
 
   /*
-   * Store the strings right after the PQnotify structure so it can all be
+   * Store the strings right after the PGnotify structure so it can all be
    * freed at once.  We don't use NAMEDATALEN because we don't want to tie
    * this interface to a specific server name length.
    */
@@ -936,16 +936,9 @@ static int getNotify(PGconn* conn) {
   newNotify = (PGnotify*)malloc(sizeof(PGnotify) + nmlen + extralen + 2);
   if (newNotify) {
     newNotify->relname = (char*)newNotify + sizeof(PGnotify);
-    memcpy(newNotify->relname, svname, nmlen);
-
-    /* No zero termination, `extra` goes right after the last non-zero char of
-     * `relname`
-     */
-
+    memcpy(newNotify->relname, svname, nmlen + 1);
     newNotify->extra = newNotify->relname + nmlen + 1;
-    memcpy(newNotify->extra, conn->workBuffer.data, extralen);
-    newNotify->extra[extralen + 1] = '\0';
-
+    memcpy(newNotify->extra, conn->workBuffer.data, extralen + 1);
     newNotify->be_pid = be_pid;
     newNotify->next = NULL;
     if (conn->notifyTail)
