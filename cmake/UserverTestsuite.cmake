@@ -135,7 +135,7 @@ function(userver_venv_setup)
     endif()
   endif()
 
-    if(NOT USERVER_DOWNLOAD_PYTHON_PACKAGES)
+  if(NOT USERVER_DOWNLOAD_PYTHON_PACKAGES)
     list(APPEND ARG_PIP_ARGS "--no-index")
   endif()
 
