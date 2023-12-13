@@ -135,6 +135,10 @@ function(userver_venv_setup)
     endif()
   endif()
 
+  if(NOT USERVER_DOWNLOAD_PYTHON_PACKAGES)
+    list(APPEND ARG_PIP_ARGS "--no-index")
+  endif()
+
   if(should_run_pip AND USERVER_DOWNLOAD_PYTHON_PACKAGES)
     message(STATUS "Installing requirements:")
     foreach(requirement IN LISTS ARG_REQUIREMENTS)
