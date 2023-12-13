@@ -59,6 +59,11 @@ option(
     ON
 )
 option(
+    USERVER_DOWNLOAD_PYTHON_PACKAGES
+    "Download missing python packages and use the downloaded versions"
+    ON
+)
+option(
     USERVER_FORCE_DOWNLOAD_PACKAGES
     "Download all possible third party packages even if a system package is available"
     OFF

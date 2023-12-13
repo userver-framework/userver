@@ -131,7 +131,7 @@ function(userver_venv_setup)
     endif()
   endif()
 
-  if(should_run_pip)
+  if(should_run_pip AND USERVER_DOWNLOAD_PYTHON_PACKAGES)
     message(STATUS "Installing requirements:")
     foreach(requirement IN LISTS ARG_REQUIREMENTS)
       message(STATUS "  ${requirement}")
