@@ -6,15 +6,13 @@ import samples.greeter_pb2 as greeter_pb2  # noqa: E402, E501
 
 logger = logging.getLogger(__name__)
 
-# Bidirection is not thread-safe TAXICOMMON-6729
-CASES_WITHOUT_INDEPT_STREAMS = [
+ALL_CASES = [
     'say_hello',
     'say_hello_response_stream',
     'say_hello_request_stream',
     'say_hello_streams',
+    'say_hello_indept_streams',
 ]
-
-ALL_CASES = CASES_WITHOUT_INDEPT_STREAMS + ['say_hello_indept_streams']
 
 OK_RETRIES_COUNT = 5
 

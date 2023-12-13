@@ -4,7 +4,7 @@ import requests_server
 
 
 @pytest.mark.skip(reason='This test flaps(')
-@pytest.mark.parametrize('case', requests_server.CASES_WITHOUT_INDEPT_STREAMS)
+@pytest.mark.parametrize('case', requests_server.ALL_CASES)
 async def test_server_limit_bytes(grpc_client, gate, case):
     for i in range(10, 100, 25):
         gate.to_server_limit_bytes(i)
