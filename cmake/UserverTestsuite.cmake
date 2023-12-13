@@ -92,6 +92,10 @@ function(userver_venv_setup)
 
   message(STATUS "Setting up the virtualenv at ${venv_dir}")
 
+  if(NOT USERVER_DOWNLOAD_PYTHON_PACKAGES)
+    list(APPEND ARG_VIRTUALENV_ARGS "--system-site-packages")
+  endif()
+
   if(NOT EXISTS "${venv_dir}")
     execute_process(
         COMMAND
