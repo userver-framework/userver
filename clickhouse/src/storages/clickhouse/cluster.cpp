@@ -5,7 +5,6 @@
 #include <userver/formats/common/merge.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/utils/async.hpp>
-#include <userver/utils/statistics/metadata.hpp>
 
 #include <storages/clickhouse/impl/settings.hpp>
 

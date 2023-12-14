@@ -216,7 +216,10 @@ class OutputStream final : public CallAnyBase {
 
 /// @brief Controls a request stream -> response stream RPC
 ///
-/// This class is not thread-safe except for `GetContext`.
+/// This class allows the following concurrent calls:
+///   - `GetContext`
+///   - Concurrent call of one of (`Read`) with one of (`Write`,
+///     `Finish`, `FinishWithError`, `WriteAndFinish`)
 ///
 /// The RPC is cancelled on destruction unless the stream has been finished.
 ///
@@ -272,10 +275,9 @@ class BidirectionalStream : public CallAnyBase {
   bool IsFinished() const override;
 
  private:
-  enum class State { kOpen, kReadsDone, kFinished };
-
   impl::RawReaderWriter<Request, Response>& stream_;
-  State state_{State::kOpen};
+  bool are_reads_done_{false};
+  bool is_finished_{false};
 };
 
 // ========================== Implementation follows ==========================
@@ -453,7 +455,7 @@ BidirectionalStream<Request, Response>::BidirectionalStream(
 
 template <typename Request, typename Response>
 BidirectionalStream<Request, Response>::~BidirectionalStream() {
-  if (state_ != State::kFinished) {
+  if (!is_finished_) {
     impl::Cancel(stream_, GetCallName());
     LogFinish(impl::kUnknownErrorStatus);
   }
@@ -461,31 +463,35 @@ BidirectionalStream<Request, Response>::~BidirectionalStream() {
 
 template <typename Request, typename Response>
 bool BidirectionalStream<Request, Response>::Read(Request& request) {
-  UINVARIANT(state_ == State::kOpen,
+  UINVARIANT(!are_reads_done_,
              "'Read' called while the stream is half-closed for reads");
   if (impl::Read(stream_, request)) {
     return true;
   } else {
-    state_ = State::kReadsDone;
+    are_reads_done_ = true;
     return false;
   }
 }
 
 template <typename Request, typename Response>
 void BidirectionalStream<Request, Response>::Write(const Response& response) {
-  UINVARIANT(state_ != State::kFinished, "'Write' called on a finished stream");
+  UINVARIANT(!is_finished_, "'Write' called on a finished stream");
 
   // Don't buffer writes, optimize for ping-pong-style interaction
   grpc::WriteOptions write_options{};
 
-  impl::Write(stream_, response, write_options, GetCallName());
+  try {
+    impl::Write(stream_, response, write_options, GetCallName());
+  } catch (const RpcInterruptedError&) {
+    is_finished_ = true;
+    throw;
+  }
 }
 
 template <typename Request, typename Response>
 void BidirectionalStream<Request, Response>::Finish() {
-  UINVARIANT(state_ != State::kFinished,
-             "'Finish' called on a finished stream");
-  state_ = State::kFinished;
+  UINVARIANT(!is_finished_, "'Finish' called on a finished stream");
+  is_finished_ = true;
   const auto status = grpc::Status::OK;
   LogFinish(status);
   impl::Finish(stream_, status, GetCallName());
@@ -497,9 +503,8 @@ template <typename Request, typename Response>
 void BidirectionalStream<Request, Response>::FinishWithError(
     const grpc::Status& status) {
   UASSERT(!status.ok());
-  UINVARIANT(state_ != State::kFinished,
-             "'FinishWithError' called on a finished stream");
-  state_ = State::kFinished;
+  UINVARIANT(!is_finished_, "'FinishWithError' called on a finished stream");
+  is_finished_ = true;
   LogFinish(status);
   impl::Finish(stream_, status, GetCallName());
   Statistics().OnExplicitFinish(status.error_code());
@@ -509,9 +514,8 @@ void BidirectionalStream<Request, Response>::FinishWithError(
 template <typename Request, typename Response>
 void BidirectionalStream<Request, Response>::WriteAndFinish(
     const Response& response) {
-  UINVARIANT(state_ != State::kFinished,
-             "'WriteAndFinish' called on a finished stream");
-  state_ = State::kFinished;
+  UINVARIANT(!is_finished_, "'WriteAndFinish' called on a finished stream");
+  is_finished_ = true;
 
   // Don't buffer writes, optimize for ping-pong-style interaction
   grpc::WriteOptions write_options{};
@@ -523,7 +527,7 @@ void BidirectionalStream<Request, Response>::WriteAndFinish(
 
 template <typename Request, typename Response>
 bool BidirectionalStream<Request, Response>::IsFinished() const {
-  return state_ == State::kFinished;
+  return is_finished_;
 }
 
 }  // namespace ugrpc::server

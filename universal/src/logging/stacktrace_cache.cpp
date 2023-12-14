@@ -8,6 +8,7 @@
 #include <boost/stacktrace.hpp>
 
 #include <userver/cache/lru_map.hpp>
+#include <userver/compiler/thread_local.hpp>
 #include <userver/utils/assert.hpp>
 
 namespace std {
@@ -31,17 +32,20 @@ constexpr std::string_view kStartOfCoroutine = "utils::impl::WrappedCallImpl<";
 
 std::atomic<bool> stacktrace_enabled{true};
 
+compiler::ThreadLocal local_frame_name_cache = [] {
+  return cache::LruMap<boost::stacktrace::frame, std::string>{10000};
+};
+
 const std::string& ToStringCachedFiltered(boost::stacktrace::frame frame) {
-  thread_local cache::LruMap<boost::stacktrace::frame, std::string>
-      frame_name_cache(10000);
-  auto* ptr = frame_name_cache.Get(frame);
+  auto frame_name_cache = local_frame_name_cache.Use();
+  auto* ptr = frame_name_cache->Get(frame);
   if (!ptr) {
     auto name = boost::stacktrace::to_string(frame);
     UASSERT(!name.empty());
     if (name.find(kStartOfCoroutine) != std::string::npos) {
       name = {};
     }
-    ptr = frame_name_cache.Emplace(frame, std::move(name));
+    ptr = frame_name_cache->Emplace(frame, std::move(name));
   }
   return *ptr;
 }

@@ -55,6 +55,9 @@ struct BoundsBlock;
 /// This can be useful for writing custom metric serialization formats or
 /// for testing.
 ///
+/// Histogram metrics can be summed using
+/// utils::statistics::HistogramAggregator.
+///
 /// Histogram can be used in utils::statistics::MetricTag:
 /// @snippet utils/statistics/histogram_test.cpp  metric tag
 class Histogram final {
@@ -74,10 +77,6 @@ class Histogram final {
 
   /// Atomically increment the bucket corresponding to the given value.
   void Account(double value, std::uint64_t count = 1) noexcept;
-
-  /// Add the other histogram to the current one. Bucket borders in `this` and
-  /// `other` must be identical. Writes to `*this` are non-atomic.
-  void Add(HistogramView other);
 
   /// Atomically reset all counters to zero.
   friend void ResetMetric(Histogram& histogram) noexcept;

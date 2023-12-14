@@ -1,8 +1,9 @@
 #include <userver/utils/rand.hpp>
 
 #include <array>
+#include <thread>
 
-#include <userver/compiler/impl/tls.hpp>
+#include <userver/compiler/thread_local.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -10,23 +11,14 @@ namespace utils {
 
 namespace {
 
-// 256 bits of randomness is enough for everyone
-constexpr std::size_t kRandomSeedInts = 8;
+template <typename T>
+auto& AsLvalue(T&& rvalue) noexcept {
+  return rvalue;
+}
 
 class RandomImpl final : public RandomBase {
  public:
-  // NOLINTNEXTLINE(cert-msc51-cpp)
-  RandomImpl() {
-    std::random_device device;
-
-    std::array<std::seed_seq::result_type, kRandomSeedInts> random_chunks{};
-    for (auto& random_chunk : random_chunks) {
-      random_chunk = device();
-    }
-
-    std::seed_seq seed(random_chunks.begin(), random_chunks.end());
-    gen_.seed(seed);
-  }
+  RandomImpl() : gen_(AsLvalue(impl::MakeSeedSeq())) {}
 
   result_type operator()() override { return gen_(); }
 
@@ -36,26 +28,36 @@ class RandomImpl final : public RandomBase {
 
 }  // namespace
 
-USERVER_IMPL_PREVENT_TLS_CACHING
-RandomBase& DefaultRandom() {
-  thread_local RandomImpl random;
+namespace impl {
 
-  // NOLINTNEXTLINE
-  USERVER_IMPL_PREVENT_TLS_CACHING_ASM;
-  return random;
+std::seed_seq MakeSeedSeq() {
+  // 256 bits of randomness is enough for everyone
+  constexpr std::size_t kRandomSeedInts = 8;
+
+  std::random_device device;
+
+  std::array<std::seed_seq::result_type, kRandomSeedInts> random_chunks{};
+  for (auto& random_chunk : random_chunks) {
+    random_chunk = device();
+  }
+
+  return std::seed_seq(random_chunks.begin(), random_chunks.end());
 }
 
-USERVER_IMPL_PREVENT_TLS_CACHING
-RandomBase& impl::DefaultRandomForHashSeed() {
-  thread_local RandomImpl random;
-
-  // NOLINTNEXTLINE
-  USERVER_IMPL_PREVENT_TLS_CACHING_ASM;
-  return random;
+RandomBase& GetDefaultRandom() {
+  return compiler::impl::ThreadLocal([] { return RandomImpl{}; });
 }
 
-uint32_t Rand() {
-  return std::uniform_int_distribution<uint32_t>{0}(DefaultRandom());
+std::uintptr_t GetCurrentThreadId() noexcept {
+  return compiler::impl::GetCurrentThreadIdDebug();
+}
+
+}  // namespace impl
+
+RandomBase& DefaultRandom() { return impl::GetDefaultRandom(); }
+
+std::uint32_t Rand() {
+  return WithDefaultRandom(std::uniform_int_distribution<std::uint32_t>{0});
 }
 
 }  // namespace utils

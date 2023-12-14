@@ -11,24 +11,9 @@
 #include <userver/tracing/tracer.hpp>
 #include <userver/utils/rand.hpp>
 
-#include <userver/compiler/impl/tls.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace utils {
-
-namespace {
-
-USERVER_IMPL_PREVENT_TLS_CACHING
-std::minstd_rand& GetFastRandomBitsGenerator() {
-  thread_local std::minstd_rand rand{utils::Rand()};
-
-  // NOLINTNEXTLINE
-  USERVER_IMPL_PREVENT_TLS_CACHING_ASM;
-  return rand;
-}
-
-}  // namespace
 
 PeriodicTask::PeriodicTask()
     : settings_(std::chrono::seconds(1)),
@@ -214,16 +199,21 @@ std::chrono::milliseconds PeriodicTask::MutatePeriod(
   auto settings_ptr = settings_.Read();
   if (!(settings_ptr->flags & Flags::kChaotic)) return period;
 
+  if (!mutate_period_random_) {
+    mutate_period_random_.emplace(utils::WithDefaultRandom(
+        std::uniform_int_distribution<std::minstd_rand::result_type>{}));
+  }
+
   const auto distribution = settings_ptr->distribution;
-  const auto ms = std::uniform_int_distribution<int64_t>(
+  const auto ms = std::uniform_int_distribution<std::int64_t>(
       (period - distribution).count(),
-      (period + distribution).count())(GetFastRandomBitsGenerator());
+      (period + distribution).count())(*mutate_period_random_);
   return std::chrono::milliseconds(ms);
 }
 
 void PeriodicTask::SuspendDebug() {
   // step_mutex_ waits, for a potentially long time, for Step() call completion
-  std::lock_guard<engine::Mutex> lock_step(step_mutex_);
+  const std::lock_guard lock_step(step_mutex_);
   auto prior_state = suspend_state_.exchange(SuspendState::kSuspended);
   if (prior_state != SuspendState::kSuspended) {
     const auto name_ptr = name_.Read();

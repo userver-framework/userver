@@ -1,10 +1,13 @@
 #include "log_helper_impl.hpp"
 
+#include <array>
+
 #include <fmt/chrono.h>
 #include <fmt/compile.h>
 #include <fmt/format.h>
 
 #include <userver/compiler/impl/constexpr.hpp>
+#include <userver/compiler/thread_local.hpp>
 #include <userver/logging/impl/logger_base.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/encoding/tskv.hpp>
@@ -36,23 +39,36 @@ auto FractionalMicroseconds(TimePoint time) noexcept {
          1'000'000;
 }
 
-std::string_view GetCurrentTimeString(TimePoint now) noexcept {
-  using SecondsTimePoint =
-      std::chrono::time_point<TimePoint::clock, std::chrono::seconds>;
-  constexpr std::string_view kTemplate = "0000-00-00T00:00:00";
+using SecondsTimePoint =
+    std::chrono::time_point<TimePoint::clock, std::chrono::seconds>;
+constexpr std::string_view kTimeTemplate = "0000-00-00T00:00:00";
 
-  thread_local USERVER_IMPL_CONSTINIT SecondsTimePoint cached_time{};
-  thread_local USERVER_IMPL_CONSTINIT char
-      cached_time_string[kTemplate.size()]{};
+struct TimeString final {
+  char data[kTimeTemplate.size()]{};
+
+  std::string_view ToStringView() const noexcept {
+    return {data, std::size(data)};
+  }
+};
+
+struct CachedTime final {
+  SecondsTimePoint time{};
+  TimeString string{};
+};
+
+compiler::ThreadLocal local_cached_time = [] { return CachedTime{}; };
+
+TimeString GetCurrentTimeString(TimePoint now) noexcept {
+  auto cached_time = local_cached_time.Use();
 
   const auto rounded_now =
       std::chrono::time_point_cast<std::chrono::seconds>(now);
-  if (rounded_now != cached_time) {
-    fmt::format_to(cached_time_string, FMT_COMPILE("{:%FT%T}"),
+  if (rounded_now != cached_time->time) {
+    fmt::format_to(cached_time->string.data, FMT_COMPILE("{:%FT%T}"),
                    fmt::localtime(std::chrono::system_clock::to_time_t(now)));
-    cached_time = rounded_now;
+    cached_time->time = rounded_now;
   }
-  return {cached_time_string, kTemplate.size()};
+  return cached_time->string;
 }
 
 }  // namespace
@@ -91,9 +107,10 @@ void LogHelper::Impl::PutMessageBegin() {
       const auto now = TimePoint::clock::now();
       const auto level_string = logging::ToUpperCaseString(level_);
       msg_.resize(kTemplate.size() + level_string.size());
-      fmt::format_to(
-          msg_.data(), FMT_COMPILE("tskv\ttimestamp={}.{:06}\tlevel={}"),
-          GetCurrentTimeString(now), FractionalMicroseconds(now), level_string);
+      fmt::format_to(msg_.data(),
+                     FMT_COMPILE("tskv\ttimestamp={}.{:06}\tlevel={}"),
+                     GetCurrentTimeString(now).ToStringView(),
+                     FractionalMicroseconds(now), level_string);
       return;
     }
     case Format::kLtsv: {
@@ -103,8 +120,8 @@ void LogHelper::Impl::PutMessageBegin() {
       const auto level_string = logging::ToUpperCaseString(level_);
       msg_.resize(kTemplate.size() + level_string.size());
       fmt::format_to(msg_.data(), FMT_COMPILE("timestamp:{}.{:06}\tlevel:{}"),
-                     GetCurrentTimeString(now), FractionalMicroseconds(now),
-                     level_string);
+                     GetCurrentTimeString(now).ToStringView(),
+                     FractionalMicroseconds(now), level_string);
       return;
     }
     case Format::kRaw: {

@@ -176,16 +176,14 @@ class RecentPeriod {
   mutable std::vector<EpochBucket> items_;
 };
 
-/// @brief @a Writer support for @a RecentPeriod. Forwards to `DumpMetric`
-/// overload for `Result`.
-///
-/// @param args if any, are forwarded to `DumpMetric` for `Result`
+/// @a Writer support for @a RecentPeriod
 template <typename Counter, typename Result, typename Timer>
 void DumpMetric(Writer& writer,
                 const RecentPeriod<Counter, Result, Timer>& recent_period) {
   writer = recent_period.GetStatsForPeriod();
 }
 
+/// Reset support for @a RecentPeriod
 template <typename Counter, typename Result, typename Timer>
 void ResetMetric(RecentPeriod<Counter, Result, Timer>& recent_period) {
   recent_period.Reset();

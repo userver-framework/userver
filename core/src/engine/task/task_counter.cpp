@@ -1,10 +1,8 @@
 #include <engine/task/task_counter.hpp>
 
-#include <algorithm>
 #include <thread>
 
-#include <userver/compiler/impl/constexpr.hpp>
-#include <userver/compiler/impl/tls.hpp>
+#include <userver/compiler/thread_local.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -22,16 +20,9 @@ struct LocalTaskCounterData final {
   std::size_t task_processor_thread_index{};
 };
 
-thread_local USERVER_IMPL_CONSTINIT LocalTaskCounterData
-    local_task_counter_data;
-
-USERVER_IMPL_PREVENT_TLS_CACHING LocalTaskCounterData
-GetLocalTaskCounterData() noexcept {
-  // NOLINTNEXTLINE
-  USERVER_IMPL_PREVENT_TLS_CACHING_ASM;
-
-  return local_task_counter_data;
-}
+compiler::ThreadLocal local_task_counter_data = [] {
+  return LocalTaskCounterData{};
+};
 
 }  // namespace
 
@@ -176,18 +167,18 @@ Rate TaskCounter::GetApproximate(GlobalCounterId id) const noexcept {
 }
 
 void TaskCounter::Increment(LocalCounterId id) noexcept {
-  const auto local_data = GetLocalTaskCounterData();
-  UASSERT(local_data.local_counter == this);
-  auto& counter = (*local_counters_[local_data.task_processor_thread_index])
+  auto local_data = local_task_counter_data.Use();
+  UASSERT(local_data->local_counter == this);
+  auto& counter = (*local_counters_[local_data->task_processor_thread_index])
       [static_cast<std::size_t>(id)];
   counter.Store(counter.Load() + Rate{1});
 }
 
 void TaskCounter::Increment(GlobalCounterId id) noexcept {
-  const auto local_data = GetLocalTaskCounterData();
+  auto local_data = local_task_counter_data.Use();
   auto& counter =
-      (local_data.local_counter == this)
-          ? (*local_counters_[local_data.task_processor_thread_index])
+      (local_data->local_counter == this)
+          ? (*local_counters_[local_data->task_processor_thread_index])
                 [static_cast<std::size_t>(id)]
           : *global_counters_[static_cast<std::size_t>(id)];
   // seq_cst synchronizes-with MayHaveTasksAlive.
@@ -195,7 +186,8 @@ void TaskCounter::Increment(GlobalCounterId id) noexcept {
 }
 
 void SetLocalTaskCounterData(TaskCounter& counter, std::size_t thread_id) {
-  local_task_counter_data = {&counter, thread_id};
+  auto local_data = local_task_counter_data.Use();
+  *local_data = {&counter, thread_id};
 }
 
 }  // namespace engine::impl

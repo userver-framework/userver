@@ -8,6 +8,7 @@
 
 #include <engine/coro/pool.hpp>
 #include <logging/log_extra_stacktrace.hpp>
+#include <userver/compiler/impl/tls.hpp>
 #include <userver/engine/exception.hpp>
 #include <userver/engine/impl/task_context_factory.hpp>
 #include <userver/engine/task/cancel.hpp>
@@ -20,7 +21,6 @@
 #include <engine/task/coro_unwinder.hpp>
 #include <engine/task/cxxabi_eh_globals.hpp>
 #include <engine/task/task_processor.hpp>
-#include <userver/compiler/impl/tls.hpp>
 #include <utils/impl/assert_extra.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -52,7 +52,6 @@ impl::TaskContext& GetCurrentTaskContext() noexcept {
         "outside of coroutine context");
   }
 
-  // NOLINTNEXTLINE
   USERVER_IMPL_PREVENT_TLS_CACHING_ASM;
 
   return *current_task_context_ptr;
@@ -60,9 +59,7 @@ impl::TaskContext& GetCurrentTaskContext() noexcept {
 
 USERVER_IMPL_PREVENT_TLS_CACHING
 impl::TaskContext* GetCurrentTaskContextUnchecked() noexcept {
-  // NOLINTNEXTLINE
   USERVER_IMPL_PREVENT_TLS_CACHING_ASM;
-
   return current_task_context_ptr;
 }
 

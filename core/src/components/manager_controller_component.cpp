@@ -8,7 +8,6 @@
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/value.hpp>
 #include <userver/logging/component.hpp>
-#include <userver/utils/statistics/metadata.hpp>
 
 #include <components/manager.hpp>
 

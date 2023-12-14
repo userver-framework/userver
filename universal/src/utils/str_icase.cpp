@@ -2,6 +2,7 @@
 
 #include <algorithm>  // for std::min
 
+#include <userver/compiler/thread_local.hpp>
 #include <userver/utils/rand.hpp>
 
 #include <utils/impl/byte_utils.hpp>
@@ -10,17 +11,29 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
+namespace {
+
 constexpr std::size_t kUppercaseToLowerMask = 32;
+
 static_assert((static_cast<std::size_t>('A') | kUppercaseToLowerMask) == 'a');
 static_assert((static_cast<std::size_t>('Z') | kUppercaseToLowerMask) == 'z');
 static_assert((static_cast<std::size_t>('a') | kUppercaseToLowerMask) == 'a');
 static_assert((static_cast<std::size_t>('z') | kUppercaseToLowerMask) == 'z');
 
-StrIcaseHash::StrIcaseHash()
-    : StrIcaseHash{HashSeed{std::uniform_int_distribution<std::uint64_t>{}(
-                                impl::DefaultRandomForHashSeed()),
-                            std::uniform_int_distribution<std::uint64_t>{}(
-                                impl::DefaultRandomForHashSeed())}} {}
+compiler::ThreadLocal local_rng = [] {
+  auto seed_seq = impl::MakeSeedSeq();
+  return std::mt19937{seed_seq};
+};
+
+HashSeed GenerateHashSeed() {
+  auto rng = local_rng.Use();
+  std::uniform_int_distribution<std::uint64_t> distribution{};
+  return HashSeed{distribution(*rng), distribution(*rng)};
+}
+
+}  // namespace
+
+StrIcaseHash::StrIcaseHash() : StrIcaseHash(GenerateHashSeed()) {}
 
 StrIcaseHash::StrIcaseHash(HashSeed seed) noexcept : seed_{seed} {}
 
@@ -32,11 +45,7 @@ std::size_t StrIcaseHash::operator()(std::string_view s) const& noexcept {
   return impl::CaseInsensitiveSipHasher{seed_.k0, seed_.k1}(s);
 }
 
-StrCaseHash::StrCaseHash()
-    : StrCaseHash{HashSeed{std::uniform_int_distribution<std::uint64_t>{}(
-                               impl::DefaultRandomForHashSeed()),
-                           std::uniform_int_distribution<std::uint64_t>{}(
-                               impl::DefaultRandomForHashSeed())}} {}
+StrCaseHash::StrCaseHash() : StrCaseHash(GenerateHashSeed()) {}
 
 StrCaseHash::StrCaseHash(HashSeed seed) noexcept : seed_{seed} {}
 
@@ -67,13 +76,13 @@ int StrIcaseCompareThreeWay::operator()(std::string_view lhs,
   return 0;
 }
 
-bool StrIcaseEqual::operator()(std::string_view lhs, std::string_view rhs) const
-    noexcept {
+bool StrIcaseEqual::operator()(std::string_view lhs,  //
+                               std::string_view rhs) const noexcept {
   return impl::CaseInsensitiveEqual{}(lhs, rhs);
 }
 
-bool StrIcaseLess::operator()(std::string_view lhs, std::string_view rhs) const
-    noexcept {
+bool StrIcaseLess::operator()(std::string_view lhs,  //
+                              std::string_view rhs) const noexcept {
   return StrIcaseCompareThreeWay{}(lhs, rhs) < 0;
 }
 

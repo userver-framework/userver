@@ -180,7 +180,7 @@ void generic_contention_with_payload(benchmark::State& state) {
     while (run) {
       m->lock();
       for (int i = 0; i < 10; ++i) {
-        benchmark::DoNotOptimize(utils::DefaultRandom()());
+        benchmark::DoNotOptimize(utils::Rand());
       }
       m->unlock();
       ++local_lock_unlock_count;
@@ -194,7 +194,7 @@ void generic_contention_with_payload(benchmark::State& state) {
   for ([[maybe_unused]] auto _ : state) {
     m->lock();
     for (int i = 0; i < 10; ++i) {
-      benchmark::DoNotOptimize(utils::DefaultRandom()());
+      benchmark::DoNotOptimize(utils::Rand());
     }
     m->unlock();
     ++local_lock_unlock_count;

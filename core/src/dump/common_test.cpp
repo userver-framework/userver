@@ -51,14 +51,14 @@ TYPED_TEST(DumpCommonNumeric, Numeric) {
     EXPECT_TRUE(std::isnan(dump::FromBinary<Num>(
         dump::ToBinary<Num>(std::numeric_limits<Num>::quiet_NaN()))));
   } else {
-    auto& engine = utils::DefaultRandom();
     // 8-bit types are not allowed in uniform_int_distribution, so increase the
     // T size.
     std::uniform_int_distribution<std::common_type_t<Num, unsigned short>>
         distribution(std::numeric_limits<Num>::min(),
                      std::numeric_limits<Num>::max());
     for (int i = 0; i < 1000; ++i) {
-      TestWriteReadCycle(static_cast<Num>(distribution(engine)));
+      TestWriteReadCycle(
+          static_cast<Num>(utils::WithDefaultRandom(distribution)));
     }
   }
 }

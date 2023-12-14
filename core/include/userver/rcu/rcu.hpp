@@ -8,7 +8,7 @@
 #include <list>
 #include <unordered_set>
 
-#include <userver/compiler/impl/tls.hpp>
+#include <userver/compiler/thread_local.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/logging/log.hpp>
@@ -64,13 +64,8 @@ struct CachedData {
 };
 
 template <typename T, typename RcuTraits>
-USERVER_IMPL_PREVENT_TLS_CACHING CachedData<T, RcuTraits>& GetCachedData() {
-  thread_local CachedData<T, RcuTraits> cache;
-
-  // NOLINTNEXTLINE
-  USERVER_IMPL_PREVENT_TLS_CACHING_ASM;
-  return cache;
-}
+inline compiler::ThreadLocal local_cached_data =
+    [] { return CachedData<T, RcuTraits>{}; };
 
 uint64_t GetNextEpoch() noexcept;
 
@@ -415,8 +410,8 @@ class Variable final {
  private:
   T* GetCurrent() const { return current_.load(); }
 
-  impl::HazardPointerRecord<T, RcuTraits>* MakeHazardPointerCached() const {
-    auto& cache = impl::GetCachedData<T, RcuTraits>();
+  impl::HazardPointerRecord<T, RcuTraits>* MakeHazardPointerCached(
+      impl::CachedData<T, RcuTraits>& cache) const {
     auto* hp = cache.hp;
     T* ptr = nullptr;
     if (hp && cache.variable == this && cache.variable_epoch == epoch_) {
@@ -448,16 +443,16 @@ class Variable final {
   }
 
   impl::HazardPointerRecord<T, RcuTraits>& MakeHazardPointer() const {
-    auto* hp = MakeHazardPointerCached();
+    auto cache = impl::local_cached_data<T, RcuTraits>.Use();
+    auto* hp = MakeHazardPointerCached(*cache);
     if (!hp) {
       hp = MakeHazardPointerFast();
       // all buckets are full, create a new one
       if (!hp) hp = MakeHazardPointerSlow();
 
-      auto& cache = impl::GetCachedData<T, RcuTraits>();
-      cache.hp = hp;
-      cache.variable = this;
-      cache.variable_epoch = epoch_;
+      cache->hp = hp;
+      cache->variable = this;
+      cache->variable_epoch = epoch_;
     }
     UASSERT(&hp->owner == this);
     return *hp;

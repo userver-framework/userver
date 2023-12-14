@@ -64,7 +64,7 @@ engine::TaskLocalVariable<SpanStack> task_local_spans;
 
 std::string GenerateSpanId() {
   std::uniform_int_distribution<std::uint64_t> dist;
-  auto random_value = dist(utils::DefaultRandom());
+  const auto random_value = utils::WithDefaultRandom(dist);
 
   static_assert(sizeof(random_value) == 8);
   return utils::encoding::ToHex(&random_value, 8);

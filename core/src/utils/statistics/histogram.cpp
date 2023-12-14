@@ -156,11 +156,6 @@ void Histogram::Account(double value, std::uint64_t count) noexcept {
   bucket.counter.fetch_add(count, std::memory_order_relaxed);
 }
 
-// NOLINTNEXTLINE(readability-make-member-function-const)
-void Histogram::Add(HistogramView other) {
-  impl::histogram::Add(buckets_.get(), other);
-}
-
 void ResetMetric(Histogram& histogram) noexcept {
   impl::histogram::ResetMetric(histogram.buckets_.get());
 }
