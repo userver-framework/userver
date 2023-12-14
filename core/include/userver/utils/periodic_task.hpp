@@ -6,6 +6,7 @@
 #include <chrono>
 #include <functional>
 #include <optional>
+#include <random>
 #include <string>
 
 #include <userver/engine/condition_variable.hpp>
@@ -214,6 +215,7 @@ class PeriodicTask final {
   rcu::Variable<Settings> settings_;
   engine::SingleConsumerEvent changed_event_;
   std::atomic<bool> should_force_step_{false};
+  std::optional<std::minstd_rand> mutate_period_random_;
 
   // For kNow only
   engine::Mutex step_mutex_;

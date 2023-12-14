@@ -4,8 +4,7 @@
 #include <fmt/compile.h>
 #include <fmt/format.h>
 
-#include <userver/compiler/impl/constexpr.hpp>
-#include <userver/compiler/impl/tls.hpp>
+#include <userver/compiler/thread_local.hpp>
 #include <userver/logging/impl/logger_base.hpp>
 #include <userver/logging/logger.hpp>
 #include <userver/ugrpc/status_codes.hpp>
@@ -44,28 +43,30 @@ std::string ParseIp(std::string_view sv) {
   return EscapeForAccessTskvLog(sv);
 }
 
-USERVER_IMPL_PREVENT_TLS_CACHING std::string_view GetCurrentTimeString(
+using SecondsTimePoint =
+    std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds>;
+
+constexpr std::string_view kTimeTemplate = "0000-00-00T00:00:00";
+
+struct CachedTime final {
+  SecondsTimePoint cached_time{};
+  char cached_time_string[kTimeTemplate.size()]{};
+};
+
+compiler::ThreadLocal local_time_cache = [] { return CachedTime{}; };
+
+std::string_view GetCurrentTimeString(
     std::chrono::system_clock::time_point start_time) noexcept {
-  using SecondsTimePoint =
-      std::chrono::time_point<std::chrono::system_clock, std::chrono::seconds>;
-  constexpr std::string_view kTemplate = "0000-00-00T00:00:00";
-
-  thread_local USERVER_IMPL_CONSTINIT SecondsTimePoint cached_time{};
-  thread_local USERVER_IMPL_CONSTINIT char
-      cached_time_string[kTemplate.size()]{};
-
-  // NOLINTNEXTLINE
-  USERVER_IMPL_PREVENT_TLS_CACHING_ASM;
-
+  auto cache = local_time_cache.Use();
   const auto rounded_now =
       std::chrono::time_point_cast<std::chrono::seconds>(start_time);
-  if (rounded_now != cached_time) {
+  if (rounded_now != cache->cached_time) {
     fmt::format_to(
-        cached_time_string, FMT_COMPILE("{:%FT%T}"),
+        cache->cached_time_string, FMT_COMPILE("{:%FT%T}"),
         fmt::localtime(std::chrono::system_clock::to_time_t(start_time)));
-    cached_time = rounded_now;
+    cache->cached_time = rounded_now;
   }
-  return {cached_time_string, kTemplate.size()};
+  return std::string_view{cache->cached_time_string, kTimeTemplate.size()};
 }
 
 }  // namespace

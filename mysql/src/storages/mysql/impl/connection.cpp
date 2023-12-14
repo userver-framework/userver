@@ -6,6 +6,7 @@
 #include <fmt/format.h>
 
 #include <userver/clients/dns/resolver.hpp>
+#include <userver/compiler/thread_local.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/tracing/scope_time.hpp>
@@ -100,6 +101,8 @@ void SetNativeOptions(MYSQL* mysql,
   }
 }
 
+compiler::ThreadLocal mysql_local_scope = [] { return MysqlThreadEnd{}; };
+
 }  // namespace
 
 Connection::Connection(clients::dns::Resolver& resolver,
@@ -109,7 +112,7 @@ Connection::Connection(clients::dns::Resolver& resolver,
                        engine::Deadline deadline)
     : socket_{-1, 0},
       statements_cache_{*this, connection_settings.statements_cache_size} {
-  static thread_local MysqlThreadEnd mysql_init{};
+  { auto _ = mysql_local_scope.Use(); }
 
   InitSocket(resolver, endpoint_info, auth_settings, connection_settings,
              deadline);

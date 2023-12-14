@@ -546,15 +546,13 @@ TEST(HeaderMap, EraseWithCollisions) {
   }
   {
     auto random_shuffle = collisions;
-    std::shuffle(random_shuffle.begin(), random_shuffle.end(),
-                 utils::DefaultRandom());
+    utils::Shuffle(random_shuffle);
     validate_erase(original_map, random_shuffle);
   }
   {
     auto map_copy = original_map;
     auto random_shuffle = collisions;
-    std::shuffle(random_shuffle.begin(), random_shuffle.end(),
-                 utils::DefaultRandom());
+    utils::Shuffle(random_shuffle);
 
     for (std::size_t i = 0; i < random_shuffle.size() / 2; ++i) {
       map_copy.erase(random_shuffle[i]);

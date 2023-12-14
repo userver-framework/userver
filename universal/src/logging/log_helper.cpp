@@ -11,7 +11,7 @@
 #include <logging/log_extra_stacktrace.hpp>
 #include <logging/log_helper_impl.hpp>
 #include <userver/compiler/demangle.hpp>
-#include <userver/compiler/impl/tls.hpp>
+#include <userver/compiler/thread_local.hpp>
 #include <userver/logging/impl/logger_base.hpp>
 #include <userver/logging/impl/tag_writer.hpp>
 #include <userver/logging/level.hpp>
@@ -59,43 +59,35 @@ template <typename T>
 class ThreadLocalMemPool {
  public:
   template <typename... Args>
-  USERVER_IMPL_PREVENT_TLS_CACHING static std::unique_ptr<T> Pop(
-      Args&&... args) {
-    // NOLINTNEXTLINE
-    USERVER_IMPL_PREVENT_TLS_CACHING_ASM;
-
-    auto& pool = pool_;
-    if (pool.IsEmpty()) {
+  static std::unique_ptr<T> Pop(Args&&... args) {
+    auto pool = local_storage_pool.Use();
+    if (pool->IsEmpty()) {
       return std::make_unique<T>(std::forward<Args>(args)...);
     }
 
-    auto& raw = pool.GetBack();
+    auto& raw = pool->GetBack();
     // if ctor throws, memory remains in pool
     new (raw.get()) T(std::forward<Args>(args)...);
     // arm dtor, transfer ownership (noexcept)
     std::unique_ptr<T> obj(reinterpret_cast<T*>(raw.release()));
     // prune pool
-    pool.PopBack();
+    pool->PopBack();
     return obj;
   }
 
   // NOTE: Push might be called from a different thread than the one we got
   // the object from (where the Pop() has been called). Because of this
   // the object state must be completely torn down.
-  USERVER_IMPL_PREVENT_TLS_CACHING
   static void Push(std::unique_ptr<T> obj) noexcept {
-    // NOLINTNEXTLINE
-    USERVER_IMPL_PREVENT_TLS_CACHING_ASM;
-
-    auto& pool = pool_;
-    if (pool.IsFull()) return;
+    auto pool = local_storage_pool.Use();
+    if (pool->IsFull()) return;
 
     // disarm dtor, transfer ownership (noexcept)
     std::unique_ptr<Storage> raw(reinterpret_cast<Storage*>(obj.release()));
     // call dtor
     reinterpret_cast<T*>(raw.get())->~T();
     // store into pool
-    pool.PushBack(std::move(raw));
+    pool->PushBack(std::move(raw));
   }
 
  private:
@@ -108,7 +100,9 @@ class ThreadLocalMemPool {
   using Storage = std::aligned_storage_t<sizeof(T), alignof(T)>;
   using StoragePool = StaticVector<std::unique_ptr<Storage>, kMaxSize>;
 
-  /*constinit*/ inline static thread_local StoragePool pool_{};
+  static inline compiler::ThreadLocal local_storage_pool = [] {
+    return StoragePool{};
+  };
 };
 
 constexpr bool NeedsQuoteEscaping(char c) { return c == '\"' || c == '\\'; }

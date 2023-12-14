@@ -5,6 +5,7 @@
 #include <atomic>
 #include <thread>
 
+#include <userver/compiler/impl/tls.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
 
@@ -87,6 +88,77 @@ UTEST_MT(ThreadLocal, DISABLED_TaskUsesCorrectInstanceAfterSleep, 2) {
   std::this_thread::sleep_for(1s);
 
   EXPECT_EQ(LoadThreadLocal(), 3);
+  EXPECT_EQ(sleep1.Get(), 2);
+  EXPECT_EQ(mutator_task.Get(), 3);
+
+  UEXPECT_NO_THROW(sleep2.Get());
+}
+
+namespace {
+
+auto& SafeGetThreadLocal() {
+  return compiler::impl::ThreadLocal([] { return std::atomic<int>{1}; });
+}
+
+int SafeLoadThreadLocal() noexcept {
+  return SafeGetThreadLocal().load(std::memory_order_relaxed);
+}
+
+void SafeMultiplyThreadLocal(int new_value) noexcept {
+  auto& atomic = SafeGetThreadLocal();
+  atomic.store(atomic.load(std::memory_order_relaxed) * new_value,
+               std::memory_order_relaxed);
+}
+
+}  // namespace
+
+// This is a copy-paste from TaskUsesCorrectInstanceAfterSleep test.
+// While the test above consistently fails as of now, this test should pass.
+UTEST_MT(ThreadLocal, SafeThreadLocalWorks, 2) {
+  const auto thread1_id = pthread_self();
+
+  auto sleep2 = engine::AsyncNoSpan([&] {
+    // (1)
+    EXPECT_NE(pthread_self(), thread1_id);
+    std::this_thread::sleep_for(300ms);
+  });
+
+  // (2)
+  EXPECT_EQ(pthread_self(), thread1_id);
+  std::this_thread::sleep_for(100ms);
+
+  auto mutator_task = engine::AsyncNoSpan([&] {
+    // (3)
+    EXPECT_EQ(pthread_self(), thread1_id);
+    std::this_thread::sleep_for(100ms);
+
+    SafeMultiplyThreadLocal(2);
+
+    engine::SleepFor(100ms);
+
+    // (4)
+    EXPECT_NE(pthread_self(), thread1_id);
+    std::this_thread::sleep_for(100ms);
+
+    SafeMultiplyThreadLocal(3);
+    return SafeLoadThreadLocal();
+  });
+
+  auto sleep1 = engine::AsyncNoSpan([&] {
+    // (5)
+    EXPECT_EQ(pthread_self(), thread1_id);
+    std::this_thread::sleep_for(300ms);
+
+    return SafeLoadThreadLocal();
+  });
+
+  engine::SleepFor(3s);
+
+  // (6)
+  EXPECT_NE(pthread_self(), thread1_id);
+  std::this_thread::sleep_for(100ms);
+
+  EXPECT_EQ(SafeLoadThreadLocal(), 3);
   EXPECT_EQ(sleep1.Get(), 2);
   EXPECT_EQ(mutator_task.Get(), 3);
 

@@ -5,7 +5,7 @@
 
 #include <boost/lockfree/queue.hpp>
 
-#include <userver/compiler/impl/tls.hpp>
+#include <userver/compiler/thread_local.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/datetime.hpp>
 
@@ -122,20 +122,15 @@ bool BusyStorage::UpdateCurrentWorkerLoad(std::vector<Duration>& load) const {
 
 namespace {
 
-thread_local std::vector<const BusyStorage*> this_thread_busy_storages;
+using BusyStorageList = std::vector<const BusyStorage*>;
 
-USERVER_IMPL_PREVENT_TLS_CACHING auto& GetThisThreadBusyStorages() noexcept {
-  // NOLINTNEXTLINE
-  USERVER_IMPL_PREVENT_TLS_CACHING_ASM;
-
-  return this_thread_busy_storages;
-}
+compiler::ThreadLocal busy_storage_list = [] { return BusyStorageList{}; };
 
 }  // namespace
 
 bool BusyStorage::IsAlreadyStarted() const {
-  auto& storages = GetThisThreadBusyStorages();
-  return std::find(storages.begin(), storages.end(), this) != storages.end();
+  auto storages = busy_storage_list.Use();
+  return std::find(storages->begin(), storages->end(), this) != storages->end();
 }
 
 BusyStorage::WorkerId BusyStorage::StartWork() {
@@ -156,8 +151,8 @@ void BusyStorage::StopWork(WorkerId worker_id) {
   value = value.load() + not_committed_load;
   pimpl->start_work[worker_id] = std::nullopt;
 
-  auto& storages = GetThisThreadBusyStorages();
-  const auto* busy_storage_back = storages.back();
+  auto storages = busy_storage_list.Use();
+  const auto* busy_storage_back = storages->back();
   if (busy_storage_back != this) {
     LOG_ERROR()
         << "StopWork() found wrong BusyStorage on this_thread's "
@@ -166,7 +161,7 @@ void BusyStorage::StopWork(WorkerId worker_id) {
            "Current load of this BusyStorage is now broken and must not be "
            "trusted.";
   } else {
-    storages.pop_back();
+    storages->pop_back();
     pimpl->free_worker_ids.push(worker_id);
   }
 }
@@ -177,7 +172,8 @@ BusyStorage::WorkerId BusyStorage::PopWorkerId() {
     LOG_ERROR() << "Failed to obtain worker_id, load statistics is accounted "
                    "with some error";
   } else {
-    GetThisThreadBusyStorages().push_back(this);
+    auto storages = busy_storage_list.Use();
+    storages->push_back(this);
   }
   return id;
 }

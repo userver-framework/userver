@@ -6,6 +6,7 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
+#include <userver/compiler/thread_local.hpp>
 #include <userver/utils/rand.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -100,19 +101,24 @@ boost::uuids::uuid FromChars(const char* begin, const char* end) {
   return u;
 }
 
+compiler::ThreadLocal local_uuid_generator = [] {
+  return WithDefaultRandom([](RandomBase& rng) {
+    return boost::uuids::basic_random_generator<RandomBase>(rng);
+  });
+};
+
 }  // namespace
 
 namespace generators {
 
 boost::uuids::uuid GenerateBoostUuid() {
-  thread_local boost::uuids::basic_random_generator<RandomBase> generator(
-      DefaultRandom());
-  return generator();
+  auto generator = local_uuid_generator.Use();
+  return (*generator)();
 }
 
 }  // namespace generators
 
-boost::uuids::uuid BoostUuidFromString(std::string const& str) {
+boost::uuids::uuid BoostUuidFromString(std::string_view str) {
   return FromChars(str.data(), str.data() + str.size());
 }
 

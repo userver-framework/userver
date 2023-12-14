@@ -2,8 +2,8 @@
 
 #include <memory>
 #include <stdexcept>
-
 #include <type_traits>
+
 #include <userver/logging/log.hpp>
 
 #include <storages/redis/impl/command.hpp>
@@ -88,8 +88,7 @@ void SubscriptionStorageBase::SubscriptionStorageImpl<
     const size_t need = needs[server_id];
 
     if (subscriptions.size() > need) {
-      std::shuffle(subscriptions.begin(), subscriptions.end(),
-                   utils::DefaultRandom());
+      utils::Shuffle(subscriptions);
       while (subscriptions.size() > need) {
         auto channel_name = std::move(subscriptions.back().first);
         auto fsm = std::move(subscriptions.back().second);
@@ -452,22 +451,17 @@ void SubscriptionStorageBase::ShardChannelInfo::AccountMessage(
   if (current_server_id == server_id)
     statistics.AccountMessage(message_size);
   else {
-    thread_local std::chrono::steady_clock::time_point last_seen;
-    static constexpr auto noprint_period = std::chrono::seconds(10);
-    auto now = std::chrono::steady_clock::now();
+    // TODO: better handling in https://st.yandex-team.ru/TAXICOMMON-604
+    LOG_LIMITED_ERROR()
+        << "Alien message got on SUBSCRIBE, fsm=" << fsm.get()
+        << ", origin server_id = " << server_id.GetId()
+        << ", server = " << server_id.GetDescription()
+        << ", current server_id = " << current_server_id.GetId()
+        << ", current server = " << current_server_id.GetDescription()
+        << ". Possible while rebalancing. If these messages are "
+           "regular, it is a bug in PUBSUB "
+           "client implementation.";
 
-    if (now - last_seen > noprint_period) {
-      // TODO: better handling in https://st.yandex-team.ru/TAXICOMMON-604
-      LOG_ERROR() << "Alien message got on SUBSCRIBE, fsm=" << fsm.get()
-                  << ", origin server_id = " << server_id.GetId()
-                  << ", server = " << server_id.GetDescription()
-                  << ", current server_id = " << current_server_id.GetId()
-                  << ", current server = " << current_server_id.GetDescription()
-                  << ". Possible while rebalancing. If these messages are "
-                     "regular, it is a bug in PUBSUB "
-                     "client implementation.";
-      last_seen = now;
-    }
     statistics.AccountAlienMessage();
   }
 }

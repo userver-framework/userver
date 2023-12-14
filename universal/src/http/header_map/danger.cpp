@@ -46,14 +46,11 @@ void Danger::ToRed() noexcept {
 
   state_ = State::kRed;
 
-  const auto init_key = [](std::uint64_t& k) {
-    do {
-      k = std::uniform_int_distribution<std::uint64_t>{}(
-          utils::DefaultRandom());
-    } while (k == 0);
-  };
-  init_key(k0_);
-  init_key(k1_);
+  utils::WithDefaultRandom([&](utils::RandomBase& rng) {
+    std::uniform_int_distribution<std::uint64_t> distribution{1};
+    k0_ = distribution(rng);
+    k1_ = distribution(rng);
+  });
 }
 
 std::size_t Danger::SafeHash(std::string_view key) const noexcept {

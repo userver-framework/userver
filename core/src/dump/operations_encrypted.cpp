@@ -8,7 +8,7 @@
 #include <cryptopp/modes.h>
 #include <cryptopp/osrng.h>
 
-#include <userver/compiler/impl/tls.hpp>
+#include <userver/crypto/random.hpp>
 #include <userver/fs/blocking/write.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/cpu_relax.hpp>
@@ -48,23 +48,12 @@ inline const unsigned char* GetBytes(const T& data) {
   return reinterpret_cast<const unsigned char*>(data.GetUnderlying().data());
 }
 
-USERVER_IMPL_PREVENT_TLS_CACHING IV GenerateIv() {
-  unsigned char iv[kIvSize];
-  thread_local ::CryptoPP::AutoSeededRandomPool pool;
-
-  // NOLINTNEXTLINE
-  USERVER_IMPL_PREVENT_TLS_CACHING_ASM;
-  pool.GenerateBlock(iv, kIvSize);
-
-  return IV(iv, iv + kIvSize);
-}
-
 EncryptedWriter::EncryptedWriter(std::string filename,
                                  const SecretKey& secret_key,
                                  boost::filesystem::perms perms,
                                  tracing::ScopeTime& scope)
     : impl_(std::move(filename), &scope) {
-  auto iv = GenerateIv();
+  IV iv{crypto::GenerateRandomBlock(kIvSize)};
   impl_->encryption.SetKeyWithIV(GetBytes(secret_key),
                                  secret_key.GetUnderlying().size(),
                                  GetBytes(iv), iv.size());
@@ -114,11 +103,11 @@ EncryptedReader::EncryptedReader(std::string filename,
                                  const SecretKey& secret_key) {
   impl_->filename = filename;
 
-  bool pump_all = false;
+  constexpr bool kPumpAll = false;
 
   IV iv;
   impl_->file = std::make_unique<::CryptoPP::FileSource>(
-      impl_->filename.c_str(), pump_all,
+      impl_->filename.c_str(), kPumpAll,
       new ::CryptoPP::StringSink(iv.GetUnderlying()));
 
   auto& file = *impl_->file;

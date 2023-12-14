@@ -21,7 +21,7 @@ boost::uuids::uuid GenerateBoostUuid();
 }  // namespace generators
 
 /// Parse string into boost::uuids::uuid
-boost::uuids::uuid BoostUuidFromString(std::string const& str);
+boost::uuids::uuid BoostUuidFromString(std::string_view str);
 
 /// Serialize boost::uuids::uuid to string
 std::string ToString(const boost::uuids::uuid&);
