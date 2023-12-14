@@ -46,7 +46,7 @@ constexpr std::string_view kTimeTemplate = "0000-00-00T00:00:00";
 struct TimeString final {
   char data[kTimeTemplate.size()]{};
 
-  /*implicit*/ operator std::string_view() const noexcept {
+  std::string_view ToStringView() const noexcept {
     return {data, std::size(data)};
   }
 };
@@ -107,9 +107,10 @@ void LogHelper::Impl::PutMessageBegin() {
       const auto now = TimePoint::clock::now();
       const auto level_string = logging::ToUpperCaseString(level_);
       msg_.resize(kTemplate.size() + level_string.size());
-      fmt::format_to(
-          msg_.data(), FMT_COMPILE("tskv\ttimestamp={}.{:06}\tlevel={}"),
-          GetCurrentTimeString(now), FractionalMicroseconds(now), level_string);
+      fmt::format_to(msg_.data(),
+                     FMT_COMPILE("tskv\ttimestamp={}.{:06}\tlevel={}"),
+                     GetCurrentTimeString(now).ToStringView(),
+                     FractionalMicroseconds(now), level_string);
       return;
     }
     case Format::kLtsv: {
@@ -119,8 +120,8 @@ void LogHelper::Impl::PutMessageBegin() {
       const auto level_string = logging::ToUpperCaseString(level_);
       msg_.resize(kTemplate.size() + level_string.size());
       fmt::format_to(msg_.data(), FMT_COMPILE("timestamp:{}.{:06}\tlevel:{}"),
-                     GetCurrentTimeString(now), FractionalMicroseconds(now),
-                     level_string);
+                     GetCurrentTimeString(now).ToStringView(),
+                     FractionalMicroseconds(now), level_string);
       return;
     }
     case Format::kRaw: {
