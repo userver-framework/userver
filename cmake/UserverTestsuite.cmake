@@ -59,10 +59,11 @@ function(userver_venv_setup)
   set(venv_bin_dir "${venv_dir}/bin")
   set("${python_output_var}" "${venv_bin_dir}/python" PARENT_SCOPE)
 
-  if(NOT USERVER_DOWNLOAD_PYTHON_PACKAGES)
+  if(USERVER_PIP_USE_SYSTEM_PACKAGES)
     list(APPEND ARG_VIRTUALENV_ARGS "--system-site-packages")
-    list(APPEND ARG_PIP_ARGS "--no-index")
   endif()
+
+  list(APPEND ARG_PIP_ARGS ${USERVER_PIP_OPTIONS})
 
   # A unique venv is set up once for the whole build.
   # For example, a userver gRPC cmake script may be included multiple times
@@ -136,7 +137,7 @@ function(userver_venv_setup)
     endif()
   endif()
 
-  if(should_run_pip AND USERVER_DOWNLOAD_PYTHON_PACKAGES)
+  if(should_run_pip)
     message(STATUS "Installing requirements:")
     foreach(requirement IN LISTS ARG_REQUIREMENTS)
       message(STATUS "  ${requirement}")

@@ -59,8 +59,13 @@ option(
     ON
 )
 option(
-    USERVER_DOWNLOAD_PYTHON_PACKAGES
+    USERVER_PIP_USE_SYSTEM_PACKAGES
     "Download missing python packages and use the downloaded versions"
+    ON
+)
+option(
+    USERVER_PIP_OPTIONS
+    "Option for all pip calls"
     ON
 )
 option(
