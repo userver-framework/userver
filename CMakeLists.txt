@@ -63,7 +63,7 @@ option(
     "Use system python packages inside virtualenv"
     ON
 )
-string(USERVER_PIP_OPTIONS "")
+set(USERVER_PIP_OPTIONS "" CACHE STRING "Options for all pip calls")
 option(
     USERVER_FORCE_DOWNLOAD_PACKAGES
     "Download all possible third party packages even if a system package is available"
