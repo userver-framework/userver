@@ -7,7 +7,6 @@
 #include <userver/dump/dumper.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
-#include <userver/utils/statistics/metadata.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 #include <userver/yaml_config/schema.hpp>
 

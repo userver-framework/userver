@@ -14,7 +14,6 @@
 #include <userver/utils/async.hpp>
 #include <userver/utils/atomic.hpp>
 #include <userver/utils/datetime.hpp>
-#include <userver/utils/statistics/metadata.hpp>
 
 #include <cache/cache_dependencies.hpp>
 #include <dump/dump_locator.hpp>

@@ -6,6 +6,7 @@
 #include <boost/range/adaptor/transformed.hpp>
 #include <boost/range/algorithm/copy.hpp>
 #include <boost/range/algorithm/equal.hpp>
+#include <boost/range/algorithm/set_algorithm.hpp>
 #include <boost/range/algorithm/upper_bound.hpp>
 #include <boost/range/combine.hpp>
 
@@ -125,16 +126,21 @@ class MutableView final {
 
   // Non-atomic
   void Add(HistogramView other) const {
-    UINVARIANT(HistogramView{*this}.GetBucketCount() == other.GetBucketCount(),
-               "Mismatch in added Histogram sizes");
-    UASSERT_MSG(HasSameBounds(*this, other),
-                "Mismatch in added Histogram bounds");
+    UINVARIANT(
+        boost::range::includes(Access::Bounds(other), Access::Bounds(*this)),
+        "Buckets can be merged, but not added during Histogram conversion.");
     AddNonAtomic(buckets_[0].counter, other.GetValueAtInf());
-    for (const auto tuple_of_refs :
-         boost::combine(Access::Buckets(*this), Access::Values(other))) {
-      auto& self_bucket = boost::get<0>(tuple_of_refs);
-      const auto other_value = boost::get<1>(tuple_of_refs);
-      AddNonAtomic(self_bucket.counter, other_value);
+    const auto self_bounds = Access::Bounds(*this);
+    auto current_self_bound = self_bounds.begin();
+    for (const auto& other_bucket : Access::Buckets(other)) {
+      while (current_self_bound != self_bounds.end() &&
+             other_bucket.upper_bound.bound > *current_self_bound) {
+        ++current_self_bound;
+      }
+      auto& self_bucket = current_self_bound == self_bounds.end()
+                              ? buckets_[0]
+                              : *current_self_bound.base();
+      AddNonAtomic(self_bucket.counter, other_bucket.counter);
     }
   }
 

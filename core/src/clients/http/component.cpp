@@ -8,7 +8,6 @@
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
-#include <userver/utils/statistics/metadata.hpp>
 
 #include <clients/http/destination_statistics.hpp>
 #include <clients/http/statistics.hpp>

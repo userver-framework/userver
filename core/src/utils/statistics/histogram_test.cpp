@@ -9,6 +9,7 @@
 #include <userver/utils/enumerate.hpp>
 #include <userver/utils/statistics/fmt.hpp>
 #include <userver/utils/statistics/graphite.hpp>
+#include <userver/utils/statistics/histogram_aggregator.hpp>
 #include <userver/utils/statistics/json.hpp>
 #include <userver/utils/statistics/metric_tag.hpp>
 #include <userver/utils/statistics/metrics_storage.hpp>
@@ -111,6 +112,7 @@ UTEST(StatisticsHistogram, Copy) {
 }
 
 UTEST(StatisticsHistogram, Add) {
+  /// [HistogramAggregator]
   utils::statistics::Histogram histogram1{Bounds()};
   AccountSome(histogram1);
   AccountSome(histogram1);
@@ -118,10 +120,13 @@ UTEST(StatisticsHistogram, Add) {
   utils::statistics::Histogram histogram2{Bounds()};
   AccountSome(histogram2);
 
-  histogram1.Add(histogram2.GetView());
+  utils::statistics::HistogramAggregator aggregator{Bounds()};
+  aggregator.Add(histogram1.GetView());
+  aggregator.Add(histogram2.GetView());
 
-  EXPECT_EQ(fmt::to_string(histogram1.GetView()),
+  EXPECT_EQ(fmt::to_string(aggregator.GetView()),
             "[1.5]=3,[5]=3,[42]=15,[60]=0,[inf]=3");
+  /// [HistogramAggregator]
 }
 
 UTEST(StatisticsHistogram, Reset) {
@@ -143,10 +148,41 @@ UTEST(StatisticsHistogram, ZeroBuckets) {
   utils::statistics::Histogram histogram2{histogram};
   histogram2.Account(42);
 
-  histogram.Add(histogram2.GetView());
-  EXPECT_EQ(histogram.GetView().GetValueAtInf(), 17);
+  utils::statistics::HistogramAggregator aggregator{std::vector<double>{}};
+  aggregator.Add(histogram.GetView());
+  aggregator.Add(histogram2.GetView());
+  EXPECT_EQ(aggregator.GetView().GetValueAtInf(), 17);
 
-  EXPECT_EQ(fmt::to_string(histogram.GetView()), "[inf]=17");
+  EXPECT_EQ(fmt::to_string(aggregator.GetView()), "[inf]=17");
+}
+
+utils::statistics::Histogram MakeHistogramForNarrowing() {
+  utils::statistics::Histogram histogram{
+      std::vector<double>{2.0, 4.0, 6.0, 8.0}};
+  histogram.Account(1.0, 1);
+  histogram.Account(3.0, 10);
+  histogram.Account(5.0, 100);
+  histogram.Account(7.0, 1000);
+  histogram.Account(9.0, 10000);
+  return histogram;
+}
+
+UTEST(StatisticsHistogram, BucketNarrowing) {
+  const auto histogram = MakeHistogramForNarrowing();
+  {
+    utils::statistics::HistogramAggregator aggregator{
+        std::vector<double>{2.0, 8.0}};
+    aggregator.Add(histogram.GetView());
+    EXPECT_EQ(fmt::to_string(aggregator.GetView()),
+              "[2]=1,[8]=1110,[inf]=10000");
+  }
+  {
+    utils::statistics::HistogramAggregator aggregator{
+        std::vector<double>{4.0, 6.0}};
+    aggregator.Add(histogram.GetView());
+    EXPECT_EQ(fmt::to_string(aggregator.GetView()),
+              "[4]=11,[6]=100,[inf]=11000");
+  }
 }
 
 UTEST_DEATH(StatisticsHistogramDeathTest, InvalidBuckets) {

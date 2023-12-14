@@ -4,9 +4,6 @@
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/formats/json/inline.hpp>
-#include <userver/formats/json/value_builder.hpp>
-#include <userver/formats/parse/common_containers.hpp>
-#include <userver/utils/statistics/metadata.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
