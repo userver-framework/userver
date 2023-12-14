@@ -64,6 +64,11 @@ option(
     ON
 )
 option(
+    USERVER_PIP_OPTIONS
+    "Options for all pip calls"
+    ""
+)
+option(
     USERVER_FORCE_DOWNLOAD_PACKAGES
     "Download all possible third party packages even if a system package is available"
     OFF
