@@ -4,6 +4,12 @@ include(CTest)
 include(FindPython)
 
 option(USERVER_FEATURE_TESTSUITE "Enable functional tests via testsuite" ON)
+option(
+    USERVER_PIP_USE_SYSTEM_PACKAGES
+    "Use system python packages inside virtualenv"
+    ON
+)
+set(USERVER_PIP_OPTIONS "" CACHE STRING "Options for all pip calls")
 
 if(USERVER_FEATURE_TESTSUITE)
   get_property(userver_python_dev_checked
@@ -58,6 +64,14 @@ function(userver_venv_setup)
   set(venv_dir "${parent_directory}/${venv_name}")
   set(venv_bin_dir "${venv_dir}/bin")
   set("${python_output_var}" "${venv_bin_dir}/python" PARENT_SCOPE)
+
+  if(USERVER_PIP_USE_SYSTEM_PACKAGES)
+    list(APPEND ARG_VIRTUALENV_ARGS "--system-site-packages")
+  endif()
+
+  if(USERVER_PIP_OPTIONS)
+    list(APPEND ARG_PIP_ARGS ${USERVER_PIP_OPTIONS})
+  endif()
 
   # A unique venv is set up once for the whole build.
   # For example, a userver gRPC cmake script may be included multiple times
