@@ -136,8 +136,8 @@
 
   <!-- Layout definition for a class page -->
   <class>
-    <briefdescription visible="yes"/>
     <includes visible="$SHOW_INCLUDE_FILES"/>
+    <detaileddescription title=""/>
     <inheritancegraph visible="$CLASS_GRAPH"/>
     <collaborationgraph visible="$COLLABORATION_GRAPH"/>
     <memberdecl>
@@ -145,14 +145,11 @@
       <publictypes title=""/>
       <services title=""/>
       <interfaces title=""/>
-      <publicslots title=""/>
-      <signals title=""/>
       <publicmethods title=""/>
       <publicstaticmethods title=""/>
       <publicattributes title=""/>
       <publicstaticattributes title=""/>
       <protectedtypes title=""/>
-      <protectedslots title=""/>
       <protectedmethods title=""/>
       <protectedstaticmethods title=""/>
       <protectedattributes title=""/>
@@ -165,16 +162,13 @@
       <properties title=""/>
       <events title=""/>
       <privatetypes title=""/>
-      <privateslots title=""/>
       <privatemethods title=""/>
       <privatestaticmethods title=""/>
       <privateattributes title=""/>
       <privatestaticattributes title=""/>
-      <friends title=""/>
       <related title="" subtitle=""/>
       <membergroups visible="yes"/>
     </memberdecl>
-    <detaileddescription title=""/>
     <memberdef>
       <inlineclasses title=""/>
       <typedefs title=""/>
@@ -195,7 +189,7 @@
 
   <!-- Layout definition for a namespace page -->
   <namespace>
-    <briefdescription visible="yes"/>
+    <detaileddescription title=""/>
     <memberdecl>
       <nestednamespaces visible="yes" title=""/>
       <constantgroups visible="yes" title=""/>
@@ -206,7 +200,6 @@
       <variables title=""/>
       <membergroups visible="yes"/>
     </memberdecl>
-    <detaileddescription title=""/>
     <memberdef>
       <inlineclasses title=""/>
       <typedefs title=""/>
@@ -219,11 +212,11 @@
 
   <!-- Layout definition for a file page -->
   <file>
-    <briefdescription visible="yes"/>
+    <detaileddescription title=""/>
+    <sourcelink visible="yes"/>
     <includes visible="$SHOW_INCLUDE_FILES"/>
     <includegraph visible="$INCLUDE_GRAPH"/>
     <includedbygraph visible="$INCLUDED_BY_GRAPH"/>
-    <sourcelink visible="yes"/>
     <memberdecl>
       <classes visible="yes" title=""/>
       <namespaces visible="yes" title=""/>
@@ -235,7 +228,6 @@
       <variables title=""/>
       <membergroups visible="yes"/>
     </memberdecl>
-    <detaileddescription title=""/>
     <memberdef>
       <inlineclasses title=""/>
       <defines title=""/>
@@ -249,7 +241,7 @@
 
   <!-- Layout definition for a group page -->
   <group>
-    <briefdescription visible="yes"/>
+    <detaileddescription title=""/>
     <groupgraph visible="$GROUP_GRAPHS"/>
     <memberdecl>
       <nestedgroups visible="yes" title="Nested Groups"/>
@@ -263,16 +255,10 @@
       <enumvalues title=""/>
       <functions title=""/>
       <variables title=""/>
-      <signals title=""/>
-      <publicslots title=""/>
-      <protectedslots title=""/>
-      <privateslots title=""/>
       <events title=""/>
       <properties title=""/>
-      <friends title=""/>
       <membergroups visible="yes"/>
     </memberdecl>
-    <detaileddescription title=""/>
     <memberdef>
       <pagedocs/>
       <inlineclasses title=""/>
@@ -282,25 +268,19 @@
       <enumvalues title=""/>
       <functions title=""/>
       <variables title=""/>
-      <signals title=""/>
-      <publicslots title=""/>
-      <protectedslots title=""/>
-      <privateslots title=""/>
       <events title=""/>
       <properties title=""/>
-      <friends title=""/>
     </memberdef>
     <authorsection visible="yes"/>
   </group>
 
   <!-- Layout definition for a directory page -->
   <directory>
-    <briefdescription visible="yes"/>
+    <detaileddescription title=""/>
     <directorygraph visible="yes"/>
     <memberdecl>
       <dirs visible="yes"/>
       <files visible="yes"/>
     </memberdecl>
-    <detaileddescription title=""/>
   </directory>
 </doxygenlayout>
