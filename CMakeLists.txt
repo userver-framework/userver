@@ -65,7 +65,7 @@ option(
 )
 option(
     USERVER_PIP_OPTIONS
-    "Option for all pip calls"
+    "Options for all pip calls"
     ON
 )
 option(
