@@ -63,8 +63,10 @@ function(userver_venv_setup)
     list(APPEND ARG_VIRTUALENV_ARGS "--system-site-packages")
   endif()
 
-  list(APPEND ARG_PIP_ARGS ${USERVER_PIP_OPTIONS})
-
+  if(USERVER_PIP_OPTIONS)
+    list(APPEND ARG_PIP_ARGS ${USERVER_PIP_OPTIONS})
+  endif()
+  
   # A unique venv is set up once for the whole build.
   # For example, a userver gRPC cmake script may be included multiple times
   # during the Configure, but only 1 venv should be created.

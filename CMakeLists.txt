@@ -60,14 +60,10 @@ option(
 )
 option(
     USERVER_PIP_USE_SYSTEM_PACKAGES
-    "Download missing python packages and use the downloaded versions"
+    "Use system python packages inside virtualenv"
     ON
 )
-option(
-    USERVER_PIP_OPTIONS
-    "Options for all pip calls"
-    ""
-)
+string(USERVER_PIP_OPTIONS "")
 option(
     USERVER_FORCE_DOWNLOAD_PACKAGES
     "Download all possible third party packages even if a system package is available"
