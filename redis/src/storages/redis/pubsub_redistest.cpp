@@ -92,7 +92,7 @@ std::vector<redis::CommandControl> BuildTestData() {
   std::vector<redis::CommandControl> result;
 
   // One default CC
-  result.emplace_back(redis::CommandControl{});
+  result.emplace_back();
 
   return result;
 }
