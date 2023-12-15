@@ -11,6 +11,7 @@ includes:
           - /usr/include/postgresql/13/server
           - /usr/include/postgresql/14/server
           - /usr/include/postgresql/15/server
+          - /usr/include/postgresql/16/server
           - /usr/local/include/postgresql/server  # FreeBSD
         path-suffixes:
           - pgsql/server         # postgresql-server-devel
