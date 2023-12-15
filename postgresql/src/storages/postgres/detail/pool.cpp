@@ -563,8 +563,8 @@ void ConnectionPool::Clear() {
 }
 
 void ConnectionPool::CleanupConnection(Connection* connection) {
-  if (cancel_limit_.Obtain()) {
-    try {
+  try {
+    if (cancel_limit_.Obtain()) {
       connection->CancelAndCleanup(kCleanupTimeout);
       if (connection->IsIdle()) {
         LOG_DEBUG() << "Successfully cleaned up a dirty connection";
@@ -572,25 +572,24 @@ void ConnectionPool::CleanupConnection(Connection* connection) {
         Push(connection);
         return;
       }
-    } catch (const std::exception& e) {
-      LOG_WARNING() << "Exception while cleaning up a dirty connection: " << e;
-      connection->MarkAsBroken();
+    } else {
+      // Too many connections are cancelling ATM, we cannot afford running
+      // many synchronous calls and/or keep precious connections hanging.
+      // Assume a router with sane connection management logic is in place.
+      if (connection->Cleanup(kCleanupTimeout)) {
+        LOG_DEBUG() << "Successfully finished waiting for a dirty connection "
+                       "to clean up itself";
+        AccountConnectionStats(connection->GetStatsAndReset());
+        Push(connection);
+        return;
+      }
+      if (!connection->IsConnected()) {
+        DeleteBrokenConnection(connection);
+        return;
+      }
     }
-  } else {
-    // Too many connections are cancelling ATM, we cannot afford running
-    // many synchronous calls and/or keep precious connections hanging.
-    // Assume a router with sane connection management logic is in place.
-    if (connection->Cleanup(kCleanupTimeout)) {
-      LOG_DEBUG() << "Successfully finished waiting for a dirty connection "
-                     "to clean up itself";
-      AccountConnectionStats(connection->GetStatsAndReset());
-      Push(connection);
-      return;
-    }
-    if (!connection->IsConnected()) {
-      DeleteBrokenConnection(connection);
-      return;
-    }
+  } catch (const std::exception& e) {
+    LOG_WARNING() << "Exception while cleaning up a dirty connection: " << e;
   }
   LOG_WARNING() << "Failed to cleanup a dirty connection, deleting...";
   ++stats_.connection.error_total;
