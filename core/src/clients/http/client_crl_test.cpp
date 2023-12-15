@@ -17,10 +17,6 @@
 #include <userver/utest/utest.hpp>
 
 // Tests in this file make sure that certs do not check CRLs by default.
-//
-// Fails on MacOS with Segmentation fault while calling
-// Request::RequestImpl::on_certificate_request, probably because CURL library
-// was misconfigured and uses wrong version of OpenSSL.
 
 USERVER_NAMESPACE_BEGIN
 
@@ -369,7 +365,7 @@ auto InterceptCrlDistribution() {
 
 }  // namespace
 
-UTEST(HttpClient, DISABLED_IN_MAC_OS_TEST_NAME(HttpsWithNoCrl)) {
+UTEST(HttpClient, HttpsWithNoCrl) {
   (void)kCrlFile;
   auto task = InterceptCrlDistribution();
 
@@ -396,7 +392,7 @@ UTEST(HttpClient, DISABLED_IN_MAC_OS_TEST_NAME(HttpsWithNoCrl)) {
   EXPECT_EQ(resp->body_view(), "OK");
 }
 
-UTEST(HttpClient, DISABLED_IN_MAC_OS_TEST_NAME(HttpsWithCrl)) {
+UTEST(HttpClient, HttpsWithCrl) {
   auto tmp_file = fs::blocking::TempFile::Create();
   fs::blocking::RewriteFileContents(tmp_file.GetPath(), kCrlFile);
 
@@ -424,7 +420,7 @@ UTEST(HttpClient, DISABLED_IN_MAC_OS_TEST_NAME(HttpsWithCrl)) {
   UEXPECT_THROW(response_future.Get(), clients::http::SSLException);
 }
 
-UTEST(HttpClient, DISABLED_IN_MAC_OS_TEST_NAME(HttpsWithCrlNoVerify)) {
+UTEST(HttpClient, HttpsWithCrlNoVerify) {
   auto tmp_file = fs::blocking::TempFile::Create();
   fs::blocking::RewriteFileContents(tmp_file.GetPath(), kCrlFile);
 
@@ -452,7 +448,7 @@ UTEST(HttpClient, DISABLED_IN_MAC_OS_TEST_NAME(HttpsWithCrlNoVerify)) {
   UEXPECT_NO_THROW(response_future.Get());
 }
 
-UTEST(HttpClient, DISABLED_IN_MAC_OS_TEST_NAME(HttpsWithNoServerCa)) {
+UTEST(HttpClient, HttpsWithNoServerCa) {
   (void)kCrlFile;
   auto task = InterceptCrlDistribution();
 
@@ -479,7 +475,7 @@ UTEST(HttpClient, DISABLED_IN_MAC_OS_TEST_NAME(HttpsWithNoServerCa)) {
   EXPECT_EQ(resp->body_view(), "OK");
 }
 
-UTEST(HttpClient, DISABLED_IN_MAC_OS_TEST_NAME(HttpsWithNoClientCa)) {
+UTEST(HttpClient, HttpsWithNoClientCa) {
   auto task = InterceptCrlDistribution();
   auto pkey = crypto::PrivateKey::LoadFromString(kRevokedClientPrivateKey, "");
   auto cert = crypto::Certificate::LoadFromString(kClientCertificate);

@@ -62,6 +62,9 @@ bool IsMatchingKeyCurve(EVP_PKEY*, DigestSize bits);
 std::unique_ptr<::BIO, decltype(&::BIO_free_all)> MakeBioString(
     std::string_view str);
 
+std::unique_ptr<::BIO, decltype(&::BIO_free_all)> MakeBioMemoryBuffer();
+std::unique_ptr<::BIO, decltype(&::BIO_free_all)> MakeBioSecureMemoryBuffer();
+
 void SetupJwaRsaPssPadding(EVP_PKEY_CTX*, DigestSize bits);
 
 }  // namespace crypto

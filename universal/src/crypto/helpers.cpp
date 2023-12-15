@@ -182,6 +182,14 @@ std::unique_ptr<::BIO, decltype(&::BIO_free_all)> MakeBioString(
   return {::BIO_new_mem_buf(str.data(), str.size()), &::BIO_free_all};
 }
 
+std::unique_ptr<::BIO, decltype(&::BIO_free_all)> MakeBioMemoryBuffer() {
+  return {::BIO_new(BIO_s_mem()), &::BIO_free_all};
+}
+
+std::unique_ptr<::BIO, decltype(&::BIO_free_all)> MakeBioSecureMemoryBuffer() {
+  return {::BIO_new(BIO_s_secmem()), &::BIO_free_all};
+}
+
 void SetupJwaRsaPssPadding(EVP_PKEY_CTX* pkey_ctx, DigestSize bits) {
   if (EVP_PKEY_CTX_set_rsa_padding(pkey_ctx, RSA_PKCS1_PSS_PADDING) <= 0) {
     throw CryptoException(FormatSslError(
