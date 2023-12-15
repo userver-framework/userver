@@ -4,6 +4,8 @@
 /// @brief @copybrief crypto::Certificate
 
 #include <memory>
+#include <optional>
+#include <string>
 #include <string_view>
 
 #include <userver/crypto/basic_types.hpp>
@@ -23,6 +25,11 @@ class Certificate {
 
   NativeType* GetNative() const noexcept { return cert_.get(); }
   explicit operator bool() const noexcept { return !!cert_; }
+
+  /// Returns a PEM-encoded representation of stored certificate.
+  ///
+  /// @throw crypto::SerializationError if serialization fails.
+  std::optional<std::string> GetPemString() const;
 
   /// Accepts a string that contains a certificate, checks that
   /// it's correct, loads it into OpenSSL structures and returns as a

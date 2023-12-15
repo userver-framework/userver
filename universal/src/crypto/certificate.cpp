@@ -21,6 +21,28 @@ int NoPasswordCb(char* /*buf*/, int /*size*/, int /*rwflag*/, void*) {
 
 }  // namespace
 
+std::optional<std::string> Certificate::GetPemString() const {
+  if (!cert_) return {};
+
+  auto membio = MakeBioMemoryBuffer();
+  if (1 != PEM_write_bio_X509(membio.get(), GetNative())) {
+    throw SerializationError(FormatSslError("Error serializing cert to PEM"));
+  }
+
+  std::string result;
+  result.resize(BIO_pending(membio.get()));
+  size_t readbytes = 0;
+  if (1 !=
+      BIO_read_ex(membio.get(), result.data(), result.size(), &readbytes)) {
+    throw SerializationError(
+        FormatSslError("Error transferring PEM to string"));
+  }
+  if (readbytes != result.size()) {
+    throw SerializationError("Error transferring PEM to string");
+  }
+  return result;
+}
+
 Certificate Certificate::LoadFromString(std::string_view certificate) {
   impl::Openssl::Init();
 
