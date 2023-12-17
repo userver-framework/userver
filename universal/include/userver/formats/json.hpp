@@ -10,6 +10,7 @@
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/json/value_builder.hpp>
+#include <userver/formats/json/universal.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
