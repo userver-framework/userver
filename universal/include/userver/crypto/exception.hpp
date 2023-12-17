@@ -35,6 +35,12 @@ class KeyParseError : public CryptoException {
   using CryptoException::CryptoException;
 };
 
+/// Serialization error
+class SerializationError : public CryptoException {
+ public:
+  using CryptoException::CryptoException;
+};
+
 }  // namespace crypto
 
 USERVER_NAMESPACE_END

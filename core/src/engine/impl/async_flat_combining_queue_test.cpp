@@ -158,14 +158,15 @@ UTEST_MT(AsyncFlatCombiningQueue, StressAsync, 3) {
     return engine::AsyncNoSpan([&] {
       BackOff back_off;
 
+      // NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks)
       while (!engine::current_task::ShouldCancel()) {
-        // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
         PushAndWork(queue, *new EmptyNode{}, back_off,
                     [&](NodeBase& node) noexcept {
                       ++nodes_consumed_sync;
                       delete &node;
                     });
       }
+      // NOLINTEND(clang-analyzer-cplusplus.NewDeleteLeaks)
     });
   });
 

@@ -5,6 +5,7 @@
 #include <map>
 #include <string_view>
 
+#include <cryptopp/osrng.h>
 #include <fmt/chrono.h>
 #include <fmt/format.h>
 #include <openssl/ssl.h>
@@ -31,6 +32,11 @@ USERVER_NAMESPACE_BEGIN
 namespace clients::http {
 
 namespace {
+namespace nolint {
+// NOLINT(bugprone-forward-declaration-namespace) due to CryptoPP::Source
+using UnusedConfigSourceFwd = dynamic_config::Source&;
+}  // namespace nolint
+
 /// Default timeout
 constexpr auto kDefaultTimeout = std::chrono::milliseconds{100};
 /// Maximum number of redirects
@@ -156,6 +162,24 @@ class MaybeOwnedUrl final {
   const curl::url* url_ptr_{nullptr};
 };
 
+// Instance-wide password used to avoid passing unencrypted keys
+[[maybe_unused]] const std::string& GetPkeyPassword() {
+  static const std::string password = [] {
+    CryptoPP::DefaultAutoSeededRNG prng;
+    std::string random_bytes;
+    random_bytes.resize(32);
+    // password should not contain '\0' (cURL only accepts C-style strings)
+    while (random_bytes.find('\0') != std::string::npos) {
+      static_assert(sizeof(std::string::value_type) == 1,
+                    "string does not consist of bytes");
+      prng.GenerateBlock(reinterpret_cast<unsigned char*>(random_bytes.data()),
+                         random_bytes.size());
+    }
+    return random_bytes;
+  }();
+  return password;
+}
+
 }  // namespace
 
 RequestState::RequestState(
@@ -208,9 +232,17 @@ void RequestState::ca_info(const std::string& file_path) {
 }
 
 void RequestState::ca(crypto::Certificate cert) {
-  ca_ = std::move(cert);
-  easy().set_ssl_ctx_function(&RequestState::on_certificate_request);
-  easy().set_ssl_ctx_data(this);
+  UINVARIANT(cert, "No certificate");
+  if constexpr (curl::easy::is_set_ca_info_blob_available) {
+    auto cert_pem = cert.GetPemString();
+    UINVARIANT(cert_pem, "Could not serialize certificate");
+    easy().set_ca_info_blob_copy(*cert_pem);
+  } else {
+    // Legacy non-portable way, broken since 7.87.0
+    ca_ = std::move(cert);
+    easy().set_ssl_ctx_function(&RequestState::on_certificate_request);
+    easy().set_ssl_ctx_data(this);
+  }
 }
 
 void RequestState::crl_file(const std::string& file_path) {
@@ -222,40 +254,54 @@ void RequestState::client_key_cert(crypto::PrivateKey pkey,
   UINVARIANT(pkey, "No private key");
   UINVARIANT(cert, "No certificate");
 
-  pkey_ = std::move(pkey);
-  cert_ = std::move(cert);
+  if constexpr (curl::easy::is_set_ssl_cert_blob_available &&
+                curl::easy::is_set_ssl_key_blob_available) {
+    auto cert_pem = cert.GetPemString();
+    UINVARIANT(cert_pem, "Could not serialize certificate");
+    easy().set_ssl_cert_blob_copy(*cert_pem);
+    easy().set_ssl_cert_type("PEM");
+    auto key_pem = pkey.GetPemString(GetPkeyPassword());
+    UINVARIANT(key_pem, "Could not serialize private key");
+    easy().set_ssl_key_blob_copy(*key_pem);
+    easy().set_ssl_key_passwd(GetPkeyPassword());
+    easy().set_ssl_key_type("PEM");
+  } else {
+    // Legacy non-portable way, broken since 7.84.0
+    pkey_ = std::move(pkey);
+    cert_ = std::move(cert);
 
-  // FIXME: until cURL 7.71 there is no sane way to pass TLS keys from memory.
-  // Because of this, we provide our own callback. As a consequence, cURL has
-  // no knowledge of the key used and may reuse this connection for a request
-  // with a different key or without one.
-  // To avoid this until we can upgrade we set the EGD socket option to
-  // an unusable certificate-specific value. This option should have no effect
-  // on systems targeted by userver anyway but it is accounted when checking
-  // cached connection eligibility which is exactly what we need.
+    // FIXME: until cURL 7.71 there is no sane way to pass TLS keys from memory.
+    // Because of this, we provide our own callback. As a consequence, cURL has
+    // no knowledge of the key used and may reuse this connection for a request
+    // with a different key or without one.
+    // To avoid this until we can upgrade we set the EGD socket option to
+    // an unusable certificate-specific value. This option should have no effect
+    // on systems targeted by userver anyway but it is accounted when checking
+    // cached connection eligibility which is exactly what we need.
 
-  // must be larger than sizeof(sockaddr_un::sun_path)
-  static constexpr size_t kCertIdLength = 255;
+    // must be larger than sizeof(sockaddr_un::sun_path)
+    static constexpr size_t kCertIdLength = 255;
 
-  // backwards incompatibility
+    // backwards incompatibility
 #if OPENSSL_VERSION_NUMBER >= 0x010100000L
-  const
+    const
 #endif
-      ASN1_BIT_STRING* cert_sig = nullptr;
-  X509_get0_signature(&cert_sig, nullptr, cert_.GetNative());
-  UINVARIANT(cert_sig, "Cannot get X509 certificate signature");
+        ASN1_BIT_STRING* cert_sig = nullptr;
+    X509_get0_signature(&cert_sig, nullptr, cert_.GetNative());
+    UINVARIANT(cert_sig, "Cannot get X509 certificate signature");
 
-  std::string cert_id;
-  cert_id.reserve(kCertIdLength);
-  utils::encoding::ToHex(
-      std::string_view{reinterpret_cast<const char*>(cert_sig->data),
-                       std::min<size_t>(cert_sig->length, kCertIdLength / 2)},
-      cert_id);
-  cert_id.resize(kCertIdLength, '=');
-  easy().set_egd_socket(cert_id);
+    std::string cert_id;
+    cert_id.reserve(kCertIdLength);
+    utils::encoding::ToHex(
+        std::string_view{reinterpret_cast<const char*>(cert_sig->data),
+                         std::min<size_t>(cert_sig->length, kCertIdLength / 2)},
+        cert_id);
+    cert_id.resize(kCertIdLength, '=');
+    easy().set_egd_socket(cert_id);
 
-  easy().set_ssl_ctx_function(&RequestState::on_certificate_request);
-  easy().set_ssl_ctx_data(this);
+    easy().set_ssl_ctx_function(&RequestState::on_certificate_request);
+    easy().set_ssl_ctx_data(this);
+  }
 }
 
 void RequestState::http_version(curl::easy::http_version_t version) {

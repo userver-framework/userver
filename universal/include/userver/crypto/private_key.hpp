@@ -4,6 +4,8 @@
 /// @brief @copybrief crypto::PrivateKey
 
 #include <memory>
+#include <optional>
+#include <string>
 #include <string_view>
 
 #include <userver/crypto/basic_types.hpp>
@@ -23,6 +25,19 @@ class PrivateKey {
 
   NativeType* GetNative() const noexcept { return pkey_.get(); }
   explicit operator bool() const noexcept { return !!pkey_; }
+
+  /// Returns a PEM-encoded representation of stored private key encrypted by
+  /// the provided password.
+  ///
+  /// @throw crypto::SerializationError if the password is empty or
+  /// serialization fails.
+  std::optional<std::string> GetPemString(std::string_view password) const;
+
+  /// Returns a PEM-encoded representation of stored private key in an
+  /// unencrypted form.
+  ///
+  /// @throw crypto::SerializationError if serialization fails.
+  std::optional<std::string> GetPemStringUnencrypted() const;
 
   /// Accepts a string that contains a private key and a password, checks the
   /// key and password, loads it into OpenSSL structures and returns as a

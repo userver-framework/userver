@@ -1,7 +1,6 @@
 #pragma once
 
 #include <userver/clients/http/plugin.hpp>
-#include <userver/dynamic_config/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

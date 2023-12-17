@@ -764,6 +764,7 @@ bool SentinelImpl::SetConnectionInfo(
 
       if (changed) {
         std::vector<std::string> conn_strs;
+        conn_strs.reserve(info_iterator.second.size());
         for (const auto& conn_str : info_iterator.second)
           conn_strs.push_back(conn_str.Fulltext());
         LOG_INFO() << "Redis state changed for client=" << client_name_
