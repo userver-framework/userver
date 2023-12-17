@@ -32,8 +32,13 @@ template <typename Value, typename T>
 using HasConvert =
     decltype(Convert(std::declval<const Value&>(), parse::To<T>{}));
 
+template <typename Value, typename T>
+using HasTryParse =
+    decltype(TryParse(std::declval<const Value&>(), parse::To<T>{}));
+
 template <typename Value>
 using IsFormatValue = typename Value::ParseException;
+
 
 template <class Value, class T>
 constexpr inline bool kHasParse = meta::kIsDetected<HasParse, Value, T>;
@@ -43,6 +48,9 @@ constexpr inline bool kHasSerialize = meta::kIsDetected<HasSerialize, Value, T>;
 
 template <class Value, class T>
 constexpr inline bool kHasConvert = meta::kIsDetected<HasConvert, Value, T>;
+
+template <class Value, class T>
+constexpr inline bool kHasTryParse = meta::kIsDetected<HasTryParse, Value, T>;
 
 }  // namespace impl
 

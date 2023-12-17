@@ -10,6 +10,7 @@
 #include <userver/formats/yaml/types.hpp>
 #include <userver/formats/yaml/value.hpp>
 #include <userver/formats/yaml/value_builder.hpp>
+#include <userver/formats/yaml/universal.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
