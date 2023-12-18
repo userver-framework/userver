@@ -180,6 +180,34 @@ class MaybeOwnedUrl final {
   return password;
 }
 
+// Type-dependent implementations to avoid alternate branch instantiation
+// (tries to use deleted methods otherwise).
+template <typename Easy>
+void ModernCaImpl(Easy& easy, crypto::Certificate&& cert) {
+  static_assert(Easy::is_set_ca_info_blob_available,
+                "Modern implementation called in legacy env");
+  auto cert_pem = cert.GetPemString();
+  UINVARIANT(cert_pem, "Could not serialize certificate");
+  easy.set_ca_info_blob_copy(*cert_pem);
+}
+
+template <typename Easy>
+void ModernClientKeyCertImpl(Easy& easy, crypto::PrivateKey&& pkey,
+                             crypto::Certificate&& cert) {
+  static_assert(Easy::is_set_ssl_cert_blob_available &&
+                    Easy::is_set_ssl_key_blob_available,
+                "Modern implementation called in legacy env");
+  auto cert_pem = cert.GetPemString();
+  UINVARIANT(cert_pem, "Could not serialize certificate");
+  easy.set_ssl_cert_blob_copy(*cert_pem);
+  easy.set_ssl_cert_type("PEM");
+  auto key_pem = pkey.GetPemString(GetPkeyPassword());
+  UINVARIANT(key_pem, "Could not serialize private key");
+  easy.set_ssl_key_blob_copy(*key_pem);
+  easy.set_ssl_key_passwd(GetPkeyPassword());
+  easy.set_ssl_key_type("PEM");
+}
+
 }  // namespace
 
 RequestState::RequestState(
@@ -234,9 +262,7 @@ void RequestState::ca_info(const std::string& file_path) {
 void RequestState::ca(crypto::Certificate cert) {
   UINVARIANT(cert, "No certificate");
   if constexpr (curl::easy::is_set_ca_info_blob_available) {
-    auto cert_pem = cert.GetPemString();
-    UINVARIANT(cert_pem, "Could not serialize certificate");
-    easy().set_ca_info_blob_copy(*cert_pem);
+    ModernCaImpl(easy(), std::move(cert));
   } else {
     // Legacy non-portable way, broken since 7.87.0
     ca_ = std::move(cert);
@@ -256,15 +282,7 @@ void RequestState::client_key_cert(crypto::PrivateKey pkey,
 
   if constexpr (curl::easy::is_set_ssl_cert_blob_available &&
                 curl::easy::is_set_ssl_key_blob_available) {
-    auto cert_pem = cert.GetPemString();
-    UINVARIANT(cert_pem, "Could not serialize certificate");
-    easy().set_ssl_cert_blob_copy(*cert_pem);
-    easy().set_ssl_cert_type("PEM");
-    auto key_pem = pkey.GetPemString(GetPkeyPassword());
-    UINVARIANT(key_pem, "Could not serialize private key");
-    easy().set_ssl_key_blob_copy(*key_pem);
-    easy().set_ssl_key_passwd(GetPkeyPassword());
-    easy().set_ssl_key_type("PEM");
+    ModernClientKeyCertImpl(easy(), std::move(pkey), std::move(cert));
   } else {
     // Legacy non-portable way, broken since 7.84.0
     pkey_ = std::move(pkey);
