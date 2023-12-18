@@ -61,7 +61,7 @@ endif()
 
 # Compiler flags for userver code. Flags for all the code
 # including third_party are in cmake/SetupEnvironment.cmake
-add_library(userver-internal-compile-options INTERFACE ${SOURCES})
+add_library(userver-internal-compile-options INTERFACE)
 userver_target_require_dwcas(userver-internal-compile-options INTERFACE)
 target_compile_features(userver-internal-compile-options INTERFACE cxx_std_17)
 target_compile_options(userver-internal-compile-options INTERFACE
