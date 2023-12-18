@@ -22,6 +22,8 @@ const std::string kRequestDataName = "__request_json";
 const std::string kResponseDataName = "__response_json";
 const std::string kSerializeJson = "serialize_json";
 
+const formats::json::Value kEmptyJson{};
+
 }  // namespace
 
 HttpHandlerJsonBase::HttpHandlerJsonBase(
@@ -70,17 +72,19 @@ FormattedErrorData HttpHandlerJsonBase::GetFormattedExternalErrorBody(
 
 void HttpHandlerJsonBase::ParseRequestData(
     const http::HttpRequest& request, request::RequestContext& context) const {
-  formats::json::Value request_json;
+  if (request.RequestBody().empty()) {
+    context.SetData<const formats::json::Value>(kRequestDataName, kEmptyJson);
+    return;
+  }
+
   try {
-    if (!request.RequestBody().empty())
-      request_json = formats::json::FromString(request.RequestBody());
+    context.SetData<const formats::json::Value>(
+        kRequestDataName, formats::json::FromString(request.RequestBody()));
   } catch (const formats::json::Exception& e) {
     throw RequestParseError(
         InternalMessage{"Invalid JSON body"},
         ExternalBody{std::string("Invalid JSON body: ") + e.what()});
   }
-
-  context.SetData<const formats::json::Value>(kRequestDataName, request_json);
 }
 
 yaml_config::Schema HttpHandlerJsonBase::GetStaticConfigSchema() {
