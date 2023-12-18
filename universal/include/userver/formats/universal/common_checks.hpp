@@ -8,6 +8,7 @@
 USERVER_NAMESPACE_BEGIN
 namespace formats::universal {
 
+
 template <auto Value>
 struct Min {
   static constexpr auto kValue = Value;
@@ -31,12 +32,14 @@ struct Pattern {
 struct Additional {};
 
 template <typename Field, auto Value>
-constexpr inline auto Check(const Field& field, Max<Value>) noexcept {
+constexpr inline std::enable_if_t<!meta::kIsOptional<Field>, bool>
+Check(const Field& field, Max<Value>) noexcept {
   return Value >= field;
 };
 
 template <typename Field, auto Value>
-constexpr inline auto Check(const Field& field, Min<Value>) noexcept {
+constexpr inline std::enable_if_t<!meta::kIsOptional<Field>, bool>
+Check(const Field& field, Min<Value>) noexcept {
   return field >= Value;
 };
 
@@ -59,7 +62,9 @@ constexpr inline auto Check(const std::optional<Field>&, Default<Value>) noexcep
 };
 
 template <typename Field>
-constexpr inline auto Check(const Field&, Additional) noexcept {
+constexpr inline
+std::enable_if_t<!meta::kIsOptional<Field>, bool>
+Check(const Field&, Additional) noexcept {
   return true;
 };
 

@@ -1,7 +1,9 @@
 #pragma once
-#include <userver/utils/type_list.hpp>
-#include <userver/utils/string.hpp>
+#include <userver/utils/impl/type_list.hpp>
+#include <userver/utils/constexpr_string.hpp>
 #include <userver/formats/parse/to.hpp>
+#include <userver/formats/parse/try_parse.hpp>
+#include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/serialize/to.hpp>
 #include <userver/formats/common/meta.hpp>
 #include <userver/formats/common/items.hpp>
@@ -13,16 +15,11 @@
 USERVER_NAMESPACE_BEGIN
 namespace formats::universal {
 
-namespace detail {
-  struct Disabled {};
-} //namespace detail
+namespace impl {
 
-template <typename T>
-inline static constexpr auto kSerialization = detail::Disabled{};
+struct Disabled {};
 
-template <typename T>
-inline static constexpr auto kDeserialization = kSerialization<T>;
-
+} //namespace impl
 
 template <typename... T>
 struct Configurator {};
@@ -31,7 +28,15 @@ struct Additional;
 
 template <auto>
 struct Default;
-namespace detail {
+
+
+template <typename T>
+inline static constexpr auto kSerialization = impl::Disabled{};
+
+template <typename T>
+inline static constexpr auto kDeserialization = kSerialization<T>;
+
+namespace impl {
 
 template <auto Needed, auto Value, typename T, typename F>
 consteval auto TransformIfEqual(const T& obj, const F& f) {
@@ -112,7 +117,7 @@ constexpr inline Field Read(Value&& value, parse::To<Field>) {
 
 template <typename T, auto I, typename... Params, typename From, typename Value>
 constexpr inline
-std::enable_if_t<utils::AnyOf(utils::IsSameCarried<Additional>(), utils::TypeList<Params...>{}), std::unordered_map<std::string, Value>>
+std::enable_if_t<utils::impl::AnyOf(utils::impl::IsSameCarried<Additional>(), utils::impl::TypeList<Params...>{}), std::unordered_map<std::string, Value>>
 Read(const From& value, parse::To<std::unordered_map<std::string, Value>>) {
   constexpr auto names = boost::pfr::names_as_array<T>();
   std::unordered_map<std::string, Value> result;
@@ -126,7 +131,7 @@ Read(const From& value, parse::To<std::unordered_map<std::string, Value>>) {
 
 template <typename T, auto I, typename... Params, typename From, typename Value>
 constexpr inline
-std::enable_if_t<utils::AnyOf(utils::IsSameCarried<Additional>(), utils::TypeList<Params...>{}), std::optional<std::unordered_map<std::string, Value>>>
+std::enable_if_t<utils::impl::AnyOf(utils::impl::IsSameCarried<Additional>(), utils::impl::TypeList<Params...>{}), std::optional<std::unordered_map<std::string, Value>>>
 Read(const From& value, parse::To<std::optional<std::unordered_map<std::string, Value>>>) {
   return Read<T, I, Params...>(value, parse::To<std::unordered_map<std::string, Value>>{});
 };
@@ -135,7 +140,10 @@ template <typename T, auto I, typename... Params, typename Value, typename Field
 constexpr inline std::optional<Field> Read(Value&& value, parse::To<std::optional<Field>>) {
   using parse::TryParse;
   static_assert(common::impl::kHasTryParse<Value, Field>, "Not Found Try Parse");
-  return TryParse(value[boost::pfr::get_name<I, T>()], parse::To<Field>{});
+  return TryParse(value[boost::pfr::get_name<I, T>()], parse::To<Field>{}); };
+template <typename T, auto I, typename... Params, typename Value, typename Field>
+constexpr inline std::optional<Field> Read(Value&& value, parse::To<std::optional<std::optional<Field>>>) {
+  return Read<T, I, Params...>(std::forward<Value>(value), parse::To<std::optional<Field>>{});
 };
 
 template <typename T, auto I, typename Builder, typename Field, auto Value>
@@ -152,8 +160,9 @@ constexpr inline auto RunParseCheckFor(const Value&, std::optional<Field>& field
   };
 };
 
+
 template <typename T, auto I, typename... Params, typename Builder, typename Value>
-constexpr inline std::enable_if_t<utils::AnyOf(utils::IsSameCarried<Additional>(), utils::TypeList<Params...>{}), void>
+constexpr inline std::enable_if_t<utils::impl::AnyOf(utils::impl::IsSameCarried<Additional>(), utils::impl::TypeList<Params...>{}), void>
 RunWrite(Builder& builder, const std::unordered_map<std::string, Value>& field) {
   for(const auto& element : field) {
     builder[element.first] = element.second;
@@ -161,10 +170,10 @@ RunWrite(Builder& builder, const std::unordered_map<std::string, Value>& field) 
 };
 
 template <typename T, auto I, typename Builder, typename Field>
-constexpr inline auto RunCheckFor(Builder&, Field&&, detail::Disabled) noexcept {};
+constexpr inline auto RunCheckFor(Builder&, Field&&, Disabled) noexcept {};
 
 template <typename T, auto I, typename Builder, typename Field>
-constexpr inline auto RunCheckFor(Builder&, const std::optional<Field>&, detail::Disabled) noexcept {};
+constexpr inline auto RunCheckFor(Builder&, const std::optional<Field>&, Disabled) noexcept {};
 
 template <typename T, auto I, typename Builder, typename Field, typename CheckT>
 constexpr inline auto RunCheckFor(Builder&, Field&& field, CheckT check) {
@@ -198,6 +207,16 @@ constexpr inline auto UniversalParseField(
   return value;
 };
 
+template <typename T>
+consteval bool AdditionalCheck(const T&) {
+  return false;
+};
+
+template <typename T>
+consteval bool AdditionalCheck(const std::optional<std::optional<T>>&) {
+  return true;
+};
+
 template <typename T, auto I, typename Format, typename... Params>
 constexpr inline std::optional<std::remove_cvref_t<decltype(boost::pfr::get<I>(std::declval<T>()))>>
 UniversalTryParseField(
@@ -209,33 +228,20 @@ UniversalTryParseField(
 
 
   auto val = Read<T, I, Params...>(from, userver::formats::parse::To<std::optional<FieldType>>{});
-  if(val && (Check(*val, Params{}) && ...)) {
+  if((Check(val, Params{}) && ...)) {
     return val;
   };
   return std::nullopt;
 };
 
-} // namespace detail
+} // namespace impl
 
 template <typename T, typename... Params>
 class SerializationConfig {
-  private:
-    template <auto I, typename Param>
-    static consteval auto AddParamTo() {
-      return []<auto... Is>(std::index_sequence<Is...>){
-        return SerializationConfig<T, decltype(
-          detail::TransformIfEqual<I, Is>(Params{},
-              []<typename... FieldParams>(detail::FieldParametries<T, I, FieldParams...>){
-            return detail::FieldParametries<T, I, FieldParams..., Param>();
-          })
-        )...>();
-      }(std::make_index_sequence<sizeof...(Params)>());
-    };
-
   public:
     static consteval auto Create() {
       return []<auto... I>(std::index_sequence<I...>){
-        return SerializationConfig<T, detail::FieldParametries<T, I>...>{};
+        return SerializationConfig<T, impl::FieldParametries<T, I>...>{};
       }(std::make_index_sequence<boost::pfr::tuple_size_v<T>>());
     };
 
@@ -277,6 +283,20 @@ class SerializationConfig {
     constexpr SerializationConfig() noexcept {
       static_assert(sizeof...(Params) == boost::pfr::tuple_size_v<T>, "Use Create");
     };
+  private:
+    template <auto I, typename Param>
+    static consteval auto AddParamTo() {
+      return []<auto... Is>(std::index_sequence<Is...>){
+        return SerializationConfig<T, decltype(
+          impl::TransformIfEqual<I, Is>(Params{},
+              []<typename... FieldParams>(impl::FieldParametries<T, I, FieldParams...>){
+            return impl::FieldParametries<T, I, FieldParams..., Param>();
+          })
+        )...>();
+      }(std::make_index_sequence<sizeof...(Params)>());
+    };
+
+
 };
 
 
@@ -285,25 +305,25 @@ namespace formats::parse {
 
 template <typename Format, typename T>
 constexpr inline
-std::enable_if_t<!std::is_same_v<decltype(universal::kDeserialization<std::remove_cvref_t<T>>), const universal::detail::Disabled>, T>
+std::enable_if_t<!std::is_same_v<decltype(universal::kDeserialization<std::remove_cvref_t<T>>), const universal::impl::Disabled>, T>
 Parse(Format&& from,
     To<T>) {
   using Config = std::remove_const_t<decltype(universal::kDeserialization<std::remove_cvref_t<T>>)>;
   using Type = std::remove_cvref_t<T>;
   return [from = std::forward<Format>(from)]<typename... Params>(universal::SerializationConfig<Type, Params...>){
-    return T{universal::detail::UniversalParseField(Params{}, std::forward<Format>(from))...};
+    return T{universal::impl::UniversalParseField(Params{}, std::forward<Format>(from))...};
   }(Config{});
 };
 
 template <typename Format, typename T>
 constexpr inline
-std::enable_if_t<!std::is_same_v<decltype(universal::kDeserialization<std::remove_cvref_t<T>>), const universal::detail::Disabled>, std::optional<T>>
+std::enable_if_t<!std::is_same_v<decltype(universal::kDeserialization<std::remove_cvref_t<T>>), const universal::impl::Disabled>, std::optional<T>>
 TryParse(Format&& from,
     To<T>) {
   using Config = std::remove_const_t<decltype(universal::kDeserialization<std::remove_cvref_t<T>>)>;
   using Type = std::remove_cvref_t<T>;
   return [&]<typename... Params>(universal::SerializationConfig<Type, Params...>) -> std::optional<T> {
-    auto fields = std::make_tuple(universal::detail::UniversalTryParseField(Params{}, from)...);
+    auto fields = std::make_tuple(universal::impl::UniversalTryParseField(Params{}, from)...);
     constexpr auto fieldsCount = boost::pfr::tuple_size_v<T>;
     if([&]<auto... I>(std::index_sequence<I...>){
       return (std::get<I>(fields) && ...);

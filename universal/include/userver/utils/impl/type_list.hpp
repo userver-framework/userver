@@ -4,7 +4,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace utils {
+namespace utils::impl {
 
 template <typename... T>
 struct TypeList {};
@@ -33,8 +33,14 @@ consteval auto IsSameCarried() {
     return std::is_same_v<T, T2>;
   };
 }
+template <typename T>
+consteval auto IsConvertableCarried() {
+  return []<typename T2>(std::type_identity<T2>){
+    return std::is_convertible_v<T, T2>;
+  };
+}
 
-} // namespace utils
+} // namespace utils::impl
 
 USERVER_NAMESPACE_END
 

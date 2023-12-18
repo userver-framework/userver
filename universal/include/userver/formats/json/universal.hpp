@@ -9,7 +9,7 @@ namespace formats::json {
 
 template <typename T>
 inline constexpr
-std::enable_if_t<!std::is_same_v<decltype(universal::kSerialization<std::remove_cvref_t<T>>), const universal::detail::Disabled>, Value>
+std::enable_if_t<!std::is_same_v<decltype(universal::kSerialization<std::remove_cvref_t<T>>), const universal::impl::Disabled>, Value>
 Serialize(T&& obj,
     serialize::To<Value>) {
   using Config = std::remove_const_t<decltype(universal::kSerialization<std::remove_cvref_t<T>>)>;
@@ -17,7 +17,7 @@ Serialize(T&& obj,
   return [&]<typename... Params>
       (universal::SerializationConfig<Type, Params...>){
     ValueBuilder builder;
-    (universal::detail::UniversalSerializeField(Params{}, builder, obj), ...);
+    (universal::impl::UniversalSerializeField(Params{}, builder, obj), ...);
     return builder.ExtractValue();
   }(Config{});
 };
