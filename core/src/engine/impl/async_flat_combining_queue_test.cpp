@@ -124,14 +124,15 @@ TEST(AsyncFlatCombiningQueueNoCoro, StressSync) {
     return std::async([&] {
       BackOff back_off;
 
+      // NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks)
       while (keep_running) {
-        // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
         PushAndWork(queue, *new EmptyNode{}, back_off,
                     [&](NodeBase& node) noexcept {
                       ++nodes_consumed;
                       delete &node;
                     });
       }
+      // NOLINTEND(clang-analyzer-cplusplus.NewDeleteLeaks)
     });
   });
 
