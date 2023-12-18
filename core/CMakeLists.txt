@@ -176,7 +176,7 @@ target_include_directories(${PROJECT_NAME}
 )
 
 if (USERVER_IS_THE_ROOT_PROJECT OR USERVER_FEATURE_UTEST)
-  add_library(userver-core-internal STATIC ${INTERNAL_SOURCES})
+  add_library(userver-core-internal OBJECT ${INTERNAL_SOURCES})
   target_compile_definitions(userver-core-internal PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
   target_include_directories(userver-core-internal PUBLIC
     $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>

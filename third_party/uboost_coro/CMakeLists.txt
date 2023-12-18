@@ -72,7 +72,7 @@ if(UBOOST_CORO_USE_UCONTEXT)
   )
 endif()
 
-add_library(${PROJECT_NAME} STATIC ${SOURCES})
+add_library(${PROJECT_NAME} OBJECT ${SOURCES})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
@@ -103,4 +103,4 @@ if(UBOOST_CORO_USE_UCONTEXT)
 endif()
 
 find_package(Boost REQUIRED)
-target_link_libraries(${PROJECT_NAME} PUBLIC Boost::boost)
+target_link_libraries(${PROJECT_NAME} PUBLIC Boost::boost userver-internal-compile-options)

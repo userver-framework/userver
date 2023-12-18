@@ -1,11 +1,5 @@
 project(userver-universal CXX)
 
-set(USERVER_NAMESPACE "userver" CACHE STRING "C++ namespace to use")
-if (NOT "${USERVER_NAMESPACE}" STREQUAL "")
-    set(USERVER_NAMESPACE_BEGIN "namespace ${USERVER_NAMESPACE} {" CACHE STRING "Open C++ namespace to use")
-    set(USERVER_NAMESPACE_END "}" CACHE STRING "Close C++ namespace to use")
-endif()
-
 if (NOT USERVER_ROOT_DIR)
   message(FATAL_ERROR, "Include userver project rather than the userver/universal")
 endif()
@@ -35,6 +29,17 @@ set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 find_package(Boost REQUIRED COMPONENTS program_options filesystem regex)
+include(UserverRequireDWCAS)  # Should be called after `find_package(Boost REQUIRED)`
+
+message(STATUS "boost: ${Boost_VERSION_STRING}")
+if (CLANG)
+  if (MACOS AND Boost_FOUND)
+    # requires Boost_FOUND to make a valid expression
+    if (${Boost_VERSION_STRING} VERSION_LESS "1.68.0")
+      message(FATAL_ERROR "Boost Locale version less that 1.68 uses features deleted from standard. Please update your boost distribution.")
+    endif()
+  endif()
+endif()
 
 find_package(Iconv REQUIRED)
 find_package_required(OpenSSL "libssl-dev")
@@ -54,7 +59,92 @@ else()
   include(SetupCCTZ)
 endif()
 
+# Compiler flags for userver code. Flags for all the code
+# including third_party are in cmake/SetupEnvironment.cmake
+add_library(userver-internal-compile-options INTERFACE ${SOURCES})
+userver_target_require_dwcas(userver-internal-compile-options INTERFACE)
+target_compile_features(userver-internal-compile-options INTERFACE cxx_std_17)
+target_compile_options(userver-internal-compile-options INTERFACE
+  "-Wall" "-Wextra" "-Wpedantic"
+)
+
+include(UserverCxxCompileOptionsIfSupported)
+userver_target_cxx_compile_options_if_supported(userver-internal-compile-options INTERFACE
+  "-ftemplate-backtrace-limit=0"
+
+  # -Wall and -Wextra do not enable these
+  "-Wdisabled-optimization" "-Winvalid-pch" "-Wimplicit-fallthrough"
+  "-Wlogical-op" "-Wformat=2" "-Wno-error=deprecated-declarations"  
+
+  # This warning is unavoidable in generic code with templates
+  "-Wno-useless-cast"
+
+  # Starting from C++20, passing zero arguments to a variadic macro parameter is allowed
+  "-Wno-gnu-zero-variadic-macro-arguments"
+)
+
+# Gives false positives
+if (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang"
+    AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12
+    AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 13)
+  target_compile_options(userver-internal-compile-options INTERFACE "-Wno-range-loop-analysis")
+endif()
+
+# Trimming filename prefixes 
+get_filename_component(BASE_PREFIX "${CMAKE_SOURCE_DIR}/../" ABSOLUTE)
+file(TO_NATIVE_PATH "${CMAKE_SOURCE_DIR}/" SRC_LOG_PATH_BASE)
+file(TO_NATIVE_PATH "${CMAKE_BINARY_DIR}/" BIN_LOG_PATH_BASE)
+
+set(SRC_LOG_PATH_BASE "${SRC_LOG_PATH_BASE}/")
+set(BIN_LOG_PATH_BASE "${BIN_LOG_PATH_BASE}/")
+if (NOT BASE_PREFIX STREQUAL "/")
+  set(BASE_PREFIX "${BASE_PREFIX}/")
+endif()
+
+userver_is_cxx_compile_option_supported(USERVER_COMPILER_HAS_MACRO_PREFIX_MAP "-fmacro-prefix-map=a=b")
+if (USERVER_COMPILER_HAS_MACRO_PREFIX_MAP)
+  target_compile_options(userver-internal-compile-options INTERFACE
+    -fmacro-prefix-map=${SRC_LOG_PATH_BASE}=
+    -fmacro-prefix-map=${BIN_LOG_PATH_BASE}=
+    -fmacro-prefix-map=${BASE_PREFIX}=
+  )
+else()
+  target_compile_definitions(userver-internal-compile-options INTERFACE
+    USERVER_LOG_SOURCE_PATH_BASE=${SRC_LOG_PATH_BASE}
+    USERVER_LOG_BUILD_PATH_BASE=${BIN_LOG_PATH_BASE}
+    USERVER_LOG_PREFIX_PATH_BASE=${BASE_PREFIX}
+  )
+endif()
+
+# Check stdlib is recent enough
+include(CheckIncludeFileCXX)
+check_include_file_cxx(variant HAS_CXX17_VARIANT)
+if(NOT HAS_CXX17_VARIANT)
+  message(FATAL_ERROR "You have an outdated standard C++ library")
+endif()
+
+option(USERVER_NO_WERROR "Do not treat warnings as errors" ON)
+if (NOT USERVER_NO_WERROR)
+  message(STATUS "Forcing warnings as errors!")
+  target_compile_options(userver-internal-compile-options INTERFACE "-Werror")
+endif()
+
+
+# The library itself
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
+
+set(USERVER_NAMESPACE "userver" CACHE STRING "C++ namespace to use")
+if (NOT "${USERVER_NAMESPACE}" STREQUAL "")
+    set(USERVER_NAMESPACE_BEGIN "namespace ${USERVER_NAMESPACE} {" CACHE STRING "Open C++ namespace to use")
+    set(USERVER_NAMESPACE_END "}" CACHE STRING "Close C++ namespace to use")
+endif()
+message(STATUS "Putting userver into namespace '${USERVER_NAMESPACE}': ${USERVER_NAMESPACE_BEGIN} ${USERVER_NAMESPACE_END}")
+target_compile_definitions(${PROJECT_NAME} PUBLIC
+  "USERVER_NAMESPACE=${USERVER_NAMESPACE}"
+  "USERVER_NAMESPACE_BEGIN=${USERVER_NAMESPACE_BEGIN}"
+  "USERVER_NAMESPACE_END=${USERVER_NAMESPACE_END}"
+  "USERVER=1"
+)
 
 # https://github.com/jemalloc/jemalloc/issues/820
 if (USERVER_FEATURE_JEMALLOC AND NOT USERVER_SANITIZE AND NOT MACOS)
@@ -68,38 +158,6 @@ if (USERVER_FEATURE_JEMALLOC AND NOT USERVER_SANITIZE AND NOT MACOS)
 
   target_compile_definitions(${PROJECT_NAME} PRIVATE JEMALLOC_ENABLED)
 endif()
-
-get_filename_component(BASE_PREFIX "${CMAKE_SOURCE_DIR}/../" ABSOLUTE)
-file(TO_NATIVE_PATH "${CMAKE_SOURCE_DIR}/" SRC_LOG_PATH_BASE)
-file(TO_NATIVE_PATH "${CMAKE_BINARY_DIR}/" BIN_LOG_PATH_BASE)
-
-set(SRC_LOG_PATH_BASE "${SRC_LOG_PATH_BASE}/")
-set(BIN_LOG_PATH_BASE "${BIN_LOG_PATH_BASE}/")
-if (NOT BASE_PREFIX STREQUAL "/")
-  set(BASE_PREFIX "${BASE_PREFIX}/")
-endif()
-
-check_cxx_compiler_flag("-fmacro-prefix-map=a=b" USERVER_COMPILER_HAS_MACRO_PREFIX_MAP)
-if (USERVER_COMPILER_HAS_MACRO_PREFIX_MAP)
-  target_compile_options(${PROJECT_NAME} PUBLIC
-    -fmacro-prefix-map=${SRC_LOG_PATH_BASE}=
-    -fmacro-prefix-map=${BIN_LOG_PATH_BASE}=
-    -fmacro-prefix-map=${BASE_PREFIX}=
-  )
-else()
-  target_compile_definitions(${PROJECT_NAME} PUBLIC
-    USERVER_LOG_SOURCE_PATH_BASE=${SRC_LOG_PATH_BASE}
-    USERVER_LOG_BUILD_PATH_BASE=${BIN_LOG_PATH_BASE}
-    USERVER_LOG_PREFIX_PATH_BASE=${BASE_PREFIX}
-  )
-endif()
-
-message(STATUS "Putting userver into namespace '${USERVER_NAMESPACE}': ${USERVER_NAMESPACE_BEGIN} ${USERVER_NAMESPACE_END}")
-target_compile_definitions(${PROJECT_NAME} PUBLIC
-  "USERVER_NAMESPACE=${USERVER_NAMESPACE}"
-  "USERVER_NAMESPACE_BEGIN=${USERVER_NAMESPACE_BEGIN}"
-  "USERVER_NAMESPACE_END=${USERVER_NAMESPACE_END}"
-)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
   CRYPTOPP_ENABLE_NAMESPACE_WEAK=1
@@ -148,6 +206,7 @@ target_link_libraries(${PROJECT_NAME}
   PUBLIC
     Threads::Threads
     sanitize-target
+    userver-internal-compile-options
   PRIVATE
     Boost::filesystem
     Boost::program_options
@@ -207,10 +266,12 @@ if (USERVER_IS_THE_ROOT_PROJECT OR USERVER_FEATURE_UTEST)
         GTest::gtest
         GTest::gmock
         GTest::gtest_main
+        ${PROJECT_NAME}
     )
     target_link_libraries(${PROJECT_NAME}-internal-ubench
       INTERFACE
         benchmark::benchmark
+        ${PROJECT_NAME}
     )
   else()
     include(SetupGTest)
@@ -219,16 +280,18 @@ if (USERVER_IS_THE_ROOT_PROJECT OR USERVER_FEATURE_UTEST)
       INTERFACE
         libgtest
         libgmock
+        ${PROJECT_NAME}
     )
     target_link_libraries(${PROJECT_NAME}-internal-ubench
       INTERFACE
         libbenchmark
+        ${PROJECT_NAME}
     )
   endif()
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
-    add_library(${PROJECT_NAME}-internal STATIC ${INTERNAL_SOURCES})
+    add_library(${PROJECT_NAME}-internal OBJECT ${INTERNAL_SOURCES})
     target_compile_definitions(${PROJECT_NAME}-internal PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
     target_include_directories(${PROJECT_NAME}-internal PUBLIC
       $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>

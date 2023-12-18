@@ -76,10 +76,12 @@ impl::RpcData& CallAnyBase::GetData(ugrpc::impl::InternalTag) {
 }
 
 std::string_view CallAnyBase::GetCallName() const {
+  UASSERT(data_);
   return data_->GetCallName();
 }
 
 std::string_view CallAnyBase::GetClientName() const {
+  UASSERT(data_);
   return data_->GetClientName();
 }
 

@@ -1,4 +1,4 @@
-project(userver-stacktrace)
+project(userver-stacktrace CXX)
 include(CheckIncludeFile)
 
 find_package(Boost REQUIRED) # Headers needed
@@ -55,7 +55,7 @@ else()
     #set(BACKTRACE_USERVER_LIBRARIES dl)
 endif()
 
-add_library (${PROJECT_NAME} STATIC ${BACKTRACE_USERVER_SOURCES})
+add_library(${PROJECT_NAME} OBJECT ${BACKTRACE_USERVER_SOURCES})
 if (BacktraceIncludeFile)
     target_compile_definitions(
         ${PROJECT_NAME}
@@ -70,4 +70,3 @@ target_compile_definitions(${PROJECT_NAME} INTERFACE BOOST_STACKTRACE_LINK)
 target_include_directories(${PROJECT_NAME} PUBLIC include ${Boost_INCLUDE_DIRS})
 
 target_link_libraries(${PROJECT_NAME} PUBLIC ${BACKTRACE_USERVER_LIBRARIES})
-set_target_properties (${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)

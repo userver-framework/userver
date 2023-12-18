@@ -47,6 +47,7 @@ target_include_directories(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
     PostgreSQLInternal
+    userver-internal-compile-options
 )
 
 target_compile_options(
