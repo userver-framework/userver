@@ -133,7 +133,7 @@ class ThreadControl;
   inline void FUNCTION_NAME##_copy(std::string_view, std::error_code&) =    \
       delete;                                                               \
   inline void FUNCTION_NAME##_no_copy(std::string_view, std::error_code&) = \
-      delete;
+      delete
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define IMPLEMENT_CURL_OPTION_GET_STRING_VIEW(FUNCTION_NAME, OPTION_NAME) \
