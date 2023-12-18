@@ -4,6 +4,12 @@ include(CTest)
 include(FindPython)
 
 option(USERVER_FEATURE_TESTSUITE "Enable functional tests via testsuite" ON)
+option(
+    USERVER_PIP_USE_SYSTEM_PACKAGES
+    "Use system python packages inside virtualenv"
+    OFF
+)
+set(USERVER_PIP_OPTIONS "" CACHE STRING "Options for all pip calls")
 
 if(USERVER_FEATURE_TESTSUITE)
   get_property(userver_python_dev_checked
@@ -54,6 +60,11 @@ function(userver_venv_setup)
   else()
     set(parent_directory "${CMAKE_CURRENT_BINARY_DIR}")
   endif()
+
+  if(USERVER_PIP_USE_SYSTEM_PACKAGES)
+    list(APPEND ARG_VIRTUALENV_ARGS "--system-site-packages")
+  endif()
+  list(APPEND ARG_PIP_ARGS ${USERVER_PIP_OPTIONS})
 
   set(venv_dir "${parent_directory}/${venv_name}")
   set(venv_bin_dir "${venv_dir}/bin")
