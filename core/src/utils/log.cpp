@@ -4,7 +4,7 @@
 #include <fmt/format.h>
 
 #include <userver/utils/encoding/hex.hpp>
-#include <userver/utils/text.hpp>
+#include <userver/utils/text_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

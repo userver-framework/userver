@@ -43,7 +43,7 @@
 #include <userver/utils/log.hpp>
 #include <userver/utils/overloaded.hpp>
 #include <userver/utils/scope_guard.hpp>
-#include <userver/utils/text.hpp>
+#include <userver/utils/text_light.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include "auth/auth_checker.hpp"

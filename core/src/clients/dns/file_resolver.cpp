@@ -12,7 +12,7 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/async.hpp>
-#include <userver/utils/text.hpp>
+#include <userver/utils/text_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

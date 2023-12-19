@@ -14,7 +14,7 @@
 #include <userver/logging/format.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/net/blocking/get_addr_info.hpp>
-#include <userver/utils/text.hpp>
+#include <userver/utils/text_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

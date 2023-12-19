@@ -15,7 +15,7 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/from_string.hpp>
 #include <userver/utils/statistics/storage.hpp>
-#include <userver/utils/text.hpp>
+#include <userver/utils/text_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

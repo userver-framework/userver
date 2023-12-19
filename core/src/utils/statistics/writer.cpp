@@ -4,7 +4,7 @@
 #include <boost/numeric/conversion/cast.hpp>
 
 #include <userver/utils/assert.hpp>
-#include <userver/utils/text.hpp>
+#include <userver/utils/text_light.hpp>
 
 #include <utils/statistics/writer_state.hpp>
 
