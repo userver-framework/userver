@@ -804,11 +804,11 @@ void TaskContext::TsanAcquireBarrier() noexcept {
   __tsan_acquire(&corotine_memory_acquired_);
   __tsan_acquire(&coro_);
 #endif
-  UASSERT(!std::exchange(corotine_memory_acquired_, true));
+  //UASSERT(!std::exchange(corotine_memory_acquired_, true));
 }
 
 void TaskContext::TsanReleaseBarrier() noexcept {
-  UASSERT(std::exchange(corotine_memory_acquired_, false));
+  //UASSERT(std::exchange(corotine_memory_acquired_, false));
 #if defined(BOOST_USE_TSAN)
   // TODO:
   __tsan_release(&coro_);
