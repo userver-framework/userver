@@ -2,9 +2,9 @@ import os
 import pathlib
 import subprocess
 from typing import List
+from typing import Optional
 
 import pytest
-import yatest
 
 from testsuite.environment import shell
 
@@ -109,6 +109,9 @@ def _ydb_migrate(_ydb_service_settings, ydb_migrate_dir):
     if not list(ydb_migrate_dir.iterdir()):
         return
 
+    if not _get_goose():
+        return
+
     host = _ydb_service_settings.host
     port = _ydb_service_settings.grpc_port
 
@@ -129,38 +132,48 @@ def _ydb_migrate(_ydb_service_settings, ydb_migrate_dir):
         raise Exception(f'YDB run migration failed:\n\n{exc}')
 
 
-def _get_goose() -> pathlib.Path:
-    return yatest.common.runtime.binary_path(
-        'contrib/go/patched/goose/cmd/goose/goose',
-    )
+def _get_goose() -> Optional[pathlib.Path]:
+    try:
+        import yatest
+
+        return yatest.common.runtime.binary_path(
+            'contrib/go/patched/goose/cmd/goose/goose',
+        )
+    except ImportError:
+        return None
 
 
 def _ydb_fetch_table_names(_ydb_service_settings) -> List[str]:
-    host = _ydb_service_settings.host
-    port = _ydb_service_settings.grpc_port
-    output = subprocess.check_output(
-        [
-            yatest.common.runtime.binary_path('contrib/ydb/apps/ydb/ydb'),
-            '-e',
-            f'grpc://{host}:{port}',
-            '-d',
-            '/local',
-            'scheme',
-            'ls',
-            '-lR',
-        ],
-        encoding='utf-8',
-    )
-    tables = []
+    try:
+        import yatest
 
-    for line in output.split('\n'):
-        if ' table ' not in line:
-            continue
-        if '.sys' in line:
-            continue
-        path = line.split('│')[6].strip()
-        tables.append(path)
-    return tables
+        host = _ydb_service_settings.host
+        port = _ydb_service_settings.grpc_port
+        output = subprocess.check_output(
+            [
+                yatest.common.runtime.binary_path('contrib/ydb/apps/ydb/ydb'),
+                '-e',
+                f'grpc://{host}:{port}',
+                '-d',
+                '/local',
+                'scheme',
+                'ls',
+                '-lR',
+            ],
+            encoding='utf-8',
+        )
+        tables = []
+
+        for line in output.split('\n'):
+            if ' table ' not in line:
+                continue
+            if '.sys' in line:
+                continue
+            path = line.split('│')[6].strip()
+            tables.append(path)
+        return tables
+    except ImportError:
+        return []
 
 
 @pytest.fixture

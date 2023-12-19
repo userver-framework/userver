@@ -77,6 +77,13 @@ docker-clean-data:
 docker-enter:
 	@docker-compose run --rm userver-ubuntu bash
 
+.PHONY: docker-run-ydb docker-kill
+docker-run-ydb:
+	@docker-compose run -d --rm --service-ports run-ydb
+
+docker-kill:
+	@docker-compose kill
+
 # clean build folders
 .PHONY: dist-clean
 dist-clean:
