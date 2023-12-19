@@ -34,8 +34,10 @@ class Latch final {
     if (expected_ > 0) {
       --expected_;
       if (expected_ == 0) {
-        lk.unlock();
+        // DATA RACE if notifying not under a lock!
+        // Without a lock ~Latch() could be called concurrently with cv_ usage
         cv_.notify_all();
+        lk.unlock();
       }
     }
   }
