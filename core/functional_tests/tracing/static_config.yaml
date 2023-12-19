@@ -1,0 +1,54 @@
+components_manager:
+    components:
+        handler-echo-no-body:
+            echo-url: 'mockserver/v1/translations'  # Some other microservice listens on this URL
+            path: /echo-no-body
+            method: GET
+            task_processor: main-task-processor
+
+        http-client:
+            fs-task-processor: fs-task-processor
+
+        dns-client:
+            fs-task-processor: fs-task-processor
+
+        testsuite-support:
+        tests-control:
+            # Some options from server::handlers::HttpHandlerBase
+            path: /tests/{action}
+            method: POST
+            task_processor: main-task-processor
+
+        server:
+            listener:
+                port: 8089
+                task_processor: main-task-processor
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                opentracing:    # Required for writing opentracing data into a separate file
+                    file_path: /var/log/file/overwritten/by-testsuit
+                    level: info
+                    flush_level: info
+                    overflow_behavior: block
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+
+        tracer:
+            service-name: http-tracing-test
+
+        tracing-manager-locator:
+            incoming-format: ['taxi', 'yandex', 'b3-alternative', 'opentelemetry']
+            new-requests-format: ['taxi', 'yandex', 'b3-alternative', 'opentelemetry']
+
+    task_processors:                  # Task processor is an executor for coroutine tasks
+
+        main-task-processor:          # Make a task processor for CPU-bound coroutine tasks.
+            worker_threads: 4         # Process tasks in 4 threads.
+
+        fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
+            worker_threads: 4
+
+    default_task_processor: main-task-processor

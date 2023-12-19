@@ -7,11 +7,8 @@ may use exceptions not derived from `std::exception` to manage some resources.
 Usage of `catch` with explicit exception type specification (like
 `std::exception` or `std::runtime_error`) is fine without `throw;`.
 
-The use of synchronization primitives or IO operations of the C++ standard
-library and libc in the context of coroutine **should be avoided**.
-
 🐙 **userver** uses its own coroutine scheduler, which is unknown to the C++
-standard library, as well as to the libc. The standard library for
+standard library, as well as to the libc/pthreads. The standard library for
 synchronization often uses mutexes, other synchronization primitives and event
 waiting mechanisms that block the current thread. When using userver, this
 results in the current thread not being able to be used to execute other
@@ -19,9 +16,10 @@ coroutines. As a result, the number of threads executing coroutines decreases.
 This can lead to a huge performance drops and increased latencies.
 
 For the reasons described above, the use of synchronization primitives or IO
-operations of the C++ standard library and libc in the context of coroutine
-should be avoided. The same goes for all functions and classes that use such
-synchronization primitives.
+operations of the C++ standard library and libc in the
+@ref scripts/docs/en/userver/task_processors_guide.md "main task processor"
+**should be avoided** in high-load applications. The same goes for all functions and
+classes that use blocking IO operations or synchronization primitives.
 
 **⚠️🐙❗ Instead of the standard primitives, you need to use the primitives from the userver:**
 
@@ -30,22 +28,28 @@ synchronization primitives.
 | `std::this_thread::sleep_for()`   | `engine::SleepFor()`                            |
 | `std::this_thread::sleep_until()` | `engine::SleepUntil()`                          |
 | `std::mutex`                      | `engine::Mutex`                                 |
+| `std::shared_mutex`               | `engine::SharedMutex`                           |
 | `std::condition_variable`         | `engine::ConditionVariable`                     |
 | `std::future<T>`                  | `engine::TaskWithResult<T>` or `engine::Future` |
 | `std::async()`                    | `utils::Async()`                                |
 | `std::thread`                     | `utils::Async()`                                |
+| `std::counting_semaphore`         | `engine::Semaphore`                             |
 | network sockets                   | `engine::io::Socket`                            |
-| `std::filesystem:`                | `::fs::*` (but not `::fs::blocking::*`!)        |
+| `std::filesystem::`               | `::fs::*` (but not `::fs::blocking::*`!)        |
 | `std::cout`                       | `LOG_INFO()`                                    |
 | `std::cerr`                       | `LOG_WARNING()` and `LOG_ERROR()`               |
 
-An overview of the main synchronization mechanisms is available [on a separate page](scripts/docs/en/userver/synchronization.md).
+An overview of the main synchronization mechanisms is available
+[on a separate page](scripts/docs/en/userver/synchronization.md).
+
+Note that if your application is not meant for high-load and does not require
+low-latency, then it may be fine to run all the code on the same task processor.
 
 ______
 ⚠️🐙❗ If you want to run code that uses standard synchronization primitives
 (for example, code from a third-party library), then this code should be run in
 a separate `engine::TaskProcessor` to avoid starvation of main task processors.
-See @ref md_en_userver_task_processors_guide for more info.
+See @ref scripts/docs/en/userver/task_processors_guide.md for more info.
 ______
 
 
@@ -111,7 +115,7 @@ Note that the destructor of `engine::Task` cancels and waits for task to finish 
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_intro_io_bound_coro | @ref md_en_userver_framework_comparison ⇨
+⇦ @ref scripts/docs/en/userver/intro_io_bound_coro.md | @ref scripts/docs/en/userver/framework_comparison.md ⇨
 @htmlonly </div> @endhtmlonly
 
 @example core/src/engine/mutex_benchmark.cpp

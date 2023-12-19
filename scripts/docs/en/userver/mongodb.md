@@ -4,11 +4,16 @@ The mongo asynchronous driver provides an interface to work with MongoDB
 databases and the BSON format.
 
 ## Main features
+
 * Building and reading BSON documents with support for most of the C++ types;
 * Support for basic operations with collections via storages::mongo::Collection;
 * Support for bulk operations;
 * Dynamic management of database sets;
-* Aggregation support.
+* Aggregation support;
+* Timeouts;
+* Congestion control to work smoothly under heavy load and to restore from metastable failure state;
+* @ref scripts/docs/en/userver/deadline_propagation.md .
+
 
 ## Metrics
 
@@ -26,7 +31,7 @@ Most important ones:
 | mongo.errors                    | counter of failed requests                           |
 | mongo.timings                   | query timings                                        |
 
-See @ref md_en_userver_service_monitor for info on how to get the metrics.
+See @ref scripts/docs/en/userver/service_monitor.md for info on how to get the metrics.
 
 
 ## Usage
@@ -71,7 +76,7 @@ can be passed to the collection method `Execute()`.
 ### BSON
 
 BSON follows the common formats interface that is described in detail at
-@ref md_en_userver_formats.
+@ref scripts/docs/en/userver/formats.md.
 
 Since BSON is a binary format, it is not human readable. Differences
 in the BSON and JSON formats type systems do not always allow you to perform
@@ -81,8 +86,18 @@ available in <userver/formats/bson/serialize.hpp>. These functions are provided
 without guarantees for the stability of the conversion, and are primarily
 intended for debugging.
 
+
+### Mongo Congestion Control
+
+Extra database load may lead to database overload. To protect Mongo from this
+happening userver has Congestion Control. In case of fast timings increase,
+the Congestion Control limits the number of concurrent connections to Mongo and
+eliminates the extra load. On the one hand, it leads to extra error responses, but
+on the other hand, it greatly lowers the timings of the rest of the database
+requests and helps Mongo to return to the normal state with lower response timings.
+
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref pg_bytea | @ref md_en_userver_redis ⇨
+⇦ @ref pg_bytea | @ref scripts/docs/en/userver/redis.md ⇨
 @htmlonly </div> @endhtmlonly

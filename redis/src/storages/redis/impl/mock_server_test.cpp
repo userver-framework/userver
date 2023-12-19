@@ -34,10 +34,10 @@ MockRedisServerBase::MockRedisServerBase(int port)
     : acceptor_(io_service_),
       socket_(io_service_),
       reader_(redisReaderCreate(), &redisReaderFree) {
-  acceptor_.open(ip::tcp::v4());
+  acceptor_.open(io::ip::tcp::v4());
   boost::asio::ip::tcp::acceptor::reuse_address option(true);
   acceptor_.set_option(option);
-  acceptor_.bind(ip::tcp::endpoint(ip::tcp::v4(), port));
+  acceptor_.bind(io::ip::tcp::endpoint(io::ip::tcp::v4(), port));
   acceptor_.listen();
 
   thread_ = std::thread(&MockRedisServerBase::Work, this);
@@ -69,7 +69,7 @@ void MockRedisServerBase::Stop() {
 void MockRedisServerBase::SendReply(const std::string& reply) {
   LOG_DEBUG() << "reply: " << reply;
   // TODO: async?
-  boost::asio::write(socket_, buffer(reply.c_str(), reply.size()));
+  io::write(socket_, io::buffer(reply.c_str(), reply.size()));
 }
 
 std::string MockRedisServerBase::ReplyDataToRedisProto(
@@ -100,8 +100,9 @@ std::string MockRedisServerBase::ReplyDataToRedisProto(
 }
 
 void MockRedisServerBase::Accept() {
-  acceptor_.async_accept(socket_, std::bind(&MockRedisServerBase::OnAccept,
-                                            this, std::placeholders::_1));
+  acceptor_.async_accept(socket_, [this](auto&& item) {
+    OnAccept(std::forward<decltype(item)>(item));
+  });
 }
 
 void MockRedisServerBase::Work() {
@@ -131,11 +132,11 @@ void MockRedisServerBase::OnRead(boost::system::error_code ec, size_t count) {
     throw std::runtime_error("redisReaderFeed() returned error: " +
                              std::string(reader_->errstr));
 
-  redisReply* hiredis_reply = nullptr;
-  while (redisReaderGetReply(reader_.get(), (void**)&hiredis_reply) ==
-             REDIS_OK &&
+  void* hiredis_reply = nullptr;
+  while (redisReaderGetReply(reader_.get(), &hiredis_reply) == REDIS_OK &&
          hiredis_reply) {
-    auto reply = std::make_shared<redis::Reply>("", hiredis_reply, REDIS_OK);
+    auto reply = std::make_shared<redis::Reply>(
+        "", static_cast<redisReply*>(hiredis_reply), redis::ReplyStatus::kOk);
     LOG_DEBUG() << "command: " << reply->data.ToDebugString();
 
     OnCommand(reply);
@@ -147,9 +148,9 @@ void MockRedisServerBase::OnRead(boost::system::error_code ec, size_t count) {
 }
 
 void MockRedisServerBase::DoRead() {
-  socket_.async_read_some(
-      buffer(data_), std::bind(&MockRedisServerBase::OnRead, this,
-                               std::placeholders::_1, std::placeholders::_2));
+  socket_.async_read_some(io::buffer(data_),
+                          [this](boost::system::error_code error_code,
+                                 size_t count) { OnRead(error_code, count); });
 }
 
 MockRedisServer::~MockRedisServer() { Stop(); }
@@ -217,6 +218,7 @@ MockRedisServer::HandlerPtr MockRedisServer::RegisterPingHandler() {
 MockRedisServer::HandlerPtr MockRedisServer::RegisterSentinelMastersHandler(
     const std::vector<MasterInfo>& masters) {
   std::vector<redis::ReplyData> reply_data;
+  reply_data.reserve(masters.size());
   for (const auto& master : masters) {
     // TODO: add fields like 'role-reported', ... if needed
     reply_data.emplace_back(
@@ -236,6 +238,7 @@ MockRedisServer::HandlerPtr MockRedisServer::RegisterSentinelMastersHandler(
 MockRedisServer::HandlerPtr MockRedisServer::RegisterSentinelSlavesHandler(
     const std::string& master_name, const std::vector<SlaveInfo>& slaves) {
   std::vector<redis::ReplyData> reply_data;
+  reply_data.reserve(slaves.size());
   for (const auto& slave : slaves) {
     // TODO: add fields like 'role-reported', 'master-host', ... if needed
     reply_data.emplace_back(
@@ -349,16 +352,14 @@ MockRedisServer::CommonMasterSlaveInfo::CommonMasterSlaveInfo(
 MockRedisServer::MasterInfo::MasterInfo(std::string name, std::string ip,
                                         int port,
                                         std::vector<std::string> flags)
-    : CommonMasterSlaveInfo(std::move(name), std::move(ip), port,
-                            std::move(flags)) {
+    : CommonMasterSlaveInfo(std::move(name), std::move(ip), port, flags) {
   flags.emplace_back("master");
 }
 
 MockRedisServer::SlaveInfo::SlaveInfo(std::string name, std::string ip,
                                       int port, std::vector<std::string> flags,
                                       std::string master_link_status)
-    : CommonMasterSlaveInfo(std::move(name), std::move(ip), port,
-                            std::move(flags)),
+    : CommonMasterSlaveInfo(std::move(name), std::move(ip), port, flags),
       master_link_status(std::move(master_link_status)) {
   flags.emplace_back("slave");
 }

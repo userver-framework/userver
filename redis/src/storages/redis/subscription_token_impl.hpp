@@ -11,7 +11,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
 
-class SubscriptionTokenImpl : public SubscriptionTokenImplBase {
+class SubscriptionTokenImpl final : public impl::SubscriptionTokenImplBase {
  public:
   using OnMessageCb = SubscriptionToken::OnMessageCb;
 
@@ -30,12 +30,12 @@ class SubscriptionTokenImpl : public SubscriptionTokenImplBase {
   void ProcessMessages();
 
   std::string channel_;
-  std::unique_ptr<SubscriptionQueue<ChannelSubscriptionQueueItem>> queue_;
+  SubscriptionQueue<ChannelSubscriptionQueueItem> queue_;
   OnMessageCb on_message_cb_;
   engine::TaskWithResult<void> subscriber_task_;
 };
 
-class PsubscriptionTokenImpl : public SubscriptionTokenImplBase {
+class PsubscriptionTokenImpl final : public impl::SubscriptionTokenImplBase {
  public:
   using OnPmessageCb = SubscriptionToken::OnPmessageCb;
 
@@ -54,7 +54,7 @@ class PsubscriptionTokenImpl : public SubscriptionTokenImplBase {
   void ProcessMessages();
 
   std::string pattern_;
-  std::unique_ptr<SubscriptionQueue<PatternSubscriptionQueueItem>> queue_;
+  SubscriptionQueue<PatternSubscriptionQueueItem> queue_;
   OnPmessageCb on_pmessage_cb_;
   engine::TaskWithResult<void> subscriber_task_;
 };

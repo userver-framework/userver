@@ -6,6 +6,9 @@
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <string>
+
+#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -32,21 +35,23 @@ namespace utils::statistics {
  * of 42 milliseconds:
  *
  * @code
- * using Percentile =
- *   utils::statistics::Percentile<500, std::uint32_t, 100, 42>;
+ * using Percentile = utils::statistics::Percentile<500, std::uint32_t, 100,
+ * 42>; using Timings = utils::statistics::RecentPeriod<Percentile, Percentile>;
  *
  * void Account(Percentile& perc, std::chrono::milliseconds ms) {
  *   perc.Account(ms.count());
  * }
  *
- * formats::json::Value ExtendStatistics(
- *   formats::json::ValueBuilder& stats_builder, Percentile& perc) {
- *
- *   stats_builder["timings"]["1min"] = PercentileToJson(perc).ExtractValue();
- *
- *   return stats_builder.ExtractValue();
+ * void ExtendStatistics(utils::statistics::Writer& writer, Timings& timings) {
+ *   writer["timings"]["1min"] = timings;
  * }
  * @endcode
+ *
+ * `Percentile` metrics are non-summable, e.g. given RPS counts and timing
+ * percentiles for multiple hosts or handlers, we cannot accurately compute the
+ * total timing percentiles.
+ *
+ * @see utils::statistics::Histogram for the summable equivalent
  */
 template <size_t M, typename Counter = uint32_t, size_t ExtraBuckets = 0,
           size_t ExtraBucketSize = 500>
@@ -172,6 +177,22 @@ class Percentile final {
   std::array<std::atomic<Counter>, ExtraBuckets> extra_values_;
   std::atomic<Counter> count_;
 };
+
+std::string GetPercentileFieldName(double perc);
+
+template <size_t M, typename Counter, size_t ExtraBuckets,
+          size_t ExtraBucketSize>
+void DumpMetric(
+    Writer& writer,
+    const Percentile<M, Counter, ExtraBuckets, ExtraBucketSize>& perc,
+    std::initializer_list<double> percents = {0, 50, 90, 95, 98, 99, 99.6, 99.9,
+                                              100}) {
+  for (double percent : percents) {
+    writer.ValueWithLabels(
+        perc.GetPercentile(percent),
+        {"percentile", statistics::GetPercentileFieldName(percent)});
+  }
+}
 
 }  // namespace utils::statistics
 

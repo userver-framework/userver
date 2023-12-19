@@ -3,22 +3,18 @@
 #include <fmt/format.h>
 
 #include <userver/utils/algo.hpp>
-#include <userver/utils/statistics/metadata.hpp>
 #include <userver/utils/statistics/storage.hpp>
-#include <userver/utils/text.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::impl {
 
 StatisticsStorage::StatisticsStorage(
-    utils::statistics::Storage& statistics_storage, std::string_view domain)
-    : client_prefix_(fmt::format("grpc.{}", domain)) {
-  statistics_holder_ = statistics_storage.RegisterExtender(
-      {std::string{"grpc"}, std::string{domain}},
-      [this](const utils::statistics::StatisticsRequest& request) {
-        return ExtendStatistics(request.prefix);
-      });
+    utils::statistics::Storage& statistics_storage, std::string_view domain) {
+  statistics_holder_ = statistics_storage.RegisterWriter(
+      fmt::format("grpc.{}", domain),
+      [this](utils::statistics::Writer& writer) { ExtendStatistics(writer); });
 }
 
 StatisticsStorage::~StatisticsStorage() { statistics_holder_.Unregister(); }
@@ -46,32 +42,14 @@ ugrpc::impl::ServiceStatistics& StatisticsStorage::GetServiceStatistics(
   return iter->second;
 }
 
-formats::json::Value StatisticsStorage::ExtendStatistics(
-    std::string_view prefix) {
-  const auto cut_prefix = prefix.size() >= client_prefix_.size()
-                              ? prefix.substr(client_prefix_.size())
-                              : std::string_view{};
-
+void StatisticsStorage::ExtendStatistics(utils::statistics::Writer& writer) {
   std::shared_lock lock(mutex_);
-
-  formats::json::ValueBuilder result(formats::json::Type::kObject);
-  formats::json::ValueBuilder by_destination(formats::json::Type::kObject);
-  for (const auto& [_, service_stats] : service_statistics_) {
-    const auto& metadata = service_stats.GetMetadata();
-    const auto service_name = metadata.service_full_name;
-    if (utils::text::StartsWith(cut_prefix, service_name) ||
-        utils::text::StartsWith(service_name, cut_prefix)) {
-      for (std::size_t i = 0; i < metadata.method_count; ++i) {
-        const auto destination = metadata.method_full_names[i];
-        by_destination[std::string{destination}] =
-            service_stats.GetMethodStatistics(i).ExtendStatistics();
-      }
+  {
+    auto by_destination = writer["by-destination"];
+    for (const auto& [_, service_stats] : service_statistics_) {
+      by_destination = service_stats;
     }
   }
-  utils::statistics::SolomonChildrenAreLabelValues(by_destination,
-                                                   "grpc_destination");
-  result["by-destination"] = std::move(by_destination);
-  return result.ExtractValue();
 }
 
 }  // namespace ugrpc::impl

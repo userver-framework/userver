@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/fs/read.hpp
-/// @brief functions for asyncronous file read operations
+/// @brief functions for asynchronous file read operations
 
 #include <memory>
 #include <string>
@@ -19,7 +19,6 @@ namespace fs {
 struct FileInfoWithData {
   std::string data;
   std::string extension;
-  size_t size;
 };
 
 using FileInfoWithDataConstPtr = std::shared_ptr<const FileInfoWithData>;
@@ -31,6 +30,13 @@ enum class SettingsReadFile {
   /// Skip hidden files,
   kSkipHidden = 1 << 0,
 };
+
+/// @brief Returns relative path from full path
+/// @param path full path, must start with `dir`
+/// @param dir directory path to get relative path
+/// @note it does not access filesystem, the relative path is calculated
+/// lexically.
+std::string GetLexicallyRelative(std::string_view path, std::string_view dir);
 
 /// @brief Returns files from recursively traversed directory
 /// @param async_tp TaskProcessor for synchronous waiting

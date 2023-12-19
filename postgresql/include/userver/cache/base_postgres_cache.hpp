@@ -6,6 +6,7 @@
 #include <userver/cache/base_postgres_cache_fwd.hpp>
 
 #include <chrono>
+#include <map>
 #include <string_view>
 #include <type_traits>
 #include <unordered_map>
@@ -46,7 +47,7 @@ namespace components {
 ///
 /// @snippet cache/postgres_cache_test.cpp  Pg Cache Trivial Usage
 ///
-/// See @ref md_en_userver_caches for introduction into caches.
+/// See @ref scripts/docs/en/userver/caches.md for introduction into caches.
 ///
 ///
 /// @section pg_cc_configuration Configuration
@@ -56,12 +57,15 @@ namespace components {
 ///
 /// Optionally the operation timeouts for cache loading can be specified.
 ///
+/// ### Avoiding memory leaks
+/// components::CachingComponentBase
+///
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// full-update-op-timeout | timeout for a full update | 1m
 /// incremental-update-op-timeout | timeout for an incremental update | 1s
 /// update-correction | incremental update window adjustment | - (0 for caches with defined GetLastKnownUpdated)
-/// chunk-size | number of rows to request from PostgreSQL, 0 to fetch all rows in one request | 1000
+/// chunk-size | number of rows to request from PostgreSQL via portals, 0 to fetch all rows in one request without portals | 1000
 ///
 /// @section pg_cc_cache_policy Cache policy
 ///
@@ -102,9 +106,9 @@ namespace components {
 /// @snippet cache/postgres_cache_test_fwd.hpp Pg Cache Fwd Example
 ///
 /// ----------
-/// 
+///
 /// @htmlonly <div class="bottom-nav"> @endhtmlonly
-/// ⇦ @ref md_en_userver_cache_dumps | @ref md_en_userver_lru_cache ⇨
+/// ⇦ @ref scripts/docs/en/userver/cache_dumps.md | @ref scripts/docs/en/userver/lru_cache.md ⇨
 /// @htmlonly </div> @endhtmlonly
 
 // clang-format on
@@ -172,8 +176,8 @@ inline constexpr bool kWantIncrementalUpdates =
 
 // Key member in policy
 template <typename T>
-using KeyMemberTypeImpl = std::decay_t<decltype(
-    std::invoke(T::kKeyMember, std::declval<ValueType<T>>()))>;
+using KeyMemberTypeImpl =
+    std::decay_t<std::invoke_result_t<decltype(T::kKeyMember), ValueType<T>>>;
 template <typename T>
 inline constexpr bool kHasKeyMember = meta::kIsDetected<KeyMemberTypeImpl, T>;
 template <typename T>
@@ -192,7 +196,6 @@ template <typename T>
 struct DataCacheContainer<
     T, USERVER_NAMESPACE::utils::void_t<typename T::CacheContainer>> {
   using type = typename T::CacheContainer;
-  // TODO Checks that the type is some sort of a map
 };
 
 template <typename T>
@@ -224,6 +227,17 @@ std::unique_ptr<T> CopyContainer(
   } else {
     return std::make_unique<T>(container);
   }
+}
+
+template <typename Container, typename Value, typename KeyMember,
+          typename... Args>
+void CacheInsertOrAssign(Container& container, Value&& value,
+                         const KeyMember& key_member, Args&&... /*args*/) {
+  // Args are only used to de-prioritize this default overload.
+  static_assert(sizeof...(Args) == 0);
+  // Copy 'key' to avoid aliasing issues in 'insert_or_assign'.
+  auto key = std::invoke(key_member, value);
+  container.insert_or_assign(std::move(key), std::forward<Value>(value));
 }
 
 template <typename T>
@@ -360,7 +374,7 @@ inline constexpr std::size_t kDefaultChunkSize = 1000;
 ///
 /// @brief Caching component for PostgreSQL. See @ref pg_cache.
 ///
-/// @see @ref pg_cache, @ref md_en_userver_caches
+/// @see @ref pg_cache, @ref scripts/docs/en/userver/caches.md
 template <typename PostgreCachePolicy>
 class PostgreCache final
     : public pg_cache::detail::PolicyChecker<PostgreCachePolicy>::BaseType {
@@ -383,7 +397,7 @@ class PostgreCache final
   constexpr static auto kName = PolicyType::kName;
 
   PostgreCache(const ComponentConfig&, const ComponentContext&);
-  ~PostgreCache();
+  ~PostgreCache() override;
 
   static yaml_config::Schema GetStaticConfigSchema();
 
@@ -409,8 +423,7 @@ class PostgreCache final
   static storages::postgres::Query GetAllQuery();
   static storages::postgres::Query GetDeltaQuery();
 
-  static std::chrono::milliseconds ParseCorrection(
-      const ComponentConfig& config);
+  std::chrono::milliseconds ParseCorrection(const ComponentConfig& config);
 
   std::vector<storages::postgres::ClusterPtr> clusters_;
 
@@ -438,6 +451,11 @@ PostgreCache<PostgreCachePolicy>::PostgreCache(const ComponentConfig& config,
               pg_cache::detail::kDefaultIncrementalUpdateTimeout)},
       chunk_size_{config["chunk-size"].As<size_t>(
           pg_cache::detail::kDefaultChunkSize)} {
+  UINVARIANT(
+      !chunk_size_ || storages::postgres::Portal::IsSupportedByDriver(),
+      "Either set 'chunk-size' to 0, or enable PostgreSQL portals by building "
+      "the framework with CMake option USERVER_FEATURE_PATCH_LIBPQ set to ON.");
+
   if (this->GetAllowedUpdateTypes() ==
           cache::AllowedUpdateTypes::kFullAndIncremental &&
       !kIncrementalUpdates) {
@@ -513,7 +531,8 @@ template <typename PostgreCachePolicy>
 std::chrono::milliseconds PostgreCache<PostgreCachePolicy>::ParseCorrection(
     const ComponentConfig& config) {
   static constexpr std::string_view kUpdateCorrection = "update-correction";
-  if constexpr (pg_cache::detail::kHasCustomUpdated<PostgreCachePolicy>) {
+  if (pg_cache::detail::kHasCustomUpdated<PostgreCachePolicy> ||
+      this->GetAllowedUpdateTypes() == cache::AllowedUpdateTypes::kOnlyFull) {
     return config[kUpdateCorrection].As<std::chrono::milliseconds>(0);
   } else {
     return config[kUpdateCorrection].As<std::chrono::milliseconds>();
@@ -651,9 +670,10 @@ void PostgreCache<PostgreCachePolicy>::CacheResults(
   for (auto p = values.begin(); p != values.end(); ++p) {
     relax.Relax();
     try {
-      auto value = pg_cache::detail::ExtractValue<PostgreCachePolicy>(*p);
-      auto key = std::invoke(PolicyType::kKeyMember, value);
-      data_cache->insert_or_assign(std::move(key), std::move(value));
+      using pg_cache::detail::CacheInsertOrAssign;
+      CacheInsertOrAssign(
+          *data_cache, pg_cache::detail::ExtractValue<PostgreCachePolicy>(*p),
+          PostgreCachePolicy::kKeyMember);
     } catch (const std::exception& e) {
       stats_scope.IncreaseDocumentsParseFailures(1);
       LOG_ERROR() << "Error parsing data row in cache '" << kName << "' to '"
@@ -690,5 +710,15 @@ yaml_config::Schema PostgreCache<PostgreCachePolicy>::GetStaticConfigSchema() {
 }
 
 }  // namespace components
+
+namespace utils::impl::projected_set {
+
+template <typename Set, typename Value, typename KeyMember>
+void CacheInsertOrAssign(Set& set, Value&& value,
+                         const KeyMember& /*key_member*/) {
+  DoInsert(set, std::forward<Value>(value));
+}
+
+}  // namespace utils::impl::projected_set
 
 USERVER_NAMESPACE_END

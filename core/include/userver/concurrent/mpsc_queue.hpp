@@ -1,13 +1,16 @@
 #pragma once
 
+/// @file userver/concurrent/mpsc_queue.hpp
+/// @brief Multiple producer, single consumer queue
+
 #include <atomic>
 #include <limits>
 #include <memory>
 
 #include <boost/lockfree/queue.hpp>
 
-#include <userver/concurrent/impl/queue_helpers.hpp>
 #include <userver/concurrent/impl/semaphore_capacity_control.hpp>
+#include <userver/concurrent/queue_helpers.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/semaphore.hpp>
 #include <userver/engine/single_consumer_event.hpp>
@@ -39,8 +42,7 @@ struct QueueHelper {
                 "MpscQueue<std::unique_ptr<T>> instead of MpscQueue<T>");
 };
 
-/// This partial specialization is helper's raison d'être. It allows
-/// one to pass std::unique_ptr via Queue
+/// This partial specialization allows to use std::unique_ptr with Queue.
 template <typename T>
 struct QueueHelper<std::unique_ptr<T>> {
   using LockFreeQueue = boost::lockfree::queue<T*>;
@@ -66,18 +68,23 @@ struct QueueHelper<std::unique_ptr<T>> {
 ///
 /// ## Example usage:
 ///
-/// @snippet engine/mpsc_queue_test.cpp  Sample engine::MpscQueue usage
+/// @snippet concurrent/mpsc_queue_test.cpp  Sample concurrent::MpscQueue usage
 ///
-/// @see @ref md_en_userver_synchronization
+/// @see @ref scripts/docs/en/userver/synchronization.md
 template <typename T>
 class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
+  struct EmplaceEnabler final {
+    // Disable {}-initialization in Queue's constructor
+    explicit EmplaceEnabler() = default;
+  };
+
   using QueueHelper = impl::QueueHelper<T>;
 
   using ProducerToken = impl::NoToken;
   using ConsumerToken = impl::NoToken;
 
-  friend class impl::Producer<MpscQueue, ProducerToken>;
-  friend class impl::Consumer<MpscQueue>;
+  friend class Producer<MpscQueue, ProducerToken, EmplaceEnabler>;
+  friend class Consumer<MpscQueue, ConsumerToken, EmplaceEnabler>;
 
  public:
   static constexpr std::size_t kUnbounded =
@@ -85,13 +92,16 @@ class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
 
   using ValueType = T;
 
-  using Producer = impl::Producer<MpscQueue, ProducerToken>;
-  using Consumer = impl::Consumer<MpscQueue>;
-  using MultiProducer = impl::Producer<MpscQueue, impl::NoToken>;
+  using Producer =
+      concurrent::Producer<MpscQueue, ProducerToken, EmplaceEnabler>;
+  using Consumer =
+      concurrent::Consumer<MpscQueue, ConsumerToken, EmplaceEnabler>;
+  using MultiProducer =
+      concurrent::Producer<MpscQueue, impl::NoToken, EmplaceEnabler>;
 
   /// @cond
   // For internal use only
-  explicit MpscQueue(std::size_t max_size, impl::EmplaceEnabler /*unused*/)
+  explicit MpscQueue(std::size_t max_size, EmplaceEnabler /*unused*/)
       : remaining_capacity_(max_size),
         remaining_capacity_control_(remaining_capacity_) {}
 
@@ -104,7 +114,7 @@ class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
 
   /// Create a new queue
   static std::shared_ptr<MpscQueue> Create(std::size_t max_size = kUnbounded) {
-    return std::make_shared<MpscQueue>(max_size, impl::EmplaceEnabler{});
+    return std::make_shared<MpscQueue>(max_size, EmplaceEnabler{});
   }
 
   /// Get a `Producer` which makes it possible to push items into the queue.
@@ -140,14 +150,6 @@ class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
   /// @brief Gets the approximate size of queue
   [[nodiscard]] size_t GetSizeApproximate() const;
 
-  /// @cond
-  [[deprecated("Use SetSoftMaxSize instead")]] void SetMaxLength(size_t length);
-
-  [[deprecated("Use GetSoftMaxSize instead")]] size_t GetMaxLength() const;
-
-  [[deprecated("Use GetSizeApproximate instead")]] size_t Size() const;
-  /// @endcond
-
  private:
   bool Push(ProducerToken&, T&&, engine::Deadline);
   bool PushNoblock(ProducerToken&, T&&);
@@ -164,7 +166,7 @@ class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
   // specialization. In that case, resolves to boost::lockfree::queue<T*>
   typename QueueHelper::LockFreeQueue queue_{1};
   engine::SingleConsumerEvent nonempty_event_;
-  engine::Semaphore remaining_capacity_;
+  engine::CancellableSemaphore remaining_capacity_;
   concurrent::impl::SemaphoreCapacityControl remaining_capacity_control_;
   std::atomic<bool> consumer_is_created_{false};
   std::atomic<bool> consumer_is_created_and_dead_{false};
@@ -189,7 +191,7 @@ typename MpscQueue<T>::Producer MpscQueue<T>::GetProducer() {
   producers_count_++;
   producer_is_created_and_dead_ = false;
   nonempty_event_.Send();
-  return Producer(this->shared_from_this(), impl::EmplaceEnabler{});
+  return Producer(this->shared_from_this(), EmplaceEnabler{});
 }
 
 template <typename T>
@@ -204,7 +206,7 @@ typename MpscQueue<T>::Consumer MpscQueue<T>::GetConsumer() {
   UINVARIANT(!consumer_is_created_,
              "MpscQueue::Consumer must only be obtained a single time");
   consumer_is_created_ = true;
-  return Consumer(this->shared_from_this(), impl::EmplaceEnabler{});
+  return Consumer(this->shared_from_this(), EmplaceEnabler{});
 }
 
 template <typename T>
@@ -223,25 +225,9 @@ size_t MpscQueue<T>::GetSizeApproximate() const {
 }
 
 template <typename T>
-void MpscQueue<T>::SetMaxLength(size_t length) {
-  SetSoftMaxSize(length);
-}
-
-template <typename T>
-size_t MpscQueue<T>::GetMaxLength() const {
-  return GetSoftMaxSize();
-}
-
-template <typename T>
-size_t MpscQueue<T>::Size() const {
-  return GetSizeApproximate();
-}
-
-template <typename T>
 bool MpscQueue<T>::Push(ProducerToken& token, T&& value,
                         engine::Deadline deadline) {
-  return !engine::current_task::ShouldCancel() &&
-         remaining_capacity_.try_lock_shared_until(deadline) &&
+  return remaining_capacity_.try_lock_shared_until(deadline) &&
          DoPush(token, std::move(value));
 }
 

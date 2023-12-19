@@ -9,6 +9,12 @@
 
 #include <utils/impl/assert_extra.hpp>
 
+#ifdef USERVER_PROTECT_DWCAS
+#define USERVER_IMPL_PROTECT_DWCAS_ATTR __attribute__((noinline, flatten))
+#else
+#define USERVER_IMPL_PROTECT_DWCAS_ATTR __attribute__((always_inline, flatten))
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace concurrent::impl {
@@ -17,7 +23,7 @@ namespace concurrent::impl {
 template <typename T>
 using DoubleWidthCapableAtomic = boost::atomic<T>;
 
-inline boost::memory_order ToInternalMemoryOrder(
+constexpr boost::memory_order ToInternalMemoryOrder(
     std::memory_order order) noexcept {
   switch (order) {
     case std::memory_order_relaxed:
@@ -33,13 +39,14 @@ inline boost::memory_order ToInternalMemoryOrder(
     case std::memory_order_seq_cst:
       return boost::memory_order_seq_cst;
   }
-  utils::impl::AbortWithStacktrace("Invalid memory order");
+  // AbortWithStacktrace here leads to a compilation error on GCC 8.
+  return boost::memory_order_seq_cst;
 }
 #else
 template <typename T>
 using DoubleWidthCapableAtomic = std::atomic<T>;
 
-inline std::memory_order ToInternalMemoryOrder(
+constexpr std::memory_order ToInternalMemoryOrder(
     std::memory_order order) noexcept {
   return order;
 }
@@ -62,16 +69,22 @@ class FastAtomic final {
 
   FastAtomic(const FastAtomic&) = delete;
 
-  bool compare_exchange_strong(T& expected, T desired,
-                               std::memory_order success,
-                               std::memory_order failure) noexcept {
+  template <std::memory_order Success, std::memory_order Failure>
+  USERVER_IMPL_PROTECT_DWCAS_ATTR bool compare_exchange_strong(
+      T& expected, T desired) noexcept {
     return impl_.compare_exchange_strong(expected, desired,
-                                         ToInternalMemoryOrder(success),
-                                         ToInternalMemoryOrder(failure));
+                                         ToInternalMemoryOrder(Success),
+                                         ToInternalMemoryOrder(Failure));
   }
 
-  T load(std::memory_order order) const noexcept {
-    return impl_.load(ToInternalMemoryOrder(order));
+  template <std::memory_order Order>
+  USERVER_IMPL_PROTECT_DWCAS_ATTR T load() const noexcept {
+    return impl_.load(ToInternalMemoryOrder(Order));
+  }
+
+  template <std::memory_order Order>
+  USERVER_IMPL_PROTECT_DWCAS_ATTR T exchange(T desired) noexcept {
+    return impl_.exchange(desired, ToInternalMemoryOrder(Order));
   }
 
  private:

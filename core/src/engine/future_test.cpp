@@ -23,7 +23,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-static constexpr std::chrono::milliseconds kWaitPeriod{10};
+constexpr std::chrono::milliseconds kWaitPeriod{10};
 
 auto GetTimePoint() { return std::chrono::steady_clock::now() + kWaitPeriod; }
 
@@ -296,7 +296,7 @@ UTEST(Future, SampleFuture) {
           case engine::FutureStatus::kCancelled:
             // Handling cancellation of calculations
             // (example, return to queue)
-            break;
+            return;
         }
       });
 
@@ -391,6 +391,18 @@ UTEST(Future, WaitAnyPromiseKilledInOtherThread) {
   ASSERT_EQ(*opt_index, 0);
 
   UEXPECT_THROW(future.get(), std::future_error);
+}
+
+TYPED_UTEST(Future, AssignmentSendsBrokenPromise) {
+  engine::Promise<TypeParam> promise;
+  auto future = promise.get_future();
+  promise = engine::Promise<TypeParam>{};
+  try {
+    future.get();
+    FAIL() << "future.get() was expected to throw std::future_error";
+  } catch (const std::future_error& ex) {
+    EXPECT_EQ(ex.code(), std::future_errc::broken_promise);
+  }
 }
 
 USERVER_NAMESPACE_END

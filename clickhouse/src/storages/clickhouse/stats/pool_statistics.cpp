@@ -8,40 +8,27 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::clickhouse::stats {
 
-namespace {
-
-formats::json::Value PoolConnectionStatisticsToJson(
-    const PoolConnectionStatistics& stats) {
-  formats::json::ValueBuilder builder{formats::json::Type::kObject};
-  builder["closed"] = stats.closed.Load();
-  builder["created"] = stats.created.Load();
-  builder["overload"] = stats.overload.Load();
-  builder["active"] = stats.active.Load();
-  builder["busy"] = stats.busy.Load();
-
-  return builder.ExtractValue();
+void DumpMetric(USERVER_NAMESPACE::utils::statistics::Writer& writer,
+                const PoolStatistics& stats) {
+  writer["connections"] = stats.connections;
+  writer["queries"] = stats.queries;
+  writer["inserts"] = stats.inserts;
 }
 
-formats::json::Value PoolQueryStatisticsToJson(
-    const PoolQueryStatistics& stats) {
-  formats::json::ValueBuilder builder{formats::json::Type::kObject};
-  builder["total"] = stats.total.Load();
-  builder["error"] = stats.error.Load();
-  builder["timings"] = USERVER_NAMESPACE::utils::statistics::PercentileToJson(
-      stats.timings.GetStatsForPeriod());
-
-  return builder.ExtractValue();
+void DumpMetric(USERVER_NAMESPACE::utils::statistics::Writer& writer,
+                const PoolQueryStatistics& stats) {
+  writer["total"] = stats.total;
+  writer["error"] = stats.error;
+  writer["timings"] = stats.timings;
 }
 
-}  // namespace
-
-formats::json::Value PoolStatisticsToJson(const PoolStatistics& stats) {
-  formats::json::ValueBuilder builder{formats::json::Type::kObject};
-  builder["connections"] = PoolConnectionStatisticsToJson(stats.connections);
-  builder["queries"] = PoolQueryStatisticsToJson(stats.queries);
-  builder["inserts"] = PoolQueryStatisticsToJson(stats.inserts);
-
-  return builder.ExtractValue();
+void DumpMetric(USERVER_NAMESPACE::utils::statistics::Writer& writer,
+                const PoolConnectionStatistics& stats) {
+  writer["closed"] = stats.closed;
+  writer["created"] = stats.created;
+  writer["overload"] = stats.overload;
+  writer["active"] = stats.active;
+  writer["busy"] = stats.busy;
 }
 
 }  // namespace storages::clickhouse::stats

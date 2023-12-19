@@ -8,7 +8,6 @@
 #include <userver/clients/dns/common.hpp>
 #include <userver/engine/future.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -35,9 +34,7 @@ class NetResolver {
 
  private:
   class Impl;
-  constexpr static size_t kSize = 752;
-  constexpr static size_t kAlignment = 8;
-  utils::FastPimpl<Impl, kSize, kAlignment> impl_;
+  const std::unique_ptr<Impl> impl_;
 };
 
 }  // namespace clients::dns

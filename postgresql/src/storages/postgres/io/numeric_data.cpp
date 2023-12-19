@@ -489,27 +489,27 @@ void NumericData::FromInt64(IntegralRepresentation rep) {
 }  // namespace
 
 std::string NumericBufferToString(const FieldBuffer& buffer) {
-  NumericData nd;
-  nd.ReadBuffer(buffer);
-  return nd.ToString();
+  NumericData num_data;
+  num_data.ReadBuffer(buffer);
+  return num_data.ToString();
 }
 
 std::string StringToNumericBuffer(const std::string& str_rep) {
-  NumericData nd;
-  nd.Parse(str_rep);
-  return nd.GetBuffer();
+  NumericData num_data;
+  num_data.Parse(str_rep);
+  return num_data.GetBuffer();
 }
 
 IntegralRepresentation NumericBufferToInt64(const FieldBuffer& buffer) {
-  NumericData nd;
-  nd.ReadBuffer(buffer);
-  return nd.ToInt64();
+  NumericData num_data;
+  num_data.ReadBuffer(buffer);
+  return num_data.ToInt64();
 }
 
 std::string Int64ToNumericBuffer(const IntegralRepresentation& rep) {
-  NumericData nd;
-  nd.FromInt64(rep);
-  return nd.GetBuffer();
+  NumericData num_data;
+  num_data.FromInt64(rep);
+  return num_data.GetBuffer();
 }
 
 }  // namespace storages::postgres::io::detail

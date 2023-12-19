@@ -70,16 +70,20 @@ class Client {
   virtual RequestDel Del(std::vector<std::string> keys,
                          const CommandControl& command_control) = 0;
 
-  template <typename ScriptResult,
-            typename ReplyType = impl::DefaultReplyType<ScriptResult>>
+  virtual RequestUnlink Unlink(std::string key,
+                               const CommandControl& command_control) = 0;
+
+  virtual RequestUnlink Unlink(std::vector<std::string> keys,
+                               const CommandControl& command_control) = 0;
+
+  template <typename ScriptResult, typename ReplyType = ScriptResult>
   RequestEval<ScriptResult, ReplyType> Eval(
       std::string script, std::vector<std::string> keys,
       std::vector<std::string> args, const CommandControl& command_control) {
     return RequestEval<ScriptResult, ReplyType>{EvalCommon(
         std::move(script), std::move(keys), std::move(args), command_control)};
   }
-  template <typename ScriptResult,
-            typename ReplyType = impl::DefaultReplyType<ScriptResult>>
+  template <typename ScriptResult, typename ReplyType = ScriptResult>
   RequestEvalSha<ScriptResult, ReplyType> EvalSha(
       std::string script_hash, std::vector<std::string> keys,
       std::vector<std::string> args, const CommandControl& command_control) {
@@ -92,8 +96,7 @@ class Client {
       std::string script, size_t shard,
       const CommandControl& command_control) = 0;
 
-  template <typename ScriptInfo, typename ReplyType = impl::DefaultReplyType<
-                                     std::decay_t<ScriptInfo>>>
+  template <typename ScriptInfo, typename ReplyType = std::decay_t<ScriptInfo>>
   RequestEval<std::decay_t<ScriptInfo>, ReplyType> Eval(
       const ScriptInfo& script_info, std::vector<std::string> keys,
       std::vector<std::string> args, const CommandControl& command_control) {
@@ -118,9 +121,30 @@ class Client {
                                std::vector<GeoaddArg> point_members,
                                const CommandControl& command_control) = 0;
 
-  virtual RequestGeoradius Georadius(std::string key, double lon, double lat,
-                                     double radius,
+  virtual RequestGeoradius Georadius(std::string key, Longitude lon,
+                                     Latitude lat, double radius,
                                      const GeoradiusOptions& georadius_options,
+                                     const CommandControl& command_control) = 0;
+
+  virtual RequestGeosearch Geosearch(std::string key, std::string member,
+                                     double radius,
+                                     const GeosearchOptions& geosearch_options,
+                                     const CommandControl& command_control) = 0;
+
+  virtual RequestGeosearch Geosearch(std::string key, std::string member,
+                                     BoxWidth width, BoxHeight height,
+                                     const GeosearchOptions& geosearch_options,
+                                     const CommandControl& command_control) = 0;
+
+  virtual RequestGeosearch Geosearch(std::string key, Longitude lon,
+                                     Latitude lat, double radius,
+                                     const GeosearchOptions& geosearch_options,
+                                     const CommandControl& command_control) = 0;
+
+  virtual RequestGeosearch Geosearch(std::string key, Longitude lon,
+                                     Latitude lat, BoxWidth width,
+                                     BoxHeight height,
+                                     const GeosearchOptions& geosearch_options,
                                      const CommandControl& command_control) = 0;
 
   virtual RequestGet Get(std::string key,
@@ -244,6 +268,9 @@ class Client {
                        const CommandControl& command_control,
                        PubShard policy) = 0;
 
+  virtual void Spublish(std::string channel, std::string message,
+                        const CommandControl& command_control) = 0;
+
   virtual RequestRename Rename(std::string key, std::string new_key,
                                const CommandControl& command_control) = 0;
 
@@ -360,6 +387,9 @@ class Client {
 
   virtual RequestZcard Zcard(std::string key,
                              const CommandControl& command_control) = 0;
+
+  virtual RequestZcount Zcount(std::string key, double min, double max,
+                               const CommandControl& command_control) = 0;
 
   virtual RequestZrange Zrange(std::string key, int64_t start, int64_t stop,
                                const CommandControl& command_control) = 0;

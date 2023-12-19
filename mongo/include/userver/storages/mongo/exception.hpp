@@ -12,12 +12,29 @@ namespace storages::mongo {
 /// Generic mongo-related exception
 class MongoException : public utils::TracefulException {
  public:
-  using utils::TracefulException::TracefulException;
+  MongoException();
+
+  explicit MongoException(std::string_view what);
 };
 
 /// Config validation error
 class InvalidConfigException : public MongoException {
   using MongoException::MongoException;
+};
+
+/// The current task has been cancelled, e.g. by deadline propagation
+class CancelledException : public MongoException {
+ public:
+  struct ByDeadlinePropagation final {};
+
+  using MongoException::MongoException;
+
+  explicit CancelledException(ByDeadlinePropagation);
+
+  bool IsByDeadlinePropagation() const;
+
+ private:
+  bool by_deadline_propagation_{false};
 };
 
 /// Nonexistent pool requested from the set

@@ -5,16 +5,18 @@
 
 #include <libpq-fe.h>
 
+#include <userver/concurrent/background_task_storage_fwd.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/io/socket.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/logging/log_extra.hpp>
 #include <userver/tracing/span.hpp>
-#include <utils/size_guard.hpp>
 
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/result_wrapper.hpp>
+#include <userver/engine/semaphore.hpp>
 #include <userver/storages/postgres/dsn.hpp>
+#include <userver/storages/postgres/notify.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -25,11 +27,10 @@ class PGConnectionWrapper {
   using Deadline = engine::Deadline;
   using Duration = Deadline::TimePoint::clock::duration;
   using ResultHandle = detail::ResultWrapper::ResultHandle;
-  using SizeGuard =
-      USERVER_NAMESPACE::utils::SizeGuard<std::shared_ptr<std::atomic<size_t>>>;
 
-  PGConnectionWrapper(engine::TaskProcessor& tp, uint32_t id,
-                      SizeGuard&& size_guard);
+  PGConnectionWrapper(engine::TaskProcessor& tp,
+                      concurrent::BackgroundTaskStorageCore& bts, uint32_t id,
+                      engine::SemaphoreLock&& pool_size_lock);
   ~PGConnectionWrapper();
 
   PGConnectionWrapper(const PGConnectionWrapper&) = delete;
@@ -57,13 +58,16 @@ class PGConnectionWrapper {
   /// Requires libpq >= 14.
   void EnterPipelineMode();
 
+  /// @brief Exit pipeline mode, see EnterPipelineMode()
+  void ExitPipelineMode();
+
   /// @brief Returns true if command send queue is empty.
   ///
   /// Normally command queue is flushed after any Send* call, but in pipeline
   /// mode that might not be the case.
   bool IsSyncingPipeline() const;
 
-  /// Check if pipeline mode is currenty enabled
+  /// Check if pipeline mode is currently enabled
   bool IsPipelineActive() const;
 
   /// @brief Close the connection on a background task processor.
@@ -103,8 +107,12 @@ class PGConnectionWrapper {
   /// Will return result or throw an exception
   ResultSet WaitResult(Deadline deadline, tracing::ScopeTime&);
 
+  /// @brief Wait for notification
+  Notification WaitNotify(Deadline deadline);
+
   /// Consume input from connection
   void ConsumeInput(Deadline deadline);
+
   /// Consume all input discarding all result sets
   void DiscardInput(Deadline deadline);
 
@@ -113,7 +121,7 @@ class PGConnectionWrapper {
   bool TryConsumeInput(Deadline deadline);
 
   /// @brief Fills current span with connection info
-  void FillSpanTags(tracing::Span&) const;
+  void FillSpanTags(tracing::Span&, const CommandControl& cc) const;
 
   /// Logs a server-originated notice
   void LogNotice(const PGresult*) const;
@@ -121,6 +129,14 @@ class PGConnectionWrapper {
   TimeoutDuration GetIdleDuration() const;
 
   void MarkAsBroken();
+
+  bool IsBroken() const;
+
+  bool IsInAbortedPipeline() const;
+
+  /// Escape a string for use as an SQL identifier, such as a table, column, or
+  /// function name
+  std::string EscapeIdentifier(std::string_view);
 
  private:
   PGTransactionStatusType GetTransactionStatus() const;
@@ -141,10 +157,16 @@ class PGConnectionWrapper {
 
   void Flush(Deadline deadline);
 
+  PGresult* ReadResult(Deadline deadline);
+
   ResultSet MakeResult(ResultHandle&& handle);
 
   template <typename ExceptionType>
   void CheckError(const std::string& cmd, int pg_dispatch_result);
+
+  void HandleSocketPostClose();
+
+  void HandlePipelineSync();
 
   template <typename ExceptionType>
   [[noreturn]] void CloseWithError(ExceptionType&& ex);
@@ -152,14 +174,15 @@ class PGConnectionWrapper {
   void UpdateLastUse();
 
   engine::TaskProcessor& bg_task_processor_;
+  concurrent::BackgroundTaskStorageCore& bg_task_storage_;
 
   PGconn* conn_{nullptr};
   engine::io::Socket socket_;
   logging::LogExtra log_extra_;
-  SizeGuard size_guard_;
+  engine::SemaphoreLock pool_size_lock_;
   std::chrono::steady_clock::time_point last_use_;
+  size_t pipeline_sync_counter_{0};
   bool is_broken_{false};
-  bool is_syncing_pipeline_{false};
 };
 
 }  // namespace storages::postgres::detail

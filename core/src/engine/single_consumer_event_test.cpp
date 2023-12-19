@@ -4,6 +4,7 @@
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/engine/task/cancel.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utest/utest.hpp>
 
@@ -14,6 +15,17 @@ USERVER_NAMESPACE_BEGIN
 TEST(SingleConsumerEvent, Ctr) {
   engine::SingleConsumerEvent event;
   EXPECT_TRUE(event.IsAutoReset());
+  EXPECT_FALSE(event.IsReady());
+}
+
+UTEST(SingleConsumerEvent, IsReady) {
+  engine::SingleConsumerEvent event;
+  event.Send();
+  EXPECT_TRUE(event.IsReady());
+  EXPECT_TRUE(event.IsReady());
+
+  EXPECT_TRUE(event.WaitForEvent());
+  EXPECT_FALSE(event.IsReady());
 }
 
 UTEST(SingleConsumerEvent, WaitAndCancel) {
@@ -212,6 +224,51 @@ UTEST_MT(SingleConsumerEvent, ParallelSend, 3) {
     producer.RequestCancel();
     UEXPECT_NO_THROW(producer.Get());
   }
+}
+
+namespace {
+
+auto WaitAndDestroySample() {
+  /// [Wait and destroy]
+  engine::TaskWithResult<void> sender;
+  {
+    engine::SingleConsumerEvent event;
+    sender = engine::AsyncNoSpan([&event] { event.Send(); });
+    // will be woken up by 'Send()' above
+    const bool success = event.WaitForEvent();
+
+    if (!success) {
+      // If the waiting failed due to deadline or cancellation, we must somehow
+      // wait until the parallel task does Send (or prevent the parallel task
+      // from ever doing Send) before destroying the SingleConsumerEvent.
+      sender.SyncCancel();
+    }
+
+    // 'event' is destroyed here. Note that 'Send' might continue executing, but
+    // it will still complete safely.
+  }
+  /// [Wait and destroy]
+
+  // The test succeeds if the sanitizers are happy, and we haven't violated
+  // event's lifetime.
+  return sender;
+}
+
+}  // namespace
+
+UTEST(SingleConsumerEvent, WaitAndDestroySuccess) {
+  auto sender = WaitAndDestroySample();
+  UEXPECT_NO_THROW(sender.Get());
+}
+
+UTEST(SingleConsumerEvent, WaitAndDestroyCancellation) {
+  engine::current_task::GetCancellationToken().RequestCancel();
+
+  auto sender = WaitAndDestroySample();
+
+  const engine::TaskCancellationBlocker cancel_blocker;
+  UEXPECT_THROW_MSG(sender.Get(), engine::TaskCancelledException,
+                    "User request");
 }
 
 USERVER_NAMESPACE_END

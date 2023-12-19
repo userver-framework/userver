@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2021 Antony Polukhin
+// Copyright (c) 2016-2023 Antony Polukhin
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -30,19 +30,24 @@
 namespace boost { namespace pfr {
 
 /// \brief Returns reference or const reference to a field with index `I` in \aggregate `val`.
+/// Overload taking the type `U` returns reference or const reference to a field
+/// with provided type `U` in \aggregate `val` if there's only one field of such type in `val`.
 ///
 /// \b Example:
 /// \code
 ///     struct my_struct { int i, short s; };
 ///     my_struct s {10, 11};
+///
 ///     assert(boost::pfr::get<0>(s) == 10);
 ///     boost::pfr::get<1>(s) = 0;
+///
+///     assert(boost::pfr::get<int>(s) == 10);
+///     boost::pfr::get<short>(s) = 11;
 /// \endcode
 template <std::size_t I, class T>
 constexpr decltype(auto) get(const T& val) noexcept {
     return detail::sequence_tuple::get<I>( detail::tie_as_tuple(val) );
 }
-
 
 /// \overload get
 template <std::size_t I, class T>
@@ -66,8 +71,42 @@ constexpr auto get(T&, std::enable_if_t<!std::is_assignable<T, T>::value>* = nul
 
 /// \overload get
 template <std::size_t I, class T>
-constexpr auto get(T&& val, std::enable_if_t< std::is_rvalue_reference<T&&>::value>* = 0) noexcept {
+constexpr auto get(T&& val, std::enable_if_t< std::is_rvalue_reference<T&&>::value>* = nullptr) noexcept {
     return std::move(detail::sequence_tuple::get<I>( detail::tie_as_tuple(val) ));
+}
+
+
+/// \overload get
+template <class U, class T>
+constexpr const U& get(const T& val) noexcept {
+    return detail::sequence_tuple::get_by_type_impl<const U&>( detail::tie_as_tuple(val) );
+}
+
+
+/// \overload get
+template <class U, class T>
+constexpr U& get(T& val
+#if !BOOST_PFR_USE_CPP17
+    , std::enable_if_t<std::is_assignable<T, T>::value>* = nullptr
+#endif
+) noexcept {
+    return detail::sequence_tuple::get_by_type_impl<U&>( detail::tie_as_tuple(val) );
+}
+
+#if !BOOST_PFR_USE_CPP17
+/// \overload get
+template <class U, class T>
+constexpr U& get(T&, std::enable_if_t<!std::is_assignable<T, T>::value>* = nullptr) noexcept {
+    static_assert(sizeof(T) && false, "====================> Boost.PFR: Calling boost::pfr::get on non const non assignable type is allowed only in C++17");
+    return 0;
+}
+#endif
+
+
+/// \overload get
+template <class U, class T>
+constexpr U&& get(T&& val, std::enable_if_t< std::is_rvalue_reference<T&&>::value>* = nullptr) noexcept {
+    return std::move(detail::sequence_tuple::get_by_type_impl<U&>( detail::tie_as_tuple(val) ));
 }
 
 
@@ -97,7 +136,7 @@ using tuple_element_t = typename tuple_element<I, T>::type;
 /// \code
 ///     struct my_struct { int i, short s; };
 ///     my_struct s {10, 11};
-///     std::tuple<int, short> t = make_tuple(s);
+///     std::tuple<int, short> t = boost::pfr::structure_to_tuple(s);
 ///     assert(get<0>(t) == 10);
 /// \endcode
 template <class T>
@@ -119,10 +158,10 @@ constexpr auto structure_to_tuple(const T& val) noexcept {
 ///     struct my_struct { int i, short s; };
 ///
 ///     const my_struct const_s{1, 2};
-///     std::apply(foo, structure_tie(const_s));
+///     std::apply(foo, boost::pfr::structure_tie(const_s));
 ///
 ///     my_struct s;
-///     structure_tie(s) = std::tuple<int, short>{10, 11};
+///     boost::pfr::structure_tie(s) = std::tuple<int, short>{10, 11};
 ///     assert(s.s == 11);
 /// \endcode
 template <class T>
@@ -159,7 +198,7 @@ constexpr auto structure_tie(T&, std::enable_if_t<!std::is_assignable<T, T>::val
 
 /// \overload structure_tie
 template <class T>
-constexpr auto structure_tie(T&&, std::enable_if_t< std::is_rvalue_reference<T&&>::value>* = 0) noexcept {
+constexpr auto structure_tie(T&&, std::enable_if_t< std::is_rvalue_reference<T&&>::value>* = nullptr) noexcept {
     static_assert(sizeof(T) && false, "====================> Boost.PFR: Calling boost::pfr::structure_tie on rvalue references is forbidden");
     return 0;
 }
@@ -177,11 +216,11 @@ constexpr auto structure_tie(T&&, std::enable_if_t< std::is_rvalue_reference<T&&
 /// \code
 ///     struct my_struct { int i, short s; };
 ///     int sum = 0;
-///     for_each_field(my_struct{20, 22}, [&sum](const auto& field) { sum += field; });
+///     boost::pfr::for_each_field(my_struct{20, 22}, [&sum](const auto& field) { sum += field; });
 ///     assert(sum == 42);
 /// \endcode
 template <class T, class F>
-void for_each_field(T&& value, F&& func) {
+constexpr void for_each_field(T&& value, F&& func) {
     constexpr std::size_t fields_count_val = boost::pfr::detail::fields_count<std::remove_reference_t<T>>();
 
     ::boost::pfr::detail::for_each_field_dispatcher(
@@ -214,7 +253,7 @@ void for_each_field(T&& value, F&& func) {
 ///       return res;
 ///     }
 ///     auto [p, s] = f();
-///     tie_from_structure(p, s) = f();
+///     boost::pfr::tie_from_structure(p, s) = f();
 /// \endcode
 template <typename... Elements>
 constexpr detail::tie_from_structure_tuple<Elements...> tie_from_structure(Elements&... args) noexcept {

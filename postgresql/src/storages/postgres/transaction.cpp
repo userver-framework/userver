@@ -1,5 +1,6 @@
 #include <userver/storages/postgres/transaction.hpp>
 
+#include <storages/postgres/deadline.hpp>
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/statement_timer.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
@@ -64,6 +65,8 @@ ResultSet Transaction::DoExecute(const Query& query,
   if (!statement_cmd_ctl) {
     statement_cmd_ctl = conn_->GetQueryCmdCtl(query.GetName());
   }
+  auto source = conn_.GetConfigSource();
+  if (source) CheckDeadlineIsExpired(source->GetSnapshot());
 
   detail::StatementTimer timer{query, conn_};
   auto res = conn_->Execute(query, params, std::move(statement_cmd_ctl));

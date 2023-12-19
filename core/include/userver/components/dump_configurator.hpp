@@ -29,7 +29,9 @@ namespace components {
 // clang-format on
 class DumpConfigurator final : public LoggableComponentBase {
  public:
-  static constexpr auto kName = "dump-configurator";
+  /// @ingroup userver_component_names
+  /// @brief The default name of components::DumpConfigurator component
+  static constexpr std::string_view kName = "dump-configurator";
 
   DumpConfigurator(const ComponentConfig& config,
                    const ComponentContext& context);

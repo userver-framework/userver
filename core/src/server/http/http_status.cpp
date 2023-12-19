@@ -1,10 +1,12 @@
 #include <userver/server/http/http_status.hpp>
 
+#include <fmt/format.h>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
 
-std::string HttpStatusString(HttpStatus status) {
+std::string_view HttpStatusString(HttpStatus status) {
   switch (status) {
     case HttpStatus::kContinue:
       return "Continue";
@@ -84,6 +86,8 @@ std::string HttpStatusString(HttpStatus status) {
       return "Range Not Satisfiable";
     case HttpStatus::kExpectationFailed:
       return "Expectation Failed";
+    case HttpStatus::kImATeapot:
+      return "I'm a teapot";
     case HttpStatus::kMisdirectedRequest:
       return "Misdirected Request";
     case HttpStatus::kUnprocessableEntity:
@@ -92,6 +96,8 @@ std::string HttpStatusString(HttpStatus status) {
       return "Locked";
     case HttpStatus::kFailedDependency:
       return "Failed Dependency";
+    case HttpStatus::kTooEarly:
+      return "Too Early";
     case HttpStatus::kUpgradeRequired:
       return "Upgrade Required";
     case HttpStatus::kPreconditionRequired:
@@ -102,6 +108,8 @@ std::string HttpStatusString(HttpStatus status) {
       return "Request Header Fields Too Large";
     case HttpStatus::kUnavailableForLegalReasons:
       return "Unavailable For Legal Reasons";
+    case HttpStatus::kDeadlineExpired:
+      return "Deadline Expired";
     case HttpStatus::kClientClosedRequest:
       return "Client Closed Request";
     case HttpStatus::kInternalServerError:
@@ -127,7 +135,11 @@ std::string HttpStatusString(HttpStatus status) {
     case HttpStatus::kNetworkAuthenticationRequired:
       return "Network Authentication Required";
   }
-  return "Unknown status (" + std::to_string(static_cast<int>(status)) + ")";
+  return "Unknown status";
+}
+
+std::string ToString(HttpStatus status) {
+  return fmt::format("{} {}", status, server::http::HttpStatusString(status));
 }
 
 }  // namespace server::http

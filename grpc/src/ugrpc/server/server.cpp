@@ -9,19 +9,19 @@
 #include <vector>
 
 #include <fmt/format.h>
+#include <grpcpp/ext/channelz_service_plugin.h>
 #include <grpcpp/server.h>
 
 #include <userver/engine/mutex.hpp>
-#include <userver/logging/level_serialization.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/statistics/fwd.hpp>
-#include <userver/yaml_config/yaml_config.hpp>
+#include <userver/utils/fixed_array.hpp>
 
 #include <ugrpc/impl/logging.hpp>
 #include <ugrpc/impl/to_string.hpp>
-#include <ugrpc/server/impl/queue_holder.hpp>
+#include <ugrpc/server/impl/parse_config.hpp>
 #include <userver/ugrpc/impl/statistics_storage.hpp>
+#include <userver/ugrpc/server/impl/queue_holder.hpp>
 #include <userver/ugrpc/server/impl/service_worker.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -67,26 +67,18 @@ bool AreServicesUnique(
 
 }  // namespace
 
-ServerConfig Parse(const yaml_config::YamlConfig& value,
-                   formats::parse::To<ServerConfig>) {
-  ServerConfig config;
-  config.port = value["port"].As<std::optional<int>>();
-  config.channel_args =
-      value["channel-args"].As<decltype(config.channel_args)>({});
-  config.native_log_level =
-      value["native-log-level"].As<logging::Level>(logging::Level::kError);
-  return config;
-}
-
 class Server::Impl final {
  public:
   explicit Impl(ServerConfig&& config,
-                utils::statistics::Storage& statistics_storage);
+                utils::statistics::Storage& statistics_storage,
+                dynamic_config::Source);
   ~Impl();
 
-  void AddService(ServiceBase& service, engine::TaskProcessor& task_processor);
+  void AddService(ServiceBase& service, ServiceConfig&& config);
 
-  void WithServerBuilder(SetupHook&& setup);
+  std::vector<std::string_view> GetServiceNames() const;
+
+  void WithServerBuilder(SetupHook setup);
 
   grpc::CompletionQueue& GetCompletionQueue() noexcept;
 
@@ -115,20 +107,34 @@ class Server::Impl final {
   std::vector<std::unique_ptr<impl::ServiceWorker>> service_workers_;
   std::optional<impl::QueueHolder> queue_;
   std::unique_ptr<grpc::Server> server_;
-  engine::Mutex configuration_mutex_;
+  mutable engine::Mutex configuration_mutex_;
 
   ugrpc::impl::StatisticsStorage statistics_storage_;
+  const dynamic_config::Source config_source_;
+  logging::LoggerPtr access_tskv_logger_;
 };
 
 Server::Impl::Impl(ServerConfig&& config,
-                   utils::statistics::Storage& statistics_storage)
-    : statistics_storage_(statistics_storage, "server") {
+                   utils::statistics::Storage& statistics_storage,
+                   dynamic_config::Source config_source)
+    : statistics_storage_(statistics_storage, "server"),
+      config_source_(config_source),
+      access_tskv_logger_(std::move(config.access_tskv_logger)) {
   LOG_INFO() << "Configuring the gRPC server";
   ugrpc::impl::SetupNativeLogging();
   ugrpc::impl::UpdateNativeLogLevel(config.native_log_level);
+  if (config.enable_channelz) {
+#ifdef USERVER_DISABLE_GRPC_CHANNELZ
+    UINVARIANT(false, "Channelz is disabled via USERVER_FEATURE_GRPC_CHANNELZ");
+#else
+    grpc::channelz::experimental::InitChannelzService();
+#endif
+  }
   server_builder_.emplace();
   ApplyChannelArgs(*server_builder_, config);
-  queue_.emplace(server_builder_->AddCompletionQueue());
+  queue_.emplace(static_cast<std::size_t>(config.completion_queue_num),
+                 std::ref(*server_builder_));
+
   if (config.port) AddListeningPort(*config.port);
 }
 
@@ -155,16 +161,33 @@ void Server::Impl::AddListeningPort(int port) {
                                     grpc::InsecureServerCredentials(), &*port_);
 }
 
-void Server::Impl::AddService(ServiceBase& service,
-                              engine::TaskProcessor& task_processor) {
-  std::lock_guard lock(configuration_mutex_);
+void Server::Impl::AddService(ServiceBase& service, ServiceConfig&& config) {
+  const std::lock_guard lock(configuration_mutex_);
   UASSERT(state_ == State::kConfiguration);
 
   service_workers_.push_back(service.MakeWorker(impl::ServiceSettings{
-      queue_->GetQueue(), task_processor, statistics_storage_}));
+      *queue_,
+      config.task_processor,
+      statistics_storage_,
+      std::move(config.middlewares),
+      access_tskv_logger_,
+      config_source_,
+  }));
 }
 
-void Server::Impl::WithServerBuilder(SetupHook&& setup) {
+std::vector<std::string_view> Server::Impl::GetServiceNames() const {
+  std::vector<std::string_view> ret;
+
+  std::lock_guard lock(configuration_mutex_);
+
+  ret.reserve(service_workers_.size());
+  for (const auto& worker : service_workers_) {
+    ret.push_back(worker->GetMetadata().service_full_name);
+  }
+  return ret;
+}
+
+void Server::Impl::WithServerBuilder(SetupHook setup) {
   std::lock_guard lock(configuration_mutex_);
   UASSERT(state_ == State::kConfiguration);
 
@@ -173,7 +196,8 @@ void Server::Impl::WithServerBuilder(SetupHook&& setup) {
 
 grpc::CompletionQueue& Server::Impl::GetCompletionQueue() noexcept {
   UASSERT(state_ == State::kConfiguration || state_ == State::kActive);
-  return queue_->GetQueue();
+  // TODO: https://st.yandex-team.ru/TAXICOMMON-7612
+  return *queue_->GetQueues().queues[0];
 }
 
 void Server::Impl::Start() {
@@ -199,10 +223,11 @@ int Server::Impl::GetPort() const noexcept {
 void Server::Impl::Stop() noexcept {
   // Note 1: Stop must be idempotent, so that the 'Stop' invocation after a
   // 'Start' failure is optional.
-  // Note 2: 'state_' remains 'kActive' while stopping, which allows clients to
-  // finish their requests using 'queue_'.
+  // Note 2: 'state_' remains 'kActive' while stopping, which allows clients
+  // to finish their requests using 'queue_'.
 
-  // Must shutdown server, then ServiceWorkers, then queues before anything else
+  // Must shutdown server, then ServiceWorkers, then queues before anything
+  // else
   if (server_) {
     LOG_INFO() << "Stopping the gRPC server";
     server_->Shutdown();
@@ -217,6 +242,7 @@ void Server::Impl::Stop() noexcept {
 void Server::Impl::StopDebug() noexcept {
   UINVARIANT(server_, "The gRPC server is not running");
   server_->Shutdown();
+  service_workers_.clear();
 }
 
 void Server::Impl::DoStart() {
@@ -245,18 +271,23 @@ void Server::Impl::DoStart() {
 }
 
 Server::Server(ServerConfig&& config,
-               utils::statistics::Storage& statistics_storage)
-    : impl_(std::move(config), statistics_storage) {}
+               utils::statistics::Storage& statistics_storage,
+               dynamic_config::Source config_source)
+    : impl_(std::make_unique<Impl>(std::move(config), statistics_storage,
+                                   config_source)) {}
 
 Server::~Server() = default;
 
-void Server::AddService(ServiceBase& service,
-                        engine::TaskProcessor& task_processor) {
-  impl_->AddService(service, task_processor);
+void Server::AddService(ServiceBase& service, ServiceConfig&& config) {
+  impl_->AddService(service, std::move(config));
 }
 
-void Server::WithServerBuilder(SetupHook&& setup) {
-  impl_->WithServerBuilder(std::move(setup));
+std::vector<std::string_view> Server::GetServiceNames() const {
+  return impl_->GetServiceNames();
+}
+
+void Server::WithServerBuilder(SetupHook setup) {
+  impl_->WithServerBuilder(setup);
 }
 
 grpc::CompletionQueue& Server::GetCompletionQueue() noexcept {

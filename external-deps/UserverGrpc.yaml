@@ -1,5 +1,4 @@
 name: UserverGrpc
-helper-prefix: false
 
 debian-names:
   - libgrpc-dev
@@ -10,6 +9,8 @@ debian-names:
 formula-name: grpc
 pacman-names:
   - grpc
+pkg-config-names:
+  - grpc++
 
 libraries:
     find:
@@ -19,6 +20,10 @@ libraries:
           - grpc++
       - names:
           - gpr
+      - names:
+          - absl
+          - absl_synchronization
+          - grpc  # fallback, old versions of gRPC do not link with absl
 
 includes:
     find:

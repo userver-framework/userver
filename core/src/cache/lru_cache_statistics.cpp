@@ -49,6 +49,20 @@ void CacheStale(ExpirableLruCacheStatistics& stats) {
   LOG_TRACE() << "stale cache";
 }
 
+void DumpMetric(utils::statistics::Writer& writer,
+                const ExpirableLruCacheStatistics& stats) {
+  writer["hits"] = stats.total.hits.load();
+  writer["misses"] = stats.total.misses.load();
+  writer["stale"] = stats.total.stale.load();
+  writer["background-updates"] = stats.total.background_updates.load();
+
+  auto s1min = stats.recent.GetStatsForPeriod();
+  double s1min_hits = s1min.hits.load();
+  auto s1min_total = s1min.hits.load() + s1min.misses.load();
+  writer["hit_ratio"]["1min"] =
+      s1min_hits / static_cast<double>(s1min_total ? s1min_total : 1);
+}
+
 }  // namespace cache::impl
 
 USERVER_NAMESPACE_END

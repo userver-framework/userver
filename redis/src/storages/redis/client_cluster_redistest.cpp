@@ -2,46 +2,23 @@
 
 #include <memory>
 
+#include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/sleep.hpp>
 
+#include <storages/redis/client_cluster_redistest.hpp>
 #include <storages/redis/client_impl.hpp>
+#include <storages/redis/dynamic_config.hpp>
+#include <storages/redis/impl/cluster_sentinel_impl.hpp>
 #include <storages/redis/impl/keyshard_impl.hpp>
+#include <storages/redis/impl/sentinel.hpp>
 #include <storages/redis/impl/subscribe_sentinel.hpp>
 #include <storages/redis/subscribe_client_impl.hpp>
 #include <storages/redis/util_redistest.hpp>
-#include <userver/storages/redis/impl/sentinel.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace {
-
-auto GetThreadPools() {
-  return std::make_shared<redis::ThreadPools>(
-      redis::kDefaultSentinelThreadPoolSize,
-      redis::kDefaultRedisThreadPoolSize);
-}
-
-storages::redis::ClientPtr GetClient() {
-  auto sentinel = redis::Sentinel::CreateSentinel(
-      GetThreadPools(), GetTestsuiteRedisClusterSettings(), "cluster-test",
-      "cluster-test-client_name", redis::KeyShardFactory{redis::kRedisCluster});
-  sentinel->WaitConnectedOnce({redis::WaitConnectedMode::kMasterAndSlave, false,
-                               std::chrono::milliseconds(2000)});
-
-  return std::make_shared<storages::redis::ClientImpl>(std::move(sentinel));
-}
-
-storages::redis::SubscribeClientPtr GetSubscribeClient() {
-  auto sentinel = redis::SubscribeSentinel::Create(
-      GetThreadPools(), GetTestsuiteRedisClusterSettings(), "cluster-test",
-      "cluster-test-client_name", true, {});
-  sentinel->WaitConnectedOnce({redis::WaitConnectedMode::kMasterAndSlave, false,
-                               std::chrono::milliseconds(2000)});
-
-  return std::make_shared<storages::redis::SubscribeClientImpl>(
-      std::move(sentinel));
-}
 
 const std::string kKeyNamePrefix = "test_key_";
 
@@ -59,7 +36,7 @@ redis::CommandControl kDefaultCc(std::chrono::milliseconds(300),
 // Tests are disabled because no local redis cluster is running by default.
 // See https://st.yandex-team.ru/TAXICOMMON-2440#5ecf09f0ffc9d004c04c43b1 for
 // details.
-UTEST(DISABLED_ClientCluster, SetGet) {
+UTEST_F(RedisClusterClientTest, SetGet) {
   auto client = GetClient();
 
   const size_t kNumKeys = 10;
@@ -83,7 +60,7 @@ UTEST(DISABLED_ClientCluster, SetGet) {
   }
 }
 
-UTEST(DISABLED_ClientCluster, Mget) {
+UTEST_F(RedisClusterClientTest, Mget) {
   auto client = GetClient();
 
   const size_t kNumKeys = 10;
@@ -122,7 +99,7 @@ UTEST(DISABLED_ClientCluster, Mget) {
   }
 }
 
-UTEST(DISABLED_ClientCluster, MgetCrossSlot) {
+UTEST_F(RedisClusterClientTest, MgetCrossSlot) {
   auto client = GetClient();
 
   const int add = 100;
@@ -131,9 +108,8 @@ UTEST(DISABLED_ClientCluster, MgetCrossSlot) {
   auto shard = client->ShardByKey(MakeKey(idx[0]));
   while (client->ShardByKey(MakeKey(idx[1])) != shard) ++idx[1];
 
-  for (size_t i = 0; i < 2; ++i) {
-    auto req =
-        client->Set(MakeKey(idx[i]), std::to_string(add + i), kDefaultCc);
+  for (unsigned long i : idx) {
+    auto req = client->Set(MakeKey(i), std::to_string(add + i), kDefaultCc);
     UASSERT_NO_THROW(req.Get());
   }
 
@@ -142,13 +118,13 @@ UTEST(DISABLED_ClientCluster, MgetCrossSlot) {
     UASSERT_THROW(req.Get(), redis::ParseReplyException);
   }
 
-  for (size_t i = 0; i < 2; ++i) {
-    auto req = client->Del(MakeKey(idx[i]), kDefaultCc);
+  for (unsigned long i : idx) {
+    auto req = client->Del(MakeKey(i), kDefaultCc);
     EXPECT_EQ(req.Get(), 1);
   }
 }
 
-UTEST(DISABLED_ClientCluster, Transaction) {
+UTEST_F(RedisClusterClientTest, Transaction) {
   auto client = GetClient();
   auto transaction = client->Multi();
 
@@ -177,7 +153,7 @@ UTEST(DISABLED_ClientCluster, Transaction) {
   }
 }
 
-UTEST(DISABLED_ClientCluster, TransactionCrossSlot) {
+UTEST_F(RedisClusterClientTest, TransactionCrossSlot) {
   auto client = GetClient();
   auto transaction = client->Multi();
 
@@ -195,7 +171,7 @@ UTEST(DISABLED_ClientCluster, TransactionCrossSlot) {
                 redis::ParseReplyException);
 }
 
-UTEST(DISABLED_ClientCluster, TransactionDistinctShards) {
+UTEST_F(RedisClusterClientTest, TransactionDistinctShards) {
   auto client = GetClient();
   auto transaction =
       client->Multi(storages::redis::Transaction::CheckShards::kNo);
@@ -211,7 +187,7 @@ UTEST(DISABLED_ClientCluster, TransactionDistinctShards) {
                 redis::ParseReplyException);
 }
 
-UTEST(DISABLED_ClientCluster, Subscribe) {
+UTEST_F(RedisClusterClientTest, Subscribe) {
   auto client = GetClient();
   auto subscribe_client = GetSubscribeClient();
 
@@ -261,7 +237,7 @@ UTEST(DISABLED_ClientCluster, Subscribe) {
 }
 
 // for manual testing of CLUSTER FAILOVER
-UTEST(DISABLED_ClientCluster, LongWork) {
+UTEST_F(RedisClusterClientTest, DISABLED_LongWork) {
   const auto kTestTime = std::chrono::seconds(30);
   auto deadline = engine::Deadline::FromDuration(kTestTime);
 
@@ -282,8 +258,7 @@ UTEST(DISABLED_ClientCluster, LongWork) {
         req.Get();
       } catch (const redis::RequestFailedException& ex) {
         ++num_write_errors;
-        std::cerr << "Set failed with status " << ex.GetStatus() << " ("
-                  << ex.GetStatusString() << ")";
+        std::cerr << "Set failed with status " << ex.GetStatusString();
       }
     }
 
@@ -293,8 +268,7 @@ UTEST(DISABLED_ClientCluster, LongWork) {
         req.Get();
       } catch (const redis::RequestFailedException& ex) {
         ++num_read_errors;
-        std::cerr << "Get failed with status " << ex.GetStatus() << " ("
-                  << ex.GetStatusString() << ")";
+        std::cerr << "Get failed with status " << ex.GetStatusString();
       }
     }
 
@@ -304,8 +278,7 @@ UTEST(DISABLED_ClientCluster, LongWork) {
         req.Get();
       } catch (const redis::RequestFailedException& ex) {
         ++num_write_errors;
-        std::cerr << "Del failed with status " << ex.GetStatus() << " ("
-                  << ex.GetStatusString() << ")";
+        std::cerr << "Del failed with status " << ex.GetStatusString();
       }
     }
 
@@ -316,6 +289,12 @@ UTEST(DISABLED_ClientCluster, LongWork) {
   EXPECT_EQ(num_write_errors, 0);
   EXPECT_EQ(num_read_errors, 0);
   EXPECT_GT(iterations, 100);
+}
+
+UTEST_F(RedisClusterClientTest, ClusterSlotsCalled) {
+  auto client = GetClient();
+  engine::SleepFor(std::chrono::seconds(10));
+  ASSERT_GT(redis::ClusterSentinelImpl::GetClusterSlotsCalledCounter(), 2);
 }
 
 USERVER_NAMESPACE_END

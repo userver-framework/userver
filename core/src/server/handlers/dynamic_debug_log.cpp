@@ -16,6 +16,19 @@ namespace server::handlers {
 
 namespace {
 
+std::string StateToString(logging::EntryState state) {
+  switch (state) {
+    case logging::EntryState::kForceEnabled:
+      return "1";
+    case logging::EntryState::kForceDisabled:
+      return "-1";
+    case logging::EntryState::kDefault:
+      return "0";
+  }
+
+  UINVARIANT(false, "unknown state");
+}
+
 std::string ProcessGet(const http::HttpRequest& request,
                        request::RequestContext&) {
   std::string_view location = request.GetArg("location");
@@ -29,14 +42,14 @@ std::string ProcessGet(const http::HttpRequest& request,
       return "Location not found\n";
     }
 
-    const bool enabled = it->should_log;
-    return std::to_string(enabled) + "\n";
+    return StateToString(it->state.load()) + "\n";
   } else {
     std::string result;
     for (const auto& location : locations) {
-      auto enabled = location.should_log.load();
-      result += fmt::format("{}:{}\t{}\n", location.path, location.line,
-                            enabled ? 1 : 0);
+      // TODO
+      const auto enabled = StateToString(location.state.load());
+      result +=
+          fmt::format("{}:{}\t{}\n", location.path, location.line, enabled);
     }
     return result;
   }
@@ -46,7 +59,19 @@ std::string ProcessPut(const http::HttpRequest& request,
                        request::RequestContext&) {
   const auto& location = request.GetArg("location");
   auto [path, line] = logging::SplitLocation(location);
-  logging::AddDynamicDebugLog(path, line);
+
+  const auto& body = request.RequestBody();
+  logging::EntryState state{logging::EntryState::kDefault};
+  if (body.empty() || body == "1")
+    state = logging::EntryState::kForceEnabled;
+  else if (body == "-1")
+    state = logging::EntryState::kForceDisabled;
+  else if (body == "0")
+    state = logging::EntryState::kDefault;
+  else
+    throw std::runtime_error("Bad body");
+
+  logging::AddDynamicDebugLog(path, line, state);
   return "OK\n";
 }
 

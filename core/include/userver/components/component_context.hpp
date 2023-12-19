@@ -89,11 +89,16 @@ class ComponentContext final {
     auto* component_base = DoFindComponent(name);
     T* ptr = dynamic_cast<T*>(component_base);
     if (!ptr) {
-      ThrowComponentTypeMissmatch(name, compiler::GetTypeName<T>(),
-                                  component_base);
+      ThrowComponentTypeMismatch(name, compiler::GetTypeName<T>(),
+                                 component_base);
     }
 
     return *ptr;
+  }
+
+  template <typename T>
+  T& FindComponent(std::string_view /*name*/ = {}) {
+    return ReportMisuse<T>();
   }
 
   /// @brief If there's no component with specified type and name return
@@ -112,22 +117,47 @@ class ComponentContext final {
     return dynamic_cast<T*>(DoFindComponent(name));
   }
 
+  template <typename T>
+  T& FindComponentOptional(std::string_view /*name*/ = {}) {
+    return ReportMisuse<T>();
+  }
+
   /// @brief Returns an engine::TaskProcessor with the specified name.
   engine::TaskProcessor& GetTaskProcessor(const std::string& name) const;
+
+  template <typename T>
+  engine::TaskProcessor& GetTaskProcessor(const T&) {
+    return ReportMisuse<T>();
+  }
 
   const Manager& GetManager() const;
 
   /// @returns true if one of the components is in fatal state and can not
   /// work. A component is in fatal state if the
-  /// components::ComponentHealth::kFatal value is returned from the overriden
+  /// components::ComponentHealth::kFatal value is returned from the overridden
   /// components::LoggableComponentBase::GetComponentHealth().
   bool IsAnyComponentInFatalState() const;
 
+ private:
   /// @returns true if there is a component with the specified name and it
   /// could be found via FindComponent()
   bool Contains(std::string_view name) const noexcept;
 
- private:
+  template <typename T>
+  bool Contains(const T&) {
+    return ReportMisuse<T>();
+  }
+
+  template <class T>
+  decltype(auto) ReportMisuse() {
+    static_assert(!sizeof(T),
+                  "components::ComponentContext should be accepted by "
+                  "a constant reference, i.e. "
+                  "`MyComponent(const components::ComponentConfig& config, "
+                  "const components::ComponentContext& context)`");
+    return 0;
+  }
+
   friend class Manager;
 
   ComponentContext() noexcept;
@@ -156,7 +186,7 @@ class ComponentContext final {
 
   [[noreturn]] void ThrowNonRegisteredComponent(std::string_view name,
                                                 std::string_view type) const;
-  [[noreturn]] void ThrowComponentTypeMissmatch(
+  [[noreturn]] void ThrowComponentTypeMismatch(
       std::string_view name, std::string_view type,
       impl::ComponentBase* component) const;
 

@@ -17,7 +17,7 @@
 
 #include <userver/dump/operations.hpp>
 #include <userver/dump/unsafe.hpp>
-#include <userver/utils/meta.hpp>
+#include <userver/utils/meta_light.hpp>
 
 namespace boost::uuids {
 struct uuid;
@@ -29,6 +29,10 @@ namespace decimal64 {
 template <int Prec, typename RoundPolicy>
 class Decimal;
 }  // namespace decimal64
+
+namespace formats::json {
+class Value;
+}  // namespace formats::json
 
 namespace dump {
 
@@ -203,19 +207,25 @@ void Write(Writer& writer, const boost::uuids::uuid& value);
 /// @brief `boost::uuids::uuid` deserialization support
 boost::uuids::uuid Read(Reader& reader, To<boost::uuids::uuid>);
 
-/// @brief `decimal64::Decimal` serialization support
+/// @brief decimal64::Decimal serialization support
 template <int Prec, typename RoundPolicy>
 inline void Write(Writer& writer,
                   const decimal64::Decimal<Prec, RoundPolicy>& dec) {
   writer.Write(dec.AsUnbiased());
 }
 
-/// @brief `decimal64::Decimal` deserialization support
+/// @brief decimal64::Decimal deserialization support
 template <int Prec, typename RoundPolicy>
 auto Read(Reader& reader, dump::To<decimal64::Decimal<Prec, RoundPolicy>>) {
   return decimal64::Decimal<Prec, RoundPolicy>::FromUnbiased(
       reader.Read<int64_t>());
 }
+
+/// @brief formats::json::Value serialization support
+void Write(Writer& writer, const formats::json::Value& value);
+
+/// @brief formats::json::Value deserialization support
+formats::json::Value Read(Reader& reader, To<formats::json::Value>);
 
 }  // namespace dump
 

@@ -5,7 +5,6 @@
 #include <userver/formats/common/merge.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/utils/async.hpp>
-#include <userver/utils/statistics/metadata.hpp>
 
 #include <storages/clickhouse/impl/settings.hpp>
 
@@ -76,20 +75,12 @@ const impl::Pool& Cluster::GetPool() const {
   throw NoAvailablePoolError{"No available pools in cluster."};
 }
 
-formats::json::Value Cluster::GetStatistics() const {
-  formats::json::ValueBuilder builder{formats::json::Type::kObject};
-
+void Cluster::WriteStatistics(
+    USERVER_NAMESPACE::utils::statistics::Writer& writer) const {
   for (const auto& pool : pools_) {
-    formats::common::Merge(builder, pool.GetStatistics());
+    pool.WriteStatistics(writer);
   }
-  USERVER_NAMESPACE::utils::statistics::SolomonChildrenAreLabelValues(
-      builder, "clickhouse_instance");
-  USERVER_NAMESPACE::utils::statistics::SolomonLabelValue(
-      builder, "clickhouse_database");
-
-  return builder.ExtractValue();
 }
-
 }  // namespace storages::clickhouse
 
 USERVER_NAMESPACE_END

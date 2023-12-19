@@ -5,11 +5,16 @@
 #include <string>
 #include <vector>
 
-#include <userver/logging/logger.hpp>
-
-#include "response_base.hpp"
+// TODO: use fwd declarations
+#include <userver/logging/fwd.hpp>
+#include <userver/server/request/response_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace engine::io {
+class Socket;
+class Sockaddr;
+}  // namespace engine::io
 
 namespace server::request {
 
@@ -19,12 +24,14 @@ class RequestBase {
   virtual ~RequestBase();
 
   virtual bool IsFinal() const = 0;
+  virtual bool IsUpgradeWebsocket() const = 0;
+  virtual void DoUpgrade(std::unique_ptr<engine::io::RwBase>&& socket,
+                         engine::io::Sockaddr&& peer_name) const = 0;
 
   virtual ResponseBase& GetResponse() const = 0;
 
   virtual void WriteAccessLogs(const logging::LoggerPtr& logger_access,
                                const logging::LoggerPtr& logger_access_tskv,
-                               std::chrono::system_clock::time_point tp,
                                const std::string& remote_address) const = 0;
 
   virtual const std::string& GetRequestPath() const = 0;
@@ -32,6 +39,7 @@ class RequestBase {
   void SetTaskCreateTime();
   void SetTaskStartTime();
   void SetResponseNotifyTime();
+  void SetResponseNotifyTime(std::chrono::steady_clock::time_point now);
   void SetStartSendResponseTime();
   void SetFinishSendResponseTime();
 

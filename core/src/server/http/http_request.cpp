@@ -1,6 +1,7 @@
 #include <userver/server/http/http_request.hpp>
 
-#include "http_request_impl.hpp"
+#include <server/http/http_request_impl.hpp>
+#include <userver/engine/io/socket.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -46,16 +47,16 @@ std::chrono::duration<double> HttpRequest::GetResponseTime() const {
 
 const std::string& HttpRequest::GetHost() const { return impl_.GetHost(); }
 
-const std::string& HttpRequest::GetArg(const std::string& arg_name) const {
+const std::string& HttpRequest::GetArg(std::string_view arg_name) const {
   return impl_.GetArg(arg_name);
 }
 
 const std::vector<std::string>& HttpRequest::GetArgVector(
-    const std::string& arg_name) const {
+    std::string_view arg_name) const {
   return impl_.GetArgVector(arg_name);
 }
 
-bool HttpRequest::HasArg(const std::string& arg_name) const {
+bool HttpRequest::HasArg(std::string_view arg_name) const {
   return impl_.HasArg(arg_name);
 }
 
@@ -66,16 +67,16 @@ std::vector<std::string> HttpRequest::ArgNames() const {
 }
 
 const FormDataArg& HttpRequest::GetFormDataArg(
-    const std::string& arg_name) const {
+    std::string_view arg_name) const {
   return impl_.GetFormDataArg(arg_name);
 }
 
 const std::vector<FormDataArg>& HttpRequest::GetFormDataArgVector(
-    const std::string& arg_name) const {
+    std::string_view arg_name) const {
   return impl_.GetFormDataArgVector(arg_name);
 }
 
-bool HttpRequest::HasFormDataArg(const std::string& arg_name) const {
+bool HttpRequest::HasFormDataArg(std::string_view arg_name) const {
   return impl_.HasFormDataArg(arg_name);
 }
 
@@ -87,7 +88,7 @@ std::vector<std::string> HttpRequest::FormDataArgNames() const {
   return impl_.FormDataArgNames();
 }
 
-const std::string& HttpRequest::GetPathArg(const std::string& arg_name) const {
+const std::string& HttpRequest::GetPathArg(std::string_view arg_name) const {
   return impl_.GetPathArg(arg_name);
 }
 
@@ -95,7 +96,7 @@ const std::string& HttpRequest::GetPathArg(size_t index) const {
   return impl_.GetPathArg(index);
 }
 
-bool HttpRequest::HasPathArg(const std::string& arg_name) const {
+bool HttpRequest::HasPathArg(std::string_view arg_name) const {
   return impl_.HasPathArg(arg_name);
 }
 
@@ -105,12 +106,27 @@ bool HttpRequest::HasPathArg(size_t index) const {
 
 size_t HttpRequest::PathArgCount() const { return impl_.PathArgCount(); }
 
-const std::string& HttpRequest::GetHeader(
-    const std::string& header_name) const {
+const std::string& HttpRequest::GetHeader(std::string_view header_name) const {
   return impl_.GetHeader(header_name);
 }
 
-bool HttpRequest::HasHeader(const std::string& header_name) const {
+const std::string& HttpRequest::GetHeader(
+    const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name)
+    const {
+  return impl_.GetHeader(header_name);
+}
+
+const HttpRequest::HeadersMap& HttpRequest::GetHeaders() const {
+  return impl_.GetHeaders();
+}
+
+bool HttpRequest::HasHeader(std::string_view header_name) const {
+  return impl_.HasHeader(header_name);
+}
+
+bool HttpRequest::HasHeader(
+    const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name)
+    const {
   return impl_.HasHeader(header_name);
 }
 
@@ -118,6 +134,15 @@ size_t HttpRequest::HeaderCount() const { return impl_.HeaderCount(); }
 
 HttpRequest::HeadersMapKeys HttpRequest::GetHeaderNames() const {
   return impl_.GetHeaderNames();
+}
+
+void HttpRequest::RemoveHeader(std::string_view header_name) {
+  impl_.RemoveHeader(header_name);
+}
+
+void HttpRequest::RemoveHeader(
+    const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name) {
+  impl_.RemoveHeader(header_name);
 }
 
 const std::string& HttpRequest::GetCookie(
@@ -139,17 +164,41 @@ const std::string& HttpRequest::RequestBody() const {
   return impl_.RequestBody();
 }
 
+const HttpRequest::HeadersMap& HttpRequest::RequestHeaders() const {
+  return impl_.GetHeaders();
+}
+
+const HttpRequest::CookiesMap& HttpRequest::RequestCookies() const {
+  return impl_.GetCookies();
+}
+
 void HttpRequest::SetRequestBody(std::string body) {
   impl_.SetRequestBody(std::move(body));
 }  // namespace server::http
 
 void HttpRequest::ParseArgsFromBody() { impl_.ParseArgsFromBody(); }
 
+std::chrono::steady_clock::time_point HttpRequest::GetStartTime() const {
+  return impl_.StartTime();
+}
+
 void HttpRequest::SetResponseStatus(HttpStatus status) const {
   return impl_.SetResponseStatus(status);
 }
 
 bool HttpRequest::IsBodyCompressed() const { return impl_.IsBodyCompressed(); }
+
+void HttpRequest::SetUpgradeWebsocket(
+    std::function<void(std::unique_ptr<engine::io::RwBase>&&,
+                       engine::io::Sockaddr&&)>
+        cb) const {
+  impl_.SetUpgradeWebsocket(std::move(cb));
+}
+
+void HttpRequest::DoUpgrade(std::unique_ptr<engine::io::RwBase>&& socket,
+                            engine::io::Sockaddr&& peer_name) const {
+  impl_.DoUpgrade(std::move(socket), std::move(peer_name));
+}
 
 }  // namespace server::http
 

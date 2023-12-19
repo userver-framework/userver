@@ -50,7 +50,7 @@ void mutex_set_lock_unlock_no_contention(benchmark::State& state) {
     {
       auto mutex = ms.GetMutexForKey(GetKeyForBenchmark<T>(0));
 
-      for (auto _ : state) {
+      for ([[maybe_unused]] auto _ : state) {
         std::unique_lock lock(mutex);
         benchmark::DoNotOptimize(lock);
       }
@@ -76,6 +76,7 @@ void mutex_set_lock_unlock_contention(benchmark::State& state) {
   engine::RunStandalone(state.range(0), [&] {
     concurrent::MutexSet<T> ms;
 
+    // NOLINTNEXTLINE(modernize-use-transparent-functors)
     using Mutexes = std::array<concurrent::ItemMutex<T, std::equal_to<T>>, 5>;
 
     const auto make_mutexes = [&] {
@@ -117,7 +118,7 @@ void mutex_set_lock_unlock_contention(benchmark::State& state) {
     }
 
     auto mutexes = make_mutexes();
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       do_work(mutexes);
     }
 
@@ -166,7 +167,7 @@ void mutex_set_8ways_lock_unlock_contention(benchmark::State& state) {
       }));
     }
 
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       do_work(0);
     }
 

@@ -2,6 +2,7 @@
 
 #include <userver/logging/log.hpp>
 
+#include <storages/postgres/experiments.hpp>
 #include <userver/storages/postgres/component.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 
@@ -46,9 +47,12 @@ ConnectionSettings ParseConnectionSettings(const ConfigType& config) {
       config["persistent-prepared-statements"].template As<bool>(true)
           ? ConnectionSettings::kCachePreparedStatements
           : ConnectionSettings::kNoPreparedStatements;
-  settings.user_types = config["user-types-enabled"].template As<bool>(true)
-                            ? ConnectionSettings::kUserTypesEnabled
-                            : ConnectionSettings::kPredefinedTypesOnly;
+  settings.user_types =
+      config["user-types-enabled"].template As<bool>(true)
+          ? config["check-user-types"].template As<bool>(false)
+                ? ConnectionSettings::kUserTypesEnforced
+                : ConnectionSettings::kUserTypesEnabled
+          : ConnectionSettings::kPredefinedTypesOnly;
   // TODO: use hyphens in config keys, TAXICOMMON-5606
   settings.max_prepared_cache_size =
       config["max-prepared-cache-size"].template As<size_t>(
@@ -59,12 +63,24 @@ ConnectionSettings ParseConnectionSettings(const ConfigType& config) {
           config["ignore_unused_query_params"].template As<bool>(false))
           ? ConnectionSettings::kIgnoreUnused
           : ConnectionSettings::kCheckUnused;
-  settings.pipeline_mode =
-      config["pipeline-enabled"].template As<bool>(
-          config["pipeline_enabled"].template As<bool>(false))
-          ? ConnectionSettings::kPipelineEnabled
-          : ConnectionSettings::kPipelineDisabled;
+
+  settings.recent_errors_threshold =
+      config["recent-errors-threshold"].template As<size_t>(
+          settings.recent_errors_threshold);
+
+  settings.max_ttl =
+      config["max-ttl-sec"].template As<std::optional<std::chrono::seconds>>();
+
+  settings.discard_on_connect =
+      config["discard-all-on-connect"].template As<bool>(true)
+          ? ConnectionSettings::kDiscardAll
+          : ConnectionSettings::kDiscardNone;
+
   return settings;
+}
+
+PipelineMode ParsePipelineMode(const formats::json::Value& value) {
+  return value.As<int>() > 0 ? PipelineMode::kEnabled : PipelineMode::kDisabled;
 }
 
 }  // namespace
@@ -137,14 +153,52 @@ StatementMetricsSettings Parse(const yaml_config::YamlConfig& config,
   return ParseStatementMetricsSettings(config);
 }
 
-Config::Config(const dynamic_config::DocsMap& docs_map)
-    : default_command_control{"POSTGRES_DEFAULT_COMMAND_CONTROL", docs_map},
-      handlers_command_control{"POSTGRES_HANDLERS_COMMAND_CONTROL", docs_map},
-      queries_command_control{"POSTGRES_QUERIES_COMMAND_CONTROL", docs_map},
-      pool_settings{"POSTGRES_CONNECTION_POOL_SETTINGS", docs_map},
-      connection_settings{"POSTGRES_CONNECTION_SETTINGS", docs_map},
-      statement_metrics_settings("POSTGRES_STATEMENT_METRICS_SETTINGS",
-                                 docs_map) {}
+Config Config::Parse(const dynamic_config::DocsMap& docs_map) {
+  return Config{
+      /*default_command_control=*/docs_map
+          .Get("POSTGRES_DEFAULT_COMMAND_CONTROL")
+          .As<CommandControl>(),
+      /*handlers_command_control=*/
+      docs_map.Get("POSTGRES_HANDLERS_COMMAND_CONTROL")
+          .As<CommandControlByHandlerMap>(),
+      /*queries_command_control=*/
+      docs_map.Get("POSTGRES_QUERIES_COMMAND_CONTROL")
+          .As<CommandControlByQueryMap>(),
+      /*pool_settings=*/
+      docs_map.Get("POSTGRES_CONNECTION_POOL_SETTINGS")
+          .As<dynamic_config::ValueDict<PoolSettings>>(),
+      /*connection_settings=*/
+      docs_map.Get("POSTGRES_CONNECTION_SETTINGS")
+          .As<dynamic_config::ValueDict<ConnectionSettings>>(),
+      /*statement_metrics_settings=*/
+      docs_map.Get("POSTGRES_STATEMENT_METRICS_SETTINGS")
+          .As<dynamic_config::ValueDict<StatementMetricsSettings>>(),
+  };
+}
+
+using JsonString = dynamic_config::DefaultAsJsonString;
+
+const dynamic_config::Key<Config> kConfig{
+    Config::Parse,
+    {
+        {"POSTGRES_DEFAULT_COMMAND_CONTROL", JsonString{"{}"}},
+        {"POSTGRES_HANDLERS_COMMAND_CONTROL", JsonString{"{}"}},
+        {"POSTGRES_QUERIES_COMMAND_CONTROL", JsonString{"{}"}},
+        {"POSTGRES_CONNECTION_POOL_SETTINGS", JsonString{"{}"}},
+        {"POSTGRES_CONNECTION_SETTINGS", JsonString{"{}"}},
+        {"POSTGRES_STATEMENT_METRICS_SETTINGS", JsonString{"{}"}},
+    },
+};
+
+const dynamic_config::Key<PipelineMode> kPipelineModeKey{
+    "POSTGRES_CONNECTION_PIPELINE_EXPERIMENT", ParsePipelineMode,
+    dynamic_config::DefaultAsJsonString{"0"}};
+
+const dynamic_config::Key<bool> kConnlimitModeAutoEnabled{
+    "POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED", false};
+
+const dynamic_config::Key<int> kDeadlinePropagationVersionConfig{
+    "POSTGRES_DEADLINE_PROPAGATION_VERSION", 0};
 
 }  // namespace storages::postgres
 

@@ -50,11 +50,11 @@ const http_parser_settings HttpRequestParser::parser_settings = []() {
 
 HttpRequestParser::HttpRequestParser(
     const HandlerInfoIndex& handler_info_index,
-    const request::RequestConfig& request_config,
+    const request::HttpRequestConfig& request_config,
     OnNewRequestCb&& on_new_request_cb, net::ParserStats& stats,
     request::ResponseDataAccounter& data_accounter)
     : handler_info_index_(handler_info_index),
-      request_constructor_config_{request_config.GetHttpConfig()},
+      request_constructor_config_{request_config},
       on_new_request_cb_(std::move(on_new_request_cb)),
       stats_(stats),
       data_accounter_(data_accounter) {
@@ -72,7 +72,6 @@ bool HttpRequestParser::Parse(const char* data, size_t size) {
     return false;
   }
   if (parser_.upgrade) {
-    LOG_WARNING() << "upgrade detected";
     FinalizeRequest();
     return false;
   }
@@ -202,7 +201,6 @@ int HttpRequestParser::OnBodyImpl(http_parser* p, const char* data,
 int HttpRequestParser::OnMessageCompleteImpl(http_parser* p) {
   UASSERT(request_constructor_);
   if (p->upgrade) {
-    LOG_WARNING() << "upgrade detected";
     return -1;  // error
   }
   request_constructor_->SetIsFinal(!http_should_keep_alive(p));
@@ -245,9 +243,9 @@ bool HttpRequestParser::FinalizeRequest() {
 bool HttpRequestParser::FinalizeRequestImpl() {
   if (!request_constructor_) CreateRequestConstructor();
 
-  if (auto request = request_constructor_->Finalize())
+  if (auto request = request_constructor_->Finalize()) {
     on_new_request_cb_(std::move(request));
-  else {
+  } else {
     LOG_ERROR() << "request is null after Finalize()";
     return false;
   }

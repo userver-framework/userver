@@ -3,6 +3,7 @@
 #include <string>
 
 #include <fmt/format.h>
+#include <gmock/gmock.h>
 #include <boost/stacktrace.hpp>
 
 #include <userver/compiler/demangle.hpp>
@@ -52,6 +53,12 @@ auto CallLoggingExceptions(const char* name, const Func& func) noexcept {
   }
 }
 
+bool IsCurrentTestCancelled() {
+  const auto& current_test_status =
+      *::testing::UnitTest::GetInstance()->current_test_info()->result();
+  return current_test_status.Skipped() || current_test_status.HasFatalFailure();
+}
+
 void DoRunTest(std::size_t worker_threads,
                const engine::TaskProcessorPoolsConfig& config,
                std::function<std::unique_ptr<EnrichedTestBase>()> factory) {
@@ -61,7 +68,7 @@ void DoRunTest(std::size_t worker_threads,
     auto test =
         CallLoggingExceptions("the test fixture's constructor", factory);
     if (!test) return;  // test fixture's constructor has thrown
-    if (test->IsTestCancelled()) return;
+    if (IsCurrentTestCancelled()) return;
 
     test->SetThreadCount(worker_threads);
 
@@ -71,7 +78,7 @@ void DoRunTest(std::size_t worker_threads,
     }};
 
     CallLoggingExceptions("SetUp()", [&] { test->SetUp(); });
-    if (test->IsTestCancelled()) return;
+    if (IsCurrentTestCancelled()) return;
 
     CallLoggingExceptions("the test body", [&] { test->TestBody(); });
   });
@@ -79,18 +86,21 @@ void DoRunTest(std::size_t worker_threads,
 
 }  // namespace
 
-void DoRunTest(std::size_t thread_count,
+void DoRunTest(std::size_t thread_count, DeathTestsEnabled death_tests_enabled,
                std::function<std::unique_ptr<EnrichedTestBase>()> factory) {
-  return DoRunTest(thread_count, {}, std::move(factory));
-}
-
-void DoRunDeathTest(
-    std::size_t thread_count,
-    std::function<std::unique_ptr<EnrichedTestBase>()> factory) {
   engine::TaskProcessorPoolsConfig config{};
-  // Disable using of `ev_default_loop` and catching of `SIGCHLD` signal to work
-  // with gtest's `waitpid()` calls.
-  config.ev_default_loop_disabled = true;
+  if (static_cast<bool>(death_tests_enabled)) {
+    EXPECT_THAT(testing::UnitTest::GetInstance()
+                    ->current_test_info()
+                    ->test_suite_name(),
+                testing::EndsWith("DeathTest"))
+        << "Tests that use UEXPECT_DEATH should have 'DeathTest' suffix "
+           "in their 'test suite name'";
+    testing::FLAGS_gtest_death_test_style = "threadsafe";
+    // Disable using of `ev_default_loop` and catching of `SIGCHLD` signal to
+    // work with gtest's `waitpid()` calls.
+    config.ev_default_loop_disabled = true;
+  }
   return DoRunTest(thread_count, config, std::move(factory));
 }
 

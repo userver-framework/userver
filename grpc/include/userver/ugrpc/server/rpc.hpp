@@ -9,19 +9,72 @@
 #include <userver/utils/assert.hpp>
 
 #include <userver/ugrpc/impl/deadline_timepoint.hpp>
+#include <userver/ugrpc/impl/internal_tag_fwd.hpp>
+#include <userver/ugrpc/impl/span.hpp>
 #include <userver/ugrpc/impl/statistics_scope.hpp>
 #include <userver/ugrpc/server/exceptions.hpp>
 #include <userver/ugrpc/server/impl/async_methods.hpp>
+#include <userver/ugrpc/server/impl/call_params.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
 
+namespace impl {
+
+std::string FormatLogMessage(
+    const std::multimap<grpc::string_ref, grpc::string_ref>& metadata,
+    std::string_view peer, std::chrono::system_clock::time_point start_time,
+    std::string_view call_name, grpc::StatusCode code);
+
+}
+
+/// @brief A non-typed base class for any gRPC call
+class CallAnyBase {
+ public:
+  CallAnyBase(impl::CallParams&& params) : params_(params) {}
+
+  /// @brief Complete the RPC with an error
+  ///
+  /// `Finish` must not be called multiple times for the same RPC.
+  ///
+  /// @param status error details
+  /// @throws ugrpc::server::RpcError on an RPC error
+  virtual void FinishWithError(const grpc::Status& status) = 0;
+
+  /// @returns the `ServerContext` used for this RPC
+  /// @note Initial server metadata is not currently supported
+  /// @note Trailing metadata, if any, must be set before the `Finish` call
+  grpc::ServerContext& GetContext() { return params_.context; }
+
+  /// @brief Name of the call. Consists of service and method names
+  std::string_view GetCallName() const { return params_.call_name; }
+
+  tracing::Span& GetSpan() { return params_.call_span; }
+
+  virtual bool IsFinished() const = 0;
+
+  /// @cond
+  // For internal use only
+  ugrpc::impl::RpcStatisticsScope& Statistics(ugrpc::impl::InternalTag);
+  /// @endcond
+
+ protected:
+  ugrpc::impl::RpcStatisticsScope& Statistics() { return params_.statistics; }
+
+  logging::LoggerRef AccessTskvLogger() { return params_.access_tskv_logger; }
+
+  void LogFinish(grpc::Status status) const;
+
+ private:
+  impl::CallParams params_;
+};
+
 /// @brief Controls a single request -> single response RPC
 ///
 /// The RPC is cancelled on destruction unless `Finish` has been called.
 template <typename Response>
-class UnaryCall final {
+class UnaryCall final : public CallAnyBase {
  public:
   /// @brief Complete the RPC successfully
   ///
@@ -37,28 +90,21 @@ class UnaryCall final {
   ///
   /// @param status error details
   /// @throws ugrpc::server::RpcError on an RPC error
-  void FinishWithError(const grpc::Status& status);
-
-  /// @returns the `ServerContext` used for this RPC
-  /// @note Initial server metadata is not currently supported
-  /// @note Trailing metadata, if any, must be set before the `Finish` call
-  grpc::ServerContext& GetContext();
+  void FinishWithError(const grpc::Status& status) override;
 
   /// For internal use only
-  UnaryCall(grpc::ServerContext& context, std::string_view call_name,
-            impl::RawResponseWriter<Response>& stream,
-            ugrpc::impl::RpcStatisticsScope& statistics);
+  UnaryCall(impl::CallParams&& call_params,
+            impl::RawResponseWriter<Response>& stream);
 
   UnaryCall(UnaryCall&&) = delete;
   UnaryCall& operator=(UnaryCall&&) = delete;
   ~UnaryCall();
 
+  bool IsFinished() const override;
+
  private:
-  grpc::ServerContext& context_;
-  const std::string_view call_name_;
   impl::RawResponseWriter<Response>& stream_;
   bool is_finished_{false};
-  ugrpc::impl::RpcStatisticsScope& statistics_;
 };
 
 /// @brief Controls a request stream -> single response RPC
@@ -70,7 +116,7 @@ class UnaryCall final {
 /// If any method throws, further methods must not be called on the same stream,
 /// except for `GetContext`.
 template <typename Request, typename Response>
-class InputStream final {
+class InputStream final : public CallAnyBase {
  public:
   /// @brief Await and read the next incoming message
   /// @param request where to put the request on success
@@ -91,30 +137,23 @@ class InputStream final {
   ///
   /// @param status error details
   /// @throws ugrpc::server::RpcError on an RPC error
-  void FinishWithError(const grpc::Status& status);
-
-  /// @returns the `ServerContext` used for this RPC
-  /// @note Initial server metadata is not currently supported
-  /// @note Trailing metadata, if any, must be set before the `Finish` call
-  grpc::ServerContext& GetContext();
+  void FinishWithError(const grpc::Status& status) override;
 
   /// For internal use only
-  InputStream(grpc::ServerContext& context, std::string_view call_name,
-              impl::RawReader<Request, Response>& stream,
-              ugrpc::impl::RpcStatisticsScope& statistics);
+  InputStream(impl::CallParams&& call_params,
+              impl::RawReader<Request, Response>& stream);
 
   InputStream(InputStream&&) = delete;
   InputStream& operator=(InputStream&&) = delete;
   ~InputStream();
 
+  bool IsFinished() const override;
+
  private:
   enum class State { kOpen, kReadsDone, kFinished };
 
-  grpc::ServerContext& context_;
-  const std::string_view call_name_;
   impl::RawReader<Request, Response>& stream_;
   State state_{State::kOpen};
-  ugrpc::impl::RpcStatisticsScope& statistics_;
 };
 
 /// @brief Controls a single request -> response stream RPC
@@ -126,7 +165,7 @@ class InputStream final {
 /// If any method throws, further methods must not be called on the same stream,
 /// except for `GetContext`.
 template <typename Response>
-class OutputStream final {
+class OutputStream final : public CallAnyBase {
  public:
   /// @brief Write the next outgoing message
   /// @param response the next message to write
@@ -146,7 +185,7 @@ class OutputStream final {
   ///
   /// @param status error details
   /// @throws ugrpc::server::RpcError on an RPC error
-  void FinishWithError(const grpc::Status& status);
+  void FinishWithError(const grpc::Status& status) override;
 
   /// @brief Equivalent to `Write + Finish`
   ///
@@ -158,40 +197,36 @@ class OutputStream final {
   /// @throws ugrpc::server::RpcError on an RPC error
   void WriteAndFinish(const Response& response);
 
-  /// @returns the `ServerContext` used for this RPC
-  /// @note Initial server metadata is not currently supported
-  /// @note Trailing metadata, if any, must be set before the `Finish` call
-  grpc::ServerContext& GetContext();
-
   /// For internal use only
-  OutputStream(grpc::ServerContext& context, std::string_view call_name,
-               impl::RawWriter<Response>& stream,
-               ugrpc::impl::RpcStatisticsScope& statistics);
+  OutputStream(impl::CallParams&& call_params,
+               impl::RawWriter<Response>& stream);
 
   OutputStream(OutputStream&&) = delete;
   OutputStream& operator=(OutputStream&&) = delete;
   ~OutputStream();
 
+  bool IsFinished() const override;
+
  private:
   enum class State { kNew, kOpen, kFinished };
 
-  grpc::ServerContext& context_;
-  const std::string_view call_name_;
   impl::RawWriter<Response>& stream_;
   State state_{State::kNew};
-  ugrpc::impl::RpcStatisticsScope& statistics_;
 };
 
 /// @brief Controls a request stream -> response stream RPC
 ///
-/// This class is not thread-safe except for `GetContext`.
+/// This class allows the following concurrent calls:
+///   - `GetContext`
+///   - Concurrent call of one of (`Read`) with one of (`Write`,
+///     `Finish`, `FinishWithError`, `WriteAndFinish`)
 ///
 /// The RPC is cancelled on destruction unless the stream has been finished.
 ///
 /// If any method throws, further methods must not be called on the same stream,
 /// except for `GetContext`.
 template <typename Request, typename Response>
-class BidirectionalStream {
+class BidirectionalStream : public CallAnyBase {
  public:
   /// @brief Await and read the next incoming message
   /// @param request where to put the request on success
@@ -217,7 +252,7 @@ class BidirectionalStream {
   ///
   /// @param status error details
   /// @throws ugrpc::server::RpcError on an RPC error
-  void FinishWithError(const grpc::Status& status);
+  void FinishWithError(const grpc::Status& status) override;
 
   /// @brief Equivalent to `Write + Finish`
   ///
@@ -229,86 +264,74 @@ class BidirectionalStream {
   /// @throws ugrpc::server::RpcError on an RPC error
   void WriteAndFinish(const Response& response);
 
-  /// @returns the `ServerContext` used for this RPC
-  /// @note Initial server metadata is not currently supported
-  /// @note Trailing metadata, if any, must be set before the `Finish` call
-  grpc::ServerContext& GetContext();
-
   /// For internal use only
-  BidirectionalStream(grpc::ServerContext& context, std::string_view call_name,
-                      impl::RawReaderWriter<Request, Response>& stream,
-                      ugrpc::impl::RpcStatisticsScope& statistics);
+  BidirectionalStream(impl::CallParams&& call_params,
+                      impl::RawReaderWriter<Request, Response>& stream);
 
   BidirectionalStream(const BidirectionalStream&) = delete;
   BidirectionalStream(BidirectionalStream&&) = delete;
   ~BidirectionalStream();
 
- private:
-  enum class State { kOpen, kReadsDone, kFinished };
+  bool IsFinished() const override;
 
-  grpc::ServerContext& context_;
-  const std::string_view call_name_;
+ private:
   impl::RawReaderWriter<Request, Response>& stream_;
-  State state_{State::kOpen};
-  ugrpc::impl::RpcStatisticsScope& statistics_;
+  bool are_reads_done_{false};
+  bool is_finished_{false};
 };
 
 // ========================== Implementation follows ==========================
 
 template <typename Response>
-UnaryCall<Response>::UnaryCall(grpc::ServerContext& context,
-                               std::string_view call_name,
-                               impl::RawResponseWriter<Response>& stream,
-                               ugrpc::impl::RpcStatisticsScope& statistics)
-    : context_(context),
-      call_name_(call_name),
-      stream_(stream),
-      statistics_(statistics) {}
+UnaryCall<Response>::UnaryCall(impl::CallParams&& call_params,
+                               impl::RawResponseWriter<Response>& stream)
+    : CallAnyBase(std::move(call_params)), stream_(stream) {}
 
 template <typename Response>
 UnaryCall<Response>::~UnaryCall() {
-  if (!is_finished_) impl::CancelWithError(stream_, call_name_);
-}
-
-template <typename Response>
-grpc::ServerContext& UnaryCall<Response>::GetContext() {
-  return context_;
+  if (!is_finished_) {
+    impl::CancelWithError(stream_, GetCallName());
+    LogFinish(impl::kUnknownErrorStatus);
+  }
 }
 
 template <typename Response>
 void UnaryCall<Response>::Finish(const Response& response) {
   UINVARIANT(!is_finished_, "'Finish' called on a finished call");
   is_finished_ = true;
-  impl::Finish(stream_, response, grpc::Status::OK, call_name_);
-  statistics_.OnExplicitFinish(grpc::StatusCode::OK);
+
+  LogFinish(grpc::Status::OK);
+  impl::Finish(stream_, response, grpc::Status::OK, GetCallName());
+  Statistics().OnExplicitFinish(grpc::StatusCode::OK);
+  ugrpc::impl::UpdateSpanWithStatus(GetSpan(), grpc::Status::OK);
 }
 
 template <typename Response>
 void UnaryCall<Response>::FinishWithError(const grpc::Status& status) {
   UINVARIANT(!is_finished_, "'FinishWithError' called on a finished call");
   is_finished_ = true;
-  impl::FinishWithError(stream_, status, call_name_);
-  statistics_.OnExplicitFinish(status.error_code());
+  LogFinish(status);
+  impl::FinishWithError(stream_, status, GetCallName());
+  Statistics().OnExplicitFinish(status.error_code());
+  ugrpc::impl::UpdateSpanWithStatus(GetSpan(), status);
+}
+
+template <typename Response>
+bool UnaryCall<Response>::IsFinished() const {
+  return is_finished_;
 }
 
 template <typename Request, typename Response>
 InputStream<Request, Response>::InputStream(
-    grpc::ServerContext& context, std::string_view call_name,
-    impl::RawReader<Request, Response>& stream,
-    ugrpc::impl::RpcStatisticsScope& statistics)
-    : context_(context),
-      call_name_(call_name),
-      stream_(stream),
-      statistics_(statistics) {}
+    impl::CallParams&& call_params, impl::RawReader<Request, Response>& stream)
+    : CallAnyBase(std::move(call_params)), stream_(stream) {}
 
 template <typename Request, typename Response>
 InputStream<Request, Response>::~InputStream() {
-  if (state_ != State::kFinished) impl::CancelWithError(stream_, call_name_);
-}
-
-template <typename Request, typename Response>
-grpc::ServerContext& InputStream<Request, Response>::GetContext() {
-  return context_;
+  if (state_ != State::kFinished) {
+    impl::CancelWithError(stream_, GetCallName());
+    LogFinish(impl::kUnknownErrorStatus);
+  }
 }
 
 template <typename Request, typename Response>
@@ -328,8 +351,10 @@ void InputStream<Request, Response>::Finish(const Response& response) {
   UINVARIANT(state_ != State::kFinished,
              "'Finish' called on a finished stream");
   state_ = State::kFinished;
-  impl::Finish(stream_, response, grpc::Status::OK, call_name_);
-  statistics_.OnExplicitFinish(grpc::StatusCode::OK);
+  LogFinish(grpc::Status::OK);
+  impl::Finish(stream_, response, grpc::Status::OK, GetCallName());
+  Statistics().OnExplicitFinish(grpc::StatusCode::OK);
+  ugrpc::impl::UpdateSpanWithStatus(GetSpan(), grpc::Status::OK);
 }
 
 template <typename Request, typename Response>
@@ -339,28 +364,28 @@ void InputStream<Request, Response>::FinishWithError(
   UINVARIANT(state_ != State::kFinished,
              "'FinishWithError' called on a finished stream");
   state_ = State::kFinished;
-  impl::FinishWithError(stream_, status, call_name_);
-  statistics_.OnExplicitFinish(status.error_code());
+  LogFinish(status);
+  impl::FinishWithError(stream_, status, GetCallName());
+  Statistics().OnExplicitFinish(status.error_code());
+  ugrpc::impl::UpdateSpanWithStatus(GetSpan(), status);
+}
+
+template <typename Request, typename Response>
+bool InputStream<Request, Response>::IsFinished() const {
+  return state_ == State::kFinished;
 }
 
 template <typename Response>
-OutputStream<Response>::OutputStream(
-    grpc::ServerContext& context, std::string_view call_name,
-    impl::RawWriter<Response>& stream,
-    ugrpc::impl::RpcStatisticsScope& statistics)
-    : context_(context),
-      call_name_(call_name),
-      stream_(stream),
-      statistics_(statistics) {}
+OutputStream<Response>::OutputStream(impl::CallParams&& call_params,
+                                     impl::RawWriter<Response>& stream)
+    : CallAnyBase(std::move(call_params)), stream_(stream) {}
 
 template <typename Response>
 OutputStream<Response>::~OutputStream() {
-  if (state_ != State::kFinished) impl::Cancel(stream_, call_name_);
-}
-
-template <typename Response>
-grpc::ServerContext& OutputStream<Response>::GetContext() {
-  return context_;
+  if (state_ != State::kFinished) {
+    impl::Cancel(stream_, GetCallName());
+    LogFinish(impl::kUnknownErrorStatus);
+  }
 }
 
 template <typename Response>
@@ -369,13 +394,13 @@ void OutputStream<Response>::Write(const Response& response) {
 
   // For some reason, gRPC requires explicit 'SendInitialMetadata' in output
   // streams
-  impl::SendInitialMetadataIfNew(stream_, call_name_, state_);
+  impl::SendInitialMetadataIfNew(stream_, GetCallName(), state_);
 
   // Don't buffer writes, otherwise in an event subscription scenario, events
   // may never actually be delivered
   grpc::WriteOptions write_options{};
 
-  impl::Write(stream_, response, write_options, call_name_);
+  impl::Write(stream_, response, write_options, GetCallName());
 }
 
 template <typename Response>
@@ -383,8 +408,11 @@ void OutputStream<Response>::Finish() {
   UINVARIANT(state_ != State::kFinished,
              "'Finish' called on a finished stream");
   state_ = State::kFinished;
-  impl::Finish(stream_, grpc::Status::OK, call_name_);
-  statistics_.OnExplicitFinish(grpc::StatusCode::OK);
+  const auto status = grpc::Status::OK;
+  LogFinish(status);
+  impl::Finish(stream_, status, GetCallName());
+  Statistics().OnExplicitFinish(grpc::StatusCode::OK);
+  ugrpc::impl::UpdateSpanWithStatus(GetSpan(), status);
 }
 
 template <typename Response>
@@ -393,8 +421,10 @@ void OutputStream<Response>::FinishWithError(const grpc::Status& status) {
   UINVARIANT(state_ != State::kFinished,
              "'Finish' called on a finished stream");
   state_ = State::kFinished;
-  impl::Finish(stream_, status, call_name_);
-  statistics_.OnExplicitFinish(status.error_code());
+  LogFinish(status);
+  impl::Finish(stream_, status, GetCallName());
+  Statistics().OnExplicitFinish(status.error_code());
+  ugrpc::impl::UpdateSpanWithStatus(GetSpan(), status);
 }
 
 template <typename Response>
@@ -407,84 +437,97 @@ void OutputStream<Response>::WriteAndFinish(const Response& response) {
   // may never actually be delivered
   grpc::WriteOptions write_options{};
 
-  impl::WriteAndFinish(stream_, response, write_options, grpc::Status::OK);
+  const auto status = grpc::Status::OK;
+  LogFinish(status);
+  impl::WriteAndFinish(stream_, response, write_options, status, GetCallName());
+}
+
+template <typename Response>
+bool OutputStream<Response>::IsFinished() const {
+  return state_ == State::kFinished;
 }
 
 template <typename Request, typename Response>
 BidirectionalStream<Request, Response>::BidirectionalStream(
-    grpc::ServerContext& context, std::string_view call_name,
-    impl::RawReaderWriter<Request, Response>& stream,
-    ugrpc::impl::RpcStatisticsScope& statistics)
-    : context_(context),
-      call_name_(call_name),
-      stream_(stream),
-      statistics_(statistics) {}
+    impl::CallParams&& call_params,
+    impl::RawReaderWriter<Request, Response>& stream)
+    : CallAnyBase(std::move(call_params)), stream_(stream) {}
 
 template <typename Request, typename Response>
-BidirectionalStream<Request, Response>::~BidirectionalStream<Request,
-                                                             Response>() {
-  if (state_ != State::kFinished) impl::Cancel(stream_, call_name_);
-}
-
-template <typename Request, typename Response>
-grpc::ServerContext& BidirectionalStream<Request, Response>::GetContext() {
-  return context_;
+BidirectionalStream<Request, Response>::~BidirectionalStream() {
+  if (!is_finished_) {
+    impl::Cancel(stream_, GetCallName());
+    LogFinish(impl::kUnknownErrorStatus);
+  }
 }
 
 template <typename Request, typename Response>
 bool BidirectionalStream<Request, Response>::Read(Request& request) {
-  UINVARIANT(state_ == State::kOpen,
+  UINVARIANT(!are_reads_done_,
              "'Read' called while the stream is half-closed for reads");
   if (impl::Read(stream_, request)) {
     return true;
   } else {
-    state_ = State::kReadsDone;
+    are_reads_done_ = true;
     return false;
   }
 }
 
 template <typename Request, typename Response>
 void BidirectionalStream<Request, Response>::Write(const Response& response) {
-  UINVARIANT(state_ == State::kOpen, "'Write' called on a finished stream");
+  UINVARIANT(!is_finished_, "'Write' called on a finished stream");
 
   // Don't buffer writes, optimize for ping-pong-style interaction
   grpc::WriteOptions write_options{};
 
-  impl::Write(stream_, response, write_options, call_name_);
+  try {
+    impl::Write(stream_, response, write_options, GetCallName());
+  } catch (const RpcInterruptedError&) {
+    is_finished_ = true;
+    throw;
+  }
 }
 
 template <typename Request, typename Response>
 void BidirectionalStream<Request, Response>::Finish() {
-  UINVARIANT(state_ != State::kFinished,
-             "'Finish' called on a finished stream");
-  state_ = State::kFinished;
-  impl::Finish(stream_, grpc::Status::OK, call_name_);
-  statistics_.OnExplicitFinish(grpc::StatusCode::OK);
+  UINVARIANT(!is_finished_, "'Finish' called on a finished stream");
+  is_finished_ = true;
+  const auto status = grpc::Status::OK;
+  LogFinish(status);
+  impl::Finish(stream_, status, GetCallName());
+  Statistics().OnExplicitFinish(grpc::StatusCode::OK);
+  ugrpc::impl::UpdateSpanWithStatus(GetSpan(), status);
 }
 
 template <typename Request, typename Response>
 void BidirectionalStream<Request, Response>::FinishWithError(
     const grpc::Status& status) {
   UASSERT(!status.ok());
-  UINVARIANT(state_ != State::kFinished,
-             "'FinishWithError' called on a finished stream");
-  state_ = State::kFinished;
-  impl::Finish(stream_, status, call_name_);
-  statistics_.OnExplicitFinish(status.error_code());
+  UINVARIANT(!is_finished_, "'FinishWithError' called on a finished stream");
+  is_finished_ = true;
+  LogFinish(status);
+  impl::Finish(stream_, status, GetCallName());
+  Statistics().OnExplicitFinish(status.error_code());
+  ugrpc::impl::UpdateSpanWithStatus(GetSpan(), status);
 }
 
 template <typename Request, typename Response>
 void BidirectionalStream<Request, Response>::WriteAndFinish(
     const Response& response) {
-  UINVARIANT(state_ != State::kFinished,
-             "'WriteAndFinish' called on a finished stream");
-  state_ = State::kFinished;
+  UINVARIANT(!is_finished_, "'WriteAndFinish' called on a finished stream");
+  is_finished_ = true;
 
   // Don't buffer writes, optimize for ping-pong-style interaction
   grpc::WriteOptions write_options{};
 
-  impl::WriteAndFinish(stream_, response, write_options, grpc::Status::OK,
-                       call_name_);
+  const auto status = grpc::Status::OK;
+  LogFinish(status);
+  impl::WriteAndFinish(stream_, response, write_options, status, GetCallName());
+}
+
+template <typename Request, typename Response>
+bool BidirectionalStream<Request, Response>::IsFinished() const {
+  return is_finished_;
 }
 
 }  // namespace ugrpc::server

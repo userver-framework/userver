@@ -9,7 +9,7 @@
 
 #include <gtest/gtest.h>
 
-#include <userver/utils/meta.hpp>
+#include <userver/utils/meta_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

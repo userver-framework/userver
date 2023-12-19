@@ -6,7 +6,7 @@
 #include <userver/storages/clickhouse/options.hpp>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
-#include <userver/formats/json/value.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -31,7 +31,8 @@ class Pool final {
 
   void Insert(OptionalCommandControl, const InsertionRequest& request) const;
 
-  formats::json::Value GetStatistics() const;
+  void WriteStatistics(
+      USERVER_NAMESPACE::utils::statistics::Writer& writer) const;
 
   bool IsAvailable() const;
 

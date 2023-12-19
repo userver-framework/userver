@@ -15,16 +15,6 @@
 CMakeLists.txt.user
 compile_commands.json
 tags
-third_party/amqp-cpp
-third_party/c-ares
-third_party/cctz
-third_party/clickhouse-cpp
-third_party/cryptopp
-third_party/fmt
-third_party/gbench
-third_party/gtest
-third_party/libcurl
-third_party/spdlog
 static-analyzer-report
 .project
 .cproject

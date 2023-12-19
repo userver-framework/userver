@@ -59,6 +59,35 @@ void PutArg(CmdArgs::CmdArgsArray& args_, const GeoradiusOptions& arg) {
     args_.emplace_back("DESC");
 }
 
+void PutArg(CmdArgs::CmdArgsArray& args_, const GeosearchOptions& arg) {
+  switch (arg.unit) {
+    case GeosearchOptions::Unit::kM:
+      args_.emplace_back("m");
+      break;
+    case GeosearchOptions::Unit::kKm:
+      args_.emplace_back("km");
+      break;
+    case GeosearchOptions::Unit::kMi:
+      args_.emplace_back("mi");
+      break;
+    case GeosearchOptions::Unit::kFt:
+      args_.emplace_back("ft");
+      break;
+  }
+
+  if (arg.withcoord) args_.emplace_back("WITHCOORD");
+  if (arg.withdist) args_.emplace_back("WITHDIST");
+  if (arg.withhash) args_.emplace_back("WITHHASH");
+  if (arg.count) {
+    args_.emplace_back("COUNT");
+    args_.emplace_back(std::to_string(arg.count));
+  }
+  if (arg.sort == GeosearchOptions::Sort::kAsc)
+    args_.emplace_back("ASC");
+  else if (arg.sort == GeosearchOptions::Sort::kDesc)
+    args_.emplace_back("DESC");
+}
+
 void PutArg(CmdArgs::CmdArgsArray& args_, const SetOptions& arg) {
   if (arg.milliseconds) {
     args_.emplace_back("PX");

@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/storages/redis/mock_subscribe_client.hpp
+/// @brief @copybrief storages::redis::MockSubscriptionTokenImpl
+
 #include <userver/storages/redis/subscribe_client.hpp>
 #include <userver/utest/utest.hpp>
 
@@ -9,12 +12,14 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
 
-/// Mocked SubscribeClient. Mocking is done with google mock. Please
+/// @brief Mocked storages::redis::SubscribeClient.
+///
+/// Mocking is done with google mock. Please
 /// see GMock documentation on how to use this class. (Hint: GMock is
 /// really powerful)
 class MockSubscribeClient : public SubscribeClient {
  public:
-  virtual ~MockSubscribeClient() = default;
+  ~MockSubscribeClient() override = default;
   MOCK_METHOD(SubscriptionToken, Subscribe,
               (std::string channel,
                SubscriptionToken::OnMessageCb on_message_cb,
@@ -25,15 +30,18 @@ class MockSubscribeClient : public SubscribeClient {
                SubscriptionToken::OnPmessageCb on_pmessage_cb,
                const USERVER_NAMESPACE::redis::CommandControl& command_control),
               (override));
+  MOCK_METHOD(size_t, ShardsCount, (), (const, override));
 };
 
-/// Mocked SubscriptionTokenImplBase. Although one can used it by itself,
+/// @brief Mocked storages::redis::SubscriptionToken.
+///
+/// Although one can used it by itself,
 /// it mostly for use with MockSubscribeClient. Here is a small example on
 /// how to use this class
 /// @snippet storages/redis/test/subscribe_client_mock_test.cpp SbTknExmpl1
-class MockSubscriptionTokenImpl : public SubscriptionTokenImplBase {
+class MockSubscriptionTokenImpl : public impl::SubscriptionTokenImplBase {
  public:
-  virtual ~MockSubscriptionTokenImpl() = default;
+  ~MockSubscriptionTokenImpl() override = default;
 
   MOCK_METHOD(void, SetMaxQueueLength, (size_t length), (override));
 

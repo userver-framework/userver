@@ -31,7 +31,7 @@ namespace storages::mongo {
 /// Functions engine::current_task::ShouldCancel(),
 /// engine::InterruptibleSleepFor(), engine::InterruptibleSleepUntil() and
 /// engine::current_task::CancellationPoint() check for task cancellation.
-/// Overriden DistLockComponentBase::DoWork must use the above functions to
+/// Overridden DistLockComponentBase::DoWork must use the above functions to
 /// honour task cancellation and stop ASAP when
 /// it is cancelled.
 ///
@@ -49,10 +49,12 @@ namespace storages::mongo {
 /// -------------- | ------------ | -------------
 /// lockname       | name of the lock | --
 /// lock-ttl       | TTL of the lock; must be at least as long as the duration between subsequent cancellation checks, otherwise brain split is possible | --
-/// mongo-timeout  | timeout, must be at least 2*lock-ttl | --
+/// mongo-timeout  | timeout, must be less than lock-ttl / 2 | --
 /// restart-delay  | how much time to wait after failed task restart | 100ms
 /// task-processor | the name of the TaskProcessor for running DoWork | main-task-processor
 /// testsuite-support | Enable testsuite support | false
+///
+/// @see @ref scripts/docs/en/userver/periodics.md
 
 // clang-format on
 
@@ -109,8 +111,10 @@ class DistLockComponentBase : public components::LoggableComponentBase {
 
  private:
   std::unique_ptr<dist_lock::DistLockedWorker> worker_;
-  utils::statistics::Entry statistics_holder_;
   bool testsuite_enabled_{false};
+
+  // Subscriptions must be the last fields.
+  utils::statistics::Entry statistics_holder_;
 };
 
 }  // namespace storages::mongo

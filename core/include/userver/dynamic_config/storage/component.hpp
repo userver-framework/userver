@@ -3,6 +3,7 @@
 /// @file userver/dynamic_config/storage/component.hpp
 /// @brief @copybrief components::DynamicConfig
 
+#include <memory>
 #include <string_view>
 #include <type_traits>
 
@@ -10,15 +11,12 @@
 #include <userver/concurrent/async_event_source.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/dynamic_config/source.hpp>
+#include <userver/dynamic_config/updates_sink/component.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace components {
-
-namespace impl {
-void CheckRegistered(bool registered);
-}  // namespace impl
 
 // clang-format off
 
@@ -26,11 +24,32 @@ void CheckRegistered(bool registered);
 ///
 /// @brief Component that stores the runtime config.
 ///
-/// ## Static options:
+/// ## Behavior on missing configs
+///
+/// If a config variable is entirely missing the fetched config, the value from
+/// `dynamic_config_fallback.json` is used (see `fallback-path` static config
+/// option).
+///
+/// ## Behavior on config parsing failure
+///
+/// If a config variable from the fetched config fails to be parsed (the parser
+/// fails with an exception), then the whole config update fails. It means that:
+///
+/// - If the service is just starting, it will shut down
+/// - If the service is already running, the config updates will stop until
+///   the config in the config service changes to a valid one. You can
+///   monitor this situation using the metric at path
+///   `cache.any.time.time-from-last-successful-start-ms`
+///
+/// ## Static options
+///
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// fs-cache-path | path to the file to read and dump a config cache; set to empty string to disable reading and dumping configs to FS | -
-/// fs-task-processor | name of the task processor to run the blocking file write operations | -
+/// updates-enabled | should be set to 'true' if there is an updater component | false
+/// defaults | overrides the defaults from dynamic_config::Key definitions in code | {}
+/// fallback-path | a path to the fallback config | defaults are taken from dynamic_config::Key definitions
+/// fs-cache-path | path to the file to read and dump a config cache; set to empty string to disable reading and dumping configs to FS | cache is disabled
+/// fs-task-processor | name of the task processor to run the blocking file write operations | required if `fs-cache-path` is present
 ///
 /// ## Static configuration example:
 ///
@@ -40,9 +59,13 @@ void CheckRegistered(bool registered);
 /// @snippet components/component_sample_test.cpp  Sample user component runtime config source
 
 // clang-format on
-class DynamicConfig final : public LoggableComponentBase {
+class DynamicConfig final : public DynamicConfigUpdatesSinkBase {
  public:
+  /// @ingroup userver_component_names
+  /// @brief The default name of components::DynamicConfig
   static constexpr std::string_view kName = "dynamic-config";
+
+  class NoblockSubscriber;
 
   DynamicConfig(const ComponentConfig&, const ComponentContext&);
   ~DynamicConfig() override;
@@ -51,53 +74,26 @@ class DynamicConfig final : public LoggableComponentBase {
   /// something special on config updates
   dynamic_config::Source GetSource();
 
-  template <typename UpdaterComponent>
-  class Updater;
-
-  class NoblockSubscriber;
+  /// Get config defaults with overrides applied. Useful in the implementation
+  /// of custom config clients. Most code does not need to deal with these
+  const dynamic_config::DocsMap& GetDefaultDocsMap() const;
 
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
-  static bool RegisterUpdaterName(std::string_view name);
-  static DynamicConfig& GetDynamicConfig(const ComponentContext&);
-
   void OnLoadingCancelled() override;
 
   void SetConfig(std::string_view updater,
-                 const dynamic_config::DocsMap& value);
-  void NotifyLoadingFailed(std::string_view updater, std::string_view error);
+                 dynamic_config::DocsMap&& value) override;
+
+  void SetConfig(std::string_view updater,
+                 const dynamic_config::DocsMap& value) override;
+
+  void NotifyLoadingFailed(std::string_view updater,
+                           std::string_view error) override;
 
   class Impl;
-  utils::FastPimpl<Impl, 704, 8> impl_;
-};
-
-/// @brief Class that provides update functionality for the config
-template <typename UpdaterComponent>
-class DynamicConfig::Updater final {
- public:
-  /// Constructor to use in updaters
-  explicit Updater(const ComponentContext& context)
-      : config_to_update_(GetDynamicConfig(context)) {
-    static_assert(std::is_base_of_v<impl::ComponentBase, UpdaterComponent>);
-    impl::CheckRegistered(kRegistered);
-  }
-
-  /// @brief Set up-to-date config
-  void SetConfig(const dynamic_config::DocsMap& value_ptr) {
-    config_to_update_.SetConfig(UpdaterComponent::kName, value_ptr);
-  }
-
-  /// @brief call this method from updater component to notify about errors
-  void NotifyLoadingFailed(std::string_view error) {
-    config_to_update_.NotifyLoadingFailed(UpdaterComponent::kName, error);
-  }
-
- private:
-  DynamicConfig& config_to_update_;
-
-  static inline const bool kRegistered =
-      DynamicConfig::RegisterUpdaterName(UpdaterComponent::kName);
+  std::unique_ptr<Impl> impl_;
 };
 
 /// @brief Allows to subscribe to `DynamicConfig` updates without waiting for
@@ -118,6 +114,10 @@ class DynamicConfig::NoblockSubscriber final {
 
 template <>
 inline constexpr bool kHasValidate<DynamicConfig> = true;
+
+template <>
+inline constexpr auto kConfigFileMode<DynamicConfig> =
+    ConfigFileMode::kNotRequired;
 
 }  // namespace components
 

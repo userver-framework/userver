@@ -12,15 +12,26 @@
 #include <userver/moodycamel/concurrentqueue_fwd.h>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
+#include <userver/clients/http/impl/config.hpp>
+#include <userver/clients/http/plugin.hpp>
 #include <userver/clients/http/request.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/utils/fast_pimpl.hpp>
+#include <userver/utils/not_null.hpp>
 #include <userver/utils/periodic_task.hpp>
 #include <userver/utils/swappingsmart.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace tracing {
+class TracingManagerBase;
+}  // namespace tracing
+
+namespace server::http {
+class HeadersPropagator;
+}  // namespace server::http
 
 namespace curl {
 class easy;
@@ -37,22 +48,11 @@ namespace impl {
 class EasyWrapper;
 }  // namespace impl
 
-struct Config;
 struct TestsuiteConfig;
-struct EnforceTaskDeadlineConfig;
 class Statistics;
 struct PoolStatistics;
 struct InstanceStatistics;
 class DestinationStatistics;
-
-struct ClientSettings final {
-  std::string thread_name_prefix;
-  size_t io_threads = 8;
-  bool defer_events = false;
-};
-
-ClientSettings Parse(const yaml_config::YamlConfig& value,
-                     formats::parse::To<ClientSettings>);
 
 /// @ingroup userver_clients
 ///
@@ -66,15 +66,22 @@ ClientSettings Parse(const yaml_config::YamlConfig& value,
 /// @snippet clients/http/client_test.cpp  Sample HTTP Client usage
 class Client final {
  public:
-  Client(ClientSettings settings, engine::TaskProcessor& fs_task_processor);
+  Client(impl::ClientSettings settings,
+         engine::TaskProcessor& fs_task_processor,
+         impl::PluginPipeline&& plugin_pipeline);
+
   ~Client();
 
   /// @brief Returns a HTTP request builder type with preset values of
   /// User-Agent, Proxy and some of the Testsuite suff (if any).
-  std::shared_ptr<Request> CreateRequest();
+  ///
+  /// @note This method is thread-safe despite being non-const.
+  Request CreateRequest();
 
   /// Providing CreateNonSignedRequest() function for the clients::Http alias.
-  std::shared_ptr<Request> CreateNotSignedRequest() { return CreateRequest(); }
+  ///
+  /// @note This method is thread-safe despite being non-const.
+  Request CreateNotSignedRequest() { return CreateRequest(); }
 
   /// @cond
   // For internal use only.
@@ -100,7 +107,7 @@ class Client final {
   void SetAllowedUrlsExtra(std::vector<std::string>&& urls);
 
   // For internal use only.
-  void SetConfig(const Config&);
+  void SetConfig(const impl::Config&);
   /// @endcond
 
   /// @brief Sets User-Agent headers for all the requests or removes that
@@ -140,7 +147,8 @@ class Client final {
   std::shared_ptr<curl::easy> TryDequeueIdle() noexcept;
 
   std::atomic<std::size_t> pending_tasks_{0};
-  rcu::Variable<EnforceTaskDeadlineConfig> enforce_task_deadline_;
+
+  const impl::DeadlinePropagationConfig deadline_propagation_config_;
 
   std::shared_ptr<DestinationStatistics> destination_statistics_;
   std::unique_ptr<engine::ev::ThreadPool> thread_pool_;
@@ -169,6 +177,9 @@ class Client final {
   std::shared_ptr<curl::ConnectRateLimiter> connect_rate_limiter_;
 
   clients::dns::Resolver* resolver_{nullptr};
+  utils::NotNull<const tracing::TracingManagerBase*> tracing_manager_;
+  const server::http::HeadersPropagator* headers_propagator_{nullptr};
+  impl::PluginPipeline plugin_pipeline_;
 };
 
 }  // namespace clients::http

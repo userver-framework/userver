@@ -39,7 +39,7 @@ void socket_send_all(benchmark::State& state) {
           }
         },
         std::move(server));
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       auto send_bytes = client.SendAll("qqq", 3, test_deadline);
       send_bytes += client.SendAll("aaa", 3, test_deadline);
       send_bytes += client.SendAll("qwerty", 6, test_deadline);
@@ -65,7 +65,7 @@ void socket_send_all_v(benchmark::State& state) {
           }
         },
         std::move(server));
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       const auto send_bytes = client.SendAll(
           {{"qqq", 3}, {"aaa", 3}, {"qwerty", 6}}, test_deadline);
       benchmark::DoNotOptimize(send_bytes);
@@ -92,7 +92,7 @@ BENCHMARK(socket_send_all_v);
           }
         },
         std::move(server));
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       const auto send_bytes =
           client.SendAll({{size_buff.data(), size_buff.size()},
                           {send_buff.data(), send_buff.size()}},
@@ -123,7 +123,7 @@ BENCHMARK(socket_send_all_v);
           }
         },
         std::move(server));
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       auto send_bytes =
           client.SendAll(size_buff.data(), size_buff.size(), test_deadline);
       send_bytes +=

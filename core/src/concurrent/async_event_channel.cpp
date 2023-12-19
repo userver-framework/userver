@@ -52,6 +52,14 @@ void ReportUnsubscribingAutomatically(std::string_view channel_name,
                  "destructors.";
 }
 
+void ReportErrorWhileUnsubscribing(std::string_view channel_name,
+                                   std::string_view listener_name,
+                                   std::string_view error) noexcept {
+  LOG_ERROR() << "Unhandled exception while listener " << listener_name
+              << " is unsubscribing automatically from channel " << channel_name
+              << ": " << error;
+}
+
 std::string MakeAsyncChannelName(std::string_view base, std::string_view name) {
   return fmt::format("async_channel/{}_{}", base, name);
 }

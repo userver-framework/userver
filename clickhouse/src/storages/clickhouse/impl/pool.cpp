@@ -55,12 +55,10 @@ void Pool::Insert(OptionalCommandControl optional_cc,
   conn_ptr->Insert(optional_cc, request);
 }
 
-formats::json::Value Pool::GetStatistics() const {
-  auto builder = formats::json::ValueBuilder{formats::json::Type::kObject};
-
-  builder[impl_->GetHostName()] =
-      stats::PoolStatisticsToJson(impl_->GetStatistics());
-  return builder.ExtractValue();
+void Pool::WriteStatistics(
+    USERVER_NAMESPACE::utils::statistics::Writer& writer) const {
+  writer.ValueWithLabels(impl_->GetStatistics(),
+                         {{"clickhouse_instance", impl_->GetHostName()}});
 }
 
 bool Pool::IsAvailable() const { return impl_->IsAvailable(); }

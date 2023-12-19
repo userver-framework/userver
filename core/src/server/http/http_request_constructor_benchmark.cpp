@@ -13,7 +13,7 @@ void http_request_constructor_url_decode(benchmark::State& state) {
 
   for (int64_t i = 0; i < state.range(0); i++) input += tmp;
 
-  for (auto _ : state)
+  for ([[maybe_unused]] auto _ : state)
     benchmark::DoNotOptimize(USERVER_NAMESPACE::http::parser::UrlDecode(input));
 }
 }  // namespace

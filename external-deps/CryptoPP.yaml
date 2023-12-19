@@ -1,5 +1,4 @@
 name: CryptoPP
-helper-prefix: false
 
 includes:
     find:
@@ -23,3 +22,5 @@ rpm-names:
   - cryptopp-devel
 pacman-names:
   - crypto++
+pkg-config-names:
+  - libcrypto++

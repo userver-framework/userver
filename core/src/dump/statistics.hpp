@@ -6,6 +6,7 @@
 
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/serialize/to.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -22,8 +23,7 @@ struct Statistics {
   std::atomic<std::size_t> last_written_size{0};
 };
 
-formats::json::Value Serialize(const Statistics& stats,
-                               formats::serialize::To<formats::json::Value>);
+void DumpMetric(utils::statistics::Writer& writer, const Statistics& stats);
 
 }  // namespace dump
 

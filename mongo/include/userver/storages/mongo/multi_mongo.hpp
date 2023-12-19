@@ -4,21 +4,17 @@
 #include <string>
 #include <unordered_map>
 
+#include <userver/dynamic_config/source.hpp>
 #include <userver/rcu/rcu.hpp>
-#include <userver/utils/swappingsmart.hpp>
+#include <userver/storages/secdist/fwd.hpp>
+#include <userver/utils/statistics/fwd.hpp>
 
 #include <userver/storages/mongo/pool.hpp>
 #include <userver/storages/mongo/pool_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages {
-
-namespace secdist {
-class Secdist;
-}  // namespace secdist
-
-namespace mongo {
+namespace storages::mongo {
 
 class MultiMongo {
   using PoolMap = std::unordered_map<std::string, storages::mongo::PoolPtr>;
@@ -54,9 +50,12 @@ class MultiMongo {
     std::shared_ptr<PoolMap> pool_map_ptr_;
   };
 
+  /// @cond
   MultiMongo(std::string name, const storages::secdist::Secdist& secdist,
              storages::mongo::PoolConfig pool_config,
-             clients::dns::Resolver* dns_resolver, Config mongo_config);
+             clients::dns::Resolver* dns_resolver,
+             dynamic_config::Source config_source);
+  /// @endcond
 
   /// @brief Client pool accessor
   /// @param dbalias name previously passed to `AddPool`
@@ -79,27 +78,23 @@ class MultiMongo {
   /// Creates an empty database set bound to the current MultiMongo instance
   PoolSet NewPoolSet();
 
-  /// Returns JSON with statistics
-  formats::json::Value GetStatistics(bool verbose) const;
+  /// Writes statistics
+  friend void DumpMetric(utils::statistics::Writer& writer,
+                         const MultiMongo& multi_mongo);
 
   const std::string& GetName() const { return name_; }
-
-  void SetConfig(Config config);
 
  private:
   storages::mongo::PoolPtr FindPool(const std::string& dbalias) const;
 
-  Config GetConfigCopy() const;
-
   const std::string name_;
   const storages::secdist::Secdist& secdist_;
-  std::unique_ptr<rcu::Variable<Config>> config_storage_;
+  dynamic_config::Source config_source_;
   const storages::mongo::PoolConfig pool_config_;
   clients::dns::Resolver* dns_resolver_;
-  utils::SwappingSmart<PoolMap> pool_map_ptr_;
+  rcu::Variable<PoolMap> pool_map_;
 };
 
-}  // namespace mongo
-}  // namespace storages
+}  // namespace storages::mongo
 
 USERVER_NAMESPACE_END

@@ -2,6 +2,7 @@
 
 /// @file userver/storages/postgres/io/interval.hpp
 /// @brief Time intervals I/O support
+/// @ingroup userver_postgres_parse_and_format
 
 #include <chrono>
 

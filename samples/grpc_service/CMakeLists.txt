@@ -5,8 +5,8 @@ target_link_libraries(${PROJECT_NAME} userver-core)
 
 # /// [gRPC sample - CMake]
 include(GrpcTargets)
-add_grpc_library(${PROJECT_NAME}_proto PROTOS samples/greeter.proto)
-target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_proto)
+add_grpc_library(${PROJECT_NAME}-proto PROTOS samples/greeter.proto)
+target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}-proto)
 # /// [gRPC sample - CMake]
 
 userver_sample_testsuite_add()

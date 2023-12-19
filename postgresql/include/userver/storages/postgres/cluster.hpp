@@ -6,14 +6,17 @@
 #include <memory>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
+#include <userver/dynamic_config/source.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/error_injection/settings_fwd.hpp>
 #include <userver/testsuite/postgres_control.hpp>
+#include <userver/testsuite/tasks.hpp>
 
 #include <userver/storages/postgres/cluster_types.hpp>
 #include <userver/storages/postgres/database.hpp>
 #include <userver/storages/postgres/detail/non_transaction.hpp>
+#include <userver/storages/postgres/notify.hpp>
 #include <userver/storages/postgres/options.hpp>
 #include <userver/storages/postgres/query.hpp>
 #include <userver/storages/postgres/statistics.hpp>
@@ -40,7 +43,7 @@
 /// @par Implementation
 /// Topology update runs every second.
 ///
-/// Every host is assighed a connection with special ID (4100200300).
+/// Every host is assigned a connection with special ID (4100200300).
 /// Using this connection we check for host availability, writability
 /// (master detection) and perform RTT measurements.
 ///
@@ -52,7 +55,7 @@
 /// ----------
 ///
 /// @htmlonly <div class="bottom-nav"> @endhtmlonly
-/// ⇦ @ref pg_errors | @ref pg_user_types ⇨
+/// ⇦ @ref pg_errors | @ref scripts/docs/en/userver/pg_connlimit_mode_auto.md ⇨
 /// @htmlonly </div> @endhtmlonly
 
 USERVER_NAMESPACE_BEGIN
@@ -102,7 +105,9 @@ class Cluster {
           const ClusterSettings& cluster_settings,
           DefaultCommandControls&& default_cmd_ctls,
           const testsuite::PostgresControl& testsuite_pg_ctl,
-          const error_injection::Settings& ei_settings);
+          const error_injection::Settings& ei_settings,
+          testsuite::TestsuiteTasks& testsuite_tasks,
+          dynamic_config::Source config_source, int shard_number);
   ~Cluster();
 
   /// Get cluster statistics
@@ -191,6 +196,11 @@ class Cluster {
                     const Query& query, const ParameterStore& store);
   /// @}
 
+  /// @brief Listen for notifications on channel
+  /// @warning Each NotifyScope owns a single connection taken from the pool,
+  /// which effectively decreases the number of usable connections
+  NotifyScope Listen(std::string_view channel, OptionalCommandControl = {});
+
   /// Replaces globally updated command control with a static user-provided one
   void SetDefaultCommandControl(CommandControl);
 
@@ -198,16 +208,19 @@ class Cluster {
   CommandControl GetDefaultCommandControl() const;
 
   void SetHandlersCommandControl(
-      const CommandControlByHandlerMap& handlers_command_control);
+      CommandControlByHandlerMap handlers_command_control);
 
   void SetQueriesCommandControl(
-      const CommandControlByQueryMap& queries_command_control);
+      CommandControlByQueryMap queries_command_control);
 
   /// @cond
   /// Updates default command control from global config (if not set by user)
   void ApplyGlobalCommandControlUpdate(CommandControl);
   /// @endcond
 
+  /// Replaces cluster connection settings.
+  ///
+  /// Connections with an old settings will be dropped and reestablished.
   void SetConnectionSettings(const ConnectionSettings& settings);
 
   void SetPoolSettings(const PoolSettings& settings);

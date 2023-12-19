@@ -1,5 +1,6 @@
 #include <userver/cache/caching_component_base.hpp>
 
+#include <userver/dump/dumper.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -7,14 +8,14 @@ USERVER_NAMESPACE_BEGIN
 namespace components::impl {
 
 yaml_config::Schema GetCachingComponentBaseSchema() {
-  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<dump::Dumper>(R"(
 type: object
 description: Base class for caching components
 additionalProperties: false
 properties:
     update-types:
         type: string
-        description: specifies whether incremental and/or full updates will be used
+        description: specifies whether incremental and/or full updates are used
         enum:
           - full-and-incremental
           - only-full
@@ -26,6 +27,10 @@ properties:
         type: string
         description: max. amount of time by which interval may be adjusted for requests dispersal
         defaultDescription: update_interval / 10
+    updates-enabled:
+        type: boolean
+        description: if false, cache updates are disabled (except for the first one if !first-update-fail-ok)
+        defaultDescription: true
     full-update-interval:
         type: string
         description: interval between full updates
@@ -52,50 +57,52 @@ properties:
         type: boolean
         description: whether to include Update execution time in update-interval
         defaultDescription: false
+    has-pre-assign-check:
+        type: boolean
+        description: |
+            enables the check before changing the value in the cache, by
+            default it is the check that the new value is not empty
+        defaultDescription: false
     testsuite-force-periodic-update:
         type: boolean
-        description: override testsuite-periodic-update-enabled in TestsuiteSupport component config
+        description: |
+            override testsuite-periodic-update-enabled in TestsuiteSupport
+            component config
+    alert-on-failing-to-update-times:
+        type: integer
+        description: |
+            fire an alert if the cache update failed specified amount of times
+            in a row. If zero - alerts are disabled. Value from dynamic config
+            takes priority over static
+        defaultDescription: 0
+        minimum: 0
     dump:
         type: object
-        description: manages dumps
+        description: Manages cache behavior after dump load
         additionalProperties: false
         properties:
-            enable:
-                type: boolean
-                description: Whether this `Dumper` should actually read and write dumps
-            world-readable:
-                type: boolean
-                description: If true, dumps are created with access 0444, otherwise with access 0400
-            format-version:
-                type: integer
-                description: Allows to ignore dumps written with an obsolete format-version
-            max-age:
-                type: string
-                description: Overdue dumps are ignored
-                defaultDescription: null
-            max-count:
-                type: integer
-                description: Old dumps over the limit are removed from disk
-                defaultDescription: 1
-            min-interval:
-                type: string
-                description: "`WriteDumpAsync` calls performed in a fast succession are ignored"
-                defaultDescription: 0s
-            fs-task-processor:
-                type: string
-                description: "`TaskProcessor` for blocking disk IO"
-                defaultDescription: fs-task-processor
-            encrypted:
-                type: boolean
-                description: Whether to encrypt the dump
-                defaultDescription: false
             first-update-mode:
                 type: string
-                description: specifies whether required or best-effort first update will be used
-                defaultDescription: skip
+                description: |
+                    Behavior of update after successful load from dump.
+                    `skip` - after successful load from dump, do nothing;
+                    `required` - make a synchronous update of type
+                    `first-update-type`, stop the service on failure;
+                    `best-effort` - make a synchronous update of type
+                    `first-update-type`, keep working and use data from dump
+                    on failure.
+                enum:
+                  - skip
+                  - required
+                  - best-effort
             first-update-type:
                 type: string
-                description: specifies whether incremental and/or full first update will be used
+                description: |
+                    Update type after successful load from dump.
+                enum:
+                  - full
+                  - incremental
+                  - incremental-then-async-full
                 defaultDescription: full
 )");
 }

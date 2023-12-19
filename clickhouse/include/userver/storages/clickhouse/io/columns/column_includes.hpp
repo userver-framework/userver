@@ -3,6 +3,7 @@
 /// @file userver/storages/clickhouse/io/columns/column_includes.hpp
 /// This file just includes definitions that most columns require.
 
+#include <cstdint>
 #include <memory>
 #include <string_view>
 #include <vector>

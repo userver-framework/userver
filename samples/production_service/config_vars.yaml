@@ -16,4 +16,3 @@ default-log-path: /var/log/production_service/server.log
 secdist-path: /etc/production_service/secure_data.json
 
 config-cache: /var/cache/production_service/config_cache.json
-config-fallback: /etc/production_service/dynamic_config_fallback.json

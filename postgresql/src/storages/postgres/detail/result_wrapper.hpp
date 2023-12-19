@@ -10,6 +10,7 @@
 #include <userver/storages/postgres/message.hpp>
 #include <userver/storages/postgres/result_set.hpp>
 #include <userver/storages/postgres/sql_state.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -21,6 +22,7 @@ class ResultWrapper {
   using ResultHandle = std::unique_ptr<PGresult, decltype(&PQclear)>;
 
   ResultWrapper(ResultHandle&& res);
+  ~ResultWrapper();
 
   void FillBufferCategories(const UserTypes& types);
 
@@ -74,6 +76,10 @@ class ResultWrapper {
 
   ResultHandle handle_;
   io::TypeBufferCategory buffer_categories_;
+
+  struct CachedFieldBufferCategories;
+  USERVER_NAMESPACE::utils::FastPimpl<CachedFieldBufferCategories, 88, 8>
+      cached_buffer_categories_;
 };
 
 inline ResultWrapper::ResultHandle MakeResultHandle(PGresult* pg_res) {

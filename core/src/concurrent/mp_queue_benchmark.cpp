@@ -57,7 +57,7 @@ void producer_consumer(benchmark::State& state) {
     {
       std::size_t message = 0;
       auto producer = queue->GetProducer();
-      for (auto _ : state) {
+      for ([[maybe_unused]] auto _ : state) {
         bool res = producer.Push(std::size_t{message++});
         benchmark::DoNotOptimize(res);
       }

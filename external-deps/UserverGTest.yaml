@@ -1,5 +1,4 @@
 name: UserverGTest
-helper-prefix: false
 
 debian-names:
   - libgtest-dev
@@ -8,6 +7,9 @@ debian-names:
 formula-name: googletest
 
 pacman-names:
+  - gtest
+
+pkg-config-names:
   - gtest
 
 libraries:

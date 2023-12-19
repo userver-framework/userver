@@ -33,7 +33,7 @@ void StatementTimingsStorage::Account(const std::string& statement_name,
 
   const auto producer = data_.events_queue->GetProducer();
 
-  producer.PushNoblock(
+  [[maybe_unused]] const auto success = producer.PushNoblock(
       std::make_unique<StatementEvent>(statement_name, duration_ms));
 }
 

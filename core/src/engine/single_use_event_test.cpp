@@ -42,7 +42,7 @@ UTEST(SingleUseEvent, SendAndWait) {
 }
 
 UTEST(SingleUseEvent, Sample) {
-  /// [Sample engine::SingleUseEvent usage]
+  /// [Wait and destroy]
   engine::TaskWithResult<void> sender;
   {
     engine::SingleUseEvent event;
@@ -52,7 +52,7 @@ UTEST(SingleUseEvent, Sample) {
     // 'event' is destroyed here. Note that 'Send' might continue executing, but
     // it will still complete safely.
   }
-  /// [Sample engine::SingleUseEvent usage]
+  /// [Wait and destroy]
   sender.Get();
 }
 

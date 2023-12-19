@@ -10,6 +10,7 @@
 #include <userver/utils/algo.hpp>
 #include <userver/utils/string_to_duration.hpp>
 #include <userver/utils/traceful_exception.hpp>
+#include <userver/utils/trivial_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -23,6 +24,8 @@ constexpr std::string_view kFullUpdateIntervalMs = "full-update-interval-ms";
 constexpr std::string_view kExceptionIntervalMs = "exception-interval-ms";
 constexpr std::string_view kUpdatesEnabled = "updates-enabled";
 constexpr std::string_view kTaskProcessor = "task-processor";
+constexpr std::string_view kFailedUpdatesBeforeExpiration =
+    "failed-updates-before-expiration";
 
 constexpr std::string_view kUpdateInterval = "update-interval";
 constexpr std::string_view kUpdateJitter = "update-jitter";
@@ -30,6 +33,7 @@ constexpr std::string_view kFullUpdateInterval = "full-update-interval";
 constexpr std::string_view kExceptionInterval = "exception-interval";
 constexpr std::string_view kCleanupInterval = "additional-cleanup-interval";
 constexpr std::string_view kIsStrongPeriod = "is-strong-period";
+constexpr std::string_view kHasPreAssignCheck = "has-pre-assign-check";
 
 constexpr std::string_view kFirstUpdateFailOk = "first-update-fail-ok";
 constexpr std::string_view kUpdateTypes = "update-types";
@@ -39,6 +43,8 @@ constexpr std::string_view kConfigSettings = "config-settings";
 
 constexpr std::string_view kFirstUpdateMode = "first-update-mode";
 constexpr std::string_view kFirstUpdateType = "first-update-type";
+constexpr std::string_view kAlertOnFailingToUpdateTimes =
+    "alert-on-failing-to-update-times";
 
 constexpr auto kDefaultCleanupInterval = std::chrono::seconds{10};
 
@@ -59,41 +65,51 @@ AllowedUpdateTypes ParseUpdateMode(const yaml_config::YamlConfig& config) {
   }
 }
 
+constexpr utils::TrivialBiMap kFirstUpdateModeMap([](auto selector) {
+  return selector()
+      .Case(FirstUpdateMode::kRequired, "required")
+      .Case(FirstUpdateMode::kBestEffort, "best-effort")
+      .Case(FirstUpdateMode::kSkip, "skip");
+});
+
+constexpr utils::TrivialBiMap kFirstUpdateTypeMap([](auto selector) {
+  return selector()
+      .Case(FirstUpdateType::kFull, "full")
+      .Case(FirstUpdateType::kIncremental, "incremental")
+      .Case(FirstUpdateType::kIncrementalThenAsyncFull,
+            "incremental-then-async-full");
+});
+
 }  // namespace
 
 using dump::impl::ParseMs;
 
 FirstUpdateMode Parse(const yaml_config::YamlConfig& config,
                       formats::parse::To<FirstUpdateMode>) {
-  const auto as_string = config.As<std::string>();
+  return utils::ParseFromValueString(config, kFirstUpdateModeMap);
+}
 
-  if (as_string == "required") return FirstUpdateMode::kRequired;
-  if (as_string == "best-effort") return FirstUpdateMode::kBestEffort;
-  if (as_string == "skip") return FirstUpdateMode::kSkip;
-
-  throw yaml_config::ParseException(fmt::format(
-      "Invalid first update mode '{}' at '{}'", as_string, config.GetPath()));
+std::string_view ToString(FirstUpdateMode first_update_mode) {
+  return utils::impl::EnumToStringView(first_update_mode, kFirstUpdateModeMap);
 }
 
 FirstUpdateType Parse(const yaml_config::YamlConfig& config,
                       formats::parse::To<FirstUpdateType>) {
-  const auto as_string = config.As<std::string>();
+  return utils::ParseFromValueString(config, kFirstUpdateTypeMap);
+}
 
-  if (as_string == "full") return FirstUpdateType::kFull;
-  if (as_string == "incremental") return FirstUpdateType::kIncremental;
-  if (as_string == "incremental-then-async-full")
-    return FirstUpdateType::kIncrementalThenAsyncFull;
-
-  throw yaml_config::ParseException(fmt::format(
-      "Invalid first update type '{}' at '{}'", as_string, config.GetPath()));
+std::string_view ToString(FirstUpdateType first_update_type) {
+  return utils::impl::EnumToStringView(first_update_type, kFirstUpdateTypeMap);
 }
 
 ConfigPatch Parse(const formats::json::Value& value,
                   formats::parse::To<ConfigPatch>) {
   ConfigPatch config{ParseMs(value[kUpdateIntervalMs]),
                      ParseMs(value[kUpdateJitterMs]),
-                     ParseMs(value[kFullUpdateIntervalMs]), std::nullopt,
-                     value[kUpdatesEnabled].As<bool>(true)};
+                     ParseMs(value[kFullUpdateIntervalMs]),
+                     std::nullopt,
+                     value[kUpdatesEnabled].As<bool>(true),
+                     value[kAlertOnFailingToUpdateTimes].As<size_t>(0)};
 
   if (!config.update_interval.count() && !config.full_update_interval.count()) {
     throw utils::impl::AttachTraceToException(
@@ -121,11 +137,14 @@ Config::Config(const yaml_config::YamlConfig& config,
       force_periodic_update(
           config[kForcePeriodicUpdates].As<std::optional<bool>>()),
       config_updates_enabled(config[kConfigSettings].As<bool>(true)),
+      has_pre_assign_check(config[kHasPreAssignCheck].As<bool>(false)),
       task_processor_name(
           config[kTaskProcessor].As<std::optional<std::string>>()),
       cleanup_interval(config[kCleanupInterval].As<std::chrono::milliseconds>(
           kDefaultCleanupInterval)),
       is_strong_period(config[kIsStrongPeriod].As<bool>(false)),
+      failed_updates_before_expiration(config[kFailedUpdatesBeforeExpiration]
+                                           .As<std::optional<std::uint64_t>>()),
       first_update_mode(
           config[dump::kDump][kFirstUpdateMode].As<FirstUpdateMode>(
               FirstUpdateMode::kSkip)),
@@ -139,7 +158,9 @@ Config::Config(const yaml_config::YamlConfig& config,
           config[kFullUpdateInterval].As<std::chrono::milliseconds>(0)),
       exception_interval(config[kExceptionInterval]
                              .As<std::optional<std::chrono::milliseconds>>()),
-      updates_enabled(config[kUpdatesEnabled].As<bool>(true)) {
+      updates_enabled(config[kUpdatesEnabled].As<bool>(true)),
+      alert_on_failing_to_update_times(
+          config[kAlertOnFailingToUpdateTimes].As<size_t>(0)) {
   switch (allowed_update_types) {
     case AllowedUpdateTypes::kFullAndIncremental:
       if (!update_interval.count() || !full_update_interval.count()) {
@@ -218,16 +239,16 @@ Config Config::MergeWith(const ConfigPatch& patch) const {
   copy.update_jitter = patch.update_jitter;
   copy.full_update_interval = patch.full_update_interval;
   copy.updates_enabled = patch.updates_enabled;
+  copy.alert_on_failing_to_update_times =
+      patch.alert_on_failing_to_update_times;
   if (patch.exception_interval)
     copy.exception_interval = patch.exception_interval;
   return copy;
 }
 
-std::unordered_map<std::string, ConfigPatch> ParseCacheConfigSet(
-    const dynamic_config::DocsMap& docs_map) {
-  return docs_map.Get("USERVER_CACHES")
-      .As<std::unordered_map<std::string, ConfigPatch>>();
-}
+const dynamic_config::Key<std::unordered_map<std::string, ConfigPatch>>
+    kCacheConfigSet{"USERVER_CACHES",
+                    dynamic_config::DefaultAsJsonString{"{}"}};
 
 }  // namespace cache
 

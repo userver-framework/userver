@@ -6,36 +6,34 @@
 
 USERVER_NAMESPACE_BEGIN
 
-using namespace USERVER_NAMESPACE::redis;
-
 TEST(SentinelQuery, SingleBadReply) {
-  SentinelInstanceResponse resp;
+  redis::SentinelInstanceResponse resp;
 
   int called = 0;
   int size = 0;
 
-  auto cb = [&](const ConnInfoByShard& info, size_t, size_t) {
+  auto cb = [&](const redis::ConnInfoByShard& info, size_t, size_t) {
     called++;
     size = info.size();
   };
-  auto context =
-      std::make_shared<GetHostsContext>(true, redis::Password("pass"), cb, 1);
+  auto context = std::make_shared<redis::GetHostsContext>(
+      true, redis::Password("pass"), cb, 1);
 
-  auto reply = std::make_shared<Reply>("cmd", ReplyData("str"));
+  auto reply = std::make_shared<redis::Reply>("cmd", redis::ReplyData("str"));
   context->GenerateCallback()(nullptr, reply);
 
   EXPECT_EQ(0, size);
   EXPECT_EQ(1, called);
 }
 
-std::shared_ptr<Reply> GenerateReply(const std::string& ip, bool master,
-                                     bool s_down, bool o_down,
-                                     bool master_link_status_err) {
+std::shared_ptr<redis::Reply> GenerateReply(const std::string& ip, bool master,
+                                            bool s_down, bool o_down,
+                                            bool master_link_status_err) {
   std::string flags = master ? "master" : "slave";
   if (s_down) flags += ",s_down";
   if (o_down) flags += ",o_down";
 
-  std::vector<ReplyData> array{
+  std::vector<redis::ReplyData> array{
       {"flags"}, {std::move(flags)}, {"name"}, {"inst-name"}, {"ip"},
       {ip},      {"port"},           {"1111"}};
   if (!master) {
@@ -43,25 +41,26 @@ std::shared_ptr<Reply> GenerateReply(const std::string& ip, bool master,
     array.emplace_back(master_link_status_err ? "err" : "ok");
   }
 
-  std::vector<ReplyData> array2{ReplyData(std::move(array))};
-  return std::make_shared<Reply>("cmd", ReplyData(std::move(array2)));
+  std::vector<redis::ReplyData> array2{redis::ReplyData(std::move(array))};
+  return std::make_shared<redis::Reply>("cmd",
+                                        redis::ReplyData(std::move(array2)));
 }
 
 const auto kHost1 = "127.0.0.1";
 const auto kHost2 = "127.0.0.2";
 
 TEST(SentinelQuery, SingleOkReply) {
-  SentinelInstanceResponse resp;
+  redis::SentinelInstanceResponse resp;
 
   int called = 0;
   int size = 0;
 
-  auto cb = [&](const ConnInfoByShard& info, size_t, size_t) {
+  auto cb = [&](const redis::ConnInfoByShard& info, size_t, size_t) {
     called++;
     size = info.size();
   };
-  auto context =
-      std::make_shared<GetHostsContext>(true, redis::Password("pass"), cb, 1);
+  auto context = std::make_shared<redis::GetHostsContext>(
+      true, redis::Password("pass"), cb, 1);
 
   auto reply = GenerateReply(kHost1, false, false, false, false);
   context->GenerateCallback()(nullptr, reply);
@@ -71,17 +70,17 @@ TEST(SentinelQuery, SingleOkReply) {
 }
 
 TEST(SentinelQuery, SingleSDownReply) {
-  SentinelInstanceResponse resp;
+  redis::SentinelInstanceResponse resp;
 
   int called = 0;
   int size = 0;
 
-  auto cb = [&](const ConnInfoByShard& info, size_t, size_t) {
+  auto cb = [&](const redis::ConnInfoByShard& info, size_t, size_t) {
     called++;
     size = info.size();
   };
-  auto context =
-      std::make_shared<GetHostsContext>(true, redis::Password("pass"), cb, 1);
+  auto context = std::make_shared<redis::GetHostsContext>(
+      true, redis::Password("pass"), cb, 1);
 
   auto reply = GenerateReply(kHost2, false, true, false, false);
   context->GenerateCallback()(nullptr, reply);
@@ -91,17 +90,17 @@ TEST(SentinelQuery, SingleSDownReply) {
 }
 
 TEST(SentinelQuery, MultipleOkOkOk) {
-  SentinelInstanceResponse resp;
+  redis::SentinelInstanceResponse resp;
 
   int called = 0;
   int size = 0;
 
-  auto cb = [&](const ConnInfoByShard& info, size_t, size_t) {
+  auto cb = [&](const redis::ConnInfoByShard& info, size_t, size_t) {
     called++;
     size = info.size();
   };
-  auto context =
-      std::make_shared<GetHostsContext>(1, redis::Password("pass"), cb, 3);
+  auto context = std::make_shared<redis::GetHostsContext>(
+      1, redis::Password("pass"), cb, 3);
 
   auto reply = GenerateReply(kHost1, false, false, false, false);
 
@@ -117,17 +116,17 @@ TEST(SentinelQuery, MultipleOkOkOk) {
 }
 
 TEST(SentinelQuery, MultipleOkOkMastererr) {
-  SentinelInstanceResponse resp;
+  redis::SentinelInstanceResponse resp;
 
   int called = 0;
   int size = 0;
 
-  auto cb = [&](const ConnInfoByShard& info, size_t, size_t) {
+  auto cb = [&](const redis::ConnInfoByShard& info, size_t, size_t) {
     called++;
     size = info.size();
   };
-  auto context =
-      std::make_shared<GetHostsContext>(1, redis::Password("pass"), cb, 3);
+  auto context = std::make_shared<redis::GetHostsContext>(
+      1, redis::Password("pass"), cb, 3);
 
   auto reply = GenerateReply(kHost1, false, false, false, false);
   context->GenerateCallback()(nullptr, reply);
@@ -143,17 +142,17 @@ TEST(SentinelQuery, MultipleOkOkMastererr) {
 }
 
 TEST(SentinelQuery, MultipleOkMastererrMastererr) {
-  SentinelInstanceResponse resp;
+  redis::SentinelInstanceResponse resp;
 
   int called = 0;
   int size = 0;
 
-  auto cb = [&](const ConnInfoByShard& info, size_t, size_t) {
+  auto cb = [&](const redis::ConnInfoByShard& info, size_t, size_t) {
     called++;
     size = info.size();
   };
-  auto context =
-      std::make_shared<GetHostsContext>(1, redis::Password("pass"), cb, 3);
+  auto context = std::make_shared<redis::GetHostsContext>(
+      1, redis::Password("pass"), cb, 3);
 
   auto reply = GenerateReply(kHost1, false, false, false, false);
   context->GenerateCallback()(nullptr, reply);
@@ -169,17 +168,17 @@ TEST(SentinelQuery, MultipleOkMastererrMastererr) {
 }
 
 TEST(SentinelQuery, MultipleOkOkSDown) {
-  SentinelInstanceResponse resp;
+  redis::SentinelInstanceResponse resp;
 
   int called = 0;
   int size = 0;
 
-  auto cb = [&](const ConnInfoByShard& info, size_t, size_t) {
+  auto cb = [&](const redis::ConnInfoByShard& info, size_t, size_t) {
     called++;
     size = info.size();
   };
-  auto context =
-      std::make_shared<GetHostsContext>(1, redis::Password("pass"), cb, 3);
+  auto context = std::make_shared<redis::GetHostsContext>(
+      1, redis::Password("pass"), cb, 3);
 
   auto reply = GenerateReply(kHost1, false, false, false, false);
   context->GenerateCallback()(nullptr, reply);
@@ -195,17 +194,17 @@ TEST(SentinelQuery, MultipleOkOkSDown) {
 }
 
 TEST(SentinelQuery, MultipleOkSDownSDown) {
-  SentinelInstanceResponse resp;
+  redis::SentinelInstanceResponse resp;
 
   int called = 0;
   int size = 0;
 
-  auto cb = [&](const ConnInfoByShard& info, size_t, size_t) {
+  auto cb = [&](const redis::ConnInfoByShard& info, size_t, size_t) {
     called++;
     size = info.size();
   };
-  auto context =
-      std::make_shared<GetHostsContext>(1, redis::Password("pass"), cb, 3);
+  auto context = std::make_shared<redis::GetHostsContext>(
+      1, redis::Password("pass"), cb, 3);
 
   auto reply = GenerateReply(kHost1, false, false, false, false);
   context->GenerateCallback()(nullptr, reply);
@@ -221,17 +220,17 @@ TEST(SentinelQuery, MultipleOkSDownSDown) {
 }
 
 TEST(SentinelQuery, MultipleOkOkODown) {
-  SentinelInstanceResponse resp;
+  redis::SentinelInstanceResponse resp;
 
   int called = 0;
   int size = 0;
 
-  auto cb = [&](const ConnInfoByShard& info, size_t, size_t) {
+  auto cb = [&](const redis::ConnInfoByShard& info, size_t, size_t) {
     called++;
     size = info.size();
   };
-  auto context =
-      std::make_shared<GetHostsContext>(1, redis::Password("pass"), cb, 3);
+  auto context = std::make_shared<redis::GetHostsContext>(
+      1, redis::Password("pass"), cb, 3);
 
   auto reply = GenerateReply(kHost1, false, false, false, false);
   context->GenerateCallback()(nullptr, reply);
@@ -247,18 +246,18 @@ TEST(SentinelQuery, MultipleOkOkODown) {
 }
 
 TEST(SentinelQuery, DifferentAnswers1) {
-  SentinelInstanceResponse resp;
+  redis::SentinelInstanceResponse resp;
 
   int called = 0;
 
-  auto cb = [&](const ConnInfoByShard& info, size_t, size_t) {
+  auto cb = [&](const redis::ConnInfoByShard& info, size_t, size_t) {
     called++;
     ASSERT_EQ(info.size(), 1u);
-    auto shard_info = info[0];
+    const auto& shard_info = info[0];
     EXPECT_EQ(shard_info.HostPort().first, kHost1);
   };
-  auto context =
-      std::make_shared<GetHostsContext>(1, redis::Password("pass"), cb, 3);
+  auto context = std::make_shared<redis::GetHostsContext>(
+      1, redis::Password("pass"), cb, 3);
 
   auto reply = GenerateReply(kHost1, true, false, false, false);
   context->GenerateCallback()(nullptr, reply);
@@ -269,18 +268,18 @@ TEST(SentinelQuery, DifferentAnswers1) {
 }
 
 TEST(SentinelQuery, DifferentAnswers2) {
-  SentinelInstanceResponse resp;
+  redis::SentinelInstanceResponse resp;
 
   int called = 0;
 
-  auto cb = [&](const ConnInfoByShard& info, size_t, size_t) {
+  auto cb = [&](const redis::ConnInfoByShard& info, size_t, size_t) {
     called++;
     ASSERT_EQ(info.size(), 1u);
-    auto shard_info = info[0];
+    const auto& shard_info = info[0];
     EXPECT_EQ(shard_info.HostPort().first, kHost1);
   };
-  auto context =
-      std::make_shared<GetHostsContext>(1, redis::Password("pass"), cb, 3);
+  auto context = std::make_shared<redis::GetHostsContext>(
+      1, redis::Password("pass"), cb, 3);
 
   auto reply = GenerateReply(kHost2, true, false, false, false);
   context->GenerateCallback()(nullptr, reply);

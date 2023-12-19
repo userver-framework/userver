@@ -18,7 +18,6 @@ class EnrichedTestBase {
   virtual void SetUp() = 0;
   virtual void TearDown() = 0;
   virtual void TestBody() = 0;
-  virtual bool IsTestCancelled() = 0;
 
   std::size_t GetThreadCount() const { return utest_thread_count_; }
   void SetThreadCount(std::size_t count) { utest_thread_count_ = count; }
@@ -27,15 +26,13 @@ class EnrichedTestBase {
   std::size_t utest_thread_count_ = 1;
 };
 
+enum class DeathTestsEnabled : bool {};
+
 // The work horse of the test suite. Takes a test class returned by 'factory'
 // in a 'std::unique_ptr' and runs the usual test cycle (mimicking gtest),
 // all in a coroutine environment.
-void DoRunTest(std::size_t thread_count,
+void DoRunTest(std::size_t thread_count, DeathTestsEnabled,
                std::function<std::unique_ptr<EnrichedTestBase>()> factory);
-
-// Analogue of `DoRunTest` for DEATH-tests.
-void DoRunDeathTest(std::size_t thread_count,
-                    std::function<std::unique_ptr<EnrichedTestBase>()> factory);
 
 void RunSetUpTestSuite(void (*set_up_test_suite)());
 void RunTearDownTestSuite(void (*tear_down_test_suite)());
@@ -55,10 +52,6 @@ class EnrichedFixture : public UserFixture, public EnrichedTestBase {
  private:
   using EnrichedTestBase::SetThreadCount;
   using EnrichedTestBase::TestBody;
-
-  bool IsTestCancelled() final {
-    return UserFixture::HasFatalFailure() || UserFixture::IsSkipped();
-  }
 };
 
 template <typename Base, typename UserFixture>
@@ -80,8 +73,8 @@ class TestLauncher : public WithStaticMethods<::testing::Test, UserFixture> {
  public:
   // Called from UTEST_F, TYPED_UTEST and TYPED_UTEST_P macros
   template <typename EnrichedTest>
-  static void RunTest(std::size_t thread_count) {
-    utest::impl::DoRunTest(thread_count,
+  static void RunTest(std::size_t thread_count, bool death_tests_enabled) {
+    utest::impl::DoRunTest(thread_count, DeathTestsEnabled{death_tests_enabled},
                            [] { return std::make_unique<EnrichedTest>(); });
   }
 };
@@ -94,7 +87,7 @@ class TestLauncherParametric
  public:
   // Called from the UTEST_P macro
   template <typename EnrichedTest>
-  static void RunTest(std::size_t thread_count) {
+  static void RunTest(std::size_t thread_count, bool death_tests_enabled) {
     using ParamType = typename UserFixture::ParamType;
     const auto& parameter = ::testing::TestWithParam<ParamType>::GetParam();
 
@@ -103,25 +96,11 @@ class TestLauncherParametric
     auto factory = std::make_unique<
         testing::internal::ParameterizedTestFactory<EnrichedTest>>(parameter);
 
-    utest::impl::DoRunTest(thread_count, [&] {
-      return std::unique_ptr<EnrichedTest>{
-          dynamic_cast<EnrichedTest*>(factory->CreateTest())};
-    });
-  }
-};
-
-// 'TestLauncherDeath' takes the enriched user's test class and runs it in a
-// coroutine environment via 'DoRunDeathTest'.
-template <typename UserFixture>
-class TestLauncherDeath
-    : public WithStaticMethods<::testing::Test, UserFixture> {
- public:
-  // Called from UTEST_DEATH macros
-  template <typename EnrichedTest>
-  static void RunTest(std::size_t thread_count) {
-    testing::FLAGS_gtest_death_test_style = "threadsafe";
-    utest::impl::DoRunDeathTest(
-        thread_count, [] { return std::make_unique<EnrichedTest>(); });
+    utest::impl::DoRunTest(
+        thread_count, DeathTestsEnabled{death_tests_enabled}, [&] {
+          return std::unique_ptr<EnrichedTest>{
+              dynamic_cast<EnrichedTest*>(factory->CreateTest())};
+        });
   }
 };
 
@@ -188,7 +167,8 @@ USERVER_NAMESPACE_END
           IMPL_UTEST_USER_FIXTURE(test_suite_name), UtestTypeParamImpl>;
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define IMPL_UTEST_TEST(test_suite_name, test_name, thread_count)              \
+#define IMPL_UTEST_TEST(test_suite_name, test_name, thread_count,              \
+                        death_tests_enabled)                                   \
   struct IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(test_suite_name, test_name) final { \
     class EnrichedTest final                                                   \
         : public USERVER_NAMESPACE::utest::impl::EnrichedFixture<              \
@@ -200,28 +180,7 @@ USERVER_NAMESPACE_END
     using EnrichedTest = IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(                    \
         test_suite_name, test_name)::EnrichedTest;                             \
     USERVER_NAMESPACE::utest::impl::TestLauncher<::testing::Test>::RunTest<    \
-        EnrichedTest>(thread_count);                                           \
-  }                                                                            \
-  void IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(test_suite_name,                      \
-                                         test_name)::EnrichedTest::TestBody()
-
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define IMPL_UTEST_DEATH_TEST(test_suite_name, test_name, thread_count)        \
-  static_assert(USERVER_NAMESPACE::utest::impl::CheckTestSuiteNameSuffix(      \
-                    #test_suite_name, "DeathTest"),                            \
-                "test_suite_name for death test should be '*DeathTest'");      \
-  struct IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(test_suite_name, test_name) final { \
-    class EnrichedTest final                                                   \
-        : public USERVER_NAMESPACE::utest::impl::EnrichedFixture<              \
-              ::testing::Test> {                                               \
-      void TestBody() override;                                                \
-    };                                                                         \
-  };                                                                           \
-  TEST(test_suite_name, test_name) {                                           \
-    using EnrichedTest = IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(                    \
-        test_suite_name, test_name)::EnrichedTest;                             \
-    USERVER_NAMESPACE::utest::impl::TestLauncherDeath<                         \
-        ::testing::Test>::RunTest<EnrichedTest>(thread_count);                 \
+        EnrichedTest>(thread_count, death_tests_enabled);                      \
   }                                                                            \
   void IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(test_suite_name,                      \
                                          test_name)::EnrichedTest::TestBody()
@@ -240,33 +199,38 @@ USERVER_NAMESPACE_END
   /* The 'namespace' trick is used to make gtest use our 'test_launcher'       \
    * instead of 'test_suite_name' fixture */                                   \
   namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {                       \
-    IMPL_UTEST_HIDE_USER_FIXTURE_BY_TEST_LAUNCHER(test_suite_name,             \
-                                                  test_launcher_template)
+  IMPL_UTEST_HIDE_USER_FIXTURE_BY_TEST_LAUNCHER(test_suite_name,               \
+                                                test_launcher_template)
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define IMPL_UTEST_ANY_END(test_suite_name, test_name, thread_count) \
+#define IMPL_UTEST_ANY_END(test_suite_name, test_name, thread_count, \
+                           death_tests_enabled)                      \
   /* test header goes here */ {                                      \
     using EnrichedTest = IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(          \
         test_suite_name, test_name)::EnrichedTest;                   \
-    this->RunTest<EnrichedTest>(thread_count);                       \
+    this->RunTest<EnrichedTest>(thread_count, death_tests_enabled);  \
   }                                                                  \
   } /* namespace */                                                  \
   void IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(test_suite_name,            \
                                          test_name)::EnrichedTest::TestBody()
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define IMPL_UTEST_TEST_F(test_suite_name, test_name, thread_count)  \
+#define IMPL_UTEST_TEST_F(test_suite_name, test_name, thread_count,  \
+                          death_tests_enabled)                       \
   IMPL_UTEST_ANY_BEGIN(test_suite_name, test_name,                   \
                        USERVER_NAMESPACE::utest::impl::TestLauncher) \
   TEST_F(test_suite_name, test_name)                                 \
-  IMPL_UTEST_ANY_END(test_suite_name, test_name, thread_count)
+  IMPL_UTEST_ANY_END(test_suite_name, test_name, thread_count,       \
+                     death_tests_enabled)
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define IMPL_UTEST_TEST_P(test_suite_name, test_name, thread_count)            \
+#define IMPL_UTEST_TEST_P(test_suite_name, test_name, thread_count,            \
+                          death_tests_enabled)                                 \
   IMPL_UTEST_ANY_BEGIN(test_suite_name, test_name,                             \
                        USERVER_NAMESPACE::utest::impl::TestLauncherParametric) \
   TEST_P(test_suite_name, test_name)                                           \
-  IMPL_UTEST_ANY_END(test_suite_name, test_name, thread_count)
+  IMPL_UTEST_ANY_END(test_suite_name, test_name, thread_count,                 \
+                     death_tests_enabled)
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define IMPL_UTEST_TYPED_ANY_BEGIN(test_suite_name, test_name)                 \
@@ -292,26 +256,31 @@ USERVER_NAMESPACE_END
   namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define IMPL_UTEST_TYPED_ANY_END(test_suite_name, test_name, thread_count) \
-  /* test header goes here */ {                                            \
-    using EnrichedTest = IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(                \
-        test_suite_name, test_name)::EnrichedTest<TypeParam>;              \
-    this->template RunTest<EnrichedTest>(thread_count);                    \
-  }                                                                        \
-  } /* namespace */                                                        \
-  template <typename UtestTypeParamImpl>                                   \
-  void IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(                                  \
-      test_suite_name,                                                     \
+#define IMPL_UTEST_TYPED_ANY_END(test_suite_name, test_name, thread_count,   \
+                                 death_tests_enabled)                        \
+  /* test header goes here */ {                                              \
+    using EnrichedTest = IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(                  \
+        test_suite_name, test_name)::EnrichedTest<TypeParam>;                \
+    this->template RunTest<EnrichedTest>(thread_count, death_tests_enabled); \
+  }                                                                          \
+  } /* namespace */                                                          \
+  template <typename UtestTypeParamImpl>                                     \
+  void IMPL_UTEST_HIDE_ENRICHED_FROM_IDE(                                    \
+      test_suite_name,                                                       \
       test_name)::EnrichedTest<UtestTypeParamImpl>::TestBody()
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define IMPL_UTEST_TYPED_TEST(test_suite_name, test_name, thread_count) \
+#define IMPL_UTEST_TYPED_TEST(test_suite_name, test_name, thread_count, \
+                              death_tests_enabled)                      \
   IMPL_UTEST_TYPED_ANY_BEGIN(test_suite_name, test_name)                \
   TYPED_TEST(test_suite_name, test_name)                                \
-  IMPL_UTEST_TYPED_ANY_END(test_suite_name, test_name, thread_count)
+  IMPL_UTEST_TYPED_ANY_END(test_suite_name, test_name, thread_count,    \
+                           death_tests_enabled)
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define IMPL_UTEST_TYPED_TEST_P(test_suite_name, test_name, thread_count) \
+#define IMPL_UTEST_TYPED_TEST_P(test_suite_name, test_name, thread_count, \
+                                death_tests_enabled)                      \
   IMPL_UTEST_TYPED_ANY_BEGIN(test_suite_name, test_name)                  \
   TYPED_TEST_P(test_suite_name, test_name)                                \
-  IMPL_UTEST_TYPED_ANY_END(test_suite_name, test_name, thread_count)
+  IMPL_UTEST_TYPED_ANY_END(test_suite_name, test_name, thread_count,      \
+                           death_tests_enabled)

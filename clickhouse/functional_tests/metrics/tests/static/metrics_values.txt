@@ -1,0 +1,32 @@
+# Clickhouse driver metrics on connections
+clickhouse.connections.active: clickhouse_database=clickhouse-database, clickhouse_instance=localhost	GAUGE	0
+clickhouse.connections.busy: clickhouse_database=clickhouse-database, clickhouse_instance=localhost	GAUGE	0
+clickhouse.connections.closed: clickhouse_database=clickhouse-database, clickhouse_instance=localhost	GAUGE	0
+clickhouse.connections.created: clickhouse_database=clickhouse-database, clickhouse_instance=localhost	GAUGE	0
+clickhouse.connections.overload: clickhouse_database=clickhouse-database, clickhouse_instance=localhost	GAUGE	0
+
+# Modifying queries stats
+clickhouse.inserts.error: clickhouse_database=clickhouse-database, clickhouse_instance=localhost	GAUGE	0
+clickhouse.inserts.timings: clickhouse_database=clickhouse-database, clickhouse_instance=localhost, percentile=p0	GAUGE	0
+clickhouse.inserts.timings: clickhouse_database=clickhouse-database, clickhouse_instance=localhost, percentile=p100	GAUGE	0
+clickhouse.inserts.timings: clickhouse_database=clickhouse-database, clickhouse_instance=localhost, percentile=p50	GAUGE	0
+clickhouse.inserts.timings: clickhouse_database=clickhouse-database, clickhouse_instance=localhost, percentile=p90	GAUGE	0
+clickhouse.inserts.timings: clickhouse_database=clickhouse-database, clickhouse_instance=localhost, percentile=p95	GAUGE	0
+clickhouse.inserts.timings: clickhouse_database=clickhouse-database, clickhouse_instance=localhost, percentile=p98	GAUGE	0
+clickhouse.inserts.timings: clickhouse_database=clickhouse-database, clickhouse_instance=localhost, percentile=p99	GAUGE	0
+clickhouse.inserts.timings: clickhouse_database=clickhouse-database, clickhouse_instance=localhost, percentile=p99_6	GAUGE	0
+clickhouse.inserts.timings: clickhouse_database=clickhouse-database, clickhouse_instance=localhost, percentile=p99_9	GAUGE	0
+clickhouse.inserts.total: clickhouse_database=clickhouse-database, clickhouse_instance=localhost	GAUGE	0
+
+# Read-only queries stats
+clickhouse.queries.error: clickhouse_database=clickhouse-database, clickhouse_instance=localhost	GAUGE	0
+clickhouse.queries.timings: clickhouse_database=clickhouse-database, clickhouse_instance=localhost, percentile=p0	GAUGE	0
+clickhouse.queries.timings: clickhouse_database=clickhouse-database, clickhouse_instance=localhost, percentile=p100	GAUGE	0
+clickhouse.queries.timings: clickhouse_database=clickhouse-database, clickhouse_instance=localhost, percentile=p50	GAUGE	0
+clickhouse.queries.timings: clickhouse_database=clickhouse-database, clickhouse_instance=localhost, percentile=p90	GAUGE	0
+clickhouse.queries.timings: clickhouse_database=clickhouse-database, clickhouse_instance=localhost, percentile=p95	GAUGE	0
+clickhouse.queries.timings: clickhouse_database=clickhouse-database, clickhouse_instance=localhost, percentile=p98	GAUGE	0
+clickhouse.queries.timings: clickhouse_database=clickhouse-database, clickhouse_instance=localhost, percentile=p99	GAUGE	0
+clickhouse.queries.timings: clickhouse_database=clickhouse-database, clickhouse_instance=localhost, percentile=p99_6	GAUGE	0
+clickhouse.queries.timings: clickhouse_database=clickhouse-database, clickhouse_instance=localhost, percentile=p99_9	GAUGE	0
+clickhouse.queries.total: clickhouse_database=clickhouse-database, clickhouse_instance=localhost	GAUGE	0

@@ -1,6 +1,8 @@
 #include <userver/utest/using_namespace_userver.hpp>
 
 /// [TCP sample - component]
+#include <userver/clients/dns/component.hpp>
+#include <userver/components/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/components/tcp_acceptor_base.hpp>
@@ -35,9 +37,6 @@ class Echo final : public components::TcpAcceptorBase {
 
 }  // namespace samples::tcp::echo
 
-template <>
-inline constexpr bool components::kHasValidate<samples::tcp::echo::Echo> = true;
-
 /// [TCP sample - component]
 
 namespace samples::tcp::echo {
@@ -53,12 +52,10 @@ struct Stats {
 /// [TCP sample - Stats tag]
 const utils::statistics::MetricTag<Stats> kTcpEchoTag{"tcp-echo"};
 
-formats::json::ValueBuilder DumpMetric(const Stats& stats) {
-  formats::json::ValueBuilder value;
-  value["sockets"]["opened"] = stats.opened_sockets.load();
-  value["sockets"]["closed"] = stats.closed_sockets.load();
-  value["bytes"]["read"] = stats.bytes_read.load();
-  return value.ExtractValue();
+void DumpMetric(utils::statistics::Writer& writer, const Stats& stats) {
+  writer["sockets"]["opened"] = stats.opened_sockets;
+  writer["sockets"]["closed"] = stats.closed_sockets;
+  writer["bytes"]["read"] = stats.bytes_read;
 }
 
 void ResetMetric(Stats& stats) {
@@ -143,6 +140,7 @@ int main(int argc, const char* const argv[]) {
                                   // Testuite components:
                                   .Append<server::handlers::TestsControl>()
                                   .Append<components::TestsuiteSupport>()
+                                  .Append<clients::dns::Component>()
                                   .Append<components::HttpClient>();
 
   return utils::DaemonMain(argc, argv, component_list);

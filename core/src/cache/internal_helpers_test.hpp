@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <utility>
 
+#include <userver/alerts/storage.hpp>
 #include <userver/cache/cache_update_trait.hpp>
 #include <userver/dump/config.hpp>
 #include <userver/dynamic_config/storage_mock.hpp>
@@ -29,10 +30,12 @@ struct MockEnvironment final {
   dynamic_config::StorageMock config_storage{{dump::kConfigSet, {}},
                                              {cache::kCacheConfigSet, {}}};
   utils::statistics::Storage statistics_storage;
+  alerts::Storage alerts_storage;
   fs::blocking::TempDirectory dump_root = fs::blocking::TempDirectory::Create();
   testsuite::CacheControl cache_control{
       testsuite::CacheControl::PeriodicUpdatesMode::kDisabled};
-  testsuite::DumpControl dump_control;
+  testsuite::DumpControl dump_control{
+      testsuite::DumpControl::PeriodicsMode::kDisabled};
 };
 
 class CacheMockBase : public CacheUpdateTrait {

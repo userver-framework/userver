@@ -11,7 +11,7 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::io {
-class Socket;
+class RwBase;
 }  // namespace engine::io
 
 namespace server::request {
@@ -57,6 +57,7 @@ class ResponseBase {
   /// @cond
   // TODO: server internals. remove from public interface
   void SetReady();
+  void SetReady(std::chrono::steady_clock::time_point now);
   virtual void SetSendFailed(
       std::chrono::steady_clock::time_point failure_time);
   bool IsLimitReached() const;
@@ -69,7 +70,7 @@ class ResponseBase {
   }
   std::chrono::steady_clock::time_point SentTime() const { return sent_time_; }
 
-  virtual void SendResponse(engine::io::Socket& socket) = 0;
+  virtual void SendResponse(engine::io::RwBase& socket) = 0;
 
   virtual void SetStatusServiceUnavailable() = 0;
   virtual void SetStatusOk() = 0;
@@ -77,9 +78,10 @@ class ResponseBase {
   /// @endcond
 
  protected:
-  void SetSent(size_t bytes_sent);
-  void SetSentTime(std::chrono::steady_clock::time_point sent_time);
+  void SetSent(std::size_t bytes_sent,
+               std::chrono::steady_clock::time_point sent_time);
 
+ private:
   class Guard final {
    public:
     Guard(ResponseDataAccounter& accounter,
@@ -96,7 +98,6 @@ class ResponseBase {
     size_t size_;
   };
 
- private:
   ResponseDataAccounter& accounter_;
   std::optional<Guard> guard_;
   std::string data_;

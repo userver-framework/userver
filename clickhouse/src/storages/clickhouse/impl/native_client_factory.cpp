@@ -17,6 +17,11 @@
 
 #include <storages/clickhouse/impl/tracing_tags.hpp>
 
+namespace clickhouse {
+// Not present before 2.5.0, but we don't use it anyway.
+struct Endpoint;
+}  // namespace clickhouse
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::clickhouse::impl {
@@ -29,7 +34,7 @@ using TlsSocket = engine::io::TlsWrapper;
 using ConnectionMode = ConnectionSettings::ConnectionMode;
 using CompressionMethod = ConnectionSettings::CompressionMethod;
 
-constexpr std::chrono::milliseconds kConnectTimeout{2000};
+constexpr std::chrono::milliseconds kConnectTimeout{1500};
 
 template <typename T>
 class ClickhouseSocketInput final : public clickhouse_cpp::InputStream {
@@ -133,7 +138,34 @@ class ClickhouseTlsSocketAdapter : public clickhouse_cpp::SocketBase {
   mutable TlsSocket tls_socket_;
 };
 
-class ClickhouseSocketFactory final : public clickhouse_cpp::SocketFactory {
+// Clickhouse-cpp broke the API in 2.5.0:
+// now connect takes an additional parameter 'const Endpoint&'.
+//
+// We don't need that anyway, but have to somehow override the function,
+// so we maintain two versions which both resolve to the same logic.
+class ClickhouseCppSocketFactoryHack : public clickhouse_cpp::SocketFactory {
+ public:
+  // NOLINTNEXTLINE
+  std::unique_ptr<clickhouse_cpp::SocketBase> connect(
+      const clickhouse_cpp::ClientOptions& opts,
+      // This Endpoint value comes from 'endpoints' field in opts, which we
+      // don't use, since we only have one host/port pair per connection
+      const clickhouse_cpp::Endpoint&) {
+    return DoConnect(opts);
+  }
+
+  // NOLINTNEXTLINE
+  std::unique_ptr<clickhouse_cpp::SocketBase> connect(
+      const clickhouse_cpp::ClientOptions& opts) {
+    return DoConnect(opts);
+  }
+
+ protected:
+  virtual std::unique_ptr<clickhouse_cpp::SocketBase> DoConnect(
+      const clickhouse_cpp::ClientOptions& opts) = 0;
+};
+
+class ClickhouseSocketFactory final : public ClickhouseCppSocketFactoryHack {
  public:
   ClickhouseSocketFactory(clients::dns::Resolver& resolver, ConnectionMode mode,
                           engine::Deadline& operations_deadline)
@@ -143,7 +175,12 @@ class ClickhouseSocketFactory final : public clickhouse_cpp::SocketFactory {
 
   ~ClickhouseSocketFactory() override = default;
 
-  std::unique_ptr<clickhouse_cpp::SocketBase> connect(
+  void sleepFor(const std::chrono::milliseconds& duration) override {
+    engine::SleepFor(duration);
+  }
+
+ private:
+  std::unique_ptr<clickhouse_cpp::SocketBase> DoConnect(
       const clickhouse_cpp::ClientOptions& opts) override {
     auto addrs = resolver_.Resolve(opts.host, operations_deadline_);
 
@@ -151,6 +188,10 @@ class ClickhouseSocketFactory final : public clickhouse_cpp::SocketFactory {
       current_addr.SetPort(static_cast<int>(opts.port));
 
       try {
+        // Each connect attempt should have its own timeout to avoid situation
+        // of one attempt consuming the whole budget.
+        operations_deadline_ = engine::Deadline::FromDuration(kConnectTimeout);
+
         switch (mode_) {
           case ConnectionMode::kNonSecure:
             return std::make_unique<ClickhouseSocketAdapter>(
@@ -164,14 +205,10 @@ class ClickhouseSocketFactory final : public clickhouse_cpp::SocketFactory {
     }
 
     throw std::runtime_error{
-        "Could not connect to any of the resolved addresses"};
+        fmt::format("Could not connect to any of the resolved addresses: {}",
+                    fmt::join(addrs, ", "))};
   }
 
-  void sleepFor(const std::chrono::milliseconds& duration) override {
-    engine::SleepFor(duration);
-  }
-
- private:
   clients::dns::Resolver& resolver_;
   ConnectionMode mode_;
 
@@ -186,6 +223,7 @@ clickhouse_cpp::CompressionMethod GetCompressionMethod(
     case CompressionMethod::kLZ4:
       return clickhouse_cpp::CompressionMethod::LZ4;
   }
+  UINVARIANT(false, "Invalid value of CompressionMethod enum");
 }
 
 }  // namespace

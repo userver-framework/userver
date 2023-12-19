@@ -23,7 +23,7 @@ class Pipe final {
   int ExtractOut() { return std::exchange(fd_[1], -1); }
 
  private:
-  int fd_[2];
+  int fd_[2]{};
 };
 
 namespace io = engine::io;
@@ -34,7 +34,7 @@ using FdControl = io::impl::FdControl;
 
 void fd_control_destroy(benchmark::State& state) {
   engine::RunStandalone([&]() {
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       state.PauseTiming();
       Pipe pipe;
 
@@ -49,7 +49,7 @@ BENCHMARK(fd_control_destroy);
 
 void fd_control_close_destroy(benchmark::State& state) {
   engine::RunStandalone([&] {
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       state.PauseTiming();
       Pipe pipe;
 
@@ -65,7 +65,7 @@ BENCHMARK(fd_control_close_destroy);
 
 void fd_control_wait_destroy(benchmark::State& state) {
   engine::RunStandalone([&] {
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       state.PauseTiming();
       Pipe pipe;
 
@@ -81,7 +81,7 @@ BENCHMARK(fd_control_wait_destroy);
 
 void fd_control_construct_wait_destroy(benchmark::State& state) {
   engine::RunStandalone([&] {
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       state.PauseTiming();
       Pipe pipe;
       state.ResumeTiming();

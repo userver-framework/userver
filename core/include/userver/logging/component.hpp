@@ -6,12 +6,16 @@
 #include <string>
 #include <unordered_map>
 
+#include <userver/alerts/storage.hpp>
 #include <userver/components/component_fwd.hpp>
 #include <userver/components/impl/component_base.hpp>
 #include <userver/concurrent/async_event_source.hpp>
 #include <userver/os_signals/component.hpp>
 
+#include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/periodic_task.hpp>
+#include <userver/utils/statistics/entry.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 #include "logger.hpp"
 
@@ -19,7 +23,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace logging {
 struct LoggerConfig;
-}
+
+namespace impl {
+class TpLogger;
+class TcpSocketSink;
+}  // namespace impl
+
+}  // namespace logging
 
 namespace components {
 
@@ -42,6 +52,15 @@ namespace components {
 /// message_queue_size | the size of internal message queue, must be a power of 2 | 65536
 /// overflow_behavior | message handling policy while the queue is full: `discard` drops messages, `block` waits until message gets into the queue | discard
 /// testsuite-capture | if exists, setups additional TCP log sink for testing purposes | {}
+/// fs-task-processor | task processor for disk I/O operations for this logger | fs-task-processor of the loggers component
+///
+/// ### Logs output
+/// You can specify logger output, in `file_path` option:
+/// - Use `@stdout` to write your logs to standard output stream;
+/// - Use `@stderr` to write your logs to standard error stream;
+/// - Use `@null` to suppress sending of logs;
+/// - Use `%file_name%` to write your logs in file. Use USR1 signal or `OnLogRotate` handler to reopen files after log rotation;
+/// - Use `unix:%socket_name%` to write your logs to unix socket. Socket must be created before the service starts and closed by listener afert service is shuted down.
 ///
 /// ### testsuite-capture options:
 /// Name | Description | Default value
@@ -59,7 +78,8 @@ namespace components {
 
 class Logging final : public impl::ComponentBase {
  public:
-  /// The default name of this component
+  /// @ingroup userver_component_names
+  /// @brief The default name of components::Logging component
   static constexpr std::string_view kName = "logging";
 
   /// The component constructor
@@ -82,22 +102,28 @@ class Logging final : public impl::ComponentBase {
 
   /// Reopens log files after rotation
   void OnLogRotate();
+  void TryReopenFiles();
 
-  class TestsuiteCaptureSink;
+  void WriteStatistics(utils::statistics::Writer& writer) const;
 
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
-  auto GetTaskFunction() {
-    return [this] { FlushLogs(); };
-  }
+  void Init(const ComponentConfig&, const ComponentContext&);
+  void Stop() noexcept;
+
   void FlushLogs();
 
-  engine::TaskProcessor* fs_task_processor_;
-  std::unordered_map<std::string, logging::LoggerPtr> loggers_;
+  engine::TaskProcessor* fs_task_processor_{nullptr};
+  std::unordered_map<std::string, std::shared_ptr<logging::impl::TpLogger>>
+      loggers_;
   utils::PeriodicTask flush_task_;
-  std::shared_ptr<TestsuiteCaptureSink> socket_sink_;
+  logging::impl::TcpSocketSink* socket_sink_{nullptr};
+  alerts::Storage& alert_storage_;
+
+  // Subscriptions must be the last fields.
   os_signals::Subscriber signal_subscriber_;
+  utils::statistics::Entry statistics_holder_;
 };
 
 template <>

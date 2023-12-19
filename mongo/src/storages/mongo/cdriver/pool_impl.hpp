@@ -7,7 +7,7 @@
 
 #include <storages/mongo/cdriver/async_stream.hpp>
 #include <storages/mongo/cdriver/wrappers.hpp>
-#include <storages/mongo/mongo_config.hpp>
+#include <storages/mongo/dynamic_config.hpp>
 #include <storages/mongo/pool_impl.hpp>
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/engine/deadline.hpp>
@@ -38,15 +38,20 @@ class CDriverPoolImpl final : public PoolImpl {
 
   CDriverPoolImpl(std::string id, const std::string& uri_string,
                   const PoolConfig& config,
-                  clients::dns::Resolver* dns_resolver, Config mongo_config);
+                  clients::dns::Resolver* dns_resolver,
+                  dynamic_config::Source config_source);
   ~CDriverPoolImpl() override;
 
   const std::string& DefaultDatabaseName() const override;
 
+  void Ping() override;
+
   size_t InUseApprox() const override;
   size_t SizeApprox() const override;
   size_t MaxSize() const override;
+  void SetMaxSize(size_t max_size) override;
 
+  /// @throws CancelledException, PoolOverloadException
   BoundClientPtr Acquire();
 
  private:
@@ -64,7 +69,7 @@ class CDriverPoolImpl final : public PoolImpl {
   UriPtr uri_;
   AsyncStreamInitiatorData init_data_;
 
-  const size_t max_size_;
+  std::atomic<size_t> max_size_;
   const size_t idle_limit_;
   const std::chrono::milliseconds queue_timeout_;
   std::atomic<size_t> size_;

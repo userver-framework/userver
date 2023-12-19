@@ -23,8 +23,8 @@ class HttpTestpointClient final : public TestpointClientBase {
 
   ~HttpTestpointClient() override;
 
-  void Execute(const std::string& name, const formats::json::Value& json,
-               const Callback& callback) const override;
+  void Execute(std::string_view name, const formats::json::Value& json,
+               Callback callback) const override;
 
  private:
   clients::http::Client& http_client_;

@@ -6,19 +6,9 @@ maintainers:
 description: Userver component for gRPC protocol
 
 libraries:
-  - Boost::regex
   - userver-core
 
-debian:
-    build_dependencies:
-      - libboost-regex-dev
-      - libyandex-taxi-protobuf-dev
-      - libyandex-taxi-protobuf1
-      - libyandex-taxi-protoc1
-      - libyandex-taxi-protoc-dev
-      - yandex-taxi-protobuf-compiler
-      - libyandex-taxi-grpc-dev
-      - libyandex-taxi-grpc7
-      - libyandex-taxi-grpc++-dev
-      - libyandex-taxi-grpc++1
-      - yandex-taxi-protobuf-compiler-grpc
+configs:
+    names:
+      - USERVER_GRPC_CLIENT_ENABLE_DEADLINE_PROPAGATION
+      - USERVER_GRPC_SERVER_CANCEL_TASK_BY_DEADLINE

@@ -39,9 +39,9 @@ void ComponentInfo::ClearComponent() {
   span.AddTag(kComponentName, name_);
 
   auto component = ExtractComponent();
-  LOG_INFO() << "Stopping component";
+  LOG_DEBUG() << "Stopping component";
   component.reset();
-  LOG_INFO() << "Stopped component";
+  LOG_DEBUG() << "Stopped component";
 }
 
 ComponentBase* ComponentInfo::GetComponent() const {
@@ -137,6 +137,16 @@ void ComponentInfo::WaitStage(ComponentLifetimeStage stage,
   });
   if (!ok && stage_switching_cancelled_)
     throw StageSwitchingCancelledException(method_name.append(" cancelled"));
+}
+
+std::string ComponentInfo::GetDependencies() const {
+  if (it_depends_on_.empty()) {
+    return {};
+  }
+
+  auto delimiter = fmt::format(R"("; "{}" -> ")", name_);
+  return fmt::format(R"("{}" -> "{}" )", name_,
+                     fmt::join(it_depends_on_, delimiter));
 }
 
 bool ComponentInfo::HasComponent() const {

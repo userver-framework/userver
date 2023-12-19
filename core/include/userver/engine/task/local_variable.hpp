@@ -36,7 +36,7 @@ class TaskLocalVariable final {
 
   /// @brief Get the variable instance for the current task.
   /// @returns the variable or `nullptr` if variable was not initialized.
-  const T* GetOptional() const noexcept {
+  T* GetOptional() noexcept {
     return impl::task_local::GetCurrentStorage().GetOptional<T, kVariableKind>(
         impl_.GetKey());
   }

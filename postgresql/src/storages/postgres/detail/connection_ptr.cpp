@@ -45,6 +45,11 @@ const StatementTimingsStorage* ConnectionPtr::GetStatementTimingsStorage()
   return &pool_->GetStatementTimingsStorage();
 }
 
+std::optional<dynamic_config::Source> ConnectionPtr::GetConfigSource() const {
+  if (!pool_) return std::nullopt;
+  return {pool_->GetConfigSource()};
+}
+
 void ConnectionPtr::Reset(std::unique_ptr<Connection> conn,
                           std::shared_ptr<ConnectionPool> pool) {
   Release();

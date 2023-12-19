@@ -8,7 +8,7 @@ service for further investigation.
 
 The userver framework addresses modern logging requirements and provides
 multiple facilities for efficient work with logs, including
-@ref md_en_userver_log_level_running_service.
+@ref scripts/docs/en/userver/log_level_running_service.md.
 
 Below are the intruductions to main developer logging facilities.
 
@@ -48,7 +48,7 @@ yaml
 
 The logging `level` that was set in the static config of the components::Logging
 component for the entire service can be changed on the fly.
-See @ref md_en_userver_log_level_running_service for more info.
+See @ref scripts/docs/en/userver/log_level_running_service.md for more info.
 
 ### Limit log length of the requests and responses
 
@@ -82,7 +82,7 @@ Nuances:
 - Each thread has separate counters, so in practice there may be a little more logs
 - If the `template` function logs via `LOG_LIMITED_X`, then each specialization of the function template has a
   separate counter
-- If the same function with loging via `LOG_LIMITED_X` is called in different places, then all its calls
+- If the same function with logging via `LOG_LIMITED_X` is called in different places, then all its calls
   use the same counter
 
 ### Tags
@@ -136,6 +136,8 @@ between requests through several services,
 thereby building a trace of requests and interactions.
 It can be used to identify slow query stages, bottlenecks, 
 sequential queries, etc.
+
+See tracing::DefaultTracingManagerLocator for more info.
 
 ### tracing::Span
 
@@ -193,13 +195,15 @@ When creating a new task via `utils::Async`, a new `Span` is created and linked 
 
 DB drivers and the components::HttpClient automatically create a Span for each request to trace them.
 
-### Linking service requests
+### Linking service requests via X-YaRequestId, X-YaSpanId and X-YaTraceId
 
 The HTTP client sends the current link/span_id/trace_id values in each request to the server, they do not need to be specified.
 
 When the HTTP server handles the request, it extracts data from the request headers and puts them in the Span.
 
-Names of the headers:
+Names of the headers varry depending on tracing::DefaultTracingManagerLocator
+static configuration and on the chosen tracing::Format value. For example,
+with tracing::Format::kYandexTaxi the following headers would be used:
 
 ``` 
 X-YaRequestId
@@ -228,5 +232,5 @@ For example, this is how you can disable logging of all Span for MongoDB (that i
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_formats | @ref md_en_userver_task_processors_guide ⇨
+⇦ @ref scripts/docs/en/userver/formats.md | @ref scripts/docs/en/userver/task_processors_guide.md ⇨
 @htmlonly </div> @endhtmlonly

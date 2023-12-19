@@ -9,12 +9,13 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/run_standalone.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/logging/logger.hpp>
 
 #include <userver/utest/using_namespace_userver.hpp>
 
-namespace http = clients::http;
-
 namespace {
+
+namespace http = clients::http;
 
 struct Config {
   std::string log_level = "error";
@@ -132,15 +133,14 @@ std::vector<std::string> ReadUrls(const Config& config) {
   return urls;
 }
 
-std::shared_ptr<http::Request> CreateRequest(http::Client& http_client,
-                                             const Config& config,
-                                             const std::string& url) {
+http::Request CreateRequest(http::Client& http_client, const Config& config,
+                            const std::string& url) {
   return http_client.CreateRequest()
-      ->get(url)
-      ->timeout(config.timeout_ms)
-      ->retry()
-      ->verify(false)
-      ->http_version(config.http_version);
+      .get(url)
+      .timeout(config.timeout_ms)
+      .retry()
+      .verify(false)
+      .http_version(config.http_version);
 }
 
 void Worker(WorkerContext& context) {
@@ -154,12 +154,11 @@ void Worker(WorkerContext& context) {
 
     try {
       auto ts1 = std::chrono::system_clock::now();
-      const std::shared_ptr<http::Request> request =
-          CreateRequest(context.http_client, context.config, url);
+      auto request = CreateRequest(context.http_client, context.config, url);
       auto ts2 = std::chrono::system_clock::now();
       LOG_DEBUG() << "CreateRequest";
 
-      auto response = request->perform();
+      auto response = request.perform();
       context.response_len += response->body().size();
       LOG_DEBUG() << "Got response body_size=" << response->body().size();
       auto ts3 = std::chrono::system_clock::now();
@@ -182,13 +181,14 @@ void Worker(WorkerContext& context) {
   LOG_INFO() << "Worker stopped";
 }
 
-}  // namespace
-
 void DoWork(const Config& config, const std::vector<std::string>& urls) {
   LOG_INFO() << "Starting thread " << std::this_thread::get_id();
 
   auto& tp = engine::current_task::GetTaskProcessor();
-  http::Client http_client{{"", config.io_threads, config.defer_events}, tp};
+  http::Client http_client{
+      {"", config.io_threads, config.defer_events},
+      tp,
+      std::vector<utils::NotNull<clients::http::Plugin*>>{}};
   LOG_INFO() << "Client created";
 
   http_client.SetMultiplexingEnabled(config.multiplexing);
@@ -221,15 +221,22 @@ void DoWork(const Config& config, const std::vector<std::string>& urls) {
                  << " average RPS = " << rps;
 }
 
+}  // namespace
+
 int main(int argc, char* argv[]) {
   const Config config = ParseConfig(argc, argv);
 
-  if (!config.logfile.empty())
-    logging::SetDefaultLogger(logging::MakeFileLogger(
-        "default", config.logfile, logging::Format::kTskv,
-        logging::LevelFromString(config.log_level)));
-  else
-    logging::SetDefaultLoggerLevel(logging::LevelFromString(config.log_level));
+  logging::LoggerPtr logger;
+  const auto level = logging::LevelFromString(config.log_level);
+  if (!config.logfile.empty()) {
+    logger = logging::MakeFileLogger("default", config.logfile,
+                                     logging::Format::kTskv, level);
+  } else {
+    logger =
+        logging::MakeStderrLogger("default", logging::Format::kTskv, level);
+  }
+  logging::DefaultLoggerGuard guard{logger};
+
   LOG_WARNING() << "Starting using requests=" << config.count
                 << " coroutines=" << config.coroutines
                 << " timeout=" << config.timeout_ms << "ms";

@@ -4,10 +4,12 @@
 /// @brief @copybrief testsuite::TestpointControl
 
 #include <functional>
+#include <optional>
 #include <string>
 #include <unordered_set>
 
 #include <userver/formats/json_fwd.hpp>
+#include <userver/utils/function_ref.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -20,7 +22,7 @@ namespace testsuite {
 /// testpoints.
 class TestpointClientBase {
  public:
-  using Callback = std::function<void(const formats::json::Value&)>;
+  using Callback = utils::function_ref<void(const formats::json::Value&)>;
 
   virtual ~TestpointClientBase();
 
@@ -28,9 +30,8 @@ class TestpointClientBase {
   /// @param json the request that will be passed to testsuite handler
   /// @param callback will be invoked with the response if the testpoint has
   /// been handled on the testsuite side successfully
-  virtual void Execute(const std::string& name,
-                       const formats::json::Value& json,
-                       const Callback& callback) const = 0;
+  virtual void Execute(std::string_view name, const formats::json::Value& json,
+                       Callback callback) const = 0;
 
  protected:
   /// Must be called in destructors of derived classes

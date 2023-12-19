@@ -5,68 +5,27 @@ maintainers:
   - Common components
 description: userver core stuff
 
-libraries:
-  - Boost::filesystem
-  - Boost::locale
-  - Boost::program_options
-  - Boost::thread
-  - Boost::regex
-  - Boost::iostreams
-  - CryptoPP
-  - CurlYandex
-  - fmt
-  - Http_Parser
-  - Iconv::Iconv
-  - LibEv
-  - OpenSSL::Crypto
-  - OpenSSL::SSL
-  - Threads::Threads
-  - ZLIB::ZLIB
-  - libyamlcpp
-
-debian:
-    build_dependencies:
-      - clang-9
-      - libstdc++-7-dev
-      - libboost-filesystem-dev
-      - libboost-iostreams-dev
-      - libboost-locale-dev
-      - libboost-program-options-dev
-      - libboost-thread-dev
-      - libcctz-dev
-      - libcrypto++-dev
-      - libev-dev
-      - libfmt-dev
-      - libgcrypt11-dev
-      - libhttp-parser-dev
-      - libkrb5-dev
-      - libnghttp2-dev
-      - libssl-dev
-      - libyaml-cpp-dev
-      - libyandex-taxi-curl4-openssl-dev
-      - libyandex-taxi-jemalloc-dev
-      - lld-9
-      - zlib1g-dev
-      - clang-format-9
-      #- clang-tidy-14 -- not available everywhere
-      - lcov # support for coverage-reports
-
 configs:
     names:
+      - BAGGAGE_SETTINGS
       - HTTP_CLIENT_CONNECTION_POOL_SIZE
       - HTTP_CLIENT_CONNECT_THROTTLE
-      - HTTP_CLIENT_ENFORCE_TASK_DEADLINE
+      - USERVER_BAGGAGE_ENABLED
       - USERVER_CACHES
       - USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE
-      - USERVER_CHECK_AUTH_IN_HANDLERS
+      - USERVER_DEADLINE_PROPAGATION_ENABLED
       - USERVER_DUMPS
+      - USERVER_FILES_CONTENT_TYPE_MAP
+      - USERVER_HANDLER_STREAM_API_ENABLED
       - USERVER_HTTP_PROXY
       - USERVER_LOG_REQUEST
       - USERVER_LOG_REQUEST_HEADERS
       - USERVER_LRU_CACHES
       - USERVER_NO_LOG_SPANS
       - USERVER_RPS_CCONTROL
-      - USERVER_RPS_CCONTROL_ENABLED
+      - USERVER_RPS_CCONTROL_ACTIVATED_FACTOR_METRIC
       - USERVER_RPS_CCONTROL_CUSTOM_STATUS
+      - USERVER_RPS_CCONTROL_ENABLED
       - USERVER_TASK_PROCESSOR_PROFILER_DEBUG
       - USERVER_TASK_PROCESSOR_QOS
+      - USERVER_LOG_DYNAMIC_DEBUG

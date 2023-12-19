@@ -63,7 +63,7 @@ std::string BufferedReader::ReadUntil(char terminator, Deadline deadline) {
   return ReadUntil([terminator](int c) { return c == terminator; }, deadline);
 }
 
-std::string BufferedReader::ReadUntil(const std::function<bool(int)>& pred,
+std::string BufferedReader::ReadUntil(utils::function_ref<bool(int) const> pred,
                                       Deadline deadline) {
   bool found = false;
   size_t search_pos = 0;

@@ -27,6 +27,7 @@ CacheDependencies MakeDependencies(std::string_view name,
       engine::current_task::GetTaskProcessor(),
       environment.config_storage.GetSource(),
       environment.statistics_storage,
+      environment.alerts_storage,
       environment.cache_control,
       dump_config,
       dump_config ? dump::CreateDefaultOperationsFactory(*dump_config)

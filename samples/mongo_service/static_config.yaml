@@ -5,6 +5,9 @@ components_manager:
         mongo-tr:     # Matches component registration and component retrieval strings
             dbconnection: mongodb://localhost:27217/admin
 
+        dns-client:                     # Asynchronous DNS component
+            fs-task-processor: fs-task-processor
+
         handler-translations:
             path: /v1/translations
             method: GET,PATCH
@@ -24,25 +27,12 @@ components_manager:
                     level: debug
                     overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
 
-        tracer:                           # Component that helps to trace execution times and requests in logs.
-            service-name: mongo-service   # "You know. You all know exactly who I am. Say my name. " (c)
-
-        dynamic-config:                      # Dynamic config storage options, do nothing
-            fs-cache-path: ''
-        dynamic-config-fallbacks:            # Load options from file and push them into the dynamic config storage.
-            fallback-path: /etc/mongo_service/dynamic_config_fallback.json
-    coro_pool:
-        initial_size: 500             # Preallocate 500 coroutines at startup.
-        max_size: 1000                # Do not keep more than 1000 preallocated coroutines.
-
     task_processors:                  # Task processor is an executor for coroutine tasks
 
         main-task-processor:          # Make a task processor for CPU-bound coroutine tasks.
             worker_threads: 4         # Process tasks in 4 threads.
-            thread_name: main-worker  # OS will show the threads of this task processor with 'main-worker' prefix.
 
         fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
-            thread_name: fs-worker
             worker_threads: 4
 
-    default_task_processor: main-task-processor
+    default_task_processor: main-task-processor  # Task processor in which components start.

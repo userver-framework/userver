@@ -58,7 +58,7 @@ size_t Controller::CalcNewLimit(const Sensor::Data& data,
   }
 
   // Use current_limit instead of sensor's current load as the limiter
-  // might fail to immediatelly affect sensor's levels
+  // might fail to immediately affect sensor's levels
   //
   auto current_load = *state_.current_limit;
   if (current_load == 0) current_load = 1;
@@ -102,7 +102,7 @@ void Controller::Feed(const Sensor::Data& data) {
     state_.times_with_overload = 0;
     state_.times_wo_overload++;
 
-    // avoid overlfow
+    // avoid overflow
     if (state_.max_up_delta < 10000) {
       // If we're raising RPS and have no overflows, speed up the rise
       state_.max_up_delta *= 2;
@@ -189,6 +189,7 @@ void Controller::Feed(const Sensor::Data& data) {
                    << " max_up_delta=" << state_.max_up_delta << log_suffix;
   }
   limit_.load_limit = state_.current_limit;
+  limit_.current_load = data.current_load;
 }
 
 Limit Controller::GetLimit() const {

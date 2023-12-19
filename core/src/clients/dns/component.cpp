@@ -4,15 +4,14 @@
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/formats/json/inline.hpp>
-#include <userver/formats/json/value_builder.hpp>
-#include <userver/formats/parse/common_containers.hpp>
-#include <userver/utils/statistics/metadata.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace clients::dns {
 namespace {
+
+constexpr std::string_view kDnsReplySource = "dns_reply_source";
 
 ResolverConfig ParseResolverConfig(
     const components::ComponentConfig& component_config) {
@@ -53,25 +52,23 @@ Component::Component(const components::ComponentConfig& config,
                 ParseResolverConfig(config)} {
   auto& storage =
       context.FindComponent<components::StatisticsStorage>().GetStorage();
-  statistics_holder_ = storage.RegisterExtender(
-      config.Name(),
-      [this](const auto& /*request*/) { return ExtendStatistics(); });
+  statistics_holder_ = storage.RegisterWriter(
+      config.Name() + ".replies", [this](auto& writer) { Write(writer); });
 }
 
 clients::dns::Resolver& Component::GetResolver() { return resolver_; }
 
-formats::json::Value Component::ExtendStatistics() {
+void Component::Write(utils::statistics::Writer& writer) {
   const auto& counters = GetResolver().GetLookupSourceCounters();
-  formats::json::ValueBuilder json_counters;
-  json_counters["file"] = counters.file.Load();
-  json_counters["cached"] = counters.cached.Load();
-  json_counters["cached-stale"] = counters.cached_stale.Load();
-  json_counters["cached-failure"] = counters.cached_failure.Load();
-  json_counters["network"] = counters.network.Load();
-  json_counters["network-failure"] = counters.network_failure.Load();
-  utils::statistics::SolomonChildrenAreLabelValues(json_counters,
-                                                   "dns_reply_source");
-  return formats::json::MakeObject("replies", json_counters.ExtractValue());
+  writer.ValueWithLabels(counters.file, {kDnsReplySource, "file"});
+  writer.ValueWithLabels(counters.cached, {kDnsReplySource, "cached"});
+  writer.ValueWithLabels(counters.cached_stale,
+                         {kDnsReplySource, "cached-stale"});
+  writer.ValueWithLabels(counters.cached_failure,
+                         {kDnsReplySource, "cached-failure"});
+  writer.ValueWithLabels(counters.network, {kDnsReplySource, "network"});
+  writer.ValueWithLabels(counters.network_failure,
+                         {kDnsReplySource, "network-failure"});
 }
 
 yaml_config::Schema Component::GetStaticConfigSchema() {

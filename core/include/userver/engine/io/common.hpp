@@ -13,7 +13,7 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::io {
 
 /// File descriptor of an invalid pipe end.
-static constexpr int kInvalidFd = -1;
+inline constexpr int kInvalidFd = -1;
 
 /// @ingroup userver_base_classes
 ///
@@ -38,6 +38,12 @@ class ReadableBase {
                                        Deadline deadline) = 0;
 };
 
+/// IoData for vector send
+struct IoData final {
+  const void* data;
+  size_t len;
+};
+
 /// @ingroup userver_base_classes
 ///
 /// Interface for writable streams
@@ -52,6 +58,15 @@ class WritableBase {
   /// @note Can return less than len if stream is closed by peer.
   [[nodiscard]] virtual size_t WriteAll(const void* buf, size_t len,
                                         Deadline deadline) = 0;
+
+  [[nodiscard]] virtual size_t WriteAll(std::initializer_list<IoData> list,
+                                        Deadline deadline) {
+    size_t result{0};
+    for (const auto& io_data : list) {
+      result += WriteAll(io_data.data, io_data.len, deadline);
+    }
+    return result;
+  }
 };
 
 /// @ingroup userver_base_classes

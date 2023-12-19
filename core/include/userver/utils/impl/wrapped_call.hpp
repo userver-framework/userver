@@ -3,8 +3,9 @@
 /// @file userver/utils/impl/wrapped_call.hpp
 /// @brief @copybrief utils::impl::WrappedCall
 
+#include <cstddef>
 #include <functional>
-#include <memory>
+#include <new>
 #include <optional>
 #include <tuple>
 #include <type_traits>
@@ -81,9 +82,9 @@ using DecayUnref = typename UnrefImpl<std::decay_t<T>>::type;
 template <typename Function, typename... Args>
 class WrappedCallImpl final
     : public WrappedCall<std::invoke_result_t<Function&&, Args&&...>> {
+ public:
   using ResultType = std::invoke_result_t<Function&&, Args&&...>;
 
- public:
   template <typename RawFunction, typename RawArgsTuple>
   explicit WrappedCallImpl(RawFunction&& func, RawArgsTuple&& args)
       : data_(std::in_place, std::forward<RawFunction>(func),
@@ -118,6 +119,7 @@ class WrappedCallImpl final
     // TODO remove after paren-init for aggregates in C++20
     template <typename RawFunction, typename RawArgsTuple>
     explicit Data(RawFunction&& func, RawArgsTuple&& args)
+        // NOLINTNEXTLINE(clang-analyzer-cplusplus.Move)
         : func(std::forward<RawFunction>(func)),
           args(std::forward<RawArgsTuple>(args)) {}
 
@@ -128,16 +130,21 @@ class WrappedCallImpl final
   std::optional<Data> data_;
 };
 
-/// Returns an object that stores passed arguments and function. Wrapped
-/// function may be invoked only once via call to member function Perform().
 template <typename Function, typename... Args>
-auto WrapCall(Function&& f, Args&&... args) {
+using WrappedCallImplType =
+    WrappedCallImpl<DecayUnref<Function>, DecayUnref<Args>...>;
+
+/// Construct a WrappedCallImplType at `storage`. See WrappedCall and
+/// WrappedCallBase for the API of the result. Note: using `reinterpret_cast` to
+/// cast `storage` to WrappedCallImpl is UB, use the function return value.
+template <typename Function, typename... Args>
+[[nodiscard]] auto& PlacementNewWrapCall(std::byte* storage, Function&& f,
+                                         Args&&... args) {
   static_assert(
       (!std::is_array_v<std::remove_reference_t<Args>> && ...),
       "Passing C arrays to Async is forbidden. Use std::array instead");
 
-  return std::make_unique<impl::WrappedCallImpl<impl::DecayUnref<Function>,
-                                                impl::DecayUnref<Args>...>>(
+  return *new (storage) WrappedCallImplType<Function, Args...>(
       std::forward<Function>(f),
       std::forward_as_tuple(std::forward<Args>(args)...));
 }

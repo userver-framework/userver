@@ -1,8 +1,7 @@
 name: Jemalloc
-helper-prefix: false
 
 checks:
-  - expression: SANITIZE
+  - expression: USERVER_SANITIZE
     error: >-
         jemalloc is not compatible with sanitizers,  please skip it for SANITIZE-enabled
         builds
@@ -13,6 +12,8 @@ formula-name: jemalloc
 rpm-names:
   - jemalloc-devel
 pacman-names:
+  - jemalloc
+pkg-config-names:
   - jemalloc
 
 libraries:

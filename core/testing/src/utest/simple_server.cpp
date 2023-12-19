@@ -33,7 +33,7 @@ class Client final {
     return (resp_.command == SimpleServer::Response::kWriteAndContinue);
   }
 
-  void StartNewRequest() { incomming_data_.clear(); }
+  void StartNewRequest() { incoming_data_.clear(); }
 
   std::size_t ReadSome();
 
@@ -44,7 +44,7 @@ class Client final {
   engine::io::Socket socket_;
   SimpleServer::OnRequest callback_;
 
-  SimpleServer::Request incomming_data_{};
+  SimpleServer::Request incoming_data_{};
   std::size_t previously_received_{0};
   SimpleServer::Response resp_{};
 };
@@ -78,26 +78,26 @@ void Client::Run(engine::io::Socket&& socket, SimpleServer::OnRequest f) {
 }
 
 std::size_t Client::ReadSome() {
-  previously_received_ = incomming_data_.size();
-  incomming_data_.resize(previously_received_ + kReadBufferChunkSize);
+  previously_received_ = incoming_data_.size();
+  incoming_data_.resize(previously_received_ + kReadBufferChunkSize);
 
   auto received =
-      socket_.RecvSome(incomming_data_.data() + previously_received_,
-                       incomming_data_.size() - previously_received_, {});
+      socket_.RecvSome(incoming_data_.data() + previously_received_,
+                       incoming_data_.size() - previously_received_, {});
 
   if (!received) {
     LOG_TRACE() << "Remote peer shut down the connection";
     return 0;
   }
 
-  incomming_data_.resize(previously_received_ + received);
-  resp_ = callback_(incomming_data_);
+  incoming_data_.resize(previously_received_ + received);
+  resp_ = callback_(incoming_data_);
 
   return received;
 }
 
 void Client::WriteResponse() {
-  [[maybe_unused]] size_t sent =
+  [[maybe_unused]] const size_t sent =
       socket_.SendAll(resp_.data_to_send.data(), resp_.data_to_send.size(), {});
 }
 
@@ -107,7 +107,8 @@ class SimpleServer::Impl {
  public:
   Impl(OnRequest callback, Protocol protocol);
 
-  [[nodiscard]] Port GetPort() const { return listener_.port; };
+  [[nodiscard]] Port GetPort() const { return listener_.Port(); };
+
   [[nodiscard]] Protocol GetProtocol() const {
     switch (listener_.addr.Domain()) {
       case engine::io::AddrDomain::kInet:
@@ -119,9 +120,14 @@ class SimpleServer::Impl {
     }
   };
 
+  std::uint64_t GetConnectionsOpenedCount() const {
+    return connections_opened_count_;
+  }
+
  private:
   OnRequest callback_;
   internal::net::TcpListener listener_;
+  std::atomic<std::uint64_t> connections_opened_count_{0};
 
   concurrent::BackgroundTaskStorage client_tasks_storage_;
   engine::Task listener_task_;
@@ -147,6 +153,7 @@ void SimpleServer::Impl::StartPortListening() {
       auto socket = listener_.socket.Accept({});
 
       LOG_TRACE() << "SimpleServer accepted socket";
+      ++connections_opened_count_;
 
       client_tasks_storage_.AsyncDetach(
           "client", [cb = cb, s = std::move(socket)]() mutable {
@@ -177,6 +184,10 @@ std::string SimpleServer::GetBaseUrl(Schema type) const {
   url += std::to_string(GetPort());
 
   return url;
+}
+
+std::uint64_t SimpleServer::GetConnectionsOpenedCount() const {
+  return pimpl_->GetConnectionsOpenedCount();
 }
 
 }  // namespace utest

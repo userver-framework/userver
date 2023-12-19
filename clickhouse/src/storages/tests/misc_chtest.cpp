@@ -28,6 +28,17 @@ struct SomeDataRow final {
   }
 };
 
+struct SomeDataRowWithSleep final {
+  uint64_t uint64{};
+  std::string str;
+  uint8_t sleep_result{};
+
+  bool operator==(const SomeDataRowWithSleep& other) const {
+    return uint64 == other.uint64 && str == other.str &&
+           sleep_result == other.sleep_result;
+  }
+};
+
 }  // namespace
 
 namespace storages::clickhouse::io {
@@ -44,6 +55,12 @@ struct CppToClickhouse<SomeDataRow> {
   using mapped_type =
       std::tuple<columns::UInt64Column, columns::StringColumn,
                  columns::UInt64Column, columns::DateTime64ColumnNano>;
+};
+
+template <>
+struct CppToClickhouse<SomeDataRowWithSleep> {
+  using mapped_type = std::tuple<columns::UInt64Column, columns::StringColumn,
+                                 columns::UInt8Column>;
 };
 
 }  // namespace storages::clickhouse::io
@@ -122,6 +139,30 @@ UTEST(Insert, AsRowsWorks) {
   const auto result =
       cluster->Execute("SELECT id, value, count, tp FROM tmp_table ORDER BY id")
           .AsContainer<std::vector<SomeDataRow>>();
+  ASSERT_EQ(result.size(), 2);
+  EXPECT_EQ(result[0], data[0]);
+  EXPECT_EQ(result[1], data[1]);
+}
+
+UTEST(Query, AvoidUnexpectedCancellation) {
+  ClusterWrapper cluster{};
+  cluster->Execute(
+      "CREATE TEMPORARY TABLE IF NOT EXISTS tmp_table_with_sleep (id UInt64, "
+      "value "
+      "String, sleep_result UInt8)");
+
+  std::vector<SomeDataRowWithSleep> data{{1, "first", 0}, {3, "second", 0}};
+  cluster->InsertRows("tmp_table_with_sleep", {"id", "value", "sleep_result"},
+                      data);
+
+  // 2000ms to avoid flaps in CI, in perfect world ~300 should do
+  const storages::clickhouse::CommandControl cc{
+      std::chrono::milliseconds{2000}};
+  const auto result = cluster
+                          ->Execute(cc,
+                                    "SELECT id, value, sleepEachRow(0.1) FROM "
+                                    "tmp_table_with_sleep ORDER BY id")
+                          .AsContainer<std::vector<SomeDataRowWithSleep>>();
   ASSERT_EQ(result.size(), 2);
   EXPECT_EQ(result[0], data[0]);
   EXPECT_EQ(result[1], data[1]);

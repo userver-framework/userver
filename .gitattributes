@@ -1,0 +1,7 @@
+=================================================
+# Handle line endings automatically for files detected as text
+# and leave all files detected as binary untouched.
+* text=auto
+
+# Force the *text* files with extensions to have unix eols, so Windows does not break them
+*.* text=auto eol=lf

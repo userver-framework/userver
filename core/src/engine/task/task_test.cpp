@@ -34,6 +34,7 @@ UTEST(Task, WaitFor) {
   EXPECT_TRUE(task.IsFinished());
   EXPECT_EQ(engine::Task::State::kCompleted, task.GetState());
 }
+
 UTEST(Task, EarlyCancel) {
   auto task = engine::AsyncNoSpan(
       [] { ADD_FAILURE() << "Cancelled task has started"; });
@@ -117,12 +118,78 @@ UTEST(Task, CancelWithPoint) {
 }
 
 UTEST(Task, AutoCancel) {
-  auto task = engine::AsyncNoSpan([] {
+  bool initial_task_was_canceled = false;
+  {
+    auto task = engine::AsyncNoSpan([&initial_task_was_canceled] {
+      engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
+      EXPECT_TRUE(engine::current_task::IsCancelRequested());
+      initial_task_was_canceled = engine::current_task::IsCancelRequested();
+    });
+    engine::Yield();
+    EXPECT_FALSE(task.IsFinished());
+    EXPECT_FALSE(initial_task_was_canceled);
+  }
+  EXPECT_TRUE(initial_task_was_canceled);
+}
+
+UTEST(Task, AutoCancelOnAssignInvalid) {
+  bool initial_task_was_canceled = false;
+
+  auto task = engine::AsyncNoSpan([&initial_task_was_canceled] {
     engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
     EXPECT_TRUE(engine::current_task::IsCancelRequested());
+    initial_task_was_canceled = engine::current_task::IsCancelRequested();
   });
   engine::Yield();
   EXPECT_FALSE(task.IsFinished());
+  EXPECT_FALSE(initial_task_was_canceled);
+
+  task = {};
+  EXPECT_FALSE(task.IsValid());
+  EXPECT_TRUE(initial_task_was_canceled);
+}
+
+UTEST(Task, AutoCancelOnMoveAssign) {
+  bool initial_task_was_cancelled = false;
+  auto task = engine::AsyncNoSpan([&initial_task_was_cancelled] {
+    engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
+    EXPECT_TRUE(engine::current_task::IsCancelRequested());
+    initial_task_was_cancelled = engine::current_task::IsCancelRequested();
+  });
+  engine::Yield();
+  EXPECT_FALSE(task.IsFinished());
+  EXPECT_FALSE(initial_task_was_cancelled);
+
+  bool was_invoked = false;
+  task = engine::AsyncNoSpan([&was_invoked] { was_invoked = true; });
+  EXPECT_TRUE(initial_task_was_cancelled);
+  EXPECT_EQ(was_invoked, task.IsFinished());
+  EXPECT_TRUE(task.IsValid());
+  engine::Yield();
+  EXPECT_TRUE(was_invoked);
+  EXPECT_TRUE(task.IsFinished());
+  EXPECT_TRUE(task.IsValid());
+}
+
+UTEST(Task, MoveConstructor) {
+  bool initial_task_was_cancelled = false;
+  {
+    auto task = engine::AsyncNoSpan([&initial_task_was_cancelled] {
+      engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
+      EXPECT_TRUE(engine::current_task::IsCancelRequested());
+      initial_task_was_cancelled = engine::current_task::IsCancelRequested();
+    });
+    engine::Yield();
+    EXPECT_FALSE(task.IsFinished());
+    EXPECT_FALSE(initial_task_was_cancelled);
+
+    auto task_new = std::move(task);
+    // NOLINTNEXTLINE(clang-analyzer-cplusplus.Move)
+    EXPECT_FALSE(task.IsValid());
+    EXPECT_TRUE(task_new.IsValid());
+    EXPECT_FALSE(initial_task_was_cancelled);
+  }
+  EXPECT_TRUE(initial_task_was_cancelled);
 }
 
 UTEST(Task, Get) {
@@ -256,6 +323,69 @@ TEST(Task, DISABLED_UseLargeStack) {
       byte = 12;
     }
   });
+}
+
+// This test doesn't really test anything on its own, but shows how bad locking
+// in glibc dl_iterate_phdr is when multiple threads are
+// unwinding simultaneously.
+//
+// sudo perf stat -e 'syscalls:sys_enter_futex' ./userver-core_unittest
+//     --gtest_filter='Task.ExceptionStorm'
+//
+// We use this manually to validate that our caching override
+// of dl_iterate_phdr (see exception_hacks.cpp) fixes the issue.
+UTEST_MT(Task, ExceptionStorm, 8) {
+  std::vector<engine::TaskWithResult<void>> tasks;
+  tasks.reserve(8);
+
+  for (std::size_t i = 0; i < 8; ++i) {
+    tasks.push_back(engine::AsyncNoSpan([] {
+      for (std::size_t i = 0; i < 1'000; ++i) {
+        try {
+          throw std::runtime_error{"42"};
+        } catch (const std::exception&) {
+        }
+      }
+    }));
+  }
+
+  for (auto& task : tasks) {
+    task.Get();
+  }
+}
+
+UTEST(Task,
+      WithLastContextOwnerInEvThreadResultIsStillDestroyedInWorkerThread) {
+  struct IMustBeDestroyedInWorkerThread final {
+    ~IMustBeDestroyedInWorkerThread() {
+      EXPECT_TRUE(engine::current_task::IsTaskProcessorThread());
+    }
+  };
+
+  {
+    const auto deadline = engine::Deadline::FromDuration(100ms);
+    auto task = engine::AsyncNoSpan([deadline] {
+      // Here we set up a timer, which will become the last context owner.
+      engine::current_task::SetDeadline(deadline);
+      return IMustBeDestroyedInWorkerThread{};
+    });
+    task.Wait();
+  }
+  // Task's context is still alive at this point,
+  // the last owner is a deadline timer in ev-thread.
+
+  // There's no way to synchronize with timer here, this is the best we've got.
+  // With a single ev-thread this is actually sufficient, otherwise
+  // false-negatives are possible.
+  engine::SleepFor(200ms);
+}
+
+UTEST(Task, SyncCancelAndWait) {
+  auto task = engine::AsyncNoSpan([] { return 1; });
+  engine::Yield();
+
+  task.SyncCancel();
+  task.Get();
 }
 
 USERVER_NAMESPACE_END

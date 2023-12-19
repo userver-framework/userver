@@ -1,0 +1,116 @@
+# yaml
+components_manager:
+    components:
+        handler-chaos-httpclient:
+            path: /chaos/httpclient
+            task_processor: main-task-processor
+            method: GET,DELETE,POST
+
+        handler-chaos-stream:
+            response-body-stream: true
+            path: /chaos/httpclient/stream
+            task_processor: main-task-processor
+            method: GET,DELETE,POST
+
+        handler-chaos-httpserver:
+            path: /chaos/httpserver
+            task_processor: main-task-processor
+            method: GET,DELETE,POST
+
+        handler-chaos-dns-resolver:
+            path: /chaos/resolver
+            task_processor: main-task-processor
+            method: GET,DELETE,POST
+            dns-servers:
+              - 127.0.0.1:123
+              - 127.0.0.1:456
+            hosts-file: /etc/hosts
+            cache-max-ttl: 99999
+            cache-failure-ttl: 99999
+            cache-size-per-way: 100
+
+        handler-server-monitor:
+            path: /service/monitor
+            method: GET
+            task_processor: main-task-processor
+
+        handler-on-log-rotate:
+            path: /service/on-log-rotate/
+            method: POST
+            task_processor: monitor-task-processor
+
+        testsuite-support:
+
+        http-client:
+            fs-task-processor: main-task-processor
+
+        tests-control:
+            method: POST
+            path: /tests/{action}
+            skip-unregistered-testpoints: true
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            testpoint-url: $mockserver/testpoint
+            throttling_enabled: false
+
+        logging-configurator:
+            limited-logging-enable: false
+            limited-logging-interval: 10s
+
+        server:
+            listener:
+                port: 8187
+                task_processor: main-task-processor
+                handler-defaults:
+                    deadline_expired_status_code: 504
+            listener-monitor:
+                port: 8188
+                task_processor: main-task-processor
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+
+        dynamic-config:
+            updates-enabled: true
+            defaults:
+                USERVER_HANDLER_STREAM_API_ENABLED: true
+                # Test that non-existent lines in USERVER_LOG_DYNAMIC_DEBUG
+                # do not prevent the service from starting or updating
+                # dynamic config.
+                USERVER_LOG_DYNAMIC_DEBUG:
+                    force-enabled:
+                      - garbage
+                    force-disabled: []
+        dynamic-config-client:
+            config-url: $config-server-url
+            http-retries: 5
+            http-timeout: 20s
+            service-name: testsuite-support
+        dynamic-config-client-updater:
+            config-settings: false
+            full-update-interval: 1m
+            update-interval: 5s
+
+        dns-client:
+            fs-task-processor: fs-task-processor
+
+        handler-fired-alerts:
+            path: /service/fired-alerts
+            method: GET
+            task_processor: main-task-processor
+
+    task_processors:
+        main-task-processor:
+            worker_threads: 4
+        fs-task-processor:
+            worker_threads: 2
+        monitor-task-processor:
+            thread_name: mon-worker
+            worker_threads: $monitor_worker_threads
+            worker_threads#fallback: 1
+
+    default_task_processor: main-task-processor

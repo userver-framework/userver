@@ -27,9 +27,6 @@ namespace storages::redis {
 /// before calling `Get()` method on `RequestExec` object.
 class Transaction {
  public:
-  template <typename Request>
-  using ProcessResultCallback = std::function<void(Request request)>;
-
   enum class CheckShards { kNo, kSame };
 
   virtual ~Transaction() = default;
@@ -52,6 +49,10 @@ class Transaction {
 
   virtual RequestDel Del(std::vector<std::string> keys) = 0;
 
+  virtual RequestUnlink Unlink(std::string key) = 0;
+
+  virtual RequestUnlink Unlink(std::vector<std::string> keys) = 0;
+
   virtual RequestExists Exists(std::string key) = 0;
 
   virtual RequestExists Exists(std::vector<std::string> keys) = 0;
@@ -64,8 +65,24 @@ class Transaction {
                                std::vector<GeoaddArg> point_members) = 0;
 
   virtual RequestGeoradius Georadius(
-      std::string key, double lon, double lat, double radius,
+      std::string key, Longitude lon, Latitude lat, double radius,
       const GeoradiusOptions& georadius_options) = 0;
+
+  virtual RequestGeosearch Geosearch(
+      std::string key, std::string member, double radius,
+      const GeosearchOptions& geosearch_options) = 0;
+
+  virtual RequestGeosearch Geosearch(
+      std::string key, std::string member, BoxWidth width, BoxHeight height,
+      const GeosearchOptions& geosearch_options) = 0;
+
+  virtual RequestGeosearch Geosearch(
+      std::string key, Longitude lon, Latitude lat, double radius,
+      const GeosearchOptions& geosearch_options) = 0;
+
+  virtual RequestGeosearch Geosearch(
+      std::string key, Longitude lon, Latitude lat, BoxWidth width,
+      BoxHeight height, const GeosearchOptions& geosearch_options) = 0;
 
   virtual RequestGet Get(std::string key) = 0;
 
@@ -227,6 +244,8 @@ class Transaction {
                                                    std::string member) = 0;
 
   virtual RequestZcard Zcard(std::string key) = 0;
+
+  virtual RequestZcount Zcount(std::string key, double min, double max) = 0;
 
   virtual RequestZrange Zrange(std::string key, int64_t start,
                                int64_t stop) = 0;

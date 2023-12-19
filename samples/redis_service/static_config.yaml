@@ -22,10 +22,15 @@ components_manager:
                 redis_thread_pool_size: 8
                 sentinel_thread_pool_size: 1
 
+# /// [Sample secdist static config]
+# yaml
         secdist:                                         # Component that stores configuration of hosts and passwords
+            provider: default-secdist-provider
+        default-secdist-provider:                        # Component that loads configuration of hosts and passwords
             config: /etc/redis_service/secure_data.json  # Values are supposed to be stored in this file
             missing-ok: true                             # ... but if the file is missing it is still ok
             environment-secrets-key: SECDIST_CONFIG      # ... values will be loaded from this environment value
+# /// [Sample secdist static config]
 
         testsuite-support:
 
@@ -43,25 +48,15 @@ components_manager:
                     level: debug
                     overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
 
-        tracer:                           # Component that helps to trace execution times and requests in logs.
-            service-name: hello-service   # "You know. You all know exactly who I am. Say my name. " (c)
-
-        dynamic-config:                      # Dynamic config storage options, do nothing
-            fs-cache-path: ''
-        dynamic-config-fallbacks:            # Load options from file and push them into the dynamic config storage.
-            fallback-path: /etc/redis_service/dynamic_config_fallback.json
-    coro_pool:
-        initial_size: 500             # Preallocate 500 coroutines at startup.
-        max_size: 1000                # Do not keep more than 1000 preallocated coroutines.
+        dns-client:
+            fs-task-processor: fs-task-processor
 
     task_processors:                  # Task processor is an executor for coroutine tasks
 
         main-task-processor:          # Make a task processor for CPU-bound coroutine tasks.
             worker_threads: 4         # Process tasks in 4 threads.
-            thread_name: main-worker  # OS will show the threads of this task processor with 'main-worker' prefix.
 
         fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
-            thread_name: fs-worker
             worker_threads: 4
 
-    default_task_processor: main-task-processor
+    default_task_processor: main-task-processor  # Task processor in which components start.

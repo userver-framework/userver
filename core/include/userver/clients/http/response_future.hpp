@@ -46,7 +46,6 @@ class ResponseFuture final {
   engine::impl::ContextAccessor* TryGetContextAccessor() noexcept;
 
   ResponseFuture(engine::Future<std::shared_ptr<Response>>&& future,
-                 std::chrono::milliseconds total_timeout,
                  std::shared_ptr<RequestState> request);
   /// @endcond
 
@@ -54,6 +53,7 @@ class ResponseFuture final {
   engine::Future<std::shared_ptr<Response>> future_;
   engine::Deadline deadline_;
   std::shared_ptr<RequestState> request_state_;
+  bool was_deadline_propagated_{false};
 };
 
 }  // namespace clients::http

@@ -1,60 +1,57 @@
-#include <userver/utils/statistics/http_codes.hpp>
+#include <utils/statistics/http_codes.hpp>
 
-#include <unordered_map>
+#include <fmt/format.h>
 
 #include <userver/formats/json/value_builder.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/statistics/metadata.hpp>
+#include <userver/utils/enumerate.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
+namespace {
 
-HttpCodes::HttpCodes(std::initializer_list<unsigned short> codes) {
-  particular_codes.reserve(codes.size());
-  for (auto code : codes) {
-    [[maybe_unused]] auto [it, inserted] = particular_codes.emplace(code, 0);
-    UASSERT(inserted);
+bool IsForcedStatusCode(HttpCodes::Code status) noexcept {
+  return status == 200 || status == 400 || status == 401 || status == 500;
+}
+
+}  // namespace
+
+HttpCodes::HttpCodes() = default;
+
+void HttpCodes::Account(Code code) noexcept {
+  if (code < kMinHttpStatus || code >= kMaxHttpStatus) {
+    LOG_ERROR() << "Invalid HTTP code encountered: " << code
+                << ", skipping statistics accounting";
+    return;
+  }
+  ++codes_[code - kMinHttpStatus];
+}
+
+HttpCodes::Snapshot::Snapshot(const HttpCodes& other) noexcept {
+  for (std::size_t i = 0; i < codes_.size(); ++i) {
+    codes_[i] = other.codes_[i].Load();
   }
 }
 
-void HttpCodes::Account(unsigned short code) {
-  if (code >= 100 && code < 200) {
-    ++code_1xx;
-  } else if (code >= 200 && code < 300) {
-    ++code_2xx;
-  } else if (code >= 300 && code < 400) {
-    ++code_3xx;
-  } else if (code >= 400 && code < 500) {
-    ++code_4xx;
-  } else if (code >= 500 && code < 600) {
-    ++code_5xx;
-  } else {
-    ++code_other;
-  }
-
-  auto it = particular_codes.find(code);
-  if (it != particular_codes.end()) {
-    ++it->second;
+void HttpCodes::Snapshot::operator+=(const Snapshot& other) {
+  for (std::size_t i = 0; i < codes_.size(); ++i) {
+    codes_[i] += other.codes_[i];
   }
 }
 
-formats::json::Value HttpCodes::FormatReplyCodes() const {
-  formats::json::ValueBuilder codes(formats::json::Type::kObject);
-  codes["1xx"] = code_1xx.Load();
-  codes["2xx"] = code_2xx.Load();
-  codes["3xx"] = code_3xx.Load();
-  codes["4xx"] = code_4xx.Load();
-  codes["5xx"] = code_5xx.Load();
-  codes["other"] = code_other.Load();
-
-  for (const auto& [code, count] : particular_codes) {
-    codes[std::to_string(code)] = count.Load();
+void DumpMetric(Writer& writer, const HttpCodes::Snapshot& snapshot) {
+  for (const auto& [base_code, count] : utils::enumerate(snapshot.codes_)) {
+    if (count || IsForcedStatusCode(base_code)) {
+      const auto code = base_code + HttpCodes::kMinHttpStatus;
+      writer.ValueWithLabels(count, {"http_code", std::to_string(code)});
+    }
   }
-
-  utils::statistics::SolomonChildrenAreLabelValues(codes, "http_code");
-  return codes.ExtractValue();
 }
+
+static_assert(kHasWriterSupport<HttpCodes::Snapshot>);
 
 }  // namespace utils::statistics
 

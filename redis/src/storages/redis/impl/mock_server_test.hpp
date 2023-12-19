@@ -20,7 +20,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-using namespace boost::asio;
+namespace io = boost::asio;
 
 class MockRedisServerBase {
  public:
@@ -53,12 +53,12 @@ class MockRedisServerBase {
   void OnRead(boost::system::error_code ec, size_t count);
   void DoRead();
 
-  io_service io_service_;
-  ip::tcp::acceptor acceptor_;
+  io::io_service io_service_;
+  io::ip::tcp::acceptor acceptor_;
   std::thread thread_;
 
-  ip::tcp::socket socket_;
-  std::array<char, 1024> data_;
+  io::ip::tcp::socket socket_;
+  std::array<char, 1024> data_{};
   std::unique_ptr<redisReader, decltype(&redisReaderFree)> reader_;
 };
 
@@ -66,7 +66,7 @@ class MockRedisServer : public MockRedisServerBase {
  public:
   explicit MockRedisServer(std::string description = {})
       : MockRedisServerBase(0), description_(std::move(description)) {}
-  ~MockRedisServer();
+  ~MockRedisServer() override;
 
   using HandlerFunc = std::function<void(const std::vector<std::string>&)>;
 
@@ -115,7 +115,7 @@ class MockRedisServer : public MockRedisServerBase {
       const std::chrono::duration<Rep, Period>& duration) const;
 
  protected:
-  virtual void OnCommand(std::shared_ptr<redis::Reply> cmd) override;
+  void OnCommand(std::shared_ptr<redis::Reply> cmd) override;
 
  private:
   struct CommonMasterSlaveInfo;

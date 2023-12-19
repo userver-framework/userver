@@ -66,7 +66,7 @@ class CustomHandlerExceptionTest : public ::testing::Test {
 };
 
 using ErrorTypes = ::testing::Types<ClientError, Unauthorized, ResourceNotFound,
-                                    InternalServerError>;
+                                    ConflictError, InternalServerError>;
 TYPED_TEST_SUITE(CustomHandlerExceptionTest, ErrorTypes);
 
 TYPED_TEST(CustomHandlerExceptionTest, AllDefault) {

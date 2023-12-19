@@ -15,9 +15,8 @@ class EchoTestpointClient final : public testsuite::TestpointClientBase {
 
   ~EchoTestpointClient() override { Unregister(); }
 
-  void Execute(const std::string& name, const formats::json::Value& json,
-               const Callback& callback) const override {
-    if (!callback) return;
+  void Execute(std::string_view name, const formats::json::Value& json,
+               Callback callback) const override {
     callback(formats::json::MakeObject("name", name, "body", json));
   }
 };

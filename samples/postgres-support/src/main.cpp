@@ -1,5 +1,6 @@
 #include <userver/utest/using_namespace_userver.hpp>
 
+#include <userver/clients/dns/component.hpp>
 #include <userver/clients/http/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/congestion_control/component.hpp>
@@ -15,6 +16,7 @@ int main(int argc, char* argv[]) {
   const auto component_list =
       // userver components
       components::MinimalServerComponentList()
+          .Append<clients::dns::Component>()
           .Append<components::HttpClient>()
           .Append<congestion_control::Component>()
           .Append<server::handlers::Ping>()

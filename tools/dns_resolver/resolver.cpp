@@ -19,6 +19,7 @@
 #include <userver/engine/run_standalone.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/logging/logger.hpp>
 #include <userver/utils/datetime.hpp>
 
 #include <userver/utest/using_namespace_userver.hpp>
@@ -83,8 +84,11 @@ int main(int argc, char** argv) {
 
   signal(SIGPIPE, SIG_IGN);
 
+  logging::DefaultLoggerGuard guard{
+      logging::MakeStderrLogger("default", logging::Format::kTskv,
+                                logging::LevelFromString(config.log_level))};
+
   engine::RunStandalone(config.worker_threads, [&] {
-    logging::SetDefaultLoggerLevel(logging::LevelFromString(config.log_level));
     clients::dns::ResolverConfig resolver_config;
     resolver_config.network_timeout =
         std::chrono::milliseconds{config.timeout_ms};

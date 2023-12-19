@@ -4,22 +4,22 @@
 #include <cstdlib>
 #include <map>
 #include <string>
+#include <string_view>
 #include <system_error>
-#include <unordered_map>
 
-#include <boost/algorithm/string/join.hpp>
-#include <boost/range/adaptor/map.hpp>
-
+#include <userver/clients/http/connect_to.hpp>
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/form.hpp>
 #include <userver/clients/http/response_future.hpp>
 #include <userver/clients/http/streamed_response.hpp>
+#include <userver/concurrent/queue.hpp>
 #include <userver/engine/future.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/http/url.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/str_icase.hpp>
+#include <userver/utils/trivial_map.hpp>
 
 #include <clients/http/destination_statistics.hpp>
 #include <clients/http/easy_wrapper.hpp>
@@ -35,32 +35,11 @@ USERVER_NAMESPACE_BEGIN
 namespace clients::http {
 
 namespace {
-/// Max number of retries during calculating timeout
-constexpr int kMaxRetryInTimeout = 5;
-/// Base time for exponential backoff algorithm
-constexpr long kEBBaseTime = 25;
 
 constexpr std::string_view kHeaderExpect = "Expect";
 
 std::string ToString(HttpMethod method) {
-  switch (method) {
-    case HttpMethod::kDelete:
-      return "DELETE";
-    case HttpMethod::kGet:
-      return "GET";
-    case HttpMethod::kHead:
-      return "HEAD";
-    case HttpMethod::kPost:
-      return "POST";
-    case HttpMethod::kPut:
-      return "PUT";
-    case HttpMethod::kPatch:
-      return "PATCH";
-    case HttpMethod::kOptions:
-      return "OPTIONS";
-  }
-
-  UINVARIANT(false, "Unexpected HTTP method");
+  return std::string{ToStringView(method)};
 }
 
 curl::easy::http_version_t ToNative(HttpVersion version) {
@@ -82,17 +61,41 @@ curl::easy::http_version_t ToNative(HttpVersion version) {
   UINVARIANT(false, "Unexpected HTTP version");
 }
 
-const std::unordered_map<std::string, ProxyAuthType, utils::StrIcaseHash,
-                         utils::StrIcaseEqual>
-    kAuthTypeMap = {{"basic", ProxyAuthType::kBasic},
-                    {"digest", ProxyAuthType::kDigest},
-                    {"digest_ie", ProxyAuthType::kDigestIE},
-                    {"bearer", ProxyAuthType::kBearer},
-                    {"negotiate", ProxyAuthType::kNegotiate},
-                    {"ntlm", ProxyAuthType::kNtlm},
-                    {"ntlm_wb", ProxyAuthType::kNtlmWb},
-                    {"any", ProxyAuthType::kAny},
-                    {"any_safe", ProxyAuthType::kAnySafe}};
+constexpr utils::TrivialBiMap kAuthTypeMap = [](auto selector) {
+  return selector()
+      .Case("basic", ProxyAuthType::kBasic)
+      .Case("digest", ProxyAuthType::kDigest)
+      .Case("digest_ie", ProxyAuthType::kDigestIE)
+      .Case("bearer", ProxyAuthType::kBearer)
+      .Case("negotiate", ProxyAuthType::kNegotiate)
+      .Case("ntlm", ProxyAuthType::kNtlm)
+      .Case("ntlm_wb", ProxyAuthType::kNtlmWb)
+      .Case("any", ProxyAuthType::kAny)
+      .Case("any_safe", ProxyAuthType::kAnySafe);
+};
+
+curl::easy::httpauth_t HttpAuthTypeToNative(HttpAuthType value) {
+  switch (value) {
+    case HttpAuthType::kBasic:
+      return curl::easy::auth_basic;
+    case HttpAuthType::kDigest:
+      return curl::easy::auth_digest;
+    case HttpAuthType::kDigestIE:
+      return curl::easy::auth_digest_ie;
+    case HttpAuthType::kNegotiate:
+      return curl::easy::auth_negotiate;
+    case HttpAuthType::kNtlm:
+      return curl::easy::auth_ntlm;
+    case HttpAuthType::kNtlmWb:
+      return curl::easy::auth_ntlm_wb;
+    case HttpAuthType::kAny:
+      return curl::easy::auth_any;
+    case HttpAuthType::kAnySafe:
+      return curl::easy::auth_any_safe;
+  }
+
+  UINVARIANT(false, "Unexpected http auth type");
+}
 
 curl::easy::proxyauth_t ProxyAuthTypeToNative(ProxyAuthType value) {
   switch (value) {
@@ -119,20 +122,6 @@ curl::easy::proxyauth_t ProxyAuthTypeToNative(ProxyAuthType value) {
   UINVARIANT(false, "Unexpected proxy auth type");
 }
 
-inline long max_retry_time(short number) {
-  long time_ms = 0;
-  for (short int i = 1; i < number; ++i) {
-    time_ms += kEBBaseTime * ((1 << std::min(i - 1, kMaxRetryInTimeout)) + 1);
-  }
-  return time_ms;
-}
-
-long complete_timeout(long request_timeout, short retries) {
-  return static_cast<long>(static_cast<double>(request_timeout * retries) *
-                           1.1) +
-         max_retry_time(retries);
-}
-
 bool IsUserAgentHeader(std::string_view header_name) {
   return utils::StrIcaseEqual{}(header_name,
                                 USERVER_NAMESPACE::http::headers::kUserAgent);
@@ -157,17 +146,62 @@ void SetHeaders(curl::easy& easy, const Range& headers_range) {
   }
 }
 
+template <class Range>
+void SetCookies(curl::easy& easy, const Range& cookies_range) {
+  std::string cookie_str;
+  for (const auto& [name, value] : cookies_range) {
+    if (!cookie_str.empty()) cookie_str += "; ";
+    cookie_str += name;
+    cookie_str += '=';
+    cookie_str += value;
+  }
+  easy.set_cookie(cookie_str);
+}
+
+template <class Range>
+void SetProxyHeaders(curl::easy& easy, const Range& headers_range) {
+  for (const auto& [name, value] : headers_range) {
+    easy.add_proxy_header(name, value);
+  }
+}
+
+bool IsAllowedSchemaInUrl(std::string_view url) {
+  static constexpr std::string_view kAllowedSchemas[] = {"http://", "https://"};
+
+  for (const std::string_view allowed_schema : kAllowedSchemas) {
+    if (utils::StrIcaseEqual{}(allowed_schema,
+                               url.substr(0, allowed_schema.size()))) {
+      return true;
+    }
+  }
+  return false;
+}
+
 }  // namespace
 
+std::string_view ToStringView(HttpMethod method) {
+  static constexpr utils::TrivialBiMap kMap([](auto selector) {
+    return selector()
+        .Case(HttpMethod::kDelete, "DELETE")
+        .Case(HttpMethod::kGet, "GET")
+        .Case(HttpMethod::kHead, "HEAD")
+        .Case(HttpMethod::kPost, "POST")
+        .Case(HttpMethod::kPut, "PUT")
+        .Case(HttpMethod::kPatch, "PATCH")
+        .Case(HttpMethod::kOptions, "OPTIONS");
+  });
+
+  return utils::impl::EnumToStringView(method, kMap);
+}
+
 ProxyAuthType ProxyAuthTypeFromString(const std::string& auth_name) {
-  auto it = kAuthTypeMap.find(auth_name);
-  if (it == kAuthTypeMap.end()) {
-    throw std::runtime_error(fmt::format(
-        "Unknown proxy auth type '{}' (must be one of '{}')", auth_name,
-        boost::algorithm::join(kAuthTypeMap | boost::adaptors::map_keys,
-                               "', '")));
+  auto value = kAuthTypeMap.TryFindICase(auth_name);
+  if (!value) {
+    throw std::runtime_error(
+        fmt::format("Unknown proxy auth type '{}' (must be one of {})",
+                    auth_name, kAuthTypeMap.DescribeFirst()));
   }
-  return it->second;
+  return *value;
 }
 
 // Request implementation
@@ -175,10 +209,13 @@ ProxyAuthType ProxyAuthTypeFromString(const std::string& auth_name) {
 Request::Request(std::shared_ptr<impl::EasyWrapper>&& wrapper,
                  std::shared_ptr<RequestStats>&& req_stats,
                  const std::shared_ptr<DestinationStatistics>& dest_stats,
-                 clients::dns::Resolver* resolver)
+                 clients::dns::Resolver* resolver,
+                 impl::PluginPipeline& plugin_pipeline,
+                 const tracing::TracingManagerBase& tracing_manager)
     : pimpl_(std::make_shared<RequestState>(
-          std::move(wrapper), std::move(req_stats), dest_stats, resolver)) {
-  LOG_DEBUG() << "Request::Request()";
+          std::move(wrapper), std::move(req_stats), dest_stats, resolver,
+          plugin_pipeline, tracing_manager)) {
+  LOG_TRACE() << "Request::Request()";
   // default behavior follow redirects and verify ssl
   pimpl_->follow_redirects(true);
   pimpl_->verify(true);
@@ -189,143 +226,262 @@ Request::Request(std::shared_ptr<impl::EasyWrapper>&& wrapper,
   }
 }
 
-ResponseFuture Request::async_perform() {
-  return {pimpl_->async_perform(),
-          std::chrono::milliseconds(
-              complete_timeout(pimpl_->timeout(), pimpl_->retries())),
-          pimpl_};
+ResponseFuture Request::async_perform(utils::impl::SourceLocation location) {
+  return ResponseFuture{pimpl_->async_perform(location), pimpl_};
 }
 
 StreamedResponse Request::async_perform_stream_body(
-    const std::shared_ptr<concurrent::SpscQueue<std::string>>& queue) {
-  auto deadline = engine::Deadline::FromDuration(
-      std::chrono::milliseconds(pimpl_->timeout()));
-
-  pimpl_->async_perform_stream(queue);
-  return StreamedResponse(queue->GetConsumer(), deadline, pimpl_);
+    const std::shared_ptr<concurrent::StringStreamQueue>& queue,
+    utils::impl::SourceLocation location) {
+  LOG_DEBUG() << "Starting an async HTTP request with streamed response body";
+  return StreamedResponse(pimpl_->async_perform_stream(queue, location),
+                          queue->GetConsumer(), pimpl_);
 }
 
-std::shared_ptr<Response> Request::perform() { return async_perform().Get(); }
+std::shared_ptr<Response> Request::perform(
+    utils::impl::SourceLocation location) {
+  return async_perform(location).Get();
+}
 
-std::shared_ptr<Request> Request::url(const std::string& url) {
+Request& Request::url(const std::string& url) & {
+  if (!IsAllowedSchemaInUrl(url)) {
+    throw BadArgumentException(curl::errc::EasyErrorCode::kUnsupportedProtocol,
+                               "Bad URL", url, {});
+  }
   std::error_code ec;
   pimpl_->easy().set_url(url, ec);
   if (ec) throw BadArgumentException(ec, "Bad URL", url, {});
 
   pimpl_->SetDestinationMetricNameAuto(
       USERVER_NAMESPACE::http::ExtractMetaTypeFromUrl(url));
-  return shared_from_this();
+  return *this;
+}
+Request Request::url(const std::string& url) && {
+  return std::move(this->url(url));
 }
 
-std::shared_ptr<Request> Request::timeout(long timeout_ms) {
+Request& Request::timeout(long timeout_ms) & {
   pimpl_->set_timeout(timeout_ms);
-  return shared_from_this();
+  return *this;
+}
+Request Request::timeout(long timeout_ms) && {
+  return std::move(this->timeout(timeout_ms));
 }
 
-std::shared_ptr<Request> Request::follow_redirects(bool follow) {
+Request& Request::follow_redirects(bool follow) & {
   pimpl_->follow_redirects(follow);
-  return shared_from_this();
+  return *this;
+}
+Request Request::follow_redirects(bool follow) && {
+  return std::move(this->follow_redirects(follow));
 }
 
-std::shared_ptr<Request> Request::verify(bool verify) {
+Request& Request::verify(bool verify) & {
   pimpl_->verify(verify);
-  return shared_from_this();
+  return *this;
+}
+Request Request::verify(bool verify) && {
+  return std::move(this->verify(verify));
 }
 
-std::shared_ptr<Request> Request::ca_info(const std::string& file_path) {
+Request& Request::ca_info(const std::string& file_path) & {
   pimpl_->ca_info(file_path);
-  return shared_from_this();
+  return *this;
+}
+Request Request::ca_info(const std::string& file_path) && {
+  return std::move(this->ca_info(file_path));
 }
 
-std::shared_ptr<Request> Request::ca(crypto::Certificate cert) {
+Request& Request::ca(crypto::Certificate cert) & {
   pimpl_->ca(std::move(cert));
-  return shared_from_this();
+  return *this;
+}
+Request Request::ca(crypto::Certificate cert) && {
+  return std::move(this->ca(std::move(cert)));
 }
 
-std::shared_ptr<Request> Request::crl_file(const std::string& file_path) {
+Request& Request::crl_file(const std::string& file_path) & {
   pimpl_->crl_file(file_path);
-  return shared_from_this();
+  return *this;
+}
+Request Request::crl_file(const std::string& file_path) && {
+  return std::move(this->crl_file(file_path));
 }
 
-std::shared_ptr<Request> Request::client_key_cert(crypto::PrivateKey pkey,
-                                                  crypto::Certificate cert) {
+Request& Request::client_key_cert(crypto::PrivateKey pkey,
+                                  crypto::Certificate cert) & {
   pimpl_->client_key_cert(std::move(pkey), std::move(cert));
-  return shared_from_this();
+  return *this;
+}
+Request Request::client_key_cert(crypto::PrivateKey pkey,
+                                 crypto::Certificate cert) && {
+  return std::move(this->client_key_cert(std::move(pkey), std::move(cert)));
 }
 
-std::shared_ptr<Request> Request::http_version(HttpVersion version) {
+Request& Request::http_version(HttpVersion version) & {
   pimpl_->http_version(ToNative(version));
-  return shared_from_this();
+  return *this;
+}
+Request Request::http_version(HttpVersion version) && {
+  return std::move(this->http_version(version));
 }
 
-std::shared_ptr<Request> Request::retry(short retries, bool on_fails) {
+Request& Request::retry(short retries, bool on_fails) & {
   UASSERT_MSG(retries >= 0, "retires < 0 (" + std::to_string(retries) +
                                 "), uninitialized variable?");
   if (retries <= 0) retries = 1;
   pimpl_->retry(retries, on_fails);
-  return shared_from_this();
+  return *this;
+}
+Request Request::retry(short retries, bool on_fails) && {
+  return std::move(this->retry(retries, on_fails));
 }
 
-std::shared_ptr<Request> Request::unix_socket_path(const std::string& path) {
+Request& Request::unix_socket_path(const std::string& path) & {
   pimpl_->unix_socket_path(path);
-  return shared_from_this();
+  return *this;
+}
+Request Request::unix_socket_path(const std::string& path) && {
+  return std::move(this->unix_socket_path(path));
 }
 
-std::shared_ptr<Request> Request::data(std::string data) {
+Request& Request::use_ipv4() & {
+  pimpl_->easy().set_ip_resolve(curl::easy::ip_resolve_v4);
+  return *this;
+}
+Request Request::use_ipv4() && { return std::move(this->use_ipv4()); }
+
+Request& Request::use_ipv6() & {
+  pimpl_->easy().set_ip_resolve(curl::easy::ip_resolve_v6);
+  return *this;
+}
+Request Request::use_ipv6() && { return std::move(this->use_ipv6()); }
+
+Request& Request::connect_to(const ConnectTo& connect_to) & {
+  pimpl_->connect_to(connect_to);
+  return *this;
+}
+Request Request::connect_to(const ConnectTo& connect_to) && {
+  return std::move(this->connect_to(connect_to));
+}
+
+Request& Request::data(std::string data) & {
   if (!data.empty())
     pimpl_->easy().add_header(kHeaderExpect, "",
                               curl::easy::EmptyHeaderAction::kDoNotSend);
   pimpl_->easy().set_post_fields(std::move(data));
-  return shared_from_this();
+  return *this;
+}
+Request Request::data(std::string data) && {
+  return std::move(this->data(std::move(data)));
 }
 
-std::shared_ptr<Request> Request::form(const Form& form) {
+Request& Request::form(const Form& form) & {
   pimpl_->easy().set_http_post(form.GetNative());
   pimpl_->easy().add_header(kHeaderExpect, "",
                             curl::easy::EmptyHeaderAction::kDoNotSend);
-  return shared_from_this();
+  return *this;
+}
+Request Request::form(const Form& form) && {
+  return std::move(this->form(form));
 }
 
-std::shared_ptr<Request> Request::headers(const Headers& headers) {
+Request& Request::headers(const Headers& headers) & {
   SetHeaders(pimpl_->easy(), headers);
-  return shared_from_this();
+  return *this;
+}
+Request Request::headers(const Headers& headers) && {
+  return std::move(this->headers(headers));
 }
 
-std::shared_ptr<Request> Request::headers(
-    std::initializer_list<std::pair<std::string_view, std::string_view>>
-        headers) {
+Request& Request::headers(
+    const std::initializer_list<std::pair<std::string_view, std::string_view>>&
+        headers) & {
   SetHeaders(pimpl_->easy(), headers);
-  return shared_from_this();
+  return *this;
+}
+Request Request::headers(
+    const std::initializer_list<std::pair<std::string_view, std::string_view>>&
+        headers) && {
+  return std::move(this->headers(headers));
 }
 
-std::shared_ptr<Request> Request::user_agent(const std::string& value) {
+Request& Request::http_auth_type(HttpAuthType value, bool auth_only,
+                                 std::string_view user,
+                                 std::string_view password) & {
+  pimpl_->http_auth_type(HttpAuthTypeToNative(value), auth_only, user,
+                         password);
+  return *this;
+}
+Request Request::http_auth_type(HttpAuthType value, bool auth_only,
+                                std::string_view user,
+                                std::string_view password) && {
+  return std::move(this->http_auth_type(value, auth_only, user, password));
+}
+
+Request& Request::proxy_headers(const Headers& headers) & {
+  SetProxyHeaders(pimpl_->easy(), headers);
+  return *this;
+}
+Request Request::proxy_headers(const Headers& headers) && {
+  return std::move(this->proxy_headers(headers));
+}
+
+Request& Request::proxy_headers(
+    const std::initializer_list<std::pair<std::string_view, std::string_view>>&
+        headers) & {
+  SetProxyHeaders(pimpl_->easy(), headers);
+  return *this;
+}
+Request Request::proxy_headers(
+    const std::initializer_list<std::pair<std::string_view, std::string_view>>&
+        headers) && {
+  return std::move(this->proxy_headers(headers));
+}
+
+Request& Request::user_agent(const std::string& value) & {
   pimpl_->easy().set_user_agent(value.c_str());
-  return shared_from_this();
+  return *this;
+}
+Request Request::user_agent(const std::string& value) && {
+  return std::move(this->user_agent(value));
 }
 
-std::shared_ptr<Request> Request::proxy(const std::string& value) {
+Request& Request::proxy(const std::string& value) & {
   pimpl_->proxy(value);
-  return shared_from_this();
+  return *this;
+}
+Request Request::proxy(const std::string& value) && {
+  return std::move(this->proxy(value));
 }
 
-std::shared_ptr<Request> Request::proxy_auth_type(ProxyAuthType value) {
+Request& Request::proxy_auth_type(ProxyAuthType value) & {
   pimpl_->proxy_auth_type(ProxyAuthTypeToNative(value));
-  return shared_from_this();
+  return *this;
+}
+Request Request::proxy_auth_type(ProxyAuthType value) && {
+  return std::move(this->proxy_auth_type(value));
 }
 
-std::shared_ptr<Request> Request::cookies(const Cookies& cookies) {
-  std::string cookie_str;
-  for (const auto& [name, value] : cookies) {
-    if (!cookie_str.empty()) cookie_str += "; ";
-    cookie_str += name;
-    cookie_str += '=';
-    cookie_str += value;
-  }
-  pimpl_->easy().set_cookie(cookie_str);
-  return shared_from_this();
+Request& Request::cookies(const Cookies& cookies) & {
+  SetCookies(pimpl_->easy(), cookies);
+  return *this;
+}
+Request Request::cookies(const Cookies& cookies) && {
+  return std::move(this->cookies(cookies));
 }
 
-std::shared_ptr<Request> Request::method(HttpMethod method) {
+Request& Request::cookies(
+    const std::unordered_map<std::string, std::string>& cookies) & {
+  SetCookies(pimpl_->easy(), cookies);
+  return *this;
+}
+Request Request::cookies(
+    const std::unordered_map<std::string, std::string>& cookies) && {
+  return std::move(this->cookies(cookies));
+}
+
+Request& Request::method(HttpMethod method) & {
   switch (method) {
     case HttpMethod::kDelete:
     case HttpMethod::kOptions:
@@ -348,109 +504,153 @@ std::shared_ptr<Request> Request::method(HttpMethod method) {
       if (!pimpl_->easy().has_post_data()) data({});
       break;
   };
-  return shared_from_this();
+  return *this;
 }
 
-std::shared_ptr<Request> Request::get() { return method(HttpMethod::kGet); }
-
-std::shared_ptr<Request> Request::head() { return method(HttpMethod::kHead); }
-
-std::shared_ptr<Request> Request::post() { return method(HttpMethod::kPost); }
-
-std::shared_ptr<Request> Request::put() { return method(HttpMethod::kPut); }
-
-std::shared_ptr<Request> Request::patch() { return method(HttpMethod::kPatch); }
-
-std::shared_ptr<Request> Request::delete_method() {
-  return method(HttpMethod::kDelete);
+Request Request::method(HttpMethod method) && {
+  return std::move(this->method(method));
 }
 
-std::shared_ptr<Request> Request::get(const std::string& url) {
-  return get()->url(url);
+Request& Request::get() & { return method(HttpMethod::kGet); }
+Request Request::get() && { return std::move(this->get()); }
+
+Request& Request::head() & { return method(HttpMethod::kHead); }
+Request Request::head() && { return std::move(this->head()); }
+
+Request& Request::post() & { return method(HttpMethod::kPost); }
+Request Request::post() && { return std::move(this->post()); }
+
+Request& Request::put() & { return method(HttpMethod::kPut); }
+Request Request::put() && { return std::move(this->put()); }
+
+Request& Request::patch() & { return method(HttpMethod::kPatch); }
+Request Request::patch() && { return std::move(this->patch()); }
+
+Request& Request::delete_method() & { return method(HttpMethod::kDelete); }
+Request Request::delete_method() && { return std::move(this->delete_method()); }
+
+Request& Request::set_custom_http_request_method(std::string method) & {
+  LOG_LIMITED_WARNING()
+      << "This method can cause unexpected effects in libcurl, i.e., timeouts, "
+         "changing of request type. Use it only if you need to make "
+         "GET-request with body.";
+  pimpl_->easy().set_custom_request(method);
+  return *this;
+}
+Request Request::set_custom_http_request_method(std::string method) && {
+  return std::move(this->set_custom_http_request_method(std::move(method)));
 }
 
-std::shared_ptr<Request> Request::head(const std::string& url) {
-  return head()->url(url);
+Request& Request::get(const std::string& url) & { return get().url(url); }
+Request Request::get(const std::string& url) && {
+  return std::move(this->get(url));
 }
 
-std::shared_ptr<Request> Request::post(const std::string& url,
-                                       const Form& form) {
-  return this->url(url)->form(form);
+Request& Request::head(const std::string& url) & { return head().url(url); }
+Request Request::head(const std::string& url) && {
+  return std::move(this->head(url));
 }
 
-std::shared_ptr<Request> Request::post(const std::string& url,
-                                       std::string data) {
-  return this->url(url)->data(std::move(data))->post();
+Request& Request::post(const std::string& url, const Form& form) & {
+  return this->url(url).form(form);
+}
+Request Request::post(const std::string& url, const Form& form) && {
+  return std::move(this->post(url, form));
 }
 
-std::shared_ptr<Request> Request::put(const std::string& url,
-                                      std::string data) {
-  return this->url(url)->data(std::move(data))->put();
+Request& Request::post(const std::string& url, std::string data) & {
+  return this->url(url).data(std::move(data)).post();
+}
+Request Request::post(const std::string& url, std::string data) && {
+  return std::move(this->post(url, data));
 }
 
-std::shared_ptr<Request> Request::patch(const std::string& url,
-                                        std::string data) {
-  return this->url(url)->data(std::move(data))->patch();
+Request& Request::put(const std::string& url, std::string data) & {
+  return this->url(url).data(std::move(data)).put();
+}
+Request Request::put(const std::string& url, std::string data) && {
+  return std::move(this->put(url, data));
 }
 
-std::shared_ptr<Request> Request::delete_method(const std::string& url) {
-  return this->url(url)->delete_method();
+Request& Request::patch(const std::string& url, std::string data) & {
+  return this->url(url).data(std::move(data)).patch();
+}
+Request Request::patch(const std::string& url, std::string data) && {
+  return std::move(this->patch(url, data));
 }
 
-std::shared_ptr<Request> Request::delete_method(const std::string& url,
-                                                std::string data) {
-  return this->url(url)->data(std::move(data))->delete_method();
+Request& Request::delete_method(const std::string& url) & {
+  return this->url(url).delete_method();
+}
+Request Request::delete_method(const std::string& url) && {
+  return std::move(this->delete_method(url));
 }
 
-std::shared_ptr<Request> Request::SetLoggedUrl(std::string url) {
+Request& Request::delete_method(const std::string& url, std::string data) & {
+  return this->url(url).data(std::move(data)).delete_method();
+}
+Request Request::delete_method(const std::string& url, std::string data) && {
+  return std::move(this->delete_method(url, data));
+}
+
+Request& Request::SetLoggedUrl(std::string url) & {
   pimpl_->SetLoggedUrl(std::move(url));
-  return shared_from_this();
+  return *this;
+}
+Request Request::SetLoggedUrl(std::string url) && {
+  return std::move(this->SetLoggedUrl(std::move(url)));
 }
 
-std::shared_ptr<Request> Request::SetDestinationMetricName(
-    const std::string& destination) {
+Request& Request::SetDestinationMetricName(const std::string& destination) & {
   pimpl_->SetDestinationMetricName(destination);
-  return shared_from_this();
+  return *this;
+}
+Request Request::SetDestinationMetricName(const std::string& destination) && {
+  return std::move(this->SetDestinationMetricName(destination));
 }
 
-std::shared_ptr<Request> Request::SetTestsuiteConfig(
-    const std::shared_ptr<const TestsuiteConfig>& config) {
+void Request::SetTestsuiteConfig(
+    const std::shared_ptr<const TestsuiteConfig>& config) & {
   pimpl_->SetTestsuiteConfig(config);
-  return shared_from_this();
 }
 
-std::shared_ptr<Request> Request::SetAllowedUrlsExtra(
-    const std::vector<std::string>& urls) {
+void Request::SetAllowedUrlsExtra(const std::vector<std::string>& urls) & {
   pimpl_->SetAllowedUrlsExtra(urls);
-  return shared_from_this();
 }
 
-std::shared_ptr<Request> Request::DisableReplyDecoding() {
+void Request::SetDeadlinePropagationConfig(
+    const impl::DeadlinePropagationConfig& deadline_propagation_config) & {
+  pimpl_->SetDeadlinePropagationConfig(deadline_propagation_config);
+}
+
+Request& Request::DisableReplyDecoding() & {
   pimpl_->DisableReplyDecoding();
-  return shared_from_this();
+  return *this;
+}
+Request Request::DisableReplyDecoding() && {
+  return std::move(this->DisableReplyDecoding());
 }
 
-std::shared_ptr<Request> Request::EnableAddClientTimeoutHeader() {
-  pimpl_->EnableAddClientTimeoutHeader();
-  return shared_from_this();
+Request& Request::SetTracingManager(
+    const tracing::TracingManagerBase& tracing_manager) & {
+  pimpl_->SetTracingManager(tracing_manager);
+  return *this;
+}
+Request Request::SetTracingManager(
+    const tracing::TracingManagerBase& tracing_manager) && {
+  return std::move(this->SetTracingManager(tracing_manager));
 }
 
-std::shared_ptr<Request> Request::DisableAddClientTimeoutHeader() {
-  pimpl_->DisableAddClientTimeoutHeader();
-  return shared_from_this();
+void Request::SetHeadersPropagator(
+    const server::http::HeadersPropagator* headers_propagator) & {
+  pimpl_->SetHeadersPropagator(headers_propagator);
 }
 
-std::shared_ptr<Request> Request::SetEnforceTaskDeadline(
-    EnforceTaskDeadlineConfig enforce_task_deadline) {
-  pimpl_->SetEnforceTaskDeadline(enforce_task_deadline);
-  return shared_from_this();
-}
-
-const std::string& Request::GetUrl() const {
+const std::string& Request::GetUrl() const& {
   return pimpl_->easy().get_original_url();
 }
 
-const std::string& Request::GetData() const {
+const std::string& Request::GetData() const& {
   return pimpl_->easy().get_post_data();
 }
 

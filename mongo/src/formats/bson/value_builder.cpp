@@ -144,6 +144,10 @@ ValueBuilder ValueBuilder::operator[](uint32_t index) {
   return ValueBuilder((*impl_)[index]);
 }
 
+void ValueBuilder::EmplaceNocheck(std::string_view key, ValueBuilder value) {
+  (*this)[std::string{key.data(), key.size()}] = value;
+}
+
 void ValueBuilder::Remove(const std::string& key) { impl_->Remove(key); }
 
 ValueBuilder::iterator ValueBuilder::begin() {

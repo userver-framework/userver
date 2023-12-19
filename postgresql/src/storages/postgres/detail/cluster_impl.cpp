@@ -2,14 +2,17 @@
 
 #include <fmt/format.h>
 
+#include <userver/dynamic_config/value.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/utils/assert.hpp>
 
 #include <storages/postgres/detail/topology/hot_standby.hpp>
 #include <storages/postgres/detail/topology/standalone.hpp>
+#include <storages/postgres/postgres_config.hpp>
 #include <userver/storages/postgres/dsn.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
+#include <userver/utils/impl/userver_experiments.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -24,6 +27,7 @@ ClusterHostType Fallback(ClusterHostType ht) {
     case ClusterHostType::kSyncSlave:
     case ClusterHostType::kSlave:
       return ClusterHostType::kMaster;
+    case ClusterHostType::kSlaveOrMaster:
     case ClusterHostType::kNone:
     case ClusterHostType::kRoundRobin:
     case ClusterHostType::kNearest:
@@ -65,10 +69,16 @@ ClusterImpl::ClusterImpl(DsnList dsns, clients::dns::Resolver* resolver,
                          const ClusterSettings& cluster_settings,
                          const DefaultCommandControls& default_cmd_ctls,
                          const testsuite::PostgresControl& testsuite_pg_ctl,
-                         const error_injection::Settings& ei_settings)
+                         const error_injection::Settings& ei_settings,
+                         testsuite::TestsuiteTasks& testsuite_tasks,
+                         dynamic_config::Source config_source, int shard_number)
     : default_cmd_ctls_(default_cmd_ctls),
+      cluster_settings_(cluster_settings),
       bg_task_processor_(bg_task_processor),
-      rr_host_idx_(0) {
+      rr_host_idx_(0),
+      config_source_(std::move(config_source)),
+      connlimit_watchdog_(*this, testsuite_tasks, shard_number,
+                          [this]() { OnConnlimitChanged(); }) {
   if (dsns.empty()) {
     throw ClusterError("Cannot create a cluster from an empty DSN list");
   } else if (dsns.size() == 1) {
@@ -97,12 +107,19 @@ ClusterImpl::ClusterImpl(DsnList dsns, clients::dns::Resolver* resolver,
         cluster_settings.init_mode, cluster_settings.pool_settings,
         cluster_settings.conn_settings,
         cluster_settings.statement_metrics_settings, default_cmd_ctls_,
-        testsuite_pg_ctl, ei_settings));
+        testsuite_pg_ctl, ei_settings, cluster_settings.cc_config,
+        config_source_));
   }
   LOG_DEBUG() << "Pools initialized";
+
+  // Do not use IsConnlimitModeAuto() here because we don't care about
+  // the current dynamic config value
+  if (cluster_settings.connlimit_mode == ConnlimitMode::kAuto) {
+    connlimit_watchdog_.Start();
+  }
 }
 
-ClusterImpl::~ClusterImpl() = default;
+ClusterImpl::~ClusterImpl() { connlimit_watchdog_.Stop(); }
 
 ClusterStatisticsPtr ClusterImpl::GetStatistics() const {
   auto cluster_stats = std::make_unique<ClusterStatistics>();
@@ -263,6 +280,11 @@ NonTransaction ClusterImpl::Start(ClusterHostTypeFlags flags,
   return FindPool(flags)->Start(cmd_ctl);
 }
 
+NotifyScope ClusterImpl::Listen(std::string_view channel,
+                                OptionalCommandControl cmd_ctl) {
+  return FindPool(ClusterHostType::kMaster)->Listen(channel, cmd_ctl);
+}
+
 void ClusterImpl::SetDefaultCommandControl(CommandControl cmd_ctl,
                                            DefaultCommandControlSource source) {
   default_cmd_ctls_.UpdateDefaultCmdCtl(cmd_ctl, source);
@@ -273,13 +295,15 @@ CommandControl ClusterImpl::GetDefaultCommandControl() const {
 }
 
 void ClusterImpl::SetHandlersCommandControl(
-    const CommandControlByHandlerMap& handlers_command_control) {
-  default_cmd_ctls_.UpdateHandlersCommandControl(handlers_command_control);
+    CommandControlByHandlerMap&& handlers_command_control) {
+  default_cmd_ctls_.UpdateHandlersCommandControl(
+      std::move(handlers_command_control));
 }
 
 void ClusterImpl::SetQueriesCommandControl(
-    const CommandControlByQueryMap& queries_command_control) {
-  default_cmd_ctls_.UpdateQueriesCommandControl(queries_command_control);
+    CommandControlByQueryMap&& queries_command_control) {
+  default_cmd_ctls_.UpdateQueriesCommandControl(
+      std::move(queries_command_control));
 }
 
 void ClusterImpl::SetConnectionSettings(const ConnectionSettings& settings) {
@@ -288,10 +312,51 @@ void ClusterImpl::SetConnectionSettings(const ConnectionSettings& settings) {
   }
 }
 
-void ClusterImpl::SetPoolSettings(const PoolSettings& settings) {
-  for (const auto& pool : host_pools_) {
-    pool->SetSettings(settings);
+void ClusterImpl::SetPoolSettings(const PoolSettings& new_settings) {
+  {
+    auto cluster = cluster_settings_.StartWrite();
+
+    cluster->pool_settings = new_settings;
+    auto& settings = cluster->pool_settings;
+    if (IsConnlimitModeAuto(*cluster)) {
+      auto connlimit = connlimit_watchdog_.GetConnlimit();
+      if (connlimit > 0) {
+        settings.max_size = connlimit;
+        if (settings.min_size > settings.max_size)
+          settings.min_size = settings.max_size;
+      }
+    }
+
+    cluster.Commit();
   }
+
+  auto cluster_settings = cluster_settings_.Read();
+  for (const auto& pool : host_pools_) {
+    pool->SetSettings(cluster_settings->pool_settings);
+  }
+}
+
+void ClusterImpl::OnConnlimitChanged() {
+  auto max_size = connlimit_watchdog_.GetConnlimit();
+  auto cluster = cluster_settings_.StartWrite();
+  if (!IsConnlimitModeAuto(*cluster)) return;
+
+  if (cluster->pool_settings.max_size == max_size) return;
+  cluster->pool_settings.max_size = max_size;
+  cluster.Commit();
+
+  auto cluster_settings = cluster_settings_.Read();
+  SetPoolSettings(cluster_settings->pool_settings);
+}
+
+bool ClusterImpl::IsConnlimitModeAuto(const ClusterSettings& settings) const {
+  if (settings.connlimit_mode == ConnlimitMode::kManual) return false;
+
+  auto snapshot = config_source_.GetSnapshot();
+  // NOLINTNEXTLINE(readability-simplify-boolean-expr)
+  if (!snapshot[kConnlimitModeAutoEnabled]) return false;
+
+  return true;
 }
 
 void ClusterImpl::SetStatementMetricsSettings(
@@ -308,11 +373,16 @@ OptionalCommandControl ClusterImpl::GetQueryCmdCtl(
 
 OptionalCommandControl ClusterImpl::GetTaskDataHandlersCommandControl() const {
   const auto* task_data = server::request::kTaskInheritedData.GetOptional();
-  if (task_data && task_data->path) {
-    return default_cmd_ctls_.GetHandlerCmdCtl(*task_data->path,
+  if (task_data) {
+    return default_cmd_ctls_.GetHandlerCmdCtl(task_data->path,
                                               task_data->method);
   }
   return std::nullopt;
+}
+
+std::string ClusterImpl::GetDbName() const {
+  auto cluster_settings = cluster_settings_.Read();
+  return cluster_settings->db_name;
 }
 
 }  // namespace storages::postgres::detail

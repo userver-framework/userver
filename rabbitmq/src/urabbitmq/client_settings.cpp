@@ -1,9 +1,18 @@
 #include <userver/urabbitmq/client_settings.hpp>
 
+#include <stdexcept>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <vector>
+
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/serialize/common_containers.hpp>
 #include <userver/storages/secdist/helpers.hpp>
 #include <userver/utils/assert.hpp>
+
+#include <boost/range/adaptor/map.hpp>
 
 #include <fmt/format.h>
 
@@ -91,8 +100,9 @@ const RabbitEndpoints& RabbitEndpointsMulti::Get(
     const std::string& name) const {
   const auto it = endpoints_.find(name);
   if (it == endpoints_.end()) {
-    throw std::runtime_error{
-        fmt::format("RMQ broken '{}' is not found in secdist", name)};
+    throw std::runtime_error{fmt::format(
+        "RMQ broken '{}' is not found in secdist. Available endpoints: [{}]",
+        name, fmt::join(endpoints_ | boost::adaptors::map_keys, ", "))};
   }
 
   return it->second;

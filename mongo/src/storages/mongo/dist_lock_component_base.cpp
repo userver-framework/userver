@@ -5,7 +5,7 @@
 #include <userver/dist_lock/dist_lock_settings.hpp>
 #include <userver/storages/mongo/component.hpp>
 #include <userver/testsuite/tasks.hpp>
-#include <userver/utils/statistics/metadata.hpp>
+#include <userver/utils/statistics/writer.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -58,11 +58,10 @@ DistLockComponentBase::DistLockComponentBase(
 
   auto& statistics_storage =
       component_context.FindComponent<components::StatisticsStorage>();
-  statistics_holder_ = statistics_storage.GetStorage().RegisterExtender(
-      "distlock." + component_config.Name(),
-      [this](const utils::statistics::StatisticsRequest&) {
-        return worker_->GetStatisticsJson();
-      });
+  statistics_holder_ = statistics_storage.GetStorage().RegisterWriter(
+      "distlock",
+      [this](utils::statistics::Writer& writer) { writer = *worker_; },
+      {{"distlock_name", component_config.Name()}});
 
   if (component_config["testsuite-support"].As<bool>(false)) {
     auto& testsuite_tasks = testsuite::GetTestsuiteTasks(component_context);
@@ -115,9 +114,8 @@ properties:
         defaultDescription: main-task-processor
     testsuite-support:
         type: boolean
-        default: false
         description: Enable testsuite support
-        defaultDescription: true
+        defaultDescription: false
 )");
 }
 

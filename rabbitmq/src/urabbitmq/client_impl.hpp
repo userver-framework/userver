@@ -8,7 +8,6 @@
 
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/engine/deadline.hpp>
-#include <userver/formats/json_fwd.hpp>
 
 #include <urabbitmq/statistics/connection_statistics.hpp>
 
@@ -25,7 +24,7 @@ class ClientImpl final {
 
   ConnectionPtr GetConnection(engine::Deadline deadline);
 
-  formats::json::Value GetStatistics() const;
+  void WriteStatistics(utils::statistics::Writer& writer) const;
 
  private:
   const ClientSettings settings_;

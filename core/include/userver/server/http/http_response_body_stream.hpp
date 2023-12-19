@@ -19,13 +19,17 @@ class ResponseBodyStream final {
 
   // Send a chunk of response data. It may NOT generate
   // exactly one HTTP chunk per call to PushBodyChunk().
-  void PushBodyChunk(std::string&& chunk);
+  void PushBodyChunk(std::string&& chunk, engine::Deadline deadline);
 
   void SetHeader(const std::string&, const std::string&);
+
+  void SetHeader(std::string_view, const std::string&);
 
   void SetEndOfHeaders();
 
   void SetStatusCode(int status_code);
+
+  void SetStatusCode(HttpStatus status);
 
  private:
   friend class server::handlers::HttpHandlerBase;

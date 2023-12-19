@@ -7,7 +7,9 @@
 #include <unordered_map>
 
 #include <userver/cache/lru_map.hpp>
+#include <userver/concurrent/background_task_storage_fwd.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/semaphore.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/error_injection/settings_fwd.hpp>
 #include <userver/testsuite/postgres_control.hpp>
@@ -28,17 +30,19 @@ namespace storages::postgres::detail {
 
 class ConnectionImpl {
  public:
-  ConnectionImpl(engine::TaskProcessor& bg_task_processor, uint32_t id,
-                 ConnectionSettings settings,
+  ConnectionImpl(engine::TaskProcessor& bg_task_processor,
+                 concurrent::BackgroundTaskStorageCore& bg_task_storage,
+                 uint32_t id, ConnectionSettings settings,
                  const DefaultCommandControls& default_cmd_ctls,
                  const testsuite::PostgresControl& testsuite_pg_ctl,
                  const error_injection::Settings& ei_settings,
-                 Connection::SizeGuard&& size_guard);
+                 engine::SemaphoreLock&& size_lock);
 
   void AsyncConnect(const Dsn& dsn, engine::Deadline deadline);
   void Close();
 
   int GetServerVersion() const;
+  bool IsInAbortedPipeline() const;
   bool IsInRecovery() const;
   bool IsReadOnly() const;
   void RefreshReplicaState(engine::Deadline deadline);
@@ -48,6 +52,8 @@ class ConnectionImpl {
   bool IsIdle() const;
   bool IsInTransaction() const;
   bool IsPipelineActive() const;
+  bool IsBroken() const;
+  bool IsExpired() const;
   ConnectionSettings const& GetSettings() const;
 
   CommandControl GetDefaultCommandControl() const;
@@ -81,6 +87,10 @@ class ConnectionImpl {
                           const std::string& portal_name, std::uint32_t n_rows,
                           OptionalCommandControl statement_cmd_ctl);
 
+  void Listen(std::string_view channel, OptionalCommandControl);
+  void Unlisten(std::string_view channel, OptionalCommandControl);
+  Notification WaitNotify(engine::Deadline deadline);
+
   void CancelAndCleanup(TimeoutDuration timeout);
   bool Cleanup(TimeoutDuration timeout);
 
@@ -111,11 +121,13 @@ class ConnectionImpl {
 
   void CheckBusy() const;
   void CheckDeadlineReached(const engine::Deadline& deadline);
-  tracing::Span MakeQuerySpan(const Query& query) const;
+  tracing::Span MakeQuerySpan(const Query& query,
+                              const CommandControl& cc) const;
   engine::Deadline MakeCurrentDeadline() const;
 
   void SetTransactionCommandControl(CommandControl cmd_ctl);
 
+  TimeoutDuration ExecuteTimeout(OptionalCommandControl) const;
   TimeoutDuration CurrentExecuteTimeout() const;
 
   void SetConnectionStatementTimeout(TimeoutDuration timeout,
@@ -175,6 +187,7 @@ class ConnectionImpl {
   bool is_read_only_ = true;
   bool is_discard_prepared_pending_ = false;
   ConnectionSettings settings_;
+  std::optional<std::chrono::steady_clock::time_point> expires_at_;
 
   CommandControl default_cmd_ctl_{{}, {}};
   DefaultCommandControls default_cmd_ctls_;

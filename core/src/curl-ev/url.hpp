@@ -6,13 +6,13 @@
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define IMPLEMENT_CURLU_PART_GET_F(FUNCTION_NAME, OPTION_NAME, FLAGS) \
-  inline impl::CurlPtr FUNCTION_NAME() {                              \
+  inline impl::CurlPtr FUNCTION_NAME() const {                        \
     std::error_code ec;                                               \
     auto part = FUNCTION_NAME(ec);                                    \
     throw_error(ec, PP_STRINGIZE(FUNCTION_NAME));                     \
     return part;                                                      \
   }                                                                   \
-  inline impl::CurlPtr FUNCTION_NAME(std::error_code& ec) {           \
+  inline impl::CurlPtr FUNCTION_NAME(std::error_code& ec) const {     \
     char* part = nullptr;                                             \
     ec = static_cast<errc::UrlErrorCode>(                             \
         native::curl_url_get(url_.get(), OPTION_NAME, &part, FLAGS)); \

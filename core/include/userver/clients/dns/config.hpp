@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file clients/dns/config.hpp
+/// @file userver/clients/dns/config.hpp
 /// @brief @copybrief clients::dns::ResolverConfig
 
 #include <chrono>

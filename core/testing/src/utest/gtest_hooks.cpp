@@ -2,10 +2,13 @@
 
 #include <gtest/gtest.h>
 
+#include <engine/task/exception_hacks.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/logging/logger.hpp>
 #include <userver/logging/stacktrace_cache.hpp>
+#include <userver/utils/impl/static_registration.hpp>
+#include <userver/utils/impl/userver_experiments.hpp>
 #include <userver/utils/mock_now.hpp>
-#include <utils/impl/static_registration.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -35,7 +38,17 @@ void SetLogLevel(logging::Level log_level) {
     // A hack for avoiding Boost.Stacktrace memory leak
     logging::stacktrace_cache::GlobalEnableStacktrace(false);
   }
+
+  static logging::DefaultLoggerGuard logger{
+      logging::MakeStderrLogger("default", logging::Format::kTskv, log_level)};
+
   logging::SetDefaultLoggerLevel(log_level);
+}
+
+void InitPhdrCache() { USERVER_NAMESPACE::engine::impl::InitPhdrCache(); }
+
+void TeardownPhdrCache() {
+  USERVER_NAMESPACE::engine::impl::TeardownPhdrCacheAndEnableDynamicLoading();
 }
 
 }  // namespace utest::impl

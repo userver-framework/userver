@@ -6,11 +6,10 @@
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/formats/yaml/value_builder.hpp>
-#include <userver/logging/log.hpp>
+#include <userver/utils/impl/userver_experiments.hpp>
 #include <userver/yaml_config/impl/validate_static_config.hpp>
 #include <userver/yaml_config/map_to_array.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
-#include <utils/userver_experiment.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -31,9 +30,11 @@ ManagerConfig ParseFromAny(
     T&& source, const std::string& source_desc,
     const std::optional<std::string>& user_config_vars_path,
     const std::optional<std::string>& user_config_vars_override_path) {
-  static const std::string kConfigVarsField = "config_vars";
-  static const std::string kManagerConfigField = "components_manager";
-  static const std::string kUserverExperimentsField = "userver_experiments";
+  constexpr std::string_view kConfigVarsField = "config_vars";
+  constexpr std::string_view kManagerConfigField = "components_manager";
+  constexpr std::string_view kUserverExperimentsField = "userver_experiments";
+  constexpr std::string_view kUserverExperimentsForceEnabledField =
+      "userver_experiments_force_enabled";
 
   formats::yaml::Value config_yaml;
   try {
@@ -64,12 +65,20 @@ ManagerConfig ParseFromAny(
     config_vars = builder.ExtractValue();
   }
 
-  utils::ParseUserverExperiments(config_yaml[kUserverExperimentsField]);
+  auto config =
+      yaml_config::YamlConfig(config_yaml, std::move(config_vars),
+                              yaml_config::YamlConfig::Mode::kEnvAllowed);
+  auto result = config[kManagerConfigField].As<ManagerConfig>();
+  result.enabled_experiments =
+      config[kUserverExperimentsField].As<utils::impl::UserverExperimentSet>(
+          {});
+  result.experiments_force_enabled =
+      config[kUserverExperimentsForceEnabledField].As<bool>(false);
 
-  return yaml_config::YamlConfig(config_yaml[kManagerConfigField],
-                                 std::move(config_vars))
-      .As<ManagerConfig>();
+  return result;
 }
+
+}  // namespace
 
 yaml_config::Schema GetManagerConfigSchema() {
   return yaml_config::impl::SchemaFromString(R"(
@@ -85,9 +94,11 @@ properties:
             initial_size:
                 type: integer
                 description: amount of coroutines to preallocate on startup
+                defaultDescription: 1000
             max_size:
                 type: integer
                 description: max amount of coroutines to keep preallocated
+                defaultDescription: 4000
             stack_size:
                 type: integer
                 description: size of a single coroutine, bytes
@@ -102,6 +113,13 @@ properties:
                 description: >
                     number of threads to process low level IO system calls
                     (number of ev loops to start in libev)
+            dedicated_timer_threads:
+                type: integer
+                description: >
+                    number of threads dedicated to processing timer events
+                    (if set to zero timer events will be processed
+                    intermixed with IO events)
+                defaultDescription: 0
             defer_events:
                 type: boolean
                 description: >
@@ -134,14 +152,20 @@ properties:
                     type: string
                     description: |
                         OS scheduling mode for the task processor threads.
-                        `idle` sets the lowest pririty.
+                        `idle` sets the lowest priority.
                         `low-priority` sets the priority below `normal` but
-                        higher than `idle`.   
+                        higher than `idle`.
                     defaultDescription: normal
                     enum:
                       - normal
                       - low-priority
                       - idle
+                spinning-iterations:
+                    type: integer
+                    description: |
+                        tunes the number of spin-wait iterations in case of
+                        an empty task queue before threads go to sleep
+                    defaultDescription: 10000
                 task-trace:
                     type: object
                     description: .
@@ -162,6 +186,14 @@ properties:
     default_task_processor:
         type: string
         description: name of the default task processor to use in components
+    mlock_debug_info:
+        type: boolean
+        description: whether to mlock(2) process debug info
+        defaultDescription: true
+    disable_phdr_cache:
+        type: boolean
+        description: whether to disable caching of phdr_info objects
+        defaultDescription: false
     static_config_validation:
         type: object
         description: settings for basic syntax validation in config.yaml
@@ -170,28 +202,16 @@ properties:
             validate_all_components:
                 type: boolean
                 description: if true, all components configs are validated
-    # TODO: remove
-    static_config_validator:
-        type: object
-        description: settings for basic syntax validation in config.yaml
-        additionalProperties: false
-        properties:
-            default_value:
-                type: boolean
-                description: if true, all components configs are validated
 )");
 }
-
-}  // namespace
 
 ManagerConfig Parse(const yaml_config::YamlConfig& value,
                     formats::parse::To<ManagerConfig>) {
   yaml_config::impl::Validate(value, GetManagerConfigSchema());
 
   ManagerConfig config;
-  config.source = value;
 
-  config.coro_pool = value["coro_pool"].As<engine::coro::PoolConfig>();
+  config.coro_pool = value["coro_pool"].As<engine::coro::PoolConfig>({});
   config.event_thread_pool =
       value["event_thread_pool"].As<engine::ev::ThreadPoolConfig>();
   if (config.event_thread_pool.threads < 1) {
@@ -209,7 +229,11 @@ ManagerConfig Parse(const yaml_config::YamlConfig& value,
 
   config.validate_components_configs =
       value["static_config_validation"].As<ValidationMode>(
-          ValidationMode::kOnlyTurnedOn);
+          ValidationMode::kAll);
+  config.mlock_debug_info =
+      value["mlock_debug_info"].As<bool>(config.mlock_debug_info);
+  config.disable_phdr_cache =
+      value["disable_phdr_cache"].As<bool>(config.disable_phdr_cache);
   return config;
 }
 

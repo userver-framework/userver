@@ -1,0 +1,34 @@
+# yaml
+components_manager:
+    components:
+        # The required common components
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+
+        grpc-server:
+            port: 8091
+
+        server:
+            listener:
+                port: 8092
+                task_processor: main-task-processor
+
+        grpc-health:
+            task-processor: main-task-processor
+            middlewares: []
+
+    default_task_processor: main-task-processor
+
+    task_processors:
+        grpc-blocking-task-processor:  # For blocking gRPC channel creation
+            thread_name: grpc-worker
+            worker_threads: 2
+        main-task-processor:           # For non-blocking operations
+            worker_threads: 4
+        fs-task-processor:             # For blocking filesystem operations
+            worker_threads: 2

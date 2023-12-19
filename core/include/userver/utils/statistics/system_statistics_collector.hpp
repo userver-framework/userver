@@ -5,16 +5,10 @@
 
 #include <userver/components/component_fwd.hpp>
 #include <userver/components/loggable_component_base.hpp>
-#include <userver/concurrent/variable.hpp>
-#include <userver/utils/periodic_task.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/statistics/entry.hpp>
-#include <utils/statistics/system_statistics.hpp>
 
 USERVER_NAMESPACE_BEGIN
-
-namespace formats::json {
-class Value;
-}  // namespace formats::json
 
 namespace components {
 
@@ -30,7 +24,6 @@ namespace components {
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// fs-task-processor | Task processor to use for statistics gathering | -
-/// update-interval | Statistics collection interval | 1m
 /// with-nginx | Whether to collect and report nginx processes statistics | false
 ///
 /// Note that `with-nginx` is a relatively expensive option as it requires full
@@ -44,22 +37,21 @@ namespace components {
 
 class SystemStatisticsCollector final : public LoggableComponentBase {
  public:
+  /// @ingroup userver_component_names
+  /// @brief The default name of components::SystemStatisticsCollector
   static constexpr std::string_view kName = "system-statistics-collector";
 
   SystemStatisticsCollector(const ComponentConfig&, const ComponentContext&);
+  ~SystemStatisticsCollector() override;
 
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
-  formats::json::Value ExtendStatistics(
-      const utils::statistics::StatisticsRequest&);
-  void UpdateStats();
+  void ExtendStatistics(utils::statistics::Writer& writer);
 
   const bool with_nginx_;
-  concurrent::Variable<utils::statistics::impl::SystemStats> self_stats_;
-  concurrent::Variable<utils::statistics::impl::SystemStats> nginx_stats_;
+  engine::TaskProcessor& fs_task_processor_;
   utils::statistics::Entry statistics_holder_;
-  utils::PeriodicTask update_task_;
 };
 
 template <>

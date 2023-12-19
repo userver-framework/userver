@@ -17,7 +17,7 @@ constexpr size_t kRecentErrorThreshold = 2;
 constexpr std::chrono::seconds kRecentErrorPeriod{15};
 
 constexpr size_t kRecoveryAttemptsLimit = 1;
-constexpr std::chrono::seconds kRecoveryPeriod{20};
+constexpr std::chrono::seconds kRecoveryPeriod{3};
 
 struct InstanceState {
   std::atomic<bool> is_failed{false};

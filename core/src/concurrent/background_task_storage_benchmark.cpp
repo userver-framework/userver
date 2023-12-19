@@ -26,7 +26,7 @@ void background_task_storage(benchmark::State& state) {
       }));
     }
 
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       bts.AsyncDetach("task", [] {});
       engine::Yield();
     }

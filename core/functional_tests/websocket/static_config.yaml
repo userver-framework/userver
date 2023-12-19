@@ -1,0 +1,51 @@
+components_manager:
+
+    task_processors:                  # Task processor is an executor for coroutine tasks
+        main-task-processor:          # Make a task processor for CPU-bound couroutine tasks.
+            worker_threads: 4         # Process tasks in 4 threads.
+        fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
+            worker_threads: 4
+
+    default_task_processor: main-task-processor
+
+    components:                       # Configuring components that were registered via component_list
+        server:
+            listener:                 # configuring the main listening socket...
+                port: 8080            # ...to listen on this port and...
+                task_processor: main-task-processor    # ...process incoming requests on this task processor.
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
+
+        websocket-handler:            # Finally! Websocket handler.
+            path: /chat               # Registering handlers '/*' find files.
+            method: GET               # Handle only GET requests.
+            task_processor: main-task-processor  # Run it on CPU bound task processor
+            max-remote-payload: 100000
+            fragment-size: 10
+        websocket-duplex-handler:            # Finally! Websocket handler.
+            path: /duplex               # Registering handlers '/*' find files.
+            method: GET               # Handle only GET requests.
+            task_processor: main-task-processor  # Run it on CPU bound task processor
+            max-remote-payload: 100000
+            fragment-size: 10
+
+        testsuite-support:
+
+        http-client:
+            fs-task-processor: main-task-processor
+        dns-client:
+            fs-task-processor: fs-task-processor
+
+        tests-control:
+            method: POST
+            path: /tests/{action}
+            skip-unregistered-testpoints: true
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            testpoint-url: $mockserver/testpoint
+            throttling_enabled: false

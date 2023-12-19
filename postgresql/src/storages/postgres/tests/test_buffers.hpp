@@ -6,9 +6,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages {
-namespace postgres {
-namespace test {
+namespace storages::postgres::test {
 
 using Buffer = std::vector<char>;
 
@@ -20,8 +18,6 @@ io::FieldBuffer MakeFieldBuffer(
           reinterpret_cast<const std::uint8_t*>(buffer.data())};
 }
 
-}  // namespace test
-}  // namespace postgres
-}  // namespace storages
+}  // namespace storages::postgres::test
 
 USERVER_NAMESPACE_END

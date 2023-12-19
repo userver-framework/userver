@@ -64,7 +64,7 @@ class MockTransaction::ResultPromise {
 };
 
 class MockTransaction::MockRequestExecDataImpl final
-    : public RequestDataBase<ReplyData, void> {
+    : public RequestDataBase<void> {
  public:
   MockRequestExecDataImpl(
       std::vector<std::unique_ptr<ResultPromise>>&& result_promises)
@@ -129,6 +129,16 @@ RequestDel MockTransaction::Del(std::vector<std::string> keys) {
   return AddSubrequest(impl_->Del(std::move(keys)));
 }
 
+RequestUnlink MockTransaction::Unlink(std::string key) {
+  UpdateShard(key);
+  return AddSubrequest(impl_->Unlink(std::move(key)));
+}
+
+RequestUnlink MockTransaction::Unlink(std::vector<std::string> keys) {
+  UpdateShard(keys);
+  return AddSubrequest(impl_->Unlink(std::move(keys)));
+}
+
 RequestExists MockTransaction::Exists(std::string key) {
   UpdateShard(key);
   return AddSubrequest(impl_->Exists(std::move(key)));
@@ -157,11 +167,43 @@ RequestGeoadd MockTransaction::Geoadd(std::string key,
 }
 
 RequestGeoradius MockTransaction::Georadius(
-    std::string key, double lon, double lat, double radius,
+    std::string key, Longitude lon, Latitude lat, double radius,
     const GeoradiusOptions& georadius_options) {
   UpdateShard(key);
   return AddSubrequest(
       impl_->Georadius(std::move(key), lon, lat, radius, georadius_options));
+}
+
+RequestGeosearch MockTransaction::Geosearch(
+    std::string key, std::string member, double radius,
+    const GeosearchOptions& geosearch_options) {
+  UpdateShard(key);
+  return AddSubrequest(impl_->Geosearch(std::move(key), std::move(member),
+                                        radius, geosearch_options));
+}
+
+RequestGeosearch MockTransaction::Geosearch(
+    std::string key, std::string member, BoxWidth width, BoxHeight height,
+    const GeosearchOptions& geosearch_options) {
+  UpdateShard(key);
+  return AddSubrequest(impl_->Geosearch(std::move(key), std::move(member),
+                                        width, height, geosearch_options));
+}
+
+RequestGeosearch MockTransaction::Geosearch(
+    std::string key, Longitude lon, Latitude lat, double radius,
+    const GeosearchOptions& geosearch_options) {
+  UpdateShard(key);
+  return AddSubrequest(
+      impl_->Geosearch(std::move(key), lon, lat, radius, geosearch_options));
+}
+
+RequestGeosearch MockTransaction::Geosearch(
+    std::string key, Longitude lon, Latitude lat, BoxWidth width,
+    BoxHeight height, const GeosearchOptions& geosearch_options) {
+  UpdateShard(key);
+  return AddSubrequest(impl_->Geosearch(std::move(key), lon, lat, width, height,
+                                        geosearch_options));
 }
 
 RequestGet MockTransaction::Get(std::string key) {
@@ -539,6 +581,11 @@ RequestZcard MockTransaction::Zcard(std::string key) {
   return AddSubrequest(impl_->Zcard(std::move(key)));
 }
 
+RequestZcount MockTransaction::Zcount(std::string key, double min, double max) {
+  UpdateShard(key);
+  return AddSubrequest(impl_->Zcount(std::move(key), min, max));
+}
+
 RequestZrange MockTransaction::Zrange(std::string key, int64_t start,
                                       int64_t stop) {
   UpdateShard(key);
@@ -696,7 +743,7 @@ Request<Result, ReplyType> MockTransaction::AddSubrequest(
     Request<Result, ReplyType>&& subrequest) {
   engine::Promise<ReplyType> promise;
   Request<Result, ReplyType> request(
-      std::make_unique<impl::TransactionSubrequestDataImpl<Result, ReplyType>>(
+      std::make_unique<impl::TransactionSubrequestDataImpl<ReplyType>>(
           promise.get_future()));
   result_promises_.emplace_back(std::make_unique<ResultPromise>(
       std::move(promise), std::move(subrequest)));

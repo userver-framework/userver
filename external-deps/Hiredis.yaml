@@ -1,6 +1,5 @@
 name: Hiredis
 version: 0.13.3
-helper-prefix: false
 
 includes:
     find:
@@ -18,4 +17,6 @@ formula-name: hiredis
 rpm-names:
   - hiredis-devel
 pacman-names:
+  - hiredis
+pkg-names:
   - hiredis

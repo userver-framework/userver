@@ -25,7 +25,7 @@ Jemalloc::Jemalloc(const components::ComponentConfig& config,
 
 std::string Jemalloc::HandleRequestThrow(const http::HttpRequest& request,
                                          request::RequestContext&) const {
-  const auto command = request.GetPathArg("command");
+  const auto& command = request.GetPathArg("command");
   if (command == "enable") {
     return HandleRc(utils::jemalloc::ProfActivate());
   } else if (command == "disable") {

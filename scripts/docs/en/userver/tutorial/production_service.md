@@ -13,12 +13,14 @@ A good production ready service should have functionality for various cases:
 * Metrics and Logs
 * Functional testing
 
-This tutorial shows a configuration of a typical production ready service.
+This tutorial shows a configuration of a typical production ready service. For
+information about service interactions with other utilities and services in
+container see @ref scripts/docs/en/userver/deploy_env.md.
 
 
 ## Before you start
 
-Make sure that you can compile and run core tests and read a basic example @ref md_en_userver_tutorial_hello_service.
+Make sure that you can compile and run core tests and read a basic example @ref scripts/docs/en/userver/tutorial/hello_service.md.
 
 ## int main
 
@@ -80,12 +82,13 @@ In this example we have two listeners. it is done to separate clients and utilit
 ### Utility handlers
 
 Your server has the following utility handlers:
-* to @ref md_en_userver_requests_in_flight "inspect in-flight request" - server::handlers::InspectRequests
-* to @ref md_en_userver_memory_profile_running_service "profile memory usage" - server::handlers::Jemalloc
-* to @ref md_en_userver_log_level_running_service "change logging level at runtime" - server::handlers::LogLevel
+* to @ref scripts/docs/en/userver/requests_in_flight.md "inspect in-flight request" - server::handlers::InspectRequests
+* to @ref scripts/docs/en/userver/memory_profile_running_service.md "profile memory usage" - server::handlers::Jemalloc
+* to @ref scripts/docs/en/userver/log_level_running_service.md "change logging level at runtime" - server::handlers::LogLevel
   and server::handlers::DynamicDebugLog
-* to @ref md_en_userver_dns_control "control the DNS resolver" - server::handlers::DnsClientControl
-* to @ref md_en_userver_service_monitor "get statistics" from the service - server::handlers::ServerMonitor
+* to reopen log files after log rotation (you can also use @ref scripts/docs/en/userver/os_signals.md "signals") - server::handlers::OnLogRotate 
+* to @ref scripts/docs/en/userver/dns_control.md "control the DNS resolver" - server::handlers::DnsClientControl
+* to @ref scripts/docs/en/userver/service_monitor.md "get statistics" from the service - server::handlers::ServerMonitor
 
 @snippet samples/production_service/static_config.yaml Production service sample - static config utility handlers
 
@@ -132,11 +135,19 @@ Here's a configuration of a dynamic config related components
 components::DynamicConfigClient, components::DynamicConfig,
 components::DynamicConfigClientUpdater.
 
-Service starts with dynamic config values from `dynamic-config.fs-cache-path` file
-or from `dynamic-config-client-updater.fallback-path` file. Service updates dynamic
-values from a @ref md_en_userver_tutorial_config_service "configs service".
+Service starts with some dynamic config values from `dynamic-config.fs-cache-path`
+file and updates dynamic values from a
+@ref scripts/docs/en/userver/tutorial/config_service.md "configs service"
+at startup.
 
 @snippet samples/production_service/static_config.yaml Production service sample - static config dynamic configs
+
+@note Dynamic configs is an essential part of a reliable service with high
+      availability. Those could be used as an emergency switch for new
+      functionality, selector for experiments, limits/timeouts/log-level setup,
+      proxy setup. See @ref scripts/docs/en/schemas/dynamic_configs.md for
+      more info and @ref scripts/docs/en/userver/tutorial/config_service.md for
+      insights on how to implement such service.
 
 
 ### Congestion Control
@@ -164,6 +175,15 @@ a much more mature approach is to write a component that pushes the metrics dire
 to write a handle that provides the metrics in the native aggregation service format.
 
 
+# Alerts
+
+Alerts is a way to propagate critical errors from your service to a monitoring system.
+
+When the code identifies that something bad happened and a user should be notified about that,
+`alert_storage.FireAlert()` is called with the appropriate arguments. Then the alert subsystem
+notifies an external monitoring system (or a user) about the alert event though the specific HTTP handler.
+
+
 ### Secdist - secrets distributor
 
 Storing sensitive data aside from the configs is a good practice that allows you to set different access rights for the two files.
@@ -180,7 +200,7 @@ Refer to the storages::secdist::SecdistConfig config for more information on the
 
 server::handlers::TestsControl is a handle that allows controlling the service
 from test environments. That handle is used by the testsuite from
-@ref md_en_userver_functional_testing "functional tests" to mock time,
+@ref scripts/docs/en/userver/functional_testing.md "functional tests" to mock time,
 invalidate caches, testpoints and many other things. This component should be
 disabled in production environments.
 
@@ -191,13 +211,11 @@ use this component in production environments.
 
 ## Dynamic config
 
-Initial values of the dynamic config could be seen at @ref samples/production_service/dynamic_config_fallback.json
-
-Those are described in details at @ref md_en_schemas_dynamic_configs .
+Dynamic configs are described in details at @ref scripts/docs/en/schemas/dynamic_configs.md .
 
 ### Build
 
-This sample requires @ref md_en_userver_tutorial_config_service "configs service", so we build and start one from our previous tutorials.
+This sample requires @ref scripts/docs/en/userver/tutorial/config_service.md "configs service", so we build and start one from our previous tutorials.
 
 ```
 bash
@@ -215,7 +233,7 @@ python3 ../samples/tests/prepare_production_configs.py
 
 
 ### Functional testing
-@ref md_en_userver_functional_testing "Functional tests" are used to make sure
+@ref scripts/docs/en/userver/functional_testing.md "Functional tests" are used to make sure
 that the service is working fine and
 implements the required functionality. A recommended practice is to build the
 service in Debug and Release modes and tests both of them, then deploy the
@@ -235,7 +253,6 @@ See the full example at
 * @ref samples/production_service/production_service.cpp
 * @ref samples/production_service/static_config.yaml
 * @ref samples/production_service/config_vars.yaml
-* @ref samples/production_service/dynamic_config_fallback.json
 * @ref samples/production_service/CMakeLists.txt
 * @ref samples/production_service/tests/conftest.py
 * @ref samples/production_service/tests/test_ping.py
@@ -244,14 +261,13 @@ See the full example at
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_tutorial_config_service | @ref md_en_userver_tutorial_tcp_service ⇨
+⇦ @ref scripts/docs/en/userver/tutorial/config_service.md | @ref scripts/docs/en/userver/tutorial/tcp_service.md ⇨
 @htmlonly </div> @endhtmlonly
 
 @example samples/production_service/production_service.cpp
 @example samples/production_service/static_config.yaml
 @example samples/production_service/config_vars.yaml
 @example samples/production_service/CMakeLists.txt
-@example samples/production_service/dynamic_config_fallback.json
 @example samples/production_service/tests/conftest.py
 @example samples/production_service/tests/test_ping.py
 @example samples/production_service/tests/test_production.py

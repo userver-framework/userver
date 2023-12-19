@@ -1,0 +1,56 @@
+# yaml
+components_manager:
+    components:                       # Configuring components that were registered via component_list
+        # /// [pg-cache config]
+        # yaml
+        auth-database:
+            dbconnection: 'postgresql://testsuite@localhost:15433/postgres'
+            blocking_task_processor: fs-task-processor
+            dns_resolver: async
+
+        auth-pg-cache:
+            pgcomponent: auth-database
+            update-interval: 10s
+        # /// [pg-cache config]
+
+        # /// [hello config]
+        # yaml
+        handler-hello:
+            path: /v1/hello
+            task_processor: main-task-processor
+            method: GET
+            auth:           # Authorization config for this handler
+                types:
+                  - bearer  # Authorization type that was specified in main()
+                scopes:     # Required user scopes for that handler
+                  - read
+                  - hello
+        # /// [hello config]
+
+        testsuite-support:
+
+        server:
+            listener:                 # configuring the main listening socket...
+                port: 8095            # ...to listen on this port and...
+                task_processor: main-task-processor    # ...process incoming requests on this task processor.
+
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
+
+        dns-client:
+            fs-task-processor: fs-task-processor
+
+    task_processors:                  # Task processor is an executor for coroutine tasks
+
+        main-task-processor:          # Make a task processor for CPU-bound coroutine tasks.
+            worker_threads: 4         # Process tasks in 4 threads.
+
+        fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
+            worker_threads: 4
+
+    default_task_processor: main-task-processor  # Task processor in which components start.

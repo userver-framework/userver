@@ -11,11 +11,11 @@ TEST_F(LoggingLtsvTest, Basic) {
   LOG_INFO() << kLtsvTextToLog;
 
   logging::LogFlush();
-  const auto log_contents = sstream.str();
+  const auto log_contents = GetStreamString();
 
   EXPECT_EQ(LoggedText(), kLtsvTextToLog);
 
-  auto str = sstream.str();
+  auto str = GetStreamString();
   EXPECT_NE(str.find("\tmodule:"), std::string::npos) << str;
   EXPECT_NE(str.find("timestamp:"), std::string::npos) << str;
   EXPECT_NE(str.find("\tthread_id:"), std::string::npos) << str;

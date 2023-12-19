@@ -4,15 +4,14 @@
 #include <atomic>
 #include <cerrno>
 
-#include <userver/engine/deadline.hpp>
 #include <userver/engine/io/exception.hpp>
 #include <userver/engine/io/fd_control_holder.hpp>
+#include <userver/engine/io/fd_poller.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 
-#include <engine/ev/watcher.hpp>
 #include <engine/task/task_context.hpp>
 #include <userver/engine/impl/wait_list_fwd.hpp>
 
@@ -21,6 +20,14 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::io::impl {
 
 /// I/O operation transfer mode
+///
+/// A note about `TransferMode::kPartial`:
+/// OS developers are very smart people and they understand that syscalls
+/// are expensive, so they will try their best to return/send as much data as
+/// possible in one go.
+/// `TransferMode::kPartial` might lead to very noticeable overhead in syscalls
+/// if used carelessly, so you are encouraged to stop for a second and think
+/// whether you really need this mode.
 enum class TransferMode {
   kPartial,  ///< operation may complete after transferring any amount of data
   kWhole,    ///< operation may complete only after the whole buffer is
@@ -38,13 +45,8 @@ class FdControl;
 
 class Direction final {
  public:
-  enum class Kind { kRead, kWrite };
-
-  enum class State : int {
-    kInvalid,
-    kReadyToUse,
-    kInUse,  /// < used inly in debug to detect invalid concurrent usage
-  };
+  using Kind = FdPoller::Kind;
+  using State = FdPoller::State;
 
   class SingleUserGuard final {
    public:
@@ -65,10 +67,10 @@ class Direction final {
   Direction& operator=(Direction&&) = delete;
   ~Direction();
 
-  explicit operator bool() const noexcept { return IsValid(); }
-  bool IsValid() const noexcept { return state_ != State::kInvalid; }
+  explicit operator bool() const noexcept { return static_cast<bool>(poller_); }
+  bool IsValid() const noexcept { return poller_.IsValid(); }
 
-  int Fd() const { return fd_; }
+  int Fd() const { return poller_.GetFd(); }
 
   [[nodiscard]] bool Wait(Deadline);
 
@@ -88,11 +90,8 @@ class Direction final {
   friend class FdControl;
   explicit Direction(Kind kind);
 
-  engine::impl::TaskContext::WakeupSource DoWait(Deadline);
-
   void Reset(int fd);
-  void StopWatcher();
-  void WakeupWaiters();
+  void WakeupWaiters() { poller_.WakeupWaiters(); }
 
   // does not notify
   void Invalidate();
@@ -102,13 +101,8 @@ class Direction final {
                            TransferMode mode, Deadline deadline,
                            Context&... context);
 
-  static void IoWatcherCb(struct ev_loop*, ev_io*, int) noexcept;
-
-  int fd_{-1};
-  const Kind kind_;
-  std::atomic<State> state_;
-  engine::impl::FastPimplWaitListLight waiters_;
-  ev::Watcher<ev_io> watcher_;
+  FdPoller poller_;
+  Kind kind_;
 };
 
 class FdControl final {
@@ -149,7 +143,11 @@ ErrorMode Direction::TryHandleError(int error_code, size_t processed_bytes,
                                     Context&... context) {
   if (error_code == EINTR) {
     return ErrorMode::kProcessed;
-  } else if (error_code == EWOULDBLOCK || error_code == EAGAIN) {
+  } else if (error_code == EWOULDBLOCK
+#if EWOULDBLOCK != EAGAIN
+             || error_code == EAGAIN
+#endif
+  ) {
     if (processed_bytes != 0 && mode != TransferMode::kWhole) {
       return ErrorMode::kFatal;
     }
@@ -157,10 +155,14 @@ ErrorMode Direction::TryHandleError(int error_code, size_t processed_bytes,
       throw(IoCancelled(/*bytes_transferred =*/processed_bytes)
             << ... << context);
     }
-    if (DoWait(deadline) ==
-        engine::impl::TaskContext::WakeupSource::kDeadlineTimer) {
-      throw(IoTimeout(/*bytes_transferred =*/processed_bytes)
-            << ... << context);
+    if (!poller_.Wait(deadline)) {
+      if (current_task::ShouldCancel()) {
+        throw(IoCancelled(/*bytes_transferred =*/processed_bytes)
+              << ... << context);
+      } else {
+        throw(IoTimeout(/*bytes_transferred =*/processed_bytes)
+              << ... << context);
+      }
     }
     if (!IsValid()) {
       throw((IoException() << "Fd closed during ") << ... << context);
@@ -169,10 +171,10 @@ ErrorMode Direction::TryHandleError(int error_code, size_t processed_bytes,
     IoSystemError ex(error_code, "Direction::PerformIo");
     ex << "Error while ";
     (ex << ... << context);
-    ex << ", fd=" << fd_;
+    ex << ", fd=" << Fd();
     auto log_level = logging::Level::kError;
     if (error_code == ECONNRESET || error_code == EPIPE) {
-      log_level = logging::Level::kWarning;
+      log_level = logging::Level::kInfo;
     }
     LOG(log_level) << ex;
     if (processed_bytes != 0) {
@@ -192,7 +194,7 @@ size_t Direction::PerformIoV(SingleUserGuard&, IoFunc&& io_func,
   UASSERT(list_size <= IOV_MAX);
   std::size_t processed_bytes = 0;
   do {
-    auto chunk_size = io_func(fd_, list, list_size);
+    auto chunk_size = io_func(Fd(), list, list_size);
 
     if (chunk_size > 0) {
       processed_bytes += chunk_size;
@@ -200,8 +202,8 @@ size_t Direction::PerformIoV(SingleUserGuard&, IoFunc&& io_func,
         break;
       }
       std::size_t offset = chunk_size;
-      do {
-        std::size_t len = list->iov_len;
+      while (list_size > 0) {
+        const std::size_t len = list->iov_len;
         if (offset >= len) {
           ++list;
           offset -= len;
@@ -210,9 +212,9 @@ size_t Direction::PerformIoV(SingleUserGuard&, IoFunc&& io_func,
         } else {
           list->iov_len -= offset;
           list->iov_base = static_cast<char*>(list->iov_base) + offset;
-          offset = 0;
+          break;
         }
-      } while (offset != 0);
+      }
     } else if (!chunk_size ||
                TryHandleError(errno, processed_bytes, mode, deadline,
                               context...) == ErrorMode::kFatal) {
@@ -232,7 +234,7 @@ size_t Direction::PerformIo(SingleUserGuard&, IoFunc&& io_func, void* buf,
   char* pos = begin;
 
   while (pos < end) {
-    auto chunk_size = io_func(fd_, pos, end - pos);
+    auto chunk_size = io_func(Fd(), pos, end - pos);
 
     if (chunk_size > 0) {
       pos += chunk_size;

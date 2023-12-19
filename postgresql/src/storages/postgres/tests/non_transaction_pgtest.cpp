@@ -8,8 +8,8 @@ USERVER_NAMESPACE_BEGIN
 namespace pg = storages::postgres;
 
 UTEST_P(PostgreConnection, NonTransactionSelectOne) {
-  CheckConnection(conn);
-  pg::detail::NonTransaction ntrx(std::move(conn));
+  CheckConnection(GetConn());
+  pg::detail::NonTransaction ntrx(std::move(GetConn()));
 
   pg::ResultSet res{nullptr};
   UEXPECT_NO_THROW(res = ntrx.Execute("SELECT 1"));
@@ -17,8 +17,8 @@ UTEST_P(PostgreConnection, NonTransactionSelectOne) {
 }
 
 UTEST_P(PostgreConnection, NonTransactionExecuteTimeout) {
-  CheckConnection(conn);
-  pg::detail::NonTransaction ntrx(std::move(conn));
+  CheckConnection(GetConn());
+  pg::detail::NonTransaction ntrx(std::move(GetConn()));
 
   pg::CommandControl cc{std::chrono::milliseconds{50},
                         std::chrono::milliseconds{300}};
@@ -29,8 +29,8 @@ UTEST_P(PostgreConnection, NonTransactionExecuteTimeout) {
 }
 
 UTEST_P(PostgreConnection, NonTransactionStatementTimeout) {
-  CheckConnection(conn);
-  pg::detail::NonTransaction ntrx(std::move(conn));
+  CheckConnection(GetConn());
+  pg::detail::NonTransaction ntrx(std::move(GetConn()));
 
   pg::CommandControl cc{std::chrono::milliseconds{300},
                         std::chrono::milliseconds{50}};

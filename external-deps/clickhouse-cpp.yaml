@@ -1,19 +1,14 @@
 name: clickhouse-cpp
-helper-prefix: false
-
-debian-names:
-  - libyandex-clickhousecpp
-
-formula-name: yandex-clickhouse-cpp
 
 libraries:
     find:
       - names:
-          - yandex-clickhousecpp
+          - libclickhouse-cpp-lib.so
 
 includes:
     find:
       - names:
           - clickhouse/block.h
         path-suffixes:
+          - clickhouse-cpp
           - yandex/clickhouse-cpp

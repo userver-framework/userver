@@ -1,6 +1,7 @@
 #include <userver/storages/postgres/dsn.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cstring>
 #include <iostream>
 #include <map>
@@ -141,7 +142,7 @@ DsnList SplitByHost(const Dsn& dsn) {
     if (!ports.empty()) {
       options << " port=" << ports.front();
     }
-    res.push_back(Dsn{options.str()});
+    res.emplace_back(options.str());
   } else {
     if (ports.size() > 1 && ports.size() != hosts.size()) {
       throw InvalidDSN{DsnMaskPassword(dsn), "Invalid port options count"};
@@ -156,7 +157,7 @@ DsnList SplitByHost(const Dsn& dsn) {
         os << " port=" << ports[host - hosts.begin()];
       }
       os << options.str();
-      res.push_back(Dsn{os.str()});
+      res.emplace_back(os.str());
     }
   }
 

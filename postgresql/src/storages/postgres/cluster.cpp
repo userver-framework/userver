@@ -12,10 +12,13 @@ Cluster::Cluster(DsnList dsns, clients::dns::Resolver* resolver,
                  const ClusterSettings& cluster_settings,
                  DefaultCommandControls&& default_cmd_ctls,
                  const testsuite::PostgresControl& testsuite_pg_ctl,
-                 const error_injection::Settings& ei_settings) {
+                 const error_injection::Settings& ei_settings,
+                 testsuite::TestsuiteTasks& testsuite_tasks,
+                 dynamic_config::Source config_source, int shard_number) {
   pimpl_ = std::make_unique<detail::ClusterImpl>(
       std::move(dsns), resolver, bg_task_processor, cluster_settings,
-      std::move(default_cmd_ctls), testsuite_pg_ctl, ei_settings);
+      std::move(default_cmd_ctls), testsuite_pg_ctl, ei_settings,
+      testsuite_tasks, std::move(config_source), shard_number);
 }
 
 Cluster::~Cluster() = default;
@@ -45,6 +48,11 @@ Transaction Cluster::Begin(const std::string& name, ClusterHostTypeFlags flags,
   return pimpl_->Begin(flags, options, GetHandlersCmdCtl(GetQueryCmdCtl(name)));
 }
 
+NotifyScope Cluster::Listen(std::string_view channel,
+                            OptionalCommandControl cmd_ctl) {
+  return pimpl_->Listen(channel, cmd_ctl);
+}
+
 void Cluster::SetDefaultCommandControl(CommandControl cmd_ctl) {
   pimpl_->SetDefaultCommandControl(cmd_ctl,
                                    detail::DefaultCommandControlSource::kUser);
@@ -55,13 +63,13 @@ CommandControl Cluster::GetDefaultCommandControl() const {
 }
 
 void Cluster::SetHandlersCommandControl(
-    const CommandControlByHandlerMap& handlers_command_control) {
-  pimpl_->SetHandlersCommandControl(handlers_command_control);
+    CommandControlByHandlerMap handlers_command_control) {
+  pimpl_->SetHandlersCommandControl(std::move(handlers_command_control));
 }
 
 void Cluster::SetQueriesCommandControl(
-    const CommandControlByQueryMap& queries_command_control) {
-  pimpl_->SetQueriesCommandControl(queries_command_control);
+    CommandControlByQueryMap queries_command_control) {
+  pimpl_->SetQueriesCommandControl(std::move(queries_command_control));
 }
 
 void Cluster::ApplyGlobalCommandControlUpdate(CommandControl cmd_ctl) {

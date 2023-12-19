@@ -105,14 +105,16 @@ UTEST_P(PostgreConnection, LoadUserTypes) {
   EXPECT_TRUE(io::HasParser(kCompositeName))
       << "Binary parser for composite is registered";
 
-  CheckConnection(conn);
-  ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
+  CheckConnection(GetConn());
+  ASSERT_FALSE(GetConn()->IsReadOnly()) << "Expect a read-write connection";
+  UEXPECT_THROW(GetConn()->GetUserTypes().CheckRegisteredTypes(),
+                pg::UserTypeError);
 
   pg::ResultSet res{nullptr};
-  UASSERT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
-  UEXPECT_NO_THROW(conn->ReloadUserTypes()) << "Reload user types";
+  UASSERT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";
+  UEXPECT_NO_THROW(GetConn()->ReloadUserTypes()) << "Reload user types";
 
-  const auto& user_types = conn->GetUserTypes();
+  const auto& user_types = GetConn()->GetUserTypes();
   EXPECT_EQ(0, user_types.FindOid(kEnumName)) << "Find enumeration type oid";
   EXPECT_EQ(0, user_types.FindOid(kCompositeName)) << "Find composite type oid";
   EXPECT_EQ(0, user_types.FindOid(kRangeName)) << "Find range type oid";
@@ -120,18 +122,18 @@ UTEST_P(PostgreConnection, LoadUserTypes) {
   EXPECT_EQ(0, pg::io::CppToPg<pgtest::FooBar>::GetOid(user_types))
       << "The type is not in the database yet";
 
-  UASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
+  UASSERT_NO_THROW(GetConn()->Execute(kCreateTestSchema)) << "Create schema";
 
-  UEXPECT_NO_THROW(conn->Execute(kCreateAnEnumType))
+  UEXPECT_NO_THROW(GetConn()->Execute(kCreateAnEnumType))
       << "Successfully create an enumeration type";
-  UEXPECT_NO_THROW(conn->Execute(kCreateACompositeType))
+  UEXPECT_NO_THROW(GetConn()->Execute(kCreateACompositeType))
       << "Successfully create a composite type";
-  UEXPECT_NO_THROW(conn->Execute(kCreateARangeType))
+  UEXPECT_NO_THROW(GetConn()->Execute(kCreateARangeType))
       << "Successfully create a range type";
-  UEXPECT_NO_THROW(conn->Execute(kCreateADomain))
+  UEXPECT_NO_THROW(GetConn()->Execute(kCreateADomain))
       << "Successfully create a domain";
 
-  UEXPECT_NO_THROW(conn->ReloadUserTypes()) << "Reload user types";
+  UEXPECT_NO_THROW(GetConn()->ReloadUserTypes()) << "Reload user types";
 
   EXPECT_NE(0, user_types.FindOid(kEnumName)) << "Find enumeration type oid";
   EXPECT_NE(0, user_types.FindOid(kCompositeName)) << "Find composite type oid";
@@ -150,50 +152,51 @@ UTEST_P(PostgreConnection, LoadUserTypes) {
     auto base_oid = user_types.FindBaseOid(kDomainName);
     EXPECT_NE(0, domain_oid);
     EXPECT_NE(0, base_oid);
-    UEXPECT_NO_THROW(res = conn->Execute("select 'foo'::__pgtest.dom"));
+    UEXPECT_NO_THROW(res = GetConn()->Execute("select 'foo'::__pgtest.dom"));
     auto field = res[0][0];
     EXPECT_EQ(base_oid, field.GetTypeOid());
   }
   {
     // misc domains
     CheckDomainExpectations(
-        conn, "create domain __pgtest.int_dom as integer not null",
+        GetConn(), "create domain __pgtest.int_dom as integer not null",
         "select 1::__pgtest.int_dom");
     UEXPECT_NO_THROW(
-        conn->Execute("create temp table int_dom_table("
-                      "v __pgtest.int_dom)"));
+        GetConn()->Execute("create temp table int_dom_table("
+                           "v __pgtest.int_dom)"));
     UEXPECT_NO_THROW(
-        conn->Execute("insert into int_dom_table(v) values ($1)", 100500));
-    CheckDomainExpectations(conn,
+        GetConn()->Execute("insert into int_dom_table(v) values ($1)", 100500));
+    CheckDomainExpectations(GetConn(),
                             "create domain __pgtest.real_dom as real not null",
                             "select 1::__pgtest.real_dom");
     CheckDomainExpectations(
-        conn, "create domain __pgtest.ts_dom as timestamp not null",
+        GetConn(), "create domain __pgtest.ts_dom as timestamp not null",
         "select current_timestamp::__pgtest.ts_dom");
   }
 
-  UEXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+  UEXPECT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";
 }
 
 UTEST_P(PostgreConnection, UserDefinedRange) {
-  CheckConnection(conn);
-  ASSERT_FALSE(conn->IsReadOnly()) << "Expect a read-write connection";
+  CheckConnection(GetConn());
+  ASSERT_FALSE(GetConn()->IsReadOnly()) << "Expect a read-write connection";
 
   using Seconds = utils::datetime::TimeOfDay<std::chrono::seconds>;
   using TimeRange = pgtest::TimeRange<std::chrono::seconds>;
   using BoundedTimeRange = pgtest::BoundedTimeRange<std::chrono::seconds>;
-  UEXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
-  UASSERT_NO_THROW(conn->Execute(kCreateTestSchema)) << "Create schema";
-  UASSERT_NO_THROW(conn->Execute(kCreateARangeType)) << "Create range type";
-  UASSERT_NO_THROW(conn->ReloadUserTypes());
+  UEXPECT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";
+  UASSERT_NO_THROW(GetConn()->Execute(kCreateTestSchema)) << "Create schema";
+  UASSERT_NO_THROW(GetConn()->Execute(kCreateARangeType))
+      << "Create range type";
+  UASSERT_NO_THROW(GetConn()->ReloadUserTypes());
 
-  conn->Execute("select '[00:00:01, 00:00:02]'::__pgtest.timerange");
+  GetConn()->Execute("select '[00:00:01, 00:00:02]'::__pgtest.timerange");
   pg::ResultSet res{nullptr};
   UEXPECT_NO_THROW(
-      res = conn->Execute("select $1",
-                          TimeRange{Seconds{std::chrono::seconds{1}},
-                                    Seconds{std::chrono::seconds{2}}}));
-  BoundedTimeRange tr;
+      res = GetConn()->Execute("select $1",
+                               TimeRange{Seconds{std::chrono::seconds{1}},
+                                         Seconds{std::chrono::seconds{2}}}));
+  BoundedTimeRange tr{};
   UEXPECT_NO_THROW(tr = res.AsSingleRow<BoundedTimeRange>());
   EXPECT_EQ(Seconds(std::chrono::seconds{1}),
             utils::UnderlyingValue(tr).GetLowerBound());
@@ -205,7 +208,7 @@ UTEST_P(PostgreConnection, UserDefinedRange) {
   EXPECT_FALSE(utils::UnderlyingValue(tr).IsUpperBoundIncluded())
       << "By default a range is upper-bound exclusive";
 
-  UEXPECT_NO_THROW(conn->Execute(kDropTestSchema)) << "Drop schema";
+  UEXPECT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";
 }
 
 }  // namespace

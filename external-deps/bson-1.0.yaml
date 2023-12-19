@@ -1,7 +1,0 @@
-name: bson-1.0
-version: 1.16.0
-helper-prefix: true
-
-debian-names:
-  - libyandex-taxi-mongo-c-driver-dev
-formula-name: yandex-taxi-mongo-c-driver

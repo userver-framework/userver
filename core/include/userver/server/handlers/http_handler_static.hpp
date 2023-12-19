@@ -40,6 +40,8 @@ namespace server::handlers {
 
 class HttpHandlerStatic final : public HttpHandlerBase {
  public:
+  /// @ingroup userver_component_names
+  /// @brief The default name of server::handlers::HttpHandlerStatic
   static constexpr std::string_view kName = "handler-static";
 
   using HttpHandlerBase::HttpHandlerBase;
@@ -47,10 +49,10 @@ class HttpHandlerStatic final : public HttpHandlerBase {
   HttpHandlerStatic(const components::ComponentConfig& config,
                     const components::ComponentContext& context);
 
-  std::string GetContentType(std::string_view extension) const;
-
   std::string HandleRequestThrow(const http::HttpRequest& request,
                                  request::RequestContext&) const override;
+
+  static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   dynamic_config::Source config_;

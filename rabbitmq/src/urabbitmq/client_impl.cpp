@@ -2,7 +2,6 @@
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/wait_all_checked.hpp>
-#include <userver/formats/json.hpp>
 
 #include <userver/urabbitmq/client_settings.hpp>
 
@@ -32,14 +31,10 @@ ClientImpl::ClientImpl(clients::dns::Resolver& resolver,
   engine::WaitAllChecked(init_tasks);
 }
 
-formats::json::Value ClientImpl::GetStatistics() const {
-  formats::json::ValueBuilder builder{formats::json::Type::kObject};
-
+void ClientImpl::WriteStatistics(utils::statistics::Writer& writer) const {
   for (size_t i = 0; i < settings_.endpoints.endpoints.size(); ++i) {
-    builder[settings_.endpoints.endpoints[i].host] = pools_[i].stats.Get();
+    writer[settings_.endpoints.endpoints[i].host] = pools_[i].stats.Get();
   }
-
-  return builder.ExtractValue();
 }
 
 ConnectionPtr ClientImpl::GetConnection(engine::Deadline deadline) {

@@ -1,6 +1,6 @@
 #include "server_common_sentinel_test.hpp"
 
-#include <userver/storages/redis/impl/secdist_redis.hpp>
+#include <storages/redis/dynamic_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -49,9 +49,9 @@ void SentinelTest::CreateSentinelClient() {
   settings.shards = {redis_name_};
   for (const auto& sentinel : sentinels_)
     settings.sentinels.emplace_back(kLocalhost, sentinel->GetPort());
-  sentinel_client_ = redis::Sentinel::CreateSentinel(thread_pools_, settings,
-                                                     "test_shard_group_name",
-                                                     "test_client_name", {""});
+  sentinel_client_ = redis::Sentinel::CreateSentinel(
+      thread_pools_, settings, "test_shard_group_name",
+      dynamic_config::GetDefaultSource(), "test_client_name", {""});
   sentinel_client_->WaitConnectedDebug(slaves_.empty());
 
   for (const auto& sentinel : sentinels_) {
@@ -73,8 +73,7 @@ SentinelShardTest::SentinelShardTest(size_t sentinel_count, size_t shard_count,
   CreateSentinelClient();
 }
 
-std::vector<std::string> SentinelShardTest::InitRedisNames(
-    size_t shard_count) const {
+std::vector<std::string> SentinelShardTest::InitRedisNames(size_t shard_count) {
   assert(shard_count > 0);
   std::vector<std::string> result;
   for (size_t shard_idx = 0; shard_idx < shard_count; shard_idx++) {
@@ -120,9 +119,9 @@ void SentinelShardTest::CreateSentinelClient() {
   settings.shards = redis_names_;
   for (const auto& sentinel : sentinels_)
     settings.sentinels.emplace_back(kLocalhost, sentinel->GetPort());
-  sentinel_client_ = redis::Sentinel::CreateSentinel(thread_pools_, settings,
-                                                     "test_shard_group_name",
-                                                     "test_client_name", {""});
+  sentinel_client_ = redis::Sentinel::CreateSentinel(
+      thread_pools_, settings, "test_shard_group_name",
+      dynamic_config::GetDefaultSource(), "test_client_name", {""});
   sentinel_client_->WaitConnectedDebug(slaves_.empty());
 
   for (const auto& sentinel : sentinels_) {

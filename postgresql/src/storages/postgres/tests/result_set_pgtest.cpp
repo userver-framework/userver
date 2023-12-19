@@ -7,10 +7,10 @@ USERVER_NAMESPACE_BEGIN
 namespace pg = storages::postgres;
 
 UTEST_P(PostgreConnection, EmptyResult) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
 
   pg::ResultSet res{nullptr};
-  UEXPECT_NO_THROW(res = conn->Execute("select limit 0"));
+  UEXPECT_NO_THROW(res = GetConn()->Execute("select limit 0"));
 
   ASSERT_EQ(0, res.Size());
   UEXPECT_THROW(res[0], pg::RowIndexOutOfBounds);
@@ -23,10 +23,10 @@ UTEST_P(PostgreConnection, EmptyResult) {
 }
 
 UTEST_P(PostgreConnection, ResultEmptyRow) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
 
   pg::ResultSet res{nullptr};
-  UEXPECT_NO_THROW(res = conn->Execute("select"));
+  UEXPECT_NO_THROW(res = GetConn()->Execute("select"));
 
   ASSERT_EQ(1, res.Size());
   UASSERT_NO_THROW(res[0]);
@@ -46,10 +46,10 @@ UTEST_P(PostgreConnection, ResultEmptyRow) {
 }
 
 UTEST_P(PostgreConnection, ResultOobAccess) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
 
   pg::ResultSet res{nullptr};
-  UEXPECT_NO_THROW(res = conn->Execute("select 1"));
+  UEXPECT_NO_THROW(res = GetConn()->Execute("select 1"));
 
   ASSERT_EQ(1, res.Size());
   UASSERT_NO_THROW(res[0]);
@@ -84,11 +84,11 @@ UTEST_P(PostgreConnection, ResultOobAccess) {
 }
 
 UTEST_P(PostgreConnection, ResultTraverseForward) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
 
   pg::ResultSet res{nullptr};
-  UEXPECT_NO_THROW(res = conn->Execute("select * from "
-                                       "(values (1, 2), (3, 4)) as data"));
+  UEXPECT_NO_THROW(res = GetConn()->Execute("select * from "
+                                            "(values (1, 2), (3, 4)) as data"));
   ASSERT_EQ(2, res.Size());
 
   int num = 1;
@@ -101,11 +101,11 @@ UTEST_P(PostgreConnection, ResultTraverseForward) {
 }
 
 UTEST_P(PostgreConnection, ResultTraverseBackward) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
 
   pg::ResultSet res{nullptr};
-  UEXPECT_NO_THROW(res = conn->Execute("select * from "
-                                       "(values (4, 3), (2, 1)) as data"));
+  UEXPECT_NO_THROW(res = GetConn()->Execute("select * from "
+                                            "(values (4, 3), (2, 1)) as data"));
   ASSERT_EQ(2, res.Size());
 
   int num = 1;
@@ -115,6 +115,36 @@ UTEST_P(PostgreConnection, ResultTraverseBackward) {
     }
   }
   EXPECT_EQ(5, num);
+}
+
+UTEST_P(PostgreConnection, ResultAsOptionalSingleRow) {
+  CheckConnection(GetConn());
+
+  pg::ResultSet res{nullptr};
+
+  // Size() == 0
+  UEXPECT_NO_THROW(res = GetConn()->Execute("select * from "
+                                            "generate_series(0, -1)"));
+  ASSERT_TRUE(res.IsEmpty());
+
+  UEXPECT_NO_THROW(res.AsOptionalSingleRow<int>());
+  EXPECT_FALSE(res.AsOptionalSingleRow<int>().has_value());
+
+  // Size() == 1
+  UEXPECT_NO_THROW(res = GetConn()->Execute("select 1"));
+  ASSERT_EQ(1, res.Size());
+
+  UEXPECT_NO_THROW(res.AsOptionalSingleRow<int>());
+  EXPECT_TRUE(res.AsOptionalSingleRow<int>().has_value());
+  EXPECT_TRUE(res.AsOptionalSingleRow<int>() == 1);
+  EXPECT_EQ(1, res.AsOptionalSingleRow<int>());
+
+  // Size() > 1
+  UEXPECT_NO_THROW(res = GetConn()->Execute("select * from "
+                                            "generate_series(1, 2)"));
+  ASSERT_EQ(2, res.Size());
+
+  UEXPECT_THROW(res.AsOptionalSingleRow<int>(), pg::NonSingleRowResultSet);
 }
 
 USERVER_NAMESPACE_END

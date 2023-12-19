@@ -4,8 +4,8 @@
 #include <thread>
 
 #include <userver/engine/async.hpp>
+#include <userver/engine/impl/task_context_holder.hpp>
 #include <userver/engine/run_standalone.hpp>
-#include <userver/utils/impl/wrapped_call.hpp>
 
 #include <engine/impl/wait_list.hpp>
 #include <engine/task/task_context.hpp>
@@ -20,18 +20,20 @@ namespace {
 constexpr std::size_t kTasksCount = 1024 * 64;
 constexpr std::size_t kIterationsCount = 1024 * 16;
 
-engine::impl::TaskPayload MakeEmptyPayload() {
-  return utils::impl::WrapCall([] {});
+boost::intrusive_ptr<TaskContext> MakeContext() {
+  return engine::impl::MakeTask({engine::current_task::GetTaskProcessor(),
+                                 engine::Task::Importance::kNormal,
+                                 engine::Task::WaitMode::kSingleWaiter,
+                                 {}},
+                                [] {})
+      .Extract();
 }
 
 auto MakeContexts() {
   std::vector<boost::intrusive_ptr<TaskContext>> contexts;
   contexts.reserve(kTasksCount);
   for (std::size_t i = 0; i < kTasksCount; ++i) {
-    contexts.push_back(new TaskContext(engine::current_task::GetTaskProcessor(),
-                                       engine::Task::Importance::kNormal,
-                                       engine::Task::WaitMode::kSingleWaiter,
-                                       {}, MakeEmptyPayload()));
+    contexts.push_back(MakeContext());
   }
 
   return contexts;
@@ -47,7 +49,7 @@ void wait_list_insertion(benchmark::State& state) {
     auto contexts = MakeContexts();
     {
       WaitList::Lock guard{wl};
-      for (auto _ : state) {
+      for ([[maybe_unused]] auto _ : state) {
         wl.Append(guard, contexts[i]);
 
         if (++i == kTasksCount) {
@@ -75,19 +77,19 @@ void wait_list_removal(benchmark::State& state) {
     auto contexts = MakeContexts();
 
     WaitList::Lock guard{wl};
-    for (auto c : contexts) {
+    for (const auto& c : contexts) {
       wl.Append(guard, c);
     }
 
     std::size_t i = 0;
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       wl.Remove(guard, *contexts[i]);
 
       if (++i == kTasksCount) {
         state.PauseTiming();
         i = 0;
         {
-          for (auto c : contexts) {
+          for (const auto& c : contexts) {
             wl.Append(guard, c);
           }
         }
@@ -109,12 +111,10 @@ void wait_list_add_remove_contention(benchmark::State& state) {
     WaitList wl;
 
     std::vector<engine::TaskWithResult<void>> tasks;
+    tasks.reserve(state.range(0) - 1);
     for (int i = 0; i < state.range(0) - 1; i++)
       tasks.push_back(engine::AsyncNoSpan([&]() {
-        boost::intrusive_ptr<TaskContext> ctx = new TaskContext(
-            engine::current_task::GetTaskProcessor(),
-            engine::Task::Importance::kNormal,
-            engine::Task::WaitMode::kSingleWaiter, {}, MakeEmptyPayload());
+        boost::intrusive_ptr<TaskContext> ctx = MakeContext();
         while (run) {
           {
             WaitList::Lock guard{wl};
@@ -125,11 +125,8 @@ void wait_list_add_remove_contention(benchmark::State& state) {
         }
       }));
 
-    boost::intrusive_ptr<TaskContext> ctx = new TaskContext(
-        engine::current_task::GetTaskProcessor(),
-        engine::Task::Importance::kNormal,
-        engine::Task::WaitMode::kSingleWaiter, {}, MakeEmptyPayload());
-    for (auto _ : state) {
+    boost::intrusive_ptr<TaskContext> ctx = MakeContext();
+    for ([[maybe_unused]] auto _ : state) {
       {
         WaitList::Lock guard{wl};
         wl.Append(guard, ctx);
@@ -152,6 +149,7 @@ void wait_list_add_remove_contention_unbalanced(benchmark::State& state) {
     WaitList wl;
 
     std::vector<engine::TaskWithResult<void>> tasks;
+    tasks.reserve(state.range(0) - 1);
     for (int i = 0; i < state.range(0) - 1; i++)
       tasks.push_back(engine::AsyncNoSpan([&]() {
         auto contexts = MakeContexts();
@@ -168,7 +166,7 @@ void wait_list_add_remove_contention_unbalanced(benchmark::State& state) {
       }));
 
     auto contexts = MakeContexts();
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       for (auto& ctx : contexts) {
         WaitList::Lock guard{wl};
         wl.Append(guard, ctx);

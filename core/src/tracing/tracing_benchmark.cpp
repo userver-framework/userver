@@ -1,8 +1,8 @@
 #include <benchmark/benchmark.h>
 
 #include <userver/engine/run_standalone.hpp>
-#include <userver/tracing/noop.hpp>
-#include <userver/tracing/opentracing.hpp>
+#include <userver/logging/null_logger.hpp>
+#include <userver/tracing/tracer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -10,13 +10,28 @@ namespace {
 
 void tracing_noop_ctr(benchmark::State& state) {
   engine::RunStandalone([&] {
-    auto tracer = tracing::MakeNoopTracer("test_service");
+    auto tracer = tracing::MakeTracer("test_service", {});
 
-    for (auto _ : state)
+    for ([[maybe_unused]] auto _ : state)
       benchmark::DoNotOptimize(tracer->CreateSpanWithoutParent("name"));
   });
 }
 BENCHMARK(tracing_noop_ctr);
+
+void tracing_happy_log(benchmark::State& state) {
+  logging::DefaultLoggerGuard guard{logging::MakeNullLogger()};
+
+  engine::RunStandalone([&] {
+    // TODO Null logger ignores log level and keeps kNone, this benchmark
+    //  measures nothing. Should use TpLogger instead.
+    const logging::DefaultLoggerLevelScope level_scope{logging::Level::kInfo};
+    auto tracer = tracing::MakeTracer("test_service", {});
+
+    for ([[maybe_unused]] auto _ : state)
+      benchmark::DoNotOptimize(tracer->CreateSpanWithoutParent("name"));
+  });
+}
+BENCHMARK(tracing_happy_log);
 
 tracing::Span GetSpanWithOpentracingHttpTags(tracing::TracerPtr tracer) {
   auto span = tracer->CreateSpanWithoutParent("name");
@@ -27,14 +42,12 @@ tracing::Span GetSpanWithOpentracingHttpTags(tracing::TracerPtr tracer) {
 }
 
 void tracing_opentracing_ctr(benchmark::State& state) {
-  logging::LoggerPtr logger = logging::MakeNullLogger("opentracing");
+  auto logger = logging::MakeNullLogger();
   engine::RunStandalone([&] {
-    auto tracer = tracing::MakeNoopTracer("test_service");
-    tracing::SetOpentracingLogger(logger);
-    for (auto _ : state) {
+    auto tracer = tracing::MakeTracer("test_service", logger);
+    for ([[maybe_unused]] auto _ : state) {
       benchmark::DoNotOptimize(GetSpanWithOpentracingHttpTags(tracer));
     }
-    tracing::SetOpentracingLogger({});
   });
 }
 BENCHMARK(tracing_opentracing_ctr);

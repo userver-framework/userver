@@ -7,33 +7,33 @@
 USERVER_NAMESPACE_BEGIN
 
 UTEST(DataPipeToEv, Basic) {
-  using namespace engine::ev::impl;
-  DoubleBufferingState state;
+  namespace ev = engine::ev::impl;
+  ev::DoubleBufferingState state;
 
-  DoubleBufferingState::ProducerLock{state};
-  EXPECT_TRUE(engine::ev::impl::DoubleBufferingState::ConsumerLock{state});
-  EXPECT_FALSE(engine::ev::impl::DoubleBufferingState::ConsumerLock{state});
+  { ev::DoubleBufferingState::ProducerLock lock{state}; }
+  EXPECT_TRUE(ev::DoubleBufferingState::ConsumerLock{state});
+  EXPECT_FALSE(ev::DoubleBufferingState::ConsumerLock{state});
 }
 
 UTEST(DataPipeToEv, Nonblocking) {
-  using namespace engine::ev::impl;
-  DoubleBufferingState state;
+  namespace ev = engine::ev::impl;
+  ev::DoubleBufferingState state;
 
   {
-    DoubleBufferingState::ProducerLock producer{state};
-    EXPECT_FALSE(engine::ev::impl::DoubleBufferingState::ConsumerLock{state});
+    ev::DoubleBufferingState::ProducerLock producer{state};
+    EXPECT_FALSE(ev::DoubleBufferingState::ConsumerLock{state});
   }
-  EXPECT_TRUE(engine::ev::impl::DoubleBufferingState::ConsumerLock{state});
+  EXPECT_TRUE(ev::DoubleBufferingState::ConsumerLock{state});
 }
 
 UTEST(DataPipeToEv, Overwriting) {
-  using namespace engine::ev::impl;
-  DoubleBufferingState state;
+  namespace ev = engine::ev::impl;
+  ev::DoubleBufferingState state;
 
-  DoubleBufferingState::ProducerLock{state};
-  DoubleBufferingState::ProducerLock{state};
-  EXPECT_TRUE(engine::ev::impl::DoubleBufferingState::ConsumerLock{state});
-  EXPECT_FALSE(engine::ev::impl::DoubleBufferingState::ConsumerLock{state});
+  { ev::DoubleBufferingState::ProducerLock lock{state}; }
+  { ev::DoubleBufferingState::ProducerLock lock{state}; }
+  EXPECT_TRUE(ev::DoubleBufferingState::ConsumerLock{state});
+  EXPECT_FALSE(ev::DoubleBufferingState::ConsumerLock{state});
 }
 
 UTEST(DataPipeToEv, ExpectLastData) {

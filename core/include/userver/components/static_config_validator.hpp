@@ -29,6 +29,12 @@ void TryValidateStaticConfig(const components::ComponentConfig& static_config,
   }
 }
 
+template <typename Component>
+yaml_config::Schema GetStaticConfigSchema() {
+  // TODO: implement for kOnlyTurnedOn
+  return Component::GetStaticConfigSchema();
+}
+
 }  // namespace impl
 }  // namespace components
 

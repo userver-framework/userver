@@ -58,12 +58,22 @@ class SingleConsumerEvent final {
   /// @overload bool WaitForEvent()
   [[nodiscard]] bool WaitForEventUntil(Deadline);
 
-  /// Resets the signal flag.
+  /// Resets the signal flag. Guarantees at least 'acquire' and 'release' memory
+  /// ordering. Must only be called by the waiting task.
   void Reset() noexcept;
 
   /// Sets the signal flag and wakes a coroutine that waits on it (if any).
   /// If the signal flag is already set, does nothing.
+  ///
+  /// The waiter is allowed to destroy the SingleConsumerEvent immediately
+  /// after exiting WaitForEvent, ONLY IF the wait succeeded. Otherwise
+  /// a concurrent task may call Send on a destroyed SingleConsumerEvent.
+  /// Here is an example of this situation:
+  /// @snippet engine/single_consumer_event_test.cpp  Wait and destroy
   void Send();
+
+  /// Returns `true` iff already signaled. Never resets the signal.
+  [[nodiscard]] bool IsReady() const noexcept;
 
  private:
   class EventWaitStrategy;
@@ -72,7 +82,6 @@ class SingleConsumerEvent final {
 
   impl::FastPimplWaitListLight waiters_;
   const bool is_auto_reset_{true};
-  std::atomic<bool> is_signaled_{false};
 };
 
 template <typename Clock, typename Duration>

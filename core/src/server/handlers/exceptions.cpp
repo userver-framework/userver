@@ -1,6 +1,7 @@
 #include <userver/server/handlers/exceptions.hpp>
 
-#include <unordered_map>
+#include <userver/server/http/http_error.hpp>
+#include <userver/utils/trivial_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -8,57 +9,52 @@ namespace server::handlers {
 
 namespace {
 
-const std::unordered_map<HandlerErrorCode, std::string, HandlerErrorCodeHash>
-    kCodeDescriptions{
-        {HandlerErrorCode::kUnknownError, "Unknown error"},
-        {HandlerErrorCode::kClientError, "Client error"},
-        {HandlerErrorCode::kRequestParseError, "Bad request"},
-        {HandlerErrorCode::kUnauthorized, "Unauthorized"},
-        {HandlerErrorCode::kForbidden, "Forbidden"},
-        {HandlerErrorCode::kResourceNotFound, "Not found"},
-        {HandlerErrorCode::kInvalidUsage, "Invalid usage"},
-        {HandlerErrorCode::kNotAcceptable, "Not acceptable"},
-        {HandlerErrorCode::kConflictState, "Conflict"},
-        {HandlerErrorCode::kPayloadTooLarge, "Payload too large"},
-        {HandlerErrorCode::kTooManyRequests, "Too many requests"},
-        {HandlerErrorCode::kServerSideError, "Internal server error"},
-        {HandlerErrorCode::kBadGateway, "Bad gateway"},
-        {HandlerErrorCode::kGatewayTimeout, "Gateway Timeout"},
-    };
+constexpr utils::TrivialBiMap kCodeDescriptions = [](auto selector) {
+  return selector()
+      .Case(HandlerErrorCode::kUnknownError, "Unknown error")
+      .Case(HandlerErrorCode::kClientError, "Client error")
+      .Case(HandlerErrorCode::kRequestParseError, "Bad request")
+      .Case(HandlerErrorCode::kUnauthorized, "Unauthorized")
+      .Case(HandlerErrorCode::kForbidden, "Forbidden")
+      .Case(HandlerErrorCode::kResourceNotFound, "Not found")
+      .Case(HandlerErrorCode::kInvalidUsage, "Invalid usage")
+      .Case(HandlerErrorCode::kNotAcceptable, "Not acceptable")
+      .Case(HandlerErrorCode::kConflictState, "Conflict")
+      .Case(HandlerErrorCode::kPayloadTooLarge, "Payload too large")
+      .Case(HandlerErrorCode::kTooManyRequests, "Too many requests")
+      .Case(HandlerErrorCode::kServerSideError, "Internal server error")
+      .Case(HandlerErrorCode::kBadGateway, "Bad gateway")
+      .Case(HandlerErrorCode::kGatewayTimeout, "Gateway Timeout");
+};
 
-const std::unordered_map<HandlerErrorCode, std::string, HandlerErrorCodeHash>
-    kFallbackServiceCodes{
-        {HandlerErrorCode::kUnknownError, "unknown"},
-        {HandlerErrorCode::kClientError, "client_error"},
-        {HandlerErrorCode::kRequestParseError, "bad_request"},
-        {HandlerErrorCode::kUnauthorized, "unauthorized"},
-        {HandlerErrorCode::kForbidden, "forbidden"},
-        {HandlerErrorCode::kResourceNotFound, "not_found"},
-        {HandlerErrorCode::kInvalidUsage, "invalid_usage"},
-        {HandlerErrorCode::kNotAcceptable, "not_acceptable"},
-        {HandlerErrorCode::kConflictState, "conflict"},
-        {HandlerErrorCode::kPayloadTooLarge, "payload_too_large"},
-        {HandlerErrorCode::kTooManyRequests, "too_many_requests"},
-        {HandlerErrorCode::kServerSideError, "internal_server_error"},
-        {HandlerErrorCode::kBadGateway, "bad_gateway"},
-        {HandlerErrorCode::kGatewayTimeout, "gateway_timeout"},
-    };
+constexpr utils::TrivialBiMap kFallbackServiceCodes = [](auto selector) {
+  return selector()
+      .Case(HandlerErrorCode::kUnknownError, "unknown")
+      .Case(HandlerErrorCode::kClientError, "client_error")
+      .Case(HandlerErrorCode::kRequestParseError, "bad_request")
+      .Case(HandlerErrorCode::kUnauthorized, "unauthorized")
+      .Case(HandlerErrorCode::kForbidden, "forbidden")
+      .Case(HandlerErrorCode::kResourceNotFound, "not_found")
+      .Case(HandlerErrorCode::kInvalidUsage, "invalid_usage")
+      .Case(HandlerErrorCode::kNotAcceptable, "not_acceptable")
+      .Case(HandlerErrorCode::kConflictState, "conflict")
+      .Case(HandlerErrorCode::kPayloadTooLarge, "payload_too_large")
+      .Case(HandlerErrorCode::kTooManyRequests, "too_many_requests")
+      .Case(HandlerErrorCode::kServerSideError, "internal_server_error")
+      .Case(HandlerErrorCode::kBadGateway, "bad_gateway")
+      .Case(HandlerErrorCode::kGatewayTimeout, "gateway_timeout");
+};
 
 }  // namespace
 
-std::string GetCodeDescription(HandlerErrorCode code) {
-  if (auto f = kCodeDescriptions.find(code); f != kCodeDescriptions.end()) {
-    return f->second;
-  }
-  return kCodeDescriptions.at(HandlerErrorCode::kUnknownError);
+std::string_view GetCodeDescription(HandlerErrorCode code) {
+  return kCodeDescriptions.TryFind(code).value_or(
+      kCodeDescriptions.TryFind(HandlerErrorCode::kUnknownError).value());
 }
 
-std::string GetFallbackServiceCode(HandlerErrorCode code) {
-  auto it = kFallbackServiceCodes.find(code);
-  if (it == kFallbackServiceCodes.end()) {
-    it = kCodeDescriptions.find(HandlerErrorCode::kUnknownError);
-  }
-  return it->second;
+std::string_view GetFallbackServiceCode(HandlerErrorCode code) {
+  return kFallbackServiceCodes.TryFind(code).value_or(
+      kFallbackServiceCodes.TryFind(HandlerErrorCode::kUnknownError).value());
 }
 
 }  // namespace server::handlers

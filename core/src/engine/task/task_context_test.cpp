@@ -5,6 +5,7 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
 
+#include <userver/engine/task/task_base.hpp>
 #include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -19,7 +20,7 @@ namespace {
 class DtorInCoroChecker final {
  public:
   ~DtorInCoroChecker() {
-    EXPECT_NE(nullptr, engine::current_task::GetCurrentTaskContextUnchecked());
+    EXPECT_TRUE(engine::current_task::IsTaskProcessorThread());
   }
 };
 
@@ -47,7 +48,7 @@ struct WaitListRaceSimulator final : public engine::impl::WaitStrategy {
   }
 };
 
-static constexpr size_t kWorkerThreads = 1;
+constexpr size_t kWorkerThreads = 1;
 
 }  // namespace
 
@@ -89,9 +90,7 @@ UTEST(TaskContext, WaitListWakeupRace) {
   auto& context = engine::current_task::GetCurrentTaskContext();
 
   WaitListRaceSimulator wait_manager;
-  context.Sleep(wait_manager);
-
-  EXPECT_EQ(context.DebugGetWakeupSource(),
+  EXPECT_EQ(context.Sleep(wait_manager),
             engine::impl::TaskContext::WakeupSource::kWaitList);
 }
 

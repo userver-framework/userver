@@ -8,7 +8,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-UTEST(TestCaseMacros, UTEST_Engine) {
+UTEST(TestCaseMacros, UTESTEngine) {
   EXPECT_EQ(GetThreadCount(), 1);
 
   engine::Mutex mutex;
@@ -76,9 +76,9 @@ class TestCaseMacrosFixture : public ::testing::Test {
   static inline engine::Mutex mutex_;
 };
 
-UTEST_F(TestCaseMacrosFixture, UTEST_F_Engine) { CheckEngine(); }
+UTEST_F(TestCaseMacrosFixture, UtestFEngine) { CheckEngine(); }
 
-UTEST_F_MT(TestCaseMacrosFixture, UTEST_F_Engine2, 2) {
+UTEST_F_MT(TestCaseMacrosFixture, UtestFEngine2, 2) {
   EXPECT_EQ(GetThreadCount(), 2);
   DeadlockUnlessMultiThreaded();
 }
@@ -106,12 +106,13 @@ class TestCaseMacrosParametric : public ::testing::TestWithParam<std::string> {
     EXPECT_TRUE(GetParam() == "foo" || GetParam() == "bar");
   }
 
+ private:
   engine::Mutex mutex_;
 };
 
-UTEST_P(TestCaseMacrosParametric, UTEST_P_Engine) { CheckEngineAndParam(); }
+UTEST_P(TestCaseMacrosParametric, UtestPEngine) { CheckEngineAndParam(); }
 
-UTEST_P_MT(TestCaseMacrosParametric, UTEST_P_Engine2, 2) {
+UTEST_P_MT(TestCaseMacrosParametric, UtestPEngine2, 2) {
   CheckEngineAndParam();
   EXPECT_EQ(GetThreadCount(), 2);
   DeadlockUnlessMultiThreaded();
@@ -137,13 +138,13 @@ using MyTypes = ::testing::Types<char, bool, std::string>;
 
 TYPED_UTEST_SUITE(TestCaseMacrosTyped, MyTypes);
 
-TYPED_UTEST(TestCaseMacrosTyped, TYPED_UTEST_Engine) {
+TYPED_UTEST(TestCaseMacrosTyped, TypedUtestEngine) {
   this->CheckEngine();
   static_assert(std::is_same_v<decltype(this->GetTypeInstance()), TypeParam>);
   static_assert(std::is_same_v<TestFixture, TestCaseMacrosTyped<TypeParam>>);
 }
 
-TYPED_UTEST_MT(TestCaseMacrosTyped, TYPED_UTEST_Engine2, 2) {
+TYPED_UTEST_MT(TestCaseMacrosTyped, TypedUtestEngine2, 2) {
   this->CheckEngine();
   EXPECT_EQ(GetThreadCount(), 2);
   DeadlockUnlessMultiThreaded();
@@ -157,20 +158,20 @@ class TestCaseMacrosTypedP : public TestCaseMacrosFixture {
 
 TYPED_UTEST_SUITE_P(TestCaseMacrosTypedP);
 
-TYPED_UTEST_P(TestCaseMacrosTypedP, TYPED_UTEST_P_Engine) {
+TYPED_UTEST_P(TestCaseMacrosTypedP, TypedUtestPEngine) {
   this->CheckEngine();
   static_assert(std::is_same_v<decltype(this->GetTypeInstance()), TypeParam>);
   static_assert(std::is_same_v<TestFixture, TestCaseMacrosTypedP<TypeParam>>);
 }
 
-TYPED_UTEST_P_MT(TestCaseMacrosTypedP, TYPED_UTEST_P_Engine2, 2) {
+TYPED_UTEST_P_MT(TestCaseMacrosTypedP, TypedUtestPEngine2, 2) {
   this->CheckEngine();
   EXPECT_EQ(GetThreadCount(), 2);
   DeadlockUnlessMultiThreaded();
 }
 
-REGISTER_TYPED_UTEST_SUITE_P(TestCaseMacrosTypedP, TYPED_UTEST_P_Engine,
-                             TYPED_UTEST_P_Engine2);
+REGISTER_TYPED_UTEST_SUITE_P(TestCaseMacrosTypedP, TypedUtestPEngine,
+                             TypedUtestPEngine2);
 
 INSTANTIATE_TYPED_UTEST_SUITE_P(MyTypes, TestCaseMacrosTypedP, MyTypes);
 

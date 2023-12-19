@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <userver/components/component_config.hpp>
+#include <userver/utils/impl/userver_experiments.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
 #include <engine/coro/pool_config.hpp>
@@ -23,8 +24,10 @@ struct ManagerConfig {
   std::vector<engine::TaskProcessorConfig> task_processors;
   std::string default_task_processor;
   ValidationMode validate_components_configs{};
-
-  yaml_config::YamlConfig source;
+  utils::impl::UserverExperimentSet enabled_experiments;
+  bool experiments_force_enabled{false};
+  bool mlock_debug_info{true};
+  bool disable_phdr_cache{false};
 
   static ManagerConfig FromString(
       const std::string&, const std::optional<std::string>& config_vars_path,
@@ -34,6 +37,8 @@ struct ManagerConfig {
       const std::optional<std::string>& config_vars_path,
       const std::optional<std::string>& config_vars_override_path);
 };
+
+yaml_config::Schema GetManagerConfigSchema();
 
 ManagerConfig Parse(const yaml_config::YamlConfig& value,
                     formats::parse::To<ManagerConfig>);

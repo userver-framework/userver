@@ -1,5 +1,7 @@
 #include <clients/http/destination_statistics.hpp>
 
+#include <userver/utils/statistics/writer.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace clients::http {
@@ -72,6 +74,15 @@ DestinationStatistics::begin() const {
 DestinationStatistics::DestinationsMap::ConstIterator
 DestinationStatistics::end() const {
   return rcu_map_.end();
+}
+
+void DumpMetric(utils::statistics::Writer& writer,
+                const DestinationStatistics& stats) {
+  for (const auto& [url, stat_ptr] : stats) {
+    const InstanceStatistics instance_stat{*stat_ptr};
+    writer.ValueWithLabels(DestinationStatisticsView{instance_stat},
+                           {{"http_destination", url}, {"version", "2"}});
+  }
 }
 
 }  // namespace clients::http

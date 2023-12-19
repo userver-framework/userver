@@ -2,8 +2,7 @@
 
 ## Before you start
 
-Make sure that you can compile and run core tests and read a basic example @ref
-md_en_userver_tutorial_hello_service.
+Make sure that you can compile and run core tests and read a basic example @ref scripts/docs/en/userver/tutorial/hello_service.md.
 
 ## Step by step guide
 
@@ -22,7 +21,7 @@ database. The service would have the following Rest API:
 
 ### HTTP handler component
 
-Like in @ref md_en_userver_tutorial_hello_service we create a component for
+Like in @ref scripts/docs/en/userver/tutorial/hello_service.md we create a component for
 handling HTTP requests:
 
 @snippet samples/redis_service/redis_service.cpp Redis service sample - component
@@ -49,7 +48,7 @@ one of the member functions that actually implement the key-value storage logic:
 
 @warning `Handle*` functions are invoked concurrently on the same instance of
 the handler class. In this sample the KeyValue component only uses the thread
-safe DB client. In more complex cases @ref md_en_userver_synchronization "
+safe DB client. In more complex cases @ref scripts/docs/en/userver/synchronization.md "
 synchronization primitives" should be used or data must not be mutated.
 
 ### KeyValue::GetValue
@@ -77,25 +76,10 @@ Note that mutating queries are automatically executed on a master instance.
 
 ### Static config
 
-Static configuration of service is quite close to the configuration from @ref
-md_en_userver_tutorial_hello_service except for the handler and DB:
+Static configuration of service is quite close to the configuration from @ref scripts/docs/en/userver/tutorial/hello_service.md except for the handler and DB:
 
 @snippet samples/redis_service/static_config.yaml Redis service sample - static config
 
-### Dynamic config
-
-We are not planning to get new dynamic config values in this sample. Because of
-that we just write the defaults to the fallback file of
-the `components::DynamicConfigFallbacks` component:
-@ref samples/redis_service/dynamic_config_fallback.json
-
-All the values are described in a separate section
-@ref md_en_schemas_dynamic_configs .
-
-A production ready service would dynamically retrieve the above options at
-runtime from a configuration service. See
-@ref md_en_userver_tutorial_config_service for insights on how to change the
-above options on the fly, without restarting the service.
 
 ### int main()
 
@@ -106,7 +90,8 @@ config `kStaticConfig`.
 
 @snippet samples/redis_service/redis_service.cpp Redis service sample - main
 
-### Build
+
+### Build and Run
 
 To build the sample, execute the following build steps at the userver root
 directory:
@@ -118,8 +103,16 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 make userver-samples-redis_service
 ```
 
-Start the DB server and then start the service by
-running `./samples/redis_service/userver-samples-redis_service`. Now you can send a request to
+The sample could be started by running
+`make start-userver-samples-redis_service`. The command would invoke
+@ref scripts/docs/en/userver/functional_testing.md "testsuite start target" that sets proper
+paths in the configuration files, prepares and starts the DB, and starts the
+service.
+
+To start the service manually start the DB server and run
+`./samples/redis_service/userver-samples-redis_service -c </path/to/static_config.yaml>`.
+
+Now you can send a request to
 your service from another terminal:
 
 ```
@@ -152,20 +145,21 @@ Content-Length: 1
 
 
 ### Functional testing
-@ref md_en_userver_functional_testing "Functional tests" for the service could be
+@ref scripts/docs/en/userver/functional_testing.md "Functional tests" for the service could be
 implemented using the testsuite. To do that you have to:
 
-* Provide Redis settings info:
-@snippet samples/redis_service/tests/conftest.py service_env value
+* Prepare the pytest by importing the pytest_userver.plugins.redis plugin:
+  @snippet samples/redis_service/tests/conftest.py redis setup
 
-* Add the above values to the service environment variable:
-@snippet samples/redis_service/tests/conftest.py service_env
-
-* Tell the testsuite to start the Redis database:
-@snippet samples/redis_service/tests/conftest.py client_deps
+* Add the Redis settings info to the service environment variable:
+  @snippet samples/redis_service/tests/conftest.py service_env
+  The @ref pytest_userver.plugins.service_client.auto_client_deps "auto_client_deps"
+  fixture already knows about the redis_store fixture, so there's no need to override
+  the @ref pytest_userver.plugins.service_client.extra_client_deps "extra_client_deps"
+  fixture.
 
 * Write the test:
-@snippet samples/redis_service/tests/test_redis.py  Functional test
+  @snippet samples/redis_service/tests/test_redis.py  Functional test
 
 
 ## Full sources
@@ -173,16 +167,14 @@ implemented using the testsuite. To do that you have to:
 See the full example:
 * @ref samples/redis_service/redis_service.cpp
 * @ref samples/redis_service/static_config.yaml
-* @ref samples/redis_service/dynamic_config_fallback.json
 * @ref samples/redis_service/CMakeLists.txt
 
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_tutorial_mongo_service | @ref md_en_userver_component_system ⇨
+⇦ @ref scripts/docs/en/userver/tutorial/mongo_service.md | @ref scripts/docs/en/userver/tutorial/auth_postgres.md ⇨
 @htmlonly </div> @endhtmlonly
 
 @example samples/redis_service/redis_service.cpp
 @example samples/redis_service/static_config.yaml
-@example samples/redis_service/dynamic_config_fallback.json
 @example samples/redis_service/CMakeLists.txt

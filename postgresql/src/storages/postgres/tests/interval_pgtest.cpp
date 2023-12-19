@@ -42,7 +42,6 @@ auto ParameterStoreSample(const ConnectionPtr& conn, std::optional<int> a = {},
 
 namespace pg = storages::postgres;
 namespace io = pg::io;
-namespace tt = io::traits;
 
 TEST(Postgres, Intervals) {
   io::detail::Interval iv{1, 1, 1};  // 1 month 1 day 1 us
@@ -53,7 +52,7 @@ TEST(Postgres, Intervals) {
 }
 
 UTEST_P(PostgreConnection, InternalIntervalRoundtrip) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   struct Interval {
     std::string str;
     io::detail::Interval expected;
@@ -68,8 +67,9 @@ UTEST_P(PostgreConnection, InternalIntervalRoundtrip) {
 
   for (const auto& interval : intervals) {
     io::detail::Interval r;
-    UEXPECT_NO_THROW(res = conn->Execute("select interval '" + interval.str +
-                                         "', '" + interval.str + "'"))
+    UEXPECT_NO_THROW(res =
+                         GetConn()->Execute("select interval '" + interval.str +
+                                            "', '" + interval.str + "'"))
         << "Select interval " << interval.str;
     UEXPECT_NO_THROW(res[0][0].To(r));
     EXPECT_EQ(interval.expected, r) << "Compare values for " << interval.str;
@@ -77,11 +77,11 @@ UTEST_P(PostgreConnection, InternalIntervalRoundtrip) {
 }
 
 UTEST_P(PostgreConnection, IntervalRoundtrip) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
 
   pg::ResultSet res{nullptr};
   UEXPECT_NO_THROW(
-      res = conn->Execute("select $1", std::chrono::microseconds{1000}));
+      res = GetConn()->Execute("select $1", std::chrono::microseconds{1000}));
   std::chrono::microseconds us;
   std::chrono::milliseconds ms;
   std::chrono::seconds sec;
@@ -91,7 +91,8 @@ UTEST_P(PostgreConnection, IntervalRoundtrip) {
   EXPECT_EQ(std::chrono::microseconds{1000}, us);
   EXPECT_EQ(std::chrono::microseconds{1000}, ms);
 
-  UEXPECT_NO_THROW(res = conn->Execute("select $1", std::chrono::seconds{-1}));
+  UEXPECT_NO_THROW(
+      res = GetConn()->Execute("select $1", std::chrono::seconds{-1}));
   UEXPECT_NO_THROW(res[0][0].To(us));
   UEXPECT_NO_THROW(res[0][0].To(ms));
   UEXPECT_NO_THROW(res[0][0].To(sec));
@@ -101,51 +102,57 @@ UTEST_P(PostgreConnection, IntervalRoundtrip) {
 }
 
 UTEST_P(PostgreConnection, IntervalStored) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
 
   pg::ResultSet res{nullptr};
-  UEXPECT_NO_THROW(
-      res = conn->Execute("select $1", pg::ParameterStore{}.PushBack(
-                                           std::chrono::microseconds{1000})));
+  UEXPECT_NO_THROW(res = GetConn()->Execute(
+                       "select $1", pg::ParameterStore{}.PushBack(
+                                        std::chrono::microseconds{1000})));
   std::chrono::microseconds us;
 
   UEXPECT_NO_THROW(res[0][0].To(us));
   EXPECT_EQ(std::chrono::microseconds{1000}, us);
 
   UEXPECT_NO_THROW(
-      res = conn->Execute("select $1", pg::ParameterStore{}.PushBack(
-                                           std::chrono::seconds{-1})));
+      res = GetConn()->Execute("select $1", pg::ParameterStore{}.PushBack(
+                                                std::chrono::seconds{-1})));
   UEXPECT_NO_THROW(res[0][0].To(us));
   EXPECT_EQ(std::chrono::seconds{-1}, us);
 }
 
-UTEST_P(PostgreConnection, ParmsStoreSample) {
-  CheckConnection(conn);
+UTEST_P(PostgreConnection, ParamsStoreSample) {
+  CheckConnection(GetConn());
 
   UEXPECT_NO_THROW(
-      conn->Execute("create temp table some_table(a integer, b integer, c "
-                    "integer, d integer, e integer, x integer)"));
+      GetConn()->Execute("create temp table some_table(a integer, b integer, c "
+                         "integer, d integer, e integer, x integer)"));
 
-  UEXPECT_NO_THROW(
-      conn->Execute("insert into some_table(a, b, c, d, e, x) values ($1, $2, "
-                    "$3, $4, $5, $6)",
-                    1, 2, 3, 4, 5, 6));
+  UEXPECT_NO_THROW(GetConn()->Execute(
+      "insert into some_table(a, b, c, d, e, x) values ($1, $2, "
+      "$3, $4, $5, $6)",
+      1, 2, 3, 4, 5, 6));
 
-  UEXPECT_NO_THROW(
-      conn->Execute("insert into some_table(a, b, c, d, e, x) values ($1, $2, "
-                    "$3, $4, $5, $6)",
-                    7, 8, 9, 10, 11, 12));
+  UEXPECT_NO_THROW(GetConn()->Execute(
+      "insert into some_table(a, b, c, d, e, x) values ($1, $2, "
+      "$3, $4, $5, $6)",
+      7, 8, 9, 10, 11, 12));
 
-  EXPECT_EQ(ParameterStoreSample(conn, 1).AsSingleRow<int>(), 6);
-  EXPECT_EQ(ParameterStoreSample(conn, 1, 2).AsSingleRow<int>(), 6);
-  EXPECT_EQ(ParameterStoreSample(conn, 1, 2, 3).AsSingleRow<int>(), 6);
-  EXPECT_EQ(ParameterStoreSample(conn, 1, 2, 3, 4).AsSingleRow<int>(), 6);
-  EXPECT_EQ(ParameterStoreSample(conn, 1, 2, 3, 4, 5).AsSingleRow<int>(), 6);
-  EXPECT_EQ(ParameterStoreSample(conn, 1, 2, 3, {}, 5).AsSingleRow<int>(), 6);
-  EXPECT_EQ(ParameterStoreSample(conn, {}, 2, 3, {}, 5).AsSingleRow<int>(), 6);
-  EXPECT_EQ(ParameterStoreSample(conn, 1, {}, 3, {}, 5).AsSingleRow<int>(), 6);
-  EXPECT_EQ(ParameterStoreSample(conn, {}, {}, 3, {}).AsSingleRow<int>(), 6);
-  EXPECT_EQ(ParameterStoreSample(conn, {}, {}, {}, 4).AsSingleRow<int>(), 6);
+  EXPECT_EQ(ParameterStoreSample(GetConn(), 1).AsSingleRow<int>(), 6);
+  EXPECT_EQ(ParameterStoreSample(GetConn(), 1, 2).AsSingleRow<int>(), 6);
+  EXPECT_EQ(ParameterStoreSample(GetConn(), 1, 2, 3).AsSingleRow<int>(), 6);
+  EXPECT_EQ(ParameterStoreSample(GetConn(), 1, 2, 3, 4).AsSingleRow<int>(), 6);
+  EXPECT_EQ(ParameterStoreSample(GetConn(), 1, 2, 3, 4, 5).AsSingleRow<int>(),
+            6);
+  EXPECT_EQ(ParameterStoreSample(GetConn(), 1, 2, 3, {}, 5).AsSingleRow<int>(),
+            6);
+  EXPECT_EQ(ParameterStoreSample(GetConn(), {}, 2, 3, {}, 5).AsSingleRow<int>(),
+            6);
+  EXPECT_EQ(ParameterStoreSample(GetConn(), 1, {}, 3, {}, 5).AsSingleRow<int>(),
+            6);
+  EXPECT_EQ(ParameterStoreSample(GetConn(), {}, {}, 3, {}).AsSingleRow<int>(),
+            6);
+  EXPECT_EQ(ParameterStoreSample(GetConn(), {}, {}, {}, 4).AsSingleRow<int>(),
+            6);
 }
 }  // namespace
 

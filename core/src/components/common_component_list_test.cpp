@@ -3,8 +3,9 @@
 #include <fmt/format.h>
 
 #include <userver/components/run.hpp>
-#include <userver/fs/blocking/temp_directory.hpp>  // for fs::blocking::TempDirectory
-#include <userver/fs/blocking/write.hpp>  // for fs::blocking::RewriteFileContents
+#include <userver/dynamic_config/test_helpers.hpp>
+#include <userver/fs/blocking/temp_directory.hpp>
+#include <userver/fs/blocking/write.hpp>
 
 #include <components/component_list_test.hpp>
 #include <userver/utest/utest.hpp>
@@ -13,23 +14,19 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-const auto kTmpDir = fs::blocking::TempDirectory::Create();
-const std::string kRuntimeConfingPath =
-    kTmpDir.GetPath() + "/runtime_config.json";
-const std::string kConfigVariablesPath =
-    kTmpDir.GetPath() + "/config_vars.json";
-
-const std::string_view kConfigVariables = R"(
+constexpr std::string_view kConfigVarsTemplate = R"(
   userver-dumps-root: {0}
-  runtime_config_path: {1}
+  dynamic-config-cache-path: {1}
   access_log_path: {0}/access.log
   access_tskv_log_path: {0}/access_tskv.log
-  default_log_path: {0}/server.log
+  default_log_path: '@stderr'
   log_level: {2}
 )";
 
+// We deliberately have some defaulted options explicitly specified here, for
+// testing and documentation purposes.
 // clang-format off
-const std::string kStaticConfig = R"(
+constexpr std::string_view kStaticConfig = R"(
 # /// [Sample components manager config component config]
 # yaml
 components_manager:
@@ -128,17 +125,14 @@ components_manager:
     dynamic-config-client-updater:
       store-enabled: true
       load-only-my-values: true
-      fallback-path: $runtime_config_path
-      fallback-path#fallback: /some/path/to/runtime_config.json
-      fs-task-processor: fs-task-processor
 
       # options from components::CachingComponentBase
       update-types: full-and-incremental
       update-interval: 5s
       update-jitter: 2s
       full-update-interval: 5m
-      first-update-fail-ok: true
-      config-settings: true
+      first-update-fail-ok: false
+      config-settings: false
       additional-cleanup-interval: 5m
       testsuite-force-periodic-update: true
 # /// [Sample dynamic config client updater component config]
@@ -178,7 +172,8 @@ components_manager:
 # /// [Sample dynamic config component config]
 # yaml
     dynamic-config:
-      fs-cache-path: $runtime_config_path
+      updates-enabled: true
+      fs-cache-path: $dynamic-config-cache-path
       fs-task-processor: fs-task-processor
 # /// [Sample dynamic config component config]
     http-client-statistics:
@@ -187,24 +182,34 @@ components_manager:
 # yaml
     system-statistics-collector:
       fs-task-processor: fs-task-processor
-      update-interval: 1m
       with-nginx: false
 # /// [Sample system statistics component config]
-config_vars: )" + kConfigVariablesPath + R"(
-)";
+config_vars: )";
 // clang-format on
 
 }  // namespace
 
 TEST_F(ComponentList, Common) {
-  fs::blocking::RewriteFileContents(kRuntimeConfingPath, tests::kRuntimeConfig);
+  const auto temp_root = fs::blocking::TempDirectory::Create();
+  const std::string dynamic_config_cache_path =
+      temp_root.GetPath() + "/dynamic_config.json";
+  const std::string config_vars_path =
+      temp_root.GetPath() + "/config_vars.json";
+
   fs::blocking::RewriteFileContents(
-      kConfigVariablesPath,
-      fmt::format(kConfigVariables, kTmpDir.GetPath(), kRuntimeConfingPath,
+      dynamic_config_cache_path,
+      formats::json::ToString(
+          dynamic_config::impl::GetDefaultDocsMap().AsJson()));
+
+  fs::blocking::RewriteFileContents(
+      config_vars_path,
+      fmt::format(kConfigVarsTemplate, temp_root.GetPath(),
+                  dynamic_config_cache_path,
                   ToString(logging::GetDefaultLoggerLevel())));
 
-  components::RunOnce(components::InMemoryConfig{kStaticConfig},
-                      components::CommonComponentList());
+  components::RunOnce(
+      components::InMemoryConfig{std::string{kStaticConfig} + config_vars_path},
+      components::CommonComponentList());
 }
 
 USERVER_NAMESPACE_END

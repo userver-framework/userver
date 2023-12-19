@@ -111,7 +111,7 @@ namespace storages::postgres {
  *       - InvalidInputBufferSize
  *       - InvalidParserCategory
  *       - InvalidTupleSizeRequested
- *       - NonSingleColumResultSet
+ *       - NonSingleColumnResultSet
  *       - NonSingleRowResultSet
  *       - NoBinaryParser
  *       - RowIndexOutOfBounds
@@ -136,6 +136,9 @@ namespace storages::postgres {
  *       - NotInTransaction
  *     - UnsupportedInterval
  *     - BoundedRangeError
+ *     - BitStringError
+ *       - BitStringOverflow
+ *       - InvalidBitStringRepresentation
  *   - RuntimeError
  *     - ConnectionError
  *       - ClusterUnavailable
@@ -726,10 +729,11 @@ class InvalidTupleSizeRequested : public ResultSetError {
 
 /// @brief A row or result set requested to be treated as a single column, but
 /// contains more than one column.
-class NonSingleColumResultSet : public ResultSetError {
+class NonSingleColumnResultSet : public ResultSetError {
  public:
-  NonSingleColumResultSet(std::size_t actual_size, const std::string& type_name,
-                          const std::string& func)
+  NonSingleColumnResultSet(std::size_t actual_size,
+                           const std::string& type_name,
+                           const std::string& func)
       : ResultSetError(
             "Parsing the row consisting of " + std::to_string(actual_size) +
             " columns as " + type_name +
@@ -894,6 +898,31 @@ class BoundedRangeError : public LogicError {
 };
 
 //@{
+/** @name bit/bit varying type errors */
+
+/// @brief Base error when working with bit string types.
+class BitStringError : public LogicError {
+ public:
+  using LogicError::LogicError;
+};
+
+/// Value in PostgreSQL binary buffer cannot be represented by a given C++ type
+class BitStringOverflow : public BitStringError {
+ public:
+  BitStringOverflow(std::size_t actual, std::size_t expected)
+      : BitStringError(fmt::format("Invalid bit container size {}. Expected {}",
+                                   actual, expected)) {}
+};
+
+/// Value in PostgreSQL binary buffer cannot be represented as bit string type
+class InvalidBitStringRepresentation : public BitStringError {
+ public:
+  InvalidBitStringRepresentation()
+      : BitStringError("Invalid bit or bit varying type representation") {}
+};
+//@}
+
+//@{
 /** @name Misc exceptions */
 class InvalidDSN : public RuntimeError {
  public:
@@ -909,6 +938,20 @@ class NotImplemented : public LogicError {
   using LogicError::LogicError;
 };
 
+//@}
+
+//@{
+/** @name ip type errors */
+class IpAddressError : public LogicError {
+ public:
+  using LogicError::LogicError;
+};
+
+class IpAddressInvalidFormat : public IpAddressError {
+ public:
+  explicit IpAddressInvalidFormat(std::string_view str)
+      : IpAddressError(fmt::format("IP address invalid format. {}", str)) {}
+};
 //@}
 
 }  // namespace storages::postgres

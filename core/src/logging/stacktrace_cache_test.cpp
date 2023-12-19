@@ -7,14 +7,14 @@
 
 USERVER_NAMESPACE_BEGIN
 
-TEST(stacktrace_cache, full) {
+TEST(StacktraceCache, full) {
   logging::stacktrace_cache::StacktraceGuard guard(true);
   auto st = boost::stacktrace::stacktrace();
   EXPECT_EQ(boost::stacktrace::to_string(st),
             logging::stacktrace_cache::to_string(st));
 }
 
-UTEST(stacktrace_cache, StartOfCoroutine) {
+UTEST(StacktraceCache, StartOfCoroutine) {
   logging::stacktrace_cache::StacktraceGuard guard(true);
   auto st = boost::stacktrace::stacktrace();
   auto text = logging::stacktrace_cache::to_string(st);

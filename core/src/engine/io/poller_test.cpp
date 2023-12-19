@@ -1,6 +1,8 @@
 #include "poller.hpp"
 
+#include <sys/param.h>
 #include <unistd.h>
+
 #include <array>
 #include <cerrno>
 
@@ -26,7 +28,7 @@ class Pipe final {
   int Out() { return fd_[1]; }
 
  private:
-  int fd_[2];
+  int fd_[2]{};
 };
 
 void WriteOne(int fd) {
@@ -215,7 +217,7 @@ UTEST(Poller, ReadWriteMultipleTorture) {
                   Poller::Status::kSuccess);
         EXPECT_EQ(event.type, Poller::Event::kRead);
 
-        const auto it = std::find_if(
+        const auto* it = std::find_if(
             std::begin(pipes), std::end(pipes),
             [&event](auto& pipe) { return pipe.In() == event.fd; });
         EXPECT_NE(it, std::end(pipes));
@@ -235,7 +237,11 @@ UTEST(Poller, ReadWriteMultipleTorture) {
 }
 
 // Disabled for mac, see https://st.yandex-team.ru/TAXICOMMON-4196
-UTEST(Poller, DISABLED_IN_MAC_OS_TEST_NAME(AwaitedEventsChange)) {
+#ifdef BSD
+UTEST(Poller, DISABLED_AwaitedEventsChange) {
+#else
+UTEST(Poller, AwaitedEventsChange) {
+#endif
   TcpListener listener;
   auto socket_pair = listener.MakeSocketPair(
       engine::Deadline::FromDuration(utest::kMaxTestWaitTime));

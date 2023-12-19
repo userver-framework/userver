@@ -18,7 +18,7 @@ class Component final : public components::LoggableComponentBase {
 
   int DoSomething() const;
 
-  ~Component();
+  ~Component() final;
 
   static yaml_config::Schema GetStaticConfigSchema();
 

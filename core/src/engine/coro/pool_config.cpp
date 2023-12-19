@@ -7,8 +7,8 @@ namespace engine::coro {
 PoolConfig Parse(const yaml_config::YamlConfig& value,
                  formats::parse::To<PoolConfig>) {
   PoolConfig config;
-  config.initial_size = value["initial_size"].As<size_t>();
-  config.max_size = value["max_size"].As<size_t>();
+  config.initial_size = value["initial_size"].As<size_t>(config.initial_size);
+  config.max_size = value["max_size"].As<size_t>(config.max_size);
   config.stack_size = value["stack_size"].As<size_t>(config.stack_size);
   return config;
 }

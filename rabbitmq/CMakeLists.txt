@@ -9,15 +9,19 @@ file(GLOB_RECURSE RABBITMQ_TEST_SOURCES
 
 list(REMOVE_ITEM SOURCES ${RABBITMQ_TEST_SOURCES})
 
-include(SetupAmqpCPP)
+file(GLOB_RECURSE RMQ_FUNCTIONAL_TEST_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/functional_tests/*
+)
+list(REMOVE_ITEM SOURCES ${RMQ_FUNCTIONAL_TEST_SOURCES})
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
-target_link_libraries(${PROJECT_NAME}
-  PUBLIC
-    userver-core
-  PRIVATE
-    amqp-cpp
-)
+target_link_libraries(${PROJECT_NAME} PUBLIC userver-core)
+if (USERVER_CONAN)
+  find_package(amqpcpp)
+else()
+  include(SetupAmqpCPP)
+endif()
+target_link_libraries(${PROJECT_NAME} PRIVATE amqpcpp)
 target_include_directories(
   ${PROJECT_NAME}
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -38,4 +42,8 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_rmqtest
     --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_rmqtest.xml
   )
+  set_tests_properties(${PROJECT_NAME}_rmqtest PROPERTIES ENVIRONMENT
+          "TESTSUITE_RABBITMQ_SERVER_START_TIMEOUT=120.0")
+
+  add_subdirectory(functional_tests)
 endif()

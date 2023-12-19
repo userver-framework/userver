@@ -1,13 +1,8 @@
+# /// [mongodb settings]
 import pytest
 
-pytest_plugins = [
-    'pytest_userver.plugins',
-    'pytest_userver.plugins.samples',
-    # Database related plugins
-    'testsuite.databases.mongo.pytest_plugin',
-]
+pytest_plugins = ['pytest_userver.plugins.mongo']
 
-# /// [mongodb settings]
 MONGO_COLLECTIONS = {
     'translations': {
         'settings': {
@@ -24,10 +19,3 @@ MONGO_COLLECTIONS = {
 def mongodb_settings():
     return MONGO_COLLECTIONS
     # /// [mongodb settings]
-
-
-# /// [require mongodb]
-@pytest.fixture
-def client_deps(mongodb):
-    pass
-    # /// [require mongodb]

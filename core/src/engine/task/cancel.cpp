@@ -1,10 +1,8 @@
 #include <userver/engine/task/cancel.hpp>
 
-#include <cctype>
 #include <exception>
 
 #include <fmt/format.h>
-#include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string/replace.hpp>
 
 #include <userver/engine/sleep.hpp>
@@ -13,6 +11,7 @@
 
 #include <engine/task/coro_unwinder.hpp>
 #include <engine/task/task_context.hpp>
+#include <utils/impl/assert_extra.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -60,6 +59,10 @@ void SetDeadline(Deadline deadline) {
   GetCurrentTaskContext().SetCancelDeadline(deadline);
 }
 
+TaskCancellationToken GetCancellationToken() {
+  return TaskCancellationToken(GetCurrentTaskContext());
+}
+
 }  // namespace current_task
 
 TaskCancellationBlocker::TaskCancellationBlocker()
@@ -71,29 +74,67 @@ TaskCancellationBlocker::~TaskCancellationBlocker() {
   context_.SetCancellable(was_allowed_);
 }
 
-std::string ToString(TaskCancellationReason reason) {
-  static const std::string kNone = "Not cancelled";
-  static const std::string kUserRequest = "User request";
-  static const std::string kDeadline = "Task deadline reached";
-  static const std::string kOverload = "Task processor overload";
-  static const std::string kAbandoned = "Task destruction before finish";
-  static const std::string kShutdown = "Task processor shutdown";
+std::string_view ToString(TaskCancellationReason reason) noexcept {
   switch (reason) {
     case TaskCancellationReason::kNone:
-      return kNone;
+      return "Not cancelled";
     case TaskCancellationReason::kUserRequest:
-      return kUserRequest;
+      return "User request";
     case TaskCancellationReason::kDeadline:
-      return kDeadline;
+      return "Task deadline reached";
     case TaskCancellationReason::kOverload:
-      return kOverload;
+      return "Task processor overload";
     case TaskCancellationReason::kAbandoned:
-      return kAbandoned;
+      return "Task destructor is called before the payload finished execution";
     case TaskCancellationReason::kShutdown:
-      return kShutdown;
+      return "Task processor shutdown";
   }
-  return fmt::format("unknown({})", static_cast<int>(reason));
+
+  utils::impl::AbortWithStacktrace(fmt::format(
+      "Garbage task cancellation reason: {}", utils::UnderlyingValue(reason)));
 }
+
+TaskCancellationToken::TaskCancellationToken() noexcept = default;
+
+TaskCancellationToken::TaskCancellationToken(
+    impl::TaskContext& context) noexcept
+    : context_(&context) {}
+
+TaskCancellationToken::TaskCancellationToken(Task& task)
+    : context_(task.context_) {
+  UASSERT(context_);
+}
+
+// clang-tidy insists on defaulting this,
+// gcc complains about exception-specification mismatch with '= default'
+// NOLINTNEXTLINE(hicpp-use-equals-default,modernize-use-equals-default)
+TaskCancellationToken::TaskCancellationToken(
+    const TaskCancellationToken& other) noexcept
+    : context_{other.context_} {}
+
+TaskCancellationToken::TaskCancellationToken(TaskCancellationToken&&) noexcept =
+    default;
+
+TaskCancellationToken& TaskCancellationToken::operator=(
+    const TaskCancellationToken& other) noexcept {
+  if (&other != this) {
+    context_ = other.context_;
+  }
+
+  return *this;
+}
+
+TaskCancellationToken& TaskCancellationToken::operator=(
+    TaskCancellationToken&&) noexcept = default;
+
+TaskCancellationToken::~TaskCancellationToken() = default;
+
+void TaskCancellationToken::RequestCancel() {
+  UASSERT(context_);
+  context_->RequestCancel(TaskCancellationReason::kUserRequest);
+}
+
+bool TaskCancellationToken::IsValid() const noexcept { return !!context_; }
 
 }  // namespace engine
 

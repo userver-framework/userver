@@ -46,10 +46,9 @@ struct LruCacheConfigStatic final {
   bool use_dynamic_config;
 };
 
-std::unordered_map<std::string, LruCacheConfig> ParseLruCacheConfigSet(
-    const dynamic_config::DocsMap& docs_map);
-
-inline constexpr dynamic_config::Key<ParseLruCacheConfigSet> kLruCacheConfigSet;
+extern const dynamic_config::Key<
+    std::unordered_map<std::string, LruCacheConfig>>
+    kLruCacheConfigSet;
 
 std::optional<LruCacheConfig> GetLruConfig(
     const dynamic_config::Snapshot& config, const std::string& cache_name);

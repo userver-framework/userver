@@ -2,11 +2,13 @@
 
 #include <unordered_set>
 
-#include <userver/storages/secdist/helpers.hpp>
-#include <userver/utils/assert.hpp>
-
 #include <userver/components/component_config.hpp>
 #include <userver/formats/parse/common_containers.hpp>
+#include <userver/storages/secdist/helpers.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/trivial_map.hpp>
+
+#include <boost/range/adaptor/map.hpp>
 
 #include <fmt/format.h>
 
@@ -19,21 +21,6 @@ ConnectionSettings::ConnectionMode GetConnectionMode(
     bool use_secure_connection) {
   return use_secure_connection ? ConnectionSettings::ConnectionMode::kSecure
                                : ConnectionSettings::ConnectionMode::kNonSecure;
-}
-
-ConnectionSettings::CompressionMethod GetCompressionMethod(
-    const components::ComponentConfig& config) {
-  const auto mode_str = config["compression"].As<std::optional<std::string>>();
-  if (!mode_str.has_value() || *mode_str == "none") {
-    return ConnectionSettings::CompressionMethod::kNone;
-  }
-
-  if (*mode_str == "lz4") {
-    return ConnectionSettings::CompressionMethod::kLZ4;
-  }
-
-  UINVARIANT(false, fmt::format("Compression method '{}' is not supported",
-                                *mode_str));
 }
 
 std::vector<std::string> ParseHosts(const formats::json::Value& doc) {
@@ -50,7 +37,20 @@ std::vector<std::string> ParseHosts(const formats::json::Value& doc) {
   return hosts;
 }
 
+using CompressionMethod = ConnectionSettings::CompressionMethod;
+
 }  // namespace
+
+static CompressionMethod Parse(const yaml_config::YamlConfig& value,
+                               formats::parse::To<CompressionMethod>) {
+  static constexpr utils::TrivialBiMap kMap([](auto selector) {
+    return selector()
+        .Case(CompressionMethod::kNone, "none")
+        .Case(CompressionMethod::kLZ4, "lz4");
+  });
+
+  return utils::ParseFromValueString(value, kMap);
+}
 
 AuthSettings::AuthSettings() = default;
 
@@ -63,7 +63,8 @@ ConnectionSettings::ConnectionSettings(
     const components::ComponentConfig& config)
     : connection_mode{GetConnectionMode(
           config["use_secure_connection"].As<bool>(true))},
-      compression_method{GetCompressionMethod(config)} {}
+      compression_method{config["compression"].As<CompressionMethod>(
+          CompressionMethod::kNone)} {}
 
 PoolSettings::PoolSettings(const components::ComponentConfig& config,
                            const EndpointSettings& endpoint,
@@ -109,8 +110,9 @@ const ClickhouseSettings& ClickhouseSettingsMulti::Get(
     const std::string& dbname) const {
   const auto it = databases_.find(dbname);
   if (it == databases_.end()) {
-    throw std::runtime_error{
-        fmt::format("database '{}' is not found in secdist", dbname)};
+    throw std::runtime_error{fmt::format(
+        "database '{}' is not found in secdist. Available databases: [{}]",
+        dbname, fmt::join(databases_ | boost::adaptors::map_keys, ", "))};
   }
 
   return it->second;

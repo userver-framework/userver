@@ -226,8 +226,13 @@ enum class PredefinedOids {
   kCircleArray = 719,  // Not in documentation
   kCash = 790,
   kMacaddr = 829,
+  kMacaddrArray = 1040,
+  kMacaddr8 = 774,
+  kMacaddr8Array = 775,
   kInet = 869,
+  kInetArray = 1041,
   kCidr = 650,
+  kCidrArray = 651,
   kBooleanArray = 1000,  // Not in documentation
   kByteaArray = 1001,    // Not in documentation
   kCharArray = 1002,     // Not in documentation
@@ -266,7 +271,9 @@ enum class PredefinedOids {
   kNumericArray = 1231,   // Not in documentation
   kTimetz = 1266,
   kBit = 1560,
+  kBitArray = 1561,
   kVarbit = 1562,
+  kVarbitArray = 1563,
   kNumeric = 1700,
   kRefcursor = 1790,
   kRegprocedure = 2202,
@@ -353,6 +360,12 @@ template <>
 struct ArrayType<PredefinedOids::kOid>
     : PredefinedOid<PredefinedOids::kOidArray> {};
 template <>
+struct ArrayType<PredefinedOids::kCidr>
+    : PredefinedOid<PredefinedOids::kCidArray> {};
+template <>
+struct ArrayType<PredefinedOids::kInet>
+    : PredefinedOid<PredefinedOids::kInetArray> {};
+template <>
 struct ArrayType<PredefinedOids::kTid>
     : PredefinedOid<PredefinedOids::kTidArray> {};
 template <>
@@ -397,6 +410,14 @@ struct ArrayType<PredefinedOids::kTimestamptz>
 template <>
 struct ArrayType<PredefinedOids::kInterval>
     : PredefinedOid<PredefinedOids::kIntervalArray> {};
+
+template <>
+struct ArrayType<PredefinedOids::kBit>
+    : PredefinedOid<PredefinedOids::kBitArray> {};
+
+template <>
+struct ArrayType<PredefinedOids::kVarbit>
+    : PredefinedOid<PredefinedOids::kVarbitArray> {};
 
 template <>
 struct ArrayType<PredefinedOids::kNumeric>
@@ -462,6 +483,15 @@ struct ArrayType<PredefinedOids::kJsonb>
 template <>
 struct ArrayType<PredefinedOids::kRecord>
     : PredefinedOid<PredefinedOids::kRecordArray> {};
+
+template <>
+struct ArrayType<PredefinedOids::kMacaddr>
+    : PredefinedOid<PredefinedOids::kMacaddrArray> {};
+
+template <>
+struct ArrayType<PredefinedOids::kMacaddr8>
+    : PredefinedOid<PredefinedOids::kMacaddr8Array> {};
+
 //@}
 
 }  // namespace io

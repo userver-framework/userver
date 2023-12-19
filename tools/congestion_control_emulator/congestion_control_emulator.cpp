@@ -4,8 +4,8 @@
 
 #include <userver/congestion_control/controller.hpp>
 #include <userver/dynamic_config/storage_mock.hpp>
-#include <userver/formats/json/serialize.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/logging/logger.hpp>
 
 #include <userver/utest/using_namespace_userver.hpp>
 
@@ -54,7 +54,9 @@ Config ParseArgs(int argc, char* argv[]) {
 int main(int argc, char* argv[]) {
   Config config = ParseArgs(argc, argv);
 
-  logging::SetDefaultLoggerLevel(logging::LevelFromString(config.log_level));
+  logging::DefaultLoggerGuard guard{
+      logging::MakeStderrLogger("default", logging::Format::kTskv,
+                                logging::LevelFromString(config.log_level))};
 
   dynamic_config::StorageMock dynamic_config{
       {congestion_control::impl::kRpsCcConfig, {config.policy, true}}};

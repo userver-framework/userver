@@ -11,16 +11,16 @@ namespace io = pg::io;
 
 namespace static_test {
 
-using namespace io::traits;
+namespace tt = io::traits;
 
 struct no_output_operator {};
-static_assert(!HasOutputOperator<no_output_operator>::value,
+static_assert(!tt::HasOutputOperator<no_output_operator>::value,
               "Test output metafunction");
-static_assert(HasOutputOperator<int>::value, "Test output metafunction");
-static_assert(!kHasFormatter<no_output_operator>,
+static_assert(tt::HasOutputOperator<int>::value, "Test output metafunction");
+static_assert(!tt::kHasFormatter<no_output_operator>,
               "Test has formatter metafuction");
 
-static_assert(kHasFormatter<std::optional<int>>,
+static_assert(tt::kHasFormatter<std::optional<int>>,
               "Test has formatter metafuction");
 
 }  // namespace static_test

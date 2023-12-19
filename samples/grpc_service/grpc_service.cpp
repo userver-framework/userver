@@ -10,6 +10,7 @@
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
+#include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/daemon_run.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
@@ -38,7 +39,7 @@ class GreeterClient final : public components::LoggableComponentBase {
                 .GetFactory()),
         // The client needs a fixed endpoint
         client_(client_factory_.MakeClient<api::GreeterServiceClient>(
-            config["endpoint"].As<std::string>())) {}
+            "greeter", config["endpoint"].As<std::string>())) {}
 
   std::string SayHello(std::string name);
 
@@ -90,55 +91,42 @@ properties:
 )");
 }
 
-/// [gRPC sample - server RPC handling]
-// An implementation of GreeterService from the proto schema
-class GreeterService final : public api::GreeterServiceBase {
- public:
-  explicit GreeterService(std::string greeting_prefix)
-      : prefix_(std::move(greeting_prefix)) {}
-
-  void SayHello(SayHelloCall& call, api::GreetingRequest&& request) override {
-    // Authentication checking could have gone here. For this example, we trust
-    // the world.
-
-    api::GreetingResponse response;
-    response.set_greeting(fmt::format("{}, {}!", prefix_, request.name()));
-
-    // Complete the RPC by sending the response. The service should complete
-    // each request by calling `Finish` or `FinishWithError`, otherwise the
-    // client will receive an Internal Error (500) response.
-    call.Finish(response);
-  }
-
- private:
-  std::string prefix_;
-};
-/// [gRPC sample - server RPC handling]
-
 /// [gRPC sample - service]
 class GreeterServiceComponent final
-    : public ugrpc::server::ServiceComponentBase {
+    : public api::GreeterServiceBase::Component {
  public:
   static constexpr std::string_view kName = "greeter-service";
 
   GreeterServiceComponent(const components::ComponentConfig& config,
                           const components::ComponentContext& context)
-      : ugrpc::server::ServiceComponentBase(config, context),
-        // Configuration and dependency injection for the gRPC service
-        // implementation happens here.
-        service_(config["greeting-prefix"].As<std::string>()) {
-    // The ServiceComponentBase-derived component must provide a service
-    // interface implementation here.
-    RegisterService(service_);
-  }
+      : api::GreeterServiceBase::Component(config, context),
+        prefix_(config["greeting-prefix"].As<std::string>()) {}
+
+  void SayHello(SayHelloCall& call, api::GreetingRequest&& request) override;
 
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
-  GreeterService service_;
+  const std::string prefix_;
 };
-
 /// [gRPC sample - service]
+
+/// [gRPC sample - server RPC handling]
+void GreeterServiceComponent::SayHello(
+    api::GreeterServiceBase::SayHelloCall& call,
+    api::GreetingRequest&& request) {
+  // Authentication checking could have gone here. For this example, we trust
+  // the world.
+
+  api::GreetingResponse response;
+  response.set_greeting(fmt::format("{}, {}!", prefix_, request.name()));
+
+  // Complete the RPC by sending the response. The service should complete
+  // each request by calling `Finish` or `FinishWithError`, otherwise the
+  // client will receive an Internal Error (500) response.
+  call.Finish(response);
+}
+/// [gRPC sample - server RPC handling]
 
 yaml_config::Schema GreeterServiceComponent::GetStaticConfigSchema() {
   return yaml_config::MergeSchemas<ugrpc::server::ServiceComponentBase>(R"(
@@ -180,6 +168,7 @@ int main(int argc, char* argv[]) {
   const auto component_list =
       /// [gRPC sample - ugrpc registration]
       components::MinimalServerComponentList()
+          .Append<components::TestsuiteSupport>()
           .Append<ugrpc::client::ClientFactoryComponent>()
           .Append<ugrpc::server::ServerComponent>()
           /// [gRPC sample - ugrpc registration]

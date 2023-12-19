@@ -88,6 +88,14 @@ ResultSet Portal::Fetch(std::uint32_t n_rows) { return pimpl_->Fetch(n_rows); }
 bool Portal::Done() const { return pimpl_->done_; }
 std::size_t Portal::FetchedSoFar() const { return pimpl_->fetched_so_far_; }
 
+bool Portal::IsSupportedByDriver() noexcept {
+#ifndef USERVER_NO_LIBPQ_PATCHES
+  return true;
+#else
+  return false;
+#endif
+}
+
 }  // namespace storages::postgres
 
 USERVER_NAMESPACE_END

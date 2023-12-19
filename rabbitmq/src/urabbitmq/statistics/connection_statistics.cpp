@@ -10,7 +10,9 @@ void ConnectionStatistics::AccountConnectionCreated() {
   ++connections_created_;
 }
 
-void ConnectionStatistics::AccountConnectionClosed() { ++connections_closed_; }
+void ConnectionStatistics::AccountConnectionClosed() noexcept {
+  ++connections_closed_;
+}
 
 void ConnectionStatistics::AccountWrite(size_t bytes_written) {
   bytes_sent_ += bytes_written;
@@ -48,17 +50,14 @@ ConnectionStatistics::Frozen& ConnectionStatistics::Frozen::operator+=(
   return *this;
 }
 
-formats::json::Value Serialize(const ConnectionStatistics::Frozen& value,
-                               formats::serialize::To<formats::json::Value>) {
-  formats::json::ValueBuilder builder{formats::json::Type::kObject};
-  builder["connections_created"] = value.connections_created;
-  builder["connections_closed"] = value.connections_closed;
-  builder["bytes_sent"] = value.bytes_sent;
-  builder["bytes_read"] = value.bytes_read;
-  builder["messages_published"] = value.messages_published;
-  builder["messages_consumed"] = value.messages_consumed;
-
-  return builder.ExtractValue();
+void DumpMetric(utils::statistics::Writer& writer,
+                const ConnectionStatistics::Frozen& value) {
+  writer["connections_created"] = value.connections_created;
+  writer["connections_closed"] = value.connections_closed;
+  writer["bytes_sent"] = value.bytes_sent;
+  writer["bytes_read"] = value.bytes_read;
+  writer["messages_published"] = value.messages_published;
+  writer["messages_consumed"] = value.messages_consumed;
 }
 
 }  // namespace urabbitmq::statistics

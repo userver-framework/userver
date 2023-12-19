@@ -14,7 +14,7 @@ namespace testsuite::impl::actions {
 
 class LogCapture final : public BaseTestsuiteAction {
  public:
-  LogCapture(const components::ComponentContext& component_context);
+  explicit LogCapture(const components::ComponentContext& component_context);
 
   formats::json::Value Perform(
       const formats::json::Value& request_body) const override;

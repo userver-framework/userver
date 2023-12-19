@@ -37,7 +37,7 @@ cache::LruCacheComponent::GetCache(). Use the returned cache::LruCacheWrapper.
 
 cache::LruCacheComponent should be your choice by default for implementing
 all the LRU caches. However, in some cases there is a need to avoid using the
-@ref md_en_userver_component_system "component system", or to avoid
+@ref scripts/docs/en/userver/component_system.md "component system", or to avoid
 synchronization, or to control the expiration logic more precisely.
 
 Here's a brief introduction into LRU types:

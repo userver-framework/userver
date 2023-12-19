@@ -12,7 +12,28 @@ components_manager:
             blocking_task_processor: fs-task-processor
             dns_resolver: async
 
-        testsuite-support:
+        dynamic-config:                      # Dynamic config storage options
+            defaults:
+                POSTGRES_CONNECTION_POOL_SETTINGS:
+                    key-value-database:
+                        max_pool_size: 15
+                        max_queue_size: 200
+                        min_pool_size: 8
+                POSTGRES_HANDLERS_COMMAND_CONTROL:
+                    /v1/key-value:
+                        DELETE:
+                            network_timeout_ms: 500
+                            statement_timeout_ms: 250
+                POSTGRES_QUERIES_COMMAND_CONTROL:
+                    sample_select_value:
+                        network_timeout_ms: 70
+                        statement_timeout_ms: 40
+                    sample_transaction_insert_key_value:
+                        network_timeout_ms: 200
+                        statement_timeout_ms: 150
+                POSTGRES_STATEMENT_METRICS_SETTINGS:
+                    key-value-database:
+                        max_statement_metrics: 5
 
         server:
             # ...
@@ -27,28 +48,17 @@ components_manager:
                     file_path: '@stderr'
                     level: debug
                     overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
-
-        tracer:                             # Component that helps to trace execution times and requests in logs.
-            service-name: postgres-service  # "You know. You all know exactly who I am. Say my name. " (c)
-
-        dynamic-config:                      # Dynamic config storage options, do nothing
-            fs-cache-path: ''
-        dynamic-config-fallbacks:            # Load options from file and push them into the dynamic config storage.
-            fallback-path: /etc/postgres_service/dynamic_config_fallback.json
         dns-client:
             fs-task-processor: fs-task-processor
-    coro_pool:
-        initial_size: 500             # Preallocate 500 coroutines at startup.
-        max_size: 1000                # Do not keep more than 1000 preallocated coroutines.
+
+        testsuite-support:
 
     task_processors:                  # Task processor is an executor for coroutine tasks
 
         main-task-processor:          # Make a task processor for CPU-bound coroutine tasks.
             worker_threads: 4         # Process tasks in 4 threads.
-            thread_name: main-worker  # OS will show the threads of this task processor with 'main-worker' prefix.
 
         fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
-            thread_name: fs-worker
             worker_threads: 4
 
-    default_task_processor: main-task-processor
+    default_task_processor: main-task-processor  # Task processor in which components start.

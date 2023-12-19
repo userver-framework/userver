@@ -12,12 +12,13 @@ namespace utils {
 /// Parses command line arguments and calls components::Run with config file
 /// from --config parameter.
 ///
-/// Other command line argumants:
-/// * --init-log FILENAME - path to the initial log file, stdout if not set
-/// * --help - show all command line argumants
+/// Other command line arguments:
+/// * --help - show all command line arguments
 /// * --config CONFIG - path to config.yaml
 /// * --config_vars CONFIG_VARS - path to config_vars.yaml
 /// * --config_vars_override CONFIG_VARS - path to config_vars.override.yaml
+/// * --print-config-schema - print config.yaml YAML Schema
+/// * --print-dynamic-config-defaults - print JSON with dynamic config defaults
 int DaemonMain(int argc, const char* const argv[],
                const components::ComponentList& components_list);
 

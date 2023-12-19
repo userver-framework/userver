@@ -32,11 +32,12 @@ class CollectionImpl {
   virtual WriteResult Execute(const operations::FindAndRemove&) = 0;
   virtual WriteResult Execute(operations::Bulk&&) = 0;
   virtual Cursor Execute(const operations::Aggregate&) = 0;
+  virtual void Execute(const operations::Drop&) = 0;
 
  protected:
   CollectionImpl(std::string&& database_name, std::string&& collection_name);
 
-  tracing::Span MakeSpan(const std::string& name) const;
+  tracing::Span MakeSpan(std::string&& name) const;
 
  private:
   const std::string database_name_;

@@ -83,6 +83,7 @@ using HasCorrectFindOperation = meta::ExpectSame<
         std::declval<const std::chrono::system_clock::time_point&>(),
         std::declval<const std::chrono::system_clock::time_point&>(),
         std::declval<const std::chrono::system_clock::duration&>()))>;
+
 template <typename T>
 inline constexpr bool kHasCorrectFindOperation =
     meta::kIsDetected<HasCorrectFindOperation, T>;
@@ -114,17 +115,19 @@ struct CheckTraits {
   CheckTraits() {
     if constexpr (kHasDefaultDeserializeObject<MongoCacheTraits>) {
       static_assert(
-          std::is_same_v<std::decay_t<decltype(
-                             MongoCacheTraits::kUseDefaultDeserializeObject)>,
-                         bool>,
+          std::is_same_v<
+              std::decay_t<
+                  decltype(MongoCacheTraits::kUseDefaultDeserializeObject)>,
+              bool>,
           "Mongo cache traits must specify kUseDefaultDeserializeObject as "
           "bool");
     }
     if constexpr (kHasDefaultFindOperation<MongoCacheTraits>) {
       static_assert(
-          std::is_same_v<std::decay_t<decltype(
-                             MongoCacheTraits::kUseDefaultFindOperation)>,
-                         bool>,
+          std::is_same_v<
+              std::decay_t<
+                  decltype(MongoCacheTraits::kUseDefaultFindOperation)>,
+              bool>,
           "Mongo cache traits must specify kUseDefaultFindOperation as bool");
     }
   }

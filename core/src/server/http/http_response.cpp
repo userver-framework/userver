@@ -7,7 +7,6 @@
 
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/io/socket.hpp>
-#include <userver/engine/sleep.hpp>
 #include <userver/hostinfo/blocking/get_hostname.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/http/content_type.hpp>
@@ -15,7 +14,10 @@
 #include <userver/tracing/set_throttle_reason.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/userver_info.hpp>
+#include <userver/utils/datetime/wall_coarse_clock.hpp>
+#include <userver/utils/small_string.hpp>
+
+#include <server/http/http_cached_date.hpp>
 
 #include "http_request_impl.hpp"
 
@@ -26,8 +28,13 @@ namespace {
 constexpr std::string_view kCrlf = "\r\n";
 constexpr std::string_view kKeyValueHeaderSeparator = ": ";
 
-const auto kDefaultContentTypeString =
-    http::ContentType{"text/html; charset=utf-8"}.ToString();
+// RFC 9110 states that in case of missing Content-Type it may be assumed to be
+// application/octet-stream.
+//
+// text/plain was our first guess, but we should provide an encoding with that
+// type, which we do not know for sure. "application/octet-stream" has no
+// charset https://www.iana.org/assignments/media-types/application/octet-stream
+constexpr std::string_view kDefaultContentType = "application/octet-stream";
 
 constexpr std::string_view kClose = "close";
 constexpr std::string_view kKeepAlive = "keep-alive";
@@ -71,18 +78,34 @@ bool IsBodyForbiddenForStatus(server::http::HttpStatus status) {
          (static_cast<int>(status) >= 100 && static_cast<int>(status) < 200);
 }
 
+void AppendToCharArray(char*& data, const std::string_view what) {
+  std::memcpy(data, what.begin(), what.size());
+  data += what.size();
+}
+
+const std::string kEmptyString{};
+
 }  // namespace
 
 namespace server::http {
 
 namespace impl {
 
-void OutputHeader(std::string& header, std::string_view key,
-                  std::string_view val) {
-  header.append(key);
-  header.append(kKeyValueHeaderSeparator);
-  header.append(val);
-  header.append(kCrlf);
+void OutputHeader(USERVER_NAMESPACE::http::headers::HeadersString& header,
+                  std::string_view key, std::string_view val) {
+  const auto old_size = header.size();
+
+  header.resize_and_overwrite(
+      old_size + key.size() + kKeyValueHeaderSeparator.size() + val.size() +
+          kCrlf.size(),
+      [&](char* data, std::size_t size) {
+        data += old_size;
+        AppendToCharArray(data, key);
+        AppendToCharArray(data, kKeyValueHeaderSeparator);
+        AppendToCharArray(data, val);
+        AppendToCharArray(data, kCrlf);
+        return size;
+      });
 }
 
 }  // namespace impl
@@ -101,15 +124,37 @@ void HttpResponse::SetSendFailed(
   request::ResponseBase::SetSendFailed(failure_time);
 }
 
-void HttpResponse::SetHeader(std::string name, std::string value) {
+bool HttpResponse::SetHeader(std::string name, std::string value) {
+  if (headers_end_.IsReady()) {
+    // Attempt to set headers for Stream'ed response after it is already set
+    return false;
+  }
+
   CheckHeaderName(name);
   CheckHeaderValue(value);
-  const auto header_it = headers_.find(name);
-  if (header_it == headers_.end()) {
-    headers_.emplace(std::move(name), std::move(value));
-  } else {
-    header_it->second = std::move(value);
+
+  headers_.insert_or_assign(std::move(name), std::move(value));
+
+  return true;
+}
+
+bool HttpResponse::SetHeader(std::string_view name, std::string value) {
+  return SetHeader(std::string{name}, std::move(value));
+}
+
+bool HttpResponse::SetHeader(
+    const USERVER_NAMESPACE::http::headers::PredefinedHeader& header,
+    std::string value) {
+  if (headers_end_.IsReady()) {
+    // Attempt to set headers for Stream'ed response after it is already set
+    return false;
   }
+
+  CheckHeaderValue(value);
+
+  headers_.insert_or_assign(header, std::move(value));
+
+  return true;
 }
 
 void HttpResponse::SetContentType(
@@ -122,9 +167,25 @@ void HttpResponse::SetContentEncoding(std::string encoding) {
             std::move(encoding));
 }
 
-void HttpResponse::SetStatus(HttpStatus status) { status_ = status; }
+bool HttpResponse::SetStatus(HttpStatus status) {
+  if (headers_end_.IsReady()) {
+    // Attempt to set headers for Stream'ed response after it is already set
+    return false;
+  }
 
-void HttpResponse::ClearHeaders() { headers_.clear(); }
+  status_ = status;
+  return true;
+}
+
+bool HttpResponse::ClearHeaders() {
+  if (headers_end_.IsReady()) {
+    // Attempt to set headers for Stream'ed response after it is already set
+    return false;
+  }
+
+  headers_.clear();
+  return true;
+}
 
 void HttpResponse::SetCookie(Cookie cookie) {
   CheckHeaderValue(cookie.Name());
@@ -145,12 +206,27 @@ HttpResponse::HeadersMapKeys HttpResponse::GetHeaderNames() const {
   return HttpResponse::HeadersMapKeys{headers_};
 }
 
-const std::string& HttpResponse::GetHeader(
-    const std::string& header_name) const {
-  return headers_.at(header_name);
+const std::string& HttpResponse::GetHeader(std::string_view header_name) const {
+  auto it = headers_.find(header_name);
+  if (it == headers_.end()) return kEmptyString;
+  return it->second;
 }
 
-bool HttpResponse::HasHeader(const std::string& header_name) const {
+const std::string& HttpResponse::GetHeader(
+    const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name)
+    const {
+  auto it = headers_.find(header_name);
+  if (it == headers_.end()) return kEmptyString;
+  return it->second;
+}
+
+bool HttpResponse::HasHeader(std::string_view header_name) const {
+  return headers_.find(header_name) != headers_.end();
+}
+
+bool HttpResponse::HasHeader(
+    const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name)
+    const {
   return headers_.find(header_name) != headers_.end();
 }
 
@@ -159,68 +235,84 @@ HttpResponse::CookiesMapKeys HttpResponse::GetCookieNames() const {
 }
 
 const Cookie& HttpResponse::GetCookie(std::string_view cookie_name) const {
-  return cookies_.at(cookie_name);
+  return cookies_.at(cookie_name.data());
 }
 
 void HttpResponse::SetHeadersEnd() { headers_end_.Send(); }
 
 bool HttpResponse::WaitForHeadersEnd() { return headers_end_.WaitForEvent(); }
 
-void HttpResponse::SendResponse(engine::io::Socket& socket) {
-  // According to https://www.chromium.org/spdy/spdy-whitepaper/
-  // "typical header sizes of 700-800 bytes is common"
-  // Adjusting it to 1KiB to fit jemalloc size class
-  static constexpr auto kTypicalHeadersSize = 1024;
+void HttpResponse::SendResponse(engine::io::RwBase& socket) {
+  utils::SmallString<USERVER_NAMESPACE::http::headers::kTypicalHeadersSize>
+      header;
 
-  std::string header;
-  header.reserve(kTypicalHeadersSize);
-
-  header.append("HTTP/");
-  fmt::format_to(std::back_inserter(header), FMT_COMPILE("{}.{} {} "),
-                 request_.GetHttpMajor(), request_.GetHttpMinor(),
-                 static_cast<int>(status_));
-  header.append(HttpStatusString(status_));
-  header.append(kCrlf);
+  header.resize_and_overwrite(
+      USERVER_NAMESPACE::http::headers::kTypicalHeadersSize,
+      [&](char* data, std::size_t) {
+        char* old_data_pointer = data;
+        AppendToCharArray(data, "HTTP/");
+        data = fmt::format_to(data, FMT_COMPILE("{}.{} {} "),
+                              request_.GetHttpMajor(), request_.GetHttpMinor(),
+                              static_cast<int>(status_));
+        AppendToCharArray(data, HttpStatusString(status_));
+        AppendToCharArray(data, kCrlf);
+        return data - old_data_pointer;
+      });
 
   headers_.erase(USERVER_NAMESPACE::http::headers::kContentLength);
-  const auto end = headers_.cend();
+  const auto end = headers_.end();
   if (headers_.find(USERVER_NAMESPACE::http::headers::kDate) == end) {
-    static const std::string kFormatString = "%a, %d %b %Y %H:%M:%S %Z";
-    static const auto tz = cctz::utc_time_zone();
-    const auto& time_str =
-        cctz::format(kFormatString, std::chrono::system_clock::now(), tz);
-
     impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kDate,
-                       time_str);
+                       // impl::GetCachedDate() must not cross thread boundaries
+                       impl::GetCachedDate());
   }
   if (headers_.find(USERVER_NAMESPACE::http::headers::kContentType) == end) {
     impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kContentType,
-                       kDefaultContentTypeString);
+                       kDefaultContentType);
   }
-  for (const auto& item : headers_) {
-    impl::OutputHeader(header, item.first, item.second);
-  }
+  headers_.OutputInHttpFormat(header);
   if (headers_.find(USERVER_NAMESPACE::http::headers::kConnection) == end) {
     impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kConnection,
                        (request_.IsFinal() ? kClose : kKeepAlive));
   }
   for (const auto& cookie : cookies_) {
-    header.append(USERVER_NAMESPACE::http::headers::kSetCookie);
-    header.append(kKeyValueHeaderSeparator);
+    const std::size_t old_size = header.size();
+
+    header.resize_and_overwrite(
+        old_size +
+            static_cast<std::string_view>(
+                USERVER_NAMESPACE::http::headers::kSetCookie)
+                .size() +
+            kKeyValueHeaderSeparator.size(),
+        [&](char* data, std::size_t size) {
+          data += old_size;
+          AppendToCharArray(data, USERVER_NAMESPACE::http::headers::kSetCookie);
+          AppendToCharArray(data, kKeyValueHeaderSeparator);
+          return size;
+        });
+
     cookie.second.AppendToString(header);
+
     header.append(kCrlf);
   }
 
-  if (IsBodyStreamed())
-    SetBodyStreamed(socket, header);
-  else
-    SetBodyNotstreamed(socket, header);
+  std::size_t sent_bytes{};
+
+  if (IsBodyStreamed() && GetData().empty()) {
+    sent_bytes = SetBodyStreamed(socket, header);
+  } else {
+    // e.g. a CustomHandlerException
+    sent_bytes = SetBodyNotStreamed(socket, header);
+  }
+
+  SetSent(sent_bytes, std::chrono::steady_clock::now());
 }
 
-void HttpResponse::SetBodyNotstreamed(engine::io::Socket& socket,
-                                      std::string& header) {
+std::size_t HttpResponse::SetBodyNotStreamed(
+    engine::io::RwBase& socket,
+    USERVER_NAMESPACE::http::headers::HeadersString& header) {
   const bool is_body_forbidden = IsBodyForbiddenForStatus(status_);
-  const bool is_head_request = request_.GetOrigMethod() == HttpMethod::kHead;
+  const bool is_head_request = request_.GetMethod() == HttpMethod::kHead;
   const auto& data = GetData();
 
   if (!is_body_forbidden) {
@@ -238,31 +330,30 @@ void HttpResponse::SetBodyNotstreamed(engine::io::Socket& socket,
 
   ssize_t sent_bytes = 0;
   if (!is_head_request && !is_body_forbidden) {
-    sent_bytes = socket.SendAll(
+    sent_bytes = socket.WriteAll(
         {{header.data(), header.size()}, {data.data(), data.size()}},
         engine::Deadline{});
   } else {
     sent_bytes =
-        socket.SendAll(header.data(), header.size(), engine::Deadline{});
+        socket.WriteAll(header.data(), header.size(), engine::Deadline{});
   }
 
-  SetSentTime(std::chrono::steady_clock::now());
-  SetSent(sent_bytes);
+  return sent_bytes;
 }
 
-void HttpResponse::SetBodyStreamed(engine::io::Socket& socket,
-                                   std::string& header) {
+std::size_t HttpResponse::SetBodyStreamed(
+    engine::io::RwBase& socket,
+    USERVER_NAMESPACE::http::headers::HeadersString& header) {
   impl::OutputHeader(
       header, USERVER_NAMESPACE::http::headers::kTransferEncoding, "chunked");
 
   // send HTTP headers
-  size_t sent_bytes = socket.SendAll(header.data(), header.size(), {});
-
-  std::string().swap(header);  // free memory before time consuming operation
+  size_t sent_bytes = socket.WriteAll(header.data(), header.size(), {});
+  header.clear();
+  header.shrink_to_fit();  // free memory before time-consuming operation
 
   // Transmit HTTP response body
   std::string body_part;
-
   while (body_stream_->Pop(body_part)) {
     if (body_part.empty()) {
       LOG_DEBUG() << "Zero size body_part in http_response.cpp";
@@ -270,21 +361,20 @@ void HttpResponse::SetBodyStreamed(engine::io::Socket& socket,
     }
 
     auto size = fmt::format("\r\n{:x}\r\n", body_part.size());
-    sent_bytes += socket.SendAll(
+    sent_bytes += socket.WriteAll(
         {{size.data(), size.size()}, {body_part.data(), body_part.size()}},
         engine::Deadline{});
   }
 
   const constexpr std::string_view terminating_chunk{"\r\n0\r\n\r\n"};
   sent_bytes +=
-      socket.SendAll(terminating_chunk.data(), terminating_chunk.size(), {});
+      socket.WriteAll(terminating_chunk.data(), terminating_chunk.size(), {});
 
   // TODO: exceptions?
   body_stream_producer_.reset();
   body_stream_.reset();
 
-  SetSentTime(std::chrono::steady_clock::now());
-  SetSent(sent_bytes);
+  return sent_bytes;
 }
 
 void SetThrottleReason(http::HttpResponse& http_response,

@@ -27,11 +27,21 @@ namespace storages::mongo::impl::cdriver {
 
 CDriverCursorImpl::CDriverCursorImpl(
     cdriver::CDriverPoolImpl::BoundClientPtr client, cdriver::CursorPtr cursor,
-    std::shared_ptr<stats::ReadOperationStatistics> stats_ptr)
+    std::shared_ptr<stats::OperationStatisticsItem> find_stats)
     : client_(std::move(client)),
       cursor_(std::move(cursor)),
-      stats_ptr_(std::move(stats_ptr)) {
-  Next();  // prime the cursor
+      find_stats_(std::move(find_stats)) {
+  if (cursor_) {
+    // Precondition: we've got a valid cursor (it could be errored-out right
+    // away due to stream selection error, for example).
+    MongoError error;
+    if (mongoc_cursor_error(cursor_.get(), error.GetNative())) {
+      error.Throw("Error iterating over query results");
+    }
+  }
+
+  // Prime the cursor
+  Next();
 }
 
 bool CDriverCursorImpl::IsValid() const { return cursor_ || current_; }
@@ -56,10 +66,7 @@ void CDriverCursorImpl::Next() {
 
   UASSERT(client_ && cursor_);
   const auto batch_num_before = mongoc_cursor_get_batch_num(cursor_.get());
-  stats::OperationStopwatch<stats::ReadOperationStatistics> cursor_next_sw(
-      stats_ptr_, batch_num_before == -1
-                      ? stats::ReadOperationStatistics::kFind
-                      : stats::ReadOperationStatistics::kGetMore);
+  stats::OperationStopwatch cursor_next_sw(find_stats_, "find");
 
   const bson_t* current_bson = nullptr;
   MongoError error;

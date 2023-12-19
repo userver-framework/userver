@@ -27,6 +27,8 @@
 #include <userver/engine/task/local_variable.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/tracing/span.hpp>
+#include <userver/tracing/tags.hpp>
 #include <userver/utils/assert.hpp>
 
 #include <storages/mongo/cdriver/async_stream_poller.hpp>
@@ -72,13 +74,10 @@ class AsyncStream : public mongoc_stream_t {
 
   static cdriver::StreamPtr Create(engine::io::Socket);
 
+  void SetCreated() { is_created_ = true; }
+
  private:
   AsyncStream(engine::io::Socket) noexcept;
-
-  // mongoc_stream_buffered does not provide write buffering
-  // NOTE: returns number of bytes sent, not buffered!
-  size_t BufferedSend(const void* data, size_t size, engine::Deadline deadline);
-  size_t FlushSendBuffer(engine::Deadline);
 
   // mongoc_stream_buffered resizes itself indiscriminately
   // NOTE: returns number of bytes stored to data, not buffered!
@@ -106,20 +105,16 @@ class AsyncStream : public mongoc_stream_t {
   AsyncStreamPoller::WatcherPtr read_watcher_;
   AsyncStreamPoller::WatcherPtr write_watcher_;
   bool is_timed_out_{false};
+  bool is_created_{false};
 
-  size_t send_buffer_bytes_used_{0};
   size_t recv_buffer_bytes_used_{0};
   size_t recv_buffer_pos_{0};
 
   // buffer sizes are adjusted for better heap utilization and aligned for copy
   static constexpr size_t kAlignment = 256;
   static_assert(kBufferSize % kAlignment == 0);
-  alignas(kAlignment) std::array<char, kBufferSize - kAlignment> send_buffer_;
   alignas(kAlignment) std::array<char, kBufferSize - kAlignment> recv_buffer_;
 };
-static_assert(sizeof(AsyncStream) <= 2 * kBufferSize &&
-                  sizeof(AsyncStream) >= (kBufferSize + 3 * kBufferSize / 4),
-              "AsyncStream has suboptimal size");
 
 engine::Deadline DeadlineFromTimeoutMs(int32_t timeout_ms) {
   if (timeout_ms < 0) return {};
@@ -322,6 +317,8 @@ mongoc_stream_t* MakeAsyncStream(const mongoc_uri_t* uri,
   if (!socket) return nullptr;
 
   auto stream = AsyncStream::Create(std::move(socket));
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+  auto* const async_stream_ptr = static_cast<AsyncStream*>(stream.get());
 
   // from mongoc_client_default_stream_initiator
   // enable TLS if needed
@@ -348,6 +345,10 @@ mongoc_stream_t* MakeAsyncStream(const mongoc_uri_t* uri,
 
   // enable read buffering
   UASSERT(stream);
+  UASSERT(stream.get() == async_stream_ptr ||
+          (mongoc_stream_get_tls_stream(stream.get()) == stream.get() &&
+           mongoc_stream_get_base_stream(stream.get()) == async_stream_ptr));
+  async_stream_ptr->SetCreated();
   return stream.release();
 }
 
@@ -367,51 +368,6 @@ AsyncStream::AsyncStream(engine::io::Socket socket) noexcept
   failed = &Failed;
   timed_out = &TimedOut;
   should_retry = &ShouldRetry;
-}
-
-size_t AsyncStream::BufferedSend(const void* data, size_t size,
-                                 engine::Deadline deadline) {
-  size_t bytes_sent = 0;
-
-  size_t bytes_left = size;
-  const char* pos = static_cast<const char*>(data);
-  try {
-    while (bytes_left) {
-      size_t batch_size = 0;
-      if (!send_buffer_bytes_used_ && bytes_left >= send_buffer_.size()) {
-        // no pending data and will overflow the buffer, stream directly
-        batch_size = bytes_left - bytes_left % send_buffer_.size();
-        bytes_sent += socket_.SendAll(pos, batch_size, deadline);
-      } else {
-        // data pending or can be buffered
-        UASSERT(send_buffer_bytes_used_ <= send_buffer_.size());
-        batch_size = std::min<size_t>(
-            bytes_left, send_buffer_.size() - send_buffer_bytes_used_);
-
-        std::memcpy(send_buffer_.data() + send_buffer_bytes_used_, pos,
-                    batch_size);
-        send_buffer_bytes_used_ += batch_size;
-      }
-      UASSERT(batch_size);
-      bytes_left -= batch_size;
-      pos += batch_size;
-
-      UASSERT(send_buffer_bytes_used_ <= send_buffer_.size());
-      if (send_buffer_bytes_used_ == send_buffer_.size()) {
-        bytes_sent += FlushSendBuffer(deadline);
-      }
-    }
-  } catch (const engine::io::IoTimeout& timeout_ex) {
-    // adjust the counter
-    throw engine::io::IoTimeout{bytes_sent + timeout_ex.BytesTransferred()};
-  }
-  return bytes_sent;
-}
-
-size_t AsyncStream::FlushSendBuffer(engine::Deadline deadline) {
-  const size_t bytes_to_send = std::exchange(send_buffer_bytes_used_, 0);
-  if (!bytes_to_send) return 0;
-  return socket_.SendAll(send_buffer_.data(), bytes_to_send, deadline);
 }
 
 size_t AsyncStream::BufferedRecv(void* data, size_t size, size_t min_bytes,
@@ -516,12 +472,8 @@ ssize_t AsyncStream::Writev(mongoc_stream_t* stream, mongoc_iovec_t* iov,
 
   ssize_t bytes_sent = 0;
   try {
-    engine::TaskCancellationBlocker block_cancel;
-    for (size_t i = 0; i < iovcnt; ++i) {
-      bytes_sent +=
-          self->BufferedSend(iov[i].iov_base, iov[i].iov_len, deadline);
-    }
-    bytes_sent += self->FlushSendBuffer(deadline);
+    const engine::TaskCancellationBlocker block_cancel{};
+    bytes_sent = self->socket_.SendAll(iov, iovcnt, deadline);
   } catch (const engine::io::IoCancelled&) {
     UASSERT_MSG(false,
                 "Cancellation is not supported in cdriver implementation");
@@ -541,6 +493,19 @@ ssize_t AsyncStream::Writev(mongoc_stream_t* stream, mongoc_iovec_t* iov,
     error = EINVAL;
     bytes_sent = -1;
   }
+
+  if (self->is_created_) {
+    tracing::Span* span = tracing::Span::CurrentSpanUnchecked();
+    if (span) {
+      try {
+        span->AddTag(tracing::kPeerAddress,
+                     self->socket_.Getpeername().PrimaryAddressString());
+      } catch (const std::exception&) {
+        // Getpeername() may throw
+      }
+    }
+  }
+
   // libmongoc expects restored errno
   errno = error;
   return bytes_sent;
@@ -561,7 +526,7 @@ ssize_t AsyncStream::Readv(mongoc_stream_t* stream, mongoc_iovec_t* iov,
   try {
     engine::TaskCancellationBlocker block_cancel;
     size_t curr_iov = 0;
-    while (curr_iov < iovcnt && (min_bytes < recvd_total || !recvd_total)) {
+    while (curr_iov < iovcnt && (min_bytes > recvd_total || !recvd_total)) {
       const auto recvd_now =
           self->BufferedRecv(iov[curr_iov].iov_base, iov[curr_iov].iov_len,
                              min_bytes - recvd_total, deadline);
@@ -620,14 +585,14 @@ bool AsyncStream::CheckClosed(mongoc_stream_t* base_stream) noexcept {
 ssize_t AsyncStream::Poll(mongoc_stream_poll_t* streams, size_t nstreams,
                           int32_t timeout_ms) noexcept {
   LOG_TRACE() << "Polling " << nstreams << " async streams";
-
   if (!nstreams) return 0;
 
-  if (engine::current_task::ShouldCancel()) {
-    // mark all streams as errored out, mongoc tend to ignore poll errors
-    for (size_t i = 0; i < nstreams; ++i) streams[i].revents = POLLERR;
-    return nstreams;
-  }
+  // We used to have a "mark all streams as errored out (by POLLERR)" logic in
+  // case of cancellation, but apparently that leads to the connection being
+  // returned into the pool in an unusable state, and any request issued on the
+  // connection would just fail until topology rescan timeout passes.
+  // We think blocking cancellation off completely is a lesser evil.
+  const engine::TaskCancellationBlocker block_cancel{};
 
   const auto deadline = DeadlineFromTimeoutMs(timeout_ms);
 

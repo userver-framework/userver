@@ -1,5 +1,6 @@
 #include <userver/utest/utest.hpp>
 
+#include <set>
 #include <string>
 #include <vector>
 
@@ -61,6 +62,43 @@ TEST(EscapeScalar, Basic) {
 
 TEST(EscapeVectorString, Basic) {
   const std::vector<std::string> source = {"a", "b", "c"};
+  const std::string expected = R"(['a','b','c'])";
+  const auto escaped = io::impl::Escape(source);
+
+  EXPECT_EQ(escaped, expected);
+}
+
+TEST(EscapeSetString, Basic) {
+  const std::set<std::string> source = {"a", "b"};
+  const std::string expected = R"(['a','b'])";
+  const auto escaped = io::impl::Escape(source);
+
+  EXPECT_EQ(escaped, expected);
+}
+
+template <typename T>
+class MyRange final {
+ public:
+  MyRange(std::initializer_list<T> data) : data_{data} {}
+
+  auto begin() const { return data_.begin(); }
+
+  auto end() const { return data_.end(); }
+
+ private:
+  std::vector<T> data_;
+};
+
+TEST(EscapeRangeInt, Basic) {
+  const MyRange<int> source{1, 2, 3};
+  const std::string expected = R"([1,2,3])";
+  const auto escaped = io::impl::Escape(source);
+
+  EXPECT_EQ(escaped, expected);
+}
+
+TEST(EscapeRangeString, Basic) {
+  const MyRange<std::string_view> source{"a", "b", "c"};
   const std::string expected = R"(['a','b','c'])";
   const auto escaped = io::impl::Escape(source);
 

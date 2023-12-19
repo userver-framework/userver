@@ -2,6 +2,7 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <userver/concurrent/background_task_storage.hpp>
 #include <userver/engine/task/task.hpp>
 
 #include <storages/postgres/default_command_controls.hpp>
@@ -14,7 +15,6 @@ namespace pg = storages::postgres;
 
 namespace {
 constexpr const char* kPostgresDsn = "POSTGRES_TEST_DSN";
-constexpr const char* kPostgresLog = "POSTGRES_TEST_LOG";
 }  // namespace
 
 pg::DefaultCommandControls GetTestCmdCtls() {
@@ -41,9 +41,10 @@ void PrintBuffer(std::ostream& os, const std::uint8_t* buffer,
   os << "Buffer size " << size << '\n';
   std::size_t b_no{0};
   std::ostringstream printable;
-  for (auto c = buffer; c != buffer + size; ++c) {
+  for (const std::uint8_t* c = buffer; c != buffer + size; ++c) {
     unsigned char byte = *c;
-    os << std::hex << std::setw(2) << std::setfill('0') << (int)byte;
+    os << std::hex << std::setw(2) << std::setfill('0')
+       << static_cast<int>(byte);
     printable << (std::isprint(*c) ? *c : '.');
     ++b_no;
     if (b_no % 16 == 0) {
@@ -66,28 +67,20 @@ void PrintBuffer(std::ostream& os, const std::string& buffer) {
               buffer.size());
 }
 
-PostgreSQLBase::PostgreSQLBase() {
-  if (std::getenv(kPostgresLog)) {
-    old_ = logging::SetDefaultLogger(logging::MakeStderrLogger(
-        "cerr", logging::Format::kTskv, logging::Level::kDebug));
-  }
-}
+PostgreSQLBase::PostgreSQLBase() = default;
 
-PostgreSQLBase::~PostgreSQLBase() {
-  if (old_) {
-    logging::SetDefaultLogger(std::move(old_));
-  }
-}
+PostgreSQLBase::~PostgreSQLBase() = default;
 
 pg::Dsn PostgreSQLBase::GetDsnFromEnv() {
   auto dsn_list = GetDsnListFromEnv();
-  return dsn_list.empty() ? pg::Dsn{"postgresql://"} : std::move(dsn_list[0]);
+  return std::move(dsn_list[0]);
 }
 
 pg::DsnList PostgreSQLBase::GetDsnListFromEnv() {
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
   auto* conn_list_env = std::getenv(kPostgresDsn);
   if (!conn_list_env) {
-    return {};
+    return {pg::Dsn{"postgresql://"}};
   }
 
   std::vector<std::string> conn_list;
@@ -102,27 +95,41 @@ pg::DsnList PostgreSQLBase::GetDsnListFromEnv() {
   return dsn_list;
 }
 
+pg::Dsn PostgreSQLBase::GetUnavailableDsn() {
+  return pg::Dsn{"postgresql://testsuite@localhost:2345/postgres"};
+}
+
 storages::postgres::detail::ConnectionPtr PostgreSQLBase::MakeConnection(
     const storages::postgres::Dsn& dsn, engine::TaskProcessor& task_processor,
     storages::postgres::ConnectionSettings settings) {
   std::unique_ptr<pg::detail::Connection> conn;
 
-  UEXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
-                       dsn, nullptr, task_processor, kConnectionId, settings,
-                       GetTestCmdCtls(), {}, {}))
-      << "Connect to correct DSN";
+  try {
+    conn = pg::detail::Connection::Connect(dsn, nullptr, task_processor,
+                                           GetTaskStorage(), kConnectionId,
+                                           settings, GetTestCmdCtls(), {}, {});
+  } catch (const storages::postgres::Error& ex) {
+    ADD_FAILURE() << ex.what();
+  }
+
+  if (!conn) {
+    // Make sure that we signal a fatal failure so that the test body does not
+    // run. Otherwise, it may crash.
+    [&] { FAIL() << "Failed to connect to DSN"; }();
+  }
+
   pg::detail::ConnectionPtr conn_ptr{std::move(conn)};
-  CheckConnection(conn_ptr);
+  if (conn_ptr) CheckConnection(conn_ptr);
   return conn_ptr;
 }
 
 void PostgreSQLBase::CheckConnection(const pg::detail::ConnectionPtr& conn) {
   ASSERT_TRUE(conn) << "Expected non-empty connection pointer";
 
-  EXPECT_TRUE(conn->IsConnected()) << "Connection to PostgreSQL is established";
-  EXPECT_TRUE(conn->IsIdle())
+  ASSERT_TRUE(conn->IsConnected()) << "Connection to PostgreSQL is established";
+  ASSERT_TRUE(conn->IsIdle())
       << "Connection to PosgreSQL is idle after connection";
-  EXPECT_FALSE(conn->IsInTransaction()) << "Connection to PostgreSQL is "
+  ASSERT_FALSE(conn->IsInTransaction()) << "Connection to PostgreSQL is "
                                            "not in a transaction after "
                                            "connection";
 }
@@ -139,6 +146,11 @@ engine::TaskProcessor& PostgreSQLBase::GetTaskProcessor() {
   return engine::current_task::GetTaskProcessor();
 }
 
+concurrent::BackgroundTaskStorageCore& PostgreSQLBase::GetTaskStorage() {
+  static concurrent::BackgroundTaskStorageCore bts;
+  return bts;
+}
+
 PostgreConnection::PostgreConnection()
     : conn(MakeConnection(GetDsnFromEnv(), GetTaskProcessor(), GetParam())) {}
 
@@ -147,8 +159,15 @@ PostgreConnection::~PostgreConnection() {
   engine::AsyncNoSpan(GetTaskProcessor(), [] {}).Wait();
 }
 
-INSTANTIATE_UTEST_SUITE_P(ConnectionSettings, PostgreConnection,
-                          ::testing::Values(kCachePreparedStatements,
-                                            kPipelineEnabled));
+INSTANTIATE_UTEST_SUITE_P(
+    ConnectionSettings, PostgreConnection,
+    ::testing::Values(kCachePreparedStatements, kPipelineEnabled),
+    [](const testing::TestParamInfo<PostgreConnection::ParamType>& info) {
+      if (info.param.pipeline_mode == pg::PipelineMode::kEnabled) {
+        return "PipelineEnabled";
+      } else {
+        return "PipelineDisabled";
+      }
+    });
 
 USERVER_NAMESPACE_END

@@ -26,6 +26,7 @@
 #include <server/net/listener_impl.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/utils/algo.hpp>
 #include <userver/utils/str_icase.hpp>
 #include <utils/strerror.hpp>
 
@@ -38,6 +39,61 @@ bool IsHeaderMatchingName(std::string_view header, std::string_view name) {
   return header.size() > name.size() &&
          utils::StrIcaseEqual()(header.substr(0, name.size()), name) &&
          (header[name.size()] == ':' || header[name.size()] == ';');
+}
+
+std::optional<std::string_view> FindHeaderByNameImpl(
+    const std::shared_ptr<string_list>& headers, std::string_view name) {
+  if (!headers) return std::nullopt;
+  auto result = headers->FindIf([name](std::string_view header) {
+    return IsHeaderMatchingName(header, name);
+  });
+  if (result) {
+    result->remove_prefix(name.size() + 1);
+    while (!result->empty() && result->front() == ' ') result->remove_prefix(1);
+  }
+  return result;
+}
+
+fmt::memory_buffer CreateHeaderBuffer(std::string_view name,
+                                      std::string_view value,
+                                      easy::EmptyHeaderAction action) {
+  fmt::memory_buffer buf;
+
+  if (action == easy::EmptyHeaderAction::kSend && value.empty()) {
+    fmt::format_to(std::back_inserter(buf), FMT_COMPILE("{};"), name);
+  } else {
+    fmt::format_to(std::back_inserter(buf), FMT_COMPILE("{}: {}"), name, value);
+  }
+
+  buf.push_back('\0');
+
+  return buf;
+}
+
+bool AddHeaderDoSkip(const std::shared_ptr<string_list>& headers,
+                     std::string_view name,
+                     easy::DuplicateHeaderAction action) {
+  if (action == easy::DuplicateHeaderAction::kSkip && headers) {
+    if (FindHeaderByNameImpl(headers, name)) return true;
+  }
+
+  return false;
+}
+
+bool AddHeaderDoReplace(const std::shared_ptr<string_list>& headers,
+                        const fmt::memory_buffer& buf, std::string_view name,
+                        easy::DuplicateHeaderAction action) {
+  if (action == easy::DuplicateHeaderAction::kReplace && headers) {
+    const bool replaced = headers->ReplaceFirstIf(
+        [name](std::string_view header) {
+          return IsHeaderMatchingName(header, name);
+        },
+        buf.data());
+
+    if (replaced) return true;
+  }
+
+  return false;
 }
 
 }  // namespace
@@ -180,6 +236,7 @@ void easy::reset() {
   std::string{}.swap(post_fields_);  // forced memory freeing
   form_.reset();
   if (headers_) headers_->clear();
+  if (proxy_headers_) proxy_headers_->clear();
   if (http200_aliases_) http200_aliases_->clear();
   if (resolved_hosts_) resolved_hosts_->clear();
   share_.reset();
@@ -280,6 +337,8 @@ void easy::set_url(std::string url_str, std::error_code& ec) {
 
 const std::string& easy::get_original_url() const { return orig_url_str_; }
 
+const url& easy::get_easy_url() const { return url_; }
+
 void easy::set_post_fields(std::string&& post_fields) {
   std::error_code ec;
   set_post_fields(std::move(post_fields), ec);
@@ -328,25 +387,14 @@ void easy::add_header(std::string_view name, std::string_view value,
                       std::error_code& ec,
                       EmptyHeaderAction empty_header_action,
                       DuplicateHeaderAction duplicate_header_action) {
-  if (duplicate_header_action == DuplicateHeaderAction::kSkip && headers_) {
-    if (FindHeaderByName(name)) return;
-  }
-  fmt::memory_buffer buf;
-  if (empty_header_action == EmptyHeaderAction::kSend && value.empty()) {
-    fmt::format_to(std::back_inserter(buf), FMT_COMPILE("{};"), name);
-  } else {
-    fmt::format_to(std::back_inserter(buf), FMT_COMPILE("{}: {}"), name, value);
+  if (AddHeaderDoSkip(headers_, name, duplicate_header_action)) {
+    return;
   }
 
-  buf.push_back('\0');
+  auto buf = CreateHeaderBuffer(name, value, empty_header_action);
 
-  if (duplicate_header_action == DuplicateHeaderAction::kReplace && headers_) {
-    if (headers_->ReplaceFirstIf(
-            [name](std::string_view header) {
-              return IsHeaderMatchingName(header, name);
-            },
-            buf.data()))
-      return;
+  if (AddHeaderDoReplace(headers_, buf, name, duplicate_header_action)) {
+    return;
   }
 
   add_header(buf.data(), ec);
@@ -368,15 +416,7 @@ void easy::add_header(std::string_view name, std::string_view value,
 
 std::optional<std::string_view> easy::FindHeaderByName(
     std::string_view name) const {
-  if (!headers_) return std::nullopt;
-  auto result = headers_->FindIf([name](std::string_view header) {
-    return IsHeaderMatchingName(header, name);
-  });
-  if (result) {
-    result->remove_prefix(name.size() + 1);
-    while (!result->empty() && result->front() == ' ') result->remove_prefix(1);
-  }
-  return result;
+  return FindHeaderByNameImpl(headers_, name);
 }
 
 void easy::add_header(const char* header) {
@@ -420,6 +460,43 @@ void easy::set_headers(std::shared_ptr<string_list> headers,
     ec = std::error_code{static_cast<errc::EasyErrorCode>(
         native::curl_easy_setopt(handle_, native::CURLOPT_HTTPHEADER, NULL))};
   }
+}
+
+void easy::add_proxy_header(std::string_view name, std::string_view value,
+                            EmptyHeaderAction empty_header_action,
+                            DuplicateHeaderAction duplicate_header_action) {
+  std::error_code ec;
+  add_proxy_header(name, value, ec, empty_header_action,
+                   duplicate_header_action);
+  throw_error(ec, "add_proxy_header");
+}
+
+void easy::add_proxy_header(std::string_view name, std::string_view value,
+                            std::error_code& ec,
+                            EmptyHeaderAction empty_header_action,
+                            DuplicateHeaderAction duplicate_header_action) {
+  if (AddHeaderDoSkip(proxy_headers_, name, duplicate_header_action)) {
+    return;
+  }
+
+  auto buf = CreateHeaderBuffer(name, value, empty_header_action);
+
+  if (AddHeaderDoReplace(proxy_headers_, buf, name, duplicate_header_action)) {
+    return;
+  }
+
+  add_proxy_header(buf.data(), ec);
+}
+
+void easy::add_proxy_header(const char* header, std::error_code& ec) {
+  if (!proxy_headers_) {
+    proxy_headers_ = std::make_shared<string_list>();
+  }
+
+  proxy_headers_->add(header);
+  ec = std::error_code{static_cast<errc::EasyErrorCode>(
+      native::curl_easy_setopt(handle_, native::CURLOPT_PROXYHEADER,
+                               proxy_headers_->native_handle()))};
 }
 
 void easy::add_http200_alias(const std::string& http200_alias) {
@@ -473,14 +550,23 @@ void easy::add_resolve(const std::string& host, const std::string& port,
   if (!resolved_hosts_) {
     resolved_hosts_ = std::make_shared<string_list>();
   }
-  const auto hostport = host + ':' + port + ':';
+  auto host_port_addr = utils::StrCat(host, ":", port, ":", addr);
+  const std::string_view host_port_view{host_port_addr.data(),
+                                        host_port_addr.size() - addr.size()};
 
   if (!resolved_hosts_->ReplaceFirstIf(
-          [&hostport](const auto& entry) {
-            return entry.compare(0, hostport.size(), hostport) == 0;
+          [host_port_view](const auto& entry) {
+            // host_port_addr, of which we hold a string_view, might be moved in
+            // ReplaceFirstIf, but it's guaranteed that this
+            // lambda is not called after that.
+            return std::string_view{entry}.substr(host_port_view.size()) ==
+                   host_port_view;
           },
-          hostport + addr)) {
-    resolved_hosts_->add(hostport + addr);
+          std::move(host_port_addr))) {
+    UASSERT_MSG(
+        !host_port_addr.empty(),
+        "ReplaceFirstIf moved the string out, when it shouldn't have done so.");
+    resolved_hosts_->add(std::move(host_port_addr));
   }
 
   ec =

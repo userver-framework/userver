@@ -35,7 +35,7 @@ namespace components {
 /// no_delay | whether to set the `TCP_NODELAY` option on incoming sockets | true
 /// sockets_task_processor | task processor to process accepted sockets | value of `task_processor`
 ///
-/// @see @ref md_en_userver_tutorial_tcp_service
+/// @see @ref scripts/docs/en/userver/tutorial/tcp_service.md
 
 // clang-format on
 class TcpAcceptorBase : public LoggableComponentBase {
@@ -46,7 +46,7 @@ class TcpAcceptorBase : public LoggableComponentBase {
   static yaml_config::Schema GetStaticConfigSchema();
 
  protected:
-  /// Override this function to process incomming sockets.
+  /// Override this function to process incoming sockets.
   ///
   /// @warning The function is called concurrently from multiple threads on
   /// each new socket.
@@ -65,7 +65,7 @@ class TcpAcceptorBase : public LoggableComponentBase {
   const bool no_delay_;
   engine::TaskProcessor& acceptor_task_processor_;
   engine::TaskProcessor& sockets_task_processor_;
-  concurrent::BackgroundTaskStorage tasks_;
+  concurrent::BackgroundTaskStorageCore tasks_;
   engine::io::Socket listen_sock_;
   engine::Task acceptor_;
 };

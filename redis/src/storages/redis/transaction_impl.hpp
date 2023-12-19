@@ -86,6 +86,10 @@ class TransactionImpl final : public Transaction {
 
   RequestDel Del(std::vector<std::string> keys) override;
 
+  RequestUnlink Unlink(std::string key) override;
+
+  RequestUnlink Unlink(std::vector<std::string> keys) override;
+
   RequestExists Exists(std::string key) override;
 
   RequestExists Exists(std::vector<std::string> keys) override;
@@ -98,8 +102,24 @@ class TransactionImpl final : public Transaction {
                        std::vector<GeoaddArg> point_members) override;
 
   RequestGeoradius Georadius(
-      std::string key, double lon, double lat, double radius,
+      std::string key, Longitude lon, Latitude lat, double radius,
       const GeoradiusOptions& georadius_options) override;
+
+  RequestGeosearch Geosearch(
+      std::string key, std::string member, double radius,
+      const GeosearchOptions& geosearch_options) override;
+
+  RequestGeosearch Geosearch(
+      std::string key, std::string member, BoxWidth width, BoxHeight height,
+      const GeosearchOptions& geosearch_options) override;
+
+  RequestGeosearch Geosearch(
+      std::string key, Longitude lon, Latitude lat, double radius,
+      const GeosearchOptions& geosearch_options) override;
+
+  RequestGeosearch Geosearch(
+      std::string key, Longitude lon, Latitude lat, BoxWidth width,
+      BoxHeight height, const GeosearchOptions& geosearch_options) override;
 
   RequestGet Get(std::string key) override;
 
@@ -252,6 +272,8 @@ class TransactionImpl final : public Transaction {
 
   RequestZcard Zcard(std::string key) override;
 
+  RequestZcount Zcount(std::string key, double min, double max) override;
+
   RequestZrange Zrange(std::string key, int64_t start, int64_t stop) override;
 
   RequestZrangeWithScores ZrangeWithScores(std::string key, int64_t start,
@@ -314,13 +336,14 @@ class TransactionImpl final : public Transaction {
   Request<Result, ReplyType> DoAddCmd(To<Request<Result, ReplyType>>);
 
   template <typename Request, typename... Args>
-  Request AddCmd(std::string command, Args&&... args);
+  Request AddCmd(std::string command, bool master, Args&&... args);
 
   std::shared_ptr<ClientImpl> client_;
   const CheckShards check_shards_;
 
   std::optional<size_t> shard_;
 
+  bool master_{};
   USERVER_NAMESPACE::redis::CmdArgs cmd_args_;
   std::vector<ResultPromise> result_promises_;
 };

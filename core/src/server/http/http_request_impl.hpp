@@ -12,6 +12,9 @@
 #include <userver/server/http/http_request.hpp>
 #include <userver/server/http/http_response.hpp>
 #include <userver/server/request/request_base.hpp>
+#include <userver/utils/datetime/wall_coarse_clock.hpp>
+#include <userver/utils/impl/transparent_hash.hpp>
+#include <userver/utils/str_icase.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -29,9 +32,7 @@ class HttpRequestImpl final : public request::RequestBase {
   ~HttpRequestImpl() override;
 
   const HttpMethod& GetMethod() const { return method_; }
-  const HttpMethod& GetOrigMethod() const { return orig_method_; }
   const std::string& GetMethodStr() const { return ToString(method_); }
-  const std::string& GetOrigMethodStr() const { return ToString(orig_method_); }
   int GetHttpMajor() const { return http_major_; }
   int GetHttpMinor() const { return http_minor_; }
   const std::string& GetUrl() const { return url_; }
@@ -42,35 +43,44 @@ class HttpRequestImpl final : public request::RequestBase {
 
   const std::string& GetHost() const;
 
-  const std::string& GetArg(const std::string& arg_name) const;
-  const std::vector<std::string>& GetArgVector(
-      const std::string& arg_name) const;
-  bool HasArg(const std::string& arg_name) const;
+  const std::string& GetArg(std::string_view arg_name) const;
+  const std::vector<std::string>& GetArgVector(std::string_view arg_name) const;
+  bool HasArg(std::string_view arg_name) const;
   size_t ArgCount() const;
   std::vector<std::string> ArgNames() const;
 
-  const FormDataArg& GetFormDataArg(const std::string& arg_name) const;
+  const FormDataArg& GetFormDataArg(std::string_view arg_name) const;
   const std::vector<FormDataArg>& GetFormDataArgVector(
-      const std::string& arg_name) const;
-  bool HasFormDataArg(const std::string& arg_name) const;
+      std::string_view arg_name) const;
+  bool HasFormDataArg(std::string_view arg_name) const;
   size_t FormDataArgCount() const;
   std::vector<std::string> FormDataArgNames() const;
 
-  const std::string& GetPathArg(const std::string& arg_name) const;
+  const std::string& GetPathArg(std::string_view arg_name) const;
   const std::string& GetPathArg(size_t index) const;
-  bool HasPathArg(const std::string& arg_name) const;
+  bool HasPathArg(std::string_view arg_name) const;
   bool HasPathArg(size_t index) const;
   size_t PathArgCount() const;
 
-  const std::string& GetHeader(const std::string& header_name) const;
-  bool HasHeader(const std::string& header_name) const;
+  const std::string& GetHeader(std::string_view header_name) const;
+  const std::string& GetHeader(
+      const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name)
+      const;
+  bool HasHeader(std::string_view header_name) const;
+  bool HasHeader(const USERVER_NAMESPACE::http::headers::PredefinedHeader&
+                     header_name) const;
   size_t HeaderCount() const;
+  void RemoveHeader(std::string_view header_name);
+  void RemoveHeader(
+      const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name);
   HttpRequest::HeadersMapKeys GetHeaderNames() const;
+  const HttpRequest::HeadersMap& GetHeaders() const;
 
   const std::string& GetCookie(const std::string& cookie_name) const;
   bool HasCookie(const std::string& cookie_name) const;
   size_t CookieCount() const;
   HttpRequest::CookiesMapKeys GetCookieNames() const;
+  const HttpRequest::CookiesMap& GetCookies() const;
 
   const std::string& RequestBody() const { return request_body_; }
   void SetRequestBody(std::string body);
@@ -83,20 +93,31 @@ class HttpRequestImpl final : public request::RequestBase {
 
   bool IsFinal() const override { return is_final_; }
 
+  using UpgradeCallback = std::function<void(
+      std::unique_ptr<engine::io::RwBase>&&, engine::io::Sockaddr&&)>;
+
+  bool IsUpgradeWebsocket() const override {
+    return static_cast<bool>(upgrade_websocket_cb_);
+  }
+  void SetUpgradeWebsocket(UpgradeCallback cb) {
+    upgrade_websocket_cb_ = std::move(cb);
+  }
+  void DoUpgrade(std::unique_ptr<engine::io::RwBase>&& socket,
+                 engine::io::Sockaddr&& peer_name) const override;
+
   request::ResponseBase& GetResponse() const override { return response_; }
   HttpResponse& GetHttpResponse() const { return response_; }
 
   void WriteAccessLogs(const logging::LoggerPtr& logger_access,
                        const logging::LoggerPtr& logger_access_tskv,
-                       std::chrono::system_clock::time_point tp,
                        const std::string& remote_address) const override;
 
   void WriteAccessLog(const logging::LoggerPtr& logger_access,
-                      std::chrono::system_clock::time_point tp,
+                      utils::datetime::WallCoarseClock::time_point tp,
                       const std::string& remote_address) const;
 
   void WriteAccessTskvLog(const logging::LoggerPtr& logger_access_tskv,
-                          std::chrono::system_clock::time_point tp,
+                          utils::datetime::WallCoarseClock::time_point tp,
                           const std::string& remote_address) const;
 
   void SetPathArgs(std::vector<std::pair<std::string, std::string>> args);
@@ -118,22 +139,26 @@ class HttpRequestImpl final : public request::RequestBase {
   friend class HttpRequestConstructor;
 
  private:
-  // method_ = (orig_method_ == kHead ? kGet : orig_method_)
   HttpMethod method_{HttpMethod::kUnknown};
-  HttpMethod orig_method_{HttpMethod::kUnknown};
   unsigned short http_major_{1};
   unsigned short http_minor_{1};
   std::string url_;
   std::string request_path_;
   std::string request_body_;
   std::string path_suffix_;
-  std::unordered_map<std::string, std::vector<std::string>> request_args_;
-  std::unordered_map<std::string, std::vector<FormDataArg>> form_data_args_;
+  utils::impl::TransparentMap<std::string, std::vector<std::string>,
+                              utils::StrCaseHash>
+      request_args_;
+  utils::impl::TransparentMap<std::string, std::vector<FormDataArg>,
+                              utils::StrCaseHash>
+      form_data_args_;
   std::vector<std::string> path_args_;
-  std::unordered_map<std::string, size_t> path_args_by_name_index_;
+  utils::impl::TransparentMap<std::string, size_t, utils::StrCaseHash>
+      path_args_by_name_index_;
   HttpRequest::HeadersMap headers_;
   HttpRequest::CookiesMap cookies_;
   bool is_final_{false};
+  UpgradeCallback upgrade_websocket_cb_;
 
   mutable HttpResponse response_;
   engine::TaskProcessor* task_processor_{nullptr};

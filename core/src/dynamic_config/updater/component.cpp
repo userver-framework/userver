@@ -4,10 +4,14 @@
 #include <userver/clients/http/component.hpp>
 #include <userver/components/component.hpp>
 #include <userver/dynamic_config/client/component.hpp>
+#include <userver/dynamic_config/storage/component.hpp>
+#include <userver/dynamic_config/updates_sink/find.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/fs/read.hpp>
+#include <userver/utils/algo.hpp>
 #include <userver/utils/string_to_duration.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
+#include <utils/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -37,44 +41,40 @@ bool ShouldDeduplicate(
   UINVARIANT(false, "Invalid cache::UpdateType");
 }
 
+const ComponentConfig& EnsureDoesNotDependOnDynamicConfig(
+    const ComponentConfig& component_config) {
+  UINVARIANT(!component_config["config-settings"].As<bool>(true),
+             "dynamic-config-client-updater.config-settings must be false, "
+             "otherwise it will create a cyclic dependency of components");
+  return component_config;
+}
+
 }  // namespace
 
 DynamicConfigClientUpdater::DynamicConfigClientUpdater(
     const ComponentConfig& component_config,
     const ComponentContext& component_context)
-    : CachingComponentBase(component_config, component_context),
-      updater_(component_context),
-      load_only_my_values_(component_config["load-only-my-values"].As<bool>()),
-      store_enabled_(component_config["store-enabled"].As<bool>()),
+    : CachingComponentBase(EnsureDoesNotDependOnDynamicConfig(component_config),
+                           component_context),
+      updates_sink_(
+          dynamic_config::FindUpdatesSink(component_config, component_context)),
+      load_only_my_values_(
+          component_config["load-only-my-values"].As<bool>(true)),
+      store_enabled_(component_config["store-enabled"].As<bool>(true)),
       deduplicate_update_types_(ParseDeduplicateUpdateTypes(
           component_config["deduplicate-update-types"])),
       config_client_(
           component_context.FindComponent<components::DynamicConfigClient>()
-              .GetClient()) {
-  auto tp_name =
-      component_config["fs-task-processor"].As<std::optional<std::string>>();
-  auto& tp = tp_name ? component_context.GetTaskProcessor(*tp_name)
-                     : engine::current_task::GetTaskProcessor();
-
-  auto fallback_config_contents = fs::ReadFileContents(
-      tp, component_config["fallback-path"].As<std::string>());
-
-  try {
-    fallback_config_.Parse(fallback_config_contents, false);
-
-    // There are all required configs in the fallbacks file
-    auto docs_map_keys = docs_map_keys_.Lock();
-    *docs_map_keys = fallback_config_.GetNames();
-  } catch (const std::exception& ex) {
-    throw std::runtime_error(
-        std::string("Cannot load fallback dynamic config: ") + ex.what());
-  }
-
+              .GetClient()),
+      docs_map_keys_(utils::AsContainer<DocsMapKeys>(
+          component_context.FindComponent<components::DynamicConfig>()
+              .GetDefaultDocsMap()
+              .GetNames())) {
   try {
     StartPeriodicUpdates();
   } catch (const std::exception& e) {
     LOG_ERROR() << "Config client updater initialization failed: " << e;
-    updater_.NotifyLoadingFailed(e.what());
+    updates_sink_.NotifyLoadingFailed(kName, e.what());
     /* Start PeriodicTask without the 1st update:
      * DynamicConfig has been initialized with
      * config cached in FS. Components loading will continue.
@@ -87,24 +87,25 @@ DynamicConfigClientUpdater::~DynamicConfigClientUpdater() {
   StopPeriodicUpdates();
 }
 
-void DynamicConfigClientUpdater::StoreIfEnabled() {
-  auto ptr = Get();
-  if (store_enabled_) updater_.SetConfig(*ptr);
-
-  auto docs_map_keys = docs_map_keys_.Lock();
-  *docs_map_keys = ptr->GetRequestedNames();
+dynamic_config::DocsMap DynamicConfigClientUpdater::MergeDocsMap(
+    const dynamic_config::DocsMap& current, dynamic_config::DocsMap&& update) {
+  dynamic_config::DocsMap combined(std::move(update));
+  combined.MergeMissing(current);
+  combined.SetConfigsExpectedToBeUsed(docs_map_keys_, utils::InternalTag{});
+  return combined;
 }
 
-DynamicConfigClientUpdater::DocsMapKeys
-DynamicConfigClientUpdater::GetStoredDocsMapKeys() const {
-  auto docs_map_keys = docs_map_keys_.Lock();
-  return *docs_map_keys;
+void DynamicConfigClientUpdater::StoreIfEnabled() {
+  if (store_enabled_) {
+    auto ptr = Get();
+    updates_sink_.SetConfig(kName, *ptr);
+  }
 }
 
 std::vector<std::string> DynamicConfigClientUpdater::GetDocsMapKeysToFetch(
     AdditionalDocsMapKeys& additional_docs_map_keys) {
   if (load_only_my_values_) {
-    auto docs_map_keys = GetStoredDocsMapKeys();
+    auto docs_map_keys = docs_map_keys_;
 
     for (auto it = additional_docs_map_keys.begin();
          it != additional_docs_map_keys.end();) {
@@ -156,23 +157,21 @@ void DynamicConfigClientUpdater::Update(
 
     stats.IncreaseDocumentsReadCount(docs_map.Size());
 
-    /* Don't check for timestamp, accept any timestamp.
-     * Otherwise we might end up with constantly failing to make full update
-     * as every full update we get a bit outdated reply.
-     */
+    // Don't check for timestamp, accept any timestamp.
+    // Otherwise, we might end up with constantly failing to make full update
+    // as every full update we get a bit outdated reply.
 
-    dynamic_config::DocsMap combined(fallback_config_);
-    combined.MergeFromOther(std::move(docs_map));
+    const auto size = docs_map.Size();
 
-    auto size = combined.Size();
     {
-      std::lock_guard<engine::Mutex> lock(update_config_mutex_);
-      if (IsDuplicate(update_type, combined)) {
+      const std::lock_guard lock(update_config_mutex_);
+      if (IsDuplicate(update_type, docs_map)) {
         stats.FinishNoChanges();
         server_timestamp_ = reply.timestamp;
         return;
       }
-      Set(std::move(combined));
+
+      Set(std::move(docs_map));
       StoreIfEnabled();
     }
 
@@ -199,10 +198,9 @@ void DynamicConfigClientUpdater::Update(
     stats.IncreaseDocumentsReadCount(docs_map.Size());
 
     {
-      std::lock_guard<engine::Mutex> lock(update_config_mutex_);
+      const std::lock_guard lock(update_config_mutex_);
       auto ptr = Get();
-      dynamic_config::DocsMap combined = *ptr;
-      combined.MergeFromOther(std::move(docs_map));
+      auto combined = MergeDocsMap(*ptr, std::move(docs_map));
 
       if (IsDuplicate(update_type, combined)) {
         stats.FinishNoChanges();
@@ -223,13 +221,13 @@ void DynamicConfigClientUpdater::Update(
 void DynamicConfigClientUpdater::UpdateAdditionalKeys(
     const std::vector<std::string>& keys) {
   auto reply = config_client_.FetchDocsMap(std::nullopt, keys);
-  auto& combined = reply.docs_map;
+  auto& additional_configs = reply.docs_map;
 
   {
-    std::lock_guard<engine::Mutex> lock(update_config_mutex_);
+    const std::lock_guard lock(update_config_mutex_);
     auto ptr = Get();
     dynamic_config::DocsMap docs_map = *ptr;
-    combined.MergeFromOther(std::move(docs_map));
+    auto combined = MergeDocsMap(additional_configs, std::move(docs_map));
 
     Emplace(std::move(combined));
     StoreIfEnabled();
@@ -254,22 +252,22 @@ type: object
 description: Component that does a periodic update of runtime configs.
 additionalProperties: false
 properties:
+    updates-sink:
+        type: string
+        description: components::DynamicConfigUpdatesSinkBase descendant to be used for storing received updates
+        defaultDescription: dynamic-config
     store-enabled:
         type: boolean
-        description: store the retrieved values into the components::DynamicConfig
+        description: store the retrieved values into the updates sink component
+        defaultDescription: true
     load-only-my-values:
         type: boolean
         description: request from the client only the values used by this service
-    fallback-path:
-        type: string
-        description: a path to the fallback config to load the required config names from it
-    fs-task-processor:
-        type: string
-        description: name of the task processor to run the blocking file write operations
+        defaultDescription: true
     deduplicate-update-types:
         type: string
         description: config update types for best-effort deduplication
-        defaultDescription: none
+        defaultDescription: full-and-incremental
         enum:
           - none
           - only-full

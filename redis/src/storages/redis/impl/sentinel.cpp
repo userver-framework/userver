@@ -1,20 +1,27 @@
-#include <userver/storages/redis/impl/sentinel.hpp>
+#include <storages/redis/impl/sentinel.hpp>
 
 #include <memory>
 #include <stdexcept>
 
-#include <userver/logging/log.hpp>
-
 #include <engine/ev/thread_control.hpp>
-#include <userver/engine/task/cancel.hpp>
-#include <userver/testsuite/testsuite_support.hpp>
-#include <userver/utils/assert.hpp>
 
+#include <userver/dynamic_config/value.hpp>
+#include <userver/engine/task/cancel.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/storages/redis/impl/base.hpp>
 #include <userver/storages/redis/impl/exception.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
-#include "redis.hpp"
-#include "sentinel_impl.hpp"
-#include "subscribe_sentinel.hpp"
+#include <userver/testsuite/testsuite_support.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/impl/userver_experiments.hpp>
+
+#include <storages/redis/dynamic_config.hpp>
+#include <storages/redis/impl/cluster_sentinel_impl.hpp>
+#include <storages/redis/impl/command.hpp>
+#include <storages/redis/impl/redis.hpp>
+#include <storages/redis/impl/sentinel_impl.hpp>
+#include <storages/redis/impl/sentinel_impl_switcher.hpp>
+#include <storages/redis/impl/subscribe_sentinel.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -22,7 +29,7 @@ namespace redis {
 namespace {
 
 void ThrowIfCancelled() {
-  if (engine::current_task::GetTaskProcessorOptional() &&
+  if (engine::current_task::IsTaskProcessorThread() &&
       engine::current_task::ShouldCancel()) {
     throw RequestCancelledException(
         "Failed to make redis request due to task cancellation");
@@ -31,15 +38,15 @@ void ThrowIfCancelled() {
 
 }  // namespace
 
-Sentinel::Sentinel(const std::shared_ptr<ThreadPools>& thread_pools,
-                   const std::vector<std::string>& shards,
-                   const std::vector<ConnectionInfo>& conns,
-                   std::string shard_group_name, const std::string& client_name,
-                   const Password& password, ReadyChangeCallback ready_callback,
-                   std::unique_ptr<KeyShard>&& key_shard,
-                   CommandControl command_control,
-                   const testsuite::RedisControl& testsuite_redis_control,
-                   ConnectionMode mode)
+Sentinel::Sentinel(
+    const std::shared_ptr<ThreadPools>& thread_pools,
+    const std::vector<std::string>& shards,
+    const std::vector<ConnectionInfo>& conns, std::string shard_group_name,
+    const std::string& client_name, const Password& password,
+    ConnectionSecurity connection_security, ReadyChangeCallback ready_callback,
+    dynamic_config::Source dynamic_config_source,
+    std::unique_ptr<KeyShard>&& key_shard, CommandControl command_control,
+    const testsuite::RedisControl& testsuite_redis_control, ConnectionMode mode)
     : thread_pools_(thread_pools),
       secdist_default_command_control_(command_control),
       testsuite_redis_control_(testsuite_redis_control) {
@@ -52,11 +59,29 @@ Sentinel::Sentinel(const std::shared_ptr<ThreadPools>& thread_pools,
   sentinel_thread_control_ = std::make_unique<engine::ev::ThreadControl>(
       thread_pools_->GetSentinelThreadPool().NextThread());
 
+  const bool use_cluster_sentinel =
+      !key_shard &&
+      utils::impl::kRedisClusterAutoTopologyExperiment.IsEnabled();
   sentinel_thread_control_->RunInEvLoopBlocking([&]() {
-    impl_ = std::make_unique<SentinelImpl>(
-        *sentinel_thread_control_, thread_pools_->GetRedisThreadPool(), *this,
-        shards, conns, std::move(shard_group_name), client_name, password,
-        std::move(ready_callback), std::move(key_shard), mode);
+    if (use_cluster_sentinel) {
+      auto switcher = std::make_unique<ClusterSentinelImplSwitcher>(
+          *sentinel_thread_control_, thread_pools_->GetRedisThreadPool(), *this,
+          shards, conns, std::move(shard_group_name), client_name, password,
+          connection_security, std::move(ready_callback), std::move(key_shard),
+          dynamic_config_source, mode);
+      const auto config_snapshot = dynamic_config_source.GetSnapshot();
+      const auto enabled_by_config = config_snapshot[kRedisAutoTopologyEnabled];
+
+      switcher->SetEnabledByConfig(enabled_by_config);
+      switcher->UpdateImpl(false, false);
+      impl_ = std::move(switcher);
+    } else {
+      impl_ = std::make_unique<SentinelImpl>(
+          *sentinel_thread_control_, thread_pools_->GetRedisThreadPool(), *this,
+          shards, conns, std::move(shard_group_name), client_name, password,
+          connection_security, std::move(ready_callback), std::move(key_shard),
+          dynamic_config_source, mode);
+    }
   });
 }
 
@@ -82,6 +107,7 @@ void Sentinel::ForceUpdateHosts() { impl_->ForceUpdateHosts(); }
 std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
     const std::shared_ptr<ThreadPools>& thread_pools,
     const secdist::RedisSettings& settings, std::string shard_group_name,
+    dynamic_config::Source dynamic_config_source,
     const std::string& client_name, KeyShardFactory key_shard_factory,
     const CommandControl& command_control,
     const testsuite::RedisControl& testsuite_redis_control) {
@@ -92,14 +118,15 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
                << "  ready = " << (ready ? "true" : "false");
   };
   return CreateSentinel(thread_pools, settings, std::move(shard_group_name),
-                        client_name, std::move(ready_callback),
-                        std::move(key_shard_factory), command_control,
-                        testsuite_redis_control);
+                        dynamic_config_source, client_name,
+                        std::move(ready_callback), std::move(key_shard_factory),
+                        command_control, testsuite_redis_control);
 }
 
 std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
     const std::shared_ptr<ThreadPools>& thread_pools,
     const secdist::RedisSettings& settings, std::string shard_group_name,
+    dynamic_config::Source dynamic_config_source,
     const std::string& client_name,
     Sentinel::ReadyChangeCallback ready_callback,
     KeyShardFactory key_shard_factory, const CommandControl& command_control,
@@ -122,7 +149,8 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
     // CLUSTER SLOTS works after auth only. Masters and slaves used instead of
     // sentinels in cluster mode.
     conns.emplace_back(sentinel.host, sentinel.port,
-                       (key_shard ? Password("") : password));
+                       (key_shard ? Password("") : password), false,
+                       settings.secure_connection);
   }
 
   LOG_DEBUG() << "redis command_control:"
@@ -135,8 +163,9 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
   if (!shards.empty() && !conns.empty()) {
     client = std::make_shared<redis::Sentinel>(
         thread_pools, shards, conns, std::move(shard_group_name), client_name,
-        password, std::move(ready_callback), std::move(key_shard),
-        command_control, testsuite_redis_control);
+        password, settings.secure_connection, std::move(ready_callback),
+        dynamic_config_source, std::move(key_shard), command_control,
+        testsuite_redis_control);
     client->Start();
   }
 
@@ -176,7 +205,8 @@ void Sentinel::AsyncCommand(CommandPtr command, bool master, size_t shard) {
   CheckShardIdx(shard);
   try {
     impl_->AsyncCommand(
-        {command, master, shard, std::chrono::steady_clock::now()});
+        {command, master, shard, std::chrono::steady_clock::now()},
+        SentinelImplBase::kDefaultPrevInstanceIdx);
   } catch (const std::exception& ex) {
     LOG_WARNING() << "exception in " << __func__ << " '" << ex.what() << "'";
   }
@@ -200,7 +230,8 @@ void Sentinel::AsyncCommand(CommandPtr command, const std::string& key,
   CheckShardIdx(shard);
   try {
     impl_->AsyncCommand(
-        {command, master, shard, std::chrono::steady_clock::now()});
+        {command, master, shard, std::chrono::steady_clock::now()},
+        SentinelImplBase::kDefaultPrevInstanceIdx);
   } catch (const std::exception& ex) {
     LOG_WARNING() << "exception in " << __func__ << " '" << ex.what() << "'";
   }
@@ -243,23 +274,35 @@ void Sentinel::CheckShardIdx(size_t shard_idx) const {
 }
 
 void Sentinel::CheckShardIdx(size_t shard_idx, size_t shard_count) {
-  if (shard_idx >= shard_count)
+  if (shard_idx >= shard_count &&
+      shard_idx != ClusterSentinelImplSwitcher::kUnknownShard) {
     throw InvalidArgumentException("invalid shard (" +
                                    std::to_string(shard_idx) +
                                    " >= " + std::to_string(shard_count) + ')');
+  }
 }
 
 const std::string& Sentinel::GetAnyKeyForShard(size_t shard_idx) const {
   return impl_->GetAnyKeyForShard(shard_idx);
 }
 
-SentinelStatistics Sentinel::GetStatistics() const {
-  return impl_->GetStatistics();
+SentinelStatistics Sentinel::GetStatistics(
+    const MetricsSettings& settings) const {
+  return impl_->GetStatistics(settings);
 }
 
 void Sentinel::SetCommandsBufferingSettings(
     CommandsBufferingSettings commands_buffering_settings) {
   return impl_->SetCommandsBufferingSettings(commands_buffering_settings);
+}
+
+void Sentinel::SetReplicationMonitoringSettings(
+    const ReplicationMonitoringSettings& replication_monitoring_settings) {
+  impl_->SetReplicationMonitoringSettings(replication_monitoring_settings);
+}
+
+void Sentinel::SetClusterAutoTopology(bool auto_topology) {
+  impl_->SetClusterAutoTopology(auto_topology);
 }
 
 std::vector<Request> Sentinel::MakeRequests(
@@ -326,21 +369,13 @@ CommandControl Sentinel::GetCommandControl(const CommandControl& cc) const {
       .MergeWith(testsuite_redis_control_);
 }
 
+PublishSettings Sentinel::GetPublishSettings() const {
+  return impl_->GetPublishSettings();
+}
+
 void Sentinel::SetConfigDefaultCommandControl(
     const std::shared_ptr<CommandControl>& cc) {
   config_default_command_control_.Set(cc);
-}
-
-size_t Sentinel::GetPublishShard(PubShard policy) {
-  switch (policy) {
-    case PubShard::kZeroShard:
-      return 0;
-
-    case PubShard::kRoundRobin:
-      return ++publish_shard_ % impl_->ShardsCount();
-  }
-
-  return 0;
 }
 
 std::vector<std::shared_ptr<const Shard>> Sentinel::GetMasterShards() const {

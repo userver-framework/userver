@@ -67,6 +67,14 @@ void PrintTo(const Decimal<Prec, RoundPolicy>& v, std::ostream* os) {
 
 USERVER_NAMESPACE_END
 
+#ifndef NDEBUG
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define DISABLED_IN_DEBUG_TEST_NAME(name) DISABLED_##name
+#else
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define DISABLED_IN_DEBUG_TEST_NAME(name) name
+#endif
+
 #ifdef __APPLE__
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define DISABLED_IN_MAC_OS_TEST_NAME(name) DISABLED_##name
@@ -100,7 +108,8 @@ USERVER_NAMESPACE_END
 /// @snippet core/src/engine/semaphore_test.cpp  UTEST macro example 1
 /// @snippet core/src/engine/semaphore_test.cpp  UTEST macro example 2
 ///
-/// See @ref md_en_userver_testing for more usage examples and descriptions
+/// See @ref scripts/docs/en/userver/testing.md for more usage examples and
+/// descriptions
 /// @{
 
 /// @brief An equivalent of the gtest macro TEST that starts the test body as a
@@ -108,14 +117,14 @@ USERVER_NAMESPACE_END
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define UTEST(test_suite_name, test_name) \
-  IMPL_UTEST_TEST(test_suite_name, test_name, 1)
+  IMPL_UTEST_TEST(test_suite_name, test_name, 1, false)
 
 /// @brief An equivalent of the gtest macro TEST for death tests that starts the
 /// test body as a coroutine task
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define UTEST_DEATH(test_suite_name, test_name) \
-  IMPL_UTEST_DEATH_TEST(test_suite_name, test_name, 1)
+  IMPL_UTEST_TEST(test_suite_name, test_name, 1, true)
 
 /// @brief An equivalent of the gtest macro TEST that starts the test body as a
 /// coroutine task
@@ -123,14 +132,21 @@ USERVER_NAMESPACE_END
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define UTEST_MT(test_suite_name, test_name, thread_count) \
-  IMPL_UTEST_TEST(test_suite_name, test_name, thread_count)
+  IMPL_UTEST_TEST(test_suite_name, test_name, thread_count, false)
 
 /// @brief An equivalent of the gtest macro TEST_F that starts the test body as
 /// a coroutine task
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define UTEST_F(test_suite_name, test_name) \
-  IMPL_UTEST_TEST_F(test_suite_name, test_name, 1)
+  IMPL_UTEST_TEST_F(test_suite_name, test_name, 1, false)
+
+/// @brief An equivalent of the gtest macro TEST_F for death tests that starts
+/// the test body as a coroutine task
+/// @hideinitializer
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define UTEST_F_DEATH(test_suite_name, test_name) \
+  IMPL_UTEST_TEST_F(test_suite_name, test_name, 1, true)
 
 /// @brief An equivalent of the gtest macro TEST_F that starts the test body as
 /// a coroutine task
@@ -138,28 +154,28 @@ USERVER_NAMESPACE_END
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define UTEST_F_MT(test_suite_name, test_name, thread_count) \
-  IMPL_UTEST_TEST_F(test_suite_name, test_name, thread_count)
+  IMPL_UTEST_TEST_F(test_suite_name, test_name, thread_count, false)
 
 /// @brief An equivalent of the gtest macro TEST_P that starts the test body as
 /// a coroutine task
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define UTEST_P(test_suite_name, test_name) \
-  IMPL_UTEST_TEST_P(test_suite_name, test_name, 1)
+  IMPL_UTEST_TEST_P(test_suite_name, test_name, 1, false)
 
 /// @brief An equivalent of the gtest macro TEST_P that starts the test body as
 /// a coroutine task
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define UTEST_P_MT(test_suite_name, test_name, thread_count) \
-  IMPL_UTEST_TEST_P(test_suite_name, test_name, thread_count)
+  IMPL_UTEST_TEST_P(test_suite_name, test_name, thread_count, false)
 
 /// @brief An equivalent of the gtest macro TYPED_TEST that starts the test body
 /// as a coroutine task
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define TYPED_UTEST(test_suite_name, test_name) \
-  IMPL_UTEST_TYPED_TEST(test_suite_name, test_name, 1)
+  IMPL_UTEST_TYPED_TEST(test_suite_name, test_name, 1, false)
 
 /// @brief An equivalent of the gtest macro TYPED_TEST that starts the test body
 /// as a coroutine task
@@ -167,14 +183,14 @@ USERVER_NAMESPACE_END
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define TYPED_UTEST_MT(test_suite_name, test_name, thread_count) \
-  IMPL_UTEST_TYPED_TEST(test_suite_name, test_name, thread_count)
+  IMPL_UTEST_TYPED_TEST(test_suite_name, test_name, thread_count, false)
 
 /// @brief An equivalent of the gtest macro TYPED_TEST_P that starts the test
 /// body as a coroutine task
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define TYPED_UTEST_P(test_suite_name, test_name) \
-  IMPL_UTEST_TYPED_TEST_P(test_suite_name, test_name, 1)
+  IMPL_UTEST_TYPED_TEST_P(test_suite_name, test_name, 1, false)
 
 /// @brief An equivalent of the gtest macro TYPED_TEST_P that starts the test
 /// body as a coroutine task
@@ -182,43 +198,42 @@ USERVER_NAMESPACE_END
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define TYPED_UTEST_P_MT(test_suite_name, test_name, thread_count) \
-  IMPL_UTEST_TYPED_TEST_P(test_suite_name, test_name, thread_count)
+  IMPL_UTEST_TYPED_TEST_P(test_suite_name, test_name, thread_count, false)
 
 /// @brief An equivalent of the gtest macro TYPED_TEST_SUITE that starts the
 /// test body as a coroutine task
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define TYPED_UTEST_SUITE(test_suite_name, types)                           \
-  IMPL_UTEST_MAKE_USER_FIXTURE_ALIAS_TYPED(test_suite_name);                \
-  namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {                    \
-    IMPL_UTEST_HIDE_USER_FIXTURE_BY_TEST_LAUNCHER_TYPED(test_suite_name)    \
-    TYPED_TEST_SUITE(test_suite_name, types,                                \
-                     USERVER_NAMESPACE::utest::impl::DefaultNameGenerator); \
-  }                                                                         \
+#define TYPED_UTEST_SUITE(test_suite_name, types)                         \
+  IMPL_UTEST_MAKE_USER_FIXTURE_ALIAS_TYPED(test_suite_name);              \
+  namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {                  \
+  IMPL_UTEST_HIDE_USER_FIXTURE_BY_TEST_LAUNCHER_TYPED(test_suite_name)    \
+  TYPED_TEST_SUITE(test_suite_name, types,                                \
+                   USERVER_NAMESPACE::utest::impl::DefaultNameGenerator); \
+  }                                                                       \
   struct UtestImplForceSemicolon
 
 /// @brief An equivalent of the gtest macro INSTANTIATE_TEST_SUITE_P that starts
 /// the test body as a coroutine task
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define INSTANTIATE_UTEST_SUITE_P(prefix, test_suite_name, ...)     \
-  IMPL_UTEST_MAKE_USER_FIXTURE_ALIAS(test_suite_name);              \
-  namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {            \
-    IMPL_UTEST_HIDE_USER_FIXTURE_BY_TEST_LAUNCHER(                  \
-        test_suite_name,                                            \
-        USERVER_NAMESPACE::utest::impl::TestLauncherParametric)     \
-    INSTANTIATE_TEST_SUITE_P(prefix, test_suite_name, __VA_ARGS__); \
-  }                                                                 \
+#define INSTANTIATE_UTEST_SUITE_P(prefix, test_suite_name, ...)                \
+  IMPL_UTEST_MAKE_USER_FIXTURE_ALIAS(test_suite_name);                         \
+  namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {                       \
+  IMPL_UTEST_HIDE_USER_FIXTURE_BY_TEST_LAUNCHER(                               \
+      test_suite_name, USERVER_NAMESPACE::utest::impl::TestLauncherParametric) \
+  INSTANTIATE_TEST_SUITE_P(prefix, test_suite_name, __VA_ARGS__);              \
+  }                                                                            \
   struct UtestImplForceSemicolon
 
 /// @brief An equivalent of the gtest macro REGISTER_TYPED_TEST_SUITE_P that
 /// starts the test body as a coroutine task
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define REGISTER_TYPED_UTEST_SUITE_P(test_suite_name, ...)     \
-  namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {       \
-    REGISTER_TYPED_TEST_SUITE_P(test_suite_name, __VA_ARGS__); \
-  }                                                            \
+#define REGISTER_TYPED_UTEST_SUITE_P(test_suite_name, ...)   \
+  namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {     \
+  REGISTER_TYPED_TEST_SUITE_P(test_suite_name, __VA_ARGS__); \
+  }                                                          \
   struct UtestImplForceSemicolon
 
 /// @brief An equivalent of the gtest macro INSTANTIATE_TYPED_TEST_SUITE_P that
@@ -227,9 +242,9 @@ USERVER_NAMESPACE_END
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define INSTANTIATE_TYPED_UTEST_SUITE_P(prefix, test_suite_name, types) \
   namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {                \
-    INSTANTIATE_TYPED_TEST_SUITE_P(                                     \
-        prefix, test_suite_name, types,                                 \
-        USERVER_NAMESPACE::utest::impl::DefaultNameGenerator);          \
+  INSTANTIATE_TYPED_TEST_SUITE_P(                                       \
+      prefix, test_suite_name, types,                                   \
+      USERVER_NAMESPACE::utest::impl::DefaultNameGenerator);            \
   }                                                                     \
   struct UtestImplForceSemicolon
 
@@ -237,11 +252,11 @@ USERVER_NAMESPACE_END
 /// test body as a coroutine task
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define TYPED_UTEST_SUITE_P(test_suite_name)                             \
-  IMPL_UTEST_MAKE_USER_FIXTURE_ALIAS_TYPED(test_suite_name);             \
-  namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {                 \
-    IMPL_UTEST_HIDE_USER_FIXTURE_BY_TEST_LAUNCHER_TYPED(test_suite_name) \
-    TYPED_TEST_SUITE_P(test_suite_name);                                 \
-  }                                                                      \
+#define TYPED_UTEST_SUITE_P(test_suite_name)                           \
+  IMPL_UTEST_MAKE_USER_FIXTURE_ALIAS_TYPED(test_suite_name);           \
+  namespace IMPL_UTEST_NAMESPACE_NAME(test_suite_name) {               \
+  IMPL_UTEST_HIDE_USER_FIXTURE_BY_TEST_LAUNCHER_TYPED(test_suite_name) \
+  TYPED_TEST_SUITE_P(test_suite_name);                                 \
+  }                                                                    \
   struct UtestImplForceSemicolon
 /// @}

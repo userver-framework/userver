@@ -33,7 +33,9 @@ namespace ugrpc::client {
 /// service config should be distributed via the name resolution process.
 /// We allow setting default service_config: pass desired JSON literal
 /// to `default-service-config` parameter
-///
+
+// clang-format off
+
 /// ## Static options:
 /// The default component name for static config is `"grpc-client-factory"`.
 ///
@@ -45,10 +47,17 @@ namespace ugrpc::client {
 /// auth-type | authentication method, see above | -
 /// default-service-config | default service config, see above | -
 /// channel-count | Number of underlying grpc::Channel objects | 1
+/// middlewares | middlewares names to use | []
+///
 ///
 /// @see https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
+
+// clang-format on
+
 class ClientFactoryComponent final : public components::LoggableComponentBase {
  public:
+  /// @ingroup userver_component_names
+  /// @brief The default name of ugrpc::client::middlewares::log::Component
   static constexpr std::string_view kName = "grpc-client-factory";
 
   ClientFactoryComponent(const components::ComponentConfig& config,

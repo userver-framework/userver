@@ -11,7 +11,7 @@ namespace testsuite::impl::actions {
 
 class TaskRun final : public BaseTestsuiteAction {
  public:
-  TaskRun(components::TestsuiteSupport& testsuite_support)
+  explicit TaskRun(components::TestsuiteSupport& testsuite_support)
       : tasks_(testsuite_support.GetTestsuiteTasks()) {}
 
   formats::json::Value Perform(
@@ -23,7 +23,7 @@ class TaskRun final : public BaseTestsuiteAction {
 
 class TaskSpawn final : public BaseTestsuiteAction {
  public:
-  TaskSpawn(components::TestsuiteSupport& testsuite_support)
+  explicit TaskSpawn(components::TestsuiteSupport& testsuite_support)
       : tasks_(testsuite_support.GetTestsuiteTasks()) {}
 
   formats::json::Value Perform(
@@ -35,7 +35,7 @@ class TaskSpawn final : public BaseTestsuiteAction {
 
 class TaskStop final : public BaseTestsuiteAction {
  public:
-  TaskStop(components::TestsuiteSupport& testsuite_support)
+  explicit TaskStop(components::TestsuiteSupport& testsuite_support)
       : tasks_(testsuite_support.GetTestsuiteTasks()) {}
 
   formats::json::Value Perform(
@@ -47,7 +47,7 @@ class TaskStop final : public BaseTestsuiteAction {
 
 class TasksList final : public BaseTestsuiteAction {
  public:
-  TasksList(components::TestsuiteSupport& testsuite_support)
+  explicit TasksList(components::TestsuiteSupport& testsuite_support)
       : tasks_(testsuite_support.GetTestsuiteTasks()) {}
 
   formats::json::Value Perform(

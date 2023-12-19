@@ -7,8 +7,11 @@
 #include <string>
 #include <utility>
 
+#include <fmt/format.h>
+
 #include <userver/cache/cache_update_trait.hpp>
 #include <userver/cache/exceptions.hpp>
+#include <userver/compiler/demangle.hpp>
 #include <userver/components/component_fwd.hpp>
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/concurrent/async_event_channel.hpp>
@@ -17,7 +20,9 @@
 #include <userver/dump/operations.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/rcu/rcu.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/utils/impl/wait_token_storage.hpp>
+#include <userver/utils/meta.hpp>
 #include <userver/utils/shared_readable_ptr.hpp>
 #include <userver/yaml_config/schema.hpp>
 
@@ -32,12 +37,16 @@ namespace components {
 /// @brief Base class for caching components
 ///
 /// Provides facilities for creating periodically updated caches.
-/// You need to override CacheUpdateTrait::Update
-/// then call CacheUpdateTrait::StartPeriodicUpdates after setup
-/// and CacheUpdateTrait::StopPeriodicUpdates before teardown.
+/// You need to override cache::CacheUpdateTrait::Update
+/// then call cache::CacheUpdateTrait::StartPeriodicUpdates after setup
+/// and cache::CacheUpdateTrait::StopPeriodicUpdates before teardown.
+/// You can also override cache::CachingComponentBase::PreAssignCheck and set
+/// has-pre-assign-check: true in the static config to enable check.
 ///
 /// Caching components must be configured in service config (see options below)
 /// and may be reconfigured dynamically via components::DynamicConfig.
+///
+/// @ref scripts/docs/en/userver/caches.md provide a more detailed introduction.
 ///
 /// ## Dynamic config
 /// * @ref USERVER_CACHES
@@ -50,13 +59,20 @@ namespace components {
 /// update-interval | (*required*) interval between Update invocations | --
 /// update-jitter | max. amount of time by which interval may be adjusted for requests dispersal | update_interval / 10
 /// full-update-interval | interval between full updates | --
+/// updates-enabled | if false, cache updates are disabled (except for the first one if !first-update-fail-ok) | true
 /// first-update-fail-ok | whether first update failure is non-fatal | false
 /// task-processor | the name of the TaskProcessor for running DoWork | main-task-processor
 /// config-settings | enables dynamic reconfiguration with CacheConfigSet | true
+/// exception-interval | Used instead of `update-interval` in case of exception | update_interval
 /// additional-cleanup-interval | how often to run background RCU garbage collector | 10 seconds
 /// is-strong-period | whether to include Update execution time in update-interval | false
 /// testsuite-force-periodic-update | override testsuite-periodic-update-enabled in TestsuiteSupport component config | --
-///
+/// failed-updates-before-expiration | the number of consecutive failed updates for data expiration | --
+/// has-pre-assign-check | enables the check before changing the value in the cache, by default it is the check that the new value is not empty | false
+/// alert-on-failing-to-update-times | fire an alert if the cache update failed specified amount of times in a row. If zero - alerts are disabled. Value from dynamic config takes priority over static | 0
+/// dump.* | Manages cache behavior after dump load | -
+/// dump.first-update-mode | Behavior of update after successful load from dump. See info on modes below | skip
+/// dump.first-update-type | Update type after successful load from dump (`full`, `incremental` or `incremental-then-async-full`) | full
 /// ### Update types
 ///  * `full-and-incremental`: both `update-interval` and `full-update-interval`
 ///    must be specified. Updates with UpdateType::kIncremental will be triggered
@@ -68,6 +84,25 @@ namespace components {
 ///    on the first update, afterwards UpdateType::kIncremental will be triggered
 ///    each `update-interval` (adjusted by jitter).
 ///
+/// ### Avoiding memory leaks
+/// If you don't implement the deletion of objects that are deleted from the data source and don't use full updates,
+/// you may get an effective memory leak, because garbage objects will pile up in the cached data.
+///
+/// Calculation example:
+/// * size of database: 1000 objects
+/// * removal rate: 30 objects per minute (0.5 objects per second)
+///
+/// Let's say we allow 20% extra garbage objects in cache in addition to the actual objects from the database. In this case we need:
+///
+/// full-update-interval = (size-of-database * 20% / removal-rate) = 400s
+///
+/// ### `first-update-mode` modes
+/// Mode          | Description
+/// ------------- | -----------
+/// `skip`        | after successful load from dump, do nothing
+/// `required`    | make a synchronous update of type `first-update-type`, stop the service on failure
+/// `best-effort` | make a synchronous update of type `first-update-type`, keep working and use data from dump on failure
+///
 /// ### testsuite-force-periodic-update
 ///  use it to enable periodic cache update for a component in testsuite environment
 ///  where testsuite-periodic-update-enabled from TestsuiteSupport config is false
@@ -78,6 +113,9 @@ namespace components {
 ///
 /// @see `dump::Dumper` for more info on persistent cache dumps and
 /// corresponding config options.
+///
+/// @see @ref scripts/docs/en/userver/caches.md. pytest_userver.client.Client.invalidate_caches()
+/// for a function to force cache update from testsuite.
 
 // clang-format on
 
@@ -138,8 +176,16 @@ class CachingComponentBase : public LoggableComponentBase,
 
   void Cleanup() final;
 
+  void MarkAsExpired() final;
+
   void GetAndWrite(dump::Writer& writer) const final;
   void ReadAndSet(dump::Reader& reader) final;
+
+  /// @brief If the option has-pre-assign-check is set true in static config,
+  /// this function is called before assigning the new value to the cache
+  /// @note old_value_ptr and new_value_ptr can be nullptr.
+  virtual void PreAssignCheck(const T* old_value_ptr,
+                              const T* new_value_ptr) const;
 
   rcu::Variable<std::shared_ptr<const T>> cache_;
   concurrent::AsyncEventChannel<const std::shared_ptr<const T>&> event_channel_;
@@ -151,7 +197,11 @@ CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
                                               const ComponentContext& context)
     : LoggableComponentBase(config, context),
       cache::CacheUpdateTrait(config, context),
-      event_channel_(components::GetCurrentComponentName(config)) {
+      event_channel_(components::GetCurrentComponentName(config),
+                     [this](auto& function) {
+                       const auto ptr = cache_.ReadCopy();
+                       if (ptr) function(ptr);
+                     }) {
   const auto initial_config = GetConfig();
 }
 
@@ -213,6 +263,12 @@ void CachingComponentBase<T>::Set(std::unique_ptr<const T> value_ptr) {
 
   const std::shared_ptr<const T> new_value(value_ptr.release(),
                                            std::move(deleter));
+
+  if (HasPreAssignCheck()) {
+    auto old_value = cache_.Read();
+    PreAssignCheck(old_value->get(), new_value.get());
+  }
+
   cache_.Assign(new_value);
   event_channel_.SendEvent(new_value);
   OnCacheModified();
@@ -282,6 +338,11 @@ void CachingComponentBase<T>::Cleanup() {
   cache_.Cleanup();
 }
 
+template <typename T>
+void CachingComponentBase<T>::MarkAsExpired() {
+  Set(std::unique_ptr<const T>{});
+}
+
 namespace impl {
 
 yaml_config::Schema GetCachingComponentBaseSchema();
@@ -291,6 +352,23 @@ yaml_config::Schema GetCachingComponentBaseSchema();
 template <typename T>
 yaml_config::Schema CachingComponentBase<T>::GetStaticConfigSchema() {
   return impl::GetCachingComponentBaseSchema();
+}
+
+template <typename T>
+void CachingComponentBase<T>::PreAssignCheck(
+    const T*, [[maybe_unused]] const T* new_value_ptr) const {
+  UINVARIANT(
+      meta::kIsSizable<T>,
+      fmt::format("{} type does not support std::size(), add implementation of "
+                  "the method size() for this type or "
+                  "override cache::CachingComponentBase::PreAssignCheck.",
+                  compiler::GetTypeName<T>()));
+
+  if constexpr (meta::kIsSizable<T>) {
+    if (!new_value_ptr || std::size(*new_value_ptr) == 0) {
+      throw cache::EmptyDataError(Name());
+    }
+  }
 }
 
 }  // namespace components

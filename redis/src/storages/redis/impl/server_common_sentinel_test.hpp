@@ -1,8 +1,12 @@
 #pragma once
 
-#include <userver/storages/redis/impl/sentinel.hpp>
+#include <userver/dynamic_config/test_helpers.hpp>
+#include <userver/storages/redis/impl/secdist_redis.hpp>
 #include <userver/storages/redis/impl/thread_pools.hpp>
-#include "mock_server_test.hpp"
+
+#include <storages/redis/dynamic_config.hpp>
+#include <storages/redis/impl/mock_server_test.hpp>
+#include <storages/redis/impl/sentinel.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -32,9 +36,9 @@ class SentinelTest {
   const std::string& RedisName() const { return redis_name_; }
 
  private:
-  MockRedisServerArray InitServerArray(size_t size,
-                                       const std::string& description,
-                                       std::optional<int> magic_value_add = {});
+  static MockRedisServerArray InitServerArray(
+      size_t size, const std::string& description,
+      std::optional<int> magic_value_add = {});
   void InitSentinelServers();
   void CreateSentinelClient();
 
@@ -71,10 +75,10 @@ class SentinelShardTest {
   }
 
  private:
-  std::vector<std::string> InitRedisNames(size_t shard_count) const;
-  MockRedisServerArray InitServerArray(size_t size,
-                                       const std::string& description,
-                                       std::optional<int> magic_value_add = {});
+  static std::vector<std::string> InitRedisNames(size_t shard_count);
+  static MockRedisServerArray InitServerArray(
+      size_t size, const std::string& description,
+      std::optional<int> magic_value_add = {});
   void InitSentinelServers(size_t shard_count);
   void CreateSentinelClient();
 

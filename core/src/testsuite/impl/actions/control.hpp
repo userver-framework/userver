@@ -1,7 +1,6 @@
 #pragma once
 
 #include <userver/testsuite/testsuite_support.hpp>
-#include <userver/utils/statistics/fwd.hpp>
 
 #include <testsuite/impl/actions/base.hpp>
 
@@ -24,7 +23,6 @@ class Control final : public BaseTestsuiteAction {
 
  private:
   components::TestsuiteSupport& testsuite_support_;
-  utils::statistics::MetricsStoragePtr metrics_storage_;
   components::Logging& logging_component_;
   const bool testpoint_supported_;
 };

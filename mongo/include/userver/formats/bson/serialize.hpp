@@ -7,12 +7,26 @@
 #include <string>
 #include <string_view>
 
+#include <fmt/core.h>
+
 #include <userver/compiler/select.hpp>
 #include <userver/formats/bson/document.hpp>
 #include <userver/formats/bson/value.hpp>
+#include <userver/formats/json_fwd.hpp>
+#include <userver/logging/log_helper_fwd.hpp>
 #include <userver/utils/fast_pimpl.hpp>
+#include <userver/utils/fmt_compat.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace formats::parse {
+
+formats::json::Value Convert(const formats::bson::Value& bson,
+                             formats::parse::To<formats::json::Value>);
+formats::bson::Value Convert(const formats::json::Value& json,
+                             formats::parse::To<formats::bson::Value>);
+
+}  // namespace formats::parse
 
 namespace formats::bson {
 
@@ -92,6 +106,34 @@ class JsonString {
 
 std::ostream& operator<<(std::ostream&, const JsonString&);
 
+logging::LogHelper& operator<<(logging::LogHelper&, const JsonString&);
+
+/// Uses formats::bson::ToRelaxedJsonString representation by default.
+logging::LogHelper& operator<<(logging::LogHelper&, const Document&);
+
 }  // namespace formats::bson
 
 USERVER_NAMESPACE_END
+
+template <>
+struct fmt::formatter<USERVER_NAMESPACE::formats::bson::JsonString>
+    : public fmt::formatter<std::string_view> {
+  template <typename FormatContext>
+  auto format(const USERVER_NAMESPACE::formats::bson::JsonString& json,
+              FormatContext& ctx) USERVER_FMT_CONST {
+    return fmt::formatter<std::string_view>::format(json.GetView(), ctx);
+  }
+};
+
+/// Uses formats::bson::ToRelaxedJsonString representation by default.
+template <>
+struct fmt::formatter<USERVER_NAMESPACE::formats::bson::Document>
+    : public fmt::formatter<std::string_view> {
+  template <typename FormatContext>
+  auto format(const USERVER_NAMESPACE::formats::bson::Document& bson,
+              FormatContext& ctx) USERVER_FMT_CONST {
+    return fmt::formatter<std::string_view>::format(
+        USERVER_NAMESPACE::formats::bson::ToRelaxedJsonString(bson).GetView(),
+        ctx);
+  }
+};

@@ -25,7 +25,7 @@ namespace storages::redis {
 /// Please create clients with `std::make_shared`.
 /// Otherwise `Multi()` command will not work in mocked client.
 /// You should override methods for redis commands used in test.
-/// In overriden methods you can use `CreateMockRequest*` helpers.
+/// In overridden methods you can use `CreateMockRequest*` helpers.
 /// Examples (for `Hget` command):
 /// `return storages::redis::CreateMockRequest<
 ///    storages::redis::RequestHget>(std::string{"value"});`
@@ -70,6 +70,12 @@ class MockClientBase : public Client,
   RequestDel Del(std::vector<std::string> keys,
                  const CommandControl& command_control) override;
 
+  RequestUnlink Unlink(std::string key,
+                       const CommandControl& command_control) override;
+
+  RequestUnlink Unlink(std::vector<std::string> keys,
+                       const CommandControl& command_control) override;
+
   RequestEvalCommon EvalCommon(std::string script,
                                std::vector<std::string> keys,
                                std::vector<std::string> args,
@@ -97,9 +103,28 @@ class MockClientBase : public Client,
   RequestGeoadd Geoadd(std::string key, std::vector<GeoaddArg> point_members,
                        const CommandControl& command_control) override;
 
-  RequestGeoradius Georadius(std::string key, double lon, double lat,
+  RequestGeoradius Georadius(std::string key, Longitude lon, Latitude lat,
                              double radius,
                              const GeoradiusOptions& georadius_options,
+                             const CommandControl& command_control) override;
+
+  RequestGeosearch Geosearch(std::string key, std::string member, double radius,
+                             const GeosearchOptions& geosearch_options,
+                             const CommandControl& command_control) override;
+
+  RequestGeosearch Geosearch(std::string key, std::string member,
+                             BoxWidth width, BoxHeight height,
+                             const GeosearchOptions& geosearch_options,
+                             const CommandControl& command_control) override;
+
+  RequestGeosearch Geosearch(std::string key, Longitude lon, Latitude lat,
+                             double radius,
+                             const GeosearchOptions& geosearch_options,
+                             const CommandControl& command_control) override;
+
+  RequestGeosearch Geosearch(std::string key, Longitude lon, Latitude lat,
+                             BoxWidth width, BoxHeight height,
+                             const GeosearchOptions& geosearch_options,
                              const CommandControl& command_control) override;
 
   RequestGet Get(std::string key,
@@ -210,6 +235,9 @@ class MockClientBase : public Client,
 
   void Publish(std::string channel, std::string message,
                const CommandControl& command_control, PubShard policy) override;
+
+  void Spublish(std::string channel, std::string message,
+                const CommandControl& command_control) override;
 
   RequestRename Rename(std::string key, std::string new_key,
                        const CommandControl& command_control) override;
@@ -325,6 +353,9 @@ class MockClientBase : public Client,
 
   RequestZcard Zcard(std::string key,
                      const CommandControl& command_control) override;
+
+  RequestZcount Zcount(std::string key, double min, double max,
+                       const CommandControl& command_control) override;
 
   RequestZrange Zrange(std::string key, int64_t start, int64_t stop,
                        const CommandControl& command_control) override;

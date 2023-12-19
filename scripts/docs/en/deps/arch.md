@@ -2,7 +2,6 @@ benchmark
 boost
 c-ares
 ccache
-cctz
 cmake
 crypto++
 curl
@@ -14,9 +13,10 @@ hiredis
 http-parser
 jemalloc
 krb5
-libbacktrace-git
 libev
+libnghttp2
 mongo-c-driver
+ninja
 openssl
 postgresql
 postgresql-libs
@@ -27,6 +27,7 @@ python-pip
 python-virtualenv
 python-voluptuous
 python-yaml
-spdlog
 yaml-cpp
 zlib
+makepkg|cctz
+makepkg|libbacktrace-git

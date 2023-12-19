@@ -12,7 +12,7 @@ GET /service/inspect-requests?body=1
 ```
 Note that the server::handlers::InspectRequests handler lives at the separate
 `components.server.listener-monitor` address, so you have to request them using the
-`listener-monitor` credentials. See @ref md_en_userver_tutorial_production_service
+`listener-monitor` credentials. See @ref scripts/docs/en/userver/tutorial/production_service.md
 for more info on configuration and ideas on how to change the
 `/service/inspect-requests` handle path.
 
@@ -110,6 +110,6 @@ $ curl http://localhost:8085/internal/inspect-requests?body=1 | jq
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_log_level_running_service | @ref md_en_userver_service_monitor ⇨
+⇦ @ref scripts/docs/en/userver/log_level_running_service.md | @ref scripts/docs/en/userver/service_monitor.md ⇨
 @htmlonly </div> @endhtmlonly
 

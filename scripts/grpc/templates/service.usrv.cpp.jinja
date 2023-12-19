@@ -32,6 +32,7 @@ void {{service.name}}Base::{{method.name}}(
     {{method.name}}Call& call,
     [[maybe_unused]] {{ method.input_type | grpc_to_cpp_name }}&& request) {
     {% endif %}
+  UASSERT_MSG(false, "Called not implemented {{proto.package_prefix}}{{service.name}}/{{method.name}}");
   call.FinishWithError(USERVER_NAMESPACE::ugrpc::server::impl::kUnimplementedStatus);
 }
 {% endfor %}
@@ -39,7 +40,8 @@ void {{service.name}}Base::{{method.name}}(
 std::unique_ptr<USERVER_NAMESPACE::ugrpc::server::impl::ServiceWorker>
 {{service.name}}Base::MakeWorker(
     USERVER_NAMESPACE::ugrpc::server::impl::ServiceSettings&& settings) {
-  return USERVER_NAMESPACE::ugrpc::server::impl::MakeServiceWorker<{{service.name}}>(
+  return USERVER_NAMESPACE::ugrpc::server::impl::MakeServiceWorker<
+      {{proto.namespace}}::{{service.name}}>(
       std::move(settings), k{{service.name}}MethodNames, *this,
       {% for method in service.method %}
       &{{service.name}}Base::{{method.name}}{{ "," if not loop.last else ");" }}

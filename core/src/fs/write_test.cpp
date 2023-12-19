@@ -17,7 +17,7 @@ UTEST(AsyncFs, RewriteFileContentsAtomically) {
   const auto file = fs::blocking::TempFile::Create();
   fs::blocking::RewriteFileContents(file.GetPath(), "old long text");
 
-  const auto new_text = "new text";
+  const std::string new_text = "new text";
   auto& async_tp = engine::current_task::GetTaskProcessor();
 
   UEXPECT_NO_THROW(fs::RewriteFileContentsAtomically(
@@ -33,7 +33,7 @@ UTEST_MT(AsyncFs, RewriteFileContentsAtomicallyConcurrent, 4) {
   const auto file = fs::blocking::TempFile::Create();
   fs::blocking::RewriteFileContents(file.GetPath(), "old long text");
 
-  const auto new_text = "new text";
+  const std::string new_text = "new text";
   auto& async_tp = engine::current_task::GetTaskProcessor();
 
   std::vector<engine::TaskWithResult<void>> tasks;

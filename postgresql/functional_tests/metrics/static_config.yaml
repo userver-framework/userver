@@ -1,0 +1,80 @@
+# yaml
+components_manager:
+    components:
+        handler-metrics-postgres:
+            path: /metrics/postgres
+            task_processor: main-task-processor
+            method: GET,DELETE,POST
+
+        key-value-database:
+            dbconnection: 'postgresql://testsuite@localhost:15433/pg_key_value'
+            blocking_task_processor: fs-task-processor
+            dns_resolver: async
+
+        key-value-pg-cache:
+            pgcomponent: key-value-database
+            update-interval: 10s
+
+        component-distlock-metrics:
+            cluster: key-value-database
+            table: table-distlocks
+            lockname: foo
+            pg-timeout: 1s
+            lock-ttl: 10s
+            autostart: true
+            testsuite-support: true
+
+        testsuite-support:
+
+        http-client:
+            fs-task-processor: main-task-processor
+
+        tests-control:
+            method: POST
+            path: /tests/{action}
+            skip-unregistered-testpoints: true
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            testpoint-url: $mockserver/testpoint
+            throttling_enabled: false
+
+        server:
+            listener:
+                port: 8187
+                task_processor: main-task-processor
+            listener-monitor:
+                port: $monitor-server-port
+                port#fallback: 8086
+                connection:
+                    in_buffer_size: 32768
+                    requests_queue_size_threshold: 100
+                task_processor: main-task-processor
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+
+        handler-server-monitor:
+            path: /service/monitor
+            method: GET
+            task_processor: main-task-processor
+
+        dynamic-config:
+            defaults:
+                POSTGRES_STATEMENT_METRICS_SETTINGS:
+                    key-value-database:
+                        max_statement_metrics: 5
+
+        dns-client:
+            fs-task-processor: fs-task-processor
+
+    task_processors:
+        main-task-processor:
+            worker_threads: 4
+        fs-task-processor:
+            worker_threads: 4
+
+    default_task_processor: main-task-processor

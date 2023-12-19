@@ -9,9 +9,18 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
 
+// NOLINTNEXTLINE(bugprone-forward-declaration-namespace)
 class Storage;
-class Entry;
+
+// TODO remove
 struct StatisticsRequest;
+
+// NOLINTNEXTLINE(bugprone-forward-declaration-namespace)
+class Request;
+
+// NOLINTNEXTLINE(bugprone-forward-declaration-namespace)
+class Entry;
+class Writer;
 
 class MetricsStorage;
 using MetricsStoragePtr = std::shared_ptr<MetricsStorage>;

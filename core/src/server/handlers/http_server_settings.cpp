@@ -1,30 +1,37 @@
 #include <server/handlers/http_server_settings.hpp>
 
+#include <userver/formats/json/value.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {
 
-namespace {
+/// [bool config sample]
+const dynamic_config::Key<bool> kLogRequest{"USERVER_LOG_REQUEST", true};
+/// [bool config sample]
 
-const std::string kLogRequest = "USERVER_LOG_REQUEST";
-const std::string kLogRequestHeaders = "USERVER_LOG_REQUEST_HEADERS";
-const std::string kCheckAuthInHandlers = "USERVER_CHECK_AUTH_IN_HANDLERS";
-const std::string kCancelHandleRequestByDeadline =
-    "USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE";
+const dynamic_config::Key<bool> kLogRequestHeaders{
+    "USERVER_LOG_REQUEST_HEADERS", false};
 
-}  // namespace
+const dynamic_config::Key<bool> kCancelHandleRequestByDeadline{
+    "USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE", false};
 
-HttpServerSettings HttpServerSettings::Parse(
-    const dynamic_config::DocsMap& docs_map) {
-  HttpServerSettings result{};
-  result.need_log_request = docs_map.Get(kLogRequest).As<bool>();
-  result.need_log_request_headers = docs_map.Get(kLogRequestHeaders).As<bool>();
-  result.need_check_auth_in_handlers =
-      docs_map.Get(kCheckAuthInHandlers).As<bool>();
-  result.need_cancel_handle_request_by_deadline =
-      docs_map.Get(kCancelHandleRequestByDeadline).As<bool>();
-  return result;
+CcCustomStatus Parse(const formats::json::Value& value,
+                     formats::parse::To<CcCustomStatus>) {
+  return CcCustomStatus{
+      static_cast<http::HttpStatus>(value["initial-status-code"].As<int>(429)),
+      std::chrono::milliseconds{
+          value["max-time-ms"].As<std::chrono::milliseconds::rep>(10000)},
+  };
 }
+
+const dynamic_config::Key<CcCustomStatus> kCcCustomStatus{
+    "USERVER_RPS_CCONTROL_CUSTOM_STATUS",
+    dynamic_config::DefaultAsJsonString{"{}"},
+};
+
+const dynamic_config::Key<bool> kStreamApiEnabled{
+    "USERVER_HANDLER_STREAM_API_ENABLED", false};
 
 }  // namespace server::handlers
 

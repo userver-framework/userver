@@ -59,7 +59,11 @@ class MutableBson {
  private:
   explicit MutableBson(bson_t* bson) : bson_(bson) {}
 
+// https://jira.mongodb.org/browse/CDRIVER-3378
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wignored-attributes"
   std::unique_ptr<bson_t, DocumentDeleter> bson_;
+#pragma GCC diagnostic pop
 };
 
 // This MUST be initialized externally
@@ -83,7 +87,11 @@ class UninitializedBson {
   }
 
  private:
+// https://jira.mongodb.org/browse/CDRIVER-3378
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wignored-attributes"
   RawPtr<bson_t> bson_;
+#pragma GCC diagnostic pop
 };
 
 class ArrayIndexer {

@@ -6,30 +6,136 @@
 #include <memory>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 #include <grpcpp/impl/codegen/proto_utils.h>
 
+#include <userver/dynamic_config/snapshot.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/clang_format_workarounds.hpp>
+#include <userver/utils/function_ref.hpp>
 
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/client/impl/async_methods.hpp>
+#include <userver/ugrpc/client/impl/call_params.hpp>
+#include <userver/ugrpc/client/impl/channel_cache.hpp>
+#include <userver/ugrpc/client/middlewares/fwd.hpp>
 #include <userver/ugrpc/impl/deadline_timepoint.hpp>
+#include <userver/ugrpc/impl/internal_tag_fwd.hpp>
 #include <userver/ugrpc/impl/statistics_scope.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
 
+/// @brief UnaryFuture for waiting a single response RPC
+class [[nodiscard]] UnaryFuture {
+ public:
+  /// @cond
+  explicit UnaryFuture(impl::RpcData& data) noexcept;
+  /// @endcond
+
+  UnaryFuture(UnaryFuture&&) noexcept = default;
+  UnaryFuture& operator=(UnaryFuture&&) noexcept;
+
+  ~UnaryFuture() noexcept;
+
+  /// @brief Await response
+  ///
+  /// Upon completion result is available in `response` when initiating the
+  /// asynchronous operation, e.g. FinishAsync.
+  ///
+  /// `Get` should not be called multiple times for the same UnaryFuture.
+  ///
+  /// @throws ugrpc::client::RpcError on an RPC error
+  /// @throws ugrpc::client::RpcCancelledError on task cancellation
+  void Get();
+
+  /// @brief Checks if the asynchronous call has completed
+  ///        Note, that once user gets result, IsReady should not be called
+  /// @return true if result ready
+  [[nodiscard]] bool IsReady() const noexcept;
+
+ private:
+  impl::FutureImpl impl_;
+};
+
+/// @brief StreamReadFuture for waiting a single read response from stream
+template <typename RPC>
+class [[nodiscard]] StreamReadFuture {
+ public:
+  /// @cond
+  explicit StreamReadFuture(impl::RpcData& data,
+                            typename RPC::RawStream& stream) noexcept;
+  /// @endcond
+
+  StreamReadFuture(StreamReadFuture&& other) noexcept = default;
+  StreamReadFuture& operator=(StreamReadFuture&& other) noexcept;
+
+  ~StreamReadFuture() noexcept;
+
+  /// @brief Await response
+  ///
+  /// Upon completion the result is available in `response` that was
+  /// specified when initiating the asynchronous read
+  ///
+  /// `Get` should not be called multiple times for the same StreamReadFuture.
+  ///
+  /// @throws ugrpc::client::RpcError on an RPC error
+  /// @throws ugrpc::client::RpcCancelledError on task cancellation
+  bool Get();
+
+  /// @brief Checks if the asynchronous call has completed
+  ///        Note, that once user gets result, IsReady should not be called
+  /// @return true if result ready
+  [[nodiscard]] bool IsReady() const noexcept;
+
+ private:
+  impl::FutureImpl impl_;
+  typename RPC::RawStream* stream_;
+};
+
+/// @brief Base class for any RPC
+class CallAnyBase {
+ protected:
+  /// @cond
+  CallAnyBase(impl::CallParams&& params)
+      : data_(std::make_unique<impl::RpcData>(std::move(params))) {}
+  /// @endcond
+
+ public:
+  /// @returns the `ClientContext` used for this RPC
+  grpc::ClientContext& GetContext();
+
+  /// @returns client name
+  std::string_view GetClientName() const;
+
+  /// @returns RPC name
+  std::string_view GetCallName() const;
+
+  /// @returns RPC span
+  tracing::Span& GetSpan();
+
+  /// @cond
+  // For internal use only
+  impl::RpcData& GetData(ugrpc::impl::InternalTag);
+  /// @endcond
+
+ protected:
+  impl::RpcData& GetData();
+
+ private:
+  std::unique_ptr<impl::RpcData> data_;
+};
+
 /// @brief Controls a single request -> single response RPC
 ///
 /// This class is not thread-safe except for `GetContext`.
 ///
-/// The RPC is cancelled on destruction unless `Finish` has been called. In that
-/// case the connection is not closed (it will be reused for new RPCs), and the
-/// server receives `RpcInterruptedError` immediately.
+/// The RPC is cancelled on destruction unless `Finish` or `FinishAsync`. In
+/// that case the connection is not closed (it will be reused for new RPCs), and
+/// the server receives `RpcInterruptedError` immediately.
 template <typename Response>
-class USERVER_NODISCARD UnaryCall final {
+class [[nodiscard]] UnaryCall final : public CallAnyBase {
  public:
   /// @brief Await and read the response
   ///
@@ -39,25 +145,32 @@ class USERVER_NODISCARD UnaryCall final {
   ///
   /// @returns the response on success
   /// @throws ugrpc::client::RpcError on an RPC error
+  /// @throws ugrpc::client::RpcCancelledError on task cancellation
   Response Finish();
 
-  /// @returns the `ClientContext` used for this RPC
-  grpc::ClientContext& GetContext();
+  /// @brief Asynchronously finish the call
+  ///
+  /// `FinishAsync` should not be called multiple times for the same RPC.
+  ///
+  /// `Finish` and `FinishAsync` should not be called together for the same RPC.
+  ///
+  /// @returns the future for the single response
+  UnaryFuture FinishAsync(Response& response);
 
-  /// For internal use only
+  /// @cond
+  // For internal use only
   template <typename Stub, typename Request>
   UnaryCall(
-      Stub& stub, grpc::CompletionQueue& queue,
+      impl::CallParams&& params, Stub& stub,
       impl::RawResponseReaderPreparer<Stub, Request, Response> prepare_func,
-      std::string_view call_name, std::unique_ptr<grpc::ClientContext> context,
-      ugrpc::impl::MethodStatistics& statistics, const Request& req);
+      const Request& req);
+  /// @endcond
 
   UnaryCall(UnaryCall&&) noexcept = default;
   UnaryCall& operator=(UnaryCall&&) noexcept = default;
   ~UnaryCall() = default;
 
  private:
-  impl::RpcData data_;
   impl::RawResponseReader<Response> reader_;
 };
 
@@ -66,53 +179,40 @@ class USERVER_NODISCARD UnaryCall final {
 /// This class is not thread-safe except for `GetContext`.
 ///
 /// The RPC is cancelled on destruction unless the stream is closed (`Read` has
-/// returned `false` or `Finish` has been called). In that case the connection
-/// is not closed (it will be reused for new RPCs), and the server receives
-/// `RpcInterruptedError` immediately.
+/// returned `false`). In that case the connection is not closed (it will be
+/// reused for new RPCs), and the server receives `RpcInterruptedError`
+/// immediately. gRPC provides no way to early-close a server-streaming RPC
+/// gracefully.
 ///
 /// If any method throws, further methods must not be called on the same stream,
 /// except for `GetContext`.
 template <typename Response>
-class USERVER_NODISCARD InputStream final {
+class [[nodiscard]] InputStream final : public CallAnyBase {
  public:
   /// @brief Await and read the next incoming message
   ///
   /// On end-of-input, `Finish` is called automatically.
   ///
   /// @param response where to put response on success
-  /// @returns `true` on success, `false` on end-of-input
+  /// @returns `true` on success, `false` on end-of-input or task cancellation
   /// @throws ugrpc::client::RpcError on an RPC error
   [[nodiscard]] bool Read(Response& response);
 
-  /// @brief Complete the RPC successfully
-  ///
-  /// Should be called if `Read` has not returned `false`, but all the needed
-  /// data is read.
-  ///
-  /// `Finish` should not be called multiple times.
-  ///
-  /// The connection is not closed, it will be reused for new RPCs.
-  ///
-  /// @throws ugrpc::client::RpcError on an RPC error
-  void Finish();
+  /// @cond
+  // For internal use only
+  using RawStream = grpc::ClientAsyncReader<Response>;
 
-  /// @returns the `ClientContext` used for this RPC
-  grpc::ClientContext& GetContext();
-
-  /// For internal use only
   template <typename Stub, typename Request>
-  InputStream(Stub& stub, grpc::CompletionQueue& queue,
+  InputStream(impl::CallParams&& params, Stub& stub,
               impl::RawReaderPreparer<Stub, Request, Response> prepare_func,
-              std::string_view call_name,
-              std::unique_ptr<grpc::ClientContext> context,
-              ugrpc::impl::MethodStatistics& statistics, const Request& req);
+              const Request& req);
+  /// @endcond
 
   InputStream(InputStream&&) noexcept = default;
   InputStream& operator=(InputStream&&) noexcept = default;
   ~InputStream() = default;
 
  private:
-  impl::RpcData data_;
   impl::RawReader<Response> stream_;
 };
 
@@ -127,7 +227,7 @@ class USERVER_NODISCARD InputStream final {
 /// If any method throws, further methods must not be called on the same stream,
 /// except for `GetContext`.
 template <typename Request, typename Response>
-class USERVER_NODISCARD OutputStream final {
+class [[nodiscard]] OutputStream final : public CallAnyBase {
  public:
   /// @brief Write the next outgoing message
   ///
@@ -135,8 +235,24 @@ class USERVER_NODISCARD OutputStream final {
   /// deallocated right after the call.
   ///
   /// @param request the next message to write
+  /// @return true if the data is going to the wire; false if the write
+  ///         operation failed (including due to task cancellation),
+  ///         in which case no more writes will be accepted,
+  ///         and the error details can be fetched from Finish
+  [[nodiscard]] bool Write(const Request& request);
+
+  /// @brief Write the next outgoing message and check result
+  ///
+  /// `WriteAndCheck` doesn't store any references to `request`, so it can be
+  /// deallocated right after the call.
+  ///
+  /// `WriteAndCheck` verifies result of the write and generates exception
+  /// in case of issues.
+  ///
+  /// @param request the next message to write
   /// @throws ugrpc::client::RpcError on an RPC error
-  void Write(const Request& request);
+  /// @throws ugrpc::client::RpcCancelledError on task cancellation
+  void WriteAndCheck(const Request& request);
 
   /// @brief Complete the RPC successfully
   ///
@@ -149,51 +265,74 @@ class USERVER_NODISCARD OutputStream final {
   ///
   /// @returns the single `Response` received after finishing the writes
   /// @throws ugrpc::client::RpcError on an RPC error
+  /// @throws ugrpc::client::RpcCancelledError on task cancellation
   Response Finish();
 
-  /// @returns the `ClientContext` used for this RPC
-  grpc::ClientContext& GetContext();
+  /// @cond
+  // For internal use only
+  using RawStream = grpc::ClientAsyncWriter<Request>;
 
-  /// For internal use only
   template <typename Stub>
-  OutputStream(Stub& stub, grpc::CompletionQueue& queue,
-               impl::RawWriterPreparer<Stub, Request, Response> prepare_func,
-               std::string_view call_name,
-               std::unique_ptr<grpc::ClientContext> context,
-               ugrpc::impl::MethodStatistics& statistics);
+  OutputStream(impl::CallParams&& params, Stub& stub,
+               impl::RawWriterPreparer<Stub, Request, Response> prepare_func);
+  /// @endcond
 
   OutputStream(OutputStream&&) noexcept = default;
   OutputStream& operator=(OutputStream&&) noexcept = default;
   ~OutputStream() = default;
 
  private:
-  impl::RpcData data_;
   std::unique_ptr<Response> final_response_;
   impl::RawWriter<Request> stream_;
 };
 
 /// @brief Controls a request stream -> response stream RPC
 ///
-/// This class is not thread-safe except for `GetContext`.
+/// This class allows the following concurrent calls:
+///   - `GetContext`
+///   - Concurrent call of one of (`Read`, `ReadAsync`) with one of (`Write`,
+///     `WritesDone`)
+/// `WriteAndCheck` is not thread-safe
 ///
 /// The RPC is cancelled on destruction unless the stream is closed (`Read` has
-/// returned `false` or `Finish` has been called). In that case the connection
-/// is not closed (it will be reused for new RPCs), and the server receives
-/// `RpcInterruptedError` immediately.
+/// returned `false`). In that case the connection is not closed (it will be
+/// reused for new RPCs), and the server receives `RpcInterruptedError`
+/// immediately. gRPC provides no way to early-close a server-streaming RPC
+/// gracefully.
 ///
-/// If any method throws, further methods must not be called on the same stream,
-/// except for `GetContext`.
+/// `Read` and `AsyncRead` can throw if error status is received from server.
+/// User MUST NOT call `Read` or `AsyncRead` again after failure of any of these
+/// operations.
+///
+/// `Write` and `WritesDone` methods do not throw, but indicate issues with
+/// the RPC by returning `false`.
+///
+/// `WriteAndCheck` is intended for ping-pong scenarios, when after write
+/// operation the user calls `Read` and vice versa.
+///
+/// If `Write` or `WritesDone` returns negative result, the user MUST NOT call
+/// any of these methods anymore.
+/// Instead the user SHOULD call `Read` method until the end of input. If
+/// `Write` or `WritesDone` finishes with negative result, finally `Read`
+/// will throw an exception.
 template <typename Request, typename Response>
-class USERVER_NODISCARD BidirectionalStream final {
+class [[nodiscard]] BidirectionalStream final : public CallAnyBase {
  public:
   /// @brief Await and read the next incoming message
   ///
   /// On end-of-input, `Finish` is called automatically.
   ///
   /// @param response where to put response on success
-  /// @returns `true` on success, `false` on end-of-input
+  /// @returns `true` on success, `false` on end-of-input or task cancellation
   /// @throws ugrpc::client::RpcError on an RPC error
   [[nodiscard]] bool Read(Response& response);
+
+  /// @brief Return future to read next incoming result
+  ///
+  /// @param response where to put response on success
+  /// @return StreamReadFuture future
+  /// @throws ugrpc::client::RpcError on an RPC error
+  StreamReadFuture<BidirectionalStream> ReadAsync(Response& response) noexcept;
 
   /// @brief Write the next outgoing message
   ///
@@ -201,144 +340,230 @@ class USERVER_NODISCARD BidirectionalStream final {
   /// saved, so it can be deallocated right after the call.
   ///
   /// @param request the next message to write
+  /// @return true if the data is going to the wire; false if the write
+  ///         operation failed (including due to task cancellation),
+  ///         in which case no more writes will be accepted,
+  ///         but Read may still have some data and status code available
+  [[nodiscard]] bool Write(const Request& request);
+
+  /// @brief Write the next outgoing message and check result
+  ///
+  /// `WriteAndCheck` doesn't store any references to `request`, so it can be
+  /// deallocated right after the call.
+  ///
+  /// `WriteAndCheck` verifies result of the write and generates exception
+  /// in case of issues.
+  ///
+  /// @param request the next message to write
   /// @throws ugrpc::client::RpcError on an RPC error
-  void Write(const Request& request);
+  /// @throws ugrpc::client::RpcCancelledError on task cancellation
+  void WriteAndCheck(const Request& request);
 
   /// @brief Announce end-of-output to the server
   ///
   /// Should be called to notify the server and receive the final response(s).
   ///
-  /// @throws ugrpc::client::RpcError on an RPC error
-  void WritesDone();
+  /// @return true if the data is going to the wire; false if the operation
+  ///         failed, but Read may still have some data and status code
+  ///         available
+  [[nodiscard]] bool WritesDone();
 
-  /// @brief Complete the RPC successfully
-  ///
-  /// Should be called if `Read` has not returned `false`, but all the needed
-  /// data is read.
-  ///
-  /// `Finish` should not be called multiple times.
-  ///
-  /// The connection is not closed, it will be reused for new RPCs.
-  ///
-  /// @throws ugrpc::client::RpcError on an RPC error
-  void Finish();
+  /// @cond
+  // For internal use only
+  using RawStream = grpc::ClientAsyncReaderWriter<Request, Response>;
 
-  /// @returns the `ClientContext` used for this RPC
-  grpc::ClientContext& GetContext();
-
-  /// For internal use only
   template <typename Stub>
   BidirectionalStream(
-      Stub& stub, grpc::CompletionQueue& queue,
-      impl::RawReaderWriterPreparer<Stub, Request, Response> prepare_func,
-      std::string_view call_name, std::unique_ptr<grpc::ClientContext> context,
-      ugrpc::impl::MethodStatistics& statistics);
+      impl::CallParams&& params, Stub& stub,
+      impl::RawReaderWriterPreparer<Stub, Request, Response> prepare_func);
+  /// @endcond
 
   BidirectionalStream(BidirectionalStream&&) noexcept = default;
   BidirectionalStream& operator=(BidirectionalStream&&) noexcept = default;
   ~BidirectionalStream() = default;
 
  private:
-  impl::RpcData data_;
   impl::RawReaderWriter<Request, Response> stream_;
 };
 
 // ========================== Implementation follows ==========================
 
-template <typename Response>
-template <typename Stub, typename Request>
-UnaryCall<Response>::UnaryCall(
-    Stub& stub, grpc::CompletionQueue& queue,
-    impl::RawResponseReaderPreparer<Stub, Request, Response> prepare_func,
-    std::string_view call_name, std::unique_ptr<grpc::ClientContext> context,
-    ugrpc::impl::MethodStatistics& statistics, const Request& req)
-    : data_(std::move(context), call_name, statistics),
-      reader_((stub.*prepare_func)(&data_.GetContext(), req, &queue)) {
-  reader_->StartCall();
-  data_.SetState(impl::State::kWritesDone);
+namespace impl {
+void CallMiddlewares(const Middlewares& mws, CallAnyBase& call,
+                     utils::function_ref<void()> user_call,
+                     const ::google::protobuf::Message* request);
+}  // namespace impl
+
+template <typename RPC>
+StreamReadFuture<RPC>::StreamReadFuture(
+    impl::RpcData& data, typename RPC::RawStream& stream) noexcept
+    : impl_(data), stream_(&stream) {}
+
+template <typename RPC>
+StreamReadFuture<RPC>::~StreamReadFuture() noexcept {
+  if (auto* const data = impl_.GetData()) {
+    impl::RpcData::AsyncMethodInvocationGuard guard(*data);
+    const auto wait_status =
+        impl::Wait(data->GetAsyncMethodInvocation(), data->GetContext());
+    if (wait_status != impl::AsyncMethodInvocation::WaitStatus::kOk) {
+      if (wait_status == impl::AsyncMethodInvocation::WaitStatus::kCancelled) {
+        data->GetStatsScope().OnCancelled();
+      }
+      impl::Finish(*stream_, *data, false);
+    }
+  }
+}
+
+template <typename RPC>
+StreamReadFuture<RPC>& StreamReadFuture<RPC>::operator=(
+    StreamReadFuture<RPC>&& other) noexcept {
+  if (this == &other) return *this;
+  [[maybe_unused]] auto for_destruction = std::move(*this);
+  impl_ = std::move(other.impl_);
+  stream_ = other.stream_;
+  return *this;
+}
+
+template <typename RPC>
+bool StreamReadFuture<RPC>::Get() {
+  auto* const data = impl_.GetData();
+  UINVARIANT(data, "'Get' must be called only once");
+  impl::RpcData::AsyncMethodInvocationGuard guard(*data);
+  impl_.ClearData();
+  const auto result =
+      impl::Wait(data->GetAsyncMethodInvocation(), data->GetContext());
+  if (result == impl::AsyncMethodInvocation::WaitStatus::kCancelled) {
+    data->GetStatsScope().OnCancelled();
+    data->GetStatsScope().Flush();
+  }
+  if (result == impl::AsyncMethodInvocation::WaitStatus::kError) {
+    // Finish can only be called once all the data is read, otherwise the
+    // underlying gRPC driver hangs.
+    impl::Finish(*stream_, *data, true);
+  }
+  return result == impl::AsyncMethodInvocation::WaitStatus::kOk;
+}
+
+template <typename RPC>
+bool StreamReadFuture<RPC>::IsReady() const noexcept {
+  return impl_.IsReady();
 }
 
 template <typename Response>
-grpc::ClientContext& UnaryCall<Response>::GetContext() {
-  return data_.GetContext();
+template <typename Stub, typename Request>
+UnaryCall<Response>::UnaryCall(
+    impl::CallParams&& params, Stub& stub,
+    impl::RawResponseReaderPreparer<Stub, Request, Response> prepare_func,
+    const Request& req)
+    : CallAnyBase(std::move(params)) {
+  impl::CallMiddlewares(
+      GetData().GetMiddlewares(), *this,
+      [&] {
+        reader_ = (stub.*prepare_func)(&GetData().GetContext(), req,
+                                       &GetData().GetQueue());
+        reader_->StartCall();
+      },
+      &req);
+  GetData().SetWritesFinished();
 }
 
 template <typename Response>
 Response UnaryCall<Response>::Finish() {
   Response response;
-  impl::FinishUnary(*reader_, response, data_);
+  UnaryFuture future = FinishAsync(response);
+  future.Get();
   return response;
+}
+
+template <typename Response>
+UnaryFuture UnaryCall<Response>::FinishAsync(Response& response) {
+  UASSERT(reader_);
+  PrepareFinish(GetData());
+  GetData().EmplaceFinishAsyncMethodInvocation();
+  auto& finish = GetData().GetFinishAsyncMethodInvocation();
+  auto& status = GetData().GetStatus();
+  reader_->Finish(&response, &status, finish.GetTag());
+  return UnaryFuture{GetData()};
 }
 
 template <typename Response>
 template <typename Stub, typename Request>
 InputStream<Response>::InputStream(
-    Stub& stub, grpc::CompletionQueue& queue,
+    impl::CallParams&& params, Stub& stub,
     impl::RawReaderPreparer<Stub, Request, Response> prepare_func,
-    std::string_view call_name, std::unique_ptr<grpc::ClientContext> context,
-    ugrpc::impl::MethodStatistics& statistics, const Request& req)
-    : data_(std::move(context), call_name, statistics),
-      stream_((stub.*prepare_func)(&data_.GetContext(), req, &queue)) {
-  impl::StartCall(*stream_, data_);
-  data_.SetState(impl::State::kWritesDone);
-}
-
-template <typename Response>
-grpc::ClientContext& InputStream<Response>::GetContext() {
-  return data_.GetContext();
+    const Request& req)
+    : CallAnyBase(std::move(params)) {
+  impl::CallMiddlewares(
+      GetData().GetMiddlewares(), *this,
+      [&] {
+        stream_ = (stub.*prepare_func)(&GetData().GetContext(), req,
+                                       &GetData().GetQueue());
+        impl::StartCall(*stream_, GetData());
+      },
+      &req);
+  GetData().SetWritesFinished();
 }
 
 template <typename Response>
 bool InputStream<Response>::Read(Response& response) {
-  if (impl::Read(*stream_, response, data_)) {
+  if (impl::Read(*stream_, response, GetData())) {
     return true;
   } else {
-    impl::Finish(*stream_, data_);
+    // Finish can only be called once all the data is read, otherwise the
+    // underlying gRPC driver hangs.
+    impl::Finish(*stream_, GetData(), true);
     return false;
   }
-}
-
-template <typename Response>
-void InputStream<Response>::Finish() {
-  impl::Finish(*stream_, data_);
 }
 
 template <typename Request, typename Response>
 template <typename Stub>
 OutputStream<Request, Response>::OutputStream(
-    Stub& stub, grpc::CompletionQueue& queue,
-    impl::RawWriterPreparer<Stub, Request, Response> prepare_func,
-    std::string_view call_name, std::unique_ptr<grpc::ClientContext> context,
-    ugrpc::impl::MethodStatistics& statistics)
-    : data_(std::move(context), call_name, statistics),
-      final_response_(std::make_unique<Response>()),
-      // 'final_response_' will be filled upon successful 'Finish' async call
-      stream_((stub.*prepare_func)(&data_.GetContext(), final_response_.get(),
-                                   &queue)) {
-  impl::StartCall(*stream_, data_);
+    impl::CallParams&& params, Stub& stub,
+    impl::RawWriterPreparer<Stub, Request, Response> prepare_func)
+    : CallAnyBase(std::move(params)),
+      final_response_(std::make_unique<Response>()) {
+  impl::CallMiddlewares(
+      GetData().GetMiddlewares(), *this,
+      [&] {
+        // 'final_response_' will be filled upon successful 'Finish' async call
+        stream_ =
+            (stub.*prepare_func)(&GetData().GetContext(), final_response_.get(),
+                                 &GetData().GetQueue());
+        impl::StartCall(*stream_, GetData());
+      },
+      nullptr);
 }
 
 template <typename Request, typename Response>
-grpc::ClientContext& OutputStream<Request, Response>::GetContext() {
-  return data_.GetContext();
-}
-
-template <typename Request, typename Response>
-void OutputStream<Request, Response>::Write(const Request& request) {
+bool OutputStream<Request, Response>::Write(const Request& request) {
   // Don't buffer writes, otherwise in an event subscription scenario, events
   // may never actually be delivered
   grpc::WriteOptions write_options{};
 
-  impl::Write(*stream_, request, write_options, data_);
+  return impl::Write(*stream_, request, write_options, GetData());
+}
+
+template <typename Request, typename Response>
+void OutputStream<Request, Response>::WriteAndCheck(const Request& request) {
+  // Don't buffer writes, otherwise in an event subscription scenario, events
+  // may never actually be delivered
+  grpc::WriteOptions write_options{};
+
+  if (!impl::Write(*stream_, request, write_options, GetData())) {
+    impl::Finish(*stream_, GetData(), true);
+  }
 }
 
 template <typename Request, typename Response>
 Response OutputStream<Request, Response>::Finish() {
   // gRPC does not implicitly call `WritesDone` in `Finish`,
   // contrary to the documentation
-  impl::WritesDone(*stream_, data_);
+  if (!GetData().AreWritesFinished()) {
+    impl::WritesDone(*stream_, GetData());
+  }
 
-  impl::Finish(*stream_, data_);
+  impl::Finish(*stream_, GetData(), true);
 
   return std::move(*final_response_);
 }
@@ -346,49 +571,53 @@ Response OutputStream<Request, Response>::Finish() {
 template <typename Request, typename Response>
 template <typename Stub>
 BidirectionalStream<Request, Response>::BidirectionalStream(
-    Stub& stub, grpc::CompletionQueue& queue,
-    impl::RawReaderWriterPreparer<Stub, Request, Response> prepare_func,
-    std::string_view call_name, std::unique_ptr<grpc::ClientContext> context,
-    ugrpc::impl::MethodStatistics& statistics)
-    : data_(std::move(context), call_name, statistics),
-      stream_((stub.*prepare_func)(&data_.GetContext(), &queue)) {
-  impl::StartCall(*stream_, data_);
+    impl::CallParams&& params, Stub& stub,
+    impl::RawReaderWriterPreparer<Stub, Request, Response> prepare_func)
+    : CallAnyBase(std::move(params)) {
+  impl::CallMiddlewares(
+      GetData().GetMiddlewares(), *this,
+      [&] {
+        stream_ = (stub.*prepare_func)(&GetData().GetContext(),
+                                       &GetData().GetQueue());
+        impl::StartCall(*stream_, GetData());
+      },
+      nullptr);
 }
 
 template <typename Request, typename Response>
-grpc::ClientContext& BidirectionalStream<Request, Response>::GetContext() {
-  return data_.GetContext();
+StreamReadFuture<BidirectionalStream<Request, Response>>
+BidirectionalStream<Request, Response>::ReadAsync(Response& response) noexcept {
+  impl::ReadAsync(*stream_, response, GetData());
+  return StreamReadFuture<BidirectionalStream<Request, Response>>{GetData(),
+                                                                  *stream_};
 }
 
 template <typename Request, typename Response>
 bool BidirectionalStream<Request, Response>::Read(Response& response) {
-  if (impl::Read(*stream_, response, data_)) {
-    return true;
-  } else {
-    impl::Finish(*stream_, data_);
-    return false;
-  }
+  auto future = ReadAsync(response);
+  return future.Get();
 }
 
 template <typename Request, typename Response>
-void BidirectionalStream<Request, Response>::Write(const Request& request) {
+bool BidirectionalStream<Request, Response>::Write(const Request& request) {
   // Don't buffer writes, optimize for ping-pong-style interaction
   grpc::WriteOptions write_options{};
 
-  impl::Write(*stream_, request, write_options, data_);
+  return impl::Write(*stream_, request, write_options, GetData());
 }
 
 template <typename Request, typename Response>
-void BidirectionalStream<Request, Response>::WritesDone() {
-  impl::WritesDone(*stream_, data_);
+void BidirectionalStream<Request, Response>::WriteAndCheck(
+    const Request& request) {
+  // Don't buffer writes, optimize for ping-pong-style interaction
+  grpc::WriteOptions write_options{};
+
+  impl::WriteAndCheck(*stream_, request, write_options, GetData());
 }
 
 template <typename Request, typename Response>
-void BidirectionalStream<Request, Response>::Finish() {
-  if (data_.GetState() == impl::State::kOpen) {
-    impl::WritesDone(*stream_, data_);
-  }
-  impl::Finish(*stream_, data_);
+bool BidirectionalStream<Request, Response>::WritesDone() {
+  return impl::WritesDone(*stream_, GetData());
 }
 
 }  // namespace ugrpc::client

@@ -4,22 +4,37 @@
 
 #include <userver/error_injection/hook.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/testsuite/testpoint.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/datetime.hpp>
+#include <userver/utils/rand.hpp>
+#include <userver/utils/scope_guard.hpp>
+#include <userver/utils/text_light.hpp>
 #include <userver/utils/uuid4.hpp>
 
 #include <storages/postgres/detail/tracing_tags.hpp>
 #include <storages/postgres/io/pg_type_parsers.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 
+#include <utils/impl/assert_extra.hpp>
+
 USERVER_NAMESPACE_BEGIN
+
+using USERVER_NAMESPACE::utils::RandRange;
+using USERVER_NAMESPACE::utils::ScopeGuard;
+using USERVER_NAMESPACE::utils::datetime::SteadyNow;
+using USERVER_NAMESPACE::utils::text::ICaseStartsWith;
 
 namespace storages::postgres::detail {
 
 namespace {
 
-const char* const kStatementTimeoutParameter = "statement_timeout";
+constexpr std::string_view kStatementTimeoutParameter = "statement_timeout";
+constexpr std::string_view kStatementVacuum = "vacuum";
+constexpr std::string_view kStatementListen = "listen {}";
+constexpr std::string_view kStatementUnlisten = "unlisten {}";
 
 // we hope lc_messages is en_US, we don't control it anyway
 const std::string kBadCachedPlanErrorMessage =
@@ -161,13 +176,15 @@ struct ConnectionImpl::ResetTransactionCommandControl {
 };
 
 ConnectionImpl::ConnectionImpl(
-    engine::TaskProcessor& bg_task_processor, uint32_t id,
+    engine::TaskProcessor& bg_task_processor,
+    concurrent::BackgroundTaskStorageCore& bg_task_storage, uint32_t id,
     ConnectionSettings settings, const DefaultCommandControls& default_cmd_ctls,
     const testsuite::PostgresControl& testsuite_pg_ctl,
     const error_injection::Settings& ei_settings,
-    Connection::SizeGuard&& size_guard)
+    engine::SemaphoreLock&& size_lock)
     : uuid_{USERVER_NAMESPACE::utils::generators::GenerateUuid()},
-      conn_wrapper_{bg_task_processor, id, std::move(size_guard)},
+      conn_wrapper_{bg_task_processor, bg_task_storage, id,
+                    std::move(size_lock)},
       prepared_{settings.max_prepared_cache_size},
       settings_{settings},
       default_cmd_ctls_(default_cmd_ctls),
@@ -176,10 +193,17 @@ ConnectionImpl::ConnectionImpl(
   if (settings_.max_prepared_cache_size == 0) {
     throw InvalidConfig("max_prepared_cache_size is 0");
   }
+  if (settings_.max_ttl.has_value()) {
+    // Actual ttl is randomized to avoid closing too many connections at the
+    // same time
+    auto ttl = (*settings_.max_ttl).count();
+    ttl -= RandRange(ttl / 2);
+    expires_at_ = SteadyNow() + std::chrono::seconds{ttl};
+  }
 #if !LIBPQ_HAS_PIPELINING
-  if (settings_.pipeline_mode == ConnectionSettings::kPipelineEnabled) {
+  if (settings_.pipeline_mode == PipelineMode::kEnabled) {
     LOG_LIMITED_WARNING() << "Pipeline mode is not supported, falling back";
-    settings_.pipeline_mode = ConnectionSettings::kPipelineDisabled;
+    settings_.pipeline_mode = PipelineMode::kDisabled;
   }
 #endif
 }
@@ -189,23 +213,26 @@ void ConnectionImpl::AsyncConnect(const Dsn& dsn, engine::Deadline deadline) {
   auto scope = span.CreateScopeTime();
   // While connecting there are several network roundtrips, so give them
   // some allowance.
-  deadline = testsuite_pg_ctl_.MakeExecuteDeadline(
-      std::chrono::duration_cast<std::chrono::milliseconds>(
-          deadline.TimeLeft()));
+  auto timeout = std::chrono::duration_cast<std::chrono::milliseconds>(
+      deadline.TimeLeft());
+  deadline = testsuite_pg_ctl_.MakeExecuteDeadline(timeout);
   conn_wrapper_.AsyncConnect(dsn, deadline, scope);
-  if (settings_.pipeline_mode == ConnectionSettings::kPipelineEnabled) {
-    conn_wrapper_.EnterPipelineMode();
-  }
-  conn_wrapper_.FillSpanTags(span);
+  conn_wrapper_.FillSpanTags(span, {timeout, GetStatementTimeout()});
+
   scope.Reset(scopes::kGetConnectData);
   // We cannot handle exceptions here, so we let them got to the caller
-  ExecuteCommandNoPrepare("DISCARD ALL", deadline);
+  if (settings_.discard_on_connect == ConnectionSettings::kDiscardAll) {
+    ExecuteCommandNoPrepare("DISCARD ALL", deadline);
+  }
   SetParameter("client_encoding", "UTF8", Connection::ParameterScope::kSession,
                deadline);
   RefreshReplicaState(deadline);
   SetConnectionStatementTimeout(GetDefaultCommandControl().statement, deadline);
-  if (settings_.user_types == ConnectionSettings::kUserTypesEnabled) {
+  if (settings_.user_types != ConnectionSettings::kPredefinedTypesOnly) {
     LoadUserTypes(deadline);
+  }
+  if (settings_.pipeline_mode == PipelineMode::kEnabled) {
+    conn_wrapper_.EnterPipelineMode();
   }
 }
 
@@ -215,24 +242,26 @@ int ConnectionImpl::GetServerVersion() const {
   return conn_wrapper_.GetServerVersion();
 }
 
+bool ConnectionImpl::IsInAbortedPipeline() const {
+  return conn_wrapper_.IsInAbortedPipeline();
+}
+
 bool ConnectionImpl::IsInRecovery() const { return is_in_recovery_; }
 
 bool ConnectionImpl::IsReadOnly() const { return is_read_only_; }
 
 void ConnectionImpl::RefreshReplicaState(engine::Deadline deadline) {
-  // TODO: TAXICOMMON-4914
-  // Something makes primary hosts report 'in_hot_standby' as 'on'.
-  // Replaced with comparison below while under investigation.
-  //
-  // if (GetServerVersion() >= 140000) {
-  //   const auto hot_standby_status =
-  //       conn_wrapper_.GetParameterStatus("in_hot_standby");
-  //   is_in_recovery_ = (hot_standby_status != "off");
-  //   const auto txn_ro_status =
-  //       conn_wrapper_.GetParameterStatus("default_transaction_read_only");
-  //   is_read_only_ = is_in_recovery_ || (txn_ro_status != "off");
-  //   return;
-  // }
+  const auto in_hot_standby =
+      conn_wrapper_.GetParameterStatus("in_hot_standby");
+  const auto transaction_read_only =
+      conn_wrapper_.GetParameterStatus("default_transaction_read_only");
+
+  // Determine state without additional request, works with PostgreSQL >= 14.0
+  if (!in_hot_standby.empty() && !transaction_read_only.empty()) {
+    is_in_recovery_ = (in_hot_standby != "off");
+    is_read_only_ = is_in_recovery_ || (transaction_read_only != "off");
+    return;
+  }
 
   const auto rows = ExecuteCommandNoPrepare(
       "SELECT pg_is_in_recovery(), "
@@ -251,28 +280,6 @@ void ConnectionImpl::RefreshReplicaState(engine::Deadline deadline) {
     // 2. PG returns pg_is_in_recovery state which is inconsistent
     //    with transaction_read_only setting
     is_read_only_ = is_read_only_ || is_in_recovery_;
-  }
-
-  // TODO: TAXICOMMON-4914 (see above)
-  if (GetServerVersion() >= 140000) {
-    const auto hot_standby_status =
-        conn_wrapper_.GetParameterStatus("in_hot_standby");
-    const auto param_is_in_recovery = (hot_standby_status != "off");
-    if (is_in_recovery_ != param_is_in_recovery) {
-      LOG_LIMITED_INFO()
-          << "Inconsistent replica state report: pg_is_in_recovery()="
-          << is_in_recovery_ << " while in_hot_standby=" << hot_standby_status;
-    }
-    const auto txn_ro_status =
-        conn_wrapper_.GetParameterStatus("default_transaction_read_only");
-    const auto param_is_read_only = is_in_recovery_ || (txn_ro_status != "off");
-    if (is_read_only_ != param_is_read_only) {
-      LOG_LIMITED_INFO() << "Incosistent replica state report: "
-                            "current_setting('transaction_read_only')~"
-                         << is_read_only_
-                         << " while default_transaction_read_only~"
-                         << param_is_read_only;
-    }
   }
 }
 
@@ -294,6 +301,12 @@ bool ConnectionImpl::IsInTransaction() const {
 
 bool ConnectionImpl::IsPipelineActive() const {
   return conn_wrapper_.IsPipelineActive();
+}
+
+bool ConnectionImpl::IsBroken() const { return conn_wrapper_.IsBroken(); }
+
+bool ConnectionImpl::IsExpired() const {
+  return expires_at_.has_value() && SteadyNow() > *expires_at_;
 }
 
 ConnectionSettings const& ConnectionImpl::GetSettings() const {
@@ -336,10 +349,16 @@ ResultSet ConnectionImpl::ExecuteCommand(
     const Query& query, const QueryParameters& params,
     OptionalCommandControl statement_cmd_ctl) {
   CheckBusy();
-  TimeoutDuration execute_timeout = !!statement_cmd_ctl
-                                        ? statement_cmd_ctl->execute
-                                        : CurrentExecuteTimeout();
-  auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(execute_timeout);
+
+  auto pipeline_guard = std::optional<ScopeGuard>{};
+  if (IsPipelineActive() &&
+      ICaseStartsWith(query.Statement(), kStatementVacuum)) {
+    conn_wrapper_.ExitPipelineMode();
+    pipeline_guard.emplace([this]() { conn_wrapper_.EnterPipelineMode(); });
+  }
+
+  auto deadline =
+      testsuite_pg_ctl_.MakeExecuteDeadline(ExecuteTimeout(statement_cmd_ctl));
   SetStatementTimeout(std::move(statement_cmd_ctl));
   return ExecuteCommand(query, params, deadline);
 }
@@ -368,15 +387,16 @@ void ConnectionImpl::Commit() {
   if (!IsInTransaction()) {
     throw NotInTransaction();
   }
-  CountCommit count_commit(stats_);
-  ResetTransactionCommandControl transaction_guard{*this};
 
   if (GetConnectionState() == ConnectionState::kTranError) {
-    // TODO: TAXICOMMON-4103
     LOG_LIMITED_WARNING() << "Attempt to commit an aborted transaction, "
                              "rollback will be performed instead";
+    Rollback();
+    throw RuntimeError{"Attempted to commit already failed transaction"};
   }
 
+  CountCommit count_commit(stats_);
+  ResetTransactionCommandControl transaction_guard{*this};
   ExecuteCommandNoPrepare("COMMIT", MakeCurrentDeadline());
 }
 
@@ -384,6 +404,10 @@ void ConnectionImpl::Rollback() {
   if (!IsInTransaction()) {
     throw NotInTransaction();
   }
+  if (IsBroken()) {
+    throw RuntimeError{"Attempted to rollback a broken connection"};
+  }
+
   CountRollback count_rollback(stats_);
   ResetTransactionCommandControl transaction_guard{*this};
 
@@ -392,7 +416,7 @@ void ConnectionImpl::Rollback() {
     ExecuteCommandNoPrepare("ROLLBACK", MakeCurrentDeadline());
   } else {
     LOG_DEBUG() << "Attempt to rollback transaction on a busy connection. "
-                   "Probably a network error or a timeout happend";
+                   "Probably a network error or a timeout happened";
   }
 }
 
@@ -418,14 +442,12 @@ Connection::StatementId ConnectionImpl::PortalBind(
   }  // TODO Prepare unnamed query instead
 
   CheckBusy();
-  TimeoutDuration network_timeout = !!statement_cmd_ctl
-                                        ? statement_cmd_ctl->execute
-                                        : CurrentExecuteTimeout();
+  TimeoutDuration network_timeout = ExecuteTimeout(statement_cmd_ctl);
   auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(network_timeout);
   SetStatementTimeout(std::move(statement_cmd_ctl));
 
   tracing::Span span{scopes::kQuery};
-  conn_wrapper_.FillSpanTags(span);
+  conn_wrapper_.FillSpanTags(span, {network_timeout, GetStatementTimeout()});
   span.AddTag(tracing::kDatabaseStatement, statement);
   CheckDeadlineReached(deadline);
   auto scope = span.CreateScopeTime();
@@ -446,9 +468,7 @@ Connection::StatementId ConnectionImpl::PortalBind(
 ResultSet ConnectionImpl::PortalExecute(
     Connection::StatementId statement_id, const std::string& portal_name,
     std::uint32_t n_rows, OptionalCommandControl statement_cmd_ctl) {
-  TimeoutDuration network_timeout = !!statement_cmd_ctl
-                                        ? statement_cmd_ctl->execute
-                                        : CurrentExecuteTimeout();
+  TimeoutDuration network_timeout = ExecuteTimeout(statement_cmd_ctl);
 
   auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(network_timeout);
   SetStatementTimeout(std::move(statement_cmd_ctl));
@@ -459,7 +479,7 @@ ResultSet ConnectionImpl::PortalExecute(
               "statements");
 
   tracing::Span span{scopes::kQuery};
-  conn_wrapper_.FillSpanTags(span);
+  conn_wrapper_.FillSpanTags(span, {network_timeout, GetStatementTimeout()});
   span.AddTag(tracing::kDatabaseStatement, prepared_info->statement);
   if (deadline.IsReached()) {
     ++stats_.execute_timeout;
@@ -475,6 +495,25 @@ ResultSet ConnectionImpl::PortalExecute(
 
   return WaitResult(prepared_info->statement, deadline, network_timeout,
                     count_execute, span, scope, &prepared_info->description);
+}
+
+void ConnectionImpl::Listen(std::string_view channel,
+                            OptionalCommandControl cmd_ctl) {
+  ExecuteCommandNoPrepare(
+      fmt::format(kStatementListen, conn_wrapper_.EscapeIdentifier(channel)),
+      testsuite_pg_ctl_.MakeExecuteDeadline(ExecuteTimeout(cmd_ctl)));
+}
+
+void ConnectionImpl::Unlisten(std::string_view channel,
+                              OptionalCommandControl cmd_ctl) {
+  ExecuteCommandNoPrepare(
+      fmt::format(kStatementUnlisten, conn_wrapper_.EscapeIdentifier(channel)),
+      testsuite_pg_ctl_.MakeExecuteDeadline(ExecuteTimeout(cmd_ctl)));
+}
+
+Notification ConnectionImpl::WaitNotify(engine::Deadline deadline) {
+  CheckBusy();
+  return conn_wrapper_.WaitNotify(deadline);
 }
 
 void ConnectionImpl::CancelAndCleanup(TimeoutDuration timeout) {
@@ -494,6 +533,11 @@ void ConnectionImpl::CancelAndCleanup(TimeoutDuration timeout) {
       // busy
     }
     cancel.WaitUntil(deadline);
+  }
+
+  // DiscardInput could have marked connection as broken
+  if (IsBroken()) {
+    return;
   }
 
   // We might need more timeout here
@@ -522,6 +566,11 @@ bool ConnectionImpl::Cleanup(TimeoutDuration timeout) {
     // not to kill the pgbouncer
     SetConnectionStatementTimeout(GetDefaultCommandControl().statement,
                                   deadline);
+    // Reenter pipeline mode if necessary
+    if (settings_.pipeline_mode == PipelineMode::kEnabled &&
+        !IsPipelineActive()) {
+      conn_wrapper_.EnterPipelineMode();
+    }
     return true;
   }
   return false;
@@ -557,6 +606,9 @@ void ConnectionImpl::CheckBusy() const {
       (!IsPipelineActive() || conn_wrapper_.IsSyncingPipeline())) {
     throw ConnectionBusy("There is another query in flight");
   }
+  if (IsInAbortedPipeline()) {
+    throw ConnectionError("Attempted to use an aborted connection");
+  }
 }
 
 void ConnectionImpl::CheckDeadlineReached(const engine::Deadline& deadline) {
@@ -568,9 +620,10 @@ void ConnectionImpl::CheckDeadlineReached(const engine::Deadline& deadline) {
   }
 }
 
-tracing::Span ConnectionImpl::MakeQuerySpan(const Query& query) const {
+tracing::Span ConnectionImpl::MakeQuerySpan(const Query& query,
+                                            const CommandControl& cc) const {
   tracing::Span span{scopes::kQuery};
-  conn_wrapper_.FillSpanTags(span);
+  conn_wrapper_.FillSpanTags(span, cc);
   query.FillSpanTags(span);
   return span;
 }
@@ -587,6 +640,14 @@ void ConnectionImpl::SetTransactionCommandControl(CommandControl cmd_ctl) {
   transaction_cmd_ctl_ = cmd_ctl;
   SetStatementTimeout(cmd_ctl.statement,
                       testsuite_pg_ctl_.MakeExecuteDeadline(cmd_ctl.execute));
+}
+
+TimeoutDuration ConnectionImpl::ExecuteTimeout(
+    OptionalCommandControl cmd_ctl) const {
+  if (!!cmd_ctl) {
+    return cmd_ctl->execute;
+  }
+  return CurrentExecuteTimeout();
 }
 
 TimeoutDuration ConnectionImpl::CurrentExecuteTimeout() const {
@@ -638,7 +699,6 @@ const ConnectionImpl::PreparedStatementInfo& ConnectionImpl::PrepareStatement(
     engine::Deadline deadline, tracing::Span& span, tracing::ScopeTime& scope) {
   auto query_hash = QueryHash(statement, params);
   Connection::StatementId query_id{query_hash};
-  std::string statement_name = "q" + std::to_string(query_hash) + "_" + uuid_;
 
   error_injection::Hook ei_hook(ei_settings_, deadline);
   ei_hook.PreHook<ConnectionTimeoutError, CommandError>();
@@ -648,6 +708,7 @@ const ConnectionImpl::PreparedStatementInfo& ConnectionImpl::PrepareStatement(
     LOG_TRACE() << "Query " << statement << " is already prepared.";
     return *statement_info;
   } else {
+    std::string statement_name = "q" + std::to_string(query_hash) + "_" + uuid_;
     if (prepared_.GetSize() >= settings_.max_prepared_cache_size) {
       statement_info = prepared_.GetLeastUsed();
       UASSERT(statement_info);
@@ -679,6 +740,9 @@ const ConnectionImpl::PreparedStatementInfo& ConnectionImpl::PrepareStatement(
     conn_wrapper_.SendDescribePrepared(statement_name, scope);
     statement_info = prepared_.Get(query_id);
     auto res = conn_wrapper_.WaitResult(deadline, scope);
+    if (!res.pimpl_) {
+      throw CommandError("WaitResult() returned nullptr");
+    }
     FillBufferCategories(res);
     statement_info->description = res;
     // Ensure we've got binary format established
@@ -726,11 +790,19 @@ ResultSet ConnectionImpl::ExecuteCommand(const Query& query,
 
   DiscardOldPreparedStatements(deadline);
   CheckDeadlineReached(deadline);
-  auto span = MakeQuerySpan(query);
-  auto scope = span.CreateScopeTime();
   TimeoutDuration network_timeout =
       std::chrono::duration_cast<std::chrono::milliseconds>(
           deadline.TimeLeft());
+  auto span = MakeQuerySpan(query, {network_timeout, GetStatementTimeout()});
+  if (query.GetName()) {
+    try {
+      TESTPOINT("sql_statement", formats::json::MakeObject(
+                                     "name", query.GetName()->GetUnderlying()));
+    } catch (const std::exception& e) {
+      LOG_WARNING() << e;
+    }
+  }
+  auto scope = span.CreateScopeTime();
   CountExecute count_execute(stats_);
 
   auto const& prepared_info =
@@ -752,13 +824,13 @@ ResultSet ConnectionImpl::ExecuteCommandNoPrepare(const Query& query,
                                                   const QueryParameters& params,
                                                   engine::Deadline deadline) {
   const auto& statement = query.Statement();
-  CheckBusy();
-  CheckDeadlineReached(deadline);
-  auto span = MakeQuerySpan(query);
-  auto scope = span.CreateScopeTime();
   TimeoutDuration network_timeout =
       std::chrono::duration_cast<std::chrono::milliseconds>(
           deadline.TimeLeft());
+  CheckBusy();
+  CheckDeadlineReached(deadline);
+  auto span = MakeQuerySpan(query, {network_timeout, GetStatementTimeout()});
+  auto scope = span.CreateScopeTime();
   CountExecute count_execute(stats_);
   conn_wrapper_.SendQuery(statement, params, scope);
   return WaitResult(statement, deadline, network_timeout, count_execute, span,
@@ -776,7 +848,10 @@ void ConnectionImpl::SendCommandNoPrepare(const Query& query,
                                           engine::Deadline deadline) {
   CheckBusy();
   CheckDeadlineReached(deadline);
-  auto span = MakeQuerySpan(query);
+  auto span = MakeQuerySpan(
+      query, {std::chrono::duration_cast<std::chrono::milliseconds>(
+                  deadline.TimeLeft()),
+              GetStatementTimeout()});
   auto scope = span.CreateScopeTime();
   ++stats_.execute_total;
   conn_wrapper_.SendQuery(query.Statement(), params, scope);
@@ -791,7 +866,7 @@ void ConnectionImpl::SetParameter(std::string_view name, std::string_view value,
               << (is_transaction_scope ? "transaction" : "session") << " scope";
   StaticQueryParameters<3> params;
   params.Write(db_types_, name, value, is_transaction_scope);
-  if (IsPipelineActive() && IsInTransaction()) {
+  if (IsPipelineActive()) {
     SendCommandNoPrepare("SELECT set_config($1, $2, $3)",
                          detail::QueryParameters{params}, deadline);
   } else {
@@ -801,7 +876,7 @@ void ConnectionImpl::SetParameter(std::string_view name, std::string_view value,
 }
 
 void ConnectionImpl::LoadUserTypes(engine::Deadline deadline) {
-  UASSERT(settings_.user_types == ConnectionSettings::kUserTypesEnabled);
+  UASSERT(settings_.user_types != ConnectionSettings::kPredefinedTypesOnly);
   try {
     auto types = ExecuteCommand(kGetUserTypesSQL, deadline)
                      .AsSetOf<DBTypeDescription>(kRowTag);
@@ -865,7 +940,7 @@ ResultSet ConnectionImpl::WaitResult(const std::string& statement,
     ++stats_.execute_timeout;
     LOG_LIMITED_WARNING() << "Statement `" << statement
                           << "` network timeout error: " << e << ". "
-                          << "Network timout was " << network_timeout.count()
+                          << "Network timeout was " << network_timeout.count()
                           << "ms";
     span.AddTag(tracing::kErrorFlag, true);
     throw;

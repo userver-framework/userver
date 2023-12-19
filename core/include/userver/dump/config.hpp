@@ -22,6 +22,7 @@ std::chrono::milliseconds ParseMs(
 
 extern const std::string_view kDump;
 extern const std::string_view kMaxDumpAge;
+extern const std::string_view kMinDumpInterval;
 
 struct ConfigPatch final {
   std::optional<bool> dumps_enabled;
@@ -35,8 +36,6 @@ struct Config final {
   Config(std::string name, const yaml_config::YamlConfig& config,
          std::string_view dump_root);
 
-  Config MergeWith(const ConfigPatch& patch) const;
-
   std::string name;
   uint64_t dump_format_version;
   bool world_readable;
@@ -47,14 +46,22 @@ struct Config final {
   bool max_dump_age_set;
   bool dump_is_encrypted;
 
+  bool static_dumps_enabled;
+  std::chrono::milliseconds static_min_dump_interval;
+};
+
+struct DynamicConfig final {
+  explicit DynamicConfig(const Config& config, ConfigPatch&& patch);
+
+  bool operator==(const DynamicConfig& other) const noexcept;
+  bool operator!=(const DynamicConfig& other) const noexcept;
+
   bool dumps_enabled;
   std::chrono::milliseconds min_dump_interval;
 };
 
-std::unordered_map<std::string, ConfigPatch> ParseConfigSet(
-    const dynamic_config::DocsMap& docs_map);
-
-inline constexpr dynamic_config::Key<ParseConfigSet> kConfigSet;
+extern const dynamic_config::Key<std::unordered_map<std::string, ConfigPatch>>
+    kConfigSet;
 
 }  // namespace dump
 

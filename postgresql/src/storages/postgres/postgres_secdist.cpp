@@ -7,6 +7,8 @@
 
 #include <userver/logging/log.hpp>
 
+#include <boost/range/adaptor/map.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres::secdist {
@@ -19,8 +21,7 @@ DsnList DsnListFromJson(const formats::json::Value& elem) {
   std::set<Dsn> dsn_set;
   for (auto host_it = hosts.begin(); host_it != hosts.end(); ++host_it) {
     if (!host_it->IsString()) {
-      storages::secdist::ThrowInvalidSecdistType(
-          "hosts[" + std::to_string(host_it.GetIndex()) + ']', "a string");
+      storages::secdist::ThrowInvalidSecdistType(*host_it, "a string");
     }
     Dsn dsn{host_it->As<std::string>()};
     auto multihost = storages::postgres::SplitByHost(dsn);
@@ -91,8 +92,10 @@ std::vector<DsnList> PostgresSettings::GetShardedClusterDescription(
       throw storages::secdist::SecdistError(
           "dbalias " + dbalias + " secdist config is in unsupported format");
     }
-    throw storages::secdist::UnknownPostgresDbAlias(
-        "dbalias " + dbalias + " not found in secdist config");
+    throw storages::secdist::UnknownPostgresDbAlias(fmt::format(
+        "dbalias {} not found in secdist config. Available aliases: [{}]",
+        dbalias,
+        fmt::join(sharded_cluster_descs_ | boost::adaptors::map_keys, ", ")));
   }
   return it->second;
 }

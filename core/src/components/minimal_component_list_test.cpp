@@ -13,25 +13,22 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-const auto kTmpDir = fs::blocking::TempDirectory::Create();
-const std::string kRuntimeConfingPath =
-    kTmpDir.GetPath() + "/runtime_config.json";
-const std::string kConfigVariablesPath =
-    kTmpDir.GetPath() + "/config_vars.json";
-
-const std::string kConfigVariables = fmt::format(
-    "runtime_config_path: {}\nlogger_file_path: '@null'", kRuntimeConfingPath);
-
-const std::string kStaticConfig =
-    std::string{tests::kMinimalStaticConfig} + kConfigVariablesPath + '\n';
+constexpr std::string_view kConfigVarsTemplate = R"(
+  logger_file_path: '@null'
+)";
 
 }  // namespace
 
 TEST_F(ComponentList, Minimal) {
-  fs::blocking::RewriteFileContents(kRuntimeConfingPath, tests::kRuntimeConfig);
-  fs::blocking::RewriteFileContents(kConfigVariablesPath, kConfigVariables);
+  const auto temp_root = fs::blocking::TempDirectory::Create();
+  const std::string config_vars_path =
+      temp_root.GetPath() + "/config_vars.yaml";
+  const std::string static_config =
+      std::string{tests::kMinimalStaticConfig} + config_vars_path + '\n';
 
-  components::RunOnce(components::InMemoryConfig{kStaticConfig},
+  fs::blocking::RewriteFileContents(config_vars_path, kConfigVarsTemplate);
+
+  components::RunOnce(components::InMemoryConfig{static_config},
                       components::MinimalComponentList());
 }
 

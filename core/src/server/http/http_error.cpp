@@ -1,6 +1,6 @@
 #include <userver/server/http/http_error.hpp>
 
-#include <unordered_map>
+#include <userver/utils/trivial_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -10,35 +10,44 @@ namespace {
 
 using handlers::HandlerErrorCode;
 
-const std::unordered_map<handlers::HandlerErrorCode, HttpStatus,
-                         handlers::HandlerErrorCodeHash>
-    kCustomHandlerStatusToHttp{
-        {HandlerErrorCode::kClientError, HttpStatus::kBadRequest},
-        {HandlerErrorCode::kUnauthorized, HttpStatus::kUnauthorized},
-        {HandlerErrorCode::kForbidden, HttpStatus::kForbidden},
-        {HandlerErrorCode::kResourceNotFound, HttpStatus::kNotFound},
-        {HandlerErrorCode::kInvalidUsage, HttpStatus::kMethodNotAllowed},
-        {HandlerErrorCode::kNotAcceptable, HttpStatus::kNotAcceptable},
-        {HandlerErrorCode::kConflictState, HttpStatus::kConflict},
-        {HandlerErrorCode::kPayloadTooLarge, HttpStatus::kPayloadTooLarge},
-        {HandlerErrorCode::kTooManyRequests, HttpStatus::kTooManyRequests},
-        {HandlerErrorCode::kServerSideError, HttpStatus::kInternalServerError},
-        {HandlerErrorCode::kBadGateway, HttpStatus::kBadGateway},
-        {HandlerErrorCode::kGatewayTimeout, HttpStatus::kGatewayTimeout},
-        {HandlerErrorCode::kUnsupportedMediaType,
-         HttpStatus::kUnsupportedMediaType},
-    };
+constexpr utils::TrivialBiMap kCustomHandlerStatusToHttp = [](auto selector) {
+  return selector()
+      .Case(HandlerErrorCode::kClientError, HttpStatus::kBadRequest)
+      .Case(HandlerErrorCode::kUnauthorized, HttpStatus::kUnauthorized)
+      .Case(HandlerErrorCode::kForbidden, HttpStatus::kForbidden)
+      .Case(HandlerErrorCode::kResourceNotFound, HttpStatus::kNotFound)
+      .Case(HandlerErrorCode::kInvalidUsage, HttpStatus::kMethodNotAllowed)
+      .Case(HandlerErrorCode::kNotAcceptable, HttpStatus::kNotAcceptable)
+      .Case(HandlerErrorCode::kConflictState, HttpStatus::kConflict)
+      .Case(HandlerErrorCode::kPayloadTooLarge, HttpStatus::kPayloadTooLarge)
+      .Case(HandlerErrorCode::kTooManyRequests, HttpStatus::kTooManyRequests)
+      .Case(HandlerErrorCode::kServerSideError,
+            HttpStatus::kInternalServerError)
+      .Case(HandlerErrorCode::kBadGateway, HttpStatus::kBadGateway)
+      .Case(HandlerErrorCode::kGatewayTimeout, HttpStatus::kGatewayTimeout)
+      .Case(HandlerErrorCode::kUnsupportedMediaType,
+            HttpStatus::kUnsupportedMediaType);
+};
 
 }  // namespace
 
 HttpStatus GetHttpStatus(handlers::HandlerErrorCode code) noexcept {
-  if (auto f = kCustomHandlerStatusToHttp.find(code);
-      f != kCustomHandlerStatusToHttp.end()) {
-    return f->second;
+  if (const auto status = kCustomHandlerStatusToHttp.TryFind(code)) {
+    return *status;
   }
   if (code < handlers::HandlerErrorCode::kServerSideError)
     return HttpStatus::kBadRequest;
   return HttpStatus::kInternalServerError;
+}
+
+HttpStatus GetHttpStatus(
+    const handlers::CustomHandlerException& exception) noexcept {
+  if (const auto* const http_exception =
+          dynamic_cast<const http::CustomHandlerException*>(&exception)) {
+    return http_exception->GetHttpStatus();
+  } else {
+    return GetHttpStatus(exception.GetCode());
+  }
 }
 
 }  // namespace server::http

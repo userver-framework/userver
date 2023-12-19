@@ -1,14 +1,11 @@
 #pragma once
 
 #include <userver/storages/postgres/detail/time_types.hpp>
+#include <userver/storages/postgres/query.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::postgres {
-
-class Query;
-
-namespace detail {
+namespace storages::postgres::detail {
 
 class ConnectionPtr;
 class StatementTimingsStorage;
@@ -28,7 +25,6 @@ class StatementTimer final {
   const SteadyClock::time_point start_;
 };
 
-}  // namespace detail
-}  // namespace storages::postgres
+}  // namespace storages::postgres::detail
 
 USERVER_NAMESPACE_END

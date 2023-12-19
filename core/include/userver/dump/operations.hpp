@@ -79,6 +79,7 @@ void CallWrite(Writer& writer, const T& data) {
 }
 
 template <typename T>
+// NOLINTNEXTLINE(readability-const-return-type)
 T CallRead(Reader& reader, To<T> to) {
   return Read(reader, to);
 }
@@ -109,6 +110,7 @@ void Writer::Write(const T& data) {
 }
 
 template <typename T>
+// NOLINTNEXTLINE(readability-const-return-type)
 T Reader::Read() {
   if constexpr (kIsReadable<T>) {
     return impl::CallRead(*this, To<T>{});

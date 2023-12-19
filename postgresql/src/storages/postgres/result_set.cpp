@@ -59,6 +59,21 @@ void RowDescription::CheckBinaryFormat(const UserTypes& types) const {
 }
 
 //----------------------------------------------------------------------------
+// FieldView implementation
+//----------------------------------------------------------------------------
+io::FieldBuffer FieldView::GetBuffer() const {
+  return res_.GetFieldBuffer(row_index_, field_index_);
+}
+
+std::string_view FieldView::Name() const {
+  return res_.GetFieldName(field_index_);
+}
+
+const io::TypeBufferCategory& FieldView::GetTypeBufferCategories() const {
+  return res_.GetTypeBufferCategories();
+}
+
+//----------------------------------------------------------------------------
 // Field implementation
 //----------------------------------------------------------------------------
 FieldDescription Field::Description() const {
@@ -71,10 +86,6 @@ std::string_view Field::Name() const {
 
 bool Field::IsNull() const {
   return res_->IsFieldNull(row_index_, field_index_);
-}
-
-io::FieldBuffer Field::GetBuffer() const {
-  return res_->GetFieldBuffer(row_index_, field_index_);
 }
 
 const io::TypeBufferCategory& Field::GetTypeBufferCategories() const {
@@ -212,23 +223,23 @@ ResultSet::size_type ResultSet::RowsAffected() const {
 
 std::string ResultSet::CommandStatus() const { return pimpl_->CommandStatus(); }
 
-ResultSet::const_iterator ResultSet::cbegin() const { return {pimpl_, 0}; }
+ResultSet::const_iterator ResultSet::cbegin() const& { return {pimpl_, 0}; }
 
-ResultSet::const_iterator ResultSet::cend() const { return {pimpl_, Size()}; }
+ResultSet::const_iterator ResultSet::cend() const& { return {pimpl_, Size()}; }
 
-ResultSet::const_reverse_iterator ResultSet::crbegin() const {
+ResultSet::const_reverse_iterator ResultSet::crbegin() const& {
   return {pimpl_, Size() - 1};
 }
 
-ResultSet::const_reverse_iterator ResultSet::crend() const {
+ResultSet::const_reverse_iterator ResultSet::crend() const& {
   return {pimpl_, npos};
 }
 
-ResultSet::reference ResultSet::Front() const { return (*this)[0]; }
+ResultSet::reference ResultSet::Front() const& { return (*this)[0]; }
 
-ResultSet::reference ResultSet::Back() const { return (*this)[Size() - 1]; }
+ResultSet::reference ResultSet::Back() const& { return (*this)[Size() - 1]; }
 
-ResultSet::reference ResultSet::operator[](size_type index) const {
+ResultSet::reference ResultSet::operator[](size_type index) const& {
   if (index >= Size()) throw RowIndexOutOfBounds{index};
   return {pimpl_, index};
 }
@@ -243,6 +254,10 @@ void ResultSet::SetBufferCategoriesFrom(const ResultSet& dsc) {
 
 Row::size_type Row::IndexOfName(const std::string& name) const {
   return res_->IndexOfName(name);
+}
+
+FieldView Row::GetFieldView(size_type index) const {
+  return FieldView{*res_, row_index_, index};
 }
 
 }  // namespace storages::postgres

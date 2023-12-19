@@ -40,6 +40,7 @@
 #include <string.h>
 
 #include <libpq-int.h>
+#include <pg_config.h>
 
 /*
  * This is copy-paste from fe-protocol3.c
@@ -256,6 +257,11 @@ static void pqxParseInput3(PGconn* conn) {
         if (pqGetErrorNotice3(conn, false /* treat as notice */)) return;
       } else if (id == 'S') {
         if (getParameterStatus(conn)) return;
+      } else if (id == 'Z') {
+        /*
+         * Message 'Z' (ReadyForQuery) is expected as a result of PQXSendPortalBind
+         */
+        conn->inCursor += msgLength;
       } else {
         /* Any other case is unexpected and we summarily skip it */
         pqInternalNotice(&conn->noticeHooks,
@@ -828,7 +834,11 @@ PGresult* PQXgetResult(PGconn* conn) {
             libpq_gettext(
                 "PGEventProc \"%s\" failed during PGEVT_RESULTCREATE event\n"),
             res->events[i].name);
-#if PG_VERSION_NUM >= 140000
+#if PG_VERSION_NUM >= 150000
+        // We might use `conn->errorReported` instead of a 0
+        // to negate a rare possibility of messages duplication
+        pqSetResultError(res, &conn->errorMessage, 0);
+#elif PG_VERSION_NUM >= 140000
         pqSetResultError(res, &conn->errorMessage);
 #else
         pqSetResultError(res, conn->errorMessage.data);
@@ -917,7 +927,7 @@ static int getNotify(PGconn* conn) {
   }
 
   /*
-   * Store the strings right after the PQnotify structure so it can all be
+   * Store the strings right after the PGnotify structure so it can all be
    * freed at once.  We don't use NAMEDATALEN because we don't want to tie
    * this interface to a specific server name length.
    */
@@ -926,9 +936,9 @@ static int getNotify(PGconn* conn) {
   newNotify = (PGnotify*)malloc(sizeof(PGnotify) + nmlen + extralen + 2);
   if (newNotify) {
     newNotify->relname = (char*)newNotify + sizeof(PGnotify);
-    strncpy(newNotify->relname, svname, nmlen + 1);
+    memcpy(newNotify->relname, svname, nmlen + 1);
     newNotify->extra = newNotify->relname + nmlen + 1;
-    strncpy(newNotify->extra, conn->workBuffer.data, extralen + 1);
+    memcpy(newNotify->extra, conn->workBuffer.data, extralen + 1);
     newNotify->be_pid = be_pid;
     newNotify->next = NULL;
     if (conn->notifyTail)

@@ -10,7 +10,7 @@ using Value = std::size_t;
 class ExampleCacheComponent final
     : public cache::LruCacheComponent<Key, Value> {
  public:
-  static constexpr auto kName = "example-cache";
+  static constexpr std::string_view kName = "example-cache";
 
   ExampleCacheComponent(const components::ComponentConfig& config,
                         const components::ComponentContext& context)
@@ -25,7 +25,9 @@ class ExampleCacheComponent final
 };
 /// [Sample lru cache component]
 
-Value ExampleCacheComponent::GetValueForExpiredKeyFromRemote(const Key&) {
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+inline Value ExampleCacheComponent::GetValueForExpiredKeyFromRemote(
+    const Key&) {
   return 0;
 }
 

@@ -29,6 +29,7 @@ namespace components {
 /// http-timeout | HTTP request timeout to the remote in utils::StringToDuration() suitable format | -
 /// http-retries | HTTP retries before reporting the request failure | -
 /// config-url | HTTP URL to request configs via POST request | -
+/// append-path-to-url | add default path '/configs/values' to 'config-url' | true
 /// configs-stage: stage name provided statically, can be overridden from file | -
 /// configs-stage-filepath: file to read stage name from, overrides static "configs-stage" if both are provided, expected format: json file with "env_name" property | -
 /// fallback-to-no-proxy | make additional attempts to retrieve configs by bypassing proxy that is set in USERVER_HTTP_PROXY runtime variable | true
@@ -40,6 +41,8 @@ namespace components {
 // clang-format on
 class DynamicConfigClient : public LoggableComponentBase {
  public:
+  /// @ingroup userver_component_names
+  /// @brief The default name of components::DynamicConfigClient
   static constexpr std::string_view kName = "dynamic-config-client";
 
   DynamicConfigClient(const ComponentConfig&, const ComponentContext&);

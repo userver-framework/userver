@@ -1,15 +1,15 @@
 #include <fmt/format.h>
-#include <boost/algorithm/string.hpp>
 
+#include <logging/log_helper_impl.hpp>
 #include <logging/logging_test.hpp>
 #include <tracing/no_log_spans.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/formats/json/serialize.hpp>
-#include <userver/tracing/noop.hpp>
-#include <userver/tracing/opentracing.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tracer.hpp>
 #include <userver/utest/utest.hpp>
+#include <userver/utils/regex.hpp>
+#include <userver/utils/text_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -17,26 +17,23 @@ class Span : public LoggingTest {};
 
 class OpentracingSpan : public Span {
  protected:
-  void SetUp() override {
-    opentracing_logger_ = MakeStreamLogger(opentracing_sstream);
-    tracing::SetOpentracingLogger(opentracing_logger_);
+  OpentracingSpan()
+      : opentracing_logger_(
+            MakeNamedStreamLogger("openstracing", logging::Format::kTskv)) {
+    tracing::Tracer::SetTracer(
+        tracing::MakeTracer("service-test-name", opentracing_logger_.logger));
 
-    // Discard logs from SetOpentracingLogger
-    logging::LogFlush(opentracing_logger_);
-    opentracing_sstream.str({});
-
-    Span::SetUp();
+    // Discard logs
+    logging::LogFlush(*opentracing_logger_.logger);
+    opentracing_logger_.stream.str({});
   }
 
-  void TearDown() override {
-    Span::TearDown();
-    if (opentracing_logger_) {
-      tracing::SetOpentracingLogger({});
-      opentracing_logger_.reset();
-    }
+  ~OpentracingSpan() override {
+    tracing::Tracer::SetTracer(tracing::MakeTracer({}, {}));
   }
 
-  void FlushOpentracing() { opentracing_logger_->ptr->flush(); }
+  // NOLINTNEXTLINE(readability-make-member-function-const)
+  void FlushOpentracing() { logging::LogFlush(*opentracing_logger_.logger); }
 
   static void CheckTagFormat(const formats::json::Value& tag) {
     EXPECT_TRUE(tag.HasMember("key"));
@@ -61,24 +58,97 @@ class OpentracingSpan : public Span {
     return formats::json::FromString(tags_str.substr(0, tags_end + 1));
   }
 
-  std::ostringstream opentracing_sstream;
+  std::string GetOtStreamString() const {
+    return opentracing_logger_.stream.str();
+  }
 
  private:
-  logging::LoggerPtr opentracing_logger_;
+  StringStreamLogger opentracing_logger_;
 };
 
 UTEST_F(Span, Ctr) {
   {
     logging::LogFlush();
-    EXPECT_EQ(std::string::npos, sstream.str().find("stopwatch_name="));
+    EXPECT_EQ(std::string::npos, GetStreamString().find("stopwatch_name="));
 
     tracing::Span span("span_name");
     logging::LogFlush();
-    EXPECT_EQ(std::string::npos, sstream.str().find("stopwatch_name="));
+    EXPECT_EQ(std::string::npos, GetStreamString().find("stopwatch_name="));
   }
 
   logging::LogFlush();
-  EXPECT_NE(std::string::npos, sstream.str().find("stopwatch_name=span_name"));
+  EXPECT_NE(std::string::npos,
+            GetStreamString().find("stopwatch_name=span_name"));
+}
+
+UTEST_F(Span, LogFormat) {
+  // Note: this is a golden test. The order and content of tags is stable, which
+  // is an implementation detail, but it makes this test possible. If the order
+  // or content of tags change, this test should be fixed to reflect the
+  // changes.
+  constexpr std::string_view kExpectedPattern =
+      R"(tskv\t)"
+      R"(timestamp=\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}\t)"
+      R"(level=[A-Z]+\t)"
+      R"(module=[\w\d ():./]+\t)"
+      R"(task_id=[0-9A-F]+\t)"
+      R"(thread_id=0x[0-9A-F]+\t)"
+      R"(text=\t)"
+      R"(trace_id=[0-9a-f]+\t)"
+      R"(span_id=[0-9a-f]+\t)"
+      R"(parent_id=[0-9a-f]+\t)"
+      R"(stopwatch_name=span_name\t)"
+      R"(total_time=\d+(\.\d+)?\t)"
+      R"(span_ref_type=child\t)"
+      R"(stopwatch_units=ms\t)"
+      R"(start_timestamp=\d+(\.\d+)?\t)"
+      R"(my_timer_time=\d+(\.\d+)?\t)"
+      R"(link=[0-9a-f]+\t)"
+      R"(my_tag_key=my_tag_value\n)";
+  {
+    tracing::Span span("span_name");
+    span.AddTag("my_tag_key", "my_tag_value");
+    span.CreateScopeTime("my_timer");
+  }
+  logging::LogFlush();
+
+  const auto log_line = GetStreamString();
+  EXPECT_TRUE(utils::regex_match(log_line, utils::regex(kExpectedPattern)))
+      << log_line;
+}
+
+UTEST_F(Span, LogBufferSize) {
+  tracing::Span span("http/my-glorious-http-handler-name");
+  span.AddTag("meta_type", "my-glorious-http-handler-name");
+  span.AddTag("meta_code", 500);
+  span.AddTag("http_method", "DELETE");
+  span.AddTag("uri", "https://example.com/some/modest/uri?with=some;more=args");
+  span.AddTag("type", "request");
+  span.AddTag("request_body_length", 42);
+  span.AddTag("body", "just some modest sample request body, not too long");
+  span.AddTag("request_application", "my-userver-service");
+  span.AddTag("lang", "en");
+  span.AddTag("useragent", "what is that?");
+  span.AddTag("battery_type", "AAAAA");
+
+  LOG_ERROR() << "An exception occurred in 'my-glorious-http-handler-name' "
+                 "handler, we found this unacceptable thing and just couldn't "
+                 "really continue";
+  logging::LogFlush();
+
+  EXPECT_LE(GetStreamString().size(), logging::kInitialLogBufferSize)
+      << "A typical log, which a handler would write, caused a buffer "
+         "reallocation. Please adjust the initial buffer size.";
+}
+
+UTEST_F(Span, SourceLocation) {
+  { tracing::Span span("span_name"); }
+  logging::LogFlush();
+  EXPECT_NE(std::string::npos, GetStreamString().find("module=TestBody ( "))
+      << GetStreamString();
+  EXPECT_NE(std::string::npos,
+            GetStreamString().find("userver/core/src/tracing"))
+      << GetStreamString();
 }
 
 UTEST_F(Span, Tag) {
@@ -87,10 +157,10 @@ UTEST_F(Span, Tag) {
     span.AddTag("k", "v");
 
     logging::LogFlush();
-    EXPECT_EQ(std::string::npos, sstream.str().find("k=v"));
+    EXPECT_EQ(std::string::npos, GetStreamString().find("k=v"));
   }
   logging::LogFlush();
-  EXPECT_NE(std::string::npos, sstream.str().find("k=v"));
+  EXPECT_NE(std::string::npos, GetStreamString().find("k=v"));
 }
 
 UTEST_F(Span, InheritTag) {
@@ -98,13 +168,13 @@ UTEST_F(Span, InheritTag) {
   tracing::Span::CurrentSpan().AddTag("k", "v");
 
   logging::LogFlush();
-  EXPECT_EQ(std::string::npos, sstream.str().find("k=v"));
+  EXPECT_EQ(std::string::npos, GetStreamString().find("k=v"));
 
   tracing::Span span2("subspan");
   LOG_INFO() << "inside";
 
   logging::LogFlush();
-  EXPECT_NE(std::string::npos, sstream.str().find("k=v"));
+  EXPECT_NE(std::string::npos, GetStreamString().find("k=v"));
 }
 
 UTEST_F(Span, NonInheritTag) {
@@ -114,7 +184,7 @@ UTEST_F(Span, NonInheritTag) {
   LOG_INFO() << "inside";
   logging::LogFlush();
 
-  EXPECT_EQ(std::string::npos, sstream.str().find("k=v"));
+  EXPECT_EQ(std::string::npos, GetStreamString().find("k=v"));
 }
 
 UTEST_F(OpentracingSpan, Tags) {
@@ -130,7 +200,7 @@ UTEST_F(OpentracingSpan, Tags) {
     span.AddTag("http.url", "http://example.com/example");
   }
   FlushOpentracing();
-  auto log_str = opentracing_sstream.str();
+  const auto log_str = GetOtStreamString();
   EXPECT_EQ(std::string::npos, log_str.find("k=v"));
   EXPECT_NE(std::string::npos, log_str.find("http.status_code"));
   EXPECT_NE(std::string::npos, log_str.find("error"));
@@ -142,13 +212,14 @@ UTEST_F(OpentracingSpan, Tags) {
 }
 
 UTEST_F(OpentracingSpan, FromTracerWithServiceName) {
-  auto tracer = tracing::MakeNoopTracer("test_service");
+  auto tracer = tracing::MakeTracer(
+      "test_service", tracing::Tracer::GetTracer()->GetOptionalLogger());
   {
     tracing::Span span(tracer, "span_name", nullptr,
                        tracing::ReferenceType::kChild);
   }
   FlushOpentracing();
-  auto log_str = opentracing_sstream.str();
+  const auto log_str = GetOtStreamString();
   EXPECT_NE(std::string::npos, log_str.find("service_name=test_service"));
 }
 
@@ -160,7 +231,7 @@ UTEST_F(OpentracingSpan, TagFormat) {
     span.AddTag("method", "POST");
   }
   FlushOpentracing();
-  auto tags = GetTagsJson(opentracing_sstream.str());
+  const auto tags = GetTagsJson(GetOtStreamString());
   EXPECT_EQ(3, tags.GetSize());
   for (const auto& tag : tags) {
     CheckTagFormat(tag);
@@ -183,11 +254,11 @@ UTEST_F(Span, ScopeTime) {
     auto st = span.CreateScopeTime("xxx");
 
     logging::LogFlush();
-    EXPECT_EQ(std::string::npos, sstream.str().find("xxx"));
+    EXPECT_EQ(std::string::npos, GetStreamString().find("xxx"));
   }
 
   logging::LogFlush();
-  EXPECT_NE(std::string::npos, sstream.str().find("xxx_time="));
+  EXPECT_NE(std::string::npos, GetStreamString().find("xxx_time="));
 }
 
 UTEST_F(Span, ScopeTimeDoesntOverrideTotalTime) {
@@ -217,8 +288,8 @@ UTEST_F(Span, ScopeTimeDoesntOverrideTotalTime) {
 
   logging::LogFlush();
 
-  const auto xxx_time = parse_timing(sstream.str(), "xxx_time");
-  const auto total_time = parse_timing(sstream.str(), "total_time");
+  const auto xxx_time = parse_timing(GetStreamString(), "xxx_time");
+  const auto total_time = parse_timing(GetStreamString(), "total_time");
 
   ASSERT_TRUE(xxx_time.has_value());
   ASSERT_TRUE(total_time.has_value());
@@ -251,14 +322,14 @@ UTEST_F(Span, LocalLogLevel) {
 
     LOG_INFO() << "info1";
     logging::LogFlush();
-    EXPECT_NE(std::string::npos, sstream.str().find("info1"));
+    EXPECT_NE(std::string::npos, GetStreamString().find("info1"));
 
     span.SetLocalLogLevel(logging::Level::kWarning);
     LOG_INFO() << "info2";
     LOG_WARNING() << "warning2";
     logging::LogFlush();
-    EXPECT_EQ(std::string::npos, sstream.str().find("info2"));
-    EXPECT_NE(std::string::npos, sstream.str().find("warning2"));
+    EXPECT_EQ(std::string::npos, GetStreamString().find("info2"));
+    EXPECT_NE(std::string::npos, GetStreamString().find("warning2"));
 
     {
       tracing::Span span("span2");
@@ -266,14 +337,14 @@ UTEST_F(Span, LocalLogLevel) {
       LOG_WARNING() << "warning3";
       LOG_INFO() << "info3";
       logging::LogFlush();
-      EXPECT_NE(std::string::npos, sstream.str().find("warning3"));
-      EXPECT_EQ(std::string::npos, sstream.str().find("info3"));
+      EXPECT_NE(std::string::npos, GetStreamString().find("warning3"));
+      EXPECT_EQ(std::string::npos, GetStreamString().find("info3"));
     }
   }
 
   LOG_INFO() << "info4";
   logging::LogFlush();
-  EXPECT_NE(std::string::npos, sstream.str().find("info4"));
+  EXPECT_NE(std::string::npos, GetStreamString().find("info4"));
 }
 
 UTEST_F(Span, LowerLocalLogLevel) {
@@ -287,22 +358,22 @@ UTEST_F(Span, LowerLocalLogLevel) {
 
     LOG_INFO() << "simplelog";
     logging::LogFlush();
-    EXPECT_NE(std::string::npos, sstream.str().find("simplelog"));
+    EXPECT_NE(std::string::npos, GetStreamString().find("simplelog"));
   }
 
   logging::LogFlush();
-  EXPECT_NE(std::string::npos, sstream.str().find("logged_span"));
+  EXPECT_NE(std::string::npos, GetStreamString().find("logged_span"));
 }
 
 UTEST_F(Span, ConstructFromTracer) {
-  auto tracer = tracing::MakeNoopTracer("test_service");
+  auto tracer = tracing::MakeTracer("test_service", {});
 
   tracing::Span span(tracer, "name", nullptr, tracing::ReferenceType::kChild);
   span.SetLink("some_link");
 
   LOG_INFO() << "tracerlog";
   logging::LogFlush();
-  EXPECT_NE(std::string::npos, sstream.str().find("tracerlog"));
+  EXPECT_NE(std::string::npos, GetStreamString().find("tracerlog"));
 
   EXPECT_EQ(tracing::Span::CurrentSpanUnchecked(), &span);
 }
@@ -333,13 +404,13 @@ UTEST_F(Span, NoLogNames) {
 
   logging::LogFlush();
 
-  EXPECT_NE(std::string::npos, sstream.str().find(kLogFirstSpan));
-  EXPECT_EQ(std::string::npos, sstream.str().find(kIgnoreFirstSpan));
-  EXPECT_NE(std::string::npos, sstream.str().find(kLogSecondSpan));
+  EXPECT_NE(std::string::npos, GetStreamString().find(kLogFirstSpan));
+  EXPECT_EQ(std::string::npos, GetStreamString().find(kIgnoreFirstSpan));
+  EXPECT_NE(std::string::npos, GetStreamString().find(kLogSecondSpan));
   EXPECT_EQ(std::string::npos,
-            sstream.str().find(kIgnoreSecondSpan + std::string("\t")));
+            GetStreamString().find(kIgnoreSecondSpan + std::string("\t")));
   EXPECT_NE(std::string::npos,
-            sstream.str().find(kLogThirdSpan + std::string("\t")));
+            GetStreamString().find(kLogThirdSpan + std::string("\t")));
 
   tracing::Tracer::SetNoLogSpans(tracing::NoLogSpans());
 }
@@ -376,22 +447,22 @@ UTEST_F(Span, NoLogPrefixes) {
   };
   tracing::Tracer::SetNoLogSpans(std::move(no_logs));
 
-  tracing::Span{kIgnorePrefix0 + "foo"};
-  tracing::Span{kLogSpan0};
-  tracing::Span{kLogSpan1};
-  tracing::Span{kIgnorePrefix2 + "XXX"};
-  tracing::Span{kLogSpan2};
-  tracing::Span{kIgnorePrefix1 + "74dfljzs"};
-  tracing::Span{kIgnorePrefix0 + "bar"};
-  tracing::Span{kLogSpan3};
-  tracing::Span{kIgnorePrefix0};
-  tracing::Span{kIgnorePrefix1};
-  tracing::Span{kIgnorePrefix2};
-  tracing::Span{kIgnoreSpan};
+  { tracing::Span a{kIgnorePrefix0 + "foo"}; }
+  { tracing::Span a{kLogSpan0}; }
+  { tracing::Span a{kLogSpan1}; }
+  { tracing::Span a{kIgnorePrefix2 + "XXX"}; }
+  { tracing::Span a{kLogSpan2}; }
+  { tracing::Span a{kIgnorePrefix1 + "74dfljzs"}; }
+  { tracing::Span a{kIgnorePrefix0 + "bar"}; }
+  { tracing::Span a{kLogSpan3}; }
+  { tracing::Span a{kIgnorePrefix0}; }
+  { tracing::Span a{kIgnorePrefix1}; }
+  { tracing::Span a{kIgnorePrefix2}; }
+  { tracing::Span a{kIgnoreSpan}; }
 
   logging::LogFlush();
 
-  const auto output = sstream.str();
+  const auto output = GetStreamString();
   EXPECT_NE(std::string::npos, output.find(kLogSpan0)) << output;
   EXPECT_NE(std::string::npos, output.find(kLogSpan1)) << output;
   EXPECT_NE(std::string::npos, output.find(kLogSpan2)) << output;
@@ -425,23 +496,23 @@ UTEST_F(Span, NoLogMixed) {
   const std::string kIgnorePrefix1 = "skip";
   const std::string kIgnorePrefix2 = "do_not_keep";
 
-  tracing::Span{kIgnorePrefix0 + "oops"};
-  tracing::Span{kLogSpan0};
-  tracing::Span{kLogSpan1};
-  tracing::Span{kIgnorePrefix2 + "I"};
-  tracing::Span{kLogSpan2};
-  tracing::Span{kIgnorePrefix1 + "did it"};
-  tracing::Span{kIgnorePrefix0 + "again"};
-  tracing::Span{kLogSpan3};
-  tracing::Span{kLogSpan4};
-  tracing::Span{kIgnorePrefix0};
-  tracing::Span{kIgnorePrefix1};
-  tracing::Span{kIgnorePrefix2};
-  tracing::Span{kIgnoreSpan};
+  { tracing::Span a{kIgnorePrefix0 + "oops"}; }
+  { tracing::Span a{kLogSpan0}; }
+  { tracing::Span a{kLogSpan1}; }
+  { tracing::Span a{kIgnorePrefix2 + "I"}; }
+  { tracing::Span a{kLogSpan2}; }
+  { tracing::Span a{kIgnorePrefix1 + "did it"}; }
+  { tracing::Span a{kIgnorePrefix0 + "again"}; }
+  { tracing::Span a{kLogSpan3}; }
+  { tracing::Span a{kLogSpan4}; }
+  { tracing::Span a{kIgnorePrefix0}; }
+  { tracing::Span a{kIgnorePrefix1}; }
+  { tracing::Span a{kIgnorePrefix2}; }
+  { tracing::Span a{kIgnoreSpan}; }
 
   logging::LogFlush();
 
-  const auto output = sstream.str();
+  const auto output = GetStreamString();
   EXPECT_NE(std::string::npos, output.find(kLogSpan0)) << output;
   EXPECT_NE(std::string::npos, output.find(kLogSpan1)) << output;
   EXPECT_NE(std::string::npos, output.find(kLogSpan2)) << output;
@@ -476,7 +547,7 @@ UTEST_F(Span, NoLogWithSetLogLevel) {
 
   logging::LogFlush();
 
-  EXPECT_EQ(std::string::npos, sstream.str().find(kIgnoreFirstSpan));
+  EXPECT_EQ(std::string::npos, GetStreamString().find(kIgnoreFirstSpan));
 
   {
     tracing::Span span2(kIgnoreSecondSpan);
@@ -485,13 +556,13 @@ UTEST_F(Span, NoLogWithSetLogLevel) {
 
   logging::LogFlush();
 
-  EXPECT_EQ(std::string::npos, sstream.str().find(kIgnoreSecondSpan));
+  EXPECT_EQ(std::string::npos, GetStreamString().find(kIgnoreSecondSpan));
 
   tracing::Tracer::SetNoLogSpans(tracing::NoLogSpans());
 }
 
 UTEST_F(Span, ForeignSpan) {
-  auto tracer = tracing::MakeNoopTracer("test_service");
+  auto tracer = tracing::MakeTracer("test_service", {});
 
   tracing::Span local_span(tracer, "local", nullptr,
                            tracing::ReferenceType::kChild);
@@ -509,10 +580,9 @@ UTEST_F(Span, ForeignSpan) {
 
   logging::LogFlush();
 
-  auto logs_raw = sstream.str();
+  auto logs_raw = GetStreamString();
 
-  std::vector<std::string> logs;
-  boost::algorithm::split(logs, logs_raw, boost::is_any_of("\n"));
+  auto logs = utils::text::Split(logs_raw, "\n");
 
   bool found_sw = false;
   bool found_tr = false;
@@ -577,9 +647,9 @@ UTEST_F(Span, SetLogLevelDoesntBreakGenealogyRoot) {
       EXPECT_EQ(grandchild_span.GetParentId(), root_span.GetSpanId());
     }
     logging::LogFlush();
-    EXPECT_NE(
-        sstream.str().find(fmt::format("parent_id={}", root_span.GetSpanId())),
-        std::string::npos);
+    EXPECT_NE(GetStreamString().find(
+                  fmt::format("parent_id={}", root_span.GetSpanId())),
+              std::string::npos);
   }
 }
 
@@ -593,9 +663,9 @@ UTEST_F(Span, SetLogLevelDoesntBreakGenealogyLoggableParent) {
       EXPECT_EQ(grandchild_span.GetParentId(), root_span.GetSpanId());
     }
     logging::LogFlush();
-    EXPECT_NE(
-        sstream.str().find(fmt::format("parent_id={}", root_span.GetSpanId())),
-        std::string::npos);
+    EXPECT_NE(GetStreamString().find(
+                  fmt::format("parent_id={}", root_span.GetSpanId())),
+              std::string::npos);
   }
 }
 
@@ -612,7 +682,7 @@ UTEST_F(Span, SetLogLevelDoesntBreakGenealogyMultiSkip) {
         EXPECT_EQ(child.GetParentId(), root_span.GetSpanId());
       }
       logging::LogFlush();
-      EXPECT_NE(sstream.str().find(
+      EXPECT_NE(GetStreamString().find(
                     fmt::format("parent_id={}", root_span.GetSpanId())),
                 std::string::npos);
     }

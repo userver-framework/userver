@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <vector>
 
+#include <userver/concurrent/background_task_storage_fwd.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/logging/log.hpp>
@@ -13,6 +14,7 @@
 
 #include <storages/postgres/default_command_controls.hpp>
 #include <storages/postgres/detail/connection.hpp>
+#include <storages/postgres/experiments.hpp>
 #include <userver/storages/postgres/detail/connection_ptr.hpp>
 #include <userver/storages/postgres/dsn.hpp>
 
@@ -50,7 +52,7 @@ inline const storages::postgres::ConnectionSettings kPipelineEnabled{
     storages::postgres::ConnectionSettings::kUserTypesEnabled,
     storages::postgres::ConnectionSettings::kCheckUnused,
     storages::postgres::kDefaultMaxPreparedCacheSize,
-    storages::postgres::ConnectionSettings::kPipelineEnabled,
+    storages::postgres::PipelineMode::kEnabled,
 };
 
 engine::Deadline MakeDeadline();
@@ -65,7 +67,9 @@ class PostgreSQLBase : public ::testing::Test {
 
   static storages::postgres::Dsn GetDsnFromEnv();
   static storages::postgres::DsnList GetDsnListFromEnv();
+  static storages::postgres::Dsn GetUnavailableDsn();
   static engine::TaskProcessor& GetTaskProcessor();
+  static concurrent::BackgroundTaskStorageCore& GetTaskStorage();
 
   static storages::postgres::detail::ConnectionPtr MakeConnection(
       const storages::postgres::Dsn& dsn, engine::TaskProcessor& task_processor,
@@ -78,16 +82,20 @@ class PostgreSQLBase : public ::testing::Test {
       storages::postgres::detail::ConnectionPtr conn);
 
  private:
-  logging::LoggerPtr old_;
+  utils::impl::UserverExperimentsScope experiments_;
 };
 
+// NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class PostgreConnection : public PostgreSQLBase,
                           public ::testing::WithParamInterface<
                               storages::postgres::ConnectionSettings> {
  protected:
   PostgreConnection();
-  ~PostgreConnection();
+  ~PostgreConnection() override;
 
+  storages::postgres::detail::ConnectionPtr& GetConn() { return conn; }
+
+ private:
   storages::postgres::detail::ConnectionPtr conn;
 };
 

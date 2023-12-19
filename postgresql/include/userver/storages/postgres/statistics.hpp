@@ -8,10 +8,12 @@
 
 #include <userver/storages/postgres/detail/time_types.hpp>
 
+#include <userver/congestion_control/controllers/linear.hpp>
 #include <userver/utils/statistics/min_max_avg.hpp>
 #include <userver/utils/statistics/percentile.hpp>
 #include <userver/utils/statistics/recentperiod.hpp>
 #include <userver/utils/statistics/relaxed_counter.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -116,6 +118,10 @@ struct InstanceStatisticsTemplate {
   PercentileAccumulator connection_percentile;
   /// Acquire connection percentile
   PercentileAccumulator acquire_percentile;
+  /// Congestion control statistics
+  std::conditional_t<std::is_same_v<Counter, uint32_t>, std::byte /* NOOP */,
+                     congestion_control::v2::Stats>
+      congestion_control{};
 };
 
 using Percentile = USERVER_NAMESPACE::utils::statistics::Percentile<2048>;
@@ -224,6 +230,18 @@ struct ClusterStatistics {
   /// Unknown/unreachable instances statistics
   std::vector<InstanceStatsDescriptor> unknown;
 };
+
+// InstanceStatisticsNonatomic values support for utils::statistics::Writer
+void DumpMetric(USERVER_NAMESPACE::utils::statistics::Writer& writer,
+                const InstanceStatisticsNonatomic& stats);
+
+/// @brief InstanceStatsDescriptor values support for utils::statistics::Writer
+void DumpMetric(USERVER_NAMESPACE::utils::statistics::Writer& writer,
+                const InstanceStatsDescriptor& value);
+
+/// @brief ClusterStatistics values support for utils::statistics::Writer
+void DumpMetric(USERVER_NAMESPACE::utils::statistics::Writer& writer,
+                const ClusterStatistics& value);
 
 using ClusterStatisticsPtr = std::unique_ptr<ClusterStatistics>;
 

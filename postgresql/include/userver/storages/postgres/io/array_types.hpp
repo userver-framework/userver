@@ -1,7 +1,8 @@
 #pragma once
 
 /// @file userver/storages/postgres/io/array_types.hpp
-/// @brief Arrays I/O support
+/// @brief I/O support for arrays (std::array, std::set, std::unordered_set,
+/// std::vector)
 /// @ingroup userver_postgres_parse_and_format
 
 #include <array>
@@ -9,6 +10,10 @@
 #include <set>
 #include <unordered_set>
 #include <vector>
+
+#include <boost/pfr/core.hpp>
+
+#include <userver/utils/impl/projecting_view.hpp>
 
 #include <userver/storages/postgres/exceptions.hpp>
 #include <userver/storages/postgres/io/buffer_io_base.hpp>
@@ -387,6 +392,7 @@ struct ArrayBinaryFormatter : BufferFormatterBase<Container> {
 
 template <typename Container, bool System>
 struct ArrayPgOid {
+  using Type = Container;
   using ElementType = typename traits::ContainerFinalElement<Container>::type;
   using ElementMapping = CppToPg<ElementType>;
   using Mapping = ArrayPgOid<Container, System>;
@@ -398,6 +404,7 @@ struct ArrayPgOid {
 
 template <typename Container>
 struct ArrayPgOid<Container, true> {
+  using Type = Container;
   using ElementType = typename traits::ContainerFinalElement<Container>::type;
   using ElementMapping = CppToPg<ElementType>;
   using Mapping = ArrayPgOid<Container, true>;
@@ -412,8 +419,8 @@ constexpr bool IsElementMappedToSystem() {
   if constexpr (!traits::kIsCompatibleContainer<Container>) {
     return false;
   } else {
-    return traits::kIsMappedToSystemType<
-        typename traits::ContainerFinalElement<Container>::type>;
+    return IsTypeMappedToSystem<
+        typename traits::ContainerFinalElement<Container>::type>();
   }
 }
 
@@ -446,6 +453,14 @@ inline constexpr bool kEnableArrayFormatter = EnableArrayFormatter<Container>();
 template <typename T>
 struct CppToPg<T, std::enable_if_t<traits::detail::EnableContainerMapping<T>()>>
     : detail::ArrayPgOid<T, detail::IsElementMappedToSystem<T>()> {};
+
+template <typename T>
+constexpr bool IsTypeMappedToSystemArray() {
+  return traits::kIsMappedToPg<T> &&
+         std::is_same<
+             typename CppToPg<T>::Mapping,
+             io::detail::ArrayPgOid<typename CppToPg<T>::Type, true>>::value;
+}
 
 namespace traits {
 
@@ -559,6 +574,8 @@ class ContainerSplitter {
       return tmp;
     }
 
+    std::size_t TailSize() const { return tail_size_; }
+
    private:
     std::size_t NextStep() const { return std::min(chunk_size_, tail_size_); }
 
@@ -593,16 +610,98 @@ class ContainerSplitter {
   const std::size_t chunk_size_;
 };
 
+template <typename Container,
+          typename Seq = std::make_index_sequence<
+              boost::pfr::tuple_size_v<typename Container::value_type>>>
+struct ColumnsSplitterHelper;
+
+/// Utility helper to iterate chunks of input array in column-wise way
+template <typename Container, std::size_t... Indexes>
+struct ColumnsSplitterHelper<Container, std::index_sequence<Indexes...>> final {
+  static_assert(sizeof...(Indexes) > 0,
+                "The aggregate having 0 fields doesn't make sense");
+
+  template <std::size_t Index>
+  struct FieldProjection {
+    using RowType = typename Container::value_type;
+    using FieldType =
+        boost::pfr::tuple_element_t<Index, typename Container::value_type>;
+
+    const FieldType& operator()(const RowType& value) const noexcept {
+      return boost::pfr::get<Index>(value);
+    }
+  };
+
+  template <std::size_t Index>
+  using FieldView =
+      USERVER_NAMESPACE::utils::impl::ProjectingView<const Container,
+                                                     FieldProjection<Index>>;
+
+  template <typename Fn>
+  static void Perform(const Container& container, std::size_t chunk_elements,
+                      const Fn& fn) {
+    DoSplitByChunks(chunk_elements, fn, FieldView<Indexes>{container}...);
+  }
+
+ private:
+  template <typename Fn, typename... Views>
+  static void DoSplitByChunks(std::size_t chunk_elements, const Fn& fn,
+                              const Views&... views) {
+    DoIterateByChunks(fn, ContainerSplitter{views, chunk_elements}.begin()...);
+  }
+
+  template <typename Fn, typename FirstChunkIterator,
+            typename... ChunkIterators>
+  static void DoIterateByChunks(const Fn& fn, FirstChunkIterator first,
+                                ChunkIterators... chunks) {
+    while (first.TailSize() > 0) {
+      fn(*first, *chunks...);
+
+      ++first;
+      (++chunks, ...);
+    }
+  }
+};
+
+/// Utility class to iterate chunks of input array in column-wise way
+template <typename Container>
+class ContainerByColumnsSplitter final {
+ public:
+  ContainerByColumnsSplitter(const Container& container,
+                             std::size_t chunk_elements)
+      : container_{container}, chunk_elements_{chunk_elements} {}
+
+  template <typename Fn>
+  void Perform(const Fn& fn) {
+    ColumnsSplitterHelper<Container>::Perform(container_, chunk_elements_, fn);
+  }
+
+ private:
+  const Container& container_;
+  const std::size_t chunk_elements_;
+};
+
 }  // namespace detail
 
 namespace traits {
 template <typename Container>
 struct IsCompatibleContainer<io::detail::ContainerChunk<Container>>
     : IsCompatibleContainer<Container> {};
+
+template <typename Container, typename Projection>
+struct IsCompatibleContainer<
+    USERVER_NAMESPACE::utils::impl::ProjectingView<const Container, Projection>>
+    : IsCompatibleContainer<Container> {};
 }  // namespace traits
 
 template <typename Container>
 detail::ContainerSplitter<Container> SplitContainer(
+    const Container& container, std::size_t chunk_elements) {
+  return {container, chunk_elements};
+}
+
+template <typename Container>
+detail::ContainerByColumnsSplitter<Container> SplitContainerByColumns(
     const Container& container, std::size_t chunk_elements) {
   return {container, chunk_elements};
 }

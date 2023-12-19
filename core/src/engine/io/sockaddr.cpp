@@ -28,7 +28,7 @@ bool Sockaddr::HasPort() const {
   }
 }
 
-int Sockaddr::Port() const {
+std::uint16_t Sockaddr::Port() const {
   switch (Data()->sa_family) {
     case AF_INET:
       // may be implemented as a macro
@@ -46,7 +46,7 @@ int Sockaddr::Port() const {
   }
 }
 
-void Sockaddr::SetPort(int port) {
+void Sockaddr::SetPort(std::uint16_t port) {
   using PortLimits = std::numeric_limits<in_port_t>;
   if (port < PortLimits::min() || port > PortLimits::max()) {
     throw AddrException(fmt::format("Cannot set invalid port {}", port));

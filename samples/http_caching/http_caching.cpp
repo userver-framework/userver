@@ -1,6 +1,7 @@
 #include <userver/utils/assert.hpp>
 
 #include <userver/cache/caching_component_base.hpp>
+#include <userver/clients/dns/component.hpp>
 #include <userver/clients/http/component.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
@@ -139,12 +140,11 @@ void HttpCachedTranslations::Update(
 
 /// [HTTP caching sample - GetAllData]
 formats::json::Value HttpCachedTranslations::GetAllData() const {
-  auto response =
-      http_client_.CreateRequest()
-          ->get(translations_url_)  // HTTP GET translations_url_ URL
-          ->retry(2)                // retry once in case of error
-          ->timeout(std::chrono::milliseconds{500})
-          ->perform();  // start performing the request
+  auto response = http_client_.CreateRequest()
+                      .get(translations_url_)  // HTTP GET translations_url_ URL
+                      .retry(2)                // retry once in case of error
+                      .timeout(std::chrono::milliseconds{500})
+                      .perform();  // start performing the request
   response->raise_for_status();
   return formats::json::FromString(response->body_view());
 }
@@ -155,10 +155,10 @@ formats::json::Value HttpCachedTranslations::GetUpdatedData() const {
   const auto url =
       http::MakeUrl(translations_url_, {{"last_update", last_update_remote_}});
   auto response = http_client_.CreateRequest()
-                      ->get(url)
-                      ->retry(2)
-                      ->timeout(std::chrono::milliseconds{500})
-                      ->perform();
+                      .get(url)
+                      .retry(2)
+                      .timeout(std::chrono::milliseconds{500})
+                      .perform();
   response->raise_for_status();
   return formats::json::FromString(response->body_view());
 }
@@ -234,6 +234,7 @@ int main(int argc, char* argv[]) {
           .Append<samples::http_cache::GreetUser>()
           .Append<components::TestsuiteSupport>()
           .Append<server::handlers::TestsControl>()
+          .Append<clients::dns::Component>()
           .Append<components::HttpClient>();
   return utils::DaemonMain(argc, argv, component_list);
 }

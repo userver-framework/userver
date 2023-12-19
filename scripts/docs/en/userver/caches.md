@@ -1,6 +1,6 @@
 # Basics of Caches
 
-A cache in userver is a @ref md_en_userver_component_system "component" that
+A cache in userver is a @ref scripts/docs/en/userver/component_system.md "component" that
 periodically polls an external resource and caches its response. Strictly
 speaking, the cache component is a shadow replica of some resource
 (database tables, mongo collections, etc.). The use of the cache is
@@ -14,7 +14,8 @@ time always has an instant access to some version of the data.
 Caches usually inherit from components::CachingComponentBase or
 cache::LruCacheComponent. Sections below describe the features of
 components::CachingComponentBase. For information on cache::LruCacheComponent
-refer to @ref md_en_userver_lru_cache.
+refer to @ref scripts/docs/en/userver/lru_cache.md.
+
 
 ## Update Modes
 
@@ -37,7 +38,7 @@ Here's a sample update mode settings of components::CachingComponentBase
 based cache:
 ```
 yaml
-  mongo-taxi-config-cache:
+  mongo-dynamic-config-cache:
     update-interval: 5s
     update-jitter: 1s
     full-update-interval: 10s
@@ -87,7 +88,7 @@ initial value. If the first update fails with an error, i.e. the update throws
 an exception, then this leads to an exception in the cache component
 constructor and to the service shutdown. There are two ways to change
 this behavior:
-1. @ref md_en_userver_cache_dumps "By enabling dumps", in this case the cache
+1. @ref scripts/docs/en/userver/cache_dumps.md "By enabling dumps", in this case the cache
     starts with the state stored in the dump. If there is no dump, the service
     will still fall when the first update fails. You can overcome this
     through next clause
@@ -113,7 +114,7 @@ you will get an empty smart pointer (`nullptr`).
 ## Access synchronization, versioning, memory consumption
 
 Cache implementation does not block
-numerous concurrent cache readers while doing a background
+multiple concurrent cache readers while doing a background
 cache update. In case of time consuming work with cache data, users may encounter
 the fact that different readers work with different versions of the data. As a
 result, more than two versions of the cache data can coexist at the same time.
@@ -164,7 +165,7 @@ recommended to use utils::CpuRelax rather than calling engine::Yield() manually.
 ## Specializations for DB
 
 Caches over DB are caching components that use a trait structure as a
-template argument for customization. Such componenets are:
+template argument for customization. Such components are:
 
 - components::MongoCache
 - components::PostgreCache
@@ -187,59 +188,46 @@ implement Full and Incremental updates. In Update(), don't forget to put down
 metrics for the `stats_scope` object, describing how many objects were read,
 how many parsing errors there were, and how many elements are in the final cache.
 
-See @ref md_en_userver_tutorial_http_caching for a detailed introduction.
+See @ref scripts/docs/en/userver/tutorial/http_caching.md for a detailed introduction.
 
 
 ## Parallel loading
 
 Cache components, like other components, are loaded in parallel. This allows
-you to speed up the loading of the service in the case of numerous heavy caches.
+you to speed up the loading of the service in the case of multiple heavy caches.
 
 
 ## Metrics
 
-Each cache automatically collects metrics:
-```
-...
-cache.simple-dumped-cache.dump.is-loaded-from-dump 1
-cache.simple-dumped-cache.dump.is-current-from-dump 0
-cache.simple-dumped-cache.dump.last-nontrivial-write.duration-ms 17
-cache.simple-dumped-cache.dump.last-nontrivial-write.size-kb 0
-cache.simple-dumped-cache.dump.last-nontrivial-write.time-from-start-ms 927
-cache.simple-dumped-cache.dump.load-duration-ms 9
-...
-cache.taxi-config.any.documents.parse_failures 0
-cache.taxi-config.any.documents.read_count 1257984
-cache.taxi-config.any.time.last-update-duration-ms 45
-cache.taxi-config.any.time.time-from-last-successful-start-ms 4687
-cache.taxi-config.any.time.time-from-last-update-start-ms 4687
-cache.taxi-config.any.update.attempts_count 12290
-cache.taxi-config.any.update.failures_count 0
-cache.taxi-config.any.update.no_changes_count 11294
-cache.taxi-config.current-documents-count 1271
-cache.taxi-config.dump.is-loaded-from-dump 0
-cache.taxi-config.full.documents.parse_failures 0
-cache.taxi-config.full.documents.read_count 1249139
-cache.taxi-config.full.time.last-update-duration-ms 45
-cache.taxi-config.full.time.time-from-last-successful-start-ms 39832
-cache.taxi-config.full.time.time-from-last-update-start-ms 39832
-cache.taxi-config.full.update.attempts_count 989
-cache.taxi-config.full.update.failures_count 0
-cache.taxi-config.full.update.no_changes_count 0
-cache.taxi-config.incremental.documents.parse_failures 0
-cache.taxi-config.incremental.documents.read_count 8845
-cache.taxi-config.incremental.time.last-update-duration-ms 1
-cache.taxi-config.incremental.time.time-from-last-successful-start-ms 4687
-cache.taxi-config.incremental.time.time-from-last-update-start-ms 4687
-cache.taxi-config.incremental.update.attempts_count 11301
-cache.taxi-config.incremental.update.failures_count 0
-cache.taxi-config.incremental.update.no_changes_count 11294
-...
-```
+Each cache automatically collects metrics. See
+@ref scripts/docs/en/userver/service_monitor.md for a list of metrics with some descriptions. 
+
+
+## Common misuses
+
+* Non-const (mutable) data in cache without synchronization:
+  ```
+  struct CacheData {
+    int integer;                        // fine
+    std::shared_ptr<std::string> name;  // bad, `const CacheData` allows mutating content of `*name`
+  };
+  ```
+  Users of the cache could harm themselves by concurrently mutating thread-unsafe
+  types. A fixed varsion of the above structure would be:
+  ```
+  struct CacheData {
+    int integer;
+    std::shared_ptr<const std::string> name;  // now const!
+  };
+  ```
+* Storing a large number of independent std::unordered_maps in the cache at
+  once. If you need to get 3 different groups of data from 3 different sources,
+  make 3 independent caches. This allows them to update independently,
+  use standard cache metrics, etc.
 
 
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_os_signals | @ref md_en_userver_cache_dumps ⇨
+⇦ @ref scripts/docs/en/userver/deadline_propagation.md | @ref scripts/docs/en/userver/cache_dumps.md ⇨
 @htmlonly </div> @endhtmlonly

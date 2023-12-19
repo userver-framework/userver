@@ -20,7 +20,9 @@ Client::~Client() = default;
 std::string Client::FetchConfigsValues(const std::string& body) {
   const auto timeout_ms = config_.timeout.count();
   const auto retries = config_.retries;
-  const auto url = config_.config_url + kConfigsValues;
+  const auto url = config_.append_path_to_url
+                       ? config_.config_url + kConfigsValues
+                       : config_.config_url;
 
   // Storing and overriding proxy below to avoid issues with concurrent update
   // of proxy runtime config.
@@ -29,11 +31,11 @@ std::string Client::FetchConfigsValues(const std::string& body) {
   std::exception_ptr exception;
   try {
     auto reply = http_client_.CreateRequest()
-                     ->post(url, body)
-                     ->timeout(timeout_ms)
-                     ->retry(retries)
-                     ->proxy(proxy)
-                     ->perform();
+                     .post(url, body)
+                     .timeout(timeout_ms)
+                     .retry(retries)
+                     .proxy(proxy)
+                     .perform();
     reply->raise_for_status();
     return std::move(*reply).body();
   } catch (const clients::http::BaseException& /*e*/) {
@@ -45,11 +47,11 @@ std::string Client::FetchConfigsValues(const std::string& body) {
 
   try {
     auto no_proxy_reply = http_client_.CreateRequest()
-                              ->proxy({})
-                              ->post(url, body)
-                              ->timeout(timeout_ms)
-                              ->retry(retries)
-                              ->perform();
+                              .proxy({})
+                              .post(url, body)
+                              .timeout(timeout_ms)
+                              .retry(retries)
+                              .perform();
 
     if (no_proxy_reply->IsOk()) {
       LOG_WARNING() << "Using non proxy response in config client";
@@ -114,7 +116,7 @@ formats::json::Value Client::FetchConfigs(
   }
 
   auto request_body = formats::json::ToString(body_builder.ExtractValue());
-  LOG_DEBUG() << "request body: " << request_body;
+  LOG_TRACE() << "request body: " << request_body;
 
   auto json = FetchConfigsValues(request_body);
 

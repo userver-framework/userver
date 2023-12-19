@@ -10,9 +10,9 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::coro {
 
 struct PoolConfig {
-  size_t initial_size = 1000;
-  size_t max_size = 10000;
-  size_t stack_size = 256 * 1024ULL;
+  std::size_t initial_size = 1000;
+  std::size_t max_size = 4000;
+  std::size_t stack_size = 256 * 1024ULL;
 };
 
 PoolConfig Parse(const yaml_config::YamlConfig& value,

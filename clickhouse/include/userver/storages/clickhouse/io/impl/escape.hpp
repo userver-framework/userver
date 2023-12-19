@@ -7,6 +7,7 @@
 
 #include <userver/utils/strong_typedef.hpp>
 
+#include <userver/storages/clickhouse/io/type_traits.hpp>
 #include <userver/storages/clickhouse/io/typedefs.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -22,6 +23,8 @@ std::string Escape(int16_t);
 std::string Escape(int32_t);
 std::string Escape(int64_t);
 
+std::string Escape(const char* source);
+std::string Escape(const std::string& source);
 std::string Escape(std::string_view source);
 
 std::string Escape(std::chrono::system_clock::time_point source);
@@ -29,19 +32,26 @@ std::string Escape(DateTime64Milli source);
 std::string Escape(DateTime64Micro source);
 std::string Escape(DateTime64Nano source);
 
-template <typename T>
-std::string Escape(const std::vector<T>& source) {
-  // just an approximation, wild guess
-  constexpr size_t kResultReserveMultiplier = 5;
+template <typename Container>
+std::string Escape(const Container& source) {
+  static_assert(traits::kIsRange<Container>,
+                "There's no escape implementation for the type.");
 
   std::string result;
-  result.reserve(source.size() * kResultReserveMultiplier);
+  if constexpr (traits::kIsSizeable<Container>) {
+    // just an approximation, wild guess
+    constexpr size_t kResultReserveMultiplier = 5;
+    result.reserve(source.size() * kResultReserveMultiplier);
+  }
   result.push_back('[');
-  for (size_t i = 0; i < source.size(); ++i) {
-    if (i != 0) {
+
+  bool is_first_item = true;
+  for (const auto& item : source) {
+    if (!is_first_item) {
       result.push_back(',');
     }
-    result += impl::Escape(source[i]);
+    result += impl::Escape(item);
+    is_first_item = false;
   }
   result.push_back(']');
 

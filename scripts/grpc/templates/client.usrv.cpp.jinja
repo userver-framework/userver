@@ -18,17 +18,34 @@ constexpr std::string_view k{{service.name}}MethodNames[] = {
   "{{proto.package_prefix}}{{service.name}}/{{method.name}}",
   {% endfor %}
 };
+
+{% set client_qos = 'GRPC_CLIENT_QOS_' + proto.package_prefix.replace('.', '_') + service.name + 'Client' %}
+{% set client_qos_default = 'GRPC_CLIENT_QOS_DEFAULT_' + proto.package_prefix.replace('.', '_') + service.name + 'Client' %}
+#ifdef {{ client_qos }}
+const USERVER_NAMESPACE::dynamic_config::Key<USERVER_NAMESPACE::ugrpc::client::impl::ClientQos> k{{service.name}}ClientQosConfig{
+    {{ client_qos }},
+    USERVER_NAMESPACE::dynamic_config::DefaultAsJsonString{
+#ifdef {{ client_qos_default }}
+        {{ client_qos_default }}
+#else
+        R"({"__default__": {}})"
+#endif
+    },
+};
+#else
+constexpr const auto& k{{service.name}}ClientQosConfig =
+    USERVER_NAMESPACE::ugrpc::client::impl::kNoClientQos;
+#endif
 {% endfor %}
 
 }  // namespace
 {% for service in proto.services %}
 
 {{service.name}}Client::{{service.name}}Client(
-    USERVER_NAMESPACE::ugrpc::client::impl::ChannelCache::Token&& channel_token,
-    ::grpc::CompletionQueue& queue,
-    USERVER_NAMESPACE::ugrpc::impl::ServiceStatistics& statistics)
-    : impl_(std::move(channel_token), queue, statistics,
-            std::in_place_type<{{service.name}}>) {}
+    USERVER_NAMESPACE::ugrpc::client::impl::ClientParams&& client_params)
+    : impl_(std::move(client_params), GetMetadata(),
+            std::in_place_type<{{proto.namespace}}::{{service.name}}>) {
+    }
   {% for method in service.method %}
   {% set method_id = loop.index0 %}
 
@@ -37,21 +54,28 @@ constexpr std::string_view k{{service.name}}MethodNames[] = {
     {% if not method.client_streaming %}
     const {{ method.input_type | grpc_to_cpp_name }}& request,
     {% endif %}
-    std::unique_ptr<::grpc::ClientContext> context) {
-  return {impl_.NextStub<{{service.name}}>(), impl_.GetQueue(),
-          &{{service.name}}::Stub::PrepareAsync{{method.name}},
-          k{{service.name}}MethodNames[{{method_id}}],
-          {% if method.client_streaming %}
-          std::move(context), impl_.GetStatistics({{method_id}})};
-          {% else %}
-          std::move(context), impl_.GetStatistics({{method_id}}), request};
-          {% endif %}
+    std::unique_ptr<::grpc::ClientContext> context,
+    const USERVER_NAMESPACE::ugrpc::client::Qos& qos
+) const {
+      return {
+        USERVER_NAMESPACE::ugrpc::client::impl::CreateCallParams(
+          impl_, {{method_id}}, std::move(context), k{{service.name}}ClientQosConfig, qos
+        ),
+        impl_.NextStub<{{proto.namespace}}::{{service.name}}>(),
+        &{{proto.namespace}}::{{service.name}}::Stub::PrepareAsync{{method.name}},
+        {% if method.client_streaming %}
+      };
+        {% else %}
+        request,
+      };
+        {% endif %}
 }
   {% endfor %}
 
 USERVER_NAMESPACE::ugrpc::impl::StaticServiceMetadata
 {{ service.name }}Client::GetMetadata() {
-  return USERVER_NAMESPACE::ugrpc::impl::MakeStaticServiceMetadata<{{service.name}}>(
+  return USERVER_NAMESPACE::ugrpc::impl::MakeStaticServiceMetadata<
+      {{proto.namespace}}::{{service.name}}>(
       k{{service.name}}MethodNames);
 }
 {% endfor %}

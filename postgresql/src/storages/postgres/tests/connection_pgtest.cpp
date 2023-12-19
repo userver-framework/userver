@@ -1,5 +1,6 @@
 #include <storages/postgres/tests/util_pgtest.hpp>
 
+#include <userver/concurrent/background_task_storage.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 
 #include <storages/postgres/detail/connection.hpp>
@@ -15,8 +16,7 @@ namespace pg = storages::postgres;
 namespace static_test {
 
 struct no_input_operator {};
-static_assert(pg::io::traits::HasInputOperator<no_input_operator>::value ==
-                  false,
+static_assert(!pg::io::traits::HasInputOperator<no_input_operator>::value,
               "Test input metafunction");
 static_assert(pg::io::traits::HasInputOperator<int>::value,
               "Test input metafunction");
@@ -29,12 +29,12 @@ static_assert(pg::io::traits::kHasParser<int>, "Test has parser metafunction");
 namespace {
 
 UTEST_P(PostgreConnection, SelectOne) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
 
   pg::ResultSet res{nullptr};
-  UEXPECT_NO_THROW(res = conn->Execute("select 1 as val"))
+  UEXPECT_NO_THROW(res = GetConn()->Execute("select 1 as val"))
       << "select 1 successfully executes";
-  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+  EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
   EXPECT_FALSE(res.IsEmpty()) << "Result set is obtained";
   EXPECT_EQ(1, res.Size()) << "Result contains 1 row";
   EXPECT_EQ(1, res.FieldCount()) << "Result contains 1 field";
@@ -55,12 +55,12 @@ UTEST_P(PostgreConnection, SelectOne) {
 }
 
 UTEST_P(PostgreConnection, SelectPlaceholder) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
 
   pg::ResultSet res{nullptr};
-  UEXPECT_NO_THROW(res = conn->Execute("select $1", 42))
+  UEXPECT_NO_THROW(res = GetConn()->Execute("select $1", 42))
       << "select integral placeholder successfully executes";
-  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+  EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
   EXPECT_FALSE(res.IsEmpty()) << "Result set is obtained";
   EXPECT_EQ(1, res.Size()) << "Result contains 1 row";
   EXPECT_EQ(1, res.FieldCount()) << "Result contains 1 field";
@@ -73,9 +73,9 @@ UTEST_P(PostgreConnection, SelectPlaceholder) {
     }
   }
 
-  UEXPECT_NO_THROW(res = conn->Execute("select $1", "fooo"))
+  UEXPECT_NO_THROW(res = GetConn()->Execute("select $1", "fooo"))
       << "select text placeholder successfully executes";
-  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+  EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
   EXPECT_FALSE(res.IsEmpty()) << "Result set is obtained";
   EXPECT_EQ(1, res.Size()) << "Result contains 1 row";
   EXPECT_EQ(1, res.FieldCount()) << "Result contains 1 field";
@@ -90,14 +90,14 @@ UTEST_P(PostgreConnection, SelectPlaceholder) {
 }
 
 UTEST_P(PostgreConnection, CheckResultset) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
 
   pg::ResultSet res{nullptr};
-  UEXPECT_NO_THROW(res = conn->Execute(
+  UEXPECT_NO_THROW(res = GetConn()->Execute(
                        "select $1 as str, $2 as int, $3 as float, $4 as double",
-                       "foo bar", 42, 3.14f, 6.28))
+                       "foo bar", 42, 3.14F, 6.28))
       << "select four cols successfully executes";
-  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+  EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
   EXPECT_FALSE(res.IsEmpty()) << "Result set is obtained";
   EXPECT_EQ(1, res.Size()) << "Result contains 1 row";
   EXPECT_EQ(4, res.FieldCount()) << "Result contains 4 fields";
@@ -108,54 +108,54 @@ UTEST_P(PostgreConnection, CheckResultset) {
     EXPECT_EQ(4, row.Size()) << "Row contains 4 fields";
     {
       std::string str;
-      pg::Integer i;
-      float f;
-      double d;
+      pg::Integer i{};
+      float f{};
+      double d{};
       UEXPECT_NO_THROW(row.To(str, i, f, d));
       EXPECT_EQ("foo bar", str);
       EXPECT_EQ(42, i);
-      EXPECT_EQ(3.14f, f);
+      EXPECT_EQ(3.14F, f);
       EXPECT_EQ(6.28, d);
     }
     {
       std::string str;
-      pg::Integer i;
-      float f;
-      double d;
+      pg::Integer i{};
+      float f{};
+      double d{};
       UEXPECT_NO_THROW(row.To({"int", "str", "double", "float"}, i, str, d, f));
       EXPECT_EQ("foo bar", str);
       EXPECT_EQ(42, i);
-      EXPECT_EQ(3.14f, f);
+      EXPECT_EQ(3.14F, f);
       EXPECT_EQ(6.28, d);
     }
     {
       std::string str;
-      pg::Integer i;
-      float f;
-      double d;
+      pg::Integer i{};
+      float f{};
+      double d{};
       UEXPECT_NO_THROW(row.To({1, 0, 3, 2}, i, str, d, f));
       EXPECT_EQ("foo bar", str);
       EXPECT_EQ(42, i);
-      EXPECT_EQ(3.14f, f);
+      EXPECT_EQ(3.14F, f);
       EXPECT_EQ(6.28, d);
     }
     {
       std::string str;
-      pg::Integer i;
-      float f;
-      double d;
+      pg::Integer i{};
+      float f{};
+      double d{};
       UEXPECT_NO_THROW((std::tie(str, i, f, d) =
                             row.As<std::string, pg::Integer, float, double>()));
       EXPECT_EQ("foo bar", str);
       EXPECT_EQ(42, i);
-      EXPECT_EQ(3.14f, f);
+      EXPECT_EQ(3.14F, f);
       EXPECT_EQ(6.28, d);
     }
     {
       auto [str, i, f, d] = row.As<std::string, pg::Integer, float, double>();
       EXPECT_EQ("foo bar", str);
       EXPECT_EQ(42, i);
-      EXPECT_EQ(3.14f, f);
+      EXPECT_EQ(3.14F, f);
       EXPECT_EQ(6.28, d);
     }
     {
@@ -172,7 +172,7 @@ UTEST_P(PostgreConnection, CheckResultset) {
 }
 
 UTEST_P(PostgreConnection, QueryErrors) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   pg::ResultSet res{nullptr};
   const std::string temp_table = R"~(
       create temporary table pgtest(
@@ -187,62 +187,65 @@ UTEST_P(PostgreConnection, QueryErrors) {
   const std::string insert_pgtest =
       "insert into pgtest(id, nn_val, check_val) values ($1, $2, $3)";
 
-  UEXPECT_THROW(res = conn->Execute("elect"), pg::SyntaxError);
-  UEXPECT_THROW(res = conn->Execute("select foo"), pg::AccessRuleViolation);
-  UEXPECT_THROW(res = conn->Execute(""), pg::LogicError);
+  UEXPECT_THROW(res = GetConn()->Execute("elect"), pg::SyntaxError);
+  UEXPECT_THROW(res = GetConn()->Execute("select foo"),
+                pg::AccessRuleViolation);
+  UEXPECT_THROW(res = GetConn()->Execute(""), pg::LogicError);
 
-  UEXPECT_NO_THROW(conn->Execute(temp_table));
-  UEXPECT_NO_THROW(conn->Execute(dependent_table));
-  UEXPECT_THROW(conn->Execute(insert_pgtest, 1, pg::null<int>, pg::null<int>),
-                pg::NotNullViolation);
-  UEXPECT_NO_THROW(conn->Execute(insert_pgtest, 1, 1, pg::null<int>));
-  UEXPECT_THROW(conn->Execute(insert_pgtest, 1, 1, pg::null<int>),
+  UEXPECT_NO_THROW(GetConn()->Execute(temp_table));
+  UEXPECT_NO_THROW(GetConn()->Execute(dependent_table));
+  UEXPECT_THROW(
+      GetConn()->Execute(insert_pgtest, 1, pg::null<int>, pg::null<int>),
+      pg::NotNullViolation);
+  UEXPECT_NO_THROW(GetConn()->Execute(insert_pgtest, 1, 1, pg::null<int>));
+  UEXPECT_THROW(GetConn()->Execute(insert_pgtest, 1, 1, pg::null<int>),
                 pg::UniqueViolation);
-  UEXPECT_THROW(conn->Execute(insert_pgtest, 2, 1, 0), pg::CheckViolation);
-  UEXPECT_THROW(conn->Execute("insert into dependent values(3)"),
+  UEXPECT_THROW(GetConn()->Execute(insert_pgtest, 2, 1, 0), pg::CheckViolation);
+  UEXPECT_THROW(GetConn()->Execute("insert into dependent values(3)"),
                 pg::ForeignKeyViolation);
-  UEXPECT_NO_THROW(conn->Execute("insert into dependent values(1)"));
-  UEXPECT_THROW(conn->Execute("delete from pgtest where id = 1"),
+  UEXPECT_NO_THROW(GetConn()->Execute("insert into dependent values(1)"));
+  UEXPECT_THROW(GetConn()->Execute("delete from pgtest where id = 1"),
                 pg::ForeignKeyViolation);
 }
 
 UTEST_P(PostgreConnection, InvalidParameter) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   UEXPECT_THROW(
       {
-        conn->SetParameter("invalid", "parameter",
-                           pg::detail::Connection::ParameterScope::kSession);
-        auto res = conn->Execute("select 1");
+        GetConn()->SetParameter(
+            "invalid", "parameter",
+            pg::detail::Connection::ParameterScope::kSession);
+        auto res = GetConn()->Execute("select 1");
       },
       pg::AccessRuleViolation);
 }
 
 UTEST_P(PostgreConnection, ManualTransaction) {
-  CheckConnection(conn);
-  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
-  UEXPECT_NO_THROW(conn->Execute("begin"))
+  CheckConnection(GetConn());
+  EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
+  UEXPECT_NO_THROW(GetConn()->Execute("begin"))
       << "Successfully execute begin statement";
-  EXPECT_EQ(pg::ConnectionState::kTranIdle, conn->GetState());
-  UEXPECT_NO_THROW(conn->Execute("commit"))
+  EXPECT_EQ(pg::ConnectionState::kTranIdle, GetConn()->GetState());
+  UEXPECT_NO_THROW(GetConn()->Execute("commit"))
       << "Successfully execute commit statement";
-  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+  EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
 }
 
 UTEST_P(PostgreConnection, AutoTransaction) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   pg::ResultSet res{nullptr};
 
-  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+  EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
   {
-    pg::Transaction trx(std::move(conn), pg::TransactionOptions{});
+    pg::Transaction trx(std::move(GetConn()), pg::TransactionOptions{});
     // TODO Delegate state to transaction and test it
-    //    EXPECT_EQ(pg::ConnectionState::kTranIdle, conn->GetState());
-    //    EXPECT_TRUE(conn->IsInTransaction());
-    //    UEXPECT_THROW(conn->Begin(pg::TransactionOptions{}, cb),
+    //    EXPECT_EQ(pg::ConnectionState::kTranIdle, GetConn()->GetState());
+    //    EXPECT_TRUE(GetConn()->IsInTransaction());
+    //    UEXPECT_THROW(GetConn()->Begin(pg::TransactionOptions{}, cb),
     //                  pg::AlreadyInTransaction);
 
     UEXPECT_NO_THROW(res = trx.Execute("select 1"));
-    //    EXPECT_EQ(pg::ConnectionState::kTranIdle, conn->GetState());
+    //    EXPECT_EQ(pg::ConnectionState::kTranIdle, GetConn()->GetState());
     EXPECT_FALSE(res.IsEmpty()) << "Result set is obtained";
 
     UEXPECT_NO_THROW(trx.Commit());
@@ -253,110 +256,114 @@ UTEST_P(PostgreConnection, AutoTransaction) {
 }
 
 UTEST_P(PostgreConnection, RAIITransaction) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   pg::ResultSet res{nullptr};
 
-  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+  EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
   {
-    pg::Transaction trx(std::move(conn), pg::TransactionOptions{});
+    pg::Transaction trx(std::move(GetConn()), pg::TransactionOptions{});
     // TODO Delegate state to transaction and test it
-    //    EXPECT_EQ(pg::ConnectionState::kTranIdle, conn->GetState());
-    //    EXPECT_TRUE(conn->IsInTransaction());
+    //    EXPECT_EQ(pg::ConnectionState::kTranIdle, GetConn()->GetState());
+    //    EXPECT_TRUE(GetConn()->IsInTransaction());
 
     UEXPECT_NO_THROW(res = trx.Execute("select 1"));
-    //    EXPECT_EQ(pg::ConnectionState::kTranIdle, conn->GetState());
+    //    EXPECT_EQ(pg::ConnectionState::kTranIdle, GetConn()->GetState());
     EXPECT_FALSE(res.IsEmpty()) << "Result set is obtained";
   }
 }
 
 UTEST_P(PostgreConnection, RollbackToIdle) {
-  CheckConnection(conn);
-  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
-  UEXPECT_NO_THROW(conn->Begin({}, {}));
+  CheckConnection(GetConn());
+  EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
+  UEXPECT_NO_THROW(GetConn()->Begin({}, {}));
   // at this point transaction could be either kTranIdle or kTranActive,
   // depending on the pipeline mode setting
-  UEXPECT_NO_THROW(conn->Rollback());
-  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+  UEXPECT_NO_THROW(GetConn()->Rollback());
+  EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
 }
 
 UTEST_P(PostgreConnection, RollbackOnBusyOeErroredConnection) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
 
-  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+  EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
   // Network timeout
   DefaultCommandControlScope scope(pg::CommandControl{
       std::chrono::milliseconds{10}, std::chrono::milliseconds{0}});
-  conn->Begin({}, {});
-  UEXPECT_THROW(conn->Execute("select pg_sleep(1)"),
+  GetConn()->Begin({}, {});
+  UEXPECT_THROW(GetConn()->Execute("select pg_sleep(1)"),
                 pg::ConnectionTimeoutError);
-  EXPECT_EQ(pg::ConnectionState::kTranActive, conn->GetState());
-  UEXPECT_NO_THROW(conn->Rollback());
-  UEXPECT_NO_THROW(conn->CancelAndCleanup(std::chrono::seconds{1}));
-  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+  EXPECT_EQ(pg::ConnectionState::kTranActive, GetConn()->GetState());
+  UEXPECT_NO_THROW(GetConn()->Rollback());
+  UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(utest::kMaxTestWaitTime));
+  EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
+  EXPECT_FALSE(GetConn()->IsBroken());
   // Query cancelled
   DefaultCommandControlScope scope2(pg::CommandControl{
-      std::chrono::seconds{2}, std::chrono::milliseconds{10}});
-  conn->Begin({}, {});
-  UEXPECT_THROW(conn->Execute("select pg_sleep(1)"), pg::QueryCancelled);
-  EXPECT_EQ(pg::ConnectionState::kTranError, conn->GetState());
-  UEXPECT_NO_THROW(conn->Rollback());
-  UEXPECT_NO_THROW(conn->CancelAndCleanup(std::chrono::seconds{1}));
-  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+      std::chrono::seconds{2}, std::chrono::milliseconds{200}});
+  GetConn()->Begin({}, {});
+  UEXPECT_THROW(GetConn()->Execute("select pg_sleep(1)"), pg::QueryCancelled);
+  EXPECT_EQ(pg::ConnectionState::kTranError, GetConn()->GetState());
+  UEXPECT_NO_THROW(GetConn()->Rollback());
+  UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(utest::kMaxTestWaitTime));
+  EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
+  EXPECT_FALSE(GetConn()->IsBroken());
 }
 
 UTEST_P(PostgreConnection, CommitOnBusyOeErroredConnection) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
 
-  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+  EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
   // Network timeout
   DefaultCommandControlScope scope(pg::CommandControl{
       std::chrono::milliseconds{10}, std::chrono::milliseconds{0}});
-  conn->Begin({}, {});
-  UEXPECT_THROW(conn->Execute("select pg_sleep(1)"),
+  GetConn()->Begin({}, {});
+  UEXPECT_THROW(GetConn()->Execute("select pg_sleep(1)"),
                 pg::ConnectionTimeoutError);
-  EXPECT_EQ(pg::ConnectionState::kTranActive, conn->GetState());
-  UEXPECT_THROW(conn->Commit(), std::exception);
-  UEXPECT_NO_THROW(conn->CancelAndCleanup(std::chrono::seconds{1}));
-  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+  EXPECT_EQ(pg::ConnectionState::kTranActive, GetConn()->GetState());
+  UEXPECT_THROW(GetConn()->Commit(), std::exception);
+  UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(utest::kMaxTestWaitTime));
+  EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
+  EXPECT_FALSE(GetConn()->IsBroken());
   // Query cancelled
   DefaultCommandControlScope scope2(pg::CommandControl{
-      std::chrono::seconds{2}, std::chrono::milliseconds{10}});
-  conn->Begin({}, {});
-  UEXPECT_THROW(conn->Execute("select pg_sleep(1)"), pg::QueryCancelled);
-  EXPECT_EQ(pg::ConnectionState::kTranError, conn->GetState());
+      std::chrono::seconds{2}, std::chrono::milliseconds{200}});
+  GetConn()->Begin({}, {});
+  UEXPECT_THROW(GetConn()->Execute("select pg_sleep(1)"), pg::QueryCancelled);
+  EXPECT_EQ(pg::ConnectionState::kTranError, GetConn()->GetState());
 
   // Server automatically replaces COMMIT with a ROLLBACK for aborted txns
-  // TODO: TAXICOMMON-4103
-  // UEXPECT_THROW(conn->Commit(), std::exception);
+  UEXPECT_THROW(GetConn()->Commit(), std::exception);
 
-  UEXPECT_NO_THROW(conn->CancelAndCleanup(std::chrono::seconds{1}));
-  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+  EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
+  EXPECT_FALSE(GetConn()->IsBroken());
 }
 
-UTEST_P(PostgreConnection, StatementTimout) {
-  CheckConnection(conn);
+UTEST_P(PostgreConnection, StatementTimeout) {
+  CheckConnection(GetConn());
 
-  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+  EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
   // Network timeout
   DefaultCommandControlScope scope(pg::CommandControl{
       std::chrono::milliseconds{10}, std::chrono::milliseconds{0}});
-  UEXPECT_THROW(conn->Execute("select pg_sleep(1)"),
+  UEXPECT_THROW(GetConn()->Execute("select pg_sleep(1)"),
                 pg::ConnectionTimeoutError);
-  EXPECT_EQ(pg::ConnectionState::kTranActive, conn->GetState());
-  UEXPECT_NO_THROW(conn->CancelAndCleanup(std::chrono::seconds{1}));
-  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+  EXPECT_EQ(pg::ConnectionState::kTranActive, GetConn()->GetState());
+  UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(utest::kMaxTestWaitTime));
+  EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
+  EXPECT_FALSE(GetConn()->IsBroken());
   // Query cancelled
   DefaultCommandControlScope scope2(pg::CommandControl{
-      std::chrono::seconds{2}, std::chrono::milliseconds{10}});
-  UEXPECT_THROW(conn->Execute("select pg_sleep(1)"), pg::QueryCancelled);
-  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
-  UEXPECT_NO_THROW(conn->CancelAndCleanup(std::chrono::seconds{1}));
-  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+      std::chrono::seconds{2}, std::chrono::milliseconds{200}});
+  UEXPECT_THROW(GetConn()->Execute("select pg_sleep(1)"), pg::QueryCancelled);
+  EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
+  UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(utest::kMaxTestWaitTime));
+  EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
+  EXPECT_FALSE(GetConn()->IsBroken());
 }
 
 UTEST_P(PostgreConnection, QueryTaskCancel) {
-  CheckConnection(conn);
-  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+  CheckConnection(GetConn());
+  EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
 
   DefaultCommandControlScope scope(
       pg::CommandControl{utest::kMaxTestWaitTime, utest::kMaxTestWaitTime});
@@ -364,7 +371,7 @@ UTEST_P(PostgreConnection, QueryTaskCancel) {
   engine::SingleConsumerEvent task_started;
   auto task = engine::AsyncNoSpan([&] {
     task_started.Send();
-    UEXPECT_THROW(conn->Execute("select pg_sleep(1)"),
+    UEXPECT_THROW(GetConn()->Execute("select pg_sleep(1)"),
                   pg::ConnectionInterrupted);
   });
   ASSERT_TRUE(task_started.WaitForEventFor(utest::kMaxTestWaitTime));
@@ -372,21 +379,21 @@ UTEST_P(PostgreConnection, QueryTaskCancel) {
   task.WaitFor(utest::kMaxTestWaitTime);
   ASSERT_TRUE(task.IsFinished());
 
-  EXPECT_EQ(pg::ConnectionState::kTranActive, conn->GetState());
-  UEXPECT_NO_THROW(conn->CancelAndCleanup(std::chrono::seconds{1}));
-  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+  EXPECT_EQ(pg::ConnectionState::kTranActive, GetConn()->GetState());
+  UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(utest::kMaxTestWaitTime));
+  EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
 }
 
 UTEST_P(PostgreConnection, CachedPlanChange) {
   // this only works with english messages, better than nothing
-  conn->Execute("SET lc_messages = 'en_US.UTF-8'");
-  conn->Execute("CREATE TEMPORARY TABLE plan_change_test ( a integer )");
-  UEXPECT_NO_THROW(conn->Execute("SELECT * FROM plan_change_test"));
-  conn->Execute("ALTER TABLE plan_change_test ALTER a TYPE bigint");
-  UEXPECT_THROW(conn->Execute("SELECT * FROM plan_change_test"),
+  GetConn()->Execute("SET lc_messages = 'en_US.UTF-8'");
+  GetConn()->Execute("CREATE TEMPORARY TABLE plan_change_test ( a integer )");
+  UEXPECT_NO_THROW(GetConn()->Execute("SELECT * FROM plan_change_test"));
+  GetConn()->Execute("ALTER TABLE plan_change_test ALTER a TYPE bigint");
+  UEXPECT_THROW(GetConn()->Execute("SELECT * FROM plan_change_test"),
                 pg::FeatureNotSupported);
   // broken plan should not be reused anymore
-  UEXPECT_NO_THROW(conn->Execute("SELECT * FROM plan_change_test"));
+  UEXPECT_NO_THROW(GetConn()->Execute("SELECT * FROM plan_change_test"));
 }
 
 }  // namespace
@@ -396,8 +403,8 @@ class PostgreCustomConnection : public PostgreSQLBase {};
 UTEST_F(PostgreCustomConnection, Connect) {
   UEXPECT_THROW(
       pg::detail::Connection::Connect(
-          pg::Dsn{"psql://"}, nullptr, GetTaskProcessor(), kConnectionId,
-          kCachePreparedStatements, GetTestCmdCtls(), {}, {}),
+          pg::Dsn{"psql://"}, nullptr, GetTaskProcessor(), GetTaskStorage(),
+          kConnectionId, kCachePreparedStatements, GetTestCmdCtls(), {}, {}),
       pg::InvalidDSN)
       << "Connected with invalid DSN";
 
@@ -406,15 +413,16 @@ UTEST_F(PostgreCustomConnection, Connect) {
 
 UTEST_F(PostgreCustomConnection, NoPreparedStatements) {
   UEXPECT_NO_THROW(pg::detail::Connection::Connect(
-      GetDsnFromEnv(), nullptr, GetTaskProcessor(), kConnectionId,
-      kNoPreparedStatements, GetTestCmdCtls(), {}, {}));
+      GetDsnFromEnv(), nullptr, GetTaskProcessor(), GetTaskStorage(),
+      kConnectionId, kNoPreparedStatements, GetTestCmdCtls(), {}, {}));
 }
 
 UTEST_F(PostgreCustomConnection, NoUserTypes) {
   std::unique_ptr<pg::detail::Connection> conn;
-  UEXPECT_NO_THROW(conn = pg::detail::Connection::Connect(
+  UASSERT_NO_THROW(conn = pg::detail::Connection::Connect(
                        GetDsnFromEnv(), nullptr, GetTaskProcessor(),
-                       kConnectionId, kNoUserTypes, GetTestCmdCtls(), {}, {}));
+                       GetTaskStorage(), kConnectionId, kNoUserTypes,
+                       GetTestCmdCtls(), {}, {}));
   ASSERT_TRUE(conn);
 
   UEXPECT_NO_THROW(conn->Execute("select 1"));

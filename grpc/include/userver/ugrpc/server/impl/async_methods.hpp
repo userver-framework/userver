@@ -8,8 +8,8 @@
 #include <grpcpp/impl/codegen/async_unary_call.h>
 #include <grpcpp/impl/codegen/status.h>
 
-#include <userver/ugrpc/impl/async_method_invocation.hpp>
 #include <userver/ugrpc/server/exceptions.hpp>
+#include <userver/ugrpc/server/impl/async_method_invocation.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -36,6 +36,9 @@ using ugrpc::impl::AsyncMethodInvocation;
 
 void ReportErrorWhileCancelling(std::string_view call_name) noexcept;
 
+void ThrowOnError(impl::AsyncMethodInvocation::WaitStatus status,
+                  std::string_view call_name, std::string_view stage_name);
+
 extern const grpc::Status kUnimplementedStatus;
 extern const grpc::Status kUnknownErrorStatus;
 
@@ -44,9 +47,7 @@ void Finish(GrpcStream& stream, const Response& response,
             const grpc::Status& status, std::string_view call_name) {
   AsyncMethodInvocation finish;
   stream.Finish(response, status, finish.GetTag());
-  if (!finish.Wait()) {
-    throw RpcInterruptedError(call_name, "Finish");
-  }
+  ThrowOnError(Wait(finish), call_name, "Finish");
 }
 
 template <typename GrpcStream>
@@ -54,23 +55,23 @@ void Finish(GrpcStream& stream, const grpc::Status& status,
             std::string_view call_name) {
   AsyncMethodInvocation finish;
   stream.Finish(status, finish.GetTag());
-  if (!finish.Wait()) {
-    throw RpcInterruptedError(call_name, "Finish");
-  }
+  ThrowOnError(Wait(finish), call_name, "Finish");
 }
 
 template <typename GrpcStream>
 void Cancel(GrpcStream& stream, std::string_view call_name) noexcept {
   AsyncMethodInvocation cancel;
   stream.Finish(kUnknownErrorStatus, cancel.GetTag());
-  if (!cancel.Wait()) ReportErrorWhileCancelling(call_name);
+  if (Wait(cancel) != impl::AsyncMethodInvocation::WaitStatus::kOk)
+    ReportErrorWhileCancelling(call_name);
 }
 
 template <typename GrpcStream>
 void CancelWithError(GrpcStream& stream, std::string_view call_name) noexcept {
   AsyncMethodInvocation cancel;
   stream.FinishWithError(kUnknownErrorStatus, cancel.GetTag());
-  if (!cancel.Wait()) ReportErrorWhileCancelling(call_name);
+  if (Wait(cancel) != impl::AsyncMethodInvocation::WaitStatus::kOk)
+    ReportErrorWhileCancelling(call_name);
 }
 
 template <typename GrpcStream>
@@ -78,25 +79,21 @@ void FinishWithError(GrpcStream& stream, const grpc::Status& status,
                      std::string_view call_name) {
   AsyncMethodInvocation finish;
   stream.FinishWithError(status, finish.GetTag());
-  if (!finish.Wait()) {
-    throw RpcInterruptedError(call_name, "FinishWithError");
-  }
+  ThrowOnError(Wait(finish), call_name, "FinishWithError");
 }
 
 template <typename GrpcStream>
 void SendInitialMetadata(GrpcStream& stream, std::string_view call_name) {
   AsyncMethodInvocation metadata;
   stream.SendInitialMetadata(metadata.GetTag());
-  if (!metadata.Wait()) {
-    throw RpcInterruptedError(call_name, "SendInitialMetadata");
-  }
+  ThrowOnError(Wait(metadata), call_name, "SendInitialMetadata");
 }
 
 template <typename GrpcStream, typename Request>
 bool Read(GrpcStream& stream, Request& request) {
   AsyncMethodInvocation read;
   stream.Read(&request, read.GetTag());
-  return read.Wait();
+  return Wait(read) == impl::AsyncMethodInvocation::WaitStatus::kOk;
 }
 
 template <typename GrpcStream, typename Response>
@@ -104,9 +101,7 @@ void Write(GrpcStream& stream, const Response& response,
            grpc::WriteOptions options, std::string_view call_name) {
   AsyncMethodInvocation write;
   stream.Write(response, options, write.GetTag());
-  if (!write.Wait()) {
-    throw RpcInterruptedError(call_name, "Write");
-  }
+  ThrowOnError(Wait(write), call_name, "Write");
 }
 
 template <typename GrpcStream, typename Response>
@@ -115,9 +110,7 @@ void WriteAndFinish(GrpcStream& stream, const Response& response,
                     std::string_view call_name) {
   AsyncMethodInvocation write_and_finish;
   stream.WriteAndFinish(response, options, status, write_and_finish.GetTag());
-  if (!write_and_finish.Wait()) {
-    throw RpcInterruptedError(call_name, "WriteAndFinish");
-  }
+  ThrowOnError(Wait(write_and_finish), call_name, "WriteAndFinish");
 }
 
 template <typename GrpcStream, typename State>

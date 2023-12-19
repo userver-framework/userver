@@ -10,52 +10,43 @@
 
 USERVER_NAMESPACE_BEGIN
 
-using namespace formats::bson;
-using namespace storages::mongo;
+namespace mongo = storages::mongo;
+
 using namespace std::chrono_literals;
 
 namespace {
 
-Pool MakeTestPool(clients::dns::Resolver& dns_resolver) {
-  return MakeTestsuiteMongoPool("collection_test", &dns_resolver);
-}
-
-Collection MakeCollection(const std::string& name) {
-  auto dns_resolver = MakeDnsResolver();
-  auto collection = MakeTestPool(dns_resolver).GetCollection(name);
-  collection.DeleteMany({});
-  return collection;
-}
+class DistLockTest : public MongoPoolFixture {};
 
 const auto kMockTime = std::chrono::system_clock::from_time_t(1567544400);
 
 }  // namespace
 
-UTEST(DistLockTest, AcquireAndRelease) {
+UTEST_F(DistLockTest, AcquireAndRelease) {
   utils::datetime::MockNowSet(kMockTime);
 
-  auto collection = MakeCollection("test_acquire_and_release");
-  DistLockStrategy strategy(collection, "key_simple", "owner");
+  auto collection = GetDefaultPool().GetCollection("test_acquire_and_release");
+  mongo::DistLockStrategy strategy(collection, "key_simple", "owner");
   UEXPECT_NO_THROW(strategy.Acquire(1s, {}));
   UEXPECT_NO_THROW(strategy.Release({}));
 }
 
-UTEST(DistLockTest, Prolong) {
+UTEST_F(DistLockTest, Prolong) {
   utils::datetime::MockNowSet(kMockTime);
 
-  auto collection = MakeCollection("test_prolong");
-  DistLockStrategy strategy(collection, "key_prolong", "owner");
+  auto collection = GetDefaultPool().GetCollection("test_prolong");
+  mongo::DistLockStrategy strategy(collection, "key_prolong", "owner");
   UEXPECT_NO_THROW(strategy.Acquire(1s, {}));
   UEXPECT_NO_THROW(strategy.Acquire(1s, {}));
 }
 
-UTEST(DistLockTest, TestOwner) {
+UTEST_F(DistLockTest, TestOwner) {
   utils::datetime::MockNowSet(kMockTime);
 
-  auto collection = MakeCollection("test_owner");
+  auto collection = GetDefaultPool().GetCollection("test_owner");
   const std::string key = "key_task";
-  DistLockStrategy strategy1(collection, key, "owner1");
-  DistLockStrategy strategy2(collection, key, "owner2");
+  mongo::DistLockStrategy strategy1(collection, key, "owner1");
+  mongo::DistLockStrategy strategy2(collection, key, "owner2");
 
   UEXPECT_NO_THROW(strategy1.Acquire(1s, "first"));
   UEXPECT_THROW(strategy1.Acquire(1s, "second"),
@@ -65,13 +56,13 @@ UTEST(DistLockTest, TestOwner) {
   UEXPECT_NO_THROW(strategy2.Release("first"));
 }
 
-UTEST(DistLockTest, Expire) {
+UTEST_F(DistLockTest, Expire) {
   utils::datetime::MockNowSet(kMockTime);
 
-  auto collection = MakeCollection("test_expire");
+  auto collection = GetDefaultPool().GetCollection("test_expire");
   const std::string key = "key_expire";
-  DistLockStrategy strategy1(collection, key, "owner1");
-  DistLockStrategy strategy2(collection, key, "owner2");
+  mongo::DistLockStrategy strategy1(collection, key, "owner1");
+  mongo::DistLockStrategy strategy2(collection, key, "owner2");
 
   UEXPECT_NO_THROW(strategy1.Acquire(1s, {}));
   utils::datetime::MockSleep(5s);
@@ -80,13 +71,13 @@ UTEST(DistLockTest, Expire) {
                 dist_lock::LockIsAcquiredByAnotherHostException);
 }
 
-UTEST(DistLockTest, ReleaseAcquire) {
+UTEST_F(DistLockTest, ReleaseAcquire) {
   utils::datetime::MockNowSet(kMockTime);
 
-  auto collection = MakeCollection("test_release_acquire");
+  auto collection = GetDefaultPool().GetCollection("test_release_acquire");
   const std::string key = "key_release_acquire";
-  DistLockStrategy strategy1(collection, key, "owner1");
-  DistLockStrategy strategy2(collection, key, "owner2");
+  mongo::DistLockStrategy strategy1(collection, key, "owner1");
+  mongo::DistLockStrategy strategy2(collection, key, "owner2");
 
   UEXPECT_NO_THROW(strategy1.Acquire(1s, {}));
   UEXPECT_NO_THROW(strategy2.Release({}));

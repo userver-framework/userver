@@ -11,7 +11,7 @@ namespace testsuite::impl::actions {
 
 class CacheDumpsWrite final : public BaseTestsuiteAction {
  public:
-  CacheDumpsWrite(components::TestsuiteSupport& testsuite_support)
+  explicit CacheDumpsWrite(components::TestsuiteSupport& testsuite_support)
       : testsuite_support_(testsuite_support) {}
 
   formats::json::Value Perform(
@@ -28,7 +28,7 @@ class CacheDumpsWrite final : public BaseTestsuiteAction {
 
 class CacheDumpsRead final : public BaseTestsuiteAction {
  public:
-  CacheDumpsRead(components::TestsuiteSupport& testsuite_support)
+  explicit CacheDumpsRead(components::TestsuiteSupport& testsuite_support)
       : testsuite_support_(testsuite_support) {}
 
   formats::json::Value Perform(

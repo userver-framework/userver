@@ -5,6 +5,7 @@
 #include <boost/endian/conversion.hpp>
 #include <boost/uuid/uuid.hpp>
 
+#include <userver/formats/json/value.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -140,6 +141,15 @@ void Write(Writer& writer, const boost::uuids::uuid& value) {
 
 boost::uuids::uuid Read(Reader& reader, To<boost::uuids::uuid>) {
   return impl::ReadTrivial<boost::uuids::uuid>(reader);
+}
+
+void Write(Writer& writer, const formats::json::Value& value) {
+  writer.Write(formats::json::ToString(value));
+}
+
+formats::json::Value Read(Reader& reader, To<formats::json::Value>) {
+  const auto string = ReadStringViewUnsafe(reader);
+  return formats::json::FromString(string);
 }
 
 }  // namespace dump

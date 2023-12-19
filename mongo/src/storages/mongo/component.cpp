@@ -10,7 +10,7 @@
 #include <userver/storages/mongo/pool_config.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
-#include <storages/mongo/mongo_config.hpp>
+#include <storages/mongo/dynamic_config.hpp>
 #include <storages/mongo/mongo_secdist.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -18,29 +18,18 @@ USERVER_NAMESPACE_BEGIN
 namespace components {
 
 namespace {
-
 const std::string kStandardMongoPrefix = "mongo-";
 
-bool ParseStatsVerbosity(const ComponentConfig& config) {
-  const auto verbosity_str = config["stats_verbosity"].As<std::string>("terse");
-  if (verbosity_str == "terse") return false;
-  if (verbosity_str == "full") return true;
-
-  throw storages::mongo::InvalidConfigException()
-      << "Invalid value '" << verbosity_str << "' for stats_verbosity";
-}
-
-storages::mongo::Config GetInitConfig(const ComponentContext& context) {
-  auto config_source = context.FindComponent<DynamicConfig>().GetSource();
-  auto snapshot = config_source.GetSnapshot();
-  return snapshot.Get<storages::mongo::Config>();
+auto ParsePoolConfig(const ComponentConfig& config) {
+  auto pool_config = config.As<storages::mongo::PoolConfig>();
+  pool_config.Validate(config.Name());
+  return pool_config;
 }
 
 }  // namespace
 
 Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
-    : LoggableComponentBase(config, context),
-      is_verbose_stats_enabled_(ParseStatsVerbosity(config)) {
+    : LoggableComponentBase(config, context) {
   auto dbalias = config["dbalias"].As<std::string>("");
 
   std::string connection_string;
@@ -53,13 +42,14 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
 
   auto* dns_resolver = clients::dns::GetResolverPtr(config, context);
 
-  storages::mongo::PoolConfig pool_config(config);
+  const auto pool_config = ParsePoolConfig(config);
   auto config_source = context.FindComponent<DynamicConfig>().GetSource();
-  auto snapshot = config_source.GetSnapshot();
 
   pool_ = std::make_shared<storages::mongo::Pool>(
       config.Name(), connection_string, pool_config, dns_resolver,
-      snapshot.Get<storages::mongo::Config>());
+      config_source);
+
+  pool_->Start();
 
   auto& statistics_storage =
       context.FindComponent<components::StatisticsStorage>();
@@ -69,29 +59,25 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
       section_name.size() != kStandardMongoPrefix.size()) {
     section_name = section_name.substr(kStandardMongoPrefix.size());
   }
-  statistics_holder_ = statistics_storage.GetStorage().RegisterExtender(
-      "mongo." + section_name, [this](const auto&) {
-        return is_verbose_stats_enabled_ ? pool_->GetVerboseStatistics()
-                                         : pool_->GetStatistics();
-      });
-
-  config_subscription_ = config_source.UpdateAndListen(
-      this, "mongo-config-updater", &Mongo::OnConfigUpdate);
+  statistics_holder_ = statistics_storage.GetStorage().RegisterWriter(
+      "mongo",
+      [this](utils::statistics::Writer& writer) {
+        UASSERT(pool_);
+        writer = *pool_;
+      },
+      {{"mongo_database", section_name}});
 }
 
 Mongo::~Mongo() {
-  config_subscription_.Unsubscribe();
+  pool_->Stop();
+
   statistics_holder_.Unregister();
 }
 
 storages::mongo::PoolPtr Mongo::GetPool() const { return pool_; }
 
-void Mongo::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
-  pool_->SetConfig(cfg.Get<storages::mongo::Config>());
-}
-
 yaml_config::Schema Mongo::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<MultiMongo>(R"(
 type: object
 description: MongoDB client component
 additionalProperties: false
@@ -102,57 +88,10 @@ properties:
     dbconnection:
         type: string
         description: connection string (used if no dbalias specified)
-    appname:
-        type: string
-        description: application name for the DB server 
-        defaultDescription: userver
-    conn_timeout:
-        type: string
-        description: connection timeout 
-        defaultDescription: 2s
-    so_timeout:
-        type: string
-        description: socket timeout 
-        defaultDescription: 10s
-    queue_timeout:
-        type: string
-        description: max connection queue wait time 
-        defaultDescription: 1s
-    initial_size:
-        type: integer
-        description: number of connections created initially 
-        defaultDescription: 16
-    max_size:
-        type: integer
-        description: limit for total connections number 
-        defaultDescription: 128
-    idle_limit:
-        type: integer
-        description: limit for idle connections number 
-        defaultDescription: 64
-    connecting_limit:
-        type: integer
-        description: limit for establishing connections number 
-        defaultDescription: 8
-    local_threshold:
-        type: string
-        description: latency window for instance selection 
-        defaultDescription: mongodb default
-    max_replication_lag:
-        type: string
-        description: replication lag limit for usable secondaries, min. 90s
     maintenance_period:
         type: string
-        description: pool maintenance period (idle connections pruning etc.) 
+        description: pool maintenance period (idle connections pruning etc.)
         defaultDescription: 15s
-    stats_verbosity:
-        type: string
-        description: changes the granularity of reported metrics 
-        defaultDescription: 'terse'
-    dns_resolver:
-        type: string
-        description: server hostname resolver type (getaddrinfo or async)
-        defaultDescription: 'getaddrinfo'
 )");
 }
 
@@ -160,24 +99,17 @@ MultiMongo::MultiMongo(const ComponentConfig& config,
                        const ComponentContext& context)
     : LoggableComponentBase(config, context),
       multi_mongo_(config.Name(), context.FindComponent<Secdist>().GetStorage(),
-                   storages::mongo::PoolConfig(config),
+                   ParsePoolConfig(config),
                    clients::dns::GetResolverPtr(config, context),
-                   GetInitConfig(context)),
-      is_verbose_stats_enabled_(ParseStatsVerbosity(config)) {
+                   context.FindComponent<DynamicConfig>().GetSource()) {
   auto& statistics_storage =
       context.FindComponent<components::StatisticsStorage>();
-  statistics_holder_ = statistics_storage.GetStorage().RegisterExtender(
-      multi_mongo_.GetName(), [this](const auto&) { return GetStatistics(); });
-
-  auto config_source = context.FindComponent<DynamicConfig>().GetSource();
-  config_subscription_ = config_source.UpdateAndListen(
-      this, "multi-mongo-config-updater", &MultiMongo::OnConfigUpdate);
+  statistics_holder_ = statistics_storage.GetStorage().RegisterWriter(
+      multi_mongo_.GetName(),
+      [this](utils::statistics::Writer& writer) { writer = multi_mongo_; });
 }
 
-MultiMongo::~MultiMongo() {
-  config_subscription_.Unsubscribe();
-  statistics_holder_.Unregister();
-}
+MultiMongo::~MultiMongo() { statistics_holder_.Unregister(); }
 
 storages::mongo::PoolPtr MultiMongo::GetPool(const std::string& dbalias) const {
   return multi_mongo_.GetPool(dbalias);
@@ -193,14 +125,6 @@ bool MultiMongo::RemovePool(const std::string& dbalias) {
 
 storages::mongo::MultiMongo::PoolSet MultiMongo::NewPoolSet() {
   return multi_mongo_.NewPoolSet();
-}
-
-formats::json::Value MultiMongo::GetStatistics() const {
-  return multi_mongo_.GetStatistics(is_verbose_stats_enabled_);
-}
-
-void MultiMongo::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
-  multi_mongo_.SetConfig(cfg.Get<storages::mongo::Config>());
 }
 
 yaml_config::Schema MultiMongo::GetStaticConfigSchema() {
@@ -252,13 +176,29 @@ properties:
         type: string
         description: changes the granularity of reported metrics
         defaultDescription: 'terse'
+        enum:
+          - terse
+          - full
     dns_resolver:
         type: string
         description: server hostname resolver type (getaddrinfo or async)
-        defaultDescription: 'getaddrinfo'
+        defaultDescription: 'async'
         enum:
           - getaddrinfo
           - async
+    congestion_control:
+        description: congestion control settings
+        type: object
+        additionalProperties: false
+        properties:
+            fake-mode:
+                type: boolean
+                description: whether CC limiter is actually working
+                defaultDescription: false
+            enabled:
+                type: boolean
+                description: whether CC is enabled for the database
+                defaultDescription: true
 )");
 }
 

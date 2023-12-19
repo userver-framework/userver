@@ -17,7 +17,7 @@ namespace storages::postgres {
 /// @brief Class for dynamic PostgreSQL parameter list construction.
 ///
 /// Typical use case for this container is to keep parameters around while the
-/// query is being contructed on the fly:
+/// query is being constructed on the fly:
 /// @snippet storages/postgres/tests/interval_pgtest.cpp Parameters store sample
 ///
 /// Note that storages::postgres::Cluster::Execute with explicitly provided
@@ -25,12 +25,18 @@ namespace storages::postgres {
 /// @snippet storages/postgres/tests/landing_test.cpp Exec sample
 class ParameterStore {
  public:
+  ParameterStore() = default;
+  ParameterStore(const ParameterStore&) = delete;
+  ParameterStore(ParameterStore&&) = default;
+  ParameterStore& operator=(const ParameterStore&) = delete;
+  ParameterStore& operator=(ParameterStore&&) = default;
+
   /// @brief Adds a parameter to the end of the parameter list.
   /// @note Currently only built-in/system types are supported.
   template <typename T>
   ParameterStore& PushBack(const T& param) {
     static_assert(
-        io::traits::kIsMappedToSystemType<T>,
+        io::IsTypeMappedToSystem<T>() || io::IsTypeMappedToSystemArray<T>(),
         "Currently only built-in types can be used in ParameterStore");
     data_.Write(kNoUserTypes, param);
     return *this;

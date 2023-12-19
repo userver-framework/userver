@@ -7,6 +7,7 @@
 
 #include <benchmark/benchmark.h>
 
+#include <concurrent/impl/interference_shield.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/run_standalone.hpp>
 #include <userver/engine/sleep.hpp>
@@ -17,14 +18,6 @@ using namespace std::chrono_literals;
 USERVER_NAMESPACE_BEGIN
 
 namespace {
-
-constexpr std::size_t kHardwareDestructiveInterferenceSize = 64;
-
-// Protects other data from the destructive interference of data inside T.
-template <typename T>
-struct alignas(kHardwareDestructiveInterferenceSize) OverAligned final {
-  T value;
-};
 
 using Waiter = bool (*)(engine::SingleConsumerEvent&);
 
@@ -55,7 +48,7 @@ void SingleConsumerEvent(benchmark::State& state, Waiter waiter) {
   engine::RunStandalone(state.range(0), [&] {
     const auto producer_count = static_cast<std::size_t>(state.range(0)) - 1;
 
-    OverAligned<engine::SingleConsumerEvent> event;
+    concurrent::impl::InterferenceShield<engine::SingleConsumerEvent> event;
     std::atomic<bool> keep_running{true};
     std::vector<engine::TaskWithResult<std::uint64_t>> producers;
     producers.reserve(producer_count);
@@ -65,7 +58,7 @@ void SingleConsumerEvent(benchmark::State& state, Waiter waiter) {
         std::uint64_t events_sent = 0;
 
         while (keep_running) {
-          event.value.Send();
+          event->Send();
           ++events_sent;
           engine::Yield();
         }
@@ -74,8 +67,8 @@ void SingleConsumerEvent(benchmark::State& state, Waiter waiter) {
       }));
     }
 
-    for (auto _ : state) {
-      benchmark::DoNotOptimize(waiter(event.value));
+    for ([[maybe_unused]] auto _ : state) {
+      benchmark::DoNotOptimize(waiter(*event));
     }
 
     keep_running = false;
@@ -98,19 +91,19 @@ BENCHMARK_CAPTURE(SingleConsumerEvent, Failed, kFailed)->Apply(&ThreadsArg);
 
 void SingleConsumerEventPingPong(benchmark::State& state) {
   engine::RunStandalone(2, [&] {
-    OverAligned<engine::SingleConsumerEvent> ping;
-    OverAligned<engine::SingleConsumerEvent> pong;
+    concurrent::impl::InterferenceShield<engine::SingleConsumerEvent> ping;
+    concurrent::impl::InterferenceShield<engine::SingleConsumerEvent> pong;
 
     auto companion = engine::AsyncNoSpan([&] {
       while (true) {
-        ping.value.Send();
-        if (!pong.value.WaitForEvent()) return;
+        ping->Send();
+        if (!pong->WaitForEvent()) return;
       }
     });
 
-    for (auto _ : state) {
-      if (!ping.value.WaitForEvent()) return;
-      pong.value.Send();
+    for ([[maybe_unused]] auto _ : state) {
+      if (!ping->WaitForEvent()) return;
+      pong->Send();
     }
 
     companion.SyncCancel();

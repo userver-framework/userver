@@ -17,10 +17,14 @@ namespace tracing {
 /// cause stack overflow.
 class InPlaceSpan final {
  public:
-  explicit InPlaceSpan(std::string&& name);
+  explicit InPlaceSpan(std::string&& name,
+                       utils::impl::SourceLocation source_location =
+                           utils::impl::SourceLocation::Current());
 
   explicit InPlaceSpan(std::string&& name, std::string&& trace_id,
-                       std::string&& parent_span_id);
+                       std::string&& parent_span_id,
+                       utils::impl::SourceLocation source_location =
+                           utils::impl::SourceLocation::Current());
 
   InPlaceSpan(InPlaceSpan&&) = delete;
   InPlaceSpan& operator=(InPlaceSpan&&) = delete;
@@ -30,7 +34,7 @@ class InPlaceSpan final {
 
  private:
   struct Impl;
-  utils::FastPimpl<Impl, 4176, 8> impl_;
+  utils::FastPimpl<Impl, 4224, 8> impl_;
 };
 
 }  // namespace tracing

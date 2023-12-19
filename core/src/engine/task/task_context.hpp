@@ -32,6 +32,8 @@ USERVER_NAMESPACE_BEGIN
 namespace engine {
 namespace impl {
 
+class TaskContextHolder;
+
 [[noreturn]] void ReportDeadlock();
 
 class WaitStrategy {
@@ -59,9 +61,7 @@ class WaitStrategy {
   const Deadline deadline_;
 };
 
-// NOLINTNEXTLINE(fuchsia-multiple-inheritance)
-class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
-                          public ContextAccessor {
+class TaskContext final : public ContextAccessor {
  public:
   struct NoEpoch {};
   using TaskPipe = coro::Pool<TaskContext>::TaskPipe;
@@ -79,7 +79,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
   };
 
   TaskContext(TaskProcessor&, Task::Importance, Task::WaitMode, Deadline,
-              TaskPayload&&);
+              utils::impl::WrappedCallBase& payload);
 
   ~TaskContext() noexcept;
 
@@ -143,7 +143,6 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
   // causes this to yield and wait for wakeup
   // must only be called from this context
   // "spurious wakeups" may be caused by wakeup queueing
-  // does not check for prior cancellations - the caller must check for them
   WakeupSource Sleep(WaitStrategy& wait_strategy);
 
   // sleep epoch increments after each wakeup
@@ -154,9 +153,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
   // normally non-blocking, except corner cases in TaskProcessor::Schedule()
   void Wakeup(WakeupSource, SleepState::Epoch epoch);
   void Wakeup(WakeupSource, NoEpoch);
-
-  // Must be called from this
-  WakeupSource DebugGetWakeupSource() const;
+  void WakeupCurrent();
 
   static void CoroFunc(TaskPipe& task_pipe);
 
@@ -184,13 +181,16 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
   void RemoveWaiter(impl::TaskContext& context) noexcept final;
   void RethrowErrorResult() const final;
 
+  size_t UseCount() const noexcept;
+
+  std::size_t DecrementFetchSharedTaskUsages() noexcept;
+  std::size_t IncrementFetchSharedTaskUsages() noexcept;
+  void ResetPayload() noexcept;
+
  private:
   class LocalStorageGuard;
 
   static constexpr uint64_t kMagic = 0x6b73615453755459ULL;  // "YTuSTask"
-
-  template <typename Func>
-  void ArmTimer(Deadline deadline, Func&& func);
 
   void ArmDeadlineTimer(Deadline deadline, SleepState::Epoch sleep_epoch);
   void ArmCancellationTimer();
@@ -211,7 +211,7 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
   void TsanAcquireBarrier() noexcept;
   void TsanReleaseBarrier() noexcept;
 
-  const uint64_t magic_;
+  const uint64_t magic_{kMagic};
   TaskProcessor& task_processor_;
   TaskCounter::Token task_counter_token_;
   const bool is_critical_;
@@ -219,11 +219,13 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
   bool within_sleep_{false};
   bool corotine_memory_acquired_{false};
   EhGlobals eh_globals_;
-  TaskPayload payload_;
 
-  std::atomic<Task::State> state_;
-  std::atomic<DetachedTasksSyncBlock::Token*> detached_token_;
-  std::atomic<TaskCancellationReason> cancellation_reason_;
+  utils::impl::WrappedCallBase* payload_;
+
+  std::atomic<Task::State> state_{Task::State::kNew};
+  std::atomic<DetachedTasksSyncBlock::Token*> detached_token_{nullptr};
+  std::atomic<TaskCancellationReason> cancellation_reason_{
+      TaskCancellationReason::kNone};
   mutable FastPimplGenericWaitList finish_waiters_;
 
   ContextTimer deadline_timer_;
@@ -236,14 +238,23 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
 
   std::size_t trace_csw_left_;
 
-  AtomicSleepState sleep_state_;
+  AtomicSleepState sleep_state_{
+      SleepState{SleepFlags::kSleeping, SleepState::Epoch{0}}};
   WakeupSource wakeup_source_{WakeupSource::kNone};
 
   CountedCoroutinePtr coro_;
   TaskPipe* task_pipe_{nullptr};
   YieldReason yield_reason_{YieldReason::kNone};
 
-  std::optional<task_local::Storage> local_storage_;
+  std::optional<task_local::Storage> local_storage_{};
+
+  // refcounter for task abandoning (cancellation) in engine::SharedTask
+  std::atomic<std::size_t> shared_task_usages_{1};
+
+  // refcounter for resources and memory dealocation
+  std::atomic<std::size_t> intrusive_refcount_{1};
+  friend void intrusive_ptr_add_ref(TaskContext* p) noexcept;
+  friend void intrusive_ptr_release(TaskContext* p) noexcept;
 
  public:
   using WaitListHook = typename boost::intrusive::make_list_member_hook<
@@ -252,6 +263,11 @@ class TaskContext final : public boost::intrusive_ref_counter<TaskContext>,
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   WaitListHook wait_list_hook;
 };
+
+void intrusive_ptr_add_ref(TaskContext* p) noexcept;
+void intrusive_ptr_release(TaskContext* p) noexcept;
+
+bool HasWaitSucceeded(TaskContext::WakeupSource) noexcept;
 
 }  // namespace impl
 

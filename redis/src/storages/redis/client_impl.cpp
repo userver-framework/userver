@@ -1,7 +1,8 @@
 #include "client_impl.hpp"
 
-#include <userver/storages/redis/impl/sentinel.hpp>
 #include <userver/utils/assert.hpp>
+
+#include <storages/redis/impl/sentinel.hpp>
 
 #include "request_impl.hpp"
 #include "transaction_impl.hpp"
@@ -117,6 +118,25 @@ RequestDel ClientImpl::Del(std::vector<std::string> keys,
                   GetCommandControl(command_control)));
 }
 
+RequestUnlink ClientImpl::Unlink(std::string key,
+                                 const CommandControl& command_control) {
+  auto shard = ShardByKey(key, command_control);
+  return CreateRequest<RequestUnlink>(
+      MakeRequest(CmdArgs{"unlink", std::move(key)}, shard, true,
+                  GetCommandControl(command_control)));
+}
+
+RequestUnlink ClientImpl::Unlink(std::vector<std::string> keys,
+                                 const CommandControl& command_control) {
+  if (keys.empty())
+    return CreateDummyRequest<RequestUnlink>(
+        std::make_shared<Reply>("unlink", 0));
+  auto shard = ShardByKey(keys.at(0), command_control);
+  return CreateRequest<RequestUnlink>(
+      MakeRequest(CmdArgs{"unlink", std::move(keys)}, shard, true,
+                  GetCommandControl(command_control)));
+}
+
 RequestEvalCommon ClientImpl::EvalCommon(
     std::string script, std::vector<std::string> keys,
     std::vector<std::string> args, const CommandControl& command_control) {
@@ -193,14 +213,60 @@ RequestGeoadd ClientImpl::Geoadd(std::string key,
 }
 
 RequestGeoradius ClientImpl::Georadius(
-    std::string key, double lon, double lat, double radius,
+    std::string key, Longitude lon, Latitude lat, double radius,
     const GeoradiusOptions& georadius_options,
     const CommandControl& command_control) {
   auto shard = ShardByKey(key, command_control);
   return CreateRequest<RequestGeoradius>(
-      MakeRequest(CmdArgs{"georadius_ro", std::move(key), lon, lat, radius,
-                          georadius_options},
+      MakeRequest(CmdArgs{"georadius_ro", std::move(key), lon.GetUnderlying(),
+                          lat.GetUnderlying(), radius, georadius_options},
                   shard, false, GetCommandControl(command_control)));
+}
+
+RequestGeosearch ClientImpl::Geosearch(
+    std::string key, std::string member, double radius,
+    const GeosearchOptions& geosearch_options,
+    const CommandControl& command_control) {
+  auto shard = ShardByKey(key, command_control);
+  return CreateRequest<RequestGeosearch>(MakeRequest(
+      CmdArgs{"geosearch", std::move(key), "FROMMEMBER", std::move(member),
+              "BYRADIUS", radius, geosearch_options},
+      shard, false, GetCommandControl(command_control)));
+}
+
+RequestGeosearch ClientImpl::Geosearch(
+    std::string key, std::string member, BoxWidth width, BoxHeight height,
+    const GeosearchOptions& geosearch_options,
+    const CommandControl& command_control) {
+  auto shard = ShardByKey(key, command_control);
+  return CreateRequest<RequestGeosearch>(
+      MakeRequest(CmdArgs{"geosearch", std::move(key), "FROMMEMBER",
+                          std::move(member), "BYBOX", width.GetUnderlying(),
+                          height.GetUnderlying(), geosearch_options},
+                  shard, false, GetCommandControl(command_control)));
+}
+
+RequestGeosearch ClientImpl::Geosearch(
+    std::string key, Longitude lon, Latitude lat, double radius,
+    const GeosearchOptions& geosearch_options,
+    const CommandControl& command_control) {
+  auto shard = ShardByKey(key, command_control);
+  return CreateRequest<RequestGeosearch>(MakeRequest(
+      CmdArgs{"geosearch", std::move(key), "FROMLONLAT", lon.GetUnderlying(),
+              lat.GetUnderlying(), "BYRADIUS", radius, geosearch_options},
+      shard, false, GetCommandControl(command_control)));
+}
+
+RequestGeosearch ClientImpl::Geosearch(
+    std::string key, Longitude lon, Latitude lat, BoxWidth width,
+    BoxHeight height, const GeosearchOptions& geosearch_options,
+    const CommandControl& command_control) {
+  auto shard = ShardByKey(key, command_control);
+  return CreateRequest<RequestGeosearch>(MakeRequest(
+      CmdArgs{"geosearch", std::move(key), "FROMLONLAT", lon.GetUnderlying(),
+              lat.GetUnderlying(), "BYBOX", width.GetUnderlying(),
+              height.GetUnderlying(), geosearch_options},
+      shard, false, GetCommandControl(command_control)));
 }
 
 RequestGet ClientImpl::Get(std::string key,
@@ -518,9 +584,23 @@ RequestPingMessage ClientImpl::Ping(size_t shard, std::string message,
 void ClientImpl::Publish(std::string channel, std::string message,
                          const CommandControl& command_control,
                          PubShard policy) {
-  auto shard = GetPublishShard(policy);
+  const auto publish_settings = redis_client_->GetPublishSettings();
+  const auto shard = GetPublishShard(policy, publish_settings);
+  auto cc = GetCommandControl(command_control);
+  cc.strategy = publish_settings.strategy;
   MakeRequest(CmdArgs{"publish", std::move(channel), std::move(message)}, shard,
-              true, GetCommandControl(command_control));
+              publish_settings.master, cc);
+}
+
+void ClientImpl::Spublish(std::string channel, std::string message,
+                          const CommandControl& command_control) {
+  const auto shard = ShardByKey(channel, command_control);
+  auto cc = GetCommandControl(command_control);
+  /// allow send publish not only to master but also to replicas
+  cc.allow_reads_from_master = true;
+  cc.strategy = CommandControl::Strategy::kEveryDc;
+  MakeRequest(CmdArgs{"spublish", std::move(channel), std::move(message)},
+              shard, false, std::move(cc));
 }
 
 RequestRename ClientImpl::Rename(std::string key, std::string new_key,
@@ -829,6 +909,14 @@ RequestZcard ClientImpl::Zcard(std::string key,
                   GetCommandControl(command_control)));
 }
 
+RequestZcount ClientImpl::Zcount(std::string key, double min, double max,
+                                 const CommandControl& command_control) {
+  auto shard = ShardByKey(key, command_control);
+  return CreateRequest<RequestZcount>(
+      MakeRequest(CmdArgs{"zcount", std::move(key), min, max}, shard, false,
+                  GetCommandControl(command_control)));
+}
+
 RequestZrange ClientImpl::Zrange(std::string key, int64_t start, int64_t stop,
                                  const CommandControl& command_control) {
   auto shard = ShardByKey(key, command_control);
@@ -1006,13 +1094,19 @@ CommandControl ClientImpl::GetCommandControl(const CommandControl& cc) const {
   return redis_client_->GetCommandControl(cc);
 }
 
-size_t ClientImpl::GetPublishShard(PubShard policy) {
+size_t ClientImpl::GetPublishShard(
+    PubShard policy,
+    const USERVER_NAMESPACE::redis::PublishSettings& settings) {
+  if (force_shard_idx_) {
+    return *force_shard_idx_;
+  }
+
   switch (policy) {
     case PubShard::kZeroShard:
       return 0;
 
     case PubShard::kRoundRobin:
-      return ++publish_shard_ % ShardsCount();
+      return settings.shard;
   }
 
   return 0;

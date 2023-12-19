@@ -23,7 +23,7 @@ that could be is dynamically enabled/disabled via the server::handlers::Jemalloc
    ```
 2. Start your service
 3. To start sampling call the server::handlers::Jemalloc. If you use the
-   static confing from @ref md_en_userver_tutorial_production_service then you
+   static config from @ref scripts/docs/en/userver/tutorial/production_service.md then you
    have to do something like this:
    ```
    bash
@@ -121,5 +121,5 @@ that could be is dynamically enabled/disabled via the server::handlers::Jemalloc
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_service_monitor | @ref md_en_userver_dns_control ⇨
+⇦ @ref scripts/docs/en/userver/service_monitor.md | @ref scripts/docs/en/userver/dns_control.md ⇨
 @htmlonly </div> @endhtmlonly

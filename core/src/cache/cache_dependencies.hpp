@@ -4,6 +4,7 @@
 #include <optional>
 #include <string>
 
+#include <userver/alerts/storage.hpp>
 #include <userver/cache/cache_config.hpp>
 #include <userver/components/component_fwd.hpp>
 #include <userver/dump/config.hpp>
@@ -24,6 +25,7 @@ struct CacheDependencies final {
   engine::TaskProcessor& task_processor;
   std::optional<dynamic_config::Source> config_source;
   utils::statistics::Storage& statistics_storage;
+  alerts::Storage& alerts_storage_;
   testsuite::CacheControl& cache_control;
   std::optional<dump::Config> dump_config;
   std::unique_ptr<dump::OperationsFactory> dump_rw_factory;

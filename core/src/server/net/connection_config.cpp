@@ -1,4 +1,4 @@
-#include "connection_config.hpp"
+#include <server/net/connection_config.hpp>
 
 #include <userver/yaml_config/yaml_config.hpp>
 
@@ -18,7 +18,6 @@ ConnectionConfig Parse(const yaml_config::YamlConfig& value,
   config.keepalive_timeout =
       value["keepalive_timeout"].As<std::chrono::seconds>(
           config.keepalive_timeout);
-  config.request = value["request"].As<request::RequestConfig>();
 
   return config;
 }

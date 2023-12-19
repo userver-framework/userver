@@ -21,6 +21,7 @@ namespace {
 const std::string kCacheName = "test_cache";
 const std::string kCacheNameAlternative = "test_cache_alternative";
 const std::string kDumpToRead = "2015-03-22T090000.000000Z-v0";
+constexpr std::size_t kDummyDocumentsCount = 42;
 
 class FakeCache final : public cache::CacheMockBase {
  public:
@@ -30,7 +31,7 @@ class FakeCache final : public cache::CacheMockBase {
     StartPeriodicUpdates(cache::CacheUpdateTrait::Flag::kNoFirstUpdate);
   }
 
-  ~FakeCache() { StopPeriodicUpdates(); }
+  ~FakeCache() final { StopPeriodicUpdates(); }
 
   const std::string& Get() const { return value_; }
   size_t UpdatesCount() const { return updates_count_; }
@@ -40,11 +41,12 @@ class FakeCache final : public cache::CacheMockBase {
   void Update(cache::UpdateType type,
               const std::chrono::system_clock::time_point&,
               const std::chrono::system_clock::time_point&,
-              cache::UpdateStatisticsScope&) override {
+              cache::UpdateStatisticsScope& stats_scope) override {
     ++updates_count_;
     last_update_type_ = type;
     value_ = "foo";
     OnCacheModified();
+    stats_scope.Finish(kDummyDocumentsCount);
   }
 
   void GetAndWrite(dump::Writer& writer) const override {
@@ -100,7 +102,7 @@ UTEST_DEATH(CacheControlDeathTest, Smoke) {
   EXPECT_EQ(2, test_cache.UpdatesCount());
   EXPECT_EQ(cache::UpdateType::kFull, test_cache.LastUpdateType());
 
-  env.cache_control.InvalidateAllCaches(cache::UpdateType::kIncremental, {});
+  env.cache_control.InvalidateAllCaches(cache::UpdateType::kIncremental);
   EXPECT_EQ(3, test_cache.UpdatesCount());
   EXPECT_EQ(cache::UpdateType::kIncremental, test_cache.LastUpdateType());
 

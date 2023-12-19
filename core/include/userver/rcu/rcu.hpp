@@ -8,11 +8,12 @@
 #include <list>
 #include <unordered_set>
 
+#include <userver/compiler/thread_local.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/rcu/fwd.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/clang_format_workarounds.hpp>
 #include <userver/utils/impl/wait_token_storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -24,9 +25,6 @@ USERVER_NAMESPACE_BEGIN
 /// with modified API
 namespace rcu {
 
-template <typename T>
-class Variable;
-
 namespace impl {
 
 // Hazard pointer implementation. Pointers form a linked list. \p ptr points
@@ -37,7 +35,7 @@ namespace impl {
 // std::atomic<HazardPointerRecord*> global_head' Every rcu::Variable has its
 // own list of hazard pointers. Thus, move-assignment on hazard pointers is
 // difficult to implement.
-template <typename T>
+template <typename T, typename RcuTraits>
 struct HazardPointerRecord final {
   // You see, objects are created 'filled', that is for the purposes of hazard
   // pointer list, they contain value. This eliminates some race conditions,
@@ -46,40 +44,50 @@ struct HazardPointerRecord final {
   // somewhere into kernel space and will cause SEGFAULT
   static inline T* const kUsed = reinterpret_cast<T*>(1);
 
-  explicit HazardPointerRecord(const Variable<T>& owner) : owner(owner) {}
+  explicit HazardPointerRecord(const Variable<T, RcuTraits>& owner)
+      : owner(owner) {}
 
   std::atomic<T*> ptr = kUsed;
-  const Variable<T>& owner;
+  const Variable<T, RcuTraits>& owner;
   std::atomic<HazardPointerRecord*> next{nullptr};
 
   // Simple operation that marks this hazard pointer as no longer used.
   void Release() { ptr = nullptr; }
 };
 
-template <typename T>
+template <typename T, typename RcuTraits>
 struct CachedData {
-  impl::HazardPointerRecord<T>* hp{nullptr};
-  const Variable<T>* variable{nullptr};
+  impl::HazardPointerRecord<T, RcuTraits>* hp{nullptr};
+  const Variable<T, RcuTraits>* variable{nullptr};
   // ensures that `variable` points to the instance that filled the cache
   uint64_t variable_epoch{0};
 };
 
-template <typename T>
-thread_local CachedData<T> cache;
+template <typename T, typename RcuTraits>
+inline compiler::ThreadLocal local_cached_data =
+    [] { return CachedData<T, RcuTraits>{}; };
 
 uint64_t GetNextEpoch() noexcept;
 
 }  // namespace impl
+
+/// Default Rcu traits.
+/// - `MutexType` is a writer's mutex type that has to be used to protect
+/// structure on update
+template <typename T>
+struct DefaultRcuTraits {
+  using MutexType = engine::Mutex;
+};
 
 /// Reader smart pointer for rcu::Variable<T>. You may use operator*() or
 /// operator->() to do something with the stored value. Once created,
 /// ReadablePtr references the same immutable value: if Variable's value is
 /// changed during ReadablePtr lifetime, it will not affect value referenced by
 /// ReadablePtr.
-template <typename T>
-class USERVER_NODISCARD ReadablePtr final {
+template <typename T, typename RcuTraits>
+class [[nodiscard]] ReadablePtr final {
  public:
-  explicit ReadablePtr(const Variable<T>& ptr)
+  explicit ReadablePtr(const Variable<T, RcuTraits>& ptr)
       : hp_record_(&ptr.MakeHazardPointer()) {
     // This cycle guarantees that at the end of it both t_ptr_ and
     // hp_record_->ptr will both be set to
@@ -93,12 +101,12 @@ class USERVER_NODISCARD ReadablePtr final {
     } while (t_ptr_ != ptr.GetCurrent());
   }
 
-  ReadablePtr(ReadablePtr<T>&& other) noexcept
+  ReadablePtr(ReadablePtr<T, RcuTraits>&& other) noexcept
       : t_ptr_(other.t_ptr_), hp_record_(other.hp_record_) {
     other.t_ptr_ = nullptr;
   }
 
-  ReadablePtr& operator=(ReadablePtr<T>&& other) noexcept {
+  ReadablePtr& operator=(ReadablePtr<T, RcuTraits>&& other) noexcept {
     // What do we have here?
     // 1. 'other' may point to the same variable - or to a different one.
     // 2. therefore, its hazard pointer may belong to the same list,
@@ -141,11 +149,11 @@ class USERVER_NODISCARD ReadablePtr final {
     return *this;
   }
 
-  ReadablePtr(const ReadablePtr<T>& other)
+  ReadablePtr(const ReadablePtr<T, RcuTraits>& other)
       : ReadablePtr(other.hp_record_->owner) {}
 
-  ReadablePtr& operator=(const ReadablePtr<T>& other) {
-    if (this != &other) *this = ReadablePtr<T>{other};
+  ReadablePtr& operator=(const ReadablePtr<T, RcuTraits>& other) {
+    if (this != &other) *this = ReadablePtr<T, RcuTraits>{other};
     return *this;
   }
 
@@ -183,7 +191,7 @@ class USERVER_NODISCARD ReadablePtr final {
   // Invariant is this: if t_ptr_ is not nullptr, then hp_record_ is also
   // not nullptr and points to hazard pointer containing same T*.
   // Thus, if t_ptr_ is nullptr, then hp_record_ is undefined.
-  impl::HazardPointerRecord<T>* hp_record_;
+  impl::HazardPointerRecord<T, RcuTraits>* hp_record_;
 };
 
 /// Smart pointer for rcu::Variable<T> for changing RCU value. It stores a
@@ -196,11 +204,11 @@ class USERVER_NODISCARD ReadablePtr final {
 /// @note you may not pass WritablePtr between coroutines as it owns
 /// engine::Mutex, which must be unlocked in the same coroutine that was used to
 /// lock the mutex.
-template <typename T>
-class USERVER_NODISCARD WritablePtr final {
+template <typename T, typename RcuTraits>
+class [[nodiscard]] WritablePtr final {
  public:
   /// For internal use only. Use `var.StartWrite()` instead
-  explicit WritablePtr(Variable<T>& var)
+  explicit WritablePtr(Variable<T, RcuTraits>& var)
       : var_(var),
         lock_(var.mutex_),
         ptr_(std::make_unique<T>(*var_.GetCurrent())) {
@@ -209,7 +217,8 @@ class USERVER_NODISCARD WritablePtr final {
 
   /// For internal use only. Use `var.Emplace(args...)` instead
   template <typename... Args>
-  WritablePtr(Variable<T>& var, std::in_place_t, Args&&... initial_value_args)
+  WritablePtr(Variable<T, RcuTraits>& var, std::in_place_t,
+              Args&&... initial_value_args)
       : var_(var),
         lock_(var.mutex_),
         ptr_(std::make_unique<T>(std::forward<Args>(initial_value_args)...)) {
@@ -217,7 +226,7 @@ class USERVER_NODISCARD WritablePtr final {
                 << " with custom initial value";
   }
 
-  WritablePtr(WritablePtr<T>&& other) noexcept
+  WritablePtr(WritablePtr<T, RcuTraits>&& other) noexcept
       : var_(other.var_),
         lock_(std::move(other.lock_)),
         ptr_(std::move(other.ptr_)) {
@@ -262,8 +271,8 @@ class USERVER_NODISCARD WritablePtr final {
     std::abort();
   }
 
-  Variable<T>& var_;
-  std::unique_lock<engine::Mutex> lock_;
+  Variable<T, RcuTraits>& var_;
+  std::unique_lock<typename RcuTraits::MutexType> lock_;
   std::unique_ptr<T> ptr_;
 };
 
@@ -294,18 +303,21 @@ enum class DestructionType { kSync, kAsync };
 ///
 /// @snippet rcu/rcu_test.cpp  Sample rcu::Variable usage
 ///
-/// @see @ref md_en_userver_synchronization
-template <typename T>
+/// @see @ref scripts/docs/en/userver/synchronization.md
+template <typename T, typename RcuTraits>
 class Variable final {
  public:
+  using MutexType = typename RcuTraits::MutexType;
+
   /// Create a new `Variable` with an in-place constructed initial value.
   /// Asynchronous destruction is enabled by default.
   /// @param initial_value_args arguments passed to the constructor of the
   /// initial value
   template <typename... Args>
   Variable(Args&&... initial_value_args)
-      : destruction_type_((std::is_trivially_destructible_v<T> ||
-                           std::is_same_v<T, std::string>)
+      : destruction_type_(std::is_trivially_destructible_v<T> ||
+                                  std::is_same_v<T, std::string> ||
+                                  !std::is_same_v<MutexType, engine::Mutex>
                               ? DestructionType::kSync
                               : DestructionType::kAsync),
         epoch_(impl::GetNextEpoch()),
@@ -346,7 +358,9 @@ class Variable final {
   }
 
   /// Obtain a smart pointer which can be used to read the current value.
-  ReadablePtr<T> Read() const { return ReadablePtr<T>(*this); }
+  ReadablePtr<T, RcuTraits> Read() const {
+    return ReadablePtr<T, RcuTraits>(*this);
+  }
 
   /// Obtain a copy of contained value.
   T ReadCopy() const {
@@ -357,24 +371,29 @@ class Variable final {
   /// Obtain a smart pointer that will *copy* the current value. The pointer can
   /// be used to make changes to the value and to set the `Variable` to the
   /// changed value.
-  WritablePtr<T> StartWrite() { return WritablePtr<T>(*this); }
+  WritablePtr<T, RcuTraits> StartWrite() {
+    return WritablePtr<T, RcuTraits>(*this);
+  }
 
   /// Obtain a smart pointer to a newly in-place constructed value, but does
   /// not replace the current one yet (in contrast with regular `Emplace`).
   template <typename... Args>
-  WritablePtr<T> StartWriteEmplace(Args&&... args) {
-    return WritablePtr<T>(*this, std::in_place, std::forward<Args>(args)...);
+  WritablePtr<T, RcuTraits> StartWriteEmplace(Args&&... args) {
+    return WritablePtr<T, RcuTraits>(*this, std::in_place,
+                                     std::forward<Args>(args)...);
   }
 
   /// Replaces the `Variable`'s value with the provided one.
   void Assign(T new_value) {
-    WritablePtr<T>(*this, std::in_place, std::move(new_value)).Commit();
+    WritablePtr<T, RcuTraits>(*this, std::in_place, std::move(new_value))
+        .Commit();
   }
 
   /// Replaces the `Variable`'s value with an in-place constructed one.
   template <typename... Args>
   void Emplace(Args&&... args) {
-    WritablePtr<T>(*this, std::in_place, std::forward<Args>(args)...).Commit();
+    WritablePtr<T, RcuTraits>(*this, std::in_place, std::forward<Args>(args)...)
+        .Commit();
   }
 
   void Cleanup() {
@@ -391,14 +410,14 @@ class Variable final {
  private:
   T* GetCurrent() const { return current_.load(); }
 
-  impl::HazardPointerRecord<T>* MakeHazardPointerCached() const {
-    auto& cache = impl::cache<T>;
+  impl::HazardPointerRecord<T, RcuTraits>* MakeHazardPointerCached(
+      impl::CachedData<T, RcuTraits>& cache) const {
     auto* hp = cache.hp;
     T* ptr = nullptr;
     if (hp && cache.variable == this && cache.variable_epoch == epoch_) {
       if (hp->ptr.load() == nullptr &&
           hp->ptr.compare_exchange_strong(
-              ptr, impl::HazardPointerRecord<T>::kUsed)) {
+              ptr, impl::HazardPointerRecord<T, RcuTraits>::kUsed)) {
         return hp;
       }
     }
@@ -406,7 +425,7 @@ class Variable final {
     return nullptr;
   }
 
-  impl::HazardPointerRecord<T>* MakeHazardPointerFast() const {
+  impl::HazardPointerRecord<T, RcuTraits>* MakeHazardPointerFast() const {
     // Look for any hazard pointer with nullptr data ptr.
     // Mark it with kUsed (to reserve it for ourselves) and return it.
     auto* hp = hp_record_head_.load();
@@ -414,7 +433,7 @@ class Variable final {
       T* t_ptr = nullptr;
       if (hp->ptr.load() == nullptr &&
           hp->ptr.compare_exchange_strong(
-              t_ptr, impl::HazardPointerRecord<T>::kUsed)) {
+              t_ptr, impl::HazardPointerRecord<T, RcuTraits>::kUsed)) {
         return hp;
       }
 
@@ -423,26 +442,26 @@ class Variable final {
     return nullptr;
   }
 
-  impl::HazardPointerRecord<T>& MakeHazardPointer() const {
-    auto* hp = MakeHazardPointerCached();
+  impl::HazardPointerRecord<T, RcuTraits>& MakeHazardPointer() const {
+    auto cache = impl::local_cached_data<T, RcuTraits>.Use();
+    auto* hp = MakeHazardPointerCached(*cache);
     if (!hp) {
       hp = MakeHazardPointerFast();
       // all buckets are full, create a new one
       if (!hp) hp = MakeHazardPointerSlow();
 
-      auto& cache = impl::cache<T>;
-      cache.hp = hp;
-      cache.variable = this;
-      cache.variable_epoch = epoch_;
+      cache->hp = hp;
+      cache->variable = this;
+      cache->variable_epoch = epoch_;
     }
     UASSERT(&hp->owner == this);
     return *hp;
   }
 
-  impl::HazardPointerRecord<T>* MakeHazardPointerSlow() const {
+  impl::HazardPointerRecord<T, RcuTraits>* MakeHazardPointerSlow() const {
     // allocate new pointer, and add it to the list (atomically)
-    auto hp = new impl::HazardPointerRecord<T>(*this);
-    impl::HazardPointerRecord<T>* old_hp = nullptr;
+    auto hp = new impl::HazardPointerRecord<T, RcuTraits>(*this);
+    impl::HazardPointerRecord<T, RcuTraits>* old_hp = nullptr;
     do {
       old_hp = hp_record_head_.load();
       hp->next = old_hp;
@@ -450,8 +469,7 @@ class Variable final {
     return hp;
   }
 
-  void Retire(std::unique_ptr<T> old_ptr,
-              std::unique_lock<engine::Mutex>& lock) {
+  void Retire(std::unique_ptr<T> old_ptr, std::unique_lock<MutexType>& lock) {
     LOG_TRACE() << "Retiring ptr=" << old_ptr.get();
     auto hazard_ptrs = CollectHazardPtrs(lock);
 
@@ -483,7 +501,7 @@ class Variable final {
 
   // Returns all T*, that have hazard ptr pointing at them. Occasionally nullptr
   // might be in result as well.
-  std::unordered_set<T*> CollectHazardPtrs(std::unique_lock<engine::Mutex>&) {
+  std::unordered_set<T*> CollectHazardPtrs(std::unique_lock<MutexType>&) {
     std::unordered_set<T*> hazard_ptrs;
 
     // Learn all currently used hazard pointers
@@ -512,16 +530,17 @@ class Variable final {
   const DestructionType destruction_type_;
   const uint64_t epoch_;
 
-  mutable std::atomic<impl::HazardPointerRecord<T>*> hp_record_head_{{nullptr}};
+  mutable std::atomic<impl::HazardPointerRecord<T, RcuTraits>*> hp_record_head_{
+      {nullptr}};
 
-  engine::Mutex mutex_;  // for current_ changes and retire_list_head_ access
+  MutexType mutex_;  // for current_ changes and retire_list_head_ access
   // may be read without mutex_ locked, but must be changed with held mutex_
   std::atomic<T*> current_;
   std::list<std::unique_ptr<T>> retire_list_head_;
   utils::impl::WaitTokenStorage wait_token_storage_;
 
-  friend class ReadablePtr<T>;
-  friend class WritablePtr<T>;
+  friend class ReadablePtr<T, RcuTraits>;
+  friend class WritablePtr<T, RcuTraits>;
 };
 
 }  // namespace rcu

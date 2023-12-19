@@ -17,15 +17,14 @@ namespace server {
 inline server::http::HttpRequestParser CreateTestParser(
     server::http::HttpRequestParser::OnNewRequestCb&& cb) {
   static const server::http::HandlerInfoIndex kTestHandlerInfoIndex;
-  static constexpr server::request::RequestConfig kTestRequestConfig(
-      server::request::HttpRequestConfig{
-          /*.max_url_size = */ 8192,
-          /*.max_request_size = */ 1024 * 1024,
-          /*.max_headers_size = */ 65536,
-          /*.parse_args_from_body = */ false,
-          /*.testing_mode = */ true,  // non default value
-          /*.decompress_request = */ false,
-      });
+  static constexpr server::request::HttpRequestConfig kTestRequestConfig{
+      /*.max_url_size = */ 8192,
+      /*.max_request_size = */ 1024 * 1024,
+      /*.max_headers_size = */ 65536,
+      /*.parse_args_from_body = */ false,
+      /*.testing_mode = */ true,  // non default value
+      /*.decompress_request = */ false,
+  };
   static server::net::ParserStats test_stats;
   static server::request::ResponseDataAccounter test_accounter;
   return server::http::HttpRequestParser(kTestHandlerInfoIndex,

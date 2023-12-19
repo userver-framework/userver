@@ -3,10 +3,9 @@
 /// @file userver/server/http/http_status.hpp
 /// @brief @copybrief server::http::HttpStatus
 
-#include <string>
+#include <string_view>
 
 #include <fmt/core.h>
-#include <userver/utils/fmt_compat.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -53,16 +52,19 @@ enum class HttpStatus {
   kUnsupportedMediaType = 415,
   kRangeNotSatisfiable = 416,
   kExpectationFailed = 417,
+  kImATeapot = 418,
   kMisdirectedRequest = 421,
   kUnprocessableEntity = 422,
   kLocked = 423,
   kFailedDependency = 424,
+  kTooEarly = 425,
   kUpgradeRequired = 426,
   kPreconditionRequired = 428,
   kTooManyRequests = 429,
   kRequestHeaderFieldsTooLarge = 431,
   kUnavailableForLegalReasons = 451,
-  kClientClosedRequest = 499,
+  kDeadlineExpired = 498,      // userver-specific
+  kClientClosedRequest = 499,  // nginx-specific
   kInternalServerError = 500,
   kNotImplemented = 501,
   kBadGateway = 502,
@@ -76,11 +78,9 @@ enum class HttpStatus {
   kNetworkAuthenticationRequired = 511,
 };
 
-std::string HttpStatusString(HttpStatus status);
+std::string_view HttpStatusString(HttpStatus status);
 
-inline std::string ToString(HttpStatus status) {
-  return server::http::HttpStatusString(status);
-}
+std::string ToString(HttpStatus status);
 
 }  // namespace server::http
 
@@ -88,13 +88,13 @@ USERVER_NAMESPACE_END
 
 template <>
 struct fmt::formatter<USERVER_NAMESPACE::server::http::HttpStatus> {
-  static auto parse(format_parse_context& ctx) { return ctx.begin(); }
+  constexpr static auto parse(format_parse_context& ctx) { return ctx.begin(); }
 
   template <typename FormatContext>
   auto format(USERVER_NAMESPACE::server::http::HttpStatus status,
-              FormatContext& ctx) USERVER_FMT_CONST {
+              FormatContext& ctx) const {
     return fmt::format_to(
-        ctx.out(), "{}",
+        ctx.out(), "{} {}", static_cast<int>(status),
         USERVER_NAMESPACE::server::http::HttpStatusString(status));
   }
 };

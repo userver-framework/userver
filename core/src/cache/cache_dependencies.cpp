@@ -1,5 +1,6 @@
 #include <cache/cache_dependencies.hpp>
 
+#include <userver/alerts/component.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/dump_configurator.hpp>
 #include <userver/components/statistics_storage.hpp>
@@ -51,6 +52,7 @@ CacheDependencies CacheDependencies::Make(
       FindTaskProcessor(context, static_config),
       FindDynamicConfig(context, static_config),
       context.FindComponent<components::StatisticsStorage>().GetStorage(),
+      context.FindComponent<alerts::StorageComponent>().GetStorage(),
       context.FindComponent<components::TestsuiteSupport>().GetCacheControl(),
       dump_config,
       dump_config ? dump::CreateOperationsFactory(*dump_config, context)

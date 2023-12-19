@@ -53,15 +53,12 @@ bool CacheControl::IsPeriodicUpdateEnabled(
   return enabled;
 }
 
-void CacheControl::InvalidateAllCaches(
-    cache::UpdateType update_type,
-    const std::unordered_set<std::string>& names_blocklist) {
+void CacheControl::InvalidateAllCaches(cache::UpdateType update_type) {
   std::lock_guard lock(mutex_);
 
   for (const auto& cache : caches_) {
-    if (names_blocklist.count(cache->Name()) > 0) continue;
     tracing::Span span(std::string{kInvalidatorSpanTag});
-    cache->Update(update_type);
+    cache->UpdateSyncDebug(update_type);
   }
 }
 
@@ -70,14 +67,14 @@ void CacheControl::InvalidateCaches(cache::UpdateType update_type,
   std::lock_guard lock(mutex_);
 
   // It's important that we walk the caches in the order of their registration,
-  // that is, in the order of `caches_`. Otherwise if we update a "later" cache
+  // that is, in the order of `caches_`. Otherwise, if we update a "later" cache
   // before an "earlier" cache, the "later" one might read old data from
   // the "earlier" one and will not be fully updated.
   for (const auto& cache : caches_) {
     const auto it = names.find(cache->Name());
     if (it != names.end()) {
       tracing::Span span(std::string{kInvalidatorSpanTag});
-      cache->Update(update_type);
+      cache->UpdateSyncDebug(update_type);
       names.erase(it);
     }
   }

@@ -7,6 +7,8 @@
 #include <userver/storages/secdist/exceptions.hpp>
 #include <userver/storages/secdist/helpers.hpp>
 
+#include <boost/range/adaptor/map.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::secdist {
@@ -42,8 +44,9 @@ const std::string& MongoSettings::GetConnectionString(
   auto it = settings_.find(dbalias);
 
   if (it == settings_.end())
-    throw storages::secdist::UnknownMongoDbAlias(
-        "dbalias " + dbalias + " not found in secdist config");
+    throw storages::secdist::UnknownMongoDbAlias(fmt::format(
+        "dbalias {} not found in secdist config. Available aliases: [{}]",
+        dbalias, fmt::join(settings_ | boost::adaptors::map_keys, ", ")));
 
   return it->second;
 }

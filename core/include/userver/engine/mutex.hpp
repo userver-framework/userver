@@ -16,13 +16,15 @@ namespace engine {
 
 /// @ingroup userver_concurrency
 ///
-/// @brief std::mutex replacement for asynchronous tasks
+/// @brief std::mutex replacement for asynchronous tasks.
+///
+/// Ignores task cancellations (succeeds even if the current task is cancelled).
 ///
 /// ## Example usage:
 ///
 /// @snippet engine/mutex_test.cpp  Sample engine::Mutex usage
 ///
-/// @see @ref md_en_userver_synchronization
+/// @see @ref scripts/docs/en/userver/synchronization.md
 class Mutex final {
  public:
   Mutex();
@@ -34,36 +36,58 @@ class Mutex final {
   Mutex& operator=(Mutex&&) = delete;
 
   /// Locks the mutex. Blocks current coroutine if the mutex is locked by
-  /// another coroutine.
-  /// @note the behaviour is undefined if a coroutine tries to lock a mutex
+  /// another coroutine. Throws if a coroutine tries to lock a mutex
   /// which is already locked by the current coroutine.
-  /// @note the method waits for the mutex even if the current task is
+  ///
+  /// @note The method waits for the mutex even if the current task is
   /// cancelled.
   void lock();
 
-  /// Unlocks the mutex. The mutex must be locked by the current coroutine.
-  /// @note the behaviour is undefined if a coroutine tries to unlock a mutex
-  /// which is not locked or is locked by another coroutine
+  /// Unlocks the mutex. Before calling this method the mutex should be locked
+  /// by the current coroutine.
+  ///
   /// @note the order of coroutines to unblock is unspecified. Any code assuming
-  /// any specific order (e.g. FIFO) is incorrect and must be fixed.
+  /// any specific order (e.g. FIFO) is incorrect and should be fixed.
   void unlock();
 
-  bool try_lock();
+  /// Tries to lock the mutex without blocking the coroutine, returns true if
+  /// succeeded.
+  ///
+  /// @note The behavior of the function is not affected by cancelation request.
+  [[nodiscard]] bool try_lock() noexcept;
 
+  /// Tries to lock the mutex in specified duration. Blocks current coroutine if
+  /// the mutex is locked by another coroutine up to the provided duration.
+  /// Throws if a coroutine tries to lock a mutex
+  /// which is already locked by the current coroutine.
+  ///
+  /// @returns true if the locking succeeded
+  ///
+  /// @note The method waits for the mutex even if the current task is
+  /// cancelled.
   template <typename Rep, typename Period>
-  bool try_lock_for(const std::chrono::duration<Rep, Period>&);
+  [[nodiscard]] bool try_lock_for(const std::chrono::duration<Rep, Period>&);
 
+  /// Tries to lock the mutex till specified time point. Blocks current
+  /// coroutine if the mutex is locked by another coroutine up to the provided
+  /// time point. Throws if a coroutine tries to lock a mutex
+  /// which is already locked by the current coroutine.
+  ///
+  /// @returns true if the locking succeeded
+  ///
+  /// @note The method waits for the mutex even if the current task is
+  /// cancelled.
   template <typename Clock, typename Duration>
-  bool try_lock_until(const std::chrono::time_point<Clock, Duration>&);
+  [[nodiscard]] bool try_lock_until(
+      const std::chrono::time_point<Clock, Duration>&);
 
-  bool try_lock_until(Deadline deadline);
+  /// @overload
+  [[nodiscard]] bool try_lock_until(Deadline deadline);
 
  private:
-  bool LockFastPath(impl::TaskContext&);
-  bool LockSlowPath(impl::TaskContext&, Deadline);
+  class Impl;
 
-  std::atomic<impl::TaskContext*> owner_;
-  impl::FastPimplWaitList lock_waiters_;
+  utils::FastPimpl<Impl, 96, alignof(void*)> impl_;
 };
 
 template <typename Rep, typename Period>

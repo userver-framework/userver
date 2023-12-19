@@ -50,8 +50,10 @@ void LogFunction(::gpr_log_func_args* args) noexcept {
   const auto lvl = ToLogLevel(args->severity);
   if (!logging::ShouldLog(lvl)) return;
 
-  const auto logger = logging::DefaultLoggerOptional();
-  logging::LogHelper(logger, lvl, args->file, args->line, "") << args->message;
+  auto& logger = logging::GetDefaultLogger();
+  const auto location =
+      utils::impl::SourceLocation::Custom(args->line, args->file, "");
+  logging::LogHelper(logger, lvl, location) << args->message;
 
   if (lvl == logging::Level::kError) {
     // Error logs are often produced right before abort()

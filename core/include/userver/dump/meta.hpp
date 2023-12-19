@@ -6,7 +6,7 @@
 #include <type_traits>
 
 #include <userver/dump/fwd.hpp>
-#include <userver/utils/meta.hpp>
+#include <userver/utils/meta_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -36,7 +36,7 @@ inline constexpr bool kIsReadable =
 
 /// Check if `T` is both writable and readable
 template <typename T>
-inline constexpr bool kIsDumpable = kIsWritable<T>&& kIsReadable<T>;
+inline constexpr bool kIsDumpable = kIsWritable<T> && kIsReadable<T>;
 
 template <typename T>
 constexpr bool CheckDumpable() {

@@ -464,8 +464,7 @@ bool TlsWrapper::WaitWriteable(Deadline deadline) {
 
 size_t TlsWrapper::RecvSome(void* buf, size_t len, Deadline deadline) {
   impl_->CheckAlive();
-  return impl_->PerformSslIo(&SSL_read_ex, buf, len,
-                             impl::TransferMode::kPartial,
+  return impl_->PerformSslIo(&SSL_read_ex, buf, len, impl::TransferMode::kOnce,
                              InterruptAction::kPass, deadline, "RecvSome");
 }
 
@@ -519,6 +518,8 @@ Socket TlsWrapper::StopTls(Deadline deadline) {
   }
   return std::move(impl_->bio_data.socket);
 }
+
+int TlsWrapper::GetRawFd() { return impl_->bio_data.socket.Fd(); }
 
 }  // namespace engine::io
 

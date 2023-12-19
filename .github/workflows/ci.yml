@@ -10,6 +10,7 @@ name: CI
 
 env:
     UBSAN_OPTIONS: print_stacktrace=1
+    ASAN_OPTIONS: detect_odr_violation=2
 
 jobs:
     posix:
@@ -27,8 +28,16 @@ jobs:
 
                   - cmake-flags: >-
                         -DCMAKE_CXX_COMPILER=clang++-14 -DCMAKE_C_COMPILER=clang-14
+                        -DUSERVER_FEATURE_MYSQL=1
                         -DUSERVER_SANITIZE="ub addr"
                         -DCMAKE_BUILD_TYPE=Debug
+                        -DUSERVER_NO_WERROR=OFF
+                        -DUSERVER_NAMESPACE=userver_ns
+                        -DUSERVER_NAMESPACE_BEGIN="namespace userver_ns { inline namespace
+                        v1 {"
+                        -DUSERVER_NAMESPACE_END="}}"
+                        -DUSERVER_PG_SERVER_INCLUDE_DIR=/usr/include/postgresql/15/server
+                        -DUSERVER_PG_SERVER_LIBRARY_DIR=/usr/lib/postgresql/15/lib
                     os: ubuntu-22.04
                     info: clang-14 + debug + sanitize addr+ub
                     tests-flags: ''
@@ -38,32 +47,33 @@ jobs:
                         -DUSERVER_NO_WERROR=1 -DUSERVER_SANITIZE="ub addr" -DCMAKE_BUILD_TYPE=Debug
                     os: ubuntu-20.04
                     info: g++-9 + debug + sanitize addr+ub
-                    tests-flags: '--gtest_filter=-HttpClient.Cancel*:HttpClient.Retr*:HttpClient.RedirectHeaders'
+                    tests-flags: '--gtest_filter=-HttpClient.Cancel*:HttpClient.Retr*:HttpClient.RedirectHeaders:HttpClient.TestUseIPv4v6'
 
                   - cmake-flags: >-
                         -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
+                        -DUSERVER_FEATURE_MYSQL=1
                         -DUSERVER_NO_WERROR=1 -DCMAKE_BUILD_TYPE=Release
                     os: ubuntu-20.04
                     info: g++-9 + release
-                    tests-flags: '--gtest_filter=-HttpClient.RedirectHeaders'
+                    tests-flags: '--gtest_filter=-HttpClient.RedirectHeaders:HttpClient.TestUseIPv4v6'
 
+                  # GCC-8 - testing minimal required compiler
                   - cmake-flags: >-
                         -DCMAKE_CXX_COMPILER=g++-8 -DCMAKE_C_COMPILER=gcc-8
-                        -DUSERVER_FEATURE_MONGODB=0
-                        -DUSERVER_FEATURE_POSTGRESQL=0
-                        -DUSERVER_FEATURE_GRPC=0
-                        -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0
-                        -DUSERVER_USE_LD=gold -DCMAKE_BUILD_TYPE=Release
-                        -DUSERVER_LTO=0
-                    os: ubuntu-18.04
-                    info: g++-8 + release
-                    tests-flags: '--gtest_filter=-FormatsYaml.NativeLocation:FormatsYaml.NullAsDefaulted'
+                        -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
+                        -DUSERVER_FEATURE_MYSQL=1
+                        -DUSERVER_NO_WERROR=1 -DCMAKE_BUILD_TYPE=Debug
+                    os: ubuntu-20.04
+                    info: g++-8 + debug
+                    tests-flags: '--gtest_filter=-HttpClient.RedirectHeaders:HttpClient.TestUseIPv4v6'
 
         name: '${{matrix.os}}: ${{matrix.info}}'
         runs-on: ${{matrix.os}}
 
         steps:
-          - uses: actions/checkout@v2
+          - uses: actions/checkout@v3
+            with:
+                fetch-depth: 0
 
           - name: Reuse ccache directory
             uses: actions/cache@v2
@@ -74,6 +84,12 @@ jobs:
                     ${{matrix.os}} ${{matrix.info}} ccache-dir ${{github.ref}} run-'
                     ${{matrix.os}} ${{matrix.info}} ccache-
 
+          - name: Free disk space
+            run: |
+                df -h
+                sudo rm -rf /usr/share/dotnet /usr/local/lib/android /usr/lib/php* /opt/ghc || true
+                df -h
+
           - name: Install packages
             run: |
                 # Instructions from https://clickhouse.com/docs/en/getting-started/install/
@@ -81,8 +97,23 @@ jobs:
                 sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 8919F6BD2B48D754
                 echo "deb https://packages.clickhouse.com/deb stable main" | sudo tee /etc/apt/sources.list.d/clickhouse.list
 
+                wget https://downloads.mariadb.com/MariaDB/mariadb_repo_setup
+                chmod +x mariadb_repo_setup
+                sudo ./mariadb_repo_setup
+
                 sudo apt update
-                sudo apt install --allow-downgrades -y clickhouse-common-static $(cat scripts/docs/en/deps/${{matrix.os}}.md | tr '\n' ' ')
+                sudo apt install --allow-downgrades -y clickhouse-common-static libmariadb-dev $(cat scripts/docs/en/deps/${{matrix.os}}.md | tr '\n' ' ')
+                if [ "${{matrix.os}}" = "ubuntu-22.04" ]; then
+                  # GH Ubuntu image has libpq version 15+ from pg's repo that is API incompatible with postgresql-14.
+                  sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 7FCC7D46ACCC4CF8
+                  echo "deb https://apt-archive.postgresql.org/pub/repos/apt jammy-pgdg-archive main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+                  sudo apt update
+                  sudo apt install -y postgresql-15 postgresql-client-15 postgresql-server-dev-15
+                fi
+
+                if [ "${{matrix.info}}" = "g++-8 + debug" ]; then
+                  sudo apt install --allow-downgrades -y g++-8
+                fi
 
           - name: Install RabbitMQ packages
             run: |
@@ -99,6 +130,23 @@ jobs:
                 cd build_debug
                 cmake ${{matrix.cmake-flags}} ..
 
+          - name: Run clang-tidy
+            if: matrix.info == 'clang-14 + debug + sanitize addr+ub'
+            run: |
+                [[ -z "${GITHUB_BASE_REF}" ]] && BRANCH_VAR=HEAD~1 || BRANCH_VAR=origin/${GITHUB_BASE_REF}
+                echo "${BRANCH_VAR}"
+                echo "$(git diff --name-only ${BRANCH_VAR})"
+                EXCLUDE_PATTERNS="-e '.pb.cc' -e '.pb.cpp' -e 'benchmark.cpp' -e '/boost_stacktrace/' -e '/pq-extra/' -e '/tools/' -e 'third_party' "
+                LIST_CHECK_FILES=$(git diff --name-only ${BRANCH_VAR} | grep --color=never '.cpp' | grep -v ${EXCLUDE_PATTERNS} | tr '\n' ' ')
+                if [[ -n ${LIST_CHECK_FILES} ]]
+                then
+                  sudo apt install -y clang-tidy-14
+                  curl -o tools/run-clang-tidy https://raw.githubusercontent.com/llvm-mirror/clang-tools-extra/release_90/clang-tidy/tool/run-clang-tidy.py
+                  python3 ./tools/run-clang-tidy -clang-tidy-binary clang-tidy-14 -p build_debug -q -j$(nproc) ${LIST_CHECK_FILES}
+                else
+                  echo "Nothing check in clang-tidy"
+                fi
+
           - name: Compile
             run: |
                 pwd
@@ -107,13 +155,14 @@ jobs:
 
           - name: Run tests (universal)
             run: |
+                echo "UBSAN_OPTIONS=${UBSAN_OPTIONS} ASAN_OPTIONS=${ASAN_OPTIONS}"
                 cd build_debug
-                ./userver/universal/userver-universal_unittest ${{matrix.tests-flags}}
+                ./userver/universal/userver-universal-unittest ${{matrix.tests-flags}}
 
           - name: Run tests (core)
             run: |
                 cd build_debug
-                ./userver/core/userver-core_unittest ${{matrix.tests-flags}}
+                ./userver/core/userver-core-unittest ${{matrix.tests-flags}}
 
           - name: Run tests (clickhouse)
             run: |
@@ -127,6 +176,14 @@ jobs:
                 cd build_debug
                 mkdir userver/rabbitmq || :
                 cd userver/rabbitmq
+                ctest -V
+
+          - name: Run tests (mysql)
+            run: |
+                sudo apt install mariadb-server
+                cd build_debug
+                mkdir userver/mysql || :
+                cd userver/mysql
                 ctest -V
 
           - name: Run tests (postgresql)
@@ -148,9 +205,9 @@ jobs:
                 cd build_debug
                 mkdir userver/mongo || :
                 cd userver/mongo
-                if [ -f ./userver-mongo_unittest ]; then ./userver-mongo_unittest ; fi
+                if [ -f ./userver-mongo-unittest ]; then ./userver-mongo-unittest ; fi
                 # Mongo is not available on Ubuntu 22.04 from default repos
-                if [ "${{matrix.os}}" != "ubuntu-22.04" ]; then ctest -V -R userver-mongo_mongotest ; fi
+                if [ "${{matrix.os}}" != "ubuntu-22.04" ]; then ctest -V -R userver-mongo-mongotest ; fi
 
           - name: Run tests (gRPC)
             # TODO: Sanitizer detects bool with value other than 1 or 0
@@ -160,10 +217,3 @@ jobs:
                 mkdir userver/grpc || :
                 cd userver/grpc
                 ctest -V
-
-          - name: Run clang-tidy
-            if: matrix.info == 'clang-14 + debug + sanitize addr+ub'
-            # TODO: add clang-tidy-diff.py after establishing baseline
-            run: |
-                sudo apt install -y clang-tidy-14
-                python3 ./tools/run-clang-tidy -clang-tidy-binary clang-tidy-14 -p build_debug -q -j$(nproc)

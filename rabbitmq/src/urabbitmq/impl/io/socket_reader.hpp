@@ -42,6 +42,8 @@ class SocketReader final {
 
     std::vector<char> data_{};
     size_t size_{0};
+
+    size_t last_bytes_read_{0};
   };
 
   AmqpConnectionHandler& parent_;

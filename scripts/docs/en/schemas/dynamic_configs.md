@@ -1,24 +1,8 @@
-## Dynamic configs
+## Dynamic config schemas
 
-Here you can find the description of dynamic configs - options that can be
-changed at run-time without stopping the service.
-
-For an information on how to write a service that distributes dynamic configs
-see @ref md_en_userver_tutorial_config_service.
-
-
-## Adding and using your own dynamic configs
-
-Dynamic config values could be obtained via the dynamic_config::Source client
-that could be retrieved from components::DynamicConfig:
-
-@snippet components/component_sample_test.cpp  Sample user component source
-
-
-To get a specific value you need a parser for it. For example, here's how you
-could parse and get the `SAMPLE_INTEGER_FROM_RUNTIME_CONFIG` option:
-
-@snippet components/component_sample_test.cpp  Sample user component runtime config source
+Here you can find schemas of dynamic configs used by userver itself.
+For general information on dynamic configs, see
+@ref scripts/docs/en/userver/dynamic_config.md
 
 
 @anchor HTTP_CLIENT_CONNECT_THROTTLE
@@ -92,43 +76,6 @@ schema:
 Used by components::HttpClient, affects the behavior of clients::http::Client and all the clients that use it.
 
 
-@anchor HTTP_CLIENT_ENFORCE_TASK_DEADLINE
-## HTTP_CLIENT_ENFORCE_TASK_DEADLINE
-
-Dynamic config that controls task deadline across multiple services.
-
-For example, service `A` starts a task with some deadline that goes to service `B`, `B` goes into `C`, `C` goes to `D`:
-A->B->C->D. With the deadlines enabled, service `C` could detect that the deadline happened and there's no need to go
-to service `D`.
-
-```
-yaml
-schema:
-    type: object
-    properties:
-        cancel-request:
-            type: boolean
-            description: Cancel the request if deadline happened.
-        update-timeout:
-            type: boolean
-            description: Adjust the timeout before sending it to the next service.
-    additionalProperties: false
-    required:
-      - cancel-request
-      - update-timeout
-```
-
-**Example:**
-```json
-{
-  "cancel-request": false,
-  "update-timeout": false
-}
-```
-
-Used by components::HttpClient, affects the behavior of clients::http::Client and all the clients that use it.
-
-
 @anchor MONGO_DEFAULT_MAX_TIME_MS
 ## MONGO_DEFAULT_MAX_TIME_MS
 
@@ -144,6 +91,26 @@ schema:
 **Example:**
 ```
 200
+```
+
+Used by components::Mongo, components::MultiMongo.
+
+
+@anchor MONGO_DEADLINE_PROPAGATION_ENABLED_V2
+## MONGO_DEADLINE_PROPAGATION_ENABLED_V2
+
+Dynamic config that controls whether task-inherited deadline is accounted for
+while executing mongodb queries.
+
+```
+yaml
+schema:
+    type: boolean
+```
+
+**Example:**
+```json
+false
 ```
 
 Used by components::Mongo, components::MultiMongo.
@@ -267,7 +234,7 @@ definitions:
   "select_recent_users": {
     "network_timeout_ms": 70,
     "statement_timeout_ms": 30
-  },
+  }
 }
 ```
 
@@ -353,12 +320,15 @@ properties:
     type: integer
     minimum: 1
     default: 5000
+  recent-errors-threshold:
+    type: integer
+    minimum: 1
   ignore-unused-query-params:
     type: boolean
     default: false
-  pipeline-enabled:
-    type: boolean
-    default: false
+  max-ttl-sec:
+    type integer
+    minimum: 1
 ```
 
 **Example:**
@@ -369,19 +339,46 @@ properties:
     "user-types-enabled": true,
     "max-prepared-cache-size": 5000,
     "ignore-unused-query-params": false,
-    "pipeline-enabled": true
+    "recent-errors-threshold": 2,
+    "max-ttl-sec": 3600
   }
 }
 ```
 
 Used by components::Postgres.
 
+@anchor POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED
+## POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED
+
+Dynamic config that enables connlimit_mode: auto for PostgreSQL connections.
+Auto mode ignores static and dynamic max_connections configs and verifies
+that the cluster services use max_connections equals to PostgreSQL server's
+max_connections divided by service instance count.
+
+
+```
+yaml
+default: false
+schema:
+  type: boolean
+```
+
+Used by components::Postgres.
 
 @anchor POSTGRES_STATEMENT_METRICS_SETTINGS
 ## POSTGRES_STATEMENT_METRICS_SETTINGS
 
 Dynamic config that controls statement metrics settings for specific service.
-`max_statement_metrics == 0` disables metrics export.
+
+Dictionary keys can be either the service component names or `__default__`.
+The latter configuration will be applied for every PostgreSQL component of
+the service.
+
+The value of `max_statement_metrics` controls the maximum size of LRU-cache
+for named statement metrics. When set to 0 (default) no metrics are being
+exported.
+
+The exported data can be found as `postgresql.statement_timings`.
 
 ```
 yaml
@@ -400,13 +397,277 @@ definitions:
 
 ```json
 {
-    "postgresql-grocery_orders": {
-        "max_statement_metrics": 50
-    }
+  "postgresql-database_name": {
+    "max_statement_metrics": 50
+  }
 }
 ```
 
 Used by components::Postgres.
+
+
+@anchor REDIS_COMMANDS_BUFFERING_SETTINGS
+## REDIS_COMMANDS_BUFFERING_SETTINGS
+
+Dynamic config that controls command buffering for specific service.
+
+Command buffering is disabled by default.
+
+```
+yaml
+type: object
+additionalProperties: false
+properties:
+  buffering_enabled:
+    type: boolean
+  commands_buffering_threshold:
+    type: integer
+    minimum: 1
+  watch_command_timer_interval_us:
+    type: integer
+    minimum: 0
+required:
+  - buffering_enabled
+  - watch_command_timer_interval_us
+```
+
+```json
+{
+  "buffering_enabled": true,
+  "commands_buffering_threshold": 10,
+  "watch_command_timer_interval_us": 1000
+}
+```
+
+Used by components::Redis.
+
+
+@anchor REDIS_DEFAULT_COMMAND_CONTROL
+## REDIS_DEFAULT_COMMAND_CONTROL
+
+Dynamic config that overrides the default timeouts, number of retries and
+server selection strategy for redis commands.
+
+```
+yaml
+type: object
+additionalProperties: false
+properties:
+  best_dc_count:
+    type: integer
+  max_ping_latency_ms:
+    type: integer
+  max_retries:
+    type: integer
+  strategy:
+    enum:
+      - default
+      - every_dc
+      - local_dc_conductor
+      - nearest_server_ping
+    type: string
+  timeout_all_ms:
+    type: integer
+  timeout_single_ms:
+    type: integer
+```
+
+```json
+{
+  "best_dc_count": 0,
+  "max_ping_latency_ms": 0,
+  "max_retries": 4,
+  "strategy": "default",
+  "timeout_all_ms": 2000,
+  "timeout_single_ms": 500
+}
+```
+
+Used by components::Redis.
+
+
+@anchor REDIS_METRICS_SETTINGS
+## REDIS_METRICS_SETTINGS
+
+Dynamic config that controls the metric settings for specific service.
+
+```
+yaml
+type: object
+additionalProperties:
+  $ref: "#/definitions/MetricsSettings"
+definitions:
+  MetricsSettings:
+    type: object
+    additionalProperties: false
+    properties:
+      timings-enabled:
+        type: boolean
+        default: true
+        description: enable timings statistics
+      command-timings-enabled:
+        type: boolean
+        default: false
+        description: enable statistics for individual commands
+      request-sizes-enabled:
+        type: boolean
+        default: false
+        description: enable request sizes statistics
+      reply-sizes-enabled:
+        type: boolean
+        default: false
+        description: enable response sizes statistics
+```
+
+```json
+{
+  "redis-database_name": {
+    "timings-enabled": true,
+    "command-timings-enabled": false,
+    "request-sizes-enabled": false,
+    "reply-sizes-enabled": false
+  }
+}
+```
+
+Used by components::Redis.
+
+
+@anchor REDIS_PUBSUB_METRICS_SETTINGS
+## REDIS_PUBSUB_METRICS_SETTINGS
+
+Dynamic config that controls the redis pubsub metric settings for specific service.
+
+```
+yaml
+type: object
+additionalProperties:
+  $ref: "#/definitions/PubsubMetricsSettings"
+definitions:
+  PubsubMetricsSettings:
+    type: object
+    additionalProperties: false
+    properties:
+      per-shard-stats-enabled:
+        type: boolean
+        default: true
+        description: enable collecting statistics by shard
+```
+
+```json
+{
+  "redis-database_name": {
+    "per-shard-stats-enabled": true
+  }
+}
+```
+
+Used by components::Redis.
+
+
+@anchor REDIS_SUBSCRIBER_DEFAULT_COMMAND_CONTROL
+## REDIS_SUBSCRIBER_DEFAULT_COMMAND_CONTROL
+
+The same as @ref REDIS_DEFAULT_COMMAND_CONTROL but for subscription clients.
+
+
+```
+yaml
+type: object
+additionalProperties: false
+properties:
+  timeout_single_ms:
+    type: integer
+    minimum: 1
+  timeout_all_ms:
+    type: integer
+    minimum: 1
+  best_dc_count:
+    type: integer
+    minimum: 1
+  max_ping_latency_ms:
+    type: integer
+    minimum: 1
+  strategy:
+    type: string
+    enum:
+      - default
+      - every_dc
+      - local_dc_conductor
+      - nearest_server_ping
+```
+
+```json
+{
+  "best_dc_count": 0,
+  "max_ping_latency_ms": 0,
+  "strategy": "default",
+  "timeout_all_ms": 2000,
+  "timeout_single_ms": 500
+}
+```
+
+Used by components::Redis.
+
+
+@anchor REDIS_SUBSCRIPTIONS_REBALANCE_MIN_INTERVAL_SECONDS
+## REDIS_SUBSCRIPTIONS_REBALANCE_MIN_INTERVAL_SECONDS
+
+Dynamic config that controls the minimal interval between redis subscription
+clients rebalancing.
+
+
+```
+yaml
+minimum: 0
+type: integer
+default: 30
+```
+
+Used by components::Redis.
+
+
+@anchor REDIS_WAIT_CONNECTED
+## REDIS_WAIT_CONNECTED
+
+Dynamic config that controls if services will wait for connections with redis
+instances.
+
+
+```
+yaml
+type: object
+additionalProperties: false
+properties:
+  mode:
+    type: string
+    enum:
+      - no_wait
+      - master
+      - slave
+      - master_or_slave
+      - master_and_slave
+  throw_on_fail:
+    type: boolean
+  timeout-ms:
+    type: integer
+    minimum: 1
+    x-taxi-cpp-type: std::chrono::milliseconds
+required:
+  - mode
+  - throw_on_fail
+  - timeout-ms
+```
+
+```json
+{
+  "mode": "master_or_slave",
+  "throw_on_fail": false,
+  "timeout-ms": 11000
+}
+```
+
+Used by components::Redis.
 
 
 @anchor USERVER_CACHES
@@ -431,6 +692,15 @@ schema:
             full-update-interval-ms:
                 type: integer
                 minimum: 0
+            updates-enabled:
+                type: boolean
+                default: true
+            exception-interval-ms:
+                type: integer
+                minimum: 0
+            alert-on-failing-to-update-times:
+                type: integer
+                minimum: 0
         required:
           - update-interval-ms
           - update-jitter-ms
@@ -443,31 +713,14 @@ schema:
   "some-cache-name": {
     "full-update-interval-ms": 86400000,
     "update-interval-ms": 30000,
-    "update-jitter-ms": 1000
+    "update-jitter-ms": 1000,
+    "alert-on-failing-to-update-times": 2
   }
 }
 ```
 
 Used by all the caches derived from components::CachingComponentBase.
 
-
-@anchor USERVER_CHECK_AUTH_IN_HANDLERS
-## USERVER_CHECK_AUTH_IN_HANDLERS
-
-Controls whether authentication checks are performed in handlers.
-
-```
-yaml
-schema:
-    type: boolean
-```
-
-**Example:**
-```
-true
-```
-
-Used by components::Server.
 
 @anchor USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE
 ## USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE
@@ -486,6 +739,28 @@ true
 ```
 
 Used by components::Server.
+
+@anchor USERVER_DEADLINE_PROPAGATION_ENABLED
+## USERVER_DEADLINE_PROPAGATION_ENABLED
+
+When `false`, disables deadline propagation in the service. This includes:
+
+- reading the task-inherited deadline from HTTP headers and gRPC metadata;
+- interrupting operations when deadline expires;
+- propagating the deadline to downstream services and databases.
+
+```
+yaml
+schema:
+    type: boolean
+```
+
+**Example:**
+```
+true
+```
+
+Used by components::Server and ugrpc::server::ServerComponent.
 
 @anchor USERVER_DUMPS
 ## USERVER_DUMPS
@@ -514,7 +789,6 @@ schema:
 {
   "some-cache-name": {
     "dumps-enabled": true,
-    "update-interval-ms": 30000,
     "min-dump-interval": 100000
   }
 }
@@ -522,6 +796,21 @@ schema:
 
 Used by dump::Dumper, especially by all the caches derived from components::CachingComponentBase.
 
+@anchor USERVER_HANDLER_STREAM_API_ENABLED
+## USERVER_HANDLER_STREAM_API_ENABLED
+
+Sets whether Stream API should be enabled for HTTP handlers.
+
+```
+yaml
+schema:
+    type: boolean
+```
+
+**Example:**
+```
+true
+```
 
 @anchor USERVER_HTTP_PROXY
 ## USERVER_HTTP_PROXY
@@ -543,6 +832,39 @@ localhost:8090
 ```
 
 Used by components::HttpClient, affects the behavior of clients::http::Client and all the clients that use it.
+
+@anchor USERVER_LOG_DYNAMIC_DEBUG
+## USERVER_LOG_DYNAMIC_DEBUG
+
+Logging per line and file overrides.
+
+```
+yaml
+default:
+    force-enabled: []
+    force-disabled: []
+
+schema:
+    type: object
+    additionalProperties: false
+    required:
+      - force-enabled
+      - force-disabled
+    properties:
+        force-enabled:
+            type: array
+            description: logs to turn on
+            items:
+                type: string
+
+        force-disabled:
+            type: array
+            description: logs to turn off
+            items:
+                type: string
+```
+
+Used by components::LoggingConfigurator.
 
 
 @anchor USERVER_LOG_REQUEST
@@ -872,8 +1194,8 @@ schema:
                                       - ignore
                                       - cancel
                                     description: |
-                                        Action to perform on taks on queue overload.
-                                        `cancel` - cancells the tasks
+                                        Action to perform on tasks on queue overload.
+                                        `cancel` - cancels the tasks
                                 sensor_time_limit_us:
                                     type: integer
                                     minimum: 0
@@ -908,7 +1230,8 @@ Dynamic config for mapping extension files with http header content type
 yaml
 schema:
     type: object
-    additionalProperties: true
+    additionalProperties:
+        type: string
 ```
 
 **Example:**
@@ -933,5 +1256,5 @@ Used by server::handlers::HttpHandlerStatic
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref rabbitmq_driver | @ref md_en_userver_log_level_running_service ⇨
+⇦ @ref scripts/docs/en/userver/dynamic_config.md | @ref scripts/docs/en/userver/log_level_running_service.md ⇨
 @htmlonly </div> @endhtmlonly

@@ -57,6 +57,7 @@ struct RegisterUserTypeParser {
 /// Also mark available parsers
 template <typename T>
 struct CppToSystemPgImpl {
+  using Type = T;
   using Mapping = CppToSystemPg<T>;
   static constexpr auto type_oid = Mapping::value;
   static_assert(type_oid != PredefinedOids::kInvalid, "Type oid is invalid");
@@ -118,6 +119,13 @@ struct CppToPg<T, std::enable_if_t<!traits::kIsSpecialMapping<T> &&
     : std::conditional_t<traits::kIsMappedToSystemType<T>,
                          detail::CppToSystemPgImpl<T>,
                          detail::CppToUserPgImpl<T>> {};
+
+template <typename T>
+constexpr bool IsTypeMappedToSystem() {
+  return traits::kIsMappedToPg<T> &&
+         std::is_same<typename CppToPg<T>::Mapping,
+                      CppToSystemPg<typename CppToPg<T>::Type>>::value;
+}
 
 void LogRegisteredTypes();
 

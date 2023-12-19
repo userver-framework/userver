@@ -12,12 +12,12 @@
 ///
 /// @brief Components that could be used
 /// with utils::DaemonMain like functions; see
-/// @ref md_en_userver_component_system for an intro.
+/// @ref scripts/docs/en/userver/component_system.md for an intro.
 ///
 /// ----------
-/// 
+///
 /// @htmlonly <div class="bottom-nav"> @endhtmlonly
-/// ⇦ @ref userver_clients | @ref md_en_userver_synchronization ⇨
+/// ⇦ @ref userver_clients | @ref scripts/docs/en/userver/synchronization.md ⇨
 /// @htmlonly </div> @endhtmlonly
 
 
@@ -37,10 +37,13 @@
 /// * and it is safe to invoke member functions of the same client instance
 ///   concurrently if not stated the opposite.
 ///
+/// @see @ref scripts/docs/en/userver/component_system.md for information on
+/// how to configure clients
+///
 /// ----------
-/// 
+///
 /// @htmlonly <div class="bottom-nav"> @endhtmlonly
-/// ⇦ @ref md_en_userver_component_system | @ref userver_http_handlers ⇨
+/// ⇦ @ref scripts/docs/en/userver/component_system.md | @ref userver_http_handlers ⇨
 /// @htmlonly </div> @endhtmlonly
 
 
@@ -69,34 +72,45 @@
 /// @snippet components/common_server_component_list_test.cpp  Sample handler ping component config
 ///
 /// ----------
-/// 
+///
 /// @htmlonly <div class="bottom-nav"> @endhtmlonly
 /// ⇦ @ref userver_clients | @ref userver_components ⇨
 /// @htmlonly </div> @endhtmlonly
 
 
 /// @defgroup userver_concurrency Concurrency
-/// @brief Task construction and @ref md_en_userver_synchronization "synchronization primitives for coroutines"
+/// @brief Task construction and @ref scripts/docs/en/userver/synchronization.md "synchronization primitives for coroutines"
 
+/// @defgroup userver_universal Universal
+///
+/// @brief Functions and classes that could be used with or without coroutine
+/// environment.
+///
+/// Those classes and functions reside in CMake target `userver-universal`,
+/// that is a base target for all the `userver-*` targets, so all
+/// these the classes and functions are available while using any of the userver
+/// parts.
+///
+/// @see @ref scripts/docs/en/userver/tutorial/json_to_yaml.md for a usage
+/// example.
 
 /// @defgroup userver_containers Containers
 ///
 /// @brief Utility containers
 
 /// @defgroup userver_formats Formats
-/// @brief Different containers that @ref md_en_userver_formats "share the same interface and manipulate tree-like formats"
-/// @ingroup userver_containers
+/// @brief Different containers that @ref scripts/docs/en/userver/formats.md "share the same interface and manipulate tree-like formats"
 
 /// @defgroup userver_formats_serialize Serializers
-/// @brief Files with serializers @ref md_en_userver_formats "into formats"
+/// @brief Files with serializers @ref scripts/docs/en/userver/formats.md "into formats"
 /// @ingroup userver_formats
 
 /// @defgroup userver_formats_serialize_sax SAX Serializers
-/// @brief Files with SAX serializers @ref md_en_userver_formats "into formats"
+/// @brief Files with SAX serializers @ref scripts/docs/en/userver/formats.md "into formats"
 /// @ingroup userver_formats
 
 /// @defgroup userver_formats_parse Parsers
-/// @brief Files with parsers @ref md_en_userver_formats "from formats"
+/// @brief Files with parsers @ref scripts/docs/en/userver/formats.md "from formats"
 /// @ingroup userver_formats
 
 
@@ -111,5 +125,18 @@
 /// @defgroup userver_clickhouse_types Clickhouse types
 ///
 /// @brief Files with implemented ClickHouse types
+
+/// @defgroup userver_testsuite Testsuite Python support
+///
+/// @brief Functions, fixtures and classes to do
+/// @ref scripts/docs/en/userver/functional_testing.md "functional testing with testsuite".
+
+/// @defgroup userver_testsuite_fixtures Fixtures
+/// @brief Fixtures to use with testsuite
+/// @ingroup userver_testsuite
+
+/// @defgroup userver_component_names Component Default Names
+/// @ingroup userver_components
+/// @brief Default names of components that are used in static config files
 
 // clang-format on

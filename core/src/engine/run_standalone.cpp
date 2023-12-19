@@ -8,18 +8,19 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
-void RunStandalone(std::function<void()> payload) {
+void RunStandalone(utils::function_ref<void()> payload) {
   RunStandalone(1, TaskProcessorPoolsConfig{}, std::move(payload));
 }
 
-void RunStandalone(std::size_t worker_threads, std::function<void()> payload) {
+void RunStandalone(std::size_t worker_threads,
+                   utils::function_ref<void()> payload) {
   RunStandalone(worker_threads, TaskProcessorPoolsConfig{}, std::move(payload));
 }
 
 void RunStandalone(std::size_t worker_threads,
                    const TaskProcessorPoolsConfig& config,
-                   std::function<void()> payload) {
-  UINVARIANT(!engine::current_task::GetTaskProcessorOptional(),
+                   utils::function_ref<void()> payload) {
+  UINVARIANT(!engine::current_task::IsTaskProcessorThread(),
              "RunStandalone must not be used alongside a running engine");
   UINVARIANT(worker_threads != 0, "Unable to run anything using 0 threads");
 

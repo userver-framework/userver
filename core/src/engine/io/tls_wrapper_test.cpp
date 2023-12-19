@@ -149,7 +149,8 @@ UTEST_MT(TlsWrapper, Smoke, 2) {
       [test_deadline](auto&& server) {
         try {
           auto tls_server = io::TlsWrapper::StartTlsServer(
-              std::move(server), crypto::Certificate::LoadFromString(cert),
+              std::forward<decltype(server)>(server),
+              crypto::Certificate::LoadFromString(cert),
               crypto::PrivateKey::LoadFromString(key), test_deadline);
           EXPECT_EQ(1, tls_server.SendAll("1", 1, test_deadline));
           char c = 0;
@@ -193,7 +194,8 @@ UTEST_MT(TlsWrapper, DocTest, 2) {
       "tls-server",
       [deadline](auto&& server) {
         auto tls_server = io::TlsWrapper::StartTlsServer(
-            std::move(server), crypto::Certificate::LoadFromString(cert),
+            std::forward<decltype(server)>(server),
+            crypto::Certificate::LoadFromString(cert),
             crypto::PrivateKey::LoadFromString(key), deadline);
         if (tls_server.SendAll(kData.data(), kData.size(), deadline) !=
             kData.size()) {
@@ -224,7 +226,8 @@ UTEST(TlsWrapper, Move) {
       [test_deadline](auto&& server) {
         try {
           auto tls_server = io::TlsWrapper::StartTlsServer(
-              std::move(server), crypto::Certificate::LoadFromString(cert),
+              std::forward<decltype(server)>(server),
+              crypto::Certificate::LoadFromString(cert),
               crypto::PrivateKey::LoadFromString(key), test_deadline);
           engine::AsyncNoSpan(
               [test_deadline](auto&& tls_server) {
@@ -284,7 +287,8 @@ UTEST_MT(TlsWrapper, IoTimeout, 2) {
   auto server_task = engine::AsyncNoSpan(
       [test_deadline, &timeout_happened](auto&& server) {
         auto tls_server = io::TlsWrapper::StartTlsServer(
-            std::move(server), crypto::Certificate::LoadFromString(cert),
+            std::forward<decltype(server)>(server),
+            crypto::Certificate::LoadFromString(cert),
             crypto::PrivateKey::LoadFromString(key), test_deadline);
         char c = 0;
         UEXPECT_THROW(static_cast<void>(tls_server.RecvSome(
@@ -318,7 +322,8 @@ UTEST(TlsWrapper, Cancel) {
   auto server_task = engine::AsyncNoSpan(
       [test_deadline](auto&& server) {
         auto tls_server = io::TlsWrapper::StartTlsServer(
-            std::move(server), crypto::Certificate::LoadFromString(cert),
+            std::forward<decltype(server)>(server),
+            crypto::Certificate::LoadFromString(cert),
             crypto::PrivateKey::LoadFromString(key), test_deadline);
         char c = 0;
         UEXPECT_THROW(
@@ -344,7 +349,8 @@ UTEST_MT(TlsWrapper, CertKeyMismatch, 2) {
       [test_deadline](auto&& server) {
         UEXPECT_THROW(
             static_cast<void>(io::TlsWrapper::StartTlsServer(
-                std::move(server), crypto::Certificate::LoadFromString(cert),
+                std::forward<decltype(server)>(server),
+                crypto::Certificate::LoadFromString(cert),
                 crypto::PrivateKey::LoadFromString(other_key), test_deadline)),
             io::TlsException);
       },
@@ -366,7 +372,8 @@ UTEST_MT(TlsWrapper, NonTlsClient, 2) {
       [test_deadline](auto&& server) {
         UEXPECT_THROW(
             static_cast<void>(io::TlsWrapper::StartTlsServer(
-                std::move(server), crypto::Certificate::LoadFromString(cert),
+                std::forward<decltype(server)>(server),
+                crypto::Certificate::LoadFromString(cert),
                 crypto::PrivateKey::LoadFromString(other_key), test_deadline)),
             io::TlsException);
       },
@@ -405,7 +412,8 @@ UTEST_MT(TlsWrapper, DoubleSmoke, 4) {
   auto server_task = engine::AsyncNoSpan(
       [test_deadline](auto&& server) {
         auto tls_server = io::TlsWrapper::StartTlsServer(
-            std::move(server), crypto::Certificate::LoadFromString(cert),
+            std::forward<decltype(server)>(server),
+            crypto::Certificate::LoadFromString(cert),
             crypto::PrivateKey::LoadFromString(key), test_deadline);
         EXPECT_EQ(1, tls_server.SendAll("1", 1, test_deadline));
         char c = 0;
@@ -422,7 +430,8 @@ UTEST_MT(TlsWrapper, DoubleSmoke, 4) {
   auto other_server_task = engine::AsyncNoSpan(
       [test_deadline](auto&& server) {
         auto tls_server = io::TlsWrapper::StartTlsServer(
-            std::move(server), crypto::Certificate::LoadFromString(other_cert),
+            std::forward<decltype(server)>(server),
+            crypto::Certificate::LoadFromString(other_cert),
             crypto::PrivateKey::LoadFromString(other_key), test_deadline);
         EXPECT_EQ(1, tls_server.SendAll("5", 1, test_deadline));
         char c = 0;
@@ -438,8 +447,8 @@ UTEST_MT(TlsWrapper, DoubleSmoke, 4) {
 
   auto other_client_task = engine::AsyncNoSpan(
       [test_deadline](auto&& client) {
-        auto tls_client = io::TlsWrapper::StartTlsClient(std::move(client), {},
-                                                         test_deadline);
+        auto tls_client = io::TlsWrapper::StartTlsClient(
+            std::forward<decltype(client)>(client), {}, test_deadline);
         char c = 0;
         EXPECT_EQ(1, tls_client.RecvSome(&c, 1, test_deadline));
         EXPECT_EQ('5', c);
@@ -489,7 +498,8 @@ UTEST(TlsWrapper, PeerShutdown) {
       [test_deadline](auto&& server) {
         try {
           auto tls_server = io::TlsWrapper::StartTlsServer(
-              std::move(server), crypto::Certificate::LoadFromString(cert),
+              std::forward<decltype(server)>(server),
+              crypto::Certificate::LoadFromString(cert),
               crypto::PrivateKey::LoadFromString(key), test_deadline);
           char c = 0;
           // Get a non-fatal error on the channel
@@ -528,7 +538,8 @@ UTEST(TlsWrapper, PeerDisconnect) {
       [test_deadline](auto&& server) {
         try {
           auto tls_server = io::TlsWrapper::StartTlsServer(
-              std::move(server), crypto::Certificate::LoadFromString(cert),
+              std::forward<decltype(server)>(server),
+              crypto::Certificate::LoadFromString(cert),
               crypto::PrivateKey::LoadFromString(key), test_deadline);
           char c = 0;
           // Get a non-fatal error on the channel

@@ -7,3 +7,5 @@
 
 #include <string_view>
 #include <utility>
+
+#include <userver/ugrpc/client/impl/client_qos.hpp>

@@ -10,7 +10,8 @@
 
 namespace AMQP {
 class Deferred;
-}
+class DeferredGet;
+}  // namespace AMQP
 
 USERVER_NAMESPACE_BEGIN
 
@@ -27,6 +28,8 @@ class DeferredWrapper : public std::enable_shared_from_this<DeferredWrapper> {
   void Wait(engine::Deadline deadline);
 
   void Wrap(AMQP::Deferred& deferred);
+
+  void WrapGet(AMQP::DeferredGet& deferred, std::string& message);
 
   static std::shared_ptr<DeferredWrapper> Create();
 

@@ -4,9 +4,11 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 #include <userver/storages/redis/impl/base.hpp>
 #include <userver/storages/redis/impl/command_options.hpp>
+#include <userver/storages/redis/impl/request.hpp>
 
 #include <userver/storages/redis/client.hpp>
 #include <userver/storages/redis/transaction.hpp>
@@ -68,6 +70,12 @@ class ClientImpl final : public Client,
   RequestDel Del(std::vector<std::string> keys,
                  const CommandControl& command_control) override;
 
+  RequestUnlink Unlink(std::string key,
+                       const CommandControl& command_control) override;
+
+  RequestUnlink Unlink(std::vector<std::string> keys,
+                       const CommandControl& command_control) override;
+
   RequestEvalCommon EvalCommon(std::string script,
                                std::vector<std::string> keys,
                                std::vector<std::string> args,
@@ -94,9 +102,28 @@ class ClientImpl final : public Client,
   RequestGeoadd Geoadd(std::string key, std::vector<GeoaddArg> point_members,
                        const CommandControl& command_control) override;
 
-  RequestGeoradius Georadius(std::string key, double lon, double lat,
+  RequestGeoradius Georadius(std::string key, Longitude lon, Latitude lat,
                              double radius,
                              const GeoradiusOptions& georadius_options,
+                             const CommandControl& command_control) override;
+
+  RequestGeosearch Geosearch(std::string key, std::string member, double radius,
+                             const GeosearchOptions& geosearch_options,
+                             const CommandControl& command_control) override;
+
+  RequestGeosearch Geosearch(std::string key, std::string member,
+                             BoxWidth width, BoxHeight height,
+                             const GeosearchOptions& geosearch_options,
+                             const CommandControl& command_control) override;
+
+  RequestGeosearch Geosearch(std::string key, Longitude lon, Latitude lat,
+                             double radius,
+                             const GeosearchOptions& geosearch_options,
+                             const CommandControl& command_control) override;
+
+  RequestGeosearch Geosearch(std::string key, Longitude lon, Latitude lat,
+                             BoxWidth width, BoxHeight height,
+                             const GeosearchOptions& geosearch_options,
                              const CommandControl& command_control) override;
 
   RequestGet Get(std::string key,
@@ -211,6 +238,9 @@ class ClientImpl final : public Client,
 
   void Publish(std::string channel, std::string message,
                const CommandControl& command_control, PubShard policy) override;
+
+  void Spublish(std::string channel, std::string message,
+                const CommandControl& command_control) override;
 
   RequestRename Rename(std::string key, std::string new_key,
                        const CommandControl& command_control) override;
@@ -332,6 +362,9 @@ class ClientImpl final : public Client,
   RequestZcard Zcard(std::string key,
                      const CommandControl& command_control) override;
 
+  RequestZcount Zcount(std::string key, double min, double max,
+                       const CommandControl& command_control) override;
+
   RequestZrange Zrange(std::string key, int64_t start, int64_t stop,
                        const CommandControl& command_control) override;
 
@@ -431,7 +464,9 @@ class ClientImpl final : public Client,
 
   CommandControl GetCommandControl(const CommandControl& cc) const;
 
-  size_t GetPublishShard(PubShard policy);
+  size_t GetPublishShard(
+      PubShard policy,
+      const USERVER_NAMESPACE::redis::PublishSettings& settings);
 
   size_t ShardByKey(const std::string& key, const CommandControl& cc) const;
 

@@ -1,11 +1,17 @@
-project(userver-stacktrace)
+project(userver-stacktrace CXX)
 include(CheckIncludeFile)
 
 find_package(Boost REQUIRED) # Headers needed
 
+if(NOT MACOS AND "${CMAKE_SYSTEM}" MATCHES "BSD")
+    set(STACKTRACE_DEFAULT OFF)
+else()
+    set(STACKTRACE_DEFAULT ON)
+endif()
+
 # You can choose the implementation depending on your needs.
 # See http://boostorg.github.io/stacktrace/stacktrace/configuration_and_build.html for more info.
-option(USERVER_FEATURE_STACKTRACE "Allow capturing stacktraces using boost::stacktrace" ON)
+option(USERVER_FEATURE_STACKTRACE "Allow capturing stacktraces using boost::stacktrace" ${STACKTRACE_DEFAULT})
 if (NOT USERVER_FEATURE_STACKTRACE)
     set(BACKTRACE_USERVER_SOURCES src/noop.cpp)
 elseif (WIN32)
@@ -27,7 +33,7 @@ else()
     if (NOT HAS_BACKTRACE_LIBRARY)
         # Attempt to find file in GCC specific path
         file(GLOB BacktraceIncludeFiles
-            "/usr/lib/gcc/x86_64-linux-gnu/*/include/backtrace.h"
+	     "/usr/lib/gcc/x86_64-linux-gnu/*/include/backtrace.h"
         )
         list(SORT BacktraceIncludeFiles)
         list(GET BacktraceIncludeFiles 0 BacktraceIncludeFile)
@@ -49,7 +55,7 @@ else()
     #set(BACKTRACE_USERVER_LIBRARIES dl)
 endif()
 
-add_library (${PROJECT_NAME} STATIC ${BACKTRACE_USERVER_SOURCES})
+add_library(${PROJECT_NAME} OBJECT ${BACKTRACE_USERVER_SOURCES})
 if (BacktraceIncludeFile)
     target_compile_definitions(
         ${PROJECT_NAME}
@@ -64,4 +70,3 @@ target_compile_definitions(${PROJECT_NAME} INTERFACE BOOST_STACKTRACE_LINK)
 target_include_directories(${PROJECT_NAME} PUBLIC include ${Boost_INCLUDE_DIRS})
 
 target_link_libraries(${PROJECT_NAME} PUBLIC ${BACKTRACE_USERVER_LIBRARIES})
-set_target_properties (${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)

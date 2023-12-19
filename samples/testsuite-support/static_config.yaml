@@ -1,24 +1,18 @@
 # yaml
 components_manager:
-    coro_pool:
-        initial_size: 500             # Preallocate 500 coroutines at startup.
-        max_size: 1000                # Do not keep more than 1000 preallocated coroutines.
-
     task_processors:                  # Task processor is an executor for coroutine tasks
 
         main-task-processor:          # Make a task processor for CPU-bound couroutine tasks.
             worker_threads: 4         # Process tasks in 4 threads.
-            thread_name: main-worker  # OS will show the threads of this task processor with 'main-worker' prefix.
 
         fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
-            thread_name: fs-worker
             worker_threads: 4
 
         monitor-task-processor:       # for monitoring
-            thread_name: mon-worker
             worker_threads: 1
+            thread_name: mon-worker
 
-    default_task_processor: main-task-processor
+    default_task_processor: main-task-processor  # Task processor in which components start.
 
     components:                       # Configuring components that were registered via component_list
         server:
@@ -41,13 +35,17 @@ components_manager:
                     level: debug
                     overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
 
-        tracer:                             # Component that helps to trace execution times and requests in logs.
-            service-name: testsuite-support # "You know. You all know exactly who I am. Say my name. " (c)
-
-        dynamic-config:                      # Dynamic config storage options, do nothing
-            fs-cache-path: ''
-        dynamic-config-fallbacks:            # Load options from file and push them into the dynamic config storage.
-            fallback-path: /etc/testsuite_service/configs/dynamic_config_fallback.json
+        dynamic-config:
+            updates-enabled: true
+        dynamic-config-client:
+            config-url: $config-server-url
+            http-retries: 5
+            http-timeout: 20s
+            service-name: testsuite-support
+        dynamic-config-client-updater:
+            config-settings: false
+            full-update-interval: 1m
+            update-interval: 5s
 
         # /// [monitor - config.yaml]
         handler-server-monitor:
@@ -59,6 +57,8 @@ components_manager:
         http-client:
             fs-task-processor: fs-task-processor
             user-agent: userver testsuite
+        dns-client:                     # Asynchronous DNS component
+            fs-task-processor: fs-task-processor
 
         congestion-control:
             load-enabled: true
@@ -94,6 +94,13 @@ components_manager:
 
         handler-logcapture:
             path: /logcapture
+            method: GET
+            task_processor: main-task-processor
+            throttling_enabled: false
+            url_trailing_slash: strict-match
+
+        handler-dynamic-config:
+            path: /dynamic-config
             method: GET
             task_processor: main-task-processor
             throttling_enabled: false

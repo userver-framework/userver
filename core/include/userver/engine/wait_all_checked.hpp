@@ -8,8 +8,8 @@
 
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/future_status.hpp>
-#include <userver/utils/impl/span.hpp>
 #include <userver/utils/meta.hpp>
+#include <userver/utils/span.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -68,7 +68,7 @@ namespace impl {
 
 class ContextAccessor;
 
-FutureStatus DoWaitAllChecked(utils::impl::Span<ContextAccessor*> targets,
+FutureStatus DoWaitAllChecked(utils::span<ContextAccessor*> targets,
                               Deadline deadline);
 
 template <typename Container>

@@ -1,6 +1,5 @@
 name: c-ares
 version: 1.16.0  # ares_getaddrinfo appeared only in 1.16
-helper-prefix: false
 type: find-helper
 
 debian-names:
@@ -11,6 +10,8 @@ rpm-names:
   - c-ares-devel
 pacman-names:
   - c-ares
+pkg-config-names:
+  - libcares
 
 libraries:
     find:

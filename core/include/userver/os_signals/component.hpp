@@ -16,14 +16,16 @@ namespace os_signals {
 
 /// @ingroup userver_components
 ///
-/// @brief A storage for Processor listeners signals
+/// @brief A component for os_signals::Processor
 ///
 /// Declaration in static config file may be skipped.
 ///
-/// @see @ref md_en_userver_os_signals
+/// @see @ref scripts/docs/en/userver/os_signals.md
 class ProcessorComponent final : public components::impl::ComponentBase {
  public:
-  static constexpr auto kName = "os-signal-processor";
+  /// @ingroup userver_component_names
+  /// @brief The default name of os_signals::ProcessorComponent
+  static constexpr std::string_view kName = "os-signal-processor";
 
   ProcessorComponent(const components::ComponentConfig& config,
                      const components::ComponentContext& context);

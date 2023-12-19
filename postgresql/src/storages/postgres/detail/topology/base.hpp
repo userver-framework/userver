@@ -7,6 +7,7 @@
 #include <storages/postgres/default_command_controls.hpp>
 #include <storages/postgres/detail/connection.hpp>
 #include <userver/clients/dns/resolver_fwd.hpp>
+#include <userver/concurrent/background_task_storage.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/error_injection/settings.hpp>
 #include <userver/storages/postgres/cluster_types.hpp>
@@ -55,6 +56,7 @@ class TopologyBase {
 
  private:
   engine::TaskProcessor& bg_task_processor_;
+  concurrent::BackgroundTaskStorageCore bg_task_storage_;
   const DsnList dsns_;
   clients::dns::Resolver* resolver_;
   const TopologySettings topology_settings_;

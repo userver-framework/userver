@@ -9,25 +9,25 @@ namespace io = pg::io;
 
 namespace static_test {
 
-using namespace io::traits;
+namespace tt = io::traits;
 
-static_assert(kHasFormatter<std::string>);
-static_assert(kHasParser<std::string>);
+static_assert(tt::kHasFormatter<std::string>);
+static_assert(tt::kHasParser<std::string>);
 
-static_assert(kIsMappedToPg<std::string>);
+static_assert(tt::kIsMappedToPg<std::string>);
 
-static_assert(kHasFormatter<const char*>);
+static_assert(tt::kHasFormatter<const char*>);
 
-static_assert(kIsMappedToPg<const char*>);
+static_assert(tt::kIsMappedToPg<const char*>);
 
-static_assert(kHasFormatter<char[5]>);
+static_assert(tt::kHasFormatter<char[5]>);
 
-static_assert(kIsMappedToPg<char[5]>);
+static_assert(tt::kIsMappedToPg<char[5]>);
 
-static_assert(kHasFormatter<char>);
-static_assert(kHasParser<char>);
+static_assert(tt::kHasFormatter<char>);
+static_assert(tt::kHasParser<char>);
 
-static_assert(kIsMappedToPg<char>);
+static_assert(tt::kIsMappedToPg<char>);
 
 }  // namespace static_test
 
@@ -41,26 +41,26 @@ TEST(PostgreIO, StringParserRegistry) {
 }
 
 UTEST_P(PostgreConnection, StringRoundtrip) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   pg::ResultSet res{nullptr};
 
   std::string unicode_str{"юникод µ𝞪∑∆ƒæ©⩜"};
-  UEXPECT_NO_THROW(res = conn->Execute("select $1", unicode_str));
+  UEXPECT_NO_THROW(res = GetConn()->Execute("select $1", unicode_str));
   EXPECT_EQ(unicode_str, res[0][0].As<std::string>());
   auto str_res = res.AsSetOf<std::string>();
   EXPECT_EQ(unicode_str, str_res[0]);
 
-  UEXPECT_NO_THROW(res = conn->Execute("select $1", std::string{}));
+  UEXPECT_NO_THROW(res = GetConn()->Execute("select $1", std::string{}));
   EXPECT_EQ(std::string{}, res[0][0].As<std::string>()) << "Empty string";
 }
 
 UTEST_P(PostgreConnection, StringStored) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   pg::ResultSet res{nullptr};
 
   std::string std_str = "std::string";
   constexpr auto c_str = "const char*";
-  UEXPECT_NO_THROW(res = conn->Execute(
+  UEXPECT_NO_THROW(res = GetConn()->Execute(
                        "select $1, $2",
                        pg::ParameterStore{}.PushBack(std_str).PushBack(c_str)));
   EXPECT_EQ(std_str, res[0][0].As<std::string>());

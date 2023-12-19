@@ -1,3 +1,7 @@
+"""
+Testpoints support for the server.
+"""
+
 # pylint: disable=redefined-outer-name
 import typing
 
@@ -47,6 +51,14 @@ def testpoint_checker_factory(testpoint_control):
 
 @pytest.fixture(scope='session')
 def userver_config_testpoint(mockserver_info):
+    """
+    Returns a function that adjusts the static configuration file for
+    the testsuite.
+    Sets the `tests-control.skip-unregistered-testpoints` to `True`.
+
+    @ingroup userver_testsuite_fixtures
+    """
+
     def _patch_config(config_yaml, config_vars):
         components = config_yaml['components_manager']['components']
         tests_control = components.get('tests-control')

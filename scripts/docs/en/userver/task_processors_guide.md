@@ -7,10 +7,11 @@ engine::TaskProcessor or task processor is a thread pool on which the tasks
 ## Creation
 
 Task processors are configured via the static config file and are created at
-the start of the @ref md_en_userver_component_system "component system". Example:
+the start of the @ref scripts/docs/en/userver/component_system.md "component system". Example:
 
 @snippet components/common_component_list_test.cpp  Sample components manager config component config
 
+Any amount of task processors could be created with any names.
 
 ## How to use
 
@@ -29,10 +30,12 @@ component system tear-down, they are safe to use from within any components:
 a file in a synchronous way) runs on `main-task-processor`, then the thread
 and the processor core are idle until the system call ends. As a result, the
 throughput of the service temporarily decreases. To prevent this from
-happening, use @ref md_en_userver_intro "userver provided primitives" or
+happening, use @ref scripts/docs/en/userver/intro.md "userver provided primitives" or
 if the primitive is missing, run the blocking system call on a separate task
 processor.
 
+Task processors intentionally hide their internals and member functions, so
+there's no way to call any of the task processor members directly.
 
 ## Common Task Processors
 
@@ -128,5 +131,5 @@ Make sure that tasks execute faster than they arrive.
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_logging | @ref md_en_userver_testing ⇨
+⇦ @ref scripts/docs/en/userver/logging.md | @ref scripts/docs/en/userver/periodics.md ⇨
 @htmlonly </div> @endhtmlonly

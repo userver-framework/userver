@@ -3,13 +3,12 @@
 /// @file userver/components/component_list.hpp
 /// @brief @copybrief components::ComponentList
 
+#include <functional>
 #include <memory>
+#include <set>
 #include <string>
-#include <unordered_set>
-#include <vector>
 
 #include <userver/components/component_fwd.hpp>
-#include <userver/components/manager.hpp>
 #include <userver/components/static_config_validator.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -20,14 +19,43 @@ class Manager;
 
 namespace impl {
 
+template <class T>
+auto NameRegistrationFromComponentType() -> decltype(std::string{T::kName}) {
+  return std::string{T::kName};
+}
+
+template <class T, class... Args>
+auto NameRegistrationFromComponentType(Args...) {
+  static_assert(!sizeof(T),
+                "Component does not have a 'kName' member convertible to "
+                "std::string. You have to explicitly specify the name: "
+                "component_list.Append<T>(name).");
+  return std::string{};
+}
+
+using ComponentBaseFactory =
+    std::function<std::unique_ptr<components::impl::ComponentBase>(
+        const components::ComponentConfig&,
+        const components::ComponentContext&)>;
+
+// Hides manager implementation from header
+void AddComponentImpl(Manager& manager,
+                      const components::ComponentConfigMap& config_map,
+                      const std::string& name, ComponentBaseFactory factory);
+
 class ComponentAdderBase {
  public:
-  explicit ComponentAdderBase(std::string name,
-                              ConfigFileMode config_file_mode);
+  ComponentAdderBase() = delete;
+  ComponentAdderBase(const ComponentAdderBase&) = delete;
+  ComponentAdderBase(ComponentAdderBase&&) = delete;
+  ComponentAdderBase& operator=(const ComponentAdderBase&) = delete;
+  ComponentAdderBase& operator=(ComponentAdderBase&&) = delete;
 
-  virtual ~ComponentAdderBase() = default;
+  ComponentAdderBase(std::string name, ConfigFileMode config_file_mode);
 
-  const std::string& GetComponentName() const { return name_; }
+  virtual ~ComponentAdderBase();
+
+  const std::string& GetComponentName() const noexcept { return name_; }
 
   ConfigFileMode GetConfigFileMode() const { return config_file_mode_; }
 
@@ -37,9 +65,65 @@ class ComponentAdderBase {
   virtual void ValidateStaticConfig(const ComponentConfig&,
                                     ValidationMode) const = 0;
 
+  virtual yaml_config::Schema GetStaticConfigSchema() const = 0;
+
  private:
   std::string name_;
   ConfigFileMode config_file_mode_;
+};
+
+template <typename Component>
+class ComponentAdder final : public ComponentAdderBase {
+ public:
+  explicit ComponentAdder(std::string name)
+      : ComponentAdderBase(std::move(name), kConfigFileMode<Component>) {}
+
+  void operator()(Manager&,
+                  const components::ComponentConfigMap&) const override;
+
+  void ValidateStaticConfig(const ComponentConfig& static_config,
+                            ValidationMode validation_mode) const override {
+    impl::TryValidateStaticConfig<Component>(static_config, validation_mode);
+  }
+
+  yaml_config::Schema GetStaticConfigSchema() const override {
+    return impl::GetStaticConfigSchema<Component>();
+  }
+};
+
+template <typename Component>
+void ComponentAdder<Component>::operator()(
+    Manager& manager, const components::ComponentConfigMap& config_map) const {
+  // Using std::is_convertible_v because std::is_base_of_v returns true even
+  // if ComponentBase is a private, protected, or ambiguous base class.
+  static_assert(
+      std::is_convertible_v<Component*, components::impl::ComponentBase*>,
+      "Component should publicly inherit from components::LoggableComponentBase"
+      " and the component definition should be visible at its registration");
+  impl::AddComponentImpl(manager, config_map, GetComponentName(),
+                         [](const components::ComponentConfig& config,
+                            const components::ComponentContext& context) {
+                           return std::make_unique<Component>(config, context);
+                         });
+}
+
+using ComponentAdderPtr = std::unique_ptr<const impl::ComponentAdderBase>;
+
+struct ComponentAdderComparator {
+  using is_transparent = std::true_type;
+
+  static std::string_view ToStringView(const ComponentAdderPtr& x) noexcept {
+    return std::string_view{x->GetComponentName()};
+  }
+
+  static std::string_view ToStringView(std::string_view x) noexcept {
+    return x;
+  }
+
+  template <class T, class U>
+  bool operator()(const T& x, const U& y) const noexcept {
+    return ToStringView(x) < ToStringView(y);
+  }
 };
 
 }  // namespace impl
@@ -48,80 +132,54 @@ class ComponentAdderBase {
 /// components::Run(), utils::DaemonMain() or components::RunOnce().
 class ComponentList final {
  public:
+  /// Appends a component with default component name Component::kName.
   template <typename Component>
   ComponentList& Append() &;
 
+  /// Appends a component with a provided component name.
   template <typename Component>
   ComponentList& Append(std::string name) &;
 
+  /// Merges components from `other` into `*this`.
   ComponentList& AppendComponentList(ComponentList&& other) &;
+
+  /// @overload
   ComponentList&& AppendComponentList(ComponentList&& other) &&;
 
+  /// @overload
   template <typename Component, typename... Args>
   ComponentList&& Append(Args&&...) &&;
 
-  using Adders = std::vector<std::unique_ptr<impl::ComponentAdderBase>>;
+  /// @return true iff the component with provided name was added to *this.
+  bool Contains(std::string_view name) const { return adders_.count(name) > 0; }
+
+  /// @cond
+  using Adders =
+      std::set<impl::ComponentAdderPtr, impl::ComponentAdderComparator>;
 
   Adders::const_iterator begin() const { return adders_.begin(); }
   Adders::const_iterator end() const { return adders_.end(); }
 
-  bool Contains(const std::string& name) const {
-    return component_names_.count(name) > 0;
-  }
+  ComponentList& Append(impl::ComponentAdderPtr&& added) &;
+
+  yaml_config::Schema GetStaticConfigSchema() const;
+  /// @endcond
 
  private:
-  std::vector<std::unique_ptr<impl::ComponentAdderBase>> adders_;
-  std::unordered_set<std::string> component_names_;
+  Adders adders_;
 };
-
-namespace impl {
-
-template <typename Component>
-class DefaultComponentAdder final : public ComponentAdderBase {
- public:
-  DefaultComponentAdder();
-  void operator()(Manager&,
-                  const components::ComponentConfigMap&) const override;
-
-  void ValidateStaticConfig(const ComponentConfig& static_config,
-                            ValidationMode validation_condition) const override;
-};
-
-template <typename Component>
-class CustomNameComponentAdder final : public ComponentAdderBase {
- public:
-  CustomNameComponentAdder(std::string name);
-
-  void operator()(Manager&,
-                  const components::ComponentConfigMap&) const override;
-
-  void ValidateStaticConfig(const ComponentConfig& static_config,
-                            ValidationMode validation_condition) const override;
-};
-
-}  // namespace impl
 
 template <typename Component>
 ComponentList& ComponentList::Append() & {
-  static_assert(std::is_base_of_v<impl::ComponentBase, Component>,
-                "Either you are trying to register a non-component, or the "
-                "component definition is not visible at its registration");
-  auto adder = std::make_unique<impl::DefaultComponentAdder<Component>>();
-  component_names_.insert(adder->GetComponentName());
-  adders_.push_back(std::move(adder));
-  return *this;
+  return Append<Component>(
+      impl::NameRegistrationFromComponentType<Component>());
 }
 
 template <typename Component>
 ComponentList& ComponentList::Append(std::string name) & {
-  static_assert(std::is_base_of_v<impl::ComponentBase, Component>,
-                "Either you are trying to register a non-component, or the "
-                "component definition is not visible at its registration");
-  auto adder = std::make_unique<impl::CustomNameComponentAdder<Component>>(
-      std::move(name));
-  component_names_.insert(adder->GetComponentName());
-  adders_.push_back(std::move(adder));
-  return *this;
+  using Adder = impl::ComponentAdder<Component>;
+  auto adder = std::make_unique<const Adder>(std::move(name));
+  return Append(std::move(adder));
 }
 
 template <typename Component, typename... Args>
@@ -129,44 +187,6 @@ ComponentList&& ComponentList::Append(Args&&... args) && {
   return std::move(Append<Component>(std::forward<Args>(args)...));
 }
 
-namespace impl {
-
-template <typename Component>
-DefaultComponentAdder<Component>::DefaultComponentAdder()
-    : ComponentAdderBase(std::string{Component::kName},
-                         kConfigFileMode<Component>) {}
-
-template <typename Component>
-void DefaultComponentAdder<Component>::operator()(
-    Manager& manager, const components::ComponentConfigMap& config_map) const {
-  manager.AddComponent<Component>(config_map, GetComponentName());
-}
-
-template <typename Component>
-void DefaultComponentAdder<Component>::ValidateStaticConfig(
-    const ComponentConfig& static_config,
-    ValidationMode validation_condition) const {
-  TryValidateStaticConfig<Component>(static_config, validation_condition);
-}
-
-template <typename Component>
-CustomNameComponentAdder<Component>::CustomNameComponentAdder(std::string name)
-    : ComponentAdderBase(std::move(name), kConfigFileMode<Component>) {}
-
-template <typename Component>
-void CustomNameComponentAdder<Component>::operator()(
-    Manager& manager, const components::ComponentConfigMap& config_map) const {
-  manager.AddComponent<Component>(config_map, GetComponentName());
-}
-
-template <typename Component>
-void CustomNameComponentAdder<Component>::ValidateStaticConfig(
-    const ComponentConfig& static_config,
-    ValidationMode validation_condition) const {
-  TryValidateStaticConfig<Component>(static_config, validation_condition);
-}
-
-}  // namespace impl
 }  // namespace components
 
 USERVER_NAMESPACE_END

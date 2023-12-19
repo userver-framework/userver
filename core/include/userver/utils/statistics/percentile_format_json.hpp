@@ -4,7 +4,7 @@
 
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/meta.hpp>
+#include <userver/utils/meta_light.hpp>
 #include <userver/utils/statistics/metadata.hpp>
 #include <userver/utils/statistics/percentile.hpp>
 

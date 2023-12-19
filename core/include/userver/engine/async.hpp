@@ -4,6 +4,7 @@
 /// @brief TaskWithResult creation helpers
 
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/impl/task_context_factory.hpp>
 #include <userver/engine/task/shared_task_with_result.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/engine/task/task_with_result.hpp>
@@ -21,11 +22,13 @@ template <template <typename> typename TaskType, typename Function,
                                       Task::Importance importance,
                                       Deadline deadline, Function&& f,
                                       Args&&... args) {
-  auto wrapped_call_ptr = utils::impl::WrapCall(std::forward<Function>(f),
-                                                std::forward<Args>(args)...);
-  using ResultType = decltype(wrapped_call_ptr->Retrieve());
-  return TaskType<ResultType>(task_processor, importance, deadline,
-                              std::move(wrapped_call_ptr));
+  using ResultType =
+      typename utils::impl::WrappedCallImplType<Function, Args...>::ResultType;
+  constexpr auto kWaitMode = TaskType<ResultType>::kWaitMode;
+
+  return TaskType<ResultType>{
+      MakeTask({task_processor, importance, kWaitMode, deadline},
+               std::forward<Function>(f), std::forward<Args>(args)...)};
 }
 
 }  // namespace impl

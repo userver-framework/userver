@@ -9,6 +9,7 @@
 
 #include <userver/formats/json.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/meta_light.hpp>
 #include <userver/utils/str_icase.hpp>
 #include <userver/utils/void_t.hpp>
 
@@ -16,15 +17,16 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {
 
-/**
- * Enumeration that defines protocol-agnostic hander error condition codes,
- * used by server::handlers::CustomHandlerException.
- *
- * A handler for a specific protocol (e.g. http) should define mapping from
- * the HandlerErrorCode to protocol-specific error code.
- * @note When adding enumerators here, please add a description string to the
- * cpp file
- */
+/// Enumeration that defines protocol-agnostic handler error condition codes,
+/// used by server::handlers::CustomHandlerException.
+///
+/// Specific error formats can derive various defaults from the this code, e.g.
+/// HTTP status code, JSON service error code, and default error message texts.
+///
+/// For example, to provide an HTTP specific error code that is not presented
+/// in this enum the HTTP code should be provided via
+/// server::http::CustomHandlerException construction with the required
+/// server::http::HttpStatus.
 enum class HandlerErrorCode {
   kUnknownError,  //!< kUnknownError This value is to map possibly unknown codes
                   //!< to a description, shouldn't be used in client code
@@ -43,24 +45,30 @@ enum class HandlerErrorCode {
   kPayloadTooLarge,   //!< kPayloadTooLarge The payload for the request exceeded
                       //!< handler's settings
   kTooManyRequests,   //!< kTooManyRequests Request limit exceeded
-  // Client error codes should go before the server side error for them to be
-  // mapped correctly to a protocol-specific error code
-  // TODO More client-side error conditions here
+
+  // Client error codes are declared before the server side error to be
+  // mapped correctly to a protocol-specific error code!
+
   kServerSideError,  //!< kServerSideError An error occurred while processing
                      //!< the request
-  kBadGateway,  //!< kBadGateway An error occured while passing the request to
+  kBadGateway,  //!< kBadGateway An error occurred while passing the request to
                 //!< another service
 
-  kGatewayTimeout,  //!< kGatewayTimeout A timeout occured while passing the
+  kGatewayTimeout,  //!< kGatewayTimeout A timeout occurred while passing the
                     //!< request to another service
-  kUnsupportedMediaType,  //!< kUnsupportedMediaType Conten-Encoding or
+  kUnsupportedMediaType,  //!< kUnsupportedMediaType Content-Encoding or
                           //!< Content-Type is not supported
-  // TODO More server-side error conditions
-};
 
-/**
- * Hasher class for HanderErrorCode
- */
+  // Server error codes are declared ater the client side error to be
+  // mapped correctly to a protocol-specific error code!
+};
+// When adding enumerators here ^, please also add mappings to the
+// implementation of:
+// - server::handler::GetCodeDescription,
+// - server::handler::GetFallbackServiceCode,
+// - server::http::GetHttpStatus.
+
+/// Hasher class for HandlerErrorCode
 struct HandlerErrorCodeHash {
   std::size_t operator()(HandlerErrorCode c) const {
     return static_cast<std::size_t>(c);
@@ -70,9 +78,9 @@ struct HandlerErrorCodeHash {
 using Headers = std::unordered_map<std::string, std::string,
                                    utils::StrIcaseHash, utils::StrIcaseEqual>;
 
-std::string GetCodeDescription(HandlerErrorCode);
+std::string_view GetCodeDescription(HandlerErrorCode);
 
-std::string GetFallbackServiceCode(HandlerErrorCode);
+std::string_view GetFallbackServiceCode(HandlerErrorCode);
 
 struct ServiceErrorCode {
   std::string body;
@@ -92,50 +100,32 @@ struct ExtraHeaders {
 
 namespace impl {
 
-template <typename T, typename = utils::void_t<>>
-struct IsExternalBodyFormatted : std::false_type {};
 template <typename T>
-inline constexpr bool kIsExternalBodyFormatted =
-    IsExternalBodyFormatted<T>::value;
+using IsExternalBodyFormatted = std::bool_constant<T::kIsExternalBodyFormatted>;
 
 template <typename T>
-struct IsExternalBodyFormatted<
-    T, utils::void_t<decltype(T::kIsExternalBodyFormatted)>>
-    : std::integral_constant<bool, T::kIsExternalBodyFormatted> {};
-
-template <typename T, typename = utils::void_t<>>
-struct HasServiceCode : std::false_type {};
-template <typename T>
-inline constexpr bool kHasServiceCode = HasServiceCode<T>::value;
+using HasServiceCode = decltype(std::declval<const T&>().GetServiceCode());
 
 template <typename T>
-struct HasServiceCode<
-    T, utils::void_t<decltype(std::declval<const T&>().GetServiceCode())>>
-    : std::true_type {};
-
-template <typename T, typename = utils::void_t<>>
-struct HasInternalMessage : std::false_type {};
-template <typename T>
-inline constexpr bool kHasInternalMessage = HasInternalMessage<T>::value;
+using HasInternalMessage =
+    decltype(std::declval<const T&>().GetInternalMessage());
 
 template <typename T>
-struct HasInternalMessage<
-    T, utils::void_t<decltype(std::declval<const T&>().GetInternalMessage())>>
-    : std::true_type {};
-
-template <typename T, typename = utils::void_t<>>
-struct HasExternalBody : std::false_type {};
-template <typename T>
-inline constexpr bool kHasExternalBody = HasExternalBody<T>::value;
+inline constexpr bool kHasInternalMessage =
+    meta::kIsDetected<HasInternalMessage, T>;
 
 template <typename T>
-struct HasExternalBody<
-    T, utils::void_t<decltype(std::declval<const T&>().GetExternalBody())>>
-    : std::true_type {};
+using HasExternalBody = decltype(std::declval<const T&>().GetExternalBody());
+
+template <typename T>
+inline constexpr bool kHasExternalBody = meta::kIsDetected<HasExternalBody, T>;
+
+template <typename T>
+inline constexpr bool kIsMessageBuilder = kHasExternalBody<T>;
 
 template <typename T>
 struct MessageExtractor {
-  static_assert(kHasExternalBody<T>,
+  static_assert(meta::kIsDetected<HasExternalBody, T>,
                 "Please use your message builder to build external body for "
                 "your error. See server::handlers::CustomHandlerException "
                 "for more info");
@@ -143,11 +133,12 @@ struct MessageExtractor {
   const T& builder;
 
   constexpr bool IsExternalBodyFormatted() const {
-    return kIsExternalBodyFormatted<T>;
+    return meta::DetectedOr<std::false_type, impl::IsExternalBodyFormatted,
+                            T>::value;
   }
 
   std::string GetServiceCode() const {
-    if constexpr (kHasServiceCode<T>) {
+    if constexpr (meta::kIsDetected<HasServiceCode, T>) {
       return builder.GetServiceCode();
     } else {
       return std::string{};
@@ -214,45 +205,61 @@ struct CustomHandlerExceptionData final {
 
 }  // namespace impl
 
-// clang-format off
-
-/**
- * @brief Base class for handler exceptions.
- *
- * For consructing the body of an exception a special message builder type could be
- * used. Message builder should satisfy the following requirements:
- * - has an optional `kIsExternalBodyFormatted` set to true to forbid changing the external body
- * - has an optional `GetServiceCode()` function to return machine readable error code
- * - provides a `GetExternalBody() const` function to form an external body
- * - has an optional `GetInternalMessage() const` function to form an message for logging an error
- *
- * Example:
- * @snippet server/handlers/exceptions_test.cpp  Sample custom error builder
- */
-
-// clang-format on
+/// @brief The generic base class for handler exceptions. Thrown exceptions
+/// should typically derive from ExceptionWithCode instead.
 class CustomHandlerException : public std::runtime_error {
  public:
-  // Type aliases for usage in descenant classes that are in other namespaces
+  // Type aliases for usage in descendent classes that are in other namespaces
   using HandlerErrorCode = handlers::HandlerErrorCode;
   using ServiceErrorCode = handlers::ServiceErrorCode;
   using InternalMessage = handlers::InternalMessage;
   using ExternalBody = handlers::ExternalBody;
   using ExtraHeaders = handlers::ExtraHeaders;
 
-  constexpr static HandlerErrorCode kDefaultCode =
-      HandlerErrorCode::kUnknownError;
+  /// @brief Construct manually from a set of (mostly optional) arguments, which
+  /// describe the error details.
+  ///
+  /// ## Allowed arguments
+  ///
+  /// - HandlerErrorCode - defaults for other fields are derived from it
+  /// - ServiceErrorCode - used e.g. in JSON error format
+  /// - http::HttpStatus
+  /// - InternalMessage - for logs
+  /// - ExternalBody
+  /// - ExtraHeaders
+  /// - formats::json::Value - details for JSON error format
+  /// - a message builder, see below
+  ///
+  /// Example:
+  /// @snippet server/handlers/exceptions_test.cpp  Sample direct construction
+  ///
+  /// ## Message builders
+  ///
+  /// A message builder is a class that satisfies the following requirements:
+  /// - provides a `GetExternalBody() const` function to form an external body
+  /// - has an optional `kIsExternalBodyFormatted` set to true
+  ///   to forbid changing the external body
+  /// - has an optional `GetServiceCode() const` function to return machine
+  ///   readable error code
+  /// - has an optional `GetInternalMessage() const` function to form an message
+  ///   for logging an error
+  ///
+  /// Some message builder data can be overridden by explicitly passed args, if
+  /// these args go *after* the message builder.
+  ///
+  /// Example:
+  /// @snippet server/handlers/exceptions_test.cpp  Sample custom error builder
+  template <typename... Args>
+  CustomHandlerException(HandlerErrorCode handler_code, Args&&... args)
+      : CustomHandlerException(impl::CustomHandlerExceptionData{
+            handler_code, std::forward<Args>(args)...}) {}
 
-  CustomHandlerException(impl::CustomHandlerExceptionData data)
-      : runtime_error(data.internal_message.empty()
-                          ? GetCodeDescription(data.handler_code)
-                          : data.internal_message),
-        data_(std::move(data)) {
-    UASSERT_MSG(data_.details.IsNull() || data_.details.IsObject(),
-                "The details JSON value must be either null or an object");
+  /// @overload
+  explicit CustomHandlerException(HandlerErrorCode handler_code)
+      : CustomHandlerException(impl::CustomHandlerExceptionData{handler_code}) {
   }
 
-  // Constructor for throwing with all arguments specified
+  /// @deprecated Use the variadic constructor above instead.
   CustomHandlerException(ServiceErrorCode service_code,
                          ExternalBody external_body,
                          InternalMessage internal_message,
@@ -264,11 +271,25 @@ class CustomHandlerException : public std::runtime_error {
             std::move(internal_message), handler_code, std::move(headers),
             std::move(details)}) {}
 
-  template <typename MessageBuilder>
+  /// @deprecated Use the variadic constructor above instead.
+  template <
+      typename MessageBuilder,
+      typename = std::enable_if_t<impl::kIsMessageBuilder<MessageBuilder>>>
   CustomHandlerException(MessageBuilder&& builder,
                          HandlerErrorCode handler_code)
       : CustomHandlerException(impl::CustomHandlerExceptionData{
             std::forward<MessageBuilder>(builder), handler_code}) {}
+
+  /// @cond
+  explicit CustomHandlerException(impl::CustomHandlerExceptionData&& data)
+      : runtime_error(data.internal_message.empty()
+                          ? std::string{GetCodeDescription(data.handler_code)}
+                          : data.internal_message),
+        data_(std::move(data)) {
+    UASSERT_MSG(data_.details.IsNull() || data_.details.IsObject(),
+                "The details JSON value must be either null or an object");
+  }
+  /// @endcond
 
   HandlerErrorCode GetCode() const { return data_.handler_code; }
 
@@ -290,6 +311,9 @@ class CustomHandlerException : public std::runtime_error {
   impl::CustomHandlerExceptionData data_;
 };
 
+/// @brief Base class for handler exceptions. For common HandlerErrorCode values
+/// you can use more specific exception classes below. For less common
+/// HandlerErrorCode values, this class can be used directly.
 template <HandlerErrorCode Code>
 class ExceptionWithCode : public CustomHandlerException {
  public:
@@ -299,48 +323,53 @@ class ExceptionWithCode : public CustomHandlerException {
   ExceptionWithCode(const ExceptionWithCode<Code>&) = default;
   ExceptionWithCode(ExceptionWithCode<Code>&&) noexcept = default;
 
+  /// @see CustomHandlerException::CustomHandlerException for allowed args
   template <typename... Args>
   explicit ExceptionWithCode(Args&&... args)
-      : CustomHandlerException(impl::CustomHandlerExceptionData(
-            kDefaultCode, std::forward<Args>(args)...)) {}
+      : CustomHandlerException(kDefaultCode, std::forward<Args>(args)...) {}
 };
 
-/**
- * Base exception class for situations when request preconditions have failed.
- */
+/// Exception class for situations when request preconditions have failed.
+/// Corresponds to HTTP code 400.
 class ClientError : public ExceptionWithCode<HandlerErrorCode::kClientError> {
  public:
   using BaseType::BaseType;
 };
 
-/**
- * Exception class for situations when a request cannot be processed
- * due to parsing errors.
- */
+/// Exception class for situations when a request cannot be processed
+/// due to parsing errors. Corresponds to HTTP code 400.
 class RequestParseError
     : public ExceptionWithCode<HandlerErrorCode::kRequestParseError> {
  public:
   using BaseType::BaseType;
 };
 
-/**
- * The handler requires authentication
- */
+/// Exception class for situations when a request does not have valid
+/// authentication credentials. Corresponds to HTTP code 401.
 class Unauthorized : public ExceptionWithCode<HandlerErrorCode::kUnauthorized> {
  public:
   using BaseType::BaseType;
 };
 
+/// Exception class for situations when some requested entity could not be
+/// accessed, because it does not exist. Corresponds to HTTP code 404.
 class ResourceNotFound
     : public ExceptionWithCode<HandlerErrorCode::kResourceNotFound> {
  public:
   using BaseType::BaseType;
 };
 
-/**
- * Base exception class for situations when an exception occurred while
- * processing the request.
- */
+/// Exception class for situations when a conflict happens, e.g. the client
+/// attempts to create an entity that already exists. Corresponds to
+/// HTTP code 409.
+class ConflictError : public server::handlers::ExceptionWithCode<
+                          server::handlers::HandlerErrorCode::kConflictState> {
+ public:
+  using BaseType::BaseType;
+};
+
+/// Exception class for situations when an exception occurred while processing
+/// the request. Corresponds to HTTP code 500.
 class InternalServerError
     : public ExceptionWithCode<HandlerErrorCode::kServerSideError> {
  public:

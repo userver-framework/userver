@@ -11,7 +11,6 @@
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/io/common.hpp>
 #include <userver/engine/io/socket.hpp>
-#include <userver/utils/clang_format_workarounds.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -24,7 +23,7 @@ namespace engine::io {
 ///
 /// Usage example:
 /// @snippet src/engine/io/tls_wrapper_test.cpp TLS wrapper usage
-class USERVER_NODISCARD TlsWrapper final : public RwBase {
+class [[nodiscard]] TlsWrapper final : public RwBase {
  public:
   /// Starts a TLS client on an opened socket
   static TlsWrapper StartTlsClient(Socket&& socket,
@@ -93,6 +92,8 @@ class USERVER_NODISCARD TlsWrapper final : public RwBase {
                                 Deadline deadline) override {
     return SendAll(buf, len, deadline);
   }
+
+  int GetRawFd();
 
  private:
   explicit TlsWrapper(Socket&&);

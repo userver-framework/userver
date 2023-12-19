@@ -30,11 +30,21 @@ enum class FirstUpdateMode {
   kSkip,
 };
 
+FirstUpdateMode Parse(const yaml_config::YamlConfig& config,
+                      formats::parse::To<FirstUpdateMode>);
+
+std::string_view ToString(FirstUpdateMode);
+
 enum class FirstUpdateType {
   kFull,
   kIncremental,
   kIncrementalThenAsyncFull,
 };
+
+FirstUpdateType Parse(const yaml_config::YamlConfig& config,
+                      formats::parse::To<FirstUpdateType>);
+
+std::string_view ToString(FirstUpdateType);
 
 struct ConfigPatch final {
   std::chrono::milliseconds update_interval;
@@ -42,6 +52,7 @@ struct ConfigPatch final {
   std::chrono::milliseconds full_update_interval;
   std::optional<std::chrono::milliseconds> exception_interval;
   bool updates_enabled;
+  std::uint64_t alert_on_failing_to_update_times;
 };
 
 ConfigPatch Parse(const formats::json::Value& value,
@@ -57,9 +68,11 @@ struct Config final {
   bool allow_first_update_failure;
   std::optional<bool> force_periodic_update;
   bool config_updates_enabled;
+  bool has_pre_assign_check;
   std::optional<std::string> task_processor_name;
   std::chrono::milliseconds cleanup_interval;
   bool is_strong_period;
+  std::optional<std::uint64_t> failed_updates_before_expiration;
 
   FirstUpdateMode first_update_mode;
   FirstUpdateType first_update_type;
@@ -69,12 +82,11 @@ struct Config final {
   std::chrono::milliseconds full_update_interval;
   std::optional<std::chrono::milliseconds> exception_interval;
   bool updates_enabled;
+  std::uint64_t alert_on_failing_to_update_times;
 };
 
-std::unordered_map<std::string, ConfigPatch> ParseCacheConfigSet(
-    const dynamic_config::DocsMap& docs_map);
-
-inline constexpr dynamic_config::Key<ParseCacheConfigSet> kCacheConfigSet;
+extern const dynamic_config::Key<std::unordered_map<std::string, ConfigPatch>>
+    kCacheConfigSet;
 
 }  // namespace cache
 

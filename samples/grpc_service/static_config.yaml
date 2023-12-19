@@ -9,12 +9,6 @@ components_manager:
                     file_path: '@stderr'
                     level: debug
                     overflow_behavior: discard
-        tracer:
-            service-name: grpc-service
-        dynamic-config:
-            fs-cache-path: ''
-        dynamic-config-fallbacks:
-            fallback-path: /etc/grpc_service/dynamic_config_fallback.json
 
 # /// [gRPC sample - static config client]
 # yaml
@@ -40,11 +34,13 @@ components_manager:
         grpc-server:
             # The single listening port for incoming RPCs
             port: 8091
+            completion-queue-count: 3
 
         # Our GreeterService implementation
         greeter-service:
             task-processor: main-task-processor
             greeting-prefix: Hello
+            middlewares: []
 # /// [gRPC sample - static config server]
 
         # In this example, the tests still communicate with the microservice
@@ -53,26 +49,23 @@ components_manager:
             listener:
                 port: 8092
                 task_processor: main-task-processor
-        auth-checker-settings:
         greeter-http-handler:
             path: /hello
             method: POST
             task_processor: main-task-processor
 
-    default_task_processor: main-task-processor
+        testsuite-support:
+
+    default_task_processor: main-task-processor  # Task processor in which components start.
+
 # /// [gRPC sample - task processor]
 # yaml
     task_processors:
         grpc-blocking-task-processor:  # For blocking gRPC channel creation
-            thread_name: grpc-worker
             worker_threads: 2
+            thread_name: grpc-worker
 # /// [gRPC sample - task processor]
         main-task-processor:           # For non-blocking operations
-            thread_name: main-worker
-            worker_threads: 4
+            worker_threads: 8
         fs-task-processor:             # For blocking filesystem operations
-            thread_name: fs-worker
             worker_threads: 2
-    coro_pool:
-        initial_size: 500
-        max_size: 1000

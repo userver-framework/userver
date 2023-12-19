@@ -6,23 +6,23 @@
 
 USERVER_NAMESPACE_BEGIN
 
-using namespace redis;
-
 TEST(Reply, RequestFailedExceptionTimeout) {
   try {
-    throw RequestFailedException("descr", REDIS_ERR_TIMEOUT);
-  } catch (const RequestFailedException& ex) {
+    throw redis::RequestFailedException("descr",
+                                        redis::ReplyStatus::kTimeoutError);
+  } catch (const redis::RequestFailedException& ex) {
     EXPECT_TRUE(ex.IsTimeout());
-    EXPECT_EQ(ex.GetStatus(), REDIS_ERR_TIMEOUT);
+    EXPECT_EQ(ex.GetStatus(), redis::ReplyStatus::kTimeoutError);
   }
 }
 
-TEST(Reply, RequestFailedExceptionNotReady) {
+TEST(Reply, RequestFailedException) {
   try {
-    throw RequestFailedException("descr", REDIS_ERR_NOT_READY);
-  } catch (const RequestFailedException& ex) {
+    throw redis::RequestFailedException("descr",
+                                        redis::ReplyStatus::kOtherError);
+  } catch (const redis::RequestFailedException& ex) {
     EXPECT_FALSE(ex.IsTimeout());
-    EXPECT_EQ(ex.GetStatus(), REDIS_ERR_NOT_READY);
+    EXPECT_EQ(ex.GetStatus(), redis::ReplyStatus::kOtherError);
   }
 }
 

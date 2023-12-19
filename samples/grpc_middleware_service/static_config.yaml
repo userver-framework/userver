@@ -1,0 +1,69 @@
+# yaml
+components_manager:
+    components:
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+
+        grpc-auth-server:
+
+        grpc-auth-client:
+
+        # Creates gRPC clients
+# /// [gRPC middleware sample - static config client middleware]
+        grpc-client-factory:
+            task-processor: grpc-blocking-task-processor
+            channel-args: {}
+            middlewares:
+              - grpc-auth-client
+# /// [gRPC middleware sample - static config client middleware]
+
+        # Our wrapper around the generated client for GreeterService
+        greeter-client:
+            # The service endpoint (URI). We talk to our own service,
+            # which is kind of pointless, but works for an example
+            endpoint: '[::1]:8091'
+
+        # Common configuration for gRPC server
+        grpc-server:
+            # The single listening port for incoming RPCs
+            port: 8091
+            completion-queue-count: 3
+
+        # Our GreeterService implementation
+# /// [gRPC middleware sample - static config server middleware]
+        greeter-service:
+            task-processor: main-task-processor
+            greeting-prefix: Hello
+            middlewares:
+              - grpc-auth-server
+# /// [gRPC middleware sample - static config server middleware]
+
+        # In this example, the tests still communicate with the microservice
+        # using HTTP, so we still need an HTTP server and an HTTP handler.
+        server:
+            listener:
+                port: 8092
+                task_processor: main-task-processor
+
+        greeter-http-handler:
+            path: /hello
+            method: POST
+            task_processor: main-task-processor
+
+        testsuite-support:
+
+    default_task_processor: main-task-processor  # Task processor in which components start.
+
+    task_processors:
+        grpc-blocking-task-processor:  # For blocking gRPC channel creation
+            worker_threads: 2
+            thread_name: grpc-worker
+        main-task-processor:           # For non-blocking operations
+            worker_threads: 8
+        fs-task-processor:             # For blocking filesystem operations
+            worker_threads: 2

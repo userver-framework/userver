@@ -7,6 +7,7 @@
 #include <userver/engine/task/cancel.hpp>
 #include <userver/utils/lazy_prvalue.hpp>
 
+#include <compiler/relax_cpu.hpp>
 #include <engine/task/task_context.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -15,7 +16,7 @@ namespace {
 
 struct CountGuard {
   CountGuard(std::atomic<int>& count) : count_(count) { count_++; }
-  CountGuard(CountGuard&& other) : count_(other.count_) { count_++; }
+  CountGuard(CountGuard&& other) noexcept : count_(other.count_) { count_++; }
   CountGuard(const CountGuard& other) : count_(other.count_) { count_++; }
 
   ~CountGuard() { count_--; }
@@ -283,6 +284,46 @@ UTEST(Async, FromNonWorkerThread) {
   });
 
   task.Wait();
+}
+
+UTEST_MT(Async, CancelNotifyRace, 4) {
+  // Stable reproduction of the race was achieved after ~10 seconds
+  // (around 10'000'000 iterations) under Asan + Release + LTO.
+  //
+  // In CI and typical local test runs we don't have all the time in the world.
+  // At least if the bug reappears, the test should fail at some point.
+  const auto test_deadline =
+      engine::Deadline::FromDuration(std::chrono::milliseconds{100});
+
+  static constexpr auto delay = [] {
+    compiler::RelaxCpu relax;
+    for (int i = 0; i < 50; ++i) relax();
+  };
+
+  while (!test_deadline.IsReached()) {
+    auto task1 = engine::AsyncNoSpan([] { delay(); });
+
+    auto task2 = engine::CriticalAsyncNoSpan([&task1] {
+      try {
+        task1.Wait();
+      } catch (const engine::WaitInterruptedException&) {
+        // There is an intentional race: if RequestCancel runs in time, Wait
+        // will throw. Otherwise, it will succeed.
+      }
+    });
+
+    delay();
+
+    task2.RequestCancel();
+    UEXPECT_NO_THROW(task2.Get());
+    // Let's say `task2` is cancelled during `task1.Wait()`, in parallel
+    // with `task1` finishing. `task1` will pull `task2` out of `WaitListLight`
+    // to wake it up. At the same time, `task2.Get()` will release the task. If
+    // `WaitListLight` does not have a mechanism for prolonging the waiter's
+    // lifetime for such cases, `task1` will perform a use-after-free on
+    // `task2`. It will be detected by Asan.
+    UEXPECT_NO_THROW(task1.Get());
+  }
 }
 
 USERVER_NAMESPACE_END

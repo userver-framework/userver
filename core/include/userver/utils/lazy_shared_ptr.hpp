@@ -56,7 +56,7 @@ class LazySharedPtr final {
       : value_(other.value_.load()),
         shared_filled_(other.shared_filled_.load()),
         shared_(std::move(other.shared_)),
-        get_data_(other.get_data_) {}
+        get_data_(std::move(other.get_data_)) {}
 
   /// @brief The copy assignment operator.
   /// @note Like copy-constructor, it does not generate pointers if `other` do
@@ -78,11 +78,11 @@ class LazySharedPtr final {
   /// @brief Get a pointer to the data (may be null). Fetches the data on the
   /// first access.
   const T* Get() const& {
-    if (const auto current_value = value_.load(); current_value != kUnfilled) {
+    if (const auto* current_value = value_.load(); current_value != kUnfilled) {
       return current_value;
     }
     auto readable = get_data_();
-    if (auto expected = kUnfilled;
+    if (const auto* expected = kUnfilled;
         value_.compare_exchange_strong(expected, readable.Get())) {
       shared_ = std::move(readable);
       shared_filled_.store(true);
@@ -95,7 +95,7 @@ class LazySharedPtr final {
   const utils::SharedReadablePtr<T>& GetShared() const& {
     if (value_ == kUnfilled) {
       auto readable = get_data_();
-      if (auto expected = kUnfilled;
+      if (const auto* expected = kUnfilled;
           value_.compare_exchange_strong(expected, readable.Get())) {
         shared_ = std::move(readable);
         shared_filled_.store(true);
@@ -113,7 +113,7 @@ class LazySharedPtr final {
   ///@returns `*Get()`
   ///@note `Get()` must not be `nullptr`.
   const T& operator*() const& {
-    auto res = Get();
+    const auto* res = Get();
     UASSERT(res);
     return *res;
   }

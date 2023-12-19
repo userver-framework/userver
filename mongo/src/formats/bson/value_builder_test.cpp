@@ -465,6 +465,18 @@ TEST(BsonValueBuilder, ExampleCustomization) {
   ASSERT_EQ(bson["example"]["field2"].As<int>(), 1);
 }
 
+TEST(BsonValueBuilder, EmplaceNocheckTest) {
+  formats::bson::ValueBuilder builder;
+  builder.EmplaceNocheck("field1", 1);
+  builder.EmplaceNocheck("field2", 2);
+  builder.EmplaceNocheck("ffffqwe3", 91);
+
+  const auto value = builder.ExtractValue();
+  EXPECT_EQ(1, value["field1"].As<int>());
+  EXPECT_EQ(2, value["field2"].As<int>());
+  EXPECT_EQ(91, value["ffffqwe3"].As<int>());
+}
+
 }  // namespace my_namespace
 
 /// [Sample Customization formats::bson::ValueBuilder usage]

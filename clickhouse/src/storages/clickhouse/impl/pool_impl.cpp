@@ -1,11 +1,6 @@
 #include "pool_impl.hpp"
 
-#include <memory>
 #include <string>
-#include <vector>
-
-#include <userver/engine/async.hpp>
-#include <userver/engine/get_all.hpp>
 
 #include <storages/clickhouse/impl/connection.hpp>
 #include <storages/clickhouse/impl/connection_ptr.hpp>
@@ -17,16 +12,13 @@ namespace storages::clickhouse::impl {
 namespace {
 
 constexpr size_t kMaxSimultaneouslyConnectingClients{5};
+constexpr std::chrono::milliseconds kConnectTimeout{2000};
 
 constexpr std::chrono::seconds kMaintenanceInterval{2};
 constexpr std::chrono::seconds PoolUnavailableThreshold{60};
 static_assert(PoolUnavailableThreshold > kMaintenanceInterval);
 
 const std::string kMaintenanceTaskName = "clickhouse_maintain";
-
-struct ConnectionDeleter final {
-  void operator()(Connection* conn) noexcept { delete conn; }
-};
 
 }  // namespace
 
@@ -51,57 +43,61 @@ void PoolAvailabilityMonitor::AccountFailure() noexcept {
 }
 
 struct PoolImpl::MaintenanceConnectionDeleter final {
-  void operator()(Connection* conn) noexcept { pool.DoRelease(conn); }
+  void operator()(Connection* connection_ptr) noexcept {
+    const auto is_broken = connection_ptr->IsBroken();
+    if (!is_broken) {
+      pool.availability_monitor_.AccountSuccess();
+    }
+
+    pool.DoRelease(ConnectionUniquePtr{connection_ptr});
+  }
 
   PoolImpl& pool;
 };
 
 PoolImpl::PoolImpl(clients::dns::Resolver& resolver, PoolSettings&& settings)
-    : resolver_{resolver},
-      pool_settings_{std::move(settings)},
-      given_away_semaphore_{pool_settings_.max_pool_size},
-      connecting_semaphore_{kMaxSimultaneouslyConnectingClients},
-      // FP?: pointer magic in boost.lockfree
-      // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
-      queue_{pool_settings_.max_pool_size} {
-  std::vector<engine::TaskWithResult<void>> tasks;
-  tasks.reserve(pool_settings_.initial_pool_size);
-  for (size_t i = 0; i < pool_settings_.initial_pool_size; ++i) {
-    tasks.emplace_back(engine::AsyncNoSpan([this] { PushConnection(); }));
+    : drivers::impl::ConnectionPoolBase<
+          Connection, PoolImpl>{settings.max_pool_size,
+                                kMaxSimultaneouslyConnectingClients},
+      resolver_{resolver},
+      pool_settings_{std::move(settings)} {
+  try {
+    Init(pool_settings_.initial_pool_size, kConnectTimeout);
+  } catch (const std::exception&) {
+    // This is already logged in base class, and it's also fine:
+    // host might be under maintenance currently and will become alive at some
+    // point.
+    // TODO : rethrow on auth errors, these are fatal
   }
-  engine::GetAll(tasks);
 }
 
 PoolImpl::~PoolImpl() {
   StopMaintenance();
 
-  Connection* conn = nullptr;
-  while (queue_.pop(conn)) Drop(conn);
+  Reset();
 }
 
 bool PoolImpl::IsAvailable() const {
   return availability_monitor_.IsAvailable();
 }
 
-ConnectionPtr PoolImpl::Acquire() { return {shared_from_this(), Pop()}; }
+ConnectionPtr PoolImpl::Acquire() {
+  auto pool_and_connection = AcquireConnection(
+      engine::Deadline::FromDuration(pool_settings_.queue_timeout));
 
-void PoolImpl::Release(Connection* conn) {
-  UASSERT(conn);
-
-  DoRelease(conn);
-
-  given_away_semaphore_.unlock_shared();
-  --GetStatistics().connections.busy;
+  return {std::move(pool_and_connection.pool_ptr),
+          pool_and_connection.connection_ptr.release()};
 }
 
-void PoolImpl::DoRelease(Connection* conn) noexcept {
-  UASSERT(conn);
+void PoolImpl::Release(Connection* connection_ptr) {
+  UASSERT(connection_ptr);
 
-  if (!conn->IsBroken()) {
+  const auto is_broken = connection_ptr->IsBroken();
+  if (!is_broken) {
     availability_monitor_.AccountSuccess();
   }
 
-  if (conn->IsBroken() || !queue_.bounded_push(conn)) Drop(conn);
+  ReleaseConnection(ConnectionUniquePtr{connection_ptr});
 }
 
 stats::PoolStatistics& PoolImpl::GetStatistics() noexcept {
@@ -112,90 +108,45 @@ const std::string& PoolImpl::GetHostName() const {
   return pool_settings_.endpoint_settings.host;
 }
 
-stats::StatementTimer PoolImpl::GetExecuteTimer() {
-  return stats::StatementTimer{statistics_.queries};
-}
-
 stats::StatementTimer PoolImpl::GetInsertTimer() {
   return stats::StatementTimer{statistics_.inserts};
 }
 
-Connection* PoolImpl::Create() {
+stats::StatementTimer PoolImpl::GetExecuteTimer() {
+  return stats::StatementTimer{statistics_.queries};
+}
+
+void PoolImpl::AccountConnectionAcquired() {
+  ++GetStatistics().connections.busy;
+}
+
+void PoolImpl::AccountConnectionReleased() {
+  --GetStatistics().connections.busy;
+}
+
+void PoolImpl::AccountConnectionCreated() {
+  auto& stats = GetStatistics().connections;
+  ++stats.created;
+  ++stats.active;
+}
+
+void PoolImpl::AccountConnectionDestroyed() noexcept {
+  auto& stats = GetStatistics().connections;
+  ++stats.closed;
+  --stats.active;
+}
+
+void PoolImpl::AccountOverload() { ++GetStatistics().connections.overload; }
+
+PoolImpl::ConnectionUniquePtr PoolImpl::DoCreateConnection(engine::Deadline) {
   try {
-    auto conn = std::make_unique<Connection>(
+    return std::make_unique<Connection>(
         resolver_, pool_settings_.endpoint_settings,
         pool_settings_.auth_settings, pool_settings_.connection_settings);
-
-    auto& stats = GetStatistics().connections;
-    ++stats.created;
-    ++stats.active;
-    ++size_;
-
-    return conn.release();
   } catch (const std::exception&) {
     availability_monitor_.AccountFailure();
     throw;
   }
-}
-
-void PoolImpl::PushConnection() {
-  try {
-    auto* conn = Create();
-    if (!queue_.bounded_push(conn)) {
-      Drop(conn);
-    }
-  } catch (const std::exception& e) {
-    LOG_ERROR() << "Failed to create connection: " << e;
-  }
-}
-
-void PoolImpl::Drop(Connection* conn) noexcept {
-  ConnectionDeleter{}(conn);
-
-  auto& stats = GetStatistics().connections;
-  ++stats.closed;
-  --stats.active;
-
-  --size_;
-}
-
-Connection* PoolImpl::Pop() {
-  const auto deadline =
-      engine::Deadline::FromDuration(pool_settings_.queue_timeout);
-
-  engine::SemaphoreLock given_away_lock{given_away_semaphore_, deadline};
-  if (!given_away_lock) {
-    ++GetStatistics().connections.overload;
-    throw std::runtime_error{"queue wait limit exceeded"};
-  }
-
-  auto* conn = TryPop();
-  if (!conn) {
-    engine::SemaphoreLock connecting_lock{connecting_semaphore_, deadline};
-
-    conn = TryPop();
-    if (!conn) {
-      if (!connecting_lock) {
-        ++GetStatistics().connections.overload;
-        throw std::runtime_error{"connection queue wait limit exceeded"};
-      }
-      conn = Create();
-    }
-  }
-
-  UASSERT(conn);
-  UASSERT(!conn->IsBroken());
-  given_away_lock.Release();
-  ++GetStatistics().connections.busy;
-
-  return conn;
-}
-
-Connection* PoolImpl::TryPop() {
-  Connection* conn = nullptr;
-  if (queue_.pop(conn)) return conn;
-
-  return nullptr;
 }
 
 void PoolImpl::StartMaintenance() {
@@ -203,26 +154,34 @@ void PoolImpl::StartMaintenance() {
 
   maintenance_task_.Start(
       kMaintenanceTaskName,
-      {kMaintenanceInterval,
-       {PeriodicTask::Flags::kStrong, PeriodicTask::Flags::kCritical}},
+      {kMaintenanceInterval, {PeriodicTask::Flags::kStrong}},
       [this] { MaintainConnections(); });
 }
 
 void PoolImpl::StopMaintenance() { maintenance_task_.Stop(); }
 
 void PoolImpl::MaintainConnections() {
-  Connection* raw_conn = TryPop();
-  if (!raw_conn) {
-    if (size_ < pool_settings_.initial_pool_size) {
-      PushConnection();
+  const auto failsafe_push_connection = [this] {
+    try {
+      PushConnection(engine::Deadline::FromDuration(kConnectTimeout));
+    } catch (const std::exception& ex) {
+      LOG_ERROR() << "Failed to create connection: " << ex;
+    }
+  };
+
+  ConnectionUniquePtr connection_ptr = TryPop();
+  if (!connection_ptr) {
+    if (AliveConnectionsCountApprox() < pool_settings_.initial_pool_size) {
+      failsafe_push_connection();
     }
 
     return;
   }
 
   {
-    using Deleter = PoolImpl::MaintenanceConnectionDeleter;
-    auto conn = std::unique_ptr<Connection, Deleter>{raw_conn, Deleter{*this}};
+    using Deleter = MaintenanceConnectionDeleter;
+    auto conn = std::unique_ptr<Connection, Deleter>{connection_ptr.release(),
+                                                     Deleter{*this}};
     try {
       conn->Ping();
     } catch (const std::exception& ex) {
@@ -231,8 +190,8 @@ void PoolImpl::MaintainConnections() {
     }
   }
 
-  if (size_ < pool_settings_.initial_pool_size) {
-    PushConnection();
+  if (AliveConnectionsCountApprox() < pool_settings_.initial_pool_size) {
+    failsafe_push_connection();
   }
 }
 

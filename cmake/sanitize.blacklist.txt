@@ -23,3 +23,6 @@ src:*bits/shared_ptr_base.h
 src:*boost/lockfree/*
 # https://st.yandex-team.ru/TAXICOMMON-2436
 src:*boost/circular_buffer/base.hpp
+
+[undefined]
+src:*mongo/src/storages/mongo/operations.cpp

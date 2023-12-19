@@ -1,4 +1,6 @@
 #include <userver/utest/utest.hpp>
+#include <userver/utils/statistics/labels.hpp>
+#include <userver/utils/statistics/testing.hpp>
 
 #include <storages/clickhouse/impl/connection_ptr.hpp>
 
@@ -33,29 +35,26 @@ UTEST(Metrics, Basic) {
   // successful insert
   cluster->Insert("tmp", {"value"}, data);
 
-  EXPECT_EQ(cluster->GetStatistics()["localhost"]["connections"]["active"]
-                .As<uint64_t>(),
-            1);
+  const auto snapshot = cluster.GetStatistics("clickhouse.connections");
+  EXPECT_EQ(snapshot.SingleMetric("active").AsInt(), 1);
 
   // unsuccessful query
   EXPECT_ANY_THROW(cluster->Execute("invalid_query_format"));
   // unsuccessful insert
   EXPECT_ANY_THROW(cluster->Insert("nonexistent", {"value"}, data));
 
-  const auto cluster_stats = cluster->GetStatistics();
-  const auto stats = cluster_stats["localhost"];
+  const auto connection_stats = cluster.GetStatistics("clickhouse.connections");
+  const auto queries_stats = cluster.GetStatistics("clickhouse.queries");
 
-  const auto connection_stats = stats["connections"];
-  const auto queries_stats = stats["queries"];
-  const auto insert_stats = stats["inserts"];
+  const auto insert_stats = cluster.GetStatistics("clickhouse.inserts");
 
-  EXPECT_EQ(connection_stats["closed"].As<uint64_t>(), 2);
+  EXPECT_EQ(connection_stats.SingleMetric("closed").AsInt(), 2);
 
-  EXPECT_EQ(queries_stats["total"].As<uint64_t>(), 2);
-  EXPECT_EQ(queries_stats["error"].As<uint64_t>(), 1);
+  EXPECT_EQ(queries_stats.SingleMetric("total").AsInt(), 2);
+  EXPECT_EQ(queries_stats.SingleMetric("error").AsInt(), 1);
 
-  EXPECT_EQ(insert_stats["total"].As<uint64_t>(), 2);
-  EXPECT_EQ(insert_stats["error"].As<uint64_t>(), 1);
+  EXPECT_EQ(insert_stats.SingleMetric("total").AsInt(), 2);
+  EXPECT_EQ(insert_stats.SingleMetric("error").AsInt(), 1);
 }
 
 UTEST(Metrics, ActiveConnections) {

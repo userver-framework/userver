@@ -21,7 +21,16 @@ file(GLOB_RECURSE REDIS_TEST_SOURCES
 )
 list(REMOVE_ITEM SOURCES ${REDIS_TEST_SOURCES})
 
-find_package(Hiredis)
+file(GLOB_RECURSE REDIS_BENCH_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/benchmark/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/benchmark/*.hpp
+)
+
+file(GLOB_RECURSE REDIS_FUNCTIONAL_TEST_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/functional_tests/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/functional_tests/*.hpp
+)
+list(REMOVE_ITEM SOURCES ${REDIS_FUNCTIONAL_TEST_SOURCES})
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
@@ -44,14 +53,28 @@ if (USERVER_FEATURE_REDIS_HI_MALLOC)
   )
 endif()
 
+option(USERVER_FEATURE_REDIS_TLS "SSL/TLS support for Redis driver" OFF)
+if(USERVER_FEATURE_REDIS_TLS)
+  add_definitions(-DUSERVER_FEATURE_REDIS_TLS=1)
+endif()
 
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
     userver-core
-    Hiredis
   PRIVATE
-    userver-uboost-coro # uses BlockingFuture
+    userver-uboost-coro
 )
+if (USERVER_CONAN)
+  find_package(hiredis REQUIRED)
+  target_link_libraries(${PROJECT_NAME} PUBLIC hiredis::hiredis)
+else()
+  find_package(Hiredis REQUIRED)
+  target_link_libraries(${PROJECT_NAME} PUBLIC Hiredis)
+endif()
+
+if (USERVER_FEATURE_REDIS_TLS)
+  target_link_libraries(${PROJECT_NAME} PUBLIC hiredis_ssl)
+endif()
 target_include_directories(
   ${PROJECT_NAME}
   PUBLIC
@@ -63,62 +86,78 @@ target_include_directories (${PROJECT_NAME} PRIVATE
     $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
 )
 
-
-add_library(${PROJECT_NAME}_utest STATIC ${UTESTLIB_SOURCES})
-target_include_directories(
-  ${PROJECT_NAME}_utest
-  PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/testing/include
-)
-target_include_directories (${PROJECT_NAME}_utest PRIVATE
-  $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
-)
-target_link_libraries(${PROJECT_NAME}_utest
-  userver-utest
-  ${PROJECT_NAME}
-)
+# Helper library for testing user code with redis. Provides mock_client_base.hpp
+# and other helper headers
+if (USERVER_FEATURE_UTEST)
+  add_library(${PROJECT_NAME}-utest STATIC ${UTESTLIB_SOURCES})
+  target_include_directories(
+    ${PROJECT_NAME}-utest
+    PUBLIC
+      ${CMAKE_CURRENT_SOURCE_DIR}/testing/include
+  )
+  target_include_directories (${PROJECT_NAME}-utest PRIVATE
+    $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
+  )
+  target_link_libraries(${PROJECT_NAME}-utest
+    userver-utest
+    ${PROJECT_NAME}
+  )
+endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
-  add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
-  target_link_libraries(${PROJECT_NAME}_unittest
+  add_executable(${PROJECT_NAME}-unittest ${UNIT_TEST_SOURCES})
+  target_link_libraries(${PROJECT_NAME}-unittest
     userver-utest
-    ${PROJECT_NAME}_utest
+    ${PROJECT_NAME}-utest
     ${PROJECT_NAME}
   )
   target_include_directories(
-    ${PROJECT_NAME}_unittest
+    ${PROJECT_NAME}-unittest
     PUBLIC
       ${CMAKE_CURRENT_SOURCE_DIR}/include
     PRIVATE
       ${CMAKE_CURRENT_SOURCE_DIR}/src
   )
-  target_include_directories (${PROJECT_NAME}_unittest PRIVATE
+  target_include_directories (${PROJECT_NAME}-unittest PRIVATE
     $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
   )
-  add_google_tests(${PROJECT_NAME}_unittest)
+  add_google_tests(${PROJECT_NAME}-unittest)
 
-  add_executable(${PROJECT_NAME}_redistest ${REDIS_TEST_SOURCES})
-  target_include_directories (${PROJECT_NAME}_redistest PRIVATE
+  add_executable(${PROJECT_NAME}-redistest ${REDIS_TEST_SOURCES})
+  target_include_directories (${PROJECT_NAME}-redistest PRIVATE
       $<TARGET_PROPERTY:userver-redis,INCLUDE_DIRECTORIES>
   )
-  target_link_libraries(${PROJECT_NAME}_redistest userver-utest ${PROJECT_NAME})
-  add_test(${PROJECT_NAME}_redistest
+  target_link_libraries(${PROJECT_NAME}-redistest userver-utest ${PROJECT_NAME})
+  add_test(${PROJECT_NAME}-redistest
+    env
+      ${CMAKE_BINARY_DIR}/testsuite/env
+      --databases=redis,redis-cluster
+      run --
+      ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-redistest
+      --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_redistest.xml
+  )
+  set_property(
+    TEST ${PROJECT_NAME}-redistest
+    PROPERTY ENVIRONMENT "TESTSUITE_REDIS_HOSTNAME=localhost"
+  )
+
+  add_executable(${PROJECT_NAME}-benchmark ${REDIS_BENCH_SOURCES})
+  target_link_libraries(${PROJECT_NAME}-benchmark
+    userver-ubench
+    ${PROJECT_NAME}
+  )
+  target_include_directories(${PROJECT_NAME}-benchmark PRIVATE
+    $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
+  )
+  add_test(${PROJECT_NAME}-benchmark
     env
       ${CMAKE_BINARY_DIR}/testsuite/env
       --databases=redis
       run --
-      ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_redistest
-      --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_redistest.xml
+      ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-benchmark
+      --benchmark_min_time=0
+      --benchmark_color=no
   )
 
-  add_subdirectory(tools/redisclient)
+  add_subdirectory(functional_tests)
 endif()
-
-
-# Target with no need to use userver namespace, but includes require userver/
-add_library(yandex-${PROJECT_NAME}_utest INTERFACE)
-target_link_libraries(yandex-${PROJECT_NAME}_utest INTERFACE ${PROJECT_NAME}_utest)
-
-# Target with no need to use userver namespace, but includes require userver/
-add_library(yandex-${PROJECT_NAME} INTERFACE)
-target_link_libraries(yandex-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})

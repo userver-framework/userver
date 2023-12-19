@@ -12,7 +12,8 @@
 #include <userver/engine/io/exception.hpp>
 #include <userver/engine/io/fd_control_holder.hpp>
 #include <userver/engine/io/sockaddr.hpp>
-#include <userver/utils/clang_format_workarounds.hpp>
+
+struct iovec;
 
 USERVER_NAMESPACE_BEGIN
 
@@ -27,19 +28,13 @@ enum class SocketType {
   kUdp = kDgram,
 };
 
-/// IoData for vector send
-struct IoData final {
-  const void* data;
-  size_t len;
-};
-
 /// @brief Socket representation.
 ///
 /// It is not thread-safe to concurrently read from socket. It is not
 /// thread-safe to concurrently write to socket. However it is safe to
 /// concurrently read and write into socket:
 /// @snippet src/engine/io/socket_test.cpp send self concurrent
-class USERVER_NODISCARD Socket final : public RwBase {
+class [[nodiscard]] Socket final : public RwBase {
  public:
   struct RecvFromResult {
     size_t bytes_received{0};
@@ -94,9 +89,19 @@ class USERVER_NODISCARD Socket final : public RwBase {
   [[nodiscard]] size_t SendAll(std::initializer_list<IoData> list,
                                Deadline deadline);
 
+  [[nodiscard]] size_t WriteAll(std::initializer_list<IoData> list,
+                                Deadline deadline) override {
+    return SendAll(list, deadline);
+  }
+
   /// @brief Sends exactly list_size IoData to the socket.
   /// @note Can return less than len if socket is closed by peer.
   [[nodiscard]] size_t SendAll(const IoData* list, std::size_t list_size,
+                               Deadline deadline);
+
+  /// @brief Sends exactly list_size iovec to the socket.
+  /// @note Can return less than len if socket is closed by peer.
+  [[nodiscard]] size_t SendAll(const struct iovec* list, std::size_t list_size,
                                Deadline deadline);
 
   /// @brief Sends exactly len bytes to the socket.
@@ -109,7 +114,7 @@ class USERVER_NODISCARD Socket final : public RwBase {
 
   /// @brief Receives at least one byte from the socket, returning source
   /// address.
-  /// @returns 0 in bytes_sent if connnection is closed on one side and no data
+  /// @returns 0 in bytes_sent if connection is closed on one side and no data
   /// could be received any more, received bytes count otherwise + source
   /// address.
   [[nodiscard]] RecvFromResult RecvSomeFrom(void* buf, size_t len,
@@ -146,7 +151,7 @@ class USERVER_NODISCARD Socket final : public RwBase {
   void SetOption(int layer, int optname, int optval);
 
   /// @brief Receives at least one byte from the socket.
-  /// @returns 0 if connnection is closed on one side and no data could be
+  /// @returns 0 if connection is closed on one side and no data could be
   /// received any more, received bytes count otherwise.
   [[nodiscard]] size_t ReadSome(void* buf, size_t len,
                                 Deadline deadline) override {

@@ -5,11 +5,12 @@
 
 #include <string>
 
+#include <fmt/format.h>
+
+#include <userver/utils/fmt_compat.hpp>
 #include <userver/utils/strong_typedef.hpp>
 
 #include <userver/storages/clickhouse/io/impl/escape.hpp>
-
-#include <fmt/format.h>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -50,7 +51,8 @@ class Query final {
   Query WithArgs(const Args&... args) const {
     // we should throw on params count mismatch
     // TODO : https://st.yandex-team.ru/TAXICOMMON-5066
-    return Query{fmt::format(text_, io::impl::Escape(args)...), name_};
+    return Query{fmt::format(fmt::runtime(text_), io::impl::Escape(args)...),
+                 name_};
   }
 
   void FillSpanTags(tracing::Span&) const;

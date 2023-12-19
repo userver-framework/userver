@@ -1,7 +1,9 @@
+#include <userver/components/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/daemon_run.hpp>
 
+#include <userver/clients/dns/component.hpp>
 #include <userver/clients/http/component.hpp>
 
 #include <userver/utest/using_namespace_userver.hpp>
@@ -43,7 +45,7 @@ namespace samples::fbs_request {
 /// [Flatbuf service sample - http component]
 class FbsRequest final : public components::LoggableComponentBase {
  public:
-  static constexpr auto kName = "fbs-request";
+  static constexpr std::string_view kName = "fbs-request";
 
   FbsRequest(const components::ComponentConfig& config,
              const components::ComponentContext& context)
@@ -77,10 +79,10 @@ void FbsRequest::KeepRequesting() const {
 
   // Send it
   const auto response = http_client_.CreateRequest()
-                            ->post("http://localhost:8084/fbs", std::move(data))
-                            ->timeout(std::chrono::seconds(1))
-                            ->retry(10)
-                            ->perform();
+                            .post("http://localhost:8084/fbs", std::move(data))
+                            .timeout(std::chrono::seconds(1))
+                            .retry(10)
+                            .perform();
 
   // Response code should be 200 (use proper error handling in real code!)
   UASSERT_MSG(response->IsOk(), "Sample should work well in tests");
@@ -107,6 +109,7 @@ int main(int argc, char* argv[]) {
   auto component_list = components::MinimalServerComponentList()        //
                             .Append<samples::fbs_handle::FbsSumEcho>()  //
 
+                            .Append<clients::dns::Component>()            //
                             .Append<components::HttpClient>()             //
                             .Append<samples::fbs_request::FbsRequest>();  //
   return utils::DaemonMain(argc, argv, component_list);

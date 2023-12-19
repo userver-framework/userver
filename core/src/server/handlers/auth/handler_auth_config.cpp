@@ -21,16 +21,16 @@ std::vector<std::string> ParseTypes(const yaml_config::YamlConfig& value) {
 
   if (types_opt && type_opt) {
     throw yaml_config::ParseException(
-        fmt::format(FMT_STRING("invalid handler auth config: both fields '{}' "
-                               "and '{}' are set, exactly one is expected"),
+        fmt::format("invalid handler auth config: both fields '{}' "
+                    "and '{}' are set, exactly one is expected",
                     kTypes, kType));
   }
 
   if (types_opt) return std::move(*types_opt);
   if (type_opt) return {std::move(*type_opt)};
   throw yaml_config::ParseException(
-      fmt::format(FMT_STRING("invalid handler auth config: none of fields '{}' "
-                             "and '{}' was found"),
+      fmt::format("invalid handler auth config: none of fields '{}' "
+                  "and '{}' was found",
                   kTypes, kType));
 }
 

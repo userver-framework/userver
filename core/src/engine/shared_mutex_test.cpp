@@ -22,6 +22,7 @@ UTEST(SharedMutex, SharedLockParallel) {
   std::atomic<bool> was{false};
 
   std::vector<engine::Task> tasks;
+  tasks.reserve(2);
   for (auto i = 0; i < 2; i++)
     tasks.push_back(utils::Async("", [&mutex, &count, &was] {
       std::shared_lock<engine::SharedMutex> lock(mutex);
@@ -88,6 +89,7 @@ UTEST_MT(SharedMutex, WritersDontStarve, 2) {
   EXPECT_FALSE(writer.IsFinished());
 
   std::vector<engine::Task> readers;
+  readers.reserve(10);
   for (int i = 0; i < 10; i++) {
     readers.push_back(utils::Async("", [&counter, &mutex] {
       std::shared_lock<engine::SharedMutex> lock(mutex);
@@ -145,7 +147,7 @@ UTEST(SharedMutex, SampleSharedMutex) {
     std::shared_lock<engine::SharedMutex> lock(mutex);
     // accessing the data under the mutex for reading,
     // data cannot be changed
-    auto x = data;
+    const auto& x = data;
     ASSERT_EQ(x, kTestString);
   }
   /// [Sample engine::SharedMutex usage]

@@ -16,16 +16,29 @@ namespace server::handlers {
 ///
 /// @brief Handler that returns statistics data.
 ///
-/// The component has no service configuration except the
-/// @ref userver_http_handlers "common handler options".
+/// Additionally to the
+/// @ref userver_http_handlers "common handler options" the component has
+/// 'common-labels' option that should be a map of label name to label value.
+/// Items of the map are added to each metric.
 ///
 /// ## Static configuration example:
 ///
 /// @snippet components/common_server_component_list_test.cpp  Sample handler server monitor component config
 ///
 /// ## Scheme
-/// Accepts a path argument `prefix` and pass it to
-/// utils::statistics::Storage::GetAsJson()
+///
+/// Accepts a path arguments 'format', 'labels', 'path' and 'prefix':
+/// * format - "prometheus", "prometheus-untyped", "graphite",
+///   "json", "solomon", "pretty" and internal (default) format is
+///   supported. For more info see the
+///   documentation for utils::statistics::ToPrometheusFormat,
+///   utils::statistics::ToPrometheusFormatUntyped,
+///   utils::statistics::ToGraphiteFormat, utils::statistics::ToJsonFormat,
+///   utils::statistics::ToSolomonFormat, utils::statistics::ToPrettyFormat.
+/// * labels - filter out metrics without the provided labels. Parameter should
+///   be a JSON dictionary in the form '{"label1":"value1", "label2":"value2"}'.
+/// * path - return metrics on for the following path
+/// * prefix - return metrics whose path starts from the specified prefix.
 
 // clang-format on
 class ServerMonitor final : public HttpHandlerBase {
@@ -33,6 +46,8 @@ class ServerMonitor final : public HttpHandlerBase {
   ServerMonitor(const components::ComponentConfig& config,
                 const components::ComponentContext& component_context);
 
+  /// @ingroup userver_component_names
+  /// @brief The default name of server::handlers::ServerMonitor
   static constexpr std::string_view kName = "handler-server-monitor";
 
   std::string HandleRequestThrow(const http::HttpRequest& request,
@@ -46,6 +61,9 @@ class ServerMonitor final : public HttpHandlerBase {
       const std::string& response_data) const override;
 
   utils::statistics::Storage& statistics_storage_;
+
+  using CommonLabels = std::unordered_map<std::string, std::string>;
+  const CommonLabels common_labels_;
 };
 
 }  // namespace server::handlers

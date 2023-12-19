@@ -92,6 +92,50 @@ class ThreadControl;
   }
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define IMPLEMENT_CURL_OPTION_BLOB(FUNCTION_NAME, OPTION_NAME)                 \
+ private:                                                                      \
+  inline void FUNCTION_NAME##_impl(std::string_view sv, unsigned int flags,    \
+                                   std::error_code& ec) {                      \
+    native::curl_blob blob{};                                                  \
+    /* NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast) */                \
+    blob.data = const_cast<void*>(static_cast<const void*>(sv.data()));        \
+    blob.len = sv.size();                                                      \
+    blob.flags = flags;                                                        \
+    ec = std::error_code(static_cast<errc::EasyErrorCode>(                     \
+        native::curl_easy_setopt(handle_, OPTION_NAME, &blob)));               \
+  }                                                                            \
+                                                                               \
+ public:                                                                       \
+  static constexpr bool is_##FUNCTION_NAME##_available = true;                 \
+  inline void FUNCTION_NAME##_copy(std::string_view sv) {                      \
+    std::error_code ec;                                                        \
+    FUNCTION_NAME##_copy(sv, ec);                                              \
+    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME##_copy));                       \
+  }                                                                            \
+  inline void FUNCTION_NAME##_no_copy(std::string_view sv) {                   \
+    std::error_code ec;                                                        \
+    FUNCTION_NAME##_no_copy(sv, ec);                                           \
+    throw_error(ec, PP_STRINGIZE(FUNCTION_NAME##_no_copy));                    \
+  }                                                                            \
+  inline void FUNCTION_NAME##_copy(std::string_view sv, std::error_code& ec) { \
+    FUNCTION_NAME##_impl(sv, CURL_BLOB_COPY, ec);                              \
+  }                                                                            \
+  inline void FUNCTION_NAME##_no_copy(std::string_view sv,                     \
+                                      std::error_code& ec) {                   \
+    FUNCTION_NAME##_impl(sv, CURL_BLOB_NOCOPY, ec);                            \
+  }
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define DELETE_CURL_OPTION_BLOB(FUNCTION_NAME)                              \
+  static constexpr bool is_##FUNCTION_NAME##_available = false;             \
+  inline void FUNCTION_NAME##_copy(std::string_view) = delete;              \
+  inline void FUNCTION_NAME##_no_copy(std::string_view) = delete;           \
+  inline void FUNCTION_NAME##_copy(std::string_view, std::error_code&) =    \
+      delete;                                                               \
+  inline void FUNCTION_NAME##_no_copy(std::string_view, std::error_code&) = \
+      delete
+
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define IMPLEMENT_CURL_OPTION_GET_STRING_VIEW(FUNCTION_NAME, OPTION_NAME) \
   inline std::string_view FUNCTION_NAME() {                               \
     std::error_code ec;                                                   \
@@ -288,6 +332,7 @@ class easy final : public std::enable_shared_from_this<easy> {
   void set_url(std::string url_str);
   void set_url(std::string url_str, std::error_code& ec);
   const std::string& get_original_url() const;
+  const url& get_easy_url() const;
 
   IMPLEMENT_CURL_OPTION(set_protocols, native::CURLOPT_PROTOCOLS, long);
   IMPLEMENT_CURL_OPTION(set_redir_protocols, native::CURLOPT_REDIR_PROTOCOLS,
@@ -319,7 +364,8 @@ class easy final : public std::enable_shared_from_this<easy> {
                         long);
   IMPLEMENT_CURL_OPTION_STRING(set_unix_socket_path,
                                native::CURLOPT_UNIX_SOCKET_PATH);
-
+  IMPLEMENT_CURL_OPTION(set_connect_to, native::CURLOPT_CONNECT_TO,
+                        native::curl_slist*);
   // authentication options
 
   enum netrc_t {
@@ -336,13 +382,13 @@ class easy final : public std::enable_shared_from_this<easy> {
                                native::CURLOPT_PROXYPASSWORD);
   enum httpauth_t {
     auth_basic = CURLAUTH_BASIC,
-    auth_digest,
-    auth_digest_ie,
-    auth_gss_negotiate,
-    auth_ntml,
-    auth_nhtml_wb,
-    auth_any,
-    auth_any_safe
+    auth_digest = CURLAUTH_DIGEST,
+    auth_digest_ie = CURLAUTH_DIGEST_IE,
+    auth_negotiate = CURLAUTH_NEGOTIATE,
+    auth_ntlm = CURLAUTH_NTLM,
+    auth_ntlm_wb = CURLAUTH_NTLM_WB,
+    auth_any = CURLAUTH_ANY,
+    auth_any_safe = CURLAUTH_ANYSAFE
   };
   inline void set_http_auth(httpauth_t auth, bool auth_only) {
     std::error_code ec;
@@ -426,6 +472,17 @@ class easy final : public std::enable_shared_from_this<easy> {
   void set_headers(std::shared_ptr<string_list> headers);
   void set_headers(std::shared_ptr<string_list> headers, std::error_code& ec);
   std::optional<std::string_view> FindHeaderByName(std::string_view name) const;
+  void add_proxy_header(
+      std::string_view name, std::string_view value,
+      EmptyHeaderAction empty_header_action = EmptyHeaderAction::kSend,
+      DuplicateHeaderAction duplicate_header_action =
+          DuplicateHeaderAction::kAdd);
+  void add_proxy_header(
+      std::string_view name, std::string_view value, std::error_code& ec,
+      EmptyHeaderAction empty_header_action = EmptyHeaderAction::kSend,
+      DuplicateHeaderAction duplicate_header_action =
+          DuplicateHeaderAction::kAdd);
+  void add_proxy_header(const char* header, std::error_code& ec);
   void add_http200_alias(const std::string& http200_alias);
   void add_http200_alias(const std::string& http200_alias, std::error_code& ec);
   void set_http200_aliases(std::shared_ptr<string_list> http200_aliases);
@@ -545,6 +602,13 @@ class easy final : public std::enable_shared_from_this<easy> {
   IMPLEMENT_CURL_OPTION_STRING(set_ssl_engine, native::CURLOPT_SSLENGINE);
   IMPLEMENT_CURL_OPTION_STRING(set_ssl_engine_default,
                                native::CURLOPT_SSLENGINE_DEFAULT);
+#if LIBCURL_VERSION_NUM >= 0x074700
+  IMPLEMENT_CURL_OPTION_BLOB(set_ssl_cert_blob, native::CURLOPT_SSLCERT_BLOB);
+  IMPLEMENT_CURL_OPTION_BLOB(set_ssl_key_blob, native::CURLOPT_SSLKEY_BLOB);
+#else
+  DELETE_CURL_OPTION_BLOB(set_ssl_cert_blob);
+  DELETE_CURL_OPTION_BLOB(set_ssl_key_blob);
+#endif
   enum ssl_version_t {
     ssl_version_default = native::CURL_SSLVERSION_DEFAULT,
     ssl_version_tls_v1 = native::CURL_SSLVERSION_TLSv1,
@@ -556,6 +620,11 @@ class easy final : public std::enable_shared_from_this<easy> {
   IMPLEMENT_CURL_OPTION_BOOLEAN(set_ssl_verify_peer,
                                 native::CURLOPT_SSL_VERIFYPEER);
   IMPLEMENT_CURL_OPTION_STRING(set_ca_info, native::CURLOPT_CAINFO);
+#if LIBCURL_VERSION_NUM >= 0x074D00
+  IMPLEMENT_CURL_OPTION_BLOB(set_ca_info_blob, native::CURLOPT_CAINFO_BLOB);
+#else
+  DELETE_CURL_OPTION_BLOB(set_ca_info_blob);
+#endif
   IMPLEMENT_CURL_OPTION_STRING(set_issuer_cert, native::CURLOPT_ISSUERCERT);
   IMPLEMENT_CURL_OPTION_STRING(set_ca_file, native::CURLOPT_CAPATH);
   IMPLEMENT_CURL_OPTION_STRING(set_crl_file, native::CURLOPT_CRLFILE);
@@ -771,6 +840,7 @@ class easy final : public std::enable_shared_from_this<easy> {
   std::string post_fields_;
   std::shared_ptr<form> form_;
   std::shared_ptr<string_list> headers_;
+  std::shared_ptr<string_list> proxy_headers_;
   std::shared_ptr<string_list> http200_aliases_;
   std::shared_ptr<string_list> resolved_hosts_;
   std::shared_ptr<share> share_;

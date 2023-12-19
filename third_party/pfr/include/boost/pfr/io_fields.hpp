@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2021 Antony Polukhin
+// Copyright (c) 2016-2023 Antony Polukhin
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -21,7 +21,7 @@
 #include <boost/pfr/tuple_size.hpp>
 
 /// \file boost/pfr/io_fields.hpp
-/// Contains IO manupulator \forcedlink{io_fields} to read/write \aggregate `value` field-by-field.
+/// Contains IO manipulator \forcedlink{io_fields} to read/write any \aggregate field-by-field.
 ///
 /// \b Example:
 /// \code
@@ -132,7 +132,7 @@ std::basic_istream<Char, Traits>& operator>>(std::basic_istream<Char, Traits>& i
 
 } // namespace detail
 
-/// IO manupulator to read/write \aggregate `value` field-by-field.
+/// IO manipulator to read/write \aggregate `value` field-by-field.
 ///
 /// \b Example:
 /// \code

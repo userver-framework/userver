@@ -18,7 +18,10 @@
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/updater/additional_keys_token.hpp>
+#include <userver/dynamic_config/updates_sink/component.hpp>
 #include <userver/engine/mutex.hpp>
+#include <userver/utils/impl/transparent_hash.hpp>
+#include <userver/utils/internal_tag_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -54,10 +57,9 @@ namespace components {
 /// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// store-enabled | store the retrieved values into the components::dynamicConfig | -
-/// load-only-my-values | request from the client only the values used by this service | -
-/// fallback-path | a path to the fallback config to load the required config names from it | -
-/// fs-task-processor | name of the task processor to run the blocking file write operations | -
+/// updates-sink | name of the component derived from components::DynamicConfigUpdatesSinkBase to be used for storing received updates | dynamic-config
+/// store-enabled | store the retrieved values into the updates sink determined by the `updates-sink` option | true
+/// load-only-my-values | request from the client only the values used by this service | true
 /// deduplicate-update-types | update types for best-effort update event deduplication, see above | `full-and-incremental`
 ///
 /// See also the options for components::CachingComponentBase.
@@ -67,9 +69,11 @@ namespace components {
 /// @snippet components/common_component_list_test.cpp  Sample dynamic config client updater component config
 
 // clang-format on
-class DynamicConfigClientUpdater
+class DynamicConfigClientUpdater final
     : public CachingComponentBase<dynamic_config::DocsMap> {
  public:
+  /// @ingroup userver_component_names
+  /// @brief The default name of components::DynamicConfigClientUpdater
   static constexpr std::string_view kName = "dynamic-config-client-updater";
 
   DynamicConfigClientUpdater(const ComponentConfig&, const ComponentContext&);
@@ -81,21 +85,21 @@ class DynamicConfigClientUpdater
   dynamic_config::AdditionalKeysToken SetAdditionalKeys(
       std::vector<std::string> keys);
 
+  static yaml_config::Schema GetStaticConfigSchema();
+
+ private:
   void Update(cache::UpdateType update_type,
               const std::chrono::system_clock::time_point& last_update,
               const std::chrono::system_clock::time_point& now,
               cache::UpdateStatisticsScope&) override;
 
-  static yaml_config::Schema GetStaticConfigSchema();
-
- private:
+  dynamic_config::DocsMap MergeDocsMap(const dynamic_config::DocsMap& current,
+                                       dynamic_config::DocsMap&& update);
   void StoreIfEnabled();
 
-  using DocsMapKeys = std::unordered_set<std::string>;
+  using DocsMapKeys = utils::impl::TransparentSet<std::string>;
   using AdditionalDocsMapKeys =
       std::unordered_set<std::shared_ptr<std::vector<std::string>>>;
-
-  DocsMapKeys GetStoredDocsMapKeys() const;
 
   std::vector<std::string> GetDocsMapKeysToFetch(
       AdditionalDocsMapKeys& additional_docs_map_keys);
@@ -105,21 +109,16 @@ class DynamicConfigClientUpdater
   bool IsDuplicate(cache::UpdateType update_type,
                    const dynamic_config::DocsMap& new_value) const;
 
-  dynamic_config::DocsMap fallback_config_;
-  dynamic_config::Client::Timestamp server_timestamp_;
-
-  components::DynamicConfig::Updater<DynamicConfigClientUpdater> updater_;
-
+  DynamicConfigUpdatesSinkBase& updates_sink_;
   const bool load_only_my_values_;
   const bool store_enabled_;
   const std::optional<cache::AllowedUpdateTypes> deduplicate_update_types_;
-
   dynamic_config::Client& config_client_;
 
+  dynamic_config::Client::Timestamp server_timestamp_;
   // for atomic updates of cached data
   engine::Mutex update_config_mutex_;
-
-  concurrent::Variable<DocsMapKeys> docs_map_keys_;
+  DocsMapKeys docs_map_keys_;
   concurrent::Variable<AdditionalDocsMapKeys> additional_docs_map_keys_;
 };
 

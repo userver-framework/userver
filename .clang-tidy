@@ -15,11 +15,14 @@ Checks:
   ,performance-*\
   ,portability-*\
   ,readability-*\
+  # it will work from clang-16
+  #,bugprone-unchecked-optional-access\
   ,-bugprone-easily-swappable-parameters\
   ,-bugprone-exception-escape\
   ,-bugprone-implicit-widening-of-multiplication-result\
   ,-bugprone-lambda-function-name\
   ,-bugprone-narrowing-conversions\
+  ,-bugprone-use-after-move\
   ,-cert-dcl21-cpp\
   ,-cert-err09-cpp\
   ,-cert-err33-c\
@@ -30,9 +33,12 @@ Checks:
   ,-clang-analyzer-core.uninitialized.Assign\
   ,-clang-analyzer-optin.cplusplus.VirtualCall\
   ,-cppcoreguidelines-avoid-c-arrays\
+  ,-cppcoreguidelines-avoid-const-or-ref-data-members\
+  ,-cppcoreguidelines-avoid-do-while\
   ,-cppcoreguidelines-avoid-goto\
   ,-cppcoreguidelines-avoid-magic-numbers\
   ,-cppcoreguidelines-avoid-non-const-global-variables\
+  ,-cppcoreguidelines-c-copy-assignment-signature\
   ,-cppcoreguidelines-narrowing-conversions\
   ,-cppcoreguidelines-non-private-member-variables-in-classes\
   ,-cppcoreguidelines-owning-memory\
@@ -64,11 +70,14 @@ Checks:
   ,-hicpp-noexcept-move\
   ,-hicpp-signed-bitwise\
   ,-hicpp-special-member-functions\
+  ,-hicpp-uppercase-literal-suffix\
   ,-hicpp-vararg\
+  ,-misc-include-cleaner\
   ,-misc-no-recursion\
   ,-misc-unconventional-assign-operator\
   ,-modernize-avoid-c-arrays\
   ,-modernize-pass-by-value\
+  ,-modernize-return-braced-init-list\
   ,-modernize-use-nodiscard\
   ,-modernize-use-trailing-return-type\
   ,-performance-move-const-arg\
@@ -86,13 +95,16 @@ Checks:
   ,-readability-misleading-indentation\
   ,-readability-named-parameter\
   ,-readability-redundant-declaration\
+  ,-readability-uppercase-literal-suffix\
   ,-readability-use-anyofallof\
   "
 
 WarningsAsErrors: '*'
 HeaderFilterRegex: '/userver/(build|clickhouse|core|grpc|mongo|postgresql|redis|shared|tools)/'
 CheckOptions:
-  - key:             misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic
-    value:           '1'
-  - key:             readability-redundant-access-specifiers.CheckFirstDeclaration
-    value:           '1'
+  - key: misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic
+    value: '1'
+  - key: readability-redundant-access-specifiers.CheckFirstDeclaration
+    value: '1'
+  - key: modernize-loop-convert.UseCxx20ReverseRanges
+    value: 'false'

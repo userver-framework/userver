@@ -45,7 +45,7 @@ struct Result {
 TEST(RecentPeriod, TimerIsAtomic) {
   using Duration =
       typename utils::statistics::RecentPeriod<Atomic, Result>::Duration;
-  std::atomic<Duration> duration;
+  std::atomic<Duration> duration{Duration{}};
   EXPECT_TRUE(duration.is_lock_free());
 }
 
@@ -60,19 +60,19 @@ TEST(RecentPeriod, Basic) {
 
   {
     auto result = stat.GetStatsForPeriod();
-    EXPECT_EQ(result.counter, 39u);
+    EXPECT_EQ(result.counter, 39U);
   }
 
   {
     TestTimer::sleep(std::chrono::seconds(10));
     auto result = stat.GetStatsForPeriod();
-    EXPECT_EQ(result.counter, 35u);
+    EXPECT_EQ(result.counter, 35U);
   }
 
   {
     TestTimer::sleep(std::chrono::seconds(60));
     auto result = stat.GetStatsForPeriod();
-    EXPECT_EQ(result.counter, 0u);
+    EXPECT_EQ(result.counter, 0U);
   }
 }
 

@@ -1,78 +1,100 @@
 #include <userver/server/http/http_method.hpp>
 
-#include <map>
-
-#include <http_parser.h>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
 
 namespace {
 
-std::map<HttpMethod, std::string> InitHttpMethodNames() {
-  std::map<HttpMethod, std::string> names;
-  for (auto method : {HttpMethod::kDelete, HttpMethod::kGet, HttpMethod::kHead,
-                      HttpMethod::kPost, HttpMethod::kPut, HttpMethod::kPatch,
-                      HttpMethod::kConnect, HttpMethod::kOptions}) {
-    names[method] = ToString(method);
-  }
-  return names;
-}
+struct HttpMethodStrings {
+  const std::string kDelete = "DELETE";
+  const std::string kGet = "GET";
+  const std::string kHead = "HEAD";
+  const std::string kPost = "POST";
+  const std::string kPut = "PUT";
+  const std::string kConnect = "CONNECT";
+  const std::string kPatch = "PATCH";
+  const std::string kOptions = "OPTIONS";
+  const std::string kUnknown = "unknown";
+};
 
-std::map<std::string, HttpMethod> InitHttpMethodsMap() {
-  static const auto names = InitHttpMethodNames();
-  std::map<std::string, HttpMethod> methods_map;
-  for (const auto& elem : names) {
-    methods_map[elem.second] = elem.first;
-  }
-  return methods_map;
+// Modern SSO could hold 7 chars without dynamic allocation
+const HttpMethodStrings& GetHttpMethodStrings() noexcept {
+  static const HttpMethodStrings values{};
+  return values;
 }
 
 }  // namespace
 
-HttpMethod HttpMethodFromString(const std::string& method_str) {
-  static const auto methods_map = InitHttpMethodsMap();
-  try {
-    return methods_map.at(method_str);
-  } catch (std::exception& ex) {
-    throw std::runtime_error("can't parse HttpMethod from string '" +
-                             method_str + '\'');
+HttpMethod HttpMethodFromString(std::string_view method_str) {
+  const auto& strings = GetHttpMethodStrings();
+
+  HttpMethod result = HttpMethod::kUnknown;
+  if (method_str.size() >= 3) {
+    switch (method_str[0]) {
+      case 'D':
+        if (method_str == strings.kDelete) result = HttpMethod::kDelete;
+        break;
+      case 'G':
+        if (method_str == strings.kGet) result = HttpMethod::kGet;
+        break;
+      case 'H':
+        if (method_str == strings.kHead) result = HttpMethod::kHead;
+        break;
+      case 'P':
+        switch (method_str[1]) {
+          case 'A':
+            if (method_str == strings.kPatch) result = HttpMethod::kPatch;
+            break;
+          case 'O':
+            if (method_str == strings.kPost) result = HttpMethod::kPost;
+            break;
+          case 'U':
+            if (method_str == strings.kPut) result = HttpMethod::kPut;
+            break;
+        }
+        break;
+      case 'C':
+        if (method_str == strings.kConnect) result = HttpMethod::kConnect;
+        break;
+      case 'O':
+        if (method_str == strings.kOptions) result = HttpMethod::kOptions;
+        break;
+    }
   }
+
+  if (result == HttpMethod::kUnknown) {
+    throw std::runtime_error("can't parse HttpMethod from string '" +
+                             std::string{method_str} + '\'');
+  }
+
+  return result;
 }
 
-const std::string& ToString(HttpMethod method) {
-  static const std::string kDelete = http_method_str(HTTP_DELETE);
-  static const std::string kGet = http_method_str(HTTP_GET);
-  static const std::string kHead = http_method_str(HTTP_HEAD);
-  static const std::string kPost = http_method_str(HTTP_POST);
-  static const std::string kPut = http_method_str(HTTP_PUT);
-  static const std::string kConnect = http_method_str(HTTP_CONNECT);
-  static const std::string kPatch = http_method_str(HTTP_PATCH);
-  static const std::string kOptions = http_method_str(HTTP_OPTIONS);
-  static const std::string kUnknown = "unknown";
+const std::string& ToString(HttpMethod method) noexcept {
+  const auto& strings = GetHttpMethodStrings();
 
   switch (method) {
     case HttpMethod::kDelete:
-      return kDelete;
+      return strings.kDelete;
     case HttpMethod::kGet:
-      return kGet;
+      return strings.kGet;
     case HttpMethod::kHead:
-      return kHead;
+      return strings.kHead;
     case HttpMethod::kPost:
-      return kPost;
+      return strings.kPost;
     case HttpMethod::kPut:
-      return kPut;
+      return strings.kPut;
     case HttpMethod::kConnect:
-      return kConnect;
+      return strings.kConnect;
     case HttpMethod::kPatch:
-      return kPatch;
+      return strings.kPatch;
     case HttpMethod::kOptions:
-      return kOptions;
+      return strings.kOptions;
     case HttpMethod::kUnknown:
-      return kUnknown;
+      return strings.kUnknown;
   }
-  return kUnknown;
+  return strings.kUnknown;
 }
 
 }  // namespace server::http

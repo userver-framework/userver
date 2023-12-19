@@ -12,12 +12,6 @@ namespace {
 constexpr std::uintptr_t kNotSignaledState{0};
 constexpr std::uintptr_t kSignaledState{1};
 
-void WakeUpWaiter(impl::TaskContext& context) noexcept {
-  context.Wakeup(impl::TaskContext::WakeupSource::kWaitList,
-                 impl::TaskContext::NoEpoch{});
-  intrusive_ptr_release(&context);
-}
-
 class SingleUseEventWaitStrategy final : public impl::WaitStrategy {
  public:
   SingleUseEventWaitStrategy(std::atomic<std::uintptr_t>& state,
@@ -37,7 +31,8 @@ class SingleUseEventWaitStrategy final : public impl::WaitStrategy {
 
     // already signaled, wake up
     UASSERT(state_ == kSignaledState);
-    WakeUpWaiter(current_);
+    current_.WakeupCurrent();
+    intrusive_ptr_release(&current_);
   }
 
   void DisableWakeups() override {}
@@ -64,7 +59,7 @@ void SingleUseEvent::WaitNonCancellable() noexcept {
   intrusive_ptr_add_ref(&current);
   SingleUseEventWaitStrategy wait_manager(state_, current);
 
-  engine::TaskCancellationBlocker cancel_blocker;
+  const engine::TaskCancellationBlocker cancel_blocker;
   [[maybe_unused]] const auto wakeup_source = current.Sleep(wait_manager);
   UASSERT(wakeup_source == impl::TaskContext::WakeupSource::kWaitList);
 }
@@ -75,7 +70,10 @@ void SingleUseEvent::Send() noexcept {
               "Send called twice in the same SingleUseEvent waiting session");
 
   if (waiter != kNotSignaledState) {
-    WakeUpWaiter(*reinterpret_cast<impl::TaskContext*>(waiter));
+    auto& context = *reinterpret_cast<impl::TaskContext*>(waiter);
+    context.Wakeup(impl::TaskContext::WakeupSource::kWaitList,
+                   impl::TaskContext::NoEpoch{});
+    intrusive_ptr_release(&context);
   }
 }
 
@@ -83,6 +81,10 @@ void SingleUseEvent::Reset() noexcept {
   UASSERT_MSG(state_ == kSignaledState,
               "Reset must not be called in the middle of a waiting session");
   state_ = kNotSignaledState;
+}
+
+bool SingleUseEvent::IsReady() const noexcept {
+  return state_ == kSignaledState;
 }
 
 }  // namespace engine

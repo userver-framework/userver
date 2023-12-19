@@ -42,8 +42,9 @@ const testsuite::PostgresControl& TopologyBase::GetTestsuiteControl() const {
 std::unique_ptr<Connection> TopologyBase::MakeTopologyConnection(DsnIndex idx) {
   UASSERT(idx < dsns_.size());
   return Connection::Connect(dsns_[idx], resolver_, bg_task_processor_,
-                             kConnectionId, conn_settings_, default_cmd_ctls_,
-                             testsuite_pg_ctl_, ei_settings_);
+                             bg_task_storage_, kConnectionId, conn_settings_,
+                             default_cmd_ctls_, testsuite_pg_ctl_,
+                             ei_settings_);
 }
 
 }  // namespace storages::postgres::detail::topology

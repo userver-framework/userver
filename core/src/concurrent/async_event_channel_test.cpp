@@ -81,6 +81,7 @@ UTEST(AsyncEventChannel, PublishException) {
   concurrent::AsyncEventChannel<int> channel("channel");
 
   struct X {
+    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
     void OnEvent(int) { throw std::runtime_error("error msg"); }
   };
   X x;
@@ -88,6 +89,33 @@ UTEST(AsyncEventChannel, PublishException) {
   auto sub1 = channel.AddListener(&x, "subscriber", &X::OnEvent);
   UEXPECT_NO_THROW(channel.SendEvent(1));
   sub1.Unsubscribe();
+}
+
+UTEST(AsyncEventChannel, OnListenerRemoval) {
+  int counter = 0;
+  auto on_remove = [&counter](std::function<void(int)> func) {
+    counter++;
+    func(1);
+  };
+  concurrent::AsyncEventChannel<int> channel("channel", on_remove);
+
+  int value1{0};
+  int value2{0};
+  Subscriber s1(value1);
+  auto sub1 = channel.AddListener(&s1, "", &Subscriber::OnEvent);
+  {
+    Subscriber s2(value2);
+    auto sub2 = channel.AddListener(&s2, "", &Subscriber::OnEvent);
+  }
+
+  EXPECT_EQ(value1, 0);
+  if constexpr (concurrent::impl::kCheckSubscriptionUB) {
+    EXPECT_EQ(value2, 1);
+    EXPECT_EQ(counter, 1);
+  } else {
+    EXPECT_EQ(value2, 0);
+    EXPECT_EQ(counter, 0);
+  }
 }
 
 namespace {
@@ -184,6 +212,27 @@ UTEST(AsyncEventChannel, AddListenerSample) {
   recorder.Unsubscribe();
 }
 /// [AddListener sample]
+
+UTEST(AsyncEventChannel, OnListenerRemovalSample) {
+  /*! [OnListenerRemoval sample] */
+  auto on_remove = [](std::function<void(int)> func) { func(1); };
+
+  concurrent::AsyncEventChannel<int> channel("channel", on_remove);
+
+  int value = 0;
+  {
+    concurrent::AsyncEventSubscriberScope sub =
+        channel.AddListener(concurrent::FunctionId(&sub), "sub",
+                            [&value](int new_value) { value = new_value; });
+  }
+
+  if constexpr (concurrent::impl::kCheckSubscriptionUB) {
+    EXPECT_EQ(value, 1);
+  } else {
+    EXPECT_EQ(value, 0);
+  }
+  /*! [OnListenerRemoval sample] */
+}
 
 }  // namespace
 

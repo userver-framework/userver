@@ -13,7 +13,7 @@ namespace pg = storages::postgres;
 
 namespace static_test {
 
-using namespace pg::io::traits;
+namespace tt = pg::io::traits;
 
 using MyTupleType = ::std::tuple<int, std::string, double>;
 
@@ -34,9 +34,9 @@ struct MyStructWithOptional {
 static_assert(boost::pfr::tuple_size_v<MyStructWithOptional> == 3);
 
 class MyIntrusiveClass {
-  int int_member_;
-  std::string string_member_;
-  double double_member_;
+  int int_member_ = 0;
+  std::string string_member_{};
+  double double_member_ = 0;
 
  public:
   auto Introspect() {
@@ -49,7 +49,7 @@ class MyIntrusiveClass {
 };
 
 struct MyPolymorphicBase {
-  virtual ~MyPolymorphicBase() {}
+  virtual ~MyPolymorphicBase() = default;
 };
 
 struct MyPolymorphicDerived : MyPolymorphicBase {};
@@ -65,19 +65,23 @@ class MyPolymorphicInrospected : public MyPolymorphicBase {
   }
 };
 
-static_assert(kRowCategory<std::string> == RowCategoryType::kNonRow);
-static_assert(kRowCategory<std::vector<std::string>> ==
-              RowCategoryType::kNonRow);
-static_assert(kRowCategory<pg::MultiPrecision<50>> == RowCategoryType::kNonRow);
+static_assert(tt::kRowCategory<std::string> == tt::RowCategoryType::kNonRow);
+static_assert(tt::kRowCategory<std::vector<std::string>> ==
+              tt::RowCategoryType::kNonRow);
+static_assert(tt::kRowCategory<pg::MultiPrecision<50>> ==
+              tt::RowCategoryType::kNonRow);
 
-static_assert(kRowCategory<MyTupleType> == RowCategoryType::kTuple);
-static_assert(kRowCategory<MyAggregateStruct> == RowCategoryType::kAggregate);
-static_assert(kRowCategory<MyIntrusiveClass> ==
-              RowCategoryType::kIntrusiveIntrospection);
-static_assert(kRowCategory<MyPolymorphicBase> == RowCategoryType::kNonRow);
-static_assert(kRowCategory<MyPolymorphicDerived> == RowCategoryType::kNonRow);
-static_assert(kRowCategory<MyPolymorphicInrospected> ==
-              RowCategoryType::kIntrusiveIntrospection);
+static_assert(tt::kRowCategory<MyTupleType> == tt::RowCategoryType::kTuple);
+static_assert(tt::kRowCategory<MyAggregateStruct> ==
+              tt::RowCategoryType::kAggregate);
+static_assert(tt::kRowCategory<MyIntrusiveClass> ==
+              tt::RowCategoryType::kIntrusiveIntrospection);
+static_assert(tt::kRowCategory<MyPolymorphicBase> ==
+              tt::RowCategoryType::kNonRow);
+static_assert(tt::kRowCategory<MyPolymorphicDerived> ==
+              tt::RowCategoryType::kNonRow);
+static_assert(tt::kRowCategory<MyPolymorphicInrospected> ==
+              tt::RowCategoryType::kIntrusiveIntrospection);
 
 }  // namespace static_test
 
@@ -92,18 +96,18 @@ UTEST_P(PostgreConnection, TypedResult) {
   using MyStructs = std::list<MyStruct>;
   using MyClasses = std::deque<MyClass>;
 
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   pg::ResultSet res{nullptr};
 
-  UEXPECT_NO_THROW(res =
-                       conn->Execute("select $1, $2, $3", 42, "foobar", 3.14));
+  UEXPECT_NO_THROW(
+      res = GetConn()->Execute("select $1, $2, $3", 42, "foobar", 3.14));
   ASSERT_FALSE(res.IsEmpty());
 
-  UEXPECT_THROW(res.AsSetOf<int>(), pg::NonSingleColumResultSet);
+  UEXPECT_THROW(res.AsSetOf<int>(), pg::NonSingleColumnResultSet);
 
-  UEXPECT_THROW(res.AsSetOf<MyTuple>(), pg::NonSingleColumResultSet);
-  UEXPECT_THROW(res.AsSetOf<MyStruct>(), pg::NonSingleColumResultSet);
-  UEXPECT_THROW(res.AsSetOf<MyClass>(), pg::NonSingleColumResultSet);
+  UEXPECT_THROW(res.AsSetOf<MyTuple>(), pg::NonSingleColumnResultSet);
+  UEXPECT_THROW(res.AsSetOf<MyStruct>(), pg::NonSingleColumnResultSet);
+  UEXPECT_THROW(res.AsSetOf<MyClass>(), pg::NonSingleColumnResultSet);
 
   auto tuples_res = res.AsSetOf<MyTuple>(pg::kRowTag);
   auto t = tuples_res[0];
@@ -141,11 +145,11 @@ UTEST_P(PostgreConnection, TypedResult) {
 UTEST_P(PostgreConnection, TypedResultIterators) {
   using MyTuple = static_test::MyTupleType;
 
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   pg::ResultSet res{nullptr};
 
-  UEXPECT_NO_THROW(res =
-                       conn->Execute("select $1, $2, $3", 42, "foobar", 3.14));
+  UEXPECT_NO_THROW(
+      res = GetConn()->Execute("select $1, $2, $3", 42, "foobar", 3.14));
   ASSERT_EQ(1, res.Size());
 
   auto tuples_res = res.AsSetOf<MyTuple>(pg::kRowTag);
@@ -164,10 +168,10 @@ UTEST_P(PostgreConnection, TypedResultIterators) {
 UTEST_P(PostgreConnection, OptionalFields) {
   using MyStruct = static_test::MyStructWithOptional;
 
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   pg::ResultSet res{nullptr};
 
-  UEXPECT_NO_THROW(res = conn->Execute("select 1, 'aa', null"));
+  UEXPECT_NO_THROW(res = GetConn()->Execute("select 1, 'aa', null"));
   UEXPECT_NO_THROW(res.AsSingleRow<MyStruct>(pg::kRowTag));
 }
 
@@ -176,9 +180,9 @@ UTEST_P(PostgreConnection, EmptyTypedResult) {
   using MyStruct = static_test::MyAggregateStruct;
   using MyClass = static_test::MyIntrusiveClass;
 
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   auto empty_res =
-      conn->Execute("select $1, $2, $3 limit 0", 42, "foobar", 3.14);
+      GetConn()->Execute("select $1, $2, $3 limit 0", 42, "foobar", 3.14);
   UEXPECT_THROW(empty_res.AsSingleRow<MyStruct>(), pg::NonSingleRowResultSet);
   UEXPECT_THROW(empty_res.AsSingleRow<MyClass>(), pg::NonSingleRowResultSet);
   UEXPECT_THROW(empty_res.AsSingleRow<MyTuple>(), pg::NonSingleRowResultSet);
@@ -194,11 +198,11 @@ UTEST_P(PostgreConnection, TypedResultOobAccess) {
   using MyStruct = static_test::MyAggregateStruct;
   using MyClass = static_test::MyIntrusiveClass;
 
-  CheckConnection(conn);
+  CheckConnection(GetConn());
 
   pg::ResultSet res{nullptr};
-  UEXPECT_NO_THROW(res =
-                       conn->Execute("select $1, $2, $3", 42, "foobar", 3.14));
+  UEXPECT_NO_THROW(
+      res = GetConn()->Execute("select $1, $2, $3", 42, "foobar", 3.14));
 
   auto tuples_res = res.AsSetOf<MyTuple>(pg::kRowTag);
   ASSERT_EQ(1, tuples_res.Size());
@@ -217,10 +221,10 @@ UTEST_P(PostgreConnection, TypedResultOobAccess) {
 }
 
 UTEST_P(PostgreConnection, TypedResultTupleSample) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
 
   /// [RowTagSippet]
-  const auto res = conn->Execute("select $1, $2", 42, "foobar");
+  const auto res = GetConn()->Execute("select $1, $2", 42, "foobar");
 
   using TupleType = std::tuple<int, std::string>;
   auto tuple = res.AsSingleRow<TupleType>(storages::postgres::kRowTag);

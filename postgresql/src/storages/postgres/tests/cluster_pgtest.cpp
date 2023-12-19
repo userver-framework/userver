@@ -5,6 +5,8 @@
 #include <userver/utest/utest.hpp>
 
 #include <storages/postgres/detail/connection.hpp>
+#include <storages/postgres/postgres_config.hpp>
+#include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/storages/postgres/cluster.hpp>
 #include <userver/storages/postgres/dsn.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
@@ -41,17 +43,20 @@ void CheckRwTransaction(pg::Transaction trx) {
 }
 
 pg::Cluster CreateCluster(
-    const pg::Dsn& dsn, engine::TaskProcessor& bg_task_processor,
-    size_t max_size,
+    const pg::DsnList& dsns, engine::TaskProcessor& bg_task_processor,
+    size_t max_size, testsuite::TestsuiteTasks& testsuite_tasks,
     pg::ConnectionSettings conn_settings = kCachePreparedStatements) {
-  return pg::Cluster({dsn}, nullptr, bg_task_processor,
+  auto source = dynamic_config::GetDefaultSource();
+  return pg::Cluster(dsns, nullptr, bg_task_processor,
                      {{},
                       {utest::kMaxTestWaitTime},
                       {0, max_size, max_size},
                       conn_settings,
                       storages::postgres::InitMode::kAsync,
-                      ""},
-                     {kTestCmdCtl, {}, {}}, {}, {});
+                      "",
+                      {},
+                      {}},
+                     {kTestCmdCtl, {}, {}}, {}, {}, testsuite_tasks, source, 0);
 }
 
 }  // namespace
@@ -59,13 +64,28 @@ pg::Cluster CreateCluster(
 class PostgreCluster : public PostgreSQLBase {};
 
 UTEST_F(PostgreCluster, ClusterEmptyPool) {
-  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 0);
+  testsuite::TestsuiteTasks testsuite_tasks{true};
+  auto cluster = CreateCluster(GetDsnListFromEnv(), GetTaskProcessor(), 0,
+                               testsuite_tasks);
 
   UEXPECT_THROW(cluster.Begin({}), pg::PoolError);
 }
 
+UTEST_F(PostgreCluster, PartiallyUnavailable) {
+  testsuite::TestsuiteTasks testsuite_tasks{true};
+  auto dsns = GetDsnListFromEnv();
+  dsns.push_back(GetUnavailableDsn());
+
+  auto cluster = CreateCluster(dsns, GetTaskProcessor(), 1, testsuite_tasks);
+
+  CheckRwTransaction(cluster.Begin(pg::Transaction::RW));
+  CheckRoTransaction(cluster.Begin(pg::Transaction::RO));
+}
+
 UTEST_F(PostgreCluster, ClusterSlaveRW) {
-  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
+  testsuite::TestsuiteTasks testsuite_tasks{true};
+  auto cluster = CreateCluster(GetDsnListFromEnv(), GetTaskProcessor(), 1,
+                               testsuite_tasks);
 
   UEXPECT_THROW(cluster.Begin(pg::ClusterHostType::kSlave, {}),
                 pg::ClusterUnavailable);
@@ -90,7 +110,9 @@ UTEST_F(PostgreCluster, ClusterSlaveRW) {
 }
 
 UTEST_F(PostgreCluster, ClusterSyncSlaveRW) {
-  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
+  testsuite::TestsuiteTasks testsuite_tasks{true};
+  auto cluster = CreateCluster(GetDsnListFromEnv(), GetTaskProcessor(), 1,
+                               testsuite_tasks);
 
   UEXPECT_THROW(cluster.Begin(pg::ClusterHostType::kSyncSlave, {}),
                 pg::ClusterUnavailable);
@@ -100,7 +122,9 @@ UTEST_F(PostgreCluster, ClusterSyncSlaveRW) {
 }
 
 UTEST_F(PostgreCluster, ClusterMasterRW) {
-  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
+  testsuite::TestsuiteTasks testsuite_tasks{true};
+  auto cluster = CreateCluster(GetDsnListFromEnv(), GetTaskProcessor(), 1,
+                               testsuite_tasks);
 
   CheckRwTransaction(cluster.Begin({}));
   CheckRwTransaction(cluster.Begin(pg::Transaction::RW));
@@ -110,7 +134,9 @@ UTEST_F(PostgreCluster, ClusterMasterRW) {
 }
 
 UTEST_F(PostgreCluster, ClusterAnyRW) {
-  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
+  testsuite::TestsuiteTasks testsuite_tasks{true};
+  auto cluster = CreateCluster(GetDsnListFromEnv(), GetTaskProcessor(), 1,
+                               testsuite_tasks);
 
   CheckRwTransaction(cluster.Begin(
       {pg::ClusterHostType::kMaster, pg::ClusterHostType::kSlave}, {}));
@@ -149,7 +175,9 @@ UTEST_F(PostgreCluster, ClusterAnyRW) {
 }
 
 UTEST_F(PostgreCluster, ClusterSlaveRO) {
-  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
+  testsuite::TestsuiteTasks testsuite_tasks{true};
+  auto cluster = CreateCluster(GetDsnListFromEnv(), GetTaskProcessor(), 1,
+                               testsuite_tasks);
 
   CheckRoTransaction(cluster.Begin(pg::Transaction::RO));
   CheckRoTransaction(
@@ -169,21 +197,27 @@ UTEST_F(PostgreCluster, ClusterSlaveRO) {
 }
 
 UTEST_F(PostgreCluster, ClusterSyncSlaveRO) {
-  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
+  testsuite::TestsuiteTasks testsuite_tasks{true};
+  auto cluster = CreateCluster(GetDsnListFromEnv(), GetTaskProcessor(), 1,
+                               testsuite_tasks);
 
   CheckRoTransaction(
       cluster.Begin(pg::ClusterHostType::kSyncSlave, pg::Transaction::RO));
 }
 
 UTEST_F(PostgreCluster, ClusterMasterRO) {
-  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
+  testsuite::TestsuiteTasks testsuite_tasks{true};
+  auto cluster = CreateCluster(GetDsnListFromEnv(), GetTaskProcessor(), 1,
+                               testsuite_tasks);
 
   CheckRoTransaction(
       cluster.Begin(pg::ClusterHostType::kMaster, pg::Transaction::RO));
 }
 
 UTEST_F(PostgreCluster, ClusterAnyRO) {
-  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
+  testsuite::TestsuiteTasks testsuite_tasks{true};
+  auto cluster = CreateCluster(GetDsnListFromEnv(), GetTaskProcessor(), 1,
+                               testsuite_tasks);
 
   CheckRoTransaction(
       cluster.Begin({pg::ClusterHostType::kSlave, pg::ClusterHostType::kMaster},
@@ -206,7 +240,9 @@ UTEST_F(PostgreCluster, ClusterAnyRO) {
 }
 
 UTEST_F(PostgreCluster, SingleQuery) {
-  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
+  testsuite::TestsuiteTasks testsuite_tasks{true};
+  auto cluster = CreateCluster(GetDsnListFromEnv(), GetTaskProcessor(), 1,
+                               testsuite_tasks);
 
   UEXPECT_THROW(cluster.Execute({}, "select 1"), pg::LogicError);
 
@@ -227,7 +263,9 @@ UTEST_F(PostgreCluster, SingleQuery) {
 }
 
 UTEST_F(PostgreCluster, HostSelectionSingleQuery) {
-  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
+  testsuite::TestsuiteTasks testsuite_tasks{true};
+  auto cluster = CreateCluster(GetDsnListFromEnv(), GetTaskProcessor(), 1,
+                               testsuite_tasks);
 
   UEXPECT_THROW(cluster.Execute({pg::ClusterHostType::kRoundRobin}, "select 1"),
                 pg::LogicError);
@@ -272,7 +310,9 @@ UTEST_F(PostgreCluster, HostSelectionSingleQuery) {
 }
 
 UTEST_F(PostgreCluster, TransactionTimeouts) {
-  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
+  testsuite::TestsuiteTasks testsuite_tasks{true};
+  auto cluster = CreateCluster(GetDsnListFromEnv(), GetTaskProcessor(), 1,
+                               testsuite_tasks);
 
   {
     // Default transaction no timeout
@@ -300,7 +340,7 @@ UTEST_F(PostgreCluster, TransactionTimeouts) {
         pg::Transaction::RW,
         kTestCmdCtl.WithStatementTimeout(std::chrono::milliseconds{50}));
     UEXPECT_THROW(trx.Execute("select pg_sleep(0.1)"), pg::QueryCancelled);
-    trx.Commit();
+    UEXPECT_THROW(trx.Commit(), pg::RuntimeError);
   }
   {
     static const std::string kTestTransactionName = "test-transaction-name";
@@ -311,12 +351,14 @@ UTEST_F(PostgreCluster, TransactionTimeouts) {
     // Use timeout for custom transaction name
     auto trx = cluster.Begin(kTestTransactionName, pg::Transaction::RW);
     UEXPECT_THROW(trx.Execute("select pg_sleep(0.1)"), pg::QueryCancelled);
-    trx.Commit();
+    UEXPECT_THROW(trx.Commit(), pg::RuntimeError);
   }
 }
 
 UTEST_F(PostgreCluster, NonTransactionExecuteWithParameterStore) {
-  auto cluster = CreateCluster(GetDsnFromEnv(), GetTaskProcessor(), 1);
+  testsuite::TestsuiteTasks testsuite_tasks{true};
+  auto cluster = CreateCluster(GetDsnListFromEnv(), GetTaskProcessor(), 1,
+                               testsuite_tasks);
 
   {
     auto res = cluster.Execute(pg::ClusterHostType::kMaster, "select $1",
@@ -330,6 +372,61 @@ UTEST_F(PostgreCluster, NonTransactionExecuteWithParameterStore) {
                                pg::ParameterStore{}.PushBack(1));
     EXPECT_EQ(1, res.Size());
   }
+}
+
+UTEST_F(PostgreCluster, NonTransactionExecuteWithParameterStoreMove) {
+  testsuite::TestsuiteTasks testsuite_tasks{true};
+  auto cluster = CreateCluster(GetDsnListFromEnv(), GetTaskProcessor(), 1,
+                               testsuite_tasks);
+
+  {
+    pg::ParameterStore store{};
+    store.PushBack(1);
+    auto store_moved = std::move(store);
+    auto res =
+        cluster.Execute(pg::ClusterHostType::kMaster, "select $1", store_moved);
+    EXPECT_EQ(1, res.Size());
+  }
+  {
+    pg::CommandControl cc{std::chrono::milliseconds{50},
+                          std::chrono::milliseconds{300}};
+    pg::ParameterStore store{};
+    store.PushBack(1);
+    auto store_moved = std::move(store);
+    auto res = cluster.Execute(pg::ClusterHostType::kMaster, cc, "select $1",
+                               store_moved);
+    EXPECT_EQ(1, res.Size());
+  }
+}
+
+UTEST_F(PostgreCluster, ListenNotify) {
+  constexpr auto kListenChannel = std::string_view{"foo"};
+  constexpr auto kNotifyPayload = std::string_view{"bar"};
+  static const auto kNotifyDeadline =
+      engine::Deadline::FromDuration(std::chrono::milliseconds{100});
+
+  testsuite::TestsuiteTasks testsuite_tasks{true};
+  auto cluster = CreateCluster(GetDsnListFromEnv(), GetTaskProcessor(), 2,
+                               testsuite_tasks);
+
+  auto scope = cluster.Listen(kListenChannel);
+
+  UEXPECT_NO_THROW(cluster.Execute(pg::ClusterHostType::kMaster,
+                                   "select pg_notify($1, NULL)",
+                                   kListenChannel));
+  UEXPECT_NO_THROW(cluster.Execute(pg::ClusterHostType::kMaster,
+                                   "select pg_notify($1, $2)", kListenChannel,
+                                   kNotifyPayload));
+
+  auto ntf = scope.WaitNotify(kNotifyDeadline);
+  EXPECT_EQ(ntf.channel, kListenChannel);
+  EXPECT_FALSE(ntf.payload);
+
+  ntf = scope.WaitNotify(kNotifyDeadline);
+  EXPECT_EQ(ntf.channel, kListenChannel);
+  EXPECT_TRUE(ntf.payload && *ntf.payload == kNotifyPayload);
+
+  UEXPECT_THROW(scope.WaitNotify(kNotifyDeadline), pg::ConnectionTimeoutError);
 }
 
 USERVER_NAMESPACE_END

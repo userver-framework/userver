@@ -47,7 +47,8 @@ TaskProcessorHolder::TaskProcessorHolder(
 
 TaskProcessorHolder::~TaskProcessorHolder() = default;
 
-void RunOnTaskProcessorSync(TaskProcessor& tp, std::function<void()> user_cb) {
+void RunOnTaskProcessorSync(TaskProcessor& tp,
+                            utils::function_ref<void()> user_cb) {
   auto task = engine::AsyncNoSpan(tp, [&user_cb] {
     tracing::Span span("span", tracing::ReferenceType::kChild,
                        logging::Level::kNone);

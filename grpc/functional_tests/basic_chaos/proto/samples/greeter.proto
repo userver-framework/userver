@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package samples.api;
+
+service GreeterService {
+  rpc SayHello(GreetingRequest) returns(GreetingResponse) {}
+  rpc SayHelloResponseStream(GreetingRequest) returns(stream GreetingResponse) {}
+  rpc SayHelloRequestStream(stream GreetingRequest) returns(GreetingResponse) {}
+  rpc SayHelloStreams(stream GreetingRequest) returns(stream GreetingResponse) {}
+  rpc SayHelloIndependentStreams(stream GreetingRequest) returns(stream GreetingResponse) {}
+
+}
+
+message GreetingRequest {
+  string name = 1;
+}
+
+message GreetingResponse {
+  string greeting = 1;
+}

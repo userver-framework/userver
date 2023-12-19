@@ -1,0 +1,116 @@
+grpc.client.by-destination.abandoned-error: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.active: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	GAUGE	0
+grpc.client.by-destination.cancelled-by-deadline-propagation: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.deadline-propagated: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.eps: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.network-error: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.rps: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.status: grpc_code=ABORTED, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.status: grpc_code=ALREADY_EXISTS, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.status: grpc_code=CANCELLED, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.status: grpc_code=DATA_LOSS, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.status: grpc_code=DEADLINE_EXCEEDED, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.status: grpc_code=FAILED_PRECONDITION, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.status: grpc_code=INTERNAL, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.status: grpc_code=INVALID_ARGUMENT, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.status: grpc_code=NOT_FOUND, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.status: grpc_code=OK, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.status: grpc_code=OUT_OF_RANGE, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.status: grpc_code=PERMISSION_DENIED, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.status: grpc_code=RESOURCE_EXHAUSTED, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.status: grpc_code=UNAUTHENTICATED, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.status: grpc_code=UNAVAILABLE, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.status: grpc_code=UNIMPLEMENTED, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.status: grpc_code=UNKNOWN, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.timings: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService, percentile=p0	GAUGE	0
+grpc.client.by-destination.timings: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService, percentile=p100	GAUGE	0
+grpc.client.by-destination.timings: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService, percentile=p50	GAUGE	0
+grpc.client.by-destination.timings: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService, percentile=p90	GAUGE	0
+grpc.client.by-destination.timings: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService, percentile=p95	GAUGE	0
+grpc.client.by-destination.timings: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService, percentile=p98	GAUGE	0
+grpc.client.by-destination.timings: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService, percentile=p99	GAUGE	0
+grpc.client.by-destination.timings: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService, percentile=p99_6	GAUGE	0
+grpc.client.by-destination.timings: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService, percentile=p99_9	GAUGE	0
+grpc.server.by-destination.abandoned-error: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.active: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	GAUGE	0
+grpc.server.by-destination.cancelled-by-deadline-propagation: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.deadline-propagated: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.eps: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.network-error: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.rps: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.status: grpc_code=ABORTED, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.status: grpc_code=ALREADY_EXISTS, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.status: grpc_code=CANCELLED, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.status: grpc_code=DATA_LOSS, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.status: grpc_code=DEADLINE_EXCEEDED, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.status: grpc_code=FAILED_PRECONDITION, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.status: grpc_code=INTERNAL, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.status: grpc_code=INVALID_ARGUMENT, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.status: grpc_code=NOT_FOUND, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.status: grpc_code=OK, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.status: grpc_code=OUT_OF_RANGE, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.status: grpc_code=PERMISSION_DENIED, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.status: grpc_code=RESOURCE_EXHAUSTED, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.status: grpc_code=UNAUTHENTICATED, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.status: grpc_code=UNAVAILABLE, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.status: grpc_code=UNIMPLEMENTED, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.status: grpc_code=UNKNOWN, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.timings: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService, percentile=p0	GAUGE	0
+grpc.server.by-destination.timings: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService, percentile=p100	GAUGE	0
+grpc.server.by-destination.timings: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService, percentile=p50	GAUGE	0
+grpc.server.by-destination.timings: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService, percentile=p90	GAUGE	0
+grpc.server.by-destination.timings: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService, percentile=p95	GAUGE	0
+grpc.server.by-destination.timings: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService, percentile=p98	GAUGE	0
+grpc.server.by-destination.timings: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService, percentile=p99	GAUGE	0
+grpc.server.by-destination.timings: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService, percentile=p99_6	GAUGE	0
+grpc.server.by-destination.timings: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService, percentile=p99_9	GAUGE	0
+grpc.client.by-destination.abandoned-error.v2: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.cancelled-by-deadline-propagation.v2: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.deadline-propagated.v2: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.eps.v2: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.network-error.v2: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.rps.v2: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.status.v2: grpc_code=ABORTED, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.status.v2: grpc_code=ALREADY_EXISTS, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.status.v2: grpc_code=CANCELLED, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.status.v2: grpc_code=DATA_LOSS, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.status.v2: grpc_code=DEADLINE_EXCEEDED, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.status.v2: grpc_code=FAILED_PRECONDITION, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.status.v2: grpc_code=INTERNAL, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.status.v2: grpc_code=INVALID_ARGUMENT, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.status.v2: grpc_code=NOT_FOUND, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.status.v2: grpc_code=OK, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.status.v2: grpc_code=OUT_OF_RANGE, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.status.v2: grpc_code=PERMISSION_DENIED, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.status.v2: grpc_code=RESOURCE_EXHAUSTED, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.status.v2: grpc_code=UNAUTHENTICATED, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.status.v2: grpc_code=UNAVAILABLE, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.status.v2: grpc_code=UNIMPLEMENTED, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.status.v2: grpc_code=UNKNOWN, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.abandoned-error.v2: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.cancelled-by-deadline-propagation.v2: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.deadline-propagated.v2: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.eps.v2: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.network-error.v2: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.rps.v2: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.status.v2: grpc_code=ABORTED, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.status.v2: grpc_code=ALREADY_EXISTS, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.status.v2: grpc_code=CANCELLED, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.status.v2: grpc_code=DATA_LOSS, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.status.v2: grpc_code=DEADLINE_EXCEEDED, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.status.v2: grpc_code=FAILED_PRECONDITION, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.status.v2: grpc_code=INTERNAL, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.status.v2: grpc_code=INVALID_ARGUMENT, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.status.v2: grpc_code=NOT_FOUND, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.status.v2: grpc_code=OK, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.status.v2: grpc_code=OUT_OF_RANGE, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.status.v2: grpc_code=PERMISSION_DENIED, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.status.v2: grpc_code=RESOURCE_EXHAUSTED, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.status.v2: grpc_code=UNAUTHENTICATED, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.status.v2: grpc_code=UNAVAILABLE, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.status.v2: grpc_code=UNIMPLEMENTED, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.status.v2: grpc_code=UNKNOWN, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.cancelled: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.cancelled.v2: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.by-destination.cancelled: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.client.by-destination.cancelled.v2: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0

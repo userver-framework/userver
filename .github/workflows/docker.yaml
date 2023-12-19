@@ -11,10 +11,53 @@ name: Docker build
 jobs:
     tests:
         strategy:
+            fail-fast: false
             matrix:
-                image: [userver-debian]
+                include:
+                  - cmake-flags: >-
+                        -DCMAKE_CXX_COMPILER=clang++-14 -DCMAKE_C_COMPILER=clang-14
+                        -DUSERVER_FEATURE_MYSQL=0
+                        -DUSERVER_FEATURE_MONGODB=0
+                        -DUSERVER_FEATURE_POSTGRESQL=0
+                        -DUSERVER_FEATURE_REDIS=0
+                        -DUSERVER_FEATURE_CLICKHOUSE=0
+                        -DUSERVER_FEATURE_GRPC=0
+                        -DUSERVER_FEATURE_RABBITMQ=0
+                        -DCMAKE_CXX_STANDARD=17
+                    image: userver-ubuntu-core
+                    info: ubuntu + clang + cxx17 + core
+                    id: ubuntu_clang_cxx17_core
+                  - cmake-flags: >-
+                        -DCMAKE_CXX_COMPILER=clang++-14 -DCMAKE_C_COMPILER=clang-14
+                        -DUSERVER_FEATURE_MYSQL=1
+                        -DCMAKE_CXX_STANDARD=17
+                    image: userver-ubuntu
+                    info: ubuntu + clang + cxx17
+                    id: ubuntu_clang_cxx17
+                  - cmake-flags: >-
+                        -DCMAKE_CXX_COMPILER=g++-11 -DCMAKE_C_COMPILER=gcc-11
+                        -DUSERVER_FEATURE_MYSQL=1
+                        -DCMAKE_CXX_STANDARD=17
+                    image: userver-ubuntu
+                    info: ubuntu + gcc + cxx17
+                    id: ubuntu_gcc_cxx17
+                  - cmake-flags: >-
+                        -DCMAKE_CXX_COMPILER=clang++-14 -DCMAKE_C_COMPILER=clang-14
+                        -DUSERVER_FEATURE_MYSQL=1
+                        -DCMAKE_CXX_STANDARD=20
+                    image: userver-ubuntu
+                    info: ubuntu + clang + cxx20
+                    id: ubuntu_clang_cxx20
+                  - cmake-flags: >-
+                        -DCMAKE_CXX_COMPILER=g++-11 -DCMAKE_C_COMPILER=gcc-11
+                        -DUSERVER_FEATURE_MYSQL=1
+                        -DCMAKE_CXX_STANDARD=20
+                    image: userver-ubuntu
+                    info: ubuntu + gcc + cxx20
+                    id: ubuntu_gcc_cxx20
+
         runs-on: ubuntu-latest
-        name: ${{ matrix.image }}
+        name: '${{ matrix.info }}'
         steps:
           - uses: actions/checkout@v2
 
@@ -22,10 +65,10 @@ jobs:
             uses: actions/cache@v2
             with:
                 path: .ccache
-                key: 'ccache-dir-${{ matrix.image }}_${{github.ref}}_run-${{github.run_number}}'
+                key: 'ccache-dir-${{ matrix.id }}_${{github.ref}}_run-${{github.run_number}}'
                 restore-keys: |
-                    ccache-dir-${{ matrix.image }}_${{github.ref}}_run-
-                    ccache-dir-${{ matrix.image }}_
+                    ccache-dir-${{ matrix.id }}_${{github.ref}}_run-
+                    ccache-dir-${{ matrix.id }}_
                     ccache-
 
           - name: Setup ccache
@@ -33,8 +76,8 @@ jobs:
                 && ccache -s'
 
           - name: Cmake
-            run: docker-compose run --rm ${{ matrix.image }} bash -c 'cmake $CMAKE_OPTS
-                -B./build -S./'
+            run: docker-compose run --rm ${{ matrix.image }} bash -c 'cmake -DUSERVER_GOOGLE_COMMON_PROTOS=/app/api-common-protos
+                ${{ matrix.cmake-flags }} -B./build -S./'
 
           - name: Build
             run: docker-compose run --rm ${{ matrix.image }} bash -c 'cd /userver/build
@@ -42,4 +85,4 @@ jobs:
 
           - name: Run tests
             run: docker-compose run --rm ${{ matrix.image }} bash -c 'cd /userver/build
-                && ctest -V'
+                && ulimit -n 4096 && ctest -V'

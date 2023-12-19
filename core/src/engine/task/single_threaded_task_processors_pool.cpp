@@ -26,6 +26,9 @@ SingleThreadedTaskProcessorsPool::SingleThreadedTaskProcessorsPool(
     config.name = "single-threaded";
   }
   config.name += '-';
+  if (config.thread_name.empty()) {
+    config.thread_name = "st-worker";
+  }
   config.thread_name += '-';
 
   processors_.reserve(task_processors_count);

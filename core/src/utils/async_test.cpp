@@ -1,6 +1,13 @@
-#include <userver/utest/utest.hpp>
-
 #include <userver/utils/async.hpp>
+
+#include <vector>
+
+#include <boost/range/adaptor/transformed.hpp>
+#include <boost/range/numeric.hpp>
+
+#include <userver/concurrent/variable.hpp>
+#include <userver/engine/task/task_with_result.hpp>
+#include <userver/utest/utest.hpp>
 
 #include <engine/ev/thread_control.hpp>
 
@@ -41,6 +48,7 @@ UTEST(UtilsAsync, MemberFunctions) {
     NotCopyable() = default;
     NotCopyable(const NotCopyable&) = delete;
     NotCopyable(NotCopyable&&) = default;
+    // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
     int MultiplyByTwo(int x) { return x * 2; }
   };
 
@@ -63,5 +71,64 @@ UTEST(UtilsAsync, FromNonWorkerThread) {
 
   task.Wait();
 }
+
+namespace {
+
+using Request = int;
+using Response = int;
+
+/// [AsyncBackground component]
+class AsyncRequestProcessor final {
+ public:
+  AsyncRequestProcessor();
+
+  void FooAsync(Request&& request);
+
+  Response WaitAndGetAggregate();
+
+ private:
+  static Response Foo(Request&& request);
+
+  engine::TaskProcessor& task_processor_;
+  concurrent::Variable<std::vector<engine::TaskWithResult<Response>>> tasks_;
+};
+/// [AsyncBackground component]
+
+UTEST(UtilsAsync, AsyncBackground) {
+  AsyncRequestProcessor async_request_processor;
+
+  /// [AsyncBackground handler]
+  auto handler = [&](Request&& request) {
+    async_request_processor.FooAsync(std::move(request));
+    return "Please wait, your request is being processed.";
+  };
+  /// [AsyncBackground handler]
+
+  UEXPECT_NO_THROW(handler(2));
+  UEXPECT_NO_THROW(handler(3));
+  EXPECT_EQ(async_request_processor.WaitAndGetAggregate(), 10);
+}
+
+AsyncRequestProcessor::AsyncRequestProcessor()
+    : task_processor_(engine::current_task::GetTaskProcessor()) {}
+
+/// [AsyncBackground FooAsync]
+void AsyncRequestProcessor::FooAsync(Request&& request) {
+  auto tasks = tasks_.Lock();
+  tasks->push_back(
+      utils::AsyncBackground("foo", task_processor_, &Foo, std::move(request)));
+}
+/// [AsyncBackground FooAsync]
+
+Response AsyncRequestProcessor::WaitAndGetAggregate() {
+  using boost::adaptors::transformed;
+  auto tasks = tasks_.Lock();
+  auto get_result = transformed([](auto& task) { return task.Get(); });
+  return boost::accumulate(*tasks | get_result, 0);
+}
+
+Response AsyncRequestProcessor::Foo(Request&& request) { return request * 2; }
+
+}  // namespace
 
 USERVER_NAMESPACE_END

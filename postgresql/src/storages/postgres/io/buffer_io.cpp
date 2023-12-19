@@ -39,7 +39,11 @@ TypeToIO& GetWriters() {
 
 void InsertNew(TypeToIO& map, std::type_index type, std::type_index io_type,
                const char* base_file) {
+#if defined(USERVER_LOG_PREFIX_PATH_BASE) || \
+    defined(USERVER_LOG_SOURCE_PATH_BASE) || \
+    defined(USERVER_LOG_BUILD_PATH_BASE)
   base_file = base_file + logging::impl::PathBaseSize(base_file);
+#endif
 
   auto it = map.find(type);
   if (it != map.end()) {

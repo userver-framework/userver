@@ -18,15 +18,15 @@ namespace components {
 /// * components::Server
 /// * server::handlers::DnsClientControl
 /// * server::handlers::DynamicDebugLog
-/// * server::handlers::ImplicitOptionsHttpHandler
+/// * server::handlers::ImplicitOptions
 /// * server::handlers::InspectRequests
 /// * server::handlers::Jemalloc
 /// * server::handlers::LogLevel
+/// * server::handlers::OnLogRotate
 /// * server::handlers::ServerMonitor
 /// * server::handlers::TestsControl
 /// * components::AuthCheckerSettings
 /// * congestion_control::Component
-/// * components::HttpServerSettings
 ComponentList CommonServerComponentList();
 
 }  // namespace components

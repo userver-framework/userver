@@ -26,9 +26,9 @@ void rcu_read(benchmark::State& state) {
 
     {
       std::uint64_t i = 0;
-      for (auto _ : state) {
+      for ([[maybe_unused]] auto _ : state) {
         auto reader = vars[i++ % VariableCount].Read();
-        benchmark::DoNotOptimize(*reader);
+        benchmark::DoNotOptimize(reader);
       }
     }
   });
@@ -43,7 +43,7 @@ void rcu_write(benchmark::State& state) {
     rcu::Variable<std::uint64_t> vars[VariableCount];
 
     std::uint64_t i = 0;
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       vars[i % VariableCount].Assign(i);
       ++i;
     }
@@ -76,7 +76,7 @@ void rcu_contention(benchmark::State& state) {
         while (run) {
           for (std::size_t i = 0; i < kept_readable_pointers_count; i++) {
             pointers.push_back(var.Read());
-            benchmark::DoNotOptimize(*pointers.back());
+            benchmark::DoNotOptimize(pointers.back());
           }
           engine::Yield();
           pointers.clear();
@@ -99,10 +99,10 @@ void rcu_contention(benchmark::State& state) {
         pointers.push(var.Read());
       }
 
-      for (auto _ : state) {
+      for ([[maybe_unused]] auto _ : state) {
         pointers.pop();
         pointers.push(var.Read());
-        benchmark::DoNotOptimize(*pointers.back());
+        benchmark::DoNotOptimize(pointers.back());
       }
     }
 
@@ -132,14 +132,14 @@ void rcu_of_shared_ptr(benchmark::State& state) {
       tasks.push_back(utils::Async("reader", [&] {
         while (run) {
           auto reader = var.ReadCopy();
-          benchmark::DoNotOptimize(*reader);
+          benchmark::DoNotOptimize(reader);
         }
       }));
     }
 
-    for (auto _ : state) {
+    for ([[maybe_unused]] auto _ : state) {
       auto copy = var.ReadCopy();
-      benchmark::DoNotOptimize(*copy);
+      benchmark::DoNotOptimize(copy);
     }
 
     run = false;

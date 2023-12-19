@@ -4,8 +4,9 @@
 /// @brief @copybrief engine::RunStandalone
 
 #include <cstddef>
-#include <functional>
 #include <string>
+
+#include <userver/utils/function_ref.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -33,15 +34,16 @@ struct TaskProcessorPoolsConfig final {
 /// @param payload Code to be run in a Task
 /// @param worker_threads Engine thread pool size, 1 by default
 /// @param config A lightweight TaskProcessor config
-void RunStandalone(std::function<void()> payload);
+void RunStandalone(utils::function_ref<void()> payload);
 
 /// @overload
-void RunStandalone(std::size_t worker_threads, std::function<void()> payload);
+void RunStandalone(std::size_t worker_threads,
+                   utils::function_ref<void()> payload);
 
 /// @overload
 void RunStandalone(std::size_t worker_threads,
                    const TaskProcessorPoolsConfig& config,
-                   std::function<void()> payload);
+                   utils::function_ref<void()> payload);
 
 }  // namespace engine
 

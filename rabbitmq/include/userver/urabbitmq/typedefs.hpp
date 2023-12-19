@@ -20,7 +20,8 @@ class Queue final : public utils::StrongTypedef<class QueueTag, std::string> {
     kPassive = 1 << 0,
     kDurable = 1 << 1,
     kExclusive = 1 << 2,
-    kAutoDelete = 1 << 3
+    kAutoDelete = 1 << 3,
+    kNoAck = 1 << 4
   };
 };
 

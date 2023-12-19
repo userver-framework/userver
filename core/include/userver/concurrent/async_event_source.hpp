@@ -9,8 +9,6 @@
 #include <typeinfo>
 #include <utility>
 
-#include <userver/utils/clang_format_workarounds.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace concurrent {
@@ -65,7 +63,7 @@ enum class UnsubscribingKind { kManual, kAutomatic };
 /// The Scope is usually placed as a member in the subscribing object.
 /// `Unsubscribe` should be called manually in the objects destructor, before
 /// anything that the callback needs is destroyed.
-class USERVER_NODISCARD AsyncEventSubscriberScope final {
+class [[nodiscard]] AsyncEventSubscriberScope final {
  public:
   AsyncEventSubscriberScope() = default;
 
@@ -95,7 +93,9 @@ class USERVER_NODISCARD AsyncEventSubscriberScope final {
 /// @ingroup userver_concurrency
 ///
 /// @brief The read-only side of an event channel. Events are delivered to
-/// listeners in a strict FIFO order.
+/// listeners in a strict FIFO order, i.e. only after the event was processed
+/// a new event may appear for processing, same listener is never called
+/// concurrently.
 template <typename... Args>
 class AsyncEventSource : public impl::AsyncEventSourceBase {
  public:

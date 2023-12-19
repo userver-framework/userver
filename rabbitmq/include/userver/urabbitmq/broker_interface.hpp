@@ -103,6 +103,26 @@ class IChannelInterface {
                        const std::string& message,
                        engine::Deadline deadline) = 0;
 
+  /// @brief Gets a single message.
+  ///
+  /// You should to set `kNoAck` flag in order for server to implicitly
+  /// acknowledge gathered message.
+  /// By default the gathered message has to be explicitly acknowledged
+  /// or rejected, however there's no functionality for that yet, so the flag is
+  /// basically mandatory.
+  /// This API is a subject to change.
+  ///
+  /// @note This method uses a polling model for retrieving a message, which is
+  /// comparatively expensive and might lead to a connection reset in case of a
+  /// timeout. This method could come in handy in some cases, but in general we
+  /// recommend to set up a `Consumer` instead.
+  ///
+  /// @param queue name of the queue
+  /// @param flags queue flags
+  /// @param deadline execution deadline
+  virtual std::string Get(const Queue& queue, utils::Flags<Queue::Flags> flags,
+                          engine::Deadline deadline) = 0;
+
  protected:
   ~IChannelInterface();
 };

@@ -14,6 +14,7 @@
 #include <userver/dynamic_config/fwd.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/fast_pimpl.hpp>
+#include <userver/yaml_config/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -84,8 +85,6 @@ enum class UpdateType {
 /// `min-interval` | `string` (duration) | `WriteDumpAsync` calls performed in a fast succession are ignored | `0s`
 /// `fs-task-processor` | `string` | `TaskProcessor` for blocking disk IO | `fs-task-processor`
 /// `encrypted` | `boolean` | Whether to encrypt the dump | `false`
-/// `first-update-mode` | `string` | specifies whether required or best-effort first update will be used | skip
-/// `first-update-type` | `string` | specifies whether incremental and/or full first update will be used | full
 ///
 /// ## Sample usage
 /// @snippet core/src/dump/dumper_test.cpp  Sample Dumper usage
@@ -113,23 +112,6 @@ class Dumper final {
 
   const std::string& Name() const;
 
-  /// @brief Write data to a dump if data has been modified
-  ///
-  /// `Dumper` has NO `PeriodicTask`s running in the background. All writes must
-  /// be performed explicitly by the user.
-  ///
-  /// The dump is only written if:
-  /// 1. data update has been reported via `OnUpdateCompleted` since the last
-  ///    written dump
-  /// 2. dumps are currently enabled
-  /// 3. `min-interval` time has passed
-  ///
-  /// It is a good idea to call `WriteDumpAsync` after each update.
-  ///
-  /// @note Catches and logs any exceptions related to write operation failure
-  /// @see OnUpdateCompleted
-  void WriteDumpAsync();
-
   /// @brief Read data from a dump, if any
   /// @note Catches and logs any exceptions related to read operation failure
   /// @returns `update_time` of the loaded dump on success, `null` otherwise
@@ -145,26 +127,46 @@ class Dumper final {
 
   /// @brief Notifies the `Dumper` of an update in the `DumpableEntity`
   ///
-  /// Must be called at some point before a `WriteDumpAsync` call,
-  /// otherwise no dump will be written.
+  /// A dump will be written asynchronously as soon as:
+  ///
+  /// 1. data update has been reported via `OnUpdateCompleted` since the last
+  ///    written dump,
+  /// 2. dumps are `enabled` in the dynamic config, and
+  /// 3. `min-interval` time has passed
+  ///
+  /// @note This overload is more performant. The time written on the dump will
+  /// be taken from the dump writing time.
+  void OnUpdateCompleted();
+
+  /// @overload void OnUpdateCompleted()
+  /// @param update_time The time at which the data has been guaranteed to be
+  /// up-to-date
+  /// @param update_type Whether the update modified the data or confirmed its
+  /// actuality, UpdateType::kModified by default
+  /// @note This overload locks mutexes and should not be used in tight loops.
+  /// On the other hand, it allows to exactly control the dump expiration.
   void OnUpdateCompleted(TimePoint update_time, UpdateType update_type);
 
-  /// @brief Equivalent to `OnUpdateCompleted(now, true) + `WriteDumpAsync()`
-  void SetModifiedAndWriteAsync();
-
-  /// @brief Cancel and wait for the task launched by `WriteDumpAsync`, if any
+  /// @brief Cancel and wait for the task running background writes. Also
+  /// disables operations via testsuite dump control.
   ///
-  /// The task is automatically cancelled and waited for in the destructor. This
-  /// method must be called if the `DumpableEntity` may start its destruction
-  /// before the `Dumper` is destroyed.
+  /// CancelWriteTaskAndWait is automatically called in the destructor. This
+  /// method must be called explicitly if the `DumpableEntity` may start its
+  /// destruction before the `Dumper` is destroyed.
+  ///
+  /// After calling this method, OnUpdateCompleted calls have no effect.
   void CancelWriteTaskAndWait();
+
+  /// @brief Returns the static config schema for a
+  /// components::LoggableComponentBase with an added `dump` sub-section.
+  static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   Dumper(const Config& initial_config,
          const components::ComponentContext& context, DumpableEntity& dumpable);
 
   class Impl;
-  utils::FastPimpl<Impl, 896, 8> impl_;
+  utils::FastPimpl<Impl, 1056, 16> impl_;
 };
 
 }  // namespace dump

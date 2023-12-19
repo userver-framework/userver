@@ -7,6 +7,7 @@
 
 #include <cerrno>
 #include <string>
+#include <vector>
 
 #include <userver/engine/io/exception.hpp>
 #include <userver/engine/task/cancel.hpp>
@@ -219,9 +220,8 @@ size_t Socket::RecvSome(void* buf, size_t len, Deadline deadline) {
   }
   auto& dir = fd_control_->Read();
   impl::Direction::SingleUserGuard guard(dir);
-  return dir.PerformIo(guard, &RecvWrapper, buf, len,
-                       impl::TransferMode::kPartial, deadline, "RecvSome from ",
-                       peername_);
+  return dir.PerformIo(guard, &RecvWrapper, buf, len, impl::TransferMode::kOnce,
+                       deadline, "RecvSome from ", peername_);
 }
 
 size_t Socket::RecvAll(void* buf, size_t len, Deadline deadline) {
@@ -241,29 +241,33 @@ size_t Socket::SendAll(std::initializer_list<IoData> list, Deadline deadline) {
 
 size_t Socket::SendAll(const IoData* list, std::size_t list_size,
                        Deadline deadline) {
+  if (list_size < kMaxStackSizeVector) {
+    /// stack
+    std::array<struct ::iovec, kMaxStackSizeVector> data{};
+    FillIoSendData(list, data.data(), list_size);
+    return SendAll(data.data(), list_size, deadline);
+  } else {
+    /// heap
+    std::vector<struct ::iovec> data(list_size);
+    FillIoSendData(list, data.data(), list_size);
+    return SendAll(data.data(), list_size, deadline);
+  }
+}
+
+size_t Socket::SendAll(const struct iovec* list, std::size_t list_size,
+                       Deadline deadline) {
   if (!IsValid()) {
     throw IoException("Attempt to SendAll to closed socket");
   }
   UASSERT(list);
   UASSERT(list_size > 0);
-  UASSERT(list_size <= IOV_MAX);
+  UINVARIANT(list_size <= IOV_MAX, "To big array of IoData for SendAll");
   auto& dir = fd_control_->Write();
   impl::Direction::SingleUserGuard guard(dir);
-  if (list_size < kMaxStackSizeVector) {
-    /// stack
-    std::array<struct iovec, kMaxStackSizeVector> data{};
-    FillIoSendData(list, data.data(), list_size);
-    return dir.PerformIoV(guard, &writev, data.data(), list_size,
-                          impl::TransferMode::kWhole, deadline, "SendAll to ",
-                          peername_);
-  } else {
-    /// heap
-    std::vector<struct iovec> data(list_size);
-    FillIoSendData(list, data.data(), list_size);
-    return dir.PerformIoV(guard, &writev, data.data(), list_size,
-                          impl::TransferMode::kWhole, deadline, "SendAll to ",
-                          peername_);
-  }
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+  return dir.PerformIoV(guard, &writev, const_cast<struct iovec*>(list),
+                        list_size, impl::TransferMode::kWhole, deadline,
+                        "SendAll to ", peername_);
 }
 
 size_t Socket::SendAll(const void* buf, size_t len, Deadline deadline) {

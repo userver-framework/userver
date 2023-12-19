@@ -1,12 +1,11 @@
 #include "http_request_impl.hpp"
 
-#include <logging/spdlog.hpp>
-
-#include <logging/logger_with_info.hpp>
 #include <server/handlers/http_handler_base_statistics.hpp>
+#include <userver/engine/io/socket.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/http/parser/http_request_parse_args.hpp>
+#include <userver/logging/impl/logger_base.hpp>
 #include <userver/logging/logger.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/encoding/tskv.hpp>
@@ -14,6 +13,10 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace {
+
+constexpr size_t kBucketCount = 16;
+
+constexpr size_t kZeroAllocationBucketCount = 0;
 
 std::string EscapeLogString(const std::string& str,
                             const std::vector<uint8_t>& need_escape_map) {
@@ -68,8 +71,17 @@ const std::vector<std::string> kEmptyVector{};
 
 namespace server::http {
 
+// Use hash_function() magic to pass out the same RNG seed among all
+// unordered_maps because we don't need different seeds and want to avoid its
+// overhead.
 HttpRequestImpl::HttpRequestImpl(request::ResponseDataAccounter& data_accounter)
-    : response_(*this, data_accounter) {}
+    : form_data_args_(kZeroAllocationBucketCount,
+                      request_args_.hash_function()),
+      path_args_by_name_index_(kZeroAllocationBucketCount,
+                               request_args_.hash_function()),
+      headers_(kBucketCount),
+      cookies_(kZeroAllocationBucketCount, request_args_.hash_function()),
+      response_(*this, data_accounter) {}
 
 HttpRequestImpl::~HttpRequestImpl() = default;
 
@@ -85,22 +97,25 @@ const std::string& HttpRequestImpl::GetHost() const {
   return GetHeader(USERVER_NAMESPACE::http::headers::kHost);
 }
 
-const std::string& HttpRequestImpl::GetArg(const std::string& arg_name) const {
-  auto it = request_args_.find(arg_name);
-  if (it == request_args_.end()) return kEmptyString;
-  return it->second.at(0);
+const std::string& HttpRequestImpl::GetArg(std::string_view arg_name) const {
+  const auto* ptr =
+      utils::impl::FindTransparentOrNullptr(request_args_, arg_name);
+  if (!ptr) return kEmptyString;
+  return ptr->at(0);
 }
 
 const std::vector<std::string>& HttpRequestImpl::GetArgVector(
-    const std::string& arg_name) const {
-  auto it = request_args_.find(arg_name);
-  if (it == request_args_.end()) return kEmptyVector;
-  return it->second;
+    std::string_view arg_name) const {
+  const auto* ptr =
+      utils::impl::FindTransparentOrNullptr(request_args_, arg_name);
+  if (!ptr) return kEmptyVector;
+  return *ptr;
 }
 
-bool HttpRequestImpl::HasArg(const std::string& arg_name) const {
-  auto it = request_args_.find(arg_name);
-  return (it != request_args_.end());
+bool HttpRequestImpl::HasArg(std::string_view arg_name) const {
+  const auto* ptr =
+      utils::impl::FindTransparentOrNullptr(request_args_, arg_name);
+  return !!ptr;
 }
 
 size_t HttpRequestImpl::ArgCount() const { return request_args_.size(); }
@@ -113,26 +128,29 @@ std::vector<std::string> HttpRequestImpl::ArgNames() const {
 }
 
 const FormDataArg& HttpRequestImpl::GetFormDataArg(
-    const std::string& arg_name) const {
+    std::string_view arg_name) const {
   static const FormDataArg kEmptyFormDataArg{};
 
-  auto it = form_data_args_.find(arg_name);
-  if (it == form_data_args_.end()) return kEmptyFormDataArg;
-  return it->second.at(0);
+  const auto* ptr =
+      utils::impl::FindTransparentOrNullptr(form_data_args_, arg_name);
+  if (!ptr) return kEmptyFormDataArg;
+  return ptr->at(0);
 }
 
 const std::vector<FormDataArg>& HttpRequestImpl::GetFormDataArgVector(
-    const std::string& arg_name) const {
+    std::string_view arg_name) const {
   static const std::vector<FormDataArg> kEmptyFormDataArgVector{};
 
-  auto it = form_data_args_.find(arg_name);
-  if (it == form_data_args_.end()) return kEmptyFormDataArgVector;
-  return it->second;
+  const auto* ptr =
+      utils::impl::FindTransparentOrNullptr(form_data_args_, arg_name);
+  if (!ptr) return kEmptyFormDataArgVector;
+  return *ptr;
 }
 
-bool HttpRequestImpl::HasFormDataArg(const std::string& arg_name) const {
-  auto it = form_data_args_.find(arg_name);
-  return (it != form_data_args_.end());
+bool HttpRequestImpl::HasFormDataArg(std::string_view arg_name) const {
+  const auto* ptr =
+      utils::impl::FindTransparentOrNullptr(form_data_args_, arg_name);
+  return !!ptr;
 }
 
 size_t HttpRequestImpl::FormDataArgCount() const {
@@ -147,20 +165,21 @@ std::vector<std::string> HttpRequestImpl::FormDataArgNames() const {
 }
 
 const std::string& HttpRequestImpl::GetPathArg(
-    const std::string& arg_name) const {
-  auto it = path_args_by_name_index_.find(arg_name);
-  if (it == path_args_by_name_index_.end()) return kEmptyString;
-  UASSERT(it->second < path_args_.size());
-  return path_args_[it->second];
+    std::string_view arg_name) const {
+  const auto* ptr =
+      utils::impl::FindTransparentOrNullptr(path_args_by_name_index_, arg_name);
+  if (!ptr) return kEmptyString;
+  UASSERT(*ptr < path_args_.size());
+  return path_args_[*ptr];
 }
 
 const std::string& HttpRequestImpl::GetPathArg(size_t index) const {
   return index < PathArgCount() ? path_args_[index] : kEmptyString;
 }
 
-bool HttpRequestImpl::HasPathArg(const std::string& arg_name) const {
-  return path_args_by_name_index_.find(arg_name) !=
-         path_args_by_name_index_.end();
+bool HttpRequestImpl::HasPathArg(std::string_view arg_name) const {
+  return !!utils::impl::FindTransparentOrNullptr(path_args_by_name_index_,
+                                                 arg_name);
 }
 
 bool HttpRequestImpl::HasPathArg(size_t index) const {
@@ -170,21 +189,47 @@ bool HttpRequestImpl::HasPathArg(size_t index) const {
 size_t HttpRequestImpl::PathArgCount() const { return path_args_.size(); }
 
 const std::string& HttpRequestImpl::GetHeader(
-    const std::string& header_name) const {
+    std::string_view header_name) const {
   auto it = headers_.find(header_name);
   if (it == headers_.end()) return kEmptyString;
   return it->second;
 }
 
-bool HttpRequestImpl::HasHeader(const std::string& header_name) const {
+const std::string& HttpRequestImpl::GetHeader(
+    const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name)
+    const {
   auto it = headers_.find(header_name);
-  return (it != headers_.end());
+  if (it == headers_.end()) return kEmptyString;
+  return it->second;
+}
+
+bool HttpRequestImpl::HasHeader(std::string_view header_name) const {
+  return headers_.count(header_name) != 0;
+}
+
+bool HttpRequestImpl::HasHeader(
+    const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name)
+    const {
+  return headers_.count(header_name) != 0;
 }
 
 size_t HttpRequestImpl::HeaderCount() const { return headers_.size(); }
 
+void HttpRequestImpl::RemoveHeader(std::string_view header_name) {
+  headers_.erase(header_name);
+}
+
+void HttpRequestImpl::RemoveHeader(
+    const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name) {
+  headers_.erase(header_name);
+}
+
 HttpRequest::HeadersMapKeys HttpRequestImpl::GetHeaderNames() const {
   return HttpRequest::HeadersMapKeys{headers_};
+}
+
+const HttpRequest::HeadersMap& HttpRequestImpl::GetHeaders() const {
+  return headers_;
 }
 
 const std::string& HttpRequestImpl::GetCookie(
@@ -204,17 +249,33 @@ HttpRequest::CookiesMapKeys HttpRequestImpl::GetCookieNames() const {
   return HttpRequest::CookiesMapKeys{cookies_};
 }
 
+const HttpRequest::CookiesMap& HttpRequestImpl::GetCookies() const {
+  return cookies_;
+}
+
 void HttpRequestImpl::SetRequestBody(std::string body) {
   request_body_ = std::move(body);
 }
 
 void HttpRequestImpl::ParseArgsFromBody() {
-  USERVER_NAMESPACE::http::parser::ParseArgs(request_body_, request_args_);
+  UASSERT_MSG(
+      request_args_.empty(),
+      "References to arguments could be invalidated by ParseArgsFromBody()");
+  USERVER_NAMESPACE::http::parser::ParseAndConsumeArgs(
+      request_body_, [this](std::string&& key, std::string&& value) {
+        request_args_[std::move(key)].push_back(std::move(value));
+      });
 }
 
 bool HttpRequestImpl::IsBodyCompressed() const {
-  auto encoding = GetHeader(USERVER_NAMESPACE::http::headers::kContentEncoding);
+  const auto& encoding =
+      GetHeader(USERVER_NAMESPACE::http::headers::kContentEncoding);
   return !encoding.empty() && encoding != "identity";
+}
+
+void HttpRequestImpl::DoUpgrade(std::unique_ptr<engine::io::RwBase>&& socket,
+                                engine::io::Sockaddr&& peer_name) const {
+  upgrade_websocket_cb_(std::move(socket), std::move(peer_name));
 }
 
 void HttpRequestImpl::SetPathArgs(
@@ -239,8 +300,8 @@ void HttpRequestImpl::AccountResponseTime() {
   UASSERT(request_statistics_);
   auto timing = std::chrono::duration_cast<std::chrono::milliseconds>(
       finish_send_response_time_ - start_time_);
-  request_statistics_->Account(GetMethod(),
-                               handlers::HttpRequestStatisticsEntry{timing});
+  request_statistics_->ForMethod(GetMethod())
+      .Account(handlers::HttpRequestStatisticsEntry{timing});
 }
 
 void HttpRequestImpl::MarkAsInternalServerError() const {
@@ -273,70 +334,80 @@ void HttpRequestImpl::SetHttpHandlerStatistics(
 void HttpRequestImpl::WriteAccessLogs(
     const logging::LoggerPtr& logger_access,
     const logging::LoggerPtr& logger_access_tskv,
-    std::chrono::system_clock::time_point tp,
     const std::string& remote_address) const {
+  if (!logger_access && !logger_access_tskv) return;
+
+  const auto tp = utils::datetime::WallCoarseClock::now();
   WriteAccessLog(logger_access, tp, remote_address);
   WriteAccessTskvLog(logger_access_tskv, tp, remote_address);
 }
 
-void HttpRequestImpl::WriteAccessLog(const logging::LoggerPtr& logger_access,
-                                     std::chrono::system_clock::time_point tp,
-                                     const std::string& remote_address) const {
+void HttpRequestImpl::WriteAccessLog(
+    const logging::LoggerPtr& logger_access,
+    utils::datetime::WallCoarseClock::time_point tp,
+    const std::string& remote_address) const {
   if (!logger_access) return;
 
-  logger_access->ptr->info(
-      R"([{}] {} {} "{} {} HTTP/{}.{}" {} "{}" "{}" "{}" {:0.6f} - {} {:0.6f})",
-      utils::datetime::LocalTimezoneTimestring(tp, "%Y-%m-%d %H:%M:%E6S %Ez"),
-      EscapeForAccessLog(GetHost()), EscapeForAccessLog(remote_address),
-      EscapeForAccessLog(GetOrigMethodStr()), EscapeForAccessLog(GetUrl()),
-      GetHttpMajor(), GetHttpMinor(), static_cast<int>(response_.GetStatus()),
-      EscapeForAccessLog(GetHeader("Referer")),
-      EscapeForAccessLog(GetHeader("User-Agent")),
-      EscapeForAccessLog(GetHeader("Cookie")), GetRequestTime().count(),
-      GetResponse().BytesSent(), GetResponseTime().count());
+  logger_access->Log(
+      logging::Level::kInfo,
+      fmt::format(
+          R"([{}] {} {} "{} {} HTTP/{}.{}" {} "{}" "{}" "{}" {:0.6f} - {} {:0.6f})",
+          utils::datetime::LocalTimezoneTimestring(tp,
+                                                   "%Y-%m-%d %H:%M:%E6S %Ez"),
+          EscapeForAccessLog(GetHost()), EscapeForAccessLog(remote_address),
+          EscapeForAccessLog(GetMethodStr()), EscapeForAccessLog(GetUrl()),
+          GetHttpMajor(), GetHttpMinor(),
+          static_cast<int>(response_.GetStatus()),
+          EscapeForAccessLog(GetHeader("Referer")),
+          EscapeForAccessLog(GetHeader("User-Agent")),
+          EscapeForAccessLog(GetHeader("Cookie")), GetRequestTime().count(),
+          GetResponse().BytesSent(), GetResponseTime().count()));
 }
 
 void HttpRequestImpl::WriteAccessTskvLog(
     const logging::LoggerPtr& logger_access_tskv,
-    std::chrono::system_clock::time_point tp,
+    utils::datetime::WallCoarseClock::time_point tp,
     const std::string& remote_address) const {
   if (!logger_access_tskv) return;
 
-  logger_access_tskv->ptr->info(
-      "tskv"
-      "\t{}"
-      "\tstatus={}"
-      "\tprotocol=HTTP/{}.{}"
-      "\tmethod={}"
-      "\trequest={}"
-      "\treferer={}"
-      "\tcookies={}"
-      "\tuser_agent={}"
-      "\tvhost={}"
-      "\tip={}"
-      "\tx_forwarded_for={}"
-      "\tx_real_ip={}"
-      "\tupstream_http_x_yarequestid={}"
-      "\thttp_host={}"
-      "\tremote_addr={}"
-      "\trequest_time={:0.3f}"
-      "\tupstream_response_time={:0.3f}"
-      "\trequest_body={}",
-      utils::datetime::LocalTimezoneTimestring(
-          tp, "timestamp=%Y-%m-%dT%H:%M:%S\ttimezone=%Ez"),
-      static_cast<int>(response_.GetStatus()), GetHttpMajor(), GetHttpMinor(),
-      EscapeForAccessTskvLog(GetOrigMethodStr()),
-      EscapeForAccessTskvLog(GetUrl()),
-      EscapeForAccessTskvLog(GetHeader("Referer")),
-      EscapeForAccessTskvLog(GetHeader("Cookie")),
-      EscapeForAccessTskvLog(GetHeader("User-Agent")),
-      EscapeForAccessTskvLog(GetHost()), EscapeForAccessTskvLog(remote_address),
-      EscapeForAccessTskvLog(GetHeader("X-Forwarded-For")),
-      EscapeForAccessTskvLog(GetHeader("X-Real-IP")),
-      EscapeForAccessTskvLog(GetHeader("X-YaRequestId")),
-      EscapeForAccessTskvLog(GetHost()), EscapeForAccessTskvLog(remote_address),
-      GetRequestTime().count(), GetResponseTime().count(),
-      EscapeForAccessTskvLog(RequestBody()));
+  logger_access_tskv->Log(
+      logging::Level::kInfo,
+      fmt::format("tskv"
+                  "\t{}"
+                  "\tstatus={}"
+                  "\tprotocol=HTTP/{}.{}"
+                  "\tmethod={}"
+                  "\trequest={}"
+                  "\treferer={}"
+                  "\tcookies={}"
+                  "\tuser_agent={}"
+                  "\tvhost={}"
+                  "\tip={}"
+                  "\tx_forwarded_for={}"
+                  "\tx_real_ip={}"
+                  "\tupstream_http_x_yarequestid={}"
+                  "\thttp_host={}"
+                  "\tremote_addr={}"
+                  "\trequest_time={:0.3f}"
+                  "\tupstream_response_time={:0.3f}"
+                  "\trequest_body={}",
+                  utils::datetime::LocalTimezoneTimestring(
+                      tp, "timestamp=%Y-%m-%dT%H:%M:%S\ttimezone=%Ez"),
+                  static_cast<int>(response_.GetStatus()), GetHttpMajor(),
+                  GetHttpMinor(), EscapeForAccessTskvLog(GetMethodStr()),
+                  EscapeForAccessTskvLog(GetUrl()),
+                  EscapeForAccessTskvLog(GetHeader("Referer")),
+                  EscapeForAccessTskvLog(GetHeader("Cookie")),
+                  EscapeForAccessTskvLog(GetHeader("User-Agent")),
+                  EscapeForAccessTskvLog(GetHost()),
+                  EscapeForAccessTskvLog(remote_address),
+                  EscapeForAccessTskvLog(GetHeader("X-Forwarded-For")),
+                  EscapeForAccessTskvLog(GetHeader("X-Real-IP")),
+                  EscapeForAccessTskvLog(GetHeader("X-YaRequestId")),
+                  EscapeForAccessTskvLog(GetHost()),
+                  EscapeForAccessTskvLog(remote_address),
+                  GetRequestTime().count(), GetResponseTime().count(),
+                  EscapeForAccessTskvLog(RequestBody())));
 }
 
 }  // namespace server::http

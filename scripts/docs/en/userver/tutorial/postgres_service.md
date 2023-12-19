@@ -2,7 +2,7 @@
 
 ## Before you start
 
-Make sure that you can compile and run core tests and read a basic example @ref md_en_userver_tutorial_hello_service.
+Make sure that you can compile and run core tests and read a basic example @ref scripts/docs/en/userver/tutorial/hello_service.md.
 
 Note that there is a ready to use opensource
 [pg service template](https://github.com/userver-framework/pg_service_template)
@@ -20,7 +20,7 @@ In this tutorial we will write a service that is a simple key-value storage on t
 
 ### HTTP handler component
 
-Like in @ref md_en_userver_tutorial_hello_service we create a component for handling HTTP requests:
+Like in @ref scripts/docs/en/userver/tutorial/hello_service.md we create a component for handling HTTP requests:
 
 @snippet samples/postgres_service/postgres_service.cpp  Postgres service sample - component
 
@@ -41,7 +41,7 @@ In this sample we use a single handler to deal with all the HTTP methods. The Ke
 
 @snippet samples/postgres_service/postgres_service.cpp  Postgres service sample - HandleRequestThrow
 
-@warning `Handle*` functions are invoked concurrently on the same instance of the handler class. In this sample the KeyValue component only uses the thread safe DB client. In more complex cases @ref md_en_userver_synchronization "synchronization primitives" should be used or data must not be mutated.
+@warning `Handle*` functions are invoked concurrently on the same instance of the handler class. In this sample the KeyValue component only uses the thread safe DB client. In more complex cases @ref scripts/docs/en/userver/synchronization.md "synchronization primitives" should be used or data must not be mutated.
 
 
 ### KeyValue::GetValue
@@ -71,36 +71,29 @@ Note that mutating queries should be executed on a master instance.
 
 ### Static config
 
-Static configuration of service is quite close to the configuration from @ref md_en_userver_tutorial_hello_service
+Static configuration of service is quite close to the configuration from @ref scripts/docs/en/userver/tutorial/hello_service.md
 except for the handler and DB:
 
 @snippet samples/postgres_service/static_config.yaml  Postgres service sample - static config
 
-
-### Dynamic config
-
-We are not planning to get new dynamic config values in this sample. Because of
-that we just write the defaults to the fallback file of the
-`components::DynamicConfigFallbacks` component:
-@ref samples/postgres_service/dynamic_config_fallback.json
-
-All the values are described in a separate section
-@ref md_en_schemas_dynamic_configs .
-
-A production ready service would dynamically retrieve the above options at runtime from a configuration service. See
-@ref md_en_userver_tutorial_config_service for insights on how to change the
-above options on the fly, without restarting the service.
+Note the `dynamic-config.defaults` usage. In
+@ref scripts/docs/en/userver/tutorial/production_service.md "production ready service"
+those values are usually retrieved from remote server, so that they could be
+changed at runtime without any need to restart the service. See
+@ref scripts/docs/en/schemas/dynamic_configs.md for more info.
 
 
 ### int main()
 
-Finally, after writing down the dynamic config values into file at `dynamic-config-fallbacks.fallback-path`, we
+Finally, we
 add our component to the components::MinimalServerComponentList(),
 and start the server with static config `kStaticConfig`.
 
 @snippet samples/postgres_service/postgres_service.cpp  Postgres service sample - main
 
-### Build
+
+### Build and Run
+
 To build the sample, execute the following build steps at the userver root directory:
 ```
 mkdir build_release
@@ -109,7 +102,15 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 make userver-samples-postgres_service
 ```
 
-Start the DB server and then start the service by running `./samples/postgres_service/userver-samples-postgres_service`.
+The sample could be started by running
+`make start-userver-samples-postgres_service`. The command would invoke
+@ref scripts/docs/en/userver/functional_testing.md "testsuite start target" that sets proper
+paths in the configuration files, prepares and starts the DB, and starts the
+service.
+
+To start the service manually start the DB server and run
+`./samples/postgres_service/userver-samples-postgres_service -c </path/to/static_config.yaml>`.
+
 Now you can send a request to your service from another terminal:
 ```
 bash
@@ -153,17 +154,19 @@ Content-Length: 1
 
 
 ### Functional testing
-@ref md_en_userver_functional_testing "Functional tests" for the service could be
+@ref scripts/docs/en/userver/functional_testing.md "Functional tests" for the service could be
 implemented using the testsuite. To do that you have to:
 
-* Provide PostgreSQL schema to start the database:
-@snippet samples/postgres_service/tests/conftest.py psql prepare
-
-* Tell the testsuite to start the PostgreSQL database:
-@snippet samples/postgres_service/tests/conftest.py client_deps
+* Turn on the pytest_userver.plugins.postgresql plugin and provide PostgreSQL
+  schema to start the database:
+  @snippet samples/postgres_service/tests/conftest.py psql prepare
+  The @ref pytest_userver.plugins.service_client.auto_client_deps "auto_client_deps"
+  fixture already knows about the pgsql fixture, so there's no need to override
+  the @ref pytest_userver.plugins.service_client.extra_client_deps "extra_client_deps"
+  fixture.
 
 * Write the test:
-@snippet samples/postgres_service/tests/test_postgres.py  Functional test
+  @snippet samples/postgres_service/tests/test_postgres.py  Functional test
 
 
 ## Full sources
@@ -171,7 +174,6 @@ implemented using the testsuite. To do that you have to:
 See the full example:
 * @ref samples/postgres_service/postgres_service.cpp
 * @ref samples/postgres_service/static_config.yaml
-* @ref samples/postgres_service/dynamic_config_fallback.json
 * @ref samples/postgres_service/CMakeLists.txt
 * @ref samples/postgres_service/tests/conftest.py
 * @ref samples/postgres_service/tests/test_postgres.py
@@ -179,12 +181,11 @@ See the full example:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_tutorial_grpc_service | @ref md_en_userver_tutorial_mongo_service ⇨
+⇦ @ref scripts/docs/en/userver/tutorial/grpc_middleware_service.md | @ref scripts/docs/en/userver/tutorial/mongo_service.md ⇨
 @htmlonly </div> @endhtmlonly
 
 @example samples/postgres_service/postgres_service.cpp
 @example samples/postgres_service/static_config.yaml
-@example samples/postgres_service/dynamic_config_fallback.json
 @example samples/postgres_service/CMakeLists.txt
 @example samples/postgres_service/tests/conftest.py
 @example samples/postgres_service/tests/test_postgres.py

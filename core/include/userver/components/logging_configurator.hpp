@@ -1,11 +1,19 @@
 #pragma once
 
+/// @file userver/components/logging_configurator.hpp
+/// @brief @copybrief components::LoggingConfigurator
+
 #include <userver/components/component_fwd.hpp>
 #include <userver/components/impl/component_base.hpp>
 #include <userver/concurrent/async_event_source.hpp>
 #include <userver/dynamic_config/source.hpp>
+#include <userver/rcu/rcu.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace logging {
+struct DynamicDebugConfig;
+}
 
 namespace components {
 
@@ -19,6 +27,7 @@ namespace components {
 /// introduces circular dependency between Logger and DynamicConfig.
 ///
 /// ## Dynamic config
+/// * @ref USERVER_LOG_DYNAMIC_DEBUG
 /// * @ref USERVER_NO_LOG_SPANS
 ///
 /// ## Static options:
@@ -34,7 +43,9 @@ namespace components {
 // clang-format on
 class LoggingConfigurator final : public impl::ComponentBase {
  public:
-  static constexpr auto kName = "logging-configurator";
+  /// @ingroup userver_component_names
+  /// @brief The default name of components::LoggingConfigurator component
+  static constexpr std::string_view kName = "logging-configurator";
 
   LoggingConfigurator(const ComponentConfig& config,
                       const ComponentContext& context);
@@ -47,6 +58,7 @@ class LoggingConfigurator final : public impl::ComponentBase {
   void OnConfigUpdate(const dynamic_config::Snapshot& config);
 
   concurrent::AsyncEventSubscriberScope config_subscription_;
+  rcu::Variable<logging::DynamicDebugConfig> dynamic_debug_;
 };
 
 /// }@

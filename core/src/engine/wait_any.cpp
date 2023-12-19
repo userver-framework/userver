@@ -8,8 +8,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
 
-std::optional<std::size_t> DoWaitAny(
-    utils::impl::Span<ContextAccessor*> targets, Deadline deadline) {
+std::optional<std::size_t> DoWaitAny(utils::span<ContextAccessor*> targets,
+                                     Deadline deadline) {
   UASSERT_MSG(AreUniqueValues(targets),
               "Same tasks/futures were detected in WaitAny* call");
   bool none_valid = true;
@@ -23,9 +23,6 @@ std::optional<std::size_t> DoWaitAny(
   if (none_valid) return std::nullopt;
 
   auto& current = current_task::GetCurrentTaskContext();
-  if (current.ShouldCancel()) {
-    throw WaitInterruptedException(current.CancellationReason());
-  }
   WaitAnyWaitStrategy wait_strategy(deadline, targets, current);
   current.Sleep(wait_strategy);
 

@@ -18,7 +18,7 @@ Disadvantages:
   users (for example, logging or other caches).
 
 ## How to set up cache dumps
-0.  Make a caching component, for example as in @ref md_en_userver_tutorial_http_caching.
+0.  Make a caching component, for example as in @ref scripts/docs/en/userver/tutorial/http_caching.md.
 1.  Ensure that your data type is dumpable. To do that, add a static_assert
     into the header file of your caching component or near your
     type declaration:
@@ -227,6 +227,6 @@ Example:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_caches | @ref pg_cache ⇨
+⇦ @ref scripts/docs/en/userver/caches.md | @ref pg_cache ⇨
 @htmlonly </div> @endhtmlonly
 

@@ -14,30 +14,16 @@
 USERVER_NAMESPACE_BEGIN
 namespace {
 
-const auto kTmpDir = fs::blocking::TempDirectory::Create();
-const std::string kRuntimeConfingPath =
-    kTmpDir.GetPath() + "/runtime_config.json";
-const std::string kConfigVariablesPath =
-    kTmpDir.GetPath() + "/config_vars.json";
-
-const std::string kConfigVariables =
-    fmt::format("runtime_config_path: {}", kRuntimeConfingPath);
-
 // BEWARE! No separate fs-task-processor. Testing almost single thread mode
-const std::string kStaticConfig = R"(
+constexpr std::string_view kStaticConfig = R"(
 components_manager:
-  coro_pool:
-    initial_size: 50
-    max_size: 500
   default_task_processor: main-task-processor
   event_thread_pool:
     threads: 1
   task_processors:
     main-task-processor:
-      thread_name: main-worker
       worker_threads: 1
   components:
-    manager-controller:  # Nothing
 # /// [Sample lru cache component config]
 # yaml
     example-cache:
@@ -51,25 +37,7 @@ components_manager:
       loggers:
         default:
           file_path: '@null'
-    tracer:
-        service-name: config-service
-    statistics-storage:
-      # Nothing
     testsuite-support:
-      testsuite-periodic-update-enabled: true
-      testsuite-pg-execute-timeout: 300ms
-      testsuite-pg-statement-timeout: 300ms
-      testsuite-pg-readonly-master-expected: false
-      testsuite-redis-timeout-connect: 5s
-      testsuite-redis-timeout-single: 1s
-      testsuite-redis-timeout-all: 750ms
-    dynamic-config:
-      fs-cache-path: $runtime_config_path
-      fs-task-processor: main-task-processor
-    dynamic-config-fallbacks:
-      fallback-path: $runtime_config_path
-config_vars: )" + kConfigVariablesPath +
-                                  R"(
 )";
 
 void ValidateExampleCacheConfig(const formats::yaml::Value& static_config) {
@@ -81,14 +49,13 @@ void ValidateExampleCacheConfig(const formats::yaml::Value& static_config) {
 }  // namespace
 
 TEST_F(ComponentList, LruCacheComponentSample) {
+  const auto temp_root = fs::blocking::TempDirectory::Create();
+
   /// [Sample lru cache component registration]
   auto component_list = components::MinimalComponentList();
   component_list.Append<ExampleCacheComponent>();
   /// [Sample lru cache component registration]
   component_list.Append<components::TestsuiteSupport>();
-
-  fs::blocking::RewriteFileContents(kRuntimeConfingPath, tests::kRuntimeConfig);
-  fs::blocking::RewriteFileContents(kConfigVariablesPath, kConfigVariables);
 
   components::RunOnce(components::InMemoryConfig{kStaticConfig},
                       component_list);
@@ -96,7 +63,7 @@ TEST_F(ComponentList, LruCacheComponentSample) {
 
 TEST(StaticConfigValidator, ValidConfig) {
   ValidateExampleCacheConfig(formats::yaml::FromString(
-      kStaticConfig)["components_manager"]["components"]);
+      std::string{kStaticConfig})["components_manager"]["components"]);
 }
 
 TEST(StaticConfigValidator, InvalidFieldName) {

@@ -74,10 +74,9 @@ Example usage:
 ### Mocked time
 
 - To mock time, use `utils::datetime::Now()` and `utils::datetime::SteadyNow()` from `<userver/utils/datetime.hpp>` instead of `std::chrono::system_clock::now()` and `std::chrono::steady_clock::now()`, respectively 
-- Enable mocked time controls by adding `MOCK_NOW=1` preprocessor definition to your test CMake target
 - Control the mocked time in tests using `<userver/utils/mock_now.hpp>`
 
-@snippet shared/src/utils/mock_now_test.cpp  Mocked time sample
+@snippet universal/src/utils/mock_now_test.cpp  Mocked time sample
 
 @anchor utest-dynamic-config
 ### Mocked dynamic config
@@ -90,7 +89,7 @@ using `dynamic_config::StorageMock`.
 If you don't want to specify all configs used by the tested code, you can use default dynamic config.
 
 To use default dynamic config values in tests, add
-`DEFAULT_TAXI_CONFIG_FILENAME` preprocessor definition to your test CMake target, specifying the path of a YAML file
+`DEFAULT_DYNAMIC_CONFIG_FILENAME` preprocessor definition to your test CMake target, specifying the path of a YAML file
 with `dynamic_config::DocsMap` contents.
 
 Default dynamic config values can be accessed using `<dynamic_config/test_helpers.hpp>`:
@@ -147,12 +146,12 @@ Use `engine::RunStandalone` to run parts of your benchmark in a coroutine enviro
 
 See the [equivalent utest section](#utest-dynamic-config).
 
-Default dynamic configs are available
-in `<userver/dynamic_config/benchmark_helpers.hpp>`.
+Default dynamic configs are available in
+in `<userver/dynamic_config/test_helpers.hpp>`.
 
 
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_task_processors_guide | @ref md_en_userver_functional_testing ⇨
+⇦ @ref scripts/docs/en/userver/periodics.md | @ref scripts/docs/en/userver/functional_testing.md ⇨
 @htmlonly </div> @endhtmlonly

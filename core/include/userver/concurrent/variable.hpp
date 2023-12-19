@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdlib>
 #include <mutex>
 #include <optional>
 #include <shared_mutex>  // for shared_lock
@@ -53,7 +54,7 @@ class LockedPtr final {
 ///
 /// @snippet concurrent/variable_test.cpp  Sample concurrent::Variable usage
 ///
-/// @see @ref md_en_userver_synchronization
+/// @see @ref scripts/docs/en/userver/synchronization.md
 template <typename Data, typename Mutex = engine::Mutex>
 class Variable final {
  public:

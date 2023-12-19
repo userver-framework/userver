@@ -7,6 +7,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
 
+SubscribeClient::~SubscribeClient() = default;
+
 SubscribeClientImpl::SubscribeClientImpl(
     std::shared_ptr<USERVER_NAMESPACE::redis::SubscribeSentinel>
         subscribe_sentinel)
@@ -31,6 +33,10 @@ SubscriptionToken SubscribeClientImpl::Psubscribe(
 void SubscribeClientImpl::WaitConnectedOnce(
     USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected) {
   redis_client_->WaitConnectedOnce(wait_connected);
+}
+
+size_t SubscribeClientImpl::ShardsCount() const {
+  return redis_client_->ShardsCount();
 }
 
 USERVER_NAMESPACE::redis::SubscribeSentinel& SubscribeClientImpl::GetNative()

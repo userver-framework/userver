@@ -16,6 +16,9 @@ void FinishStaticInit();
 void InitMockNow();
 
 void SetLogLevel(logging::Level);
+
+void InitPhdrCache();
+void TeardownPhdrCache();
 ///@}
 
 }  // namespace utest::impl

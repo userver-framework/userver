@@ -386,6 +386,10 @@ TEST(PostgreError, SqlStateDataException) {
             pg::GetSqlStateClass(pg::SqlState::kInvalidXmlComment));
   EXPECT_EQ(pg::SqlState::kInvalidXmlProcessingInstruction,
             pg::SqlStateFromString("2200T"));
+}
+
+TEST(PostgreError, SqlStateDataException2) {
+  // Class 22 — Data Exception
   EXPECT_EQ(
       pg::SqlStateClass::kDataException,
       pg::GetSqlStateClass(pg::SqlState::kInvalidXmlProcessingInstruction));

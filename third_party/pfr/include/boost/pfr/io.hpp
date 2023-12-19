@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2021 Antony Polukhin
+// Copyright (c) 2016-2023 Antony Polukhin
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -89,17 +89,17 @@ enable_istreamable_t<std::basic_istream<Char, Traits>, T> operator>>(std::basic_
 
 } // namespace detail
 
-/// IO manupulator to read/write \aggregate `value` using its IO stream operators or using \forcedlink{io_fields} if operators are not awailable.
+/// IO manipulator to read/write \aggregate `value` using its IO stream operators or using \forcedlink{io_fields} if operators are not available.
 ///
 /// \b Example:
 /// \code
 ///     struct my_struct { int i; short s; };
-///     my_struct s;
+///     my_struct x;
 ///     std::stringstream ss;
 ///     ss << "{ 12, 13 }";
-///     ss >> boost::pfr::io(s);
-///     assert(s.i == 12);
-///     assert(s.i == 13);
+///     ss >> boost::pfr::io(x);
+///     assert(x.i == 12);
+///     assert(x.s == 13);
 /// \endcode
 ///
 /// \customio

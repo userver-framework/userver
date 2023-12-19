@@ -24,6 +24,8 @@ class ProcessStarter : public LoggableComponentBase {
   ProcessStarter(const ComponentConfig& config,
                  const ComponentContext& context);
 
+  /// @ingroup userver_component_names
+  /// @brief The default name of components::ProcessStarter component
   static constexpr std::string_view kName = "process-starter";
 
   engine::subprocess::ProcessStarter& Get() { return process_starter_; }

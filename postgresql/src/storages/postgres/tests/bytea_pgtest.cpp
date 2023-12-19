@@ -76,19 +76,19 @@ TEST(PostgreIO, Bytea) {
 }
 
 UTEST_P(PostgreConnection, ByteaRoundtrip) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   pg::ResultSet res{nullptr};
-  UEXPECT_NO_THROW(res = conn->Execute("select $1", pg::Bytea(kFooBar)));
+  UEXPECT_NO_THROW(res = GetConn()->Execute("select $1", pg::Bytea(kFooBar)));
   std::string tgt_str;
   UEXPECT_NO_THROW(res[0][0].To(pg::Bytea(tgt_str)));
   EXPECT_EQ(kFooBar, tgt_str);
 }
 
 UTEST_P(PostgreConnection, ByteaOwningRoundtrip) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   pg::ResultSet res{nullptr};
   const pg::ByteaWrapper<std::string> wrapped{kFooBar};
-  UEXPECT_NO_THROW(res = conn->Execute("select $1", wrapped));
+  UEXPECT_NO_THROW(res = GetConn()->Execute("select $1", wrapped));
   pg::ByteaWrapper<std::string> returned;
   res[0][0].To(returned);
   UEXPECT_NO_THROW(res[0][0].To(returned));
@@ -96,11 +96,24 @@ UTEST_P(PostgreConnection, ByteaOwningRoundtrip) {
 }
 
 UTEST_P(PostgreConnection, ByteaStored) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   pg::ResultSet res{nullptr};
   UEXPECT_NO_THROW(
-      res = conn->Execute("select $1",
-                          pg::ParameterStore{}.PushBack(pg::Bytea(kFooBar))));
+      res = GetConn()->Execute(
+          "select $1", pg::ParameterStore{}.PushBack(pg::Bytea(kFooBar))));
+  std::string tgt_str;
+  UEXPECT_NO_THROW(res[0][0].To(pg::Bytea(tgt_str)));
+  EXPECT_EQ(kFooBar, tgt_str);
+}
+
+UTEST_P(PostgreConnection, ByteaStoredMoved) {
+  CheckConnection(GetConn());
+  pg::ResultSet res{nullptr};
+  pg::ParameterStore store{};
+  store.PushBack(pg::Bytea(kFooBar));
+  pg::ParameterStore store_moved;
+  store_moved = std::move(store);
+  UEXPECT_NO_THROW(res = GetConn()->Execute("select $1", store_moved));
   std::string tgt_str;
   UEXPECT_NO_THROW(res[0][0].To(pg::Bytea(tgt_str)));
   EXPECT_EQ(kFooBar, tgt_str);

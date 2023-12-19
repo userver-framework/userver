@@ -22,6 +22,7 @@ struct ClientConfig {
   std::chrono::milliseconds timeout{0};
   int retries{1};
   std::string config_url;
+  bool append_path_to_url{true};
   std::string stage_name;
   bool fallback_to_no_proxy{true};
 };

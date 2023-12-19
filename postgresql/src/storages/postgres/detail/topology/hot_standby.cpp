@@ -10,7 +10,6 @@
 
 #include <fmt/format.h>
 
-#include <crypto/openssl.hpp>
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/internal_pg_types.hpp>
 #include <storages/postgres/io/pg_type_parsers.hpp>
@@ -142,7 +141,6 @@ HotStandby::HotStandby(engine::TaskProcessor& bg_task_processor, DsnList dsns,
                    testsuite_pg_ctl, std::move(ei_settings)),
       host_states_{GetDsnList().begin(), GetDsnList().end()},
       dsn_stats_(GetDsnList().size()) {
-  crypto::impl::Openssl::Init();
   RunDiscovery();
 
   discovery_task_.Start(
@@ -314,11 +312,11 @@ void HotStandby::RunCheck(DsnIndex idx) {
     const auto& wal_info_stmts =
         GetWalInfoStatementsForVersion(state.connection->GetServerVersion());
     std::optional<std::chrono::system_clock::time_point> current_xact_timestamp;
-    state.connection
-        ->Execute(state.connection->IsInRecovery() ? wal_info_stmts.slave
-                                                   : wal_info_stmts.master)
-        .Front()
-        .To(state.wal_lsn, current_xact_timestamp);
+
+    const auto wal_info = state.connection->Execute(
+        state.connection->IsInRecovery() ? wal_info_stmts.slave
+                                         : wal_info_stmts.master);
+    wal_info.Front().To(state.wal_lsn, current_xact_timestamp);
     if (current_xact_timestamp) {
       state.current_xact_timestamp = *current_xact_timestamp;
     } else {

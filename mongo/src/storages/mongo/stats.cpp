@@ -1,6 +1,9 @@
 #include <storages/mongo/stats.hpp>
 
 #include <exception>
+#include <tuple>
+
+#include <boost/functional/hash.hpp>
 
 #include <userver/tracing/span.hpp>
 
@@ -9,31 +12,31 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::mongo::stats {
 namespace {
 
-OperationStatisticsItem::ErrorType ToErrorType(
-    MongoError::Kind mongo_error_kind) {
+ErrorType ToErrorType(MongoError::Kind mongo_error_kind) {
   switch (mongo_error_kind) {
     case MongoError::Kind::kNetwork:
-      return OperationStatisticsItem::ErrorType::kNetwork;
+      return ErrorType::kNetwork;
     case MongoError::Kind::kClusterUnavailable:
-      return OperationStatisticsItem::ErrorType::kClusterUnavailable;
+      return ErrorType::kClusterUnavailable;
     case MongoError::Kind::kIncompatibleServer:
-      return OperationStatisticsItem::ErrorType::kBadServerVersion;
+      return ErrorType::kBadServerVersion;
     case MongoError::Kind::kAuthentication:
-      return OperationStatisticsItem::ErrorType::kAuthFailure;
+      return ErrorType::kAuthFailure;
     case MongoError::Kind::kInvalidQueryArgument:
-      return OperationStatisticsItem::ErrorType::kBadQueryArgument;
+      return ErrorType::kBadQueryArgument;
     case MongoError::Kind::kServer:
-      return OperationStatisticsItem::ErrorType::kServer;
+      return ErrorType::kServer;
     case MongoError::Kind::kWriteConcern:
-      return OperationStatisticsItem::ErrorType::kWriteConcern;
+      return ErrorType::kWriteConcern;
     case MongoError::Kind::kDuplicateKey:
-      return OperationStatisticsItem::ErrorType::kDuplicateKey;
+      return ErrorType::kDuplicateKey;
 
     case MongoError::Kind::kNoError:
     case MongoError::Kind::kQuery:
-    case MongoError::Kind::kOther:;  // other
+    case MongoError::Kind::kOther:
+      return ErrorType::kOther;
   }
-  return OperationStatisticsItem::ErrorType::kOther;
+  UINVARIANT(false, "Unexpected MongoError::Kind");
 }
 
 template <typename Rep, typename Period>
@@ -44,23 +47,31 @@ auto GetMilliseconds(const std::chrono::duration<Rep, Period>& duration) {
 
 }  // namespace
 
-OperationStatisticsItem::OperationStatisticsItem(
-    const OperationStatisticsItem& other)
-    : timings(other.timings) {
-  for (size_t i = 0; i < counters.size(); ++i) {
-    counters[i] = other.counters[i].Load();
-  }
+void OperationStatisticsItem::Account(ErrorType error_type) noexcept {
+  ++counters[static_cast<std::size_t>(error_type)];
 }
 
 void OperationStatisticsItem::Reset() {
   for (auto& counter : counters) {
-    counter = 0;
+    ResetMetric(counter);
   }
   timings.Reset();
 }
 
-std::string ToString(OperationStatisticsItem::ErrorType type) {
-  using Type = OperationStatisticsItem::ErrorType;
+Rate OperationStatisticsItem::GetCounter(ErrorType error_type) const noexcept {
+  return counters[static_cast<std::size_t>(error_type)].Load();
+}
+
+Rate OperationStatisticsItem::GetTotalQueries() const noexcept {
+  utils::statistics::Rate result;
+  for (const auto& counter : counters) {
+    result += counter.Load();
+  }
+  return result;
+}
+
+std::string_view ToString(ErrorType type) {
+  using Type = ErrorType;
   switch (type) {
     case Type::kSuccess:
       return "success";
@@ -83,6 +94,11 @@ std::string ToString(OperationStatisticsItem::ErrorType type) {
     case Type::kOther:
       return "other";
 
+    case Type::kCancelled:
+      return "cancelled";
+    case Type::kPoolOverload:
+      return "pool-overload";
+
     case Type::kErrorTypesCount:
       UINVARIANT(false, "Unexpected kErrorTypesCount");
   }
@@ -90,25 +106,17 @@ std::string ToString(OperationStatisticsItem::ErrorType type) {
   UINVARIANT(false, "Unexpected type");
 }
 
-std::string ToString(ReadOperationStatistics::OpType type) {
-  using Type = ReadOperationStatistics::OpType;
+std::string_view ToString(OpType type) {
+  using Type = OpType;
   switch (type) {
+    case Type::kInvalid:
+      UINVARIANT(false, "Unexpected OpType::kInvalid");
     case Type::kCount:
       return "count";
     case Type::kCountApprox:
       return "count-approx";
     case Type::kFind:
       return "find";
-    case Type::kGetMore:
-      return "getmore";
-  }
-
-  UINVARIANT(false, "Unexpected type");
-}
-
-std::string ToString(WriteOperationStatistics::OpType type) {
-  using Type = WriteOperationStatistics::OpType;
-  switch (type) {
     case Type::kInsertOne:
       return "insert-one";
     case Type::kInsertMany:
@@ -129,89 +137,60 @@ std::string ToString(WriteOperationStatistics::OpType type) {
       return "find-and-remove";
     case Type::kBulk:
       return "bulk";
+    case Type::kAggregate:
+      return "aggregate";
+    case Type::kDrop:
+      return "drop";
   }
 
   UINVARIANT(false, "Unexpected type");
 }
 
-PoolConnectStatistics::PoolConnectStatistics() {
-  for (auto& item : items) {
-    item = std::make_shared<Aggregator<OperationStatisticsItem>>();
-  }
+bool OperationKey::operator==(const OperationKey& other) const noexcept {
+  return op_type == other.op_type;
 }
 
-std::string ToString(PoolConnectStatistics::OpType type) {
-  using Type = PoolConnectStatistics::OpType;
-  switch (type) {
-    case Type::kPing:
-      return "ping";
+PoolConnectStatistics::PoolConnectStatistics()
+    : ping(utils::MakeSharedRef<OperationStatisticsItem>()) {}
 
-    case Type::kOpTypesCount:
-      UINVARIANT(false, "Unexpected kOpTypesCount");
-  }
+OperationStopwatch::OperationStopwatch(
+    std::shared_ptr<OperationStatisticsItem> stats_ptr, std::string&& label)
+    : stats_item_(std::move(stats_ptr)),
+      scope_time_(
+          tracing::Span::CurrentSpan().CreateScopeTime(std::move(label))) {}
 
-  UINVARIANT(false, "Unexpected type");
-}
+OperationStopwatch::OperationStopwatch(
+    std::shared_ptr<OperationStatisticsItem> stats_ptr)
+    : OperationStopwatch(std::move(stats_ptr), "operation") {}
 
-template <typename OpStats>
-OperationStopwatch<OpStats>::OperationStopwatch()
-    : scope_time_(tracing::Span::CurrentSpan().CreateScopeTime()) {}
+OperationStopwatch::~OperationStopwatch() { Account(ErrorType::kOther); }
 
-template <typename OpStats>
-OperationStopwatch<OpStats>::OperationStopwatch(
-    const std::shared_ptr<OpStats>& stats_ptr, typename OpStats::OpType op_type)
-    : OperationStopwatch<OpStats>() {
-  Reset(stats_ptr, op_type);
-}
+void OperationStopwatch::AccountSuccess() { Account(ErrorType::kSuccess); }
 
-template <typename OpStats>
-OperationStopwatch<OpStats>::~OperationStopwatch() {
-  if (stats_item_agg_) Account(OperationStatisticsItem::ErrorType::kOther);
-}
-
-template <typename OpStats>
-void OperationStopwatch<OpStats>::Reset(
-    const std::shared_ptr<OpStats>& stats_ptr,
-    typename OpStats::OpType op_type) {
-  stats_item_agg_ = stats_ptr->items[op_type];
-  scope_time_.Reset(ToString(op_type));
-}
-
-template <typename OpStats>
-void OperationStopwatch<OpStats>::AccountSuccess() {
-  Account(OperationStatisticsItem::ErrorType::kSuccess);
-}
-
-template <typename OpStats>
-void OperationStopwatch<OpStats>::AccountError(MongoError::Kind kind) {
+void OperationStopwatch::AccountError(MongoError::Kind kind) {
   Account(ToErrorType(kind));
 }
 
-template <typename OpStats>
-void OperationStopwatch<OpStats>::Discard() {
-  stats_item_agg_.reset();
+void OperationStopwatch::Discard() {
+  stats_item_.reset();
   scope_time_.Discard();
 }
 
-template <typename OpStats>
-void OperationStopwatch<OpStats>::Account(
-    OperationStatisticsItem::ErrorType error_type) noexcept {
-  const auto stats_item_agg = std::exchange(stats_item_agg_, nullptr);
-  if (!stats_item_agg) return;
+void OperationStopwatch::Account(ErrorType error_type) noexcept {
+  const auto stats_item = std::exchange(stats_item_, nullptr);
+  if (!stats_item) return;
 
   try {
-    auto& stats_item = stats_item_agg->GetCurrentCounter();
-    ++stats_item.counters[error_type];
-    stats_item.timings.Account(GetMilliseconds(scope_time_.Reset()));
+    stats_item->Account(error_type);
+    auto ms = GetMilliseconds(scope_time_.Reset());
+    UASSERT(ms >= 0);
+    stats_item->timings.GetCurrentCounter().Account(ms);
+    stats_item->timings_sum += utils::statistics::Rate{
+        static_cast<utils::statistics::Rate::ValueType>(ms)};
   } catch (const std::exception&) {
     // ignore
   }
 }
-
-// explicit instantiations
-template class OperationStopwatch<ReadOperationStatistics>;
-template class OperationStopwatch<WriteOperationStatistics>;
-template class OperationStopwatch<PoolConnectStatistics>;
 
 ConnectionWaitStopwatch::ConnectionWaitStopwatch(
     std::shared_ptr<PoolConnectStatistics> stats_ptr)
@@ -253,3 +232,9 @@ void ConnectionThrottleStopwatch::Stop() noexcept {
 }  // namespace storages::mongo::stats
 
 USERVER_NAMESPACE_END
+
+std::size_t
+std::hash<USERVER_NAMESPACE::storages::mongo::stats::OperationKey>::operator()(
+    USERVER_NAMESPACE::storages::mongo::stats::OperationKey value) const {
+  return static_cast<std::size_t>(value.op_type);
+}

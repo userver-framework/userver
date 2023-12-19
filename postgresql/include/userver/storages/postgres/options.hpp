@@ -9,7 +9,9 @@
 #include <string>
 #include <unordered_map>
 
+#include <userver/congestion_control/controllers/linear.hpp>
 #include <userver/storages/postgres/postgres_fwd.hpp>
+#include <userver/utils/impl/transparent_hash.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -108,9 +110,9 @@ const std::string& BeginStatement(const TransactionOptions&);
 /// exception and the driver tries to clean up the connection for further reuse.
 struct CommandControl {
   /// Overall timeout for a command being executed
-  TimeoutDuration execute;
+  TimeoutDuration execute{};
   /// PostgreSQL server-side timeout
-  TimeoutDuration statement;
+  TimeoutDuration statement{};
 
   constexpr CommandControl(TimeoutDuration execute, TimeoutDuration statement)
       : execute(execute), statement(statement) {}
@@ -136,15 +138,16 @@ struct CommandControl {
 using OptionalCommandControl = std::optional<CommandControl>;
 
 using CommandControlByMethodMap =
-    std::unordered_map<std::string, CommandControl>;
+    USERVER_NAMESPACE::utils::impl::TransparentMap<std::string, CommandControl>;
 using CommandControlByHandlerMap =
-    std::unordered_map<std::string, CommandControlByMethodMap>;
+    USERVER_NAMESPACE::utils::impl::TransparentMap<std::string,
+                                                   CommandControlByMethodMap>;
 using CommandControlByQueryMap =
     std::unordered_map<std::string, CommandControl>;
 
 OptionalCommandControl GetHandlerOptionalCommandControl(
-    const CommandControlByHandlerMap& map, const std::string& path,
-    const std::string& method);
+    const CommandControlByHandlerMap& map, std::string_view path,
+    std::string_view method);
 
 OptionalCommandControl GetQueryOptionalCommandControl(
     const CommandControlByQueryMap& map, const std::string& query_name);
@@ -191,6 +194,11 @@ struct PoolSettings {
 /// Default size limit for prepared statements cache
 static constexpr size_t kDefaultMaxPreparedCacheSize = 5000;
 
+/// Pipeline mode configuration
+///
+/// Dynamic option @ref POSTGRES_CONNECTION_PIPELINE_EXPERIMENT
+enum class PipelineMode { kDisabled, kEnabled };
+
 /// PostgreSQL connection options
 ///
 /// Dynamic option @ref POSTGRES_CONNECTION_SETTINGS
@@ -201,15 +209,16 @@ struct ConnectionSettings {
   };
   enum UserTypesOptions {
     kUserTypesEnabled,
+    kUserTypesEnforced,
     kPredefinedTypesOnly,
   };
   enum CheckQueryParamsOptions {
     kIgnoreUnused,
     kCheckUnused,
   };
-  enum PipelineMode {
-    kPipelineDisabled,
-    kPipelineEnabled,
+  enum DiscardOnConnectOptions {
+    kDiscardNone,
+    kDiscardAll,
   };
   using SettingsVersion = size_t;
 
@@ -222,21 +231,41 @@ struct ConnectionSettings {
   /// Checks for not-NULL query params that are not used in query
   CheckQueryParamsOptions ignore_unused_query_params = kCheckUnused;
 
-  /// Limits the size or prepared statments cache
+  /// Limits the size or prepared statements cache
   size_t max_prepared_cache_size = kDefaultMaxPreparedCacheSize;
 
   /// Turns on connection pipeline mode
-  PipelineMode pipeline_mode = kPipelineDisabled;
+  PipelineMode pipeline_mode = PipelineMode::kDisabled;
+
+  /// This many connection errors in 15 seconds block new connections opening
+  size_t recent_errors_threshold = 2;
+
+  /// The maximum lifetime of the connection after which it will be closed
+  std::optional<std::chrono::seconds> max_ttl{};
+
+  /// Execute discard all after establishing a new connection
+  DiscardOnConnectOptions discard_on_connect = kDiscardAll;
 
   /// Helps keep track of the changes in settings
   SettingsVersion version{0U};
 
   bool operator==(const ConnectionSettings& rhs) const {
-    return prepared_statements == rhs.prepared_statements &&
-           user_types == rhs.user_types &&
-           ignore_unused_query_params == rhs.ignore_unused_query_params &&
-           max_prepared_cache_size == rhs.max_prepared_cache_size &&
-           pipeline_mode == rhs.pipeline_mode;
+    return !RequiresConnectionReset(rhs) &&
+           recent_errors_threshold == rhs.recent_errors_threshold;
+  }
+
+  bool operator!=(const ConnectionSettings& rhs) const {
+    return !(*this == rhs);
+  }
+
+  bool RequiresConnectionReset(const ConnectionSettings& rhs) const {
+    // TODO: max_prepared_cache_size check could be relaxed
+    return prepared_statements != rhs.prepared_statements ||
+           user_types != rhs.user_types ||
+           ignore_unused_query_params != rhs.ignore_unused_query_params ||
+           max_prepared_cache_size != rhs.max_prepared_cache_size ||
+           pipeline_mode != rhs.pipeline_mode || max_ttl != rhs.max_ttl ||
+           discard_on_connect != rhs.discard_on_connect;
   }
 };
 
@@ -258,6 +287,11 @@ enum class InitMode {
   kAsync,
 };
 
+enum class ConnlimitMode {
+  kManual = 0,
+  kAuto,
+};
+
 /// Settings for storages::postgres::Cluster
 struct ClusterSettings {
   /// settings for statements metrics
@@ -277,6 +311,12 @@ struct ClusterSettings {
 
   /// database name
   std::string db_name;
+
+  /// connection limit change mode
+  ConnlimitMode connlimit_mode = ConnlimitMode::kAuto;
+
+  /// congestion control settings
+  congestion_control::v2::LinearController::StaticConfig cc_config;
 };
 
 }  // namespace storages::postgres

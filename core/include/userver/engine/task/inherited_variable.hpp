@@ -52,9 +52,18 @@ class TaskInheritedVariable final {
   void Set(const T& value) { Emplace(value); }
 
   /// @brief Hide the variable so that it is no longer accessible from the
-  /// current or child tasks
-  /// @note The variable might not actually be destroyed immediately
+  /// current or new child tasks.
+  /// @note The variable might not actually be destroyed immediately.
   void Erase() { Storage().Erase<T, kVariableKind>(impl_.GetKey()); }
+
+  /// @cond
+  // For internal use only
+  // inherits data to another storage
+  void InheritTo(impl::task_local::Storage& other,
+                 impl::task_local::InternalTag) {
+    other.InheritNodeIfExists(Storage(), impl_.GetKey());
+  }
+  /// @endcond
 
  private:
   static constexpr auto kVariableKind =

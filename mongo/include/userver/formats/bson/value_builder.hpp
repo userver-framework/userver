@@ -37,7 +37,7 @@ namespace formats::bson {
 ///
 /// @snippet formats/bson/value_builder_test.cpp  Sample Customization formats::bson::ValueBuilder usage
 ///
-/// @see @ref md_en_userver_formats
+/// @see @ref scripts/docs/en/userver/formats.md
 
 // clang-format on
 
@@ -108,6 +108,11 @@ class ValueBuilder {
   /// @brief Retrieves or creates document field by name
   /// @throws TypeMismatchException if value is not a document or `null`
   ValueBuilder operator[](const std::string& name);
+
+  /// @brief Emplaces new member w/o a check whether the key already exists.
+  /// @warning May create invalid BSON with duplicate key.
+  /// @throw `TypeMismatchException` if not object or null value.
+  void EmplaceNocheck(std::string_view key, ValueBuilder value);
 
   /// @brief Access member by key for modification.
   /// @throw `TypeMismatchException` if not object or null value.
@@ -211,7 +216,7 @@ Value ValueBuilder::DoSerialize(const T& t) {
   static_assert(
       formats::common::impl::kHasSerialize<Value, T>,
       "There is no `Serialize(const T&, formats::serialize::To<bson::Value>)` "
-      "in namespace of `T` or `formats::serizalize`. "
+      "in namespace of `T` or `formats::serialize`. "
       ""
       "Probably you forgot to include the "
       "<userver/formats/serialize/common_containers.hpp> or you "

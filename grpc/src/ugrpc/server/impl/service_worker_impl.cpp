@@ -1,11 +1,19 @@
 #include <userver/ugrpc/server/impl/service_worker_impl.hpp>
 
+#include <chrono>
+
+#include <grpc/support/time.h>
+
 #include <userver/logging/log.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/algo.hpp>
+#include <userver/utils/from_string.hpp>
+#include <userver/utils/impl/source_location.hpp>
+#include <userver/utils/impl/userver_experiments.hpp>
 
 #include <ugrpc/impl/rpc_metadata_keys.hpp>
 #include <ugrpc/impl/to_string.hpp>
+#include <ugrpc/server/impl/server_configs.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -26,6 +34,20 @@ void ReportNetworkError(const RpcInterruptedError& ex,
   span.AddTag(tracing::kErrorMessage, ex.what());
 }
 
+void ReportCustomError(
+    const USERVER_NAMESPACE::server::handlers::CustomHandlerException& ex,
+    CallAnyBase& call, tracing::Span& span) {
+  if (!call.IsFinished()) {
+    call.FinishWithError(
+        {CustomStatusToGrpc(ex.GetCode()),
+         ugrpc::impl::ToGrpcString(ex.GetExternalErrorBody())});
+  }
+
+  LOG_WARNING() << "Error in " << call.GetCallName() << ": " << ex;
+  span.AddTag(tracing::kErrorFlag, true);
+  span.AddTag(tracing::kErrorMessage, ex.what());
+}
+
 void SetupSpan(std::optional<tracing::InPlaceSpan>& span_holder,
                grpc::ServerContext& context, std::string_view call_name) {
   auto span_name = utils::StrCat("grpc/", call_name);
@@ -37,9 +59,11 @@ void SetupSpan(std::optional<tracing::InPlaceSpan>& span_holder,
       utils::FindOrNullptr(client_metadata, ugrpc::impl::kXYaSpanId);
   if (trace_id && parent_span_id) {
     span_holder.emplace(std::move(span_name), ugrpc::impl::ToString(*trace_id),
-                        ugrpc::impl::ToString(*parent_span_id));
+                        ugrpc::impl::ToString(*parent_span_id),
+                        utils::impl::SourceLocation::Current());
   } else {
-    span_holder.emplace(std::move(span_name));
+    span_holder.emplace(std::move(span_name),
+                        utils::impl::SourceLocation::Current());
   }
 
   auto& span = span_holder->Get();

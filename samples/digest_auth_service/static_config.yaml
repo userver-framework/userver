@@ -1,0 +1,83 @@
+# yaml
+components_manager:
+    components:                       # Configuring components that were registered via component_list
+        auth-database:
+            dbconnection: 'postgresql://testsuite@localhost:15433/postgres'
+            blocking_task_processor: fs-task-processor
+            dns_resolver: async
+        # /// [digest config]
+        auth-digest-checker-settings:
+            algorithm: MD5
+            qops:
+              - auth
+            is-proxy: false
+            is-session: false
+            domains:
+              - /v1/hello
+            nonce-ttl: 1000s
+        # /// [digest config]
+        auth-digest-checker-settings-proxy:
+            algorithm: MD5
+            qops:
+              - auth
+            is-proxy: true
+            is-session: false
+            domains:
+              - /v1/hello
+            nonce-ttl: 1000s
+        # /// [digest config]
+        # /// [hello config]
+        handler-hello:
+            path: /v1/hello
+            task_processor: main-task-processor
+            method: GET
+            auth:           # Authorization config for this handler
+                types:
+                  - digest  # Authorization type that was specified in main()
+                realm: registred@userver.com
+        handler-hello-proxy:
+            path: /v1/hello-proxy
+            task_processor: main-task-processor
+            method: GET
+            auth:           # Authorization config for this handler
+                types:
+                  - digest-proxy
+                realm: registred@userver.com
+        # /// [hello config]
+        testsuite-support:
+
+        server:
+            listener:                 # configuring the main listening socket...
+                port: 8095            # ...to listen on this port and...
+                task_processor: main-task-processor    # ...process incoming requests on this task processor.
+
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
+
+        http-client:
+            load-enabled: $is_testing
+            fs-task-processor: fs-task-processor
+
+        tests-control:
+            load-enabled: $is_testing
+            path: /tests/{action}
+            method: POST
+            task_processor: main-task-processor
+
+        dns-client:
+            fs-task-processor: fs-task-processor
+
+    task_processors:                  # Task processor is an executor for coroutine tasks
+
+        main-task-processor:          # Make a task processor for CPU-bound coroutine tasks.
+            worker_threads: 4         # Process tasks in 4 threads.
+
+        fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
+            worker_threads: 4
+
+    default_task_processor: main-task-processor  # Task processor in which components start.

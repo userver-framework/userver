@@ -16,9 +16,6 @@ Control::Control(const components::ComponentContext& component_context,
                  bool testpoint_supported)
     : testsuite_support_(
           component_context.FindComponent<components::TestsuiteSupport>()),
-      metrics_storage_(
-          component_context.FindComponent<components::StatisticsStorage>()
-              .GetMetricsStorage()),
       logging_component_(
           component_context.FindComponent<components::Logging>()),
       testpoint_supported_(testpoint_supported) {}
@@ -37,36 +34,16 @@ formats::json::Value Control::Perform(
         testpoints.As<std::unordered_set<std::string>>());
   }
 
-  if (request_body["reset_metrics"].As<bool>(false)) {
-    metrics_storage_->ResetMetrics();
-  }
-
-  auto http_allowed_urls_extra =
-      request_body["http_allowed_urls_extra"]
-          .As<std::optional<std::vector<std::string>>>(
-              std::optional<std::vector<std::string>>{});
-  if (http_allowed_urls_extra) {
-    testsuite_support_.GetHttpAllowedUrlsExtra().SetAllowedUrlsExtra(
-        std::move(*http_allowed_urls_extra));
-  }
-
   const auto mock_now = request_body["mock_now"];
   if (!mock_now.IsMissing()) {
     const auto now = mock_now.As<std::optional<std::string>>();
     if (now) {
+      // Testsuite converts timezone to UTC, then it may keep it or rip it off.
+      // We interpret missing timezone as UTC by default, which is compatible
+      // with this testsuite behavior.
       utils::datetime::MockNowSet(utils::datetime::Stringtime(*now));
     } else {
       utils::datetime::MockNowUnset();
-    }
-  }
-
-  const auto socket_logging = request_body["socket_logging_duplication"];
-  if (!socket_logging.IsMissing()) {
-    auto enable = socket_logging.As<bool>();
-    if (enable) {
-      logging_component_.StartSocketLoggingDebug();
-    } else {
-      logging_component_.StopSocketLoggingDebug();
     }
   }
 
@@ -81,9 +58,7 @@ formats::json::Value Control::Perform(
           update_type,
           invalidate_caches["names"].As<std::unordered_set<std::string>>());
     } else {
-      testsuite_support_.GetCacheControl().InvalidateAllCaches(
-          update_type, invalidate_caches["names_blocklist"]
-                           .As<std::unordered_set<std::string>>({}));
+      testsuite_support_.GetCacheControl().InvalidateAllCaches(update_type);
       testsuite_support_.GetComponentControl().InvalidateComponents();
     }
   }
@@ -92,4 +67,5 @@ formats::json::Value Control::Perform(
 }
 
 }  // namespace testsuite::impl::actions
+
 USERVER_NAMESPACE_END

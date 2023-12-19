@@ -31,7 +31,8 @@ namespace {
 
     ugrpc::impl::AsyncMethodInvocation operation;
     channel.NotifyOnStateChange(state, deadline, &queue, operation.GetTag());
-    if (!operation.Wait()) return false;
+    if (operation.Wait() != ugrpc::impl::AsyncMethodInvocation::WaitStatus::kOk)
+      return false;
   }
 }
 

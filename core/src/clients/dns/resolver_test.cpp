@@ -19,28 +19,29 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-static constexpr auto kTestHosts = R"(
+constexpr auto kTestHosts = R"(
 127.0.0.1 mycomputer
 ::1 mycomputer
 127.0.0.3 disappearing
 )";
 
-static constexpr auto kReplacementHosts = R"(
+constexpr auto kReplacementHosts = R"(
 127.0.0.2 localhost mycomputer
 127.0.0.4 invalid fail
 127.0.0.5 override
 )";
 
-static const auto kNetV4Sockaddr = [] {
+const auto kNetV4Sockaddr = [] {
   engine::io::Sockaddr sockaddr;
   auto* sa = sockaddr.As<sockaddr_in>();
   sa->sin_family = AF_INET;
+  // NOLINTNEXTLINE(hicpp-no-assembler,readability-isolate-declaration)
   sa->sin_addr.s_addr = htonl(0x4D583737);
   return sockaddr;
 }();
-constexpr static auto kNetV4String{"77.88.55.55"};
+constexpr auto kNetV4String{"77.88.55.55"};
 
-static const auto kNetV6Sockaddr = [] {
+const auto kNetV6Sockaddr = [] {
   engine::io::Sockaddr sockaddr;
   auto* sa = sockaddr.As<sockaddr_in6>();
   sa->sin6_family = AF_INET6;
@@ -52,7 +53,7 @@ static const auto kNetV6Sockaddr = [] {
   sa->sin6_addr.s6_addr[15] = 0x0A;
   return sockaddr;
 }();
-constexpr static auto kNetV6String{"2a02:6b8:a::a"};
+constexpr auto kNetV6String{"2a02:6b8:a::a"};
 
 struct MockedResolver {
   using ServerMock = utest::DnsServerMock;
@@ -92,7 +93,7 @@ struct MockedResolver {
 
   clients::dns::Resolver* operator->() { return &resolver; }
 
-  void ReplaceHosts() {
+  void ReplaceHosts() const {
     fs::blocking::RewriteFileContents(hosts_file.GetPath(), kReplacementHosts);
   }
 

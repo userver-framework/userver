@@ -1,0 +1,71 @@
+# yaml
+components_manager:
+    components:
+        # The required common components
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+
+        handler-server-monitor:
+            path: /service/monitor
+            method: GET
+            task_processor: main-task-processor
+
+        # gRPC server and service
+        grpc-server:
+            port: 8091
+
+        grpc-server-logging:
+            msg-size-log-limit: 10
+
+        grpc-server-deadline-propagation:
+        grpc-server-baggage:
+
+        greeter-service:
+            task-processor: main-task-processor
+            middlewares:
+              - grpc-server-logging
+              - grpc-server-baggage
+
+        # gRPC client
+        grpc-client-factory:
+            task-processor: grpc-blocking-task-processor
+            channel-args: {}
+            middlewares:
+              - grpc-client-logging
+              - grpc-client-baggage
+        greeter-client:
+            endpoint: '[::]:8081'
+
+        # http server
+        server:
+            listener:
+                port: 8092
+                task_processor: main-task-processor
+            listener-monitor:
+                port: $monitor-server-port
+                port#fallback: 8086
+                connection:
+                    in_buffer_size: 32768
+                    requests_queue_size_threshold: 100
+                task_processor: main-task-processor
+
+        testsuite-support:
+        grpc-client-logging:
+        grpc-client-deadline-propagation:
+        grpc-client-baggage:
+
+    default_task_processor: main-task-processor
+
+    task_processors:
+        grpc-blocking-task-processor:  # For blocking gRPC channel creation
+            thread_name: grpc-worker
+            worker_threads: 2
+        main-task-processor:           # For non-blocking operations
+            worker_threads: 4
+        fs-task-processor:             # For blocking filesystem operations
+            worker_threads: 2

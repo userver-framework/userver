@@ -3,7 +3,8 @@
 ## Before you start
 
 Make sure that you can compile and run core tests and read a basic example
-@ref md_en_userver_tutorial_hello_service.
+@ref scripts/docs/en/userver/tutorial/hello_service.md.
+
 
 ## Step by step guide
 
@@ -15,7 +16,8 @@ them in a local cache.
 
 In this sample we show how to write and test a cache along with creating
 HTTP requests. If you wish to cache data from database prefer using
-@ref md_en_userver_caches "cache specializations for DB".
+@ref scripts/docs/en/userver/caches.md "cache specializations for DB".
+
 
 ### Remote HTTP server description
 
@@ -63,18 +65,18 @@ We are planning to cache those translations in a std::unordered_map:
 
 ### Cache component
 
-Our cache @ref md_en_userver_component_system "component" should have the
+Our cache @ref scripts/docs/en/userver/component_system.md "component" should have the
 following fields:
 * Reference to HTTP client, that is required to make HTTP requests
 * URL to the incremental and full update handle
 * String with last update time from remote. This string used only from the
   components::CachingComponentBase::Update overload and it is guaranteed
-  @ref md_en_userver_caches "that Update is not called concurrently", so there
+  @ref scripts/docs/en/userver/caches.md "that Update is not called concurrently", so there
   is no need to protect it from concurrent access.
 
 @snippet samples/http_caching/http_caching.cpp  HTTP caching sample - component
 
-To create a non @ref md_en_userver_lru_cache "LRU cache" cache you have to
+To create a non @ref scripts/docs/en/userver/lru_cache.md "LRU cache" cache you have to
 derive from components::CachingComponentBase, call
 CacheUpdateTrait::StartPeriodicUpdates() at the component constructor and
 CacheUpdateTrait::StopPeriodicUpdates() at the destructor:
@@ -136,20 +138,6 @@ should be provided:
 @snippet samples/http_caching/static_config.yaml  HTTP caching sample - static config deps
 
 
-### Dynamic configuration
-
-Dynamic configuration is close to the basic configuration from
-@ref md_en_userver_tutorial_hello_service but should have additional options
-for HTTP client: @ref samples/http_caching/dynamic_config_fallback.json
-
-All the values are described in at @ref md_en_schemas_dynamic_configs.
-
-A production ready service would dynamically retrieve the above options at
-runtime from a configuration service. See
-@ref md_en_userver_tutorial_config_service for insights on how to change the
-above options on the fly, without restarting the service.
-
-
 ### Cache component usage
 
 Now the cache could be used just as any other component. For example, a handler
@@ -158,19 +146,19 @@ could get a reference to the cache and use it in `HandleRequestThrow`:
 @snippet samples/http_caching/http_caching.cpp  HTTP caching sample - GreetUser
 
 Note that the cache is concurrency safe
-@ref md_en_userver_component_system "as all the components".
+@ref scripts/docs/en/userver/component_system.md "as all the components".
 
 
 ### int main()
 
-Finally, after writing down the dynamic configuration values into file at
-`dynamic-config-fallbacks.fallback-path`, we
+Finally, we
 add our component to the `components::MinimalServerComponentList()`,
 and start the server with static configuration `kStaticConfig`.
 
 @snippet samples/http_caching/http_caching.cpp  HTTP caching sample - main
 
-### Build
+
+### Build and Run
 
 To build the sample, execute the following build steps at the userver root
 directory:
@@ -181,9 +169,21 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 make userver-samples-http_caching
 ```
 
-Start the server by running `./samples/http_caching/userver-samples-http_caching`. Not that
-you need a running translations service with bulk handlers. You could use the
-@ref md_en_userver_tutorial_mongo_service "mongo service" for that purpose.
+Note that
+you need a running translations service with bulk handlers to start the service.
+You could use the
+@ref scripts/docs/en/userver/tutorial/mongo_service.md "mongo service" for that purpose.
+
+
+The sample could be started by running
+`make start-userver-samples-http_caching`. The command would invoke
+@ref scripts/docs/en/userver/functional_testing.md "testsuite start target" that sets proper
+paths in the configuration files and starts the service.
+
+To start the service manually run
+`./samples/http_caching/userver-samples-http_caching -c </path/to/static_config.yaml>`
+(do not forget to prepare the configuration files!).
+
 
 Now you can send a request to your server from another terminal:
 ```
@@ -218,25 +218,26 @@ For example the following JSON forces incremental update of the
 }}
 ```
 
-Fortunately, the @ref md_en_userver_functional_testing "testsuite API"
+Fortunately, the @ref scripts/docs/en/userver/functional_testing.md "testsuite API"
 provides all the required functionality via simpler to use Python functions.
 
 
 ### Functional testing
-@ref md_en_userver_functional_testing "Functional tests" for the service could be
+@ref scripts/docs/en/userver/functional_testing.md "Functional tests" for the service could be
 implemented using the testsuite. To do that you have to:
 
 * Mock the translations service data:
-@snippet samples/http_caching/tests/conftest.py translations
+  @snippet samples/http_caching/tests/conftest.py translations
 
 * Mock the translations service API:
-@snippet samples/http_caching/tests/conftest.py mockserver
+  @snippet samples/http_caching/tests/conftest.py mockserver
 
-* Teach testsuite how to patch the service config to use the mocked URL:
-@snippet samples/http_caching/tests/conftest.py patch configs
+* Import the pytest_userver.plugins.core plugin and teach testsuite how to
+  patch the service config to use the mocked URL:
+  @snippet samples/http_caching/tests/conftest.py patch configs
 
 * Write the test:
-@snippet samples/http_caching/tests/test_http_caching.py  Functional test
+  @snippet samples/http_caching/tests/test_http_caching.py  Functional test
 
 
 ## Full sources
@@ -244,7 +245,6 @@ implemented using the testsuite. To do that you have to:
 See the full example:
 * @ref samples/http_caching/http_caching.cpp
 * @ref samples/http_caching/static_config.yaml
-* @ref samples/http_caching/dynamic_config_fallback.json
 * @ref samples/http_caching/CMakeLists.txt
 * @ref samples/http_caching/tests/conftest.py
 * @ref samples/http_caching/tests/test_http_caching.py
@@ -252,12 +252,11 @@ See the full example:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_tutorial_tcp_full | @ref md_en_userver_tutorial_flatbuf_service ⇨
+⇦ @ref scripts/docs/en/userver/tutorial/tcp_full.md | @ref scripts/docs/en/userver/tutorial/flatbuf_service.md ⇨
 @htmlonly </div> @endhtmlonly
 
 @example samples/http_caching/http_caching.cpp
 @example samples/http_caching/static_config.yaml
-@example samples/http_caching/dynamic_config_fallback.json
 @example samples/http_caching/CMakeLists.txt
 @example samples/http_caching/tests/conftest.py
 @example samples/http_caching/tests/test_http_caching.py

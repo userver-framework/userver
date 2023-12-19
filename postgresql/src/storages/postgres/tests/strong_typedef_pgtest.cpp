@@ -8,6 +8,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace pg = storages::postgres;
 namespace io = pg::io;
+namespace tt = io::traits;
 
 namespace static_test {
 
@@ -63,92 +64,91 @@ struct CppToUserPg<static_test::MappedEnum>
 
 namespace static_test {
 
-using namespace io::traits;
-
 // Strong typedef to system pg type
-static_assert(kIsMappedToPg<StringTypedef>,
+static_assert(tt::kIsMappedToPg<StringTypedef>,
               "Strong typedef must map to underlying type mapping");
 static_assert(
     std::is_same<io::CppToPg<StringTypedef>::Mapping,
                  io::CppToSystemPg<std::string>>::value,
     "Strong typedef must have the same mapping as the underlying type");
-static_assert(kHasParser<StringTypedef>,
+static_assert(tt::kHasParser<StringTypedef>,
               "Strong typedef to a defined type must have a parser");
-static_assert(kHasFormatter<StringTypedef>,
+static_assert(tt::kHasFormatter<StringTypedef>,
               "Strong typedef to a defined type must have a formatter");
-static_assert(!kIsNullable<StringTypedef>,
+static_assert(!tt::kIsNullable<StringTypedef>,
               "Strong typedef must derive nullability from underlying type");
 
-static_assert(kIsMappedToPg<OptStringTypedef>,
+static_assert(tt::kIsMappedToPg<OptStringTypedef>,
               "Strong typedef must map to underlying type mapping");
 static_assert(
     std::is_same<io::CppToPg<OptStringTypedef>::Mapping,
                  io::CppToSystemPg<std::string>>::value,
     "Strong typedef must have the same mapping as the underlying type");
-static_assert(kHasParser<OptStringTypedef>,
+static_assert(tt::kHasParser<OptStringTypedef>,
               "Strong typedef to a defined type must have a parser");
-static_assert(kHasFormatter<OptStringTypedef>,
+static_assert(tt::kHasFormatter<OptStringTypedef>,
               "Strong typedef to a defined type must have a formatter");
-static_assert(kIsNullable<OptStringTypedef>,
+static_assert(tt::kIsNullable<OptStringTypedef>,
               "Strong typedef must derive nullability from underlying type");
 
-static_assert(kIsMappedToPg<IntTypedef>,
+static_assert(tt::kIsMappedToPg<IntTypedef>,
               "Strong typedef must map to underlying type mapping");
 static_assert(
     std::is_same<io::CppToPg<IntTypedef>::Mapping,
                  io::CppToSystemPg<pg::Integer>>::value,
     "Strong typedef must have the same mapping as the underlying type");
-static_assert(kHasParser<IntTypedef>,
+static_assert(tt::kHasParser<IntTypedef>,
               "Strong typedef to a defined type must have a parser");
-static_assert(kHasFormatter<IntTypedef>,
+static_assert(tt::kHasFormatter<IntTypedef>,
               "Strong typedef to a defined type must have a formatter");
-static_assert(!kIsNullable<IntTypedef>,
+static_assert(!tt::kIsNullable<IntTypedef>,
               "Strong typedef must derive nullability from underlying type");
 
-static_assert(kIsMappedToPg<UserTypedef>,
+static_assert(tt::kIsMappedToPg<UserTypedef>,
               "Strong typedef must map to underlying type mapping");
 static_assert(
     std::is_same<io::CppToPg<UserTypedef>::Mapping,
                  io::CppToUserPg<UserType>>::value,
     "Strong typedef must have the same mapping as the underlying type");
-static_assert(kHasParser<UserTypedef>,
+static_assert(tt::kHasParser<UserTypedef>,
               "Strong typedef to a defined type must have a parser");
-static_assert(kHasFormatter<UserTypedef>,
+static_assert(tt::kHasFormatter<UserTypedef>,
               "Strong typedef to a defined type must have a formatter");
-static_assert(!kIsNullable<UserTypedef>,
+static_assert(!tt::kIsNullable<UserTypedef>,
               "Strong typedef must derive nullability from underlying type");
 
 // Check mapping calculation doesn't break hand-mapped types
-static_assert(kIsMappedToPg<pg::TimePointTz>);
+static_assert(tt::kIsMappedToPg<pg::TimePointTz>);
 static_assert(std::is_same<io::CppToPg<pg::TimePointTz>::Mapping,
                            io::CppToSystemPg<pg::TimePointTz>>::value);
-static_assert(std::is_same<IO<pg::TimePointTz>::ParserType,
+static_assert(std::is_same<tt::IO<pg::TimePointTz>::ParserType,
                            io::BufferParser<pg::TimePointTz>>::value);
-static_assert(std::is_same<IO<pg::TimePointTz>::FormatterType,
+static_assert(std::is_same<tt::IO<pg::TimePointTz>::FormatterType,
                            io::BufferFormatter<pg::TimePointTz>>::value);
 
-static_assert(!CanUseEnumAsStrongTypedef<std::string>(), "not an enum");
-static_assert(!CanUseEnumAsStrongTypedef<int>(), "not an enum");
+static_assert(!tt::CanUseEnumAsStrongTypedef<std::string>::value,
+              "not an enum");
+static_assert(!tt::CanUseEnumAsStrongTypedef<int>::value, "not an enum");
 
 // enum with unsigned underlying type cannot be used as strong typedef with
 // postgres
 static_assert(
-    !CanUseEnumAsStrongTypedef<UnusableEnumTypedef>(),
+    !tt::CanUseEnumAsStrongTypedef<UnusableEnumTypedef>::value,
     "Enumeration with unsigned underlying type cannot be used with postgres");
 
-static_assert(!CanUseEnumAsStrongTypedef<MappedEnum>(),
+static_assert(!tt::CanUseEnumAsStrongTypedef<MappedEnum>::value,
               "Mapped enum cannot be used as a strong typedef");
 
-static_assert(CanUseEnumAsStrongTypedef<sample::EnumStrongTypedef>(),
+static_assert(tt::CanUseEnumAsStrongTypedef<sample::EnumStrongTypedef>::value,
               "Enum with signed underlying type and no mapping can be used as "
               "a strong typedef");
-static_assert(kIsMappedToPg<sample::EnumStrongTypedef>,
+static_assert(tt::kIsMappedToPg<sample::EnumStrongTypedef>,
               "A valid enum strong typedef must have a parser");
-static_assert(kHasParser<sample::EnumStrongTypedef>,
+static_assert(tt::kHasParser<sample::EnumStrongTypedef>,
               "A valid enum strong typedef must have a parser");
-static_assert(kHasFormatter<sample::EnumStrongTypedef>,
+static_assert(tt::kHasFormatter<sample::EnumStrongTypedef>,
               "A valid enum strong typedef must have a formatter");
-static_assert(!kIsNullable<sample::EnumStrongTypedef>,
+static_assert(!tt::kIsNullable<sample::EnumStrongTypedef>,
               "Strong typedef must derive nullability from underlying type");
 
 }  // namespace static_test
@@ -156,11 +156,11 @@ static_assert(!kIsNullable<sample::EnumStrongTypedef>,
 namespace {
 
 UTEST_P(PostgreConnection, StringStrongTypedef) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   pg::ResultSet res{nullptr};
 
   static_test::StringTypedef str{"test"};
-  UEXPECT_NO_THROW(res = conn->Execute("select $1", str));
+  UEXPECT_NO_THROW(res = GetConn()->Execute("select $1", str));
   EXPECT_EQ(str, res[0][0].As<static_test::StringTypedef>());
   // Row interface
   EXPECT_EQ(str, res[0].As<static_test::StringTypedef>());
@@ -171,14 +171,14 @@ UTEST_P(PostgreConnection, StringStrongTypedef) {
 }
 
 UTEST_P(PostgreConnection, StringStrongTypedefArray) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   pg::ResultSet res{nullptr};
 
   using StringTypedefVector = std::vector<static_test::StringTypedef>;
 
   StringTypedefVector str_vec{static_test::StringTypedef{"test"},
                               static_test::StringTypedef{}};
-  UEXPECT_NO_THROW(res = conn->Execute("select $1", str_vec));
+  UEXPECT_NO_THROW(res = GetConn()->Execute("select $1", str_vec));
   EXPECT_EQ(str_vec, res[0][0].As<StringTypedefVector>());
   // Row interface
   EXPECT_EQ(str_vec, res[0].As<StringTypedefVector>());
@@ -189,11 +189,11 @@ UTEST_P(PostgreConnection, StringStrongTypedefArray) {
 }
 
 UTEST_P(PostgreConnection, IntStrongTypedef) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   pg::ResultSet res{nullptr};
 
   static_test::IntTypedef i{42};
-  UEXPECT_NO_THROW(res = conn->Execute("select $1", i));
+  UEXPECT_NO_THROW(res = GetConn()->Execute("select $1", i));
   EXPECT_EQ(i, res[0][0].As<static_test::IntTypedef>());
   // Row interface
   EXPECT_EQ(i, res[0].As<static_test::IntTypedef>());
@@ -204,14 +204,14 @@ UTEST_P(PostgreConnection, IntStrongTypedef) {
 }
 
 UTEST_P(PostgreConnection, IntStrongTypedefArray) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   pg::ResultSet res{nullptr};
 
   using IntTypedefVector = std::vector<static_test::IntTypedef>;
 
   IntTypedefVector i_vec{static_test::IntTypedef{42},
                          static_test::IntTypedef{13}};
-  UEXPECT_NO_THROW(res = conn->Execute("select $1", i_vec));
+  UEXPECT_NO_THROW(res = GetConn()->Execute("select $1", i_vec));
   EXPECT_EQ(i_vec, res[0][0].As<IntTypedefVector>());
   // Row interface
   EXPECT_EQ(i_vec, res[0].As<IntTypedefVector>());
@@ -222,11 +222,11 @@ UTEST_P(PostgreConnection, IntStrongTypedefArray) {
 }
 
 UTEST_P(PostgreConnection, IntEnumStrongTypedef) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   pg::ResultSet res{nullptr};
 
   sample::EnumStrongTypedef i{42};
-  UEXPECT_NO_THROW(res = conn->Execute("select $1", i));
+  UEXPECT_NO_THROW(res = GetConn()->Execute("select $1", i));
   EXPECT_EQ(i, res[0][0].As<sample::EnumStrongTypedef>());
   // Row interface
   EXPECT_EQ(i, res[0].As<sample::EnumStrongTypedef>());
@@ -237,14 +237,14 @@ UTEST_P(PostgreConnection, IntEnumStrongTypedef) {
 }
 
 UTEST_P(PostgreConnection, IntEnumStrongTypedefArray) {
-  CheckConnection(conn);
+  CheckConnection(GetConn());
   pg::ResultSet res{nullptr};
 
   using EnumTypedefVector = std::vector<sample::EnumStrongTypedef>;
 
   EnumTypedefVector i_vec{sample::EnumStrongTypedef{42},
                           sample::EnumStrongTypedef{13}};
-  UEXPECT_NO_THROW(res = conn->Execute("select $1", i_vec));
+  UEXPECT_NO_THROW(res = GetConn()->Execute("select $1", i_vec));
   EXPECT_EQ(i_vec, res[0][0].As<EnumTypedefVector>());
   // Row interface
   EXPECT_EQ(i_vec, res[0].As<EnumTypedefVector>());

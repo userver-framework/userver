@@ -4,8 +4,11 @@
 
 #include <userver/components/component_context.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/server/congestion_control/limiter.hpp>
 #include <userver/server/handlers/fallback_handlers.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
+#include <userver/storages/secdist/component.hpp>
+#include <userver/utils/statistics/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -24,23 +27,24 @@ class RequestsView;
 class ServerImpl;
 struct ServerConfig;
 
-class Server final {
+class Server final : public congestion_control::Limitee {
  public:
-  Server(ServerConfig config,
+  Server(ServerConfig config, const storages::secdist::SecdistConfig& secdist,
          const components::ComponentContext& component_context);
   ~Server();
 
   const ServerConfig& GetConfig() const;
 
-  formats::json::Value GetMonitorData(
-      const utils::statistics::StatisticsRequest&) const;
+  void WriteMonitorData(utils::statistics::Writer& writer) const;
+
+  void WriteTotalHandlerStatistics(utils::statistics::Writer& writer) const;
 
   net::Stats GetServerStats() const;
 
   void AddHandler(const handlers::HttpHandlerBase& handler,
                   engine::TaskProcessor& task_processor);
 
-  size_t GetRegisteredHandlersCount() const;
+  size_t GetThrottlableHandlersCount() const;
 
   const http::HttpRequestHandler& GetHttpRequestHandler(
       bool is_monitor = false) const;
@@ -50,6 +54,8 @@ class Server final {
   void Stop();
 
   RequestsView& GetRequestsView();
+
+  void SetLimit(std::optional<size_t> new_limit) override;
 
   void SetRpsRatelimit(std::optional<size_t> rps);
 

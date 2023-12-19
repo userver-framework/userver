@@ -37,11 +37,10 @@ namespace impl {
 struct RpsCcConfig {
   Policy policy;
   bool is_enabled{};
-
-  static RpsCcConfig Parse(const dynamic_config::DocsMap& docs_map);
+  int activate_factor{0};
 };
 
-inline constexpr dynamic_config::Key<RpsCcConfig::Parse> kRpsCcConfig;
+extern const dynamic_config::Key<RpsCcConfig> kRpsCcConfig;
 
 }  // namespace impl
 

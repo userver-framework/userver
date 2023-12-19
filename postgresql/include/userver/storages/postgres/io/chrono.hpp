@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/storages/postgres/io/chrono.hpp
-/// @brief Timestamp I/O support
+/// @brief Timestamp (std::chrono::*) I/O support
 /// @ingroup userver_postgres_parse_and_format
 
 #include <chrono>

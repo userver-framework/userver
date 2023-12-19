@@ -1,17 +1,21 @@
 #include <userver/clients/http/component.hpp>
 
+#include <curl/curlver.h>
+
 #include <userver/clients/dns/resolver_utils.hpp>
 #include <userver/components/component.hpp>
+#include <userver/components/headers_propagator_component.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
-#include <userver/utils/statistics/metadata.hpp>
 
-#include <clients/http/config.hpp>
-#include <clients/http/destination_statistics_json.hpp>
+#include <clients/http/destination_statistics.hpp>
 #include <clients/http/statistics.hpp>
 #include <clients/http/testsuite.hpp>
 #include <userver/clients/http/client.hpp>
+#include <userver/clients/http/impl/config.hpp>
+#include <userver/clients/http/plugin_component.hpp>
+#include <userver/tracing/manager_component.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -21,6 +25,58 @@ namespace components {
 namespace {
 
 constexpr size_t kDestinationMetricsAutoMaxSizeDefault = 100;
+constexpr std::string_view kHttpClientPluginPrefix = "http-client-plugin-";
+
+clients::http::impl::ClientSettings GetClientSettings(
+    const ComponentConfig& component_config, const ComponentContext& context) {
+  clients::http::impl::ClientSettings settings;
+  settings = component_config.As<clients::http::impl::ClientSettings>();
+  auto& tracing_locator =
+      context.FindComponent<tracing::DefaultTracingManagerLocator>();
+  settings.tracing_manager = &tracing_locator.GetTracingManager();
+  auto* propagator_component =
+      context.FindComponentOptional<components::HeadersPropagatorComponent>();
+  if (propagator_component) {
+    settings.headers_propagator = &propagator_component->Get();
+  }
+  return settings;
+}
+
+void ValidateCurlVersion() {
+  const auto curr_ver = std::make_tuple(
+      LIBCURL_VERSION_MAJOR, LIBCURL_VERSION_MINOR, LIBCURL_VERSION_PATCH);
+  if (std::make_tuple(7, 88, 0) <= curr_ver &&
+      std::make_tuple(8, 1, 2) >= curr_ver) {
+    // See TAXICOMMON-7844
+    throw std::runtime_error("Unsupported libcurl " LIBCURL_VERSION
+                             ", versions from 7.88.0 to 8.1.2 are known to "
+                             "crash on HTTP/2 requests");
+  }
+}
+
+/// [docs map config sample]
+constexpr dynamic_config::DefaultAsJsonString kThrottleDefaults{R"(
+{
+  "http-limit": 6000,
+  "http-per-second": 1500,
+  "https-limit": 100,
+  "https-per-second": 25,
+  "max-size": 100,
+  "per-host-limit": 3000,
+  "per-host-per-second": 500,
+  "token-update-interval-ms": 0
+}
+)"};
+
+const dynamic_config::Key kClientConfig{
+    clients::http::impl::ParseConfig,
+    {
+        {"HTTP_CLIENT_CONNECTION_POOL_SIZE", 1000},
+        {"USERVER_HTTP_PROXY", ""},
+        {"HTTP_CLIENT_CONNECT_THROTTLE", kThrottleDefaults},
+    },
+};
+/// [docs map config sample]
 
 }  // namespace
 
@@ -30,9 +86,14 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
       disable_pool_stats_(
           component_config["pool-statistics-disable"].As<bool>(false)),
       http_client_(
-          component_config.As<clients::http::ClientSettings>(),
+          GetClientSettings(component_config, context),
           context.GetTaskProcessor(
-              component_config["fs-task-processor"].As<std::string>())) {
+              component_config["fs-task-processor"].As<std::string>()),
+          FindPlugins(component_config["plugins"].As<std::vector<std::string>>(
+                          std::vector<std::string>()),
+                      context)) {
+  ValidateCurlVersion();
+
   http_client_.SetDestinationMetricsAutoMaxSize(
       component_config["destination-metrics-auto-max-size"].As<size_t>(
           kDestinationMetricsAutoMaxSizeDefault));
@@ -65,7 +126,7 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
     testsuite.GetHttpAllowedUrlsExtra().RegisterHttpClient(http_client_);
   }
 
-  clients::http::Config bootstrap_config;
+  clients::http::impl::Config bootstrap_config;
   bootstrap_config.proxy =
       component_config["bootstrap-http-proxy"].As<std::string>({});
   http_client_.SetConfig(bootstrap_config);
@@ -83,11 +144,23 @@ HttpClient::HttpClient(const ComponentConfig& component_config,
       (thread_name_prefix.empty() ? "" : ("-" + thread_name_prefix));
   auto& storage =
       context.FindComponent<components::StatisticsStorage>().GetStorage();
-  statistics_holder_ = storage.RegisterExtender(
-      stats_name,
-      [this](const utils::statistics::StatisticsRequest& /*request*/) {
-        return ExtendStatistics();
+  statistics_holder_ = storage.RegisterWriter(
+      std::move(stats_name), [this](utils::statistics::Writer& writer) {
+        return WriteStatistics(writer);
       });
+}
+
+std::vector<utils::NotNull<clients::http::Plugin*>> HttpClient::FindPlugins(
+    const std::vector<std::string>& names,
+    const components::ComponentContext& context) {
+  std::vector<utils::NotNull<clients::http::Plugin*>> plugins;
+  for (const auto& name : names) {
+    auto& component =
+        context.FindComponent<clients::http::plugin::ComponentBase>(
+            std::string{kHttpClientPluginPrefix} + name);
+    plugins.emplace_back(&component.GetPlugin());
+  }
+  return plugins;
 }
 
 HttpClient::~HttpClient() {
@@ -98,21 +171,14 @@ HttpClient::~HttpClient() {
 clients::http::Client& HttpClient::GetHttpClient() { return http_client_; }
 
 void HttpClient::OnConfigUpdate(const dynamic_config::Snapshot& config) {
-  http_client_.SetConfig(config.Get<clients::http::Config>());
+  http_client_.SetConfig(config[kClientConfig]);
 }
 
-formats::json::Value HttpClient::ExtendStatistics() {
-  formats::json::ValueBuilder json;
+void HttpClient::WriteStatistics(utils::statistics::Writer& writer) {
   if (!disable_pool_stats_) {
-    json =
-        clients::http::PoolStatisticsToJson(http_client_.GetPoolStatistics());
+    DumpMetric(writer, http_client_.GetPoolStatistics());
   }
-  json["destinations"] = clients::http::DestinationStatisticsToJson(
-      http_client_.GetDestinationStatistics());
-  utils::statistics::SolomonChildrenAreLabelValues(json["destinations"],
-                                                   "http_destination");
-  utils::statistics::SolomonSkip(json["destinations"]);
-  return json.ExtractValue();
+  DumpMetric(writer, http_client_.GetDestinationStatistics());
 }
 
 yaml_config::Schema HttpClient::GetStaticConfigSchema() {
@@ -168,7 +234,24 @@ properties:
     dns_resolver:
         type: string
         description: server hostname resolver type (getaddrinfo or async)
-        defaultDescription: 'getaddrinfo'
+        defaultDescription: 'async'
+        enum:
+          - getaddrinfo
+          - async
+    set-deadline-propagation-header:
+        type: boolean
+        description: |
+            Whether to set http::common::kXYaTaxiClientTimeoutMs request header
+            using the original timeout and the value of task-inherited deadline.
+            Note: timeout is always updated from the task-inherited deadline
+            when present.
+        defaultDescription: true
+    plugins:
+        type: array
+        description: HTTP client plugin names
+        items:
+            type: string
+            description: plugin name
 )");
 }
 

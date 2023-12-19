@@ -1,19 +1,21 @@
 #pragma once
 
 #include <storages/mongo/stats.hpp>
-#include <userver/formats/json/value_builder.hpp>
+#include <userver/storages/mongo/pool_config.hpp>
+#include <userver/utils/statistics/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::stats {
 
-enum class Verbosity {
-  kTerse,  ///< Only pool stats and read/write overalls by collection
-  kFull,
-};
+void DumpMetric(utils::statistics::Writer& writer,
+                const OperationStatisticsItem& item);
 
-void PoolStatisticsToJson(const PoolStatistics&, formats::json::ValueBuilder&,
-                          Verbosity);
+void DumpMetric(utils::statistics::Writer& writer,
+                const PoolConnectStatistics& conn_stats);
+
+void DumpMetric(utils::statistics::Writer&, const PoolStatistics&,
+                StatsVerbosity);
 
 }  // namespace storages::mongo::stats
 

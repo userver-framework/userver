@@ -13,7 +13,6 @@ namespace dump {
 namespace {
 
 constexpr std::string_view kDumpsEnabled = "enable";
-constexpr std::string_view kMinDumpInterval = "min-interval";
 constexpr std::string_view kFsTaskProcessor = "fs-task-processor";
 constexpr std::string_view kDumpFormatVersion = "format-version";
 constexpr std::string_view kMaxDumpCount = "max-count";
@@ -43,6 +42,7 @@ std::chrono::milliseconds ParseMs(
 
 constexpr std::string_view kDump = "dump";
 constexpr std::string_view kMaxDumpAge = "max-age";
+constexpr std::string_view kMinDumpInterval = "min-interval";
 
 ConfigPatch Parse(const formats::json::Value& value,
                   formats::parse::To<ConfigPatch>) {
@@ -67,8 +67,8 @@ Config::Config(std::string name, const yaml_config::YamlConfig& config,
           config[kMaxDumpAge].As<std::optional<std::chrono::milliseconds>>()),
       max_dump_age_set(config.HasMember(kMaxDumpAge)),
       dump_is_encrypted(config[kEncrypted].As<bool>(false)),
-      dumps_enabled(config[kDumpsEnabled].As<bool>()),
-      min_dump_interval(
+      static_dumps_enabled(config[kDumpsEnabled].As<bool>()),
+      static_min_dump_interval(
           config[kMinDumpInterval].As<std::chrono::milliseconds>(0)) {
   if (max_dump_age && *max_dump_age <= std::chrono::milliseconds::zero()) {
     throw std::logic_error(
@@ -80,19 +80,22 @@ Config::Config(std::string name, const yaml_config::YamlConfig& config,
   }
 }
 
-Config Config::MergeWith(const ConfigPatch& patch) const {
-  Config copy = *this;
-  copy.dumps_enabled = patch.dumps_enabled.value_or(copy.dumps_enabled);
-  copy.min_dump_interval =
-      patch.min_dump_interval.value_or(copy.min_dump_interval);
-  return copy;
+DynamicConfig::DynamicConfig(const Config& config, ConfigPatch&& patch)
+    : dumps_enabled(patch.dumps_enabled.value_or(config.static_dumps_enabled)),
+      min_dump_interval(
+          patch.min_dump_interval.value_or(config.static_min_dump_interval)) {}
+
+bool DynamicConfig::operator==(const DynamicConfig& other) const noexcept {
+  return dumps_enabled == other.dumps_enabled &&
+         min_dump_interval == other.min_dump_interval;
 }
 
-std::unordered_map<std::string, ConfigPatch> ParseConfigSet(
-    const dynamic_config::DocsMap& docs_map) {
-  return docs_map.Get("USERVER_DUMPS")
-      .As<std::unordered_map<std::string, ConfigPatch>>();
+bool DynamicConfig::operator!=(const DynamicConfig& other) const noexcept {
+  return !(*this == other);
 }
+
+const dynamic_config::Key<std::unordered_map<std::string, ConfigPatch>>
+    kConfigSet{"USERVER_DUMPS", dynamic_config::DefaultAsJsonString{"{}"}};
 
 }  // namespace dump
 

@@ -2,6 +2,7 @@
 
 #include <fcntl.h>
 #include <unistd.h>
+#include <string>
 
 #include <userver/utils/assert.hpp>
 
@@ -71,16 +72,16 @@ void Watcher<ev_io>::StopImpl() {
 template <>
 void Watcher<ev_timer>::Init(void (*cb)(struct ev_loop*, ev_timer*,
                                         int) noexcept,
-                             ev_tstamp after, ev_tstamp repeat) {
+                             LibEvDuration after, LibEvDuration repeat) {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
-  ev_timer_init(&w_, cb, after, repeat);
+  ev_timer_init(&w_, cb, after.count(), repeat.count());
 }
 
 template <>
 template <>
-void Watcher<ev_timer>::Set(ev_tstamp after, ev_tstamp repeat) {
+void Watcher<ev_timer>::Set(LibEvDuration after, LibEvDuration repeat) {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
-  ev_timer_set(&w_, after, repeat);
+  ev_timer_set(&w_, after.count(), repeat.count());
 }
 
 template <>

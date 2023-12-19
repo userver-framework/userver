@@ -4,17 +4,15 @@ endif()
 
 set(USERVER_SANITIZE_ENUM "mem, addr, thread, ub")
 
-if (NOT USERVER_OPEN_SOURCE_BUILD)
-    set(SANITIZE "" CACHE STRING "Sanitizer, possible values: ${USERVER_SANITIZE_ENUM}")
-    set(USERVER_SANITIZE "${SANITIZE}" CACHE STRING "Sanitizer, possible values: ${USERVER_SANITIZE_ENUM}")
-else()
-    set(USERVER_SANITIZE "" CACHE STRING "Sanitizer, possible values: ${USERVER_SANITIZE_ENUM}")
-endif()
-
+set(USERVER_SANITIZE "" CACHE STRING "Sanitizer, possible values: ${USERVER_SANITIZE_ENUM}")
 
 add_library(sanitize-target INTERFACE)
 
-if (USERVER_SANITIZE)
+if (USERVER_SANITIZE AND MACOS)
+    message(WARNING "Sanitizers on aarch64 MacOS produce false positive on coroutine-context switching. Disabling")
+endif()
+
+if (USERVER_SANITIZE AND NOT MACOS)
   if (CLANG)
     set(USERVER_BLACKLIST ${CMAKE_CURRENT_LIST_DIR}/sanitize.blacklist.txt)
     target_compile_options(sanitize-target INTERFACE -fsanitize-blacklist=${USERVER_BLACKLIST})
@@ -67,7 +65,13 @@ if (USERVER_SANITIZE)
 
     # https://clang.llvm.org/docs/AddressSanitizer.html
     set(SANITIZE_ASAN_ENABLED ON)
-    set(SANITIZE_BUILD_FLAGS ${SANITIZE_BUILD_FLAGS} -fsanitize=address)
+    if (CLANG)
+      set(SANITIZE_BUILD_FLAGS ${SANITIZE_BUILD_FLAGS} -fsanitize=address)
+    else()
+      # gcc links with ASAN dynamically by default, and that leads to all sorts of problems
+      # when we intercept dl_iterate_phdr, which ASAN uses in initialziation before main.
+      set(SANITIZE_BUILD_FLAGS ${SANITIZE_BUILD_FLAGS} -fsanitize=address -static-libasan)
+    endif()
     set(SANITIZE_CXX_FLAGS -fno-omit-frame-pointer)
   endif()
 

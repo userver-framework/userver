@@ -17,12 +17,18 @@ class PostgreStats : public PostgreConnection {};
 
 INSTANTIATE_UTEST_SUITE_P(
     StatsSettings, PostgreStats,
-    ::testing::Values<storages::postgres::ConnectionSettings>(
-        kCachePreparedStatements, kPipelineEnabled));
+    ::testing::Values(kCachePreparedStatements, kPipelineEnabled),
+    [](const testing::TestParamInfo<PostgreStats::ParamType>& info) {
+      if (info.param.pipeline_mode == pg::PipelineMode::kEnabled) {
+        return "PipelineEnabled";
+      } else {
+        return "PipelineDisabled";
+      }
+    });
 
 UTEST_P(PostgreStats, NoTransactions) {
   // We can't check all the counters as some of them are used for internal ops
-  const auto stats = conn->GetStatsAndReset();
+  const auto stats = GetConn()->GetStatsAndReset();
   EXPECT_EQ(0, stats.trx_total);
   EXPECT_EQ(0, stats.commit_total);
   EXPECT_EQ(0, stats.rollback_total);
@@ -34,9 +40,9 @@ UTEST_P(PostgreStats, NoTransactions) {
 }
 
 UTEST_P(PostgreStats, StatsResetAfterGet) {
-  [[maybe_unused]] const auto old_stats = conn->GetStatsAndReset();
+  [[maybe_unused]] const auto old_stats = GetConn()->GetStatsAndReset();
 
-  const auto stats = conn->GetStatsAndReset();
+  const auto stats = GetConn()->GetStatsAndReset();
   EXPECT_EQ(0, stats.trx_total);
   EXPECT_EQ(0, stats.commit_total);
   EXPECT_EQ(0, stats.rollback_total);
@@ -52,16 +58,16 @@ UTEST_P(PostgreStats, StatsResetAfterGet) {
 }
 
 UTEST_P(PostgreStats, TransactionExecuted) {
-  const auto old_stats = conn->GetStatsAndReset();
+  const auto old_stats = GetConn()->GetStatsAndReset();
 
   const auto time_start = pg::detail::SteadyClock::now();
-  UEXPECT_NO_THROW(
-      conn->Begin(pg::TransactionOptions{}, pg::detail::SteadyClock::now()));
-  UEXPECT_NO_THROW(conn->Execute("select 1"))
+  UEXPECT_NO_THROW(GetConn()->Begin(pg::TransactionOptions{},
+                                    pg::detail::SteadyClock::now()));
+  UEXPECT_NO_THROW(GetConn()->Execute("select 1"))
       << "select 1 successfully executed";
-  UEXPECT_NO_THROW(conn->Commit());
+  UEXPECT_NO_THROW(GetConn()->Commit());
 
-  const auto stats = conn->GetStatsAndReset();
+  const auto stats = GetConn()->GetStatsAndReset();
   EXPECT_EQ(1, stats.trx_total);
   EXPECT_EQ(1, stats.commit_total);
   EXPECT_EQ(0, stats.rollback_total);
@@ -79,16 +85,16 @@ UTEST_P(PostgreStats, TransactionExecuted) {
 }
 
 UTEST_P(PostgreStats, TransactionFailed) {
-  const auto old_stats = conn->GetStatsAndReset();
+  const auto old_stats = GetConn()->GetStatsAndReset();
 
   const auto time_start = pg::detail::SteadyClock::now();
-  UEXPECT_NO_THROW(
-      conn->Begin(pg::TransactionOptions{}, pg::detail::SteadyClock::now()));
-  UEXPECT_THROW(conn->Execute("select select select"), pg::Error)
+  UEXPECT_NO_THROW(GetConn()->Begin(pg::TransactionOptions{},
+                                    pg::detail::SteadyClock::now()));
+  UEXPECT_THROW(GetConn()->Execute("select select select"), pg::Error)
       << "invalid query throws exception";
-  UEXPECT_NO_THROW(conn->Rollback());
+  UEXPECT_NO_THROW(GetConn()->Rollback());
 
-  const auto stats = conn->GetStatsAndReset();
+  const auto stats = GetConn()->GetStatsAndReset();
   EXPECT_EQ(1, stats.trx_total);
   EXPECT_EQ(0, stats.commit_total);
   EXPECT_EQ(1, stats.rollback_total);
@@ -107,17 +113,17 @@ UTEST_P(PostgreStats, TransactionFailed) {
 
 UTEST_P(PostgreStats, TransactionMultiExecutions) {
   const auto exec_count = 10;
-  [[maybe_unused]] const auto old_stats = conn->GetStatsAndReset();
+  [[maybe_unused]] const auto old_stats = GetConn()->GetStatsAndReset();
 
-  UEXPECT_NO_THROW(
-      conn->Begin(pg::TransactionOptions{}, pg::detail::SteadyClock::now()));
+  UEXPECT_NO_THROW(GetConn()->Begin(pg::TransactionOptions{},
+                                    pg::detail::SteadyClock::now()));
   for (auto i = 0; i < exec_count; ++i) {
-    UEXPECT_NO_THROW(conn->Execute("select 1"))
+    UEXPECT_NO_THROW(GetConn()->Execute("select 1"))
         << "select 1 successfully executed";
   }
-  UEXPECT_NO_THROW(conn->Commit());
+  UEXPECT_NO_THROW(GetConn()->Commit());
 
-  const auto stats = conn->GetStatsAndReset();
+  const auto stats = GetConn()->GetStatsAndReset();
   EXPECT_EQ(1, stats.trx_total);
   EXPECT_EQ(1, stats.commit_total);
   EXPECT_EQ(0, stats.rollback_total);
@@ -130,13 +136,13 @@ UTEST_P(PostgreStats, TransactionMultiExecutions) {
 }
 
 UTEST_P(PostgreStats, SingleQuery) {
-  [[maybe_unused]] const auto old_stats = conn->GetStatsAndReset();
+  [[maybe_unused]] const auto old_stats = GetConn()->GetStatsAndReset();
 
-  UEXPECT_NO_THROW(conn->Start(pg::detail::SteadyClock::now()));
-  UEXPECT_NO_THROW(conn->Execute("select 1"));
-  UEXPECT_NO_THROW(conn->Finish());
+  UEXPECT_NO_THROW(GetConn()->Start(pg::detail::SteadyClock::now()));
+  UEXPECT_NO_THROW(GetConn()->Execute("select 1"));
+  UEXPECT_NO_THROW(GetConn()->Finish());
 
-  const auto stats = conn->GetStatsAndReset();
+  const auto stats = GetConn()->GetStatsAndReset();
   EXPECT_EQ(1, stats.trx_total);
   EXPECT_EQ(0, stats.commit_total);
   EXPECT_EQ(0, stats.rollback_total);
@@ -149,18 +155,18 @@ UTEST_P(PostgreStats, SingleQuery) {
 }
 
 UTEST_P(PostgreStats, PortalExecuted) {
-  const auto old_stats = conn->GetStatsAndReset();
+  const auto old_stats = GetConn()->GetStatsAndReset();
 
   const auto time_start = pg::detail::SteadyClock::now();
-  UEXPECT_NO_THROW(
-      conn->Begin(pg::TransactionOptions{}, pg::detail::SteadyClock::now()));
+  UEXPECT_NO_THROW(GetConn()->Begin(pg::TransactionOptions{},
+                                    pg::detail::SteadyClock::now()));
 
   pg::detail::Connection::StatementId stmt_id;
-  UEXPECT_NO_THROW(stmt_id = conn->PortalBind("select 1", "test", {}, {}));
-  UEXPECT_NO_THROW(conn->PortalExecute(stmt_id, "test", 0, {}));
-  UEXPECT_NO_THROW(conn->Commit());
+  UEXPECT_NO_THROW(stmt_id = GetConn()->PortalBind("select 1", "test", {}, {}));
+  UEXPECT_NO_THROW(GetConn()->PortalExecute(stmt_id, "test", 0, {}));
+  UEXPECT_NO_THROW(GetConn()->Commit());
 
-  const auto stats = conn->GetStatsAndReset();
+  const auto stats = GetConn()->GetStatsAndReset();
   EXPECT_EQ(1, stats.trx_total);
   EXPECT_EQ(1, stats.commit_total);
   EXPECT_EQ(0, stats.rollback_total);
@@ -178,15 +184,15 @@ UTEST_P(PostgreStats, PortalExecuted) {
 }
 
 UTEST_P(PostgreStats, PortalInvalidQuery) {
-  const auto old_stats = conn->GetStatsAndReset();
+  const auto old_stats = GetConn()->GetStatsAndReset();
 
-  UEXPECT_NO_THROW(
-      conn->Begin(pg::TransactionOptions{}, pg::detail::SteadyClock::now()));
-  UEXPECT_THROW(conn->PortalBind("invalid query", "test", {}, {}),
+  UEXPECT_NO_THROW(GetConn()->Begin(pg::TransactionOptions{},
+                                    pg::detail::SteadyClock::now()));
+  UEXPECT_THROW(GetConn()->PortalBind("invalid query", "test", {}, {}),
                 pg::SyntaxError);
-  UEXPECT_NO_THROW(conn->Rollback());
+  UEXPECT_NO_THROW(GetConn()->Rollback());
 
-  const auto stats = conn->GetStatsAndReset();
+  const auto stats = GetConn()->GetStatsAndReset();
   EXPECT_EQ(1, stats.trx_total);
   EXPECT_EQ(0, stats.commit_total);
   EXPECT_EQ(1, stats.rollback_total);
@@ -202,16 +208,16 @@ UTEST_P(PostgreStats, PortalInvalidQuery) {
 }
 
 UTEST_P(PostgreStats, PortalDuplicateName) {
-  const auto old_stats = conn->GetStatsAndReset();
+  const auto old_stats = GetConn()->GetStatsAndReset();
 
-  UEXPECT_NO_THROW(
-      conn->Begin(pg::TransactionOptions{}, pg::detail::SteadyClock::now()));
-  UEXPECT_NO_THROW(conn->PortalBind("select 1", "test", {}, {}));
-  UEXPECT_THROW(conn->PortalBind("select 2", "test", {}, {}),
+  UEXPECT_NO_THROW(GetConn()->Begin(pg::TransactionOptions{},
+                                    pg::detail::SteadyClock::now()));
+  UEXPECT_NO_THROW(GetConn()->PortalBind("select 1", "test", {}, {}));
+  UEXPECT_THROW(GetConn()->PortalBind("select 2", "test", {}, {}),
                 pg::AccessRuleViolation);
-  UEXPECT_NO_THROW(conn->Rollback());
+  UEXPECT_NO_THROW(GetConn()->Rollback());
 
-  const auto stats = conn->GetStatsAndReset();
+  const auto stats = GetConn()->GetStatsAndReset();
   EXPECT_EQ(1, stats.trx_total);
   EXPECT_EQ(0, stats.commit_total);
   EXPECT_EQ(1, stats.rollback_total);

@@ -5,7 +5,7 @@
 
 namespace tests::handlers {
 
-class LogCapture final : public userver::server::handlers::HttpHandlerJsonBase {
+class LogCapture final : public server::handlers::HttpHandlerJsonBase {
  public:
   static constexpr std::string_view kName = "handler-logcapture";
 

@@ -59,6 +59,18 @@ class string_list {
     return false;
   }
 
+  template <typename Pred>
+  bool ReplaceFirstIf(const Pred& pred, const char* new_value) {
+    for (auto& list_elem : list_elements_) {
+      const auto& value = list_elem.value;
+      if (pred(value)) {
+        ReplaceValue(list_elem, std::string{new_value});
+        return true;
+      }
+    }
+    return false;
+  }
+
  private:
   struct Elem {
     explicit Elem(std::string new_value);

@@ -6,6 +6,7 @@
 #include <chrono>
 #include <functional>
 #include <optional>
+#include <random>
 #include <string>
 
 #include <userver/engine/condition_variable.hpp>
@@ -23,10 +24,21 @@ USERVER_NAMESPACE_BEGIN
 namespace utils {
 
 /// @ingroup userver_concurrency
-/// @brief Task that periodically runs a user callback
+///
+/// @brief Task that periodically runs a user callback. Callback is started
+/// after the previous callback execution is finished every `period + A - B`,
+/// where:
+/// * `A` is `+/- distribution * rand(0.0, 1.0)` if Flags::kChaotic flag is set,
+///   otherwise is `0`;
+/// * `B` is the time of previous callback execution if Flags::kStrong flag is
+///   set, otherwise is `0`;
+///
+/// TaskProcessor to execute the callback and many other options are specified
+/// in PeriodicTask::Settings.
 class PeriodicTask final {
  public:
   enum class Flags {
+    /// None of the below flags
     kNone = 0,
     /// Immediately call a function
     kNow = 1 << 0,
@@ -34,7 +46,8 @@ class PeriodicTask final {
     kStrong = 1 << 1,
     /// Randomize wait period (+-25% by default)
     kChaotic = 1 << 2,
-    /// Use `engine::Task::Importance::kCritical` flag
+    /// @deprecated Does nothing, PeriodicTask is always spawned as
+    /// `engine::Task::Importance::kCritical`.
     /// @note Although this periodic task cannot be cancelled due to
     /// system overload, it's cancelled upon calling `Stop`.
     /// Subtasks that may be spawned in the callback
@@ -42,7 +55,8 @@ class PeriodicTask final {
     kCritical = 1 << 4,
   };
 
-  struct Settings {
+  /// Configuration parameters for PeriodicTask.
+  struct Settings final {
     static constexpr uint8_t kDistributionPercent = 25;
 
     constexpr /*implicit*/ Settings(
@@ -76,23 +90,46 @@ class PeriodicTask final {
 
     // Note: Tidy requires us to explicitly initialize these fields, although
     // the initializers are never used.
+
+    /// @brief Period for the task execution. Task is repeated every
+    /// `(period +/- distribution) - time of previous execution`
     std::chrono::milliseconds period{};
+
+    /// @brief Jitter for task repetitions. If kChaotic is set in `flags`
+    /// the task is repeated every
+    /// `(period +/- distribution) - time of previous execution`
     std::chrono::milliseconds distribution{};
-    /// Used instead of period in case of exception, if set.
+
+    /// @brief Used instead of `period` in case of exception, if set.
     std::optional<std::chrono::milliseconds> exception_period;
+
+    /// @brief Flags that control the behavior of PeriodicTask.
     utils::Flags<Flags> flags{};
-    logging::Level span_level{};
+
+    /// @brief tracing::Span that measures each execution of the task
+    /// uses this logging level.
+    logging::Level span_level{logging::Level::kInfo};
+
+    /// @brief TaskProcessor to execute the task. If nullptr then the
+    /// PeriodicTask::Start() calls engine::current_task::GetTaskProcessor()
+    /// to get the TaskProcessor.
     engine::TaskProcessor* task_processor{nullptr};
   };
 
+  /// Signature of the task to be executed each period.
   using Callback = std::function<void()>;
 
+  /// Default constructor that does nothing.
   PeriodicTask();
+
   PeriodicTask(PeriodicTask&&) = delete;
   PeriodicTask(const PeriodicTask&) = delete;
 
+  /// Constructs the periodic task and calls Start()
   PeriodicTask(std::string name, Settings settings, Callback callback);
 
+  /// Stops the periodic execution of previous task and starts the periodic
+  /// execution of the new task.
   void Start(std::string name, Settings settings, Callback callback);
 
   ~PeriodicTask();
@@ -107,6 +144,23 @@ class PeriodicTask final {
 
   /// Set all settings except flags. All flags must be set at the start.
   void SetSettings(Settings settings);
+
+  /// @brief Non-blocking force next iteration.
+  ///
+  /// Returns immediately, without waiting for Step() to finish.
+  ///
+  /// - If PeriodicTask isn't running, then a Step() will be performed at the
+  /// start.
+  /// - If the PeriodicTask is waiting for the next iteration, then the wait is
+  /// interrupted and the next Step() is executed.
+  /// - If Step() is being executed, the current iteration will be completed and
+  /// only after that a new iteration will be called. Reason: the current
+  /// iteration is considered to be using stale data.
+  ///
+  /// @note If 'ForceStepAsync' is called multiple times while Step() is
+  /// being executed, all events will be conflated (one extra Step() call will
+  /// be executed).
+  void ForceStepAsync();
 
   /// Force next DoStep() iteration. It is guaranteed that there is at least one
   /// call to DoStep() during SynchronizeDebug() execution. DoStep() is executed
@@ -155,11 +209,13 @@ class PeriodicTask final {
 
   std::chrono::milliseconds MutatePeriod(std::chrono::milliseconds period);
 
-  std::string name_;
+  rcu::Variable<std::string> name_;
   Callback callback_;
   engine::TaskWithResult<void> task_;
   rcu::Variable<Settings> settings_;
   engine::SingleConsumerEvent changed_event_;
+  std::atomic<bool> should_force_step_{false};
+  std::optional<std::minstd_rand> mutate_period_random_;
 
   // For kNow only
   engine::Mutex step_mutex_;

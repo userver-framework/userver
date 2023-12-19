@@ -2,11 +2,13 @@
 
 #include <optional>
 #include <string>
-#include <unordered_map>
 #include <unordered_set>
 
-#include <userver/formats/json/serialize_container.hpp>
 #include <userver/formats/json/value.hpp>
+#include <userver/formats/parse/common_containers.hpp>
+#include <userver/formats/serialize/common_containers.hpp>
+#include <userver/utils/impl/transparent_hash.hpp>
+#include <userver/utils/internal_tag_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -15,24 +17,34 @@ namespace dynamic_config {
 class DocsMap final {
  public:
   /* Returns config item or throws an exception if key is missing */
-  formats::json::Value Get(const std::string& name) const;
+  formats::json::Value Get(std::string_view name) const;
 
+  bool Has(std::string_view name) const;
   void Set(std::string name, formats::json::Value);
   void Parse(const std::string& json, bool empty_ok);
   size_t Size() const;
 
-  void MergeFromOther(DocsMap&& other);
+  void MergeOrAssign(DocsMap&& source);
+  void MergeMissing(const DocsMap& source);
 
-  const std::unordered_set<std::string>& GetRequestedNames() const;
   std::unordered_set<std::string> GetNames() const;
-
-  std::string AsJsonString() const;
-
+  formats::json::Value AsJson() const;
   bool AreContentsEqual(const DocsMap& other) const;
 
+  /// @cond
+  // For internal use only
+  // Set of configs expected to be used is automatically updated when
+  // configs are retrieved with 'Get' method.
+  void SetConfigsExpectedToBeUsed(
+      utils::impl::TransparentSet<std::string> configs, utils::InternalTag);
+
+  const utils::impl::TransparentSet<std::string>& GetConfigsExpectedToBeUsed(
+      utils::InternalTag) const;
+  /// @endcond
+
  private:
-  std::unordered_map<std::string, formats::json::Value> docs_;
-  mutable std::unordered_set<std::string> requested_names_;
+  utils::impl::TransparentMap<std::string, formats::json::Value> docs_;
+  mutable utils::impl::TransparentSet<std::string> configs_to_be_used_;
 };
 
 template <typename T>
@@ -52,13 +64,22 @@ class Value final {
 
 extern const std::string kValueDictDefaultName;
 
+namespace impl {
+
+[[noreturn]] void ThrowNoValueException(std::string_view dict_name,
+                                        std::string_view key);
+
+}  // namespace impl
+
 template <typename ValueType>
 class ValueDict final {
  public:
-  using DictType = std::unordered_map<std::string, ValueType>;
+  using DictType = utils::impl::TransparentMap<std::string, ValueType>;
   using const_iterator = typename DictType::const_iterator;
   using iterator = const_iterator;
   using value_type = typename DictType::value_type;
+  using key_type = std::string;
+  using mapped_type = ValueType;
 
   ValueDict() = default;
 
@@ -70,34 +91,30 @@ class ValueDict final {
       : name_(std::move(name)), dict_(std::move(dict)) {}
 
   // Deprecated
-  ValueDict(std::string name, const DocsMap& docs_map)
-      : name_(std::move(name)),
-        dict_(docs_map.Get(name_).template As<DictType>()) {}
+  ValueDict(std::string_view name, const DocsMap& docs_map)
+      : name_(name), dict_(docs_map.Get(name_).template As<DictType>()) {}
 
   bool HasDefaultValue() const { return HasValue(kValueDictDefaultName); }
 
-  template <typename StringType>
-  bool HasValue(const StringType& key) const {
-    return dict_.find(ToStringKey(key)) != dict_.end();
+  bool HasValue(std::string_view key) const {
+    return utils::impl::FindTransparent(dict_, key) != dict_.end();
   }
 
   const ValueType& GetDefaultValue() const {
     const auto it = dict_.find(kValueDictDefaultName);
     if (it == dict_.end()) {
-      throw std::runtime_error("no value for '" + kValueDictDefaultName + '\'' +
-                               (name_.empty() ? "" : " in " + name_));
+      impl::ThrowNoValueException(name_, kValueDictDefaultName);
     }
     return it->second;
   }
 
-  template <typename StringType>
-  const ValueType& operator[](const StringType& key) const {
-    auto it = dict_.find(ToStringKey(key));
+  const ValueType& operator[](std::string_view key) const {
+    auto it = utils::impl::FindTransparent(dict_, key);
     if (it == dict_.end()) {
       it = dict_.find(kValueDictDefaultName);
-      if (it == dict_.end())
-        throw std::runtime_error("no value for '" + ToStringKey(key) + '\'' +
-                                 (name_.empty() ? "" : " in " + name_));
+      if (it == dict_.end()) {
+        impl::ThrowNoValueException(name_, key);
+      }
     }
     return it->second;
   }
@@ -108,20 +125,37 @@ class ValueDict final {
     return GetDefaultValue();
   }
 
+  const ValueType& Get(std::string_view key) const { return (*this)[key]; }
+
   template <typename StringType>
-  const ValueType& Get(const StringType& key) const {
+  const ValueType& Get(const std::optional<StringType>& key) const {
     return (*this)[key];
   }
 
-  template <typename StringType>
-  std::optional<ValueType> GetOptional(const StringType& key) const {
-    auto it = dict_.find(ToStringKey(key));
+  std::optional<ValueType> GetOptional(std::string_view key) const {
+    auto it = utils::impl::FindTransparent(dict_, key);
     if (it == dict_.end()) {
       it = dict_.find(kValueDictDefaultName);
       if (it == dict_.end()) return std::nullopt;
     }
 
     return it->second;
+  }
+
+  /// Sets the default value.
+  /// The function is primarily there for testing purposes - ValueDict is
+  /// normally obtained by parsing the config.
+  void SetDefault(ValueType value) {
+    Set(kValueDictDefaultName, std::move(value));
+  }
+
+  /// Sets a mapping. key == dynamic_config::kValueDictDefaultName is allowed.
+  /// The function is primarily there for testing purposes - ValueDict is
+  /// normally obtained by parsing the config.
+  template <typename StringType>
+  void Set(StringType&& key, ValueType value) {
+    utils::impl::TransparentInsertOrAssign(dict_, std::forward<StringType>(key),
+                                           std::move(value));
   }
 
   auto begin() const { return dict_.begin(); }
@@ -135,13 +169,6 @@ class ValueDict final {
   bool operator!=(const ValueDict& r) const { return !(*this == r); }
 
  private:
-  static const std::string& ToStringKey(const std::string& key) { return key; }
-
-  template <typename StringType>
-  static std::string ToStringKey(const StringType& key) {
-    return std::string{std::string_view{key}};
-  }
-
   std::string name_;
   DictType dict_;
 };

@@ -17,7 +17,8 @@ namespace engine::io {
 class IoException : public utils::TracefulException {
  public:
   IoException();
-  using utils::TracefulException::TracefulException;
+
+  explicit IoException(std::string_view message);
 };
 
 /// I/O interruption.

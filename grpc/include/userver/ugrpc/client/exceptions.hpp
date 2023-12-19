@@ -4,9 +4,11 @@
 /// @brief Exceptions thrown by gRPC client streams
 
 #include <exception>
+#include <optional>
 #include <string>
 #include <string_view>
 
+#include <google/rpc/status.pb.h>
 #include <grpcpp/support/status.h>
 
 USERVER_NAMESPACE_BEGIN
@@ -42,16 +44,30 @@ class RpcInterruptedError final : public RpcError {
   RpcInterruptedError(std::string_view call_name, std::string_view stage);
 };
 
+/// @brief RPC failed due to task cancellation
+class RpcCancelledError final : public RpcError {
+ public:
+  RpcCancelledError(std::string_view call_name, std::string_view stage);
+};
+
 /// @brief Error with grpc::Status details
 /// @see <grpcpp/impl/codegen/status_code_enum.h> for error code details
 class ErrorWithStatus : public RpcError {
  public:
-  ErrorWithStatus(std::string_view call_name, grpc::Status&& status);
+  ErrorWithStatus(std::string_view call_name, grpc::Status&& status,
+                  std::optional<google::rpc::Status>&& gstatus,
+                  std::optional<std::string>&& message);
 
   const grpc::Status& GetStatus() const noexcept;
 
+  const std::optional<google::rpc::Status>& GetGStatus() const noexcept;
+
+  const std::optional<std::string>& GetGStatusString() const noexcept;
+
  private:
   grpc::Status status_;
+  std::optional<google::rpc::Status> gstatus_;
+  std::optional<std::string> gstatus_string_;
 };
 
 /// @brief Concrete errors for all the error codes
@@ -139,8 +155,12 @@ class UnauthenticatedError final : public ErrorWithStatus {
 /// @}
 
 namespace impl {
-[[noreturn]] void ThrowErrorWithStatus(std::string_view call_name,
-                                       grpc::Status&& status);
+
+[[noreturn]] void ThrowErrorWithStatus(
+    std::string_view call_name, grpc::Status&& status,
+    std::optional<google::rpc::Status>&& gstatus,
+    std::optional<std::string>&& gstatus_string);
+
 }  // namespace impl
 
 }  // namespace ugrpc::client

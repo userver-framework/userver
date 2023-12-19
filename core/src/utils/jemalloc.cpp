@@ -6,6 +6,8 @@
 #include <cerrno>
 #endif
 
+#include <userver/utils/thread_name.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::jemalloc {
@@ -58,6 +60,7 @@ std::error_code SetMaxBgThreads(size_t max_bg_threads) {
 }
 
 std::error_code EnableBgThreads() {
+  utils::CurrentThreadNameGuard bg_thread_name_guard("je_bg_thread");
   return MallCtl<bool>("background_thread", true);
 }
 

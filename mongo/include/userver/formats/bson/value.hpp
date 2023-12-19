@@ -36,7 +36,7 @@ class ValueBuilder;
 ///
 /// @snippet formats/bson/value_test.cpp  Sample formats::bson::Value usage
 ///
-/// @see @ref md_en_userver_formats
+/// @see @ref scripts/docs/en/userver/formats.md
 class Value {
  public:
   struct DefaultConstructed {};
@@ -157,7 +157,7 @@ class Value {
   ///
   /// @snippet formats/bson/value_test.cpp  Sample formats::bson::Value::As<T>() usage
   ///
-  /// @see @ref md_en_userver_formats
+  /// @see @ref scripts/docs/en/userver/formats.md
 
   // clang-format on
 
@@ -216,6 +216,7 @@ class Value {
   template <typename T, typename First, typename... Rest>
   T ConvertTo(First&& default_arg, Rest&&... more_default_args) const {
     if (IsMissing() || IsNull()) {
+      // NOLINTNEXTLINE(google-readability-casting)
       return T(std::forward<First>(default_arg),
                std::forward<Rest>(more_default_args)...);
     }
@@ -320,5 +321,13 @@ std::string Value::ConvertTo<std::string>() const;
 using formats::common::Items;
 
 }  // namespace formats::bson
+
+/// Although we provide user defined literals, please beware that
+/// 'using namespace ABC' may contradict code style of your company.
+namespace formats::literals {
+
+bson::Value operator"" _bson(const char* str, std::size_t len);
+
+}  // namespace formats::literals
 
 USERVER_NAMESPACE_END

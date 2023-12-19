@@ -1,24 +1,31 @@
 #pragma once
 
+#include <chrono>
+
 #include <userver/dynamic_config/snapshot.hpp>
-#include <userver/dynamic_config/value.hpp>
+#include <userver/server/http/http_status.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {
 
-class HttpServerSettings final {
- public:
-  static HttpServerSettings Parse(const dynamic_config::DocsMap& docs_map);
+extern const dynamic_config::Key<bool> kLogRequest;
 
-  bool need_log_request;
-  bool need_log_request_headers;
-  bool need_check_auth_in_handlers;
-  bool need_cancel_handle_request_by_deadline;
+extern const dynamic_config::Key<bool> kLogRequestHeaders;
+
+extern const dynamic_config::Key<bool> kCancelHandleRequestByDeadline;
+
+struct CcCustomStatus final {
+  http::HttpStatus initial_status_code;
+  std::chrono::milliseconds max_time_delta;
 };
 
-inline constexpr dynamic_config::Key<HttpServerSettings::Parse>
-    kHttpServerSettings;
+CcCustomStatus Parse(const formats::json::Value& value,
+                     formats::parse::To<CcCustomStatus>);
+
+extern const dynamic_config::Key<CcCustomStatus> kCcCustomStatus;
+
+extern const dynamic_config::Key<bool> kStreamApiEnabled;
 
 }  // namespace server::handlers
 

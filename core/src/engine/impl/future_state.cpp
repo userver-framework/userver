@@ -61,7 +61,6 @@ FutureStatus FutureStateBase::WaitUntil(Deadline deadline) {
   if (deadline.IsReached()) return FutureStatus::kTimeout;
 
   auto& context = current_task::GetCurrentTaskContext();
-  if (context.ShouldCancel()) return FutureStatus::kCancelled;
 
   WaitStrategy wait_strategy{*this, context, deadline};
   const auto wakeup_source = context.Sleep(wait_strategy);
@@ -72,6 +71,10 @@ void FutureStateBase::OnFutureCreated() {
   if (is_future_created_.exchange(true, std::memory_order_relaxed)) {
     throw std::future_error(std::future_errc::future_already_retrieved);
   }
+}
+
+bool FutureStateBase::IsFutureCreated() const noexcept {
+  return is_future_created_.load(std::memory_order_relaxed);
 }
 
 void FutureStateBase::LockResultStore() {

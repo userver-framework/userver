@@ -11,7 +11,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-static constexpr auto kTestHosts = R"(
+constexpr auto kTestHosts = R"(
 127.0.0.1 my-localhost # my own localhost
 127.0.0.2 also-my-localhost my-localhost # complex # comment
 
@@ -27,7 +27,7 @@ this is an invalid string that must be ignored
 5.5.5.6 host2 host1
 )";
 
-static constexpr auto kReplacementHosts = R"(
+constexpr auto kReplacementHosts = R"(
 127.0.0.1 localhost
 ::1 localhost
 )";

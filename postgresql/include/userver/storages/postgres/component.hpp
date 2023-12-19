@@ -33,6 +33,7 @@ namespace components {
 /// * @ref POSTGRES_CONNECTION_POOL_SETTINGS
 /// * @ref POSTGRES_CONNECTION_SETTINGS
 /// * @ref POSTGRES_STATEMENT_METRICS_SETTINGS
+/// * @ref POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED
 ///
 /// ## Static configuration example:
 ///
@@ -117,9 +118,10 @@ namespace components {
 /// min_pool_size           | number of connections created initially                   | 4
 /// max_pool_size           | limit of connections count                                | 15
 /// sync-start              | perform initial connections synchronously                 | false
-/// dns_resolver            | server hostname resolver type (getaddrinfo or async)      | 'getaddrinfo'
+/// dns_resolver            | server hostname resolver type (getaddrinfo or async)      | 'async'
 /// persistent-prepared-statements | cache prepared statements or not                   | true
-/// user-types-enabled      | disabling will disallow use of user-defined types         | true
+/// user-types-enabled      | allow use of user-defined types                           | true
+/// check-user-types        | cancel service start if some user types have not been loaded, which helps to detect missing migrations | false
 /// ignore_unused_query_params| disable check for not-NULL query params that are not used in query| false
 /// monitoring-dbalias      | name of the database for monitorings                      | calculated from dbalias or dbconnection options
 /// max_prepared_cache_size | prepared statements cache size limit                      | 5000
@@ -127,8 +129,9 @@ namespace components {
 /// min_pool_size           | number of connections created initially                   | 4
 /// max_pool_size           | maximum number of created connections                     | 15
 /// max_queue_size          | maximum number of clients waiting for a connection        | 200
-/// pipeline_enabled        | turn on pipeline mode                                     | false
 /// connecting_limit        | limit for concurrent establishing connections number per pool (0 - unlimited) | 0
+/// connlimit_mode          | max_connections setup mode (manual or auto), also see @ref scripts/docs/en/userver/pg_connlimit_mode_auto.md | auto
+/// error-injection         | artificial error injection settings, error_injection::Settings | --
 
 // clang-format on
 
@@ -161,21 +164,22 @@ class Postgres : public LoggableComponentBase {
   storages::postgres::DatabasePtr GetDatabase() const { return database_; }
 
   /// Reports statistics for PostgreSQL driver
-  formats::json::Value ExtendStatistics(
-      const utils::statistics::StatisticsRequest& /*request*/);
+  void ExtendStatistics(utils::statistics::Writer& writer);
 
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
 
-  concurrent::AsyncEventSubscriberScope config_subscription_;
-
-  utils::statistics::Entry statistics_holder_;
-
   std::string name_;
   std::string db_name_;
+  storages::postgres::ClusterSettings initial_settings_;
   storages::postgres::DatabasePtr database_;
+
+  // Subscriptions must be the last fields, because the fields above are used
+  // from callbacks.
+  concurrent::AsyncEventSubscriberScope config_subscription_;
+  utils::statistics::Entry statistics_holder_;
 };
 
 template <>

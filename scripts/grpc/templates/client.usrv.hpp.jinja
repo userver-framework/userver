@@ -16,9 +16,7 @@ class {{service.name}}Client final {
  public:
   // For internal use only
   {{service.name}}Client(
-      USERVER_NAMESPACE::ugrpc::client::impl::ChannelCache::Token&& channel_token,
-      ::grpc::CompletionQueue& queue,
-      USERVER_NAMESPACE::ugrpc::impl::ServiceStatistics& statistics);
+      USERVER_NAMESPACE::ugrpc::client::impl::ClientParams&& client_params);
   {% for method in service.method %}
 
   {% if method.client_streaming and method.server_streaming %}
@@ -45,14 +43,16 @@ class {{service.name}}Client final {
       {% if not method.client_streaming %}
       const {{ method.input_type | grpc_to_cpp_name }}& request,
       {% endif %}
-      std::unique_ptr<::grpc::ClientContext> context =
-          std::make_unique<::grpc::ClientContext>());
+      std::unique_ptr<::grpc::ClientContext> context = std::make_unique<::grpc::ClientContext>(),
+      const USERVER_NAMESPACE::ugrpc::client::Qos& qos = {}
+  ) const;
   {% endfor %}
 
   // For internal use only
   static USERVER_NAMESPACE::ugrpc::impl::StaticServiceMetadata GetMetadata();
 
  private:
+  {# All non-template related client data should be placed in ClientData #}
   template <typename Client>
   friend USERVER_NAMESPACE::ugrpc::client::impl::ClientData&
   USERVER_NAMESPACE::ugrpc::client::impl::GetClientData(Client& client);

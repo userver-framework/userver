@@ -2,6 +2,7 @@
 
 #include <userver/engine/async.hpp>
 #include <userver/fs/blocking/read.hpp>
+#include <userver/utils/async.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -15,13 +16,14 @@ bool IsHiddenFile(const boost::filesystem::path& path) {
   return name != ".." && name != "." && name[0] == '.';
 }
 
-std::string GetRelative(std::string_view path, std::string_view dir) {
+}  // namespace
+
+std::string GetLexicallyRelative(std::string_view path, std::string_view dir) {
   UASSERT(dir.size() < path.size());
+  UASSERT(path.substr(0, dir.size()) == dir);
   auto rel = path.substr(dir.size());
   return std::string{rel};
 }
-
-}  // namespace
 
 std::string ReadFileContents(engine::TaskProcessor& async_tp,
                              const std::string& path) {
@@ -33,16 +35,23 @@ FileInfoWithDataMap ReadRecursiveFilesInfoWithData(
     engine::TaskProcessor& async_tp, const std::string& path,
     utils::Flags<SettingsReadFile> flags) {
   FileInfoWithDataMap data{};
-  for (const auto& f : boost::filesystem::recursive_directory_iterator(path)) {
+  for (auto it =
+           utils::Async(
+               async_tp, "init",
+               [&path] {
+                 return boost::filesystem::recursive_directory_iterator(path);
+               })
+               .Get();
+       it != boost::filesystem::recursive_directory_iterator();
+       utils::Async(async_tp, "next", [&it] { ++it; }).Get()) {
     // only files
-    if (f.status().type() != boost::filesystem::regular_file) continue;
-    if ((flags & SettingsReadFile::kSkipHidden) && IsHiddenFile(f.path()))
+    if (it->status().type() != boost::filesystem::regular_file) continue;
+    if ((flags & SettingsReadFile::kSkipHidden) && IsHiddenFile(it->path()))
       continue;
     FileInfoWithData info{};
-    info.size = boost::filesystem::file_size(f.path());
-    info.extension = f.path().extension().string();
-    info.data = ReadFileContents(async_tp, f.path().string());
-    data[GetRelative(f.path().string(), path)] =
+    info.extension = it->path().extension().string();
+    info.data = ReadFileContents(async_tp, it->path().string());
+    data[GetLexicallyRelative(it->path().string(), path)] =
         std::make_shared<const FileInfoWithData>(std::move(info));
   }
   return data;

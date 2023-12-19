@@ -5,7 +5,6 @@
 #include <userver/dist_lock/dist_lock_settings.hpp>
 #include <userver/storages/postgres/component.hpp>
 #include <userver/testsuite/tasks.hpp>
-#include <userver/utils/statistics/metadata.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -61,11 +60,12 @@ DistLockComponentBase::DistLockComponentBase(
 
   auto& statistics_storage =
       component_context.FindComponent<components::StatisticsStorage>();
-  statistics_holder_ = statistics_storage.GetStorage().RegisterExtender(
-      "distlock." + component_config.Name(),
-      [this](const USERVER_NAMESPACE::utils::statistics::StatisticsRequest&) {
-        return worker_->GetStatisticsJson();
-      });
+  statistics_holder_ = statistics_storage.GetStorage().RegisterWriter(
+      "distlock",
+      [this](USERVER_NAMESPACE::utils::statistics::Writer& writer) {
+        writer = *worker_;
+      },
+      {{"distlock_name", component_config.Name()}});
 
   if (component_config["testsuite-support"].As<bool>(false)) {
     auto& testsuite_tasks = testsuite::GetTestsuiteTasks(component_context);
@@ -116,7 +116,7 @@ properties:
         description: timeout, must be less than lock-ttl/2
     restart-delay:
         type: string
-        descritpion: how much time to wait after failed task restart
+        description: how much time to wait after failed task restart
         defaultDescription: 100ms
     autostart:
         type: boolean
@@ -128,9 +128,8 @@ properties:
         defaultDescription: main-task-processor
     testsuite-support:
         type: boolean
-        default: false
         description: Enable testsuite support
-        defaultDescription: true
+        defaultDescription: false
 )");
 }
 

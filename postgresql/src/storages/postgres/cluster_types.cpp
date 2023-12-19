@@ -25,6 +25,8 @@ const char* ToStringRaw(ClusterHostType ht) {
       return "sync slave";
     case ClusterHostType::kSlave:
       return "slave";
+    case ClusterHostType::kSlaveOrMaster:
+      return "slave|master";
 
     case ClusterHostType::kRoundRobin:
       return "round-robin";

@@ -11,7 +11,7 @@ USERVER_NAMESPACE_BEGIN
 namespace server::handlers {
 
 LegacyJsonErrorBuilder::LegacyJsonErrorBuilder(const CustomHandlerException& ex)
-    : LegacyJsonErrorBuilder(http::GetHttpStatus(ex.GetCode()), ex.what(),
+    : LegacyJsonErrorBuilder(server::http::GetHttpStatus(ex), ex.what(),
                              ex.GetExternalErrorBody(), ex.GetDetails()) {}
 
 LegacyJsonErrorBuilder::LegacyJsonErrorBuilder(http::HttpStatus status,

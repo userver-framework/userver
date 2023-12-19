@@ -13,7 +13,7 @@ POST /service/dnsclient/flush_cache_full
 ```
 Note that the server::handlers::DnsClientControl handler lives at the separate
 `components.server.listener-monitor` address, so you have to request them using the
-`listener-monitor` credentials. See @ref md_en_userver_tutorial_production_service
+`listener-monitor` credentials. See @ref scripts/docs/en/userver/tutorial/production_service.md
 for more info on configuration and ideas on how to change the
 `/service/dnsclient/` handle path.
 
@@ -75,5 +75,5 @@ OK
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref md_en_userver_memory_profile_running_service | @ref md_en_userver_os_signals ⇨
+⇦ @ref scripts/docs/en/userver/memory_profile_running_service.md | @ref scripts/docs/en/userver/os_signals.md ⇨
 @htmlonly </div> @endhtmlonly

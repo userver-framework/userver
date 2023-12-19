@@ -244,6 +244,23 @@ class Hint {
   formats::bson::Value value_;
 };
 
+/// @brief Specifies an array of filter documents that
+/// determine which array elements to modify for an update
+/// operation on an array field.
+class ArrayFilters {
+ public:
+  /// Specifies list of filters
+  explicit ArrayFilters(std::initializer_list<formats::bson::Document>);
+
+  /// @cond
+  /// Retrieves an arrayFilters value
+  const formats::bson::Value& Value() const;
+  /// @endcond
+
+ private:
+  formats::bson::Value value_;
+};
+
 /// Selects count implementation to use: new aggregation-based or old cmd-based
 enum class ForceCountImpl { kAggregate, kCmd };
 

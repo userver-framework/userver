@@ -1,6 +1,5 @@
 name: fmt
 version: '7.1'  # on update also adjust the version in core/CMakeLists.txt
-helper-prefix: false
 
 includes:
     find:
@@ -18,4 +17,6 @@ formula-name: fmt
 rpm-names:
   - fmt-devel
 pacman-names:
+  - fmt
+pkg-config-names:
   - fmt

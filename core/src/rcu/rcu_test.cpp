@@ -1,17 +1,26 @@
-#include <userver/utest/utest.hpp>
+#include <userver/rcu/rcu.hpp>
 
 #include <atomic>
-
-#include <userver/engine/sleep.hpp>
-#include <userver/engine/task/task_with_result.hpp>
-#include <userver/rcu/rcu.hpp>
-#include <userver/utils/scope_guard.hpp>
+#include <future>
+#include <thread>
 
 #include <engine/task/task_context.hpp>
+#include <userver/engine/sleep.hpp>
+#include <userver/engine/task/task_with_result.hpp>
+#include <userver/utest/utest.hpp>
+#include <userver/utils/scope_guard.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
+namespace {
+
 using X = std::pair<int, int>;
+
+struct StdMutexRcuTraits {
+  using MutexType = std::mutex;
+};
+
+}  // namespace
 
 UTEST(Rcu, Ctr) { rcu::Variable<X> ptr; }
 
@@ -267,7 +276,7 @@ UTEST(Rcu, Cleanup) {
   static std::atomic<size_t> count{0};
   struct X {
     X() { count++; }
-    X(X&&) { count++; }
+    X(X&&) noexcept { count++; }
     X(const X&) { count++; }
     ~X() { count--; }
   };
@@ -541,7 +550,7 @@ UTEST_MT(Rcu, Core, 3) {
 
     // reader task
     tasks.push_back(engine::AsyncNoSpan([&] {
-      auto t_ptr_ = &non_null;
+      auto* t_ptr_ = &non_null;
       // mimics storing current_ address into a hazard pointer
       hazard_pointer.store(t_ptr_, std::memory_order_seq_cst);
 
@@ -566,6 +575,53 @@ UTEST_MT(Rcu, Core, 3) {
 
     for (auto& task : tasks) task.Get();
   }
+}
+
+TEST(Rcu, StdMutexInit) {
+  rcu::Variable<X, StdMutexRcuTraits> ptr(1, 2);
+  auto reader = ptr.Read();
+  EXPECT_EQ(std::make_pair(1, 2), *reader);
+}
+
+TEST(Rcu, StdMutexChangeRead) {
+  rcu::Variable<X, StdMutexRcuTraits> ptr(1, 2);
+
+  {
+    auto writer = ptr.StartWrite();
+    writer->first = 3;
+    writer.Commit();
+  }
+
+  auto reader = ptr.Read();
+  EXPECT_EQ(std::make_pair(3, 2), *reader);
+}
+
+TEST(Rcu, StdMutexConcurrentWrites) {
+  rcu::Variable<X, StdMutexRcuTraits> ptr(1, 2);
+
+  std::atomic<bool> thread_started_write{false};
+
+  auto write_ptr = ptr.StartWrite();
+
+  auto thread = std::async([&ptr, &thread_started_write] {
+    auto write_ptr = ptr.StartWrite();
+    thread_started_write.store(true);
+    EXPECT_EQ(std::make_pair(2, 2), *write_ptr);
+    write_ptr->first = 3;
+    write_ptr.Commit();
+  });
+
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  ASSERT_FALSE(thread_started_write.load());
+
+  write_ptr->first = 2;
+  write_ptr.Commit();
+
+  thread.get();
+  ASSERT_TRUE(thread_started_write.load());
+
+  auto reader = ptr.Read();
+  EXPECT_EQ(std::make_pair(3, 2), *reader);
 }
 
 USERVER_NAMESPACE_END

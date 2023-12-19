@@ -1,8 +1,8 @@
 #include <userver/components/loggable_component_base.hpp>
 
 #include <userver/components/component.hpp>
-#include <userver/components/tracer.hpp>
 #include <userver/logging/component.hpp>
+#include <userver/tracing/component.hpp>
 #include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -19,7 +19,7 @@ yaml_config::Schema LoggableComponentBase::GetStaticConfigSchema() {
   auto schema = impl::ComponentBase::GetStaticConfigSchema();
   schema.UpdateDescription(
       "Base class for all application components, it depends on "
-      "components::Logger and components::Tracer.");
+      "components::Logger and optionally components::Tracer.");
   return schema;
 }
 

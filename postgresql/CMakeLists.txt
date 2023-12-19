@@ -2,7 +2,6 @@ project(userver-postgresql CXX)
 
 find_package(Boost REQUIRED regex)
 
-
 option(USERVER_FEATURE_PATCH_LIBPQ "Apply patches to the libpq (add portals support)" ON)
 add_library(userver-libpq INTERFACE)
 if (USERVER_FEATURE_PATCH_LIBPQ)
@@ -11,15 +10,12 @@ if (USERVER_FEATURE_PATCH_LIBPQ)
 else()
   set_source_files_properties(
     ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/postgres/detail/pg_connection_wrapper.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/postgres/portal.cpp
     PROPERTIES COMPILE_FLAGS -DUSERVER_NO_LIBPQ_PATCHES=1
   )
 
-  find_package(PostgreSQLInternal REQUIRED)
-  find_library(LIBPQ_LIBRARIES NAMES libpq.a libpq.so)
-  if (NOT LIBPQ_LIBRARIES)
-    message(FATAL_ERROR "Failed to find libpq")
-  endif()
-  target_link_libraries(userver-libpq INTERFACE ${LIBPQ_LIBRARIES} PostgreSQLInternal)
+  find_package(PostgreSQL REQUIRED)
+  target_link_libraries(userver-libpq INTERFACE PostgreSQL::PostgreSQL)
 endif()
 
 file(GLOB_RECURSE SOURCES
@@ -35,6 +31,11 @@ file(GLOB_RECURSE PG_TEST_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*_pgtest.cpp
 )
 list(REMOVE_ITEM SOURCES ${PG_TEST_SOURCES})
+
+file(GLOB_RECURSE PG_FUNCTIONAL_TEST_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/functional_tests/*
+)
+list(REMOVE_ITEM SOURCES ${PG_FUNCTIONAL_TEST_SOURCES})
 
 file(GLOB_RECURSE BENCH_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*_benchmark.cpp
@@ -64,51 +65,49 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 if (USERVER_IS_THE_ROOT_PROJECT)
-  add_executable(${PROJECT_NAME}_unittest ${UNIT_TEST_SOURCES})
-  target_include_directories (${PROJECT_NAME}_unittest PRIVATE
+  add_executable(${PROJECT_NAME}-unittest ${UNIT_TEST_SOURCES})
+  target_include_directories (${PROJECT_NAME}-unittest PRIVATE
       $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
   )
-  target_link_libraries(${PROJECT_NAME}_unittest PUBLIC
+  target_link_libraries(${PROJECT_NAME}-unittest PUBLIC
     userver-utest
     ${PROJECT_NAME}
   )
-  add_google_tests(${PROJECT_NAME}_unittest)
+  add_google_tests(${PROJECT_NAME}-unittest)
 
-  add_executable(${PROJECT_NAME}_benchmark ${BENCH_SOURCES})
-  target_link_libraries(${PROJECT_NAME}_benchmark PRIVATE
+  add_executable(${PROJECT_NAME}-benchmark ${BENCH_SOURCES})
+  target_link_libraries(${PROJECT_NAME}-benchmark PRIVATE
       userver-ubench
       ${PROJECT_NAME}
       userver-libpq
   )
-  target_include_directories(${PROJECT_NAME}_benchmark
+  target_include_directories(${PROJECT_NAME}-benchmark
       PRIVATE
       ${CMAKE_CURRENT_SOURCE_DIR}/src
   )
-  add_test(NAME ${PROJECT_NAME}_benchmark COMMAND env
+  add_test(NAME ${PROJECT_NAME}-benchmark COMMAND env
       POSTGRES_DSN_BENCH=postgresql://testsuite@localhost:15433/postgres
       ${CMAKE_BINARY_DIR}/testsuite/env
       --databases=postgresql
       run --
-      $<TARGET_FILE:${PROJECT_NAME}_benchmark>
+      $<TARGET_FILE:${PROJECT_NAME}-benchmark>
       --benchmark_min_time=0
       --benchmark_color=no
   )
 
-  add_executable(${PROJECT_NAME}_pgtest ${PG_TEST_SOURCES})
-  target_include_directories (${PROJECT_NAME}_pgtest PRIVATE
+  add_executable(${PROJECT_NAME}-pgtest ${PG_TEST_SOURCES})
+  target_include_directories (${PROJECT_NAME}-pgtest PRIVATE
       $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
   )
-  target_link_libraries(${PROJECT_NAME}_pgtest userver-utest ${PROJECT_NAME})
+  target_link_libraries(${PROJECT_NAME}-pgtest userver-utest ${PROJECT_NAME})
   add_test(NAME ${PROJECT_NAME}_pgtest COMMAND env
       POSTGRES_TEST_DSN=postgresql://testsuite@localhost:15433/postgres
       ${CMAKE_BINARY_DIR}/testsuite/env
       --databases=postgresql
       run --
-      $<TARGET_FILE:${PROJECT_NAME}_pgtest>
+      $<TARGET_FILE:${PROJECT_NAME}-pgtest>
       --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_pgtest.xml
   )
-endif()
 
-# Target with no need to use userver namespace, but includes require userver/
-add_library(yandex-${PROJECT_NAME} INTERFACE)
-target_link_libraries(yandex-${PROJECT_NAME} INTERFACE ${PROJECT_NAME})
+  add_subdirectory(functional_tests)
+endif()

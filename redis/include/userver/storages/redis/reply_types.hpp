@@ -15,26 +15,6 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
-namespace impl {
-
-template <typename Result, typename = utils::void_t<>>
-struct DefaultReplyTypeHelper {
-  using type = Result;
-};
-
-template <typename Result>
-struct DefaultReplyTypeHelper<
-    Result,
-    utils::void_t<decltype(Result::Parse(
-        std::declval<ReplyData>(), std::declval<const std::string&>()))>> {
-  using type = decltype(Result::Parse(std::declval<ReplyData>(),
-                                      std::declval<const std::string&>()));
-};
-
-template <typename Result>
-using DefaultReplyType = typename DefaultReplyTypeHelper<Result>::type;
-
-}  // namespace impl
 
 using ExpireReply = USERVER_NAMESPACE::redis::ExpireReply;
 

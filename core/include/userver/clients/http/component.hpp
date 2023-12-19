@@ -29,7 +29,6 @@ namespace components {
 /// ## Dynamic options:
 /// * @ref HTTP_CLIENT_CONNECT_THROTTLE
 /// * @ref HTTP_CLIENT_CONNECTION_POOL_SIZE
-/// * @ref HTTP_CLIENT_ENFORCE_TASK_DEADLINE
 /// * @ref USERVER_HTTP_PROXY
 ///
 /// ## Static options:
@@ -46,7 +45,9 @@ namespace components {
 /// testsuite-enabled | enable testsuite testing support | false
 /// testsuite-timeout | if set, force the request timeout regardless of the value passed in code | -
 /// testsuite-allowed-url-prefixes | if set, checks that all URLs start with any of the passed prefixes, asserts if not. Set for testing purposes only. | ''
-/// dns_resolver | server hostname resolver type (getaddrinfo or async) | 'getaddrinfo'
+/// dns_resolver | server hostname resolver type (getaddrinfo or async) | 'async'
+/// set-deadline-propagation-header | whether to set http::common::kXYaTaxiClientTimeoutMs request header, see @ref scripts/docs/en/userver/deadline_propagation.md | true
+/// plugins | Plugin names to apply. A plugin component is called "http-client-plugin-" plus the plugin name.
 ///
 /// ## Static configuration example:
 ///
@@ -55,7 +56,9 @@ namespace components {
 // clang-format on
 class HttpClient final : public LoggableComponentBase {
  public:
-  static constexpr auto kName = "http-client";
+  /// @ingroup userver_component_names
+  /// @brief The default name of components::HttpClient component
+  static constexpr std::string_view kName = "http-client";
 
   HttpClient(const ComponentConfig&, const ComponentContext&);
 
@@ -68,7 +71,11 @@ class HttpClient final : public LoggableComponentBase {
  private:
   void OnConfigUpdate(const dynamic_config::Snapshot& config);
 
-  formats::json::Value ExtendStatistics();
+  void WriteStatistics(utils::statistics::Writer& writer);
+
+  static std::vector<utils::NotNull<clients::http::Plugin*>> FindPlugins(
+      const std::vector<std::string>& names,
+      const components::ComponentContext& context);
 
   const bool disable_pool_stats_;
   clients::http::Client http_client_;

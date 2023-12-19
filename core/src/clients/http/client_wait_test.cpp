@@ -99,12 +99,12 @@ UTEST(HttpClient, WaitAnySingle) {
 
   for (unsigned i = 0; i < kRepetitions; ++i) {
     auto echo_future = http_client_ptr->CreateRequest()
-                           ->post(http_echo_server.GetBaseUrl(), kTestData)
-                           ->retry(1)
-                           ->verify(true)
-                           ->http_version(clients::http::HttpVersion::k11)
-                           ->timeout(utest::kMaxTestWaitTime)
-                           ->async_perform();
+                           .post(http_echo_server.GetBaseUrl(), kTestData)
+                           .retry(1)
+                           .verify(true)
+                           .http_version(clients::http::HttpVersion::k11)
+                           .timeout(utest::kMaxTestWaitTime)
+                           .async_perform();
 
     auto resp = engine::WaitAny(echo_future);
     ASSERT_TRUE(resp);
@@ -122,20 +122,20 @@ UTEST(HttpClient, WaitAny) {
 
   for (unsigned i = 0; i < kRepetitions; ++i) {
     auto timeout_future = http_client_ptr->CreateRequest()
-                              ->post(http_sleep_server.GetBaseUrl(), kTestData)
-                              ->retry(1)
-                              ->verify(true)
-                              ->http_version(clients::http::HttpVersion::k11)
-                              ->timeout(utest::kMaxTestWaitTime)
-                              ->async_perform();
+                              .post(http_sleep_server.GetBaseUrl(), kTestData)
+                              .retry(1)
+                              .verify(true)
+                              .http_version(clients::http::HttpVersion::k11)
+                              .timeout(utest::kMaxTestWaitTime)
+                              .async_perform();
 
     auto echo_future = http_client_ptr->CreateRequest()
-                           ->post(http_echo_server.GetBaseUrl(), kTestData)
-                           ->retry(1)
-                           ->verify(true)
-                           ->http_version(clients::http::HttpVersion::k11)
-                           ->timeout(utest::kMaxTestWaitTime)
-                           ->async_perform();
+                           .post(http_echo_server.GetBaseUrl(), kTestData)
+                           .retry(1)
+                           .verify(true)
+                           .http_version(clients::http::HttpVersion::k11)
+                           .timeout(utest::kMaxTestWaitTime)
+                           .async_perform();
 
     auto resp = engine::WaitAny(timeout_future, echo_future);
     ASSERT_TRUE(resp);
@@ -154,14 +154,13 @@ UTEST(HttpClient, WaitAnyMany) {
   async_requests.reserve(kRepetitions);
 
   for (unsigned i = 0; i < kRepetitions; ++i) {
-    async_requests.push_back(
-        http_client_ptr->CreateRequest()
-            ->post(http_echo_server.GetBaseUrl(), kTestData)
-            ->retry(1)
-            ->verify(true)
-            ->http_version(clients::http::HttpVersion::k11)
-            ->timeout(utest::kMaxTestWaitTime)
-            ->async_perform());
+    async_requests.push_back(http_client_ptr->CreateRequest()
+                                 .post(http_echo_server.GetBaseUrl(), kTestData)
+                                 .retry(1)
+                                 .verify(true)
+                                 .http_version(clients::http::HttpVersion::k11)
+                                 .timeout(utest::kMaxTestWaitTime)
+                                 .async_perform());
   }
 
   const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);

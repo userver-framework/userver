@@ -1,24 +1,18 @@
 # yaml
 components_manager:
-    coro_pool:
-        initial_size: 500             # Preallocate 500 coroutines at startup.
-        max_size: 1000                # Do not keep more than 1000 preallocated coroutines.
-
     task_processors:                  # Task processor is an executor for coroutine tasks
 
         main-task-processor:          # Make a task processor for CPU-bound couroutine tasks.
             worker_threads: 4         # Process tasks in 4 threads.
-            thread_name: main-worker  # OS will show the threads of this task processor with 'main-worker' prefix.
 
         fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
-            thread_name: fs-worker
             worker_threads: 4
 
         monitor-task-processor:       # Make a separate task processor for administrative tasks.
-            thread_name: mon-worker
             worker_threads: 2
+            thread_name: mon-worker
 
-    default_task_processor: main-task-processor
+    default_task_processor: main-task-processor  # Task processor in which components start.
 
     components:                       # Configuring components that were registered via component_list
         logging:
@@ -28,14 +22,6 @@ components_manager:
                     file_path: '@stderr'
                     level: debug
                     overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
-
-        tracer:                           # Component that helps to trace execution times and requests in logs.
-            service-name: tcp-full-duplex
-
-        dynamic-config:                      # Dynamic config storage options, do nothing
-            fs-cache-path: ''
-        dynamic-config-fallbacks:            # Load options from file and push them into the dynamic config storage.
-            fallback-path: /etc/tcp_full_duplex/dynamic_config_fallback.json
 
         # /// [TCP component]
         # yaml
@@ -65,4 +51,6 @@ components_manager:
             method: POST
             task_processor: main-task-processor
         http-client:
+            fs-task-processor: fs-task-processor
+        dns-client:                     # Asynchronous DNS component
             fs-task-processor: fs-task-processor

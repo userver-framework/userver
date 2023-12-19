@@ -14,8 +14,6 @@ class HotStandby : public PostgreSQLBase {};
 
 UTEST_F(HotStandby, Smoke) {
   const auto& dsns = GetDsnListFromEnv();
-  if (dsns.empty()) return;
-
   pg::detail::topology::HotStandby qcc(
       GetTaskProcessor(), dsns, nullptr,
       pg::TopologySettings{utest::kMaxTestWaitTime}, pg::ConnectionSettings{},
@@ -34,11 +32,8 @@ UTEST_F(HotStandby, Smoke) {
 }
 
 UTEST_F(HotStandby, ReplicationLag) {
-  const auto& dsns = GetDsnListFromEnv();
-  if (dsns.empty()) return;
-
   pg::detail::topology::HotStandby qcc(
-      GetTaskProcessor(), dsns, nullptr,
+      GetTaskProcessor(), GetDsnListFromEnv(), nullptr,
       pg::TopologySettings{std::chrono::seconds{-1}}, pg::ConnectionSettings{},
       GetTestCmdCtls(), testsuite::PostgresControl{},
       error_injection::Settings{});

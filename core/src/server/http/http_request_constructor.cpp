@@ -17,8 +17,6 @@ namespace server::http {
 
 namespace {
 
-const std::string kCookieHeader = "Cookie";
-
 inline void Strip(const char*& begin, const char*& end) {
   while (begin < end && isspace(*begin)) ++begin;
   while (begin < end && isspace(end[-1])) --end;
@@ -51,8 +49,7 @@ HttpRequestConstructor::HttpRequestConstructor(
       request_(std::make_shared<HttpRequestImpl>(data_accounter)) {}
 
 void HttpRequestConstructor::SetMethod(HttpMethod method) {
-  request_->orig_method_ = method;
-  request_->method_ = (method == HttpMethod::kHead ? HttpMethod::kGet : method);
+  request_->method_ = method;
 }
 
 void HttpRequestConstructor::SetHttpMajor(unsigned short http_major) {
@@ -110,13 +107,10 @@ void HttpRequestConstructor::ParseUrl() {
   if (handler_info) {
     UASSERT(match_result.status == MatchRequestResult::Status::kOk);
     const auto& handler_config = handler_info->handler.GetConfig();
-    if (handler_config.max_url_size)
-      config_.max_url_size = *handler_config.max_url_size;
-    config_.max_request_size = handler_config.max_request_size;
-    if (handler_config.max_headers_size)
-      config_.max_headers_size = *handler_config.max_headers_size;
-    if (handler_config.parse_args_from_body)
-      config_.parse_args_from_body = *handler_config.parse_args_from_body;
+    config_.max_request_size = handler_config.request_config.max_request_size;
+    config_.max_headers_size = handler_config.request_config.max_headers_size;
+    config_.parse_args_from_body =
+        handler_config.request_config.parse_args_from_body;
     if (handler_config.decompress_request) config_.decompress_request = true;
 
     request_->SetTaskProcessor(handler_info->task_processor);
@@ -172,8 +166,7 @@ void HttpRequestConstructor::SetIsFinal(bool is_final) {
 }
 
 std::shared_ptr<request::RequestBase> HttpRequestConstructor::Finalize() {
-  LOG_TRACE() << "method=" << request_->GetMethodStr()
-              << " orig_method=" << request_->GetOrigMethodStr();
+  LOG_TRACE() << "method=" << request_->GetMethodStr();
 
   FinalizeImpl();
 
@@ -243,27 +236,33 @@ void HttpRequestConstructor::ParseArgs(const http_parser_url& url) {
 }
 
 void HttpRequestConstructor::ParseArgs(const char* data, size_t size) {
-  return USERVER_NAMESPACE::http::parser::ParseArgs(
-      std::string_view(data, size), request_->request_args_);
+  USERVER_NAMESPACE::http::parser::ParseAndConsumeArgs(
+      std::string_view(data, size),
+      [this](std::string&& key, std::string&& value) {
+        request_->request_args_[std::move(key)].push_back(std::move(value));
+      });
 }
 
 void HttpRequestConstructor::AddHeader() {
   UASSERT(header_field_flag_);
-  auto it = request_->headers_.find(header_field_);
-  if (it == request_->headers_.end()) {
-    request_->headers_.emplace(std::move(header_field_),
-                               std::move(header_value_));
-  } else {
-    it->second += ',';
-    it->second += header_value_;
+
+  try {
+    request_->headers_.InsertOrAppend(std::move(header_field_),
+                                      std::move(header_value_));
+  } catch (const USERVER_NAMESPACE::http::headers::HeaderMap::
+               TooManyHeadersException&) {
+    SetStatus(Status::kHeadersTooLarge);
+    utils::LogErrorAndThrow(fmt::format(
+        "HeaderMap reached its maximum capacity, already contains {} headers",
+        request_->headers_.size()));
   }
   header_field_.clear();
   header_value_.clear();
 }
 
 void HttpRequestConstructor::ParseCookies() {
-  const std::string& cookie = request_->GetHeader(kCookieHeader);
-
+  const std::string& cookie =
+      request_->GetHeader(USERVER_NAMESPACE::http::headers::kCookie);
   const char* data = cookie.data();
   size_t size = cookie.size();
   const char* end = data + size;
@@ -316,7 +315,9 @@ void HttpRequestConstructor::AccountRequestSize(size_t size) {
     utils::LogErrorAndThrow(
         "request is too large, " + std::to_string(request_size_) + ">" +
         std::to_string(config_.max_request_size) +
-        " (enforced by 'max_request_size' handler limit in config.yaml)");
+        " (enforced by 'max_request_size' handler limit in config.yaml)" +
+        ", url: " + (url_parsed_ ? request_->GetUrl() : "not parsed yet") +
+        ", added size " + std::to_string(size));
   }
 }
 
@@ -339,7 +340,9 @@ void HttpRequestConstructor::AccountHeadersSize(size_t size) {
                             std::to_string(headers_size_) + ">" +
                             std::to_string(config_.max_headers_size) +
                             " (enforced by 'max_headers_size' handler limit in "
-                            "config.yaml)");
+                            "config.yaml)" +
+                            ", url: " + request_->GetUrl() + ", added size " +
+                            std::to_string(size));
   }
 }
 

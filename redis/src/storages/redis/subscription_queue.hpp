@@ -4,7 +4,7 @@
 #include <string>
 
 #include <storages/redis/impl/subscribe_sentinel.hpp>
-#include <userver/engine/mpsc_queue.hpp>
+#include <userver/concurrent/queue.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -41,7 +41,7 @@ class SubscriptionQueue {
 
   void SetMaxLength(size_t length);
 
-  bool PopMessage(std::unique_ptr<Item>& msg_ptr);
+  bool PopMessage(Item& msg_ptr);
 
   void Unsubscribe();
 
@@ -62,7 +62,8 @@ class SubscriptionQueue {
       std::string pattern,
       const USERVER_NAMESPACE::redis::CommandControl& command_control);
 
-  using Queue = engine::MpscQueue<std::unique_ptr<Item>>;
+  // Messages could come out-of-order due to Redis limitations. Non FIFO is fine
+  using Queue = concurrent::NonFifoMpscQueue<Item>;
 
   std::shared_ptr<Queue> queue_;
   typename Queue::Producer producer_;
