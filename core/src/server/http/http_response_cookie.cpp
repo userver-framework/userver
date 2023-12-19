@@ -5,7 +5,6 @@
 
 #include <fmt/compile.h>
 #include <fmt/format.h>
-#include <boost/algorithm/string.hpp>
 
 #include <userver/logging/log.hpp>
 #include <userver/utils/datetime.hpp>
@@ -19,6 +18,7 @@ namespace server::http {
 namespace {
 
 const std::string kTimeFormat = "%a, %d %b %Y %H:%M:%S %Z";
+const std::string kObsoleteTimeFormat = "%a, %d-%b-%Y %H:%M:%S %Z";
 
 enum class KeyType {
   kDomain,
@@ -51,9 +51,23 @@ std::optional<std::chrono::system_clock::time_point> ParseTime(
   if (timestring.size() < 3) {
     return std::nullopt;
   }
+
+  const std::string timezone = timestring.substr(timestring.size() - 3);
+
   try {
-    return utils::datetime::Stringtime(
-        timestring, timestring.substr(timestring.size() - 3), kTimeFormat);
+    return utils::datetime::Stringtime(timestring, timezone, kTimeFormat);
+  } catch (const utils::datetime::DateParseError& err) {
+    LOG_LIMITED_DEBUG() << "Error while parsing cookie time, attempting to "
+                           "parse using obsolete format: "
+                        << err;
+  } catch (const utils::datetime::TimezoneLookupError& err) {
+    LOG_WARNING() << "Error while parsing cookie timezone: " << err;
+    return std::nullopt;
+  }
+
+  try {
+    return utils::datetime::Stringtime(timestring, timezone,
+                                       kObsoleteTimeFormat);
   } catch (const utils::datetime::DateParseError& err) {
     LOG_WARNING() << "Error while parsing cookie time: " << err;
     return std::nullopt;

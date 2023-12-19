@@ -144,6 +144,17 @@ TEST(HttpCookie, FromString) {
     EXPECT_EQ(cookie.value().ToString(), cookie_as_str);
   }
 
+  const std::string obsolete_time_format_cookie_as_str =
+      "name1=value1; Domain=domain.com; Path=/; Expires=Wed, 12-Jun-2019 "
+      "16:51:45 GMT; Max-Age=3600; Secure; SameSite=None; HttpOnly";
+  const std::string expected =
+      "name1=value1; Domain=domain.com; Path=/; Expires=Wed, 12 Jun 2019 "
+      "16:51:45 GMT; Max-Age=3600; Secure; SameSite=None; HttpOnly";
+  EXPECT_EQ(server::http::Cookie::FromString(obsolete_time_format_cookie_as_str)
+                .value()
+                .ToString(),
+            expected);
+
   const utils::StrIcaseEqual equal;
   const std::vector<std::string> cookies_as_str_icase = {
       "name1=value1; Domain=domain.com; Path=/; Expires=Wed, 12 Jun 2019 "
@@ -165,6 +176,8 @@ TEST(HttpCookie, FromString) {
   const std::vector<std::string> bad_cookies_as_str = {
       // NOLINTNEXTLINE(bugprone-suspicious-missing-comma)
       "name1=value1; Domain=domain.com; Path=; Expires=Wed, 12 Jun 2019 "
+      "16:51:45 GMT; Max-Age=0; Secure; SameSite=None; HttpOnly",
+      "name1=value1; Domain=domain.com; Path=; Expires=Wed, 12_Jun_2019 "
       "16:51:45 GMT; Max-Age=0; Secure; SameSite=None; HttpOnly",
       "name1=value1; Domain=domain.com; Path=/my_beautiful_path; "
       "Expires=Thu, 01 Jan 1969 00:00:00 GMT; Max-Age=1800; Secure; "
