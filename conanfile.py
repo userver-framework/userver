@@ -431,7 +431,7 @@ class UserverConan(ConanFile):
                 'target': 'core',
                 'lib': 'core',
                 'requires': (
-                    ['core-internal', 'universal']
+                    ['universal']
                     + abseil()
                     + fmt()
                     + cctz()
@@ -604,10 +604,6 @@ class UserverConan(ConanFile):
                     ].includedirs.append(
                         os.path.join('include', 'function_backports'),
                     )
-                if cmake_component == 'core':
-                    self.cpp_info.components[conan_component].libs.append(
-                        get_lib_name('core-internal'),
-                    )
                 if cmake_component != 'ubench':
                     self.cpp_info.components[
                         conan_component
@@ -616,16 +612,6 @@ class UserverConan(ConanFile):
                     )
 
                 self.cpp_info.components[conan_component].requires = requires
-
-        self.cpp_info.components['core-internal'].defines.append(
-            f'USERVER_NAMESPACE={self.options.namespace}',
-        )
-        self.cpp_info.components['core-internal'].defines.append(
-            f'USERVER_NAMESPACE_BEGIN={self.options.namespace_begin}',
-        )
-        self.cpp_info.components['core-internal'].defines.append(
-            f'USERVER_NAMESPACE_END={self.options.namespace_end}',
-        )
 
         self.cpp_info.components['universal'].defines.append(
             f'USERVER_NAMESPACE={self.options.namespace}',

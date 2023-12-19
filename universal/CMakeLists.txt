@@ -91,23 +91,32 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang"
 endif()
 
 # Trimming filename prefixes 
-get_filename_component(BASE_PREFIX "${CMAKE_SOURCE_DIR}/../" ABSOLUTE)
+get_filename_component(BASE_PREFIX "${USERVER_ROOT_DIR}/../" ABSOLUTE)
 file(TO_NATIVE_PATH "${CMAKE_SOURCE_DIR}/" SRC_LOG_PATH_BASE)
 file(TO_NATIVE_PATH "${CMAKE_BINARY_DIR}/" BIN_LOG_PATH_BASE)
 
-set(SRC_LOG_PATH_BASE "${SRC_LOG_PATH_BASE}/")
-set(BIN_LOG_PATH_BASE "${BIN_LOG_PATH_BASE}/")
-if (NOT BASE_PREFIX STREQUAL "/")
+# Depending on OS and CMake version the path may or may not have a trailing '/'
+if (NOT SRC_LOG_PATH_BASE MATCHES ".*/$")
+  set(SRC_LOG_PATH_BASE "${SRC_LOG_PATH_BASE}/")
+endif()
+if (NOT BIN_LOG_PATH_BASE MATCHES ".*/$")
+  set(BIN_LOG_PATH_BASE "${BIN_LOG_PATH_BASE}/")
+endif()
+if (NOT BASE_PREFIX STREQUAL "/" AND NOT BASE_PREFIX MATCHES ".*/$")
   set(BASE_PREFIX "${BASE_PREFIX}/")
 endif()
 
 userver_is_cxx_compile_option_supported(USERVER_COMPILER_HAS_MACRO_PREFIX_MAP "-fmacro-prefix-map=a=b")
 if (USERVER_COMPILER_HAS_MACRO_PREFIX_MAP)
   target_compile_options(userver-internal-compile-options INTERFACE
-    -fmacro-prefix-map=${SRC_LOG_PATH_BASE}=
     -fmacro-prefix-map=${BIN_LOG_PATH_BASE}=
     -fmacro-prefix-map=${BASE_PREFIX}=
   )
+  if (NOT SRC_LOG_PATH_BASE MATCHES "${BASE_PREFIX}.*")
+    target_compile_options(userver-internal-compile-options INTERFACE
+      -fmacro-prefix-map=${SRC_LOG_PATH_BASE}=
+    )
+  endif()
 else()
   target_compile_definitions(userver-internal-compile-options INTERFACE
     USERVER_LOG_SOURCE_PATH_BASE=${SRC_LOG_PATH_BASE}
