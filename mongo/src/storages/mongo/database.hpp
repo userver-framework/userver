@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 #include <userver/storages/mongo/collection.hpp>
 
@@ -19,6 +20,8 @@ class Database {
   bool HasCollection(const std::string& collection_name) const;
 
   Collection GetCollection(std::string collection_name) const;
+
+  std::vector<std::string> ListCollectionNames() const;
 
  private:
   PoolImplPtr pool_;

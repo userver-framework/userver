@@ -5,6 +5,7 @@
 
 #include <memory>
 #include <optional>
+#include <string>
 #include <type_traits>
 #include <vector>
 
@@ -123,6 +124,9 @@ class Collection {
   /// @param pipeline an array of aggregation operations
   template <typename... Options>
   Cursor Aggregate(formats::bson::Value pipeline, Options&&... options);
+
+  /// Get collection name
+  const std::string& GetCollectionName() const;
 
   /// @name Prepared operation executors
   /// @{

@@ -96,4 +96,39 @@ UTEST_F(Pool, Limits) {
   UEXPECT_THROW(second_find.Get(), mongo::MongoException);
 }
 
+UTEST_F(Pool, ListCollectionNames) {
+  static const std::string kCollAName = "list_test_a";
+  static const std::string kCollBName = "list_test_b";
+
+  auto pool = GetDefaultPool();
+  EXPECT_EQ(0, pool.ListCollectionNames().size());
+
+  {
+    auto coll = pool.GetCollection(kCollAName);
+    UEXPECT_NO_THROW(coll.InsertOne(formats::bson::MakeDoc("_id", 42)));
+
+    auto list_collections = pool.ListCollectionNames();
+    EXPECT_EQ(1, list_collections.size());
+    EXPECT_EQ(kCollAName, list_collections[0]);
+  }
+  {
+    auto coll = pool.GetCollection(kCollBName);
+    UEXPECT_NO_THROW(coll.InsertOne(formats::bson::MakeDoc("_id", 42)));
+
+    auto list_collections = pool.ListCollectionNames();
+    std::sort(list_collections.begin(), list_collections.end());
+    EXPECT_EQ(2, list_collections.size());
+    EXPECT_EQ(kCollAName, list_collections[0]);
+    EXPECT_EQ(kCollBName, list_collections[1]);
+  }
+  {
+    auto coll = pool.GetCollection(kCollAName);
+    UEXPECT_NO_THROW(coll.Drop());
+
+    auto list_collections = pool.ListCollectionNames();
+    EXPECT_EQ(1, list_collections.size());
+    EXPECT_EQ(kCollBName, list_collections[0]);
+  }
+}
+
 USERVER_NAMESPACE_END

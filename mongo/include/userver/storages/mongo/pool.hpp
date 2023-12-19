@@ -5,6 +5,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/dynamic_config/fwd.hpp>
@@ -61,6 +62,9 @@ class Pool {
   /// Drops the associated database if it exists. New modifications of
   /// collections will attempt to re-create the database automatically.
   void DropDatabase();
+
+  /// Get a list of all the collection names in the associated database
+  std::vector<std::string> ListCollectionNames() const;
 
   void Ping();
 

@@ -8,6 +8,10 @@ namespace storages::mongo {
 Collection::Collection(std::shared_ptr<impl::CollectionImpl> impl)
     : impl_(std::move(impl)) {}
 
+const std::string& Collection::GetCollectionName() const {
+  return impl_->GetCollectionName();
+}
+
 size_t Collection::Execute(const operations::Count& count_op) const {
   return impl_->Execute(count_op);
 }

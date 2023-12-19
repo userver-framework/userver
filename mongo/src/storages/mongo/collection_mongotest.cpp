@@ -9,6 +9,12 @@ namespace {
 class Collection : public MongoPoolFixture {};
 }  // namespace
 
+UTEST_F(Collection, CollectionName) {
+  static const std::string kCollectionName = "collection_name_test";
+  auto coll = GetDefaultPool().GetCollection(kCollectionName);
+  EXPECT_EQ(kCollectionName, coll.GetCollectionName());
+}
+
 UTEST_F(Collection, GetaddrinfoResolver) {
   clients::dns::Resolver* dns_resolver = nullptr;
   auto pool = MakePool({}, {}, dns_resolver);

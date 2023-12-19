@@ -48,6 +48,11 @@ Collection Pool::GetCollection(std::string name) const {
       impl_, impl_->DefaultDatabaseName(), std::move(name)));
 }
 
+std::vector<std::string> Pool::ListCollectionNames() const {
+  return impl::Database(impl_, impl_->DefaultDatabaseName())
+      .ListCollectionNames();
+}
+
 void DumpMetric(utils::statistics::Writer& writer, const Pool& pool) {
   stats::DumpMetric(writer, pool.impl_->GetStatistics(),
                     pool.impl_->GetStatsVerbosity());
