@@ -19,16 +19,12 @@ namespace impl {
 
 struct Disabled {};
 
-} //namespace impl
-
-template <typename... T>
-struct Configurator {};
-
 struct Additional;
 
 template <auto>
 struct Default;
 
+} //namespace impl
 
 template <typename T>
 inline static constexpr auto kSerialization = impl::Disabled{};
@@ -246,21 +242,21 @@ class SerializationConfig {
     };
 
     template <std::size_t I, typename... ConfigElements>
-    consteval auto With(Configurator<ConfigElements...>) const {
+    consteval auto With(ConfigElements...) const {
       return SerializationConfig<T, Params...>();
     };
 
 
     template <std::size_t I, typename ConfigElement, typename... ConfigElements>
-    consteval auto With(Configurator<ConfigElement, ConfigElements...>) const {
-      return SerializationConfig<T, Params...>::AddParamTo<I, ConfigElement>().template With<I>(Configurator<ConfigElements...>());
+    consteval auto With(ConfigElement, ConfigElements... config) const {
+      return SerializationConfig<T, Params...>::AddParamTo<I, ConfigElement>().template With<I>(config...);
     };
 
     template <utils::ConstexprString field, typename... ConfigElements>
-    consteval auto With(Configurator<ConfigElements...> config) const {
+    consteval auto With(ConfigElements... config) const {
       constexpr auto names = boost::pfr::names_as_array<T>();
       constexpr std::size_t index = std::find(names.begin(), names.end(), field) - names.begin();
-      return With<index>(config);
+      return With<index>(config...);
     };
 
     template <typename From, std::size_t I>
@@ -336,7 +332,26 @@ TryParse(Format&& from,
   }(Config{});
 };
 
-
 } // namespace formats::parse
+
+namespace formats::serialize {
+
+template <typename T, typename Value>
+inline constexpr
+std::enable_if_t<!std::is_same_v<decltype(universal::kSerialization<std::remove_cvref_t<T>>), const universal::impl::Disabled>, Value>
+Serialize(T&& obj,
+    serialize::To<Value>) {
+  using Config = std::remove_const_t<decltype(universal::kSerialization<std::remove_cvref_t<T>>)>;
+  using Type = std::remove_cvref_t<T>;
+  return [&]<typename... Params>
+      (universal::SerializationConfig<Type, Params...>){
+    typename Value::Builder builder;
+    (universal::impl::UniversalSerializeField(Params{}, builder, obj), ...);
+    return builder.ExtractValue();
+  }(Config{});
+};
+
+} // namespace formats::serialize
+
 USERVER_NAMESPACE_END
 

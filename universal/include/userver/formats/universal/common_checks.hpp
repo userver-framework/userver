@@ -6,7 +6,7 @@
 #include <map>
 
 USERVER_NAMESPACE_BEGIN
-namespace formats::universal {
+namespace formats::universal::impl {
 
 
 template <auto Value>
@@ -116,6 +116,22 @@ template <typename T, auto I, typename Field, template <auto> typename Check, au
 constexpr inline auto ErrorMessage(const std::optional<Field>& field, Check<Value> check) {
   return ErrorMessage<T, I>(*field, check);
 };
+
+} // namespace formats::universal::impl
+namespace formats::universal {
+template <auto Value>
+inline constexpr impl::Min<Value> Min;
+
+template <auto Value>
+inline constexpr impl::Max<Value> Max;
+
+template <auto Value>
+inline constexpr impl::Default<Value> Default;
+
+inline constexpr impl::Additional Additional;
+
+template <utils::ConstexprString Regex>
+inline constexpr impl::Pattern<Regex> Pattern;
 
 } // namespace formats::universal
 

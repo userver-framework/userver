@@ -16,7 +16,7 @@ struct ConstexprString {
     return this->contents_.data();
   };
   constexpr std::size_t size() const {
-    return Size;
+    return Size - 1;
   };
   constexpr const char* data() const {
     return this->contents_.begin();
