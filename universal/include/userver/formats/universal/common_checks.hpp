@@ -29,7 +29,22 @@ struct Pattern {
   static constexpr auto kValue = Regex;
 };
 
+template <typename... Checks>
+struct Items {
+  using kChecks = utils::impl::TypeList<Checks...>;
+};
+
 struct Additional {};
+
+template <typename Field, typename... Checks>
+constexpr inline auto Check(const Field& field, Items<Checks...>) {
+  for(const auto& element : field) {
+    if(!(Check(element, Checks{}) && ...)) {
+      return false;
+    };
+  };
+  return true;
+};
 
 template <typename Field, auto Value>
 constexpr inline std::enable_if_t<!meta::kIsOptional<Field>, bool>
@@ -70,7 +85,12 @@ Check(const Field&, Additional) noexcept {
 
 template <typename Key, auto Value>
 constexpr inline auto Check(const std::vector<Key>& field, Max<Value>) noexcept {
-  return Value >= field.size();
+  for(const auto& element : field) {
+    if(!(Value <= field)) {
+      return false;
+    };
+  };
+  return true;
 };
 
 template <typename Key, typename Tp, auto Value>

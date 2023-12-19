@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
+#include <userver/formats/universal/universal.hpp>
 #include <userver/formats/universal/common_checks.hpp>
 #include <userver/formats/json.hpp>
-#include <userver/formats/json/universal.hpp>
 
 
 USERVER_NAMESPACE_BEGIN
@@ -53,7 +53,7 @@ struct SomeStruct2 {
 template <>
 inline constexpr auto formats::universal::kSerialization<SomeStruct2> =
     SerializationConfig<SomeStruct2>::Create()
-    .With<"field1">(Configurator<Default<114>>{});
+    .With<"field1">(Default<114>);
 
 
 TEST(Serialize, Optional) {
@@ -123,7 +123,7 @@ struct SomeStruct4 {
 template <>
 inline constexpr auto formats::universal::kSerialization<SomeStruct4> =
     SerializationConfig<SomeStruct4>::Create()
-    .With<"field">(Configurator<Max<120>, Min<10>>{});
+    .With<"field">(Max<120>, Min<10>);
 
 
 
@@ -147,7 +147,7 @@ struct SomeStruct5 {
 template <>
 inline constexpr auto formats::universal::kSerialization<SomeStruct5> =
     SerializationConfig<SomeStruct5>::Create()
-    .With<"field">(Configurator<Pattern<"^[0-9]+$">>());
+    .With<"field">(Pattern<"^[0-9]+$">);
 
 TEST(TryParse, Pattern) {
   const auto json = formats::json::FromString(R"({"field":"1234412"})");

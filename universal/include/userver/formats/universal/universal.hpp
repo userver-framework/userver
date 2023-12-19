@@ -26,6 +26,11 @@ struct Default;
 
 } //namespace impl
 
+template <auto... Params>
+struct Configurator {
+  using kParams = utils::impl::TypeList<decltype(Params)...>;
+};
+
 template <typename T>
 inline static constexpr auto kSerialization = impl::Disabled{};
 
@@ -257,6 +262,11 @@ class SerializationConfig {
       constexpr auto names = boost::pfr::names_as_array<T>();
       constexpr std::size_t index = std::find(names.begin(), names.end(), field) - names.begin();
       return With<index>(config...);
+    };
+
+    template <std::size_t I, auto... ConfigElements>
+    consteval auto With(Configurator<ConfigElements...>) const {
+      return With<I>(ConfigElements...);
     };
 
     template <typename From, std::size_t I>
