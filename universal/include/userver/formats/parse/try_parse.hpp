@@ -6,6 +6,8 @@
 #include <userver/utils/meta.hpp>
 #include <userver/utils/impl/type_list.hpp>
 #include <userver/formats/common/meta.hpp>
+#include <userver/formats/parse/common_containers.hpp>
+
 
 USERVER_NAMESPACE_BEGIN
 
@@ -16,10 +18,12 @@ namespace impl {
 template <typename T, typename Value>
 constexpr inline bool Is(Value&& value) {
   if constexpr(std::is_convertible_v<T, std::int64_t>) {
-    return value.IsInt();
+    return value.IsInt64();
+  } else if constexpr(std::is_convertible_v<T, std::uint64_t>) {
+    return value.IsUInt64();
   } else if constexpr(std::is_convertible_v<T, std::string>) {
     return value.IsString();
-  } else if constexpr(requires {std::begin(std::declval<T>());}) {
+  } else if constexpr(meta::kIsRange<T>) {
     return value.IsArray();
   } else if constexpr(std::is_convertible_v<bool, T>) {
     return value.IsBool();
@@ -28,7 +32,7 @@ constexpr inline bool Is(Value&& value) {
   }
 }
 
-inline constexpr utils::impl::TypeList<bool, std::int64_t, std::uint64_t, double, std::string> kBaseTypes;
+inline constexpr utils::impl::TypeList<std::int64_t, std::uint64_t, std::string> kBaseTypes;
 
 
 } // namespace impl
@@ -40,21 +44,38 @@ TryParse(Value&& value, userver::formats::parse::To<T>) {
   if(!impl::Is<T>(value)) {
     return std::nullopt;
   }
-  auto obj = value.template As<std::optional<T>>();
-  if(obj) {
-    return obj;
-  }
-  return std::nullopt;
+  return value.template As<T>();
 }
 
 template <typename T, typename Value>
 constexpr inline std::optional<std::optional<T>> TryParse(Value&& value, userver::formats::parse::To<std::optional<T>>) {
-  auto object = TryParse(std::forward<Value>(value), userver::formats::parse::To<T>{});
-  if(object) {
-    return object;
-  }
-  return std::nullopt;
+
+  return TryParse(std::forward<Value>(value), userver::formats::parse::To<T>{});
 }
+
+template <typename T, typename Value>
+constexpr inline std::enable_if_t<meta::kIsRange<T> && !meta::kIsMap<T> &&
+                     !std::is_same_v<T, boost::uuids::uuid> &&
+                     !utils::impl::AnyOf(utils::impl::IsConvertableCarried<T>(), impl::kBaseTypes) &&
+                     !std::is_convertible_v<
+                         T&, utils::impl::strong_typedef::StrongTypedefTag&>,
+                 std::optional<T>>
+TryParse(Value&& from, To<T>) {
+  T response;
+  auto inserter = std::inserter(response, response.end());
+  using ValueType = meta::RangeValueType<T>;
+  for(const auto& item : from) {
+    auto insert = TryParse(item, userver::formats::parse::To<ValueType>{});
+    if(!insert) {
+      return std::nullopt;
+    };
+    *inserter = *insert;
+    ++inserter;
+  };
+  return response;
+}
+
+
 
 } // namespace formats::parse
 

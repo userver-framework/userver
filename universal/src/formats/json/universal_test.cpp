@@ -156,4 +156,31 @@ TEST(TryParse, Pattern) {
   EXPECT_EQ((bool)formats::parse::TryParse(json2, formats::parse::To<SomeStruct5>{}), false);
 };
 
+
+TEST(TryParse, null) {
+  const auto json = formats::json::FromString("null");
+  EXPECT_EQ((bool)formats::parse::TryParse(json, userver::formats::parse::To<std::optional<int>>{}), true);
+};
+
+struct SomeStruct6 {
+  std::vector<std::vector<int>> field;
+};
+
+template <>
+inline constexpr auto formats::universal::kSerialization<SomeStruct6> =
+    SerializationConfig<SomeStruct6>::Create()
+    .With<"field">(MinItems<2>, Items<MinItems<1>, Items<Min<10>>>);
+
+TEST(TryParse, Arrays) {
+  const auto json = formats::json::FromString(R"({"field":[[10], [20]]})");
+  const auto json2 = formats::json::FromString(R"({"field":[["10"], [20]]})");
+  const auto json3 = formats::json::FromString(R"({"field":[[9], [20]]})");
+  const auto json4 = formats::json::FromString(R"({"field":[[], []]})");
+  EXPECT_EQ((bool)formats::parse::TryParse(json,  formats::parse::To<SomeStruct6>{}), true);
+  EXPECT_EQ((bool)formats::parse::TryParse(json2, formats::parse::To<SomeStruct6>{}), false);
+  EXPECT_EQ((bool)formats::parse::TryParse(json3, formats::parse::To<SomeStruct6>{}), false);
+  EXPECT_EQ((bool)formats::parse::TryParse(json4, formats::parse::To<SomeStruct6>{}), false);
+};
+
+
 USERVER_NAMESPACE_END

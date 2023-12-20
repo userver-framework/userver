@@ -19,6 +19,16 @@ struct Max {
   static constexpr auto kValue = Value;
 };
 
+template <std::size_t Value>
+struct MaxItems {
+  static constexpr auto kValue = Value;
+};
+
+template <std::size_t Value>
+struct MinItems {
+  static constexpr auto kValue = Value;
+};
+
 template <auto Value>
 struct Default {
   static constexpr auto kValue = Value;
@@ -29,22 +39,37 @@ struct Pattern {
   static constexpr auto kValue = Regex;
 };
 
-template <typename... Checks>
+template <auto... Checks>
 struct Items {
-  using kChecks = utils::impl::TypeList<Checks...>;
+  static constexpr auto kChecks = std::make_tuple(Checks...);
 };
 
 struct Additional {};
 
-template <typename Field, typename... Checks>
-constexpr inline auto Check(const Field& field, Items<Checks...>) {
+
+template <typename Field, auto Value>
+constexpr inline std::enable_if_t<!meta::kIsOptional<Field>, bool>
+Check(const Field& field, MaxItems<Value>) {
+  return field.size() <= Value;
+};
+
+template <typename Field, auto Value>
+constexpr inline std::enable_if_t<!meta::kIsOptional<Field>, bool>
+Check(const Field& field, MinItems<Value>) {
+  return field.size() >= Value;
+};
+
+template <typename Field, auto... Checks>
+constexpr inline std::enable_if_t<!meta::kIsOptional<Field>, bool>
+Check(const Field& field, Items<Checks...>) {
   for(const auto& element : field) {
-    if(!(Check(element, Checks{}) && ...)) {
+    if(!(Check(element, Checks) && ...)) {
       return false;
     };
   };
   return true;
 };
+
 
 template <typename Field, auto Value>
 constexpr inline std::enable_if_t<!meta::kIsOptional<Field>, bool>
@@ -87,6 +112,16 @@ template <typename Key, auto Value>
 constexpr inline auto Check(const std::vector<Key>& field, Max<Value>) noexcept {
   for(const auto& element : field) {
     if(!(Value <= field)) {
+      return false;
+    };
+  };
+  return true;
+};
+
+template <typename Key, auto Value>
+constexpr inline auto Check(const std::vector<Key>& field, Min<Value>) noexcept {
+  for(const auto& element : field) {
+    if(!(Value >= field)) {
       return false;
     };
   };
@@ -148,10 +183,20 @@ inline constexpr impl::Max<Value> Max;
 template <auto Value>
 inline constexpr impl::Default<Value> Default;
 
+template <auto... Params>
+inline constexpr impl::Items<Params...> Items;
+
+
 inline constexpr impl::Additional Additional;
 
 template <utils::ConstexprString Regex>
 inline constexpr impl::Pattern<Regex> Pattern;
+
+template <std::size_t Value>
+inline constexpr impl::MaxItems<Value> MaxItems;
+
+template <std::size_t Value>
+inline constexpr impl::MinItems<Value> MinItems;
 
 } // namespace formats::universal
 
