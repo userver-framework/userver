@@ -164,8 +164,6 @@ if (USERVER_FEATURE_JEMALLOC AND NOT USERVER_SANITIZE AND NOT MACOS)
     find_package_required(Jemalloc "libjemalloc-dev")
     target_link_libraries(${PROJECT_NAME} PUBLIC Jemalloc)
   endif()
-
-  target_compile_definitions(${PROJECT_NAME} PRIVATE JEMALLOC_ENABLED)
 endif()
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE

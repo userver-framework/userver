@@ -1,6 +1,6 @@
 #include <utils/jemalloc.hpp>
 
-#ifdef JEMALLOC_ENABLED
+#ifdef USERVER_FEATURE_JEMALLOC_ENABLED
 #include <jemalloc/jemalloc.h>
 #else
 #include <cerrno>
@@ -14,7 +14,7 @@ namespace utils::jemalloc {
 
 namespace {
 
-#ifndef JEMALLOC_ENABLED
+#ifndef USERVER_FEATURE_JEMALLOC_ENABLED
 int mallctl(const char*, void*, size_t*, void*, size_t) { return ENOTSUP; }
 
 void malloc_stats_print(void (*write_cb)(void*, const char*), void* je_cbopaque,

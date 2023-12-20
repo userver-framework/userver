@@ -84,6 +84,14 @@ if (USERVER_DISABLE_PHDR_CACHE)
   target_compile_definitions(${PROJECT_NAME} PRIVATE USERVER_DISABLE_PHDR_CACHE)
 endif()
 
+# https://github.com/jemalloc/jemalloc/issues/820
+if (USERVER_FEATURE_JEMALLOC AND NOT USERVER_SANITIZE AND NOT MACOS)
+  set_property(
+    SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/jemalloc.cpp
+    APPEND PROPERTY COMPILE_FLAGS -DUSERVER_FEATURE_JEMALLOC_ENABLED=1
+  )
+endif()
+
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
     userver-universal
