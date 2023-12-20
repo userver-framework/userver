@@ -70,7 +70,14 @@ ThreadPool::ThreadPool(ThreadPoolConfig config, bool use_ev_default_loop)
   }
 }
 
-ThreadPool::~ThreadPool() = default;
+ThreadPool::~ThreadPool() {
+  // DATA RACE if not stopping the threads first.
+  // Pointer to TimerThreadControl could be in execution queue of thread or
+  // waiting for ev loop event. Stopping the threads makes sure that no pointer
+  // to *Control is pending.
+  timer_threads_.threads = {};
+  default_threads_.threads = {};
+}
 
 std::size_t ThreadPool::GetSize() const {
   return default_threads_.threads.size();
