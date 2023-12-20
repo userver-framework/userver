@@ -17,7 +17,7 @@ namespace impl {
 
 template <typename T, typename Value>
 constexpr inline bool Is(Value&& value) {
-  if constexpr(std::is_convertible_v<T, bool>) {
+  if constexpr(std::is_same_v<T, bool>) {
     return value.IsBool();
   } else if constexpr(std::is_convertible_v<T, std::int64_t>) {
     return value.IsInt64();
