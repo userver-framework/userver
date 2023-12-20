@@ -182,5 +182,24 @@ TEST(TryParse, Arrays) {
   EXPECT_EQ((bool)formats::parse::TryParse(json4, formats::parse::To<SomeStruct6>{}), false);
 };
 
+struct SomeStruct7  {
+  int value;
+  std::vector<SomeStruct7> children;
+  inline bool operator==(const SomeStruct7& other) const {
+    return this->value == other.value && this->children == other.children;
+  };
+};
+
+template <>
+inline constexpr auto formats::universal::kSerialization<SomeStruct7> =
+    SerializationConfig<SomeStruct7>::Create();
+
+
+TEST(Parse, Recursive) {
+  SomeStruct7 valid{1, {{2, {}}}};
+  const auto json = formats::json::FromString(R"({"value":1,"children":[{"value":2,"children":[]}]})");
+  const auto fromJson = json.As<SomeStruct7>();
+  EXPECT_EQ(fromJson, valid);
+};
 
 USERVER_NAMESPACE_END
