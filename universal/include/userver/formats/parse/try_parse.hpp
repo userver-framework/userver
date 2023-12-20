@@ -17,7 +17,9 @@ namespace impl {
 
 template <typename T, typename Value>
 constexpr inline bool Is(Value&& value) {
-  if constexpr(std::is_convertible_v<T, std::int64_t>) {
+  if constexpr(std::is_convertible_v<T, bool>) {
+    return value.IsBool();
+  } else if constexpr(std::is_convertible_v<T, std::int64_t>) {
     return value.IsInt64();
   } else if constexpr(std::is_convertible_v<T, std::uint64_t>) {
     return value.IsUInt64();
@@ -25,21 +27,20 @@ constexpr inline bool Is(Value&& value) {
     return value.IsString();
   } else if constexpr(meta::kIsRange<T>) {
     return value.IsArray();
-  } else if constexpr(std::is_convertible_v<bool, T>) {
-    return value.IsBool();
   } else {
     return value.IsObject();
   }
 }
 
-inline constexpr utils::impl::TypeList<std::int64_t, std::uint64_t, std::string> kBaseTypes;
-
+inline constexpr utils::impl::TypeList<bool, double, std::string> kBaseTypes;
 
 } // namespace impl
 
 
 template <typename T, typename Value>
-constexpr inline std::enable_if_t<utils::impl::AnyOf(utils::impl::IsConvertableCarried<T>(), impl::kBaseTypes), std::optional<T>>
+constexpr inline std::enable_if_t<
+        utils::impl::AnyOf(utils::impl::IsSameCarried<T>(), impl::kBaseTypes) ||
+        meta::kIsInteger<T>, std::optional<T>>
 TryParse(Value&& value, userver::formats::parse::To<T>) {
   if(!impl::Is<T>(value)) {
     return std::nullopt;
