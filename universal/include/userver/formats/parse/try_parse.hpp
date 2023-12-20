@@ -19,10 +19,8 @@ template <typename T, typename Value>
 constexpr inline bool Is(Value&& value) {
   if constexpr(std::is_same_v<T, bool>) {
     return value.IsBool();
-  } else if constexpr(std::is_convertible_v<T, std::int64_t>) {
-    return value.IsInt64();
-  } else if constexpr(std::is_convertible_v<T, std::uint64_t>) {
-    return value.IsUInt64();
+  } else if constexpr(meta::kIsInteger<T>) {
+    return (std::is_unsigned_v<T> && sizeof(T) == sizeof(uint64_t)) ? value.IsUInt64() : value.IsInt64();
   } else if constexpr(std::is_convertible_v<T, std::string>) {
     return value.IsString();
   } else if constexpr(std::is_convertible_v<T, double>) {
