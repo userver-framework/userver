@@ -407,6 +407,12 @@ TlsWrapper TlsWrapper::StartTlsServer(
             "Failed to set up server TLS wrapper: X509_STORE_add_cert"));
       }
     }
+    SSL_CTX_set_verify(ssl_ctx.get(),
+                       SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
+                       nullptr);
+    LOG_INFO() << "Client SSL cert is verified";
+  } else {
+    LOG_INFO() << "Client SSL cert is not verified";
   }
 
   if (1 != SSL_CTX_use_certificate(ssl_ctx.get(), cert.GetNative())) {

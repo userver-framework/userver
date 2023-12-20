@@ -29,6 +29,7 @@ struct ListenerConfig {
   std::string tls_private_key_path;
   std::string tls_private_key_passphrase_name;
   crypto::PrivateKey tls_private_key;
+  std::vector<crypto::Certificate> tls_certificate_authorities;
 };
 
 ListenerConfig Parse(const yaml_config::YamlConfig& value,

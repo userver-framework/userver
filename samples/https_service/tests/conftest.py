@@ -16,6 +16,7 @@ def prepare_service_config():
     def patch_config(config, config_vars):
         components = config['components_manager']['components']
         tls = components['server']['listener']['tls']
+        tls['ca'] = [str(SERVICE_SOURCE_DIR / 'cert.crt')]
         tls['cert'] = str(SERVICE_SOURCE_DIR / 'cert.crt')
         tls['private-key'] = str(SERVICE_SOURCE_DIR / 'private_key.key')
 

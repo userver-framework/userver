@@ -99,10 +99,11 @@ void ListenerImpl::ProcessConnection(engine::io::Socket peer_socket) {
   std::unique_ptr<engine::io::RwBase> socket;
   auto remote_address = peer_socket.Getpeername();
   if (endpoint_info_->listener_config.tls) {
+    const auto& config = endpoint_info_->listener_config;
     socket = std::make_unique<engine::io::TlsWrapper>(
         engine::io::TlsWrapper::StartTlsServer(
-            std::move(peer_socket), endpoint_info_->listener_config.tls_cert,
-            endpoint_info_->listener_config.tls_private_key, {}));
+            std::move(peer_socket), config.tls_cert, config.tls_private_key, {},
+            config.tls_certificate_authorities));
   } else {
     socket = std::make_unique<engine::io::Socket>(std::move(peer_socket));
   }

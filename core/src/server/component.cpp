@@ -115,6 +115,12 @@ properties:
                 description: TLS settings
                 additionalProperties: false
                 properties:
+                    ca:
+                        type: array
+                        description: paths to TLS CAs
+                        items:
+                            type: string
+                            description: path to TLS CA
                     cert:
                         type: string
                         description: path to TLS certificate

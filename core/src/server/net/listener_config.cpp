@@ -56,6 +56,12 @@ ListenerConfig Parse(const yaml_config::YamlConfig& value,
   if (!pkey_pass_name.empty()) {
     config.tls_private_key_passphrase_name = pkey_pass_name;
   }
+  auto ca_paths = value["tls"]["ca"].As<std::vector<std::string>>({});
+  for (const auto& ca_path : ca_paths) {
+    auto contents = fs::blocking::ReadFileContents(ca_path);
+    config.tls_certificate_authorities.push_back(
+        crypto::Certificate::LoadFromString(contents));
+  }
 
   return config;
 }

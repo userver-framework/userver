@@ -61,8 +61,9 @@ namespace components {
 /// max_connections | max connections count to keep | 32768
 /// task_processor | task processor to process incoming requests | -
 /// backlog | max count of new connections pending acceptance | 1024
-/// tls.cert | path to TLS certificate | -
-/// tls.private-key | path to TLS certificate private key | -
+/// tls.ca | paths to TLS CAs for client authentication | -
+/// tls.cert | path to TLS server certificate | -
+/// tls.private-key | path to TLS server certificate private key | -
 /// tls.private-key-passphrase-name | passphrase name located in secdist's "passphrases" section | -
 /// handler-defaults.max_url_size | max path/URL size or empty to not limit | 8192
 /// handler-defaults.max_request_size | max size of the whole request | 1024 * 1024
