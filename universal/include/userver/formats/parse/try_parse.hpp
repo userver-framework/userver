@@ -25,6 +25,8 @@ constexpr inline bool Is(Value&& value) {
     return value.IsUInt64();
   } else if constexpr(std::is_convertible_v<T, std::string>) {
     return value.IsString();
+  } else if constexpr(std::is_convertible_v<T, double>) {
+    return value.IsDouble();
   } else if constexpr(meta::kIsRange<T>) {
     return value.IsArray();
   } else {
