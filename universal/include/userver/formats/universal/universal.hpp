@@ -246,15 +246,10 @@ class SerializationConfig {
       }(std::make_index_sequence<boost::pfr::tuple_size_v<T>>());
     };
 
+
     template <std::size_t I, typename... ConfigElements>
     consteval auto With(ConfigElements...) const {
-      return SerializationConfig<T, Params...>();
-    };
-
-
-    template <std::size_t I, typename ConfigElement, typename... ConfigElements>
-    consteval auto With(ConfigElement, ConfigElements... config) const {
-      return SerializationConfig<T, Params...>::AddParamTo<I, ConfigElement>().template With<I>(config...);
+      return SerializationConfig<T, Params...>::AddParamsTo<I, ConfigElements...>();
     };
 
     template <utils::ConstexprString field, typename... ConfigElements>
@@ -290,13 +285,13 @@ class SerializationConfig {
       static_assert(sizeof...(Params) == boost::pfr::tuple_size_v<T>, "Use Create");
     };
   private:
-    template <auto I, typename Param>
-    static consteval auto AddParamTo() {
+    template <auto I, typename... Parameters>
+    static consteval auto AddParamsTo() {
       return []<auto... Is>(std::index_sequence<Is...>){
         return SerializationConfig<T, decltype(
           impl::TransformIfEqual<I, Is>(Params{},
               []<typename... FieldParams>(impl::FieldParametries<T, I, FieldParams...>){
-            return impl::FieldParametries<T, I, FieldParams..., Param>();
+            return impl::FieldParametries<T, I, FieldParams..., Parameters...>();
           })
         )...>();
       }(std::make_index_sequence<sizeof...(Params)>());
