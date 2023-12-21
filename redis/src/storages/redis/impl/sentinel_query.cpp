@@ -1,5 +1,6 @@
 #include <storages/redis/impl/sentinel_query.hpp>
 
+#include <optional>
 #include <sstream>
 
 #include <fmt/format.h>
@@ -226,6 +227,24 @@ enum class ClusterSlotsResponseStatus {
   kNonCluster,
 };
 
+std::optional<std::string> GetIpFromMeta(
+    const ReplyData::Array& host_info_array) {
+  if (host_info_array.size() < 4) return std::nullopt;
+  const auto& meta = host_info_array[3];
+  if (!meta.IsArray() || meta.GetSize() < 2 || !meta[0].IsString() ||
+      !meta[1].IsString() || meta[0].GetString() != "ip")
+    return std::nullopt;
+  return meta[1].GetString();
+}
+
+std::string GetIpFromHostInfo(const ReplyData::Array& host_info_array) {
+  auto from_meta = GetIpFromMeta(host_info_array);
+  if (from_meta) {
+    return *from_meta;
+  }
+  return host_info_array[0].GetString();
+}
+
 ClusterSlotsResponseStatus ParseClusterSlotsResponse(
     const ReplyPtr& reply, ClusterSlotsResponse& res) {
   UASSERT(reply);
@@ -247,7 +266,7 @@ ClusterSlotsResponseStatus ParseClusterSlotsResponse(
       if (!host_info_array[0].IsString() || !host_info_array[1].IsInt())
         return ClusterSlotsResponseStatus::kFail;
       ConnectionInfoInt conn_info{
-          {host_info_array[0].GetString(),
+          {GetIpFromHostInfo(host_info_array),
            static_cast<int>(host_info_array[1].GetInt()),
            {}}};
       SlotInterval slot_interval(array[0].GetInt(), array[1].GetInt());
