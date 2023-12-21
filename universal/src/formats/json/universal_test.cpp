@@ -69,8 +69,9 @@ TEST(Parse, Optional) {
 };
 
 TEST(TryParse, Optional) {
+  constexpr SomeStruct2 valid{{114}, {}, {}};
   const auto json = formats::json::FromString("{}");
-  EXPECT_EQ((bool)formats::parse::TryParse(json, formats::parse::To<SomeStruct2>{}), true);
+  EXPECT_EQ(formats::parse::TryParse(json, formats::parse::To<SomeStruct2>{}), valid);
 };
 
 
