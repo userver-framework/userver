@@ -608,6 +608,14 @@ class NotInTransaction : public TransactionError {
       : TransactionError("Connection is not in a transaction block") {}
   NotInTransaction(const std::string& msg) : TransactionError(msg) {}
 };
+
+class TransactionForceRollback : public TransactionError {
+ public:
+  TransactionForceRollback()
+      : TransactionError("Force rollback due to Testpoint response") {}
+  TransactionForceRollback(const std::string& msg) : TransactionError(msg) {}
+};
+
 //@}
 
 //@{

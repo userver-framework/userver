@@ -154,6 +154,8 @@ class Transaction {
                        OptionalCommandControl trx_cmd_ctl = {},
                        detail::SteadyClock::time_point trx_start_time =
                            detail::SteadyClock::now());
+
+  void SetName(std::string name);
   /// @endcond
 
   Transaction(Transaction&&) noexcept;
@@ -318,6 +320,7 @@ class Transaction {
 
   const UserTypes& GetConnectionUserTypes() const;
 
+  std::string name_;
   detail::ConnectionPtr conn_;
 };
 

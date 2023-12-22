@@ -4,6 +4,7 @@
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/statement_timer.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
+#include <userver/testsuite/testpoint.hpp>
 
 #include <userver/logging/log.hpp>
 #include <userver/utils/uuid4.hpp>
@@ -21,7 +22,11 @@ Transaction::Transaction(detail::ConnectionPtr&& conn,
     conn_->Begin(options, trx_start_time, trx_cmd_ctl);
   }
 }
+
+void Transaction::SetName(std::string name) { name_ = std::move(name); }
+
 Transaction::Transaction(Transaction&&) noexcept = default;
+
 Transaction::~Transaction() {
   if (conn_ && conn_->IsInTransaction()) {
     LOG_INFO() << "Transaction handle is destroyed without an explicit "
@@ -108,6 +113,18 @@ void Transaction::SetParameter(const std::string& param_name,
 
 void Transaction::Commit() {
   if (conn_) {
+    if (!name_.empty()) {
+      TESTPOINT_CALLBACK(
+          "pg_trx_commit", formats::json::MakeObject("trx_name", name_),
+          [this](const formats::json::Value& data) {
+            if (data["trx_should_fail"].As<bool>()) {
+              LOG_WARNING() << "Doing Rollback instead of commit "
+                               "due to Testpoint response";
+              conn_->Rollback();
+              throw TransactionForceRollback();
+            }
+          });
+    }
     conn_->Commit();
     // in case of exception inside commit let it fly and don't release the
     // connection holder to allow for rolling back later

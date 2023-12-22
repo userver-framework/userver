@@ -38,14 +38,17 @@ Transaction Cluster::Begin(ClusterHostTypeFlags flags,
   return pimpl_->Begin(flags, options, GetHandlersCmdCtl(cmd_ctl));
 }
 
-Transaction Cluster::Begin(const std::string& name,
+Transaction Cluster::Begin(std::string name,
                            const TransactionOptions& options) {
-  return Begin(name, {}, options);
+  return Begin(std::move(name), {}, options);
 }
 
-Transaction Cluster::Begin(const std::string& name, ClusterHostTypeFlags flags,
+Transaction Cluster::Begin(std::string name, ClusterHostTypeFlags flags,
                            const TransactionOptions& options) {
-  return pimpl_->Begin(flags, options, GetHandlersCmdCtl(GetQueryCmdCtl(name)));
+  auto trx =
+      pimpl_->Begin(flags, options, GetHandlersCmdCtl(GetQueryCmdCtl(name)));
+  trx.SetName(std::move(name));
+  return trx;
 }
 
 NotifyScope Cluster::Listen(std::string_view channel,

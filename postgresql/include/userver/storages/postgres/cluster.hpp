@@ -144,7 +144,7 @@ class Cluster {
   /// starting with slaves.
   /// `name` is used to set command control in config at runtime.
   /// @throws ClusterUnavailable if no hosts are available
-  Transaction Begin(const std::string& name, const TransactionOptions&);
+  Transaction Begin(std::string name, const TransactionOptions&);
 
   /// Start a named transaction in a connection with specified host selection
   /// rules.
@@ -154,7 +154,7 @@ class Cluster {
   /// If the transaction is RW, only master connection can be used.
   /// `name` is used to set command control in config at runtime.
   /// @throws ClusterUnavailable if no hosts are available
-  Transaction Begin(const std::string& name, ClusterHostTypeFlags,
+  Transaction Begin(std::string name, ClusterHostTypeFlags,
                     const TransactionOptions&);
   /// @}
 
