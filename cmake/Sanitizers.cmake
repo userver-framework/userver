@@ -84,7 +84,7 @@ if (USERVER_SANITIZE AND NOT MACOS)
   endif()
 
   if (SANITIZE_PENDING)
-    message(FATAL_ERROR "-DUSERVER_SANITIZE has invalid value(s) (${SANITIZE_PENDING}), possible values: ${SANITIZE_ENUM}")
+    message(FATAL_ERROR "-DUSERVER_SANITIZE has invalid value(s) (${SANITIZE_PENDING}), possible values: ${USERVER_SANITIZE_ENUM}")
   endif()
   
   message(STATUS "Sanitizers are ON: ${USERVER_SANITIZE}")
