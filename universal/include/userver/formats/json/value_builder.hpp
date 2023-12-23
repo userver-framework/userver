@@ -200,7 +200,7 @@ Value ValueBuilder::DoSerialize(const T& t) {
   static_assert(
       formats::common::impl::kHasSerialize<Value, T>,
       "There is no `Serialize(const T&, formats::serialize::To<json::Value>)` "
-      "in namespace of `T` or `formats::serizalize`. "
+      "in namespace of `T` or `formats::serialize`. "
       ""
       "Probably you forgot to include the "
       "<userver/formats/serialize/common_containers.hpp> header "
