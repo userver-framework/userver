@@ -78,7 +78,7 @@ std::string FormatLogMessage(
     std::string_view peer, std::chrono::system_clock::time_point start_time,
     std::string_view call_name, grpc::StatusCode code) {
   static const auto timezone =
-      utils::datetime::LocalTimezoneTimestring(start_time, "%Ez");
+      utils::datetime::LocalTimezoneTimestring(start_time, "%z");
 
   auto it = metadata.find("user-agent");
   std::string_view user_agent;
