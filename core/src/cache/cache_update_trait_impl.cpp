@@ -14,6 +14,7 @@
 #include <userver/utils/async.hpp>
 #include <userver/utils/atomic.hpp>
 #include <userver/utils/datetime.hpp>
+#include <userver/utils/rand.hpp>
 
 #include <cache/cache_dependencies.hpp>
 #include <dump/dump_locator.hpp>
@@ -296,9 +297,20 @@ UpdateType CacheUpdateTrait::Impl::NextUpdateType(const Config& config) {
       return UpdateType::kIncremental;
     case AllowedUpdateTypes::kFullAndIncremental:
       const auto steady_now = utils::datetime::SteadyNow();
-      return steady_now - last_full_update_ < config.full_update_interval
-                 ? UpdateType::kIncremental
-                 : UpdateType::kFull;
+      const auto& full_update_jitter = config.full_update_jitter;
+      if (!generated_full_update_jitter_ &&
+          steady_now >= last_full_update_ + config.full_update_interval -
+                            full_update_jitter) {
+        generated_full_update_jitter_ =
+            std::chrono::milliseconds(utils::RandRange(
+                -full_update_jitter.count(), full_update_jitter.count() + 1));
+      }
+      if (generated_full_update_jitter_ &&
+          steady_now >= last_full_update_ + config.full_update_interval +
+                            generated_full_update_jitter_.value()) {
+        return UpdateType::kFull;
+      }
+      return UpdateType::kIncremental;
   }
 
   UINVARIANT(false, "Unexpected update type");
@@ -391,6 +403,7 @@ void CacheUpdateTrait::Impl::DoUpdate(UpdateType update_type,
   // Update success
   if (update_type == UpdateType::kFull) {
     force_full_update_ = false;
+    generated_full_update_jitter_.reset();
     last_full_update_ = steady_now;
   }
   dump_first_update_type_ = {};

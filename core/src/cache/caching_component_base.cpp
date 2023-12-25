@@ -25,7 +25,7 @@ properties:
         description: (*required*) interval between Update invocations
     update-jitter:
         type: string
-        description: max. amount of time by which interval may be adjusted for requests dispersal
+        description: max. amount of time by which update-interval may be adjusted for requests dispersal
         defaultDescription: update_interval / 10
     updates-enabled:
         type: boolean
@@ -34,6 +34,10 @@ properties:
     full-update-interval:
         type: string
         description: interval between full updates
+    full-update-jitter:
+        type: string
+        description: max. amount of time by which full-update-interval may be adjusted for requests dispersal
+        defaultDescription: 0
     exception-interval:
         type: string
         description: sleep interval after an unhandled exception

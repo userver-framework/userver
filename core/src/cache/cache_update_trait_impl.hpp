@@ -111,6 +111,7 @@ class CacheUpdateTrait::Impl final {
   utils::Flags<utils::PeriodicTask::Flags> periodic_task_flags_;
   dump::TimePoint last_update_;
   std::chrono::steady_clock::time_point last_full_update_;
+  std::optional<std::chrono::milliseconds> generated_full_update_jitter_{0};
   engine::Mutex update_mutex_;
   DumpableEntityProxy dumpable_;
   std::uint64_t failed_updates_counter_{0};

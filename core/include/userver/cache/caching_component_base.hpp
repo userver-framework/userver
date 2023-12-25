@@ -57,8 +57,9 @@ namespace components {
 /// ---- | ----------- | -------------
 /// update-types | specifies whether incremental and/or full updates will be used | see below
 /// update-interval | (*required*) interval between Update invocations | --
-/// update-jitter | max. amount of time by which interval may be adjusted for requests dispersal | update_interval / 10
+/// update-jitter | max. amount of time by which update-interval may be adjusted for requests dispersal | update_interval / 10
 /// full-update-interval | interval between full updates | --
+/// full-update-jitter | max. amount of time by which full-update-interval may be adjusted for requests dispersal | 0
 /// updates-enabled | if false, cache updates are disabled (except for the first one if !first-update-fail-ok) | true
 /// first-update-fail-ok | whether first update failure is non-fatal | false
 /// task-processor | the name of the TaskProcessor for running DoWork | main-task-processor

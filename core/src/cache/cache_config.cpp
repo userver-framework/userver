@@ -21,6 +21,7 @@ namespace {
 constexpr std::string_view kUpdateIntervalMs = "update-interval-ms";
 constexpr std::string_view kUpdateJitterMs = "update-jitter-ms";
 constexpr std::string_view kFullUpdateIntervalMs = "full-update-interval-ms";
+constexpr std::string_view kFullUpdateJitterMs = "full-update-jitter-ms";
 constexpr std::string_view kExceptionIntervalMs = "exception-interval-ms";
 constexpr std::string_view kUpdatesEnabled = "updates-enabled";
 constexpr std::string_view kTaskProcessor = "task-processor";
@@ -30,6 +31,7 @@ constexpr std::string_view kFailedUpdatesBeforeExpiration =
 constexpr std::string_view kUpdateInterval = "update-interval";
 constexpr std::string_view kUpdateJitter = "update-jitter";
 constexpr std::string_view kFullUpdateInterval = "full-update-interval";
+constexpr std::string_view kFullUpdateJitter = "full-update-jitter";
 constexpr std::string_view kExceptionInterval = "exception-interval";
 constexpr std::string_view kCleanupInterval = "additional-cleanup-interval";
 constexpr std::string_view kIsStrongPeriod = "is-strong-period";
@@ -104,12 +106,14 @@ std::string_view ToString(FirstUpdateType first_update_type) {
 
 ConfigPatch Parse(const formats::json::Value& value,
                   formats::parse::To<ConfigPatch>) {
-  ConfigPatch config{ParseMs(value[kUpdateIntervalMs]),
-                     ParseMs(value[kUpdateJitterMs]),
-                     ParseMs(value[kFullUpdateIntervalMs]),
-                     std::nullopt,
-                     value[kUpdatesEnabled].As<bool>(true),
-                     value[kAlertOnFailingToUpdateTimes].As<size_t>(0)};
+  ConfigPatch config{
+      ParseMs(value[kUpdateIntervalMs]),
+      ParseMs(value[kUpdateJitterMs]),
+      ParseMs(value[kFullUpdateIntervalMs]),
+      ParseMs(value[kFullUpdateJitterMs], std::chrono::milliseconds{0}),
+      std::nullopt,
+      value[kUpdatesEnabled].As<bool>(true),
+      value[kAlertOnFailingToUpdateTimes].As<size_t>(0)};
 
   if (!config.update_interval.count() && !config.full_update_interval.count()) {
     throw utils::impl::AttachTraceToException(
@@ -122,6 +126,9 @@ ConfigPatch Parse(const formats::json::Value& value,
 
   if (config.update_jitter > config.update_interval) {
     config.update_jitter = GetDefaultJitter(config.update_interval);
+  }
+  if (config.full_update_jitter > config.full_update_interval) {
+    config.full_update_jitter = std::chrono::milliseconds{0};
   }
   if (value.HasMember(kExceptionIntervalMs)) {
     config.exception_interval = ParseMs(value[kExceptionIntervalMs]);
@@ -156,6 +163,9 @@ Config::Config(const yaml_config::YamlConfig& config,
           GetDefaultJitter(update_interval))),
       full_update_interval(
           config[kFullUpdateInterval].As<std::chrono::milliseconds>(0)),
+      full_update_jitter(
+          config[kFullUpdateJitter].As<std::chrono::milliseconds>(
+              std::chrono::milliseconds{0})),
       exception_interval(config[kExceptionInterval]
                              .As<std::optional<std::chrono::milliseconds>>()),
       updates_enabled(config[kUpdatesEnabled].As<bool>(true)),
@@ -238,6 +248,7 @@ Config Config::MergeWith(const ConfigPatch& patch) const {
   copy.update_interval = patch.update_interval;
   copy.update_jitter = patch.update_jitter;
   copy.full_update_interval = patch.full_update_interval;
+  copy.full_update_jitter = patch.full_update_jitter;
   copy.updates_enabled = patch.updates_enabled;
   copy.alert_on_failing_to_update_times =
       patch.alert_on_failing_to_update_times;
