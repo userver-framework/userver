@@ -23,11 +23,6 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "^x86")
   set(USERVER_BUILD_PLATFORM_X86 ${USERVER_FEATURE_CORE})
 endif()
 
-set(USERVER_MONGODB ${USERVER_BUILD_PLATFORM_X86})
-if(NOT MAC AND CMAKE_SYSTEM_NAME MATCHES "BSD")
-  set(USERVER_MONGODB OFF)
-endif()
-
 function(_require_userver_core FEATURE)
   if (NOT USERVER_FEATURE_CORE)
     message(FATAL_ERROR "'${FEATURE}' requires 'USERVER_FEATURE_CORE=ON'")
@@ -39,10 +34,9 @@ if (USERVER_FEATURE_UTEST)
   message(STATUS "Building utest with gtest and ubench with gbench")
 endif()
 
-
 option(
     USERVER_IS_THE_ROOT_PROJECT
-    "Build userver tests, samples and helper tools; recommended for contributing into userver"
+    "Contributor mode: build userver tests, samples and helper tools"
     "${USERVER_NOT_INCLUDED_AS_SUBDIR}"
 )
 if (USERVER_IS_THE_ROOT_PROJECT)
@@ -54,6 +48,19 @@ else()
   message(STATUS "Building userver as a subproject")
 endif()
 
+set(USERVER_LIB_ENABLED_DEFAULT OFF)
+if(USERVER_FEATURE_CORE AND USERVER_IS_THE_ROOT_PROJECT)
+  set(USERVER_LIB_ENABLED_DEFAULT ON)
+endif()
+
+set(USERVER_MONGODB_DEFAULT OFF)
+set(USERVER_CLICKHOUSE_DEFAULT OFF)
+if(USERVER_FEATURE_CORE AND USERVER_IS_THE_ROOT_PROJECT AND USERVER_BUILD_PLATFORM_X86)
+  if(NOT CMAKE_SYSTEM_NAME MATCHES "BSD")
+    set(USERVER_MONGODB_DEFAULT ON)
+  endif()
+  set(USERVER_CLICKHOUSE_DEFAULT ON)
+endif()
 
 option(USERVER_CONAN "Build with Conan packages" ${CONAN_EXPORTED})
 
@@ -124,13 +131,14 @@ set(USERVER_THIRD_PARTY_DIRS ${USERVER_ROOT_DIR}/third_party CACHE INTERNAL "")
 
 init_debian_depends()
 
-option(USERVER_FEATURE_MONGODB "Provide asynchronous driver for MongoDB" ${USERVER_MONGODB})
-option(USERVER_FEATURE_POSTGRESQL "Provide asynchronous driver for PostgreSQL" ${USERVER_FEATURE_CORE})
-option(USERVER_FEATURE_REDIS "Provide asynchronous driver for Redis" ${USERVER_FEATURE_CORE})
-option(USERVER_FEATURE_GRPC "Provide asynchronous driver for gRPC" ${USERVER_FEATURE_CORE})
-option(USERVER_FEATURE_CLICKHOUSE "Provide asynchronous driver for ClickHouse" ${USERVER_BUILD_PLATFORM_X86})
-option(USERVER_FEATURE_RABBITMQ "Provide asynchronous driver for RabbitMQ" ${USERVER_FEATURE_CORE})
-option(USERVER_FEATURE_MYSQL "Provide asynchronous driver for MariaDB/MySQL" OFF)
+option(USERVER_FEATURE_MONGODB "Provide asynchronous driver for MongoDB" "${USERVER_MONGODB_DEFAULT}")
+option(USERVER_FEATURE_POSTGRESQL "Provide asynchronous driver for PostgreSQL" "${USERVER_LIB_ENABLED_DEFAULT}")
+option(USERVER_FEATURE_REDIS "Provide asynchronous driver for Redis" "${USERVER_LIB_ENABLED_DEFAULT}")
+option(USERVER_FEATURE_GRPC "Provide asynchronous driver for gRPC" "${USERVER_LIB_ENABLED_DEFAULT}")
+option(USERVER_FEATURE_CLICKHOUSE "Provide asynchronous driver for ClickHouse" "${USERVER_CLICKHOUSE_DEFAULT}")
+option(USERVER_FEATURE_RABBITMQ "Provide asynchronous driver for RabbitMQ" "${USERVER_LIB_ENABLED_DEFAULT}")
+option(USERVER_FEATURE_MYSQL "Provide asynchronous driver for MariaDB/MySQL" "${USERVER_LIB_ENABLED_DEFAULT}")
+
 option(USERVER_FEATURE_UBOOST_CORO "Use vendored boost context instead of a system one" ON)
 
 if (USERVER_FEATURE_GRPC)
