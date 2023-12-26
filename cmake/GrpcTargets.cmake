@@ -67,7 +67,7 @@ if(NOT PROTO_GRPC_PYTHON_PLUGIN)
   message(FATAL_ERROR "grpc_python_plugin not found")
 endif()
 
-function(generate_grpc_files)
+function(userver_generate_grpc_files)
   set(options)
   set(one_value_args CPP_FILES CPP_USRV_FILES GENERATED_INCLUDES SOURCE_PATH)
   set(multi_value_args PROTOS INCLUDE_DIRECTORIES)
@@ -246,19 +246,19 @@ function(generate_grpc_files)
   endif()
 endfunction()
 
-function(add_grpc_library NAME)
+function(userver_add_grpc_library NAME)
   set(options)
   set(one_value_args SOURCE_PATH)
   set(multi_value_args PROTOS INCLUDE_DIRECTORIES)
   cmake_parse_arguments(RPC_LIB "${options}" "${one_value_args}" "${multi_value_args}" ${ARGN})
 
-  generate_grpc_files(
-    PROTOS ${RPC_LIB_PROTOS}
-    INCLUDE_DIRECTORIES ${RPC_LIB_INCLUDE_DIRECTORIES}
-    SOURCE_PATH ${RPC_LIB_SOURCE_PATH}
-    GENERATED_INCLUDES include_paths
-    CPP_FILES generated_sources
-    CPP_USRV_FILES generated_usrv_sources
+  userver_generate_grpc_files(
+      PROTOS ${RPC_LIB_PROTOS}
+      INCLUDE_DIRECTORIES ${RPC_LIB_INCLUDE_DIRECTORIES}
+      SOURCE_PATH ${RPC_LIB_SOURCE_PATH}
+      GENERATED_INCLUDES include_paths
+      CPP_FILES generated_sources
+      CPP_USRV_FILES generated_usrv_sources
   )
   add_library(${NAME} STATIC ${generated_sources} ${generated_usrv_sources})
   target_compile_options(${NAME} PUBLIC -Wno-unused-parameter)

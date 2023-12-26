@@ -1,11 +1,11 @@
 project(userver-universal CXX)
 
 if (NOT USERVER_ROOT_DIR)
-  message(FATAL_ERROR, "Include userver project rather than the userver/universal")
+  message(FATAL_ERROR "Include userver project rather than the userver/universal")
 endif()
 
 if (TARGET userver-core)
-  message(FATAL_ERROR, "userver-core should be included after userver-universal")
+  message(FATAL_ERROR "userver-core should be included after userver-universal")
 endif()
 
 file(GLOB_RECURSE SOURCES

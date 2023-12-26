@@ -118,7 +118,7 @@ if (USERVER_FEATURE_UTEST)
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
-  add_grpc_library(${PROJECT_NAME}-unittest-proto
+  userver_add_grpc_library(${PROJECT_NAME}-unittest-proto
       PROTOS
       # Absolute paths are allowed
       ${CMAKE_CURRENT_SOURCE_DIR}/proto/tests/unit_test.proto

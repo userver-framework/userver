@@ -158,7 +158,6 @@ class UserverConan(ConanFile):
         tool_ch = CMakeToolchain(self)
         tool_ch.variables['CMAKE_FIND_DEBUG_MODE'] = False
 
-        tool_ch.variables['USERVER_OPEN_SOURCE_BUILD'] = True
         tool_ch.variables['USERVER_CONAN'] = True
         tool_ch.variables['USERVER_IS_THE_ROOT_PROJECT'] = False
         tool_ch.variables['USERVER_DOWNLOAD_PACKAGES'] = True

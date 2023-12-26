@@ -27,7 +27,7 @@ include(GrpcTargets)
 file(GLOB_RECURSE SOURCES
   ${api-common-protos_SOURCE_DIR}/*.proto)
 
-generate_grpc_files(
+userver_generate_grpc_files(
   PROTOS ${SOURCES}
   INCLUDE_DIRECTORIES ${api-common-protos_SOURCE_DIR}
   SOURCE_PATH ${api-common-protos_SOURCE_DIR}

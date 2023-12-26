@@ -248,13 +248,11 @@ endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
     add_executable(${PROJECT_NAME}-benchmark ${BENCH_SOURCES})
-    #    find_package(absl REQUIRED)
 
     target_link_libraries(${PROJECT_NAME}-benchmark
       PUBLIC
         userver-ubench
       PRIVATE
-      #        absl::raw_hash_set
         userver-core-internal
     )
     add_google_benchmark_tests(${PROJECT_NAME}-benchmark)

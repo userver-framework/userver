@@ -14,7 +14,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE src)
 
 # /// [gRPC middleware sample - CMake]
 include(GrpcTargets)
-add_grpc_library(${PROJECT_NAME}-proto PROTOS samples/greeter.proto)
+userver_add_grpc_library(${PROJECT_NAME}-proto PROTOS samples/greeter.proto)
 target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}-proto)
 # /// [gRPC middleware sample - CMake]
 
