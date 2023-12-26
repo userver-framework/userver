@@ -128,9 +128,6 @@ void Shuffle(Container& container) {
 /// @warning Don't use `Rand() % N`, use `RandRange` instead
 std::uint32_t Rand();
 
-/// @deprecated Use utils::WithDefaultRandom instead.
-[[deprecated("Use WithDefaultRandom()")]] RandomBase& DefaultRandom();
-
 }  // namespace utils
 
 USERVER_NAMESPACE_END

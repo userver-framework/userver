@@ -54,8 +54,6 @@ std::uintptr_t GetCurrentThreadId() noexcept {
 
 }  // namespace impl
 
-RandomBase& DefaultRandom() { return impl::GetDefaultRandom(); }
-
 std::uint32_t Rand() {
   return WithDefaultRandom(std::uniform_int_distribution<std::uint32_t>{0});
 }
