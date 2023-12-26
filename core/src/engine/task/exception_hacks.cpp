@@ -1,9 +1,8 @@
 #include <engine/task/exception_hacks.hpp>
 
+#include <userver/compiler/impl/tsan.hpp>
+
 #if defined(__has_feature)
-#if __has_feature(thread_sanitizer)
-#define HAS_TSAN 1
-#endif
 #if __has_feature(memory_sanitizer)
 #define HAS_MSAN 1
 #endif
@@ -16,7 +15,7 @@
 // segfaults with stackoverflow trying to report the backtrace from within
 // dl_iterate_phdr.
 #if !defined(USERVER_DISABLE_PHDR_CACHE) && defined(__linux__) && \
-    !defined(HAS_TSAN) && !defined(HAS_MSAN)
+    !USERVER_IMPL_HAS_TSAN && !defined(HAS_MSAN)
 #define USE_PHDR_CACHE 1  // NOLINT
 #endif
 

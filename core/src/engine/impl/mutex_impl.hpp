@@ -9,6 +9,7 @@
 #include <engine/impl/wait_list.hpp>
 #include <engine/impl/wait_list_light.hpp>
 #include <engine/task/task_context.hpp>
+#include <userver/compiler/impl/tsan.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -91,11 +92,18 @@ class MutexImpl<WaitListLight>::MutexWaitStrategy final : public WaitStrategy {
 };
 
 template <class Waiters>
-MutexImpl<Waiters>::MutexImpl() : owner_(nullptr) {}
+MutexImpl<Waiters>::MutexImpl() : owner_(nullptr) {
+#if USERVER_IMPL_HAS_TSAN
+  __tsan_mutex_create(this, __tsan_mutex_not_static);
+#endif
+}
 
 template <class Waiters>
 MutexImpl<Waiters>::~MutexImpl() {
   UASSERT(!owner_);
+#if USERVER_IMPL_HAS_TSAN
+  __tsan_mutex_destroy(this, __tsan_mutex_not_static);
+#endif
 }
 
 template <class Waiters>
@@ -133,6 +141,9 @@ void MutexImpl<Waiters>::lock() {
 
 template <class Waiters>
 void MutexImpl<Waiters>::unlock() {
+#if USERVER_IMPL_HAS_TSAN
+  __tsan_mutex_pre_unlock(this, 0);
+#endif
   auto* old_owner = owner_.exchange(nullptr, std::memory_order_acq_rel);
   UASSERT(old_owner && old_owner->IsCurrent());
 
@@ -145,18 +156,46 @@ void MutexImpl<Waiters>::unlock() {
     static_assert(std::is_same_v<Waiters, WaitListLight>);
     lock_waiters_.WakeupOne();
   }
+
+#if USERVER_IMPL_HAS_TSAN
+  __tsan_mutex_post_unlock(this, 0);
+#endif
 }
 
 template <class Waiters>
 bool MutexImpl<Waiters>::try_lock() {
+#if USERVER_IMPL_HAS_TSAN
+  __tsan_mutex_pre_lock(this, __tsan_mutex_try_lock);
+#endif
+
   auto& current = current_task::GetCurrentTaskContext();
-  return LockFastPath(current);
+  const auto result = LockFastPath(current);
+
+#if USERVER_IMPL_HAS_TSAN
+  __tsan_mutex_post_lock(
+      this, __tsan_mutex_try_lock | (result ? 0 : __tsan_mutex_try_lock_failed),
+      0);
+#endif
+
+  return result;
 }
 
 template <class Waiters>
 bool MutexImpl<Waiters>::try_lock_until(Deadline deadline) {
+#if USERVER_IMPL_HAS_TSAN
+  __tsan_mutex_pre_lock(this, __tsan_mutex_try_lock);
+#endif
+
   auto& current = current_task::GetCurrentTaskContext();
-  return LockFastPath(current) || LockSlowPath(current, deadline);
+  const auto result = LockFastPath(current) || LockSlowPath(current, deadline);
+
+#if USERVER_IMPL_HAS_TSAN
+  __tsan_mutex_post_lock(
+      this, __tsan_mutex_try_lock | (result ? 0 : __tsan_mutex_try_lock_failed),
+      0);
+#endif
+
+  return result;
 }
 
 }  // namespace engine::impl

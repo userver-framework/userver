@@ -9,6 +9,7 @@
 #include <engine/coro/pool.hpp>
 #include <logging/log_extra_stacktrace.hpp>
 #include <userver/compiler/impl/tls.hpp>
+#include <userver/compiler/impl/tsan.hpp>
 #include <userver/engine/exception.hpp>
 #include <userver/engine/impl/task_context_factory.hpp>
 #include <userver/engine/task/cancel.hpp>
@@ -120,6 +121,8 @@ TaskContext::TaskContext(TaskProcessor& task_processor,
               << ReadableTaskId(current_task::GetCurrentTaskContextUnchecked())
               << " created task with task_id=" << ReadableTaskId(this)
               << logging::LogExtra::Stacktrace();
+
+  TsanReleaseBarrier();
 }
 
 TaskContext::~TaskContext() noexcept {
@@ -229,11 +232,15 @@ void TaskContext::DoStep() {
     CurrentTaskScope current_task_scope(*this, eh_globals_);
     try {
       SetState(Task::State::kRunning);
-      (*coro_)(this);
+      auto& coro_ref = *coro_;
+      TsanAcquireBarrier();
+      coro_ref(this);
     } catch (...) {
       uncaught = std::current_exception();
     }
+    TsanReleaseBarrier();
   }
+
   if (uncaught) std::rethrow_exception(uncaught);
 
   switch (yield_reason_) {
@@ -329,7 +336,12 @@ TaskContext::WakeupSource TaskContext::Sleep(WaitStrategy& wait_strategy) {
   UASSERT(task_pipe_);
   TraceStateTransition(Task::State::kSuspended);
   ProfilerStopExecution();
-  [[maybe_unused]] TaskContext* context = (*task_pipe_)().get();
+
+  auto& task_pipe_ref = *task_pipe_;
+  TsanAcquireBarrier();
+  [[maybe_unused]] TaskContext* context = task_pipe_ref().get();
+  TsanReleaseBarrier();
+
   ProfilerStartExecution();
   TraceStateTransition(Task::State::kRunning);
   UASSERT(context == this);
@@ -486,6 +498,7 @@ class TaskContext::LocalStorageGuard {
 void TaskContext::CoroFunc(TaskPipe& task_pipe) {
   for (TaskContext* context : task_pipe) {
     UASSERT(context);
+    context->TsanReleaseBarrier();
     context->yield_reason_ = YieldReason::kNone;
     context->task_pipe_ = &task_pipe;
 
@@ -527,6 +540,7 @@ void TaskContext::CoroFunc(TaskPipe& task_pipe) {
     context->ProfilerStopExecution();
 
     context->task_pipe_ = nullptr;
+    context->TsanAcquireBarrier();
   }
 }
 
@@ -769,6 +783,20 @@ bool HasWaitSucceeded(TaskContext::WakeupSource wakeup_source) noexcept {
 
   // Assume that bugs with an unexpected WakeupSource don't reach production.
   return false;
+}
+
+void TaskContext::TsanAcquireBarrier() noexcept {
+#if USERVER_IMPL_HAS_TSAN
+  __tsan_acquire(this);
+  __tsan_acquire(&coro_);
+#endif
+}
+
+void TaskContext::TsanReleaseBarrier() noexcept {
+#if USERVER_IMPL_HAS_TSAN
+  __tsan_release(&coro_);
+  __tsan_release(this);
+#endif
 }
 
 }  // namespace impl

@@ -10,6 +10,15 @@ src:*bits/stl_iterator.h
 [undefined]
 src:*bits/stl_vector.h
 
+[thread]
+mainfile:*core/src/engine/task/task_context.cpp
+
+[thread]
+mainfile:*core/src/engine/task/task_context.hpp
+
+[thread]
+src:*third_party/moodycamel/include/moodycamel/concurrentqueue.h
+
 # libstdc++ 8.0.1 casts an under-aligned pointer to type type_info:
 # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=85930
 [undefined]

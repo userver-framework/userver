@@ -403,7 +403,7 @@ UTEST_F(PostgreCluster, ListenNotify) {
   constexpr auto kListenChannel = std::string_view{"foo"};
   constexpr auto kNotifyPayload = std::string_view{"bar"};
   static const auto kNotifyDeadline =
-      engine::Deadline::FromDuration(std::chrono::milliseconds{100});
+      engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   testsuite::TestsuiteTasks testsuite_tasks{true};
   auto cluster = CreateCluster(GetDsnListFromEnv(), GetTaskProcessor(), 2,

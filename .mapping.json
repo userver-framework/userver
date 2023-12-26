@@ -3082,6 +3082,7 @@
   "universal/include/userver/compiler/impl/constexpr.hpp":"taxi/uservices/userver/universal/include/userver/compiler/impl/constexpr.hpp",
   "universal/include/userver/compiler/impl/lifetime.hpp":"taxi/uservices/userver/universal/include/userver/compiler/impl/lifetime.hpp",
   "universal/include/userver/compiler/impl/tls.hpp":"taxi/uservices/userver/universal/include/userver/compiler/impl/tls.hpp",
+  "universal/include/userver/compiler/impl/tsan.hpp":"taxi/uservices/userver/universal/include/userver/compiler/impl/tsan.hpp",
   "universal/include/userver/compiler/select.hpp":"taxi/uservices/userver/universal/include/userver/compiler/select.hpp",
   "universal/include/userver/compiler/thread_local.hpp":"taxi/uservices/userver/universal/include/userver/compiler/thread_local.hpp",
   "universal/include/userver/crypto/algorithm.hpp":"taxi/uservices/userver/universal/include/userver/crypto/algorithm.hpp",

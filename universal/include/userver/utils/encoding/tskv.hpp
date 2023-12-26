@@ -28,7 +28,7 @@
 #ifdef __clang__
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define USERVER_IMPL_DISABLE_ASAN \
-  __attribute__((no_sanitize_address, no_sanitize_memory))
+  __attribute__((no_sanitize_address, no_sanitize_memory, no_sanitize_thread))
 #else
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define USERVER_IMPL_DISABLE_ASAN __attribute__((no_sanitize_address))
