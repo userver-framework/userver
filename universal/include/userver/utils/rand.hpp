@@ -129,7 +129,7 @@ void Shuffle(Container& container) {
 std::uint32_t Rand();
 
 /// @deprecated Use utils::WithDefaultRandom instead.
-RandomBase& DefaultRandom();
+[[deprecated("Use WithDefaultRandom()")]] RandomBase& DefaultRandom();
 
 }  // namespace utils
 
