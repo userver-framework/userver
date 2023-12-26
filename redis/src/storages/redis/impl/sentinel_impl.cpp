@@ -22,6 +22,8 @@
 #include <userver/storages/redis/impl/exception.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
 
+#include "command_control_impl.hpp"
+
 USERVER_NAMESPACE_BEGIN
 
 namespace redis {
@@ -212,8 +214,10 @@ namespace {
 
 void InvokeCommand(CommandPtr command, ReplyPtr&& reply) {
   UASSERT(reply);
-  if (reply->server_id.IsAny())
-    reply->server_id = command->control.force_server_id;
+  const CommandControlImpl cc{command->control};
+  if (reply->server_id.IsAny()) {
+    reply->server_id = cc.force_server_id;
+  }
   LOG_DEBUG() << "redis_request( " << CommandSpecialPrinter{command}
               << " ):" << (reply->status == ReplyStatus::kOk ? '+' : '-') << ":"
               << reply->time * 1000.0 << " cc: " << command->control.ToString()
@@ -258,10 +262,11 @@ bool AdjustDeadline(const SentinelImplBase::SentinelCommand& scommand,
     return false;
   }
 
-  auto& command = *scommand.command;
-  auto& cc = command.control;
-  cc.timeout_single = std::min(cc.timeout_single, *inherited_deadline);
-  cc.timeout_all = std::min(cc.timeout_all, *inherited_deadline);
+  auto& cc = scommand.command->control;
+  if (!cc.timeout_single || *cc.timeout_single > *inherited_deadline)
+    cc.timeout_single = *inherited_deadline;
+  if (!cc.timeout_all || *cc.timeout_all > *inherited_deadline)
+    cc.timeout_all = *inherited_deadline;
 
   return true;
 }
@@ -305,8 +310,9 @@ void SentinelImpl::AsyncCommand(const SentinelCommand& scommand,
                      reply->IsReadonlyError();
 
         if (retry) {
+          const CommandControlImpl cc{command->control};
           size_t new_shard = shard;
-          size_t retries_left = command->control.max_retries - 1;
+          size_t retries_left = cc.max_retries - 1;
           if (error_ask || error_moved) {
             LOG_DEBUG() << "Got error '" << reply->data.GetError()
                         << "' reply, cmd=" << reply->cmd
@@ -318,22 +324,20 @@ void SentinelImpl::AsyncCommand(const SentinelCommand& scommand,
             if (!command->redirected || (error_ask && !command->asking))
               ++retries_left;
           }
-          std::chrono::steady_clock::time_point until =
-              start + command->control.timeout_all;
+          std::chrono::steady_clock::time_point until = start + cc.timeout_all;
           if (now < until && retries_left > 0) {
             std::chrono::milliseconds timeout_all =
                 std::chrono::duration_cast<std::chrono::milliseconds>(until -
                                                                       now);
-            auto command_control = command->control;
-            command_control.timeout_single =
-                std::min(command_control.timeout_single, timeout_all);
-            command_control.timeout_all = timeout_all;
-            command_control.max_retries = retries_left;
+            command->control.timeout_single =
+                std::min(cc.timeout_single, timeout_all);
+            command->control.timeout_all = timeout_all;
+            command->control.max_retries = retries_left;
 
             auto new_command = PrepareCommand(
-                std::move(ccommand->args), command->Callback(), command_control,
-                command->counter + 1, command->asking || error_ask, 0,
-                error_ask || error_moved);
+                std::move(ccommand->args), command->Callback(),
+                command->control, command->counter + 1,
+                command->asking || error_ask, 0, error_ask || error_moved);
             new_command->log_extra = std::move(command->log_extra);
             AsyncCommand(
                 SentinelCommand(new_command,
@@ -866,7 +870,8 @@ void SentinelImpl::ProcessWaitingCommands() {
   std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
   for (const SentinelCommand& scommand : waiting_commands) {
     const auto& command = scommand.command;
-    if (scommand.start + command->control.timeout_all < now) {
+    const CommandControlImpl cc{command->control};
+    if (scommand.start + cc.timeout_all < now) {
       for (const auto& args : command->args.args) {
         auto reply = std::make_shared<Reply>(
             args[0], nullptr, ReplyStatus::kTimeoutError,

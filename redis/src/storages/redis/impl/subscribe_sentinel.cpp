@@ -169,10 +169,7 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
                        settings.secure_connection);
   }
   redis::CommandControl command_control{};
-  LOG_DEBUG() << "redis command_control: timeout_single = "
-              << command_control.timeout_single.count()
-              << "ms; timeout_all = " << command_control.timeout_all.count()
-              << "ms; max_retries = " << command_control.max_retries;
+  LOG_DEBUG() << "redis command_control: " << command_control.ToString();
 
   auto subscribe_sentinel = std::make_shared<SubscribeSentinel>(
       thread_pools, shards, conns, std::move(shard_group_name),

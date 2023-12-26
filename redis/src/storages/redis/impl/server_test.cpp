@@ -90,9 +90,9 @@ TEST(Redis, AuthFail) {
 
 TEST(Redis, AuthTimeout) {
   MockRedisServer server;
-  redis::CommandControl cc{};
   auto ping_handler = server.RegisterPingHandler();
-  auto sleep_period = cc.timeout_single + std::chrono::milliseconds(30);
+  auto sleep_period =
+      redis::kDefaultTimeoutSingle + std::chrono::milliseconds(30);
   auto auth_error_handler = server.RegisterTimeoutHandler("AUTH", sleep_period);
 
   auto pool = std::make_shared<redis::ThreadPools>(1, 1);

@@ -10,6 +10,8 @@
 #include <storages/redis/impl/command.hpp>
 #include <userver/storages/redis/impl/base.hpp>
 
+#include "command_control_impl.hpp"
+
 USERVER_NAMESPACE_BEGIN
 
 namespace redis {
@@ -100,8 +102,10 @@ bool Shard::IsConnectedToAllServersDebug(bool allow_empty) const {
 std::vector<unsigned char> Shard::GetAvailableServers(
     const CommandControl& command_control, bool with_masters,
     bool with_slaves) const {
-  if (!command_control.force_server_id.IsAny()) {
-    auto id = command_control.force_server_id;
+  const CommandControlImpl cc{command_control};
+
+  const auto id = cc.force_server_id;
+  if (!id.IsAny()) {
     std::vector<unsigned char> result(instances_.size(), 0);
     for (size_t i = 0; i < instances_.size(); i++) {
       if (instances_[i].instance->GetServerId() == id) {
@@ -116,7 +120,7 @@ std::vector<unsigned char> Shard::GetAvailableServers(
     return result;
   }
 
-  switch (command_control.strategy) {
+  switch (cc.strategy) {
     case CommandControl::Strategy::kEveryDc:
     case CommandControl::Strategy::kDefault: {
       std::vector<unsigned char> result(instances_.size(), 0);
@@ -140,7 +144,7 @@ std::vector<unsigned char> Shard::GetAvailableServers(
 std::vector<unsigned char> Shard::GetNearestServersPing(
     const CommandControl& command_control, bool with_masters,
     bool with_slaves) const {
-  auto count = command_control.best_dc_count;
+  auto count = CommandControlImpl{command_control}.best_dc_count;
   if (count == 0) count = instances_.size();
 
   using PairPingNum = std::pair<size_t, size_t>;
@@ -222,9 +226,9 @@ bool Shard::AsyncCommand(CommandPtr command) {
   std::shared_lock lock(mutex_);  // protects instances_ and destroying_
   if (destroying_) return false;
 
+  const CommandControlImpl cc{command->control};
   const auto& available_servers = GetAvailableServers(
-      command->control,
-      !command->read_only || command->control.allow_reads_from_master,
+      command->control, !command->read_only || cc.allow_reads_from_master,
       command->read_only);
 
   auto max_attempts = instances_.size() + 1;
@@ -236,8 +240,8 @@ bool Shard::AsyncCommand(CommandPtr command) {
      * 1) use best servers at the first attempt;
      * 2) fallback to any alive server if (1) failed.
      */
-    bool may_fallback_to_any =
-        attempt != 0 && command->control.force_server_id.IsAny();
+    const bool may_fallback_to_any =
+        (attempt != 0 && cc.force_server_id.IsAny());
 
     instance = GetInstance(available_servers, may_fallback_to_any, skip_idx,
                            command->read_only, &idx);

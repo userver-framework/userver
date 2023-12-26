@@ -20,6 +20,8 @@
 #include <storages/redis/impl/redis_connection_holder.hpp>
 #include <storages/redis/impl/sentinel.hpp>
 
+#include "command_control_impl.hpp"
+
 USERVER_NAMESPACE_BEGIN
 
 namespace redis {
@@ -101,8 +103,10 @@ std::shared_ptr<const std::vector<std::string>> MakeShardNames() {
 
 void InvokeCommand(CommandPtr command, ReplyPtr&& reply) {
   UASSERT(reply);
-  if (reply->server_id.IsAny())
-    reply->server_id = command->control.force_server_id;
+
+  if (reply->server_id.IsAny()) {
+    reply->server_id = CommandControlImpl{command->control}.force_server_id;
+  }
   LOG_DEBUG() << "redis_request( " << CommandSpecialPrinter{command}
               << " ):" << (reply->status == ReplyStatus::kOk ? '+' : '-') << ":"
               << reply->time * 1000.0 << " cc: " << command->control.ToString()
@@ -495,7 +499,8 @@ void ClusterSentinelImpl::ProcessWaitingCommands() {
       std::chrono::steady_clock::now();
   for (const SentinelCommand& scommand : waiting_commands) {
     const auto& command = scommand.command;
-    if (scommand.start + command->control.timeout_all < now) {
+    const CommandControlImpl cc{command->control};
+    if (scommand.start + cc.timeout_all < now) {
       for (const auto& args : command->args.args) {
         auto reply = std::make_shared<Reply>(
             args[0], nullptr, ReplyStatus::kTimeoutError,
@@ -780,8 +785,9 @@ void ClusterSentinelImpl::AsyncCommand(const SentinelCommand& scommand,
 
         std::shared_ptr<Redis> moved_to_instance;
         if (retry) {
+          const CommandControlImpl cc{command->control};
           const size_t new_shard = shard;
-          size_t retries_left = command->control.max_retries - 1;
+          size_t retries_left = cc.max_retries - 1;
           if (error_ask || error_moved) {
             LOG_DEBUG() << "Got error '" << reply->data.GetError()
                         << "' reply, cmd=" << reply->cmd
@@ -799,21 +805,20 @@ void ClusterSentinelImpl::AsyncCommand(const SentinelCommand& scommand,
             }
           }
           const std::chrono::steady_clock::time_point until =
-              start + command->control.timeout_all;
+              start + cc.timeout_all;
           if (now < until && retries_left > 0) {
             const std::chrono::milliseconds timeout_all =
                 std::chrono::duration_cast<std::chrono::milliseconds>(until -
                                                                       now);
-            auto command_control = command->control;
-            command_control.timeout_single =
-                std::min(command_control.timeout_single, timeout_all);
-            command_control.timeout_all = timeout_all;
-            command_control.max_retries = retries_left;
+            command->control.timeout_single =
+                std::min(cc.timeout_single, timeout_all);
+            command->control.timeout_all = timeout_all;
+            command->control.max_retries = retries_left;
 
             auto new_command = PrepareCommand(
-                std::move(ccommand->args), command->Callback(), command_control,
-                command->counter + 1, command->asking || error_ask, 0,
-                error_ask || error_moved);
+                std::move(ccommand->args), command->Callback(),
+                command->control, command->counter + 1,
+                command->asking || error_ask, 0, error_ask || error_moved);
             new_command->log_extra = std::move(command->log_extra);
             if (moved_to_instance) {
               moved_to_instance->AsyncCommand(new_command);

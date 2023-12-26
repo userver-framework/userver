@@ -15,13 +15,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace testsuite {
 struct RedisControl;
-}
-
-namespace storages::redis {
-class Client;
-}  // namespace storages::redis
+}  // namespace testsuite
 
 namespace redis {
+
+inline constexpr std::chrono::milliseconds kDefaultTimeoutSingle{500};
+inline constexpr std::chrono::milliseconds kDefaultTimeoutAll{2000};
+inline constexpr std::size_t kDefaultMaxRetries{4};
 
 /// Opaque Id of Redis server instance / any server instance.
 class ServerId {
@@ -86,62 +86,57 @@ struct CommandControl {
   };
 
   /// Timeout for a single attempt to execute command
-  std::chrono::milliseconds timeout_single = std::chrono::milliseconds{500};
+  std::optional<std::chrono::milliseconds> timeout_single;
 
   /// Command execution timeout, including retries
-  std::chrono::milliseconds timeout_all = std::chrono::milliseconds{2000};
+  std::optional<std::chrono::milliseconds> timeout_all;
 
   /// The maximum number of retries while executing command
-  size_t max_retries = 4;
+  std::optional<std::size_t> max_retries;
 
   /// Server instance selection strategy
-  Strategy strategy = Strategy::kDefault;
+  std::optional<Strategy> strategy;
 
-  /// How many nearest DCs to use, 0 for no limit
-  size_t best_dc_count = 0;
-
-  /// Server latency limit
-  std::chrono::milliseconds max_ping_latency = std::chrono::milliseconds(0);
+  /// How many nearest DCs to use
+  std::optional<std::size_t> best_dc_count;
 
   /// Force execution on master node
-  bool force_request_to_master = false;
+  std::optional<bool> force_request_to_master;
+
+  /// Server latency limit
+  std::optional<std::chrono::milliseconds> max_ping_latency;
 
   /// Allow execution of readonly commands on master node along with replica
-  /// nodes to facilitate load distribution.
-  bool allow_reads_from_master = false;
+  /// nodes to facilitate load distribution
+  std::optional<bool> allow_reads_from_master;
 
   /// Controls if the command execution accounted in statistics
-  bool account_in_statistics = true;
+  std::optional<bool> account_in_statistics;
 
   /// If set, force execution on specific shard
   std::optional<std::size_t> force_shard_idx;
 
   /// Split execution of multi-key commands (i.e., MGET) to multiple requests
-  std::size_t chunk_size = 0;
+  std::optional<std::size_t> chunk_size;
 
   /// If set, the user wants a specific Redis instance to handle the command.
   /// Sentinel may not redirect the command to other instances. strategy is
   /// ignored.
-  ServerId force_server_id;
+  std::optional<ServerId> force_server_id;
 
   /// If set, command retries are directed to the master instance
-  bool force_retries_to_master_on_nil_reply = false;
+  bool force_retries_to_master_on_nil_reply{false};
 
   CommandControl() = default;
-  CommandControl(std::chrono::milliseconds timeout_single,
-                 std::chrono::milliseconds timeout_all, std::size_t max_retries,
-                 Strategy strategy = Strategy::kDefault, int best_dc_count = 0,
-                 std::chrono::milliseconds max_ping_latency =
-                     std::chrono::milliseconds(0));
+  CommandControl(const std::optional<std::chrono::milliseconds>& timeout_single,
+                 const std::optional<std::chrono::milliseconds>& timeout_all,
+                 const std::optional<size_t>& max_retries);
 
   CommandControl MergeWith(const CommandControl& b) const;
   CommandControl MergeWith(const testsuite::RedisControl&) const;
   CommandControl MergeWith(RetryNilFromMaster) const;
 
   std::string ToString() const;
-
-  friend class Sentinel;
-  friend class storages::redis::Client;
 };
 
 /// Returns CommandControl::Strategy from string

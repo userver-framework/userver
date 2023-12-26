@@ -28,6 +28,8 @@
 #include <storages/redis/impl/tcp_socket.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
 
+#include "command_control_impl.hpp"
+
 USERVER_NAMESPACE_BEGIN
 
 namespace redis {
@@ -521,14 +523,13 @@ void Redis::RedisImpl::DoDisconnect() {
 void Redis::RedisImpl::InvokeCommand(const CommandPtr& command,
                                      ReplyPtr&& reply) {
   UASSERT(reply);
-  if (command->control.account_in_statistics)
+
+  const CommandControlImpl cc{command->control};
+  if (cc.account_in_statistics)
     statistics_.AccountReplyReceived(reply, command);
   reply->server = server_;
   if (reply->status == ReplyStatus::kTimeoutError) {
-    auto timeout = std::chrono::duration_cast<std::chrono::milliseconds>(
-                       command->control.timeout_single)
-                       .count();
-    reply->log_extra.Extend("timeout_ms", timeout);
+    reply->log_extra.Extend("timeout_ms", cc.timeout_single.count());
   }
 
   reply->server_id = server_id_;
@@ -702,6 +703,7 @@ inline void Redis::RedisImpl::OnTimerInfoImpl() {
 
   CommandControl cc{ping_timeout_, ping_timeout_, 1};
   cc.account_in_statistics = false;
+
   ProcessCommand(PrepareCommand(
       CmdArgs{"INFO", "REPLICATION"},
       [this](const CommandPtr&, ReplyPtr reply) {
@@ -759,7 +761,8 @@ void Redis::RedisImpl::SendSubscriberPing() {
 }
 
 void Redis::RedisImpl::SendPing() {
-  CommandControl cc{ping_timeout_, ping_timeout_, 1};
+  CommandControl cc{ping_timeout_ /*timeout_single*/,
+                    ping_timeout_ /*timeout_all*/, 1 /*max_retries*/};
   cc.account_in_statistics = false;
 
   is_ping_in_flight_ = true;
@@ -1224,8 +1227,10 @@ void Redis::RedisImpl::ProcessCommand(const CommandPtr& command) {
       entry->timer.data = this;
       entry->redis_impl = shared_from_this();
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
-      ev_timer_init(&entry->timer, OnCommandTimeout,
-                    ToEvDuration(command->control.timeout_single), 0.0);
+      ev_timer_init(
+          &entry->timer, OnCommandTimeout,
+          ToEvDuration(CommandControlImpl{command->control}.timeout_single),
+          0.0);
       ev_thread_control_.Start(entry->timer);
 
       UASSERT(!reply_privdata_rev_.count(&entry->timer));

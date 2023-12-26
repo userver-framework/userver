@@ -2310,6 +2310,8 @@
   "redis/src/storages/redis/impl/cluster_topology.hpp":"taxi/uservices/userver/redis/src/storages/redis/impl/cluster_topology.hpp",
   "redis/src/storages/redis/impl/command.cpp":"taxi/uservices/userver/redis/src/storages/redis/impl/command.cpp",
   "redis/src/storages/redis/impl/command.hpp":"taxi/uservices/userver/redis/src/storages/redis/impl/command.hpp",
+  "redis/src/storages/redis/impl/command_control_impl.cpp":"taxi/uservices/userver/redis/src/storages/redis/impl/command_control_impl.cpp",
+  "redis/src/storages/redis/impl/command_control_impl.hpp":"taxi/uservices/userver/redis/src/storages/redis/impl/command_control_impl.hpp",
   "redis/src/storages/redis/impl/command_options.cpp":"taxi/uservices/userver/redis/src/storages/redis/impl/command_options.cpp",
   "redis/src/storages/redis/impl/ev_wrapper.hpp":"taxi/uservices/userver/redis/src/storages/redis/impl/ev_wrapper.hpp",
   "redis/src/storages/redis/impl/exception.cpp":"taxi/uservices/userver/redis/src/storages/redis/impl/exception.cpp",

@@ -4,9 +4,11 @@
 #include <sstream>
 #include <unordered_map>
 
+#include <fmt/chrono.h>
 #include <fmt/format.h>
 
 #include <userver/testsuite/redis_control.hpp>
+#include <userver/utils/optionals.hpp>
 #include <userver/utils/trivial_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -48,6 +50,17 @@ ServerIdDescriptionMap& GetServerIdDescriptionMap() {
   return description_map;
 }
 
+std::optional<int> ToIntOpt(
+    const std::optional<CommandControl::Strategy>& strategy) {
+  if (!strategy) return std::nullopt;
+  return static_cast<int>(*strategy);
+}
+
+std::optional<int64_t> ToIntOpt(const std::optional<ServerId>& server_id) {
+  if (!server_id || server_id->IsAny()) return std::nullopt;
+  return server_id->GetId();
+}
+
 }  // namespace
 
 void ServerId::SetDescription(std::string description) const {
@@ -67,69 +80,93 @@ std::string ServerId::GetDescription() const {
 std::atomic<int64_t> ServerId::next_id_{0};
 ServerId ServerId::invalid_ = ServerId::Generate();
 
-CommandControl::CommandControl(std::chrono::milliseconds timeout_single,
-                               std::chrono::milliseconds timeout_all,
-                               size_t max_retries,
-                               CommandControl::Strategy strategy,
-                               int best_dc_count,
-                               std::chrono::milliseconds max_ping_latency)
+CommandControl::CommandControl(
+    const std::optional<std::chrono::milliseconds>& timeout_single,
+    const std::optional<std::chrono::milliseconds>& timeout_all,
+    const std::optional<size_t>& max_retries)
     : timeout_single(timeout_single),
       timeout_all(timeout_all),
-      max_retries(max_retries),
-      strategy(strategy),
-      best_dc_count(best_dc_count),
-      max_ping_latency(max_ping_latency) {}
+      max_retries(max_retries) {}
 
 CommandControl CommandControl::MergeWith(const CommandControl& b) const {
   CommandControl res(*this);
-  if (b.timeout_single > std::chrono::milliseconds(0))
+  if (b.timeout_single.has_value() &&
+      *b.timeout_single > std::chrono::milliseconds::zero()) {
     res.timeout_single = b.timeout_single;
-  if (b.timeout_all > std::chrono::milliseconds(0))
+  }
+  if (b.timeout_all.has_value() &&
+      *b.timeout_all > std::chrono::milliseconds::zero()) {
     res.timeout_all = b.timeout_all;
-  if (b.max_retries > 0) res.max_retries = b.max_retries;
-  if (b.strategy != Strategy::kDefault) res.strategy = b.strategy;
-  if (b.best_dc_count > 0) res.best_dc_count = b.best_dc_count;
-  if (b.max_ping_latency > std::chrono::milliseconds(0))
-    res.max_ping_latency = b.max_ping_latency;
-  if (b.force_request_to_master)
+  }
+  if (b.max_retries.has_value()) {
+    res.max_retries = b.max_retries;
+  }
+  if (b.strategy.has_value()) {
+    res.strategy = b.strategy;
+  }
+  if (b.best_dc_count.has_value()) {
+    res.best_dc_count = b.best_dc_count;
+  }
+  if (b.force_request_to_master.has_value()) {
     res.force_request_to_master = b.force_request_to_master;
-  if (b.allow_reads_from_master)
+  }
+  if (b.max_ping_latency.has_value()) {
+    res.max_ping_latency = b.max_ping_latency;
+  }
+  if (b.allow_reads_from_master.has_value()) {
     res.allow_reads_from_master = b.allow_reads_from_master;
-  if (!b.force_server_id.IsAny()) res.force_server_id = b.force_server_id;
-  if (b.force_retries_to_master_on_nil_reply)
-    res.force_retries_to_master_on_nil_reply =
-        b.force_retries_to_master_on_nil_reply;
-  if (b.force_shard_idx) res.force_shard_idx = b.force_shard_idx;
-  return res;
+  }
+  if (b.account_in_statistics.has_value()) {
+    res.account_in_statistics = b.account_in_statistics;
+  }
+  if (b.force_shard_idx.has_value()) {
+    res.force_shard_idx = b.force_shard_idx;
+  }
+  if (b.chunk_size.has_value()) {
+    res.chunk_size = b.chunk_size;
+  }
+  if (b.force_server_id.has_value()) {
+    res.force_server_id = b.force_server_id;
+  }
+  return (b.force_retries_to_master_on_nil_reply
+              ? res.MergeWith(RetryNilFromMaster{})
+              : res);
 }
 
 CommandControl CommandControl::MergeWith(
     const testsuite::RedisControl& t) const {
   CommandControl res(*this);
-  res.timeout_single = std::max(t.min_timeout_single, res.timeout_single);
-  res.timeout_all = std::max(t.min_timeout_all, res.timeout_all);
+  if (t.min_timeout_single > std::chrono::milliseconds::zero()) {
+    res.timeout_single =
+        (res.timeout_single.has_value()
+             ? std::max(*res.timeout_single, t.min_timeout_single)
+             : t.min_timeout_single);
+  }
+  if (t.min_timeout_all > std::chrono::milliseconds::zero()) {
+    res.timeout_all = (res.timeout_all.has_value()
+                           ? std::max(*res.timeout_all, t.min_timeout_all)
+                           : t.min_timeout_all);
+  }
   return res;
-}
-
-std::string CommandControl::ToString() const {
-  std::ostringstream ss;
-  ss << "timeouts: " << timeout_single.count() << ' ' << timeout_all.count()
-     << ',';
-  ss << " strategy: " << static_cast<int>(strategy) << ',';
-  ss << " best_dc_count: " << best_dc_count << ',';
-  ss << " retries: " << max_retries << ',';
-  if (!force_server_id.IsAny())
-    ss << " force_server_id: " << force_server_id.GetId() << ',';
-  if (force_request_to_master) ss << " force_request_to_master: true,";
-  if (force_shard_idx) ss << " force_shard_idx: " << *force_shard_idx << ',';
-  ss << " max ping: " << max_ping_latency.count();
-  return ss.str();
 }
 
 CommandControl CommandControl::MergeWith(RetryNilFromMaster) const {
   CommandControl res(*this);
   res.force_retries_to_master_on_nil_reply = true;
   return res;
+}
+
+std::string CommandControl::ToString() const {
+  std::ostringstream ss;
+  ss << "timeouts: " << utils::ToString(timeout_single) << ' '
+     << utils::ToString(timeout_all) << ',';
+  ss << " strategy: " << utils::ToString(ToIntOpt(strategy)) << ',';
+  ss << " best_dc_count: " << utils::ToString(best_dc_count) << ',';
+  ss << " retries: " << utils::ToString(max_retries) << ',';
+  ss << " force_server_id: " << utils::ToString(ToIntOpt(force_server_id))
+     << ',';
+  ss << " max ping: " << utils::ToString(max_ping_latency);
+  return ss.str();
 }
 
 CommandControl::Strategy StrategyFromString(std::string_view strategy) {

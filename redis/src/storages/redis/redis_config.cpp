@@ -25,49 +25,49 @@ CommandControl::Strategy Parse(
 USERVER_NAMESPACE::redis::CommandControl Parse(
     const formats::json::Value& elem,
     formats::parse::To<USERVER_NAMESPACE::redis::CommandControl>) {
-  USERVER_NAMESPACE::redis::CommandControl response;
+  USERVER_NAMESPACE::redis::CommandControl result;
 
-  for (auto it = elem.begin(); it != elem.end(); ++it) {
-    const auto& name = it.GetName();
+  for (const auto [name, option] : Items(elem)) {
     if (name == "timeout_all_ms") {
-      response.timeout_all = std::chrono::milliseconds(it->As<int64_t>());
-      if (response.timeout_all.count() < 0) {
+      result.timeout_all = option.As<std::chrono::milliseconds>();
+      if (result.timeout_all->count() < 0) {
         throw ParseConfigException(
             "Invalid timeout_all in redis CommandControl");
       }
     } else if (name == "timeout_single_ms") {
-      response.timeout_single = std::chrono::milliseconds(it->As<int64_t>());
-      if (response.timeout_single.count() < 0) {
+      result.timeout_single = option.As<std::chrono::milliseconds>();
+      if (result.timeout_single->count() < 0) {
         throw ParseConfigException(
             "Invalid timeout_single in redis CommandControl");
       }
     } else if (name == "max_retries") {
-      response.max_retries = it->As<size_t>();
+      result.max_retries = option.As<size_t>();
     } else if (name == "strategy") {
-      response.strategy =
-          it->As<USERVER_NAMESPACE::redis::CommandControl::Strategy>();
+      result.strategy =
+          option.As<USERVER_NAMESPACE::redis::CommandControl::Strategy>();
     } else if (name == "best_dc_count") {
-      response.best_dc_count = it->As<size_t>();
+      result.best_dc_count = option.As<size_t>();
     } else if (name == "max_ping_latency_ms") {
-      response.max_ping_latency = std::chrono::milliseconds(it->As<int64_t>());
-      if (response.max_ping_latency.count() < 0) {
+      result.max_ping_latency = option.As<std::chrono::milliseconds>();
+      if (result.max_ping_latency->count() < 0) {
         throw ParseConfigException(
             "Invalid max_ping_latency in redis CommandControl");
       }
     } else if (name == "allow_reads_from_master") {
-      response.allow_reads_from_master = it->As<bool>();
+      result.allow_reads_from_master = option.As<bool>();
     } else {
       LOG_WARNING() << "unknown key for CommandControl map: " << name;
     }
   }
-  if ((response.best_dc_count > 1) &&
-      (response.strategy != USERVER_NAMESPACE::redis::CommandControl::Strategy::
-                                kNearestServerPing)) {
-    LOG_WARNING() << "CommandControl.best_dc_count = " << response.best_dc_count
+  if (result.best_dc_count.has_value() && result.strategy.has_value() &&
+      (*result.best_dc_count > 1) &&
+      (*result.strategy != USERVER_NAMESPACE::redis::CommandControl::Strategy::
+                               kNearestServerPing)) {
+    LOG_WARNING() << "CommandControl.best_dc_count = " << *result.best_dc_count
                   << ", but is ignored for the current strategy ("
-                  << static_cast<size_t>(response.strategy) << ")";
+                  << static_cast<size_t>(*result.strategy) << ")";
   }
-  return response;
+  return result;
 }
 
 WaitConnectedMode Parse(const formats::json::Value& elem,

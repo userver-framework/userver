@@ -8,6 +8,8 @@
 #include <storages/redis/impl/command.hpp>
 #include <storages/redis/impl/sentinel.hpp>
 
+#include "command_control_impl.hpp"
+
 USERVER_NAMESPACE_BEGIN
 
 namespace redis {
@@ -72,7 +74,8 @@ Request::Request(Sentinel& sentinel, CmdArgs&& args, size_t shard, bool master,
 CommandPtr Request::PrepareRequest(CmdArgs&& args,
                                    const CommandControl& command_control,
                                    size_t replies_to_skip) {
-  deadline_ = engine::Deadline::FromDuration(command_control.timeout_all);
+  deadline_ = engine::Deadline::FromDuration(
+      CommandControlImpl{command_control}.timeout_all);
 
   // Sadly, we don't have std::move_only_function, so we need a shared_ptr.
   auto state_ptr = std::make_shared<ReplyState>(MakeSpanName(args));

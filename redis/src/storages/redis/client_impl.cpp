@@ -4,10 +4,13 @@
 
 #include <storages/redis/impl/sentinel.hpp>
 
+#include "impl/command_control_impl.hpp"
 #include "request_impl.hpp"
 #include "transaction_impl.hpp"
 
 USERVER_NAMESPACE_BEGIN
+
+using redis::CommandControlImpl;
 
 namespace storages::redis {
 namespace {
@@ -514,8 +517,10 @@ RequestMget ClientImpl::Mget(std::vector<std::string> keys,
     return CreateDummyRequest<RequestMget>(
         std::make_shared<Reply>("mget", ReplyData::Array{}));
   const auto shard = ShardByKey(keys.at(0), command_control);
-  const auto max_chunk_size =
-      command_control.chunk_size ? command_control.chunk_size : keys.size();
+  auto max_chunk_size = CommandControlImpl{command_control}.chunk_size;
+  if (max_chunk_size == 0) {
+    max_chunk_size = keys.size();
+  }
   auto make_request = [this, shard,
                        cc = GetCommandControl(command_control)](auto keys) {
     return MakeRequest(CmdArgs{"mget", std::move(keys)}, shard, false, cc);
@@ -589,7 +594,7 @@ void ClientImpl::Publish(std::string channel, std::string message,
   auto cc = GetCommandControl(command_control);
   cc.strategy = publish_settings.strategy;
   MakeRequest(CmdArgs{"publish", std::move(channel), std::move(message)}, shard,
-              publish_settings.master, cc);
+              publish_settings.master, std::move(cc));
 }
 
 void ClientImpl::Spublish(std::string channel, std::string message,
@@ -1122,8 +1127,7 @@ size_t ClientImpl::ShardByKey(const std::string& key,
           " != " + std::to_string(*force_shard_idx_) + ')');
     return *force_shard_idx_;
   }
-  if (cc.force_shard_idx) return *cc.force_shard_idx;
-  return ShardByKey(key);
+  return cc.force_shard_idx.value_or(ShardByKey(key));
 }
 
 void ClientImpl::CheckShard(size_t shard, const CommandControl& cc) const {

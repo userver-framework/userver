@@ -14,10 +14,6 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::redis {
-class Client;
-}  // namespace storages::redis
-
 namespace redis {
 
 using Password = utils::NonLoggable<class PasswordTag, std::string>;

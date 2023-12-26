@@ -23,6 +23,8 @@
 #include <storages/redis/impl/sentinel_impl_switcher.hpp>
 #include <storages/redis/impl/subscribe_sentinel.hpp>
 
+#include "command_control_impl.hpp"
+
 USERVER_NAMESPACE_BEGIN
 
 namespace redis {
@@ -153,12 +155,7 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
                        settings.secure_connection);
   }
 
-  LOG_DEBUG() << "redis command_control:"
-              << "  timeout_single = " << command_control.timeout_single.count()
-              << "ms"
-              << "  timeout_all = " << command_control.timeout_all.count()
-              << "ms"
-              << "  max_retries = " << command_control.max_retries;
+  LOG_DEBUG() << "redis command_control:" << command_control.ToString();
   std::shared_ptr<redis::Sentinel> client;
   if (!shards.empty() && !conns.empty()) {
     client = std::make_shared<redis::Sentinel>(
@@ -190,7 +187,10 @@ Sentinel::GetAvailableServersWeighted(size_t shard_idx, bool with_master,
 void Sentinel::AsyncCommand(CommandPtr command, bool master, size_t shard) {
   if (!impl_) return;
   ThrowIfCancelled();
-  if (command->control.force_request_to_master) master = true;
+
+  if (CommandControlImpl{command->control}.force_request_to_master) {
+    master = true;
+  }
   if (command->control.force_shard_idx) {
     if (impl_->IsInClusterMode())
       throw InvalidArgumentException(
@@ -216,7 +216,10 @@ void Sentinel::AsyncCommand(CommandPtr command, const std::string& key,
                             bool master) {
   if (!impl_) return;
   ThrowIfCancelled();
-  if (command->control.force_request_to_master) master = true;
+
+  if (CommandControlImpl{command->control}.force_request_to_master) {
+    master = true;
+  }
   size_t shard = 0;
   if (command->control.force_shard_idx) {
     if (impl_->IsInClusterMode())

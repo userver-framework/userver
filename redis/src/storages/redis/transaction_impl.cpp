@@ -32,7 +32,8 @@ RequestExec TransactionImpl::Exec(const CommandControl& command_control) {
     throw EmptyTransactionException(
         "Can't determine shard. Empty transaction?");
   }
-  auto client_force_shard_idx = client_->GetForcedShardIdx();
+
+  const auto client_force_shard_idx = client_->GetForcedShardIdx();
   if (client_force_shard_idx) {
     if (command_control.force_shard_idx &&
         *command_control.force_shard_idx != *client_force_shard_idx)

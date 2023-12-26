@@ -7,13 +7,15 @@
 
 #include <userver/utils/assert.hpp>
 
+#include "command_control_impl.hpp"
+
 USERVER_NAMESPACE_BEGIN
 
 namespace redis {
 
 namespace {
 
-bool IsNearestServerPing(const CommandControl& control) {
+bool IsNearestServerPing(const CommandControlImpl& control) {
   switch (control.strategy) {
     case CommandControl::Strategy::kEveryDc:
     case CommandControl::Strategy::kDefault:
@@ -69,11 +71,11 @@ bool ClusterShard::IsReady(WaitConnectedMode mode) const {
 }
 
 bool ClusterShard::AsyncCommand(CommandPtr command) const {
-  const auto& command_control = command->control;
+  const CommandControlImpl cc{command->control};
   const auto read_only = command->read_only;
 
-  if (!read_only || !command_control.force_server_id.IsAny()) {
-    if (const auto& instance = GetAvailableServer(command_control, read_only);
+  if (!read_only || !cc.force_server_id.IsAny()) {
+    if (const auto& instance = GetAvailableServer(command->control, read_only);
         instance) {
       return instance->AsyncCommand(command);
     }
@@ -81,21 +83,21 @@ bool ClusterShard::AsyncCommand(CommandPtr command) const {
   }
 
   const auto current = current_++;
-  const auto& available_servers = GetAvailableServers(command_control);
+  const auto& available_servers = GetAvailableServers(command->control);
   const auto servers_count = available_servers.size();
-  const auto is_nearest_ping_server = IsNearestServerPing(command_control);
+  const auto is_nearest_ping_server = IsNearestServerPing(cc);
 
   const auto masters_count = 1;
   const auto max_attempts = replicas_.size() + masters_count + 1;
   for (size_t attempt = 0; attempt < max_attempts; attempt++) {
     const size_t start_idx =
-        GetStartIndex(command_control, attempt, is_nearest_ping_server,
+        GetStartIndex(command->control, attempt, is_nearest_ping_server,
                       command->instance_idx, current, servers_count);
 
     size_t idx = SentinelImpl::kDefaultPrevInstanceIdx;
-    const auto instance = GetInstance(available_servers, start_idx, attempt,
-                                      is_nearest_ping_server,
-                                      command_control.best_dc_count, &idx);
+    const auto instance =
+        GetInstance(available_servers, start_idx, attempt,
+                    is_nearest_ping_server, cc.best_dc_count, &idx);
     if (!instance) {
       continue;
     }
@@ -146,8 +148,8 @@ ShardStatistics ClusterShard::GetStatistics(
 void ClusterShard::GetNearestServersPing(
     const CommandControl& command_control,
     std::vector<RedisConnectionPtr>& instances) {
-  const auto num_instances =
-      std::min(command_control.best_dc_count, instances.size());
+  const CommandControlImpl cc{command_control};
+  const auto num_instances = std::min(cc.best_dc_count, instances.size());
   if (num_instances == 0 && num_instances == instances.size()) {
     /// We want to leave all instances
     return;
@@ -166,23 +168,24 @@ ClusterShard::RedisPtr ClusterShard::GetAvailableServer(
     return master_->Get();
   }
 
-  if (command_control.force_server_id.IsAny()) {
+  const CommandControlImpl cc{command_control};
+  if (cc.force_server_id.IsAny()) {
     return {};
   }
 
-  const auto& id = command_control.force_server_id;
   auto master = master_->Get();
-  if (master->GetServerId() == id) {
+  if (master->GetServerId() == cc.force_server_id) {
     return master;
   }
 
   for (const auto& replica_connection : replicas_) {
     auto replica = replica_connection->Get();
-    if (replica->GetServerId() == id) {
+    if (replica->GetServerId() == cc.force_server_id) {
       return replica;
     }
   }
-  const logging::LogExtra log_extra({{"server_id", id.GetId()}});
+  const logging::LogExtra log_extra(
+      {{"server_id", cc.force_server_id.GetId()}});
   LOG_LIMITED_WARNING() << "server_id not found in Redis shard (dead server?)"
                         << log_extra;
   return {};
@@ -190,14 +193,15 @@ ClusterShard::RedisPtr ClusterShard::GetAvailableServer(
 
 std::vector<ClusterShard::RedisConnectionPtr> ClusterShard::GetAvailableServers(
     const CommandControl& command_control) const {
-  if (!IsNearestServerPing(command_control)) {
+  const CommandControlImpl cc{command_control};
+  if (!IsNearestServerPing(cc)) {
     /// allow_reads_from_master does not matter here.
     /// We just choose right index in GetStartIndex to avoid choosing master
     /// in first try of read_only requests
     return MakeReadonlyWithMasters();
   }
 
-  if (command_control.allow_reads_from_master) {
+  if (cc.allow_reads_from_master) {
     auto ret = MakeReadonlyWithMasters();
     ClusterShard::GetNearestServersPing(command_control, ret);
     return ret;
@@ -251,11 +255,12 @@ bool ClusterShard::IsReplicaReady() const {
 size_t GetStartIndex(const CommandControl& command_control, size_t attempt,
                      bool is_nearest_ping_server, size_t prev_instance_idx,
                      size_t current, size_t servers_count) {
-  const bool allow_reads_from_master = command_control.allow_reads_from_master;
-  const size_t best_dc_count = !command_control.best_dc_count
-                                   ? std::numeric_limits<size_t>::max()
-                                   : command_control.best_dc_count;
-  const bool first_attempt = attempt == 0;
+  const CommandControlImpl cc{command_control};
+  size_t best_dc_count = cc.best_dc_count;
+  if (best_dc_count == 0) {
+    best_dc_count = std::numeric_limits<size_t>::max();
+  }
+  const bool first_attempt = (attempt == 0);
   const bool first_try =
       prev_instance_idx == SentinelImplBase::kDefaultPrevInstanceIdx;
   /// For compatibility with non-cluster-autotopology driver:
@@ -264,7 +269,7 @@ size_t GetStartIndex(const CommandControl& command_control, size_t attempt,
   /// Reads from master are possible even with allow_reads_from_master=false
   /// in cases when there no available replica (replicas are broken or
   /// master is the only instance in cluster shard).
-  servers_count = (first_try && first_attempt && !allow_reads_from_master)
+  servers_count = (first_try && first_attempt && !cc.allow_reads_from_master)
                       ? std::max<size_t>(servers_count - 1, 1)
                       : servers_count;
   if (is_nearest_ping_server) {
@@ -297,7 +302,7 @@ namespace {
 
 ClusterShard::RedisPtr GetRedisIfAvailable(
     const ClusterShard::RedisConnectionPtr& connection,
-    const CommandControl& command_control) {
+    const CommandControlImpl& command_control) {
   if (!connection) {
     return {};
   }
@@ -319,21 +324,21 @@ ClusterShard::RedisPtr GetRedisIfAvailable(
 ClusterShard::ServersWeighted ClusterShard::GetAvailableServersWeighted(
     bool with_master, const CommandControl& command_control) const {
   ClusterShard::ServersWeighted ret;
+  const CommandControlImpl cc{command_control};
 
   if (with_master && master_) {
-    if (const auto redis = GetRedisIfAvailable(master_, command_control)) {
+    if (const auto redis = GetRedisIfAvailable(master_, cc)) {
       ret.emplace(redis->GetServerId(), 1);
-      if (!command_control.force_server_id.IsAny() && !ret.empty()) {
+      if (!cc.force_server_id.IsAny() && !ret.empty()) {
         return ret;
       }
     }
   }
 
   for (const auto& replica_connection : replicas_) {
-    if (const auto redis =
-            GetRedisIfAvailable(replica_connection, command_control)) {
+    if (const auto redis = GetRedisIfAvailable(replica_connection, cc)) {
       ret.emplace(redis->GetServerId(), 1);
-      if (!command_control.force_server_id.IsAny() && !ret.empty()) {
+      if (!cc.force_server_id.IsAny() && !ret.empty()) {
         return ret;
       }
     }
