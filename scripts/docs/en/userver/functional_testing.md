@@ -184,6 +184,8 @@ plugin.
 | userver-rabbitmq   | pytest_userver.plugins.rabbitmq   |
 | userver-mysql      | pytest_userver.plugins.mysql      |
 
+@see @ref userver_libraries
+
 
 ### Userver testsuite support
 

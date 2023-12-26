@@ -96,6 +96,7 @@ If you need to edit or make your own docker image with custom configuration, rea
 it @ref scripts/docs/en/userver/docker.md "here"
 
 
+@anchor userver_conan
 ### Conan
 
 @note conan must have version >= 1.51, but < 2.0
@@ -108,7 +109,15 @@ conan profile new --detect default && conan profile update settings.compiler.lib
 conan create . --build=missing -pr:b=default -tf conan/test_package/
 ```
 
-Now you can use userver as conan package and build it in your services.
+Make sure to pass flags corresponding to the desired userver libraries, e.g. `--with_grpc=1`
+
+Now you can use userver as conan package and build it in your services:
+
+```cmake
+target_link_libraries(${PROJECT_NAME} PUBLIC userver::grpc)
+```
+
+@see @ref userver_libraries
 
 
 ----------

@@ -40,7 +40,11 @@ if (USERVER_FEATURE_UTEST)
 endif()
 
 
-option(USERVER_IS_THE_ROOT_PROJECT "Build tests, samples and helper tools" ${USERVER_NOT_INCLUDED_AS_SUBDIR})
+option(
+    USERVER_IS_THE_ROOT_PROJECT
+    "Build userver tests, samples and helper tools; recommended for contributing into userver"
+    "${USERVER_NOT_INCLUDED_AS_SUBDIR}"
+)
 if (USERVER_IS_THE_ROOT_PROJECT)
   message(STATUS "Building userver as a primary project")
   if (NOT USERVER_FEATURE_UTEST)

@@ -2,7 +2,7 @@
 
 ## CMake options
 
-The following options could be used to control `cmake`:
+The following CMake options are used by userver:
 
 | Option                                 | Description                                                                                                           | Default                                                           |
 |----------------------------------------|-----------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------|
@@ -47,7 +47,7 @@ The following options could be used to control `cmake`:
 | USERVER_DOWNLOAD_PACKAGE_GTEST         | Download and setup gtest if no gtest of matching version was found                                                    | ${USERVER_DOWNLOAD_PACKAGES}                                      |
 | USERVER_DOWNLOAD_PACKAGE_PROTOBUF      | Download and setup Protobuf if no Protobuf of matching version was found                                              | ${USERVER_DOWNLOAD_PACKAGE_GRPC}                                  |
 | USERVER_FORCE_DOWNLOAD_PACKAGES        | Download all possible third-party packages even if there is an installed system package                               | OFF                                                               |
-| USERVER_IS_THE_ROOT_PROJECT            | Build tests, samples and helper tools                                                                                 | auto-detects if userver is the top level project                  |
+| USERVER_IS_THE_ROOT_PROJECT            | Build userver tests, samples and helper tools; recommended for contributing into userver                              | auto-detects if userver is the top level project                  |
 | USERVER_GOOGLE_COMMON_PROTOS_TARGET    | Name of cmake target preparing google common proto library                                                            | Builds userver-api-common-protos                                  |
 | USERVER_GOOGLE_COMMON_PROTOS           | Path to the folder with google common proto files                                                                     | Downloads automatically                                           |
 | USERVER_PG_SERVER_INCLUDE_DIR          | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL server headers", for example /usr/include/postgresql/15/server | autodetected                                                      |
@@ -64,7 +64,37 @@ To explicitly specialize the compiler use the cmake options `CMAKE_C_COMPILER` a
 For example to use clang-12 compiler install it and add the following options to cmake:
 `-DCMAKE_CXX_COMPILER=clang++-12 -DCMAKE_C_COMPILER=clang-12`
 
-### Downloading packages using CPM
+
+@anchor userver_libraries
+## The list of userver libraries
+
+userver is split into multiple CMake libraries.
+
+| CMake target         | CMake option to enable building the library | Main documentation page                                  |
+|----------------------|---------------------------------------------|----------------------------------------------------------|
+| `userver-universal`  | Always on                                   | @ref scripts/docs/en/index.md                            |
+| `userver-core`       | `USERVER_FEATURE_CORE` (`ON` by default)    | @ref scripts/docs/en/index.md                            |
+| `userver-grpc`       | `USERVER_FEATURE_GRPC`                      | @ref scripts/docs/en/userver/grpc.md                     |
+| `userver-mongo`      | `USERVER_FEATURE_MONGODB`                   | @ref scripts/docs/en/userver/mongodb.md                  |
+| `userver-postgresql` | `USERVER_FEATURE_POSTGRESQL`                | @ref pg_driver                                           |
+| `userver-redis`      | `USERVER_FEATURE_REDIS`                     | @ref scripts/docs/en/userver/redis.md                    |
+| `userver-clickhouse` | `USERVER_FEATURE_CLICKHOUSE`                | @ref clickhouse_driver                                   |
+| `userver-rabbitmq`   | `USERVER_FEATURE_RABBITMQ`                  | @ref rabbitmq_driver                                     |
+| `userver-mysql`      | `USERVER_FEATURE_MYSQL`                     | @ref scripts/docs/en/userver/mysql/design_and_details.md |
+
+Make sure to:
+
+1. Enable the CMake options to build the libraries you need
+2. Link against the libraries
+
+The details vary depending on the method of building userver:
+
+* `add_subsirectory(userver)` as used in @ref service_templates "service templates"
+* @ref userver_cpm "CPM"
+* @ref userver_conan "Conan"
+
+
+## Downloading packages using CPM
 
 userver uses [CPM](https://github.com/cpm-cmake/CPM.cmake) for downloading missing packages.
 
@@ -82,7 +112,31 @@ Some advice:
 - `CPM_SOURCE_CACHE` helps to avoid re-downloads with multiple userver build modes or multiple CPM-using projects;
 - `CPM_USE_NAMED_CACHE_DIRECTORIES` (which userver enables by default) avoids junk library names shown in IDEs.
 
+@anchor userver_cpm
+### Downloading userver using CPM
 
+userver itself can be downloaded and built using CPM.
+
+```cmake
+CPMAddPackage(
+    NAME userver
+    VERSION (userver release version or git commit hash)
+    GIT_TAG (userver release version or git commit hash)
+    GITHUB_REPOSITORY userver-framework/userver
+    OPTIONS
+    "USERVER_FEATURE_GRPC ON"
+)
+
+target_link_libraries(${PROJECT_NAME} userver-grpc)
+```
+
+Make sure to enable the CMake options to build userver libraries you need,
+then link to those libraries.
+
+@see @ref userver_libraries
+
+
+@anchor service_templates
 ## Build dependencies and instructions for userver based services
 
 There are prepared and ready to use service templates at the github:
@@ -92,16 +146,34 @@ There are prepared and ready to use service templates at the github:
 * https://github.com/userver-framework/pg_grpc_service_template
 
 Just use the template to make your own service:
+
 1. Press the green "Use this template" button at the top of the github template page
 2. Clone the service `git clone your-service-repo && cd your-service-repo && git submodule update --init`
 3. Give a proper name to your service and replace all the occurrences of "*service_template" string with that name.
 4. Feel free to tweak, adjust or fully rewrite the source code of your service.
 
 For local development of your service either
+
 * use the docker build and tests run via `make docker-test`;
 * or install the build dependencies on your local system and
   adjust the `Makefile.local` file to provide \b platform-specific \b CMake
   options to the template:
+
+The service templates allow to kickstart the development of your production-ready service,
+but there can't be a repo for each and every combination of userver libraries.
+To use additional userver libraries, e.g. `userver-grpc`, add to the root `CMakeLists.txt`:
+
+```cmake
+set(USERVER_FEATURE_GRPC ON CACHE BOOL "" FORCE)
+# ...
+add_subdirectory(third_party/userver)
+# ...
+target_link_libraries(${PROJECT_NAME} userver-grpc)
+```
+
+@see @ref userver_libraries
+
+See @ref tutorial_services for minimal usage examples of various userver libraries.
 
 
 ### Ubuntu 22.04 (Jammy Jellyfish)
@@ -290,7 +362,6 @@ Feel free to provide a PR with instructions for your favorite platform at https:
 
 If there's a strong need to build \b only the userver and run its tests, then see
 @ref scripts/docs/en/userver/tutorial/build_userver.md
-
 
 
 @anchor POSTGRES_LIBS

@@ -24,6 +24,7 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 * @ref scripts/docs/en/userver/faq.md
 
 
+@anchor tutorial_services
 ## Tutorial
 * @ref scripts/docs/en/userver/tutorial/hello_service.md
 * @ref scripts/docs/en/userver/tutorial/config_service.md
