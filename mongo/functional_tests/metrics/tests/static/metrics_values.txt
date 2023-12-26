@@ -57,14 +57,26 @@ mongo.by-operation.timings-1min: mongo_collection=test, mongo_database=key-value
 mongo.congestion-control.enabled-seconds: mongo_database=key-value-database	GAUGE	0
 mongo.congestion-control.is-enabled: mongo_database=key-value-database	GAUGE	0
 mongo.congestion-control.is-fake-mode: mongo_database=key-value-database	GAUGE	0
+
+# Number of connections closed since the service start
 mongo.pool.conn-closed: mongo_database=key-value-database	RATE	0
+
+# Number of connections created since the service start
 mongo.pool.conn-created: mongo_database=key-value-database	RATE	2
+
+# Connection initilization errors since the service start
 mongo.pool.conn-init.errors-total: mongo_database=key-value-database, mongo_error=total	RATE	0
+
+# Connection initilization successes since the service start
 mongo.pool.conn-init.success: mongo_database=key-value-database	RATE	2
+
+# Connection initialization timings
 mongo.pool.conn-init.timings-1min: mongo_database=key-value-database, percentile=p100	GAUGE	0
 mongo.pool.conn-init.timings-1min: mongo_database=key-value-database, percentile=p95	GAUGE	0
 mongo.pool.conn-init.timings-1min: mongo_database=key-value-database, percentile=p98	GAUGE	0
 mongo.pool.conn-init.timings-1min: mongo_database=key-value-database, percentile=p99	GAUGE	0
+
+# Connection request timings
 mongo.pool.conn-request-timings-1min: mongo_database=key-value-database, percentile=p0	GAUGE	0
 mongo.pool.conn-request-timings-1min: mongo_database=key-value-database, percentile=p100	GAUGE	0
 mongo.pool.conn-request-timings-1min: mongo_database=key-value-database, percentile=p50	GAUGE	0
@@ -74,11 +86,23 @@ mongo.pool.conn-request-timings-1min: mongo_database=key-value-database, percent
 mongo.pool.conn-request-timings-1min: mongo_database=key-value-database, percentile=p99	GAUGE	0
 mongo.pool.conn-request-timings-1min: mongo_database=key-value-database, percentile=p99_6	GAUGE	0
 mongo.pool.conn-request-timings-1min: mongo_database=key-value-database, percentile=p99_9	GAUGE	0
+
+# Number of requests since the service start
 mongo.pool.conn-requests: mongo_database=key-value-database	RATE	2
+
+# Number of connections in pool
 mongo.pool.current-in-use: mongo_database=key-value-database	GAUGE	0
+
+# Number of connections being actively used
 mongo.pool.current-size: mongo_database=key-value-database	GAUGE	2
+
+# Maximum number of connections in pool
 mongo.pool.max-size: mongo_database=key-value-database	GAUGE	4
+
+# Number of overloads since the service start
 mongo.pool.overloads: mongo_database=key-value-database	RATE	0
+
+# Percentiles on waiting for a connection to pop from the pool of conncetions
 mongo.pool.queue-wait-timings-1min: mongo_database=key-value-database, percentile=p0	GAUGE	0
 mongo.pool.queue-wait-timings-1min: mongo_database=key-value-database, percentile=p100	GAUGE	0
 mongo.pool.queue-wait-timings-1min: mongo_database=key-value-database, percentile=p50	GAUGE	0
