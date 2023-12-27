@@ -794,14 +794,10 @@ ResultSet ConnectionImpl::ExecuteCommand(const Query& query,
       std::chrono::duration_cast<std::chrono::milliseconds>(
           deadline.TimeLeft());
   auto span = MakeQuerySpan(query, {network_timeout, GetStatementTimeout()});
-  if (query.GetName()) {
-    try {
-      TESTPOINT("sql_statement", formats::json::MakeObject(
-                                     "name", query.GetName()->GetUnderlying()));
-    } catch (const std::exception& e) {
-      LOG_WARNING() << e;
-    }
+  if (testsuite::AreTestpointsAvailable() && query.GetName()) {
+    ReportStatement(query.GetName()->GetUnderlying());
   }
+
   auto scope = span.CreateScopeTime();
   CountExecute count_execute(stats_);
 
@@ -969,6 +965,25 @@ ResultSet ConnectionImpl::WaitResult(const std::string& statement,
 }
 
 void ConnectionImpl::Cancel() { conn_wrapper_.Cancel().Wait(); }
+
+void ConnectionImpl::ReportStatement(const std::string& name) {
+  // Only report statement usage once.
+  {
+    std::unique_lock<engine::Mutex> lock{statements_mutex_};
+    if (statements_reported_.count(name)) return;
+  }
+
+  try {
+    TESTPOINT_CALLBACK(
+        "sql_statement", formats::json::MakeObject("name", name),
+        ([&name, this](auto) {
+          std::unique_lock<engine::Mutex> lock{statements_mutex_};
+          statements_reported_.insert(name);
+        }));
+  } catch (const std::exception& e) {
+    LOG_WARNING() << e;
+  }
+}
 
 }  // namespace storages::postgres::detail
 

@@ -19,6 +19,12 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace testsuite {
+
+bool AreTestpointsAvailable() noexcept;
+
+}
+
 namespace testsuite::impl {
 
 class TestpointScope final {

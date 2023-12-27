@@ -136,6 +136,11 @@ void TestpointControl::SetClient(TestpointClientBase& client) {
   client_instance = &client;
 }
 
+bool AreTestpointsAvailable() noexcept {
+  if (!client_instance) return false;
+  return true;
+}
+
 }  // namespace testsuite
 
 USERVER_NAMESPACE_END

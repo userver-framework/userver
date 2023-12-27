@@ -5,10 +5,12 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 
 #include <userver/cache/lru_map.hpp>
 #include <userver/concurrent/background_task_storage_fwd.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/mutex.hpp>
 #include <userver/engine/semaphore.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/error_injection/settings_fwd.hpp>
@@ -178,6 +180,8 @@ class ConnectionImpl {
 
   void Cancel();
 
+  void ReportStatement(const std::string& name);
+
   const std::string uuid_;
   Connection::Statistics stats_;
   PGConnectionWrapper conn_wrapper_;
@@ -195,6 +199,9 @@ class ConnectionImpl {
   OptionalCommandControl transaction_cmd_ctl_;
   TimeoutDuration current_statement_timeout_{};
   const error_injection::Settings ei_settings_;
+
+  std::unordered_set<std::string> statements_reported_;
+  engine::Mutex statements_mutex_;
 };
 
 }  // namespace storages::postgres::detail
