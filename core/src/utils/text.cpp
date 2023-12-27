@@ -40,12 +40,6 @@ std::string Format(double value, const std::string& locale, int ndigits,
   return res.str();
 }
 
-std::string Format(boost::multiprecision::cpp_dec_float_50 value, int ndigits) {
-  std::stringstream res;
-  res << std::setprecision(ndigits) << value;
-  return res.str();
-}
-
 std::string ToLower(std::string_view str, const std::string& locale) {
   return boost::locale::to_lower(str.data(), str.data() + str.size(),
                                  GetLocale(locale));

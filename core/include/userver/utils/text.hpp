@@ -5,8 +5,6 @@
 
 #include <locale>
 
-#include <boost/multiprecision/cpp_dec_float.hpp>
-
 #include <userver/utils/text_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -19,9 +17,6 @@ inline const std::string kEnLocale{"en_US.UTF-8"};
 /// Return number formatted with specified locale
 std::string Format(double value, const std::string& locale, int ndigits = 0,
                    bool is_fixed = true);
-
-/// Return cpp_dec_float_50 formatted
-std::string Format(boost::multiprecision::cpp_dec_float_50 value, int ndigits);
 
 /// Transform letters to lower case
 std::string ToLower(std::string_view str,
