@@ -13,8 +13,7 @@ Dynamic config is distributed as a large JSON object where each direct member
 is called a dynamic config variable, or (somewhat confusingly) a dynamic config.
 For example:
 
-```
-json
+```json
 {
   // ...
   "POSTGRES_DEFAULT_COMMAND_CONTROL": {
@@ -198,7 +197,7 @@ with default. For example:
   value: `field = json.As<T>(field)`.
 
 To enable support for `std::optional`:
-```
+```cpp
 #include <userver/formats/parse/common_containers.hpp>
 ```
 
@@ -218,13 +217,13 @@ use map containers, typically:
 
 To enable support for such containers, use the following:
 
-```
+```cpp
 #include <userver/formats/parse/common_containers.hpp>
 ```
 
 If the nested type is your custom type, make sure to define `Parse` for it:
 
-```
+```cpp
 // To parse this type
 std::unordered_map<std::string, std::optional<MyStruct>>
 
@@ -322,7 +321,7 @@ In this case YAML is automatically converted to JSON, then parsed as usual.
 Alternatively, you can pass the path to a JSON file with defaults:
 
 ```
-yaml
+# yaml
     dynamic-config:
         defaults-path: $dynamic-config-defaults
 ```
@@ -349,7 +348,7 @@ Here is a reasonable static config for those:
 
 
 @anchor dynamic_config_fallback
-### Fallback mechanisms for dynamic configs
+### Fallback mechanisms for dynamic configs updates
 
 Suppose that the new revision of the current service released before the newly
 added config was accounted by the config service. In this case it should just
@@ -392,7 +391,11 @@ If the first config update fails, and the config cache file is missing, then
 the service will fail to start, showing a helpful log message. Defaults are not
 used in this case, because they may be significantly outdated, and to avoid
 requiring the developer to always keep defaults up-to-date with production
-requirements.
+requirements. Another reason for such behavior is that the dynamic configs are
+used to fix up incidents, so such check of the dynamic configs service
+at first deployment prevents incident escalation due to unnoticed
+mis-configuration (missing routes to dynamic config service, broken
+authorization, ...).
 
 If you still wish to boot the service using just dynamic config defaults, you
 can create a config cache file with contents `{}`, or bake a config cache file
@@ -452,8 +455,7 @@ dynamic config (as shown above) in each of those directories in different ways.
 If the service has config updates enabled, then you can change dynamic config
 per-test as follows:
 
-```
-python
+```python
 @pytest.mark.config(MY_CONFIG_NAME=42, MY_OTHER_CONFIG_NAME=True)
 async def test_whatever(service_client, ...):
 ```
@@ -463,9 +465,8 @@ Dynamic config can also be modified mid-test using @ref dynamic_config fixture.
 Such dynamic config changes are applied (sent to the service) at the first
 `service_client` request in the test, or manually:
 
-```
-python
-await service_client.update_server_state()`
+```python
+await service_client.update_server_state()
 ```
 
 

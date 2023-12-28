@@ -113,13 +113,16 @@ class Key final {
 
 // clang-format off
 
-/// @brief The storage for a snapshot of configs
+/// @brief The shared snapshot of
+/// @ref scripts/docs/en/userver/dynamic_config.md "dynamic configs". Cheap to
+/// copy, even cheaper to move. Thread safe, not updated with new dynamic
+/// config values in background (it's a snapshot!).
 ///
 /// When a config update comes in via new `DocsMap`, configs of all
 /// the registered types are constructed and stored in `Config`. After that
 /// the `DocsMap` is dropped.
 ///
-/// Config types are automatically registered if they are accessed with `Get`
+/// Config types are automatically registered if they are used
 /// somewhere in the program.
 ///
 /// ## Usage example:

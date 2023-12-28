@@ -33,6 +33,10 @@ namespace components {
 ///
 /// @brief Component that does a periodic update of runtime configs.
 ///
+/// Note that the service with dynamic config update component and without
+/// configs cache requires successful update to start. See
+/// @ref dynamic_config_fallback for details and explanation.
+///
 /// ## Optional update event deduplication
 ///
 /// Config update types to deduplicate. If enabled, JSON of the whole config is

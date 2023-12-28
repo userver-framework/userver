@@ -50,6 +50,7 @@ components_manager:
             task_processor: main-task-processor
 
         # /// [dynamic config]
+        # yaml
         dynamic-config:
             defaults:
                 POSTGRES_CONNECTION_SETTINGS:

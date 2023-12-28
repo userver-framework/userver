@@ -15,7 +15,6 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 /// [struct config hpp]
-// hpp
 struct SampleStructConfig final {
   bool is_foo_enabled;
   std::chrono::milliseconds bar_period;
@@ -25,7 +24,6 @@ extern const dynamic_config::Key<SampleStructConfig> kSampleStructConfig;
 /// [struct config hpp]
 
 /// [struct config cpp]
-// cpp
 // Parser for a type must be defined in the same namespace as the type itself.
 // In this example, JSON parser is only needed for dynamic config, so declaring
 // it in hpp is not strictly necessary.

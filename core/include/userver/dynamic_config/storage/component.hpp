@@ -22,7 +22,12 @@ namespace components {
 
 /// @ingroup userver_components
 ///
-/// @brief Component that stores the runtime config.
+/// @brief Component that stores the
+/// @ref scripts/docs/en/userver/dynamic_config.md "dynamic config".
+///
+/// Note that the service with `updates-enabled: true` and without
+/// configs cache requires successful update to start. See
+/// @ref dynamic_config_fallback for details and explanation.
 ///
 /// ## Behavior on missing configs
 ///

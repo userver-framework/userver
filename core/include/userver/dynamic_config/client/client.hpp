@@ -29,7 +29,8 @@ struct ClientConfig {
 
 /// @ingroup userver_clients
 ///
-/// @brief Client for the configs service.
+/// @brief Client for the
+/// @ref scripts/docs/en/userver/dynamic_config.md "dynamic configs" service.
 ///
 /// It is safe to concurrently invoke members of the same client because this
 /// client is a thin wrapper around clients::http::Client.
