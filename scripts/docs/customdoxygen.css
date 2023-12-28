@@ -170,6 +170,11 @@ html.dark-mode {
 
 /* Common styles */
 
+/* In doxygen 1.10.0 there is a '.paramname em' with hardcoded color. Fixing */
+span.paramname em {
+	color: var(--primary-dark-color);
+}
+
 /* Too wide page makes people uncomfortable, keep content in center */
 div.contents {
   max-width: 1440px;
@@ -202,6 +207,7 @@ hr {
 
 #titlearea a:hover {
   text-decoration: none;
+  background: none; /* doxygen 1.10.0 draws an underscore via background */
 }
 
 #titlearea td {
@@ -233,6 +239,7 @@ hr {
 
 #links a:hover {
   text-decoration: none;
+  background: none; /* doxygen 1.10.0 draws an underscore via background */
 }
 
 
@@ -339,6 +346,10 @@ html.dark-mode .sm.sm-dox li:last-child ul li a {
   max-width: 400px;
 }
 
+#landing_logo_id a:hover {
+  background: none; /* doxygen 1.10.0 draws an underscore via background */
+}
+
 h2.groupheader {
   box-shadow: none;
 }
@@ -394,6 +405,7 @@ a.titlelink {
 
 a.titlelink:hover {
   color: var(--primary-color) !important;
+  background: none; /* doxygen 1.10.0 draws an underscore via background */
 }
 
 .main-menu-btn {
