@@ -13,6 +13,7 @@
 #include <string>
 #include <system_error>
 
+#include <fmt/format.h>
 #include <boost/filesystem/operations.hpp>
 
 #include <userver/engine/async.hpp>
@@ -27,20 +28,9 @@ USERVER_NAMESPACE_BEGIN
 namespace server::net {
 
 namespace {
-engine::io::Socket CreateUnixSocket(const std::string& path, int backlog) {
-  engine::io::Sockaddr addr;
-  auto* sa = addr.As<struct sockaddr_un>();
-  sa->sun_family = AF_UNIX;
 
-  if (path.size() >= sizeof(sa->sun_path))
-    throw std::runtime_error("unix socket path is too long (" + path + ")");
-  if (path.empty())
-    throw std::runtime_error(
-        "unix socket path is empty, abstract sockets are not supported");
-  if (path[0] != '/')
-    throw std::runtime_error("unix socket path must be absolute (" + path +
-                             ")");
-  std::strncpy(sa->sun_path, path.c_str(), sizeof(sa->sun_path));
+engine::io::Socket CreateUnixSocket(const std::string& path, int backlog) {
+  const auto addr = engine::io::Sockaddr::MakeUnixSocketAddress(path);
 
   /* Use blocking API here, it is not critical as CreateUnixSocket() is called
    * on startup only */
@@ -53,7 +43,7 @@ engine::io::Socket CreateUnixSocket(const std::string& path, int backlog) {
   socket.Bind(addr);
   socket.Listen(backlog);
 
-  auto perms = static_cast<boost::filesystem::perms>(0666);
+  constexpr auto perms = static_cast<boost::filesystem::perms>(0666);
   fs::blocking::Chmod(path, perms);
   return socket;
 }

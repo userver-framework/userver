@@ -32,7 +32,7 @@ find_package(Boost REQUIRED COMPONENTS program_options filesystem regex)
 include(UserverRequireDWCAS)  # Should be called after `find_package(Boost REQUIRED)`
 
 message(STATUS "boost: ${Boost_VERSION_STRING}")
-if (CLANG)
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   if (MACOS AND Boost_FOUND)
     # requires Boost_FOUND to make a valid expression
     if (${Boost_VERSION_STRING} VERSION_LESS "1.68.0")
@@ -60,7 +60,7 @@ else()
 endif()
 
 # Compiler flags for userver code. Flags for all the code
-# including third_party are in cmake/SetupEnvironment.cmake
+# including third_party are in cmake/UserverSetupEnvironment.cmake
 add_library(userver-internal-compile-options INTERFACE)
 userver_target_require_dwcas(userver-internal-compile-options INTERFACE)
 target_compile_features(userver-internal-compile-options INTERFACE cxx_std_17)
@@ -212,7 +212,7 @@ endif()
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
     Threads::Threads
-    sanitize-target
+    userver-internal-sanitize-options
     userver-internal-compile-options
   PRIVATE
     Boost::filesystem

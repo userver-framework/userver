@@ -1,7 +1,7 @@
 function (userver_target_require_dwcas target visibility)
   option(USERVER_FEATURE_DWCAS "Require double-width compare-exchange-swap" ON)
 
-  if(MACOS)
+  if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
     # All CPUs, which can run macOS, provide a DWCAS instruction.
     # On the other hand, emulation via libatomic is not accessible there.
     set(USERVER_FEATURE_DWCAS ON)
@@ -64,7 +64,7 @@ function (userver_target_require_dwcas target visibility)
     return()
   endif()
 
-  if(NOT MACOS AND NOT "${CMAKE_SYSTEM}" MATCHES "BSD")
+  if(NOT CMAKE_SYSTEM_NAME MATCHES "Darwin" AND NOT CMAKE_SYSTEM MATCHES "BSD")
     list(APPEND TEST_LIBRARIES "atomic")
   endif()
 

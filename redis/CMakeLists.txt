@@ -55,7 +55,7 @@ endif()
 
 option(USERVER_FEATURE_REDIS_TLS "SSL/TLS support for Redis driver" OFF)
 if(USERVER_FEATURE_REDIS_TLS)
-  add_definitions(-DUSERVER_FEATURE_REDIS_TLS=1)
+  add_compile_definitions(USERVER_FEATURE_REDIS_TLS=1)
 endif()
 
 target_link_libraries(${PROJECT_NAME}
