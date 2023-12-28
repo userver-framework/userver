@@ -71,14 +71,8 @@ class SocketLoggingTest : public DefaultLoggerFixture {
 
   void SetUpSocketFile() {
     fs::blocking::RemoveSingleFile(socket_file_.GetPath());
-
-    struct sockaddr_un addr {};
-    addr.sun_family = AF_UNIX;
-    std::strncpy(addr.sun_path, socket_file_.GetPath().data(),
-                 socket_file_.GetPath().size());
-
-    socket_.Bind(engine::io::Sockaddr(static_cast<const void*>(&addr)));
-
+    socket_.Bind(
+        engine::io::Sockaddr::MakeUnixSocketAddress(socket_file_.GetPath()));
     socket_.Listen();
   }
 

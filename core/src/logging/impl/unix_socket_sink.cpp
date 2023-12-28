@@ -6,6 +6,9 @@
 
 #include <iostream>
 
+#include <fmt/format.h>
+
+#include <userver/engine/io/sockaddr.hpp>
 #include <utils/check_syscall.hpp>
 #include <utils/strerror.hpp>
 
@@ -14,17 +17,13 @@ USERVER_NAMESPACE_BEGIN
 namespace logging::impl {
 
 void UnixSocketClient::connect(std::string_view filename) {
-  struct sockaddr_un addr {};
-  addr.sun_family = AF_UNIX;
-  std::strncpy(addr.sun_path, filename.data(), filename.size());
+  const auto sockaddr = engine::io::Sockaddr::MakeUnixSocketAddress(filename);
 
   socket_ =
       utils::CheckSyscall(::socket(AF_UNIX, SOCK_STREAM, 0), "create socket");
 
-  utils::CheckSyscall(
-      ::connect(socket_, reinterpret_cast<const struct sockaddr*>(&addr),
-                sizeof(addr)),
-      "connect to server by unix-socket");
+  utils::CheckSyscall(::connect(socket_, sockaddr.Data(), sockaddr.Size()),
+                      "connect to server by unix-socket");
 }
 
 void UnixSocketClient::send(std::string_view message) {

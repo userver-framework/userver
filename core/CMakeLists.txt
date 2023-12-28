@@ -183,6 +183,9 @@ target_include_directories(${PROJECT_NAME}
     ${CMAKE_CURRENT_BINARY_DIR}
 )
 
+# Must go below all the target options and definitions.
+_check_compile_flags(${PROJECT_NAME})
+
 if (USERVER_IS_THE_ROOT_PROJECT OR USERVER_FEATURE_UTEST)
   add_library(userver-core-internal OBJECT ${INTERNAL_SOURCES})
   target_compile_definitions(userver-core-internal PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)

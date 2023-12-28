@@ -54,6 +54,9 @@ class Sockaddr final {
     ::memcpy(&data_, data, Sockaddr::Addrlen(domain));
   }
 
+  /// @brief Creates address of a Unix socket located at the specified path.
+  static Sockaddr MakeUnixSocketAddress(std::string_view path);
+
   /// @brief Domain-specific native socket address structure pointer.
   /// @warning No type checking is performed, user must ensure that only the
   /// correct domain is accessed.

@@ -77,12 +77,12 @@ option(
 
 option(USERVER_FEATURE_CRYPTOPP_BLAKE2 "Provide wrappers for blake2 algorithms of crypto++" ON)
 if (NOT USERVER_FEATURE_CRYPTOPP_BLAKE2)
-  add_definitions("-DUSERVER_NO_CRYPTOPP_BLAKE2=1")
+  add_compile_definitions("USERVER_NO_CRYPTOPP_BLAKE2=1")
 endif()
 
 option(USERVER_FEATURE_CRYPTOPP_BASE64_URL "Provide wrappers for Base64 URL decoding and encoding algorithms of crypto++" ON)
 if (NOT USERVER_FEATURE_CRYPTOPP_BASE64_URL)
-  add_definitions("-DUSERVER_NO_CRYPTOPP_BASE64_URL=1")
+  add_compile_definitions("USERVER_NO_CRYPTOPP_BASE64_URL=1")
 endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "BSD")
@@ -96,14 +96,23 @@ option(USERVER_DISABLE_PHDR_CACHE "Disable caching of dl_phdr_info items, which 
 
 option(USERVER_CHECK_PACKAGE_VERSIONS "Check package versions" ON)
 
-include(cmake/SetupEnvironment.cmake)
+if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
+  set(MACOS found)
+endif()
+
+include(cmake/UserverSetupEnvironment.cmake)
+userver_setup_environment()
+
+include(Sanitizers)
+_userver_make_sanitize_target()
+
 include(AddGoogleTests)
 include(CheckSubmodule)
-include(Sanitizers)
 include(FindPackageRequired)
 include(IncludeWhatYouUse)
 # For userver_venv_setup below, otherwise FindPython would be enough.
 include(UserverTestsuite)
+include(CheckCompileFlags)
 
 message(STATUS "Generating cmake files ...")
 userver_venv_setup(

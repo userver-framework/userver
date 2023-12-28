@@ -5,6 +5,7 @@
 #include <array>
 #include <limits>
 #include <ostream>
+#include <stdexcept>
 
 #include <fmt/format.h>
 
@@ -16,6 +17,30 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::io {
+
+Sockaddr Sockaddr::MakeUnixSocketAddress(std::string_view path) {
+  Sockaddr addr;
+  auto* sa = addr.As<struct sockaddr_un>();
+  sa->sun_family = AF_UNIX;
+
+  static constexpr auto kMaxPathLength = sizeof(sa->sun_path) - 1;
+  if (path.size() > kMaxPathLength) {
+    throw std::runtime_error(
+        fmt::format("unix socket path is too long ({}), max-length={}", path,
+                    kMaxPathLength));
+  }
+  if (path.empty() || path[0] == '\0') {
+    throw std::runtime_error("abstract sockets are not supported");
+  }
+  if (path[0] != '/') {
+    throw std::runtime_error(
+        fmt::format("unix socket path must be absolute ({})", path));
+  }
+
+  std::memcpy(sa->sun_path, path.data(), path.size());
+  sa->sun_path[path.size()] = '\0';
+  return addr;
+}
 
 bool Sockaddr::HasPort() const {
   switch (Data()->sa_family) {
