@@ -8,7 +8,7 @@
 |--|-----------------------------|
 | **OS** | Ubuntu, Debian, Fedora, Arch, Gentoo, macOS |
 | **Architectures** | x86, x86_64, AArch64, Arm |
-| **Compilers** | GCC-8 and newer, Clang-9 and newer |
+| **Compilers** | GCC-8 and newer, Clang-10 and newer |
 | **C++ Standards** | C++17, C++20, C++23 |
 | **C++ Standard Libraries** | libstdc++, libc++ |
 

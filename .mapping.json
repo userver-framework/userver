@@ -2632,6 +2632,8 @@
   "scripts/docker/all-ubuntu-22/Dockerfile":"taxi/uservices/userver/scripts/docker/all-ubuntu-22/Dockerfile",
   "scripts/docker/all-ubuntu-22/PORTO.md":"taxi/uservices/userver/scripts/docker/all-ubuntu-22/PORTO.md",
   "scripts/docker/all-ubuntu-22/prepare_image.sh":"taxi/uservices/userver/scripts/docker/all-ubuntu-22/prepare_image.sh",
+  "scripts/docker/core-ubuntu-20-gcc8/Dockerfile":"taxi/uservices/userver/scripts/docker/core-ubuntu-20-gcc8/Dockerfile",
+  "scripts/docker/core-ubuntu-20-gcc8/prepare_image.sh":"taxi/uservices/userver/scripts/docker/core-ubuntu-20-gcc8/prepare_image.sh",
   "scripts/docker/core-ubuntu-22-cl16/Dockerfile":"taxi/uservices/userver/scripts/docker/core-ubuntu-22-cl16/Dockerfile",
   "scripts/docker/core-ubuntu-22-cl16/prepare_image.sh":"taxi/uservices/userver/scripts/docker/core-ubuntu-22-cl16/prepare_image.sh",
   "scripts/docker/core-ubuntu-22/Dockerfile":"taxi/uservices/userver/scripts/docker/core-ubuntu-22/Dockerfile",

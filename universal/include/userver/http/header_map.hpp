@@ -144,10 +144,10 @@ class HeaderMap final {
   ConstIterator find(const PredefinedHeader& key) const noexcept;
 
   template <std::size_t Size>
-  Iterator find(const char (&)[Size]) noexcept;
+  [[noreturn]] Iterator find(const char (&)[Size]) noexcept;
 
   template <std::size_t Size>
-  ConstIterator find(const char (&)[Size]) const noexcept;
+  [[noreturn]] ConstIterator find(const char (&)[Size]) const noexcept;
 
   /// If the key is already present in the map, does nothing.
   /// Otherwise inserts a pair of key and in-place constructed value.
@@ -210,7 +210,7 @@ class HeaderMap final {
   Iterator erase(const PredefinedHeader& key);
 
   template <std::size_t Size>
-  Iterator erase(const char (&)[Size]);
+  [[noreturn]] Iterator erase(const char (&)[Size]);
 
   /// If the key is present in container, returns reference to its header value,
   /// otherwise throws std::out_of_range.

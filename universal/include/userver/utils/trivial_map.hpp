@@ -729,7 +729,7 @@ std::string_view EnumToStringView(Enum value, TrivialBiMap<BuilderFunc> map) {
                   static_cast<std::underlying_type_t<Enum>>(value)));
 }
 
-template <typename Selector, typename Keys, typename Values,
+template <typename Selector, class Keys, typename Values,
           std::size_t... Indices>
 constexpr auto TrivialBiMapMultiCase(Selector selector, const Keys& keys,
                                      const Values& values,
@@ -741,6 +741,16 @@ constexpr auto TrivialBiMapMultiCase(Selector selector, const Keys& keys,
   return selector2;
 }
 
+template <const auto& Keys, const auto& Values>
+struct TrivialBiMapMultiCaseDispatch {
+  template <class Selector>
+  constexpr auto operator()(Selector selector) const {
+    constexpr auto kKeysSize = std::size(Keys);
+    return impl::TrivialBiMapMultiCase(selector(), Keys, Values,
+                                       std::make_index_sequence<kKeysSize>{});
+  }
+};
+
 }  // namespace impl
 
 /// @brief Zips two global `constexpr` arrays into an utils::TrivialBiMap.
@@ -748,10 +758,8 @@ template <const auto& Keys, const auto& Values>
 constexpr auto MakeTrivialBiMap() {
   static_assert(std::size(Keys) == std::size(Values));
   static_assert(std::size(Keys) >= 1);
-  return utils::TrivialBiMap([](auto selector) {
-    return impl::TrivialBiMapMultiCase(
-        selector(), Keys, Values, std::make_index_sequence<std::size(Keys)>{});
-  });
+  return utils::TrivialBiMap(
+      impl::TrivialBiMapMultiCaseDispatch<Keys, Values>{});
 }
 
 }  // namespace utils
