@@ -48,9 +48,14 @@ namespace components {
 ///    max_queue_size: 200
 ///    max_statement_metrics: 50
 /// ```
-/// You must specify either `dbalias` or `conn_info`.
+/// You must specify either `dbalias` or `dbconnection`.
 /// If the component is configured with an alias, it will lookup connection data
-/// in secdist.json
+/// in Secdist.
+///
+/// It is a common practice to provide a database connection string via
+/// environment variables. To retrieve a value from the environment use
+/// `dbconnection#env: THE_ENV_VARIABLE_WITH_CONNECTION_STRING` as described
+/// in yaml_config::YamlConfig.
 ///
 /// You must specify `blocking_task_processor` as well.
 ///

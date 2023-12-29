@@ -31,25 +31,25 @@ using ParseException = formats::yaml::ParseException;
 /// If YAML has value that starts with an `$`, then such value is treated as
 /// a variable from `config_vars`. For example if `config_vars` contains
 /// `variable: 42` and the YAML is following:
-/// @snippet core/src/yaml_config/yaml_config_test.cpp  sample vars
+/// @snippet universal/src/yaml_config/yaml_config_test.cpp  sample vars
 /// Then the result of `yaml["some_element"]["some"].As<int>()` is `42`.
 ///
 /// If YAML key ends on '#env' and the mode is YamlConfig::Mode::kEnvAllowed,
 /// then the value of the key is searched in
 /// environment variables of the process and returned as a value. For example:
-/// @snippet core/src/yaml_config/yaml_config_test.cpp  sample env
+/// @snippet universal/src/yaml_config/yaml_config_test.cpp  sample env
 ///
 /// If YAML key ends on '#fallback', then the value of the key is used as a
 /// fallback for environment and `$` variables. For example for the following
 /// YAML with YamlConfig::Mode::kEnvAllowed:
-/// @snippet core/src/yaml_config/yaml_config_test.cpp  sample multiple
+/// @snippet universal/src/yaml_config/yaml_config_test.cpp  sample multiple
 /// The result of `yaml["some_element"]["some"].As<int>()` is the value of
 /// `variable` from `config_vars` if it exists; otherwise the value is the
 /// contents of the environment variable `SOME_ENV_VARIABLE` if it exists;
 /// otherwise the value if `100500`, from the fallback.
 ///
 /// Another example:
-/// @snippet core/src/yaml_config/yaml_config_test.cpp  sample env fallback
+/// @snippet universal/src/yaml_config/yaml_config_test.cpp  sample env fallback
 /// With YamlConfig::Mode::kEnvAllowed the result of
 /// `yaml["some_element"]["value"].As<int>()` is the value of `ENV_NAME`
 /// environment variable if it exists; otherwise it is `5`.

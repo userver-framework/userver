@@ -67,6 +67,28 @@ namespace components {
 /// ----- | -----------
 /// terse | Default value, report only cumulative stats and read/write totals
 /// full | Separate metrics for each operation, divided by read preference or write concern
+///
+/// It is a common practice to provide a database connection string via
+/// environment variables. To retrieve a value from the environment use
+/// `dbconnection#env: THE_ENV_VARIABLE_WITH_CONNECTION_STRING` as described
+/// in yaml_config::YamlConfig.
+///
+/// ## Secdist format
+///
+/// If a `dbalias` option is provided, for example
+/// `dbalias: some_name_of_your_database`, then the Secdist entry for that alias
+/// should look like following:
+/// @code{.json}
+/// {
+///   "mongo_settings": {
+///     "some_name_of_your_database": {
+///       "dbsettings": {
+///         "uri": "mongodb://user:password@host:port/database_name"
+///       }
+///     }
+///   }
+/// }
+/// @endcode
 
 // clang-format on
 

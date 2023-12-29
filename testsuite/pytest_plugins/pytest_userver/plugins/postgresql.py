@@ -54,7 +54,8 @@ def userver_pg_config(pgsql_local):
         postgre_dbs = {
             name: params
             for name, params in components.items()
-            if params and 'dbconnection' in params
+            if params
+            and ('dbconnection' in params or 'dbconnection#env' in params)
         }
 
         if len(postgre_dbs) > 1:

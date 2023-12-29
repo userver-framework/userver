@@ -70,6 +70,7 @@ namespace components {
 /// ## Static configuration example:
 ///
 /// ```
+///    # yaml
 ///    redis:
 ///        groups:
 ///          - config_name: taxi-tmp
@@ -84,6 +85,27 @@ namespace components {
 ///            redis_thread_pool_size: 8
 ///            sentinel_thread_pool_size: 1
 /// ```
+///
+/// ## Secdist format
+///
+/// If a `config_name` option is provided, for example
+/// `groups.some.config_name: some_name_of_your_database`, then the Secdist
+/// entry for that alias should look like following:
+/// @code{.json}
+/// {
+///   "redis_settings": {
+///     "some_name_of_your_database": {
+///       "password": "the_password_of_your_database",
+///       "sentinels": [
+///         {"host": "the_host1_of_your_database", "port": 11564}
+///       ],
+///       "shards": [
+///         {"name": "test_master0"}
+///       ]
+///     }
+///   }
+/// }
+/// @endcode
 
 // clang-format on
 class Redis : public LoggableComponentBase {
