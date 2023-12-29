@@ -44,8 +44,8 @@ std::enable_if_t<std::is_floating_point_v<T>, T> FromString(const char* str) {
                                    typeid(T));
   }
 
-  char* end = nullptr;
   errno = 0;
+  char* end = nullptr;
 
   const auto result = [&] {
     if constexpr (std::is_same_v<T, float>) {
@@ -57,9 +57,10 @@ std::enable_if_t<std::is_floating_point_v<T>, T> FromString(const char* str) {
     }
   }();
 
-  if (errno == ERANGE) {
+  if (errno == ERANGE && !(result < 1 && result > 0.0)) {
     impl::ThrowFromStringException("overflow", str, typeid(T));
   }
+
   if (end == str) {
     impl::ThrowFromStringException("no number found", str, typeid(T));
   }

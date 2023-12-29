@@ -104,6 +104,15 @@ TYPED_TEST(FromStringTest, Randomized) {
   }
 }
 
+TYPED_TEST(FromStringTest, SmallModuleFloating) {
+  using T = TypeParam;
+
+  if constexpr (std::is_floating_point_v<T>) {
+    TestPreserves(std::numeric_limits<T>::denorm_min());
+    TestInvalid<T>(ToString(std::numeric_limits<T>::denorm_min()) + "0");
+  }
+}
+
 TYPED_TEST(FromStringTest, Limits) {
   using T = TypeParam;
 
@@ -195,7 +204,7 @@ TYPED_TEST(FromStringTest, Overflow) {
   if constexpr (std::is_unsigned_v<T>) {
     TestInvalid<T>("-1");
   } else {
-    TestInvalid<T>(ToString(std::numeric_limits<T>::min()) + "0");
+    TestInvalid<T>(ToString(std::numeric_limits<T>::lowest()) + "0");
   }
   TestInvalid<T>(ToString(std::numeric_limits<T>::max()) + "0");
 
