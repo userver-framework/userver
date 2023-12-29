@@ -63,6 +63,15 @@ class HttpHandlerBase : public HandlerBase {
                   const components::ComponentContext& component_context,
                   bool is_monitor = false);
 
+  HttpHandlerBase(const std::string& handler_name,
+                  const HandlerConfig& handler_config,
+                  const dynamic_config::Source& dynamic_config_source,
+                  const tracing::TracingManagerBase& tracing_manager,
+                  utils::statistics::Storage& statistics_storage,
+                  const bool is_body_streamed = false,
+                  std::optional<logging::Level> log_level = {},
+                  const bool is_monitor = false);
+
   ~HttpHandlerBase() override;
 
   void HandleRequest(request::RequestBase& request,

@@ -75,6 +75,22 @@ HttpRequestHandler::HttpRequestHandler(
   }
 }
 
+HttpRequestHandler::HttpRequestHandler(
+    const utils::statistics::MetricsStoragePtr& metrics,
+    const dynamic_config::Source& dynamic_config_source,
+    const bool is_monitor,
+    const std::string& server_name)
+    : add_handler_disabled_(false),
+      is_monitor_(is_monitor),
+      server_name_(std::move(server_name)),
+      rate_limit_(utils::TokenBucket::MakeUnbounded()),
+      metrics_(metrics),
+      config_source_(dynamic_config_source)
+{
+  LOG_INFO() << "Access log is disabled";
+  LOG_INFO() << "Access_tskv log is disabled";
+}
+
 namespace {
 
 struct CcCustomStatus final {

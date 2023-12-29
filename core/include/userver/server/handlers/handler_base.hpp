@@ -48,6 +48,10 @@ class HandlerBase : public components::LoggableComponentBase {
   HandlerBase(const components::ComponentConfig& config,
               const components::ComponentContext& component_context,
               bool is_monitor = false);
+
+  HandlerBase(HandlerConfig config,
+              const bool is_monitor = false);
+
   ~HandlerBase() noexcept override = default;
 
   /// Parses request, executes processing routines, and fills response

@@ -20,6 +20,14 @@ HandlerBase::HandlerBase(const components::ComponentConfig& config,
           context.FindComponent<components::Server>().GetServer().GetConfig(),
           is_monitor_)) {}
 
+HandlerBase::HandlerBase(HandlerConfig config,
+                         const bool is_monitor)
+    : LoggableComponentBase(),
+      is_monitor_(is_monitor),
+      config_(config)
+{
+}
+
 const HandlerConfig& HandlerBase::GetConfig() const { return config_; }
 
 yaml_config::Schema HandlerBase::GetStaticConfigSchema() {

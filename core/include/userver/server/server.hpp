@@ -29,6 +29,12 @@ class Server final {
  public:
   Server(ServerConfig config,
          const components::ComponentContext& component_context);
+
+  Server(ServerConfig config,
+         engine::TaskProcessor& task_processor,
+         const utils::statistics::MetricsStoragePtr& metrics_storage,
+         const dynamic_config::Source& dynamic_config_source);
+
   ~Server();
 
   const ServerConfig& GetConfig() const;

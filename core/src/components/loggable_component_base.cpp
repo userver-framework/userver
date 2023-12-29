@@ -15,6 +15,10 @@ LoggableComponentBase::LoggableComponentBase(
   component_context.FindComponent<Tracer>();
 }
 
+LoggableComponentBase::LoggableComponentBase()
+{
+}
+
 yaml_config::Schema LoggableComponentBase::GetStaticConfigSchema() {
   auto schema = impl::ComponentBase::GetStaticConfigSchema();
   schema.UpdateDescription(

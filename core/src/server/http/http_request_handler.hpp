@@ -26,6 +26,12 @@ class HttpRequestHandler final : public RequestHandlerBase {
       const std::optional<std::string>& logger_access_tskv_component,
       bool is_monitor, std::string server_name);
 
+  HttpRequestHandler(
+    const utils::statistics::MetricsStoragePtr& metrics_storage,
+    const dynamic_config::Source& dynamic_config_source,
+    const bool is_monitor,
+    const std::string& server_name);
+
   using NewRequestHook =
       std::function<void(std::shared_ptr<request::RequestBase>)>;
   void SetNewRequestHook(NewRequestHook hook);

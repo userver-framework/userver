@@ -545,6 +545,69 @@ HttpHandlerBase::HttpHandlerBase(const components::ComponentConfig& config,
               .set_response_server_hostname);
 }
 
+HttpHandlerBase::HttpHandlerBase(const std::string& handler_name,
+                                 const HandlerConfig& handler_config,
+                                 const dynamic_config::Source& dynamic_config_source,
+                                 const tracing::TracingManagerBase& tracing_manager,
+                                 utils::statistics::Storage& statistics_storage,
+                                 const bool is_body_streamed,
+                                 std::optional<logging::Level> log_level,
+                                 const bool is_monitor)
+    : HandlerBase(handler_config, is_monitor),
+      config_source_(dynamic_config_source),
+      allowed_methods_(InitAllowedMethods(GetConfig())),
+      handler_name_(handler_name),
+      tracing_manager_(tracing_manager),
+      handler_statistics_(std::make_unique<HttpHandlerStatistics>()),
+      request_statistics_(std::make_unique<HttpRequestStatistics>()),
+      auth_checkers_(),
+      log_level_(log_level),
+      rate_limit_(utils::TokenBucket::MakeUnbounded()),
+      is_body_streamed_(is_body_streamed)
+{
+  if (allowed_methods_.empty()) {
+    LOG_WARNING() << "empty allowed methods list in " << handler_name;
+  }
+
+  if (GetConfig().max_requests_per_second) {
+    const auto max_rps = *GetConfig().max_requests_per_second;
+    UASSERT_MSG(
+        max_rps > 0,
+        "max_requests_per_second option was not verified in config parsing");
+    rate_limit_.SetMaxSize(max_rps);
+    rate_limit_.SetRefillPolicy(
+        {1, utils::TokenBucket::Duration{std::chrono::seconds(1)} / max_rps});
+  }
+
+  std::vector<utils::statistics::Label> labels{
+      {"http_handler", handler_name},
+  };
+
+  auto prefix = std::visit(
+      utils::Overloaded{[&](const std::string& path) {
+                          labels.emplace_back(
+                              "http_path", utils::graphite::EscapeName(path));
+                          return std::string{"http"};
+                        },
+                        [](FallbackHandler fallback) {
+                          return "http.by-fallback." + ToString(fallback);
+                        }},
+      GetConfig().path);
+
+  statistics_holder_ = statistics_storage.RegisterWriter(
+      std::move(prefix),
+      [this](utils::statistics::Writer& result) {
+        FormatStatistics(result["handler"], *handler_statistics_);
+        if constexpr (kIncludeServerHttpMetrics) {
+          FormatStatistics(result["request"], *request_statistics_);
+        }
+      },
+      std::move(labels));
+
+  set_response_server_hostname_ =
+      GetConfig().set_response_server_hostname.value_or(false);
+}
+
 HttpHandlerBase::~HttpHandlerBase() { statistics_holder_.Unregister(); }
 
 void HttpHandlerBase::HandleRequestStream(

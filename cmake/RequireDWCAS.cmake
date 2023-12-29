@@ -45,9 +45,9 @@ if(USERVER_IMPL_DWCAS_CHECKED)
   return()
 endif()
 
-if(NOT MACOS AND NOT "${CMAKE_SYSTEM}" MATCHES "BSD")
-  list(APPEND TEST_LIBRARIES "atomic")
-endif()
+#if(NOT MACOS AND NOT "${CMAKE_SYSTEM}" MATCHES "BSD")
+#  list(APPEND TEST_LIBRARIES "atomic")
+#endif()
 
 # Make try_run honor parent CMAKE_CXX_STANDARD
 cmake_policy(SET CMP0067 NEW)

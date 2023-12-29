@@ -19,6 +19,7 @@ namespace components {
 class LoggableComponentBase : public impl::ComponentBase {
  public:
   LoggableComponentBase(const ComponentConfig&, const ComponentContext&);
+  LoggableComponentBase();
 
   LoggableComponentBase(LoggableComponentBase&&) = delete;
   LoggableComponentBase(const LoggableComponentBase&) = delete;
