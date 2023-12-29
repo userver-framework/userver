@@ -2828,6 +2828,7 @@
   "testsuite/pytest_plugins/pytest_userver/plugins/ydb/scripts/service-ydb":"taxi/uservices/userver/testsuite/pytest_plugins/pytest_userver/plugins/ydb/scripts/service-ydb",
   "testsuite/pytest_plugins/pytest_userver/plugins/ydb/service.py":"taxi/uservices/userver/testsuite/pytest_plugins/pytest_userver/plugins/ydb/service.py",
   "testsuite/pytest_plugins/pytest_userver/plugins/ydb/ydbsupport.py":"taxi/uservices/userver/testsuite/pytest_plugins/pytest_userver/plugins/ydb/ydbsupport.py",
+  "testsuite/pytest_plugins/pytest_userver/sql.py":"taxi/uservices/userver/testsuite/pytest_plugins/pytest_userver/sql.py",
   "testsuite/pytest_plugins/pytest_userver/utils/__init__.py":"taxi/uservices/userver/testsuite/pytest_plugins/pytest_userver/utils/__init__.py",
   "testsuite/pytest_plugins/pytest_userver/utils/colorize.py":"taxi/uservices/userver/testsuite/pytest_plugins/pytest_userver/utils/colorize.py",
   "testsuite/pytest_plugins/pytest_userver/utils/net.py":"taxi/uservices/userver/testsuite/pytest_plugins/pytest_userver/utils/net.py",

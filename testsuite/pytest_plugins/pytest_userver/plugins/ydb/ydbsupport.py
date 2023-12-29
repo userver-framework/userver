@@ -1,6 +1,7 @@
 import os
 import pathlib
 import subprocess
+from typing import Generator
 from typing import List
 from typing import Optional
 
@@ -8,6 +9,7 @@ import pytest
 
 from testsuite.environment import shell
 
+from pytest_userver import sql
 from . import client
 from . import discover
 from . import service
@@ -226,3 +228,22 @@ def _ydb_init(
         queries = ydb_mark_queries(**mark.kwargs)
         for query in queries:
             _ydb_client.execute(query)
+
+
+@pytest.fixture
+def userver_ydb_trx(testpoint) -> Generator[sql.RegisteredTrx, None, None]:
+    """
+    The fixture maintains transaction fault injection state using
+    RegisteredTrx class.
+
+    @see RegisteredTrx
+    """
+
+    registered = sql.RegisteredTrx()
+
+    @testpoint('ydb_trx_commit')
+    def _pg_trx_tp(data):
+        should_fail = registered.is_failure_enabled(data['trx_name'])
+        return {'trx_should_fail': should_fail}
+
+    yield registered
