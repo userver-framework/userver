@@ -16,12 +16,12 @@ else()
   message(STATUS "USERVER_LTO_CACHE enabled, cache directory is ${USERVER_LTO_CACHE_DIR}")
   file(MAKE_DIRECTORY "${USERVER_LTO_CACHE_DIR}")
 
-  list(APPEND CMAKE_SHARED_LINKER_FLAGS "-Wl,--thinlto-cache-dir=${USERVER_LTO_CACHE_DIR}")
-  list(APPEND CMAKE_EXE_LINKER_FLAGS "-Wl,--thinlto-cache-dir=${USERVER_LTO_CACHE_DIR}")
+  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--thinlto-cache-dir=${USERVER_LTO_CACHE_DIR}")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--thinlto-cache-dir=${USERVER_LTO_CACHE_DIR}")
 
   if (USERVER_LTO_CACHE_SIZE_MB)
-    list(APPEND CMAKE_SHARED_LINKER_FLAGS "-Wl,--thinlto-cache-policy,cache_size_bytes=${USERVER_LTO_CACHE_SIZE_MB}m:cache_size=0%:prune_interval=5m")
-    list(APPEND CMAKE_EXE_LINKER_FLAGS "-Wl,--thinlto-cache-policy,cache_size_bytes=${USERVER_LTO_CACHE_SIZE_MB}m:cache_size=0%:prune_interval=5m")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--thinlto-cache-policy,cache_size_bytes=${USERVER_LTO_CACHE_SIZE_MB}m:cache_size=0%:prune_interval=5m")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--thinlto-cache-policy,cache_size_bytes=${USERVER_LTO_CACHE_SIZE_MB}m:cache_size=0%:prune_interval=5m")
   endif()
 endif()
 
