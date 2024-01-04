@@ -1,23 +1,24 @@
 include_guard()
 
-set_property(GLOBAL PROPERTY userver_cmake_dir "${CMAKE_CURRENT_LIST_DIR}")
+include("${CMAKE_CURRENT_LIST_DIR}/Directories.cmake")
 
 function(userver_setup_environment)
-  get_property(USERVER_CMAKE_DIR GLOBAL PROPERTY userver_cmake_dir)
+  _get_userver_cmake_dir(USERVER_CMAKE_DIR)
+  _get_userver_binary_dir(userver_binary_dir)
 
   message(STATUS "C compiler: ${CMAKE_C_COMPILER}")
   message(STATUS "C++ compiler: ${CMAKE_CXX_COMPILER}")
 
-  if(NOT USERVER_CMAKE_DIR IN_LIST CMAKE_MODULE_PATH)
+  if(userver_binary_dir AND NOT USERVER_CMAKE_DIR IN_LIST CMAKE_MODULE_PATH)
     set(CMAKE_MODULE_PATH
         ${CMAKE_MODULE_PATH}
         "${USERVER_CMAKE_DIR}"
-        "${CMAKE_BINARY_DIR}"
-        "${CMAKE_BINARY_DIR}/cmake_generated"
+        "${userver_binary_dir}"
+        "${userver_binary_dir}/cmake_generated"
         PARENT_SCOPE
     )
     set(CMAKE_PREFIX_PATH
-        "${CMAKE_BINARY_DIR}/package_stubs"
+        "${userver_binary_dir}/package_stubs"
         ${CMAKE_PREFIX_PATH}
         PARENT_SCOPE
     )

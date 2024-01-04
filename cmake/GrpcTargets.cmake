@@ -1,6 +1,16 @@
-# Functions to create a target consisting of generated gRPC files and their
-# wrappers. A separate target is required as gRPC generated headers require
-# relaxed compilation flags.
+# Functions for creating targets consisting of base protobuf files and userver
+# asynchronous gRPC adaptors.
+#
+# On inclusion:
+# - finds Protobuf package
+# - finds gRPC package
+# - sets up project-wide venv-userver-grpc for userver protobuf plugin
+#
+# Provides:
+# - generate_grpc_files function
+# - add_grpc_library function
+#
+# See the Doxygen documentation on add_grpc_library.
 include_guard()
 
 if(USERVER_CONAN)
@@ -9,6 +19,7 @@ if(USERVER_CONAN)
   get_target_property(PROTO_GRPC_CPP_PLUGIN gRPC::grpc_cpp_plugin LOCATION)
   get_target_property(PROTO_GRPC_PYTHON_PLUGIN gRPC::grpc_python_plugin LOCATION)
   set(PROTOBUF_PROTOC "${Protobuf_PROTOC_EXECUTABLE}")
+  set_property(GLOBAL PROPERTY userver_protobuf_version_category "4")
 else()
   if(NOT Protobuf_FOUND)
     include(SetupProtobuf)
@@ -24,48 +35,51 @@ else()
   include(SetupGrpc)
 endif()
 
-if (NOT USERVER_PROTOBUF_IMPORT_DIR)
-  message(FATAL_ERROR "Invalid Protobuf package")
-endif()
 if (NOT gRPC_VERSION)
   message(FATAL_ERROR "Invalid gRPC package")
 endif()
 
-get_filename_component(USERVER_DIR "${CMAKE_CURRENT_LIST_DIR}" DIRECTORY)
-set(PROTO_GRPC_USRV_PLUGIN "${USERVER_DIR}/scripts/grpc/protoc_usrv_plugin.sh")
+get_filename_component(USERVER_SCRIPTS_DIR
+    "${CMAKE_CURRENT_LIST_DIR}/../scripts" ABSOLUTE)
+set(PROTO_GRPC_USRV_PLUGIN "${USERVER_SCRIPTS_DIR}/grpc/protoc_usrv_plugin.sh")
 
 message(STATUS "Protobuf version: ${Protobuf_VERSION}")
 message(STATUS "gRPC version: ${gRPC_VERSION}")
 
-if(NOT USERVER_CONAN)
-  # For userver_venv_setup. With Conan, it's included automatically.
-  include(UserverTestsuite)
+if (NOT USERVER_PROTOBUF_IMPORT_DIR)
+  message(FATAL_ERROR "Invalid Protobuf package")
 endif()
-
-set(file_requirements_protobuf "requirements.txt")
-if(Protobuf_VERSION VERSION_LESS 3.20.0)
-  set(file_requirements_protobuf "requirements-old.txt")
-endif()
-
-userver_venv_setup(
-    NAME userver-grpc
-    PYTHON_OUTPUT_VAR USERVER_GRPC_PYTHON_BINARY
-    REQUIREMENTS "${USERVER_DIR}/scripts/grpc/${file_requirements_protobuf}"
-    UNIQUE
-)
-set(ENV{USERVER_GRPC_PYTHON_BINARY} "${USERVER_GRPC_PYTHON_BINARY}")
-
 if(NOT PROTOBUF_PROTOC)
   message(FATAL_ERROR "protoc not found")
 endif()
-
 if(NOT PROTO_GRPC_CPP_PLUGIN)
   message(FATAL_ERROR "grpc_cpp_plugin not found")
 endif()
-
 if(NOT PROTO_GRPC_PYTHON_PLUGIN)
   message(FATAL_ERROR "grpc_python_plugin not found")
 endif()
+
+function(_userver_prepare_grpc_venv)
+  if(NOT USERVER_CONAN)
+    # For userver_venv_setup. With Conan, it's included automatically.
+    include(UserverTestsuite)
+  endif()
+
+  set(file_requirements_protobuf "requirements.txt")
+  if(Protobuf_VERSION VERSION_LESS 3.20.0)
+    set(file_requirements_protobuf "requirements-old.txt")
+  endif()
+
+  userver_venv_setup(
+      NAME userver-grpc
+      PYTHON_OUTPUT_VAR userver_grpc_python_binary
+      REQUIREMENTS "${USERVER_SCRIPTS_DIR}/grpc/${file_requirements_protobuf}"
+      UNIQUE
+  )
+  set(ENV{USERVER_GRPC_PYTHON_BINARY} "${userver_grpc_python_binary}")
+endfunction()
+
+_userver_prepare_grpc_venv()
 
 function(userver_generate_grpc_files)
   set(options)
@@ -142,7 +156,7 @@ function(userver_generate_grpc_files)
   list(APPEND proto_dependencies_globs
       "${root_path}/*.proto"
       "${USERVER_PROTOBUF_IMPORT_DIR}/*.proto"
-      "${USERVER_DIR}/scripts/grpc/*"
+      "${USERVER_SCRIPTS_DIR}/grpc/*"
   )
   file(GLOB_RECURSE proto_dependencies ${proto_dependencies_globs})
 

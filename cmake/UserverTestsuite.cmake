@@ -1,3 +1,17 @@
+# Functions for setting up Python virtual environments and running
+# testsuite tests.
+#
+# Provides:
+# - USERVER_FEATURE_TESTSUITE option
+# - userver_venv_setup function that sets up a Python virtual environment
+#   with the given requirements
+# - userver_testsuite_requirements function that returns a list of requirements
+#   files needed to run userver testsuite
+# - userver_testsuite_add function that registers a directory with testsuite
+#   tests in ctest. Note that userver testsuite requires some arguments, they
+#   should be passed manually using PYTEST_ARGS
+# - userver_testsuite_add_simple that automatically detects and fills in some
+#   PYTEST_ARGS
 include_guard()
 
 include(CTest)
@@ -11,13 +25,16 @@ option(
 )
 set(USERVER_PIP_OPTIONS "" CACHE STRING "Options for all pip calls")
 
-if(USERVER_FEATURE_TESTSUITE)
+get_filename_component(USERVER_TESTSUITE_DIR
+    "${CMAKE_CURRENT_LIST_DIR}/../testsuite" ABSOLUTE)
+
+function(_userver_check_python_dev)
   get_property(userver_python_dev_checked
       GLOBAL PROPERTY userver_python_dev_checked)
   if(NOT userver_python_dev_checked)
     # find package python3-dev required by virtualenv
     execute_process(
-        COMMAND bash "-c" "command -v python3-config"
+        COMMAND sh "-c" "command -v python3-config"
         OUTPUT_VARIABLE PYTHONCONFIG_FOUND
     )
     if(NOT PYTHONCONFIG_FOUND)
@@ -25,10 +42,7 @@ if(USERVER_FEATURE_TESTSUITE)
     endif()
     set_property(GLOBAL PROPERTY userver_python_dev_checked "TRUE")
   endif()
-endif()
-
-get_filename_component(
-    USERVER_TESTSUITE_DIR "${CMAKE_CURRENT_LIST_DIR}/../testsuite" ABSOLUTE)
+endfunction()
 
 function(userver_venv_setup)
   set(options UNIQUE)
@@ -65,6 +79,8 @@ function(userver_venv_setup)
     list(APPEND ARG_VIRTUALENV_ARGS "--system-site-packages")
   endif()
   list(APPEND ARG_PIP_ARGS ${USERVER_PIP_OPTIONS})
+
+  _userver_check_python_dev()
 
   set(venv_dir "${parent_directory}/${venv_name}")
   set(venv_bin_dir "${venv_dir}/bin")
@@ -184,25 +200,23 @@ function(userver_testsuite_requirements)
       "${USERVER_TESTSUITE_DIR}/requirements.txt")
 
   if(USERVER_FEATURE_GRPC OR TARGET userver::grpc)
-    if(NOT Protobuf_FOUND)
-      if(USERVER_CONAN)
-        find_package(Protobuf REQUIRED)
-      else()
-        include(SetupProtobuf)
-      endif()
-    endif()
-    if(NOT Protobuf_FOUND)
+    get_property(userver_protobuf_version_category
+        GLOBAL PROPERTY userver_protobuf_version_category)
+    if(NOT userver_protobuf_version_category)
       message(FATAL_ERROR
-          "SetupProtobuf should be run before setting up testsuite")
+          "include(GrpcTargets) or include(SetupProtobuf) "
+          "before setting up testsuite")
     endif()
 
-    if(Protobuf_VERSION VERSION_GREATER 3.20.0)
-      list(APPEND requirements_files
-          "${USERVER_TESTSUITE_DIR}/requirements-grpc.txt")
-    else()
+    if(userver_protobuf_version_category STREQUAL "3")
       list(APPEND requirements_files
           "${USERVER_TESTSUITE_DIR}/requirements-grpc-old.txt")
       message(STATUS "Forcing old protobuf version for testsuite")
+    elseif(userver_protobuf_version_category STREQUAL "4")
+      list(APPEND requirements_files
+          "${USERVER_TESTSUITE_DIR}/requirements-grpc.txt")
+    else()
+      message(FATAL_ERROR "Unexpected")
     endif()
   endif()
 
@@ -326,15 +340,15 @@ function(userver_testsuite_add)
   list(APPEND ARG_PYTHONPATH ${USERVER_TESTSUITE_DIR}/pytest_plugins)
 
   execute_process(
-    COMMAND
-    "${python_binary}" ${USERVER_TESTSUITE_DIR}/create_runner.py
-    -o ${TESTSUITE_RUNNER}
-    --python=${python_binary}
-    "--python-path=${ARG_PYTHONPATH}"
-    --
-    --build-dir=${CMAKE_BINARY_DIR}
-    ${ARG_PYTEST_ARGS}
-    RESULT_VARIABLE STATUS
+      COMMAND
+      "${python_binary}" "${USERVER_TESTSUITE_DIR}/create_runner.py"
+      -o "${TESTSUITE_RUNNER}"
+      "--python=${python_binary}"
+      "--python-path=${ARG_PYTHONPATH}"
+      --
+      "--build-dir=${CMAKE_CURRENT_BINARY_DIR}"
+      ${ARG_PYTEST_ARGS}
+      RESULT_VARIABLE STATUS
   )
   if (STATUS)
     message(FATAL_ERROR "Failed to create testsuite runner")

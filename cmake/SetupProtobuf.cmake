@@ -2,6 +2,7 @@ option(USERVER_DOWNLOAD_PACKAGE_PROTOBUF "Download and setup Protobuf" ${USERVER
 
 if(USERVER_CONAN)
   find_package(Protobuf REQUIRED)
+  set_property(GLOBAL PROPERTY userver_protobuf_version_category "4")
   return()
 endif()
 
@@ -23,6 +24,11 @@ if(NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
   endif()
 
   if(Protobuf_FOUND)
+    if(Protobuf_VERSION VERSION_LESS_EQUAL 3.20.0)
+      set_property(GLOBAL PROPERTY userver_protobuf_version_category "3")
+    else()
+      set_property(GLOBAL PROPERTY userver_protobuf_version_category "4")
+    endif()
     return()
   endif()
 endif()
@@ -51,3 +57,4 @@ set_target_properties(libprotoc PROPERTIES
     INTERFACE_INCLUDE_DIRECTORIES "${Protobuf_SOURCE_DIR}/src")
 write_package_stub(Protobuf)
 mark_targets_as_system("${Protobuf_SOURCE_DIR}")
+set_property(GLOBAL PROPERTY userver_protobuf_version_category "4")
