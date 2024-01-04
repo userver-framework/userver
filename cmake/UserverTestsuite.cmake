@@ -17,7 +17,7 @@ if(USERVER_FEATURE_TESTSUITE)
   if(NOT userver_python_dev_checked)
     # find package python3-dev required by virtualenv
     execute_process(
-        COMMAND bash "-c" "command -v python3-config"
+        COMMAND sh "-c" "command -v python3-config"
         OUTPUT_VARIABLE PYTHONCONFIG_FOUND
     )
     if(NOT PYTHONCONFIG_FOUND)

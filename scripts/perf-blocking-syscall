@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # "1" means TASK_INTERRUPTIBLE
 perf record -g -e sched:sched_switch --filter=prev_state==1 "$@"
