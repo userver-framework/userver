@@ -22,6 +22,8 @@ class Control final : public BaseTestsuiteAction {
       const formats::json::Value& request_body) const override;
 
  private:
+  void InvalidateCaches(const formats::json::Value& invalidate_caches) const;
+
   components::TestsuiteSupport& testsuite_support_;
   components::Logging& logging_component_;
   const bool testpoint_supported_;

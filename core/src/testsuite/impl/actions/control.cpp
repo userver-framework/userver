@@ -49,21 +49,26 @@ formats::json::Value Control::Perform(
 
   const auto invalidate_caches = request_body["invalidate_caches"];
   if (!invalidate_caches.IsMissing()) {
-    const auto update_type =
-        cache::Parse(invalidate_caches["update_type"],
-                     formats::parse::To<cache::UpdateType>());
-
-    if (invalidate_caches.HasMember("names")) {
-      testsuite_support_.GetCacheControl().InvalidateCaches(
-          update_type,
-          invalidate_caches["names"].As<std::unordered_set<std::string>>());
-    } else {
-      testsuite_support_.GetCacheControl().InvalidateAllCaches(update_type);
-      testsuite_support_.GetComponentControl().InvalidateComponents();
-    }
+    InvalidateCaches(invalidate_caches);
   }
 
   return {};
+}
+
+void Control::InvalidateCaches(
+    const formats::json::Value& invalidate_caches) const {
+  const auto update_type =
+      cache::Parse(invalidate_caches["update_type"],
+                   formats::parse::To<cache::UpdateType>());
+
+  if (invalidate_caches.HasMember("names")) {
+    testsuite_support_.GetCacheControl().InvalidateCaches(
+        update_type,
+        invalidate_caches["names"].As<std::unordered_set<std::string>>());
+  } else {
+    testsuite_support_.GetCacheControl().InvalidateAllCaches(update_type);
+    testsuite_support_.GetComponentControl().InvalidateComponents();
+  }
 }
 
 }  // namespace testsuite::impl::actions

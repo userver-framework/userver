@@ -28,6 +28,8 @@ void ComponentControl::UnregisterComponentInvalidator(
 }
 
 void ComponentControl::InvalidateComponents() {
+  const auto sp =
+      tracing::Span::CurrentSpan().CreateScopeTime("invalidate_components");
   std::lock_guard lock(mutex_);
 
   for (const auto& invalidator : invalidators_) {

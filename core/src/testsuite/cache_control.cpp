@@ -54,6 +54,8 @@ bool CacheControl::IsPeriodicUpdateEnabled(
 }
 
 void CacheControl::InvalidateAllCaches(cache::UpdateType update_type) {
+  const auto sp =
+      tracing::Span::CurrentSpan().CreateScopeTime("invalidate_all_caches");
   std::lock_guard lock(mutex_);
 
   for (const auto& cache : caches_) {
@@ -64,6 +66,8 @@ void CacheControl::InvalidateAllCaches(cache::UpdateType update_type) {
 
 void CacheControl::InvalidateCaches(cache::UpdateType update_type,
                                     std::unordered_set<std::string> names) {
+  const auto sp =
+      tracing::Span::CurrentSpan().CreateScopeTime("invalidate_caches");
   std::lock_guard lock(mutex_);
 
   // It's important that we walk the caches in the order of their registration,
