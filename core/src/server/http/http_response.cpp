@@ -344,13 +344,23 @@ std::size_t HttpResponse::SetBodyNotStreamed(
 std::size_t HttpResponse::SetBodyStreamed(
     engine::io::RwBase& socket,
     USERVER_NAMESPACE::http::headers::HeadersString& header) {
+  const bool is_body_forbidden = IsBodyForbiddenForStatus(status_);
+
   impl::OutputHeader(
       header, USERVER_NAMESPACE::http::headers::kTransferEncoding, "chunked");
+
+  if (is_body_forbidden) {
+    header.append(kCrlf);
+  }
 
   // send HTTP headers
   size_t sent_bytes = socket.WriteAll(header.data(), header.size(), {});
   header.clear();
   header.shrink_to_fit();  // free memory before time-consuming operation
+
+  if (is_body_forbidden) {
+    return sent_bytes;
+  }
 
   // Transmit HTTP response body
   std::string body_part;
