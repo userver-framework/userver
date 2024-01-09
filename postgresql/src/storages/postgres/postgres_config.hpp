@@ -51,6 +51,9 @@ extern const dynamic_config::Key<bool> kConnlimitModeAutoEnabled;
 
 extern const dynamic_config::Key<int> kDeadlinePropagationVersionConfig;
 
+extern const dynamic_config::Key<OmitDescribeInExecuteMode>
+    kOmitDescribeInExecuteModeKey;
+
 }  // namespace storages::postgres
 
 USERVER_NAMESPACE_END

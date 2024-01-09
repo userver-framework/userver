@@ -102,6 +102,8 @@ Postgres::Postgres(const ComponentConfig& config,
           config.As<storages::postgres::ConnectionSettings>());
   initial_settings_.conn_settings.pipeline_mode =
       initial_config[storages::postgres::kPipelineModeKey];
+  initial_settings_.conn_settings.omit_describe_mode =
+      initial_config[storages::postgres::kOmitDescribeInExecuteModeKey];
   initial_settings_.statement_metrics_settings =
       pg_config.statement_metrics_settings.GetOptional(name_).value_or(
           config.As<storages::postgres::StatementMetricsSettings>());
@@ -187,6 +189,8 @@ void Postgres::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
       pg_config.connection_settings.GetOptional(name_).value_or(
           initial_settings_.conn_settings);
   connection_settings.pipeline_mode = cfg[storages::postgres::kPipelineModeKey];
+  connection_settings.omit_describe_mode =
+      cfg[storages::postgres::kOmitDescribeInExecuteModeKey];
   const auto statement_metrics_settings =
       pg_config.statement_metrics_settings.GetOptional(name_).value_or(
           initial_settings_.statement_metrics_settings);

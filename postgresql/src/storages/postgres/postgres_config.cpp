@@ -83,6 +83,14 @@ PipelineMode ParsePipelineMode(const formats::json::Value& value) {
   return value.As<int>() > 0 ? PipelineMode::kEnabled : PipelineMode::kDisabled;
 }
 
+OmitDescribeInExecuteMode ParseOmitDescribeInExecuteMode(
+    const formats::json::Value& value) {
+  using Mode = OmitDescribeInExecuteMode;
+
+  return value.As<int>() == kOmitDescribeExperimentVersion ? Mode::kEnabled
+                                                           : Mode::kDisabled;
+}
+
 }  // namespace
 
 ConnectionSettings Parse(const formats::json::Value& config,
@@ -199,6 +207,11 @@ const dynamic_config::Key<bool> kConnlimitModeAutoEnabled{
 
 const dynamic_config::Key<int> kDeadlinePropagationVersionConfig{
     "POSTGRES_DEADLINE_PROPAGATION_VERSION", 0};
+
+const dynamic_config::Key<OmitDescribeInExecuteMode>
+    kOmitDescribeInExecuteModeKey{"POSTGRES_OMIT_DESCRIBE_IN_EXECUTE",
+                                  ParseOmitDescribeInExecuteMode,
+                                  dynamic_config::DefaultAsJsonString{"1"}};
 
 }  // namespace storages::postgres
 

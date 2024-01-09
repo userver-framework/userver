@@ -32,12 +32,8 @@ class ResultWrapper {
   /** @name Data result */
   std::size_t RowCount() const;
   std::size_t FieldCount() const;
-  const io::TypeBufferCategory& GetTypeBufferCategories() const {
-    return buffer_categories_;
-  }
-  void SetTypeBufferCategories(const io::TypeBufferCategory& cats) {
-    buffer_categories_ = cats;
-  }
+  const io::TypeBufferCategory& GetTypeBufferCategories() const;
+  void SetTypeBufferCategories(const ResultWrapper& description);
   std::string CommandStatus() const;
   std::size_t RowsAffected() const;
 

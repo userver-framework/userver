@@ -205,6 +205,15 @@ std::size_t ResultWrapper::FieldCount() const {
   return PQnfields(handle_.get());
 }
 
+const io::TypeBufferCategory& ResultWrapper::GetTypeBufferCategories() const {
+  return buffer_categories_;
+}
+
+void ResultWrapper::SetTypeBufferCategories(const ResultWrapper& description) {
+  buffer_categories_ = description.buffer_categories_;
+  cached_buffer_categories_ = description.cached_buffer_categories_;
+}
+
 std::string ResultWrapper::CommandStatus() const {
   return PQcmdStatus(handle_.get());
 }

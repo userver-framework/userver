@@ -182,6 +182,8 @@ class ConnectionImpl {
 
   void ReportStatement(const std::string& name);
 
+  bool IsOmitDescribeInExecuteEnabled() const;
+
   const std::string uuid_;
   Connection::Statistics stats_;
   PGConnectionWrapper conn_wrapper_;

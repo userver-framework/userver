@@ -15,6 +15,7 @@
 #include <userver/utils/uuid4.hpp>
 
 #include <storages/postgres/detail/tracing_tags.hpp>
+#include <storages/postgres/experiments.hpp>
 #include <storages/postgres/io/pg_type_parsers.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 
@@ -206,6 +207,10 @@ ConnectionImpl::ConnectionImpl(
     settings_.pipeline_mode = PipelineMode::kDisabled;
   }
 #endif
+
+  if (IsOmitDescribeInExecuteEnabled()) {
+    LOG_INFO() << "Userver experiment pg-omit-describe-in-execute is enabled";
+  }
 }
 
 void ConnectionImpl::AsyncConnect(const Dsn& dsn, engine::Deadline deadline) {
@@ -549,7 +554,7 @@ void ConnectionImpl::CancelAndCleanup(TimeoutDuration timeout) {
 
 bool ConnectionImpl::Cleanup(TimeoutDuration timeout) {
   auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(timeout);
-  if (conn_wrapper_.TryConsumeInput(deadline)) {
+  if (conn_wrapper_.TryConsumeInput(deadline, nullptr)) {
     auto state = GetConnectionState();
     if (state == ConnectionState::kOffline) {
       return false;
@@ -707,49 +712,51 @@ const ConnectionImpl::PreparedStatementInfo& ConnectionImpl::PrepareStatement(
   if (statement_info) {
     LOG_TRACE() << "Query " << statement << " is already prepared.";
     return *statement_info;
-  } else {
-    std::string statement_name = "q" + std::to_string(query_hash) + "_" + uuid_;
-    if (prepared_.GetSize() >= settings_.max_prepared_cache_size) {
-      statement_info = prepared_.GetLeastUsed();
-      UASSERT(statement_info);
-      DiscardPreparedStatement(*statement_info, deadline);
-      prepared_.Erase(statement_info->id);
-    }
-    scope.Reset(scopes::kPrepare);
-    LOG_TRACE() << "Query " << statement << " is not yet prepared";
-    conn_wrapper_.SendPrepare(statement_name, statement, params, scope);
-    // Mark the statement prepared as soon as the send works correctly
-    prepared_.Put(query_id,
-                  {query_id, statement, statement_name, ResultSet{nullptr}});
-    try {
-      conn_wrapper_.WaitResult(deadline, scope);
-    } catch (const DuplicatePreparedStatement& e) {
-      // As we have a pretty unique hash for a statement, we can safely use
-      // it. This situation might happen when `SendPrepare` times out and we
-      // erase the statement from `prepared_` map.
-      LOG_DEBUG() << "Statement `" << statement
-                  << "` was already prepared, there was possibly a timeout "
-                     "while preparing, see log above.";
-      ++stats_.duplicate_prepared_statements;
-    } catch (const std::exception&) {
-      prepared_.Erase(query_id);
-      span.AddTag(tracing::kErrorFlag, true);
-      throw;
-    }
-
-    conn_wrapper_.SendDescribePrepared(statement_name, scope);
-    statement_info = prepared_.Get(query_id);
-    auto res = conn_wrapper_.WaitResult(deadline, scope);
-    if (!res.pimpl_) {
-      throw CommandError("WaitResult() returned nullptr");
-    }
-    FillBufferCategories(res);
-    statement_info->description = res;
-    // Ensure we've got binary format established
-    res.GetRowDescription().CheckBinaryFormat(db_types_);
-    ++stats_.parse_total;
-    return *statement_info;
   }
+
+  if (prepared_.GetSize() >= settings_.max_prepared_cache_size) {
+    statement_info = prepared_.GetLeastUsed();
+    UASSERT(statement_info);
+    DiscardPreparedStatement(*statement_info, deadline);
+    prepared_.Erase(statement_info->id);
+  }
+
+  scope.Reset(scopes::kPrepare);
+  LOG_TRACE() << "Query " << statement << " is not yet prepared";
+  const std::string statement_name =
+      "q" + std::to_string(query_hash) + "_" + uuid_;
+  conn_wrapper_.SendPrepare(statement_name, statement, params, scope);
+  try {
+    conn_wrapper_.WaitResult(deadline, scope, nullptr);
+  } catch (const DuplicatePreparedStatement& e) {
+    // As we have a pretty unique hash for a statement, we can safely use
+    // it. This situation might happen when `SendPrepare` times out and we
+    // erase the statement from `prepared_` map.
+    LOG_DEBUG() << "Statement `" << statement
+                << "` was already prepared, there was possibly a timeout "
+                   "while preparing, see log above.";
+    ++stats_.duplicate_prepared_statements;
+  } catch (const std::exception&) {
+    span.AddTag(tracing::kErrorFlag, true);
+    throw;
+  }
+
+  conn_wrapper_.SendDescribePrepared(statement_name, scope);
+  auto res = conn_wrapper_.WaitResult(deadline, scope, nullptr);
+  if (!res.pimpl_) {
+    throw CommandError("WaitResult() returned nullptr");
+  }
+  FillBufferCategories(res);
+  // Ensure we've got binary format established
+  res.GetRowDescription().CheckBinaryFormat(db_types_);
+
+  prepared_.Put(query_id,
+                {query_id, statement, statement_name, std::move(res)});
+
+  statement_info = prepared_.Get(query_id);
+  ++stats_.parse_total;
+
+  return *statement_info;
 }
 
 void ConnectionImpl::DiscardOldPreparedStatements(engine::Deadline deadline) {
@@ -790,7 +797,7 @@ ResultSet ConnectionImpl::ExecuteCommand(const Query& query,
 
   DiscardOldPreparedStatements(deadline);
   CheckDeadlineReached(deadline);
-  TimeoutDuration network_timeout =
+  const TimeoutDuration network_timeout =
       std::chrono::duration_cast<std::chrono::milliseconds>(
           deadline.TimeLeft());
   auto span = MakeQuerySpan(query, {network_timeout, GetStatementTimeout()});
@@ -804,10 +811,18 @@ ResultSet ConnectionImpl::ExecuteCommand(const Query& query,
   auto const& prepared_info =
       PrepareStatement(statement, params, deadline, span, scope);
 
+  const ResultSet* description_ptr_to_read = nullptr;
+  PGresult* description_ptr_to_send = nullptr;
+  if (IsOmitDescribeInExecuteEnabled()) {
+    description_ptr_to_read = &prepared_info.description;
+    description_ptr_to_send = description_ptr_to_read->pimpl_->handle_.get();
+  }
+
   scope.Reset(scopes::kExec);
-  conn_wrapper_.SendPreparedQuery(prepared_info.statement_name, params, scope);
+  conn_wrapper_.SendPreparedQuery(prepared_info.statement_name, params, scope,
+                                  description_ptr_to_send);
   return WaitResult(statement, deadline, network_timeout, count_execute, span,
-                    scope, &prepared_info.description);
+                    scope, description_ptr_to_read);
 }
 
 ResultSet ConnectionImpl::ExecuteCommandNoPrepare(const Query& query,
@@ -915,9 +930,12 @@ ResultSet ConnectionImpl::WaitResult(const std::string& statement,
                                      Counter& counter, tracing::Span& span,
                                      tracing::ScopeTime& scope,
                                      const ResultSet* description_ptr) {
+  const PGresult* description =
+      description_ptr ? description_ptr->pimpl_->handle_.get() : nullptr;
+
   try {
-    auto res = conn_wrapper_.WaitResult(deadline, scope);
-    if (description_ptr && !description_ptr->IsEmpty()) {
+    auto res = conn_wrapper_.WaitResult(deadline, scope, description);
+    if (description_ptr) {
       res.SetBufferCategoriesFrom(*description_ptr);
     } else if (!res.IsEmpty()) {
       FillBufferCategories(res);
@@ -983,6 +1001,11 @@ void ConnectionImpl::ReportStatement(const std::string& name) {
   } catch (const std::exception& e) {
     LOG_WARNING() << e;
   }
+}
+
+bool ConnectionImpl::IsOmitDescribeInExecuteEnabled() const {
+  return settings_.omit_describe_mode == OmitDescribeInExecuteMode::kEnabled &&
+         kOmitDescribeInExecuteExperiment.IsEnabled();
 }
 
 }  // namespace storages::postgres::detail

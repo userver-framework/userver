@@ -199,6 +199,12 @@ static constexpr size_t kDefaultMaxPreparedCacheSize = 5000;
 /// Dynamic option @ref POSTGRES_CONNECTION_PIPELINE_EXPERIMENT
 enum class PipelineMode { kDisabled, kEnabled };
 
+/// Whether to omit excessive D(escribe) message
+/// when executing prepared statements
+///
+/// Dynamic option @ref POSTGRES_OMIT_DESCRIBE_IN_EXECUTE
+enum class OmitDescribeInExecuteMode { kDisabled, kEnabled };
+
 /// PostgreSQL connection options
 ///
 /// Dynamic option @ref POSTGRES_CONNECTION_SETTINGS
@@ -237,6 +243,10 @@ struct ConnectionSettings {
   /// Turns on connection pipeline mode
   PipelineMode pipeline_mode = PipelineMode::kDisabled;
 
+  /// Enables protocol-level optimization when executing prepared statements
+  OmitDescribeInExecuteMode omit_describe_mode =
+      OmitDescribeInExecuteMode::kDisabled;
+
   /// This many connection errors in 15 seconds block new connections opening
   size_t recent_errors_threshold = 2;
 
@@ -265,7 +275,8 @@ struct ConnectionSettings {
            ignore_unused_query_params != rhs.ignore_unused_query_params ||
            max_prepared_cache_size != rhs.max_prepared_cache_size ||
            pipeline_mode != rhs.pipeline_mode || max_ttl != rhs.max_ttl ||
-           discard_on_connect != rhs.discard_on_connect;
+           discard_on_connect != rhs.discard_on_connect ||
+           omit_describe_mode != rhs.omit_describe_mode;
   }
 };
 

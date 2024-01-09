@@ -6,8 +6,15 @@
 #include <pq_portal_funcs.h>
 #include <pq_workaround.h>
 #else
-auto PQXisBusy(PGconn* conn) { return ::PQisBusy(conn); }
-auto PQXgetResult(PGconn* conn) { return ::PQgetResult(conn); }
+auto PQXisBusy(PGconn* conn, const PGresult*) { return ::PQisBusy(conn); }
+auto PQXgetResult(PGconn* conn, const PGresult*) { return ::PQgetResult(conn); }
+auto PQXsendQueryPrepared(PGconn* conn, const char* stmtName, int nParams,
+                          const char* const* paramValues,
+                          const int* paramLengths, const int* paramFormats,
+                          int resultFormat, PGresult*) {
+  return ::PQsendQueryPrepared(conn, stmtName, nParams, paramValues,
+                               paramLengths, paramFormats, resultFormat);
+}
 #endif
 
 #include <crypto/openssl.hpp>
@@ -490,8 +497,9 @@ void PGConnectionWrapper::HandlePipelineSync() {
   --pipeline_sync_counter_;
 }
 
-bool PGConnectionWrapper::TryConsumeInput(Deadline deadline) {
-  while (PQXisBusy(conn_)) {
+bool PGConnectionWrapper::TryConsumeInput(Deadline deadline,
+                                          const PGresult* description) {
+  while (PQXisBusy(conn_, description)) {
     HandleSocketPostClose();
     if (!WaitSocketReadable(deadline)) {
       LOG_DEBUG() << "Socket " << socket_.Fd()
@@ -505,8 +513,9 @@ bool PGConnectionWrapper::TryConsumeInput(Deadline deadline) {
   return true;
 }
 
-void PGConnectionWrapper::ConsumeInput(Deadline deadline) {
-  if (!TryConsumeInput(deadline)) {
+void PGConnectionWrapper::ConsumeInput(Deadline deadline,
+                                       const PGresult* description) {
+  if (!TryConsumeInput(deadline, description)) {
     if (engine::current_task::ShouldCancel()) {
       throw ConnectionInterrupted("Task cancelled while consuming input");
     }
@@ -517,13 +526,14 @@ void PGConnectionWrapper::ConsumeInput(Deadline deadline) {
 }
 
 ResultSet PGConnectionWrapper::WaitResult(Deadline deadline,
-                                          tracing::ScopeTime& scope) {
+                                          tracing::ScopeTime& scope,
+                                          const PGresult* description) {
   scope.Reset(scopes::kLibpqWaitResult);
   Flush(deadline);
   auto handle = MakeResultHandle(nullptr);
   auto null_res_counter{0};
   do {
-    while (auto* pg_res = ReadResult(deadline)) {
+    while (auto* pg_res = ReadResult(deadline, description)) {
       null_res_counter = 0;
       if (handle && !pipeline_sync_counter_) {
         // TODO Decide about the severity of this situation
@@ -575,7 +585,7 @@ void PGConnectionWrapper::DiscardInput(Deadline deadline) {
   auto handle = MakeResultHandle(nullptr);
   auto null_res_counter{0};
   do {
-    while (auto* pg_res = ReadResult(deadline)) {
+    while (auto* pg_res = ReadResult(deadline, nullptr)) {
       null_res_counter = 0;
       handle = MakeResultHandle(pg_res);
 #if LIBPQ_HAS_PIPELINING
@@ -602,9 +612,10 @@ void PGConnectionWrapper::FillSpanTags(tracing::Span& span,
   span.AddTag("statement_timeout_ms", cc.statement.count());
 }
 
-PGresult* PGConnectionWrapper::ReadResult(Deadline deadline) {
-  ConsumeInput(deadline);
-  return PQXgetResult(conn_);
+PGresult* PGConnectionWrapper::ReadResult(Deadline deadline,
+                                          const PGresult* description) {
+  ConsumeInput(deadline, description);
+  return PQXgetResult(conn_, description);
 }
 
 ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
@@ -752,19 +763,27 @@ void PGConnectionWrapper::SendDescribePrepared(const std::string& name,
 
 void PGConnectionWrapper::SendPreparedQuery(const std::string& name,
                                             const QueryParameters& params,
-                                            tracing::ScopeTime& scope) {
+                                            tracing::ScopeTime& scope,
+                                            PGresult* description) {
+  const auto empty = params.Empty();
+
+  const auto size = params.Size();
+  const auto* param_values = empty ? nullptr : params.ParamBuffers();
+  const auto* param_lengths = empty ? nullptr : params.ParamLengthsBuffer();
+  const auto* param_formats = empty ? nullptr : params.ParamFormatsBuffer();
+
   scope.Reset(scopes::kLibpqSendQueryPrepared);
-  if (params.Empty()) {
+  if (description) {
     CheckError<CommandError>(
-        "PQsendQueryPrepared",
-        PQsendQueryPrepared(conn_, name.c_str(), 0, nullptr, nullptr, nullptr,
-                            io::kPgBinaryDataFormat));
+        "PQXsendQueryPrepared",
+        PQXsendQueryPrepared(conn_, name.c_str(), size, param_values,
+                             param_lengths, param_formats,
+                             io::kPgBinaryDataFormat, description));
   } else {
     CheckError<CommandError>(
         "PQsendQueryPrepared",
-        PQsendQueryPrepared(conn_, name.c_str(), params.Size(),
-                            params.ParamBuffers(), params.ParamLengthsBuffer(),
-                            params.ParamFormatsBuffer(),
+        PQsendQueryPrepared(conn_, name.c_str(), size, param_values,
+                            param_lengths, param_formats,
                             io::kPgBinaryDataFormat));
   }
   UpdateLastUse();

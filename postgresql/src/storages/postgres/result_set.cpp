@@ -249,7 +249,7 @@ void ResultSet::FillBufferCategories(const UserTypes& types) {
 }
 
 void ResultSet::SetBufferCategoriesFrom(const ResultSet& dsc) {
-  pimpl_->SetTypeBufferCategories(dsc.pimpl_->GetTypeBufferCategories());
+  pimpl_->SetTypeBufferCategories(*dsc.pimpl_);
 }
 
 Row::size_type Row::IndexOfName(const std::string& name) const {

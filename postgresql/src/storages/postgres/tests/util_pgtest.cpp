@@ -161,13 +161,24 @@ PostgreConnection::~PostgreConnection() {
 
 INSTANTIATE_UTEST_SUITE_P(
     ConnectionSettings, PostgreConnection,
-    ::testing::Values(kCachePreparedStatements, kPipelineEnabled),
+    ::testing::Values(kCachePreparedStatements, kPipelineEnabled,
+                      kOmitDescribeAndPipelineEnabled),
     [](const testing::TestParamInfo<PostgreConnection::ParamType>& info) {
+      std::string name{};
       if (info.param.pipeline_mode == pg::PipelineMode::kEnabled) {
-        return "PipelineEnabled";
+        name = "PipelineEnabled";
       } else {
-        return "PipelineDisabled";
+        name = "PipelineDisabled";
       }
+
+      if (info.param.omit_describe_mode ==
+          pg::OmitDescribeInExecuteMode::kEnabled) {
+        name.append("_DontSendDescribe");
+      } else {
+        name.append("_SendDescribe");
+      }
+
+      return name;
     });
 
 USERVER_NAMESPACE_END

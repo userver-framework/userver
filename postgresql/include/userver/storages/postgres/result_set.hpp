@@ -214,6 +214,7 @@ class RowDescription {
   /// Check that all fields can be read in binary format
   /// @throw NoBinaryParser if any of the fields doesn't have a binary parser
   void CheckBinaryFormat(const UserTypes& types) const;
+
   // TODO interface for iterating field descriptions
  private:
   detail::ResultWrapperPtr res_;

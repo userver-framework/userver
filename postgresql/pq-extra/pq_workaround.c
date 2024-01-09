@@ -149,7 +149,7 @@ static int getParameterStatus(PGconn* conn) {
  * Note that this function will NOT attempt to read more data from the
  * backend.
  */
-static void pqxParseInput3(PGconn* conn) {
+static void pqxParseInput3(PGconn* conn, const PGresult* description) {
   char id;
   int msgLength;
   int avail;
@@ -279,7 +279,10 @@ static void pqxParseInput3(PGconn* conn) {
           if (pqGets(&conn->workBuffer, conn)) return;
           if (conn->result == NULL) {
             conn->result = PQmakeEmptyPGresult(conn, PGRES_COMMAND_OK);
-            if (!conn->result) {
+            if (!conn->result ||
+                (description &&
+                 !PQsetResultAttrs(conn->result, PQnfields(description),
+                                   description->attDescs))) {
               updatePQXExpBufferStr(&conn->errorMessage,
                                     libpq_gettext("out of memory"));
               pqSaveErrorResult(conn);
@@ -473,14 +476,31 @@ static void pqxParseInput3(PGconn* conn) {
              */
             conn->inCursor += msgLength;
           } else {
-            /* Set up to report error at end of query */
-            updatePQXExpBufferStr(
-                &conn->errorMessage,
-                libpq_gettext("server sent data (\"D\" message) without prior "
-                              "row description (\"T\" message)\n"));
-            pqSaveErrorResult(conn);
-            /* Discard the unexpected message */
-            conn->inCursor += msgLength;
+            if (description) {
+              if (conn->result == NULL) {
+                conn->result = PQmakeEmptyPGresult(conn, PGRES_TUPLES_OK);
+
+                if (!conn->result ||
+                    !PQsetResultAttrs(conn->result, PQnfields(description),
+                                      description->attDescs)) {
+                  updatePQXExpBufferStr(&conn->errorMessage,
+                                        libpq_gettext("out of memory"));
+                  pqSaveErrorResult(conn);
+                } else {
+                  if (getAnotherTuple(conn, msgLength)) return;
+                }
+              }
+            } else {
+              /* Set up to report error at end of query */
+              updatePQXExpBufferStr(
+                  &conn->errorMessage,
+                  libpq_gettext(
+                      "server sent data (\"D\" message) without prior "
+                      "row description (\"T\" message)\n"));
+              pqSaveErrorResult(conn);
+              /* Discard the unexpected message */
+              conn->inCursor += msgLength;
+            }
           }
           break;
         case 'G': /* Start Copy In */
@@ -571,9 +591,9 @@ static void pqxParseInput3(PGconn* conn) {
  * Note that this function will NOT attempt to read more data from the
  * backend.
  */
-static void parseInput(PGconn* conn) {
+static void parseInput(PGconn* conn, const PGresult* description) {
 #if PG_VERSION_NUM >= 140000
-  pqxParseInput3(conn);
+  pqxParseInput3(conn, description);
 #else
   if (PG_PROTOCOL_MAJOR(conn->pversion) >= 3)
     pqxParseInput3(conn);
@@ -623,11 +643,11 @@ static PGresult* getCopyResult(PGconn* conn, ExecStatusType copytype) {
  *   Return true if PQgetResult would block waiting for input.
  */
 
-int PQXisBusy(PGconn* conn) {
+int PQXisBusy(PGconn* conn, const PGresult* description) {
   if (!conn) return false;
 
   /* Parse any available data, if our state permits. */
-  parseInput(conn);
+  parseInput(conn, description);
 
   /*
    * PQgetResult will return immediately in all states except BUSY, or if we
@@ -651,13 +671,13 @@ int PQXisBusy(PGconn* conn) {
  *    query is being processed.  At the end of the pipeline, returns a
  *    result with PQresultStatus(result) == PGRES_PIPELINE_SYNC.
  */
-PGresult* PQXgetResult(PGconn* conn) {
+PGresult* PQXgetResult(PGconn* conn, const PGresult* description) {
   if (!conn) return NULL;
 
   PGresult* res = NULL;
 
   /* Parse any available data, if our state permits. */
-  parseInput(conn);
+  parseInput(conn, description);
 
   /* If not ready to return something, block until we are. */
   while (conn->asyncStatus == PGASYNC_BUSY) {
@@ -692,7 +712,7 @@ PGresult* PQXgetResult(PGconn* conn) {
     }
 
     /* Parse it. */
-    parseInput(conn);
+    parseInput(conn, description);
 
     /*
      * If we had a write error, but nothing above obtained a query result
@@ -811,7 +831,7 @@ PGresult* PQXgetResult(PGconn* conn) {
       conn->cmd_queue_head->queryclass == PGQUERY_CLOSE) {
     if (res && res->resultStatus != PGRES_FATAL_ERROR) {
       conn->asyncStatus = PGASYNC_BUSY;
-      parseInput(conn);
+      parseInput(conn, description);
       conn->asyncStatus = PGASYNC_PIPELINE_IDLE;
     } else
       /* we won't ever see the Close */
@@ -1353,4 +1373,250 @@ static int getCopyStart(PGconn* conn, ExecStatusType copytype) {
 failure:
   PQclear(result);
   return EOF;
+}
+
+/*
+ * This is copy-paste of PQsendQueryStart from fe-exec.c
+ * We need this function because PQXsendQueryPrepared depends on it.
+ *
+ * Common startup code for PQsendQuery and sibling routines
+ */
+static bool PQXsendQueryStart(PGconn* conn, bool newQuery) {
+  if (!conn) return false;
+
+  /*
+   * If this is the beginning of a query cycle, reset the error state.
+   * However, in pipeline mode with something already queued, the error
+   * buffer belongs to that command and we shouldn't clear it.
+   */
+  if (newQuery && conn->cmd_queue_head == NULL)
+    resetPQExpBuffer(&conn->errorMessage);
+
+  /* Don't try to send if we know there's no live connection. */
+  if (conn->status != CONNECTION_OK) {
+    updatePQXExpBufferStr(&conn->errorMessage, "no connection to the server");
+    return false;
+  }
+
+  /* Can't send while already busy, either, unless enqueuing for later */
+  if (conn->asyncStatus != PGASYNC_IDLE &&
+      conn->pipelineStatus == PQ_PIPELINE_OFF) {
+    updatePQXExpBufferStr(&conn->errorMessage,
+                          "another command is already in progress");
+    return false;
+  }
+
+  if (conn->pipelineStatus != PQ_PIPELINE_OFF) {
+    /*
+     * When enqueuing commands we don't change much of the connection
+     * state since it's already in use for the current command. The
+     * connection state will get updated when pqPipelineProcessQueue()
+     * advances to start processing the queued message.
+     *
+     * Just make sure we can safely enqueue given the current connection
+     * state. We can enqueue behind another queue item, or behind a
+     * non-queue command (one that sends its own sync), but we can't
+     * enqueue if the connection is in a copy state.
+     */
+    switch (conn->asyncStatus) {
+      case PGASYNC_IDLE:
+      case PGASYNC_PIPELINE_IDLE:
+      case PGASYNC_READY:
+      case PGASYNC_READY_MORE:
+      case PGASYNC_BUSY:
+        /* ok to queue */
+        break;
+
+      case PGASYNC_COPY_IN:
+      case PGASYNC_COPY_OUT:
+      case PGASYNC_COPY_BOTH:
+        updatePQXExpBufferStr(&conn->errorMessage,
+                              "cannot queue commands during COPY");
+        return false;
+    }
+  } else {
+    /*
+     * This command's results will come in immediately. Initialize async
+     * result-accumulation state
+     */
+    pqClearAsyncResult(conn);
+
+    /* reset single-row processing mode */
+    conn->singleRowMode = false;
+  }
+
+  /* ready to send command message */
+  return true;
+}
+
+/*
+ * This is copy-paste of PQXsendQueryStart from fe-exec.c, with the only
+ * difference being that this version doesn't send D(escribe) message.
+ * We need this function because PQXsendQueryPrepared depends on it.
+ *
+ * Common code for sending a query with extended query protocol
+ * PQsendQueryStart should be done already
+ */
+static int PQXsendQueryGuts(PGconn* conn, const char* command,
+                            const char* stmtName, int nParams,
+                            const Oid* paramTypes,
+                            const char* const* paramValues,
+                            const int* paramLengths, const int* paramFormats,
+                            int resultFormat) {
+  int i;
+  PGcmdQueueEntry* entry;
+
+  entry = pqAllocCmdQueueEntry(conn);
+  if (entry == NULL) return 0; /* error msg already set */
+
+  /*
+   * We will send Parse (if needed), Bind, Describe Portal, Execute, Sync
+   * (if not in pipeline mode), using specified statement name and the
+   * unnamed portal.
+   */
+
+  if (command) {
+    /* construct the Parse message */
+    if (pqPutMsgStart('P', conn) < 0 || pqPuts(stmtName, conn) < 0 ||
+        pqPuts(command, conn) < 0)
+      goto sendFailed;
+    if (nParams > 0 && paramTypes) {
+      if (pqPutInt(nParams, 2, conn) < 0) goto sendFailed;
+      for (i = 0; i < nParams; i++) {
+        if (pqPutInt(paramTypes[i], 4, conn) < 0) goto sendFailed;
+      }
+    } else {
+      if (pqPutInt(0, 2, conn) < 0) goto sendFailed;
+    }
+    if (pqPutMsgEnd(conn) < 0) goto sendFailed;
+  }
+
+  /* Construct the Bind message */
+  if (pqPutMsgStart('B', conn) < 0 || pqPuts("", conn) < 0 ||
+      pqPuts(stmtName, conn) < 0)
+    goto sendFailed;
+
+  /* Send parameter formats */
+  if (nParams > 0 && paramFormats) {
+    if (pqPutInt(nParams, 2, conn) < 0) goto sendFailed;
+    for (i = 0; i < nParams; i++) {
+      if (pqPutInt(paramFormats[i], 2, conn) < 0) goto sendFailed;
+    }
+  } else {
+    if (pqPutInt(0, 2, conn) < 0) goto sendFailed;
+  }
+
+  if (pqPutInt(nParams, 2, conn) < 0) goto sendFailed;
+
+  /* Send parameters */
+  for (i = 0; i < nParams; i++) {
+    if (paramValues && paramValues[i]) {
+      int nbytes;
+
+      if (paramFormats && paramFormats[i] != 0) {
+        /* binary parameter */
+        if (paramLengths)
+          nbytes = paramLengths[i];
+        else {
+          updatePQXExpBufferStr(&conn->errorMessage,
+                                "length must be given for binary parameter");
+          goto sendFailed;
+        }
+      } else {
+        /* text parameter, do not use paramLengths */
+        nbytes = strlen(paramValues[i]);
+      }
+      if (pqPutInt(nbytes, 4, conn) < 0 ||
+          pqPutnchar(paramValues[i], nbytes, conn) < 0)
+        goto sendFailed;
+    } else {
+      /* take the param as NULL */
+      if (pqPutInt(-1, 4, conn) < 0) goto sendFailed;
+    }
+  }
+  if (pqPutInt(1, 2, conn) < 0 || pqPutInt(resultFormat, 2, conn))
+    goto sendFailed;
+  if (pqPutMsgEnd(conn) < 0) goto sendFailed;
+
+  /* Original PQsendQueryGuts constructs Describe here, we don't */
+
+  /* construct the Execute message */
+  if (pqPutMsgStart('E', conn) < 0 || pqPuts("", conn) < 0 ||
+      pqPutInt(0, 4, conn) < 0 || pqPutMsgEnd(conn) < 0)
+    goto sendFailed;
+
+  /* construct the Sync message if not in pipeline mode */
+  if (conn->pipelineStatus == PQ_PIPELINE_OFF) {
+    if (pqPutMsgStart('S', conn) < 0 || pqPutMsgEnd(conn) < 0) goto sendFailed;
+  }
+
+  /* remember we are using extended query protocol */
+  entry->queryclass = PGQUERY_EXTENDED;
+
+  /* and remember the query text too, if possible */
+  /* if insufficient memory, query just winds up NULL */
+  if (command) entry->query = strdup(command);
+
+  /*
+   * Give the data a push (in pipeline mode, only if we're past the size
+   * threshold).  In nonblock mode, don't complain if we're unable to send
+   * it all; PQgetResult() will do any additional flushing needed.
+   */
+  if (pqPipelineFlush(conn) < 0) goto sendFailed;
+
+  /* OK, it's launched! */
+  pqAppendCmdQueueEntry(conn, entry);
+
+  return 1;
+
+sendFailed:
+  pqRecycleCmdQueueEntry(conn, entry);
+  /* error message should be set up already */
+  return 0;
+}
+
+/*
+ * A helper function to set description attributes format
+ */
+static void PQXsetAttrsFormat(PGresult* description, int resultFormat) {
+  int i;
+  if (!description || !description->attDescs) return;
+
+  for (i = 0; i < PQnfields(description); ++i) {
+    description->attDescs[i].format = resultFormat;
+  }
+
+  description->binary = resultFormat;
+}
+
+int PQXsendQueryPrepared(PGconn* conn, const char* stmtName, int nParams,
+                         const char* const* paramValues,
+                         const int* paramLengths, const int* paramFormats,
+                         int resultFormat, PGresult* description) {
+  if (!PQXsendQueryStart(conn, true)) return 0;
+
+  /* check the arguments */
+  if (!stmtName) {
+    updatePQXExpBufferStr(&conn->errorMessage,
+                          "statement name is a null pointer");
+    return 0;
+  }
+  if (nParams < 0 || nParams > PQ_QUERY_PARAM_MAX_LIMIT) {
+    updatePQXExpBuffer(&conn->errorMessage,
+                       "number of parameters must be between 0 and %d",
+                       PQ_QUERY_PARAM_MAX_LIMIT);
+    return 0;
+  }
+  if (!description) {
+    updatePQXExpBufferStr(&conn->errorMessage,
+                          "query description must be provided");
+    return 0;
+  }
+
+  PQXsetAttrsFormat(description, resultFormat);
+
+  return PQXsendQueryGuts(conn, NULL,              /* no command to parse */
+                          stmtName, nParams, NULL, /* no param types */
+                          paramValues, paramLengths, paramFormats,
+                          resultFormat);
 }
