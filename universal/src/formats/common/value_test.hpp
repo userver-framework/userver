@@ -56,7 +56,9 @@ testing_namespace2::TestType Parse(const Value& val,
 }  // namespace formats::parse
 
 template <class T>
-struct Parsing : public ::testing::Test {};
+struct Parsing : public ::testing::Test {
+  using Value = T;
+};
 
 TYPED_TEST_SUITE_P(Parsing);
 
@@ -313,6 +315,27 @@ TYPED_TEST_P(Parsing, AsDefaulted) {
             std::vector<int>{});
 }
 
+struct IntWrapper {};
+
+template <typename Value>
+int Parse(Value value, formats::parse::To<IntWrapper>) {
+  return value.template As<int>();
+}
+
+TYPED_TEST_P(Parsing, TransientParserType) {
+  auto value = this->FromString("1");
+  auto result = value.template As<IntWrapper>();
+  static_assert(std::is_same_v<decltype(result), int>);
+  EXPECT_EQ(result, 1);
+
+  result = this->FromString("{}")["1"].template As<IntWrapper>(1);
+  EXPECT_EQ(result, 1);
+
+  typename TypeParam::DefaultConstructed dc;
+  result = this->FromString("{}")["1"].template As<IntWrapper>(dc);
+  EXPECT_EQ(result, 0);
+}
+
 REGISTER_TYPED_TEST_SUITE_P(
     Parsing,
 
@@ -332,6 +355,6 @@ REGISTER_TYPED_TEST_SUITE_P(
 
     TimeOfDayCorrect, TimeOfDayIncorrect, TimeOfDayNormalized,
 
-    AsDefaulted);
+    AsDefaulted, TransientParserType);
 
 USERVER_NAMESPACE_END

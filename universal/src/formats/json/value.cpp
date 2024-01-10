@@ -243,57 +243,57 @@ bool Value::IsObject() const noexcept {
   return !IsMissing() && GetNative().IsObject();
 }
 
-template <>
-bool Value::As<bool>() const {
-  CheckNotMissing();
-  const auto& native = GetNative();
+bool Parse(const Value& value, parse::To<bool>) {
+  value.CheckNotMissing();
+  const auto& native = value.GetNative();
   if (native.IsTrue()) return true;
   if (native.IsFalse()) return false;
-  throw TypeMismatchException(GetExtendedType(), impl::booleanValue, GetPath());
+  throw TypeMismatchException(value.GetExtendedType(), impl::booleanValue,
+                              value.GetPath());
 }
 
-template <>
-int64_t Value::As<int64_t>() const {
-  CheckNotMissing();
-  const auto& native = GetNative();
+double Parse(const Value& value, parse::To<double>) {
+  value.CheckNotMissing();
+  const auto& native = value.GetNative();
+  if (native.IsDouble()) return native.GetDouble();
+  if (native.IsInt64()) return static_cast<double>(native.GetInt64());
+  if (native.IsUint64()) return static_cast<double>(native.GetUint64());
+  throw TypeMismatchException(value.GetExtendedType(), impl::realValue,
+                              value.GetPath());
+}
+
+std::int64_t Parse(const Value& value, parse::To<std::int64_t>) {
+  value.CheckNotMissing();
+  const auto& native = value.GetNative();
   if (native.IsInt64()) return native.GetInt64();
   if (native.IsDouble()) {
     const double val = native.GetDouble();
     if (IsNonOverflowingIntegral<int64_t>(val))
       return static_cast<int64_t>(val);
   }
-  throw TypeMismatchException(GetExtendedType(), impl::intValue, GetPath());
+  throw TypeMismatchException(value.GetExtendedType(), impl::intValue,
+                              value.GetPath());
 }
 
-template <>
-uint64_t Value::As<uint64_t>() const {
-  CheckNotMissing();
-  const auto& native = GetNative();
+std::uint64_t Parse(const Value& value, parse::To<std::uint64_t>) {
+  value.CheckNotMissing();
+  const auto& native = value.GetNative();
   if (native.IsUint64()) return native.GetUint64();
   if (native.IsDouble()) {
     const double val = native.GetDouble();
     if (IsNonOverflowingIntegral<uint64_t>(val))
       return static_cast<uint64_t>(val);
   }
-  throw TypeMismatchException(GetExtendedType(), impl::uintValue, GetPath());
+  throw TypeMismatchException(value.GetExtendedType(), impl::uintValue,
+                              value.GetPath());
 }
 
-template <>
-double Value::As<double>() const {
-  CheckNotMissing();
-  const auto& native = GetNative();
-  if (native.IsDouble()) return native.GetDouble();
-  if (native.IsInt64()) return static_cast<double>(native.GetInt64());
-  if (native.IsUint64()) return static_cast<double>(native.GetUint64());
-  throw TypeMismatchException(GetExtendedType(), impl::realValue, GetPath());
-}
-
-template <>
-std::string Value::As<std::string>() const {
-  CheckNotMissing();
-  const auto& native = GetNative();
+std::string Parse(const Value& value, parse::To<std::string>) {
+  value.CheckNotMissing();
+  const auto& native = value.GetNative();
   if (native.IsString()) return {native.GetString(), native.GetStringLength()};
-  throw TypeMismatchException(GetExtendedType(), impl::stringValue, GetPath());
+  throw TypeMismatchException(value.GetExtendedType(), impl::stringValue,
+                              value.GetPath());
 }
 
 template <>

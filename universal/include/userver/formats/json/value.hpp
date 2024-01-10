@@ -162,7 +162,8 @@ class Value final {
 
   // clang-format off
 
-  /// @brief Returns value of *this converted to T.
+  /// @brief Returns value of *this converted to the result type of
+  ///        Parse(const Value&, parse::To<T>). Almost always it is T.
   /// @throw Anything derived from std::exception.
   ///
   /// ## Example usage:
@@ -174,19 +175,19 @@ class Value final {
   // clang-format on
 
   template <typename T>
-  T As() const;
+  auto As() const;
 
   /// @brief Returns value of *this converted to T or T(args) if
   /// this->IsMissing().
   /// @throw Anything derived from std::exception.
   template <typename T, typename First, typename... Rest>
-  T As(First&& default_arg, Rest&&... more_default_args) const;
+  auto As(First&& default_arg, Rest&&... more_default_args) const;
 
   /// @brief Returns value of *this converted to T or T() if this->IsMissing().
   /// @throw Anything derived from std::exception.
   /// @note Use as `value.As<T>({})`
   template <typename T>
-  T As(DefaultConstructed) const;
+  auto As(DefaultConstructed) const;
 
   /// @brief Extracts the specified type with relaxed type checks.
   /// For example, `true` may be converted to 1.0.
@@ -304,6 +305,12 @@ class Value final {
   friend class parser::JsonValueParser;
   friend class impl::StringBuffer;
 
+  friend bool Parse(const Value& value, parse::To<bool>);
+  friend std::int64_t Parse(const Value& value, parse::To<std::int64_t>);
+  friend std::uint64_t Parse(const Value& value, parse::To<std::uint64_t>);
+  friend double Parse(const Value& value, parse::To<double>);
+  friend std::string Parse(const Value& value, parse::To<std::string>);
+
   friend formats::json::Value FromString(std::string_view);
   friend formats::json::Value FromStream(std::istream&);
   friend void Serialize(const formats::json::Value&, std::ostream&);
@@ -318,7 +325,7 @@ class Value final {
 };
 
 template <typename T>
-T Value::As() const {
+auto Value::As() const {
   static_assert(formats::common::impl::kHasParse<Value, T>,
                 "There is no `Parse(const Value&, formats::parse::To<T>)` "
                 "in namespace of `T` or `formats::parse`. "
@@ -329,20 +336,15 @@ T Value::As() const {
   return Parse(*this, formats::parse::To<T>{});
 }
 
-template <>
-bool Value::As<bool>() const;
+bool Parse(const Value& value, parse::To<bool>);
 
-template <>
-int64_t Value::As<int64_t>() const;
+std::int64_t Parse(const Value& value, parse::To<std::int64_t>);
 
-template <>
-uint64_t Value::As<uint64_t>() const;
+std::uint64_t Parse(const Value& value, parse::To<std::uint64_t>);
 
-template <>
-double Value::As<double>() const;
+double Parse(const Value& value, parse::To<double>);
 
-template <>
-std::string Value::As<std::string>() const;
+std::string Parse(const Value& value, parse::To<std::string>);
 
 template <>
 bool Value::ConvertTo<bool>() const;
@@ -360,19 +362,19 @@ template <>
 std::string Value::ConvertTo<std::string>() const;
 
 template <typename T, typename First, typename... Rest>
-T Value::As(First&& default_arg, Rest&&... more_default_args) const {
+auto Value::As(First&& default_arg, Rest&&... more_default_args) const {
   if (IsMissing() || IsNull()) {
     // intended raw ctor call, sometimes casts
     // NOLINTNEXTLINE(google-readability-casting)
-    return T(std::forward<First>(default_arg),
-             std::forward<Rest>(more_default_args)...);
+    return decltype(As<T>())(std::forward<First>(default_arg),
+                             std::forward<Rest>(more_default_args)...);
   }
   return As<T>();
 }
 
 template <typename T>
-T Value::As(Value::DefaultConstructed) const {
-  return (IsMissing() || IsNull()) ? T() : As<T>();
+auto Value::As(Value::DefaultConstructed) const {
+  return (IsMissing() || IsNull()) ? decltype(As<T>())() : As<T>();
 }
 
 template <typename T>

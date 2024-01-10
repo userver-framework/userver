@@ -113,118 +113,119 @@ bool Value::IsMinKey() const { return impl_->Type() == BSON_TYPE_MINKEY; }
 bool Value::IsMaxKey() const { return impl_->Type() == BSON_TYPE_MAXKEY; }
 bool Value::IsTimestamp() const { return impl_->Type() == BSON_TYPE_TIMESTAMP; }
 
-template <>
-bool Value::As<bool>() const {
-  CheckNotMissing();
-  if (IsBool()) return impl_->GetNative()->value.v_bool;
-  throw TypeMismatchException(impl_->Type(), BSON_TYPE_BOOL, GetPath());
+bool Parse(const Value& value, parse::To<bool>) {
+  value.CheckNotMissing();
+  if (value.IsBool()) return value.impl_->GetNative()->value.v_bool;
+  throw TypeMismatchException(value.impl_->Type(), BSON_TYPE_BOOL,
+                              value.GetPath());
 }
 
-template <>
-int64_t Value::As<int64_t>() const {
-  CheckNotMissing();
-  if (IsInt32()) return impl_->GetNative()->value.v_int32;
-  if (IsInt64()) return impl_->GetNative()->value.v_int64;
-  if (IsDouble()) {
-    auto as_double = As<double>();
+int64_t Parse(const Value& value, parse::To<int64_t>) {
+  value.CheckNotMissing();
+  if (value.IsInt32()) return value.impl_->GetNative()->value.v_int32;
+  if (value.IsInt64()) return value.impl_->GetNative()->value.v_int64;
+  if (value.IsDouble()) {
+    auto as_double = value.As<double>();
     double int_part = 0.0;
     auto frac_part = std::modf(as_double, &int_part);
     if (frac_part || std::abs(as_double) >= kMaxIntDouble) {
       throw ConversionException("Conversion of ")
-          << GetPath() << '=' << as_double
+          << value.GetPath() << '=' << as_double
           << " to integer causes precision change";
     }
     return static_cast<int64_t>(as_double);
   }
-  throw TypeMismatchException(impl_->Type(), BSON_TYPE_INT64, GetPath());
+  throw TypeMismatchException(value.impl_->Type(), BSON_TYPE_INT64,
+                              value.GetPath());
 }
 
-template <>
-uint64_t Value::As<uint64_t>() const {
-  CheckNotMissing();
-  if (IsInt64() || IsInt32() || IsDouble()) {
-    return static_cast<uint64_t>(CheckedNotTooNegative(As<int64_t>(), *this));
+uint64_t Parse(const Value& value, parse::To<uint64_t>) {
+  value.CheckNotMissing();
+  if (value.IsInt64() || value.IsInt32() || value.IsDouble()) {
+    return static_cast<uint64_t>(
+        CheckedNotTooNegative(value.As<int64_t>(), value));
   }
-  throw TypeMismatchException(impl_->Type(), BSON_TYPE_INT64, GetPath());
+  throw TypeMismatchException(value.impl_->Type(), BSON_TYPE_INT64,
+                              value.GetPath());
 }
 
-template <>
-double Value::As<double>() const {
-  CheckNotMissing();
-  if (IsInt32()) return static_cast<double>(As<int64_t>());
-  if (IsInt64()) {
-    auto as_int = As<int64_t>();
+double Parse(const Value& value, parse::To<double>) {
+  value.CheckNotMissing();
+  if (value.IsInt32()) return static_cast<double>(value.As<int64_t>());
+  if (value.IsInt64()) {
+    auto as_int = value.As<int64_t>();
     if (as_int == std::numeric_limits<int64_t>::min() ||
         std::abs(as_int) > kMaxIntDouble) {
       throw ConversionException("Conversion of ")
-          << GetPath() << '=' << as_int << " to double causes precision loss";
+          << value.GetPath() << '=' << as_int
+          << " to double causes precision loss";
     }
     return static_cast<double>(as_int);
   }
-  if (IsDouble()) return impl_->GetNative()->value.v_double;
-  throw TypeMismatchException(impl_->Type(), BSON_TYPE_DOUBLE, GetPath());
+  if (value.IsDouble()) return value.impl_->GetNative()->value.v_double;
+  throw TypeMismatchException(value.impl_->Type(), BSON_TYPE_DOUBLE,
+                              value.GetPath());
 }
 
-template <>
-std::string Value::As<std::string>() const {
-  CheckNotMissing();
-  if (IsString()) {
-    const auto& str = impl_->GetNative()->value.v_utf8;
+std::string Parse(const Value& value, parse::To<std::string>) {
+  value.CheckNotMissing();
+  if (value.IsString()) {
+    const auto& str = value.impl_->GetNative()->value.v_utf8;
     return {str.str, str.len};
   }
-  throw TypeMismatchException(impl_->Type(), BSON_TYPE_UTF8, GetPath());
+  throw TypeMismatchException(value.impl_->Type(), BSON_TYPE_UTF8,
+                              value.GetPath());
 }
 
-template <>
-std::chrono::system_clock::time_point
-Value::As<std::chrono::system_clock::time_point>() const {
-  CheckNotMissing();
-  if (IsDateTime())
+std::chrono::system_clock::time_point Parse(
+    const Value& value, parse::To<std::chrono::system_clock::time_point>) {
+  value.CheckNotMissing();
+  if (value.IsDateTime())
     return std::chrono::system_clock::time_point(
-        std::chrono::milliseconds(impl_->GetNative()->value.v_datetime));
-  throw TypeMismatchException(impl_->Type(), BSON_TYPE_DATE_TIME, GetPath());
+        std::chrono::milliseconds(value.impl_->GetNative()->value.v_datetime));
+  throw TypeMismatchException(value.impl_->Type(), BSON_TYPE_DATE_TIME,
+                              value.GetPath());
 }
 
-template <>
-Oid Value::As<Oid>() const {
-  CheckNotMissing();
-  if (IsOid()) return impl_->GetNative()->value.v_oid;
-  throw TypeMismatchException(impl_->Type(), BSON_TYPE_OID, GetPath());
+Oid Parse(const Value& value, parse::To<Oid>) {
+  value.CheckNotMissing();
+  if (value.IsOid()) return value.impl_->GetNative()->value.v_oid;
+  throw TypeMismatchException(value.impl_->Type(), BSON_TYPE_OID,
+                              value.GetPath());
 }
 
-template <>
-Binary Value::As<Binary>() const {
-  CheckNotMissing();
-  if (IsBinary()) {
-    const auto& data = impl_->GetNative()->value.v_binary;
+Binary Parse(const Value& value, parse::To<Binary>) {
+  value.CheckNotMissing();
+  if (value.IsBinary()) {
+    const auto& data = value.impl_->GetNative()->value.v_binary;
     return Binary(
         std::string(reinterpret_cast<const char*>(data.data), data.data_len));
   }
-  throw TypeMismatchException(impl_->Type(), BSON_TYPE_BINARY, GetPath());
+  throw TypeMismatchException(value.impl_->Type(), BSON_TYPE_BINARY,
+                              value.GetPath());
 }
 
-template <>
-Decimal128 Value::As<Decimal128>() const {
-  CheckNotMissing();
-  if (IsDecimal128()) return impl_->GetNative()->value.v_decimal128;
-  throw TypeMismatchException(impl_->Type(), BSON_TYPE_DECIMAL128, GetPath());
+Decimal128 Parse(const Value& value, parse::To<Decimal128>) {
+  value.CheckNotMissing();
+  if (value.IsDecimal128()) return value.impl_->GetNative()->value.v_decimal128;
+  throw TypeMismatchException(value.impl_->Type(), BSON_TYPE_DECIMAL128,
+                              value.GetPath());
 }
 
-template <>
-Timestamp Value::As<Timestamp>() const {
-  CheckNotMissing();
-  if (IsTimestamp()) {
-    return {impl_->GetNative()->value.v_timestamp.timestamp,
-            impl_->GetNative()->value.v_timestamp.increment};
+Timestamp Parse(const Value& value, parse::To<Timestamp>) {
+  value.CheckNotMissing();
+  if (value.IsTimestamp()) {
+    return {value.impl_->GetNative()->value.v_timestamp.timestamp,
+            value.impl_->GetNative()->value.v_timestamp.increment};
   }
-  throw TypeMismatchException(impl_->Type(), BSON_TYPE_TIMESTAMP, GetPath());
+  throw TypeMismatchException(value.impl_->Type(), BSON_TYPE_TIMESTAMP,
+                              value.GetPath());
 }
 
-template <>
-Document Value::As<Document>() const {
-  CheckNotMissing();
-  impl_->CheckIsDocument();
-  return AsDocumentUnchecked(*impl_);
+Document Parse(const Value& value, parse::To<Document>) {
+  value.CheckNotMissing();
+  value.impl_->CheckIsDocument();
+  return AsDocumentUnchecked(*value.impl_);
 }
 
 template <>

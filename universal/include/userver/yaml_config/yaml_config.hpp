@@ -153,19 +153,19 @@ class YamlConfig {
   /// @brief Returns value of *this converted to T.
   /// @throw Anything derived from std::exception.
   template <typename T>
-  T As() const;
+  auto As() const;
 
   /// @brief Returns value of *this converted to T or T(args) if
   /// this->IsMissing().
   /// @throw Anything derived from std::exception.
   template <typename T, typename First, typename... Rest>
-  T As(First&& default_arg, Rest&&... more_default_args) const;
+  auto As(First&& default_arg, Rest&&... more_default_args) const;
 
   /// @brief Returns value of *this converted to T or T() if this->IsMissing().
   /// @throw Anything derived from std::exception.
   /// @note Use as `value.As<T>({})`
   template <typename T>
-  T As(DefaultConstructed) const;
+  auto As(DefaultConstructed) const;
 
   /// @brief Returns true if *this holds a `key`.
   /// @throw Nothing.
@@ -188,10 +188,17 @@ class YamlConfig {
   formats::yaml::Value yaml_;
   formats::yaml::Value config_vars_;
   Mode mode_{Mode::kSecure};
+
+  friend bool Parse(const YamlConfig& value, formats::parse::To<bool>);
+  friend int64_t Parse(const YamlConfig& value, formats::parse::To<int64_t>);
+  friend uint64_t Parse(const YamlConfig& value, formats::parse::To<uint64_t>);
+  friend double Parse(const YamlConfig& value, formats::parse::To<double>);
+  friend std::string Parse(const YamlConfig& value,
+                           formats::parse::To<std::string>);
 };
 
 template <typename T>
-T YamlConfig::As() const {
+auto YamlConfig::As() const {
   static_assert(formats::common::impl::kHasParse<YamlConfig, T>,
                 "There is no `Parse(const yaml_config::YamlConfig&, "
                 "formats::parse::To<T>)`"
@@ -203,35 +210,30 @@ T YamlConfig::As() const {
   return Parse(*this, formats::parse::To<T>{});
 }
 
-template <>
-bool YamlConfig::As<bool>() const;
+bool Parse(const YamlConfig& value, formats::parse::To<bool>);
 
-template <>
-int64_t YamlConfig::As<int64_t>() const;
+int64_t Parse(const YamlConfig& value, formats::parse::To<int64_t>);
 
-template <>
-uint64_t YamlConfig::As<uint64_t>() const;
+uint64_t Parse(const YamlConfig& value, formats::parse::To<uint64_t>);
 
-template <>
-double YamlConfig::As<double>() const;
+double Parse(const YamlConfig& value, formats::parse::To<double>);
 
-template <>
-std::string YamlConfig::As<std::string>() const;
+std::string Parse(const YamlConfig& value, formats::parse::To<std::string>);
 
 template <typename T, typename First, typename... Rest>
-T YamlConfig::As(First&& default_arg, Rest&&... more_default_args) const {
+auto YamlConfig::As(First&& default_arg, Rest&&... more_default_args) const {
   if (IsMissing()) {
     // intended raw ctor call, sometimes casts
     // NOLINTNEXTLINE(google-readability-casting)
-    return T(std::forward<First>(default_arg),
-             std::forward<Rest>(more_default_args)...);
+    return decltype(As<T>())(std::forward<First>(default_arg),
+                             std::forward<Rest>(more_default_args)...);
   }
   return As<T>();
 }
 
 template <typename T>
-T YamlConfig::As(YamlConfig::DefaultConstructed) const {
-  return IsMissing() ? T() : As<T>();
+auto YamlConfig::As(YamlConfig::DefaultConstructed) const {
+  return IsMissing() ? decltype(As<T>())() : As<T>();
 }
 
 /// @brief Wrapper for handy python-like iteration over a map

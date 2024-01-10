@@ -162,7 +162,7 @@ class Value {
   // clang-format on
 
   template <typename T>
-  T As() const {
+  auto As() const {
     static_assert(
         formats::common::impl::kHasParse<Value, T>,
         "There is no `Parse(const Value&, formats::parse::To<T>)` in namespace "
@@ -175,12 +175,12 @@ class Value {
   /// Extracts the specified type with strict type checks, or constructs the
   /// default value when the field is not present
   template <typename T, typename First, typename... Rest>
-  T As(First&& default_arg, Rest&&... more_default_args) const {
+  auto As(First&& default_arg, Rest&&... more_default_args) const {
     if (IsMissing() || IsNull()) {
       // intended raw ctor call, sometimes casts
       // NOLINTNEXTLINE(google-readability-casting)
-      return T(std::forward<First>(default_arg),
-               std::forward<Rest>(more_default_args)...);
+      return decltype(As<T>())(std::forward<First>(default_arg),
+                               std::forward<Rest>(more_default_args)...);
     }
     return As<T>();
   }
@@ -189,8 +189,8 @@ class Value {
   /// @throw Anything derived from std::exception.
   /// @note Use as `value.As<T>({})`
   template <typename T>
-  T As(DefaultConstructed) const {
-    return (IsMissing() || IsNull()) ? T() : As<T>();
+  auto As(DefaultConstructed) const {
+    return (IsMissing() || IsNull()) ? decltype(As<T>())() : As<T>();
   }
 
   /// @brief Extracts the specified type with relaxed type checks.
@@ -259,43 +259,45 @@ class Value {
   friend class ValueBuilder;
   friend class impl::BsonBuilder;
 
+  friend bool Parse(const Value& value, parse::To<bool>);
+  friend int64_t Parse(const Value& value, parse::To<int64_t>);
+  friend uint64_t Parse(const Value& value, parse::To<uint64_t>);
+  friend double Parse(const Value& value, parse::To<double>);
+  friend std::string Parse(const Value& value, parse::To<std::string>);
+  friend std::chrono::system_clock::time_point Parse(
+      const Value& value, parse::To<std::chrono::system_clock::time_point>);
+  friend Oid Parse(const Value& value, parse::To<Oid>);
+  friend Binary Parse(const Value& value, parse::To<Binary>);
+  friend Decimal128 Parse(const Value& value, parse::To<Decimal128>);
+  friend Timestamp Parse(const Value& value, parse::To<Timestamp>);
+  friend Document Parse(const Value& value, parse::To<Document>);
+
   impl::ValueImplPtr impl_;
 };
 
 /// @cond
-template <>
-bool Value::As<bool>() const;
+bool Parse(const Value& value, parse::To<bool>);
 
-template <>
-int64_t Value::As<int64_t>() const;
+int64_t Parse(const Value& value, parse::To<int64_t>);
 
-template <>
-uint64_t Value::As<uint64_t>() const;
+uint64_t Parse(const Value& value, parse::To<uint64_t>);
 
-template <>
-double Value::As<double>() const;
+double Parse(const Value& value, parse::To<double>);
 
-template <>
-std::string Value::As<std::string>() const;
+std::string Parse(const Value& value, parse::To<std::string>);
 
-template <>
-std::chrono::system_clock::time_point
-Value::As<std::chrono::system_clock::time_point>() const;
+std::chrono::system_clock::time_point Parse(
+    const Value& value, parse::To<std::chrono::system_clock::time_point>);
 
-template <>
-Oid Value::As<Oid>() const;
+Oid Parse(const Value& value, parse::To<Oid>);
 
-template <>
-Binary Value::As<Binary>() const;
+Binary Parse(const Value& value, parse::To<Binary>);
 
-template <>
-Decimal128 Value::As<Decimal128>() const;
+Decimal128 Parse(const Value& value, parse::To<Decimal128>);
 
-template <>
-Timestamp Value::As<Timestamp>() const;
+Timestamp Parse(const Value& value, parse::To<Timestamp>);
 
-template <>
-Document Value::As<Document>() const;
+Document Parse(const Value& value, parse::To<Document>);
 
 template <>
 bool Value::ConvertTo<bool>() const;

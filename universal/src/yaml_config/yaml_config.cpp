@@ -204,29 +204,24 @@ YamlConfig::const_iterator YamlConfig::end() const {
   return const_iterator{*this, yaml_.end()};
 }
 
-template <>
-bool YamlConfig::As<bool>() const {
-  return yaml_.As<bool>();
+bool Parse(const YamlConfig& value, formats::parse::To<bool>) {
+  return value.yaml_.As<bool>();
 }
 
-template <>
-int64_t YamlConfig::As<int64_t>() const {
-  return yaml_.As<int64_t>();
+int64_t Parse(const YamlConfig& value, formats::parse::To<int64_t>) {
+  return value.yaml_.As<int64_t>();
 }
 
-template <>
-uint64_t YamlConfig::As<uint64_t>() const {
-  return yaml_.As<uint64_t>();
+uint64_t Parse(const YamlConfig& value, formats::parse::To<uint64_t>) {
+  return value.yaml_.As<uint64_t>();
 }
 
-template <>
-double YamlConfig::As<double>() const {
-  return yaml_.As<double>();
+double Parse(const YamlConfig& value, formats::parse::To<double>) {
+  return value.yaml_.As<double>();
 }
 
-template <>
-std::string YamlConfig::As<std::string>() const {
-  return yaml_.As<std::string>();
+std::string Parse(const YamlConfig& value, formats::parse::To<std::string>) {
+  return value.yaml_.As<std::string>();
 }
 
 std::chrono::seconds Parse(const YamlConfig& value,

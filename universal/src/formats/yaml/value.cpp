@@ -179,31 +179,26 @@ bool Value::IsObject() const noexcept {
   return !IsMissing() && value_pimpl_->IsMap();
 }
 
-template <>
-bool Value::As<bool>() const {
-  return ValueAs<bool>();
+bool Parse(const Value& value, parse::To<bool>) {
+  return value.ValueAs<bool>();
 }
 
-template <>
-int64_t Value::As<int64_t>() const {
-  return ValueAs<int64_t>();
+int64_t Parse(const Value& value, parse::To<int64_t>) {
+  return value.ValueAs<int64_t>();
 }
 
-template <>
-uint64_t Value::As<uint64_t>() const {
-  return ValueAs<uint64_t>();
+uint64_t Parse(const Value& value, parse::To<uint64_t>) {
+  return value.ValueAs<uint64_t>();
 }
 
-template <>
-double Value::As<double>() const {
-  return ValueAs<double>();
+double Parse(const Value& value, parse::To<double>) {
+  return value.ValueAs<double>();
 }
 
-template <>
-std::string Value::As<std::string>() const {
-  CheckNotMissing();
-  CheckString();
-  return value_pimpl_->Scalar();
+std::string Parse(const Value& value, parse::To<std::string>) {
+  value.CheckNotMissing();
+  value.CheckString();
+  return value.value_pimpl_->Scalar();
 }
 
 bool Value::HasMember(std::string_view key) const {
