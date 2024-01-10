@@ -3,7 +3,7 @@ from grpc.aio._call import AioRpcError
 import samples.greeter_pb2 as greeter_protos  # noqa: E402, E501
 
 
-# /// [grpc authentification tests]
+# /// [grpc authentication tests]
 async def test_correct_credentials(grpc_client):
     request = greeter_protos.GreetingRequest(name='Python')
     response = await grpc_client.SayHello(
@@ -34,4 +34,4 @@ async def test_no_credentials(grpc_client):
         assert err.code() == StatusCode.PERMISSION_DENIED
 
 
-# /// [grpc authentification tests]
+# /// [grpc authentication tests]

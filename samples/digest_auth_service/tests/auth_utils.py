@@ -8,7 +8,7 @@ from requests.auth import HTTPDigestAuth
 REG = re.compile(r'(\w+)[:=][\s"]?([^",]+)"?')
 
 
-# construct challenge structer
+# construct challenge structure
 def construct_challenge(auth_directives: dict, nonce=''):
     return {
         'realm': auth_directives['realm'],

@@ -30,10 +30,12 @@
 /// - Transaction support;
 /// - Variadic template query parameter passing;
 /// - Query result extraction to C++ types;
-/// - Binary protocol usage for communication;
+/// - Binary protocol usage for communication rather than the libpq's text;
 /// - Portals for effective background cache updates;
 /// - Queries pipelining;
 /// - Mapping PostgreSQL user types to C++ types;
+/// - Transaction error injection via pytest_userver.sql.RegisteredTrx;
+/// - LISTEN/NOTIFY support via storages::postgres::Cluster::Listen();
 /// - @ref scripts/docs/en/userver/deadline_propagation.md .
 ///
 /// @section toc More information

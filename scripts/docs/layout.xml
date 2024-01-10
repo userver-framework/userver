@@ -23,6 +23,7 @@
         <tab type="user" url="@ref md_en_2userver_2tutorial_2http__caching" title="Pre-caching data from HTTP remote"/>
         <tab type="user" url="@ref md_en_2userver_2tutorial_2flatbuf__service" title="HTTP Flatbuf handler and requests"/>
         <tab type="user" url="@ref md_en_2userver_2tutorial_2grpc__service" title="gRPC client and service"/>
+        <tab type="user" url="@ref md_en_2userver_2tutorial_2grpc__middleware__service" title="gRPC middleware"/>
         <tab type="user" url="@ref md_en_2userver_2tutorial_2postgres__service" title="PostgreSQL service"/>
         <tab type="user" url="@ref md_en_2userver_2tutorial_2mongo__service" title="MongoDB service"/>
         <tab type="user" url="@ref md_en_2userver_2tutorial_2redis__service" title="Redis service"/>

@@ -172,6 +172,35 @@ UTEST(DynamicConfig, Snippet) {
 }
 /// [Sample StorageMock usage]
 
+/// [Sample StorageMock defaults]
+// Some production code
+void MyHelper(const dynamic_config::Snapshot&);
+
+class MyClient final {
+ public:
+  explicit MyClient(dynamic_config::Source);
+  // ...
+};
+
+// Tests
+UTEST(Stuff, DefaultConfig) {
+  MyHelper(dynamic_config::GetDefaultSnapshot());
+  MyClient client{dynamic_config::GetDefaultSource()};
+}
+
+UTEST(Stuff, CustomConfig) {
+  const auto config_storage = dynamic_config::MakeDefaultStorage({
+      {kDummyConfig, {42, "what"}},
+      {kIntConfig, 5},
+  });
+  MyHelper(config_storage.GetSnapshot());
+  MyClient client{config_storage.GetSource()};
+}
+/// [Sample StorageMock defaults]
+
+void MyHelper(const dynamic_config::Snapshot&) {}
+MyClient::MyClient(dynamic_config::Source) {}
+
 UTEST(DynamicConfig, Extend) {
   const std::vector<dynamic_config::KeyValue> vars1{
       {kIntConfig, 5},

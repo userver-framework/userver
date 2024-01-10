@@ -26,6 +26,64 @@ Changelog news also go to the
 ## Changelog
 
 
+### December 2023
+
+* LISTEN/NOTIFY support for PostgreSQL. See
+  storages::postgres::Cluster::Listen() and storages::postgres::NotifyScope
+  for more information.
+* components::Server now has `tls.ca` option for client-side certificates check.
+* Caches now have a `full-update-jitter` option to avoid simultaneous full
+  updates in different servers.
+* Fault injection into transactions. See pytest_userver.sql.RegisteredTrx for
+  sample usage.
+* Improved diagnostics for improper Secdist usage.
+* Added storages::postgres::ResultSet::AsOptionalSingleRow. Thanks to
+  [Jiawei He](https://github.com/waker-umich) for the PR!
+
+* Build:
+  * Big rewrite of CMake logic. Now `userver_setup_environment()` function is
+    used to setup the environment:
+    - before:
+      ```cmake
+      include(third_party/userver/cmake/SetupEnvironment.cmake)
+      add_subdirectory(third_party/userver)
+      ```
+    - after:
+      ```cmake
+      add_subdirectory(third_party/userver)
+      userver_setup_environment()
+      ```
+    Requirements are not code generated any more and the default requirements
+    used on `userver_testsuite_add_simple()` CMake function call.
+    `add_grpc_library()` renamed to `userver_add_grpc_library()`.
+  * `USERVER_PIP_USE_SYSTEM_PACKAGES` and `USERVER_PIP_OPTIONS` CMake options
+    now allow building the userver without internet connection. Thanks to
+    [Nikita](https://github.com/root-kidik) for the PR!
+  * Curl library now downloaded automatically if no suitable version found.
+  * Added missing check for Mongo in Conan. Thanks to
+    [Pavel Talashchenko](https://github.com/pavelbezpravel) for the PR!
+  * Fixed sanitizers error message in CMake. Thanks to
+    [Kirill Pavlov](https://github.com/pavkir) for the PR!
+  * Updated MacOS dependencies. Thanks to
+    [Kirill Morozov](https://github.com/moki) for the PRs!
+  * Added PostgreSQL 16 detection. Thanks to
+    [linuxnyasha](https://github.com/linuxnyasha) for the PR!
+
+* Optimizations:
+  * Optimized Http::Cookie::ToString(). Thanks to
+    [Илья Оплачкин](https://github.com/IoplachkinI) for the PR!
+
+* Documentation:
+  * Documented Secdist formats and added notes on possible environment variables
+    usage instead of secdist.
+  * Layout of reference pages changes. Now descriptions are at the top of the
+    page rather than being after the list of methods and members.
+  * Documented Mongo pool metrics at
+    @ref scripts/docs/en/userver/service_monitor.md.
+  * New @ref scripts/docs/en/userver/tutorial/grpc_middleware_service.md sample.
+  * Switched to Doxygen 1.10 with our search patches upstreamed
+
+
 ### November 2023
 
 * formats::json::Schema and validation function for it formats::json::Validate

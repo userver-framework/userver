@@ -28,7 +28,7 @@ async def test_authenticate_base(service_client):
 
 
 @pytest.mark.pgsql('auth', files=['test_data.sql'])
-async def test_authenticate_base_unregisted_user(service_client):
+async def test_authenticate_base_unregistered_user(service_client):
     response = await service_client.get('/v1/hello')
     assert response.status == 401
 
@@ -39,7 +39,7 @@ async def test_authenticate_base_unregisted_user(service_client):
 
     challenge = auth_utils.construct_challenge(auth_directives)
     auth_header = auth_utils.construct_header(
-        'unregistred_username', 'pswd', challenge,
+        'unregistered_username', 'pswd', challenge,
     )
 
     response = await service_client.get(

@@ -2,11 +2,13 @@
 
 ## Before you start
 
-Make sure that you can compile and run core tests and read a basic example @ref scripts/docs/en/userver/tutorial/hello_service.md.
+Make sure that you can compile and run core tests and read a basic example
+@ref scripts/docs/en/userver/tutorial/hello_service.md.
 
 ## Step by step guide
 
-In this example, you will write an authentification middleware for both 'GreeterService' and 'GreeterClient' of the basic grpc_service. 
+In this example, you will write an authentication middleware for both
+'GreeterService' and 'GreeterClient' of the basic grpc_service. 
 See @ref scripts/docs/en/userver/tutorial/grpc_service.md
 
 ### Installation
@@ -34,6 +36,7 @@ Then, wrap it into component, which just stores `MiddlewareFactory`:
 Lastly, add this component to the static config:
 
 ```
+# yaml
 components_manager:
     components:
         grpc-auth-client:
@@ -43,11 +46,13 @@ And connect it with `ClientFactory`:
 
 @snippet samples/grpc_middleware_service/static_config.yaml gRPC middleware sample - static config client middleware
 
+
 ### The server middleware
 
 Server middleware, in its turn, will validate metadata that comes with an rpc.
 
-Everything is the same as it is for client middleware, except there is no factory and the component stores the middleware itself:
+Everything is the same as it is for client middleware, except there is no
+factory and the component stores the middleware itself:
 
 @snippet samples/grpc_middleware_service/src/middlewares/server/middleware.hpp gRPC middleware sample - Middleware declaration
 
@@ -62,6 +67,7 @@ Respective component:
 Lastly, add this component to the static config:
 
 ```
+# yaml
 components_manager:
     components:
         grpc-auth-server:
@@ -71,11 +77,13 @@ And connect it with `Service`:
 
 @snippet samples/grpc_middleware_service/static_config.yaml gRPC middleware sample - static config server middleware
 
+
 ### int main()
 
 Finally, register components and start the server.
 
 @snippet samples/grpc_middleware_service/src/main.cpp gRPC middleware sample - components registration
+
 
 ### Build and Run
 
@@ -104,6 +112,7 @@ The service is available locally at port 8091 (as per project `static_config.yam
 To implement @ref scripts/docs/en/userver/functional_testing.md "Functional tests" for the
 service some preparational steps should be done.
 
+
 #### Preparations
 First of all, import the required modules and add the required
 pytest_userver.plugins.grpc pytest plugin:
@@ -122,6 +131,7 @@ Write the mocking fixtures using @ref pytest_userver.plugins.grpc_mockserver.grp
 
 @snippet samples/grpc_middleware_service/tests/conftest.py  Prepare server mock
 
+
 #### gRPC client
 
 To do the gRPC requests write a client fixture using
@@ -131,7 +141,7 @@ To do the gRPC requests write a client fixture using
 
 Use it to do gRPC requests to the service:
 
-@snippet samples/grpc_middleware_service/tests/test_middlewares.py  grpc authentification tests
+@snippet samples/grpc_middleware_service/tests/test_middlewares.py  grpc authentication tests
 
 
 ## Full sources

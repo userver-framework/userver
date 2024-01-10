@@ -15,6 +15,7 @@ components_manager:
 
         # Creates gRPC clients
 # /// [gRPC middleware sample - static config client middleware]
+        # yaml
         grpc-client-factory:
             task-processor: grpc-blocking-task-processor
             channel-args: {}
@@ -36,6 +37,7 @@ components_manager:
 
         # Our GreeterService implementation
 # /// [gRPC middleware sample - static config server middleware]
+        # yaml
         greeter-service:
             task-processor: main-task-processor
             greeting-prefix: Hello
