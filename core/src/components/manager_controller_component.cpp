@@ -32,6 +32,7 @@ void DumpMetric(utils::statistics::Writer& writer,
     tasks["queued"] = task_processor.GetTaskQueueSize();
     tasks["finished"] = stopped.value;
     tasks["cancelled"] = counter.GetCancelledTasks().value;
+    tasks["cancelled_overload"] = counter.GetCancelledTasksOverload().value;
   }
 
   writer["errors"].ValueWithLabels(
