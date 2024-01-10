@@ -22,7 +22,8 @@ class RedisConnectionHolder
       const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
       const std::string& host, uint16_t port, Password password,
       CommandsBufferingSettings buffering_settings,
-      ReplicationMonitoringSettings replication_monitoring_settings);
+      ReplicationMonitoringSettings replication_monitoring_settings,
+      RetryBudgetSettings retry_budget_settings);
   ~RedisConnectionHolder();
   RedisConnectionHolder(const RedisConnectionHolder&) = delete;
   RedisConnectionHolder& operator=(const RedisConnectionHolder&) = delete;
@@ -31,6 +32,7 @@ class RedisConnectionHolder
 
   void SetReplicationMonitoringSettings(ReplicationMonitoringSettings settings);
   void SetCommandsBufferingSettings(CommandsBufferingSettings settings);
+  void SetRetryBudgetSettings(RetryBudgetSettings settings);
 
   Redis::State GetState() const;
 
@@ -46,6 +48,7 @@ class RedisConnectionHolder
       commands_buffering_settings_;
   concurrent::Variable<ReplicationMonitoringSettings, std::mutex>
       replication_monitoring_settings_;
+  concurrent::Variable<RetryBudgetSettings, std::mutex> retry_budget_settings_;
   engine::ev::ThreadControl ev_thread_;
   std::shared_ptr<engine::ev::ThreadPool> redis_thread_pool_;
   const std::string host_;

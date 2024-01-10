@@ -9,6 +9,7 @@
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/storages/redis/impl/retry_budget.hpp>
 #include <userver/storages/redis/impl/thread_pools.hpp>
 #include <userver/storages/redis/reply.hpp>
 #include <userver/storages/secdist/component.hpp>
@@ -30,6 +31,7 @@
 #include "client_impl.hpp"
 #include "redis_secdist.hpp"
 #include "subscribe_client_impl.hpp"
+#include "userver/storages/redis/impl/base.hpp"
 
 #include <boost/range/adaptor/map.hpp>
 
@@ -310,6 +312,9 @@ void Redis::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
     client->SetReplicationMonitoringSettings(
         redis_config.replication_monitoring_settings.GetOptional(name).value_or(
             redis::ReplicationMonitoringSettings{}));
+    client->SetRetryBudgetSettings(
+        redis_config.retry_budget_settings.GetOptional(name).value_or(
+            redis::RetryBudgetSettings{}));
     client->SetClusterAutoTopology(auto_topology);
   }
 

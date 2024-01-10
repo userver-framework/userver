@@ -9,6 +9,7 @@
 
 #include <storages/redis/impl/command.hpp>
 #include <userver/storages/redis/impl/base.hpp>
+#include <userver/storages/redis/impl/retry_budget.hpp>
 
 #include "command_control_impl.hpp"
 
@@ -84,8 +85,8 @@ Shard::GetAvailableServersWeighted(
   for (size_t i = 0; i < instances_.size(); i++) {
     const auto& instance = *instances_[i].instance;
     const auto& info = instances_[i].info;
-    if (available.at(i) && instance.GetState() == Redis::State::kConnected &&
-        !instance.IsDestroying() && (with_master || info.IsReadOnly())) {
+    if (available.at(i) && instance.IsAvailable() &&
+        (with_master || info.IsReadOnly())) {
       server_weights.emplace(instance.GetServerId(), 1);
     }
   }
@@ -176,7 +177,7 @@ std::vector<unsigned char> Shard::GetNearestServersPing(
 }
 
 std::shared_ptr<Redis> Shard::GetInstance(
-    const std::vector<unsigned char>& available_servers,
+    const std::vector<unsigned char>& available_servers, bool is_retry,
     bool may_fallback_to_any, size_t skip_idx, bool read_only,
     size_t* pinstance_idx) {
   std::shared_ptr<Redis> instance;
@@ -192,9 +193,8 @@ std::shared_ptr<Redis> Shard::GetInstance(
       continue;
 
     const auto& cur_inst = instances_[instance_idx].instance;
-    if (cur_inst && !cur_inst->IsDestroying() &&
-        (cur_inst->GetState() == Redis::State::kConnected) &&
-        !cur_inst->IsSyncing() &&
+    if (cur_inst && cur_inst->IsAvailable() &&
+        (!is_retry || cur_inst->CanRetry()) &&
         (!instance || instance->IsDestroying() ||
          cur_inst->GetRunningCommands() < instance->GetRunningCommands())) {
       if (pinstance_idx) *pinstance_idx = instance_idx;
@@ -212,8 +212,7 @@ std::vector<ServerId> Shard::GetAllInstancesServerId() const {
 
   for (const auto& conn_status : instances_) {
     auto instance = conn_status.instance;
-    if (instance && instance->GetState() == Redis::State::kConnected &&
-        !instance->IsDestroying())
+    if (instance && instance->IsAvailable())
       ids.push_back(instance->GetServerId());
   }
   return ids;
@@ -222,6 +221,7 @@ std::vector<ServerId> Shard::GetAllInstancesServerId() const {
 bool Shard::AsyncCommand(CommandPtr command) {
   std::shared_ptr<Redis> instance;
   size_t idx = 0;
+  const auto is_retry = command->counter != 0;
 
   std::shared_lock lock(mutex_);  // protects instances_ and destroying_
   if (destroying_) return false;
@@ -243,8 +243,8 @@ bool Shard::AsyncCommand(CommandPtr command) {
     const bool may_fallback_to_any =
         (attempt != 0 && cc.force_server_id.IsAny());
 
-    instance = GetInstance(available_servers, may_fallback_to_any, skip_idx,
-                           command->read_only, &idx);
+    instance = GetInstance(available_servers, is_retry, may_fallback_to_any,
+                           skip_idx, command->read_only, &idx);
     command->instance_idx = idx;
 
     if (instance) {
@@ -303,6 +303,8 @@ bool Shard::ProcessCreation(
     if (auto commands_buffering_settings = commands_buffering_settings_.Get())
       entry.instance->SetCommandsBufferingSettings(
           *commands_buffering_settings);
+    if (auto retry_budet_settings = retry_budet_settings_.Get())
+      entry.instance->SetRetryBudgetSettings(*retry_budet_settings);
     auto server_id = entry.instance->GetServerId();
     entry.instance->signal_state_change.connect(
         [this, server_id](Redis::State state) {
@@ -461,6 +463,22 @@ void Shard::SetReplicationMonitoringSettings(
     instance.instance->SetReplicationMonitoringSettings(
         replication_monitoring_settings);
   }
+}
+
+void Shard::SetRetryBudgetSettings(
+    const RetryBudgetSettings& retry_budget_settings) {
+  std::shared_lock lock(mutex_);
+
+  for (const auto& instance : instances_) {
+    instance.instance->SetRetryBudgetSettings(retry_budget_settings);
+  }
+
+  for (const auto& instance : clean_wait_) {
+    instance.instance->SetRetryBudgetSettings(retry_budget_settings);
+  }
+
+  retry_budet_settings_.Set(
+      std::make_shared<RetryBudgetSettings>(retry_budget_settings));
 }
 
 std::vector<ConnectionInfoInt> Shard::GetConnectionInfosToCreate() const {

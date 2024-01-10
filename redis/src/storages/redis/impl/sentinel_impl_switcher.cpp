@@ -154,6 +154,13 @@ void ClusterSentinelImplSwitcher::SetReplicationMonitoringSettings(
   impl->SetReplicationMonitoringSettings(replication_monitoring_settings);
 }
 
+void ClusterSentinelImplSwitcher::SetRetryBudgetSettings(
+    const RetryBudgetSettings& settings) {
+  auto impl = impl_.Get();
+  UASSERT(impl);
+  impl->SetRetryBudgetSettings(settings);
+}
+
 void ClusterSentinelImplSwitcher::SetClusterAutoTopology(bool auto_topology) {
   enabled_by_config_ = auto_topology;
   UpdateImpl(true, true);

@@ -22,6 +22,7 @@
 
 #include <storages/redis/impl/redis_stats.hpp>
 #include <userver/storages/redis/client.hpp>
+#include <userver/storages/redis/impl/retry_budget.hpp>
 #include <userver/storages/redis/impl/types.hpp>
 #include <userver/storages/redis/impl/wait_connected_mode.hpp>
 
@@ -88,6 +89,8 @@ class SentinelImplBase {
       CommandsBufferingSettings commands_buffering_settings) = 0;
   virtual void SetReplicationMonitoringSettings(
       const ReplicationMonitoringSettings& replication_monitoring_settings) = 0;
+  virtual void SetRetryBudgetSettings(
+      const RetryBudgetSettings& retry_budget_settings) = 0;
   virtual void SetClusterAutoTopology(bool /*auto_topology*/) {}
 
   virtual PublishSettings GetPublishSettings() = 0;
@@ -144,6 +147,8 @@ class SentinelImpl : public SentinelImplBase {
   void SetReplicationMonitoringSettings(
       const ReplicationMonitoringSettings& replication_monitoring_settings)
       override;
+  void SetRetryBudgetSettings(
+      const RetryBudgetSettings& retry_budget_settings) override;
   PublishSettings GetPublishSettings() override;
 
  private:

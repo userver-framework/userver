@@ -290,6 +290,16 @@ class ClusterTopologyHolder
     }
   }
 
+  void SetRetryBudgetSettings(const RetryBudgetSettings& settings) {
+    {
+      auto settings_ptr = retry_budget_settings_.Lock();
+      *settings_ptr = settings;
+    }
+    for (const auto& node : nodes_) {
+      node.second->SetRetryBudgetSettings(settings);
+    }
+  }
+
   static size_t GetClusterSlotsCalledCounter() {
     return cluster_slots_call_counter_.load(std::memory_order_relaxed);
   }
@@ -360,6 +370,7 @@ class ClusterTopologyHolder
       commands_buffering_settings_;
   concurrent::Variable<ReplicationMonitoringSettings, std::mutex>
       monitoring_settings_;
+  concurrent::Variable<RetryBudgetSettings, std::mutex> retry_budget_settings_;
   concurrent::Variable<std::unordered_set<HostPort>, std::mutex>
       nodes_to_create_;
 
@@ -543,11 +554,12 @@ ClusterTopologyHolder::CreateRedisInstance(const std::string& host_port) {
   const auto host = host_port.substr(0, port_it);
   const auto buffering_settings_ptr = commands_buffering_settings_.Lock();
   const auto replication_monitoring_settings_ptr = monitoring_settings_.Lock();
+  const auto retry_budget_settings_ptr = retry_budget_settings_.Lock();
   LOG_DEBUG() << "Create new redis instance " << host_port;
   return std::make_shared<RedisConnectionHolder>(
       ev_thread_, redis_thread_pool_, host, port, password_,
       buffering_settings_ptr->value_or(CommandsBufferingSettings{}),
-      *replication_monitoring_settings_ptr);
+      *replication_monitoring_settings_ptr, *retry_budget_settings_ptr);
 }
 
 namespace {
@@ -906,6 +918,13 @@ void ClusterSentinelImpl::SetReplicationMonitoringSettings(
     const ReplicationMonitoringSettings& monitoring_settings) {
   if (topology_holder_) {
     topology_holder_->SetReplicationMonitoringSettings(monitoring_settings);
+  }
+}
+
+void ClusterSentinelImpl::SetRetryBudgetSettings(
+    const RetryBudgetSettings& settings) {
+  if (topology_holder_) {
+    topology_holder_->SetRetryBudgetSettings(settings);
   }
 }
 

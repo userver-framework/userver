@@ -86,6 +86,7 @@ bool ClusterShard::AsyncCommand(CommandPtr command) const {
   const auto& available_servers = GetAvailableServers(command->control);
   const auto servers_count = available_servers.size();
   const auto is_nearest_ping_server = IsNearestServerPing(cc);
+  const auto is_retry = command->counter != 0;
 
   const auto masters_count = 1;
   const auto max_attempts = replicas_.size() + masters_count + 1;
@@ -96,7 +97,7 @@ bool ClusterShard::AsyncCommand(CommandPtr command) const {
 
     size_t idx = SentinelImpl::kDefaultPrevInstanceIdx;
     const auto instance =
-        GetInstance(available_servers, start_idx, attempt,
+        GetInstance(available_servers, is_retry, start_idx, attempt,
                     is_nearest_ping_server, cc.best_dc_count, &idx);
     if (!instance) {
       continue;
@@ -214,9 +215,9 @@ std::vector<ClusterShard::RedisConnectionPtr> ClusterShard::GetAvailableServers(
 }
 
 ClusterShard::RedisPtr ClusterShard::GetInstance(
-    const std::vector<RedisConnectionPtr>& instances, size_t start_idx,
-    size_t attempt, bool is_nearest_ping_server, size_t best_dc_count,
-    size_t* pinstance_idx) {
+    const std::vector<RedisConnectionPtr>& instances, bool retry,
+    size_t start_idx, size_t attempt, bool is_nearest_ping_server,
+    size_t best_dc_count, size_t* pinstance_idx) {
   RedisPtr ret;
   const auto end = (is_nearest_ping_server && attempt == 0 && best_dc_count)
                        ? std::min(instances.size(), best_dc_count)
@@ -229,9 +230,8 @@ ClusterShard::RedisPtr ClusterShard::GetInstance(
     }
     const auto& cur_inst = cur->Get();
 
-    if (cur_inst && !cur_inst->IsDestroying() &&
-        (cur_inst->GetState() == Redis::State::kConnected) &&
-        !cur_inst->IsSyncing() &&
+    if (cur_inst && cur_inst->IsAvailable() &&
+        (!retry || cur_inst->CanRetry()) &&
         (!ret || ret->IsDestroying() ||
          cur_inst->GetRunningCommands() < ret->GetRunningCommands())) {
       if (pinstance_idx) *pinstance_idx = idx;
@@ -309,8 +309,7 @@ ClusterShard::RedisPtr GetRedisIfAvailable(
 
   auto ret = connection->Get();
 
-  if (!ret || ret->GetState() != Redis::State::kConnected ||
-      ret->IsDestroying() ||
+  if (!ret || !ret->IsAvailable() ||
       (!command_control.force_server_id.IsAny() &&
        ret->GetServerId() != command_control.force_server_id)) {
     return {};

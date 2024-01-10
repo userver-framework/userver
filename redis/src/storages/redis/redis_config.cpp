@@ -162,6 +162,8 @@ Config Config::Parse(const dynamic_config::DocsMap& docs_map) {
        docs_map.Get("REDIS_REPLICA_MONITORING_SETTINGS"));
   Into(result.redis_cluster_autotopology_enabled,
        docs_map.Get("REDIS_CLUSTER_AUTOTOPOLOGY_ENABLED_V2"));
+  Into(result.retry_budget_settings,
+       docs_map.Get("REDIS_RETRY_BUDGET_SETTINGS"));
   return result;
 }
 
@@ -197,6 +199,15 @@ const dynamic_config::Key<Config> kConfig{
           }
         )"}},
         {"REDIS_CLUSTER_AUTOTOPOLOGY_ENABLED_V2", true},
+        {"REDIS_RETRY_BUDGET_SETTINGS", JsonString{R"(
+          {
+            "__default__" : {
+              "max-tokens": 100.0,
+              "token-ratio": 0.1,
+              "enabled": true
+            }
+          }
+        )"}},
     },
 };
 

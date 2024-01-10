@@ -77,7 +77,7 @@ class Shard {
 
   bool AsyncCommand(CommandPtr command);
   std::shared_ptr<Redis> GetInstance(
-      const std::vector<unsigned char>& available_servers,
+      const std::vector<unsigned char>& available_servers, bool is_retry,
       bool may_fallback_to_any, size_t skip_idx, bool read_only,
       size_t* pinstance_idx);
   void Clean();
@@ -99,6 +99,8 @@ class Shard {
       CommandsBufferingSettings commands_buffering_settings);
   void SetReplicationMonitoringSettings(
       const ReplicationMonitoringSettings& replication_monitoring_settings);
+  void SetRetryBudgetSettings(
+      const RetryBudgetSettings& replication_monitoring_settings);
 
  private:
   std::vector<unsigned char> GetAvailableServers(
@@ -132,6 +134,7 @@ class Shard {
   boost::signals2::signal<void(ServerId, bool)> signal_instance_ready_;
 
   utils::SwappingSmart<CommandsBufferingSettings> commands_buffering_settings_;
+  utils::SwappingSmart<RetryBudgetSettings> retry_budet_settings_;
 
   bool prev_connected_ = false;
   const bool cluster_mode_ = false;

@@ -61,6 +61,7 @@ class UserverExperimentsScope final {
 
 // TODO move to userver/mongo once the issues with linker are resolved.
 extern UserverExperiment kRedisClusterAutoTopologyExperiment;
+extern UserverExperiment kRedisRetryBudgetExperiment;
 
 }  // namespace utils::impl
 

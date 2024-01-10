@@ -550,6 +550,12 @@ void SentinelImpl::SetReplicationMonitoringSettings(
     shard->SetReplicationMonitoringSettings(replication_monitoring_settings);
 }
 
+void SentinelImpl::SetRetryBudgetSettings(
+    const RetryBudgetSettings& retry_budget_settings) {
+  for (auto& shard : master_shards_)
+    shard->SetRetryBudgetSettings(retry_budget_settings);
+}
+
 PublishSettings SentinelImpl::GetPublishSettings() {
   /// Why do we always publish to master? We can actually publish to any host in
   /// shard to distribute load evenly

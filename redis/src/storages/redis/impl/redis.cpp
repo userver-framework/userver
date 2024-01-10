@@ -5,7 +5,6 @@
 #include <deque>
 #include <mutex>
 #include <string>
-#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -27,6 +26,7 @@
 #include <storages/redis/impl/redis_stats.hpp>
 #include <storages/redis/impl/tcp_socket.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
+#include <userver/storages/redis/impl/retry_budget.hpp>
 
 #include "command_control_impl.hpp"
 
@@ -155,6 +155,11 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
   size_t GetRunningCommands() const;
   bool IsDestroying() const { return destroying_; }
   bool IsSyncing() const { return is_syncing_; }
+  bool IsAvailable() const {
+    return GetState() == Redis::State::kConnected && !IsDestroying() &&
+           !IsSyncing();
+  }
+  bool CanRetry() const { return retry_budget_.CanRetry(); }
   std::chrono::milliseconds GetPingLatency() const {
     return std::chrono::milliseconds(ping_latency_ms_);
   }
@@ -162,6 +167,7 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
       CommandsBufferingSettings commands_buffering_settings);
   void SetReplicationMonitoringSettings(
       const ReplicationMonitoringSettings& replication_monitoring_settings);
+  void SetRetryBudgetSettings(const RetryBudgetSettings& settings);
 
   void ResetRedisObj() { redis_obj_ = nullptr; }
 
@@ -290,6 +296,7 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
   ServerId server_id_;
   bool attached_ = false;
   std::shared_ptr<RedisImpl> self_;
+  RetryBudget retry_budget_;
 };
 
 const std::string& Redis::StateToString(State state) {
@@ -360,6 +367,10 @@ bool Redis::IsDestroying() const { return impl_->IsDestroying(); }
 
 bool Redis::IsSyncing() const { return impl_->IsSyncing(); }
 
+bool Redis::IsAvailable() const { return impl_->IsAvailable(); }
+
+bool Redis::CanRetry() const { return impl_->CanRetry(); }
+
 std::string Redis::GetServerHost() const { return impl_->GetHost(); }
 
 uint16_t Redis::GetServerPort() const { return impl_->GetPort(); }
@@ -367,6 +378,10 @@ uint16_t Redis::GetServerPort() const { return impl_->GetPort(); }
 void Redis::SetCommandsBufferingSettings(
     CommandsBufferingSettings commands_buffering_settings) {
   impl_->SetCommandsBufferingSettings(commands_buffering_settings);
+}
+
+void Redis::SetRetryBudgetSettings(const RetryBudgetSettings& settings) {
+  impl_->SetRetryBudgetSettings(settings);
 }
 
 void Redis::SetReplicationMonitoringSettings(
@@ -383,7 +398,8 @@ Redis::RedisImpl::RedisImpl(
       thread_pool_(thread_pool),
       send_readonly_(redis_settings.send_readonly),
       connection_security_(redis_settings.connection_security),
-      server_id_(ServerId::Generate()) {
+      server_id_(ServerId::Generate()),
+      retry_budget_(RetryBudgetSettings{100, 0.1, false}) {
   SetCommandsBufferingSettings(CommandsBufferingSettings{});
   LOG_DEBUG() << "RedisImpl() server_id=" << GetServerId().GetId();
 }
@@ -530,6 +546,10 @@ void Redis::RedisImpl::InvokeCommand(const CommandPtr& command,
   reply->server = server_;
   if (reply->status == ReplyStatus::kTimeoutError) {
     reply->log_extra.Extend("timeout_ms", cc.timeout_single.count());
+    retry_budget_.AccountFail();
+  }
+  if (reply->status == ReplyStatus::kOk) {
+    retry_budget_.AccountOk();
   }
 
   reply->server_id = server_id_;
@@ -1256,6 +1276,11 @@ void Redis::RedisImpl::SetReplicationMonitoringSettings(
       replication_monitoring_settings.enable_monitoring;
   forbid_requests_to_syncing_replicas_ =
       replication_monitoring_settings.restrict_requests;
+}
+
+void Redis::RedisImpl::SetRetryBudgetSettings(
+    const RetryBudgetSettings& settings) {
+  retry_budget_.SetSettings(settings);
 }
 
 }  // namespace redis

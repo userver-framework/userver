@@ -6,6 +6,7 @@
 #include <userver/dynamic_config/value.hpp>
 #include <userver/formats/parse/to.hpp>
 #include <userver/storages/redis/impl/base.hpp>
+#include <userver/storages/redis/impl/retry_budget.hpp>
 #include <userver/storages/redis/impl/wait_connected_mode.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -54,6 +55,8 @@ struct Config final {
   dynamic_config::ValueDict<
       USERVER_NAMESPACE::redis::ReplicationMonitoringSettings>
       replication_monitoring_settings;
+  dynamic_config::ValueDict<USERVER_NAMESPACE::redis::RetryBudgetSettings>
+      retry_budget_settings;
   bool redis_cluster_autotopology_enabled{};
 };
 

@@ -304,6 +304,10 @@ void Sentinel::SetReplicationMonitoringSettings(
   impl_->SetReplicationMonitoringSettings(replication_monitoring_settings);
 }
 
+void Sentinel::SetRetryBudgetSettings(const RetryBudgetSettings& settings) {
+  impl_->SetRetryBudgetSettings(settings);
+}
+
 void Sentinel::SetClusterAutoTopology(bool auto_topology) {
   impl_->SetClusterAutoTopology(auto_topology);
 }

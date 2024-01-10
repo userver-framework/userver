@@ -9,10 +9,12 @@ RedisConnectionHolder::RedisConnectionHolder(
     const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
     const std::string& host, uint16_t port, Password password,
     CommandsBufferingSettings buffering_settings,
-    ReplicationMonitoringSettings replication_monitoring_settings)
+    ReplicationMonitoringSettings replication_monitoring_settings,
+    RetryBudgetSettings retry_budget_settings)
     : commands_buffering_settings_(std::move(buffering_settings)),
       replication_monitoring_settings_(
           std::move(replication_monitoring_settings)),
+      retry_budget_settings_(std::move(retry_budget_settings)),
       ev_thread_(sentinel_thread_control),
       redis_thread_pool_(redis_thread_pool),
       host_(host),
@@ -70,6 +72,10 @@ void RedisConnectionHolder::CreateConnection() {
     auto settings_ptr = replication_monitoring_settings_.Lock();
     instance->SetReplicationMonitoringSettings(*settings_ptr);
   }
+  {
+    auto settings_ptr = retry_budget_settings_.Lock();
+    instance->SetRetryBudgetSettings(*settings_ptr);
+  }
 
   instance->Connect({host_}, port_, password_);
   redis_.Assign(std::move(instance));
@@ -87,6 +93,13 @@ void RedisConnectionHolder::SetCommandsBufferingSettings(
   auto ptr = commands_buffering_settings_.Lock();
   *ptr = settings;
   redis_.ReadCopy()->SetCommandsBufferingSettings(std::move(settings));
+}
+
+void RedisConnectionHolder::SetRetryBudgetSettings(
+    RetryBudgetSettings settings) {
+  auto ptr = retry_budget_settings_.Lock();
+  *ptr = settings;
+  redis_.ReadCopy()->SetRetryBudgetSettings(std::move(settings));
 }
 
 Redis::State RedisConnectionHolder::GetState() const {
