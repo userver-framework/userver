@@ -426,7 +426,9 @@ UTEST_F(PostgreCluster, ListenNotify) {
   EXPECT_EQ(ntf.channel, kListenChannel);
   EXPECT_TRUE(ntf.payload && *ntf.payload == kNotifyPayload);
 
-  UEXPECT_THROW(scope.WaitNotify(kNotifyDeadline), pg::ConnectionTimeoutError);
+  UEXPECT_THROW(scope.WaitNotify(engine::Deadline::FromDuration(
+                    std::chrono::milliseconds{50})),
+                pg::ConnectionTimeoutError);
 }
 
 USERVER_NAMESPACE_END
