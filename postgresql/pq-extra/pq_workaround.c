@@ -596,7 +596,7 @@ static void parseInput(PGconn* conn, const PGresult* description) {
   pqxParseInput3(conn, description);
 #else
   if (PG_PROTOCOL_MAJOR(conn->pversion) >= 3)
-    pqxParseInput3(conn);
+    pqxParseInput3(conn, description);
   else
     /* For compatibility - parse protocol v2, very infeasible */
     pqParseInput2(conn);
@@ -1375,6 +1375,7 @@ failure:
   return EOF;
 }
 
+#if PG_VERSION_NUM >= 140000
 /*
  * This is copy-paste of PQsendQueryStart from fe-exec.c
  * We need this function because PQXsendQueryPrepared depends on it.
@@ -1620,3 +1621,19 @@ int PQXsendQueryPrepared(PGconn* conn, const char* stmtName, int nParams,
                           paramValues, paramLengths, paramFormats,
                           resultFormat);
 }
+#else
+int PQXsendQueryPrepared(PGconn* conn, const char* stmtName, int nParams,
+                         const char* const* paramValues,
+                         const int* paramLengths, const int* paramFormats,
+                         int resultFormat, PGresult* description) {
+  (void)description;
+
+  return PQsendQueryPrepared(conn,
+                             stmtName,
+                             nParams,
+                             paramValues,
+                             paramLengths,
+                             paramFormats,
+                             resultFormat);
+}
+#endif
