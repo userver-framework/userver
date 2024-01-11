@@ -596,7 +596,7 @@ static void parseInput(PGconn* conn, const PGresult* description) {
   pqxParseInput3(conn, description);
 #else
   if (PG_PROTOCOL_MAJOR(conn->pversion) >= 3)
-    pqxParseInput3(conn);
+    pqxParseInput3(conn, description);
   else
     /* For compatibility - parse protocol v2, very infeasible */
     pqParseInput2(conn);
@@ -1627,7 +1627,7 @@ int PQXsendQueryPrepared(PGconn* conn, const char* stmtName, int nParams,
                          const int* paramLengths, const int* paramFormats,
                          int resultFormat, PGresult*) {
   return PQsendQueryPrepared(conn,
-                             stmt,
+                             stmtName,
                              nParams,
                              paramValues,
                              paramLengths,
