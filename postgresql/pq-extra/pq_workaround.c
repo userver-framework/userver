@@ -1375,6 +1375,7 @@ failure:
   return EOF;
 }
 
+#if PG_VERSION_NUM >= 140000
 /*
  * This is copy-paste of PQsendQueryStart from fe-exec.c
  * We need this function because PQXsendQueryPrepared depends on it.
@@ -1620,3 +1621,17 @@ int PQXsendQueryPrepared(PGconn* conn, const char* stmtName, int nParams,
                           paramValues, paramLengths, paramFormats,
                           resultFormat);
 }
+#else
+int PQXsendQueryPrepared(PGconn* conn, const char* stmtName, int nParams,
+                         const char* const* paramValues,
+                         const int* paramLengths, const int* paramFormats,
+                         int resultFormat, PGresult*) {
+  return PQsendQueryPrepared(conn,
+                             stmt,
+                             nParams,
+                             paramValues,
+                             paramLengths,
+                             paramFormats,
+                             resultFormat);
+}
+#endif
