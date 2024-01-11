@@ -1625,7 +1625,9 @@ int PQXsendQueryPrepared(PGconn* conn, const char* stmtName, int nParams,
 int PQXsendQueryPrepared(PGconn* conn, const char* stmtName, int nParams,
                          const char* const* paramValues,
                          const int* paramLengths, const int* paramFormats,
-                         int resultFormat, PGresult*) {
+                         int resultFormat, PGresult* description) {
+  (void)description;
+
   return PQsendQueryPrepared(conn,
                              stmtName,
                              nParams,
