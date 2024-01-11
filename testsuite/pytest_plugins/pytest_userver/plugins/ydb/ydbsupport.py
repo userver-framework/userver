@@ -1,3 +1,5 @@
+import concurrent.futures
+import contextlib
 import os
 import pathlib
 import subprocess
@@ -6,6 +8,7 @@ from typing import List
 from typing import Optional
 
 import pytest
+import yaml
 
 from testsuite.environment import shell
 
@@ -20,19 +23,40 @@ def ydb(_ydb_client, _ydb_init):
     return _ydb_client
 
 
-@pytest.fixture
-def _ydb_client(_ydb_service, _ydb_service_settings):
+@pytest.fixture(scope='session')
+def _ydb_client(_ydb_client_pool):
+    with _ydb_client_pool() as ydb_client:
+        yield ydb_client
+
+
+@pytest.fixture(scope='session')
+def _ydb_client_pool(_ydb_service, _ydb_service_settings):
     endpoint = '{}:{}'.format(
         _ydb_service_settings.host, _ydb_service_settings.grpc_port,
     )
-    return client.YdbClient(endpoint, _ydb_service_settings.database)
+    pool = []
+
+    @contextlib.contextmanager
+    def get_client():
+        try:
+            ydb_client = pool.pop()
+        except IndexError:
+            ydb_client = client.YdbClient(
+                endpoint, _ydb_service_settings.database,
+            )
+        try:
+            yield ydb_client
+        finally:
+            pool.append(ydb_client)
+
+    return get_client
 
 
 def pytest_service_register(register_service):
     register_service('ydb', service.create_ydb_service)
 
 
-@pytest.fixture
+@pytest.fixture(scope='session')
 def _ydb_service(pytestconfig, ensure_service_started, _ydb_service_settings):
     if os.environ.get('YDB_ENDPOINT') or pytestconfig.option.ydb_host:
         return
@@ -100,7 +124,7 @@ def _ydb_state():
     return State()
 
 
-@pytest.fixture(name='ydb_migrate_dir')
+@pytest.fixture(name='ydb_migrate_dir', scope='session')
 def _ydb_migrate_dir(service_source_dir) -> pathlib.Path:
     return service_source_dir / 'ydb' / 'migrations'
 
@@ -178,16 +202,54 @@ def _ydb_fetch_table_names(_ydb_service_settings) -> List[str]:
         return []
 
 
+@pytest.fixture(scope='session')
+def _ydb_prepare(
+        _ydb_client,
+        _ydb_service_schemas,
+        _ydb_service_settings,
+        _ydb_state,
+        ydb_migrate_dir,
+):
+    if _ydb_service_schemas and ydb_migrate_dir.exists():
+        raise Exception(
+            'Both ydb/schema and ydb/migrations exist, '
+            'which are mutually exclusive',
+        )
+
+    # testsuite legacy
+    for schema_path in _ydb_service_schemas:
+        with open(schema_path) as fp:
+            tables_schemas = yaml.load(fp.read())
+        for table_schema in tables_schemas:
+            client.drop_table(_ydb_client, table_schema['path'])
+            client.create_table(_ydb_client, table_schema)
+            _ydb_state.tables.append(table_schema['path'])
+
+    # goose
+    _ydb_migrate(_ydb_service_settings, ydb_migrate_dir)
+
+    _ydb_state.init = True
+
+
+@pytest.fixture(scope='session')
+def _ydb_tables(_ydb_state, _ydb_prepare, _ydb_service_settings):
+    tables = {
+        *_ydb_state.tables,
+        *_ydb_fetch_table_names(_ydb_service_settings),
+    }
+    return tuple(sorted(tables))
+
+
 @pytest.fixture
 def _ydb_init(
         request,
-        _ydb_service_schemas,
         _ydb_client,
         _ydb_state,
         _ydb_service_settings,
-        ydb_migrate_dir,
+        _ydb_prepare,
+        _ydb_tables,
+        _ydb_client_pool,
         load,
-        load_yaml,
 ):
     def ydb_mark_queries(files=(), queries=()):
         result_queries = []
@@ -196,33 +258,15 @@ def _ydb_init(
         result_queries.extend(queries)
         return result_queries
 
-    if not _ydb_state.init:
-        if _ydb_service_schemas and ydb_migrate_dir.exists():
-            raise Exception(
-                'Both ydb/schema and ydb/migrations exist, '
-                'which are mutually exclusive',
-            )
+    def drop_table(table):
+        with _ydb_client_pool() as ydb_client:
+            ydb_client.execute('DELETE FROM `{}`'.format(table))
 
-        # testsuite legacy
-        for schema_path in _ydb_service_schemas:
-            tables_schemas = load_yaml(schema_path)
-            for table_schema in tables_schemas:
-                client.drop_table(_ydb_client, table_schema['path'])
-                client.create_table(_ydb_client, table_schema)
-                _ydb_state.tables.append(table_schema['path'])
-
-        # goose
-        _ydb_migrate(_ydb_service_settings, ydb_migrate_dir)
-
-        _ydb_state.init = True
-
-    # testsuite legacy
-    for table in _ydb_state.tables:
-        _ydb_client.execute('DELETE FROM `{}`'.format(table))
-
-    # goose
-    for table in _ydb_fetch_table_names(_ydb_service_settings):
-        _ydb_client.execute('DELETE FROM `{}`'.format(table))
+    if _ydb_tables:
+        with concurrent.futures.ThreadPoolExecutor(
+                max_workers=len(_ydb_tables),
+        ) as executer:
+            executer.map(drop_table, _ydb_tables)
 
     for mark in request.node.iter_markers('ydb'):
         queries = ydb_mark_queries(**mark.kwargs)
