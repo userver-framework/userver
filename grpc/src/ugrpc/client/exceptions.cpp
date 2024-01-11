@@ -22,9 +22,13 @@ ErrorWithStatus::ErrorWithStatus(std::string_view call_name,
                                  grpc::Status&& status,
                                  std::optional<google::rpc::Status>&& gstatus,
                                  std::optional<std::string>&& message)
-    : RpcError(call_name, fmt::format("code={}, message='{}'",
-                                      ugrpc::ToString(status.error_code()),
-                                      status.error_message())),
+    : RpcError(call_name,
+               message ? fmt::format("code={}, message='{}', details='{}'",
+                                     ugrpc::ToString(status.error_code()),
+                                     status.error_message(), *message)
+                       : fmt::format("code={}, message='{}'",
+                                     ugrpc::ToString(status.error_code()),
+                                     status.error_message())),
       status_(std::move(status)),
       gstatus_(std::move(gstatus)),
       gstatus_string_(std::move(message)) {}
