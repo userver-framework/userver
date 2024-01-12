@@ -51,10 +51,10 @@ class MutableValueWrapper {
   void EnsureCurrent() const;
 
   static constexpr std::size_t kSize = compiler::SelectSize()  //
-                                           .ForLibCpp32(48)
-                                           .ForLibCpp64(96)
-                                           .ForLibStdCpp64(104)
-                                           .ForLibStdCpp32(60);
+                                           .ForLibCpp32(52)
+                                           .ForLibCpp64(112)
+                                           .ForLibStdCpp64(112)
+                                           .ForLibStdCpp32(64);
   static constexpr std::size_t kAlignment = alignof(void*);
   utils::FastPimpl<Impl, kSize, kAlignment> impl_;
 };

@@ -37,8 +37,14 @@ struct MutableValueWrapper::Impl {
   Impl(std::shared_ptr<JsonPath>&& path, VersionedValuePtr root,
        const Value& member, int depth, size_t version)
       : path(std::move(path)),
-        value(std::move(root), &member, depth),
+        value(MakeValue(std::move(root), member, depth)),
         current_version(version) {}
+
+  static formats::json::Value MakeValue(VersionedValuePtr root,
+                                        const Value& member, int depth) {
+    auto* root_ptr = root.Get();
+    return {std::move(root), root_ptr, &member, depth};
+  }
 
   std::shared_ptr<JsonPath> path;
   mutable formats::json::Value value;
@@ -72,12 +78,12 @@ MutableValueWrapper MutableValueWrapper::WrapMember(std::string&& element,
                                                     const Value& member) const {
   EnsureCurrent();
   return {std::make_shared<JsonPath>(std::move(element), impl_->path),
-          impl_->value.root_, member, impl_->value.depth_ + 1};
+          impl_->value.holder_, member, impl_->value.depth_ + 1};
 }
 
 MutableValueWrapper MutableValueWrapper::WrapElement(size_t index) const {
   EnsureCurrent();
-  return {std::make_shared<JsonPath>(index, impl_->path), impl_->value.root_,
+  return {std::make_shared<JsonPath>(index, impl_->path), impl_->value.holder_,
           (*impl_->value.value_ptr_)[static_cast<::rapidjson::SizeType>(index)],
           impl_->value.depth_ + 1};
 }
@@ -111,21 +117,21 @@ formats::json::Value MutableValueWrapper::ExtractValue() && {
 }
 
 void MutableValueWrapper::OnMembersChange() {
-  UASSERT(impl_->value.root_.Version() == impl_->current_version);
-  impl_->value.root_.BumpVersion();
-  impl_->current_version = impl_->value.root_.Version();
+  UASSERT(impl_->value.holder_.Version() == impl_->current_version);
+  impl_->value.holder_.BumpVersion();
+  impl_->current_version = impl_->value.holder_.Version();
 }
 
 void MutableValueWrapper::EnsureCurrent() const {
-  if (impl_->value.root_.Version() == impl_->current_version) {
+  if (impl_->value.holder_.Version() == impl_->current_version) {
     return;
   }
   // only refetch if we had a value
   if (impl_->current_version != VersionedValuePtr::kInvalidVersion) {
     impl_->value.SetNative(
-        JsonPath::FetchMember(*impl_->value.root_, impl_->path));
+        JsonPath::FetchMember(*impl_->value.holder_, impl_->path));
   }
-  impl_->current_version = impl_->value.root_.Version();
+  impl_->current_version = impl_->value.holder_.Version();
 }
 
 Value& MutableValueWrapper::JsonPath::FetchMember(

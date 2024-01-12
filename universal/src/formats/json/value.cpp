@@ -80,17 +80,20 @@ impl::Value MakeJsonStringViewValue(std::string_view view) {
 }  // namespace impl
 
 Value::Value()
-    : root_{impl::VersionedValuePtr::Create(::rapidjson::Type::kNullType)},
-      value_ptr_{root_.Get()} {}
+    : holder_{impl::VersionedValuePtr::Create(::rapidjson::Type::kNullType)},
+      root_ptr_for_path_{holder_.Get()},
+      value_ptr_{holder_.Get()} {}
 
 Value::Value(Value&& other) noexcept
-    : root_{std::move(other.root_)},
+    : holder_{std::move(other.holder_)},
+      root_ptr_for_path_{other.root_ptr_for_path_},
       value_ptr_{std::exchange(other.value_ptr_, nullptr)},
       depth_{other.depth_},
       lazy_detached_path_{std::move(other.lazy_detached_path_)} {}
 
 Value& Value::operator=(Value&& other) noexcept {
-  root_ = std::move(other.root_);
+  holder_ = std::move(other.holder_);
+  root_ptr_for_path_ = std::exchange(other.root_ptr_for_path_, nullptr);
   value_ptr_ = std::exchange(other.value_ptr_, nullptr);
   depth_ = other.depth_;
   lazy_detached_path_ = std::move(other.lazy_detached_path_);
@@ -99,22 +102,27 @@ Value& Value::operator=(Value&& other) noexcept {
 }
 
 Value::Value(impl::VersionedValuePtr root) noexcept
-    : root_(std::move(root)), value_ptr_(root_.Get()) {}
+    : holder_(std::move(root)),
+      root_ptr_for_path_{holder_.Get()},
+      value_ptr_(holder_.Get()) {}
 
 Value::Value(EmplaceEnabler, const impl::VersionedValuePtr& root,
              const impl::Value& value, int depth)
-    : Value(root, &value, depth) {}
+    : Value(root, root.Get(), &value, depth) {}
 
-Value::Value(impl::VersionedValuePtr root, const impl::Value* value_ptr,
-             int depth)
-    : root_(std::move(root)),
+Value::Value(impl::VersionedValuePtr root, const impl::Value* root_ptr,
+             const impl::Value* value_ptr, int depth)
+    : holder_(std::move(root)),
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+      root_ptr_for_path_(const_cast<impl::Value*>(root_ptr)),
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
       value_ptr_(const_cast<impl::Value*>(value_ptr)),
       depth_(depth) {}
 
-Value::Value(impl::VersionedValuePtr root,
+Value::Value(impl::VersionedValuePtr root, impl::Value* root_ptr,
              LazyDetachedPath&& lazy_detached_path)
-    : root_{std::move(root)},
+    : holder_{std::move(root)},
+      root_ptr_for_path_{root_ptr},
       lazy_detached_path_{std::move(lazy_detached_path)} {}
 
 Value Value::operator[](std::string_view key) const {
@@ -124,19 +132,21 @@ Value Value::operator[](std::string_view key) const {
       auto it = GetNative().FindMember(
           impl::Value(::rapidjson::StringRef(key.data(), key.size())));
       if (it != GetNative().MemberEnd()) {
-        return {root_, &it->value, depth_ + 1};
+        return {holder_, root_ptr_for_path_, &it->value, depth_ + 1};
       }
     }
 
-    return {root_, LazyDetachedPath{value_ptr_, depth_, key}};
+    return {holder_, root_ptr_for_path_,
+            LazyDetachedPath{value_ptr_, depth_, key}};
   }
 
-  return {root_, lazy_detached_path_.Chain(key)};
+  return {holder_, root_ptr_for_path_, lazy_detached_path_.Chain(key)};
 }
 
 Value Value::operator[](std::size_t index) const {
   CheckInBounds(index);
-  return {root_, &GetNative()[static_cast<int>(index)], depth_ + 1};
+  return {holder_, root_ptr_for_path_, &GetNative()[static_cast<int>(index)],
+          depth_ + 1};
 }
 
 Value::const_iterator Value::begin() const {
@@ -189,10 +199,10 @@ bool Value::operator!=(const Value& other) const {
   return GetNative() != other.GetNative();
 }
 
-bool Value::IsMissing() const noexcept { return root_ && !value_ptr_; }
+bool Value::IsMissing() const noexcept { return holder_ && !value_ptr_; }
 
 bool Value::IsNull() const noexcept {
-  return !IsMissing() && (!root_ || GetNative().IsNull());
+  return !IsMissing() && (!holder_ || GetNative().IsNull());
 }
 
 bool Value::IsBool() const noexcept {
@@ -376,10 +386,15 @@ bool Value::HasMember(std::string_view key) const {
 
 std::string Value::GetPath() const {
   if (value_ptr_ != nullptr) {
-    return impl::MakePath(root_.Get(), value_ptr_, depth_);
+    return impl::MakePath(root_ptr_for_path_, value_ptr_, depth_);
   } else {
-    return lazy_detached_path_.Get(root_.Get());
+    return lazy_detached_path_.Get(root_ptr_for_path_);
   }
+}
+
+void Value::DropRootPath() {
+  root_ptr_for_path_ = value_ptr_;
+  depth_ = 0;
 }
 
 Value Value::Clone() const {
@@ -390,15 +405,15 @@ void Value::EnsureNotMissing() const {
   // We should never get here if the value is missing, in the first place.
   CheckNotMissing();
 
-  UINVARIANT(!!root_, "A moved-from Value is accessed");
+  UINVARIANT(!!holder_, "A moved-from Value is accessed");
 
   UINVARIANT(value_ptr_ != nullptr,
              "Something is terribly broken in userver json");
 }
 
-bool Value::IsRoot() const noexcept { return root_.Get() == value_ptr_; }
+bool Value::IsRoot() const noexcept { return holder_.Get() == value_ptr_; }
 
-bool Value::IsUniqueReference() const { return root_.IsUnique(); }
+bool Value::IsUniqueReference() const { return holder_.IsUnique(); }
 
 const impl::Value& Value::GetNative() const {
   EnsureNotMissing();

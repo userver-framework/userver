@@ -17,6 +17,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace formats::json {
+class Value;
+}
+
 namespace formats::parse {
 
 template <typename ParseException, typename Variant, typename TypeA>
@@ -65,7 +69,14 @@ template <class Value, typename... Types>
 std::variant<Types...> Parse(const Value& value,
                              formats::parse::To<std::variant<Types...>>) {
   std::optional<std::variant<Types...>> result;
-  (impl::ParseVariantSingle<Types>(value, result), ...);
+
+  if constexpr (std::is_same_v<Value, formats::json::Value>) {
+    Value value2{value};
+    value2.DropRootPath();
+    (impl::ParseVariantSingle<Types>(value2, result), ...);
+  } else {
+    (impl::ParseVariantSingle<Types>(value, result), ...);
+  }
 
   if (!result) {
     ThrowVariantParseException<typename Value::ParseException,

@@ -62,11 +62,7 @@ std::string MakePath(const Value* root, const Value* node, int node_depth) {
   TreeStack stack;
   const Value* value = root;
 
-  if (value == node) return formats::common::kPathRoot;
-  UASSERT(value != nullptr);
-  if (value == nullptr)
-    throw formats::json::Exception(
-        "Calling MakePath with node == nullptr is pointless");
+  if (value == node || value == nullptr) return formats::common::kPathRoot;
 
   stack.reserve(node_depth + 1);
   stack.emplace_back();  // fake "top" frame to avoid extra checks for an empty

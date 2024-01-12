@@ -206,6 +206,10 @@ class Value final {
   /// @brief Returns full path to this value.
   std::string GetPath() const;
 
+  /// @cond
+  void DropRootPath();
+  /// @endcond
+
   /// @brief Returns new value that is an exact copy if the existing one
   /// but references different memory (a deep copy of a *this). The returned
   /// value is a root value with path '/'.
@@ -252,8 +256,10 @@ class Value final {
 
  private:
   explicit Value(impl::VersionedValuePtr root) noexcept;
-  Value(impl::VersionedValuePtr root, const impl::Value* value_ptr, int depth);
-  Value(impl::VersionedValuePtr root, LazyDetachedPath&& lazy_detached_path);
+  Value(impl::VersionedValuePtr root, const impl::Value* root_ptr,
+        const impl::Value* value_ptr, int depth);
+  Value(impl::VersionedValuePtr root, impl::Value* root_ptr,
+        LazyDetachedPath&& lazy_detached_path);
 
   bool IsUniqueReference() const;
   void EnsureNotMissing() const;
@@ -262,7 +268,8 @@ class Value final {
   void SetNative(impl::Value&);  // does not copy
   int GetExtendedType() const;
 
-  impl::VersionedValuePtr root_{};
+  impl::VersionedValuePtr holder_{};
+  impl::Value* root_ptr_for_path_{nullptr};
   impl::Value* value_ptr_{nullptr};
   /// Depth of the node to ease recursive traversal in GetPath()
   int depth_{0};

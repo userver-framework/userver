@@ -148,11 +148,11 @@ void Iterator<Value::IterTraits, IteratorDirection::kForward>::UpdateValue()
   if (current_) return;
 
   if (type_ == impl::Type::arrayValue) {
-    current_.emplace(Value::EmplaceEnabler{}, container_.root_,
+    current_.emplace(Value::EmplaceEnabler{}, container_.holder_,
                      container_.value_ptr_->Begin()[pos_],
                      container_.depth_ + 1);
   } else {
-    current_.emplace(Value::EmplaceEnabler{}, container_.root_,
+    current_.emplace(Value::EmplaceEnabler{}, container_.holder_,
                      container_.value_ptr_->MemberBegin()[pos_].value,
                      container_.depth_ + 1);
   }
@@ -164,7 +164,7 @@ void Iterator<Value::IterTraits, IteratorDirection::kReverse>::UpdateValue()
   if (current_) return;
 
   if (type_ == impl::Type::arrayValue) {
-    current_.emplace(Value::EmplaceEnabler{}, container_.root_,
+    current_.emplace(Value::EmplaceEnabler{}, container_.holder_,
                      container_.value_ptr_->Begin()[pos_],
                      container_.depth_ + 1);
   } else {
