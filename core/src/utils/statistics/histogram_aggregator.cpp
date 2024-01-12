@@ -27,9 +27,18 @@ void HistogramAggregator::Add(HistogramView other) {
   impl::histogram::Add(buckets_.get(), other);
 }
 
+void HistogramAggregator::Reset() noexcept {
+  UASSERT(buckets_);
+  impl::histogram::ResetMetric(buckets_.get());
+}
+
 HistogramView HistogramAggregator::GetView() const& noexcept {
   UASSERT(buckets_);
   return impl::histogram::MakeView(buckets_.get());
+}
+
+void DumpMetric(Writer& writer, const HistogramAggregator& histogram) {
+  writer = histogram.GetView();
 }
 
 }  // namespace utils::statistics

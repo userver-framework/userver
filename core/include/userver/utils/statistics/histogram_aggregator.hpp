@@ -33,6 +33,9 @@ class HistogramAggregator final {
   /// Writes to `*this` are non-atomic.
   void Add(HistogramView other);
 
+  /// Reset all buckets to zero.
+  void Reset() noexcept;
+
   /// Allows reading the histogram.
   HistogramView GetView() const& noexcept;
 
