@@ -10,28 +10,12 @@
 #include <random>
 #include <utility>
 
+#include <userver/compiler/thread_local.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/fast_scope_guard.hpp>
-
-namespace CryptoPP {
-class AutoSeededRandomPool;
-}  // namespace CryptoPP
 
 USERVER_NAMESPACE_BEGIN
 
 namespace utils {
-
-class RandomBase;
-
-namespace impl {
-
-std::seed_seq MakeSeedSeq();
-
-RandomBase& GetDefaultRandom();
-
-std::uintptr_t GetCurrentThreadId() noexcept;
-
-}  // namespace impl
 
 /// @brief Virtualized standard UniformRandomBitGenerator concept, for use
 /// with random number distributions
@@ -46,6 +30,24 @@ class RandomBase {
   static constexpr result_type min() { return std::mt19937::min(); }
   static constexpr result_type max() { return std::mt19937::max(); }
 };
+
+namespace impl {
+
+std::seed_seq MakeSeedSeq();
+
+class RandomImpl final : public RandomBase {
+ public:
+  RandomImpl();
+
+  result_type operator()() override { return gen_(); }
+
+ private:
+  std::mt19937 gen_;
+};
+
+compiler::ThreadLocalScope<RandomImpl> UseLocalRandomImpl();
+
+}  // namespace impl
 
 /// @brief Calls @a func with a thread-local UniformRandomBitGenerator
 /// (specifically of type utils::RandomBase).
@@ -73,18 +75,8 @@ class RandomBase {
 /// @returns The invocation result of @a func
 template <typename Func>
 decltype(auto) WithDefaultRandom(Func&& func) {
-  RandomBase& random = impl::GetDefaultRandom();
-  if constexpr (utils::impl::kEnableAssert) {
-    const utils::FastScopeGuard thread_id_checker(
-        [id_before = impl::GetCurrentThreadId()]() noexcept {
-          UASSERT_MSG(
-              impl::GetCurrentThreadId() == id_before,
-              "A task context switch was detected while in WithDefaultRandom");
-        });
-    return std::forward<Func>(func)(random);
-  } else {
-    return std::forward<Func>(func)(random);
-  }
+  auto random = impl::UseLocalRandomImpl();
+  return std::forward<Func>(func)(static_cast<RandomBase&>(*random));
 }
 
 /// @brief Generates a random number in range [from, to)

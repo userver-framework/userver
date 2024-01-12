@@ -10,6 +10,7 @@
 #include <logging/log_extra_stacktrace.hpp>
 #include <userver/compiler/impl/tls.hpp>
 #include <userver/compiler/impl/tsan.hpp>
+#include <userver/compiler/thread_local.hpp>
 #include <userver/engine/exception.hpp>
 #include <userver/engine/impl/task_context_factory.hpp>
 #include <userver/engine/task/cancel.hpp>
@@ -312,6 +313,9 @@ bool TaskContext::SetCancellable(bool value) {
 TaskContext::WakeupSource TaskContext::Sleep(WaitStrategy& wait_strategy) {
   UASSERT(IsCurrent());
   UASSERT(state_ == Task::State::kRunning);
+  UASSERT_MSG(compiler::impl::AreCoroutineSwitchesAllowed(),
+              "Coroutine context switches are forbidden in the current scope, "
+              "which is likely working with thread-local variables");
 
   UASSERT_MSG(!std::exchange(within_sleep_, true),
               "Recursion in Sleep detected");

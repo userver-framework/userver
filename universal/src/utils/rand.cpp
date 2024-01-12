@@ -1,9 +1,6 @@
 #include <userver/utils/rand.hpp>
 
 #include <array>
-#include <thread>
-
-#include <userver/compiler/thread_local.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -16,15 +13,7 @@ auto& AsLvalue(T&& rvalue) noexcept {
   return rvalue;
 }
 
-class RandomImpl final : public RandomBase {
- public:
-  RandomImpl() : gen_(AsLvalue(impl::MakeSeedSeq())) {}
-
-  result_type operator()() override { return gen_(); }
-
- private:
-  std::mt19937 gen_;
-};
+compiler::ThreadLocal local_random_impl = [] { return impl::RandomImpl{}; };
 
 }  // namespace
 
@@ -44,12 +33,10 @@ std::seed_seq MakeSeedSeq() {
   return std::seed_seq(random_chunks.begin(), random_chunks.end());
 }
 
-RandomBase& GetDefaultRandom() {
-  return compiler::impl::ThreadLocal([] { return RandomImpl{}; });
-}
+RandomImpl::RandomImpl() : gen_(AsLvalue(impl::MakeSeedSeq())) {}
 
-std::uintptr_t GetCurrentThreadId() noexcept {
-  return compiler::impl::GetCurrentThreadIdDebug();
+compiler::ThreadLocalScope<RandomImpl> UseLocalRandomImpl() {
+  return local_random_impl.Use();
 }
 
 }  // namespace impl

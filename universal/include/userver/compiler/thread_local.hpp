@@ -3,13 +3,11 @@
 /// @file userver/compiler/thread_local.hpp
 /// @brief Utilities for using thread-local variables in a coroutine-safe way
 
-#include <cstdint>
 #include <type_traits>
 
 #include <userver/compiler/impl/constexpr.hpp>
 #include <userver/compiler/impl/lifetime.hpp>
 #include <userver/compiler/impl/tls.hpp>
-#include <userver/utils/assert.hpp>
 
 #if __cplusplus >= 202002L && \
     (__clang_major__ >= 13 || !defined(__clang__) && __GNUC__ >= 9)
@@ -23,15 +21,11 @@ namespace compiler {
 
 namespace impl {
 
-std::uintptr_t GetCurrentThreadId() noexcept;
+bool AreCoroutineSwitchesAllowed() noexcept;
 
-inline std::uintptr_t GetCurrentThreadIdDebug() noexcept {
-  if constexpr (utils::impl::kEnableAssert) {
-    return GetCurrentThreadId();
-  } else {
-    return 0;
-  }
-}
+void IncrementLocalCoroutineSwitchBans() noexcept;
+
+void DecrementLocalCoroutineSwitchBans() noexcept;
 
 #ifdef USERVER_IMPL_UNEVALUATED_LAMBDAS
 template <typename T, typename Factory = decltype([] { return T{}; })>
@@ -73,7 +67,6 @@ class ThreadLocalScope final {
   static_assert(!std::is_const_v<VariableType>);
 
   VariableType& variable_;
-  const std::uintptr_t thread_id_;
 };
 
 /// @brief Creates a unique thread-local variable that can be used
@@ -166,18 +159,22 @@ ThreadLocal(Factory factory)
 template <typename VariableType>
 ThreadLocalScope<VariableType>::ThreadLocalScope(
     VariableType& variable) noexcept
-    : variable_(variable), thread_id_(impl::GetCurrentThreadIdDebug()) {}
+    : variable_(variable) {
+#ifndef NDEBUG
+  impl::IncrementLocalCoroutineSwitchBans();
+#endif
+}
 
 template <typename VariableType>
 ThreadLocalScope<VariableType>::~ThreadLocalScope() {
-  **this;  // Check
+#ifndef NDEBUG
+  impl::DecrementLocalCoroutineSwitchBans();
+#endif
 }
 
 template <typename VariableType>
 VariableType& ThreadLocalScope<VariableType>::operator*() noexcept  //
     USERVER_IMPL_LIFETIME_BOUND {
-  UASSERT_MSG(impl::GetCurrentThreadIdDebug() == thread_id_,
-              "A task switch was detected while in ThreadLocalScope");
   return variable_;
 }
 
