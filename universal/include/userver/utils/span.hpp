@@ -78,6 +78,11 @@ class span final {
     return span{end_ - count, end_};
   }
 
+  constexpr span<T> subspan(std::size_t offset) const noexcept {
+    UASSERT(offset <= size());
+    return span{begin_ + offset, end_};
+  }
+
   constexpr span<T> subspan(std::size_t offset, std::size_t count) const
       noexcept {
     UASSERT(offset + count <= size());

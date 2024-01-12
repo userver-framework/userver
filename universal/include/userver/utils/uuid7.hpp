@@ -1,7 +1,7 @@
 #pragma once
 
-/// @file utils/uuid4.hpp
-/// @brief @copybrief utils::generators::GenerateUuid
+/// @file utils/uuid7.hpp
+/// @brief @copybrief utils::generators::GenerateUuidV7
 /// @ingroup userver_universal
 
 #include <string>
@@ -10,8 +10,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::generators {
 
-/// @brief Generate a UUIDv4 string
-std::string GenerateUuid();
+/// @brief Generate a UUIDv7 string
+std::string GenerateUuidV7();
 
 }  // namespace utils::generators
 

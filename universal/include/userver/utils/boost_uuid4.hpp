@@ -15,7 +15,7 @@ namespace utils {
 /// Generators
 namespace generators {
 
-/// Generates UUID
+/// Generates UUIDv4
 boost::uuids::uuid GenerateBoostUuid();
 
 }  // namespace generators
