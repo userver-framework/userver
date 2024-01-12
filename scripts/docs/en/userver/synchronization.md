@@ -100,11 +100,39 @@ If reordering of the elements is acceptable, these can be used instead for highe
 * `concurrent::NonFifoMpscQueue`
 * `concurrent::NonFifoMpmcQueue`
 
+
 ### std::atomic
 
 If you need to access small trivial types (`int`, `long`, `std::size_t`, `bool`) in shared memory from different tasks, then atomic variables may help. Beware, for complex types compiler generates code with implicit use of synchronization primitives forbidden in userver. If you are using `std::atomic` with a non-trivial or type parameters with big size, then be sure to write a test to check that accessing this variable does not impose a mutex.
 
 It is not recommended to use non-default memory_orders (for example, acquire/release), because their use is fraught with great difficulties. In such code, it is very easy to get bug that will be extremely difficult to detect. Therefore, it is better to use a simpler and more reliable default, the std::memory_order_seq_cst.
+
+
+@anchor userver_thread_local
+### thread_local
+
+For "handy thread-safe global storage", use `engine::TaskLocalVariable` instead
+of `thread_local`. Better still, avoid global state and pass data between
+functions explicitly.
+
+For passing global data within a single request, e.g. from handlers to clients
+using middlewares, use `engine::TaskInheritedVariable`.
+
+For fast insecure randomness (suitable e.g. for load balancing), use:
+
+* `utils::RandRange` for generating simple uniform random numbers;
+* `utils::Shuffle` instead of `std::shuffle`;
+* `utils::WithDefaultRandom` for other cases.
+
+For secure randomness (suitable e.g. for picking gifts for users), use:
+
+* `crypto::GenerateRandomBlock` for generating random binary data;
+* `compiler::ThreadLocal` + `CryptoPP::AutoSeededRandomPool` for other cases.
+
+`thread_local`, when used with userver, suffers from issues described
+in `compiler::ThreadLocal`. So for all other needs, use `compiler::ThreadLocal`
+instead of `thread_local`.
+
 
 ### engine::Mutex
 

@@ -23,21 +23,22 @@ classes that use blocking IO operations or synchronization primitives.
 
 **⚠️🐙❗ Instead of the standard primitives, you need to use the primitives from the userver:**
 
-| Standard primitive                | Replacement from userver                        |
-|-----------------------------------|-------------------------------------------------|
-| `std::this_thread::sleep_for()`   | `engine::SleepFor()`                            |
-| `std::this_thread::sleep_until()` | `engine::SleepUntil()`                          |
-| `std::mutex`                      | `engine::Mutex`                                 |
-| `std::shared_mutex`               | `engine::SharedMutex`                           |
-| `std::condition_variable`         | `engine::ConditionVariable`                     |
-| `std::future<T>`                  | `engine::TaskWithResult<T>` or `engine::Future` |
-| `std::async()`                    | `utils::Async()`                                |
-| `std::thread`                     | `utils::Async()`                                |
-| `std::counting_semaphore`         | `engine::Semaphore`                             |
-| network sockets                   | `engine::io::Socket`                            |
-| `std::filesystem::`               | `::fs::*` (but not `::fs::blocking::*`!)        |
-| `std::cout`                       | `LOG_INFO()`                                    |
-| `std::cerr`                       | `LOG_WARNING()` and `LOG_ERROR()`               |
+| Standard primitive                | Replacement from userver                                                     |
+|-----------------------------------|------------------------------------------------------------------------------|
+| `thread_local`                    | @ref userver_thread_local "It depends, but do not use standard thread_local" |
+| `std::this_thread::sleep_for()`   | `engine::SleepFor()`                                                         |
+| `std::this_thread::sleep_until()` | `engine::SleepUntil()`                                                       |
+| `std::mutex`                      | `engine::Mutex`                                                              |
+| `std::shared_mutex`               | `engine::SharedMutex`                                                        |
+| `std::condition_variable`         | `engine::ConditionVariable`                                                  |
+| `std::future<T>`                  | `engine::TaskWithResult<T>` or `engine::Future`                              |
+| `std::async()`                    | `utils::Async()`                                                             |
+| `std::thread`                     | `utils::Async()`                                                             |
+| `std::counting_semaphore`         | `engine::Semaphore`                                                          |
+| network sockets                   | `engine::io::Socket`                                                         |
+| `std::filesystem::`               | `::fs::*` (but not `::fs::blocking::*`!)                                     |
+| `std::cout`                       | `LOG_INFO()`                                                                 |
+| `std::cerr`                       | `LOG_WARNING()` and `LOG_ERROR()`                                            |
 
 An overview of the main synchronization mechanisms is available
 [on a separate page](scripts/docs/en/userver/synchronization.md).
