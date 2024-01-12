@@ -27,6 +27,9 @@ class GrpcServiceMock:
     def get(self, method, default):
         return self._methods.get(method, default)
 
+    def reset_handlers(self):
+        self._methods = {}
+
     @contextlib.contextmanager
     def mock(self):
         try:
