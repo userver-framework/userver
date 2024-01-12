@@ -28,6 +28,8 @@ class DetachedTasksSyncBlock final {
 
   void RequestCancellation(TaskCancellationReason reason) noexcept;
 
+  void WaitAllTasksCompleteDebug() noexcept;
+
   std::int64_t ActiveTasksApprox() const noexcept;
 
   struct Token;

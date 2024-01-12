@@ -97,6 +97,12 @@ void DetachedTasksSyncBlock::RequestCancellation(
   }
 }
 
+void DetachedTasksSyncBlock::WaitAllTasksCompleteDebug() noexcept {
+  if (impl_->wait_tokens) {
+    impl_->wait_tokens->WaitForAllTokens();
+  }
+}
+
 std::int64_t DetachedTasksSyncBlock::ActiveTasksApprox() const noexcept {
   UASSERT_MSG(impl_->wait_tokens,
               "Task count is only available for StopMode::kCancelAndWait");

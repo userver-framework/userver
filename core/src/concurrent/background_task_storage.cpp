@@ -26,6 +26,14 @@ void BackgroundTaskStorageCore::CancelAndWait() noexcept {
   sync_block_.reset();
 }
 
+void BackgroundTaskStorageCore::CloseAndWaitDebug() noexcept {
+  UASSERT_MSG(sync_block_,
+              "CloseAndWaitDebug should be called no more than once");
+  if (!sync_block_) return;
+  sync_block_->WaitAllTasksCompleteDebug();
+  sync_block_.reset();
+}
+
 void BackgroundTaskStorageCore::Detach(engine::Task&& task) {
   UINVARIANT(sync_block_, "Trying to launch a task on a dead BTS");
   sync_block_->Add(std::move(task));
@@ -45,6 +53,10 @@ BackgroundTaskStorage::BackgroundTaskStorage(
     : task_processor_(task_processor) {}
 
 void BackgroundTaskStorage::CancelAndWait() noexcept { core_.CancelAndWait(); }
+
+void BackgroundTaskStorage::CloseAndWaitDebug() noexcept {
+  core_.CloseAndWaitDebug();
+}
 
 std::int64_t BackgroundTaskStorage::ActiveTasksApprox() const noexcept {
   return core_.ActiveTasksApprox();

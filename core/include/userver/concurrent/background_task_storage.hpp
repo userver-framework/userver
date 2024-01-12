@@ -31,6 +31,10 @@ class BackgroundTaskStorageCore final {
   /// after this call returns. Should be called no more than once.
   void CancelAndWait() noexcept;
 
+  /// Explicitly wait for execution tasks in the store.
+  /// Should be called no more than once.
+  void CloseAndWaitDebug() noexcept;
+
   /// @brief Detaches task, allowing it to continue execution out of scope. It
   /// will be cancelled and waited for on BTS destruction.
   /// @note After detach, Task becomes invalid
@@ -135,6 +139,10 @@ class BackgroundTaskStorage final {
   /// Explicitly cancel and wait for the tasks. New tasks must not be launched
   /// after this call returns. Should be called no more than once.
   void CancelAndWait() noexcept;
+
+  /// Explicitly stop accepting new tasks and wait for execution tasks in the
+  /// store. Should be called no more than once.
+  void CloseAndWaitDebug() noexcept;
 
   /// @brief Launch a task that will be cancelled and waited for in the BTS
   /// destructor.
