@@ -53,13 +53,19 @@ class ThreadLocalScope final {
   ~ThreadLocalScope();
 
   /// Access the thread-local variable.
-  VariableType& operator*() noexcept USERVER_IMPL_LIFETIME_BOUND;
+  VariableType& operator*() & noexcept USERVER_IMPL_LIFETIME_BOUND;
 
   /// Access the thread-local variable.
-  VariableType* operator->() noexcept USERVER_IMPL_LIFETIME_BOUND;
+  VariableType* operator->() & noexcept USERVER_IMPL_LIFETIME_BOUND;
 
   /// @cond
   explicit ThreadLocalScope(VariableType& variable) noexcept;
+
+  // Store ThreadLocalScope to a variable before using.
+  VariableType& operator*() && noexcept = delete;
+
+  // Store ThreadLocalScope to a variable before using.
+  VariableType* operator->() && noexcept = delete;
   /// @endcond
 
  private:
@@ -173,13 +179,13 @@ ThreadLocalScope<VariableType>::~ThreadLocalScope() {
 }
 
 template <typename VariableType>
-VariableType& ThreadLocalScope<VariableType>::operator*() noexcept  //
+VariableType& ThreadLocalScope<VariableType>::operator*() & noexcept  //
     USERVER_IMPL_LIFETIME_BOUND {
   return variable_;
 }
 
 template <typename VariableType>
-VariableType* ThreadLocalScope<VariableType>::operator->() noexcept  //
+VariableType* ThreadLocalScope<VariableType>::operator->() & noexcept  //
     USERVER_IMPL_LIFETIME_BOUND {
   return &**this;
 }
