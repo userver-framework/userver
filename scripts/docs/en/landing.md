@@ -1,4 +1,5 @@
 \htmlonly
+
 <link rel="stylesheet" href="landing.css" />
 
 <main class="main">
@@ -174,4 +175,5 @@
         </div>
       </section>
     </main>
+    <script type="text/javascript" src="$relpath^landing.js"></script>
 \endhtmlonly
