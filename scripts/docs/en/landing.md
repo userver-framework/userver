@@ -175,5 +175,9 @@
         </div>
       </section>
     </main>
-    <script type="text/javascript" src="$relpath^landing.js"></script>
+    <script type="text/javascript">
+      /* Hide some blocks on landing page */
+      document.getElementById("side-nav").style.display = "none";
+      document.querySelector(".header").style.display = "none";
+    </script>
 \endhtmlonly
