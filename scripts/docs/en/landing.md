@@ -1,123 +1,175 @@
-<div id='mainDescription'>
-<div id='landing-content'>
-<div class="landing-description">The C++ Asynchronous Framework</div>
+<link rel="stylesheet" href="landing.css" />
 
-\htmlonly
-<div class="landing-logo" id='landing_logo_id'>
-  <a href="de/d6a/md_en_2index.html"><img src='logo.svg' alt='userver logo big'/></a>
-</div>
-\endhtmlonly
-
----
-
-<div class="landing-text">
-🐙 userver is the modern open source asynchronous framework with a rich set of abstractions
-for fast and comfortable creation of C++ microservices, services and utilities.
-The problem of efficient I/O interactions is solved transparently for the
-developers:</div>
-
-<div class="landing-text">
-<div class="fragment landing-fragment">
-  <div class="line">
-    std::size_t Ins(storages::postgres::Transaction& tr, std::string_view key) {
-  </div>
-  <div class="line">
-    <span class="comment">  // Asynchronous execution of the SQL query in transaction. Current thread</span>
-  </div>
-  <div class="line">
-    <span class="comment">  // handles other requests while the response from the DB is being received:</span>
-  </div>
-  <div class="line">
-    <span class="keyword">  auto</span> res = tr.Execute(<span class="stringliteral">"INSERT INTO keys VALUES ($1)"</span>, key);
-  </div>
-  <div class="line">
-    <span class="keyword">  return</span> res.RowsAffected();
-  </div>
-  <div class="line">
-    }
-  </div>
-</div>
-</div>
-
-<!--@snippet postgresql/src/storages/postgres/tests/landing_test.cpp  Landing sample1 -->
-
-<!--div class="landing-text"><div class="landing-motto">Fast. Reliable. Yours!</div></div-->
-
----
-
-<div class="landing-container">
-  <div class="landing-intro-center">
-      Micro-services based on userver served more than a billion requests while
-      you were reading this sentence.
-  </div>
-</div>
-
----
-
-<div class="landing-container">
-  <div class="landing-intro-left">
-      Technologies for debugging and memory profiling a running production
-      service.
-  </div>
-  <div class="landing-intro-right">
-      Write @ref scripts/docs/en/userver/tutorial/hello_service.md "your first toy C++ service",
-      evolve it into a @ref scripts/docs/en/userver/tutorial/production_service.md "production ready service".
-  </div>
-</div>
-
-<div class="landing-container">
-  <div class="landing-intro-left">
-      Efficient asynchronous drivers for databases (MongoDB, PostgreSQL, MySQL/MariaDB (experimental), Redis, ClickHouse,
-      ...) and data transfer protocols (HTTP, WEbSockets, gRPC, TCP, AMQP-0.9.1 (experimental), ...), tasks
-      construction and cancellation.
-  </div>
-  <div class="landing-intro-right">
-      Functionality to @ref scripts/docs/en/schemas/dynamic_configs.md "change the service configuration"
-      on-the-fly. Adjust options of the deadline propagation, timeouts,
-      congestion-control without a restart.
-  </div>
-</div>
-
-<div class="landing-container">
-  <div class="landing-intro-left">
-      Rich set of high-level components for caches, tasks, distributed locking,
-      logging, tracing, statistics, metrics, @ref scripts/docs/en/userver/formats.md "JSON/YAML/BSON".
-  </div>
-  <div class="landing-intro-right">
-      Comprehensive set of asynchronous low-level synchronization primitives
-      and OS abstractions.
-  </div>
-</div>
-
-
----
-<div class="landing-container">
-  <div class="landing-intro-center">
-      Speed of C++, simplicity of Python.
-  </div>
-
-  <div class="landing-intro-center">
-      Dive into @ref scripts/docs/en/index.md "the documentation" for more details.
-  
-    \htmlonly
-    <a href="https://github.com/userver-framework/" rel="noopener" target="_blank" class="titlelink">
-      <img src="github_logo.svg"  width="48" height="48" class="gh-logo-landing" alt="Github"/>
-    </a>
-    &nbsp;
-    <a href="https://t.me/userver_en" rel="noopener" id='telegram_channel' target="_blank" class="titlelink">
-      <img src="telegram_logo.svg"  width="48" height="48" alt="Telegram"/>
-    </a>
-    \endhtmlonly
-  </div>
-
-</div>
-</div>
-</div>
-
-\htmlonly
-<script type="text/javascript">
-  document.getElementById('side-nav').style.display = 'none';
-  document.getElementById('mainDescription').closest('#doc-content').removeAttribute('id')
-  document.getElementsByClassName('header')[0].style.display = 'none';
-</script>
-\endhtmlonly
+<main class="main">
+      <section class="mw-1220">
+        <div class="info__block">
+          <h2 class="info__header">
+            Speed of C++ <br />
+            Simplicity of Python
+          </h2>
+          <p class="info__paragraph">
+            Userver is the modern open source asynchronous framework with a rich
+            set of abstractions for fast and comfortable creation of C++
+            microservices, services and utilities.
+          </p>
+          <div class="info__buttons">
+            <button class="button">Get started</button
+            ><button class="button button_outline ml-24">Community</button>
+          </div>
+        </div>
+      </section>
+      <section class="how mw-1220">
+        <div>
+          <h2>How It Works</h2>
+          <p class="how__info">
+            The problem of efficient I/O interactions is solved transparently
+            for the developers:
+          </p>
+        </div>
+        <div class="how__codeblocks flex-row">
+          <div class="codeblock">
+            <div class="codeblock__header">Userver</div>
+            <div class="codeblock__body">
+              <div class="codeblock__placeholder"></div>
+            </div>
+          </div>
+          <div class="codeblock codeblock_grey ml-16">
+            <div class="codeblock__header">Classic C++</div>
+            <div class="codeblock__body">
+              <div class="codeblock__placeholder"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <section class="values mw-1220">
+        <h2>Values of Userver</h2>
+        <div class="values__cards">
+          <div class="values__card">
+            <img src="icon.svg" />
+            <h3 class="values__cardtitle">Userver is the modern open source</h3>
+            <p class="values__cardinfo">
+              Userver is the modern open source asynchronous framework with a
+              rich set of abstractions for fast
+            </p>
+          </div>
+          <div class="values__card">
+            <img src="icon.svg" />
+            <h3 class="values__cardtitle">Userver is the modern open source</h3>
+            <p class="values__cardinfo">
+              Userver is the modern open source asynchronous framework with a
+              rich set of abstractions for fast
+            </p>
+          </div>
+          <div class="values__card">
+            <img src="icon.svg" />
+            <h3 class="values__cardtitle">Userver is the modern open source</h3>
+            <p class="values__cardinfo">
+              Userver is the modern open source asynchronous framework with a
+              rich set of abstractions for fast
+            </p>
+          </div>
+          <div class="values__card">
+            <img src="icon.svg" />
+            <h3 class="values__cardtitle">Userver is the modern open source</h3>
+            <p class="values__cardinfo">
+              Userver is the modern open source asynchronous framework with a
+              rich set of abstractions for fast
+            </p>
+          </div>
+          <div class="values__card">
+            <img src="icon.svg" />
+            <h3 class="values__cardtitle">Userver is the modern open source</h3>
+            <p class="values__cardinfo">
+              Userver is the modern open source asynchronous framework with a
+              rich set of abstractions for fast
+            </p>
+          </div>
+          <div class="values__card">
+            <img src="icon.svg" />
+            <h3 class="values__cardtitle">Userver is the modern open source</h3>
+            <p class="values__cardinfo">
+              Userver is the modern open source asynchronous framework with a
+              rich set of abstractions for fast
+            </p>
+          </div>
+        </div>
+      </section>
+      <section class="users">
+        <div class="users__about mw-1220">
+          <h2>Our Happy Users</h2>
+          <div class="users__info">
+            <p>
+              They've already chosen userver to optimize the development
+              process.
+            </p>
+            <div>
+              <button class="users__navbutton">
+                <img src="arrow-left.svg" />
+              </button>
+              <button class="users__navbutton users__navbutton_right">
+                <img src="arrow-right.svg" />
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="feedbacks">
+          <div class="feedback">
+            <img class="feedback__image" src="feedback1.png" />
+            <div class="feedback__person">
+              <h3 class="feedback__name">Ivan Ivanov</h3>
+              <div class="feedback__position">Developer</div>
+            </div>
+            <p class="feedback__about">
+              a very long quote about how convenient and cool userver is a very
+              long quote about how convenient and cool userver isa very long
+              quote about how convenient and cool userver is
+            </p>
+            <p class="feedback__text">«Userver such wow, many cool»</p>
+          </div>
+          <div class="feedback">
+            <img class="feedback__image" src="feedback2.png" />
+            <div class="feedback__person">
+              <h3 class="feedback__name">Petr Petrov</h3>
+              <div class="feedback__position">Developer</div>
+            </div>
+            <p class="feedback__about">
+              a very long quote about how convenient and cool userver is a very
+              long quote about how convenient and cool userver isa very long
+              quote about how convenient and cool userver is
+            </p>
+            <p class="feedback__text">
+              «Userver is super, love it, recommend it»
+            </p>
+          </div>
+        </div>
+        <div class="pagination">
+          <button class="pagination__button pagination__button_active"></button>
+          <button class="pagination__button"></button>
+          <button class="pagination__button"></button>
+          <button class="pagination__button"></button>
+        </div>
+      </section>
+      <section class="companies mw-1220">
+        <h2 class="companies__title">Brands and companies using Userver</h2>
+        <p class="companies__info paragraph_small">
+          This is the list of companies text text text text text text text text
+          text text text text text text text text text text text text text text
+          text text text
+        </p>
+        <div class="companies__logos">
+          <img class="logo_amazon" src="amazon.png" alt="Amazon" />
+          <img class="logo_sber" src="sber.png" alt="Sber" />
+        </div>
+      </section>
+      <section class="career">
+        <div class="career__wrapper mw-1220">
+          <h2>Join Userver</h2>
+          <p class="career__info paragraph_small">
+            Bringing together the best professionals to create smart solutions
+            text text text text text text text text text text text text text
+            text text
+          </p>
+          <button class="career__button button">career</button>
+        </div>
+      </section>
+    </main>
