@@ -121,22 +121,24 @@ void SetUpBaggage(const http::HttpRequest& http_request,
 }
 
 void LogYandexHeaders(const http::HttpRequest& http_request) {
-  const auto& yandex_request_id =
-      http_request.GetHeader(USERVER_NAMESPACE::http::headers::kXRequestId);
-  const auto& yandex_backend_server =
-      http_request.GetHeader(USERVER_NAMESPACE::http::headers::kXBackendServer);
-  const auto& envoy_proxy = http_request.GetHeader(
-      USERVER_NAMESPACE::http::headers::kXTaxiEnvoyProxyDstVhost);
+  if (logging::ShouldLog(logging::Level::kInfo)) {
+    const auto& yandex_request_id =
+        http_request.GetHeader(USERVER_NAMESPACE::http::headers::kXRequestId);
+    const auto& yandex_backend_server = http_request.GetHeader(
+        USERVER_NAMESPACE::http::headers::kXBackendServer);
+    const auto& envoy_proxy = http_request.GetHeader(
+        USERVER_NAMESPACE::http::headers::kXTaxiEnvoyProxyDstVhost);
 
-  if (!yandex_request_id.empty() || !yandex_backend_server.empty() ||
-      !envoy_proxy.empty()) {
-    LOG_INFO() << fmt::format(
-        "Yandex tracing headers {}={}, {}={}, {}={}",
-        USERVER_NAMESPACE::http::headers::kXRequestId, yandex_request_id,
-        USERVER_NAMESPACE::http::headers::kXBackendServer,
-        yandex_backend_server,
-        USERVER_NAMESPACE::http::headers::kXTaxiEnvoyProxyDstVhost,
-        envoy_proxy);
+    if (!yandex_request_id.empty() || !yandex_backend_server.empty() ||
+        !envoy_proxy.empty()) {
+      LOG_INFO() << fmt::format(
+          "Yandex tracing headers {}={}, {}={}, {}={}",
+          USERVER_NAMESPACE::http::headers::kXRequestId, yandex_request_id,
+          USERVER_NAMESPACE::http::headers::kXBackendServer,
+          yandex_backend_server,
+          USERVER_NAMESPACE::http::headers::kXTaxiEnvoyProxyDstVhost,
+          envoy_proxy);
+    }
   }
 }
 
