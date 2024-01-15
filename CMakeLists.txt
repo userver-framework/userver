@@ -17,6 +17,7 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
 endif()
 
 option(USERVER_FEATURE_CORE "Provide a core library with coroutines, otherwise build only userver-universal" ON)
+option(USERVER_FEATURE_CHAOTIC "Provide chaotic-codegen for jsonschema" OFF)
 
 set(USERVER_BUILD_PLATFORM_X86 OFF)
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "^x86")
@@ -163,6 +164,9 @@ add_subdirectory(universal "${CMAKE_BINARY_DIR}/userver/universal")
 
 if (USERVER_FEATURE_CORE)
   add_subdirectory(core "${CMAKE_BINARY_DIR}/userver/core")
+endif()
+if (USERVER_FEATURE_CHAOTIC)
+  add_subdirectory(chaotic "${CMAKE_BINARY_DIR}/userver/chaotic")
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT AND USERVER_FEATURE_CORE)

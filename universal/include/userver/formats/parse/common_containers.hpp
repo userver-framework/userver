@@ -85,7 +85,8 @@ std::enable_if_t<common::kIsFormatValue<Value> && meta::kIsMap<T>, T> Parse(
 }
 
 template <typename T, typename Value>
-std::optional<T> Parse(const Value& value, To<std::optional<T>>) {
+std::optional<decltype(Parse(std::declval<Value>(), To<T>{}))> Parse(
+    const Value& value, To<std::optional<T>>) {
   if (value.IsMissing() || value.IsNull()) {
     return std::nullopt;
   }
