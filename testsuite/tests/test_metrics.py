@@ -1,3 +1,6 @@
+import math
+import typing
+
 import pytest
 from pytest_userver import metrics  # pylint: disable=import-error
 import pytest_userver.client
@@ -296,21 +299,40 @@ def test_handmade_metrics_to_json():
     assert values == metrics.MetricsSnapshot.from_json(json)
 
 
-def test_differ():
+def _make_differ(
+        path: typing.Optional[str] = None,
+        prefix: typing.Optional[str] = None,
+        labels: typing.Optional[typing.Dict[str, str]] = None,
+        diff_gauge: bool = False,
+) -> pytest_userver.client.MetricsDiffer:
     # Note: private API, do not construct MetricsDiffer like this!
-    differ = pytest_userver.client.MetricsDiffer(
+    return pytest_userver.client.MetricsDiffer(
         _client=None,  # type: ignore
-        _path=None,
-        _prefix='foo.bar',
-        _labels={'bar': 'qux'},
-        _diff_gauge=True,
+        _path=path,
+        _prefix=prefix,
+        _labels=labels,
+        _diff_gauge=diff_gauge,
+    )
+
+
+def test_differ():
+    differ = _make_differ(
+        prefix='foo.bar', labels={'bar': 'qux'}, diff_gauge=True,
     )
 
     differ.baseline = metrics.MetricsSnapshot(
         {
             'foo.bar.baz': {
-                metrics.Metric({'bar': 'qux', 'state': 'keep'}, 10),
-                metrics.Metric({'bar': 'qux', 'state': 'remove'}, 5),
+                metrics.Metric(
+                    {'bar': 'qux', 'state': 'keep'},
+                    10,
+                    _type=metrics.MetricType.GAUGE,
+                ),
+                metrics.Metric(
+                    {'bar': 'qux', 'state': 'remove'},
+                    5,
+                    _type=metrics.MetricType.GAUGE,
+                ),
             },
         },
     )
@@ -319,8 +341,16 @@ def test_differ():
     differ.current = metrics.MetricsSnapshot(
         {
             'foo.bar.baz': {
-                metrics.Metric({'bar': 'qux', 'state': 'keep'}, 15),
-                metrics.Metric({'bar': 'qux', 'state': 'add'}, 15),
+                metrics.Metric(
+                    {'bar': 'qux', 'state': 'keep'},
+                    15,
+                    _type=metrics.MetricType.GAUGE,
+                ),
+                metrics.Metric(
+                    {'bar': 'qux', 'state': 'add'},
+                    15,
+                    _type=metrics.MetricType.GAUGE,
+                ),
             },
         },
     )
@@ -348,3 +378,162 @@ def test_differ():
         differ.value_at('baz')
     with pytest.raises(AssertionError):
         differ.value_at('nonexistent', {'state': 'remove'})
+
+
+def test_differ_rate():
+    differ = _make_differ(
+        prefix='foo.bar', labels={'bar': 'qux'}, diff_gauge=False,
+    )
+
+    differ.baseline = metrics.MetricsSnapshot(
+        {
+            'foo.bar.baz': {
+                metrics.Metric(
+                    {'bar': 'qux', 'state': 'gauge'},
+                    10,
+                    metrics.MetricType.GAUGE,
+                ),
+                metrics.Metric(
+                    {'bar': 'qux', 'state': 'rate'},
+                    5,
+                    metrics.MetricType.RATE,
+                ),
+                metrics.Metric(
+                    {'bar': 'qux', 'state': 'hist-rate'},
+                    metrics.Histogram(
+                        bounds=[1, 2, 3], buckets=[3, 0, 1], inf=2,
+                    ),
+                    metrics.MetricType.HIST_RATE,
+                ),
+            },
+        },
+    )
+
+    differ.current = metrics.MetricsSnapshot(
+        {
+            'foo.bar.baz': {
+                metrics.Metric(
+                    {'bar': 'qux', 'state': 'gauge'},
+                    15,
+                    metrics.MetricType.GAUGE,
+                ),
+                metrics.Metric(
+                    {'bar': 'qux', 'state': 'rate'},
+                    15,
+                    metrics.MetricType.RATE,
+                ),
+                metrics.Metric(
+                    {'bar': 'qux', 'state': 'hist-rate'},
+                    metrics.Histogram(
+                        bounds=[1, 2, 3], buckets=[3, 4, 5], inf=5,
+                    ),
+                    metrics.MetricType.HIST_RATE,
+                ),
+            },
+        },
+    )
+
+    differ.diff.assert_equals(
+        {
+            'foo.bar.baz': {
+                # The GAUGE metric should just be taken from `current`.
+                metrics.Metric(
+                    {'bar': 'qux', 'state': 'gauge'},
+                    15,
+                    metrics.MetricType.GAUGE,
+                ),
+                # For the RATE metric, diff should be taken.
+                metrics.Metric(
+                    {'bar': 'qux', 'state': 'rate'},
+                    10,
+                    metrics.MetricType.RATE,
+                ),
+                # For the HIST_RATE metric, diff should be taken per bucket.
+                metrics.Metric(
+                    {'bar': 'qux', 'state': 'hist-rate'},
+                    metrics.Histogram(
+                        bounds=[1, 2, 3], buckets=[0, 4, 4], inf=3,
+                    ),
+                    metrics.MetricType.HIST_RATE,
+                ),
+            },
+        },
+    )
+
+
+def test_differ_type_mismatch():
+    baseline = metrics.MetricsSnapshot(
+        {
+            'foo.bar': {
+                metrics.Metric({'bar': 'qux'}, 10, metrics.MetricType.GAUGE),
+            },
+        },
+    )
+
+    current = metrics.MetricsSnapshot(
+        {
+            'foo.bar': {
+                metrics.Metric({'bar': 'qux'}, 15, metrics.MetricType.RATE),
+            },
+        },
+    )
+
+    differ = _make_differ(
+        prefix='foo.bar', labels={'bar': 'qux'}, diff_gauge=False,
+    )
+    with pytest.raises(AssertionError):
+        differ.baseline = baseline
+        differ.current = current
+        _ = differ.diff
+
+
+def test_differ_type_unspecified():
+    baseline = metrics.MetricsSnapshot(
+        {
+            'foo.bar': {
+                metrics.Metric({'bar': 'qux'}, 10, metrics.MetricType.RATE),
+            },
+        },
+    )
+
+    current = metrics.MetricsSnapshot(
+        {'foo.bar': {metrics.Metric({'bar': 'qux'}, 15)}},
+    )
+
+    differ = _make_differ(
+        prefix='foo.bar', labels={'bar': 'qux'}, diff_gauge=False,
+    )
+    with pytest.raises(AssertionError):
+        differ.baseline = baseline
+        differ.current = current
+        _ = differ.diff
+
+
+def test_histogram():
+    # /// [histogram]
+    histogram = metrics.Histogram(
+        bounds=[10, 20, 30], buckets=[1, 3, 4], inf=3,
+    )
+    assert histogram.count() == 11
+    assert histogram.percentile(0.6) == 30
+    # /// [histogram]
+
+
+def test_histogram_percentile():
+    histogram = metrics.Histogram(
+        bounds=[10, 20, 30], buckets=[1, 3, 4], inf=3,
+    )
+    assert histogram.percentile(0) == 10
+    assert histogram.percentile(0.05) == 15
+    assert histogram.percentile(0.1) == 20
+    assert histogram.percentile(0.2) == 20
+    assert histogram.percentile(0.3) == 20
+    assert histogram.percentile(0.35) == 25
+    assert histogram.percentile(0.4) == 30
+    assert histogram.percentile(0.5) == 30
+    assert histogram.percentile(0.6) == 30
+    assert histogram.percentile(0.7) == 30
+    assert histogram.percentile(0.71) == math.inf
+    assert histogram.percentile(0.8) == math.inf
+    assert histogram.percentile(0.9) == math.inf
+    assert histogram.percentile(1) == math.inf

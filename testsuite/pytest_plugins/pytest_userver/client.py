@@ -585,7 +585,7 @@ class MetricsDiffer:
             add_labels: typing.Optional[typing.Dict] = None,
             *,
             default: typing.Optional[float] = None,
-    ) -> float:
+    ) -> metric_module.MetricValue:
         """
         Returns a single metric value at the specified path, prepending
         the path provided at construction. If a dict of labels is provided,
@@ -652,8 +652,6 @@ def _subtract_metrics(
         initial: metric_module.MetricsSnapshot,
         diff_gauge: bool,
 ) -> metric_module.Metric:
-    assert diff_gauge, 'diff_gauge=False is unimplemented'
-
     initial_group = initial.get(path, None)
     if initial_group is None:
         return current_metric
@@ -665,7 +663,62 @@ def _subtract_metrics(
 
     return metric_module.Metric(
         labels=current_metric.labels,
-        value=current_metric.value - initial_metric.value,
+        value=_subtract_metric_values(
+            current=current_metric,
+            initial=initial_metric,
+            diff_gauge=diff_gauge,
+        ),
+        _type=current_metric.type(),
+    )
+
+
+def _subtract_metric_values(
+        current: metric_module.Metric,
+        initial: metric_module.Metric,
+        diff_gauge: bool,
+) -> metric_module.MetricValue:
+    assert current.type() is not metric_module.MetricType.UNSPECIFIED
+    assert initial.type() is not metric_module.MetricType.UNSPECIFIED
+    assert current.type() == initial.type()
+
+    if isinstance(current.value, metric_module.Histogram):
+        assert isinstance(initial.value, metric_module.Histogram)
+        return _subtract_metric_values_hist(current=current, initial=initial)
+    else:
+        assert not isinstance(initial.value, metric_module.Histogram)
+        return _subtract_metric_values_num(
+            current=current, initial=initial, diff_gauge=diff_gauge,
+        )
+
+
+def _subtract_metric_values_num(
+        current: metric_module.Metric,
+        initial: metric_module.Metric,
+        diff_gauge: bool,
+) -> float:
+    current_value = typing.cast(float, current.value)
+    initial_value = typing.cast(float, initial.value)
+    should_diff = (
+        current.type() is metric_module.MetricType.RATE
+        or initial.type() is metric_module.MetricType.RATE
+        or diff_gauge
+    )
+    return current_value - initial_value if should_diff else current_value
+
+
+def _subtract_metric_values_hist(
+        current: metric_module.Metric, initial: metric_module.Metric,
+) -> metric_module.Histogram:
+    current_value = typing.cast(metric_module.Histogram, current.value)
+    initial_value = typing.cast(metric_module.Histogram, initial.value)
+    assert current_value.bounds == initial_value.bounds
+    return metric_module.Histogram(
+        bounds=current_value.bounds,
+        buckets=[
+            t[0] - t[1]
+            for t in zip(current_value.buckets, initial_value.buckets)
+        ],
+        inf=current_value.inf - initial_value.inf,
     )
 
 

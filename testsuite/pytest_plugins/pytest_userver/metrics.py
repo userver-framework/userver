@@ -7,8 +7,62 @@ testsuite; see
 """
 
 import dataclasses
+import enum
 import json
+import math
+import random
 import typing
+
+
+# @cond
+class MetricType(str, enum.Enum):
+    """
+    The type of individual metric.
+
+    `UNSPECIFIED` compares equal to all `MetricType`s.
+    To disable this behavior, use `is` for comparisons.
+    """
+
+    UNSPECIFIED = 'UNSPECIFIED'
+    GAUGE = 'GAUGE'
+    RATE = 'RATE'
+    HIST_RATE = 'HIST_RATE'
+    # @endcond
+
+
+@dataclasses.dataclass
+class Histogram:
+    """
+    Represents the value of a HIST_RATE (a.k.a. Histogram) metric.
+
+    Usage example:
+    @snippet testsuite/tests/test_metrics.py  histogram
+
+    Normally obtained from MetricsSnapshot
+    """
+
+    bounds: typing.List[float]
+    buckets: typing.List[int]
+    inf: int
+
+    def count(self) -> int:
+        return sum(self.buckets) + self.inf
+
+    def percentile(self, percent: float) -> float:
+        return _do_compute_percentile(self, percent)
+
+    # @cond
+    def __post_init__(self):
+        assert len(self.bounds) == len(self.buckets)
+        assert sorted(self.bounds) == self.bounds
+        if self.bounds:
+            assert self.bounds[0] > 0
+            assert self.bounds[-1] != math.inf
+
+    # @endcond
+
+
+MetricValue = typing.Union[float, Histogram]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -24,19 +78,50 @@ class Metric:
     """
 
     labels: typing.Dict[str, str]
-    value: float
+    value: MetricValue
+
+    # @cond
+    # Should not be specified explicitly, for internal use only.
+    _type: MetricType = MetricType.UNSPECIFIED
+    # @endcond
+
+    def __eq__(self, other: typing.Any) -> bool:
+        if not isinstance(other, Metric):
+            return NotImplemented
+        return (
+            self.labels == other.labels
+            and self.value == other.value
+            and _type_eq(self._type, other._type)
+        )
 
     def __hash__(self) -> int:
-        return hash(self.get_labels_tuple())
+        return hash(_get_labels_tuple(self))
 
-    def get_labels_tuple(self) -> typing.Tuple:
-        """ Returns labels as a tuple of sorted items """
-        return tuple(sorted(self.labels.items()))
+    # @cond
+    def __post_init__(self):
+        if isinstance(self.value, Histogram):
+            assert (
+                self._type == MetricType.HIST_RATE
+                or self._type == MetricType.UNSPECIFIED
+            )
+        else:
+            assert self._type is not MetricType.HIST_RATE
+
+    # For internal use only.
+    def type(self) -> MetricType:
+        return self._type
+
+    # @endcond
 
 
 class _MetricsJSONEncoder(json.JSONEncoder):
     def default(self, o):  # pylint: disable=method-hidden
         if isinstance(o, Metric):
+            result = {'labels': o.labels, 'value': o.value}
+            if o.type() is not MetricType.UNSPECIFIED:
+                result['type'] = o.type()
+            return result
+        elif isinstance(o, Histogram):
             return dataclasses.asdict(o)
         if isinstance(o, set):
             return list(o)
@@ -109,8 +194,8 @@ class MetricsSnapshot:
             path: str,
             labels: typing.Optional[typing.Dict] = None,
             *,
-            default: typing.Optional[float] = None,
-    ) -> float:
+            default: typing.Optional[MetricValue] = None,
+    ) -> MetricValue:
         """
         Returns a single metric value at specified path. If a dict of labels
         is provided, does en exact match of labels (i.e. {} stands for no
@@ -164,7 +249,11 @@ class MetricsSnapshot:
         """
         json_data = {
             str(path): {
-                Metric(labels=element['labels'], value=element['value'])
+                Metric(
+                    labels=element['labels'],
+                    value=_parse_metric_value(element['value']),
+                    _type=MetricType[element.get('type', 'UNSPECIFIED')],
+                )
                 for element in metrics_list
             }
             for path, metrics_list in json.loads(json_str).items()
@@ -175,7 +264,62 @@ class MetricsSnapshot:
         """
         Serialize to a JSON string
         """
-        return json.dumps(self._values, cls=_MetricsJSONEncoder)
+        return json.dumps(
+            # Shuffle to disallow depending on the received metrics order.
+            {
+                path: random.sample(list(metrics), len(metrics))
+                for path, metrics in self._values.items()
+            },
+            cls=_MetricsJSONEncoder,
+        )
+
+
+def _type_eq(lhs: MetricType, rhs: MetricType) -> bool:
+    return (
+        lhs == rhs
+        or lhs == MetricType.UNSPECIFIED
+        or rhs == MetricType.UNSPECIFIED
+    )
+
+
+def _get_labels_tuple(metric: Metric) -> typing.Tuple:
+    """ Returns labels as a tuple of sorted items """
+    return tuple(sorted(metric.labels.items()))
+
+
+def _do_compute_percentile(hist: Histogram, percent: float) -> float:
+    # This implementation is O(hist.count()), which is less than perfect.
+    # So far, this was not a big enough pain to rewrite it.
+    value_lists = [
+        [bound] * bucket for (bucket, bound) in zip(hist.buckets, hist.bounds)
+    ] + [[math.inf] * hist.inf]
+    values = [item for sublist in value_lists for item in sublist]
+
+    # Implementation taken from:
+    # https://stackoverflow.com/a/2753343/5173839
+    if not values:
+        return 0
+    pivot = (len(values) - 1) * percent
+    floor = math.floor(pivot)
+    ceil = math.ceil(pivot)
+    if floor == ceil:
+        return values[int(pivot)]
+    part1 = values[int(floor)] * (ceil - pivot)
+    part2 = values[int(ceil)] * (pivot - floor)
+    return part1 + part2
+
+
+def _parse_metric_value(value: typing.Any) -> MetricValue:
+    if isinstance(value, dict):
+        return Histogram(
+            bounds=value['bounds'], buckets=value['buckets'], inf=value['inf'],
+        )
+    elif isinstance(value, float):
+        return value
+    elif isinstance(value, int):
+        return value
+    else:
+        raise Exception(f'Failed to parse metric value from {value!r}')
 
 
 _FlattenedSnapshot = typing.Set[typing.Tuple[str, Metric]]
