@@ -136,11 +136,12 @@ class SubscriptionStorageBase
     ServerWeights weights;
     size_t sum_weights{0};
     size_t total_connections{0};
-    std::unordered_map<ServerId, std::vector<std::pair<ChannelName, FsmPtr>>,
-                       ServerIdHasher>
+    // Use std::map instead of std::unordered_map because we rely on fact that
+    // iterators are never invalidated on inserts in RebalanceMoveSubscriptions
+    // method
+    std::map<ServerId, std::vector<std::pair<ChannelName, FsmPtr>>>
         subscriptions_by_server;
-    std::unordered_map<ServerId, size_t, ServerIdHasher>
-        need_subscription_count;
+    std::map<ServerId, size_t> need_subscription_count;
   };
 
   template <typename CallbackMap, typename PcallbackMap>
