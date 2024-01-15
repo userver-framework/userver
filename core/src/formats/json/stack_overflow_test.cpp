@@ -4,6 +4,7 @@
 
 #include <userver/engine/run_standalone.hpp>
 #include <userver/formats/json/serialize.hpp>
+#include <userver/formats/json/value_builder.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -35,18 +36,25 @@ std::string MakeStringOfDeepArray(std::size_t depth) {
   return str;
 }
 
-}  // namespace
-
-TEST(FormatsJson, DeepObjectFromString) {
+template <typename Func>
+void RunStackLimitedTest(Func&& fn) {
   constexpr std::size_t kWorkerThreads = 1;
   engine::TaskProcessorPoolsConfig config;
   config.coro_stack_size = 128 * 1024ULL;
 
-  engine::RunStandalone(kWorkerThreads, config, [] {
-    constexpr std::size_t kDepth = 16 * 1024;
-    auto value = formats::json::FromString(MakeStringOfDeepObject(kDepth));
+  constexpr std::size_t kDepth = 16 * 1024;
 
-    for (std::size_t i = 0; i < kDepth; ++i) {
+  engine::RunStandalone(kWorkerThreads, config,
+                        [fn = std::forward<Func>(fn)] { fn(kDepth); });
+}
+
+}  // namespace
+
+TEST(FormatsJson, DeepObjectFromString) {
+  RunStackLimitedTest([](std::size_t depth) {
+    auto value = formats::json::FromString(MakeStringOfDeepObject(depth));
+
+    for (std::size_t i = 0; i < depth; ++i) {
       value = value["a"];
     }
     EXPECT_EQ(value.As<int>(), 1);
@@ -54,15 +62,10 @@ TEST(FormatsJson, DeepObjectFromString) {
 }
 
 TEST(FormatsJson, DeepArrayFromString) {
-  constexpr std::size_t kWorkerThreads = 1;
-  engine::TaskProcessorPoolsConfig config;
-  config.coro_stack_size = 128 * 1024ULL;
+  RunStackLimitedTest([](std::size_t depth) {
+    auto value = formats::json::FromString(MakeStringOfDeepArray(depth));
 
-  engine::RunStandalone(kWorkerThreads, config, [] {
-    constexpr std::size_t kDepth = 16 * 1024;
-    auto value = formats::json::FromString(MakeStringOfDeepArray(kDepth));
-
-    for (std::size_t i = 0; i < kDepth; ++i) {
+    for (std::size_t i = 0; i < depth; ++i) {
       value = value[0];
     }
     EXPECT_EQ(value.As<int>(), 1);
@@ -70,13 +73,8 @@ TEST(FormatsJson, DeepArrayFromString) {
 }
 
 TEST(JsonToString, DeepObjectToString) {
-  constexpr std::size_t kWorkerThreads = 1;
-  engine::TaskProcessorPoolsConfig config;
-  config.coro_stack_size = 128 * 1024ULL;
-
-  engine::RunStandalone(kWorkerThreads, config, [] {
-    constexpr std::size_t kDepth = 16 * 1024;
-    auto json_str = MakeStringOfDeepObject(kDepth);
+  RunStackLimitedTest([](std::size_t depth) {
+    auto json_str = MakeStringOfDeepObject(depth);
     auto value = formats::json::FromString(json_str);
 
     EXPECT_EQ(formats::json::ToString(value), json_str);
@@ -86,18 +84,49 @@ TEST(JsonToString, DeepObjectToString) {
 }
 
 TEST(JsonToString, DeepArrayToString) {
-  constexpr std::size_t kWorkerThreads = 1;
-  engine::TaskProcessorPoolsConfig config;
-  config.coro_stack_size = 128 * 1024ULL;
-
-  engine::RunStandalone(kWorkerThreads, config, [] {
-    constexpr std::size_t kDepth = 16 * 1024;
-    auto json_str = MakeStringOfDeepArray(kDepth);
+  RunStackLimitedTest([](std::size_t depth) {
+    auto json_str = MakeStringOfDeepArray(depth);
     auto value = formats::json::FromString(json_str);
 
     EXPECT_EQ(formats::json::ToString(value), json_str);
     EXPECT_GE(formats::json::ToPrettyString(value).length(), json_str.length());
     EXPECT_EQ(formats::json::ToStableString(std::move(value)), json_str);
+  });
+}
+
+TEST(FormatsJson, DeepObjectFromStringDuplicateKeys) {
+  RunStackLimitedTest([](std::size_t depth) {
+    auto json_str = MakeStringOfDeepObject(depth);
+    // {a: {a: 1}} -> {a: {a: 1}
+    json_str.pop_back();
+    // {a: {a: 1} -> {a: {a: 1}, a: 1}
+    json_str.append(R"(,"a":1})");
+
+    EXPECT_THROW(formats::json::FromString(json_str),
+                 formats::json::ParseException);
+  });
+}
+
+TEST(FormatsJson, DeepObjectFromStringNonsense) {
+  RunStackLimitedTest([](std::size_t depth) {
+    auto json_str = MakeStringOfDeepObject(depth);
+    // {a: {a: 1}} -> {a: {a: 1}
+    json_str.pop_back();
+    // {a: {a: 1} -> {a: {a: 1}, nonsense}
+    json_str.append(R"(,"nonsense"})");
+
+    EXPECT_THROW(formats::json::FromString(json_str),
+                 formats::json::ParseException);
+  });
+}
+
+TEST(FormatsJson, ValueBuilderEraseDeepObject) {
+  RunStackLimitedTest([](std::size_t depth) {
+    auto json_str = MakeStringOfDeepObject(depth);
+    formats::json::ValueBuilder builder{formats::json::FromString(json_str)};
+
+    EXPECT_TRUE(builder.HasMember("a"));
+    builder.Remove("a");
   });
 }
 
