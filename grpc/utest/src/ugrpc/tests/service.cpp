@@ -55,11 +55,11 @@ void ServiceBase::RegisterService(server::ServiceBase& service) {
 }
 
 void ServiceBase::StartServer(
-    client::ClientFactoryConfig&& client_factory_config) {
+    client::ClientFactorySettings&& client_factory_settings) {
   adding_middlewares_allowed_ = false;
   server_.Start();
   endpoint_ = fmt::format("[::1]:{}", server_.GetPort());
-  client_factory_.emplace(std::move(client_factory_config),
+  client_factory_.emplace(std::move(client_factory_settings),
                           engine::current_task::GetTaskProcessor(),
                           middleware_factories_, server_.GetCompletionQueue(),
                           statistics_storage_, testsuite_,

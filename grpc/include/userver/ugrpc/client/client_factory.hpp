@@ -12,6 +12,7 @@
 #include <userver/dynamic_config/source.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/logging/level.hpp>
+#include <userver/storages/secdist/secdist.hpp>
 #include <userver/testsuite/grpc_control.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 #include <userver/yaml_config/fwd.hpp>
@@ -26,10 +27,15 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::client {
 
 /// Settings relating to the ClientFactory
-struct ClientFactoryConfig {
+struct ClientFactorySettings final {
   /// gRPC channel credentials, none by default
   std::shared_ptr<grpc::ChannelCredentials> credentials{
       grpc::InsecureChannelCredentials()};
+
+  /// gRPC channel credentials by client_name. If not set, default `credentials`
+  /// is used instead.
+  std::unordered_map<std::string, std::shared_ptr<grpc::ChannelCredentials>>
+      client_credentials{};
 
   /// Optional grpc-core channel args
   /// @see https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
@@ -44,15 +50,12 @@ struct ClientFactoryConfig {
   std::size_t channel_count{1};
 };
 
-ClientFactoryConfig Parse(const yaml_config::YamlConfig& value,
-                          formats::parse::To<ClientFactoryConfig>);
-
 /// @brief Creates generated gRPC clients. Has a minimal built-in channel cache:
 /// as long as a channel to the same endpoint is used somewhere, the same
 /// channel is given out.
 class ClientFactory final {
  public:
-  ClientFactory(ClientFactoryConfig&& config,
+  ClientFactory(ClientFactorySettings&& settings,
                 engine::TaskProcessor& channel_task_processor,
                 MiddlewareFactories mws, grpc::CompletionQueue& queue,
                 utils::statistics::Storage& statistics_storage,
@@ -64,12 +67,15 @@ class ClientFactory final {
                     const std::string& endpoint);
 
  private:
-  impl::ChannelCache::Token GetChannel(const std::string& endpoint);
+  impl::ChannelCache::Token GetChannel(const std::string& client_name,
+                                       const std::string& endpoint);
 
   engine::TaskProcessor& channel_task_processor_;
   MiddlewareFactories mws_;
   grpc::CompletionQueue& queue_;
   impl::ChannelCache channel_cache_;
+  std::unordered_map<std::string, std::unique_ptr<impl::ChannelCache>>
+      client_channel_cache_;
   ugrpc::impl::StatisticsStorage client_statistics_storage_;
   const dynamic_config::Source config_source_;
   testsuite::GrpcControl& testsuite_grpc_;
@@ -86,9 +92,9 @@ Client ClientFactory::MakeClient(const std::string& client_name,
   for (const auto& mw_factory : mws_)
     mws.push_back(mw_factory->GetMiddleware(client_name));
 
-  return Client(impl::ClientParams{client_name, std::move(mws), queue_,
-                                   statistics, GetChannel(endpoint),
-                                   config_source_, testsuite_grpc_});
+  return Client(impl::ClientParams{
+      client_name, std::move(mws), queue_, statistics,
+      GetChannel(client_name, endpoint), config_source_, testsuite_grpc_});
 }
 
 }  // namespace ugrpc::client

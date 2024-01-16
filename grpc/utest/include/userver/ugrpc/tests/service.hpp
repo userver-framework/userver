@@ -32,7 +32,7 @@ class ServiceBase {
   void RegisterService(server::ServiceBase& service);
 
   /// Must be called after the services are registered
-  void StartServer(client::ClientFactoryConfig&& config = {});
+  void StartServer(client::ClientFactorySettings&& settings = {});
 
   void StopServer() noexcept;
 
@@ -98,9 +98,9 @@ class ServiceMultichannel : public ServiceBase {
   ServiceMultichannel(std::size_t channel_count) {
     UASSERT(channel_count >= 1);
     RegisterService(service_);
-    client::ClientFactoryConfig client_factory_config{};
-    client_factory_config.channel_count = channel_count;
-    StartServer(std::move(client_factory_config));
+    client::ClientFactorySettings client_factory_settings{};
+    client_factory_settings.channel_count = channel_count;
+    StartServer(std::move(client_factory_settings));
   }
 
   ~ServiceMultichannel() override { StopServer(); }

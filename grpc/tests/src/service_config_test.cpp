@@ -11,6 +11,7 @@
 
 #include <ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/client/channels.hpp>
+#include <userver/ugrpc/client/client_factory.hpp>
 #include <userver/ugrpc/client/impl/client_data.hpp>
 #include <userver/ugrpc/client/queue_holder.hpp>
 
@@ -45,20 +46,17 @@ UTEST(GrpcClient, DefaultServiceConfig) {
   // so check for json-ness here
   ASSERT_NO_THROW(formats::json::FromString(service_config));
 
-  formats::yaml::ValueBuilder builder(formats::common::Type::kObject);
-  builder["default-service-config"] = service_config;
+  ugrpc::client::ClientFactorySettings settings;
+  settings.channel_args.SetServiceConfigJSON(
+      ugrpc::impl::ToGrpcString(service_config));
 
-  const auto yaml_data = builder.ExtractValue();
-  yaml_config::YamlConfig yaml_config(yaml_data, formats::yaml::Value());
-
-  auto config = yaml_config.As<ugrpc::client::ClientFactoryConfig>();
   ugrpc::client::QueueHolder client_queue;
   dynamic_config::StorageMock config_storage;
 
   testsuite::GrpcControl ts({}, false);
   ugrpc::client::MiddlewareFactories mws;
   ugrpc::client::ClientFactory client_factory(
-      std::move(config), engine::current_task::GetTaskProcessor(), mws,
+      std::move(settings), engine::current_task::GetTaskProcessor(), mws,
       client_queue.GetQueue(), statistics_storage, ts,
       config_storage.GetSource());
   const std::string endpoint{"[::]:50051"};

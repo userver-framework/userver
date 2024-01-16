@@ -4,14 +4,30 @@
 #include <userver/components/component_context.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
+#include <userver/storages/secdist/component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
+#include <ugrpc/client/impl/client_factory_config.hpp>
 #include <userver/ugrpc/server/server_component.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
+
+namespace {
+
+const storages::secdist::SecdistConfig* GetSecdist(
+    const components::ComponentContext& context) {
+  const auto* component = context.FindComponentOptional<components::Secdist>();
+  if (component) {
+    return &component->Get();
+  } else {
+    return nullptr;
+  }
+}
+
+}  // namespace
 
 ClientFactoryComponent::ClientFactoryComponent(
     const components::ComponentConfig& config,
@@ -44,8 +60,12 @@ ClientFactoryComponent::ClientFactoryComponent(
     auto& component = context.FindComponent<MiddlewareComponentBase>(name);
     mws.push_back(component.GetMiddlewareFactory());
   }
-  factory_.emplace(config.As<ClientFactoryConfig>(), task_processor, mws,
-                   *queue, statistics_storage, testsuite_grpc, config_source);
+  auto factory_config = config.As<impl::ClientFactoryConfig>();
+
+  const auto* secdist = GetSecdist(context);
+  factory_.emplace(MakeFactorySettings(std::move(factory_config), secdist),
+                   task_processor, mws, *queue, statistics_storage,
+                   testsuite_grpc, config_source);
 }
 
 ClientFactory& ClientFactoryComponent::GetFactory() { return *factory_; }
@@ -82,6 +102,9 @@ properties:
         enum:
           - insecure
           - ssl
+    auth-token:
+        type: string
+        description: auth token name from secdist
     default-service-config:
         type: string
         description: |
