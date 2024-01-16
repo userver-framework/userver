@@ -3,7 +3,6 @@
 #include <array>
 #include <atomic>
 #include <chrono>
-#include <map>
 #include <string_view>
 #include <unordered_map>
 
@@ -55,20 +54,20 @@ class Statistics {
 };
 
 struct InstanceStatistics {
-  InstanceStatistics(const MetricsSettings& settings, const Statistics& other)
-      : settings(settings),
-        state(other.state.load(std::memory_order_relaxed)),
-        reconnects(other.reconnects.load(std::memory_order_relaxed)),
-        session_start_time(
-            other.session_start_time.load(std::memory_order_relaxed)),
-        request_size_percentile(
-            other.request_size_percentile.GetStatsForPeriod()),
-        reply_size_percentile(other.reply_size_percentile.GetStatsForPeriod()),
-        timings_percentile(other.timings_percentile.GetStatsForPeriod()),
-        last_ping_ms(other.last_ping_ms.load(std::memory_order_relaxed)),
-        is_syncing(other.is_syncing.load(std::memory_order_relaxed)),
-        offset_from_master(
-            other.offset_from_master_bytes.load(std::memory_order_relaxed)) {
+  InstanceStatistics(const MetricsSettings& settings) : settings(settings) {}
+
+  void Fill(const Statistics& other) {
+    state = other.state.load(std::memory_order_relaxed);
+    reconnects = other.reconnects.load(std::memory_order_relaxed);
+    session_start_time =
+        other.session_start_time.load(std::memory_order_relaxed);
+    request_size_percentile = other.request_size_percentile.GetStatsForPeriod();
+    reply_size_percentile = other.reply_size_percentile.GetStatsForPeriod();
+    timings_percentile = other.timings_percentile.GetStatsForPeriod();
+    last_ping_ms = other.last_ping_ms.load(std::memory_order_relaxed);
+    is_syncing = other.is_syncing.load(std::memory_order_relaxed);
+    offset_from_master =
+        other.offset_from_master_bytes.load(std::memory_order_relaxed);
     for (size_t i = 0; i < error_count.size(); i++)
       error_count[i] = other.error_count[i].load(std::memory_order_relaxed);
     for (const auto& [command, timings] : other.command_timings_percentile) {
@@ -77,9 +76,6 @@ struct InstanceStatistics {
       command_timings_percentile.emplace(command, std::move(stats));
     }
   }
-
-  InstanceStatistics(const MetricsSettings& settings)
-      : InstanceStatistics(settings, Statistics()) {}
 
   void Add(const InstanceStatistics& other) {
     reconnects += other.reconnects;
@@ -95,17 +91,17 @@ struct InstanceStatistics {
   }
 
   const MetricsSettings& settings;
-  RedisState state;
-  long long reconnects;
-  std::chrono::milliseconds session_start_time;
+  RedisState state{RedisState::kInit};
+  long long reconnects{};
+  std::chrono::milliseconds session_start_time{};
   Statistics::Percentile request_size_percentile;
   Statistics::Percentile reply_size_percentile;
   Statistics::Percentile timings_percentile;
   std::unordered_map<std::string, Statistics::Percentile>
       command_timings_percentile;
-  long long last_ping_ms;
-  bool is_syncing;
-  long long offset_from_master;
+  long long last_ping_ms{};
+  bool is_syncing{};
+  long long offset_from_master{};
 
   std::array<long long, kReplyStatusMap.size()> error_count{{}};
 };
@@ -114,7 +110,7 @@ struct ShardStatistics {
   ShardStatistics(const MetricsSettings& settings) : shard_total(settings) {}
 
   InstanceStatistics shard_total;
-  std::map<std::string, InstanceStatistics> instances;
+  std::unordered_map<std::string, InstanceStatistics> instances;
   bool is_ready = false;
   std::chrono::steady_clock::time_point last_ready_time;
 };
@@ -142,8 +138,8 @@ struct SentinelStatistics {
   InstanceStatistics GetShardGroupTotalStatistics() const;
 
   std::optional<ShardStatistics> sentinel;
-  std::map<std::string, ShardStatistics> masters;
-  std::map<std::string, ShardStatistics> slaves;
+  std::unordered_map<std::string, ShardStatistics> masters;
+  std::unordered_map<std::string, ShardStatistics> slaves;
   InstanceStatistics shard_group_total;
   SentinelStatisticsInternal internal;
 };

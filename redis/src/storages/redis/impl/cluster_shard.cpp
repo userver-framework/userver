@@ -2,7 +2,6 @@
 
 #include <limits>
 #include <memory>
-#include <optional>
 #include <vector>
 
 #include <userver/utils/assert.hpp>
@@ -113,19 +112,19 @@ bool ClusterShard::AsyncCommand(CommandPtr command) const {
   return false;
 }
 
-ShardStatistics ClusterShard::GetStatistics(
-    bool master, const MetricsSettings& settings) const {
-  ShardStatistics stats(settings);
+void ClusterShard::GetStatistics(bool master, const MetricsSettings& settings,
+                                 ShardStatistics& stats) const {
   auto add_to_stats = [&settings, &stats](const auto& instance) {
     if (!instance) {
       return;
     }
-    auto inst_stats =
-        redis::InstanceStatistics(settings, instance->GetStatistics());
-    stats.shard_total.Add(inst_stats);
     auto master_host_port = instance->GetServerHost() + ":" +
                             std::to_string(instance->GetServerPort());
-    stats.instances.emplace(std::move(master_host_port), std::move(inst_stats));
+    auto it = stats.instances.emplace(std::move(master_host_port),
+                                      redis::InstanceStatistics(settings));
+    auto& inst_stats = it.first->second;
+    inst_stats.Fill(instance->GetStatistics());
+    stats.shard_total.Add(inst_stats);
   };
 
   if (master) {
@@ -141,7 +140,6 @@ ShardStatistics ClusterShard::GetStatistics(
   }
 
   stats.is_ready = IsReady(WaitConnectedMode::kMasterAndSlave);
-  return stats;
 }
 
 /// Prioritize first command_control.best_dc_count nearest by ping instances.

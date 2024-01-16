@@ -86,8 +86,8 @@ class Shard {
   bool ProcessStateUpdate();
   bool SetConnectionInfo(std::vector<ConnectionInfoInt> info_array);
   bool IsConnectedToAllServersDebug(bool allow_empty) const;
-  ShardStatistics GetStatistics(bool master,
-                                const MetricsSettings& settings) const;
+  void GetStatistics(bool master, const MetricsSettings& settings,
+                     ShardStatistics& stats) const;
   size_t InstancesSize() const;
   const std::string& ShardName() const;
   boost::signals2::signal<void(ServerId, Redis::State)>&

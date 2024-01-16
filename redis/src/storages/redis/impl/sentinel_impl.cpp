@@ -897,14 +897,21 @@ SentinelStatistics SentinelImpl::GetStatistics(
   std::lock_guard<std::mutex> lock(sentinels_mutex_);
   for (const auto& shard : master_shards_) {
     if (!shard) continue;
-    auto master_stats = shard->GetStatistics(true, settings);
-    auto slave_stats = shard->GetStatistics(false, settings);
+    auto masters_it =
+        stats.masters.emplace(shard->ShardName(), ShardStatistics(settings));
+    auto& master_stats = masters_it.first->second;
+    shard->GetStatistics(true, settings, master_stats);
     stats.shard_group_total.Add(master_stats.shard_total);
+
+    auto slave_it =
+        stats.slaves.emplace(shard->ShardName(), ShardStatistics(settings));
+    auto& slave_stats = slave_it.first->second;
+    shard->GetStatistics(false, settings, slave_stats);
     stats.shard_group_total.Add(slave_stats.shard_total);
-    stats.masters.emplace(shard->ShardName(), std::move(master_stats));
-    stats.slaves.emplace(shard->ShardName(), std::move(slave_stats));
   }
-  stats.sentinel.emplace(sentinels_->GetStatistics(true, settings));
+  stats.sentinel.emplace(ShardStatistics(settings));
+  sentinels_->GetStatistics(true, settings, *stats.sentinel);
+
   return stats;
 }
 

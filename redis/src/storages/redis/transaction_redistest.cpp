@@ -776,7 +776,7 @@ UTEST_F(RedisClientTransactionTest, Zscore) {
 namespace {
 
 std::uint64_t GetCommandCount(
-    std::map<std::string, redis::ShardStatistics>& stat) {
+    std::unordered_map<std::string, redis::ShardStatistics>& stat) {
   std::uint64_t command_count = 0;
   std::for_each(stat.begin(), stat.end(), [&](auto& shard) {
     command_count +=

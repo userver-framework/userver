@@ -639,7 +639,8 @@ void ClusterTopologyHolder::UpdateClusterTopology() {
 void ClusterTopologyHolder::GetStatistics(
     SentinelStatistics& stats, const MetricsSettings& settings) const {
   if (sentinels_) {
-    stats.sentinel.emplace(sentinels_->GetStatistics(true, settings));
+    stats.sentinel.emplace(ShardStatistics(settings));
+    sentinels_->GetStatistics(true, settings, *stats.sentinel);
   }
   stats.internal.is_autotoplogy = true;
   stats.internal.cluster_topology_checks =
