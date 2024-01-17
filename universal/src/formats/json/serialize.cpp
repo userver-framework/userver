@@ -29,6 +29,8 @@ namespace formats::json {
 
 namespace {
 
+const size_t kJsonDepthLimit = 128;
+
 ::rapidjson::CrtAllocator g_allocator;
 
 std::string_view AsStringView(const impl::Value& jval) {
@@ -45,6 +47,7 @@ void CheckKeyUniqueness(const impl::Value* root) {
   stack.emplace_back();  // fake "top" frame to avoid extra checks for an empty
                          // stack inside walker loop
   KeysStack keys;
+  std::size_t depth = 0;
   for (;;) {
     stack.back().Advance();
     if (value->IsObject()) {
@@ -67,10 +70,16 @@ void CheckKeyUniqueness(const impl::Value* root) {
 
     if ((value->IsObject() && value->MemberCount() > 0) ||
         (value->IsArray() && value->Size() > 0)) {
+      depth++;
+      if (depth >= kJsonDepthLimit) {
+        throw ParseException("Exceeded maximum allowed JSON depth of: " +
+                             std::to_string(kJsonDepthLimit));
+      }
       // descend
       stack.emplace_back(value);
     } else {
       while (!stack.back().HasMoreElements()) {
+        depth--;
         stack.pop_back();
         if (stack.empty()) return;
       }

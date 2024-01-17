@@ -223,6 +223,20 @@ TEST(JsonToSortedString, KeysSortedLexicographically) {
       R"({"A":1,"Sam":1,"Sample":1,"SampleA":1,"SampleTest":1,"SampleZ":1,"Sz":1,"Z":1})");
 }
 
+TEST(JsonToSortedString, ExceededJsonDepthLimit) {
+  EXPECT_THROW(
+      formats::json::FromString(
+          R"({"key1":{"key2":{"key3":{"key4":{"key5":{"key6":{"key7":{"key8":{"key9":{"key10":{"key11":{"key12":{"key13":{"key14":{"key15":{"key16":{"key17":{"key18":{"key19":{"key20":{"key21":{"key22":{"key23":{"key24":{"key25":{"key26":{"key27":{"key28":{"key29":{"key30":{"key31":{"key32":{"key33":{"key34":{"key35":{"key36":{"key37":{"key38":{"key39":{"key40":{"key41":{"key42":{"key43":{"key44":{"key45":{"key46":{"key47":{"key48":{"key49":{"key50":{"key51":{"key52":{"key53":{"key54":{"key55":{"key56":{"key57":{"key58":{"key59":{"key60":{"key61":{"key62":{"key63":{"key64":{"key65":{"key66":{"key67":{"key68":{"key69":{"key70":{"key71":{"key72":{"key73":{"key74":{"key75":{"key76":{"key77":{"key78":{"key79":{"key80":{"key81":{"key82":{"key83":{"key84":{"key85":{"key86":{"key87":{"key88":{"key89":{"key90":{"key91":{"key92":{"key93":{"key94":{"key95":{"key96":{"key97":{"key98":{"key99":{"key100":{"key101":{"key102":{"key103":{"key104":{"key105":{"key106":{"key107":{"key108":{"key109":{"key110":{"key111":{"key112":{"key113":{"key114":{"key115":{"key116":{"key117":{"key118":{"key119":{"key120":{"key121":{"key122":{"key123":{"key124":{"key125":{"key126":{"key127":{"key128":1}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}})"),
+      formats::json::ParseException);
+  try {
+    formats::json::FromString(
+        R"({"key1":{"key2":{"key3":{"key4":{"key5":{"key6":{"key7":{"key8":{"key9":{"key10":{"key11":{"key12":{"key13":{"key14":{"key15":{"key16":{"key17":{"key18":{"key19":{"key20":{"key21":{"key22":{"key23":{"key24":{"key25":{"key26":{"key27":{"key28":{"key29":{"key30":{"key31":{"key32":{"key33":{"key34":{"key35":{"key36":{"key37":{"key38":{"key39":{"key40":{"key41":{"key42":{"key43":{"key44":{"key45":{"key46":{"key47":{"key48":{"key49":{"key50":{"key51":{"key52":{"key53":{"key54":{"key55":{"key56":{"key57":{"key58":{"key59":{"key60":{"key61":{"key62":{"key63":{"key64":{"key65":{"key66":{"key67":{"key68":{"key69":{"key70":{"key71":{"key72":{"key73":{"key74":{"key75":{"key76":{"key77":{"key78":{"key79":{"key80":{"key81":{"key82":{"key83":{"key84":{"key85":{"key86":{"key87":{"key88":{"key89":{"key90":{"key91":{"key92":{"key93":{"key94":{"key95":{"key96":{"key97":{"key98":{"key99":{"key100":{"key101":{"key102":{"key103":{"key104":{"key105":{"key106":{"key107":{"key108":{"key109":{"key110":{"key111":{"key112":{"key113":{"key114":{"key115":{"key116":{"key117":{"key118":{"key119":{"key120":{"key121":{"key122":{"key123":{"key124":{"key125":{"key126":{"key127":{"key128":1}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}})");
+  } catch (const formats::json::ParseException& e) {
+    EXPECT_EQ(std::string(e.what()),
+              "Exceeded maximum allowed JSON depth of: 128");
+  }
+}
+
 TEST(JsonToSortedString, DuplicatedKeys) {
   EXPECT_THROW(
       formats::json::FromString(R"({"Key1":1,"Key2":2,"Key3":3, "Key1":2})"),

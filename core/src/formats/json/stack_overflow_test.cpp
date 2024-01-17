@@ -52,45 +52,15 @@ void RunStackLimitedTest(Func&& fn) {
 
 TEST(FormatsJson, DeepObjectFromString) {
   RunStackLimitedTest([](std::size_t depth) {
-    auto value = formats::json::FromString(MakeStringOfDeepObject(depth));
-
-    for (std::size_t i = 0; i < depth; ++i) {
-      value = value["a"];
-    }
-    EXPECT_EQ(value.As<int>(), 1);
+    EXPECT_THROW(formats::json::FromString(MakeStringOfDeepObject(depth)),
+                 formats::json::ParseException);
   });
 }
 
 TEST(FormatsJson, DeepArrayFromString) {
   RunStackLimitedTest([](std::size_t depth) {
-    auto value = formats::json::FromString(MakeStringOfDeepArray(depth));
-
-    for (std::size_t i = 0; i < depth; ++i) {
-      value = value[0];
-    }
-    EXPECT_EQ(value.As<int>(), 1);
-  });
-}
-
-TEST(JsonToString, DeepObjectToString) {
-  RunStackLimitedTest([](std::size_t depth) {
-    auto json_str = MakeStringOfDeepObject(depth);
-    auto value = formats::json::FromString(json_str);
-
-    EXPECT_EQ(formats::json::ToString(value), json_str);
-    EXPECT_GE(formats::json::ToPrettyString(value).length(), json_str.length());
-    EXPECT_EQ(formats::json::ToStableString(std::move(value)), json_str);
-  });
-}
-
-TEST(JsonToString, DeepArrayToString) {
-  RunStackLimitedTest([](std::size_t depth) {
-    auto json_str = MakeStringOfDeepArray(depth);
-    auto value = formats::json::FromString(json_str);
-
-    EXPECT_EQ(formats::json::ToString(value), json_str);
-    EXPECT_GE(formats::json::ToPrettyString(value).length(), json_str.length());
-    EXPECT_EQ(formats::json::ToStableString(std::move(value)), json_str);
+    EXPECT_THROW(formats::json::FromString(MakeStringOfDeepArray(depth)),
+                 formats::json::ParseException);
   });
 }
 
@@ -117,16 +87,6 @@ TEST(FormatsJson, DeepObjectFromStringNonsense) {
 
     EXPECT_THROW(formats::json::FromString(json_str),
                  formats::json::ParseException);
-  });
-}
-
-TEST(FormatsJson, ValueBuilderEraseDeepObject) {
-  RunStackLimitedTest([](std::size_t depth) {
-    auto json_str = MakeStringOfDeepObject(depth);
-    formats::json::ValueBuilder builder{formats::json::FromString(json_str)};
-
-    EXPECT_TRUE(builder.HasMember("a"));
-    builder.Remove("a");
   });
 }
 
