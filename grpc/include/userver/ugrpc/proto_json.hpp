@@ -3,6 +3,7 @@
 /// @file userver/ugrpc/proto_json.hpp
 /// @brief Utilities for conversion Protobuf -> Json
 
+#include <google/protobuf/struct.pb.h>
 #include <google/protobuf/util/json_util.h>
 
 #include <userver/formats/json.hpp>
@@ -31,5 +32,12 @@ json::Value Serialize(const google::protobuf::Message& message,
                       To<json::Value>);
 
 }  // namespace formats::serialize
+
+namespace formats::parse {
+
+google::protobuf::Value Parse(const formats::json::Value& value,
+                              To<google::protobuf::Value>);
+
+}
 
 USERVER_NAMESPACE_END
