@@ -48,6 +48,8 @@ class MethodStatistics final {
   friend void DumpMetric(utils::statistics::Writer& writer,
                          const MethodStatistics& stats);
 
+  std::uint64_t GetStarted() const noexcept;
+
  private:
   using Percentile =
       utils::statistics::Percentile<2000, std::uint32_t, 256, 100>;
@@ -78,6 +80,8 @@ class ServiceStatistics final {
   const MethodStatistics& GetMethodStatistics(std::size_t method_id) const;
 
   const StaticServiceMetadata& GetMetadata() const;
+
+  std::uint64_t GetStartedRequests() const;
 
   friend void DumpMetric(utils::statistics::Writer& writer,
                          const ServiceStatistics& stats);

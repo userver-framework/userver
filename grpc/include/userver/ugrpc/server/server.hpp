@@ -14,6 +14,7 @@
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/logging/level.hpp>
 #include <userver/logging/null_logger.hpp>
+#include <userver/server/congestion_control/sensor.hpp>
 #include <userver/utils/function_ref.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 #include <userver/yaml_config/fwd.hpp>
@@ -56,7 +57,8 @@ struct ServerConfig final {
 ///
 /// All methods are thread-safe.
 /// Usually retrieved from ugrpc::server::ServerComponent.
-class Server final {
+class Server final
+    : public USERVER_NAMESPACE::server::congestion_control::RequestsSource {
  public:
   using SetupHook = utils::function_ref<void(grpc::ServerBuilder&)>;
 
@@ -67,7 +69,7 @@ class Server final {
 
   Server(Server&&) = delete;
   Server& operator=(Server&&) = delete;
-  ~Server();
+  ~Server() override;
 
   /// @brief Register a service implementation in the server. The user or the
   /// component is responsible for keeping `service` and `middlewares` alive at
@@ -107,6 +109,8 @@ class Server final {
   /// Stop must still be called. StopDebug is useful for testing.
   void StopDebug() noexcept;
   /// @endcond
+
+  std::uint64_t GetTotalRequests() const override;
 
  private:
   class Impl;
