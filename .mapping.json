@@ -346,6 +346,7 @@
   "core/include/userver/dist_lock/statistics.hpp":"taxi/uservices/userver/core/include/userver/dist_lock/statistics.hpp",
   "core/include/userver/drivers/drivers.hpp":"taxi/uservices/userver/core/include/userver/drivers/drivers.hpp",
   "core/include/userver/drivers/impl/connection_pool_base.hpp":"taxi/uservices/userver/core/include/userver/drivers/impl/connection_pool_base.hpp",
+  "core/include/userver/drivers/subscribable_futures.hpp":"taxi/uservices/userver/core/include/userver/drivers/subscribable_futures.hpp",
   "core/include/userver/dump/aggregates.hpp":"taxi/uservices/userver/core/include/userver/dump/aggregates.hpp",
   "core/include/userver/dump/common.hpp":"taxi/uservices/userver/core/include/userver/dump/common.hpp",
   "core/include/userver/dump/common_containers.hpp":"taxi/uservices/userver/core/include/userver/dump/common_containers.hpp",
