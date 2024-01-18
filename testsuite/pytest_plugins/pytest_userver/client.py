@@ -876,12 +876,25 @@ class AiohttpClient(service_client.AiohttpClient):
             *,
             clean_update: bool = True,
             cache_names: typing.Optional[typing.List[str]] = None,
+            testsuite_skip_prepare: bool = False,
     ) -> None:
-        await self.tests_control(
-            invalidate_caches=True,
-            clean_update=clean_update,
-            cache_names=cache_names,
-        )
+        if testsuite_skip_prepare:
+            await self._tests_control(
+                {
+                    'invalidate_caches': {
+                        'update_type': (
+                            'full' if clean_update else 'incremental'
+                        ),
+                        **({'names': cache_names} if cache_names else {}),
+                    },
+                },
+            )
+        else:
+            await self.tests_control(
+                invalidate_caches=True,
+                clean_update=clean_update,
+                cache_names=cache_names,
+            )
 
     async def tests_control(
             self,
@@ -1112,6 +1125,7 @@ class Client(ClientWrapper):
             *,
             clean_update: bool = True,
             cache_names: typing.Optional[typing.List[str]] = None,
+            testsuite_skip_prepare: bool = False,
     ) -> None:
         """
         Send request to service to update caches.
@@ -1120,9 +1134,13 @@ class Client(ClientWrapper):
                update of caches whenever possible.
         @param cache_names which caches specifically should be updated;
                update all if None.
+        @param testsuite_skip_prepare if False, service will automatically do
+               update_server_state().
         """
         await self._client.invalidate_caches(
-            clean_update=clean_update, cache_names=cache_names,
+            clean_update=clean_update,
+            cache_names=cache_names,
+            testsuite_skip_prepare=testsuite_skip_prepare,
         )
 
     @_wrap_client_error
