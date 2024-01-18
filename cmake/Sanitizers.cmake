@@ -13,9 +13,9 @@ function(_userver_get_sanitize_options SANITIZER_LIST_VAR COMPILE_FLAGS_VAR LINK
   set(sanitizers_supported ON)
   if (USERVER_SANITIZE AND
       CMAKE_SYSTEM_NAME MATCHES "Darwin" AND
-      CMAKE_SYSTEM_PROCESSOR} MATCHES "arm64")
+      CMAKE_SYSTEM_PROCESSOR MATCHES "arm64")
     message(WARNING
-        "Sanitizers on aarch64 MacOS produce false positive "
+        "Sanitizers on arm64 macOS produce false positives "
         "on coroutine-context switching. Disabling")
     set(sanitizers_supported OFF)
   endif()
