@@ -66,7 +66,7 @@ namespace server::handlers {
 /// Provide an optional query parameter `body` to get the bodies of all the
 /// in-flight requests.
 // clang-format on
-class ImplicitOptions final : public HttpHandlerBase {
+class ImplicitOptions /*non-final*/ : public HttpHandlerBase {
  public:
   /// @ingroup userver_component_names
   /// @brief The default name of server::handlers::ImplicitOptions component
