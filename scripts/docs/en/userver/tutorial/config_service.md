@@ -35,6 +35,7 @@ In previous example we made a simple HTTP server with some dynamic configs set i
         update-interval: 5s            # Request for new configs every 5 seconds
         full-update-interval: 1m
         config-settings: false
+        first-update-fail-ok: true
 ```
 
 Now let's create a configuration service.

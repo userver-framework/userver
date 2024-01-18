@@ -136,6 +136,7 @@ components_manager:
       fs-task-processor: fs-task-processor
     dynamic-config-client-updater:
       config-settings: false
+      first-update-fail-ok: true
       config-url: $config_server_url
       full-update-interval: 1m
       http-retries: 5

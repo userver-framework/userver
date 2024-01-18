@@ -855,16 +855,20 @@ class AiohttpClient(service_client.AiohttpClient):
         )
 
     @contextlib.asynccontextmanager
-    async def capture_logs(self):
+    async def capture_logs(self, *, testsuite_skip_prepare: bool = False):
         async with self._log_capture_fixture.start_capture() as capture:
             await self._testsuite_action(
-                'log_capture', socket_logging_duplication=True,
+                'log_capture',
+                socket_logging_duplication=True,
+                testsuite_skip_prepare=testsuite_skip_prepare,
             )
             try:
                 yield capture
             finally:
                 await self._testsuite_action(
-                    'log_capture', socket_logging_duplication=False,
+                    'log_capture',
+                    socket_logging_duplication=False,
+                    testsuite_skip_prepare=testsuite_skip_prepare,
                 )
 
     async def invalidate_caches(
@@ -1097,8 +1101,10 @@ class Client(ClientWrapper):
     def spawn_task(self, name: str):
         return self._client.spawn_task(name)
 
-    def capture_logs(self):
-        return self._client.capture_logs()
+    def capture_logs(self, *, testsuite_skip_prepare: bool = False):
+        return self._client.capture_logs(
+            testsuite_skip_prepare=testsuite_skip_prepare,
+        )
 
     @_wrap_client_error
     async def invalidate_caches(
