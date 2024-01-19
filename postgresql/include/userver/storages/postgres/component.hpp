@@ -129,7 +129,7 @@ namespace components {
 /// check-user-types        | cancel service start if some user types have not been loaded, which helps to detect missing migrations | false
 /// ignore_unused_query_params| disable check for not-NULL query params that are not used in query| false
 /// monitoring-dbalias      | name of the database for monitorings                      | calculated from dbalias or dbconnection options
-/// max_prepared_cache_size | prepared statements cache size limit                      | 5000
+/// max_prepared_cache_size | prepared statements cache size limit                      | 200
 /// max_statement_metrics   | limit of exported metrics for named statements            | 0
 /// min_pool_size           | number of connections created initially                   | 4
 /// max_pool_size           | maximum number of created connections                     | 15

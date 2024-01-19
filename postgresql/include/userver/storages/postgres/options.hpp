@@ -192,7 +192,7 @@ struct PoolSettings {
 };
 
 /// Default size limit for prepared statements cache
-static constexpr size_t kDefaultMaxPreparedCacheSize = 5000;
+static constexpr size_t kDefaultMaxPreparedCacheSize = 200;
 
 /// Pipeline mode configuration
 ///
