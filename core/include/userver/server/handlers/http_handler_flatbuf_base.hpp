@@ -18,8 +18,9 @@ namespace server::handlers {
 
 namespace impl {
 
-inline const std::string kFlatbufRequestDataName = "__request_flatbuf";
-inline const std::string kFlatbufResponseDataName = "__response_flatbuf";
+inline constexpr std::string_view kFlatbufRequestDataName = "__request_flatbuf";
+inline constexpr std::string_view kFlatbufResponseDataName =
+    "__response_flatbuf";
 
 }  // namespace impl
 
@@ -95,9 +96,9 @@ std::string HttpHandlerFlatbufBase<InputType, ReturnType>::HandleRequestThrow(
       context.GetData<const typename InputType::NativeTableType&>(
           impl::kFlatbufRequestDataName);
 
-  const auto& ret = context.SetData<const typename ReturnType::NativeTableType>(
-      impl::kFlatbufResponseDataName,
-      HandleRequestFlatbufThrow(request, input, context));
+  const auto& ret =
+      context.SetData(std::string{impl::kFlatbufResponseDataName},
+                      HandleRequestFlatbufThrow(request, input, context));
 
   flatbuffers::FlatBufferBuilder fbb;
   auto ret_fbb = ReturnType::Pack(fbb, &ret);
@@ -154,7 +155,7 @@ void HttpHandlerFlatbufBase<InputType, ReturnType>::ParseRequestData(
   typename InputType::NativeTableType input;
   input_fbb->UnPackTo(&input);
 
-  context.SetData(impl::kFlatbufRequestDataName, std::move(input));
+  context.SetData(std::string{impl::kFlatbufRequestDataName}, std::move(input));
 }
 
 template <typename InputType, typename ReturnType>

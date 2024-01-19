@@ -1197,6 +1197,7 @@
   "core/src/server/request/request_config.cpp":"taxi/uservices/userver/core/src/server/request/request_config.cpp",
   "core/src/server/request/request_constructor.hpp":"taxi/uservices/userver/core/src/server/request/request_constructor.hpp",
   "core/src/server/request/request_context.cpp":"taxi/uservices/userver/core/src/server/request/request_context.cpp",
+  "core/src/server/request/request_context_test.cpp":"taxi/uservices/userver/core/src/server/request/request_context_test.cpp",
   "core/src/server/request/request_parser.hpp":"taxi/uservices/userver/core/src/server/request/request_parser.hpp",
   "core/src/server/request/response_base.cpp":"taxi/uservices/userver/core/src/server/request/response_base.cpp",
   "core/src/server/request/task_inherited_data.cpp":"taxi/uservices/userver/core/src/server/request/task_inherited_data.cpp",

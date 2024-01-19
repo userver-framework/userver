@@ -4,8 +4,9 @@
 /// @brief @copybrief server::request::RequestContext
 
 #include <string>
+#include <string_view>
+#include <type_traits>
 
-#include <userver/compiler/select.hpp>
 #include <userver/utils/any_movable.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
@@ -78,59 +79,62 @@ class RequestContext final {
   /// @throws std::runtime_error if no data was stored
   /// @throws std::bad_any_cast if data of different type was stored
   template <typename Data>
-  Data& GetData(const std::string& name);
+  Data& GetData(std::string_view name);
 
   /// @returns Stored data with specified name.
   /// @throws std::runtime_error if no data was stored
   /// @throws std::bad_any_cast if data of different type was stored
   template <typename Data>
-  const Data& GetData(const std::string& name) const;
+  const Data& GetData(std::string_view name) const;
 
   /// @returns Stored data with specified name or nullptr if no data found.
   /// @throws std::bad_any_cast if data of different type was stored.
   template <typename Data>
-  std::remove_reference_t<Data>* GetDataOptional(const std::string& name);
+  std::remove_reference_t<Data>* GetDataOptional(std::string_view name);
 
   /// @returns Stored data with specified name or nullptr if no data found.
   /// @throws std::bad_any_cast if data of different type was stored.
   template <typename Data>
   const std::remove_reference_t<Data>* GetDataOptional(
-      const std::string& name) const;
+      std::string_view name) const;
 
   /// @brief Erase data with specified name.
-  void EraseData(const std::string& name);
+  void EraseData(std::string_view name);
 
  private:
-  class Impl;
-
-  static constexpr std::size_t kPimplSize = compiler::SelectSize()  //
-                                                .ForLibCpp32(24)
-                                                .ForLibCpp64(48)
-                                                .ForLibStdCpp64(64)
-                                                .ForLibStdCpp32(32);
-
   utils::AnyMovable& SetUserAnyData(utils::AnyMovable&& data);
   utils::AnyMovable& GetUserAnyData();
   utils::AnyMovable* GetUserAnyDataOptional();
   void EraseUserAnyData();
 
   utils::AnyMovable& SetAnyData(std::string&& name, utils::AnyMovable&& data);
-  utils::AnyMovable& GetAnyData(const std::string& name);
-  utils::AnyMovable* GetAnyDataOptional(const std::string& name);
-  void EraseAnyData(const std::string& name);
+  utils::AnyMovable& GetAnyData(std::string_view name);
+  utils::AnyMovable* GetAnyDataOptional(std::string_view name);
+  void EraseAnyData(std::string_view name);
 
-  utils::FastPimpl<Impl, kPimplSize, alignof(void*), utils::kStrictMatch> impl_;
+  class Impl;
+  static constexpr std::size_t kPimplSize = 64;
+  utils::FastPimpl<Impl, kPimplSize, alignof(void*)> impl_;
 };
 
 template <typename Data>
 Data& RequestContext::SetUserData(Data data) {
+  static_assert(!std::is_const_v<Data>,
+                "Data stored in RequestContext is mutable if RequestContext is "
+                "not `const`. Remove the `const` from the template parameter "
+                "of SetUserData as it makes no sense");
+  static_assert(
+      !std::is_reference_v<Data>,
+      "Data in RequestContext is stored by copy. Remove the reference "
+      "from the template parameter of SetUserData as it makes no sense");
   return utils::AnyCast<Data&>(SetUserAnyData(std::move(data)));
 }
 
 template <typename Data, typename... Args>
 Data& RequestContext::EmplaceUserData(Args&&... args) {
-  return utils::AnyCast<Data&>(
-      SetUserAnyData(Data(std::forward<Args>(args)...)));
+  // NOLINTNEXTLINE(google-readability-casting)
+  auto& data = SetUserAnyData(Data(std::forward<Args>(args)...));
+  return utils::AnyCast<Data&>(data);
 }
 
 template <typename Data>
@@ -161,41 +165,50 @@ inline void RequestContext::EraseUserData() { EraseUserAnyData(); }
 
 template <typename Data>
 Data& RequestContext::SetData(std::string name, Data data) {
+  static_assert(!std::is_const_v<Data>,
+                "Data stored in RequestContext is mutable if RequestContext is "
+                "not `const`. Remove the `const` from the template parameter "
+                "of SetData as it makes no sense");
+  static_assert(
+      !std::is_reference_v<Data>,
+      "Data in RequestContext is stored by copy. Remove the reference "
+      "from the template parameter of SetData as it makes no sense");
   return utils::AnyCast<Data&>(SetAnyData(std::move(name), std::move(data)));
 }
 
 template <typename Data, typename... Args>
 Data& RequestContext::EmplaceData(std::string name, Args&&... args) {
-  return utils::AnyCast<Data&>(
-      SetAnyData(std::move(name), Data(std::forward<Args>(args)...)));
+  // NOLINTNEXTLINE(google-readability-casting)
+  auto& data = SetAnyData(std::move(name), Data(std::forward<Args>(args)...));
+  return utils::AnyCast<Data&>(data);
 }
 
 template <typename Data>
-Data& RequestContext::GetData(const std::string& name) {
+Data& RequestContext::GetData(std::string_view name) {
   return utils::AnyCast<Data&>(GetAnyData(name));
 }
 
 template <typename Data>
-const Data& RequestContext::GetData(const std::string& name) const {
+const Data& RequestContext::GetData(std::string_view name) const {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
   return const_cast<RequestContext*>(this)->GetData<Data>(name);
 }
 
 template <typename Data>
 std::remove_reference_t<Data>* RequestContext::GetDataOptional(
-    const std::string& name) {
+    std::string_view name) {
   auto* data = GetAnyDataOptional(name);
   return data ? &utils::AnyCast<Data&>(*data) : nullptr;
 }
 
 template <typename Data>
 const std::remove_reference_t<Data>* RequestContext::GetDataOptional(
-    const std::string& name) const {
+    std::string_view name) const {
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
   return const_cast<RequestContext*>(this)->GetDataOptional<Data>(name);
 }
 
-inline void RequestContext::EraseData(const std::string& name) {
+inline void RequestContext::EraseData(std::string_view name) {
   EraseAnyData(name);
 }
 
