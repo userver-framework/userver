@@ -2,6 +2,7 @@
 Work with the configuration files of the service in testsuite.
 """
 
+import copy
 import logging
 import pathlib
 import types
@@ -215,13 +216,9 @@ def service_config_vars(_service_config) -> dict:
     return _service_config.config_vars
 
 
-@pytest.fixture(scope='session')
-def _service_config(
-        pytestconfig,
-        request,
-        service_tmpdir,
-        service_config_path,
-        service_config_vars_path,
+@pytest.fixture(name='_original_service_config', scope='session')
+def _original_service_config_fixture(
+        service_config_path, service_config_vars_path,
 ) -> _UserverConfig:
     config_vars: dict
     config_yaml: dict
@@ -234,6 +231,16 @@ def _service_config(
             config_vars = yaml.safe_load(fp)
     else:
         config_vars = {}
+
+    return _UserverConfig(config_yaml=config_yaml, config_vars=config_vars)
+
+
+@pytest.fixture(scope='session')
+def _service_config(
+        pytestconfig, request, service_tmpdir, _original_service_config,
+) -> _UserverConfig:
+    config_yaml = copy.deepcopy(_original_service_config.config_yaml)
+    config_vars = copy.deepcopy(_original_service_config.config_vars)
 
     plugin = pytestconfig.pluginmanager.get_plugin('userver_config')
     for hook in plugin.userver_config_hooks:
