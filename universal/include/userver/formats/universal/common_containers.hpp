@@ -270,45 +270,65 @@ struct FieldConfig<std::unordered_map<std::string, Value>> {
   using Type = std::unordered_map<std::string, Value>;
   template <typename MainClass, auto I, typename Value2>
   inline constexpr Type Read(Value2&& value) const {
-    if(!this->Additional) {
-      throw std::runtime_error("Invalid Flags");
-    }
     Type response;
-    constexpr auto fields = boost::pfr::names_as_array<MainClass>();
-    for(const auto& [name, value2] : userver::formats::common::Items(std::forward<Value2>(value))) {
-      auto it = std::find(fields.begin(), fields.end(), name);
-      if(it == fields.end()) {
-        response.emplace(name, value2.template As<Value>());
+    if(this->Additional) {
+      constexpr auto fields = boost::pfr::names_as_array<MainClass>();
+      for(const auto& [name, value] : userver::formats::common::Items(std::forward<Value2>(value))) {
+        auto it = std::find(fields.begin(), fields.end(), name);
+        if(it == fields.end()) {
+          response.emplace(name, value.template As<Value>());
+        }
       }
+      return response;
+    }
+    constexpr auto fieldName = boost::pfr::get_name<I, MainClass>();
+    for(const auto& [name, value] : userver::formats::common::Items(value[fieldName])) {
+      response.emplace(name, value.template As<Value>());
     }
     return response;
   }
   template <typename MainClass, auto I, typename Value2>
   inline constexpr std::optional<Type> TryRead(Value2&& value) const {
-    if(!this->Additional) {
-      throw std::runtime_error("Invalid Flags");
-    }
     Type response;
-    constexpr auto fields = boost::pfr::names_as_array<MainClass>();
-    constexpr auto name = boost::pfr::get_name<I, MainClass>();
-    for(const auto& [name2, value2] : userver::formats::common::Items(std::forward<Value2>(value))) {
-      if(std::find(fields.begin(), fields.end(), name2) == fields.end()) {
-        auto New = parse::TryParse(value2, parse::To<Value>{});
-        if(!New) {
-          return std::nullopt;
-        };
-        response.emplace(name, *New);
+    if(this->Additional) {
+      constexpr auto fields = boost::pfr::names_as_array<MainClass>();
+      for(const auto& [name, value] : userver::formats::common::Items(std::forward<Value2>(value))) {
+        if(std::find(fields.begin(), fields.end(), name) == fields.end()) {
+          auto New = parse::TryParse(value, parse::To<Value>{});
+          if(!New) {
+            return std::nullopt;
+          }
+          response.emplace(name, *New);
+        }
       }
+      return response;
+    }
+    constexpr auto fieldName = boost::pfr::get_name<I, MainClass>();
+    for(const auto& [name, value] : userver::formats::common::Items(value[fieldName])) {
+      auto New = parse::TryParse(value, parse::To<Value>{});
+      if(!New) {
+        return std::nullopt;
+      }
+      response.emplace(name, *New);
     }
     return response;
   }
   inline constexpr std::optional<std::string> Check(const Type&) const {
     return std::nullopt;
   }
-  constexpr auto Write(const Type& value, std::string_view, const auto&, auto& builder) const {
-    for(const auto& [name, value2] : value) {
-      builder[name] = value2;
+  template <typename Builder>
+  constexpr auto Write(const Type& value, std::string_view fieldName, const auto&, Builder& builder) const {
+    if(this->Additional) {
+      for(const auto& [name, value2] : value) {
+        builder[name] = value2;
+      };
+      return;
     };
+    Builder newBuilder;
+    for(const auto& [name, value2] : value) {
+      newBuilder[name] = value2;
+    };
+    builder[static_cast<std::string>(fieldName)] = newBuilder.ExtractValue();
   };
 };
 template <typename Element>

@@ -216,7 +216,7 @@ struct SomeStruct9 {
   std::optional<int> field1;
   inline constexpr bool operator==(const SomeStruct8& other) const {
     return this->field1 == other.field1;
-  };
+  }
 };
 
 template <>
@@ -229,13 +229,42 @@ TEST(Parse, Nullable) {
       SomeStruct8{.field1 = std::nullopt});
   EXPECT_THROW(formats::json::FromString(R"({"field1":null})").As<SomeStruct9>(),
       formats::json::TypeMismatchException);
-};
+}
+
 TEST(TryParse, Nullable) {
   EXPECT_EQ(formats::parse::TryParse(formats::json::FromString(R"({"field1":null})"), formats::parse::To<SomeStruct8>{}),
       SomeStruct8{.field1 = std::nullopt});
   EXPECT_EQ(formats::parse::TryParse(formats::json::FromString(R"({"field1":null})"), formats::parse::To<SomeStruct9>{}),
       std::nullopt);
+}
+
+struct SomeStruct10 {
+  std::unordered_map<std::string, int> map;
+  inline bool operator==(const SomeStruct10& other) const {
+    return this->map == other.map;
+  }
 };
+
+template <>
+inline constexpr auto formats::universal::kSerialization<SomeStruct10> =
+  SerializationConfig<SomeStruct10>();
+
+TEST(Parse, Map) {
+  const auto json = formats::json::FromString(R"({"map":{"1":1,"2":2}})");
+  SomeStruct10 valid;
+  valid.map.emplace("1", 1);
+  valid.map.emplace("2", 2);
+  EXPECT_EQ(json.As<SomeStruct10>(), valid);
+}
+TEST(Serialize, Map) {
+  const auto valid = formats::json::FromString(R"({"map":{"1":1,"2":2}})");
+  SomeStruct10 value;
+  value.map.emplace("1", 1);
+  value.map.emplace("2", 2);
+  const auto json = formats::json::ValueBuilder(value).ExtractValue();
+  EXPECT_EQ(json, valid);
+}
+
 
 
 USERVER_NAMESPACE_END
