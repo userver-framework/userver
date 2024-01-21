@@ -139,6 +139,7 @@
   "clickhouse/src/storages/tests/utils_test.hpp":"taxi/uservices/userver/clickhouse/src/storages/tests/utils_test.hpp",
   "clickhouse/src/storages/tests/uuid_chtest.cpp":"taxi/uservices/userver/clickhouse/src/storages/tests/uuid_chtest.cpp",
   "cmake/AddGoogleTests.cmake":"taxi/uservices/userver/cmake/AddGoogleTests.cmake",
+  "cmake/ChaoticGen.cmake":"taxi/uservices/userver/cmake/ChaoticGen.cmake",
   "cmake/CheckCompileFlags.cmake":"taxi/uservices/userver/cmake/CheckCompileFlags.cmake",
   "cmake/CheckSubmodule.cmake":"taxi/uservices/userver/cmake/CheckSubmodule.cmake",
   "cmake/DetectVersion.cmake":"taxi/uservices/userver/cmake/DetectVersion.cmake",
