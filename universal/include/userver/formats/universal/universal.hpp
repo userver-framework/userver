@@ -1,3 +1,4 @@
+#if __cplusplus >= 202002L
 #pragma once
 #include <userver/utils/constexpr_string.hpp>
 #include <userver/formats/parse/to.hpp>
@@ -14,8 +15,8 @@ namespace formats::universal {
 
 template <typename T>
 struct FieldConfig {
-  constexpr inline std::string_view Check(const T&) const {
-    return "";
+  constexpr inline std::optional<std::string> Check(const T&) const {
+    return std::nullopt;
   }
 };
 namespace impl {
@@ -67,46 +68,73 @@ struct HasCheck : public std::false_type {};
 template <typename T, typename T2>
 struct HasCheck<T, T2, std::void_t<decltype(std::declval<T&>().Check(std::declval<T2&>()))>> : public std::true_type {};
 
-template <typename Result, typename... T>
-inline constexpr Result add(T&&... args) {
-  if constexpr(sizeof...(T) != 0) {
-    return (args + ...);
-  } else {
-    return {};
-  }
-}
+template <typename... Args>
+inline constexpr std::optional<std::string> Add(Args&&...) {
+  return std::nullopt;
+};
 
+template <typename Arg, typename... Args>
+inline constexpr std::optional<std::string> Add(Arg&& arg, Args&&... args) {
+  if(arg) {
+    auto toAdd = Add(std::forward<Args>(args)...);
+    if(toAdd) {
+      return *arg + *toAdd;
+    };
+    return *arg;
+  };
+  return Add(std::forward<Arg>(args)...);
+};
 
 
 template <typename T, typename FieldConfigType>
-inline constexpr std::string UniversalCheckField(
+inline constexpr std::optional<std::string> UniversalCheckField(
           T&& response,
           FieldConfig<FieldConfigType> config) {
   using FieldType = std::remove_cvref_t<decltype(response)>;
-  auto error = [&]<auto... Is>(std::index_sequence<Is...>) -> std::string {
-    auto f = [&]<auto II>(Wrapper<II>) -> std::string {
+  auto error = [&]<auto... Is>(std::index_sequence<Is...>) -> std::optional<std::string> {
+    auto f = [&]<auto II>(Wrapper<II>) -> std::optional<std::string> {
       auto check = boost::pfr::get<II>(config);
       if constexpr(HasCheck<decltype(RemoveOptional(check)), decltype(RemoveOptional(response))>::value) {
         if constexpr(meta::kIsOptional<FieldType>) {
-          if(response && check && !check->Check(RemoveOptional(response)).empty()) {
-            return check->Check(RemoveOptional(response));
+          if(response && check) {
+            auto error = check->Check(RemoveOptional(response));
+            if(error) {
+              return error;
+            };
           }
         } else {
-          if(check && !check->Check(response).empty()) {
-            return check->Check(response);
+          if(check) {
+            auto error = check->Check(response);
+            if(error) {
+              return *error;
+            }
           }
         }
       }
-      return "";
+      return std::nullopt;
     };
-    return add<std::string>(f(Wrapper<Is>{})...);
+    return Add(f(Wrapper<Is>{})...);
   }(std::make_index_sequence<boost::pfr::tuple_size_v<decltype(config)>>());
   if constexpr(meta::kIsOptional<std::remove_cvref_t<T>>) {
     if(response) {
-      error += config.Check(*response);
+      auto add = config.Check(*response);
+      if(error) {
+        if(add) {
+          *error += *add;
+        };
+        return error;
+      };
+      error = add;
     }
   } else {
-    error += config.Check(std::forward<T>(response));
+    auto add = config.Check(std::forward<T>(response));
+    if(error) {
+      if(add) {
+        *error += *add;
+      };
+      return error;
+    }
+    error = add;
   }
   return error;
 }
@@ -118,8 +146,8 @@ inline constexpr auto UniversalParseField(
           FieldConfig<kFieldTypeOnIndex<MainClass, I>> config) {
   auto response = config.template Read<MainClass, I>(value);
   const auto error = UniversalCheckField(response, config);
-  if(!error.empty()) {
-    throw std::runtime_error(error);
+  if(error) {
+    throw std::runtime_error(*error);
   }
   return response;
 }
@@ -130,7 +158,7 @@ inline constexpr auto UniversalTryParseField(
           FieldConfig<kFieldTypeOnIndex<MainClass, I>> config) {
   auto response = config.template TryRead<MainClass, I>(value);
   return [&]() -> decltype(response) {
-    if(UniversalCheckField(response, std::move(config)).empty()) {
+    if(!UniversalCheckField(response, std::move(config))) {
       return response;
     }
     return std::nullopt;
@@ -143,12 +171,12 @@ inline constexpr auto UniversalSerializeField(
         Builder& builder,
         FieldConfig<kFieldTypeOnIndex<MainClass, I>> config) {
   UniversalCheckField(value, config);
-  config.template Write(std::forward<T>(value), boost::pfr::get_name<I, MainClass>(), boost::pfr::names_as_array<MainClass>(), builder);
+  config.Write(std::forward<T>(value), boost::pfr::get_name<I, MainClass>(), boost::pfr::names_as_array<MainClass>(), builder);
 }
 struct EmptyCheck {
   template <typename Value>
-  inline constexpr std::string Check(Value&&) const {
-    return "";
+  inline constexpr std::optional<std::string> Check(Value&&) const {
+    return std::nullopt;
   }
 };
 } // namespace impl
@@ -233,3 +261,4 @@ Serialize(T&& obj, To<Value>) {
 } // namespace formats::serialize
 
 USERVER_NAMESPACE_END
+#endif

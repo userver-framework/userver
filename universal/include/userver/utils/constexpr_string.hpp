@@ -1,6 +1,9 @@
+#if __cplusplus >= 202002L
 #pragma once
 #include <algorithm>
 #include <string>
+#include <array>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils {
@@ -56,4 +59,4 @@ template <std::size_t n>
 ConstexprString(char const (&)[n]) -> ConstexprString<n>;
 } // namespace utils
 USERVER_NAMESPACE_END
-
+#endif
