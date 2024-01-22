@@ -322,6 +322,15 @@ install(FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/src/engine/task/task_queue.hpp"
   DESTINATION "include/userver/engine/task/")
 
+install(FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/server/server_config.hpp"
+  DESTINATION "include/userver/server/")
+
+install(FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/server/net/listener_config.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/server/net/connection_config.hpp"
+  DESTINATION "include/userver/server/net/")
+
 install(DIRECTORY "${USERVER_THIRD_PARTY_DIRS}/moodycamel/include/moodycamel"
   DESTINATION "include/userver"
   FILES_MATCHING
