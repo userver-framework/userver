@@ -2,6 +2,7 @@
 Supply dynamic configs for the service in testsuite.
 """
 
+import contextlib
 import copy
 import dataclasses
 import datetime
@@ -40,7 +41,7 @@ class DynamicConfig:
             config_cache_components: typing.Iterable[str],
             cache_invalidation_state: caches.InvalidationState,
     ):
-        self._values = copy.deepcopy(initial_values)
+        self._values = initial_values
         self._cache_invalidation_state = cache_invalidation_state
         self._config_cache_components = config_cache_components
 
@@ -48,8 +49,8 @@ class DynamicConfig:
         self._values.update(values)
         self._sync_with_service()
 
-    def get_values(self):
-        return self._values.copy()
+    def get_values_unsafe(self):
+        return self._values
 
     def remove_values(self, keys):
         extra_keys = set(keys).difference(self._values.keys())
@@ -69,10 +70,22 @@ class DynamicConfig:
             if default is not None:
                 return default
             raise DynamicConfigNotFoundError(f'Config {key!r} is not found')
-        return self._values[key]
+        return copy.deepcopy(self._values[key])
 
     def remove(self, key):
         return self.remove_values([key])
+
+    @contextlib.contextmanager
+    def modify(self, key):
+        value = self.get(key)
+        yield value
+        self.set_values({key: value})
+
+    @contextlib.contextmanager
+    def modify_many(self, *keys):
+        values = tuple(self.get(key) for key in keys)
+        yield values
+        self.set_values(dict(zip(keys, values)))
 
     def _sync_with_service(self):
         self._cache_invalidation_state.invalidate(
@@ -182,7 +195,7 @@ class _ConfigDefaults:
         if not self.snapshot:
             values = await client.get_dynamic_config_defaults()
             # There may already be some config overrides from the current test.
-            values.update(dynamic_config.get_values())
+            values.update(dynamic_config.get_values_unsafe())
             self.snapshot = values
             dynamic_config.set_values(self.snapshot)
 
@@ -290,7 +303,7 @@ def mock_configs_service(mockserver, dynamic_config) -> None:
 
     @mockserver.json_handler('/configs-service/configs/values')
     def _mock_configs(request):
-        values = dynamic_config.get_values()
+        values = dynamic_config.get_values_unsafe()
         if request.json.get('ids'):
             values = {
                 name: values[name]
