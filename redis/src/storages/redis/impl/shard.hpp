@@ -100,7 +100,7 @@ class Shard {
   void SetReplicationMonitoringSettings(
       const ReplicationMonitoringSettings& replication_monitoring_settings);
   void SetRetryBudgetSettings(
-      const RetryBudgetSettings& replication_monitoring_settings);
+      const utils::RetryBudgetSettings& replication_monitoring_settings);
 
  private:
   std::vector<unsigned char> GetAvailableServers(
@@ -134,7 +134,7 @@ class Shard {
   boost::signals2::signal<void(ServerId, bool)> signal_instance_ready_;
 
   utils::SwappingSmart<CommandsBufferingSettings> commands_buffering_settings_;
-  utils::SwappingSmart<RetryBudgetSettings> retry_budet_settings_;
+  utils::SwappingSmart<utils::RetryBudgetSettings> retry_budet_settings_;
 
   bool prev_connected_ = false;
   const bool cluster_mode_ = false;

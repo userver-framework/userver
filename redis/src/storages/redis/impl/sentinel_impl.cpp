@@ -551,7 +551,7 @@ void SentinelImpl::SetReplicationMonitoringSettings(
 }
 
 void SentinelImpl::SetRetryBudgetSettings(
-    const RetryBudgetSettings& retry_budget_settings) {
+    const utils::RetryBudgetSettings& retry_budget_settings) {
   for (auto& shard : master_shards_)
     shard->SetRetryBudgetSettings(retry_budget_settings);
 }

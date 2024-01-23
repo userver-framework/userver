@@ -304,7 +304,8 @@ void Sentinel::SetReplicationMonitoringSettings(
   impl_->SetReplicationMonitoringSettings(replication_monitoring_settings);
 }
 
-void Sentinel::SetRetryBudgetSettings(const RetryBudgetSettings& settings) {
+void Sentinel::SetRetryBudgetSettings(
+    const utils::RetryBudgetSettings& settings) {
   impl_->SetRetryBudgetSettings(settings);
 }
 

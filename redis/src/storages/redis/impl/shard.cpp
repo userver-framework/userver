@@ -6,10 +6,10 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/retry_budget.hpp>
 
 #include <storages/redis/impl/command.hpp>
 #include <userver/storages/redis/impl/base.hpp>
-#include <userver/storages/redis/impl/retry_budget.hpp>
 
 #include "command_control_impl.hpp"
 
@@ -466,7 +466,7 @@ void Shard::SetReplicationMonitoringSettings(
 }
 
 void Shard::SetRetryBudgetSettings(
-    const RetryBudgetSettings& retry_budget_settings) {
+    const utils::RetryBudgetSettings& retry_budget_settings) {
   std::shared_lock lock(mutex_);
 
   for (const auto& instance : instances_) {
@@ -478,7 +478,7 @@ void Shard::SetRetryBudgetSettings(
   }
 
   retry_budet_settings_.Set(
-      std::make_shared<RetryBudgetSettings>(retry_budget_settings));
+      std::make_shared<utils::RetryBudgetSettings>(retry_budget_settings));
 }
 
 std::vector<ConnectionInfoInt> Shard::GetConnectionInfosToCreate() const {

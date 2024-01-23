@@ -1,14 +1,14 @@
-#include <userver/storages/redis/impl/retry_budget.hpp>
+#include <userver/utils/retry_budget.hpp>
 
 #include <algorithm>
 #include <atomic>
 
 #include <userver/formats/json.hpp>
-#include <userver/utils/impl/userver_experiments.hpp>
+#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace utils {
 
 namespace {
 constexpr std::int32_t kMillis = 1000;
@@ -17,14 +17,11 @@ constexpr std::int32_t kMillis = 1000;
 RetryBudget::RetryBudget() : RetryBudget(RetryBudgetSettings()) {}
 
 RetryBudget::RetryBudget(const RetryBudgetSettings& settings)
-    : token_count_(settings.max_tokens * kMillis), enabled_(settings.enabled) {
+    : token_count_(settings.max_tokens * kMillis) {
   SetSettings(settings);
 }
 
 void RetryBudget::AccountOk() noexcept {
-  if (!utils::impl::kRedisRetryBudgetExperiment.IsEnabled()) {
-    return;
-  }
   if (!enabled_.load(std::memory_order_relaxed)) {
     return;
   }
@@ -40,9 +37,6 @@ void RetryBudget::AccountOk() noexcept {
 }
 
 void RetryBudget::AccountFail() noexcept {
-  if (!utils::impl::kRedisRetryBudgetExperiment.IsEnabled()) {
-    return;
-  }
   if (!enabled_.load(std::memory_order_relaxed)) {
     return;
   }
@@ -55,9 +49,6 @@ void RetryBudget::AccountFail() noexcept {
 }
 
 bool RetryBudget::CanRetry() const {
-  if (!utils::impl::kRedisRetryBudgetExperiment.IsEnabled()) {
-    return true;
-  }
   if (!enabled_.load(std::memory_order_relaxed)) {
     return true;
   }
@@ -85,6 +76,6 @@ RetryBudgetSettings Parse(const formats::json::Value& elem,
   return result;
 }
 
-}  // namespace redis
+}  // namespace utils
 
 USERVER_NAMESPACE_END

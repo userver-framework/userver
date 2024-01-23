@@ -7,13 +7,13 @@
 #include <boost/signals2.hpp>
 
 #include <userver/dynamic_config/source.hpp>
+#include <userver/utils/retry_budget.hpp>
 #include <userver/utils/swappingsmart.hpp>
 
 #include <userver/storages/redis/impl/base.hpp>
 #include <userver/storages/redis/impl/command_options.hpp>
 #include <userver/storages/redis/impl/keyshard.hpp>
 #include <userver/storages/redis/impl/request.hpp>
-#include <userver/storages/redis/impl/retry_budget.hpp>
 #include <userver/storages/redis/impl/secdist_redis.hpp>
 #include <userver/storages/redis/impl/thread_pools.hpp>
 #include <userver/storages/redis/impl/types.hpp>
@@ -126,7 +126,7 @@ class Sentinel {
       CommandsBufferingSettings commands_buffering_settings);
   void SetReplicationMonitoringSettings(
       const ReplicationMonitoringSettings& replication_monitoring_settings);
-  void SetRetryBudgetSettings(const RetryBudgetSettings& settings);
+  void SetRetryBudgetSettings(const utils::RetryBudgetSettings& settings);
   void SetClusterAutoTopology(bool auto_topology);
 
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)

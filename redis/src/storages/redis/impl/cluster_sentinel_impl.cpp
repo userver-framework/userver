@@ -290,7 +290,7 @@ class ClusterTopologyHolder
     }
   }
 
-  void SetRetryBudgetSettings(const RetryBudgetSettings& settings) {
+  void SetRetryBudgetSettings(const utils::RetryBudgetSettings& settings) {
     {
       auto settings_ptr = retry_budget_settings_.Lock();
       *settings_ptr = settings;
@@ -370,7 +370,8 @@ class ClusterTopologyHolder
       commands_buffering_settings_;
   concurrent::Variable<ReplicationMonitoringSettings, std::mutex>
       monitoring_settings_;
-  concurrent::Variable<RetryBudgetSettings, std::mutex> retry_budget_settings_;
+  concurrent::Variable<utils::RetryBudgetSettings, std::mutex>
+      retry_budget_settings_;
   concurrent::Variable<std::unordered_set<HostPort>, std::mutex>
       nodes_to_create_;
 
@@ -923,7 +924,7 @@ void ClusterSentinelImpl::SetReplicationMonitoringSettings(
 }
 
 void ClusterSentinelImpl::SetRetryBudgetSettings(
-    const RetryBudgetSettings& settings) {
+    const utils::RetryBudgetSettings& settings) {
   if (topology_holder_) {
     topology_holder_->SetRetryBudgetSettings(settings);
   }
