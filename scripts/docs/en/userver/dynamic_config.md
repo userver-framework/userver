@@ -36,9 +36,7 @@ proxy setup and so forth.
 See @ref scripts/docs/en/userver/tutorial/production_service.md setup example.
 
 
-### C++ API
-
-#### Adding and using your own dynamic configs
+### Adding and using your own dynamic configs
 
 Dynamic config values are obtained via the dynamic_config::Source client
 that is retrieved from components::DynamicConfig:
@@ -55,7 +53,7 @@ You can also subscribe to dynamic config updates using
 dynamic_config::Source::UpdateAndListen functions, see their docs for details.
 
 @anchor dynamic_config_key
-##### What is needed to define a dynamic config
+#### What is needed to define a dynamic config
 
 A dynamic_config::Key requires 3 main elements:
 
@@ -73,14 +71,14 @@ A dynamic_config::Key requires 3 main elements:
     * If the whole config type is
       a @ref dynamic_config_parsing_trivial "trivial type" , then the default
       value may be provided directly as a C++ literal.
-    * For more complex types (e.g. objects), dynamic_config::DefaultAsJsonValue
+    * For more complex types (e.g. objects), dynamic_config::DefaultAsJsonString
       should be used.
     * @see @ref dynamic_config_defaults "how defaults are used".
 
 
-#### Summary of main dynamic config classes
+### Summary of main dynamic config classes
 
-##### dynamic_config::Snapshot
+#### dynamic_config::Snapshot
 
 A type-safe map that stores a snapshot of all used configs.
 dynamic_config::Snapshot is cheaply copyable (and even more cheaply movable),
@@ -88,12 +86,12 @@ has the semantics of `std::shared_ptr<const Impl>`. An obtained
 dynamic_config::Snapshot instance should be stored while its configs are used
 or referred to.
 
-##### dynamic_config::Source
+#### dynamic_config::Source
 
 A reference to the configs storage, required for obtaining the actual config
 value and subscription to new values.
 
-##### components::DynamicConfig
+#### components::DynamicConfig
 
 The component that stores configs in production and
 @ref dynamic_config_testsuite "testsuite tests".
@@ -103,7 +101,7 @@ For unit tests, dynamic_config::StorageMock is used instead.
 @see @ref dynamic_config_unit_tests
 
 
-#### Recommendations on working with dynamic config
+### Recommendations on working with dynamic config
 
 1. Don't store and pass around `components::DynamicConfig&`. Most code should
    immediately call `GetSource()` on it, then use or store
@@ -133,13 +131,17 @@ For unit tests, dynamic_config::StorageMock is used instead.
 
 @anchor dynamic_config_parsing
 
-#### Parsing dynamic configs
+### Parsing dynamic configs
 
 The following can be applied to parsing formats::json::Value in any context,
 but it frequently comes up in the context of defining configs.
 
+If your dynamic config is any more complex than
+a @ref dynamic_config_parsing_trivial "trivial type", then you need to ensure
+that JSON parsing is defined for it.
+
 @anchor dynamic_config_parsing_trivial
-##### Trivial types
+#### Trivial types
 
 JSON leafs can be parsed out of the box:
 
@@ -154,7 +156,7 @@ If the whole config variable is of such type, then the default value for it can
 be passed to dynamic_config::Key directly
 (without using dynamic_config::DefaultAsJsonString).
 
-##### Durations
+#### Durations
 
 Chrono durations are stored in JSON as integers:
 
@@ -167,7 +169,7 @@ at the JSON, we recommend ending the config name or the object label with one
 of the following suffixes: `_MS`, `_SECONDS`, `_MINUTES`, `_HOURS`
 (in the appropriate capitalization).
 
-##### Enums
+#### Enums
 
 A string that may only be selected a finite range of values should be mapped
 to C++ `enum class`. Parsers for enums currently have to be defined manually.
@@ -175,7 +177,7 @@ Example enum parser:
 
 @snippet engine/task/task_processor_config.cpp  sample enum parser
 
-##### Structs
+#### Structs
 
 Objects are represented as C++ structs. Parsers for structs currently
 have to be defined manually. Example struct config:
@@ -183,7 +185,7 @@ have to be defined manually. Example struct config:
 @snippet dynamic_config/config_test.cpp  struct config hpp
 @snippet dynamic_config/config_test.cpp  struct config cpp
 
-##### Optionals
+#### Optionals
 
 To represent optional (non-required) properties, use `std::optional` or `As`
 with default. For example:
@@ -201,7 +203,7 @@ To enable support for `std::optional`:
 #include <userver/formats/parse/common_containers.hpp>
 ```
 
-##### Containers
+#### Containers
 
 To represent JSON arrays, use containers, typically:
 
