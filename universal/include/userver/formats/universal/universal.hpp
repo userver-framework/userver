@@ -185,7 +185,7 @@ template <typename T>
 impl::Disabled kSerialization;
 
 template <typename T>
-auto kDeserialization = kSerialization<T>;
+inline constexpr auto kDeserialization = kSerialization<T>;
 
 
 template <typename T>
@@ -222,7 +222,7 @@ struct SerializationConfig {
 namespace formats::parse {
 
 template <typename Value, typename T>
-inline constexpr std::enable_if_t<!std::is_same_v<decltype(universal::kDeserialization<T>), universal::impl::Disabled>, T>
+inline constexpr std::enable_if_t<!std::is_same_v<std::remove_cvref_t<decltype(universal::kDeserialization<T>)>, universal::impl::Disabled>, T>
 Parse(Value&& value, To<T>) {
   return [&]<auto... I>(std::index_sequence<I...>){
     auto config = universal::kSerialization<T>;
@@ -231,7 +231,7 @@ Parse(Value&& value, To<T>) {
 }
 
 template <typename Value, typename T>
-inline constexpr std::enable_if_t<!std::is_same_v<decltype(universal::kDeserialization<T>), universal::impl::Disabled>, std::optional<T>>
+inline constexpr std::enable_if_t<!std::is_same_v<std::remove_cvref_t<decltype(universal::kDeserialization<T>)>, universal::impl::Disabled>, std::optional<T>>
 TryParse(Value&& value, To<T>) {
   return [&]<auto... I>(std::index_sequence<I...>) -> std::optional<T> {
     auto config = universal::kSerialization<T>;
