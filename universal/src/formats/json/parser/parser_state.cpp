@@ -12,6 +12,7 @@
 #include <userver/formats/common/path.hpp>
 #include <userver/formats/json/parser/base_parser.hpp>
 #include <userver/formats/json/parser/parser_handler.hpp>
+#include <userver/formats/json/serialize.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 
@@ -86,6 +87,10 @@ void ParserState::ProcessInput(std::string_view sw) {
       if (stack.empty()) {
         throw InternalParseError("Symbols after end of document");
       }
+
+      if (stack.size() > kDepthParseLimit)
+        throw InternalParseError("Exceeded maximum allowed JSON depth of: " +
+                                 std::to_string(kDepthParseLimit));
 
       UASSERT(stack.back().parser);
       ParserHandler handler(*stack.back().parser);

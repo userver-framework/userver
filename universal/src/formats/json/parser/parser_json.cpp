@@ -16,6 +16,13 @@ namespace {
 struct JsonValueParser::Impl {
   impl::Document raw_value_{&g_allocator};
   size_t level_{0};
+
+  ~Impl() {
+    auto generator = [](const auto&) { return false; };
+    // This forces GenericDocument to clean up its stack,
+    // and doesn't do anything other than that.
+    raw_value_.Populate(generator);
+  }
 };
 
 JsonValueParser::JsonValueParser() = default;
@@ -54,7 +61,9 @@ void JsonValueParser::String(std::string_view sw) {
 
 void JsonValueParser::StartObject() {
   if (!impl_->raw_value_.StartObject()) Throw(Expected());
-  impl_->level_++;
+  if (impl_->level_++ > kDepthParseLimit)
+    throw InternalParseError("Exceeded maximum allowed JSON depth of: " +
+                             std::to_string(kDepthParseLimit));
 }
 
 void JsonValueParser::Key(std::string_view key) {
@@ -70,7 +79,9 @@ void JsonValueParser::EndObject(size_t members) {
 
 void JsonValueParser::StartArray() {
   if (!impl_->raw_value_.StartArray()) Throw(Expected());
-  impl_->level_++;
+  if (impl_->level_++ > kDepthParseLimit)
+    throw InternalParseError("Exceeded maximum allowed JSON depth of: " +
+                             std::to_string(kDepthParseLimit));
 }
 
 void JsonValueParser::EndArray(size_t members) {

@@ -22,6 +22,8 @@ class LogHelper;
 
 namespace formats::json {
 
+constexpr inline std::size_t kDepthParseLimit = 128;
+
 /// Parse JSON from string
 formats::json::Value FromString(std::string_view doc);
 
