@@ -458,6 +458,29 @@ class CaseSecondDescriber final {
   std::string description_{};
 };
 
+template <typename First>
+class CaseFirstIndexer final {
+ public:
+  constexpr explicit CaseFirstIndexer(First search_value) noexcept
+      : state_(search_value) {}
+
+  constexpr CaseFirstIndexer& Case(First first) noexcept {
+    if (!state_.IsFound() && state_.GetKey() == first) {
+      state_.SetValue(index_);
+    }
+    ++index_;
+    return *this;
+  }
+
+  [[nodiscard]] constexpr std::optional<std::size_t> Extract() && noexcept {
+    return state_.Extract();
+  }
+
+ private:
+  SearchState<First, std::size_t> state_;
+  std::size_t index_ = 0;
+};
+
 }  // namespace impl
 
 /// @ingroup userver_universal userver_containers
@@ -676,6 +699,12 @@ class TrivialSet final {
   /// Parameters of Case should be formattable.
   std::string Describe() const {
     return func_([]() { return impl::CaseFirstDescriber{}; }).Extract();
+  }
+
+  /// Returns index of the value in Case parameters or std::nullopt if no such
+  /// value.
+  constexpr std::optional<std::size_t> GetIndex(First value) const {
+    return func_([value]() { return impl::CaseFirstIndexer{value}; }).Extract();
   }
 
  private:

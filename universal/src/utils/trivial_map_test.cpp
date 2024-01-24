@@ -333,4 +333,13 @@ TEST(TrivialBiMap, StringICase) {
       "\xf0\xe1\xf2\xf3\xf4\xf5\xf6\xf7\xf8\xf9\xfa\xfb\xfc\xfd\xfe\xff"));
 }
 
+TEST(TrivialBiMap, GetIndex) {
+  static constexpr utils::TrivialSet kNames = [](auto selector) {
+    return selector().Case("foo").Case("bar").Case("baz");
+  };
+
+  EXPECT_EQ(kNames.GetIndex("bar"), 1);
+  EXPECT_EQ(kNames.GetIndex("aba"), std::nullopt);
+}
+
 USERVER_NAMESPACE_END
