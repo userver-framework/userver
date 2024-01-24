@@ -36,7 +36,8 @@ class Redis {
   Redis(Redis&& o) = delete;
 
   void Connect(const ConnectionInfo::HostVector& host_addrs, int port,
-               const Password& password);
+               const Password& password,
+               std::optional<size_t> database_index = {});
 
   bool AsyncCommand(const CommandPtr& command);
   size_t GetRunningCommands() const;

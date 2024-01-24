@@ -64,7 +64,8 @@ SentinelImpl::SentinelImpl(
     const std::string& client_name, const Password& password,
     ConnectionSecurity connection_security, ReadyChangeCallback ready_callback,
     std::unique_ptr<KeyShard>&& key_shard,
-    dynamic_config::Source dynamic_config_source, ConnectionMode mode)
+    dynamic_config::Source dynamic_config_source, ConnectionMode mode,
+    std::optional<size_t> database_index)
     : sentinel_obj_(sentinel),
       ev_thread_(sentinel_thread_control),
       shard_group_name_(std::move(shard_group_name)),
@@ -79,7 +80,8 @@ SentinelImpl::SentinelImpl(
       key_shard_(std::move(key_shard)),
       connection_mode_(mode),
       slot_info_(IsInClusterMode() ? std::make_unique<SlotInfo>() : nullptr),
-      dynamic_config_source_(dynamic_config_source) {
+      dynamic_config_source_(dynamic_config_source),
+      database_index_(database_index) {
   for (size_t i = 0; i < init_shards_->size(); ++i) {
     shards_[(*init_shards_)[i]] = i;
     connected_statuses_.push_back(std::make_unique<ConnectedStatus>());
@@ -637,6 +639,7 @@ void SentinelImpl::ReadSentinels() {
         for (auto shard_conn : info) {
           if (shards_.find(shard_conn.Name()) != shards_.end()) {
             shard_conn.SetConnectionSecurity(connection_security_);
+            shard_conn.SetDatabaseIndex(database_index_);
             shard_found[shards_[shard_conn.Name()]] = true;
             watcher->host_port_to_shard[shard_conn.HostPort()] =
                 shards_[shard_conn.Name()];
@@ -675,6 +678,7 @@ void SentinelImpl::ReadSentinels() {
                   shard_conn.SetName(shard);
                   shard_conn.SetReadOnly(true);
                   shard_conn.SetConnectionSecurity(connection_security_);
+                  shard_conn.SetDatabaseIndex(database_index_);
                   if (shards_.find(shard_conn.Name()) != shards_.end())
                     watcher->host_port_to_shard[shard_conn.HostPort()] =
                         shards_[shard_conn.Name()];
