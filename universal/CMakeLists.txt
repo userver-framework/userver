@@ -216,6 +216,7 @@ endif()
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
     Threads::Threads
+    userver-internal-sanitize-options
     userver-internal-compile-options
   PRIVATE
     Boost::filesystem
@@ -224,13 +225,6 @@ target_link_libraries(${PROJECT_NAME}
     OpenSSL::Crypto
     OpenSSL::SSL
 )
-
-if (USERVER_SANITIZE)
-  target_link_libraries(${PROJECT_NAME}
-  PUBLIC
-    userver-internal-sanitize-options
-)
-endif()
 
 if (USERVER_CONAN)
   find_package(Boost COMPONENTS stacktrace REQUIRED)
