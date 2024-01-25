@@ -14,6 +14,7 @@
   "CODEOWNERS":"taxi/uservices/userver/CODEOWNERS",
   "CODE_OF_CONDUCT.md":"taxi/uservices/userver/CODE_OF_CONDUCT.md",
   "CONTRIBUTING.md":"taxi/uservices/userver/CONTRIBUTING.md",
+  "Config.cmake.in":"taxi/uservices/userver/Config.cmake.in",
   "LICENSE":"taxi/uservices/userver/LICENSE",
   "Makefile":"taxi/uservices/userver/Makefile",
   "README.md":"taxi/uservices/userver/README.md",

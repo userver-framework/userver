@@ -138,6 +138,10 @@ if (NOT USERVER_NO_WERROR)
   target_compile_options(userver-internal-compile-options INTERFACE "-Werror")
 endif()
 
+install(TARGETS userver-internal-compile-options
+        EXPORT UserverTargets
+)
+
 
 # The library itself
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
@@ -212,7 +216,6 @@ endif()
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
     Threads::Threads
-    userver-internal-sanitize-options
     userver-internal-compile-options
   PRIVATE
     Boost::filesystem
@@ -221,6 +224,13 @@ target_link_libraries(${PROJECT_NAME}
     OpenSSL::Crypto
     OpenSSL::SSL
 )
+
+if (USERVER_SANITIZE)
+  target_link_libraries(${PROJECT_NAME}
+  PUBLIC
+    userver-internal-sanitize-options
+)
+endif()
 
 if (USERVER_CONAN)
   find_package(Boost COMPONENTS stacktrace REQUIRED)
@@ -249,16 +259,32 @@ endif()
 
 target_include_directories(${PROJECT_NAME}
   PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${USERVER_THIRD_PARTY_DIRS}/date/include
-    ${USERVER_THIRD_PARTY_DIRS}/function_backports/include
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${USERVER_THIRD_PARTY_DIRS}/date/include>
+    $<BUILD_INTERFACE:${USERVER_THIRD_PARTY_DIRS}/function_backports/include>
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/
     ${CMAKE_CURRENT_BINARY_DIR}
 )
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
+install(DIRECTORY ${USERVER_THIRD_PARTY_DIRS}/date/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
+install(DIRECTORY ${USERVER_THIRD_PARTY_DIRS}/function_backports/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
 
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
   ${USERVER_THIRD_PARTY_DIRS}/rapidjson/include
+)
+
+install(TARGETS ${PROJECT_NAME}
+	EXPORT UserverTargets
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+install(EXPORT UserverTargets
+        FILE UserverTargets.cmake
+        NAMESPACE userver::
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
 )
 
 

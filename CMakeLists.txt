@@ -114,6 +114,9 @@ include(IncludeWhatYouUse)
 # For userver_venv_setup below, otherwise FindPython would be enough.
 include(UserverTestsuite)
 include(CheckCompileFlags)
+include(CMakePackageConfigHelpers)
+include(GNUInstallDirs)
+
 
 message(STATUS "Generating cmake files ...")
 userver_venv_setup(
@@ -136,6 +139,14 @@ if(RESULT)
       "Generating cmake files failed with exit code: ${RESULT}"
   )
 endif(RESULT)
+install(FILES
+          "${CMAKE_BINARY_DIR}/cmake_generated/FindCryptoPP.cmake"
+          "${CMAKE_BINARY_DIR}/cmake_generated/Findlibyamlcpp.cmake"
+          "${CMAKE_BINARY_DIR}/cmake_generated/Findcctz.cmake"
+          "${CMAKE_BINARY_DIR}/cmake_generated/FindJemalloc.cmake"
+	  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/
+)
+
 
 set(USERVER_THIRD_PARTY_DIRS ${USERVER_ROOT_DIR}/third_party CACHE INTERNAL "")
 
@@ -215,3 +226,18 @@ endif()
 if (USERVER_IS_THE_ROOT_PROJECT AND USERVER_FEATURE_CORE)
   add_subdirectory(samples)
 endif()
+
+configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/Config.cmake.in
+  "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake"
+  INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
+)
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake"
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
+)
+
+install(EXPORT UserverTargets
+        FILE UserverTargets.cmake
+        NAMESPACE userver::
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
+)
+
