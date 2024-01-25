@@ -3,7 +3,7 @@
 /// @file userver/testsuite/testsuite_support.hpp
 /// @brief @copybrief components::TestsuiteSupport
 
-#include <userver/components/component_fwd.hpp>
+#include <userver/components/impl/component_base.hpp>
 #include <userver/testsuite/cache_control.hpp>
 #include <userver/testsuite/component_control.hpp>
 #include <userver/testsuite/dump_control.hpp>
@@ -60,7 +60,6 @@ class TestsuiteSupport final : public components::impl::ComponentBase {
   ~TestsuiteSupport() override;
 
   testsuite::CacheControl& GetCacheControl();
-  testsuite::ComponentControl& GetComponentControl();
   testsuite::DumpControl& GetDumpControl();
   testsuite::PeriodicTaskControl& GetPeriodicTaskControl();
   testsuite::TestpointControl& GetTestpointControl();
@@ -69,6 +68,9 @@ class TestsuiteSupport final : public components::impl::ComponentBase {
   testsuite::TestsuiteTasks& GetTestsuiteTasks();
   testsuite::HttpAllowedUrlsExtra& GetHttpAllowedUrlsExtra();
   testsuite::GrpcControl& GetGrpcControl();
+
+  /// @deprecated Use GetCacheControl instead.
+  testsuite::ComponentControl& GetComponentControl();
 
   static yaml_config::Schema GetStaticConfigSchema();
 

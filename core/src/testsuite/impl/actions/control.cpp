@@ -62,11 +62,11 @@ void Control::InvalidateCaches(
                    formats::parse::To<cache::UpdateType>());
 
   if (invalidate_caches.HasMember("names")) {
-    testsuite_support_.GetCacheControl().InvalidateCaches(
+    testsuite_support_.GetCacheControl().ResetCaches(
         update_type,
         invalidate_caches["names"].As<std::unordered_set<std::string>>());
   } else {
-    testsuite_support_.GetCacheControl().InvalidateAllCaches(update_type);
+    testsuite_support_.GetCacheControl().ResetAllCaches(update_type);
     testsuite_support_.GetComponentControl().InvalidateComponents();
   }
 }

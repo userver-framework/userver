@@ -39,7 +39,7 @@ class FunctionId final {
   constexpr FunctionId() = default;
 
   template <typename Class>
-  explicit FunctionId(Class* obj) : ptr_(obj), type_(&typeid(Class)) {}
+  explicit FunctionId(Class* obj) : FunctionId(obj, typeid(Class)) {}
 
   explicit operator bool() const;
 
@@ -50,6 +50,8 @@ class FunctionId final {
   };
 
  private:
+  FunctionId(void* ptr, const std::type_info& type);
+
   void* ptr_{nullptr};
   const std::type_info* type_{nullptr};
 };
