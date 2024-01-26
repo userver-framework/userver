@@ -1,7 +1,16 @@
 include_guard()
 
-set(CHAOTIC_BIN ${CMAKE_CURRENT_SOURCE_DIR}/../bin/chaotic-gen)
+include(FindPython)
+
+set(CHAOTIC_BIN ${CMAKE_CURRENT_LIST_DIR}/../chaotic/bin/chaotic-gen)
 message(STATUS "Found chaotic-gen: ${CHAOTIC_BIN}")
+
+userver_venv_setup(
+    NAME userver-chaotic
+    PYTHON_OUTPUT_VAR USERVER_CHAOTIC_PYTHON_BINARY
+    REQUIREMENTS "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/chaotic/requirements.txt"
+    UNIQUE
+)
 
 function(userver_target_generate_chaotic TARGET)
     set(OPTIONS)
@@ -25,7 +34,11 @@ function(userver_target_generate_chaotic TARGET)
             "${PARSE_OUTPUT_DIR}/file.cpp"
             "${PARSE_OUTPUT_DIR}/file.hpp"
         COMMAND
-            ${CHAOTIC_BIN} ${PARSE_ARGS} -o "${PARSE_OUTPUT_DIR}" ${PARSE_SCHEMAS}
+            env USERVER_PYTHON=${USERVER_CHAOTIC_PYTHON_BINARY}
+            ${CHAOTIC_BIN}
+            ${PARSE_ARGS}
+            -o "${PARSE_OUTPUT_DIR}"
+            ${PARSE_SCHEMAS}
         DEPENDS
             ${PARSE_SCHEMAS}
         WORKING_DIRECTORY

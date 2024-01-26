@@ -2638,6 +2638,7 @@
   "samples/websocket_service/websocket_service.cpp":"taxi/uservices/userver/samples/websocket_service/websocket_service.cpp",
   "scripts/README.md":"taxi/uservices/userver/scripts/README.md",
   "scripts/add-missing-include.sh":"taxi/uservices/userver/scripts/add-missing-include.sh",
+  "scripts/chaotic/requirements.txt":"taxi/uservices/userver/scripts/chaotic/requirements.txt",
   "scripts/docker/all-ubuntu-22-cl16/Dockerfile":"taxi/uservices/userver/scripts/docker/all-ubuntu-22-cl16/Dockerfile",
   "scripts/docker/all-ubuntu-22-cl16/PORTO.md":"taxi/uservices/userver/scripts/docker/all-ubuntu-22-cl16/PORTO.md",
   "scripts/docker/all-ubuntu-22-cl16/prepare_image.sh":"taxi/uservices/userver/scripts/docker/all-ubuntu-22-cl16/prepare_image.sh",
