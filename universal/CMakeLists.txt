@@ -146,10 +146,11 @@ install(TARGETS userver-internal-compile-options
 # The library itself
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
+include(GetUserverVersion)
 set(USERVER_NAMESPACE "userver" CACHE STRING "C++ namespace to use")
 if (NOT "${USERVER_NAMESPACE}" STREQUAL "")
-    set(USERVER_NAMESPACE_BEGIN "namespace ${USERVER_NAMESPACE} {" CACHE STRING "Open C++ namespace to use")
-    set(USERVER_NAMESPACE_END "}" CACHE STRING "Close C++ namespace to use")
+	set(USERVER_NAMESPACE_BEGIN "namespace ${USERVER_NAMESPACE} { inline namespace ${USERVER_VERSION_STR} { " CACHE STRING "Open C++ namespace to use")
+    set(USERVER_NAMESPACE_END "} }" CACHE STRING "Close C++ namespace to use")
 endif()
 message(STATUS "Putting userver into namespace '${USERVER_NAMESPACE}': ${USERVER_NAMESPACE_BEGIN} ${USERVER_NAMESPACE_END}")
 target_compile_definitions(${PROJECT_NAME} PUBLIC

@@ -107,6 +107,7 @@ userver_setup_environment()
 include(Sanitizers)
 _userver_make_sanitize_target()
 
+include(GetUserverVersion)
 include(AddGoogleTests)
 include(CheckSubmodule)
 include(FindPackageRequired)
@@ -231,8 +232,15 @@ configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/templates/Config
   "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake"
   INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
 )
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake"
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
+
+write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake
+  VERSION ${USERVER_VERSION} COMPATIBILITY SameMajorVersion
+)
+
+install(FILES
+  "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake"
+  "${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake"
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
 )
 
 install(EXPORT UserverTargets
