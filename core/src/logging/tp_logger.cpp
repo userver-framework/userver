@@ -132,15 +132,19 @@ void TpLogger::Log(Level level, std::string_view msg) {
     return;
   }
 
-  impl::async::Log action{level, std::string{msg}};
-
   if (TryWaitFreeQueueCapacity()) {
     // The queue might have concurrently become full, in which case the size
     // will temporarily go over the max size. The actual number of log actions
     // in queue_ will not typically go over max_size + n_threads.
     produced_->fetch_add(1);
 
-    Push(std::move(action));
+    try {
+      Push(impl::async::Log{level, std::string{msg}});
+    } catch (const std::exception&) {
+      // failed to construct a Log action or a node in Push
+      produced_->fetch_sub(1);
+      throw;
+    }
   } else {
     ++stats_.dropped;
   }
