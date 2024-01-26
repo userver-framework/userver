@@ -278,10 +278,9 @@ class AiohttpClientMonitor(service_client.AiohttpClient):
             raise ConfigurationError(
                 'handler-server-monitor component is not configured',
             )
+        params = {'format': 'internal'}
         if prefix is not None:
-            params = {'prefix': prefix}
-        else:
-            params = None
+            params['prefix'] = prefix
         response = await self.get(
             self._config.server_monitor_path, params=params,
         )

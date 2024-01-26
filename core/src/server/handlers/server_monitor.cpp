@@ -20,9 +20,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {
 
-namespace {
-
-enum class StatsFormat {
+enum class impl::StatsFormat {
   kInternal,
   kGraphite,
   kPrometheus,
@@ -32,7 +30,13 @@ enum class StatsFormat {
   kSolomon,
 };
 
-StatsFormat ParseFormat(std::string_view format) {
+namespace {
+
+using impl::StatsFormat;
+
+std::optional<StatsFormat> ParseFormat(std::string_view format) {
+  if (format.empty()) return {};
+
   constexpr utils::TrivialBiMap kToFormat = [](auto selector) {
     return selector()
         .Case("graphite", StatsFormat::kGraphite)
@@ -41,16 +45,15 @@ StatsFormat ParseFormat(std::string_view format) {
         .Case("json", StatsFormat::kJson)
         .Case("pretty", StatsFormat::kPretty)
         .Case("solomon", StatsFormat::kSolomon)
-        .Case("internal", StatsFormat::kInternal)
-        .Case("", StatsFormat::kInternal);
+        .Case("internal", StatsFormat::kInternal);
   };
 
   const auto opt_value = kToFormat.TryFind(format);
   if (opt_value.has_value()) {
-    return opt_value.value();
+    return opt_value;
   }
   throw handlers::ClientError(handlers::ExternalBody{
-      fmt::format("Unknown value '{}' of 'format' URL parameter. Expected one "
+      fmt::format("Unknown format value '{}'. Expected one "
                   "of the following formats: {}",
                   format, kToFormat.DescribeFirst())});
 }
@@ -64,7 +67,8 @@ ServerMonitor::ServerMonitor(
       statistics_storage_(
           component_context.FindComponent<components::StatisticsStorage>()
               .GetStorage()),
-      common_labels_{config["common-labels"].As<CommonLabels>({})} {}
+      common_labels_{config["common-labels"].As<CommonLabels>({})},
+      default_format_{ParseFormat(config["format"].As<std::string>({}))} {}
 
 std::string ServerMonitor::HandleRequestThrow(const http::HttpRequest& request,
                                               request::RequestContext&) const {
@@ -84,7 +88,15 @@ std::string ServerMonitor::HandleRequestThrow(const http::HttpRequest& request,
     }
   }
 
-  const auto format = ParseFormat(request.GetArg("format"));
+  const auto arg_format = ParseFormat(request.GetArg("format"));
+
+  if (!default_format_.has_value() && !arg_format.has_value()) {
+    throw handlers::ClientError(
+        handlers::ExternalBody{"No format was provided"});
+  }
+
+  const auto format =
+      arg_format.has_value() ? arg_format.value() : default_format_.value();
 
   using utils::statistics::Request;
   auto common_labels =
@@ -153,6 +165,17 @@ properties:
             added to each metric.
         additionalProperties: true
         properties: {}
+    format:
+        type: string
+        description: Default metrics format. Either static option or URL parameter has to be provided.
+        enum:
+          - graphite
+          - prometheus
+          - prometheus-untyped
+          - json
+          - pretty
+          - solomon
+          - internal
   )");
 }
 

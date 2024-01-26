@@ -217,6 +217,7 @@ components_manager:
         common-labels:
             application: sample application
             zone: some
+        format: json
 # /// [Sample handler server monitor component config]
 # /// [Sample handler dynamic debug log component config]
     handler-dynamic-debug-log:
