@@ -18,3 +18,5 @@ set(CryptoPP_VERSION "0.1")
 find_package(CryptoPP REQUIRED)
 set(libyamlcpp_VERSION "0.1")
 find_package(libyamlcpp REQUIRED)
+
+add_library(userver::universal ALIAS userver::userver-universal)
