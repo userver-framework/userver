@@ -106,14 +106,13 @@ std::string_view ToString(FirstUpdateType first_update_type) {
 
 ConfigPatch Parse(const formats::json::Value& value,
                   formats::parse::To<ConfigPatch>) {
-  ConfigPatch config{
-      ParseMs(value[kUpdateIntervalMs]),
-      ParseMs(value[kUpdateJitterMs]),
-      ParseMs(value[kFullUpdateIntervalMs]),
-      ParseMs(value[kFullUpdateJitterMs], std::chrono::milliseconds{0}),
-      std::nullopt,
-      value[kUpdatesEnabled].As<bool>(true),
-      value[kAlertOnFailingToUpdateTimes].As<size_t>(0)};
+  ConfigPatch config{ParseMs(value[kUpdateIntervalMs]),
+                     ParseMs(value[kUpdateJitterMs]),
+                     ParseMs(value[kFullUpdateIntervalMs]),
+                     ParseMs(value[kFullUpdateJitterMs]),
+                     std::nullopt,
+                     value[kUpdatesEnabled].As<bool>(true),
+                     value[kAlertOnFailingToUpdateTimes].As<size_t>(0)};
 
   if (!config.update_interval.count() && !config.full_update_interval.count()) {
     throw utils::impl::AttachTraceToException(
@@ -128,7 +127,7 @@ ConfigPatch Parse(const formats::json::Value& value,
     config.update_jitter = GetDefaultJitter(config.update_interval);
   }
   if (config.full_update_jitter > config.full_update_interval) {
-    config.full_update_jitter = std::chrono::milliseconds{0};
+    config.full_update_jitter = GetDefaultJitter(config.full_update_interval);
   }
   if (value.HasMember(kExceptionIntervalMs)) {
     config.exception_interval = ParseMs(value[kExceptionIntervalMs]);
@@ -165,7 +164,7 @@ Config::Config(const yaml_config::YamlConfig& config,
           config[kFullUpdateInterval].As<std::chrono::milliseconds>(0)),
       full_update_jitter(
           config[kFullUpdateJitter].As<std::chrono::milliseconds>(
-              std::chrono::milliseconds{0})),
+              GetDefaultJitter(full_update_interval))),
       exception_interval(config[kExceptionInterval]
                              .As<std::optional<std::chrono::milliseconds>>()),
       updates_enabled(config[kUpdatesEnabled].As<bool>(true)),

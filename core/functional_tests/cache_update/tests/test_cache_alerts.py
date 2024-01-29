@@ -63,6 +63,7 @@ async def test_cache_update(
             'update-interval-ms': update_interval * 1000,
             'update-jitter-ms': 1000,
             'full-update-interval-ms': 10000,
+            'full-update-jitter-ms': 1000,
         },
     }
     dynamic_config.set_values({'USERVER_CACHES': alert_cache})
