@@ -107,23 +107,21 @@ Value::Value(impl::VersionedValuePtr root) noexcept
       value_ptr_(holder_.Get()) {}
 
 Value::Value(EmplaceEnabler, const impl::VersionedValuePtr& root,
-             const impl::Value& value, int depth)
-    : Value(root, root.Get(), &value, depth) {}
-
-Value::Value(impl::VersionedValuePtr root, const impl::Value* root_ptr,
-             const impl::Value* value_ptr, int depth)
-    : holder_(std::move(root)),
+             const impl::Value* root_ptr_for_path, const impl::Value* value_ptr,
+             int depth)
+    : holder_(root),
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-      root_ptr_for_path_(const_cast<impl::Value*>(root_ptr)),
+      root_ptr_for_path_(const_cast<impl::Value*>(root_ptr_for_path)),
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
       value_ptr_(const_cast<impl::Value*>(value_ptr)),
       depth_(depth) {}
 
-Value::Value(impl::VersionedValuePtr root, impl::Value* root_ptr,
+Value::Value(EmplaceEnabler, const impl::VersionedValuePtr& root,
+             impl::Value* root_ptr_for_path,
              LazyDetachedPath&& lazy_detached_path)
-    : holder_{std::move(root)},
-      root_ptr_for_path_{root_ptr},
-      lazy_detached_path_{std::move(lazy_detached_path)} {}
+    : holder_(root),
+      root_ptr_for_path_(root_ptr_for_path),
+      lazy_detached_path_(std::move(lazy_detached_path)) {}
 
 Value Value::operator[](std::string_view key) const {
   if (!IsMissing()) {
@@ -132,21 +130,23 @@ Value Value::operator[](std::string_view key) const {
       auto it = GetNative().FindMember(
           impl::Value(::rapidjson::StringRef(key.data(), key.size())));
       if (it != GetNative().MemberEnd()) {
-        return {holder_, root_ptr_for_path_, &it->value, depth_ + 1};
+        return {EmplaceEnabler{}, holder_, root_ptr_for_path_, &it->value,
+                depth_ + 1};
       }
     }
 
-    return {holder_, root_ptr_for_path_,
+    return {EmplaceEnabler{}, holder_, root_ptr_for_path_,
             LazyDetachedPath{value_ptr_, depth_, key}};
   }
 
-  return {holder_, root_ptr_for_path_, lazy_detached_path_.Chain(key)};
+  return {EmplaceEnabler{}, holder_, root_ptr_for_path_,
+          lazy_detached_path_.Chain(key)};
 }
 
 Value Value::operator[](std::size_t index) const {
   CheckInBounds(index);
-  return {holder_, root_ptr_for_path_, &GetNative()[static_cast<int>(index)],
-          depth_ + 1};
+  return {EmplaceEnabler{}, holder_, root_ptr_for_path_,
+          &GetNative()[static_cast<int>(index)], depth_ + 1};
 }
 
 Value::const_iterator Value::begin() const {

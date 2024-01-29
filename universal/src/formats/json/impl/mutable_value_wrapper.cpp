@@ -40,10 +40,12 @@ struct MutableValueWrapper::Impl {
         value(MakeValue(std::move(root), member, depth)),
         current_version(version) {}
 
-  static formats::json::Value MakeValue(VersionedValuePtr root,
+  static formats::json::Value MakeValue(VersionedValuePtr&& root,
                                         const Value& member, int depth) {
-    auto* root_ptr = root.Get();
-    return {std::move(root), root_ptr, &member, depth};
+    // Custom root_ptr_for_path_ is not used for Value inside ValueBuilder.
+    auto* root_ptr_for_path = root.Get();
+    return {formats::json::Value::EmplaceEnabler{}, std::move(root),
+            root_ptr_for_path, &member, depth};
   }
 
   std::shared_ptr<JsonPath> path;
