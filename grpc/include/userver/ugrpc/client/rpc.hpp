@@ -289,10 +289,12 @@ class [[nodiscard]] OutputStream final : public CallAnyBase {
 /// @brief Controls a request stream -> response stream RPC
 ///
 /// This class allows the following concurrent calls:
-///   - `GetContext`
-///   - Concurrent call of one of (`Read`, `ReadAsync`) with one of (`Write`,
-///     `WritesDone`)
-/// `WriteAndCheck` is not thread-safe
+///
+///   - `GetContext`;
+///   - one of (`Read`, `ReadAsync`);
+///   - one of (`Write`, `WritesDone`).
+///
+/// `WriteAndCheck` is NOT thread-safe.
 ///
 /// The RPC is cancelled on destruction unless the stream is closed (`Read` has
 /// returned `false`). In that case the connection is not closed (it will be
