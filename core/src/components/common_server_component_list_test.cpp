@@ -211,7 +211,7 @@ components_manager:
 # /// [Sample handler server monitor component config]
 # yaml
     handler-server-monitor:
-        path: /*
+        path: /statistics
         method: GET
         task_processor: monitor-task-processor
         common-labels:
