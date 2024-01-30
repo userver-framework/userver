@@ -138,9 +138,11 @@ if (NOT USERVER_NO_WERROR)
   target_compile_options(userver-internal-compile-options INTERFACE "-Werror")
 endif()
 
-install(TARGETS userver-internal-compile-options
-        EXPORT UserverTargets
-)
+if(USERVER_INSTALL)
+  install(TARGETS userver-internal-compile-options
+          EXPORT UserverTargets
+  )
+endif()
 
 
 # The library itself
@@ -261,27 +263,28 @@ target_include_directories(${PROJECT_NAME}
     ${CMAKE_CURRENT_SOURCE_DIR}/src/
     ${CMAKE_CURRENT_BINARY_DIR}
 )
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
-install(DIRECTORY ${USERVER_THIRD_PARTY_DIRS}/date/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
-install(DIRECTORY ${USERVER_THIRD_PARTY_DIRS}/function_backports/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
-
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
   ${USERVER_THIRD_PARTY_DIRS}/rapidjson/include
 )
 
-install(TARGETS ${PROJECT_NAME}
-	EXPORT UserverTargets
-        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-)
-install(EXPORT UserverTargets
-        FILE UserverTargets.cmake
-        NAMESPACE userver::
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
-)
+if(USERVER_INSTALL)
+  install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
+  install(DIRECTORY ${USERVER_THIRD_PARTY_DIRS}/date/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
+  install(DIRECTORY ${USERVER_THIRD_PARTY_DIRS}/function_backports/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
 
+  install(TARGETS ${PROJECT_NAME}
+	  EXPORT UserverTargets
+          LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+          ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+          RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+          INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+  )
+  install(EXPORT UserverTargets
+          FILE UserverTargets.cmake
+          NAMESPACE userver::
+          DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
+  )
+endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT OR USERVER_FEATURE_UTEST)
   add_library(${PROJECT_NAME}-internal-utest INTERFACE)

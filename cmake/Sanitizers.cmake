@@ -103,7 +103,9 @@ function(_userver_make_sanitize_target)
   target_link_libraries(userver-internal-sanitize-options INTERFACE
       ${sanitize_link_flags}
   )
-  install(TARGETS userver-internal-sanitize-options
-      EXPORT UserverTargets
-  )
+  if(USERVER_INSTALL)
+    install(TARGETS userver-internal-sanitize-options
+        EXPORT UserverTargets
+    )
+  endif()
 endfunction()
