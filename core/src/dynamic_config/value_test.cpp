@@ -3,7 +3,9 @@
 #include <gtest/gtest.h>
 #include <boost/range/adaptor/map.hpp>
 
+#include <userver/formats/json/value.hpp>
 #include <userver/formats/json/value_builder.hpp>
+#include <userver/formats/yaml/value.hpp>
 #include <utils/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -114,6 +116,35 @@ TEST(ValueDict, UseAsRange) {
   for (const auto& each : (c_dict | boost::adaptors::map_keys)) {
     EXPECT_TRUE(c_dict.HasValue(each));
   }
+}
+
+TEST(ValueDict, ParseFromJson) {
+  using ValueDict = dynamic_config::ValueDict<std::string>;
+  using formats::literals::operator""_json;
+
+  ValueDict expected_dict{
+      "",
+      {{"a", "one"}, {"b", "two"}, {"c", "three"}},
+  };
+
+  EXPECT_EQ(expected_dict, R"json(
+  {"a": "one", "b": "two", "c": "three"})json"_json.As<ValueDict>());
+}
+
+TEST(ValueDict, ParseFromYaml) {
+  using ValueDict = dynamic_config::ValueDict<std::string>;
+  using formats::literals::operator""_yaml;
+
+  ValueDict expected_dict{
+      "",
+      {{"a", "one"}, {"b", "two"}, {"c", "three"}},
+  };
+
+  EXPECT_EQ(expected_dict, R"yaml(
+    a: one
+    b: two
+    c: three
+  )yaml"_yaml.As<ValueDict>());
 }
 
 USERVER_NAMESPACE_END

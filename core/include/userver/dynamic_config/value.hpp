@@ -174,11 +174,11 @@ class ValueDict final {
   DictType dict_;
 };
 
-template <typename T>
-ValueDict<T> Parse(const formats::json::Value& value,
-                   formats::parse::To<ValueDict<T>>) {
+template <typename Value, typename T>
+std::enable_if_t<formats::common::kIsFormatValue<Value>, ValueDict<T>> Parse(
+    const Value& value, formats::parse::To<ValueDict<T>>) {
   return ValueDict<T>{value.GetPath(),
-                      value.As<typename ValueDict<T>::DictType>()};
+                      value.template As<typename ValueDict<T>::DictType>()};
 }
 
 }  // namespace dynamic_config
