@@ -93,20 +93,24 @@ UTEST(CacheControl, Smoke) {
   // Periodic updates are disabled, so a synchronous update will be performed
   EXPECT_EQ(1, test_cache.UpdatesCount());
 
-  env.cache_control.ResetCaches(cache::UpdateType::kFull, {kCacheName});
+  env.cache_control.ResetCaches(cache::UpdateType::kFull, {kCacheName},
+                                /*force_incremental_names=*/{});
   EXPECT_EQ(2, test_cache.UpdatesCount());
   EXPECT_EQ(cache::UpdateType::kFull, test_cache.LastUpdateType());
 
   env.cache_control.ResetCaches(cache::UpdateType::kIncremental,
-                                {kCacheNameAlternative});
+                                {kCacheNameAlternative},
+                                /*force_incremental_names=*/{});
   EXPECT_EQ(2, test_cache.UpdatesCount());
   EXPECT_EQ(cache::UpdateType::kFull, test_cache.LastUpdateType());
 
-  env.cache_control.ResetCaches(cache::UpdateType::kIncremental, {});
+  env.cache_control.ResetCaches(cache::UpdateType::kIncremental, {},
+                                /*force_incremental_names=*/{});
   EXPECT_EQ(2, test_cache.UpdatesCount());
   EXPECT_EQ(cache::UpdateType::kFull, test_cache.LastUpdateType());
 
-  env.cache_control.ResetAllCaches(cache::UpdateType::kIncremental);
+  env.cache_control.ResetAllCaches(cache::UpdateType::kIncremental,
+                                   /*force_incremental_names=*/{});
   EXPECT_EQ(3, test_cache.UpdatesCount());
   EXPECT_EQ(cache::UpdateType::kIncremental, test_cache.LastUpdateType());
 
@@ -118,7 +122,8 @@ UTEST(CacheControl, Smoke) {
   EXPECT_EQ(test_cache.Get(), kDumpToRead);
 
   boost::filesystem::remove_all(env.dump_root.GetPath());
-  env.cache_control.ResetCaches(cache::UpdateType::kFull, {kCacheName});
+  env.cache_control.ResetCaches(cache::UpdateType::kFull, {kCacheName},
+                                /*force_incremental_names=*/{});
   env.dump_control.WriteCacheDumps({kCacheName});
   EXPECT_EQ(dump::FilenamesInDirectory(env.dump_root, kCacheName).size(), 1);
 }

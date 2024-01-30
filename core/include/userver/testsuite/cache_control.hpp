@@ -72,14 +72,18 @@ class CacheControl final {
   ///
   /// @a update_type is used by caches derived from
   /// @a component::CachingComponentBase.
-  void ResetAllCaches(cache::UpdateType update_type);
+  void ResetAllCaches(
+      cache::UpdateType update_type,
+      const std::unordered_set<std::string>& force_incremental_names);
 
   /// @brief Reset caches with the specified @a names.
   ///
   /// @a update_type is used by caches derived from
   /// @a component::CachingComponentBase.
-  void ResetCaches(cache::UpdateType update_type,
-                   std::unordered_set<std::string> names);
+  void ResetCaches(
+      cache::UpdateType update_type,
+      std::unordered_set<std::string> reset_only_names,
+      const std::unordered_set<std::string>& force_incremental_names);
 
   /// @cond
   // For internal use only.
@@ -95,16 +99,12 @@ class CacheControl final {
   // For internal use only.
   CacheResetRegistration RegisterPeriodicCache(cache::CacheUpdateTrait& cache);
 
-  // For internal use only.
-  cache::UpdateType GetCacheUpdateType() const;
-  /// @endcond
-
  private:
   friend class CacheResetRegistration;
 
   struct CacheInfo final {
     std::string name;
-    std::function<void()> reset;
+    std::function<void(cache::UpdateType)> reset;
     bool needs_span{true};
   };
 
@@ -114,14 +114,11 @@ class CacheControl final {
 
   void UnregisterCache(CacheInfoIterator) noexcept;
 
-  auto UpdateTypeScope(cache::UpdateType);
-
-  static void DoResetCache(const CacheInfo& info);
+  static void DoResetCache(const CacheInfo& info,
+                           cache::UpdateType update_type);
 
   const impl::PeriodicUpdatesMode periodic_updates_mode_;
   concurrent::Variable<std::list<CacheInfo>> caches_;
-  std::atomic<bool> is_cache_reset_in_progress_debug_{false};
-  std::atomic<cache::UpdateType> cache_update_type_{};
 };
 
 /// @brief RAII helper for testsuite registration. Must be kept alive to keep
@@ -163,7 +160,10 @@ CacheResetRegistration CacheControl::RegisterCache(
   UASSERT(reset_method);
   auto iter = DoRegisterCache(CacheInfo{
       /*name=*/std::string{name},
-      /*reset=*/[self, reset_method] { (self->*reset_method)(); },
+      /*reset=*/
+      [self, reset_method]([[maybe_unused]] cache::UpdateType) {
+        (self->*reset_method)();
+      },
       /*needs_span=*/true,
   });
   return CacheResetRegistration(*this, std::move(iter));

@@ -36,6 +36,8 @@ void DocsMap::Set(std::string name, formats::json::Value obj) {
                                          std::move(obj));
 }
 
+void DocsMap::Remove(const std::string& name) { docs_.erase(name); }
+
 void DocsMap::Parse(const std::string& json_string, bool empty_ok) {
   const auto json = formats::json::FromString(json_string);
   json.CheckObject();

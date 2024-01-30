@@ -3,6 +3,8 @@
 #include <userver/cache/cache_config.hpp>
 #include <userver/cache/cache_update_trait.hpp>
 #include <userver/components/component_context.hpp>
+#include <userver/formats/json.hpp>
+#include <userver/testsuite/testpoint.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/algo.hpp>
@@ -40,53 +42,58 @@ bool CacheControl::IsPeriodicUpdateEnabled(
   return enabled;
 }
 
-auto CacheControl::UpdateTypeScope(cache::UpdateType update_type) {
-  cache_update_type_.store(update_type);
-  is_cache_reset_in_progress_debug_.store(true);
-  return utils::FastScopeGuard(
-      [this]() noexcept { is_cache_reset_in_progress_debug_.store(false); });
-}
+void CacheControl::DoResetCache(const CacheInfo& info,
+                                cache::UpdateType update_type) {
+  TESTPOINT(std::string("reset-cache-") + info.name,
+            formats::json::MakeObject("update_type", ToString(update_type)));
 
-void CacheControl::DoResetCache(const CacheInfo& info) {
   std::optional<tracing::Span> span;
   if (info.needs_span) {
     span.emplace("reset/" + info.name);
   }
-  info.reset();
+  info.reset(update_type);
 }
 
-void CacheControl::ResetAllCaches(cache::UpdateType update_type) {
+void CacheControl::ResetAllCaches(
+    cache::UpdateType update_type,
+    const std::unordered_set<std::string>& force_incremental_names) {
   const auto sp =
       tracing::Span::CurrentSpan().CreateScopeTime("reset_all_caches");
   auto caches = caches_.Lock();
-  const auto update_type_scope = UpdateTypeScope(update_type);
 
   for (const auto& cache : *caches) {
-    DoResetCache(cache);
+    const auto cache_update_type = force_incremental_names.count(cache.name)
+                                       ? cache::UpdateType::kIncremental
+                                       : update_type;
+    DoResetCache(cache, cache_update_type);
   }
 }
 
-void CacheControl::ResetCaches(cache::UpdateType update_type,
-                               std::unordered_set<std::string> names) {
+void CacheControl::ResetCaches(
+    cache::UpdateType update_type,
+    std::unordered_set<std::string> reset_only_names,
+    const std::unordered_set<std::string>& force_incremental_names) {
   const auto sp = tracing::Span::CurrentSpan().CreateScopeTime("reset_caches");
   auto caches = caches_.Lock();
-  const auto update_type_scope = UpdateTypeScope(update_type);
 
   // It's important that we walk the caches in the order of their registration,
   // that is, in the order of `caches_`. Otherwise, if we update a "later" cache
   // before an "earlier" cache, the "later" one might read old data from
   // the "earlier" one and will not be fully updated.
   for (const auto& cache : *caches) {
-    const auto it = names.find(cache.name);
-    if (it != names.end()) {
-      DoResetCache(cache);
-      names.erase(it);
+    const auto it = reset_only_names.find(cache.name);
+    if (it != reset_only_names.end()) {
+      const auto cache_update_type = force_incremental_names.count(cache.name)
+                                         ? cache::UpdateType::kIncremental
+                                         : update_type;
+      DoResetCache(cache, cache_update_type);
+      reset_only_names.erase(it);
     }
   }
 
-  UINVARIANT(names.empty(),
+  UINVARIANT(reset_only_names.empty(),
              fmt::format("Some of the requested caches do not exist: {}",
-                         fmt::join(names, ", ")));
+                         fmt::join(reset_only_names, ", ")));
 }
 
 CacheResetRegistration CacheControl::RegisterPeriodicCache(
@@ -94,17 +101,12 @@ CacheResetRegistration CacheControl::RegisterPeriodicCache(
   auto iter = DoRegisterCache(CacheInfo{
       /*name=*/std::string{cache.Name()},
       /*reset=*/
-      [this, &cache] { cache.UpdateSyncDebug(GetCacheUpdateType()); },
+      [&cache](cache::UpdateType update_type) {
+        cache.UpdateSyncDebug(update_type);
+      },
       /*needs_span=*/false,
   });
   return CacheResetRegistration(*this, std::move(iter));
-}
-
-cache::UpdateType CacheControl::GetCacheUpdateType() const {
-  UINVARIANT(is_cache_reset_in_progress_debug_.load(),
-             "GetCacheUpdateType can only be called from a reset callback "
-             "during Invalidate*Caches");
-  return cache_update_type_.load();
 }
 
 auto CacheControl::DoRegisterCache(CacheInfo&& info) -> CacheInfoIterator {

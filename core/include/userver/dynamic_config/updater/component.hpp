@@ -104,7 +104,8 @@ class DynamicConfigClientUpdater final
                          cache::UpdateStatisticsScope&);
 
   dynamic_config::DocsMap MergeDocsMap(const dynamic_config::DocsMap& current,
-                                       dynamic_config::DocsMap&& update);
+                                       dynamic_config::DocsMap&& update,
+                                       const std::vector<std::string>& removed);
   void StoreIfEnabled();
 
   using DocsMapKeys = utils::impl::TransparentSet<std::string>;

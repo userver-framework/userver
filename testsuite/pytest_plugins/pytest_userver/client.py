@@ -1237,7 +1237,12 @@ class _StateManager:
         body: typing.Dict[str, typing.Any] = {}
 
         if self._invalidation_state.has_caches_to_update:
-            body['invalidate_caches'] = {'update_type': 'full'}
+            body['invalidate_caches'] = {
+                'update_type': 'full',
+                'force_incremental_names': (
+                    self._invalidation_state.incremental_caches
+                ),
+            }
             if not self._invalidation_state.should_update_all_caches:
                 body['invalidate_caches']['names'] = list(
                     self._invalidation_state.caches_to_update,

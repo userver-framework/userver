@@ -90,10 +90,14 @@ DynamicConfigClientUpdater::~DynamicConfigClientUpdater() {
 }
 
 dynamic_config::DocsMap DynamicConfigClientUpdater::MergeDocsMap(
-    const dynamic_config::DocsMap& current, dynamic_config::DocsMap&& update) {
+    const dynamic_config::DocsMap& current, dynamic_config::DocsMap&& update,
+    const std::vector<std::string>& removed) {
   dynamic_config::DocsMap combined(std::move(update));
   combined.MergeMissing(current);
   combined.SetConfigsExpectedToBeUsed(docs_map_keys_, utils::InternalTag{});
+  for (const auto& key : removed) {
+    combined.Remove(key);
+  }
   return combined;
 }
 
@@ -203,7 +207,7 @@ void DynamicConfigClientUpdater::UpdateIncremental(
     return;
   }
 
-  if (reply.docs_map.Size() == 0) {
+  if (reply.IsEmpty()) {
     stats.FinishNoChanges();
     server_timestamp_ = reply.timestamp;
     return;
@@ -214,7 +218,7 @@ void DynamicConfigClientUpdater::UpdateIncremental(
   {
     const std::lock_guard lock(update_config_mutex_);
     auto ptr = Get();
-    auto combined = MergeDocsMap(*ptr, std::move(docs_map));
+    auto combined = MergeDocsMap(*ptr, std::move(docs_map), reply.removed);
 
     if (IsDuplicate(cache::UpdateType::kIncremental, combined)) {
       stats.FinishNoChanges();
@@ -240,7 +244,8 @@ void DynamicConfigClientUpdater::UpdateAdditionalKeys(
     const std::lock_guard lock(update_config_mutex_);
     auto ptr = Get();
     dynamic_config::DocsMap docs_map = *ptr;
-    auto combined = MergeDocsMap(additional_configs, std::move(docs_map));
+    auto combined =
+        MergeDocsMap(additional_configs, std::move(docs_map), reply.removed);
 
     Emplace(std::move(combined));
     StoreIfEnabled();

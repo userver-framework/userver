@@ -72,7 +72,7 @@ Client::Reply Client::FetchDocsMap(
 
   Reply reply;
   reply.docs_map.Parse(formats::json::ToString(configs_json), true);
-
+  reply.removed = json_value["removed"].As<std::vector<std::string>>({});
   reply.timestamp = json_value["updated_at"].As<std::string>();
   return reply;
 }

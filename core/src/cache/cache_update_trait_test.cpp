@@ -512,16 +512,19 @@ UTEST(CacheUpdateTrait, WriteDumps) {
 
   data_source.Set(10);
   EXPECT_EQ(cache.Get(), 5);
-  env.cache_control.ResetCaches(cache::UpdateType::kFull, {cache.Name()});
+  env.cache_control.ResetCaches(cache::UpdateType::kFull, {cache.Name()},
+                                /*force_incremental_names=*/{});
   EXPECT_EQ(cache.Get(), 10);
   EXPECT_EQ(write_and_count_dumps(), 2);
 
   data_source.Set(15);
-  env.cache_control.ResetCaches(cache::UpdateType::kFull, {cache.Name()});
+  env.cache_control.ResetCaches(cache::UpdateType::kFull, {cache.Name()},
+                                /*force_incremental_names=*/{});
   EXPECT_EQ(write_and_count_dumps(), 3);
 
   data_source.Set(20);
-  env.cache_control.ResetCaches(cache::UpdateType::kFull, {cache.Name()});
+  env.cache_control.ResetCaches(cache::UpdateType::kFull, {cache.Name()},
+                                /*force_incremental_names=*/{});
   EXPECT_EQ(write_and_count_dumps(), 3);
 
   boost::filesystem::remove_all(env.dump_root.GetPath());
@@ -571,7 +574,8 @@ UTEST_F(CacheUpdateTraitFaulty, DumpDebugHandlesThrow) {
   UEXPECT_THROW(env_.dump_control.ReadCacheDumps({cache.Name()}), dump::Error);
 
   UEXPECT_NO_THROW(
-      env_.cache_control.ResetCaches(cache::UpdateType::kFull, {cache.Name()}));
+      env_.cache_control.ResetCaches(cache::UpdateType::kFull, {cache.Name()},
+                                     /*force_incremental_names=*/{}));
 }
 
 UTEST_F(CacheUpdateTraitFaulty, TmpDoNotAccumulate) {
@@ -898,7 +902,8 @@ UTEST(CacheUpdateTrait, FinishWithError) {
   FinishWithErrorCache test_cache(config, environment);
 
   UEXPECT_THROW_MSG(environment.cache_control.ResetCaches(
-                        cache::UpdateType::kFull, {test_cache.Name()}),
+                        cache::UpdateType::kFull, {test_cache.Name()},
+                        /*force_incremental_names=*/{}),
                     std::exception, "FinishWithError");
 }
 
