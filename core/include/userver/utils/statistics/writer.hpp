@@ -16,6 +16,7 @@ USERVER_NAMESPACE_BEGIN
 namespace utils::statistics {
 
 class Writer;
+class MetricValue;
 
 namespace impl {
 
@@ -106,7 +107,8 @@ class Writer final {
   void operator=(const T& value) {
     if constexpr (std::is_arithmetic_v<T> ||
                   std::is_same_v<std::decay_t<T>, Rate> ||
-                  std::is_same_v<std::decay_t<T>, HistogramView>) {
+                  std::is_same_v<std::decay_t<T>, HistogramView> ||
+                  std::is_same_v<std::decay_t<T>, MetricValue>) {
       Write(value);
     } else {
       if (state_) {
@@ -160,6 +162,7 @@ class Writer final {
   void Write(double value);
   void Write(Rate value);
   void Write(HistogramView value);
+  void Write(MetricValue value);
 
   void Write(float value) { Write(static_cast<double>(value)); }
 

@@ -33,6 +33,12 @@ class HistogramAggregator final {
   /// Writes to `*this` are non-atomic.
   void Add(HistogramView other);
 
+  /// Non-atomically increment the bucket corresponding to the given index.
+  void AccountAt(std::size_t bucket_index, std::uint64_t count = 1) noexcept;
+
+  /// Non-atomically increment the "infinity" bucket.
+  void AccountInf(std::uint64_t count = 1) noexcept;
+
   /// Reset all buckets to zero.
   void Reset() noexcept;
 

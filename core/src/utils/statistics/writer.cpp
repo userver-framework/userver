@@ -170,6 +170,13 @@ void Writer::Write(HistogramView value) {
   }
 }
 
+void Writer::Write(MetricValue value) {
+  if (state_) {
+    ValidateUsage();
+    CheckAndWrite(*state_, value);
+  }
+}
+
 void Writer::ResetState() noexcept {
   UASSERT(state_);
 
