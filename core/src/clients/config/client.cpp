@@ -67,11 +67,10 @@ std::string Client::FetchConfigsValues(const std::string& body) {
 Client::Reply Client::FetchDocsMap(
     const std::optional<Timestamp>& last_update,
     const std::vector<std::string>& fields_to_load) {
-  auto json_value = FetchConfigs(last_update, fields_to_load);
-  auto configs_json = json_value["configs"];
+  const auto json_value = FetchConfigs(last_update, fields_to_load);
 
   Reply reply;
-  reply.docs_map.Parse(formats::json::ToString(configs_json), true);
+  reply.docs_map.Parse(json_value["configs"], true);
   reply.removed = json_value["removed"].As<std::vector<std::string>>({});
   reply.timestamp = json_value["updated_at"].As<std::string>();
   return reply;

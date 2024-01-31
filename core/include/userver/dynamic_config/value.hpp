@@ -21,8 +21,9 @@ class DocsMap final {
 
   bool Has(std::string_view name) const;
   void Set(std::string name, formats::json::Value);
+  void Parse(const std::string& json_string, bool empty_ok);
+  void Parse(formats::json::Value json, bool empty_ok);
   void Remove(const std::string& name);
-  void Parse(const std::string& json, bool empty_ok);
   size_t Size() const;
 
   void MergeOrAssign(DocsMap&& source);
