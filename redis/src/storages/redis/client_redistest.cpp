@@ -7,6 +7,7 @@
 #include <vector>
 
 #include <userver/engine/task/task.hpp>
+#include <userver/engine/wait_any.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -879,6 +880,24 @@ UTEST_F(RedisClientTest, TransactionZrem) {
   EXPECT_EQ(zrem2.Get(), 2);
   auto result = zrange.Get();
   EXPECT_EQ(result.size(), 2);
+}
+
+UTEST_F(RedisClientTest, WaitAny) {
+  constexpr auto kReqCount = 10;
+  auto client = GetClient();
+
+  std::vector<storages::redis::RequestSet> requests;
+  for (size_t i = 0; i < kReqCount; i++) {
+    requests.push_back(client->Set("key" + std::to_string(i), "value", {}));
+  }
+
+  auto finished = 0;
+  while (auto req = engine::WaitAny(requests)) {
+    ASSERT_LT(*req, kReqCount);
+    UEXPECT_NO_THROW(requests[*req].Get());
+    ++finished;
+  }
+  EXPECT_EQ(finished, kReqCount);
 }
 
 USERVER_NAMESPACE_END

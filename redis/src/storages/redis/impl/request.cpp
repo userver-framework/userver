@@ -126,6 +126,10 @@ ReplyPtr Request::Get() {
   UINVARIANT(false, "Invalid FutureStatus enum value");
 }
 
+engine::impl::ContextAccessor* Request::TryGetContextAccessor() noexcept {
+  return future_.TryGetContextAccessor();
+}
+
 }  // namespace redis
 
 USERVER_NAMESPACE_END

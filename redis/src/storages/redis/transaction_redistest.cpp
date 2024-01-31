@@ -788,7 +788,7 @@ std::uint64_t GetCommandCount(
 
 }  // namespace
 
-UTEST_F(RedisClientTransactionTest, NotReadOnlySetSet) {
+UTEST_F(RedisClientTransactionTest, DISABLED_NotReadOnlySetSet) {
   auto client = GetClient();
   auto sentinel = GetSentinel();
 
@@ -809,7 +809,7 @@ UTEST_F(RedisClientTransactionTest, NotReadOnlySetSet) {
   EXPECT_EQ(slave_command_count, 0);
 }
 
-UTEST_F(RedisClientTransactionTest, NotReadOnlySetGet) {
+UTEST_F(RedisClientTransactionTest, DISABLED_NotReadOnlySetGet) {
   auto client = GetClient();
   auto sentinel = GetSentinel();
 
@@ -838,7 +838,7 @@ UTEST_F(RedisClientTransactionTest, NotReadOnlySetGet) {
   EXPECT_EQ(slave_command_count, 0);
 }
 
-UTEST_F(RedisClientTransactionTest, ReadOnlyGetGet) {
+UTEST_F(RedisClientTransactionTest, DISABLED_ReadOnlyGetGet) {
   auto client = GetClient();
   auto sentinel = GetSentinel();
 

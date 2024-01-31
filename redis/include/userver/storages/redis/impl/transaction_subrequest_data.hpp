@@ -30,6 +30,11 @@ class TransactionSubrequestDataImpl final : public RequestDataBase<ReplyType> {
     throw std::logic_error("call TransactionSubrequestDataImpl::GetRaw()");
   }
 
+  engine::impl::ContextAccessor* TryGetContextAccessor() noexcept override {
+    UASSERT_MSG(false, "Not implemented");
+    return nullptr;
+  }
+
  private:
   void ThrowIfNotReady(std::string_view description) {
     if (future_.wait_until(engine::Deadline::Passed()) !=

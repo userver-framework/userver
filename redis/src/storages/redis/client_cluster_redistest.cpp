@@ -36,7 +36,7 @@ redis::CommandControl kDefaultCc(std::chrono::milliseconds(300),
 // Tests are disabled because no local redis cluster is running by default.
 // See https://st.yandex-team.ru/TAXICOMMON-2440#5ecf09f0ffc9d004c04c43b1 for
 // details.
-UTEST_F(RedisClusterClientTest, SetGet) {
+UTEST_F(RedisClusterClientTest, DISABLED_SetGet) {
   auto client = GetClient();
 
   const size_t kNumKeys = 10;
@@ -60,7 +60,7 @@ UTEST_F(RedisClusterClientTest, SetGet) {
   }
 }
 
-UTEST_F(RedisClusterClientTest, Mget) {
+UTEST_F(RedisClusterClientTest, DISABLED_Mget) {
   auto client = GetClient();
 
   const size_t kNumKeys = 10;
@@ -99,7 +99,7 @@ UTEST_F(RedisClusterClientTest, Mget) {
   }
 }
 
-UTEST_F(RedisClusterClientTest, MgetCrossSlot) {
+UTEST_F(RedisClusterClientTest, DISABLED_MgetCrossSlot) {
   auto client = GetClient();
 
   const int add = 100;
@@ -124,7 +124,7 @@ UTEST_F(RedisClusterClientTest, MgetCrossSlot) {
   }
 }
 
-UTEST_F(RedisClusterClientTest, Transaction) {
+UTEST_F(RedisClusterClientTest, DISABLED_Transaction) {
   auto client = GetClient();
   auto transaction = client->Multi();
 
@@ -153,7 +153,7 @@ UTEST_F(RedisClusterClientTest, Transaction) {
   }
 }
 
-UTEST_F(RedisClusterClientTest, TransactionCrossSlot) {
+UTEST_F(RedisClusterClientTest, DISABLED_TransactionCrossSlot) {
   auto client = GetClient();
   auto transaction = client->Multi();
 
@@ -171,7 +171,7 @@ UTEST_F(RedisClusterClientTest, TransactionCrossSlot) {
                 redis::ParseReplyException);
 }
 
-UTEST_F(RedisClusterClientTest, TransactionDistinctShards) {
+UTEST_F(RedisClusterClientTest, DISABLED_TransactionDistinctShards) {
   auto client = GetClient();
   auto transaction =
       client->Multi(storages::redis::Transaction::CheckShards::kNo);
@@ -187,7 +187,7 @@ UTEST_F(RedisClusterClientTest, TransactionDistinctShards) {
                 redis::ParseReplyException);
 }
 
-UTEST_F(RedisClusterClientTest, Subscribe) {
+UTEST_F(RedisClusterClientTest, DISABLED_Subscribe) {
   auto client = GetClient();
   auto subscribe_client = GetSubscribeClient();
 
@@ -291,7 +291,7 @@ UTEST_F(RedisClusterClientTest, DISABLED_LongWork) {
   EXPECT_GT(iterations, 100);
 }
 
-UTEST_F(RedisClusterClientTest, ClusterSlotsCalled) {
+UTEST_F(RedisClusterClientTest, DISABLED_ClusterSlotsCalled) {
   auto client = GetClient();
   engine::SleepFor(std::chrono::seconds(10));
   ASSERT_GT(redis::ClusterSentinelImpl::GetClusterSlotsCalledCounter(), 2);

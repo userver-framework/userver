@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include <userver/engine/impl/context_accessor.hpp>
 #include <userver/storages/redis/reply_fwd.hpp>
 #include <userver/storages/redis/reply_types.hpp>
 #include <userver/storages/redis/scan_tag.hpp>
@@ -27,6 +28,8 @@ class RequestDataBase {
   virtual ReplyType Get(const std::string& request_description) = 0;
 
   virtual ReplyPtr GetRaw() = 0;
+
+  virtual engine::impl::ContextAccessor* TryGetContextAccessor() noexcept = 0;
 };
 
 template <ScanTag scan_tag>
