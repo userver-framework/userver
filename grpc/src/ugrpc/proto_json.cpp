@@ -82,8 +82,16 @@ class ResultStackFrame final {
   void SetStructField(std::string_view field_name,
                       google::protobuf::Value&& field) {
     UINVARIANT(type == Type::kStruct, "invalid type");
+#if GOOGLE_PROTOBUF_VERSION >= 3014000
     (*value.mutable_struct_value()->mutable_fields())[field_name] =
         std::move(field);
+#else
+    // No transparent comparisons till
+    // https://github.com/protocolbuffers/protobuf/commit/38d6de1eef8163342084fe
+    (*value.mutable_struct_value()->mutable_fields())[std::string{field_name}] =
+        std::move(field);
+#endif
+
     --elements_await;
   }
 
