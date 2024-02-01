@@ -246,6 +246,10 @@ Used by components::Postgres.
 
 Dynamic config that controls connection pool settings of PostgreSQL driver.
 
+Dictionary keys can be either the service **component name** (not database name!)
+or `__default__`. The latter configuration is applied for every non-matching
+PostgreSQL component of the service.
+
 Take note that it overrides the static configuration values of the service!
 
 ```
@@ -302,6 +306,10 @@ Used by components::Postgres.
 
 Dynamic config that controls settings for newly created connections of
 PostgreSQL driver.
+
+Dictionary keys can be either the service **component name** (not database name!)
+or `__default__`. The latter configuration is applied for every non-matching
+PostgreSQL component of the service.
 
 Take note that it overrides the static configuration values of the service!
 
@@ -370,9 +378,9 @@ Used by components::Postgres.
 
 Dynamic config that controls statement metrics settings for specific service.
 
-Dictionary keys can be either the service component names or `__default__`.
-The latter configuration will be applied for every PostgreSQL component of
-the service.
+Dictionary keys can be either the service **component name** (not database name!)
+or `__default__`. The latter configuration is applied for every non-matching
+PostgreSQL component of the service.
 
 The value of `max_statement_metrics` controls the maximum size of LRU-cache
 for named statement metrics. When set to 0 (default) no metrics are being
@@ -399,6 +407,9 @@ definitions:
 {
   "postgresql-database_name": {
     "max_statement_metrics": 50
+  },
+  "__default__": {
+    "max_statement_metrics": 150
   }
 }
 ```
@@ -1225,7 +1236,8 @@ Used by components::ManagerControllerComponent.
 @anchor USERVER_FILES_CONTENT_TYPE_MAP
 ## USERVER_FILES_CONTENT_TYPE_MAP
 
-Dynamic config for mapping extension files with http header content type
+Dynamic config for mapping extension files with HTTP header content type.
+
 ```
 yaml
 schema:

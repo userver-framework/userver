@@ -92,8 +92,6 @@ DocsMap::GetConfigsExpectedToBeUsed(utils::InternalTag) const {
   return configs_to_be_used_;
 }
 
-const std::string kValueDictDefaultName = "__default__";
-
 namespace impl {
 
 [[noreturn]] void ThrowNoValueException(std::string_view dict_name,
