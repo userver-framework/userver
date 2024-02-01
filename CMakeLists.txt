@@ -107,6 +107,8 @@ if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
   set(MACOS found)
 endif()
 
+set(CMAKE_DEBUG_POSTFIX d)
+
 include(cmake/UserverSetupEnvironment.cmake)
 userver_setup_environment()
 
