@@ -663,6 +663,48 @@ UTEST_P(PostgreConnection, CompositeUnorderedSet) {
   EXPECT_EQ(res.AsSingleRow<pgtest::WithUnorderedSet>(pg::kRowTag), usc);
 }
 
+UTEST_P(PostgreConnection, CompositeTypeParseExceptionReadability) {
+  CheckConnection(GetConn());
+  ASSERT_FALSE(GetConn()->IsReadOnly()) << "Expect a read-write connection";
+
+  pg::ResultSet res{nullptr};
+  UASSERT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";
+  UASSERT_NO_THROW(GetConn()->Execute(kCreateTestSchema)) << "Create schema";
+
+  UEXPECT_NO_THROW(GetConn()->Execute(kCreateACompositeType))
+      << "Successfully create a composite type";
+
+  UEXPECT_NO_THROW(res = GetConn()->Execute(
+                       "select ROW(42, 'foobar', 3.14, ARRAY[-1, 0, 1], "
+                       "ARRAY['a', 'b', 'c'])::__pgtest.foobar"));
+  ASSERT_FALSE(res.IsEmpty());
+
+  UEXPECT_THROW_MSG(
+      res[0][0].As<std::string>(), pg::InvalidParserCategory,
+      fmt::format("Buffer category 'composite buffer' doesn't match the "
+                  "category of the parser 'plain buffer' for type '{}'. "
+                  "Consider using different variable type (not '{}') to store "
+                  "complex result or split result tuple with 'UNNEST' in SQL "
+                  "query. (ResultSet error while reading field #0 name `row`)",
+                  compiler::GetTypeName<std::string>(),
+                  compiler::GetTypeName<std::string>()));
+  UEXPECT_NO_THROW(res[0].As<pgtest::FooBar>());
+
+  UEXPECT_NO_THROW(res = GetConn()->Execute("select 'foobar'"));
+  UEXPECT_THROW_MSG(
+      res[0][0].As<pgtest::FooBar>(), pg::InvalidParserCategory,
+      fmt::format(
+          "Buffer category 'plain buffer' doesn't match the category "
+          "of the parser 'composite buffer' for type '{}'. "
+          "Consider using different variable type (not '{}') to store result, "
+          "passing storages::postgres::kRowTag to function args for "
+          "this field or explicitly cast to expected type in SQL "
+          "query. (ResultSet error while reading field #0 name `?column?`)",
+          compiler::GetTypeName<pgtest::FooBar>(),
+          compiler::GetTypeName<pgtest::FooBar>()));
+  UEXPECT_NO_THROW(res[0][0].As<std::string>());
+}
+
 }  // namespace
 
 USERVER_NAMESPACE_END

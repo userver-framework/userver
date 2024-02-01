@@ -2075,6 +2075,7 @@
   "postgresql/src/storages/postgres/dist_lock_component_base.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/dist_lock_component_base.cpp",
   "postgresql/src/storages/postgres/dist_lock_strategy.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/dist_lock_strategy.cpp",
   "postgresql/src/storages/postgres/dsn.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/dsn.cpp",
+  "postgresql/src/storages/postgres/exceptions.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/exceptions.cpp",
   "postgresql/src/storages/postgres/experiments.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/experiments.cpp",
   "postgresql/src/storages/postgres/experiments.hpp":"taxi/uservices/userver/postgresql/src/storages/postgres/experiments.hpp",
   "postgresql/src/storages/postgres/integral_benchmark.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/integral_benchmark.cpp",

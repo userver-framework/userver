@@ -277,9 +277,9 @@ class FieldView final {
     try {
       io::ReadBuffer(buffer, std::forward<T>(val), GetTypeBufferCategories());
     } catch (ResultSetError& ex) {
-      ex.AddMsgSuffix(fmt::format(
-          " (field #{} name `{}` C++ type `{}`. Postgres ResultSet error)",
-          field_index_, Name(), compiler::GetTypeName<T>()));
+      ex.AddMsgSuffix(
+          fmt::format(" (ResultSet error while reading field #{} name `{}`)",
+                      field_index_, Name()));
       throw;
     }
   }
