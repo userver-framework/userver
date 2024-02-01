@@ -6,8 +6,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace redis {
 
-const std::string kTtlCommand{"TTL"};
-
 TtlReply::TtlReply(int64_t value) : value_(value) {}
 
 TtlReply::TtlReply(TtlReplyValue value) : value_(static_cast<int64_t>(value)) {}
