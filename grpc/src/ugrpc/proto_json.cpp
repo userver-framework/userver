@@ -97,7 +97,7 @@ class ResultStackFrame final {
 
   void AddListElement(google::protobuf::Value&& field) {
     UINVARIANT(type == Type::kArray, "invalid type");
-    value.mutable_list_value()->mutable_values()->Add(std::move(field));
+    *(value.mutable_list_value()->mutable_values()->Add()) = std::move(field);
     --elements_await;
   }
 
