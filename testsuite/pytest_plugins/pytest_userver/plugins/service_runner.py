@@ -10,12 +10,12 @@ import pytest
 
 class ServiceRunnerModule(pytest.Module):
     class FakeModule:
-        def __init__(self, fspath):
-            self.__file__ = fspath
+        def __init__(self, path):
+            self.__file__ = path
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
-        self._module = self.FakeModule(str(self.fspath))
+        self._module = self.FakeModule(path=str(self.path))
 
     @property
     def obj(self):
@@ -41,7 +41,7 @@ class UserviceRunner:
 
         module = ServiceRunnerModule.from_parent(
             parent=session,
-            fspath=(pathlib.Path(tests_root) / '__service__').resolve(),
+            path=(pathlib.Path(tests_root) / '__service__').resolve(),
         )
         function = pytest.Function.from_parent(
             parent=module,
