@@ -300,30 +300,19 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
   utils::RetryBudget retry_budget_;
 };
 
-const std::string& Redis::StateToString(State state) {
-  static const std::string kInit = "init";
-  static const std::string kInitError = "init_error";
-  static const std::string kConnected = "connected";
-  static const std::string kDisconnecting = "disconnecting";
-  static const std::string kDisconnected = "disconnected";
-  static const std::string kDisconnectError = "disconnect_error";
-  static const std::string kUnknown = "unknown";
+std::string_view StateToString(RedisState state) {
+  constexpr utils::TrivialBiMap states_map = [](auto selector) {
+    return selector()
+        .Case(RedisState::kInit, "init")
+        .Case(RedisState::kInitError, "init_error")
+        .Case(RedisState::kConnected, "connected")
+        .Case(RedisState::kDisconnecting, "disconnecting")
+        .Case(RedisState::kDisconnected, "disconnected")
+        .Case(RedisState::kDisconnectError, "disconnect_error");
+  };
 
-  switch (state) {
-    case State::kInit:
-      return kInit;
-    case State::kInitError:
-      return kInitError;
-    case State::kConnected:
-      return kConnected;
-    case State::kDisconnecting:
-      return kDisconnecting;
-    case State::kDisconnected:
-      return kDisconnected;
-    case State::kDisconnectError:
-      return kDisconnectError;
-  }
-  return kUnknown;
+  const auto state_str = states_map.TryFind(state);
+  return state_str ? *state_str : "unknown";
 }
 
 Redis::Redis(const std::shared_ptr<engine::ev::ThreadPool>& thread_pool,

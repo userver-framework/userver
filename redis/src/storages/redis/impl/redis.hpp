@@ -1,9 +1,7 @@
 #pragma once
 
-#include <atomic>
 #include <cstring>
 #include <memory>
-#include <vector>
 
 #include <boost/signals2/signal.hpp>
 
@@ -27,7 +25,6 @@ class Statistics;
 class Redis {
  public:
   using State = RedisState;
-  static const std::string& StateToString(State state);
 
   Redis(const std::shared_ptr<engine::ev::ThreadPool>& thread_pool,
         const RedisCreationSettings& redis_settings);
@@ -74,6 +71,8 @@ double ToEvDuration(const std::chrono::duration<Rep, Period>& duration) {
   return std::chrono::duration_cast<std::chrono::duration<double>>(duration)
       .count();
 }
+
+std::string_view StateToString(RedisState state);
 
 }  // namespace redis
 

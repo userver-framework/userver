@@ -211,7 +211,7 @@ class ClusterTopologyHolder
     sentinels_->SignalInstanceStateChange().connect(
         [this](ServerId id, Redis::State state) {
           LOG_TRACE() << "Signaled server " << id.GetDescription()
-                      << " state=" << Redis::StateToString(state);
+                      << " state=" << StateToString(state);
           if (state != Redis::State::kInit)
             sentinels_process_state_update_watch_.Send();
         });
