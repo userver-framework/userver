@@ -7,10 +7,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace concurrent::impl {
 
-#if defined(__cpp_lib_hardware_interference_size)
-inline constexpr std::size_t kDestructiveInterferenceSize =
-    std::hardware_destructive_interference_size;
-#elif defined(__s390__) || defined(__s390x__)
+#if defined(__s390__) || defined(__s390x__)
 inline constexpr std::size_t kDestructiveInterferenceSize = 256;
 #elif defined(powerpc) || defined(__powerpc__) || defined(__ppc__)
 inline constexpr std::size_t kDestructiveInterferenceSize = 128;

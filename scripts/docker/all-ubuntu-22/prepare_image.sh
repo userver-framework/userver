@@ -42,4 +42,5 @@ grpcio-tools >= 1.55.0
 psycopg2 >= 2.7.5
 pymongo >= 4.0.0
 redis >= 4.4.0
+netifaces >= 0.10.0
 yandex-pgmigrate' > $current_dir/src/requirements.txt

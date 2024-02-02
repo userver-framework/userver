@@ -1,5 +1,5 @@
 # main system for docker
-FROM ghcr.io/userver-framework/ubuntu-userver-core:v1
+FROM ghcr.io/userver-framework/ubuntu-userver-core-ub22:v1
 
 # Set UTC timezone
 ENV DEBIAN_FRONTEND noninteractive
@@ -114,7 +114,7 @@ RUN cd /app/clickhouse-cpp && mkdir build && \
 
 RUN apt update && apt install libssl-dev openssl
 
-RUN cd /app/grpc && mkdir -p cmake/build && cd cmake/build && cmake ../.. -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
+RUN cd /app/grpc && mkdir -p cmake/build && cd cmake/build && cmake ../.. -DCMAKE_C_COMPILER=clang-16 -DCMAKE_CXX_COMPILER=clang++-16 \
     -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DgRPC_SSL_PROVIDER=package \
     -DgRPC_INSTALL=ON -DgRPC_BUILD_TESTS=OFF \
     && make -j $(nproc) && make install
