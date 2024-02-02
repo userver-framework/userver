@@ -29,7 +29,7 @@ class LazySharedPtr final {
  public:
   /// @brief The default constructor, initializes with `nullptr`.
   LazySharedPtr() noexcept
-      : value_(nullptr), shared_filled_(true), shared_(), get_data_() {}
+      : value_(nullptr), shared_filled_(true), get_data_() {}
 
   /// @brief The non-lazy constructor
   LazySharedPtr(utils::SharedReadablePtr<T> ptr) noexcept
