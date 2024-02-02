@@ -1,6 +1,5 @@
 #include <userver/utest/utest.hpp>
 
-#include <atomic>
 #include <memory>
 
 #include <userver/engine/sleep.hpp>
@@ -50,32 +49,27 @@ class SentinelTest : public ::testing::Test {
 }  // namespace
 
 UTEST_F(SentinelTest, ReplyServerId) {
-  /* TODO: hack! sentinel is too slow to learn new replicaset members :-( */
-  engine::SleepFor(std::chrono::milliseconds(11000));
+  constexpr auto kTotalRequests = 5;
+  constexpr auto kSleepInterval = std::chrono::seconds{1};
+  // let's give sentinel enough time to learn about new replicas
+  auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
 
-  auto req = RequestKeys();
-  auto reply = req.Get();
-  auto first_id = reply->server_id;
-  ASSERT_FALSE(first_id.IsAny());
-
-  // We want at least 1 id != first_id
-  const auto max_i = 10;
-  bool has_any_distinct_id = false;
-  for (int i = 0; i < max_i; i++) {
-    auto req = RequestKeys();
-    auto reply = req.Get();
-    auto id = reply->server_id;
-    if (id != first_id) has_any_distinct_id = true;
-
-    EXPECT_TRUE(reply->IsOk());
-    EXPECT_FALSE(id.IsAny());
+  std::set<redis::ServerId> server_ids;
+  while (!deadline.IsReached()) {
+    for (auto i = 0; i < kTotalRequests; ++i) {
+      auto reply = RequestKeys().Get();
+      auto id = reply->server_id;
+      EXPECT_FALSE(id.IsAny());
+      server_ids.insert(id);
+    }
+    if (server_ids.size() > 1) break;
+    engine::SleepFor(kSleepInterval);
   }
-  EXPECT_TRUE(has_any_distinct_id);
+  EXPECT_GT(server_ids.size(), 1);
 }
 
 UTEST_F(SentinelTest, ForceServerId) {
-  auto req = RequestKeys();
-  auto reply = req.Get();
+  auto reply = RequestKeys().Get();
   auto first_id = reply->server_id;
   EXPECT_FALSE(first_id.IsAny());
 
@@ -84,8 +78,7 @@ UTEST_F(SentinelTest, ForceServerId) {
     redis::CommandControl cc;
     cc.force_server_id = first_id;
 
-    auto req = RequestKeys(cc);
-    auto reply = req.Get();
+    auto reply = RequestKeys(cc).Get();
     auto id = reply->server_id;
 
     EXPECT_TRUE(reply->IsOk());
@@ -96,15 +89,13 @@ UTEST_F(SentinelTest, ForceServerId) {
 
 UTEST_F(SentinelTest, ForceNonExistingServerId) {
   // w/o force_server_id
-  auto req1 = RequestKeys();
-  auto reply1 = req1.Get();
+  auto reply1 = RequestKeys().Get();
   EXPECT_TRUE(reply1->IsOk());
 
   // w force_server_id
   redis::CommandControl cc;
   cc.force_server_id = redis::ServerId::Invalid();
-  auto req2 = RequestKeys(cc);
-  auto reply2 = req2.Get();
+  auto reply2 = RequestKeys(cc).Get();
 
   EXPECT_FALSE(reply2->IsOk());
 }
