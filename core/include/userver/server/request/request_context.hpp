@@ -113,7 +113,7 @@ class RequestContext final {
   void EraseAnyData(std::string_view name);
 
   class Impl;
-  static constexpr std::size_t kPimplSize = 64;
+  static constexpr std::size_t kPimplSize = 72;
   utils::FastPimpl<Impl, kPimplSize, alignof(void*)> impl_;
 };
 
