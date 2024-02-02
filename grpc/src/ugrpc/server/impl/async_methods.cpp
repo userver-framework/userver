@@ -20,6 +20,9 @@ void ThrowOnError(impl::AsyncMethodInvocation::WaitStatus status,
     case AsyncMethodInvocation::WaitStatus::kError:
       throw RpcInterruptedError(call_name, stage_name);
 
+    case AsyncMethodInvocation::WaitStatus::kDeadline:
+      UINVARIANT(false, "Deadline happened on server operation");
+
     case AsyncMethodInvocation::WaitStatus::kCancelled:
       UINVARIANT(false, "Cancel happened on server operation");
   }

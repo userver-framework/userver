@@ -225,9 +225,11 @@ RpcData::AsyncMethodInvocationGuard::AsyncMethodInvocationGuard(
 
 RpcData::AsyncMethodInvocationGuard::~AsyncMethodInvocationGuard() noexcept {
   UASSERT(!std::holds_alternative<std::monostate>(data_.invocation_));
-  data_.invocation_.emplace<std::monostate>();
+  if (!disarm_) {
+    data_.invocation_.emplace<std::monostate>();
 
-  data_.GetStatus() = grpc::Status{};
+    data_.GetStatus() = grpc::Status{};
+  }
 }
 
 void CheckOk(RpcData& data, AsyncMethodInvocation::WaitStatus status,

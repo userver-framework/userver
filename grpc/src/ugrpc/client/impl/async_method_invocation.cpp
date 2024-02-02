@@ -55,7 +55,13 @@ grpc::Status& FinishAsyncMethodInvocation::GetStatus() { return status_; }
 ugrpc::impl::AsyncMethodInvocation::WaitStatus Wait(
     ugrpc::impl::AsyncMethodInvocation& invocation,
     grpc::ClientContext& context) noexcept {
-  const auto status = invocation.Wait();
+  return impl::WaitUntil(invocation, context, engine::Deadline{});
+}
+
+ugrpc::impl::AsyncMethodInvocation::WaitStatus WaitUntil(
+    ugrpc::impl::AsyncMethodInvocation& invocation,
+    grpc::ClientContext& context, engine::Deadline deadline) noexcept {
+  const auto status = invocation.WaitUntil(deadline);
   if (status == ugrpc::impl::AsyncMethodInvocation::WaitStatus::kCancelled)
     context.TryCancel();
 

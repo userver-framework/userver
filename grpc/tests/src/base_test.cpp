@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <userver/engine/async.hpp>
+#include <userver/engine/future_status.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/task_with_result.hpp>
@@ -21,11 +22,39 @@ namespace {
 
 constexpr int kNumber = 42;
 
+constexpr auto kShortTimeout = std::chrono::milliseconds{300};
+constexpr auto kLongTimeout = std::chrono::milliseconds{500} + kShortTimeout;
+constexpr auto kAddSleep = std::chrono::milliseconds{50};
+
 void CheckServerContext(grpc::ServerContext& context) {
   const auto& client_metadata = context.client_metadata();
   EXPECT_EQ(utils::FindOptional(client_metadata, "req_header"), "value");
   context.AddTrailingMetadata("resp_header", "value");
 }
+
+class UnitTestLongAnswerService final
+    : public sample::ugrpc::UnitTestServiceBase {
+ public:
+  void SayHello(SayHelloCall& call,
+                sample::ugrpc::GreetingRequest&& request) override {
+    if (request.name() != "default_context") {
+      CheckServerContext(call.GetContext());
+    }
+    sample::ugrpc::GreetingResponse response;
+    response.set_name("Hello " + request.name());
+
+    engine::SleepUntil(engine::Deadline::FromDuration(aswer_duration_));
+
+    call.Finish(response);
+  }
+
+  void SetAnswerDuration(std::chrono::milliseconds duration) {
+    aswer_duration_ = duration;
+  };
+
+ private:
+  std::chrono::milliseconds aswer_duration_{kLongTimeout};
+};
 
 class UnitTestService final : public sample::ugrpc::UnitTestServiceBase {
  public:
@@ -120,6 +149,22 @@ UTEST_F(GrpcClientTest, AsyncUnaryRPC) {
   auto future = std::move(future_for_move);  // test move operation
 
   UEXPECT_NO_THROW(future.Get());
+  CheckClientContext(call.GetContext());
+  EXPECT_EQ("Hello " + out.name(), in.name());
+}
+
+UTEST_F(GrpcClientTest, AsyncUnaryRPCWithTimeout) {
+  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
+  sample::ugrpc::GreetingRequest out;
+  sample::ugrpc::GreetingResponse in;
+  out.set_name("userver");
+  auto call_for_move = client.SayHello(out, PrepareClientContext());
+  auto future_for_move = call_for_move.FinishAsync(in);
+  auto call = std::move(call_for_move);      // test move operation
+  auto future = std::move(future_for_move);  // test move operation
+
+  EXPECT_EQ(future.Get(engine::Deadline::FromDuration(60s)),
+            engine::FutureStatus::kReady);
   CheckClientContext(call.GetContext());
   EXPECT_EQ("Hello " + out.name(), in.name());
 }
@@ -258,6 +303,34 @@ UTEST_F(GrpcClientTest, EmptyBidirectionalStream) {
   EXPECT_TRUE(bs.WritesDone());
   EXPECT_FALSE(bs.Read(in));
   CheckClientContext(bs.GetContext());
+}
+
+using GrpcClientLongAnswerTest =
+    ugrpc::tests::ServiceFixture<UnitTestLongAnswerService>;
+
+UTEST_F(GrpcClientLongAnswerTest, AsyncUnaryLongAnswerRPC) {
+  GetService().SetAnswerDuration(kLongTimeout);
+
+  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
+  sample::ugrpc::GreetingRequest out;
+  sample::ugrpc::GreetingResponse in;
+  out.set_name("userver");
+
+  auto call_for_move = client.SayHello(out, PrepareClientContext());
+  auto future_for_move = call_for_move.FinishAsync(in);
+  auto call = std::move(call_for_move);      // test move operation
+  auto future = std::move(future_for_move);  // test move operation
+
+  EXPECT_EQ(future.Get(engine::Deadline::FromDuration(kLongTimeout / 100)),
+            engine::FutureStatus::kTimeout);
+  EXPECT_EQ(future.Get(engine::Deadline::FromDuration(kLongTimeout / 50)),
+            engine::FutureStatus::kTimeout);
+  EXPECT_EQ(
+      future.Get(engine::Deadline::FromDuration(kLongTimeout + kAddSleep)),
+      engine::FutureStatus::kReady);
+
+  CheckClientContext(call.GetContext());
+  EXPECT_EQ("Hello " + out.name(), in.name());
 }
 
 using GrpcClientMultichannelTest =

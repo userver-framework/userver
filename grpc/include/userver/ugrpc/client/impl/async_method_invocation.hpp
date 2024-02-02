@@ -6,6 +6,8 @@
 #include <grpcpp/client_context.h>
 #include <grpcpp/impl/codegen/status.h>
 
+#include <userver/engine/deadline.hpp>
+
 #include <userver/ugrpc/impl/async_method_invocation.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -46,6 +48,10 @@ class FinishAsyncMethodInvocation final
 ugrpc::impl::AsyncMethodInvocation::WaitStatus Wait(
     ugrpc::impl::AsyncMethodInvocation& invocation,
     grpc::ClientContext& context) noexcept;
+
+ugrpc::impl::AsyncMethodInvocation::WaitStatus WaitUntil(
+    ugrpc::impl::AsyncMethodInvocation& invocation,
+    grpc::ClientContext& context, engine::Deadline deadline) noexcept;
 
 }  // namespace ugrpc::client::impl
 

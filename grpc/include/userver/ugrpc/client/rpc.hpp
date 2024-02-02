@@ -11,6 +11,8 @@
 #include <grpcpp/impl/codegen/proto_utils.h>
 
 #include <userver/dynamic_config/snapshot.hpp>
+#include <userver/engine/deadline.hpp>
+#include <userver/engine/future_status.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/function_ref.hpp>
 
@@ -49,6 +51,17 @@ class [[nodiscard]] UnaryFuture {
   /// @throws ugrpc::client::RpcError on an RPC error
   /// @throws ugrpc::client::RpcCancelledError on task cancellation
   void Get();
+
+  /// @brief Await response until specified timepoint
+  ///
+  /// Once `kReady` is returned, result is available in `response` when
+  /// initiating the asynchronous operation, e.g. FinishAsync.
+  ///
+  /// In case of 'kReady/kCancelled' answer or exception `Get` should not
+  /// be called anymore.
+  ///
+  /// @throws ugrpc::client::RpcError on an RPC error
+  [[nodiscard]] engine::FutureStatus Get(engine::Deadline deadline);
 
   /// @brief Checks if the asynchronous call has completed
   ///        Note, that once user gets result, IsReady should not be called
