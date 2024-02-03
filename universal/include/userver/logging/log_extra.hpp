@@ -17,6 +17,9 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace tracing {
+namespace impl{
+struct ScopeTagsImpl;
+}
 class Span;
 }  // namespace tracing
 
@@ -111,6 +114,7 @@ class LogExtra final {
 
   friend class impl::TagWriter;
   friend class tracing::Span;
+  friend struct tracing::impl::ScopeTagsImpl;
 
  private:
   const Value& GetValue(std::string_view key) const;
@@ -128,6 +132,7 @@ class LogExtra final {
     void SetFrozen();
     Value& GetValue() { return value_; }
     const Value& GetValue() const { return value_; }
+    void AssignIgnoringFrozenness(ProtectedValue other);
 
    private:
     Value value_;
@@ -147,6 +152,7 @@ class LogExtra final {
               ExtendType extend_type = ExtendType::kNormal);
   void Extend(MapItem extra, ExtendType extend_type = ExtendType::kNormal);
 
+  void Erase(std::size_t idx);
   std::pair<Key, ProtectedValue>* Find(std::string_view);
 
   const std::pair<Key, ProtectedValue>* Find(std::string_view) const;

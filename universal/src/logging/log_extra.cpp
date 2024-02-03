@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 #include <unordered_set>
+#include <algorithm>
 
 #include <fmt/format.h>
 #include <boost/container/small_vector.hpp>
@@ -170,6 +171,9 @@ void LogExtra::Extend(std::string key, ProtectedValue protected_value,
 void LogExtra::Extend(Map::value_type extra, ExtendType extend_type) {
   Extend(std::move(extra.first), std::move(extra.second), extend_type);
 }
+void LogExtra::Erase(std::size_t idx) {
+  extra_->erase(extra_->begin() + idx);
+}
 
 LogExtra::ProtectedValue::ProtectedValue(Value value, bool frozen)
     : value_(std::move(value)), frozen_(frozen) {}
@@ -193,6 +197,12 @@ LogExtra::ProtectedValue& LogExtra::ProtectedValue::operator=(
 }
 
 void LogExtra::ProtectedValue::SetFrozen() { frozen_ = true; }
+void LogExtra::ProtectedValue::AssignIgnoringFrozenness(
+    LogExtra::ProtectedValue other) {
+  frozen_ = false;
+  *this = std::move(other);
+}
+
 
 const LogExtra kEmptyLogExtra;
 
