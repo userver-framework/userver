@@ -82,9 +82,11 @@ def userver_pg_trx(
     The fixture maintains transaction fault injection state using
     RegisteredTrx class.
 
-    @see RegisteredTrx
+    @see pytest_userver.sql.RegisteredTrx
 
-    @snippet postgresql/functional_tests/integration_tests/tests/test_trx_failure.py fault injection
+    @snippet postgresql/functional_tests/integration_tests/tests/test_trx_failure.py  fault injection
+
+    @ingroup userver_testsuite_fixtures
     """  # noqa: E501
 
     registered = sql.RegisteredTrx()

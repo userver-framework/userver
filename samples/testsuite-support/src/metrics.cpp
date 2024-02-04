@@ -26,9 +26,12 @@ formats::json::Value Metrics::HandleRequestJsonThrow(
     [[maybe_unused]] const formats::json::Value& request_body,
     [[maybe_unused]] server::request::RequestContext& context) const {
   formats::json::ValueBuilder result;
+
   /// [metrics usage]
-  metrics_->GetMetric(kFooMetric)++;
+  std::atomic<int>& foo_metric = metrics_->GetMetric(kFooMetric);
+  ++foo_metric;  // safe to increment conceurrently
   /// [metrics usage]
+
   return result.ExtractValue();
 }
 
