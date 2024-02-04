@@ -2,7 +2,6 @@
 
 #include <stdexcept>
 #include <unordered_set>
-#include <algorithm>
 
 #include <fmt/format.h>
 #include <boost/container/small_vector.hpp>
