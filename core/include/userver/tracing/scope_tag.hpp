@@ -47,7 +47,7 @@ class ScopeTag {
 
 class FrozenScopeTag {
  public:
-  FrozenScopeTag(std::string key, logging::LogExtra::Value value);
+  explicit FrozenScopeTag(std::string key, logging::LogExtra::Value value);
 
   explicit FrozenScopeTag(Span& parent, std::string key,
                           logging::LogExtra::Value value);
