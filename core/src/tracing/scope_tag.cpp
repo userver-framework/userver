@@ -20,11 +20,11 @@ tracing::impl::ScopeTagsImpl::ScopeTagsImpl(Span& parent, std::string key,
       previous_value_(GetPreviousValue(parent_, key_)) {}
 tracing::impl::ScopeTagsImpl::~ScopeTagsImpl() {
   auto* my_node = parent_.pimpl_->log_extra_inheritable_.Find(key_);
-
-  if (my_node == nullptr || my_node->second.GetValue() != my_value_) {
-    // value was overwritten by span::AddTag(key, new_value), or another
-    // (Frozen)ScopeTag, or initially we were trying to overwrite frozen value.
-    // It is logical to not overwrite new_value here
+  UASSERT(my_node != nullptr);
+  if (my_node->second.GetValue() != my_value_) {
+    // value was overwritten by Span::AddTag(key, new_value),
+    // or initially we were trying to overwrite frozen value.
+    // It is logical to not overwrite my_node here, since we do not own the node
     return;
   }
   if (IsRoot()) {
