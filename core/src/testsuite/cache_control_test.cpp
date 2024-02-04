@@ -1,11 +1,15 @@
 #include <userver/utest/utest.hpp>
 
 #include <chrono>
+#include <optional>
+#include <string>
 
 #include <cache/internal_helpers_test.hpp>
 #include <dump/internal_helpers_test.hpp>
 #include <userver/cache/cache_config.hpp>
 #include <userver/cache/cache_update_trait.hpp>
+#include <userver/components/loggable_component_base.hpp>
+#include <userver/concurrent/variable.hpp>
 #include <userver/dump/common.hpp>
 #include <userver/dump/unsafe.hpp>
 #include <userver/formats/yaml/serialize.hpp>
@@ -77,7 +81,7 @@ dump:
 
 }  // namespace
 
-UTEST_DEATH(CacheControlDeathTest, Smoke) {
+UTEST(CacheControl, Smoke) {
   const yaml_config::YamlConfig config{
       formats::yaml::FromString(kConfigContents), {}};
   cache::MockEnvironment env;
@@ -89,20 +93,24 @@ UTEST_DEATH(CacheControlDeathTest, Smoke) {
   // Periodic updates are disabled, so a synchronous update will be performed
   EXPECT_EQ(1, test_cache.UpdatesCount());
 
-  env.cache_control.InvalidateCaches(cache::UpdateType::kFull, {kCacheName});
+  env.cache_control.ResetCaches(cache::UpdateType::kFull, {kCacheName},
+                                /*force_incremental_names=*/{});
   EXPECT_EQ(2, test_cache.UpdatesCount());
   EXPECT_EQ(cache::UpdateType::kFull, test_cache.LastUpdateType());
 
-  env.cache_control.InvalidateCaches(cache::UpdateType::kIncremental,
-                                     {kCacheNameAlternative});
+  env.cache_control.ResetCaches(cache::UpdateType::kIncremental,
+                                {kCacheNameAlternative},
+                                /*force_incremental_names=*/{});
   EXPECT_EQ(2, test_cache.UpdatesCount());
   EXPECT_EQ(cache::UpdateType::kFull, test_cache.LastUpdateType());
 
-  env.cache_control.InvalidateCaches(cache::UpdateType::kIncremental, {});
+  env.cache_control.ResetCaches(cache::UpdateType::kIncremental, {},
+                                /*force_incremental_names=*/{});
   EXPECT_EQ(2, test_cache.UpdatesCount());
   EXPECT_EQ(cache::UpdateType::kFull, test_cache.LastUpdateType());
 
-  env.cache_control.InvalidateAllCaches(cache::UpdateType::kIncremental);
+  env.cache_control.ResetAllCaches(cache::UpdateType::kIncremental,
+                                   /*force_incremental_names=*/{});
   EXPECT_EQ(3, test_cache.UpdatesCount());
   EXPECT_EQ(cache::UpdateType::kIncremental, test_cache.LastUpdateType());
 
@@ -114,12 +122,70 @@ UTEST_DEATH(CacheControlDeathTest, Smoke) {
   EXPECT_EQ(test_cache.Get(), kDumpToRead);
 
   boost::filesystem::remove_all(env.dump_root.GetPath());
-  env.cache_control.InvalidateCaches(cache::UpdateType::kFull, {kCacheName});
+  env.cache_control.ResetCaches(cache::UpdateType::kFull, {kCacheName},
+                                /*force_incremental_names=*/{});
   env.dump_control.WriteCacheDumps({kCacheName});
   EXPECT_EQ(dump::FilenamesInDirectory(env.dump_root, kCacheName).size(), 1);
+}
+
+UTEST_DEATH(CacheControlDeathTest, MissingCache) {
+  const yaml_config::YamlConfig config{
+      formats::yaml::FromString(kConfigContents), {}};
+  cache::MockEnvironment env;
+  FakeCache test_cache(kCacheName, config, env);
 
   EXPECT_UINVARIANT_FAILURE(env.dump_control.WriteCacheDumps({"missing"}));
   EXPECT_UINVARIANT_FAILURE(env.dump_control.ReadCacheDumps({"missing"}));
 }
+
+namespace {
+
+/// [sample]
+class MyCache final : public components::LoggableComponentBase {
+ public:
+  static constexpr std::string_view kName = "my-cache";
+
+  MyCache(const components::ComponentConfig& config,
+          const components::ComponentContext& context)
+      : components::LoggableComponentBase(config, context) {
+    {
+      auto cache = cached_token_.Lock();
+      *cache = FetchToken();
+    }
+    // ...
+
+    // reset_registration_ must be set at the end of the constructor.
+    reset_registration_ = testsuite::FindCacheControl(context).RegisterCache(
+        this, kName, &MyCache::ResetCache);
+  }
+
+  std::string GetToken() {
+    auto cache = cached_token_.Lock();
+    if (auto& opt_token = *cache; opt_token) return *opt_token;
+    auto new_token = FetchToken();
+    *cache = new_token;
+    return new_token;
+  }
+
+  void ReportServiceRejectedToken() { ResetCache(); }
+
+ private:
+  std::string FetchToken() const;
+
+  void ResetCache() {
+    auto cache = cached_token_.Lock();
+    cache->reset();
+  }
+
+  concurrent::Variable<std::optional<std::string>> cached_token_;
+
+  // Subscriptions must be the last fields.
+  testsuite::CacheResetRegistration reset_registration_;
+};
+/// [sample]
+
+std::string MyCache::FetchToken() const { return "foo"; }
+
+}  // namespace
 
 USERVER_NAMESPACE_END

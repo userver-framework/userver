@@ -168,7 +168,7 @@ void SentinelImpl::Init() {
   sentinels_->SignalInstanceStateChange().connect(
       [this](ServerId id, Redis::State state) {
         LOG_TRACE() << "Signaled server " << id.GetDescription()
-                    << " state=" << Redis::StateToString(state);
+                    << " state=" << StateToString(state);
         if (state != Redis::State::kInit) ev_thread_.Send(watch_state_);
       });
   sentinels_->SignalNotInClusterMode().connect([this]() {
@@ -553,7 +553,7 @@ void SentinelImpl::SetReplicationMonitoringSettings(
 }
 
 void SentinelImpl::SetRetryBudgetSettings(
-    const RetryBudgetSettings& retry_budget_settings) {
+    const utils::RetryBudgetSettings& retry_budget_settings) {
   for (auto& shard : master_shards_)
     shard->SetRetryBudgetSettings(retry_budget_settings);
 }
@@ -901,14 +901,21 @@ SentinelStatistics SentinelImpl::GetStatistics(
   std::lock_guard<std::mutex> lock(sentinels_mutex_);
   for (const auto& shard : master_shards_) {
     if (!shard) continue;
-    auto master_stats = shard->GetStatistics(true, settings);
-    auto slave_stats = shard->GetStatistics(false, settings);
+    auto masters_it =
+        stats.masters.emplace(shard->ShardName(), ShardStatistics(settings));
+    auto& master_stats = masters_it.first->second;
+    shard->GetStatistics(true, settings, master_stats);
     stats.shard_group_total.Add(master_stats.shard_total);
+
+    auto slave_it =
+        stats.slaves.emplace(shard->ShardName(), ShardStatistics(settings));
+    auto& slave_stats = slave_it.first->second;
+    shard->GetStatistics(false, settings, slave_stats);
     stats.shard_group_total.Add(slave_stats.shard_total);
-    stats.masters.emplace(shard->ShardName(), std::move(master_stats));
-    stats.slaves.emplace(shard->ShardName(), std::move(slave_stats));
   }
-  stats.sentinel.emplace(sentinels_->GetStatistics(true, settings));
+  stats.sentinel.emplace(ShardStatistics(settings));
+  sentinels_->GetStatistics(true, settings, *stats.sentinel);
+
   return stats;
 }
 

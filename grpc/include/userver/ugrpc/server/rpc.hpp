@@ -217,9 +217,10 @@ class OutputStream final : public CallAnyBase {
 /// @brief Controls a request stream -> response stream RPC
 ///
 /// This class allows the following concurrent calls:
+///
 ///   - `GetContext`
-///   - Concurrent call of one of (`Read`) with one of (`Write`,
-///     `Finish`, `FinishWithError`, `WriteAndFinish`)
+///   - `Read`;
+///   - one of (`Write`, `Finish`, `FinishWithError`, `WriteAndFinish`).
 ///
 /// The RPC is cancelled on destruction unless the stream has been finished.
 ///

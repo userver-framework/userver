@@ -152,6 +152,7 @@ class ClusterTopologyHolder
                                  UpdateClusterTopology();
                                  update_topology_watch_.Start();
                                }),
+        explore_nodes_watch_(ev_thread_, [this] { ExploreNodes(); }),
         explore_nodes_timer_(
             ev_thread_, [this] { ExploreNodes(); },
             kSentinelGetHostsCheckInterval),
@@ -211,11 +212,15 @@ class ClusterTopologyHolder
     sentinels_->SignalInstanceStateChange().connect(
         [this](ServerId id, Redis::State state) {
           LOG_TRACE() << "Signaled server " << id.GetDescription()
-                      << " state=" << Redis::StateToString(state);
+                      << " state=" << StateToString(state);
           if (state != Redis::State::kInit)
             sentinels_process_state_update_watch_.Send();
         });
-    sentinels_->SignalInstanceReady().connect([](ServerId, bool /*ready*/) {});
+    sentinels_->SignalInstanceReady().connect(
+        [this](ServerId, bool /*readonly*/) {
+          if (!first_entry_point_connected_.exchange(true))
+            explore_nodes_watch_.Send();
+        });
     sentinels_->ProcessCreation(redis_thread_pool_);
   }
 
@@ -223,6 +228,7 @@ class ClusterTopologyHolder
     update_topology_watch_.Start();
     update_topology_timer_.Start();
     create_nodes_watch_.Start();
+    explore_nodes_watch_.Start();
     explore_nodes_timer_.Start();
     sentinels_process_creation_watch_.Start();
     sentinels_process_state_update_watch_.Start();
@@ -290,7 +296,7 @@ class ClusterTopologyHolder
     }
   }
 
-  void SetRetryBudgetSettings(const RetryBudgetSettings& settings) {
+  void SetRetryBudgetSettings(const utils::RetryBudgetSettings& settings) {
     {
       auto settings_ptr = retry_budget_settings_.Lock();
       *settings_ptr = settings;
@@ -338,7 +344,9 @@ class ClusterTopologyHolder
   /// @}
 
   /// Discover actual nodes in cluster
+  engine::ev::AsyncWatcher explore_nodes_watch_;
   engine::ev::PeriodicWatcher explore_nodes_timer_;
+  std::atomic<bool> first_entry_point_connected_{false};
   void ExploreNodes();
 
   /// Create connections to discovered nodes
@@ -370,7 +378,8 @@ class ClusterTopologyHolder
       commands_buffering_settings_;
   concurrent::Variable<ReplicationMonitoringSettings, std::mutex>
       monitoring_settings_;
-  concurrent::Variable<RetryBudgetSettings, std::mutex> retry_budget_settings_;
+  concurrent::Variable<utils::RetryBudgetSettings, std::mutex>
+      retry_budget_settings_;
   concurrent::Variable<std::unordered_set<HostPort>, std::mutex>
       nodes_to_create_;
 
@@ -457,10 +466,6 @@ void ClusterTopologyHolder::ExploreNodes() {
             std::swap(*ptr, host_ports_to_create);
           }
           create_nodes_watch_.Send();
-        }
-
-        if (!is_nodes_received_.exchange(true)) {
-          SendUpdateClusterTopology();
         }
       });
   sentinels_->AsyncCommand(cmd);
@@ -639,7 +644,8 @@ void ClusterTopologyHolder::UpdateClusterTopology() {
 void ClusterTopologyHolder::GetStatistics(
     SentinelStatistics& stats, const MetricsSettings& settings) const {
   if (sentinels_) {
-    stats.sentinel.emplace(sentinels_->GetStatistics(true, settings));
+    stats.sentinel.emplace(ShardStatistics(settings));
+    sentinels_->GetStatistics(true, settings, *stats.sentinel);
   }
   stats.internal.is_autotoplogy = true;
   stats.internal.cluster_topology_checks =
@@ -922,7 +928,7 @@ void ClusterSentinelImpl::SetReplicationMonitoringSettings(
 }
 
 void ClusterSentinelImpl::SetRetryBudgetSettings(
-    const RetryBudgetSettings& settings) {
+    const utils::RetryBudgetSettings& settings) {
   if (topology_holder_) {
     topology_holder_->SetRetryBudgetSettings(settings);
   }

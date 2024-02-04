@@ -221,7 +221,7 @@ class CacheUpdateTraitDumped : public ::testing::TestWithParam<TestParams> {
   CacheUpdateTraitDumped() { InitDumpAndData(); }
 
   explicit CacheUpdateTraitDumped(
-      testsuite::CacheControl::PeriodicUpdatesMode update_mode)
+      testsuite::impl::PeriodicUpdatesMode update_mode)
       : environment_(update_mode) {
     InitDumpAndData();
   }
@@ -266,8 +266,7 @@ class CacheUpdateTraitDumpedIncrementalThenAsyncFull
     : public CacheUpdateTraitDumped {
  public:
   CacheUpdateTraitDumpedIncrementalThenAsyncFull()
-      : CacheUpdateTraitDumped(
-            testsuite::CacheControl::PeriodicUpdatesMode::kEnabled) {
+      : CacheUpdateTraitDumped(testsuite::impl::PeriodicUpdatesMode::kEnabled) {
     Config() = UpdateConfig(Config(),
                             formats::yaml::FromString("update-interval: 1ms"));
   }
@@ -513,16 +512,19 @@ UTEST(CacheUpdateTrait, WriteDumps) {
 
   data_source.Set(10);
   EXPECT_EQ(cache.Get(), 5);
-  env.cache_control.InvalidateCaches(cache::UpdateType::kFull, {cache.Name()});
+  env.cache_control.ResetCaches(cache::UpdateType::kFull, {cache.Name()},
+                                /*force_incremental_names=*/{});
   EXPECT_EQ(cache.Get(), 10);
   EXPECT_EQ(write_and_count_dumps(), 2);
 
   data_source.Set(15);
-  env.cache_control.InvalidateCaches(cache::UpdateType::kFull, {cache.Name()});
+  env.cache_control.ResetCaches(cache::UpdateType::kFull, {cache.Name()},
+                                /*force_incremental_names=*/{});
   EXPECT_EQ(write_and_count_dumps(), 3);
 
   data_source.Set(20);
-  env.cache_control.InvalidateCaches(cache::UpdateType::kFull, {cache.Name()});
+  env.cache_control.ResetCaches(cache::UpdateType::kFull, {cache.Name()},
+                                /*force_incremental_names=*/{});
   EXPECT_EQ(write_and_count_dumps(), 3);
 
   boost::filesystem::remove_all(env.dump_root.GetPath());
@@ -571,8 +573,9 @@ UTEST_F(CacheUpdateTraitFaulty, DumpDebugHandlesThrow) {
                 cache::MockError);
   UEXPECT_THROW(env_.dump_control.ReadCacheDumps({cache.Name()}), dump::Error);
 
-  UEXPECT_NO_THROW(env_.cache_control.InvalidateCaches(cache::UpdateType::kFull,
-                                                       {cache.Name()}));
+  UEXPECT_NO_THROW(
+      env_.cache_control.ResetCaches(cache::UpdateType::kFull, {cache.Name()},
+                                     /*force_incremental_names=*/{}));
 }
 
 UTEST_F(CacheUpdateTraitFaulty, TmpDoNotAccumulate) {
@@ -647,7 +650,7 @@ first-update-fail-ok: true
 UTEST(ExpirableCacheUpdateTrait, TwoFailed) {
   auto config = MakeExpirableCacheConfig(2);
   cache::MockEnvironment environment(
-      testsuite::CacheControl::PeriodicUpdatesMode::kEnabled);
+      testsuite::impl::PeriodicUpdatesMode::kEnabled);
   ExpirableCache cache(config, environment, [](auto i) -> bool {
     std::vector<int> failed{1, 3, 4, 5, 7, 9, 10, 11};
     return std::count(failed.begin(), failed.end(), i);
@@ -770,7 +773,7 @@ void YieldNTimes(std::size_t n) {
 
 UTEST(CacheInvalidateAsync, UpdateType) {
   cache::MockEnvironment environment(
-      testsuite::CacheControl::PeriodicUpdatesMode::kEnabled);
+      testsuite::impl::PeriodicUpdatesMode::kEnabled);
   ForcedUpdateCache cache(MakeForcedUpdateCacheConfig(), environment, {});
 
   for (const auto update_type :
@@ -791,7 +794,7 @@ UTEST(CacheInvalidateAsync, UpdateType) {
 
 UTEST(CacheInvalidateAsync, BeforeStartPeriodicUpdates) {
   cache::MockEnvironment environment(
-      testsuite::CacheControl::PeriodicUpdatesMode::kEnabled);
+      testsuite::impl::PeriodicUpdatesMode::kEnabled);
   const ForcedUpdateCache::Settings settings{
       InvalidateBeforeStartPeriodicUpdates{true},
       InvalidateAtFirstUpdate{false}, FirstSyncUpdate{false}};
@@ -805,7 +808,7 @@ UTEST(CacheInvalidateAsync, BeforeStartPeriodicUpdates) {
 
 UTEST(CacheInvalidateAsync, PeriodicUpdatesNotEnabled) {
   cache::MockEnvironment environment(
-      testsuite::CacheControl::PeriodicUpdatesMode::kEnabled);
+      testsuite::impl::PeriodicUpdatesMode::kEnabled);
   ForcedUpdateCache cache(MakeForcedUpdateDisabledCacheConfig(), environment,
                           {});
 
@@ -824,7 +827,7 @@ auto SimulateCacheStartup(ForcedUpdateCache::Settings settings) {
   std::vector<std::size_t> actual;
 
   cache::MockEnvironment environment(
-      testsuite::CacheControl::PeriodicUpdatesMode::kEnabled);
+      testsuite::impl::PeriodicUpdatesMode::kEnabled);
   ForcedUpdateCache cache(MakeForcedUpdateCacheConfig(), environment, settings);
   actual.push_back(cache.GetUpdatesCount());
   YieldNTimes(10);
@@ -840,7 +843,7 @@ auto SimulateCacheStartup(ForcedUpdateCache::Settings settings) {
 
 UTEST(CacheInvalidateAsync, AtStartup) {
   cache::MockEnvironment environment(
-      testsuite::CacheControl::PeriodicUpdatesMode::kEnabled);
+      testsuite::impl::PeriodicUpdatesMode::kEnabled);
   ForcedUpdateCache::Settings settings;
 
   settings = {InvalidateBeforeStartPeriodicUpdates{true},
@@ -898,8 +901,9 @@ UTEST(CacheUpdateTrait, FinishWithError) {
 
   FinishWithErrorCache test_cache(config, environment);
 
-  UEXPECT_THROW_MSG(environment.cache_control.InvalidateCaches(
-                        cache::UpdateType::kFull, {test_cache.Name()}),
+  UEXPECT_THROW_MSG(environment.cache_control.ResetCaches(
+                        cache::UpdateType::kFull, {test_cache.Name()},
+                        /*force_incremental_names=*/{}),
                     std::exception, "FinishWithError");
 }
 

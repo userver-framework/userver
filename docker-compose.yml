@@ -98,6 +98,35 @@ services:
         working_dir: /userver
         entrypoint: /tools/run_as_user.sh
 
+
+    userver-ubuntu20-core:
+        image: ghcr.io/userver-framework/ubuntu-userver-core-ub20:v1
+        container_name: userver-ubuntu-core
+        networks:
+          - nexportfalse
+        environment:
+          - CC
+          - CXX
+          - BUILD_DIR=${BUILD_DIR:-/userver/build}
+          - BUILD_TYPE=${BUILD_TYPE:-Release}
+          - CCACHE_DIR=/userver/.ccache
+          - CCACHE_HASHDIR
+          - CCACHE_NOHASHDIR
+          - CCACHE_PREFIX
+          - CCACHE_SIZE=${CCACHE_SIZE:-10G}
+          - DISTCC_HOSTS
+          - NPROCS
+          - LANG=${LANG:-en_US.UTF-8}
+          - CONTAINER_NAME=userver-ubuntu20-core
+        volumes:
+          - .:/userver:rw
+          - ./tools/docker:/tools:rw
+        ports:
+          - 8080:8080
+        working_dir: /userver
+        entrypoint: /tools/run_as_user.sh
+
+
     userver-tests:
         image: ghcr.io/userver-framework/ubuntu-userver-build-base:v2
         container_name: userver-tests

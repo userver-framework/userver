@@ -5,6 +5,7 @@
 #include <userver/components/component_context.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/server/congestion_control/limiter.hpp>
+#include <userver/server/congestion_control/sensor.hpp>
 #include <userver/server/handlers/fallback_handlers.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/storages/secdist/component.hpp>
@@ -27,11 +28,12 @@ class RequestsView;
 class ServerImpl;
 struct ServerConfig;
 
-class Server final : public congestion_control::Limitee {
+class Server final : public congestion_control::Limitee,
+                     public congestion_control::RequestsSource {
  public:
   Server(ServerConfig config, const storages::secdist::SecdistConfig& secdist,
          const components::ComponentContext& component_context);
-  ~Server();
+  ~Server() override;
 
   const ServerConfig& GetConfig() const;
 
@@ -60,6 +62,8 @@ class Server final : public congestion_control::Limitee {
   void SetRpsRatelimit(std::optional<size_t> rps);
 
   void SetRpsRatelimitStatusCode(http::HttpStatus status_code);
+
+  std::uint64_t GetTotalRequests() const override;
 
  private:
   std::unique_ptr<ServerImpl> pimpl;

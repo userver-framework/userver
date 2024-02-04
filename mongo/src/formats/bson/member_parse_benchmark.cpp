@@ -39,16 +39,10 @@ const formats::bson::impl::BsonHolder bench_bson_data[kBenchRows] = {
 };
 
 namespace names {
-static const std::string kId = "_id";
 static const std::string kCar = "car";
-static const std::string kClasses = "class";
 static const std::string kUuid = "uuid";
 static const std::string kLicense = "driver_license";
 static const std::string kRequirements = "requirements";
-static const std::string kState = "_state";
-static const std::string kUpdated = "updated";
-static const std::string kDbid = "db_id";
-static const std::string kUpdatedTs = "updated_ts";
 static const std::string kGrades = "grades";
 static const std::string kGradeClass = "class";
 static const std::string kGradeValue = "value";

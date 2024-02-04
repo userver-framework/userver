@@ -123,6 +123,7 @@ class ServerImpl final {
 
   void SetRpsRatelimitStatusCode(http::HttpStatus status_code);
   void SetRpsRatelimit(std::optional<size_t> rps);
+  std::uint64_t GetTotalRequests() const;
 
  private:
   PortInfo main_port_info_;
@@ -311,6 +312,12 @@ void ServerImpl::SetRpsRatelimit(std::optional<size_t> rps) {
   main_port_info_.request_handler_->SetRpsRatelimit(rps);
 }
 
+std::uint64_t ServerImpl::GetTotalRequests() const {
+  auto stats = GetServerStats();
+  return stats.active_request_count.load() +
+         stats.requests_processed_count.load();
+}
+
 Server::Server(ServerConfig config,
                const storages::secdist::SecdistConfig& secdist,
                const components::ComponentContext& component_context)
@@ -376,6 +383,10 @@ void Server::SetRpsRatelimit(std::optional<size_t> rps) {
 
 void Server::SetRpsRatelimitStatusCode(http::HttpStatus status_code) {
   pimpl->SetRpsRatelimitStatusCode(status_code);
+}
+
+std::uint64_t Server::GetTotalRequests() const {
+  return pimpl->GetTotalRequests();
 }
 
 }  // namespace server

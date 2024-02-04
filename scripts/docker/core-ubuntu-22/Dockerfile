@@ -21,6 +21,7 @@ RUN apt-get update && apt-get install -y --allow-unauthenticated \
     libboost-iostreams1.74-dev \
     libboost-context1.74-dev \
     libboost-coroutine1.74-dev \
+    libboost-stacktrace1.74-dev \
     libev-dev \
     zlib1g-dev \
     libcurl4-openssl-dev \
@@ -38,6 +39,7 @@ RUN apt-get update && apt-get install -y --allow-unauthenticated \
     virtualenv \
     python3-voluptuous \
     python3-yaml \
+    python3-venv \
     libc-ares-dev \
     libbenchmark-dev \
     libgmock-dev \
@@ -50,7 +52,8 @@ RUN apt-get update && apt-get install -y --allow-unauthenticated \
     dirmngr \
     libcrypto++-dev \
     liblz4-dev \
-	locales
+    locales \
+    ninja-build
 
 RUN apt-get clean all
 

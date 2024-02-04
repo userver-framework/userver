@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+#include <userver/utest/assert_macros.hpp>
 
 #include <unordered_map>
 
@@ -337,6 +337,48 @@ TEST(JsonStringParser, JsonValue) {
     EXPECT_EQ(value_str, value_sax) << "input: " + input + ", str='" +
                                            ToString(value_str) + "', sax='" +
                                            ToString(value_sax) + "'";
+  }
+}
+
+namespace {
+std::string GenerateNestedJson(std::size_t depth) {
+  std::string result{};
+  result.reserve(depth * 8);
+
+  for (std::size_t i = 0; i < depth; ++i) {
+    result.append("{\"o\":");
+  }
+  result.append("{}");
+  for (std::size_t i = 0; i < depth; ++i) {
+    result.push_back('}');
+    if (i + 2 == depth) {
+      result.append(",\"nonsense\"");
+    }
+  }
+
+  return result;
+}
+}  // namespace
+
+TEST(JsonStringParser, JsonValueDepth) {
+  const auto input = GenerateNestedJson(formats::json::kDepthParseLimit + 1);
+
+  for (std::size_t i = 1; i <= 100; ++i) {
+    UEXPECT_THROW_MSG(
+        (fjp::ParseToType<formats::json::Value, fjp::JsonValueParser>(input)),
+        formats::json::parser::BaseError,
+        "Exceeded maximum allowed JSON depth of: 128");
+  }
+}
+
+TEST(JsonStringParser, JsonValueLeak) {
+  const auto input = GenerateNestedJson(formats::json::kDepthParseLimit - 2);
+
+  for (std::size_t i = 1; i <= 100; ++i) {
+    UEXPECT_THROW_MSG(
+        (fjp::ParseToType<formats::json::Value, fjp::JsonValueParser>(input)),
+        formats::json::parser::ParseError,
+        "Missing a colon after a name of object member.");
   }
 }
 

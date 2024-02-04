@@ -3,6 +3,7 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/statistics/impl/histogram_bucket.hpp>
 #include <userver/utils/statistics/writer.hpp>
+#include <utils/statistics/impl/histogram_view_utils.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -25,6 +26,20 @@ HistogramAggregator::~HistogramAggregator() = default;
 void HistogramAggregator::Add(HistogramView other) {
   UASSERT(buckets_);
   impl::histogram::Add(buckets_.get(), other);
+}
+
+void HistogramAggregator::AccountAt(std::size_t bucket_index,
+                                    std::uint64_t count) noexcept {
+  UASSERT(buckets_);
+  UASSERT(bucket_index < GetView().GetBucketCount());
+  const auto buckets = impl::histogram::Access::Buckets(
+      impl::histogram::MutableView{buckets_.get()});
+  impl::histogram::AddNonAtomic(buckets.begin()[bucket_index].counter, count);
+}
+
+void HistogramAggregator::AccountInf(std::uint64_t count) noexcept {
+  UASSERT(buckets_);
+  impl::histogram::AddNonAtomic(buckets_[0].counter, count);
 }
 
 void HistogramAggregator::Reset() noexcept {

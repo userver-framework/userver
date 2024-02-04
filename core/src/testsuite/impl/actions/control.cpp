@@ -60,13 +60,18 @@ void Control::InvalidateCaches(
   const auto update_type =
       cache::Parse(invalidate_caches["update_type"],
                    formats::parse::To<cache::UpdateType>());
+  const auto force_incremental_names =
+      invalidate_caches["force_incremental_names"]
+          .As<std::unordered_set<std::string>>({});
 
   if (invalidate_caches.HasMember("names")) {
-    testsuite_support_.GetCacheControl().InvalidateCaches(
+    testsuite_support_.GetCacheControl().ResetCaches(
         update_type,
-        invalidate_caches["names"].As<std::unordered_set<std::string>>());
+        invalidate_caches["names"].As<std::unordered_set<std::string>>(),
+        force_incremental_names);
   } else {
-    testsuite_support_.GetCacheControl().InvalidateAllCaches(update_type);
+    testsuite_support_.GetCacheControl().ResetAllCaches(
+        update_type, force_incremental_names);
     testsuite_support_.GetComponentControl().InvalidateComponents();
   }
 }

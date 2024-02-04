@@ -83,6 +83,11 @@ class MockTransaction::MockRequestExecDataImpl final
     return nullptr;
   }
 
+  engine::impl::ContextAccessor* TryGetContextAccessor() noexcept override {
+    UASSERT_MSG(false, "not supported in mocked request");
+    return nullptr;
+  }
+
  private:
   std::vector<std::unique_ptr<ResultPromise>> result_promises_;
 };

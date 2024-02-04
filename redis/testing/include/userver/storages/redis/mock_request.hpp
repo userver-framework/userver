@@ -36,6 +36,11 @@ class MockRequestData final : public RequestDataBase<ReplyType> {
     return nullptr;
   }
 
+  engine::impl::ContextAccessor* TryGetContextAccessor() noexcept override {
+    UASSERT_MSG(false, "not supported in mocked request");
+    return nullptr;
+  }
+
  private:
   ReplyType reply_;
 };
@@ -50,6 +55,11 @@ class MockRequestData<Result, void> final : public RequestDataBase<void> {
   void Get(const std::string& /*request_description*/) override {}
 
   ReplyPtr GetRaw() override {
+    UASSERT_MSG(false, "not supported in mocked request");
+    return nullptr;
+  }
+
+  engine::impl::ContextAccessor* TryGetContextAccessor() noexcept override {
     UASSERT_MSG(false, "not supported in mocked request");
     return nullptr;
   }
@@ -69,6 +79,11 @@ class MockRequestDataTimeout final : public RequestDataBase<ReplyType> {
   }
 
   ReplyPtr GetRaw() override {
+    UASSERT_MSG(false, "not supported in mocked request");
+    return nullptr;
+  }
+
+  engine::impl::ContextAccessor* TryGetContextAccessor() noexcept override {
     UASSERT_MSG(false, "not supported in mocked request");
     return nullptr;
   }

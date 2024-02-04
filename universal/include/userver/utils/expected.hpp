@@ -170,7 +170,7 @@ const S& expected<S, E>::value() const& {
 
 template <class S, class E>
 E& expected<S, E>::error() {
-  unexpected<E>* result = std::get_if<unexpected<E>>(&data_);
+  auto* result = std::get_if<unexpected<E>>(&data_);
   if (result == nullptr) {
     throw bad_expected_access(
         "Trying to get undefined error value from utils::expected");
@@ -180,7 +180,7 @@ E& expected<S, E>::error() {
 
 template <class S, class E>
 const E& expected<S, E>::error() const {
-  const unexpected<E>* result = std::get_if<unexpected<E>>(&data_);
+  const auto* result = std::get_if<unexpected<E>>(&data_);
   if (result == nullptr) {
     throw bad_expected_access(
         "Trying to get undefined error value from utils::expected");

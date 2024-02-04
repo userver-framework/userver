@@ -1,19 +1,14 @@
-#include <userver/storages/redis/impl/retry_budget.hpp>
-
-#include <userver/utils/impl/userver_experiments.hpp>
+#include <userver/utils/retry_budget.hpp>
 
 #include <gtest/gtest.h>
 
 USERVER_NAMESPACE_BEGIN
 
 TEST(RetryBudget, base) {
-  utils::impl::UserverExperimentsScope experiments;
-  experiments.Set(utils::impl::kRedisRetryBudgetExperiment, true);
-
   const auto kMaxTokens = 10;
   const auto kTokenRatio = 0.1f;
-  auto budget = redis::RetryBudget(
-      redis::RetryBudgetSettings{kMaxTokens, kTokenRatio, true});
+  auto budget = utils::RetryBudget(
+      utils::RetryBudgetSettings{kMaxTokens, kTokenRatio, true});
 
   EXPECT_TRUE(budget.CanRetry());
 
@@ -28,13 +23,10 @@ TEST(RetryBudget, base) {
 }
 
 TEST(RetryBudget, replenish) {
-  utils::impl::UserverExperimentsScope experiments;
-  experiments.Set(utils::impl::kRedisRetryBudgetExperiment, true);
-
   const auto kMaxTokens = 10;
   const auto kTokenRatio = 0.1f;
-  auto budget = redis::RetryBudget(
-      redis::RetryBudgetSettings{kMaxTokens, kTokenRatio, true});
+  auto budget = utils::RetryBudget(
+      utils::RetryBudgetSettings{kMaxTokens, kTokenRatio, true});
 
   /// Empty budget
   for (size_t i = 0; i < kMaxTokens; ++i) {

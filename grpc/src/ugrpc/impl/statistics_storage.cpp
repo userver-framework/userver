@@ -52,6 +52,17 @@ void StatisticsStorage::ExtendStatistics(utils::statistics::Writer& writer) {
   }
 }
 
+std::uint64_t StatisticsStorage::GetStartedRequests() const {
+  std::uint64_t result{0};
+  // mutex_ is not locked as we might be inside a common thread w/o coroutine
+  // environment. service_statistics_ is not changed as all gRPC services (not
+  // clients!) are already registered.
+  for (const auto& [name, stats] : service_statistics_) {
+    result += stats.GetStartedRequests();
+  }
+  return result;
+}
+
 }  // namespace ugrpc::impl
 
 USERVER_NAMESPACE_END

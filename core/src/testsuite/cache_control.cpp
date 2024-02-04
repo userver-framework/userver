@@ -2,33 +2,22 @@
 
 #include <userver/cache/cache_config.hpp>
 #include <userver/cache/cache_update_trait.hpp>
+#include <userver/components/component_context.hpp>
+#include <userver/formats/json.hpp>
+#include <userver/testsuite/testpoint.hpp>
+#include <userver/testsuite/testsuite_support.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/algo.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
 
 #include <fmt/format.h>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace {
-
-constexpr std::string_view kInvalidatorSpanTag = "cache_invalidate";
-
-}  // namespace
-
 namespace testsuite {
 
-CacheControl::CacheControl(PeriodicUpdatesMode mode)
+CacheControl::CacheControl(impl::PeriodicUpdatesMode mode)
     : periodic_updates_mode_(mode) {}
-
-void CacheControl::RegisterCache(cache::CacheUpdateTrait& cache) {
-  std::lock_guard lock(mutex_);
-  caches_.emplace_back(&cache);
-}
-
-void CacheControl::UnregisterCache(cache::CacheUpdateTrait& cache) {
-  std::lock_guard lock(mutex_);
-  utils::EraseIf(caches_, [&](auto ref) { return &*ref == &cache; });
-}
 
 bool CacheControl::IsPeriodicUpdateEnabled(
     const cache::Config& cache_config, const std::string& cache_name) const {
@@ -39,11 +28,11 @@ bool CacheControl::IsPeriodicUpdateEnabled(
   if (is_periodic_update_forced) {
     enabled = *is_periodic_update_forced;
     reason = "config";
-  } else if (periodic_updates_mode_ == PeriodicUpdatesMode::kDefault) {
+  } else if (periodic_updates_mode_ == impl::PeriodicUpdatesMode::kDefault) {
     enabled = true;
     reason = "default";
   } else {
-    enabled = (periodic_updates_mode_ == PeriodicUpdatesMode::kEnabled);
+    enabled = (periodic_updates_mode_ == impl::PeriodicUpdatesMode::kEnabled);
     reason = "global config";
   }
 
@@ -53,49 +42,118 @@ bool CacheControl::IsPeriodicUpdateEnabled(
   return enabled;
 }
 
-void CacheControl::InvalidateAllCaches(cache::UpdateType update_type) {
-  const auto sp =
-      tracing::Span::CurrentSpan().CreateScopeTime("invalidate_all_caches");
-  std::lock_guard lock(mutex_);
+void CacheControl::DoResetCache(const CacheInfo& info,
+                                cache::UpdateType update_type) {
+  TESTPOINT(std::string("reset-cache-") + info.name,
+            formats::json::MakeObject("update_type", ToString(update_type)));
 
-  for (const auto& cache : caches_) {
-    tracing::Span span(std::string{kInvalidatorSpanTag});
-    cache->UpdateSyncDebug(update_type);
+  std::optional<tracing::Span> span;
+  if (info.needs_span) {
+    span.emplace("reset/" + info.name);
+  }
+  info.reset(update_type);
+}
+
+void CacheControl::ResetAllCaches(
+    cache::UpdateType update_type,
+    const std::unordered_set<std::string>& force_incremental_names) {
+  const auto sp =
+      tracing::Span::CurrentSpan().CreateScopeTime("reset_all_caches");
+  auto caches = caches_.Lock();
+
+  for (const auto& cache : *caches) {
+    const auto cache_update_type = force_incremental_names.count(cache.name)
+                                       ? cache::UpdateType::kIncremental
+                                       : update_type;
+    DoResetCache(cache, cache_update_type);
   }
 }
 
-void CacheControl::InvalidateCaches(cache::UpdateType update_type,
-                                    std::unordered_set<std::string> names) {
-  const auto sp =
-      tracing::Span::CurrentSpan().CreateScopeTime("invalidate_caches");
-  std::lock_guard lock(mutex_);
+void CacheControl::ResetCaches(
+    cache::UpdateType update_type,
+    std::unordered_set<std::string> reset_only_names,
+    const std::unordered_set<std::string>& force_incremental_names) {
+  const auto sp = tracing::Span::CurrentSpan().CreateScopeTime("reset_caches");
+  auto caches = caches_.Lock();
 
   // It's important that we walk the caches in the order of their registration,
   // that is, in the order of `caches_`. Otherwise, if we update a "later" cache
   // before an "earlier" cache, the "later" one might read old data from
   // the "earlier" one and will not be fully updated.
-  for (const auto& cache : caches_) {
-    const auto it = names.find(cache->Name());
-    if (it != names.end()) {
-      tracing::Span span(std::string{kInvalidatorSpanTag});
-      cache->UpdateSyncDebug(update_type);
-      names.erase(it);
+  for (const auto& cache : *caches) {
+    const auto it = reset_only_names.find(cache.name);
+    if (it != reset_only_names.end()) {
+      const auto cache_update_type = force_incremental_names.count(cache.name)
+                                         ? cache::UpdateType::kIncremental
+                                         : update_type;
+      DoResetCache(cache, cache_update_type);
+      reset_only_names.erase(it);
     }
   }
 
-  UINVARIANT(names.empty(),
+  UINVARIANT(reset_only_names.empty(),
              fmt::format("Some of the requested caches do not exist: {}",
-                         fmt::join(names, ", ")));
+                         fmt::join(reset_only_names, ", ")));
 }
 
-CacheInvalidatorHolder::CacheInvalidatorHolder(CacheControl& cache_control,
-                                               cache::CacheUpdateTrait& cache)
-    : cache_control_(cache_control), cache_(cache) {
-  cache_control_.RegisterCache(cache_);
+CacheResetRegistration CacheControl::RegisterPeriodicCache(
+    cache::CacheUpdateTrait& cache) {
+  auto iter = DoRegisterCache(CacheInfo{
+      /*name=*/std::string{cache.Name()},
+      /*reset=*/
+      [&cache](cache::UpdateType update_type) {
+        cache.UpdateSyncDebug(update_type);
+      },
+      /*needs_span=*/false,
+  });
+  return CacheResetRegistration(*this, std::move(iter));
 }
 
-CacheInvalidatorHolder::~CacheInvalidatorHolder() {
-  cache_control_.UnregisterCache(cache_);
+auto CacheControl::DoRegisterCache(CacheInfo&& info) -> CacheInfoIterator {
+  auto caches = caches_.Lock();
+  caches->push_back(std::move(info));
+  return std::prev(caches->end());
+}
+
+void CacheControl::UnregisterCache(CacheInfoIterator iterator) noexcept {
+  auto caches = caches_.Lock();
+  caches->erase(iterator);
+}
+
+CacheResetRegistration::CacheResetRegistration() noexcept = default;
+
+CacheResetRegistration::CacheResetRegistration(
+    CacheControl& cache_control,
+    CacheControl::CacheInfoIterator cache_info_iterator)
+    : cache_control_(&cache_control),
+      cache_info_iterator_(std::move(cache_info_iterator)) {}
+
+CacheResetRegistration::CacheResetRegistration(
+    CacheResetRegistration&& other) noexcept
+    : cache_control_(std::exchange(other.cache_control_, nullptr)),
+      cache_info_iterator_(std::move(other.cache_info_iterator_)) {}
+
+CacheResetRegistration& CacheResetRegistration::operator=(
+    CacheResetRegistration&& other) noexcept {
+  if (&other == this) return *this;
+  Unregister();
+  cache_control_ = std::exchange(other.cache_control_, nullptr);
+  cache_info_iterator_ = std::move(other.cache_info_iterator_);
+  return *this;
+}
+
+CacheResetRegistration::~CacheResetRegistration() { Unregister(); }
+
+void CacheResetRegistration::Unregister() noexcept {
+  if (cache_control_) {
+    cache_control_->UnregisterCache(std::move(cache_info_iterator_));
+    cache_control_ = nullptr;
+  }
+}
+
+CacheControl& FindCacheControl(const components::ComponentContext& context) {
+  return context.FindComponent<components::TestsuiteSupport>()
+      .GetCacheControl();
 }
 
 }  // namespace testsuite

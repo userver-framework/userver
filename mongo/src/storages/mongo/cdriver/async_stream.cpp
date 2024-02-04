@@ -406,6 +406,7 @@ size_t AsyncStream::BufferedRecv(void* data, size_t size, size_t min_bytes,
           // no pending data, will overflow the buffer, stream directly
           const auto batch_size = bytes_left - bytes_left % recv_buffer_.size();
           iter_bytes_stored = socket_.RecvSome(pos, batch_size, deadline);
+          if (!iter_bytes_stored) break;  // EOF
         }
       }
       UASSERT(iter_bytes_stored ||

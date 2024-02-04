@@ -127,8 +127,8 @@ SnapshotData::SnapshotData(const DocsMap& defaults,
         user_configs_[id] = metadata.factory(defaults);
       } catch (const std::exception& ex) {
         throw ConfigParseError(
-            fmt::format("While parsing dynamic config values: {} ({})",
-                        ex.what(), compiler::GetTypeName(typeid(ex))));
+            fmt::format("{} while parsing dynamic config values. {}",
+                        compiler::GetTypeName(typeid(ex)), ex.what()));
       }
     }
   }

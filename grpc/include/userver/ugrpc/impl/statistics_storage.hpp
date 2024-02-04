@@ -27,6 +27,11 @@ class StatisticsStorage final {
   ugrpc::impl::ServiceStatistics& GetServiceStatistics(
       const ugrpc::impl::StaticServiceMetadata& metadata);
 
+  // Can only be called on StatisticsStorage for gRPC services (not clients).
+  // Can only be called strictly after all the components are loaded.
+  // gRPC services must not be [un]registered during GetStartedRequests().
+  std::uint64_t GetStartedRequests() const;
+
  private:
   // Pointer to service name from its metadata is used as a unique service ID
   using ServiceId = const char*;

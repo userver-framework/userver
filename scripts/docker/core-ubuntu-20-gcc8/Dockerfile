@@ -12,11 +12,11 @@ RUN apt-get update && apt-get install -y --allow-unauthenticated \
     ccache \
     chrpath \
     clang-10 \
-	lld-10 \
-	clang-12 \
-	lld-12 \
-	g++-8 \
-	g++-9 \
+    lld-10 \
+    clang-12 \
+    lld-12 \
+    g++-8 \
+    g++-9 \
     cmake \
     libboost1.71-dev \
     libboost-program-options1.71-dev \
@@ -26,6 +26,7 @@ RUN apt-get update && apt-get install -y --allow-unauthenticated \
     libboost-iostreams1.71-dev \
     libboost-context1.71-dev \
     libboost-coroutine1.71-dev \
+    libboost-stacktrace1.71-dev \
     libev-dev \
     zlib1g-dev \
     libcurl4-openssl-dev \
@@ -40,11 +41,12 @@ RUN apt-get update && apt-get install -y --allow-unauthenticated \
     libkrb5-dev \
     python3-dev \
     virtualenv \
-	python3-dev \
-	python3-jinja2 \
-	python3-pip \
+    python3-dev \
+    python3-jinja2 \
+    python3-pip \
     python3-voluptuous \
     python3-yaml \
+    python3-venv \
     libbenchmark-dev \
     libgmock-dev \
     libgtest-dev \
@@ -56,7 +58,8 @@ RUN apt-get update && apt-get install -y --allow-unauthenticated \
     dirmngr \
     libcrypto++-dev \
     liblz4-dev \
-	locales
+    locales \
+    ninja-build
 
 RUN apt-get clean all
 

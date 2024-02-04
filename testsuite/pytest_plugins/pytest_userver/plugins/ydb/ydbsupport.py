@@ -280,7 +280,11 @@ def userver_ydb_trx(testpoint) -> Generator[sql.RegisteredTrx, None, None]:
     The fixture maintains transaction fault injection state using
     RegisteredTrx class.
 
-    @see RegisteredTrx
+    @see pytest_userver.sql.RegisteredTrx
+
+    @snippet integration_tests/tests/test_trx_failure.py  fault injection
+
+    @ingroup userver_testsuite_fixtures
     """
 
     registered = sql.RegisteredTrx()

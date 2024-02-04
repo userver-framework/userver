@@ -50,15 +50,16 @@ UTEST_P_MT(GrpcChannels, TryWaitForConnected, 2) {
       dynamic_config::MakeDefaultStorage({})};
 
   auto client_task = engine::AsyncNoSpan([&] {
-    ugrpc::client::ClientFactoryConfig config;
-    config.channel_args.SetInt("grpc.testing.fixed_reconnect_backoff_ms", 100);
-    config.channel_count = GetParam();
+    ugrpc::client::ClientFactorySettings settings;
+    settings.channel_args.SetInt("grpc.testing.fixed_reconnect_backoff_ms",
+                                 100);
+    settings.channel_count = GetParam();
     ugrpc::client::QueueHolder client_queue;
 
     testsuite::GrpcControl ts({}, false);
     ugrpc::client::MiddlewareFactories mws;
     ugrpc::client::ClientFactory client_factory(
-        std::move(config), engine::current_task::GetTaskProcessor(), mws,
+        std::move(settings), engine::current_task::GetTaskProcessor(), mws,
         client_queue.GetQueue(), statistics_storage, ts,
         config_storage.GetSource());
 

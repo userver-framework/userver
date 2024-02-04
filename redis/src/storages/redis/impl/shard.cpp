@@ -6,10 +6,10 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/retry_budget.hpp>
 
 #include <storages/redis/impl/command.hpp>
 #include <userver/storages/redis/impl/base.hpp>
-#include <userver/storages/redis/impl/retry_budget.hpp>
 
 #include "command_control_impl.hpp"
 
@@ -402,24 +402,24 @@ bool Shard::SetConnectionInfo(std::vector<ConnectionInfoInt> info_array) {
   return true;
 }
 
-ShardStatistics Shard::GetStatistics(bool master,
-                                     const MetricsSettings& settings) const {
+void Shard::GetStatistics(bool master, const MetricsSettings& settings,
+                          ShardStatistics& stats) const {
   std::shared_lock lock(mutex_);
-  ShardStatistics stats(settings);
 
   for (const auto& instance : instances_) {
     if (!instance.instance || instance.info.IsReadOnly() == master) continue;
-    auto inst_stats =
-        redis::InstanceStatistics(settings, instance.instance->GetStatistics());
+
+    auto it = stats.instances.emplace(instance.info.Fulltext(),
+                                      redis::InstanceStatistics(settings));
+    auto& inst_stats = it.first->second;
+    inst_stats.Fill(instance.instance->GetStatistics());
     stats.shard_total.Add(inst_stats);
-    stats.instances.emplace(instance.info.Fulltext(), std::move(inst_stats));
+
     if (instance.instance->GetState() == Redis::State::kConnected) {
       stats.is_ready = true;
     }
   }
   stats.last_ready_time = last_ready_time_;
-
-  return stats;
 }
 
 size_t Shard::InstancesSize() const {
@@ -475,7 +475,7 @@ void Shard::SetReplicationMonitoringSettings(
 }
 
 void Shard::SetRetryBudgetSettings(
-    const RetryBudgetSettings& retry_budget_settings) {
+    const utils::RetryBudgetSettings& retry_budget_settings) {
   std::shared_lock lock(mutex_);
 
   for (const auto& instance : instances_) {
@@ -487,7 +487,7 @@ void Shard::SetRetryBudgetSettings(
   }
 
   retry_budet_settings_.Set(
-      std::make_shared<RetryBudgetSettings>(retry_budget_settings));
+      std::make_shared<utils::RetryBudgetSettings>(retry_budget_settings));
 }
 
 std::vector<ConnectionInfoInt> Shard::GetConnectionInfosToCreate() const {

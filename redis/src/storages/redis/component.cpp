@@ -9,13 +9,13 @@
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/storages/redis/impl/retry_budget.hpp>
 #include <userver/storages/redis/impl/thread_pools.hpp>
 #include <userver/storages/redis/reply.hpp>
 #include <userver/storages/secdist/component.hpp>
 #include <userver/storages/secdist/exceptions.hpp>
 #include <userver/storages/secdist/secdist.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
+#include <userver/utils/retry_budget.hpp>
 #include <userver/utils/statistics/writer.hpp>
 #include <userver/utils/trivial_map.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
@@ -314,7 +314,7 @@ void Redis::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
             redis::ReplicationMonitoringSettings{}));
     client->SetRetryBudgetSettings(
         redis_config.retry_budget_settings.GetOptional(name).value_or(
-            redis::RetryBudgetSettings{}));
+            utils::RetryBudgetSettings{}));
     client->SetClusterAutoTopology(auto_topology);
   }
 

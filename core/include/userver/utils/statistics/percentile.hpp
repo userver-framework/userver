@@ -14,29 +14,35 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
 
-/** @brief Class stores M buckets of type Counter and allows easy
- * calculation of percentiles.
+/** @brief Class allows easy calculation of percentiles.
  *
- * Bucket X stores how many elements with value X was accounted for, for the
- * first M buckets. Bucket X stores how many elements with values
- * [X-ExtraBucketSize/2; X+ExtraBucketSize/2) were accounted for, for the next
- * ExtraBuckets buckets.
+ * Stores `M + ExtraBuckets` buckets of type `Counter`.
  *
- * @tparam M how many buckets store precise value
- * @tparam Counter bucket type
- * @tparam ExtraBuckets how many buckets store approximated values
- * @tparam ExtraBucketSize ExtraBuckets store values with this precision
+ * On `Account(x)` the bucket to increment is chosen depending on `x` value.
+ * If `x` belongs to:
+ *
+ * - `[0, M)`, then bucket from `M` buckets;
+ * - `[M, M + ExtraBuckets * ExtraBucketSize)`, then bucket from `ExtraBuckets`;
+ * - all the bigger values, then last bucket from `ExtraBuckets`.
+ *
+ * On `GetPercentile(percent)` class sums up the required amount of buckets,
+ * knowing the total count of `Account(x)` invocations.
+ *
+ * @tparam M buckets count for value step of `1`
+ * @tparam Counter type of all the buckets
+ * @tparam ExtraBuckets buckets for value step of `ExtraBucketSize`
+ * @tparam ExtraBucketSize `ExtraBuckets` store values with this precision
  * @see GetPercentile
  * @see Account
  *
- * Example:
- * Precisely count for first 500 milliseconds of execution using uint32_t
+ * @b Example:
+ * Precisely count for first 500 milliseconds of execution using `std::uint32_t`
  * counters and leave 100 buckets for all the other values with precision
- * of 42 milliseconds:
+ * of 9 milliseconds:
  *
  * @code
- * using Percentile = utils::statistics::Percentile<500, std::uint32_t, 100,
- * 42>; using Timings = utils::statistics::RecentPeriod<Percentile, Percentile>;
+ * using Percentile = utils::statistics::Percentile<500, std::uint32_t, 100, 9>;
+ * using Timings = utils::statistics::RecentPeriod<Percentile, Percentile>;
  *
  * void Account(Percentile& perc, std::chrono::milliseconds ms) {
  *   perc.Account(ms.count());
@@ -47,17 +53,19 @@ namespace utils::statistics {
  * }
  * @endcode
  *
+ * Type is safe to read/write concurrently from different threads/coroutines.
+ *
  * `Percentile` metrics are non-summable, e.g. given RPS counts and timing
  * percentiles for multiple hosts or handlers, we cannot accurately compute the
  * total timing percentiles.
  *
  * @see utils::statistics::Histogram for the summable equivalent
  */
-template <size_t M, typename Counter = uint32_t, size_t ExtraBuckets = 0,
-          size_t ExtraBucketSize = 500>
+template <std::size_t M, typename Counter = std::uint32_t,
+          std::size_t ExtraBuckets = 0, std::size_t ExtraBucketSize = 500>
 class Percentile final {
  public:
-  Percentile() {
+  Percentile() noexcept {
     for (auto& value : values_) value.store(0, std::memory_order_relaxed);
     for (auto& value : extra_values_) value.store(0, std::memory_order_relaxed);
     count_.store(0, std::memory_order_release);
@@ -71,31 +79,32 @@ class Percentile final {
   Percentile& operator=(const Percentile& rhs) noexcept {
     if (this == &rhs) return *this;
 
-    size_t sum = 0;
-    for (size_t i = 0; i < values_.size(); i++) {
+    std::size_t sum = 0;
+    for (std::size_t i = 0; i < values_.size(); i++) {
       const auto value = rhs.values_[i].load(std::memory_order_relaxed);
       values_[i].store(value, std::memory_order_relaxed);
       sum += value;
     }
 
-    for (size_t i = 0; i < extra_values_.size(); i++) {
+    for (std::size_t i = 0; i < extra_values_.size(); i++) {
       const auto value = rhs.extra_values_[i].load(std::memory_order_relaxed);
       extra_values_[i].store(value, std::memory_order_relaxed);
       sum += value;
     }
+
     count_ = sum;
     return *this;
   }
 
-  /** \brief Account for another value. Value is truncated [0..M) and
-   *  added to the corresponding bucket
-   */
-  void Account(size_t value) {
+  /// @brief Account for another value.
+  ///
+  /// `1` is added to the bucket corresponding to `value`
+  void Account(std::size_t value) noexcept {
     if (value < values_.size()) {
       values_[value].fetch_add(1, std::memory_order_relaxed);
     } else {
       if (!extra_values_.empty()) {
-        size_t extra_bucket =
+        std::size_t extra_bucket =
             (value - values_.size() + ExtraBucketSize / 2) / ExtraBucketSize;
         if (extra_bucket >= extra_values_.size()) {
           extra_bucket = extra_values_.size() - 1;
@@ -108,19 +117,18 @@ class Percentile final {
     count_.fetch_add(1, std::memory_order_release);
   }
 
-  /** \brief Get X percentile - min value P in [0..M) so that total number
-   * of elements in buckets 0..P is no less than X percent
-   * @param percent - value in [0..100] - requested percentile
-   *                  if outside of 100, then returns last bucket that
-   *                  has any element in it.
-   */
-  size_t GetPercentile(double percent) const {
+  /// @brief Get X percentile - min value P so that total number
+  /// of elements in buckets is no less than X percent.
+  ///
+  /// @param percent - value in [0..100] - requested percentile.
+  /// If outside of 100, then returns last bucket that has any element in it.
+  std::size_t GetPercentile(double percent) const {
     if (count_ == 0) return 0;
 
-    size_t sum = 0;
-    size_t want_sum = count_.load(std::memory_order_acquire) * percent;
-    size_t max_value = 0;
-    for (size_t i = 0; i < values_.size(); i++) {
+    std::size_t sum = 0;
+    std::size_t want_sum = count_.load(std::memory_order_acquire) * percent;
+    std::size_t max_value = 0;
+    for (std::size_t i = 0; i < values_.size(); i++) {
       const auto value = values_[i].load(std::memory_order_relaxed);
       sum += value;
       if (sum * 100 > want_sum) return i;
@@ -158,20 +166,24 @@ class Percentile final {
     count_.fetch_add(sum, std::memory_order_release);
   }
 
-  void Reset() {
+  /// @brief Zero out all the buckets and total number of elements.
+  void Reset() noexcept {
     for (auto& value : values_) value.store(0, std::memory_order_relaxed);
     for (auto& value : extra_values_) value.store(0, std::memory_order_relaxed);
     count_ = 0;
   }
 
-  /** \brief Total number of elements
-   */
-  Counter Count() const { return count_; }
+  /// @brief Total number of elements
+  Counter Count() const noexcept { return count_; }
 
  private:
-  size_t ExtraBucketToValue(size_t bucket) const {
+  size_t ExtraBucketToValue(std::size_t bucket) const noexcept {
     return values_.size() + bucket * ExtraBucketSize;
   }
+
+  static_assert(std::atomic<Counter>::is_always_lock_free,
+                "`std::atomic<Counter>` is not lock-free. Please choose some "
+                "other `Counter` type");
 
   std::array<std::atomic<Counter>, M> values_;
   std::array<std::atomic<Counter>, ExtraBuckets> extra_values_;

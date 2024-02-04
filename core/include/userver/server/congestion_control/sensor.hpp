@@ -4,22 +4,31 @@
 
 #include <userver/congestion_control/sensor.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/server/server.hpp>
+#include <userver/rcu/rcu.hpp>
 #include <userver/utils/statistics/recentperiod.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace server::congestion_control {
 
+class RequestsSource {
+ public:
+  virtual ~RequestsSource() = default;
+
+  virtual std::uint64_t GetTotalRequests() const = 0;
+};
+
 class Sensor final : public USERVER_NAMESPACE::congestion_control::Sensor {
  public:
-  Sensor(const Server& server, engine::TaskProcessor& tp);
+  explicit Sensor(engine::TaskProcessor& tp);
 
   Data FetchCurrent() override;
 
+  void RegisterRequestsSource(RequestsSource& source);
+
  private:
-  const Server& server_;
   engine::TaskProcessor& tp_;
+  rcu::Variable<std::vector<RequestsSource*>> requests_sources_;
 
   std::chrono::steady_clock::time_point last_fetch_tp_;
   std::uint64_t last_overloads_{0};

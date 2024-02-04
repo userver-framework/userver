@@ -397,7 +397,7 @@ An example on testsuite tasks could be found here:
 #### Metrics
 
 Testsuite provides access to userver metrics written by
-utils::statistics::Writer via
+utils::statistics::Writer and utils::statistics::MetricTag via
 @ref pytest_userver.plugins.service_client.monitor_client "monitor_client"
 , see @ref tutorial_metrics "tutorial on configuration".
 It allows to:

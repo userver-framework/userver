@@ -7,6 +7,7 @@
 #include <unordered_set>
 #include <vector>
 
+#include <userver/engine/impl/context_accessor.hpp>
 #include <userver/storages/redis/impl/exception.hpp>
 #include <userver/storages/redis/reply_types.hpp>
 #include <userver/storages/redis/request_data_base.hpp>
@@ -34,6 +35,13 @@ class [[nodiscard]] Request final {
   ReplyType Get(const std::string& request_description = {}) {
     return impl_->Get(request_description);
   }
+
+  /// @cond
+  /// Internal helper for WaitAny/WaitAll
+  engine::impl::ContextAccessor* TryGetContextAccessor() noexcept {
+    return impl_->TryGetContextAccessor();
+  }
+  /// @endcond
 
   template <typename T1, typename T2>
   friend class RequestEval;

@@ -245,21 +245,24 @@ class Value final {
   }
 
  private:
-  class EmplaceEnabler {};
+  struct EmplaceEnabler {
+    explicit EmplaceEnabler() = default;
+  };
+
   class LazyDetachedPath;
 
  public:
   /// @cond
   Value(EmplaceEnabler, const impl::VersionedValuePtr& root,
-        const impl::Value& value, int depth);
+        const impl::Value* root_ptr_for_path, const impl::Value* value_ptr,
+        int depth);
+
+  Value(EmplaceEnabler, const impl::VersionedValuePtr& root,
+        impl::Value* root_ptr_for_path, LazyDetachedPath&& lazy_detached_path);
   /// @endcond
 
  private:
   explicit Value(impl::VersionedValuePtr root) noexcept;
-  Value(impl::VersionedValuePtr root, const impl::Value* root_ptr,
-        const impl::Value* value_ptr, int depth);
-  Value(impl::VersionedValuePtr root, impl::Value* root_ptr,
-        LazyDetachedPath&& lazy_detached_path);
 
   bool IsUniqueReference() const;
   void EnsureNotMissing() const;

@@ -14,7 +14,7 @@
 #include <userver/dump/operations.hpp>
 #include <userver/dynamic_config/source.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/testsuite/component_control.hpp>
+#include <userver/testsuite/cache_control.hpp>
 #include <userver/utils/statistics/entry.hpp>
 #include <userver/yaml_config/schema.hpp>
 
@@ -23,9 +23,6 @@ USERVER_NAMESPACE_BEGIN
 namespace cache {
 
 namespace impl {
-
-testsuite::ComponentControl& FindComponentControl(
-    const components::ComponentContext& context);
 
 utils::statistics::Entry RegisterOnStatisticsStorage(
     const components::ComponentContext& context, const std::string& name,
@@ -95,6 +92,8 @@ class LruCacheComponent : public components::LoggableComponentBase,
  protected:
   virtual Value DoGetByKey(const Key& key) = 0;
 
+  std::shared_ptr<Cache> GetCacheRaw() { return cache_; }
+
  private:
   void DropCache();
 
@@ -110,17 +109,16 @@ class LruCacheComponent : public components::LoggableComponentBase,
   void GetAndWrite(dump::Writer& writer) const override;
   void ReadAndSet(dump::Reader& reader) override;
 
- protected:
-  std::shared_ptr<Cache> GetCacheRaw() { return cache_; }
-
- private:
   const std::string name_;
   const LruCacheConfigStatic static_config_;
   std::shared_ptr<dump::Dumper> dumper_;
   const std::shared_ptr<Cache> cache_;
+
+  // Subscriptions must be the last fields.
   concurrent::AsyncEventSubscriberScope config_subscription_;
   utils::statistics::Entry statistics_holder_;
-  std::optional<testsuite::ComponentInvalidatorHolder> invalidator_holder_;
+  testsuite::CacheResetRegistration reset_registration_;
+  // See the comment above before adding a new field.
 };
 
 template <typename Key, typename Value, typename Hash, typename Equal>
@@ -149,8 +147,7 @@ LruCacheComponent<Key, Value, Hash, Equal>::LruCacheComponent(
 
     config_subscription_ =
         impl::FindDynamicConfigSource(context).UpdateAndListen(
-            this, "cache." + name_,
-            &LruCacheComponent<Key, Value, Hash, Equal>::OnConfigUpdate);
+            this, "cache." + name_, &LruCacheComponent::OnConfigUpdate);
   } else {
     LOG_INFO() << "Dynamic LRU cache config is disabled, cache=" << name_;
   }
@@ -159,14 +156,14 @@ LruCacheComponent<Key, Value, Hash, Equal>::LruCacheComponent(
       context, name_,
       [this](utils::statistics::Writer& writer) { writer = *cache_; });
 
-  invalidator_holder_.emplace(
-      impl::FindComponentControl(context), *this,
-      &LruCacheComponent<Key, Value, Hash, Equal>::DropCache);
+  reset_registration_ = testsuite::FindCacheControl(context).RegisterCache(
+      this, components::GetCurrentComponentName(config),
+      &LruCacheComponent::DropCache);
 }
 
 template <typename Key, typename Value, typename Hash, typename Equal>
 LruCacheComponent<Key, Value, Hash, Equal>::~LruCacheComponent() {
-  invalidator_holder_.reset();
+  reset_registration_.Unregister();
   statistics_holder_.Unregister();
   config_subscription_.Unsubscribe();
 

@@ -40,3 +40,12 @@ target_link_libraries(CryptoPP INTERFACE cryptopp)
 get_filename_component(cryptopp_parent_directory "${cryptopp_SOURCE_DIR}" DIRECTORY)
 target_include_directories(CryptoPP INTERFACE "${cryptopp_parent_directory}")
 target_compile_options(cryptopp PRIVATE "-Wno-implicit-fallthrough")
+if(USERVER_INSTALL)
+  install(TARGETS CryptoPP
+          EXPORT UserverTargets
+          LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+          ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+          RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+          INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+  )
+endif()

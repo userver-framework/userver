@@ -6,6 +6,7 @@
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/server/congestion_control/limiter.hpp>
+#include <userver/server/congestion_control/sensor.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/statistics/entry.hpp>
 
@@ -51,6 +52,7 @@ class Component final : public components::LoggableComponentBase {
   static yaml_config::Schema GetStaticConfigSchema();
 
   server::congestion_control::Limiter& GetServerLimiter();
+  server::congestion_control::Sensor& GetServerSensor();
 
  private:
   void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
@@ -62,7 +64,7 @@ class Component final : public components::LoggableComponentBase {
   void ExtendWriter(utils::statistics::Writer& writer);
 
   struct Impl;
-  utils::FastPimpl<Impl, 560, 8> pimpl_;
+  utils::FastPimpl<Impl, 664, 8> pimpl_;
 };
 
 }  // namespace congestion_control

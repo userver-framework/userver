@@ -19,21 +19,17 @@ USERVER_NAMESPACE_BEGIN
 
 UTEST(GrpcClient, ChannelsCount) {
   constexpr int kChannelsCount = 4;
-  formats::yaml::ValueBuilder builder(formats::common::Type::kObject);
-  builder["channel-count"] = kChannelsCount;
-
-  const auto yaml_data = builder.ExtractValue();
-  yaml_config::YamlConfig yaml_config(yaml_data, formats::yaml::Value());
-
-  auto config = yaml_config.As<ugrpc::client::ClientFactoryConfig>();
+  ugrpc::client::ClientFactorySettings settings;
+  settings.channel_count = kChannelsCount;
   ugrpc::client::QueueHolder client_queue;
+
   utils::statistics::Storage statistics_storage;
   dynamic_config::StorageMock config_storage;
 
   testsuite::GrpcControl ts({}, false);
   ugrpc::client::MiddlewareFactories mws;
   ugrpc::client::ClientFactory client_factory(
-      std::move(config), engine::current_task::GetTaskProcessor(), mws,
+      std::move(settings), engine::current_task::GetTaskProcessor(), mws,
       client_queue.GetQueue(), statistics_storage, ts,
       config_storage.GetSource());
 

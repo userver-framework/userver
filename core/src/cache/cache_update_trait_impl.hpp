@@ -128,7 +128,7 @@ class CacheUpdateTrait::Impl final {
   // ensure that callbacks don't use fields above after their destruction.
   utils::statistics::Entry statistics_holder_;
   concurrent::AsyncEventSubscriberScope config_subscription_;
-  std::optional<testsuite::CacheInvalidatorHolder> cache_invalidator_holder_;
+  testsuite::CacheResetRegistration cache_reset_registration_;
   // See the comment above before adding new fields.
 };
 

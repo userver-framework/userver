@@ -6,19 +6,12 @@
 #include <userver/dump/config.hpp>
 #include <userver/dump/dumper.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
-#include <userver/testsuite/testsuite_support.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 #include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace cache::impl {
-
-testsuite::ComponentControl& FindComponentControl(
-    const components::ComponentContext& context) {
-  return context.FindComponent<components::TestsuiteSupport>()
-      .GetComponentControl();
-}
 
 utils::statistics::Entry RegisterOnStatisticsStorage(
     const components::ComponentContext& context, const std::string& name,

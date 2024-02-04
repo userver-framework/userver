@@ -59,10 +59,14 @@ class ContentType {
   std::string ToString() const;
 
  private:
+  void BuildStringRepresentation();
+
   std::string type_;
   std::string subtype_;
   std::string charset_;
   int quality_;
+
+  std::string string_representation_;
 };
 
 bool operator==(const ContentType&, const ContentType&);

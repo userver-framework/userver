@@ -194,7 +194,7 @@ UTEST_F_MT(GrpcServerEcho, DestroyServerDuringRequest, 2) {
   testsuite::GrpcControl ts({}, false);
   ugrpc::client::MiddlewareFactories mwfs;
   ugrpc::client::ClientFactory client_factory(
-      ugrpc::client::ClientFactoryConfig{},
+      ugrpc::client::ClientFactorySettings{},
       engine::current_task::GetTaskProcessor(), mwfs, client_queue.GetQueue(),
       statistics_storage, ts, GetConfigSource());
 
@@ -232,7 +232,7 @@ UTEST(GrpcServer, DeadlineAffectsWaitForReady) {
   testsuite::GrpcControl ts({}, false);
   ugrpc::client::MiddlewareFactories mws;
   ugrpc::client::ClientFactory client_factory(
-      ugrpc::client::ClientFactoryConfig{},
+      ugrpc::client::ClientFactorySettings{},
       engine::current_task::GetTaskProcessor(), mws, client_queue.GetQueue(),
       statistics_storage, ts, config_storage.GetSource());
 

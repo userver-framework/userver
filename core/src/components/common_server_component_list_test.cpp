@@ -104,10 +104,9 @@ components_manager:
       update-interval: 5s
       update-jitter: 2s
       full-update-interval: 5m
-      first-update-fail-ok: false
       config-settings: false
       additional-cleanup-interval: 5m
-      testsuite-force-periodic-update: true
+      first-update-fail-ok: true
     tracer:
         service-name: config-service
     statistics-storage:
@@ -212,12 +211,13 @@ components_manager:
 # /// [Sample handler server monitor component config]
 # yaml
     handler-server-monitor:
-        path: /*
+        path: /statistics
         method: GET
         task_processor: monitor-task-processor
         common-labels:
             application: sample application
             zone: some
+        format: json
 # /// [Sample handler server monitor component config]
 # /// [Sample handler dynamic debug log component config]
     handler-dynamic-debug-log:

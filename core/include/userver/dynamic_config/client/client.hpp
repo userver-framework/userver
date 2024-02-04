@@ -44,7 +44,10 @@ class Client final {
 
   struct Reply {
     USERVER_NAMESPACE::dynamic_config::DocsMap docs_map;
+    std::vector<std::string> removed;
     Timestamp timestamp;
+
+    bool IsEmpty() const { return docs_map.Size() == 0 && removed.empty(); }
   };
 
   struct JsonReply {

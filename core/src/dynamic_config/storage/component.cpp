@@ -77,7 +77,6 @@ class DynamicConfig::Impl final {
 
   void ReadFallback(const ComponentConfig& config);
 
-  bool IsFsCacheEnabled() const;
   void ReadFsCache();
   void WriteFsCache(const dynamic_config::DocsMap&);
 
@@ -115,6 +114,11 @@ DynamicConfig::Impl::Impl(const ComponentConfig& config,
       }()),
       updates_enabled_(config["updates-enabled"].As<bool>(false)),
       fs_write_enabled_(AreCacheDumpsEnabled(context)) {
+  if (!fs_cache_path_.empty() && !fs_task_processor_) {
+    throw std::logic_error(
+        "fs-task-processor must be set if there is fs-cache-path");
+  }
+
   ReadFallback(config);
   ReadFsCache();
 
@@ -184,11 +188,10 @@ dynamic_config::impl::SnapshotData DynamicConfig::Impl::ParseConfig(
   } catch (const dynamic_config::ConfigParseError& e) {
     stats_.was_last_parse_successful = false;
     ++stats_.parse_errors;
-    alert_storage_.FireAlert("config_parse_error",
-                             std::string("Failed to parse dynamic config, go "
-                                         "and fix it in tariff-editor: ") +
-                                 e.what(),
-                             alerts::kInfinity);
+    alert_storage_.FireAlert(
+        "config_parse_error",
+        std::string("Failed to parse dynamic config. ") + e.what(),
+        alerts::kInfinity);
     throw;
   }
 }
@@ -274,14 +277,8 @@ void DynamicConfig::Impl::ReadFallback(const ComponentConfig& config) {
   }
 }
 
-bool DynamicConfig::Impl::IsFsCacheEnabled() const {
-  UASSERT_MSG(fs_cache_path_.empty() || fs_task_processor_,
-              "fs_task_processor_ must be set if there is a fs_cache_path_");
-  return !fs_cache_path_.empty() && fs_write_enabled_;
-}
-
 void DynamicConfig::Impl::ReadFsCache() {
-  if (!IsFsCacheEnabled()) return;
+  if (fs_cache_path_.empty()) return;
 
   const tracing::Span span("dynamic_config_fs_cache_read");
   try {
@@ -295,7 +292,7 @@ void DynamicConfig::Impl::ReadFsCache() {
         fs::ReadFileContents(*fs_task_processor_, fs_cache_path_);
 
     dynamic_config::DocsMap docs_map;
-    docs_map.Parse(contents, false);
+    docs_map.Parse(contents, /*empty_ok=*/true);
 
     docs_map.MergeMissing(fallback_config_);
     DoSetConfig(docs_map);
@@ -316,7 +313,7 @@ void DynamicConfig::Impl::ReadFsCache() {
 
 void DynamicConfig::Impl::WriteFsCache(
     const dynamic_config::DocsMap& docs_map) {
-  if (!IsFsCacheEnabled()) return;
+  if (fs_cache_path_.empty() || !fs_write_enabled_) return;
 
   const tracing::Span span("dynamic_config_fs_cache_write");
   try {

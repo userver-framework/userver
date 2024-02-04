@@ -8,7 +8,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 ENV DEBIAN_FRONTEND noninteractive
 
 # add llvm-16 repository
-RUN apt update && apt-get install -y apt-transport-https ca-certificates dirmngr wget
+RUN apt update && apt-get install -y apt-transport-https ca-certificates dirmngr wget software-properties-common
 RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 8919F6BD2B48D754
 RUN wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | apt-key add -
 RUN printf "\
@@ -16,14 +16,21 @@ deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main \n\
 deb-src http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main\n" \
     | tee /etc/apt/sources.list.d/llvm.list
 
+RUN add-apt-repository ppa:ubuntu-toolchain-r/test
+
 # install main packages
 RUN apt-get update && apt-get install -y --allow-unauthenticated \
     ccache \
     chrpath \
     cmake \
-	clang-16 \
-	lldb-16 \
-	lld-16 \
+    clang-16 \
+    lld-16 \
+    clang-14 \
+    lld-14 \
+    g++-11 \
+    gcc-11 \
+    g++-13 \
+    gcc-13 \
     libboost1.74-dev \
     libboost-program-options1.74-dev \
     libboost-filesystem1.74-dev \
@@ -32,6 +39,7 @@ RUN apt-get update && apt-get install -y --allow-unauthenticated \
     libboost-iostreams1.74-dev \
     libboost-context1.74-dev \
     libboost-coroutine1.74-dev \
+    libboost-stacktrace1.74-dev \
     libev-dev \
     zlib1g-dev \
     libcurl4-openssl-dev \
@@ -49,6 +57,7 @@ RUN apt-get update && apt-get install -y --allow-unauthenticated \
     virtualenv \
     python3-voluptuous \
     python3-yaml \
+    python3-venv \
     libc-ares-dev \
     libbenchmark-dev \
     libgmock-dev \
@@ -60,7 +69,8 @@ RUN apt-get update && apt-get install -y --allow-unauthenticated \
     dirmngr \
     libcrypto++-dev \
     liblz4-dev \
-	locales
+    locales \
+    ninja-build
 
 RUN apt-get clean all
 

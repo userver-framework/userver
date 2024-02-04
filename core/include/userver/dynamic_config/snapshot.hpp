@@ -64,7 +64,7 @@ class Key final {
   /// `VariableType`.
   ///
   /// Usage example:
-  /// @snippet server/handlers/http_server_settings.cpp
+  /// @snippet components/logging_configurator.cpp  key
   Key(std::string_view name, DefaultAsJsonString default_json);
 
   /// @brief The constructor that provides a special parser from JSON.

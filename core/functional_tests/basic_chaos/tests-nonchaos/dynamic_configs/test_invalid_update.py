@@ -14,11 +14,10 @@ async def test_ok(service_client, monitor_client):
 
 
 CONFIG_PATTERN = (
-    'Failed to parse dynamic config, go and fix it in tariff-editor: '
-    'While parsing dynamic config values: '
-    'Field \'HTTP_CLIENT_CONNECTION_POOL_SIZE\' is of a wrong '
-    'type. Expected: uintValue, actual: stringValue '
-    '\\([a-zA-Z0-9_:]*formats::json::TypeMismatchException\\)'
+    'Failed to parse dynamic config. '
+    '[a-zA-Z0-9_:]*formats::json::TypeMismatchException while parsing '
+    'dynamic config values. Field \'HTTP_CLIENT_CONNECTION_POOL_SIZE\' is '
+    'of a wrong type. Expected: uintValue, actual: stringValue'
 )
 
 

@@ -21,7 +21,9 @@ class DocsMap final {
 
   bool Has(std::string_view name) const;
   void Set(std::string name, formats::json::Value);
-  void Parse(const std::string& json, bool empty_ok);
+  void Parse(const std::string& json_string, bool empty_ok);
+  void Parse(formats::json::Value json, bool empty_ok);
+  void Remove(const std::string& name);
   size_t Size() const;
 
   void MergeOrAssign(DocsMap&& source);
@@ -62,7 +64,8 @@ class Value final {
   T value_;
 };
 
-extern const std::string kValueDictDefaultName;
+/// Name of the key with default value for dynamic_config::ValueDict
+inline constexpr std::string_view kValueDictDefaultName = "__default__";
 
 namespace impl {
 
@@ -71,6 +74,18 @@ namespace impl {
 
 }  // namespace impl
 
+/// @brief Dictionary that for missing keys falls back to a default value
+/// stored by key dynamic_config::kValueDictDefaultName.
+///
+/// Usually used by dynamic configs for providing a fallback or default value
+/// along with the specific values. For example:
+/// @code{.json}
+/// {
+///  ".htm": "text/html",
+///  ".html": "text/html",
+///  "__default__": "text/plain"
+/// }
+/// @endcode
 template <typename ValueType>
 class ValueDict final {
  public:
@@ -80,12 +95,17 @@ class ValueDict final {
   using value_type = typename DictType::value_type;
   using key_type = std::string;
   using mapped_type = ValueType;
+  using init_list =
+      std::initializer_list<std::pair<std::string_view, ValueType>>;
 
   ValueDict() = default;
 
-  ValueDict(std::initializer_list<value_type> contents) : dict_(contents) {}
+  ValueDict(init_list contents) : dict_(contents.begin(), contents.end()) {}
 
   ValueDict(DictType dict) : dict_(std::move(dict)) {}
+
+  ValueDict(std::string name, init_list contents)
+      : name_(std::move(name)), dict_(contents.begin(), contents.end()) {}
 
   ValueDict(std::string name, DictType dict)
       : name_(std::move(name)), dict_(std::move(dict)) {}
@@ -94,24 +114,34 @@ class ValueDict final {
   ValueDict(std::string_view name, const DocsMap& docs_map)
       : name_(name), dict_(docs_map.Get(name_).template As<DictType>()) {}
 
-  bool HasDefaultValue() const { return HasValue(kValueDictDefaultName); }
+  /// Returns true if *this has a dynamic_config::kValueDictDefaultName key,
+  /// otherwise returns false.
+  bool HasDefaultValue() const noexcept {
+    return HasValue(kValueDictDefaultName);
+  }
 
-  bool HasValue(std::string_view key) const {
+  /// Returns true if *this has `key`, otherwise returns false.
+  bool HasValue(std::string_view key) const noexcept {
     return utils::impl::FindTransparent(dict_, key) != dict_.end();
   }
 
+  /// Returns value by dynamic_config::kValueDictDefaultName key,
+  /// throws a std::runtime_error exception.
   const ValueType& GetDefaultValue() const {
-    const auto it = dict_.find(kValueDictDefaultName);
+    const auto it = utils::impl::FindTransparent(dict_, kValueDictDefaultName);
     if (it == dict_.end()) {
       impl::ThrowNoValueException(name_, kValueDictDefaultName);
     }
     return it->second;
   }
 
+  /// Returns value by `key` if it is in *this, otherwise returns value
+  /// by dynamic_config::kValueDictDefaultName if it is in *this,
+  /// otherwise throws a std::runtime_error exception.
   const ValueType& operator[](std::string_view key) const {
     auto it = utils::impl::FindTransparent(dict_, key);
     if (it == dict_.end()) {
-      it = dict_.find(kValueDictDefaultName);
+      it = utils::impl::FindTransparent(dict_, kValueDictDefaultName);
       if (it == dict_.end()) {
         impl::ThrowNoValueException(name_, key);
       }
@@ -119,23 +149,28 @@ class ValueDict final {
     return it->second;
   }
 
+  /// Returns `key ? Get(*key) : GetDefaultValue()`
   template <typename StringType>
   const ValueType& operator[](const std::optional<StringType>& key) const {
-    if (key) return (*this)[*key];
-    return GetDefaultValue();
+    return key ? Get(*key) : GetDefaultValue();
   }
 
+  /// @overload operator[](std::string_view key)
   const ValueType& Get(std::string_view key) const { return (*this)[key]; }
 
+  /// Returns `key ? Get(*key) : GetDefaultValue()`
   template <typename StringType>
   const ValueType& Get(const std::optional<StringType>& key) const {
     return (*this)[key];
   }
 
+  /// Returns value by `key` if it is in *this, otherwise returns value
+  /// by dynamic_config::kValueDictDefaultName if it is in *this,
+  /// otherwise returns an empty optional.
   std::optional<ValueType> GetOptional(std::string_view key) const {
     auto it = utils::impl::FindTransparent(dict_, key);
     if (it == dict_.end()) {
-      it = dict_.find(kValueDictDefaultName);
+      it = utils::impl::FindTransparent(dict_, kValueDictDefaultName);
       if (it == dict_.end()) return std::nullopt;
     }
 
@@ -143,6 +178,7 @@ class ValueDict final {
   }
 
   /// Sets the default value.
+  ///
   /// The function is primarily there for testing purposes - ValueDict is
   /// normally obtained by parsing the config.
   void SetDefault(ValueType value) {
@@ -150,6 +186,7 @@ class ValueDict final {
   }
 
   /// Sets a mapping. key == dynamic_config::kValueDictDefaultName is allowed.
+  ///
   /// The function is primarily there for testing purposes - ValueDict is
   /// normally obtained by parsing the config.
   template <typename StringType>
@@ -158,26 +195,28 @@ class ValueDict final {
                                            std::move(value));
   }
 
-  auto begin() const { return dict_.begin(); }
+  auto begin() const noexcept { return dict_.begin(); }
 
-  auto end() const { return dict_.end(); }
+  auto end() const noexcept { return dict_.end(); }
 
-  const std::string& GetName() const { return name_; }
+  const std::string& GetName() const noexcept { return name_; }
 
-  bool operator==(const ValueDict& r) const { return dict_ == r.dict_; }
+  bool operator==(const ValueDict& r) const noexcept {
+    return dict_ == r.dict_;
+  }
 
-  bool operator!=(const ValueDict& r) const { return !(*this == r); }
+  bool operator!=(const ValueDict& r) const noexcept { return !(*this == r); }
 
  private:
   std::string name_;
   DictType dict_;
 };
 
-template <typename T>
-ValueDict<T> Parse(const formats::json::Value& value,
-                   formats::parse::To<ValueDict<T>>) {
+template <typename Value, typename T>
+std::enable_if_t<formats::common::kIsFormatValue<Value>, ValueDict<T>> Parse(
+    const Value& value, formats::parse::To<ValueDict<T>>) {
   return ValueDict<T>{value.GetPath(),
-                      value.As<typename ValueDict<T>::DictType>()};
+                      value.template As<typename ValueDict<T>::DictType>()};
 }
 
 }  // namespace dynamic_config

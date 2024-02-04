@@ -25,6 +25,8 @@ class Request {
 
   ReplyPtr Get();
 
+  engine::impl::ContextAccessor* TryGetContextAccessor() noexcept;
+
  private:
   friend class Sentinel;
 

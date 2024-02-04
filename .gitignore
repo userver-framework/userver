@@ -9,7 +9,7 @@
 .ccache/
 .cache/
 .cores/
-/build/
+/build*/
 /cmake-build-*/
 /docs/
 CMakeLists.txt.user
@@ -22,4 +22,3 @@ static-analyzer-report
 .settings*
 .clangd
 .vscode
-build_*

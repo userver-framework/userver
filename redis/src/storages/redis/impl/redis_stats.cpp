@@ -129,7 +129,7 @@ void DumpMetric(utils::statistics::Writer& writer,
     const auto state = static_cast<Redis::State>(i);
     writer["cluster_states"].ValueWithLabels(
         stats.Get(state),
-        {"redis_instance_state", redis::Redis::StateToString(state)});
+        {"redis_instance_state", redis::StateToString(state)});
   }
 }
 
@@ -233,7 +233,7 @@ void DumpMetric(utils::statistics::Writer& writer,
       const auto state = static_cast<Redis::State>(i);
       writer["state"].ValueWithLabels(
           static_cast<int>(stats.state == state),
-          {"redis_instance_state", redis::Redis::StateToString(state)});
+          {"redis_instance_state", redis::StateToString(state)});
     }
 
     long long session_time_ms =

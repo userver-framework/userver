@@ -76,6 +76,8 @@ components_manager:
 
         dynamic-config:
             updates-enabled: true
+            fs-cache-path: $dynamic-config-cache
+            fs-task-processor: fs-task-processor
             defaults:
                 USERVER_HANDLER_STREAM_API_ENABLED: true
                 # Test that non-existent lines in USERVER_LOG_DYNAMIC_DEBUG
@@ -92,6 +94,7 @@ components_manager:
             service-name: testsuite-support
         dynamic-config-client-updater:
             config-settings: false
+            first-update-fail-ok: true
             full-update-interval: 1m
             update-interval: 5s
 
@@ -102,6 +105,13 @@ components_manager:
             path: /service/fired-alerts
             method: GET
             task_processor: main-task-processor
+
+        handler-ping:
+            path: /ping
+            method: GET
+            task_processor: main-task-processor
+            throttling_enabled: false
+            url_trailing_slash: strict-match
 
     task_processors:
         main-task-processor:

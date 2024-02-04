@@ -137,6 +137,8 @@ ContentType::ContentType(std::string_view unparsed) : quality_(kMaxQuality) {
       quality_ = ParseQuality(RtrimOws(unparsed.substr(0, delim_pos)));
     }
   }
+
+  BuildStringRepresentation();
 }
 
 ContentType::ContentType(const std::string& media_range)
@@ -165,7 +167,7 @@ const std::string& ContentType::Charset() const {
 int ContentType::Quality() const { return quality_; }
 
 bool ContentType::DoesAccept(const ContentType& other) const {
-  utils::StrIcaseEqual icase_equal{};
+  const utils::StrIcaseEqual icase_equal{};
   if (TypeToken() != kTokenAny &&
       !icase_equal(TypeToken(), other.TypeToken())) {
     return false;
@@ -177,7 +179,9 @@ bool ContentType::DoesAccept(const ContentType& other) const {
   return icase_equal(Charset(), other.Charset());
 }
 
-std::string ContentType::ToString() const {
+std::string ContentType::ToString() const { return string_representation_; }
+
+void ContentType::BuildStringRepresentation() {
   fmt::memory_buffer buf;
   fmt::format_to(std::back_inserter(buf), FMT_COMPILE("{}/{}"), TypeToken(),
                  SubtypeToken());
@@ -193,11 +197,11 @@ std::string ContentType::ToString() const {
     fmt::format_to(std::back_inserter(buf), FMT_COMPILE("; {}=0.{:03d}"),
                    kQualityParamName, Quality());
   }
-  return to_string(buf);
+  string_representation_ = to_string(buf);
 }
 
 bool operator==(const ContentType& lhs, const ContentType& rhs) {
-  utils::StrIcaseEqual icase_equal{};
+  const utils::StrIcaseEqual icase_equal{};
   return icase_equal(lhs.TypeToken(), rhs.TypeToken()) &&
          icase_equal(lhs.SubtypeToken(), rhs.SubtypeToken()) &&
          icase_equal(lhs.Charset(), rhs.Charset()) &&
@@ -209,7 +213,7 @@ bool operator!=(const ContentType& lhs, const ContentType& rhs) {
 }
 
 bool operator<(const ContentType& lhs, const ContentType& rhs) {
-  utils::StrIcaseCompareThreeWay icase_cmp{};
+  const utils::StrIcaseCompareThreeWay icase_cmp{};
   // */* has the lowest priority
   if (lhs.TypeToken() == kTokenAny) return rhs.TypeToken() != kTokenAny;
   if (rhs.TypeToken() == kTokenAny) return false;

@@ -93,6 +93,21 @@ UTEST_P(PostgreConnection, JsonStored) {
   EXPECT_EQ(expected, json);
 }
 
+UTEST_P(PostgreConnection, JsonParse) {
+  CheckConnection(GetConn());
+
+  pg::ResultSet res{nullptr};
+  formats::json::Value json = formats::json::FromString(kJsonText);
+
+  UEXPECT_NO_THROW(res = GetConn()->Execute("select $1::jsonb", json));
+  UEXPECT_NO_THROW(res.AsSingleRow<formats::json::Value>());
+  UEXPECT_NO_THROW(res.AsSingleRow<std::string>());
+
+  UEXPECT_NO_THROW(res = GetConn()->Execute("select $1::json", json));
+  UEXPECT_NO_THROW(res.AsSingleRow<formats::json::Value>());
+  UEXPECT_NO_THROW(res.AsSingleRow<std::string>());
+}
+
 }  // namespace
 
 USERVER_NAMESPACE_END

@@ -97,8 +97,15 @@ class DynamicConfigClientUpdater final
               const std::chrono::system_clock::time_point& now,
               cache::UpdateStatisticsScope&) override;
 
+  void UpdateFull(const std::vector<std::string>& docs_map_keys,
+                  cache::UpdateStatisticsScope&);
+
+  void UpdateIncremental(const std::vector<std::string>& docs_map_keys,
+                         cache::UpdateStatisticsScope&);
+
   dynamic_config::DocsMap MergeDocsMap(const dynamic_config::DocsMap& current,
-                                       dynamic_config::DocsMap&& update);
+                                       dynamic_config::DocsMap&& update,
+                                       const std::vector<std::string>& removed);
   void StoreIfEnabled();
 
   using DocsMapKeys = utils::impl::TransparentSet<std::string>;

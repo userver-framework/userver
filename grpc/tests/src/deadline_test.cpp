@@ -1,9 +1,11 @@
 #include <gtest/gtest.h>
 
+#include <chrono>
 #include <string_view>
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/future_status.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/task_with_result.hpp>
@@ -180,6 +182,26 @@ UTEST_F(GrpcDeadlinePropagation, TestClientUnaryCallFinishAsync) {
   sample::ugrpc::GreetingResponse in;
   auto future = call.FinishAsync(in);
   UEXPECT_THROW(future.Get(), ugrpc::client::DeadlineExceededError);
+}
+
+UTEST_F(GrpcDeadlinePropagation, TestClientUnaryCallFinishAsyncWaitUntil) {
+  sample::ugrpc::GreetingRequest request;
+  request.set_name("userver");
+
+  auto context = std::make_unique<grpc::ClientContext>();
+  context->set_deadline(engine::Deadline::FromDuration(tests::kShortTimeout));
+  auto deadline = engine::Deadline::FromDuration(tests::kShortTimeout / 100);
+
+  auto call = Client().SayHello(request, std::move(context));
+
+  sample::ugrpc::GreetingResponse in;
+  auto future = call.FinishAsync(in);
+  EXPECT_EQ(future.Get(deadline), engine::FutureStatus::kTimeout);
+
+  auto result = engine::FutureStatus::kReady;
+  UEXPECT_THROW(result = future.Get(
+                    engine::Deadline::FromDuration(2 * tests::kShortTimeout)),
+                ugrpc::client::DeadlineExceededError);
 }
 
 UTEST_F(GrpcDeadlinePropagation, TestClientReadManyRead) {

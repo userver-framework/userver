@@ -119,6 +119,10 @@ void DumpMetric(utils::statistics::Writer& writer,
       AsRateAndGauge{deadline_cancelled_value};
 }
 
+std::uint64_t MethodStatistics::GetStarted() const noexcept {
+  return started_.Load().value;
+}
+
 ServiceStatistics::~ServiceStatistics() = default;
 
 ServiceStatistics::ServiceStatistics(const StaticServiceMetadata& metadata)
@@ -133,6 +137,14 @@ MethodStatistics& ServiceStatistics::GetMethodStatistics(
 const MethodStatistics& ServiceStatistics::GetMethodStatistics(
     std::size_t method_id) const {
   return method_statistics_[method_id];
+}
+
+std::uint64_t ServiceStatistics::GetStartedRequests() const {
+  std::uint64_t result{0};
+  for (const auto& stats : method_statistics_) {
+    result += stats.GetStarted();
+  }
+  return result;
 }
 
 const StaticServiceMetadata& ServiceStatistics::GetMetadata() const {

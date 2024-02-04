@@ -36,6 +36,7 @@ ugrpc::impl::AsyncMethodInvocation::WaitStatus Wait(
     case WaitStatus::kError:
       return status;
     case WaitStatus::kCancelled:
+    case WaitStatus::kDeadline:
       UASSERT(false);
   }
 

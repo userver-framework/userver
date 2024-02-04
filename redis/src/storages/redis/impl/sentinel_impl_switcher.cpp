@@ -155,7 +155,7 @@ void ClusterSentinelImplSwitcher::SetReplicationMonitoringSettings(
 }
 
 void ClusterSentinelImplSwitcher::SetRetryBudgetSettings(
-    const RetryBudgetSettings& settings) {
+    const utils::RetryBudgetSettings& settings) {
   auto impl = impl_.Get();
   UASSERT(impl);
   impl->SetRetryBudgetSettings(settings);

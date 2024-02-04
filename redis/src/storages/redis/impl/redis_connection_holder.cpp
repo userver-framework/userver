@@ -10,7 +10,7 @@ RedisConnectionHolder::RedisConnectionHolder(
     const std::string& host, uint16_t port, Password password,
     CommandsBufferingSettings buffering_settings,
     ReplicationMonitoringSettings replication_monitoring_settings,
-    RetryBudgetSettings retry_budget_settings)
+    utils::RetryBudgetSettings retry_budget_settings)
     : commands_buffering_settings_(std::move(buffering_settings)),
       replication_monitoring_settings_(
           std::move(replication_monitoring_settings)),
@@ -96,7 +96,7 @@ void RedisConnectionHolder::SetCommandsBufferingSettings(
 }
 
 void RedisConnectionHolder::SetRetryBudgetSettings(
-    RetryBudgetSettings settings) {
+    utils::RetryBudgetSettings settings) {
   auto ptr = retry_budget_settings_.Lock();
   *ptr = settings;
   redis_.ReadCopy()->SetRetryBudgetSettings(std::move(settings));

@@ -18,4 +18,5 @@ mkdir -p $current_dir/src/
 echo 'voluptuous >= 0.11.1
 Jinja2 >= 2.10
 PyYAML >= 3.13
+netifaces >= 0.10.0
 yandex-taxi-testsuite[] >= 0.1.19' > $current_dir/src/requirements.txt

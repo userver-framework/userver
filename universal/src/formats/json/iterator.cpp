@@ -149,11 +149,13 @@ void Iterator<Value::IterTraits, IteratorDirection::kForward>::UpdateValue()
 
   if (type_ == impl::Type::arrayValue) {
     current_.emplace(Value::EmplaceEnabler{}, container_.holder_,
-                     container_.value_ptr_->Begin()[pos_],
+                     container_.root_ptr_for_path_,
+                     &container_.value_ptr_->Begin()[pos_],
                      container_.depth_ + 1);
   } else {
     current_.emplace(Value::EmplaceEnabler{}, container_.holder_,
-                     container_.value_ptr_->MemberBegin()[pos_].value,
+                     container_.root_ptr_for_path_,
+                     &container_.value_ptr_->MemberBegin()[pos_].value,
                      container_.depth_ + 1);
   }
 }
@@ -165,7 +167,8 @@ void Iterator<Value::IterTraits, IteratorDirection::kReverse>::UpdateValue()
 
   if (type_ == impl::Type::arrayValue) {
     current_.emplace(Value::EmplaceEnabler{}, container_.holder_,
-                     container_.value_ptr_->Begin()[pos_],
+                     container_.root_ptr_for_path_,
+                     &container_.value_ptr_->Begin()[pos_],
                      container_.depth_ + 1);
   } else {
     throw TypeMismatchException(type_, impl::Type::arrayValue,

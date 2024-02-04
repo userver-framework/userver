@@ -163,7 +163,7 @@ constexpr std::string_view str_width_json =
 }
 })";
 
-constexpr std::size_t kDepth = 500;
+constexpr std::size_t kDepth = 127;
 
 const std::string str_deep_json = MakeStringOfDeepObject(kDepth);
 

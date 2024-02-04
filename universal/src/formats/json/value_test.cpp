@@ -205,4 +205,30 @@ TEST(FormatsJson, UserDefinedLiterals) {
     )json"_json);
 }
 
+TEST(FormatsJson, DropRootPath) {
+  static constexpr std::string_view kJson = R"({
+    "foo": {
+      "bar": "baz"
+    }
+  })";
+  formats::json::Value child;
+
+  {
+    const auto root = formats::json::FromString(kJson);
+    EXPECT_EQ(root.GetPath(), "/");
+
+    auto foo = root["foo"];
+    EXPECT_EQ(foo.GetPath(), "foo");
+    foo.DropRootPath();
+    EXPECT_EQ(foo.GetPath(), "/");
+
+    for (auto [_, value] : Items(foo)) {
+      EXPECT_EQ(value.GetPath(), "bar");
+      child = value;
+    }
+  }
+
+  EXPECT_EQ(child.GetPath(), "bar");
+}
+
 USERVER_NAMESPACE_END

@@ -20,6 +20,11 @@ class RequestExecDataImpl final : public RequestDataImplBase,
 
   ReplyPtr GetRaw() override { return GetReply(); }
 
+  engine::impl::ContextAccessor* TryGetContextAccessor() noexcept override {
+    UASSERT_MSG(false, "Not implemented");
+    return nullptr;
+  }
+
  private:
   std::vector<TransactionImpl::ResultPromise> result_promises_;
 };

@@ -37,7 +37,7 @@ properties:
     full-update-jitter:
         type: string
         description: max. amount of time by which full-update-interval may be adjusted for requests dispersal
-        defaultDescription: 0
+        defaultDescription: full-update-interval / 10
     exception-interval:
         type: string
         description: sleep interval after an unhandled exception

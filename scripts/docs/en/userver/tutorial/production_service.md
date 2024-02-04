@@ -170,10 +170,20 @@ Typical setup of components::SystemStatisticsCollector and components::Statistic
 
 @snippet samples/production_service/static_config.yaml Production service sample - static config metrics
 
-With such setup you could poll the metrics from handler server::handlers::ServerMonitor that we've configured in @ref sample_prod_service_utility_handlers "previous section". However
-a much more mature approach is to write a component that pushes the metrics directly into the remote metrics aggregation service or
-to write a handle that provides the metrics in the native aggregation service format.
+With such setup you could poll the metrics from
+handler server::handlers::ServerMonitor that we've configured in
+@ref sample_prod_service_utility_handlers "previous section". However
+a much more mature approach is to write a component that pushes the metrics
+directly into the remote metrics aggregation service or to write
+a handler that provides the metrics in the native aggregation service format.
 
+To produce metrics in declarative style use the utils::statistics::MetricTag
+or register your metrics writer in utils::statistics::Storage via RegisterWriter
+to produce metrics on per component basis. To test metrics refer to
+the @ref TESTSUITE_METRICS_TESTING.
+
+List of userver built-in metrics could be found at
+@ref scripts/docs/en/userver/service_monitor.md.
 
 # Alerts
 

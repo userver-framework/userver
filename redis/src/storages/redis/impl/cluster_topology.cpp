@@ -110,12 +110,18 @@ void ClusterTopology::GetStatistics(const MetricsSettings& settings,
   size_t shard_index = 0;
   for (const auto& shard : cluster_shards_) {
     const auto& shard_name = GetShardName(shard_index++);
-    auto master_stats = shard.GetStatistics(true, settings);
-    auto replica_stats = shard.GetStatistics(false, settings);
+    auto master_it =
+        stats.masters.emplace(shard_name, ShardStatistics(settings));
+    auto& master_stats = master_it.first->second;
+    shard.GetStatistics(true, settings, master_stats);
+
+    auto replica_it =
+        stats.slaves.emplace(shard_name, ShardStatistics(settings));
+    auto& replica_stats = replica_it.first->second;
+    shard.GetStatistics(false, settings, replica_stats);
+
     stats.shard_group_total.Add(master_stats.shard_total);
     stats.shard_group_total.Add(replica_stats.shard_total);
-    stats.masters.emplace(shard_name, std::move(master_stats));
-    stats.slaves.emplace(shard_name, std::move(replica_stats));
   }
 }
 

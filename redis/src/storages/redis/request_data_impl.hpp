@@ -71,6 +71,10 @@ class RequestDataImpl final : public RequestDataImplBase,
   }
 
   ReplyPtr GetRaw() override { return GetReply(); }
+
+  engine::impl::ContextAccessor* TryGetContextAccessor() noexcept override {
+    return GetRequest().TryGetContextAccessor();
+  }
 };
 
 template <typename Result, typename ReplyType>
@@ -101,6 +105,11 @@ class AggregateRequestDataImpl final : public RequestDataBase<ReplyType> {
     return {};
   }
 
+  engine::impl::ContextAccessor* TryGetContextAccessor() noexcept override {
+    UASSERT_MSG(false, "Not implemented");
+    return nullptr;
+  }
+
  private:
   std::vector<RequestDataPtr> requests_;
 };
@@ -118,6 +127,11 @@ class DummyRequestDataImpl final : public RequestDataBase<ReplyType> {
   }
 
   ReplyPtr GetRaw() override { return std::move(reply_); }
+
+  engine::impl::ContextAccessor* TryGetContextAccessor() noexcept override {
+    UASSERT_MSG(false, "Not implemented");
+    return nullptr;
+  }
 
  private:
   ReplyPtr reply_;

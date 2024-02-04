@@ -1,8 +1,8 @@
 #include <userver/congestion_control/component.hpp>
 
 #include <congestion_control/watchdog.hpp>
-#include <server/congestion_control/sensor.hpp>
 #include <userver/congestion_control/config.hpp>
+#include <userver/server/congestion_control/sensor.hpp>
 
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
@@ -78,10 +78,11 @@ struct Component::Impl {
        engine::TaskProcessor& tp, bool fake_mode)
       : dynamic_config(dynamic_config),
         server(server),
-        server_sensor(server, tp),
+        server_sensor(tp),
         server_controller(kServerControllerName, dynamic_config),
         fake_mode(fake_mode) {
     server_limiter.RegisterLimitee(server);
+    server_sensor.RegisterRequestsSource(server);
   }
 };
 
@@ -173,6 +174,10 @@ void Component::ExtendWriter(utils::statistics::Writer& writer) {
 
 server::congestion_control::Limiter& Component::GetServerLimiter() {
   return pimpl_->server_limiter;
+}
+
+server::congestion_control::Sensor& Component::GetServerSensor() {
+  return pimpl_->server_sensor;
 }
 
 yaml_config::Schema Component::GetStaticConfigSchema() {

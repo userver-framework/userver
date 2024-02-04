@@ -90,6 +90,8 @@ class Server::Impl final {
 
   void StopDebug() noexcept;
 
+  std::uint64_t GetTotalRequests() const;
+
  private:
   enum class State {
     kConfiguration,
@@ -245,6 +247,10 @@ void Server::Impl::StopDebug() noexcept {
   service_workers_.clear();
 }
 
+std::uint64_t Server::Impl::GetTotalRequests() const {
+  return statistics_storage_.GetStartedRequests();
+}
+
 void Server::Impl::DoStart() {
   LOG_INFO() << "Starting the gRPC server";
 
@@ -301,6 +307,10 @@ int Server::GetPort() const noexcept { return impl_->GetPort(); }
 void Server::Stop() noexcept { return impl_->Stop(); }
 
 void Server::StopDebug() noexcept { return impl_->StopDebug(); }
+
+std::uint64_t Server::GetTotalRequests() const {
+  return impl_->GetTotalRequests();
+}
 
 }  // namespace ugrpc::server
 

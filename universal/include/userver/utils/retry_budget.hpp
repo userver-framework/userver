@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/utils/retry_budget.hpp
+/// @brief @copybrief utils::RetryBudget
+
 #include <atomic>
 #include <cstdint>
 
@@ -8,11 +11,15 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace utils {
 
 struct RetryBudgetSettings final {
+  // Maximum number of tokens in the budget.
   float max_tokens{100.0f};
+  // The number of tokens by which the budget will be increased in case of a
+  // successful request.
   float token_ratio{0.1f};
+  // Enable/disable retry budget.
   bool enabled{true};
 };
 
@@ -23,8 +30,14 @@ class RetryBudget final {
   RetryBudget();
   explicit RetryBudget(const RetryBudgetSettings& settings);
 
+  /// Call after a request succeeds.
   void AccountOk() noexcept;
+
+  /// Call after a request fails.
   void AccountFail() noexcept;
+
+  /// @brief Call before attempting a retry (but not before the initial
+  /// request).
   bool CanRetry() const;
 
   /// Thread-safe relative to AccountOk/AccountFail/CanRetry.
@@ -41,6 +54,6 @@ class RetryBudget final {
 RetryBudgetSettings Parse(const formats::json::Value& elem,
                           formats::parse::To<RetryBudgetSettings>);
 
-}  // namespace redis
+}  // namespace utils
 
 USERVER_NAMESPACE_END

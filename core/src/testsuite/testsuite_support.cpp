@@ -11,12 +11,11 @@ namespace components {
 
 namespace {
 
-testsuite::CacheControl::PeriodicUpdatesMode ParsePeriodicUpdatesMode(
+testsuite::impl::PeriodicUpdatesMode ParsePeriodicUpdatesMode(
     const std::optional<bool>& config_value) {
-  using PeriodicUpdatesMode = testsuite::CacheControl::PeriodicUpdatesMode;
-  if (!config_value) return PeriodicUpdatesMode::kDefault;
-  return *config_value ? PeriodicUpdatesMode::kEnabled
-                       : PeriodicUpdatesMode::kDisabled;
+  using Mode = testsuite::impl::PeriodicUpdatesMode;
+  if (!config_value.has_value()) return Mode::kDefault;
+  return *config_value ? Mode::kEnabled : Mode::kDisabled;
 }
 
 testsuite::DumpControl ParseDumpControl(

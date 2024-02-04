@@ -57,6 +57,7 @@ components_manager:
             service-name: testsuite-support
         dynamic-config-client-updater:
             config-settings: false
+            first-update-fail-ok: true
             full-update-interval: 1m
             update-interval: 5s
 

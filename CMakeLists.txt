@@ -76,6 +76,12 @@ option(
     OFF
 )
 
+option(
+    USERVER_INSTALL
+    "Prepare build of userver to install in system"
+    OFF
+)
+
 option(USERVER_FEATURE_CRYPTOPP_BLAKE2 "Provide wrappers for blake2 algorithms of crypto++" ON)
 if (NOT USERVER_FEATURE_CRYPTOPP_BLAKE2)
   add_compile_definitions("USERVER_NO_CRYPTOPP_BLAKE2=1")
@@ -101,12 +107,15 @@ if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
   set(MACOS found)
 endif()
 
+set(CMAKE_DEBUG_POSTFIX d)
+
 include(cmake/UserverSetupEnvironment.cmake)
 userver_setup_environment()
 
 include(Sanitizers)
 _userver_make_sanitize_target()
 
+include(GetUserverVersion)
 include(AddGoogleTests)
 include(CheckSubmodule)
 include(FindPackageRequired)
@@ -114,6 +123,11 @@ include(IncludeWhatYouUse)
 # For userver_venv_setup below, otherwise FindPython would be enough.
 include(UserverTestsuite)
 include(CheckCompileFlags)
+include(CMakePackageConfigHelpers)
+if(USERVER_INSTALL)
+  include(GNUInstallDirs)
+endif()
+
 
 message(STATUS "Generating cmake files ...")
 userver_venv_setup(
@@ -136,6 +150,16 @@ if(RESULT)
       "Generating cmake files failed with exit code: ${RESULT}"
   )
 endif(RESULT)
+if(USERVER_INSTALL)
+  install(FILES
+          "${CMAKE_BINARY_DIR}/cmake_generated/FindCryptoPP.cmake"
+          "${CMAKE_BINARY_DIR}/cmake_generated/Findlibyamlcpp.cmake"
+          "${CMAKE_BINARY_DIR}/cmake_generated/Findcctz.cmake"
+          "${CMAKE_BINARY_DIR}/cmake_generated/FindJemalloc.cmake"
+          DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/
+  )
+endif()
+
 
 set(USERVER_THIRD_PARTY_DIRS ${USERVER_ROOT_DIR}/third_party CACHE INTERNAL "")
 
@@ -215,3 +239,27 @@ endif()
 if (USERVER_IS_THE_ROOT_PROJECT AND USERVER_FEATURE_CORE)
   add_subdirectory(samples)
 endif()
+
+if (USERVER_INSTALL)
+  configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/templates/Config.cmake.in
+    "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake"
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
+  )
+
+  write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake
+    VERSION ${USERVER_VERSION} COMPATIBILITY SameMajorVersion
+  )
+
+  install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
+  )
+
+  install(EXPORT UserverTargets
+          FILE UserverTargets.cmake
+          NAMESPACE userver::
+          DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
+  )
+endif()
+

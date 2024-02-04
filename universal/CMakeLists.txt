@@ -138,14 +138,21 @@ if (NOT USERVER_NO_WERROR)
   target_compile_options(userver-internal-compile-options INTERFACE "-Werror")
 endif()
 
+if(USERVER_INSTALL)
+  install(TARGETS userver-internal-compile-options
+          EXPORT UserverTargets
+  )
+endif()
+
 
 # The library itself
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
+include(GetUserverVersion)
 set(USERVER_NAMESPACE "userver" CACHE STRING "C++ namespace to use")
 if (NOT "${USERVER_NAMESPACE}" STREQUAL "")
-    set(USERVER_NAMESPACE_BEGIN "namespace ${USERVER_NAMESPACE} {" CACHE STRING "Open C++ namespace to use")
-    set(USERVER_NAMESPACE_END "}" CACHE STRING "Close C++ namespace to use")
+	set(USERVER_NAMESPACE_BEGIN "namespace ${USERVER_NAMESPACE} { inline namespace ${USERVER_VERSION_STR} { " CACHE STRING "Open C++ namespace to use")
+    set(USERVER_NAMESPACE_END "} }" CACHE STRING "Close C++ namespace to use")
 endif()
 message(STATUS "Putting userver into namespace '${USERVER_NAMESPACE}': ${USERVER_NAMESPACE_BEGIN} ${USERVER_NAMESPACE_END}")
 target_compile_definitions(${PROJECT_NAME} PUBLIC
@@ -249,18 +256,35 @@ endif()
 
 target_include_directories(${PROJECT_NAME}
   PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${USERVER_THIRD_PARTY_DIRS}/date/include
-    ${USERVER_THIRD_PARTY_DIRS}/function_backports/include
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${USERVER_THIRD_PARTY_DIRS}/date/include>
+    $<BUILD_INTERFACE:${USERVER_THIRD_PARTY_DIRS}/function_backports/include>
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/
     ${CMAKE_CURRENT_BINARY_DIR}
 )
-
 target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
   ${USERVER_THIRD_PARTY_DIRS}/rapidjson/include
 )
 
+if(USERVER_INSTALL)
+  install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
+  install(DIRECTORY ${USERVER_THIRD_PARTY_DIRS}/date/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
+  install(DIRECTORY ${USERVER_THIRD_PARTY_DIRS}/function_backports/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
+
+  install(TARGETS ${PROJECT_NAME}
+	  EXPORT UserverTargets
+          LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+          ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+          RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+          INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+  )
+  install(EXPORT UserverTargets
+          FILE UserverTargets.cmake
+          NAMESPACE userver::
+          DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
+  )
+endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT OR USERVER_FEATURE_UTEST)
   add_library(${PROJECT_NAME}-internal-utest INTERFACE)

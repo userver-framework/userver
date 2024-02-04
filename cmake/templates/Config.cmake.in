@@ -1,0 +1,22 @@
+@PACKAGE_INIT@
+
+include("${CMAKE_CURRENT_LIST_DIR}/UserverTargets.cmake")
+
+check_required_components(Userver)
+
+include(CMakeFindDependencyMacro)
+find_package(Threads)
+find_package(Boost REQUIRED COMPONENTS program_options filesystem regex)
+find_package(Iconv REQUIRED)
+find_package(OpenSSL REQUIRED)
+find_package(fmt "8.1.1" REQUIRED)
+
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/..")
+set(cctz_VERSION "0.1")
+find_package(cctz REQUIRED)
+set(CryptoPP_VERSION "0.1")
+find_package(CryptoPP REQUIRED)
+set(libyamlcpp_VERSION "0.1")
+find_package(libyamlcpp REQUIRED)
+
+add_library(userver::universal ALIAS userver::userver-universal)

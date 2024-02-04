@@ -24,14 +24,22 @@ void* AsyncMethodInvocation::GetTag() noexcept {
 }
 
 AsyncMethodInvocation::WaitStatus AsyncMethodInvocation::Wait() noexcept {
+  return WaitUntil(engine::Deadline{});
+}
+
+AsyncMethodInvocation::WaitStatus AsyncMethodInvocation::WaitUntil(
+    engine::Deadline deadline) noexcept {
   if (engine::current_task::ShouldCancel()) {
     // Make sure that cancelled RPC returns kCancelled (significant for tests)
     return WaitStatus::kCancelled;
   }
 
-  if (!event_.WaitForEvent()) {
-    UASSERT(engine::current_task::ShouldCancel());
-    return WaitStatus::kCancelled;
+  if (!event_.WaitForEventUntil(deadline)) {
+    if (engine::current_task::ShouldCancel()) {
+      return WaitStatus::kCancelled;
+    } else {
+      return WaitStatus::kDeadline;
+    }
   }
 
   busy_ = false;

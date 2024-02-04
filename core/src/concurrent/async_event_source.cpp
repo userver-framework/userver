@@ -1,5 +1,7 @@
 #include <userver/concurrent/async_event_source.hpp>
 
+#include <userver/utils/assert.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace concurrent {
@@ -10,7 +12,12 @@ AsyncEventSourceBase::~AsyncEventSourceBase() = default;
 
 }  // namespace impl
 
-concurrent::FunctionId::operator bool() const { return ptr_ != nullptr; }
+FunctionId::FunctionId(void* ptr, const std::type_info& type)
+    : ptr_(ptr), type_(&type) {
+  UASSERT(ptr);
+}
+
+FunctionId::operator bool() const { return ptr_ != nullptr; }
 
 bool FunctionId::operator==(const FunctionId& other) const {
   return ptr_ == other.ptr_ && *type_ == *other.type_;

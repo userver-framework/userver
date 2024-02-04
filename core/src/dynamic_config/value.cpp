@@ -36,12 +36,20 @@ void DocsMap::Set(std::string name, formats::json::Value obj) {
                                          std::move(obj));
 }
 
-void DocsMap::Parse(const std::string& json_string, bool empty_ok) {
-  const auto json = formats::json::FromString(json_string);
-  json.CheckObject();
+void DocsMap::Remove(const std::string& name) { docs_.erase(name); }
 
-  if (!empty_ok && json.GetSize() == 0)
+void DocsMap::Parse(const std::string& json_string, bool empty_ok) {
+  Parse(formats::json::FromString(json_string), empty_ok);
+}
+
+void DocsMap::Parse(formats::json::Value json, bool empty_ok) {
+  json.CheckObject();
+  if (!empty_ok && json.GetSize() == 0) {
     throw std::runtime_error("DocsMap::Parse failed: json is empty");
+  }
+
+  // Erase the origin of 'json' from error messages of configs parsing.
+  json.DropRootPath();
 
   for (const auto& [name, value] : Items(json)) {
     Set(name, value);
@@ -83,8 +91,6 @@ const utils::impl::TransparentSet<std::string>&
 DocsMap::GetConfigsExpectedToBeUsed(utils::InternalTag) const {
   return configs_to_be_used_;
 }
-
-const std::string kValueDictDefaultName = "__default__";
 
 namespace impl {
 

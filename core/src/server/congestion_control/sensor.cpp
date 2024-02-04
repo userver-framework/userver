@@ -1,7 +1,8 @@
-#include <server/congestion_control/sensor.hpp>
+#include <userver/server/congestion_control/sensor.hpp>
 
 #include <engine/task/task_processor.hpp>
 #include <server/net/stats.hpp>
+#include <userver/server/server.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -11,8 +12,13 @@ namespace {
 const std::chrono::seconds kSecond{1};
 }
 
-Sensor::Sensor(const Server& server, engine::TaskProcessor& tp)
-    : server_(server), tp_(tp) {}
+Sensor::Sensor(engine::TaskProcessor& tp) : tp_(tp) {}
+
+void Sensor::RegisterRequestsSource(RequestsSource& source) {
+  auto requests_sources = requests_sources_.StartWrite();
+  requests_sources->push_back(&source);
+  requests_sources.Commit();
+}
 
 Sensor::Data Sensor::FetchCurrent() {
   const bool first_fetch =
@@ -31,11 +37,10 @@ Sensor::Data Sensor::FetchCurrent() {
   auto no_overloads_ps =
       (no_overloads - last_no_overloads_) * kSecond / duration_ms;
 
-  // TODO: wrong value, it includes ratelimited ones too
-  //       it might lead to too high start RPS limits
-  auto server_stats = server_.GetServerStats();
-  auto requests = server_stats.active_request_count.load() +
-                  server_stats.requests_processed_count.load();
+  std::uint64_t requests{0};
+  auto requests_sources = requests_sources_.Read();
+  for (const auto& source : *requests_sources)
+    requests += source->GetTotalRequests();
   auto rps = (requests - last_requests_) * kSecond / duration_ms;
 
   last_fetch_tp_ = now;

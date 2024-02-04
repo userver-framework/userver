@@ -44,8 +44,8 @@ class ClusterShard {
   ClusterShard& operator=(ClusterShard&& other) noexcept;
   bool IsReady(WaitConnectedMode mode) const;
   bool AsyncCommand(CommandPtr command) const;
-  ShardStatistics GetStatistics(bool master,
-                                const MetricsSettings& settings) const;
+  void GetStatistics(bool master, const MetricsSettings& settings,
+                     ShardStatistics& stats) const;
 
   ServersWeighted GetAvailableServersWeighted(
       bool with_master, const CommandControl& command_control) const;
