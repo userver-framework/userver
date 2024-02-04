@@ -142,7 +142,7 @@ TEST(Redis, SelectTimeout) {
   MockRedisServer server;
   redis::CommandControl cc{};
   auto ping_handler = server.RegisterPingHandler();
-  auto sleep_period = cc.timeout_single + std::chrono::milliseconds(30);
+  auto sleep_period = redis::kDefaultTimeoutSingle + std::chrono::milliseconds(30);
   auto select_error_handler =
       server.RegisterTimeoutHandler("SELECT", sleep_period);
 
