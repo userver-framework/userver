@@ -18,6 +18,7 @@ ListenerConfig Parse(const yaml_config::YamlConfig& value,
   config.handler_defaults =
       value["handler-defaults"].As<request::HttpRequestConfig>();
   config.port = value["port"].As<uint16_t>(0);
+  config.address = value["address"].As<std::string>("::");
   config.unix_socket_path = value["unix-socket"].As<std::string>("");
   config.max_connections =
       value["max_connections"].As<size_t>(config.max_connections);

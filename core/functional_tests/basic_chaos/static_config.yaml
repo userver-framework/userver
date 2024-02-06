@@ -59,6 +59,7 @@ components_manager:
 
         server:
             listener:
+                address: '::1'
                 port: 8187
                 task_processor: main-task-processor
                 handler-defaults:

@@ -91,6 +91,10 @@ properties:
         description: describes the request processing socket
         additionalProperties: false
         properties: &server-listener-properties
+            address:
+                type: string
+                description: IPv6 or IPv4 network interface to bind to
+                defaultDescription: "::"
             port:
                 type: integer
                 description: port to listen on

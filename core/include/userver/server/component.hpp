@@ -56,8 +56,9 @@ namespace components {
 ///
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
+/// address | IPv6 or IPv4 network interface to bind to | '::' (all the IPv6 and IPv4 local interfaces)
 /// port | port to listen on | 0
-/// unix-socket | unix socket to listen on instead of listening on a port | ''
+/// unix-socket | unix socket to listen on instead of listening on a port and network address | ''
 /// max_connections | max connections count to keep | 32768
 /// task_processor | task processor to process incoming requests | -
 /// backlog | max count of new connections pending acceptance | 1024

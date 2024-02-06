@@ -19,6 +19,7 @@ struct ListenerConfig {
   request::HttpRequestConfig handler_defaults;
   std::string unix_socket_path;
   uint16_t port = 0;
+  std::string address = "::";
   int backlog = 1024;  // truncated to net.core.somaxconn
   size_t max_connections = 32768;
   std::optional<size_t> shards;
