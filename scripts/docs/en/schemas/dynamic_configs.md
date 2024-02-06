@@ -442,6 +442,7 @@ required:
   - watch_command_timer_interval_us
 ```
 
+**Example:**
 ```json
 {
   "buffering_enabled": true,
@@ -483,6 +484,7 @@ properties:
     type: integer
 ```
 
+**Example:**
 ```json
 {
   "best_dc_count": 0,
@@ -501,6 +503,10 @@ Used by components::Redis.
 ## REDIS_METRICS_SETTINGS
 
 Dynamic config that controls the metric settings for specific service.
+
+Dictionary keys can be either the **database name** (not the component name!)
+or `__default__`. The latter configuration is applied for every non-matching
+Redis database/sentinel of the service.
 
 ```
 yaml
@@ -530,6 +536,7 @@ definitions:
         description: enable response sizes statistics
 ```
 
+**Example:**
 ```json
 {
   "redis-database_name": {
@@ -549,6 +556,10 @@ Used by components::Redis.
 
 Dynamic config that controls the redis pubsub metric settings for specific service.
 
+Dictionary keys can be either the **database name** (not the component name!)
+or `__default__`. The latter configuration is applied for every non-matching
+Redis database/sentinel of the service.
+
 ```
 yaml
 type: object
@@ -565,6 +576,7 @@ definitions:
         description: enable collecting statistics by shard
 ```
 
+**Example:**
 ```json
 {
   "redis-database_name": {
@@ -575,6 +587,102 @@ definitions:
 
 Used by components::Redis.
 
+
+@anchor REDIS_RETRY_BUDGET_SETTINGS
+## REDIS_RETRY_BUDGET_SETTINGS
+
+Dynamic config that controls the retry budget (throttling) settings for
+components::Redis.
+
+Dictionary keys can be either the **database name** (not the component name!)
+or `__default__`. The latter configuration is applied for every non-matching
+Redis database/sentinel of the service.
+
+```
+yaml
+type: object
+additionalProperties:
+  $ref: '#/definitions/BaseSettings'
+definitions:
+  BaseSettings:
+    type: object
+    additionalProperties: false
+    properties:
+        enabled:
+          description: Enable retry budget for database
+          type: boolean
+        max-tokens:
+          description: Number of tokens to start with
+          type: number
+          maximum: 1000
+          minimum: 1
+        token-ratio:
+          description: Amount of tokens added on each successful request
+          type: number
+          maximum: 1
+          minimum: 0.001
+    required:
+      - enabled
+      - max-tokens
+      - token-ratio
+```
+
+**Example:**
+```json
+{
+  "__default__": {
+    "max-tokens": 100,
+    "token-ratio": 0.1,
+    "enabled": true
+  }
+}
+```
+
+Used by components::Redis.
+
+@anchor REDIS_REPLICA_MONITORING_SETTINGS
+## REDIS_REPLICA_MONITORING_SETTINGS
+
+Настройки отслеживания синхронизации реплик redis
+
+Dynamic config that controls the monitoring settings for synchronizing replicas.
+
+Dictionary keys can be either the **database name** (not the component name!)
+or `__default__`. The latter configuration is applied for every non-matching
+Redis database/sentinel of the service.
+
+```
+yaml
+type: object
+additionalProperties:
+  $ref: '#/definitions/BaseSettings'
+definitions:
+  BaseSettings:
+    type: object
+    additionalProperties: false
+    properties:
+      enable-monitoring:
+        description: set to `true` to turn on monitoring
+        type: boolean
+      forbid-requests-to-syncing-replicas:
+        description: set to true to forbid requests to syncing replicas
+        type: boolean
+    required:
+      - enable-monitoring
+      - forbid-requests-to-syncing-replicas
+```
+
+Used by components::Redis.
+
+**Example:**
+```json
+{
+  "__default__": {
+    "enable-monitoring": false,
+    "forbid-requests-to-syncing-replicas": false
+  }
+}
+```
 
 @anchor REDIS_SUBSCRIBER_DEFAULT_COMMAND_CONTROL
 ## REDIS_SUBSCRIBER_DEFAULT_COMMAND_CONTROL
@@ -608,6 +716,7 @@ properties:
       - nearest_server_ping
 ```
 
+**Example:**
 ```json
 {
   "best_dc_count": 0,
@@ -670,6 +779,7 @@ required:
   - timeout-ms
 ```
 
+**Example:**
 ```json
 {
   "mode": "master_or_slave",

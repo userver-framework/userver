@@ -2,6 +2,7 @@
 
 /// @file userver/ugrpc/proto_json.hpp
 /// @brief Utilities for conversion Protobuf -> Json
+/// @ingroup userver_formats_serialize userver_formats_parse
 
 #include <google/protobuf/struct.pb.h>
 #include <google/protobuf/util/json_util.h>

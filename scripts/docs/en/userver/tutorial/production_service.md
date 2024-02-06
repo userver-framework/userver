@@ -180,7 +180,7 @@ a handler that provides the metrics in the native aggregation service format.
 To produce metrics in declarative style use the utils::statistics::MetricTag
 or register your metrics writer in utils::statistics::Storage via RegisterWriter
 to produce metrics on per component basis. To test metrics refer to
-the @ref TESTSUITE_METRICS_TESTING.
+the @ref TESTSUITE_METRICS_TESTING "testsuite metrics testing".
 
 List of userver built-in metrics could be found at
 @ref scripts/docs/en/userver/service_monitor.md.

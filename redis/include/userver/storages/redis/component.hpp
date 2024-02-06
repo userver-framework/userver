@@ -44,13 +44,15 @@ namespace components {
 /// Provides access to a redis cluster.
 ///
 /// ## Dynamic options:
+/// * @ref REDIS_COMMANDS_BUFFERING_SETTINGS
 /// * @ref REDIS_DEFAULT_COMMAND_CONTROL
+/// * @ref REDIS_METRICS_SETTINGS
+/// * @ref REDIS_PUBSUB_METRICS_SETTINGS
+/// * @ref REDIS_RETRY_BUDGET_SETTINGS
+/// * @ref REDIS_REPLICA_MONITORING_SETTINGS
 /// * @ref REDIS_SUBSCRIBER_DEFAULT_COMMAND_CONTROL
 /// * @ref REDIS_SUBSCRIPTIONS_REBALANCE_MIN_INTERVAL_SECONDS
 /// * @ref REDIS_WAIT_CONNECTED
-/// * @ref REDIS_COMMANDS_BUFFERING_SETTINGS
-/// * @ref REDIS_METRICS_SETTINGS
-/// * @ref REDIS_PUBSUB_METRICS_SETTINGS
 ///
 /// ## Static options:
 /// Name | Description | Default value

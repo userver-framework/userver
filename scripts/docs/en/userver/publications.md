@@ -33,6 +33,7 @@
 * 📖 Generic async engine implementation (ru): [Анатомия асинхронных фреймворков в С++ и других языках](https://habr.com/ru/company/yandex/blog/647853/)
 * 🎥 Generic async engine implementation (ru): [Анатомия асинхронных движков](https://youtu.be/MiE22pTvnPs)
 * 🎥 Description of utils::FastPimpl, formats::parse::To and logging implementation (ru): [C++ трюки из Такси](https://youtu.be/_AkF8SpUV3k)
+* 🎥 Description of utils::LazyPrvalue, utils::FixedArray, utils::TrivialBiMap, ODR-detection in PostgreSQL [C++ трюки из userver](https://www.youtube.com/watch?v=FcQC19CX-AY)
 * 🎥 Description of cache::LruSet implementation and optimizations (ru): [Ещё чуть быстрее делаем свой контейнер](https://youtu.be/60XhYzkXu1M)
 * 🎥 Monolyth vs. Microservices architecture and how userver works around their issues (ru):
   [Монолит vs Микросервисы, и Как эффективно работать с последними в C++](https://youtu.be/5QtAFKgS938)

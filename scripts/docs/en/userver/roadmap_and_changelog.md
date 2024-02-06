@@ -16,8 +16,15 @@ Changelog news also go to the
 
 ## Roadmap
 
+✓ Simplify dynamic configs, embed defaults into the code.
+✓ Add PostgreSQL connection pools autoconfiguration.
+✓ LISTEN/NOTIFY support for PostgreSQL
+* Implement middlewares for HTTP server.
+* Move most of the HTTP server functionality to middlewares.
+* Implement middlewares for HTTP client.
+* Codegen parsers and serializers by JSON schema
+* Support `install` in CMake.
 * Add YDB driver.
-* Add PostgreSQL connection pools control via Congestion Control.
 * Add retry budget or retry circuit breaker for clients.
 * Add web interface to the [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf)
 * Add basic Kafka driver.
@@ -25,6 +32,52 @@ Changelog news also go to the
 
 ## Changelog
 
+### January 2024
+
+* `full-update-jitter` default value is now `full-update-interval / 10`. This
+  leads to more responsive databases on full update on multiple instances of
+  the service.
+* server::handlers::ServerMonitor now has a `format` static config option,
+  simplifying userver based services setup with unified agent.
+* Allow creating custom implicit options. Thanks to
+  [trenin17](https://github.com/trenin17) for the PR!
+* Limit JSON parsing depth to some sane value. Thanks to
+  [Kirill Morozov](https://github.com/moki) for the PR!
+* Implemented JSON parsing to `google.protobuf.Value` in
+  userver/ugrpc/proto_json.hpp.
+* Support histogram metrics in testsuite via pytest_userver.metrics.Histogram
+* utils::generators::GenerateUuidV7() was added.
+* Redis retry budget now could be controlled via
+  @ref REDIS_RETRY_BUDGET_SETTINGS
+* drivers::WaitForSubscribableFuture and drivers::TryWaitForSubscribableFuture
+  for simplifying asynchronous driver writing for third-party code that
+  provides futures with `Subscribe` methods (for example - YDB).
+
+* Optimizations:
+  * Up to two times faster dynamic config parsing in updates.
+  * Optimized dynamic config updates in testsuite. Thanks to
+    [Victor Makarov](https://github.com/vitek) for the PRs!
+  * Optimized JSON parsing of std::variant leading to an order of magnitude
+    faster parsing.
+  * Minor optimizations: do less work in server::handlers::HttpHandlerBase for
+    higher logging level, do less copies in server::handlers::HttpHandlerJsonBase.
+  * Optimized statistics collection for Redis.
+
+* Build:
+  * Namespace of userver is now versioned by default to avoid binary symbols
+    clashing.
+  * `lld` used by default if it is available and the compiler is clang
+  * `bash` is not required any more by the build scripts.
+
+* Documentation and Diagnostics:
+  * storages::postgres::InvalidParserCategory now provides fix hints for some
+    of the PostgreSQL misuse cases.
+  * Document that compiler::ThreadLocal should be used instead of `thread_local`.
+  * Documented dynamic_config::ValueDict and related dynamic configs.
+  * Improved documentation for metrics by adding more references to
+    utils::statistics::MetricTag, utils::statistics::Storage and
+    @ref TESTSUITE_METRICS_TESTING "testsuite metrics testing".
+  * Cleaner docs for the utils::statistics::Percentile.
 
 ### December 2023
 
