@@ -3173,6 +3173,7 @@
   "universal/include/userver/formats/serialize/common_containers.hpp":"taxi/uservices/userver/universal/include/userver/formats/serialize/common_containers.hpp",
   "universal/include/userver/formats/serialize/time_of_day.hpp":"taxi/uservices/userver/universal/include/userver/formats/serialize/time_of_day.hpp",
   "universal/include/userver/formats/serialize/to.hpp":"taxi/uservices/userver/universal/include/userver/formats/serialize/to.hpp",
+  "universal/include/userver/formats/serialize/variant.hpp":"taxi/uservices/userver/universal/include/userver/formats/serialize/variant.hpp",
   "universal/include/userver/formats/serialize/write_to_stream.hpp":"taxi/uservices/userver/universal/include/userver/formats/serialize/write_to_stream.hpp",
   "universal/include/userver/formats/yaml.hpp":"taxi/uservices/userver/universal/include/userver/formats/yaml.hpp",
   "universal/include/userver/formats/yaml/exception.hpp":"taxi/uservices/userver/universal/include/userver/formats/yaml/exception.hpp",

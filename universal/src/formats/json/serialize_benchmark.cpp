@@ -6,12 +6,12 @@
 
 #include <userver/formats/json/impl/types.hpp>
 #include <userver/formats/json/serialize.hpp>
-#include <userver/formats/json/serialize_variant.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/parse/variant.hpp>
 #include <userver/formats/serialize/common_containers.hpp>
+#include <userver/formats/serialize/variant.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
