@@ -42,7 +42,7 @@ python3-dev
 python3-jinja2
 python3-pip
 python3-protobuf
+python3-venv
 python3-voluptuous
 redis-server
-virtualenv
 zlib1g-dev

@@ -24,7 +24,6 @@ python
 python-google-api-python-client
 python-jinja
 python-pip
-python-virtualenv
 python-voluptuous
 python-yaml
 yaml-cpp

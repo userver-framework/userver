@@ -6,7 +6,7 @@ include(FindPython)
 option(USERVER_FEATURE_TESTSUITE "Enable functional tests via testsuite" ON)
 option(
     USERVER_PIP_USE_SYSTEM_PACKAGES
-    "Use system python packages inside virtualenv"
+    "Use system python packages inside venv"
     OFF
 )
 set(USERVER_PIP_OPTIONS "" CACHE STRING "Options for all pip calls")
@@ -15,7 +15,7 @@ if(USERVER_FEATURE_TESTSUITE)
   get_property(userver_python_dev_checked
       GLOBAL PROPERTY userver_python_dev_checked)
   if(NOT userver_python_dev_checked)
-    # find package python3-dev required by virtualenv
+    # find package python3-dev required by venv
     execute_process(
         COMMAND sh "-c" "command -v python3-config"
         OUTPUT_VARIABLE PYTHONCONFIG_FOUND
@@ -33,7 +33,7 @@ get_filename_component(
 function(userver_venv_setup)
   set(options UNIQUE)
   set(oneValueArgs NAME PYTHON_OUTPUT_VAR)
-  set(multiValueArgs REQUIREMENTS VIRTUALENV_ARGS PIP_ARGS)
+  set(multiValueArgs REQUIREMENTS PIP_ARGS)
 
   cmake_parse_arguments(
       ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}")
@@ -61,8 +61,9 @@ function(userver_venv_setup)
     set(parent_directory "${CMAKE_CURRENT_BINARY_DIR}")
   endif()
 
+  set(venv_additional_args)
   if(USERVER_PIP_USE_SYSTEM_PACKAGES)
-    list(APPEND ARG_VIRTUALENV_ARGS "--system-site-packages")
+    list(APPEND venv_additional_args "--system-site-packages")
   endif()
   list(APPEND ARG_PIP_ARGS ${USERVER_PIP_OPTIONS})
 
@@ -77,7 +78,7 @@ function(userver_venv_setup)
   # for a given venv are invoked with the same params.
   if(ARG_UNIQUE)
     set(venv_unique_params
-        venv ${ARG_REQUIREMENTS} ${ARG_VIRTUALENV_ARGS} ${ARG_PIP_ARGS})
+        venv ${ARG_REQUIREMENTS} ${venv_additional_args} ${ARG_PIP_ARGS})
     get_property(cached_venv_unique_params
         GLOBAL PROPERTY "userver-venv-${ARG_NAME}-params")
     if(cached_venv_unique_params)
@@ -92,29 +93,24 @@ function(userver_venv_setup)
     endif()
   endif()
 
-  find_program(TESTSUITE_VIRTUALENV virtualenv)
-  if(NOT TESTSUITE_VIRTUALENV)
-    message(FATAL_ERROR
-        "No virtualenv binary found, try to install:\n"
-        "Debian: sudo apt install virtualenv\n"
-        "MacOS: brew install virtualenv\n"
-        "ArchLinux: sudo pacman -S python-virtualenv")
-  endif()
-
-  message(STATUS "Setting up the virtualenv at ${venv_dir}")
+  message(STATUS "Setting up the venv at ${venv_dir}")
 
   if(NOT EXISTS "${venv_dir}")
     execute_process(
         COMMAND
-        "${TESTSUITE_VIRTUALENV}"
-        "--python=${USERVER_PYTHON}"
+        "${USERVER_PYTHON}"
+        -m venv
         "${venv_dir}"
-        ${ARG_VIRTUALENV_ARGS}
+        ${venv_additional_args}
         RESULT_VARIABLE status
     )
     if(status)
       file(REMOVE_RECURSE "${venv_dir}")
-      message(FATAL_ERROR "Failed to create Python virtual environment")
+      message(FATAL_ERROR
+          "Failed to create Python virtual environment. "
+          "On Debian-based systems, venv is installed separately:\n"
+          "sudo apt install python3-venv"
+      )
     endif()
   endif()
 
@@ -122,7 +118,7 @@ function(userver_venv_setup)
   # then don't run it again. This optimization dramatically reduces
   # re-Configure times.
   set(venv_params "")
-  set(format_version 1)
+  set(format_version 2)
   string(APPEND venv_params "format-version=${format_version}\n")
   string(APPEND venv_params "pip-args=${ARG_PIP_ARGS}\n")
   foreach(requirement IN LISTS ARG_REQUIREMENTS)
@@ -276,7 +272,6 @@ function(userver_testsuite_add)
       PYTEST_ARGS
       REQUIREMENTS
       PYTHONPATH
-      VIRTUALENV_ARGS
   )
   cmake_parse_arguments(
     ARG "${options}" "${oneValueArgs}" "${multiValueArgs}"  ${ARGN})
@@ -314,7 +309,6 @@ function(userver_testsuite_add)
         NAME "${TESTSUITE_TARGET}"
         REQUIREMENTS ${requirement_files}
         PYTHON_OUTPUT_VAR python_binary
-        VIRTUALENV_ARGS ${ARG_VIRTUALENV_ARGS}
     )
   endif()
 
@@ -394,7 +388,6 @@ function(userver_testsuite_add_simple)
       PYTEST_ARGS
       REQUIREMENTS
       PYTHONPATH
-      VIRTUALENV_ARGS
   )
   cmake_parse_arguments(
       ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
@@ -538,7 +531,6 @@ function(userver_testsuite_add_simple)
       ${ARG_PYTEST_ARGS}
       REQUIREMENTS ${ARG_REQUIREMENTS}
       PYTHONPATH ${ARG_PYTHONPATH}
-      VIRTUALENV_ARGS ${ARG_VIRTUALENV_ARGS}
   )
 
   if(ARG_TEST_ENV)

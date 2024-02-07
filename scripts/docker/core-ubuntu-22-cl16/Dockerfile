@@ -54,7 +54,7 @@ RUN apt-get update && apt-get install -y --allow-unauthenticated \
     libldap2-dev \
     libkrb5-dev \
     python3-dev \
-    virtualenv \
+    python3-venv \
     python3-voluptuous \
     python3-yaml \
     python3-venv \

@@ -23,5 +23,4 @@ redis
 zlib
 amqp-cpp
 c-ares
-virtualenv
 coreutils

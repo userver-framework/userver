@@ -17,7 +17,6 @@ dev-libs/openssl
 dev-libs/re2
 dev-python/jinja
 dev-python/pip
-dev-python/virtualenv
 dev-python/voluptuous
 dev-util/ccache
 dev-util/cmake

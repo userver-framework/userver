@@ -38,9 +38,8 @@ protobuf-compiler-grpc
 python3-dev
 python3-jinja2
 python3-protobuf
-python3-virtualenv
+python3-venv
 python3-voluptuous
 python3-yaml
 redis-server
-virtualenv
 zlib1g-dev

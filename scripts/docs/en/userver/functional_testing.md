@@ -28,10 +28,10 @@ Supported features:
 With `userver_testsuite_add()` function you can easily add testsuite support to your project.
 Its main purpose is:
 
-* Setup Python environment `virtualenv` or use an existing one.
+* Setup Python `venv` environment or use an existing one.
 * Create runner script that setups `PYTHONPATH` and passes extra arguments to `pytest`.
-* Registers `ctest` target.
-* Adds a `start-*` target that starts the service and databases with testsuite
+* Register `ctest` target.
+* Add a `start-*` target that starts the service and databases with testsuite
   configs and waits for keyboard interruption to stop the service.
 
 @ref cmake/UserverTestsuite.cmake library is automatically added to CMake path
@@ -49,9 +49,8 @@ Then create testsuite target:
 * WORKING_DIRECTORY, pytest working directory. Default is ${CMAKE_CURRENT_SOURCE_DIR}.
 * PYTEST_ARGS, list of extra arguments passed to `pytest`.
 * PYTHONPATH, list of directories to be prepended to `PYTHONPATH`.
-* REQUIREMENTS, list of requirements.txt files used to populate `virtualenv`.
+* REQUIREMENTS, list of requirements.txt files used to populate `venv`.
 * PYTHON_BINARY, path to existing Python binary.
-* VIRTUALENV_ARGS, list of extra arguments passed to `virtualenv`.
 * PRETTY_LOGS, set to `OFF` to disable pretty printing.
 
 Some of the most useful arguments for PYTEST_ARGS:
@@ -90,7 +89,7 @@ You may want to create new virtual environment with its own set of packages. Or 
 That could be done this way:
 
 - If `PYTHON_BINARY` is specified then it is used.
-- Otherwise, a new test virtualenv is created. Passed `REQUIREMENTS`, if any,
+- Otherwise, a new test venv is created. Passed `REQUIREMENTS`, if any,
   are installed. Requirements of userver itself
   (based on selected `USERVER_FEATURE_*` flags) are installed as well.
 
@@ -101,7 +100,7 @@ yandex-taxi-testsuite[mongodb]
 ```
 
 Creating per-testsuite virtual environment is a recommended way to go.
-It creates virtualenv that could be found in current binary directory:
+It creates Python venv in the current binary directory:
 
 `${CMAKE_CURRENT_BINARY_DIR}/venv-testsuite-${SERVICE_TARGET}`
 

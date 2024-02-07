@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y --allow-unauthenticated \
     postgresql \
     python3-protobuf \
     python3-jinja2 \
-    python3-virtualenv \
+    python3-venv \
     vim \
     redis-server
 

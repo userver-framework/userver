@@ -28,6 +28,5 @@ python3-jinja2
 python3-protobuf
 python3-voluptuous
 redis
-virtualenv
 yaml-cpp-devel
 zlib-devel
