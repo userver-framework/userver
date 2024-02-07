@@ -8,6 +8,7 @@ testsuite; see
 
 import dataclasses
 import enum
+import itertools
 import json
 import math
 import random
@@ -170,6 +171,9 @@ class MetricsSnapshot:
     def __repr__(self) -> str:
         return self._values.__repr__()
 
+    def __str__(self) -> str:
+        return self.pretty_print()
+
     def get(self, path: str, default=None):
         """
         Returns an list of metrics by path or default if there's no
@@ -228,6 +232,57 @@ class MetricsSnapshot:
             return default
         return next(iter(entry)).value
 
+    def metrics_at(
+            self,
+            path: str,
+            require_labels: typing.Optional[typing.Dict] = None,
+    ) -> typing.List[Metric]:
+        """
+        Metrics path must exactly equal the given `path`.
+        A required subset of labels is specified by `require_labels`
+        Example:
+        require_labels={'a':'b', 'c':'d'}
+        { 'a':'b', 'c':'d'} - exact match
+        { 'a':'b', 'c':'d', 'e': 'f', 'h':'k'} - match
+        { 'a':'x', 'c':'d'} - no match, incorrect value for label 'a'
+        { 'a' : 'b'} - required label not found
+        Usage:
+        @code
+        for m in metrics_with_labels(path='something.something.sensor',
+          require_labels={ 'label1': 'value1' }):
+           assert m.value > 0
+        @endcode
+        """
+        entry = self.get(path, set())
+
+        def _is_labels_subset(require_labels, target_labels) -> bool:
+            for req_key, req_val in require_labels.items():
+                if target_labels.get(req_key, None) != req_val:
+                    # required label is missing or its value is different
+                    return False
+            return True
+
+        if require_labels is not None:
+            return list(
+                filter(
+                    lambda x: _is_labels_subset(
+                        require_labels=require_labels, target_labels=x.labels,
+                    ),
+                    entry,
+                ),
+            )
+        else:
+            return list(entry)
+
+    def has_metrics_at(
+            self,
+            path: str,
+            require_labels: typing.Optional[typing.Dict] = None,
+    ) -> bool:
+        # metrics_with_labels returns list, and pythonic way to check if list
+        # is empty is like this:
+        return bool(self.metrics_at(path, require_labels))
+
     def assert_equals(
             self,
             other: typing.Mapping[str, typing.Set[Metric]],
@@ -241,6 +296,48 @@ class MetricsSnapshot:
         lhs = _flatten_snapshot(self, ignore_zeros=ignore_zeros)
         rhs = _flatten_snapshot(other, ignore_zeros=ignore_zeros)
         assert lhs == rhs, _diff_metric_snapshots(lhs, rhs, ignore_zeros)
+
+    def pretty_print(self) -> str:
+        """
+        Multiline linear print:
+          path:  (label=value),(label=value) TYPE VALUE
+          path:  (label=value),(label=value) TYPE VALUE
+        Usage:
+        @code
+         assert 'some.thing.sensor' in metric, metric.pretty_print()
+        @endcode
+        """
+
+        def _iterate_over_mset(path, mset):
+            """ print (pretty) one metrics set - for given path """
+            result = []
+            for metric in sorted(mset, key=lambda x: _get_labels_tuple(x)):
+                result.append(
+                    '{}: {} {} {}'.format(
+                        path,
+                        # labels in form (key=value)
+                        ','.join(
+                            [
+                                '({}={})'.format(k, v)
+                                for k, v in _get_labels_tuple(metric)
+                            ],
+                        ),
+                        metric._type.value,
+                        metric.value,
+                    ),
+                )
+            return result
+
+        # list of lists [ [ string1, string2, string3],
+        #                 [string4, string5, string6] ]
+        data_for_every_path = [
+            _iterate_over_mset(path, mset)
+            for path, mset in self._values.items()
+        ]
+        # use itertools.chain to flatten list
+        # [ string1, string2, string3, string4, string5, string6 ]
+        # and join to convert it to one multiline string
+        return '\n'.join(itertools.chain(*data_for_every_path))
 
     @staticmethod
     def from_json(json_str: str) -> 'MetricsSnapshot':
