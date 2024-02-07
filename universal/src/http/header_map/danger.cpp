@@ -18,17 +18,6 @@ std::size_t Danger::HashKey(std::string_view key) const noexcept {
   return SafeHash(key);
 }
 
-std::size_t Danger::HashKey(const PredefinedHeader& header) const noexcept {
-  if (!IsRed()) {
-    return header.hash;
-  }
-
-  return SafeHash(header.name);
-}
-
-bool Danger::IsYellow() const noexcept { return state_ == State::kYellow; }
-bool Danger::IsRed() const noexcept { return state_ == State::kRed; }
-
 void Danger::ToGreen() noexcept {
   UASSERT(IsYellow());
 

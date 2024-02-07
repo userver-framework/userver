@@ -28,25 +28,26 @@ constexpr std::size_t kForwardShiftThreshold = 128;
 // danger state and safe hashing is used instead.
 constexpr float kLoadFactorThreshold = 0.2;
 
-std::size_t DesiredPos(Traits::Size mask, Traits::HashValue hash) noexcept {
+inline std::size_t DesiredPos(Traits::Size mask,
+                              Traits::HashValue hash) noexcept {
   return static_cast<std::size_t>(hash & mask);
 }
 
 // how much to the right shall we move from hash to reach current,
 // wrapping clockwise distance
-std::size_t ProbeDistance(Traits::Size mask, Traits::HashValue hash,
-                          std::size_t current) noexcept {
+inline std::size_t ProbeDistance(Traits::Size mask, Traits::HashValue hash,
+                                 std::size_t current) noexcept {
   return (current - DesiredPos(mask, hash)) & mask;
 }
 
 // positions capacity -> entries capacity
-std::size_t UsableCapacity(std::size_t capacity) noexcept {
+inline std::size_t UsableCapacity(std::size_t capacity) noexcept {
   // max load factor is fixed as 0.75, so X slots for hashes = 0.75X slots for
   // entries.
   return capacity - capacity / 4;
 }
 
-Traits::HashValue MaskHash(std::size_t hash) noexcept {
+inline Traits::HashValue MaskHash(std::size_t hash) noexcept {
   constexpr std::size_t kMask = Traits::kMaxSize - 1;
 
   return static_cast<Traits::HashValue>(hash & kMask);
@@ -56,27 +57,31 @@ constexpr Traits::Size kNoneIndex = std::numeric_limits<Traits::Size>::max();
 
 }  // namespace
 
-Pos::Pos(Traits::Size entries_index, Traits::HashValue hash,
-         Traits::HeaderIndex header_index)
+inline Pos::Pos(Traits::Size entries_index, Traits::HashValue hash,
+                Traits::HeaderIndex header_index)
     : entries_index_{entries_index}, hash_{hash}, header_index_{header_index} {}
 
-Pos::Pos(std::size_t entries_index, Traits::HashValue hash,
-         Traits::HeaderIndex header_index)
+inline Pos::Pos(std::size_t entries_index, Traits::HashValue hash,
+                Traits::HeaderIndex header_index)
     : Pos{static_cast<Traits::Size>(entries_index), hash, header_index} {
   UASSERT(entries_index < Traits::kMaxSize);
 }
 
-Pos Pos::None() { return Pos{kNoneIndex, 0, 0}; }
+inline Pos Pos::None() { return Pos{kNoneIndex, 0, 0}; }
 
-bool Pos::IsNone() const noexcept { return entries_index_ == kNoneIndex; }
+inline bool Pos::IsNone() const noexcept {
+  return entries_index_ == kNoneIndex;
+}
 
-bool Pos::IsSome() const noexcept { return !IsNone(); }
+inline bool Pos::IsSome() const noexcept { return !IsNone(); }
 
-Traits::Size Pos::GetEntriesIndex() const noexcept { return entries_index_; }
+inline Traits::Size Pos::GetEntriesIndex() const noexcept {
+  return entries_index_;
+}
 
-Traits::HashValue Pos::GetHash() const noexcept { return hash_; }
+inline Traits::HashValue Pos::GetHash() const noexcept { return hash_; }
 
-Traits::HeaderIndex Pos::GetHeaderIndex() const noexcept {
+inline Traits::HeaderIndex Pos::GetHeaderIndex() const noexcept {
   return header_index_;
 }
 
@@ -200,11 +205,11 @@ std::string MaybeOwnedKey::ExtractValue() && {
   return std::string{key_};
 }
 
-bool Map::FindResult::IsSome() const noexcept {
+inline bool Map::FindResult::IsSome() const noexcept {
   return entries_index != kNoneIndex;
 }
 
-Map::FindResult Map::FindResult::None() noexcept {
+inline Map::FindResult Map::FindResult::None() noexcept {
   return FindResult{0, kNoneIndex};
 }
 
@@ -405,8 +410,8 @@ Map::Iterator Map::Find(const PredefinedHeader& header) noexcept {
                       : End();
 }
 
-Map::FindResult Map::DoFind(std::string_view key, Traits::HashValue hash,
-                            int header_index) const noexcept {
+inline Map::FindResult Map::DoFind(std::string_view key, Traits::HashValue hash,
+                                   int header_index) const noexcept {
   // ProbeLoop doesn't work with empty positions
   if (positions_.empty()) {
     return FindResult::None();
@@ -718,7 +723,8 @@ void Map::OutputInHttpFormat(HeadersString& buffer) const {
   UASSERT(buffer.size() == old_buffer_size + amount_to_add);
 }
 
-Map::Iterator Map::ToReverseIterator(std::vector<MapEntry>::iterator it) {
+inline Map::Iterator Map::ToReverseIterator(
+    std::vector<MapEntry>::iterator it) {
   static_assert(!std::is_same_v<Iterator, decltype(it)>);
 
   return Iterator{++it /* ++ because reversed */};

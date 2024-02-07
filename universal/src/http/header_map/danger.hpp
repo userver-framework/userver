@@ -11,10 +11,17 @@ namespace http::headers::header_map {
 class Danger final {
  public:
   std::size_t HashKey(std::string_view key) const noexcept;
-  std::size_t HashKey(const PredefinedHeader& header) const noexcept;
 
-  bool IsYellow() const noexcept;
-  bool IsRed() const noexcept;
+  inline std::size_t HashKey(const PredefinedHeader& header) const noexcept {
+    if (!IsRed()) {
+      return header.hash;
+    }
+
+    return SafeHash(header.name);
+  }
+
+  inline bool IsYellow() const noexcept { return state_ == State::kYellow; }
+  inline bool IsRed() const noexcept { return state_ == State::kRed; }
 
   void ToGreen() noexcept;
   void ToYellow() noexcept;
