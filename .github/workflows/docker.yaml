@@ -15,7 +15,7 @@ jobs:
             matrix:
                 include:
                   - cmake-flags: >-
-                        -DCMAKE_CXX_COMPILER=clang++-14 -DCMAKE_C_COMPILER=clang-14
+                        -DCMAKE_CXX_COMPILER=clang++-16 -DCMAKE_C_COMPILER=clang-16
                         -DUSERVER_FEATURE_MYSQL=0
                         -DUSERVER_FEATURE_MONGODB=0
                         -DUSERVER_FEATURE_POSTGRESQL=0
@@ -28,7 +28,7 @@ jobs:
                     info: ubuntu + clang + cxx17 + core
                     id: ubuntu_clang_cxx17_core
                   - cmake-flags: >-
-                        -DCMAKE_CXX_COMPILER=clang++-14 -DCMAKE_C_COMPILER=clang-14
+                        -DCMAKE_CXX_COMPILER=clang++-16 -DCMAKE_C_COMPILER=clang-16
                         -DUSERVER_FEATURE_MYSQL=1
                         -DCMAKE_CXX_STANDARD=17
                     image: userver-ubuntu
@@ -42,7 +42,7 @@ jobs:
                     info: ubuntu + gcc + cxx17
                     id: ubuntu_gcc_cxx17
                   - cmake-flags: >-
-                        -DCMAKE_CXX_COMPILER=clang++-14 -DCMAKE_C_COMPILER=clang-14
+                        -DCMAKE_CXX_COMPILER=clang++-16 -DCMAKE_C_COMPILER=clang-16
                         -DUSERVER_FEATURE_MYSQL=1
                         -DCMAKE_CXX_STANDARD=20
                     image: userver-ubuntu
