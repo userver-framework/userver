@@ -138,12 +138,7 @@ if (NOT USERVER_NO_WERROR)
   target_compile_options(userver-internal-compile-options INTERFACE "-Werror")
 endif()
 
-if(USERVER_INSTALL)
-  install(TARGETS userver-internal-compile-options
-          EXPORT UserverTargets
-  )
-endif()
-
+userver_install_targets(TARGETS userver-internal-compile-options)
 
 # The library itself
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
@@ -272,18 +267,7 @@ if(USERVER_INSTALL)
   install(DIRECTORY ${USERVER_THIRD_PARTY_DIRS}/date/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
   install(DIRECTORY ${USERVER_THIRD_PARTY_DIRS}/function_backports/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
 
-  install(TARGETS ${PROJECT_NAME}
-	  EXPORT UserverTargets
-          LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-          ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-          RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-          INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-  )
-  install(EXPORT UserverTargets
-          FILE UserverTargets.cmake
-          NAMESPACE userver::
-          DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
-  )
+  userver_install_targets(TARGETS ${PROJECT_NAME})
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT OR USERVER_FEATURE_UTEST)

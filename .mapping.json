@@ -149,6 +149,7 @@
   "cmake/GetUserverVersion.cmake":"taxi/uservices/userver/cmake/GetUserverVersion.cmake",
   "cmake/GrpcTargets.cmake":"taxi/uservices/userver/cmake/GrpcTargets.cmake",
   "cmake/IncludeWhatYouUse.cmake":"taxi/uservices/userver/cmake/IncludeWhatYouUse.cmake",
+  "cmake/PrepareInstall.cmake":"taxi/uservices/userver/cmake/PrepareInstall.cmake",
   "cmake/README.md":"taxi/uservices/userver/cmake/README.md",
   "cmake/RequireLTO.cmake":"taxi/uservices/userver/cmake/RequireLTO.cmake",
   "cmake/Sanitizers.cmake":"taxi/uservices/userver/cmake/Sanitizers.cmake",

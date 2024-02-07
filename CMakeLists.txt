@@ -76,12 +76,6 @@ option(
     OFF
 )
 
-option(
-    USERVER_INSTALL
-    "Prepare build of userver to install in system"
-    OFF
-)
-
 option(USERVER_FEATURE_CRYPTOPP_BLAKE2 "Provide wrappers for blake2 algorithms of crypto++" ON)
 if (NOT USERVER_FEATURE_CRYPTOPP_BLAKE2)
   add_compile_definitions("USERVER_NO_CRYPTOPP_BLAKE2=1")
@@ -112,8 +106,15 @@ set(CMAKE_DEBUG_POSTFIX d)
 include(cmake/UserverSetupEnvironment.cmake)
 userver_setup_environment()
 
+include(PrepareInstall)
+
+if(USERVER_INSTALL)
+  include(GNUInstallDirs)
+endif()
+
 include(Sanitizers)
 _userver_make_sanitize_target()
+userver_install_targets(TARGETS userver-internal-sanitize-options)
 
 include(GetUserverVersion)
 include(AddGoogleTests)
@@ -124,10 +125,6 @@ include(IncludeWhatYouUse)
 include(UserverTestsuite)
 include(CheckCompileFlags)
 include(CMakePackageConfigHelpers)
-if(USERVER_INSTALL)
-  include(GNUInstallDirs)
-endif()
-
 
 message(STATUS "Generating cmake files ...")
 userver_venv_setup(
@@ -253,13 +250,13 @@ if (USERVER_INSTALL)
   install(FILES
     "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake"
     "${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake"
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/sanitize.blacklist.txt"
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/RequireLTO.cmake"
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/SetupLTO.cmake"
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/SetupLinker.cmake"
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Sanitizers.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
   )
-
-  install(EXPORT UserverTargets
-          FILE UserverTargets.cmake
-          NAMESPACE userver::
-          DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
-  )
+  userver_export_targets()
 endif()
 

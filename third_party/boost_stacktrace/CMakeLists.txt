@@ -73,6 +73,4 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 
 target_link_libraries(${PROJECT_NAME} PUBLIC ${BACKTRACE_USERVER_LIBRARIES})
 
-install(TARGETS ${PROJECT_NAME}
-        EXPORT UserverTargets
-)
+userver_install_targets(TARGETS ${PROJECT_NAME})
