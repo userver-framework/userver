@@ -24,8 +24,8 @@ struct RowTag {};
 /// @snippet storages/postgres/tests/composite_types_pgtest.cpp FieldTagSippet
 struct FieldTag {};
 
-constexpr RowTag kRowTag;
-constexpr FieldTag kFieldTag;
+inline constexpr RowTag kRowTag{};
+inline constexpr FieldTag kFieldTag{};
 
 namespace io {
 

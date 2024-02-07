@@ -458,6 +458,39 @@ class CaseSecondDescriber final {
   std::string description_{};
 };
 
+template <typename First, typename Second>
+class CaseGetValuesByIndex final {
+ public:
+  explicit constexpr CaseGetValuesByIndex(std::size_t search_index)
+      : index_(search_index + 1) {}
+
+  constexpr CaseGetValuesByIndex& Case(First first, Second second) noexcept {
+    if (index_ == 0) {
+      return *this;
+    }
+    if (index_ == 1) {
+      first_ = first;
+      second_ = second;
+    }
+    --index_;
+
+    return *this;
+  }
+
+  [[nodiscard]] constexpr First GetFirst() noexcept {
+    return std::move(first_);
+  }
+
+  [[nodiscard]] constexpr Second GetSecond() noexcept {
+    return std::move(second_);
+  }
+
+ private:
+  std::size_t index_;
+  First first_{};
+  Second second_{};
+};
+
 template <typename First>
 class CaseFirstIndexer final {
  public:
@@ -514,6 +547,11 @@ class TrivialBiMap final {
  public:
   using First = typename TypesPair::first_type;
   using Second = typename TypesPair::second_type;
+
+  struct value_type {
+    First first;
+    Second second;
+  };
 
   /// Returns Second if T is convertible to First, otherwise returns Second
   /// type.
@@ -642,6 +680,53 @@ class TrivialBiMap final {
       return DescribeSecond();
     }
   }
+
+  constexpr value_type GetValuesByIndex(std::size_t index) const {
+    auto result = func_(
+        [index]() { return impl::CaseGetValuesByIndex<First, Second>{index}; });
+    return value_type{result.GetFirst(), result.GetSecond()};
+  }
+
+  class iterator {
+   public:
+    using iterator_category = std::input_iterator_tag;
+    using difference_type = std::ptrdiff_t;
+
+    explicit constexpr iterator(const TrivialBiMap& map, std::size_t position)
+        : map_{map}, position_{position} {}
+
+    constexpr bool operator==(iterator other) const {
+      return position_ == other.position_;
+    }
+
+    constexpr bool operator!=(iterator other) const {
+      return position_ != other.position_;
+    }
+
+    constexpr iterator operator++() {
+      ++position_;
+      return *this;
+    }
+
+    constexpr iterator operator++(int) {
+      iterator copy{*this};
+      ++position_;
+      return copy;
+    }
+
+    constexpr value_type operator*() const {
+      return map_.GetValuesByIndex(position_);
+    }
+
+   private:
+    const TrivialBiMap& map_;
+    std::size_t position_;
+  };
+
+  constexpr iterator begin() const { return iterator(*this, 0); }
+  constexpr iterator end() const { return iterator(*this, size()); }
+  constexpr iterator cbegin() const { return begin(); }
+  constexpr iterator cend() const { return end(); }
 
  private:
   const BuilderFunc func_;

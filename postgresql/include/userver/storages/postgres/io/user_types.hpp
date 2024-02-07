@@ -14,52 +14,6 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres {
-namespace io {
-// clang-format off
-//
-/// @page pg_user_types uPg: Mapping a C++ type to PostgreSQL user type
-///
-/// In PosgtgreSQL the following kinds of user types are available:
-///   - composite (row) types, see @ref pg_composite_types
-///   - enumerations, see @ref pg_enum
-///   - ranges, see @ref pg_range_types
-///   - domains
-///
-/// Domains are essentially some data types with database constraints applied
-/// to them, they map to their base data types' C++ counterparts.
-///
-/// Other user types can be mapped to C++ types, more information on defining
-/// a mapped C++ type can be found on respective pages. After a C++ type is
-/// defined, it must be mapped to it's PostgreSQL counterpart by specialising
-/// CppToUserPg template for the type. C++ types are mapped to PostgreSQL
-/// types by their names, so the specialization for CppToUserPg template
-/// must have a `static constexpr` member of type DBTypeName named
-/// `postgres_name`.
-///
-/// @par C++ type
-///
-/// @snippet storages/postgres/tests/user_types_pgtest.cpp User type
-///
-/// @par Declaring C++ type to PostgreSQL type mapping
-///
-/// @warning The type mapping specialization **must** be accessible at the
-/// points where parsing/formatting of the C++ type is instantiated. The
-/// header where the C++ type is declared is an appropriate place to do it.
-///
-/// @snippet storages/postgres/tests/user_types_pgtest.cpp User type mapping
-///
-/// A connection gets the data types' definitions after connect and uses the
-/// definitions to map C++ types to PostgreSQL type oids.
-///
-///
-/// ----------
-///
-/// @htmlonly <div class="bottom-nav"> @endhtmlonly
-/// ⇦ @ref scripts/docs/en/userver/pg_connlimit_mode_auto.md | @ref pg_composite_types ⇨
-/// @htmlonly </div> @endhtmlonly
-
-// clang-format on
-}  // namespace io
 
 /// @brief PostgreSQL composite type description
 class CompositeTypeDescription {

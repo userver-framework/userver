@@ -104,12 +104,7 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 * @ref pg_errors
 * @ref pg_topology
 * @ref scripts/docs/en/userver/pg_connlimit_mode_auto.md
-* @ref pg_user_types
-  * @ref pg_composite_types
-  * @ref pg_enum
-  * @ref pg_range_types
-  * @ref pg_arrays
-  * @ref pg_bytea
+* @ref scripts/docs/en/userver/pg_user_types.md
 
 ## MySQL
 * @ref mysql_driver

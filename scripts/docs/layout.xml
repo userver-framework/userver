@@ -90,13 +90,7 @@
         <tab type="user" url="@ref pg_errors" title="uPg: Postgres errors"/>
         <tab type="user" url="@ref pg_topology" title="uPg: Cluster topology discovery"/>
         <tab type="user" url="@ref md_en_2userver_2pg__connlimit__mode__auto" title="uPg: Automatic connection limit"/>
-        <tab type="usergroup" url="@ref pg_user_types" title="uPg: Mapping a C++ type to PostgreSQL user type">
-          <tab type="user" url="@ref pg_composite_types" title="uPg: Composite user types"/>
-          <tab type="user" url="@ref pg_enum" title="uPg: Mapping a C++ enum to PostgreSQL enum type."/>
-          <tab type="user" url="@ref pg_range_types" title="uPg: Range types"/>
-          <tab type="user" url="@ref pg_arrays" title="uPg: Arrays"/>
-          <tab type="user" url="@ref pg_bytea" title="uPg bytea support"/>
-        </tab>
+        <tab type="user" url="@ref md_en_2userver_2pg__user__types" title="uPg: PostgreSQL user type mappings"/>
       </tab>
       <tab type="usergroup" title="MySQL" url="@ref md_en_2index">
         <tab type="user" url="@ref mysql_driver" title="MySQL Driver - EXPERIMENTAL"/>

@@ -53,5 +53,5 @@ components_manager:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref pg_topology | @ref pg_user_types ⇨
+⇦ @ref pg_topology | @ref scripts/docs/en/userver/pg_user_types.md ⇨
 @htmlonly </div> @endhtmlonly

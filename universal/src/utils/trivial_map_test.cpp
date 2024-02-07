@@ -342,4 +342,21 @@ TEST(TrivialBiMap, GetIndex) {
   EXPECT_EQ(kNames.GetIndex("aba"), std::nullopt);
 }
 
+TEST(TrivialBiMap, ConstexprIteration) {
+  constexpr auto sum = []() {
+    constexpr utils::TrivialBiMap kMap = [](auto selector) {
+      return selector().Case(10, 0).Case(11, 1).Case(12, 2).Case(13, 3);
+    };
+
+    int sum = 0;
+    for (const auto& [literal, i] : kMap) {
+      sum += i;
+    }
+
+    return sum;
+  }();
+
+  EXPECT_EQ(sum, 6);
+}
+
 USERVER_NAMESPACE_END

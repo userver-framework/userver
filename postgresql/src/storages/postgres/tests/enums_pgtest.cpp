@@ -14,12 +14,13 @@ namespace {
 const std::string kCreateTestSchema = "create schema if not exists __pgtest";
 const std::string kDropTestSchema = "drop schema if exists __pgtest cascade";
 
-/*! [Enum type DDL] */
 const std::string kCreateAnEnumType = R"~(
-create type __pgtest.rainbow as enum (
+-- /// [User enum type postgres]
+CREATE TYPE __pgtest.rainbow AS enum (
   'red', 'orange', 'yellow', 'green', 'cyan'
-))~";
-/*! [Enum type DDL] */
+)
+-- /// [User enum type postgres]
+)~";
 
 const std::string kSelectEnumValues = R"~(
 select  'red'::__pgtest.rainbow as red,
@@ -29,58 +30,46 @@ select  'red'::__pgtest.rainbow as red,
         'cyan'::__pgtest.rainbow as cyan
 )~";
 
-/*! [C++ enum type] */
+}  // anonymous namespace
+
+/*! [User enum type cpp] */
 enum class Rainbow { kRed, kOrange, kYellow, kGreen, kCyan };
-enum class AnotherRainbow { kRed, kOrange, kYellow, kGreen, kCyan };
-/*! [C++ enum type] */
+
+// This specialization MUST go to the header together with the mapped type
+template <>
+struct storages::postgres::io::CppToUserPg<Rainbow> {
+  static constexpr DBTypeName postgres_name = "__pgtest.rainbow";
+  static constexpr USERVER_NAMESPACE::utils::TrivialBiMap enumerators =
+      [](auto selector) {
+        return selector()
+            .Case("red", Rainbow::kRed)
+            .Case("orange", Rainbow::kOrange)
+            .Case("yellow", Rainbow::kYellow)
+            .Case("green", Rainbow::kGreen)
+            .Case("cyan", Rainbow::kCyan);
+      };
+};
+/*! [User enum type cpp] */
 
 // This data type is for testing a data type that is used only for reading
 enum class RainbowRO { kRed, kOrange, kYellow, kGreen, kCyan };
 
 enum class AnotherRainbowRO { kRed, kOrange, kYellow, kGreen, kCyan };
 
-}  // namespace
-
-// this is used as a code snippet in documentation, clang-format makes it ugly
-// clang-format off
-/*! [C++ to Pg mapping] */
-namespace storages::postgres::io {
+/*! [User enum type cpp2] */
+enum class AnotherRainbow { kRed, kOrange, kYellow, kGreen, kCyan };
 // This specialization MUST go to the header together with the mapped type
 template <>
-struct CppToUserPg<Rainbow> : EnumMappingBase<Rainbow> {
+struct storages::postgres::io::CppToUserPg<AnotherRainbow>
+    : storages::postgres::io::EnumMappingBase<AnotherRainbow> {
   static constexpr DBTypeName postgres_name = "__pgtest.rainbow";
-  static constexpr Enumerator enumerators[] {
-      {EnumType::kRed,    "red"},
-      {EnumType::kOrange, "orange"},
-      {EnumType::kYellow, "yellow"},
-      {EnumType::kGreen,  "green"},
-      {EnumType::kCyan,   "cyan"}};
+  static constexpr Enumerator enumerators[]{
+      {EnumType::kRed, "red"},       {EnumType::kOrange, "orange"},
+      {EnumType::kYellow, "yellow"}, {EnumType::kGreen, "green"},
+      {EnumType::kCyan, "cyan"},
+  };
 };
-}  // namespace storages::postgres::io
-/*! [C++ to Pg mapping] */
-// clang-format on
-
-// this is used as a code snippet in documentation, clang-format makes it ugly
-// clang-format off
-/*! [C++ to Pg TrivialBiMap mapping] */
-namespace storages::postgres::io {
-// This specialization MUST go to the header together with the mapped type
-template <>
-struct CppToUserPg<AnotherRainbow> : EnumMappingBase<AnotherRainbow> {
-  static constexpr DBTypeName postgres_name = "__pgtest.rainbow";
-  static constexpr USERVER_NAMESPACE::utils::TrivialBiMap enumerators =
-      [](auto selector) {
-          return selector()
-              .Case("red", AnotherRainbow::kRed)
-              .Case("orange", AnotherRainbow::kOrange)
-              .Case("yellow", AnotherRainbow::kYellow)
-              .Case("green", AnotherRainbow::kGreen)
-              .Case("cyan", AnotherRainbow::kCyan);
-      };
-};
-}  // namespace storages::postgres::io
-/*! [C++ to Pg TrivialBiMap mapping] */
-// clang-format on
+/*! [User enum type cpp2] */
 
 // Reopen the namespace not to get to the code snippet
 namespace storages::postgres::io {
@@ -172,15 +161,21 @@ UTEST_P(PostgreConnection, EnumRoundtrip) {
     UEXPECT_NO_THROW(f.As<Rainbow>());
   }
 
-  for (const auto& en : EnumMap::enumerators) {
-    UEXPECT_NO_THROW(res = GetConn()->Execute("select $1", en.enumerator));
-    EXPECT_EQ(en.enumerator, res[0][0].As<Rainbow>());
-    EXPECT_EQ(en.literal, res[0][0].As<std::string_view>());
+  for (const auto& [literal, enumerator] : EnumMap::enumerators) {
+    res = GetConn()->Execute("select $1", enumerator);
+    EXPECT_EQ(enumerator, res[0][0].As<Rainbow>());
+    EXPECT_EQ(literal, res[0][0].As<std::string_view>());
     // Test the data type that is used for reading only
     UEXPECT_NO_THROW(res[0][0].As<RainbowRO>())
         << "Read a datatype that is never written to a Pg buffer";
   }
-
+  {
+    auto& connection = GetConn();
+    /// [User enum type cpp usage]
+    auto result = connection->Execute("select $1", Rainbow::kRed);
+    EXPECT_EQ(Rainbow::kRed, result[0][0].As<Rainbow>());
+    /// [User enum type cpp usage]
+  }
   UEXPECT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";
 }
 
