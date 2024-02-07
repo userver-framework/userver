@@ -336,6 +336,10 @@ void ClusterImpl::SetPoolSettings(const PoolSettings& new_settings) {
   }
 }
 
+void ClusterImpl::SetTopologySettings(const TopologySettings& settings) {
+  topology_->SetTopologySettings(settings);
+}
+
 void ClusterImpl::OnConnlimitChanged() {
   auto max_size = connlimit_watchdog_.GetConnlimit();
   auto cluster = cluster_settings_.StartWrite();

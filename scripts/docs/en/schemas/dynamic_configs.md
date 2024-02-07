@@ -301,6 +301,44 @@ definitions:
 Used by components::Postgres.
 
 
+@anchor POSTGRES_TOPOLOGY_SETTINGS
+## POSTGRES_TOPOLOGY_SETTINGS
+
+Dynamic config that controls topology settings of service's PostgreSQL
+components.
+
+Dictionary keys can be either the service **component name** (not database name!)
+or `__default__`. The latter configuration is applied for every non-matching
+PostgreSQL component of the service.
+
+Take note that it overrides the static configuration values of the service!
+
+```
+yaml
+type: object
+additionalProperties: false
+properties:
+    max_replication_lag_ms:
+      type: integer
+      minimum: 0
+      description: maximum allowed replication lag. If equals 0 no replication 
+      lag checks are performed
+required:
+  - max_replication_lag_ms
+```
+
+**Example**
+```json
+{
+  "__default__": {
+    "max_replication_lag_ms": 60000
+  }
+}
+```
+
+Used by components::Postgres.
+
+
 @anchor POSTGRES_CONNECTION_SETTINGS
 ## POSTGRES_CONNECTION_SETTINGS
 
@@ -355,6 +393,7 @@ properties:
 
 Used by components::Postgres.
 
+
 @anchor POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED
 ## POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED
 
@@ -372,6 +411,7 @@ schema:
 ```
 
 Used by components::Postgres.
+
 
 @anchor POSTGRES_STATEMENT_METRICS_SETTINGS
 ## POSTGRES_STATEMENT_METRICS_SETTINGS

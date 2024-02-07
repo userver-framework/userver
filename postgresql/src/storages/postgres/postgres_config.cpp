@@ -137,6 +137,20 @@ PoolSettings Parse(const yaml_config::YamlConfig& config,
   return ParsePoolSettings(config);
 }
 
+TopologySettings Parse(const formats::json::Value& config,
+                       formats::parse::To<TopologySettings>) {
+  TopologySettings result{};
+
+  result.max_replication_lag =
+      config["max_replication_lag_ms"].template As<std::chrono::milliseconds>(
+          result.max_replication_lag);
+
+  if (result.max_replication_lag < std::chrono::milliseconds{0})
+    throw InvalidConfig{"max_replication_lag cannot be less than 0"};
+
+  return result;
+}
+
 namespace {
 
 template <typename ConfigType>
@@ -175,6 +189,9 @@ Config Config::Parse(const dynamic_config::DocsMap& docs_map) {
       /*pool_settings=*/
       docs_map.Get("POSTGRES_CONNECTION_POOL_SETTINGS")
           .As<dynamic_config::ValueDict<PoolSettings>>(),
+      /*topology_settings*/
+      docs_map.Get("POSTGRES_TOPOLOGY_SETTINGS")
+          .As<dynamic_config::ValueDict<TopologySettings>>(),
       /*connection_settings=*/
       docs_map.Get("POSTGRES_CONNECTION_SETTINGS")
           .As<dynamic_config::ValueDict<ConnectionSettings>>(),
@@ -193,6 +210,7 @@ const dynamic_config::Key<Config> kConfig{
         {"POSTGRES_HANDLERS_COMMAND_CONTROL", JsonString{"{}"}},
         {"POSTGRES_QUERIES_COMMAND_CONTROL", JsonString{"{}"}},
         {"POSTGRES_CONNECTION_POOL_SETTINGS", JsonString{"{}"}},
+        {"POSTGRES_TOPOLOGY_SETTINGS", JsonString{"{}"}},
         {"POSTGRES_CONNECTION_SETTINGS", JsonString{"{}"}},
         {"POSTGRES_STATEMENT_METRICS_SETTINGS", JsonString{"{}"}},
     },

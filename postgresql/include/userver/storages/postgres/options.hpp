@@ -152,37 +152,40 @@ OptionalCommandControl GetHandlerOptionalCommandControl(
 OptionalCommandControl GetQueryOptionalCommandControl(
     const CommandControlByQueryMap& map, const std::string& query_name);
 
-struct TopologySettings {
-  std::chrono::milliseconds max_replication_lag{0};
-};
-
 /// Default initial pool connection count
-static constexpr size_t kDefaultPoolMinSize = 4;
+inline constexpr std::size_t kDefaultPoolMinSize = 4;
+
+/// Default maximum replication lag
+inline constexpr auto kDefaultMaxReplicationLag = std::chrono::seconds{60};
 
 /// Default pool connections limit
-static constexpr size_t kDefaultPoolMaxSize = 15;
+inline constexpr std::size_t kDefaultPoolMaxSize = 15;
 
 /// Default size of queue for clients waiting for connections
-static constexpr size_t kDefaultPoolMaxQueueSize = 200;
+inline constexpr std::size_t kDefaultPoolMaxQueueSize = 200;
 
 /// Default limit for concurrent establishing connections number
-static constexpr size_t kDefaultConnectingLimit = 0;
+inline constexpr std::size_t kDefaultConnectingLimit = 0;
+
+struct TopologySettings {
+  std::chrono::milliseconds max_replication_lag{kDefaultMaxReplicationLag};
+};
 
 /// @brief PostgreSQL connection pool options
 ///
 /// Dynamic option @ref POSTGRES_CONNECTION_POOL_SETTINGS
 struct PoolSettings {
   /// Number of connections created initially
-  size_t min_size{kDefaultPoolMinSize};
+  std::size_t min_size{kDefaultPoolMinSize};
 
   /// Maximum number of created connections
-  size_t max_size{kDefaultPoolMaxSize};
+  std::size_t max_size{kDefaultPoolMaxSize};
 
   /// Maximum number of clients waiting for a connection
-  size_t max_queue_size{kDefaultPoolMaxQueueSize};
+  std::size_t max_queue_size{kDefaultPoolMaxQueueSize};
 
   /// Limits number of concurrent establishing connections (0 - unlimited)
-  size_t connecting_limit{kDefaultConnectingLimit};
+  std::size_t connecting_limit{kDefaultConnectingLimit};
 
   bool operator==(const PoolSettings& rhs) const {
     return min_size == rhs.min_size && max_size == rhs.max_size &&
@@ -192,7 +195,7 @@ struct PoolSettings {
 };
 
 /// Default size limit for prepared statements cache
-static constexpr size_t kDefaultMaxPreparedCacheSize = 200;
+inline constexpr std::size_t kDefaultMaxPreparedCacheSize = 200;
 
 /// Pipeline mode configuration
 ///
@@ -226,7 +229,7 @@ struct ConnectionSettings {
     kDiscardNone,
     kDiscardAll,
   };
-  using SettingsVersion = size_t;
+  using SettingsVersion = std::size_t;
 
   /// Cache prepared statements or not
   PreparedStatementOptions prepared_statements = kCachePreparedStatements;
@@ -238,7 +241,7 @@ struct ConnectionSettings {
   CheckQueryParamsOptions ignore_unused_query_params = kCheckUnused;
 
   /// Limits the size or prepared statements cache
-  size_t max_prepared_cache_size = kDefaultMaxPreparedCacheSize;
+  std::size_t max_prepared_cache_size = kDefaultMaxPreparedCacheSize;
 
   /// Turns on connection pipeline mode
   PipelineMode pipeline_mode = PipelineMode::kDisabled;
@@ -248,7 +251,7 @@ struct ConnectionSettings {
       OmitDescribeInExecuteMode::kDisabled;
 
   /// This many connection errors in 15 seconds block new connections opening
-  size_t recent_errors_threshold = 2;
+  std::size_t recent_errors_threshold = 2;
 
   /// The maximum lifetime of the connection after which it will be closed
   std::optional<std::chrono::seconds> max_ttl{};
@@ -285,7 +288,7 @@ struct ConnectionSettings {
 /// Dynamic option @ref POSTGRES_STATEMENT_METRICS_SETTINGS
 struct StatementMetricsSettings final {
   /// Store metrics in LRU of this size
-  size_t max_statements{0};
+  std::size_t max_statements{0};
 
   bool operator==(const StatementMetricsSettings& other) const {
     return max_statements == other.max_statements;

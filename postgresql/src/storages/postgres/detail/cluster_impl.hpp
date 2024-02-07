@@ -62,6 +62,8 @@ class ClusterImpl {
 
   void SetPoolSettings(const PoolSettings& settings);
 
+  void SetTopologySettings(const TopologySettings& settings);
+
   void SetStatementMetricsSettings(const StatementMetricsSettings& settings);
 
   OptionalCommandControl GetQueryCmdCtl(const std::string& query_name) const;

@@ -226,7 +226,9 @@ void HotStandby::RunDiscovery() {
         std::chrono::duration_cast<std::chrono::milliseconds>(slave_lag)
             .count());
 
-    if (slave_lag > GetTopologySettings().max_replication_lag) {
+    auto& max_replication_lag = GetTopologySettings().max_replication_lag;
+    if (max_replication_lag > std::chrono::milliseconds{0} &&
+        slave_lag > max_replication_lag) {
       // Demote lagged slave
       LOG_INFO() << "Disabling slave " << slave.app_name
                  << " due to replication lag of " << slave_lag.count()

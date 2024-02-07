@@ -92,7 +92,7 @@ Postgres::Postgres(const ComponentConfig& config,
 
   initial_settings_.topology_settings.max_replication_lag =
       config["max_replication_lag"].As<std::chrono::milliseconds>(
-          kDefaultMaxReplicationLag);
+          storages::postgres::kDefaultMaxReplicationLag);
 
   initial_settings_.pool_settings =
       pg_config.pool_settings.GetOptional(name_).value_or(
@@ -185,6 +185,9 @@ void Postgres::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
   const auto pool_settings =
       pg_config.pool_settings.GetOptional(name_).value_or(
           initial_settings_.pool_settings);
+  const auto topology_settings =
+      pg_config.topology_settings.GetOptional(name_).value_or(
+          initial_settings_.topology_settings);
   auto connection_settings =
       pg_config.connection_settings.GetOptional(name_).value_or(
           initial_settings_.conn_settings);
@@ -200,6 +203,7 @@ void Postgres::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
     cluster->SetHandlersCommandControl(pg_config.handlers_command_control);
     cluster->SetQueriesCommandControl(pg_config.queries_command_control);
     cluster->SetPoolSettings(pool_settings);
+    cluster->SetTopologySettings(topology_settings);
     cluster->SetConnectionSettings(connection_settings);
     cluster->SetStatementMetricsSettings(statement_metrics_settings);
   }

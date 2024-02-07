@@ -225,6 +225,8 @@ class Cluster {
 
   void SetPoolSettings(const PoolSettings& settings);
 
+  void SetTopologySettings(const TopologySettings& settings);
+
   void SetStatementMetricsSettings(const StatementMetricsSettings& settings);
 
  private:

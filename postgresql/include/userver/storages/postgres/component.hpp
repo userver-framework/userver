@@ -4,7 +4,6 @@
 /// @brief @copybrief components::Postgres
 
 #include <chrono>
-#include <vector>
 
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/concurrent/async_event_source.hpp>
@@ -31,6 +30,7 @@ namespace components {
 /// * @ref POSTGRES_HANDLERS_COMMAND_CONTROL
 /// * @ref POSTGRES_QUERIES_COMMAND_CONTROL
 /// * @ref POSTGRES_CONNECTION_POOL_SETTINGS
+/// * @ref POSTGRES_TOPOLOGY_SETTINGS
 /// * @ref POSTGRES_CONNECTION_SETTINGS
 /// * @ref POSTGRES_STATEMENT_METRICS_SETTINGS
 /// * @ref POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED
@@ -142,7 +142,6 @@ namespace components {
 
 class Postgres : public LoggableComponentBase {
  public:
-  static constexpr auto kDefaultMaxReplicationLag = std::chrono::seconds{60};
   /// Default shard number
   static constexpr size_t kDefaultShardNumber = 0;
   /// Default command control

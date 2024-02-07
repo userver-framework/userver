@@ -88,6 +88,10 @@ void Cluster::SetPoolSettings(const PoolSettings& settings) {
   pimpl_->SetPoolSettings(settings);
 }
 
+void Cluster::SetTopologySettings(const TopologySettings& settings) {
+  pimpl_->SetTopologySettings(settings);
+}
+
 void Cluster::SetStatementMetricsSettings(
     const StatementMetricsSettings& settings) {
   pimpl_->SetStatementMetricsSettings(settings);
