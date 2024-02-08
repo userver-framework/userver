@@ -199,13 +199,18 @@ if (USERVER_IS_THE_ROOT_PROJECT OR USERVER_FEATURE_UTEST)
   target_compile_definitions(userver-core-internal PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
   target_include_directories(userver-core-internal PUBLIC
     $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
-    ${CMAKE_CURRENT_SOURCE_DIR}/internal/include
-    ${CMAKE_CURRENT_SOURCE_DIR}/../universal/internal/include
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/internal/include>
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../universal/internal/include>
   )
   target_link_libraries(userver-core-internal
     PUBLIC
       ${PROJECT_NAME}
   )
+  if(USERVER_INSTALL)
+    install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/internal/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
+    install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../universal/internal/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
+  endif()
+  _userver_install_targets(TARGETS userver-core-internal)
 endif()
 
 if (USERVER_FEATURE_UTEST)
@@ -222,12 +227,16 @@ if (USERVER_FEATURE_UTEST)
     )
 
     target_include_directories(userver-utest PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/testing/include
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/testing/include>
     )
     target_include_directories(userver-utest PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src/
         ${CMAKE_CURRENT_SOURCE_DIR}/testing/src/
     )
+    if(USERVER_INSTALL)
+        install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/testing/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
+    endif()
+    _userver_install_targets(TARGETS userver-utest userver-universal-internal-utest)
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
@@ -255,6 +264,7 @@ if (USERVER_FEATURE_UTEST)
       PRIVATE
         userver-core-internal
     )
+    _userver_install_targets(TARGETS userver-ubench userver-universal-internal-ubench)
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)

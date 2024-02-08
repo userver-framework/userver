@@ -32,8 +32,6 @@ if (c-ares_FOUND)
   endif()
 endif()
 
-
-
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/..")
 set(cctz_VERSION "0.1")
 find_package(cctz REQUIRED)
@@ -47,15 +45,22 @@ set(Nghttp2_VERSION "0.1")
 find_package(Nghttp2 REQUIRED)
 set(LibEv_VERSION "0.1")
 find_package(LibEv REQUIRED)
-
+set(UserverGTest_VERSION "0.1")
+find_package(UserverGTest REQUIRED)
+set(UserverGBench_VERSION "0.1")
+find_package(UserverGBench REQUIRED)
 
 set(USERVER_CMAKE_DIR ${CMAKE_CURRENT_LIST_DIR})
 
 include("${USERVER_CMAKE_DIR}/SetupLTO.cmake")
 include("${USERVER_CMAKE_DIR}/SetupLinker.cmake")
 include("${USERVER_CMAKE_DIR}/Sanitizers.cmake")
+include("${USERVER_CMAKE_DIR}/AddGoogleTests.cmake")
+
 _userver_make_sanitize_target()
 
 
 add_library(userver::universal ALIAS userver::userver-universal)
 add_library(userver::core ALIAS userver::userver-core)
+add_library(userver::utest ALIAS userver::userver-utest)
+add_library(userver::ubench ALIAS userver::userver-ubench)

@@ -160,8 +160,10 @@ if(USERVER_INSTALL)
           "${CMAKE_BINARY_DIR}/cmake_generated/Findcctz.cmake"
           "${CMAKE_BINARY_DIR}/cmake_generated/FindJemalloc.cmake"
           "${CMAKE_BINARY_DIR}/cmake_generated/FindHttp_Parser.cmake"
-		  "${CMAKE_BINARY_DIR}/cmake_generated/FindNghttp2.cmake"
-		  "${CMAKE_BINARY_DIR}/cmake_generated/FindLibEv.cmake"
+          "${CMAKE_BINARY_DIR}/cmake_generated/FindNghttp2.cmake"
+          "${CMAKE_BINARY_DIR}/cmake_generated/FindLibEv.cmake"
+          "${CMAKE_BINARY_DIR}/cmake_generated/FindUserverGTest.cmake"
+          "${CMAKE_BINARY_DIR}/cmake_generated/FindUserverGBench.cmake"
           DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/
   )
 endif()
@@ -264,6 +266,7 @@ if (USERVER_INSTALL)
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/SetupLTO.cmake"
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/SetupLinker.cmake"
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Sanitizers.cmake"
+	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/AddGoogleTests.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
   )
   _userver_export_targets()
