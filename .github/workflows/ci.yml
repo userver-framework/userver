@@ -126,7 +126,7 @@ jobs:
             run: |
                 mkdir build_debug
                 cd build_debug
-                cmake ${{matrix.cmake-flags}} ..
+                cmake -GNinja ${{matrix.cmake-flags}} ..
 
           - name: Run clang-tidy
             if: matrix.info == 'clang-14 + debug + sanitize addr+ub'
@@ -148,8 +148,7 @@ jobs:
           - name: Compile
             run: |
                 pwd
-                cd build_debug
-                make -j$(nproc)
+                cmake --build build_debug/
 
           - name: Run tests (universal)
             run: |
