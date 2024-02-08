@@ -562,21 +562,21 @@ Request& Request::post(const std::string& url, std::string data) & {
   return this->url(url).data(std::move(data)).post();
 }
 Request Request::post(const std::string& url, std::string data) && {
-  return std::move(this->post(url, data));
+  return std::move(this->post(url, std::move(data)));
 }
 
 Request& Request::put(const std::string& url, std::string data) & {
   return this->url(url).data(std::move(data)).put();
 }
 Request Request::put(const std::string& url, std::string data) && {
-  return std::move(this->put(url, data));
+  return std::move(this->put(url, std::move(data)));
 }
 
 Request& Request::patch(const std::string& url, std::string data) & {
   return this->url(url).data(std::move(data)).patch();
 }
 Request Request::patch(const std::string& url, std::string data) && {
-  return std::move(this->patch(url, data));
+  return std::move(this->patch(url, std::move(data)));
 }
 
 Request& Request::delete_method(const std::string& url) & {
@@ -590,7 +590,7 @@ Request& Request::delete_method(const std::string& url, std::string data) & {
   return this->url(url).data(std::move(data)).delete_method();
 }
 Request Request::delete_method(const std::string& url, std::string data) && {
-  return std::move(this->delete_method(url, data));
+  return std::move(this->delete_method(url, std::move(data)));
 }
 
 Request& Request::SetLoggedUrl(std::string url) & {
