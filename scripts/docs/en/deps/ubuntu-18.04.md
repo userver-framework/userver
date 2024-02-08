@@ -10,6 +10,7 @@ libboost-iostreams1.65-dev
 libboost-locale1.65-dev
 libboost-program-options1.65-dev
 libboost-regex1.65-dev
+libboost-stacktrace1.65-dev
 libboost1.65-dev
 libbson-dev
 libcrypto++-dev

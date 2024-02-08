@@ -24,7 +24,6 @@
 /clickhouse/ @itrofimow
 /rabbitmq/ @itrofimow
 
-/third_party/boost_stacktrace/ @antoshkka
 /third_party/pfr/ @ser-fedorov @antoshkka
 /third_party/uboost_coro/ @bugaevskiy @antoshkka
 

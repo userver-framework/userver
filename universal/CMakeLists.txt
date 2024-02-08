@@ -28,7 +28,13 @@ list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES} ${BENCH_SOURCES} ${INTERNAL_SOURCE
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
-find_package(Boost REQUIRED COMPONENTS program_options filesystem regex)
+find_package(Boost REQUIRED COMPONENTS
+    program_options
+    filesystem
+    regex
+    stacktrace_basic
+    stacktrace_backtrace
+)
 include(UserverRequireDWCAS)  # Should be called after `find_package(Boost REQUIRED)`
 
 message(STATUS "boost: ${Boost_VERSION_STRING}")
@@ -225,7 +231,6 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 if (USERVER_CONAN)
-  find_package(Boost COMPONENTS stacktrace REQUIRED)
   target_link_libraries(${PROJECT_NAME}
     PUBLIC
       fmt::fmt
@@ -237,7 +242,10 @@ if (USERVER_CONAN)
       rapidjson
   )
 else()
-  add_subdirectory("${USERVER_THIRD_PARTY_DIRS}/boost_stacktrace" boost_stacktrace_build)
+  include(Stacktrace)
+  _make_stacktrace_target(userver-stacktrace "${Boost_VERSION_STRING}")
+  userver_install_targets(TARGETS userver-stacktrace)
+
   target_link_libraries(${PROJECT_NAME}
     PUBLIC
       fmt

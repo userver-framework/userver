@@ -10,7 +10,13 @@ check_required_components(Userver)
 
 include(CMakeFindDependencyMacro)
 find_package(Threads)
-find_package(Boost REQUIRED COMPONENTS program_options filesystem regex)
+find_package(Boost REQUIRED COMPONENTS
+    program_options
+    filesystem
+    regex
+    stacktrace_basic
+    stacktrace_backtrace
+)
 find_package(Iconv REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(fmt "8.1.1" REQUIRED)

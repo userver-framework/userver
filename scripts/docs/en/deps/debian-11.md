@@ -7,6 +7,7 @@ libboost-iostreams1.74-dev
 libboost-locale1.74-dev
 libboost-program-options1.74-dev
 libboost-regex1.74-dev
+libboost-stacktrace1.74-dev
 libboost1.74-dev
 libbson-dev
 libc-ares-dev
