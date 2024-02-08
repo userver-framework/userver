@@ -22,4 +22,4 @@ CPMAddPackage(
     "BUILD_EXAMPLES OFF"
     "BUILD_TESTING OFF"
 )
-userver_install_targets(TARGETS cctz)
+_userver_install_targets(TARGETS cctz)

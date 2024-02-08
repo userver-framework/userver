@@ -144,7 +144,7 @@ if (NOT USERVER_NO_WERROR)
   target_compile_options(userver-internal-compile-options INTERFACE "-Werror")
 endif()
 
-userver_install_targets(TARGETS userver-internal-compile-options)
+_userver_install_targets(TARGETS userver-internal-compile-options)
 
 # The library itself
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
@@ -244,7 +244,7 @@ if (USERVER_CONAN)
 else()
   include(Stacktrace)
   _make_stacktrace_target(userver-stacktrace "${Boost_VERSION_STRING}")
-  userver_install_targets(TARGETS userver-stacktrace)
+  _userver_install_targets(TARGETS userver-stacktrace)
 
   target_link_libraries(${PROJECT_NAME}
     PUBLIC
@@ -275,7 +275,7 @@ if(USERVER_INSTALL)
   install(DIRECTORY ${USERVER_THIRD_PARTY_DIRS}/date/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
   install(DIRECTORY ${USERVER_THIRD_PARTY_DIRS}/function_backports/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
 
-  userver_install_targets(TARGETS ${PROJECT_NAME})
+  _userver_install_targets(TARGETS ${PROJECT_NAME})
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT OR USERVER_FEATURE_UTEST)

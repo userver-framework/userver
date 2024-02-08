@@ -11,8 +11,14 @@ project(userver)
 
 set(USERVER_ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}")
 
+option(
+    USERVER_INSTALL
+    "Prepare build of userver to install in system"
+    OFF
+)
+
 set(USERVER_NOT_INCLUDED_AS_SUBDIR OFF)
-if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
+if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR AND NOT USERVER_INSTALL)
   set(USERVER_NOT_INCLUDED_AS_SUBDIR ON)
 endif()
 
@@ -106,7 +112,7 @@ set(CMAKE_DEBUG_POSTFIX d)
 include(cmake/UserverSetupEnvironment.cmake)
 userver_setup_environment()
 
-include(PrepareInstall)
+include(cmake/PrepareInstall.cmake)
 
 if(USERVER_INSTALL)
   include(GNUInstallDirs)
@@ -114,7 +120,7 @@ endif()
 
 include(Sanitizers)
 _userver_make_sanitize_target()
-userver_install_targets(TARGETS userver-internal-sanitize-options)
+_userver_install_targets(TARGETS userver-internal-sanitize-options)
 
 include(GetUserverVersion)
 include(AddGoogleTests)
@@ -153,6 +159,9 @@ if(USERVER_INSTALL)
           "${CMAKE_BINARY_DIR}/cmake_generated/Findlibyamlcpp.cmake"
           "${CMAKE_BINARY_DIR}/cmake_generated/Findcctz.cmake"
           "${CMAKE_BINARY_DIR}/cmake_generated/FindJemalloc.cmake"
+          "${CMAKE_BINARY_DIR}/cmake_generated/FindHttp_Parser.cmake"
+		  "${CMAKE_BINARY_DIR}/cmake_generated/FindNghttp2.cmake"
+		  "${CMAKE_BINARY_DIR}/cmake_generated/FindLibEv.cmake"
           DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/
   )
 endif()
@@ -257,6 +266,6 @@ if (USERVER_INSTALL)
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Sanitizers.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
   )
-  userver_export_targets()
+  _userver_export_targets()
 endif()
 

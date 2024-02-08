@@ -154,8 +154,11 @@ else()
     )
 
     target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
-        ${USERVER_THIRD_PARTY_DIRS}/moodycamel/include
+         $<BUILD_INTERFACE:${USERVER_THIRD_PARTY_DIRS}/moodycamel/include>
     )
+    if(USERVER_INSTALL)
+       install(DIRECTORY ${USERVER_THIRD_PARTY_DIRS}/moodycamel/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
+    endif()
 endif()
 
 if (NOT MACOS AND NOT ${CMAKE_SYSTEM_NAME} MATCHES "BSD")
@@ -163,11 +166,16 @@ if (NOT MACOS AND NOT ${CMAKE_SYSTEM_NAME} MATCHES "BSD")
 endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
-  ${USERVER_THIRD_PARTY_DIRS}/pfr/include
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<BUILD_INTERFACE:${USERVER_THIRD_PARTY_DIRS}/pfr/include>
 )
+if(USERVER_INSTALL)
+  install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
+  install(DIRECTORY ${USERVER_THIRD_PARTY_DIRS}/pfr/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
+endif()
+
 target_include_directories(${PROJECT_NAME} SYSTEM BEFORE PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/libc_include_fixes
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/libc_include_fixes>
 )
 
 # The bug is only triggered with optimizations enabled -- TAXICOMMON-1729
@@ -260,3 +268,5 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     )
     add_google_benchmark_tests(${PROJECT_NAME}-benchmark)
 endif()
+
+_userver_install_targets(TARGETS ${PROJECT_NAME})

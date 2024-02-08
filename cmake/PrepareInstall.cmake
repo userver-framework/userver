@@ -2,13 +2,7 @@ include_guard(GLOBAL)
 
 set_property(GLOBAL PROPERTY userver_cmake_dir "${CMAKE_CURRENT_LIST_DIR}")
 
-option(
-    USERVER_INSTALL
-    "Prepare build of userver to install in system"
-    OFF
-)
-
-function(userver_install_targets)
+function(_userver_install_targets)
   set(multiValueArgs TARGETS)
   cmake_parse_arguments(
     ARG "" "" "${multiValueArgs}" "${ARGN}"
@@ -44,7 +38,7 @@ function(userver_install_targets)
   )
 endfunction()
 
-function(userver_export_targets)
+function(_userver_export_targets)
   if(NOT USERVER_INSTALL)
     return()
   endif()
