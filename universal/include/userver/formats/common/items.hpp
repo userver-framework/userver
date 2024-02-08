@@ -44,7 +44,8 @@ class ItemsWrapper final {
 
     Iterator operator++(int) {
       auto it = *this;
-      return {it++};
+      ++it_;
+      return it;
     }
 
     Iterator& operator++() {
@@ -74,7 +75,15 @@ class ItemsWrapper final {
 /// @brief Wrapper for handy python-like iteration over a map
 ///
 /// @code
-///   for (const auto& [name, value]: Items(map)) ...
+/// for (const auto& [name, value]: Items(map)) ...
+/// @endcode
+///
+/// To move out values:
+/// @code
+/// for (auto [name, value]: Items(map)) {
+///   vector.push_back(std::move(name));
+///   // value is a const reference and can not be moved
+/// }
 /// @endcode
 template <typename Value>
 ItemsWrapper<Value> Items(Value&& value) {

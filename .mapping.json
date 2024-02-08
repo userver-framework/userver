@@ -3349,6 +3349,7 @@
   "universal/src/decimal64/decimal64_parsing_test.cpp":"taxi/uservices/userver/universal/src/decimal64/decimal64_parsing_test.cpp",
   "universal/src/decimal64/decimal64_test.cpp":"taxi/uservices/userver/universal/src/decimal64/decimal64_test.cpp",
   "universal/src/formats/common/conversion_test.hpp":"taxi/uservices/userver/universal/src/formats/common/conversion_test.hpp",
+  "universal/src/formats/common/items_test.cpp":"taxi/uservices/userver/universal/src/formats/common/items_test.cpp",
   "universal/src/formats/common/member_access_test.hpp":"taxi/uservices/userver/universal/src/formats/common/member_access_test.hpp",
   "universal/src/formats/common/member_modify_test.hpp":"taxi/uservices/userver/universal/src/formats/common/member_modify_test.hpp",
   "universal/src/formats/common/merge_test.hpp":"taxi/uservices/userver/universal/src/formats/common/merge_test.hpp",

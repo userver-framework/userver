@@ -5,12 +5,13 @@
 #include <userver/formats/json/string_builder.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/utils/algo.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace dynamic_config {
 namespace {
-const std::string kConfigsValues = "/configs/values";
+constexpr std::string_view kConfigsValues = "/configs/values";
 }  // namespace
 
 Client::Client(clients::http::Client& http_client, const ClientConfig& config)
@@ -22,7 +23,7 @@ std::string Client::FetchConfigsValues(std::string_view body) {
   const auto timeout_ms = config_.timeout.count();
   const auto retries = config_.retries;
   const auto url = config_.append_path_to_url
-                       ? config_.config_url + kConfigsValues
+                       ? utils::StrCat(config_.config_url, kConfigsValues)
                        : config_.config_url;
 
   // Storing and overriding proxy below to avoid issues with concurrent update

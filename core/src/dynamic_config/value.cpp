@@ -51,8 +51,8 @@ void DocsMap::Parse(formats::json::Value json, bool empty_ok) {
   // Erase the origin of 'json' from error messages of configs parsing.
   json.DropRootPath();
 
-  for (const auto& [name, value] : Items(json)) {
-    Set(name, value);
+  for (auto [name, value] : Items(std::move(json))) {
+    Set(std::move(name), value);
   }
 }
 
