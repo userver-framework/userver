@@ -120,6 +120,7 @@ function(userver_generate_grpc_files)
       ${pyi_out_param}
       -I "${root_path}"
       -I "${USERVER_PROTOBUF_IMPORT_DIR}"
+      ${include_options}
       "--plugin=protoc-gen-grpc=${PROTO_GRPC_CPP_PLUGIN}"
       "--plugin=protoc-gen-usrv=${PROTO_GRPC_USRV_PLUGIN}"
       "--plugin=protoc-gen-grpc_python=${PROTO_GRPC_PYTHON_PLUGIN}"
