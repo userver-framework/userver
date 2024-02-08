@@ -165,6 +165,14 @@ TEST(TrivialBiMap, MakeTrivialBiMap) {
   EXPECT_EQ(kMap.TryFind(42), std::nullopt);
 }
 
+TEST(TrivialBiMap, MakeTrivialSet) {
+  static constexpr auto kSet = utils::MakeTrivialSet<kToIntKeys>();
+
+  EXPECT_EQ(kSet.GetIndex("zero"), 0);
+  EXPECT_EQ(kSet.GetIndex("three"), 3);
+  EXPECT_EQ(kSet.GetIndex("ten"), std::nullopt);
+}
+
 TEST(TrivialBiMap, FindICaseBySecond) {
   static constexpr utils::TrivialBiMap kNumToGerman = [](auto selector) {
     return selector().Case(0, "null").Case(1, "eins").Case(2, "zwei").Case(

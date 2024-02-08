@@ -865,6 +865,24 @@ struct TrivialBiMapMultiCaseDispatch {
   }
 };
 
+template <typename Selector, class Values, std::size_t... Indices>
+constexpr auto TrivialSetMultiCase(Selector selector, const Values& values,
+                                   std::index_sequence<0, Indices...>) {
+  auto selector2 = selector.Case(std::data(values)[0]);
+  ((selector2 = selector2.Case(std::data(values)[Indices])), ...);
+  return selector2;
+}
+
+template <const auto& Values>
+struct TrivialSetMultiCaseDispatch {
+  template <class Selector>
+  constexpr auto operator()(Selector selector) const {
+    constexpr auto kValuesSize = std::size(Values);
+    return impl::TrivialSetMultiCase(selector(), Values,
+                                     std::make_index_sequence<kValuesSize>{});
+  }
+};
+
 }  // namespace impl
 
 /// @brief Zips two global `constexpr` arrays into an utils::TrivialBiMap.
@@ -872,8 +890,12 @@ template <const auto& Keys, const auto& Values>
 constexpr auto MakeTrivialBiMap() {
   static_assert(std::size(Keys) == std::size(Values));
   static_assert(std::size(Keys) >= 1);
-  return utils::TrivialBiMap(
-      impl::TrivialBiMapMultiCaseDispatch<Keys, Values>{});
+  return TrivialBiMap(impl::TrivialBiMapMultiCaseDispatch<Keys, Values>{});
+}
+
+template <const auto& Values>
+constexpr auto MakeTrivialSet() {
+  return TrivialSet(impl::TrivialSetMultiCaseDispatch<Values>{});
 }
 
 }  // namespace utils
