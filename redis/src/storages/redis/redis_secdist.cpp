@@ -23,6 +23,11 @@ RedisMapSettings::RedisMapSettings(const formats::json::Value& doc) {
   static const int kDefaultSentinelPort = 26379;
 
   const auto& redis_settings = doc["redis_settings"];
+  if (redis_settings.IsMissing()) {
+    LOG_WARNING() << "'redis_settings' secdist section is empty";
+    return;
+  }
+
   CheckIsObject(redis_settings, "redis_settings");
 
   for (auto it = redis_settings.begin(); it != redis_settings.end(); ++it) {
