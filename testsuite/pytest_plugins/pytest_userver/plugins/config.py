@@ -2,6 +2,7 @@
 Work with the configuration files of the service in testsuite.
 """
 
+# pylint: disable=redefined-outer-name
 import copy
 import logging
 import pathlib
@@ -103,8 +104,8 @@ def pytest_addoption(parser) -> None:
 # @endcond
 
 
-@pytest.fixture(name='service_config_path', scope='session')
-def _service_config_path(pytestconfig) -> pathlib.Path:
+@pytest.fixture(scope='session')
+def service_config_path(pytestconfig) -> pathlib.Path:
     """
     Returns the path to service.yaml file set by command line
     `--service-config` option.
@@ -116,8 +117,8 @@ def _service_config_path(pytestconfig) -> pathlib.Path:
     return pytestconfig.option.service_config
 
 
-@pytest.fixture(name='service_config_vars_path', scope='session')
-def _service_config_vars_path(pytestconfig) -> typing.Optional[pathlib.Path]:
+@pytest.fixture(scope='session')
+def service_config_vars_path(pytestconfig) -> typing.Optional[pathlib.Path]:
     """
     Returns the path to config_vars.yaml file set by command line
     `--service-config-vars` option.
@@ -130,8 +131,8 @@ def _service_config_vars_path(pytestconfig) -> typing.Optional[pathlib.Path]:
     return pytestconfig.option.service_config_vars
 
 
-@pytest.fixture(name='service_secdist_path', scope='session')
-def _service_secdist_path(pytestconfig) -> typing.Optional[pathlib.Path]:
+@pytest.fixture(scope='session')
+def service_secdist_path(pytestconfig) -> typing.Optional[pathlib.Path]:
     """
     Returns the path to secure_data.json file set by command line
     `--service-secdist` option.
@@ -158,8 +159,8 @@ def config_fallback_path(pytestconfig) -> pathlib.Path:
     return pytestconfig.option.config_fallback
 
 
-@pytest.fixture(name='service_tmpdir', scope='session')
-def _service_tmpdir(service_binary, tmp_path_factory):
+@pytest.fixture(scope='session')
+def service_tmpdir(service_binary, tmp_path_factory):
     """
     Returns the path for temporary files. The path is the same for the whole
     session and files are not removed (at least by this fixture) between
@@ -194,8 +195,8 @@ def service_config_path_temp(
     return dst_path
 
 
-@pytest.fixture(name='service_config_yaml', scope='session')
-def _service_config_yaml(_service_config) -> dict:
+@pytest.fixture(scope='session')
+def service_config_yaml(_service_config) -> dict:
     """
     Returns the static config values after the USERVER_CONFIG_HOOKS were
     applied (if any).
@@ -216,8 +217,8 @@ def service_config_vars(_service_config) -> dict:
     return _service_config.config_vars
 
 
-@pytest.fixture(name='_original_service_config', scope='session')
-def _original_service_config_fixture(
+@pytest.fixture(scope='session')
+def _original_service_config(
         service_config_path, service_config_vars_path,
 ) -> _UserverConfig:
     config_vars: dict
@@ -293,8 +294,8 @@ def userver_config_http_server(service_port, monitor_port):
     return _patch_config
 
 
-@pytest.fixture(name='allowed_url_prefixes_extra', scope='session')
-def _allowed_url_prefixes_extra() -> typing.List[str]:
+@pytest.fixture(scope='session')
+def allowed_url_prefixes_extra() -> typing.List[str]:
     """
     By default, userver HTTP client is only allowed to talk to mockserver
     when running in testsuite. This makes tests repeatable and encapsulated.

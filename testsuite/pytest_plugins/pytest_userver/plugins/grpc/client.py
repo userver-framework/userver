@@ -5,6 +5,7 @@ Make gRPC requests to the service.
 """
 
 # pylint: disable=no-member
+# pylint: disable=redefined-outer-name
 import asyncio
 
 import grpc
@@ -15,8 +16,8 @@ DEFAULT_TIMEOUT = 15.0
 USERVER_CONFIG_HOOKS = ['prepare_config_vars']
 
 
-@pytest.fixture(name='grpc_service_port', scope='session')
-def _grpc_service_port(service_config_yaml) -> int:
+@pytest.fixture(scope='session')
+def grpc_service_port(service_config_yaml) -> int:
     """
     Returns the gRPC listener port number of the service that is set in the
     static configuration file.
@@ -32,8 +33,8 @@ def _grpc_service_port(service_config_yaml) -> int:
     return components['grpc-server']['port']
 
 
-@pytest.fixture(name='grpc_service_endpoint', scope='session')
-def _grpc_service_endpoint(grpc_service_port) -> str:
+@pytest.fixture(scope='session')
+def grpc_service_endpoint(grpc_service_port) -> str:
     """
     Returns the gRPC endpoint of the service.
 
@@ -45,8 +46,8 @@ def _grpc_service_endpoint(grpc_service_port) -> str:
     return f'localhost:{grpc_service_port}'
 
 
-@pytest.fixture(name='grpc_service_timeout', scope='session')
-def _grpc_service_timeout(pytestconfig) -> float:
+@pytest.fixture(scope='session')
+def grpc_service_timeout(pytestconfig) -> float:
     """
     Returns the gRPC timeout for the service that is set by the command
     line option `--service-timeout`.
@@ -91,8 +92,8 @@ async def grpc_channel(
     return _grpc_session_channel
 
 
-@pytest.fixture(name='grpc_service_deps')
-def _grpc_service_deps(service_client):
+@pytest.fixture
+def grpc_service_deps(service_client):
     """
     gRPC service dependencies hook. Feel free to override it.
 

@@ -2,6 +2,7 @@
 Start the service in testsuite.
 """
 
+# pylint: disable=redefined-outer-name
 import logging
 import pathlib
 import sys
@@ -81,8 +82,8 @@ def pytest_override_testsuite_logger(  # pylint: disable=invalid-name
     )
 
 
-@pytest.fixture(name='service_env', scope='session')
-def _service_env():
+@pytest.fixture(scope='session')
+def service_env():
     """
     Override this to pass extra environment variables to the service.
 
@@ -92,8 +93,8 @@ def _service_env():
     return None
 
 
-@pytest.fixture(name='service_http_ping_url', scope='session')
-async def _service_http_ping_url(
+@pytest.fixture(scope='session')
+async def service_http_ping_url(
         service_config_yaml, service_baseurl,
 ) -> typing.Optional[str]:
     """
@@ -113,8 +114,8 @@ async def _service_http_ping_url(
     return None
 
 
-@pytest.fixture(name='service_non_http_health_checks', scope='session')
-def _service_non_http_health_checks(  # pylint: disable=invalid-name
+@pytest.fixture(scope='session')
+def service_non_http_health_checks(  # pylint: disable=invalid-name
         service_config_yaml,
 ) -> net.HealthChecks:
     """

@@ -1,3 +1,4 @@
+# pylint: disable=redefined-outer-name
 import concurrent.futures
 import contextlib
 import os
@@ -124,8 +125,8 @@ def _ydb_state():
     return State()
 
 
-@pytest.fixture(name='ydb_migrate_dir', scope='session')
-def _ydb_migrate_dir(service_source_dir) -> pathlib.Path:
+@pytest.fixture(scope='session')
+def ydb_migrate_dir(service_source_dir) -> pathlib.Path:
     return service_source_dir / 'ydb' / 'migrations'
 
 

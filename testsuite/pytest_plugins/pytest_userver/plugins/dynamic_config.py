@@ -2,6 +2,7 @@
 Supply dynamic configs for the service in testsuite.
 """
 
+# pylint: disable=redefined-outer-name
 import contextlib
 import copy
 import dataclasses
@@ -240,8 +241,8 @@ def pytest_userver_caches_setup(userver_cache_config):
     userver_cache_config.register_incremental_cache(*_CONFIG_CACHES)
 
 
-@pytest.fixture(name='dynamic_config')
-def _dynamic_config(
+@pytest.fixture
+def dynamic_config(
         request,
         search_path,
         object_substitute,
@@ -283,17 +284,17 @@ def _dynamic_config(
         yield config
 
 
-@pytest.fixture(scope='session', name='dynconf_cache_names')
-def _dynconf_cache_names():
+@pytest.fixture(scope='session')
+def dynconf_cache_names():
     return tuple(_CONFIG_CACHES)
 
 
-@pytest.fixture(scope='session', name='_dynconfig_json_cache')
+@pytest.fixture(scope='session')
 def _dynconfig_json_cache():
     return {}
 
 
-@pytest.fixture(name='_dynconfig_load_json_cached')
+@pytest.fixture
 def _dynconfig_load_json_cached(json_loads, _dynconfig_json_cache):
     def load(path: pathlib.Path):
         if path not in _dynconfig_json_cache:
@@ -311,8 +312,8 @@ def taxi_config(dynamic_config) -> DynamicConfig:
     return dynamic_config
 
 
-@pytest.fixture(name='dynamic_config_fallback_patch', scope='session')
-def _dynamic_config_fallback_patch() -> ConfigDict:
+@pytest.fixture(scope='session')
+def dynamic_config_fallback_patch() -> ConfigDict:
     """
     Override this fixture to replace some dynamic config values specifically
     for testsuite tests:
@@ -328,8 +329,8 @@ def _dynamic_config_fallback_patch() -> ConfigDict:
     return {}
 
 
-@pytest.fixture(name='config_service_defaults', scope='session')
-def _config_service_defaults(
+@pytest.fixture(scope='session')
+def config_service_defaults(
         config_fallback_path, dynamic_config_fallback_patch,
 ) -> ConfigDict:
     """
@@ -357,7 +358,7 @@ def _config_service_defaults(
     raise RuntimeError(
         'Either provide the path to dynamic config defaults file using '
         '--config-fallback pytest option, or override '
-        f'{_config_service_defaults.__name__} fixture to provide custom '
+        f'{config_service_defaults.__name__} fixture to provide custom '
         'dynamic config loading behavior.',
     )
 
@@ -464,8 +465,10 @@ def userver_config_dynconf_url(mockserver_info):
     return _patch_config
 
 
-@pytest.fixture(name='dynamic_config_changelog', scope='session')
-def _dynamic_config_changelog():
+# TODO publish _Changelog and document how to use it in custom config service
+#  mocks.
+@pytest.fixture(scope='session')
+def dynamic_config_changelog() -> _Changelog:
     return _Changelog()
 
 
