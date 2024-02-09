@@ -153,8 +153,7 @@ if(RESULT)
       "Generating cmake files failed with exit code: ${RESULT}"
   )
 endif(RESULT)
-if(USERVER_INSTALL)
-  install(FILES
+_userver_directory_install(FILES
           "${CMAKE_BINARY_DIR}/cmake_generated/FindCryptoPP.cmake"
           "${CMAKE_BINARY_DIR}/cmake_generated/Findlibyamlcpp.cmake"
           "${CMAKE_BINARY_DIR}/cmake_generated/Findcctz.cmake"
@@ -165,8 +164,7 @@ if(USERVER_INSTALL)
           "${CMAKE_BINARY_DIR}/cmake_generated/FindUserverGTest.cmake"
           "${CMAKE_BINARY_DIR}/cmake_generated/FindUserverGBench.cmake"
           DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/
-  )
-endif()
+)
 
 
 set(USERVER_THIRD_PARTY_DIRS ${USERVER_ROOT_DIR}/third_party CACHE INTERNAL "")
@@ -258,7 +256,7 @@ if (USERVER_INSTALL)
     VERSION ${USERVER_VERSION} COMPATIBILITY SameMajorVersion
   )
 
-  install(FILES
+  _userver_directory_install(FILES
     "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake"
     "${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake"
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/sanitize.blacklist.txt"
@@ -267,8 +265,24 @@ if (USERVER_INSTALL)
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/SetupLinker.cmake"
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Sanitizers.cmake"
 	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/AddGoogleTests.cmake"
+	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindPython.cmake"
+	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/UserverTestsuite.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
   )
+  file(GLOB_RECURSE TESTSUITE_INSTALL_FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/testsuite/*.txt"
+    "${CMAKE_CURRENT_SOURCE_DIR}/testsuite/*.py"
+    "${CMAKE_CURRENT_SOURCE_DIR}/testsuite/env.in"
+  )
+  _userver_directory_install(FILES
+	${TESTSUITE_INSTALL_FILES}
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/testsuite
+  )
+  _userver_directory_install(DIRECTORY
+  	"${CMAKE_CURRENT_SOURCE_DIR}/testsuite/pytest_plugins/"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/testsuite/pytest_plugins/
+  )
+
   _userver_export_targets()
 endif()
 

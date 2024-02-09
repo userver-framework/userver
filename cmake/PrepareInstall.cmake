@@ -3,6 +3,9 @@ include_guard(GLOBAL)
 set_property(GLOBAL PROPERTY userver_cmake_dir "${CMAKE_CURRENT_LIST_DIR}")
 
 function(_userver_install_targets)
+  if(NOT USERVER_INSTALL)
+    return()
+  endif()
   set(multiValueArgs TARGETS)
   cmake_parse_arguments(
     ARG "" "" "${multiValueArgs}" "${ARGN}"
@@ -17,9 +20,6 @@ function(_userver_install_targets)
       return()
     endif()
   endforeach()
-  if(NOT USERVER_INSTALL)
-    return()
-  endif()
   install(TARGETS ${ARG_TARGETS}
           EXPORT UserverTargets
           CONFIGURATIONS RELEASE
@@ -54,4 +54,27 @@ function(_userver_export_targets)
           NAMESPACE userver::
           DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/debug
   )
+endfunction()
+
+function(_userver_directory_install)
+  if(NOT USERVER_INSTALL)
+    return()
+  endif()
+  set(oneValueArgs DESTINATION)
+  set(multiValueArgs FILES DIRECTORY)
+  cmake_parse_arguments(
+	  ARG "${option}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}"
+  )
+  if(NOT ARG_DESTINATION)
+    message(FATAL_ERROR "No DESTINATION for install")
+  endif()
+  if(NOT ARG_FILES AND NOT ARG_DIRECTORY)
+	  message(FATAL_ERROR "No FILES or DIRECTORY provided to install")
+  endif()
+  if(ARG_FILES)
+	  install(FILES ${ARG_FILES} DESTINATION ${ARG_DESTINATION})
+  endif()
+  if(ARG_DIRECTORY)
+	  install(DIRECTORY ${ARG_DIRECTORY} DESTINATION ${ARG_DESTINATION})
+  endif()
 endfunction()

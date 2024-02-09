@@ -270,13 +270,14 @@ target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
   ${USERVER_THIRD_PARTY_DIRS}/rapidjson/include
 )
 
-if(USERVER_INSTALL)
-  install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
-  install(DIRECTORY ${USERVER_THIRD_PARTY_DIRS}/date/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
-  install(DIRECTORY ${USERVER_THIRD_PARTY_DIRS}/function_backports/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
-
-  _userver_install_targets(TARGETS ${PROJECT_NAME})
-endif()
+_userver_directory_install(
+  DIRECTORY 
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${USERVER_THIRD_PARTY_DIRS}/date/include
+    ${USERVER_THIRD_PARTY_DIRS}/function_backports/include
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
+)
+_userver_install_targets(TARGETS ${PROJECT_NAME})
 
 if (USERVER_IS_THE_ROOT_PROJECT OR USERVER_FEATURE_UTEST)
   add_library(${PROJECT_NAME}-internal-utest INTERFACE)

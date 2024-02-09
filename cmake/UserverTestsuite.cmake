@@ -1,7 +1,10 @@
 include_guard()
 
 include(CTest)
-include(FindPython)
+
+if(NOT USERVER_PYTHON)
+  include(FindPython)
+endif()
 
 option(USERVER_FEATURE_TESTSUITE "Enable functional tests via testsuite" ON)
 option(
@@ -27,8 +30,10 @@ if(USERVER_FEATURE_TESTSUITE)
   endif()
 endif()
 
-get_filename_component(
-    USERVER_TESTSUITE_DIR "${CMAKE_CURRENT_LIST_DIR}/../testsuite" ABSOLUTE)
+if(NOT USERVER_TESTSUITE_DIR)
+  get_filename_component(
+      USERVER_TESTSUITE_DIR "${CMAKE_CURRENT_LIST_DIR}/../testsuite" ABSOLUTE)
+endif()
 
 function(userver_venv_setup)
   set(options UNIQUE)

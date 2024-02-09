@@ -51,14 +51,16 @@ set(UserverGBench_VERSION "0.1")
 find_package(UserverGBench REQUIRED)
 
 set(USERVER_CMAKE_DIR ${CMAKE_CURRENT_LIST_DIR})
+set(USERVER_TESTSUITE_DIR "${USERVER_CMAKE_DIR}/testsuite")
 
 include("${USERVER_CMAKE_DIR}/SetupLTO.cmake")
 include("${USERVER_CMAKE_DIR}/SetupLinker.cmake")
 include("${USERVER_CMAKE_DIR}/Sanitizers.cmake")
 include("${USERVER_CMAKE_DIR}/AddGoogleTests.cmake")
+include("${USERVER_CMAKE_DIR}/FindPython.cmake")
+include("${USERVER_CMAKE_DIR}/UserverTestsuite.cmake")
 
 _userver_make_sanitize_target()
-
 
 add_library(userver::universal ALIAS userver::userver-universal)
 add_library(userver::core ALIAS userver::userver-core)

@@ -156,9 +156,7 @@ else()
     target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
          $<BUILD_INTERFACE:${USERVER_THIRD_PARTY_DIRS}/moodycamel/include>
     )
-    if(USERVER_INSTALL)
-       install(DIRECTORY ${USERVER_THIRD_PARTY_DIRS}/moodycamel/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
-    endif()
+    _userver_directory_install(DIRECTORY ${USERVER_THIRD_PARTY_DIRS}/moodycamel/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
 endif()
 
 if (NOT MACOS AND NOT ${CMAKE_SYSTEM_NAME} MATCHES "BSD")
@@ -169,10 +167,12 @@ target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<BUILD_INTERFACE:${USERVER_THIRD_PARTY_DIRS}/pfr/include>
 )
-if(USERVER_INSTALL)
-  install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
-  install(DIRECTORY ${USERVER_THIRD_PARTY_DIRS}/pfr/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
-endif()
+_userver_directory_install(
+  DIRECTORY
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${USERVER_THIRD_PARTY_DIRS}/pfr/include 
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
+)
 
 target_include_directories(${PROJECT_NAME} SYSTEM BEFORE PUBLIC
 	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/libc_include_fixes>
@@ -206,10 +206,12 @@ if (USERVER_IS_THE_ROOT_PROJECT OR USERVER_FEATURE_UTEST)
     PUBLIC
       ${PROJECT_NAME}
   )
-  if(USERVER_INSTALL)
-    install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/internal/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
-    install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../universal/internal/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
-  endif()
+  _userver_directory_install(
+    DIRECTORY
+      ${CMAKE_CURRENT_SOURCE_DIR}/internal/include
+      ${CMAKE_CURRENT_SOURCE_DIR}/../universal/internal/include
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
+  )
   _userver_install_targets(TARGETS userver-core-internal)
 endif()
 
@@ -233,9 +235,7 @@ if (USERVER_FEATURE_UTEST)
         ${CMAKE_CURRENT_SOURCE_DIR}/src/
         ${CMAKE_CURRENT_SOURCE_DIR}/testing/src/
     )
-    if(USERVER_INSTALL)
-        install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/testing/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
-    endif()
+    _userver_directory_install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/testing/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
     _userver_install_targets(TARGETS userver-utest userver-universal-internal-utest)
 endif()
 
