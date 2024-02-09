@@ -110,30 +110,37 @@ void DynamicConfigClientUpdater::StoreIfEnabled() {
 
 std::vector<std::string> DynamicConfigClientUpdater::GetDocsMapKeysToFetch(
     AdditionalDocsMapKeys& additional_docs_map_keys) {
-  if (load_only_my_values_) {
-    auto docs_map_keys = docs_map_keys_;
+  std::vector<std::string> result;
 
-    for (auto it = additional_docs_map_keys.begin();
-         it != additional_docs_map_keys.end();) {
-      // Use reference counting to make sure that all consumers of config keys
-      // may .Get() their keys. We may not guarantee that by any synchronization
-      // on Update()/SetAdditionalKeys() as consumers may outlive these calls
-      // and die well after Update()/SetAdditionalKeys() return.
-      if (it->use_count() > 1) {
-        UASSERT(*it);
-        for (const auto& additional_key : **it) {
-          docs_map_keys.insert(additional_key);
-        }
-        ++it;
-      } else {
-        it = additional_docs_map_keys.erase(it);
-      }
-    }
-
-    return {docs_map_keys.begin(), docs_map_keys.end()};
+  if (!load_only_my_values_) {
+    return result;
   }
 
-  return {};
+  auto docs_map_keys = docs_map_keys_;
+
+  for (auto it = additional_docs_map_keys.begin();
+       it != additional_docs_map_keys.end();) {
+    // Use reference counting to make sure that all consumers of config keys
+    // may .Get() their keys. We may not guarantee that by any synchronization
+    // on Update()/SetAdditionalKeys() as consumers may outlive these calls
+    // and die well after Update()/SetAdditionalKeys() return.
+    if (it->use_count() > 1) {
+      UASSERT(*it);
+      for (const auto& additional_key : **it) {
+        docs_map_keys.insert(additional_key);
+      }
+      ++it;
+    } else {
+      it = additional_docs_map_keys.erase(it);
+    }
+  }
+
+  result.reserve(docs_map_keys.size());
+  while (!docs_map_keys.empty()) {
+    auto node = docs_map_keys.extract(docs_map_keys.begin());
+    result.push_back(std::move(node.value()));
+  }
+  return result;
 }
 
 dynamic_config::AdditionalKeysToken
