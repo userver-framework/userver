@@ -90,12 +90,6 @@ TYPED_UTEST(ScopeTagsTest, AttemptToOverwriteFrozenTag) {
   CheckNotContains(logs, "key=value2");
 }
 
-TYPED_UTEST(ScopeTagsTest, CreateTwoSameTags) {
-  tracing::Span myspan{"myspan"};
-
-  const typename TestFixture::TagType first{myspan, "key", "value"};
-  const typename TestFixture::TagType second{myspan, "key", "value"};
-}
 
 struct ScopeTagTest : LoggingTest {};
 struct FrozenScopeTagTest : LoggingTest {};
@@ -111,6 +105,22 @@ UTEST_F(ScopeTagTest, Forget) {
   CheckContains(logs, "key=2value2");
   CheckNotContains(logs, "key=value");
 }
+
+UTEST_F(ScopeTagTest, RegularTagBroken) {
+  tracing::Span myspan{"myspan"};
+  {
+    const tracing::ScopeTag tag{"key", "value"};
+    myspan.AddTag("key", "value");
+  }
+  LOG_INFO() << "1";
+  logging::LogFlush();
+  auto logs = GetStreamString();
+  CheckNotContains(logs, "key");
+  CheckNotContains(logs, "value");
+  // this happens because there is no way for ScopeTag::~ScopeTag() to detect that it doesn't own anything already.
+}
+
+
 
 UTEST_F(FrozenScopeTagTest, Useless) {
   tracing::Span myspan{"myspan"};

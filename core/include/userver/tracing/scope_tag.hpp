@@ -3,8 +3,8 @@
 #include <userver/logging/log_extra.hpp>
 #include <userver/tracing/span.hpp>
 /// @file userver/tracing/scope_tag.hpp
-/// @brief @copybrief tracing::ScopeTag
-
+/// @brief @copybrief tracing::ScopeTag tracing::FrozenScopeTag
+/// see @ref core/src/tracing/scope_tag_test.hpp for example usage
 USERVER_NAMESPACE_BEGIN
 
 namespace tracing {
@@ -26,6 +26,8 @@ struct ScopeTagsImpl {
 };
 }  // namespace impl
 
+/// @brief RAII object that calls Span::AddTag function in constructor and
+/// reverts this actions in destructor, if it makes sense.
 class ScopeTag {
  public:
   explicit ScopeTag(std::string key, logging::LogExtra::Value value);
@@ -45,6 +47,7 @@ class ScopeTag {
   impl::ScopeTagsImpl impl_;
 };
 
+/// @brief Similar to ScopeTag, but adds frozen tag.
 class FrozenScopeTag {
  public:
   explicit FrozenScopeTag(std::string key, logging::LogExtra::Value value);
