@@ -43,7 +43,7 @@ std::string FormatDatetime64(Rep source) {
                         .count();
   const size_t prefix = tics / ratio;
   const size_t suffix = tics % ratio;
-  return fmt::format("toDateTime64('{}.{}', {})", prefix, suffix,
+  return fmt::format("toDateTime64('{0}.{1:0>{2}}', {2})", prefix, suffix,
                      Rep::TagType::kPrecision);
 }
 

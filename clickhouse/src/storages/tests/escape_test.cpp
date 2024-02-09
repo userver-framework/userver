@@ -21,6 +21,10 @@ constexpr clock::time_point kFakeNow{
     std::chrono::duration_cast<clock::duration>(
         std::chrono::nanoseconds{1546300800'123456789ULL})};
 
+constexpr clock::time_point kFakeNowLeadingZeros{
+    std::chrono::duration_cast<clock::duration>(
+        std::chrono::nanoseconds{1546300800'001002003ULL})};
+
 void ValidateEscaping(const std::string& source, const std::string& expected) {
   const auto escaped = io::impl::Escape(source);
   EXPECT_EQ(escaped, expected);
@@ -122,10 +126,28 @@ TEST(EscapeDatetime, Milli) {
   EXPECT_EQ(escaped, expected);
 }
 
+TEST(EscapeDatetime, MilliLeadingZeros) {
+  const io::DateTime64Milli source{kFakeNowLeadingZeros};
+  // precision is 10^-3
+  const std::string expected = R"(toDateTime64('1546300800.001', 3))";
+  const auto escaped = io::impl::Escape(source);
+
+  EXPECT_EQ(escaped, expected);
+}
+
 TEST(EscapeDatetime, Micro) {
   const io::DateTime64Micro source{kFakeNow};
   // precision is 10^-6
   const std::string expected = R"(toDateTime64('1546300800.123456', 6))";
+  const auto escaped = io::impl::Escape(source);
+
+  EXPECT_EQ(escaped, expected);
+}
+
+TEST(EscapeDatetime, MicroLeadingZeros) {
+  const io::DateTime64Micro source{kFakeNowLeadingZeros};
+  // precision is 10^-6
+  const std::string expected = R"(toDateTime64('1546300800.001002', 6))";
   const auto escaped = io::impl::Escape(source);
 
   EXPECT_EQ(escaped, expected);
@@ -138,6 +160,19 @@ TEST(EscapeDatetime, Nano) {
   const std::string expected = R"(toDateTime64('1546300800.123456000', 9))";
 #else
   const std::string expected = R"(toDateTime64('1546300800.123456789', 9))";
+#endif
+  const auto escaped = io::impl::Escape(source);
+
+  EXPECT_EQ(escaped, expected);
+}
+
+TEST(EscapeDatetime, NanoLeadingZeros) {
+  const io::DateTime64Nano source{kFakeNowLeadingZeros};
+  // precision is 10^-9
+#ifdef _LIBCPP_VERSION
+  const std::string expected = R"(toDateTime64('1546300800.001002000', 9))";
+#else
+  const std::string expected = R"(toDateTime64('1546300800.001002003', 9))";
 #endif
   const auto escaped = io::impl::Escape(source);
 
