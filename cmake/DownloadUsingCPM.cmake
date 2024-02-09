@@ -23,11 +23,14 @@ if(CMAKE_VERSION VERSION_LESS "3.25.0")
   message(WARNING "Please update to cmake 3.25+ to remove warnings from third-party libs")
 endif()
 
+include(Directories)
+
 # If A uses find_package(B), and we install A and B using CPM, then:
 # 1. make sure to call write_package_stub in SetupB
 # 2. make sure to call SetupB at the beginning of SetupA
 function(write_package_stub PACKAGE_NAME)
-  file(WRITE "${CMAKE_BINARY_DIR}/package_stubs/${PACKAGE_NAME}Config.cmake")
+  _get_userver_binary_dir(userver_binary_dir)
+  file(WRITE "${userver_binary_dir}/package_stubs/${PACKAGE_NAME}Config.cmake")
 endfunction()
 
 function(_list_subdirectories directory result_list)

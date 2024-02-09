@@ -1,9 +1,9 @@
 include_guard(GLOBAL)
 
-set_property(GLOBAL PROPERTY userver_cmake_dir "${CMAKE_CURRENT_LIST_DIR}")
+include(Directories)
 
 function(_userver_get_sanitize_options SANITIZER_LIST_VAR COMPILE_FLAGS_VAR LINK_FLAGS_VAR)
-  get_property(USERVER_CMAKE_DIR GLOBAL PROPERTY userver_cmake_dir)
+  _get_userver_cmake_dir(USERVER_CMAKE_DIR)
 
   set(USERVER_SANITIZE_ENUM "mem, addr, thread, ub")
 
