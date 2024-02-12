@@ -14,6 +14,8 @@
 
 #include <userver/ugrpc/impl/deadline_timepoint.hpp>
 
+#include <userver/utest/utest.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 // TODO move functions to cpp
@@ -22,7 +24,7 @@ namespace tests {
 constexpr auto kShortTimeout = std::chrono::milliseconds{300};
 constexpr auto kLongTimeout = std::chrono::milliseconds{500} + kShortTimeout;
 
-constexpr auto kAddSleep = std::chrono::milliseconds{50};
+constexpr auto kAddSleep = std::chrono::milliseconds{100};
 
 const std::string kGrpcMethod = "grpc_method";
 
@@ -41,11 +43,8 @@ inline void InitTaskInheritedDeadline(
       {{}, kGrpcMethod, std::chrono::steady_clock::now(), deadline});
 }
 
-inline void WaitUntilRpcDeadlineService(engine::Deadline deadline) {
-  engine::SleepUntil(deadline);
-  // kAddSleep * 2 is needed, because otherwise there would be a race in client
-  // between reporting DEADLINE_EXCEEDED and returning our response.
-  engine::SleepFor(kAddSleep * 2);
+inline void WaitUntilRpcDeadlineService() {
+  engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
 }
 
 inline void WaitUntilRpcDeadlineClient(engine::Deadline deadline) {
@@ -55,9 +54,8 @@ inline void WaitUntilRpcDeadlineClient(engine::Deadline deadline) {
   engine::SleepFor(kAddSleep);
 }
 
-inline void WaitUntilRpcDeadline(ugrpc::server::CallAnyBase& call) {
-  WaitUntilRpcDeadlineService(
-      engine::Deadline::FromTimePoint(call.GetContext().deadline()));
+inline void WaitUntilRpcDeadline(ugrpc::server::CallAnyBase& /*call*/) {
+  WaitUntilRpcDeadlineService();
 }
 
 inline void WaitUntilRpcDeadline(ugrpc::client::CallAnyBase& call) {
