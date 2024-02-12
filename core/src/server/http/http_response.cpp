@@ -62,12 +62,23 @@ void CheckHeaderName(std::string_view name) {
 }
 
 void CheckHeaderValue(std::string_view value) {
-  for (char c : value) {
+  bool check_failed = false;
+
+  // this gets autovectorized, and we optimize for happy path here
+  for (const char c : value) {
     auto code = static_cast<uint8_t>(c);
-    if (code < 32 || code == 127) {
-      throw std::runtime_error(
-          std::string("invalid character in header value: '") + c + "' (#" +
-          std::to_string(code) + ")");
+    check_failed |= code < 32 || code == 127;
+  }
+
+  if (check_failed) {
+    // in a presumably rare scenarios of the check failing we do a second loop
+    for (const char c : value) {
+      auto code = static_cast<uint8_t>(c);
+      if (code < 32 || code == 127) {
+        throw std::runtime_error(
+            std::string("invalid character in header value: '") + c + "' (#" +
+            std::to_string(code) + ")");
+      }
     }
   }
 }
@@ -112,9 +123,7 @@ void OutputHeader(USERVER_NAMESPACE::http::headers::HeadersString& header,
 
 HttpResponse::HttpResponse(const HttpRequestImpl& request,
                            request::ResponseDataAccounter& data_accounter)
-    : ResponseBase(data_accounter),
-      request_(request),
-      headers_end_(engine::SingleConsumerEvent::NoAutoReset()) {}
+    : ResponseBase(data_accounter), request_(request) {}
 
 HttpResponse::~HttpResponse() = default;
 

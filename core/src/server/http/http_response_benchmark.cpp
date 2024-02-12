@@ -8,6 +8,9 @@
 #include <userver/server/http/http_status.hpp>
 #include <userver/utils/small_string.hpp>
 
+#include <server/http/http_request_impl.hpp>
+#include <userver/server/request/response_base.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace {
@@ -120,10 +123,37 @@ void http_headers_serialization_ostreams(benchmark::State& state) {
   }
 }
 
+void HttpResponseSetHeaderBenchmark(benchmark::State& state) {
+  server::request::ResponseDataAccounter accounter{};
+  const server::http::HttpRequestImpl request_impl{accounter};
+  server::http::HttpResponse response{request_impl, accounter};
+
+  namespace Headers = USERVER_NAMESPACE::http::headers;
+
+  for ([[maybe_unused]] auto _ : state) {
+    response.SetHeader(Headers::kDate, "Sat, 10 Feb 2024 12:12:35 UTC");
+    response.SetHeader(Headers::kContentType, "application/octet-stream");
+    response.SetHeader(Headers::kServer,
+                       "userver/1.0.0 (20201109134848; rv:e20945c83fd)");
+    response.SetHeader(Headers::kXYaRequestId,
+                       "a3dd1efa7bf04e62902ba3283d24124f");
+    response.SetHeader(Headers::kXYaTraceId,
+                       "66971057871746f6808c8c62a68b28c4");
+    response.SetHeader(Headers::kXYaSpanId, "6e77c7f1feb6ee42");
+    response.SetHeader(Headers::kAcceptEncoding, "gzip, identity");
+    response.SetHeader(Headers::kConnection, "keep-alive");
+    response.SetHeader(Headers::kContentLength, "13");
+    if (!response.ClearHeaders()) {
+      std::abort();
+    }
+  }
+}
+
 }  // namespace
 
 BENCHMARK(http_headers_serialization_inplace);
 BENCHMARK(http_headers_serialization_no_ostreams);
 BENCHMARK(http_headers_serialization_ostreams);
+BENCHMARK(HttpResponseSetHeaderBenchmark);
 
 USERVER_NAMESPACE_END
