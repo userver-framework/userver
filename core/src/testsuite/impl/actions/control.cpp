@@ -72,7 +72,6 @@ void Control::InvalidateCaches(
   } else {
     testsuite_support_.GetCacheControl().ResetAllCaches(
         update_type, force_incremental_names);
-    testsuite_support_.GetComponentControl().InvalidateComponents();
   }
 }
 

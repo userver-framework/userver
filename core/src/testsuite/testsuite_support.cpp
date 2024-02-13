@@ -82,10 +82,6 @@ testsuite::CacheControl& TestsuiteSupport::GetCacheControl() {
   return cache_control_;
 }
 
-testsuite::ComponentControl& TestsuiteSupport::GetComponentControl() {
-  return component_control_;
-}
-
 testsuite::DumpControl& TestsuiteSupport::GetDumpControl() {
   return dump_control_;
 }

@@ -5,7 +5,6 @@
 
 #include <userver/components/impl/component_base.hpp>
 #include <userver/testsuite/cache_control.hpp>
-#include <userver/testsuite/component_control.hpp>
 #include <userver/testsuite/dump_control.hpp>
 #include <userver/testsuite/grpc_control.hpp>
 #include <userver/testsuite/http_allowed_urls_extra.hpp>
@@ -69,16 +68,12 @@ class TestsuiteSupport final : public components::impl::ComponentBase {
   testsuite::HttpAllowedUrlsExtra& GetHttpAllowedUrlsExtra();
   testsuite::GrpcControl& GetGrpcControl();
 
-  /// @deprecated Use GetCacheControl instead.
-  testsuite::ComponentControl& GetComponentControl();
-
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   void OnAllComponentsAreStopping() override;
 
   testsuite::CacheControl cache_control_;
-  testsuite::ComponentControl component_control_;
   testsuite::DumpControl dump_control_;
   testsuite::PeriodicTaskControl periodic_task_control_;
   testsuite::TestpointControl testpoint_control_;
