@@ -420,9 +420,6 @@ ClusterNodesResponseStatus ParseClusterNodesResponse(
 
     const auto& host_port_communication_port = splitted[1];
     const auto host_port_it = host_port_communication_port.rfind('@');
-    if (host_port_it == std::string::npos) {
-      return ClusterNodesResponseStatus::kFail;
-    }
     auto host_port = host_port_communication_port.substr(0, host_port_it);
 
     const auto port_it = host_port.rfind(':');
