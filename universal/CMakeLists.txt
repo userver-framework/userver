@@ -146,7 +146,7 @@ if (NOT USERVER_NO_WERROR)
   target_compile_options(userver-internal-compile-options INTERFACE "-Werror")
 endif()
 
-_userver_install_targets(TARGETS userver-internal-compile-options)
+_userver_install_targets(universal TARGETS userver-internal-compile-options)
 
 # The library itself
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
@@ -189,23 +189,23 @@ separate_arguments(USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
 list(REMOVE_DUPLICATES USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
 
 if ("error" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
-    target_compile_definitions(${PROJECT_NAME} PUBLIC
+	target_compile_definitions(${PROJECT_NAME} PUBLIC
       "USERVER_FEATURE_ERASE_LOG_WITH_LEVEL=4"
     )
 elseif ("warning" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
-    target_compile_definitions(${PROJECT_NAME} PUBLIC
+	target_compile_definitions(${PROJECT_NAME} PUBLIC
       "USERVER_FEATURE_ERASE_LOG_WITH_LEVEL=3"
     )
 elseif ("info" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
-    target_compile_definitions(${PROJECT_NAME} PUBLIC
+	target_compile_definitions(${PROJECT_NAME} PUBLIC
       "USERVER_FEATURE_ERASE_LOG_WITH_LEVEL=2"
     )
 elseif ("debug" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
-    target_compile_definitions(${PROJECT_NAME} PUBLIC
+	target_compile_definitions(${PROJECT_NAME} PUBLIC
       "USERVER_FEATURE_ERASE_LOG_WITH_LEVEL=1"
     )
 elseif ("trace" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
-    target_compile_definitions(${PROJECT_NAME} PUBLIC
+	target_compile_definitions(${PROJECT_NAME} PUBLIC
       "USERVER_FEATURE_ERASE_LOG_WITH_LEVEL=0"
     )
 endif ()
@@ -246,7 +246,7 @@ if (USERVER_CONAN)
 else()
   include(Stacktrace)
   _make_stacktrace_target(userver-stacktrace "${Boost_VERSION_STRING}")
-  _userver_install_targets(TARGETS userver-stacktrace)
+  _userver_install_targets(universal TARGETS userver-stacktrace)
 
   target_link_libraries(${PROJECT_NAME}
     PUBLIC
@@ -272,14 +272,14 @@ target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
   ${USERVER_THIRD_PARTY_DIRS}/rapidjson/include
 )
 
-_userver_directory_install(
+_userver_directory_install(universal
   DIRECTORY 
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${USERVER_THIRD_PARTY_DIRS}/date/include
     ${USERVER_THIRD_PARTY_DIRS}/function_backports/include
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
 )
-_userver_install_targets(TARGETS ${PROJECT_NAME})
+_userver_install_targets(universal TARGETS ${PROJECT_NAME})
 
 if (USERVER_IS_THE_ROOT_PROJECT OR USERVER_FEATURE_UTEST)
   add_library(${PROJECT_NAME}-internal-utest INTERFACE)

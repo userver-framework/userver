@@ -178,6 +178,8 @@
   "cmake/sanitize-macos.blacklist.txt":"taxi/uservices/userver/cmake/sanitize-macos.blacklist.txt",
   "cmake/sanitize.blacklist.txt":"taxi/uservices/userver/cmake/sanitize.blacklist.txt",
   "cmake/templates/Config.cmake.in":"taxi/uservices/userver/cmake/templates/Config.cmake.in",
+  "cmake/templates/userver-core-config.cmake":"taxi/uservices/userver/cmake/templates/userver-core-config.cmake",
+  "cmake/templates/userver-universal-config.cmake":"taxi/uservices/userver/cmake/templates/userver-universal-config.cmake",
   "conan/README.md":"taxi/uservices/userver/conan/README.md",
   "conan/test_package/CMakeLists.txt":"taxi/uservices/userver/conan/test_package/CMakeLists.txt",
   "conan/test_package/conanfile.py":"taxi/uservices/userver/conan/test_package/conanfile.py",

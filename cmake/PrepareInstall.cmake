@@ -1,8 +1,8 @@
-include_guard(GLOBAL)
+include_guard()
 
 set_property(GLOBAL PROPERTY userver_cmake_dir "${CMAKE_CURRENT_LIST_DIR}")
 
-function(_userver_install_targets)
+function(_userver_install_targets component)
   if(NOT USERVER_INSTALL)
     return()
   endif()
@@ -20,20 +20,21 @@ function(_userver_install_targets)
       return()
     endif()
   endforeach()
+  set(ITEM_COMPONENT ${component})
   install(TARGETS ${ARG_TARGETS}
-          EXPORT UserverTargets
+          EXPORT userver-targets
           CONFIGURATIONS RELEASE
-          LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-          ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-          RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+          LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT ${ITEM_COMPONENT}
+          ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT ${ITEM_COMPONENT}
+          RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT ${ITEM_COMPONENT}
           INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
   )
   install(TARGETS ${ARG_TARGETS}
-          EXPORT UserverTargetsD
+          EXPORT userver-targets_d
           CONFIGURATIONS DEBUG
-          LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-          ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-          RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+          LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT ${ITEM_COMPONENT}
+          ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT ${ITEM_COMPONENT}
+          RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT ${ITEM_COMPONENT}
           INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
   )
 endfunction()
@@ -42,39 +43,39 @@ function(_userver_export_targets)
   if(NOT USERVER_INSTALL)
     return()
   endif()
-  install(EXPORT UserverTargets
-          FILE UserverTargets.cmake
+  install(EXPORT userver-targets
+          FILE userver-targets.cmake
           CONFIGURATIONS RELEASE
           NAMESPACE userver::
-          DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/release
+         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/release
   )
-  install(EXPORT UserverTargetsD
-          FILE UserverTargetsD.cmake
+  install(EXPORT userver-targets_d
+          FILE userver-targets_d.cmake
           CONFIGURATIONS DEBUG
           NAMESPACE userver::
           DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/debug
   )
 endfunction()
 
-function(_userver_directory_install)
+function(_userver_directory_install component)
   if(NOT USERVER_INSTALL)
     return()
   endif()
   set(oneValueArgs DESTINATION)
   set(multiValueArgs FILES DIRECTORY)
   cmake_parse_arguments(
-	  ARG "${option}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}"
+    ARG "${option}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}"
   )
   if(NOT ARG_DESTINATION)
     message(FATAL_ERROR "No DESTINATION for install")
   endif()
   if(NOT ARG_FILES AND NOT ARG_DIRECTORY)
-	  message(FATAL_ERROR "No FILES or DIRECTORY provided to install")
+    message(FATAL_ERROR "No FILES or DIRECTORY provided to install")
   endif()
   if(ARG_FILES)
-	  install(FILES ${ARG_FILES} DESTINATION ${ARG_DESTINATION})
+    install(FILES ${ARG_FILES} DESTINATION ${ARG_DESTINATION} COMPONENT ${component})
   endif()
   if(ARG_DIRECTORY)
-	  install(DIRECTORY ${ARG_DIRECTORY} DESTINATION ${ARG_DESTINATION})
+    install(DIRECTORY ${ARG_DIRECTORY} DESTINATION ${ARG_DESTINATION} COMPONENT ${component})
   endif()
 endfunction()

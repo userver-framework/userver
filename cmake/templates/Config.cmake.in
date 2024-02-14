@@ -1,68 +1,32 @@
 @PACKAGE_INIT@
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
-  include("${CMAKE_CURRENT_LIST_DIR}/release/UserverTargets.cmake")
+  include("${CMAKE_CURRENT_LIST_DIR}/release/userver-targets.cmake")
 else()
-  include("${CMAKE_CURRENT_LIST_DIR}/debug/UserverTargetsD.cmake")
+  include("${CMAKE_CURRENT_LIST_DIR}/debug/userver-targets_d.cmake")
 endif()
 
-check_required_components(Userver)
+if(NOT userver_FIND_COMPONENTS)
+	set(userver_FIND_COMPONENTS @USERVER_AVAILABLE_COMPONENTS@)
+endif()
+list(REMOVE_DUPLICATES userver_FIND_COMPONENTS)
+
+message(STATUS "Userver components: ${userver_FIND_COMPONENTS}")
+list(REMOVE_ITEM userver_FIND_COMPONENTS universal)
 
 include(CMakeFindDependencyMacro)
-find_package(Threads)
-find_package(Boost REQUIRED COMPONENTS
-    program_options
-    filesystem
-    regex
-	locale
-	iostreams
-    stacktrace_basic
-    stacktrace_backtrace
-)
-find_package(Iconv REQUIRED)
-find_package(OpenSSL REQUIRED)
-find_package(fmt "8.1.1" REQUIRED)
-find_package(CURL "7.68" REQUIRED)
-find_package(ZLIB REQUIRED) 
-
-find_package(c-ares 1.16 REQUIRED)
-if (c-ares_FOUND)
-  if(NOT TARGET c-ares)
-    add_library(c-ares ALIAS c-ares::cares)
-  endif()
-endif()
-
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/..")
-set(cctz_VERSION "0.1")
-find_package(cctz REQUIRED)
-set(CryptoPP_VERSION "0.1")
-find_package(CryptoPP REQUIRED)
-set(libyamlcpp_VERSION "0.1")
-find_package(libyamlcpp REQUIRED)
-set(Http_Parser_VERSION "0.1")
-find_package(Http_Parser REQUIRED)
-set(Nghttp2_VERSION "0.1")
-find_package(Nghttp2 REQUIRED)
-set(LibEv_VERSION "0.1")
-find_package(LibEv REQUIRED)
-set(UserverGTest_VERSION "0.1")
-find_package(UserverGTest REQUIRED)
-set(UserverGBench_VERSION "0.1")
-find_package(UserverGBench REQUIRED)
 
 set(USERVER_CMAKE_DIR ${CMAKE_CURRENT_LIST_DIR})
 set(USERVER_TESTSUITE_DIR "${USERVER_CMAKE_DIR}/testsuite")
 
-include("${USERVER_CMAKE_DIR}/SetupLTO.cmake")
-include("${USERVER_CMAKE_DIR}/SetupLinker.cmake")
-include("${USERVER_CMAKE_DIR}/Sanitizers.cmake")
-include("${USERVER_CMAKE_DIR}/AddGoogleTests.cmake")
-include("${USERVER_CMAKE_DIR}/FindPython.cmake")
-include("${USERVER_CMAKE_DIR}/UserverTestsuite.cmake")
+set(CMAKE_MODULE_PATH
+    ${CMAKE_MODULE_PATH}
+    "${USERVER_CMAKE_DIR}"
+)
 
-_userver_make_sanitize_target()
+include("${USERVER_CMAKE_DIR}/userver-universal-config.cmake")
+foreach(ITEM_COMPONENT IN LISTS userver_FIND_COMPONENTS)
+  include("${USERVER_CMAKE_DIR}/userver-${ITEM_COMPONENT}-config.cmake")
+endforeach()
 
-add_library(userver::universal ALIAS userver::userver-universal)
-add_library(userver::core ALIAS userver::userver-core)
-add_library(userver::utest ALIAS userver::userver-utest)
-add_library(userver::ubench ALIAS userver::userver-ubench)
+check_required_components(userver)

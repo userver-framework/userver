@@ -16,7 +16,7 @@ option(
     "Prepare build of userver to install in system"
     OFF
 )
-
+set(USERVER_AVAILABLE_COMPONENTS universal)
 set(USERVER_NOT_INCLUDED_AS_SUBDIR OFF)
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR AND NOT USERVER_INSTALL)
   set(USERVER_NOT_INCLUDED_AS_SUBDIR ON)
@@ -28,6 +28,10 @@ option(USERVER_FEATURE_CHAOTIC "Provide chaotic-codegen for jsonschema" OFF)
 set(USERVER_BUILD_PLATFORM_X86 OFF)
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "^x86")
   set(USERVER_BUILD_PLATFORM_X86 ${USERVER_FEATURE_CORE})
+endif()
+
+if(USERVER_FEATURE_CORE)
+  list(APPEND USERVER_AVAILABLE_COMPONENTS core)
 endif()
 
 function(_require_userver_core FEATURE)
@@ -120,7 +124,7 @@ endif()
 
 include(Sanitizers)
 _userver_make_sanitize_target()
-_userver_install_targets(TARGETS userver-internal-sanitize-options)
+_userver_install_targets(universal TARGETS userver-internal-sanitize-options)
 
 include(GetUserverVersion)
 include(AddGoogleTests)
@@ -153,11 +157,14 @@ if(RESULT)
       "Generating cmake files failed with exit code: ${RESULT}"
   )
 endif(RESULT)
-_userver_directory_install(FILES
+_userver_directory_install(universal FILES
           "${CMAKE_BINARY_DIR}/cmake_generated/FindCryptoPP.cmake"
           "${CMAKE_BINARY_DIR}/cmake_generated/Findlibyamlcpp.cmake"
           "${CMAKE_BINARY_DIR}/cmake_generated/Findcctz.cmake"
           "${CMAKE_BINARY_DIR}/cmake_generated/FindJemalloc.cmake"
+          DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/
+)
+_userver_directory_install(core FILES
           "${CMAKE_BINARY_DIR}/cmake_generated/FindHttp_Parser.cmake"
           "${CMAKE_BINARY_DIR}/cmake_generated/FindNghttp2.cmake"
           "${CMAKE_BINARY_DIR}/cmake_generated/FindLibEv.cmake"
@@ -256,7 +263,7 @@ if (USERVER_INSTALL)
     VERSION ${USERVER_VERSION} COMPATIBILITY SameMajorVersion
   )
 
-  _userver_directory_install(FILES
+  _userver_directory_install(universal FILES
     "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake"
     "${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake"
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/sanitize.blacklist.txt"
@@ -265,20 +272,27 @@ if (USERVER_INSTALL)
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/SetupLinker.cmake"
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Sanitizers.cmake"
 	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/AddGoogleTests.cmake"
-	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindPython.cmake"
-	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/UserverTestsuite.cmake"
+	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/DetectVersion.cmake"
+	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/templates/userver-universal-config.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
   )
+  _userver_directory_install(core FILES
+	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindPython.cmake"
+	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/UserverTestsuite.cmake"
+	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/templates/userver-core-config.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
+  )
+
   file(GLOB_RECURSE TESTSUITE_INSTALL_FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/testsuite/*.txt"
     "${CMAKE_CURRENT_SOURCE_DIR}/testsuite/*.py"
     "${CMAKE_CURRENT_SOURCE_DIR}/testsuite/env.in"
   )
-  _userver_directory_install(FILES
+  _userver_directory_install(core FILES
 	${TESTSUITE_INSTALL_FILES}
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/testsuite
   )
-  _userver_directory_install(DIRECTORY
+  _userver_directory_install(core DIRECTORY
   	"${CMAKE_CURRENT_SOURCE_DIR}/testsuite/pytest_plugins/"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/testsuite/pytest_plugins/
   )
