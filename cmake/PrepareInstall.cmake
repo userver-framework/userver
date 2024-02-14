@@ -2,14 +2,18 @@ include_guard()
 
 set_property(GLOBAL PROPERTY userver_cmake_dir "${CMAKE_CURRENT_LIST_DIR}")
 
-function(_userver_install_targets component)
+function(_userver_install_targets)
   if(NOT USERVER_INSTALL)
     return()
   endif()
+  set(oneValueArgs COMPONENT)
   set(multiValueArgs TARGETS)
   cmake_parse_arguments(
-    ARG "" "" "${multiValueArgs}" "${ARGN}"
+    ARG "${option}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}"
   )
+  if(NOT ARG_COMPONENT)
+    message(FATAL_ERROR "No COMPONENT for install")
+  endif()
   if(NOT ARG_TARGETS)
     message(FATAL_ERROR "No TARGETS given for install")
     return()
@@ -20,21 +24,20 @@ function(_userver_install_targets component)
       return()
     endif()
   endforeach()
-  set(ITEM_COMPONENT ${component})
   install(TARGETS ${ARG_TARGETS}
           EXPORT userver-targets
           CONFIGURATIONS RELEASE
-          LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT ${ITEM_COMPONENT}
-          ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT ${ITEM_COMPONENT}
-          RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT ${ITEM_COMPONENT}
+          LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT ${ARG_COMPONENT}
+          ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT ${ARG_COMPONENT}
+          RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT ${ARG_COMPONENT}
           INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
   )
   install(TARGETS ${ARG_TARGETS}
           EXPORT userver-targets_d
           CONFIGURATIONS DEBUG
-          LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT ${ITEM_COMPONENT}
-          ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT ${ITEM_COMPONENT}
-          RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT ${ITEM_COMPONENT}
+          LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT ${ARG_COMPONENT}
+          ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT ${ARG_COMPONENT}
+          RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT ${ARG_COMPONENT}
           INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
   )
 endfunction()
@@ -57,15 +60,18 @@ function(_userver_export_targets)
   )
 endfunction()
 
-function(_userver_directory_install component)
+function(_userver_directory_install)
   if(NOT USERVER_INSTALL)
     return()
   endif()
-  set(oneValueArgs DESTINATION)
+  set(oneValueArgs COMPONENT DESTINATION)
   set(multiValueArgs FILES DIRECTORY)
   cmake_parse_arguments(
     ARG "${option}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}"
   )
+  if(NOT ARG_COMPONENT)
+    message(FATAL_ERROR "No COMPONENT for install")
+  endif()
   if(NOT ARG_DESTINATION)
     message(FATAL_ERROR "No DESTINATION for install")
   endif()
@@ -73,9 +79,9 @@ function(_userver_directory_install component)
     message(FATAL_ERROR "No FILES or DIRECTORY provided to install")
   endif()
   if(ARG_FILES)
-    install(FILES ${ARG_FILES} DESTINATION ${ARG_DESTINATION} COMPONENT ${component})
+    install(FILES ${ARG_FILES} DESTINATION ${ARG_DESTINATION} COMPONENT ${ARG_COMPONENT})
   endif()
   if(ARG_DIRECTORY)
-    install(DIRECTORY ${ARG_DIRECTORY} DESTINATION ${ARG_DESTINATION} COMPONENT ${component})
+    install(DIRECTORY ${ARG_DIRECTORY} DESTINATION ${ARG_DESTINATION} COMPONENT ${ARG_COMPONENT})
   endif()
 endfunction()

@@ -156,7 +156,10 @@ else()
     target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
          $<BUILD_INTERFACE:${USERVER_THIRD_PARTY_DIRS}/moodycamel/include>
     )
-    _userver_directory_install(core DIRECTORY ${USERVER_THIRD_PARTY_DIRS}/moodycamel/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
+    _userver_directory_install(COMPONENT core
+        DIRECTORY ${USERVER_THIRD_PARTY_DIRS}/moodycamel/include 
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
+    )
 endif()
 
 if (NOT MACOS AND NOT ${CMAKE_SYSTEM_NAME} MATCHES "BSD")
@@ -167,7 +170,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<BUILD_INTERFACE:${USERVER_THIRD_PARTY_DIRS}/pfr/include>
 )
-_userver_directory_install(core
+_userver_directory_install(COMPONENT core
   DIRECTORY
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${USERVER_THIRD_PARTY_DIRS}/pfr/include 
@@ -175,7 +178,7 @@ _userver_directory_install(core
 )
 
 target_include_directories(${PROJECT_NAME} SYSTEM BEFORE PUBLIC
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/libc_include_fixes>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/libc_include_fixes>
 )
 
 # The bug is only triggered with optimizations enabled -- TAXICOMMON-1729
@@ -199,20 +202,20 @@ if (USERVER_IS_THE_ROOT_PROJECT OR USERVER_FEATURE_UTEST)
   target_compile_definitions(userver-core-internal PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
   target_include_directories(userver-core-internal PUBLIC
     $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/internal/include>
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../universal/internal/include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/internal/include>
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../universal/internal/include>
   )
   target_link_libraries(userver-core-internal
     PUBLIC
       ${PROJECT_NAME}
   )
-  _userver_directory_install(core
+  _userver_directory_install(COMPONENT core
     DIRECTORY
       ${CMAKE_CURRENT_SOURCE_DIR}/internal/include
       ${CMAKE_CURRENT_SOURCE_DIR}/../universal/internal/include
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
   )
-  _userver_install_targets(core TARGETS userver-core-internal)
+  _userver_install_targets(COMPONENT core TARGETS userver-core-internal)
 endif()
 
 if (USERVER_FEATURE_UTEST)
@@ -235,8 +238,10 @@ if (USERVER_FEATURE_UTEST)
         ${CMAKE_CURRENT_SOURCE_DIR}/src/
         ${CMAKE_CURRENT_SOURCE_DIR}/testing/src/
     )
-    _userver_directory_install(core DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/testing/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
-    _userver_install_targets(core TARGETS userver-utest userver-universal-internal-utest)
+    _userver_directory_install(COMPONENT core DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/testing/include
+      DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
+    _userver_install_targets(COMPONENT core
+      TARGETS userver-utest userver-universal-internal-utest)
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
@@ -264,7 +269,7 @@ if (USERVER_FEATURE_UTEST)
       PRIVATE
         userver-core-internal
     )
-    _userver_install_targets(core TARGETS userver-ubench userver-universal-internal-ubench)
+_userver_install_targets(COMPONENT core TARGETS userver-ubench userver-universal-internal-ubench)
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
@@ -279,4 +284,4 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     add_google_benchmark_tests(${PROJECT_NAME}-benchmark)
 endif()
 
-_userver_install_targets(core TARGETS ${PROJECT_NAME})
+_userver_install_targets(COMPONENT core TARGETS ${PROJECT_NAME})

@@ -76,7 +76,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
-_userver_directory_install(core DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
+_userver_directory_install(COMPONENT core DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
 
 target_compile_options(${PROJECT_NAME} PRIVATE "-w") # no warnings
 target_compile_definitions(${PROJECT_NAME} PRIVATE "BOOST_CONTEXT_SOURCE")
@@ -106,4 +106,4 @@ endif()
 
 find_package(Boost REQUIRED)
 target_link_libraries(${PROJECT_NAME} PUBLIC Boost::boost userver-internal-compile-options)
-_userver_install_targets(core TARGETS ${PROJECT_NAME})
+_userver_install_targets(COMPONENT core TARGETS ${PROJECT_NAME})
