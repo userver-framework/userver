@@ -2,6 +2,7 @@
 #pragma once
 #include <userver/utils/constexpr_string.hpp>
 #include <userver/formats/parse/to.hpp>
+#include <userver/formats/parse/try_parse.hpp>
 #include <userver/formats/serialize/to.hpp>
 #include <userver/utils/meta.hpp>
 #include <type_traits>
@@ -18,6 +19,19 @@ struct FieldConfig {
   constexpr inline std::optional<std::string> Check(const T&) const {
     return std::nullopt;
   }
+  constexpr auto Write(const T& value, std::string_view fieldName, const auto&, auto& builder) const {
+    builder[static_cast<std::string>(fieldName)] = value;
+  };
+  template <typename MainClass, auto I, typename Value>
+  constexpr T Read(Value&& value) const {
+    constexpr auto name = boost::pfr::get_name<I, MainClass>();
+    return value[name].template As<T>();
+  };
+  template <typename MainClass, auto I, typename Value>
+  constexpr std::optional<T> TryRead(Value&& value) const {
+    constexpr auto name = boost::pfr::get_name<I, MainClass>();
+    return parse::TryParse(value[name], parse::To<T>{});
+  };
 };
 namespace impl {
 
@@ -182,7 +196,7 @@ struct EmptyCheck {
 } // namespace impl
 
 template <typename T>
-impl::Disabled kSerialization;
+inline constexpr impl::Disabled kSerialization;
 
 template <typename T>
 inline constexpr auto kDeserialization = kSerialization<T>;

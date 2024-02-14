@@ -74,11 +74,23 @@ struct Min : public impl::Param<T> {
     return std::format("{} < {}", value, this->value);
   };
 };
+template <typename T, typename = void>
+struct Default : public impl::EmptyCheck, public impl::Param<T(*)()> {
+  inline constexpr Default(T (*ptr)()) :
+      impl::Param<T(*)()>(ptr) {}
+};
+
 template <typename T>
-struct Default : public impl::EmptyCheck, public impl::Param<T> {
+struct Default<T, std::enable_if_t<std::is_arithmetic_v<T>, void>> : public impl::EmptyCheck, public impl::Param<T> {
   inline constexpr Default(const T& value) :
       impl::Param<T>(value) {}
 };
+template <>
+struct Default<std::string, void> : public impl::EmptyCheck, public impl::Param<std::string_view> {
+  inline constexpr Default(std::string_view value) :
+      impl::Param<std::string_view>(value) {}
+};
+
 template <utils::ConstexprString Pattern>
 static const utils::regex kRegex(Pattern);
 
@@ -124,7 +136,7 @@ struct FieldConfig<int> {
 template <>
 struct FieldConfig<std::optional<std::string>> {
   std::optional<Pattern> Pattern = std::nullopt;
-  std::optional<Default<std::string_view>> Default = std::nullopt;
+  std::optional<Default<std::string>> Default = std::nullopt;
   bool Required = false;
   bool Nullable = false;
   template <typename MainClass, auto I, typename Value>
@@ -267,6 +279,7 @@ struct FieldConfig<std::optional<int>> {
 template <typename Value>
 struct FieldConfig<std::unordered_map<std::string, Value>> {
   std::optional<Additional> Additional = std::nullopt;
+  FieldConfig<Value> Items = {};
   using Type = std::unordered_map<std::string, Value>;
   template <typename MainClass, auto I, typename Value2>
   inline constexpr Type Read(Value2&& value) const {
@@ -313,8 +326,19 @@ struct FieldConfig<std::unordered_map<std::string, Value>> {
     }
     return response;
   }
-  inline constexpr std::optional<std::string> Check(const Type&) const {
-    return std::nullopt;
+  inline constexpr std::optional<std::string> Check(const Type& map) const {
+    std::optional<std::string> error;
+    for(const auto& [key, value] : map) {
+      auto add = impl::UniversalCheckField(value, this->Items);
+      if(add) {
+        if(!error) {
+          error = add;
+          continue;
+        }
+        *error += *add;
+      }
+    }
+    return error;
   }
   template <typename Builder>
   constexpr auto Write(const Type& value, std::string_view fieldName, const auto&, Builder& builder) const {
@@ -364,7 +388,7 @@ struct FieldConfig<std::vector<Element>> {
       auto add = impl::UniversalCheckField(element, this->Items);
       if(add) {
         if(!error) {
-          error = *add;
+          error = add;
           continue;
         };
         *error += *add;

@@ -9,11 +9,8 @@ USERVER_NAMESPACE_BEGIN
 struct SomeStruct {
   int field1;
   int field2;
-  constexpr auto operator==(const SomeStruct& other) const noexcept {
-    return (this->field1 == other.field1) && (this->field2 == other.field2);
-  };
+  inline constexpr bool operator==(const SomeStruct& other) const = default;
 };
-
 template <>
 inline constexpr auto formats::universal::kSerialization<SomeStruct> =
     SerializationConfig<SomeStruct>();
@@ -21,20 +18,20 @@ inline constexpr auto formats::universal::kSerialization<SomeStruct> =
 TEST(Serialize, Basic) {
   SomeStruct a{10, 100};
   const auto json = formats::json::ValueBuilder(a).ExtractValue();
-  EXPECT_EQ(formats::json::ToString(json), "{\"field1\":10,\"field2\":100}");
+  EXPECT_EQ(formats::json::ToString(json), R"({"field1":10,"field2":100})");
 };
 
 TEST(Parse, Basic) {
-  const auto json = formats::json::FromString("{\"field1\":10,\"field2\":100}");
+  const auto json = formats::json::FromString(R"({"field1":10,"field2":100})");
   const auto fromJson = json.As<SomeStruct>();
   constexpr SomeStruct valid{10, 100};
   EXPECT_EQ(fromJson, valid);
 };
 
 TEST(TryParse, Basic) {
-  const auto json = formats::json::FromString("{\"field1\":10,\"field2\":100}");
-  const auto json2 = formats::json::FromString("{\"field1\":10,\"field3\":100}");
-  const auto json3 = formats::json::FromString("{\"field1\":10,\"field2\":\"100\"}");
+  const auto json = formats::json::FromString(R"({"field1":10,"field2":100})");
+  const auto json2 = formats::json::FromString(R"({"field1":10,"field3":100})");
+  const auto json3 = formats::json::FromString(R"({"field1":10,"field2":"100"})");
   EXPECT_EQ((bool)formats::parse::TryParse(json,  formats::parse::To<SomeStruct>{}), true);
   EXPECT_EQ((bool)formats::parse::TryParse(json2, formats::parse::To<SomeStruct>{}), false);
   EXPECT_EQ((bool)formats::parse::TryParse(json3, formats::parse::To<SomeStruct>{}), false);
@@ -61,7 +58,7 @@ inline constexpr auto formats::universal::kSerialization<SomeStruct2> =
 TEST(Serialize, Optional) {
   SomeStruct2 a{.field2 = 100};
   const auto json = formats::json::ValueBuilder(a).ExtractValue();
-  EXPECT_EQ(json, formats::json::FromString("{\"field1\":114,\"field2\":100,\"field4\":\"42\"}"));
+  EXPECT_EQ(json, formats::json::FromString(R"({"field1":114,"field2":100,"field4":"42"})"));
 };
 TEST(Parse, Optional) {
   SomeStruct2 valid{.field1 = 114, .field4 = {{"42"}}};
@@ -78,9 +75,7 @@ TEST(TryParse, Optional) {
 
 struct SomeStruct3 {
   std::unordered_map<std::string, int> field;
-  auto operator==(const SomeStruct3& other) const noexcept {
-    return this->field == other.field;
-  };
+  inline bool operator==(const SomeStruct3& other) const = default;
 };
 
 
@@ -95,7 +90,7 @@ TEST(Serialize, Additional) {
   value["data2"] = 2;
   SomeStruct3 a{value};
   const auto json = formats::json::ValueBuilder(a).ExtractValue();
-  EXPECT_EQ(json, formats::json::FromString("{\"data1\":1,\"data2\":2}"));
+  EXPECT_EQ(json, formats::json::FromString(R"({"data1":1,"data2":2})"));
 };
 
 TEST(Parse, Additional) {
@@ -103,18 +98,19 @@ TEST(Parse, Additional) {
   value["data1"] = 1;
   value["data2"] = 2;
   SomeStruct3 valid{value};
-  const auto json = formats::json::FromString("{\"data1\":1,\"data2\":2}");
+  const auto json = formats::json::FromString(R"({"data1":1,"data2":2})");
   const auto fromJson = json.As<SomeStruct3>();
   EXPECT_EQ(valid, fromJson);
 };
 
 TEST(TryParse, Additional) {
-  const auto json = formats::json::FromString("{\"data1\":1,\"data2\":2}");
+  const auto json = formats::json::FromString(R"({"data1":1,"data2":2})");
   EXPECT_EQ((bool)formats::parse::TryParse(json, formats::parse::To<SomeStruct3>{}), true);
 };
 
 struct SomeStruct4 {
   int field;
+  inline constexpr bool operator==(const SomeStruct4& other) const = default;
 };
 
 template <>
@@ -126,9 +122,9 @@ inline constexpr auto formats::universal::kSerialization<SomeStruct4> =
 
 
 TEST(TryParse, MinMax) {
-  const auto json =  formats::json::FromString("{\"field\":1}");
-  const auto json2 = formats::json::FromString("{\"field\":11}");
-  const auto json3 = formats::json::FromString("{\"field\":121}");
+  const auto json =  formats::json::FromString(R"({"field":1})");
+  const auto json2 = formats::json::FromString(R"({"field":11})");
+  const auto json3 = formats::json::FromString(R"({"field":121})");
 
   EXPECT_EQ((bool)formats::parse::TryParse(json,  formats::parse::To<SomeStruct4>{}), false);
   EXPECT_EQ((bool)formats::parse::TryParse(json2, formats::parse::To<SomeStruct4>{}), true);
@@ -139,6 +135,7 @@ TEST(TryParse, MinMax) {
 
 struct SomeStruct5 {
   std::string field;
+  inline constexpr bool operator==(const SomeStruct5& other) const = default;
 };
 
 template <>
@@ -162,6 +159,7 @@ TEST(TryParse, null) {
 
 struct SomeStruct6 {
   std::vector<std::vector<int>> field;
+  inline constexpr bool operator==(const SomeStruct6& other) const = default;
 };
 
 template <>
@@ -183,9 +181,7 @@ TEST(TryParse, Arrays) {
 struct SomeStruct7  {
   int value;
   std::vector<SomeStruct7> children = {};
-  inline bool operator==(const SomeStruct7& other) const {
-    return this->value == other.value && this->children == other.children;
-  };
+  inline constexpr bool operator==(const SomeStruct7& other) const = default;
 };
 
 template <>
@@ -202,9 +198,7 @@ TEST(Parse, Recursive) {
 
 struct SomeStruct8 {
   std::optional<int> field1;
-  inline constexpr bool operator==(const SomeStruct8& other) const {
-    return this->field1 == other.field1;
-  };
+  inline bool operator==(const SomeStruct8& other) const = default;
 };
 
 template <>
@@ -214,9 +208,7 @@ inline constexpr auto formats::universal::kSerialization<SomeStruct8> =
 
 struct SomeStruct9 {
   std::optional<int> field1;
-  inline constexpr bool operator==(const SomeStruct8& other) const {
-    return this->field1 == other.field1;
-  }
+  inline bool operator==(const SomeStruct9& other) const = default;
 };
 
 template <>
@@ -240,9 +232,7 @@ TEST(TryParse, Nullable) {
 
 struct SomeStruct10 {
   std::unordered_map<std::string, int> map;
-  inline bool operator==(const SomeStruct10& other) const {
-    return this->map == other.map;
-  }
+  inline bool operator==(const SomeStruct10& other) const = default;
 };
 
 template <>
@@ -265,7 +255,42 @@ TEST(Serialize, Map) {
   EXPECT_EQ(json, valid);
 }
 
+struct SomeStruct11 {
+  int field;
+  inline constexpr bool operator==(const SomeStruct11& other) const = default;
+};
+template <typename Value>
+auto Parse(Value&& value, formats::parse::To<SomeStruct11>) -> SomeStruct11 {
+  return {.field = value["field"].template As<int>()};
+}
 
+template <typename Value>
+auto Serialize(const SomeStruct11& data, formats::serialize::To<Value>) {
+  typename Value::Builder builder;
+  builder["field"] = data.field;
+  return builder.ExtractValue();
+}
+
+struct SomeStruct12 {
+  SomeStruct11 field;
+  inline constexpr bool operator==(const SomeStruct12& other) const = default;
+};
+
+template <>
+inline constexpr auto formats::universal::kSerialization<SomeStruct12> =
+  SerializationConfig<SomeStruct12>();
+
+TEST(Serialize, NonUniversalInUniversal) {
+  const auto valid = formats::json::FromString(R"({"field":{"field":1}})");
+  const auto json = formats::json::ValueBuilder(SomeStruct12{.field = {.field = 1}}).ExtractValue();
+  EXPECT_EQ(json, valid);
+};
+
+TEST(Parse, NonUniversalInUniversal) {
+  const auto json = formats::json::FromString(R"({"field":{"field":1}})");
+  const SomeStruct12 valid{.field = {.field = 1}};
+  EXPECT_EQ(json.As<SomeStruct12>(), valid);
+};
 
 USERVER_NAMESPACE_END
 #endif
