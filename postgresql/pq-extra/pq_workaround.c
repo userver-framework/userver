@@ -354,7 +354,7 @@ static void pqxParseInput3(PGconn* conn, const PGresult* description) {
 #if PG_VERSION_NUM >= 140000
           if (conn->cmd_queue_head &&
               conn->cmd_queue_head->queryclass == PGXQUERY_BIND) {
-            pqCommandQueueAdvance(conn, false, false);
+            pqCommandQueueAdvanceGlue(conn, false, false);
 #else
           if (conn->queryclass == PGXQUERY_BIND) {
 #endif
