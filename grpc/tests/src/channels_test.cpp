@@ -48,12 +48,10 @@ UTEST_P_MT(GrpcChannels, TryWaitForConnected, 2) {
   dynamic_config::StorageMock config_storage{
       dynamic_config::MakeDefaultStorage({})};
 
-  const auto port = []() {
-    const auto addr = engine::io::Sockaddr::MakeLoopbackAddress();
-    engine::io::Socket sock{addr.Domain(), engine::io::SocketType::kStream};
-    sock.Bind(addr);
-    return sock.Getsockname().Port();
-  }();
+  const auto addr = engine::io::Sockaddr::MakeLoopbackAddress();
+  engine::io::Socket sock{addr.Domain(), engine::io::SocketType::kStream};
+  sock.Bind(addr);
+  const auto port = sock.Getsockname().Port();
 
   auto client_task = engine::AsyncNoSpan([&] {
     ugrpc::client::ClientFactorySettings settings;
