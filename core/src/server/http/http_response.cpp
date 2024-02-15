@@ -391,15 +391,10 @@ std::size_t HttpResponse::SetBodyStreamed(
     fst_chunk_processed = true;
   }
 
-  if (fst_chunk_processed) {
-    constexpr std::string_view terminating_chunk{"\r\n0\r\n\r\n"};
-    sent_bytes +=
-        socket.WriteAll(terminating_chunk.data(), terminating_chunk.size(), {});
-  } else {
-    constexpr std::string_view terminating_chunk{"0\r\n\r\n"};
-    sent_bytes +=
-        socket.WriteAll(terminating_chunk.data(), terminating_chunk.size(), {});
-  }
+  const std::string_view terminating_chunk{fst_chunk_processed ? "\r\n0\r\n\r\n"
+                                                               : "0\r\n\r\n"};
+  sent_bytes +=
+      socket.WriteAll(terminating_chunk.data(), terminating_chunk.size(), {});
 
   // TODO: exceptions?
   body_stream_producer_.reset();
