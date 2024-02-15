@@ -24,6 +24,7 @@
 #include <variant>
 #include <vector>
 
+#include <userver/utils/constexpr_indices.hpp>
 #include <userver/utils/lazy_prvalue.hpp>
 #include <userver/utils/meta.hpp>
 #include <userver/utils/strong_typedef.hpp>
@@ -71,23 +72,16 @@ auto ReadLazyPrvalue(Reader& reader) {
 [[noreturn]] void ThrowInvalidVariantIndex(const std::type_info& type,
                                            std::size_t index);
 
-template <std::size_t... Indices, typename Func>
-void ForEachIndex(std::index_sequence<Indices...>, Func func) {
-  (func(std::integral_constant<std::size_t, Indices>{}), ...);
-}
-
 template <typename VariantType>
 VariantType ReadVariant(Reader& reader, std::size_t index) {
+  static constexpr auto VariantSize = std::variant_size_v<VariantType>;
   std::optional<VariantType> result;
-  using Indices = std::make_index_sequence<std::variant_size_v<VariantType>>;
 
-  ForEachIndex(Indices{}, [&](auto index_constant) {
+  utils::WithConstexprIndex<VariantSize>(index, [&](auto index_constant) {
     static constexpr auto kIndex = decltype(index_constant)::value;
     using Alternative = std::variant_alternative_t<kIndex, VariantType>;
-    if (index == kIndex) {
-      // Not using ReadLazyPrvalue because of stdlib issues on some compilers.
-      result.emplace(std::in_place_index<kIndex>, reader.Read<Alternative>());
-    }
+    // Not using ReadLazyPrvalue because of stdlib issues on some compilers.
+    result.emplace(std::in_place_index<kIndex>, reader.Read<Alternative>());
   });
 
   return std::move(*result);

@@ -3200,6 +3200,7 @@
   "universal/include/userver/utils/bytes_per_second.hpp":"taxi/uservices/userver/universal/include/userver/utils/bytes_per_second.hpp",
   "universal/include/userver/utils/cached_hash.hpp":"taxi/uservices/userver/universal/include/userver/utils/cached_hash.hpp",
   "universal/include/userver/utils/checked_pointer.hpp":"taxi/uservices/userver/universal/include/userver/utils/checked_pointer.hpp",
+  "universal/include/userver/utils/constexpr_indices.hpp":"taxi/uservices/userver/universal/include/userver/utils/constexpr_indices.hpp",
   "universal/include/userver/utils/datetime.hpp":"taxi/uservices/userver/universal/include/userver/utils/datetime.hpp",
   "universal/include/userver/utils/datetime/cpp_20_calendar.hpp":"taxi/uservices/userver/universal/include/userver/utils/datetime/cpp_20_calendar.hpp",
   "universal/include/userver/utils/datetime/date.hpp":"taxi/uservices/userver/universal/include/userver/utils/datetime/date.hpp",
