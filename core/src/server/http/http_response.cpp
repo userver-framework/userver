@@ -358,6 +358,9 @@ std::size_t HttpResponse::SetBodyStreamed(
   impl::OutputHeader(
       header, USERVER_NAMESPACE::http::headers::kTransferEncoding, "chunked");
 
+  // headers end marker
+  header.append(kCrlf);
+
   // send HTTP headers
   size_t sent_bytes = socket.WriteAll(header.data(), header.size(), {});
   header.clear();
@@ -369,19 +372,26 @@ std::size_t HttpResponse::SetBodyStreamed(
 
   // Transmit HTTP response body
   std::string body_part;
+  // First chunk must be sent without kCrlf
+  // because kCrlf was sent with headers
+  bool fst_chunk_processed = false;
   while (body_stream_->Pop(body_part)) {
     if (body_part.empty()) {
       LOG_DEBUG() << "Zero size body_part in http_response.cpp";
       continue;
     }
 
-    auto size = fmt::format("\r\n{:x}\r\n", body_part.size());
+    auto size = fmt::format(fst_chunk_processed ? "\r\n{:x}\r\n" : "{:x}\r\n",
+                            body_part.size());
     sent_bytes += socket.WriteAll(
         {{size.data(), size.size()}, {body_part.data(), body_part.size()}},
         engine::Deadline{});
+
+    fst_chunk_processed = true;
   }
 
-  const constexpr std::string_view terminating_chunk{"\r\n0\r\n\r\n"};
+  const std::string_view terminating_chunk{fst_chunk_processed ? "\r\n0\r\n\r\n"
+                                                               : "0\r\n\r\n"};
   sent_bytes +=
       socket.WriteAll(terminating_chunk.data(), terminating_chunk.size(), {});
 
