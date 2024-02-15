@@ -43,7 +43,7 @@ class Sockaddr final {
  public:
   /// Constructs an unspecified native socket address.
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-  Sockaddr() { ::memset(&data_, 0, sizeof(data_)); }
+  Sockaddr() noexcept { ::memset(&data_, 0, sizeof(data_)); }
 
   /// @brief Wraps a native socket address structure.
   /// @warning sa_family must contain a correct address family.
@@ -56,6 +56,17 @@ class Sockaddr final {
 
   /// @brief Creates address of a Unix socket located at the specified path.
   static Sockaddr MakeUnixSocketAddress(std::string_view path);
+
+  /// @brief Creates the IPv6 loopback address `[::1]:0` that also handles IPv4
+  /// connections.
+  ///
+  /// A program needs to support only this API type to support IPv4 and IPv6.
+  static Sockaddr MakeLoopbackAddress() noexcept;
+
+  /// @brief Creates the IPv4 only loopback address `127.0.0.1:0`.
+  ///
+  /// Prefer a more generic MakeLoopbackAddress() function if not sure.
+  static Sockaddr MakeIPv4LoopbackAddress() noexcept;
 
   /// @brief Domain-specific native socket address structure pointer.
   /// @warning No type checking is performed, user must ensure that only the

@@ -33,13 +33,8 @@ using UdpListener = internal::net::UdpListener;
 UTEST(Socket, ConnectFail) {
   const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
-  io::Sockaddr addr;
-  auto* sa = addr.As<sockaddr_in6>();
-  sa->sin6_family = AF_INET6;
-  sa->sin6_addr = in6addr_loopback;
-  // if you have telnet running, I have a few questions...
-  // NOLINTNEXTLINE(hicpp-no-assembler,readability-isolate-declaration)
-  sa->sin6_port = htons(23);
+  auto addr = io::Sockaddr::MakeLoopbackAddress();
+  addr.SetPort(23);
   io::Socket telnet_socket{addr.Domain(), io::SocketType::kStream};
   try {
     telnet_socket.Connect(addr, test_deadline);

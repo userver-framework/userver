@@ -42,6 +42,26 @@ Sockaddr Sockaddr::MakeUnixSocketAddress(std::string_view path) {
   return addr;
 }
 
+Sockaddr Sockaddr::MakeLoopbackAddress() noexcept {
+  Sockaddr addr;
+  auto* sa = addr.As<struct sockaddr_in6>();
+  sa->sin6_family = AF_INET6;
+  sa->sin6_addr = in6addr_loopback;
+  UASSERT(sa->sin6_port == 0);
+  return addr;
+}
+
+Sockaddr Sockaddr::MakeIPv4LoopbackAddress() noexcept {
+  Sockaddr addr;
+  auto* sa = addr.As<struct sockaddr_in>();
+  sa->sin_family = AF_INET;
+  // may be implemented as a macro
+  // NOLINTNEXTLINE(hicpp-no-assembler, readability-isolate-declaration)
+  sa->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+  UASSERT(sa->sin_port == 0);
+  return addr;
+}
+
 bool Sockaddr::HasPort() const {
   switch (Data()->sa_family) {
     case AF_INET:

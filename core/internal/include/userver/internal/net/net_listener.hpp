@@ -1,7 +1,5 @@
 #pragma once
 
-#include <arpa/inet.h>
-
 #include <cstdint>
 #include <cstdlib>
 #include <stdexcept>

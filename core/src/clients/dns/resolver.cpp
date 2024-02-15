@@ -104,22 +104,10 @@ bool IsInDomain(std::string_view name, std::string_view domain) {
 }
 
 const AddrVector& LocalhostAddrs() {
-  static const AddrVector kLocalhostAddrs = [] {
-    AddrVector addrs(2);
-    {
-      auto* sa = addrs[0].As<struct sockaddr_in6>();
-      sa->sin6_family = AF_INET6;
-      sa->sin6_addr = in6addr_loopback;
-    }
-    {
-      auto* sa = addrs[1].template As<struct sockaddr_in>();
-      sa->sin_family = AF_INET;
-      // may be implemented as a macro
-      // NOLINTNEXTLINE(hicpp-no-assembler, readability-isolate-declaration)
-      sa->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-    }
-    return addrs;
-  }();
+  static const AddrVector kLocalhostAddrs = {
+      engine::io::Sockaddr::MakeLoopbackAddress(),
+      engine::io::Sockaddr::MakeIPv4LoopbackAddress(),
+  };
 
   return kLocalhostAddrs;
 }
