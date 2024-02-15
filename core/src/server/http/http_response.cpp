@@ -358,10 +358,6 @@ std::size_t HttpResponse::SetBodyStreamed(
   impl::OutputHeader(
       header, USERVER_NAMESPACE::http::headers::kTransferEncoding, "chunked");
 
-  if (is_body_forbidden) {
-    header.append(kCrlf);
-  }
-
   // send HTTP headers
   size_t sent_bytes = socket.WriteAll(header.data(), header.size(), {});
   header.clear();
