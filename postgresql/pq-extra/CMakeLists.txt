@@ -12,7 +12,7 @@ if(NOT LDAP_LIBRARY)
 endif()
 
 find_package(PostgreSQLInternal REQUIRED)
-find_package_required(OpenSSL "libssl-dev")
+find_package(OpenSSL REQUIRED)
 find_package(GssApi REQUIRED)
 find_package(Threads REQUIRED)
 
