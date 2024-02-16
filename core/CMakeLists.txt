@@ -285,3 +285,30 @@ if (USERVER_IS_THE_ROOT_PROJECT)
 endif()
 
 _userver_install_targets(COMPONENT core TARGETS ${PROJECT_NAME})
+_userver_directory_install(COMPONENT core FILES
+    "${USERVER_ROOT_DIR}/cmake/FindPython.cmake"
+    "${USERVER_ROOT_DIR}/cmake/UserverTestsuite.cmake"
+    "${USERVER_ROOT_DIR}/cmake/install/userver-core-config.cmake"
+    "${CMAKE_BINARY_DIR}/cmake_generated/FindHttp_Parser.cmake"
+    "${CMAKE_BINARY_DIR}/cmake_generated/FindNghttp2.cmake"
+    "${CMAKE_BINARY_DIR}/cmake_generated/FindLibEv.cmake"
+    "${CMAKE_BINARY_DIR}/cmake_generated/FindUserverGTest.cmake"
+    "${CMAKE_BINARY_DIR}/cmake_generated/FindUserverGBench.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
+)
+
+file(GLOB_RECURSE TESTSUITE_INSTALL_FILES
+    "${USERVER_ROOT_DIR}/testsuite/*.txt"
+    "${USERVER_ROOT_DIR}/testsuite/*.py"
+    "${USERVER_ROOT_DIR}/testsuite/env.in"
+ )
+
+_userver_directory_install(COMPONENT core
+    FILES ${TESTSUITE_INSTALL_FILES}
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/testsuite
+)
+
+_userver_directory_install(COMPONENT core DIRECTORY
+    "${USERVER_ROOT_DIR}/testsuite/pytest_plugins/"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/testsuite/pytest_plugins/
+)

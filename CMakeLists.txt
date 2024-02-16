@@ -30,10 +30,6 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "^x86")
   set(USERVER_BUILD_PLATFORM_X86 ${USERVER_FEATURE_CORE})
 endif()
 
-if(USERVER_FEATURE_CORE)
-  list(APPEND USERVER_AVAILABLE_COMPONENTS core)
-endif()
-
 function(_require_userver_core FEATURE)
   if (NOT USERVER_FEATURE_CORE)
     message(FATAL_ERROR "'${FEATURE}' requires 'USERVER_FEATURE_CORE=ON'")
@@ -124,7 +120,6 @@ endif()
 
 include(Sanitizers)
 _userver_make_sanitize_target()
-_userver_install_targets(COMPONENT universal TARGETS userver-internal-sanitize-options)
 
 include(GetUserverVersion)
 include(AddGoogleTests)
@@ -157,22 +152,6 @@ if(RESULT)
       "Generating cmake files failed with exit code: ${RESULT}"
   )
 endif(RESULT)
-_userver_directory_install(COMPONENT universal FILES
-          "${CMAKE_BINARY_DIR}/cmake_generated/FindCryptoPP.cmake"
-          "${CMAKE_BINARY_DIR}/cmake_generated/Findlibyamlcpp.cmake"
-          "${CMAKE_BINARY_DIR}/cmake_generated/Findcctz.cmake"
-          "${CMAKE_BINARY_DIR}/cmake_generated/FindJemalloc.cmake"
-          DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/
-)
-_userver_directory_install(COMPONENT core FILES
-          "${CMAKE_BINARY_DIR}/cmake_generated/FindHttp_Parser.cmake"
-          "${CMAKE_BINARY_DIR}/cmake_generated/FindNghttp2.cmake"
-          "${CMAKE_BINARY_DIR}/cmake_generated/FindLibEv.cmake"
-          "${CMAKE_BINARY_DIR}/cmake_generated/FindUserverGTest.cmake"
-          "${CMAKE_BINARY_DIR}/cmake_generated/FindUserverGBench.cmake"
-          DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/
-)
-
 
 set(USERVER_THIRD_PARTY_DIRS ${USERVER_ROOT_DIR}/third_party CACHE INTERNAL "")
 
@@ -201,6 +180,7 @@ add_subdirectory(universal "${CMAKE_BINARY_DIR}/userver/universal")
 
 if (USERVER_FEATURE_CORE)
   add_subdirectory(core "${CMAKE_BINARY_DIR}/userver/core")
+  list(APPEND USERVER_AVAILABLE_COMPONENTS core)
 endif()
 if (USERVER_FEATURE_CHAOTIC)
   add_subdirectory(chaotic "${CMAKE_BINARY_DIR}/userver/chaotic")
@@ -222,6 +202,7 @@ endif()
 if (USERVER_FEATURE_POSTGRESQL)
   _require_userver_core("USERVER_FEATURE_POSTGRESQL")
   add_subdirectory(postgresql "${CMAKE_BINARY_DIR}/userver/postgresql")
+  list(APPEND USERVER_AVAILABLE_COMPONENTS postgres)
 endif()
 
 if (USERVER_FEATURE_REDIS)
@@ -253,50 +234,5 @@ if (USERVER_IS_THE_ROOT_PROJECT AND USERVER_FEATURE_CORE)
   add_subdirectory(samples)
 endif()
 
-if (USERVER_INSTALL)
-  configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/cmake/install/Config.cmake.in
-    "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake"
-    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
-  )
-
-  write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake
-    VERSION ${USERVER_VERSION} COMPATIBILITY SameMajorVersion
-  )
-
-  _userver_directory_install(COMPONENT universal FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake"
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/sanitize.blacklist.txt"
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/RequireLTO.cmake"
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/SetupLTO.cmake"
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/SetupLinker.cmake"
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Sanitizers.cmake"
-	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/AddGoogleTests.cmake"
-	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/DetectVersion.cmake"
-	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/install/userver-universal-config.cmake"
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
-  )
-  _userver_directory_install(COMPONENT core FILES
-	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindPython.cmake"
-	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/UserverTestsuite.cmake"
-	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/install/userver-core-config.cmake"
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
-  )
-
-  file(GLOB_RECURSE TESTSUITE_INSTALL_FILES
-    "${CMAKE_CURRENT_SOURCE_DIR}/testsuite/*.txt"
-    "${CMAKE_CURRENT_SOURCE_DIR}/testsuite/*.py"
-    "${CMAKE_CURRENT_SOURCE_DIR}/testsuite/env.in"
-  )
-  _userver_directory_install(COMPONENT core FILES
-	${TESTSUITE_INSTALL_FILES}
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/testsuite
-  )
-  _userver_directory_install(COMPONENT core DIRECTORY
-  	"${CMAKE_CURRENT_SOURCE_DIR}/testsuite/pytest_plugins/"
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/testsuite/pytest_plugins/
-  )
-
-  _userver_export_targets()
-endif()
+_userver_export_targets()
 

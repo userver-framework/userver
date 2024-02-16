@@ -146,7 +146,8 @@ if (NOT USERVER_NO_WERROR)
   target_compile_options(userver-internal-compile-options INTERFACE "-Werror")
 endif()
 
-_userver_install_targets(COMPONENT universal TARGETS userver-internal-compile-options)
+_userver_install_targets(COMPONENT universal 
+  TARGETS userver-internal-sanitize-options userver-internal-compile-options)
 
 # The library itself
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
@@ -362,4 +363,36 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     endif()
 
     add_google_benchmark_tests(${PROJECT_NAME}-benchmark)
+endif()
+
+_userver_directory_install(COMPONENT universal FILES
+          "${CMAKE_BINARY_DIR}/cmake_generated/FindCryptoPP.cmake"
+          "${CMAKE_BINARY_DIR}/cmake_generated/Findlibyamlcpp.cmake"
+          "${CMAKE_BINARY_DIR}/cmake_generated/Findcctz.cmake"
+          "${CMAKE_BINARY_DIR}/cmake_generated/FindJemalloc.cmake"
+          DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/
+)
+if (USERVER_INSTALL)
+  configure_package_config_file("${USERVER_ROOT_DIR}/cmake/install/Config.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake"
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
+  )
+
+  write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake
+    VERSION ${USERVER_VERSION} COMPATIBILITY SameMajorVersion
+  )
+
+  _userver_directory_install(COMPONENT universal FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake"
+	"${USERVER_ROOT_DIR}/cmake/sanitize.blacklist.txt"
+	"${USERVER_ROOT_DIR}/cmake/RequireLTO.cmake"
+    "${USERVER_ROOT_DIR}/cmake/SetupLTO.cmake"
+    "${USERVER_ROOT_DIR}/cmake/SetupLinker.cmake"
+    "${USERVER_ROOT_DIR}/cmake/Sanitizers.cmake"
+	"${USERVER_ROOT_DIR}/cmake/AddGoogleTests.cmake"
+	"${USERVER_ROOT_DIR}/cmake/DetectVersion.cmake"
+	"${USERVER_ROOT_DIR}/cmake/install/userver-universal-config.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
+  )
 endif()
