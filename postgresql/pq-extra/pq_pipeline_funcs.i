@@ -214,3 +214,57 @@ __attribute__((unused)) static void pqRecycleCmdQueueEntry(
   entry->next = conn->cmd_queue_recycle;
   conn->cmd_queue_recycle = entry;
 }
+
+/*
+ * pqCommandQueueAdvance
+ *		Remove one query from the command queue, if appropriate.
+ *
+ * This is a copy-paste of pqCommandQueueAdvance from fe-exec.c
+ *
+ * If we have received all results corresponding to the head element
+ * in the command queue, remove it.
+ *
+ * In simple query protocol we must not advance the command queue until the
+ * ReadyForQuery message has been received.  This is because in simple mode a
+ * command can have multiple queries, and we must process result for all of
+ * them before moving on to the next command.
+ *
+ * Another consideration is synchronization during error processing in
+ * extended query protocol: we refuse to advance the queue past a SYNC queue
+ * element, unless the result we've received is also a SYNC.  In particular
+ * this protects us from advancing when an error is received at an
+ * inappropriate moment.
+ */
+static void __attribute__((unused))
+pqCommandQueueAdvanceGlue(PGconn *conn, bool isReadyForQuery, bool gotSync)
+{
+  PGcmdQueueEntry *prevquery;
+
+  if (conn->cmd_queue_head == NULL)
+    return;
+
+  /*
+   * If processing a query of simple query protocol, we only advance the
+   * queue when we receive the ReadyForQuery message for it.
+   */
+  if (conn->cmd_queue_head->queryclass == PGQUERY_SIMPLE && !isReadyForQuery)
+    return;
+
+  /*
+   * If we're waiting for a SYNC, don't advance the queue until we get one.
+   */
+  if (conn->cmd_queue_head->queryclass == PGQUERY_SYNC && !gotSync)
+    return;
+
+  /* delink element from queue */
+  prevquery = conn->cmd_queue_head;
+  conn->cmd_queue_head = conn->cmd_queue_head->next;
+
+  /* If the queue is now empty, reset the tail too */
+  if (conn->cmd_queue_head == NULL)
+    conn->cmd_queue_tail = NULL;
+
+  /* and make the queue element recyclable */
+  prevquery->next = NULL;
+  pqRecycleCmdQueueEntry(conn, prevquery);
+}

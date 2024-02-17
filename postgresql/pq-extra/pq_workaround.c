@@ -312,13 +312,8 @@ static void pqxParseInput3(PGconn* conn, const PGresult* description) {
               conn->asyncStatus = PGASYNC_READY;
             }
           } else {
-            /*
-             * In simple query protocol, advance the command queue
-             * (see PQgetResult).
-             */
-            if (conn->cmd_queue_head &&
-                conn->cmd_queue_head->queryclass == PGQUERY_SIMPLE)
-              pqCommandQueueAdvance(conn);
+            /* Advance the command queue and set us idle */
+            pqCommandQueueAdvanceGlue(conn, true, false);
 #else
           {
 #endif
@@ -359,7 +354,7 @@ static void pqxParseInput3(PGconn* conn, const PGresult* description) {
 #if PG_VERSION_NUM >= 140000
           if (conn->cmd_queue_head &&
               conn->cmd_queue_head->queryclass == PGXQUERY_BIND) {
-            pqCommandQueueAdvance(conn);
+            pqCommandQueueAdvanceGlue(conn, false, false);
 #else
           if (conn->queryclass == PGXQUERY_BIND) {
 #endif
@@ -385,7 +380,7 @@ static void pqxParseInput3(PGconn* conn, const PGresult* description) {
            */
           if (conn->cmd_queue_head &&
               conn->cmd_queue_head->queryclass == PGQUERY_CLOSE) {
-            pqCommandQueueAdvance(conn);
+            pqCommandQueueAdvanceGlue(conn, false, false);
           }
 #endif
           break;
@@ -761,18 +756,12 @@ PGresult* PQXgetResult(PGconn* conn, const PGresult* description) {
 #endif
     case PGASYNC_READY:
 #if PG_VERSION_NUM >= 140000
-      /*
-       * For any query type other than simple query protocol, we advance
-       * the command queue here.  This is because for simple query
-       * protocol we can get the READY state multiple times before the
-       * command is actually complete, since the command string can
-       * contain many queries.  In simple query protocol, the queue
-       * advance is done by fe-protocol3 when it receives ReadyForQuery.
-       */
-      if (conn->cmd_queue_head &&
-          conn->cmd_queue_head->queryclass != PGQUERY_SIMPLE)
-        pqCommandQueueAdvance(conn);
       res = pqPrepareAsyncResult(conn);
+
+      /* Advance the queue as appropriate */
+      pqCommandQueueAdvanceGlue(conn, false,
+                                res->resultStatus == PGRES_PIPELINE_SYNC);
+
       if (conn->pipelineStatus != PQ_PIPELINE_OFF) {
         /*
          * We're about to send the results of the current query.  Set
@@ -835,7 +824,7 @@ PGresult* PQXgetResult(PGconn* conn, const PGresult* description) {
       conn->asyncStatus = PGASYNC_PIPELINE_IDLE;
     } else
       /* we won't ever see the Close */
-      pqCommandQueueAdvance(conn);
+      pqCommandQueueAdvanceGlue(conn, true, true);
   }
 #endif
 
