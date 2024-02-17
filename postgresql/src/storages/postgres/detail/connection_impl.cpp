@@ -1004,8 +1004,7 @@ void ConnectionImpl::ReportStatement(const std::string& name) {
 }
 
 bool ConnectionImpl::IsOmitDescribeInExecuteEnabled() const {
-  return settings_.omit_describe_mode == OmitDescribeInExecuteMode::kEnabled &&
-         kOmitDescribeInExecuteExperiment.IsEnabled();
+  return settings_.omit_describe_mode == OmitDescribeInExecuteMode::kEnabled;
 }
 
 }  // namespace storages::postgres::detail
