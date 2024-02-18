@@ -161,15 +161,16 @@ void LogHelper::Impl::PutMessageBegin() {
     }
     case Format::kJson: {
       constexpr std::string_view kTemplate =
-          "{\"timestamp\":\"0000-00-00T00:00:00.000000\",\"level\":\"\"";
+          R"({"timestamp":"0000-00-00T00:00:00.000000","level":"")";
       const auto now = TimePoint::clock::now();
       const auto level_string = logging::ToUpperCaseString(level_);
       msg_.resize(kTemplate.size() + level_string.size());
-      fmt::format_to(
-          msg_.data(),
-          FMT_COMPILE("{{\"timestamp\":\"{}.{:06}\",\"level\":\"{}\""),
-          GetCurrentTimeString(now).ToStringView(), FractionalMicroseconds(now),
-          level_string);
+      fmt::format_to(msg_.data(),
+                     // double `{` at the beginning for escaping:
+                     // https://stackoverflow.com/a/68207254
+                     FMT_COMPILE(R"({{"timestamp":"{}.{:06}","level":"{}")"),
+                     GetCurrentTimeString(now).ToStringView(),
+                     FractionalMicroseconds(now), level_string);
       return;
     }
   }
