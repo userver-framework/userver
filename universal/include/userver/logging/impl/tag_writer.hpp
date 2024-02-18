@@ -62,6 +62,8 @@ class TagWriter {
 
   void MarkValueEnd() noexcept;
 
+  void PutOptionalOpenCloseSeparator();
+
   LogHelper& lh_;
 };
 
@@ -88,14 +90,18 @@ USERVER_IMPL_CONSTEVAL TagKey::TagKey(const StringType& escaped_key)
 template <typename T>
 void TagWriter::PutTag(TagKey key, const T& value) {
   PutKey(key);
+  PutOptionalOpenCloseSeparator();
   lh_ << value;
+  PutOptionalOpenCloseSeparator();
   MarkValueEnd();
 }
 
 template <typename T>
 void TagWriter::PutTag(RuntimeTagKey key, const T& value) {
   PutKey(key);
+  PutOptionalOpenCloseSeparator();
   lh_ << value;
+  PutOptionalOpenCloseSeparator();
   MarkValueEnd();
 }
 

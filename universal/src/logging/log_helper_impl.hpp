@@ -44,6 +44,10 @@ class LogHelper::Impl final {
 
   void StartText();
 
+  // If the text has been started an optional open-close separator is placed and
+  // is_text_finished_ is set to true. If the text is already stopped do nothing
+  void StopText();
+
   std::size_t GetTextSize() const { return msg_.size() - initial_length_; }
 
   void LogTheMessage() const;
@@ -51,6 +55,10 @@ class LogHelper::Impl final {
   void MarkAsBroken() noexcept;
 
   bool IsBroken() const noexcept;
+
+  void PutKeyValueSeparator();
+  void PutItemSeparator();
+  void PutOptionalOpenCloseSeparator();
 
  private:
   class BufferStd final : public std::streambuf {
@@ -80,11 +88,14 @@ class LogHelper::Impl final {
 
   impl::LoggerBase* logger_;
   const Level level_;
-  const char key_value_separator_;
+  const char key_value_separator_;            // ':' or '='
+  const char item_separator_;                 // ',' or '\t'
+  const char open_close_separator_optional_;  // '"' or 0
   LogBuffer msg_;
   std::optional<LazyInitedStream> lazy_stream_;
   LogExtra extra_;
   std::size_t initial_length_{0};
+  bool is_text_finished_{false};
   bool is_within_value_{false};
   std::optional<std::unordered_set<std::string>> debug_tag_keys_;
 };

@@ -47,6 +47,10 @@ void TagWriter::PutKey(RuntimeTagKey key) {
 
 void TagWriter::MarkValueEnd() noexcept { lh_.pimpl_->MarkValueEnd(); }
 
+void TagWriter::PutOptionalOpenCloseSeparator() {
+  lh_.pimpl_->PutOptionalOpenCloseSeparator();
+}
+
 }  // namespace logging::impl
 
 USERVER_NAMESPACE_END

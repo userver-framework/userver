@@ -190,6 +190,10 @@ void LogHelper::DoLog() noexcept {
     if (pimpl_->IsWithinValue()) {
       pimpl_->MarkValueEnd();
     }
+
+    // make sure that we have ended writing the "text" value
+    pimpl_->StopText();
+
     GetTagWriter().PutLogExtra(pimpl_->GetLogExtra());
     pimpl_->PutMessageEnd();
 

@@ -11,6 +11,7 @@
 #include <userver/logging/impl/logger_base.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/encoding/tskv.hpp>
+#include "encoding_json.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -18,13 +19,40 @@ namespace logging {
 
 namespace {
 
-char GetSeparatorFromLogger(LoggerRef logger) {
+char GetKeyValueSeparatorFromLogger(LoggerRef logger) {
   switch (logger.GetFormat()) {
     case Format::kTskv:
     case Format::kRaw:
       return '=';
     case Format::kLtsv:
+    case Format::kJson:
       return ':';
+  }
+
+  UINVARIANT(false, "Invalid logging::Format enum value");
+}
+
+char GetItemSeparatorFromLogger(LoggerRef logger) {
+  switch (logger.GetFormat()) {
+    case Format::kTskv:
+    case Format::kRaw:
+    case Format::kLtsv:
+      return '\t';
+    case Format::kJson:
+      return ',';
+  }
+
+  UINVARIANT(false, "Invalid logging::Format enum value");
+}
+
+char GetOpenCloseSeparatorFromLogger(LoggerRef logger) {
+  switch (logger.GetFormat()) {
+    case Format::kTskv:
+    case Format::kRaw:
+    case Format::kLtsv:
+      return '\0';
+    case Format::kJson:
+      return '"';
   }
 
   UINVARIANT(false, "Invalid logging::Format enum value");
@@ -88,7 +116,10 @@ std::streamsize LogHelper::Impl::BufferStd::xsputn(const char_type* s,
 LogHelper::Impl::Impl(LoggerRef logger, Level level) noexcept
     : logger_(&logger),
       level_(std::max(level, logger_->GetLevel())),
-      key_value_separator_(GetSeparatorFromLogger(*logger_)) {
+      key_value_separator_(GetKeyValueSeparatorFromLogger(*logger_)),
+      item_separator_(GetItemSeparatorFromLogger(*logger_)),
+      open_close_separator_optional_(
+          GetOpenCloseSeparatorFromLogger(*logger_)) {
   static_assert(sizeof(LogHelper::Impl) < 4096,
                 "Structures with size more than 4096 would consume at least "
                 "8KB memory in allocator.");
@@ -128,48 +159,100 @@ void LogHelper::Impl::PutMessageBegin() {
       msg_.append(std::string_view{"tskv"});
       return;
     }
+    case Format::kJson: {
+      constexpr std::string_view kTemplate =
+          "{\"timestamp\":\"0000-00-00T00:00:00.000000\",\"level\":\"\"";
+      const auto now = TimePoint::clock::now();
+      const auto level_string = logging::ToUpperCaseString(level_);
+      msg_.resize(kTemplate.size() + level_string.size());
+      fmt::format_to(
+          msg_.data(),
+          FMT_COMPILE("{{\"timestamp\":\"{}.{:06}\",\"level\":\"{}\""),
+          GetCurrentTimeString(now).ToStringView(), FractionalMicroseconds(now),
+          level_string);
+      return;
+    }
   }
   UASSERT_MSG(false, "Invalid value of Format enum");
 }
 
-void LogHelper::Impl::PutMessageEnd() { msg_.push_back('\n'); }
+void LogHelper::Impl::PutMessageEnd() {
+  if (logger_->GetFormat() == Format::kJson) {
+    msg_.push_back('}');
+  }
+  msg_.push_back('\n');
+}
 
 void LogHelper::Impl::PutKey(std::string_view key) {
-  if (!utils::encoding::ShouldKeyBeEscaped(key)) {
+  // make sure that we have ended writing the "text" value
+  StopText();
+
+  // `utils::encoding::ShouldKeyBeEscaped` works only with non json format
+  if (!utils::encoding::ShouldKeyBeEscaped(key) &&
+      logger_->GetFormat() != Format::kJson) {
     PutRawKey(key);
   } else {
     UASSERT(!std::exchange(is_within_value_, true));
     CheckRepeatedKeys(key);
-    msg_.push_back(utils::encoding::kTskvPairsSeparator);
-    utils::encoding::EncodeTskv(
-        msg_, key, utils::encoding::EncodeTskvMode::kKeyReplacePeriod);
-    msg_.push_back(key_value_separator_);
+
+    PutItemSeparator();
+    PutOptionalOpenCloseSeparator();
+    if (logger_->GetFormat() == Format::kJson) {
+      EncodeJson(msg_, key);
+    } else {
+      utils::encoding::EncodeTskv(
+          msg_, key, utils::encoding::EncodeTskvMode::kKeyReplacePeriod);
+    }
+    PutOptionalOpenCloseSeparator();
+    PutKeyValueSeparator();
   }
 }
 
 void LogHelper::Impl::PutRawKey(std::string_view key) {
+  // make sure that we have ended writing the "text" value
+  StopText();
+
   UASSERT(!std::exchange(is_within_value_, true));
   CheckRepeatedKeys(key);
-  const auto old_size = msg_.size();
-  msg_.resize(old_size + 1 + key.size() + 1);
+  msg_.reserve(msg_.size() + key.size() + 4);
 
-  auto* position = msg_.data() + old_size;
-  *(position++) = utils::encoding::kTskvPairsSeparator;
-  key.copy(position, key.size());
-  position += key.size();
-  *(position++) = key_value_separator_;
+  PutItemSeparator();
+  PutOptionalOpenCloseSeparator();
+  msg_.append(key);
+  PutOptionalOpenCloseSeparator();
+  PutKeyValueSeparator();
 }
 
 void LogHelper::Impl::PutValuePart(std::string_view value) {
   UASSERT(is_within_value_);
-  utils::encoding::EncodeTskv(msg_, value,
-                              utils::encoding::EncodeTskvMode::kValue);
+  if (logger_->GetFormat() == Format::kJson) {
+    EncodeJson(msg_, value);
+  } else {
+    utils::encoding::EncodeTskv(msg_, value,
+                                utils::encoding::EncodeTskvMode::kValue);
+  }
 }
 
 void LogHelper::Impl::PutValuePart(char text_part) {
   UASSERT(is_within_value_);
-  utils::encoding::EncodeTskv(fmt::appender(msg_), text_part,
-                              utils::encoding::EncodeTskvMode::kValue);
+  if (logger_->GetFormat() == Format::kJson) {
+    EncodeJson(msg_, std::string_view{&text_part, 1});
+  } else {
+    utils::encoding::EncodeTskv(fmt::appender(msg_), text_part,
+                                utils::encoding::EncodeTskvMode::kValue);
+  }
+}
+
+void LogHelper::Impl::PutKeyValueSeparator() {
+  msg_.push_back(key_value_separator_);
+}
+
+void LogHelper::Impl::PutItemSeparator() { msg_.push_back(item_separator_); }
+
+void LogHelper::Impl::PutOptionalOpenCloseSeparator() {
+  if (open_close_separator_optional_) {
+    msg_.push_back(open_close_separator_optional_);
+  }
 }
 
 LogBuffer& LogHelper::Impl::GetBufferForRawValuePart() noexcept {
@@ -182,8 +265,21 @@ void LogHelper::Impl::MarkValueEnd() noexcept {
 }
 
 void LogHelper::Impl::StartText() {
+  UASSERT(is_text_finished_ == false);
   PutRawKey("text");
+  PutOptionalOpenCloseSeparator();
   initial_length_ = msg_.size();
+  UASSERT(is_text_finished_ == false);
+}
+
+void LogHelper::Impl::StopText() {
+  if (initial_length_ == 0) {
+    // text hasn't started yet
+    return;
+  }
+  if (!std::exchange(is_text_finished_, true)) {
+    PutOptionalOpenCloseSeparator();
+  }
 }
 
 LogHelper::Impl::LazyInitedStream& LogHelper::Impl::GetLazyInitedStream() {
