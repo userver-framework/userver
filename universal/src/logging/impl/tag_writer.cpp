@@ -26,8 +26,9 @@ std::string_view RuntimeTagKey::GetUnescapedKey() const noexcept {
 }
 
 void TagWriter::PutLogExtra(const LogExtra& extra) {
-  for (const auto& item : *extra.extra_) {
-    PutTag(RuntimeTagKey{item.first}, item.second.GetValue());
+  for (const auto& [key, value] : *extra.extra_) {
+    std::visit([&key, this](auto& value) { PutTag(RuntimeTagKey{key}, value); },
+               value.GetValue());
   }
 }
 

@@ -325,11 +325,6 @@ LogHelper& LogHelper::operator<<(LogExtra&& extra) noexcept {
   return *this;
 }
 
-LogHelper& LogHelper::operator<<(const LogExtra::Value& value) noexcept {
-  std::visit([this](const auto& unwrapped) { *this << unwrapped; }, value);
-  return *this;
-}
-
 void LogHelper::PutFloatingPoint(float value) {
   fmt::format_to(fmt::appender(pimpl_->GetBufferForRawValuePart()),
                  FMT_COMPILE("{}"), value);
