@@ -67,6 +67,11 @@ TEST_F(LoggingTest, TskvEncode) {
       << "escaped sequence is present in the message";
 }
 
+TEST_F(LoggingJsonTest, JsonEncode) {
+  LOG_CRITICAL() << "line\"1\nline 2";
+  EXPECT_THAT(GetStreamString(), testing::HasSubstr("line\\\"1\\nline 2"));
+}
+
 TEST_F(LoggingTest, TskvEncodeKeyWithDot) {
   logging::LogExtra le;
   le.Extend("http.port.ipv4", "4040");
@@ -97,6 +102,85 @@ TEST_F(LoggingTest, LogFormat) {
 
   EXPECT_THAT(GetStreamString(), testing::Not(testing::HasSubstr(" ( /")))
       << "Path shortening for logs stopped working.";
+}
+
+TEST_F(LoggingJsonTest, LogFormat) {
+  // Note: this is a golden test. The order and content of tags is stable, which
+  // is an implementation detail, but it makes this test possible. If the order
+  // or content of tags change, this test should be fixed to reflect the
+  // changes.
+  constexpr std::string_view kExpectedPattern =
+      R"({)"
+      R"("timestamp":"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}",)"
+      R"("level":"[A-Z]+",)"
+      R"("module":"[\w\d ():./]+",)"
+      R"("task_id":"[0-9A-F]+",)"
+      R"("thread_id":"0x[0-9A-F]+",)"
+      R"("text":"test",)"
+      R"("str":"bar",)"
+      R"("int":"42",)"
+      R"("float":"0.123")"
+      R"(})"
+      R"(\n)";
+  LOG_CRITICAL() << "test" << logging::LogExtra{{"str", "bar"}}
+                 << logging::LogExtra{{"int", 42}}
+                 << logging::LogExtra{{"float", 0.123f}};
+  logging::LogFlush();
+  EXPECT_TRUE(
+      utils::regex_match(GetStreamString(), utils::regex(kExpectedPattern)))
+      << GetStreamString();
+
+  EXPECT_THAT(GetStreamString(), testing::Not(testing::HasSubstr(" ( /")))
+      << "Path shortening for logs stopped working.";
+}
+
+TEST_F(LoggingJsonTest, LogFormatEmptyTextNonemptyExtra) {
+  // Note: this is a golden test. The order and content of tags is stable, which
+  // is an implementation detail, but it makes this test possible. If the order
+  // or content of tags change, this test should be fixed to reflect the
+  // changes.
+  constexpr std::string_view kExpectedPattern =
+      R"({)"
+      R"("timestamp":"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}",)"
+      R"("level":"[A-Z]+",)"
+      R"("module":"[\w\d ():./]+",)"
+      R"("task_id":"[0-9A-F]+",)"
+      R"("thread_id":"0x[0-9A-F]+",)"
+      R"("text":"",)"
+      R"("str":"bar",)"
+      R"("int":"42",)"
+      R"("float":"0.123")"
+      R"(})"
+      R"(\n)";
+  LOG_CRITICAL() << logging::LogExtra{{"str", "bar"}}
+                 << logging::LogExtra{{"int", 42}}
+                 << logging::LogExtra{{"float", 0.123f}};
+  logging::LogFlush();
+  EXPECT_TRUE(
+      utils::regex_match(GetStreamString(), utils::regex(kExpectedPattern)))
+      << GetStreamString();
+}
+
+TEST_F(LoggingJsonTest, LogFormatEmptyTextEmptyExtra) {
+  // Note: this is a golden test. The order and content of tags is stable, which
+  // is an implementation detail, but it makes this test possible. If the order
+  // or content of tags change, this test should be fixed to reflect the
+  // changes.
+  constexpr std::string_view kExpectedPattern =
+      R"({)"
+      R"("timestamp":"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}",)"
+      R"("level":"[A-Z]+",)"
+      R"("module":"[\w\d ():./]+",)"
+      R"("task_id":"[0-9A-F]+",)"
+      R"("thread_id":"0x[0-9A-F]+",)"
+      R"("text":"")"
+      R"(})"
+      R"(\n)";
+  LOG_CRITICAL() << "";
+  logging::LogFlush();
+  EXPECT_TRUE(
+      utils::regex_match(GetStreamString(), utils::regex(kExpectedPattern)))
+      << GetStreamString();
 }
 
 TEST_F(LoggingTest, FloatingPoint) {
