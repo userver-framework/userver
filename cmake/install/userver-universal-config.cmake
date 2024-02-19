@@ -26,7 +26,7 @@ include("${USERVER_CMAKE_DIR}/Sanitizers.cmake")
 include("${USERVER_CMAKE_DIR}/SetupLTO.cmake")
 include("${USERVER_CMAKE_DIR}/SetupLinker.cmake")
 
-_userver_make_sanitize_target()
+_userver_make_sanitize_blacklist()
 
 add_library(userver::universal ALIAS userver::userver-universal)
 

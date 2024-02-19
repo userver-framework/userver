@@ -8,6 +8,9 @@ if (TARGET userver-core)
   message(FATAL_ERROR "userver-core should be included after userver-universal")
 endif()
 
+include(Sanitizers)
+_userver_make_sanitize_target()
+
 file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp

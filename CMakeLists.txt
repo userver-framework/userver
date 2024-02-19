@@ -118,9 +118,6 @@ if(USERVER_INSTALL)
   include(GNUInstallDirs)
 endif()
 
-include(Sanitizers)
-_userver_make_sanitize_target()
-
 include(GetUserverVersion)
 include(AddGoogleTests)
 include(CheckSubmodule)
