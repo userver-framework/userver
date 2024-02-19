@@ -252,6 +252,7 @@ properties:
                       - tskv
                       - ltsv
                       - raw
+                      - json
                 flush_level:
                     type: string
                     description: messages of this and higher levels get flushed to the file immediately
