@@ -81,6 +81,8 @@ TEST_F(LoggingTest, TskvEncodeKeyWithDot) {
 }
 
 TEST_F(LoggingTest, LogFormat) {
+  using namespace formats::literals;
+
   // Note: this is a golden test. The order and content of tags is stable, which
   // is an implementation detail, but it makes this test possible. If the order
   // or content of tags change, this test should be fixed to reflect the
@@ -93,8 +95,10 @@ TEST_F(LoggingTest, LogFormat) {
       R"(task_id=[0-9A-F]+\t)"
       R"(thread_id=0x[0-9A-F]+\t)"
       R"(text=test\t)"
-      R"(foo=bar\n)";
-  LOG_CRITICAL() << "test" << logging::LogExtra{{"foo", "bar"}};
+      R"(foo=bar\t)"
+      R"(json={\"a\":\"foo\"}\n)";
+  LOG_CRITICAL() << "test" << logging::LogExtra{{"foo", "bar"}}
+                 << logging::LogExtra{{"json", R"({"a": "foo"})"_json}};
   logging::LogFlush();
   EXPECT_TRUE(
       utils::regex_match(GetStreamString(), utils::regex(kExpectedPattern)))
@@ -177,6 +181,33 @@ TEST_F(LoggingJsonTest, LogFormatEmptyTextEmptyExtra) {
       R"(})"
       R"(\n)";
   LOG_CRITICAL() << "";
+  logging::LogFlush();
+  EXPECT_TRUE(
+      utils::regex_match(GetStreamString(), utils::regex(kExpectedPattern)))
+      << GetStreamString();
+}
+
+TEST_F(LoggingJsonTest, LogFormatJsonExtra) {
+  using namespace formats::literals;
+
+  // Note: this is a golden test. The order and content of tags is stable, which
+  // is an implementation detail, but it makes this test possible. If the order
+  // or content of tags change, this test should be fixed to reflect the
+  // changes.
+  constexpr std::string_view kExpectedPattern =
+      R"({)"
+      R"("timestamp":"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}",)"
+      R"("level":"[A-Z]+",)"
+      R"("module":"[\w\d ():./]+",)"
+      R"("task_id":"[0-9A-F]+",)"
+      R"("thread_id":"0x[0-9A-F]+",)"
+      R"("text":"",)"
+      R"("json1":{"a":"foo"},)"
+      R"("json2":{"b":"bar"})"
+      R"(})"
+      R"(\n)";
+  LOG_CRITICAL() << logging::LogExtra{{"json1", R"({"a": "foo"})"_json}}
+                 << logging::LogExtra{{"json2", R"({"b": "bar"})"_json}};
   logging::LogFlush();
   EXPECT_TRUE(
       utils::regex_match(GetStreamString(), utils::regex(kExpectedPattern)))

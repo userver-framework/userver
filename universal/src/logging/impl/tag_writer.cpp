@@ -53,6 +53,18 @@ void TagWriter::PutOptionalOpenCloseSeparator() {
   lh_.pimpl_->PutOptionalOpenCloseSeparator();
 }
 
+void TagWriter::PutTag(TagKey key, const JsonString& value) {
+  PutKey(key);
+  lh_.pimpl_->WriteRawJsonValue(value.Value());
+  MarkValueEnd();
+}
+
+void TagWriter::PutTag(RuntimeTagKey key, const JsonString& value) {
+  PutKey(key);
+  lh_.pimpl_->WriteRawJsonValue(value.Value());
+  MarkValueEnd();
+}
+
 }  // namespace logging::impl
 
 USERVER_NAMESPACE_END

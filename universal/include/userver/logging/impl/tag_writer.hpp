@@ -42,8 +42,12 @@ class TagWriter {
   template <typename T>
   void PutTag(TagKey key, const T& value);
 
+  void PutTag(TagKey key, const JsonString& value);
+
   template <typename T>
   void PutTag(RuntimeTagKey key, const T& value);
+
+  void PutTag(RuntimeTagKey key, const JsonString& value);
 
   // The tags must not be duplicated in other Put* calls.
   void PutLogExtra(const LogExtra& extra);

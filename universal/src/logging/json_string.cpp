@@ -3,6 +3,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 
+#include <algorithm>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace logging {
@@ -23,10 +25,17 @@ bool DebugValid(std::string_view json) {
 }  // namespace
 
 JsonString::JsonString(const formats::json::Value& value)
-    : json_{ToString(value)} {}
+    : json_{ToString(value)} {
+  // ToString builds one line string by RapidJson
+}
 
 JsonString::JsonString(std::string json) noexcept : json_{std::move(json)} {
   UASSERT(DebugValid(json_));
+
+  // Remove extra new lines from user provided json string
+  json_.erase(std::remove_if(json_.begin(), json_.end(),
+                             [](auto ch) { return ch == '\n' || ch == '\r'; }),
+              json_.end());
 }
 
 std::string_view JsonString::Value() const {

@@ -12,14 +12,16 @@ USERVER_NAMESPACE_BEGIN
 
 namespace logging {
 
-/// String in json format
+/// One line json string.
 class JsonString {
  public:
   /// @brief Constructs from provided json object.
+  /// The generated json string is an one line string.
   JsonString(const formats::json::Value& value);
 
   /// @brief Constructs from provided json string. It is the user's
   /// responsibility to ensure that the input json string is valid.
+  /// New lines will be removed during construction.
   explicit JsonString(std::string json) noexcept;
 
   /// @brief Constructs "null"

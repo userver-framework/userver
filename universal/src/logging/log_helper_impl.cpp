@@ -311,6 +311,17 @@ void LogHelper::Impl::CheckRepeatedKeys(
               fmt::format("Repeated tag in logs: '{}'", raw_key));
 }
 
+void LogHelper::Impl::WriteRawJsonValue(std::string_view json) {
+  UASSERT(is_within_value_);
+
+  if (logger_->GetFormat() == Format::kJson) {
+    msg_.append(json);
+  } else {
+    utils::encoding::EncodeTskv(msg_, json,
+                                utils::encoding::EncodeTskvMode::kValue);
+  }
+}
+
 }  // namespace logging
 
 USERVER_NAMESPACE_END

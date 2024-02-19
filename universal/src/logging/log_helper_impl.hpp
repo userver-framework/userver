@@ -60,6 +60,8 @@ class LogHelper::Impl final {
   void PutItemSeparator();
   void PutOptionalOpenCloseSeparator();
 
+  void WriteRawJsonValue(std::string_view json);
+
  private:
   class BufferStd final : public std::streambuf {
    public:
