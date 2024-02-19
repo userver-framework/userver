@@ -712,7 +712,7 @@ void PGConnectionWrapper::SendQuery(const std::string& statement,
                                     tracing::ScopeTime& scope) {
   scope.Reset(scopes::kLibpqSendQueryParams);
   CheckError<CommandError>(
-      "PQsendQueryParams `" + statement + "`",
+      "PQsendQueryParams",
       PQsendQueryParams(conn_, statement.c_str(), 0, nullptr, nullptr, nullptr,
                         nullptr, io::kPgBinaryDataFormat));
   UpdateLastUse();
