@@ -4,11 +4,10 @@
 
 #include <userver/utest/assert_macros.hpp>
 
-
 USERVER_NAMESPACE_BEGIN
 
 TEST(JsonString, ConstructFromJson) {
-  using namespace formats::literals;
+  using formats::literals::operator""_json;
 
   auto json = R"({
     "a": "foo",
@@ -41,6 +40,5 @@ TEST(JsonString, ConstructNull) {
 
   EXPECT_EQ(json_string.Value(), R"(null)");
 }
-
 
 USERVER_NAMESPACE_END

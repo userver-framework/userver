@@ -81,7 +81,7 @@ TEST_F(LoggingTest, TskvEncodeKeyWithDot) {
 }
 
 TEST_F(LoggingTest, LogFormat) {
-  using namespace formats::literals;
+  using formats::literals::operator""_json;
 
   // Note: this is a golden test. The order and content of tags is stable, which
   // is an implementation detail, but it makes this test possible. If the order
@@ -188,7 +188,7 @@ TEST_F(LoggingJsonTest, LogFormatEmptyTextEmptyExtra) {
 }
 
 TEST_F(LoggingJsonTest, LogFormatJsonExtra) {
-  using namespace formats::literals;
+  using formats::literals::operator""_json;
 
   // Note: this is a golden test. The order and content of tags is stable, which
   // is an implementation detail, but it makes this test possible. If the order
