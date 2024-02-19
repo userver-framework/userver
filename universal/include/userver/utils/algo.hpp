@@ -20,13 +20,13 @@ USERVER_NAMESPACE_BEGIN
 namespace utils {
 
 /// @brief Concatenates multiple `std::string_view`-convertible items
-template <typename... Strings>
-std::string StrCat(const Strings&... strings) {
+template <typename ResultString = std::string, typename... Strings>
+ResultString StrCat(const Strings&... strings) {
   return [](auto... string_views) {
     std::size_t result_size = 0;
     ((result_size += string_views.size()), ...);
 
-    std::string result;
+    ResultString result;
     result.reserve(result_size);
     (result.append(string_views), ...);
     return result;
