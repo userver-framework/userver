@@ -81,6 +81,14 @@ UTEST(StatisticsHistogram, AccountForEachBucketCount) {
   }
 }
 
+UTEST(StatisticsHistogram, Total) {
+  utils::statistics::Histogram histogram{Bounds()};
+  AccountSome(histogram);
+  EXPECT_EQ(fmt::to_string(histogram.GetView()),
+            "[1.5]=1,[5]=1,[42]=5,[60]=0,[inf]=1");
+  EXPECT_EQ(histogram.GetView().GetTotalCount(), 8);
+}
+
 UTEST(StatisticsHistogram, Sample) {
   /// [sample]
   utils::statistics::Storage storage;

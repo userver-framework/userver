@@ -43,6 +43,15 @@ std::uint64_t HistogramView::GetValueAtInf() const noexcept {
   return buckets_[0].counter.load(std::memory_order_relaxed);
 }
 
+std::uint64_t HistogramView::GetTotalCount() const noexcept {
+  const auto bucket_count = GetBucketCount();
+  auto total = GetValueAtInf();
+  for (std::size_t i = 0; i < bucket_count; ++i) {
+    total += GetValueAt(i);
+  }
+  return total;
+}
+
 void DumpMetric(Writer& writer, HistogramView histogram) { writer = histogram; }
 
 bool operator==(HistogramView lhs, HistogramView rhs) noexcept {
