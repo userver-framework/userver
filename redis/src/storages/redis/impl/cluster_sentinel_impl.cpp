@@ -603,6 +603,10 @@ void ClusterTopologyHolder::UpdateClusterTopology() {
                       << shard_infos.size();
           throw std::runtime_error("Redis must be in cluster mode");
         }
+        if (shard_infos.empty()) {
+          LOG_WARNING() << "Received empty topology";
+          return;
+        }
 
         if (!CheckQuorum(requests_sent, responses_parsed)) {
           LOG_WARNING()
