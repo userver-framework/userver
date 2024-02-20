@@ -1,5 +1,5 @@
 # main system for docker
-FROM ghcr.io/userver-framework/ubuntu-userver-core-ub22:v1
+FROM ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest
 
 # Set UTC timezone
 ENV DEBIAN_FRONTEND noninteractive

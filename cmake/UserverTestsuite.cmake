@@ -10,7 +10,7 @@ option(USERVER_FEATURE_TESTSUITE "Enable functional tests via testsuite" ON)
 option(
     USERVER_PIP_USE_SYSTEM_PACKAGES
     "Use system python packages inside venv"
-    OFF
+    ON
 )
 set(USERVER_PIP_OPTIONS "" CACHE STRING "Options for all pip calls")
 

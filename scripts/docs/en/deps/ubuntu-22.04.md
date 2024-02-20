@@ -1,3 +1,4 @@
+build-essential
 ccache
 cmake
 git
@@ -28,6 +29,8 @@ libhttp-parser-dev
 libjemalloc-dev
 libkrb5-dev
 libldap2-dev
+liblz4-dev
+libmariadb-dev
 libmongoc-dev
 libnghttp2-dev
 libpq-dev
@@ -43,5 +46,6 @@ python3-jinja2
 python3-protobuf
 python3-venv
 python3-voluptuous
+python3-yaml
 redis-server
 zlib1g-dev
