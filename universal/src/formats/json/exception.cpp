@@ -41,6 +41,12 @@ std::string MsgForMissing(const std::string& path) {
   return fmt::format("Field '{}' is missing", path);
 }
 
+std::string MsgForUnknownDiscriminator(const std::string& path,
+                                       std::string_view discriminator_value) {
+  return fmt::format("Unknown discriminator field value '{}' in object '{}'",
+                     discriminator_value, path);
+}
+
 }  // namespace
 
 namespace formats::json {
@@ -79,6 +85,10 @@ const std::string& OutOfBoundsException::GetPath() const noexcept {
 
 MemberMissingException::MemberMissingException(const std::string& path)
     : Exception(MsgForMissing(path)) {}
+
+UnknownDiscriminatorException::UnknownDiscriminatorException(
+    const std::string& path, std::string_view discriminator_field)
+    : Exception(MsgForUnknownDiscriminator(path, discriminator_field)) {}
 
 }  // namespace formats::json
 

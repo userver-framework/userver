@@ -67,6 +67,12 @@ class ConversionException : public Exception {
   using Exception::Exception;
 };
 
+class UnknownDiscriminatorException : public Exception {
+ public:
+  UnknownDiscriminatorException(const std::string& path,
+                                std::string_view discriminator_field);
+};
+
 }  // namespace formats::json
 
 USERVER_NAMESPACE_END
