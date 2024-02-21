@@ -13,21 +13,6 @@ namespace ugrpc::server::middlewares::deadline_propagation {
 
 namespace {
 
-std::optional<engine::Deadline> TryExtractDeadline(
-    std::chrono::system_clock::time_point time) {
-  // In some versions of gRPC, absence of deadline represented as negative
-  // time_point
-  if (time.time_since_epoch().count() < 0) {
-    return std::nullopt;
-  }
-
-  const auto duration = time - std::chrono::system_clock::now();
-  if (duration >= std::chrono::hours{365 * 24}) {
-    return std::nullopt;
-  }
-  return engine::Deadline::FromDuration(duration);
-}
-
 bool CheckAndSetupDeadline(tracing::Span& span, grpc::ServerContext& context,
                            std::string_view service_name,
                            std::string_view method_name,
@@ -38,16 +23,18 @@ bool CheckAndSetupDeadline(tracing::Span& span, grpc::ServerContext& context,
     return true;
   }
 
-  auto opt_deadline = TryExtractDeadline(context.deadline());
-  if (!opt_deadline) {
+  auto deadline_duration =
+      ugrpc::impl::ExtractDeadlineDuration(context.raw_deadline());
+  if (deadline_duration == engine::Deadline::Duration::max()) {
     return true;
   }
 
-  auto deadline = *opt_deadline;
-  const bool cancel_by_deadline = context.IsCancelled() || deadline.IsReached();
+  auto deadline_ms =
+      std::chrono::duration_cast<std::chrono::milliseconds>(deadline_duration);
 
-  auto deadline_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-      deadline.TimeLeft());
+  const bool cancel_by_deadline =
+      context.IsCancelled() || deadline_ms <= engine::Deadline::Duration{0};
+
   span.AddNonInheritableTag("received_deadline_ms", deadline_ms.count());
   statistics_scope.OnDeadlinePropagated();
   span.AddNonInheritableTag("cancelled_by_deadline", cancel_by_deadline);
@@ -58,6 +45,7 @@ bool CheckAndSetupDeadline(tracing::Span& span, grpc::ServerContext& context,
     return false;
   }
 
+  auto deadline = engine::Deadline::FromDuration(deadline_duration);
   USERVER_NAMESPACE::server::request::TaskInheritedData inherited_data{
       service_name, method_name, std::chrono::steady_clock::now(), deadline};
   USERVER_NAMESPACE::server::request::kTaskInheritedData.Set(inherited_data);
