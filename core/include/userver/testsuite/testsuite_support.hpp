@@ -41,6 +41,7 @@ namespace components {
 /// testsuite-redis-timeout-single | minimum single shard timeout for redis | -
 /// testsuite-redis-timeout-all | minimum command timeout for redis | -
 /// testsuite-tasks-enabled | enable testsuite tasks facility | false
+/// testsuite-increased-timeout | increase timeouts for connections, statement executions, RPC timeouts to avoid timeouts happening in testing environments, where the hardware differs from production. Overrides postgres, redis and grpc timeouts if these are missing | 0ms
 ///
 /// ## Static configuration example:
 ///
@@ -67,12 +68,17 @@ class TestsuiteSupport final : public components::impl::ComponentBase {
   testsuite::TestsuiteTasks& GetTestsuiteTasks();
   testsuite::HttpAllowedUrlsExtra& GetHttpAllowedUrlsExtra();
   testsuite::GrpcControl& GetGrpcControl();
+  /// @returns 0 if timeout was not increased via
+  /// `testsuite-increased-timeout` static option,
+  /// `testsuite-increased-timeout` value otherwise
+  std::chrono::milliseconds GetIncreasedTimeout() const noexcept;
 
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   void OnAllComponentsAreStopping() override;
 
+  const std::chrono::milliseconds increased_timeout_;
   testsuite::CacheControl cache_control_;
   testsuite::DumpControl dump_control_;
   testsuite::PeriodicTaskControl periodic_task_control_;

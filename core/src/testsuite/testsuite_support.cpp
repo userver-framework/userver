@@ -67,7 +67,10 @@ testsuite::GrpcControl ParseGrpcControl(
 
 TestsuiteSupport::TestsuiteSupport(const components::ComponentConfig& config,
                                    const components::ComponentContext&)
-    : cache_control_(
+    : increased_timeout_(
+          config["testsuite-increased-timeout"].As<std::chrono::milliseconds>(
+              0)),
+      cache_control_(
           ParsePeriodicUpdatesMode(config["testsuite-periodic-update-enabled"]
                                        .As<std::optional<bool>>())),
       dump_control_(ParseDumpControl(config)),
@@ -114,6 +117,11 @@ testsuite::GrpcControl& TestsuiteSupport::GetGrpcControl() {
   return grpc_control_;
 }
 
+std::chrono::milliseconds TestsuiteSupport::GetIncreasedTimeout() const
+    noexcept {
+  return increased_timeout_;
+}
+
 yaml_config::Schema TestsuiteSupport::GetStaticConfigSchema() {
   return yaml_config::MergeSchemas<impl::ComponentBase>(R"(
 type: object
@@ -157,6 +165,10 @@ properties:
         type: boolean
         description: Weather or not testsuite tasks are enabled
         defaultDescription: false
+    testsuite-increased-timeout:
+        type: string
+        description: increase timeouts in testing environments. Overrides postgres, redis and grpc timeouts if these are missing
+        defaultDescription: 0ms
 )");
 }
 
