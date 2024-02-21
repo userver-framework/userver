@@ -3,7 +3,6 @@ FROM ubuntu:22.04
 COPY scripts/docs/en/deps/ubuntu-22.04.md /userver_tmp/
 COPY scripts/docker/setup-base-ubuntu-22.04-env.sh /userver_tmp/
 COPY scripts/docker/add_user.sh /userver_tmp/
-RUN (cd /userver_tmp && ./setup-base-ubuntu-22.04-env.sh && ./add_user.sh)
 
 COPY scripts/external_deps/requirements.txt  /userver_tmp/requirements/external-deps.txt
 COPY scripts/grpc/requirements.txt           /userver_tmp/requirements/grpc-userver.txt
@@ -18,9 +17,14 @@ COPY testsuite/requirements-net.txt          /userver_tmp/requirements/net.txt
 COPY testsuite/requirements.txt              /userver_tmp/requirements/testsuite-base.txt
 
 COPY scripts/docker/pip-install.sh           /userver_tmp/
-RUN (cd /userver_tmp && sudo -u user ./pip-install.sh)
 
-RUN rm -rf /userver_tmp
+RUN ( \
+  cd /userver_tmp \
+  && ./setup-base-ubuntu-22.04-env.sh \
+  && ./add_user.sh \
+  && sudo -u user ./pip-install.sh \
+  && rm -rf /userver_tmp \
+)
 
 # add expose ports
 EXPOSE 8080-8100
