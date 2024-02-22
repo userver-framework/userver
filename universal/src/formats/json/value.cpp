@@ -5,10 +5,10 @@
 #include <limits>
 #include <utility>
 
-#include <rapidjson/allocators.h>
 #include <rapidjson/document.h>
 
 #include <userver/formats/json/exception.hpp>
+#include <userver/formats/json/value_builder.hpp>
 
 #include <formats/json/impl/exttypes.hpp>
 #include <formats/json/impl/json_tree.hpp>
@@ -33,8 +33,6 @@ static_assert(std::numeric_limits<double>::digits <
                   std::numeric_limits<int64_t>::digits,
               "Your compiler provides unusually large double, please contact "
               "userver support chat");
-
-::rapidjson::CrtAllocator g_allocator;
 
 template <typename T>
 auto CheckedNotTooNegative(T x, const Value& value) {
@@ -397,9 +395,7 @@ void Value::DropRootPath() {
   depth_ = 0;
 }
 
-Value Value::Clone() const {
-  return Value{impl::VersionedValuePtr::Create(GetNative(), g_allocator)};
-}
+Value Value::Clone() const { return ValueBuilder(*this).ExtractValue(); }
 
 void Value::EnsureNotMissing() const {
   // We should never get here if the value is missing, in the first place.
