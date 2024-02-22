@@ -301,7 +301,7 @@ class [[nodiscard]] OutputStream final : public CallAnyBase {
 
 /// @brief Controls a request stream -> response stream RPC
 ///
-/// This class allows the following concurrent calls:
+/// It is safe to call the following methods from different coroutines:
 ///
 ///   - `GetContext`;
 ///   - one of (`Read`, `ReadAsync`);
@@ -330,6 +330,27 @@ class [[nodiscard]] OutputStream final : public CallAnyBase {
 /// Instead the user SHOULD call `Read` method until the end of input. If
 /// `Write` or `WritesDone` finishes with negative result, finally `Read`
 /// will throw an exception.
+///
+/// ## Usage example
+///
+/// ```cpp
+/// auto stream = grpc_client.SomeBidirectionalStreamMethod();
+///
+/// auto write_task = engine::AsyncNoSpan([&stream, &request_messages] {
+///   for (const auto& message : request_messages) {
+///     if (!stream.Write(message)) {
+///       return;
+///     }
+///   }
+///   stream.WritesDone();
+/// });
+///
+/// while (stream.Read(response_message)) {
+///   // ...
+/// }
+///
+/// write_task.Get();
+/// ```
 template <typename Request, typename Response>
 class [[nodiscard]] BidirectionalStream final : public CallAnyBase {
  public:
