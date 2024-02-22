@@ -9,43 +9,51 @@ DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
   apt-transport-https ca-certificates dirmngr wget curl software-properties-common \
   gnupg gnupg2
 
-gpg_retrieve() {
+gpg_retrieve_curl() {
   # See https://unix.stackexchange.com/questions/682929/migrating-away-from-apt-key-adv
   # and https://github.com/llvm/llvm-project/issues/55784#issuecomment-1569643347
   curl -fsSL "$1" | gpg --dearmor -o "/usr/share/keyrings/$2.gpg"
   chmod a+r "/usr/share/keyrings/$2.gpg"
 }
 
+gpg_retrieve_keyserver() {
+  GNUPGHOME=$(mktemp -d)
+  GNUPGHOME="$GNUPGHOME" gpg --no-default-keyring --keyring "/usr/share/keyrings/$2.gpg" --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys $1
+  rm -rf "$GNUPGHOME"
+  chmod a+r "/usr/share/keyrings/$2.gpg"
+}
+
 
 # Adding clang/llvm repos
-gpg_retrieve https://apt.llvm.org/llvm-snapshot.gpg.key llvm-snapshot
+gpg_retrieve_curl https://apt.llvm.org/llvm-snapshot.gpg.key llvm-snapshot
 printf "\
 deb [signed-by=/usr/share/keyrings/llvm-snapshot.gpg] http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main \n\
 deb-src [signed-by=/usr/share/keyrings/llvm-snapshot.gpg] http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main\n" > /etc/apt/sources.list.d/llvm.list
 
-# Adding GCC repos
-add-apt-repository -y ppa:ubuntu-toolchain-r/test
+# Adding Ubuntu toolchain repos
+gpg_retrieve_keyserver 60C317803A41BA51845E371A1E9377A2BA9EF27F ubuntu-toolchain-r
+printf "\
+deb [signed-by=/usr/share/keyrings/ubuntu-toolchain-r.gpg] https://ppa.launchpadcontent.net/ubuntu-toolchain-r/test/ubuntu $(lsb_release -cs) main \n\
+deb-src [signed-by=/usr/share/keyrings/ubuntu-toolchain-r.gpg] https://ppa.launchpadcontent.net/ubuntu-toolchain-r/test/ubuntu $(lsb_release -cs) main \n" \
+  > /etc/apt/sources.list.d/ubuntu-toolchain-r.list
 
 # Adding clickhouse repositories as in https://clickhouse.com/docs/en/install#setup-the-debian-repository
-GNUPGHOME=$(mktemp -d)
-GNUPGHOME="$GNUPGHOME" gpg --no-default-keyring --keyring /usr/share/keyrings/clickhouse-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 8919F6BD2B48D754
-rm -rf "$GNUPGHOME"
-chmod +r /usr/share/keyrings/clickhouse-keyring.gpg
+gpg_retrieve_keyserver 8919F6BD2B48D754 clickhouse-keyring
 echo "deb [signed-by=/usr/share/keyrings/clickhouse-keyring.gpg] https://packages.clickhouse.com/deb stable main"  \
     | tee /etc/apt/sources.list.d/clickhouse.list
 
 # Adding mariadb repositories (from https://www.linuxcapable.com/how-to-install-mariadb-on-ubuntu-linux/ )
-gpg_retrieve http://mirror.mariadb.org/PublicKey_v2 mariadb
+gpg_retrieve_curl http://mirror.mariadb.org/PublicKey_v2 mariadb
 echo "deb [arch=amd64,arm64,ppc64el signed-by=/usr/share/keyrings/mariadb.gpg] http://mirror.mariadb.org/repo/10.11/ubuntu/ $(lsb_release -cs) main" \
     | tee /etc/apt/sources.list.d/mariadb.list
 
 # convoluted setup of rabbitmq + erlang taken from https://www.rabbitmq.com/install-debian.html#apt-quick-start-packagecloud
 ## Team RabbitMQ's main signing key
-gpg_retrieve https://keys.openpgp.org/vks/v1/by-fingerprint/0A9AF2115F4687BD29803A206B73A36E6026DFCA com.rabbitmq.team
+gpg_retrieve_curl https://keys.openpgp.org/vks/v1/by-fingerprint/0A9AF2115F4687BD29803A206B73A36E6026DFCA com.rabbitmq.team
 ## Launchpad PPA that provides modern Erlang releases
-gpg_retrieve "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xf77f1eda57ebb1cc" net.launchpad.ppa.rabbitmq.erlang
+gpg_retrieve_curl "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xf77f1eda57ebb1cc" net.launchpad.ppa.rabbitmq.erlang
 ## PackageCloud RabbitMQ repository
-gpg_retrieve https://packagecloud.io/rabbitmq/rabbitmq-server/gpgkey io.packagecloud.rabbitmq
+gpg_retrieve_curl https://packagecloud.io/rabbitmq/rabbitmq-server/gpgkey io.packagecloud.rabbitmq
 ## Add apt repositories maintained by Team RabbitMQ
 printf "\
 deb [signed-by=/usr/share/keyrings/net.launchpad.ppa.rabbitmq.erlang.gpg] http://ppa.launchpad.net/rabbitmq/rabbitmq-erlang/ubuntu focal main \n\
@@ -54,9 +62,17 @@ deb [signed-by=/usr/share/keyrings/io.packagecloud.rabbitmq.gpg] https://package
 deb-src [signed-by=/usr/share/keyrings/io.packagecloud.rabbitmq.gpg] https://packagecloud.io/rabbitmq/rabbitmq-server/ubuntu/ focal main\n" \
     | tee /etc/apt/sources.list.d/rabbitmq.list
 
-gpg_retrieve https://www.mongodb.org/static/pgp/server-6.0.asc mongodb
+gpg_retrieve_curl https://www.mongodb.org/static/pgp/server-6.0.asc mongodb
 echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse" \
     | tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+
+# Some of the above repos are slow to responde or could be overloaded. Adding some retries
+echo '
+Acquire::Retries "20";
+Acquire::https::Timeout "15";
+Acquire::http::Timeout "15";
+Acquire::ftp::Timeout "15";
+' | tee /etc/apt/apt.conf.d/99custom_increase_retries
 
 # Install build dependencies
 if [ ! -f ubuntu-22.04.md ]; then
@@ -96,6 +112,20 @@ rm -rf postgresql-server-dev-14* tmp_postgresql
 
 # Cleanup
 apt clean all
+
+# You could override those versions from command line
+AMQP_VERSION=${AMQP_VERSION:=v4.3.18}
+CLICKHOUSE_VERSION=${CLICKHOUSE_VERSION:=v2.3.0}
+
+# Installing amqp/rabbitmq client libraries from sources
+git clone --depth 1 -b ${AMQP_VERSION} https://github.com/CopernicaMarketingSoftware/AMQP-CPP.git amqp-cpp
+(cd amqp-cpp && mkdir build && cd build && \
+  cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release .. && make -j $(nproc) && make install)
+
+# Installing Clickhouse C++ client libraries from sources
+git clone --depth 1 -b ${CLICKHOUSE_VERSION} https://github.com/ClickHouse/clickhouse-cpp.git
+(cd clickhouse-cpp && mkdir build && cd build && \
+  cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release .. && make -j $(nproc) && make install)
 
 # Set UTC timezone
 TZ=Etc/UTC

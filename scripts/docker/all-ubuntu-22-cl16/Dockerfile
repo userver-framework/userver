@@ -41,28 +41,6 @@ EXPOSE 5672
 
 RUN pip3 install pep8
 
-# build and install additional dev packages
-COPY src/ /app
-
-RUN cd /app/amqp-cpp && mkdir build && \
-    cd build && cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release .. && make -j $(nproc) && make install
-
-RUN cd /app/clickhouse-cpp && mkdir build && \
-    cd build && cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release .. && make -j $(nproc) && make install
-
-RUN apt update && apt install libssl-dev openssl
-
-RUN cd /app/grpc && mkdir -p cmake/build && cd cmake/build && cmake ../.. -DCMAKE_C_COMPILER=clang-16 -DCMAKE_CXX_COMPILER=clang++-16 \
-    -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DgRPC_SSL_PROVIDER=package \
-    -DgRPC_INSTALL=ON -DgRPC_BUILD_TESTS=OFF \
-    && make -j $(nproc) && make install
-
-# remove sources
-RUN rm -rf /app/amqp-cpp && rm -rf /app/clickhouse-cpp && rm -rf /app/grpc
-
-# install pip requirements
-RUN pip3 install -r /app/requirements.txt
-
 # set up ramdisk symlink for working tmpfs directory in tests
 RUN mkdir -p /ramdrive
 RUN mkdir -p /mnt

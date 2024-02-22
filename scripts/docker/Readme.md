@@ -7,3 +7,7 @@ docker build -t ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest -f sc
 ```
 docker build -t ghcr.io/userver-framework/ubuntu-22.04-userver-base-ci:latest -f scripts/docker/base-ubuntu-22.04-ci.dockerfile .
 ```
+
+Tests in the above images require IPv6 support. Follow the
+https://docs.docker.com/config/daemon/ipv6/ instructions to enable IPv6 in
+docker container.
