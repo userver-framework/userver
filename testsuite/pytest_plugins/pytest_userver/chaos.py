@@ -115,6 +115,12 @@ async def _intercept_noop(
     pass
 
 
+async def _intercept_drop(
+        loop: EvLoop, socket_from: Socket, socket_to: Socket,
+) -> None:
+    await loop.sock_recv(socket_from, RECV_MAX_SIZE)
+
+
 async def _intercept_delay(
         delay: float, loop: EvLoop, socket_from: Socket, socket_to: Socket,
 ) -> None:
@@ -594,6 +600,16 @@ class BaseGate:
         """ Do not read data, causing server to keep multiple data """
         logging.debug('to_client_noop')
         self.set_to_client_interceptor(_intercept_noop)
+
+    def to_server_drop(self) -> None:
+        """ Read and discard data """
+        logging.debug('to_server_drop')
+        self.set_to_server_interceptor(_intercept_drop)
+
+    def to_client_drop(self) -> None:
+        """ Read and discard data """
+        logging.debug('to_client_drop')
+        self.set_to_client_interceptor(_intercept_drop)
 
     def to_server_delay(self, delay: float) -> None:
         """ Delay data transmission """

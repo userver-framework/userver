@@ -181,6 +181,7 @@ class NetResolver::Impl {
                              ARES_OPT_LOOKUPS | ARES_OPT_SOCK_STATE_CB;
     struct ares_options options {};
     options.flags = ARES_FLAG_STAYOPEN |  // do not close idle sockets
+                    ARES_FLAG_NOSEARCH |  // do not use search domains
                     ARES_FLAG_NOALIASES;  // ignore HOSTALIASES from env
     options.timeout = query_timeout.count();
     options.tries = query_attempts;
