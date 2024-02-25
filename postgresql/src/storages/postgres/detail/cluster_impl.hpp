@@ -20,6 +20,7 @@
 #include <userver/storages/postgres/detail/non_transaction.hpp>
 #include <userver/storages/postgres/notify.hpp>
 #include <userver/storages/postgres/options.hpp>
+#include <userver/storages/postgres/query_queue.hpp>
 #include <userver/storages/postgres/statistics.hpp>
 #include <userver/storages/postgres/transaction.hpp>
 
@@ -48,6 +49,9 @@ class ClusterImpl {
   NonTransaction Start(ClusterHostTypeFlags, OptionalCommandControl);
 
   NotifyScope Listen(std::string_view channel, OptionalCommandControl);
+
+  QueryQueue CreateQueryQueue(ClusterHostTypeFlags flags,
+                              TimeoutDuration acquire_timeout);
 
   void SetDefaultCommandControl(CommandControl, DefaultCommandControlSource);
   CommandControl GetDefaultCommandControl() const;

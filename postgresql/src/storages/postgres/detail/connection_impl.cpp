@@ -37,6 +37,9 @@ constexpr std::string_view kStatementVacuum = "vacuum";
 constexpr std::string_view kStatementListen = "listen {}";
 constexpr std::string_view kStatementUnlisten = "unlisten {}";
 
+const Query kSetConfigQuery{fmt::format("SELECT set_config($1, $2, $3) as {}",
+                                        kSetConfigQueryResultName)};
+
 // we hope lc_messages is en_US, we don't control it anyway
 const std::string kBadCachedPlanErrorMessage =
     "cached plan must not change result type";
@@ -308,6 +311,11 @@ bool ConnectionImpl::IsPipelineActive() const {
   return conn_wrapper_.IsPipelineActive();
 }
 
+bool ConnectionImpl::ArePreparedStatementsEnabled() const {
+  return settings_.prepared_statements !=
+         ConnectionSettings::kNoPreparedStatements;
+}
+
 bool ConnectionImpl::IsBroken() const { return conn_wrapper_.IsBroken(); }
 
 bool ConnectionImpl::IsExpired() const {
@@ -459,7 +467,7 @@ Connection::StatementId ConnectionImpl::PortalBind(
   CountPortalBind count_bind(stats_);
 
   const auto& prepared_info =
-      PrepareStatement(statement, params, deadline, span, scope);
+      DoPrepareStatement(statement, params, deadline, span, scope);
 
   scope.Reset(scopes::kBind);
   conn_wrapper_.SendPortalBind(prepared_info.statement_name, portal_name,
@@ -571,9 +579,17 @@ bool ConnectionImpl::Cleanup(TimeoutDuration timeout) {
     // not to kill the pgbouncer
     SetConnectionStatementTimeout(GetDefaultCommandControl().statement,
                                   deadline);
-    // Reenter pipeline mode if necessary
-    if (settings_.pipeline_mode == PipelineMode::kEnabled &&
-        !IsPipelineActive()) {
+    if (IsPipelineActive()) {
+      // In pipeline mode SetConnectionStatementTimeout writes a query into
+      // connection query queue without waiting for its result.
+      // We should process the results of this query, otherwise the connection
+      // is not IDLE and gets deleted by the pool.
+      //
+      // If the query timeouts we won't be IDLE, and apart from timeouts there's
+      // no other way for the query to fail, so just discard its result.
+      conn_wrapper_.DiscardInput(deadline);
+    } else if (settings_.pipeline_mode == PipelineMode::kEnabled) {
+      // Reenter pipeline mode if necessary
       conn_wrapper_.EnterPipelineMode();
     }
     return true;
@@ -699,7 +715,7 @@ void ConnectionImpl::SetStatementTimeout(OptionalCommandControl cmd_ctl) {
   }
 }
 
-const ConnectionImpl::PreparedStatementInfo& ConnectionImpl::PrepareStatement(
+const ConnectionImpl::PreparedStatementInfo& ConnectionImpl::DoPrepareStatement(
     const std::string& statement, const QueryParameters& params,
     engine::Deadline deadline, tracing::Span& span, tracing::ScopeTime& scope) {
   auto query_hash = QueryHash(statement, params);
@@ -809,7 +825,7 @@ ResultSet ConnectionImpl::ExecuteCommand(const Query& query,
   CountExecute count_execute(stats_);
 
   auto const& prepared_info =
-      PrepareStatement(statement, params, deadline, span, scope);
+      DoPrepareStatement(statement, params, deadline, span, scope);
 
   const ResultSet* description_ptr_to_read = nullptr;
   PGresult* description_ptr_to_send = nullptr;
@@ -823,6 +839,67 @@ ResultSet ConnectionImpl::ExecuteCommand(const Query& query,
                                   description_ptr_to_send);
   return WaitResult(statement, deadline, network_timeout, count_execute, span,
                     scope, description_ptr_to_read);
+}
+
+const ConnectionImpl::PreparedStatementInfo& ConnectionImpl::PrepareStatement(
+    const Query& query, const detail::QueryParameters& params,
+    TimeoutDuration timeout) {
+  const auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(timeout);
+  CheckDeadlineReached(deadline);
+
+  const auto& statement = query.Statement();
+
+  tracing::Span span{scopes::kQuery};
+  conn_wrapper_.FillSpanTags(span, {timeout, GetStatementTimeout()});
+  span.AddTag(tracing::kDatabaseStatement, statement);
+
+  auto scope = span.CreateScopeTime();
+  return DoPrepareStatement(statement, params, deadline, span, scope);
+}
+
+void ConnectionImpl::AddIntoPipeline(CommandControl cc,
+                                     const std::string& prepared_statement_name,
+                                     const detail::QueryParameters& params,
+                                     const ResultSet& description,
+                                     tracing::ScopeTime& scope) {
+  // This is a precondition checked higher up the call stack.
+  UASSERT(IsPipelineActive());
+  // Sanity check, should never be hit.
+  if (IsInAbortedPipeline()) {
+    throw ConnectionError("Attempted to use an aborted connection");
+  }
+
+  SetStatementTimeout(cc);
+
+  PGresult* description_to_send = IsOmitDescribeInExecuteEnabled()
+                                      ? description.pimpl_->handle_.get()
+                                      : nullptr;
+  conn_wrapper_.SendPreparedQuery(prepared_statement_name, params, scope,
+                                  description_to_send);
+
+  conn_wrapper_.PutPipelineSync();
+}
+
+std::vector<ResultSet> ConnectionImpl::GatherPipeline(
+    TimeoutDuration timeout, const std::vector<ResultSet>& descriptions) {
+  const auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(timeout);
+  CheckDeadlineReached(deadline);
+
+  std::vector<const PGresult*> native_descriptions(descriptions.size(),
+                                                   nullptr);
+  if (IsOmitDescribeInExecuteEnabled()) {
+    for (std::size_t i = 0; i < descriptions.size(); ++i) {
+      native_descriptions[i] = descriptions[i].pimpl_->handle_.get();
+    }
+  }
+
+  auto result = conn_wrapper_.GatherPipeline(deadline, native_descriptions);
+
+  for (auto& single_result : result) {
+    FillBufferCategories(single_result);
+  }
+
+  return result;
 }
 
 ResultSet ConnectionImpl::ExecuteCommandNoPrepare(const Query& query,
@@ -878,11 +955,10 @@ void ConnectionImpl::SetParameter(std::string_view name, std::string_view value,
   StaticQueryParameters<3> params;
   params.Write(db_types_, name, value, is_transaction_scope);
   if (IsPipelineActive()) {
-    SendCommandNoPrepare("SELECT set_config($1, $2, $3)",
-                         detail::QueryParameters{params}, deadline);
+    SendCommandNoPrepare(kSetConfigQuery, detail::QueryParameters{params},
+                         deadline);
   } else {
-    ExecuteCommand("SELECT set_config($1, $2, $3)",
-                   detail::QueryParameters{params}, deadline);
+    ExecuteCommand(kSetConfigQuery, detail::QueryParameters{params}, deadline);
   }
 }
 

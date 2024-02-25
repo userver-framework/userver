@@ -1610,6 +1610,74 @@ int PQXsendQueryPrepared(PGconn* conn, const char* stmtName, int nParams,
                           paramValues, paramLengths, paramFormats,
                           resultFormat);
 }
+
+/*
+ * This is copy-paste of PQpipelineSync from fe-exec.c, with the only
+ * difference being that this version doesn't try to flush the buffer.
+ * We use this function to reduce amount of syscalls when constructing
+ * a pipeline.
+ *
+ * A function with the exactly same purpose was introduced in
+ * https://github.com/postgres/postgres/commit/4794c2d31714235700ed68edafa10d1928c9bbb2,
+ * and we should switch to that at some point.
+ *
+ * Send a Sync message as part of a pipeline
+ */
+int PQXpipelinePutSync(PGconn* conn) {
+  PGcmdQueueEntry *entry;
+
+  if (!conn)
+    return 0;
+
+  if (conn->pipelineStatus == PQ_PIPELINE_OFF)
+  {
+    updatePQXExpBufferStr(&conn->errorMessage,
+                          libpq_gettext("cannot send pipeline when not in pipeline mode\n"));
+    return 0;
+  }
+
+  switch (conn->asyncStatus)
+  {
+    case PGASYNC_COPY_IN:
+    case PGASYNC_COPY_OUT:
+    case PGASYNC_COPY_BOTH:
+      /* should be unreachable */
+      appendPQExpBufferStr(&conn->errorMessage,
+                           "internal error: cannot send pipeline while in COPY\n");
+      return 0;
+    case PGASYNC_READY:
+    case PGASYNC_READY_MORE:
+    case PGASYNC_BUSY:
+    case PGASYNC_IDLE:
+    case PGASYNC_PIPELINE_IDLE:
+      /* OK to send sync */
+      break;
+  }
+
+  entry = pqAllocCmdQueueEntry(conn);
+  if (entry == NULL)
+    return 0; /* error msg already set */
+
+  entry->queryclass = PGQUERY_SYNC;
+  entry->query = NULL;
+
+  /* construct the Sync message */
+  if (pqPutMsgStart('S', conn) < 0 ||
+      pqPutMsgEnd(conn) < 0)
+    goto sendFailed;
+
+  /* Libpq gives data a push here, we don't */
+
+  /* OK, it's launched! */
+  pqAppendCmdQueueEntry(conn, entry);
+
+  return 1;
+
+sendFailed:
+  pqRecycleCmdQueueEntry(conn, entry);
+  /* error message should be set up already */
+  return 0;
+}
 #else
 int PQXsendQueryPrepared(PGconn* conn, const char* stmtName, int nParams,
                          const char* const* paramValues,
@@ -1624,5 +1692,9 @@ int PQXsendQueryPrepared(PGconn* conn, const char* stmtName, int nParams,
                              paramLengths,
                              paramFormats,
                              resultFormat);
+}
+
+int PQXpipelinePutSync(PGconn* conn) {
+  return PQpipelineSync(conn);
 }
 #endif

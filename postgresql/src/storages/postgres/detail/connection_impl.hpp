@@ -32,6 +32,13 @@ namespace storages::postgres::detail {
 
 class ConnectionImpl {
  public:
+  struct PreparedStatementInfo {
+    Connection::StatementId id{};
+    std::string statement;
+    std::string statement_name;
+    ResultSet description{nullptr};
+  };
+
   ConnectionImpl(engine::TaskProcessor& bg_task_processor,
                  concurrent::BackgroundTaskStorageCore& bg_task_storage,
                  uint32_t id, ConnectionSettings settings,
@@ -54,6 +61,7 @@ class ConnectionImpl {
   bool IsIdle() const;
   bool IsInTransaction() const;
   bool IsPipelineActive() const;
+  bool ArePreparedStatementsEnabled() const;
   bool IsBroken() const;
   bool IsExpired() const;
   ConnectionSettings const& GetSettings() const;
@@ -70,6 +78,16 @@ class ConnectionImpl {
   ResultSet ExecuteCommand(const Query& query,
                            const detail::QueryParameters& params,
                            OptionalCommandControl statement_cmd_ctl);
+
+  const PreparedStatementInfo& PrepareStatement(
+      const Query& query, const detail::QueryParameters& params,
+      TimeoutDuration timeout);
+  void AddIntoPipeline(CommandControl cc,
+                       const std::string& prepared_statement_name,
+                       const detail::QueryParameters& params,
+                       const ResultSet& description, tracing::ScopeTime& scope);
+  std::vector<ResultSet> GatherPipeline(
+      TimeoutDuration timeout, const std::vector<ResultSet>& descriptions);
 
   void Begin(const TransactionOptions& options,
              SteadyClock::time_point trx_start_time,
@@ -109,13 +127,6 @@ class ConnectionImpl {
   void MarkAsBroken();
 
  private:
-  struct PreparedStatementInfo {
-    Connection::StatementId id{};
-    std::string statement;
-    std::string statement_name;
-    ResultSet description{nullptr};
-  };
-
   using PreparedStatements =
       cache::LruMap<Connection::StatementId, PreparedStatementInfo>;
 
@@ -139,7 +150,7 @@ class ConnectionImpl {
 
   void SetStatementTimeout(OptionalCommandControl cmd_ctl);
 
-  const PreparedStatementInfo& PrepareStatement(
+  const PreparedStatementInfo& DoPrepareStatement(
       const std::string& statement, const detail::QueryParameters& params,
       engine::Deadline deadline, tracing::Span& span,
       tracing::ScopeTime& scope);

@@ -8,6 +8,7 @@
 #else
 auto PQXisBusy(PGconn* conn, const PGresult*) { return ::PQisBusy(conn); }
 auto PQXgetResult(PGconn* conn, const PGresult*) { return ::PQgetResult(conn); }
+int PQXpipelinePutSync(PGconn*) { return 0; }
 auto PQXsendQueryPrepared(PGconn* conn, const char* stmtName, int nParams,
                           const char* const* paramValues,
                           const int* paramLengths, const int* paramFormats,
@@ -577,6 +578,70 @@ Notification PGConnectionWrapper::WaitNotify(Deadline deadline) {
   Notification result;
   result.channel = notify->relname;
   if (*notify->extra) result.payload = notify->extra;
+
+  return result;
+}
+
+std::vector<ResultSet> PGConnectionWrapper::GatherPipeline(
+    Deadline deadline, const std::vector<const PGresult*>& descriptions) {
+  UASSERT(!descriptions.empty());
+
+#if !LIBPQ_HAS_PIPELINING
+  UINVARIANT(false, "QueryQueue usage requires pipelining to be enabled");
+#endif
+  Flush(deadline);
+
+  std::vector<ResultSet> result{};
+  const PGresult* current_description = descriptions.front();
+
+  std::size_t null_res_counter{0};
+  while (IsSyncingPipeline() && PQstatus(conn_) != CONNECTION_BAD) {
+    auto handle = MakeResultHandle(nullptr);
+    while (auto* pg_res = ReadResult(deadline, current_description)) {
+      null_res_counter = 0;
+      auto next_handle = MakeResultHandle(pg_res);
+
+      const auto status = PQresultStatus(pg_res);
+      if (status == PGRES_PIPELINE_SYNC) {
+        HandlePipelineSync();
+      } else if (status != PGRES_PIPELINE_ABORTED) {
+        handle = std::move(next_handle);
+      }
+    }
+
+    if (++null_res_counter > 2) {
+      MarkAsBroken();
+      if (!handle) {
+        throw RuntimeError{"Empty result"};
+      }
+      pipeline_sync_counter_ = 0;
+    }
+
+    if (handle != nullptr) {
+      // We might have 'SELECT set_config(...)' into pipeline, which comes from
+      // SetStatementTimeout. We don't need that into our results, and this
+      // seems to be the best way to distinguish from actual results.
+      const auto is_set_config_response = [&handle] {
+        const auto* first_field_name = PQfname(handle.get(), 0);
+        return first_field_name != nullptr &&
+               std::string_view{first_field_name} == kSetConfigQueryResultName;
+      }();
+      if (!is_set_config_response) {
+        result.push_back(MakeResult(std::move(handle)));
+      }
+    }
+
+    // If for some reason there are more results than descriptions, we will
+    // error out because of the description being nullptr.
+    //
+    // We do it this way instead of 1:1 matching because we need to feed
+    // something into the last ReadResult call, which is expected to just return
+    // null right away. And if it doesn't -- we get an error, as we should.
+    current_description = result.size() < descriptions.size()
+                              ? descriptions[result.size()]
+                              : nullptr;
+  }
+
   return result;
 }
 
@@ -885,6 +950,18 @@ std::string PGConnectionWrapper::EscapeIdentifier(std::string_view str) {
         fmt::format("PQescapeIdentifier error: ", PQerrorMessage(conn_))};
   }
   return {result.get()};
+}
+
+void PGConnectionWrapper::PutPipelineSync() {
+#if !LIBPQ_HAS_PIPELINING
+  UINVARIANT(false, "Pipeline mode is not supported");
+#else
+  if (PQpipelineStatus(conn_) != PQ_PIPELINE_OFF) {
+    HandleSocketPostClose();
+    CheckError<CommandError>("PQXpipelinePutSync", PQXpipelinePutSync(conn_));
+    ++pipeline_sync_counter_;
+  }
+#endif
 }
 
 }  // namespace storages::postgres::detail

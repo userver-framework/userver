@@ -164,6 +164,10 @@ class Connection {
   bool IsBroken() const;
   /// Check if the connection lived past its ttl
   bool IsExpired() const;
+  /// Check is the connection is in pipeline mode
+  bool IsPipelineActive() const;
+  /// Check if prepared statements are enabled
+  bool ArePreparedStatementsEnabled() const;
 
   /// The result is formed by multiplying the server's major version number by
   /// 10000 and adding the minor version number. -- docs
@@ -206,6 +210,22 @@ class Connection {
   /** @name Command sending interface */
   ResultSet Execute(const Query& query, const detail::QueryParameters& = {},
                     OptionalCommandControl statement_cmd_ctl = {});
+
+  struct PreparedStatementMeta final {
+    std::string statement_name;
+    ResultSet description;
+  };
+  PreparedStatementMeta PrepareStatement(const Query& query,
+                                         const detail::QueryParameters& params,
+                                         TimeoutDuration timeout);
+
+  void AddIntoPipeline(CommandControl cc,
+                       const std::string& prepared_statement_name,
+                       const detail::QueryParameters& params,
+                       const ResultSet& description, tracing::ScopeTime& scope);
+
+  std::vector<ResultSet> GatherPipeline(
+      TimeoutDuration timeout, const std::vector<ResultSet>& descriptions);
 
   template <typename... T>
   ResultSet Execute(const Query& query, const T&... args) {
