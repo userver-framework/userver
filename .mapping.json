@@ -901,6 +901,7 @@
   "core/src/engine/impl/context_accessor.cpp":"taxi/uservices/userver/core/src/engine/impl/context_accessor.cpp",
   "core/src/engine/impl/detached_tasks_sync_block.cpp":"taxi/uservices/userver/core/src/engine/impl/detached_tasks_sync_block.cpp",
   "core/src/engine/impl/future_state.cpp":"taxi/uservices/userver/core/src/engine/impl/future_state.cpp",
+  "core/src/engine/impl/future_utils.hpp":"taxi/uservices/userver/core/src/engine/impl/future_utils.hpp",
   "core/src/engine/impl/generic_wait_list.cpp":"taxi/uservices/userver/core/src/engine/impl/generic_wait_list.cpp",
   "core/src/engine/impl/generic_wait_list.hpp":"taxi/uservices/userver/core/src/engine/impl/generic_wait_list.hpp",
   "core/src/engine/impl/mutex_impl.hpp":"taxi/uservices/userver/core/src/engine/impl/mutex_impl.hpp",

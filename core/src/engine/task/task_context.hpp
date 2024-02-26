@@ -176,10 +176,10 @@ class TaskContext final : public ContextAccessor {
   task_local::Storage& GetLocalStorage() noexcept;
 
   // ContextAccessor implementation
-  bool IsReady() const noexcept final;
-  void AppendWaiter(impl::TaskContext& context) noexcept final;
-  void RemoveWaiter(impl::TaskContext& context) noexcept final;
-  void RethrowErrorResult() const final;
+  bool IsReady() const noexcept override;
+  EarlyWakeup TryAppendWaiter(TaskContext& waiter) override;
+  void RemoveWaiter(TaskContext& waiter) noexcept override;
+  void RethrowErrorResult() const override;
 
   size_t UseCount() const noexcept;
 
@@ -225,7 +225,7 @@ class TaskContext final : public ContextAccessor {
   std::atomic<DetachedTasksSyncBlock::Token*> detached_token_{nullptr};
   std::atomic<TaskCancellationReason> cancellation_reason_{
       TaskCancellationReason::kNone};
-  mutable FastPimplGenericWaitList finish_waiters_;
+  FastPimplGenericWaitList finish_waiters_;
 
   ContextTimer deadline_timer_;
   engine::Deadline cancel_deadline_;

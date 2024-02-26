@@ -11,6 +11,7 @@
 #include <engine/ev/async_payload_base.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/single_use_event.hpp>
+#include <userver/engine/task/cancel.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 
 USERVER_NAMESPACE_BEGIN

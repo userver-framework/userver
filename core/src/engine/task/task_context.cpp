@@ -19,6 +19,7 @@
 #include <userver/utils/underlying_value.hpp>
 
 #include <engine/ev/thread_pool.hpp>
+#include <engine/impl/future_utils.hpp>
 #include <engine/impl/generic_wait_list.hpp>
 #include <engine/task/coro_unwinder.hpp>
 #include <engine/task/cxxabi_eh_globals.hpp>
@@ -175,41 +176,17 @@ void TaskContext::FinishDetached() noexcept {
 
 void TaskContext::Wait() const { WaitUntil({}); }
 
-namespace {
-
-class LockedWaitStrategy final : public WaitStrategy {
- public:
-  LockedWaitStrategy(Deadline deadline, GenericWaitList& waiters,
-                     TaskContext& current, const TaskContext& target)
-      : WaitStrategy(deadline),
-        waiters_(waiters),
-        current_(current),
-        target_(target) {}
-
-  void SetupWakeups() override {
-    waiters_.Append(&current_);
-    if (target_.IsFinished()) waiters_.WakeupAll();
-  }
-
-  void DisableWakeups() override { waiters_.Remove(current_); }
-
- private:
-  GenericWaitList& waiters_;
-  TaskContext& current_;
-  const TaskContext& target_;
-};
-
-}  // namespace
-
 void TaskContext::WaitUntil(Deadline deadline) const {
   // try to avoid ctx switch if possible
   if (IsFinished()) return;
 
   auto& current = current_task::GetCurrentTaskContext();
-  if (&current == this) ReportDeadlock();
 
-  LockedWaitStrategy wait_manager(deadline, *finish_waiters_, current, *this);
-  current.Sleep(wait_manager);
+  FutureWaitStrategy wait_strategy{
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+      /*target=*/const_cast<TaskContext&>(*this), current, deadline};
+
+  current.Sleep(wait_strategy);
 
   if (!IsFinished() && current.ShouldCancel()) {
     throw WaitInterruptedException(current.cancellation_reason_);
@@ -566,13 +543,18 @@ task_local::Storage& TaskContext::GetLocalStorage() noexcept {
 
 bool TaskContext::IsReady() const noexcept { return IsFinished(); }
 
-void TaskContext::AppendWaiter(impl::TaskContext& context) noexcept {
-  if (&context == this) impl::ReportDeadlock();
-  finish_waiters_->Append(&context);
+EarlyWakeup TaskContext::TryAppendWaiter(TaskContext& waiter) {
+  if (&waiter == this) ReportDeadlock();
+  finish_waiters_->Append(&waiter);
+  if (IsFinished()) {
+    finish_waiters_->WakeupAll();
+    return EarlyWakeup{true};
+  }
+  return EarlyWakeup{false};
 }
 
-void TaskContext::RemoveWaiter(impl::TaskContext& context) noexcept {
-  finish_waiters_->Remove(context);
+void TaskContext::RemoveWaiter(TaskContext& waiter) noexcept {
+  finish_waiters_->Remove(waiter);
 }
 
 void TaskContext::RethrowErrorResult() const {

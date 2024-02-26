@@ -65,14 +65,15 @@ struct Component::Impl {
   server::congestion_control::Limiter server_limiter;
   Controller server_controller;
 
-  utils::statistics::Entry statistics_holder;
-
-  // must go after all sensors/limiters
-  Watchdog wd;
-  concurrent::AsyncEventSubscriberScope config_subscription;
   std::atomic<bool> fake_mode;
   std::atomic<bool> force_disabled{false};
   std::atomic<size_t> last_activate_factor{1};
+
+  // These subscriptions and tasks must be the last fields!
+  Watchdog wd;
+  utils::statistics::Entry statistics_holder;
+  concurrent::AsyncEventSubscriberScope config_subscription;
+  // See the comment above before adding new fields.
 
   Impl(dynamic_config::Source dynamic_config, server::Server& server,
        engine::TaskProcessor& tp, bool fake_mode)
