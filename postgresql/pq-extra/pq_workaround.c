@@ -1693,14 +1693,10 @@ int PQXsendQueryPrepared(PGconn* conn, const char* stmtName, int nParams,
                              paramFormats,
                              resultFormat);
 }
-#endif
 
 int PQXpipelinePutSync(PGconn* conn) {
-#if PG_VERSION_NUM >= 140000
-  return PQpipelineSync(conn);
-#else
   (void)conn;
   return 0;
-#endif
 }
+#endif
 
