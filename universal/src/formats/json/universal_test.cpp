@@ -58,7 +58,7 @@ inline constexpr auto formats::universal::kSerialization<SomeStruct2> =
 TEST(Serialize, Optional) {
   SomeStruct2 a{.field2 = 100};
   const auto json = formats::json::ValueBuilder(a).ExtractValue();
-  EXPECT_EQ(json, formats::json::FromString(R"({"field1":114,"field2":100,"field4":"42"})"));
+  EXPECT_EQ(json, userver::formats::json::FromString(R"({"field1":114,"field2":100,"field4":"42"})"));
 };
 TEST(Parse, Optional) {
   SomeStruct2 valid{.field1 = 114, .field4 = {{"42"}}};
@@ -291,6 +291,26 @@ TEST(Parse, NonUniversalInUniversal) {
   const SomeStruct12 valid{.field = {.field = 1}};
   EXPECT_EQ(json.As<SomeStruct12>(), valid);
 };
+
+struct SomeStruct13 {
+  std::optional<std::vector<SomeStruct11>> field;
+  inline bool operator==(const SomeStruct13&) const = default;
+};
+
+
+template <>
+inline constexpr auto formats::universal::kSerialization<SomeStruct13> =
+  SerializationConfig<SomeStruct13>()
+  .With<"field">({.Default = []() -> std::vector<SomeStruct11> {
+    return {{.field = 1}};
+  }});
+
+TEST(Parse, NonLiteralDefaultTest) {
+  const auto json = formats::json::FromString(R"({})");
+  const SomeStruct13 valid{.field{std::vector<SomeStruct11>{{.field = 1}}}};
+  EXPECT_EQ(json.As<SomeStruct13>(), valid);
+};
+
 
 USERVER_NAMESPACE_END
 #endif

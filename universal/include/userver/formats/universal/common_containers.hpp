@@ -19,8 +19,8 @@ struct Max : public impl::Param<T> {
     return this->Error(value);
   }
   template <typename Value>
-  inline constexpr std::enable_if_t<meta::kIsRange<Value>, std::optional<std::string>>
-  Check(const Value& value) const {
+  inline constexpr auto Check(const Value& value) const -> std::optional<std::string>
+        requires meta::kIsRange<Value> {
     for(const auto& element : value) {
       if(element > this->value) {
         return this->Error(element);
@@ -38,7 +38,7 @@ struct MinElements : public impl::Param<std::size_t> {
   inline constexpr MinElements(const std::size_t& value) :
       impl::Param<std::size_t>(value) {}
   template <typename Value>
-  inline constexpr std::optional<std::string> Check(const Value& value) const {
+  inline constexpr auto Check(const Value& value) const -> std::optional<std::string> {
     if(value.size() >= this->value) {
       return std::nullopt;
     }
@@ -59,10 +59,10 @@ struct Min : public impl::Param<T> {
       return std::nullopt;
     }
     return this->Error(value);
-  };
+  }
   template <typename Value>
-  inline constexpr std::enable_if_t<meta::kIsRange<Value>, std::optional<std::string>>
-  Check(const Value& value) const {
+  inline constexpr auto Check(const Value& value) const -> std::optional<std::string>
+        requires meta::kIsRange<Value> {
     for(const auto& element : value) {
       if(element < this->value) {
         return this->Error(element);
@@ -72,24 +72,36 @@ struct Min : public impl::Param<T> {
   }
   inline constexpr auto Error(const T& value) const {
     return std::format("{} < {}", value, this->value);
-  };
+  }
 };
 template <typename T, typename = void>
-struct Default : public impl::EmptyCheck, public impl::Param<T(*)()> {
+struct Default : public impl::EmptyCheck, private impl::Param<T(*)()> {
   inline constexpr Default(T (*ptr)()) :
       impl::Param<T(*)()>(ptr) {}
+  inline constexpr Default(auto f) requires requires {static_cast<T(*)()>(f);} :
+      impl::Param<T(*)()>(static_cast<T(*)()>(f)) {}
+  inline constexpr auto value() const {
+    return static_cast<const impl::Param<T(*)()>&>(*this).value();
+  }
 };
 
 template <typename T>
-struct Default<T, std::enable_if_t<std::is_arithmetic_v<T>, void>> : public impl::EmptyCheck, public impl::Param<T> {
+struct Default<T, std::enable_if_t<std::is_arithmetic_v<T>>> : public impl::EmptyCheck, private impl::Param<T> {
   inline constexpr Default(const T& value) :
       impl::Param<T>(value) {}
+  inline constexpr auto value() const {
+    return static_cast<const impl::Param<T>&>(*this).value;
+  }
 };
 template <>
-struct Default<std::string, void> : public impl::EmptyCheck, public impl::Param<std::string_view> {
+struct Default<std::string, void> : public impl::EmptyCheck, private impl::Param<std::string_view> {
   inline constexpr Default(std::string_view value) :
       impl::Param<std::string_view>(value) {}
+  inline constexpr auto value() const -> std::string {
+    return static_cast<std::string>(static_cast<const impl::Param<std::string_view>&>(*this).value);
+  }
 };
+
 
 template <utils::ConstexprString Pattern>
 static const utils::regex kRegex(Pattern);
@@ -107,10 +119,82 @@ struct Pattern : public impl::EmptyCheck, public impl::Param<const utils::regex*
     return "Error";
   }
 };
+
 struct Additional : public impl::EmptyCheck, public impl::Param<bool> {
   constexpr inline Additional(const bool& value) :
       impl::Param<bool>(value) {}
 };
+
+template <typename T>
+struct FieldConfig<std::optional<T>> {
+  FieldConfig<T> Main = {};
+  std::optional<Default<T>> Default = std::nullopt;
+  bool Required = false;
+  bool Nullable = false;
+  static inline constexpr auto Checker(const auto& check, const auto& value) -> std::optional<std::string> 
+      requires requires{check.Check(*value);} {
+    if(value) {
+      return check.Check(*value);
+    };
+    return std::nullopt;
+  }; 
+  constexpr inline std::optional<std::string> Check(const std::optional<T>&) const {
+    return std::nullopt;
+  }
+  constexpr auto Write(const std::optional<T>& value, std::string_view fieldName, const auto&, auto& builder) const {
+    if(value) {
+      builder[static_cast<std::string>(fieldName)] = *value;
+      return;
+    }
+    if(this->Default) {
+      builder[static_cast<std::string>(fieldName)] = this->Default->value();
+      return;
+    }
+  }
+  template <typename MainClass, auto I, typename Value>
+  constexpr std::optional<T> Read(Value&& value) const {
+    constexpr auto name = boost::pfr::get_name<I, MainClass>();
+    if(this->Required && value[name].IsMissing()) {
+      return std::nullopt;
+    }
+    if(!value[name].IsMissing()) {
+      if(this->Nullable) {
+        return value[name].template As<std::optional<T>>();
+      }
+      return value[name].template As<T>();
+    }
+    if(this->Default) {
+      return this->Default->value();
+    }
+    return std::nullopt;
+  }
+  template <typename MainClass, auto I, typename Value>
+  constexpr std::optional<std::optional<T>> TryRead(Value&& value) const {
+    constexpr auto name = boost::pfr::get_name<I, MainClass>();
+    if(value[name].IsMissing() && this->Required) {
+      return std::nullopt;
+    }
+    if(this->Nullable) {
+      std::optional response = parse::TryParse(value[name], parse::To<std::optional<T>>{});
+      if(response) {
+        return response;
+      }
+    } else {
+      if(value[name].IsNull()) {
+        return std::nullopt;
+      };
+      auto response = parse::TryParse(value[name], parse::To<T>{});
+      if(response) {
+        return response;
+      }
+    }
+    if(this->Default) {
+      return this->Default->value();
+    }
+    return {{}};
+  }
+};
+
 template <>
 struct FieldConfig<int> {
   std::optional<Max<int>> Maximum = std::nullopt;
@@ -119,79 +203,18 @@ struct FieldConfig<int> {
   constexpr int Read(Value&& value) const {
     constexpr auto name = boost::pfr::get_name<I, MainClass>();
     return value[name].template As<int>();
-  };
+  }
   template <typename MainClass, auto I, typename Value>
   constexpr std::optional<int> TryRead(Value&& value) const {
     constexpr auto name = boost::pfr::get_name<I, MainClass>();
     return parse::TryParse(value[name], parse::To<int>{});
-  };
+  }
   constexpr auto Write(const int& value, std::string_view fieldName, const auto&, auto& builder) const {
     builder[static_cast<std::string>(fieldName)] = value;
-  };
+  }
   inline constexpr std::optional<std::string> Check(const int&) const {
     return std::nullopt;
   }
-
-};
-template <>
-struct FieldConfig<std::optional<std::string>> {
-  std::optional<Pattern> Pattern = std::nullopt;
-  std::optional<Default<std::string>> Default = std::nullopt;
-  bool Required = false;
-  bool Nullable = false;
-  template <typename MainClass, auto I, typename Value>
-  constexpr std::optional<std::string> Read(Value&& value) const {
-    constexpr auto name = boost::pfr::get_name<I, MainClass>();
-    if(value[name].IsMissing() && this->Required) {
-      return std::nullopt;
-    };
-    if(!value[name].IsMissing()) {
-      if(this->Nullable) {
-        return value[name].template As<std::optional<std::string>>();
-      };
-      return value[name].template As<std::string>();
-    };
-    if(this->Default) {
-      return static_cast<std::string>(this->Default->value);
-    };
-    return std::nullopt;
-  };
-  template <typename MainClass, auto I, typename Value>
-  constexpr std::optional<std::optional<std::string>> TryRead(Value&& value) const {
-    constexpr auto name = boost::pfr::get_name<I, MainClass>();
-    if(value[name].IsMissing() && this->Required) {
-      return std::nullopt;
-    };
-
-    if(this->Nullable) {
-      auto response = parse::TryParse(value[name], parse::To<std::optional<std::string>>{});
-      if(response) {
-        return response;
-      }
-    } else {
-      auto response = parse::TryParse(value[name], parse::To<std::string>{});
-      if(response) {
-        return response;
-      };
-    };
-    if(this->Default) {
-      return static_cast<std::string>(this->Default->value);
-    }
-    return {{}};
-  }
-  constexpr auto Write(const std::optional<std::string>& value, std::string_view fieldName, const auto&, auto& builder) const {
-    if(value) {
-      builder[static_cast<std::string>(fieldName)] = *value;
-      return;
-    };
-    if(this->Default) {
-      builder[static_cast<std::string>(fieldName)] = this->Default->value;
-    };
-  };
-  inline constexpr std::optional<std::string> Check(const auto&) const {
-    return std::nullopt;
-  }
-
 };
 template <>
 struct FieldConfig<std::string> {
@@ -200,82 +223,21 @@ struct FieldConfig<std::string> {
   constexpr std::string Read(Value&& value) const {
     constexpr auto name = boost::pfr::get_name<I, MainClass>();
     return value[name].template As<std::string>();
-  };
+  }
   template <typename MainClass, auto I, typename Value>
   constexpr std::optional<std::string> TryRead(Value&& value) const {
     constexpr auto name = boost::pfr::get_name<I, MainClass>();
     return parse::TryParse(value[name], parse::To<std::string>{});
-  };
+  }
   constexpr auto Write(std::string_view value, std::string_view fieldName, const auto&, auto& builder) const {
     builder[static_cast<std::string>(fieldName)] = value;
-  };
+  }
   inline constexpr std::optional<std::string> Check(std::string_view) const {
     return std::nullopt;
   }
 
 };
 
-template <>
-struct FieldConfig<std::optional<int>> {
-  std::optional<Max<int>> Maximum = std::nullopt;
-  std::optional<Min<int>> Minimum = std::nullopt;
-  std::optional<Default<int>> Default = std::nullopt;
-  bool Required = false;
-  bool Nullable = false;
-  template <typename MainClass, auto I, typename Value>
-  constexpr std::optional<int> Read(Value&& value) const {
-    constexpr auto name = boost::pfr::get_name<I, MainClass>();
-    if(value[name].IsMissing() && this->Required) {
-      return std::nullopt;
-    };
-    if(!value[name].IsMissing()) {
-      if(this->Nullable) {
-        return value[name].template As<std::optional<int>>();
-      };
-      return value[name].template As<int>();
-    }
-    if(this->Default) {
-      return this->Default->value;
-    }
-    return std::nullopt;
-  }
-  template <typename MainClass, auto I, typename Value>
-  constexpr std::optional<std::optional<int>> TryRead(Value&& value) const {
-    constexpr auto name = boost::pfr::get_name<I, MainClass>();
-    if(this->Nullable) {
-      auto response = parse::TryParse(value[name], parse::To<std::optional<int>>{});
-      if(response) {
-        return response;
-      }
-    } else {
-      if(value[name].IsNull()) {
-        return std::nullopt;
-      };
-      auto response = parse::TryParse(value[name], parse::To<int>{});
-      if(response) {
-        return response;
-      };
-    };
-    if(this->Default) {
-      return this->Default->value;
-    }
-    return {{}};
-  }
-  constexpr auto Write(const std::optional<int>& value, std::string_view fieldName, const auto&, auto& builder) const {
-    if(value) {
-      builder[static_cast<std::string>(fieldName)] = *value;
-      return;
-    }
-    if(this->Default) {
-      builder[static_cast<std::string>(fieldName)] = this->Default->value;
-    }
-  }
-
-  inline constexpr std::optional<std::string> Check(const std::optional<int>&) const {
-    return std::nullopt;
-  }
-
-};
 template <typename Value>
 struct FieldConfig<std::unordered_map<std::string, Value>> {
   std::optional<Additional> Additional = std::nullopt;
@@ -345,15 +307,15 @@ struct FieldConfig<std::unordered_map<std::string, Value>> {
     if(this->Additional) {
       for(const auto& [name, value2] : value) {
         builder[name] = value2;
-      };
+      }
       return;
-    };
+    }
     Builder newBuilder;
     for(const auto& [name, value2] : value) {
       newBuilder[name] = value2;
-    };
+    }
     builder[static_cast<std::string>(fieldName)] = newBuilder.ExtractValue();
-  };
+  }
 };
 template <typename Element>
 struct FieldConfig<std::vector<Element>> {
@@ -390,7 +352,7 @@ struct FieldConfig<std::vector<Element>> {
         if(!error) {
           error = add;
           continue;
-        };
+        }
         *error += *add;
       }
     }
