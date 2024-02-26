@@ -138,16 +138,19 @@ struct FieldConfig<std::optional<T>> {
     };
     return std::nullopt;
   }; 
-  constexpr inline std::optional<std::string> Check(const std::optional<T>&) const {
+  constexpr inline std::optional<std::string> Check(const std::optional<T>& value) const {
+    if(value) {
+      return this->Main.Check(*value);
+    };
     return std::nullopt;
   }
-  constexpr auto Write(const std::optional<T>& value, std::string_view fieldName, const auto&, auto& builder) const {
+  constexpr auto Write(const std::optional<T>& value, std::string_view fieldName, const auto& names, auto& builder) const {
     if(value) {
-      builder[static_cast<std::string>(fieldName)] = *value;
+      this->Main.Write(*value, fieldName, names, builder);
       return;
     }
     if(this->Default) {
-      builder[static_cast<std::string>(fieldName)] = this->Default->value();
+      this->Main.Write(this->Default->value(), fieldName, names, builder);
       return;
     }
   }
@@ -158,10 +161,11 @@ struct FieldConfig<std::optional<T>> {
       return std::nullopt;
     }
     if(!value[name].IsMissing()) {
-      if(this->Nullable) {
-        return value[name].template As<std::optional<T>>();
-      }
-      return value[name].template As<T>();
+      return this->Nullable 
+      ? (value[name].IsNull()
+        ? std::nullopt
+        : std::optional{this->Main.template Read<MainClass, I>(std::forward<Value>(value))})
+      : std::optional{this->Main.template Read<MainClass, I>(std::forward<Value>(value))};
     }
     if(this->Default) {
       return this->Default->value();
@@ -175,7 +179,7 @@ struct FieldConfig<std::optional<T>> {
       return std::nullopt;
     }
     if(this->Nullable) {
-      std::optional response = parse::TryParse(value[name], parse::To<std::optional<T>>{});
+      std::optional response = this->Main.template TryRead<MainClass, I>(std::forward<Value>(value));
       if(response) {
         return response;
       }
@@ -183,7 +187,7 @@ struct FieldConfig<std::optional<T>> {
       if(value[name].IsNull()) {
         return std::nullopt;
       };
-      auto response = parse::TryParse(value[name], parse::To<T>{});
+      std::optional response = this->Main.template TryRead<MainClass, I>(std::forward<Value>(value));
       if(response) {
         return response;
       }
