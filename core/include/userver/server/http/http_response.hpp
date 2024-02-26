@@ -138,29 +138,6 @@ class HttpResponse final : public request::ResponseBase {
   Queue::Producer GetBodyProducer();
 
  private:
-  // TODO : TAXICOMMON-8340
-  // At the time of writing SCE::IsReady() results in 'lock' + 'cmpxchg16b'
-  // due to DWCaS in WaitListLight.
-  // 'SetHeader' tests headers_end_.IsReady() as a sanity check, and due to
-  // amount of headers we usually have the performance hit of 'lock' is somewhat
-  // noticeable, thus an additional 'atomic'.
-  class HeadersEndEvent final {
-   public:
-    inline void Send() {
-      signaled_.store(true);
-      event_.Send();
-    }
-
-    inline bool IsReady() const { return signaled_.load(); }
-
-    inline bool WaitForEvent() { return event_.WaitForEvent(); }
-
-   private:
-    std::atomic<bool> signaled_{false};
-    engine::SingleConsumerEvent event_{
-        engine::SingleConsumerEvent::NoAutoReset()};
-  };
-
   // Returns total size of the response
   std::size_t SetBodyStreamed(
       engine::io::RwBase& socket,
@@ -176,7 +153,8 @@ class HttpResponse final : public request::ResponseBase {
   HeadersMap headers_;
   CookiesMap cookies_;
 
-  HeadersEndEvent headers_end_;
+  engine::SingleConsumerEvent headers_end_{
+      engine::SingleConsumerEvent::NoAutoReset()};
   std::optional<Queue::Consumer> body_stream_;
   std::optional<Queue::Producer> body_stream_producer_;
 };
