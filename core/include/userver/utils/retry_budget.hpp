@@ -8,10 +8,15 @@
 
 #include <userver/formats/json_fwd.hpp>
 #include <userver/formats/parse/to.hpp>
+#include <userver/utils/statistics/rate_counter.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace utils {
+
+namespace statistics {
+class Writer;
+}
 
 struct RetryBudgetSettings final {
   // Maximum number of tokens in the budget.
@@ -49,6 +54,13 @@ class RetryBudget final {
   std::atomic<std::uint32_t> token_ratio_;
   std::atomic<std::int32_t> token_count_;
   std::atomic<bool> enabled_{false};
+
+  // rate of account oks
+  utils::statistics::RateCounter ok_rate_counter_;
+  // rate of account fails
+  utils::statistics::RateCounter fail_rate_counter_;
+
+  friend void DumpMetric(statistics::Writer& writer, const RetryBudget& budget);
 };
 
 RetryBudgetSettings Parse(const formats::json::Value& elem,
