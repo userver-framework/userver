@@ -1695,6 +1695,8 @@ int PQXsendQueryPrepared(PGconn* conn, const char* stmtName, int nParams,
 }
 
 int PQXpipelinePutSync(PGconn* conn) {
-  return PQpipelineSync(conn);
+  (void)conn;
+  return 0;
 }
 #endif
+
