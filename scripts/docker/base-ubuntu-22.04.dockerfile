@@ -29,6 +29,3 @@ RUN ( \
 
 # add expose ports
 EXPOSE 8080-8100
-
-# add paths
-ENV PATH /usr/sbin:/usr/bin:/sbin:/bin:${PATH}

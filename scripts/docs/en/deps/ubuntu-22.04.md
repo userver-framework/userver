@@ -2,6 +2,7 @@ build-essential
 ccache
 cmake
 git
+libabsl-dev
 libbenchmark-dev
 libboost-context1.74-dev
 libboost-coroutine1.74-dev
