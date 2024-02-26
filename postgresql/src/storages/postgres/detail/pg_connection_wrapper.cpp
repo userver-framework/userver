@@ -588,7 +588,7 @@ std::vector<ResultSet> PGConnectionWrapper::GatherPipeline(
 
 #if !LIBPQ_HAS_PIPELINING
   UINVARIANT(false, "QueryQueue usage requires pipelining to be enabled");
-#endif
+#else
   Flush(deadline);
 
   std::vector<ResultSet> result{};
@@ -643,6 +643,7 @@ std::vector<ResultSet> PGConnectionWrapper::GatherPipeline(
   }
 
   return result;
+#endif
 }
 
 void PGConnectionWrapper::DiscardInput(Deadline deadline) {
