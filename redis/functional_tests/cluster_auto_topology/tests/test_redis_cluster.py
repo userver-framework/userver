@@ -82,7 +82,7 @@ async def test_add_shard(service_client, redis_cluster_topology):
     # Write enough different keys to have something in every slot
     assert await _check_write_all_slots(service_client, 'hf_key1', 'abc')
 
-    redis_cluster_topology.add_shard()
+    await redis_cluster_topology.add_shard()
 
     # Failover starts in ~10 seconds
     for _ in range(FAILOVER_DEADLINE_SEC):
@@ -120,5 +120,5 @@ async def test_cluster_switcher(
     dynamic_config.set_values({'REDIS_CLUSTER_AUTOTOPOLOGY_ENABLED_V2': True})
     await asyncio.sleep(10)
     await _assert_read_all_slots(service_client, 'hf_key1', 'abc')
-    redis_cluster_topology.add_shard()
+    await redis_cluster_topology.add_shard()
     await _assert_read_all_slots(service_client, 'hf_key1', 'abc')

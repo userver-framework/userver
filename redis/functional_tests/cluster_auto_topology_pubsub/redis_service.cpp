@@ -140,7 +140,13 @@ std::string ReadStoreReturn::Get(
       const auto& shard_str = request.GetArg("shard");
       if (!shard_str.empty()) {
         /// Publish message to specified shard
-        const auto shard = std::stol(shard_str);
+        const auto shard = std::stoul(shard_str);
+        const auto shard_count = redis_subscribe_client_->ShardsCount();
+        if (shard >= shard_count) {
+          throw server::handlers::ClientError(server::handlers::ExternalBody{
+              fmt::format("Shard is out of range shard:{} count:{}", shard,
+                          shard_count)});
+        }
         auto shard_client = redis_client_->GetClientForShard(shard);
         shard_client->Publish("output_channel", publish_msg,
                               redis::CommandControl());
