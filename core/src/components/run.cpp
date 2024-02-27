@@ -22,6 +22,7 @@
 #include <userver/fs/blocking/read.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/logging/null_logger.hpp>
+#include <userver/logging/stacktrace_cache.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/impl/static_registration.hpp>
@@ -81,9 +82,14 @@ void HandleJemallocSettings() {
 }
 
 void PreheatStacktraceCollector() {
+  const auto dummy_stacktrace_length = [] {
+    return logging::stacktrace_cache::to_string(boost::stacktrace::stacktrace{})
+        .size();
+  };
   // If DEBUG logging is enabled the following line loads debug info from disk,
   // hopefully preventing this to occur later, e.g. in exception constructor.
-  LOG_DEBUG() << utils::TracefulException{"Preheating stacktrace"};
+  LOG_DEBUG() << "Preheating stacktrace"
+              << logging::LogExtra{{"trace_length", dummy_stacktrace_length()}};
 }
 
 bool IsTraced() {
