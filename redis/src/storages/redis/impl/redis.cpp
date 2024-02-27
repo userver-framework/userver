@@ -647,7 +647,6 @@ void Redis::RedisImpl::OnCommandTimeoutImpl(ev_timer* w) {
   auto reply_iterator = reply_privdata_.find(cmd_idx);
   if (reply_iterator != reply_privdata_.end()) {
     SingleCommand& command = *reply_iterator->second;
-    if (!subscriber_) --sent_count_;
     UASSERT(reply_privdata_rev_.count(&command.timer));
     UASSERT(w == &command.timer);
     reply_privdata_rev_.erase(&command.timer);
