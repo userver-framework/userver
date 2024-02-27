@@ -1,13 +1,23 @@
-* Build image with all the libraries for the databases installed. No database servers installed:
+## Building Docker container for userver
+
+The docker files for building images on top of different operating systems
+are available at scripts/docker. To build the image run the `docker build`
+command from the root of the project. For example:
+
+* to build a image with all the build dependencies installed:
 ```
 docker build -t ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest -f scripts/docker/base-ubuntu-22.04.dockerfile .
 ```
 
-* Build image with all the libraries for the databases installed and additional set of compilers, database servers and workarounds for CI:
+
+* to build image with all build dependecies and additional set of compilers, database servers and workarounds for CI:
 ```
 docker build -t ghcr.io/userver-framework/ubuntu-22.04-userver-base-ci:latest -f scripts/docker/base-ubuntu-22.04-ci.dockerfile .
 ```
 
 Tests in the above images require IPv6 support. Follow the
 https://docs.docker.com/config/daemon/ipv6/ instructions to enable IPv6 in
-docker container.
+docker container, for example:
+```
+docker run --rm -it --network ip6net --entrypoint bash ghcr.io/userver-framework/ubuntu-22.04-userver-base-ci:latest
+```

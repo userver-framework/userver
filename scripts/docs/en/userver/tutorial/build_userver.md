@@ -27,7 +27,8 @@ If there's a strong need to build the userver and run its tests, then:
 @anchor DOCKER_BUILD
 ### Docker
 
-@note Currently, only x86_64 and x86 architectures support ClickHouse and MongoDB drivers
+@note Currently, only x86_64 and x86 architectures support ClickHouse and
+MongoDB drivers
 as the native libraries for those databases do not support other architectures.
 Those drivers are disabled on other architectures via CMake options.
 
@@ -93,7 +94,7 @@ cd build_release && ulimit -n 4096 && ctest -V
 ```
 
 If you need to edit or make your own docker image with custom configuration, read about
-it @ref scripts/docs/en/userver/docker.md "here"
+it at @ref scripts/docker/Readme.md.
 
 
 @anchor userver_conan

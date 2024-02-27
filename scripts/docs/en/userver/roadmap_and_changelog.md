@@ -629,7 +629,7 @@ Detailed descriptions could be found below.
     implementation of the sink does not rely on spdlog implementation.
   * Configuration step was made much faster.
   * Makefile was simplified and only up-to-date targets were left.
-  * Added a script to prepare docker build, see @ref scripts/docs/en/userver/docker.md for
+  * Added a script to prepare docker build, see @ref scripts/docker/Readme.md for
     more info.
   * Scripts for generating CMakeLists were simplified and cleared from internal
     stuff.

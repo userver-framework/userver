@@ -2706,7 +2706,6 @@
   "scripts/docs/en/userver/development/releases.md":"taxi/uservices/userver/scripts/docs/en/userver/development/releases.md",
   "scripts/docs/en/userver/development/stability.md":"taxi/uservices/userver/scripts/docs/en/userver/development/stability.md",
   "scripts/docs/en/userver/dns_control.md":"taxi/uservices/userver/scripts/docs/en/userver/dns_control.md",
-  "scripts/docs/en/userver/docker.md":"taxi/uservices/userver/scripts/docs/en/userver/docker.md",
   "scripts/docs/en/userver/driver_guide.md":"taxi/uservices/userver/scripts/docs/en/userver/driver_guide.md",
   "scripts/docs/en/userver/dynamic_config.md":"taxi/uservices/userver/scripts/docs/en/userver/dynamic_config.md",
   "scripts/docs/en/userver/faq.md":"taxi/uservices/userver/scripts/docs/en/userver/faq.md",

@@ -192,6 +192,23 @@ Dependencies could be installed via:
   sudo apt install --allow-downgrades -y $(cat third_party/userver/scripts/docs/en/deps/ubuntu-22.04.md | tr '\n' ' ')
   ```
 
+### Docker with Ubuntu 22.04
+
+The Docker image `ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest`
+provides a container with all the build dependencies preinstalled and with
+a properly setupped PPAs with databases, compilers and tools.
+
+To run it just use a command like
+```
+docker run --rm -it --network ip6net --entrypoint bash ghcr.io/userver-framework/ubuntu-22.04-userver-base-ci:latest
+```
+
+After that, install the databases and compiler you are planning to use via
+`apt install` and start developing.
+
+@note The above image is build from scripts/docker/base-ubuntu-22.04.dockerfile.
+   See `scripts/docker/` directory and @ref scripts/docker/Readme.md for more
+   inspiration on building your own custom docker containers.
 
 ### Ubuntu 21.10 (Impish Indri)
 
