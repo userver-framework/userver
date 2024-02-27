@@ -10,7 +10,11 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
 
-UnaryFuture::UnaryFuture(impl::RpcData& data) noexcept : impl_(data) {}
+UnaryFuture::UnaryFuture(impl::RpcData& data) noexcept : impl_(data) {
+  // We expect that FinishAsyncMethodInvocation was already emplaced
+  // For unary future it is done in UnaryCall::FinishAsync
+  UASSERT(data.HoldsFinishAsyncMethodInvocationDebug());
+}
 
 UnaryFuture::~UnaryFuture() noexcept {
   if (auto* const data = impl_.GetData()) {
@@ -96,6 +100,20 @@ engine::FutureStatus UnaryFuture::Get(engine::Deadline deadline) {
 
   UASSERT(false);
   return engine::FutureStatus::kTimeout;
+}
+
+engine::impl::ContextAccessor* UnaryFuture::TryGetContextAccessor() noexcept {
+  // Unfortunately, we can't require that TryGetContextAccessor is not called
+  // after future is finished - it doesn't match pattern usage of WaitAny
+  // Instead we should return nullptr
+  auto* const data = impl_.GetData();
+  if (!data) {
+    return nullptr;
+  }
+
+  // if data exists, then FinishAsyncMethodInvocation also exists
+  auto& finish = data->GetFinishAsyncMethodInvocation();
+  return finish.TryGetContextAccessor();
 }
 
 bool UnaryFuture::IsReady() const noexcept { return impl_.IsReady(); }

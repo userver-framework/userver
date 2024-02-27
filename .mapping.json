@@ -1644,6 +1644,7 @@
   "grpc/tests/src/tests/deadline_helpers.hpp":"taxi/uservices/userver/grpc/tests/src/tests/deadline_helpers.hpp",
   "grpc/tests/src/tracing_test.cpp":"taxi/uservices/userver/grpc/tests/src/tracing_test.cpp",
   "grpc/tests/src/unimplemented_test.cpp":"taxi/uservices/userver/grpc/tests/src/unimplemented_test.cpp",
+  "grpc/tests/src/wait_any_test.cpp":"taxi/uservices/userver/grpc/tests/src/wait_any_test.cpp",
   "grpc/utest/include/userver/ugrpc/tests/service.hpp":"taxi/uservices/userver/grpc/utest/include/userver/ugrpc/tests/service.hpp",
   "grpc/utest/include/userver/ugrpc/tests/service_fixtures.hpp":"taxi/uservices/userver/grpc/utest/include/userver/ugrpc/tests/service_fixtures.hpp",
   "grpc/utest/src/ugrpc/tests/service.cpp":"taxi/uservices/userver/grpc/utest/src/ugrpc/tests/service.cpp",

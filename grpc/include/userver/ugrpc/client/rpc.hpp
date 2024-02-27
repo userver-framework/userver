@@ -38,6 +38,8 @@ class [[nodiscard]] UnaryFuture {
 
   UnaryFuture(UnaryFuture&&) noexcept = default;
   UnaryFuture& operator=(UnaryFuture&&) noexcept;
+  UnaryFuture(const UnaryFuture&) = delete;
+  UnaryFuture& operator=(const UnaryFuture&) = delete;
 
   ~UnaryFuture() noexcept;
 
@@ -68,6 +70,10 @@ class [[nodiscard]] UnaryFuture {
   /// @return true if result ready
   [[nodiscard]] bool IsReady() const noexcept;
 
+  /// @cond
+  // For internal use only.
+  engine::impl::ContextAccessor* TryGetContextAccessor() noexcept;
+  /// @endcond
  private:
   impl::FutureImpl impl_;
 };

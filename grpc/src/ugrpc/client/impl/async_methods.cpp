@@ -217,6 +217,14 @@ RpcData::GetFinishAsyncMethodInvocation() noexcept {
   return std::get<FinishAsyncMethodInvocation>(invocation_);
 }
 
+bool RpcData::HoldsAsyncMethodInvocationDebug() noexcept {
+  return std::holds_alternative<AsyncMethodInvocation>(invocation_);
+}
+
+bool RpcData::HoldsFinishAsyncMethodInvocationDebug() noexcept {
+  return std::holds_alternative<FinishAsyncMethodInvocation>(invocation_);
+}
+
 grpc::Status& RpcData::GetStatus() noexcept { return status_; }
 
 RpcData::AsyncMethodInvocationGuard::AsyncMethodInvocationGuard(
