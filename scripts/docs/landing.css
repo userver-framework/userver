@@ -718,6 +718,23 @@ html.dark-mode .values__card {
   -webkit-mask-position: center;
   width: 150px;
   height: 100px;
+  transition: filter 0.3s;
+}
+
+@media (hover: hover) and (prefers-color-scheme: dark) {
+  .logo:hover {
+    filter: brightness(0.7);
+  }
+}
+
+@media (hover: hover) {
+  .logo:hover {
+    filter: brightness(2.5);
+  }
+
+  html.dark-mode .logo:hover {
+    filter: brightness(0.7);
+  }
 }
 
 .logo_uber {
