@@ -28,8 +28,6 @@ section {
 }
 
 #doc-content {
-  margin-left: 0 !important;
-  /* Disable standard Doxygen content margin */
   overflow-x: hidden;
 }
 
@@ -732,12 +730,28 @@ html.dark-mode .values__card {
   -webkit-mask-image: url("delivery.svg");
 }
 
+.logo_yago {
+  mask-image: url("yago.svg");
+  -webkit-mask-image: url("yago.svg");
+}
+
+.logo_matchmaker {
+  mask-image: url("matchmaker.svg");
+  -webkit-mask-image: url("matchmaker.svg");
+  width: 63px;
+}
+
 @media (max-width: 767px) {
-  .logo {
-    width: 120px;
+  .companies__logos {
+    justify-content: space-around;
+    gap: 0;
   }
 
-  .logo_delivery {
-    margin-left: 8px;
+  .logo {
+    width: 80px;
+  }
+
+  .logo_matchmaker {
+    width: 43px;
   }
 }

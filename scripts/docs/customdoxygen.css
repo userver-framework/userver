@@ -145,6 +145,11 @@ html.dark-mode {
   --side-nav-background: var(--black-color-1);
 }
 
+#doc-content {
+  /* Disable standard Doxygen content margin */
+  margin-left: 0 !important;
+}
+
 /* Highlight.js overrides */
 
 .hljs,

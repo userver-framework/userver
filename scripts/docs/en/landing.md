@@ -132,8 +132,10 @@ void Ins(storages::postgres::Transaction& tr
           Brands and companies using <span class="userver__title">userver</span>
         </h2>
         <div class="companies__logos mt">
-          <span class="logo logo_uber" title="Uber"></span>
+          <span class="logo logo_uber" title="Uber Russia"></span>
           <span class="logo logo_delivery" title="Delivery club"></span>
+          <span class="logo logo_matchmaker" title="Matchmaker"></span>
+          <span class="logo logo_yago" title="Yandex Go"></span>
         </div>
       </section>
     </main>
@@ -146,7 +148,6 @@ void Ins(storages::postgres::Transaction& tr
     </script>
     <!-- Hide some blocks on landing page -->
     <script type="text/javascript">
-      document.getElementById("side-nav").style.display = "none";
       document.querySelector(".header").style.display = "none";
     </script>
 
