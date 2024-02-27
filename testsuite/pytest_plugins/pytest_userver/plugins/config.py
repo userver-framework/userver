@@ -5,6 +5,7 @@ Work with the configuration files of the service in testsuite.
 # pylint: disable=redefined-outer-name
 import copy
 import logging
+import os
 import pathlib
 import types
 import typing
@@ -23,7 +24,7 @@ import yaml
 ## the pytest_userver.plugins.config.service_config_vars get the modified
 ## values.
 ##
-## Example of patching config:
+## Example of patching config :
 ##
 ## @snippet samples/grpc_service/tests/conftest.py Prepare configs
 ##
@@ -173,7 +174,7 @@ def service_tmpdir(service_binary, tmp_path_factory):
 
 @pytest.fixture(scope='session')
 def service_config_path_temp(
-        service_tmpdir, service_config_yaml,
+        service_tmpdir, service_config, service_config_yaml,
 ) -> pathlib.Path:
     """
     Dumps the contents of the service_config_yaml into a static config for
@@ -183,38 +184,99 @@ def service_config_path_temp(
     """
     dst_path = service_tmpdir / 'config.yaml'
 
-    config_text = yaml.dump(service_config_yaml)
     logger.debug(
         'userver fixture "service_config_path_temp" writes the patched static '
-        'config to "%s":\n%s',
+        'config to "%s" equivalent to:\n%s',
         dst_path,
-        config_text,
+        yaml.dump(service_config),
     )
-    dst_path.write_text(config_text)
+    dst_path.write_text(yaml.dump(service_config_yaml))
 
     return dst_path
 
 
 @pytest.fixture(scope='session')
-def service_config_yaml(_service_config) -> dict:
+def service_config_yaml(_service_config_hooked) -> dict:
     """
     Returns the static config values after the USERVER_CONFIG_HOOKS were
-    applied (if any).
+    applied (if any). Prefer using
+    pytest_userver.plugins.config.service_config
 
     @ingroup userver_testsuite_fixtures
     """
-    return _service_config.config_yaml
+    return _service_config_hooked.config_yaml
 
 
 @pytest.fixture(scope='session')
-def service_config_vars(_service_config) -> dict:
+def service_config_vars(_service_config_hooked) -> dict:
     """
     Returns the static config variables (config_vars.yaml) values after the
-    USERVER_CONFIG_HOOKS were applied (if any).
+    USERVER_CONFIG_HOOKS were applied (if any). Prefer using
+    pytest_userver.plugins.config.service_config
 
     @ingroup userver_testsuite_fixtures
     """
-    return _service_config.config_vars
+    return _service_config_hooked.config_vars
+
+
+def _substitute_values(config, service_config_vars: dict, service_env) -> None:
+    if isinstance(config, dict):
+        for key, value in config.items():
+            if not isinstance(value, str):
+                _substitute_values(value, service_config_vars, service_env)
+                continue
+
+            if not value.startswith('$'):
+                continue
+
+            new_value = service_config_vars.get(value[1:])
+            if new_value is not None:
+                config[key] = new_value
+                continue
+
+            env = config.get(f'{key}#env')
+            if env:
+                if service_env:
+                    new_value = service_env.get(service_env)
+                if not new_value:
+                    new_value = os.environ.get(env)
+                if new_value:
+                    config[key] = new_value
+                    continue
+
+            fallback = config.get(f'{key}#fallback')
+            if fallback:
+                config[key] = fallback
+
+    if isinstance(config, list):
+        for i, value in enumerate(config):
+            if not isinstance(value, str):
+                _substitute_values(value, service_config_vars, service_env)
+                continue
+
+            if not value.startswith('$'):
+                continue
+
+            new_value = service_config_vars.get(value[1:])
+            if new_value is not None:
+                config[i] = new_value
+
+
+@pytest.fixture(scope='session')
+def service_config(
+        service_config_yaml, service_config_vars, service_env,
+) -> dict:
+    """
+    Returns the static config values after the USERVER_CONFIG_HOOKS were
+    applied (if any) and with all the '$', environment and fallback variables
+    substituted.
+
+    @ingroup userver_testsuite_fixtures
+    """
+    config = copy.deepcopy(service_config_yaml)
+    _substitute_values(config, service_config_vars, service_env)
+    config.pop('config_vars', None)
+    return config
 
 
 @pytest.fixture(scope='session')
@@ -237,7 +299,7 @@ def _original_service_config(
 
 
 @pytest.fixture(scope='session')
-def _service_config(
+def _service_config_hooked(
         pytestconfig, request, service_tmpdir, _original_service_config,
 ) -> _UserverConfig:
     config_yaml = copy.deepcopy(_original_service_config.config_yaml)

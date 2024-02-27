@@ -71,7 +71,7 @@ async def check_availability(checks: HealthChecks) -> bool:
     return not pending and all(task.result() for task in done)
 
 
-def get_health_checks_info(service_config_yaml: dict) -> HealthChecks:
+def get_health_checks_info(service_config: dict) -> HealthChecks:
     """
     Returns a health checks info that for server.listener, grpc-server.port
     and server.listener-monitor.
@@ -82,7 +82,7 @@ def get_health_checks_info(service_config_yaml: dict) -> HealthChecks:
     """
     checks = HealthChecks()
 
-    components = service_config_yaml['components_manager']['components']
+    components = service_config['components_manager']['components']
     server = components.get('server')
     if server:
         for listener_name in ('listener-monitor', 'listener'):

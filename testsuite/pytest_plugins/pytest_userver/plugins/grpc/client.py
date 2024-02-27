@@ -17,7 +17,7 @@ USERVER_CONFIG_HOOKS = ['prepare_config_vars']
 
 
 @pytest.fixture(scope='session')
-def grpc_service_port(service_config_yaml) -> int:
+def grpc_service_port(service_config) -> int:
     """
     Returns the gRPC listener port number of the service that is set in the
     static configuration file.
@@ -27,10 +27,10 @@ def grpc_service_port(service_config_yaml) -> int:
 
     @ingroup userver_testsuite_fixtures
     """
-    components = service_config_yaml['components_manager']['components']
+    components = service_config['components_manager']['components']
     if 'grpc-server' not in components:
         raise RuntimeError('No grpc-server component')
-    return components['grpc-server']['port']
+    return int(components['grpc-server']['port'])
 
 
 @pytest.fixture(scope='session')

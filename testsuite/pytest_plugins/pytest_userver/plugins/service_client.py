@@ -224,9 +224,9 @@ def monitor_baseurl(monitor_port) -> str:
 
 @pytest.fixture(scope='session')
 def _testsuite_client_config(
-        pytestconfig, service_config_yaml,
+        pytestconfig, service_config,
 ) -> client.TestsuiteClientConfig:
-    components = service_config_yaml['components_manager']['components']
+    components = service_config['components_manager']['components']
 
     def get_component_path(name, argname=None):
         if name in components:
