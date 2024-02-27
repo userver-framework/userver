@@ -411,6 +411,10 @@ a.button.button_outline {
     right: -112px;
   }
 
+  .info__logo::before {
+    bottom: -0.9px;
+  }
+
   .info__logo::after {
     top: 22px;
     left: -506px;
