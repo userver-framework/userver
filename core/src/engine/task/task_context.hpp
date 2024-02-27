@@ -50,15 +50,11 @@ class WaitStrategy {
   // It may not sleep.
   virtual void DisableWakeups() = 0;
 
-  Deadline GetDeadline() const { return deadline_; }
-
  protected:
+  constexpr WaitStrategy() noexcept = default;
+
+  // Prevent destruction via pointer to base.
   ~WaitStrategy() = default;
-
-  constexpr WaitStrategy(Deadline deadline) noexcept : deadline_(deadline) {}
-
- private:
-  const Deadline deadline_;
 };
 
 class TaskContext final : public ContextAccessor {
@@ -143,7 +139,7 @@ class TaskContext final : public ContextAccessor {
   // causes this to yield and wait for wakeup
   // must only be called from this context
   // "spurious wakeups" may be caused by wakeup queueing
-  WakeupSource Sleep(WaitStrategy& wait_strategy);
+  WakeupSource Sleep(WaitStrategy& wait_strategy, Deadline deadline);
 
   // sleep epoch increments after each wakeup
   SleepState::Epoch GetEpoch() noexcept;

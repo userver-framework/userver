@@ -70,13 +70,10 @@ namespace impl {
 
 class DirectionWaitStrategy final : public engine::impl::WaitStrategy {
  public:
-  DirectionWaitStrategy(Deadline deadline, engine::impl::WaitListLight& waiters,
+  DirectionWaitStrategy(engine::impl::WaitListLight& waiters,
                         ev::Watcher<ev_io>& watcher,
                         engine::impl::TaskContext& current)
-      : WaitStrategy(deadline),
-        waiters_(waiters),
-        watcher_(watcher),
-        current_(current) {}
+      : waiters_(waiters), watcher_(watcher), current_(current) {}
 
   void SetupWakeups() override {
     waiters_.Append(&current_);
@@ -135,9 +132,8 @@ engine::impl::TaskContext::WakeupSource FdPoller::Impl::DoWait(
 
   auto& current = current_task::GetCurrentTaskContext();
 
-  impl::DirectionWaitStrategy wait_manager(deadline, *waiters_, watcher_,
-                                           current);
-  auto ret = current.Sleep(wait_manager);
+  impl::DirectionWaitStrategy wait_strategy{*waiters_, watcher_, current};
+  auto ret = current.Sleep(wait_strategy, deadline);
 
   /*
    * Manually call Stop() here to be sure that after DoWait() no waiter_'s

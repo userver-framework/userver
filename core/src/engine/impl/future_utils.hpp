@@ -18,8 +18,8 @@ class FutureWaitStrategy final : public impl::WaitStrategy {
   static_assert(std::is_base_of_v<ContextAccessor, T>);
 
  public:
-  FutureWaitStrategy(T& target, impl::TaskContext& current, Deadline deadline)
-      : WaitStrategy(deadline), target_(target), current_(current) {}
+  FutureWaitStrategy(T& target, impl::TaskContext& current)
+      : target_(target), current_(current) {}
 
   void SetupWakeups() override {
     // TODO return early_wakeup and use it in TaskContext::Sleep to wake up

@@ -26,8 +26,8 @@ FutureStatus FutureStateBase::WaitUntil(Deadline deadline) {
 
   auto& context = current_task::GetCurrentTaskContext();
 
-  FutureWaitStrategy wait_strategy{*this, context, deadline};
-  const auto wakeup_source = context.Sleep(wait_strategy);
+  FutureWaitStrategy wait_strategy{*this, context};
+  const auto wakeup_source = context.Sleep(wait_strategy, deadline);
   return ToFutureStatus(wakeup_source);
 }
 

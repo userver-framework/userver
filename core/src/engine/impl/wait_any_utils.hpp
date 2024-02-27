@@ -15,9 +15,9 @@ namespace engine::impl {
 
 class WaitAnyWaitStrategy final : public WaitStrategy {
  public:
-  WaitAnyWaitStrategy(Deadline deadline, utils::span<ContextAccessor*> targets,
+  WaitAnyWaitStrategy(utils::span<ContextAccessor*> targets,
                       TaskContext& waiter)
-      : WaitStrategy(deadline), waiter_(waiter), targets_(targets) {}
+      : waiter_(waiter), targets_(targets) {}
 
   void SetupWakeups() override {
     early_wakeup_ = false;

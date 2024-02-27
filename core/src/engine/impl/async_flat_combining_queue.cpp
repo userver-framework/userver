@@ -13,9 +13,7 @@ template <auto TryStartWaiting>
 class AsyncFlatCombiningQueue::WaitStrategy final : public impl::WaitStrategy {
  public:
   WaitStrategy(AsyncFlatCombiningQueue& queue, TaskContext& context)
-      : impl::WaitStrategy(engine::Deadline{}),
-        queue_(queue),
-        context_(context) {
+      : queue_(queue), context_(context) {
     // No deadlines or cancellations are allowed, because else this task may
     // walk away and be destroyed, and the notification will be sent to a dead
     // task.
@@ -148,7 +146,8 @@ void AsyncFlatCombiningQueue::Wait() noexcept {
   if (consuming_task_context_ != &current) consuming_task_context_ = &current;
 
   WaitStrategy<TryStartWaiting> wait_strategy{*this, current};
-  [[maybe_unused]] const auto wakeup_source = current.Sleep(wait_strategy);
+  [[maybe_unused]] const auto wakeup_source =
+      current.Sleep(wait_strategy, Deadline{});
   UASSERT(wakeup_source == TaskContext::WakeupSource::kWaitList);
 
   UASSERT(consuming_task_context_ == &current);

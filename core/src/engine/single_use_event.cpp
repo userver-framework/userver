@@ -35,8 +35,8 @@ void SingleUseEvent::Wait() {
 
 FutureStatus SingleUseEvent::WaitUntil(Deadline deadline) {
   impl::TaskContext& current = current_task::GetCurrentTaskContext();
-  impl::FutureWaitStrategy wait_strategy{*this, current, deadline};
-  const auto wakeup_source = current.Sleep(wait_strategy);
+  impl::FutureWaitStrategy wait_strategy{*this, current};
+  const auto wakeup_source = current.Sleep(wait_strategy, deadline);
 
   // There are no spurious wakeups, because the event is single-use: if a task
   // has ever been notified by this SingleUseEvent, then the task will find

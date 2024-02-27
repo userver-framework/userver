@@ -31,7 +31,7 @@ class DtorInCoroChecker final {
 // wakeup source because wakeup source was calculated early.
 struct WaitListRaceSimulator final : public engine::impl::WaitStrategy {
   // cannot use passed deadline because of fast path
-  WaitListRaceSimulator() : WaitStrategy{engine::Deadline{}} {}
+  WaitListRaceSimulator() = default;
 
   void SetupWakeups() override {
     // wake up immediately
@@ -90,7 +90,7 @@ UTEST(TaskContext, WaitListWakeupRace) {
   auto& context = engine::current_task::GetCurrentTaskContext();
 
   WaitListRaceSimulator wait_manager;
-  EXPECT_EQ(context.Sleep(wait_manager),
+  EXPECT_EQ(context.Sleep(wait_manager, engine::Deadline{}),
             engine::impl::TaskContext::WakeupSource::kWaitList);
 }
 

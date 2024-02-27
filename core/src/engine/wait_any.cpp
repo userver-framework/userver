@@ -23,8 +23,8 @@ std::optional<std::size_t> DoWaitAny(utils::span<ContextAccessor*> targets,
   if (none_valid) return std::nullopt;
 
   auto& current = current_task::GetCurrentTaskContext();
-  WaitAnyWaitStrategy wait_strategy(deadline, targets, current);
-  current.Sleep(wait_strategy);
+  WaitAnyWaitStrategy wait_strategy{targets, current};
+  current.Sleep(wait_strategy, deadline);
 
   for (const auto& [idx, target] : utils::enumerate(targets)) {
     if (target && target->IsReady()) return idx;

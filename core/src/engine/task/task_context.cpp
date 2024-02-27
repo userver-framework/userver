@@ -184,9 +184,9 @@ void TaskContext::WaitUntil(Deadline deadline) const {
 
   FutureWaitStrategy wait_strategy{
       // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-      /*target=*/const_cast<TaskContext&>(*this), current, deadline};
+      /*target=*/const_cast<TaskContext&>(*this), current};
 
-  current.Sleep(wait_strategy);
+  current.Sleep(wait_strategy, deadline);
 
   if (!IsFinished() && current.ShouldCancel()) {
     throw WaitInterruptedException(current.cancellation_reason_);
@@ -287,7 +287,8 @@ bool TaskContext::SetCancellable(bool value) {
   return std::exchange(is_cancellable_, value);
 }
 
-TaskContext::WakeupSource TaskContext::Sleep(WaitStrategy& wait_strategy) {
+TaskContext::WakeupSource TaskContext::Sleep(WaitStrategy& wait_strategy,
+                                             Deadline deadline) {
   UASSERT(IsCurrent());
   UASSERT(state_ == Task::State::kRunning);
   UASSERT_MSG(compiler::impl::AreCoroutineSwitchesAllowed(),
@@ -308,7 +309,6 @@ TaskContext::WakeupSource TaskContext::Sleep(WaitStrategy& wait_strategy) {
   wait_strategy.SetupWakeups();
 
   const auto sleep_epoch = sleep_state_.Load<std::memory_order_seq_cst>().epoch;
-  const auto deadline = wait_strategy.GetDeadline();
   const bool has_deadline = deadline.IsReachable() &&
                             (!IsCancellable() || deadline < cancel_deadline_);
   if (has_deadline) ArmDeadlineTimer(deadline, sleep_epoch);

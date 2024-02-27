@@ -15,7 +15,7 @@ FutureStatus DoWaitAllChecked(utils::span<ContextAccessor*> targets,
               "Same tasks/futures were detected in WaitAny* call");
   auto& current = current_task::GetCurrentTaskContext();
 
-  WaitAnyWaitStrategy wait_strategy(deadline, targets, current);
+  WaitAnyWaitStrategy wait_strategy{targets, current};
   while (true) {
     bool all_completed = true;
     for (auto& target : targets) {
@@ -30,7 +30,7 @@ FutureStatus DoWaitAllChecked(utils::span<ContextAccessor*> targets,
     }
     if (all_completed) break;
 
-    switch (current.Sleep(wait_strategy)) {
+    switch (current.Sleep(wait_strategy, deadline)) {
       case TaskContext::WakeupSource::kWaitList:
         break;
       case TaskContext::WakeupSource::kDeadlineTimer:
