@@ -419,6 +419,10 @@ ClusterNodesResponseStatus ParseClusterNodesResponse(
     }
 
     const auto& host_port_communication_port = splitted[1];
+    if (host_port_communication_port == ":0@0" ||
+        host_port_communication_port == ":0") {
+      continue;
+    }
     const auto host_port_it = host_port_communication_port.rfind('@');
     auto host_port = host_port_communication_port.substr(0, host_port_it);
 
