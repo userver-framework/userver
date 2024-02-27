@@ -127,53 +127,6 @@ void Ins(storages::postgres::Transaction& tr
           </div>
         </div>
       </section>
-      <section class="section users container">
-        <h2>Our Happy Users</h2>
-        <div class="users__navbuttons">
-          <button class="users__navbutton">
-            <img src="arrow-left.svg" />
-          </button>
-          <button class="users__navbutton users__navbutton_right">
-            <img src="arrow-right.svg" />
-          </button>
-        </div>
-        <div class="users__feedbacks">
-          <div class="userFeedback">
-            <img class="userFeedback__image" src="feedback1.png" />
-            <div class="userFeedback__person">
-              <h3 class="userFeedback__name">Ivan Ivanov</h3>
-              <div class="userFeedback__position">Developer</div>
-            </div>
-            <p class="userFeedback__about">
-              A short quote about how convenient and cool userver is a very long
-              quote about how convenient and cool userver isa very long quote
-              about how convenient and cool userver is
-            </p>
-            <p class="userFeedback__text">«userver such wow, many cool»</p>
-          </div>
-          <div class="userFeedback">
-            <img class="userFeedback__image" src="feedback2.png" />
-            <div class="userFeedback__person">
-              <h3 class="userFeedback__name">Petr Petrov</h3>
-              <div class="userFeedback__position">Developer</div>
-            </div>
-            <p class="userFeedback__about">
-              A short quote about how convenient and cool userver is a very long
-              quote about how convenient and cool userver isa very long quote
-              about how convenient and cool userver is
-            </p>
-            <p class="userFeedback__text">
-              «userver is super, love it, recommend it»
-            </p>
-          </div>
-        </div>
-        <div class="pagination">
-          <button class="pagination__button pagination__button_active"></button>
-          <button class="pagination__button"></button>
-          <button class="pagination__button"></button>
-          <button class="pagination__button"></button>
-        </div>
-      </section>
       <section class="section companies container">
         <h2>
           Brands and companies using <span class="userver__title">userver</span>
@@ -181,39 +134,6 @@ void Ins(storages::postgres::Transaction& tr
         <div class="companies__logos mt">
           <span class="logo logo_uber" title="Uber"></span>
           <span class="logo logo_delivery" title="Delivery club"></span>
-        </div>
-      </section>
-      <section class="section feedback">
-        <div class="feedback__wrapper container">
-          <h2 class="feedback__title">Leave Your Feedback</h2>
-          <p class="feedback__info">
-            Your opinion will help to improve our service
-          </p>
-          <form class="feedback__form">
-            <label for="name">Name</label>
-            <div class="input">
-              <input type="text" name="name" id="name" placeholder="John Doe" />
-            </div>
-            <label for="email">E-Mail</label>
-            <div class="input">
-              <input
-                type="email"
-                name="email"
-                id="email"
-                placeholder="mail@mail.com"
-              />
-            </div>
-            <label for="message">Message</label>
-            <div class="input">
-              <textarea
-                name="message"
-                id="message"
-                placeholder="Leave your feedback here"
-              ></textarea>
-            </div>
-            <button class="button feedback__submit">Send</button>
-          </form>
-          <img class="feedback__image" src="feedback.svg" alt="userver logo" />
         </div>
       </section>
     </main>
