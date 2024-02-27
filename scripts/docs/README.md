@@ -4,12 +4,12 @@
 
 The build was tested on Ubuntu 22.04 (and Mac OS Ventura 13.5 for development purposes)
 
-❗️ Requires doxygen 1.9.7+
+❗️ Requires doxygen 1.10.0+
 
 ## Instruction 🧾
 
 1. install dependencies: `sudo apt install make graphviz`
-2. install doxygen 1.9.7+: `wget https://www.doxygen.nl/files/doxygen-1.9.7.linux.bin.tar.gz && tar -xvzf doxygen-1.9.7.linux.bin.tar.gz && cd doxygen-1.9.7/ && sudo make install`
+2. install doxygen 1.10.0+: `wget https://www.doxygen.nl/files/doxygen-1.10.0.linux.bin.tar.gz && tar -xvzf doxygen-1.10.0.linux.bin.tar.gz && cd doxygen-1.10.0/ && sudo make install`
 3. in project folder run: `make docs`
 
 P.S. Do not be afraid of the huge number of errors at the beginning of the build 🙃
