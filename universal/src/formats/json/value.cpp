@@ -10,6 +10,7 @@
 #include <userver/formats/json/exception.hpp>
 #include <userver/formats/json/value_builder.hpp>
 
+#include <formats/json/impl/are_equal.hpp>
 #include <formats/json/impl/exttypes.hpp>
 #include <formats/json/impl/json_tree.hpp>
 #include <formats/json/impl/types_impl.hpp>
@@ -190,12 +191,10 @@ std::size_t Value::GetSize() const {
 }
 
 bool Value::operator==(const Value& other) const {
-  return GetNative() == other.GetNative();
+  return impl::AreEqual(&GetNative(), &other.GetNative());
 }
 
-bool Value::operator!=(const Value& other) const {
-  return GetNative() != other.GetNative();
-}
+bool Value::operator!=(const Value& other) const { return !(*this == other); }
 
 bool Value::IsMissing() const noexcept { return holder_ && !value_ptr_; }
 

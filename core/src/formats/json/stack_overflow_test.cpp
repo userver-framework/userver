@@ -120,4 +120,13 @@ TEST(FormatsJson, DeepValueBuilderAssignmentOperator) {
   });
 }
 
+TEST(FormatsJson, DeepObjectOperatorEqualsTo) {
+  RunStackLimitedTest([](std::size_t depth) {
+    auto v1 = MakeDeepJson(depth);
+    auto v2 = MakeDeepJson(depth);
+
+    EXPECT_EQ(v1, v2);
+  });
+}
+
 USERVER_NAMESPACE_END

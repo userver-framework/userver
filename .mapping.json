@@ -3341,6 +3341,8 @@
   "universal/src/formats/json/exception.cpp":"taxi/uservices/userver/universal/src/formats/json/exception.cpp",
   "universal/src/formats/json/impl/accept.cpp":"taxi/uservices/userver/universal/src/formats/json/impl/accept.cpp",
   "universal/src/formats/json/impl/accept.hpp":"taxi/uservices/userver/universal/src/formats/json/impl/accept.hpp",
+  "universal/src/formats/json/impl/are_equal.cpp":"taxi/uservices/userver/universal/src/formats/json/impl/are_equal.cpp",
+  "universal/src/formats/json/impl/are_equal.hpp":"taxi/uservices/userver/universal/src/formats/json/impl/are_equal.hpp",
   "universal/src/formats/json/impl/exttypes.cpp":"taxi/uservices/userver/universal/src/formats/json/impl/exttypes.cpp",
   "universal/src/formats/json/impl/exttypes.hpp":"taxi/uservices/userver/universal/src/formats/json/impl/exttypes.hpp",
   "universal/src/formats/json/impl/json_tree.cpp":"taxi/uservices/userver/universal/src/formats/json/impl/json_tree.cpp",

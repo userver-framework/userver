@@ -210,10 +210,10 @@ class Value final {
   void DropRootPath();
   /// @endcond
 
-  /// @brief Returns new value that is an exact copy if the existing one
+  /// @brief Returns new value that is an exact copy of the existing one
   /// but references different memory (a deep copy of a *this). The returned
   /// value is a root value with path '/'.
-  /// @throws MemberMissingException id `this->IsMissing()`.
+  /// @throws MemberMissingException if `this->IsMissing()`.
   Value Clone() const;
 
   /// @throw MemberMissingException if `this->IsMissing()`.
