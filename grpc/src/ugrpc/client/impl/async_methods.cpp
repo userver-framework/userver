@@ -27,7 +27,7 @@ namespace {
 void SetupSpan(std::optional<tracing::InPlaceSpan>& span_holder,
                grpc::ClientContext& context, std::string_view call_name) {
   UASSERT(!span_holder);
-  span_holder.emplace(utils::StrCat("grpc/", call_name),
+  span_holder.emplace(utils::StrCat("external_grpc/", call_name),
                       utils::impl::SourceLocation::Current());
   auto& span = span_holder->Get();
 
