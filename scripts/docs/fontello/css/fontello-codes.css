@@ -1,0 +1,3 @@
+@charset "UTF-8";
+
+.icon-userver:before { content: '🐙'; } /* '\1f419' */

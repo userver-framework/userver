@@ -44,6 +44,8 @@ $generatedby <a href="https://www.doxygen.org/index.html">Doxygen</a> $doxygenve
       init_all_results_button();
       init_header();
       addLinks();
+      changeTelegramChannelLanguageForRussianSpeakingUser();
+      document.getElementById("side-nav").style.display = "none"; // TODO: disable treeview and save sticky footer
 
       const isLanding = document.getElementById('landing_logo_id') !== null;
 
