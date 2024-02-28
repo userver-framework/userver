@@ -50,7 +50,8 @@
             </div>
             <pre
               class="codeblock__body"
-            ><code>std::size_t Ins(storages::postgres::Transaction& tr,
+            ><code>
+std::size_t Ins(storages::postgres::Transaction& tr,
                 std::string_view key) {
   auto res = tr.Execute("INSERT INTO keys VALUES ($1)", key);
   return res.RowsAffected();
@@ -61,8 +62,8 @@
           >
             <div class="codeblock__header">Classic C++</div>
             <pre class="codeblock__body"><code>template &lt;class OnSuccess&gt;
-void Ins(storages::postgres::Transaction& tr
-        , std::string_view key, OnSuccess&& on_success) {
+void Ins(storages::postgres::Transaction& tr,
+         std::string_view key, OnSuccess&& on_success) {
   tr.Execute("INSERT INTO keys VALUES ($1)", key,
     [on_success = std::forward&lt;OnSuccess&gt;(on_success)]
     (const auto& res, const auto& error) {
