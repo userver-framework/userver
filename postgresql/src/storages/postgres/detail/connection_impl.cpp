@@ -726,12 +726,16 @@ const ConnectionImpl::PreparedStatementInfo& ConnectionImpl::DoPrepareStatement(
 
   auto* statement_info = prepared_.Get(query_id);
   if (statement_info) {
-    LOG_TRACE() << "Query " << statement << " is already prepared.";
-    return *statement_info;
+    if (statement_info->description.pimpl_) {
+      LOG_TRACE() << "Query " << statement << " is already prepared.";
+      return *statement_info;
+    } else {
+      LOG_DEBUG() << "Found prepared but not described statement";
+    }
   }
 
   if (prepared_.GetSize() >= settings_.max_prepared_cache_size) {
-    statement_info = prepared_.GetLeastUsed();
+    auto statement_info = prepared_.GetLeastUsed();
     UASSERT(statement_info);
     DiscardPreparedStatement(*statement_info, deadline);
     prepared_.Erase(statement_info->id);
@@ -739,22 +743,39 @@ const ConnectionImpl::PreparedStatementInfo& ConnectionImpl::DoPrepareStatement(
 
   scope.Reset(scopes::kPrepare);
   LOG_TRACE() << "Query " << statement << " is not yet prepared";
+
   const std::string statement_name =
       "q" + std::to_string(query_hash) + "_" + uuid_;
-  conn_wrapper_.SendPrepare(statement_name, statement, params, scope);
-  try {
-    conn_wrapper_.WaitResult(deadline, scope, nullptr);
-  } catch (const DuplicatePreparedStatement& e) {
-    // As we have a pretty unique hash for a statement, we can safely use
-    // it. This situation might happen when `SendPrepare` times out and we
-    // erase the statement from `prepared_` map.
-    LOG_DEBUG() << "Statement `" << statement
-                << "` was already prepared, there was possibly a timeout "
-                   "while preparing, see log above.";
-    ++stats_.duplicate_prepared_statements;
-  } catch (const std::exception&) {
-    span.AddTag(tracing::kErrorFlag, true);
-    throw;
+  bool should_prepare = !statement_info;
+  if (should_prepare) {
+    conn_wrapper_.SendPrepare(statement_name, statement, params, scope);
+
+    try {
+      conn_wrapper_.WaitResult(deadline, scope, nullptr);
+      LOG_DEBUG() << "Prepare successfully sent";
+    } catch (const DuplicatePreparedStatement& e) {
+      // As we have a pretty unique hash for a statement, we can safely use
+      // it. This situation might happen when `SendPrepare` times out and we
+      // erase the statement from `prepared_` map.
+      LOG_DEBUG() << "Statement `" << statement
+                  << "` was already prepared, there was possibly a timeout "
+                     "while preparing, see log above.";
+      ++stats_.duplicate_prepared_statements;
+
+      // Mark query as already sent
+      prepared_.Put(query_id,
+                    {query_id, statement, statement_name, ResultSet{nullptr}});
+
+      if (IsInTransaction()) {
+        // Transaction failed, need to throw
+        throw;
+      }
+    } catch (const std::exception& e) {
+      span.AddTag(tracing::kErrorFlag, true);
+      throw;
+    }
+  } else {
+    LOG_DEBUG() << "Don't send prepare, already sent";
   }
 
   conn_wrapper_.SendDescribePrepared(statement_name, scope);
@@ -766,10 +787,14 @@ const ConnectionImpl::PreparedStatementInfo& ConnectionImpl::DoPrepareStatement(
   // Ensure we've got binary format established
   res.GetRowDescription().CheckBinaryFormat(db_types_);
 
-  prepared_.Put(query_id,
-                {query_id, statement, statement_name, std::move(res)});
+  if (!statement_info) {
+    prepared_.Put(query_id,
+                  {query_id, statement, statement_name, std::move(res)});
+    statement_info = prepared_.Get(query_id);
+  } else {
+    statement_info->description = std::move(res);
+  }
 
-  statement_info = prepared_.Get(query_id);
   ++stats_.parse_total;
 
   return *statement_info;

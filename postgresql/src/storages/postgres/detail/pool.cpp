@@ -11,6 +11,7 @@
 #include <userver/logging/log.hpp>
 #include <userver/storages/postgres/detail/time_types.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
+#include <userver/testsuite/testpoint.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 
 #include <utils/impl/assert_extra.hpp>
@@ -280,6 +281,7 @@ void ConnectionPool::Release(Connection* connection) {
         [this, connection, dec_cnt = std::move(dg)] {
           LOG_LIMITED_WARNING()
               << "Released connection in busy state. Trying to clean up...";
+          TESTPOINT("pg_cleanup", formats::json::Value{});
           CleanupConnection(connection);
         }));
   }
