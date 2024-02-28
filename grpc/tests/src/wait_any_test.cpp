@@ -141,6 +141,43 @@ UTEST_F_MT(GrpcClientWaitAnyTest, SingleCancel, 2) {
   GetService().TriggerChatResponse();
 }
 
+UTEST_F_MT(GrpcClientWaitAnyTest, FutureDestructionAtCancel, 2) {
+  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
+
+  engine::SingleConsumerEvent wait_task_started;
+
+  // Launch WaitAny in separate task
+  auto wait_task =
+      utils::Async("wait_any", [&]() -> std::optional<std::size_t> {
+        auto call1 = client.SayHello({});
+        sample::ugrpc::GreetingResponse response1;
+        auto future1 = call1.FinishAsync(response1);
+
+        // notify that we have started
+        wait_task_started.Send();
+        auto success_idx_opt = engine::WaitAny(future1);
+        return success_idx_opt;
+      });
+
+  ASSERT_TRUE(wait_task_started.WaitForEvent());
+
+  // This is not enough. We want to make sure that wait_task has actually
+  // entered 'waiting' part
+  while (wait_task.GetState() != engine::TaskBase::State::kSuspended) {
+    engine::InterruptibleSleepFor(std::chrono::milliseconds{10});
+  }
+
+  // cancel coroutine
+  wait_task.SyncCancel();
+
+  // In this test we should exit by canceling coroutine itself
+  // so wait_task result should be nullopt
+  EXPECT_EQ(wait_task.Get(), std::nullopt);
+
+  // Note that we don't need answer from server now, as the call already
+  // cancelled
+}
+
 UTEST_F_MT(GrpcClientWaitAnyTest, DoubleCall, 2) {
   // In this test we check that calling WaitAny on future twice, without
   // calling Get() doesn't lead to segfault

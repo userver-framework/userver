@@ -23,9 +23,23 @@ UnaryFuture::~UnaryFuture() noexcept {
     auto& finish = data->GetFinishAsyncMethodInvocation();
     auto& status = finish.GetStatus();
 
-    impl::ProcessFinishResult(*data, impl::Wait(finish, data->GetContext()),
-                              std::move(status),
-                              std::move(finish.GetParsedGStatus()), false);
+    const auto wait_status = impl::Wait(finish, data->GetContext());
+
+    switch (wait_status) {
+      case impl::AsyncMethodInvocation::WaitStatus::kOk:
+        [[fallthrough]];
+      case impl::AsyncMethodInvocation::WaitStatus::kError:
+        impl::ProcessFinishResult(*data, wait_status, std::move(status),
+                                  std::move(finish.GetParsedGStatus()), false);
+        break;
+      case impl::AsyncMethodInvocation::WaitStatus::kCancelled:
+        data->GetStatsScope().OnCancelled();
+        break;
+      case impl::AsyncMethodInvocation::WaitStatus::kDeadline:
+        UASSERT_MSG(false,
+                    "Unexpected status 'kDeadline' at UnaryFuture destruction");
+        break;
+    }
   }
 }
 
