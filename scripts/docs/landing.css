@@ -361,7 +361,7 @@ a.button.button_outline {
   content: "";
   position: absolute;
   display: block;
-  background-image: url("logo.svg");
+  background-image: url("logo_landing.svg");
   background-repeat: no-repeat;
   background-size: contain;
   bottom: -1.9px;
