@@ -305,6 +305,7 @@ void HttpRequestImpl::AccountResponseTime() {
 }
 
 void HttpRequestImpl::MarkAsInternalServerError() const {
+  // TODO : refactor, this being here is a bit ridiculous
   response_.SetStatus(http::HttpStatus::kInternalServerError);
   response_.SetData({});
   response_.ClearHeaders();

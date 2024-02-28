@@ -139,4 +139,8 @@
 /// @ingroup userver_components
 /// @brief Default names of components that are used in static config files
 
+/// @defgroup userver_middlewares Default middlewares
+/// @ingroup userver_components
+/// @brief Default middlewares used in http processing pipeline
+
 // clang-format on

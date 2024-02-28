@@ -14,6 +14,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::request {
 
+namespace impl {
+class InternalRequestContext;
+}
+
 /// @brief Stores request-specific data during request processing.
 ///
 /// For example: you can store some data in `HandleRequestThrow()` method
@@ -101,6 +105,9 @@ class RequestContext final {
   /// @brief Erase data with specified name.
   void EraseData(std::string_view name);
 
+  // TODO : TAXICOMMON-8252
+  impl::InternalRequestContext& GetInternalContext();
+
  private:
   utils::AnyMovable& SetUserAnyData(utils::AnyMovable&& data);
   utils::AnyMovable& GetUserAnyData();
@@ -113,7 +120,7 @@ class RequestContext final {
   void EraseAnyData(std::string_view name);
 
   class Impl;
-  static constexpr std::size_t kPimplSize = 72;
+  static constexpr std::size_t kPimplSize = 112;
   utils::FastPimpl<Impl, kPimplSize, alignof(void*)> impl_;
 };
 

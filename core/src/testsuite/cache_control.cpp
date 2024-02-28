@@ -58,7 +58,7 @@ void CacheControl::ResetAllCaches(
     cache::UpdateType update_type,
     const std::unordered_set<std::string>& force_incremental_names) {
   const auto sp =
-      tracing::Span::CurrentSpan().CreateScopeTime("reset_all_caches");
+      tracing::ScopeTime::CreateOptionalScopeTime("reset_all_caches");
   auto caches = caches_.Lock();
 
   for (const auto& cache : *caches) {
@@ -73,7 +73,7 @@ void CacheControl::ResetCaches(
     cache::UpdateType update_type,
     std::unordered_set<std::string> reset_only_names,
     const std::unordered_set<std::string>& force_incremental_names) {
-  const auto sp = tracing::Span::CurrentSpan().CreateScopeTime("reset_caches");
+  const auto sp = tracing::ScopeTime::CreateOptionalScopeTime("reset_caches");
   auto caches = caches_.Lock();
 
   // It's important that we walk the caches in the order of their registration,

@@ -5,6 +5,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <optional>
 #include <string>
 
 #include <userver/logging/log_extra.hpp>
@@ -38,6 +39,17 @@ class ScopeTime {
   ///
   /// Equivalent to tracing::Span::CurrentSpan().CreateScopeTime(scope_name)
   explicit ScopeTime(std::string scope_name);
+
+  /// @brief If there exists a tracing::Span::CurrentSpan(),
+  /// Creates a tracing::ScopeTime attached to that Span,
+  /// otherwise return std::nullopt.
+  static std::optional<ScopeTime> CreateOptionalScopeTime();
+
+  /// @brief If there exists a tracing::Span::CurrentSpan(),
+  /// Creates a tracing::ScopeTime attached to that Span and starts measuring
+  /// execution time, otherwise return std::nullopt.
+  static std::optional<ScopeTime> CreateOptionalScopeTime(
+      std::string_view name);
 
   /// @cond
   // Constructors for internal use

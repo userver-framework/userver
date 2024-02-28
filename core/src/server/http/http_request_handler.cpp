@@ -12,8 +12,6 @@
 #include <userver/engine/async.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/logging/component.hpp>
-#include <userver/logging/logger.hpp>
-#include <userver/server/http/http_request.hpp>
 #include <userver/server/http/http_response.hpp>
 #include <userver/server/request/task_inherited_request.hpp>
 #include <userver/utils/assert.hpp>
