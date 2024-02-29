@@ -103,6 +103,40 @@ UTEST_F_MT(GrpcClientWaitAnyTest, HappyPath, 4) {
   GetService().TriggerChatResponse();
 }
 
+UTEST_F_MT(GrpcClientWaitAnyTest, GrcpCallCancelledAtFutureDestruction, 4) {
+  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
+
+  // Launch WaitAny in separate task
+  auto wait_task = utils::Async("wait_any", [&]() -> bool {
+    auto call1 = client.SayHello({});
+    auto call2 = client.SayHello({});
+
+    sample::ugrpc::GreetingResponse response1;
+    sample::ugrpc::GreetingResponse response2;
+
+    auto future1 = call1.FinishAsync(response1);
+    auto future2 = call2.FinishAsync(response2);
+
+    auto success_idx_opt = engine::WaitAny(future1, future2);
+    if (*success_idx_opt == 0) {
+      future1.Get();
+    } else {
+      future2.Get();
+    }
+
+    return success_idx_opt.has_value();
+  });
+
+  // Answer exactly one chat request
+  GetService().TriggerChatResponse();
+
+  // Now, wait for result
+  EXPECT_TRUE(wait_task.Get());
+
+  // We got response only for one gRPC call, but the second one has been
+  // cancelled. So, we don't need to send response for second call.
+}
+
 UTEST_F_MT(GrpcClientWaitAnyTest, SingleCancel, 2) {
   auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
   // Make two calls

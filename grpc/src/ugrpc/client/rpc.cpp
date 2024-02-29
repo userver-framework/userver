@@ -23,6 +23,8 @@ UnaryFuture::~UnaryFuture() noexcept {
     auto& finish = data->GetFinishAsyncMethodInvocation();
     auto& status = finish.GetStatus();
 
+    data->GetContext().TryCancel();
+
     const auto wait_status = impl::Wait(finish, data->GetContext());
 
     switch (wait_status) {
