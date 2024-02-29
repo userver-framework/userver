@@ -140,17 +140,28 @@ def pytest_addoption(parser):
     )
 
 
-def _create_servicer_mock(servicer_class):
+def _create_servicer_mock(servicer_class, stream_method_names=None):
     def wrap_grpc_method(name, default_method):
         @functools.wraps(default_method)
         async def run_method(self, *args, **kwargs):
             method = mock.get(name, None)
             if method is not None:
-                return await method(*args, **kwargs)
+                call = method(*args, **kwargs)
             else:
-                return await default_method(self, *args, **kwargs)
+                call = default_method(self, *args, **kwargs)
 
-        return run_method
+            return await call
+
+        @functools.wraps(default_method)
+        async def run_stream_method(self, *args, **kwargs):
+            method = mock.get(name, None)
+            async for response in await method(*args, **kwargs):
+                yield response
+
+        if name in (stream_method_names or []):
+            return run_stream_method
+        else:
+            return run_method
 
     methods = {}
     for attname, value in servicer_class.__dict__.items():
