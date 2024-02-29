@@ -192,7 +192,15 @@ LogExtra::ProtectedValue& LogExtra::ProtectedValue::operator=(
   return *this;
 }
 
+bool LogExtra::ProtectedValue::IsFrozen() const { return frozen_; }
+
 void LogExtra::ProtectedValue::SetFrozen() { frozen_ = true; }
+
+void LogExtra::ProtectedValue::AssignIgnoringFrozenness(
+    LogExtra::ProtectedValue other) {
+  frozen_ = false;
+  *this = std::move(other);
+}
 
 const LogExtra kEmptyLogExtra;
 

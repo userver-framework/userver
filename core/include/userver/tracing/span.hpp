@@ -217,6 +217,7 @@ class Span final {
   };
 
   friend class SpanBuilder;
+  friend class TagScope;
 
   explicit Span(std::unique_ptr<Impl, OptionalDeleter>&& pimpl);
 
