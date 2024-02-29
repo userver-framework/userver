@@ -1,5 +1,11 @@
+import logging
+
 import pytest
 import websockets
+
+# Disabling redundant logs from third party library
+logger = logging.getLogger('websockets.client')
+logger.setLevel('INFO')
 
 
 async def test_echo(websocket_client):

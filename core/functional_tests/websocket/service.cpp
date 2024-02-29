@@ -2,7 +2,6 @@
 #include <userver/testsuite/testsuite_support.hpp>
 
 #include <userver/clients/http/component.hpp>
-#include <userver/components/logging_configurator.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/concurrent/queue.hpp>
 #include <userver/server/handlers/tests_control.hpp>

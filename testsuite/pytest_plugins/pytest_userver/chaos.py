@@ -583,37 +583,37 @@ class BaseGate:
 
     def to_server_pass(self) -> None:
         """ Pass data as is """
-        logging.debug('to_server_pass')
+        logging.trace('to_server_pass')
         self.set_to_server_interceptor(_intercept_ok)
 
     def to_client_pass(self) -> None:
         """ Pass data as is """
-        logging.debug('to_client_pass')
+        logging.trace('to_client_pass')
         self.set_to_client_interceptor(_intercept_ok)
 
     def to_server_noop(self) -> None:
         """ Do not read data, causing client to keep multiple data """
-        logging.debug('to_server_noop')
+        logging.trace('to_server_noop')
         self.set_to_server_interceptor(_intercept_noop)
 
     def to_client_noop(self) -> None:
         """ Do not read data, causing server to keep multiple data """
-        logging.debug('to_client_noop')
+        logging.trace('to_client_noop')
         self.set_to_client_interceptor(_intercept_noop)
 
     def to_server_drop(self) -> None:
         """ Read and discard data """
-        logging.debug('to_server_drop')
+        logging.trace('to_server_drop')
         self.set_to_server_interceptor(_intercept_drop)
 
     def to_client_drop(self) -> None:
         """ Read and discard data """
-        logging.debug('to_client_drop')
+        logging.trace('to_client_drop')
         self.set_to_client_interceptor(_intercept_drop)
 
     def to_server_delay(self, delay: float) -> None:
         """ Delay data transmission """
-        logging.debug('to_server_delay, delay: %s', delay)
+        logging.trace('to_server_delay, delay: %s', delay)
 
         async def _intercept_delay_bound(
                 loop: EvLoop, socket_from: Socket, socket_to: Socket,
@@ -624,7 +624,7 @@ class BaseGate:
 
     def to_client_delay(self, delay: float) -> None:
         """ Delay data transmission """
-        logging.debug('to_client_delay, delay: %s', delay)
+        logging.trace('to_client_delay, delay: %s', delay)
 
         async def _intercept_delay_bound(
                 loop: EvLoop, socket_from: Socket, socket_to: Socket,
@@ -635,48 +635,48 @@ class BaseGate:
 
     def to_server_close_on_data(self) -> None:
         """ Close on first bytes of data from client """
-        logging.debug('to_server_close_on_data')
+        logging.trace('to_server_close_on_data')
         self.set_to_server_interceptor(_intercept_close_on_data)
 
     def to_client_close_on_data(self) -> None:
         """ Close on first bytes of data from server """
-        logging.debug('to_client_close_on_data')
+        logging.trace('to_client_close_on_data')
         self.set_to_client_interceptor(_intercept_close_on_data)
 
     def to_server_corrupt_data(self) -> None:
         """ Corrupt data received from client """
-        logging.debug('to_server_corrupt_data')
+        logging.trace('to_server_corrupt_data')
         self.set_to_server_interceptor(_intercept_corrupt)
 
     def to_client_corrupt_data(self) -> None:
         """ Corrupt data received from server """
-        logging.debug('to_client_corrupt_data')
+        logging.trace('to_client_corrupt_data')
         self.set_to_client_interceptor(_intercept_corrupt)
 
     def to_server_limit_bps(self, bytes_per_second: float) -> None:
         """ Limit bytes per second transmission by network from client """
-        logging.debug(
+        logging.trace(
             'to_server_limit_bps, bytes_per_second: %s', bytes_per_second,
         )
         self.set_to_server_interceptor(_InterceptBpsLimit(bytes_per_second))
 
     def to_client_limit_bps(self, bytes_per_second: float) -> None:
         """ Limit bytes per second transmission by network from server """
-        logging.debug(
+        logging.trace(
             'to_client_limit_bps, bytes_per_second: %s', bytes_per_second,
         )
         self.set_to_client_interceptor(_InterceptBpsLimit(bytes_per_second))
 
     def to_server_limit_time(self, timeout: float, jitter: float) -> None:
         """ Limit connection lifetime on receive of first bytes from client """
-        logging.debug(
+        logging.trace(
             'to_server_limit_time, timeout: %s, jitter: %s', timeout, jitter,
         )
         self.set_to_server_interceptor(_InterceptTimeLimit(timeout, jitter))
 
     def to_client_limit_time(self, timeout: float, jitter: float) -> None:
         """ Limit connection lifetime on receive of first bytes from server """
-        logging.debug(
+        logging.trace(
             'to_client_limit_time, timeout: %s, jitter: %s', timeout, jitter,
         )
         self.set_to_client_interceptor(_InterceptTimeLimit(timeout, jitter))
@@ -690,7 +690,7 @@ class BaseGate:
         @param max_size Max packet size to send to server
         @param sleep_per_packet Optional sleep interval per packet, seconds
         """
-        logging.debug('to_server_smaller_parts, max_size: %s', max_size)
+        logging.trace('to_server_smaller_parts, max_size: %s', max_size)
         self.set_to_server_interceptor(
             _InterceptSmallerParts(max_size, sleep_per_packet),
         )
@@ -704,7 +704,7 @@ class BaseGate:
         @param max_size Max packet size to send to client
         @param sleep_per_packet Optional sleep interval per packet, seconds
         """
-        logging.debug('to_client_smaller_parts, max_size: %s', max_size)
+        logging.trace('to_client_smaller_parts, max_size: %s', max_size)
         self.set_to_client_interceptor(
             _InterceptSmallerParts(max_size, sleep_per_packet),
         )
@@ -714,7 +714,7 @@ class BaseGate:
         Pass data in bigger parts
         @param packet_size minimal size of the resulting packet
         """
-        logging.debug('to_server_concat_packets, packet_size: %s', packet_size)
+        logging.trace('to_server_concat_packets, packet_size: %s', packet_size)
         self.set_to_server_interceptor(_InterceptConcatPackets(packet_size))
 
     def to_client_concat_packets(self, packet_size: int) -> None:
@@ -722,29 +722,29 @@ class BaseGate:
         Pass data in bigger parts
         @param packet_size minimal size of the resulting packet
         """
-        logging.debug('to_client_concat_packets, packet_size: %s', packet_size)
+        logging.trace('to_client_concat_packets, packet_size: %s', packet_size)
         self.set_to_client_interceptor(_InterceptConcatPackets(packet_size))
 
     def to_server_limit_bytes(self, bytes_limit: int) -> None:
         """ Drop all connections each `bytes_limit` of data sent by network """
-        logging.debug('to_server_limit_bytes, bytes_limit: %s', bytes_limit)
+        logging.trace('to_server_limit_bytes, bytes_limit: %s', bytes_limit)
         self.set_to_server_interceptor(_InterceptBytesLimit(bytes_limit, self))
 
     def to_client_limit_bytes(self, bytes_limit: int) -> None:
         """ Drop all connections each `bytes_limit` of data sent by network """
-        logging.debug('to_client_limit_bytes, bytes_limit: %s', bytes_limit)
+        logging.trace('to_client_limit_bytes, bytes_limit: %s', bytes_limit)
         self.set_to_client_interceptor(_InterceptBytesLimit(bytes_limit, self))
 
     def to_server_substitute(self, pattern: str, repl: str) -> None:
         """ Apply regex substitution to data from client """
-        logging.debug(
+        logging.trace(
             'to_server_substitute, pattern: %s, repl: %s', pattern, repl,
         )
         self.set_to_server_interceptor(_InterceptSubstitute(pattern, repl))
 
     def to_client_substitute(self, pattern: str, repl: str) -> None:
         """ Apply regex substitution to data from server """
-        logging.debug(
+        logging.trace(
             'to_client_substitute, pattern: %s, repl: %s', pattern, repl,
         )
         self.set_to_client_interceptor(_InterceptSubstitute(pattern, repl))
@@ -831,7 +831,7 @@ class TcpGate(BaseGate):
             try:
                 self._make_socket_nonblocking(server)
                 await self._loop.sock_connect(server, addr[4])
-                logging.debug('Connected to %s', addr[4])
+                logging.trace('Connected to %s', addr[4])
                 return server
             except Exception as exc:  # pylint: disable=broad-except
                 server.close()
@@ -915,7 +915,7 @@ class UdpGate(BaseGate):
             try:
                 self._make_socket_nonblocking(server)
                 await self._loop.sock_connect(server, addr[4])
-                logging.debug('Connected to %s', addr[4])
+                logging.trace('Connected to %s', addr[4])
                 return server
             except Exception as exc:  # pylint: disable=broad-except
                 logging.warning('Could not connect to %s: %s', addr[4], exc)
