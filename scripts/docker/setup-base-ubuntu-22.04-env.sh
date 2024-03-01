@@ -71,7 +71,7 @@ gpg_retrieve_curl https://www.mongodb.org/static/pgp/server-6.0.asc mongodb
 echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse" \
     | tee /etc/apt/sources.list.d/mongodb-org-6.0.list
 
-# Some of the above repos are slow to responde or could be overloaded. Adding some retries
+# Some of the above repos are slow to respond or could be overloaded. Adding some retries
 echo '
 Acquire::Retries "20";
 Acquire::https::Timeout "15";

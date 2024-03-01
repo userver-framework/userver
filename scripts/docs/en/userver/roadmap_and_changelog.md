@@ -19,9 +19,11 @@ Changelog news also go to the
 ✓ Simplify dynamic configs, embed defaults into the code.
 ✓ Add PostgreSQL connection pools autoconfiguration.
 ✓ LISTEN/NOTIFY support for PostgreSQL
+✓ New landing page for the website
+✓ Significantly reduce network data transmission for PostgreSQL
 * Implement middlewares for HTTP server.
 * Move most of the HTTP server functionality to middlewares.
-* Implement middlewares for HTTP client.
+* Document middlewares/plugins for HTTP client.
 * Codegen parsers and serializers by JSON schema
 * Support `install` in CMake.
 * Add YDB driver.
@@ -31,6 +33,62 @@ Changelog news also go to the
 
 
 ## Changelog
+
+### February 2024
+
+* PostgreSQL driver now keeps processing the current queries and transactions
+  after encountering a "prepared statement already exists" event. As a result
+* Implemented a new landing page to make userver even more nice&shiny! The whole
+  project was done by 👨🏻‍💻 frontend developer [Fedor Alekseev](https://github.com/atlz253);
+  🧑🏼‍🎨 designers[hellenisaeva](https://github.com/hellenisaeva)
+  and [MariaGrinchenko](https://github.com/MariaGrinchenko);
+  👨🏻‍💼 manager [Oleg Komarov](https://github.com/0GE1). Many thanks for the
+  awesome work!
+* HTTP components::Server now has a static configuration option `address` to
+  select network interface to listen to.
+* gRPC futures now can be used efficiently with engine::WaitAny().
+* Flush headers before starting to produce the body parts in HTTP streaming
+  handlers, so a client can react to the request earlier. Thanks to
+  [akhoroshev](https://github.com/akhoroshev) for the PR!
+* Added tracing::TagScope for comfortable work with local scope tracing tags.
+  Many thanks to [nfrmtk](https://github.com/nfrmtk) for the PR!
+* `INCLUDE_DIRECTORIES` is now used in `userver_add_grpc_library`. Thanks to
+  [Nikita](https://github.com/root-kidik) for the PR!
+* New storages::postgres::QueryQueue class, mostly for executing multiple
+  `SELECT` statements and retrieving the results in one roundtrip.
+* @ref POSTGRES_TOPOLOGY_SETTINGS to control maximum allowed replication lag.
+
+* Optimizations:
+  * PostgreSQL driver now caches the low-level database (D)escribe responses,
+    workarounds the libpq implementation and does not request query describe
+    information on each request. This results in about ~2 times less data
+    transmitted for select statements that return multiple columns, less CPU
+    consumption for the database server and for the application itself.
+  * On Boost 1.74 and newer the engine::SingleConsumerEvent::IsReady() now uses
+    atomic load instead of a much less efficient atomic DWCAS.
+  * gRPC deadline propagation now uses less `now()` calls and measures time
+    more precisely.
+  * About 16% faster HttpResponse::SetHeader due to using a vectorization
+    friendly algorithm.
+  * Improved Redis driver start-up time.
+  * dynamic_config::DocsMap::Parse() and dynamic configs retrieval copies
+    less strings.
+
+* Build:
+  * New Docker container for developing userver based projects
+    `ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest`. It
+    contains all the build dependencies preinstalled and
+    a proper setup of PPAs with databases, compilers and tools.
+  * Switched to a modern python `venv` instead of the older `virtualenv`.
+  * Use system provided Boost.Stacktrace if it is available.
+
+* Documentation and Diagnostics:
+  * Added fix hints for storages::postgres::InvalidParserCategory.
+  * Clarify @ref scripts/docs/en/userver/pg_user_types.md
+  * More references and info for the metrics documentation.
+  * More documentation for dynamic_config::ValueDict `__default__` behavior,
+    and for dynamic configs.
+
 
 ### January 2024
 

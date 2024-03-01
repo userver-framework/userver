@@ -10,7 +10,7 @@ docker build -t ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest -f sc
 ```
 
 
-* to build image with all build dependecies and additional set of compilers, database servers and workarounds for CI:
+* to build image with all build dependencies and additional set of compilers, database servers and workarounds for CI:
 ```
 docker build -t ghcr.io/userver-framework/ubuntu-22.04-userver-base-ci:latest -f scripts/docker/base-ubuntu-22.04-ci.dockerfile .
 ```

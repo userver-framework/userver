@@ -62,8 +62,8 @@ const remove_legacy_searchbox = () => {
 }
 
 const add_docs_versioning = () => {
-    // const breif = document.getElementById('projectbrief').getElementsByTagName('a')[0];
-    // breif.textContent += " v1.0";
+    // const brief = document.getElementById('projectbrief').getElementsByTagName('a')[0];
+    // brief.textContent += " v1.0";
 
     const footer = document.getElementById('nav-path').getElementsByTagName('ul')[0];
     footer.innerHTML = `

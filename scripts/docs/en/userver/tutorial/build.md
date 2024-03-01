@@ -200,7 +200,7 @@ a properly setupped PPAs with databases, compilers and tools.
 
 To run it just use a command like
 ```
-docker run --rm -it --network ip6net --entrypoint bash ghcr.io/userver-framework/ubuntu-22.04-userver-base-ci:latest
+docker run --rm -it --network ip6net --entrypoint bash ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest
 ```
 
 After that, install the databases and compiler you are planning to use via
