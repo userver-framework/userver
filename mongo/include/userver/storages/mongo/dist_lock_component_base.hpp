@@ -81,6 +81,9 @@ class DistLockComponentBase : public components::LoggableComponentBase {
   /// {
   ///     while (!engine::ShouldCancel())
   ///     {
+  ///         // Use nullptr to create new trace_id/link for an iteration
+  ///         tracing::Span span(tracing::Tracer::GetTracer(), "name", nullptr);
+  ///
   ///         // If Foo() or other function in DoWork() throws an exception,
   ///         // DoWork() will be restarted in `restart-delay` seconds.
   ///         Foo();
