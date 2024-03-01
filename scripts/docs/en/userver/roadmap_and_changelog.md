@@ -16,11 +16,11 @@ Changelog news also go to the
 
 ## Roadmap
 
-✓ Simplify dynamic configs, embed defaults into the code.
-✓ Add PostgreSQL connection pools autoconfiguration.
-✓ LISTEN/NOTIFY support for PostgreSQL
-✓ New landing page for the website
-✓ Significantly reduce network data transmission for PostgreSQL
+* ✓ Simplify dynamic configs, embed defaults into the code.
+* ✓ Add PostgreSQL connection pools autoconfiguration.
+* ✓ LISTEN/NOTIFY support for PostgreSQL
+* ✓ New landing page for the website
+* ✓ Significantly reduce network data transmission for PostgreSQL
 * Implement middlewares for HTTP server.
 * Move most of the HTTP server functionality to middlewares.
 * Document middlewares/plugins for HTTP client.
@@ -37,10 +37,10 @@ Changelog news also go to the
 ### February 2024
 
 * PostgreSQL driver now keeps processing the current queries and transactions
-  after encountering a "prepared statement already exists" event. As a result
+  after encountering a "prepared statement already exists" event.
 * Implemented a new landing page to make userver even more nice&shiny! The whole
   project was done by 👨🏻‍💻 frontend developer [Fedor Alekseev](https://github.com/atlz253);
-  🧑🏼‍🎨 designers[hellenisaeva](https://github.com/hellenisaeva)
+  🧑🏼‍🎨 designers [hellenisaeva](https://github.com/hellenisaeva)
   and [MariaGrinchenko](https://github.com/MariaGrinchenko);
   👨🏻‍💼 manager [Oleg Komarov](https://github.com/0GE1). Many thanks for the
   awesome work!
