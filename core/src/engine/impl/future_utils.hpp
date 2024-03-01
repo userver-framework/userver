@@ -21,11 +21,8 @@ class FutureWaitStrategy final : public impl::WaitStrategy {
   FutureWaitStrategy(T& target, impl::TaskContext& current)
       : target_(target), current_(current) {}
 
-  void SetupWakeups() override {
-    // TODO return early_wakeup and use it in TaskContext::Sleep to wake up
-    //  early.
-    [[maybe_unused]] const EarlyWakeup early_wakeup =
-        target_.TryAppendWaiter(current_);
+  EarlyWakeup SetupWakeups() override {
+    return target_.TryAppendWaiter(current_);
   }
 
   void DisableWakeups() noexcept override { target_.RemoveWaiter(current_); }

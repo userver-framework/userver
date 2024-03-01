@@ -19,14 +19,11 @@ class WaitAnyWaitStrategy final : public WaitStrategy {
                       TaskContext& waiter)
       : waiter_(waiter), targets_(targets) {}
 
-  void SetupWakeups() override {
-    early_wakeup_ = false;
-
+  EarlyWakeup SetupWakeups() override {
     for (auto*& target : targets_) {
       if (!target) continue;
 
       utils::FastScopeGuard disable_wakeups([&]() noexcept {
-        early_wakeup_ = true;
         DoDisableWakeups(utils::span{targets_.data(), &target});
       });
 
@@ -34,17 +31,16 @@ class WaitAnyWaitStrategy final : public WaitStrategy {
       const auto early_wakeup = target->TryAppendWaiter(waiter_);
 
       if (static_cast<bool>(early_wakeup)) {
-        return;
+        return EarlyWakeup{true};
       }
 
       disable_wakeups.Release();
     }
+
+    return EarlyWakeup{false};
   }
 
-  void DisableWakeups() noexcept override {
-    if (early_wakeup_) return;
-    DoDisableWakeups(targets_);
-  }
+  void DisableWakeups() noexcept override { DoDisableWakeups(targets_); }
 
  private:
   void DoDisableWakeups(utils::span<ContextAccessor*> targets) const noexcept {
@@ -56,7 +52,6 @@ class WaitAnyWaitStrategy final : public WaitStrategy {
 
   TaskContext& waiter_;
   const utils::span<ContextAccessor*> targets_;
-  bool early_wakeup_{false};
 };
 
 inline bool AreUniqueValues(utils::span<ContextAccessor*> targets) {

@@ -75,12 +75,13 @@ class DirectionWaitStrategy final : public engine::impl::WaitStrategy {
                         engine::impl::TaskContext& current)
       : waiters_(waiters), watcher_(watcher), current_(current) {}
 
-  void SetupWakeups() override {
+  engine::impl::EarlyWakeup SetupWakeups() override {
     waiters_.Append(&current_);
     watcher_.StartAsync();
+    return engine::impl::EarlyWakeup{false};
   }
 
-  void DisableWakeups() override {
+  void DisableWakeups() noexcept override {
     waiters_.Remove(current_);
     // we need to stop watcher manually to avoid racy wakeups later
     watcher_.StopAsync();

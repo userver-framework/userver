@@ -27,7 +27,7 @@ class CvWaitStrategy final : public WaitStrategy {
         current_(current),
         mutex_lock_(mutex_lock) {}
 
-  void SetupWakeups() override {
+  EarlyWakeup SetupWakeups() override {
     UASSERT(mutex_lock_);
     UASSERT(current_.IsCurrent());
     {
@@ -36,9 +36,13 @@ class CvWaitStrategy final : public WaitStrategy {
     }
 
     mutex_lock_.unlock();
+    // A race is not possible here, because check + Append is performed under
+    // mutex_lock_, and user state that defines readiness should only be changed
+    // by user under mutex_lock_.
+    return EarlyWakeup{false};
   }
 
-  void DisableWakeups() override {
+  void DisableWakeups() noexcept override {
     UASSERT(current_.IsCurrent());
 
     WaitList::Lock waiters_lock{waiters_};

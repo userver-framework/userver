@@ -38,17 +38,22 @@ class TaskContextHolder;
 
 class WaitStrategy {
  public:
-  // Implementation may setup timers/watchers here. Implementation must make
+  // Implementation may set up timers/watchers here. Implementation must make
   // sure that there is no race between SetupWakeups() and WaitList-specific
   // wakeup (if "add task to wait list iff not ready" is not protected from
   // Wakeup, e.g. for WaitListLight). SetupWakeups() *may* call Wakeup() for
   // current task - sleep_state_ is set in DoStep() and double checked for such
   // early wakeups. It may not sleep.
-  virtual void SetupWakeups() = 0;
+  //
+  // If EarlyWakeup{true} is returned, then:
+  // - DisableWakeups is not called;
+  // - SetupWakeups should disable wakeup sources itself;
+  // - SetupWakeups may or may not call context.Wakeup.
+  virtual EarlyWakeup SetupWakeups() = 0;
 
   // Implementation must disable all wakeup sources (wait lists, timers) here.
   // It may not sleep.
-  virtual void DisableWakeups() = 0;
+  virtual void DisableWakeups() noexcept = 0;
 
  protected:
   constexpr WaitStrategy() noexcept = default;

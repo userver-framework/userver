@@ -14,9 +14,9 @@ class CommonSleepWaitStrategy final : public WaitStrategy {
  public:
   CommonSleepWaitStrategy() = default;
 
-  void SetupWakeups() override {}
+  EarlyWakeup SetupWakeups() override { return EarlyWakeup{false}; }
 
-  void DisableWakeups() override {}
+  void DisableWakeups() noexcept override {}
 };
 }  // namespace
 }  // namespace impl

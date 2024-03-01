@@ -53,12 +53,15 @@ class MutexImpl<WaitList>::MutexWaitStrategy final : public WaitStrategy {
         waiter_token_(mutex_.lock_waiters_),
         lock_(mutex_.lock_waiters_) {}
 
-  void SetupWakeups() override {
+  EarlyWakeup SetupWakeups() override {
     mutex_.lock_waiters_.Append(lock_, &current_);
     lock_.unlock();
+    // A race is not possible here, because check + Append is performed under
+    // WaitList::Lock, and notification also takes WaitList::Lock.
+    return EarlyWakeup{false};
   }
 
-  void DisableWakeups() override {
+  void DisableWakeups() noexcept override {
     lock_.lock();
     mutex_.lock_waiters_.Remove(lock_, current_);
   }
@@ -76,12 +79,18 @@ class MutexImpl<WaitListLight>::MutexWaitStrategy final : public WaitStrategy {
   MutexWaitStrategy(MutexImpl<WaitListLight>& mutex, TaskContext& current)
       : mutex_(mutex), current_(current) {}
 
-  void SetupWakeups() override {
+  EarlyWakeup SetupWakeups() override {
     mutex_.lock_waiters_.Append(&current_);
-    if (!mutex_.owner_.load()) mutex_.lock_waiters_.WakeupOne();
+    if (mutex_.owner_.load() == nullptr) {
+      mutex_.lock_waiters_.Remove(current_);
+      return EarlyWakeup{true};
+    }
+    return EarlyWakeup{false};
   }
 
-  void DisableWakeups() override { mutex_.lock_waiters_.Remove(current_); }
+  void DisableWakeups() noexcept override {
+    mutex_.lock_waiters_.Remove(current_);
+  }
 
  private:
   MutexImpl<WaitListLight>& mutex_;

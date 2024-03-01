@@ -20,18 +20,19 @@ class AsyncFlatCombiningQueue::WaitStrategy final : public impl::WaitStrategy {
     UASSERT(!context_.IsCancellable());
   }
 
-  void SetupWakeups() override {
+  EarlyWakeup SetupWakeups() override {
     if (std::invoke(TryStartWaiting, queue_)) {
       // We will be woken up if and only if our notifier_node_ is seen by
       // another thread or task. No deadlines or cancellations are allowed,
       // otherwise another consumer may see notifier_node_ later and wake up
       // a dead task.
+      return EarlyWakeup{false};
     } else {
-      context_.WakeupCurrent();
+      return EarlyWakeup{true};
     }
   }
 
-  void DisableWakeups() override {
+  void DisableWakeups() noexcept override {
     // We won't be notified anymore, since we are the sole consumer now.
   }
 

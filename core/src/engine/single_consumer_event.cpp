@@ -12,13 +12,11 @@ class SingleConsumerEvent::EventWaitStrategy final : public impl::WaitStrategy {
   EventWaitStrategy(SingleConsumerEvent& event, impl::TaskContext& current)
       : event_(event), current_(current) {}
 
-  void SetupWakeups() override {
-    if (event_.waiters_->GetSignalOrAppend(&current_)) {
-      current_.WakeupCurrent();
-    }
+  impl::EarlyWakeup SetupWakeups() override {
+    return impl::EarlyWakeup{event_.waiters_->GetSignalOrAppend(&current_)};
   }
 
-  void DisableWakeups() override { event_.waiters_->Remove(current_); }
+  void DisableWakeups() noexcept override { event_.waiters_->Remove(current_); }
 
  private:
   SingleConsumerEvent& event_;

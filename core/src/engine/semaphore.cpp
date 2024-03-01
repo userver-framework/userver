@@ -23,12 +23,15 @@ class SemaphoreWaitStrategy final : public impl::WaitStrategy {
         waiter_token_(waiters_),
         lock_(waiters_) {}
 
-  void SetupWakeups() override {
+  impl::EarlyWakeup SetupWakeups() override {
     waiters_.Append(lock_, &current_);
     lock_.unlock();
+    // A race is not possible here, because check + Append is performed under
+    // WaitList::Lock, and notification also takes WaitList::Lock.
+    return impl::EarlyWakeup{false};
   }
 
-  void DisableWakeups() override {
+  void DisableWakeups() noexcept override {
     lock_.lock();
     waiters_.Remove(lock_, current_);
   }

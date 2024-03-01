@@ -75,11 +75,7 @@ void SingleUseEvent::Send() noexcept {
 bool SingleUseEvent::IsReady() const noexcept { return waiters_->IsSignaled(); }
 
 impl::EarlyWakeup SingleUseEvent::TryAppendWaiter(impl::TaskContext& waiter) {
-  if (waiters_->GetSignalOrAppend(&waiter)) {
-    waiter.WakeupCurrent();
-    return impl::EarlyWakeup{true};
-  }
-  return impl::EarlyWakeup{false};
+  return impl::EarlyWakeup{waiters_->GetSignalOrAppend(&waiter)};
 }
 
 void SingleUseEvent::RemoveWaiter(impl::TaskContext& waiter) noexcept {

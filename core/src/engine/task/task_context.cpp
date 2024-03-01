@@ -306,9 +306,15 @@ TaskContext::WakeupSource TaskContext::Sleep(WaitStrategy& wait_strategy,
   // cancellation signal would be lost, so we must check it here.
   if (ShouldCancel()) return TaskContext::WakeupSource::kCancelRequest;
 
-  wait_strategy.SetupWakeups();
-
   const auto sleep_epoch = sleep_state_.Load<std::memory_order_seq_cst>().epoch;
+
+  if (static_cast<bool>(wait_strategy.SetupWakeups())) {
+    sleep_state_.Store<std::memory_order_release>(
+        MakeNextEpochSleepState(sleep_epoch));
+    wakeup_source_ = WakeupSource::kWaitList;
+    return wakeup_source_;
+  }
+
   const bool has_deadline = deadline.IsReachable() &&
                             (!IsCancellable() || deadline < cancel_deadline_);
   if (has_deadline) ArmDeadlineTimer(deadline, sleep_epoch);
