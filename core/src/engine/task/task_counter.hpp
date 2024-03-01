@@ -77,22 +77,20 @@ class TaskCounter final {
     kCreated,
     kDestroyed,
 
+    kCancelOverload,
+    kOverload,
+
     kCountersSize,
   };
 
   // Counters that are only mutated from the bound TaskProcessor.
   enum class LocalCounterId : std::size_t {
-    kCreated = static_cast<std::size_t>(GlobalCounterId::kCreated),
-    kDestroyed = static_cast<std::size_t>(GlobalCounterId::kDestroyed),
-
     kStarted,
     kStopped,
     kCancelled,
     kSwitchFast,
     kSwitchSlow,
     kSpuriousWakeups,
-    kCancelOverload,
-    kOverload,
     kOverloadSensor,
     kNoOverloadSensor,
 
@@ -106,8 +104,12 @@ class TaskCounter final {
 
   using Counter = utils::statistics::RateCounter;
 
-  using LocalCounterPack = concurrent::impl::InterferenceShield<
-      std::array<Counter, kLocalCountersSize>>;
+  struct LocalCounters final {
+    std::array<Counter, kLocalCountersSize> purely_local_counters;
+    std::array<Counter, kGlobalCountersSize> localized_global_counters;
+  };
+
+  using LocalCounterPack = concurrent::impl::InterferenceShield<LocalCounters>;
 
   using GlobalCounterPack =
       std::array<concurrent::impl::InterferenceShield<Counter>,
