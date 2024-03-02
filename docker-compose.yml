@@ -17,7 +17,7 @@ services:
         ports:
           - 8080:8080
         working_dir: /userver
-        entrypoint: /tools/run_as_user.sh
+        entrypoint: /userver/docker/tools/run_as_user.sh
 
     userver-ubuntu-core:
         image: ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest
@@ -35,7 +35,7 @@ services:
         ports:
           - 8080:8080
         working_dir: /userver
-        entrypoint: /tools/run_as_user.sh
+        entrypoint: /userver/docker/tools/run_as_user.sh
 
 
     userver-ubuntu20-core:
@@ -51,11 +51,10 @@ services:
           - CCACHE_SIZE=${CCACHE_SIZE:-10G}
         volumes:
           - .:/userver:rw
-          - ./tools/docker:/tools:rw
         ports:
           - 8080:8080
         working_dir: /userver
-        entrypoint: /tools/run_as_user.sh
+        entrypoint: /userver/docker/tools/run_as_user.sh
 
     run-ydb:
         image: cr.yandex/yc/yandex-docker-local-ydb:latest
