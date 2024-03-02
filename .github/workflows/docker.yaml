@@ -73,7 +73,7 @@ jobs:
 
           - name: Setup ccache
             run: |
-                chmod 666 . 
+                chmod 666 .;
                 docker-compose run --rm ${{ matrix.image }} bash -c 'whoami && ls -la . && ls -la /userver && ccache -M 2.0GB
                     && ccache -s'
 
