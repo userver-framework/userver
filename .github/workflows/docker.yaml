@@ -72,8 +72,10 @@ jobs:
                     ccache-
 
           - name: Setup ccache
-            run: docker-compose run --rm ${{ matrix.image }} bash -c 'mkdir -p /userver/.ccache && ccache -M 2.0GB
-                && ccache -s'
+            run: |
+                chmod 666 . 
+                docker-compose run --rm ${{ matrix.image }} bash -c 'ccache -M 2.0GB
+                    && ccache -s'
 
           - name: Cmake
             run: docker-compose run --rm ${{ matrix.image }} bash -c 'cmake -DUSERVER_GOOGLE_COMMON_PROTOS=/app/api-common-protos
