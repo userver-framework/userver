@@ -2,7 +2,7 @@ version: "2.3"
 
 services:
     userver-service-sample:
-        image: ghcr.io/userver-framework/ubuntu-userver-build-base:v2
+        image: ghcr.io/userver-framework/ubuntu-22.04-userver-base-ci:latest
         container_name: userver-service-sample
         networks:
           - dockerbridge
@@ -43,7 +43,7 @@ services:
         command: /userver/tools/docker/start-sample.sh
 
     userver-ubuntu:
-        image: ghcr.io/userver-framework/ubuntu-userver-build-base:v2
+        image: ghcr.io/userver-framework/ubuntu-22.04-userver-base-ci:latest
         container_name: userver-ubuntu
         networks:
           - nexportfalse
@@ -71,7 +71,7 @@ services:
         entrypoint: /tools/run_as_user.sh
 
     userver-ubuntu-core:
-        image: ghcr.io/userver-framework/ubuntu-userver-core:v1
+        image: ghcr.io/userver-framework/ubuntu-22.04-userver-base-ci:latest
         container_name: userver-ubuntu-core
         networks:
           - nexportfalse
@@ -128,7 +128,7 @@ services:
 
 
     userver-tests:
-        image: ghcr.io/userver-framework/ubuntu-userver-build-base:v2
+        image: ghcr.io/userver-framework/ubuntu-22.04-userver-base-ci:latest
         container_name: userver-tests
         privileged: true
         mem_limit: 10G
