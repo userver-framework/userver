@@ -10,4 +10,10 @@ if ! id -u user > /dev/null 2> /dev/null; then
     fi
 fi
 
+DIR_UID="$(stat -c '%u' .)"
+if [ "$DIR_UID" != "0" ]; then
+    usermod -u $DIR_UID user
+fi
+
+
 HOME=/home/user sudo -E -u user "$@"
