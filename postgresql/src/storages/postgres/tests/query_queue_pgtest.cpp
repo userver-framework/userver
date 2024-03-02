@@ -15,11 +15,11 @@ using QueryQueueResult = std::vector<pg::ResultSet>;
 }  // namespace
 
 UTEST_P(PostgreConnection, QueryQueueSelectOne) {
-  if (GetParam().pipeline_mode != pg::PipelineMode::kEnabled) {
+  CheckConnection(GetConn());
+  if (!GetConn()->IsPipelineActive()) {
     return;
   }
 
-  CheckConnection(GetConn());
   pg::QueryQueue query_queue{kDefaultCC, std::move(GetConn())};
 
   UEXPECT_NO_THROW(query_queue.Push(kDefaultCC, "SELECT 1"));
@@ -31,11 +31,11 @@ UTEST_P(PostgreConnection, QueryQueueSelectOne) {
 }
 
 UTEST_P(PostgreConnection, QueryQueueSelectMultiple) {
-  if (GetParam().pipeline_mode != pg::PipelineMode::kEnabled) {
+  CheckConnection(GetConn());
+  if (!GetConn()->IsPipelineActive()) {
     return;
   }
 
-  CheckConnection(GetConn());
   pg::QueryQueue query_queue{kDefaultCC, std::move(GetConn())};
 
   constexpr int kQueriesCount = 5;
@@ -52,11 +52,11 @@ UTEST_P(PostgreConnection, QueryQueueSelectMultiple) {
 }
 
 UTEST_P(PostgreConnection, QueryQueueTimeout) {
-  if (GetParam().pipeline_mode != pg::PipelineMode::kEnabled) {
+  CheckConnection(GetConn());
+  if (!GetConn()->IsPipelineActive()) {
     return;
   }
 
-  CheckConnection(GetConn());
   pg::QueryQueue query_queue{kDefaultCC, std::move(GetConn())};
 
   UEXPECT_NO_THROW(query_queue.Push(kDefaultCC, "SELECT 1"));
@@ -68,21 +68,21 @@ UTEST_P(PostgreConnection, QueryQueueTimeout) {
 }
 
 UTEST_P(PostgreConnection, QueryQueueEmpty) {
-  if (GetParam().pipeline_mode != pg::PipelineMode::kEnabled) {
+  CheckConnection(GetConn());
+  if (!GetConn()->IsPipelineActive()) {
     return;
   }
 
-  CheckConnection(GetConn());
   const pg::QueryQueue query_queue{kDefaultCC, std::move(GetConn())};
   // Yes, that's it: just check the construction-destruction cycle
 }
 
 UTEST_P(PostgreConnection, QueryQueueEmptyCollect) {
-  if (GetParam().pipeline_mode != pg::PipelineMode::kEnabled) {
+  CheckConnection(GetConn());
+  if (!GetConn()->IsPipelineActive()) {
     return;
   }
 
-  CheckConnection(GetConn());
   pg::QueryQueue query_queue{kDefaultCC, std::move(GetConn())};
 
   QueryQueueResult result{};
@@ -92,11 +92,11 @@ UTEST_P(PostgreConnection, QueryQueueEmptyCollect) {
 }
 
 UTEST_P(PostgreConnection, QueryQueueDestroyWithoutCollect) {
-  if (GetParam().pipeline_mode != pg::PipelineMode::kEnabled) {
+  CheckConnection(GetConn());
+  if (!GetConn()->IsPipelineActive()) {
     return;
   }
 
-  CheckConnection(GetConn());
   pg::QueryQueue query_queue{kDefaultCC, std::move(GetConn())};
 
   query_queue.Push(kDefaultCC, "SELECT 1");
@@ -104,11 +104,11 @@ UTEST_P(PostgreConnection, QueryQueueDestroyWithoutCollect) {
 }
 
 UTEST_P(PostgreConnection, QueryQueueMoveCtor) {
-  if (GetParam().pipeline_mode != pg::PipelineMode::kEnabled) {
+  CheckConnection(GetConn());
+  if (!GetConn()->IsPipelineActive()) {
     return;
   }
 
-  CheckConnection(GetConn());
   pg::QueryQueue query_queue{kDefaultCC, std::move(GetConn())};
   query_queue.Push(kDefaultCC, "SELECT 1");
 
@@ -121,11 +121,11 @@ UTEST_P(PostgreConnection, QueryQueueMoveCtor) {
 }
 
 UTEST_P(PostgreConnection, QueryQueueActuallyFifo) {
-  if (GetParam().pipeline_mode != pg::PipelineMode::kEnabled) {
+  CheckConnection(GetConn());
+  if (!GetConn()->IsPipelineActive()) {
     return;
   }
 
-  CheckConnection(GetConn());
   GetConn()->Execute(
       "CREATE TEMP TABLE qq_fifo_test(id INT PRIMARY KEY, value INT)");
 
