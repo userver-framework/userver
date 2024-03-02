@@ -68,7 +68,7 @@ services:
         ports:
           - 8080:8080
         working_dir: /userver
-        entrypoint: /tools/run_as_user.sh
+        user: user
 
     userver-ubuntu-core:
         image: ghcr.io/userver-framework/ubuntu-22.04-userver-base-ci:latest
@@ -96,7 +96,7 @@ services:
         ports:
           - 8080:8080
         working_dir: /userver
-        entrypoint: /tools/run_as_user.sh
+        user: user
 
 
     userver-ubuntu20-core:
