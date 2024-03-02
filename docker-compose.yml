@@ -26,7 +26,6 @@ services:
         ports:
           - 8080:8080
         working_dir: /userver
-        user: user
 
     userver-ubuntu-core:
         image: ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest
@@ -53,7 +52,6 @@ services:
         ports:
           - 8080:8080
         working_dir: /userver
-        user: user
 
 
     userver-ubuntu20-core:
