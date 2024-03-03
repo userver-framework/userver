@@ -35,6 +35,7 @@ libpq5=12.*
 libprotoc-dev
 libssl-dev
 libyaml-cpp-dev
+netbase
 ninja-build
 pkg-config
 postgresql-12
