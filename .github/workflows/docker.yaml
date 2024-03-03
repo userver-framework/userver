@@ -73,17 +73,21 @@ jobs:
                     ccache-
 
           - name: Setup ccache
-            run: docker-compose run --rm ${{ matrix.image }} bash -c 'ccache -M 2.0GB
+            run: docker-compose -f .github/docker-compose.yml
+                run --rm ${{ matrix.image }} bash -c 'ccache -M 2.0GB
                 && ccache -s'
 
           - name: Cmake
-            run: docker-compose run --rm ${{ matrix.image }} bash -c 'cmake -DUSERVER_GOOGLE_COMMON_PROTOS=/app/api-common-protos
+            run: docker-compose -f .github/docker-compose.yml
+                run --rm ${{ matrix.image }} bash -c 'cmake -DUSERVER_GOOGLE_COMMON_PROTOS=/app/api-common-protos
                 ${{ matrix.cmake-flags }} -B./build -S./'
 
           - name: Build
-            run: docker-compose run --rm ${{ matrix.image }} bash -c 'cd /userver/build
+            run: docker-compose -f .github/docker-compose.yml
+                run --rm ${{ matrix.image }} bash -c 'cd /userver/build
                 && make -j $(nproc)'
 
           - name: Run tests
-            run: docker-compose run --rm ${{ matrix.image }} bash -c 'cd /userver/build
+            run: docker-compose -f .github/docker-compose.yml
+                run --rm ${{ matrix.image }} bash -c 'cd /userver/build
                 && ulimit -n 4096 && ctest -V'
