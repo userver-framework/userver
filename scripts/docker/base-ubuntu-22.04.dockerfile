@@ -2,7 +2,6 @@ FROM ubuntu:22.04
 
 COPY scripts/docs/en/deps/ubuntu-22.04.md /userver_tmp/
 COPY scripts/docker/setup-base-ubuntu-22.04-env.sh /userver_tmp/
-COPY scripts/docker/add_user.sh /userver_tmp/
 
 COPY scripts/external_deps/requirements.txt  /userver_tmp/requirements/external-deps.txt
 COPY scripts/grpc/requirements-old.txt       /userver_tmp/requirements/grpc-userver.txt
@@ -21,8 +20,7 @@ COPY scripts/docker/pip-install.sh           /userver_tmp/
 RUN ( \
   cd /userver_tmp \
   && ./setup-base-ubuntu-22.04-env.sh \
-  && ./add_user.sh \
-  && sudo -u user ./pip-install.sh \
+  && ./pip-install.sh \
   && mkdir /app && cd /app && git clone --depth 1 -b 1.50.0 https://github.com/googleapis/api-common-protos.git && rm -rf /app/api-common-protos/.git \
   && rm -rf /userver_tmp \
 )
