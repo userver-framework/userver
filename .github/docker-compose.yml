@@ -1,0 +1,92 @@
+version: "2.3"
+
+services:
+    userver-ubuntu:
+        image: ghcr.io/userver-framework/ubuntu-22.04-userver-base-ci:latest
+        container_name: userver-ubuntu
+        networks:
+          - nexportfalse
+        environment:
+          - CCACHE_DIR=/userver/.ccache
+          - CCACHE_HASHDIR
+          - CCACHE_NOHASHDIR
+          - CCACHE_PREFIX
+          - CCACHE_SIZE=${CCACHE_SIZE:-10G}
+        volumes:
+          - ..:/userver:rw
+        ports:
+          - 8080:8080
+        working_dir: /userver
+        entrypoint: /userver/scripts/docker/run_as_user.sh
+
+    userver-ubuntu-core:
+        image: ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest
+        container_name: userver-ubuntu-core
+        networks:
+          - nexportfalse
+        environment:
+          - CCACHE_DIR=/userver/.ccache
+          - CCACHE_HASHDIR
+          - CCACHE_NOHASHDIR
+          - CCACHE_PREFIX
+          - CCACHE_SIZE=${CCACHE_SIZE:-10G}
+        volumes:
+          - ..:/userver:rw
+        ports:
+          - 8080:8080
+        working_dir: /userver
+        entrypoint: /userver/scripts/docker/run_as_user.sh
+
+
+    userver-ubuntu20-core:
+        image: ghcr.io/userver-framework/ubuntu-userver-core-ub20:v1
+        container_name: userver-ubuntu-core
+        networks:
+          - nexportfalse
+        environment:
+          - CCACHE_DIR=/userver/.ccache
+          - CCACHE_HASHDIR
+          - CCACHE_NOHASHDIR
+          - CCACHE_PREFIX
+          - CCACHE_SIZE=${CCACHE_SIZE:-10G}
+        volumes:
+          - ..:/userver:rw
+        ports:
+          - 8080:8080
+        working_dir: /userver
+        entrypoint: /userver/scripts/docker/run_as_user.sh
+
+    run-ydb:
+        image: cr.yandex/yc/yandex-docker-local-ydb:latest
+        privileged: true
+        mem_limit: 8G
+        environment:
+          - GRPC_TLS_PORT=2135
+          - GRPC_PORT=2136
+          - MON_PORT=8765
+        ports:
+          - 2135:2135
+          - 2136:2136
+          - 8765:8765
+        networks:
+          - overlay
+        hostname: localhost
+
+
+networks:
+    dockerbridge:
+        name: dockerbridge
+        enable_ipv6: true
+        ipam:
+            config:
+              - subnet: 2001:db8:a::/64
+                gateway: 2001:db8:a::1
+    nexportfalse:
+        external: false
+        name: nexportfalse
+        enable_ipv6: true
+        ipam:
+            config:
+              - subnet: 2001:db8:b::/64
+                gateway: 2001:db8:b::1
+    overlay:
