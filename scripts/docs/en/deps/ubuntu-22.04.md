@@ -38,6 +38,7 @@ libpq-dev
 libprotoc-dev
 libssl-dev
 libyaml-cpp-dev
+netbase
 ninja-build
 postgresql-14
 postgresql-server-dev-14
