@@ -461,6 +461,7 @@ def userver_config_testsuite(pytestconfig, mockserver_info):
         if 'testsuite-support' not in components:
             return
         testsuite_support = components['testsuite-support'] or {}
+        testsuite_support['testsuite-increased-timeout'] = '30s'
         _set_postgresql_options(testsuite_support)
         _set_redis_timeout(testsuite_support)
         service_runner = pytestconfig.getoption('--service-runner-mode', False)

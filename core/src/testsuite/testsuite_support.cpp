@@ -29,22 +29,28 @@ testsuite::DumpControl ParseDumpControl(
 }
 
 testsuite::PostgresControl ParsePostgresControl(
-    const components::ComponentConfig& config) {
+    const components::ComponentConfig& config,
+    std::chrono::milliseconds increased_timeout) {
   return {
-      config["testsuite-pg-execute-timeout"].As<std::chrono::milliseconds>(0),
-      config["testsuite-pg-statement-timeout"].As<std::chrono::milliseconds>(0),
+      config["testsuite-pg-execute-timeout"].As<std::chrono::milliseconds>(
+          increased_timeout),
+      config["testsuite-pg-statement-timeout"].As<std::chrono::milliseconds>(
+          increased_timeout),
       config["testsuite-pg-readonly-master-expected"].As<bool>(false)
           ? testsuite::PostgresControl::ReadonlyMaster::kExpected
           : testsuite::PostgresControl::ReadonlyMaster::kNotExpected};
 }
 
 testsuite::RedisControl ParseRedisControl(
-    const components::ComponentConfig& config) {
+    const components::ComponentConfig& config,
+    std::chrono::milliseconds increased_timeout) {
   return testsuite::RedisControl{
       config["testsuite-redis-timeout-connect"].As<std::chrono::milliseconds>(
           0),
-      config["testsuite-redis-timeout-single"].As<std::chrono::milliseconds>(0),
-      config["testsuite-redis-timeout-all"].As<std::chrono::milliseconds>(0),
+      config["testsuite-redis-timeout-single"].As<std::chrono::milliseconds>(
+          increased_timeout),
+      config["testsuite-redis-timeout-all"].As<std::chrono::milliseconds>(
+          increased_timeout),
   };
 }
 
@@ -55,10 +61,12 @@ std::unique_ptr<testsuite::TestsuiteTasks> ParseTestsuiteTasks(
 }
 
 testsuite::GrpcControl ParseGrpcControl(
-    const components::ComponentConfig& config) {
+    const components::ComponentConfig& config,
+    std::chrono::milliseconds increased_timeout) {
   bool is_tls_enabled{config["testsuite-grpc-is-tls-enabled"].As<bool>(false)};
   std::chrono::milliseconds timeout{
-      config["testsuite-grpc-client-timeout-ms"].As<int>(30000)};
+      config["testsuite-grpc-client-timeout-ms"].As<int>(
+          increased_timeout.count())};
 
   return testsuite::GrpcControl(timeout, is_tls_enabled);
 }
@@ -74,10 +82,10 @@ TestsuiteSupport::TestsuiteSupport(const components::ComponentConfig& config,
           ParsePeriodicUpdatesMode(config["testsuite-periodic-update-enabled"]
                                        .As<std::optional<bool>>())),
       dump_control_(ParseDumpControl(config)),
-      postgres_control_(ParsePostgresControl(config)),
-      redis_control_(ParseRedisControl(config)),
+      postgres_control_(ParsePostgresControl(config, GetIncreasedTimeout())),
+      redis_control_(ParseRedisControl(config, GetIncreasedTimeout())),
       testsuite_tasks_(ParseTestsuiteTasks(config)),
-      grpc_control_(ParseGrpcControl(config)) {}
+      grpc_control_(ParseGrpcControl(config, GetIncreasedTimeout())) {}
 
 TestsuiteSupport::~TestsuiteSupport() = default;
 

@@ -39,8 +39,8 @@ def _userver_config_testsuite(userver_config_testsuite):
 
         components: dict = config_yaml['components_manager']['components']
         testsuite_support = components['testsuite-support']
-        testsuite_support.pop('testsuite-pg-execute-timeout')
-        testsuite_support.pop('testsuite-pg-statement-timeout')
+        testsuite_support['testsuite-pg-execute-timeout'] = '0ms'
+        testsuite_support['testsuite-pg-statement-timeout'] = '0ms'
         testsuite_support.pop('testsuite-pg-readonly-master-expected')
 
     return patch_config
