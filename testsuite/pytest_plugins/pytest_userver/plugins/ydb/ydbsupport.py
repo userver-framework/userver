@@ -4,7 +4,6 @@ import contextlib
 import os
 import pathlib
 import subprocess
-from typing import Generator
 from typing import List
 from typing import Optional
 
@@ -276,7 +275,7 @@ def _ydb_init(
 
 
 @pytest.fixture
-def userver_ydb_trx(testpoint) -> Generator[sql.RegisteredTrx, None, None]:
+def userver_ydb_trx(testpoint) -> sql.RegisteredTrx:
     """
     The fixture maintains transaction fault injection state using
     RegisteredTrx class.
@@ -295,4 +294,4 @@ def userver_ydb_trx(testpoint) -> Generator[sql.RegisteredTrx, None, None]:
         should_fail = registered.is_failure_enabled(data['trx_name'])
         return {'trx_should_fail': should_fail}
 
-    yield registered
+    return registered
