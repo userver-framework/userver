@@ -583,7 +583,8 @@ Notification PGConnectionWrapper::WaitNotify(Deadline deadline) {
 }
 
 std::vector<ResultSet> PGConnectionWrapper::GatherPipeline(
-    Deadline deadline, const std::vector<const PGresult*>& descriptions) {
+    [[maybe_unused]] Deadline deadline,
+    const std::vector<const PGresult*>& descriptions) {
   UASSERT(!descriptions.empty());
 
 #if !LIBPQ_HAS_PIPELINING
