@@ -30,7 +30,6 @@ jobs:
                         -DCMAKE_CXX_COMPILER=clang++-16 -DCMAKE_C_COMPILER=clang-16
                         -DUSERVER_FEATURE_MYSQL=1
                         -DCMAKE_CXX_STANDARD=17
-                        -DUSERVER_LTO=0
                     image: userver-ubuntu
                     info: ubuntu + clang + cxx17
                     id: ubuntu_clang_cxx17
@@ -45,7 +44,6 @@ jobs:
                         -DCMAKE_CXX_COMPILER=clang++-16 -DCMAKE_C_COMPILER=clang-16
                         -DUSERVER_FEATURE_MYSQL=1
                         -DCMAKE_CXX_STANDARD=20
-                        -DUSERVER_LTO=0
                     image: userver-ubuntu
                     info: ubuntu + clang + cxx20
                     id: ubuntu_clang_cxx20
