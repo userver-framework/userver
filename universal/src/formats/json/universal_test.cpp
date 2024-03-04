@@ -52,13 +52,13 @@ template <>
 inline constexpr auto formats::universal::kSerialization<SomeStruct2> =
     SerializationConfig<SomeStruct2>()
     .With<"field1">({.Default = 114})
-    .With<"field4">({.Default = {{"42"}}});
+    .With<"field4">({.Default = "42"});
 
 
 TEST(Serialize, Optional) {
   SomeStruct2 a{.field2 = 100};
   const auto json = formats::json::ValueBuilder(a).ExtractValue();
-  EXPECT_EQ(json, userver::formats::json::FromString(R"({"field1":114,"field2":100,"field4":"42"})"));
+  EXPECT_EQ(json, formats::json::FromString(R"({"field1":114,"field2":100,"field4":"42"})"));
 };
 TEST(Parse, Optional) {
   SomeStruct2 valid{.field1 = 114, .field4 = {{"42"}}};

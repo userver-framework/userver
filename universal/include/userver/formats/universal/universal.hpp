@@ -79,7 +79,7 @@ inline constexpr std::optional<std::string> Add(Arg&& arg, Args&&... args) {
 template <typename T, typename TT>
 inline constexpr auto checkCaller(T&& response, TT&& check) 
         requires (requires{FieldConfig<std::remove_cvref_t<T>>::Checker(check, response);} 
-                ? true : requires{check.Check(std::forward<T>(response));}) {
+                || requires{check.Check(std::forward<T>(response));}) {
   using Type = FieldConfig<std::remove_cvref_t<T>>;
   if constexpr(requires{Type::Checker(check, response);}) {
     return Type::Checker(std::forward<TT>(check), response);

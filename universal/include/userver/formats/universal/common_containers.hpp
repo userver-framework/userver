@@ -97,6 +97,9 @@ template <>
 struct Default<std::string, void> : public impl::EmptyCheck, private impl::Param<std::string_view> {
   inline constexpr Default(std::string_view value) :
       impl::Param<std::string_view>(value) {}
+  template <std::size_t N>
+  inline constexpr Default(const char(&value)[N]) :
+      impl::Param<std::string_view>(value) {}
   inline constexpr auto value() const -> std::string {
     return static_cast<std::string>(static_cast<const impl::Param<std::string_view>&>(*this).value);
   }
