@@ -24,5 +24,6 @@ CPMAddPackage(
     "WITH_SYSTEM_ABSEIL ON"
 )
 
-add_library(clickhouse-cpp ALIAS clickhouse-cpp-lib)
+mark_targets_as_system("${clickhouse-cpp_SOURCE_DIR}")
 target_compile_options(clickhouse-cpp-lib PUBLIC -Wno-pedantic)
+add_library(clickhouse-cpp ALIAS clickhouse-cpp-lib)
