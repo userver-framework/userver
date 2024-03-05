@@ -43,8 +43,10 @@ jobs:
                         -DUSERVER_NAMESPACE_BEGIN="namespace userver {"
                         -DUSERVER_NAMESPACE_END="}"
                         -DCMAKE_BUILD_TYPE=Debug
+                        -DUSERVER_PG_SERVER_INCLUDE_DIR=/usr/include/postgresql/15/server
+                        -DUSERVER_PG_SERVER_LIBRARY_DIR=/usr/lib/postgresql/15/lib
                     os: ubuntu-22.04
-                    info: g++-9 + debug + sanitize addr+ub
+                    info: g++-11 + debug + sanitize addr+ub
                     tests-flags: ''
 
                   - cmake-flags: >-
