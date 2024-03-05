@@ -1,5 +1,7 @@
 #include <userver/utest/utest.hpp>
 
+#include <gmock/gmock.h>
+
 #include <userver/dynamic_config/storage_mock.hpp>
 #include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/engine/async.hpp>
@@ -15,6 +17,9 @@
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
 #include <userver/ugrpc/tests/service_fixtures.hpp>
+
+#include <userver/logging/impl/logger_base.hpp>
+#include <userver/utest/log_capture_fixture.hpp>
 
 using namespace std::chrono_literals;
 
@@ -305,6 +310,72 @@ UTEST_F_MT(GrpcCancelByClient, CancelByClientNoReadyWait, 3) {
 
   ASSERT_TRUE(
       GetService().GetFinishEvent().WaitForEventFor(std::chrono::seconds{5}));
+}
+
+namespace {
+
+class UnitTestServiceCancelSleep final
+    : public sample::ugrpc::UnitTestServiceBase {
+ public:
+  void SayHello(SayHelloCall& call,
+                ::sample::ugrpc::GreetingRequest&&) override {
+    engine::SleepFor(std::chrono::seconds(1));
+    call.Finish({});
+  }
+};
+
+}  // namespace
+
+using GrpcCancelSleep = utest::LogCaptureFixture<
+    ugrpc::tests::ServiceFixture<UnitTestServiceCancelSleep>>;
+
+UTEST_F(GrpcCancelSleep, CancelByTimeoutLogging) {
+  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
+
+  auto call =
+      client.SayHello({}, std::make_unique<::grpc::ClientContext>(),
+                      ugrpc::client::Qos{std::chrono::milliseconds(100)});
+
+  UEXPECT_THROW(call.Finish(), ugrpc::client::DeadlineExceededError);
+
+  engine::SleepFor(std::chrono::seconds(1));
+
+  ASSERT_THAT(
+      ExtractRawLog(),
+      testing::HasSubstr("Handler task cancelled, error in "
+                         "'sample.ugrpc.UnitTestService/SayHello': "
+                         "'sample.ugrpc.UnitTestService/SayHello' failed: "
+                         "connection error at Finish"));
+}
+
+namespace {
+
+class UnitTestServiceCancelError final
+    : public sample::ugrpc::UnitTestServiceBase {
+ public:
+  void Chat(ChatCall&) override {
+    engine::SleepFor(std::chrono::milliseconds(500));
+    throw std::runtime_error("Some error");
+  }
+};
+
+}  // namespace
+
+using GrpcCancelError = utest::LogCaptureFixture<
+    ugrpc::tests::ServiceFixture<UnitTestServiceCancelError>>;
+
+UTEST_F(GrpcCancelError, CancelByError) {
+  {
+    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
+    auto call = client.Chat();
+  }
+
+  engine::SleepFor(std::chrono::seconds(1));
+
+  ASSERT_THAT(ExtractRawLog(),
+              testing::HasSubstr("Handler task cancelled, error in "
+                                 "'sample.ugrpc.UnitTestService/Chat': "
+                                 "Some error (std::runtime_error)"));
 }
 
 USERVER_NAMESPACE_END

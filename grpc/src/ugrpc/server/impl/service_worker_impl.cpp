@@ -19,19 +19,36 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::impl {
 
-void ReportHandlerError(const std::exception& ex, std::string_view call_name,
-                        tracing::Span& span) noexcept {
-  LOG_ERROR() << "Uncaught exception in '" << call_name << "': " << ex;
+void ReportHandlerError(
+    const std::exception& ex, std::string_view call_name, tracing::Span& span,
+    ugrpc::impl::RpcStatisticsScope& statistics_scope) noexcept {
+  if (engine::current_task::ShouldCancel()) {
+    LOG_WARNING() << "Handler task cancelled, error in '" << call_name
+                  << "': " << ex;
+    statistics_scope.OnCancelled();
+    span.AddTag(tracing::kErrorMessage, "Handler task cancelled");
+  } else {
+    LOG_ERROR() << "Uncaught exception in '" << call_name << "': " << ex;
+    span.AddTag(tracing::kErrorMessage, ex.what());
+  }
   span.AddTag(tracing::kErrorFlag, true);
-  span.AddTag(tracing::kErrorMessage, ex.what());
 }
 
-void ReportNetworkError(const RpcInterruptedError& ex,
-                        std::string_view call_name,
-                        tracing::Span& span) noexcept {
-  LOG_WARNING() << "Network error in '" << call_name << "': " << ex;
+void ReportNetworkError(
+    const RpcInterruptedError& ex, std::string_view call_name,
+    tracing::Span& span,
+    ugrpc::impl::RpcStatisticsScope& statistics_scope) noexcept {
+  if (engine::current_task::ShouldCancel()) {
+    LOG_WARNING() << "Handler task cancelled, error in '" << call_name
+                  << "': " << ex;
+    statistics_scope.OnCancelled();
+    span.AddTag(tracing::kErrorMessage, "Handler task cancelled");
+  } else {
+    LOG_WARNING() << "Network error in '" << call_name << "': " << ex;
+    statistics_scope.OnNetworkError();
+    span.AddTag(tracing::kErrorMessage, ex.what());
+  }
   span.AddTag(tracing::kErrorFlag, true);
-  span.AddTag(tracing::kErrorMessage, ex.what());
 }
 
 void ReportCustomError(

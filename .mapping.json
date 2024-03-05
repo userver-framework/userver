@@ -1410,6 +1410,7 @@
   "core/testing/include/userver/utest/dns_server_mock.hpp":"taxi/uservices/userver/core/testing/include/userver/utest/dns_server_mock.hpp",
   "core/testing/include/userver/utest/http_client.hpp":"taxi/uservices/userver/core/testing/include/userver/utest/http_client.hpp",
   "core/testing/include/userver/utest/http_server_mock.hpp":"taxi/uservices/userver/core/testing/include/userver/utest/http_server_mock.hpp",
+  "core/testing/include/userver/utest/log_capture_fixture.hpp":"taxi/uservices/userver/core/testing/include/userver/utest/log_capture_fixture.hpp",
   "core/testing/include/userver/utest/parameter_names.hpp":"taxi/uservices/userver/core/testing/include/userver/utest/parameter_names.hpp",
   "core/testing/include/userver/utest/simple_server.hpp":"taxi/uservices/userver/core/testing/include/userver/utest/simple_server.hpp",
   "core/testing/include/userver/utest/test_case_macros.hpp":"taxi/uservices/userver/core/testing/include/userver/utest/test_case_macros.hpp",
