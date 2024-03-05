@@ -172,6 +172,12 @@ class CachingComponentBase : public LoggableComponentBase,
   virtual std::unique_ptr<const T> ReadContents(dump::Reader& reader) const;
   /// @}
 
+  /// @brief If the option has-pre-assign-check is set true in static config,
+  /// this function is called before assigning the new value to the cache
+  /// @note old_value_ptr and new_value_ptr can be nullptr.
+  virtual void PreAssignCheck(const T* old_value_ptr,
+                              const T* new_value_ptr) const;
+
  private:
   void OnAllComponentsLoaded() final;
 
@@ -181,12 +187,6 @@ class CachingComponentBase : public LoggableComponentBase,
 
   void GetAndWrite(dump::Writer& writer) const final;
   void ReadAndSet(dump::Reader& reader) final;
-
-  /// @brief If the option has-pre-assign-check is set true in static config,
-  /// this function is called before assigning the new value to the cache
-  /// @note old_value_ptr and new_value_ptr can be nullptr.
-  virtual void PreAssignCheck(const T* old_value_ptr,
-                              const T* new_value_ptr) const;
 
   rcu::Variable<std::shared_ptr<const T>> cache_;
   concurrent::AsyncEventChannel<const std::shared_ptr<const T>&> event_channel_;
@@ -305,7 +305,13 @@ void CachingComponentBase<T>::GetAndWrite(dump::Writer& writer) const {
 
 template <typename T>
 void CachingComponentBase<T>::ReadAndSet(dump::Reader& reader) {
-  Set(ReadContents(reader));
+  auto data = ReadContents(reader);
+  if constexpr (meta::kIsSizable<T>) {
+    if (data) {
+      SetDataSizeStatistic(std::size(*data));
+    }
+  }
+  Set(std::move(data));
 }
 
 template <typename T>
