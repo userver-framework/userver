@@ -43,9 +43,9 @@ jobs:
                         -DUSERVER_NAMESPACE_BEGIN="namespace userver {"
                         -DUSERVER_NAMESPACE_END="}"
                         -DCMAKE_BUILD_TYPE=Debug
-                    os: ubuntu-20.04
+                    os: ubuntu-22.04
                     info: g++-9 + debug + sanitize addr+ub
-                    tests-flags: '--gtest_filter=-HttpClient.Cancel*:HttpClient.Retr*:HttpClient.RedirectHeaders:HttpClient.TestUseIPv4v6'
+                    tests-flags: ''
 
                   - cmake-flags: >-
                         -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0
