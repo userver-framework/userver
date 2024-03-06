@@ -88,7 +88,9 @@ jobs:
           - name: Free disk space
             run: |
                 df -h
-                sudo rm -rf /usr/share/dotnet /usr/local/lib/android /usr/lib/php* /opt/ghc || true
+                # See https://stackoverflow.com/questions/75536771/github-runner-out-of-disk-space-after-building-docker-image
+                sudo rm -rf /usr/share/dotnet /usr/local/lib/android /usr/lib/php* /opt/ghc \
+                    /usr/local/share/powershell /usr/share/swift /usr/local/.ghcup || true
                 df -h
 
           - name: Install packages
