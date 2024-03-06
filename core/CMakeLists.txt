@@ -84,6 +84,10 @@ if (USERVER_DISABLE_PHDR_CACHE)
   target_compile_definitions(${PROJECT_NAME} PRIVATE USERVER_DISABLE_PHDR_CACHE)
 endif()
 
+if (USERVER_DISABLE_RSEQ_ACCELERATION)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE USERVER_DISABLE_RSEQ_ACCELERATION)
+endif()
+
 # https://github.com/jemalloc/jemalloc/issues/820
 if (USERVER_FEATURE_JEMALLOC AND NOT USERVER_SANITIZE AND NOT MACOS)
   set_property(
@@ -107,6 +111,9 @@ target_link_libraries(${PROJECT_NAME}
     OpenSSL::SSL
     ZLIB::ZLIB
 )
+
+add_subdirectory(${USERVER_THIRD_PARTY_DIRS}/librseq librseq)
+target_link_libraries(${PROJECT_NAME} PRIVATE userver-librseq)
 
 if (USERVER_FEATURE_UBOOST_CORO)
     add_subdirectory(${USERVER_THIRD_PARTY_DIRS}/uboost_coro uboost_coro_build)
