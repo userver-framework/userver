@@ -74,10 +74,11 @@ void SetupSpan(std::optional<tracing::InPlaceSpan>& span_holder,
       utils::FindOrNullptr(client_metadata, ugrpc::impl::kXYaTraceId);
   const auto* const parent_span_id =
       utils::FindOrNullptr(client_metadata, ugrpc::impl::kXYaSpanId);
-  if (trace_id && parent_span_id) {
-    span_holder.emplace(std::move(span_name), ugrpc::impl::ToString(*trace_id),
-                        ugrpc::impl::ToString(*parent_span_id),
-                        utils::impl::SourceLocation::Current());
+  if (trace_id) {
+    span_holder.emplace(
+        std::move(span_name), ugrpc::impl::ToString(*trace_id),
+        parent_span_id ? ugrpc::impl::ToString(*parent_span_id) : std::string{},
+        utils::impl::SourceLocation::Current());
   } else {
     span_holder.emplace(std::move(span_name),
                         utils::impl::SourceLocation::Current());
