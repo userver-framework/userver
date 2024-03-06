@@ -30,6 +30,8 @@ namespace ugrpc::server {
 
 namespace {
 
+constexpr std::size_t kMaxSocketPathLength = 107;
+
 std::optional<int> ToOptionalInt(const std::string& str) {
   char* str_end{};
   const long result = strtol(str.c_str(), &str_end, 10);
@@ -101,6 +103,8 @@ class Server::Impl final {
 
   void AddListeningPort(int port);
 
+  void AddListeningUnixSocket(std::string_view path);
+
   void DoStart();
 
   State state_{State::kConfiguration};
@@ -137,6 +141,8 @@ Server::Impl::Impl(ServerConfig&& config,
   queue_.emplace(static_cast<std::size_t>(config.completion_queue_num),
                  std::ref(*server_builder_));
 
+  if (config.unix_socket_path) AddListeningUnixSocket(*config.unix_socket_path);
+
   if (config.port) AddListeningPort(*config.port);
 }
 
@@ -161,6 +167,22 @@ void Server::Impl::AddListeningPort(int port) {
   const auto uri = fmt::format("[::]:{}", port);
   server_builder_->AddListeningPort(ugrpc::impl::ToGrpcString(uri),
                                     grpc::InsecureServerCredentials(), &*port_);
+}
+
+void Server::Impl::AddListeningUnixSocket(std::string_view path) {
+  std::lock_guard lock(configuration_mutex_);
+  UASSERT(state_ == State::kConfiguration);
+
+  UASSERT_MSG(!path.empty(), "Empty unix socket path is not allowed");
+  UASSERT_MSG(path[0] == '/', "Unix socket path must be absolute");
+  UINVARIANT(
+      path.size() <= kMaxSocketPathLength,
+      fmt::format("Unix socket path cannot contain more than {} characters",
+                  kMaxSocketPathLength));
+
+  const auto uri = fmt::format("unix:{}", path);
+  server_builder_->AddListeningPort(ugrpc::impl::ToGrpcString(uri),
+                                    grpc::InsecureServerCredentials());
 }
 
 void Server::Impl::AddService(ServiceBase& service, ServiceConfig&& config) {
@@ -218,6 +240,7 @@ void Server::Impl::Start() {
 
 int Server::Impl::GetPort() const noexcept {
   UASSERT(state_ == State::kActive);
+
   UASSERT_MSG(port_, "No port has been registered using AddListeningPort");
   return *port_;
 }

@@ -45,6 +45,9 @@ properties:
     port:
         type: integer
         description: the port to use for all gRPC services, or 0 to pick any available
+    unix-socket-path:
+        type: string
+        description: unix socket absolute path
     completion-queue-count:
         type: integer
         description: |

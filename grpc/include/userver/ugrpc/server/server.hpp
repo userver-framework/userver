@@ -34,6 +34,10 @@ struct ServerConfig final {
   /// Server::WithServerBuilder.
   std::optional<int> port{0};
 
+  /// Absolute path to the unix socket to listen to.
+  /// A server can listen to both port and unix socket simultaneously.
+  std::optional<std::string> unix_socket_path{std::nullopt};
+
   /// Number of completion queues to create. Should be ~2 times less than number
   /// of worker threads for best RPS.
   int completion_queue_num{2};
