@@ -24,6 +24,11 @@ else()
   include(SetupGrpc)
 endif()
 
+get_filename_component(USERVER_DIR "${CMAKE_CURRENT_LIST_DIR}" DIRECTORY)
+if(NOT REQUIREMENTS_PATH_FOR_GRPC)
+    set(REQUIREMENTS_PATH_FOR_GRPC "${USERVER_DIR}/scripts/grpc")
+endif()
+
 if (NOT USERVER_PROTOBUF_IMPORT_DIR)
   message(FATAL_ERROR "Invalid Protobuf package")
 endif()
@@ -31,8 +36,7 @@ if (NOT gRPC_VERSION)
   message(FATAL_ERROR "Invalid gRPC package")
 endif()
 
-get_filename_component(USERVER_DIR "${CMAKE_CURRENT_LIST_DIR}" DIRECTORY)
-set(PROTO_GRPC_USRV_PLUGIN "${USERVER_DIR}/scripts/grpc/protoc_usrv_plugin.sh")
+set(PROTO_GRPC_USRV_PLUGIN "${REQUIREMENTS_PATH_FOR_GRPC}/protoc_usrv_plugin.sh")
 
 message(STATUS "Protobuf version: ${Protobuf_VERSION}")
 message(STATUS "gRPC version: ${gRPC_VERSION}")
@@ -50,7 +54,7 @@ endif()
 userver_venv_setup(
     NAME userver-grpc
     PYTHON_OUTPUT_VAR USERVER_GRPC_PYTHON_BINARY
-    REQUIREMENTS "${USERVER_DIR}/scripts/grpc/${file_requirements_protobuf}"
+    REQUIREMENTS "${REQUIREMENTS_PATH_FOR_GRPC}/${file_requirements_protobuf}"
     UNIQUE
 )
 set(ENV{USERVER_GRPC_PYTHON_BINARY} "${USERVER_GRPC_PYTHON_BINARY}")
@@ -66,6 +70,7 @@ endif()
 if(NOT PROTO_GRPC_PYTHON_PLUGIN)
   message(FATAL_ERROR "grpc_python_plugin not found")
 endif()
+
 
 function(userver_generate_grpc_files)
   set(options)
@@ -263,7 +268,13 @@ function(userver_add_grpc_library NAME)
   )
   add_library(${NAME} STATIC ${generated_sources} ${generated_usrv_sources})
   target_compile_options(${NAME} PUBLIC -Wno-unused-parameter)
-  target_include_directories(${NAME} SYSTEM PUBLIC ${include_paths})
+  target_include_directories(${NAME} SYSTEM PUBLIC $<BUILD_INTERFACE:${include_paths}>)
+
+  # It needs for installed userver
+  if(TARGET userver::userver-grpc)
+   target_link_libraries(${NAME} PUBLIC userver::userver-grpc)
+   return()
+  endif()
 
   if(USERVER_CONAN AND NOT CMAKE_PROJECT_NAME STREQUAL userver)
     target_link_libraries(${NAME} PUBLIC userver::grpc)

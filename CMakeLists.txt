@@ -210,6 +210,7 @@ endif()
 if (USERVER_FEATURE_GRPC)
   _require_userver_core("USERVER_FEATURE_GRPC")
   add_subdirectory(grpc "${CMAKE_BINARY_DIR}/userver/grpc")
+  list(APPEND USERVER_AVAILABLE_COMPONENTS grpc)
 endif()
 
 if (USERVER_FEATURE_CLICKHOUSE)

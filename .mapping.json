@@ -179,6 +179,7 @@
   "cmake/get_cpm.cmake":"taxi/uservices/userver/cmake/get_cpm.cmake",
   "cmake/install/Config.cmake.in":"taxi/uservices/userver/cmake/install/Config.cmake.in",
   "cmake/install/userver-core-config.cmake":"taxi/uservices/userver/cmake/install/userver-core-config.cmake",
+  "cmake/install/userver-grpc-config.cmake":"taxi/uservices/userver/cmake/install/userver-grpc-config.cmake",
   "cmake/install/userver-postgresql-config.cmake":"taxi/uservices/userver/cmake/install/userver-postgresql-config.cmake",
   "cmake/install/userver-universal-config.cmake":"taxi/uservices/userver/cmake/install/userver-universal-config.cmake",
   "cmake/sanitize-macos.blacklist.txt":"taxi/uservices/userver/cmake/sanitize-macos.blacklist.txt",
