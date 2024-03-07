@@ -47,9 +47,8 @@ constexpr auto kUnlimitedConnecting = std::numeric_limits<std::size_t>::max();
 
 class Stopwatch {
  public:
-  using Accumulator =
-      USERVER_NAMESPACE::utils::statistics::RecentPeriod<Percentile, Percentile,
-                                                         detail::SteadyClock>;
+  using Accumulator = USERVER_NAMESPACE::utils::statistics::RecentPeriod<
+      Percentile, Percentile, detail::SteadyCoarseClock>;
   explicit Stopwatch(Accumulator& acc)
       : accum_{acc}, start_{SteadyClock::now()} {}
   ~Stopwatch() {

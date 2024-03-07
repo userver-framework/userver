@@ -1383,6 +1383,7 @@
   "core/src/utils/statistics/rate_counter.cpp":"taxi/uservices/userver/core/src/utils/statistics/rate_counter.cpp",
   "core/src/utils/statistics/rate_counter_test.cpp":"taxi/uservices/userver/core/src/utils/statistics/rate_counter_test.cpp",
   "core/src/utils/statistics/rate_test.cpp":"taxi/uservices/userver/core/src/utils/statistics/rate_test.cpp",
+  "core/src/utils/statistics/recent_period_benchmark.cpp":"taxi/uservices/userver/core/src/utils/statistics/recent_period_benchmark.cpp",
   "core/src/utils/statistics/recentperiod_test.cpp":"taxi/uservices/userver/core/src/utils/statistics/recentperiod_test.cpp",
   "core/src/utils/statistics/solomon.cpp":"taxi/uservices/userver/core/src/utils/statistics/solomon.cpp",
   "core/src/utils/statistics/solomon_limits.hpp":"taxi/uservices/userver/core/src/utils/statistics/solomon_limits.hpp",
