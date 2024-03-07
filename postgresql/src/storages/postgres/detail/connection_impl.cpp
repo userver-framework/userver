@@ -117,6 +117,8 @@ struct CountRollback : TrackTrxEnd {
   }
 };
 
+const std::string kSetLocalWorkMem = "SET LOCAL work_mem='256MB'";
+
 const std::string kGetUserTypesSQL = R"~(
 SELECT  t.oid,
         n.nspname,
@@ -133,8 +135,7 @@ FROM pg_catalog.pg_type t
   LEFT JOIN pg_catalog.pg_namespace n ON n.oid = t.typnamespace
   LEFT JOIN pg_catalog.pg_class c ON c.oid = t.typrelid
 WHERE n.nspname NOT IN ('pg_catalog', 'pg_toast', 'information_schema')
-  AND (c.relkind IS NULL OR c.relkind NOT IN ('i', 'S', 'I'))
-ORDER BY t.oid)~";
+  AND (c.relkind IS NULL OR c.relkind NOT IN ('i', 'S', 'I')))~";
 
 const std::string kGetCompositeAttribsSQL = R"~(
 SELECT c.reltype,
@@ -990,10 +991,18 @@ void ConnectionImpl::SetParameter(std::string_view name, std::string_view value,
 void ConnectionImpl::LoadUserTypes(engine::Deadline deadline) {
   UASSERT(settings_.user_types != ConnectionSettings::kPredefinedTypesOnly);
   try {
+    // kSetLocalWorkMem help users with many user types to avoid
+    // ConnectionInterrupted because there are `LEFT JOIN`s in queries
+    conn_wrapper_.EnterPipelineMode();
+    SendCommandNoPrepare("BEGIN", deadline);
+    SendCommandNoPrepare(kSetLocalWorkMem, deadline);
     auto types = ExecuteCommand(kGetUserTypesSQL, deadline)
                      .AsSetOf<DBTypeDescription>(kRowTag);
     auto attribs = ExecuteCommand(kGetCompositeAttribsSQL, deadline)
                        .AsContainer<UserTypes::CompositeFieldDefs>(kRowTag);
+    ExecuteCommandNoPrepare("COMMIT", deadline);
+    conn_wrapper_.ExitPipelineMode();
+
     // End of definitions marker, to simplify processing
     attribs.push_back(CompositeFieldDef::EmptyDef());
     UserTypes db_types;
