@@ -993,15 +993,23 @@ void ConnectionImpl::LoadUserTypes(engine::Deadline deadline) {
   try {
     // kSetLocalWorkMem help users with many user types to avoid
     // ConnectionInterrupted because there are `LEFT JOIN`s in queries
+#if LIBPQ_HAS_PIPELINING
     conn_wrapper_.EnterPipelineMode();
     SendCommandNoPrepare("BEGIN", deadline);
     SendCommandNoPrepare(kSetLocalWorkMem, deadline);
+#else
+    ExecuteCommandNoPrepare("BEGIN", deadline);
+    ExecuteCommandNoPrepare(kSetLocalWorkMem, deadline);
+#endif
     auto types = ExecuteCommand(kGetUserTypesSQL, deadline)
                      .AsSetOf<DBTypeDescription>(kRowTag);
     auto attribs = ExecuteCommand(kGetCompositeAttribsSQL, deadline)
                        .AsContainer<UserTypes::CompositeFieldDefs>(kRowTag);
     ExecuteCommandNoPrepare("COMMIT", deadline);
+#if LIBPQ_HAS_PIPELINING
     conn_wrapper_.ExitPipelineMode();
+#else
+#endif
 
     // End of definitions marker, to simplify processing
     attribs.push_back(CompositeFieldDef::EmptyDef());
