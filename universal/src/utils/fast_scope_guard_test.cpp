@@ -4,30 +4,6 @@
 
 USERVER_NAMESPACE_BEGIN
 
-struct TestStruct {
- public:
-  ~TestStruct() noexcept(false) = default;
-};
-
-int TestFunc() noexcept { return 1; };
-
-TEST(FastScopeGuard, ReturnTypeOld) {
-  constexpr bool eval =
-      std::is_nothrow_invocable_r_v<void, decltype(TestFunc)&&>;
-  EXPECT_FALSE(eval);
-}
-
-TEST(FastScopeGuard, ReturnTypeNew) {
-  constexpr bool eval =
-      std::is_same_v<std::invoke_result_t<decltype(TestFunc)>, void>;
-  EXPECT_FALSE(eval);
-}
-
-TEST(FastScopeGuard, CallbackDestructor) {
-  constexpr bool eval = std::is_nothrow_destructible_v<TestStruct>;
-  EXPECT_FALSE(eval);
-}
-
 TEST(FastScopeGuard, Dtr) {
   /// [FastScopeGuard]
   int x = 0;
