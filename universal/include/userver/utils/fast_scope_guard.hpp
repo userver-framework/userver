@@ -33,7 +33,7 @@ class FastScopeGuard final {
       "please mark the lambda itself as 'noexcept'. If however, the contents "
       "are not 'noexcept', use 'ScopeGuard' instead of 'FastScopeGuard'.");
 
-  static_assert(std::is_same_v<std::invoke_result_t<Callback&&>, void>,
+  static_assert(std::is_void_v<std::invoke_result_t<Callback&&>>,
                 "Return type of Callback function should be void");
 
   static_assert(std::is_nothrow_destructible_v<Callback>,
@@ -55,7 +55,7 @@ class FastScopeGuard final {
   }
 
   ~FastScopeGuard() {
-    if (is_active_) static_cast<void>(std::move(callback_)());
+    if (is_active_) std::move(callback_)();
   }
 
   constexpr void Release() noexcept { is_active_ = false; }
