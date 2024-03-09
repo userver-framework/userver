@@ -1,5 +1,6 @@
 #include <concurrent/impl/striped_counter.hpp>
 
+#include <algorithm>  // for std::max
 #include <atomic>
 
 #if defined(__x86_64__) && defined(__linux__) && \
@@ -86,15 +87,21 @@ void StripedCounter::Add(std::uintptr_t value) noexcept {
   }
 }
 
-std::uint64_t StripedCounter::Read() const noexcept {
-  std::uintptr_t sum{static_cast<std::uintptr_t>(
-      impl_->fallback.load(std::memory_order_relaxed))};
+std::uintptr_t StripedCounter::Read() const noexcept {
+  auto sum = static_cast<std::uintptr_t>(
+      impl_->fallback.load(std::memory_order_relaxed));
+
   for (const auto& c : impl_->counters) {
     // Ideally this should be a std::atomic_ref, of course
-    sum += __atomic_load_n(&*c, __ATOMIC_RELAXED);
+    sum += static_cast<std::uintptr_t>(__atomic_load_n(&*c, __ATOMIC_RELAXED));
   }
 
   return sum;
+}
+
+std::uintptr_t StripedCounter::NonNegativeRead() const noexcept {
+  return static_cast<std::uintptr_t>(
+      std::max(std::intptr_t{0}, static_cast<std::intptr_t>(Read())));
 }
 
 }  // namespace concurrent::impl
@@ -108,7 +115,7 @@ USERVER_NAMESPACE_BEGIN
 namespace concurrent::impl {
 
 struct StripedCounter::Impl final {
-  std::atomic<std::uint64_t> value{0};
+  std::atomic<std::uintptr_t> value{0};
 };
 
 StripedCounter::StripedCounter() = default;
@@ -118,8 +125,13 @@ void StripedCounter::Add(std::uintptr_t value) noexcept {
   impl_->value.fetch_add(value, std::memory_order_relaxed);
 }
 
-std::uint64_t StripedCounter::Read() const noexcept {
+std::uintptr_t StripedCounter::Read() const noexcept {
   return impl_->value.load(std::memory_order_relaxed);
+}
+
+std::uintptr_t StripedCounter::NonNegativeRead() const noexcept {
+  return static_cast<std::uintptr_t>(
+      std::max(std::intptr_t{0}, static_cast<std::intptr_t>(Read())));
 }
 
 }  // namespace concurrent::impl
