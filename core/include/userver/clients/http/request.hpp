@@ -92,8 +92,7 @@ class Request final {
 
   /// @cond
   // For internal use only.
-  explicit Request(std::shared_ptr<impl::EasyWrapper>&&,
-                   std::shared_ptr<RequestStats>&& req_stats,
+  explicit Request(impl::EasyWrapper&&, RequestStats&& req_stats,
                    const std::shared_ptr<DestinationStatistics>& dest_stats,
                    clients::dns::Resolver* resolver,
                    impl::PluginPipeline& plugin_pipeline,

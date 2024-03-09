@@ -118,8 +118,7 @@ Request Client::CreateRequest() {
     auto easy = TryDequeueIdle();
     if (easy) {
       auto idx = FindMultiIndex(easy->GetMulti());
-      auto wrapper =
-          std::make_shared<impl::EasyWrapper>(std::move(easy), *this);
+      auto wrapper = impl::EasyWrapper{std::move(easy), *this};
       return Request{
           std::move(wrapper),      statistics_[idx].CreateRequestStats(),
           destination_statistics_, resolver_,
@@ -130,8 +129,8 @@ Request Client::CreateRequest() {
 
       try {
         auto wrapper = engine::AsyncNoSpan(fs_task_processor_, [this, &multi] {
-                         return std::make_shared<impl::EasyWrapper>(
-                             easy_.Get()->GetBoundBlocking(*multi), *this);
+                         return impl::EasyWrapper{
+                             easy_.Get()->GetBoundBlocking(*multi), *this};
                        }).Get();
         return Request{
             std::move(wrapper),      statistics_[i].CreateRequestStats(),

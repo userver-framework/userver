@@ -43,8 +43,7 @@ class ConnectTo;
 
 class RequestState : public std::enable_shared_from_this<RequestState> {
  public:
-  RequestState(std::shared_ptr<impl::EasyWrapper>&&,
-               std::shared_ptr<RequestStats>&& req_stats,
+  RequestState(impl::EasyWrapper&&, RequestStats&& req_stats,
                const std::shared_ptr<DestinationStatistics>& dest_stats,
                clients::dns::Resolver* resolver,
                impl::PluginPipeline& plugin_pipeline,
@@ -121,8 +120,8 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   void SetDeadlinePropagationConfig(
       const impl::DeadlinePropagationConfig& deadline_propagation_config);
 
-  curl::easy& easy() { return easy_->Easy(); }
-  const curl::easy& easy() const { return easy_->Easy(); }
+  curl::easy& easy() { return easy_.Easy(); }
+  const curl::easy& easy() const { return easy_.Easy(); }
   std::shared_ptr<Response> response() const { return response_; }
   std::shared_ptr<Response> response_move() { return std::move(response_); }
 
@@ -182,8 +181,8 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   void ResolveTargetAddress(clients::dns::Resolver& resolver);
 
   /// curl handler wrapper
-  std::shared_ptr<impl::EasyWrapper> easy_;
-  std::shared_ptr<RequestStats> stats_;
+  impl::EasyWrapper easy_;
+  RequestStats stats_;
   std::shared_ptr<RequestStats> dest_req_stats_;
 
   std::shared_ptr<DestinationStatistics> dest_stats_;
