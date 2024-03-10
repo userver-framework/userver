@@ -176,9 +176,11 @@ class CallData final {
 
     auto& access_tskv_logger =
         method_data_.service_data.settings.access_tskv_logger;
-    Call responder(CallParams{context_, call_name, statistics_scope,
-                              *access_tskv_logger, span_->Get()},
-                   raw_responder_);
+    utils::AnyStorage<StorageContext> storage_context;
+    Call responder(
+        CallParams{context_, call_name, statistics_scope, *access_tskv_logger,
+                   span_->Get(), storage_context},
+        raw_responder_);
     auto do_call = [&] {
       if constexpr (std::is_same_v<InitialRequest, NoInitialRequest>) {
         (service.*service_method)(responder);

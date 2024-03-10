@@ -1588,6 +1588,7 @@
   "grpc/include/userver/ugrpc/server/server_component.hpp":"taxi/uservices/userver/grpc/include/userver/ugrpc/server/server_component.hpp",
   "grpc/include/userver/ugrpc/server/service_base.hpp":"taxi/uservices/userver/grpc/include/userver/ugrpc/server/service_base.hpp",
   "grpc/include/userver/ugrpc/server/service_component_base.hpp":"taxi/uservices/userver/grpc/include/userver/ugrpc/server/service_component_base.hpp",
+  "grpc/include/userver/ugrpc/server/storage_context.hpp":"taxi/uservices/userver/grpc/include/userver/ugrpc/server/storage_context.hpp",
   "grpc/include/userver/ugrpc/status_codes.hpp":"taxi/uservices/userver/grpc/include/userver/ugrpc/status_codes.hpp",
   "grpc/library.yaml":"taxi/uservices/userver/grpc/library.yaml",
   "grpc/proto/tests/messages.proto":"taxi/uservices/userver/grpc/proto/tests/messages.proto",
