@@ -19,16 +19,6 @@ struct Max : public impl::Param<T> {
     }
     return this->Error(value);
   }
-  template <typename Value>
-  inline constexpr auto Check(const Value& value) const -> std::optional<std::string>
-        requires meta::kIsRange<Value> {
-    for(const auto& element : value) {
-      if(element > this->value) {
-        return this->Error(element);
-      }
-    }
-    return std::nullopt;
-  }
   inline constexpr std::string Error(const T& value) const {
     return std::format("{} > {}", value, this->value);
   }
@@ -50,6 +40,21 @@ struct MinElements : public impl::Param<std::size_t> {
     return "Error";
   }
 };
+struct MaxElements : public impl::Param<std::size_t> {
+  inline constexpr MaxElements(const std::size_t& value) :
+      impl::Param<std::size_t>(value) {}
+  template <typename Value>
+  inline constexpr auto Check(const Value& value) const -> std::optional<std::string> {
+    if(value.size() <= this->value) {
+      return std::nullopt;
+    }
+    return this->Error(value);
+  }
+  template <typename Value>
+  inline constexpr auto Error(const Value&) const {
+    return "Error";
+  }
+};
 
 template <typename T>
 struct Min : public impl::Param<T> {
@@ -60,16 +65,6 @@ struct Min : public impl::Param<T> {
       return std::nullopt;
     }
     return this->Error(value);
-  }
-  template <typename Value>
-  inline constexpr auto Check(const Value& value) const -> std::optional<std::string>
-        requires meta::kIsRange<Value> {
-    for(const auto& element : value) {
-      if(element < this->value) {
-        return this->Error(element);
-      }
-    }
-    return std::nullopt;
   }
   inline constexpr auto Error(const T& value) const {
     return std::format("{} < {}", value, this->value);
