@@ -115,7 +115,7 @@ class ServerImpl final {
   std::size_t GetThrottlableHandlersCount() const;
   std::chrono::milliseconds GetAvgRequestTimeMs() const;
   const http::HttpRequestHandler& GetHttpRequestHandler(bool is_monitor) const;
-  net::Stats GetServerStats() const;
+  net::StatsAggregation GetServerStats() const;
   const ServerConfig& GetServerConfig() const { return config_; }
 
   RequestsView& GetRequestsView();
@@ -253,8 +253,8 @@ const http::HttpRequestHandler& ServerImpl::GetHttpRequestHandler(
   return *main_port_info_.request_handler_;
 }
 
-net::Stats ServerImpl::GetServerStats() const {
-  net::Stats summary;
+net::StatsAggregation ServerImpl::GetServerStats() const {
+  net::StatsAggregation summary;
 
   std::shared_lock lock{on_stop_mutex_};
   if (is_stopping_) return summary;
@@ -313,9 +313,8 @@ void ServerImpl::SetRpsRatelimit(std::optional<size_t> rps) {
 }
 
 std::uint64_t ServerImpl::GetTotalRequests() const {
-  auto stats = GetServerStats();
-  return stats.active_request_count.load() +
-         stats.requests_processed_count.load();
+  const auto stats = GetServerStats();
+  return stats.active_request_count + stats.requests_processed_count;
 }
 
 Server::Server(ServerConfig config,
@@ -351,7 +350,9 @@ void Server::WriteTotalHandlerStatistics(
   pimpl->WriteTotalHandlerStatistics(writer);
 }
 
-net::Stats Server::GetServerStats() const { return pimpl->GetServerStats(); }
+net::StatsAggregation Server::GetServerStats() const {
+  return pimpl->GetServerStats();
+}
 
 void Server::AddHandler(const handlers::HttpHandlerBase& handler,
                         engine::TaskProcessor& task_processor) {

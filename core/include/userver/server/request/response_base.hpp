@@ -8,6 +8,8 @@
 #include <string>
 #include <unordered_map>
 
+#include <userver/utils/fast_pimpl.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::io {
@@ -18,6 +20,9 @@ namespace server::request {
 
 class ResponseDataAccounter final {
  public:
+  ResponseDataAccounter();
+  ~ResponseDataAccounter();
+
   void StartRequest(size_t size,
                     std::chrono::steady_clock::time_point create_time);
 
@@ -35,8 +40,9 @@ class ResponseDataAccounter final {
  private:
   std::atomic<size_t> current_{0};
   std::atomic<size_t> max_{std::numeric_limits<size_t>::max()};
-  std::atomic<size_t> count_{0};
-  std::atomic<size_t> time_sum_{0};
+
+  struct Impl;
+  utils::FastPimpl<Impl, 64, 8> impl_;
 };
 
 /// @brief Base class for all the server responses.
@@ -78,6 +84,9 @@ class ResponseBase {
   /// @endcond
 
  protected:
+  ResponseBase(ResponseDataAccounter& data_account,
+               std::chrono::steady_clock::time_point now);
+
   void SetSent(std::size_t bytes_sent,
                std::chrono::steady_clock::time_point sent_time);
 

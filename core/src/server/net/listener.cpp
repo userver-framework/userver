@@ -27,9 +27,9 @@ void Listener::Start() {
                                          *data_accounter_);
 }
 
-Stats Listener::GetStats() const {
+StatsAggregation Listener::GetStats() const {
   if (impl_) return impl_->GetStats();
-  return Stats{};
+  return StatsAggregation{};
 }
 
 }  // namespace server::net

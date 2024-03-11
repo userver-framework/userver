@@ -45,6 +45,10 @@ class HttpResponse final : public request::ResponseBase {
   /// @cond
   HttpResponse(const HttpRequestImpl& request,
                request::ResponseDataAccounter& data_accounter);
+  HttpResponse(const HttpRequestImpl& request,
+               request::ResponseDataAccounter& data_accounter,
+               std::chrono::steady_clock::time_point now,
+               utils::StrCaseHash hasher);
   ~HttpResponse() override;
 
   void SetSendFailed(

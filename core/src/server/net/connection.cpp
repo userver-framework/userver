@@ -195,7 +195,7 @@ bool Connection::NewRequest(std::shared_ptr<request::RequestBase>&& request_ptr,
     is_accepting_requests_ = false;
   }
 
-  ++stats_->active_request_count;
+  stats_->active_request_count.Add(1);
   auto task = request_handler_.StartRequestTask(request_ptr);
   return producer.Push({std::move(request_ptr), std::move(task)});
 }
@@ -287,8 +287,8 @@ void Connection::SendResponse(request::RequestBase& request) {
     response.SetSendFailed(std::chrono::steady_clock::now());
   }
   request.SetFinishSendResponseTime();
-  --stats_->active_request_count;
-  ++stats_->requests_processed_count;
+  stats_->active_request_count.Subtract(1);
+  stats_->requests_processed_count.Add(1);
 
   request.WriteAccessLogs(request_handler_.LoggerAccess(),
                           request_handler_.LoggerAccessTskv(), peer_name_);

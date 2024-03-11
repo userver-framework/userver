@@ -211,7 +211,7 @@ int HttpRequestParser::OnMessageCompleteImpl(http_parser* p) {
 }
 
 void HttpRequestParser::CreateRequestConstructor() {
-  ++stats_.parsing_request_count;
+  stats_.parsing_request_count.Add(1);
   request_constructor_.emplace(request_constructor_config_, handler_info_index_,
                                data_accounter_);
   url_complete_ = false;
@@ -235,7 +235,7 @@ bool HttpRequestParser::CheckUrlComplete(http_parser* p) {
 
 bool HttpRequestParser::FinalizeRequest() {
   bool res = FinalizeRequestImpl();
-  --stats_.parsing_request_count;
+  stats_.parsing_request_count.Subtract(1);
   request_constructor_.reset();
   return res;
 }

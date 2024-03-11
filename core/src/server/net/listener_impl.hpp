@@ -22,7 +22,7 @@ class ListenerImpl final {
                request::ResponseDataAccounter& data_accounter);
   ~ListenerImpl();
 
-  Stats GetStats() const;
+  StatsAggregation GetStats() const;
 
  private:
   void AcceptConnection(engine::io::Socket& request_socket);

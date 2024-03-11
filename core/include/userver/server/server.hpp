@@ -16,7 +16,7 @@ USERVER_NAMESPACE_BEGIN
 namespace server {
 
 namespace net {
-struct Stats;
+struct StatsAggregation;
 }
 
 namespace http {
@@ -41,7 +41,7 @@ class Server final : public congestion_control::Limitee,
 
   void WriteTotalHandlerStatistics(utils::statistics::Writer& writer) const;
 
-  net::Stats GetServerStats() const;
+  net::StatsAggregation GetServerStats() const;
 
   void AddHandler(const handlers::HttpHandlerBase& handler,
                   engine::TaskProcessor& task_processor);

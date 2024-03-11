@@ -81,7 +81,7 @@ HttpRequestImpl::HttpRequestImpl(request::ResponseDataAccounter& data_accounter)
                                request_args_.hash_function()),
       headers_(kBucketCount),
       cookies_(kZeroAllocationBucketCount, request_args_.hash_function()),
-      response_(*this, data_accounter) {}
+      response_(*this, data_accounter, StartTime(), cookies_.hash_function()) {}
 
 HttpRequestImpl::~HttpRequestImpl() = default;
 

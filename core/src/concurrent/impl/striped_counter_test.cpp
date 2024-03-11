@@ -18,17 +18,21 @@ TEST(StripedCounter, Works) {
   StripedCounter counter{};
   counter.Add(2);
   EXPECT_EQ(2, counter.Read());
+  EXPECT_EQ(2, counter.NonNegativeRead());
 }
 
 TEST(StripedCounter, IncrementDecrement) {
   StripedCounter counter{};
   counter.Add(5);
   EXPECT_EQ(5, counter.Read());
+  EXPECT_EQ(5, counter.NonNegativeRead());
   counter.Subtract(5);
   EXPECT_EQ(0, counter.Read());
+  EXPECT_EQ(0, counter.NonNegativeRead());
 
   counter.Subtract(1);
   EXPECT_EQ(std::numeric_limits<std::uintptr_t>::max(), counter.Read());
+  EXPECT_EQ(0, counter.NonNegativeRead());
 }
 
 TEST(StripedCounter, Concurrency) {
