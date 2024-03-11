@@ -1,6 +1,6 @@
 #pragma once
 #include <type_traits>
-
+#include <utility>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -11,13 +11,12 @@ struct TypeList {};
 
 
 template <typename... Ts>
-consteval auto size(TypeList<Ts...>) {
+consteval auto Size(TypeList<Ts...>) {
   return sizeof...(Ts);
 }
 
-
 template <template <typename...> typename Check, typename... Ts>
-consteval auto anyOf(TypeList<Ts...>) {
+consteval auto AnyOf(TypeList<Ts...>) {
   return (Check<Ts>::value || ...);
 }
 
@@ -39,6 +38,19 @@ consteval auto IsConvertableCarried() {
     return std::is_convertible_v<T, T2>;
   };
 }
+
+struct Caster {
+  inline constexpr Caster(auto) {}
+  inline constexpr Caster() = default;
+};
+
+template <std::size_t... Is, typename T>
+consteval auto Get(std::index_sequence<Is...>, decltype(Is, Caster())..., T&& arg, ...) -> T; 
+
+template <std::size_t I, typename... Ts>
+consteval auto Get(const TypeList<Ts...>&) -> decltype(Get(std::make_index_sequence<I>(), std::declval<Ts>()...));
+
+
 
 } // namespace utils::impl
 

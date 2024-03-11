@@ -4,6 +4,7 @@
 #include <userver/formats/common/items.hpp>
 #include <userver/formats/parse/try_parse.hpp>
 #include <format>
+#include <unordered_map>
 #include <userver/utils/regex.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -123,8 +124,8 @@ struct Pattern : public impl::EmptyCheck, public impl::Param<const utils::regex*
   }
 };
 
-struct Additional : public impl::EmptyCheck, public impl::Param<bool> {
-  constexpr inline Additional(const bool& value) :
+struct AdditionalProperties : public impl::EmptyCheck, public impl::Param<bool> {
+  constexpr inline AdditionalProperties(const bool& value) :
       impl::Param<bool>(value) {}
 };
 
@@ -147,13 +148,13 @@ struct FieldConfig<std::optional<T>> {
     };
     return std::nullopt;
   }
-  constexpr auto Write(const std::optional<T>& value, std::string_view fieldName, const auto& names, auto& builder) const {
+  constexpr auto Write(const std::optional<T>& value, std::string_view field_name, const auto& names, auto& builder) const {
     if(value) {
-      this->Main.Write(*value, fieldName, names, builder);
+      this->Main.Write(*value, field_name, names, builder);
       return;
     }
     if(this->Default) {
-      this->Main.Write(this->Default->value(), fieldName, names, builder);
+      this->Main.Write(this->Default->value(), field_name, names, builder);
       return;
     }
   }
@@ -202,22 +203,22 @@ struct FieldConfig<std::optional<T>> {
   }
 };
 
-template <>
-struct FieldConfig<int> {
-  std::optional<Max<int>> Maximum = std::nullopt;
-  std::optional<Min<int>> Minimum = std::nullopt;
+template <typename T>
+struct FieldConfig<T, std::enable_if_t<meta::kIsInteger<T> || std::is_floating_point_v<T>>> {
+  std::optional<Max<T>> Maximum = std::nullopt;
+  std::optional<Min<T>> Minimum = std::nullopt;
   template <typename MainClass, auto I, typename Value>
   constexpr int Read(Value&& value) const {
     constexpr auto name = boost::pfr::get_name<I, MainClass>();
-    return value[name].template As<int>();
+    return value[name].template As<T>();
   }
   template <typename MainClass, auto I, typename Value>
-  constexpr std::optional<int> TryRead(Value&& value) const {
+  constexpr std::optional<T> TryRead(Value&& value) const {
     constexpr auto name = boost::pfr::get_name<I, MainClass>();
-    return parse::TryParse(value[name], parse::To<int>{});
+    return parse::TryParse(value[name], parse::To<T>{});
   }
-  constexpr auto Write(const int& value, std::string_view fieldName, const auto&, auto& builder) const {
-    builder[static_cast<std::string>(fieldName)] = value;
+  constexpr auto Write(const int& value, std::string_view field_name, const auto&, auto& builder) const {
+    builder[static_cast<std::string>(field_name)] = value;
   }
   inline constexpr std::optional<std::string> Check(const int&) const {
     return std::nullopt;
@@ -236,8 +237,8 @@ struct FieldConfig<std::string> {
     constexpr auto name = boost::pfr::get_name<I, MainClass>();
     return parse::TryParse(value[name], parse::To<std::string>{});
   }
-  constexpr auto Write(std::string_view value, std::string_view fieldName, const auto&, auto& builder) const {
-    builder[static_cast<std::string>(fieldName)] = value;
+  constexpr auto Write(std::string_view value, std::string_view field_name, const auto&, auto& builder) const {
+    builder[static_cast<std::string>(field_name)] = value;
   }
   inline constexpr std::optional<std::string> Check(std::string_view) const {
     return std::nullopt;
@@ -247,13 +248,13 @@ struct FieldConfig<std::string> {
 
 template <typename Value>
 struct FieldConfig<std::unordered_map<std::string, Value>> {
-  std::optional<Additional> Additional = std::nullopt;
+  std::optional<AdditionalProperties> AdditionalProperties = std::nullopt;
   FieldConfig<Value> Items = {};
   using Type = std::unordered_map<std::string, Value>;
   template <typename MainClass, auto I, typename Value2>
   inline constexpr Type Read(Value2&& value) const {
     Type response;
-    if(this->Additional) {
+    if(this->AdditionalProperties) {
       constexpr auto fields = boost::pfr::names_as_array<MainClass>();
       for(const auto& [name, value] : userver::formats::common::Items(std::forward<Value2>(value))) {
         auto it = std::find(fields.begin(), fields.end(), name);
@@ -272,7 +273,7 @@ struct FieldConfig<std::unordered_map<std::string, Value>> {
   template <typename MainClass, auto I, typename Value2>
   inline constexpr std::optional<Type> TryRead(Value2&& value) const {
     Type response;
-    if(this->Additional) {
+    if(this->AdditionalProperties) {
       constexpr auto fields = boost::pfr::names_as_array<MainClass>();
       for(const auto& [name, value] : userver::formats::common::Items(std::forward<Value2>(value))) {
         if(std::find(fields.begin(), fields.end(), name) == fields.end()) {
@@ -285,8 +286,8 @@ struct FieldConfig<std::unordered_map<std::string, Value>> {
       }
       return response;
     }
-    constexpr auto fieldName = boost::pfr::get_name<I, MainClass>();
-    for(const auto& [name, value] : userver::formats::common::Items(value[fieldName])) {
+    constexpr auto field_name = boost::pfr::get_name<I, MainClass>();
+    for(const auto& [name, value] : userver::formats::common::Items(value[field_name])) {
       auto New = parse::TryParse(value, parse::To<Value>{});
       if(!New) {
         return std::nullopt;
@@ -310,8 +311,8 @@ struct FieldConfig<std::unordered_map<std::string, Value>> {
     return error;
   }
   template <typename Builder>
-  constexpr auto Write(const Type& value, std::string_view fieldName, const auto&, Builder& builder) const {
-    if(this->Additional) {
+  constexpr auto Write(const Type& value, std::string_view field_name, const auto&, Builder& builder) const {
+    if(this->AdditionalProperties) {
       for(const auto& [name, value2] : value) {
         builder[name] = value2;
       }
@@ -321,7 +322,7 @@ struct FieldConfig<std::unordered_map<std::string, Value>> {
     for(const auto& [name, value2] : value) {
       newBuilder[name] = value2;
     }
-    builder[static_cast<std::string>(fieldName)] = newBuilder.ExtractValue();
+    builder[static_cast<std::string>(field_name)] = newBuilder.ExtractValue();
   }
 };
 template <typename Element>

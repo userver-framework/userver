@@ -6,8 +6,10 @@
 #include <userver/formats/serialize/to.hpp>
 #include <userver/utils/meta.hpp>
 #include <userver/utils/overloaded.hpp>
+#include <variant>
 #include <type_traits>
-#include <boost/pfr.hpp>
+#include <boost/pfr/core.hpp>
+#include <boost/pfr/core_name.hpp>
 
 
 USERVER_NAMESPACE_BEGIN
@@ -15,13 +17,13 @@ USERVER_NAMESPACE_BEGIN
 namespace formats::universal {
 
 
-template <typename T>
+template <typename T, typename Enable = void>
 struct FieldConfig {
   constexpr inline std::optional<std::string> Check(const T&) const {
     return std::nullopt;
   }
-  constexpr auto Write(const T& value, std::string_view fieldName, const auto&, auto& builder) const {
-    builder[static_cast<std::string>(fieldName)] = value;
+  constexpr auto Write(const T& value, std::string_view field_name, const auto&, auto& builder) const {
+    builder[static_cast<std::string>(field_name)] = value;
   }
   template <typename MainClass, auto I, typename Value>
   constexpr T Read(Value&& value) const {
@@ -40,9 +42,9 @@ template <typename T, std::size_t I>
 using kFieldTypeOnIndex = std::remove_reference_t<decltype(boost::pfr::get<I>(std::declval<T>()))>;
 
 template <typename T>
-consteval std::size_t getFieldIndexByName(std::string_view fieldName) {
+consteval std::size_t getFieldIndexByName(std::string_view field_name) {
   constexpr auto names = boost::pfr::names_as_array<T>();
-  return std::find(names.begin(), names.end(), fieldName) - names.begin();
+  return std::find(names.begin(), names.end(), field_name) - names.begin();
 }
 
 struct Disabled {};
@@ -198,30 +200,44 @@ inline constexpr auto kDeserialization = kSerialization<T>;
 
 
 template <typename T>
-struct SerializationConfig {
-  using kFieldsConfigType = decltype([]<auto... I>(std::index_sequence<I...>){
+class SerializationConfig {
+  using FieldsConfigType = decltype([]<auto... I>(std::index_sequence<I...>){
     return std::type_identity<std::tuple<FieldConfig<impl::kFieldTypeOnIndex<T, I>>...>>();
   }(std::make_index_sequence<boost::pfr::tuple_size_v<T>>()))::type;
 
   public:
     template <utils::ConstexprString fieldName>
-    inline constexpr auto& With(FieldConfig<impl::kFieldTypeOnIndex<T, impl::getFieldIndexByName<T>(fieldName)>>&& fieldConfig) {
+    inline constexpr auto& With(FieldConfig<impl::kFieldTypeOnIndex<T, impl::getFieldIndexByName<T>(fieldName)>>&& field_config) {
       constexpr auto Index = impl::getFieldIndexByName<T>(fieldName);
       static_assert(Index != boost::pfr::tuple_size_v<T>, "Field Not Found");
-      std::get<Index>(this->fieldsConfig) = std::move(fieldConfig);
+      std::get<Index>(this->fields_config) = std::move(field_config);
       return *this;
     }
-    constexpr SerializationConfig() : fieldsConfig({}) {}
+    inline constexpr SerializationConfig() = default;
 
     template <std::size_t I>
-    constexpr auto Get() const {
-      return std::get<I>(this->fieldsConfig);
+    inline constexpr auto Get() const {
+      return std::get<I>(this->fields_config);
     }
   private:
-    kFieldsConfigType fieldsConfig;
-
+    FieldsConfigType fields_config = {};
 };
 
+template <typename... Ts>
+class SerializationConfig<std::variant<Ts...>> {
+  public:
+    template <std::size_t I>
+    inline constexpr auto& With(FieldConfig<decltype(Get<I>(utils::impl::TypeList<Ts...>{}))>&& field_config) {
+      std::get<I>(this->variant_config) = std::move(field_config);
+      return *this;
+    }
+    template <typename T>
+    inline constexpr auto& With(FieldConfig<T>&& field_config) {
+      return this->With<Find<T>(utils::impl::TypeList<Ts...>{})>(std::move(field_config));
+    }
+  private:
+    std::tuple<FieldConfig<Ts>...> variant_config;
+};
 
 
 } // namespace formats::universal

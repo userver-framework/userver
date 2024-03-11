@@ -82,7 +82,7 @@ struct SomeStruct3 {
 template <>
 inline constexpr auto formats::universal::kSerialization<SomeStruct3> =
     SerializationConfig<SomeStruct3>()
-    .With<"field">({.Additional = true});
+    .With<"field">({.AdditionalProperties = true});
 
 TEST(Serialize, Additional) {
   std::unordered_map<std::string, int> value;
