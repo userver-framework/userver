@@ -61,21 +61,20 @@ template <auto Value>
 struct Wrapper {
   static constexpr auto kValue = Value;
 };
-template <typename... Args>
-inline constexpr std::optional<std::string> Add(Args&&...) {
-  return std::nullopt;
-}
 
-template <typename Arg, typename... Args>
-inline constexpr std::optional<std::string> Add(Arg&& arg, Args&&... args) {
-  if(arg) {
-    auto toAdd = Add(std::forward<Args>(args)...);
-    if(toAdd) {
-      return *arg + *toAdd;
+template <typename... Args>
+inline constexpr std::optional<std::string> Add(Args&&... args) {
+  std::optional<std::string> result;
+  ([&]<typename T>(T&& arg){
+    if(arg) {
+      if(!result) {
+        result.emplace(*std::forward<T>(arg));
+        return;
+      }
+      result->append(*std::forward<T>(arg));
     }
-    return *arg;
-  }
-  return Add(std::forward<Arg>(args)...);
+  }(std::forward<Args>(args)), ...);
+  return result;
 }
 
 template <typename T, typename TT>
