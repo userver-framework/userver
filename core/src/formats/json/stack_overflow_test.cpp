@@ -103,23 +103,6 @@ TEST(FormatsJson, DeepObjectFromStringNonsense) {
   });
 }
 
-TEST(FormatsJson, DeepObjectClone) {
-  RunStackLimitedTest([](std::size_t depth) {
-    auto json1 = MakeDeepJson(depth);
-
-    EXPECT_NO_THROW(json1.Clone());
-  });
-}
-
-TEST(FormatsJson, DeepValueBuilderAssignmentOperator) {
-  RunStackLimitedTest([](std::size_t depth) {
-    auto json1 = formats::json::ValueBuilder(MakeDeepJson(depth));
-    formats::json::ValueBuilder json2;
-
-    EXPECT_NO_THROW(json2 = json1);
-  });
-}
-
 TEST(FormatsJson, DeepObjectOperatorEqualsTo) {
   RunStackLimitedTest([](std::size_t depth) {
     auto v1 = MakeDeepJson(depth);

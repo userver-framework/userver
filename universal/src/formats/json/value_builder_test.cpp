@@ -160,18 +160,6 @@ TEST(JsonValueBuilder, StringViewEmplaceNocheck) {
   EXPECT_EQ(1025, value[std::string(1024, 'a') + 'b'].As<int>());
 }
 
-TEST(JsonValueBuilder, Copy) {
-  formats::json::ValueBuilder vb1 = formats::json::FromString(
-      R"([{"labels":{"sensor":"parent.child2"},"value":2},{"labels":{"sensor":"parent.child1"},"value":1}])");
-
-  auto vb2 = vb1;
-  EXPECT_EQ(vb1.ExtractValue(), vb2.ExtractValue());
-
-  vb1 = {};
-  vb2 = vb1;
-  EXPECT_EQ(vb1.ExtractValue(), vb2.ExtractValue());
-}
-
 }  // namespace my_namespace
 
 /// [Sample Customization formats::json::ValueBuilder usage]

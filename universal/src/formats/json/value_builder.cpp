@@ -4,7 +4,6 @@
 #include <rapidjson/document.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
-#include <boost/container/small_vector.hpp>
 
 #include <userver/formats/json/exception.hpp>
 #include <userver/formats/json/value.hpp>
@@ -12,7 +11,6 @@
 #include <userver/utils/datetime.hpp>
 
 #include <formats/common/validations.hpp>
-#include <formats/json/impl/json_tree.hpp>
 #include <formats/json/impl/types_impl.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -20,7 +18,6 @@ USERVER_NAMESPACE_BEGIN
 namespace formats::json {
 
 namespace {
-
 rapidjson::Type ToNativeType(Type type) {
   switch (type) {
     case Type::kNull:
@@ -45,7 +42,7 @@ ValueBuilder::ValueBuilder(Type type)
     : value_(impl::VersionedValuePtr::Create(ToNativeType(type))) {}
 
 ValueBuilder::ValueBuilder(const ValueBuilder& other) {
-  Copy(value_->GetNative(), other.value_->GetNative());
+  Copy(value_->GetNative(), other);
 }
 
 // NOLINTNEXTLINE(performance-noexcept-move-constructor)
@@ -95,7 +92,7 @@ ValueBuilder& ValueBuilder::operator=(const ValueBuilder& other) {
   if ((value_->IsArray() || value_->IsObject()) && value_->GetSize() != 0) {
     value_.OnMembersChange();
   }
-  Copy(value_->GetNative(), other.value_->GetNative());
+  Copy(value_->GetNative(), other);
   return *this;
 }
 
@@ -111,7 +108,7 @@ ValueBuilder& ValueBuilder::operator=(ValueBuilder&& other) {
 ValueBuilder::ValueBuilder(const formats::json::Value& other) {
   // As we have new native object created,
   // we fill it with the copy from other's native object.
-  Copy(value_->GetNative(), other.GetNative());
+  value_->GetNative().CopyFrom(other.GetNative(), g_allocator);
 }
 
 ValueBuilder::ValueBuilder(formats::json::Value&& other) {
@@ -121,7 +118,7 @@ ValueBuilder::ValueBuilder(formats::json::Value&& other) {
     value_->GetNative() = std::move(other.GetNative());
   else
     // rapidjson uses move semantics in assignment
-    Copy(value_->GetNative(), other.GetNative());
+    value_->GetNative().CopyFrom(other.GetNative(), g_allocator);
 }
 
 ValueBuilder::ValueBuilder(EmplaceEnabler,
@@ -236,7 +233,7 @@ void ValueBuilder::PushBack(ValueBuilder&& bld) {
     checked_push_back(bld.value_->GetNative());
   } else {
     checked_push_back(impl::Value{});
-    Copy(*std::prev(native.End()), bld.value_->GetNative());
+    Copy(*std::prev(native.End()), bld);
   }
 }
 
@@ -248,15 +245,15 @@ formats::json::Value ValueBuilder::ExtractValue() {
   return std::exchange(value_, impl::MutableValueWrapper{}).ExtractValue();
 }
 
-void ValueBuilder::Copy(impl::Value& to, const impl::Value& from) {
-  impl::Copy(to, from);
+void ValueBuilder::Copy(impl::Value& to, const ValueBuilder& from) {
+  to.CopyFrom(from.value_->GetNative(), g_allocator);
 }
 
 void ValueBuilder::Move(impl::Value& to, ValueBuilder&& from) {
   if (from.value_->IsRoot()) {
     to = std::move(from.value_->GetNative());
   } else {
-    Copy(to, from.value_->GetNative());
+    Copy(to, from);
   }
 }
 

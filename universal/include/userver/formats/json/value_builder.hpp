@@ -181,7 +181,7 @@ class ValueBuilder final {
 
   explicit ValueBuilder(impl::MutableValueWrapper) noexcept;
 
-  static void Copy(impl::Value& to, const impl::Value& from);
+  static void Copy(impl::Value& to, const ValueBuilder& from);
   static void Move(impl::Value& to, ValueBuilder&& from);
 
   impl::Value& AddMember(std::string_view key, CheckMemberExists);

@@ -68,7 +68,6 @@ class TreeIterFrame {
 using TreeStack =
     boost::container::small_vector<TreeIterFrame, kInitialStackDepth>;
 
-void Copy(Value& to, const Value& from);
 /// Build path to `node` by recursively traversing `root`
 std::string MakePath(const Value* root, const Value* node, int node_depth);
 /// Transform nodes onto stack into string

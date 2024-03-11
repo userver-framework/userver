@@ -4,7 +4,6 @@
 #include <cstddef>
 #include <limits>
 
-#include <rapidjson/allocators.h>
 #include <rapidjson/document.h>
 
 #include <userver/formats/common/path.hpp>
@@ -56,23 +55,6 @@ bool ProcessContainer(formats::json::impl::TreeStack& stack,
   }
   return false;
 }
-
-class BfsConstructionQueue final {
- public:
-  std::pair<const Value*, Value*> Pop() noexcept {
-    UASSERT(start_index_ < buffer_.size());
-    return buffer_[start_index_++];
-  }
-  void Push(const Value* from, Value* to) { buffer_.emplace_back(from, to); }
-  bool Empty() const noexcept { return start_index_ == buffer_.size(); }
-
- private:
-  boost::container::small_vector<std::pair<const Value*, Value*>, 32> buffer_;
-  std::size_t start_index_ = 0;
-};
-
-::rapidjson::CrtAllocator g_allocator;
-
 }  // namespace
 
 namespace formats::json::impl {
@@ -130,49 +112,6 @@ std::string ExtractPath(const TreeStack& stack) {
 
   return path.empty() ? common::kPathRoot : path;
 }
-
-void Copy(Value& to, const Value& from) {
-  BfsConstructionQueue traverse;
-  traverse.Push(&from, &to);
-
-  while (!traverse.Empty()) {
-    const auto [from, dest] = traverse.Pop();
-
-    switch (from->GetType()) {
-      case rapidjson::kArrayType: {
-        const auto& arr = *from;
-
-        dest->SetArray();
-        dest->Reserve(arr.Size(), g_allocator);
-
-        for (std::size_t i = 0; i < arr.Size(); ++i) {
-          dest->PushBack({}, g_allocator);
-          traverse.Push(&from->Begin()[i], &dest->Begin()[i]);
-        }
-        break;
-      }
-      case rapidjson::kObjectType: {
-        dest->SetObject();
-        dest->MemberReserve(from->MemberCount(), g_allocator);
-
-        for (std::size_t i = 0; i < from->MemberCount(); ++i) {
-          impl::Value name;
-          name.CopyFrom(from->MemberBegin()[i].name, g_allocator, true);
-
-          dest->AddMember(std::move(name), {}, g_allocator);
-          traverse.Push(&from->MemberBegin()[i].value,
-                        &dest->MemberBegin()[i].value);
-        }
-        break;
-      }
-      default: {
-        dest->CopyFrom(*from, g_allocator, true);
-        break;
-      }
-    }
-  }
-}
-
 }  // namespace formats::json::impl
 
 USERVER_NAMESPACE_END
