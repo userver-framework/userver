@@ -218,6 +218,7 @@ endif()
 if (USERVER_FEATURE_CLICKHOUSE)
   _require_userver_core("USERVER_FEATURE_CLICKHOUSE")
   add_subdirectory(clickhouse "${CMAKE_BINARY_DIR}/userver/clickhouse")
+  list(APPEND USERVER_AVAILABLE_COMPONENTS clickhouse)
 endif()
 
 if (USERVER_FEATURE_RABBITMQ)
