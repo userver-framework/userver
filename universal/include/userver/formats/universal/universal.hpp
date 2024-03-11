@@ -209,7 +209,6 @@ class SerializationConfig {
     template <utils::ConstexprString fieldName>
     inline constexpr auto& With(FieldConfig<impl::kFieldTypeOnIndex<T, impl::getFieldIndexByName<T>(fieldName)>>&& field_config) {
       constexpr auto Index = impl::getFieldIndexByName<T>(fieldName);
-      static_assert(Index != boost::pfr::tuple_size_v<T>, "Field Not Found");
       std::get<Index>(this->fields_config) = std::move(field_config);
       return *this;
     }
@@ -235,8 +234,9 @@ class SerializationConfig<std::variant<Ts...>> {
     inline constexpr auto& With(FieldConfig<T>&& field_config) {
       return this->With<Find<T>(utils::impl::TypeList<Ts...>{})>(std::move(field_config));
     }
+    inline constexpr SerializationConfig() = default;
   private:
-    std::tuple<FieldConfig<Ts>...> variant_config;
+    std::tuple<FieldConfig<Ts>...> variant_config = {};
 };
 
 
