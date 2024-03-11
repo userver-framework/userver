@@ -77,7 +77,6 @@ def pytest_addoption(parser) -> None:
     group.addoption(
         '--service-log-level',
         type=str.lower,
-        default='debug',
         choices=['trace', 'debug', 'info', 'warning', 'error', 'critical'],
     )
     group.addoption(
@@ -401,7 +400,19 @@ def userver_config_http_client(
 
 
 @pytest.fixture(scope='session')
-def userver_config_logging(pytestconfig):
+def userver_default_log_level():
+    return 'debug'
+
+
+@pytest.fixture(scope='session')
+def userver_log_level(pytestconfig, userver_default_log_level):
+    if pytestconfig.option.service_log_level:
+        return pytestconfig.option.service_log_level
+    return userver_default_log_level
+
+
+@pytest.fixture(scope='session')
+def userver_config_logging(userver_log_level):
     """
     Returns a function that adjusts the static configuration file for testsuite.
     Sets the `logging.loggers.default` to log to `@stderr` with level set
@@ -409,7 +420,6 @@ def userver_config_logging(pytestconfig):
 
     @ingroup userver_testsuite_fixtures
     """
-    log_level = pytestconfig.option.service_log_level
 
     def _patch_config(config_yaml, config_vars):
         components = config_yaml['components_manager']['components']
@@ -417,11 +427,11 @@ def userver_config_logging(pytestconfig):
             components['logging']['loggers'] = {
                 'default': {
                     'file_path': '@stderr',
-                    'level': log_level,
+                    'level': userver_log_level,
                     'overflow_behavior': 'discard',
                 },
             }
-        config_vars['logger_level'] = log_level
+        config_vars['logger_level'] = userver_log_level
 
     return _patch_config
 

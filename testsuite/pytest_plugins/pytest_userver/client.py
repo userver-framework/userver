@@ -854,10 +854,18 @@ class AiohttpClient(service_client.AiohttpClient):
         )
 
     @contextlib.asynccontextmanager
-    async def capture_logs(self, *, testsuite_skip_prepare: bool = False):
-        async with self._log_capture_fixture.start_capture() as capture:
+    async def capture_logs(
+            self,
+            *,
+            log_level: str = 'DEBUG',
+            testsuite_skip_prepare: bool = False,
+    ):
+        async with self._log_capture_fixture.start_capture(
+                log_level=log_level,
+        ) as capture:
             await self._testsuite_action(
                 'log_capture',
+                log_level=log_level,
                 socket_logging_duplication=True,
                 testsuite_skip_prepare=testsuite_skip_prepare,
             )
@@ -866,6 +874,7 @@ class AiohttpClient(service_client.AiohttpClient):
             finally:
                 await self._testsuite_action(
                     'log_capture',
+                    log_level=self._log_capture_fixture.default_log_level,
                     socket_logging_duplication=False,
                     testsuite_skip_prepare=testsuite_skip_prepare,
                 )
