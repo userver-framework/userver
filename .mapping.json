@@ -935,6 +935,7 @@
   "core/src/engine/io/fd_control_benchmark.cpp":"taxi/uservices/userver/core/src/engine/io/fd_control_benchmark.cpp",
   "core/src/engine/io/fd_control_test.cpp":"taxi/uservices/userver/core/src/engine/io/fd_control_test.cpp",
   "core/src/engine/io/fd_poller.cpp":"taxi/uservices/userver/core/src/engine/io/fd_poller.cpp",
+  "core/src/engine/io/fd_poller_test.cpp":"taxi/uservices/userver/core/src/engine/io/fd_poller_test.cpp",
   "core/src/engine/io/impl/buffer.cpp":"taxi/uservices/userver/core/src/engine/io/impl/buffer.cpp",
   "core/src/engine/io/impl/buffer.hpp":"taxi/uservices/userver/core/src/engine/io/impl/buffer.hpp",
   "core/src/engine/io/impl/buffer_test.cpp":"taxi/uservices/userver/core/src/engine/io/impl/buffer_test.cpp",

@@ -99,7 +99,7 @@ class [[nodiscard]] TlsWrapper final : public RwBase {
   explicit TlsWrapper(Socket&&);
 
   class Impl;
-  constexpr static size_t kSize = 296;
+  constexpr static size_t kSize = 304;
   constexpr static size_t kAlignment = 8;
   utils::FastPimpl<Impl, kSize, kAlignment> impl_;
 };

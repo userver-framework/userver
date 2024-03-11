@@ -10,6 +10,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace engine::impl {
+class ContextAccessor;
+}
+
 namespace engine::io {
 
 /// File descriptor of an invalid pipe end.
@@ -36,6 +40,15 @@ class ReadableBase {
   /// @note Can return less than len if stream is closed by peer.
   [[nodiscard]] virtual size_t ReadAll(void* buf, size_t len,
                                        Deadline deadline) = 0;
+
+  /// For internal use only
+  impl::ContextAccessor* TryGetContextAccessor() { return ca_; }
+
+ protected:
+  void SetReadableContextAccessor(impl::ContextAccessor* ca) { ca_ = ca; }
+
+ private:
+  impl::ContextAccessor* ca_{nullptr};
 };
 
 /// IoData for vector send
@@ -67,6 +80,15 @@ class WritableBase {
     }
     return result;
   }
+
+  /// For internal use only
+  impl::ContextAccessor* TryGetContextAccessor() { return ca_; }
+
+ protected:
+  void SetWritableContextAccessor(impl::ContextAccessor* ca) { ca_ = ca; }
+
+ private:
+  impl::ContextAccessor* ca_{nullptr};
 };
 
 /// @ingroup userver_base_classes
@@ -76,6 +98,10 @@ class WritableBase {
 class RwBase : public ReadableBase, public WritableBase {
  public:
   ~RwBase() override;
+
+  ReadableBase& GetReadableBase() { return *this; }
+
+  WritableBase& GetWritableBase() { return *this; }
 };
 
 using ReadableBasePtr = std::shared_ptr<ReadableBase>;

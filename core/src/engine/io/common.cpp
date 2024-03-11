@@ -6,7 +6,9 @@ namespace engine::io {
 
 // Forcing vtable instantiation only in this translation unit
 ReadableBase::~ReadableBase() = default;
+
 WritableBase::~WritableBase() = default;
+
 RwBase::~RwBase() = default;
 
 }  // namespace engine::io

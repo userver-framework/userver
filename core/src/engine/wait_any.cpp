@@ -20,7 +20,9 @@ std::optional<std::size_t> DoWaitAny(utils::span<ContextAccessor*> targets,
     if (target->IsReady()) return idx;
   }
 
-  if (none_valid) return std::nullopt;
+  if (none_valid) {
+    return std::nullopt;
+  }
 
   auto& current = current_task::GetCurrentTaskContext();
   WaitAnyWaitStrategy wait_strategy{targets, current};

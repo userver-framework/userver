@@ -11,6 +11,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace engine::impl {
+class ContextAccessor;
+}
+
 namespace engine::io {
 
 namespace impl {
@@ -60,6 +64,18 @@ class FdPoller final {
   /// immediately. You have to call Reset() at least once before call to
   /// Wait().
   [[nodiscard]] std::optional<Kind> Wait(Deadline);
+
+  /// Reset "ready" flag for WaitAny().
+  void ResetReady() noexcept;
+
+  /// Get event kind that was triggered on this poller.
+  /// Resets "ready" flag.
+  std::optional<FdPoller::Kind> GetReady() noexcept;
+
+  /// @cond
+  // For internal use only.
+  engine::impl::ContextAccessor* TryGetContextAccessor() noexcept;
+  /// @endcond
 
  private:
   friend class impl::Direction;
