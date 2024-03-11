@@ -206,6 +206,7 @@ endif()
 if (USERVER_FEATURE_REDIS)
   _require_userver_core("USERVER_FEATURE_REDIS")
   add_subdirectory(redis "${CMAKE_BINARY_DIR}/userver/redis")
+  list(APPEND USERVER_AVAILABLE_COMPONENTS redis)
 endif()
 
 if (USERVER_FEATURE_GRPC)
