@@ -77,6 +77,7 @@ namespace components {
 /// connection.requests_queue_size_threshold | drop requests from handlers that allow throttling if there's more pending requests than allowed by this value | 100
 /// connection.keepalive_timeout | timeout in seconds to drop connection if there's not data received from it | 600
 /// shards | how many concurrent tasks harvest data from a single socket; do not set if not sure what it is doing | -
+/// middleware-pipeline-builder | name of a component to build a server-wide middleware pipeline | default-server-middleware-pipeline-builder
 ///
 /// @see @ref scripts/docs/en/userver/http_server.md
 

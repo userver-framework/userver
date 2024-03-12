@@ -1,6 +1,7 @@
 #include <server/server_config.hpp>
 
 #include <userver/formats/parse/common_containers.hpp>
+#include <userver/server/middlewares/configuration.hpp>
 #include <userver/utils/userver_info.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -23,6 +24,9 @@ ServerConfig Parse(const yaml_config::YamlConfig& value,
       value["server-name"].As<std::string>(utils::GetUserverIdentifier());
   config.set_response_server_hostname =
       value["set-response-server-hostname"].As<bool>(false);
+  config.middleware_pipeline_builder =
+      value["middleware-pipeline-builder"].As<std::string>(
+          middlewares::PipelineBuilder::kName);
 
   return config;
 }

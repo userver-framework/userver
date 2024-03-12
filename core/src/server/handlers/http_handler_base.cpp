@@ -26,6 +26,7 @@
 #include <userver/server/http/http_method.hpp>
 #include <userver/server/http/http_response_body_stream.hpp>
 #include <userver/server/http/http_status.hpp>
+#include <userver/server/middlewares/configuration.hpp>
 #include <userver/server/middlewares/http_middleware_base.hpp>
 #include <userver/tracing/tracing.hpp>
 #include <userver/utils/algo.hpp>
@@ -42,26 +43,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {
 namespace {
-
-constexpr std::string_view kDefaultMiddlewares[] = {
-    // Metrics should go before everything else, basically.
-    "userver-handler-metrics-middleware",
-    // Tracing should go before UnknownExceptionsHandlingMiddleware because it
-    // adds some headers, which otherwise might be cleared.
-    "userver-tracing-middleware",
-    // Ditto.
-    "userver-set-accept-encoding-middleware",
-
-    "userver-unknown-exceptions-handling-middleware",
-
-    "userver-rate-limit-middleware",
-    "userver-deadline-propagation-middleware",
-    "userver-baggage-middleware",
-    "userver-auth-middleware",
-    "userver-decompression-middleware",
-
-    "userver-exceptions-handling-middleware",
-};
 
 const std::string kHostname = hostinfo::blocking::GetRealHostName();
 
@@ -468,10 +449,19 @@ void HttpHandlerBase::BuildMiddlewarePipeline(
     // some people might not use it, give them some diagnostics.
     throw std::runtime_error{
         "It seems that you are building your ComponentList from scratch, "
-        "append DefaultMiddlewaresList() from "
-        "userver/server/middlewares/default_middlewares.hpp to it via "
+        "append DefaultMiddlewareComponents() from "
+        "userver/server/middlewares/configuration.hpp to it via "
         "AppendComponentList()"};
   }
+
+  const auto& handler_pipeline_builder =
+      context.FindComponent<middlewares::HandlerPipelineBuilder>(
+          config["middleware-pipeline-builder"].As<std::string>(
+              middlewares::HandlerPipelineBuilder::kName));
+  const auto handler_middlewares = handler_pipeline_builder.BuildPipeline(
+      context.FindComponent<components::Server>()
+          .GetServer()
+          .GetCommonMiddlewares());
 
   auto* next_middleware_ptr_{&first_middleware_};
   const auto add_middleware = [this, &config, &context,
@@ -482,8 +472,7 @@ void HttpHandlerBase::BuildMiddlewarePipeline(
     next_middleware_ptr_ = &(*next_middleware_ptr_)->next_;
   };
 
-  // TODO : TAXICOMMON-8253, build the actual pipeline from config
-  for (const auto& middleware_name : kDefaultMiddlewares) {
+  for (const auto& middleware_name : handler_middlewares) {
     add_middleware(middleware_name);
   }
 
@@ -508,6 +497,10 @@ properties:
             type: string
             description: log level
         description: HTTP status code -> log level map
+    middleware-pipeline-builder:
+        type: string
+        description: name of a component to build a middleware pipeline for this particular handler
+        defaultDescription: default-handler-middleware-pipeline-builder
 )");
 }
 

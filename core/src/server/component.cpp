@@ -196,6 +196,10 @@ properties:
         type: boolean
         description: set to true to add the `X-YaTaxi-Server-Hostname` header with instance name, set to false to not add the header
         defaultDescription: false
+    middleware-pipeline-builder:
+        type: string
+        description: name of a component to build a server-wide middleware pipeline
+        defaultDescription: default-server-middleware-pipeline-builder
 )");
 }
 

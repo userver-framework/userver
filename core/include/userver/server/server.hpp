@@ -37,6 +37,8 @@ class Server final : public congestion_control::Limitee,
 
   const ServerConfig& GetConfig() const;
 
+  std::vector<std::string> GetCommonMiddlewares() const;
+
   void WriteMonitorData(utils::statistics::Writer& writer) const;
 
   void WriteTotalHandlerStatistics(utils::statistics::Writer& writer) const;

@@ -12,7 +12,7 @@
 #include <userver/server/handlers/on_log_rotate.hpp>
 #include <userver/server/handlers/server_monitor.hpp>
 #include <userver/server/handlers/tests_control.hpp>
-#include <userver/server/middlewares/default_middlewares.hpp>
+#include <userver/server/middlewares/configuration.hpp>
 #include <userver/tracing/manager_component.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -33,7 +33,7 @@ ComponentList CommonServerComponentList() {
       .Append<server::handlers::TestsControl>()
       .Append<congestion_control::Component>()
       .Append<components::AuthCheckerSettings>()
-      .AppendComponentList(server::middlewares::DefaultMiddlewaresList());
+      .AppendComponentList(server::middlewares::DefaultMiddlewareComponents());
 }
 
 }  // namespace components

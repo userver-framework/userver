@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/server/middlewares/http_middleware_base.hpp
+/// @brief Base classes for implementing custom middlewares
+
 #include <memory>
 
 #include <userver/components/loggable_component_base.hpp>
