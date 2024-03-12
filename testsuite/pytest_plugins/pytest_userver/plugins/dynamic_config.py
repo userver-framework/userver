@@ -32,6 +32,10 @@ class DynamicConfigNotFoundError(BaseError):
     """Config parameter was not found and no default was provided"""
 
 
+class InvalidDefaultsError(BaseError):
+    """Dynamic config defaults action returned invalid response"""
+
+
 ConfigDict = typing.Dict[str, typing.Any]
 
 
@@ -370,6 +374,8 @@ class _ConfigDefaults:
     async def update(self, client, dynamic_config) -> None:
         if not self.snapshot:
             values = await client.get_dynamic_config_defaults()
+            if not isinstance(values, dict):
+                raise InvalidDefaultsError()
             # There may already be some config overrides from the current test.
             values.update(dynamic_config.get_values_unsafe())
             self.snapshot = values
