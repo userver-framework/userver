@@ -807,6 +807,22 @@ struct TupleDataExtractor<std::tuple<T...>>
     : RowDataExtractorBase<std::index_sequence_for<T...>, T...> {};
 //@}
 
+template <typename RowType>
+constexpr void AssertRowTypeIsMappedToPgOrIsCompositeType() {
+  // composite types can be parsed without an explicit mapping
+  static_assert(
+      io::traits::kIsMappedToPg<RowType> ||
+          io::traits::kIsCompositeType<RowType>,
+      "Row type must be mapped to pg type(CppToUserPg) or one of the "
+      "following: "
+      "1. primitive type. "
+      "2. std::tuple. "
+      "3. Aggregation type. See std::aggregation. "
+      "4. Has a Introspect method that makes the std::tuple from your "
+      "class/struct. "
+      "For more info see `uPg: Typed PostgreSQL results` chapter in docs.");
+}
+
 }  // namespace detail
 
 template <typename T>
@@ -819,8 +835,7 @@ void Row::To(T&& val, RowTag) const {
   detail::AssertSaneTypeToDeserialize<T>();
   // Convert the val into a writable tuple and extract the data
   using ValueType = std::decay_t<T>;
-  static_assert(io::traits::kIsRowType<ValueType>,
-                "This type cannot be used as a row type");
+  io::traits::AssertIsValidRowType<ValueType>();
   using RowType = io::RowType<ValueType>;
   using TupleType = typename RowType::TupleType;
   constexpr auto tuple_size = RowType::size;
@@ -841,10 +856,7 @@ template <typename T>
 void Row::To(T&& val, FieldTag) const {
   detail::AssertSaneTypeToDeserialize<T>();
   using ValueType = std::decay_t<T>;
-  // composite types can be parsed without an explicit mapping
-  static_assert(io::traits::kIsMappedToPg<ValueType> ||
-                    io::traits::kIsCompositeType<ValueType>,
-                "This type is not mapped to a PostgreSQL type");
+  detail::AssertRowTypeIsMappedToPgOrIsCompositeType<ValueType>();
   // Read the first field into the type
   if (Size() < 1) {
     throw InvalidTupleSizeRequested{Size(), 1};
@@ -928,8 +940,7 @@ template <typename T>
 auto ResultSet::AsSetOf(RowTag) const {
   detail::AssertSaneTypeToDeserialize<T>();
   using ValueType = std::decay_t<T>;
-  static_assert(io::traits::kIsRowType<ValueType>,
-                "This type cannot be used as a row type");
+  io::traits::AssertIsValidRowType<ValueType>();
   return TypedResultSet<T, RowTag>{*this};
 }
 
@@ -937,10 +948,7 @@ template <typename T>
 auto ResultSet::AsSetOf(FieldTag) const {
   detail::AssertSaneTypeToDeserialize<T>();
   using ValueType = std::decay_t<T>;
-  // composite types can be parsed without an explicit mapping
-  static_assert(io::traits::kIsMappedToPg<ValueType> ||
-                    io::traits::kIsCompositeType<ValueType>,
-                "This type is not mapped to a PostgreSQL type");
+  detail::AssertRowTypeIsMappedToPgOrIsCompositeType<ValueType>();
   if (FieldCount() > 1) {
     throw NonSingleColumnResultSet{FieldCount(), compiler::GetTypeName<T>(),
                                    "AsSetOf"};

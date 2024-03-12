@@ -161,13 +161,13 @@ struct AssertTupleHasFormatters<std::tuple<Members...>> : std::true_type {
 
 template <typename T>
 constexpr bool AssertHasCompositeParsers() {
-  static_assert(kIsRowType<T>);
+  io::traits::AssertIsValidRowType<T>();
   return AssertTupleHasParsers<typename io::RowType<T>::TupleType>::value;
 }
 
 template <typename T>
 constexpr bool AssertHasCompositeFormatters() {
-  static_assert(kIsRowType<T>);
+  io::traits::AssertIsValidRowType<T>();
   return AssertTupleHasFormatters<typename io::RowType<T>::TupleType>::value;
 }
 
