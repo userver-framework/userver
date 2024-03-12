@@ -3,16 +3,14 @@
 /// @file userver/testsuite/cache_control.hpp
 /// @brief @copybrief testsuite::CacheControl
 
-#include <atomic>
 #include <functional>
-#include <list>
+#include <memory>
 #include <string>
 #include <type_traits>
 #include <unordered_set>
-#include <utility>
 
 #include <userver/cache/update_type.hpp>
-#include <userver/concurrent/variable.hpp>
+#include <userver/components/component_fwd.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -21,10 +19,6 @@ namespace cache {
 class CacheUpdateTrait;
 struct Config;
 }  // namespace cache
-
-namespace components {
-class ComponentContext;
-}  // namespace components
 
 namespace components::impl {
 class ComponentBase;
@@ -88,6 +82,7 @@ class CacheControl final {
   /// @cond
   // For internal use only.
   explicit CacheControl(impl::PeriodicUpdatesMode);
+  ~CacheControl();
 
   CacheControl(CacheControl&&) = delete;
   CacheControl& operator=(CacheControl&&) = delete;
@@ -106,19 +101,21 @@ class CacheControl final {
     std::string name;
     std::function<void(cache::UpdateType)> reset;
     bool needs_span{true};
+    components::impl::ComponentBase* component = nullptr;
   };
 
-  using CacheInfoIterator = std::list<CacheInfo>::iterator;
+  struct CacheInfoNode;
+  using CacheInfoIterator = CacheInfoNode*;
 
-  CacheInfoIterator DoRegisterCache(CacheInfo&&);
+  CacheInfoIterator DoRegisterCache(CacheInfo&& info);
 
   void UnregisterCache(CacheInfoIterator) noexcept;
 
   static void DoResetCache(const CacheInfo& info,
                            cache::UpdateType update_type);
 
-  const impl::PeriodicUpdatesMode periodic_updates_mode_;
-  concurrent::Variable<std::list<CacheInfo>> caches_;
+  struct Impl;
+  std::unique_ptr<Impl> impl_;
 };
 
 /// @brief RAII helper for testsuite registration. Must be kept alive to keep
@@ -149,7 +146,20 @@ class [[nodiscard]] CacheResetRegistration final {
 };
 
 /// The method for acquiring testsuite::CacheControl in the component system.
+///
+/// @see testsuite::RegisterCache
 CacheControl& FindCacheControl(const components::ComponentContext& context);
+
+/// The method for registering a cache from component constructor.
+template <typename Component>
+CacheResetRegistration RegisterCache(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context, Component* self,
+    void (Component::*reset_method)()) {
+  auto& cc = testsuite::FindCacheControl(context);
+  return cc.RegisterCache(self, components::GetCurrentComponentName(config),
+                          reset_method);
+}
 
 template <typename Component>
 CacheResetRegistration CacheControl::RegisterCache(
@@ -158,14 +168,16 @@ CacheResetRegistration CacheControl::RegisterCache(
                 "CacheControl can only be used with components");
   UASSERT(self);
   UASSERT(reset_method);
-  auto iter = DoRegisterCache(CacheInfo{
-      /*name=*/std::string{name},
-      /*reset=*/
-      [self, reset_method]([[maybe_unused]] cache::UpdateType) {
-        (self->*reset_method)();
-      },
-      /*needs_span=*/true,
-  });
+
+  CacheInfo info;
+  info.component = self;
+  info.name = std::string{name};
+  info.reset = [self, reset_method]([[maybe_unused]] cache::UpdateType) {
+    (self->*reset_method)();
+  };
+  info.needs_span = true;
+
+  auto iter = DoRegisterCache(std::move(info));
   return CacheResetRegistration(*this, std::move(iter));
 }
 

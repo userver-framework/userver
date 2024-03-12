@@ -143,8 +143,6 @@ namespace {
 /// [sample]
 class MyCache final : public components::LoggableComponentBase {
  public:
-  static constexpr std::string_view kName = "my-cache";
-
   MyCache(const components::ComponentConfig& config,
           const components::ComponentContext& context)
       : components::LoggableComponentBase(config, context) {
@@ -155,8 +153,8 @@ class MyCache final : public components::LoggableComponentBase {
     // ...
 
     // reset_registration_ must be set at the end of the constructor.
-    reset_registration_ = testsuite::FindCacheControl(context).RegisterCache(
-        this, kName, &MyCache::ResetCache);
+    reset_registration_ =
+        testsuite::RegisterCache(config, context, this, &MyCache::ResetCache);
   }
 
   std::string GetToken() {
