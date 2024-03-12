@@ -14,6 +14,7 @@ import dataclasses
 import json
 import logging
 import typing
+import warnings
 
 import aiohttp
 
@@ -31,6 +32,14 @@ logger = logging.getLogger(__name__)
 # @endcond
 
 _UNKNOWN_STATE = '__UNKNOWN__'
+
+CACHE_INVALIDATION_MESSAGE = (
+    'Direct cache invalidation is deprecated.\n'
+    '\n'
+    ' - Use client.update_server_state() to synchronize service state\n'
+    ' - Explicitly pass cache names to invalidate, e.g.: '
+    'invalidate_caches(cache_names=[...]).'
+)
 
 
 class BaseError(Exception):
@@ -741,6 +750,7 @@ class AiohttpClient(service_client.AiohttpClient):
             span_id_header=None,
             api_coverage_report=None,
             periodic_tasks_state: typing.Optional[PeriodicTasksState] = None,
+            allow_all_caches_invalidation: bool = True,
             **kwargs,
     ):
         super().__init__(base_url, span_id_header=span_id_header, **kwargs)
@@ -755,6 +765,7 @@ class AiohttpClient(service_client.AiohttpClient):
             invalidation_state=cache_invalidation_state,
         )
         self._api_coverage_report = api_coverage_report
+        self._allow_all_caches_invalidation = allow_all_caches_invalidation
 
     async def run_periodic_task(self, name):
         response = await self._testsuite_action('run_periodic_task', name=name)
@@ -886,6 +897,13 @@ class AiohttpClient(service_client.AiohttpClient):
             cache_names: typing.Optional[typing.List[str]] = None,
             testsuite_skip_prepare: bool = False,
     ) -> None:
+        if cache_names is None and clean_update:
+            if self._allow_all_caches_invalidation:
+                warnings.warn(CACHE_INVALIDATION_MESSAGE)
+            else:
+                __tracebackhide__ = True
+                raise RuntimeError(CACHE_INVALIDATION_MESSAGE)
+
         if testsuite_skip_prepare:
             await self._tests_control(
                 {
@@ -1145,6 +1163,7 @@ class Client(ClientWrapper):
         @param testsuite_skip_prepare if False, service will automatically do
                update_server_state().
         """
+        __tracebackhide__ = True
         await self._client.invalidate_caches(
             clean_update=clean_update,
             cache_names=cache_names,
