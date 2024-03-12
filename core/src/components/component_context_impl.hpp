@@ -21,11 +21,12 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace components {
+namespace components::impl {
 
-struct ComponentContext::Impl {
-  Impl(const Manager& manager,
-       std::vector<std::string>&& loading_component_names);
+class ComponentContextImpl {
+ public:
+  ComponentContextImpl(const Manager& manager,
+                       std::vector<std::string>&& loading_component_names);
 
   impl::ComponentBase* AddComponent(std::string_view name,
                                     const ComponentFactory& factory,
@@ -45,6 +46,9 @@ struct ComponentContext::Impl {
 
   bool IsAnyComponentInFatalState() const;
 
+  bool HasDependencyOn(std::string_view component_name,
+                       std::string_view dependency) const;
+
   bool Contains(std::string_view name) const noexcept;
 
   [[noreturn]] void ThrowNonRegisteredComponent(std::string_view name,
@@ -58,22 +62,22 @@ struct ComponentContext::Impl {
  private:
   class TaskToComponentMapScope final {
    public:
-    TaskToComponentMapScope(Impl& context,
+    TaskToComponentMapScope(ComponentContextImpl& context,
                             impl::ComponentNameFromInfo component_name);
     ~TaskToComponentMapScope();
 
    private:
-    Impl& context_;
+    ComponentContextImpl& context_;
   };
 
   class SearchingComponentScope final {
    public:
-    SearchingComponentScope(const Impl& context,
+    SearchingComponentScope(const ComponentContextImpl& context,
                             impl::ComponentNameFromInfo component_name);
     ~SearchingComponentScope();
 
    private:
-    const Impl& context_;
+    const ComponentContextImpl& context_;
     impl::ComponentNameFromInfo component_name_;
   };
 
@@ -123,7 +127,7 @@ struct ComponentContext::Impl {
   bool FindDependencyPathDfs(
       impl::ComponentNameFromInfo current, impl::ComponentNameFromInfo target,
       std::set<impl::ComponentNameFromInfo>& handled,
-      std::vector<impl::ComponentNameFromInfo>& dependency_path,
+      std::vector<impl::ComponentNameFromInfo>* dependency_path,
       const ProtectedData& data) const;
   void CheckForDependencyCycle(impl::ComponentNameFromInfo new_dependency_from,
                                impl::ComponentNameFromInfo new_dependency_to,
@@ -149,6 +153,6 @@ struct ComponentContext::Impl {
   engine::TaskWithResult<void> print_adding_components_task_;
 };
 
-}  // namespace components
+}  // namespace components::impl
 
 USERVER_NAMESPACE_END

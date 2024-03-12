@@ -7,12 +7,12 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::server {
 
 HealthHandler::HealthHandler(const components::ComponentContext& context)
-    : context_(context) {}
+    : components_(context) {}
 
 void HealthHandler::Check(CheckCall& call,
                           ::grpc::health::v1::HealthCheckRequest&&) {
   ::grpc::health::v1::HealthCheckResponse response;
-  if (context_.IsAnyComponentInFatalState())
+  if (components_.IsAnyComponentInFatalState())
     response.set_status(::grpc::health::v1::HealthCheckResponse::NOT_SERVING);
   else
     response.set_status(::grpc::health::v1::HealthCheckResponse::SERVING);

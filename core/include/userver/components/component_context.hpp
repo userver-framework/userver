@@ -11,6 +11,7 @@
 #include <vector>
 
 #include <userver/compiler/demangle.hpp>
+#include <userver/components/component_fwd.hpp>
 #include <userver/components/impl/component_base.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 
@@ -23,11 +24,17 @@ class TaskContext;
 namespace components {
 
 class Manager;
+class ComponentContext;
 
 namespace impl {
 
 enum class ComponentLifetimeStage;
 class ComponentInfo;
+class ComponentContextImpl;
+
+using ComponentFactory =
+    std::function<std::unique_ptr<components::impl::ComponentBase>(
+        const components::ComponentContext&)>;
 
 template <class T>
 constexpr auto NameFromComponentType() -> decltype(std::string_view{T::kName}) {
@@ -59,6 +66,8 @@ class ComponentsLoadCancelledException : public std::runtime_error {
 /// Only the const member functions of this class are meant for usage in
 /// component constructor (because of that this class is always passed as a
 /// const reference to the constructors).
+///
+/// For usage outside of the component constructor see components::State
 ///
 /// @see @ref userver_components
 class ComponentContext final {
@@ -132,12 +141,6 @@ class ComponentContext final {
 
   const Manager& GetManager() const;
 
-  /// @returns true if one of the components is in fatal state and can not
-  /// work. A component is in fatal state if the
-  /// components::ComponentHealth::kFatal value is returned from the overridden
-  /// components::LoggableComponentBase::GetComponentHealth().
-  bool IsAnyComponentInFatalState() const;
-
  private:
   /// @returns true if there is a component with the specified name and it
   /// could be found via FindComponent()
@@ -159,6 +162,7 @@ class ComponentContext final {
   }
 
   friend class Manager;
+  friend class State;
 
   ComponentContext() noexcept;
 
@@ -169,12 +173,8 @@ class ComponentContext final {
 
   ~ComponentContext();
 
-  using ComponentFactory =
-      std::function<std::unique_ptr<components::impl::ComponentBase>(
-          const components::ComponentContext&)>;
-
   impl::ComponentBase* AddComponent(std::string_view name,
-                                    const ComponentFactory& factory);
+                                    const impl::ComponentFactory& factory);
 
   void OnAllComponentsLoaded();
 
@@ -192,8 +192,7 @@ class ComponentContext final {
 
   impl::ComponentBase* DoFindComponent(std::string_view name) const;
 
-  struct Impl;
-  std::unique_ptr<Impl> impl_;
+  std::unique_ptr<impl::ComponentContextImpl> impl_;
 };
 
 }  // namespace components
