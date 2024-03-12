@@ -194,6 +194,10 @@ properties:
         type: boolean
         description: whether to disable caching of phdr_info objects
         defaultDescription: false
+    preheat_stacktrace_collector:
+        type: boolean
+        description: whether to collect a dummy stacktrace at server start up
+        defaultDescription: true
     static_config_validation:
         type: object
         description: settings for basic syntax validation in config.yaml
@@ -234,6 +238,9 @@ ManagerConfig Parse(const yaml_config::YamlConfig& value,
       value["mlock_debug_info"].As<bool>(config.mlock_debug_info);
   config.disable_phdr_cache =
       value["disable_phdr_cache"].As<bool>(config.disable_phdr_cache);
+  config.preheat_stacktrace_collector =
+      value["preheat_stacktrace_collector"].As<bool>(
+          config.preheat_stacktrace_collector);
   return config;
 }
 

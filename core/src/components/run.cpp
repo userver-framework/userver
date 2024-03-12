@@ -197,7 +197,9 @@ void DoRun(const PathOrConfig& config,
                                  manager_config.experiments_force_enabled);
 
     HandleJemallocSettings();
-    PreheatStacktraceCollector();
+    if (manager_config.preheat_stacktrace_collector) {
+      PreheatStacktraceCollector();
+    }
 
     manager.emplace(std::make_unique<ManagerConfig>(std::move(manager_config)),
                     component_list);
