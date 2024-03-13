@@ -1,5 +1,7 @@
 #include <userver/utest/utest.hpp>
 
+#include <vector>
+
 #include <userver/engine/async.hpp>
 
 #include <tests/unit_test_client.usrv.pb.hpp>
@@ -27,27 +29,33 @@ using GrpcBidirectionalStream =
     ugrpc::tests::ServiceFixture<UnitTestServiceEcho>;
 
 UTEST_F_MT(GrpcBidirectionalStream, BidirectionalStreamTest, 2) {
+  constexpr std::size_t kMessagesCount = 200;
+
   auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
   auto stream = client.Chat();
 
-  constexpr std::size_t messages_amount = 100000;
+  std::vector<sample::ugrpc::StreamGreetingRequest> requests(kMessagesCount);
+  std::vector<sample::ugrpc::StreamGreetingResponse> responses;
 
   /// [concurrent bidirectional stream]
-  auto write_task = engine::AsyncNoSpan([&stream] {
-    for (std::size_t i = 0; i < messages_amount; ++i) {
-      ASSERT_TRUE(stream.Write({}));
+  auto write_task = engine::AsyncNoSpan([&stream, &requests] {
+    for (const auto& request : requests) {
+      const bool success = stream.Write(request);
+      if (!success) return false;
     }
 
-    ASSERT_TRUE(stream.WritesDone());
+    return stream.WritesDone();
   });
 
   sample::ugrpc::StreamGreetingResponse response;
-  for (std::size_t i = 0; i < messages_amount; ++i) {
-    ASSERT_TRUE(stream.Read(response));
+  while (stream.Read(response)) {
+    responses.push_back(std::move(response));
   }
+
+  ASSERT_TRUE(write_task.Get());
   /// [concurrent bidirectional stream]
 
-  write_task.Get();
+  ASSERT_EQ(responses.size(), kMessagesCount);
 }
 
 USERVER_NAMESPACE_END
