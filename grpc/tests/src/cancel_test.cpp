@@ -86,14 +86,17 @@ UTEST_F_MT(GrpcCancelDeadline, TryCancel, 2) {
 
   auto context = std::make_unique<grpc::ClientContext>();
   context->set_deadline(engine::Deadline::FromDuration(50ms));
-  auto call = client.Chat(std::move(context));
   try {
+    auto call = client.Chat(std::move(context));
     for (;;) {
       if (!call.Write({})) return;
       sample::ugrpc::StreamGreetingResponse response;
       if (!call.Read(response)) return;
     }
   } catch (const ugrpc::client::DeadlineExceededError&) {
+    // If the server detects the deadline first
+  } catch (const ugrpc::client::RpcInterruptedError&) {
+    // If the client detects the deadline first
   }
 }
 
@@ -124,7 +127,12 @@ UTEST_F_MT(GrpcCancelWritesDone, TryCancel, 2) {
   auto context = std::make_unique<grpc::ClientContext>();
   context->set_deadline(engine::Deadline::FromDuration(50ms));
   auto call = client.Chat(std::move(context));
-  EXPECT_TRUE(call.Write({}));
+  const auto is_written = call.Write({});
+  if (!is_written) {
+    // The call of Write() is failed, so we have to finish the test
+    // This case is very rare when the deadline has already expired
+    return;
+  }
   EXPECT_TRUE(call.WritesDone());
 
   try {
