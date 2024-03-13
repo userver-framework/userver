@@ -181,6 +181,7 @@
   "cmake/install/userver-clickhouse-config.cmake":"taxi/uservices/userver/cmake/install/userver-clickhouse-config.cmake",
   "cmake/install/userver-core-config.cmake":"taxi/uservices/userver/cmake/install/userver-core-config.cmake",
   "cmake/install/userver-grpc-config.cmake":"taxi/uservices/userver/cmake/install/userver-grpc-config.cmake",
+  "cmake/install/userver-mysql-config.cmake":"taxi/uservices/userver/cmake/install/userver-mysql-config.cmake",
   "cmake/install/userver-postgresql-config.cmake":"taxi/uservices/userver/cmake/install/userver-postgresql-config.cmake",
   "cmake/install/userver-redis-config.cmake":"taxi/uservices/userver/cmake/install/userver-redis-config.cmake",
   "cmake/install/userver-universal-config.cmake":"taxi/uservices/userver/cmake/install/userver-universal-config.cmake",

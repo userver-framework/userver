@@ -229,6 +229,7 @@ endif()
 if (USERVER_FEATURE_MYSQL)
   _require_userver_core("USERVER_FEATURE_MYSQL")
   add_subdirectory(mysql "${CMAKE_BINARY_DIR}/userver/mysql")
+  list(APPEND USERVER_AVAILABLE_COMPONENTS mysql)
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT AND USERVER_FEATURE_CORE)
