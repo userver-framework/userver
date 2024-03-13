@@ -30,12 +30,10 @@ class FormatBuilder final : public utils::statistics::BaseFormatBuilder {
   void HandleMetric(std::string_view path, utils::statistics::LabelsSpan labels,
                     const MetricValue& value) override {
     if (value.IsHistogram()) {
-      // TODO support histogram metrics using 'le', or better yet,
-      //  using Prometheus native histograms.
-      UASSERT_MSG(false,
-                  "Histogram metrics are not supported for Prometheus yet");
+      HandleHistogram(path, labels, value);
       return;
     }
+
     DumpMetricNameAndType(path, value);
     DumpLabels(labels);
     fmt::format_to(std::back_inserter(buf_), FMT_COMPILE(" {}\n"), value);
@@ -44,6 +42,51 @@ class FormatBuilder final : public utils::statistics::BaseFormatBuilder {
   std::string Release() { return fmt::to_string(buf_); }
 
  private:
+  void AppendHistogramMetric(std::string_view metric_suffix,
+                             std::string_view path,
+                             const std::string_view& upper_bound,
+                             std::string_view value,
+                             utils::statistics::LabelsSpan labels) {
+    fmt::format_to(std::back_inserter(buf_), FMT_COMPILE("{}_{}{{"), path,
+                   metric_suffix);
+    if (!upper_bound.empty()) {
+      fmt::format_to(std::back_inserter(buf_), FMT_COMPILE("le=\"{}\""),
+                     upper_bound);
+    }
+    if (!labels.empty()) {
+      if (!upper_bound.empty()) {
+        fmt::format_to(std::back_inserter(buf_), ",");
+      }
+      DumpLabelsRaw(labels);
+    }
+    fmt::format_to(std::back_inserter(buf_), FMT_COMPILE("}} {}\n"), value);
+  }
+
+  void HandleHistogram(std::string_view path,
+                       utils::statistics::LabelsSpan labels,
+                       const MetricValue& value) {
+    static constexpr std::string_view kBucket = "bucket";
+
+    const auto prometheus_name = impl::ToPrometheusName(path);
+    DumpMetricType(prometheus_name, value);
+
+    auto histogram = value.AsHistogram();
+    const auto bucket_count = histogram.GetBucketCount();
+    std::uint64_t cumulative_sum = 0;
+    for (std::size_t i = 0; i < bucket_count; ++i) {
+      cumulative_sum += histogram.GetValueAt(i);
+      AppendHistogramMetric(kBucket, prometheus_name,
+                            fmt::to_string(histogram.GetUpperBoundAt(i)),
+                            fmt::to_string(cumulative_sum), labels);
+    }
+    cumulative_sum += histogram.GetValueAtInf();
+    AppendHistogramMetric(kBucket, prometheus_name, "+Inf",
+                          fmt::to_string(cumulative_sum), labels);
+    AppendHistogramMetric("count", prometheus_name,
+                          /* upper_bound */ "",
+                          fmt::to_string(histogram.GetTotalCount()), labels);
+  }
+
   void DumpMetricNameAndType(std::string_view name, const MetricValue& value) {
     if (const auto* const converted =
             utils::impl::FindTransparentOrNullptr(metrics_, name)) {
@@ -73,17 +116,13 @@ class FormatBuilder final : public utils::statistics::BaseFormatBuilder {
         [](std::int64_t) -> std::string_view { return "gauge"; },
         [](double) -> std::string_view { return "gauge"; },
         [](Rate) -> std::string_view { return "counter"; },
-        [](HistogramView) -> std::string_view {
-          UINVARIANT(false,
-                     "Histogram metrics are not supported for Prometheus yet");
-        },
+        [](HistogramView) -> std::string_view { return "histogram"; },
     });
     fmt::format_to(std::back_inserter(buf_), FMT_COMPILE("# TYPE {} {}\n"),
                    prometheus_name, type);
   }
 
-  void DumpLabels(utils::statistics::LabelsSpan labels) {
-    buf_.push_back('{');
+  void DumpLabelsRaw(utils::statistics::LabelsSpan labels) {
     bool sep = false;
     for (const auto& label : labels) {
       if (sep) {
@@ -97,6 +136,11 @@ class FormatBuilder final : public utils::statistics::BaseFormatBuilder {
       buf_.push_back('"');
       sep = true;
     }
+  }
+
+  void DumpLabels(utils::statistics::LabelsSpan labels) {
+    buf_.push_back('{');
+    DumpLabelsRaw(labels);
     buf_.push_back('}');
   }
 
