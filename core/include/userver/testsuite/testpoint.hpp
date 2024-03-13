@@ -21,9 +21,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace testsuite {
 
+/// @brief Returns true if testpoints are available in runtime.
 bool AreTestpointsAvailable() noexcept;
 
-}
+}  // namespace testsuite
 
 namespace testsuite::impl {
 
@@ -72,14 +73,16 @@ USERVER_NAMESPACE_END
 
 // clang-format on
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define TESTPOINT_CALLBACK(name, json, callback)        \
-  do {                                                  \
-    namespace tp = USERVER_NAMESPACE::testsuite::impl;  \
-    if (!tp::IsTestpointEnabled(name)) break;           \
-    const tp::TestpointScope tp_scope;                  \
-    if (!tp_scope) break;                               \
-    /* only evaluate 'json' if actually needed */       \
-    tp_scope.GetClient().Execute(name, json, callback); \
+#define TESTPOINT_CALLBACK(name, json, callback)                        \
+  do {                                                                  \
+    namespace tp = USERVER_NAMESPACE::testsuite;                        \
+    if (!tp::AreTestpointsAvailable()) break;                           \
+    const auto& userver_impl_tp_name = name;                            \
+    if (!tp::impl::IsTestpointEnabled(userver_impl_tp_name)) break;     \
+    const tp::impl::TestpointScope tp_scope;                            \
+    if (!tp_scope) break;                                               \
+    /* only evaluate 'json' if actually needed */                       \
+    tp_scope.GetClient().Execute(userver_impl_tp_name, json, callback); \
   } while (false)
 
 // clang-format off
@@ -109,11 +112,14 @@ USERVER_NAMESPACE_END
 ///
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define TESTPOINT_CALLBACK_NONCORO(name, json, task_processor, callback) \
-  do {                                                                   \
-    namespace tp = USERVER_NAMESPACE::testsuite::impl;                   \
-    if (!tp::IsTestpointEnabled(name)) break;                            \
-    tp::ExecuteTestpointBlocking(name, json, callback, task_processor);  \
+#define TESTPOINT_CALLBACK_NONCORO(name, json, task_processor, callback)     \
+  do {                                                                       \
+    namespace tp = USERVER_NAMESPACE::testsuite;                             \
+    if (!tp::AreTestpointsAvailable()) break;                                \
+    const auto& userver_impl_tp_name = name;                                 \
+    if (!tp::impl::IsTestpointEnabled(userver_impl_tp_name)) break;          \
+    tp::impl::ExecuteTestpointBlocking(userver_impl_tp_name, json, callback, \
+                                       task_processor);                      \
   } while (false)
 
 /// @brief Same as `TESTPOINT` but must be called outside of
