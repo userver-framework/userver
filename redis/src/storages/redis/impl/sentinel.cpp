@@ -20,7 +20,6 @@
 #include <storages/redis/impl/command.hpp>
 #include <storages/redis/impl/redis.hpp>
 #include <storages/redis/impl/sentinel_impl.hpp>
-#include <storages/redis/impl/sentinel_impl_switcher.hpp>
 #include <storages/redis/impl/subscribe_sentinel.hpp>
 
 #include "command_control_impl.hpp"
@@ -61,22 +60,13 @@ Sentinel::Sentinel(
   sentinel_thread_control_ = std::make_unique<engine::ev::ThreadControl>(
       thread_pools_->GetSentinelThreadPool().NextThread());
 
-  const bool use_cluster_sentinel =
-      !key_shard &&
-      utils::impl::kRedisClusterAutoTopologyExperiment.IsEnabled();
   sentinel_thread_control_->RunInEvLoopBlocking([&]() {
-    if (use_cluster_sentinel) {
-      auto switcher = std::make_unique<ClusterSentinelImplSwitcher>(
+    if (!key_shard) {
+      impl_ = std::make_unique<ClusterSentinelImpl>(
           *sentinel_thread_control_, thread_pools_->GetRedisThreadPool(), *this,
           shards, conns, std::move(shard_group_name), client_name, password,
           connection_security, std::move(ready_callback), std::move(key_shard),
           dynamic_config_source, mode);
-      const auto config_snapshot = dynamic_config_source.GetSnapshot();
-      const auto enabled_by_config = config_snapshot[kRedisAutoTopologyEnabled];
-
-      switcher->SetEnabledByConfig(enabled_by_config);
-      switcher->UpdateImpl(false, false);
-      impl_ = std::move(switcher);
     } else {
       impl_ = std::make_unique<SentinelImpl>(
           *sentinel_thread_control_, thread_pools_->GetRedisThreadPool(), *this,
@@ -278,7 +268,7 @@ void Sentinel::CheckShardIdx(size_t shard_idx) const {
 
 void Sentinel::CheckShardIdx(size_t shard_idx, size_t shard_count) {
   if (shard_idx >= shard_count &&
-      shard_idx != ClusterSentinelImplSwitcher::kUnknownShard) {
+      shard_idx != ClusterSentinelImpl::kUnknownShard) {
     throw InvalidArgumentException("invalid shard (" +
                                    std::to_string(shard_idx) +
                                    " >= " + std::to_string(shard_count) + ')');
@@ -307,10 +297,6 @@ void Sentinel::SetReplicationMonitoringSettings(
 void Sentinel::SetRetryBudgetSettings(
     const utils::RetryBudgetSettings& settings) {
   impl_->SetRetryBudgetSettings(settings);
-}
-
-void Sentinel::SetClusterAutoTopology(bool auto_topology) {
-  impl_->SetClusterAutoTopology(auto_topology);
 }
 
 std::vector<Request> Sentinel::MakeRequests(

@@ -57,7 +57,6 @@ struct Config final {
       replication_monitoring_settings;
   dynamic_config::ValueDict<USERVER_NAMESPACE::utils::RetryBudgetSettings>
       retry_budget_settings;
-  bool redis_cluster_autotopology_enabled{};
 };
 
 extern const dynamic_config::Key<Config> kConfig;

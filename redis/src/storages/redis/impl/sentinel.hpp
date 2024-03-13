@@ -127,7 +127,6 @@ class Sentinel {
   void SetReplicationMonitoringSettings(
       const ReplicationMonitoringSettings& replication_monitoring_settings);
   void SetRetryBudgetSettings(const utils::RetryBudgetSettings& settings);
-  void SetClusterAutoTopology(bool auto_topology);
 
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   boost::signals2::signal<void(size_t shard)> signal_instances_changed;
@@ -135,14 +134,6 @@ class Sentinel {
   boost::signals2::signal<void()> signal_not_in_cluster_mode;
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   boost::signals2::signal<void(size_t shards_count)> signal_topology_changed;
-  // TODO: remove this signal with SubscriptionStorageSwitcher after
-  // TAXICOMMON-6018
-  // This signal signaled on finish updating SentinelImpl
-  boost::signals2::signal<void(bool auto_topology, size_t shards_count,
-                               std::shared_ptr<SentinelImplBase>,
-                               std::shared_ptr<SentinelImplBase>)>
-      // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
-      signal_auto_topology_mode_changed;
 
   Request MakeRequest(CmdArgs&& args, const std::string& key,
                       bool master = true,

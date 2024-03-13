@@ -105,21 +105,6 @@ then the internal representation of the topology is recreated,
 the new topology is gets ready (new connections may appear in it),
 and after that the active topology is replaced.
 
-
-#### Enabling/Disabling Redis Cluster Autotopology
-
-At the moment aotopology could be nables via an experiment in static config of
-a service:
-
-```
-#yaml
-userver_experiments:
-  - redis-cluster-autotopology
-```
-
-The autotopology could be disabled by the dynamic config option
-REDIS_CLUSTER_AUTOTOPOLOGY_ENABLED_V2.
-
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly

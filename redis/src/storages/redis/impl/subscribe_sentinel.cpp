@@ -8,7 +8,7 @@
 #include <userver/utils/impl/userver_experiments.hpp>
 
 #include <storages/redis/dynamic_config.hpp>
-#include <storages/redis/impl/subscription_storage_switcher.hpp>
+#include <storages/redis/impl/cluster_subscription_storage.hpp>
 
 #include "sentinel_impl.hpp"
 
@@ -20,16 +20,12 @@ namespace {
 
 std::shared_ptr<SubscriptionStorageBase> CreateSubscriptionStorage(
     const std::shared_ptr<ThreadPools>& thread_pools,
-    const std::vector<std::string>& shards,
-    dynamic_config::Source dynamic_config_source, bool is_cluster_mode) {
-  const auto enabled_by_exp =
-      utils::impl::kRedisClusterAutoTopologyExperiment.IsEnabled();
+    const std::vector<std::string>& shards, bool is_cluster_mode) {
   const auto shards_count = shards.size();
   auto shard_names = std::make_shared<const std::vector<std::string>>(shards);
-  if (is_cluster_mode && enabled_by_exp) {
-    return std::make_shared<SubscriptionStorageSwitcher>(
-        thread_pools, shards_count, is_cluster_mode, std::move(shard_names),
-        dynamic_config_source);
+  if (is_cluster_mode) {
+    return std::make_shared<ClusterSubscriptionStorage>(
+        thread_pools, shards_count, is_cluster_mode);
   }
 
   return std::make_shared<SubscriptionStorage>(
@@ -53,8 +49,8 @@ SubscribeSentinel::SubscribeSentinel(
                dynamic_config_source, std::move(key_shard), command_control,
                testsuite_redis_control, ConnectionMode::kSubscriber),
       thread_pools_(thread_pools),
-      storage_(CreateSubscriptionStorage(
-          thread_pools, shards, dynamic_config_source, is_cluster_mode)),
+      storage_(
+          CreateSubscriptionStorage(thread_pools, shards, is_cluster_mode)),
       stopper_(std::make_shared<Stopper>()) {
   InitStorage();
   auto stopper = stopper_;
@@ -76,42 +72,6 @@ SubscribeSentinel::SubscribeSentinel(
 
     storage_->SetShardsCount(shards_count);
   });
-
-  signal_auto_topology_mode_changed.connect(
-      [this, stopper](bool autotopology, size_t shards_count,
-                      std::shared_ptr<SentinelImplBase> old_sentinel_impl,
-                      std::shared_ptr<SentinelImplBase> new_sentinel_impl) {
-        if (stopper->stopped) return;
-
-        if (auto storage =
-                std::dynamic_pointer_cast<SubscriptionStorageSwitcher>(
-                    storage_);
-            storage) {
-          auto old_sentinel_callback =
-              [old_sentinel_impl{std::weak_ptr(old_sentinel_impl)}](
-                  size_t shard, CommandPtr cmd) {
-                auto ptr = old_sentinel_impl.lock();
-                if (!ptr) return;
-
-                ptr->AsyncCommand(
-                    {cmd, false, shard, std::chrono::steady_clock::now()},
-                    SentinelImplBase::kDefaultPrevInstanceIdx);
-              };
-          auto new_sentinel_callback =
-              [new_sentinel_impl{std::weak_ptr(new_sentinel_impl)}](
-                  size_t shard, CommandPtr cmd) {
-                auto ptr = new_sentinel_impl.lock();
-                if (!ptr) return;
-
-                ptr->AsyncCommand(
-                    {cmd, false, shard, std::chrono::steady_clock::now()},
-                    SentinelImplBase::kDefaultPrevInstanceIdx);
-              };
-          storage->ChangeSubscriptionStorageImpl(autotopology, shards_count,
-                                                 old_sentinel_callback,
-                                                 new_sentinel_callback);
-        }
-      });
 }
 
 SubscribeSentinel::~SubscribeSentinel() {
@@ -224,10 +184,6 @@ void SubscribeSentinel::SetConfigDefaultCommandControl(
 void SubscribeSentinel::SetRebalanceMinInterval(
     std::chrono::milliseconds interval) {
   storage_->SetRebalanceMinInterval(interval);
-}
-
-void SubscribeSentinel::SetClusterAutoTopology(bool auto_topology) {
-  Sentinel::SetClusterAutoTopology(auto_topology);
 }
 
 void SubscribeSentinel::InitStorage() {

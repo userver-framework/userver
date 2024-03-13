@@ -74,5 +74,3 @@ components_manager:
             worker_threads: 4
 
     default_task_processor: main-task-processor
-userver_experiments:
-  - redis-cluster-autotopology

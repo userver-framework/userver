@@ -21,6 +21,8 @@ class ClusterSentinelImpl : public SentinelImplBase {
       size_t shard, const std::string& shard_name, bool ready)>;
   using SentinelCommand = SentinelImplBase::SentinelCommand;
 
+  static constexpr std::size_t kUnknownShard =
+      std::numeric_limits<std::size_t>::max();
   ClusterSentinelImpl(
       const engine::ev::ThreadControl& sentinel_thread_control,
       const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
