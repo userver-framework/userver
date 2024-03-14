@@ -1,0 +1,84 @@
+# yaml
+components_manager:
+    components:
+        handler-https-httpserver:
+            path: /https/httpserver
+            task_processor: main-task-processor
+            method: GET,DELETE,POST
+
+        handler-server-monitor:
+            path: /service/monitor
+            method: GET
+            task_processor: main-task-processor
+
+        handler-on-log-rotate:
+            path: /service/on-log-rotate/
+            method: POST
+            task_processor: monitor-task-processor
+
+        testsuite-support:
+
+        http-client:
+            fs-task-processor: main-task-processor
+
+        tests-control:
+            method: POST
+            path: /tests/{action}
+            skip-unregistered-testpoints: true
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            testpoint-url: $mockserver/testpoint
+            throttling_enabled: false
+
+        logging-configurator:
+            limited-logging-enable: false
+            limited-logging-interval: 10s
+
+        server:
+            listener:
+                port: 8187
+                task_processor: main-task-processor
+                handler-defaults:
+                    deadline_expired_status_code: 504
+                tls:
+                    cert: cert.crt
+                    private-key: private_key.key
+                    private-key-passphrase-name: tls
+
+            listener-monitor:
+                port: 8188
+                task_processor: main-task-processor
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+
+        dns-client:
+            fs-task-processor: fs-task-processor
+
+        handler-fired-alerts:
+            path: /service/fired-alerts
+            method: GET
+            task_processor: main-task-processor
+
+        secdist:
+            provider: default-secdist-provider
+
+        default-secdist-provider:
+            config: secdist.json
+            missing-ok: false
+
+    task_processors:
+        main-task-processor:
+            worker_threads: 4
+        fs-task-processor:
+            worker_threads: 2
+        monitor-task-processor:
+            thread_name: mon-worker
+            worker_threads: $monitor_worker_threads
+            worker_threads#fallback: 1
+
+    default_task_processor: main-task-processor
