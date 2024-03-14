@@ -1992,6 +1992,7 @@
   "postgresql/functional_tests/integration_tests/static_config.yaml":"taxi/uservices/userver/postgresql/functional_tests/integration_tests/static_config.yaml",
   "postgresql/functional_tests/integration_tests/tests/conftest.py":"taxi/uservices/userver/postgresql/functional_tests/integration_tests/tests/conftest.py",
   "postgresql/functional_tests/integration_tests/tests/test_failover.py":"taxi/uservices/userver/postgresql/functional_tests/integration_tests/tests/test_failover.py",
+  "postgresql/functional_tests/integration_tests/tests/test_ntrx_failure.py":"taxi/uservices/userver/postgresql/functional_tests/integration_tests/tests/test_ntrx_failure.py",
   "postgresql/functional_tests/integration_tests/tests/test_trx_failure.py":"taxi/uservices/userver/postgresql/functional_tests/integration_tests/tests/test_trx_failure.py",
   "postgresql/functional_tests/integration_tests/tests/test_ttl.py":"taxi/uservices/userver/postgresql/functional_tests/integration_tests/tests/test_ttl.py",
   "postgresql/functional_tests/metrics/CMakeLists.txt":"taxi/uservices/userver/postgresql/functional_tests/metrics/CMakeLists.txt",

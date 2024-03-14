@@ -3,6 +3,7 @@ Plugin that imports the required fixtures to start the database
 and adjusts the PostgreSQL "dbconnection" static config value.
 """
 
+from contextlib import contextmanager
 import typing
 
 import pytest
@@ -17,6 +18,34 @@ pytest_plugins = [
 
 
 USERVER_CONFIG_HOOKS = ['userver_pg_config']
+
+
+class RegisteredNtrx:
+    def __init__(self, testpoint):
+        self._registered_ntrx = set()
+        self._testpoint = testpoint
+
+    def _enable_failure(self, name: str) -> None:
+        self._registered_ntrx.add(name)
+
+        @self._testpoint(f'pg_ntrx_execute::{name}')
+        def _failure_tp(data):
+            return {'inject_failure': self.is_failure_enabled(name)}
+
+    def _disable_failure(self, name: str) -> None:
+        if self.is_failure_enabled(name):
+            self._registered_ntrx.remove(name)
+
+    def is_failure_enabled(self, name: str) -> bool:
+        return name in self._registered_ntrx
+
+    @contextmanager
+    def mock_failure(self, name: str):
+        self._enable_failure(name)
+        try:
+            yield
+        finally:
+            self._disable_failure(name)
 
 
 @pytest.fixture(scope='session')
@@ -97,3 +126,19 @@ def userver_pg_trx(
         return {'trx_should_fail': should_fail}
 
     yield registered
+
+
+@pytest.fixture
+def userver_pg_ntrx(testpoint) -> typing.Generator[RegisteredNtrx, None, None]:
+    """
+    The fixture maintains single query fault injection state using
+    RegisteredNtrx class.
+
+    @see pytest_userver.plugins.postgresql.RegisteredNtrx
+
+    @snippet postgresql/functional_tests/integration_tests/tests/test_ntrx_failure.py  fault injection
+
+    @ingroup userver_testsuite_fixtures
+    """  # noqa: E501
+
+    yield RegisteredNtrx(testpoint)
