@@ -375,14 +375,14 @@ Request Request::data(std::string data) && {
   return std::move(this->data(std::move(data)));
 }
 
-Request& Request::form(const Form& form) & {
+Request& Request::form(Form&& form) & {
   pimpl_->easy().set_http_post(form.GetNative());
   pimpl_->easy().add_header(kHeaderExpect, "",
                             curl::easy::EmptyHeaderAction::kDoNotSend);
   return *this;
 }
-Request Request::form(const Form& form) && {
-  return std::move(this->form(form));
+Request Request::form(Form&& form) && {
+  return std::move(this->form(std::forward<Form>(form)));
 }
 
 Request& Request::headers(const Headers& headers) & {
@@ -550,11 +550,11 @@ Request Request::head(const std::string& url) && {
   return std::move(this->head(url));
 }
 
-Request& Request::post(const std::string& url, const Form& form) & {
-  return this->url(url).form(form);
+Request& Request::post(const std::string& url, Form&& form) & {
+  return this->url(url).form(std::forward<Form>(form));
 }
-Request Request::post(const std::string& url, const Form& form) && {
-  return std::move(this->post(url, form));
+Request Request::post(const std::string& url, Form&& form) && {
+  return std::move(this->post(url, std::forward<Form>(form)));
 }
 
 Request& Request::post(const std::string& url, std::string data) & {

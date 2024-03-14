@@ -121,8 +121,8 @@ class Request final {
   Request& post(const std::string& url, std::string data = {}) &;
   Request post(const std::string& url, std::string data = {}) &&;
   /// POST request with url and multipart/form-data
-  Request& post(const std::string& url, const Form& form) &;
-  Request post(const std::string& url, const Form& form) &&;
+  Request& post(const std::string& url, Form&& form) &;
+  Request post(const std::string& url, Form&& form) &&;
   /// PUT request
   Request& put() &;
   Request put() &&;
@@ -158,8 +158,8 @@ class Request final {
   Request& data(std::string data) &;
   Request data(std::string data) &&;
   /// form for POST request
-  Request& form(const Form& form) &;
-  Request form(const Form& form) &&;
+  Request& form(Form&& form) &;
+  Request form(Form&& form) &&;
   /// Headers for request as map
   Request& headers(const Headers& headers) &;
   Request headers(const Headers& headers) &&;

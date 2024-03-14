@@ -117,7 +117,7 @@ UTEST(CurlFormTest, MultipartFileWithContentType) {
                  kImageJpeg);
 
   auto resp = http_client_ptr->CreateRequest()
-                  .post(http_server.GetBaseUrl(), form)
+                  .post(http_server.GetBaseUrl(), std::move(form))
                   .retry(1)
                   .verify(true)
                   .http_version(clients::http::HttpVersion::k11)
@@ -139,7 +139,7 @@ UTEST(CurlFormTest, FilesWithContentType) {
                  std::make_shared<std::string>(kOtherTestData), kImageBmp);
 
   auto resp = http_client_ptr->CreateRequest()
-                  .post(http_server.GetBaseUrl(), form)
+                  .post(http_server.GetBaseUrl(), std::move(form))
                   .retry(1)
                   .verify(true)
                   .http_version(clients::http::HttpVersion::k11)
@@ -147,6 +147,50 @@ UTEST(CurlFormTest, FilesWithContentType) {
                   .perform();
 
   EXPECT_EQ(resp->status_code(), clients::http::Status::OK);
+}
+
+UTEST(CurlFormTest, FormMovable) {
+  const utest::SimpleServer http_server{&validating_callback2};
+
+  auto http_client_ptr = utest::CreateHttpClient();
+
+  auto form_ctor = []() {
+    clients::http::Form form;
+    form.AddBuffer(kKey, kFileNameTxt, std::make_shared<std::string>(kTestData),
+                   kImageJpeg);
+
+    form.AddBuffer(kKey2, kFileName2Bmp,
+                   std::make_shared<std::string>(kOtherTestData), kImageBmp);
+    return form;
+  };
+
+  {
+    clients::http::Form form(form_ctor());
+
+    auto resp = http_client_ptr->CreateRequest()
+                    .post(http_server.GetBaseUrl(), std::move(form))
+                    .retry(1)
+                    .verify(true)
+                    .http_version(clients::http::HttpVersion::k11)
+                    .timeout(std::chrono::milliseconds(100))
+                    .perform();
+
+    EXPECT_EQ(resp->status_code(), clients::http::Status::OK);
+  }
+
+  {
+    clients::http::Form form = form_ctor();
+
+    auto resp = http_client_ptr->CreateRequest()
+                    .post(http_server.GetBaseUrl(), std::move(form))
+                    .retry(1)
+                    .verify(true)
+                    .http_version(clients::http::HttpVersion::k11)
+                    .timeout(std::chrono::milliseconds(100))
+                    .perform();
+
+    EXPECT_EQ(resp->status_code(), clients::http::Status::OK);
+  }
 }
 
 USERVER_NAMESPACE_END

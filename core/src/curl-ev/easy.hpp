@@ -443,8 +443,8 @@ class easy final : public std::enable_shared_from_this<easy> {
                         native::CURLOPT_POSTFIELDSIZE_LARGE,
                         native::curl_off_t);
 
-  void set_http_post(std::shared_ptr<form> form);
-  void set_http_post(std::shared_ptr<form> form, std::error_code& ec);
+  void set_http_post(std::unique_ptr<form> form);
+  void set_http_post(std::unique_ptr<form> form, std::error_code& ec);
 
   IMPLEMENT_CURL_OPTION_STRING(set_referer, native::CURLOPT_REFERER);
   IMPLEMENT_CURL_OPTION_STRING(set_user_agent, native::CURLOPT_USERAGENT);
