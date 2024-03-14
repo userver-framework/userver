@@ -1,5 +1,7 @@
 #include <userver/utils/regex.hpp>
 
+#include <iterator>
+
 #include <boost/regex.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -36,6 +38,17 @@ bool regex_match(std::string_view str, const regex& pattern) {
 
 bool regex_search(std::string_view str, const regex& pattern) {
   return boost::regex_search(str.begin(), str.end(), pattern.impl_->r);
+}
+
+std::string regex_replace(std::string_view str, const regex& pattern,
+                          std::string_view repl) {
+  std::string res;
+  res.reserve(str.size() + str.size() / 4);
+
+  boost::regex_replace(std::back_inserter(res), str.begin(), str.end(),
+                       pattern.impl_->r, repl);
+
+  return res;
 }
 
 }  // namespace utils
