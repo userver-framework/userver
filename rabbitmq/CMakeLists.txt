@@ -24,8 +24,20 @@ endif()
 target_link_libraries(${PROJECT_NAME} PRIVATE amqpcpp)
 target_include_directories(
   ${PROJECT_NAME}
-  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
+  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+
+_userver_directory_install(COMPONENT rabbitmq
+  DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
+)
+_userver_install_targets(COMPONENT rabbitmq TARGETS ${PROJECT_NAME})
+
+_userver_directory_install(COMPONENT rabbitmq FILES
+    "${USERVER_ROOT_DIR}/cmake/install/userver-rabbitmq-config.cmake"
+	"${USERVER_ROOT_DIR}/cmake/SetupAmqpCPP.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
 )
 
 if (USERVER_IS_THE_ROOT_PROJECT)

@@ -224,6 +224,7 @@ endif()
 if (USERVER_FEATURE_RABBITMQ)
   _require_userver_core("USERVER_FEATURE_RABBITMQ")
   add_subdirectory(rabbitmq "${CMAKE_BINARY_DIR}/userver/rabbitmq")
+  list(APPEND USERVER_AVAILABLE_COMPONENTS rabbitmq)
 endif()
 
 if (USERVER_FEATURE_MYSQL)
