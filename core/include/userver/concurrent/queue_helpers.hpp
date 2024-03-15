@@ -38,7 +38,11 @@ class Producer final {
   Producer(const Producer&) = delete;
   Producer(Producer&&) noexcept = default;
   Producer& operator=(const Producer&) = delete;
-  Producer& operator=(Producer&&) noexcept = default;
+  Producer& operator=(Producer&& other) noexcept {
+    queue_.swap(other.queue_);
+    std::swap(token_, other.token_);
+    return *this;
+  }
 
   ~Producer() {
     if (queue_) queue_->MarkProducerIsDead();
@@ -101,7 +105,11 @@ class Consumer final {
   Consumer(const Consumer&) = delete;
   Consumer(Consumer&&) noexcept = default;
   Consumer& operator=(const Consumer&) = delete;
-  Consumer& operator=(Consumer&&) noexcept = default;
+  Consumer& operator=(Consumer&& other) noexcept {
+    queue_.swap(other.queue_);
+    std::swap(token_, other.token_);
+    return *this;
+  }
 
   ~Consumer() {
     if (queue_) queue_->MarkConsumerIsDead();
