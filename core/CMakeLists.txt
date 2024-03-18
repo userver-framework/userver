@@ -86,6 +86,9 @@ endif()
 
 if (USERVER_DISABLE_RSEQ_ACCELERATION)
   target_compile_definitions(${PROJECT_NAME} PRIVATE USERVER_DISABLE_RSEQ_ACCELERATION)
+else()
+  add_subdirectory(${USERVER_THIRD_PARTY_DIRS}/librseq librseq)
+  target_link_libraries(${PROJECT_NAME} PRIVATE userver-librseq)
 endif()
 
 # https://github.com/jemalloc/jemalloc/issues/820
@@ -112,11 +115,8 @@ target_link_libraries(${PROJECT_NAME}
     ZLIB::ZLIB
 )
 
-add_subdirectory(${USERVER_THIRD_PARTY_DIRS}/librseq librseq)
-
 add_subdirectory(${USERVER_THIRD_PARTY_DIRS}/llhttp llhttp)
-
-target_link_libraries(${PROJECT_NAME} PRIVATE userver-librseq PUBLIC userver-llhttp)
+target_link_libraries(${PROJECT_NAME} PUBLIC userver-llhttp)
 
 if (USERVER_FEATURE_UBOOST_CORO)
     add_subdirectory(${USERVER_THIRD_PARTY_DIRS}/uboost_coro uboost_coro_build)
