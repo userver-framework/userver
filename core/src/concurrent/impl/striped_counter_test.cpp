@@ -1,10 +1,13 @@
-#include <userver/utest/utest.hpp>
+#include <concurrent/impl/striped_counter.hpp>
 
+#include <atomic>
 #include <limits>
 
-#include <concurrent/impl/striped_counter.hpp>
 #include <userver/engine/async.hpp>
-#include <userver/engine/run_standalone.hpp>
+#include <userver/engine/deadline.hpp>
+#include <userver/engine/sleep.hpp>
+#include <userver/utest/utest.hpp>
+#include <userver/utils/fixed_array.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -12,7 +15,9 @@ namespace {
 
 using StripedCounter = concurrent::impl::StripedCounter;
 
-}
+constexpr std::size_t kThreads = 32;
+
+}  // namespace
 
 TEST(StripedCounter, Works) {
   StripedCounter counter{};
@@ -35,25 +40,31 @@ TEST(StripedCounter, IncrementDecrement) {
   EXPECT_EQ(0, counter.NonNegativeRead());
 }
 
-TEST(StripedCounter, Concurrency) {
-  constexpr std::size_t kIterations = 1'000'000;
-  constexpr std::size_t kThreads = 32;
+UTEST_MT(StripedCounter, Stress, kThreads + 1) {
+  const auto test_deadline =
+      engine::Deadline::FromDuration(std::chrono::milliseconds{100});
+  std::atomic<bool> keep_running{true};
   StripedCounter counter{};
-  engine::RunStandalone(kThreads, [&counter] {
-    std::vector<engine::TaskWithResult<void>> tasks(kThreads);
-    for (auto& task : tasks) {
-      task = engine::AsyncNoSpan([&counter] {
-        for (std::size_t i = 0; i < kIterations; ++i) {
-          counter.Add(1);
-        }
-      });
-    }
-    for (auto& task : tasks) {
-      task.Wait();
-    }
+
+  auto tasks = utils::GenerateFixedArray(kThreads, [&](std::size_t) {
+    return engine::AsyncNoSpan([&] {
+      std::uint64_t local_counter = 0;
+      while (keep_running.load(std::memory_order_acquire)) {
+        counter.Add(1);
+        ++local_counter;
+      }
+      return local_counter;
+    });
   });
 
-  EXPECT_EQ(counter.Read(), kThreads * kIterations);
+  engine::SleepUntil(test_deadline);
+  keep_running = false;
+  std::uint64_t total_count = 0;
+  for (auto& task : tasks) {
+    UEXPECT_NO_THROW(total_count += task.Get());
+  }
+
+  EXPECT_EQ(counter.Read(), total_count);
 }
 
 USERVER_NAMESPACE_END

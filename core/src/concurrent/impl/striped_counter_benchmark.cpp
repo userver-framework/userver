@@ -1,15 +1,16 @@
 #include <benchmark/benchmark.h>
 
 #include <atomic>
+#include <future>
 
 #include <concurrent/impl/striped_counter.hpp>
+#include <utils/impl/parallelize_benchmark.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace {
 
 using StripedCounter = concurrent::impl::StripedCounter;
-StripedCounter striped_counter{};
 
 class NaiveCounter final {
  public:
@@ -20,32 +21,22 @@ class NaiveCounter final {
  private:
   std::atomic<std::int64_t> value_{0};
 };
-NaiveCounter naive_counter{};
-
-template <typename T>
-auto& GetCounter() {
-  if constexpr (std::is_same_v<T, StripedCounter>) {
-    return striped_counter;
-  } else if constexpr (std::is_same_v<T, NaiveCounter>) {
-    return naive_counter;
-  } else {
-    static_assert(!sizeof(T));
-  }
-}
 
 }  // namespace
 
 template <typename Counter>
 void CounterBenchmark(benchmark::State& state) {
-  auto& counter = GetCounter<Counter>();
+  Counter counter;
   const auto before = counter.Read();
 
-  for ([[maybe_unused]] auto _ : state) {
-    // inner loop to reduce accounting overhead
-    for (std::size_t i = 0; i < 10; ++i) {
-      counter.Add(1);
+  RunParallelBenchmark(state, [&](auto& range) {
+    for ([[maybe_unused]] auto _ : range) {
+      // inner loop to reduce accounting overhead
+      for (std::size_t i = 0; i < 10; ++i) {
+        counter.Add(1);
+      }
     }
-  }
+  });
 
   const auto after = counter.Read();
   if (before == after) {
@@ -53,7 +44,11 @@ void CounterBenchmark(benchmark::State& state) {
   }
 }
 
-BENCHMARK_TEMPLATE(CounterBenchmark, NaiveCounter)->ThreadRange(1, 64);
-BENCHMARK_TEMPLATE(CounterBenchmark, StripedCounter)->ThreadRange(1, 64);
+BENCHMARK_TEMPLATE(CounterBenchmark, NaiveCounter)
+    ->RangeMultiplier(2)
+    ->Range(1, 64);
+BENCHMARK_TEMPLATE(CounterBenchmark, StripedCounter)
+    ->RangeMultiplier(2)
+    ->Range(1, 64);
 
 USERVER_NAMESPACE_END

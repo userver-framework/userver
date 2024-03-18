@@ -5,9 +5,8 @@
 
 #include <benchmark/benchmark.h>
 
-#include <userver/engine/async.hpp>
 #include <userver/engine/run_standalone.hpp>
-#include <userver/engine/task/task_with_result.hpp>
+#include <utils/impl/parallelize_benchmark.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -25,29 +24,14 @@ void intrusive_walkable_pool(benchmark::State& state) {
     concurrent::impl::IntrusiveWalkablePool<
         IntNode, concurrent::impl::MemberHook<&IntNode::hook>>
         pool;
-    std::atomic<bool> keep_running{true};
 
-    const auto work = [&pool] {
-      auto& node = pool.Acquire();
-      node.value.store(node.value.load() + 1, std::memory_order_relaxed);
-      pool.Release(node);
-    };
-
-    std::vector<engine::TaskWithResult<void>> tasks;
-    for (std::int64_t i = 0; i < state.range(0) - 1; ++i) {
-      tasks.push_back(engine::AsyncNoSpan([work, &keep_running] {
-        while (keep_running) {
-          work();
-        }
-      }));
-    }
-
-    for ([[maybe_unused]] auto _ : state) {
-      work();
-    }
-
-    keep_running = false;
-    for (auto& task : tasks) task.Get();
+    RunParallelBenchmark(state, [&pool](auto& range) {
+      for ([[maybe_unused]] auto _ : range) {
+        auto& node = pool.Acquire();
+        node.value.store(node.value.load() + 1, std::memory_order_relaxed);
+        pool.Release(node);
+      }
+    });
   });
 }
 BENCHMARK(intrusive_walkable_pool)

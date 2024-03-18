@@ -12,69 +12,11 @@
 #include <userver/engine/run_standalone.hpp>
 #include <userver/engine/single_waiting_task_mutex.hpp>
 #include <userver/utils/rand.hpp>
+#include <utils/impl/parallelize_benchmark.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace {
-
-class ThreadPool {
- public:
-  template <typename Func>
-  ThreadPool(std::size_t count, Func func) {
-    for (std::size_t i = 0; i < count; i++) {
-      tasks.push_back(std::thread(func));
-    }
-  }
-
-  void Wait() {
-    for (auto& t : tasks) {
-      t.join();
-    }
-  }
-
- private:
-  std::vector<std::thread> tasks;
-};
-
-class AsyncCoroPool {
- public:
-  template <typename Func>
-  AsyncCoroPool(std::size_t count, Func func) {
-    for (std::size_t i = 0; i < count; i++) {
-      tasks.push_back(engine::AsyncNoSpan(func));
-    }
-  }
-
-  void Wait() {
-    for (auto& t : tasks) {
-      t.Get();
-    }
-  }
-
- private:
-  std::vector<engine::TaskWithResult<void>> tasks;
-};
-
-template <typename T>
-struct PoolForImpl;
-
-template <>
-struct PoolForImpl<std::mutex> {
-  using Pool = ThreadPool;
-};
-
-template <>
-struct PoolForImpl<engine::Mutex> {
-  using Pool = AsyncCoroPool;
-};
-
-template <>
-struct PoolForImpl<engine::SingleWaitingTaskMutex> {
-  using Pool = AsyncCoroPool;
-};
-
-template <typename T>
-using PoolFor = typename PoolForImpl<T>::Pool;
 
 //////// Generic cases for benchmarking
 
@@ -132,14 +74,13 @@ void generic_unlock(benchmark::State& state) {
 
 template <typename Mutex>
 void generic_contention(benchmark::State& state) {
-  std::atomic<bool> run{true};
   std::atomic<std::size_t> lock_unlock_count{0};
   concurrent::impl::InterferenceShield<Mutex> m;
 
-  PoolFor<Mutex> pool(state.range(0) - 1, [&]() {
+  RunParallelBenchmark(state, [&](auto& range) {
     std::uint64_t local_lock_unlock_count = 0;
 
-    while (run) {
+    for ([[maybe_unused]] auto _ : range) {
       m->lock();
       m->unlock();
       ++local_lock_unlock_count;
@@ -148,18 +89,6 @@ void generic_contention(benchmark::State& state) {
     lock_unlock_count += local_lock_unlock_count;
   });
 
-  std::uint64_t local_lock_unlock_count = 0;
-
-  for ([[maybe_unused]] auto _ : state) {
-    m->lock();
-    m->unlock();
-    ++local_lock_unlock_count;
-  }
-
-  lock_unlock_count += local_lock_unlock_count;
-
-  run = false;
-  pool.Wait();
   const auto total_lock_unlock_count =
       static_cast<double>(lock_unlock_count.load());
   state.counters["locks"] =
@@ -170,14 +99,13 @@ void generic_contention(benchmark::State& state) {
 
 template <typename Mutex>
 void generic_contention_with_payload(benchmark::State& state) {
-  std::atomic<bool> run{true};
   std::atomic<std::uint64_t> lock_unlock_count{0};
   concurrent::impl::InterferenceShield<Mutex> m;
 
-  PoolFor<Mutex> pool(state.range(0) - 1, [&]() {
+  RunParallelBenchmark(state, [&](auto& range) {
     std::uint64_t local_lock_unlock_count = 0;
 
-    while (run) {
+    for ([[maybe_unused]] auto _ : range) {
       m->lock();
       for (int i = 0; i < 10; ++i) {
         benchmark::DoNotOptimize(utils::Rand());
@@ -189,21 +117,6 @@ void generic_contention_with_payload(benchmark::State& state) {
     lock_unlock_count += local_lock_unlock_count;
   });
 
-  std::uint64_t local_lock_unlock_count = 0;
-
-  for ([[maybe_unused]] auto _ : state) {
-    m->lock();
-    for (int i = 0; i < 10; ++i) {
-      benchmark::DoNotOptimize(utils::Rand());
-    }
-    m->unlock();
-    ++local_lock_unlock_count;
-  }
-
-  lock_unlock_count += local_lock_unlock_count;
-
-  run = false;
-  pool.Wait();
   const auto total_lock_unlock_count =
       static_cast<double>(lock_unlock_count.load());
   state.counters["locks"] =
