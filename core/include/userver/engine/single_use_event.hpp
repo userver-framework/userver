@@ -86,6 +86,7 @@ class SingleUseEvent final : private impl::ContextAccessor {
   impl::EarlyWakeup TryAppendWaiter(impl::TaskContext& waiter) override;
   void RemoveWaiter(impl::TaskContext& waiter) noexcept override;
   void RethrowErrorResult() const override;
+  void AfterWait() noexcept override;
 
   impl::FastPimplWaitListLight waiters_;
 };

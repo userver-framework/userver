@@ -30,7 +30,13 @@ FutureStatus DoWaitAllChecked(utils::span<ContextAccessor*> targets,
     }
     if (all_completed) break;
 
-    switch (current.Sleep(wait_strategy, deadline)) {
+    auto sleep_status = current.Sleep(wait_strategy, deadline);
+
+    for (const auto& target : targets) {
+      if (target) target->AfterWait();
+    }
+
+    switch (sleep_status) {
       case TaskContext::WakeupSource::kWaitList:
         break;
       case TaskContext::WakeupSource::kDeadlineTimer:

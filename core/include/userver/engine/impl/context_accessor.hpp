@@ -23,7 +23,12 @@ class ContextAccessor {
   virtual EarlyWakeup TryAppendWaiter(TaskContext& waiter) = 0;
 
   // Remove `waiter` from the internal wait list if it's still there.
+  // You may not sleep in `RemoveWaiter`, unlike in `AfterWait`.
   virtual void RemoveWaiter(TaskContext& waiter) noexcept = 0;
+
+  // Wait for some cleanup (e.g. wait for `waiter` to actually remove itself).
+  // You may sleep in `AfterWait`.
+  virtual void AfterWait() noexcept = 0;
 
   // Precondition: IsReady
   // This method is required for WaitAllChecked to properly function.

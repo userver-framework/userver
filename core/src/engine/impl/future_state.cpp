@@ -73,6 +73,8 @@ void FutureStateBase::RemoveWaiter(TaskContext& context) noexcept {
   finish_waiters_->Remove(context);
 }
 
+void FutureStateBase::AfterWait() noexcept {}
+
 }  // namespace engine::impl
 
 USERVER_NAMESPACE_END

@@ -104,6 +104,8 @@ struct FdPoller::Impl final : public engine::impl::ContextAccessor {
     watcher_.StopAsync();
   }
 
+  void AfterWait() noexcept override { watcher_.Stop(); }
+
   void RethrowErrorResult() const override {}
 
   int fd_{-1};

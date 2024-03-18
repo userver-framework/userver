@@ -180,6 +180,7 @@ class TaskContext final : public ContextAccessor {
   bool IsReady() const noexcept override;
   EarlyWakeup TryAppendWaiter(TaskContext& waiter) override;
   void RemoveWaiter(TaskContext& waiter) noexcept override;
+  void AfterWait() noexcept override;
   void RethrowErrorResult() const override;
 
   size_t UseCount() const noexcept;

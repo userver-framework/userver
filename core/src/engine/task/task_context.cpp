@@ -563,6 +563,8 @@ void TaskContext::RemoveWaiter(TaskContext& waiter) noexcept {
   finish_waiters_->Remove(waiter);
 }
 
+void TaskContext::AfterWait() noexcept {}
+
 void TaskContext::RethrowErrorResult() const {
   UASSERT(IsFinished());
   if (state_.load(std::memory_order_relaxed) != Task::State::kCompleted) {

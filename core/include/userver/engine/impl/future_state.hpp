@@ -38,6 +38,7 @@ class FutureStateBase : private ContextAccessor {
 
   EarlyWakeup TryAppendWaiter(TaskContext& waiter) final;
   void RemoveWaiter(TaskContext& waiter) noexcept final;
+  void AfterWait() noexcept final;
 
   FastPimplWaitListLight finish_waiters_;
   std::atomic<bool> is_ready_;
