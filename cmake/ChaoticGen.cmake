@@ -14,7 +14,7 @@ userver_venv_setup(
 
 function(userver_target_generate_chaotic TARGET)
     set(OPTIONS)
-    set(ONE_VALUE_ARGS OUTPUT_DIR)
+    set(ONE_VALUE_ARGS OUTPUT_DIR RELATIVE_TO)
     set(MULTI_VALUE_ARGS SCHEMAS ARGS)
     cmake_parse_arguments(
         PARSE "${OPTIONS}" "${ONE_VALUE_ARGS}" "${MULTI_VALUE_ARGS}" ${ARGN}
@@ -29,15 +29,29 @@ function(userver_target_generate_chaotic TARGET)
         message(FATAL_ERROR "SCHEMAS is required")
     endif()
 
+    if (NOT PARSE_RELATIVE_TO)
+	message(FATAL_ERROR "RELATIVE_TO is required")
+    endif()
+
+    set(SCHEMAS)
+    foreach(PARSE_SCHEMA ${PARSE_SCHEMAS})
+        file(RELATIVE_PATH SCHEMA "${PARSE_RELATIVE_TO}" "${PARSE_SCHEMA}")
+
+	string(REGEX REPLACE "^(.*)\\.([^.]*)\$" "\\1" SCHEMA ${SCHEMA})
+	set(SCHEMA ${PARSE_OUTPUT_DIR}/${SCHEMA}.cpp)
+
+	list(APPEND SCHEMAS ${SCHEMA})
+    endforeach()
+
     add_custom_command(
         OUTPUT
-            "${PARSE_OUTPUT_DIR}/file.cpp"
-            "${PARSE_OUTPUT_DIR}/file.hpp"
+	    ${SCHEMAS}
         COMMAND
             env USERVER_PYTHON=${USERVER_CHAOTIC_PYTHON_BINARY}
             ${CHAOTIC_BIN}
             ${PARSE_ARGS}
             -o "${PARSE_OUTPUT_DIR}"
+	    --relative-to "${RELATIVE_TO}"
             ${PARSE_SCHEMAS}
         DEPENDS
             ${PARSE_SCHEMAS}
@@ -45,7 +59,7 @@ function(userver_target_generate_chaotic TARGET)
             ${CMAKE_CURRENT_SOURCE_DIR}
         VERBATIM
     )
-    add_library(${TARGET} ${PARSE_OUTPUT_DIR}/file.cpp)
+    add_library(${TARGET} ${SCHEMAS})
     target_link_libraries(${TARGET} userver-universal)
     target_include_directories(${TARGET} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
     target_include_directories(${TARGET} PUBLIC "${PARSE_OUTPUT_DIR}")
