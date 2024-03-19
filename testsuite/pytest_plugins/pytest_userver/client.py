@@ -899,7 +899,7 @@ class AiohttpClient(service_client.AiohttpClient):
     ) -> None:
         if cache_names is None and clean_update:
             if self._allow_all_caches_invalidation:
-                warnings.warn(CACHE_INVALIDATION_MESSAGE)
+                warnings.warn(CACHE_INVALIDATION_MESSAGE, DeprecationWarning)
             else:
                 __tracebackhide__ = True
                 raise RuntimeError(CACHE_INVALIDATION_MESSAGE)

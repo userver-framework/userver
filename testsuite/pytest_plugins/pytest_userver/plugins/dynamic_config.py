@@ -87,7 +87,9 @@ class _Changelog:
     entries: typing.List[_ChangelogEntry]
 
     def __init__(self):
-        self.timestamp = datetime.datetime.utcfromtimestamp(0)
+        self.timestamp = datetime.datetime.fromtimestamp(
+            0, datetime.timezone.utc,
+        )
         self.last_entry = _ChangelogEntry.new(
             timestamp=self.service_timestamp(), previous=None,
         )
