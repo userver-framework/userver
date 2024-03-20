@@ -91,7 +91,6 @@ class UserverConan(ConanFile):
         self.requires('libnghttp2/1.51.0')
         self.requires('libcurl/7.86.0')
         self.requires('libev/4.33')
-        self.requires('http_parser/2.9.4')
         self.requires('openssl/1.1.1s')
         self.requires('rapidjson/cci.20220822', transitive_headers=True)
         self.requires('yaml-cpp/0.7.0')
@@ -365,9 +364,6 @@ class UserverConan(ConanFile):
         def libev():
             return ['libev::libev']
 
-        def http_parser():
-            return ['http_parser::http_parser']
-
         def libnghttp2():
             return ['libnghttp2::libnghttp2']
 
@@ -442,7 +438,6 @@ class UserverConan(ConanFile):
                     + concurrentqueue()
                     + yaml()
                     + libev()
-                    + http_parser()
                     + libnghttp2()
                     + curl()
                     + cryptopp()

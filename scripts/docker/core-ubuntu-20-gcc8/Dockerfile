@@ -34,7 +34,6 @@ RUN apt-get update && apt-get install -y --allow-unauthenticated \
     libyaml-cpp-dev \
     libssl-dev \
     libcctz-dev \
-    libhttp-parser-dev \
     libnghttp2-dev \
     libjemalloc-dev \
     libldap2-dev \

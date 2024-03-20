@@ -24,7 +24,6 @@ libgrpc++-dev
 libgrpc++1
 libgtest-dev
 libhiredis-dev
-libhttp-parser-dev
 libjemalloc-dev
 libkrb5-dev
 libldap2-dev

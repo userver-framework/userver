@@ -10,7 +10,6 @@ git
 grpc
 gtest
 hiredis
-http-parser
 jemalloc
 krb5
 libev
