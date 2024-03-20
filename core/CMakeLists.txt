@@ -64,7 +64,6 @@ if (USERVER_CONAN)
     find_package(c-ares REQUIRED)
     find_package(CURL REQUIRED)
     find_package(cryptopp REQUIRED)
-    find_package(http_parser REQUIRED)
     find_package(libnghttp2 REQUIRED)
     find_package(libev REQUIRED)
 
@@ -73,7 +72,6 @@ else()
     include(SetupCAres)
     include(SetupCURL)
     include(SetupCryptoPP)
-    find_package(Http_Parser REQUIRED)
     find_package(Nghttp2 REQUIRED)
     find_package(LibEv REQUIRED)
 endif()
@@ -116,7 +114,10 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 add_subdirectory(${USERVER_THIRD_PARTY_DIRS}/llhttp llhttp)
-target_link_libraries(${PROJECT_NAME} PUBLIC userver-llhttp)
+
+add_subdirectory(${USERVER_THIRD_PARTY_DIRS}/http-parser http-parser)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE userver-librseq userver-http-parser PUBLIC userver-llhttp)
 
 if (USERVER_FEATURE_UBOOST_CORO)
     add_subdirectory(${USERVER_THIRD_PARTY_DIRS}/uboost_coro uboost_coro_build)
@@ -148,7 +149,6 @@ if (USERVER_CONAN)
         concurrentqueue::concurrentqueue
       PRIVATE
         cryptopp::cryptopp
-        http_parser::http_parser
         libev::libev
         libnghttp2::nghttp2
     )
@@ -158,7 +158,6 @@ else()
         c-ares::cares
       PRIVATE
         CryptoPP
-        Http_Parser
         Nghttp2
         LibEv
     )
@@ -300,7 +299,6 @@ _userver_directory_install(COMPONENT core FILES
     "${USERVER_ROOT_DIR}/cmake/UserverTestsuite.cmake"
     "${USERVER_ROOT_DIR}/cmake/install/userver-core-config.cmake"
     "${CMAKE_BINARY_DIR}/cmake_generated/Findc-ares.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/FindHttp_Parser.cmake"
     "${CMAKE_BINARY_DIR}/cmake_generated/FindNghttp2.cmake"
     "${CMAKE_BINARY_DIR}/cmake_generated/FindLibEv.cmake"
     "${CMAKE_BINARY_DIR}/cmake_generated/FindUserverGTest.cmake"

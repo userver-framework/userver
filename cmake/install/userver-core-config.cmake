@@ -13,7 +13,6 @@ find_package(CURL "7.68" REQUIRED)
 find_package(ZLIB REQUIRED) 
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/..")
-find_package(Http_Parser REQUIRED)
 find_package(Nghttp2 REQUIRED)
 find_package(LibEv REQUIRED)
 find_package(UserverGTest REQUIRED)

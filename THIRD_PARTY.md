@@ -34,6 +34,9 @@ Copyright (c) 2019-2022 Lars Melchior and contributors
 **[llhttp library](https://github.com/nodejs/llhttp)**
 Copyright (c) 2018 Fedor Indutny.
 
+**[http-parser library](https://github.com/nodejs/http-parser)**
+Copyright (c) Joyent, Inc. and other Node contributors.
+
 **[Doxygen Awesome](https://github.com/jothepro/doxygen-awesome-css)**
 Copyright (c) 2021 - 2023 jothepro
 

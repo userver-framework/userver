@@ -8,3 +8,4 @@ This folder contains source codes from following open source projects:
 * date: https://github.com/HowardHinnant/date/tree/v3.0.1
 * uboost_coro: see uboost_coro/README.md
 * llhttp: https://github.com/nodejs/llhttp/tree/release/v9.2.0
+* http-parser: https://github.com/nodejs/http-parser/releases/tag/v2.9.4

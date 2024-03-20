@@ -1,5 +1,7 @@
 #include "http_request_constructor.hpp"
 
+#include <http_parser.h>
+
 #include <algorithm>
 
 #include <userver/http/common_headers.hpp>
@@ -41,12 +43,18 @@ void StripDuplicateStartingSlashes(std::string& s) {
 
 }  // namespace
 
+struct HttpRequestConstructor::HttpParserUrl {
+  http_parser_url parsed_url;
+};
+
 HttpRequestConstructor::HttpRequestConstructor(
     Config config, const HandlerInfoIndex& handler_info_index,
     request::ResponseDataAccounter& data_accounter)
     : config_(config),
       handler_info_index_(handler_info_index),
       request_(std::make_shared<HttpRequestImpl>(data_accounter)) {}
+
+HttpRequestConstructor::~HttpRequestConstructor() = default;
 
 void HttpRequestConstructor::SetMethod(HttpMethod method) {
   request_->method_ = method;
@@ -72,15 +80,16 @@ void HttpRequestConstructor::ParseUrl() {
   LOG_TRACE() << "parse path from '" << request_->url_ << '\'';
   if (http_parser_parse_url(request_->url_.data(), request_->url_.size(),
                             request_->method_ == HttpMethod::kConnect,
-                            &parsed_url_)) {
+                            &parsed_url_pimpl_->parsed_url)) {
     SetStatus(Status::kParseUrlError);
     throw std::runtime_error("error in http_parser_parse_url() for url '" +
                              request_->url_ + '\'');
   }
 
-  if (parsed_url_.field_set & (1 << http_parser_url_fields::UF_PATH)) {
-    const auto& str_info =
-        parsed_url_.field_data[http_parser_url_fields::UF_PATH];
+  if (parsed_url_pimpl_->parsed_url.field_set &
+      (1 << http_parser_url_fields::UF_PATH)) {
+    const auto& str_info = parsed_url_pimpl_->parsed_url
+                               .field_data[http_parser_url_fields::UF_PATH];
 
     request_->request_path_ = request_->url_.substr(str_info.off, str_info.len);
     StripDuplicateStartingSlashes(request_->request_path_);
@@ -187,7 +196,7 @@ void HttpRequestConstructor::FinalizeImpl() {
   }
 
   try {
-    ParseArgs(parsed_url_);
+    ParseArgs(*parsed_url_pimpl_);
     if (config_.parse_args_from_body) {
       if (!config_.decompress_request || !request_->IsBodyCompressed())
         ParseArgs(request_->request_body_.data(),
@@ -226,9 +235,10 @@ void HttpRequestConstructor::FinalizeImpl() {
   }
 }
 
-void HttpRequestConstructor::ParseArgs(const http_parser_url& url) {
-  if (url.field_set & (1 << http_parser_url_fields::UF_QUERY)) {
-    const auto& str_info = url.field_data[http_parser_url_fields::UF_QUERY];
+void HttpRequestConstructor::ParseArgs(const HttpParserUrl& url) {
+  if (url.parsed_url.field_set & (1 << http_parser_url_fields::UF_QUERY)) {
+    const auto& str_info =
+        url.parsed_url.field_data[http_parser_url_fields::UF_QUERY];
     ParseArgs(request_->url_.data() + str_info.off, str_info.len);
     LOG_TRACE() << "query="
                 << request_->url_.substr(str_info.off, str_info.len);
