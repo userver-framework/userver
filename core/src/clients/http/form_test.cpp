@@ -117,7 +117,7 @@ UTEST(CurlFormTest, MultipartFileWithContentType) {
                  kImageJpeg);
 
   auto resp = http_client_ptr->CreateRequest()
-                  .post(http_server.GetBaseUrl(), form)
+                  .post(http_server.GetBaseUrl(), std::move(form))
                   .retry(1)
                   .verify(true)
                   .http_version(clients::http::HttpVersion::k11)
@@ -139,7 +139,37 @@ UTEST(CurlFormTest, FilesWithContentType) {
                  std::make_shared<std::string>(kOtherTestData), kImageBmp);
 
   auto resp = http_client_ptr->CreateRequest()
-                  .post(http_server.GetBaseUrl(), form)
+                  .post(http_server.GetBaseUrl(), std::move(form))
+                  .retry(1)
+                  .verify(true)
+                  .http_version(clients::http::HttpVersion::k11)
+                  .timeout(std::chrono::milliseconds(100))
+                  .perform();
+
+  EXPECT_EQ(resp->status_code(), clients::http::Status::OK);
+}
+
+UTEST(CurlFormTest, FormMovable) {
+  const utest::SimpleServer http_server{&validating_callback2};
+
+  auto http_client_ptr = utest::CreateHttpClient();
+
+  auto make_form = [] {
+    clients::http::Form form;
+    form.AddBuffer(kKey, kFileNameTxt, std::make_shared<std::string>(kTestData),
+                   kImageJpeg);
+
+    form.AddBuffer(kKey2, kFileName2Bmp,
+                   std::make_shared<std::string>(kOtherTestData), kImageBmp);
+
+    return form;
+  };
+
+  auto form = make_form();
+  auto new_form = std::move(form);
+
+  auto resp = http_client_ptr->CreateRequest()
+                  .post(http_server.GetBaseUrl(), std::move(new_form))
                   .retry(1)
                   .verify(true)
                   .http_version(clients::http::HttpVersion::k11)
