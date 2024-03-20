@@ -62,6 +62,15 @@ class SubscribeClient {
                                SubscriptionToken::OnPmessageCb on_pmessage_cb) {
     return Psubscribe(std::move(pattern), std::move(on_pmessage_cb), {});
   }
+
+  virtual SubscriptionToken Ssubscribe(
+      std::string channel, SubscriptionToken::OnMessageCb on_message_cb,
+      const USERVER_NAMESPACE::redis::CommandControl& command_control) = 0;
+
+  SubscriptionToken Ssubscribe(std::string channel,
+                               SubscriptionToken::OnMessageCb on_message_cb) {
+    return Ssubscribe(std::move(channel), std::move(on_message_cb), {});
+  }
 };
 
 }  // namespace storages::redis

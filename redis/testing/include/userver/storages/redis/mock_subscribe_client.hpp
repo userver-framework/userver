@@ -25,6 +25,11 @@ class MockSubscribeClient : public SubscribeClient {
                SubscriptionToken::OnMessageCb on_message_cb,
                const USERVER_NAMESPACE::redis::CommandControl& command_control),
               (override));
+  MOCK_METHOD(SubscriptionToken, Ssubscribe,
+              (std::string channel,
+               SubscriptionToken::OnMessageCb on_message_cb,
+               const USERVER_NAMESPACE::redis::CommandControl& command_control),
+              (override));
   MOCK_METHOD(SubscriptionToken, Psubscribe,
               (std::string pattern,
                SubscriptionToken::OnPmessageCb on_pmessage_cb,

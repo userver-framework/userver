@@ -78,17 +78,21 @@ inline bool AreStringsEqualIgnoreCase(const std::string& l,
 inline bool IsUnsubscribeCommand(const CmdArgs::CmdArgsArray& args) {
   static const std::string unsubscribe_command{"UNSUBSCRIBE"};
   static const std::string punsubscribe_command{"PUNSUBSCRIBE"};
+  static const std::string sunsubscribe_command{"SUNSUBSCRIBE"};
 
   return AreStringsEqualIgnoreCase(args[0], unsubscribe_command) ||
-         AreStringsEqualIgnoreCase(args[0], punsubscribe_command);
+         AreStringsEqualIgnoreCase(args[0], punsubscribe_command) ||
+         AreStringsEqualIgnoreCase(args[0], sunsubscribe_command);
 }
 
 inline bool IsSubscribeCommand(const CmdArgs::CmdArgsArray& args) {
   static const std::string subscribe_command{"SUBSCRIBE"};
   static const std::string psubscribe_command{"PSUBSCRIBE"};
+  static const std::string ssubscribe_command{"SSUBSCRIBE"};
 
   return AreStringsEqualIgnoreCase(args[0], subscribe_command) ||
-         AreStringsEqualIgnoreCase(args[0], psubscribe_command);
+         AreStringsEqualIgnoreCase(args[0], psubscribe_command) ||
+         AreStringsEqualIgnoreCase(args[0], ssubscribe_command);
 }
 
 inline bool IsSubscribesCommand(const CmdArgs::CmdArgsArray& args) {
@@ -117,7 +121,8 @@ bool IsUnsubscribeReply(const ReplyPtr& reply) {
   const auto& reply_array = reply->data.GetArray();
   if (reply_array.size() != 3 || !reply_array[0].IsString()) return false;
   return !strcasecmp(reply_array[0].GetString().c_str(), "UNSUBSCRIBE") ||
-         !strcasecmp(reply_array[0].GetString().c_str(), "PUNSUBSCRIBE");
+         !strcasecmp(reply_array[0].GetString().c_str(), "PUNSUBSCRIBE") ||
+         !strcasecmp(reply_array[0].GetString().c_str(), "SUNSUBSCRIBE");
 }
 
 #ifdef USERVER_FEATURE_REDIS_TLS

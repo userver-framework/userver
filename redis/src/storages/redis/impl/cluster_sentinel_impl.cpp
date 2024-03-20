@@ -948,9 +948,10 @@ void ClusterSentinelImpl::AsyncCommandFailed(const SentinelCommand& scommand) {
 
 void ClusterSentinelImpl::Stop() {
   topology_holder_->Stop();
-  ev_thread_.RunInEvLoopBlocking(
-      [this] { process_waiting_commands_timer_->Stop(); });
-  ProcessWaitingCommandsOnStop();
+  ev_thread_.RunInEvLoopBlocking([this] {
+    process_waiting_commands_timer_->Stop();
+    ProcessWaitingCommandsOnStop();
+  });
 }
 
 std::vector<std::shared_ptr<const Shard>> ClusterSentinelImpl::GetMasterShards()

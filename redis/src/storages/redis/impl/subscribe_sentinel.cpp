@@ -159,6 +159,14 @@ SubscriptionToken SubscribeSentinel::Psubscribe(
   return token;
 }
 
+SubscriptionToken SubscribeSentinel::Ssubscribe(
+    const std::string& channel,
+    const Sentinel::UserMessageCallback& message_callback,
+    CommandControl control) {
+  return storage_->Ssubscribe(channel, message_callback,
+                              GetCommandControl(control));
+}
+
 PubsubClusterStatistics SubscribeSentinel::GetSubscriberStatistics(
     const PubsubMetricsSettings& settings) const {
   auto raw = storage_->GetStatistics();
@@ -194,6 +202,14 @@ void SubscribeSentinel::InitStorage() {
   storage_->SetSubscribeCallback([this](size_t shard, CommandPtr cmd) {
     AsyncCommand(cmd, false, shard);
   });
+  storage_->SetShardedUnsubscribeCallback(
+      [this](const std::string& channel, CommandPtr cmd) {
+        AsyncCommand(cmd, channel, false);
+      });
+  storage_->SetShardedSubscribeCallback(
+      [this](const std::string& channel, CommandPtr cmd) {
+        AsyncCommand(cmd, channel, false);
+      });
 }
 
 }  // namespace redis

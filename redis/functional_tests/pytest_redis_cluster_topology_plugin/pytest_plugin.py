@@ -229,6 +229,14 @@ class RedisClusterTopology:
         self.start_all_nodes()
         self.slots_by_node = {}
         self._create_cluster(all_ports)
+        self.client = redis.RedisCluster(
+            startup_nodes=[
+                redis.cluster.ClusterNode('localhost', port) for port in ports
+            ],
+        )
+
+    def get_client(self):
+        return self.client
 
     def get_masters(self) -> list[_RedisClusterNode]:
         ret: list[_RedisClusterNode] = []

@@ -37,6 +37,30 @@ void ThrowIfCancelled() {
   }
 }
 
+void OnSubscribeImpl(std::string_view message_type,
+                     const Sentinel::MessageCallback& message_callback,
+                     std::string_view subscribe_type,
+                     const Sentinel::SubscribeCallback& subscribe_callback,
+                     std::string_view unsubscribe_type,
+                     const Sentinel::UnsubscribeCallback& unsubscribe_callback,
+                     const ReplyPtr& reply) {
+  if (!reply->data.IsArray()) return;
+  const auto& reply_array = reply->data.GetArray();
+  if (reply_array.size() != 3 || !reply_array[0].IsString()) return;
+  if (!strcasecmp(reply_array[0].GetString().c_str(), subscribe_type.data())) {
+    subscribe_callback(reply->server_id, reply_array[1].GetString(),
+                       reply_array[2].GetInt());
+  } else if (!strcasecmp(reply_array[0].GetString().c_str(),
+                         unsubscribe_type.data())) {
+    unsubscribe_callback(reply->server_id, reply_array[1].GetString(),
+                         reply_array[2].GetInt());
+  } else if (!strcasecmp(reply_array[0].GetString().c_str(),
+                         message_type.data())) {
+    message_callback(reply->server_id, reply_array[1].GetString(),
+                     reply_array[2].GetString());
+  }
+}
+
 }  // namespace
 
 Sentinel::Sentinel(
@@ -78,7 +102,7 @@ Sentinel::Sentinel(
 }
 
 Sentinel::~Sentinel() {
-  sentinel_thread_control_->RunInEvLoopBlocking([this]() { impl_.reset(); });
+  impl_.reset();
   UASSERT(!impl_);
 }
 
@@ -312,45 +336,40 @@ std::vector<Request> Sentinel::MakeRequests(
   return rslt;
 }
 
-void Sentinel::OnSubscribeReply(const MessageCallback message_callback,
-                                const SubscribeCallback subscribe_callback,
-                                const UnsubscribeCallback unsubscribe_callback,
-                                ReplyPtr reply) {
-  if (!reply->data.IsArray()) return;
-  const auto& reply_array = reply->data.GetArray();
-  if (reply_array.size() != 3 || !reply_array[0].IsString()) return;
-  if (!strcasecmp(reply_array[0].GetString().c_str(), "SUBSCRIBE")) {
-    if (subscribe_callback)
-      subscribe_callback(reply->server_id, reply_array[1].GetString(),
-                         reply_array[2].GetInt());
-  } else if (!strcasecmp(reply_array[0].GetString().c_str(), "UNSUBSCRIBE")) {
-    if (unsubscribe_callback)
-      unsubscribe_callback(reply->server_id, reply_array[1].GetString(),
-                           reply_array[2].GetInt());
-  } else if (!strcasecmp(reply_array[0].GetString().c_str(), "MESSAGE")) {
-    if (message_callback)
-      message_callback(reply->server_id, reply_array[1].GetString(),
-                       reply_array[2].GetString());
-  }
+void Sentinel::OnSsubscribeReply(
+    const MessageCallback& message_callback,
+    const SubscribeCallback& subscribe_callback,
+    const UnsubscribeCallback& unsubscribe_callback, ReplyPtr reply) {
+  OnSubscribeImpl("SMESSAGE", message_callback, "SSUBSCRIBE",
+                  subscribe_callback, "SUNSUBSCRIBE", unsubscribe_callback,
+                  reply);
 }
 
-void Sentinel::OnPsubscribeReply(const PmessageCallback pmessage_callback,
-                                 const SubscribeCallback subscribe_callback,
-                                 const UnsubscribeCallback unsubscribe_callback,
-                                 ReplyPtr reply) {
+void Sentinel::OnSubscribeReply(const MessageCallback& message_callback,
+                                const SubscribeCallback& subscribe_callback,
+                                const UnsubscribeCallback& unsubscribe_callback,
+                                ReplyPtr reply) {
+  OnSubscribeImpl("MESSAGE", message_callback, "SUBSCRIBE", subscribe_callback,
+                  "UNSUBSCRIBE", unsubscribe_callback, reply);
+}
+
+void Sentinel::OnPsubscribeReply(
+    const PmessageCallback& pmessage_callback,
+    const SubscribeCallback& subscribe_callback,
+    const UnsubscribeCallback& unsubscribe_callback, ReplyPtr reply) {
   if (!reply->data.IsArray()) return;
   const auto& reply_array = reply->data.GetArray();
   if (!reply_array[0].IsString()) return;
   if (!strcasecmp(reply_array[0].GetString().c_str(), "PSUBSCRIBE")) {
-    if (reply_array.size() == 3 && subscribe_callback)
+    if (reply_array.size() == 3)
       subscribe_callback(reply->server_id, reply_array[1].GetString(),
                          reply_array[2].GetInt());
   } else if (!strcasecmp(reply_array[0].GetString().c_str(), "PUNSUBSCRIBE")) {
-    if (reply_array.size() == 3 && unsubscribe_callback)
+    if (reply_array.size() == 3)
       unsubscribe_callback(reply->server_id, reply_array[1].GetString(),
                            reply_array[2].GetInt());
   } else if (!strcasecmp(reply_array[0].GetString().c_str(), "PMESSAGE")) {
-    if (reply_array.size() == 4 && pmessage_callback)
+    if (reply_array.size() == 4)
       pmessage_callback(reply->server_id, reply_array[1].GetString(),
                         reply_array[2].GetString(), reply_array[3].GetString());
   }

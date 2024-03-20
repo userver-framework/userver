@@ -76,6 +76,36 @@ void PsubscriptionTokenImpl::ProcessMessages() {
   }
 }
 
+SsubscriptionTokenImpl::SsubscriptionTokenImpl(
+    USERVER_NAMESPACE::redis::SubscribeSentinel& subscribe_sentinel,
+    std::string channel, OnMessageCb on_message_cb,
+    const USERVER_NAMESPACE::redis::CommandControl& command_control)
+    : channel_(std::move(channel)),
+      queue_(subscribe_sentinel, channel_, command_control),
+      on_message_cb_(std::move(on_message_cb)),
+      subscriber_task_(
+          utils::CriticalAsync("redis-channel-subscriber-" + channel_,
+                               [this] { ProcessMessages(); })) {}
+
+SsubscriptionTokenImpl::~SsubscriptionTokenImpl() { Unsubscribe(); }
+
+void SsubscriptionTokenImpl::SetMaxQueueLength(size_t length) {
+  queue_.SetMaxLength(length);
+}
+
+void SsubscriptionTokenImpl::Unsubscribe() {
+  queue_.Unsubscribe();
+  subscriber_task_.SyncCancel();
+}
+
+void SsubscriptionTokenImpl::ProcessMessages() {
+  ShardedSubscriptionQueueItem msg;
+  while (queue_.PopMessage(msg)) {
+    tracing::Span span(std::string{kProcessRedisSubscriptionMessage});
+    if (on_message_cb_) on_message_cb_(channel_, msg.message);
+  }
+}
+
 }  // namespace storages::redis
 
 USERVER_NAMESPACE_END

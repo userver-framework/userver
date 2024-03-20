@@ -50,6 +50,10 @@ class SubscribeSentinel : protected Sentinel {
       const std::string& pattern,
       const Sentinel::UserPmessageCallback& message_callback,
       CommandControl control = CommandControl());
+  SubscriptionToken Ssubscribe(
+      const std::string& channel,
+      const Sentinel::UserMessageCallback& message_callback,
+      CommandControl control = CommandControl());
 
   PubsubClusterStatistics GetSubscriberStatistics(
       const PubsubMetricsSettings& settings) const;

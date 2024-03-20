@@ -11,21 +11,33 @@ REQUESTS_RELAX_TIME = 1.0
 
 # Target channel. Same constant in c++ code
 INPUT_CHANNEL_PREFIX = 'input_channel@'
+SHARDED_INPUT_CHANNEL_PREFIX = 'input_sharded_channel@'
 INPUT_CHANNELS_COUNT = 5
 OUTPUT_CHANNEL_NAME = 'output_channel'
 OUTPUT_SCHANNELS_COUNT = 10
 
 
-async def _validate_pubsub(redis_db, service_client, msg):
+def _publish_callback(redis_db, channel, message):
+    redis_db.publish(channel, message)
+
+
+def _spublish_callback(redis_db, channel, message):
+    redis_db.spublish(channel, message)
+
+
+async def _validate_pubsub(
+        redis_db, service_client, channel_prefix, msg, publish_method,
+):
     """
     publish to redis_db and expect data accessible in service via handler
     """
     url = '/redis-cluster'
 
     for i in range(INPUT_CHANNELS_COUNT):
-        channel_name = INPUT_CHANNEL_PREFIX + str(i)
+        channel_name = channel_prefix + str(i)
+        message = msg + str(i)
         for _ in range(REQUESTS_RETRIES):
-            redis_db.publish(channel_name, msg)
+            publish_method(redis_db, channel_name, message)
 
             response = await service_client.get(
                 url, params={'read': channel_name},
@@ -35,7 +47,7 @@ async def _validate_pubsub(redis_db, service_client, msg):
             data = response.json()['data']
 
             if data:
-                assert msg in data
+                assert message in data
                 await service_client.delete(url)
                 break
 
@@ -48,9 +60,23 @@ async def _validate_pubsub(redis_db, service_client, msg):
 
 async def _test_service_subscription(service_client, node, prefix):
     msg = f'{prefix}_{node.get_address()}'
-
     db = node.get_client()
-    await _validate_pubsub(db, service_client, msg)
+    await _validate_pubsub(
+        db, service_client, INPUT_CHANNEL_PREFIX, msg, _publish_callback,
+    )
+
+
+async def _test_service_sharded_subscription(
+        service_client, cluster_client, prefix,
+):
+    msg = f'{prefix}'
+    await _validate_pubsub(
+        cluster_client,
+        service_client,
+        SHARDED_INPUT_CHANNEL_PREFIX,
+        msg,
+        _spublish_callback,
+    )
 
 
 async def _validate_service_publish(service_client, nodes, shards_range):
@@ -252,6 +278,9 @@ async def test_cluster_happy_path(service_client, redis_cluster_topology):
     await _validate_service_spublish(
         service_client, redis_cluster_topology.nodes,
     )
+    await _test_service_sharded_subscription(
+        service_client, redis_cluster_topology.get_client(), 'ssubscription_',
+    )
 
 
 async def test_cluster_add_shard(service_client, redis_cluster_topology):
@@ -272,16 +301,26 @@ async def test_cluster_add_shard(service_client, redis_cluster_topology):
     await _validate_service_publish(
         service_client, redis_cluster_topology.nodes, range(4),
     )
+    await _test_service_sharded_subscription(
+        service_client,
+        redis_cluster_topology.get_client(),
+        'ssubscription_extended_',
+    )
 
     # restore initial config
     await redis_cluster_topology.remove_shard()
+    await _check_shard_count(service_client, 3)
 
     for node in redis_cluster_topology.nodes:
         await _test_service_subscription(service_client, node, 'restored_')
 
-    await _check_shard_count(service_client, 3)
     await _validate_service_publish(
         service_client, redis_cluster_topology.nodes, range(3),
+    )
+    await _test_service_sharded_subscription(
+        service_client,
+        redis_cluster_topology.get_client(),
+        'ssubscription_restored_',
     )
 
 
@@ -341,6 +380,9 @@ async def test_cluster_failover_pubsub2(
 
     # should work due to ClusterSubscriptionStorage
     for node in masters:
-        await _test_service_subscription(
-            service_client, node, 'the_last_shard',
-        )
+        await _test_service_subscription(service_client, node, 'only_masters_')
+    await _test_service_sharded_subscription(
+        service_client,
+        redis_cluster_topology.get_client(),
+        'ssubscription_only_masters_',
+    )

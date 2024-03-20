@@ -189,14 +189,19 @@ class Sentinel {
   std::unique_ptr<SentinelImplBase> impl_;
 
  public:
-  static void OnSubscribeReply(MessageCallback message_callback,
-                               SubscribeCallback subscribe_callback,
-                               UnsubscribeCallback unsubscribe_callback,
+  static void OnSsubscribeReply(const MessageCallback& message_callback,
+                                const SubscribeCallback& subscribe_callback,
+                                const UnsubscribeCallback& unsubscribe_callback,
+                                ReplyPtr reply);
+
+  static void OnSubscribeReply(const MessageCallback& message_callback,
+                               const SubscribeCallback& subscribe_callback,
+                               const UnsubscribeCallback& unsubscribe_callback,
                                ReplyPtr reply);
 
-  static void OnPsubscribeReply(PmessageCallback pmessage_callback,
-                                SubscribeCallback subscribe_callback,
-                                UnsubscribeCallback unsubscribe_callback,
+  static void OnPsubscribeReply(const PmessageCallback& pmessage_callback,
+                                const SubscribeCallback& subscribe_callback,
+                                const UnsubscribeCallback& unsubscribe_callback,
                                 ReplyPtr reply);
 
  private:
