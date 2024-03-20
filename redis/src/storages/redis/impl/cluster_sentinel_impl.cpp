@@ -10,6 +10,8 @@
 #include <userver/storages/redis/impl/exception.hpp>
 #include <userver/storages/redis/impl/redis_state.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
+#include <userver/utils/algo.hpp>
+#include <userver/utils/datetime/steady_coarse_clock.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/text.hpp>
 
@@ -28,6 +30,8 @@ namespace redis {
 
 namespace {
 const auto kProcessCreationInterval = std::chrono::seconds(3);
+const auto kDeleteNodesCheckInterval = std::chrono::seconds(60);
+const auto kDeleteNodeInterval = std::chrono::seconds(600);
 
 bool CheckQuorum(size_t requests_sent, size_t responses_parsed) {
   const size_t quorum = requests_sent / 2 + 1;
@@ -152,7 +156,11 @@ class ClusterTopologyHolder
                                  UpdateClusterTopology();
                                  update_topology_watch_.Start();
                                }),
-        explore_nodes_watch_(ev_thread_, [this] { ExploreNodes(); }),
+        explore_nodes_watch_(ev_thread_,
+                             [this] {
+                               ExploreNodes();
+                               explore_nodes_watch_.Start();
+                             }),
         explore_nodes_timer_(
             ev_thread_, [this] { ExploreNodes(); },
             kSentinelGetHostsCheckInterval),
@@ -163,6 +171,8 @@ class ClusterTopologyHolder
                               CreateNodes();
                               create_nodes_watch_.Start();
                             }),
+        delete_expired_nodes_timer_(
+            ev_thread_, [this] { DeleteNodes(); }, kDeleteNodesCheckInterval),
         sentinels_process_creation_timer_(
             ev_thread_,
             [this] {
@@ -230,6 +240,7 @@ class ClusterTopologyHolder
     create_nodes_watch_.Start();
     explore_nodes_watch_.Start();
     explore_nodes_timer_.Start();
+    delete_expired_nodes_timer_.Start();
     sentinels_process_creation_watch_.Start();
     sentinels_process_state_update_watch_.Start();
     sentinels_process_creation_timer_.Start();
@@ -239,6 +250,7 @@ class ClusterTopologyHolder
     ev_thread_.RunInEvLoopBlocking([this] {
       update_topology_timer_.Stop();
       explore_nodes_timer_.Stop();
+      delete_expired_nodes_timer_.Stop();
       sentinels_process_creation_timer_.Stop();
     });
     sentinels_->Clean();
@@ -353,6 +365,10 @@ class ClusterTopologyHolder
   engine::ev::AsyncWatcher create_nodes_watch_;
   void CreateNodes();
 
+  /// Delete non-atual nodes
+  engine::ev::PeriodicWatcher delete_expired_nodes_timer_;
+  void DeleteNodes();
+
   engine::ev::PeriodicWatcher sentinels_process_creation_timer_;
   engine::ev::AsyncWatcher sentinels_process_creation_watch_;
   engine::ev::AsyncWatcher sentinels_process_state_update_watch_;
@@ -382,6 +398,10 @@ class ClusterTopologyHolder
       retry_budget_settings_;
   concurrent::Variable<std::unordered_set<HostPort>, std::mutex>
       nodes_to_create_;
+  concurrent::Variable<std::unordered_set<HostPort>, std::mutex> actual_nodes_;
+  // work only from sentinel thread so no need to synchronize it
+  std::unordered_map<HostPort, utils::datetime::SteadyCoarseClock::time_point>
+      nodes_last_seen_time_;
 
   static std::atomic<size_t> cluster_slots_call_counter_;
 };
@@ -455,10 +475,14 @@ void ClusterTopologyHolder::ExploreNodes() {
           return;
         }
 
-        for (auto&& host_port : host_ports) {
+        for (const auto& host_port : host_ports) {
           if (!nodes_.Get(host_port)) {
-            host_ports_to_create.insert(std::move(host_port));
+            host_ports_to_create.insert(host_port);
           }
+        }
+        if (!host_ports.empty()) {
+          auto ptr = actual_nodes_.Lock();
+          ptr->merge(std::move(host_ports));
         }
 
         if (!host_ports_to_create.empty()) {
@@ -497,6 +521,26 @@ void ClusterTopologyHolder::CreateNodes() {
   if (!is_nodes_received_.exchange(true)) {
     SendUpdateClusterTopology();
   }
+}
+
+void ClusterTopologyHolder::DeleteNodes() {
+  std::unordered_set<HostPort> actual_nodes;
+  {
+    auto ptr = actual_nodes_.Lock();
+    std::swap(*ptr, actual_nodes);
+  }
+  const auto now = utils::datetime::SteadyCoarseClock::now();
+  for (auto& node : actual_nodes) {
+    nodes_last_seen_time_[node] = now;
+  }
+  utils::EraseIf(nodes_last_seen_time_, [this, now](const auto& node_time) {
+    const auto& [node, time] = node_time;
+    if (now - time >= kDeleteNodeInterval) {
+      nodes_.Erase(node);
+      return true;
+    }
+    return false;
+  });
 }
 
 void ClusterSentinelImpl::ProcessWaitingCommands() {
