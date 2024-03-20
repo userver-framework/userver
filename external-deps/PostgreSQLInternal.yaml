@@ -13,6 +13,7 @@ includes:
           - /usr/include/postgresql/15/server
           - /usr/include/postgresql/16/server
           - /usr/local/include/postgresql/server  # FreeBSD
+          - /usr/include/postgresql/server/ # Manjaro
         path-suffixes:
           - pgsql/server         # postgresql-server-devel
 
