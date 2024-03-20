@@ -27,9 +27,6 @@ src:*boost/lockfree/*
 # https://st.yandex-team.ru/TAXICOMMON-2436
 src:*boost/circular_buffer/base.hpp
 
-[undefined]
-src:*mongo/src/storages/mongo/operations.cpp
-
 # grpc doesn't work with ubuntu packages
 [undefined]
 src:*grpcpp/impl/codegen/client_context_impl.h

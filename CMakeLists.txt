@@ -201,6 +201,7 @@ endif()
 if (USERVER_FEATURE_MONGODB)
   _require_userver_core("USERVER_FEATURE_MONGODB")
   add_subdirectory(mongo "${CMAKE_BINARY_DIR}/userver/mongo")
+  list(APPEND USERVER_AVAILABLE_COMPONENTS mongo)
 endif()
 
 if (USERVER_FEATURE_POSTGRESQL)
