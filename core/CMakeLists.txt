@@ -117,7 +117,7 @@ add_subdirectory(${USERVER_THIRD_PARTY_DIRS}/llhttp llhttp)
 
 add_subdirectory(${USERVER_THIRD_PARTY_DIRS}/http-parser http-parser)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE userver-http-parser PUBLIC userver-llhttp)
+target_link_libraries(${PROJECT_NAME} PRIVATE userver-http-parser userver-llhttp)
 
 if (USERVER_FEATURE_UBOOST_CORO)
     add_subdirectory(${USERVER_THIRD_PARTY_DIRS}/uboost_coro uboost_coro_build)
