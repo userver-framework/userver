@@ -61,9 +61,12 @@ class ValueBuilder final {
   ValueBuilder(formats::yaml::Value&& other);
 
   /// Converting constructors.
+  ValueBuilder(std::nullptr_t) : ValueBuilder() {}
   ValueBuilder(bool t);
   ValueBuilder(const char* str);
+  ValueBuilder(char* str);
   ValueBuilder(const std::string& str);
+  ValueBuilder(std::string_view str);
   ValueBuilder(int t);
   ValueBuilder(unsigned int t);
   ValueBuilder(long t);
