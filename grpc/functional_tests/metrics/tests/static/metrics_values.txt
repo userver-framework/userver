@@ -67,7 +67,6 @@ grpc.server.by-destination.timings: grpc_destination=samples.api.GreeterService/
 grpc.client.by-destination.abandoned-error.v2: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
 grpc.client.by-destination.cancelled-by-deadline-propagation.v2: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
 grpc.client.by-destination.deadline-propagated.v2: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
-grpc.client.by-destination.eps.v2: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
 grpc.client.by-destination.network-error.v2: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
 grpc.client.by-destination.rps.v2: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
 grpc.client.by-destination.status.v2: grpc_code=ABORTED, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
@@ -90,7 +89,6 @@ grpc.client.by-destination.status.v2: grpc_code=UNKNOWN, grpc_destination=sample
 grpc.server.by-destination.abandoned-error.v2: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
 grpc.server.by-destination.cancelled-by-deadline-propagation.v2: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
 grpc.server.by-destination.deadline-propagated.v2: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
-grpc.server.by-destination.eps.v2: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
 grpc.server.by-destination.network-error.v2: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
 grpc.server.by-destination.rps.v2: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
 grpc.server.by-destination.status.v2: grpc_code=ABORTED, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0

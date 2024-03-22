@@ -76,7 +76,7 @@ void ExpectCancelledStats(const utils::statistics::Snapshot& stats) {
   // However, if it is set, then it is 1.
   EXPECT_LE(stats.SingleMetric("cancelled.v2").AsRate(), 1);
 
-  EXPECT_EQ(stats.SingleMetric("eps.v2").AsRate(), 1);
+  EXPECT_EQ(stats.SingleMetric("eps").AsRate(), 0);
   EXPECT_EQ(stats.SingleMetric("rps.v2").AsRate(), 1);
   EXPECT_EQ(stats.SingleMetric("network-error.v2").AsRate(), 0);
   EXPECT_EQ(stats.SingleMetric("abandoned-error.v2").AsRate(), 0);

@@ -60,7 +60,7 @@ UTEST_F(GrpcStatistics, LongRequest) {
     EXPECT_EQ(get_status_code_count("INVALID_ARGUMENT"), 1);
     EXPECT_EQ(get_status_code_count("ALREADY_EXISTS"), 0);
     EXPECT_EQ(stats.SingleMetric("rps").AsRate(), 1);
-    EXPECT_EQ(stats.SingleMetric("eps").AsRate(), 1);
+    EXPECT_EQ(stats.SingleMetric("eps").AsRate(), 0);
     EXPECT_EQ(stats.SingleMetric("network-error").AsRate(), 0);
     EXPECT_EQ(stats.SingleMetric("abandoned-error").AsRate(), 0);
 
@@ -69,7 +69,6 @@ UTEST_F(GrpcStatistics, LongRequest) {
     EXPECT_EQ(get_status_code_count_legacy("INVALID_ARGUMENT"), 1);
     EXPECT_EQ(get_status_code_count_legacy("ALREADY_EXISTS"), 0);
     EXPECT_EQ(stats.SingleMetric("rps.v2").AsRate(), 1);
-    EXPECT_EQ(stats.SingleMetric("eps.v2").AsRate(), 1);
     EXPECT_EQ(stats.SingleMetric("network-error.v2").AsRate(), 0);
     EXPECT_EQ(stats.SingleMetric("abandoned-error.v2").AsRate(), 0);
   }
