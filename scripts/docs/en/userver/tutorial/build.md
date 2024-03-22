@@ -29,7 +29,7 @@ The following CMake options are used by userver:
 | USERVER_SANITIZE                       | Build with sanitizers support, allows combination of values via 'val1 val2'                                           | ''                                                     |
 | USERVER_SANITIZE_BLACKLIST             | Path to file that is passed to the -fsanitize-blacklist option                                                        | ''                                                     |
 | USERVER_USE_LD                         | Linker to use, e.g. 'gold' or 'lld'                                                                                   | ''                                                     |
-| USERVER_LTO                            | Use link time optimizations                                                                                           | OFF for Debug build, ON for all the other builds       |
+| USERVER_LTO                            | Use link time optimizations                                                                                           | OFF                                                    |
 | USERVER_LTO_CACHE                      | Use LTO cache if present, disable for benchmarking build times                                                        | ON                                                     |
 | USERVER_LTO_CACHE_DIR                  | LTO cache directory                                                                                                   | `${CMAKE_CURRENT_BINARY_DIR}/.ltocache`                |
 | USERVER_LTO_CACHE_SIZE_MB              | LTO cache size limit in MB                                                                                            | 6000                                                   |
@@ -70,6 +70,8 @@ The following CMake options are used by userver:
 To explicitly specialize the compiler use the cmake options `CMAKE_C_COMPILER` and `CMAKE_CXX_COMPILER`.
 For example to use clang-12 compiler install it and add the following options to cmake:
 `-DCMAKE_CXX_COMPILER=clang++-12 -DCMAKE_C_COMPILER=clang-12`
+
+@note Using LTO can lead to race [problems](https://github.com/userver-framework/userver/issues/242) in competitive code. We don't recommend use `USERVER_LTO`.
 
 
 @anchor userver_libraries
