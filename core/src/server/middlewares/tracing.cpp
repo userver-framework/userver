@@ -60,12 +60,10 @@ void LogYandexHeaders(const http::HttpRequest& http_request) {
 }  // namespace
 
 Tracing::Tracing(const tracing::TracingManagerBase& tracing_manager,
-                 const handlers::HttpHandlerBase& handler,
-                 const components::ComponentConfig& handler_config)
+                 const handlers::HttpHandlerBase& handler)
     : tracing_manager_{tracing_manager},
       handler_{handler},
-      log_level_{
-          handler_config["log-level"].As<std::optional<logging::Level>>()} {}
+      log_level_{handler_.GetLogLevel()} {}
 
 void Tracing::HandleRequest(http::HttpRequest& request,
                             request::RequestContext& context) const {
@@ -172,9 +170,8 @@ TracingFactory::TracingFactory(const components::ComponentConfig& config,
               .GetTracingManager()} {}
 
 std::unique_ptr<HttpMiddlewareBase> TracingFactory::Create(
-    const handlers::HttpHandlerBase& handler,
-    const components::ComponentConfig& handler_config) const {
-  return std::make_unique<Tracing>(tracing_manager_, handler, handler_config);
+    const handlers::HttpHandlerBase& handler, yaml_config::YamlConfig) const {
+  return std::make_unique<Tracing>(tracing_manager_, handler);
 }
 
 }  // namespace server::middlewares

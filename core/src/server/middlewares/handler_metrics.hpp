@@ -10,8 +10,7 @@ class HandlerMetrics final : public HttpMiddlewareBase {
  public:
   static constexpr std::string_view kName{"userver-handler-metrics-middleware"};
 
-  HandlerMetrics(const handlers::HttpHandlerBase&,
-                 const components::ComponentConfig&);
+  explicit HandlerMetrics(const handlers::HttpHandlerBase&);
 
  private:
   void HandleRequest(http::HttpRequest& request,

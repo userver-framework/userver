@@ -94,6 +94,42 @@ std::unordered_map<int, logging::Level> ParseStatusCodesLogLevel(
   return result;
 }
 
+constexpr std::string_view kMiddlePipelineBuilderKey{"pipeline-builder"};
+
+void ValidateMiddlewaresConfiguration(
+    const yaml_config::YamlConfig& middlewares_config,
+    const middlewares::MiddlewaresList& middleware_names) {
+  std::unordered_set<std::string> unique_names;
+  unique_names.reserve(middleware_names.size());
+
+  for (const auto& middleware_name : middleware_names) {
+    const auto [_, inserted] = unique_names.emplace(middleware_name);
+    if (!inserted) {
+      throw std::runtime_error{fmt::format(
+          "Middleware '{}' is present more than once in the pipeline",
+          middleware_name)};
+    }
+  }
+
+  if (middlewares_config.IsMissing()) {
+    return;
+  }
+  middlewares_config.CheckObjectOrNull();
+
+  for (const auto& [name, _] : yaml_config::Items(middlewares_config)) {
+    if (name == kMiddlePipelineBuilderKey) {
+      continue;
+    }
+
+    if (!unique_names.count(name)) {
+      throw std::runtime_error{
+          fmt::format("There is a configuration for '{}', but such middleware "
+                      "is not present in the pipeline",
+                      name)};
+    }
+  }
+}
+
 }  // namespace
 
 HttpHandlerBase::HttpHandlerBase(const components::ComponentConfig& config,
@@ -104,6 +140,7 @@ HttpHandlerBase::HttpHandlerBase(const components::ComponentConfig& config,
           context.FindComponent<components::DynamicConfig>().GetSource()),
       allowed_methods_(InitAllowedMethods(GetConfig())),
       handler_name_(config.Name()),
+      log_level_(config["log-level"].As<std::optional<logging::Level>>()),
       log_level_for_status_codes_(ParseStatusCodesLogLevel(
           config["status-codes-log-level"]
               .As<std::unordered_map<std::string, std::string>>({}))),
@@ -140,6 +177,8 @@ HttpHandlerBase::HttpHandlerBase(const components::ComponentConfig& config,
                         }},
       GetConfig().path);
 
+  BuildMiddlewarePipeline(config, context);
+
   auto& statistics_storage =
       context.FindComponent<components::StatisticsStorage>().GetStorage();
   statistics_holder_ = statistics_storage.RegisterWriter(
@@ -157,8 +196,6 @@ HttpHandlerBase::HttpHandlerBase(const components::ComponentConfig& config,
           server_component.GetServer()
               .GetConfig()
               .set_response_server_hostname);
-
-  BuildMiddlewarePipeline(config, context);
 }
 
 HttpHandlerBase::~HttpHandlerBase() { statistics_holder_.Unregister(); }
@@ -416,6 +453,10 @@ void HttpHandlerBase::LogUnknownException(const std::exception& ex) const {
   }
 }
 
+const std::optional<logging::Level> HttpHandlerBase::GetLogLevel() const {
+  return log_level_;
+}
+
 template <typename HttpStatistics>
 void HttpHandlerBase::FormatStatistics(utils::statistics::Writer result,
                                        const HttpStatistics& stats) {
@@ -454,21 +495,25 @@ void HttpHandlerBase::BuildMiddlewarePipeline(
         "AppendComponentList()"};
   }
 
+  const auto middlewares_config = config["middlewares"];
+
   const auto& handler_pipeline_builder =
       context.FindComponent<middlewares::HandlerPipelineBuilder>(
-          config["middleware-pipeline-builder"].As<std::string>(
+          middlewares_config[kMiddlePipelineBuilderKey].As<std::string>(
               middlewares::HandlerPipelineBuilder::kName));
   const auto handler_middlewares = handler_pipeline_builder.BuildPipeline(
       context.FindComponent<components::Server>()
           .GetServer()
           .GetCommonMiddlewares());
 
+  ValidateMiddlewaresConfiguration(middlewares_config, handler_middlewares);
+
   auto* next_middleware_ptr_{&first_middleware_};
-  const auto add_middleware = [this, &config, &context,
+  const auto add_middleware = [this, &middlewares_config, &context,
                                &next_middleware_ptr_](std::string_view name) {
     *next_middleware_ptr_ =
         context.FindComponent<middlewares::HttpMiddlewareFactoryBase>(name)
-            .Create(*this, config);
+            .CreateChecked(*this, middlewares_config[name]);
     next_middleware_ptr_ = &(*next_middleware_ptr_)->next_;
   };
 
@@ -497,10 +542,19 @@ properties:
             type: string
             description: log level
         description: HTTP status code -> log level map
-    middleware-pipeline-builder:
-        type: string
-        description: name of a component to build a middleware pipeline for this particular handler
-        defaultDescription: default-handler-middleware-pipeline-builder
+    middlewares:
+        type: object
+        properties:
+            pipeline-builder:
+                type: string
+                description: name of a component to build a middleware pipeline for this particular handler
+                defaultDescription: default-handler-middleware-pipeline-builder
+        additionalProperties:
+            type: object
+            properties: {}
+            additionalProperties: true
+            description: per-middleware configuration
+        description: middleware name -> middleware configuration map
 )");
 }
 

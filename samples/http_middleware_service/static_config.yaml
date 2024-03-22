@@ -36,4 +36,16 @@ components_manager:
             path: /custom-hello
             method: GET
             task_processor: main-task-processor
-            middleware-pipeline-builder: custom-handler-pipeline-builder
+            middlewares:
+                pipeline-builder: custom-handler-pipeline-builder
+                handler-middleware:
+                    header-value: some_value
+
+        handler-with-another-middleware-configuration:
+            path: /custom-hello-other
+            method: GET
+            task_processor: main-task-processor
+            middlewares:
+                pipeline-builder: custom-handler-pipeline-builder
+                handler-middleware:
+                    header-value: some_other_value

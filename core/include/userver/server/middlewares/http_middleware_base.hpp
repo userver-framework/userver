@@ -6,6 +6,8 @@
 #include <memory>
 
 #include <userver/components/loggable_component_base.hpp>
+#include <userver/yaml_config/schema.hpp>
+#include <userver/yaml_config/yaml_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -47,10 +49,18 @@ class HttpMiddlewareFactoryBase : public components::LoggableComponentBase {
   HttpMiddlewareFactoryBase(const components::ComponentConfig&,
                             const components::ComponentContext&);
 
+  std::unique_ptr<HttpMiddlewareBase> CreateChecked(
+      const handlers::HttpHandlerBase& handler,
+      yaml_config::YamlConfig middleware_config) const;
+
+ protected:
+  virtual yaml_config::Schema GetMiddlewareConfigSchema() const {
+    return yaml_config::Schema::EmptyObject();
+  }
+
   virtual std::unique_ptr<HttpMiddlewareBase> Create(
       const handlers::HttpHandlerBase&,
-      // TODO : TAXICOMMON-8253, more concise config
-      const components::ComponentConfig&) const = 0;
+      yaml_config::YamlConfig middleware_config) const = 0;
 };
 
 template <typename Middleware>
@@ -63,8 +73,8 @@ class SimpleHttpMiddlewareFactory final : public HttpMiddlewareFactoryBase {
  private:
   std::unique_ptr<HttpMiddlewareBase> Create(
       const handlers::HttpHandlerBase& handler,
-      const components::ComponentConfig& handler_config) const override {
-    return std::make_unique<Middleware>(handler, handler_config);
+      yaml_config::YamlConfig) const override {
+    return std::make_unique<Middleware>(handler);
   }
 };
 

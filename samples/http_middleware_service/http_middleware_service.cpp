@@ -1,6 +1,7 @@
 #include <userver/utest/using_namespace_userver.hpp>
 
 #include <userver/components/minimal_server_component_list.hpp>
+#include <userver/formats/yaml/serialize.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/utils/daemon_run.hpp>
 #include <userver/utils/scope_guard.hpp>
@@ -26,10 +27,10 @@ class SomeServerMiddleware final
  public:
   static constexpr std::string_view kName{"server-middleware"};
 
-  // Neither handler nor its config is interesting to us,
-  // but we could use it if needed
-  SomeServerMiddleware(const server::handlers::HttpHandlerBase&,
-                       const components::ComponentConfig&) {}
+  // Handler isn't interesting to us, but we could use it if needed.
+  // Or we could implement the factory ourselves instead of using
+  // SimpleHttpMiddlewareFactory, and pass whatever parameters we want.
+  explicit SomeServerMiddleware(const server::handlers::HttpHandlerBase&) {}
 
  private:
   void HandleRequest(server::http::HttpRequest& request,
@@ -52,10 +53,9 @@ class SomeHandlerMiddleware final
  public:
   static constexpr std::string_view kName{"handler-middleware"};
 
-  // Neither handler nor its config is interesting to us,
-  // but we could use it if needed
   SomeHandlerMiddleware(const server::handlers::HttpHandlerBase&,
-                        const components::ComponentConfig&) {}
+                        yaml_config::YamlConfig middleware_config)
+      : header_value_{middleware_config["header-value"].As<std::string>()} {}
 
  private:
   void HandleRequest(server::http::HttpRequest& request,
@@ -67,8 +67,8 @@ class SomeHandlerMiddleware final
     // default userver-provided exceptions handling middleware. If this is
     // undesirable, the middleware should be earlier in the pipeline, or the
     // default exceptions handling behavior could be overridden.
-    const utils::ScopeGuard set_header_scope{[&request] {
-      request.GetHttpResponse().SetHeader(kCustomHandlerHeader, "1");
+    const utils::ScopeGuard set_header_scope{[this, &request] {
+      request.GetHttpResponse().SetHeader(kCustomHandlerHeader, header_value_);
     }};
 
     Next(request, context);
@@ -76,9 +76,38 @@ class SomeHandlerMiddleware final
 
   static constexpr http::headers::PredefinedHeader kCustomHandlerHeader{
       "X-Some-Handler-Header"};
+
+  const std::string header_value_;
 };
-using SomeHandlerMiddlewareFactory =
-    server::middlewares::SimpleHttpMiddlewareFactory<SomeHandlerMiddleware>;
+
+class SomeHandlerMiddlewareFactory final
+    : public server::middlewares::HttpMiddlewareFactoryBase {
+ public:
+  static constexpr std::string_view kName{SomeHandlerMiddleware::kName};
+
+  using HttpMiddlewareFactoryBase::HttpMiddlewareFactoryBase;
+
+ private:
+  std::unique_ptr<server::middlewares::HttpMiddlewareBase> Create(
+      const server::handlers::HttpHandlerBase& handler,
+      yaml_config::YamlConfig middleware_config) const override {
+    return std::make_unique<SomeHandlerMiddleware>(
+        handler, std::move(middleware_config));
+  }
+
+  yaml_config::Schema GetMiddlewareConfigSchema() const override {
+    return formats::yaml::FromString(R"(
+type: object
+description: Config for this particular middleware
+additionalProperties: false
+properties:
+    header-value:
+        type: string
+        description: header value to set for responses
+)")
+        .As<yaml_config::Schema>();
+  }
+};
 
 class CustomHandlerPipelineBuilder final
     : public server::middlewares::HandlerPipelineBuilder {
@@ -103,6 +132,11 @@ constexpr auto components::kConfigFileMode<
     samples::http_middlewares::CustomHandlerPipelineBuilder> =
     components::ConfigFileMode::kNotRequired;
 
+template <>
+constexpr auto components::kConfigFileMode<
+    samples::http_middlewares::SomeHandlerMiddlewareFactory> =
+    components::ConfigFileMode::kNotRequired;
+
 int main(int argc, char* argv[]) {
   const auto component_list =
       components::MinimalServerComponentList()
@@ -110,6 +144,8 @@ int main(int argc, char* argv[]) {
           .Append<samples::http_middlewares::Handler>("handler")
           .Append<samples::http_middlewares::Handler>(
               "handler-with-custom-middlewares")
+          .Append<samples::http_middlewares::Handler>(
+              "handler-with-another-middleware-configuration")
           // middlewares
           .Append<samples::http_middlewares::SomeServerMiddlewareFactory>()
           .Append<samples::http_middlewares::SomeHandlerMiddlewareFactory>()

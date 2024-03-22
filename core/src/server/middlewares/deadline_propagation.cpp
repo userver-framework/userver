@@ -83,8 +83,7 @@ struct DeadlinePropagation::RequestScope final {
 };
 
 DeadlinePropagation::DeadlinePropagation(
-    const handlers::HttpHandlerBase& handler,
-    const components::ComponentConfig&)
+    const handlers::HttpHandlerBase& handler)
     : handler_{handler},
       deadline_propagation_enabled_{
           handler_.GetConfig().deadline_propagation_enabled},

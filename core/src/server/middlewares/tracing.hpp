@@ -22,8 +22,7 @@ class Tracing final : public HttpMiddlewareBase {
   static constexpr std::string_view kName{"userver-tracing-middleware"};
 
   Tracing(const tracing::TracingManagerBase& tracing_manager,
-          const handlers::HttpHandlerBase& handler,
-          const components::ComponentConfig& handler_config);
+          const handlers::HttpHandlerBase& handler);
 
  private:
   struct LoggingSettings final {
@@ -60,8 +59,7 @@ class TracingFactory final : public HttpMiddlewareFactoryBase {
 
  private:
   std::unique_ptr<HttpMiddlewareBase> Create(
-      const handlers::HttpHandlerBase&,
-      const components::ComponentConfig&) const override;
+      const handlers::HttpHandlerBase&, yaml_config::YamlConfig) const override;
 
   const tracing::TracingManagerBase& tracing_manager_;
 };

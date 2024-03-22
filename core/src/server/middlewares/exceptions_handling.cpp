@@ -13,8 +13,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::middlewares {
 
-ExceptionsHandling::ExceptionsHandling(const handlers::HttpHandlerBase& handler,
-                                       const components::ComponentConfig&)
+ExceptionsHandling::ExceptionsHandling(const handlers::HttpHandlerBase& handler)
     : handler_{handler} {}
 
 void ExceptionsHandling::HandleRequest(http::HttpRequest& request,
@@ -29,8 +28,7 @@ void ExceptionsHandling::HandleRequest(http::HttpRequest& request,
 }
 
 UnknownExceptionsHandling::UnknownExceptionsHandling(
-    const handlers::HttpHandlerBase& handler,
-    const components::ComponentConfig&)
+    const handlers::HttpHandlerBase& handler)
     : handler_{handler} {}
 
 void UnknownExceptionsHandling::HandleRequest(

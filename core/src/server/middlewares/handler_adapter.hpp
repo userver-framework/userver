@@ -12,8 +12,7 @@ class HandlerAdapter final : public HttpMiddlewareBase {
  public:
   static constexpr std::string_view kName{"userver-handler-adapter-middleware"};
 
-  HandlerAdapter(const handlers::HttpHandlerBase&,
-                 const components::ComponentConfig&);
+  explicit HandlerAdapter(const handlers::HttpHandlerBase&);
 
  private:
   void HandleRequest(http::HttpRequest& request,

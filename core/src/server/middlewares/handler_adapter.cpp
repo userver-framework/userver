@@ -74,8 +74,7 @@ logging::LogExtra LogRequestExtra(bool need_log_request_headers,
 
 }  // namespace
 
-HandlerAdapter::HandlerAdapter(const handlers::HttpHandlerBase& handler,
-                               const components::ComponentConfig&)
+HandlerAdapter::HandlerAdapter(const handlers::HttpHandlerBase& handler)
     : handler_{handler} {}
 
 void HandlerAdapter::HandleRequest(http::HttpRequest& request,

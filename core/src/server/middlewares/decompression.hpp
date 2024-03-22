@@ -19,8 +19,7 @@ class Decompression final : public HttpMiddlewareBase {
  public:
   static constexpr std::string_view kName{"userver-decompression-middleware"};
 
-  Decompression(const handlers::HttpHandlerBase&,
-                const components::ComponentConfig&);
+  explicit Decompression(const handlers::HttpHandlerBase&);
 
  private:
   void HandleRequest(http::HttpRequest& request,
@@ -42,8 +41,7 @@ class SetAcceptEncoding final : public HttpMiddlewareBase {
   static constexpr std::string_view kName{
       "userver-set-accept-encoding-middleware"};
 
-  SetAcceptEncoding(const handlers::HttpHandlerBase&,
-                    const components::ComponentConfig&);
+  explicit SetAcceptEncoding(const handlers::HttpHandlerBase&);
 
  private:
   void HandleRequest(http::HttpRequest& request,

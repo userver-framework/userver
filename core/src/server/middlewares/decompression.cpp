@@ -21,8 +21,7 @@ bool GetDecompressRequestFromHandlerSettings(
 }
 }  // namespace
 
-Decompression::Decompression(const handlers::HttpHandlerBase& handler,
-                             const components::ComponentConfig&)
+Decompression::Decompression(const handlers::HttpHandlerBase& handler)
     : decompress_request_{GetDecompressRequestFromHandlerSettings(handler)},
       max_request_size_{handler.GetConfig().request_config.max_request_size},
       parse_args_from_body_{
@@ -79,8 +78,7 @@ bool Decompression::DecompressRequestBody(http::HttpRequest& request) const {
   return false;
 }
 
-SetAcceptEncoding::SetAcceptEncoding(const handlers::HttpHandlerBase& handler,
-                                     const components::ComponentConfig&)
+SetAcceptEncoding::SetAcceptEncoding(const handlers::HttpHandlerBase& handler)
     : decompress_request_{GetDecompressRequestFromHandlerSettings(handler)} {}
 
 void SetAcceptEncoding::HandleRequest(http::HttpRequest& request,

@@ -17,8 +17,7 @@ class RateLimit final : public HttpMiddlewareBase {
  public:
   static constexpr std::string_view kName{"userver-rate-limit-middleware"};
 
-  RateLimit(const handlers::HttpHandlerBase&,
-            const components::ComponentConfig&);
+  explicit RateLimit(const handlers::HttpHandlerBase&);
 
  private:
   void HandleRequest(http::HttpRequest& request,

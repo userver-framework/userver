@@ -17,8 +17,7 @@ class DeadlinePropagation final : public HttpMiddlewareBase {
   static constexpr std::string_view kName{
       "userver-deadline-propagation-middleware"};
 
-  DeadlinePropagation(const handlers::HttpHandlerBase&,
-                      const components::ComponentConfig&);
+  explicit DeadlinePropagation(const handlers::HttpHandlerBase&);
 
  private:
   struct RequestScope;

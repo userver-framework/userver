@@ -30,8 +30,7 @@ void SetUpBaggage(const http::HttpRequest& http_request,
   }
 }
 
-Baggage::Baggage(const handlers::HttpHandlerBase&,
-                 const components::ComponentConfig&) {}
+Baggage::Baggage(const handlers::HttpHandlerBase&) {}
 
 void Baggage::HandleRequest(http::HttpRequest& request,
                             request::RequestContext& context) const {

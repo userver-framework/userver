@@ -11,8 +11,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::middlewares {
 
-RateLimit::RateLimit(const handlers::HttpHandlerBase& handler,
-                     const components::ComponentConfig&)
+RateLimit::RateLimit(const handlers::HttpHandlerBase& handler)
     : rate_limit_{utils::TokenBucket::MakeUnbounded()},
       statistics_{handler.GetHandlerStatistics()},
       max_requests_per_second_{handler.GetConfig().max_requests_per_second},

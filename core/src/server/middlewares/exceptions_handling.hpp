@@ -11,8 +11,7 @@ class ExceptionsHandling final : public HttpMiddlewareBase {
   static constexpr std::string_view kName{
       "userver-exceptions-handling-middleware"};
 
-  ExceptionsHandling(const handlers::HttpHandlerBase&,
-                     const components::ComponentConfig&);
+  explicit ExceptionsHandling(const handlers::HttpHandlerBase&);
 
  private:
   void HandleRequest(http::HttpRequest& request,
@@ -29,8 +28,7 @@ class UnknownExceptionsHandling final : public HttpMiddlewareBase {
   static constexpr std::string_view kName{
       "userver-unknown-exceptions-handling-middleware"};
 
-  UnknownExceptionsHandling(const handlers::HttpHandlerBase&,
-                            const components::ComponentConfig&);
+  explicit UnknownExceptionsHandling(const handlers::HttpHandlerBase&);
 
  private:
   void HandleRequest(http::HttpRequest& request,

@@ -10,7 +10,7 @@ class Baggage final : public HttpMiddlewareBase {
  public:
   static constexpr std::string_view kName{"userver-baggage-middleware"};
 
-  Baggage(const handlers::HttpHandlerBase&, const components::ComponentConfig&);
+  explicit Baggage(const handlers::HttpHandlerBase&);
 
  private:
   void HandleRequest(http::HttpRequest& request,

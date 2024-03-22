@@ -54,8 +54,7 @@ AuthFactory::AuthFactory(const components::ComponentConfig& config,
     : HttpMiddlewareFactoryBase{config, context}, context_{context} {}
 
 std::unique_ptr<HttpMiddlewareBase> AuthFactory::Create(
-    const handlers::HttpHandlerBase& handler,
-    const components::ComponentConfig&) const {
+    const handlers::HttpHandlerBase& handler, yaml_config::YamlConfig) const {
   return std::make_unique<Auth>(context_, handler);
 }
 

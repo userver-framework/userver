@@ -10,8 +10,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::middlewares {
 
-HandlerMetrics::HandlerMetrics(const handlers::HttpHandlerBase& handler,
-                               const components::ComponentConfig&)
+HandlerMetrics::HandlerMetrics(const handlers::HttpHandlerBase& handler)
     : handler_{handler} {}
 
 void HandlerMetrics::HandleRequest(http::HttpRequest& request,

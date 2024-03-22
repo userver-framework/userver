@@ -37,8 +37,7 @@ class AuthFactory final : public HttpMiddlewareFactoryBase {
 
  private:
   std::unique_ptr<HttpMiddlewareBase> Create(
-      const handlers::HttpHandlerBase&,
-      const components::ComponentConfig&) const override;
+      const handlers::HttpHandlerBase&, yaml_config::YamlConfig) const override;
 
   const components::ComponentContext& context_;
 };
