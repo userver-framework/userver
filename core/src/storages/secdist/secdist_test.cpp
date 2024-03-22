@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <cstdlib>
+#include <optional>
 
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/subprocess/environment_variables.hpp>
@@ -25,17 +26,23 @@ class UserPasswords {
   using Password = utils::NonLoggable<class PasswordTag, std::string>;
 
   UserPasswords(const formats::json::Value& doc)
-      : user_password_(doc["user-passwords"].As<Storage>()) {}
+      : user_passwords_(doc["user-passwords"].As<std::optional<Storage>>()) {}
 
   bool IsMatching(const std::string& user, const Password& password) const {
-    const auto* ptr = utils::FindOrNullptr(user_password_, user);
+    if (!user_passwords_.has_value()) {
+      throw std::runtime_error(
+          "User passwords storage is missing. Field 'user-passwords' was "
+          "missing in json.");
+    }
+
+    const auto* ptr = utils::FindOrNullptr(user_passwords_.value(), user);
     return ptr && crypto::algorithm::AreStringsEqualConstTime(
                       ptr->GetUnderlying(), password.GetUnderlying());
   }
 
  private:
   using Storage = std::unordered_map<std::string, Password>;
-  Storage user_password_;
+  std::optional<Storage> user_passwords_;
 };
 /// [UserPasswords]
 

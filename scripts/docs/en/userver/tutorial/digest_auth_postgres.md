@@ -66,7 +66,7 @@ Each factory should be registered at the beginning of the `main()` function via
 
 @snippet samples/digest_auth_service/digest_auth_service.cpp  auth checker registration
 
-
+### Static config
 That factory is invoked on each HTTP handler with the matching authorization
 type:
 
@@ -76,6 +76,11 @@ Digest settings are set using `server::handlers::auth::digest::AuthCheckerSettin
 
 @snippet samples/digest_auth_service/static_config.yaml digest config
 
+You also need to provide a secret as a value to the `http_server_digest_auth_secret` key using `components::Secdist`.
+
+@snippet samples/digest_auth_service/static_config.yaml secdist config
+
+Secret is used to generate the value for the derivatives.
 
 ### int main()
 

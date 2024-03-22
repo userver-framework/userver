@@ -21,8 +21,8 @@ NonceInfo::NonceInfo(const std::string& nonce, TimePoint expiration_time,
 
 AuthStandaloneCheckerBase::AuthStandaloneCheckerBase(
     const AuthCheckerSettings& digest_settings, std::string&& realm,
-    std::size_t ways, std::size_t way_size)
-    : AuthCheckerBase(digest_settings, std::move(realm)),
+    const SecdistConfig& secdist_config, std::size_t ways, std::size_t way_size)
+    : AuthCheckerBase(digest_settings, std::move(realm), secdist_config),
       unnamed_nonces_(ways, way_size) {
   unnamed_nonces_.SetMaxLifetime(digest_settings.nonce_ttl);
 }
