@@ -50,7 +50,7 @@ class ValueBuilder {
   ValueBuilder();
 
   /// Constructs a value with the predefined type
-  explicit ValueBuilder(Type);
+  ValueBuilder(formats::common::Type type);
 
   /// @cond
   /// Constructor from implementation, internal use only
