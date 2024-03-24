@@ -92,16 +92,6 @@ DocsMap::GetConfigsExpectedToBeUsed(utils::InternalTag) const {
   return configs_to_be_used_;
 }
 
-namespace impl {
-
-[[noreturn]] void ThrowNoValueException(std::string_view dict_name,
-                                        std::string_view key) {
-  throw std::runtime_error(
-      fmt::format("no value for '{}' in dict '{}'", key, dict_name));
-}
-
-}  // namespace impl
-
 }  // namespace dynamic_config
 
 USERVER_NAMESPACE_END
