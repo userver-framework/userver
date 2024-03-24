@@ -60,7 +60,7 @@ function(userver_target_generate_chaotic TARGET)
         VERBATIM
     )
     add_library(${TARGET} ${SCHEMAS})
-    target_link_libraries(${TARGET} userver-universal)
+    target_link_libraries(${TARGET} userver-universal userver-chaotic)
     target_include_directories(${TARGET} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
     target_include_directories(${TARGET} PUBLIC "${PARSE_OUTPUT_DIR}")
 endfunction()
