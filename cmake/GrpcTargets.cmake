@@ -270,14 +270,10 @@ function(userver_add_grpc_library NAME)
   target_compile_options(${NAME} PUBLIC -Wno-unused-parameter)
   target_include_directories(${NAME} SYSTEM PUBLIC $<BUILD_INTERFACE:${include_paths}>)
 
-  # It needs for installed userver
-  if(TARGET userver::userver-grpc)
-   target_link_libraries(${NAME} PUBLIC userver::userver-grpc)
-   return()
-  endif()
-
   if(USERVER_CONAN AND NOT CMAKE_PROJECT_NAME STREQUAL userver)
     target_link_libraries(${NAME} PUBLIC userver::grpc)
+  elseif (TARGET userver::userver-grpc)
+   target_link_libraries(${NAME} PUBLIC userver::userver-grpc)
   else()
     target_link_libraries(${NAME} PUBLIC userver-grpc)
   endif()
