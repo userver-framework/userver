@@ -508,7 +508,7 @@ void RequestState::on_completed(std::shared_ptr<RequestState> holder,
     holder->response()->SetStatusCode(status_code);
     holder->response()->SetStats(easy.get_local_stats());
 
-    if (!holder->response()->IsOk()) span.AddTag(tracing::kErrorFlag, true);
+    if (holder->response()->IsError()) span.AddTag(tracing::kErrorFlag, true);
 
     holder->plugin_pipeline_.HookOnCompleted(*holder, *holder->response());
 
