@@ -839,7 +839,7 @@ ResultSet ConnectionImpl::ExecuteCommand(const Query& query,
 
   DiscardOldPreparedStatements(deadline);
   CheckDeadlineReached(deadline);
-  const TimeoutDuration network_timeout =
+  const auto network_timeout =
       std::chrono::duration_cast<std::chrono::milliseconds>(
           deadline.TimeLeft());
   auto span = MakeQuerySpan(query, {network_timeout, GetStatementTimeout()});
@@ -938,9 +938,8 @@ ResultSet ConnectionImpl::ExecuteCommandNoPrepare(const Query& query,
                                                   const QueryParameters& params,
                                                   engine::Deadline deadline) {
   const auto& statement = query.Statement();
-  TimeoutDuration network_timeout =
-      std::chrono::duration_cast<std::chrono::milliseconds>(
-          deadline.TimeLeft());
+  auto network_timeout = std::chrono::duration_cast<std::chrono::milliseconds>(
+      deadline.TimeLeft());
   CheckBusy();
   CheckDeadlineReached(deadline);
   auto span = MakeQuerySpan(query, {network_timeout, GetStatementTimeout()});
