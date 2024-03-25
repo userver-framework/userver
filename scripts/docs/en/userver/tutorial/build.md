@@ -71,7 +71,7 @@ To explicitly specialize the compiler use the cmake options `CMAKE_C_COMPILER` a
 For example to use clang-12 compiler install it and add the following options to cmake:
 `-DCMAKE_CXX_COMPILER=clang++-12 -DCMAKE_C_COMPILER=clang-12`
 
-@note Using LTO can lead to race [problems](https://github.com/userver-framework/userver/issues/242) in competitive code. We don't recommend use `USERVER_LTO`.
+@warning Using LTO can lead to [some problems](https://github.com/userver-framework/userver/issues/242). We don't recommend using `USERVER_LTO`.
 
 
 @anchor userver_libraries
