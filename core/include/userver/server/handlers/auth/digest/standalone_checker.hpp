@@ -42,8 +42,9 @@ struct NonceInfo final {
 class AuthStandaloneCheckerBase : public AuthCheckerBase {
  public:
   AuthStandaloneCheckerBase(const AuthCheckerSettings& digest_settings,
-                            std::string&& realm, std::size_t ways,
-                            std::size_t way_size);
+                            std::string&& realm,
+                            const SecdistConfig& secdist_config,
+                            std::size_t ways, std::size_t way_size);
 
   [[nodiscard]] bool SupportsUserAuth() const noexcept override { return true; }
 
