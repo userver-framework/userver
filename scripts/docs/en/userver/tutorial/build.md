@@ -417,7 +417,8 @@ Next, write
 ```
 find_package(userver REQUIRED COMPONENTS core postgresql grpc redis clickhouse mysql rabbitmq mongo)
 ```
-in your `CMakeLists.txt`. Choose only the necessary components. @see ref userver_libraries 
+in your `CMakeLists.txt`. Choose only the necessary components. 
+@see @ref userver_libraries
 
 Finaly, link your source with userver component.
 
