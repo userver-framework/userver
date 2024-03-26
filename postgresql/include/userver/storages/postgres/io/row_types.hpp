@@ -145,7 +145,7 @@ constexpr void AssertIsValidRowType() {
       "4. Has a Introspect method that makes the std::tuple from your "
       "class/struct. "
       "For more info see `uPg: Typed PostgreSQL results` chapter in docs.");
-};
+}
 
 template <typename T>
 inline constexpr bool kIsRowType = kRowCategory<T> != RowCategoryType::kNonRow;
