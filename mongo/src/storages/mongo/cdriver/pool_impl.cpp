@@ -7,6 +7,7 @@
 #include <fmt/format.h>
 
 #include <userver/clients/dns/resolver.hpp>
+#include <userver/engine/sleep.hpp>
 #include <userver/formats/bson.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
@@ -25,6 +26,16 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::impl::cdriver {
 namespace {
+
+[[maybe_unused]] void MongocCoroFrieldlyUsleep(int64_t usec, void*) noexcept {
+  UASSERT(usec >= 0);
+  if (engine::current_task::IsTaskProcessorThread()) {
+    // we're not sure how it'll behave with interruptible sleeps
+    engine::SleepFor(std::chrono::microseconds{usec});
+  } else {
+    ::usleep(usec);
+  }
+}
 
 utils::impl::UserverExperiment kServerSelectionTimeoutExperiment{
     "mongo-server-selection-timeout"};
@@ -176,7 +187,6 @@ CDriverPoolImpl::CDriverPoolImpl(std::string id, const std::string& uri_string,
       queue_(config.max_size) {
   static const GlobalInitializer kInitMongoc;
   GlobalInitializer::LogInitWarningsOnce();
-  CheckAsyncStreamCompatible();
 
   uri_ = MakeUri(Id(), uri_string, config);
   const char* uri_database = mongoc_uri_get_database(uri_.get());
@@ -350,6 +360,13 @@ mongoc_client_t* CDriverPoolImpl::Create() {
   mongoc_client_set_error_api(client.get(), MONGOC_ERROR_API_VERSION_2);
   mongoc_client_set_stream_initiator(client.get(), &MakeAsyncStream,
                                      &init_data_);
+#if MONGOC_CHECK_VERSION(1, 26, 0)
+  mongoc_client_set_usleep_impl(client.get(), &MongocCoroFrieldlyUsleep,
+                                nullptr);
+#else
+  LOG_LIMITED_WARNING() << "Cannot use coro-friendly usleep in mongo driver, "
+                           "link against newer mongo-c-driver to fix";
+#endif
 
   if (!app_name_.empty()) {
     mongoc_client_set_appname(client.get(), app_name_.c_str());
