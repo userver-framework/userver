@@ -295,7 +295,6 @@ endif()
 
 _userver_install_targets(COMPONENT core TARGETS ${PROJECT_NAME})
 _userver_directory_install(COMPONENT core FILES
-    "${USERVER_ROOT_DIR}/cmake/FindPython.cmake"
     "${USERVER_ROOT_DIR}/cmake/UserverTestsuite.cmake"
     "${USERVER_ROOT_DIR}/cmake/install/userver-core-config.cmake"
     "${CMAKE_BINARY_DIR}/cmake_generated/Findc-ares.cmake"

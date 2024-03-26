@@ -284,7 +284,6 @@ class UserverConan(ConanFile):
                     'a+',
             ) as grpc_file:
                 grpc_file.write('\nset(USERVER_CONAN TRUE)')
-                grpc_file.write('\nset(USERVER_PYTHON "python3")')
         if self.options.with_utest:
             copy(
                 self,

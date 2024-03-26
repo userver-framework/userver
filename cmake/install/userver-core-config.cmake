@@ -18,7 +18,6 @@ find_package(LibEv REQUIRED)
 find_package(UserverGTest REQUIRED)
 find_package(UserverGBench REQUIRED)
 
-include("${USERVER_CMAKE_DIR}/FindPython.cmake")
 include("${USERVER_CMAKE_DIR}/UserverTestsuite.cmake")
 include("${USERVER_CMAKE_DIR}/Findc-ares.cmake")
 

@@ -130,7 +130,7 @@ include(AddGoogleTests)
 include(CheckSubmodule)
 include(FindPackageRequired)
 include(IncludeWhatYouUse)
-# For userver_venv_setup below, otherwise FindPython would be enough.
+# For userver_venv_setup below.
 include(UserverTestsuite)
 include(CheckCompileFlags)
 include(CMakePackageConfigHelpers)

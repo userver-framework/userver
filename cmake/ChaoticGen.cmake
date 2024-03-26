@@ -1,6 +1,6 @@
 include_guard()
 
-include(FindPython)
+include(UserverTestsuite)
 
 set(CHAOTIC_BIN ${CMAKE_CURRENT_LIST_DIR}/../chaotic/bin/chaotic-gen)
 message(STATUS "Found chaotic-gen: ${CHAOTIC_BIN}")

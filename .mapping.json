@@ -146,7 +146,6 @@
   "cmake/DetectVersion.cmake":"taxi/uservices/userver/cmake/DetectVersion.cmake",
   "cmake/DownloadUsingCPM.cmake":"taxi/uservices/userver/cmake/DownloadUsingCPM.cmake",
   "cmake/FindPackageRequired.cmake":"taxi/uservices/userver/cmake/FindPackageRequired.cmake",
-  "cmake/FindPython.cmake":"taxi/uservices/userver/cmake/FindPython.cmake",
   "cmake/GetUserverVersion.cmake":"taxi/uservices/userver/cmake/GetUserverVersion.cmake",
   "cmake/GrpcTargets.cmake":"taxi/uservices/userver/cmake/GrpcTargets.cmake",
   "cmake/IncludeWhatYouUse.cmake":"taxi/uservices/userver/cmake/IncludeWhatYouUse.cmake",
