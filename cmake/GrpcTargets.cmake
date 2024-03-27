@@ -46,9 +46,12 @@ if(NOT USERVER_CONAN)
   include(UserverTestsuite)
 endif()
 
-set(file_requirements_protobuf "requirements.txt")
-if(Protobuf_VERSION VERSION_LESS 3.20.0)
-  set(file_requirements_protobuf "requirements-old.txt")
+if(Protobuf_VERSION VERSION_GREATER_EQUAL 5.26.0)
+  set(file_requirements_protobuf "requirements-5.txt")
+elseif(Protobuf_VERSION VERSION_GREATER_EQUAL 4.20.0)
+  set(file_requirements_protobuf "requirements-4.txt")
+else()
+  set(file_requirements_protobuf "requirements-3.txt")
 endif()
 
 userver_venv_setup(

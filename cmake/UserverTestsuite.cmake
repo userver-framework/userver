@@ -199,12 +199,15 @@ function(userver_testsuite_requirements)
           "SetupProtobuf should be run before setting up testsuite")
     endif()
 
-    if(Protobuf_VERSION VERSION_GREATER 3.20.0)
+    if(Protobuf_VERSION VERSION_GREATER_EQUAL 5.26.0)
       list(APPEND requirements_files
-          "${USERVER_TESTSUITE_DIR}/requirements-grpc.txt")
+          "${USERVER_TESTSUITE_DIR}/requirements-grpc-5.txt")
+    elseif(Protobuf_VERSION VERSION_GREATER_EQUAL 4.20.0)
+      list(APPEND requirements_files
+          "${USERVER_TESTSUITE_DIR}/requirements-grpc-4.txt")
     else()
       list(APPEND requirements_files
-          "${USERVER_TESTSUITE_DIR}/requirements-grpc-old.txt")
+          "${USERVER_TESTSUITE_DIR}/requirements-grpc-3.txt")
       message(STATUS "Forcing old protobuf version for testsuite")
     endif()
   endif()
