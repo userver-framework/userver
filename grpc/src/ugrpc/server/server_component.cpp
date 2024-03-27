@@ -22,7 +22,7 @@ ServerComponent::ServerComponent(const components::ComponentConfig& config,
       service_defaults_(std::make_unique<impl::ServiceDefaults>(
           impl::ParseServiceDefaults(config["service-defaults"], context))) {}
 
-ServerComponent::~ServerComponent() = default;
+ServerComponent::~ServerComponent() { server_.Stop(); }
 
 Server& ServerComponent::GetServer() noexcept { return server_; }
 
@@ -34,7 +34,7 @@ ServiceConfig ServerComponent::ParseServiceConfig(
 
 void ServerComponent::OnAllComponentsLoaded() { server_.Start(); }
 
-void ServerComponent::OnAllComponentsAreStopping() { server_.Stop(); }
+void ServerComponent::OnAllComponentsAreStopping() { server_.StopServing(); }
 
 yaml_config::Schema ServerComponent::GetStaticConfigSchema() {
   return yaml_config::MergeSchemas<LoggableComponentBase>(R"(

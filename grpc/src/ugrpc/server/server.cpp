@@ -88,9 +88,9 @@ class Server::Impl final {
 
   int GetPort() const noexcept;
 
-  void Stop() noexcept;
+  void StopServing() noexcept;
 
-  void StopDebug() noexcept;
+  void Stop() noexcept;
 
   std::uint64_t GetTotalRequests() const;
 
@@ -98,6 +98,7 @@ class Server::Impl final {
   enum class State {
     kConfiguration,
     kActive,
+    kServingStopped,
     kStopped,
   };
 
@@ -264,10 +265,15 @@ void Server::Impl::Stop() noexcept {
   state_ = State::kStopped;
 }
 
-void Server::Impl::StopDebug() noexcept {
-  UINVARIANT(server_, "The gRPC server is not running");
-  server_->Shutdown();
+void Server::Impl::StopServing() noexcept {
+  UASSERT(state_ != State::kStopped);
+  if (server_) {
+    LOG_INFO() << "Stopping serving on the gRPC server";
+    server_->Shutdown();
+  }
   service_workers_.clear();
+
+  state_ = State::kServingStopped;
 }
 
 std::uint64_t Server::Impl::GetTotalRequests() const {
@@ -329,7 +335,7 @@ int Server::GetPort() const noexcept { return impl_->GetPort(); }
 
 void Server::Stop() noexcept { return impl_->Stop(); }
 
-void Server::StopDebug() noexcept { return impl_->StopDebug(); }
+void Server::StopServing() noexcept { return impl_->StopServing(); }
 
 std::uint64_t Server::GetTotalRequests() const {
   return impl_->GetTotalRequests();

@@ -43,7 +43,7 @@ UTEST_F(GrpcStatistics, LongRequest) {
   out.set_name("userver");
   UEXPECT_THROW(client.SayHello(out).Finish(),
                 ugrpc::client::InvalidArgumentError);
-  GetServer().StopDebug();
+  GetServer().StopServing();
 
   for (const auto& domain : {"client", "server"}) {
     const auto stats = GetStatistics(
@@ -104,7 +104,7 @@ UTEST_F(GrpcStatistics, StatsBeforeGet) {
   EXPECT_LT(timing, 100);
 
   UEXPECT_THROW(future.Get(), ugrpc::client::InvalidArgumentError);
-  GetServer().StopDebug();
+  GetServer().StopServing();
 }
 
 UTEST_F_MT(GrpcStatistics, Multithreaded, 2) {
@@ -131,7 +131,7 @@ UTEST_F_MT(GrpcStatistics, Multithreaded, 2) {
   });
 
   engine::GetAll(say_hello_task, chat_task);
-  GetServer().StopDebug();
+  GetServer().StopServing();
 
   for (const auto& domain : {"client", "server"}) {
     const auto status =

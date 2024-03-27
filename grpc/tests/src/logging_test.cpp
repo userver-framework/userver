@@ -71,7 +71,7 @@ UTEST_F(GrpcAccessLog, Test) {
   out.set_name("userver");
   auto response = client.SayHello(out).Finish();
 
-  GetServer().StopDebug();
+  GetServer().StopServing();
 
   constexpr std::string_view kExpectedPattern =
       R"(tskv\t)"

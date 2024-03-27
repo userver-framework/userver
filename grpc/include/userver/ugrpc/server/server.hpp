@@ -106,13 +106,11 @@ class Server final
   /// @note Should be called at least once before the services are destroyed
   void Stop() noexcept;
 
-  /// @cond
   /// Same as Stop, but:
   /// - does not destroy server statistics
   /// - does not close the associated CompletionQueue
-  /// Stop must still be called. StopDebug is useful for testing.
-  void StopDebug() noexcept;
-  /// @endcond
+  /// Stop must still be called. StopServing is also useful for testing.
+  void StopServing() noexcept;
 
   std::uint64_t GetTotalRequests() const override;
 
