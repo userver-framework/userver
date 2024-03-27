@@ -408,6 +408,8 @@ cmake -S./ -B./build_release \
     -DCMAKE_BUILD_TYPE=Release \
     -DUSERVER_INSTALL=ON \
     -GNinja
+cmake --build build_debug/
+cmake --build build_release/
 cmake --install build_debug/
 cmake --install build_release/
 ```
