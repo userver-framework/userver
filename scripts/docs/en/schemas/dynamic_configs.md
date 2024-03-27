@@ -1014,14 +1014,26 @@ schema:
     properties:
         force-enabled:
             type: array
-            description: logs to turn on
+            description: logs to turn on with any level
             items:
                 type: string
 
         force-disabled:
             type: array
-            description: logs to turn off
+            description: logs to turn off with level lower than WARNING
             items:
+                type: string
+
+        force-enabled-level:
+            type: object
+            description: logs to turn on with level equal or higher to given
+            additionalProperties:
+                type: string
+
+        force-disabled-level:
+            type: object
+            description: logs to turn off with level equal or lower to given
+            additionalProperties:
                 type: string
 ```
 

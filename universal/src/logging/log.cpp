@@ -148,9 +148,9 @@ bool StaticLogEntry::ShouldNotLog(logging::LoggerRef logger,
                                   logging::Level level) const noexcept {
   const auto& content = reinterpret_cast<const LogEntryContent&>(content_);
   const auto state = content.state.load();
-  const bool force_disabled =
-      level < Level::kWarning && state == EntryState::kForceDisabled;
-  const bool force_enabled = state == EntryState::kForceEnabled;
+  const bool force_disabled = level < state.force_disabled_level_plus_one;
+  const bool force_enabled =
+      level >= state.force_enabled_level && level != logging::Level::kNone;
   return (!LoggerShouldLog(logger, level) || force_disabled) && !force_enabled;
 }
 

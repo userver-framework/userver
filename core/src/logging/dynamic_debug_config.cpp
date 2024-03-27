@@ -2,6 +2,7 @@
 
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/parse/common_containers.hpp>
+#include <userver/logging/level_serialization.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -14,9 +15,24 @@ bool operator==(const DynamicDebugConfig& a, const DynamicDebugConfig& b) {
 
 DynamicDebugConfig Parse(const formats::json::Value& value,
                          formats::parse::To<DynamicDebugConfig>) {
-  return DynamicDebugConfig{
-      value["force-enabled"].As<std::vector<std::string>>(),
-      value["force-disabled"].As<std::vector<std::string>>()};
+  DynamicDebugConfig result;
+
+  result.force_enabled =
+      value["force-enabled-level"]
+          .As<std::unordered_map<std::string, logging::Level>>({});
+  result.force_disabled =
+      value["force-disabled-level"]
+          .As<std::unordered_map<std::string, logging::Level>>({});
+
+  for (auto location : value["force-enabled"].As<std::vector<std::string>>()) {
+    result.force_enabled[std::move(location)] = logging::Level::kTrace;
+  }
+  for (auto location : value["force-disabled"].As<std::vector<std::string>>()) {
+    // You can not disable WARNING and ERROR logs using this method
+    result.force_disabled[std::move(location)] = logging::Level::kInfo;
+  }
+
+  return result;
 }
 
 }  // namespace logging

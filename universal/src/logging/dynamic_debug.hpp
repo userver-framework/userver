@@ -16,11 +16,14 @@ inline constexpr int kAnyLine = 0;
 
 namespace bi = boost::intrusive;
 
-enum class EntryState {
-  kForceDisabled,
-  kDefault,
-  kForceEnabled,
+struct alignas(2 * sizeof(Level)) EntryState {
+  Level force_enabled_level{Level::kNone};
+  Level force_disabled_level_plus_one{Level::kTrace};
 };
+
+Level GetForceDisabledLevelPlusOne(Level level);
+
+static_assert(std::atomic<EntryState>::is_always_lock_free);
 
 using LogEntryContentHook =
     bi::set_base_hook<bi::optimize_size<true>, bi::link_mode<bi::normal_link>>;
@@ -29,7 +32,7 @@ struct LogEntryContent {
   LogEntryContent(const char* path, int line) noexcept
       : line(line), path(path) {}
 
-  std::atomic<EntryState> state{EntryState::kDefault};
+  std::atomic<EntryState> state{};
   const int line;
   const char* const path;
   LogEntryContentHook hook;
@@ -49,7 +52,8 @@ using LogEntryContentSet = bi::set<  //
     >;
 
 void AddDynamicDebugLog(const std::string& location_relative, int line,
-                        EntryState state = EntryState::kForceEnabled);
+                        EntryState state = EntryState{
+                            /*force_enabled_level=*/Level::kTrace});
 
 void RemoveDynamicDebugLog(const std::string& location_relative, int line);
 
