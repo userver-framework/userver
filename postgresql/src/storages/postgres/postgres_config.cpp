@@ -221,7 +221,7 @@ const dynamic_config::Key<PipelineMode> kPipelineModeKey{
     dynamic_config::DefaultAsJsonString{"0"}};
 
 const dynamic_config::Key<bool> kConnlimitModeAutoEnabled{
-    "POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED", false};
+    "POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED", true};
 
 const dynamic_config::Key<int> kDeadlinePropagationVersionConfig{
     "POSTGRES_DEADLINE_PROPAGATION_VERSION", 0};

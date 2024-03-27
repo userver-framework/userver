@@ -405,7 +405,7 @@ max_connections divided by service instance count.
 
 ```
 yaml
-default: false
+default: true
 schema:
   type: boolean
 ```
