@@ -1,0 +1,9 @@
+project-name: userver-telegram
+project-alt-names:
+  - yandex-userver-telegram
+maintainers:
+  - Common components
+description: Userver component for communicating with telegram
+
+libraries:
+  - userver-core

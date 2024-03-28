@@ -241,6 +241,10 @@ if (USERVER_FEATURE_MYSQL)
   list(APPEND USERVER_AVAILABLE_COMPONENTS mysql)
 endif()
 
+if (USERVER_FEATURE_CORE)
+    add_subdirectory(telegram "${CMAKE_BINARY_DIR}/userver/telegram")
+endif()
+
 if (USERVER_IS_THE_ROOT_PROJECT AND USERVER_FEATURE_CORE)
   add_subdirectory(samples)
 endif()
