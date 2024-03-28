@@ -1,7 +1,7 @@
 #ifdef __linux__
 #include <userver/utest/utest.hpp>
 
-#include <userver/engine/io/sys/linux/inotify.hpp>
+#include <userver/engine/io/sys/posix/inotify.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/fs/blocking/file_descriptor.hpp>
 #include <userver/fs/blocking/read.hpp>
@@ -21,11 +21,11 @@ UTEST(Inotify, File) {
   auto tmp = fs::blocking::TempFile::Create();
   const auto& path = tmp.GetPath();
 
-  namespace linux = engine::io::sys::linux;
-  linux::Inotify inotify;
+  namespace posix = engine::io::sys::posix;
+  posix::Inotify inotify;
   inotify.AddWatch(path,
-                   {linux::EventType::kOpen, linux::EventType::kAccess,
-                    linux::EventType::kCloseWrite, linux::EventType::kModify});
+                   {posix::EventType::kOpen, posix::EventType::kAccess,
+                    posix::EventType::kCloseWrite, posix::EventType::kModify});
 
   {
     auto fd = fs::blocking::FileDescriptor::Open(
@@ -38,19 +38,19 @@ UTEST(Inotify, File) {
 
   auto event = inotify.Poll({});
   ASSERT_TRUE(event);
-  EXPECT_EQ(event, (linux::Event{path, linux::EventType::kOpen}));
+  EXPECT_EQ(event, (posix::Event{path, posix::EventType::kOpen}));
 
   event = inotify.Poll({});
   ASSERT_TRUE(event);
-  EXPECT_EQ(event, (linux::Event{path, linux::EventType::kModify}));
+  EXPECT_EQ(event, (posix::Event{path, posix::EventType::kModify}));
 
   event = inotify.Poll({});
   ASSERT_TRUE(event);
-  EXPECT_EQ(event, (linux::Event{path, linux::EventType::kAccess}));
+  EXPECT_EQ(event, (posix::Event{path, posix::EventType::kAccess}));
 
   event = inotify.Poll({});
   ASSERT_TRUE(event);
-  EXPECT_EQ(event, (linux::Event{path, linux::EventType::kCloseWrite}));
+  EXPECT_EQ(event, (posix::Event{path, posix::EventType::kCloseWrite}));
 }
 
 UTEST(Inotify, Directory) {
@@ -59,16 +59,16 @@ UTEST(Inotify, Directory) {
 
   fs::blocking::RewriteFileContents(path + "/1", "contents");
 
-  namespace linux = engine::io::sys::linux;
-  linux::Inotify inotify;
+  namespace posix = engine::io::sys::posix;
+  posix::Inotify inotify;
   inotify.AddWatch(path, {
-                             linux::EventType::kOpen,
-                             linux::EventType::kAccess,
-                             linux::EventType::kCloseWrite,
-                             linux::EventType::kCloseNoWrite,
-                             linux::EventType::kModify,
-                             linux::EventType::kMovedFrom,
-                             linux::EventType::kMovedTo,
+                             posix::EventType::kOpen,
+                             posix::EventType::kAccess,
+                             posix::EventType::kCloseWrite,
+                             posix::EventType::kCloseNoWrite,
+                             posix::EventType::kModify,
+                             posix::EventType::kMovedFrom,
+                             posix::EventType::kMovedTo,
                          });
 
   {
@@ -78,46 +78,46 @@ UTEST(Inotify, Directory) {
 
   auto event = inotify.Poll({});
   ASSERT_TRUE(event);
-  EXPECT_EQ(event, (linux::Event{path + "/2", linux::EventType::kOpen}));
+  EXPECT_EQ(event, (posix::Event{path + "/2", posix::EventType::kOpen}));
 
   event = inotify.Poll({});
   ASSERT_TRUE(event);
-  EXPECT_EQ(event, (linux::Event{path + "/2", linux::EventType::kModify}));
+  EXPECT_EQ(event, (posix::Event{path + "/2", posix::EventType::kModify}));
 
   event = inotify.Poll({});
   ASSERT_TRUE(event);
-  EXPECT_EQ(event, (linux::Event{path + "/2", linux::EventType::kCloseWrite}));
+  EXPECT_EQ(event, (posix::Event{path + "/2", posix::EventType::kCloseWrite}));
 
   event = inotify.Poll({});
   ASSERT_TRUE(event);
-  EXPECT_EQ(event, (linux::Event{path + "/2", linux::EventType::kOpen}));
+  EXPECT_EQ(event, (posix::Event{path + "/2", posix::EventType::kOpen}));
 
   event = inotify.Poll({});
   ASSERT_TRUE(event);
-  EXPECT_EQ(event, (linux::Event{path + "/2", linux::EventType::kAccess}));
+  EXPECT_EQ(event, (posix::Event{path + "/2", posix::EventType::kAccess}));
 
   event = inotify.Poll({});
   ASSERT_TRUE(event);
   EXPECT_EQ(event,
-            (linux::Event{path + "/2", linux::EventType::kCloseNoWrite}));
+            (posix::Event{path + "/2", posix::EventType::kCloseNoWrite}));
 
   fs::blocking::Rename(path + "/2", path + "/3");
 
   event = inotify.Poll({});
   ASSERT_TRUE(event);
-  EXPECT_EQ(event, (linux::Event{path + "/2", linux::EventType::kMovedFrom}));
+  EXPECT_EQ(event, (posix::Event{path + "/2", posix::EventType::kMovedFrom}));
 
   event = inotify.Poll({});
   ASSERT_TRUE(event);
-  EXPECT_EQ(event, (linux::Event{path + "/3", linux::EventType::kMovedTo}));
+  EXPECT_EQ(event, (posix::Event{path + "/3", posix::EventType::kMovedTo}));
 }
 
 UTEST(Inotify, TaskCancel) {
-  namespace linux = engine::io::sys::linux;
-  linux::Inotify inotify;
+  namespace posix = engine::io::sys::posix;
+  posix::Inotify inotify;
   inotify.AddWatch("/",
-                   {linux::EventType::kOpen, linux::EventType::kAccess,
-                    linux::EventType::kCloseWrite, linux::EventType::kModify});
+                   {posix::EventType::kOpen, posix::EventType::kAccess,
+                    posix::EventType::kCloseWrite, posix::EventType::kModify});
 
   engine::current_task::GetCancellationToken().RequestCancel();
 

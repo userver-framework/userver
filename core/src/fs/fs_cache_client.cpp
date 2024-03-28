@@ -68,8 +68,8 @@ void FsCacheClient::UpdateCache() {
 
 #ifdef __linux__
 void FsCacheClient::InotifyWork() {
-  namespace linux = engine::io::sys::linux;
-  linux::Inotify inotify;
+  namespace posix = engine::io::sys::posix;
+  posix::Inotify inotify;
 
   HandleCreateDirectory(inotify, dir_);
 
@@ -78,19 +78,19 @@ void FsCacheClient::InotifyWork() {
     LOG_INFO() << event;
     if (!event) return;
 
-    if (event->mask & linux::EventType::kMovedFrom ||
-        event->mask & linux::EventType::kDelete) {
-      if (!(event->mask & linux::EventType::kIsDir)) {
+    if (event->mask & posix::EventType::kMovedFrom ||
+        event->mask & posix::EventType::kDelete) {
+      if (!(event->mask & posix::EventType::kIsDir)) {
         HandleDelete(event->path);
       } else {
         HandleDeleteDirectory(inotify, event->path);
       }
     }
 
-    if (event->mask & linux::EventType::kMovedTo ||
-        event->mask & linux::EventType::kCreate ||
-        event->mask & linux::EventType::kModify) {
-      if (!(event->mask & linux::EventType::kIsDir)) {
+    if (event->mask & posix::EventType::kMovedTo ||
+        event->mask & posix::EventType::kCreate ||
+        event->mask & posix::EventType::kModify) {
+      if (!(event->mask & posix::EventType::kIsDir)) {
         HandleCreate(event->path);
       } else {
         HandleCreateDirectory(inotify, event->path);
@@ -104,7 +104,7 @@ void FsCacheClient::HandleDelete(const std::string& path) {
 }
 
 void FsCacheClient::HandleDeleteDirectory(
-    engine::io::sys::linux::Inotify& inotify, const std::string& path) {
+    engine::io::sys::posix::Inotify& inotify, const std::string& path) {
   LOG_INFO() << "HandleDeleteDirectory()";
   inotify.RmWatch(path);
 }
@@ -121,15 +121,15 @@ void FsCacheClient::HandleCreate(const std::string& path) {
 }
 
 void FsCacheClient::HandleCreateDirectory(
-    engine::io::sys::linux::Inotify& inotify, const std::string& path) {
+    engine::io::sys::posix::Inotify& inotify, const std::string& path) {
   LOG_INFO() << "HandleCreateDirectory(" << path << ")";
-  namespace linux = engine::io::sys::linux;
+  namespace posix = engine::io::sys::posix;
   inotify.AddWatch(path, {
-                             linux::EventType::kModify,
-                             linux::EventType::kMovedFrom,
-                             linux::EventType::kMovedTo,
-                             linux::EventType::kDelete,
-                             linux::EventType::kCreate,
+                             posix::EventType::kModify,
+                             posix::EventType::kMovedFrom,
+                             posix::EventType::kMovedTo,
+                             posix::EventType::kDelete,
+                             posix::EventType::kCreate,
                          });
 
   for (auto it =
