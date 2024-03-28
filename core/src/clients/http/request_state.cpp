@@ -391,8 +391,16 @@ void RequestState::DisableReplyDecoding() {
   easy().set_accept_encoding(nullptr);
 }
 
+void RequestState::SetCancellationPolicy(CancellationPolicy cp) {
+  cancellation_policy_ = cp;
+}
+
+CancellationPolicy RequestState::GetCancellationPolicy() const {
+  return cancellation_policy_;
+}
+
 void RequestState::SetDeadlinePropagationConfig(
-    const impl::DeadlinePropagationConfig& deadline_propagation_config) {
+    const DeadlinePropagationConfig& deadline_propagation_config) {
   deadline_propagation_config_ = deadline_propagation_config;
 }
 

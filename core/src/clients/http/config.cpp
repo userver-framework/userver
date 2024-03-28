@@ -1,4 +1,4 @@
-#include <userver/clients/http/impl/config.hpp>
+#include <userver/clients/http/config.hpp>
 
 #include <string_view>
 
@@ -8,23 +8,23 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace clients::http::impl {
+namespace clients::http {
 namespace {
 
 void ParseTokenBucketSettings(const formats::json::Value& settings,
                               size_t& limit, std::chrono::microseconds& rate,
                               std::string_view limit_key,
                               std::string_view per_second_key) {
-  limit = settings[limit_key].As<size_t>(ThrottleConfig::kNoLimit);
-  if (limit == 0) limit = ThrottleConfig::kNoLimit;
+  limit = settings[limit_key].As<size_t>(impl::ThrottleConfig::kNoLimit);
+  if (limit == 0) limit = impl::ThrottleConfig::kNoLimit;
 
-  if (limit != ThrottleConfig::kNoLimit) {
+  if (limit != impl::ThrottleConfig::kNoLimit) {
     const auto per_second = settings[per_second_key].As<size_t>(0);
     if (per_second) {
       rate = std::chrono::seconds{1};
       rate /= per_second;
     } else {
-      limit = ThrottleConfig::kNoLimit;
+      limit = impl::ThrottleConfig::kNoLimit;
     }
   }
 }
@@ -39,6 +39,14 @@ DeadlinePropagationConfig ParseDeadlinePropagationConfig(
 
 }  // namespace
 
+CancellationPolicy Parse(yaml_config::YamlConfig value,
+                         formats::parse::To<CancellationPolicy>) {
+  auto str = value.As<std::string>();
+  if (str == "cancel") return CancellationPolicy::kCancel;
+  if (str == "ignore") return CancellationPolicy::kIgnore;
+  throw std::runtime_error("Invalid CancellationPolicy value: " + str);
+}
+
 ClientSettings Parse(const yaml_config::YamlConfig& value,
                      formats::parse::To<ClientSettings>) {
   ClientSettings result;
@@ -49,6 +57,10 @@ ClientSettings Parse(const yaml_config::YamlConfig& value,
   result.deadline_propagation = ParseDeadlinePropagationConfig(value);
   return result;
 }
+
+}  // namespace clients::http
+
+namespace clients::http::impl {
 
 ThrottleConfig Parse(const formats::json::Value& value,
                      formats::parse::To<ThrottleConfig>) {

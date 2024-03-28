@@ -17,11 +17,19 @@ namespace server::http {
 class HeadersPropagator;
 }  // namespace server::http
 
-namespace clients::http::impl {
+namespace clients::http {
 
 struct DeadlinePropagationConfig {
   bool update_header{true};
 };
+
+enum class CancellationPolicy {
+  kIgnore,
+  kCancel,
+};
+
+CancellationPolicy Parse(yaml_config::YamlConfig value,
+                         formats::parse::To<CancellationPolicy>);
 
 // Static config
 struct ClientSettings final {
@@ -31,10 +39,15 @@ struct ClientSettings final {
   DeadlinePropagationConfig deadline_propagation{};
   const tracing::TracingManagerBase* tracing_manager{nullptr};
   const server::http::HeadersPropagator* headers_propagator{nullptr};
+  CancellationPolicy cancellation_policy{CancellationPolicy::kCancel};
 };
 
 ClientSettings Parse(const yaml_config::YamlConfig& value,
                      formats::parse::To<ClientSettings>);
+
+}  // namespace clients::http
+
+namespace clients::http::impl {
 
 struct ThrottleConfig final {
   static constexpr size_t kNoLimit = -1;

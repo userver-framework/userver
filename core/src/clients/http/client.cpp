@@ -38,17 +38,18 @@ long ClampToLong(size_t value) {
 }
 
 const tracing::TracingManagerBase* GetTracingManager(
-    const impl::ClientSettings& settings) {
+    const ClientSettings& settings) {
   UASSERT(settings.tracing_manager);
   return settings.tracing_manager;
 }
 
 }  // namespace
 
-Client::Client(impl::ClientSettings settings,
+Client::Client(ClientSettings settings,
                engine::TaskProcessor& fs_task_processor,
                impl::PluginPipeline&& plugin_pipeline)
     : deadline_propagation_config_(settings.deadline_propagation),
+      cancellation_policy_(settings.cancellation_policy),
       destination_statistics_(std::make_shared<DestinationStatistics>()),
       statistics_(settings.io_threads),
       fs_task_processor_(fs_task_processor),
@@ -163,6 +164,7 @@ Request Client::CreateRequest() {
     request.proxy(*proxy_value);
   }
   request.SetDeadlinePropagationConfig(deadline_propagation_config_);
+  request.SetCancellationPolicy(cancellation_policy_);
 
   return request;
 }

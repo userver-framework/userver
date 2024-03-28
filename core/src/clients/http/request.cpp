@@ -226,7 +226,8 @@ Request::Request(impl::EasyWrapper&& wrapper, RequestStats&& req_stats,
 }
 
 ResponseFuture Request::async_perform(utils::impl::SourceLocation location) {
-  return ResponseFuture{pimpl_->async_perform(location), pimpl_};
+  ResponseFuture future{pimpl_->async_perform(location), pimpl_};
+  return future;
 }
 
 StreamedResponse Request::async_perform_stream_body(
@@ -618,7 +619,7 @@ void Request::SetAllowedUrlsExtra(const std::vector<std::string>& urls) & {
 }
 
 void Request::SetDeadlinePropagationConfig(
-    const impl::DeadlinePropagationConfig& deadline_propagation_config) & {
+    const DeadlinePropagationConfig& deadline_propagation_config) & {
   pimpl_->SetDeadlinePropagationConfig(deadline_propagation_config);
 }
 
@@ -628,6 +629,10 @@ Request& Request::DisableReplyDecoding() & {
 }
 Request Request::DisableReplyDecoding() && {
   return std::move(this->DisableReplyDecoding());
+}
+
+void Request::SetCancellationPolicy(CancellationPolicy cp) {
+  pimpl_->SetCancellationPolicy(cp);
 }
 
 Request& Request::SetTracingManager(

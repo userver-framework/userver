@@ -8,6 +8,7 @@
 #include <system_error>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
+#include <userver/clients/http/config.hpp>
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/form.hpp>
 #include <userver/clients/http/plugin.hpp>
@@ -32,7 +33,6 @@
 #include <crypto/helpers.hpp>
 #include <engine/ev/watcher/timer_watcher.hpp>
 #include <server/http/headers_propagator.hpp>
-#include <userver/clients/http/impl/config.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -117,8 +117,12 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
 
   void DisableReplyDecoding();
 
+  void SetCancellationPolicy(CancellationPolicy cp);
+
+  CancellationPolicy GetCancellationPolicy() const;
+
   void SetDeadlinePropagationConfig(
-      const impl::DeadlinePropagationConfig& deadline_propagation_config);
+      const DeadlinePropagationConfig& deadline_propagation_config);
 
   curl::easy& easy() { return easy_.Easy(); }
   const curl::easy& easy() const { return easy_.Easy(); }
@@ -184,6 +188,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   impl::EasyWrapper easy_;
   RequestStats stats_;
   std::shared_ptr<RequestStats> dest_req_stats_;
+  CancellationPolicy cancellation_policy_{CancellationPolicy::kCancel};
 
   std::shared_ptr<DestinationStatistics> dest_stats_;
   std::string destination_metric_name_;
@@ -203,7 +208,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   /// the timeout propagated to the downstream service
   std::chrono::milliseconds remote_timeout_;
 
-  impl::DeadlinePropagationConfig deadline_propagation_config_;
+  DeadlinePropagationConfig deadline_propagation_config_;
   /// deadline from current task
   engine::Deadline deadline_;
   bool timeout_updated_by_deadline_{false};

@@ -34,13 +34,13 @@ class RequestState;
 class StreamedResponse;
 class ConnectTo;
 class Form;
+struct DeadlinePropagationConfig;
 class RequestStats;
 class DestinationStatistics;
 struct TestsuiteConfig;
 
 namespace impl {
 class EasyWrapper;
-struct DeadlinePropagationConfig;
 }  // namespace impl
 
 /// HTTP request method
@@ -290,7 +290,7 @@ class Request final {
 
   // Set deadline propagation settings. For internal use only.
   void SetDeadlinePropagationConfig(
-      const impl::DeadlinePropagationConfig& deadline_propagation_config) &;
+      const DeadlinePropagationConfig& deadline_propagation_config) &;
 
   void SetHeadersPropagator(const server::http::HeadersPropagator*) &;
   /// @endcond
@@ -299,6 +299,8 @@ class Request final {
   /// Useful to proxy replies 'as is'.
   Request& DisableReplyDecoding() &;
   Request DisableReplyDecoding() &&;
+
+  void SetCancellationPolicy(CancellationPolicy cp);
 
   /// Override the default tracing manager from HTTP client for this
   /// particular request.
