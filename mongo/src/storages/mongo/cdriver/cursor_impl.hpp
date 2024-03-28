@@ -23,6 +23,8 @@ class CDriverCursorImpl final : public CursorImpl {
 
   bool IsValid() const override;
   bool HasMore() const override;
+  uint32_t GetBatchSize() const override;
+  void SetBatchSize(uint32_t) override;
 
   const formats::bson::Document& Current() const override;
   void Next() override;
