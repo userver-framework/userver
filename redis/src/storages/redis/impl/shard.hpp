@@ -28,6 +28,9 @@ class ConnectionInfoInt {
 
   void SetPassword(Password);
 
+  void SetDatabaseIndex(std::optional<size_t> index);
+  std::optional<size_t> DatabaseIndex() const;
+
   bool IsReadOnly() const;
   void SetReadOnly(bool);
 
