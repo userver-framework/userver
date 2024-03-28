@@ -42,8 +42,12 @@ class TagWriter {
   template <typename T>
   void PutTag(TagKey key, const T& value);
 
+  void PutTag(TagKey key, const JsonString& value);
+
   template <typename T>
   void PutTag(RuntimeTagKey key, const T& value);
+
+  void PutTag(RuntimeTagKey key, const JsonString& value);
 
   // The tags must not be duplicated in other Put* calls.
   void PutLogExtra(const LogExtra& extra);
@@ -61,6 +65,8 @@ class TagWriter {
   void PutKey(RuntimeTagKey key);
 
   void MarkValueEnd() noexcept;
+
+  void PutOptionalOpenCloseSeparator();
 
   LogHelper& lh_;
 };
@@ -88,14 +94,18 @@ USERVER_IMPL_CONSTEVAL TagKey::TagKey(const StringType& escaped_key)
 template <typename T>
 void TagWriter::PutTag(TagKey key, const T& value) {
   PutKey(key);
+  PutOptionalOpenCloseSeparator();
   lh_ << value;
+  PutOptionalOpenCloseSeparator();
   MarkValueEnd();
 }
 
 template <typename T>
 void TagWriter::PutTag(RuntimeTagKey key, const T& value) {
   PutKey(key);
+  PutOptionalOpenCloseSeparator();
   lh_ << value;
+  PutOptionalOpenCloseSeparator();
   MarkValueEnd();
 }
 

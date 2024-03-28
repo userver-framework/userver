@@ -136,4 +136,11 @@ class LoggingLtsvTest : public LoggingTestBase {
   }
 };
 
+class LoggingJsonTest : public LoggingTestBase {
+ protected:
+  LoggingJsonTest() : LoggingTestBase(logging::Format::kJson) {
+    SetDefaultLogger(GetStreamLogger());
+  }
+};
+
 USERVER_NAMESPACE_END

@@ -23,6 +23,10 @@ Format FormatFromString(std::string_view format_str) {
     return Format::kRaw;
   }
 
+  if (format_str == "json") {
+    return Format::kJson;
+  }
+
   UINVARIANT(
       false,
       fmt::format("Unknown logging format '{}' (must be one of 'tskv', 'ltsv')",

@@ -26,8 +26,10 @@ std::string_view RuntimeTagKey::GetUnescapedKey() const noexcept {
 }
 
 void TagWriter::PutLogExtra(const LogExtra& extra) {
-  for (const auto& item : *extra.extra_) {
-    PutTag(RuntimeTagKey{item.first}, item.second.GetValue());
+  for (const auto& [key, value] : *extra.extra_) {
+    std::visit(
+        [key = &key, this](auto& value) { PutTag(RuntimeTagKey{*key}, value); },
+        value.GetValue());
   }
 }
 
@@ -46,6 +48,22 @@ void TagWriter::PutKey(RuntimeTagKey key) {
 }
 
 void TagWriter::MarkValueEnd() noexcept { lh_.pimpl_->MarkValueEnd(); }
+
+void TagWriter::PutOptionalOpenCloseSeparator() {
+  lh_.pimpl_->PutOptionalOpenCloseSeparator();
+}
+
+void TagWriter::PutTag(TagKey key, const JsonString& value) {
+  PutKey(key);
+  lh_.pimpl_->WriteRawJsonValue(value.Value());
+  MarkValueEnd();
+}
+
+void TagWriter::PutTag(RuntimeTagKey key, const JsonString& value) {
+  PutKey(key);
+  lh_.pimpl_->WriteRawJsonValue(value.Value());
+  MarkValueEnd();
+}
 
 }  // namespace logging::impl
 

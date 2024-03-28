@@ -42,22 +42,32 @@ constexpr utils::TrivialBiMap kGetOpentracingTags = [](auto selector) {
 };
 
 struct LogExtraValueVisitor {
-  std::string string_value;
+  formats::json::StringBuilder& builder;
 
-  void operator()(const std::string& val) { string_value = val; }
+  void operator()(const std::string& val) {
+    builder.Key("value");
+    builder.WriteString(val);
+  }
 
-  void operator()(int val) { string_value = std::to_string(val); }
+  void operator()(int val) {
+    builder.Key("value");
+    builder.WriteString(std::to_string(val));
+  }
+
+  void operator()(const logging::JsonString& val) {
+    builder.Key("value");
+    builder.WriteRawString(val.Value());
+  }
 };
 
 void GetTagObject(formats::json::StringBuilder& builder, std::string_view key,
                   const logging::LogExtra::Value& value,
                   std::string_view type) {
   const formats::json::StringBuilder::ObjectGuard guard(builder);
-  LogExtraValueVisitor visitor;
-  std::visit(visitor, value);
 
-  builder.Key("value");
-  builder.WriteString(visitor.string_value);
+  // writes `value`
+  LogExtraValueVisitor visitor{builder};
+  std::visit(visitor, value);
 
   builder.Key("type");
   builder.WriteString(type);

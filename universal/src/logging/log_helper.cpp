@@ -190,6 +190,10 @@ void LogHelper::DoLog() noexcept {
     if (pimpl_->IsWithinValue()) {
       pimpl_->MarkValueEnd();
     }
+
+    // make sure that we have ended writing the "text" value
+    pimpl_->StopText();
+
     GetTagWriter().PutLogExtra(pimpl_->GetLogExtra());
     pimpl_->PutMessageEnd();
 
@@ -318,11 +322,6 @@ LogHelper& LogHelper::operator<<(LogExtra&& extra) noexcept {
   } catch (...) {
     InternalLoggingError("Failed to extend log with LogExtra&&");
   }
-  return *this;
-}
-
-LogHelper& LogHelper::operator<<(const LogExtra::Value& value) noexcept {
-  std::visit([this](const auto& unwrapped) { *this << unwrapped; }, value);
   return *this;
 }
 

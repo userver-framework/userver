@@ -146,8 +146,6 @@ class LogHelper final {
   /// Extends internal LogExtra
   LogHelper& operator<<(LogExtra&& extra) noexcept;
 
-  LogHelper& operator<<(const LogExtra::Value& value) noexcept;
-
   LogHelper& operator<<(Hex hex) noexcept;
 
   LogHelper& operator<<(HexShort hex) noexcept;
