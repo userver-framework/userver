@@ -85,12 +85,14 @@ void CacheControl::DoResetCache(const CacheInfo& info,
 
 void CacheControl::ResetAllCaches(
     cache::UpdateType update_type,
-    const std::unordered_set<std::string>& force_incremental_names) {
+    const std::unordered_set<std::string>& force_incremental_names,
+    const std::unordered_set<std::string>& exclude_names) {
   const auto sp =
       tracing::ScopeTime::CreateOptionalScopeTime("reset_all_caches");
   auto caches = impl_->caches.Lock();
 
   for (const auto& cache : *caches) {
+    if (exclude_names.count(cache.info.name)) continue;
     const auto cache_update_type =
         force_incremental_names.count(cache.info.name)
             ? cache::UpdateType::kIncremental

@@ -105,10 +105,3 @@ def test_removal(cache_invalidation_state):
         timestamp, updates = get_updated_since()
         assert updates.values == {}
         assert updates.removed == ['BAR']
-
-
-def test_cache_config(userver_cache_config):
-    assert (
-        'dynamic-config-client-updater'
-        in userver_cache_config.incremental_caches
-    )

@@ -17,6 +17,11 @@ from . import client
 from . import discover
 from . import service
 
+if hasattr(yaml, 'CLoader'):
+    _YamlLoader = yaml.CLoader  # type: ignore
+else:
+    _YamlLoader = yaml.Loader  # type: ignore
+
 
 @pytest.fixture
 def ydb(_ydb_client, _ydb_init):
@@ -219,7 +224,7 @@ def _ydb_prepare(
     # testsuite legacy
     for schema_path in _ydb_service_schemas:
         with open(schema_path) as fp:
-            tables_schemas = yaml.load(fp.read())
+            tables_schemas = yaml.load(fp.read(), Loader=_YamlLoader)
         for table_schema in tables_schemas:
             client.drop_table(_ydb_client, table_schema['path'])
             client.create_table(_ydb_client, table_schema)

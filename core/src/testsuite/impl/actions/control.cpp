@@ -70,8 +70,11 @@ void Control::InvalidateCaches(
         invalidate_caches["names"].As<std::unordered_set<std::string>>(),
         force_incremental_names);
   } else {
+    const auto exclude_names =
+        invalidate_caches["exclude_names"].As<std::unordered_set<std::string>>(
+            {});
     testsuite_support_.GetCacheControl().ResetAllCaches(
-        update_type, force_incremental_names);
+        update_type, force_incremental_names, exclude_names);
   }
 }
 

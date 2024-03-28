@@ -110,7 +110,8 @@ UTEST(CacheControl, Smoke) {
   EXPECT_EQ(cache::UpdateType::kFull, test_cache.LastUpdateType());
 
   env.cache_control.ResetAllCaches(cache::UpdateType::kIncremental,
-                                   /*force_incremental_names=*/{});
+                                   /*force_incremental_names=*/{},
+                                   /*exclude_names=*/{});
   EXPECT_EQ(3, test_cache.UpdatesCount());
   EXPECT_EQ(cache::UpdateType::kIncremental, test_cache.LastUpdateType());
 

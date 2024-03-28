@@ -68,7 +68,8 @@ class CacheControl final {
   /// @a component::CachingComponentBase.
   void ResetAllCaches(
       cache::UpdateType update_type,
-      const std::unordered_set<std::string>& force_incremental_names);
+      const std::unordered_set<std::string>& force_incremental_names,
+      const std::unordered_set<std::string>& exclude_names);
 
   /// @brief Reset caches with the specified @a names.
   ///

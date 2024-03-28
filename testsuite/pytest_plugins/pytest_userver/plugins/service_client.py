@@ -4,11 +4,13 @@ Service main and monitor clients.
 
 # pylint: disable=redefined-outer-name
 import logging
+import typing
 
 import pytest
 import websockets
 
 from testsuite.daemons import service_client as base_service_client
+from testsuite.daemons.pytest_plugin import DaemonInstance
 from testsuite.utils import compat
 
 from pytest_userver import client
@@ -95,15 +97,16 @@ async def service_client(
     """
     # The service is lazily started here (not at the 'session' scope)
     # to allow '*_client_deps' to be active during service start
-    await ensure_daemon_started(service_daemon)
+    daemon = await ensure_daemon_started(service_daemon)
 
     if not _testsuite_client_config.testsuite_action_path:
         return _service_client_base
 
+    service_client = _service_client_testsuite(daemon)
     await _config_service_defaults_updated.update(
-        _service_client_testsuite, dynamic_config,
+        service_client, dynamic_config,
     )
-    return _service_client_testsuite
+    return service_client
 
 
 @pytest.fixture
@@ -177,23 +180,28 @@ def _service_client_testsuite(
         service_baseurl,
         service_client_options,
         mocked_time,
+        userver_cache_control,
         userver_log_capture,
         testpoint,
         testpoint_control,
         cache_invalidation_state,
         _testsuite_client_config: client.TestsuiteClientConfig,
-) -> client.Client:
-    aiohttp_client = client.AiohttpClient(
-        service_baseurl,
-        config=_testsuite_client_config,
-        testpoint=testpoint,
-        testpoint_control=testpoint_control,
-        log_capture_fixture=userver_log_capture,
-        mocked_time=mocked_time,
-        cache_invalidation_state=cache_invalidation_state,
-        **service_client_options,
-    )
-    return client.Client(aiohttp_client)
+) -> typing.Callable[[DaemonInstance], client.Client]:
+    def create_client(daemon):
+        aiohttp_client = client.AiohttpClient(
+            service_baseurl,
+            config=_testsuite_client_config,
+            testpoint=testpoint,
+            testpoint_control=testpoint_control,
+            log_capture_fixture=userver_log_capture,
+            mocked_time=mocked_time,
+            cache_invalidation_state=cache_invalidation_state,
+            cache_control=userver_cache_control(daemon),
+            **service_client_options,
+        )
+        return client.Client(aiohttp_client)
+
+    return create_client
 
 
 @pytest.fixture(scope='session')

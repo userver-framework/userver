@@ -20,8 +20,11 @@ USERVER_CONFIG_HOOKS = [
     'userver_config_dynconf_fallback',
     'userver_config_dynconf_url',
 ]
+USERVER_CACHE_CONTROL_HOOKS = {
+    'dynamic-config-client-updater': '_userver_dynconfig_cache_control',
+}
 
-_CONFIG_CACHES = ['dynamic-config-client-updater']
+_CONFIG_CACHES = tuple(USERVER_CACHE_CONTROL_HOOKS.keys())
 
 
 class BaseError(Exception):
@@ -80,6 +83,9 @@ class Updates:
     timestamp: str
     values: ConfigDict
     removed: typing.List[str]
+
+    def is_empty(self) -> bool:
+        return not self.values and not self.removed
 
 
 class _Changelog:
@@ -241,10 +247,6 @@ class DynamicConfig:
         self._cache_invalidation_state.invalidate(
             self._config_cache_components,
         )
-
-
-def pytest_userver_caches_setup(userver_cache_config):
-    userver_cache_config.register_incremental_cache(*_CONFIG_CACHES)
 
 
 @pytest.fixture
@@ -508,3 +510,20 @@ def mock_configs_service(
     @mockserver.json_handler('/configs-service/configs/status')
     def _mock_configs_status(_request):
         return {'updated_at': dynamic_config_changelog.timestamp}
+
+
+@pytest.fixture
+def _userver_dynconfig_cache_control(dynamic_config, dynamic_config_changelog):
+    def cache_control(updater, timestamp):
+        current_timestamp = dynamic_config_changelog.last_entry.timestamp
+        if timestamp:
+            updates = dynamic_config_changelog.get_updated_since(
+                dynamic_config.get_values_unsafe(), timestamp,
+            )
+            if updates.is_empty():
+                updater.exclude()
+                return timestamp
+        updater.incremental()
+        return current_timestamp
+
+    return cache_control
