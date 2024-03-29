@@ -17,7 +17,7 @@
 /// ----------
 ///
 /// @htmlonly <div class="bottom-nav"> @endhtmlonly
-/// ⇦ @ref userver_clients | @ref scripts/docs/en/userver/synchronization.md ⇨
+/// ⇦ @ref userver_middlewares | @ref scripts/docs/en/userver/synchronization.md ⇨
 /// @htmlonly </div> @endhtmlonly
 
 
@@ -74,7 +74,7 @@
 /// ----------
 ///
 /// @htmlonly <div class="bottom-nav"> @endhtmlonly
-/// ⇦ @ref userver_clients | @ref userver_components ⇨
+/// ⇦ @ref userver_clients | @ref userver_middlewares ⇨
 /// @htmlonly </div> @endhtmlonly
 
 
@@ -139,8 +139,15 @@
 /// @ingroup userver_components
 /// @brief Default names of components that are used in static config files
 
-/// @defgroup userver_middlewares Default middlewares
+/// @defgroup userver_middlewares Http server middlewares
 /// @ingroup userver_components
-/// @brief Default middlewares used in http processing pipeline
+/// @brief Base classes for implementing and configuring http server middlewares
+/// @see @ref scripts/docs/en/userver/http_server_middlewares.md
+///
+/// ----------
+///
+/// @htmlonly <div class="bottom-nav"> @endhtmlonly
+/// ⇦ @ref userver_http_handlers | @ref userver_components ⇨
+/// @htmlonly </div> @endhtmlonly
 
 // clang-format on

@@ -27,15 +27,20 @@ class HttpHandlerBase;
 
 namespace middlewares {
 
+/// @ingroup userver_middlewares userver_base_classes
+///
+/// @brief Base class for a http middleware
 class HttpMiddlewareBase {
  public:
   HttpMiddlewareBase();
   virtual ~HttpMiddlewareBase();
 
  protected:
+  /// @brief Override this method to implement a middleware logic
   virtual void HandleRequest(http::HttpRequest& request,
                              request::RequestContext& context) const = 0;
 
+  /// @brief The method to invoke the next middleware in a pipeline
   void Next(http::HttpRequest& request, request::RequestContext& context) const;
 
  private:
@@ -44,6 +49,9 @@ class HttpMiddlewareBase {
   std::unique_ptr<HttpMiddlewareBase> next_{nullptr};
 };
 
+/// @ingroup userver_middlewares userver_base_classes
+///
+/// @brief Base class for a http middleware-factory
 class HttpMiddlewareFactoryBase : public components::LoggableComponentBase {
  public:
   HttpMiddlewareFactoryBase(const components::ComponentConfig&,
@@ -54,15 +62,21 @@ class HttpMiddlewareFactoryBase : public components::LoggableComponentBase {
       yaml_config::YamlConfig middleware_config) const;
 
  protected:
+  /// @brief This method should return the schema of a middleware configuration,
+  /// if any. You may override it
   virtual yaml_config::Schema GetMiddlewareConfigSchema() const {
     return yaml_config::Schema::EmptyObject();
   }
 
+  /// @brief Override this method to create an instance of a middleware
   virtual std::unique_ptr<HttpMiddlewareBase> Create(
       const handlers::HttpHandlerBase&,
       yaml_config::YamlConfig middleware_config) const = 0;
 };
 
+/// @ingroup userver_middlewares
+///
+/// @brief A short-cut for defining a middleware-factory
 template <typename Middleware>
 class SimpleHttpMiddlewareFactory final : public HttpMiddlewareFactoryBase {
  public:

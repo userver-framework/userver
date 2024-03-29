@@ -19,6 +19,7 @@
 * Streaming;
 * @ref scripts/docs/en/userver/tutorial/multipart_service.md "File uploads and multipart/form-data"
 * @ref scripts/docs/en/userver/deadline_propagation.md .
+* @ref scripts/docs/en/userver/http_server_middlewares.md "Middlewares"
 
 ## Streaming API
 

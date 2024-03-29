@@ -22,9 +22,38 @@ class Handler final : public server::handlers::HttpHandlerBase {
   }
 };
 
+/// [Middlewares sample - minimal implementation]
+class NoopMiddleware final : public server::middlewares::HttpMiddlewareBase {
+ private:
+  void HandleRequest(server::http::HttpRequest& request,
+                     server::request::RequestContext& context) const override {
+    Next(request, context);
+  }
+};
+/// [Middlewares sample - minimal implementation]
+
+/// [Middlewares sample - minimal factory implementation]
+class NoopMiddlewareFactory final
+    : public server::middlewares::HttpMiddlewareFactoryBase {
+ public:
+  static constexpr std::string_view kName{"noop-middleware"};
+
+  using HttpMiddlewareFactoryBase::HttpMiddlewareFactoryBase;
+
+ private:
+  std::unique_ptr<server::middlewares::HttpMiddlewareBase> Create(
+      const server::handlers::HttpHandlerBase&,
+      yaml_config::YamlConfig) const override {
+    return std::make_unique<NoopMiddleware>();
+  }
+};
+/// [Middlewares sample - minimal factory implementation]
+
+/// [Middlewares sample - some middleware implementation]
 class SomeServerMiddleware final
     : public server::middlewares::HttpMiddlewareBase {
  public:
+  // This will be used as a kName for the SimpleHttpMiddlewareFactory
   static constexpr std::string_view kName{"server-middleware"};
 
   // Handler isn't interesting to us, but we could use it if needed.
@@ -37,17 +66,19 @@ class SomeServerMiddleware final
                      server::request::RequestContext& context) const override {
     Next(request, context);
 
-    // In case the header is needed even in a presence of downstream exceptions,
-    // this should be wrapped in a scope guard (utils::ScopeGuard, for example)
     request.GetHttpResponse().SetHeader(kCustomServerHeader, "1");
   }
 
   static constexpr http::headers::PredefinedHeader kCustomServerHeader{
       "X-Some-Server-Header"};
 };
+/// [Middlewares sample - some middleware implementation]
+/// [Middlewares sample - some middleware factory implementation]
 using SomeServerMiddlewareFactory =
     server::middlewares::SimpleHttpMiddlewareFactory<SomeServerMiddleware>;
+/// [Middlewares sample - some middleware factory implementation]
 
+/// [Middlewares sample - configurable middleware implementation]
 class SomeHandlerMiddleware final
     : public server::middlewares::HttpMiddlewareBase {
  public:
@@ -79,7 +110,9 @@ class SomeHandlerMiddleware final
 
   const std::string header_value_;
 };
+/// [Middlewares sample - configurable middleware implementation]
 
+/// [Middlewares sample - configurable middleware factory implementation]
 class SomeHandlerMiddlewareFactory final
     : public server::middlewares::HttpMiddlewareFactoryBase {
  public:
@@ -108,22 +141,28 @@ properties:
         .As<yaml_config::Schema>();
   }
 };
+/// [Middlewares sample - configurable middleware factory implementation]
 
+/// [Middlewares sample - custom handler pipeline builder]
 class CustomHandlerPipelineBuilder final
     : public server::middlewares::HandlerPipelineBuilder {
  public:
   using HandlerPipelineBuilder::HandlerPipelineBuilder;
 
   server::middlewares::MiddlewaresList BuildPipeline(
-      server::middlewares::MiddlewaresList pipeline) const override {
+      server::middlewares::MiddlewaresList server_middleware_pipeline)
+      const override {
     // We could do any kind of transformation here.
     // For the sake of example (and what we assume to be the most common case),
-    // we just add one more middleware to the pipeline.
+    // we just add some middleware to the pipeline.
+    auto& pipeline = server_middleware_pipeline;
     pipeline.emplace_back(SomeHandlerMiddleware::kName);
+    pipeline.emplace_back(NoopMiddlewareFactory::kName);
 
     return pipeline;
   }
 };
+/// [Middlewares sample - custom handler pipeline builder]
 
 }  // namespace samples::http_middlewares
 
@@ -137,6 +176,11 @@ constexpr auto components::kConfigFileMode<
     samples::http_middlewares::SomeHandlerMiddlewareFactory> =
     components::ConfigFileMode::kNotRequired;
 
+template <>
+constexpr auto components::kConfigFileMode<
+    samples::http_middlewares::NoopMiddlewareFactory> =
+    components::ConfigFileMode::kNotRequired;
+
 int main(int argc, char* argv[]) {
   const auto component_list =
       components::MinimalServerComponentList()
@@ -147,11 +191,15 @@ int main(int argc, char* argv[]) {
           .Append<samples::http_middlewares::Handler>(
               "handler-with-another-middleware-configuration")
           // middlewares
+          // clang-format off
+/// [Middlewares sample - custom handler pipeline builder registration]
+          .Append<samples::http_middlewares::CustomHandlerPipelineBuilder>(
+              "custom-handler-pipeline-builder")
+/// [Middlewares sample - custom handler pipeline builder registration]
+          // clang-format on
           .Append<samples::http_middlewares::SomeServerMiddlewareFactory>()
           .Append<samples::http_middlewares::SomeHandlerMiddlewareFactory>()
-          // configuration
-          .Append<samples::http_middlewares::CustomHandlerPipelineBuilder>(
-              "custom-handler-pipeline-builder");
+          .Append<samples::http_middlewares::NoopMiddlewareFactory>();
 
   return utils::DaemonMain(argc, argv, component_list);
 }

@@ -42,7 +42,7 @@ using MiddlewaresList = std::vector<std::string>;
 /// @brief Returns the default userver-provided middleware pipeline.
 MiddlewaresList DefaultPipeline();
 
-/// @ingroup userver_middlewares
+/// @ingroup userver_middlewares userver_base_classes
 ///
 /// @brief Base class to build a server-wide middleware pipeline.
 /// One may inherit from it and implement any custom logic, if desired.
@@ -82,7 +82,7 @@ class PipelineBuilder : public components::LoggableComponentBase {
   MiddlewaresList middlewares_to_append_;
 };
 
-/// @ingroup userver_middlewares
+/// @ingroup userver_middlewares userver_base_classes
 ///
 /// @brief Base class to build a per-handler middleware pipeline.
 /// One may inherit from it and implement any custom logic, if desired.

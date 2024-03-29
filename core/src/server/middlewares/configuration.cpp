@@ -18,27 +18,33 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::middlewares {
 
+/// [Middlewares sample - default pipeline]
 MiddlewaresList DefaultPipeline() {
   return {
       // Metrics should go before everything else, basically.
       std::string{HandlerMetrics::kName},
       // Tracing should go before UnknownExceptionsHandlingMiddleware because it
-      // adds some headers, which otherwise might be cleared.
+      // adds some headers, which otherwise might be cleared
       std::string{Tracing::kName},
-      // Ditto.
+      // Ditto
       std::string{SetAcceptEncoding::kName},
 
+      // Every exception caught here is transformed into Http500 without context
       std::string{UnknownExceptionsHandling::kName},
 
+      // Should be self-explanatory
       std::string{RateLimit::kName},
       std::string{DeadlinePropagation::kName},
       std::string{Baggage::kName},
       std::string{Auth::kName},
       std::string{Decompression::kName},
 
+      // Transforms CustomHandlerException into response as specified by the
+      // exception, transforms std::exception into Http500 without context
       std::string{ExceptionsHandling::kName},
   };
 }
+/// [Middlewares sample - default pipeline]
 
 components::ComponentList DefaultMiddlewareComponents() {
   return MinimalMiddlewareComponents()

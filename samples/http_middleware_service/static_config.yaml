@@ -15,9 +15,12 @@ components_manager:
                 port: 8080            # ...to listen on this port and...
                 task_processor: main-task-processor    # ...process incoming requests on this task processor.
 
+# [Middlewares sample - pipeline builder configuration]
+        # yaml
         default-server-middleware-pipeline-builder:
             append:
               - server-middleware     # Or we could implement the same in the code, consider it a shortcut.
+# [Middlewares sample - pipeline builder configuration]
 
         logging:
             fs-task-processor: fs-task-processor
@@ -32,6 +35,8 @@ components_manager:
             method: GET                   # It will only reply to GET (HEAD) requests.
             task_processor: main-task-processor  # Run it on CPU bound task processor
 
+# [Middlewares sample - custom handler pipeline builder configuration]
+        # yaml
         handler-with-custom-middlewares:
             path: /custom-hello
             method: GET
@@ -40,6 +45,7 @@ components_manager:
                 pipeline-builder: custom-handler-pipeline-builder
                 handler-middleware:
                     header-value: some_value
+# [Middlewares sample - custom handler pipeline builder configuration]
 
         handler-with-another-middleware-configuration:
             path: /custom-hello-other
