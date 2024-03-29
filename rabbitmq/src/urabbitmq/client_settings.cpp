@@ -45,6 +45,12 @@ AuthSettings Parse(const formats::json::Value& doc,
   auth.password = doc["password"].As<std::string>();
   auth.vhost = doc["vhost"].As<std::string>();
 
+  auth.client_cert_path = doc["tls"]["client-cert-path"].As<std::string>({});
+  auth.client_private_key_path =
+      doc["tls"]["client-private-key-path"].As<std::string>({});
+  auth.ca_cert_paths = doc["tls"]["ca-paths"].As<std::vector<std::string>>({});
+  auth.verify_host = doc["tls"]["verify_host"].As<bool>(true);
+
   return auth;
 }
 

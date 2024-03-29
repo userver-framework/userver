@@ -29,6 +29,12 @@ struct AuthSettings final {
 
   /// RabbitMQs vhost
   std::string vhost = "/";
+
+  /// TLS
+  std::string client_cert_path;
+  std::string client_private_key_path;
+  std::vector<std::string> ca_cert_paths;
+  bool verify_host = true;
 };
 
 struct RabbitEndpoints final {

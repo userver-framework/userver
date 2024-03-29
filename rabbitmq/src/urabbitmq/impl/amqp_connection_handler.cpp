@@ -7,6 +7,7 @@
 #include <userver/engine/io/common.hpp>
 #include <userver/engine/io/socket.hpp>
 #include <userver/engine/io/tls_wrapper.hpp>
+#include <userver/fs/blocking/read.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/urabbitmq/client_settings.hpp>
 #include <userver/utils/assert.hpp>
@@ -45,14 +46,54 @@ engine::io::Socket CreateSocket(clients::dns::Resolver& resolver,
 
 std::unique_ptr<engine::io::RwBase> CreateSocketPtr(
     clients::dns::Resolver& resolver, const AMQP::Address& address,
-    engine::Deadline deadline) {
+    const AuthSettings& auth_settings, engine::Deadline deadline) {
   auto socket = CreateSocket(resolver, address, deadline);
 
   const bool secure = address.secure();
   if (secure) {
+    if (!auth_settings.client_cert_path.empty() ||
+        !auth_settings.client_private_key_path.empty() ||
+        !auth_settings.ca_cert_paths.empty()) {
+      if (auth_settings.client_cert_path.empty() !=
+          auth_settings.client_private_key_path.empty()) {
+        throw std::runtime_error(
+            "Either set both tls.client-cert-path and "
+            "tls.client-private-key-path options or none of "
+            "them");
+      }
+
+      crypto::Certificate client_cert;
+      if (!auth_settings.client_cert_path.empty()) {
+        auto contents =
+            fs::blocking::ReadFileContents(auth_settings.client_cert_path);
+        client_cert = crypto::Certificate::LoadFromString(contents);
+      }
+
+      crypto::PrivateKey client_key;
+      if (!auth_settings.client_private_key_path.empty()) {
+        auto contents = fs::blocking::ReadFileContents(
+            auth_settings.client_private_key_path);
+        client_key = crypto::PrivateKey::LoadFromString(contents);
+      }
+
+      std::vector<crypto::Certificate> tls_certificate_authorities;
+      for (const auto& ca_path : auth_settings.ca_cert_paths) {
+        auto contents = fs::blocking::ReadFileContents(ca_path);
+        tls_certificate_authorities.push_back(
+            crypto::Certificate::LoadFromString(contents));
+      }
+
+      return std::make_unique<engine::io::TlsWrapper>(
+          engine::io::TlsWrapper::StartTlsClient(
+              std::move(socket),
+              auth_settings.verify_host ? address.hostname() : "", client_cert,
+              client_key, deadline, tls_certificate_authorities));
+    }
+
     return std::make_unique<engine::io::TlsWrapper>(
-        engine::io::TlsWrapper::StartTlsClient(std::move(socket), "",
-                                               deadline));
+        engine::io::TlsWrapper::StartTlsClient(
+            std::move(socket),
+            auth_settings.verify_host ? address.hostname() : "", deadline));
   } else {
     return std::make_unique<engine::io::Socket>(std::move(socket));
   }
@@ -72,7 +113,7 @@ AmqpConnectionHandler::AmqpConnectionHandler(
     const AuthSettings& auth_settings, bool secure,
     statistics::ConnectionStatistics& stats, engine::Deadline deadline)
     : address_{ToAmqpAddress(endpoint, auth_settings, secure)},
-      socket_{CreateSocketPtr(resolver, address_, deadline)},
+      socket_{CreateSocketPtr(resolver, address_, auth_settings, deadline)},
       reader_{*this, *socket_},
       stats_{stats} {}
 
