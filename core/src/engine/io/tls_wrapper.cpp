@@ -1,5 +1,6 @@
 #include <userver/engine/io/tls_wrapper.hpp>
 
+#include <boost/stacktrace/stacktrace.hpp>
 #include <exception>
 #include <memory>
 
@@ -232,14 +233,38 @@ enum InterruptAction {
 
 }  // namespace
 
+class TlsWrapper::ReadContextAccessor final
+    : public engine::impl::ContextAccessor {
+ public:
+  explicit ReadContextAccessor(TlsWrapper::Impl& impl);
+
+  bool IsReady() const noexcept override;
+
+  engine::impl::EarlyWakeup TryAppendWaiter(
+      engine::impl::TaskContext& waiter) override;
+
+  void RemoveWaiter(engine::impl::TaskContext& waiter) noexcept override;
+
+  void AfterWait() noexcept override;
+
+  void RethrowErrorResult() const override;
+
+  engine::impl::ContextAccessor& GetSocketContextAccessor() const noexcept;
+
+  TlsWrapper::Impl& impl_;
+};
+
 class TlsWrapper::Impl {
  public:
-  explicit Impl(Socket&& socket) : bio_data(std::move(socket)) {}
+  explicit Impl(Socket&& socket)
+      : bio_data(std::move(socket)), read_accessor(*this) {}
 
   Impl(Impl&& other) noexcept
       : bio_data(std::move(other.bio_data)),
         ssl(std::move(other.ssl)),
+        read_accessor(*this),
         is_in_shutdown(other.is_in_shutdown) {
+    UASSERT(ssl);
     UASSERT(SSL_get_rbio(ssl.get()) == SSL_get_wbio(ssl.get()));
     SyncBioData(SSL_get_rbio(ssl.get()), &other.bio_data);
   }
@@ -272,6 +297,17 @@ class TlsWrapper::Impl {
                       Deadline deadline, const char* context) {
     UASSERT(ssl);
     if (!len) return 0;
+
+      /* TODO
+      UASSERT_MSG(
+          ssl_usage_level == 0,
+          "You may not use SSL sockets concurrently from multiple coroutines");
+          */
+#ifndef NDEBUG
+    ssl_usage_level++;
+    utils::FastScopeGuard ssl_usage_guard(
+        [this]() noexcept { --ssl_usage_level; });
+#endif
 
     bio_data.current_deadline = deadline;
 
@@ -335,7 +371,9 @@ class TlsWrapper::Impl {
 
   SocketBioData bio_data;
   Ssl ssl;
+  ReadContextAccessor read_accessor;
   bool is_in_shutdown{false};
+  std::atomic<int> ssl_usage_level{0};
 
  private:
   void SyncBioData(BIO* bio,
@@ -345,7 +383,46 @@ class TlsWrapper::Impl {
   }
 };
 
-TlsWrapper::TlsWrapper(Socket&& socket) : impl_(std::move(socket)) {}
+TlsWrapper::ReadContextAccessor::ReadContextAccessor(TlsWrapper::Impl& impl)
+    : impl_(impl) {}
+
+bool TlsWrapper::ReadContextAccessor::IsReady() const noexcept {
+  auto* ssl = impl_.ssl.get();
+  if (!ssl || SSL_has_pending(ssl)) return true;
+  return GetSocketContextAccessor().IsReady();
+}
+
+engine::impl::EarlyWakeup TlsWrapper::ReadContextAccessor::TryAppendWaiter(
+    engine::impl::TaskContext& waiter) {
+  auto* ssl = impl_.ssl.get();
+  if (!ssl || SSL_has_pending(ssl)) return engine::impl::EarlyWakeup{true};
+
+  return GetSocketContextAccessor().TryAppendWaiter(waiter);
+}
+
+void TlsWrapper::ReadContextAccessor::RemoveWaiter(
+    engine::impl::TaskContext& waiter) noexcept {
+  GetSocketContextAccessor().RemoveWaiter(waiter);
+}
+
+void TlsWrapper::ReadContextAccessor::AfterWait() noexcept {
+  GetSocketContextAccessor().AfterWait();
+}
+
+void TlsWrapper::ReadContextAccessor::RethrowErrorResult() const {
+  GetSocketContextAccessor().RethrowErrorResult();
+}
+
+engine::impl::ContextAccessor&
+TlsWrapper::ReadContextAccessor::GetSocketContextAccessor() const noexcept {
+  auto* ca = impl_.bio_data.socket.GetReadableBase().TryGetContextAccessor();
+  UASSERT(ca);
+  return *ca;
+}
+
+TlsWrapper::TlsWrapper(Socket&& socket) : impl_(std::move(socket)) {
+  SetupContextAccessors();
+}
 
 TlsWrapper TlsWrapper::StartTlsClient(Socket&& socket,
                                       const std::string& server_name,
@@ -410,9 +487,9 @@ TlsWrapper TlsWrapper::StartTlsServer(
     SSL_CTX_set_verify(ssl_ctx.get(),
                        SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
                        nullptr);
-    LOG_INFO() << "Client SSL cert is verified";
+    LOG_INFO() << "Client SSL cert will be verified";
   } else {
-    LOG_INFO() << "Client SSL cert is not verified";
+    LOG_INFO() << "Client SSL cert will not be verified";
   }
 
   if (1 != SSL_CTX_use_certificate(ssl_ctx.get(), cert.GetNative())) {
@@ -440,17 +517,31 @@ TlsWrapper TlsWrapper::StartTlsServer(
                     SSL_get_error(wrapper.impl_->ssl.get(), ret))));
   }
 
+  UASSERT(wrapper.impl_->ssl);
   return wrapper;
 }
 
 TlsWrapper::~TlsWrapper() {
+  UASSERT(impl_->ssl_usage_level == 0);
   if (!IsValid()) return;
 
   // socket will not be reused, attempt unidirectional shutdown
   SSL_shutdown(impl_->ssl.get());
 }
 
-TlsWrapper::TlsWrapper(TlsWrapper&&) noexcept = default;
+TlsWrapper::TlsWrapper(TlsWrapper&& other) noexcept
+    : impl_(std::move(other.impl_)) {
+  SetupContextAccessors();
+}
+
+void TlsWrapper::SetupContextAccessors() {
+  // Cannot use raw Socket's accessor as some data might be already read into
+  // a local buffer
+  SetReadableContextAccessor(&impl_->read_accessor);
+
+  engine::io::WritableBase& write_dir = impl_->bio_data.socket;
+  SetWritableContextAccessor(write_dir.TryGetContextAccessor());
+}
 
 bool TlsWrapper::IsValid() const {
   return impl_->ssl && !impl_->is_in_shutdown;

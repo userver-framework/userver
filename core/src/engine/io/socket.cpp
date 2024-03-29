@@ -126,6 +126,8 @@ Socket::Socket(AddrDomain domain, SocketType type)
 
 Socket::Socket(int fd, AddrDomain domain)
     : domain_(domain), fd_control_(impl::FdControl::Adopt(fd)) {
+  SetReadableContextAccessor(fd_control_->Read().TryGetContextAccessor());
+  SetWritableContextAccessor(fd_control_->Write().TryGetContextAccessor());
 // MAC_COMPAT: no socket domain access on mac
 #ifdef SO_DOMAIN
   if (domain_ != AddrDomain::kUnspecified) {
