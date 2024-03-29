@@ -1,16 +1,15 @@
 #include <benchmark/benchmark.h>
 
 #include <atomic>
-#include <future>
 
-#include <concurrent/impl/striped_counter.hpp>
+#include <userver/concurrent/striped_counter.hpp>
 #include <utils/impl/parallelize_benchmark.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-using StripedCounter = concurrent::impl::StripedCounter;
+using StripedCounter = concurrent::StripedCounter;
 
 class NaiveCounter final {
  public:

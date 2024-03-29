@@ -1,6 +1,5 @@
 #include <userver/server/request/response_base.hpp>
 
-#include <concurrent/impl/striped_counter.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -17,34 +16,26 @@ std::chrono::milliseconds ToMsFromStart(
 
 }  // namespace
 
-struct ResponseDataAccounter::Impl final {
-  concurrent::impl::StripedCounter count;
-  concurrent::impl::StripedCounter time_sum;
-};
-
-ResponseDataAccounter::ResponseDataAccounter() = default;
-ResponseDataAccounter::~ResponseDataAccounter() = default;
-
 void ResponseDataAccounter::StartRequest(
     size_t size, std::chrono::steady_clock::time_point create_time) {
-  impl_->count.Add(1);
+  count_.Add(1);
   current_ += size;
   auto ms = ToMsFromStart(create_time);
-  impl_->time_sum.Add(ms.count());
+  time_sum_.Add(ms.count());
 }
 
 void ResponseDataAccounter::StopRequest(
     size_t size, std::chrono::steady_clock::time_point create_time) {
   current_ -= size;
   auto ms = ToMsFromStart(create_time);
-  impl_->time_sum.Subtract(ms.count());
-  impl_->count.Subtract(1);
+  time_sum_.Subtract(ms.count());
+  count_.Subtract(1);
 }
 
 std::chrono::milliseconds ResponseDataAccounter::GetAvgRequestTime() const {
   // TODO: race
-  auto count = impl_->count.NonNegativeRead();
-  auto time_sum = std::chrono::milliseconds(impl_->time_sum.NonNegativeRead());
+  auto count = count_.NonNegativeRead();
+  auto time_sum = std::chrono::milliseconds(time_sum_.NonNegativeRead());
 
   auto now_ms = ToMsFromStart(std::chrono::steady_clock::now());
   auto delta = (now_ms * count) - time_sum;

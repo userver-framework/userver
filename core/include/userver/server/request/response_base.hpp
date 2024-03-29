@@ -8,6 +8,7 @@
 #include <string>
 #include <unordered_map>
 
+#include <userver/concurrent/striped_counter.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -20,9 +21,6 @@ namespace server::request {
 
 class ResponseDataAccounter final {
  public:
-  ResponseDataAccounter();
-  ~ResponseDataAccounter();
-
   void StartRequest(size_t size,
                     std::chrono::steady_clock::time_point create_time);
 
@@ -40,9 +38,8 @@ class ResponseDataAccounter final {
  private:
   std::atomic<size_t> current_{0};
   std::atomic<size_t> max_{std::numeric_limits<size_t>::max()};
-
-  struct Impl;
-  utils::FastPimpl<Impl, 64, 8> impl_;
+  concurrent::StripedCounter count_;
+  concurrent::StripedCounter time_sum_;
 };
 
 /// @brief Base class for all the server responses.

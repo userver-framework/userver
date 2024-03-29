@@ -1,15 +1,30 @@
 #pragma once
 
+/// @file userver/concurrent/striped_counter.hpp
+/// @brief @copybrief concurrent::StripedCounter
+
 #include <cstdint>
 
 #include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace concurrent::impl {
+namespace concurrent {
 
+/// @ingroup userver_concurrency userver_containers
+///
+/// @brief A contention-free sharded atomic counter, with memory consumption
+/// traded for performance.
+///
+/// @note Depending on the underlying platform is implemented either via a
+/// single atomic variable, or an 'nproc'-sized array of interference-shielded
+/// rseq-based (https://www.phoronix.com/news/Restartable-Sequences-Speed)
+/// per-CPU counters.
 class StripedCounter final {
  public:
+  /// @brief Constructs a zero-initialized counter.
+  /// Might allocate up to kDestructiveInterferenceSize (64 bytes for x86_64) *
+  /// number of available CPUs bytes.
   StripedCounter();
   ~StripedCounter();
 
@@ -53,6 +68,6 @@ class StripedCounter final {
   utils::FastPimpl<Impl, 32, 8> impl_;
 };
 
-}  // namespace concurrent::impl
+}  // namespace concurrent
 
 USERVER_NAMESPACE_END

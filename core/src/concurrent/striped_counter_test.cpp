@@ -1,4 +1,4 @@
-#include <concurrent/impl/striped_counter.hpp>
+#include <userver/concurrent/striped_counter.hpp>
 
 #include <atomic>
 #include <limits>
@@ -13,7 +13,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-using StripedCounter = concurrent::impl::StripedCounter;
+using StripedCounter = concurrent::StripedCounter;
 
 constexpr std::size_t kThreads = 32;
 

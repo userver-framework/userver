@@ -1,4 +1,4 @@
-#include <concurrent/impl/striped_counter.hpp>
+#include <userver/concurrent/striped_counter.hpp>
 
 #include <algorithm>  // for std::max
 #include <atomic>
@@ -9,7 +9,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace concurrent::impl {
+namespace concurrent {
 
 #ifdef USERVER_IMPL_HAS_RSEQ
 
@@ -24,15 +24,15 @@ struct StripedCounter::Impl final {
   // rseq could be unavailable, or std::thread::hardware_concurrency() could
   // also return 0 if it failed go get something meaningful from the OS, in both
   // cases we fall back to just using a std::atomic (see StripedCounter::Add).
-  utils::FixedArray<InterferenceShield<NativeCounterType>> counters{
-      GetRseqArraySize(), 0};
+  utils::FixedArray<impl::InterferenceShield<NativeCounterType>> counters{
+      impl::GetRseqArraySize(), 0};
 
   std::atomic<NativeCounterType> fallback{0};
 };
 
 void StripedCounter::Add(std::uintptr_t value) noexcept {
   const auto cpu_id = rseq_cpu_start();
-  if (!IsCpuIdValid(cpu_id, impl_->counters.size())) {
+  if (!impl::IsCpuIdValid(cpu_id, impl_->counters.size())) {
     impl_->fallback.fetch_add(value, std::memory_order_relaxed);
     return;
   }
@@ -81,6 +81,6 @@ std::uintptr_t StripedCounter::NonNegativeRead() const noexcept {
       std::max(std::intptr_t{0}, static_cast<std::intptr_t>(Read())));
 }
 
-}  // namespace concurrent::impl
+}  // namespace concurrent
 
 USERVER_NAMESPACE_END
