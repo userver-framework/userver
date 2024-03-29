@@ -470,6 +470,78 @@ TlsWrapper TlsWrapper::StartTlsClient(Socket&& socket,
   return wrapper;
 }
 
+TlsWrapper TlsWrapper::StartTlsClient(
+    Socket&& socket, const std::string& server_name,
+    const crypto::Certificate& cert, const crypto::PrivateKey& key,
+    Deadline deadline,
+    const std::vector<crypto::Certificate>& cert_authorities) {
+  auto ssl_ctx = MakeSslCtx();
+
+  if (!server_name.empty()) {
+    X509_VERIFY_PARAM* verify_param = SSL_CTX_get0_param(ssl_ctx.get());
+    if (!verify_param) {
+      throw TlsException(
+          "Failed to set up client TLS wrapper: SSL_CTX_get0_param");
+    }
+    if (1 != X509_VERIFY_PARAM_set1_host(verify_param, server_name.data(),
+                                         server_name.size())) {
+      throw TlsException(crypto::FormatSslError(
+          "Failed to set up client TLS wrapper: X509_VERIFY_PARAM_set1_host"));
+    }
+    SSL_CTX_set_verify(ssl_ctx.get(), SSL_VERIFY_PEER, nullptr);
+  }
+
+  if (!cert_authorities.empty()) {
+    auto* store = SSL_CTX_get_cert_store(ssl_ctx.get());
+    for (const auto& ca : cert_authorities) {
+      if (1 != X509_STORE_add_cert(store, ca.GetNative())) {
+        throw TlsException(crypto::FormatSslError(
+            "Failed to set up client TLS wrapper: X509_STORE_add_cert"));
+      }
+    }
+  }
+
+  if (cert) {
+    if (1 != SSL_CTX_use_certificate(ssl_ctx.get(), cert.GetNative())) {
+      throw TlsException(crypto::FormatSslError(
+          "Failed to set up client TLS wrapper: SSL_CTX_use_certificate"));
+    }
+  }
+
+  if (key) {
+    if (1 != SSL_CTX_use_PrivateKey(ssl_ctx.get(), key.GetNative())) {
+      throw TlsException(crypto::FormatSslError(
+          "Failed to set up client TLS wrapper: SSL_CTX_use_PrivateKey"));
+    }
+  }
+
+  TlsWrapper wrapper{std::move(socket)};
+  wrapper.impl_->SetUp(std::move(ssl_ctx));
+  if (!server_name.empty()) {
+    // cast in openssl1.0 macro expansion
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
+    if (1 != SSL_set_tlsext_host_name(wrapper.impl_->ssl.get(),
+                                      server_name.c_str())) {
+      throw TlsException(crypto::FormatSslError(
+          "Failed to set up client TLS wrapper: SSL_set_tlsext_host_name"));
+    }
+  }
+
+  wrapper.impl_->bio_data.current_deadline = deadline;
+
+  auto ret = SSL_connect(wrapper.impl_->ssl.get());
+  if (1 != ret) {
+    if (wrapper.impl_->bio_data.last_exception) {
+      std::rethrow_exception(wrapper.impl_->bio_data.last_exception);
+    }
+
+    throw TlsException(crypto::FormatSslError(
+        fmt::format("Failed to set up client TLS wrapper ({})",
+                    SSL_get_error(wrapper.impl_->ssl.get(), ret))));
+  }
+  return wrapper;
+}
+
 TlsWrapper TlsWrapper::StartTlsServer(
     Socket&& socket, const crypto::Certificate& cert,
     const crypto::PrivateKey& key, Deadline deadline,
