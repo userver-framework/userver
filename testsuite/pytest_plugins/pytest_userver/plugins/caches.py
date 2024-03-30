@@ -213,14 +213,16 @@ def userver_cache_control(
     enabled = True
     caches_disabled = set()
 
-    def handle_mark(caches: typing.Sequence[str] = None, *, reason: str):
+    def userver_cache_control_disabled(
+            caches: typing.Sequence[str] = None, *, reason: str,
+    ):
         if caches is not None:
             caches_disabled.update(caches)
             return enabled
         return False
 
     for mark in request.node.iter_markers('userver_cache_control_disabled'):
-        enabled = handle_mark(*mark.args, **mark.kwargs)
+        enabled = userver_cache_control_disabled(*mark.args, **mark.kwargs)
 
     def get_cache_control(daemon: DaemonInstance):
         context = _userver_cache_control_context.setdefault(daemon.id, {})
