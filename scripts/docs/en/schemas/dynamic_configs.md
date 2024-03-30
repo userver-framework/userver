@@ -998,6 +998,8 @@ Used by components::HttpClient, affects the behavior of clients::http::Client an
 ## USERVER_LOG_DYNAMIC_DEBUG
 
 Logging per line and file overrides.
+Log locations are defined as path prefix from the Arcadia root ("taxi/uservices/services/").
+Location of file may be followed by `:[line index]` to specify 1 exact log in that file.
 
 ```
 yaml
@@ -1014,25 +1016,44 @@ schema:
     properties:
         force-enabled:
             type: array
-            description: logs to turn on with any level
+            description: Locations of logs to turn on. This option is deprecated, consider using "force-enabled-level" instead.
             items:
                 type: string
 
         force-disabled:
             type: array
-            description: logs to turn off with level lower than WARNING
+            description: Locations of logs to turn off, logs with level WARNING and higher will not be affected.
+                This option is deprecated, consider using "force-disabled-level" instead.
             items:
                 type: string
 
         force-enabled-level:
             type: object
-            description: logs to turn on with level equal or higher to given
+            description: |
+                Locations of logs to turn on with level equal or higher to given.
+                For example, to turn on all logs with level WARNING or higher in "userver/grpc",
+                all logs with level DEBUG or higher in file "userver/core/src/server/server.cpp"
+                and 1 log (since exact line is specified) with level TRACE in file "userver/core/src/server/http/http_request_parser.cpp":
+                    "force-enabled-level": {
+                        "taxi/uservices/userver/grpc": "WARNING",
+                        "taxi/uservices/userver/core/src/server/server.cpp": "DEBUG",
+                        "taxi/uservices/userver/core/src/server/http/http_request_parser.cpp:128": "TRACE"
+                    }
             additionalProperties:
                 type: string
 
         force-disabled-level:
             type: object
-            description: logs to turn off with level equal or lower to given
+            description: |
+                Locations of logs to turn off with level equal or lower to given.
+                For example, to turn off all logs with level ERROR or lower in "userver/grpc",
+                all logs with level INFO or lower in file "userver/core/src/server/server.cpp"
+                and 1 log (since exact line is specified) with level TRACE in file "userver/core/src/server/http/http_request_parser.cpp":
+                    "force-disabled-level": {
+                        "taxi/uservices/userver/grpc": "ERROR",
+                        "taxi/uservices/userver/core/src/server/server.cpp": "INFO",
+                        "taxi/uservices/userver/core/src/server/http/http_request_parser.cpp:128": "TRACE"
+                    }
             additionalProperties:
                 type: string
 ```
