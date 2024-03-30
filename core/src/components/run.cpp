@@ -82,14 +82,24 @@ void HandleJemallocSettings() {
 }
 
 void PreheatStacktraceCollector() {
-  const auto dummy_stacktrace_length = [] {
-    return logging::stacktrace_cache::to_string(boost::stacktrace::stacktrace{})
-        .size();
-  };
-  // If DEBUG logging is enabled the following line loads debug info from disk,
-  // hopefully preventing this to occur later, e.g. in exception constructor.
-  LOG_DEBUG() << "Preheating stacktrace"
-              << logging::LogExtra{{"trace_length", dummy_stacktrace_length()}};
+  const auto now = [] { return std::chrono::steady_clock::now(); };
+
+  const auto start = now();
+  const auto dummy_stacktrace =
+      logging::stacktrace_cache::to_string(boost::stacktrace::stacktrace{});
+  const auto finish = now();
+
+  const auto initialization_duration_ms =
+      std::chrono::duration_cast<std::chrono::milliseconds>(finish - start)
+          .count();
+  if (dummy_stacktrace.size() == 0) {
+    LOG_WARNING()
+        << "Failed to initialize stacktrace collector, an attempt took "
+        << initialization_duration_ms << "ms";
+  } else {
+    LOG_INFO() << "Initialized stacktrace collector within "
+               << initialization_duration_ms << "ms";
+  }
 }
 
 bool IsTraced() {
