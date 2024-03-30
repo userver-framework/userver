@@ -367,4 +367,23 @@ TEST(TrivialBiMap, ConstexprIteration) {
   EXPECT_EQ(sum, 6);
 }
 
+TEST(TrivialBiMap, Empty) {
+  constexpr auto sum = []() {
+    /// [sample empty bimap]
+    constexpr utils::TrivialBiMap kEmptyMap = [](auto selector) {
+      return selector().template Type<int, int>();
+    };
+    /// [sample empty bimap]
+
+    int sum = 0;
+    for (const auto& [literal, i] : kEmptyMap) {
+      sum += i;
+    }
+
+    return sum;
+  }();
+
+  EXPECT_EQ(sum, 0);
+}
+
 USERVER_NAMESPACE_END
