@@ -44,7 +44,7 @@ class UserverConan(ConanFile):
     default_options = {
         'shared': False,
         'fPIC': True,
-        'lto': True,
+        'lto': False,
         'with_jemalloc': True,
         'with_mongodb': True,
         'with_postgresql': True,
