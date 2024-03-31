@@ -257,6 +257,6 @@ BENCHMARK(tls_write_all_init_list_HighLoad)->Unit(benchmark::kNanosecond);
   });
 }
 
-BENCHMARK(tls_write_all_buffered_HighLoad)->Unit(benchmark::kNanosecond);
+BENCHMARK(tls_write_all_buffered_HighLoad)->Arg(25)->Arg(125)->Arg(625)->Unit(benchmark::kNanosecond);
 
 USERVER_NAMESPACE_END
