@@ -488,6 +488,23 @@ size_t TlsWrapper::SendAll(const void* buf, size_t len, Deadline deadline) {
                              deadline, "SendAll");
 }
 
+[[nodiscard]] size_t TlsWrapper::WriteAll(std::initializer_list<IoData> list, Deadline deadline) {
+  impl_->CheckAlive();
+  size_t total_len = 0;
+  for (const auto& io_data : list) {
+    total_len += io_data.len;
+  }
+  char* buf = new char[total_len];
+  char* cur_pos = buf;
+  for (const auto& io_data : list) {
+    std::memcpy(cur_pos, io_data.data, io_data.len);
+    cur_pos += io_data.len;
+  }
+  std::size_t result = SendAll(buf, total_len, deadline);
+  delete[] buf;
+  return result;
+}
+
 Socket TlsWrapper::StopTls(Deadline deadline) {
   if (impl_->ssl) {
     impl_->is_in_shutdown = true;
