@@ -234,7 +234,7 @@ BENCHMARK(tls_write_all_init_list_HighLoad)->Unit(benchmark::kNanosecond);
   engine::RunStandalone(2, [&]() {
     const auto test_deadline = Deadline::FromDuration(kMaxWaitTime);
     internal::net::TcpListener listener;
-    std::string init_string(state.range(0), 'a');
+    std::string init_string(state.range(0) * 3, 'a');
     engine::io::IoData data{init_string.data(), init_string.size()};
 
     auto [server, client] = listener.MakeSocketPair(test_deadline);
