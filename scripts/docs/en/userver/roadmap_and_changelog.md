@@ -21,11 +21,11 @@ Changelog news also go to the
 * ✓ LISTEN/NOTIFY support for PostgreSQL
 * ✓ New landing page for the website
 * ✓ Significantly reduce network data transmission for PostgreSQL
-* Implement middlewares for HTTP server.
-* Move most of the HTTP server functionality to middlewares.
-* Document middlewares/plugins for HTTP client.
+* ✓ Support `install` in CMake.
+* ✓ Implement middlewares for HTTP server.
+* ✓ Move most of the HTTP server functionality to middlewares.
+* ✓ Document middlewares/plugins for HTTP client.
 * Codegen parsers and serializers by JSON schema
-* Support `install` in CMake.
 * Add YDB driver.
 * Add retry budget or retry circuit breaker for clients.
 * Add web interface to the [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf)
@@ -33,6 +33,66 @@ Changelog news also go to the
 
 
 ## Changelog
+
+### March 2024
+
+* Installation via `cmake --install` was implemented. See @ref userver_install
+  for more info.
+* Implemented @ref scripts/docs/en/userver/http_server_middlewares.md
+* @ref USERVER_LOG_DYNAMIC_DEBUG now provides fine granted runtime control over
+  logging.
+* Now all the modern versions of `libmongoc` are supported in `userver-mongo`.
+* @ref POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED is now `on` by default.
+* A secret value for the digest nonce generating now could be provided in
+  `http_server_digest_auth_secret` key via components::Secdist. Many thanks to
+  [Mingaripov Niyaz](https://github.com/mnink275) for the PR!
+* ugrpc::server::ServerComponent now has a `unix-socket-path` static option to
+  listen on unix domain socket path instead of an inet socket.
+* All the `formats::*::ValueBuilder` now support std::string_view. Thanks to
+  Андрей Будиловский for the bug report!
+* clients::http::Form is now movable and slightly more efficient. Thanks to
+  [Alexandr Kondratev](https://github.com/theg4sh) for the PR!
+* Redis now supports `SSUBSCRIBE` and removes dead nodes.
+* engine::WaitAny() now can wait for an engine::io::Socket/engine::io::TlsWrapper
+  to become readable or writable. For example:
+  `engine::WaitAny(socket.GetReadableBase(), task1, tls_socket.GetWritableBase(), future1);`
+* New tracing::Span::MakeRootSpan() helper function.
+
+* Optimizations:
+  * Switched from unmaintained `http_parser` to a 156% faster `llhttp`.
+  * Implemented a concurrent::StripedCounter that allows to have a per-cpu data
+    in user space with kernel-provided transactional guarantees. Works
+    at least x2 faster than std::atomic on a single thread and scales
+    linearly (unlike std::atomic). As a result gives more than x10 performance
+    improvement under heavy contention.
+  * An explicit control over cache invalidations in testsuite. As a result,
+    less caches are invalidated between tests and the overall time to run tests
+    goes down significantly.
+  * Components start was optimized to copy less containers during component
+    dependencies detection.
+  * Per each incoming HTTP request:
+    * one less `std::chrono::steady_clock::now()` call
+    * one less `StrCaseHash` construction (2 calls into `std::uniform_int_distribution<std::uint64_t>` over `std::mt19937`)
+    * one less `dynamic_config::Snapshot` construction (at least one atomic CAS)
+  * HTTP Clients now copies less std::shared_ptr`s in implementation.
+  * Optimized up to an order of magnitude the user types query in PostgreSQL
+    driver.
+  * pytest_userver.client.Client.capture_logs() now accepts `log_level` to
+    filter out messages with lower log level in the service itself and minimize
+    CPU and memory consumption during tests.
+  * Up to two times faster utils::statistics::RecentPeriod statistics in
+    PostgreSQL driver due to switching to a utils::datetime::SteadyCoarseClock.
+
+* Build:
+  * Workarounds for the Protobuf >= 5.26.0
+  * Removed redundant semicolon, thanks to Oleksii Demchenko for the
+    [PR](https://github.com/userver-framework/userver/commit/b3abb84d6bb1da693).
+  * utils::FastScopeGuard now uses proper traits. Thanks to
+    [Илья Оплачкин](https://github.com/IoplachkinI) for the PR and to
+    [Artyom Kolpakov](https://github.com/ddvamp) for the report!
+  * Added missing dependency for Arch based distros. Thanks to
+    [VScdr](https://github.com/VS-CDR) for the PR!
+
 
 ### February 2024
 

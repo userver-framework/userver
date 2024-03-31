@@ -422,7 +422,7 @@ find_package(userver REQUIRED COMPONENTS core postgresql grpc redis clickhouse m
 in your `CMakeLists.txt`. Choose only the necessary components. 
 @see @ref userver_libraries
 
-Finaly, link your source with userver component.
+Finally, link your source with userver component.
 
 For instance:
 ```

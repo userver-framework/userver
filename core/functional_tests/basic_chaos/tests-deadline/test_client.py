@@ -89,7 +89,7 @@ async def test_timeout_expired(
         deadline,
         attempts,
 ):
-    async with service_client.capture_logs() as capture:
+    async with service_client.capture_logs(log_level='INFO') as capture:
         async with client_metrics:
             response = await call(
                 headers={DP_TIMEOUT_MS: str(deadline)},
@@ -147,7 +147,7 @@ async def test_deadline_expired(
         deadline,
         attempts,
 ):
-    async with service_client.capture_logs() as capture:
+    async with service_client.capture_logs(log_level='INFO') as capture:
         async with client_metrics:
             response = await call(
                 headers={DP_TIMEOUT_MS: str(deadline)},

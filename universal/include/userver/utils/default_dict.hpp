@@ -25,6 +25,8 @@ namespace impl {
 
 }  // namespace impl
 
+/// @ingroup userver_universal userver_containers
+///
 /// @brief Dictionary that for missing keys falls back to a default value
 /// stored by key utils::kDefaultDictDefaultName.
 ///

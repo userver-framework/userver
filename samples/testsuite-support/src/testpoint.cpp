@@ -1,6 +1,7 @@
 #include "testpoint.hpp"
 
 /// [Testpoint - include]
+
 #include <userver/testsuite/testpoint.hpp>
 /// [Testpoint - include]
 

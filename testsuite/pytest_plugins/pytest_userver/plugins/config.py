@@ -400,12 +400,25 @@ def userver_config_http_client(
 
 
 @pytest.fixture(scope='session')
-def userver_default_log_level():
+def userver_default_log_level() -> str:
+    """
+    Default log level to use in userver if no caoomand line option was provided.
+
+    Returns 'debug'.
+
+    @ingroup userver_testsuite_fixtures
+    """
     return 'debug'
 
 
 @pytest.fixture(scope='session')
-def userver_log_level(pytestconfig, userver_default_log_level):
+def userver_log_level(pytestconfig, userver_default_log_level) -> str:
+    """
+    Returns --service-log-level value if provided, otherwise returns
+    userver_default_log_level() value from fixture.
+
+    @ingroup userver_testsuite_fixtures
+    """
     if pytestconfig.option.service_log_level:
         return pytestconfig.option.service_log_level
     return userver_default_log_level

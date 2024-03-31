@@ -1,6 +1,6 @@
 # /// [select]
 async def test_select(service_client):
-    async with service_client.capture_logs() as capture:
+    async with service_client.capture_logs(log_level='INFO') as capture:
         response = await service_client.get('/logcapture')
         assert response.status == 200
 

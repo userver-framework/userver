@@ -355,6 +355,7 @@ Accessing testpoint userver is not aware of will raise an exception:
 * C++ code: @ref samples/testsuite-support/src/testpoint.cpp
 * Testcase: @ref samples/testsuite-support/tests/test_testpoint.py
 
+@anchor testsuite_logs_capture
 #### Logs capture
 
 Testsuite can be used to test logs written by service.
@@ -368,6 +369,7 @@ Example on logs capture usage could be found here:
 
 * C++ code: @ref samples/testsuite-support/src/logcapture.cpp
 * Testcase: @ref samples/testsuite-support/tests/test_logcapture.py
+
 
 @anchor TESTSUITE_TASKS
 #### Testsuite tasks

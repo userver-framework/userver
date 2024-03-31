@@ -1142,9 +1142,21 @@ class Client(ClientWrapper):
     def spawn_task(self, name: str):
         return self._client.spawn_task(name)
 
-    def capture_logs(self, *, testsuite_skip_prepare: bool = False):
+    def capture_logs(
+            self,
+            *,
+            log_level: str = 'DEBUG',
+            testsuite_skip_prepare: bool = False,
+    ):
+        """
+        Captures logs from the service.
+
+        @param log_level Do not capture logs below this level.
+
+        @see @ref testsuite_logs_capture
+        """
         return self._client.capture_logs(
-            testsuite_skip_prepare=testsuite_skip_prepare,
+            log_level=log_level, testsuite_skip_prepare=testsuite_skip_prepare,
         )
 
     @_wrap_client_error

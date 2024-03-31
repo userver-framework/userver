@@ -35,7 +35,8 @@ class Hasher final {
  public:
   /// Constructor from the hash algorithm name from "crypto" namespace
   /// to be used for hashing and storages::secdist::SecdistConfig containing a
-  /// server secret key to be used for "nonce" generating.
+  /// server secret key `http_server_digest_auth_secret`
+  /// to be used for "nonce" generating.
   Hasher(std::string_view algorithm, const SecdistConfig& secdist_config);
 
   /// Returns "nonce" directive value in hexadecimal format.
