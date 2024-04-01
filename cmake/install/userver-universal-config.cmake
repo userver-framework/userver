@@ -10,6 +10,7 @@ find_package(Boost REQUIRED COMPONENTS
     filesystem
     regex
     stacktrace_basic
+    OPTIONAL_COMPONENTS
     stacktrace_backtrace
 )
 find_package(Iconv REQUIRED)
