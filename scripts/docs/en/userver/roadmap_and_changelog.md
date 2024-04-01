@@ -74,7 +74,7 @@ Changelog news also go to the
     * one less `std::chrono::steady_clock::now()` call
     * one less `StrCaseHash` construction (2 calls into `std::uniform_int_distribution<std::uint64_t>` over `std::mt19937`)
     * one less `dynamic_config::Snapshot` construction (at least one atomic CAS)
-  * HTTP Clients now copies less std::shared_ptr`s in implementation.
+  * HTTP Client now copies less `std::shared_ptr` variables in implementation.
   * Optimized up to an order of magnitude the user types query in PostgreSQL
     driver.
   * pytest_userver.client.Client.capture_logs() now accepts `log_level` to

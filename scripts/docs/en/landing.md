@@ -128,7 +128,7 @@ void Ins(storages::postgres::Transaction& tr,
           </div>
         </div>
       </section>
-      <!--section class="section companies container">
+      <section class="section companies container">
         <h2>
           Brands and companies using <span class="userver__title">userver</span>
         </h2>
@@ -138,7 +138,7 @@ void Ins(storages::postgres::Transaction& tr,
           <span class="logo logo_matchmaker" title="Matchmaker"></span>
           <span class="logo logo_yago" title="Yandex Go"></span>
         </div>
-      </section-->
+      </section>
     </main>
     <!-- Highlight codeblocks -->
     <script src="highlight.min.js"></script>
