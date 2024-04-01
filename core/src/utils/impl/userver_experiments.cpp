@@ -96,8 +96,6 @@ void UserverExperimentsScope::EnableOnly(
   }
 }
 
-UserverExperiment kRedisRetryBudgetExperiment{"redis-retry-budget"};
-
 }  // namespace utils::impl
 
 USERVER_NAMESPACE_END
