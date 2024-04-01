@@ -2,6 +2,7 @@
 
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_list.hpp>
+#include <userver/testsuite/middlewares.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <server/middlewares/auth.hpp>
@@ -57,7 +58,8 @@ components::ComponentList DefaultMiddlewareComponents() {
       .Append<DecompressionFactory>()
       .Append<SetAcceptEncodingFactory>()
       .Append<ExceptionsHandlingFactory>()
-      .Append<UnknownExceptionsHandlingFactory>();
+      .Append<UnknownExceptionsHandlingFactory>()
+      .Append<testsuite::ExceptionsHandlingMiddlewareFactory>();
 }
 
 components::ComponentList MinimalMiddlewareComponents() {

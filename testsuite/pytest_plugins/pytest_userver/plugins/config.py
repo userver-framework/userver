@@ -35,6 +35,7 @@ USERVER_CONFIG_HOOKS = [
     'userver_config_logging',
     'userver_config_testsuite',
     'userver_config_secdist',
+    'userver_config_testsuite_middleware',
 ]
 
 
@@ -535,3 +536,30 @@ def userver_config_secdist(service_secdist_path):
         )
 
     return _patch_config
+
+
+@pytest.fixture(scope='session')
+def userver_config_testsuite_middleware(
+        userver_testsuite_middleware_enabled: bool,
+):
+    def patch_config(config_yaml, config_vars):
+        if not userver_testsuite_middleware_enabled:
+            return
+
+        components = config_yaml['components_manager']['components']
+        if 'server' not in components:
+            return
+
+        pipeline_builder = components.setdefault(
+            'default-server-middleware-pipeline-builder', {},
+        )
+        middlewares = pipeline_builder.setdefault('append', [])
+        middlewares.append('testsuite-exceptions-handling-middleware')
+
+    return patch_config
+
+
+@pytest.fixture(scope='session')
+def userver_testsuite_middleware_enabled() -> bool:
+    """Enabled testsuite middleware."""
+    return True

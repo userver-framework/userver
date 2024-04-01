@@ -6,6 +6,11 @@ import pytest
 pytest_plugins = ['pytest_userver.plugins.core']
 
 
+@pytest.fixture(scope='session')
+def userver_testsuite_middleware_enabled():
+    return False
+
+
 # Overriding a built-in userver configs service mock
 @pytest.fixture
 def mock_configs_service(mockserver) -> None:
