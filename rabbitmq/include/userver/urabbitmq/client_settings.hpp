@@ -20,6 +20,17 @@ struct EndpointInfo final {
   uint16_t port = 5672;
 };
 
+struct ClientCertSettings {
+  std::string cert_path;
+  std::string private_key_path;
+};
+
+struct TlsSettings {
+  std::optional<ClientCertSettings> client_cert_settings;
+  std::vector<std::string> ca_cert_paths;
+  bool verify_host = true;
+};
+
 struct AuthSettings final {
   /// Login to use
   std::string login = "guest";
@@ -31,10 +42,7 @@ struct AuthSettings final {
   std::string vhost = "/";
 
   /// TLS
-  std::string client_cert_path;
-  std::string client_private_key_path;
-  std::vector<std::string> ca_cert_paths;
-  bool verify_host = true;
+  std::optional<TlsSettings> tls_settings;
 };
 
 struct RabbitEndpoints final {

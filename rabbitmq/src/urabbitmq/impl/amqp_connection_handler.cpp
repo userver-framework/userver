@@ -51,33 +51,25 @@ std::unique_ptr<engine::io::RwBase> CreateSocketPtr(
 
   const bool secure = address.secure();
   if (secure) {
-    if (!auth_settings.client_cert_path.empty() ||
-        !auth_settings.client_private_key_path.empty() ||
-        !auth_settings.ca_cert_paths.empty()) {
-      if (auth_settings.client_cert_path.empty() !=
-          auth_settings.client_private_key_path.empty()) {
-        throw std::runtime_error(
-            "Either set both tls.client-cert-path and "
-            "tls.client-private-key-path options or none of "
-            "them");
-      }
+    if (auth_settings.tls_settings) {
+      const auto& tls_settings = *auth_settings.tls_settings;
 
       crypto::Certificate client_cert;
-      if (!auth_settings.client_cert_path.empty()) {
-        auto contents =
-            fs::blocking::ReadFileContents(auth_settings.client_cert_path);
-        client_cert = crypto::Certificate::LoadFromString(contents);
-      }
-
       crypto::PrivateKey client_key;
-      if (!auth_settings.client_private_key_path.empty()) {
-        auto contents = fs::blocking::ReadFileContents(
-            auth_settings.client_private_key_path);
-        client_key = crypto::PrivateKey::LoadFromString(contents);
+      if (tls_settings.client_cert_settings) {
+        const auto& client_cert_contents = fs::blocking::ReadFileContents(
+            tls_settings.client_cert_settings->cert_path);
+        client_cert = crypto::Certificate::LoadFromString(client_cert_contents);
+
+        const auto& client_private_key_contents =
+            fs::blocking::ReadFileContents(
+                tls_settings.client_cert_settings->private_key_path);
+        client_key =
+            crypto::PrivateKey::LoadFromString(client_private_key_contents);
       }
 
       std::vector<crypto::Certificate> tls_certificate_authorities;
-      for (const auto& ca_path : auth_settings.ca_cert_paths) {
+      for (const auto& ca_path : tls_settings.ca_cert_paths) {
         auto contents = fs::blocking::ReadFileContents(ca_path);
         tls_certificate_authorities.push_back(
             crypto::Certificate::LoadFromString(contents));
@@ -86,14 +78,14 @@ std::unique_ptr<engine::io::RwBase> CreateSocketPtr(
       return std::make_unique<engine::io::TlsWrapper>(
           engine::io::TlsWrapper::StartTlsClient(
               std::move(socket),
-              auth_settings.verify_host ? address.hostname() : "", client_cert,
+              tls_settings.verify_host ? address.hostname() : "", client_cert,
               client_key, deadline, tls_certificate_authorities));
     }
 
     return std::make_unique<engine::io::TlsWrapper>(
         engine::io::TlsWrapper::StartTlsClient(
-            std::move(socket),
-            auth_settings.verify_host ? address.hostname() : "", deadline));
+            std::move(socket), address.hostname(),
+            deadline));  // verify_host is true by default
   } else {
     return std::make_unique<engine::io::Socket>(std::move(socket));
   }
