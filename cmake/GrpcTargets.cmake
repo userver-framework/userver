@@ -54,7 +54,7 @@ elseif(Protobuf_VERSION VERSION_GREATER_EQUAL 4.20.0 AND
     Protobuf_VERSION VERSION_LESS 5.0.0 OR
     Protobuf_VERSION VERSION_GREATER_EQUAL 20.0.0)
   set(file_requirements_protobuf "requirements-4.txt")
-elseif(Protobuf_VERSION VERSION_GREATER 3.12.0 AND
+elseif(Protobuf_VERSION VERSION_GREATER 3.0.0 AND
     Protobuf_VERSION VERSION_LESS 4.0.0)
   set(file_requirements_protobuf "requirements-3.txt")
 else()
