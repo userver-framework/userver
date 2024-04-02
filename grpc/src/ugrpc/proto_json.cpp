@@ -20,7 +20,7 @@ const google::protobuf::util::JsonPrintOptions kOptions = []() {
 #endif
   return options;
 }();
-}  // namespace
+}  
 
 formats::json::Value MessageToJson(const google::protobuf::Message& message) {
   return formats::json::FromString(ToJsonString(message));
