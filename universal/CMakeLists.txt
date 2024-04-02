@@ -157,9 +157,9 @@ add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
 include(GetUserverVersion)
 set(USERVER_NAMESPACE "userver" CACHE STRING "C++ namespace to use")
-if (NOT "${USERVER_NAMESPACE}" STREQUAL "")
-	set(USERVER_NAMESPACE_BEGIN "namespace ${USERVER_NAMESPACE} { inline namespace ${USERVER_VERSION_STR} { " CACHE STRING "Open C++ namespace to use")
-    set(USERVER_NAMESPACE_END "} }" CACHE STRING "Close C++ namespace to use")
+if(NOT "${USERVER_NAMESPACE}" STREQUAL "")
+  set(USERVER_NAMESPACE_BEGIN "namespace ${USERVER_NAMESPACE} { inline namespace ${USERVER_VERSION_STR} { " CACHE STRING "Open C++ namespace to use")
+  set(USERVER_NAMESPACE_END "} }" CACHE STRING "Close C++ namespace to use")
 endif()
 message(STATUS "Putting userver into namespace '${USERVER_NAMESPACE}': ${USERVER_NAMESPACE_BEGIN} ${USERVER_NAMESPACE_END}")
 target_compile_definitions(${PROJECT_NAME} PUBLIC
@@ -192,27 +192,27 @@ set(USERVER_ERASE_LOG_WITH_LEVEL_PENDING ${USERVER_FEATURE_ERASE_LOG_WITH_LEVEL}
 separate_arguments(USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
 list(REMOVE_DUPLICATES USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
 
-if ("error" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
-	target_compile_definitions(${PROJECT_NAME} PUBLIC
+if("error" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC
       "USERVER_FEATURE_ERASE_LOG_WITH_LEVEL=4"
-    )
-elseif ("warning" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
-	target_compile_definitions(${PROJECT_NAME} PUBLIC
+  )
+elseif("warning" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC
       "USERVER_FEATURE_ERASE_LOG_WITH_LEVEL=3"
-    )
-elseif ("info" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
-	target_compile_definitions(${PROJECT_NAME} PUBLIC
+  )
+elseif("info" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC
       "USERVER_FEATURE_ERASE_LOG_WITH_LEVEL=2"
-    )
-elseif ("debug" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
-	target_compile_definitions(${PROJECT_NAME} PUBLIC
+  )
+elseif("debug" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC
       "USERVER_FEATURE_ERASE_LOG_WITH_LEVEL=1"
-    )
-elseif ("trace" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
-	target_compile_definitions(${PROJECT_NAME} PUBLIC
+  )
+elseif("trace" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC
       "USERVER_FEATURE_ERASE_LOG_WITH_LEVEL=0"
-    )
-endif ()
+  )
+endif()
 
 # Suppress OpenSSL 3 warnings: we still primarily support OpenSSL 1.1.x
 target_compile_definitions(${PROJECT_NAME} PRIVATE OPENSSL_SUPPRESS_DEPRECATED=)
@@ -379,20 +379,21 @@ if (USERVER_INSTALL)
   )
 
   _userver_directory_install(COMPONENT universal FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/FindCryptoPP.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/Findlibyamlcpp.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/Findcctz.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/FindJemalloc.cmake"
-	"${USERVER_ROOT_DIR}/cmake/sanitize.blacklist.txt"
-	"${USERVER_ROOT_DIR}/cmake/RequireLTO.cmake"
-    "${USERVER_ROOT_DIR}/cmake/SetupLTO.cmake"
-    "${USERVER_ROOT_DIR}/cmake/SetupLinker.cmake"
-    "${USERVER_ROOT_DIR}/cmake/Sanitizers.cmake"
-	"${USERVER_ROOT_DIR}/cmake/AddGoogleTests.cmake"
-	"${USERVER_ROOT_DIR}/cmake/DetectVersion.cmake"
-	"${USERVER_ROOT_DIR}/cmake/install/userver-universal-config.cmake"
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
+      "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake"
+      "${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake"
+      "${CMAKE_BINARY_DIR}/cmake_generated/FindCryptoPP.cmake"
+      "${CMAKE_BINARY_DIR}/cmake_generated/Findlibyamlcpp.cmake"
+      "${CMAKE_BINARY_DIR}/cmake_generated/Findcctz.cmake"
+      "${CMAKE_BINARY_DIR}/cmake_generated/FindJemalloc.cmake"
+      "${USERVER_ROOT_DIR}/cmake/sanitize.blacklist.txt"
+      "${USERVER_ROOT_DIR}/cmake/RequireLTO.cmake"
+      "${USERVER_ROOT_DIR}/cmake/SetupLTO.cmake"
+      "${USERVER_ROOT_DIR}/cmake/SetupLinker.cmake"
+      "${USERVER_ROOT_DIR}/cmake/Sanitizers.cmake"
+      "${USERVER_ROOT_DIR}/cmake/AddGoogleTests.cmake"
+      "${USERVER_ROOT_DIR}/cmake/DetectVersion.cmake"
+      "${USERVER_ROOT_DIR}/cmake/UserverSetupEnvironment.cmake"
+      "${USERVER_ROOT_DIR}/cmake/install/userver-universal-config.cmake"
+      DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
   )
 endif()
