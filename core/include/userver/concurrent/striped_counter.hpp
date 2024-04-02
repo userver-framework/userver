@@ -14,12 +14,14 @@ namespace concurrent {
 /// @ingroup userver_concurrency userver_containers
 ///
 /// @brief A contention-free sharded atomic counter, with memory consumption
-/// traded for performance.
+/// and read performance traded for write performance. Intended to be used for
+/// write-heavy counters, mostly in metrics.
 ///
 /// @note Depending on the underlying platform is implemented either via a
 /// single atomic variable, or an 'nproc'-sized array of interference-shielded
 /// rseq-based (https://www.phoronix.com/news/Restartable-Sequences-Speed)
 /// per-CPU counters.
+/// In the second case, read is approx. `nproc` times slower than write.
 class StripedCounter final {
  public:
   /// @brief Constructs a zero-initialized counter.
