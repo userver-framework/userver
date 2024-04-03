@@ -1,4 +1,4 @@
-#include <userver/utils/statistics/rate_counter.hpp>
+#include <userver/utils/statistics/striped_rate_counter.hpp>
 
 #include <userver/utils/statistics/writer.hpp>
 
@@ -6,11 +6,11 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
 
-void DumpMetric(Writer& writer, const RateCounter& value) {
+void DumpMetric(Writer& writer, const StripedRateCounter& value) {
   writer = Rate{value.Load()};
 }
 
-void ResetMetric(RateCounter& value) { value.Store(Rate{}); }
+void ResetMetric(StripedRateCounter& value) { value.Store(Rate{}); }
 
 }  // namespace utils::statistics
 

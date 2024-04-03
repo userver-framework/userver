@@ -151,7 +151,7 @@ const char* Statistics::ToString(ErrorGroup error) {
 }
 
 void Statistics::AccountError(ErrorGroup error) {
-  error_count_[static_cast<int>(error)]++;
+  ++error_count_[static_cast<int>(error)];
 }
 
 void Statistics::AccountStatus(int code) { reply_status_.Account(code); }
