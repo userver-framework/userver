@@ -60,6 +60,10 @@ jobs:
         steps:
           - uses: actions/checkout@v2
 
+          - name: Install packages
+            run: |
+                sudo apt install -y docker-compose
+
           - name: Reuse ccache directory
             uses: actions/cache@v2
             with:
