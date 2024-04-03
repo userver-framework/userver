@@ -46,6 +46,9 @@ if (api-common-proto_USRV_SOURCES)
 endif()
 
 add_library(${PROJECT_NAME}-internal STATIC ${SOURCES})
+if (NOT USERVER_DOWNLOAD_PACKAGE_GRPC) 
+  target_compile_definitions(${PROJECT_NAME}-internal PUBLIC GRPC_ASAN_SUPPRESSED GRPC_TSAN_SUPPRESSED 
+endif()
 
 set_target_properties(${PROJECT_NAME}-internal PROPERTIES LINKER_LANGUAGE CXX)
 
