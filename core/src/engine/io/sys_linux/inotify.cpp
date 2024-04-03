@@ -1,6 +1,6 @@
 #ifdef __linux__
 
-#include <userver/engine/io/sys/posix/inotify.hpp>
+#include <userver/engine/io/sys_linux/inotify.hpp>
 
 #include <unistd.h>
 #include <climits>
@@ -11,7 +11,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace engine::io::sys::posix {
+namespace engine::io::sys_linux {
 
 std::string ToString(EventType type) {
   switch (type) {
@@ -127,7 +127,7 @@ void Inotify::Dispatch() {
   }
 }
 
-}  // namespace engine::io::sys::posix
+}  // namespace engine::io::sys_linux
 
 USERVER_NAMESPACE_END
 

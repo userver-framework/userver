@@ -2,7 +2,7 @@
 
 #ifdef __linux__
 
-/// @file userver/engine/io/sys/posix/inotify.hpp
+/// @file userver/engine/io/sys_linux/inotify.hpp
 /// @brief Linux-specific fs notification API
 
 #include <sys/inotify.h>
@@ -18,7 +18,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace engine::io::sys::posix {
+namespace engine::io::sys_linux {
 
 /// @brief Notification event type
 enum class EventType {
@@ -97,7 +97,7 @@ class Inotify final {
   std::unordered_map<int, std::string> wd_to_path_;
 };
 
-}  // namespace engine::io::sys::posix
+}  // namespace engine::io::sys_linux
 
 USERVER_NAMESPACE_END
 
