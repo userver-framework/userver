@@ -3,9 +3,8 @@
 #include <algorithm>  // for std::max
 #include <atomic>
 
-#include <concurrent/impl/interference_shield.hpp>
 #include <concurrent/impl/rseq.hpp>
-#include <userver/utils/fixed_array.hpp>
+#include <concurrent/impl/striped_array.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -24,21 +23,20 @@ struct StripedCounter::Impl final {
   // rseq could be unavailable, or std::thread::hardware_concurrency() could
   // also return 0 if it failed go get something meaningful from the OS, in both
   // cases we fall back to just using a std::atomic (see StripedCounter::Add).
-  utils::FixedArray<impl::InterferenceShield<NativeCounterType>> counters{
-      impl::GetRseqArraySize(), 0};
+  impl::StripedArray counters;
 
   std::atomic<NativeCounterType> fallback{0};
 };
 
 void StripedCounter::Add(std::uintptr_t value) noexcept {
   const auto cpu_id = rseq_cpu_start();
-  if (!impl::IsCpuIdValid(cpu_id, impl_->counters.size())) {
+  if (!impl::IsCpuIdValid(cpu_id)) {
     impl_->fallback.fetch_add(value, std::memory_order_relaxed);
     return;
   }
 
   const auto ret = rseq_addv(RSEQ_MO_RELAXED, RSEQ_PERCPU_CPU_ID,
-                             &*impl_->counters[cpu_id], value, cpu_id);
+                             &impl_->counters[cpu_id], value, cpu_id);
   if (rseq_likely(!ret)) return;
 
   impl_->fallback.fetch_add(value, std::memory_order_relaxed);
@@ -48,9 +46,9 @@ std::uintptr_t StripedCounter::Read() const noexcept {
   auto sum = static_cast<std::uintptr_t>(
       impl_->fallback.load(std::memory_order_relaxed));
 
-  for (const auto& c : impl_->counters) {
+  for (const auto& c : impl_->counters.Elements()) {
     // Ideally this should be a std::atomic_ref, of course
-    sum += static_cast<std::uintptr_t>(__atomic_load_n(&*c, __ATOMIC_RELAXED));
+    sum += static_cast<std::uintptr_t>(__atomic_load_n(&c, __ATOMIC_RELAXED));
   }
 
   return sum;
