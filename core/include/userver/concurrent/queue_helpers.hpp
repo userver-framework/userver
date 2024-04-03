@@ -132,6 +132,12 @@ class Consumer final {
     return queue_->PopNoblock(token_, value);
   }
 
+  void Reset() && {
+    if (queue_) queue_->MarkConsumerIsDead();
+    queue_.reset();
+    [[maybe_unused]] ConsumerToken for_destruction = std::move(token_);
+  }
+
   /// Const access to source queue.
   [[nodiscard]] std::shared_ptr<const QueueType> Queue() const {
     return {queue_};
