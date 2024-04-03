@@ -243,7 +243,7 @@ class GenericQueue final
     if (old_producers_count == kCreatedAndDead) {
       consumer_side_.ResumeBlockingOnPop();
     }
-    UASSERT(QueuePolicy::kIsMultipleProducer || old_producers_count != 1);
+    UINVARIANT(QueuePolicy::kIsMultipleProducer || old_producers_count != 1, "Incorrect usage of queue producers");
   }
 
   void PrepareConsumer() {
@@ -256,7 +256,7 @@ class GenericQueue final
     if (old_consumers_count == kCreatedAndDead) {
       producer_side_.ResumeBlockingOnPush();
     }
-    UASSERT(QueuePolicy::kIsMultipleConsumer || old_consumers_count != 1);
+    UINVARIANT(QueuePolicy::kIsMultipleConsumer || old_consumers_count != 1, "Incorrect usage of queue consumers");
   }
 
   void MarkConsumerIsDead() {
