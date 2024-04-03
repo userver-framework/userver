@@ -155,7 +155,7 @@ function(userver_venv_setup)
     )
     execute_process(
         COMMAND
-        "${venv_bin_dir}/pip" install
+        "${venv_bin_dir}/python3" -m pip install
         --disable-pip-version-check
         -U ${pip_requirements}
         ${ARG_PIP_ARGS}
