@@ -80,7 +80,7 @@ class Box {
   /// Allocate the value as constructed by the given @a factory.
   /// Allows to save an extra move of the contained value.
   template <typename Factory>
-  Box MakeWithFactory(Factory&& factory) {
+  static Box MakeWithFactory(Factory&& factory) {
     return Box(EmplaceFactory{}, std::forward<Factory>(factory));
   }
 
