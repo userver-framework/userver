@@ -30,7 +30,7 @@ class IntrusiveStack final {
   static_assert(std::is_invocable_r_v<SinglyLinkedHook<T>&, HookExtractor, T&>);
 
  public:
-  IntrusiveStack() = default;
+  constexpr IntrusiveStack() = default;
 
   IntrusiveStack(IntrusiveStack&&) = delete;
   IntrusiveStack& operator=(IntrusiveStack&&) = delete;

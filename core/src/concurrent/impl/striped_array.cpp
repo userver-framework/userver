@@ -5,7 +5,8 @@
 #include <memory>  // for std::uninitialized_fill_n
 
 #include <concurrent/impl/intrusive_stack.hpp>
-#include <userver/utils/assert.hpp>
+#include <userver/compiler/impl/constexpr.hpp>
+#include <userver/compiler/impl/lsan.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -14,50 +15,24 @@ namespace concurrent::impl {
 struct StripedArrayNode final {
   explicit StripedArrayNode(std::intptr_t* array) : array(array) {}
 
-  SinglyLinkedHook<StripedArrayNode> hook;
+  SinglyLinkedHook<StripedArrayNode> hook{};
   std::intptr_t* const array;
 };
 
 namespace {
 
-bool IsHeadNode(StripedArrayNode& node) {
-  return reinterpret_cast<std::uintptr_t>(node.array) %
-             kDestructiveInterferenceSize ==
-         0;
-}
+// IntrusiveStack degrades performance under contention.
+// Suppose that StripedArray's are not created-destroyed very often.
+using StripedArrayStorage =
+    IntrusiveStack<StripedArrayNode, MemberHook<&StripedArrayNode::hook>>;
+USERVER_IMPL_CONSTINIT StripedArrayStorage striped_array_storage;
 
-struct StripedArrayStorage final {
-  // IntrusiveStack degrades performance under contention.
-  // Suppose that StripedArray's are not created-destroyed very often.
-  using Pool =
-      IntrusiveStack<StripedArrayNode, MemberHook<&StripedArrayNode::hook>>;
-
-  StripedArrayStorage() = default;
-
-  ~StripedArrayStorage() {
-    Pool nodes_to_delete;
-    while (auto* const node = pool.TryPop()) {
-      if (IsHeadNode(*node)) {
-        nodes_to_delete.Push(*node);
-      }
-    }
-    nodes_to_delete.DisposeUnsafe([](StripedArrayNode& node) {
-      ::operator delete(&node, std::align_val_t{kDestructiveInterferenceSize});
-    });
-  }
-
-  Pool pool;
-};
-
-StripedArrayStorage striped_array_storage;
+// To avoid static destruction order fiasco.
+static_assert(std::is_trivially_destructible_v<StripedArrayStorage>);
 
 StripedArrayNode& AcquireStripedArrayNode() {
-  // If a StripedArray is created with static storage duration, its init and
-  // deinit order may clash with 'striped_array_storage'.
-  utils::impl::AssertStaticRegistrationFinished();
-
   // Optimistic path: if 'pool' is not empty, take from it.
-  if (auto* const node = striped_array_storage.pool.TryPop()) {
+  if (auto* const node = striped_array_storage.TryPop()) {
     return *node;
   }
 
@@ -68,7 +43,6 @@ StripedArrayNode& AcquireStripedArrayNode() {
                 kDestructiveInterferenceSize);
 
   const auto rseq_array_size = GetRseqArraySize();
-  auto& pool = striped_array_storage.pool;
 
   // Fused allocation:
   // 1. nodes: StripedArrayNode[kStride]
@@ -78,24 +52,26 @@ StripedArrayNode& AcquireStripedArrayNode() {
           rseq_array_size * StripedArray::kStride * sizeof(std::intptr_t),
       std::align_val_t{kDestructiveInterferenceSize}));
 
+  // During static destruction, the nodes in striped_array_storage are
+  // intentionally leaked, otherwise it's impossible to allow creating
+  // StripedArray instances with static storage.
+  compiler::impl::LsanIgnoreObject(buffer);
+
   auto* const nodes = reinterpret_cast<StripedArrayNode*>(buffer);
   auto* const arrays = reinterpret_cast<std::intptr_t*>(
       buffer + StripedArray::kStride * sizeof(StripedArrayNode));
 
   // Each node owns a strided range within 'arrays'.
   for (std::size_t i = 1; i < StripedArray::kStride; ++i) {
-    pool.Push(*::new (&nodes[i]) StripedArrayNode(arrays + i));
+    striped_array_storage.Push(*::new (&nodes[i]) StripedArrayNode(arrays + i));
   }
   auto& head_node = *::new (&nodes[0]) StripedArrayNode(arrays + 0);
-  UASSERT(IsHeadNode(head_node));
   return head_node;
 }
 
 void ReleaseStripedArrayNode(StripedArrayNode& node) noexcept {
-  // All the memory for StripedArray's is only deallocated during static
-  // destruction.
-  static_assert(noexcept(striped_array_storage.pool.Push(node)));
-  return striped_array_storage.pool.Push(node);
+  static_assert(noexcept(striped_array_storage.Push(node)));
+  return striped_array_storage.Push(node);
 }
 
 }  // namespace
