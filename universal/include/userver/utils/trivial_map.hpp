@@ -562,7 +562,7 @@ class CaseFirstIndexer final {
     return *this;
   }
 
-  template <typename T, typename U>
+  template <typename T, typename U = void>
   constexpr CaseFirstIndexer& Type() {
     return *this;
   }
