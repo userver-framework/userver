@@ -100,9 +100,13 @@ jobs:
                 sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 8919F6BD2B48D754
                 echo "deb https://packages.clickhouse.com/deb stable main" | sudo tee /etc/apt/sources.list.d/clickhouse.list
 
-                wget https://downloads.mariadb.com/MariaDB/mariadb_repo_setup
-                chmod +x mariadb_repo_setup
-                sudo ./mariadb_repo_setup
+                # Adding mariadb repositories (from https://www.linuxcapable.com/how-to-install-mariadb-on-ubuntu-linux/ )
+                curl -fsSL http://mirror.mariadb.org/PublicKey_v2 | sudo gpg --dearmor -o "/usr/share/keyrings/mariadb.gpg"
+                sudo chmod a+r "/usr/share/keyrings/mariadb.gpg"
+                # Restore the correct URL after https://jira.mariadb.org/browse/MDBF-651
+                #echo "deb [arch=amd64,arm64,ppc64el signed-by=/usr/share/keyrings/mariadb.gpg] https://deb.mariadb.org/10.11/ubuntu $(lsb_release -cs) main" \
+                #    | tee /etc/apt/sources.list.d/mariadb.list
+                echo "deb [arch=amd64,arm64,ppc64el signed-by=/usr/share/keyrings/mariadb.gpg] https://mirror.kumi.systems/mariadb/repo/10.11/ubuntu $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/mariadb.list
 
                 sudo apt update
                 sudo apt install --allow-downgrades -y clickhouse-common-static libmariadb-dev $(cat scripts/docs/en/deps/${{matrix.os}}.md | tr '\n' ' ')
