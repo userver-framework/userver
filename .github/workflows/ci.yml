@@ -104,7 +104,9 @@ jobs:
                 #chmod +x mariadb_repo_setup
                 #sudo ./mariadb_repo_setup
                 # Adding mariadb repositories (from https://www.linuxcapable.com/how-to-install-mariadb-on-ubuntu-linux/ )
-                sudo gpg_retrieve_curl http://mirror.mariadb.org/PublicKey_v2 mariadb
+                curl -fsSL http://mirror.mariadb.org/PublicKey_v2 | sudo gpg --dearmor -o "/usr/share/keyrings/mariadb.gpg"
+                sudo chmod a+r "/usr/share/keyrings/mariadb.gpg"
+
                 # Restore the correct URL after https://jira.mariadb.org/browse/MDBF-651
                 #echo "deb [arch=amd64,arm64,ppc64el signed-by=/usr/share/keyrings/mariadb.gpg] https://deb.mariadb.org/10.11/ubuntu $(lsb_release -cs) main" \
                 #    | tee /etc/apt/sources.list.d/mariadb.list
