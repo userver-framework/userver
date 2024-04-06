@@ -56,18 +56,21 @@ inline constexpr std::optional<std::string> TryParse(Value&& value, To<std::stri
 
 template <typename Value, typename T>
 inline constexpr std::optional<T> TryParse(Value&& value, To<T>) requires meta::kIsInteger<T> {
+  constexpr auto f = [](auto response){
+    return impl::CheckInBounds(response, std::numeric_limits<T>::min(), std::numeric_limits<T>::max()) ? std::optional{static_cast<T>(response)} : std::nullopt;
+  };
   if constexpr(std::is_unsigned_v<T>) {
-    if(!((sizeof(T) == sizeof(std::uint64_t)) ? value.IsUInt64() : value.IsInt64())) {
+    if(!value.IsUInt64()) {
       return std::nullopt;
     }
     auto response = value.template As<std::uint64_t>();
-    return impl::CheckInBounds(response, std::numeric_limits<T>::min(), std::numeric_limits<T>::max()) ? std::optional{static_cast<T>(response)} : std::nullopt;
+    return f(std::move(response));
   } else {
     if(!value.IsInt64()) {
       return std::nullopt;
     }
     auto response = value.template As<std::int64_t>();
-    return impl::CheckInBounds(response, std::numeric_limits<T>::min(), std::numeric_limits<T>::max()) ? std::optional{static_cast<T>(response)} : std::nullopt;
+    return f(std::move(response));
   }
 }
 template <typename Value, typename T>

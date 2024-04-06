@@ -70,6 +70,10 @@ TEST(TryParse, Optional) {
   const auto json = formats::json::FromString("{}");
   SomeStruct2 valid{.field1 = 114, .field4 = {{"42"}}};
   EXPECT_EQ(formats::parse::TryParse(json, formats::parse::To<SomeStruct2>{}), valid);
+  const auto json2 = formats::json::FromString(R"({"field1": ""})");
+  SomeStruct2 valid2{.field4 = {{"42"}}};
+  EXPECT_EQ(formats::parse::TryParse(json2, formats::parse::To<SomeStruct2>{}), valid2);
+
 };
 
 
@@ -284,13 +288,13 @@ TEST(Serialize, NonUniversalInUniversal) {
   const auto valid = formats::json::FromString(R"({"field":{"field":1}})");
   const auto json = formats::json::ValueBuilder(SomeStruct12{.field = {.field = 1}}).ExtractValue();
   EXPECT_EQ(json, valid);
-};
+}
 
 TEST(Parse, NonUniversalInUniversal) {
   const auto json = formats::json::FromString(R"({"field":{"field":1}})");
   const SomeStruct12 valid{.field = {.field = 1}};
   EXPECT_EQ(json.As<SomeStruct12>(), valid);
-};
+}
 
 struct SomeStruct13 {
   std::optional<std::vector<SomeStruct11>> field;
@@ -309,7 +313,38 @@ TEST(Parse, NonLiteralDefaultTest) {
   const auto json = formats::json::FromString(R"({})");
   const SomeStruct13 valid{.field{std::vector<SomeStruct11>{{.field = 1}}}};
   EXPECT_EQ(json.As<SomeStruct13>(), valid);
+}
+
+enum class SomeEnum {
+   kFoo, kBar
 };
+
+template <>
+inline constexpr utils::TrivialBiMap formats::enums::kEnumMapping<SomeEnum> = [](auto selector) {
+  return selector()
+    .Case(SomeEnum::kFoo, "foo")
+    .Case(SomeEnum::kBar, "bar");
+};
+
+TEST(Parse, Enum) {
+  const auto json = formats::json::FromString(R"("foo")");
+  EXPECT_EQ(json.As<SomeEnum>(), SomeEnum::kFoo);
+  EXPECT_EQ(formats::parse::ParseFromString<SomeEnum>("foo"), SomeEnum::kFoo);
+  const auto json2 = formats::json::FromString(R"("bar")");
+  EXPECT_EQ(json2.As<SomeEnum>(), SomeEnum::kBar);
+  EXPECT_EQ(formats::parse::ParseFromString<SomeEnum>("bar"), SomeEnum::kBar);
+}
+
+TEST(Serialize, Enum) {
+  const auto valid = formats::json::FromString(R"("foo")");
+  const auto json = formats::json::ValueBuilder(SomeEnum::kFoo).ExtractValue();
+  EXPECT_EQ(json, valid);
+  EXPECT_EQ(formats::serialize::ToString(SomeEnum::kFoo), "foo");
+  const auto valid2 = formats::json::FromString(R"("bar")");
+  const auto json2 = formats::json::ValueBuilder(SomeEnum::kBar).ExtractValue();
+  EXPECT_EQ(json2, valid2);
+  EXPECT_EQ(formats::serialize::ToString(SomeEnum::kBar), "bar");
+}
 
 
 USERVER_NAMESPACE_END

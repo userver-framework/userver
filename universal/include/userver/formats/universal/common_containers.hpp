@@ -157,7 +157,8 @@ struct FieldConfig<std::optional<T>> {
   constexpr std::optional<T> Read(Value&& value) const {
     constexpr auto name = boost::pfr::get_name<I, MainClass>();
     if(this->Required && value[name].IsMissing()) {
-      return std::nullopt;
+      using Type = std::remove_reference_t<Value>;
+      throw typename Type::Exception{fmt::format("required, !nullable was violated in {}", value.GetPath())};
     }
     if(!value[name].IsMissing()) {
       return this->Nullable 
@@ -177,24 +178,15 @@ struct FieldConfig<std::optional<T>> {
     if(value[name].IsMissing() && this->Required) {
       return std::nullopt;
     }
-    if(this->Nullable) {
-      std::optional response = this->Main.template TryRead<MainClass, I>(std::forward<Value>(value));
-      if(response) {
-        return response;
-      }
-    } else {
+    if(!this->Nullable) {
       if(value[name].IsNull()) {
         return std::nullopt;
-      };
-      std::optional response = this->Main.template TryRead<MainClass, I>(std::forward<Value>(value));
-      if(response) {
-        return response;
       }
     }
-    if(this->Default) {
+    if(this->Default && (value[name].IsMissing() || value[name].IsNull())) {
       return this->Default->value();
     }
-    return {{}};
+    return this->Main.template TryRead<MainClass, I>(std::forward<Value>(value));
   }
 };
 

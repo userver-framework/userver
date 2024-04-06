@@ -5,12 +5,13 @@
 #include <userver/formats/parse/try_parse.hpp>
 #include <userver/formats/serialize/to.hpp>
 #include <userver/utils/meta.hpp>
+#include <userver/utils/trivial_map.hpp>
 #include <userver/utils/overloaded.hpp>
 #include <variant>
 #include <type_traits>
 #include <boost/pfr/core.hpp>
 #include <boost/pfr/core_name.hpp>
-
+#include <boost/lexical_cast.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -189,6 +190,12 @@ struct EmptyCheck {
     return std::nullopt;
   }
 };
+
+template <typename T>
+concept kEnabled = !(std::same_as<std::remove_cvref_t<T>, Disabled>);
+
+
+
 } // namespace impl
 
 template <typename T>
@@ -242,12 +249,40 @@ class SerializationConfig<std::variant<Ts...>> {
 } // namespace formats::universal
 
 
+namespace formats::enums {
+
+template <typename T>
+inline constexpr auto kEnumMapping = universal::impl::Disabled{};
+
+
+} // namespace formats::enums
 
 namespace formats::parse {
 
+template <typename To>
+inline constexpr auto ParseFromString(std::string_view from) -> To {
+  return boost::lexical_cast<To>(from);
+}
+
+template <>
+inline constexpr auto ParseFromString<std::string_view>(std::string_view from) -> std::string_view {
+  return from;
+};
+
+template <typename T>
+inline constexpr auto ParseFromString(std::string_view value) -> T
+    requires universal::impl::kEnabled<decltype(enums::kEnumMapping<T>)> {
+  using M = decltype(enums::kEnumMapping<std::remove_cvref_t<T>>);
+  auto response = enums::kEnumMapping<T>.TryFind(ParseFromString<typename M::template MappedTypeFor<T>>(value));
+  if(!response) {
+    throw std::runtime_error{"Can't serialize enum to string"};
+  }
+  return *std::move(response);
+}
+
 template <typename Value, typename T>
 inline constexpr auto Parse(Value&& value, To<T>) -> T
-      requires (!std::same_as<std::remove_cvref_t<decltype(universal::kDeserialization<std::remove_cvref_t<T>>)>, universal::impl::Disabled>) {
+      requires universal::impl::kEnabled<decltype(universal::kDeserialization<T>)> {
   return [&]<auto... I>(std::index_sequence<I...>){
     auto config = universal::kDeserialization<T>;
     return T{universal::impl::UniversalParseField<T, I>(value, config.template Get<I>())...};
@@ -255,8 +290,25 @@ inline constexpr auto Parse(Value&& value, To<T>) -> T
 }
 
 template <typename Value, typename T>
+inline constexpr auto Parse(Value&& value, To<T>) -> T
+    requires universal::impl::kEnabled<decltype(enums::kEnumMapping<T>)> {
+  using M = decltype(enums::kEnumMapping<T>);
+  constexpr auto f = [](auto response){
+    if(response) {
+      return *response;
+    };
+    throw std::runtime_error("Can't Parse to enum");
+  };
+  if constexpr(std::same_as<typename M::template MappedTypeFor<T>, std::string_view>) {
+    return f(enums::kEnumMapping<T>.TryFind(value.template As<std::string>()));
+  } else {
+    return f(enums::kEnumMapping<T>.TryFind(value.template As<typename M::template MappedTypeFor<T>>()));
+  };
+}
+
+template <typename Value, typename T>
 inline constexpr auto TryParse(Value&& value, To<T>) -> std::optional<T>
-      requires (!std::same_as<std::remove_cvref_t<decltype(universal::kDeserialization<std::remove_cvref_t<T>>)>, universal::impl::Disabled>) {
+      requires universal::impl::kEnabled<decltype(universal::kDeserialization<T>)> {
   return [&]<auto... I>(std::index_sequence<I...>) -> std::optional<T> {
     auto config = universal::kDeserialization<T>;
     auto tup = std::make_tuple(universal::impl::UniversalTryParseField<T, I>(value, config.template Get<I>())...);
@@ -270,9 +322,40 @@ inline constexpr auto TryParse(Value&& value, To<T>) -> std::optional<T>
 } // namespace formats::parse
 namespace formats::serialize {
 
+template <typename From>
+inline constexpr auto ToString(From&& from) -> std::string {
+  return std::to_string(std::forward<From>(from));
+}
+
+inline constexpr auto ToString(std::string_view from) -> std::string {
+  return static_cast<std::string>(from);
+};
+
+template <typename T>
+inline constexpr auto ToString(T&& value) -> std::string 
+    requires universal::impl::kEnabled<decltype(enums::kEnumMapping<std::remove_cvref_t<T>>)> {
+  auto response = enums::kEnumMapping<std::remove_cvref_t<T>>.TryFind(std::forward<T>(value));
+  if(!response) {
+    throw std::runtime_error{"Can't serialize enum to string"};
+  }
+  return ToString(*std::move(response));
+}
+
+
+
 template <typename Value, typename T>
 inline constexpr auto Serialize(T&& obj, To<Value>) -> Value 
-      requires (!std::same_as<std::remove_cvref_t<decltype(universal::kSerialization<std::remove_cvref_t<T>>)>, universal::impl::Disabled>) {
+    requires universal::impl::kEnabled<decltype(enums::kEnumMapping<std::remove_cvref_t<T>>)> {
+  auto finded = enums::kEnumMapping<std::remove_cvref_t<T>>.TryFind(std::forward<T>(obj));
+  if(!finded) {
+    throw std::runtime_error("Can't serialize enum");
+  }
+  return typename Value::Builder(*std::move(finded)).ExtractValue();
+}
+
+template <typename Value, typename T>
+inline constexpr auto Serialize(T&& obj, To<Value>) -> Value 
+      requires universal::impl::kEnabled<decltype(universal::kSerialization<std::remove_cvref_t<T>>)> {
   using Type = std::remove_cvref_t<T>;
   return [&]<auto... I>(std::index_sequence<I...>){
     typename Value::Builder builder;
