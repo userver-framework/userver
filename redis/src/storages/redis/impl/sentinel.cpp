@@ -286,6 +286,8 @@ size_t Sentinel::ShardByKey(const std::string& key) const {
 
 size_t Sentinel::ShardsCount() const { return impl_->ShardsCount(); }
 
+bool Sentinel::IsInClusterMode() const { return impl_->IsInClusterMode(); }
+
 void Sentinel::CheckShardIdx(size_t shard_idx) const {
   CheckShardIdx(shard_idx, ShardsCount());
 }

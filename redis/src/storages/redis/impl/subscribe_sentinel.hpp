@@ -65,6 +65,7 @@ class SubscribeSentinel : protected Sentinel {
 
   void SetRebalanceMinInterval(std::chrono::milliseconds interval);
 
+  using Sentinel::IsInClusterMode;
   using Sentinel::Restart;
   using Sentinel::SetConfigDefaultCommandControl;
   using Sentinel::ShardsCount;

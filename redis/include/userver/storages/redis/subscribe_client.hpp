@@ -57,6 +57,7 @@ class SubscribeClient {
       const USERVER_NAMESPACE::redis::CommandControl& command_control) = 0;
 
   virtual size_t ShardsCount() const = 0;
+  virtual bool IsInClusterMode() const = 0;
 
   SubscriptionToken Psubscribe(std::string pattern,
                                SubscriptionToken::OnPmessageCb on_pmessage_cb) {

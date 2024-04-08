@@ -36,6 +36,7 @@ class MockSubscribeClient : public SubscribeClient {
                const USERVER_NAMESPACE::redis::CommandControl& command_control),
               (override));
   MOCK_METHOD(size_t, ShardsCount, (), (const, override));
+  MOCK_METHOD(bool, IsInClusterMode, (), (const, override));
 };
 
 /// @brief Mocked storages::redis::SubscriptionToken.

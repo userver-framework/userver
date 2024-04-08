@@ -48,6 +48,7 @@ class SubscribeClientImpl final : public SubscribeClient {
       const USERVER_NAMESPACE::redis::CommandControl& command_control) override;
 
   size_t ShardsCount() const override;
+  bool IsInClusterMode() const override;
 
   void WaitConnectedOnce(
       USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected);

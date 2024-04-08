@@ -113,6 +113,7 @@ class Sentinel {
 
   size_t ShardByKey(const std::string& key) const;
   size_t ShardsCount() const;
+  bool IsInClusterMode() const;
   void CheckShardIdx(size_t shard_idx) const;
   static void CheckShardIdx(size_t shard_idx, size_t shard_count);
 
