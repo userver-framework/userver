@@ -1,0 +1,44 @@
+project(userver-rocks CXX)
+
+file(GLOB_RECURSE SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp
+)
+
+file(GLOB_RECURSE UNIT_TEST_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/*_test.cpp
+)
+
+list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES})
+
+add_library(${PROJECT_NAME} STATIC ${SOURCES})
+set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
+
+_userver_directory_install(COMPONENT rocks FILES
+"${USERVER_ROOT_DIR}/cmake/install/userver-rocks-config.cmake"
+"${CMAKE_BINARY_DIR}/cmake_generated/SetupRocksDeps.cmake"
+DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
+)
+
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+target_link_libraries(${PROJECT_NAME}
+  PUBLIC
+    userver-core
+  PRIVATE
+    rocksdb
+)
+
+if (USERVER_IS_THE_ROOT_PROJECT)
+    add_executable(${PROJECT_NAME}-unittest ${SOURCES} ${UNIT_TEST_SOURCES})
+    
+    target_include_directories(${PROJECT_NAME}-unittest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+    target_link_libraries(${PROJECT_NAME}-unittest PRIVATE
+      userver-core
+      userver-utest
+      rocksdb
+    )
+
+    add_google_tests(${PROJECT_NAME}-unittest)
+endif()
