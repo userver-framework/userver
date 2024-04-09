@@ -64,6 +64,6 @@ namespace storages::rocks {
     private:
         rocksdb::DB* db_ = nullptr;
     };
-} // storages::rocks
+} // namespace storages::rocks
 
 USERVER_NAMESPACE_END

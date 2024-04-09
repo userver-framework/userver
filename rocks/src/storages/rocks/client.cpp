@@ -44,6 +44,6 @@ namespace storages::rocks {
             status.ToString());
         }
     }
-} // storages::rocks
+} // namespace storages::rocks
 
 USERVER_NAMESPACE_END

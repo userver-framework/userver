@@ -7,10 +7,10 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 UTEST(Rocks, CheckCRUD) {
-  auto client = storages::rocks::Client("/tmp/rocksdb_simple_example");
+  storages::rocks::Client client = storages::rocks::Client("/tmp/rocksdb_simple_example");
 
   std::string key = "key";
-  auto res = client.Get(key);
+  std::string res = client.Get(key);
   EXPECT_EQ("", res);
 
 
