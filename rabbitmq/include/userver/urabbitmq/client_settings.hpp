@@ -22,7 +22,7 @@ struct EndpointInfo final {
 
 struct ClientCertSettings {
   std::string cert_path;
-  std::string private_key_path;
+  std::string key_path;
 };
 
 struct TlsSettings {

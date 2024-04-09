@@ -47,18 +47,17 @@ AuthSettings Parse(const formats::json::Value& doc,
 
   TlsSettings tls_settings;
   const auto& client_cert_path = doc["tls"]["client-cert-path"];
-  const auto& client_private_key_path = doc["tls"]["client-private-key-path"];
-  if (client_cert_path.IsMissing() != client_private_key_path.IsMissing()) {
+  const auto& client_key_path = doc["tls"]["client-key-path"];
+  if (client_cert_path.IsMissing() != client_key_path.IsMissing()) {
     throw std::runtime_error(
         "Either set both tls.client-cert-path and "
-        "tls.client-private-key-path options or none of "
+        "tls.client-key-path options or none of "
         "them");
   }
   if (!client_cert_path.IsMissing()) {
     ClientCertSettings client_cert_settings;
     client_cert_settings.cert_path = client_cert_path.As<std::string>();
-    client_cert_settings.private_key_path =
-        client_private_key_path.As<std::string>();
+    client_cert_settings.key_path = client_key_path.As<std::string>();
     tls_settings.client_cert_settings = client_cert_settings;
   }
   tls_settings.ca_cert_paths =

@@ -61,11 +61,9 @@ std::unique_ptr<engine::io::RwBase> CreateSocketPtr(
             tls_settings.client_cert_settings->cert_path);
         client_cert = crypto::Certificate::LoadFromString(client_cert_contents);
 
-        const auto& client_private_key_contents =
-            fs::blocking::ReadFileContents(
-                tls_settings.client_cert_settings->private_key_path);
-        client_key =
-            crypto::PrivateKey::LoadFromString(client_private_key_contents);
+        const auto& client_key_contents = fs::blocking::ReadFileContents(
+            tls_settings.client_cert_settings->key_path);
+        client_key = crypto::PrivateKey::LoadFromString(client_key_contents);
       }
 
       std::vector<crypto::Certificate> tls_certificate_authorities;
