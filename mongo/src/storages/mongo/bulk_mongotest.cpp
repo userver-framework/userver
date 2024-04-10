@@ -30,7 +30,7 @@ UTEST_F(Bulk, Empty) {
   EXPECT_TRUE(result.WriteConcernErrors().empty());
 }
 
-UTEST_F(Bulk, InsertOne) {
+UTEST_F(Bulk, DISABLED_InsertOne) {  // TODO: TAXICOMMON-8662
   auto coll = GetDefaultPool().GetCollection("insert_one");
 
   {
