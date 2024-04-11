@@ -1,7 +1,7 @@
 project(userver-samples-grpc_service CXX)
 
 add_executable(${PROJECT_NAME} grpc_service.cpp)
-target_link_libraries(${PROJECT_NAME} userver-core)
+target_link_libraries(${PROJECT_NAME} userver::core)
 
 # /// [gRPC sample - CMake]
 include(GrpcTargets)

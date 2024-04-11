@@ -77,6 +77,7 @@ else()
 endif()
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
+add_library(userver::core ALIAS ${PROJECT_NAME})
 
 if (USERVER_DISABLE_PHDR_CACHE)
   target_compile_definitions(${PROJECT_NAME} PRIVATE USERVER_DISABLE_PHDR_CACHE)
@@ -229,6 +230,7 @@ endif()
 
 if (USERVER_FEATURE_UTEST)
     add_library(userver-utest STATIC ${LIBUTEST_SOURCES})
+	add_library(userver::utest ALIAS userver-utest)
     target_compile_definitions(userver-utest PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
 
     target_link_libraries(userver-utest
@@ -269,6 +271,7 @@ endif()
 
 if (USERVER_FEATURE_UTEST)
     add_library(userver-ubench ${LIBUBENCH_SOURCES})
+	add_library(userver::ubench ALIAS userver-ubench)
     target_include_directories(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>)
     target_compile_definitions(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
     target_link_libraries(userver-ubench

@@ -15,6 +15,8 @@ file(GLOB_RECURSE RMQ_FUNCTIONAL_TEST_SOURCES
 list(REMOVE_ITEM SOURCES ${RMQ_FUNCTIONAL_TEST_SOURCES})
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
+add_library(userver::rabbitmq ALIAS ${PROJECT_NAME})
+
 target_link_libraries(${PROJECT_NAME} PUBLIC userver-core)
 if (USERVER_CONAN)
   find_package(amqpcpp)

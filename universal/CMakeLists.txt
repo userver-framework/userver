@@ -276,6 +276,7 @@ target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
   ${USERVER_THIRD_PARTY_DIRS}/rapidjson/include
 )
 
+add_library(userver::universal ALIAS ${PROJECT_NAME})
 _userver_directory_install(COMPONENT universal
   DIRECTORY 
     ${CMAKE_CURRENT_SOURCE_DIR}/include
