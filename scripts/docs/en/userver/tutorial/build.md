@@ -200,9 +200,18 @@ Dependencies could be installed via:
 
 ### Docker with Ubuntu 22.04
 
+The Docker image `ghcr.io/userver-framework/ubuntu-22.04-userver:latest`
+provides a container with all the build dependencies and userver preinstalled
+and with a proper setup of PPAs with databases, compilers, tools.
+
+To run it just use a command like
+```
+docker run --rm -it --network ip6net --entrypoint bash ghcr.io/userver-framework/ubuntu-22.04-userver:latest
+```
+
 The Docker image `ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest`
 provides a container with all the build dependencies preinstalled and with
-a properly setupped PPAs with databases, compilers and tools.
+a proper setup of PPAs with databases, compilers and tools.
 
 To run it just use a command like
 ```
@@ -212,7 +221,8 @@ docker run --rm -it --network ip6net --entrypoint bash ghcr.io/userver-framework
 After that, install the databases and compiler you are planning to use via
 `apt install` and start developing.
 
-@note The above image is build from scripts/docker/base-ubuntu-22.04.dockerfile.
+@note The above image is build from `scripts/docker/ubuntu-22.04.dockerfile`
+   and `scripts/docker/base-ubuntu-22.04.dockerfile` respectively.
    See `scripts/docker/` directory and @ref scripts/docker/Readme.md for more
    inspiration on building your own custom docker containers.
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Exit on any error and treat unset variables as errors
-set -euo pipefail
+# Exit on any error and treat unset variables as errors, print all commands
+set -euox pipefail
 
 # Preparing to add new repos
 apt update 
