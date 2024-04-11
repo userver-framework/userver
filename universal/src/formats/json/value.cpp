@@ -513,6 +513,11 @@ Value::LazyDetachedPath Value::LazyDetachedPath::Chain(
   return result;
 }
 
+std::chrono::microseconds Parse(const Value& value,
+                                parse::To<std::chrono::microseconds>) {
+  return ParseJsonDuration<std::chrono::microseconds>(value);
+}
+
 std::chrono::milliseconds Parse(const Value& value,
                                 parse::To<std::chrono::milliseconds>) {
   return ParseJsonDuration<std::chrono::milliseconds>(value);

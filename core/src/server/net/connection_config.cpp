@@ -18,6 +18,8 @@ ConnectionConfig Parse(const yaml_config::YamlConfig& value,
   config.keepalive_timeout =
       value["keepalive_timeout"].As<std::chrono::seconds>(
           config.keepalive_timeout);
+  config.abort_check_delay = utils::StringToDuration(
+      value["stream_close_check_delay"].As<std::string>("20ms"));
 
   return config;
 }
