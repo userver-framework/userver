@@ -74,13 +74,18 @@ testsuite::GrpcControl ParseGrpcControl(
 }  // namespace
 
 TestsuiteSupport::TestsuiteSupport(const components::ComponentConfig& config,
-                                   const components::ComponentContext&)
+                                   const components::ComponentContext& context)
     : increased_timeout_(
           config["testsuite-increased-timeout"].As<std::chrono::milliseconds>(
               0)),
       cache_control_(
           ParsePeriodicUpdatesMode(config["testsuite-periodic-update-enabled"]
-                                       .As<std::optional<bool>>())),
+                                       .As<std::optional<bool>>()),
+          config["cache-update-execution"].As<std::string>("concurrent") ==
+                  "concurrent"
+              ? testsuite::CacheControl::ExecPolicy::kConcurrent
+              : testsuite::CacheControl::ExecPolicy::kSequential,
+          components::State{context}),
       dump_control_(ParseDumpControl(config)),
       postgres_control_(ParsePostgresControl(config, GetIncreasedTimeout())),
       redis_control_(ParseRedisControl(config, GetIncreasedTimeout())),
@@ -177,6 +182,18 @@ properties:
         type: string
         description: increase timeouts in testing environments. Overrides postgres, redis and grpc timeouts if these are missing
         defaultDescription: 0ms
+    cache-update-execution:
+        type: string
+        description: |
+           If 'sequential' the caches are updated by testsuite sequentially
+           in the order for cache component registration, which makes sense
+           if service has components that push value into a cache component.
+           If 'concurrent' the caches are updated concurrently with respect
+           to the cache component dependencies.
+        enum:
+          - concurrent
+          - sequential
+        defaultDescription: concurrent
 )");
 }
 

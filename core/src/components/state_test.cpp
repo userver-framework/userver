@@ -124,43 +124,56 @@ class Component3 final : public components::LoggableComponentBase {
 };
 
 void CheckTheComponents(components::State state, std::string_view where) {
-  EXPECT_TRUE(
-      state.HasDependencyOn(Component1::kName, components::Logging::kName))
-      << where;
-  EXPECT_FALSE(state.HasDependencyOn(Component1::kName, Component2::kName))
-      << where;
-  EXPECT_FALSE(state.HasDependencyOn(Component1::kName, Component3::kName))
-      << where;
-  EXPECT_FALSE(
-      state.HasDependencyOn(Component1::kName, ComponentNotLoaded::kName))
-      << where;
-
-  EXPECT_TRUE(
-      state.HasDependencyOn(Component2::kName, components::Logging::kName))
-      << where;
-  EXPECT_TRUE(state.HasDependencyOn(Component2::kName, Component1::kName))
-      << where;
-  EXPECT_FALSE(state.HasDependencyOn(Component2::kName, Component3::kName))
-      << where;
-  EXPECT_FALSE(
-      state.HasDependencyOn(Component2::kName, ComponentNotLoaded::kName))
-      << where;
-
-  EXPECT_TRUE(
-      state.HasDependencyOn(Component3::kName, components::Logging::kName))
-      << where;
-  EXPECT_TRUE(state.HasDependencyOn(Component3::kName, Component1::kName))
-      << where;
-  EXPECT_TRUE(state.HasDependencyOn(Component3::kName, Component2::kName))
-      << where;
-  EXPECT_FALSE(
-      state.HasDependencyOn(Component3::kName, ComponentNotLoaded::kName))
-      << where;
-
   constexpr std::string_view not_existing = "not-existing_component";
-  EXPECT_FALSE(state.HasDependencyOn(Component1::kName, not_existing)) << where;
-  EXPECT_FALSE(state.HasDependencyOn(Component2::kName, not_existing)) << where;
-  EXPECT_FALSE(state.HasDependencyOn(Component3::kName, not_existing)) << where;
+  {
+    const auto deps = state.GetAllDependencies(Component1::kName);
+    for (auto dependency : {components::Logging::kName}) {
+      EXPECT_TRUE(state.HasDependencyOn(Component1::kName, dependency))
+          << where;
+      EXPECT_TRUE(deps.count(dependency)) << where;
+    }
+
+    for (auto dependency :
+         {Component1::kName, Component2::kName, Component3::kName,
+          ComponentNotLoaded::kName, not_existing}) {
+      EXPECT_FALSE(state.HasDependencyOn(Component1::kName, dependency))
+          << where;
+      EXPECT_FALSE(deps.count(dependency)) << where;
+    }
+  }
+
+  {
+    const auto deps = state.GetAllDependencies(Component2::kName);
+    for (auto dependency : {components::Logging::kName, Component1::kName}) {
+      EXPECT_TRUE(state.HasDependencyOn(Component2::kName, dependency))
+          << where;
+      EXPECT_TRUE(deps.count(dependency)) << where;
+    }
+
+    for (auto dependency : {Component2::kName, Component3::kName,
+                            ComponentNotLoaded::kName, not_existing}) {
+      EXPECT_FALSE(state.HasDependencyOn(Component2::kName, dependency))
+          << where;
+      EXPECT_FALSE(deps.count(dependency)) << where;
+    }
+  }
+
+  {
+    const auto deps = state.GetAllDependencies(Component3::kName);
+    for (auto dependency :
+         {components::Logging::kName, Component1::kName, Component2::kName}) {
+      EXPECT_TRUE(state.HasDependencyOn(Component3::kName, dependency))
+          << where;
+      EXPECT_TRUE(deps.count(dependency)) << where;
+    }
+
+    for (auto dependency :
+         {Component3::kName, ComponentNotLoaded::kName, not_existing}) {
+      EXPECT_FALSE(state.HasDependencyOn(Component3::kName, dependency))
+          << where;
+      EXPECT_FALSE(deps.count(dependency)) << where;
+    }
+  }
 
   // For now we are conservative and UASSERT if the source component was not
   // loaded.

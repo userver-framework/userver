@@ -49,6 +49,9 @@ class ComponentContextImpl {
   bool HasDependencyOn(std::string_view component_name,
                        std::string_view dependency) const;
 
+  std::unordered_set<std::string_view> GetAllDependencies(
+      std::string_view component_name) const;
+
   bool Contains(std::string_view name) const noexcept;
 
   [[noreturn]] void ThrowNonRegisteredComponent(std::string_view name,
@@ -129,6 +132,12 @@ class ComponentContextImpl {
       std::set<impl::ComponentNameFromInfo>& handled,
       std::vector<impl::ComponentNameFromInfo>* dependency_path,
       const ProtectedData& data) const;
+
+  void FindAllDependenciesImpl(
+      impl::ComponentNameFromInfo current,
+      std::unordered_set<impl::ComponentNameFromInfo>& handled,
+      const ProtectedData& data) const;
+
   void CheckForDependencyCycle(impl::ComponentNameFromInfo new_dependency_from,
                                impl::ComponentNameFromInfo new_dependency_to,
                                const ProtectedData& data) const;

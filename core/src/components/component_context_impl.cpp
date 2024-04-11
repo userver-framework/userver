@@ -215,23 +215,58 @@ bool ComponentContextImpl::HasDependencyOn(std::string_view component_name,
                                            std::string_view dependency) const {
   impl::ComponentNameFromInfo from{dependency};
   impl::ComponentNameFromInfo to{component_name};
-  const auto data = shared_data_.Lock();
 
-  UASSERT_MSG(data->print_adding_components_stopped,
-              "HasDependencyOn() should be called only after all the "
-              "components has been loaded.");
-
-  try {
-    std::set<impl::ComponentNameFromInfo> handled;
-    return FindDependencyPathDfs(from, to, handled, nullptr, *data);
-  } catch (const std::exception& e) {
-    UASSERT_MSG(Contains(component_name),
+  if (!Contains(component_name)) {
+    UASSERT_MSG(false,
                 fmt::format("Exception while calling HasDependencyOn(\"{0}\", "
                             "\"{1}\"). Component \"{0}\" was not loaded. Only "
                             "dependency component is allowed to not be loaded.",
                             component_name, dependency));
     return false;
   }
+
+  if (!Contains(dependency)) {
+    return false;
+  }
+
+  if (component_name == dependency) {
+    return false;
+  }
+
+  const auto data = shared_data_.Lock();
+  UASSERT_MSG(data->print_adding_components_stopped,
+              "HasDependencyOn() should be called only after all the "
+              "components has been loaded.");
+
+  std::set<impl::ComponentNameFromInfo> handled;
+  return FindDependencyPathDfs(from, to, handled, nullptr, *data);
+}
+
+std::unordered_set<std::string_view> ComponentContextImpl::GetAllDependencies(
+    std::string_view component_name) const {
+  impl::ComponentNameFromInfo from{component_name};
+
+  UASSERT_MSG(Contains(component_name),
+              fmt::format("Exception while calling GetAllDependencies(\"{0}\" "
+                          "). Component \"{0}\" was not loaded.",
+                          component_name));
+
+  const auto data = shared_data_.Lock();
+  UASSERT_MSG(data->print_adding_components_stopped,
+              "HasDependencyOn() should be called only after all the "
+              "components has been loaded.");
+
+  std::unordered_set<impl::ComponentNameFromInfo> handled;
+  FindAllDependenciesImpl(from, handled, *data);
+
+  std::unordered_set<std::string_view> result;
+  result.reserve(handled.size());
+  for (auto value : handled) {
+    if (from != value) {
+      result.insert(value.GetUnderlying());
+    }
+  }
+  return result;
 }
 
 bool ComponentContextImpl::Contains(std::string_view name) const noexcept {
@@ -411,6 +446,20 @@ bool ComponentContextImpl::FindDependencyPathDfs(
   if (found && dependency_path) dependency_path->push_back(current);
 
   return found;
+}
+
+void ComponentContextImpl::FindAllDependenciesImpl(
+    impl::ComponentNameFromInfo current,
+    std::unordered_set<impl::ComponentNameFromInfo>& handled,
+    const ProtectedData& data) const {
+  handled.insert(current);
+
+  components_.at(current).ForEachItDependsOn(
+      [&](impl::ComponentNameFromInfo name) {
+        if (!handled.count(name)) {
+          FindAllDependenciesImpl(name, handled, data);
+        }
+      });
 }
 
 void ComponentContextImpl::CheckForDependencyCycle(
