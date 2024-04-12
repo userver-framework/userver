@@ -114,7 +114,7 @@ class HttpHandlerBase : public HandlerBase {
   void LogUnknownException(const std::exception& ex) const;
 
   /// Returns the default log level for the handler
-  const std::optional<logging::Level> GetLogLevel() const;
+  const std::optional<logging::Level>& GetLogLevel() const;
 
   static yaml_config::Schema GetStaticConfigSchema();
 
