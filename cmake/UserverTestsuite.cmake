@@ -204,7 +204,9 @@ function(userver_testsuite_requirements)
         Protobuf_VERSION VERSION_GREATER_EQUAL 26.0.0)
       list(APPEND requirements_files
           "${USERVER_TESTSUITE_DIR}/requirements-grpc-5.txt")
-    elseif(Protobuf_VERSION VERSION_GREATER_EQUAL 4.20.0 AND
+    elseif(Protobuf_VERSION VERSION_GREATER_EQUAL 3.20.0 AND
+        Protobuf_VERSION VERSION_LESS 4.0.0 OR
+        Protobuf_VERSION VERSION_GREATER_EQUAL 4.20.0 AND
         Protobuf_VERSION VERSION_LESS 5.0.0 OR
         Protobuf_VERSION VERSION_GREATER_EQUAL 20.0.0)
       list(APPEND requirements_files
