@@ -5,6 +5,12 @@
 #include <mutex>
 #include <vector>
 
+#ifdef USERVER_FEATURE_WOLFSSL
+#include <wolfssl/openssl/crypto.h>
+#include <wolfssl/openssl/engine.h>
+#include <wolfssl/openssl/err.h>
+#include <wolfssl/openssl/ssl.h>
+#else
 #if OPENSSL_VERSION_NUMBER < 0x010100000L
 #include <openssl/conf.h>
 #endif
@@ -13,6 +19,7 @@
 #include <openssl/engine.h>
 #include <openssl/err.h>
 #include <openssl/ssl.h>
+#endif
 
 USERVER_NAMESPACE_BEGIN
 
@@ -20,6 +27,7 @@ namespace crypto::impl {
 namespace {
 
 // OpenSSL >= 1.1 has builtin threading support
+#ifndef USERVER_FEATURE_WOLFSSL
 #if OPENSSL_VERSION_NUMBER < 0x010100000L
 void ThreadIdCallback(CRYPTO_THREADID* thread_id) noexcept {
   // default OpenSSL implementation
@@ -49,6 +57,7 @@ void LockingCallback(int mode, int n, const char*, int) noexcept {
     mutexes[n].unlock();
 }
 #endif
+#endif  // !USERVER_FEATURE_WOLFSSL
 
 void TrySetDefaultEngineRdrand() noexcept {
   ENGINE_load_rdrand();
@@ -67,6 +76,9 @@ void TrySetDefaultEngineRdrand() noexcept {
 }  // namespace
 
 Openssl::Openssl() noexcept {
+#ifdef USERVER_FEATURE_WOLFSSL
+  wolfSSL_Init();
+#else  // USERVER_FEATURE_WOLFSSL
 #if OPENSSL_VERSION_NUMBER >= 0x010100000L
   OPENSSL_init_ssl(OPENSSL_INIT_LOAD_CONFIG, nullptr);
 #else
@@ -78,6 +90,7 @@ Openssl::Openssl() noexcept {
   // never used when THREADID is set, but is often checked by libs
   CRYPTO_set_id_callback(&LegacyIdCallback);
 #endif
+#endif  // USERVER_FEATURE_WOLFSSL
 
   TrySetDefaultEngineRdrand();
 }

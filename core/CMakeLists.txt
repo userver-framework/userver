@@ -58,7 +58,11 @@ find_package(Boost REQUIRED COMPONENTS
 find_package_required(ZLIB "zlib1g-dev")
 
 find_package(Iconv REQUIRED)
-find_package_required(OpenSSL "libssl-dev")
+if (USERVER_FEATURE_WOLFSSL)
+  find_package_required(WolfSSL "wolfssl-dev")
+else()
+  find_package_required(OpenSSL "libssl-dev")
+endif()
 
 if (USERVER_CONAN)
     find_package(c-ares REQUIRED)
@@ -108,10 +112,21 @@ target_link_libraries(${PROJECT_NAME}
     Boost::iostreams
     Boost::regex
     Iconv::Iconv
-    OpenSSL::Crypto
-    OpenSSL::SSL
     ZLIB::ZLIB
 )
+
+if (USERVER_FEATURE_WOLFSSL)
+  target_link_libraries(${PROJECT_NAME}
+    PRIVATE
+      wolfssl
+  )
+else()
+  target_link_libraries(${PROJECT_NAME}
+    PRIVATE
+      OpenSSL::Crypto
+      OpenSSL::SSL
+  )
+endif()
 
 add_subdirectory(${USERVER_THIRD_PARTY_DIRS}/llhttp llhttp)
 

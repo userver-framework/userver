@@ -4,10 +4,20 @@
 
 #include <userver/crypto/certificate.hpp>
 
+#ifdef USERVER_FEATURE_WOLFSSL
+#include <wolfssl/openssl/ssl.h>
+//
+#include <wolfssl/openssl/bn.h>
+#include <wolfssl/openssl/evp.h>
+#include <wolfssl/openssl/pem.h>
+#include <wolfssl/openssl/rsa.h>
+#include <wolfssl/openssl/x509.h>
+#else
 #include <openssl/bn.h>
 #include <openssl/pem.h>
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
+#endif
 
 #include <boost/algorithm/string/predicate.hpp>  // for boost::starts_with
 #include <boost/numeric/conversion/cast.hpp>
@@ -81,6 +91,12 @@ int CurveStringToNid(const std::string_view& curve_str) {
   return it->second;
 }
 
+#ifdef USERVER_FEATURE_WOLFSSL
+#ifndef EC_KEY_set_public_key_affine_coordinates
+#warning "EC_KEY_set_public_key_affine_coordinates does not provided by wolfSSL"
+#define EC_KEY_set_public_key_affine_coordinates(ec, x, y) (x, y, 1)
+#endif
+#endif
 std::unique_ptr<EC_KEY, decltype(&::EC_KEY_free)> LoadEc(int curve_type,
                                                          Bignum x, Bignum y) {
   std::unique_ptr<EC_KEY, decltype(&::EC_KEY_free)> ec{

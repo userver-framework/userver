@@ -1,0 +1,39 @@
+common-name: WolfSSL
+partials:
+  - name: Crypto
+    package-name: WolfSSL
+
+    debian-names:
+      - wolfssl-dev
+    formula-name: wolfssl
+    rpm-names:
+      - wolfssl-devel
+    pacman-names:
+      - wolfssl
+    pkg-config-names:
+      - wolfssl
+
+    libraries:
+        enabled: false
+
+    includes:
+        enabled: false
+  - name: SSL
+    package-name: WolfSSL
+
+    debian-names:
+      - wolfssl-dev
+    formula-name: wolfssl
+    rpm-names:
+      - wolfssl-devel
+    pacman-names:
+      - wolfssl
+    pkg-config-names:
+      - wolfssl
+
+    libraries:
+        enabled: false
+
+    includes:
+        enabled: false
+

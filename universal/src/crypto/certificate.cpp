@@ -1,7 +1,12 @@
 #include <userver/crypto/certificate.hpp>
 
+#ifdef USERVER_FEATURE_WOLFSSL
+#include <wolfssl/openssl/pem.h>
+#include <wolfssl/openssl/x509.h>
+#else
 #include <openssl/pem.h>
 #include <openssl/x509.h>
+#endif
 
 #include <boost/algorithm/string/predicate.hpp>  // for boost::starts_with
 
@@ -31,6 +36,13 @@ std::optional<std::string> Certificate::GetPemString() const {
 
   std::string result;
   result.resize(BIO_pending(membio.get()));
+#ifdef USERVER_FEATURE_WOLFSSL
+#warning "BIO_read_ex does not supported by wolfSSL"
+  if (1 != BIO_read(membio.get(), result.data(), result.size())) {
+    throw SerializationError(
+        FormatSslError("Error transferring PEM to string"));
+  }
+#else
   size_t readbytes = 0;
   if (1 !=
       BIO_read_ex(membio.get(), result.data(), result.size(), &readbytes)) {
@@ -40,6 +52,7 @@ std::optional<std::string> Certificate::GetPemString() const {
   if (readbytes != result.size()) {
     throw SerializationError("Error transferring PEM to string");
   }
+#endif
   return result;
 }
 

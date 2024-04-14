@@ -1,8 +1,15 @@
 #include <userver/crypto/private_key.hpp>
 
+#ifdef USERVER_FEATURE_WOLFSSL
+#include <wolfssl/openssl/bio.h>
+#include <wolfssl/openssl/evp.h>
+#include <wolfssl/openssl/pem.h>
+#include <wolfssl/openssl/x509.h>
+#else
 #include <openssl/evp.h>
 #include <openssl/pem.h>
 #include <openssl/x509.h>
+#endif
 
 #include <crypto/helpers.hpp>
 #include <crypto/openssl.hpp>
@@ -41,6 +48,13 @@ std::optional<std::string> GetPemStringImpl(EVP_PKEY* key,
 
   std::string result;
   result.resize(BIO_pending(membio.get()));
+#ifdef USERVER_FEATURE_WOLFSSL
+#warning "BIO_read_ex does not supported by wolfSSL"
+  if (1 != BIO_read(membio.get(), result.data(), result.size())) {
+    throw SerializationError(
+        FormatSslError("Error transferring PEM to string"));
+  }
+#else
   size_t readbytes = 0;
   if (1 !=
       BIO_read_ex(membio.get(), result.data(), result.size(), &readbytes)) {
@@ -50,6 +64,7 @@ std::optional<std::string> GetPemStringImpl(EVP_PKEY* key,
   if (readbytes != result.size()) {
     throw SerializationError("Error transferring PEM to string");
   }
+#endif
   return result;
 }
 
