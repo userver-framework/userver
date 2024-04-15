@@ -81,12 +81,14 @@ async def service_client(
         dynamic_config,
         mock_configs_service,
         cleanup_userver_dumps,
-        extra_client_deps,
-        auto_client_deps,
         _config_service_defaults_updated,
         _testsuite_client_config: client.TestsuiteClientConfig,
         _service_client_base,
         _service_client_testsuite,
+        # User defined client deps must be last in order to use
+        # fixtures defined above.
+        extra_client_deps,
+        auto_client_deps,
 ) -> client.Client:
     """
     Main fixture that provides access to userver based service.
