@@ -272,6 +272,12 @@ function(userver_testsuite_requirements)
         "${requirements_testsuite_text}"
     )
   endif()
+
+  if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    list(APPEND requirements_files
+        "${USERVER_TESTSUITE_DIR}/requirements-net.txt")
+  endif()
+
   set(requirements_testsuite_file
       "${CMAKE_BINARY_DIR}/requirements-userver-testsuite.txt")
   file(WRITE "${requirements_testsuite_file}" "${requirements_testsuite_text}")
