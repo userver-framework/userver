@@ -22,7 +22,7 @@ formats::json::Value MessageToJson(const google::protobuf::Message& message);
 std::string ToString(const google::protobuf::Message& message);
 
 /// @brief Returns Json-string representation of protobuf message
-/// @throws formats::json::ConversionException
+/// @throws formats::json::Exception
 std::string ToJsonString(const google::protobuf::Message& message);
 
 }  // namespace ugrpc

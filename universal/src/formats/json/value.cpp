@@ -41,8 +41,9 @@ template <typename T>
 auto CheckedNotTooNegative(T x, const Value& value) {
   if (x <= -1) {
     throw ConversionException(
-        "Cannot convert to unsigned value from negative " + value.GetPath() +
-        '=' + std::to_string(x));
+        "Cannot convert to unsigned value from negative value = " +
+            std::to_string(x),
+        value.GetPath());
   }
   return x;
 }

@@ -1,4 +1,5 @@
 #include <userver/formats/bson/exception.hpp>
+#include <userver/utils/algo.hpp>
 
 #include <fmt/format.h>
 
@@ -61,34 +62,53 @@ const char* NameForType(bson_type_t type) {
                                 utils::UnderlyingValue(type)));
 }
 
-std::string MsgForType(bson_type_t actual, bson_type_t expected,
-                       std::string_view path) {
-  return fmt::format("Field '{}' is of a wrong type. Expected: {}, actual: {}",
-                     path, NameForType(expected), NameForType(actual));
+std::string MsgForType(bson_type_t actual, bson_type_t expected) {
+  return fmt::format("Wrong type. Expected: {}, actual: {}",
+                     NameForType(expected), NameForType(actual));
 }
 
-std::string MsgForIndex(size_t index, size_t size, std::string_view path) {
-  return fmt::format("Index {} of array '{}' of size {} is out of bounds",
-                     index, path, size);
+std::string MsgForIndex(size_t index, size_t size) {
+  return fmt::format("Index {} of array of size {} is out of bounds", index,
+                     size);
 }
 
-std::string MsgForMissing(std::string_view path) {
-  return fmt::format("Field '{}' is missing", path);
-}
+constexpr std::string_view kErrorAtPath1 = "Error at path '";
+constexpr std::string_view kErrorAtPath2 = "': ";
 
 }  // namespace
+
+BsonException::BsonException(std::string msg)
+    : utils::TracefulException(msg), msg_(std::move(msg)) {}
+
+ExceptionWithPath::ExceptionWithPath(std::string_view msg,
+                                     std::string_view path)
+    : BsonException(utils::StrCat(kErrorAtPath1, path, kErrorAtPath2, msg)),
+      path_size_(path.size()) {}
+
+std::string_view ExceptionWithPath::GetPath() const noexcept {
+  return GetMessage().substr(kErrorAtPath1.size(), path_size_);
+}
+
+std::string_view ExceptionWithPath::GetMessageWithoutPath() const noexcept {
+  return GetMessage().substr(path_size_ + kErrorAtPath1.size() +
+                             kErrorAtPath2.size());
+}
 
 TypeMismatchException::TypeMismatchException(bson_type_t actual,
                                              bson_type_t expected,
                                              std::string_view path)
-    : BsonException(MsgForType(actual, expected, path)) {}
+    : ExceptionWithPath(MsgForType(actual, expected), path) {}
 
 OutOfBoundsException::OutOfBoundsException(size_t index, size_t size,
                                            std::string_view path)
-    : BsonException(MsgForIndex(index, size, path)) {}
+    : ExceptionWithPath(MsgForIndex(index, size), path) {}
 
 MemberMissingException::MemberMissingException(std::string_view path)
-    : BsonException(MsgForMissing(path)) {}
+    : ExceptionWithPath("Field is missing", path) {}
+
+ConversionException::ConversionException(std::string_view msg,
+                                         std::string_view path)
+    : ExceptionWithPath(msg, path) {}
 
 }  // namespace formats::bson
 

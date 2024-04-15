@@ -37,8 +37,7 @@ std::string ToJsonString(const google::protobuf::Message& message) {
       google::protobuf::util::MessageToJsonString(message, &result, kOptions);
 
   if (!status.ok()) {
-    throw formats::json::ConversionException(
-        "Cannot convert protobuf to string");
+    throw formats::json::Exception("Cannot convert protobuf to string");
   }
 
   return result;
