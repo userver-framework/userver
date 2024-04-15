@@ -197,6 +197,8 @@ class YamlConfig {
                            formats::parse::To<std::string>);
 };
 
+using Value = YamlConfig;
+
 template <typename T>
 auto YamlConfig::As() const {
   static_assert(formats::common::impl::kHasParse<YamlConfig, T>,
