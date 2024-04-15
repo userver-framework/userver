@@ -14,11 +14,8 @@ list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES})
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
-_userver_directory_install(COMPONENT rocks FILES
-"${USERVER_ROOT_DIR}/cmake/install/userver-rocks-config.cmake"
-"${CMAKE_BINARY_DIR}/cmake_generated/SetupRocksDeps.cmake"
-DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
-)
+
+include(SetupRocksDeps)
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 

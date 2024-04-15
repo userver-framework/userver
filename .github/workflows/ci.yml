@@ -118,13 +118,6 @@ jobs:
                   sudo apt install --allow-downgrades -y g++-8
                 fi
 
-                set -e
-                curl -L https://github.com/facebook/rocksdb/archive/v6.22.1.tar.gz -o rocksdb.tar.gz
-                tar xvf rocksdb.tar.gz
-                cd rocksdb-6.22.1
-                make shared_lib
-                sudo make install-shared
-
           - name: Install RabbitMQ packages
             run: |
                 ./scripts/rabbitmq/ubuntu_install_rabbitmq_server.sh
@@ -206,6 +199,11 @@ jobs:
           - name: Run tests (redis)
             run: |
                 cd build_debug/userver/redis/
+                ctest -V
+        
+          - name: Run tests (rocks)
+            run: |
+                cd build_debug/userver/rocks/
                 ctest -V
 
           - name: Run tests (mongo)
