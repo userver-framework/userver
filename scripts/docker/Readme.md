@@ -14,6 +14,11 @@ docker build -t ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest -f sc
 docker build -t ghcr.io/userver-framework/ubuntu-22.04-userver:latest -f scripts/docker/ubuntu-22.04.dockerfile .
 ```
 
+* to build a image with all the build dependencies installed; with PostgreSQL database; with current userver built and installed:
+```
+docker build -t ghcr.io/userver-framework/ubuntu-22.04-userver-pg:latest -f scripts/docker/ubuntu-22.04-pg.dockerfile .
+```
+
 * to build image with all build dependencies and additional set of compilers, database servers and workarounds for CI:
 ```
 docker build -t ghcr.io/userver-framework/ubuntu-22.04-userver-base-ci:latest -f scripts/docker/base-ubuntu-22.04-ci.dockerfile .
