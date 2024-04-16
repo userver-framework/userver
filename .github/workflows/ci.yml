@@ -118,6 +118,14 @@ jobs:
                   sudo apt install --allow-downgrades -y g++-8
                 fi
 
+                sudo apt-get install -y \
+                  libgflags-dev \
+                  libsnappy-dev \
+                  zlib1g-dev \
+                  libbz2-dev \
+                  libzstd-dev \
+                  liblz4-dev
+
           - name: Install RabbitMQ packages
             run: |
                 ./scripts/rabbitmq/ubuntu_install_rabbitmq_server.sh
@@ -199,6 +207,11 @@ jobs:
           - name: Run tests (redis)
             run: |
                 cd build_debug/userver/redis/
+                ctest -V
+          
+          - name: Run tests (rocks)
+            run: |
+                cd build_debug/userver/rocks/
                 ctest -V
 
           - name: Run tests (mongo)

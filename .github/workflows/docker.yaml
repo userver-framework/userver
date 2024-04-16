@@ -22,6 +22,7 @@ jobs:
                         -DUSERVER_FEATURE_CLICKHOUSE=0
                         -DUSERVER_FEATURE_GRPC=0
                         -DUSERVER_FEATURE_RABBITMQ=0
+                        -DUSERVER_FEATURE_ROCKS=0
                         -DCMAKE_CXX_STANDARD=17
                     image: userver-ubuntu-core
                     info: ubuntu + clang + cxx17 + core
