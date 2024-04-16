@@ -120,7 +120,7 @@ Date: Wed, 27 Oct 2021 16:45:13 UTC
 Content-Type: text/html
 X-YaSpanId: 015fb0becd2926ef
 X-YaRequestId: 7830671d7dd2462ba9043db532c2b82a
-Server: userver/1.0.0 (20211027123413; rv:c1879aa03)
+Server: userver/2.0 (20211027123413; rv:c1879aa03)
 X-YaTraceId: d7422d7bcdc9493997fc687f8be24883
 Connection: keep-alive
 Content-Length: 5
@@ -132,7 +132,7 @@ Date: Wed, 27 Oct 2021 16:45:56 UTC
 Content-Type: text/html
 X-YaSpanId: e1e2702b87ceeede
 X-YaRequestId: 4f677a7cd405418ea412fd4ec540676a
-Server: userver/1.0.0 (20211027123413; rv:c1879aa03)
+Server: userver/2.0 (20211027123413; rv:c1879aa03)
 X-YaTraceId: 203870322f704b308c4322bd44b354ed
 Connection: keep-alive
 Content-Length: 5
@@ -144,7 +144,7 @@ Date: Wed, 27 Oct 2021 16:46:35 UTC
 Content-Type: text/html
 X-YaSpanId: e83698e2ef8cc729
 X-YaRequestId: ffbaacae38e64bb588affa10b928b759
-Server: userver/1.0.0 (20211027123413; rv:c1879aa03)
+Server: userver/2.0 (20211027123413; rv:c1879aa03)
 X-YaTraceId: cd3e6acc299742739bb22c795b6ef3a7
 Connection: keep-alive
 Content-Length: 1

@@ -1,8 +1,10 @@
 # pylint: disable=no-member
 import os
+import re
 
 from conan import ConanFile
 from conan import errors
+from conan.tools import load
 from conan.tools.cmake import CMake
 from conan.tools.cmake import cmake_layout
 from conan.tools.cmake import CMakeDeps
@@ -12,9 +14,25 @@ from conan.tools.files import copy
 required_conan_version = '>=1.51.0, <2.0.0'  # pylint: disable=invalid-name
 
 
+def get_userver_version() -> str:
+    content = load('cmake/GetUserverVersion.cmake')
+    major_version = (
+        re.search(r'set\(USERVER_MAJOR_VERSION (.*)\)', content)
+        .group(1)
+        .strip()
+    )
+    minor_version = (
+        re.search(r'set\(USERVER_MINOR_VERSION (.*)\)', content)
+        .group(1)
+        .strip()
+    )
+
+    return f'{major_version}.{minor_version}'
+
+
 class UserverConan(ConanFile):
     name = 'userver'
-    version = '1.0.0'
+    version = get_userver_version()
     description = 'The C++ Asynchronous Framework'
     topics = ('framework', 'coroutines', 'asynchronous')
     url = 'https://github.com/userver-framework/userver'

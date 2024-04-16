@@ -195,7 +195,7 @@ Content-Type: text/html; charset=utf-8
 X-YaRequestId: 94193f99ebf94eb58252139f2e9dace4
 X-YaSpanId: 4e17e02dfa7b8322
 X-YaTraceId: 306d2d54fd0543c09376a5c4bb120a88
-Server: userver/1.0.0 (20211209085954; rv:d05d059a3)
+Server: userver/2.0 (20211209085954; rv:d05d059a3)
 Connection: keep-alive
 Content-Length: 61
 

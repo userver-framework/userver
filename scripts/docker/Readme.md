@@ -9,7 +9,7 @@ command from the root of the project. For example:
 docker build -t ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest -f scripts/docker/base-ubuntu-22.04.dockerfile .
 ```
 
-* to build a image with all the build dependencies installed; with current userver copied to `/app/userver`, built and installed:
+* to build a image with all the build dependencies installed; with current userver built and installed:
 ```
 docker build -t ghcr.io/userver-framework/ubuntu-22.04-userver:latest -f scripts/docker/ubuntu-22.04.dockerfile .
 ```

@@ -139,7 +139,7 @@ $ curl -v -F address='{"street": "3, Garden St", "city": "Hillsbery, UT"}' \
 < HTTP/1.1 200 OK
 < Date: Tue, 24 Oct 2023 09:31:42 UTC
 < Content-Type: application/octet-stream
-< Server: userver/1.0.0 (20231024091132; rv:unknown)
+< Server: userver/2.0 (20231024091132; rv:unknown)
 < X-YaRequestId: f7cb383a987248179e5683713b141cea
 < X-YaTraceId: 7976203e08074091b20b08738cb7fadc
 < X-YaSpanId: 29233f54bc7e5009
