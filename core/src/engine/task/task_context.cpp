@@ -19,6 +19,7 @@
 #include <userver/utils/underlying_value.hpp>
 
 #include <engine/ev/thread_pool.hpp>
+#include <engine/impl/future_utils.hpp>
 #include <engine/impl/generic_wait_list.hpp>
 #include <engine/task/coro_unwinder.hpp>
 #include <engine/task/cxxabi_eh_globals.hpp>
@@ -175,41 +176,17 @@ void TaskContext::FinishDetached() noexcept {
 
 void TaskContext::Wait() const { WaitUntil({}); }
 
-namespace {
-
-class LockedWaitStrategy final : public WaitStrategy {
- public:
-  LockedWaitStrategy(Deadline deadline, GenericWaitList& waiters,
-                     TaskContext& current, const TaskContext& target)
-      : WaitStrategy(deadline),
-        waiters_(waiters),
-        current_(current),
-        target_(target) {}
-
-  void SetupWakeups() override {
-    waiters_.Append(&current_);
-    if (target_.IsFinished()) waiters_.WakeupAll();
-  }
-
-  void DisableWakeups() override { waiters_.Remove(current_); }
-
- private:
-  GenericWaitList& waiters_;
-  TaskContext& current_;
-  const TaskContext& target_;
-};
-
-}  // namespace
-
 void TaskContext::WaitUntil(Deadline deadline) const {
   // try to avoid ctx switch if possible
   if (IsFinished()) return;
 
   auto& current = current_task::GetCurrentTaskContext();
-  if (&current == this) ReportDeadlock();
 
-  LockedWaitStrategy wait_manager(deadline, *finish_waiters_, current, *this);
-  current.Sleep(wait_manager);
+  FutureWaitStrategy wait_strategy{
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+      /*target=*/const_cast<TaskContext&>(*this), current};
+
+  current.Sleep(wait_strategy, deadline);
 
   if (!IsFinished() && current.ShouldCancel()) {
     throw WaitInterruptedException(current.cancellation_reason_);
@@ -310,7 +287,8 @@ bool TaskContext::SetCancellable(bool value) {
   return std::exchange(is_cancellable_, value);
 }
 
-TaskContext::WakeupSource TaskContext::Sleep(WaitStrategy& wait_strategy) {
+TaskContext::WakeupSource TaskContext::Sleep(WaitStrategy& wait_strategy,
+                                             Deadline deadline) {
   UASSERT(IsCurrent());
   UASSERT(state_ == Task::State::kRunning);
   UASSERT_MSG(compiler::impl::AreCoroutineSwitchesAllowed(),
@@ -328,10 +306,15 @@ TaskContext::WakeupSource TaskContext::Sleep(WaitStrategy& wait_strategy) {
   // cancellation signal would be lost, so we must check it here.
   if (ShouldCancel()) return TaskContext::WakeupSource::kCancelRequest;
 
-  wait_strategy.SetupWakeups();
-
   const auto sleep_epoch = sleep_state_.Load<std::memory_order_seq_cst>().epoch;
-  const auto deadline = wait_strategy.GetDeadline();
+
+  if (static_cast<bool>(wait_strategy.SetupWakeups())) {
+    sleep_state_.Store<std::memory_order_release>(
+        MakeNextEpochSleepState(sleep_epoch));
+    wakeup_source_ = WakeupSource::kWaitList;
+    return wakeup_source_;
+  }
+
   const bool has_deadline = deadline.IsReachable() &&
                             (!IsCancellable() || deadline < cancel_deadline_);
   if (has_deadline) ArmDeadlineTimer(deadline, sleep_epoch);
@@ -566,14 +549,21 @@ task_local::Storage& TaskContext::GetLocalStorage() noexcept {
 
 bool TaskContext::IsReady() const noexcept { return IsFinished(); }
 
-void TaskContext::AppendWaiter(impl::TaskContext& context) noexcept {
-  if (&context == this) impl::ReportDeadlock();
-  finish_waiters_->Append(&context);
+EarlyWakeup TaskContext::TryAppendWaiter(TaskContext& waiter) {
+  if (&waiter == this) ReportDeadlock();
+  finish_waiters_->Append(&waiter);
+  if (IsFinished()) {
+    finish_waiters_->WakeupAll();
+    return EarlyWakeup{true};
+  }
+  return EarlyWakeup{false};
 }
 
-void TaskContext::RemoveWaiter(impl::TaskContext& context) noexcept {
-  finish_waiters_->Remove(context);
+void TaskContext::RemoveWaiter(TaskContext& waiter) noexcept {
+  finish_waiters_->Remove(waiter);
 }
+
+void TaskContext::AfterWait() noexcept {}
 
 void TaskContext::RethrowErrorResult() const {
   UASSERT(IsFinished());

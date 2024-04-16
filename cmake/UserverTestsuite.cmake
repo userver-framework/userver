@@ -1,10 +1,9 @@
-include_guard()
+include_guard(GLOBAL)
 
 include(CTest)
 
-if(NOT USERVER_PYTHON)
-  include(FindPython)
-endif()
+set(USERVER_PYTHON_PATH "python3" CACHE FILEPATH "Path to python3 executable to use")
+message(STATUS "Python: ${USERVER_PYTHON_PATH}")
 
 option(USERVER_FEATURE_TESTSUITE "Enable functional tests via testsuite" ON)
 option(
@@ -34,6 +33,7 @@ if(NOT USERVER_TESTSUITE_DIR)
   get_filename_component(
       USERVER_TESTSUITE_DIR "${CMAKE_CURRENT_LIST_DIR}/../testsuite" ABSOLUTE)
 endif()
+set_property(GLOBAL PROPERTY userver_testsuite_dir "${USERVER_TESTSUITE_DIR}")
 
 function(userver_venv_setup)
   set(options UNIQUE)
@@ -103,7 +103,7 @@ function(userver_venv_setup)
   if(NOT EXISTS "${venv_dir}")
     execute_process(
         COMMAND
-        "${USERVER_PYTHON}"
+        "${USERVER_PYTHON_PATH}"
         -m venv
         "${venv_dir}"
         ${venv_additional_args}
@@ -155,7 +155,7 @@ function(userver_venv_setup)
     )
     execute_process(
         COMMAND
-        "${venv_bin_dir}/pip" install
+        "${venv_bin_dir}/python3" -m pip install
         --disable-pip-version-check
         -U ${pip_requirements}
         ${ARG_PIP_ARGS}
@@ -181,6 +181,8 @@ function(userver_testsuite_requirements)
   cmake_parse_arguments(
       ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}")
 
+  get_property(USERVER_TESTSUITE_DIR GLOBAL PROPERTY userver_testsuite_dir)
+
   list(APPEND requirements_files
       "${USERVER_TESTSUITE_DIR}/requirements.txt")
 
@@ -197,13 +199,25 @@ function(userver_testsuite_requirements)
           "SetupProtobuf should be run before setting up testsuite")
     endif()
 
-    if(Protobuf_VERSION VERSION_GREATER 3.20.0)
+    if(Protobuf_VERSION VERSION_GREATER_EQUAL 5.26.0 AND
+        Protobuf_VERSION VERSION_LESS 6.0.0 OR
+        Protobuf_VERSION VERSION_GREATER_EQUAL 26.0.0)
       list(APPEND requirements_files
-          "${USERVER_TESTSUITE_DIR}/requirements-grpc.txt")
-    else()
+          "${USERVER_TESTSUITE_DIR}/requirements-grpc-5.txt")
+    elseif(Protobuf_VERSION VERSION_GREATER_EQUAL 3.20.0 AND
+        Protobuf_VERSION VERSION_LESS 4.0.0 OR
+        Protobuf_VERSION VERSION_GREATER_EQUAL 4.20.0 AND
+        Protobuf_VERSION VERSION_LESS 5.0.0 OR
+        Protobuf_VERSION VERSION_GREATER_EQUAL 20.0.0)
       list(APPEND requirements_files
-          "${USERVER_TESTSUITE_DIR}/requirements-grpc-old.txt")
+          "${USERVER_TESTSUITE_DIR}/requirements-grpc-4.txt")
+    elseif(Protobuf_VERSION VERSION_GREATER_EQUAL 3.0.0 AND
+        Protobuf_VERSION VERSION_LESS 4.0.0)
+      list(APPEND requirements_files
+          "${USERVER_TESTSUITE_DIR}/requirements-grpc-3.txt")
       message(STATUS "Forcing old protobuf version for testsuite")
+    else()
+      message(FATAL_ERROR "Unsupported Protobuf_VERSION: ${Protobuf_VERSION}")
     endif()
   endif()
 
@@ -258,6 +272,12 @@ function(userver_testsuite_requirements)
         "${requirements_testsuite_text}"
     )
   endif()
+
+  if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    list(APPEND requirements_files
+        "${USERVER_TESTSUITE_DIR}/requirements-net.txt")
+  endif()
+
   set(requirements_testsuite_file
       "${CMAKE_BINARY_DIR}/requirements-userver-testsuite.txt")
   file(WRITE "${requirements_testsuite_file}" "${requirements_testsuite_text}")
@@ -280,6 +300,8 @@ function(userver_testsuite_add)
   )
   cmake_parse_arguments(
     ARG "${options}" "${oneValueArgs}" "${multiValueArgs}"  ${ARGN})
+
+  get_property(USERVER_TESTSUITE_DIR GLOBAL PROPERTY userver_testsuite_dir)
 
   if (NOT ARG_SERVICE_TARGET)
     message(FATAL_ERROR "No SERVICE_TARGET given for testsuite")

@@ -27,6 +27,14 @@ struct PatternSubscriptionQueueItem {
       : channel(std::move(channel)), message(std::move(message)) {}
 };
 
+struct ShardedSubscriptionQueueItem {
+  std::string message;
+
+  ShardedSubscriptionQueueItem() = default;
+  explicit ShardedSubscriptionQueueItem(std::string message)
+      : message(std::move(message)) {}
+};
+
 template <typename Item>
 class SubscriptionQueue {
  public:
@@ -62,6 +70,14 @@ class SubscriptionQueue {
       std::string pattern,
       const USERVER_NAMESPACE::redis::CommandControl& command_control);
 
+  template <typename T = Item>
+  std::enable_if_t<std::is_same<T, ShardedSubscriptionQueueItem>::value,
+                   USERVER_NAMESPACE::redis::SubscriptionToken>
+  GetSubscriptionToken(
+      USERVER_NAMESPACE::redis::SubscribeSentinel& subscribe_sentinel,
+      std::string channel,
+      const USERVER_NAMESPACE::redis::CommandControl& command_control);
+
   // Messages could come out-of-order due to Redis limitations. Non FIFO is fine
   using Queue = concurrent::NonFifoMpscQueue<Item>;
 
@@ -73,6 +89,7 @@ class SubscriptionQueue {
 
 extern template class SubscriptionQueue<ChannelSubscriptionQueueItem>;
 extern template class SubscriptionQueue<PatternSubscriptionQueueItem>;
+extern template class SubscriptionQueue<ShardedSubscriptionQueueItem>;
 
 }  // namespace storages::redis
 

@@ -211,8 +211,7 @@ void ModernClientKeyCertImpl(Easy& easy, crypto::PrivateKey&& pkey,
 }  // namespace
 
 RequestState::RequestState(
-    std::shared_ptr<impl::EasyWrapper>&& wrapper,
-    std::shared_ptr<RequestStats>&& req_stats,
+    impl::EasyWrapper&& wrapper, RequestStats&& req_stats,
     const std::shared_ptr<DestinationStatistics>& dest_stats,
     clients::dns::Resolver* resolver, impl::PluginPipeline& plugin_pipeline,
     const tracing::TracingManagerBase& tracing_manager)
@@ -392,8 +391,16 @@ void RequestState::DisableReplyDecoding() {
   easy().set_accept_encoding(nullptr);
 }
 
+void RequestState::SetCancellationPolicy(CancellationPolicy cp) {
+  cancellation_policy_ = cp;
+}
+
+CancellationPolicy RequestState::GetCancellationPolicy() const {
+  return cancellation_policy_;
+}
+
 void RequestState::SetDeadlinePropagationConfig(
-    const impl::DeadlinePropagationConfig& deadline_propagation_config) {
+    const DeadlinePropagationConfig& deadline_propagation_config) {
   deadline_propagation_config_ = deadline_propagation_config;
 }
 
@@ -509,7 +516,7 @@ void RequestState::on_completed(std::shared_ptr<RequestState> holder,
     holder->response()->SetStatusCode(status_code);
     holder->response()->SetStats(easy.get_local_stats());
 
-    if (!holder->response()->IsOk()) span.AddTag(tracing::kErrorFlag, true);
+    if (holder->response()->IsError()) span.AddTag(tracing::kErrorFlag, true);
 
     holder->plugin_pipeline_.HookOnCompleted(*holder, *holder->response());
 
@@ -1033,7 +1040,7 @@ void RequestState::StartStats() {
 template <typename Func>
 void RequestState::WithRequestStats(const Func& func) {
   static_assert(std::is_invocable_v<const Func&, RequestStats&>);
-  func(*stats_);
+  func(stats_);
   if (dest_req_stats_) func(*dest_req_stats_);
 }
 

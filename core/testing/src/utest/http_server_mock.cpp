@@ -1,6 +1,6 @@
 #include <userver/utest/http_server_mock.hpp>
 
-#include <http_parser.h>
+#include <llhttp.h>
 #include <boost/algorithm/string/split.hpp>
 
 #include <userver/logging/log.hpp>
@@ -12,7 +12,7 @@ namespace utest {
 
 namespace {
 
-clients::http::HttpMethod ConvertHttpMethod(http_method method) {
+clients::http::HttpMethod ConvertHttpMethod(llhttp_method method) {
   switch (method) {
     case HTTP_DELETE:
       return clients::http::HttpMethod::kDelete;
@@ -45,16 +45,16 @@ class HttpConnection final {
   SimpleServer::Response operator()(const SimpleServer::Request& request);
 
  private:
-  static int OnUrl(http_parser* p, const char* data, size_t size);
-  static int OnHeaderField(http_parser* p, const char* data, size_t size);
-  static int OnHeaderValue(http_parser* p, const char* data, size_t size);
-  static int OnHeadersComplete(http_parser* p);
-  static int OnBody(http_parser* p, const char* data, size_t size);
-  static int OnMessageComplete(http_parser* p);
+  static int OnUrl(llhttp_t* p, const char* data, size_t size);
+  static int OnHeaderField(llhttp_t* p, const char* data, size_t size);
+  static int OnHeaderValue(llhttp_t* p, const char* data, size_t size);
+  static int OnHeadersComplete(llhttp_t* p);
+  static int OnBody(llhttp_t* p, const char* data, size_t size);
+  static int OnMessageComplete(llhttp_t* p);
 
-  static HttpConnection& GetConnection(http_parser* p);
+  static HttpConnection& GetConnection(llhttp_t* p);
 
-  int DoOnUrl(http_parser* p, const char* data, size_t size);
+  int DoOnUrl(llhttp_t* p, const char* data, size_t size);
   int DoOnHeaderField(const char* data, size_t size);
   int DoOnHeaderValue(const char* data, size_t size);
   int DoOnHeadersComplete();
@@ -63,12 +63,12 @@ class HttpConnection final {
 
   void Reset();
 
-  static constexpr http_parser_settings MakeHttpParserSettings();
+  static llhttp_settings_t MakeHttpParserSettings();
 
-  static const http_parser_settings kParserSettings;
+  static llhttp_settings_t kParserSettings;
 
   HttpServerMock& owner_;
-  http_parser parser_{};
+  llhttp_t parser_{};
 
   HttpServerMock::HttpRequest http_request_;
   std::optional<HttpServerMock::HttpResponse> http_response_;
@@ -78,38 +78,37 @@ class HttpConnection final {
   bool reading_header_name_{true};
 };
 
-int HttpConnection::OnUrl(http_parser* p, const char* data, size_t size) {
+int HttpConnection::OnUrl(llhttp_t* p, const char* data, size_t size) {
   return GetConnection(p).DoOnUrl(p, data, size);
 }
 
-int HttpConnection::OnHeaderField(http_parser* p, const char* data,
-                                  size_t size) {
+int HttpConnection::OnHeaderField(llhttp_t* p, const char* data, size_t size) {
   return GetConnection(p).DoOnHeaderField(data, size);
 }
 
-int HttpConnection::OnHeaderValue(http_parser* p, const char* data,
-                                  size_t size) {
+int HttpConnection::OnHeaderValue(llhttp_t* p, const char* data, size_t size) {
   return GetConnection(p).DoOnHeaderValue(data, size);
 }
 
-int HttpConnection::OnHeadersComplete(http_parser* p) {
+int HttpConnection::OnHeadersComplete(llhttp_t* p) {
   return GetConnection(p).DoOnHeadersComplete();
 }
 
-int HttpConnection::OnBody(http_parser* p, const char* data, size_t size) {
+int HttpConnection::OnBody(llhttp_t* p, const char* data, size_t size) {
   return GetConnection(p).DoOnBody(data, size);
 }
 
-int HttpConnection::OnMessageComplete(http_parser* p) {
+int HttpConnection::OnMessageComplete(llhttp_t* p) {
   return GetConnection(p).DoOnMessageComplete();
 }
 
-HttpConnection& HttpConnection::GetConnection(http_parser* p) {
+HttpConnection& HttpConnection::GetConnection(llhttp_t* p) {
   return *static_cast<HttpConnection*>(p->data);
 }
 
-int HttpConnection::DoOnUrl(http_parser* p, const char* data, size_t size) {
-  http_request_.method = ConvertHttpMethod(static_cast<http_method>(p->method));
+int HttpConnection::DoOnUrl(llhttp_t* p, const char* data, size_t size) {
+  http_request_.method =
+      ConvertHttpMethod(static_cast<llhttp_method>(p->method));
   http_request_.path.append(data, size);
   return 0;
 }
@@ -171,8 +170,9 @@ int HttpConnection::DoOnMessageComplete() {
   return 0;
 }
 
-constexpr http_parser_settings HttpConnection::MakeHttpParserSettings() {
-  http_parser_settings settings{};
+llhttp_settings_t HttpConnection::MakeHttpParserSettings() {
+  llhttp_settings_t settings{};
+  llhttp_settings_init(&settings);
 
   settings.on_url = HttpConnection::OnUrl;
   settings.on_header_field = HttpConnection::OnHeaderField;
@@ -184,11 +184,11 @@ constexpr http_parser_settings HttpConnection::MakeHttpParserSettings() {
   return settings;
 }
 
-constexpr http_parser_settings HttpConnection::kParserSettings =
+llhttp_settings_t HttpConnection::kParserSettings =
     HttpConnection::MakeHttpParserSettings();
 
 HttpConnection::HttpConnection(HttpServerMock& owner) : owner_(owner) {
-  http_parser_init(&parser_, HTTP_REQUEST);
+  llhttp_init(&parser_, HTTP_REQUEST, &kParserSettings);
   parser_.data = this;
 }
 
@@ -198,13 +198,12 @@ HttpConnection::HttpConnection(const HttpConnection& other)
 SimpleServer::Response HttpConnection::operator()(
     const SimpleServer::Request& request) {
   auto size = request.size();
-  const size_t parsed =
-      http_parser_execute(&parser_, &kParserSettings, request.data(), size);
-
-  if (parsed != size) {
+  const auto err = llhttp_execute(&parser_, request.data(), size);
+  if (err != HPE_OK) {
+    const auto parsed = static_cast<size_t>(llhttp_get_error_pos(&parser_) -
+                                            request.data() + 1);
     ADD_FAILURE() << "parsed=" << parsed << " size=" << size
-                  << " error_description="
-                  << http_errno_description(HTTP_PARSER_ERRNO(&parser_));
+                  << " error_description=" << llhttp_errno_name(err);
     return {"", SimpleServer::Response::kWriteAndClose};
   }
   if (parser_.upgrade) {
@@ -229,7 +228,7 @@ SimpleServer::Response HttpConnection::operator()(
 }
 
 void HttpConnection::Reset() {
-  http_parser_init(&parser_, HTTP_REQUEST);
+  llhttp_init(&parser_, HTTP_REQUEST, &kParserSettings);
   parser_.data = this;
 
   http_request_ = {};

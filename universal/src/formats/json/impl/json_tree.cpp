@@ -1,5 +1,6 @@
 #include "json_tree.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <limits>
 
@@ -98,7 +99,7 @@ std::string ExtractPath(const TreeStack& stack) {
   std::string path;
   for (size_t depth = 1; depth < stack.size(); depth++) {
     const auto& frame = stack[depth];
-    // because index in stack had already been Advance'd
+    // because index in stack has already been Advance'd
     const auto idx = frame.CurrentIndex() - 1;
     if (frame.container()->IsObject()) {
       const Value& name = frame.container()->MemberBegin()[idx].name;

@@ -134,7 +134,6 @@ class WebSocketConnectionImpl final : public WebSocketConnection {
   void Recv(Message& msg) override {
     msg.data.resize(0);  // do not call .clear() to keep the allocated memory
     frame_.payload = &msg.data;
-    frame_.payload->resize(0);
 
     try {
       while (true) {

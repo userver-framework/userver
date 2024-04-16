@@ -6,6 +6,7 @@ endif()
 set(CMAKE_POLICY_DEFAULT_CMP0048 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0063 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
+set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 
 project(userver)
 
@@ -101,6 +102,13 @@ option(USERVER_FEATURE_JEMALLOC "Enable linkage with jemalloc memory allocator" 
 
 option(USERVER_DISABLE_PHDR_CACHE "Disable caching of dl_phdr_info items, which interferes with dlopen" OFF)
 
+set(USERVER_DISABLE_RSEQ_DEFAULT ON)
+if (USERVER_BUILD_PLATFORM_X86 AND CMAKE_SYSTEM_NAME MATCHES "Linux")
+  set(USERVER_DISABLE_RSEQ_DEFAULT OFF)
+  message(STATUS "rseq-based acceleration is enabled by default")
+endif()
+option(USERVER_DISABLE_RSEQ_ACCELERATION "Disable rseq-based optimizations" ${USERVER_DISABLE_RSEQ_DEFAULT})
+
 option(USERVER_CHECK_PACKAGE_VERSIONS "Check package versions" ON)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
@@ -123,7 +131,7 @@ include(AddGoogleTests)
 include(CheckSubmodule)
 include(FindPackageRequired)
 include(IncludeWhatYouUse)
-# For userver_venv_setup below, otherwise FindPython would be enough.
+# For userver_venv_setup below.
 include(UserverTestsuite)
 include(CheckCompileFlags)
 include(CMakePackageConfigHelpers)
@@ -194,6 +202,7 @@ endif()
 if (USERVER_FEATURE_MONGODB)
   _require_userver_core("USERVER_FEATURE_MONGODB")
   add_subdirectory(mongo "${CMAKE_BINARY_DIR}/userver/mongo")
+  list(APPEND USERVER_AVAILABLE_COMPONENTS mongo)
 endif()
 
 if (USERVER_FEATURE_POSTGRESQL)
@@ -205,26 +214,31 @@ endif()
 if (USERVER_FEATURE_REDIS)
   _require_userver_core("USERVER_FEATURE_REDIS")
   add_subdirectory(redis "${CMAKE_BINARY_DIR}/userver/redis")
+  list(APPEND USERVER_AVAILABLE_COMPONENTS redis)
 endif()
 
 if (USERVER_FEATURE_GRPC)
   _require_userver_core("USERVER_FEATURE_GRPC")
   add_subdirectory(grpc "${CMAKE_BINARY_DIR}/userver/grpc")
+  list(APPEND USERVER_AVAILABLE_COMPONENTS grpc)
 endif()
 
 if (USERVER_FEATURE_CLICKHOUSE)
   _require_userver_core("USERVER_FEATURE_CLICKHOUSE")
   add_subdirectory(clickhouse "${CMAKE_BINARY_DIR}/userver/clickhouse")
+  list(APPEND USERVER_AVAILABLE_COMPONENTS clickhouse)
 endif()
 
 if (USERVER_FEATURE_RABBITMQ)
   _require_userver_core("USERVER_FEATURE_RABBITMQ")
   add_subdirectory(rabbitmq "${CMAKE_BINARY_DIR}/userver/rabbitmq")
+  list(APPEND USERVER_AVAILABLE_COMPONENTS rabbitmq)
 endif()
 
 if (USERVER_FEATURE_MYSQL)
   _require_userver_core("USERVER_FEATURE_MYSQL")
   add_subdirectory(mysql "${CMAKE_BINARY_DIR}/userver/mysql")
+  list(APPEND USERVER_AVAILABLE_COMPONENTS mysql)
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT AND USERVER_FEATURE_CORE)

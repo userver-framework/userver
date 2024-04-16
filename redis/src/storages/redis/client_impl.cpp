@@ -48,6 +48,9 @@ void ClientImpl::WaitConnectedOnce(
 }
 
 size_t ClientImpl::ShardsCount() const { return redis_client_->ShardsCount(); }
+bool ClientImpl::IsInClusterMode() const {
+  return redis_client_->IsInClusterMode();
+}
 
 size_t ClientImpl::ShardByKey(const std::string& key) const {
   return redis_client_->ShardByKey(key);

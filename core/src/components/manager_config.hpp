@@ -28,6 +28,7 @@ struct ManagerConfig {
   bool experiments_force_enabled{false};
   bool mlock_debug_info{true};
   bool disable_phdr_cache{false};
+  bool preheat_stacktrace_collector{true};
 
   static ManagerConfig FromString(
       const std::string&, const std::optional<std::string>& config_vars_path,

@@ -13,12 +13,17 @@ class ClusterSubscriptionStorage : public SubscriptionStorageBase {
 
   void SetSubscribeCallback(CommandCb) override;
   void SetUnsubscribeCallback(CommandCb) override;
+  void SetShardedSubscribeCallback(ShardedCommandCb) override;
+  void SetShardedUnsubscribeCallback(ShardedCommandCb) override;
 
   SubscriptionToken Subscribe(const std::string& channel,
                               Sentinel::UserMessageCallback cb,
                               CommandControl control) override;
   SubscriptionToken Psubscribe(const std::string& pattern,
                                Sentinel::UserPmessageCallback cb,
+                               CommandControl control) override;
+  SubscriptionToken Ssubscribe(const std::string& pattern,
+                               Sentinel::UserMessageCallback cb,
                                CommandControl control) override;
 
   void Unsubscribe(SubscriptionId subscription_id) override;
@@ -32,12 +37,13 @@ class ClusterSubscriptionStorage : public SubscriptionStorageBase {
   void SetShardsCount(size_t shards_count) override;
   const std::string& GetShardName(size_t shard_idx) const override;
 
-  static size_t GetShardByChannel(const std::string& name);
-
  protected:
   void SubscribeImpl(const std::string& channel,
                      Sentinel::UserMessageCallback cb, CommandControl control,
                      SubscriptionId external_id) override;
+  void SsubscribeImpl(const std::string& channel,
+                      Sentinel::UserMessageCallback cb, CommandControl control,
+                      SubscriptionId external_id) override;
   void PsubscribeImpl(const std::string& pattern,
                       Sentinel::UserPmessageCallback cb, CommandControl control,
                       SubscriptionId external_id) override;

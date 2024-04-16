@@ -38,6 +38,8 @@ class [[nodiscard]] UnaryFuture {
 
   UnaryFuture(UnaryFuture&&) noexcept = default;
   UnaryFuture& operator=(UnaryFuture&&) noexcept;
+  UnaryFuture(const UnaryFuture&) = delete;
+  UnaryFuture& operator=(const UnaryFuture&) = delete;
 
   ~UnaryFuture() noexcept;
 
@@ -68,6 +70,10 @@ class [[nodiscard]] UnaryFuture {
   /// @return true if result ready
   [[nodiscard]] bool IsReady() const noexcept;
 
+  /// @cond
+  // For internal use only.
+  engine::impl::ContextAccessor* TryGetContextAccessor() noexcept;
+  /// @endcond
  private:
   impl::FutureImpl impl_;
 };
@@ -330,27 +336,10 @@ class [[nodiscard]] OutputStream final : public CallAnyBase {
 /// Instead the user SHOULD call `Read` method until the end of input. If
 /// `Write` or `WritesDone` finishes with negative result, finally `Read`
 /// will throw an exception.
+/// ## Usage example:
 ///
-/// ## Usage example
+/// @snippet grpc/tests/src/stream_test.cpp concurrent bidirectional stream
 ///
-/// ```cpp
-/// auto stream = grpc_client.SomeBidirectionalStreamMethod();
-///
-/// auto write_task = engine::AsyncNoSpan([&stream, &request_messages] {
-///   for (const auto& message : request_messages) {
-///     if (!stream.Write(message)) {
-///       return;
-///     }
-///   }
-///   stream.WritesDone();
-/// });
-///
-/// while (stream.Read(response_message)) {
-///   // ...
-/// }
-///
-/// write_task.Get();
-/// ```
 template <typename Request, typename Response>
 class [[nodiscard]] BidirectionalStream final : public CallAnyBase {
  public:

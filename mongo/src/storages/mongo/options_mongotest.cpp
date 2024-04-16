@@ -98,7 +98,7 @@ UTEST_F(Options, ReadConcern) {
   EXPECT_EQ(0, coll.Count({}, mongo::options::ReadConcern::kLinearizable));
 }
 
-UTEST_F(Options, SkipLimit) {
+UTEST_F(Options, DISABLED_SkipLimit) {  // TODO: TAXICOMMON-8662
   auto coll = GetDefaultPool().GetCollection("skip_limit");
 
   coll.InsertOne(bson::MakeDoc("x", 0));

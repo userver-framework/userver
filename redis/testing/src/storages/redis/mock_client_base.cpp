@@ -26,6 +26,8 @@ void MockClientBase::WaitConnectedOnce(
 
 size_t MockClientBase::ShardsCount() const { return 1; }
 
+bool MockClientBase::IsInClusterMode() const { return false; }
+
 size_t MockClientBase::ShardByKey(const std::string& /*key*/) const {
   return 0;
 }

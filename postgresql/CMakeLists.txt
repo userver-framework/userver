@@ -44,6 +44,7 @@ list (REMOVE_ITEM SOURCES ${BENCH_SOURCES})
 
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
+add_library(userver::postgresql ALIAS ${PROJECT_NAME})
 
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 

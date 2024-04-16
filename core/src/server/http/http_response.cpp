@@ -123,7 +123,16 @@ void OutputHeader(USERVER_NAMESPACE::http::headers::HeadersString& header,
 
 HttpResponse::HttpResponse(const HttpRequestImpl& request,
                            request::ResponseDataAccounter& data_accounter)
-    : ResponseBase(data_accounter), request_(request) {}
+    : HttpResponse{request, data_accounter, std::chrono::steady_clock::now(),
+                   utils::StrCaseHash{}} {}
+
+HttpResponse::HttpResponse(const HttpRequestImpl& request,
+                           request::ResponseDataAccounter& data_accounter,
+                           std::chrono::steady_clock::time_point now,
+                           utils::StrCaseHash hasher)
+    : ResponseBase{data_accounter, now},
+      request_{request},
+      cookies_{0, hasher} {}
 
 HttpResponse::~HttpResponse() = default;
 

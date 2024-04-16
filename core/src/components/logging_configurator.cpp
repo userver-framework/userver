@@ -73,15 +73,20 @@ void LoggingConfigurator::OnConfigUpdate(
        */
 
       // Flush
-      AddDynamicDebugLog("", logging::kAnyLine, logging::EntryState::kDefault);
+      logging::RemoveDynamicDebugLog("", logging::kAnyLine);
 
-      for (const auto& location : dd.force_disabled) {
+      for (const auto& [location, level] : dd.force_disabled) {
         const auto [path, line] = logging::SplitLocation(location);
-        AddDynamicDebugLog(path, line, logging::EntryState::kForceDisabled);
+        logging::EntryState state;
+        state.force_disabled_level_plus_one =
+            logging::GetForceDisabledLevelPlusOne(level);
+        AddDynamicDebugLog(path, line, state);
       }
-      for (const auto& location : dd.force_enabled) {
+      for (const auto& [location, level] : dd.force_enabled) {
         const auto [path, line] = logging::SplitLocation(location);
-        AddDynamicDebugLog(path, line, logging::EntryState::kForceEnabled);
+        logging::EntryState state;
+        state.force_enabled_level = level;
+        AddDynamicDebugLog(path, line, state);
       }
 
       lock.Commit();

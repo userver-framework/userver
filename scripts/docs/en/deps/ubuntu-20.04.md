@@ -24,7 +24,6 @@ libgrpc++-dev
 libgrpc++1
 libgtest-dev
 libhiredis-dev
-libhttp-parser-dev
 libjemalloc-dev
 libkrb5-dev
 libldap2-dev
@@ -35,6 +34,7 @@ libpq5=12.*
 libprotoc-dev
 libssl-dev
 libyaml-cpp-dev
+netbase
 ninja-build
 pkg-config
 postgresql-12

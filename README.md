@@ -1,4 +1,4 @@
-# userver [<img src="./scripts/docs/logo.svg" align='right' width="10%">](https://userver.tech/)
+# userver [<img src="./scripts/docs/img/logo.svg" align='right' width="10%">](https://userver.tech/)
 
 | Service Templates | Develop / Green Trunk  | v1.0 |
 |------------------------|-----|-----|

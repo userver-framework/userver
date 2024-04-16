@@ -3,10 +3,12 @@
 #include <atomic>
 #include <type_traits>
 
-#ifdef USERVER_USE_BOOST_DWCAS
+#ifndef USERVER_USE_STD_DWCAS
 #include <boost/atomic/atomic.hpp>
+#include <boost/version.hpp>
 #endif
 
+#include <userver/compiler/impl/tsan.hpp>
 #include <utils/impl/assert_extra.hpp>
 
 #ifdef USERVER_PROTECT_DWCAS
@@ -19,9 +21,26 @@ USERVER_NAMESPACE_BEGIN
 
 namespace concurrent::impl {
 
-#ifdef USERVER_USE_BOOST_DWCAS
+#ifdef USERVER_USE_STD_DWCAS
+
+constexpr std::memory_order ToInternalMemoryOrder(
+    std::memory_order order) noexcept {
+  return order;
+}
+
 template <typename T>
-using DoubleWidthCapableAtomic = boost::atomic<T>;
+using DoubleWidthCapableAtomic = std::atomic<T>;
+
+template <typename T>
+using DoubleWidthCapableAtomicRef = std::atomic<T>&;
+
+template <typename T>
+T LoadWithTearing(const DoubleWidthCapableAtomic<T>& storage) {
+  // NOTE: this uses the heavy locking CAS instruction.
+  return storage.load(std::memory_order_relaxed);
+}
+
+#else  // USERVER_USE_STD_DWCAS
 
 constexpr boost::memory_order ToInternalMemoryOrder(
     std::memory_order order) noexcept {
@@ -42,20 +61,30 @@ constexpr boost::memory_order ToInternalMemoryOrder(
   // AbortWithStacktrace here leads to a compilation error on GCC 8.
   return boost::memory_order_seq_cst;
 }
-#else
-template <typename T>
-using DoubleWidthCapableAtomic = std::atomic<T>;
 
-constexpr std::memory_order ToInternalMemoryOrder(
-    std::memory_order order) noexcept {
-  return order;
+template <typename T>
+using DoubleWidthCapableAtomic = boost::atomic<T>;
+
+template <typename T>
+using DoubleWidthCapableAtomicRef = boost::atomic<T>&;
+
+#if BOOST_VERSION >= 107400
+template <typename T>
+T LoadWithTearing(const DoubleWidthCapableAtomic<T>& storage) {
+  return storage.value();
 }
-#endif
+#else   // BOOST_VERSION >= 107400
+template <typename T>
+T LoadWithTearing(const DoubleWidthCapableAtomic<T>& storage) {
+  // NOTE: this uses the heavy locking CAS instruction.
+  return storage.load(boost::memory_order_relaxed);
+}
+#endif  // BOOST_VERSION >= 107400
+
+#endif  // USERVER_USE_STD_DWCAS
 
 // Tries harder than std::atomic to be lock-free.
 // See also RequireDWCAS.cmake.
-//
-// Has a std::atomic-compatible interface.
 template <typename T>
 class FastAtomic final {
   static_assert(sizeof(T) <= sizeof(void*) * 2);
@@ -65,30 +94,48 @@ class FastAtomic final {
   static_assert(std::has_unique_object_representations_v<T>);
 
  public:
-  constexpr FastAtomic(T desired) noexcept : impl_(desired) {}
+  constexpr /*implicit*/ FastAtomic(T desired) noexcept : impl_(desired) {}
 
   FastAtomic(const FastAtomic&) = delete;
 
   template <std::memory_order Success, std::memory_order Failure>
   USERVER_IMPL_PROTECT_DWCAS_ATTR bool compare_exchange_strong(
       T& expected, T desired) noexcept {
-    return impl_.compare_exchange_strong(expected, desired,
-                                         ToInternalMemoryOrder(Success),
-                                         ToInternalMemoryOrder(Failure));
+    return static_cast<AtomicRef>(impl_).compare_exchange_strong(
+        expected, desired, impl::ToInternalMemoryOrder(Success),
+        impl::ToInternalMemoryOrder(Failure));
   }
 
   template <std::memory_order Order>
   USERVER_IMPL_PROTECT_DWCAS_ATTR T load() const noexcept {
-    return impl_.load(ToInternalMemoryOrder(Order));
+    return static_cast<AtomicRef>(impl_).load(
+        impl::ToInternalMemoryOrder(Order));
   }
 
   template <std::memory_order Order>
   USERVER_IMPL_PROTECT_DWCAS_ATTR T exchange(T desired) noexcept {
-    return impl_.exchange(desired, ToInternalMemoryOrder(Order));
+    return static_cast<AtomicRef>(impl_).exchange(
+        desired, impl::ToInternalMemoryOrder(Order));
+  }
+
+  // On supported platforms, tearing can only happen between the data members
+  // of a struct value, which can be loaded separately.
+  // Memory ordering is equivalent to std::memory_order_relaxed, use
+  // std::atomic_thread_fence to gain stricter orderings.
+  //
+  // Discussion of the legality of such access from the POV of platform ABI:
+  // - https://github.com/rust-lang/unsafe-code-guidelines/issues/345
+  // - https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80835
+  // Summary: legal on x86* and ARM.
+  USERVER_IMPL_PROTECT_DWCAS_ATTR USERVER_IMPL_DISABLE_TSAN T
+  LoadWithTearing() const noexcept {
+    return impl::LoadWithTearing(impl_);
   }
 
  private:
-  DoubleWidthCapableAtomic<T> impl_;
+  using AtomicRef = DoubleWidthCapableAtomicRef<T>;
+
+  mutable DoubleWidthCapableAtomic<T> impl_;
 };
 
 }  // namespace concurrent::impl

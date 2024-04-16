@@ -1,6 +1,7 @@
 #include <userver/engine/io/fd_poller.hpp>
 
 #include <engine/ev/watcher.hpp>
+#include <engine/impl/future_utils.hpp>
 #include <engine/impl/wait_list_light.hpp>
 #include <engine/task/task_context.hpp>
 
@@ -66,38 +67,7 @@ FdPoller::Kind GetUserMode(int ev_events) {
 
 }  // namespace
 
-namespace impl {
-
-class DirectionWaitStrategy final : public engine::impl::WaitStrategy {
- public:
-  DirectionWaitStrategy(Deadline deadline, engine::impl::WaitListLight& waiters,
-                        ev::Watcher<ev_io>& watcher,
-                        engine::impl::TaskContext& current)
-      : WaitStrategy(deadline),
-        waiters_(waiters),
-        watcher_(watcher),
-        current_(current) {}
-
-  void SetupWakeups() override {
-    waiters_.Append(&current_);
-    watcher_.StartAsync();
-  }
-
-  void DisableWakeups() override {
-    waiters_.Remove(current_);
-    // we need to stop watcher manually to avoid racy wakeups later
-    watcher_.StopAsync();
-  }
-
- private:
-  engine::impl::WaitListLight& waiters_;
-  ev::Watcher<ev_io>& watcher_;
-  engine::impl::TaskContext& current_;
-};
-
-}  // namespace impl
-
-struct FdPoller::Impl {
+struct FdPoller::Impl final : public engine::impl::ContextAccessor {
   Impl();
 
   ~Impl();
@@ -114,6 +84,30 @@ struct FdPoller::Impl {
   static void IoWatcherCb(struct ev_loop*, ev_io*, int) noexcept;
   void WakeupWaiters();
 
+  void ResetReady() noexcept { waiters_->GetAndResetSignal(); }
+
+  // ContextAccessor implementation
+  bool IsReady() const noexcept override { return waiters_->IsSignaled(); }
+
+  engine::impl::EarlyWakeup TryAppendWaiter(
+      engine::impl::TaskContext& waiter) override {
+    if (waiters_->GetSignalOrAppend(&waiter)) {
+      return engine::impl::EarlyWakeup{true};
+    }
+    watcher_.StartAsync();
+    return engine::impl::EarlyWakeup{false};
+  }
+
+  void RemoveWaiter(engine::impl::TaskContext& waiter) noexcept override {
+    waiters_->Remove(waiter);
+    // we need to stop watcher manually to avoid racy wakeups later
+    watcher_.StopAsync();
+  }
+
+  void AfterWait() noexcept override { watcher_.Stop(); }
+
+  void RethrowErrorResult() const override {}
+
   int fd_{-1};
   std::atomic<FdPoller::State> state_{FdPoller::State::kInvalid};
   engine::impl::FastPimplWaitListLight waiters_;
@@ -121,7 +115,7 @@ struct FdPoller::Impl {
   std::atomic<FdPoller::Kind> events_that_happened_{};
 };
 
-void FdPoller::Impl::WakeupWaiters() { waiters_->WakeupOne(); }
+void FdPoller::Impl::WakeupWaiters() { waiters_->SetSignalAndWakeupOne(); }
 
 FdPoller::Impl::Impl() : watcher_(current_task::GetEventThread(), this) {
   watcher_.Init(&IoWatcherCb);
@@ -135,9 +129,8 @@ engine::impl::TaskContext::WakeupSource FdPoller::Impl::DoWait(
 
   auto& current = current_task::GetCurrentTaskContext();
 
-  impl::DirectionWaitStrategy wait_manager(deadline, *waiters_, watcher_,
-                                           current);
-  auto ret = current.Sleep(wait_manager);
+  engine::impl::FutureWaitStrategy wait_strategy{*this, current};
+  auto ret = current.Sleep(wait_strategy, deadline);
 
   /*
    * Manually call Stop() here to be sure that after DoWait() no waiter_'s
@@ -200,12 +193,25 @@ bool FdPoller::IsValid() const noexcept { return pimpl_->IsValid(); }
 int FdPoller::GetFd() const { return pimpl_->fd_; }
 
 std::optional<FdPoller::Kind> FdPoller::Wait(Deadline deadline) {
+  ResetReady();
   if (pimpl_->DoWait(deadline) ==
       engine::impl::TaskContext::WakeupSource::kWaitList) {
     return pimpl_->events_that_happened_.load(std::memory_order_relaxed);
   } else {
     return std::nullopt;
   }
+}
+
+std::optional<FdPoller::Kind> FdPoller::GetReady() noexcept {
+  if (pimpl_->waiters_->GetAndResetSignal()) {
+    return pimpl_->events_that_happened_.load(std::memory_order_relaxed);
+  } else {
+    return std::nullopt;
+  }
+}
+
+engine::impl::ContextAccessor* FdPoller::TryGetContextAccessor() noexcept {
+  return &*pimpl_;
 }
 
 void FdPoller::Reset(int fd, Kind kind) { pimpl_->Reset(fd, kind); }
@@ -244,6 +250,8 @@ void FdPoller::Impl::Reset(int fd, Kind kind) {
   watcher_.Set(fd_, GetEvMode(kind));
   state_ = State::kReadyToUse;
 }
+
+void FdPoller::ResetReady() noexcept { pimpl_->ResetReady(); }
 
 }  // namespace engine::io
 

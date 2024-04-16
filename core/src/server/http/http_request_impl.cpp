@@ -81,7 +81,7 @@ HttpRequestImpl::HttpRequestImpl(request::ResponseDataAccounter& data_accounter)
                                request_args_.hash_function()),
       headers_(kBucketCount),
       cookies_(kZeroAllocationBucketCount, request_args_.hash_function()),
-      response_(*this, data_accounter) {}
+      response_(*this, data_accounter, StartTime(), cookies_.hash_function()) {}
 
 HttpRequestImpl::~HttpRequestImpl() = default;
 
@@ -305,6 +305,7 @@ void HttpRequestImpl::AccountResponseTime() {
 }
 
 void HttpRequestImpl::MarkAsInternalServerError() const {
+  // TODO : refactor, this being here is a bit ridiculous
   response_.SetStatus(http::HttpStatus::kInternalServerError);
   response_.SetData({});
   response_.ClearHeaders();

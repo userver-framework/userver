@@ -29,22 +29,28 @@ testsuite::DumpControl ParseDumpControl(
 }
 
 testsuite::PostgresControl ParsePostgresControl(
-    const components::ComponentConfig& config) {
+    const components::ComponentConfig& config,
+    std::chrono::milliseconds increased_timeout) {
   return {
-      config["testsuite-pg-execute-timeout"].As<std::chrono::milliseconds>(0),
-      config["testsuite-pg-statement-timeout"].As<std::chrono::milliseconds>(0),
+      config["testsuite-pg-execute-timeout"].As<std::chrono::milliseconds>(
+          increased_timeout),
+      config["testsuite-pg-statement-timeout"].As<std::chrono::milliseconds>(
+          increased_timeout),
       config["testsuite-pg-readonly-master-expected"].As<bool>(false)
           ? testsuite::PostgresControl::ReadonlyMaster::kExpected
           : testsuite::PostgresControl::ReadonlyMaster::kNotExpected};
 }
 
 testsuite::RedisControl ParseRedisControl(
-    const components::ComponentConfig& config) {
+    const components::ComponentConfig& config,
+    std::chrono::milliseconds increased_timeout) {
   return testsuite::RedisControl{
       config["testsuite-redis-timeout-connect"].As<std::chrono::milliseconds>(
           0),
-      config["testsuite-redis-timeout-single"].As<std::chrono::milliseconds>(0),
-      config["testsuite-redis-timeout-all"].As<std::chrono::milliseconds>(0),
+      config["testsuite-redis-timeout-single"].As<std::chrono::milliseconds>(
+          increased_timeout),
+      config["testsuite-redis-timeout-all"].As<std::chrono::milliseconds>(
+          increased_timeout),
   };
 }
 
@@ -55,10 +61,12 @@ std::unique_ptr<testsuite::TestsuiteTasks> ParseTestsuiteTasks(
 }
 
 testsuite::GrpcControl ParseGrpcControl(
-    const components::ComponentConfig& config) {
+    const components::ComponentConfig& config,
+    std::chrono::milliseconds increased_timeout) {
   bool is_tls_enabled{config["testsuite-grpc-is-tls-enabled"].As<bool>(false)};
   std::chrono::milliseconds timeout{
-      config["testsuite-grpc-client-timeout-ms"].As<int>(30000)};
+      config["testsuite-grpc-client-timeout-ms"].As<int>(
+          increased_timeout.count())};
 
   return testsuite::GrpcControl(timeout, is_tls_enabled);
 }
@@ -66,18 +74,23 @@ testsuite::GrpcControl ParseGrpcControl(
 }  // namespace
 
 TestsuiteSupport::TestsuiteSupport(const components::ComponentConfig& config,
-                                   const components::ComponentContext&)
+                                   const components::ComponentContext& context)
     : increased_timeout_(
           config["testsuite-increased-timeout"].As<std::chrono::milliseconds>(
               0)),
       cache_control_(
           ParsePeriodicUpdatesMode(config["testsuite-periodic-update-enabled"]
-                                       .As<std::optional<bool>>())),
+                                       .As<std::optional<bool>>()),
+          config["cache-update-execution"].As<std::string>("concurrent") ==
+                  "concurrent"
+              ? testsuite::CacheControl::ExecPolicy::kConcurrent
+              : testsuite::CacheControl::ExecPolicy::kSequential,
+          components::State{context}),
       dump_control_(ParseDumpControl(config)),
-      postgres_control_(ParsePostgresControl(config)),
-      redis_control_(ParseRedisControl(config)),
+      postgres_control_(ParsePostgresControl(config, GetIncreasedTimeout())),
+      redis_control_(ParseRedisControl(config, GetIncreasedTimeout())),
       testsuite_tasks_(ParseTestsuiteTasks(config)),
-      grpc_control_(ParseGrpcControl(config)) {}
+      grpc_control_(ParseGrpcControl(config, GetIncreasedTimeout())) {}
 
 TestsuiteSupport::~TestsuiteSupport() = default;
 
@@ -169,6 +182,18 @@ properties:
         type: string
         description: increase timeouts in testing environments. Overrides postgres, redis and grpc timeouts if these are missing
         defaultDescription: 0ms
+    cache-update-execution:
+        type: string
+        description: |
+           If 'sequential' the caches are updated by testsuite sequentially
+           in the order for cache component registration, which makes sense
+           if service has components that push value into a cache component.
+           If 'concurrent' the caches are updated concurrently with respect
+           to the cache component dependencies.
+        enum:
+          - concurrent
+          - sequential
+        defaultDescription: concurrent
 )");
 }
 

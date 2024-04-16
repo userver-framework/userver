@@ -184,7 +184,9 @@ bool WaitListLight::GetAndResetSignal() noexcept {
 }
 
 bool WaitListLight::IsSignaled() const noexcept {
-  return impl_->waiter.load<std::memory_order_seq_cst>().context == kSignaled;
+  const auto torn_waiter = impl_->waiter.LoadWithTearing();
+  std::atomic_thread_fence(std::memory_order_acquire);
+  return torn_waiter.context == kSignaled;
 }
 
 bool WaitListLight::IsEmptyRelaxed() noexcept {

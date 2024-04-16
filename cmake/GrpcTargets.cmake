@@ -5,6 +5,7 @@ include_guard()
 
 if(USERVER_CONAN)
   find_package(gRPC REQUIRED)
+  find_package(Protobuf REQUIRED)  # For Protobuf_VERSION
   set(USERVER_PROTOBUF_IMPORT_DIR "${protobuf_INCLUDE_DIR}")
   get_target_property(PROTO_GRPC_CPP_PLUGIN gRPC::grpc_cpp_plugin LOCATION)
   get_target_property(PROTO_GRPC_PYTHON_PLUGIN gRPC::grpc_python_plugin LOCATION)
@@ -24,6 +25,11 @@ else()
   include(SetupGrpc)
 endif()
 
+get_filename_component(USERVER_DIR "${CMAKE_CURRENT_LIST_DIR}" DIRECTORY)
+if(NOT REQUIREMENTS_PATH_FOR_GRPC)
+    set(REQUIREMENTS_PATH_FOR_GRPC "${USERVER_DIR}/scripts/grpc")
+endif()
+
 if (NOT USERVER_PROTOBUF_IMPORT_DIR)
   message(FATAL_ERROR "Invalid Protobuf package")
 endif()
@@ -31,8 +37,7 @@ if (NOT gRPC_VERSION)
   message(FATAL_ERROR "Invalid gRPC package")
 endif()
 
-get_filename_component(USERVER_DIR "${CMAKE_CURRENT_LIST_DIR}" DIRECTORY)
-set(PROTO_GRPC_USRV_PLUGIN "${USERVER_DIR}/scripts/grpc/protoc_usrv_plugin.sh")
+set(PROTO_GRPC_USRV_PLUGIN "${REQUIREMENTS_PATH_FOR_GRPC}/protoc_usrv_plugin.sh")
 
 message(STATUS "Protobuf version: ${Protobuf_VERSION}")
 message(STATUS "gRPC version: ${gRPC_VERSION}")
@@ -42,15 +47,27 @@ if(NOT USERVER_CONAN)
   include(UserverTestsuite)
 endif()
 
-set(file_requirements_protobuf "requirements.txt")
-if(Protobuf_VERSION VERSION_LESS 3.20.0)
-  set(file_requirements_protobuf "requirements-old.txt")
+if(Protobuf_VERSION VERSION_GREATER_EQUAL 5.26.0 AND
+    Protobuf_VERSION VERSION_LESS 6.0.0 OR
+    Protobuf_VERSION VERSION_GREATER_EQUAL 26.0.0)
+  set(file_requirements_protobuf "requirements-5.txt")
+elseif(Protobuf_VERSION VERSION_GREATER_EQUAL 3.20.0 AND
+    Protobuf_VERSION VERSION_LESS 4.0.0 OR
+    Protobuf_VERSION VERSION_GREATER_EQUAL 4.20.0 AND
+    Protobuf_VERSION VERSION_LESS 5.0.0 OR
+    Protobuf_VERSION VERSION_GREATER_EQUAL 20.0.0)
+  set(file_requirements_protobuf "requirements-4.txt")
+elseif(Protobuf_VERSION VERSION_GREATER 3.0.0 AND
+    Protobuf_VERSION VERSION_LESS 4.0.0)
+  set(file_requirements_protobuf "requirements-3.txt")
+else()
+  message(FATAL_ERROR "Unsupported Protobuf_VERSION: ${Protobuf_VERSION}")
 endif()
 
 userver_venv_setup(
     NAME userver-grpc
     PYTHON_OUTPUT_VAR USERVER_GRPC_PYTHON_BINARY
-    REQUIREMENTS "${USERVER_DIR}/scripts/grpc/${file_requirements_protobuf}"
+    REQUIREMENTS "${REQUIREMENTS_PATH_FOR_GRPC}/${file_requirements_protobuf}"
     UNIQUE
 )
 set(ENV{USERVER_GRPC_PYTHON_BINARY} "${USERVER_GRPC_PYTHON_BINARY}")
@@ -66,6 +83,7 @@ endif()
 if(NOT PROTO_GRPC_PYTHON_PLUGIN)
   message(FATAL_ERROR "grpc_python_plugin not found")
 endif()
+
 
 function(userver_generate_grpc_files)
   set(options)
@@ -263,10 +281,12 @@ function(userver_add_grpc_library NAME)
   )
   add_library(${NAME} STATIC ${generated_sources} ${generated_usrv_sources})
   target_compile_options(${NAME} PUBLIC -Wno-unused-parameter)
-  target_include_directories(${NAME} SYSTEM PUBLIC ${include_paths})
+  target_include_directories(${NAME} SYSTEM PUBLIC $<BUILD_INTERFACE:${include_paths}>)
 
   if(USERVER_CONAN AND NOT CMAKE_PROJECT_NAME STREQUAL userver)
     target_link_libraries(${NAME} PUBLIC userver::grpc)
+  elseif (TARGET userver::userver-grpc)
+    target_link_libraries(${NAME} PUBLIC userver::userver-grpc)
   else()
     target_link_libraries(${NAME} PUBLIC userver-grpc)
   endif()

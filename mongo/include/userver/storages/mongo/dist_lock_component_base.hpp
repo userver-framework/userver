@@ -81,6 +81,9 @@ class DistLockComponentBase : public components::LoggableComponentBase {
   /// {
   ///     while (!engine::ShouldCancel())
   ///     {
+  ///         // Start a new trace_id
+  ///         auto span = tracing::Span::MakeRootSpan("my-dist-lock");
+  ///
   ///         // If Foo() or other function in DoWork() throws an exception,
   ///         // DoWork() will be restarted in `restart-delay` seconds.
   ///         Foo();

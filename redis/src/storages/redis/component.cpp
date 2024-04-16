@@ -302,7 +302,6 @@ void Redis::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
 
   auto cc = std::make_shared<redis::CommandControl>(
       redis_config.default_command_control);
-  const auto auto_topology = redis_config.redis_cluster_autotopology_enabled;
   for (auto& it : sentinels_) {
     const auto& name = it.first;
     auto& client = it.second;
@@ -315,7 +314,6 @@ void Redis::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
     client->SetRetryBudgetSettings(
         redis_config.retry_budget_settings.GetOptional(name).value_or(
             utils::RetryBudgetSettings{}));
-    client->SetClusterAutoTopology(auto_topology);
   }
 
   auto subscriber_cc = std::make_shared<redis::CommandControl>(
@@ -325,7 +323,6 @@ void Redis::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
     subscribe_client.SetConfigDefaultCommandControl(subscriber_cc);
     subscribe_client.SetRebalanceMinInterval(
         redis_config.subscriptions_rebalance_min_interval);
-    subscribe_client.SetClusterAutoTopology(auto_topology);
   }
 
   auto metrics_settings = metrics_settings_.Read();

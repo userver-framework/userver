@@ -20,15 +20,14 @@ void OnConditionVariableSpuriousWakeup() {
 template <typename MutexType>
 class CvWaitStrategy final : public WaitStrategy {
  public:
-  CvWaitStrategy(Deadline deadline, WaitList& waiters, TaskContext& current,
+  CvWaitStrategy(WaitList& waiters, TaskContext& current,
                  std::unique_lock<MutexType>& mutex_lock) noexcept
-      : WaitStrategy(deadline),
-        waiters_(waiters),
+      : waiters_(waiters),
         waiter_token_(waiters_),
         current_(current),
         mutex_lock_(mutex_lock) {}
 
-  void SetupWakeups() override {
+  EarlyWakeup SetupWakeups() override {
     UASSERT(mutex_lock_);
     UASSERT(current_.IsCurrent());
     {
@@ -37,9 +36,13 @@ class CvWaitStrategy final : public WaitStrategy {
     }
 
     mutex_lock_.unlock();
+    // A race is not possible here, because check + Append is performed under
+    // mutex_lock_, and user state that defines readiness should only be changed
+    // by user under mutex_lock_.
+    return EarlyWakeup{false};
   }
 
-  void DisableWakeups() override {
+  void DisableWakeups() noexcept override {
     UASSERT(current_.IsCurrent());
 
     WaitList::Lock waiters_lock{waiters_};
@@ -72,8 +75,8 @@ CvStatus ConditionVariableAny<MutexType>::WaitUntil(
 
   auto wakeup_source = TaskContext::WakeupSource::kNone;
   {
-    CvWaitStrategy<MutexType> wait_manager(deadline, *waiters_, current, lock);
-    wakeup_source = current.Sleep(wait_manager);
+    CvWaitStrategy<MutexType> wait_manager(*waiters_, current, lock);
+    wakeup_source = current.Sleep(wait_manager, deadline);
   }
   // re-lock the mutex after it's been released in SetupWakeups()
   // lock.owns_lock() can occur on an immediate cancellation

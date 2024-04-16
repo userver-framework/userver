@@ -13,6 +13,7 @@
 #include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/storages/postgres/dsn.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
+#include <userver/storages/postgres/query_queue.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -381,6 +382,80 @@ UTEST_P(PostgrePool, CheckUserTypes) {
           {1, 10, 10}, conn_settings, {}, GetTestCmdCtls(), {}, {}, {},
           dynamic_config::GetDefaultSource()),
       pg::UserTypeError);
+}
+
+UTEST_P(PostgrePool, ForQueryQueueMoveAssign) {
+  if (GetParam() != pg::InitMode::kSync) {
+    return;
+  }
+
+  auto pool = pg::detail::ConnectionPool::Create(
+      GetDsnFromEnv(), nullptr, GetTaskProcessor(), "", GetParam(), {2, 2, 10},
+      kPipelineEnabled, {}, GetTestCmdCtls(), {}, {}, {},
+      dynamic_config::GetDefaultSource());
+
+  constexpr pg::CommandControl kDefaultCC{utest::kMaxTestWaitTime,
+                                          utest::kMaxTestWaitTime};
+  auto conn = pool->Acquire(MakeDeadline());
+  if (!conn->IsPipelineActive()) {
+    return;
+  }
+
+  pg::QueryQueue query_queue{kDefaultCC, std::move(conn)};
+  query_queue.Push(kDefaultCC, "SELECT 1");
+
+  pg::QueryQueue other_queue{kDefaultCC, pool->Acquire(MakeDeadline())};
+  other_queue.Push(kDefaultCC, "SELECT 2");
+
+  other_queue = std::move(query_queue);
+  std::vector<pg::ResultSet> result{};
+  UEXPECT_NO_THROW(result = other_queue.Collect(utest::kMaxTestWaitTime));
+
+  ASSERT_EQ(result.size(), 1);
+  EXPECT_EQ(
+      result.front().AsSingleRow<int>(),
+      1 /* from the moved-from query queue, SELECT 2 should be discarded */);
+}
+
+UTEST_P(PostgrePool, ForQueryQueueBeingNonTransactional) {
+  if (GetParam() != pg::InitMode::kSync) {
+    return;
+  }
+
+  auto pool = pg::detail::ConnectionPool::Create(
+      GetDsnFromEnv(), nullptr, GetTaskProcessor(), "", GetParam(), {1, 1, 10},
+      kOmitDescribeAndPipelineEnabled, {}, GetTestCmdCtls(), {}, {}, {},
+      dynamic_config::GetDefaultSource());
+
+  constexpr pg::CommandControl kDefaultCC{utest::kMaxTestWaitTime,
+                                          utest::kMaxTestWaitTime};
+
+  auto conn = pool->Acquire(MakeDeadline());
+  if (!conn->IsPipelineActive()) {
+    return;
+  }
+  // We pool the same connection, so creating a temporary table is fine
+  conn->Execute(
+      "CREATE TEMP TABLE qq_non_transactional_test(id INT PRIMARY KEY)");
+
+  {
+    pg::QueryQueue query_queue{kDefaultCC, std::move(conn)};
+    // This query will fail
+    query_queue.Push(kDefaultCC, "SELECT $1/$2", 1, 0);
+    // But this one will be executed successfully nonetheless
+    query_queue.Push(kDefaultCC,
+                     "INSERT INTO qq_non_transactional_test(id) VALUES($1)", 1);
+
+    std::vector<pg::ResultSet> result{};
+    EXPECT_ANY_THROW(result = query_queue.Collect(kDefaultCC.execute));
+  }
+
+  const auto inserted_values =
+      pool->Acquire(MakeDeadline())
+          ->Execute("SELECT id FROM qq_non_transactional_test")
+          .AsContainer<std::vector<int>>();
+  ASSERT_EQ(inserted_values.size(), 1);
+  EXPECT_EQ(inserted_values.front(), 1);
 }
 
 INSTANTIATE_UTEST_SUITE_P(

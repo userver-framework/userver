@@ -38,6 +38,7 @@ file(GLOB_RECURSE BENCH_SOURCES
 list (REMOVE_ITEM SOURCES ${BENCH_SOURCES})
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
+add_library(userver::mongo ALIAS ${PROJECT_NAME})
 
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
@@ -49,12 +50,25 @@ target_link_libraries(${PROJECT_NAME}
 target_include_directories(
   ${PROJECT_NAME}
   PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 target_include_directories (${PROJECT_NAME} SYSTEM PRIVATE
   $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
+)
+
+_userver_directory_install(COMPONENT mongo
+  DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
+)
+_userver_install_targets(COMPONENT mongo TARGETS ${PROJECT_NAME})
+
+_userver_directory_install(COMPONENT mongo FILES
+    "${USERVER_ROOT_DIR}/cmake/install/userver-mongo-config.cmake"
+    "${CMAKE_BINARY_DIR}/cmake_generated/Findmongoc.cmake"
+    "${CMAKE_BINARY_DIR}/cmake_generated/Findbson.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
 )
 
 if (USERVER_IS_THE_ROOT_PROJECT)

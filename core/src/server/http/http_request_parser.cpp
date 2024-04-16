@@ -11,7 +11,7 @@ namespace server::http {
 
 namespace {
 
-HttpMethod ConvertHttpMethod(http_method method) {
+HttpMethod ConvertHttpMethod(llhttp_method method) {
   switch (method) {
     case HTTP_DELETE:
       return HttpMethod::kDelete;
@@ -36,8 +36,9 @@ HttpMethod ConvertHttpMethod(http_method method) {
 
 }  // namespace
 
-const http_parser_settings HttpRequestParser::parser_settings = []() {
-  http_parser_settings settings{};
+const llhttp_settings_t HttpRequestParser::parser_settings = []() {
+  llhttp_settings_t settings{};
+  llhttp_settings_init(&settings);
   settings.on_message_begin = HttpRequestParser::OnMessageBegin;
   settings.on_url = HttpRequestParser::OnUrl;
   settings.on_header_field = HttpRequestParser::OnHeaderField;
@@ -58,16 +59,17 @@ HttpRequestParser::HttpRequestParser(
       on_new_request_cb_(std::move(on_new_request_cb)),
       stats_(stats),
       data_accounter_(data_accounter) {
-  http_parser_init(&parser_, HTTP_REQUEST);
+  llhttp_init(&parser_, HTTP_REQUEST, &parser_settings);
   parser_.data = this;
 }
 
 bool HttpRequestParser::Parse(const char* data, size_t size) {
-  size_t parsed = http_parser_execute(&parser_, &parser_settings, data, size);
-  if (parsed != size) {
+  const auto err = llhttp_execute(&parser_, data, size);
+  if (err != HPE_OK) {
+    const auto parsed =
+        static_cast<size_t>(llhttp_get_error_pos(&parser_) - data + 1);
     LOG_WARNING() << "parsed=" << parsed << " size=" << size
-                  << " error_description="
-                  << http_errno_description(HTTP_PARSER_ERRNO(&parser_));
+                  << " error_description=" << llhttp_errno_name(err);
     FinalizeRequest();
     return false;
   }
@@ -78,62 +80,61 @@ bool HttpRequestParser::Parse(const char* data, size_t size) {
   return true;
 }
 
-int HttpRequestParser::OnMessageBegin(http_parser* p) {
+int HttpRequestParser::OnMessageBegin(llhttp_t* p) {
   auto* http_request_parser = static_cast<HttpRequestParser*>(p->data);
   UASSERT(http_request_parser != nullptr);
   return http_request_parser->OnMessageBeginImpl(p);
 }
 
-int HttpRequestParser::OnHeadersComplete(http_parser* p) {
+int HttpRequestParser::OnHeadersComplete(llhttp_t* p) {
   auto* http_request_parser = static_cast<HttpRequestParser*>(p->data);
   UASSERT(http_request_parser != nullptr);
   return http_request_parser->OnHeadersCompleteImpl(p);
 }
 
-int HttpRequestParser::OnMessageComplete(http_parser* p) {
+int HttpRequestParser::OnMessageComplete(llhttp_t* p) {
   auto* http_request_parser = static_cast<HttpRequestParser*>(p->data);
   UASSERT(http_request_parser != nullptr);
   return http_request_parser->OnMessageCompleteImpl(p);
 }
 
-int HttpRequestParser::OnUrl(http_parser* p, const char* data, size_t size) {
+int HttpRequestParser::OnUrl(llhttp_t* p, const char* data, size_t size) {
   auto* http_request_parser = static_cast<HttpRequestParser*>(p->data);
   UASSERT(http_request_parser != nullptr);
   return http_request_parser->OnUrlImpl(p, data, size);
 }
 
-int HttpRequestParser::OnHeaderField(http_parser* p, const char* data,
+int HttpRequestParser::OnHeaderField(llhttp_t* p, const char* data,
                                      size_t size) {
   auto* http_request_parser = static_cast<HttpRequestParser*>(p->data);
   UASSERT(http_request_parser != nullptr);
   return http_request_parser->OnHeaderFieldImpl(p, data, size);
 }
 
-int HttpRequestParser::OnHeaderValue(http_parser* p, const char* data,
+int HttpRequestParser::OnHeaderValue(llhttp_t* p, const char* data,
                                      size_t size) {
   auto* http_request_parser = static_cast<HttpRequestParser*>(p->data);
   UASSERT(http_request_parser != nullptr);
   return http_request_parser->OnHeaderValueImpl(p, data, size);
 }
 
-int HttpRequestParser::OnBody(http_parser* p, const char* data, size_t size) {
+int HttpRequestParser::OnBody(llhttp_t* p, const char* data, size_t size) {
   auto* http_request_parser = static_cast<HttpRequestParser*>(p->data);
   UASSERT(http_request_parser != nullptr);
   return http_request_parser->OnBodyImpl(p, data, size);
 }
 
-int HttpRequestParser::OnMessageBeginImpl(http_parser*) {
+int HttpRequestParser::OnMessageBeginImpl(llhttp_t*) {
   LOG_TRACE() << "message begin";
   CreateRequestConstructor();
   return 0;
 }
 
-int HttpRequestParser::OnUrlImpl(http_parser* p, const char* data,
-                                 size_t size) {
+int HttpRequestParser::OnUrlImpl(llhttp_t* p, const char* data, size_t size) {
   UASSERT(request_constructor_);
   LOG_TRACE() << "url: '" << std::string_view(data, size) << '\'';
   request_constructor_->SetMethod(
-      ConvertHttpMethod(static_cast<http_method>(p->method)));
+      ConvertHttpMethod(static_cast<llhttp_method>(p->method)));
   try {
     request_constructor_->AppendUrl(data, size);
   } catch (const std::exception& ex) {
@@ -143,7 +144,7 @@ int HttpRequestParser::OnUrlImpl(http_parser* p, const char* data,
   return 0;
 }
 
-int HttpRequestParser::OnHeaderFieldImpl(http_parser* p, const char* data,
+int HttpRequestParser::OnHeaderFieldImpl(llhttp_t* p, const char* data,
                                          size_t size) {
   UASSERT(request_constructor_);
   LOG_TRACE() << "header field: '" << std::string_view(data, size) << "'";
@@ -157,7 +158,7 @@ int HttpRequestParser::OnHeaderFieldImpl(http_parser* p, const char* data,
   return 0;
 }
 
-int HttpRequestParser::OnHeaderValueImpl(http_parser* p, const char* data,
+int HttpRequestParser::OnHeaderValueImpl(llhttp_t* p, const char* data,
                                          size_t size) {
   UASSERT(request_constructor_);
   if (!CheckUrlComplete(p)) return -1;
@@ -171,7 +172,7 @@ int HttpRequestParser::OnHeaderValueImpl(http_parser* p, const char* data,
   return 0;
 }
 
-int HttpRequestParser::OnHeadersCompleteImpl(http_parser* p) {
+int HttpRequestParser::OnHeadersCompleteImpl(llhttp_t* p) {
   UASSERT(request_constructor_);
   if (!CheckUrlComplete(p)) return -1;
   try {
@@ -184,8 +185,7 @@ int HttpRequestParser::OnHeadersCompleteImpl(http_parser* p) {
   return 0;
 }
 
-int HttpRequestParser::OnBodyImpl(http_parser* p, const char* data,
-                                  size_t size) {
+int HttpRequestParser::OnBodyImpl(llhttp_t* p, const char* data, size_t size) {
   UASSERT(request_constructor_);
   if (!CheckUrlComplete(p)) return -1;
   LOG_TRACE() << "body: '" << std::string_view(data, size) << "'";
@@ -198,12 +198,12 @@ int HttpRequestParser::OnBodyImpl(http_parser* p, const char* data,
   return 0;
 }
 
-int HttpRequestParser::OnMessageCompleteImpl(http_parser* p) {
+int HttpRequestParser::OnMessageCompleteImpl(llhttp_t* p) {
   UASSERT(request_constructor_);
   if (p->upgrade) {
     return -1;  // error
   }
-  request_constructor_->SetIsFinal(!http_should_keep_alive(p));
+  request_constructor_->SetIsFinal(!llhttp_should_keep_alive(p));
   if (!CheckUrlComplete(p)) return -1;
   LOG_TRACE() << "message complete";
   if (!FinalizeRequest()) return -1;
@@ -211,17 +211,17 @@ int HttpRequestParser::OnMessageCompleteImpl(http_parser* p) {
 }
 
 void HttpRequestParser::CreateRequestConstructor() {
-  ++stats_.parsing_request_count;
+  stats_.parsing_request_count.Add(1);
   request_constructor_.emplace(request_constructor_config_, handler_info_index_,
                                data_accounter_);
   url_complete_ = false;
 }
 
-bool HttpRequestParser::CheckUrlComplete(http_parser* p) {
+bool HttpRequestParser::CheckUrlComplete(llhttp_t* p) {
   if (url_complete_) return true;
   url_complete_ = true;
   request_constructor_->SetMethod(
-      ConvertHttpMethod(static_cast<http_method>(p->method)));
+      ConvertHttpMethod(static_cast<llhttp_method>(p->method)));
   request_constructor_->SetHttpMajor(p->http_major);
   request_constructor_->SetHttpMinor(p->http_minor);
   try {
@@ -235,7 +235,7 @@ bool HttpRequestParser::CheckUrlComplete(http_parser* p) {
 
 bool HttpRequestParser::FinalizeRequest() {
   bool res = FinalizeRequestImpl();
-  --stats_.parsing_request_count;
+  stats_.parsing_request_count.Subtract(1);
   request_constructor_.reset();
   return res;
 }

@@ -327,7 +327,7 @@ properties:
         enum:
          - auto
          - manual
-        description: how to learn a connection pool size
+        description: how to learn the `max_pool_size`
 )");
 }
 

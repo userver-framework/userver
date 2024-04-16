@@ -396,7 +396,7 @@ requiring the developer to always keep defaults up-to-date with production
 requirements. Another reason for such behavior is that the dynamic configs are
 used to fix up incidents, so such check of the dynamic configs service
 at first deployment prevents incident escalation due to unnoticed
-mis-configuration (missing routes to dynamic config service, broken
+misconfiguration (missing routes to dynamic config service, broken
 authorization, ...).
 
 If you still wish to boot the service using just dynamic config defaults, you

@@ -104,6 +104,7 @@ class Span::Impl
 
   friend class Span;
   friend class SpanBuilder;
+  friend class TagScope;
 };
 
 // Use list instead of stack to avoid UB in case of "pop non-last item"

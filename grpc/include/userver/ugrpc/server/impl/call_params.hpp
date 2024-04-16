@@ -8,8 +8,10 @@
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/logging/fwd.hpp>
 #include <userver/tracing/span.hpp>
+#include <userver/utils/any_storage.hpp>
 
 #include <userver/ugrpc/impl/statistics_scope.hpp>
+#include <userver/ugrpc/server/storage_context.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -21,6 +23,7 @@ struct CallParams {
   ugrpc::impl::RpcStatisticsScope& statistics;
   logging::LoggerRef access_tskv_logger;
   tracing::Span& call_span;
+  utils::AnyStorage<StorageContext>& storage_context;
 };
 
 }  // namespace ugrpc::server::impl

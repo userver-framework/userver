@@ -192,7 +192,8 @@ TEST_F(ServerMinimalComponentList, InvalidDynamicConfigParam) {
       components::RunOnce(components::InMemoryConfig{GetStaticConfig()},
                           components::MinimalServerComponentList()),
       std::exception,
-      "Field 'USERVER_LOG_DYNAMIC_DEBUG.force-enabled' is of a wrong type");
+      "Error at path 'USERVER_LOG_DYNAMIC_DEBUG.force-enabled': Wrong type. "
+      "Expected: arrayValue, actual: stringValue");
 }
 
 USERVER_NAMESPACE_END

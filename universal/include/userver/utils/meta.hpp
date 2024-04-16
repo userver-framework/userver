@@ -35,6 +35,14 @@ template <typename T>
 using IteratorType = std::enable_if_t<kIsDetected<IsRange, T>,
                                       decltype(begin(std::declval<T&>()))>;
 
+template <typename T, typename = void>
+struct IsIterator : std::false_type {};
+
+template <typename T>
+struct IsIterator<
+    T, std::void_t<typename std::iterator_traits<T>::iterator_category>>
+    : std::true_type {};
+
 template <typename T>
 using RangeValueType =
     typename std::iterator_traits<DetectedType<IteratorType, T>>::value_type;
@@ -118,6 +126,9 @@ using RangeValueType = DetectedType<impl::RangeValueType, T>;
 template <typename T>
 inline constexpr bool kIsRecursiveRange =
     std::is_same_v<DetectedType<impl::RangeValueType, T>, T>;
+
+template <typename T>
+inline constexpr bool kIsIterator = impl::IsIterator<T>::value;
 
 template <typename T>
 inline constexpr bool kIsOptional = kIsInstantiationOf<std::optional, T>;

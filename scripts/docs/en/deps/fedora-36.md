@@ -12,7 +12,6 @@ grpc-devel
 grpc-plugins
 gtest-devel
 hiredis-devel
-http-parser-devel
 jemalloc-devel
 libasan
 libatomic

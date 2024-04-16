@@ -58,11 +58,11 @@ class AnyMovable final {
 
   /// In-place constructs an object of the specified type
   template <typename ValueType, typename... Args>
-  void Emplace(Args&&... args);
+  ValueType& Emplace(Args&&... args);
 
   /// In-place constructs an object of the specified type
   template <typename ValueType, typename Item, typename... Args>
-  void Emplace(std::initializer_list<Item> list, Args&&... args);
+  ValueType& Emplace(std::initializer_list<Item> list, Args&&... args);
 
  private:
   struct HolderBase;
@@ -176,13 +176,16 @@ AnyMovable& AnyMovable::operator=(ValueType&& rhs) {
 }
 
 template <typename ValueType, typename... Args>
-void AnyMovable::Emplace(Args&&... args) {
+ValueType& AnyMovable::Emplace(Args&&... args) {
   content_ = Holder<ValueType>::Make(std::forward<Args>(args)...);
+  return static_cast<Holder<ValueType>&>(*content_).held;
 }
 
 template <typename ValueType, typename Item, typename... Args>
-void AnyMovable::Emplace(std::initializer_list<Item> list, Args&&... args) {
+ValueType& AnyMovable::Emplace(std::initializer_list<Item> list,
+                               Args&&... args) {
   content_ = Holder<ValueType>::Make(list, std::forward<Args>(args)...);
+  return static_cast<Holder<ValueType>&>(*content_).held;
 }
 
 template <typename ValueType>

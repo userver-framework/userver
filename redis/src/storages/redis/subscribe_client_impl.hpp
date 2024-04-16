@@ -43,7 +43,12 @@ class SubscribeClientImpl final : public SubscribeClient {
       std::string pattern, SubscriptionToken::OnPmessageCb on_pmessage_cb,
       const USERVER_NAMESPACE::redis::CommandControl& command_control) override;
 
+  SubscriptionToken Ssubscribe(
+      std::string channel, SubscriptionToken::OnMessageCb on_message_cb,
+      const USERVER_NAMESPACE::redis::CommandControl& command_control) override;
+
   size_t ShardsCount() const override;
+  bool IsInClusterMode() const override;
 
   void WaitConnectedOnce(
       USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected);

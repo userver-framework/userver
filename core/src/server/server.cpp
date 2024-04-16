@@ -19,6 +19,7 @@
 #include <server/requests_view.hpp>
 #include <server/server_config.hpp>
 #include <userver/fs/blocking/read.hpp>
+#include <userver/server/middlewares/configuration.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -115,8 +116,9 @@ class ServerImpl final {
   std::size_t GetThrottlableHandlersCount() const;
   std::chrono::milliseconds GetAvgRequestTimeMs() const;
   const http::HttpRequestHandler& GetHttpRequestHandler(bool is_monitor) const;
-  net::Stats GetServerStats() const;
+  net::StatsAggregation GetServerStats() const;
   const ServerConfig& GetServerConfig() const { return config_; }
+  const std::vector<std::string>& GetMiddlewares() const;
 
   RequestsView& GetRequestsView();
   void WriteTotalHandlerStatistics(utils::statistics::Writer& writer) const;
@@ -138,6 +140,7 @@ class ServerImpl final {
   RequestsView requests_view_{};
 
   ServerConfig config_;
+  std::vector<std::string> middlewares_;
 };
 
 ServerImpl::ServerImpl(ServerConfig config,
@@ -164,6 +167,11 @@ ServerImpl::ServerImpl(ServerConfig config,
     monitor_port_info_.Init(config_, *config_.monitor_listener,
                             component_context, true);
   }
+
+  middlewares_ = component_context
+                     .FindComponent<middlewares::PipelineBuilder>(
+                         config_.middleware_pipeline_builder)
+                     .BuildPipeline(middlewares::DefaultPipeline());
 
   LOG_INFO() << "Server is created, listening for incoming connections.";
 }
@@ -253,8 +261,8 @@ const http::HttpRequestHandler& ServerImpl::GetHttpRequestHandler(
   return *main_port_info_.request_handler_;
 }
 
-net::Stats ServerImpl::GetServerStats() const {
-  net::Stats summary;
+net::StatsAggregation ServerImpl::GetServerStats() const {
+  net::StatsAggregation summary;
 
   std::shared_lock lock{on_stop_mutex_};
   if (is_stopping_) return summary;
@@ -263,6 +271,10 @@ net::Stats ServerImpl::GetServerStats() const {
   }
 
   return summary;
+}
+
+const std::vector<std::string>& ServerImpl::GetMiddlewares() const {
+  return middlewares_;
 }
 
 RequestsView& ServerImpl::GetRequestsView() {
@@ -313,9 +325,8 @@ void ServerImpl::SetRpsRatelimit(std::optional<size_t> rps) {
 }
 
 std::uint64_t ServerImpl::GetTotalRequests() const {
-  auto stats = GetServerStats();
-  return stats.active_request_count.load() +
-         stats.requests_processed_count.load();
+  const auto stats = GetServerStats();
+  return stats.active_request_count + stats.requests_processed_count;
 }
 
 Server::Server(ServerConfig config,
@@ -328,6 +339,10 @@ Server::~Server() = default;
 
 const ServerConfig& Server::GetConfig() const {
   return pimpl->GetServerConfig();
+}
+
+std::vector<std::string> Server::GetCommonMiddlewares() const {
+  return pimpl->GetMiddlewares();
 }
 
 void Server::WriteMonitorData(utils::statistics::Writer& writer) const {
@@ -351,7 +366,9 @@ void Server::WriteTotalHandlerStatistics(
   pimpl->WriteTotalHandlerStatistics(writer);
 }
 
-net::Stats Server::GetServerStats() const { return pimpl->GetServerStats(); }
+net::StatsAggregation Server::GetServerStats() const {
+  return pimpl->GetServerStats();
+}
 
 void Server::AddHandler(const handlers::HttpHandlerBase& handler,
                         engine::TaskProcessor& task_processor) {

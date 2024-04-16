@@ -74,7 +74,8 @@ std::string PostgresHandler::HandleRequestThrow(
   }
 
   if (type == "select" || type == kSelectSmallTimeout) {
-    const std::chrono::seconds timeout{type == kSelectSmallTimeout ? 1 : 30};
+    const std::chrono::milliseconds timeout{
+        type == kSelectSmallTimeout ? 800 : 30000};
 
     storages::postgres::CommandControl cc{timeout, timeout};
     TESTPOINT("before_trx_begin", {});

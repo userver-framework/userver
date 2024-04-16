@@ -3,7 +3,7 @@
 #include <healthchecking/healthchecking.pb.h>
 #include <healthchecking/healthchecking_service.usrv.pb.hpp>
 
-#include <userver/components/component_context.hpp>
+#include <userver/components/state.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -17,7 +17,7 @@ class HealthHandler final : public grpc::health::v1::HealthBase {
              ::grpc::health::v1::HealthCheckRequest&& request) override;
 
  private:
-  const components::ComponentContext& context_;
+  const components::State components_;
 };
 
 }  // namespace ugrpc::server

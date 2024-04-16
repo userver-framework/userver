@@ -5,7 +5,7 @@ PY3TEST()
 SIZE(MEDIUM)
 
 INCLUDE(
-    ${ARCADIA_ROOT}/taxi/external/recipes/redis/recipe-cluster.inc
+    ${ARCADIA_ROOT}/taxi/external/recipes/redis/recipe.inc
 )
 
 ALL_PYTEST_SRCS()

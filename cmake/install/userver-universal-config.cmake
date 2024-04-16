@@ -10,6 +10,7 @@ find_package(Boost REQUIRED COMPONENTS
     filesystem
     regex
     stacktrace_basic
+    OPTIONAL_COMPONENTS
     stacktrace_backtrace
 )
 find_package(Iconv REQUIRED)
@@ -21,10 +22,14 @@ find_package(cctz REQUIRED)
 find_package(CryptoPP REQUIRED)
 find_package(libyamlcpp REQUIRED)
 
+if (NOT USERVER_SANITIZE AND NOT MACOS)
+  include("${USERVER_CMAKE_DIR}/FindJemalloc.cmake")
+endif()
 include("${USERVER_CMAKE_DIR}/AddGoogleTests.cmake")
 include("${USERVER_CMAKE_DIR}/Sanitizers.cmake")
 include("${USERVER_CMAKE_DIR}/SetupLTO.cmake")
 include("${USERVER_CMAKE_DIR}/SetupLinker.cmake")
+include("${USERVER_CMAKE_DIR}/UserverSetupEnvironment.cmake")
 
 _userver_make_sanitize_blacklist()
 

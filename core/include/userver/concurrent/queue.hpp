@@ -236,6 +236,8 @@ class GenericQueue final
   void PrepareProducer() {
     std::size_t old_producers_count{};
     utils::AtomicUpdate(producers_count_, [&](auto old_value) {
+      UINVARIANT(QueuePolicy::kIsMultipleProducer || old_value != 1,
+                 "Incorrect usage of queue producers");
       old_producers_count = old_value;
       return old_value == kCreatedAndDead ? 1 : old_value + 1;
     });
@@ -243,12 +245,13 @@ class GenericQueue final
     if (old_producers_count == kCreatedAndDead) {
       consumer_side_.ResumeBlockingOnPop();
     }
-    UASSERT(QueuePolicy::kIsMultipleProducer || old_producers_count != 1);
   }
 
   void PrepareConsumer() {
     std::size_t old_consumers_count{};
     utils::AtomicUpdate(consumers_count_, [&](auto old_value) {
+      UINVARIANT(QueuePolicy::kIsMultipleConsumer || old_value != 1,
+                 "Incorrect usage of queue consumers");
       old_consumers_count = old_value;
       return old_value == kCreatedAndDead ? 1 : old_value + 1;
     });
@@ -256,7 +259,6 @@ class GenericQueue final
     if (old_consumers_count == kCreatedAndDead) {
       producer_side_.ResumeBlockingOnPush();
     }
-    UASSERT(QueuePolicy::kIsMultipleConsumer || old_consumers_count != 1);
   }
 
   void MarkConsumerIsDead() {

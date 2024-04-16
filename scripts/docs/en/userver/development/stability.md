@@ -8,16 +8,17 @@ is simple or there is a script to automate it.
 
 ## Versioning
 
-Userver follows the classical three-part versioning:
+Userver follows the two-part versioning since version `2.0`:
 
-`major.minor.patch`
+`major.minor`
 
-Example: `1.0.0`
+Examples: `2.0`, `2.1_rc`
 
 
 ## API stability
 
-API does not change between minor and patch version changes.
+We attempt to keep the API stable as long as it does not stand in the way of
+new features or better safety.
 
 Note that framework internals located in `*::impl::*` and `*::detail::*`
 namespaces have no stability guarantees. You should not use those in your code
@@ -40,8 +41,8 @@ could change to an alias or vice versa during the userver development process.
 
 Userver is meant for usage mostly as a static library that is linked with the
 application. Because of that userver has no Application **Binary** Interface
-(ABI) stability guarantees. While the API is kept stable, binary interface
-may change even on patch version change.
+(ABI) stability guarantees. Binary interface
+may change on any commit.
 
 However, you could redefine cmake options
 `USERVER_NAMESPACE`, `USERVER_NAMESPACE_BEGIN` and `USERVER_NAMESPACE_END` to

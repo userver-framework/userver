@@ -68,11 +68,15 @@ class ExpirableLruCache final {
     kUseCache,   ///< Cache value got from update function
   };
 
+  /// For the description of `ways` and `way_size`,
+  /// see the cache::NWayLRU::NWayLRU constructor.
   ExpirableLruCache(size_t ways, size_t way_size, const Hash& hash = Hash(),
                     const Equal& equal = Equal());
 
   ~ExpirableLruCache();
 
+  /// For the description of `way_size`,
+  /// see the cache::NWayLRU::NWayLRU constructor.
   void SetWaySize(size_t way_size);
 
   std::chrono::milliseconds GetMaxLifetime() const noexcept;

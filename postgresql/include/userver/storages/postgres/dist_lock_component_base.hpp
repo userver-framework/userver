@@ -49,7 +49,7 @@ namespace storages::postgres {
 /// lock-ttl       | TTL of the lock; must be at least as long as the duration between subsequent cancellation checks, otherwise brain split is possible | --
 /// pg-timeout     | timeout, must be less than lock-ttl/2 | --
 /// restart-delay  | how much time to wait after failed task restart | 100ms
-/// autostart      | if true, start automatically after component load | true
+/// autostart      | if true, start automatically after component load | false
 /// task-processor | the name of the TaskProcessor for running DoWork | main-task-processor
 /// testsuite-support | Enable testsuite support | false
 ///
@@ -92,6 +92,9 @@ class DistLockComponentBase : public components::LoggableComponentBase {
   /// {
   ///     while (!engine::ShouldCancel())
   ///     {
+  ///         // Start a new trace_id
+  ///         auto span = tracing::Span::MakeRootSpan("my-dist-lock");
+  ///
   ///         // If Foo() or other function in DoWork() throws an exception,
   ///         // DoWork() will be restarted in `restart-delay` seconds.
   ///         Foo();

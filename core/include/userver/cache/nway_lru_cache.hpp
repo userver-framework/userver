@@ -18,6 +18,19 @@ template <typename T, typename U, typename Hash = std::hash<T>,
           typename Equal = std::equal_to<T>>
 class NWayLRU final {
  public:
+  /// @param ways is the number of ways (a.k.a. shards, internal hash-maps),
+  /// into which elements are distributed based on their hash. Each shard is
+  /// protected by an individual mutex. Larger `ways` means more internal
+  /// hash-map instances and more memory usage, but less contention. A good
+  /// starting point is `ways=16`. If you encounter contention, you can increase
+  /// `ways` to something on the order of `256` or whatever your RAM constraints
+  /// allow.
+  ///
+  /// @param way_size is the maximum allowed amount of elements per way. When
+  /// the size of a way reaches this number, existing elements are deleted
+  /// according to the LRU policy.
+  ///
+  /// The maximum total number of elements is `ways * way_size`.
   NWayLRU(size_t ways, size_t way_size, const Hash& hash = Hash(),
           const Equal& equal = Equal());
 
@@ -42,6 +55,8 @@ class NWayLRU final {
 
   size_t GetSize() const;
 
+  /// For the description of `way_size`,
+  /// see the cache::NWayLRU::NWayLRU constructor.
   void UpdateWaySize(size_t way_size);
 
   void Write(dump::Writer& writer) const;

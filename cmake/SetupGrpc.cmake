@@ -54,6 +54,8 @@ include(SetupCAres)
 include(SetupProtobuf)
 include(DownloadUsingCPM)
 
+set(USERVER_GPRC_BUILD_FROM_SOURCE ON)
+
 CPMAddPackage(
     NAME gRPC
     VERSION 1.59.1

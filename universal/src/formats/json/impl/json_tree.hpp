@@ -1,7 +1,5 @@
 #pragma once
 
-#include <vector>
-
 #include <rapidjson/document.h>
 #include <boost/container/small_vector.hpp>
 

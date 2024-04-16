@@ -122,15 +122,15 @@ async def test_cached_name(call, gate, check_restore, gen_domain_name):
     assert response.status == 200
     assert response.text == SUCCESS_RESOLVE
 
-    gate.to_client_noop()
+    gate.to_client_drop()
 
     response = await call(resolve=name, check_query=CheckQuery.FROM_CACHE)
     assert response.status == 200
     assert response.text == SUCCESS_RESOLVE
 
 
-async def test_noop(call, gate, check_restore, gen_domain_name):
-    gate.to_client_noop()
+async def test_drop(call, gate, check_restore, gen_domain_name):
+    gate.to_client_drop()
 
     response = await call(check_query=CheckQuery.FROM_MOCK)
 

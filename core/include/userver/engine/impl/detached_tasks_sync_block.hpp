@@ -38,7 +38,7 @@ class DetachedTasksSyncBlock final {
 
  private:
   struct Impl;
-  utils::FastPimpl<Impl, 48, 8> impl_;
+  utils::FastPimpl<Impl, 96, 16> impl_;
 };
 
 }  // namespace engine::impl

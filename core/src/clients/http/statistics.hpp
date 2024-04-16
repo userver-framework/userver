@@ -24,6 +24,12 @@ class RequestStats final {
   explicit RequestStats(Statistics& stats);
   ~RequestStats();
 
+  RequestStats(const RequestStats&) = delete;
+  RequestStats& operator=(const RequestStats&) = delete;
+
+  RequestStats(RequestStats&&) noexcept;
+  RequestStats& operator=(RequestStats&&) = delete;
+
   void Start();
   void FinishOk(int code, unsigned int attempts) noexcept;
   void FinishEc(std::error_code ec, unsigned int attempts) noexcept;
@@ -38,7 +44,7 @@ class RequestStats final {
  private:
   void StoreTiming() noexcept;
 
-  Statistics& stats_;
+  Statistics* stats_;
   std::chrono::steady_clock::time_point start_time_;
 };
 
@@ -66,9 +72,7 @@ class Statistics {
  public:
   Statistics() = default;
 
-  std::shared_ptr<RequestStats> CreateRequestStats() {
-    return std::make_shared<RequestStats>(*this);
-  }
+  RequestStats CreateRequestStats() { return RequestStats{*this}; }
 
   enum class ErrorGroup {
     kOk,

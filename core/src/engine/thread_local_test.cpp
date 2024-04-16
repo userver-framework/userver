@@ -165,4 +165,70 @@ UTEST_MT(ThreadLocal, SafeThreadLocalWorks, 2) {
   UEXPECT_NO_THROW(sleep2.Get());
 }
 
+namespace {
+
+thread_local std::size_t manually_protected_var{};
+
+// Need for tests inner function for work with thread_local variables
+struct UserverCompilerThreadLocal {
+  static std::size_t* GetLocal() {
+    // Don't use it in production, use `compiler::ThreadLocal` instead
+    return &compiler::impl::ThreadLocal([] { return std::size_t{0}; });
+  }
+};
+
+// Need for tests defending macroses for work with thread_local variables
+struct ManuallyProtectedThreadLocal {
+  USERVER_IMPL_PREVENT_TLS_CACHING
+  static std::size_t* GetLocal() {
+    // Don't use it in production
+    auto ptr = &manually_protected_var;
+    // clang-format off
+    // NOLINTNEXTLINE(hicpp-no-assembler)
+    asm volatile("" : "+rm" (ptr));
+    // clang-format on
+    return ptr;
+  }
+};
+
+template <typename T>
+struct ThreadLocalTyped : public ::testing::Test {};
+
+using ThreadLocalTypes =
+    ::testing::Types<UserverCompilerThreadLocal, ManuallyProtectedThreadLocal>;
+
+}  // namespace
+
+TYPED_UTEST_SUITE(ThreadLocalTyped, ThreadLocalTypes);
+
+// Created 4 threads and 8 tasks for concurrency mode
+// Use thread_local variable with types `compiler::ThreadLocal` and
+// `thread_local` with macroses.
+// Compare pointer thread_local variable before
+// `engine::Yield` and after. Pointers must be different if thread_ids are
+// different
+TYPED_UTEST_MT(ThreadLocalTyped, SmallFunctionUseInnerTL, 4) {
+  constexpr std::size_t kNumTasks = 8;
+
+  std::vector<engine::TaskWithResult<void>> tasks;
+  tasks.reserve(kNumTasks);
+  for (std::size_t i = 0; i < kNumTasks; ++i) {
+    tasks.push_back(engine::AsyncNoSpan([&] {
+      for (auto i = 0; i < 1000; ++i) {
+        const auto thread_local_ptr_before = TypeParam::GetLocal();
+        const auto thread_id_before = std::this_thread::get_id();
+        engine::Yield();
+        const auto thread_local_ptr_after = TypeParam::GetLocal();
+        const auto thread_id_after = std::this_thread::get_id();
+        if (thread_id_before != thread_id_after) {
+          EXPECT_NE(thread_local_ptr_before, thread_local_ptr_after);
+        }
+      }
+    }));
+  }
+  for (auto& task : tasks) {
+    UEXPECT_NO_THROW(task.Get());
+  }
+}
+
 USERVER_NAMESPACE_END

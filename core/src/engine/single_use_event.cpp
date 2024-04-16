@@ -1,91 +1,92 @@
 #include <userver/engine/single_use_event.hpp>
 
+#include <userver/engine/exception.hpp>
 #include <userver/engine/task/cancel.hpp>
 
+#include <engine/impl/future_utils.hpp>
+#include <engine/impl/wait_list_light.hpp>
 #include <engine/task/task_context.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace engine {
-namespace {
 
-constexpr std::uintptr_t kNotSignaledState{0};
-constexpr std::uintptr_t kSignaledState{1};
+// Not considered implicitly noexcept on gcc-9.
+// NOLINTNEXTLINE(hicpp-use-equals-default,modernize-use-equals-default)
+SingleUseEvent::SingleUseEvent() noexcept {}
 
-class SingleUseEventWaitStrategy final : public impl::WaitStrategy {
- public:
-  SingleUseEventWaitStrategy(std::atomic<std::uintptr_t>& state,
-                             impl::TaskContext& current)
-      : WaitStrategy({}), state_(state), current_(current) {}
+SingleUseEvent::~SingleUseEvent() = default;
 
-  void SetupWakeups() override {
-    UASSERT_MSG(state_ == kNotSignaledState || state_ == kSignaledState,
-                "Someone else is waiting on the same SingleUseEvent");
-
-    auto expected = kNotSignaledState;
-    if (state_.compare_exchange_strong(
-            expected, reinterpret_cast<std::uintptr_t>(&current_))) {
-      // not signaled yet, keep sleeping
-      return;
-    }
-
-    // already signaled, wake up
-    UASSERT(state_ == kSignaledState);
-    current_.WakeupCurrent();
-    intrusive_ptr_release(&current_);
+void SingleUseEvent::Wait() {
+  switch (WaitUntil(Deadline{})) {
+    case FutureStatus::kReady:
+      break;
+    case FutureStatus::kTimeout:
+      UASSERT_MSG(false,
+                  "Timeout is not expected here due to unreachable "
+                  "Deadline at Sleep");
+#ifdef NDEBUG
+      [[fallthrough]];
+#endif
+    case FutureStatus::kCancelled:
+      throw WaitInterruptedException(current_task::CancellationReason());
   }
+}
 
-  void DisableWakeups() override {}
+FutureStatus SingleUseEvent::WaitUntil(Deadline deadline) {
+  impl::TaskContext& current = current_task::GetCurrentTaskContext();
+  impl::FutureWaitStrategy wait_strategy{*this, current};
+  const auto wakeup_source = current.Sleep(wait_strategy, deadline);
 
- private:
-  std::atomic<std::uintptr_t>& state_;
-  impl::TaskContext& current_;
-};
-
-}  // namespace
-
-SingleUseEvent::~SingleUseEvent() {
-  UASSERT_MSG(state_ == kNotSignaledState || state_ == kSignaledState,
-              "Someone is waiting on a SingleUseEvent that is being destroyed");
+  // There are no spurious wakeups, because the event is single-use: if a task
+  // has ever been notified by this SingleUseEvent, then the task will find
+  // the SingleUseEvent ready once it wakes up.
+  if (wakeup_source == impl::TaskContext::WakeupSource::kWaitList) {
+    UASSERT(waiters_->IsSignaled());
+  }
+  return impl::ToFutureStatus(wakeup_source);
 }
 
 void SingleUseEvent::WaitNonCancellable() noexcept {
-  UASSERT_MSG(state_ == kNotSignaledState || state_ == kSignaledState,
-              "Someone else is waiting on the same SingleUseEvent");
+  const TaskCancellationBlocker cancellation_blocker;
 
-  if (state_ == kSignaledState) return;  // optimistic path
-
-  impl::TaskContext& current = current_task::GetCurrentTaskContext();
-  intrusive_ptr_add_ref(&current);
-  SingleUseEventWaitStrategy wait_manager(state_, current);
-
-  const engine::TaskCancellationBlocker cancel_blocker;
-  [[maybe_unused]] const auto wakeup_source = current.Sleep(wait_manager);
-  UASSERT(wakeup_source == impl::TaskContext::WakeupSource::kWaitList);
-}
-
-void SingleUseEvent::Send() noexcept {
-  auto waiter = state_.exchange(kSignaledState);
-  UASSERT_MSG(waiter != kSignaledState,
-              "Send called twice in the same SingleUseEvent waiting session");
-
-  if (waiter != kNotSignaledState) {
-    auto& context = *reinterpret_cast<impl::TaskContext*>(waiter);
-    context.Wakeup(impl::TaskContext::WakeupSource::kWaitList,
-                   impl::TaskContext::NoEpoch{});
-    intrusive_ptr_release(&context);
+  switch (WaitUntil(Deadline{})) {
+    case FutureStatus::kReady:
+      break;
+    case FutureStatus::kTimeout:
+      UASSERT_MSG(false,
+                  "Timeout is not expected here due to unreachable "
+                  "Deadline at Sleep");
+      break;
+    case FutureStatus::kCancelled:
+      UASSERT_MSG(false,
+                  "Cancellation should have been blocked "
+                  "by TaskCancellationBlocker");
+      break;
   }
 }
 
-void SingleUseEvent::Reset() noexcept {
-  UASSERT_MSG(state_ == kSignaledState,
-              "Reset must not be called in the middle of a waiting session");
-  state_ = kNotSignaledState;
+void SingleUseEvent::Send() noexcept {
+  UASSERT_MSG(!waiters_->IsSignaled(),
+              "Multiple producers detected for the same SingleUseEvent");
+  waiters_->SetSignalAndWakeupOne();
 }
 
-bool SingleUseEvent::IsReady() const noexcept {
-  return state_ == kSignaledState;
+bool SingleUseEvent::IsReady() const noexcept { return waiters_->IsSignaled(); }
+
+impl::EarlyWakeup SingleUseEvent::TryAppendWaiter(impl::TaskContext& waiter) {
+  return impl::EarlyWakeup{waiters_->GetSignalOrAppend(&waiter)};
 }
+
+void SingleUseEvent::RemoveWaiter(impl::TaskContext& waiter) noexcept {
+  waiters_->Remove(waiter);
+}
+
+void SingleUseEvent::RethrowErrorResult() const {
+  // TODO support failure states in SingleUseEvent, for WaitAllChecked?
+}
+
+void SingleUseEvent::AfterWait() noexcept {}
 
 }  // namespace engine
 

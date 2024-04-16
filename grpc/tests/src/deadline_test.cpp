@@ -391,7 +391,7 @@ UTEST_F(GrpcTestInheritedDedline, TestDeadlineExpiresBeforeCall) {
 
   // Test that the time between client context
   // construction and client request is measured.
-  engine::SleepFor(tests::kShortTimeout);
+  engine::SleepFor(tests::kLongTimeout);
 
   auto call = client.SayHello(out, std::move(context));
 

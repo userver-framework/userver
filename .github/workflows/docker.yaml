@@ -15,7 +15,6 @@ jobs:
             matrix:
                 include:
                   - cmake-flags: >-
-                        -DCMAKE_CXX_COMPILER=clang++-16 -DCMAKE_C_COMPILER=clang-16
                         -DUSERVER_FEATURE_MYSQL=0
                         -DUSERVER_FEATURE_MONGODB=0
                         -DUSERVER_FEATURE_POSTGRESQL=0
@@ -61,6 +60,10 @@ jobs:
         steps:
           - uses: actions/checkout@v2
 
+          - name: Install packages
+            run: |
+                sudo apt install -y docker-compose
+
           - name: Reuse ccache directory
             uses: actions/cache@v2
             with:
@@ -72,17 +75,24 @@ jobs:
                     ccache-
 
           - name: Setup ccache
-            run: docker-compose run --rm ${{ matrix.image }} bash -c 'ccache -M 2.0GB
-                && ccache -s'
+            run: docker-compose -f .github/docker-compose.yml run --rm ${{ matrix.image
+                }} bash -c 'ccache -M 2.0GB && ccache -s'
 
-          - name: Cmake
-            run: docker-compose run --rm ${{ matrix.image }} bash -c 'cmake -DUSERVER_GOOGLE_COMMON_PROTOS=/app/api-common-protos
+          - name: CMake
+            run: >-
+                docker-compose -f .github/docker-compose.yml
+                run --rm ${{ matrix.image}} bash -c
+                'cmake -DUSERVER_GOOGLE_COMMON_PROTOS=/app/api-common-protos
                 ${{ matrix.cmake-flags }} -B./build -S./'
 
           - name: Build
-            run: docker-compose run --rm ${{ matrix.image }} bash -c 'cd /userver/build
-                && make -j $(nproc)'
+            run: >-
+                docker-compose -f .github/docker-compose.yml
+                run --rm ${{ matrix.image}} bash -c
+                'cd /userver/build && make -j $(nproc)'
 
           - name: Run tests
-            run: docker-compose run --rm ${{ matrix.image }} bash -c 'cd /userver/build
-                && ulimit -n 4096 && ctest -V'
+            run: >-
+                docker-compose -f .github/docker-compose.yml
+                run --rm ${{ matrix.image}} bash -c
+                'cd /userver/build && ulimit -n 4096 && ctest -V'

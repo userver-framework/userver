@@ -1,8 +1,17 @@
+import argparse
+import contextlib
+import enum
 import itertools
 import json
 import sys
 
 from . import tskv
+
+
+class ColorArg(enum.Enum):
+    AUTO = 'auto'
+    ALWAYS = 'always'
+    NEVER = 'never'
 
 
 # Info about colors https://misc.flogisoft.com/bash/tip_colors_and_formatting
@@ -182,8 +191,8 @@ def try_reformat_json(body):
         return body
 
 
-def colorize(stream):
-    colorizer = Colorizer()
+def colorize(stream, verbose=False, colors_enabled=True):
+    colorizer = Colorizer(verbose=verbose, colors_enabled=colors_enabled)
     for line in stream:
         line = line.rstrip('\r\n')
         color_line = colorizer.colorize_line(line)
@@ -191,5 +200,63 @@ def colorize(stream):
             print(color_line)
 
 
+def parse_color(value):
+    if value in ('always', 'force', 'yes', 'enable'):
+        return ColorArg.ALWAYS
+    if value in ('never', 'no', 'disable'):
+        return ColorArg.NEVER
+    if value == 'auto':
+        return ColorArg.AUTO
+    raise ValueError(f'Unknown color option {value!r}')
+
+
+def colorize_main():
+    parser = argparse.ArgumentParser(description='Colorize userver log file.')
+    parser.add_argument(
+        '--verbose', '-v', action='store_true', help='Be verbose',
+    )
+    parser.add_argument(
+        '--color',
+        metavar='WHEN',
+        help=(
+            'Control color highlighting, WHEN is always, never or '
+            'auto (default)'
+        ),
+        nargs='?',
+        type=parse_color,
+        default=ColorArg.AUTO,
+        const=ColorArg.ALWAYS,
+    )
+    parser.add_argument(
+        '--no-color',
+        help='Turn off color highlighting',
+        dest='color',
+        action='store_const',
+        const=ColorArg.NEVER,
+    )
+    parser.add_argument(
+        'log',
+        help='File to colorize, by default stdin is used',
+        default='-',
+        nargs='?',
+    )
+    args = parser.parse_args()
+
+    if args.log == '-':
+        stream = sys.stdin
+    else:
+        stream = open(args.log, 'r')
+
+    if args.color == ColorArg.AUTO:
+        colors_enabled = sys.stdout.isatty()
+    elif args.color == ColorArg.ALWAYS:
+        colors_enabled = True
+    else:
+        colors_enabled = False
+
+    with contextlib.closing(stream):
+        colorize(stream, verbose=args.verbose, colors_enabled=colors_enabled)
+
+
 if __name__ == '__main__':
-    colorize(sys.stdin)
+    colorize_main()

@@ -35,4 +35,13 @@ TEST(Regex, Search) {
   EXPECT_TRUE(utils::regex_search("a123a", r));
 }
 
+TEST(Regex, Replace) {
+  utils::regex r("[a-z]{2}");
+  std::string repl{"R"};
+  EXPECT_EQ(utils::regex_replace({}, r, repl), "");
+  EXPECT_EQ(utils::regex_replace({"a0AB1c2"}, r, repl), "a0AB1c2");
+  EXPECT_EQ(utils::regex_replace("ab0ef1", r, repl), "R0R1");
+  EXPECT_EQ(utils::regex_replace("abcd", r, repl), "RR");
+}
+
 USERVER_NAMESPACE_END

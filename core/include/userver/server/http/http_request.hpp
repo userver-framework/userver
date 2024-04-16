@@ -24,6 +24,10 @@ class Socket;
 class Sockaddr;
 }  // namespace engine::io
 
+namespace server::handlers {
+class HttpHandlerBase;
+}
+
 /// Server parts of the HTTP protocol implementation.
 namespace server::http {
 
@@ -221,6 +225,8 @@ class HttpRequest final {
   /// @endcond
 
  private:
+  friend class handlers::HttpHandlerBase;
+
   HttpRequestImpl& impl_;
 };
 

@@ -1,9 +1,10 @@
 #include <userver/server/request/request_context.hpp>
 
-#include <userver/utils/impl/transparent_hash.hpp>
-
 #include <memory>
 #include <stdexcept>
+
+#include <server/request/internal_request_context.hpp>
+#include <userver/utils/impl/transparent_hash.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -21,9 +22,12 @@ class RequestContext::Impl final {
   utils::AnyMovable* GetAnyDataOptional(std::string_view name);
   void EraseAnyData(std::string_view name);
 
+  impl::InternalRequestContext& GetInternalContext();
+
  private:
   utils::AnyMovable user_data_;
   utils::impl::TransparentMap<std::string, utils::AnyMovable> named_datum_;
+  impl::InternalRequestContext internal_context_;
 };
 
 utils::AnyMovable& RequestContext::Impl::SetUserAnyData(
@@ -77,6 +81,10 @@ void RequestContext::Impl::EraseAnyData(std::string_view name) {
   named_datum_.erase(it);
 }
 
+impl::InternalRequestContext& RequestContext::Impl::GetInternalContext() {
+  return internal_context_;
+}
+
 RequestContext::RequestContext() = default;
 
 RequestContext::RequestContext(RequestContext&&) noexcept = default;
@@ -112,6 +120,10 @@ utils::AnyMovable* RequestContext::GetAnyDataOptional(std::string_view name) {
 
 void RequestContext::EraseAnyData(std::string_view name) {
   return impl_->EraseAnyData(name);
+}
+
+impl::InternalRequestContext& RequestContext::GetInternalContext() {
+  return impl_->GetInternalContext();
 }
 
 }  // namespace server::request

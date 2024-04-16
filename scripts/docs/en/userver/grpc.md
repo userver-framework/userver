@@ -148,16 +148,51 @@ new middlewares.
 
 These are the metrics provided for each gRPC method:
 
-| Metric name             | Description                                                     |
-|-------------------------|-----------------------------------------------------------------|
-| timings.1min            | time from RPC start to finish (`utils::statistics::Percentile`) |
-| status.STATUS_CODE_NAME | RPCs that finished with specified status codes                  |
-| network-error           | RPCs that did not finish with a status due to a network error   |
-| abandoned-error         | RPCs that we forgot to `Finish` (always a bug in `ugrpc` usage) |
-| rps                     | Requests per second: `sum(status) + network-error`              |
-| eps                     | Errors per second: `rps - status.OK`                            |
-| active                  | The number of currently active RPCs (created and not finished)  |
-
+* `timings.1min` — time from RPC start to finish (`utils::statistics::Percentile`)
+* `status` with label `grpc_code=STATUS_CODE_NAME` — RPCs that finished
+  with specified status codes, one metric per gRPC status
+* Metrics for RPCs that finished abruptly without a status:
+   * `cancelled` — RPCs that were interrupted due to task cancellation.
+     (Not to be confused with RPCs finished with `CANCELLED` status.)
+     Server-side, this means that the client dropped the RPC or called
+     `TryCancel`. Client-side, this likely means that either the parent
+     handler was interrupted, or the RPC was dropped as unnecessary.
+     See ugrpc::client::RpcCancelledError and
+     ugrpc::server::RpcInterruptedError
+   * `cancelled-by-deadline-propagation` — RPCs, the handling of which was
+     interrupted because the deadline specified in the request was reached.
+     (Available for both server and client-side.)
+     See also @ref scripts/docs/en/userver/deadline_propagation.md "userver deadline propagation"
+   * `network-error` — other RPCs that finished abruptly without a status,
+     see ugrpc::client::RpcInterruptedError and
+     ugrpc::server::RpcInterruptedError
+* `abandoned-error` — RPCs that we forgot to `Finish`
+  (always a bug in `ugrpc` usage). Such RPCs also separately report
+  the status or network error that occurred during the automatic
+  request termination
+* `deadline-propagated` — RPCs, for which deadline was specified.
+  See also @ref scripts/docs/en/userver/deadline_propagation.md "userver deadline propagation"
+* `rps` — requests per second:
+  ```
+  sum(status) + network-error + cancelled + cancelled-by-deadline-propagation
+  ```
+* `eps` — server errors per second
+  ```
+  sum(status if is_error(status))
+  ```
+  The status codes to be considered server errors are chosen according to
+  [OpenTelemetry recommendations](https://opentelemetry.io/docs/specs/semconv/rpc/grpc/#grpc-status)
+   * `UNKNOWN`
+   * `DATA_LOSS`
+   * `UNIMPLEMENTED`
+   * `INTERNAL`
+   * `UNAVAILABLE`
+   * Note: `network-error` is not accounted in `eps`, because either the client
+     is responsible for the server dropping the request (`TryCancel`, deadline),
+     or it is truly a network error, in which case it's typically helpful
+     for troubleshooting to say that there are issues not with the uservice
+     process itself, but with the infrastructure
+* `active` — The number of currently active RPCs (created and not finished)
 
 ----------
 

@@ -9,6 +9,11 @@ from testsuite.databases.redis import service
 pytest_plugins = ['pytest_userver.plugins.redis']
 
 
+@pytest.fixture(scope='session')
+def userver_testsuite_middleware_enabled():
+    return False
+
+
 @pytest.fixture(name='sentinel_gate_settings', scope='session')
 def _sentinel_gate_settings() -> typing.Tuple[str, int]:
     return ('localhost', 27379)

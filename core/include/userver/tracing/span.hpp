@@ -98,6 +98,17 @@ class Span final {
   static Span MakeSpan(std::string name, std::string_view trace_id,
                        std::string_view parent_span_id, std::string link);
 
+  /// Factory function for rare cases of creating a root Span that starts
+  /// the trace_id chain, ignoring `CurrentSpan`, if any. Useful
+  /// in background jobs, periodics, distlock tasks, cron tasks, etc.
+  /// The result of such jobs is not directly requested by anything.
+  ///
+  /// @return A new Span that is the root of a new Span hierarchy.
+  /// @param name Name of a new Span
+  /// @param log_level Log level for the span's own log record
+  static Span MakeRootSpan(std::string name,
+                           logging::Level log_level = logging::Level::kInfo);
+
   /// Create a child which can be used independently from the parent.
   ///
   /// The child shares no state with its parent. If you need to run code in
@@ -217,6 +228,7 @@ class Span final {
   };
 
   friend class SpanBuilder;
+  friend class TagScope;
 
   explicit Span(std::unique_ptr<Impl, OptionalDeleter>&& pimpl);
 

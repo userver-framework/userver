@@ -26,7 +26,7 @@ class Listener final {
 
   void Start();
 
-  Stats GetStats() const;
+  StatsAggregation GetStats() const;
 
  private:
   engine::TaskProcessor* task_processor_;

@@ -12,6 +12,13 @@
 #include <storages/mongo/operations_common.hpp>
 #include <storages/mongo/operations_impl.hpp>
 
+#if defined(__clang__) || defined(__GNUC__)
+#define ATTRIBUTE_NO_SANITIZE_UNDEFINED \
+  __attribute__((no_sanitize("undefined")))
+#else
+#define ATTRIBUTE_NO_SANITIZE_UNDEFINED
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::operations {
@@ -58,6 +65,7 @@ impl::cdriver::ReadPrefsPtr MakeCDriverReadPrefs(
   return impl::cdriver::ReadPrefsPtr(ToCDriverReadMode(mode));
 }
 
+ATTRIBUTE_NO_SANITIZE_UNDEFINED
 impl::cdriver::ReadPrefsPtr MakeCDriverReadPrefs(
     const options::ReadPreference& option) {
   auto read_prefs = MakeCDriverReadPrefs(option.GetMode());
@@ -257,6 +265,7 @@ void Find::SetOption(options::Limit limit) {
   AppendLimit(impl::EnsureBuilder(impl_->options), limit);
 }
 
+ATTRIBUTE_NO_SANITIZE_UNDEFINED
 void Find::SetOption(options::Projection projection) {
   const bson_t* projection_bson = projection.GetProjectionBson();
   if (bson_empty0(projection_bson)) return;
@@ -265,6 +274,7 @@ void Find::SetOption(options::Projection projection) {
   impl::EnsureBuilder(impl_->options).Append(kOptionName, projection_bson);
 }
 
+ATTRIBUTE_NO_SANITIZE_UNDEFINED
 void Find::SetOption(const options::Sort& sort) {
   const bson_t* sort_bson = sort.GetSortBson();
   if (bson_empty0(sort_bson)) return;
@@ -448,6 +458,7 @@ void Delete::SetOption(options::SuppressServerExceptions) {
   impl_->should_throw = false;
 }
 
+ATTRIBUTE_NO_SANITIZE_UNDEFINED
 FindAndModify::FindAndModify(formats::bson::Document query,
                              const formats::bson::Document& update)
     : impl_(std::move(query)) {
@@ -490,6 +501,7 @@ void FindAndModify::SetOption(options::Projection projection) {
   }
 }
 
+ATTRIBUTE_NO_SANITIZE_UNDEFINED
 void FindAndModify::SetOption(options::WriteConcern::Level level) {
   formats::bson::impl::BsonBuilder wc_builder;
   AppendWriteConcern(wc_builder, level);
@@ -501,6 +513,7 @@ void FindAndModify::SetOption(options::WriteConcern::Level level) {
   }
 }
 
+ATTRIBUTE_NO_SANITIZE_UNDEFINED
 void FindAndModify::SetOption(const options::WriteConcern& write_concern) {
   formats::bson::impl::BsonBuilder wc_builder;
   AppendWriteConcern(wc_builder, write_concern);
@@ -516,6 +529,7 @@ void FindAndModify::SetOption(const options::MaxServerTime& max_server_time) {
   AppendMaxServerTime(impl_->max_server_time, max_server_time);
 }
 
+ATTRIBUTE_NO_SANITIZE_UNDEFINED
 void FindAndModify::SetOption(const options::ArrayFilters& filters) {
   formats::bson::impl::BsonBuilder array_filters_builder;
   AppendArrayFilters(array_filters_builder, filters);
@@ -554,6 +568,7 @@ void FindAndRemove::SetOption(options::Projection projection) {
   }
 }
 
+ATTRIBUTE_NO_SANITIZE_UNDEFINED
 void FindAndRemove::SetOption(options::WriteConcern::Level level) {
   formats::bson::impl::BsonBuilder wc_builder;
   AppendWriteConcern(wc_builder, level);
@@ -565,6 +580,7 @@ void FindAndRemove::SetOption(options::WriteConcern::Level level) {
   }
 }
 
+ATTRIBUTE_NO_SANITIZE_UNDEFINED
 void FindAndRemove::SetOption(const options::WriteConcern& write_concern) {
   formats::bson::impl::BsonBuilder wc_builder;
   AppendWriteConcern(wc_builder, write_concern);

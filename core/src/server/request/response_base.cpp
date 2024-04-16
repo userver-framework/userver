@@ -18,24 +18,24 @@ std::chrono::milliseconds ToMsFromStart(
 
 void ResponseDataAccounter::StartRequest(
     size_t size, std::chrono::steady_clock::time_point create_time) {
-  count_++;
+  count_.Add(1);
   current_ += size;
   auto ms = ToMsFromStart(create_time);
-  time_sum_ += ms.count();
+  time_sum_.Add(ms.count());
 }
 
 void ResponseDataAccounter::StopRequest(
     size_t size, std::chrono::steady_clock::time_point create_time) {
   current_ -= size;
   auto ms = ToMsFromStart(create_time);
-  time_sum_ -= ms.count();
-  count_--;
+  time_sum_.Subtract(ms.count());
+  count_.Subtract(1);
 }
 
 std::chrono::milliseconds ResponseDataAccounter::GetAvgRequestTime() const {
   // TODO: race
-  auto count = count_.load();
-  auto time_sum = std::chrono::milliseconds(time_sum_.load());
+  auto count = count_.NonNegativeRead();
+  auto time_sum = std::chrono::milliseconds(time_sum_.NonNegativeRead());
 
   auto now_ms = ToMsFromStart(std::chrono::steady_clock::now());
   auto delta = (now_ms * count) - time_sum;
@@ -43,8 +43,11 @@ std::chrono::milliseconds ResponseDataAccounter::GetAvgRequestTime() const {
 }
 
 ResponseBase::ResponseBase(ResponseDataAccounter& data_accounter)
-    : accounter_(data_accounter),
-      create_time_(std::chrono::steady_clock::now()) {
+    : ResponseBase{data_accounter, std::chrono::steady_clock::now()} {}
+
+ResponseBase::ResponseBase(ResponseDataAccounter& data_account,
+                           std::chrono::steady_clock::time_point now)
+    : accounter_{data_account}, create_time_{now} {
   guard_.emplace(accounter_, create_time_, data_.size());
 }
 

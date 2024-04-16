@@ -73,6 +73,12 @@ bool Direction::Wait(Deadline deadline) {
   return poller_.Wait(deadline).has_value();
 }
 
+void Direction::ResetReady() noexcept { poller_.ResetReady(); }
+
+engine::impl::ContextAccessor* Direction::TryGetContextAccessor() noexcept {
+  return poller_.TryGetContextAccessor();
+}
+
 void Direction::Reset(int fd) { poller_.Reset(fd, kind_); }
 
 void Direction::Invalidate() { poller_.Invalidate(); }

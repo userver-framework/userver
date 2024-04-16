@@ -113,6 +113,7 @@ class Sentinel {
 
   size_t ShardByKey(const std::string& key) const;
   size_t ShardsCount() const;
+  bool IsInClusterMode() const;
   void CheckShardIdx(size_t shard_idx) const;
   static void CheckShardIdx(size_t shard_idx, size_t shard_count);
 
@@ -127,7 +128,6 @@ class Sentinel {
   void SetReplicationMonitoringSettings(
       const ReplicationMonitoringSettings& replication_monitoring_settings);
   void SetRetryBudgetSettings(const utils::RetryBudgetSettings& settings);
-  void SetClusterAutoTopology(bool auto_topology);
 
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   boost::signals2::signal<void(size_t shard)> signal_instances_changed;
@@ -135,14 +135,6 @@ class Sentinel {
   boost::signals2::signal<void()> signal_not_in_cluster_mode;
   // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
   boost::signals2::signal<void(size_t shards_count)> signal_topology_changed;
-  // TODO: remove this signal with SubscriptionStorageSwitcher after
-  // TAXICOMMON-6018
-  // This signal signaled on finish updating SentinelImpl
-  boost::signals2::signal<void(bool auto_topology, size_t shards_count,
-                               std::shared_ptr<SentinelImplBase>,
-                               std::shared_ptr<SentinelImplBase>)>
-      // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
-      signal_auto_topology_mode_changed;
 
   Request MakeRequest(CmdArgs&& args, const std::string& key,
                       bool master = true,
@@ -198,14 +190,19 @@ class Sentinel {
   std::unique_ptr<SentinelImplBase> impl_;
 
  public:
-  static void OnSubscribeReply(MessageCallback message_callback,
-                               SubscribeCallback subscribe_callback,
-                               UnsubscribeCallback unsubscribe_callback,
+  static void OnSsubscribeReply(const MessageCallback& message_callback,
+                                const SubscribeCallback& subscribe_callback,
+                                const UnsubscribeCallback& unsubscribe_callback,
+                                ReplyPtr reply);
+
+  static void OnSubscribeReply(const MessageCallback& message_callback,
+                               const SubscribeCallback& subscribe_callback,
+                               const UnsubscribeCallback& unsubscribe_callback,
                                ReplyPtr reply);
 
-  static void OnPsubscribeReply(PmessageCallback pmessage_callback,
-                                SubscribeCallback subscribe_callback,
-                                UnsubscribeCallback unsubscribe_callback,
+  static void OnPsubscribeReply(const PmessageCallback& pmessage_callback,
+                                const SubscribeCallback& subscribe_callback,
+                                const UnsubscribeCallback& unsubscribe_callback,
                                 ReplyPtr reply);
 
  private:

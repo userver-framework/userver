@@ -5,7 +5,7 @@
 #include <memory>
 #include <optional>
 
-#include <http_parser.h>
+#include <llhttp.h>
 
 #include <server/net/stats.hpp>
 #include <server/request/request_parser.hpp>
@@ -34,25 +34,25 @@ class HttpRequestParser final : public request::RequestParser {
   bool Parse(const char* data, size_t size) override;
 
  private:
-  static int OnMessageBegin(http_parser* p);
-  static int OnUrl(http_parser* p, const char* data, size_t size);
-  static int OnHeaderField(http_parser* p, const char* data, size_t size);
-  static int OnHeaderValue(http_parser* p, const char* data, size_t size);
-  static int OnHeadersComplete(http_parser* p);
-  static int OnBody(http_parser* p, const char* data, size_t size);
-  static int OnMessageComplete(http_parser* p);
+  static int OnMessageBegin(llhttp_t* p);
+  static int OnUrl(llhttp_t* p, const char* data, size_t size);
+  static int OnHeaderField(llhttp_t* p, const char* data, size_t size);
+  static int OnHeaderValue(llhttp_t* p, const char* data, size_t size);
+  static int OnHeadersComplete(llhttp_t* p);
+  static int OnBody(llhttp_t* p, const char* data, size_t size);
+  static int OnMessageComplete(llhttp_t* p);
 
-  int OnMessageBeginImpl(http_parser* p);
-  int OnUrlImpl(http_parser* p, const char* data, size_t size);
-  int OnHeaderFieldImpl(http_parser* p, const char* data, size_t size);
-  int OnHeaderValueImpl(http_parser* p, const char* data, size_t size);
-  int OnHeadersCompleteImpl(http_parser* p);
-  int OnBodyImpl(http_parser* p, const char* data, size_t size);
-  int OnMessageCompleteImpl(http_parser* p);
+  int OnMessageBeginImpl(llhttp_t* p);
+  int OnUrlImpl(llhttp_t* p, const char* data, size_t size);
+  int OnHeaderFieldImpl(llhttp_t* p, const char* data, size_t size);
+  int OnHeaderValueImpl(llhttp_t* p, const char* data, size_t size);
+  int OnHeadersCompleteImpl(llhttp_t* p);
+  int OnBodyImpl(llhttp_t* p, const char* data, size_t size);
+  int OnMessageCompleteImpl(llhttp_t* p);
 
   void CreateRequestConstructor();
 
-  bool CheckUrlComplete(http_parser* p);
+  bool CheckUrlComplete(llhttp_t* p);
 
   bool FinalizeRequest();
   bool FinalizeRequestImpl();
@@ -64,10 +64,10 @@ class HttpRequestParser final : public request::RequestParser {
 
   OnNewRequestCb on_new_request_cb_;
 
-  http_parser parser_{};
+  llhttp_t parser_{};
   std::optional<HttpRequestConstructor> request_constructor_;
 
-  static const http_parser_settings parser_settings;
+  static const llhttp_settings_t parser_settings;
   net::ParserStats& stats_;
   request::ResponseDataAccounter& data_accounter_;
 };

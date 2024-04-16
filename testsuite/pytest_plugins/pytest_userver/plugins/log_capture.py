@@ -5,6 +5,7 @@ Capture and work with logs.
 # pylint: disable=redefined-outer-name
 import asyncio
 import contextlib
+import enum
 import sys
 import typing
 
@@ -20,8 +21,23 @@ USERVER_CONFIG_HOOKS = ['_userver_config_logs_capture']
 DEFAULT_PORT = 2211
 
 
+class LogLevel(enum.Enum):
+    TRACE = 0
+    DEBUG = 1
+    INFO = 2
+    WARNING = 3
+    ERROR = 4
+    CRITICAL = 5
+    NONE = 6
+
+    @classmethod
+    def from_string(cls, level: str) -> 'LogLevel':
+        return cls[level.upper()]
+
+
 class CapturedLogs:
-    def __init__(self) -> None:
+    def __init__(self, *, log_level: str) -> None:
+        self._log_level = LogLevel.from_string(log_level)
         self._logs: typing.List[tskv.TskvRow] = []
         self._subscribers: typing.List = []
 
@@ -32,6 +48,14 @@ class CapturedLogs:
                 await callback(**row)
 
     def select(self, **query) -> typing.List[tskv.TskvRow]:
+        level = query.get('level')
+        if level:
+            log_level = LogLevel[level]
+            if log_level.value < self._log_level.value:
+                raise RuntimeError(
+                    f'Requested log level={log_level.name} is lower than '
+                    f'service log level {self._log_level.name}',
+                )
         result = []
         for row in self._logs:
             if _match_entry(row, query):
@@ -48,16 +72,26 @@ class CapturedLogs:
 
 
 class CaptureControl:
-    def __init__(self):
+    def __init__(self, *, log_level: str):
+        self.default_log_level = log_level
         self._capture: typing.Optional[CapturedLogs] = None
         self._tasks = []
 
     @compat.asynccontextmanager
-    async def start_capture(self, *, timeout=10.0):
+    async def start_capture(
+            self,
+            *,
+            log_level: typing.Optional[str] = None,
+            timeout: float = 10.0,
+    ):
         if self._capture:
             yield self._capture
             return
-        self._capture = CapturedLogs()
+
+        if not log_level:
+            log_level = self.default_log_level
+
+        self._capture = CapturedLogs(log_level=log_level)
         try:
             yield self._capture
         finally:
@@ -116,8 +150,8 @@ def userver_log_capture(_userver_capture_control, _userver_capture_server):
 
 
 @pytest.fixture(scope='session')
-def _userver_capture_control():
-    return CaptureControl()
+def _userver_capture_control(userver_log_level):
+    return CaptureControl(log_level=userver_log_level)
 
 
 @pytest.fixture(scope='session')

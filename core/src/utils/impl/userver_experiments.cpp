@@ -96,10 +96,6 @@ void UserverExperimentsScope::EnableOnly(
   }
 }
 
-UserverExperiment kRedisClusterAutoTopologyExperiment{
-    "redis-cluster-autotopology"};
-UserverExperiment kRedisRetryBudgetExperiment{"redis-retry-budget"};
-
 }  // namespace utils::impl
 
 USERVER_NAMESPACE_END

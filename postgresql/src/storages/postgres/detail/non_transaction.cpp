@@ -1,4 +1,5 @@
 #include <userver/storages/postgres/detail/non_transaction.hpp>
+#include <userver/testsuite/testpoint.hpp>
 
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/statement_timer.hpp>
@@ -28,6 +29,18 @@ ResultSet NonTransaction::Execute(OptionalCommandControl statement_cmd_ctl,
 ResultSet NonTransaction::DoExecute(const Query& query,
                                     const detail::QueryParameters& params,
                                     OptionalCommandControl statement_cmd_ctl) {
+  if (query.GetName().has_value()) {
+    TESTPOINT_CALLBACK(
+        fmt::format("pg_ntrx_execute::{}", query.GetName().value()),
+        formats::json::Value(), [](const formats::json::Value& data) {
+          if (data["inject_failure"].As<bool>()) {
+            LOG_WARNING() << "Failing statement "
+                             "due to Testpoint response";
+            throw std::runtime_error{"Statement failed"};
+          }
+        });
+  }
+
   StatementTimer timer{query, conn_};
   auto res = conn_->Execute(query, params, statement_cmd_ctl);
   timer.Account();

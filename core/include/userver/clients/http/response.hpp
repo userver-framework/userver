@@ -5,7 +5,6 @@
 
 #include <iosfwd>
 #include <string>
-#include <unordered_map>
 
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/local_stats.hpp>
@@ -143,6 +142,7 @@ class Response final {
   Status status_code() const;
   /// check status code
   bool IsOk() const { return status_code() == Status::OK; }
+  bool IsError() const { return static_cast<uint16_t>(status_code()) >= 400; }
 
   static void RaiseForStatus(int code, const LocalStats& stats);
 

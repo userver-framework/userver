@@ -13,11 +13,11 @@ import pytest
 
 DEFAULT_TIMEOUT = 15.0
 
-USERVER_CONFIG_HOOKS = ['prepare_config_vars']
+USERVER_CONFIG_HOOKS = ['userver_config_grpc_mockserver']
 
 
 @pytest.fixture(scope='session')
-def grpc_service_port(service_config_yaml) -> int:
+def grpc_service_port(service_config) -> int:
     """
     Returns the gRPC listener port number of the service that is set in the
     static configuration file.
@@ -27,10 +27,10 @@ def grpc_service_port(service_config_yaml) -> int:
 
     @ingroup userver_testsuite_fixtures
     """
-    components = service_config_yaml['components_manager']['components']
+    components = service_config['components_manager']['components']
     if 'grpc-server' not in components:
         raise RuntimeError('No grpc-server component')
-    return components['grpc-server']['port']
+    return int(components['grpc-server']['port'])
 
 
 @pytest.fixture(scope='session')
@@ -102,8 +102,16 @@ def grpc_service_deps(service_client):
 
 
 @pytest.fixture(scope='session')
-def prepare_config_vars(grpc_mockserver_endpoint):
-    def patch_config(config, config_vars):
+def userver_config_grpc_mockserver(grpc_mockserver_endpoint):
+    """
+    Returns a function that adjusts the static config for testsuite.
+    Walks through config_vars *values* equal to `$grpc_mockserver`,
+    and replaces them with @ref grpc_mockserver_endpoint.
+
+    @ingroup userver_testsuite_fixtures
+    """
+
+    def patch_config(_config_yaml, config_vars):
         for name in config_vars:
             if config_vars[name] == '$grpc_mockserver':
                 config_vars[name] = grpc_mockserver_endpoint

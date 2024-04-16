@@ -54,7 +54,7 @@ json::Value Convert(const bson::Value& bson, parse::To<json::Value>) {
     } else if (from.IsArray() || from.IsObject()) {
       conversion_stack.EnterItems();
     } else {
-      throw bson::ConversionException("Value type is unknown");
+      throw bson::ConversionException("Value type is unknown", bson.GetPath());
     }
   }
   return std::move(conversion_stack).GetParsed().ExtractValue();
@@ -96,7 +96,7 @@ JsonString ApplyConversionToString(const impl::BsonHolder& bson,
   const bson_t* native_bson_ptr = bson.get();
   impl::RawPtr<char> data(conversion(native_bson_ptr, &size));
   if (!data) {
-    throw ConversionException("Cannot convert BSON to JSON");
+    throw BsonException("Cannot convert BSON to JSON");
   }
   return JsonString(impl::JsonStringImpl(std::move(data), size));
 }
@@ -106,8 +106,7 @@ impl::BsonHolder DoParseJsonString(std::string_view json) {
   auto bson = impl::MutableBson::AdoptNative(bson_new_from_json(
       reinterpret_cast<const uint8_t*>(json.data()), json.size(), &error));
   if (!bson.Get()) {
-    throw ConversionException("Error parsing BSON from JSON: ")
-        << error.message;
+    throw BsonException("Error parsing BSON from JSON: ") << error.message;
   }
   return bson.Extract();
 }

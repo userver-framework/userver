@@ -236,6 +236,28 @@ async def test_to_server_noop(udp_client, gate, server_socket, loop):
     await _assert_data_from_to(udp_client, server_socket, loop)
 
 
+async def test_to_client_drop(udp_client, gate, server_socket, loop):
+    gate.to_client_drop()
+
+    await loop.sock_sendall(server_socket, b'ping')
+    await _assert_data_from_to(udp_client, server_socket, loop)
+    assert not _has_data(udp_client)
+
+    gate.to_client_pass()
+    await _assert_receive_timeout(udp_client, loop)
+
+
+async def test_to_server_drop(udp_client, gate, server_socket, loop):
+    gate.to_server_drop()
+
+    await loop.sock_sendall(udp_client, b'ping')
+    await _assert_data_from_to(server_socket, udp_client, loop)
+    assert not _has_data(server_socket)
+
+    gate.to_server_pass()
+    await _assert_receive_timeout(server_socket, loop)
+
+
 async def test_to_client_delay(udp_client, gate, server_socket, loop):
     gate.to_client_delay(2 * _NOTICEABLE_DELAY)
 

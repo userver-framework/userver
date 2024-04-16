@@ -38,27 +38,28 @@ class TaskContextHolder;
 
 class WaitStrategy {
  public:
-  // Implementation may setup timers/watchers here. Implementation must make
+  // Implementation may set up timers/watchers here. Implementation must make
   // sure that there is no race between SetupWakeups() and WaitList-specific
   // wakeup (if "add task to wait list iff not ready" is not protected from
   // Wakeup, e.g. for WaitListLight). SetupWakeups() *may* call Wakeup() for
   // current task - sleep_state_ is set in DoStep() and double checked for such
   // early wakeups. It may not sleep.
-  virtual void SetupWakeups() = 0;
+  //
+  // If EarlyWakeup{true} is returned, then:
+  // - DisableWakeups is not called;
+  // - SetupWakeups should disable wakeup sources itself;
+  // - SetupWakeups may or may not call context.Wakeup.
+  virtual EarlyWakeup SetupWakeups() = 0;
 
   // Implementation must disable all wakeup sources (wait lists, timers) here.
   // It may not sleep.
-  virtual void DisableWakeups() = 0;
-
-  Deadline GetDeadline() const { return deadline_; }
+  virtual void DisableWakeups() noexcept = 0;
 
  protected:
+  constexpr WaitStrategy() noexcept = default;
+
+  // Prevent destruction via pointer to base.
   ~WaitStrategy() = default;
-
-  constexpr WaitStrategy(Deadline deadline) noexcept : deadline_(deadline) {}
-
- private:
-  const Deadline deadline_;
 };
 
 class TaskContext final : public ContextAccessor {
@@ -143,7 +144,7 @@ class TaskContext final : public ContextAccessor {
   // causes this to yield and wait for wakeup
   // must only be called from this context
   // "spurious wakeups" may be caused by wakeup queueing
-  WakeupSource Sleep(WaitStrategy& wait_strategy);
+  WakeupSource Sleep(WaitStrategy& wait_strategy, Deadline deadline);
 
   // sleep epoch increments after each wakeup
   SleepState::Epoch GetEpoch() noexcept;
@@ -176,10 +177,11 @@ class TaskContext final : public ContextAccessor {
   task_local::Storage& GetLocalStorage() noexcept;
 
   // ContextAccessor implementation
-  bool IsReady() const noexcept final;
-  void AppendWaiter(impl::TaskContext& context) noexcept final;
-  void RemoveWaiter(impl::TaskContext& context) noexcept final;
-  void RethrowErrorResult() const final;
+  bool IsReady() const noexcept override;
+  EarlyWakeup TryAppendWaiter(TaskContext& waiter) override;
+  void RemoveWaiter(TaskContext& waiter) noexcept override;
+  void AfterWait() noexcept override;
+  void RethrowErrorResult() const override;
 
   size_t UseCount() const noexcept;
 
@@ -225,7 +227,7 @@ class TaskContext final : public ContextAccessor {
   std::atomic<DetachedTasksSyncBlock::Token*> detached_token_{nullptr};
   std::atomic<TaskCancellationReason> cancellation_reason_{
       TaskCancellationReason::kNone};
-  mutable FastPimplGenericWaitList finish_waiters_;
+  FastPimplGenericWaitList finish_waiters_;
 
   ContextTimer deadline_timer_;
   engine::Deadline cancel_deadline_;

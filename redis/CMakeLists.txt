@@ -33,6 +33,7 @@ file(GLOB_RECURSE REDIS_FUNCTIONAL_TEST_SOURCES
 list(REMOVE_ITEM SOURCES ${REDIS_FUNCTIONAL_TEST_SOURCES})
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
+add_library(userver::redis ALIAS ${PROJECT_NAME})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
 # for libev
@@ -78,13 +79,26 @@ endif()
 target_include_directories(
   ${PROJECT_NAME}
   PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 target_include_directories (${PROJECT_NAME} PRIVATE
     $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
 )
+_userver_directory_install(COMPONENT redis
+  DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
+)
+_userver_install_targets(COMPONENT redis TARGETS ${PROJECT_NAME})
+
+_userver_directory_install(COMPONENT redis FILES
+    "${USERVER_ROOT_DIR}/cmake/install/userver-redis-config.cmake"
+	"${CMAKE_BINARY_DIR}/cmake_generated/FindHiredis.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
+)
+
+
 
 # Helper library for testing user code with redis. Provides mock_client_base.hpp
 # and other helper headers
@@ -93,7 +107,7 @@ if (USERVER_FEATURE_UTEST)
   target_include_directories(
     ${PROJECT_NAME}-utest
     PUBLIC
-      ${CMAKE_CURRENT_SOURCE_DIR}/testing/include
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/testing/include>
   )
   target_include_directories (${PROJECT_NAME}-utest PRIVATE
     $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
@@ -102,6 +116,11 @@ if (USERVER_FEATURE_UTEST)
     userver-utest
     ${PROJECT_NAME}
   )
+  _userver_directory_install(COMPONENT redis
+    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/testing/include
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
+  )
+  _userver_install_targets(COMPONENT redis TARGETS ${PROJECT_NAME}-utest)
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)

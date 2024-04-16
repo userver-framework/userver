@@ -4,6 +4,7 @@ import pprint
 import sys
 
 TEMPLATE = """#!{python}
+import os
 import sys
 
 import pytest
@@ -18,6 +19,7 @@ def testsuite_runner():
         *sys.argv[1:],
     ]
     sys.path.extend(TESTSUITE_PYTHONPATH)
+    os.environ['PATH'] = os.path.dirname('{python}') + ':' + os.environ['PATH']
     return pytest.main(args=args)
 
 

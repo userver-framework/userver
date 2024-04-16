@@ -17,7 +17,6 @@
 #include <userver/dynamic_config/storage_mock.hpp>
 #include <userver/dynamic_config/test_helpers.hpp>
 #include "storages/redis/impl/keyshard_impl.hpp"
-#include "userver/utils/impl/userver_experiments.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -34,8 +33,6 @@ class RedisClusterClientTest : public ::testing::Test {
 
   static void SetUpTestSuite() {
     static auto config_mock = MakeDynamicConfigStorage();
-    utils::impl::UserverExperimentsScope scope;
-    scope.Set(utils::impl::kRedisClusterAutoTopologyExperiment, true);
     auto configs_source = config_mock.GetSource();
     thread_pools_ = std::make_shared<redis::ThreadPools>(
         redis::kDefaultSentinelThreadPoolSize,
@@ -129,8 +126,7 @@ class RedisClusterClientTest : public ::testing::Test {
         }
       }
     )"));
-    return dynamic_config::StorageMock(
-        docs_map, {{redis::kRedisAutoTopologyEnabled, true}});
+    return dynamic_config::StorageMock(docs_map, {});
   }
 };
 

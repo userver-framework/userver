@@ -20,8 +20,11 @@ USERVER_CONFIG_HOOKS = [
     'userver_config_dynconf_fallback',
     'userver_config_dynconf_url',
 ]
+USERVER_CACHE_CONTROL_HOOKS = {
+    'dynamic-config-client-updater': '_userver_dynconfig_cache_control',
+}
 
-_CONFIG_CACHES = ['dynamic-config-client-updater']
+_CONFIG_CACHES = tuple(USERVER_CACHE_CONTROL_HOOKS.keys())
 
 
 class BaseError(Exception):
@@ -30,6 +33,10 @@ class BaseError(Exception):
 
 class DynamicConfigNotFoundError(BaseError):
     """Config parameter was not found and no default was provided"""
+
+
+class InvalidDefaultsError(BaseError):
+    """Dynamic config defaults action returned invalid response"""
 
 
 ConfigDict = typing.Dict[str, typing.Any]
@@ -48,6 +55,7 @@ class _ChangelogEntry:
     timestamp: str
     dirty_keys: typing.Set[str]
     state: ConfigDict
+    prev_state: ConfigDict
 
     @classmethod
     def new(
@@ -57,18 +65,27 @@ class _ChangelogEntry:
             timestamp: str,
     ):
         if previous:
-            state = previous.state.copy()
+            prev_state = previous.state
         else:
-            state = {}
-        return cls(timestamp=timestamp, dirty_keys=set(), state=state)
+            prev_state = {}
+        return cls(
+            timestamp=timestamp,
+            dirty_keys=set(),
+            state=prev_state.copy(),
+            prev_state=prev_state,
+        )
 
     @property
     def has_changes(self) -> bool:
         return bool(self.dirty_keys)
 
     def update(self, values: ConfigDict):
+        for key, value in values.items():
+            if value == self.prev_state.get(key, Missing):
+                self.dirty_keys.discard(key)
+            else:
+                self.dirty_keys.add(key)
         self.state.update(values)
-        self.dirty_keys.update(values.keys())
 
 
 @dataclasses.dataclass(frozen=True)
@@ -77,17 +94,23 @@ class Updates:
     values: ConfigDict
     removed: typing.List[str]
 
+    def is_empty(self) -> bool:
+        return not self.values and not self.removed
+
 
 class _Changelog:
-    entry: _ChangelogEntry
-    entries: typing.List[_ChangelogEntry]
+    timestamp: datetime.datetime
+    commited_entries: typing.List[_ChangelogEntry]
+    staged_entry: _ChangelogEntry
 
     def __init__(self):
-        self.timestamp = datetime.datetime.utcfromtimestamp(0)
-        self.last_entry = _ChangelogEntry.new(
+        self.timestamp = datetime.datetime.fromtimestamp(
+            0, datetime.timezone.utc,
+        )
+        self.commited_entries = []
+        self.staged_entry = _ChangelogEntry.new(
             timestamp=self.service_timestamp(), previous=None,
         )
-        self.entries = [self.last_entry]
 
     def service_timestamp(self) -> str:
         return self.timestamp.strftime('%Y-%m-%dT%H:%M:%SZ')
@@ -96,11 +119,15 @@ class _Changelog:
         self.timestamp += datetime.timedelta(seconds=1)
         return self.service_timestamp()
 
-    def tick(self):
-        self.last_entry = _ChangelogEntry.new(
-            timestamp=self.next_timestamp(), previous=self.last_entry,
-        )
-        self.entries.append(self.last_entry)
+    def commit(self) -> _ChangelogEntry:
+        """Commit staged changed if any and return last commited entry."""
+        entry = self.staged_entry
+        if entry.has_changes or not self.commited_entries:
+            self.staged_entry = _ChangelogEntry.new(
+                timestamp=self.next_timestamp(), previous=entry,
+            )
+            self.commited_entries.append(entry)
+        return self.commited_entries[-1]
 
     def get_updated_since(
             self,
@@ -108,9 +135,8 @@ class _Changelog:
             updated_since: str,
             ids: typing.Optional[typing.List[str]] = None,
     ) -> Updates:
-        entry = self.last_entry
+        entry = self.commit()
         values, removed = self._get_updated_since(values, updated_since)
-        self.tick()
         if ids:
             values = {name: values[name] for name in ids if name in values}
             removed = [name for name in removed if name in ids]
@@ -125,11 +151,12 @@ class _Changelog:
             return values, []
         dirty_keys = set()
         last_known_state = {}
-        for entry in reversed(self.entries):
+        for entry in reversed(self.commited_entries):
             if entry.timestamp > updated_since:
                 dirty_keys.update(entry.dirty_keys)
             else:
-                last_known_state = entry.state
+                if entry.timestamp == updated_since:
+                    last_known_state = entry.state
                 break
         # We don't want to send them again
         result = {}
@@ -144,26 +171,46 @@ class _Changelog:
         return result, removed
 
     def add_entries(self, values: ConfigDict):
-        self.last_entry.update(values)
+        self.staged_entry.update(values)
 
     @contextlib.contextmanager
     def rollback(self, defaults: ConfigDict):
-        index = len(self.entries) - 1
         try:
             yield
         finally:
-            self._do_rollback(index, defaults)
+            self._do_rollback(defaults)
 
-    def _do_rollback(self, first_index: int, defaults: ConfigDict):
+    def _do_rollback(self, defaults: ConfigDict):
+        if not self.commited_entries:
+            return
+
+        maybe_dirty = set()
+        for entry in self.commited_entries:
+            maybe_dirty.update(entry.dirty_keys)
+
+        last = self.commited_entries[-1]
+        last_state = last.state
         dirty_keys = set()
-        for index in range(first_index, len(self.entries)):
-            dirty_keys.update(self.entries[index].dirty_keys)
-        if self.last_entry.has_changes:
-            self.tick()
+        reverted = {}
+        for key in maybe_dirty:
+            original = defaults.get(key, RemoveKey)
+            if last_state[key] != original:
+                dirty_keys.add(key)
+            reverted[key] = original
 
-        changes = {key: defaults.get(key, RemoveKey) for key in dirty_keys}
-        self.add_entries(changes)
-        self.entries = self.entries[-2:]
+        entry = _ChangelogEntry(
+            timestamp=last.timestamp,
+            state=last.state,
+            dirty_keys=dirty_keys,
+            prev_state={},
+        )
+        self.commited_entries = [entry]
+        self.staged_entry = _ChangelogEntry(
+            timestamp=self.staged_entry.timestamp,
+            dirty_keys=dirty_keys.copy(),
+            state=reverted,
+            prev_state=entry.state,
+        )
 
 
 class DynamicConfig:
@@ -235,10 +282,6 @@ class DynamicConfig:
         self._cache_invalidation_state.invalidate(
             self._config_cache_components,
         )
-
-
-def pytest_userver_caches_setup(userver_cache_config):
-    userver_cache_config.register_incremental_cache(*_CONFIG_CACHES)
 
 
 @pytest.fixture
@@ -370,6 +413,8 @@ class _ConfigDefaults:
     async def update(self, client, dynamic_config) -> None:
         if not self.snapshot:
             values = await client.get_dynamic_config_defaults()
+            if not isinstance(values, dict):
+                raise InvalidDefaultsError()
             # There may already be some config overrides from the current test.
             values.update(dynamic_config.get_values_unsafe())
             self.snapshot = values
@@ -500,3 +545,16 @@ def mock_configs_service(
     @mockserver.json_handler('/configs-service/configs/status')
     def _mock_configs_status(_request):
         return {'updated_at': dynamic_config_changelog.timestamp}
+
+
+@pytest.fixture
+def _userver_dynconfig_cache_control(dynamic_config_changelog: _Changelog):
+    def cache_control(updater, timestamp):
+        entry = dynamic_config_changelog.commit()
+        if entry.timestamp == timestamp:
+            updater.exclude()
+        else:
+            updater.incremental()
+        return entry.timestamp
+
+    return cache_control

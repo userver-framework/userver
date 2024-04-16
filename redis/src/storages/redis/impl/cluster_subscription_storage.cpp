@@ -14,6 +14,41 @@ USERVER_NAMESPACE_BEGIN
 
 namespace redis {
 
+namespace {
+
+template <typename ChannelInfoType, typename StorageImpl, typename MapType,
+          typename CallBackType>
+void SubscribeImplImpl(
+    StorageImpl& storage_impl, MapType& map,
+    const ClusterSubscriptionStorage::ChannelName& channel_name,
+    CallBackType cb, const CommandControl& control, SubscriptionId id) {
+  const auto& channel = channel_name.channel;
+  const std::lock_guard<std::mutex> lock(storage_impl.mutex_);
+  auto find_res = map.find(channel);
+  if (find_res == map.end()) {
+    const size_t selected_shard_idx = ClusterTopology::kUnknownShard;
+    find_res = map.insert(
+        find_res, std::make_pair(channel, ChannelInfoType(selected_shard_idx)));
+    auto& channel_info = find_res->second;
+    channel_info.control = control;
+    channel_info.active_fsm_count = 1;
+    storage_impl.ReadActions(channel_info.info.fsm, channel_name);
+  } else {
+    auto& channel_info = find_res->second;
+    auto& info = channel_info.info;
+    channel_info.active_fsm_count = 1;
+
+    shard_subscriber::Event event;
+    event.type = shard_subscriber::Event::Type::kSubscribeRequested;
+    info.fsm->OnEvent(event);
+    storage_impl.ReadActions(info.fsm, channel_name);
+  }
+
+  find_res->second.callbacks.insert_or_assign(id, std::move(cb));
+}
+
+}  // namespace
+
 ClusterSubscriptionStorage::ClusterSubscriptionStorage(
     const std::shared_ptr<ThreadPools>& thread_pools, size_t shards_count,
     bool /*is_cluster_mode*/)
@@ -38,12 +73,14 @@ void ClusterSubscriptionStorage::SetUnsubscribeCallback(CommandCb cb) {
   storage_impl_.unsubscribe_callback_ = std::move(cb);
 }
 
-size_t ClusterSubscriptionStorage::GetShardByChannel(
-    const std::string& /*name*/) {
-  /// For cluster redis and commands SUBSCIBE/PSUBSCRIBE/PUBLISH there no
-  /// difference in which shard we send message. We can listen any node in
-  /// cluster and receive messages sent to any other node.
-  return ClusterTopology::kUnknownShard;
+void ClusterSubscriptionStorage::SetShardedSubscribeCallback(
+    ShardedCommandCb cb) {
+  storage_impl_.sharded_subscribe_callback_ = std::move(cb);
+}
+
+void ClusterSubscriptionStorage::SetShardedUnsubscribeCallback(
+    ShardedCommandCb cb) {
+  storage_impl_.sharded_unsubscribe_callback_ = std::move(cb);
 }
 
 SubscriptionToken ClusterSubscriptionStorage::Subscribe(
@@ -58,6 +95,12 @@ SubscriptionToken ClusterSubscriptionStorage::Psubscribe(
   return storage_impl_.Psubscribe(pattern, std::move(cb), std::move(control));
 }
 
+SubscriptionToken ClusterSubscriptionStorage::Ssubscribe(
+    const std::string& pattern, Sentinel::UserMessageCallback cb,
+    CommandControl control) {
+  return storage_impl_.Ssubscribe(pattern, std::move(cb), std::move(control));
+}
+
 void ClusterSubscriptionStorage::Unsubscribe(SubscriptionId subscription_id) {
   storage_impl_.Unsubscribe(subscription_id);
 }
@@ -67,6 +110,7 @@ void ClusterSubscriptionStorage::Stop() {
     const std::unique_lock<std::mutex> lock(storage_impl_.mutex_);
     storage_impl_.callback_map_.clear();
     storage_impl_.pattern_callback_map_.clear();
+    storage_impl_.sharded_callback_map_.clear();
   }
   rebalance_scheduler_.reset();
 }
@@ -110,67 +154,27 @@ void ClusterSubscriptionStorage::SubscribeImpl(const std::string& channel,
                                                Sentinel::UserMessageCallback cb,
                                                CommandControl control,
                                                SubscriptionId id) {
-  const std::lock_guard<std::mutex> lock(storage_impl_.mutex_);
-  ChannelName channel_name;
-  channel_name.channel = channel;
-  channel_name.pattern = false;
+  const ChannelName channel_name(channel, /*pattern=*/false, /*sharded=*/false);
+  SubscribeImplImpl<ChannelInfo>(storage_impl_, storage_impl_.callback_map_,
+                                 channel_name, std::move(cb), control, id);
+}
 
-  auto find_res = storage_impl_.callback_map_.find(channel);
-
-  if (find_res == storage_impl_.callback_map_.end()) {
-    // new channel
-    const size_t selected_shard_idx = GetShardByChannel(channel);
-    find_res = storage_impl_.callback_map_.insert(
-        find_res, std::make_pair(channel, ChannelInfo(selected_shard_idx)));
-    auto& channel_info = find_res->second;
-    channel_info.control = control;
-    channel_info.active_fsm_count = 1;
-    storage_impl_.ReadActions(channel_info.info.fsm, channel_name);
-  } else {
-    auto& channel_info = find_res->second;
-    auto& info = channel_info.info;
-    channel_info.active_fsm_count = 1;
-
-    shard_subscriber::Event event;
-    event.type = shard_subscriber::Event::Type::kSubscribeRequested;
-    info.fsm->OnEvent(event);
-    storage_impl_.ReadActions(info.fsm, channel_name);
-  }
-
-  find_res->second.callbacks.insert_or_assign(id, std::move(cb));
+void ClusterSubscriptionStorage::SsubscribeImpl(
+    const std::string& channel, Sentinel::UserMessageCallback cb,
+    CommandControl control, SubscriptionId id) {
+  const ChannelName channel_name(channel, /*pattern=*/false, /*sharded=*/true);
+  SubscribeImplImpl<ChannelInfo>(storage_impl_,
+                                 storage_impl_.sharded_callback_map_,
+                                 channel_name, std::move(cb), control, id);
 }
 
 void ClusterSubscriptionStorage::PsubscribeImpl(
     const std::string& pattern, Sentinel::UserPmessageCallback cb,
     CommandControl control, SubscriptionId id) {
-  const std::lock_guard<std::mutex> lock(storage_impl_.mutex_);
-  ChannelName channel_name;
-  channel_name.channel = pattern;
-  channel_name.pattern = true;
-
-  auto find_res = storage_impl_.pattern_callback_map_.find(pattern);
-
-  if (find_res == storage_impl_.pattern_callback_map_.end()) {
-    // new channel
-    const size_t selected_shard_idx = GetShardByChannel(pattern);
-    find_res = storage_impl_.pattern_callback_map_.insert(
-        find_res, std::make_pair(pattern, PChannelInfo(selected_shard_idx)));
-    auto& channel_info = find_res->second;
-    channel_info.control = control;
-    channel_info.active_fsm_count = 1;
-    storage_impl_.ReadActions(channel_info.info.fsm, channel_name);
-  } else {
-    auto& channel_info = find_res->second;
-    auto& info = channel_info.info;
-    channel_info.active_fsm_count = 1;
-
-    shard_subscriber::Event event;
-    event.type = shard_subscriber::Event::Type::kSubscribeRequested;
-    info.fsm->OnEvent(event);
-    storage_impl_.ReadActions(info.fsm, channel_name);
-  }
-
-  find_res->second.callbacks.insert_or_assign(id, std::move(cb));
+  const ChannelName channel_name(pattern, /*pattern=*/true, /*sharded=*/false);
+  SubscribeImplImpl<PChannelInfo>(storage_impl_,
+                                  storage_impl_.pattern_callback_map_,
+                                  channel_name, std::move(cb), control, id);
 }
 
 const std::string& ClusterSubscriptionStorage::GetShardName(

@@ -19,6 +19,7 @@
 #include <userver/storages/postgres/notify.hpp>
 #include <userver/storages/postgres/options.hpp>
 #include <userver/storages/postgres/query.hpp>
+#include <userver/storages/postgres/query_queue.hpp>
 #include <userver/storages/postgres/statistics.hpp>
 #include <userver/storages/postgres/transaction.hpp>
 
@@ -157,6 +158,15 @@ class Cluster {
   Transaction Begin(std::string name, ClusterHostTypeFlags,
                     const TransactionOptions&);
   /// @}
+
+  /// Start a query queue with specified host selection rules and timeout for
+  /// acquiring a connection.
+  [[nodiscard]] QueryQueue CreateQueryQueue(ClusterHostTypeFlags flags);
+
+  /// Start a query queue with specified host selection rules and timeout for
+  /// acquiring a connection.
+  [[nodiscard]] QueryQueue CreateQueryQueue(ClusterHostTypeFlags flags,
+                                            TimeoutDuration acquire_timeout);
 
   /// @name Single-statement query in an auto-commit transaction
   /// @{

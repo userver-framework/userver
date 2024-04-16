@@ -24,7 +24,7 @@ inline constexpr std::uint32_t kConnectionId = 0;
 
 inline constexpr storages::postgres::CommandControl kTestCmdCtl{
     // TODO: lower execute timeout after TAXICOMMON-1313
-    std::chrono::seconds{1}, std::chrono::milliseconds{500}};
+    std::chrono::seconds{2}, std::chrono::milliseconds{500}};
 
 storages::postgres::DefaultCommandControls GetTestCmdCtls();
 

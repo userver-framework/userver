@@ -22,6 +22,7 @@
 #include <userver/fs/blocking/read.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/logging/null_logger.hpp>
+#include <userver/logging/stacktrace_cache.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/impl/static_registration.hpp>
@@ -81,9 +82,24 @@ void HandleJemallocSettings() {
 }
 
 void PreheatStacktraceCollector() {
-  // If DEBUG logging is enabled the following line loads debug info from disk,
-  // hopefully preventing this to occur later, e.g. in exception constructor.
-  LOG_DEBUG() << utils::TracefulException{"Preheating stacktrace"};
+  const auto now = [] { return std::chrono::steady_clock::now(); };
+
+  const auto start = now();
+  const auto dummy_stacktrace =
+      logging::stacktrace_cache::to_string(boost::stacktrace::stacktrace{});
+  const auto finish = now();
+
+  const auto initialization_duration_ms =
+      std::chrono::duration_cast<std::chrono::milliseconds>(finish - start)
+          .count();
+  if (dummy_stacktrace.size() == 0) {
+    LOG_WARNING()
+        << "Failed to initialize stacktrace collector, an attempt took "
+        << initialization_duration_ms << "ms";
+  } else {
+    LOG_INFO() << "Initialized stacktrace collector within "
+               << initialization_duration_ms << "ms";
+  }
 }
 
 bool IsTraced() {
@@ -191,7 +207,9 @@ void DoRun(const PathOrConfig& config,
                                  manager_config.experiments_force_enabled);
 
     HandleJemallocSettings();
-    PreheatStacktraceCollector();
+    if (manager_config.preheat_stacktrace_collector) {
+      PreheatStacktraceCollector();
+    }
 
     manager.emplace(std::make_unique<ManagerConfig>(std::move(manager_config)),
                     component_list);

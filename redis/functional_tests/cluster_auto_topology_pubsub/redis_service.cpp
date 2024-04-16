@@ -32,9 +32,10 @@
 
 namespace chaos {
 
-const constexpr size_t kInputChannelsCount = 5;
+constexpr size_t kInputChannelsCount = 5;
 const std::string kInputChannel = "input_channel";
 const std::string kInputChannelName0 = kInputChannel + "@" + std::to_string(0);
+const std::string kShardedInputChannel = "input_sharded_channel";
 
 class ReadStoreReturn final : public server::handlers::HttpHandlerBase {
  public:
@@ -66,6 +67,8 @@ class ReadStoreReturn final : public server::handlers::HttpHandlerBase {
   // Subscription with internal queue
   mutable Data accumulated_data_with_queue_;
   std::array<storages::redis::SubscriptionToken, kInputChannelsCount> tokens_;
+  std::array<storages::redis::SubscriptionToken, kInputChannelsCount>
+      sharded_tokens_;
 
   utils::PeriodicTask publisher_task_;
 };
@@ -89,6 +92,12 @@ ReadStoreReturn::ReadStoreReturn(const components::ComponentConfig& config,
     tokens_[i] = redis_subscribe_client_->Subscribe(channel_name, callback);
   }
 
+  for (size_t i = 0; i < kInputChannelsCount; ++i) {
+    const auto channel_name = kShardedInputChannel + "@" + std::to_string(i);
+    sharded_tokens_[i] =
+        redis_subscribe_client_->Ssubscribe(channel_name, callback);
+  }
+
   const utils::PeriodicTask::Settings settings(std::chrono::milliseconds(1000));
   publisher_task_.Start("publisher", settings, [this] {
     redis_client_->Publish("periodic_publish", "42", redis::CommandControl(),
@@ -99,6 +108,7 @@ ReadStoreReturn::ReadStoreReturn(const components::ComponentConfig& config,
 ReadStoreReturn::~ReadStoreReturn() {
   publisher_task_.Stop();
   for (auto& token : tokens_) token.Unsubscribe();
+  for (auto& token : sharded_tokens_) token.Unsubscribe();
 }
 
 std::string ReadStoreReturn::HandleRequestThrow(
@@ -140,7 +150,13 @@ std::string ReadStoreReturn::Get(
       const auto& shard_str = request.GetArg("shard");
       if (!shard_str.empty()) {
         /// Publish message to specified shard
-        const auto shard = std::stol(shard_str);
+        const auto shard = std::stoul(shard_str);
+        const auto shard_count = redis_subscribe_client_->ShardsCount();
+        if (shard >= shard_count) {
+          throw server::handlers::ClientError(server::handlers::ExternalBody{
+              fmt::format("Shard is out of range shard:{} count:{}", shard,
+                          shard_count)});
+        }
         auto shard_client = redis_client_->GetClientForShard(shard);
         shard_client->Publish("output_channel", publish_msg,
                               redis::CommandControl());

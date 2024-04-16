@@ -57,7 +57,15 @@ void CheckKeyUniqueness(const impl::Value* root) {
       for (std::size_t i = 0; i < count; ++i) {
         keys[i] = AsStringView(begin[i].name);
       }
-      std::sort(keys.begin(), keys.begin() + count);
+      std::sort(keys.begin(), keys.begin() + count,
+                [](const auto& lhs, const auto& rhs) {
+                  const auto lhs_size = lhs.size();
+                  const auto rhs_size = rhs.size();
+                  // We don't need a complete lexicographical order here,
+                  // and we believe that this comparison is faster in general.
+                  // Think of it as of a clustering by size.
+                  return std::tie(lhs_size, lhs) < std::tie(rhs_size, rhs);
+                });
       const auto* cons_eq_element =
           std::adjacent_find(keys.data(), keys.data() + count);
       if (cons_eq_element != keys.data() + count) {

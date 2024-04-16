@@ -17,9 +17,9 @@ class Form final {
   ~Form();
 
   Form(const Form&) = delete;
-  Form(Form&&) = delete;
+  Form(Form&&) noexcept;
   Form& operator=(const Form&) = delete;
-  Form& operator=(Form&&) = delete;
+  Form& operator=(Form&&) noexcept;
 
   void AddContent(std::string_view key, std::string_view content);
   void AddContent(std::string_view key, std::string_view content,
@@ -31,10 +31,13 @@ class Form final {
                  const std::shared_ptr<std::string>& buffer,
                  const std::string& content_type);
 
-  const std::shared_ptr<curl::form>& GetNative() const;
+  /// @cond
+  // Call of this method will invalidate the form
+  std::unique_ptr<curl::form> GetNative() &&;
+  /// @endcond
 
  private:
-  std::shared_ptr<curl::form> impl_;
+  std::unique_ptr<curl::form> impl_;
 };
 
 }  // namespace clients::http

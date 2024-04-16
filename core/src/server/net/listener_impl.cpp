@@ -58,7 +58,9 @@ ListenerImpl::~ListenerImpl() {
   connections_.CancelAndWait();
 }
 
-Stats ListenerImpl::GetStats() const { return *stats_; }
+StatsAggregation ListenerImpl::GetStats() const {
+  return StatsAggregation{*stats_};
+}
 
 void ListenerImpl::AcceptConnection(engine::io::Socket& request_socket) {
   auto peer_socket = request_socket.Accept({});

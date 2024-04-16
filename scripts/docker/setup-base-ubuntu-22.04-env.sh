@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Exit on any error and treat unset variables as errors
-set -euo pipefail
+# Exit on any error and treat unset variables as errors, print all commands
+set -euox pipefail
 
 # Preparing to add new repos
 apt update 
@@ -27,8 +27,10 @@ gpg_retrieve_keyserver() {
 # Adding clang/llvm repos
 gpg_retrieve_curl https://apt.llvm.org/llvm-snapshot.gpg.key llvm-snapshot
 printf "\
-deb [signed-by=/usr/share/keyrings/llvm-snapshot.gpg] http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main \n\
-deb-src [signed-by=/usr/share/keyrings/llvm-snapshot.gpg] http://apt.llvm.org/jammy/ llvm-toolchain-jammy-16 main\n" > /etc/apt/sources.list.d/llvm.list
+deb [signed-by=/usr/share/keyrings/llvm-snapshot.gpg] http://apt.llvm.org/jammy/ llvm-toolchain-$(lsb_release -cs)-16 main \n\
+deb-src [signed-by=/usr/share/keyrings/llvm-snapshot.gpg] http://apt.llvm.org/jammy/ llvm-toolchain-$(lsb_release -cs)-16 main\n\
+deb [signed-by=/usr/share/keyrings/llvm-snapshot.gpg] http://apt.llvm.org/jammy/ llvm-toolchain-$(lsb_release -cs)-18 main \n\
+deb-src [signed-by=/usr/share/keyrings/llvm-snapshot.gpg] http://apt.llvm.org/jammy/ llvm-toolchain-$(lsb_release -cs)-18 main\n" > /etc/apt/sources.list.d/llvm.list
 
 # Adding Ubuntu toolchain repos
 gpg_retrieve_keyserver 60C317803A41BA51845E371A1E9377A2BA9EF27F ubuntu-toolchain-r
@@ -44,7 +46,10 @@ echo "deb [signed-by=/usr/share/keyrings/clickhouse-keyring.gpg] https://package
 
 # Adding mariadb repositories (from https://www.linuxcapable.com/how-to-install-mariadb-on-ubuntu-linux/ )
 gpg_retrieve_curl http://mirror.mariadb.org/PublicKey_v2 mariadb
-echo "deb [arch=amd64,arm64,ppc64el signed-by=/usr/share/keyrings/mariadb.gpg] http://mirror.mariadb.org/repo/10.11/ubuntu/ $(lsb_release -cs) main" \
+# Restore the correct URL after https://jira.mariadb.org/browse/MDBF-651
+#echo "deb [arch=amd64,arm64,ppc64el signed-by=/usr/share/keyrings/mariadb.gpg] https://deb.mariadb.org/10.11/ubuntu $(lsb_release -cs) main" \
+#    | tee /etc/apt/sources.list.d/mariadb.list
+echo "deb [arch=amd64,arm64,ppc64el signed-by=/usr/share/keyrings/mariadb.gpg] https://mirror.kumi.systems/mariadb/repo/10.11/ubuntu $(lsb_release -cs) main" \
     | tee /etc/apt/sources.list.d/mariadb.list
 
 # convoluted setup of rabbitmq + erlang taken from https://www.rabbitmq.com/install-debian.html#apt-quick-start-packagecloud
@@ -56,17 +61,17 @@ gpg_retrieve_curl "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xf77f1
 gpg_retrieve_curl https://packagecloud.io/rabbitmq/rabbitmq-server/gpgkey io.packagecloud.rabbitmq
 ## Add apt repositories maintained by Team RabbitMQ
 printf "\
-deb [signed-by=/usr/share/keyrings/net.launchpad.ppa.rabbitmq.erlang.gpg] http://ppa.launchpad.net/rabbitmq/rabbitmq-erlang/ubuntu focal main \n\
-deb-src [signed-by=/usr/share/keyrings/net.launchpad.ppa.rabbitmq.erlang.gpg] http://ppa.launchpad.net/rabbitmq/rabbitmq-erlang/ubuntu focal main \n\
-deb [signed-by=/usr/share/keyrings/io.packagecloud.rabbitmq.gpg] https://packagecloud.io/rabbitmq/rabbitmq-server/ubuntu/ focal main \n\
-deb-src [signed-by=/usr/share/keyrings/io.packagecloud.rabbitmq.gpg] https://packagecloud.io/rabbitmq/rabbitmq-server/ubuntu/ focal main\n" \
+deb [signed-by=/usr/share/keyrings/net.launchpad.ppa.rabbitmq.erlang.gpg] http://ppa.launchpad.net/rabbitmq/rabbitmq-erlang/ubuntu $(lsb_release -cs) main \n\
+deb-src [signed-by=/usr/share/keyrings/net.launchpad.ppa.rabbitmq.erlang.gpg] http://ppa.launchpad.net/rabbitmq/rabbitmq-erlang/ubuntu $(lsb_release -cs) main \n\
+deb [signed-by=/usr/share/keyrings/io.packagecloud.rabbitmq.gpg] https://packagecloud.io/rabbitmq/rabbitmq-server/ubuntu/ $(lsb_release -cs) main \n\
+deb-src [signed-by=/usr/share/keyrings/io.packagecloud.rabbitmq.gpg] https://packagecloud.io/rabbitmq/rabbitmq-server/ubuntu/ $(lsb_release -cs) main\n" \
     | tee /etc/apt/sources.list.d/rabbitmq.list
 
 gpg_retrieve_curl https://www.mongodb.org/static/pgp/server-6.0.asc mongodb
 echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse" \
     | tee /etc/apt/sources.list.d/mongodb-org-6.0.list
 
-# Some of the above repos are slow to responde or could be overloaded. Adding some retries
+# Some of the above repos are slow to respond or could be overloaded. Adding some retries
 echo '
 Acquire::Retries "20";
 Acquire::https::Timeout "15";

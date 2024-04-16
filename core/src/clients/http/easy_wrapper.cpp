@@ -13,9 +13,17 @@ EasyWrapper::EasyWrapper(std::shared_ptr<curl::easy>&& easy, Client& client)
   client_.IncPending();
 }
 
-EasyWrapper::~EasyWrapper() { client_.PushIdleEasy(std::move(easy_)); }
+EasyWrapper::EasyWrapper(EasyWrapper&&) noexcept = default;
+
+EasyWrapper::~EasyWrapper() {
+  if (easy_) {
+    client_.PushIdleEasy(std::move(easy_));
+  }
+}
 
 curl::easy& EasyWrapper::Easy() { return *easy_; }
+
+const curl::easy& EasyWrapper::Easy() const { return *easy_; }
 
 }  // namespace clients::http::impl
 

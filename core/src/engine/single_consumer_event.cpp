@@ -9,17 +9,14 @@ namespace engine {
 
 class SingleConsumerEvent::EventWaitStrategy final : public impl::WaitStrategy {
  public:
-  EventWaitStrategy(SingleConsumerEvent& event, impl::TaskContext& current,
-                    Deadline deadline)
-      : WaitStrategy(deadline), event_(event), current_(current) {}
+  EventWaitStrategy(SingleConsumerEvent& event, impl::TaskContext& current)
+      : event_(event), current_(current) {}
 
-  void SetupWakeups() override {
-    if (event_.waiters_->GetSignalOrAppend(&current_)) {
-      current_.WakeupCurrent();
-    }
+  impl::EarlyWakeup SetupWakeups() override {
+    return impl::EarlyWakeup{event_.waiters_->GetSignalOrAppend(&current_)};
   }
 
-  void DisableWakeups() override { event_.waiters_->Remove(current_); }
+  void DisableWakeups() noexcept override { event_.waiters_->Remove(current_); }
 
  private:
   SingleConsumerEvent& event_;
@@ -48,7 +45,7 @@ bool SingleConsumerEvent::WaitForEventUntil(Deadline deadline) {
 
   impl::TaskContext& current = current_task::GetCurrentTaskContext();
   LOG_TRACE() << "WaitForEventUntil()";
-  EventWaitStrategy wait_manager(*this, current, deadline);
+  EventWaitStrategy wait_manager{*this, current};
 
   while (true) {
     if (GetIsSignaled()) {
@@ -58,7 +55,7 @@ bool SingleConsumerEvent::WaitForEventUntil(Deadline deadline) {
 
     LOG_TRACE() << "iteration()";
 
-    const auto wakeup_source = current.Sleep(wait_manager);
+    const auto wakeup_source = current.Sleep(wait_manager, deadline);
     if (!impl::HasWaitSucceeded(wakeup_source)) {
       LOG_TRACE() << "failure";
       return false;

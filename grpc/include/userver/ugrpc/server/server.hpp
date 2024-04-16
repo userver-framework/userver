@@ -34,6 +34,10 @@ struct ServerConfig final {
   /// Server::WithServerBuilder.
   std::optional<int> port{0};
 
+  /// Absolute path to the unix socket to listen to.
+  /// A server can listen to both port and unix socket simultaneously.
+  std::optional<std::string> unix_socket_path{std::nullopt};
+
   /// Number of completion queues to create. Should be ~2 times less than number
   /// of worker threads for best RPS.
   int completion_queue_num{2};
@@ -102,13 +106,11 @@ class Server final
   /// @note Should be called at least once before the services are destroyed
   void Stop() noexcept;
 
-  /// @cond
   /// Same as Stop, but:
   /// - does not destroy server statistics
   /// - does not close the associated CompletionQueue
-  /// Stop must still be called. StopDebug is useful for testing.
-  void StopDebug() noexcept;
-  /// @endcond
+  /// Stop must still be called. StopServing is also useful for testing.
+  void StopServing() noexcept;
 
   std::uint64_t GetTotalRequests() const override;
 

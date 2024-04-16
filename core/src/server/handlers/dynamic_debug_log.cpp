@@ -17,16 +17,13 @@ namespace server::handlers {
 namespace {
 
 std::string StateToString(logging::EntryState state) {
-  switch (state) {
-    case logging::EntryState::kForceEnabled:
-      return "1";
-    case logging::EntryState::kForceDisabled:
-      return "-1";
-    case logging::EntryState::kDefault:
-      return "0";
+  if (state.force_enabled_level != logging::Level::kNone) {
+    return "1";
+  } else if (state.force_disabled_level_plus_one != logging::Level::kTrace) {
+    return "-1";
+  } else {
+    return "0";
   }
-
-  UINVARIANT(false, "unknown state");
 }
 
 std::string ProcessGet(const http::HttpRequest& request,
@@ -61,15 +58,16 @@ std::string ProcessPut(const http::HttpRequest& request,
   auto [path, line] = logging::SplitLocation(location);
 
   const auto& body = request.RequestBody();
-  logging::EntryState state{logging::EntryState::kDefault};
-  if (body.empty() || body == "1")
-    state = logging::EntryState::kForceEnabled;
-  else if (body == "-1")
-    state = logging::EntryState::kForceDisabled;
-  else if (body == "0")
-    state = logging::EntryState::kDefault;
-  else
+  logging::EntryState state;
+  if (body.empty() || body == "1") {
+    state.force_enabled_level = logging::Level::kTrace;
+  } else if (body == "-1") {
+    state.force_disabled_level_plus_one = logging::Level::kWarning;
+  } else if (body == "0") {
+    state = logging::EntryState{};
+  } else {
     throw std::runtime_error("Bad body");
+  }
 
   logging::AddDynamicDebugLog(path, line, state);
   return "OK\n";

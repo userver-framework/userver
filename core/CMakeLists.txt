@@ -64,7 +64,6 @@ if (USERVER_CONAN)
     find_package(c-ares REQUIRED)
     find_package(CURL REQUIRED)
     find_package(cryptopp REQUIRED)
-    find_package(http_parser REQUIRED)
     find_package(libnghttp2 REQUIRED)
     find_package(libev REQUIRED)
 
@@ -73,15 +72,22 @@ else()
     include(SetupCAres)
     include(SetupCURL)
     include(SetupCryptoPP)
-    find_package(Http_Parser REQUIRED)
     find_package(Nghttp2 REQUIRED)
     find_package(LibEv REQUIRED)
 endif()
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
+add_library(userver::core ALIAS ${PROJECT_NAME})
 
 if (USERVER_DISABLE_PHDR_CACHE)
   target_compile_definitions(${PROJECT_NAME} PRIVATE USERVER_DISABLE_PHDR_CACHE)
+endif()
+
+if (USERVER_DISABLE_RSEQ_ACCELERATION)
+  target_compile_definitions(${PROJECT_NAME} PRIVATE USERVER_DISABLE_RSEQ_ACCELERATION)
+else()
+  add_subdirectory(${USERVER_THIRD_PARTY_DIRS}/librseq librseq)
+  target_link_libraries(${PROJECT_NAME} PRIVATE userver-librseq)
 endif()
 
 # https://github.com/jemalloc/jemalloc/issues/820
@@ -107,6 +113,12 @@ target_link_libraries(${PROJECT_NAME}
     OpenSSL::SSL
     ZLIB::ZLIB
 )
+
+add_subdirectory(${USERVER_THIRD_PARTY_DIRS}/llhttp llhttp)
+
+add_subdirectory(${USERVER_THIRD_PARTY_DIRS}/http-parser http-parser)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE userver-http-parser userver-llhttp)
 
 if (USERVER_FEATURE_UBOOST_CORO)
     add_subdirectory(${USERVER_THIRD_PARTY_DIRS}/uboost_coro uboost_coro_build)
@@ -138,7 +150,6 @@ if (USERVER_CONAN)
         concurrentqueue::concurrentqueue
       PRIVATE
         cryptopp::cryptopp
-        http_parser::http_parser
         libev::libev
         libnghttp2::nghttp2
     )
@@ -148,7 +159,6 @@ else()
         c-ares::cares
       PRIVATE
         CryptoPP
-        Http_Parser
         Nghttp2
         LibEv
     )
@@ -220,6 +230,7 @@ endif()
 
 if (USERVER_FEATURE_UTEST)
     add_library(userver-utest STATIC ${LIBUTEST_SOURCES})
+	add_library(userver::utest ALIAS userver-utest)
     target_compile_definitions(userver-utest PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
 
     target_link_libraries(userver-utest
@@ -260,6 +271,7 @@ endif()
 
 if (USERVER_FEATURE_UTEST)
     add_library(userver-ubench ${LIBUBENCH_SOURCES})
+	add_library(userver::ubench ALIAS userver-ubench)
     target_include_directories(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>)
     target_compile_definitions(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
     target_link_libraries(userver-ubench
@@ -286,10 +298,9 @@ endif()
 
 _userver_install_targets(COMPONENT core TARGETS ${PROJECT_NAME})
 _userver_directory_install(COMPONENT core FILES
-    "${USERVER_ROOT_DIR}/cmake/FindPython.cmake"
     "${USERVER_ROOT_DIR}/cmake/UserverTestsuite.cmake"
     "${USERVER_ROOT_DIR}/cmake/install/userver-core-config.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/FindHttp_Parser.cmake"
+    "${CMAKE_BINARY_DIR}/cmake_generated/Findc-ares.cmake"
     "${CMAKE_BINARY_DIR}/cmake_generated/FindNghttp2.cmake"
     "${CMAKE_BINARY_DIR}/cmake_generated/FindLibEv.cmake"
     "${CMAKE_BINARY_DIR}/cmake_generated/FindUserverGTest.cmake"

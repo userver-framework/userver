@@ -31,8 +31,17 @@ Copyright (c) 2023 Howard Hinnant.
 **[CPM library](https://github.com/cpm-cmake/CPM.cmake)**
 Copyright (c) 2019-2022 Lars Melchior and contributors
 
+**[llhttp library](https://github.com/nodejs/llhttp)**
+Copyright (c) 2018 Fedor Indutny.
+
+**[http-parser library](https://github.com/nodejs/http-parser)**
+Copyright (c) Joyent, Inc. and other Node contributors.
+
 **[Doxygen Awesome](https://github.com/jothepro/doxygen-awesome-css)**
 Copyright (c) 2021 - 2023 jothepro
+
+**[Fontello](https://github.com/fontello/fontello)**
+Copyright (C) 2011 by Vitaly Puzrin
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 

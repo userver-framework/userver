@@ -49,6 +49,10 @@ bool CacheUpdateTrait::HasPreAssignCheck() const {
   return impl_->HasPreAssignCheck();
 }
 
+void CacheUpdateTrait::SetDataSizeStatistic(std::size_t size) noexcept {
+  impl_->SetDataSizeStatistic(size);
+}
+
 rcu::ReadablePtr<Config> CacheUpdateTrait::GetConfig() const {
   return impl_->GetConfig();
 }

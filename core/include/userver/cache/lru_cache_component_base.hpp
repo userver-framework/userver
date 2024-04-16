@@ -156,9 +156,8 @@ LruCacheComponent<Key, Value, Hash, Equal>::LruCacheComponent(
       context, name_,
       [this](utils::statistics::Writer& writer) { writer = *cache_; });
 
-  reset_registration_ = testsuite::FindCacheControl(context).RegisterCache(
-      this, components::GetCurrentComponentName(config),
-      &LruCacheComponent::DropCache);
+  reset_registration_ = testsuite::RegisterCache(config, context, this,
+                                                 &LruCacheComponent::DropCache);
 }
 
 template <typename Key, typename Value, typename Hash, typename Equal>

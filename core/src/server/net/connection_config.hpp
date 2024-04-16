@@ -13,6 +13,7 @@ struct ConnectionConfig {
   size_t in_buffer_size = 32 * 1024;
   size_t requests_queue_size_threshold = 100;
   std::chrono::seconds keepalive_timeout{10 * 60};
+  std::chrono::milliseconds abort_check_delay{20};
 };
 
 ConnectionConfig Parse(const yaml_config::YamlConfig& value,

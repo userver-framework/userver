@@ -23,6 +23,7 @@ file(GLOB_RECURSE CH_FUNCTIONAL_TEST_SOURCES
 list(REMOVE_ITEM SOURCES ${CH_FUNCTIONAL_TEST_SOURCES})
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
+add_library(userver::clickhouse ALIAS ${PROJECT_NAME})
 
 if (USERVER_CONAN)
   find_package(clickhouse-cpp REQUIRED)
@@ -38,10 +39,23 @@ target_link_libraries(${PROJECT_NAME}
 )
 target_include_directories(${PROJECT_NAME}
   PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
+
+_userver_directory_install(COMPONENT clickhouse
+  DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
+)
+_userver_install_targets(COMPONENT clickhouse TARGETS ${PROJECT_NAME})
+
+_userver_directory_install(COMPONENT clickhouse FILES
+    "${USERVER_ROOT_DIR}/cmake/install/userver-clickhouse-config.cmake"
+	"${CMAKE_BINARY_DIR}/cmake_generated/Findclickhouse-cpp.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
+)
+
 
 if (USERVER_IS_THE_ROOT_PROJECT)
   add_executable(${PROJECT_NAME}-unittest ${UNIT_TEST_SOURCES})

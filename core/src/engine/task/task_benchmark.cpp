@@ -10,6 +10,7 @@
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/single_threaded_task_processors_pool.hpp>
 #include <userver/engine/task/task_with_result.hpp>
+#include <utils/impl/parallelize_benchmark.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -24,53 +25,33 @@ BENCHMARK(engine_task_create);
 
 void engine_task_yield_single_thread(benchmark::State& state) {
   engine::RunStandalone([&] {
-    std::vector<engine::TaskWithResult<void>> tasks;
-    tasks.reserve(state.range(0) - 1);
-
-    for (int i = 0; i < state.range(0) - 1; i++) {
-      tasks.push_back(engine::AsyncNoSpan([]() {
-        while (!engine::current_task::ShouldCancel()) engine::Yield();
-      }));
-    }
-
-    for ([[maybe_unused]] auto _ : state) engine::Yield();
+    RunParallelBenchmark(state, [](auto& range) {
+      for ([[maybe_unused]] auto _ : range) {
+        engine::Yield();
+      }
+    });
   });
 }
 BENCHMARK(engine_task_yield_single_thread)->RangeMultiplier(2)->Range(1, 128);
 
 void engine_task_yield_multiple_threads(benchmark::State& state) {
   engine::RunStandalone(state.range(0), [&] {
-    std::atomic<bool> keep_running{true};
-    std::vector<engine::TaskWithResult<std::uint64_t>> tasks;
-    tasks.reserve(state.range(0) - 1);
+    std::atomic<std::uint64_t> total_yields{0};
 
-    for (int i = 0; i < state.range(0) - 1; i++) {
-      tasks.push_back(engine::AsyncNoSpan([&] {
-        std::uint64_t yields_performed = 0;
-        while (keep_running) {
-          engine::Yield();
-          ++yields_performed;
-        }
-        return yields_performed;
-      }));
-    }
-
-    std::uint64_t yields_performed = 0;
-    for ([[maybe_unused]] auto _ : state) {
-      engine::Yield();
-      ++yields_performed;
-    }
-
-    keep_running = false;
-    for (auto& task : tasks) {
-      yields_performed += task.Get();
-    }
+    RunParallelBenchmark(state, [&](auto& range) {
+      std::uint64_t yields_performed = 0;
+      for ([[maybe_unused]] auto _ : range) {
+        engine::Yield();
+        ++yields_performed;
+      }
+      total_yields += yields_performed;
+    });
 
     state.counters["yields"] =
-        benchmark::Counter(yields_performed, benchmark::Counter::kIsRate);
-    state.counters["yields/thread"] = benchmark::Counter(
-        static_cast<double>(yields_performed) / state.range(0),
-        benchmark::Counter::kIsRate);
+        benchmark::Counter(total_yields, benchmark::Counter::kIsRate);
+    state.counters["yields/thread"] =
+        benchmark::Counter(static_cast<double>(total_yields) / state.range(0),
+                           benchmark::Counter::kIsRate);
   });
 }
 BENCHMARK(engine_task_yield_multiple_threads)

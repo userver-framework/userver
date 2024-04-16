@@ -27,7 +27,7 @@ namespace {
 void SetupSpan(std::optional<tracing::InPlaceSpan>& span_holder,
                grpc::ClientContext& context, std::string_view call_name) {
   UASSERT(!span_holder);
-  span_holder.emplace(utils::StrCat("grpc/", call_name),
+  span_holder.emplace(utils::StrCat("external_grpc/", call_name),
                       utils::impl::SourceLocation::Current());
   auto& span = span_holder->Get();
 
@@ -215,6 +215,14 @@ FinishAsyncMethodInvocation&
 RpcData::GetFinishAsyncMethodInvocation() noexcept {
   UASSERT(std::holds_alternative<FinishAsyncMethodInvocation>(invocation_));
   return std::get<FinishAsyncMethodInvocation>(invocation_);
+}
+
+bool RpcData::HoldsAsyncMethodInvocationDebug() noexcept {
+  return std::holds_alternative<AsyncMethodInvocation>(invocation_);
+}
+
+bool RpcData::HoldsFinishAsyncMethodInvocationDebug() noexcept {
+  return std::holds_alternative<FinishAsyncMethodInvocation>(invocation_);
 }
 
 grpc::Status& RpcData::GetStatus() noexcept { return status_; }

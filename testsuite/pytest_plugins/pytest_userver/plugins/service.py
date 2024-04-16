@@ -95,7 +95,7 @@ def service_env():
 
 @pytest.fixture(scope='session')
 async def service_http_ping_url(
-        service_config_yaml, service_baseurl,
+        service_config, service_baseurl,
 ) -> typing.Optional[str]:
     """
     Returns the service HTTP ping URL that is used by the testsuite to detect
@@ -107,7 +107,7 @@ async def service_http_ping_url(
 
     @ingroup userver_testsuite_fixtures
     """
-    components = service_config_yaml['components_manager']['components']
+    components = service_config['components_manager']['components']
     ping_handler = components.get('handler-ping')
     if ping_handler:
         return url_util.join(service_baseurl, ping_handler['path'])
@@ -116,7 +116,7 @@ async def service_http_ping_url(
 
 @pytest.fixture(scope='session')
 def service_non_http_health_checks(  # pylint: disable=invalid-name
-        service_config_yaml,
+        service_config,
 ) -> net.HealthChecks:
     """
     Returns a health checks info.
@@ -129,7 +129,7 @@ def service_non_http_health_checks(  # pylint: disable=invalid-name
     @ingroup userver_testsuite_fixtures
     """
 
-    return net.get_health_checks_info(service_config_yaml)
+    return net.get_health_checks_info(service_config)
 
 
 @pytest.fixture(scope='session')
@@ -139,7 +139,7 @@ async def service_daemon(
         service_env,
         service_http_ping_url,
         service_config_path_temp,
-        service_config_yaml,
+        service_config,
         service_binary,
         service_non_http_health_checks,
         testsuite_logger,

@@ -22,6 +22,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres::detail {
 
+inline constexpr std::string_view kSetConfigQueryResultName{
+    "userver_set_config"};
+
 class PGConnectionWrapper {
  public:
   using Deadline = engine::Deadline;
@@ -111,6 +114,9 @@ class PGConnectionWrapper {
   /// @brief Wait for notification
   Notification WaitNotify(Deadline deadline);
 
+  std::vector<ResultSet> GatherPipeline(
+      Deadline deadline, const std::vector<const PGresult*>& descriptions);
+
   /// Consume input from connection
   void ConsumeInput(Deadline deadline, const PGresult* description);
 
@@ -138,6 +144,8 @@ class PGConnectionWrapper {
   /// Escape a string for use as an SQL identifier, such as a table, column, or
   /// function name
   std::string EscapeIdentifier(std::string_view);
+
+  void PutPipelineSync();
 
  private:
   PGTransactionStatusType GetTransactionStatus() const;

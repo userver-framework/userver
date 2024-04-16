@@ -128,10 +128,10 @@ using Percentile = USERVER_NAMESPACE::utils::statistics::Percentile<2048>;
 using MinMaxAvg = USERVER_NAMESPACE::utils::statistics::MinMaxAvg<uint32_t>;
 using InstanceStatistics = InstanceStatisticsTemplate<
     USERVER_NAMESPACE::utils::statistics::RelaxedCounter<uint32_t>,
-    USERVER_NAMESPACE::utils::statistics::RecentPeriod<Percentile, Percentile,
-                                                       detail::SteadyClock>,
-    USERVER_NAMESPACE::utils::statistics::RecentPeriod<MinMaxAvg, MinMaxAvg,
-                                                       detail::SteadyClock>>;
+    USERVER_NAMESPACE::utils::statistics::RecentPeriod<
+        Percentile, Percentile, detail::SteadyCoarseClock>,
+    USERVER_NAMESPACE::utils::statistics::RecentPeriod<
+        MinMaxAvg, MinMaxAvg, detail::SteadyCoarseClock>>;
 
 using InstanceStatisticsNonatomicBase =
     InstanceStatisticsTemplate<uint32_t, Percentile, MinMaxAvg>;

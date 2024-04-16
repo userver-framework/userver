@@ -184,6 +184,10 @@ properties:
                         type: integer
                         description: timeout in seconds to drop connection if there's not data received from it
                         defaultDescription: 600
+                    stream_close_check_delay:
+                        type: integer
+                        description: delay in microseconds of the start of abort check routine
+                        defaultDescription: 20ms
             shards:
                 type: integer
                 description: how many concurrent tasks harvest data from a single socket; do not set if not sure what it is doing
@@ -196,6 +200,10 @@ properties:
         type: boolean
         description: set to true to add the `X-YaTaxi-Server-Hostname` header with instance name, set to false to not add the header
         defaultDescription: false
+    middleware-pipeline-builder:
+        type: string
+        description: name of a component to build a server-wide middleware pipeline
+        defaultDescription: default-server-middleware-pipeline-builder
 )");
 }
 

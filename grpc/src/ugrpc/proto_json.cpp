@@ -13,10 +13,14 @@ namespace {
 
 const google::protobuf::util::JsonPrintOptions kOptions = []() {
   google::protobuf::util::JsonPrintOptions options;
+#if GOOGLE_PROTOBUF_VERSION >= 5026001
+  options.always_print_fields_with_no_presence = true;
+#else
   options.always_print_primitive_fields = true;
+#endif
   return options;
 }();
-}
+}  // namespace
 
 formats::json::Value MessageToJson(const google::protobuf::Message& message) {
   return formats::json::FromString(ToJsonString(message));
@@ -33,8 +37,7 @@ std::string ToJsonString(const google::protobuf::Message& message) {
       google::protobuf::util::MessageToJsonString(message, &result, kOptions);
 
   if (!status.ok()) {
-    throw formats::json::ConversionException(
-        "Cannot convert protobuf to string");
+    throw formats::json::Exception("Cannot convert protobuf to string");
   }
 
   return result;

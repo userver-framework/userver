@@ -10,6 +10,7 @@
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/utils/async.hpp>
+#include <utils/impl/parallelize_benchmark.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -121,31 +122,15 @@ void rcu_of_shared_ptr(benchmark::State& state) {
   const std::size_t readers_count = state.range(0);
 
   engine::RunStandalone(readers_count, [&] {
-    std::atomic<bool> run{true};
     rcu::Variable<std::shared_ptr<std::uint64_t>> var{
         std::make_shared<std::uint64_t>(42)};
 
-    std::vector<engine::TaskWithResult<void>> tasks;
-    tasks.reserve(readers_count - 1);
-
-    for (std::size_t i = 0; i < readers_count - 1; i++) {
-      tasks.push_back(utils::Async("reader", [&] {
-        while (run) {
-          auto reader = var.ReadCopy();
-          benchmark::DoNotOptimize(reader);
-        }
-      }));
-    }
-
-    for ([[maybe_unused]] auto _ : state) {
-      auto copy = var.ReadCopy();
-      benchmark::DoNotOptimize(copy);
-    }
-
-    run = false;
-    for (auto& task : tasks) {
-      task.Get();
-    }
+    RunParallelBenchmark(state, [&](auto& range) {
+      for ([[maybe_unused]] auto _ : range) {
+        auto copy = var.ReadCopy();
+        benchmark::DoNotOptimize(copy);
+      }
+    });
   });
 }
 BENCHMARK(rcu_of_shared_ptr)->RangeMultiplier(2)->Range(1, 32);

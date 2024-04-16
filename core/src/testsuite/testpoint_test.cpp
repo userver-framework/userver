@@ -1,5 +1,7 @@
 #include <userver/testsuite/testpoint.hpp>
 
+#include <thread>
+
 #include <userver/formats/json/inline.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/testsuite/testpoint_control.hpp>
@@ -21,6 +23,8 @@ class EchoTestpointClient final : public testsuite::TestpointClientBase {
   }
 };
 
+struct Exception final : std::exception {};
+
 bool TryExecuteTestpoint() {
   bool called = false;
   TESTPOINT_CALLBACK("name", {}, [&](const auto&) { called = true; });
@@ -41,8 +45,6 @@ UTEST(Testpoint, Smoke) {
       [&](const formats::json::Value& json) { response = json; });
   EXPECT_EQ(response, formats::json::MakeObject("name", "what", "body", "foo"));
 }
-
-namespace {}  // namespace
 
 UTEST(Testpoint, ReentrableInitialization) {
   for (int i = 0; i < 2; ++i) {
@@ -80,6 +82,94 @@ UTEST(Testpoint, MultipleTestpointsInSameScope) {
   TESTPOINT_CALLBACK("name", {}, [&](const auto&) { ++times_called; });
   TESTPOINT_CALLBACK("name", {}, [&](const auto&) { ++times_called; });
   EXPECT_EQ(times_called, 4);
+}
+
+UTEST(Testpoint, Exceptions) {
+  testsuite::TestpointControl testpoint_control;
+  EchoTestpointClient testpoint_client;
+  testpoint_control.SetClient(testpoint_client);
+  testpoint_control.SetAllEnabled();
+
+  try {
+    TESTPOINT_CALLBACK("name-throws", {}, [](const auto&) {
+      // Callbacks may throw. It is fine and used in SQL drivers of userver for
+      // error injection.
+      throw Exception();
+      return formats::json::Value{};
+    });
+    FAIL() << "Exception was swallowed";
+  } catch (const Exception&) {
+  }
+}
+
+UTEST_MT(Testpoint, ExceptionsNoncoro, 2) {
+  testsuite::TestpointControl testpoint_control;
+  EchoTestpointClient testpoint_client;
+  testpoint_control.SetClient(testpoint_client);
+  testpoint_control.SetAllEnabled();
+
+  auto& tp = engine::current_task::GetTaskProcessor();
+
+  std::thread([&] {
+    try {
+      TESTPOINT_CALLBACK_NONCORO("name-throws-noncoro", {}, tp,
+                                 [](const auto&) {
+                                   // Callbacks may throw. It is fine and used
+                                   // in SQL drivers of userver for error
+                                   // injection.
+                                   throw Exception();
+                                   return formats::json::Value{};
+                                 });
+      FAIL() << "Exception was swallowed";
+    } catch (const Exception&) {
+    }
+  }).join();
+}
+
+UTEST(Testpoint, Inactive) {
+  testsuite::TestpointControl testpoint_control;
+  EchoTestpointClient testpoint_client;
+  testpoint_control.SetClient(testpoint_client);
+
+  try {
+    TESTPOINT("name", true ? throw Exception() : formats::json::Value{});
+  } catch (const Exception&) {
+    FAIL() << "Exception was thrown on inactive testpoint. JSON expression was "
+              "evaluated!";
+  }
+
+  try {
+    TESTPOINT_CALLBACK("name2", {}, [](const auto&) {
+      // Callbacks must not be executed.
+      throw Exception();
+      return formats::json::Value{};
+    });
+  } catch (const Exception&) {
+    FAIL() << "Exception was thrown on inactive testpoint. Callback was called";
+  }
+}
+
+TEST(Testpoint, InactiveNoncoro) {
+  try {
+    TESTPOINT_NONCORO("name-noncoro",
+                      true ? throw Exception() : formats::json::Value{},
+                      engine::current_task::GetTaskProcessor());
+  } catch (const Exception&) {
+    FAIL() << "Exception was thrown on inactive testpoint. JSON expression was "
+              "evaluated!";
+  }
+
+  try {
+    TESTPOINT_CALLBACK_NONCORO("name2-noncoro", {},
+                               engine::current_task::GetTaskProcessor(),
+                               [](const auto&) {
+                                 // Callbacks must not be executed.
+                                 throw Exception();
+                                 return formats::json::Value{};
+                               });
+  } catch (const Exception&) {
+    FAIL() << "Exception was thrown on inactive testpoint. Callback was called";
+  }
 }
 
 USERVER_NAMESPACE_END

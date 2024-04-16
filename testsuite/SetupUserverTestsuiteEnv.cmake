@@ -2,6 +2,7 @@
 # It is not used for testing services based on userver.
 
 # /// [testsuite - UserverTestsuite]
+# cmake
 include(UserverTestsuite)
 # /// [testsuite - UserverTestsuite]
 
@@ -10,7 +11,7 @@ userver_testsuite_requirements(REQUIREMENT_FILES_VAR requirements_files)
 userver_venv_setup(
   NAME userver-testenv
   PYTHON_OUTPUT_VAR TESTSUITE_PYTHON_BINARY
-  REQUIREMENTS ${requirements_files} ${USERVER_TESTSUITE_DIR}/requirements-net.txt
+  REQUIREMENTS ${requirements_files}
 )
 
 function(userver_chaos_testsuite_add)

@@ -87,8 +87,33 @@ SubscriptionQueue<Item>::GetSubscriptionToken(
       command_control);
 }
 
+template <typename Item>
+template <typename T>
+std::enable_if_t<std::is_same<T, ShardedSubscriptionQueueItem>::value,
+                 USERVER_NAMESPACE::redis::SubscriptionToken>
+SubscriptionQueue<Item>::GetSubscriptionToken(
+    USERVER_NAMESPACE::redis::SubscribeSentinel& subscribe_sentinel,
+    std::string channel,
+    const USERVER_NAMESPACE::redis::CommandControl& command_control) {
+  return subscribe_sentinel.Ssubscribe(
+      channel,
+      [this](const std::string& channel, const std::string& message) {
+        if (!producer_.PushNoblock(Item(message))) {
+          // Use SubscriptionQueue::SetMaxLength() or
+          // SubscriptionToken::SetMaxQueueLength() if limit is too low
+          LOG_ERROR()
+              << "failed to push message '" << message << "' from channel '"
+              << channel
+              << "' into subscription queue due to overflow (max length="
+              << queue_->GetSoftMaxSize() << ')';
+        }
+      },
+      command_control);
+}
+
 template class SubscriptionQueue<ChannelSubscriptionQueueItem>;
 template class SubscriptionQueue<PatternSubscriptionQueueItem>;
+template class SubscriptionQueue<ShardedSubscriptionQueueItem>;
 
 }  // namespace storages::redis
 

@@ -1,0 +1,57 @@
+# yaml
+components_manager:
+    task_processors:                  # Task processor is an executor for coroutine tasks
+        main-task-processor:          # Make a task processor for CPU-bound couroutine tasks.
+            worker_threads: 4         # Process tasks in 4 threads.
+
+        fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
+            worker_threads: 1
+
+    default_task_processor: main-task-processor  # Task processor in which components start.
+
+    components:                       # Configuring components that were registered via component_list
+        server:
+            listener:                 # configuring the main listening socket...
+                port: 8080            # ...to listen on this port and...
+                task_processor: main-task-processor    # ...process incoming requests on this task processor.
+
+# [Middlewares sample - pipeline builder configuration]
+        # yaml
+        default-server-middleware-pipeline-builder:
+            append:
+              - server-middleware     # Or we could implement the same in the code, consider it a shortcut.
+# [Middlewares sample - pipeline builder configuration]
+
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
+
+        handler:                    # Finally! Our handler.
+            path: /hello                  # Registering handler by URL '/hello'.
+            method: GET                   # It will only reply to GET (HEAD) requests.
+            task_processor: main-task-processor  # Run it on CPU bound task processor
+
+# [Middlewares sample - custom handler pipeline builder configuration]
+        # yaml
+        handler-with-custom-middlewares:
+            path: /custom-hello
+            method: GET
+            task_processor: main-task-processor
+            middlewares:
+                pipeline-builder: custom-handler-pipeline-builder
+                handler-middleware:
+                    header-value: some_value
+# [Middlewares sample - custom handler pipeline builder configuration]
+
+        handler-with-another-middleware-configuration:
+            path: /custom-hello-other
+            method: GET
+            task_processor: main-task-processor
+            middlewares:
+                pipeline-builder: custom-handler-pipeline-builder
+                handler-middleware:
+                    header-value: some_other_value

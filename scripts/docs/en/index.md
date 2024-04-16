@@ -8,8 +8,18 @@ the developers. As a result, with the framework you get straightforward source c
 avoid CPU-consuming context switches from OS, efficiently
 utilize the CPU with a small amount of execution threads.
 
+
+## Community and Telegram Support chats
+
 Telegram support chats: [English-speaking](https://t.me/userver_en) |
 [Russian-speaking](https://t.me/userver_ru) | [News channel](https://t.me/userver_news).
+
+
+## Source codes and service templates at github
+
+Ready-to-use services templates and the source codes of the framework itself
+are available at the
+[userver-framework at github](https://github.com/userver-framework/).
 
 
 ## Introduction
@@ -49,12 +59,14 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 * @ref scripts/docs/en/userver/component_system.md
     * @ref userver_clients "Clients"
     * @ref userver_http_handlers "HTTP Handlers"
+    * @ref userver_middlewares "HTTP Middlewares" 
     * @ref userver_components "Other components"
 * @ref scripts/docs/en/userver/synchronization.md
 * @ref scripts/docs/en/userver/formats.md
 * @ref scripts/docs/en/userver/logging.md
 * @ref scripts/docs/en/userver/task_processors_guide.md
 * @ref scripts/docs/en/userver/periodics.md
+
 
 ## Testing and Benchmarking
 * @ref scripts/docs/en/userver/testing.md
@@ -105,6 +117,7 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 * @ref pg_topology
 * @ref scripts/docs/en/userver/pg_connlimit_mode_auto.md
 * @ref scripts/docs/en/userver/pg_user_types.md
+
 
 ## MySQL
 * @ref mysql_driver

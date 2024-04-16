@@ -19,7 +19,8 @@ namespace engine::io {
 
 /// Class for TLS communications over a Socket.
 ///
-/// Not thread safe.
+/// Not thread safe. E.g. you MAY NOT read and write concurrently from multiple
+/// coroutines.
 ///
 /// Usage example:
 /// @snippet src/engine/io/tls_wrapper_test.cpp TLS wrapper usage
@@ -101,8 +102,11 @@ class [[nodiscard]] TlsWrapper final : public RwBase {
  private:
   explicit TlsWrapper(Socket&&);
 
+  void SetupContextAccessors();
+
   class Impl;
-  constexpr static size_t kSize = 296;
+  class ReadContextAccessor;
+  constexpr static size_t kSize = 336;
   constexpr static size_t kAlignment = 8;
   utils::FastPimpl<Impl, kSize, kAlignment> impl_;
 };

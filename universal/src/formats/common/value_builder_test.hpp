@@ -121,7 +121,51 @@ TYPED_TEST_P(CommonValueBuilderTests, Resize) {
   }
 }
 
+TYPED_TEST_P(CommonValueBuilderTests, StringView) {
+  using ValueBuilder = typename TestFixture::ValueBuilder;
+  ValueBuilder builder;
+  char value_chars[] = "Some string in std::string_view";
+  builder = std::string_view{value_chars}.substr(0, 4);
+  value_chars[0] = 'X';
+  ASSERT_EQ("Some", builder.ExtractValue().template As<std::string>());
+}
+
+TYPED_TEST_P(CommonValueBuilderTests, Chars) {
+  using ValueBuilder = typename TestFixture::ValueBuilder;
+  char value_chars[] = "Some string in std::string_view";
+  ValueBuilder builder;
+  builder = static_cast<char*>(value_chars);
+  value_chars[0] = 'X';
+  ASSERT_EQ("Some string in std::string_view",
+            builder.ExtractValue().template As<std::string>());
+}
+
+TYPED_TEST_P(CommonValueBuilderTests, Nullptr) {
+  using ValueBuilder = typename TestFixture::ValueBuilder;
+  ValueBuilder builder;
+  builder = 42;
+  builder = nullptr;
+  ASSERT_TRUE(builder.IsNull());
+}
+
+TYPED_TEST_P(CommonValueBuilderTests, ImplicitType) {
+  using ValueBuilder = typename TestFixture::ValueBuilder;
+
+  ValueBuilder builder;
+  builder = formats::common::Type::kNull;
+  EXPECT_TRUE(builder.IsNull());
+  EXPECT_TRUE(ValueBuilder(formats::common::Type::kNull).IsNull());
+
+  builder = formats::common::Type::kArray;
+  EXPECT_TRUE(builder.IsArray());
+  EXPECT_TRUE(ValueBuilder(formats::common::Type::kArray).IsArray());
+
+  builder = formats::common::Type::kObject;
+  EXPECT_TRUE(builder.IsObject());
+  EXPECT_TRUE(ValueBuilder(formats::common::Type::kObject).IsObject());
+}
+
 REGISTER_TYPED_TEST_SUITE_P(CommonValueBuilderTests, StringStrongTypedef,
-                            Resize);
+                            Resize, StringView, Chars, Nullptr, ImplicitType);
 
 USERVER_NAMESPACE_END

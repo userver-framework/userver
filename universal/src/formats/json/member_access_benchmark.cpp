@@ -169,4 +169,25 @@ BENCHMARK(json_object_from_unordered_strong_typedef)
     ->RangeMultiplier(2)
     ->Range(1, 1024);
 
+void json_object_wide_object_operator_equals(benchmark::State& state) {
+  const std::size_t size = state.range(0);
+
+  formats::json::ValueBuilder builder{formats::json::Type::kObject};
+  for (std::size_t i = 0; i < size; ++i) {
+    std::string some_common_prefix(5 + i % 8, 'a');
+    some_common_prefix.append(std::to_string(i));
+    builder[std::move(some_common_prefix)] = i;
+  }
+  const auto first_value = builder.ExtractValue();
+  const auto second_value = first_value.Clone();
+
+  for ([[maybe_unused]] auto _ : state) {
+    benchmark::DoNotOptimize(first_value == second_value);
+  }
+}
+BENCHMARK(json_object_wide_object_operator_equals)
+    ->DenseRange(4, 16, 4)
+    ->Range(32, 8192)
+    ->RangeMultiplier(2);
+
 USERVER_NAMESPACE_END

@@ -46,17 +46,42 @@ class ComponentInfo final {
 
   template <typename Func>
   void ForEachItDependsOn(const Func& func) const {
-    auto it_depends_on = MakeCopy(it_depends_on_);
-    for (const auto& component : it_depends_on) {
-      func(component);
+    std::unique_lock lock{mutex_};
+    if (stage_ == ComponentLifetimeStage::kNull) {
+      auto it_depends_on = it_depends_on_;
+      lock.unlock();
+
+      for (const auto& component : it_depends_on) {
+        func(component);
+      }
+    } else {
+      lock.unlock();
+
+      // Only readers remain, could read without copying
+      for (const auto& component : it_depends_on_) {
+        func(component);
+      }
     }
   }
 
   template <typename Func>
   void ForEachDependsOnIt(const Func& func) const {
-    auto depends_on_it = MakeCopy(depends_on_it_);
-    for (const auto& component : depends_on_it) {
-      func(component);
+    std::unique_lock lock{mutex_};
+    if (stage_ == ComponentLifetimeStage::kNull ||
+        stage_ == ComponentLifetimeStage::kCreated) {
+      auto depends_on_it = depends_on_it_;
+      lock.unlock();
+
+      for (const auto& component : depends_on_it) {
+        func(component);
+      }
+    } else {
+      lock.unlock();
+
+      // Only readers remain, could read without copying
+      for (const auto& component : depends_on_it_) {
+        func(component);
+      }
     }
   }
 
@@ -75,12 +100,6 @@ class ComponentInfo final {
  private:
   bool HasComponent() const;
   std::unique_ptr<ComponentBase> ExtractComponent();
-
-  template <typename Value>
-  Value MakeCopy(const Value& value) const {
-    std::lock_guard<engine::Mutex> lock(mutex_);
-    return value;
-  }
 
   const std::string name_;
 

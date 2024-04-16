@@ -13,7 +13,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
 
-class FutureStateBase : private engine::impl::ContextAccessor {
+class FutureStateBase : private ContextAccessor {
  public:
   bool IsReady() const noexcept final;
 
@@ -26,8 +26,6 @@ class FutureStateBase : private engine::impl::ContextAccessor {
   ContextAccessor* TryGetContextAccessor() noexcept { return this; }
 
  protected:
-  class WaitStrategy;
-
   FutureStateBase() noexcept;
   ~FutureStateBase();
 
@@ -36,8 +34,11 @@ class FutureStateBase : private engine::impl::ContextAccessor {
   void WaitForResult();
 
  private:
-  void AppendWaiter(impl::TaskContext& context) noexcept final;
-  void RemoveWaiter(impl::TaskContext& context) noexcept final;
+  friend class FutureWaitStrategy<FutureStateBase>;
+
+  EarlyWakeup TryAppendWaiter(TaskContext& waiter) final;
+  void RemoveWaiter(TaskContext& waiter) noexcept final;
+  void AfterWait() noexcept final;
 
   FastPimplWaitListLight finish_waiters_;
   std::atomic<bool> is_ready_;

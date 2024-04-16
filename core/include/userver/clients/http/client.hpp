@@ -12,7 +12,7 @@
 #include <userver/moodycamel/concurrentqueue_fwd.h>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
-#include <userver/clients/http/impl/config.hpp>
+#include <userver/clients/http/config.hpp>
 #include <userver/clients/http/plugin.hpp>
 #include <userver/clients/http/request.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
@@ -66,8 +66,7 @@ class DestinationStatistics;
 /// @snippet clients/http/client_test.cpp  Sample HTTP Client usage
 class Client final {
  public:
-  Client(impl::ClientSettings settings,
-         engine::TaskProcessor& fs_task_processor,
+  Client(ClientSettings settings, engine::TaskProcessor& fs_task_processor,
          impl::PluginPipeline&& plugin_pipeline);
 
   ~Client();
@@ -148,7 +147,8 @@ class Client final {
 
   std::atomic<std::size_t> pending_tasks_{0};
 
-  const impl::DeadlinePropagationConfig deadline_propagation_config_;
+  const DeadlinePropagationConfig deadline_propagation_config_;
+  CancellationPolicy cancellation_policy_;
 
   std::shared_ptr<DestinationStatistics> destination_statistics_;
   std::unique_ptr<engine::ev::ThreadPool> thread_pool_;

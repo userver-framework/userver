@@ -33,7 +33,8 @@ components_manager:
         # Common configuration for gRPC server
         grpc-server:
             # The single listening port for incoming RPCs
-            port: 8091
+            port: $grpc_server_port
+            port#fallback: 8091
             completion-queue-count: 3
 
         # Our GreeterService implementation

@@ -1,123 +1,155 @@
-<div id='mainDescription'>
-<div id='landing-content'>
-<div class="landing-description">The C++ Asynchronous Framework</div>
-
 \htmlonly
-<div class="landing-logo" id='landing_logo_id'>
-  <a href="de/d6a/md_en_2index.html"><img src='logo.svg' alt='userver logo big'/></a>
-</div>
-\endhtmlonly
 
----
-
-<div class="landing-text">
-🐙 userver is the modern open source asynchronous framework with a rich set of abstractions
-for fast and comfortable creation of C++ microservices, services and utilities.
-The problem of efficient I/O interactions is solved transparently for the
-developers:</div>
-
-<div class="landing-text">
-<div class="fragment landing-fragment">
-  <div class="line">
-    std::size_t Ins(storages::postgres::Transaction& tr, std::string_view key) {
-  </div>
-  <div class="line">
-    <span class="comment">  // Asynchronous execution of the SQL query in transaction. Current thread</span>
-  </div>
-  <div class="line">
-    <span class="comment">  // handles other requests while the response from the DB is being received:</span>
-  </div>
-  <div class="line">
-    <span class="keyword">  auto</span> res = tr.Execute(<span class="stringliteral">"INSERT INTO keys VALUES ($1)"</span>, key);
-  </div>
-  <div class="line">
-    <span class="keyword">  return</span> res.RowsAffected();
-  </div>
-  <div class="line">
+<link rel="stylesheet" href="landing.css" />
+    <main class="main">
+      <section class="section info">
+        <div class="info__block container">
+          <div class="info__header">
+            <div class="info__title"></div>
+            <a
+              href="de/d6a/md_en_2index.html"
+              class="info__logo"
+              title="Сlick on me to go to the documentation 😉"
+              id="landing_logo_id"
+            ></a>
+          </div>
+          <p class="info__paragraph paragraph mt">
+            <span class="userver__title userver__title_p">userver</span> is the
+            modern open source asynchronous framework with a rich set of
+            abstractions for fast and comfortable creation of C++ microservices,
+            services and utilities.
+          </p>
+          <div class="info__buttons mt">
+            <a
+              class="button"
+              title="Go to the documentation"
+              href="de/d6a/md_en_2index.html"
+            >
+              documentation
+            </a>
+            <a
+              class="button button_outline"
+              title="Go to the userver Telegram"
+              href="https://t.me/userver_en"
+            >
+              > Community
+            </a>
+          </div>
+        </div>
+      </section>
+      <section class="section how container">
+        <h2>How It Works</h2>
+        <p class="how__info paragraph">
+          The problem of efficient I/O interactions is solved transparently for
+          the developers
+        </p>
+        <div class="how__codeblocks mt">
+          <div class="codeblock codeblock_userver">
+            <div class="codeblock__header">
+              <span class="userver__title">🐙 userver</span>
+            </div>
+            <pre
+              class="codeblock__body"
+            ><code>
+std::size_t Ins(storages::postgres::Transaction& tr,
+                std::string_view key) {
+  auto res = tr.Execute("INSERT INTO keys VALUES ($1)", key);
+  return res.RowsAffected();
+}</code></pre>
+          </div>
+          <div
+            class="codeblock codeblock_overflow codeblock_grey codeblock_cpp"
+          >
+            <div class="codeblock__header">Classic C++</div>
+            <pre class="codeblock__body"><code>template &lt;class OnSuccess&gt;
+void Ins(storages::postgres::Transaction& tr,
+         std::string_view key, OnSuccess&& on_success) {
+  tr.Execute("INSERT INTO keys VALUES ($1)", key,
+    [on_success = std::forward&lt;OnSuccess&gt;(on_success)]
+    (const auto& res, const auto& error) {
+      if (error) {
+        report_error(error);
+        return;
+      }
+      on_success(res.RowsAffected());
     }
-  </div>
-</div>
-</div>
+  );
+}</code></pre>
+          </div>
+        </div>
+      </section>
+      <section class="section values container">
+        <h2>Values of <span class="userver__title">userver</span></h2>
+        <div class="values__cards mt">
+          <div class="values__card">
+            <span class="values__icon thumbnail thumbnail_debugging"></span>
+            <p class="values__cardinfo">
+              Technologies for debugging and memory profiling a running
+              production service
+            </p>
+          </div>
+          <div class="values__card">
+            <span class="values__icon thumbnail thumbnail_modern"></span>
+            <p class="values__cardinfo">
+              Write your first toy C++ service, evolve it into a production
+              ready service.
+            </p>
+          </div>
+          <div class="values__card">
+            <span class="values__icon thumbnail thumbnail_asynchronous"></span>
+            <p class="values__cardinfo">
+              Efficient asynchronous drivers for databases (MongoDB, PostgreSQL,
+              MySQL/MariaDB (experimental), Redis, ClickHouse, ...) and data
+              transfer protocols (HTTP, WEbSockets, gRPC, TCP, AMQP-0.9.1
+              (experimental), ...), tasks construction and cancellation.
+            </p>
+          </div>
+          <div class="values__card">
+            <span class="values__icon thumbnail thumbnail_plane"></span>
+            <p class="values__cardinfo">
+              Functionality to change the service configuration on-the-fly.
+              Adjust options of the deadline propagation, timeouts,
+              congestion-control without a restart.
+            </p>
+          </div>
+          <div class="values__card">
+            <span class="values__icon thumbnail thumbnail_tools"></span>
+            <p class="values__cardinfo">
+              Rich set of high-level components for caches, tasks, distributed
+              locking, logging, tracing, statistics, metrics, JSON/YAML/BSON.
+            </p>
+          </div>
+          <div class="values__card">
+            <span class="values__icon thumbnail thumbnail_abstractions"></span>
+            <p class="values__cardinfo">
+              Comprehensive set of asynchronous low-level synchronization
+              primitives and OS abstractions.
+            </p>
+          </div>
+        </div>
+      </section>
+      <section class="section companies container">
+        <h2>
+          Brands and companies using <span class="userver__title">userver</span>
+        </h2>
+        <div class="companies__logos mt">
+          <span class="logo logo_uber" title="Uber Russia"></span>
+          <span class="logo logo_delivery" title="Delivery club"></span>
+          <span class="logo logo_matchmaker" title="Matchmaker"></span>
+          <span class="logo logo_yago" title="Yandex Go"></span>
+        </div>
+      </section>
+    </main>
+    <!-- Highlight codeblocks -->
+    <script src="highlight.min.js"></script>
+    <script>
+      document.querySelectorAll(".codeblock__body").forEach((el) => {
+        hljs.highlightElement(el);
+      });
+    </script>
+    <!-- Hide some blocks on landing page -->
+    <script type="text/javascript">
+      document.querySelector(".header").style.display = "none";
+    </script>
 
-<!--@snippet postgresql/src/storages/postgres/tests/landing_test.cpp  Landing sample1 -->
-
-<!--div class="landing-text"><div class="landing-motto">Fast. Reliable. Yours!</div></div-->
-
----
-
-<div class="landing-container">
-  <div class="landing-intro-center">
-      Micro-services based on userver served more than a billion requests while
-      you were reading this sentence.
-  </div>
-</div>
-
----
-
-<div class="landing-container">
-  <div class="landing-intro-left">
-      Technologies for debugging and memory profiling a running production
-      service.
-  </div>
-  <div class="landing-intro-right">
-      Write @ref scripts/docs/en/userver/tutorial/hello_service.md "your first toy C++ service",
-      evolve it into a @ref scripts/docs/en/userver/tutorial/production_service.md "production ready service".
-  </div>
-</div>
-
-<div class="landing-container">
-  <div class="landing-intro-left">
-      Efficient asynchronous drivers for databases (MongoDB, PostgreSQL, MySQL/MariaDB (experimental), Redis, ClickHouse,
-      ...) and data transfer protocols (HTTP, WEbSockets, gRPC, TCP, AMQP-0.9.1 (experimental), ...), tasks
-      construction and cancellation.
-  </div>
-  <div class="landing-intro-right">
-      Functionality to @ref scripts/docs/en/schemas/dynamic_configs.md "change the service configuration"
-      on-the-fly. Adjust options of the deadline propagation, timeouts,
-      congestion-control without a restart.
-  </div>
-</div>
-
-<div class="landing-container">
-  <div class="landing-intro-left">
-      Rich set of high-level components for caches, tasks, distributed locking,
-      logging, tracing, statistics, metrics, @ref scripts/docs/en/userver/formats.md "JSON/YAML/BSON".
-  </div>
-  <div class="landing-intro-right">
-      Comprehensive set of asynchronous low-level synchronization primitives
-      and OS abstractions.
-  </div>
-</div>
-
-
----
-<div class="landing-container">
-  <div class="landing-intro-center">
-      Speed of C++, simplicity of Python.
-  </div>
-
-  <div class="landing-intro-center">
-      Dive into @ref scripts/docs/en/index.md "the documentation" for more details.
-  
-    \htmlonly
-    <a href="https://github.com/userver-framework/" rel="noopener" target="_blank" class="titlelink">
-      <img src="github_logo.svg"  width="48" height="48" class="gh-logo-landing" alt="Github"/>
-    </a>
-    &nbsp;
-    <a href="https://t.me/userver_en" rel="noopener" id='telegram_channel' target="_blank" class="titlelink">
-      <img src="telegram_logo.svg"  width="48" height="48" alt="Telegram"/>
-    </a>
-    \endhtmlonly
-  </div>
-
-</div>
-</div>
-</div>
-
-\htmlonly
-<script type="text/javascript">
-  document.getElementById('side-nav').style.display = 'none';
-  document.getElementById('mainDescription').closest('#doc-content').removeAttribute('id')
-  document.getElementsByClassName('header')[0].style.display = 'none';
-</script>
 \endhtmlonly

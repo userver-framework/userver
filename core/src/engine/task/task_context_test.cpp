@@ -31,16 +31,17 @@ class DtorInCoroChecker final {
 // wakeup source because wakeup source was calculated early.
 struct WaitListRaceSimulator final : public engine::impl::WaitStrategy {
   // cannot use passed deadline because of fast path
-  WaitListRaceSimulator() : WaitStrategy{engine::Deadline{}} {}
+  WaitListRaceSimulator() = default;
 
-  void SetupWakeups() override {
+  engine::impl::EarlyWakeup SetupWakeups() override {
     // wake up immediately
     engine::current_task::GetCurrentTaskContext().Wakeup(
         engine::impl::TaskContext::WakeupSource::kDeadlineTimer,
         engine::impl::SleepState::Epoch{0});
+    return engine::impl::EarlyWakeup{false};
   }
 
-  void DisableWakeups() override {
+  void DisableWakeups() noexcept override {
     // simulate wait list notification before cleanup
     engine::current_task::GetCurrentTaskContext().Wakeup(
         engine::impl::TaskContext::WakeupSource::kWaitList,
@@ -90,7 +91,7 @@ UTEST(TaskContext, WaitListWakeupRace) {
   auto& context = engine::current_task::GetCurrentTaskContext();
 
   WaitListRaceSimulator wait_manager;
-  EXPECT_EQ(context.Sleep(wait_manager),
+  EXPECT_EQ(context.Sleep(wait_manager, engine::Deadline{}),
             engine::impl::TaskContext::WakeupSource::kWaitList);
 }
 

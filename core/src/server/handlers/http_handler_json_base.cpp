@@ -45,7 +45,7 @@ std::string HttpHandlerJsonBase::HandleRequestThrow(
       HandleRequestJsonThrow(request, request_json, context));
 
   const auto scope_time =
-      tracing::Span::CurrentSpan().CreateScopeTime(kSerializeJson);
+      tracing::ScopeTime::CreateOptionalScopeTime(kSerializeJson);
   return formats::json::ToString(response_json);
 }
 

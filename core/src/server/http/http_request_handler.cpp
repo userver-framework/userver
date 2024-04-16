@@ -12,8 +12,6 @@
 #include <userver/engine/async.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/logging/component.hpp>
-#include <userver/logging/logger.hpp>
-#include <userver/server/http/http_request.hpp>
 #include <userver/server/http/http_response.hpp>
 #include <userver/server/request/task_inherited_request.hpp>
 #include <userver/utils/assert.hpp>
@@ -124,9 +122,9 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
                            "limit via 'server.max_response_size_in_flight')";
     return StartFailsafeTask(std::move(request));
   }
-  const auto& config = config_source_.GetSnapshot();
 
   if (throttling_enabled && !rate_limit_.Obtain()) {
+    const auto config = config_source_.GetSnapshot();
     auto config_var = config[handlers::kCcCustomStatus];
     const auto& delta = config_var.max_time_delta;
 
@@ -156,8 +154,13 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
     return StartFailsafeTask(std::move(request));
   }
 
+  // config::operator[] && is forbidden, so this
+  const auto get_config_stream_api_enabled = [this] {
+    const auto config = config_source_.GetSnapshot();
+    return config[handlers::kStreamApiEnabled];
+  };
   if (handler->GetConfig().response_body_stream &&
-      config[handlers::kStreamApiEnabled]) {
+      get_config_stream_api_enabled()) {
     http_response.SetStreamBody();
   }
 

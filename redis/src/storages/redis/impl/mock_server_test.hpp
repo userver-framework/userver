@@ -16,7 +16,14 @@
 #include <userver/storages/redis/impl/base.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wimplicit-fallthrough"
+#endif
 #include <boost/asio.hpp>
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 USERVER_NAMESPACE_BEGIN
 

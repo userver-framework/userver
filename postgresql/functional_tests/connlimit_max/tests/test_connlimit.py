@@ -27,6 +27,9 @@ async def periodic_step(service_client):
 
 
 async def test_single_client(monitor_client, service_client, taxi_config):
+    taxi_config.set_values({'POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED': False})
+    await periodic_step(service_client)
+
     assert await get_max_connections(monitor_client) == STATIC_MAX_CONNECTIONS
 
     taxi_config.set_values({'POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED': True})

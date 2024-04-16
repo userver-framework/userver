@@ -20,7 +20,6 @@
 #include <storages/redis/impl/command.hpp>
 #include <storages/redis/impl/redis.hpp>
 #include <storages/redis/impl/sentinel_impl.hpp>
-#include <storages/redis/impl/sentinel_impl_switcher.hpp>
 #include <storages/redis/impl/subscribe_sentinel.hpp>
 
 #include "command_control_impl.hpp"
@@ -35,6 +34,30 @@ void ThrowIfCancelled() {
       engine::current_task::ShouldCancel()) {
     throw RequestCancelledException(
         "Failed to make redis request due to task cancellation");
+  }
+}
+
+void OnSubscribeImpl(std::string_view message_type,
+                     const Sentinel::MessageCallback& message_callback,
+                     std::string_view subscribe_type,
+                     const Sentinel::SubscribeCallback& subscribe_callback,
+                     std::string_view unsubscribe_type,
+                     const Sentinel::UnsubscribeCallback& unsubscribe_callback,
+                     const ReplyPtr& reply) {
+  if (!reply->data.IsArray()) return;
+  const auto& reply_array = reply->data.GetArray();
+  if (reply_array.size() != 3 || !reply_array[0].IsString()) return;
+  if (!strcasecmp(reply_array[0].GetString().c_str(), subscribe_type.data())) {
+    subscribe_callback(reply->server_id, reply_array[1].GetString(),
+                       reply_array[2].GetInt());
+  } else if (!strcasecmp(reply_array[0].GetString().c_str(),
+                         unsubscribe_type.data())) {
+    unsubscribe_callback(reply->server_id, reply_array[1].GetString(),
+                         reply_array[2].GetInt());
+  } else if (!strcasecmp(reply_array[0].GetString().c_str(),
+                         message_type.data())) {
+    message_callback(reply->server_id, reply_array[1].GetString(),
+                     reply_array[2].GetString());
   }
 }
 
@@ -61,22 +84,13 @@ Sentinel::Sentinel(
   sentinel_thread_control_ = std::make_unique<engine::ev::ThreadControl>(
       thread_pools_->GetSentinelThreadPool().NextThread());
 
-  const bool use_cluster_sentinel =
-      !key_shard &&
-      utils::impl::kRedisClusterAutoTopologyExperiment.IsEnabled();
   sentinel_thread_control_->RunInEvLoopBlocking([&]() {
-    if (use_cluster_sentinel) {
-      auto switcher = std::make_unique<ClusterSentinelImplSwitcher>(
+    if (!key_shard) {
+      impl_ = std::make_unique<ClusterSentinelImpl>(
           *sentinel_thread_control_, thread_pools_->GetRedisThreadPool(), *this,
           shards, conns, std::move(shard_group_name), client_name, password,
           connection_security, std::move(ready_callback), std::move(key_shard),
           dynamic_config_source, mode);
-      const auto config_snapshot = dynamic_config_source.GetSnapshot();
-      const auto enabled_by_config = config_snapshot[kRedisAutoTopologyEnabled];
-
-      switcher->SetEnabledByConfig(enabled_by_config);
-      switcher->UpdateImpl(false, false);
-      impl_ = std::move(switcher);
     } else {
       impl_ = std::make_unique<SentinelImpl>(
           *sentinel_thread_control_, thread_pools_->GetRedisThreadPool(), *this,
@@ -88,7 +102,7 @@ Sentinel::Sentinel(
 }
 
 Sentinel::~Sentinel() {
-  sentinel_thread_control_->RunInEvLoopBlocking([this]() { impl_.reset(); });
+  impl_.reset();
   UASSERT(!impl_);
 }
 
@@ -272,13 +286,15 @@ size_t Sentinel::ShardByKey(const std::string& key) const {
 
 size_t Sentinel::ShardsCount() const { return impl_->ShardsCount(); }
 
+bool Sentinel::IsInClusterMode() const { return impl_->IsInClusterMode(); }
+
 void Sentinel::CheckShardIdx(size_t shard_idx) const {
   CheckShardIdx(shard_idx, ShardsCount());
 }
 
 void Sentinel::CheckShardIdx(size_t shard_idx, size_t shard_count) {
   if (shard_idx >= shard_count &&
-      shard_idx != ClusterSentinelImplSwitcher::kUnknownShard) {
+      shard_idx != ClusterSentinelImpl::kUnknownShard) {
     throw InvalidArgumentException("invalid shard (" +
                                    std::to_string(shard_idx) +
                                    " >= " + std::to_string(shard_count) + ')');
@@ -309,10 +325,6 @@ void Sentinel::SetRetryBudgetSettings(
   impl_->SetRetryBudgetSettings(settings);
 }
 
-void Sentinel::SetClusterAutoTopology(bool auto_topology) {
-  impl_->SetClusterAutoTopology(auto_topology);
-}
-
 std::vector<Request> Sentinel::MakeRequests(
     CmdArgs&& args, bool master, const CommandControl& command_control,
     size_t replies_to_skip) {
@@ -326,45 +338,40 @@ std::vector<Request> Sentinel::MakeRequests(
   return rslt;
 }
 
-void Sentinel::OnSubscribeReply(const MessageCallback message_callback,
-                                const SubscribeCallback subscribe_callback,
-                                const UnsubscribeCallback unsubscribe_callback,
-                                ReplyPtr reply) {
-  if (!reply->data.IsArray()) return;
-  const auto& reply_array = reply->data.GetArray();
-  if (reply_array.size() != 3 || !reply_array[0].IsString()) return;
-  if (!strcasecmp(reply_array[0].GetString().c_str(), "SUBSCRIBE")) {
-    if (subscribe_callback)
-      subscribe_callback(reply->server_id, reply_array[1].GetString(),
-                         reply_array[2].GetInt());
-  } else if (!strcasecmp(reply_array[0].GetString().c_str(), "UNSUBSCRIBE")) {
-    if (unsubscribe_callback)
-      unsubscribe_callback(reply->server_id, reply_array[1].GetString(),
-                           reply_array[2].GetInt());
-  } else if (!strcasecmp(reply_array[0].GetString().c_str(), "MESSAGE")) {
-    if (message_callback)
-      message_callback(reply->server_id, reply_array[1].GetString(),
-                       reply_array[2].GetString());
-  }
+void Sentinel::OnSsubscribeReply(
+    const MessageCallback& message_callback,
+    const SubscribeCallback& subscribe_callback,
+    const UnsubscribeCallback& unsubscribe_callback, ReplyPtr reply) {
+  OnSubscribeImpl("SMESSAGE", message_callback, "SSUBSCRIBE",
+                  subscribe_callback, "SUNSUBSCRIBE", unsubscribe_callback,
+                  reply);
 }
 
-void Sentinel::OnPsubscribeReply(const PmessageCallback pmessage_callback,
-                                 const SubscribeCallback subscribe_callback,
-                                 const UnsubscribeCallback unsubscribe_callback,
-                                 ReplyPtr reply) {
+void Sentinel::OnSubscribeReply(const MessageCallback& message_callback,
+                                const SubscribeCallback& subscribe_callback,
+                                const UnsubscribeCallback& unsubscribe_callback,
+                                ReplyPtr reply) {
+  OnSubscribeImpl("MESSAGE", message_callback, "SUBSCRIBE", subscribe_callback,
+                  "UNSUBSCRIBE", unsubscribe_callback, reply);
+}
+
+void Sentinel::OnPsubscribeReply(
+    const PmessageCallback& pmessage_callback,
+    const SubscribeCallback& subscribe_callback,
+    const UnsubscribeCallback& unsubscribe_callback, ReplyPtr reply) {
   if (!reply->data.IsArray()) return;
   const auto& reply_array = reply->data.GetArray();
   if (!reply_array[0].IsString()) return;
   if (!strcasecmp(reply_array[0].GetString().c_str(), "PSUBSCRIBE")) {
-    if (reply_array.size() == 3 && subscribe_callback)
+    if (reply_array.size() == 3)
       subscribe_callback(reply->server_id, reply_array[1].GetString(),
                          reply_array[2].GetInt());
   } else if (!strcasecmp(reply_array[0].GetString().c_str(), "PUNSUBSCRIBE")) {
-    if (reply_array.size() == 3 && unsubscribe_callback)
+    if (reply_array.size() == 3)
       unsubscribe_callback(reply->server_id, reply_array[1].GetString(),
                            reply_array[2].GetInt());
   } else if (!strcasecmp(reply_array[0].GetString().c_str(), "PMESSAGE")) {
-    if (reply_array.size() == 4 && pmessage_callback)
+    if (reply_array.size() == 4)
       pmessage_callback(reply->server_id, reply_array[1].GetString(),
                         reply_array[2].GetString(), reply_array[3].GetString());
   }

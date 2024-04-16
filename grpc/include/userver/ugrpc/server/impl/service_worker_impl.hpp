@@ -41,12 +41,14 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::impl {
 
-void ReportHandlerError(const std::exception& ex, std::string_view call_name,
-                        tracing::Span& span) noexcept;
+void ReportHandlerError(
+    const std::exception& ex, std::string_view call_name, tracing::Span& span,
+    ugrpc::impl::RpcStatisticsScope& statistics_scope) noexcept;
 
-void ReportNetworkError(const RpcInterruptedError& ex,
-                        std::string_view call_name,
-                        tracing::Span& span) noexcept;
+void ReportNetworkError(
+    const RpcInterruptedError& ex, std::string_view call_name,
+    tracing::Span& span,
+    ugrpc::impl::RpcStatisticsScope& statistics_scope) noexcept;
 
 void ReportCustomError(
     const USERVER_NAMESPACE::server::handlers::CustomHandlerException& ex,
@@ -174,9 +176,11 @@ class CallData final {
 
     auto& access_tskv_logger =
         method_data_.service_data.settings.access_tskv_logger;
-    Call responder(CallParams{context_, call_name, statistics_scope,
-                              *access_tskv_logger, span_->Get()},
-                   raw_responder_);
+    utils::AnyStorage<StorageContext> storage_context;
+    Call responder(
+        CallParams{context_, call_name, statistics_scope, *access_tskv_logger,
+                   span_->Get(), storage_context},
+        raw_responder_);
     auto do_call = [&] {
       if constexpr (std::is_same_v<InitialRequest, NoInitialRequest>) {
         (service.*service_method)(responder);
@@ -201,10 +205,9 @@ class CallData final {
         const USERVER_NAMESPACE::server::handlers::CustomHandlerException& ex) {
       ReportCustomError(ex, responder, span_->Get());
     } catch (const RpcInterruptedError& ex) {
-      ReportNetworkError(ex, call_name, span_->Get());
-      statistics_scope.OnNetworkError();
+      ReportNetworkError(ex, call_name, span_->Get(), statistics_scope);
     } catch (const std::exception& ex) {
-      ReportHandlerError(ex, call_name, span_->Get());
+      ReportHandlerError(ex, call_name, span_->Get(), statistics_scope);
     }
   }
 

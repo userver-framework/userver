@@ -20,6 +20,8 @@ using LoggerPtr = std::shared_ptr<impl::LoggerBase>;
 
 class LogHelper;
 
+class LogExtra;
+
 }  // namespace logging
 
 USERVER_NAMESPACE_END

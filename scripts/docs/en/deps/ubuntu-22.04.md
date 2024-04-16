@@ -2,6 +2,7 @@ build-essential
 ccache
 cmake
 git
+libabsl-dev
 libbenchmark-dev
 libboost-context1.74-dev
 libboost-coroutine1.74-dev
@@ -25,7 +26,6 @@ libgrpc++-dev
 libgrpc++1
 libgtest-dev
 libhiredis-dev
-libhttp-parser-dev
 libjemalloc-dev
 libkrb5-dev
 libldap2-dev
@@ -37,6 +37,7 @@ libpq-dev
 libprotoc-dev
 libssl-dev
 libyaml-cpp-dev
+netbase
 ninja-build
 postgresql-14
 postgresql-server-dev-14

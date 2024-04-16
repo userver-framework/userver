@@ -6,6 +6,8 @@
 #include <userver/formats/yaml/exception.hpp>
 #include <userver/utils/assert.hpp>
 
+#include "string_view_support.hpp"
+
 USERVER_NAMESPACE_BEGIN
 
 namespace formats::yaml {
@@ -40,7 +42,11 @@ ValueBuilder::ValueBuilder(bool t) : value_(YAML::Node(t)) {}
 
 ValueBuilder::ValueBuilder(const char* str) : value_(YAML::Node(str)) {}
 
+ValueBuilder::ValueBuilder(char* str) : ValueBuilder(std::string_view{str}) {}
+
 ValueBuilder::ValueBuilder(const std::string& str) : value_(YAML::Node(str)) {}
+
+ValueBuilder::ValueBuilder(std::string_view str) : value_(YAML::Node(str)) {}
 
 ValueBuilder::ValueBuilder(int t) : value_(YAML::Node(t)) {}
 

@@ -7,6 +7,11 @@ from testsuite.databases.pgsql import discover
 pytest_plugins = ['pytest_userver.plugins.postgresql']
 
 
+@pytest.fixture(scope='session')
+def userver_testsuite_middleware_enabled():
+    return False
+
+
 # /// [gate start]
 @pytest.fixture(name='pgsql_local', scope='session')
 def _pgsql_local(service_source_dir, pgsql_local_create):
@@ -39,8 +44,8 @@ def _userver_config_testsuite(userver_config_testsuite):
 
         components: dict = config_yaml['components_manager']['components']
         testsuite_support = components['testsuite-support']
-        testsuite_support.pop('testsuite-pg-execute-timeout')
-        testsuite_support.pop('testsuite-pg-statement-timeout')
+        testsuite_support['testsuite-pg-execute-timeout'] = '0ms'
+        testsuite_support['testsuite-pg-statement-timeout'] = '0ms'
         testsuite_support.pop('testsuite-pg-readonly-master-expected')
 
     return patch_config

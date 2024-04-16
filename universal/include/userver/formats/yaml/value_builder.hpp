@@ -48,7 +48,7 @@ class ValueBuilder final {
   ValueBuilder();
 
   /// Constructs a valueBuilder that holds default value for provided `type`.
-  ValueBuilder(Type type);
+  ValueBuilder(formats::common::Type type);
 
   ValueBuilder(const ValueBuilder& other);
   // NOLINTNEXTLINE(performance-noexcept-move-constructor)
@@ -60,10 +60,14 @@ class ValueBuilder final {
   ValueBuilder(const formats::yaml::Value& other);
   ValueBuilder(formats::yaml::Value&& other);
 
-  /// Converting constructors.
+  /// @name Concrete type constructors
+  /// @{
+  ValueBuilder(std::nullptr_t) : ValueBuilder() {}
   ValueBuilder(bool t);
   ValueBuilder(const char* str);
+  ValueBuilder(char* str);
   ValueBuilder(const std::string& str);
+  ValueBuilder(std::string_view str);
   ValueBuilder(int t);
   ValueBuilder(unsigned int t);
   ValueBuilder(long t);
@@ -72,6 +76,7 @@ class ValueBuilder final {
   ValueBuilder(unsigned long long t);
   ValueBuilder(float t);
   ValueBuilder(double t);
+  /// @}
 
   /// @brief Transfers the `ValueBuilder` object
   /// @see formats::common::TransferTag for the transfer semantics

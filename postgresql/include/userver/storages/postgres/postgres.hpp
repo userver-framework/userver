@@ -30,9 +30,18 @@
 /// - Transaction support;
 /// - Variadic template query parameter passing;
 /// - Query result extraction to C++ types;
-/// - Binary protocol usage for communication rather than the libpq's text;
+/// - More effective binary protocol usage for communication rather than the
+///   libpq's text protocol;
+/// - Caching the low-level database (D)escribe responses to save about a half
+///   of network bandwidth on select statements that return multiple columns
+///   (compared to the libpq implementation);
 /// - Portals for effective background cache updates;
-/// - Queries pipelining;
+/// - Queries pipelining to execute multiple queries in one network roundtrip
+///   (for example `begin + set transaction timeout + insert` result in one
+///   roundtrip);
+/// - Ability to manually control network roundtrips via
+///   storages::postgres::QueryQueue to gain maximum efficiency
+///   in case of multiple unrelated select statements;
 /// - Mapping PostgreSQL user types to C++ types;
 /// - Transaction error injection via pytest_userver.sql.RegisteredTrx;
 /// - LISTEN/NOTIFY support via storages::postgres::Cluster::Listen();

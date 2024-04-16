@@ -106,6 +106,8 @@ ValueBuilder::ValueBuilder(double value)
 ValueBuilder::ValueBuilder(const char* value)
     : ValueBuilder(std::string(value)) {}
 
+ValueBuilder::ValueBuilder(char* value) : ValueBuilder(std::string(value)) {}
+
 ValueBuilder::ValueBuilder(std::string value)
     : impl_(std::make_shared<impl::ValueImpl>(std::move(value))) {}
 

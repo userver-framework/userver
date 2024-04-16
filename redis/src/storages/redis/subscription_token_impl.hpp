@@ -59,6 +59,30 @@ class PsubscriptionTokenImpl final : public impl::SubscriptionTokenImplBase {
   engine::TaskWithResult<void> subscriber_task_;
 };
 
+class SsubscriptionTokenImpl final : public impl::SubscriptionTokenImplBase {
+ public:
+  using OnMessageCb = SubscriptionToken::OnMessageCb;
+
+  SsubscriptionTokenImpl(
+      USERVER_NAMESPACE::redis::SubscribeSentinel& subscribe_sentinel,
+      std::string channel, OnMessageCb on_message_cb,
+      const USERVER_NAMESPACE::redis::CommandControl& command_control);
+
+  ~SsubscriptionTokenImpl() override;
+
+  void SetMaxQueueLength(size_t length) override;
+
+  void Unsubscribe() override;
+
+ private:
+  void ProcessMessages();
+
+  std::string channel_;
+  SubscriptionQueue<ShardedSubscriptionQueueItem> queue_;
+  OnMessageCb on_message_cb_;
+  engine::TaskWithResult<void> subscriber_task_;
+};
+
 }  // namespace storages::redis
 
 USERVER_NAMESPACE_END

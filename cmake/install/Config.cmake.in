@@ -11,8 +11,8 @@ if(NOT userver_FIND_COMPONENTS)
 endif()
 list(REMOVE_DUPLICATES userver_FIND_COMPONENTS)
 
-message(STATUS "Userver components: ${userver_FIND_COMPONENTS}")
 list(REMOVE_ITEM userver_FIND_COMPONENTS universal)
+message(STATUS "Userver components: ${userver_FIND_COMPONENTS}")
 
 include(CMakeFindDependencyMacro)
 
@@ -26,6 +26,7 @@ set(CMAKE_MODULE_PATH
 
 include("${USERVER_CMAKE_DIR}/userver-universal-config.cmake")
 foreach(ITEM_COMPONENT IN LISTS userver_FIND_COMPONENTS)
+  message(STATUS "Attempting to include userver-${ITEM_COMPONENT}-config.cmake")
   include("${USERVER_CMAKE_DIR}/userver-${ITEM_COMPONENT}-config.cmake")
 endforeach()
 

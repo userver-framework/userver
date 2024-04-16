@@ -7,6 +7,7 @@
 #include <userver/engine/run_standalone.hpp>
 #include <userver/engine/semaphore.hpp>
 #include <userver/engine/sleep.hpp>
+#include <utils/impl/parallelize_benchmark.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -60,59 +61,33 @@ void semaphore_unlock(benchmark::State& state) {
 BENCHMARK(semaphore_unlock);
 
 void semaphore_lock_unlock_contention(benchmark::State& state) {
-  engine::RunStandalone(state.range(0), [&]() {
-    std::atomic<bool> run{true};
+  engine::RunStandalone(state.range(0), [&] {
     engine::Semaphore sem{1};
 
-    std::vector<engine::TaskWithResult<void>> tasks;
-    tasks.reserve(state.range(0) - 1);
-    for (int i = 0; i < state.range(0) - 1; i++)
-      tasks.push_back(engine::AsyncNoSpan([&]() {
-        while (run) {
-          sem.lock_shared();
-          sem.unlock_shared();
-        }
-      }));
-
-    for ([[maybe_unused]] auto _ : state) {
-      sem.lock_shared();
-      sem.unlock_shared();
-    }
-
-    run = false;
+    RunParallelBenchmark(state, [&](auto& range) {
+      for ([[maybe_unused]] auto _ : range) {
+        sem.lock_shared();
+        sem.unlock_shared();
+      }
+    });
   });
 }
 BENCHMARK(semaphore_lock_unlock_contention)->RangeMultiplier(2)->Range(1, 32);
 
 void semaphore_lock_unlock_payload_contention(benchmark::State& state) {
-  engine::RunStandalone(state.range(0), [&]() {
-    std::atomic<bool> run{true};
+  engine::RunStandalone(state.range(0), [&] {
     engine::Semaphore sem{1};
 
-    std::vector<engine::TaskWithResult<void>> tasks;
-    tasks.reserve(state.range(0) - 1);
-    for (int i = 0; i < state.range(0) - 1; i++)
-      tasks.push_back(engine::AsyncNoSpan([&]() {
-        while (run) {
-          sem.lock_shared();
-          {
-            std::vector<int> tmp(32, 32);
-            benchmark::DoNotOptimize(tmp);
-          }
-          sem.unlock_shared();
+    RunParallelBenchmark(state, [&](auto& range) {
+      for ([[maybe_unused]] auto _ : range) {
+        sem.lock_shared();
+        {
+          std::vector<int> tmp(32, 32);
+          benchmark::DoNotOptimize(tmp);
         }
-      }));
-
-    for ([[maybe_unused]] auto _ : state) {
-      sem.lock_shared();
-      {
-        std::vector<int> tmp(32, 32);
-        benchmark::DoNotOptimize(tmp);
+        sem.unlock_shared();
       }
-      sem.unlock_shared();
-    }
-
-    run = false;
+    });
   });
 }
 BENCHMARK(semaphore_lock_unlock_payload_contention)
@@ -120,26 +95,15 @@ BENCHMARK(semaphore_lock_unlock_payload_contention)
     ->Range(1, 32);
 
 void semaphore_lock_unlock_coro_contention(benchmark::State& state) {
-  engine::RunStandalone(4, [&]() {
-    std::atomic<bool> run{true};
+  engine::RunStandalone(4, [&] {
     engine::Semaphore sem{1};
 
-    std::vector<engine::TaskWithResult<void>> tasks;
-    tasks.reserve(state.range(0) - 1);
-    for (int i = 0; i < state.range(0) - 1; i++)
-      tasks.push_back(engine::AsyncNoSpan([&]() {
-        while (run) {
-          sem.lock_shared();
-          sem.unlock_shared();
-        }
-      }));
-
-    for ([[maybe_unused]] auto _ : state) {
-      sem.lock_shared();
-      sem.unlock_shared();
-    }
-
-    run = false;
+    RunParallelBenchmark(state, [&](auto& range) {
+      for ([[maybe_unused]] auto _ : range) {
+        sem.lock_shared();
+        sem.unlock_shared();
+      }
+    });
   });
 }
 BENCHMARK(semaphore_lock_unlock_coro_contention)
@@ -147,34 +111,19 @@ BENCHMARK(semaphore_lock_unlock_coro_contention)
     ->Range(1, 1024);
 
 void semaphore_lock_unlock_payload_coro_contention(benchmark::State& state) {
-  engine::RunStandalone(4, [&]() {
-    std::atomic<bool> run{true};
+  engine::RunStandalone(4, [&] {
     engine::Semaphore sem{1};
 
-    std::vector<engine::TaskWithResult<void>> tasks;
-    tasks.reserve(state.range(0) - 1);
-    for (int i = 0; i < state.range(0) - 1; i++)
-      tasks.push_back(engine::AsyncNoSpan([&]() {
-        while (run) {
-          sem.lock_shared();
-          {
-            std::vector<int> tmp(32, 32);
-            benchmark::DoNotOptimize(tmp);
-          }
-          sem.unlock_shared();
+    RunParallelBenchmark(state, [&](auto& range) {
+      for ([[maybe_unused]] auto _ : range) {
+        sem.lock_shared();
+        {
+          std::vector<int> tmp(32, 32);
+          benchmark::DoNotOptimize(tmp);
         }
-      }));
-
-    for ([[maybe_unused]] auto _ : state) {
-      sem.lock_shared();
-      {
-        std::vector<int> tmp(32, 32);
-        benchmark::DoNotOptimize(tmp);
+        sem.unlock_shared();
       }
-      sem.unlock_shared();
-    }
-
-    run = false;
+    });
   });
 }
 BENCHMARK(semaphore_lock_unlock_payload_coro_contention)
@@ -183,26 +132,15 @@ BENCHMARK(semaphore_lock_unlock_payload_coro_contention)
 
 void semaphore_lock_unlock_st_coro_contention(benchmark::State& state) {
   engine::RunStandalone([&]() {
-    std::atomic<bool> run{true};
     engine::Semaphore sem{1};
 
-    std::vector<engine::TaskWithResult<void>> tasks;
-    tasks.reserve(state.range(0) - 1);
-    for (int i = 0; i < state.range(0) - 1; i++)
-      tasks.push_back(engine::AsyncNoSpan([&]() {
-        while (run) {
-          sem.lock_shared();
-          sem.unlock_shared();
-        }
-      }));
-
-    for ([[maybe_unused]] auto _ : state) {
-      sem.lock_shared();
-      engine::Yield();
-      sem.unlock_shared();
-    }
-
-    run = false;
+    RunParallelBenchmark(state, [&](auto& range) {
+      for ([[maybe_unused]] auto _ : range) {
+        sem.lock_shared();
+        engine::Yield();
+        sem.unlock_shared();
+      }
+    });
   });
 }
 BENCHMARK(semaphore_lock_unlock_st_coro_contention)

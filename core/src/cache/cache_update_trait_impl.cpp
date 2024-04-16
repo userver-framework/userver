@@ -375,6 +375,10 @@ bool CacheUpdateTrait::Impl::HasPreAssignCheck() const {
   return static_config_.has_pre_assign_check;
 }
 
+void CacheUpdateTrait::Impl::SetDataSizeStatistic(std::size_t size) noexcept {
+  statistics_.documents_current_count = size;
+}
+
 engine::TaskProcessor& CacheUpdateTrait::Impl::GetCacheTaskProcessor() const {
   return task_processor_;
 }

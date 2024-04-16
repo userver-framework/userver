@@ -10,7 +10,6 @@ git
 grpc
 gtest
 hiredis
-http-parser
 jemalloc
 krb5
 libev
@@ -30,3 +29,4 @@ yaml-cpp
 zlib
 makepkg|cctz
 makepkg|libbacktrace-git
+boost-stacktrace-backtrace

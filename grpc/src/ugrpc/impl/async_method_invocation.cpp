@@ -34,16 +34,27 @@ AsyncMethodInvocation::WaitStatus AsyncMethodInvocation::WaitUntil(
     return WaitStatus::kCancelled;
   }
 
-  if (!event_.WaitForEventUntil(deadline)) {
-    if (engine::current_task::ShouldCancel()) {
+  const engine::FutureStatus future_status = event_.WaitUntil(deadline);
+  switch (future_status) {
+    case engine::FutureStatus::kCancelled: {
       return WaitStatus::kCancelled;
-    } else {
+    }
+    case engine::FutureStatus::kTimeout: {
       return WaitStatus::kDeadline;
+    }
+    case engine::FutureStatus::kReady: {
+      busy_ = false;
+      return ok_ ? WaitStatus::kOk : WaitStatus::kError;
     }
   }
 
-  busy_ = false;
-  return ok_ ? WaitStatus::kOk : WaitStatus::kError;
+  UASSERT(false);
+  return WaitStatus::kError;
+}
+
+engine::impl::ContextAccessor*
+AsyncMethodInvocation::TryGetContextAccessor() noexcept {
+  return event_.TryGetContextAccessor();
 }
 
 bool AsyncMethodInvocation::IsReady() const noexcept {
@@ -53,8 +64,7 @@ bool AsyncMethodInvocation::IsReady() const noexcept {
 void AsyncMethodInvocation::WaitWhileBusy() {
   if (busy_) {
     engine::TaskCancellationBlocker blocker;
-    const auto result = event_.WaitForEvent();
-    UASSERT(result);
+    event_.Wait();
   }
   busy_ = false;
 }

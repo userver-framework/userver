@@ -8,6 +8,7 @@
 #include <system_error>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
+#include <userver/clients/http/config.hpp>
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/form.hpp>
 #include <userver/clients/http/plugin.hpp>
@@ -32,7 +33,6 @@
 #include <crypto/helpers.hpp>
 #include <engine/ev/watcher/timer_watcher.hpp>
 #include <server/http/headers_propagator.hpp>
-#include <userver/clients/http/impl/config.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -43,8 +43,7 @@ class ConnectTo;
 
 class RequestState : public std::enable_shared_from_this<RequestState> {
  public:
-  RequestState(std::shared_ptr<impl::EasyWrapper>&&,
-               std::shared_ptr<RequestStats>&& req_stats,
+  RequestState(impl::EasyWrapper&&, RequestStats&& req_stats,
                const std::shared_ptr<DestinationStatistics>& dest_stats,
                clients::dns::Resolver* resolver,
                impl::PluginPipeline& plugin_pipeline,
@@ -118,11 +117,15 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
 
   void DisableReplyDecoding();
 
-  void SetDeadlinePropagationConfig(
-      const impl::DeadlinePropagationConfig& deadline_propagation_config);
+  void SetCancellationPolicy(CancellationPolicy cp);
 
-  curl::easy& easy() { return easy_->Easy(); }
-  const curl::easy& easy() const { return easy_->Easy(); }
+  CancellationPolicy GetCancellationPolicy() const;
+
+  void SetDeadlinePropagationConfig(
+      const DeadlinePropagationConfig& deadline_propagation_config);
+
+  curl::easy& easy() { return easy_.Easy(); }
+  const curl::easy& easy() const { return easy_.Easy(); }
   std::shared_ptr<Response> response() const { return response_; }
   std::shared_ptr<Response> response_move() { return std::move(response_); }
 
@@ -182,9 +185,10 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   void ResolveTargetAddress(clients::dns::Resolver& resolver);
 
   /// curl handler wrapper
-  std::shared_ptr<impl::EasyWrapper> easy_;
-  std::shared_ptr<RequestStats> stats_;
+  impl::EasyWrapper easy_;
+  RequestStats stats_;
   std::shared_ptr<RequestStats> dest_req_stats_;
+  CancellationPolicy cancellation_policy_{CancellationPolicy::kCancel};
 
   std::shared_ptr<DestinationStatistics> dest_stats_;
   std::string destination_metric_name_;
@@ -204,7 +208,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   /// the timeout propagated to the downstream service
   std::chrono::milliseconds remote_timeout_;
 
-  impl::DeadlinePropagationConfig deadline_propagation_config_;
+  DeadlinePropagationConfig deadline_propagation_config_;
   /// deadline from current task
   engine::Deadline deadline_;
   bool timeout_updated_by_deadline_{false};

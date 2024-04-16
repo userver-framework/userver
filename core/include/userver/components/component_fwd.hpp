@@ -2,7 +2,7 @@
 
 /// @file userver/components/component_fwd.hpp
 /// @brief Forward declarations for components::ComponentContext and
-/// components::ComponentConfig; function components::GetCurrentComponentName()
+/// components::ComponentConfig; function components::GetCurrentComponentName().
 
 #include <string>
 
