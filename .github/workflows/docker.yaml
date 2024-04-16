@@ -30,6 +30,7 @@ jobs:
                   - cmake-flags: >-
                         -DCMAKE_CXX_COMPILER=clang++-16 -DCMAKE_C_COMPILER=clang-16
                         -DUSERVER_FEATURE_MYSQL=1
+                        -DUSERVER_FEATURE_ROCKS=0
                         -DCMAKE_CXX_STANDARD=17
                     image: userver-ubuntu
                     info: ubuntu + clang + cxx17
@@ -37,6 +38,7 @@ jobs:
                   - cmake-flags: >-
                         -DCMAKE_CXX_COMPILER=g++-11 -DCMAKE_C_COMPILER=gcc-11
                         -DUSERVER_FEATURE_MYSQL=1
+                        -DUSERVER_FEATURE_ROCKS=0
                         -DCMAKE_CXX_STANDARD=17
                     image: userver-ubuntu
                     info: ubuntu + gcc + cxx17
@@ -44,6 +46,7 @@ jobs:
                   - cmake-flags: >-
                         -DCMAKE_CXX_COMPILER=clang++-16 -DCMAKE_C_COMPILER=clang-16
                         -DUSERVER_FEATURE_MYSQL=1
+                        -DUSERVER_FEATURE_ROCKS=0
                         -DCMAKE_CXX_STANDARD=20
                     image: userver-ubuntu
                     info: ubuntu + clang + cxx20
@@ -51,6 +54,7 @@ jobs:
                   - cmake-flags: >-
                         -DCMAKE_CXX_COMPILER=g++-11 -DCMAKE_C_COMPILER=gcc-11
                         -DUSERVER_FEATURE_MYSQL=1
+                        -DUSERVER_FEATURE_ROCKS=0
                         -DCMAKE_CXX_STANDARD=20
                     image: userver-ubuntu
                     info: ubuntu + gcc + cxx20

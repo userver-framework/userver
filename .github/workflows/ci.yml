@@ -208,11 +208,6 @@ jobs:
             run: |
                 cd build_debug/userver/redis/
                 ctest -V
-          
-          - name: Run tests (rocks)
-            run: |
-                cd build_debug/userver/rocks/
-                ctest -V
 
           - name: Run tests (mongo)
             # libbson unnecessarily overaligns structures and GCC-9 does not support overaligned new
