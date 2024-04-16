@@ -81,7 +81,6 @@ VfX6aXy77rZ1efGfLaWZD1yADp+bg033FkqpOf4PtZpixzbZyDmbh6hrvTuX/y4w
 VsNtFCX7LLH/W4mSvkvIws1tm8OtphLn3A==
 -----END CERTIFICATE-----)";
 
-
 // Certificates for testing were generated via the following command:
 // openssl req -x509 -sha256 -nodes -newkey rsa:2048
 //    -days 3650 -subj '/CN=tlswrapper_test_other'
@@ -145,118 +144,80 @@ inline constexpr std::chrono::seconds kMaxWaitTime(60);
 // Macros for generating an initializer lists for tests WriteAll
 // - begin
 #define MSG "msg"
-#define IO_Data {MSG, 3}
+#define IO_Data \
+  { MSG, 3 }
 #define IO_Data_5 IO_Data, IO_Data, IO_Data, IO_Data, IO_Data
 #define IO_Data_25 IO_Data_5, IO_Data_5, IO_Data_5, IO_Data_5, IO_Data_5
 #define IO_Data_125 IO_Data_25, IO_Data_25, IO_Data_25, IO_Data_25, IO_Data_25
-#define IO_Data_625 IO_Data_125, IO_Data_125, IO_Data_125, IO_Data_125, IO_Data_125
+#define IO_Data_625 \
+  IO_Data_125, IO_Data_125, IO_Data_125, IO_Data_125, IO_Data_125
+#define IO_Data_3125 \
+  IO_Data_625, IO_Data_625, IO_Data_625, IO_Data_625, IO_Data_625
+#define IO_Data_15625 \
+  IO_Data_3125, IO_Data_3125, IO_Data_3125, IO_Data_3125, IO_Data_3125
 // - end
 
-[[maybe_unused]] void tls_write_all_init_list_SmallLoad(benchmark::State& state) {
-  engine::RunStandalone(2, [&]() {
-    const auto test_deadline = Deadline::FromDuration(kMaxWaitTime);
-    internal::net::TcpListener listener;
+[[maybe_unused]] void tls_write_all_buffered(benchmark::State& state) {
+  for ([[maybe_unused]] auto _ : state) {
+    engine::RunStandalone(2, [&]() {
+      const auto deadline = Deadline::FromDuration(kMaxWaitTime);
+      internal::net::TcpListener listener;
+      auto [server, client] = listener.MakeSocketPair(deadline);
 
-    auto [server, client] = listener.MakeSocketPair(test_deadline);
-    std::atomic<bool> reading{true};
-    auto task_reader = engine::AsyncNoSpan(
-        [&reading, test_deadline](auto&& client) {
-          std::array<char, 4096> buf = {};
-          while (client.RecvSome(buf.data(), buf.size(), test_deadline) > 0 &&
-                 reading) {
-          }
-        },
-        std::move(client));
-    for ([[maybe_unused]] auto _ : state) {
-      auto send_bytes = server.WriteAll({IO_Data_25}, test_deadline);
-      benchmark::DoNotOptimize(send_bytes);
-    }
-    reading.store(false);
-    task_reader.Get();
-  });
+      auto server_task = engine::AsyncNoSpan(
+          [deadline](auto&& server) {
+            auto tls_server = io::TlsWrapper::StartTlsServer(
+                std::forward<decltype(server)>(server),
+                crypto::Certificate::LoadFromString(cert),
+                crypto::PrivateKey::LoadFromString(key), deadline);
+
+            auto send_bytes = tls_server.WriteAll({IO_Data_15625}, deadline);
+            benchmark::DoNotOptimize(send_bytes);
+          },
+          std::move(server));
+
+      auto tls_client =
+          io::TlsWrapper::StartTlsClient(std::move(client), {}, deadline);
+      server_task.Get();
+    });
+  }
 }
 
-BENCHMARK(tls_write_all_init_list_SmallLoad)->Unit(benchmark::kNanosecond);
+BENCHMARK(tls_write_all_buffered)
+    ->Range(1 << 10, 1 << 14)
+    ->Unit(benchmark::kMillisecond);
 
-[[maybe_unused]] void tls_write_all_init_list_MidLoad(benchmark::State& state) {
-  engine::RunStandalone(2, [&]() {
-    const auto test_deadline = Deadline::FromDuration(kMaxWaitTime);
-    internal::net::TcpListener listener;
+[[maybe_unused]] void tls_write_all_old(benchmark::State& state) {
+  for ([[maybe_unused]] auto _ : state) {
+    engine::RunStandalone(2, [&]() {
+      const auto deadline = Deadline::FromDuration(kMaxWaitTime);
+      internal::net::TcpListener listener;
+      auto [server, client] = listener.MakeSocketPair(deadline);
 
-    auto [server, client] = listener.MakeSocketPair(test_deadline);
-    std::atomic<bool> reading{true};
-    auto task_reader = engine::AsyncNoSpan(
-        [&reading, test_deadline](auto&& client) {
-          std::array<char, 4096> buf = {};
-          while (client.RecvSome(buf.data(), buf.size(), test_deadline) > 0 &&
-                 reading) {
-          }
-        },
-        std::move(client));
-    for ([[maybe_unused]] auto _ : state) {
-      auto send_bytes = server.WriteAll({IO_Data_125}, test_deadline);
-      benchmark::DoNotOptimize(send_bytes);
-    }
-    reading.store(false);
-    task_reader.Get();
-  });
+      auto server_task = engine::AsyncNoSpan(
+          [deadline](auto&& server) {
+            auto tls_server = io::TlsWrapper::StartTlsServer(
+                std::forward<decltype(server)>(server),
+                crypto::Certificate::LoadFromString(cert),
+                crypto::PrivateKey::LoadFromString(key), deadline);
+
+            size_t result{0};
+            engine::io::IoData msg IO_Data;
+            for (int i = 0; i < 15625; ++i) {
+              result += tls_server.SendAll(msg.data, msg.len, deadline);
+            }
+          },
+          std::move(server));
+
+      auto tls_client =
+          io::TlsWrapper::StartTlsClient(std::move(client), {}, deadline);
+      server_task.Get();
+    });
+  }
 }
 
-BENCHMARK(tls_write_all_init_list_MidLoad)->Unit(benchmark::kNanosecond);
-
-[[maybe_unused]] void tls_write_all_init_list_HighLoad(benchmark::State& state) {
-  engine::RunStandalone(2, [&]() {
-    const auto test_deadline = Deadline::FromDuration(kMaxWaitTime);
-    internal::net::TcpListener listener;
-
-    auto [server, client] = listener.MakeSocketPair(test_deadline);
-    std::atomic<bool> reading{true};
-    auto task_reader = engine::AsyncNoSpan(
-        [&reading, test_deadline](auto&& client) {
-          std::array<char, 4096> buf = {};
-          while (client.RecvSome(buf.data(), buf.size(), test_deadline) > 0 &&
-                 reading) {
-          }
-        },
-        std::move(client));
-    for ([[maybe_unused]] auto _ : state) {
-      auto send_bytes = server.WriteAll({IO_Data_625}, test_deadline);
-      benchmark::DoNotOptimize(send_bytes);
-    }
-    reading.store(false);
-    task_reader.Get();
-  });
-}
-
-BENCHMARK(tls_write_all_init_list_HighLoad)->Unit(benchmark::kNanosecond);
-
-[[maybe_unused]] void tls_write_all_buffered_HighLoad(benchmark::State& state) {
-  engine::RunStandalone(2, [&]() {
-    const auto test_deadline = Deadline::FromDuration(kMaxWaitTime);
-    internal::net::TcpListener listener;
-    std::string init_string(state.range(0) * 3, 'a');
-    engine::io::IoData data{init_string.data(), init_string.size()};
-
-    auto [server, client] = listener.MakeSocketPair(test_deadline);
-    std::atomic<bool> reading{true};
-    auto task_reader = engine::AsyncNoSpan(
-        [&reading, test_deadline](auto&& client) {
-          std::array<char, 4096> buf = {};
-          while (client.RecvSome(buf.data(), buf.size(), test_deadline) > 0 &&
-                 reading) {
-          }
-        },
-        std::move(client));
-
-    for ([[maybe_unused]] auto _ : state) {
-      auto send_bytes = server.WriteAll(data.data, data.len, test_deadline);
-      benchmark::DoNotOptimize(send_bytes);
-    }
-    reading.store(false);
-    task_reader.Get();
-  });
-}
-
-BENCHMARK(tls_write_all_buffered_HighLoad)->Arg(25)->Arg(125)->Arg(625)->Unit(benchmark::kNanosecond);
+BENCHMARK(tls_write_all_old)
+    ->Range(1 << 10, 1 << 14)
+    ->Unit(benchmark::kMillisecond);
 
 USERVER_NAMESPACE_END

@@ -489,7 +489,6 @@ size_t TlsWrapper::SendAll(const void* buf, size_t len, Deadline deadline) {
 }
 
 [[nodiscard]] size_t TlsWrapper::WriteAll(std::initializer_list<IoData> list, Deadline deadline) {
-  impl_->CheckAlive();
   size_t total_len = 0;
   for (const auto& io_data : list) {
     total_len += io_data.len;
