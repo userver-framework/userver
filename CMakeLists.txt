@@ -7,8 +7,9 @@ set(CMAKE_POLICY_DEFAULT_CMP0048 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0063 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
-
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 project(userver)
+
 
 set(USERVER_ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}")
 
@@ -229,11 +230,11 @@ if (USERVER_FEATURE_CLICKHOUSE)
   list(APPEND USERVER_AVAILABLE_COMPONENTS clickhouse)
 endif()
 
-if (USERVER_FEATURE_RABBITMQ)
-  _require_userver_core("USERVER_FEATURE_RABBITMQ")
-  add_subdirectory(rabbitmq "${CMAKE_BINARY_DIR}/userver/rabbitmq")
-  list(APPEND USERVER_AVAILABLE_COMPONENTS rabbitmq)
-endif()
+# if (USERVER_FEATURE_RABBITMQ)
+#   _require_userver_core("USERVER_FEATURE_RABBITMQ")
+#   add_subdirectory(rabbitmq "${CMAKE_BINARY_DIR}/userver/rabbitmq")
+#   list(APPEND USERVER_AVAILABLE_COMPONENTS rabbitmq)
+# endif()
 
 if (USERVER_FEATURE_MYSQL)
   _require_userver_core("USERVER_FEATURE_MYSQL")
@@ -241,9 +242,9 @@ if (USERVER_FEATURE_MYSQL)
   list(APPEND USERVER_AVAILABLE_COMPONENTS mysql)
 endif()
 
-if (USERVER_IS_THE_ROOT_PROJECT AND USERVER_FEATURE_CORE)
-  add_subdirectory(samples)
-endif()
+# if (USERVER_IS_THE_ROOT_PROJECT AND USERVER_FEATURE_CORE)
+#   add_subdirectory(samples)
+# endif()
 
 _userver_export_targets()
 
