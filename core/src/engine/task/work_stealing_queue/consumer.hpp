@@ -10,7 +10,7 @@
 
 #include <engine/task/task_processor_config.hpp>
 
-constexpr std::size_t kLocalQueueMaxSize = 64;
+constexpr std::size_t kLocalQueueMaxSize = 63;
 constexpr std::size_t kConsumerStealBufferSize = 32;
 constexpr std::size_t kStealAttempts = 4;
 
@@ -50,7 +50,7 @@ class Consumer final {
   void Sleep(int val);
   void WakeUp();
 
-  userver::engine::LocalQueue<impl::TaskContext, 63> local_queue_;
+  userver::engine::LocalQueue<impl::TaskContext, kLocalQueueMaxSize> local_queue_;
   WorkStealingTaskQueue* const owner_;
   ConsumersManager* const consumers_manager_;
   const std::size_t inner_index_;

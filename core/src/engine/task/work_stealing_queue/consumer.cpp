@@ -15,11 +15,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
-std::size_t GetStealCount(std::size_t consumers_count) {
-  return std::min(static_cast<std::size_t>(6),
-                  std::max(static_cast<std::size_t>(2), consumers_count / 4));
-}
-
 Consumer::Consumer()
     : owner_(nullptr),
       consumers_manager_(nullptr),
@@ -36,7 +31,7 @@ Consumer::Consumer(WorkStealingTaskQueue* owner,
     : owner_(owner),
       consumers_manager_(consumers_manager),
       inner_index_(inner_index),
-      default_steal_size_(GetStealCount(consumers_manager_->ConsumersCount())),
+      default_steal_size_(2),
       steal_buffer_(),
       rnd_(reinterpret_cast<std::uintptr_t>(this)),
       steps_count_(rnd_()),
@@ -47,7 +42,7 @@ Consumer::Consumer(const Consumer& rhs)
     : owner_(rhs.owner_),
       consumers_manager_(rhs.consumers_manager_),
       inner_index_(rhs.inner_index_),
-      default_steal_size_(GetStealCount(consumers_manager_->ConsumersCount())),
+      default_steal_size_(rhs.default_steal_size_),
       steal_buffer_(),
       rnd_(reinterpret_cast<std::uintptr_t>(this)),
       steps_count_(rnd_()),
