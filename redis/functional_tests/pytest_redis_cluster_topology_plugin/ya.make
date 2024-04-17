@@ -1,4 +1,4 @@
-OWNER(vaninvv)
+SUBSCRIBER(vaninvv)
 
 PY3_LIBRARY()
 

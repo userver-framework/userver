@@ -1,6 +1,6 @@
 G_BENCHMARK()
 
-OWNER(g:taxi-common)
+SUBSCRIBER(g:taxi-common)
 
 SIZE(MEDIUM)
 
