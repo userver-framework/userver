@@ -17,6 +17,7 @@
 #include <engine/task/counted_coroutine_ptr.hpp>
 #include <engine/task/task_context.hpp>
 #include <engine/task/task_processor_pools.hpp>
+#include <engine/task/work_stealing_queue/task_queue.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
