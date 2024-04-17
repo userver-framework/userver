@@ -2,7 +2,7 @@ PROGRAM(userver-functional-test-service)
 
 ALLOCATOR(J)
 
-OWNER(g:taxi-common)
+SUBSCRIBER(g:taxi-common)
 
 SRCDIR(taxi/uservices/userver/samples/grpc_middleware_service/src)
 
