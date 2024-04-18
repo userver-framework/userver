@@ -171,6 +171,7 @@
   "cmake/SetupProtobuf.cmake":"taxi/uservices/userver/cmake/SetupProtobuf.cmake",
   "cmake/Stacktrace.cmake":"taxi/uservices/userver/cmake/Stacktrace.cmake",
   "cmake/UserverCxxCompileOptionsIfSupported.cmake":"taxi/uservices/userver/cmake/UserverCxxCompileOptionsIfSupported.cmake",
+  "cmake/UserverPack.cmake":"taxi/uservices/userver/cmake/UserverPack.cmake",
   "cmake/UserverRequireDWCAS.cmake":"taxi/uservices/userver/cmake/UserverRequireDWCAS.cmake",
   "cmake/UserverRequireDWCAS.cpp":"taxi/uservices/userver/cmake/UserverRequireDWCAS.cpp",
   "cmake/UserverSetupEnvironment.cmake":"taxi/uservices/userver/cmake/UserverSetupEnvironment.cmake",

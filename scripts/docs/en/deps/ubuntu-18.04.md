@@ -39,5 +39,4 @@ python3-jinja2
 python3-protobuf
 python3-venv
 python3-voluptuous
-redis-server
 zlib1g-dev

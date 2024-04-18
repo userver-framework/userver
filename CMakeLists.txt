@@ -247,3 +247,6 @@ endif()
 
 _userver_export_targets()
 
+if(USERVER_INSTALL)
+  include(cmake/UserverPack.cmake)
+endif()

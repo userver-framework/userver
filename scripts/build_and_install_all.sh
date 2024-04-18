@@ -2,7 +2,7 @@
 
 ###
 ### Provide additional CMake configuration options or override the
-### existing ones via BUILD_OPTIONS variable.
+### existing ones via BUILD_OPTIONS and PACKAGE_OPTIONS variables.
 ###
 
 # Exit on any error and treat unset variables as errors, print all commands
@@ -17,6 +17,7 @@ ALL_FEATURES="
     -DUSERVER_FEATURE_REDIS=1 \
     -DUSERVER_FEATURE_RABBITMQ=1 \
     -DUSERVER_FEATURE_YDB=0 \
+    -DUSERVER_FEATURE_GRPC_CHANNELZ=0 \
 "
 
 # Helper from https://stackoverflow.com/questions/7449772/how-to-retry-a-command-in-bash
@@ -47,8 +48,11 @@ for BUILD_TYPE in Debug Release; do
       ${BUILD_OPTIONS:-""} \
       -GNinja
   cmake --build ${BUILD_DIR}
-  cmake --install ${BUILD_DIR}
-  cmake --build ${BUILD_DIR} --target clean
 done
+
+cpack -G DEB --config build_release/CPackConfig.cmake -D CPACK_INSTALL_CMAKE_PROJECTS="build_debug;userver;ALL;/;build_release;userver;ALL;/" ${PACKAGE_OPTIONS:-""}
+DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends ./userver-all*.deb
+
+rm -rf ./build_debug/ ./build_release/
 
 ccache --clear
