@@ -1,4 +1,4 @@
-name: Build and publics ubuntu-22.04-userver images
+name: Build and publish ubuntu-22.04-userver images
 
 'on':
     pull_request:
@@ -11,8 +11,12 @@ name: Build and publics ubuntu-22.04-userver images
     #  - cron: '30 5 * * 6'  # Every Saturday at 5:30
 
 jobs:
-  publish_python:
+  build_and_publish:
     runs-on: ubuntu-22.04
+    name: Build and publish images
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v2
       - name: Login to GitHub Container Registry
