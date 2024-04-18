@@ -1,8 +1,14 @@
 name: Build and publics ubuntu-22.04-userver images
 
 'on':
-  schedule:
-    - cron: '30 5 * * 6'  # Every Saturday at 5:30
+    pull_request:
+    push:
+        branches:
+          - master
+          - develop
+          - feature/**
+    #schedule:
+    #  - cron: '30 5 * * 6'  # Every Saturday at 5:30
 
 jobs:
   publish_python:
