@@ -7,6 +7,7 @@
 #include <vector>
 
 #include <userver/storages/redis/impl/base.hpp>
+#include <userver/utils/statistics/rate.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -18,6 +19,9 @@ struct PubsubChannelStatistics {
   size_t messages_count{0};
   size_t messages_size{0};
   size_t messages_alien_count{0};
+  // messages that were discarded by subscription queue because it
+  // overflowed
+  USERVER_NAMESPACE::utils::statistics::Rate messages_discarded;
 
   std::optional<ServerId> server_id;
 
@@ -33,6 +37,7 @@ struct PubsubChannelStatistics {
     messages_count += other.messages_count;
     messages_size += other.messages_size;
     messages_alien_count += other.messages_alien_count;
+    messages_discarded += other.messages_discarded;
     return *this;
   }
 };

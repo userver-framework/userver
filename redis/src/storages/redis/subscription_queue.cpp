@@ -49,6 +49,7 @@ SubscriptionQueue<Item>::GetSubscriptionToken(
   return subscribe_sentinel.Subscribe(
       channel,
       [this](const std::string& channel, const std::string& message) {
+        Outcome result{Outcome::kOk};
         if (!producer_.PushNoblock(Item(message))) {
           // Use SubscriptionQueue::SetMaxLength() or
           // SubscriptionToken::SetMaxQueueLength() if limit is too low
@@ -57,7 +58,11 @@ SubscriptionQueue<Item>::GetSubscriptionToken(
               << channel
               << "' into subscription queue due to overflow (max length="
               << queue_->GetSoftMaxSize() << ')';
+          // either this line
+          result = Outcome::kOverflowDiscarded;
         }
+
+        return result;
       },
       command_control);
 }
@@ -74,6 +79,7 @@ SubscriptionQueue<Item>::GetSubscriptionToken(
       pattern,
       [this](const std::string& pattern, const std::string& channel,
              const std::string& message) {
+        Outcome result{Outcome::kOk};
         if (!producer_.PushNoblock(Item(channel, message))) {
           // Use SubscriptionQueue::SetMaxLength() or
           // SubscriptionToken::SetMaxQueueLength() if limit is too low
@@ -82,7 +88,11 @@ SubscriptionQueue<Item>::GetSubscriptionToken(
               << channel << "' from pattern '" << pattern
               << "' into subscription queue due to overflow (max length="
               << queue_->GetSoftMaxSize() << ')';
+          // either this line
+          result = Outcome::kOverflowDiscarded;
         }
+
+        return result;
       },
       command_control);
 }
@@ -98,6 +108,7 @@ SubscriptionQueue<Item>::GetSubscriptionToken(
   return subscribe_sentinel.Ssubscribe(
       channel,
       [this](const std::string& channel, const std::string& message) {
+        Outcome result{Outcome::kOk};
         if (!producer_.PushNoblock(Item(message))) {
           // Use SubscriptionQueue::SetMaxLength() or
           // SubscriptionToken::SetMaxQueueLength() if limit is too low
@@ -106,7 +117,11 @@ SubscriptionQueue<Item>::GetSubscriptionToken(
               << channel
               << "' into subscription queue due to overflow (max length="
               << queue_->GetSoftMaxSize() << ')';
+          // either this line
+          result = Outcome::kOverflowDiscarded;
         }
+
+        return result;
       },
       command_control);
 }

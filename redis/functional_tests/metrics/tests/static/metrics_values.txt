@@ -2,6 +2,8 @@ redis-pubsub.messages.alien-count: redis_database=metrics_test, redis_pubsub_cha
 redis-pubsub.messages.alien-count: redis_database=metrics_test, redis_pubsub_channel=post_channel0, redis_shard=test_master0	GAUGE	0
 redis-pubsub.messages.count: redis_database=metrics_test, redis_pubsub_channel=post_channel0	GAUGE	0
 redis-pubsub.messages.count: redis_database=metrics_test, redis_pubsub_channel=post_channel0, redis_shard=test_master0	GAUGE	0
+redis-pubsub.messages.discarded: redis_database=metrics_test, redis_pubsub_channel=post_channel0	RATE	0
+redis-pubsub.messages.discarded: redis_database=metrics_test, redis_pubsub_channel=post_channel0, redis_shard=test_master0	RATE	0
 redis-pubsub.messages.size: redis_database=metrics_test, redis_pubsub_channel=post_channel0	GAUGE	0
 redis-pubsub.messages.size: redis_database=metrics_test, redis_pubsub_channel=post_channel0, redis_shard=test_master0	GAUGE	0
 redis-pubsub.subscribed-ms: redis_database=metrics_test, redis_pubsub_channel=post_channel0, redis_shard=test_master0	GAUGE	0

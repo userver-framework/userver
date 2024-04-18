@@ -73,7 +73,7 @@ class [[nodiscard]] SubscriptionToken final {
 
   /// Checks that token is not empty. Empty token has no implementation
   /// inside. This method is mostly useful in unit tests. All methods
-  /// of this class works correctly on empty tokens.
+  /// of this class work correctly on empty tokens.
   bool IsEmpty() const noexcept { return impl_ == nullptr; }
 
  private:
