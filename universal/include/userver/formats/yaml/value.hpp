@@ -44,6 +44,7 @@ class Value final {
   using const_iterator = Iterator<IterTraits>;
   using Exception = formats::yaml::Exception;
   using ParseException = formats::yaml::ParseException;
+  using ExceptionWithPath = formats::yaml::ExceptionWithPath;
   using Builder = ValueBuilder;
 
   /// @brief Constructs a Value that holds a Null.

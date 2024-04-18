@@ -71,6 +71,7 @@ class Value final {
       Iterator<IterTraits, common::IteratorDirection::kReverse>;
   using Exception = formats::json::Exception;
   using ParseException = formats::json::ParseException;
+  using ExceptionWithPath = formats::json::ExceptionWithPath;
   using Builder = ValueBuilder;
 
   /// @brief Constructs a Value that holds a null.
