@@ -12,8 +12,8 @@
 #include <concurrent/impl/interference_shield.hpp>
 #include <engine/task/task_counter.hpp>
 #include <engine/task/task_processor_config.hpp>
-#include "engine/task/task_queue.hpp"
-#include "engine/task/work_stealing_queue/task_queue.hpp"
+#include <engine/task/task_queue.hpp>
+#include <engine/task/work_stealing_queue/task_queue.hpp>
 #include <engine/task/task_queue.hpp>
 #include <utils/statistics/thread_statistics.hpp>
 

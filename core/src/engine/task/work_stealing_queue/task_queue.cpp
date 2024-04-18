@@ -1,22 +1,22 @@
-#include "task_queue.hpp"
 #include <engine/task/task_context.hpp>
-#include "consumers_manager.hpp"
-
-namespace {
-thread_local userver::engine::Consumer* localConsumer = nullptr;
-}
+#include <engine/task/work_stealing_queue/consumers_manager.hpp>
+#include <engine/task/work_stealing_queue/task_queue.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
+namespace {
+thread_local Consumer* localConsumer = nullptr;
+}
+
 WorkStealingTaskQueue::WorkStealingTaskQueue(const TaskProcessorConfig& config)
     : consumers_manager_(config.worker_threads),
       consumers_count_(config.worker_threads),
+      consumers_(config.worker_threads, this, &consumers_manager_),
       consumers_order_(0) {
-  consumers_.reserve(consumers_count_);
   for (size_t i = 0; i < consumers_count_; ++i) {
-    consumers_.emplace_back(this, &consumers_manager_, i);
+    consumers_[i].SetIndex(i);
   }
 }
 

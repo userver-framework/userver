@@ -3,9 +3,9 @@
 #include <atomic>
 #include <cstddef>
 #include <deque>
+#include <engine/task/work_stealing_queue/consumers_state.hpp>
 #include <mutex>
 #include <vector>
-#include "consumers_state.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -15,7 +15,7 @@ class Consumer;
 
 class ConsumersManager final {
  public:
-  explicit ConsumersManager(std::size_t consumers_count);  //
+  explicit ConsumersManager(std::size_t consumers_count);
 
   void NotifyNewTask();
 
@@ -23,17 +23,17 @@ class ConsumersManager final {
 
   void NotifySleep(Consumer* consumer);
 
-  bool AllowStealing();
+  bool AllowStealing() noexcept;
 
-  bool StopStealing();
+  bool StopStealing() noexcept;
 
   void WakeUpOne();
 
-  void Stop();
+  void Stop() noexcept;
 
-  bool Stopped();
+  bool IsStopped() const noexcept;
 
-  std::size_t ConsumersCount() const { return consumers_count_; }
+  std::size_t GetConsumersCount() const noexcept { return consumers_count_; }
 
  private:
   void WakeUpAll();

@@ -7,9 +7,9 @@
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 
 #include <engine/task/task_processor_config.hpp>
-#include "consumer.hpp"
-#include "consumers_manager.hpp"
-#include "global_queue.hpp"
+#include <engine/task/work_stealing_queue/consumer.hpp>
+#include <engine/task/work_stealing_queue/consumers_manager.hpp>
+#include <engine/task/work_stealing_queue/global_queue.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -43,7 +43,7 @@ class WorkStealingTaskQueue final {
 
   ConsumersManager consumers_manager_;
   const std::size_t consumers_count_;
-  std::vector<Consumer> consumers_;
+  utils::FixedArray<Consumer> consumers_;
   std::atomic<std::size_t> consumers_order_;
   GlobalQueue<impl::TaskContext> global_queue_;
 };

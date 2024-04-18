@@ -1,8 +1,8 @@
-#include "consumers_manager.hpp"
+#include <engine/task/work_stealing_queue/consumer.hpp>
+#include <engine/task/work_stealing_queue/consumers_manager.hpp>
+#include <engine/task/work_stealing_queue/consumers_state.hpp>
 #include <mutex>
 #include <userver/utils/assert.hpp>
-#include "consumer.hpp"
-#include "consumers_state.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -46,7 +46,7 @@ void ConsumersManager::NotifySleep(Consumer* consumer) {
   state_.IncrementSleepingCount();
 }
 
-bool ConsumersManager::AllowStealing() {
+bool ConsumersManager::AllowStealing() noexcept {
   while (true) {
     ConsumersState curr_consumers_state = state_;
     ConsumersState::State curr_state = curr_consumers_state.Get();
@@ -59,7 +59,7 @@ bool ConsumersManager::AllowStealing() {
   }
 }
 
-bool ConsumersManager::StopStealing() {
+bool ConsumersManager::StopStealing() noexcept {
   ConsumersState::State old_state = state_.DerementStealersCount();
   return old_state.stealing_count == 1;
 }
@@ -84,12 +84,12 @@ void ConsumersManager::WakeUpOne() {
   }
 }
 
-void ConsumersManager::Stop() {
+void ConsumersManager::Stop() noexcept {
   stopped_.store(true);
   WakeUpAll();
 }
 
-bool ConsumersManager::Stopped() { return stopped_.load(); }
+bool ConsumersManager::IsStopped() const noexcept { return stopped_.load(); }
 
 void ConsumersManager::WakeUpAll() {
   std::vector<Consumer*> consumers;

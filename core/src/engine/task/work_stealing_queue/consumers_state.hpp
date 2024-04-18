@@ -2,11 +2,15 @@
 #include <atomic>
 #include <cstdint>
 
+USERVER_NAMESPACE_BEGIN
+
+namespace engine {
+
 class ConsumersState {
  public:
   struct State {
-    uint32_t sleeping_count;
-    uint32_t stealing_count;
+    std::uint32_t sleeping_count;
+    std::uint32_t stealing_count;
   };
 
   ConsumersState() = default;
@@ -15,17 +19,21 @@ class ConsumersState {
 
   ConsumersState& operator=(const ConsumersState& other);
 
-  bool TryIncrementStealersCount(const ConsumersState& old);
+  bool TryIncrementStealersCount(const ConsumersState& old) noexcept;
 
-  State DerementStealersCount();
+  State DerementStealersCount() noexcept;
 
-  State Get();
+  State Get() noexcept;
 
-  void IncrementSleepingCount();
+  void IncrementSleepingCount() noexcept;
 
-  void DecrementSleepingCount();
+  void DecrementSleepingCount() noexcept;
 
  private:
-  State CreateState(uint64_t data);
-  std::atomic<uint64_t> state_{0};
+  State CreateState(std::uint64_t data);
+  std::atomic<std::uint64_t> state_{0};
 };
+
+}  // namespace engine
+
+USERVER_NAMESPACE_END

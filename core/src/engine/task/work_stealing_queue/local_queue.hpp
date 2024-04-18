@@ -4,6 +4,7 @@
 #include <atomic>
 #include <cstddef>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/span.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -14,24 +15,24 @@ class LocalQueue {
  public:
   LocalQueue() = default;
 
-  size_t Size() const { return tail_.load() - head_.load(); }
+  std::size_t Size() const noexcept { return tail_.load() - head_.load(); }
 
   // Use only when queue empty
-  void PushBulk(T** buffer, std::size_t buffer_size) {
+  void PushBulk(utils::span<T*> buffer) {
     std::size_t curr_tail = tail_.load();
     UASSERT(tail_.load() - head_.load() == 0);
-    UASSERT(buffer_size <= Capacity);
+    UASSERT(buffer.size() <= Capacity);
 
-    for (std::size_t i = 0; i < buffer_size; ++i) {
+    for (std::size_t i = 0; i < buffer.size(); ++i) {
       ring_buffer_[GetIndex(curr_tail + i)].store(buffer[i]);
     }
 
-    tail_.store(curr_tail + buffer_size);
+    tail_.store(curr_tail + buffer.size());
   }
 
   bool TryPush(T* element) {
     std::size_t curr_head = head_.load();
-    size_t curr_tail = tail_.load();
+    std::size_t curr_tail = tail_.load();
 
     if (curr_tail - curr_head == Capacity) {
       return false;
@@ -42,7 +43,7 @@ class LocalQueue {
     return true;
   }
 
-  T* Pop() {
+  T* TryPop() {
     while (true) {
       std::size_t curr_head = head_.load();
       std::size_t curr_tail = tail_.load();
@@ -59,12 +60,12 @@ class LocalQueue {
     }
   }
 
-  std::size_t TryPopBulk(T** buffer, std::size_t buffer_size) {
+  std::size_t TryPopBulk(utils::span<T*> buffer) {
     while (true) {
       std::size_t curr_head = head_.load();
       std::size_t curr_tail = tail_.load();
       std::size_t size = curr_tail - curr_head;
-      std::size_t available = (buffer_size < size) ? buffer_size : size;
+      std::size_t available = (buffer.size() < size) ? buffer.size() : size;
       UASSERT(curr_head <= curr_tail);
 
       if (available == 0) {
@@ -82,7 +83,7 @@ class LocalQueue {
   }
 
  private:
-  std::size_t GetIndex(size_t pos) { return pos % (Capacity + 1); }
+  std::size_t GetIndex(std::size_t pos) { return pos % (Capacity + 1); }
 
   std::array<std::atomic<T*>, Capacity + 1> ring_buffer_;
   std::atomic<std::size_t> head_{0};
