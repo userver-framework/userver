@@ -17,16 +17,15 @@ ProducerComponent::ProducerComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
     : components::LoggableComponentBase(config, context),
-      producer_(MakeProducerConfiguration(
-                    context.FindComponent<::components::Secdist>()
-                        .Get()
-                        .Get<BrokerSecrets>(),
-                    config),
-                config.Name(),
-                context.GetTaskProcessor("producer-task-processor"),
-                config["is_testsuite_mode"].As<bool>(),
-                context.FindComponent<::components::StatisticsStorage>()
-                    .GetStorage()) {}
+      producer_(
+          MakeProducerConfiguration(context.FindComponent<components::Secdist>()
+                                        .Get()
+                                        .Get<BrokerSecrets>(),
+                                    config),
+          config.Name(), context.GetTaskProcessor("producer-task-processor"),
+          config["is_testsuite_mode"].As<bool>(),
+          context.FindComponent<components::StatisticsStorage>().GetStorage()) {
+}
 
 ProducerComponent::~ProducerComponent() = default;
 
