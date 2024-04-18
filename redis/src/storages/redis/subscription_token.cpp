@@ -31,7 +31,7 @@ SubscriptionToken::SubscriptionToken(
     : impl_(std::move(implementation)) {}
 
 void SubscriptionToken::SetMaxQueueLength(size_t length) {
-  if (!impl_) throw std::runtime_error("SubscriptionToken is not initialized");
+  if (!impl_) return;
   impl_->SetMaxQueueLength(length);
 }
 

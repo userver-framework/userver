@@ -46,6 +46,18 @@ class Shard;
 
 class Sentinel {
  public:
+  /// Sentinel sends receieved message to callback and callback should
+  /// notify it about the outcome. This is internal mechanism for
+  /// communicating between our sentinel and our SubscriptionTokenImpl
+  enum class Outcome : uint32_t {
+    // everything is ok. Basically, means that message was pushed to the
+    // SubscriptionQueue. Doesn't mean that actual user read it or processed
+    // it or anything like that.
+    kOk,
+    // We discarded message because SubscriptionQueue was overflowing.
+    kOverflowDiscarded,
+  };
+
   using ReadyChangeCallback = std::function<void(
       size_t shard, const std::string& shard_name, bool ready)>;
 
@@ -166,11 +178,11 @@ class Sentinel {
   virtual void SetConfigDefaultCommandControl(
       const std::shared_ptr<CommandControl>& cc);
 
-  using UserMessageCallback = std::function<void(const std::string& channel,
-                                                 const std::string& message)>;
-  using UserPmessageCallback =
-      std::function<void(const std::string& pattern, const std::string& channel,
-                         const std::string& message)>;
+  using UserMessageCallback = std::function<Outcome(
+      const std::string& channel, const std::string& message)>;
+  using UserPmessageCallback = std::function<Outcome(
+      const std::string& pattern, const std::string& channel,
+      const std::string& message)>;
 
   using MessageCallback =
       std::function<void(ServerId server_id, const std::string& channel,
