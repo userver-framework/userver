@@ -1,0 +1,25 @@
+name: Build and publics ubuntu-22.04-userver images
+
+'on':
+  schedule:
+    - cron: '30 5 * * 6'  # Every Saturday at 5:30
+
+jobs:
+  publish_python:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+            registry: ghcr.io
+            username: ${{ github.actor }}
+            password: ${{ secrets.GITHUB_TOKEN }}
+      #- name: Build the ubuntu-22.04-userver Docker image
+      #  run: |
+      #      docker build -t ghcr.io/userver-framework/ubuntu-22.04-userver:latest -f scripts/docker/ubuntu-22.04.dockerfile .
+      #      docker push ghcr.io/userver-framework/ubuntu-22.04-userver:latest
+      - name: Build the ubuntu-22.04-userver-pg Docker image
+        run: |
+            docker build -t ghcr.io/userver-framework/ubuntu-22.04-userver-pg:latest -f scripts/docker/ubuntu-22.04-pg.dockerfile .
+            docker push ghcr.io/userver-framework/ubuntu-22.04-userver-pg:latest
