@@ -36,7 +36,6 @@ libssl-dev
 libyaml-cpp-dev
 netbase
 ninja-build
-postgresql-13
 postgresql-server-dev-13
 protobuf-compiler-grpc
 python3-dev
@@ -44,5 +43,4 @@ python3-jinja2
 python3-protobuf
 python3-venv
 python3-voluptuous
-redis-server
 zlib1g-dev

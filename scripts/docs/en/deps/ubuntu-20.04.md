@@ -37,7 +37,6 @@ libyaml-cpp-dev
 netbase
 ninja-build
 pkg-config
-postgresql-12
 postgresql-server-dev-12
 protobuf-compiler-grpc
 python3-dev
@@ -46,5 +45,4 @@ python3-pip
 python3-protobuf
 python3-venv
 python3-voluptuous
-redis-server
 zlib1g-dev

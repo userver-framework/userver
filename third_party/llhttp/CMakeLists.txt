@@ -9,18 +9,9 @@ set(LLHTTP_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/api.c
 )
 
-set(LLHTTP_HEADERS
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/llhttp.h
-)
-
 add_library(${PROJECT_NAME} OBJECT ${LLHTTP_SOURCES})
 
 target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 _userver_install_targets(COMPONENT universal TARGETS ${PROJECT_NAME})
-_userver_directory_install(COMPONENT universal
-  DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include 
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
-)
-

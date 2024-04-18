@@ -88,8 +88,6 @@ fi
 PACKAGES_TO_INSTALL=$(cat ubuntu-22.04.md | tr '\n' ' ')
 declare -a PACKAGES_FOR_MANUAL_INSTALL=(
   "postgresql-server-dev-14"
-  "redis-server"
-  "postgresql-14"
 )
 for PACKAGE in "${PACKAGES_FOR_MANUAL_INSTALL[@]}"; do   
   PACKAGES_TO_INSTALL=( "${PACKAGES_TO_INSTALL[@]/$PACKAGE}" )
