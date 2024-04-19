@@ -39,7 +39,7 @@ services:
 
 
     userver-ubuntu20-core:
-        image: ghcr.io/userver-framework/ubuntu-userver-core-ub20:v1
+        image: ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest
         container_name: userver-ubuntu-core
         networks:
           - nexportfalse
