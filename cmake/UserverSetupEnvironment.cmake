@@ -2,7 +2,7 @@ include_guard()
 
 set_property(GLOBAL PROPERTY userver_cmake_dir "${CMAKE_CURRENT_LIST_DIR}")
 
-function(userver_setup_environment)
+function(_userver_setup_environment_impl)
   get_property(USERVER_CMAKE_DIR GLOBAL PROPERTY userver_cmake_dir)
 
   message(STATUS "C compiler: ${CMAKE_C_COMPILER}")
@@ -83,6 +83,9 @@ function(userver_setup_environment)
     # enable additional glibc checks (used in debian packaging, requires -O)
     add_compile_definitions("_FORTIFY_SOURCE=2")
   endif()
-
-  enable_testing()
 endfunction()
+
+macro(userver_setup_environment)
+  _userver_setup_environment_impl()
+  enable_testing()  # Does not work if placed into function
+endmacro()
