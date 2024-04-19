@@ -27,6 +27,8 @@ class regex final {
   regex& operator=(const regex&);
   regex& operator=(regex&&) noexcept;
 
+  std::string str() const;
+
  private:
   struct Impl;
   utils::FastPimpl<Impl, 16, 8> impl_;
