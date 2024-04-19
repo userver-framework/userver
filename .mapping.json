@@ -9,6 +9,8 @@
   ".github/workflows/cla.yml":"taxi/uservices/userver/.github/workflows/cla.yml",
   ".github/workflows/codeql-analysis.yml":"taxi/uservices/userver/.github/workflows/codeql-analysis.yml",
   ".github/workflows/docker.yaml":"taxi/uservices/userver/.github/workflows/docker.yaml",
+  ".github/workflows/publish-ubuntu-22.04-base-images.yaml":"taxi/uservices/userver/.github/workflows/publish-ubuntu-22.04-base-images.yaml",
+  ".github/workflows/publish-ubuntu-22.04-images.yaml":"taxi/uservices/userver/.github/workflows/publish-ubuntu-22.04-images.yaml",
   ".gitignore":"taxi/uservices/userver/.gitignore",
   "AUTHORS":"taxi/uservices/userver/AUTHORS",
   "CMakeLists.txt":"taxi/uservices/userver/CMakeLists.txt",
