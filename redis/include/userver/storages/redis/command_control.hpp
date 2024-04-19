@@ -132,6 +132,8 @@ struct CommandControl {
                  const std::optional<std::chrono::milliseconds>& timeout_all,
                  const std::optional<size_t>& max_retries);
 
+  bool operator==(const CommandControl& other) const;
+
   CommandControl MergeWith(const CommandControl& b) const;
   CommandControl MergeWith(const testsuite::RedisControl&) const;
   CommandControl MergeWith(RetryNilFromMaster) const;
@@ -141,6 +143,9 @@ struct CommandControl {
 
 /// Returns CommandControl::Strategy from string
 CommandControl::Strategy StrategyFromString(std::string_view s);
+
+/// Returns string representation of CommandControl::Strategy
+std::string_view StrategyToString(CommandControl::Strategy s);
 
 }  // namespace redis
 
