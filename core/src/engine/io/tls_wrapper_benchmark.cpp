@@ -187,4 +187,54 @@ BENCHMARK(tls_write_all_buffered)
     ->Range(1, 1 << 8)
     ->Unit(benchmark::kNanosecond);
 
+[[maybe_unused]] void tls_write_all_default(benchmark::State& state) {
+  engine::RunStandalone(2, [&]() {
+    const auto deadline = Deadline::FromDuration(kDeadlineMaxTime);
+
+    /// [TLS wrapper usage]
+    TcpListener tcp_listener;
+    auto [server, client] = tcp_listener.MakeSocketPair(deadline);
+
+    std::atomic<bool> reading{true};
+    auto server_task = engine::AsyncNoSpan(
+        [&reading, deadline](auto&& server) {
+          auto tls_server = io::TlsWrapper::StartTlsServer(
+              std::forward<decltype(server)>(server),
+              crypto::Certificate::LoadFromString(cert),
+              crypto::PrivateKey::LoadFromString(key), deadline);
+
+          std::array<char, 65'536> buf{};
+          while (tls_server.RecvSome(buf.data(), buf.size(), deadline) > 0 &&
+                 reading) {
+          }
+        },
+        std::move(server));
+
+    engine::io::IoData msg{"msg", 3};
+    std::string buf(16'384, ' ');
+    engine::io::IoData big_msg{buf.data(), 3};
+
+    auto tls_client =
+        io::TlsWrapper::StartTlsClient(std::move(client), {}, deadline);
+
+    constexpr int kAmountOfsmallMsgs = 5;
+    for ([[maybe_unused]] auto _ : state) {
+      std::size_t send_bytes{0};
+      for (int i = 0; i < kAmountOfsmallMsgs; ++i) {
+        send_bytes = tls_client.SendAll(msg.data, msg.len, deadline);
+      }
+      send_bytes += tls_client.SendAll(big_msg.data, big_msg.len, deadline);
+      benchmark::DoNotOptimize(send_bytes);
+    }
+    /// [TLS wrapper usage]
+
+    reading.store(false);
+    server_task.Get();
+  });
+}
+
+BENCHMARK(tls_write_all_default)
+    ->Range(1, 1 << 8)
+    ->Unit(benchmark::kNanosecond);
+
 USERVER_NAMESPACE_END
