@@ -588,6 +588,10 @@ size_t TlsWrapper::SendAll(const void* buf, size_t len, Deadline deadline) {
   std::size_t len = 0;
   std::size_t sent_bytes = 0;
   for (const auto& io_data : list) {
+    if (io_data.len > kBufSize) {
+      sent_bytes += SendAll(io_data.data, io_data.len, deadline);
+      continue;
+    }
     if (len + io_data.len > kBufSize) {
       sent_bytes += SendAll(buf, len, deadline);
       len = 0;
