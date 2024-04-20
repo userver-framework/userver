@@ -38,6 +38,7 @@ macro(try_find_system_grpc)
 endmacro()
 
 if(NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
+  include(SetupCAres)
   try_find_cmake_grpc()
   if(gRPC_FOUND)
     return()
@@ -50,7 +51,6 @@ if(NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
 endif()
 
 include(SetupAbseil)
-include(SetupCAres)
 include(SetupProtobuf)
 include(DownloadUsingCPM)
 
