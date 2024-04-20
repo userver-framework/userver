@@ -65,7 +65,7 @@ SentinelImpl::SentinelImpl(
     ConnectionSecurity connection_security, ReadyChangeCallback ready_callback,
     std::unique_ptr<KeyShard>&& key_shard,
     dynamic_config::Source dynamic_config_source, ConnectionMode mode,
-    std::optional<size_t> database_index)
+    size_t database_index)
     : sentinel_obj_(sentinel),
       ev_thread_(sentinel_thread_control),
       shard_group_name_(std::move(shard_group_name)),

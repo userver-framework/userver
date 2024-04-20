@@ -34,11 +34,11 @@ void ConnectionInfoInt::SetPassword(Password password) {
   conn_info_.password = std::move(password);
 }
 
-void ConnectionInfoInt::SetDatabaseIndex(std::optional<size_t> index) {
+void ConnectionInfoInt::SetDatabaseIndex(size_t index) {
   conn_info_.database_index = index;
 }
 
-std::optional<size_t> ConnectionInfoInt::DatabaseIndex() const {
+size_t ConnectionInfoInt::DatabaseIndex() const {
   return conn_info_.database_index;
 }
 

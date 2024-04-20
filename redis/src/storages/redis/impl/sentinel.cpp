@@ -74,7 +74,7 @@ Sentinel::Sentinel(const std::shared_ptr<ThreadPools>& thread_pools,
                    std::unique_ptr<KeyShard>&& key_shard,
                    CommandControl command_control,
                    const testsuite::RedisControl& testsuite_redis_control,
-                   ConnectionMode mode, std::optional<size_t> database_index)
+                   ConnectionMode mode, size_t database_index)
     : thread_pools_(thread_pools),
       secdist_default_command_control_(command_control),
       testsuite_redis_control_(testsuite_redis_control) {
@@ -169,7 +169,7 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
     // sentinels in cluster mode.
     conns.emplace_back(sentinel.host, sentinel.port,
                        (key_shard ? Password("") : password), false,
-                       settings.secure_connection, std::nullopt);
+                       settings.secure_connection);
   }
 
   LOG_DEBUG() << "redis command_control:" << command_control.ToString();

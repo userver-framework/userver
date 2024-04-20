@@ -27,13 +27,13 @@ struct ConnectionInfo {
   bool read_only = false;
   ConnectionSecurity connection_security = ConnectionSecurity::kNone;
   using HostVector = std::vector<std::string>;
-  std::optional<size_t> database_index{};
+  size_t database_index = 0;
 
   ConnectionInfo() = default;
   ConnectionInfo(std::string host, int port, Password password,
                  bool read_only = false,
                  ConnectionSecurity security = ConnectionSecurity::kNone,
-                 std::optional<size_t> database_index = {})
+                 size_t database_index = {})
       : host{std::move(host)},
         port{port},
         password{std::move(password)},

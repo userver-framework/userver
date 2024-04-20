@@ -34,7 +34,7 @@ class Redis {
 
   void Connect(const ConnectionInfo::HostVector& host_addrs, int port,
                const Password& password,
-               std::optional<size_t> database_index = {});
+               size_t database_index = 0);
 
   bool AsyncCommand(const CommandPtr& command);
   size_t GetRunningCommands() const;

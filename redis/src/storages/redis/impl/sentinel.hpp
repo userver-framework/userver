@@ -72,7 +72,7 @@ class Sentinel {
            CommandControl command_control = {},
            const testsuite::RedisControl& testsuite_redis_control = {},
            ConnectionMode mode = ConnectionMode::kCommands,
-           std::optional<size_t> database_index = {});
+           size_t database_index = 0);
   virtual ~Sentinel();
 
   void Start();

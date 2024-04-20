@@ -147,7 +147,7 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
   ~RedisImpl();
 
   void Connect(const ConnectionInfo::HostVector& host_addrs, int port,
-               const Password& password, std::optional<size_t> database_index);
+               const Password& password, size_t database_index);
   void Disconnect();
 
   bool AsyncCommand(const CommandPtr& command);
@@ -254,7 +254,7 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
       const CommandsBufferingSettings& commands_buffering_settings);
 
   bool Connect(const std::string& host, int port, const Password& password,
-               std::optional<size_t> database_index);
+               size_t database_index);
 
   Redis* redis_obj_;
   engine::ev::ThreadControl ev_thread_control_;
@@ -275,7 +275,7 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
   uint16_t port_ = 0;
   std::string server_;
   Password password_{std::string()};
-  std::optional<size_t> database_index_;
+  std::size_t database_index_ = 0;
   std::atomic<size_t> commands_size_ = 0;
   size_t sent_count_ = 0;
   size_t cmd_counter_ = 0;
@@ -341,7 +341,7 @@ Redis::~Redis() {
 
 void Redis::Connect(const ConnectionInfo::HostVector& host_addrs, int port,
                     const Password& password,
-                    std::optional<size_t> database_index) {
+                    size_t database_index) {
   impl_->Connect(host_addrs, port, password, database_index);
 }
 
@@ -451,7 +451,7 @@ void Redis::RedisImpl::Detach() {
 
 void Redis::RedisImpl::Connect(const ConnectionInfo::HostVector& host_addrs,
                                int port, const Password& password,
-                               std::optional<size_t> database_index) {
+                               size_t database_index) {
   for (const auto& host : host_addrs)
     if (Connect(host, port, password, database_index)) return;
 
@@ -462,7 +462,7 @@ void Redis::RedisImpl::Connect(const ConnectionInfo::HostVector& host_addrs,
 
 bool Redis::RedisImpl::Connect(const std::string& host, int port,
                                const Password& password,
-                               std::optional<size_t> database_index) {
+                               size_t database_index) {
   UASSERT(context_ == nullptr);
   UASSERT(state_ == State::kInit);
 
@@ -1109,19 +1109,21 @@ void Redis::RedisImpl::SendReadOnly() {
 }
 
 void Redis::RedisImpl::SelectDatabase() {
-  if (!database_index_) {
+  // To get rid of the redundant `SELECT 0` command
+  // since 0 is the default database index, and it will be set automatically
+  if (database_index_ == 0) {
     SetState(RedisState::kConnected);
     return;
   }
 
   ProcessCommand(PrepareCommand(
-      CmdArgs{"SELECT", *database_index_},
+      CmdArgs{"SELECT", database_index_},
       [this](const CommandPtr&, ReplyPtr reply) {
         if (*reply && reply->data.IsStatus()) {
           SetState(RedisState::kConnected);
           LOG_INFO() << log_extra_
                      << "Selected redis logical database with index "
-                     << *database_index_;
+                     << database_index_;
           return;
         }
 

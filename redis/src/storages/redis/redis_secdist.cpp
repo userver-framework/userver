@@ -1,6 +1,5 @@
 #include "redis_secdist.hpp"
 
-#include <userver/formats/parse/common_containers.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/storages/secdist/exceptions.hpp>
 #include <userver/storages/secdist/helpers.hpp>
@@ -44,13 +43,7 @@ RedisMapSettings::RedisMapSettings(const formats::json::Value& doc) {
             ? USERVER_NAMESPACE::redis::ConnectionSecurity::kTLS
             : USERVER_NAMESPACE::redis::ConnectionSecurity::kNone;
 
-    settings.database_index =
-        client_settings["database_index"].As<std::optional<size_t>>();
-    if (settings.database_index && *settings.database_index == 0) {
-      // To get rid of the redundant `SELECT 0` command
-      // since 0 is the default database index and it will be set automatically
-      settings.database_index = std::nullopt;
-    }
+    settings.database_index = client_settings["database_index"].As<size_t>(0);
 
     const auto& shards = client_settings["shards"];
     CheckIsArray(shards, "shards");
