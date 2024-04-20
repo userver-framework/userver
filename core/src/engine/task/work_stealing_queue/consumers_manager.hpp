@@ -1,11 +1,13 @@
 
 #pragma once
+
 #include <atomic>
 #include <cstddef>
 #include <deque>
-#include <engine/task/work_stealing_queue/consumers_state.hpp>
 #include <mutex>
 #include <vector>
+
+#include <engine/task/work_stealing_queue/consumers_state.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -19,9 +21,9 @@ class ConsumersManager final {
 
   void NotifyNewTask();
 
-  void NotifyWakeUp(Consumer* consumer);
+  void NotifyWakeUp(Consumer* const consumer);
 
-  void NotifySleep(Consumer* consumer);
+  void NotifySleep(Consumer* const consumer);
 
   bool AllowStealing() noexcept;
 
@@ -39,10 +41,10 @@ class ConsumersManager final {
   void WakeUpAll();
   const std::size_t consumers_count_;
   std::mutex mutex_;
-  ConsumersState state_;
-  std::atomic<bool> stopped_;
-  std::deque<Consumer*> sleep_dq_;
-  std::vector<bool> is_sleeping_;
+  ConsumersState state_{};
+  std::atomic<bool> stopped_{false};
+  std::deque<Consumer*> sleep_dq_{};
+  std::vector<bool> is_sleeping_{};
 };
 }  // namespace engine
 

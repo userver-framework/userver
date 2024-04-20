@@ -141,6 +141,9 @@ class TaskContext final : public ContextAccessor {
     return IsCancelRequested() && IsCancellable();
   }
 
+  void SetBackground(bool);
+  bool IsBackground() const noexcept { return is_background_; };
+
   // causes this to yield and wait for wakeup
   // must only be called from this context
   // "spurious wakeups" may be caused by wakeup queueing
@@ -218,6 +221,7 @@ class TaskContext final : public ContextAccessor {
   TaskCounter::Token task_counter_token_;
   const bool is_critical_;
   bool is_cancellable_{true};
+  bool is_background_{false};
   bool within_sleep_{false};
   EhGlobals eh_globals_;
 

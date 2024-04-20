@@ -1,7 +1,9 @@
-#include <engine/task/work_stealing_queue/consumer.hpp>
 #include <engine/task/work_stealing_queue/consumers_manager.hpp>
-#include <engine/task/work_stealing_queue/consumers_state.hpp>
+
 #include <mutex>
+
+#include <engine/task/work_stealing_queue/consumer.hpp>
+#include <engine/task/work_stealing_queue/consumers_state.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -9,11 +11,7 @@ USERVER_NAMESPACE_BEGIN
 namespace engine {
 
 ConsumersManager::ConsumersManager(std::size_t consumers_count)
-    : consumers_count_(consumers_count),
-      state_(),
-      stopped_(false),
-      sleep_dq_(),
-      is_sleeping_(consumers_count, false) {}
+    : consumers_count_(consumers_count), is_sleeping_(consumers_count, false) {}
 
 void ConsumersManager::NotifyNewTask() {
   ConsumersState::State curr_state = state_.Get();
@@ -26,7 +24,7 @@ void ConsumersManager::NotifyNewTask() {
   }
 }
 
-void ConsumersManager::NotifyWakeUp(Consumer* consumer) {
+void ConsumersManager::NotifyWakeUp(Consumer* const consumer) {
   std::lock_guard lock_(mutex_);
   if (!is_sleeping_[consumer->inner_index_]) {
     return;
@@ -35,7 +33,7 @@ void ConsumersManager::NotifyWakeUp(Consumer* consumer) {
   state_.DecrementSleepingCount();
 }
 
-void ConsumersManager::NotifySleep(Consumer* consumer) {
+void ConsumersManager::NotifySleep(Consumer* const consumer) {
   std::lock_guard lock_(mutex_);
 
   if (is_sleeping_[consumer->inner_index_]) {

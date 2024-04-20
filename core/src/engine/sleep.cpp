@@ -23,8 +23,10 @@ class CommonSleepWaitStrategy final : public WaitStrategy {
 
 void InterruptibleSleepUntil(Deadline deadline) {
   auto& current = current_task::GetCurrentTaskContext();
+  current.SetBackground(true);
   impl::CommonSleepWaitStrategy wait_manager{};
   current.Sleep(wait_manager, deadline);
+  current.SetBackground(false);
 }
 
 void SleepUntil(Deadline deadline) {

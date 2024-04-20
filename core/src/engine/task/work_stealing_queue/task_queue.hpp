@@ -44,8 +44,9 @@ class WorkStealingTaskQueue final {
   ConsumersManager consumers_manager_;
   const std::size_t consumers_count_;
   utils::FixedArray<Consumer> consumers_;
-  std::atomic<std::size_t> consumers_order_;
-  GlobalQueue<impl::TaskContext> global_queue_;
+  std::atomic<std::size_t> consumers_order_{0};
+  GlobalQueue<impl::TaskContext> global_queue_{};
+  GlobalQueue<impl::TaskContext> background_queue_{};
 };
 
 }  // namespace engine

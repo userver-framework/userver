@@ -48,6 +48,11 @@ class span final {
             (begin == nullptr && end == nullptr));
   }
 
+  constexpr span(T* begin, std::size_t size) noexcept
+      : begin_(begin), end_(begin + size) {
+    UASSERT((begin != nullptr && size > 0) || (begin == nullptr && size == 0));
+  }
+
   template <
       typename Container,
       typename = std::enable_if_t<
@@ -83,8 +88,8 @@ class span final {
     return span{begin_ + offset, end_};
   }
 
-  constexpr span<T> subspan(std::size_t offset, std::size_t count) const
-      noexcept {
+  constexpr span<T> subspan(std::size_t offset,
+                            std::size_t count) const noexcept {
     UASSERT(offset + count <= size());
     return span{begin_ + offset, begin_ + offset + count};
   }

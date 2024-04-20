@@ -1,4 +1,5 @@
 #include <engine/task/work_stealing_queue/consumers_state.hpp>
+
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -34,7 +35,7 @@ ConsumersState::State ConsumersState::Get() noexcept {
 }
 
 ConsumersState::State ConsumersState::DerementStealersCount() noexcept {
-  std::uint64_t old = state_.fetch_sub(1);
+  const std::uint64_t old = state_.fetch_sub(1);
   return CreateState(old);
 }
 
