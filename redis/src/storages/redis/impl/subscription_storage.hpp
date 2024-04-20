@@ -131,6 +131,7 @@ class SubscriptionStorageBase
     }
 
     void AccountMessage(ServerId server_id, size_t message_size);
+    void AccountDiscardedByOverflow(size_t discarded);
   };
 
  protected:
@@ -139,6 +140,8 @@ class SubscriptionStorageBase
   using PmessageCallback = std::function<void(
       ServerId, const std::string& pattern, const std::string& channel,
       const std::string& message)>;
+
+  using SubscribedCallbackOutcome = Sentinel::Outcome;
 
   struct RebalanceState {
     RebalanceState(size_t shard_idx, ServerWeights weights);

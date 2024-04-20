@@ -3,7 +3,7 @@ G_BENCHMARK(userver-grpc-benchmark)
 ALLOCATOR(J)
 SIZE(MEDIUM)
 
-OWNER(g:taxi-common)
+SUBSCRIBER(g:taxi-common)
 
 PEERDIR(
     taxi/uservices/userver-arc-utils/grpc/gen/grpc

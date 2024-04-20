@@ -32,6 +32,8 @@ regex& regex::operator=(regex&& r) noexcept {
   return *this;
 }
 
+std::string regex::str() const { return impl_->r.str(); }
+
 bool regex_match(std::string_view str, const regex& pattern) {
   return boost::regex_match(str.begin(), str.end(), pattern.impl_->r);
 }

@@ -33,18 +33,21 @@ namespace engine {
 namespace current_task {
 namespace {
 
-thread_local impl::TaskContext* current_task_context_ptr = nullptr;
+compiler::ThreadLocal current_task_context_ptr = []() -> impl::TaskContext* {
+  return nullptr;
+};
 
 void SetCurrentTaskContext(impl::TaskContext* context) {
-  UASSERT(!current_task_context_ptr || !context);
-  current_task_context_ptr = context;
+  auto local_task_context_ptr = current_task_context_ptr.Use();
+  UASSERT(!*local_task_context_ptr || !context);
+  *local_task_context_ptr = context;
 }
 
 }  // namespace
 
-USERVER_IMPL_PREVENT_TLS_CACHING
 impl::TaskContext& GetCurrentTaskContext() noexcept {
-  if (!current_task_context_ptr) {
+  auto curent_task_context = current_task_context_ptr.Use();
+  if (!*curent_task_context) {
     // AbortWithStacktrace MUST be a separate function! Putting the body of this
     // function into GetCurrentTaskContext() clobbers too many registers and
     // compiler decides to use stack memory in GetCurrentTaskContext(). This
@@ -54,16 +57,12 @@ impl::TaskContext& GetCurrentTaskContext() noexcept {
         "current_task::GetCurrentTaskContext() has been called "
         "outside of coroutine context");
   }
-
-  USERVER_IMPL_PREVENT_TLS_CACHING_ASM;
-
-  return *current_task_context_ptr;
+  return **curent_task_context;
 }
 
-USERVER_IMPL_PREVENT_TLS_CACHING
 impl::TaskContext* GetCurrentTaskContextUnchecked() noexcept {
-  USERVER_IMPL_PREVENT_TLS_CACHING_ASM;
-  return current_task_context_ptr;
+  auto curent_task_context = current_task_context_ptr.Use();
+  return *curent_task_context;
 }
 
 }  // namespace current_task

@@ -80,6 +80,7 @@ class SubscriptionQueue {
 
   // Messages could come out-of-order due to Redis limitations. Non FIFO is fine
   using Queue = concurrent::NonFifoMpscQueue<Item>;
+  using Outcome = USERVER_NAMESPACE::redis::Sentinel::Outcome;
 
   std::shared_ptr<Queue> queue_;
   typename Queue::Producer producer_;
