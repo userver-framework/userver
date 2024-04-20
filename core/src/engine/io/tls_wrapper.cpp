@@ -49,6 +49,9 @@ void BIO_set_shutdown(BIO* bio, int shutdown) { bio->shutdown = shutdown; }
 
 constexpr const char* kBioMethodName = "userver-socket";
 
+/// Each individual message shouldn't be larger than 16kB
+const std::size_t kBufSize = 16384;
+
 struct SocketBioData {
   explicit SocketBioData(Socket&& socket) : socket(std::move(socket)) {
     if (!this->socket) {
@@ -579,20 +582,20 @@ size_t TlsWrapper::SendAll(const void* buf, size_t len, Deadline deadline) {
                              deadline, "SendAll");
 }
 
-[[nodiscard]] size_t TlsWrapper::WriteAll(std::initializer_list<IoData> list, Deadline deadline) {
-  size_t total_len = 0;
+[[nodiscard]] size_t TlsWrapper::WriteAll(std::initializer_list<IoData> list,
+                                          Deadline deadline) {
+  char buf[kBufSize];
+  std::size_t len = 0;
+  std::size_t sent_bytes = 0;
   for (const auto& io_data : list) {
-    total_len += io_data.len;
+    if (len + io_data.len > kBufSize) {
+      sent_bytes += SendAll(buf, len, deadline);
+      len = 0;
+    }
+    std::memcpy(buf + len, io_data.data, io_data.len);
+    len += io_data.len;
   }
-  char* buf = new char[total_len];
-  char* cur_pos = buf;
-  for (const auto& io_data : list) {
-    std::memcpy(cur_pos, io_data.data, io_data.len);
-    cur_pos += io_data.len;
-  }
-  std::size_t result = SendAll(buf, total_len, deadline);
-  delete[] buf;
-  return result;
+  return sent_bytes + SendAll(buf, len, deadline);
 }
 
 Socket TlsWrapper::StopTls(Deadline deadline) {
