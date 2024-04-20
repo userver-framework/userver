@@ -184,7 +184,7 @@ target_link_libraries(${PROJECT_NAME} INTERFACE ${PROJECT_NAME}-internal)
 _userver_install_targets(COMPONENT grpc TARGETS ${PROJECT_NAME})
 
 _userver_directory_install(COMPONENT grpc FILES
-    "${USERVER_ROOT_DIR}/cmake/SetupGAres.cmake"
+    "${USERVER_ROOT_DIR}/cmake/SetupСAres.cmake"
     "${USERVER_ROOT_DIR}/cmake/SetupProtobuf.cmake"
     "${USERVER_ROOT_DIR}/cmake/SetupGrpc.cmake"
     "${USERVER_ROOT_DIR}/cmake/GrpcTargets.cmake"
