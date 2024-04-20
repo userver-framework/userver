@@ -286,6 +286,13 @@ Span Span::MakeSpan(std::string name, std::string_view trace_id,
   return span;
 }
 
+Span Span::MakeRootSpan(std::string name, logging::Level log_level) {
+  Span span(Tracer::GetTracer(), std::move(name), nullptr,
+            ReferenceType::kChild, log_level);
+  span.SetLink(utils::generators::GenerateUuid());
+  return span;
+}
+
 Span Span::CreateChild(std::string name) const {
   auto span = pimpl_->tracer_->CreateSpan(std::move(name), *this,
                                           ReferenceType::kChild);

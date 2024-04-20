@@ -1,8 +1,10 @@
 # pylint: disable=no-member
 import os
+import re
 
 from conan import ConanFile
 from conan import errors
+from conan.tools import load
 from conan.tools.cmake import CMake
 from conan.tools.cmake import cmake_layout
 from conan.tools.cmake import CMakeDeps
@@ -12,9 +14,25 @@ from conan.tools.files import copy
 required_conan_version = '>=1.51.0, <2.0.0'  # pylint: disable=invalid-name
 
 
+def get_userver_version() -> str:
+    content = load('cmake/GetUserverVersion.cmake')
+    major_version = (
+        re.search(r'set\(USERVER_MAJOR_VERSION (.*)\)', content)
+        .group(1)
+        .strip()
+    )
+    minor_version = (
+        re.search(r'set\(USERVER_MINOR_VERSION (.*)\)', content)
+        .group(1)
+        .strip()
+    )
+
+    return f'{major_version}.{minor_version}'
+
+
 class UserverConan(ConanFile):
     name = 'userver'
-    version = '1.0.0'
+    version = get_userver_version()
     description = 'The C++ Asynchronous Framework'
     topics = ('framework', 'coroutines', 'asynchronous')
     url = 'https://github.com/userver-framework/userver'
@@ -44,7 +62,7 @@ class UserverConan(ConanFile):
     default_options = {
         'shared': False,
         'fPIC': True,
-        'lto': True,
+        'lto': False,
         'with_jemalloc': True,
         'with_mongodb': True,
         'with_postgresql': True,
@@ -91,7 +109,6 @@ class UserverConan(ConanFile):
         self.requires('libnghttp2/1.51.0')
         self.requires('libcurl/7.86.0')
         self.requires('libev/4.33')
-        self.requires('http_parser/2.9.4')
         self.requires('openssl/1.1.1s')
         self.requires('rapidjson/cci.20220822', transitive_headers=True)
         self.requires('yaml-cpp/0.7.0')
@@ -285,7 +302,6 @@ class UserverConan(ConanFile):
                     'a+',
             ) as grpc_file:
                 grpc_file.write('\nset(USERVER_CONAN TRUE)')
-                grpc_file.write('\nset(USERVER_PYTHON "python3")')
         if self.options.with_utest:
             copy(
                 self,
@@ -365,9 +381,6 @@ class UserverConan(ConanFile):
         def libev():
             return ['libev::libev']
 
-        def http_parser():
-            return ['http_parser::http_parser']
-
         def libnghttp2():
             return ['libnghttp2::libnghttp2']
 
@@ -442,7 +455,6 @@ class UserverConan(ConanFile):
                     + concurrentqueue()
                     + yaml()
                     + libev()
-                    + http_parser()
                     + libnghttp2()
                     + curl()
                     + cryptopp()

@@ -19,6 +19,7 @@ struct ServerConfig {
   std::optional<size_t> max_response_size_in_flight;
   std::string server_name;
   bool set_response_server_hostname{false};
+  std::string middleware_pipeline_builder;
 };
 
 ServerConfig Parse(const yaml_config::YamlConfig& value,

@@ -17,25 +17,40 @@ function (userver_target_require_dwcas target visibility)
   set(TEST_LIBRARIES)
 
   if(CMAKE_SYSTEM_PROCESSOR MATCHES "^x86" OR CMAKE_SYSTEM_PROCESSOR MATCHES "^amd64")
-    # Boost.Atomic 1.66+ produces correct DWCAS instructions on x86 and x86_64.
-    set(BOOST_DWCAS_MIN_VERSION "1.66.0")
+    # Boost.Atomic 1.68+ produces correct DWCAS instructions on x86 and x86_64.
+    set(BOOST_DWCAS_MIN_VERSION "1.68.0")
   else()
     # Boost.Atomic 1.74+ produces correct DWCAS instructions on ARM64.
     set(BOOST_DWCAS_MIN_VERSION "1.74.0")
   endif()
 
-  if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND
-      "${Boost_VERSION_STRING}" VERSION_GREATER_EQUAL BOOST_DWCAS_MIN_VERSION)
-    message(STATUS "DWCAS: Using Boost.Atomic")
-    target_compile_definitions(${target} ${visibility} USERVER_USE_BOOST_DWCAS=1)
-    list(APPEND TEST_DEFINITIONS "-DUSERVER_USE_BOOST_DWCAS=1")
+  # Prefer boost::atomic to std::atomic for two reasons.
+  # Reason 1.
+  # Clang's std::atomic already emits DWCAS instructions for x86,
+  # x86_64 and armv8-a (a.k.a. ARM64) architectures (both libstdc++ and libc++).
+  #
+  # GCC's std::atomic falls back to libatomic:
+  # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80878
+  # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=84522
+  #
+  # Reason 2.
+  # Clang still does not support std::atomic_ref, while there is
+  # boost::atomic_ref and boost::atomic::value() since Boost 1.74.0.
+  if("${Boost_VERSION_STRING}" VERSION_GREATER_EQUAL "${BOOST_DWCAS_MIN_VERSION}")
+    message(STATUS "DWCAS: Using boost::atomic")
   else()
-    # Clang's std::atomic already emits DWCAS instructions for x86,
-    # x86_64 and armv8-a (a.k.a. ARM64) architectures (both libstdc++ and libc++).
-    #
-    # GCC's std::atomic falls back to libatomic:
-    # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=80878
-    # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=84522
+    message(WARNING "DWCAS: Using std::atomic")
+    target_compile_definitions(${target} ${visibility} USERVER_USE_STD_DWCAS=1)
+    list(APPEND TEST_DEFINITIONS "-DUSERVER_USE_STD_DWCAS=1")
+  endif()
+
+  set(BOOST_DWCAS_OPTIMAL_VERSION "1.74.0")
+  if("${Boost_VERSION_STRING}" VERSION_LESS "${BOOST_DWCAS_OPTIMAL_VERSION}")
+    message(
+        WARNING
+        "DWCAS: Performance may be suboptimal. "
+        "Consider updating to Boost ${BOOST_DWCAS_OPTIMAL_VERSION}+."
+    )
   endif()
 
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang"

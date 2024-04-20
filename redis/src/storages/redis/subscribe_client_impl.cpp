@@ -30,6 +30,14 @@ SubscriptionToken SubscribeClientImpl::Psubscribe(
       command_control)};
 }
 
+SubscriptionToken SubscribeClientImpl::Ssubscribe(
+    std::string channel, SubscriptionToken::OnMessageCb on_message_cb,
+    const USERVER_NAMESPACE::redis::CommandControl& command_control) {
+  return {std::make_unique<SsubscriptionTokenImpl>(
+      *redis_client_, std::move(channel), std::move(on_message_cb),
+      command_control)};
+}
+
 void SubscribeClientImpl::WaitConnectedOnce(
     USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected) {
   redis_client_->WaitConnectedOnce(wait_connected);
@@ -37,6 +45,10 @@ void SubscribeClientImpl::WaitConnectedOnce(
 
 size_t SubscribeClientImpl::ShardsCount() const {
   return redis_client_->ShardsCount();
+}
+
+bool SubscribeClientImpl::IsInClusterMode() const {
+  return redis_client_->IsInClusterMode();
 }
 
 USERVER_NAMESPACE::redis::SubscribeSentinel& SubscribeClientImpl::GetNative()

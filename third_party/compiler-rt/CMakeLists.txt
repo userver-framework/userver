@@ -6,6 +6,4 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 else()
   add_library(${PROJECT_NAME} INTERFACE)
 endif()
-install(TARGETS ${PROJECT_NAME}
-        EXPORT UserverTargets
-)
+_userver_install_targets(COMPONENT universal TARGETS ${PROJECT_NAME})

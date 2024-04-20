@@ -13,6 +13,7 @@ If there's a strong need to build the userver and run its tests, then:
   cd userver
   ```
 2. Install the build dependencies from @ref scripts/docs/en/userver/tutorial/build.md
+
 3. Build the userver:
   ```
   bash
@@ -24,76 +25,11 @@ If there's a strong need to build the userver and run its tests, then:
 4. Run tests via `ulimit -n 4096 && ctest -V`
 
 
-@anchor DOCKER_BUILD
-### Docker
-
-@note Currently, only x86_64 and x86 architectures support ClickHouse and MongoDB drivers
-as the native libraries for those databases do not support other architectures.
-Those drivers are disabled on other architectures via CMake options.
-
-Docker images in userver provide the following functionality:
-- build and start all userver tests:
-```
-bash
-docker-compose run --rm userver-tests
-```
-- build `hello_service` sample:
-```
-bash
-docker-compose run --rm userver-service-sample
-```
-or
-```
-bash
-SERVICE_NAME=hello_service docker-compose run --rm userver-service-sample
-```
-- execute commands in userver development environment:
-```
-bash
-docker-compose run --rm userver-ubuntu bash
-```
-
-
-Each step of the `userver-tests` could be executed separately:
-
-Start CMake:
-```
-docker-compose run --rm userver-ubuntu bash -c 'cmake $CMAKE_OPTS -B./build -S./'
-```
-Build userver:
-```
-docker-compose run --rm userver-ubuntu bash -c 'cd /userver/build && make -j $(nproc)'
-```
-Run all test:
-```
-docker-compose run --rm userver-ubuntu bash -c 'cd /userver/build && ulimit -n 4096 && ctest -V'
-```
-
-Using make, you can build the service easier
-
-Start cmake:
-```
-make docker-cmake-debug
-```
-Build userver:
-```
-make docker-build-debug
-```
-Run tests:
-```
-make docker-test-debug
-```
-You can replace the debug with a release
-
-
-To run tests and make sure that the framework works fine use the following command:
-```
-bash
-cd build_release && ulimit -n 4096 && ctest -V
-```
+Alternatively you could use a docker container with all the build dependencies
+installed from @ref scripts/docs/en/userver/tutorial/build.md
 
 If you need to edit or make your own docker image with custom configuration, read about
-it @ref scripts/docs/en/userver/docker.md "here"
+it at @ref scripts/docker/Readme.md.
 
 
 @anchor userver_conan

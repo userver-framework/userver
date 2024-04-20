@@ -3,7 +3,7 @@
 /// @file userver/fs/fs_cache_client.hpp
 /// @brief @copybref fs::FsCacheClient
 
-#include <userver/engine/io/sys/linux/inotify.hpp>
+#include <userver/engine/io/sys_linux/inotify.hpp>
 #include <userver/fs/read.hpp>
 #include <userver/rcu/rcu_map.hpp>
 #include <userver/utils/periodic_task.hpp>
@@ -41,12 +41,12 @@ class FsCacheClient final {
 
   void HandleDelete(const std::string& path);
 
-  static void HandleDeleteDirectory(engine::io::sys::linux::Inotify& inotify,
+  static void HandleDeleteDirectory(engine::io::sys_linux::Inotify& inotify,
                                     const std::string& path);
 
   void HandleCreate(const std::string& path);
 
-  void HandleCreateDirectory(engine::io::sys::linux::Inotify& inotify,
+  void HandleCreateDirectory(engine::io::sys_linux::Inotify& inotify,
                              const std::string& path);
 #endif
 

@@ -1,0 +1,10 @@
+project-name: userver-kafka
+project-alt-names:
+  - yandex-userver-kafka
+description: Library for working with kafka
+maintainers:
+  - fdr400 <fdr400@yandex-team.ru>
+  - Common components
+
+libraries:
+  - userver-core

@@ -1,10 +1,4 @@
-if (CMAKE_BUILD_TYPE MATCHES "Debug")
-  set(LTO_FLAG FALSE)
-else()
-  set(LTO_FLAG TRUE)
-endif()
-
-option(USERVER_LTO "Use link time optimizations" ${LTO_FLAG})
+option(USERVER_LTO "Use link time optimizations" OFF)
 
 if(NOT LTO_FLAG AND NOT USERVER_LTO)
   message(STATUS "LTO: disabled (local build)")

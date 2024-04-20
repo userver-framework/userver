@@ -285,6 +285,13 @@ NotifyScope ClusterImpl::Listen(std::string_view channel,
   return FindPool(ClusterHostType::kMaster)->Listen(channel, cmd_ctl);
 }
 
+QueryQueue ClusterImpl::CreateQueryQueue(ClusterHostTypeFlags flags,
+                                         TimeoutDuration acquire_timeout) {
+  return QueryQueue{GetDefaultCommandControl(),
+                    FindPool(flags)->Acquire(
+                        engine::Deadline::FromDuration(acquire_timeout))};
+}
+
 void ClusterImpl::SetDefaultCommandControl(CommandControl cmd_ctl,
                                            DefaultCommandControlSource source) {
   default_cmd_ctls_.UpdateDefaultCmdCtl(cmd_ctl, source);
@@ -334,6 +341,10 @@ void ClusterImpl::SetPoolSettings(const PoolSettings& new_settings) {
   for (const auto& pool : host_pools_) {
     pool->SetSettings(cluster_settings->pool_settings);
   }
+}
+
+void ClusterImpl::SetTopologySettings(const TopologySettings& settings) {
+  topology_->SetTopologySettings(settings);
 }
 
 void ClusterImpl::OnConnlimitChanged() {

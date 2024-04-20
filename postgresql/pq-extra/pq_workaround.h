@@ -24,6 +24,8 @@ extern int PQXsendQueryPrepared(PGconn* conn, const char* stmtName, int nParams,
                                 const int* paramFormats, int resultFormat,
                                 PGresult* description);
 
+extern int PQXpipelinePutSync(PGconn* conn);
+
 #ifdef __cplusplus
 }
 #endif

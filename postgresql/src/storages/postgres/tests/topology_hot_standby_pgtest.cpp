@@ -44,4 +44,15 @@ UTEST_F(HotStandby, ReplicationLag) {
   EXPECT_EQ(0, hosts->count(pg::ClusterHostType::kSlave));
 }
 
+UTEST_F(HotStandby, SetReplicationLag) {
+  pg::detail::topology::HotStandby qcc(
+      GetTaskProcessor(), GetDsnListFromEnv(), nullptr,
+      pg::TopologySettings{std::chrono::seconds{0}}, pg::ConnectionSettings{},
+      GetTestCmdCtls(), testsuite::PostgresControl{},
+      error_injection::Settings{});
+  qcc.SetTopologySettings(pg::TopologySettings{std::chrono::milliseconds{60}});
+  EXPECT_TRUE(qcc.GetTopologySettings().max_replication_lag ==
+              std::chrono::milliseconds(60));
+}
+
 USERVER_NAMESPACE_END

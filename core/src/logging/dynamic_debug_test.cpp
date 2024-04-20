@@ -44,8 +44,9 @@ TEST_F(LoggingTest, DynamicDebugDisable) {
     LOG_INFO() << string;
   };
 
-  logging::AddDynamicDebugLog(filename, 20001,
-                              logging::EntryState::kForceDisabled);
+  logging::EntryState state;
+  state.force_disabled_level_plus_one = logging::Level::kWarning;
+  logging::AddDynamicDebugLog(filename, 20001, state);
 
   do_log("here");
 
@@ -139,6 +140,167 @@ TEST_F(LoggingTest, DynamicDebugLimitedEnable) {
   EXPECT_THAT(GetStreamString(), testing::Not(testing::HasSubstr("enabled 5")));
   EXPECT_THAT(GetStreamString(), testing::Not(testing::HasSubstr("after")));
   EXPECT_THAT(GetStreamString(), testing::Not(testing::HasSubstr("unrelated")));
+}
+
+TEST_F(LoggingTest, DynamicDebugEnableLevel) {
+  const std::string filename{USERVER_FILEPATH};
+  SetDefaultLoggerLevel(logging::Level::kNone);
+
+  const auto do_log_trace = [](std::string_view string) {
+#line 50001
+    LOG_TRACE() << string;
+  };
+
+  const auto do_log_info = [](std::string_view string) {
+#line 50002
+    LOG_INFO() << string;
+  };
+
+  const auto do_log_error = [](std::string_view string) {
+#line 50003
+    LOG_ERROR() << string;
+  };
+
+  do_log_error("before");
+  LOG_INFO() << "unrelated 1";
+
+  logging::EntryState state1;
+  state1.force_enabled_level = logging::Level::kError;
+  logging::AddDynamicDebugLog(filename, 50001, state1);
+  logging::AddDynamicDebugLog(filename, 50002, state1);
+  logging::AddDynamicDebugLog(filename, 50003, state1);
+
+  do_log_trace("trace enabled 1");
+  do_log_info("info enabled 1");
+  do_log_error("error enabled 1");
+  LOG_INFO() << "unrelated 2";
+
+  logging::EntryState state2;
+  state2.force_enabled_level = logging::Level::kInfo;
+  logging::AddDynamicDebugLog(filename, 50001, state2);
+  logging::AddDynamicDebugLog(filename, 50002, state2);
+  logging::AddDynamicDebugLog(filename, 50003, state2);
+
+  do_log_trace("trace enabled 2");
+  do_log_info("info enabled 2");
+  do_log_error("error enabled 2");
+  LOG_INFO() << "unrelated 3";
+
+  logging::EntryState state3;
+  state3.force_enabled_level = logging::Level::kTrace;
+  logging::AddDynamicDebugLog(filename, 50001, state3);
+  logging::AddDynamicDebugLog(filename, 50002, state3);
+  logging::AddDynamicDebugLog(filename, 50003, state3);
+
+  do_log_trace("trace enabled 3");
+  do_log_info("info enabled 3");
+  do_log_error("error enabled 3");
+  LOG_INFO() << "unrelated 4";
+
+  logging::RemoveDynamicDebugLog(filename, 50001);
+  logging::RemoveDynamicDebugLog(filename, 50002);
+  logging::RemoveDynamicDebugLog(filename, 50003);
+
+  do_log_trace("trace after");
+  do_log_info("info after");
+  do_log_error("error after");
+  LOG_INFO() << "unrelated 5";
+
+  EXPECT_THAT(GetStreamString(), testing::Not(testing::HasSubstr("before")));
+
+  EXPECT_THAT(GetStreamString(), testing::HasSubstr("error enabled 1"));
+  EXPECT_THAT(GetStreamString(),
+              testing::Not(testing::HasSubstr("info enabled 1")));
+  EXPECT_THAT(GetStreamString(),
+              testing::Not(testing::HasSubstr("trace enabled 1")));
+
+  EXPECT_THAT(GetStreamString(), testing::HasSubstr("error enabled 2"));
+  EXPECT_THAT(GetStreamString(), testing::HasSubstr("info enabled 2"));
+  EXPECT_THAT(GetStreamString(),
+              testing::Not(testing::HasSubstr("trace enabled 2")));
+
+  EXPECT_THAT(GetStreamString(), testing::HasSubstr("error enabled 3"));
+  EXPECT_THAT(GetStreamString(), testing::HasSubstr("info enabled 3"));
+  EXPECT_THAT(GetStreamString(), testing::HasSubstr("trace enabled 3"));
+
+  EXPECT_THAT(GetStreamString(), testing::Not(testing::HasSubstr("after")));
+  EXPECT_THAT(GetStreamString(), testing::Not(testing::HasSubstr("unrelated")));
+}
+
+TEST_F(LoggingTest, DynamicDebugDisableLevel) {
+  const std::string filename{USERVER_FILEPATH};
+  SetDefaultLoggerLevel(logging::Level::kInfo);
+
+  const auto do_log_trace = [](std::string_view string) {
+#line 60001
+    LOG_TRACE() << string;
+  };
+
+  const auto do_log_info = [](std::string_view string) {
+#line 60002
+    LOG_INFO() << string;
+  };
+
+  const auto do_log_error = [](std::string_view string) {
+#line 60003
+    LOG_ERROR() << string;
+  };
+
+  logging::EntryState state1;
+  state1.force_disabled_level_plus_one = logging::Level::kDebug;
+  logging::AddDynamicDebugLog(filename, 60001, state1);
+  logging::AddDynamicDebugLog(filename, 60002, state1);
+  logging::AddDynamicDebugLog(filename, 60003, state1);
+
+  do_log_trace("trace disabled 1");
+  do_log_info("info disabled 1");
+  do_log_error("error disabled 1");
+
+  logging::EntryState state2;
+  state2.force_disabled_level_plus_one = logging::Level::kWarning;
+  logging::AddDynamicDebugLog(filename, 60001, state2);
+  logging::AddDynamicDebugLog(filename, 60002, state2);
+  logging::AddDynamicDebugLog(filename, 60003, state2);
+
+  do_log_trace("trace disabled 2");
+  do_log_info("info disabled 2");
+  do_log_error("error disabled 2");
+
+  logging::EntryState state3;
+  state3.force_disabled_level_plus_one = logging::Level::kCritical;
+  logging::AddDynamicDebugLog(filename, 60001, state3);
+  logging::AddDynamicDebugLog(filename, 60002, state3);
+  logging::AddDynamicDebugLog(filename, 60003, state3);
+
+  do_log_trace("trace disabled 3");
+  do_log_info("info disabled 3");
+  do_log_error("error disabled 3");
+
+  logging::RemoveDynamicDebugLog(filename, 60001);
+  logging::RemoveDynamicDebugLog(filename, 60002);
+  logging::RemoveDynamicDebugLog(filename, 60003);
+
+  LOG_INFO() << "unrelated";
+
+  EXPECT_THAT(GetStreamString(), testing::HasSubstr("error disabled 1"));
+  EXPECT_THAT(GetStreamString(), testing::HasSubstr("info disabled 1"));
+  EXPECT_THAT(GetStreamString(),
+              testing::Not(testing::HasSubstr("trace disabled 1")));
+
+  EXPECT_THAT(GetStreamString(), testing::HasSubstr("error disabled 2"));
+  EXPECT_THAT(GetStreamString(),
+              testing::Not(testing::HasSubstr("info disabled 2")));
+  EXPECT_THAT(GetStreamString(),
+              testing::Not(testing::HasSubstr("trace disabled 2")));
+
+  EXPECT_THAT(GetStreamString(),
+              testing::Not(testing::HasSubstr("error disabled 3")));
+  EXPECT_THAT(GetStreamString(),
+              testing::Not(testing::HasSubstr("info disabled 3")));
+  EXPECT_THAT(GetStreamString(),
+              testing::Not(testing::HasSubstr("trace disabled 3")));
+
+  EXPECT_THAT(GetStreamString(), testing::HasSubstr("unrelated"));
 }
 
 USERVER_NAMESPACE_END

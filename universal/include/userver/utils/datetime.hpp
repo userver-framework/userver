@@ -5,6 +5,7 @@
 /// @ingroup userver_universal
 
 #include <chrono>
+#include <optional>
 #include <stdexcept>
 #include <string>
 
@@ -137,6 +138,16 @@ std::chrono::system_clock::time_point GuessStringtime(
 /// @throws utils::datetime::DateParseError
 std::chrono::system_clock::time_point GuessLocalTimezoneStringtime(
     const std::string& timestamp);
+
+/// @brief Returns optional time in a string of specified format
+/// Example:
+/// @snippet utils/datetime/datetime_test.cpp OptionalTimestring example
+/// @see kRfc3339Format, kTaximeterFormat, kStartOfTheEpoch,
+/// kDefaultDriverTimezone, kDefaultTimezone, kDefaultFormat, kIsoFormat
+std::optional<std::chrono::system_clock::time_point> OptionalStringtime(
+    const std::string& timestring,
+    const std::string& timezone = kDefaultTimezone,
+    const std::string& format = kDefaultFormat);
 
 /// @brief Converts time point to std::time_t
 /// Example:

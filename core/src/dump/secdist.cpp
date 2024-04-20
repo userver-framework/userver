@@ -9,11 +9,11 @@ USERVER_NAMESPACE_BEGIN
 namespace dump {
 
 Secdist::Secdist(const formats::json::Value& doc) {
-  const auto& section = doc["CACHE_DUMP_SECRET_KEYS"];
+  auto section = doc["CACHE_DUMP_SECRET_KEYS"];
   if (section.IsMissing()) return;
 
-  for (const auto& [name, key] : Items(section)) {
-    secret_keys_.emplace(name,
+  for (auto [name, key] : Items(std::move(section))) {
+    secret_keys_.emplace(std::move(name),
                          crypto::base64::Base64Decode(key.As<std::string>()));
   }
 }

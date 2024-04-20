@@ -115,13 +115,27 @@ class RpcData final {
 
   void SetDeadlinePropagated() noexcept;
 
+  // please read comments for 'invocation_' private member on why
+  // we use two different invocation types
   void EmplaceAsyncMethodInvocation();
 
+  // please read comments for 'invocation_' private member on why
+  // we use two different invocation types
   void EmplaceFinishAsyncMethodInvocation();
 
+  // please read comments for 'invocation_' private member on why
+  // we use two different invocation types
   AsyncMethodInvocation& GetAsyncMethodInvocation() noexcept;
 
+  // please read comments for 'invocation_' private member on why
+  // we use two different invocation types
   FinishAsyncMethodInvocation& GetFinishAsyncMethodInvocation() noexcept;
+
+  // This are for asserts and invariants. Do NOT branch actual code
+  // based on these two functions. Branching based on these two functions
+  // is considered UB, no diagnostics required.
+  bool HoldsAsyncMethodInvocationDebug() noexcept;
+  bool HoldsFinishAsyncMethodInvocationDebug() noexcept;
 
   grpc::Status& GetStatus() noexcept;
 
@@ -153,6 +167,14 @@ class RpcData final {
   RpcConfigValues config_values_;
   const Middlewares& mws_;
 
+  // This data is common for all types of grpc calls - unary and streaming
+  // However, in unary call the call is finished as soon as grpc core
+  // gives us back a response - so for unary call we use
+  // FinishAsyncMethodInvocation that will correctly close all our
+  // tracing::Span objects and account everything in statistics.
+  // In stream response, we use AsyncMethodInvocation for every intermediate
+  // Read* call, because we don't need to close span and/or account stats
+  // when finishing Read* call.
   std::variant<std::monostate, AsyncMethodInvocation,
                FinishAsyncMethodInvocation>
       invocation_;

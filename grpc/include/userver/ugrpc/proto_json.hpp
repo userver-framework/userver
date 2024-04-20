@@ -2,6 +2,7 @@
 
 /// @file userver/ugrpc/proto_json.hpp
 /// @brief Utilities for conversion Protobuf -> Json
+/// @ingroup userver_formats_serialize userver_formats_parse
 
 #include <google/protobuf/struct.pb.h>
 #include <google/protobuf/util/json_util.h>
@@ -21,7 +22,7 @@ formats::json::Value MessageToJson(const google::protobuf::Message& message);
 std::string ToString(const google::protobuf::Message& message);
 
 /// @brief Returns Json-string representation of protobuf message
-/// @throws formats::json::ConversionException
+/// @throws formats::json::Exception
 std::string ToJsonString(const google::protobuf::Message& message);
 
 }  // namespace ugrpc

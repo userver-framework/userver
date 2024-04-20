@@ -15,7 +15,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
 target_include_directories(${PROJECT_NAME}
   PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
@@ -41,3 +41,8 @@ if (USERVER_IS_THE_ROOT_PROJECT)
 
     add_subdirectory(functional_tests)
 endif()
+_userver_install_targets(COMPONENT grpc TARGETS ${PROJECT_NAME} ${PROJECT_NAME}-proto)
+_userver_directory_install(COMPONENT grpc
+  DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
+)

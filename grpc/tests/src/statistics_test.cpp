@@ -43,7 +43,7 @@ UTEST_F(GrpcStatistics, LongRequest) {
   out.set_name("userver");
   UEXPECT_THROW(client.SayHello(out).Finish(),
                 ugrpc::client::InvalidArgumentError);
-  GetServer().StopDebug();
+  GetServer().StopServing();
 
   for (const auto& domain : {"client", "server"}) {
     const auto stats = GetStatistics(
@@ -60,7 +60,7 @@ UTEST_F(GrpcStatistics, LongRequest) {
     EXPECT_EQ(get_status_code_count("INVALID_ARGUMENT"), 1);
     EXPECT_EQ(get_status_code_count("ALREADY_EXISTS"), 0);
     EXPECT_EQ(stats.SingleMetric("rps").AsRate(), 1);
-    EXPECT_EQ(stats.SingleMetric("eps").AsRate(), 1);
+    EXPECT_EQ(stats.SingleMetric("eps").AsRate(), 0);
     EXPECT_EQ(stats.SingleMetric("network-error").AsRate(), 0);
     EXPECT_EQ(stats.SingleMetric("abandoned-error").AsRate(), 0);
 
@@ -69,7 +69,6 @@ UTEST_F(GrpcStatistics, LongRequest) {
     EXPECT_EQ(get_status_code_count_legacy("INVALID_ARGUMENT"), 1);
     EXPECT_EQ(get_status_code_count_legacy("ALREADY_EXISTS"), 0);
     EXPECT_EQ(stats.SingleMetric("rps.v2").AsRate(), 1);
-    EXPECT_EQ(stats.SingleMetric("eps.v2").AsRate(), 1);
     EXPECT_EQ(stats.SingleMetric("network-error.v2").AsRate(), 0);
     EXPECT_EQ(stats.SingleMetric("abandoned-error.v2").AsRate(), 0);
   }
@@ -105,7 +104,7 @@ UTEST_F(GrpcStatistics, StatsBeforeGet) {
   EXPECT_LT(timing, 100);
 
   UEXPECT_THROW(future.Get(), ugrpc::client::InvalidArgumentError);
-  GetServer().StopDebug();
+  GetServer().StopServing();
 }
 
 UTEST_F_MT(GrpcStatistics, Multithreaded, 2) {
@@ -132,7 +131,7 @@ UTEST_F_MT(GrpcStatistics, Multithreaded, 2) {
   });
 
   engine::GetAll(say_hello_task, chat_task);
-  GetServer().StopDebug();
+  GetServer().StopServing();
 
   for (const auto& domain : {"client", "server"}) {
     const auto status =

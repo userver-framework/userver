@@ -14,6 +14,7 @@ import dataclasses
 import json
 import logging
 import typing
+import warnings
 
 import aiohttp
 
@@ -31,6 +32,14 @@ logger = logging.getLogger(__name__)
 # @endcond
 
 _UNKNOWN_STATE = '__UNKNOWN__'
+
+CACHE_INVALIDATION_MESSAGE = (
+    'Direct cache invalidation is deprecated.\n'
+    '\n'
+    ' - Use client.update_server_state() to synchronize service state\n'
+    ' - Explicitly pass cache names to invalidate, e.g.: '
+    'invalidate_caches(cache_names=[...]).'
+)
 
 
 class BaseError(Exception):
@@ -741,6 +750,8 @@ class AiohttpClient(service_client.AiohttpClient):
             span_id_header=None,
             api_coverage_report=None,
             periodic_tasks_state: typing.Optional[PeriodicTasksState] = None,
+            allow_all_caches_invalidation: bool = True,
+            cache_control: typing.Optional[caches.CacheControl] = None,
             **kwargs,
     ):
         super().__init__(base_url, span_id_header=span_id_header, **kwargs)
@@ -753,8 +764,10 @@ class AiohttpClient(service_client.AiohttpClient):
             testpoint=self._testpoint,
             testpoint_control=testpoint_control,
             invalidation_state=cache_invalidation_state,
+            cache_control=cache_control,
         )
         self._api_coverage_report = api_coverage_report
+        self._allow_all_caches_invalidation = allow_all_caches_invalidation
 
     async def run_periodic_task(self, name):
         response = await self._testsuite_action('run_periodic_task', name=name)
@@ -854,10 +867,18 @@ class AiohttpClient(service_client.AiohttpClient):
         )
 
     @contextlib.asynccontextmanager
-    async def capture_logs(self, *, testsuite_skip_prepare: bool = False):
-        async with self._log_capture_fixture.start_capture() as capture:
+    async def capture_logs(
+            self,
+            *,
+            log_level: str = 'DEBUG',
+            testsuite_skip_prepare: bool = False,
+    ):
+        async with self._log_capture_fixture.start_capture(
+                log_level=log_level,
+        ) as capture:
             await self._testsuite_action(
                 'log_capture',
+                log_level=log_level,
                 socket_logging_duplication=True,
                 testsuite_skip_prepare=testsuite_skip_prepare,
             )
@@ -866,6 +887,7 @@ class AiohttpClient(service_client.AiohttpClient):
             finally:
                 await self._testsuite_action(
                     'log_capture',
+                    log_level=self._log_capture_fixture.default_log_level,
                     socket_logging_duplication=False,
                     testsuite_skip_prepare=testsuite_skip_prepare,
                 )
@@ -877,6 +899,13 @@ class AiohttpClient(service_client.AiohttpClient):
             cache_names: typing.Optional[typing.List[str]] = None,
             testsuite_skip_prepare: bool = False,
     ) -> None:
+        if cache_names is None and clean_update:
+            if self._allow_all_caches_invalidation:
+                warnings.warn(CACHE_INVALIDATION_MESSAGE, DeprecationWarning)
+            else:
+                __tracebackhide__ = True
+                raise RuntimeError(CACHE_INVALIDATION_MESSAGE)
+
         if testsuite_skip_prepare:
             await self._tests_control(
                 {
@@ -996,9 +1025,9 @@ class AiohttpClient(service_client.AiohttpClient):
             return await response.json(content_type=None)
 
     async def _prepare(self) -> None:
-        pending_update = self._state_manager.get_pending_update()
-        if pending_update:
-            await self._tests_control(pending_update)
+        with self._state_manager.cache_control_update() as pending_update:
+            if pending_update:
+                await self._tests_control(pending_update)
 
     async def _request(  # pylint: disable=arguments-differ
             self,
@@ -1113,9 +1142,21 @@ class Client(ClientWrapper):
     def spawn_task(self, name: str):
         return self._client.spawn_task(name)
 
-    def capture_logs(self, *, testsuite_skip_prepare: bool = False):
+    def capture_logs(
+            self,
+            *,
+            log_level: str = 'DEBUG',
+            testsuite_skip_prepare: bool = False,
+    ):
+        """
+        Captures logs from the service.
+
+        @param log_level Do not capture logs below this level.
+
+        @see @ref testsuite_logs_capture
+        """
         return self._client.capture_logs(
-            testsuite_skip_prepare=testsuite_skip_prepare,
+            log_level=log_level, testsuite_skip_prepare=testsuite_skip_prepare,
         )
 
     @_wrap_client_error
@@ -1136,6 +1177,7 @@ class Client(ClientWrapper):
         @param testsuite_skip_prepare if False, service will automatically do
                update_server_state().
         """
+        __tracebackhide__ = True
         await self._client.invalidate_caches(
             clean_update=clean_update,
             cache_names=cache_names,
@@ -1202,6 +1244,7 @@ class _StateManager:
             testpoint,
             testpoint_control,
             invalidation_state: caches.InvalidationState,
+            cache_control: typing.Optional[caches.CacheControl],
     ):
         self._state = _State(
             invalidation_state=copy.deepcopy(invalidation_state),
@@ -1210,6 +1253,7 @@ class _StateManager:
         self._testpoint = testpoint
         self._testpoint_control = testpoint_control
         self._invalidation_state = invalidation_state
+        self._cache_control = cache_control
 
     @contextlib.contextmanager
     def updating_state(self, body: typing.Dict[str, typing.Any]):
@@ -1237,12 +1281,7 @@ class _StateManager:
         body: typing.Dict[str, typing.Any] = {}
 
         if self._invalidation_state.has_caches_to_update:
-            body['invalidate_caches'] = {
-                'update_type': 'full',
-                'force_incremental_names': (
-                    self._invalidation_state.incremental_caches
-                ),
-            }
+            body['invalidate_caches'] = {'update_type': 'full'}
             if not self._invalidation_state.should_update_all_caches:
                 body['invalidate_caches']['names'] = list(
                     self._invalidation_state.caches_to_update,
@@ -1257,6 +1296,38 @@ class _StateManager:
             body['mock_now'] = desired_now
 
         return body
+
+    @contextlib.contextmanager
+    def cache_control_update(self) -> typing.ContextManager[typing.Dict]:
+        pending_update = self.get_pending_update()
+        invalidate_caches = pending_update.get('invalidate_caches')
+        if not invalidate_caches or not self._cache_control:
+            yield pending_update
+        else:
+            cache_names = invalidate_caches.get('names')
+            staged, actions = self._cache_control.query_caches(cache_names)
+            self._apply_cache_control_actions(invalidate_caches, actions)
+            yield pending_update
+            self._cache_control.commit_staged(staged)
+
+    @staticmethod
+    def _apply_cache_control_actions(
+            invalidate_caches: typing.Dict,
+            actions: typing.List[typing.Tuple[str, caches.CacheControlAction]],
+    ) -> None:
+        cache_names = invalidate_caches.get('names')
+        exclude_names = invalidate_caches.setdefault('exclude_names', [])
+        force_incremental_names = invalidate_caches.setdefault(
+            'force_incremental_names', [],
+        )
+        for cache_name, action in actions:
+            if action == caches.CacheControlAction.INCREMENTAL:
+                force_incremental_names.append(cache_name)
+            elif action == caches.CacheControlAction.EXCLUDE:
+                if cache_names is not None:
+                    cache_names.remove(cache_name)
+                else:
+                    exclude_names.append(cache_name)
 
     def _update_state(self, body: typing.Dict[str, typing.Any]) -> None:
         body_invalidate_caches = body.get('invalidate_caches', {})

@@ -11,38 +11,51 @@ namespace ugrpc::client::middlewares::deadline_propagation {
 
 namespace {
 
+template <class Duration>
+void AddTimeoutMsToSpan(tracing::Span& span, Duration d) {
+  const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(d);
+  span.AddTag(tracing::kTimeoutMs, ms.count());
+}
+
 void UpdateDeadline(impl::RpcData& data) {
   // Disable by config
   if (!data.GetConfigValues().enforce_task_deadline) {
     return;
   }
 
-  auto& span = data.GetSpan();
   auto& context = data.GetContext();
 
-  const auto context_deadline =
-      engine::Deadline::FromTimePoint(context.deadline());
+  const auto context_time_left =
+      ugrpc::impl::ExtractDeadlineDuration(context.raw_deadline());
   const engine::Deadline task_deadline =
       server::request::GetTaskInheritedDeadline();
 
-  if (!task_deadline.IsReachable() && !context_deadline.IsReachable()) {
+  const auto client_deadline_reachable =
+      (context_time_left != engine::Deadline::Duration::max());
+  if (!task_deadline.IsReachable() && !client_deadline_reachable) {
+    // both unreachable
     return;
   }
 
-  engine::Deadline result_deadline{context_deadline};
-
-  if (task_deadline < context_deadline) {
-    span.AddTag("deadline_updated", true);
-    data.SetDeadlinePropagated();
-    result_deadline = task_deadline;
+  auto& span = data.GetSpan();
+  if (!task_deadline.IsReachable() && client_deadline_reachable) {
+    AddTimeoutMsToSpan(span, context_time_left);
+    return;
   }
 
-  auto result_deadline_ms =
-      std::chrono::duration_cast<std::chrono::milliseconds>(
-          result_deadline.TimeLeft());
+  UASSERT(task_deadline.IsReachable());
+  const auto task_time_left = task_deadline.TimeLeft();
 
-  context.set_deadline(result_deadline);
-  span.AddTag(tracing::kTimeoutMs, result_deadline_ms.count());
+  if (!client_deadline_reachable || task_time_left < context_time_left) {
+    span.AddTag("deadline_updated", true);
+    data.SetDeadlinePropagated();
+
+    context.set_deadline(ugrpc::impl::ToGprTimePoint(task_time_left));
+
+    AddTimeoutMsToSpan(span, task_time_left);
+  } else {
+    AddTimeoutMsToSpan(span, context_time_left);
+  }
 }
 
 }  // namespace

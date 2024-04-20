@@ -1,11 +1,11 @@
-OWNER(g:taxi-common)
+SUBSCRIBER(g:taxi-common)
 
 PY3TEST()
 
 SIZE(MEDIUM)
 
 INCLUDE(
-    ${ARCADIA_ROOT}/taxi/external/recipes/redis/recipe-cluster.inc
+    ${ARCADIA_ROOT}/taxi/external/recipes/redis/recipe.inc
 )
 
 FORK_TESTS()

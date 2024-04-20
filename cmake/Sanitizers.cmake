@@ -2,6 +2,29 @@ include_guard(GLOBAL)
 
 set_property(GLOBAL PROPERTY userver_cmake_dir "${CMAKE_CURRENT_LIST_DIR}")
 
+function(_userver_get_sanitize_blacklist_file COMPILE_FLAGS_BL LINK_FLAGS_BL)
+  set(sanitize_cxx_flags)
+  set(sanitize_link_flags)
+  if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT USERVER_INSTALL)
+    set(USERVER_BLACKLIST "${USERVER_CMAKE_DIR}/sanitize.blacklist.txt")
+    list(APPEND sanitize_cxx_flags "-fsanitize-blacklist=${USERVER_BLACKLIST}")
+    list(APPEND sanitize_link_flags "-fsanitize-blacklist=${USERVER_BLACKLIST}")
+
+    set(USERVER_MACOS_BLACKLIST "${USERVER_CMAKE_DIR}/sanitize-macos.blacklist.txt")
+    if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
+      list(APPEND sanitize_cxx_flags "-fsanitize-blacklist=${USERVER_MACOS_BLACKLIST}")
+      list(APPEND sanitize_link_flags "-fsanitize-blacklist=${USERVER_MACOS_BLACKLIST}")
+    endif()
+
+    if (USERVER_SANITIZE_BLACKLIST)
+      list(APPEND sanitize_cxx_flags "-fsanitize-blacklist=${USERVER_SANITIZE_BLACKLIST}")
+      list(APPEND sanitize_link_flags "-fsanitize-blacklist=${USERVER_SANITIZE_BLACKLIST}")
+    endif()
+  endif()
+  set("${COMPILE_FLAGS_BL}" ${sanitize_cxx_flags} PARENT_SCOPE)
+  set("${LINK_FLAGS_BL}" ${sanitize_link_flags} PARENT_SCOPE)
+endfunction()
+
 function(_userver_get_sanitize_options SANITIZER_LIST_VAR COMPILE_FLAGS_VAR LINK_FLAGS_VAR)
   get_property(USERVER_CMAKE_DIR GLOBAL PROPERTY userver_cmake_dir)
 
@@ -26,21 +49,10 @@ function(_userver_get_sanitize_options SANITIZER_LIST_VAR COMPILE_FLAGS_VAR LINK
   set(sanitizer_list)
 
   if (USERVER_SANITIZE AND sanitizers_supported)
-    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-      set(USERVER_BLACKLIST "${USERVER_CMAKE_DIR}/sanitize.blacklist.txt")
-      list(APPEND sanitize_cxx_flags "-fsanitize-blacklist=${USERVER_BLACKLIST}")
-      list(APPEND sanitize_link_flags "-fsanitize-blacklist=${USERVER_BLACKLIST}")
-
-      set(USERVER_MACOS_BLACKLIST "${USERVER_CMAKE_DIR}/sanitize-macos.blacklist.txt")
-      if (CMAKE_SYSTEM_NAME MATCHES "Darwin")
-        list(APPEND sanitize_cxx_flags "-fsanitize-blacklist=${USERVER_MACOS_BLACKLIST}")
-        list(APPEND sanitize_link_flags "-fsanitize-blacklist=${USERVER_MACOS_BLACKLIST}")
-      endif()
-
-      if (USERVER_SANITIZE_BLACKLIST)
-        list(APPEND sanitize_cxx_flags "-fsanitize-blacklist=${USERVER_SANITIZE_BLACKLIST}")
-        list(APPEND sanitize_link_flags "-fsanitize-blacklist=${USERVER_SANITIZE_BLACKLIST}")
-      endif()
+    if(NOT USERVER_INSTALL)
+      _userver_get_sanitize_blacklist_file(compile_flags_bl link_flags_bl)
+      list(APPEND sanitize_cxx_flags ${compile_flags_bl})
+      list(APPEND sanitize_link_flags ${link_flags_bl})
     endif()
 
     set(sanitizer_list ${USERVER_SANITIZE})
@@ -103,9 +115,19 @@ function(_userver_make_sanitize_target)
   target_link_libraries(userver-internal-sanitize-options INTERFACE
       ${sanitize_link_flags}
   )
-  if(USERVER_INSTALL)
-    install(TARGETS userver-internal-sanitize-options
-        EXPORT UserverTargets
-    )
+endfunction()
+
+# We mush use this function only in install
+function(_userver_make_sanitize_blacklist)
+  if (NOT TARGET userver::userver-internal-sanitize-options)
+    message(FATAL_ERROR "target userver-internal-sanitize-options not defined")
+    return()
   endif()
+  _userver_get_sanitize_blacklist_file(compile_flags_bl link_flags_bl)
+  target_compile_options(userver::userver-internal-sanitize-options INTERFACE
+      ${compile_flags_bl}
+  )
+  target_link_libraries(userver::userver-internal-sanitize-options INTERFACE
+      ${link_flags_bl}
+  )
 endfunction()

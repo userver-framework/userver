@@ -10,7 +10,6 @@ fmt
 grpc
 googletest
 hiredis
-http-parser
 jemalloc
 krb5
 nghttp2
@@ -23,5 +22,4 @@ redis
 zlib
 amqp-cpp
 c-ares
-virtualenv
 coreutils

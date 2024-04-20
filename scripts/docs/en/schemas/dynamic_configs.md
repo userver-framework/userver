@@ -301,6 +301,44 @@ definitions:
 Used by components::Postgres.
 
 
+@anchor POSTGRES_TOPOLOGY_SETTINGS
+## POSTGRES_TOPOLOGY_SETTINGS
+
+Dynamic config that controls topology settings of service's PostgreSQL
+components.
+
+Dictionary keys can be either the service **component name** (not database name!)
+or `__default__`. The latter configuration is applied for every non-matching
+PostgreSQL component of the service.
+
+Take note that it overrides the static configuration values of the service!
+
+```
+yaml
+type: object
+additionalProperties: false
+properties:
+    max_replication_lag_ms:
+      type: integer
+      minimum: 0
+      description: maximum allowed replication lag. If equals 0 no replication 
+      lag checks are performed
+required:
+  - max_replication_lag_ms
+```
+
+**Example**
+```json
+{
+  "__default__": {
+    "max_replication_lag_ms": 60000
+  }
+}
+```
+
+Used by components::Postgres.
+
+
 @anchor POSTGRES_CONNECTION_SETTINGS
 ## POSTGRES_CONNECTION_SETTINGS
 
@@ -355,6 +393,7 @@ properties:
 
 Used by components::Postgres.
 
+
 @anchor POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED
 ## POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED
 
@@ -366,12 +405,13 @@ max_connections divided by service instance count.
 
 ```
 yaml
-default: false
+default: true
 schema:
   type: boolean
 ```
 
 Used by components::Postgres.
+
 
 @anchor POSTGRES_STATEMENT_METRICS_SETTINGS
 ## POSTGRES_STATEMENT_METRICS_SETTINGS
@@ -442,6 +482,7 @@ required:
   - watch_command_timer_interval_us
 ```
 
+**Example:**
 ```json
 {
   "buffering_enabled": true,
@@ -483,6 +524,7 @@ properties:
     type: integer
 ```
 
+**Example:**
 ```json
 {
   "best_dc_count": 0,
@@ -501,6 +543,10 @@ Used by components::Redis.
 ## REDIS_METRICS_SETTINGS
 
 Dynamic config that controls the metric settings for specific service.
+
+Dictionary keys can be either the **database name** (not the component name!)
+or `__default__`. The latter configuration is applied for every non-matching
+Redis database/sentinel of the service.
 
 ```
 yaml
@@ -530,6 +576,7 @@ definitions:
         description: enable response sizes statistics
 ```
 
+**Example:**
 ```json
 {
   "redis-database_name": {
@@ -549,6 +596,10 @@ Used by components::Redis.
 
 Dynamic config that controls the redis pubsub metric settings for specific service.
 
+Dictionary keys can be either the **database name** (not the component name!)
+or `__default__`. The latter configuration is applied for every non-matching
+Redis database/sentinel of the service.
+
 ```
 yaml
 type: object
@@ -565,6 +616,7 @@ definitions:
         description: enable collecting statistics by shard
 ```
 
+**Example:**
 ```json
 {
   "redis-database_name": {
@@ -575,6 +627,102 @@ definitions:
 
 Used by components::Redis.
 
+
+@anchor REDIS_RETRY_BUDGET_SETTINGS
+## REDIS_RETRY_BUDGET_SETTINGS
+
+Dynamic config that controls the retry budget (throttling) settings for
+components::Redis.
+
+Dictionary keys can be either the **database name** (not the component name!)
+or `__default__`. The latter configuration is applied for every non-matching
+Redis database/sentinel of the service.
+
+```
+yaml
+type: object
+additionalProperties:
+  $ref: '#/definitions/BaseSettings'
+definitions:
+  BaseSettings:
+    type: object
+    additionalProperties: false
+    properties:
+        enabled:
+          description: Enable retry budget for database
+          type: boolean
+        max-tokens:
+          description: Number of tokens to start with
+          type: number
+          maximum: 1000
+          minimum: 1
+        token-ratio:
+          description: Amount of tokens added on each successful request
+          type: number
+          maximum: 1
+          minimum: 0.001
+    required:
+      - enabled
+      - max-tokens
+      - token-ratio
+```
+
+**Example:**
+```json
+{
+  "__default__": {
+    "max-tokens": 100,
+    "token-ratio": 0.1,
+    "enabled": true
+  }
+}
+```
+
+Used by components::Redis.
+
+@anchor REDIS_REPLICA_MONITORING_SETTINGS
+## REDIS_REPLICA_MONITORING_SETTINGS
+
+Настройки отслеживания синхронизации реплик redis
+
+Dynamic config that controls the monitoring settings for synchronizing replicas.
+
+Dictionary keys can be either the **database name** (not the component name!)
+or `__default__`. The latter configuration is applied for every non-matching
+Redis database/sentinel of the service.
+
+```
+yaml
+type: object
+additionalProperties:
+  $ref: '#/definitions/BaseSettings'
+definitions:
+  BaseSettings:
+    type: object
+    additionalProperties: false
+    properties:
+      enable-monitoring:
+        description: set to `true` to turn on monitoring
+        type: boolean
+      forbid-requests-to-syncing-replicas:
+        description: set to true to forbid requests to syncing replicas
+        type: boolean
+    required:
+      - enable-monitoring
+      - forbid-requests-to-syncing-replicas
+```
+
+Used by components::Redis.
+
+**Example:**
+```json
+{
+  "__default__": {
+    "enable-monitoring": false,
+    "forbid-requests-to-syncing-replicas": false
+  }
+}
+```
 
 @anchor REDIS_SUBSCRIBER_DEFAULT_COMMAND_CONTROL
 ## REDIS_SUBSCRIBER_DEFAULT_COMMAND_CONTROL
@@ -608,6 +756,7 @@ properties:
       - nearest_server_ping
 ```
 
+**Example:**
 ```json
 {
   "best_dc_count": 0,
@@ -670,6 +819,7 @@ required:
   - timeout-ms
 ```
 
+**Example:**
 ```json
 {
   "mode": "master_or_slave",
@@ -848,6 +998,8 @@ Used by components::HttpClient, affects the behavior of clients::http::Client an
 ## USERVER_LOG_DYNAMIC_DEBUG
 
 Logging per line and file overrides.
+Log locations are defined as path prefix from the Arcadia root ("taxi/uservices/services/").
+Location of file may be followed by `:[line index]` to specify 1 exact log in that file.
 
 ```
 yaml
@@ -864,14 +1016,45 @@ schema:
     properties:
         force-enabled:
             type: array
-            description: logs to turn on
+            description: Locations of logs to turn on. This option is deprecated, consider using "force-enabled-level" instead.
             items:
                 type: string
 
         force-disabled:
             type: array
-            description: logs to turn off
+            description: Locations of logs to turn off, logs with level WARNING and higher will not be affected.
+                This option is deprecated, consider using "force-disabled-level" instead.
             items:
+                type: string
+
+        force-enabled-level:
+            type: object
+            description: |
+                Locations of logs to turn on with level equal or higher to given.
+                For example, to turn on all logs with level WARNING or higher in "userver/grpc",
+                all logs with level DEBUG or higher in file "userver/core/src/server/server.cpp"
+                and 1 log (since exact line is specified) with level TRACE in file "userver/core/src/server/http/http_request_parser.cpp":
+                    "force-enabled-level": {
+                        "taxi/uservices/userver/grpc": "WARNING",
+                        "taxi/uservices/userver/core/src/server/server.cpp": "DEBUG",
+                        "taxi/uservices/userver/core/src/server/http/http_request_parser.cpp:128": "TRACE"
+                    }
+            additionalProperties:
+                type: string
+
+        force-disabled-level:
+            type: object
+            description: |
+                Locations of logs to turn off with level equal or lower to given.
+                For example, to turn off all logs with level ERROR or lower in "userver/grpc",
+                all logs with level INFO or lower in file "userver/core/src/server/server.cpp"
+                and 1 log (since exact line is specified) with level TRACE in file "userver/core/src/server/http/http_request_parser.cpp":
+                    "force-disabled-level": {
+                        "taxi/uservices/userver/grpc": "ERROR",
+                        "taxi/uservices/userver/core/src/server/server.cpp": "INFO",
+                        "taxi/uservices/userver/core/src/server/http/http_request_parser.cpp:128": "TRACE"
+                    }
+            additionalProperties:
                 type: string
 ```
 

@@ -1,6 +1,6 @@
 #include <userver/clients/http/client.hpp>
 
-#include <userver/clients/http/impl/config.hpp>
+#include <userver/clients/http/config.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/tracing/manager.hpp>
 #include <userver/utest/http_client.hpp>
@@ -18,7 +18,7 @@ std::shared_ptr<clients::http::Client> CreateHttpClient(
   static const tracing::GenericTracingManager kDefaultTracingManager{
       tracing::Format::kYandexTaxi, tracing::Format::kYandexTaxi};
 
-  clients::http::impl::ClientSettings static_config;
+  clients::http::ClientSettings static_config;
   static_config.io_threads = 1;
   static_config.tracing_manager = &kDefaultTracingManager;
 
@@ -29,7 +29,7 @@ std::shared_ptr<clients::http::Client> CreateHttpClient(
 
 std::shared_ptr<clients::http::Client> CreateHttpClient(
     const tracing::TracingManagerBase& tracing_manager) {
-  clients::http::impl::ClientSettings static_config;
+  clients::http::ClientSettings static_config;
   static_config.io_threads = 1;
   static_config.tracing_manager = &tracing_manager;
 

@@ -75,6 +75,12 @@ bool Connection::IsBroken() const { return pimpl_->IsBroken(); }
 
 bool Connection::IsExpired() const { return pimpl_->IsExpired(); }
 
+bool Connection::IsPipelineActive() const { return pimpl_->IsPipelineActive(); }
+
+bool Connection::ArePreparedStatementsEnabled() const {
+  return pimpl_->ArePreparedStatementsEnabled();
+}
+
 int Connection::GetServerVersion() const { return pimpl_->GetServerVersion(); }
 
 bool Connection::IsInTransaction() const { return pimpl_->IsInTransaction(); }
@@ -111,6 +117,28 @@ ResultSet Connection::Execute(const Query& query,
                               const detail::QueryParameters& params,
                               OptionalCommandControl statement_cmd_ctl) {
   return pimpl_->ExecuteCommand(query, params, std::move(statement_cmd_ctl));
+}
+
+Connection::PreparedStatementMeta Connection::PrepareStatement(
+    const Query& query, const detail::QueryParameters& params,
+    TimeoutDuration timeout) {
+  const auto& statement_info = pimpl_->PrepareStatement(query, params, timeout);
+
+  return {statement_info.statement_name, statement_info.description};
+}
+
+void Connection::AddIntoPipeline(CommandControl cc,
+                                 const std::string& prepared_statement_name,
+                                 const detail::QueryParameters& params,
+                                 const ResultSet& description,
+                                 tracing::ScopeTime& scope) {
+  pimpl_->AddIntoPipeline(cc, prepared_statement_name, params, description,
+                          scope);
+}
+
+std::vector<ResultSet> Connection::GatherPipeline(
+    TimeoutDuration timeout, const std::vector<ResultSet>& descriptions) {
+  return pimpl_->GatherPipeline(timeout, descriptions);
 }
 
 ResultSet Connection::Execute(const Query& query, const ParameterStore& store) {

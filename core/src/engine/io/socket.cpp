@@ -119,10 +119,15 @@ void FillIoSendData(const IoData* data, struct iovec* dst, std::size_t count) {
 }  // namespace
 
 Socket::Socket(AddrDomain domain, SocketType type)
-    : domain_(domain), fd_control_(MakeSocket(domain, type)) {}
+    : domain_(domain), fd_control_(MakeSocket(domain, type)) {
+  SetReadableContextAccessor(fd_control_->Read().TryGetContextAccessor());
+  SetWritableContextAccessor(fd_control_->Write().TryGetContextAccessor());
+}
 
 Socket::Socket(int fd, AddrDomain domain)
     : domain_(domain), fd_control_(impl::FdControl::Adopt(fd)) {
+  SetReadableContextAccessor(fd_control_->Read().TryGetContextAccessor());
+  SetWritableContextAccessor(fd_control_->Write().TryGetContextAccessor());
 // MAC_COMPAT: no socket domain access on mac
 #ifdef SO_DOMAIN
   if (domain_ != AddrDomain::kUnspecified) {
@@ -219,6 +224,7 @@ size_t Socket::RecvSome(void* buf, size_t len, Deadline deadline) {
     throw IoException("Attempt to RecvSome from closed socket");
   }
   auto& dir = fd_control_->Read();
+  dir.ResetReady();
   impl::Direction::SingleUserGuard guard(dir);
   return dir.PerformIo(guard, &RecvWrapper, buf, len, impl::TransferMode::kOnce,
                        deadline, "RecvSome from ", peername_);
@@ -229,6 +235,7 @@ size_t Socket::RecvAll(void* buf, size_t len, Deadline deadline) {
     throw IoException("Attempt to RecvAll from closed socket");
   }
   auto& dir = fd_control_->Read();
+  dir.ResetReady();
   impl::Direction::SingleUserGuard guard(dir);
   return dir.PerformIo(guard, &RecvWrapper, buf, len,
                        impl::TransferMode::kWhole, deadline, "RecvAll from ",
@@ -263,6 +270,7 @@ size_t Socket::SendAll(const struct iovec* list, std::size_t list_size,
   UASSERT(list_size > 0);
   UINVARIANT(list_size <= IOV_MAX, "To big array of IoData for SendAll");
   auto& dir = fd_control_->Write();
+  dir.ResetReady();
   impl::Direction::SingleUserGuard guard(dir);
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
   return dir.PerformIoV(guard, &writev, const_cast<struct iovec*>(list),
@@ -275,6 +283,7 @@ size_t Socket::SendAll(const void* buf, size_t len, Deadline deadline) {
     throw IoException("Attempt to SendAll to closed socket");
   }
   auto& dir = fd_control_->Write();
+  dir.ResetReady();
   impl::Direction::SingleUserGuard guard(dir);
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
   return dir.PerformIo(guard, &SendWrapper, const_cast<void*>(buf), len,
@@ -291,6 +300,7 @@ Socket::RecvFromResult Socket::RecvSomeFrom(void* buf, size_t len,
   RecvFromWrapper recv_from_wrapper;
   {
     auto& dir = fd_control_->Read();
+    dir.ResetReady();
     impl::Direction::SingleUserGuard guard(dir);
     result.bytes_received =
         dir.PerformIo(guard, recv_from_wrapper, buf, len,
@@ -312,6 +322,7 @@ size_t Socket::SendAllTo(const Sockaddr& dest_addr, const void* buf, size_t len,
   }
 
   auto& dir = fd_control_->Write();
+  dir.ResetReady();
   impl::Direction::SingleUserGuard guard(dir);
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
   return dir.PerformIo(guard, SendToWrapper{dest_addr}, const_cast<void*>(buf),
@@ -324,6 +335,7 @@ Socket Socket::Accept(Deadline deadline) {
     throw IoException("Attempt to Accept from closed socket");
   }
   auto& dir = fd_control_->Read();
+  dir.ResetReady();
   impl::Direction::SingleUserGuard guard(dir);
   for (;;) {
     Sockaddr buf;

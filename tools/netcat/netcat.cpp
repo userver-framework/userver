@@ -1,8 +1,3 @@
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-
 #include <cstdlib>
 #include <iostream>
 #include <string>
@@ -71,11 +66,8 @@ Config ParseConfig(int argc, char** argv) {
 int main(int argc, char** argv) {
   auto config = ParseConfig(argc, argv);
   engine::RunStandalone(config.worker_threads, [&] {
-    engine::io::Sockaddr addr;
-    auto* sa = addr.As<struct sockaddr_in6>();
-    sa->sin6_family = AF_INET6;
-    sa->sin6_port = htons(config.port);
-    sa->sin6_addr = in6addr_loopback;
+    auto addr = engine::io::Sockaddr::MakeLoopbackAddress();
+    addr.SetPort(config.port);
 
     engine::io::Socket worksock;
     std::vector<char> buf(config.buffer_size);

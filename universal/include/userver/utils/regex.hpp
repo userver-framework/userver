@@ -27,12 +27,16 @@ class regex final {
   regex& operator=(const regex&);
   regex& operator=(regex&&) noexcept;
 
+  std::string str() const;
+
  private:
   struct Impl;
   utils::FastPimpl<Impl, 16, 8> impl_;
 
   friend bool regex_match(std::string_view str, const regex& pattern);
   friend bool regex_search(std::string_view str, const regex& pattern);
+  friend std::string regex_replace(std::string_view str, const regex& pattern,
+                                   std::string_view repl);
 };
 
 /// @brief Determines whether the regular expression matches the entire target
@@ -42,6 +46,11 @@ bool regex_match(std::string_view str, const regex& pattern);
 /// @brief Determines whether the regular expression matches anywhere in the
 /// target character sequence
 bool regex_search(std::string_view str, const regex& pattern);
+
+/// @brief Create a new string where all regular expression matches replaced
+/// with repl
+std::string regex_replace(std::string_view str, const regex& pattern,
+                          std::string_view repl);
 
 }  // namespace utils
 

@@ -7,6 +7,7 @@
 #include <memory>
 #include <type_traits>
 
+#include <userver/clients/http/config.hpp>
 #include <userver/clients/http/response.hpp>
 #include <userver/compiler/select.hpp>
 #include <userver/engine/deadline.hpp>
@@ -41,6 +42,8 @@ class ResponseFuture final {
 
   std::shared_ptr<Response> Get();
 
+  void SetCancellationPolicy(CancellationPolicy cp);
+
   /// @cond
   /// Internal helper for WaitAny/WaitAll
   engine::impl::ContextAccessor* TryGetContextAccessor() noexcept;
@@ -50,10 +53,13 @@ class ResponseFuture final {
   /// @endcond
 
  private:
+  void CancelOrDetach();
+
   engine::Future<std::shared_ptr<Response>> future_;
   engine::Deadline deadline_;
   std::shared_ptr<RequestState> request_state_;
   bool was_deadline_propagated_{false};
+  CancellationPolicy cancellation_policy_;
 };
 
 }  // namespace clients::http

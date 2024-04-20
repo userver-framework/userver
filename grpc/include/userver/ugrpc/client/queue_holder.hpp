@@ -24,7 +24,7 @@ class QueueHolder final {
 
  private:
   struct Impl;
-  utils::FastPimpl<Impl, 144, 8> impl_;
+  utils::FastPimpl<Impl, 176, 16> impl_;
 };
 
 }  // namespace ugrpc::client

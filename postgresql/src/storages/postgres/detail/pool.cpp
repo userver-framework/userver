@@ -11,6 +11,7 @@
 #include <userver/logging/log.hpp>
 #include <userver/storages/postgres/detail/time_types.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
+#include <userver/testsuite/testpoint.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 
 #include <utils/impl/assert_extra.hpp>
@@ -46,9 +47,8 @@ constexpr auto kUnlimitedConnecting = std::numeric_limits<std::size_t>::max();
 
 class Stopwatch {
  public:
-  using Accumulator =
-      USERVER_NAMESPACE::utils::statistics::RecentPeriod<Percentile, Percentile,
-                                                         detail::SteadyClock>;
+  using Accumulator = USERVER_NAMESPACE::utils::statistics::RecentPeriod<
+      Percentile, Percentile, detail::SteadyCoarseClock>;
   explicit Stopwatch(Accumulator& acc)
       : accum_{acc}, start_{SteadyClock::now()} {}
   ~Stopwatch() {
@@ -280,6 +280,7 @@ void ConnectionPool::Release(Connection* connection) {
         [this, connection, dec_cnt = std::move(dg)] {
           LOG_LIMITED_WARNING()
               << "Released connection in busy state. Trying to clean up...";
+          TESTPOINT("pg_cleanup", formats::json::Value{});
           CleanupConnection(connection);
         }));
   }

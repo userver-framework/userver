@@ -141,6 +141,9 @@ void Thread::Start() {
   UASSERT(loop_);
   ev_set_userdata(loop_, this);
   ev_set_loop_release_cb(loop_, Release, Acquire);
+#ifdef EV_HAS_IO_PESSIMISTIC_REMOVE
+  ev_set_io_pessimistic_remove(loop_);
+#endif
 
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
   ev_async_init(&watch_update_, UpdateLoopWatcher);

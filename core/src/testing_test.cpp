@@ -27,13 +27,8 @@ UTEST(SimpleServer, ExampleTcpIpV4) {
   SimpleServer s(assert_received_ok);
 
   // ... invoke code that sends "OK" to localhost
-  engine::io::Sockaddr addr;
-  auto* sa = addr.As<struct sockaddr_in>();
-  sa->sin_family = AF_INET;
-  // NOLINTNEXTLINE(hicpp-no-assembler,readability-isolate-declaration)
-  sa->sin_port = htons(s.GetPort());
-  // NOLINTNEXTLINE(hicpp-no-assembler,readability-isolate-declaration)
-  sa->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+  auto addr = engine::io::Sockaddr::MakeIPv4LoopbackAddress();
+  addr.SetPort(s.GetPort());
 
   engine::io::Socket worksock{addr.Domain(), engine::io::SocketType::kStream};
   worksock.Connect(addr,
@@ -61,12 +56,8 @@ UTEST(SimpleServer, ExampleTcpIpV6) {
   SimpleServer s(assert_received_ok, SimpleServer::kTcpIpV6);
 
   // ... invoke code that sends "OK" to localhost:8080 or localhost:8042.
-  engine::io::Sockaddr addr;
-  auto* sa = addr.As<struct sockaddr_in6>();
-  sa->sin6_family = AF_INET6;
-  // NOLINTNEXTLINE(hicpp-no-assembler,readability-isolate-declaration)
-  sa->sin6_port = htons(s.GetPort());
-  sa->sin6_addr = in6addr_loopback;
+  auto addr = engine::io::Sockaddr::MakeLoopbackAddress();
+  addr.SetPort(s.GetPort());
 
   engine::io::Socket worksock{addr.Domain(), engine::io::SocketType::kStream};
   worksock.Connect(addr,
@@ -95,13 +86,8 @@ UTEST(SimpleServer, ExampleTcpIpV4Twice) {
   SimpleServer s(assert_received_twice);
 
   // ... invoke code that sends "OK" to localhost:8080 or localhost:8042.
-  engine::io::Sockaddr addr;
-  auto* sa = addr.As<struct sockaddr_in>();
-  sa->sin_family = AF_INET;
-  // NOLINTNEXTLINE(hicpp-no-assembler,readability-isolate-declaration)
-  sa->sin_port = htons(s.GetPort());
-  // NOLINTNEXTLINE(readability-isolate-declaration,hicpp-no-assembler)
-  sa->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+  auto addr = engine::io::Sockaddr::MakeIPv4LoopbackAddress();
+  addr.SetPort(s.GetPort());
 
   engine::io::Socket worksock{addr.Domain(), engine::io::SocketType::kStream};
   worksock.Connect(addr,

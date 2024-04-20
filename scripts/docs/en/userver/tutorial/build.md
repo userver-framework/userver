@@ -1,4 +1,4 @@
-## Configure and Build
+## Configure, Build and Install
 
 ## CMake options
 
@@ -29,17 +29,17 @@ The following CMake options are used by userver:
 | USERVER_SANITIZE                       | Build with sanitizers support, allows combination of values via 'val1 val2'                                           | ''                                                     |
 | USERVER_SANITIZE_BLACKLIST             | Path to file that is passed to the -fsanitize-blacklist option                                                        | ''                                                     |
 | USERVER_USE_LD                         | Linker to use, e.g. 'gold' or 'lld'                                                                                   | ''                                                     |
-| USERVER_LTO                            | Use link time optimizations                                                                                           | OFF for Debug build, ON for all the other builds       |
-| USERVER_LTO_CACHE                      | Use LTO cache if present, disable for benchmarking build times                                                        | ON                                                                |
-| USERVER_LTO_CACHE_DIR                  | LTO cache directory                                                                                                   | `${CMAKE_CURRENT_BINARY_DIR}/.ltocache`                           |
-| USERVER_LTO_CACHE_SIZE_MB              | LTO cache size limit in MB                                                                                            | 6000                                                              |
-| USERVER_USE_CCACHE                     | Use ccache if present, disable for benchmarking build times                                                           | ON                                                                |
-| USERVER_COMPILATION_TIME_TRACE         | Generate Clang compilation time trace                                                                                 | OFF                                                               |
+| USERVER_LTO                            | Use link time optimizations                                                                                           | OFF                                                    |
+| USERVER_LTO_CACHE                      | Use LTO cache if present, disable for benchmarking build times                                                        | ON                                                     |
+| USERVER_LTO_CACHE_DIR                  | LTO cache directory                                                                                                   | `${CMAKE_CURRENT_BINARY_DIR}/.ltocache`                |
+| USERVER_LTO_CACHE_SIZE_MB              | LTO cache size limit in MB                                                                                            | 6000                                                   |
+| USERVER_USE_CCACHE                     | Use ccache if present, disable for benchmarking build times                                                           | ON                                                     |
+| USERVER_COMPILATION_TIME_TRACE         | Generate Clang compilation time trace                                                                                 | OFF                                                    |
 | USERVER_NO_WERROR                      | Do not treat warnings as errors                                                                                       | ON                                                     |
 | USERVER_PYTHON_PATH                    | Path to the python3 binary for use in testsuite tests                                                                 | python3                                                |
 | USERVER_FEATURE_ERASE_LOG_WITH_LEVEL   | Logs of this and below levels are removed from binary. Possible values: trace, info, debug, warning, error            | OFF                                                    |
 | USERVER_DOWNLOAD_PACKAGES              | Download missing third party packages and use the downloaded versions                                                 | ON                                                     |
-| USERVER_PIP_USE_SYSTEM_PACKAGES        | Use system python packages inside virtualenv                                                                          | OFF                                                    |
+| USERVER_PIP_USE_SYSTEM_PACKAGES        | Use system python packages inside venv                                                                                | OFF                                                    |
 | USERVER_PIP_OPTIONS                    | Options for all pip calls                                                                                             | ''                                                     |
 | USERVER_DOWNLOAD_PACKAGE_CARES         | Download and setup c-ares if no c-ares of matching version was found                                                  | ${USERVER_DOWNLOAD_PACKAGES}                           |
 | USERVER_DOWNLOAD_PACKAGE_CCTZ          | Download and setup cctz if no cctz of matching version was found                                                      | ${USERVER_DOWNLOAD_PACKAGES}                           |
@@ -52,7 +52,7 @@ The following CMake options are used by userver:
 | USERVER_DOWNLOAD_PACKAGE_GTEST         | Download and setup gtest if no gtest of matching version was found                                                    | ${USERVER_DOWNLOAD_PACKAGES}                           |
 | USERVER_DOWNLOAD_PACKAGE_PROTOBUF      | Download and setup Protobuf if no Protobuf of matching version was found                                              | ${USERVER_DOWNLOAD_PACKAGE_GRPC}                       |
 | USERVER_FORCE_DOWNLOAD_PACKAGES        | Download all possible third-party packages even if there is an installed system package                               | OFF                                                    |
-| USERVER_INSTALL                        | Experimental flag that enables cmake install for userver (supported only universal at this moment)                    | OFF                                                    |
+| USERVER_INSTALL                        | Build userver for further installation                       | OFF                                                    |
 | USERVER_IS_THE_ROOT_PROJECT            | Contributor mode: build userver tests, samples and helper tools                                                       | auto-detects if userver is the top level project       |
 | USERVER_GOOGLE_COMMON_PROTOS_TARGET    | Name of cmake target preparing google common proto library                                                            | Builds userver-api-common-protos                       |
 | USERVER_GOOGLE_COMMON_PROTOS           | Path to the folder with google common proto files                                                                     | Downloads automatically                                |
@@ -62,6 +62,7 @@ The following CMake options are used by userver:
 | USERVER_PG_LIBRARY_DIR                 | Path to the folder with @ref POSTGRES_LIBS "PostgreSQL libpq libraries", for example /usr/local/lib                   | autodetected                                           |
 | USERVER_MYSQL_ALLOW_BUGGY_LIBMARIADB   | Allows mysql driver to leak memory instead of aborting in some rare cases when linked against libmariadb3<3.3.4       | OFF                                                    |
 | USERVER_DISABLE_PHDR_CACHE             | Disable caching of dl_phdr_info items, which interferes with dlopen                                                   | OFF                                                    |
+| USERVER_DISABLE_RSEQ_ACCELERATION      | Disable rseq-based optimizations, which may not work depending on kernel/glibc/distro/etc version                     | OFF for x86 Linux, ON otherwise                        |
 | USERVER_FEATURE_UBOOST_CORO            | Build with vendored version of Boost.context and Boost.coroutine2, is needed for sanitizers builds                    | ON                                                     |
 
 [hi_malloc]: https://bugs.launchpad.net/ubuntu/+source/hiredis/+bug/1888025
@@ -70,23 +71,27 @@ To explicitly specialize the compiler use the cmake options `CMAKE_C_COMPILER` a
 For example to use clang-12 compiler install it and add the following options to cmake:
 `-DCMAKE_CXX_COMPILER=clang++-12 -DCMAKE_C_COMPILER=clang-12`
 
+@warning Using LTO can lead to [some problems](https://github.com/userver-framework/userver/issues/242). We don't recommend using `USERVER_LTO`.
+
 
 @anchor userver_libraries
 ## The list of userver libraries
 
 userver is split into multiple CMake libraries.
 
-| CMake target         | CMake option to enable building the library | Main documentation page                                  |
-|----------------------|---------------------------------------------|----------------------------------------------------------|
-| `userver-universal`  | Always on                                   | @ref scripts/docs/en/index.md                            |
-| `userver-core`       | `USERVER_FEATURE_CORE` (`ON` by default)    | @ref scripts/docs/en/index.md                            |
-| `userver-grpc`       | `USERVER_FEATURE_GRPC`                      | @ref scripts/docs/en/userver/grpc.md                     |
-| `userver-mongo`      | `USERVER_FEATURE_MONGODB`                   | @ref scripts/docs/en/userver/mongodb.md                  |
-| `userver-postgresql` | `USERVER_FEATURE_POSTGRESQL`                | @ref pg_driver                                           |
-| `userver-redis`      | `USERVER_FEATURE_REDIS`                     | @ref scripts/docs/en/userver/redis.md                    |
-| `userver-clickhouse` | `USERVER_FEATURE_CLICKHOUSE`                | @ref clickhouse_driver                                   |
-| `userver-rabbitmq`   | `USERVER_FEATURE_RABBITMQ`                  | @ref rabbitmq_driver                                     |
-| `userver-mysql`      | `USERVER_FEATURE_MYSQL`                     | @ref scripts/docs/en/userver/mysql/design_and_details.md |
+| CMake target         | CMake option to enable building the library | Component for install | Main documentation page                                  |
+|----------------------|---------------------------------------------|-----------------------|----------------------------------------------------------|
+| `userver-universal`  | Always on                                   | `universal`           | @ref scripts/docs/en/index.md                            |
+| `userver-core`       | `USERVER_FEATURE_CORE` (`ON` by default)    | `core`                | @ref scripts/docs/en/index.md                            |
+| `userver-grpc`       | `USERVER_FEATURE_GRPC`                      | `grpc`                | @ref scripts/docs/en/userver/grpc.md                     |
+| `userver-mongo`      | `USERVER_FEATURE_MONGODB`                   | `mongo`               | @ref scripts/docs/en/userver/mongodb.md                  |
+| `userver-postgresql` | `USERVER_FEATURE_POSTGRESQL`                | `postgresql`          | @ref pg_driver                                           |
+| `userver-redis`      | `USERVER_FEATURE_REDIS`                     | `redis`               | @ref scripts/docs/en/userver/redis.md                    |
+| `userver-clickhouse` | `USERVER_FEATURE_CLICKHOUSE`                | `clickhouse`          | @ref clickhouse_driver                                   |
+| `userver-rabbitmq`   | `USERVER_FEATURE_RABBITMQ`                  | `rabbitmq`            | @ref rabbitmq_driver                                     |
+| `userver-mysql`      | `USERVER_FEATURE_MYSQL`                     | `mysql`               | @ref scripts/docs/en/userver/mysql/design_and_details.md |
+
+For installed userver or Conan, cmake targets are named like `userver::{component}`, for instance: `userver::core`, `userver::mysql`, etc 
 
 Make sure to:
 
@@ -98,6 +103,7 @@ The details vary depending on the method of building userver:
 * `add_subsirectory(userver)` as used in @ref service_templates "service templates"
 * @ref userver_cpm "CPM"
 * @ref userver_conan "Conan"
+* @ref userver_install "userver install"
 
 
 ## Downloading packages using CPM
@@ -192,6 +198,43 @@ Dependencies could be installed via:
   sudo apt install --allow-downgrades -y $(cat third_party/userver/scripts/docs/en/deps/ubuntu-22.04.md | tr '\n' ' ')
   ```
 
+### Docker with Ubuntu 22.04
+
+The Docker image `ghcr.io/userver-framework/ubuntu-22.04-userver-pg:latest`
+provides a container with all the build dependencies, PostgreSQL and userver
+preinstalled and with a proper setup of PPAs with databases, compilers, tools.
+
+To run it just use a command like
+```
+docker run --rm -it --network ip6net --entrypoint bash ghcr.io/userver-framework/ubuntu-22.04-userver-pg:latest
+```
+
+The Docker image `ghcr.io/userver-framework/ubuntu-22.04-userver:latest`
+provides a container with all the build dependencies and userver preinstalled
+and with a proper setup of PPAs with databases, compilers, tools.
+
+To run it just use a command like
+```
+docker run --rm -it --network ip6net --entrypoint bash ghcr.io/userver-framework/ubuntu-22.04-userver:latest
+```
+
+The Docker image `ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest`
+provides a container with all the build dependencies preinstalled and with
+a proper setup of PPAs with databases, compilers and tools.
+
+To run it just use a command like
+```
+docker run --rm -it --network ip6net --entrypoint bash ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest
+```
+
+After that, install the databases and compiler you are planning to use via
+`apt install` and start developing.
+
+@note The above image is build from `scripts/docker/ubuntu-22.04-pg.dockerfile`,
+   `scripts/docker/ubuntu-22.04.dockerfile`
+   and `scripts/docker/base-ubuntu-22.04.dockerfile` respectively.
+   See `scripts/docker/` directory and @ref scripts/docker/Readme.md for more
+   inspiration on building your own custom docker containers.
 
 ### Ubuntu 21.10 (Impish Indri)
 
@@ -369,6 +412,52 @@ Feel free to provide a PR with instructions for your favorite platform at https:
 If there's a strong need to build \b only the userver and run its tests, then see
 @ref scripts/docs/en/userver/tutorial/build_userver.md
 
+@anchor userver_install
+## Install
+
+You can install userver globally and then use it from anywhere with `find_package`.
+Make sure to use the same build mode as for your service, otherwise subtle linkage issues will arise.
+To install userver build it with `USERVER_INSTALL=ON` flags in `Debug` and `Release` modes:
+```
+cmake -S./ -B./build_debug \
+    -DCMAKE_BUILD_TYPE=Debug \
+    -DUSERVER_INSTALL=ON \
+    -DUSERVER_SANITIZE="ub addr" \
+    -GNinja
+cmake -S./ -B./build_release \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DUSERVER_INSTALL=ON \
+    -GNinja
+cmake --build build_debug/
+cmake --build build_release/
+cmake --install build_debug/
+cmake --install build_release/
+```
+
+### Use userver in your projects
+Next, write
+```
+find_package(userver REQUIRED COMPONENTS core postgresql grpc redis clickhouse mysql rabbitmq mongo)
+```
+in your `CMakeLists.txt`. Choose only the necessary components. 
+@see @ref userver_libraries
+
+Finally, link your source with userver component.
+
+For instance:
+```
+target_link_libraries(${PROJECT_NAME}_objs PUBLIC userver::postgresql)
+```
+
+Done! You can use installed userver.
+
+### Additional information:
+
+Link `mariadbclient` additionally for mysql component:
+
+```
+target_link_libraries(${PROJECT_NAME}-mysql_objs PUBLIC userver::mysql mariadbclient)
+```
 
 @anchor POSTGRES_LIBS
 ## PostgreSQL versions

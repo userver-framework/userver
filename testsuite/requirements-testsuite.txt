@@ -1,1 +1,1 @@
-yandex-taxi-testsuite[] >= 0.1.19
+yandex-taxi-testsuite[] >= 0.1.36

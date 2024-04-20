@@ -1,7 +1,5 @@
 #include <userver/internal/net/net_listener.hpp>
 
-#include <arpa/inet.h>
-
 #include <userver/engine/async.hpp>
 #include <userver/utils/assert.hpp>
 
@@ -23,18 +21,12 @@ auto IpVersionToDomain(IpVersion ipv) {
 void ListenerCtor(engine::io::Sockaddr& addr, engine::io::Socket& socket,
                   IpVersion ipv) {
   switch (ipv) {
-    case IpVersion::kV6: {
-      auto* sa = addr.As<struct sockaddr_in6>();
-      sa->sin6_family = AF_INET6;
-      sa->sin6_addr = in6addr_loopback;
-    } break;
-    case IpVersion::kV4: {
-      auto* sa = addr.As<struct sockaddr_in>();
-      sa->sin_family = AF_INET;
-      // may be implemented as a macro
-      // NOLINTNEXTLINE(hicpp-no-assembler, readability-isolate-declaration)
-      sa->sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-    } break;
+    case IpVersion::kV6:
+      addr = engine::io::Sockaddr::MakeLoopbackAddress();
+      break;
+    case IpVersion::kV4:
+      addr = engine::io::Sockaddr::MakeIPv4LoopbackAddress();
+      break;
   }
 
   addr.SetPort(0);

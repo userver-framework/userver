@@ -60,15 +60,15 @@ UTEST_F(GrpcAsyncClientErrorTest, BidirectionalStreamAsyncRead) {
   // nothing
   auto future = call.ReadAsync(in);
 
-  out.set_name("userver");
-  out.set_number(42);
-  EXPECT_TRUE(call.Write(out));
-
   auto write_result = true;
   const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
   while (!deadline.IsReached()) {
     out.set_name("write_fail");
     out.set_number(0xDEAD);
+
+    // `call.Write(out)` may return false at any point, even if it is called
+    // right after the `client.Chat();` (server could be fast enough to call
+    // FinishWithError).
     write_result = call.Write(out);
     if (!write_result) {
       break;

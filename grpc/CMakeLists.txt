@@ -3,7 +3,7 @@ project(userver-grpc CXX)
 include(GrpcTargets)
 
 add_library(${PROJECT_NAME}-deps INTERFACE)
-target_include_directories(${PROJECT_NAME}-deps INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(${PROJECT_NAME}-deps INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 target_link_libraries(${PROJECT_NAME}-deps INTERFACE
     protobuf::libprotobuf gRPC::grpc++
 )
@@ -14,8 +14,9 @@ if(USERVER_CONAN AND "${gRPC_VERSION}" VERSION_GREATER_EQUAL "1.41")
   )
 endif()
 
-
-include(SetupGoogleProtoApis)
+if(NOT TARGET userver-api-common-protos)
+  include(SetupGoogleProtoApis)
+endif()
 
 file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/include/*pp
@@ -45,18 +46,28 @@ if (api-common-proto_USRV_SOURCES)
 endif()
 
 add_library(${PROJECT_NAME}-internal STATIC ${SOURCES})
+add_library(userver::grpc ALIAS ${PROJECT_NAME}-internal)
+
+if (NOT USERVER_GPRC_BUILD_FROM_SOURCE) 
+  target_compile_definitions(${PROJECT_NAME}-internal PUBLIC GRPC_ASAN_SUPPRESSED GRPC_TSAN_SUPPRESSED) 
+endif()
 
 set_target_properties(${PROJECT_NAME}-internal PROPERTIES LINKER_LANGUAGE CXX)
 
 target_include_directories(${PROJECT_NAME}-internal
   PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
+_userver_directory_install(COMPONENT grpc
+  DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
+)
 if (DEFINED api-common-proto_LIBRARY)
   target_link_libraries(${PROJECT_NAME}-internal PUBLIC ${api-common-proto_LIBRARY})
+  _userver_install_targets(COMPONENT grpc TARGETS ${api-common-proto_LIBRARY})
 endif()
 
 target_link_libraries(${PROJECT_NAME}-internal PUBLIC userver-core)
@@ -91,7 +102,8 @@ else()
 endif()
 
 target_link_libraries(${PROJECT_NAME}-internal PUBLIC ${PROJECT_NAME}-deps)
-
+_userver_install_targets(COMPONENT grpc TARGETS ${PROJECT_NAME}-internal ${PROJECT_NAME}-deps)
+ 
 if (Protobuf_VERSION VERSION_GREATER_EQUAL 4.23.0)
     target_link_libraries(${PROJECT_NAME}-internal PUBLIC
         absl::log_globals
@@ -109,11 +121,16 @@ if (USERVER_FEATURE_UTEST)
   )
 
   target_include_directories(${PROJECT_NAME}-utest PUBLIC
-      ${CMAKE_CURRENT_SOURCE_DIR}/utest/include
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/utest/include>
   )
   target_include_directories(${PROJECT_NAME}-utest PRIVATE
       ${CMAKE_CURRENT_SOURCE_DIR}/src/
       ${CMAKE_CURRENT_SOURCE_DIR}/utest/src/
+  )
+  _userver_install_targets(COMPONENT grpc TARGETS ${PROJECT_NAME}-utest)
+  _userver_directory_install(COMPONENT grpc
+    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/utest/include
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
   )
 endif()
 
@@ -163,3 +180,16 @@ add_subdirectory(handlers)
 add_library(${PROJECT_NAME} INTERFACE)
 target_link_libraries(${PROJECT_NAME} INTERFACE ${PROJECT_NAME}-handlers)
 target_link_libraries(${PROJECT_NAME} INTERFACE ${PROJECT_NAME}-internal)
+
+_userver_install_targets(COMPONENT grpc TARGETS ${PROJECT_NAME})
+
+_userver_directory_install(COMPONENT grpc FILES
+    "${USERVER_ROOT_DIR}/cmake/SetupProtobuf.cmake"
+    "${USERVER_ROOT_DIR}/cmake/SetupGrpc.cmake"
+    "${USERVER_ROOT_DIR}/cmake/GrpcTargets.cmake"
+    "${USERVER_ROOT_DIR}/cmake/install/userver-grpc-config.cmake"
+    "${CMAKE_BINARY_DIR}/cmake_generated/FindUserverGrpc.cmake"
+    DIRECTORY
+    "${USERVER_ROOT_DIR}/scripts/grpc"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
+)

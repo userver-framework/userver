@@ -22,7 +22,7 @@ const auto kMockTime = std::chrono::system_clock::from_time_t(1567544400);
 
 }  // namespace
 
-UTEST_F(DistLockTest, AcquireAndRelease) {
+UTEST_F(DistLockTest, DISABLED_AcquireAndRelease) {  // TODO: TAXICOMMON-8662
   utils::datetime::MockNowSet(kMockTime);
 
   auto collection = GetDefaultPool().GetCollection("test_acquire_and_release");
@@ -31,7 +31,7 @@ UTEST_F(DistLockTest, AcquireAndRelease) {
   UEXPECT_NO_THROW(strategy.Release({}));
 }
 
-UTEST_F(DistLockTest, Prolong) {
+UTEST_F(DistLockTest, DISABLED_Prolong) {  // TODO: TAXICOMMON-8662
   utils::datetime::MockNowSet(kMockTime);
 
   auto collection = GetDefaultPool().GetCollection("test_prolong");

@@ -38,6 +38,7 @@ class TopologyBase {
   virtual ~TopologyBase() = default;
 
   const DsnList& GetDsnList() const;
+  void SetTopologySettings(const TopologySettings&);
   const TopologySettings& GetTopologySettings() const;
   const testsuite::PostgresControl& GetTestsuiteControl() const;
 
@@ -59,7 +60,7 @@ class TopologyBase {
   concurrent::BackgroundTaskStorageCore bg_task_storage_;
   const DsnList dsns_;
   clients::dns::Resolver* resolver_;
-  const TopologySettings topology_settings_;
+  TopologySettings topology_settings_;
   const ConnectionSettings conn_settings_;
   const DefaultCommandControls default_cmd_ctls_;
   const testsuite::PostgresControl testsuite_pg_ctl_;

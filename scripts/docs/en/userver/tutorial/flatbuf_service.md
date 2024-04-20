@@ -78,7 +78,7 @@ $ echo "100000000c00180000000800100004000c00000014000000140000000000000016000000
 < Date: Wed, 16 Jun 2021 12:52:22 UTC
 < Content-Type: text/html
 < X-YaRequestId: c8b2aee7ca5f4165ad25119b1850e778
-< Server: userver/1.0.0 (20210616074040; rv:2c78282ea)
+< Server: userver/2.0 (20210616074040; rv:2c78282ea)
 < X-YaTraceId: 8f4765a7176e41d28c3c6a677f00193e
 < Connection: keep-alive
 < Content-Length: 48

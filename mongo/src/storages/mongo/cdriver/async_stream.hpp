@@ -8,8 +8,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::impl::cdriver {
 
-void CheckAsyncStreamCompatible();
-
 struct AsyncStreamInitiatorData {
   // If equals to nullptr, use getaddrinfo(3)
   clients::dns::Resolver* dns_resolver;

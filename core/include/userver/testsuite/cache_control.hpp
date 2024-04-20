@@ -3,16 +3,15 @@
 /// @file userver/testsuite/cache_control.hpp
 /// @brief @copybrief testsuite::CacheControl
 
-#include <atomic>
 #include <functional>
-#include <list>
+#include <memory>
 #include <string>
 #include <type_traits>
 #include <unordered_set>
-#include <utility>
 
 #include <userver/cache/update_type.hpp>
-#include <userver/concurrent/variable.hpp>
+#include <userver/components/component_fwd.hpp>
+#include <userver/components/state.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -21,10 +20,6 @@ namespace cache {
 class CacheUpdateTrait;
 struct Config;
 }  // namespace cache
-
-namespace components {
-class ComponentContext;
-}  // namespace components
 
 namespace components::impl {
 class ComponentBase;
@@ -58,23 +53,14 @@ class CacheResetRegistration;
 /// All methods are coro-safe.
 class CacheControl final {
  public:
-  /// @brief Register a cache reset function. The returned handle must be kept
-  /// alive to keep supporting cache resetting.
-  ///
-  /// @warning The function should be called in the component's constructor
-  /// *after* all FindComponent calls. This ensures that reset will first be
-  /// called for dependencies, then for dependent components.
-  template <typename Component>
-  CacheResetRegistration RegisterCache(Component* self, std::string_view name,
-                                       void (Component::*reset_method)());
-
   /// @brief Reset all the registered caches.
   ///
   /// @a update_type is used by caches derived from
   /// @a component::CachingComponentBase.
   void ResetAllCaches(
       cache::UpdateType update_type,
-      const std::unordered_set<std::string>& force_incremental_names);
+      const std::unordered_set<std::string>& force_incremental_names,
+      const std::unordered_set<std::string>& exclude_names);
 
   /// @brief Reset caches with the specified @a names.
   ///
@@ -85,12 +71,23 @@ class CacheControl final {
       std::unordered_set<std::string> reset_only_names,
       const std::unordered_set<std::string>& force_incremental_names);
 
-  /// @cond
-  // For internal use only.
-  explicit CacheControl(impl::PeriodicUpdatesMode);
-
   CacheControl(CacheControl&&) = delete;
   CacheControl& operator=(CacheControl&&) = delete;
+
+  /// @cond
+  // For internal use only.
+  struct UnitTests {
+    explicit UnitTests() = default;
+  };
+
+  enum class ExecPolicy {
+    kSequential,
+    kConcurrent,
+  };
+
+  CacheControl(impl::PeriodicUpdatesMode, UnitTests);
+  CacheControl(impl::PeriodicUpdatesMode, ExecPolicy, components::State);
+  ~CacheControl();
 
   // For internal use only.
   bool IsPeriodicUpdateEnabled(const cache::Config& cache_config,
@@ -99,6 +96,11 @@ class CacheControl final {
   // For internal use only.
   CacheResetRegistration RegisterPeriodicCache(cache::CacheUpdateTrait& cache);
 
+  // For internal use only. Use testsuite::RegisterCache instead
+  template <typename Component>
+  CacheResetRegistration RegisterCache(Component* self, std::string_view name,
+                                       void (Component::*reset_method)());
+  /// @endcond
  private:
   friend class CacheResetRegistration;
 
@@ -108,17 +110,32 @@ class CacheControl final {
     bool needs_span{true};
   };
 
-  using CacheInfoIterator = std::list<CacheInfo>::iterator;
+  struct CacheInfoNode;
+  using CacheInfoIterator = CacheInfoNode*;
+  class CacheResetJob;
 
-  CacheInfoIterator DoRegisterCache(CacheInfo&&);
+  void DoResetCaches(
+      cache::UpdateType update_type,
+      std::unordered_set<std::string>* reset_only_names,
+      const std::unordered_set<std::string>& force_incremental_names,
+      const std::unordered_set<std::string>* exclude_names);
+
+  void DoResetCachesConcurrently(
+      cache::UpdateType update_type,
+      std::unordered_set<std::string>* reset_only_names,
+      const std::unordered_set<std::string>& force_incremental_names,
+      const std::unordered_set<std::string>* exclude_names);
+
+  CacheInfoIterator DoRegisterCache(CacheInfo&& info);
 
   void UnregisterCache(CacheInfoIterator) noexcept;
 
-  static void DoResetCache(const CacheInfo& info,
-                           cache::UpdateType update_type);
+  static void DoResetSingleCache(
+      const CacheInfo& info, cache::UpdateType update_type,
+      const std::unordered_set<std::string>& force_incremental_names);
 
-  const impl::PeriodicUpdatesMode periodic_updates_mode_;
-  concurrent::Variable<std::list<CacheInfo>> caches_;
+  struct Impl;
+  std::unique_ptr<Impl> impl_;
 };
 
 /// @brief RAII helper for testsuite registration. Must be kept alive to keep
@@ -149,7 +166,25 @@ class [[nodiscard]] CacheResetRegistration final {
 };
 
 /// The method for acquiring testsuite::CacheControl in the component system.
+///
+/// @see testsuite::RegisterCache
 CacheControl& FindCacheControl(const components::ComponentContext& context);
+
+/// @brief The method for registering a cache from component constructor. The
+/// returned handle must be kept alive to keep supporting cache resetting.
+///
+/// @warning The function should be called in the component's constructor
+/// *after* all FindComponent calls. This ensures that reset will first be
+/// called for dependencies, then for dependent components.
+template <typename Component>
+CacheResetRegistration RegisterCache(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context, Component* self,
+    void (Component::*reset_method)()) {
+  auto& cc = testsuite::FindCacheControl(context);
+  return cc.RegisterCache(self, components::GetCurrentComponentName(config),
+                          reset_method);
+}
 
 template <typename Component>
 CacheResetRegistration CacheControl::RegisterCache(
@@ -158,14 +193,15 @@ CacheResetRegistration CacheControl::RegisterCache(
                 "CacheControl can only be used with components");
   UASSERT(self);
   UASSERT(reset_method);
-  auto iter = DoRegisterCache(CacheInfo{
-      /*name=*/std::string{name},
-      /*reset=*/
-      [self, reset_method]([[maybe_unused]] cache::UpdateType) {
-        (self->*reset_method)();
-      },
-      /*needs_span=*/true,
-  });
+
+  CacheInfo info;
+  info.name = std::string{name};
+  info.reset = [self, reset_method]([[maybe_unused]] cache::UpdateType) {
+    (self->*reset_method)();
+  };
+  info.needs_span = true;
+
+  auto iter = DoRegisterCache(std::move(info));
   return CacheResetRegistration(*this, std::move(iter));
 }
 

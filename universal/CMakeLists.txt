@@ -8,6 +8,9 @@ if (TARGET userver-core)
   message(FATAL_ERROR "userver-core should be included after userver-universal")
 endif()
 
+include(Sanitizers)
+_userver_make_sanitize_target()
+
 file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp
@@ -28,7 +31,15 @@ list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES} ${BENCH_SOURCES} ${INTERNAL_SOURCE
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
-find_package(Boost REQUIRED COMPONENTS program_options filesystem regex)
+find_package(Boost REQUIRED
+    COMPONENTS
+    program_options
+    filesystem
+    regex
+    stacktrace_basic
+    OPTIONAL_COMPONENTS
+    stacktrace_backtrace
+)
 include(UserverRequireDWCAS)  # Should be called after `find_package(Boost REQUIRED)`
 
 message(STATUS "boost: ${Boost_VERSION_STRING}")
@@ -138,21 +149,17 @@ if (NOT USERVER_NO_WERROR)
   target_compile_options(userver-internal-compile-options INTERFACE "-Werror")
 endif()
 
-if(USERVER_INSTALL)
-  install(TARGETS userver-internal-compile-options
-          EXPORT UserverTargets
-  )
-endif()
-
+_userver_install_targets(COMPONENT universal 
+  TARGETS userver-internal-sanitize-options userver-internal-compile-options)
 
 # The library itself
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
 include(GetUserverVersion)
 set(USERVER_NAMESPACE "userver" CACHE STRING "C++ namespace to use")
-if (NOT "${USERVER_NAMESPACE}" STREQUAL "")
-	set(USERVER_NAMESPACE_BEGIN "namespace ${USERVER_NAMESPACE} { inline namespace ${USERVER_VERSION_STR} { " CACHE STRING "Open C++ namespace to use")
-    set(USERVER_NAMESPACE_END "} }" CACHE STRING "Close C++ namespace to use")
+if(NOT "${USERVER_NAMESPACE}" STREQUAL "")
+  set(USERVER_NAMESPACE_BEGIN "namespace ${USERVER_NAMESPACE} { inline namespace ${USERVER_VERSION_STR} { " CACHE STRING "Open C++ namespace to use")
+  set(USERVER_NAMESPACE_END "} }" CACHE STRING "Close C++ namespace to use")
 endif()
 message(STATUS "Putting userver into namespace '${USERVER_NAMESPACE}': ${USERVER_NAMESPACE_BEGIN} ${USERVER_NAMESPACE_END}")
 target_compile_definitions(${PROJECT_NAME} PUBLIC
@@ -185,27 +192,27 @@ set(USERVER_ERASE_LOG_WITH_LEVEL_PENDING ${USERVER_FEATURE_ERASE_LOG_WITH_LEVEL}
 separate_arguments(USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
 list(REMOVE_DUPLICATES USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
 
-if ("error" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
-    target_compile_definitions(${PROJECT_NAME} PUBLIC
+if("error" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC
       "USERVER_FEATURE_ERASE_LOG_WITH_LEVEL=4"
-    )
-elseif ("warning" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
-    target_compile_definitions(${PROJECT_NAME} PUBLIC
+  )
+elseif("warning" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC
       "USERVER_FEATURE_ERASE_LOG_WITH_LEVEL=3"
-    )
-elseif ("info" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
-    target_compile_definitions(${PROJECT_NAME} PUBLIC
+  )
+elseif("info" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC
       "USERVER_FEATURE_ERASE_LOG_WITH_LEVEL=2"
-    )
-elseif ("debug" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
-    target_compile_definitions(${PROJECT_NAME} PUBLIC
+  )
+elseif("debug" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC
       "USERVER_FEATURE_ERASE_LOG_WITH_LEVEL=1"
-    )
-elseif ("trace" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
-    target_compile_definitions(${PROJECT_NAME} PUBLIC
+  )
+elseif("trace" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC
       "USERVER_FEATURE_ERASE_LOG_WITH_LEVEL=0"
-    )
-endif ()
+  )
+endif()
 
 # Suppress OpenSSL 3 warnings: we still primarily support OpenSSL 1.1.x
 target_compile_definitions(${PROJECT_NAME} PRIVATE OPENSSL_SUPPRESS_DEPRECATED=)
@@ -230,7 +237,6 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 if (USERVER_CONAN)
-  find_package(Boost COMPONENTS stacktrace REQUIRED)
   target_link_libraries(${PROJECT_NAME}
     PUBLIC
       fmt::fmt
@@ -242,7 +248,10 @@ if (USERVER_CONAN)
       rapidjson
   )
 else()
-  add_subdirectory("${USERVER_THIRD_PARTY_DIRS}/boost_stacktrace" boost_stacktrace_build)
+  include(Stacktrace)
+  _make_stacktrace_target(userver-stacktrace "${Boost_VERSION_STRING}")
+  _userver_install_targets(COMPONENT universal TARGETS userver-stacktrace)
+
   target_link_libraries(${PROJECT_NAME}
     PUBLIC
       fmt
@@ -267,24 +276,15 @@ target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
   ${USERVER_THIRD_PARTY_DIRS}/rapidjson/include
 )
 
-if(USERVER_INSTALL)
-  install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
-  install(DIRECTORY ${USERVER_THIRD_PARTY_DIRS}/date/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
-  install(DIRECTORY ${USERVER_THIRD_PARTY_DIRS}/function_backports/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
-
-  install(TARGETS ${PROJECT_NAME}
-	  EXPORT UserverTargets
-          LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-          ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-          RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-          INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-  )
-  install(EXPORT UserverTargets
-          FILE UserverTargets.cmake
-          NAMESPACE userver::
-          DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
-  )
-endif()
+add_library(userver::universal ALIAS ${PROJECT_NAME})
+_userver_directory_install(COMPONENT universal
+  DIRECTORY 
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${USERVER_THIRD_PARTY_DIRS}/date/include
+    ${USERVER_THIRD_PARTY_DIRS}/function_backports/include
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
+)
+_userver_install_targets(COMPONENT universal TARGETS ${PROJECT_NAME})
 
 if (USERVER_IS_THE_ROOT_PROJECT OR USERVER_FEATURE_UTEST)
   add_library(${PROJECT_NAME}-internal-utest INTERFACE)
@@ -367,4 +367,34 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     endif()
 
     add_google_benchmark_tests(${PROJECT_NAME}-benchmark)
+endif()
+
+if (USERVER_INSTALL)
+  configure_package_config_file("${USERVER_ROOT_DIR}/cmake/install/Config.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake"
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
+  )
+
+  write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake
+    VERSION ${USERVER_VERSION} COMPATIBILITY SameMajorVersion
+  )
+
+  _userver_directory_install(COMPONENT universal FILES
+      "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake"
+      "${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake"
+      "${CMAKE_BINARY_DIR}/cmake_generated/FindCryptoPP.cmake"
+      "${CMAKE_BINARY_DIR}/cmake_generated/Findlibyamlcpp.cmake"
+      "${CMAKE_BINARY_DIR}/cmake_generated/Findcctz.cmake"
+      "${CMAKE_BINARY_DIR}/cmake_generated/FindJemalloc.cmake"
+      "${USERVER_ROOT_DIR}/cmake/sanitize.blacklist.txt"
+      "${USERVER_ROOT_DIR}/cmake/RequireLTO.cmake"
+      "${USERVER_ROOT_DIR}/cmake/SetupLTO.cmake"
+      "${USERVER_ROOT_DIR}/cmake/SetupLinker.cmake"
+      "${USERVER_ROOT_DIR}/cmake/Sanitizers.cmake"
+      "${USERVER_ROOT_DIR}/cmake/AddGoogleTests.cmake"
+      "${USERVER_ROOT_DIR}/cmake/DetectVersion.cmake"
+      "${USERVER_ROOT_DIR}/cmake/UserverSetupEnvironment.cmake"
+      "${USERVER_ROOT_DIR}/cmake/install/userver-universal-config.cmake"
+      DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
+  )
 endif()

@@ -91,7 +91,6 @@ class SentinelImplBase {
       const ReplicationMonitoringSettings& replication_monitoring_settings) = 0;
   virtual void SetRetryBudgetSettings(
       const utils::RetryBudgetSettings& retry_budget_settings) = 0;
-  virtual void SetClusterAutoTopology(bool /*auto_topology*/) {}
 
   virtual PublishSettings GetPublishSettings() = 0;
 };

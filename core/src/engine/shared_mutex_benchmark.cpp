@@ -1,11 +1,9 @@
 #include <benchmark/benchmark.h>
 
-#include <vector>
-
 #include <userver/engine/async.hpp>
 #include <userver/engine/run_standalone.hpp>
 #include <userver/engine/shared_mutex.hpp>
-#include <userver/engine/task/task_with_result.hpp>
+#include <utils/impl/parallelize_benchmark.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -13,35 +11,19 @@ void shared_mutex_benchmark(benchmark::State& state) {
   engine::RunStandalone(state.range(0), [&] {
     int variable = 0;
     engine::SharedMutex mutex;
-    std::atomic<bool> is_running(true);
 
-    std::vector<engine::TaskWithResult<void>> tasks;
-    tasks.reserve(state.range(0) - 1);
-    for (int i = 0; i < state.range(0) - 1; ++i) {
-      tasks.push_back(engine::AsyncNoSpan([&] {
-        while (is_running) {
-          std::shared_lock lock(mutex);
-          benchmark::DoNotOptimize(variable);
-        }
-      }));
-    }
-
-    {
+    auto initial_lock_holder = engine::AsyncNoSpan([&] {
       // ensure the locks are actually needed
       std::unique_lock lock(mutex);
       variable = 1;
-    }
+    });
 
-    for ([[maybe_unused]] auto _ : state) {
-      std::shared_lock lock(mutex);
-      benchmark::DoNotOptimize(variable);
-    }
-
-    is_running = false;
-
-    for (auto& task : tasks) {
-      task.Get();
-    }
+    RunParallelBenchmark(state, [&](auto& range) {
+      for ([[maybe_unused]] auto _ : range) {
+        std::shared_lock lock(mutex);
+        benchmark::DoNotOptimize(variable);
+      }
+    });
   });
 }
 BENCHMARK(shared_mutex_benchmark)->DenseRange(1, 6);

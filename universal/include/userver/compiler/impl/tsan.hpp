@@ -31,3 +31,11 @@
 #if !USERVER_IMPL_HAS_TSAN && defined(BOOST_USE_TSAN)
 #error Broken CMake: thread sanitizer is not used however Boost thinks it is
 #endif
+
+#ifdef __clang__
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define USERVER_IMPL_DISABLE_TSAN __attribute__((no_sanitize_thread))
+#else
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define USERVER_IMPL_DISABLE_TSAN
+#endif

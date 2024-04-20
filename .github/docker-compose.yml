@@ -1,0 +1,66 @@
+version: "2.3"
+
+services:
+    ubuntu-22.04-userver-base-ci:
+        image: ghcr.io/userver-framework/ubuntu-22.04-userver-base-ci:latest
+        container_name: ubuntu-22.04-userver-base-ci
+        networks:
+          - nexportfalse
+        environment:
+          - CCACHE_DIR=/userver/.ccache
+          - CCACHE_HASHDIR
+          - CCACHE_NOHASHDIR
+          - CCACHE_PREFIX
+          - CCACHE_SIZE=${CCACHE_SIZE:-10G}
+        volumes:
+          - ..:/userver:rw
+        ports:
+          - 8080:8080
+        working_dir: /userver
+        entrypoint: /userver/scripts/docker/run_as_user.sh
+
+    ubuntu-22.04-userver-base:
+        image: ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest
+        container_name: ubuntu-22.04-userver-base
+        networks:
+          - nexportfalse
+        environment:
+          - CCACHE_DIR=/userver/.ccache
+          - CCACHE_HASHDIR
+          - CCACHE_NOHASHDIR
+          - CCACHE_PREFIX
+          - CCACHE_SIZE=${CCACHE_SIZE:-10G}
+        volumes:
+          - ..:/userver:rw
+        ports:
+          - 8080:8080
+        working_dir: /userver
+        entrypoint: /userver/scripts/docker/run_as_user.sh
+
+    run-ydb:
+        image: cr.yandex/yc/yandex-docker-local-ydb:latest
+        privileged: true
+        mem_limit: 8G
+        environment:
+          - GRPC_TLS_PORT=2135
+          - GRPC_PORT=2136
+          - MON_PORT=8765
+        ports:
+          - 2135:2135
+          - 2136:2136
+          - 8765:8765
+        networks:
+          - overlay
+        hostname: localhost
+
+
+networks:
+    nexportfalse:
+        external: false
+        name: nexportfalse
+        enable_ipv6: true
+        ipam:
+            config:
+              - subnet: 2001:db8:b::/64
+                gateway: 2001:db8:b::1
+    overlay:

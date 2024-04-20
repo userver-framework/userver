@@ -33,8 +33,7 @@ TEST(BsonValueBuilder, Null) {
   auto val = fb::ValueBuilder(nullptr).ExtractValue();
   EXPECT_TRUE(val.IsNull());
   EXPECT_EQ(val, fb::ValueBuilder(fb::kNull).ExtractValue());
-  EXPECT_EQ(val,
-            fb::ValueBuilder(fb::ValueBuilder::Type::kNull).ExtractValue());
+  EXPECT_EQ(val, fb::ValueBuilder(formats::common::Type::kNull).ExtractValue());
 }
 
 TEST(BsonValueBuilder, Bool) {
@@ -370,7 +369,7 @@ TEST(BsonValueBuilder, UnsetFieldsAreSkipped) {
 
 TEST(BsonValueBuilder, PredefType) {
   {
-    fb::ValueBuilder doc_builder(fb::ValueBuilder::Type::kObject);
+    fb::ValueBuilder doc_builder(formats::common::Type::kObject);
     EXPECT_TRUE(doc_builder.IsEmpty());
     EXPECT_EQ(0, doc_builder.GetSize());
     UEXPECT_THROW(doc_builder.Resize(0), fb::TypeMismatchException);
@@ -379,7 +378,7 @@ TEST(BsonValueBuilder, PredefType) {
   }
 
   {
-    fb::ValueBuilder arr_builder(fb::ValueBuilder::Type::kArray);
+    fb::ValueBuilder arr_builder(formats::common::Type::kArray);
     EXPECT_TRUE(arr_builder.IsEmpty());
     EXPECT_EQ(0, arr_builder.GetSize());
     UEXPECT_THROW(arr_builder["a"], fb::TypeMismatchException);

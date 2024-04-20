@@ -87,8 +87,13 @@ class NetResolver::Impl {
     std::unique_ptr<Request> request{static_cast<Request*>(arg)};
     UASSERT(request);
     const utils::FastScopeGuard debug_guard{[&request, status]() noexcept {
-      TESTPOINT("net-resolver", formats::json::MakeObject("name", request->name,
-                                                          "status", status));
+      try {
+        TESTPOINT("net-resolver", formats::json::MakeObject(
+                                      "name", request->name, "status", status));
+      } catch (const std::exception& e) {
+        // This is fine, testpoint is used only in tests
+        LOG_DEBUG() << "TESTPOINT 'net-resolver' encountered an error: " << e;
+      }
     }};
 
     Response response;
@@ -181,6 +186,7 @@ class NetResolver::Impl {
                              ARES_OPT_LOOKUPS | ARES_OPT_SOCK_STATE_CB;
     struct ares_options options {};
     options.flags = ARES_FLAG_STAYOPEN |  // do not close idle sockets
+                    ARES_FLAG_NOSEARCH |  // do not use search domains
                     ARES_FLAG_NOALIASES;  // ignore HOSTALIASES from env
     options.timeout = query_timeout.count();
     options.tries = query_attempts;

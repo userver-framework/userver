@@ -2,6 +2,7 @@
 Start the service in testsuite.
 """
 
+# pylint: disable=redefined-outer-name
 import logging
 import pathlib
 import sys
@@ -81,8 +82,8 @@ def pytest_override_testsuite_logger(  # pylint: disable=invalid-name
     )
 
 
-@pytest.fixture(name='service_env', scope='session')
-def _service_env():
+@pytest.fixture(scope='session')
+def service_env():
     """
     Override this to pass extra environment variables to the service.
 
@@ -92,9 +93,9 @@ def _service_env():
     return None
 
 
-@pytest.fixture(name='service_http_ping_url', scope='session')
-async def _service_http_ping_url(
-        service_config_yaml, service_baseurl,
+@pytest.fixture(scope='session')
+async def service_http_ping_url(
+        service_config, service_baseurl,
 ) -> typing.Optional[str]:
     """
     Returns the service HTTP ping URL that is used by the testsuite to detect
@@ -106,16 +107,16 @@ async def _service_http_ping_url(
 
     @ingroup userver_testsuite_fixtures
     """
-    components = service_config_yaml['components_manager']['components']
+    components = service_config['components_manager']['components']
     ping_handler = components.get('handler-ping')
     if ping_handler:
         return url_util.join(service_baseurl, ping_handler['path'])
     return None
 
 
-@pytest.fixture(name='service_non_http_health_checks', scope='session')
-def _service_non_http_health_checks(  # pylint: disable=invalid-name
-        service_config_yaml,
+@pytest.fixture(scope='session')
+def service_non_http_health_checks(  # pylint: disable=invalid-name
+        service_config,
 ) -> net.HealthChecks:
     """
     Returns a health checks info.
@@ -128,7 +129,7 @@ def _service_non_http_health_checks(  # pylint: disable=invalid-name
     @ingroup userver_testsuite_fixtures
     """
 
-    return net.get_health_checks_info(service_config_yaml)
+    return net.get_health_checks_info(service_config)
 
 
 @pytest.fixture(scope='session')
@@ -138,7 +139,7 @@ async def service_daemon(
         service_env,
         service_http_ping_url,
         service_config_path_temp,
-        service_config_yaml,
+        service_config,
         service_binary,
         service_non_http_health_checks,
         testsuite_logger,

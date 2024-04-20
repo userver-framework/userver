@@ -395,11 +395,9 @@ TEST(PostgreIO, Arrays) {
     EXPECT_EQ(src, tgt);
   }
   {
-    /*! [Invalid dimensions] */
     static_test::two_dim_vector src{{1, 2, 3}, {4, 5}};
     pg::test::Buffer buffer;
     UEXPECT_THROW(io::WriteBuffer(types, buffer, src), pg::InvalidDimensions);
-    /*! [Invalid dimensions] */
   }
 }
 
@@ -637,11 +635,9 @@ TEST(PostgreIO, ArraysUnorderedSet) {
     EXPECT_EQ(tgt, expected);
   }
   {
-    /*! [Invalid dimensions] */
     static_test::vector_of_unordered_sets src{{1, 2, 3}, {4, 5}};
     pg::test::Buffer buffer;
     UEXPECT_THROW(io::WriteBuffer(types, buffer, src), pg::InvalidDimensions);
-    /*! [Invalid dimensions] */
   }
 }
 

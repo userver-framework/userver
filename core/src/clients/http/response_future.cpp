@@ -43,7 +43,8 @@ ResponseFuture::ResponseFuture(
     std::shared_ptr<RequestState> request_state)
     : future_(std::move(future)),
       deadline_(ComputeBaseDeadline(*request_state)),
-      request_state_(std::move(request_state)) {
+      request_state_(std::move(request_state)),
+      cancellation_policy_(request_state_->GetCancellationPolicy()) {
   const auto propagated_deadline = request_state_->GetDeadline();
   if (propagated_deadline < deadline_) {
     deadline_ = propagated_deadline;
@@ -51,7 +52,8 @@ ResponseFuture::ResponseFuture(
   }
 }
 
-ResponseFuture::ResponseFuture(ResponseFuture&& other) noexcept {
+ResponseFuture::ResponseFuture(ResponseFuture&& other) noexcept
+    : cancellation_policy_(other.cancellation_policy_) {
   std::swap(future_, other.future_);
   std::swap(deadline_, other.deadline_);
   std::swap(request_state_, other.request_state_);
@@ -59,15 +61,27 @@ ResponseFuture::ResponseFuture(ResponseFuture&& other) noexcept {
 
 ResponseFuture& ResponseFuture::operator=(ResponseFuture&& other) noexcept {
   if (&other == this) return *this;
-  Cancel();
+  CancelOrDetach();
   future_ = std::move(other.future_);
   deadline_ = other.deadline_;
   request_state_ = std::move(other.request_state_);
   was_deadline_propagated_ = other.was_deadline_propagated_;
+  cancellation_policy_ = other.cancellation_policy_;
   return *this;
 }
 
-ResponseFuture::~ResponseFuture() { Cancel(); }
+ResponseFuture::~ResponseFuture() { CancelOrDetach(); }
+
+void ResponseFuture::CancelOrDetach() {
+  switch (cancellation_policy_) {
+    case CancellationPolicy::kIgnore:
+      Detach();
+      break;
+    case CancellationPolicy::kCancel:
+      Cancel();
+      break;
+  }
+}
 
 void ResponseFuture::Cancel() {
   if (request_state_) {
@@ -87,7 +101,7 @@ std::future_status ResponseFuture::Wait() {
       const auto stats = request_state_->easy().get_local_stats();
 
       // request_ has armed timers to retry the request. Stopping those ASAP.
-      Cancel();
+      CancelOrDetach();
 
       throw CancelException(
           "HTTP response wait was aborted due to task cancellation", stats);

@@ -200,6 +200,11 @@ class SwitchByFirst final {
     return *this;
   }
 
+  template <typename T, typename U = void>
+  constexpr SwitchByFirst& Type() {
+    return *this;
+  }
+
   [[nodiscard]] constexpr std::optional<Second> Extract() noexcept {
     return state_.Extract();
   }
@@ -217,6 +222,11 @@ class SwitchByFirst<First, void> final {
     if (!state_.IsFound() && state_.GetKey() == first) {
       state_.SetValue(Found{0});
     }
+    return *this;
+  }
+
+  template <typename T, typename U = void>
+  constexpr SwitchByFirst& Type() {
     return *this;
   }
 
@@ -245,6 +255,11 @@ class SwitchByFirstICase final {
     return *this;
   }
 
+  template <typename T, typename U>
+  constexpr SwitchByFirstICase& Type() {
+    return *this;
+  }
+
   [[nodiscard]] constexpr std::optional<Second> Extract() noexcept {
     return state_.Extract();
   }
@@ -268,6 +283,11 @@ class SwitchByFirstICase<void> final {
         impl::ICaseEqualLowercase(first, state_.GetKey())) {
       state_.SetValue(Found{0});
     }
+    return *this;
+  }
+
+  template <typename T, typename U>
+  constexpr SwitchByFirstICase& Type() {
     return *this;
   }
 
@@ -298,6 +318,11 @@ class SwitchBySecondICase final {
     return *this;
   }
 
+  template <typename T, typename U>
+  constexpr SwitchBySecondICase& Type() {
+    return *this;
+  }
+
   [[nodiscard]] constexpr std::optional<First> Extract() noexcept {
     return state_.Extract();
   }
@@ -315,6 +340,11 @@ class SwitchBySecond final {
     if (!state_.IsFound() && state_.GetKey() == second) {
       state_.SetValue(first);
     }
+    return *this;
+  }
+
+  template <typename T, typename U>
+  constexpr SwitchBySecond& Type() {
     return *this;
   }
 
@@ -350,6 +380,16 @@ class SwitchTypesDetector final {
 
   template <typename First, typename Second>
   constexpr auto Case(First, Second) noexcept {
+    return Type<First, Second>();
+  }
+
+  template <typename First>
+  constexpr auto Case(First) noexcept {
+    return Type<First, void>();
+  }
+
+  template <typename First, typename Second = void>
+  constexpr auto Type() noexcept {
     using first_type =
         std::conditional_t<std::is_convertible_v<First, std::string_view>,
                            std::string_view, First>;
@@ -357,14 +397,6 @@ class SwitchTypesDetector final {
         std::conditional_t<std::is_convertible_v<Second, std::string_view>,
                            std::string_view, Second>;
     return SwitchTypesDetected<first_type, second_type>{};
-  }
-
-  template <typename First>
-  constexpr auto Case(First) noexcept {
-    using first_type =
-        std::conditional_t<std::is_convertible_v<First, std::string_view>,
-                           std::string_view, First>;
-    return SwitchTypesDetected<first_type, void>{};
   }
 };
 
@@ -379,6 +411,11 @@ class CaseCounter final {
   template <typename First>
   constexpr CaseCounter& Case(First) noexcept {
     ++count_;
+    return *this;
+  }
+
+  template <typename T, typename U>
+  constexpr CaseCounter& Type() {
     return *this;
   }
 
@@ -400,6 +437,11 @@ class CaseDescriber final {
 
     description_ += fmt::format("('{}', '{}')", first, second);
 
+    return *this;
+  }
+
+  template <typename T, typename U>
+  constexpr CaseDescriber& Type() {
     return *this;
   }
 
@@ -429,6 +471,11 @@ class CaseFirstDescriber final {
     return Case(first);
   }
 
+  template <typename T, typename U>
+  constexpr CaseFirstDescriber& Type() {
+    return *this;
+  }
+
   [[nodiscard]] std::string Extract() && noexcept {
     return std::move(description_);
   }
@@ -450,12 +497,55 @@ class CaseSecondDescriber final {
     return *this;
   }
 
+  template <typename T, typename U>
+  constexpr CaseSecondDescriber& Type() {
+    return *this;
+  }
+
   [[nodiscard]] std::string Extract() && noexcept {
     return std::move(description_);
   }
 
  private:
   std::string description_{};
+};
+
+template <typename First, typename Second>
+class CaseGetValuesByIndex final {
+ public:
+  explicit constexpr CaseGetValuesByIndex(std::size_t search_index)
+      : index_(search_index + 1) {}
+
+  constexpr CaseGetValuesByIndex& Case(First first, Second second) noexcept {
+    if (index_ == 0) {
+      return *this;
+    }
+    if (index_ == 1) {
+      first_ = first;
+      second_ = second;
+    }
+    --index_;
+
+    return *this;
+  }
+
+  template <typename T, typename U>
+  constexpr CaseGetValuesByIndex& Type() {
+    return *this;
+  }
+
+  [[nodiscard]] constexpr First GetFirst() noexcept {
+    return std::move(first_);
+  }
+
+  [[nodiscard]] constexpr Second GetSecond() noexcept {
+    return std::move(second_);
+  }
+
+ private:
+  std::size_t index_;
+  First first_{};
+  Second second_{};
 };
 
 template <typename First>
@@ -469,6 +559,11 @@ class CaseFirstIndexer final {
       state_.SetValue(index_);
     }
     ++index_;
+    return *this;
+  }
+
+  template <typename T, typename U = void>
+  constexpr CaseFirstIndexer& Type() {
     return *this;
   }
 
@@ -505,6 +600,10 @@ class CaseFirstIndexer final {
 ///
 /// @snippet universal/src/utils/trivial_map_test.cpp  sample bidir bimap
 ///
+/// Empty map:
+///
+/// @snippet universal/src/utils/trivial_map_test.cpp  sample empty bimap
+///
 /// For a single value Case statements see @ref utils::TrivialSet.
 template <typename BuilderFunc>
 class TrivialBiMap final {
@@ -514,6 +613,11 @@ class TrivialBiMap final {
  public:
   using First = typename TypesPair::first_type;
   using Second = typename TypesPair::second_type;
+
+  struct value_type {
+    First first;
+    Second second;
+  };
 
   /// Returns Second if T is convertible to First, otherwise returns Second
   /// type.
@@ -642,6 +746,53 @@ class TrivialBiMap final {
       return DescribeSecond();
     }
   }
+
+  constexpr value_type GetValuesByIndex(std::size_t index) const {
+    auto result = func_(
+        [index]() { return impl::CaseGetValuesByIndex<First, Second>{index}; });
+    return value_type{result.GetFirst(), result.GetSecond()};
+  }
+
+  class iterator {
+   public:
+    using iterator_category = std::input_iterator_tag;
+    using difference_type = std::ptrdiff_t;
+
+    explicit constexpr iterator(const TrivialBiMap& map, std::size_t position)
+        : map_{map}, position_{position} {}
+
+    constexpr bool operator==(iterator other) const {
+      return position_ == other.position_;
+    }
+
+    constexpr bool operator!=(iterator other) const {
+      return position_ != other.position_;
+    }
+
+    constexpr iterator operator++() {
+      ++position_;
+      return *this;
+    }
+
+    constexpr iterator operator++(int) {
+      iterator copy{*this};
+      ++position_;
+      return copy;
+    }
+
+    constexpr value_type operator*() const {
+      return map_.GetValuesByIndex(position_);
+    }
+
+   private:
+    const TrivialBiMap& map_;
+    std::size_t position_;
+  };
+
+  constexpr iterator begin() const { return iterator(*this, 0); }
+  constexpr iterator end() const { return iterator(*this, size()); }
+  constexpr iterator cbegin() const { return begin(); }
+  constexpr iterator cend() const { return end(); }
 
  private:
   const BuilderFunc func_;
@@ -780,6 +931,24 @@ struct TrivialBiMapMultiCaseDispatch {
   }
 };
 
+template <typename Selector, class Values, std::size_t... Indices>
+constexpr auto TrivialSetMultiCase(Selector selector, const Values& values,
+                                   std::index_sequence<0, Indices...>) {
+  auto selector2 = selector.Case(std::data(values)[0]);
+  ((selector2 = selector2.Case(std::data(values)[Indices])), ...);
+  return selector2;
+}
+
+template <const auto& Values>
+struct TrivialSetMultiCaseDispatch {
+  template <class Selector>
+  constexpr auto operator()(Selector selector) const {
+    constexpr auto kValuesSize = std::size(Values);
+    return impl::TrivialSetMultiCase(selector(), Values,
+                                     std::make_index_sequence<kValuesSize>{});
+  }
+};
+
 }  // namespace impl
 
 /// @brief Zips two global `constexpr` arrays into an utils::TrivialBiMap.
@@ -787,8 +956,12 @@ template <const auto& Keys, const auto& Values>
 constexpr auto MakeTrivialBiMap() {
   static_assert(std::size(Keys) == std::size(Values));
   static_assert(std::size(Keys) >= 1);
-  return utils::TrivialBiMap(
-      impl::TrivialBiMapMultiCaseDispatch<Keys, Values>{});
+  return TrivialBiMap(impl::TrivialBiMapMultiCaseDispatch<Keys, Values>{});
+}
+
+template <const auto& Values>
+constexpr auto MakeTrivialSet() {
+  return TrivialSet(impl::TrivialSetMultiCaseDispatch<Values>{});
 }
 
 }  // namespace utils

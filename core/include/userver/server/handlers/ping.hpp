@@ -3,6 +3,7 @@
 /// @file userver/server/handlers/ping.hpp
 /// @brief @copybrief server::handlers::Ping
 
+#include <userver/components/state.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -14,7 +15,7 @@ namespace server::handlers {
 /// @brief Handler that returns HTTP 200 if the service is OK and able to
 /// process requests.
 ///
-/// Uses components::ComponentContext::IsAnyComponentInFatalState() to detect
+/// Uses components::State::IsAnyComponentInFatalState() to detect
 /// fatal state (can not process requests).
 ///
 /// ## Static options:
@@ -45,7 +46,7 @@ class Ping final : public HttpHandlerBase {
  private:
   void AppendWeightHeaders(http::HttpResponse&) const;
 
-  const components::ComponentContext& components_;
+  const components::State components_;
 
   std::chrono::steady_clock::time_point load_time_{};
   std::chrono::seconds awacs_weight_warmup_time_{60};

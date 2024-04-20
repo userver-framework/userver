@@ -2,6 +2,7 @@
 # It is not used for testing services based on userver.
 
 # /// [testsuite - UserverTestsuite]
+# cmake
 include(UserverTestsuite)
 # /// [testsuite - UserverTestsuite]
 

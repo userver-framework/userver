@@ -15,6 +15,23 @@ ScopeTime::ScopeTime(std::string scope_name)
     : ScopeTime(tracing::Span::CurrentSpan().GetTimeStorage(),
                 std::move(scope_name)) {}
 
+std::optional<ScopeTime> ScopeTime::CreateOptionalScopeTime() {
+  if (tracing::Span::CurrentSpanUnchecked()) {
+    return ScopeTime{};
+  }
+
+  return std::nullopt;
+}
+
+std::optional<ScopeTime> ScopeTime::CreateOptionalScopeTime(
+    std::string_view name) {
+  if (tracing::Span::CurrentSpanUnchecked()) {
+    return ScopeTime{std::string{name}};
+  }
+
+  return std::nullopt;
+}
+
 ScopeTime::ScopeTime(impl::TimeStorage& ts) : ts_(ts) {}
 
 ScopeTime::ScopeTime(impl::TimeStorage& ts, std::string scope_name)

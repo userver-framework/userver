@@ -149,17 +149,27 @@ logging::LoggerPtr Logging::GetLoggerOptional(const std::string& name) {
   return utils::FindOrDefault(loggers_, name, nullptr);
 }
 
-void Logging::StartSocketLoggingDebug() {
+void Logging::StartSocketLoggingDebug(
+    const std::optional<logging::Level>& log_level) {
   UASSERT(socket_sink_);
   logging::LogFlush();
-  socket_sink_->SetLevel(logging::Level::kTrace);
+  if (log_level.has_value()) {
+    logging::SetDefaultLoggerLevel(log_level.value());
+    socket_sink_->SetLevel(log_level.value());
+  } else {
+    socket_sink_->SetLevel(logging::Level::kTrace);
+  }
 }
 
-void Logging::StopSocketLoggingDebug() {
+void Logging::StopSocketLoggingDebug(
+    const std::optional<logging::Level>& log_level) {
   UASSERT(socket_sink_);
   logging::LogFlush();
   socket_sink_->SetLevel(logging::Level::kNone);
   socket_sink_->Close();
+  if (log_level.has_value()) {
+    logging::SetDefaultLoggerLevel(log_level.value());
+  }
 }
 
 void Logging::OnLogRotate() {

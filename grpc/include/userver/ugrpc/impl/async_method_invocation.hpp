@@ -1,7 +1,7 @@
 #pragma once
 
 #include <userver/engine/deadline.hpp>
-#include <userver/engine/single_consumer_event.hpp>
+#include <userver/engine/single_use_event.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -53,13 +53,17 @@ class AsyncMethodInvocation : public EventBase {
   /// @return true if event returned from `grpc::CompletionQueue::Next`
   [[nodiscard]] bool IsReady() const noexcept;
 
+  /// @cond
+  // For internal use only.
+  engine::impl::ContextAccessor* TryGetContextAccessor() noexcept;
+  /// @endcond
  protected:
   void WaitWhileBusy();
 
  private:
   bool ok_{false};
   bool busy_{false};
-  engine::SingleConsumerEvent event_;
+  engine::SingleUseEvent event_;
 };
 
 }  // namespace ugrpc::impl

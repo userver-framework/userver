@@ -34,13 +34,13 @@ class RequestState;
 class StreamedResponse;
 class ConnectTo;
 class Form;
+struct DeadlinePropagationConfig;
 class RequestStats;
 class DestinationStatistics;
 struct TestsuiteConfig;
 
 namespace impl {
 class EasyWrapper;
-struct DeadlinePropagationConfig;
 }  // namespace impl
 
 /// HTTP request method
@@ -92,8 +92,7 @@ class Request final {
 
   /// @cond
   // For internal use only.
-  explicit Request(std::shared_ptr<impl::EasyWrapper>&&,
-                   std::shared_ptr<RequestStats>&& req_stats,
+  explicit Request(impl::EasyWrapper&&, RequestStats&& req_stats,
                    const std::shared_ptr<DestinationStatistics>& dest_stats,
                    clients::dns::Resolver* resolver,
                    impl::PluginPipeline& plugin_pipeline,
@@ -122,8 +121,8 @@ class Request final {
   Request& post(const std::string& url, std::string data = {}) &;
   Request post(const std::string& url, std::string data = {}) &&;
   /// POST request with url and multipart/form-data
-  Request& post(const std::string& url, const Form& form) &;
-  Request post(const std::string& url, const Form& form) &&;
+  Request& post(const std::string& url, Form&& form) &;
+  Request post(const std::string& url, Form&& form) &&;
   /// PUT request
   Request& put() &;
   Request put() &&;
@@ -159,8 +158,8 @@ class Request final {
   Request& data(std::string data) &;
   Request data(std::string data) &&;
   /// form for POST request
-  Request& form(const Form& form) &;
-  Request form(const Form& form) &&;
+  Request& form(Form&& form) &;
+  Request form(Form&& form) &&;
   /// Headers for request as map
   Request& headers(const Headers& headers) &;
   Request headers(const Headers& headers) &&;
@@ -291,7 +290,7 @@ class Request final {
 
   // Set deadline propagation settings. For internal use only.
   void SetDeadlinePropagationConfig(
-      const impl::DeadlinePropagationConfig& deadline_propagation_config) &;
+      const DeadlinePropagationConfig& deadline_propagation_config) &;
 
   void SetHeadersPropagator(const server::http::HeadersPropagator*) &;
   /// @endcond
@@ -300,6 +299,8 @@ class Request final {
   /// Useful to proxy replies 'as is'.
   Request& DisableReplyDecoding() &;
   Request DisableReplyDecoding() &&;
+
+  void SetCancellationPolicy(CancellationPolicy cp);
 
   /// Override the default tracing manager from HTTP client for this
   /// particular request.

@@ -12,19 +12,19 @@ namespace impl {
 namespace {
 class CommonSleepWaitStrategy final : public WaitStrategy {
  public:
-  CommonSleepWaitStrategy(Deadline deadline) : WaitStrategy(deadline) {}
+  CommonSleepWaitStrategy() = default;
 
-  void SetupWakeups() override {}
+  EarlyWakeup SetupWakeups() override { return EarlyWakeup{false}; }
 
-  void DisableWakeups() override {}
+  void DisableWakeups() noexcept override {}
 };
 }  // namespace
 }  // namespace impl
 
 void InterruptibleSleepUntil(Deadline deadline) {
   auto& current = current_task::GetCurrentTaskContext();
-  impl::CommonSleepWaitStrategy wait_manager(deadline);
-  current.Sleep(wait_manager);
+  impl::CommonSleepWaitStrategy wait_manager{};
+  current.Sleep(wait_manager, deadline);
 }
 
 void SleepUntil(Deadline deadline) {

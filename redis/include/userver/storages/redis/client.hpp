@@ -44,6 +44,7 @@ class Client {
   virtual ~Client() = default;
 
   virtual size_t ShardsCount() const = 0;
+  virtual bool IsInClusterMode() const = 0;
 
   virtual size_t ShardByKey(const std::string& key) const = 0;
 

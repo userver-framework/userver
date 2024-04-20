@@ -19,6 +19,8 @@ class Exception : public std::exception {
 
   const char* what() const noexcept final { return msg_.c_str(); }
 
+  std::string_view GetMessage() const noexcept { return msg_; }
+
  private:
   std::string msg_;
 };
@@ -28,43 +30,54 @@ class ParseException : public Exception {
   using Exception::Exception;
 };
 
+class ExceptionWithPath : public Exception {
+ public:
+  explicit ExceptionWithPath(std::string_view msg, std::string_view path);
+
+  std::string_view GetPath() const noexcept;
+  std::string_view GetMessageWithoutPath() const noexcept;
+
+ private:
+  std::size_t path_size_;
+};
+
 class BadStreamException : public Exception {
  public:
   explicit BadStreamException(const std::istream& is);
   explicit BadStreamException(const std::ostream& os);
 };
 
-class TypeMismatchException : public Exception {
+class TypeMismatchException : public ExceptionWithPath {
  public:
-  TypeMismatchException(int actual, int expected, const std::string& path);
+  TypeMismatchException(int actual, int expected, std::string_view path);
   std::string_view GetActual() const;
   std::string_view GetExpected() const;
-  const std::string& GetPath() const noexcept;
 
  private:
   int actual_;
   int expected_;
-  std::string path_;
 };
 
-class OutOfBoundsException : public Exception {
+class OutOfBoundsException : public ExceptionWithPath {
  public:
-  OutOfBoundsException(size_t index, size_t size, const std::string& path);
-  const std::string& GetPath() const noexcept;
-
- private:
-  std::string path_;
+  OutOfBoundsException(size_t index, size_t size, std::string_view path);
 };
 
-class MemberMissingException : public Exception {
+class MemberMissingException : public ExceptionWithPath {
  public:
-  explicit MemberMissingException(const std::string& path);
+  explicit MemberMissingException(std::string_view path);
 };
 
 /// Conversion error
-class ConversionException : public Exception {
+class ConversionException : public ExceptionWithPath {
  public:
-  using Exception::Exception;
+  ConversionException(std::string_view msg, std::string_view path);
+};
+
+class UnknownDiscriminatorException : public ExceptionWithPath {
+ public:
+  UnknownDiscriminatorException(std::string_view path,
+                                std::string_view discriminator_field);
 };
 
 }  // namespace formats::json

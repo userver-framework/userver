@@ -138,7 +138,7 @@ Content-Type: text/html
 X-YaRequestId: dbc9dbaa3fc04ce8a86b27a1aa582cd6
 X-YaSpanId: aa573144f2312714
 X-YaTraceId: 4dfb9e852e07473c9d57a8eb520e7965
-Server: userver/1.0.0 (20221221124812; rv:unknown)
+Server: userver/2.0 (20221221124812; rv:unknown)
 Connection: keep-alive
 Content-Length: 28
 
@@ -151,7 +151,7 @@ Content-Type: text/html
 X-YaRequestId: 6e39f3bf27324aa3acb01a30b9653b2d
 X-YaTraceId: e5d38ab53b3f495a9b97279a731f5fde
 X-YaSpanId: e64b939c37035d88
-Server: userver/1.0.0 (20221221124812; rv:unknown)
+Server: userver/2.0 (20221221124812; rv:unknown)
 Connection: keep-alive
 Content-Length: 0
 ```

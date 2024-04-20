@@ -6,6 +6,7 @@
 
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/static_registration.hpp>
+#include <userver/utils/underlying_value.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -30,6 +31,13 @@ LogEntryContentSet& GetAllLocations() noexcept {
 }
 
 }  // namespace
+
+Level GetForceDisabledLevelPlusOne(Level level) {
+  if (level == Level::kNone) {
+    return Level::kTrace;
+  }
+  return static_cast<Level>(utils::UnderlyingValue(level) + 1);
+}
 
 bool operator<(const LogEntryContent& x, const LogEntryContent& y) noexcept {
   const auto cmp = std::strcmp(x.path, y.path);
@@ -58,14 +66,14 @@ void AddDynamicDebugLog(const std::string& location_relative, int line,
       ThrowUnknownDynamicLogLocation(location_relative, line);
     }
 
-    it_lower->state = state;
+    it_lower->state.store(state);
     return;
   } else {
     for (; it_lower != all_locations.end(); ++it_lower) {
       if (std::strncmp(it_lower->path, location_relative.c_str(),
                        location_relative.size()) != 0)
         break;
-      it_lower->state = state;
+      it_lower->state.store(state);
     }
   }
 }
@@ -80,7 +88,7 @@ void RemoveDynamicDebugLog(const std::string& location_relative, int line) {
        line != kAnyLine ? line : std::numeric_limits<int>::max()});
 
   for (; it_lower != it_upper; ++it_lower) {
-    it_lower->state = EntryState::kDefault;
+    it_lower->state.store(EntryState{});
   }
 }
 

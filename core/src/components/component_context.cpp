@@ -18,7 +18,8 @@ ComponentContext::ComponentContext() noexcept = default;
 void ComponentContext::Emplace(
     const Manager& manager,
     std::vector<std::string>&& loading_component_names) {
-  impl_ = std::make_unique<Impl>(manager, std::move(loading_component_names));
+  impl_ = std::make_unique<impl::ComponentContextImpl>(
+      manager, std::move(loading_component_names));
 }
 
 void ComponentContext::Reset() noexcept { impl_.reset(); }
@@ -26,7 +27,7 @@ void ComponentContext::Reset() noexcept { impl_.reset(); }
 ComponentContext::~ComponentContext() = default;
 
 impl::ComponentBase* ComponentContext::AddComponent(
-    std::string_view name, const ComponentFactory& factory) {
+    std::string_view name, const impl::ComponentFactory& factory) {
   return impl_->AddComponent(name, factory, *this);
 }
 
@@ -50,10 +51,6 @@ const Manager& ComponentContext::GetManager() const {
 }
 
 void ComponentContext::CancelComponentsLoad() { impl_->CancelComponentsLoad(); }
-
-bool ComponentContext::IsAnyComponentInFatalState() const {
-  return impl_->IsAnyComponentInFatalState();
-}
 
 bool ComponentContext::Contains(std::string_view name) const noexcept {
   return impl_->Contains(name);

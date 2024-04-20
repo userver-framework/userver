@@ -192,8 +192,7 @@ class DynamicQueryParameters {
   template <typename T>
   void WriteNullable(const UserTypes& types, const T& arg, std::false_type) {
     param_formats.push_back(io::kPgBinaryDataFormat);
-    parameters.emplace_back();
-    auto& buffer = parameters.back();
+    auto& buffer = parameters.emplace_back();
     io::WriteBuffer(types, buffer, arg);
     auto size = buffer.size();
     param_lengths.push_back(size);

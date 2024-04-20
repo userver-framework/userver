@@ -74,6 +74,8 @@ class Direction final {
 
   [[nodiscard]] bool Wait(Deadline);
 
+  void ResetReady() noexcept;
+
   // (IoFunc*)(int, void*, size_t), e.g. read
   template <typename IoFunc, typename... Context>
   size_t PerformIo(SingleUserGuard& guard, IoFunc&& io_func, void* buf,
@@ -85,6 +87,8 @@ class Direction final {
                     struct iovec* list, std::size_t list_size,
                     TransferMode mode, Deadline deadline,
                     const Context&... context);
+
+  engine::impl::ContextAccessor* TryGetContextAccessor() noexcept;
 
  private:
   friend class FdControl;

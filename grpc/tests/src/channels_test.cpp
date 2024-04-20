@@ -3,6 +3,7 @@
 #include <userver/dynamic_config/storage_mock.hpp>
 #include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/engine/async.hpp>
+#include <userver/engine/io/socket.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/logging/null_logger.hpp>
@@ -26,14 +27,13 @@ class UnitTestServiceSimple final : public sample::ugrpc::UnitTestServiceBase {
  public:
   void SayHello(SayHelloCall& call, sample::ugrpc::GreetingRequest&&) override {
     call.Finish({});
+    EXPECT_FALSE(engine::current_task::ShouldCancel());
   }
 };
 
-constexpr int kPort = 12345;
-
-ugrpc::server::ServerConfig MakeServerConfig() {
+ugrpc::server::ServerConfig MakeServerConfig(int port) {
   ugrpc::server::ServerConfig config;
-  config.port = kPort;
+  config.port = port;
   return config;
 }
 
@@ -44,10 +44,14 @@ struct GrpcChannels : public ::testing::TestWithParam<std::size_t> {};
 UTEST_P_MT(GrpcChannels, TryWaitForConnected, 2) {
   constexpr auto kSmallTimeout = 100ms;
   constexpr auto kServerStartDelay = 100ms;
-  constexpr auto kMaxServerStartTime = 500ms;
   utils::statistics::Storage statistics_storage;
   dynamic_config::StorageMock config_storage{
       dynamic_config::MakeDefaultStorage({})};
+
+  const auto addr = engine::io::Sockaddr::MakeLoopbackAddress();
+  engine::io::Socket sock{addr.Domain(), engine::io::SocketType::kStream};
+  sock.Bind(addr);
+  const auto port = sock.Getsockname().Port();
 
   auto client_task = engine::AsyncNoSpan([&] {
     ugrpc::client::ClientFactorySettings settings;
@@ -63,19 +67,20 @@ UTEST_P_MT(GrpcChannels, TryWaitForConnected, 2) {
         client_queue.GetQueue(), statistics_storage, ts,
         config_storage.GetSource());
 
-    const auto endpoint = fmt::format("[::1]:{}", kPort);
+    const auto endpoint = fmt::format("[::1]:{}", port);
     auto client =
         client_factory.MakeClient<sample::ugrpc::UnitTestServiceClient>(
             "test", endpoint);
 
     // TryWaitForConnected should wait for the server to start and return 'true'
     EXPECT_TRUE(ugrpc::client::TryWaitForConnected(
-        client,
-        engine::Deadline::FromDuration(kServerStartDelay + kMaxServerStartTime),
+        client, engine::Deadline::FromDuration(utest::kMaxTestWaitTime),
         engine::current_task::GetTaskProcessor()));
 
     auto call = client.SayHello({});
+    EXPECT_FALSE(engine::current_task::ShouldCancel());
     UEXPECT_NO_THROW((void)call.Finish());
+    EXPECT_FALSE(engine::current_task::ShouldCancel());
 
     // TryWaitForConnected should return immediately if the connection is
     // already alive
@@ -88,7 +93,7 @@ UTEST_P_MT(GrpcChannels, TryWaitForConnected, 2) {
   engine::SleepFor(kServerStartDelay);
 
   UnitTestServiceSimple service;
-  ugrpc::server::Server server(MakeServerConfig(), statistics_storage,
+  ugrpc::server::Server server(MakeServerConfig(port), statistics_storage,
                                config_storage.GetSource());
   server.AddService(service, {engine::current_task::GetTaskProcessor(),
                               ugrpc::server::Middlewares{}});

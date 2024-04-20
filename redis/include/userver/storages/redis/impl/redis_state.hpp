@@ -9,7 +9,7 @@ enum class RedisState {
   /// Initializing context and establishing connection
   kInit = 0,
 
-  /// Connection initilization failed
+  /// Connection initialization failed
   kInitError,
 
   /// Connection established and ready to send commands

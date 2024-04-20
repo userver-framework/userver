@@ -10,7 +10,6 @@ git
 grpc
 gtest
 hiredis
-http-parser
 jemalloc
 krb5
 libev
@@ -24,10 +23,10 @@ python
 python-google-api-python-client
 python-jinja
 python-pip
-python-virtualenv
 python-voluptuous
 python-yaml
 yaml-cpp
 zlib
 makepkg|cctz
 makepkg|libbacktrace-git
+boost-stacktrace-backtrace

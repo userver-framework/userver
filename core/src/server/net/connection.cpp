@@ -1,12 +1,9 @@
 #include "connection.hpp"
 
-#include <algorithm>
 #include <array>
-#include <stdexcept>
 #include <system_error>
 #include <vector>
 
-#include <server/http/http_request_parser.hpp>
 #include <server/http/request_handler_base.hpp>
 
 #include <userver/engine/async.hpp>
@@ -14,6 +11,7 @@
 #include <userver/engine/io/exception.hpp>
 #include <userver/engine/io/tls_wrapper.hpp>
 #include <userver/engine/task/cancel.hpp>
+#include <userver/engine/wait_any.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/server/request/request_config.hpp>
 #include <userver/utils/assert.hpp>
@@ -38,8 +36,7 @@ Connection::Connection(
       stats_(std::move(stats)),
       data_accounter_(data_accounter),
       remote_address_(remote_address),
-      peer_name_(remote_address_.PrimaryAddressString()),
-      request_tasks_(Queue::Create()) {
+      peer_name_(remote_address_.PrimaryAddressString()) {
   LOG_DEBUG() << "Incoming connection from " << Getpeername() << ", fd "
               << Fd();
 
@@ -50,20 +47,8 @@ Connection::Connection(
 void Connection::Process() {
   LOG_TRACE() << "Starting socket listener for fd " << Fd();
 
-  // In case of TaskProcessor overload keep receiving requests as we wish to
-  // keep using the connection
-  auto socket_listener = engine::CriticalAsyncNoSpan(
-      [this](Queue::Producer producer, engine::TaskCancellationToken token) {
-        ListenForRequests(std::move(producer), std::move(token));
-      },
-      request_tasks_->GetProducer(),
-      engine::current_task::GetCancellationToken());
+  ListenForRequests();
 
-  auto consumer = request_tasks_->GetConsumer();
-  ProcessResponses(consumer);
-
-  socket_listener.SyncCancel();
-  ProcessResponses(consumer);  // Consume remaining requests
   Shutdown();
 }
 
@@ -86,84 +71,82 @@ void Connection::Shutdown() noexcept {
 
   --stats_->active_connections;
   ++stats_->connections_closed;
-
-  UASSERT(IsRequestTasksEmpty());
 }
 
-bool Connection::IsRequestTasksEmpty() const noexcept {
-  return request_tasks_->GetSizeApproximate() == 0;
-}
-
-void Connection::ListenForRequests(
-    Queue::Producer producer, engine::TaskCancellationToken token) noexcept {
+void Connection::ListenForRequests() noexcept {
   using RequestBasePtr = std::shared_ptr<request::RequestBase>;
-  utils::FastScopeGuard send_stopper([&]() noexcept { token.RequestCancel(); });
 
   try {
-    request_tasks_->SetSoftMaxSize(config_.requests_queue_size_threshold);
+    std::vector<RequestBasePtr> pending_requests;
 
     http::HttpRequestParser request_parser(
         request_handler_.GetHandlerInfoIndex(), handler_defaults_config_,
-        [this, &producer](RequestBasePtr&& request_ptr) {
-          if (!NewRequest(std::move(request_ptr), producer)) {
-            is_accepting_requests_ = false;
-          }
+        [&pending_requests](RequestBasePtr&& request_ptr) {
+          pending_requests.push_back(std::move(request_ptr));
         },
         stats_->parser_stats, data_accounter_);
 
-    std::vector<char> buf(config_.in_buffer_size);
-    std::size_t last_bytes_read = 0;
+    pending_data_.resize(config_.in_buffer_size);
     while (is_accepting_requests_) {
       auto deadline = engine::Deadline::FromDuration(config_.keepalive_timeout);
 
-      bool is_readable = true;
-      // If we didn't fill the buffer in the previous loop iteration we almost
-      // certainly will hit EWOULDBLOCK on the subsequent recv syscall from
-      // peer_socket_.RecvSome, which will fall back to event-loop waiting
-      // for socket to become readable, and then issue another recv syscall,
-      // effectively doing
-      // 1. recv (returns -1)
-      // 2. notify event-loop about read interest
-      // 3. recv (return some data)
-      //
-      // So instead we just do 2. and 3., shaving off a whole recv syscall
-      if (last_bytes_read != buf.size()) {
-        is_readable = peer_socket_->WaitReadable(deadline);
-      }
-
-      last_bytes_read =
-          is_readable ? peer_socket_->ReadSome(buf.data(), buf.size(), deadline)
-                      : 0;
-      if (!last_bytes_read) {
-        LOG_TRACE() << "Peer " << Getpeername() << " on fd " << Fd()
-                    << " closed connection or the connection timed out";
-
-        // RFC7230 does not specify rules for connections half-closed from
-        // client side. However, section 6 tells us that in most cases
-        // connections are closed after sending/receiving the last response. See
-        // also: https://github.com/httpwg/http-core/issues/22
+      if (pending_data_size_ == 0) {
+        bool is_readable = true;
+        // If we didn't fill the buffer in the previous loop iteration we almost
+        // certainly will hit EWOULDBLOCK on the subsequent recv syscall from
+        // peer_socket_.RecvSome, which will fall back to event-loop waiting
+        // for socket to become readable, and then issue another recv syscall,
+        // effectively doing
+        // 1. recv (returns -1)
+        // 2. notify event-loop about read interest
+        // 3. recv (return some data)
         //
-        // It is faster (and probably more efficient) for us to cancel currently
-        // processing and pending requests.
-        return;
-      }
-      LOG_TRACE() << "Received " << last_bytes_read << " byte(s) from "
-                  << Getpeername() << " on fd " << Fd();
+        // So instead we just do 2. and 3., shaving off a whole recv syscall
+        if (pending_data_size_ != pending_data_.size()) {
+          is_readable = peer_socket_->WaitReadable(deadline);
+        }
 
-      if (!request_parser.Parse(buf.data(), last_bytes_read)) {
+        pending_data_size_ =
+            is_readable ? peer_socket_->ReadSome(pending_data_.data(),
+                                                 pending_data_.size(), deadline)
+                        : 0;
+        if (!pending_data_size_) {
+          LOG_TRACE() << "Peer " << Getpeername() << " on fd " << Fd()
+                      << " closed connection or the connection timed out";
+
+          // RFC7230 does not specify rules for connections half-closed from
+          // client side. However, section 6 tells us that in most cases
+          // connections are closed after sending/receiving the last response.
+          // See also: https://github.com/httpwg/http-core/issues/22
+          //
+          // It is faster (and probably more efficient) for us to cancel
+          // currently processing and pending requests.
+          return;
+        }
+        LOG_TRACE() << "Received " << pending_data_size_ << " byte(s) from "
+                    << Getpeername() << " on fd " << Fd();
+      }
+
+      bool should_stop_accepting_requests = false;
+      if (!request_parser.Parse(pending_data_.data(), pending_data_size_)) {
         LOG_DEBUG() << "Malformed request from " << Getpeername() << " on fd "
                     << Fd();
 
         // Stop accepting new requests, send previous answers.
-        is_accepting_requests_ = false;
+        should_stop_accepting_requests = true;
       }
+      pending_data_size_ = 0;
+
+      for (auto&& request : pending_requests) {
+        ProcessRequest(std::move(request));
+      }
+      pending_requests.resize(0);
+      if (should_stop_accepting_requests) is_accepting_requests_ = false;
     }
 
-    send_stopper.Release();
     LOG_TRACE() << "Gracefully stopping ListenForRequests()";
   } catch (const engine::io::IoTimeout&) {
     LOG_INFO() << "Closing idle connection on timeout";
-    send_stopper.Release();
   } catch (const engine::io::IoCancelled&) {
     LOG_TRACE() << "engine::io::IoCancelled thrown in ListenForRequests()";
   } catch (const engine::io::IoSystemError& ex) {
@@ -181,74 +164,94 @@ void Connection::ListenForRequests(
   }
 }
 
-bool Connection::NewRequest(std::shared_ptr<request::RequestBase>&& request_ptr,
-                            Queue::Producer& producer) {
-  if (!is_accepting_requests_) {
-    /* In case of recv() of >1 requests it is possible to get here
-     * after is_accepting_requests_ is set to true. Just ignore tail
-     * garbage.
-     */
-    return true;
-  }
-
+void Connection::ProcessRequest(
+    std::shared_ptr<request::RequestBase>&& request_ptr) {
   if (request_ptr->IsFinal()) {
     is_accepting_requests_ = false;
   }
 
-  ++stats_->active_request_count;
-  auto task = request_handler_.StartRequestTask(request_ptr);
-  return producer.Push({std::move(request_ptr), std::move(task)});
+  stats_->active_request_count.Add(1);
+
+  auto task = HandleQueueItem(request_ptr);
+  SendResponse(*request_ptr);
+
+  if (request_ptr->IsUpgradeWebsocket())
+    request_ptr->DoUpgrade(std::move(peer_socket_), std::move(remote_address_));
 }
 
-void Connection::ProcessResponses(Queue::Consumer& consumer) noexcept {
+bool Connection::ReadSome() {
+  if (pending_data_size_ == pending_data_.size()) return true;
+
   try {
-    QueueItem item;
-    while (consumer.Pop(item)) {
-      HandleQueueItem(item);
+    engine::TaskCancellationBlocker blocker;
 
-      // now we must complete processing
-      engine::TaskCancellationBlocker block_cancel;
-
-      /* In stream case we don't want a user task to exit
-       * until SendResponse() as the task produces body chunks.
-       */
-      SendResponse(*item.first);
-      if (item.first->IsUpgradeWebsocket())
-        item.first->DoUpgrade(std::move(peer_socket_),
-                              std::move(remote_address_));
-      item.first.reset();
-      item.second = {};
-    }
+    auto count = peer_socket_->ReadSome(
+        pending_data_.data() + pending_data_size_,
+        pending_data_.size() - pending_data_size_, engine::Deadline::Passed());
+    pending_data_size_ += count;
+    if (count == 0) return false;
+  } catch (const engine::io::IoTimeout&) {
+    // Read only a part of SSL Record, not a EOF
   } catch (const std::exception& e) {
-    LOG_ERROR() << "Exception for fd " << Fd() << ": " << e;
+    LOG_WARNING() << "Exception while reading from socket: " << e;
+    return false;
   }
+
+  return true;
 }
 
-void Connection::HandleQueueItem(QueueItem& item) noexcept {
-  auto& request = *item.first;
+engine::TaskWithResult<void> Connection::HandleQueueItem(
+    const std::shared_ptr<request::RequestBase>& request) noexcept {
+  auto request_task = request_handler_.StartRequestTask(request);
 
   if (engine::current_task::IsCancelRequested()) {
     // We could've packed all remaining requests into a vector and cancel them
     // in parallel. But pipelining is almost never used so why bother.
-    auto request_task = std::move(item.second);
     request_task.SyncCancel();
     LOG_DEBUG() << "Request processing interrupted";
     is_response_chain_valid_ = false;
-    return;  // avoids throwing and catching exception down below
+    return request_task;  // avoids throwing and catching exception down below
   }
 
   try {
-    auto& response = request.GetResponse();
+    auto& response = request->GetResponse();
     if (response.IsBodyStreamed()) {
+      // TODO: wait for TCP connection closure too
       response.WaitForHeadersEnd();
     } else {
-      auto request_task = std::move(item.second);
+      // We must wait for one of the following events:
+      // a) socket is ready - maybe it is closed and the handler task must be
+      //    cancelled;
+      // b) handler task is finished - the response must be written into the
+      //    socket.
+      // It would be wasteful to call WaitAny() each time for quick HTTP
+      // handlers as it would setup-and-remove IO watcher with no real effect.
+      // So avoid it for the first N microseconds; after that IO watcher
+      // overhead is not too expensive compared to the await time and we can
+      // tolerate its cost.
+
+      request_task.WaitFor(config_.abort_check_delay);
+      if (!request_task.IsFinished()) {
+        // Slow path for not-so-fast handlers
+        engine::io::ReadableBase& peer_read = *peer_socket_;
+        const auto task_num = engine::WaitAny(peer_read, request_task);
+
+        if (task_num == 0) {
+          if (!ReadSome()) {
+            // TCP connection is closed, cancel the user task
+            LOG_DEBUG() << "Cancelling request due to closed socket";
+            request_task.RequestCancel();
+          }
+        }
+      } else {
+        // Fast path for quick handlers, no socket awaiting
+      }
       request_task.Get();
     }
   } catch (const engine::TaskCancelledException& e) {
     LOG_LIMITED_ERROR() << "Handler task was cancelled with reason: "
                         << ToString(e.Reason());
-    auto& response = request.GetResponse();
+    auto& response = request->GetResponse();
     if (!response.IsReady()) {
       response.SetReady();
       response.SetStatusServiceUnavailable();
@@ -258,8 +261,9 @@ void Connection::HandleQueueItem(QueueItem& item) noexcept {
     is_response_chain_valid_ = false;
   } catch (const std::exception& e) {
     LOG_WARNING() << "Request failed with unhandled exception: " << e;
-    request.MarkAsInternalServerError();
+    request->MarkAsInternalServerError();
   }
+  return request_task;
 }
 
 void Connection::SendResponse(request::RequestBase& request) {
@@ -287,8 +291,8 @@ void Connection::SendResponse(request::RequestBase& request) {
     response.SetSendFailed(std::chrono::steady_clock::now());
   }
   request.SetFinishSendResponseTime();
-  --stats_->active_request_count;
-  ++stats_->requests_processed_count;
+  stats_->active_request_count.Subtract(1);
+  stats_->requests_processed_count.Add(1);
 
   request.WriteAccessLogs(request_handler_.LoggerAccess(),
                           request_handler_.LoggerAccessTskv(), peer_name_);

@@ -4,7 +4,6 @@
 /// @brief @copybrief components::Postgres
 
 #include <chrono>
-#include <vector>
 
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/concurrent/async_event_source.hpp>
@@ -31,6 +30,7 @@ namespace components {
 /// * @ref POSTGRES_HANDLERS_COMMAND_CONTROL
 /// * @ref POSTGRES_QUERIES_COMMAND_CONTROL
 /// * @ref POSTGRES_CONNECTION_POOL_SETTINGS
+/// * @ref POSTGRES_TOPOLOGY_SETTINGS
 /// * @ref POSTGRES_CONNECTION_SETTINGS
 /// * @ref POSTGRES_STATEMENT_METRICS_SETTINGS
 /// * @ref POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED
@@ -114,35 +114,32 @@ namespace components {
 /// on connection strings.
 ///
 /// ## Static options:
-/// Name                    | Description                                               | Default value
-/// ----------------------- | --------------------------------------------------------- | -------------
-/// dbalias                 | name of the database in secdist config (if available)     | --
-/// dbconnection            | connection DSN string (used if no dbalias specified)      | --
-/// blocking_task_processor | name of task processor for background blocking operations | --
-/// max_replication_lag     | replication lag limit for usable slaves                   | 60s
-/// min_pool_size           | number of connections created initially                   | 4
-/// max_pool_size           | limit of connections count                                | 15
-/// sync-start              | perform initial connections synchronously                 | false
-/// dns_resolver            | server hostname resolver type (getaddrinfo or async)      | 'async'
-/// persistent-prepared-statements | cache prepared statements or not                   | true
-/// user-types-enabled      | allow use of user-defined types                           | true
+/// Name                    | Description                                                                   | Default value
+/// ----------------------- | ----------------------------------------------------------------------------- | -------------
+/// dbalias                 | name of the database in secdist config (if available)                         | --
+/// dbconnection            | connection DSN string (used if no dbalias specified)                          | --
+/// blocking_task_processor | name of task processor for background blocking operations                     | --
+/// max_replication_lag     | replication lag limit for usable slaves                                       | 60s
+/// sync-start              | perform initial connections synchronously                                     | false
+/// dns_resolver            | server hostname resolver type (getaddrinfo or async)                          | 'async'
+/// persistent-prepared-statements | cache prepared statements or not                                       | true
+/// user-types-enabled      | allow use of user-defined types                                               | true
 /// check-user-types        | cancel service start if some user types have not been loaded, which helps to detect missing migrations | false
-/// ignore_unused_query_params| disable check for not-NULL query params that are not used in query| false
-/// monitoring-dbalias      | name of the database for monitorings                      | calculated from dbalias or dbconnection options
-/// max_prepared_cache_size | prepared statements cache size limit                      | 200
-/// max_statement_metrics   | limit of exported metrics for named statements            | 0
-/// min_pool_size           | number of connections created initially                   | 4
-/// max_pool_size           | maximum number of created connections                     | 15
-/// max_queue_size          | maximum number of clients waiting for a connection        | 200
+/// ignore_unused_query_params| disable check for not-NULL query params that are not used in query          | false
+/// monitoring-dbalias      | name of the database for monitorings                                          | calculated from dbalias or dbconnection options
+/// max_prepared_cache_size | prepared statements cache size limit                                          | 200
+/// max_statement_metrics   | limit of exported metrics for named statements                                | 0
+/// min_pool_size           | number of connections created initially                                       | 4
+/// max_pool_size           | maximum number of created connections for "connlimit_mode: manual"            | 15
+/// max_queue_size          | maximum number of clients waiting for a connection                            | 200
 /// connecting_limit        | limit for concurrent establishing connections number per pool (0 - unlimited) | 0
 /// connlimit_mode          | max_connections setup mode (manual or auto), also see @ref scripts/docs/en/userver/pg_connlimit_mode_auto.md | auto
-/// error-injection         | artificial error injection settings, error_injection::Settings | --
+/// error-injection         | artificial error injection settings, error_injection::Settings                | --
 
 // clang-format on
 
 class Postgres : public LoggableComponentBase {
  public:
-  static constexpr auto kDefaultMaxReplicationLag = std::chrono::seconds{60};
   /// Default shard number
   static constexpr size_t kDefaultShardNumber = 0;
   /// Default command control

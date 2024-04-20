@@ -30,6 +30,22 @@ UTEST(MpscQueue, ConsumerIsDead) {
   EXPECT_FALSE(producer.Push(0));
 }
 
+UTEST(MpscQueue, NoCrashOnProducerReuse) {
+  auto queue = concurrent::MpscQueue<int>::Create();
+  auto producer = queue->GetProducer();
+
+  queue = concurrent::MpscQueue<int>::Create();
+  producer = queue->GetProducer();
+}
+
+UTEST(MpscQueue, NoCrashOnConsumerReuse) {
+  auto queue = concurrent::MpscQueue<int>::Create();
+  auto consumer = queue->GetConsumer();
+
+  queue = concurrent::MpscQueue<int>::Create();
+  consumer = queue->GetConsumer();
+}
+
 UTEST(MpscQueue, SampleMpscQueue) {
   /// [Sample concurrent::MpscQueue usage]
   static constexpr std::chrono::milliseconds kTimeout{10};

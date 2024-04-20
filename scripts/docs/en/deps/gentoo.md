@@ -17,7 +17,6 @@ dev-libs/openssl
 dev-libs/re2
 dev-python/jinja
 dev-python/pip
-dev-python/virtualenv
 dev-python/voluptuous
 dev-util/ccache
 dev-util/cmake
@@ -25,7 +24,6 @@ dev-util/ninja
 dev-vcs/git
 net-dns/c-ares
 net-libs/grpc
-net-libs/http-parser
 net-libs/nghttp2
 net-misc/curl
 net-nds/openldap

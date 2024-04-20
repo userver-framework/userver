@@ -356,13 +356,13 @@ void easy::set_post_fields(std::string&& post_fields, std::error_code& ec) {
         static_cast<native::curl_off_t>(post_fields_.length()), ec);
 }
 
-void easy::set_http_post(std::shared_ptr<form> form) {
+void easy::set_http_post(std::unique_ptr<form> form) {
   std::error_code ec;
   set_http_post(std::move(form), ec);
   throw_error(ec, "set_http_post");
 }
 
-void easy::set_http_post(std::shared_ptr<form> form, std::error_code& ec) {
+void easy::set_http_post(std::unique_ptr<form> form, std::error_code& ec) {
   form_ = std::move(form);
 
   if (form_) {

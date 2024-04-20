@@ -64,7 +64,7 @@ class Component final : public components::LoggableComponentBase {
   void ExtendWriter(utils::statistics::Writer& writer);
 
   struct Impl;
-  utils::FastPimpl<Impl, 664, 8> pimpl_;
+  utils::FastPimpl<Impl, 704, 16> pimpl_;
 };
 
 }  // namespace congestion_control

@@ -28,29 +28,26 @@ engine::SharedMutex client_instance_mutex;
 rcu::Variable<EnabledTestpoints> enabled_testpoints;
 std::atomic<TestpointControl*> control_instance{nullptr};
 
+class TestpointScope final {
+ public:
+  TestpointScope() : lock_(client_instance_mutex), client_(client_instance) {}
+
+  explicit operator bool() const noexcept { return client_ != nullptr; }
+
+  // The returned client must only be used within Scope's lifetime
+  const TestpointClientBase& GetClient() const noexcept {
+    UASSERT(client_);
+    return *client_;
+  }
+
+ private:
+  std::shared_lock<engine::SharedMutex> lock_{};
+  TestpointClientBase* client_{nullptr};
+};
+
 }  // namespace
 
 namespace impl {
-
-struct TestpointScope::Impl final {
-  Impl() : lock(client_instance_mutex), client(client_instance) {}
-
-  std::shared_lock<engine::SharedMutex> lock{};
-  TestpointClientBase* client{nullptr};
-};
-
-TestpointScope::TestpointScope() = default;
-
-TestpointScope::~TestpointScope() = default;
-
-TestpointScope::operator bool() const noexcept {
-  return impl_->client != nullptr;
-}
-
-const TestpointClientBase& TestpointScope::GetClient() const noexcept {
-  UASSERT(impl_->client);
-  return *impl_->client;
-}
 
 bool IsTestpointEnabled(std::string_view name) noexcept {
   if (!client_instance) return false;
@@ -72,18 +69,27 @@ bool IsTestpointEnabled(std::string_view name) noexcept {
   return false;
 }
 
+void ExecuteTestpointCoro(std::string_view name,
+                          const formats::json::Value& json,
+                          TestpointClientBase::Callback callback) {
+  TestpointScope tp_scope;
+  if (!tp_scope) return;
+
+  tp_scope.GetClient().Execute(name, json, callback);
+}
+
 void ExecuteTestpointBlocking(std::string_view name,
                               const formats::json::Value& json,
                               TestpointClientBase::Callback callback,
                               engine::TaskProcessor& task_processor) {
-  engine::CriticalAsyncNoSpan(task_processor, [&] {
-    TestpointScope tp_scope;
-    if (!tp_scope) return;
-    tp_scope.GetClient().Execute(name, json, callback);
-  }).BlockingWait();
+  auto task =
+      engine::CriticalAsyncNoSpan(task_processor, ExecuteTestpointCoro, name,
+                                  std::cref(json), std::cref(callback));
+  task.BlockingWait();
+  task.Get();
 }
 
-void DoNothing(const formats::json::Value&) {}
+void DoNothing(const formats::json::Value&) noexcept {}
 
 }  // namespace impl
 

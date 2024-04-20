@@ -312,13 +312,8 @@ static void pqxParseInput3(PGconn* conn, const PGresult* description) {
               conn->asyncStatus = PGASYNC_READY;
             }
           } else {
-            /*
-             * In simple query protocol, advance the command queue
-             * (see PQgetResult).
-             */
-            if (conn->cmd_queue_head &&
-                conn->cmd_queue_head->queryclass == PGQUERY_SIMPLE)
-              pqCommandQueueAdvance(conn);
+            /* Advance the command queue and set us idle */
+            pqCommandQueueAdvanceGlue(conn, true, false);
 #else
           {
 #endif
@@ -359,7 +354,7 @@ static void pqxParseInput3(PGconn* conn, const PGresult* description) {
 #if PG_VERSION_NUM >= 140000
           if (conn->cmd_queue_head &&
               conn->cmd_queue_head->queryclass == PGXQUERY_BIND) {
-            pqCommandQueueAdvance(conn);
+            pqCommandQueueAdvanceGlue(conn, false, false);
 #else
           if (conn->queryclass == PGXQUERY_BIND) {
 #endif
@@ -385,7 +380,7 @@ static void pqxParseInput3(PGconn* conn, const PGresult* description) {
            */
           if (conn->cmd_queue_head &&
               conn->cmd_queue_head->queryclass == PGQUERY_CLOSE) {
-            pqCommandQueueAdvance(conn);
+            pqCommandQueueAdvanceGlue(conn, false, false);
           }
 #endif
           break;
@@ -761,18 +756,12 @@ PGresult* PQXgetResult(PGconn* conn, const PGresult* description) {
 #endif
     case PGASYNC_READY:
 #if PG_VERSION_NUM >= 140000
-      /*
-       * For any query type other than simple query protocol, we advance
-       * the command queue here.  This is because for simple query
-       * protocol we can get the READY state multiple times before the
-       * command is actually complete, since the command string can
-       * contain many queries.  In simple query protocol, the queue
-       * advance is done by fe-protocol3 when it receives ReadyForQuery.
-       */
-      if (conn->cmd_queue_head &&
-          conn->cmd_queue_head->queryclass != PGQUERY_SIMPLE)
-        pqCommandQueueAdvance(conn);
       res = pqPrepareAsyncResult(conn);
+
+      /* Advance the queue as appropriate */
+      pqCommandQueueAdvanceGlue(conn, false,
+                                res->resultStatus == PGRES_PIPELINE_SYNC);
+
       if (conn->pipelineStatus != PQ_PIPELINE_OFF) {
         /*
          * We're about to send the results of the current query.  Set
@@ -835,7 +824,7 @@ PGresult* PQXgetResult(PGconn* conn, const PGresult* description) {
       conn->asyncStatus = PGASYNC_PIPELINE_IDLE;
     } else
       /* we won't ever see the Close */
-      pqCommandQueueAdvance(conn);
+      pqCommandQueueAdvanceGlue(conn, true, true);
   }
 #endif
 
@@ -1621,6 +1610,74 @@ int PQXsendQueryPrepared(PGconn* conn, const char* stmtName, int nParams,
                           paramValues, paramLengths, paramFormats,
                           resultFormat);
 }
+
+/*
+ * This is copy-paste of PQpipelineSync from fe-exec.c, with the only
+ * difference being that this version doesn't try to flush the buffer.
+ * We use this function to reduce amount of syscalls when constructing
+ * a pipeline.
+ *
+ * A function with the exactly same purpose was introduced in
+ * https://github.com/postgres/postgres/commit/4794c2d31714235700ed68edafa10d1928c9bbb2,
+ * and we should switch to that at some point.
+ *
+ * Send a Sync message as part of a pipeline
+ */
+int PQXpipelinePutSync(PGconn* conn) {
+  PGcmdQueueEntry *entry;
+
+  if (!conn)
+    return 0;
+
+  if (conn->pipelineStatus == PQ_PIPELINE_OFF)
+  {
+    updatePQXExpBufferStr(&conn->errorMessage,
+                          libpq_gettext("cannot send pipeline when not in pipeline mode\n"));
+    return 0;
+  }
+
+  switch (conn->asyncStatus)
+  {
+    case PGASYNC_COPY_IN:
+    case PGASYNC_COPY_OUT:
+    case PGASYNC_COPY_BOTH:
+      /* should be unreachable */
+      appendPQExpBufferStr(&conn->errorMessage,
+                           "internal error: cannot send pipeline while in COPY\n");
+      return 0;
+    case PGASYNC_READY:
+    case PGASYNC_READY_MORE:
+    case PGASYNC_BUSY:
+    case PGASYNC_IDLE:
+    case PGASYNC_PIPELINE_IDLE:
+      /* OK to send sync */
+      break;
+  }
+
+  entry = pqAllocCmdQueueEntry(conn);
+  if (entry == NULL)
+    return 0; /* error msg already set */
+
+  entry->queryclass = PGQUERY_SYNC;
+  entry->query = NULL;
+
+  /* construct the Sync message */
+  if (pqPutMsgStart('S', conn) < 0 ||
+      pqPutMsgEnd(conn) < 0)
+    goto sendFailed;
+
+  /* Libpq gives data a push here, we don't */
+
+  /* OK, it's launched! */
+  pqAppendCmdQueueEntry(conn, entry);
+
+  return 1;
+
+sendFailed:
+  pqRecycleCmdQueueEntry(conn, entry);
+  /* error message should be set up already */
+  return 0;
+}
 #else
 int PQXsendQueryPrepared(PGconn* conn, const char* stmtName, int nParams,
                          const char* const* paramValues,
@@ -1636,4 +1693,10 @@ int PQXsendQueryPrepared(PGconn* conn, const char* stmtName, int nParams,
                              paramFormats,
                              resultFormat);
 }
+
+int PQXpipelinePutSync(PGconn* conn) {
+  (void)conn;
+  return 0;
+}
 #endif
+

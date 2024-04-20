@@ -73,10 +73,18 @@
 /// For more information on timestamps and working with time zones please see
 /// @ref pg_timestamp
 ///
+/// @anchor pg_arrays
 /// @par Arrays
 ///
 /// The driver supports PostgreSQL arrays provided that the element type is
-/// supported by the driver. See @ref pg_arrays for more information.
+/// supported by the driver, including user types.
+///
+/// Array parser will throw storages::postgres::DimensionMismatch if the
+/// dimensions of C++ container do not match that of the buffer received from
+/// the server.
+///
+/// Array formatter will throw storages::postgres::InvalidDimensions if
+/// containers on same level of depth have different sizes.
 ///
 /// @par User-defined PostgreSQL types
 ///
@@ -84,8 +92,10 @@
 /// - domains
 /// - enumerations
 /// - composite types
+/// - custom ranges
 ///
-/// For more information please see @ref pg_user_types.
+/// For more information please see
+/// @ref scripts/docs/en/userver/pg_user_types.md.
 ///
 /// @par C++ strong typedefs
 ///
@@ -102,9 +112,24 @@
 /// For geometry types the driver provides parsing/formatting from/to
 /// on-the-wire representation. The types provided do not define any calculus.
 ///
-/// @par Bytea
+/// @anchor pg_bytea
+/// @par PostgreSQL bytea support
 ///
-/// See @pg_bytea
+/// The driver allows reading and writing raw binary data from/to PostgreSQL
+/// `bytea` type.
+///
+/// Reading and writing to PostgreSQL is implemented for `std::string`,
+/// `std::string_view` and `std::vector` of `char` or `unsigned char`.
+///
+/// @warning When reading to `std::string_view` the value MUST NOT be used after
+/// the PostgreSQL result set is destroyed.
+///
+/// @code{.cpp}
+/// namespace pg = storages::postgres;
+/// using namespace std::string_literals;
+/// std::string s = "\0\xff\x0afoobar"s;
+/// trx.Execute("select $1", pg::Bytea(tp));
+/// @endcode
 ///
 /// @par Network types
 ///

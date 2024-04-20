@@ -4,8 +4,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres {
 
-USERVER_NAMESPACE::utils::impl::UserverExperiment
-    kOmitDescribeInExecuteExperiment{"pg-omit-describe-in-execute", true};
+// Placeholder for future experiments
 
 }
 

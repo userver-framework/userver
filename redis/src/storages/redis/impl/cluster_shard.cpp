@@ -164,6 +164,9 @@ void ClusterShard::GetNearestServersPing(
 ClusterShard::RedisPtr ClusterShard::GetAvailableServer(
     const CommandControl& command_control, bool read_only) const {
   if (!read_only) {
+    if (!master_) {
+      return {};
+    }
     return master_->Get();
   }
 
@@ -172,12 +175,17 @@ ClusterShard::RedisPtr ClusterShard::GetAvailableServer(
     return {};
   }
 
-  auto master = master_->Get();
-  if (master->GetServerId() == cc.force_server_id) {
-    return master;
+  if (master_) {
+    auto master = master_->Get();
+    if (master->GetServerId() == cc.force_server_id) {
+      return master;
+    }
   }
 
   for (const auto& replica_connection : replicas_) {
+    if (!replica_connection) {
+      continue;
+    }
     auto replica = replica_connection->Get();
     if (replica->GetServerId() == cc.force_server_id) {
       return replica;

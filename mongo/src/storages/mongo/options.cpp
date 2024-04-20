@@ -155,8 +155,7 @@ const formats::bson::Value& Hint::Value() const { return value_; }
 
 ArrayFilters::ArrayFilters(
     std::initializer_list<formats::bson::Document> filters) {
-  formats::bson::ValueBuilder builder{
-      formats::bson::ValueBuilder::Type::kArray};
+  formats::bson::ValueBuilder builder{formats::common::Type::kArray};
 
   for (const auto& filter : filters) {
     builder.PushBack(filter);

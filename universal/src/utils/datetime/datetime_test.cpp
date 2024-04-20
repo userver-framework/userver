@@ -16,6 +16,15 @@ TEST(Datetime, Stringtime) {
   /// [Stringtime example]
 }
 
+TEST(Datetime, OptionalStringtime) {
+  /// [OptionalStringtime example]
+  const auto tp = utils::datetime::Stringtime("2014-03-17T02:47:07+0000");
+  EXPECT_EQ(
+      utils::datetime::OptionalStringtime("2014-03-17T02:47:07+0000").value(),
+      tp);
+  /// [OptionalStringtime example]
+}
+
 TEST(Datetime, Timestring) {
   /// [Timestring example]
   const auto tp = utils::datetime::Stringtime("2014-03-17T02:47:07+0000");
@@ -79,6 +88,19 @@ TEST(Datetime, kDefaultTimezone) {
                                               utils::datetime::kRfc3339Format);
   EXPECT_EQ(utils::datetime::Stringtime("2014-03-17T02:47:07+0000"), tp);
   /// [kDefaultTimezone]
+}
+
+TEST(Datetime, kIncorrectDatetimeFormat) {
+  /// [kIncorrectDatetimeFormat]
+  EXPECT_FALSE(utils::datetime::OptionalStringtime("20140317T02:47:07+0000")
+                   .has_value());
+  /// [kIncorrectDatetimeFormat]
+}
+
+TEST(Datetime, kEmptyDatetime) {
+  /// [kEmptyDatetime]
+  EXPECT_FALSE(utils::datetime::OptionalStringtime("").has_value());
+  /// [kEmptyDatetime]
 }
 
 }  // namespace

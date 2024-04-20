@@ -43,9 +43,6 @@ namespace {
 // chosen empirically as the best performance for size (16K-32K)
 constexpr size_t kBufferSize = 32 * 1024;
 
-constexpr int kCompatibleMajorVersion = 1;
-constexpr int kMaxCompatibleMinorVersion = 21;  // Tested on Fedora, works
-
 using FunctionPtr = void (*)(mongoc_stream_t* stream);
 
 struct ExpectedMongocStreamLayout {
@@ -290,19 +287,6 @@ class PollerDispenser {
 engine::TaskLocalVariable<PollerDispenser> poller_dispenser;
 
 }  // namespace
-
-void CheckAsyncStreamCompatible() {
-  if (mongoc_get_major_version() != kCompatibleMajorVersion ||
-      mongoc_get_minor_version() > kMaxCompatibleMinorVersion) {
-    throw std::runtime_error(
-        "This implementation of AsyncStream was not checked with "
-        "libmongoc " MONGOC_VERSION_S
-        " and may be binary incompatible with it, please downgrade to "
-        "version " +
-        std::to_string(kCompatibleMajorVersion) + '.' +
-        std::to_string(kMaxCompatibleMinorVersion));
-  }
-}
 
 mongoc_stream_t* MakeAsyncStream(const mongoc_uri_t* uri,
                                  const mongoc_host_list_t* host,

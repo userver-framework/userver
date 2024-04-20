@@ -1,3 +1,4 @@
+build-essential
 ccache
 cmake
 g++-8
@@ -10,6 +11,7 @@ libboost-iostreams1.65-dev
 libboost-locale1.65-dev
 libboost-program-options1.65-dev
 libboost-regex1.65-dev
+libboost-stacktrace1.65-dev
 libboost1.65-dev
 libbson-dev
 libcrypto++-dev
@@ -19,7 +21,6 @@ libgrpc-dev
 libgrpc++-dev
 libgrpc++1
 libhiredis-dev
-libhttp-parser-dev
 libjemalloc-dev
 libkrb5-dev
 libldap2-dev
@@ -36,7 +37,6 @@ protobuf-compiler-grpc
 python3-dev
 python3-jinja2
 python3-protobuf
+python3-venv
 python3-voluptuous
-redis-server
-virtualenv
 zlib1g-dev

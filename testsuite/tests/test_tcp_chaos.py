@@ -45,6 +45,16 @@ async def _assert_data_from_to(
     logger.debug('_assert_data_from_to done')
 
 
+async def _assert_receive_timeout(sock: socket.socket, loop) -> None:
+    try:
+        data = await asyncio.wait_for(
+            loop.sock_recv(sock, 1), _NOTICEABLE_DELAY,
+        )
+        assert not data
+    except asyncio.TimeoutError:
+        pass
+
+
 async def _assert_connection_dead(sock: socket.socket, loop) -> None:
     try:
         logger.debug('_assert_connection_dead starting')
@@ -150,6 +160,28 @@ async def test_to_server_noop(tcp_client, gate, server_connection, loop):
     assert server_incoming_data == b'ping'
     await _assert_data_from_to(server_connection, tcp_client, loop)
     await _assert_data_from_to(tcp_client, server_connection, loop)
+
+
+async def test_to_client_drop(tcp_client, gate, server_connection, loop):
+    gate.to_client_drop()
+
+    await loop.sock_sendall(server_connection, b'ping')
+    await _assert_data_from_to(tcp_client, server_connection, loop)
+    assert not _has_data(tcp_client)
+
+    gate.to_client_pass()
+    await _assert_receive_timeout(tcp_client, loop)
+
+
+async def test_to_server_drop(tcp_client, gate, server_connection, loop):
+    gate.to_server_drop()
+
+    await loop.sock_sendall(tcp_client, b'ping')
+    await _assert_data_from_to(server_connection, tcp_client, loop)
+    assert not _has_data(server_connection)
+
+    gate.to_server_pass()
+    await _assert_receive_timeout(server_connection, loop)
 
 
 async def test_to_client_delay(tcp_client, gate, server_connection, loop):

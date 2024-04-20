@@ -24,6 +24,7 @@
 #include <variant>
 #include <vector>
 
+#include <userver/utils/constexpr_indices.hpp>
 #include <userver/utils/lazy_prvalue.hpp>
 #include <userver/utils/meta.hpp>
 #include <userver/utils/strong_typedef.hpp>
@@ -38,8 +39,7 @@ namespace boost {
 
 namespace bimaps {
 
-template <typename KeyTypeA, typename KeyTypeB, typename AP1, typename AP2,
-          typename AP3>
+template <typename L, typename R, typename AP1, typename AP2, typename AP3>
 class bimap;
 
 }  // namespace bimaps
@@ -63,6 +63,15 @@ namespace dump {
 
 namespace impl {
 
+template <typename L, typename R, typename... Args>
+using BoostBimap = boost::bimap<L, R, Args...>;
+
+template <typename L, typename R, typename... Args>
+using BoostBimapLeftKey = typename BoostBimap<L, R, Args...>::left_key_type;
+
+template <typename L, typename R, typename... Args>
+using BoostBimapRightKey = typename BoostBimap<L, R, Args...>::right_key_type;
+
 template <typename T>
 auto ReadLazyPrvalue(Reader& reader) {
   return utils::LazyPrvalue([&reader] { return reader.Read<T>(); });
@@ -71,23 +80,16 @@ auto ReadLazyPrvalue(Reader& reader) {
 [[noreturn]] void ThrowInvalidVariantIndex(const std::type_info& type,
                                            std::size_t index);
 
-template <std::size_t... Indices, typename Func>
-void ForEachIndex(std::index_sequence<Indices...>, Func func) {
-  (func(std::integral_constant<std::size_t, Indices>{}), ...);
-}
-
 template <typename VariantType>
 VariantType ReadVariant(Reader& reader, std::size_t index) {
+  static constexpr auto VariantSize = std::variant_size_v<VariantType>;
   std::optional<VariantType> result;
-  using Indices = std::make_index_sequence<std::variant_size_v<VariantType>>;
 
-  ForEachIndex(Indices{}, [&](auto index_constant) {
+  utils::WithConstexprIndex<VariantSize>(index, [&](auto index_constant) {
     static constexpr auto kIndex = decltype(index_constant)::value;
     using Alternative = std::variant_alternative_t<kIndex, VariantType>;
-    if (index == kIndex) {
-      // Not using ReadLazyPrvalue because of stdlib issues on some compilers.
-      result.emplace(std::in_place_index<kIndex>, reader.Read<Alternative>());
-    }
+    // Not using ReadLazyPrvalue because of stdlib issues on some compilers.
+    result.emplace(std::in_place_index<kIndex>, reader.Read<Alternative>());
   });
 
   return std::move(*result);
@@ -231,10 +233,12 @@ std::enable_if_t<kIsReadable<T>, std::shared_ptr<T>> Read(
 }
 
 /// @brief `boost::bimap` serialization support
-template <typename L, typename R, typename AP1, typename AP2, typename AP3>
-std::enable_if_t<kIsReadable<L> && kIsReadable<R>> Write(
-    Writer& writer, const boost::bimap<L, R, AP1, AP2, AP3>& map) {
-  writer.Write(map.left.size());
+template <typename L, typename R, typename... Args>
+std::enable_if_t<kIsWritable<impl::BoostBimapLeftKey<L, R, Args...>> &&
+                 kIsWritable<impl::BoostBimapRightKey<L, R, Args...>>>
+Write(Writer& writer, const boost::bimap<L, R, Args...>& map) {
+  writer.Write(map.size());
+
   for (const auto& [left, right] : map) {
     writer.Write(left);
     writer.Write(right);
@@ -242,18 +246,28 @@ std::enable_if_t<kIsReadable<L> && kIsReadable<R>> Write(
 }
 
 /// @brief `boost::bimap` deserialization support
-template <typename L, typename R, typename AP1, typename AP2, typename AP3>
-std::enable_if_t<kIsWritable<L> && kIsWritable<R>,
-                 boost::bimap<L, R, AP1, AP2, AP3>>
-Read(Reader& reader, To<boost::bimap<L, R, AP1, AP2, AP3>>) {
-  const auto size = reader.Read<std::size_t>();
+template <typename L, typename R, typename... Args>
+std::enable_if_t<kIsReadable<impl::BoostBimapLeftKey<L, R, Args...>> &&
+                     kIsReadable<impl::BoostBimapRightKey<L, R, Args...>>,
+                 boost::bimap<L, R, Args...>>
+Read(Reader& reader, To<boost::bimap<L, R, Args...>>) {
+  using BoostBimap = impl::BoostBimap<L, R, Args...>;
 
-  boost::bimap<L, R, AP1, AP2, AP3> map;
+  using BoostBimapLeftKey = impl::BoostBimapLeftKey<L, R, Args...>;
+  using BoostBimapRightKey = impl::BoostBimapRightKey<L, R, Args...>;
+
+  using BoostBimapSizeType = typename BoostBimap::size_type;
+
+  BoostBimap map;
   // bimap doesn't have reserve :(
 
-  for (std::size_t i = 0; i < size; ++i) {
+  const auto size = reader.Read<BoostBimapSizeType>();
+  for (BoostBimapSizeType i = 0; i < size; ++i) {
     // `Read`s are guaranteed to occur left-to-right in brace-init
-    map.left.insert({reader.Read<L>(), reader.Read<R>()});
+    map.insert({
+        reader.Read<BoostBimapLeftKey>(),
+        reader.Read<BoostBimapRightKey>(),
+    });
   }
 
   return map;

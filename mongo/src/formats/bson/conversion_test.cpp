@@ -349,13 +349,13 @@ TEST(BsonConversion, DateTime) {
     if (is_int32) {
       EXPECT_EQ(int_value, elem.ConvertTo<int32_t>());
     } else {
-      UEXPECT_THROW(elem.ConvertTo<int32_t>(), fb::ConversionException);
+      UEXPECT_THROW(elem.ConvertTo<int32_t>(), fb::ParseException);
     }
     EXPECT_EQ(int_value, elem.ConvertTo<int64_t>());
     if (sizeof(size_t) >= 8 || is_int32) {
       EXPECT_EQ(int_value, elem.ConvertTo<size_t>());
     } else {
-      UEXPECT_THROW(elem.ConvertTo<size_t>(), fb::ConversionException);
+      UEXPECT_THROW(elem.ConvertTo<size_t>(), fb::ParseException);
     }
     EXPECT_DOUBLE_EQ(int_value, elem.ConvertTo<double>());
     EXPECT_EQ(std::to_string(int_value), elem.ConvertTo<std::string>());

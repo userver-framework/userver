@@ -35,6 +35,10 @@ const TopologySettings& TopologyBase::GetTopologySettings() const {
   return topology_settings_;
 }
 
+void TopologyBase::SetTopologySettings(const TopologySettings& settings) {
+  topology_settings_ = settings;
+}
+
 const testsuite::PostgresControl& TopologyBase::GetTestsuiteControl() const {
   return testsuite_pg_ctl_;
 }

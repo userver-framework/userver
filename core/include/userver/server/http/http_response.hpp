@@ -45,6 +45,10 @@ class HttpResponse final : public request::ResponseBase {
   /// @cond
   HttpResponse(const HttpRequestImpl& request,
                request::ResponseDataAccounter& data_accounter);
+  HttpResponse(const HttpRequestImpl& request,
+               request::ResponseDataAccounter& data_accounter,
+               std::chrono::steady_clock::time_point now,
+               utils::StrCaseHash hasher);
   ~HttpResponse() override;
 
   void SetSendFailed(
@@ -153,7 +157,8 @@ class HttpResponse final : public request::ResponseBase {
   HeadersMap headers_;
   CookiesMap cookies_;
 
-  engine::SingleConsumerEvent headers_end_;
+  engine::SingleConsumerEvent headers_end_{
+      engine::SingleConsumerEvent::NoAutoReset()};
   std::optional<Queue::Consumer> body_stream_;
   std::optional<Queue::Producer> body_stream_producer_;
 };

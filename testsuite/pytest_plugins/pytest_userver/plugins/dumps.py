@@ -1,3 +1,4 @@
+# pylint: disable=redefined-outer-name
 import pathlib
 import shutil
 import typing
@@ -7,8 +8,8 @@ import pytest
 USERVER_CONFIG_HOOKS = ['_userver_config_dumps']
 
 
-@pytest.fixture(name='userver_dumps_root', scope='session')
-def _userver_dumps_root(tmp_path_factory) -> pathlib.Path:
+@pytest.fixture(scope='session')
+def userver_dumps_root(tmp_path_factory) -> pathlib.Path:
     """
     The directory which the service will use for cache dumps.
     Dumps of individual components will be stored in

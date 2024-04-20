@@ -97,8 +97,8 @@ class Logging final : public impl::ComponentBase {
   /// @returns Pointer to the Logger instance, or `nullptr` if not registered
   logging::LoggerPtr GetLoggerOptional(const std::string& name);
 
-  void StartSocketLoggingDebug();
-  void StopSocketLoggingDebug();
+  void StartSocketLoggingDebug(const std::optional<logging::Level>& log_level);
+  void StopSocketLoggingDebug(const std::optional<logging::Level>& log_level);
 
   /// Reopens log files after rotation
   void OnLogRotate();

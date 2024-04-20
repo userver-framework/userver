@@ -15,12 +15,14 @@
 #include <userver/storages/postgres/cluster_types.hpp>
 #include <userver/storages/postgres/component.hpp>
 #include <userver/storages/postgres/result_set.hpp>
+#include <userver/storages/secdist/component.hpp>
 #include <userver/utils/datetime.hpp>
 
 namespace samples::digest_auth {
 
 using UserData = server::handlers::auth::digest::UserData;
 using HA1 = server::handlers::auth::digest::UserData::HA1;
+using SecdistConfig = storages::secdist::SecdistConfig;
 using TimePoint = std::chrono::time_point<std::chrono::system_clock>;
 
 class AuthChecker final
@@ -31,9 +33,10 @@ class AuthChecker final
       server::handlers::auth::digest::AuthCheckerSettings;
 
   AuthChecker(const AuthDigestSettings& digest_settings, std::string realm,
-              const ::components::ComponentContext& context)
-      : server::handlers::auth::digest::AuthCheckerBase(digest_settings,
-                                                        std::move(realm)),
+              const ::components::ComponentContext& context,
+              const SecdistConfig& secdist_config)
+      : server::handlers::auth::digest::AuthCheckerBase(
+            digest_settings, std::move(realm), secdist_config),
         pg_cluster_(context.FindComponent<components::Postgres>("auth-database")
                         .GetCluster()),
         nonce_ttl_(digest_settings.nonce_ttl) {}
@@ -119,7 +122,8 @@ server::handlers::auth::AuthCheckerBasePtr CheckerFactory::operator()(
           .GetSettings();
 
   return std::make_shared<AuthChecker>(
-      digest_auth_settings, auth_config["realm"].As<std::string>({}), context);
+      digest_auth_settings, auth_config["realm"].As<std::string>({}), context,
+      context.FindComponent<components::Secdist>().Get());
 }
 /// [auth checker factory definition]
 
@@ -135,7 +139,8 @@ server::handlers::auth::AuthCheckerBasePtr CheckerProxyFactory::operator()(
           .GetSettings();
 
   return std::make_shared<AuthChecker>(
-      digest_auth_settings, auth_config["realm"].As<std::string>({}), context);
+      digest_auth_settings, auth_config["realm"].As<std::string>({}), context,
+      context.FindComponent<components::Secdist>().Get());
 }
 
 }  // namespace samples::digest_auth

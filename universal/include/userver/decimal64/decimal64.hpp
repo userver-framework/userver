@@ -81,6 +81,15 @@ namespace impl {
 inline constexpr auto kMaxInt64 = std::numeric_limits<int64_t>::max();
 inline constexpr auto kMinInt64 = std::numeric_limits<int64_t>::min();
 
+// Note: static_cast may introduce an inaccuracy. To be on the safe side,
+// we'd have to call std::nextafter, but it's not constexpr until C++23.
+inline constexpr auto kMinRepresentableLongDouble =
+    static_cast<long double>(impl::kMinInt64) *
+    (1 - 2 * std::numeric_limits<long double>::epsilon());
+inline constexpr auto kMaxRepresentableLongDouble =
+    static_cast<long double>(impl::kMaxInt64) *
+    (1 - 2 * std::numeric_limits<long double>::epsilon());
+
 template <typename T>
 using EnableIfInt = std::enable_if_t<meta::kIsInteger<T>, int>;
 
@@ -486,10 +495,15 @@ class Decimal {
   template <typename T>
   static constexpr Decimal FromFloatInexact(T value) {
     static_assert(std::is_floating_point_v<T>);
+    // Check that overflow does not occur when converting to int64_t
+    // (constexpr detects UB).
+    static_assert(DefRoundPolicy::Round(impl::kMinRepresentableLongDouble) < 0);
+    static_assert(DefRoundPolicy::Round(impl::kMaxRepresentableLongDouble) > 0);
+
     const auto unbiased_float =
         static_cast<long double>(value) * kDecimalFactor;
-    if (unbiased_float < impl::kMinInt64 + 1 ||
-        unbiased_float > impl::kMaxInt64 - 1) {
+    if (unbiased_float < impl::kMinRepresentableLongDouble ||
+        unbiased_float > impl::kMaxRepresentableLongDouble) {
       throw OutOfBoundsError();
     }
     return FromUnbiased(DefRoundPolicy::Round(unbiased_float));
@@ -745,7 +759,7 @@ class Decimal {
     constexpr std::int64_t kLossLimit =
         (static_cast<std::int64_t>(1) << std::numeric_limits<double>::digits);
 
-    if (std::abs(value_) < kLossLimit) {
+    if (value_ > -kLossLimit && value_ < kLossLimit) {
       return static_cast<double>(value_) / kDecimalFactor;
     }
 

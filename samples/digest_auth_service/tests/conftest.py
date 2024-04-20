@@ -35,3 +35,12 @@ def pgsql_local(service_source_dir, pgsql_local_create):
         'auth', [service_source_dir.joinpath('postgresql/schemas')],
     )
     return pgsql_local_create(list(databases.values()))
+
+
+@pytest.fixture(scope='session')
+def service_env():
+    return {
+        'SERVER_DIGEST_AUTH_SECRET': (
+            '{ "http_server_digest_auth_secret": "some-private-key" }'
+        ),
+    }

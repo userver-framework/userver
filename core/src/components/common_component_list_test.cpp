@@ -78,6 +78,8 @@ components_manager:
       testsuite-redis-timeout-connect: 5s
       testsuite-redis-timeout-single: 1s
       testsuite-redis-timeout-all: 750ms
+      testsuite-increased-timeout: 40s
+      cache-update-execution: concurrent
 # /// [Sample testsuite support component config]
 # /// [Sample http client component config]
 # yaml

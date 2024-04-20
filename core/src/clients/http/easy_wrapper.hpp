@@ -17,13 +17,14 @@ class EasyWrapper final {
   EasyWrapper(std::shared_ptr<curl::easy>&& easy, Client& client);
 
   EasyWrapper(const EasyWrapper&) = delete;
-  EasyWrapper(EasyWrapper&&) = delete;
+  EasyWrapper(EasyWrapper&&) noexcept;
   EasyWrapper& operator=(const EasyWrapper&) = delete;
   EasyWrapper& operator=(EasyWrapper&&) = delete;
 
   ~EasyWrapper();
 
   curl::easy& Easy();
+  const curl::easy& Easy() const;
 
  private:
   std::shared_ptr<curl::easy> easy_;

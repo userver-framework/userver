@@ -3,6 +3,7 @@
 /// @file userver/logging/level.hpp
 /// @brief Log levels
 
+#include <cstdint>
 #include <optional>
 #include <string>
 
@@ -12,7 +13,7 @@ USERVER_NAMESPACE_BEGIN
 namespace logging {
 
 /// Log levels
-enum class Level {
+enum class Level : std::uint8_t {
   kTrace = 0,
   kDebug = 1,
   kInfo = 2,

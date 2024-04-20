@@ -64,10 +64,10 @@ mongo.pool.conn-closed: mongo_database=key-value-database	RATE	0
 # Number of connections created since the service start
 mongo.pool.conn-created: mongo_database=key-value-database	RATE	2
 
-# Connection initilization errors since the service start
+# Connection initialization errors since the service start
 mongo.pool.conn-init.errors-total: mongo_database=key-value-database, mongo_error=total	RATE	0
 
-# Connection initilization successes since the service start
+# Connection initialization successes since the service start
 mongo.pool.conn-init.success: mongo_database=key-value-database	RATE	2
 
 # Connection initialization timings

@@ -3,6 +3,7 @@
 /// @file userver/server/handlers/http_handler_base.hpp
 /// @brief @copybrief server::handlers::HttpHandlerBase
 
+#include <memory>
 #include <optional>
 #include <string>
 #include <unordered_set>
@@ -13,7 +14,6 @@
 #include <userver/utils/statistics/entry.hpp>
 #include <userver/utils/token_bucket.hpp>
 
-#include <userver/server/handlers/auth/auth_checker_base.hpp>
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/server/handlers/formatted_error_data.hpp>
 #include <userver/server/handlers/handler_base.hpp>
@@ -21,13 +21,16 @@
 #include <userver/server/http/http_response.hpp>
 #include <userver/server/http/http_response_body_stream_fwd.hpp>
 #include <userver/server/request/request_base.hpp>
+// Not needed here, but a lot of code depends on it being included transitively
 #include <userver/tracing/span.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace tracing {
-class TracingManagerBase;
-}  // namespace tracing
+namespace server::middlewares {
+class HttpMiddlewareBase;
+class HandlerAdapter;
+class Auth;
+}  // namespace server::middlewares
 
 /// @brief Most common \ref userver_http_handlers "userver HTTP handlers"
 namespace server::handlers {
@@ -52,6 +55,7 @@ class HttpHandlerStatisticsScope;
 /// ---- | ----------- | -------------
 /// log-level | overrides log level for this handle | <no override>
 /// status-codes-log-level | map of "status": log_level items to override span log level for specific status codes | {}
+/// middleware-pipeline-builder | name of a component to build a middleware pipeline for this particular handler | default-handler-middleware-pipeline-builder
 ///
 /// ## Example usage:
 ///
@@ -95,6 +99,22 @@ class HttpHandlerBase : public HandlerBase {
   std::string GetResponseDataForLoggingChecked(
       const http::HttpRequest& request, request::RequestContext& context,
       const std::string& response_data) const;
+
+  /// Takes the exception and formats it into response, as specified by
+  /// exception.
+  void HandleCustomHandlerException(const http::HttpRequest& request,
+                                    const CustomHandlerException& ex) const;
+
+  /// Takes the exception and formats it into response as an internal server
+  /// error.
+  void HandleUnknownException(const http::HttpRequest& request,
+                              const std::exception& ex) const;
+
+  /// Helper function to log an unknown exception
+  void LogUnknownException(const std::exception& ex) const;
+
+  /// Returns the default log level for the handler
+  const std::optional<logging::Level>& GetLogLevel() const;
 
   static yaml_config::Schema GetStaticConfigSchema();
 
@@ -162,6 +182,12 @@ class HttpHandlerBase : public HandlerBase {
   virtual std::string GetMetaType(const http::HttpRequest&) const;
 
  private:
+  friend class middlewares::HandlerAdapter;
+  friend class middlewares::Auth;
+
+  void HandleHttpRequest(http::HttpRequest& request,
+                         request::RequestContext& context) const;
+
   void HandleRequestStream(const http::HttpRequest& http_request,
                            request::RequestContext& context) const;
 
@@ -169,38 +195,29 @@ class HttpHandlerBase : public HandlerBase {
       const http::HttpRequest& request, request::RequestContext& context,
       const std::string& request_body) const;
 
-  tracing::Span MakeSpan(const http::HttpRequest& http_request,
-                         const std::string& meta_type) const;
-
-  void CheckAuth(const http::HttpRequest& http_request,
-                 request::RequestContext& context) const;
-
-  void CheckRatelimit(const http::HttpRequest& http_request) const;
-
-  void DecompressRequestBody(http::HttpRequest& http_request) const;
-
   template <typename HttpStatistics>
   void FormatStatistics(utils::statistics::Writer result,
                         const HttpStatistics& stats);
 
-  void SetResponseAcceptEncoding(http::HttpResponse& response) const;
   void SetResponseServerHostname(http::HttpResponse& response) const;
+
+  void BuildMiddlewarePipeline(const components::ComponentConfig&,
+                               const components::ComponentContext&);
 
   const dynamic_config::Source config_source_;
   const std::vector<http::HttpMethod> allowed_methods_;
   const std::string handler_name_;
   utils::statistics::Entry statistics_holder_;
-  const tracing::TracingManagerBase& tracing_manager_;
+  std::optional<logging::Level> log_level_;
   std::unordered_map<int, logging::Level> log_level_for_status_codes_;
 
   std::unique_ptr<HttpHandlerStatistics> handler_statistics_;
   std::unique_ptr<HttpRequestStatistics> request_statistics_;
-  std::vector<auth::AuthCheckerBasePtr> auth_checkers_;
 
-  std::optional<logging::Level> log_level_;
   bool set_response_server_hostname_;
-  mutable utils::TokenBucket rate_limit_;
   bool is_body_streamed_;
+
+  std::unique_ptr<middlewares::HttpMiddlewareBase> first_middleware_;
 };
 
 }  // namespace server::handlers

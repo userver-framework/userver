@@ -13,7 +13,7 @@
 #include <clients/http/statistics.hpp>
 #include <clients/http/testsuite.hpp>
 #include <userver/clients/http/client.hpp>
-#include <userver/clients/http/impl/config.hpp>
+#include <userver/clients/http/config.hpp>
 #include <userver/clients/http/plugin_component.hpp>
 #include <userver/tracing/manager_component.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
@@ -27,10 +27,10 @@ namespace {
 constexpr size_t kDestinationMetricsAutoMaxSizeDefault = 100;
 constexpr std::string_view kHttpClientPluginPrefix = "http-client-plugin-";
 
-clients::http::impl::ClientSettings GetClientSettings(
+clients::http::ClientSettings GetClientSettings(
     const ComponentConfig& component_config, const ComponentContext& context) {
-  clients::http::impl::ClientSettings settings;
-  settings = component_config.As<clients::http::impl::ClientSettings>();
+  clients::http::ClientSettings settings;
+  settings = component_config.As<clients::http::ClientSettings>();
   auto& tracing_locator =
       context.FindComponent<tracing::DefaultTracingManagerLocator>();
   settings.tracing_manager = &tracing_locator.GetTracingManager();
@@ -39,6 +39,10 @@ clients::http::impl::ClientSettings GetClientSettings(
   if (propagator_component) {
     settings.headers_propagator = &propagator_component->Get();
   }
+  settings.cancellation_policy =
+      component_config["cancellation-policy"]
+          .As<clients::http::CancellationPolicy>(
+              clients::http::CancellationPolicy::kCancel);
   return settings;
 }
 
@@ -252,6 +256,12 @@ properties:
         items:
             type: string
             description: plugin name
+    cancellation-policy:
+        type: string
+        description: Cancellation policy for new requests
+        enum:
+          - cancel
+          - ignore
 )");
 }
 

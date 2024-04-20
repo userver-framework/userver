@@ -1,6 +1,6 @@
 LIBRARY()
 
-OWNER(
+SUBSCRIBER(
     g:taxi-common
 )
 

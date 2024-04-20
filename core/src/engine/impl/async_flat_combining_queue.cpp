@@ -13,27 +13,26 @@ template <auto TryStartWaiting>
 class AsyncFlatCombiningQueue::WaitStrategy final : public impl::WaitStrategy {
  public:
   WaitStrategy(AsyncFlatCombiningQueue& queue, TaskContext& context)
-      : impl::WaitStrategy(engine::Deadline{}),
-        queue_(queue),
-        context_(context) {
+      : queue_(queue), context_(context) {
     // No deadlines or cancellations are allowed, because else this task may
     // walk away and be destroyed, and the notification will be sent to a dead
     // task.
     UASSERT(!context_.IsCancellable());
   }
 
-  void SetupWakeups() override {
+  EarlyWakeup SetupWakeups() override {
     if (std::invoke(TryStartWaiting, queue_)) {
       // We will be woken up if and only if our notifier_node_ is seen by
       // another thread or task. No deadlines or cancellations are allowed,
       // otherwise another consumer may see notifier_node_ later and wake up
       // a dead task.
+      return EarlyWakeup{false};
     } else {
-      context_.WakeupCurrent();
+      return EarlyWakeup{true};
     }
   }
 
-  void DisableWakeups() override {
+  void DisableWakeups() noexcept override {
     // We won't be notified anymore, since we are the sole consumer now.
   }
 
@@ -148,7 +147,8 @@ void AsyncFlatCombiningQueue::Wait() noexcept {
   if (consuming_task_context_ != &current) consuming_task_context_ = &current;
 
   WaitStrategy<TryStartWaiting> wait_strategy{*this, current};
-  [[maybe_unused]] const auto wakeup_source = current.Sleep(wait_strategy);
+  [[maybe_unused]] const auto wakeup_source =
+      current.Sleep(wait_strategy, Deadline{});
   UASSERT(wakeup_source == TaskContext::WakeupSource::kWaitList);
 
   UASSERT(consuming_task_context_ == &current);

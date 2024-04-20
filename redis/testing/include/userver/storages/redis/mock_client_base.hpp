@@ -49,6 +49,7 @@ class MockClientBase : public Client,
       USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected) override;
 
   size_t ShardsCount() const override;
+  bool IsInClusterMode() const override;
 
   size_t ShardByKey(const std::string& key) const override;
 

@@ -44,11 +44,12 @@ list (REMOVE_ITEM SOURCES ${BENCH_SOURCES})
 
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
+add_library(userver::postgresql ALIAS ${PROJECT_NAME})
 
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
+	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
@@ -63,6 +64,21 @@ target_link_libraries(${PROJECT_NAME}
     userver-libpq
     Boost::regex
 )
+
+_userver_directory_install(COMPONENT postgres
+  DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
+)
+_userver_install_targets(COMPONENT postgres TARGETS ${PROJECT_NAME} userver-libpq)
+
+_userver_directory_install(COMPONENT postgres FILES
+    "${USERVER_ROOT_DIR}/cmake/install/userver-postgresql-config.cmake"
+	"${USERVER_ROOT_DIR}/cmake/SetupPostgresqlDeps.cmake"
+    "${CMAKE_BINARY_DIR}/cmake_generated/FindPostgreSQLInternal.cmake"
+    "${CMAKE_BINARY_DIR}/cmake_generated/FindGssApi.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
+)
+
 
 if (USERVER_IS_THE_ROOT_PROJECT)
   add_executable(${PROJECT_NAME}-unittest ${UNIT_TEST_SOURCES})
@@ -111,3 +127,5 @@ if (USERVER_IS_THE_ROOT_PROJECT)
 
   add_subdirectory(functional_tests)
 endif()
+
+

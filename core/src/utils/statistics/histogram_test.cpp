@@ -81,6 +81,14 @@ UTEST(StatisticsHistogram, AccountForEachBucketCount) {
   }
 }
 
+UTEST(StatisticsHistogram, Total) {
+  utils::statistics::Histogram histogram{Bounds()};
+  AccountSome(histogram);
+  EXPECT_EQ(fmt::to_string(histogram.GetView()),
+            "[1.5]=1,[5]=1,[42]=5,[60]=0,[inf]=1");
+  EXPECT_EQ(histogram.GetView().GetTotalCount(), 8);
+}
+
 UTEST(StatisticsHistogram, Sample) {
   /// [sample]
   utils::statistics::Storage storage;
@@ -290,18 +298,50 @@ UTEST_F(StatisticsHistogramFormat, PrettyFormat) {
             "test:\tHIST_RATE\t[1.5]=1,[5]=1,[42]=5,[60]=0,[inf]=1\n");
 }
 
-// TODO support HistogramView in Prometheus metrics
-UTEST_F_DEATH(StatisticsHistogramFormatDeathTest, Prometheus) {
-  EXPECT_DEBUG_DEATH(
-      EXPECT_EQ(utils::statistics::ToPrometheusFormat(GetStorage()), ""),
-      "not supported");
+UTEST_F(StatisticsHistogramFormat, Prometheus) {
+  constexpr std::string_view expected = R"(# TYPE test histogram
+test_bucket{le="1.5"} 1
+test_bucket{le="5"} 2
+test_bucket{le="42"} 7
+test_bucket{le="60"} 7
+test_bucket{le="+Inf"} 8
+test_count{} 8
+)";
+  EXPECT_EQ(utils::statistics::ToPrometheusFormat(GetStorage()), expected);
 }
 
-// TODO support HistogramView in PrometheusUntyped metrics
-UTEST_F_DEATH(StatisticsHistogramFormatDeathTest, PrometheusUntyped) {
-  EXPECT_DEBUG_DEATH(
-      EXPECT_EQ(utils::statistics::ToPrometheusFormatUntyped(GetStorage()), ""),
-      "not supported");
+UTEST_F(StatisticsHistogramFormat, PrometheusUntyped) {
+  constexpr std::string_view expected = R"(# TYPE test histogram
+test_bucket{le="1.5"} 1
+test_bucket{le="5"} 2
+test_bucket{le="42"} 7
+test_bucket{le="60"} 7
+test_bucket{le="+Inf"} 8
+test_count{} 8
+)";
+  EXPECT_EQ(utils::statistics::ToPrometheusFormatUntyped(GetStorage()),
+            expected);
+}
+
+UTEST_F(StatisticsHistogramFormat, CustomLabels) {
+  utils::statistics::Storage storage;
+  utils::statistics::Histogram histogram{Bounds()};
+  AccountSome(histogram);
+  auto statistics_holder =
+      storage.RegisterWriter("test", [&](utils::statistics::Writer& writer) {
+        writer.ValueWithLabels(
+            histogram, {{"custom_label_1", "1"}, {"custom_label_2", "2"}});
+      });
+
+  constexpr std::string_view expected = R"(# TYPE test histogram
+test_bucket{le="1.5",custom_label_1="1",custom_label_2="2"} 1
+test_bucket{le="5",custom_label_1="1",custom_label_2="2"} 2
+test_bucket{le="42",custom_label_1="1",custom_label_2="2"} 7
+test_bucket{le="60",custom_label_1="1",custom_label_2="2"} 7
+test_bucket{le="+Inf",custom_label_1="1",custom_label_2="2"} 8
+test_count{custom_label_1="1",custom_label_2="2"} 8
+)";
+  EXPECT_EQ(utils::statistics::ToPrometheusFormat(storage), expected);
 }
 
 // TODO support HistogramView in Graphite metrics

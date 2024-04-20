@@ -33,7 +33,7 @@ if (USERVER_USE_LD)
     message(STATUS "Using GNU gold linker")
   elseif((USERVER_USE_LD MATCHES "lld") AND (LD_VERSION MATCHES "LLD"))
     set(CUSTOM_LD_OK ON CACHE INTERNAL CUSTOM_LD_OK)
-    message(STATUS "Using LLVM lld linker")
+    message(STATUS "Using LLVM lld linker: ${USERVER_USE_LD}")
   endif()
 
   if (CUSTOM_LD_OK)

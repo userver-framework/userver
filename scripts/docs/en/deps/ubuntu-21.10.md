@@ -1,3 +1,4 @@
+build-essential
 ccache
 cmake
 git
@@ -9,6 +10,7 @@ libboost-iostreams1.74-dev
 libboost-locale1.74-dev
 libboost-program-options1.74-dev
 libboost-regex1.74-dev
+libboost-stacktrace1.74-dev
 libboost1.74-dev
 libbson-dev
 libc-ares-dev
@@ -23,7 +25,6 @@ libgrpc++-dev
 libgrpc++1
 libgtest-dev
 libhiredis-dev
-libhttp-parser-dev
 libjemalloc-dev
 libkrb5-dev
 libldap2-dev
@@ -33,14 +34,13 @@ libpq-dev
 libprotoc-dev
 libssl-dev
 libyaml-cpp-dev
+netbase
 ninja-build
-postgresql-13
 postgresql-server-dev-13
 protobuf-compiler-grpc
 python3-dev
 python3-jinja2
 python3-protobuf
-python3-virtualenv
+python3-venv
 python3-voluptuous
-redis-server
 zlib1g-dev

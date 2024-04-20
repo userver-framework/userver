@@ -17,6 +17,7 @@
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/engine/wait_any.hpp>
 #include <userver/internal/net/net_listener.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -33,13 +34,8 @@ using UdpListener = internal::net::UdpListener;
 UTEST(Socket, ConnectFail) {
   const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
-  io::Sockaddr addr;
-  auto* sa = addr.As<sockaddr_in6>();
-  sa->sin6_family = AF_INET6;
-  sa->sin6_addr = in6addr_loopback;
-  // if you have telnet running, I have a few questions...
-  // NOLINTNEXTLINE(hicpp-no-assembler,readability-isolate-declaration)
-  sa->sin6_port = htons(23);
+  auto addr = io::Sockaddr::MakeLoopbackAddress();
+  addr.SetPort(23);
   io::Socket telnet_socket{addr.Domain(), io::SocketType::kStream};
   try {
     telnet_socket.Connect(addr, test_deadline);
@@ -173,6 +169,63 @@ UTEST(Socket, SendAllVector) {
 
   listen_task.Get();
   EXPECT_EQ(bytes_sent, bytes_read);
+}
+
+UTEST(Socket, WaitAnyRead) {
+  const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+  TcpListener listener;
+  auto sockets = listener.MakeSocketPair(deadline);
+
+  // No data
+  auto num = engine::WaitAnyFor(std::chrono::milliseconds(100),
+                                sockets.second.GetReadableBase());
+  EXPECT_EQ(num, std::nullopt);
+
+  char buf[] = {1};
+  EXPECT_EQ(1, sockets.first.WriteAll(buf, sizeof(buf), deadline));
+
+  // Data is here
+  num = engine::WaitAnyFor(std::chrono::seconds(1),
+                           sockets.second.GetReadableBase());
+  EXPECT_EQ(num, 0);
+
+  // Read all data
+  EXPECT_EQ(1, sockets.second.ReadAll(buf, sizeof(buf), deadline));
+
+  // No data again
+  num = engine::WaitAnyFor(std::chrono::milliseconds(100),
+                           sockets.second.GetReadableBase());
+  EXPECT_EQ(num, std::nullopt);
+}
+
+UTEST(Socket, WaitAnyWrite) {
+  const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+  TcpListener listener;
+  auto sockets = listener.MakeSocketPair(deadline);
+
+  // May write
+  auto num = engine::WaitAnyFor(std::chrono::seconds(1),
+                                sockets.second.GetWritableBase());
+  EXPECT_EQ(num, 0);
+
+  char buf[] = {1};
+  try {
+    while (true) {
+      auto ret =
+          sockets.first.WriteAll(buf, sizeof(buf), engine::Deadline::Passed());
+      EXPECT_EQ(ret, 1);
+    }
+  } catch (const engine::io::IoTimeout&) {
+  }
+
+  // May not write
+  num = engine::WaitAnyFor(std::chrono::milliseconds(100),
+                           sockets.first.GetWritableBase());
+  EXPECT_EQ(num, std::nullopt);
+
+  num = engine::WaitAnyFor(std::chrono::milliseconds(100),
+                           sockets.first.GetWritableBase());
+  EXPECT_EQ(num, std::nullopt);
 }
 
 UTEST(Socket, SendAllVectorHeap) {

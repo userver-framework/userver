@@ -10,7 +10,8 @@ EndpointInfo::EndpointInfo(const ListenerConfig& listener_config,
 
 std::string EndpointInfo::GetDescription() const {
   if (listener_config.unix_socket_path.empty())
-    return "port=" + std::to_string(listener_config.port);
+    return fmt::format("address = {}, port = {}", listener_config.address,
+                       std::to_string(listener_config.port));
   else
     return "unix_socket_path=" + listener_config.unix_socket_path;
 }

@@ -61,14 +61,14 @@ class Client final {
                      const std::vector<std::string>& fields_to_load);
 
   JsonReply FetchJson(const std::optional<Timestamp>& last_update,
-                      const std::unordered_set<std::string>& fields_to_load);
+                      const std::vector<std::string>& fields_to_load);
 
  private:
   formats::json::Value FetchConfigs(
       const std::optional<Timestamp>& last_update,
-      formats::json::ValueBuilder&& fields_to_load);
+      const std::vector<std::string>& fields_to_load);
 
-  std::string FetchConfigsValues(const std::string& body);
+  std::string FetchConfigsValues(std::string_view body);
 
   const ClientConfig config_;
   clients::http::Client& http_client_;

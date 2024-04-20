@@ -1,6 +1,7 @@
 #pragma once
 
 #include <boost/pfr/core.hpp>
+#include <boost/pfr/traits.hpp>
 
 #include <userver/storages/postgres/detail/is_in_namespace.hpp>
 #include <userver/storages/postgres/io/type_traits.hpp>
@@ -24,8 +25,8 @@ struct RowTag {};
 /// @snippet storages/postgres/tests/composite_types_pgtest.cpp FieldTagSippet
 struct FieldTag {};
 
-constexpr RowTag kRowTag;
-constexpr FieldTag kFieldTag;
+inline constexpr RowTag kRowTag{};
+inline constexpr FieldTag kFieldTag{};
 
 namespace io {
 
@@ -75,12 +76,16 @@ struct HasIntrospection : impl::HasNonConstIntrospection<T> {
 
 namespace detail {
 
+struct ForDeserializationTag;
+
 template <typename T>
 constexpr bool DetectIsSuitableRowType() {
   using type = std::remove_cv_t<T>;
   return std::is_class_v<type> && !std::is_empty_v<type> &&
-         std::is_aggregate_v<type> && !std::is_polymorphic_v<type> &&
-         !std::is_union_v<type> && !postgres::detail::kIsInStdNamespace<type> &&
+         boost::pfr::is_implicitly_reflectable_v<
+             type, detail::ForDeserializationTag> &&
+         !std::is_polymorphic_v<type> && !std::is_union_v<type> &&
+         !postgres::detail::kIsInStdNamespace<type> &&
          !postgres::detail::kIsInBoostNamespace<type>;
 }
 
@@ -128,6 +133,19 @@ struct RowCategory<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops, Enable>>
 
 template <typename T>
 inline constexpr RowCategoryType kRowCategory = RowCategory<T>::value;
+
+template <typename T>
+constexpr void AssertIsValidRowType() {
+  static_assert(
+      kRowCategory<T> != RowCategoryType::kNonRow,
+      "Row type must be one of the following: "
+      "1. primitive type. "
+      "2. std::tuple. "
+      "3. Aggregation type. See std::aggregation. "
+      "4. Has a Introspect method that makes the std::tuple from your "
+      "class/struct. "
+      "For more info see `uPg: Typed PostgreSQL results` chapter in docs.");
+}
 
 template <typename T>
 inline constexpr bool kIsRowType = kRowCategory<T> != RowCategoryType::kNonRow;

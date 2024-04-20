@@ -10,7 +10,7 @@ class BackgroundTaskStorageCore;
 class BackgroundTaskStorage;
 
 using BackgroundTaskStorageFastPimpl =
-    utils::FastPimpl<BackgroundTaskStorage, 144, 8>;
+    utils::FastPimpl<BackgroundTaskStorage, 144, 16>;
 
 }  // namespace concurrent
 

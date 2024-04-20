@@ -19,20 +19,25 @@
 #include <userver/server/http/http_response.hpp>
 #include <userver/server/http/http_status.hpp>
 #include <userver/server/request/request_context.hpp>
+#include <userver/storages/secdist/secdist.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers::auth::digest {
 
 using TimePoint = std::chrono::time_point<std::chrono::system_clock>;
+using SecdistConfig = storages::secdist::SecdistConfig;
+using ServerDigestAuthSecret =
+    utils::NonLoggable<class DigestSecretKeyTag, std::string>;
 
 /// Used for data hashing and "nonce" generating.
 class Hasher final {
  public:
-  /// Constructor from the hash algorithm name from "crypto" namespace.
-  /// Subsequently, all methods of the class will use this algorithm for
-  /// hashing.
-  Hasher(std::string_view algorithm);
+  /// Constructor from the hash algorithm name from "crypto" namespace
+  /// to be used for hashing and storages::secdist::SecdistConfig containing a
+  /// server secret key `http_server_digest_auth_secret`
+  /// to be used for "nonce" generating.
+  Hasher(std::string_view algorithm, const SecdistConfig& secdist_config);
 
   /// Returns "nonce" directive value in hexadecimal format.
   std::string GenerateNonce(std::string_view etag) const;
@@ -45,6 +50,7 @@ class Hasher final {
   using HashAlgorithm = std::function<std::string(
       std::string_view, crypto::hash::OutputEncoding)>;
   HashAlgorithm hash_algorithm_;
+  const SecdistConfig& secdist_config_;
 };
 
 /// Contains information about the user.
@@ -67,10 +73,10 @@ struct UserData final {
 class AuthCheckerBase : public auth::AuthCheckerBase {
  public:
   /// Assepts digest-authentication settings from
-  /// @ref server::handlers::auth::digest::AuthCheckerSettingsComponent and
-  /// "realm" from handler config in static_config.yaml.
+  /// @ref server::handlers::auth::DigestCheckerSettingsComponent and "realm"
+  /// from handler config in static_config.yaml.
   AuthCheckerBase(const AuthCheckerSettings& digest_settings,
-                  std::string&& realm);
+                  std::string&& realm, const SecdistConfig& secdist_config);
 
   AuthCheckerBase(const AuthCheckerBase&) = delete;
   AuthCheckerBase(AuthCheckerBase&&) = delete;

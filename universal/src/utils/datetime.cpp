@@ -28,15 +28,23 @@ constexpr int64_t k100NanosecondsIntervalsBetweenDotNetAndPosixTimeStart =
     62135596800L * 10000000L;  // sec to 100nanosec
 constexpr int64_t kNanosecondsIs100Nanoseconds = 100;
 
-cctz::time_zone GetTimezone(const std::string& tzname) {
+std::optional<cctz::time_zone> GetOptionalTimezone(const std::string& tzname) {
 #if defined(BSD) && !defined(__APPLE__)
-  if (tzname == "GMT") return GetTimezone("UTC");
+  if (tzname == "GMT") return GetOptionalTimezone("UTC");
 #endif
   cctz::time_zone tz;
   if (!load_time_zone(tzname, &tz)) {
-    throw TimezoneLookupError(tzname);
+    return std::nullopt;
   }
   return tz;
+}
+
+cctz::time_zone GetTimezone(const std::string& tzname) {
+  auto tz = GetOptionalTimezone(tzname);
+  if (!tz.has_value()) {
+    throw TimezoneLookupError(tzname);
+  }
+  return *tz;
 }
 
 const cctz::time_zone& GetLocalTimezone() {
@@ -105,6 +113,16 @@ bool IsTimeBetween(int hour, int min, int hour_from, int min_from, int hour_to,
 std::string Timestring(std::chrono::system_clock::time_point tp,
                        const std::string& timezone, const std::string& format) {
   return cctz::format(format, tp, GetTimezone(timezone));
+}
+
+std::optional<std::chrono::system_clock::time_point> OptionalStringtime(
+    const std::string& timestring, const std::string& timezone,
+    const std::string& format) {
+  auto tz = GetOptionalTimezone(timezone);
+  if (!tz.has_value()) {
+    return std::nullopt;
+  }
+  return OptionalStringtime(timestring, *tz, format);
 }
 
 std::string LocalTimezoneTimestring(std::chrono::system_clock::time_point tp,

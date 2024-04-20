@@ -165,6 +165,14 @@ TEST(TrivialBiMap, MakeTrivialBiMap) {
   EXPECT_EQ(kMap.TryFind(42), std::nullopt);
 }
 
+TEST(TrivialBiMap, MakeTrivialSet) {
+  static constexpr auto kSet = utils::MakeTrivialSet<kToIntKeys>();
+
+  EXPECT_EQ(kSet.GetIndex("zero"), 0);
+  EXPECT_EQ(kSet.GetIndex("three"), 3);
+  EXPECT_EQ(kSet.GetIndex("ten"), std::nullopt);
+}
+
 TEST(TrivialBiMap, FindICaseBySecond) {
   static constexpr utils::TrivialBiMap kNumToGerman = [](auto selector) {
     return selector().Case(0, "null").Case(1, "eins").Case(2, "zwei").Case(
@@ -340,6 +348,42 @@ TEST(TrivialBiMap, GetIndex) {
 
   EXPECT_EQ(kNames.GetIndex("bar"), 1);
   EXPECT_EQ(kNames.GetIndex("aba"), std::nullopt);
+}
+
+TEST(TrivialBiMap, ConstexprIteration) {
+  constexpr auto sum = []() {
+    constexpr utils::TrivialBiMap kMap = [](auto selector) {
+      return selector().Case(10, 0).Case(11, 1).Case(12, 2).Case(13, 3);
+    };
+
+    int sum = 0;
+    for (const auto& [literal, i] : kMap) {
+      sum += i;
+    }
+
+    return sum;
+  }();
+
+  EXPECT_EQ(sum, 6);
+}
+
+TEST(TrivialBiMap, Empty) {
+  constexpr auto sum = []() {
+    /// [sample empty bimap]
+    constexpr utils::TrivialBiMap kEmptyMap = [](auto selector) {
+      return selector().template Type<int, int>();
+    };
+    /// [sample empty bimap]
+
+    int sum = 0;
+    for (const auto& [literal, i] : kEmptyMap) {
+      sum += i;
+    }
+
+    return sum;
+  }();
+
+  EXPECT_EQ(sum, 0);
 }
 
 USERVER_NAMESPACE_END

@@ -11,18 +11,19 @@ Moreover, you have to recalculate the limit in case of cluster resize.
 It is a whole thing to maintain the limit all the time and it is error-prone.
 A wrong setup might lead to incidents.
 
-That's why we have "connlimit-mode: auto".
+That's why we have "connlimit-mode: auto" that override the components::Postgres
+static config option `max_pool_size`.
 
 ## connlimit-mode: auto
 
-The postgreSQL driver allows one to automatically determine the required max
+The PostgreSQL driver allows one to automatically determine the required max
 connection limit. It is calculated as follows:
 
 ```
 client_max_connections = server_max_connections/instances - reserved
 ```
 
-server_max_connections is calculated based on `SHOW max_connections` answer and
+`server_max_connections` is calculated based on `SHOW max_connections` answer and
 on the current user connection limit.
 The service identifies `instanses` based on the following algorithm.
 The service creates `u_clients` table and regularly writes down information about
@@ -53,5 +54,5 @@ components_manager:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref pg_topology | @ref pg_user_types ⇨
+⇦ @ref pg_topology | @ref scripts/docs/en/userver/pg_user_types.md ⇨
 @htmlonly </div> @endhtmlonly

@@ -69,9 +69,23 @@ TYPED_TEST_P(Roundtrip, UnorderedSet) {
   this->Check(std::unordered_set<int>{1, 2, 3});
 }
 
+TYPED_TEST_P(Roundtrip, VectorOfStringView) {
+  constexpr std::string_view kValue1 = "Some string in std::string_view 1";
+  constexpr std::string_view kValue2 = "Some string in std::string_view 2";
+  std::vector<std::string_view> data = {kValue1, kValue2};
+
+  // cannot do As<std::vector<std::string_view>>(), test it manually
+  const auto extracted =
+      TypeParam{data}.ExtractValue().template As<std::vector<std::string>>();
+  ASSERT_EQ(data.size(), extracted.size());
+  ASSERT_EQ(data[0], extracted[0]);
+  ASSERT_EQ(data[1], extracted[1]);
+}
+
 REGISTER_TYPED_TEST_SUITE_P(Roundtrip,
 
                             Bool, Int, Uint64, Double, Cstring, String,
-                            Optional, Vector, UnorderedMap, UnorderedSet);
+                            Optional, Vector, UnorderedMap, UnorderedSet,
+                            VectorOfStringView);
 
 USERVER_NAMESPACE_END

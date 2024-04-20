@@ -51,7 +51,6 @@ create type __pgtest.with_array as (
 
 }  // namespace
 
-/*! [User type declaration] */
 namespace pgtest {
 
 struct FooBar {
@@ -113,7 +112,6 @@ struct BunchOfFoo {
 };
 
 }  // namespace pgtest
-/*! [User type declaration] */
 
 namespace pgtest {
 

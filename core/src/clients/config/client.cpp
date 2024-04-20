@@ -2,14 +2,16 @@
 
 #include <userver/clients/http/client.hpp>
 #include <userver/formats/json/serialize.hpp>
+#include <userver/formats/json/string_builder.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/utils/algo.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace dynamic_config {
 namespace {
-const std::string kConfigsValues = "/configs/values";
+constexpr std::string_view kConfigsValues = "/configs/values";
 }  // namespace
 
 Client::Client(clients::http::Client& http_client, const ClientConfig& config)
@@ -17,11 +19,11 @@ Client::Client(clients::http::Client& http_client, const ClientConfig& config)
 
 Client::~Client() = default;
 
-std::string Client::FetchConfigsValues(const std::string& body) {
+std::string Client::FetchConfigsValues(std::string_view body) {
   const auto timeout_ms = config_.timeout.count();
   const auto retries = config_.retries;
   const auto url = config_.append_path_to_url
-                       ? config_.config_url + kConfigsValues
+                       ? utils::StrCat(config_.config_url, kConfigsValues)
                        : config_.config_url;
 
   // Storing and overriding proxy below to avoid issues with concurrent update
@@ -31,7 +33,7 @@ std::string Client::FetchConfigsValues(const std::string& body) {
   std::exception_ptr exception;
   try {
     auto reply = http_client_.CreateRequest()
-                     .post(url, body)
+                     .post(url, std::string{body})
                      .timeout(timeout_ms)
                      .retry(retries)
                      .proxy(proxy)
@@ -48,7 +50,7 @@ std::string Client::FetchConfigsValues(const std::string& body) {
   try {
     auto no_proxy_reply = http_client_.CreateRequest()
                               .proxy({})
-                              .post(url, body)
+                              .post(url, std::string{body})
                               .timeout(timeout_ms)
                               .retry(retries)
                               .perform();
@@ -82,7 +84,7 @@ Client::Reply Client::DownloadFullDocsMap() {
 
 Client::JsonReply Client::FetchJson(
     const std::optional<Timestamp>& last_update,
-    const std::unordered_set<std::string>& fields_to_load) {
+    const std::vector<std::string>& fields_to_load) {
   auto json_value = FetchConfigs(last_update, fields_to_load);
   auto configs_json = json_value["configs"];
 
@@ -95,29 +97,34 @@ Client::JsonReply Client::FetchJson(
 
 formats::json::Value Client::FetchConfigs(
     const std::optional<Timestamp>& last_update,
-    formats::json::ValueBuilder&& fields_to_load) {
-  formats::json::ValueBuilder body_builder(formats::json::Type::kObject);
+    const std::vector<std::string>& fields_to_load) {
+  formats::json::StringBuilder body;
 
-  if (!fields_to_load.IsEmpty()) {
-    body_builder["ids"] = std::move(fields_to_load);
+  {
+    const formats::json::StringBuilder::ObjectGuard guard{body};
+    if (!fields_to_load.empty()) {
+      body.Key("ids");
+      WriteToStream(fields_to_load, body);
+    }
+
+    if (last_update) {
+      body.Key("updated_since");
+      WriteToStream(*last_update, body);
+    }
+
+    if (!config_.stage_name.empty()) {
+      body.Key("stage_name");
+      WriteToStream(config_.stage_name, body);
+    }
+
+    if (config_.get_configs_overrides_for_service) {
+      body.Key("service");
+      WriteToStream(config_.service_name, body);
+    }
   }
 
-  if (last_update) {
-    body_builder["updated_since"] = *last_update;
-  }
-
-  if (!config_.stage_name.empty()) {
-    body_builder["stage_name"] = config_.stage_name;
-  }
-
-  if (config_.get_configs_overrides_for_service) {
-    body_builder["service"] = config_.service_name;
-  }
-
-  auto request_body = formats::json::ToString(body_builder.ExtractValue());
-  LOG_TRACE() << "request body: " << request_body;
-
-  auto json = FetchConfigsValues(request_body);
+  LOG_TRACE() << "request body: " << body.GetStringView();
+  auto json = FetchConfigsValues(body.GetStringView());
 
   return formats::json::FromString(json);
 }

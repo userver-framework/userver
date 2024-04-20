@@ -42,6 +42,9 @@ class HistogramView final {
   /// (greater than the largest bucket boundary).
   std::uint64_t GetValueAtInf() const noexcept;
 
+  /// Returns the sum of counts from all buckets.
+  std::uint64_t GetTotalCount() const noexcept;
+
  private:
   friend struct impl::histogram::Access;
 

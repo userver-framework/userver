@@ -56,6 +56,8 @@ class CacheUpdateTrait::Impl final {
 
   bool HasPreAssignCheck() const;
 
+  void SetDataSizeStatistic(std::size_t size) noexcept;
+
   rcu::ReadablePtr<Config> GetConfig() const;
 
   engine::TaskProcessor& GetCacheTaskProcessor() const;

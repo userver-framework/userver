@@ -32,7 +32,7 @@ std::string FormatLogMessage(
 /// @brief A non-typed base class for any gRPC call
 class CallAnyBase {
  public:
-  CallAnyBase(impl::CallParams&& params) : params_(params) {}
+  CallAnyBase(impl::CallParams&& params) : params_(std::move(params)) {}
 
   /// @brief Complete the RPC with an error
   ///
@@ -51,6 +51,32 @@ class CallAnyBase {
   std::string_view GetCallName() const { return params_.call_name; }
 
   tracing::Span& GetSpan() { return params_.call_span; }
+
+  /// @brief Returns call context for storing per-call custom data
+  ///
+  /// The context can be used to pass data from server middleware to client
+  /// handler or from one middleware to another one.
+  ///
+  /// ## Example usage:
+  ///
+  /// In authentication middleware:
+  ///
+  /// @code
+  /// if (password_is_correct) {
+  ///   // Username is authenticated, set it in per-call storage context
+  ///   ctx.GetCall().GetStorageContext().Emplace(kAuthUsername, username);
+  /// }
+  /// @endcode
+  ///
+  /// In client handler:
+  ///
+  /// @code
+  /// const auto& username = rpc.GetStorageContext().Get(kAuthUsername);
+  /// auto msg = fmt::format("Hello, {}!", username);
+  /// @endcode
+  utils::AnyStorage<StorageContext>& GetStorageContext() {
+    return params_.storage_context;
+  }
 
   virtual bool IsFinished() const = 0;
 

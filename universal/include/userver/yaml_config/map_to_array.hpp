@@ -13,9 +13,9 @@ std::vector<T> ParseMapToArray(const Value& value) {
   std::vector<T> parsed_array;
   parsed_array.reserve(value.GetSize());
 
-  for (const auto& [elem_name, elem_value] : Items(value)) {
+  for (auto [elem_name, elem_value] : Items(value)) {
     auto parsed = elem_value.template As<T>();
-    parsed.SetName(elem_name);
+    parsed.SetName(std::move(elem_name));
     parsed_array.emplace_back(std::move(parsed));
   }
   return parsed_array;

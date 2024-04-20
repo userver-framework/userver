@@ -38,7 +38,7 @@ void DocsMap::Set(std::string name, formats::json::Value obj) {
 
 void DocsMap::Remove(const std::string& name) { docs_.erase(name); }
 
-void DocsMap::Parse(const std::string& json_string, bool empty_ok) {
+void DocsMap::Parse(std::string_view json_string, bool empty_ok) {
   Parse(formats::json::FromString(json_string), empty_ok);
 }
 
@@ -51,8 +51,8 @@ void DocsMap::Parse(formats::json::Value json, bool empty_ok) {
   // Erase the origin of 'json' from error messages of configs parsing.
   json.DropRootPath();
 
-  for (const auto& [name, value] : Items(json)) {
-    Set(name, value);
+  for (auto [name, value] : Items(std::move(json))) {
+    Set(std::move(name), value);
   }
 }
 
@@ -91,16 +91,6 @@ const utils::impl::TransparentSet<std::string>&
 DocsMap::GetConfigsExpectedToBeUsed(utils::InternalTag) const {
   return configs_to_be_used_;
 }
-
-namespace impl {
-
-[[noreturn]] void ThrowNoValueException(std::string_view dict_name,
-                                        std::string_view key) {
-  throw std::runtime_error(
-      fmt::format("no value for '{}' in dict '{}'", key, dict_name));
-}
-
-}  // namespace impl
 
 }  // namespace dynamic_config
 

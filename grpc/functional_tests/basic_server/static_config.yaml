@@ -1,0 +1,49 @@
+# yaml
+components_manager:
+    components:
+        # The required common components
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+
+        # Creates gRPC clients
+        grpc-client-factory:
+            # The TaskProcessor for blocking connection initiation
+            task-processor: grpc-blocking-task-processor
+
+            # Optional channel parameters for gRPC Core
+            # https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
+            channel-args: {}
+
+        # Common configuration for gRPC server
+        grpc-server:
+            # The single listening unix socket for incoming RPCs
+            unix-socket-path: '/tmp/my_socket'
+            completion-queue-count: 3
+
+        # Our GreeterService implementation
+        greeter-service:
+            task-processor: main-task-processor
+            middlewares: []
+
+        server:
+            listener:
+                port: 8092
+                task_processor: main-task-processor
+
+        testsuite-support:
+
+    default_task_processor: main-task-processor  # Task processor in which components start.
+
+    task_processors:
+        grpc-blocking-task-processor:  # For blocking gRPC channel creation
+            worker_threads: 2
+            thread_name: grpc-worker
+        main-task-processor:           # For non-blocking operations
+            worker_threads: 8
+        fs-task-processor:             # For blocking filesystem operations
+            worker_threads: 2

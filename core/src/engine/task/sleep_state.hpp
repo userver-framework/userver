@@ -41,6 +41,11 @@ class AtomicSleepState final {
   }
 
   template <std::memory_order Order>
+  void Store(SleepState value) noexcept {
+    impl_.store(Pack(value), Order);
+  }
+
+  template <std::memory_order Order>
   SleepState Exchange(SleepState value) noexcept {
     return Unpack(impl_.exchange(Pack(value), Order));
   }

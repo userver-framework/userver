@@ -48,6 +48,19 @@ void RunStackLimitedTest(Func&& fn) {
                         [fn = std::forward<Func>(fn)] { fn(kDepth); });
 }
 
+formats::json::Value MakeDeepJson(std::size_t depth) {
+  formats::json::ValueBuilder vb1;
+  formats::json::ValueBuilder vb2;
+  vb2["a"] = "b";
+
+  while (depth--) {
+    vb1["a"] = vb2.ExtractValue();
+    vb2["a"] = vb1.ExtractValue();
+  }
+
+  return vb2.ExtractValue();
+}
+
 }  // namespace
 
 TEST(FormatsJson, DeepObjectFromString) {
@@ -87,6 +100,15 @@ TEST(FormatsJson, DeepObjectFromStringNonsense) {
 
     EXPECT_THROW(formats::json::FromString(json_str),
                  formats::json::ParseException);
+  });
+}
+
+TEST(FormatsJson, DeepObjectOperatorEqualsTo) {
+  RunStackLimitedTest([](std::size_t depth) {
+    auto v1 = MakeDeepJson(depth);
+    auto v2 = MakeDeepJson(depth);
+
+    EXPECT_EQ(v1, v2);
   });
 }
 

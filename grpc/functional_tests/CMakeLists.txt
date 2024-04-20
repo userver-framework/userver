@@ -7,3 +7,6 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-basic-chaos)
 
 add_subdirectory(metrics)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-metrics)
+
+add_subdirectory(basic_server)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-basic-server)

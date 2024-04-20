@@ -17,32 +17,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres {
 
-/**
- * @page pg_bytea uPg bytea support
- *
- * The driver allows reading and writing raw binary data from/to PostgreSQL
- * `bytea` type.
- *
- * Reading and writing to PostgreSQL is implemented for `std::string`,
- * `std::string_view` and `std::vector` of `char` or `unsigned char`.
- *
- * @warning When reading to `std::string_view` the value MUST NOT be used after
- * the PostgreSQL result set is destroyed.
- *
- * @code
- * namespace pg = storages::postgres;
- * using namespace std::string_literals;
- * std::string s = "\0\xff\x0afoobar"s;
- * trx.Execute("select $1", pg::Bytea(tp));
- * @endcode
- *
- * ----------
- *
- * @htmlonly <div class="bottom-nav"> @endhtmlonly
- * ⇦ @ref pg_arrays | @ref scripts/docs/en/userver/mongodb.md ⇨
- * @htmlonly </div> @endhtmlonly
- */
-
 namespace io::traits {
 
 template <typename T>

@@ -5,6 +5,8 @@
 
 #include <gtest/gtest.h>
 
+#include <userver/utest/assert_macros.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 using Dec2 = decimal64::Decimal<2>;
@@ -34,6 +36,29 @@ TYPED_TEST(Decimal64Round, FromDouble) {
     EXPECT_EQ(Dec::FromFloatInexact(i2).AsUnbiased(), i);
     EXPECT_EQ(Dec::FromFloatInexact(i3).AsUnbiased(), i);
   }
+}
+
+TYPED_TEST(Decimal64Round, FromFloatInexactLimits) {
+  using Dec = typename TestFixture::Dec;
+
+  // So far we haven't found a way to get the exact floating-point limits for
+  // FromFloatInexact at compile-time. So given the limits themselves, we throw.
+  // This is not perfect. This test is a golden test in that sense.
+  //
+  // If we learn to get the precise floating-point bounds and the nearest out-of
+  // bounds values, we should use those for kAroundMax and kAroundMin.
+  constexpr auto kAroundMax =
+      Dec::FromUnbiased(std::numeric_limits<std::int64_t>::max())
+          .ToDoubleInexact();
+  UEXPECT_THROW(Dec::FromFloatInexact(kAroundMax), decimal64::OutOfBoundsError);
+
+  constexpr auto kAroundMin =
+      Dec::FromUnbiased(std::numeric_limits<std::int64_t>::min())
+          .ToDoubleInexact();
+  UEXPECT_THROW(Dec::FromFloatInexact(kAroundMax), decimal64::OutOfBoundsError);
+
+  UEXPECT_NO_THROW(Dec::FromFloatInexact(kAroundMax * 0.99999));
+  UEXPECT_NO_THROW(Dec::FromFloatInexact(kAroundMin * 0.99999));
 }
 
 TYPED_TEST(Decimal64Round, ToDouble) {

@@ -38,6 +38,8 @@ class [[nodiscard]] UnaryFuture {
 
   UnaryFuture(UnaryFuture&&) noexcept = default;
   UnaryFuture& operator=(UnaryFuture&&) noexcept;
+  UnaryFuture(const UnaryFuture&) = delete;
+  UnaryFuture& operator=(const UnaryFuture&) = delete;
 
   ~UnaryFuture() noexcept;
 
@@ -68,6 +70,10 @@ class [[nodiscard]] UnaryFuture {
   /// @return true if result ready
   [[nodiscard]] bool IsReady() const noexcept;
 
+  /// @cond
+  // For internal use only.
+  engine::impl::ContextAccessor* TryGetContextAccessor() noexcept;
+  /// @endcond
  private:
   impl::FutureImpl impl_;
 };
@@ -301,7 +307,7 @@ class [[nodiscard]] OutputStream final : public CallAnyBase {
 
 /// @brief Controls a request stream -> response stream RPC
 ///
-/// This class allows the following concurrent calls:
+/// It is safe to call the following methods from different coroutines:
 ///
 ///   - `GetContext`;
 ///   - one of (`Read`, `ReadAsync`);
@@ -330,6 +336,10 @@ class [[nodiscard]] OutputStream final : public CallAnyBase {
 /// Instead the user SHOULD call `Read` method until the end of input. If
 /// `Write` or `WritesDone` finishes with negative result, finally `Read`
 /// will throw an exception.
+/// ## Usage example:
+///
+/// @snippet grpc/tests/src/stream_test.cpp concurrent bidirectional stream
+///
 template <typename Request, typename Response>
 class [[nodiscard]] BidirectionalStream final : public CallAnyBase {
  public:

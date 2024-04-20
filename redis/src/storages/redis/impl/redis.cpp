@@ -79,17 +79,21 @@ inline bool AreStringsEqualIgnoreCase(const std::string& l,
 inline bool IsUnsubscribeCommand(const CmdArgs::CmdArgsArray& args) {
   static const std::string unsubscribe_command{"UNSUBSCRIBE"};
   static const std::string punsubscribe_command{"PUNSUBSCRIBE"};
+  static const std::string sunsubscribe_command{"SUNSUBSCRIBE"};
 
   return AreStringsEqualIgnoreCase(args[0], unsubscribe_command) ||
-         AreStringsEqualIgnoreCase(args[0], punsubscribe_command);
+         AreStringsEqualIgnoreCase(args[0], punsubscribe_command) ||
+         AreStringsEqualIgnoreCase(args[0], sunsubscribe_command);
 }
 
 inline bool IsSubscribeCommand(const CmdArgs::CmdArgsArray& args) {
   static const std::string subscribe_command{"SUBSCRIBE"};
   static const std::string psubscribe_command{"PSUBSCRIBE"};
+  static const std::string ssubscribe_command{"SSUBSCRIBE"};
 
   return AreStringsEqualIgnoreCase(args[0], subscribe_command) ||
-         AreStringsEqualIgnoreCase(args[0], psubscribe_command);
+         AreStringsEqualIgnoreCase(args[0], psubscribe_command) ||
+         AreStringsEqualIgnoreCase(args[0], ssubscribe_command);
 }
 
 inline bool IsSubscribesCommand(const CmdArgs::CmdArgsArray& args) {
@@ -118,7 +122,8 @@ bool IsUnsubscribeReply(const ReplyPtr& reply) {
   const auto& reply_array = reply->data.GetArray();
   if (reply_array.size() != 3 || !reply_array[0].IsString()) return false;
   return !strcasecmp(reply_array[0].GetString().c_str(), "UNSUBSCRIBE") ||
-         !strcasecmp(reply_array[0].GetString().c_str(), "PUNSUBSCRIBE");
+         !strcasecmp(reply_array[0].GetString().c_str(), "PUNSUBSCRIBE") ||
+         !strcasecmp(reply_array[0].GetString().c_str(), "SUNSUBSCRIBE");
 }
 
 #ifdef USERVER_FEATURE_REDIS_TLS
@@ -542,14 +547,12 @@ void Redis::RedisImpl::InvokeCommand(const CommandPtr& command,
   if (cc.account_in_statistics)
     statistics_.AccountReplyReceived(reply, command);
   reply->server = server_;
-  if (utils::impl::kRedisRetryBudgetExperiment.IsEnabled()) {
-    if (reply->status == ReplyStatus::kTimeoutError) {
-      reply->log_extra.Extend("timeout_ms", cc.timeout_single.count());
-      retry_budget_.AccountFail();
-    }
-    if (reply->status == ReplyStatus::kOk) {
-      retry_budget_.AccountOk();
-    }
+  if (reply->status == ReplyStatus::kTimeoutError) {
+    reply->log_extra.Extend("timeout_ms", cc.timeout_single.count());
+    retry_budget_.AccountFail();
+  }
+  if (reply->status == ReplyStatus::kOk) {
+    retry_budget_.AccountOk();
   }
 
   reply->server_id = server_id_;
@@ -655,7 +658,6 @@ void Redis::RedisImpl::OnCommandTimeoutImpl(ev_timer* w) {
   auto reply_iterator = reply_privdata_.find(cmd_idx);
   if (reply_iterator != reply_privdata_.end()) {
     SingleCommand& command = *reply_iterator->second;
-    if (!subscriber_) --sent_count_;
     UASSERT(reply_privdata_rev_.count(&command.timer));
     UASSERT(w == &command.timer);
     reply_privdata_rev_.erase(&command.timer);
@@ -1305,12 +1307,7 @@ void Redis::RedisImpl::ProcessCommand(const CommandPtr& command) {
   }
 }
 
-bool Redis::RedisImpl::CanRetry() const {
-  if (!utils::impl::kRedisRetryBudgetExperiment.IsEnabled()) {
-    return true;
-  }
-  return retry_budget_.CanRetry();
-}
+bool Redis::RedisImpl::CanRetry() const { return retry_budget_.CanRetry(); }
 
 void Redis::RedisImpl::SetCommandsBufferingSettings(
     CommandsBufferingSettings commands_buffering_settings) {

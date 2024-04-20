@@ -61,6 +61,15 @@ std::optional<int64_t> ToIntOpt(const std::optional<ServerId>& server_id) {
   return server_id->GetId();
 }
 
+constexpr utils::TrivialBiMap kToStrategy = [](auto selector) {
+  return selector()
+      .Case("every_dc", CommandControl::Strategy::kEveryDc)
+      .Case("default", CommandControl::Strategy::kDefault)
+      .Case("local_dc_conductor", CommandControl::Strategy::kLocalDcConductor)
+      .Case("nearest_server_ping",
+            CommandControl::Strategy::kNearestServerPing);
+};
+
 }  // namespace
 
 void ServerId::SetDescription(std::string description) const {
@@ -87,6 +96,10 @@ CommandControl::CommandControl(
     : timeout_single(timeout_single),
       timeout_all(timeout_all),
       max_retries(max_retries) {}
+
+bool CommandControl::operator==(const CommandControl& other) const {
+  return std::tie(*this) == std::tie(other);
+}
 
 CommandControl CommandControl::MergeWith(const CommandControl& b) const {
   CommandControl res(*this);
@@ -170,15 +183,6 @@ std::string CommandControl::ToString() const {
 }
 
 CommandControl::Strategy StrategyFromString(std::string_view strategy) {
-  using Strategy = CommandControl::Strategy;
-  constexpr utils::TrivialBiMap kToStrategy = [](auto selector) {
-    return selector()
-        .Case("every_dc", Strategy::kEveryDc)
-        .Case("default", Strategy::kDefault)
-        .Case("local_dc_conductor", Strategy::kLocalDcConductor)
-        .Case("nearest_server_ping", Strategy::kNearestServerPing);
-  };
-
   auto result = kToStrategy.TryFind(strategy);
   if (!result) {
     throw std::runtime_error(
@@ -186,6 +190,12 @@ CommandControl::Strategy StrategyFromString(std::string_view strategy) {
                     "but '{}' was given",
                     kToStrategy.DescribeFirst(), strategy));
   }
+
+  return *result;
+}
+
+std::string_view StrategyToString(CommandControl::Strategy strategy) {
+  auto result = kToStrategy.TryFind(strategy);
 
   return *result;
 }

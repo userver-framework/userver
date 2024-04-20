@@ -1,10 +1,77 @@
+/* 🐙 userver variables */
+
+html {
+  /* Color variables */
+  --black-color-1: #282431;
+
+  --white-color-1: #f2f2f3;
+
+  /* Additional primary theme color */
+  --primary-color-1: #fefaf5;
+  --primary-color-2: #fae7d3;
+  --primary-color-3: #ebd9c7;
+
+  --secondary-color-1: #f5f5f5;
+  --secondary-color-2: #f0f0f0;
+
+  /* Header */
+  --header-text-color: #f7f7f7;
+
+  /* Table of contents */
+  --toc-active-color: #352e48;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not(.light-mode) {
+    --primary-color-1: #433d53;
+    --primary-color-2: #373148;
+    --primary-color-3: #2E273F;
+
+    --secondary-color-1: #9c99a4;
+    --secondary-color-2: #94919c;
+
+    --toc-active-color: #ffffff;
+  }
+}
+
+/* Fontello icon font */
+@font-face {
+  font-family: 'fontello';
+  src: url('fontello.eot?53870425');
+  src: url('fontello.eot?53870425#iefix') format('embedded-opentype'),
+       url('fontello.woff2?53870425') format('woff2'),
+       url('fontello.woff?53870425') format('woff'),
+       url('fontello.ttf?53870425') format('truetype'),
+       url('fontello.svg?53870425#fontello') format('svg');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* Change color of iframe polygon scheme in dark-mode */
+html.dark-mode div.contents .dotgraph iframe {
+  filter: none;
+}
+
+html.dark-mode {
+  --primary-color-1: #433d53;
+  --primary-color-2: #373148;
+  --primary-color-3: #2E273F;
+
+  --secondary-color-1: #9c99a4;
+  --secondary-color-2: #94919c;
+
+  --toc-active-color: #ffffff;
+}
+
 /* Doxygen Awesome override */
 
 html {
   /* primary theme color. This will affect the entire websites color scheme: links, arrows, labels, ... */
   --primary-color: #f18128;
+  --primary-dark-color: #ff9643;
 
   /* page base colors */
+  --page-foreground-color: var(--black-color-1);
   --page-secondary-foreground-color: #716690;
 
   /* color for all separators on the website: hr, borders, ... */
@@ -19,22 +86,22 @@ html {
      * font-family: the normal font for text, headlines, menus
      * font-family-monospace: used for preformatted text in memtitle, code, fragments
      */
-  --font-family: Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans,
+  --font-family: "fontello", Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans,
     Helvetica Neue, sans-serif;
-  --font-family-monospace: "Roboto Mono", ui-monospace, SFMono-Regular, SF Mono,
+  --font-family-monospace: "fontello", "Roboto Mono", ui-monospace, SFMono-Regular, SF Mono,
     Menlo, Consolas, Liberation Mono, monospace;
 
   /* table colors */
-  --tablehead-background: #fefaf5;
+  --tablehead-background: var(--primary-color-1);
 
   /* code block colors */
-  --code-background: #fefcf9;
+  --code-background: var(--primary-color-1);
 
   /* fragment colors */
   --fragment-background: #fefaf4;
 
   /* sidebar navigation (treeview) colors */
-  --side-nav-background: #fefcf9;
+  --side-nav-background: var(--primary-color-1);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -42,17 +109,19 @@ html {
     color-scheme: dark;
 
     --primary-color: #f18128;
-    --primary-dark-color: #f18128;
+    --primary-dark-color: #d97223;
 
-    --page-background-color: #352e48;
+    --page-background-color: var(--black-color-1);
+    --page-foreground-color: var(--white-color-1);
     --page-secondary-foreground-color: #716690;
 
-    --separator-color: #7a6da0;
+    --separator-color: #4A4163;
 
     --tablehead-background: #413956;
 
     --code-background: #4d416c;
-    --side-nav-background: #413956;
+
+    --side-nav-background: var(--black-color-1);
   }
 }
 
@@ -61,49 +130,39 @@ html.dark-mode {
   color-scheme: dark;
 
   --primary-color: #f18128;
-  --primary-dark-color: #f18128;
+  --primary-dark-color: #d97223;
 
-  --page-background-color: #352e48;
+  --page-background-color: var(--black-color-1);
+  --page-foreground-color: var(--white-color-1);
   --page-secondary-foreground-color: #716690;
 
-  --separator-color: #7a6da0;
+  --separator-color: #4A4163;
 
   --tablehead-background: #413956;
 
   --code-background: #4d416c;
 
-  --side-nav-background: #413956;
+  --side-nav-background: var(--black-color-1);
 }
 
-/* 🐙 userver variables */
-
-html {
-  /* Header */
-  --header-text-color: #f7f7f7;
-
-  /* Table of contents */
-  --toc-active-color: #352e48;
-}
-
-@media (prefers-color-scheme: dark) {
-  html:not(.light-mode) {
-    --toc-active-color: #ffffff;
-  }
-}
-/* Change color of iframe polygon scheme in dark-mode */
-html.dark-mode div.contents .dotgraph iframe {
-  filter: none;
-}
-
-html.dark-mode {
-  --toc-active-color: #ffffff;
+#doc-content {
+  /* Disable standard Doxygen content margin */
+  margin-left: 0 !important;
 }
 
 /* Highlight.js overrides */
 
+.hljs,
+.hljs-template-tag,
+.hljs-type,
+.hljs-section,
+.hljs-title,
+.hljs-function {
+  color: var(--fragment-foreground);
+}
+
 .hljs {
   background: #fbf1c7;
-  color: #3c3836;
 }
 
 .hljs-comment {
@@ -119,13 +178,6 @@ html.dark-mode {
 .hljs-number,
 .hljs-quote {
   color: #00CC51;
-}
-
-.hljs-template-tag,
-.hljs-type,
-.hljs-section,
-.hljs-title {
-  color: var(--fragment-foreground);
 }
 
 .hljs-link,
@@ -172,7 +224,7 @@ html.dark-mode {
 
 /* In doxygen 1.10.0 there is a '.paramname em' with hardcoded color. Fixing */
 span.paramname em {
-	color: var(--primary-dark-color);
+  color: var(--primary-dark-color);
 }
 
 /* Too wide page makes people uncomfortable, keep content in center */
@@ -183,9 +235,12 @@ div.contents {
 /* Scale down image to the page width */
 .image img {
   max-width: calc(100% - 7px - 7px - 1px - 1px);
-  background-color: #fefcf9; /* matches .fragment */
-  border: 1px solid #fdcc9a; /* matches .fragment */
-  padding: 7px; /* matches .fragment */
+  background-color: var(--primary-color-1);
+  /* matches .fragment */
+  border: 1px solid var(--separator-color);
+  /* matches .fragment */
+  padding: 7px;
+  /* matches .fragment */
 }
 
 hr {
@@ -196,7 +251,7 @@ hr {
 
 #top {
   justify-content: space-between;
-  background-color: #352e48;
+  background-color: var(--black-color-1);
   color: white !important;
   padding: 20px;
 }
@@ -207,7 +262,8 @@ hr {
 
 #titlearea a:hover {
   text-decoration: none;
-  background: none; /* doxygen 1.10.0 draws an underscore via background */
+  background: none;
+  /* doxygen 1.10.0 draws an underscore via background */
 }
 
 #titlearea td {
@@ -239,21 +295,18 @@ hr {
 
 #links a:hover {
   text-decoration: none;
-  background: none; /* doxygen 1.10.0 draws an underscore via background */
-}
-
-
-html.dark-mode .gh-logo-landing {
-  filter: invert(1);
+  /* doxygen 1.10.0 draws an underscore via background */
+  background: none;
 }
 
 .gh-logo {
- --webkit-mask-image: url(github_logo.svg);
-filter : invert(1)
+  mask-image: url(github_logo.svg);
+  -webkit-mask-image: url(github_logo.svg);
+  filter: invert(1)
 }
 
 html.dark-mode .gh-logo {
-fill: white;
+  fill: white;
 }
 
 #main-navbar {
@@ -261,7 +314,7 @@ fill: white;
   align-items: center;
 }
 
-#navbar-main-menu > li > a {
+#navbar-main-menu>li>a {
   color: rgb(255, 255, 255) !important;
   font-size: 18px;
 }
@@ -273,9 +326,10 @@ fill: white;
 html.dark-mode .sm.sm-dox a {
   color: white !important;
 }
-.sm.sm-dox li:last-child ul { 
+
+.sm.sm-dox li:last-child ul {
   padding: 0;
-  border-radius: 8px !important;
+  border-radius: var(--border-radius-large) !important;
 }
 
 html.dark-mode .sm.sm-dox li:last-child ul {
@@ -283,15 +337,15 @@ html.dark-mode .sm.sm-dox li:last-child ul {
 }
 
 .sm.sm-dox li:last-child ul li:first-child {
-  border-radius: 8px 8px 0 0 !important;
+  border-radius: var(--border-radius-large) var(--border-radius-large) 0 0 !important;
 }
 
 .sm.sm-dox li:last-child ul li:last-child {
-  border-radius: 0 0 8px 8px !important;
+  border-radius: 0 0 var(--border-radius-large) var(--border-radius-large) !important;
 }
 
 .sm.sm-dox li:last-child ul li:hover {
-  background-color: #fae7d3;
+  background-color: var(--primary-color-2);
 }
 
 html.dark-mode .sm.sm-dox li:last-child ul li:hover {
@@ -321,6 +375,7 @@ html.dark-mode .sm.sm-dox li:last-child ul li a {
   margin: 0px;
   margin-left: 5px;
   border-radius: 14px;
+  /* TODO: verify */
   background: white !important;
 }
 
@@ -334,20 +389,6 @@ html.dark-mode .sm.sm-dox li:last-child ul li a {
 
 #projectlogo img {
   margin: 0px;
-}
-
-#landing-content {
-  text-align: center;
-  padding-bottom: 30px 0;
-}
-
-#landing_logo_id {
-  text-align: center;
-  max-width: 400px;
-}
-
-#landing_logo_id a:hover {
-  background: none; /* doxygen 1.10.0 draws an underscore via background */
 }
 
 h2.groupheader {
@@ -405,15 +446,17 @@ a.titlelink {
 
 a.titlelink:hover {
   color: var(--primary-color) !important;
-  background: none; /* doxygen 1.10.0 draws an underscore via background */
+  background: none;
+  /* doxygen 1.10.0 draws an underscore via background */
 }
 
+/* Burger menu */
 .main-menu-btn {
   margin-left: 7px;
 }
 
 .main-menu-btn-icon,
-.main-menu-btn-icon::before, 
+.main-menu-btn-icon::before,
 .main-menu-btn-icon::after {
   width: 26px;
   height: 3px;
@@ -443,7 +486,7 @@ a.titlelink:hover {
 
 #MSearchResults .SRPage .SREntry:hover {
   background: var(--separator-color);
-  border-radius: 8px;
+  border-radius: var(--border-radius-large);
 }
 
 #MSearchSelect {
@@ -473,7 +516,7 @@ a.titlelink:hover {
 
 .all-results-link:hover {
   background: var(--separator-color);
-  border-radius: 8px;
+  border-radius: var(--border-radius-large);
 }
 
 .all-results-link::after {
@@ -482,13 +525,13 @@ a.titlelink:hover {
   display: inline-block;
   width: 16px;
   height: 16px;
-  background-image: url(ep_arrow-up.svg);
-  background-size: contain;
-  mask-image: var(--primary-color);
+  background-color: var(--primary-color);
+  mask-image: url(ep_arrow-up.svg);
+  -webkit-mask-image: url(ep_arrow-up.svg);
 }
 
 .all-results-link:hover::after {
-  filter: invert(1);
+  background-color: var(--primary-color);
 }
 
 #MSearchResultsWindow {
@@ -573,7 +616,7 @@ doxygen-awesome-dark-mode-toggle {
     flex-direction: column;
     width: 300px;
     background-color: white;
-    border-radius: 8px;
+    border-radius: var(--border-radius-large);
     border: 1px solid #d3d1d1;
   }
 
@@ -582,22 +625,22 @@ doxygen-awesome-dark-mode-toggle {
     border: 1px solid #796da0;
   }
 
-  #navbar-main-menu > li > a {
+  #navbar-main-menu>li>a {
     color: black !important;
     font-size: 18px;
   }
 
-  html.dark-mode #navbar-main-menu > li > a {
+  html.dark-mode #navbar-main-menu>li>a {
     color: white !important;
   }
-  
+
   #navbar-main-menu li:hover {
     cursor: pointer;
-    background-color: #fae7d3 !important;
+    background-color: var(--primary-color-2) !important;
   }
 
   html.dark-mode #navbar-main-menu li:hover {
-    background-color: #7a6da0 !important; 
+    background-color: #7a6da0 !important;
   }
 
   .sm-dox {
@@ -609,7 +652,7 @@ doxygen-awesome-dark-mode-toggle {
     padding: 0;
   }
 
-  html:not(.dark-mode) .sm.sm-dox ul a:hover { 
+  html:not(.dark-mode) .sm.sm-dox ul a:hover {
     color: black !important;
   }
 
@@ -618,17 +661,19 @@ doxygen-awesome-dark-mode-toggle {
     font-weight: bold;
   }
 
-  .sm.sm-dox > li {
-    padding: 5px 70px; /* TODO: adaptive width */
+  .sm.sm-dox>li {
+    padding: 5px 70px;
+    /* TODO: adaptive width */
   }
 
-  .sm.sm-dox  > li:first-child {
-    border-radius: 8px 8px 0 0;
+  .sm.sm-dox>li:first-child {
+    border-radius: var(--border-radius-large) var(--border-radius-large) 0 0;
   }
 
-  .sm.sm-dox  > li:last-child {
-    border-radius: 0 0 8px 8px;
+  .sm.sm-dox>li:last-child {
+    border-radius: 0 0 var(--border-radius-large) var(--border-radius-large);
   }
+
   .main-menu-btn {
     order: 3;
     position: relative;
@@ -675,19 +720,22 @@ doxygen-awesome-dark-mode-toggle {
   .sm.sm-dox a:hover {
     font-size: 18px !important;
   }
-  .sm.sm-dox ul { 
-    border-radius: 8px !important;
-  }
-  .sm.sm-dox > li {
-    padding: 5px 70px; /* TODO: adaptive width */
+
+  .sm.sm-dox ul {
+    border-radius: var(--border-radius-large) !important;
   }
 
-  .sm.sm-dox > li:first-child {
-    border-radius: 8px 8px 0 0;
+  .sm.sm-dox>li {
+    padding: 5px 70px;
+    /* TODO: adaptive width */
   }
 
-  .sm.sm-dox > li:last-child {
-    border-radius:  0 0 8px 8px;
+  .sm.sm-dox>li:first-child {
+    border-radius: var(--border-radius-large) var(--border-radius-large) 0 0;
+  }
+
+  .sm.sm-dox>li:last-child {
+    border-radius: 0 0 var(--border-radius-large) var(--border-radius-large);
   }
 
   td#projectalign {
@@ -734,13 +782,13 @@ doxygen-awesome-dark-mode-toggle {
     flex-direction: column;
     width: 300px;
     background-color: white;
-    border-radius: 8px;
+    border-radius: var(--border-radius-large);
     border: 1px solid #d3d1d1;
   }
 
   #navbar-main-menu li:hover {
     cursor: pointer;
-    background-color: #fae7d3 !important;
+    background-color: var(--primary-color-2) !important;
   }
 
   .main-menu-btn {
@@ -751,98 +799,11 @@ doxygen-awesome-dark-mode-toggle {
   #links {
     display: none;
   }
+
   #MSearchCloseImg {
     width: 34px;
     transform: translate(-2px, -6px);
   }
-}
-
-/* Landing page */
-
-.landing-logo {
-  width: 45%;
-  margin-left: auto;
-  margin-right: auto;
-  margin-top: 3%;
-  margin-bottom: 6%;
-}
-
-.landing-motto {
-  text-align: right;
-  font-size: 28px;
-}
-
-.landing-text {
-  font-size: 18px;
-  line-height: 1.5;
-  margin-top: 25px;
-  margin-bottom: 25px;
-  text-align: justify;
-}
-
-.landing-text .codeblock {
-  margin: 0 auto;
-  font-family: monospace;
-  text-align: justify;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-
-.landing-container {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.landing-fragment {
-  width: fit-content;
-}
-
-.landing-text .doxygen-awesome-fragment-wrapper {
-  display: flex;
-  justify-content: center;
-}
-
-div.fragment.landing-fragment .line,
-div.fragment.landing-fragment span {
-  font-size: 18px !important;
-  line-height: 27px;
-}
-
-.landing-intro-left,
-.landing-intro-right {
-  font-size: 1.1em;
-  text-align: justify;
-  padding: 0.8em;
-}
-
-@media (min-width: 999px) {
-  .landing-intro-left,
-  .landing-intro-right {
-    width: 47%;
-  }
-}
-
-.landing-intro-center {
-  font-size: 1.1em;
-  line-height: 1.5;
-  margin-bottom: 30px;
-  margin-left: auto;
-  margin-right: auto;
-  color: #f7f7f7;
-  text-align: center;
-}
-
-.landing-description {
-  text-align: center;
-  font-size: 2em;
-  line-height: 1.5;
-  margin-top: 30px;
-  margin-bottom: 30px;
-  margin-left: auto;
-  margin-right: auto;
-  text-align: center;
 }
 
 html:not(.black-mode) .landing-intro-center {
@@ -862,8 +823,8 @@ html:not(.light-mode) .landing-intro-center {
 
 .bottom-nav .button {
   font-size: 12px;
-  border-radius: 8px;
-  border: 1px solid #FDCC9A;
+  border-radius: var(--border-radius-large);
+  border: 1px solid var(--separator-color);
   padding: 16px;
   background: transparent;
   display: flex;
@@ -872,25 +833,14 @@ html:not(.light-mode) .landing-intro-center {
   gap: 4px;
 }
 
-html.dark-mode .bottom-nav .button {
-  border: 1px solid #EC700E;
-}
-
 html.dark-mode .btn-title {
-  color: #d2dbde;
+  color: var(--page-foreground-color);
 }
 
 .bottom-nav .button:hover {
-  background: #f9e2ca;
-}
-html.dark-mode .bottom-nav .button:hover {
-  background: #7A6DA0;
-  border-color: #7A6DA0;
+  background: var(--primary-color-2);
 }
 
-html.dark-mode .button:hover .btn-sub {
-  color: #d2dbde !important;
-}
 .bottom-nav .button.prev {
   margin-right: 10px;
 }
@@ -898,11 +848,6 @@ html.dark-mode .button:hover .btn-sub {
 .bottom-nav .button.next {
   margin-left: auto;
   text-align: right;
-}
-
-html.dark-mode .btn-title::after, 
-html.dark-mode  .btn-title::before {
-  filter: invert(1);
 }
 
 .bottom-nav .btn-title {
@@ -920,7 +865,13 @@ html.dark-mode  .btn-title::before {
   flex-shrink: 0;
   width: 24px;
   height: 24px;
-  background-image: url(arrow.svg);
+  background-color: var(--page-foreground-color);
+  mask-image: url(arrow.svg);
+  -webkit-mask-image: url(arrow.svg);
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
+  mask-size: contain;
+  -webkit-mask-size: contain;
 }
 
 .bottom-nav .button.next .btn-title::after {
@@ -933,7 +884,7 @@ html.dark-mode  .btn-title::before {
 
 /* Bigger font for menu */
 
-#main-nav > ul > li > a:hover {
+#main-nav>ul>li>a:hover {
   color: var(--primary-color) !important;
 }
 
@@ -972,7 +923,7 @@ div.toc li.level6 {
 
 div.contents .toc {
   border: 1px solid var(--separator-color);
-  border-radius: 12px;
+  border-radius: var(--border-radius-large);
   box-sizing: border-box;
   min-width: 300px;
   padding: 16px 16px;
@@ -1012,6 +963,7 @@ div.toc li a.active {
     padding: 0px;
     padding-left: 10px;
   }
+
   div.toc h3 {
     padding-top: 14px !important;
   }
@@ -1021,6 +973,7 @@ div.toc li a.active {
   div.contents .toc {
     padding-top: 0;
   }
+
   .bottom-nav .button {
     font-size: 14px;
   }
@@ -1031,8 +984,7 @@ div.toc li a.active {
 /* More space and scrolling for code snippets */
 div.fragment {
   padding: 7px;
-  overflow-x: scroll;
-  border-radius: 12px;
+  border-radius: var(--border-radius-large);
 }
 
 pre {
@@ -1046,8 +998,8 @@ pre {
 }
 
 /* style block code */
-.textblock li > .fragment,
-.textblock li > .doxygen-awesome-fragment-wrapper > .fragment {
+.textblock li>.fragment,
+.textblock li>.doxygen-awesome-fragment-wrapper>.fragment {
   margin: var(--spacing-medium) calc(15px - var(--spacing-large));
 }
 
@@ -1057,40 +1009,31 @@ pre {
   }
 }
 
-  @media screen and (max-width: 767px) {
-    div.fragment, pre.fragment {
-        border-top-right-radius: 0;
-        border-bottom-right-radius: 0;
-        border-right: 0;
-        border : 1px solid var(--separator-color);
-        border-radius: 12px;
-        margin: var(--spacing-medium) calc(15px - var(--spacing-large));
-    }}
+@media screen and (max-width: 767px) {
 
-
-  /* position copy btn */
-  @media screen and (max-width: 767px) {
-    .textblock
-      > .doxygen-awesome-fragment-wrapper
-      > doxygen-awesome-fragment-copy-button,
-    .textblock
-      li
-      > .doxygen-awesome-fragment-wrapper
-      > doxygen-awesome-fragment-copy-button,
-    .memdoc
-      li
-      > .doxygen-awesome-fragment-wrapper
-      > doxygen-awesome-fragment-copy-button,
-    .memdoc
-      > .doxygen-awesome-fragment-wrapper
-      > doxygen-awesome-fragment-copy-button,
-    dl
-      dd
-      > .doxygen-awesome-fragment-wrapper
-      > doxygen-awesome-fragment-copy-button {
-      right: 7px;
-    }
+  div.fragment,
+  pre.fragment {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    border-right: 0;
+    border: 1px solid var(--separator-color);
+    border-radius: var(--border-radius-large);
+    margin: var(--spacing-medium) calc(15px - var(--spacing-large));
   }
+}
+
+
+/* position copy btn */
+@media screen and (max-width: 767px) {
+
+  .textblock>.doxygen-awesome-fragment-wrapper>doxygen-awesome-fragment-copy-button,
+  .textblock li>.doxygen-awesome-fragment-wrapper>doxygen-awesome-fragment-copy-button,
+  .memdoc li>.doxygen-awesome-fragment-wrapper>doxygen-awesome-fragment-copy-button,
+  .memdoc>.doxygen-awesome-fragment-wrapper>doxygen-awesome-fragment-copy-button,
+  dl dd>.doxygen-awesome-fragment-wrapper>doxygen-awesome-fragment-copy-button {
+    right: 7px;
+  }
+}
 
 #nav-sync {
   display: none;

@@ -1,6 +1,6 @@
 PROTO_LIBRARY(userver-functional-test-service-grpc-proto)
 
-OWNER(g:taxi-common)
+SUBSCRIBER(g:taxi-common)
 
 EXCLUDE_TAGS(GO_PROTO JAVA_PROTO)
 

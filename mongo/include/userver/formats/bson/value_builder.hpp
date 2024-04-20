@@ -50,7 +50,7 @@ class ValueBuilder {
   ValueBuilder();
 
   /// Constructs a value with the predefined type
-  explicit ValueBuilder(Type);
+  ValueBuilder(formats::common::Type type);
 
   /// @cond
   /// Constructor from implementation, internal use only
@@ -86,6 +86,7 @@ class ValueBuilder {
   /* implicit */ ValueBuilder(unsigned long long);
   /* implicit */ ValueBuilder(double);
   /* implicit */ ValueBuilder(const char*);
+  /* implicit */ ValueBuilder(char*);
   /* implicit */ ValueBuilder(std::string);
   /* implicit */ ValueBuilder(std::string_view);
   /* implicit */ ValueBuilder(const std::chrono::system_clock::time_point&);

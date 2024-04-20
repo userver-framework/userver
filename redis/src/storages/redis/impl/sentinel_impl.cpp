@@ -328,7 +328,7 @@ void SentinelImpl::AsyncCommand(const SentinelCommand& scommand,
           }
           std::chrono::steady_clock::time_point until = start + cc.timeout_all;
           if (now < until && retries_left > 0) {
-            std::chrono::milliseconds timeout_all =
+            auto timeout_all =
                 std::chrono::duration_cast<std::chrono::milliseconds>(until -
                                                                       now);
             command->control.timeout_single =

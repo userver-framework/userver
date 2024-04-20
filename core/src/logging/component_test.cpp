@@ -93,9 +93,10 @@ TEST_F(ComponentList, NoDefaultLogger) {
           components::InMemoryConfig{std::string{kNoDefaultLoggerConfig}},
           MakeNoDefaultLoggerComponentList()),
       std::exception,
-      "Error while parsing configs from in-memory config. Details: Field "
-      "'components_manager.components.logging.loggers.default.file_path' is "
-      "missing");
+      "Error while parsing configs from in-memory config. Details: Error at "
+      "path "
+      "'components_manager.components.logging.loggers.default.file_path': "
+      "Field is missing");
 }
 
 namespace {

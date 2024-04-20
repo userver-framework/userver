@@ -1,8 +1,11 @@
 #include <clients/http/statistics.hpp>
 
+#include <utility>
+
 #include <curl-ev/error_code.hpp>
 
 #include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/utils/enumerate.hpp>
 #include <userver/utils/statistics/common.hpp>
 #include <userver/utils/statistics/writer.hpp>
@@ -21,53 +24,67 @@ T SumToMean(T sum, U count) {
 
 }  // namespace
 
-RequestStats::RequestStats(Statistics& stats) : stats_(stats) {
-  stats_.easy_handles_++;
+RequestStats::RequestStats(Statistics& stats) : stats_(&stats) {
+  stats_->easy_handles_++;
 }
 
-RequestStats::~RequestStats() { stats_.easy_handles_--; }
+RequestStats::~RequestStats() {
+  if (stats_) {
+    stats_->easy_handles_--;
+  }
+}
+
+RequestStats::RequestStats(RequestStats&& other) noexcept
+    : stats_{std::exchange(other.stats_, nullptr)} {}
 
 void RequestStats::Start() { start_time_ = std::chrono::steady_clock::now(); }
 
 void RequestStats::FinishOk(int code, unsigned int attempts) noexcept {
-  stats_.AccountError(Statistics::ErrorGroup::kOk);
-  stats_.AccountStatus(code);
-  if (attempts > 1) stats_.retries_ += utils::statistics::Rate{attempts - 1};
+  UASSERT(stats_);
+  stats_->AccountError(Statistics::ErrorGroup::kOk);
+  stats_->AccountStatus(code);
+  if (attempts > 1) stats_->retries_ += utils::statistics::Rate{attempts - 1};
   StoreTiming();
 }
 
 void RequestStats::FinishEc(std::error_code ec,
                             unsigned int attempts) noexcept {
-  stats_.AccountError(Statistics::ErrorCodeToGroup(ec));
-  if (attempts > 1) stats_.retries_ += utils::statistics::Rate{attempts - 1};
+  UASSERT(stats_);
+  stats_->AccountError(Statistics::ErrorCodeToGroup(ec));
+  if (attempts > 1) stats_->retries_ += utils::statistics::Rate{attempts - 1};
   StoreTiming();
 }
 
 void RequestStats::StoreTiming() noexcept {
+  UASSERT(stats_);
   auto now = std::chrono::steady_clock::now();
   auto diff = now - start_time_;
   auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(diff).count();
-  stats_.timings_percentile_.GetCurrentCounter().Account(ms);
+  stats_->timings_percentile_.GetCurrentCounter().Account(ms);
 }
 
 void RequestStats::StoreTimeToStart(
     std::chrono::microseconds micro_seconds) noexcept {
+  UASSERT(stats_);
   /* There is a race between multiple easy handles, we don't care which of them
    * writes its time_to_start. If boost::asio pool is full, we'll see big
    * numbers anyway. */
-  stats_.last_time_to_start_us_ = micro_seconds.count();
+  stats_->last_time_to_start_us_ = micro_seconds.count();
 }
 
 void RequestStats::AccountOpenSockets(size_t sockets) noexcept {
-  stats_.socket_open_ += utils::statistics::Rate{sockets};
+  UASSERT(stats_);
+  stats_->socket_open_ += utils::statistics::Rate{sockets};
 }
 
 void RequestStats::AccountTimeoutUpdatedByDeadline() noexcept {
-  ++stats_.timeout_updated_by_deadline_;
+  UASSERT(stats_);
+  ++stats_->timeout_updated_by_deadline_;
 }
 
 void RequestStats::AccountCancelledByDeadline() noexcept {
-  ++stats_.cancelled_by_deadline_;
+  UASSERT(stats_);
+  ++stats_->cancelled_by_deadline_;
 }
 
 Statistics::ErrorGroup Statistics::ErrorCodeToGroup(std::error_code ec) {
@@ -134,7 +151,7 @@ const char* Statistics::ToString(ErrorGroup error) {
 }
 
 void Statistics::AccountError(ErrorGroup error) {
-  error_count_[static_cast<int>(error)]++;
+  ++error_count_[static_cast<int>(error)];
 }
 
 void Statistics::AccountStatus(int code) { reply_status_.Account(code); }

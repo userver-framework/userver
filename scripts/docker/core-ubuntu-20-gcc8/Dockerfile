@@ -34,13 +34,10 @@ RUN apt-get update && apt-get install -y --allow-unauthenticated \
     libyaml-cpp-dev \
     libssl-dev \
     libcctz-dev \
-    libhttp-parser-dev \
     libnghttp2-dev \
     libjemalloc-dev \
     libldap2-dev \
     libkrb5-dev \
-    python3-dev \
-    virtualenv \
     python3-dev \
     python3-jinja2 \
     python3-pip \

@@ -4,7 +4,10 @@
 /// @brief @copybrief utils::enumerate
 /// @ingroup userver_universal
 
-#include <tuple>
+#include <cstddef>
+#include <cstdint>
+#include <iterator>
+#include <type_traits>
 #include <utility>
 
 USERVER_NAMESPACE_BEGIN
@@ -12,49 +15,75 @@ USERVER_NAMESPACE_BEGIN
 namespace utils::impl {
 
 template <typename Iter>
-struct IteratorWrapper {
-  Iter iterator;
-  size_t pos{0};
+auto DetectEnumerateValueType()
+    -> std::pair<const std::size_t, decltype(*std::declval<Iter>())>;
 
-  constexpr auto& operator++() {
+template <typename Iter, typename... Args>
+auto DetectEnumerateValueType(Args&&...) -> void;
+
+template <typename Iter>
+struct IteratorWrapper {
+  using difference_type = std::ptrdiff_t;
+  using value_type = decltype(DetectEnumerateValueType<Iter>());
+  using reference = value_type;
+  using iterator_category = std::input_iterator_tag;
+
+  Iter iterator;
+  std::size_t pos{0};
+
+  constexpr IteratorWrapper& operator++() {
     ++pos;
     ++iterator;
     return *this;
   }
-  constexpr std::tuple<const size_t, decltype(*iterator)> operator*() const {
-    return {pos, *iterator};
-  }
-  constexpr std::tuple<const size_t, decltype(*iterator)> operator*() {
-    return {pos, *iterator};
-  }
 
-  constexpr bool operator==(const IteratorWrapper& other) const {
+  constexpr value_type operator*() const { return {pos, *iterator}; }
+
+  template <typename OtherIter>
+  constexpr bool operator==(const IteratorWrapper<OtherIter>& other) const {
     return iterator == other.iterator;
   }
-  constexpr bool operator!=(const IteratorWrapper& other) const {
+
+  template <typename OtherIter>
+  constexpr bool operator!=(const IteratorWrapper<OtherIter>& other) const {
     return !(iterator == other.iterator);
   }
 };
 
-template <typename Container,
-          typename Iter = decltype(std::begin(std::declval<Container>())),
-          typename = decltype(std::end(std::declval<Container>()))>
-struct ContainerWrapper {
-  using Iterator = IteratorWrapper<Iter>;
-  Container container;
+template <typename Range>
+using IteratorTypeOf = decltype(std::begin(std::declval<Range&>()));
 
-  constexpr auto begin() { return Iterator{std::begin(container), 0}; }
-  constexpr auto end() { return Iterator{std::end(container), 0}; }
-  constexpr auto begin() const { return Iterator{std::begin(container), 0}; }
-  constexpr auto end() const { return Iterator{std::end(container), 0}; }
+template <typename Range>
+using SentinelTypeOf = decltype(std::end(std::declval<Range&>()));
+
+template <typename Container>
+struct ContainerWrapper {
+  constexpr IteratorWrapper<IteratorTypeOf<Container>> begin() {
+    return {std::begin(container), 0};
+  }
+
+  constexpr IteratorWrapper<SentinelTypeOf<Container>> end() {
+    return {std::end(container), 0};
+  }
+
+  constexpr IteratorWrapper<IteratorTypeOf<const Container>> begin() const {
+    return {std::begin(container), 0};
+  }
+
+  constexpr IteratorWrapper<SentinelTypeOf<const Container>> end() const {
+    return {std::end(container), 0};
+  }
+
+  Container container;
 };
+
 }  // namespace utils::impl
 
 namespace utils {
 
 /// @brief Implementation of python-style enumerate function for range-for loops
 /// @param iterable: Container to iterate
-/// @returns ContainerWrapper, which iterator after dereference returns tuple
+/// @returns ContainerWrapper, which iterator after dereference returns pair
 /// of index and (!!!)non-const reference to element(it seems impossible to make
 /// this reference const). It can be used in "range based for loop" with
 /// "structured binding" like this

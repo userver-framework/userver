@@ -424,6 +424,7 @@ const std::unordered_set<SqlState> kStateWhitelist{
     /** @name Misc errors that are logged to LOG_WARNING instead of LOG_ERROR */
     SqlState::kUniqueViolation,
     SqlState::kForeignKeyViolation,
+    SqlState::kDuplicatePreparedStatement,
     //@}
 };
 // clang-format on

@@ -10,7 +10,11 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
 
-UnaryFuture::UnaryFuture(impl::RpcData& data) noexcept : impl_(data) {}
+UnaryFuture::UnaryFuture(impl::RpcData& data) noexcept : impl_(data) {
+  // We expect that FinishAsyncMethodInvocation was already emplaced
+  // For unary future it is done in UnaryCall::FinishAsync
+  UASSERT(data.HoldsFinishAsyncMethodInvocationDebug());
+}
 
 UnaryFuture::~UnaryFuture() noexcept {
   if (auto* const data = impl_.GetData()) {
@@ -19,9 +23,25 @@ UnaryFuture::~UnaryFuture() noexcept {
     auto& finish = data->GetFinishAsyncMethodInvocation();
     auto& status = finish.GetStatus();
 
-    impl::ProcessFinishResult(*data, impl::Wait(finish, data->GetContext()),
-                              std::move(status),
-                              std::move(finish.GetParsedGStatus()), false);
+    data->GetContext().TryCancel();
+
+    const auto wait_status = impl::Wait(finish, data->GetContext());
+
+    switch (wait_status) {
+      case impl::AsyncMethodInvocation::WaitStatus::kOk:
+        [[fallthrough]];
+      case impl::AsyncMethodInvocation::WaitStatus::kError:
+        impl::ProcessFinishResult(*data, wait_status, std::move(status),
+                                  std::move(finish.GetParsedGStatus()), false);
+        break;
+      case impl::AsyncMethodInvocation::WaitStatus::kCancelled:
+        data->GetStatsScope().OnCancelled();
+        break;
+      case impl::AsyncMethodInvocation::WaitStatus::kDeadline:
+        UASSERT_MSG(false,
+                    "Unexpected status 'kDeadline' at UnaryFuture destruction");
+        break;
+    }
   }
 }
 
@@ -96,6 +116,20 @@ engine::FutureStatus UnaryFuture::Get(engine::Deadline deadline) {
 
   UASSERT(false);
   return engine::FutureStatus::kTimeout;
+}
+
+engine::impl::ContextAccessor* UnaryFuture::TryGetContextAccessor() noexcept {
+  // Unfortunately, we can't require that TryGetContextAccessor is not called
+  // after future is finished - it doesn't match pattern usage of WaitAny
+  // Instead we should return nullptr
+  auto* const data = impl_.GetData();
+  if (!data) {
+    return nullptr;
+  }
+
+  // if data exists, then FinishAsyncMethodInvocation also exists
+  auto& finish = data->GetFinishAsyncMethodInvocation();
+  return finish.TryGetContextAccessor();
 }
 
 bool UnaryFuture::IsReady() const noexcept { return impl_.IsReady(); }

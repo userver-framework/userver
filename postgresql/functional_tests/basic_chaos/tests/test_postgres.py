@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import socket
 
@@ -340,3 +341,43 @@ async def test_close_with_error(service_client, gate, testpoint):
 
     should_close = False
     await _check_that_restores(service_client, gate)
+
+
+@pytest.mark.config(
+    POSTGRES_CONNECTION_POOL_SETTINGS={
+        '__default__': {'max_pool_size': 1, 'min_pool_size': 1},
+    },
+)
+async def test_prepared_statement_already_exists(
+        service_client, gate, testpoint,
+):
+    first = {1: True}
+
+    @testpoint('after_trx_begin')
+    async def _hook(_data):
+        if first[1]:
+            gate.to_client_delay(0.9)
+        first[1] = False
+
+    @testpoint('pg_cleanup')
+    async def pg_cleanup_hook(_data):
+        gate.to_client_pass()
+
+    response = await service_client.get(SELECT_SMALL_TIMEOUT_URL)
+    assert response.status == 500
+
+    logger.debug('after slow select')
+
+    gate.to_client_pass()
+    await asyncio.sleep(2)
+
+    logger.debug('after sleep')
+
+    response = await service_client.get(SELECT_SMALL_TIMEOUT_URL)
+    assert response.status == 500
+
+    response = await service_client.get(SELECT_SMALL_TIMEOUT_URL)
+    assert response.status == 200
+
+    response = await service_client.get(SELECT_SMALL_TIMEOUT_URL)
+    assert response.status == 200

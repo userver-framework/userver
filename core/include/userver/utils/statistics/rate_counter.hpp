@@ -21,7 +21,9 @@ class RateCounter final {
   using ValueType = Rate;
 
   constexpr RateCounter() noexcept = default;
+
   constexpr explicit RateCounter(Rate desired) noexcept : val_(desired.value) {}
+
   constexpr explicit RateCounter(Rate::ValueType desired) noexcept
       : val_(desired) {}
 
@@ -67,8 +69,9 @@ class RateCounter final {
     return *this;
   }
 
-  RateCounter& operator+=(RateCounter arg) noexcept {
-    return *this += arg.Load();
+  RateCounter& operator+=(const RateCounter& arg) noexcept {
+    *this += arg.Load();
+    return *this;
   }
 
  private:

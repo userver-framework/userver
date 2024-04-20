@@ -56,6 +56,10 @@ ValueBuilder::ValueBuilder(bool t)
 ValueBuilder::ValueBuilder(const char* str)
     : value_(impl::VersionedValuePtr::Create(str, g_allocator)) {}
 
+ValueBuilder::ValueBuilder(char* str)
+    : value_(impl::VersionedValuePtr::Create(std::as_const(str), g_allocator)) {
+}
+
 ValueBuilder::ValueBuilder(const std::string& str)
     : value_(impl::VersionedValuePtr::Create(str, g_allocator)) {}
 

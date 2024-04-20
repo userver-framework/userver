@@ -2,50 +2,15 @@
 
 #include <future>
 
+#include <engine/impl/future_utils.hpp>
 #include <engine/impl/wait_list_light.hpp>
 #include <engine/task/task_context.hpp>
 #include <userver/engine/exception.hpp>
 #include <userver/engine/task/cancel.hpp>
-#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
-
-namespace {
-
-FutureStatus ToFutureStatus(TaskContext::WakeupSource wakeup_source) {
-  switch (wakeup_source) {
-    case TaskContext::WakeupSource::kCancelRequest:
-      return FutureStatus::kCancelled;
-    case TaskContext::WakeupSource::kDeadlineTimer:
-      return FutureStatus::kTimeout;
-    case TaskContext::WakeupSource::kWaitList:
-      return FutureStatus::kReady;
-    default:
-      UINVARIANT(false, "Unexpected wakeup source in BlockingFuture");
-  }
-}
-
-}  // namespace
-
-class FutureStateBase::WaitStrategy final : public impl::WaitStrategy {
- public:
-  WaitStrategy(FutureStateBase& state, impl::TaskContext& context,
-               Deadline deadline)
-      : impl::WaitStrategy(deadline), state_(state), context_(context) {}
-
-  void SetupWakeups() override {
-    state_.finish_waiters_->Append(&context_);
-    if (state_.is_ready_.load()) state_.finish_waiters_->WakeupOne();
-  }
-
-  void DisableWakeups() override { state_.finish_waiters_->Remove(context_); }
-
- private:
-  FutureStateBase& state_;
-  impl::TaskContext& context_;
-};
 
 FutureStateBase::FutureStateBase() noexcept
     : is_ready_(false),
@@ -58,12 +23,11 @@ bool FutureStateBase::IsReady() const noexcept { return is_ready_.load(); }
 
 FutureStatus FutureStateBase::WaitUntil(Deadline deadline) {
   if (IsReady()) return FutureStatus::kReady;
-  if (deadline.IsReached()) return FutureStatus::kTimeout;
 
   auto& context = current_task::GetCurrentTaskContext();
 
-  WaitStrategy wait_strategy{*this, context, deadline};
-  const auto wakeup_source = context.Sleep(wait_strategy);
+  FutureWaitStrategy wait_strategy{*this, context};
+  const auto wakeup_source = context.Sleep(wait_strategy, deadline);
   return ToFutureStatus(wakeup_source);
 }
 
@@ -95,13 +59,21 @@ void FutureStateBase::WaitForResult() {
   }
 }
 
-void FutureStateBase::AppendWaiter(impl::TaskContext& context) noexcept {
-  finish_waiters_->Append(&context);
+EarlyWakeup FutureStateBase::TryAppendWaiter(TaskContext& waiter) {
+  // TODO exterminate is_ready_, use finish_waiters_.GetSignalOrAppend?
+  finish_waiters_->Append(&waiter);
+  if (is_ready_.load()) {
+    finish_waiters_->WakeupOne();
+    return EarlyWakeup{true};
+  }
+  return EarlyWakeup{false};
 }
 
-void FutureStateBase::RemoveWaiter(impl::TaskContext& context) noexcept {
+void FutureStateBase::RemoveWaiter(TaskContext& context) noexcept {
   finish_waiters_->Remove(context);
 }
+
+void FutureStateBase::AfterWait() noexcept {}
 
 }  // namespace engine::impl
 

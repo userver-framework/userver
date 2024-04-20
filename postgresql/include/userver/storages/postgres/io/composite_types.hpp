@@ -22,40 +22,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres::io {
 
-// clang-format wraps snippet lines
-// clang-format off
-/// @page pg_composite_types uPg: Composite user types
-///
-/// The driver supports user-defined PostgreSQL composite types. The C++
-/// counterpart type must satisfy the same requirements as for the row types,
-/// (@ref pg_user_row_types) and must provide a specialization of CppToUserPg
-/// template (@ref pg_user_types).
-///
-/// Parsing a composite structure from PostgreSQL buffer will throw an error if
-/// the number of fields in the postgres data is different from the number of
-/// data members in target C++ type. This is the only sanity control for the
-/// composite types. The driver doesn't check the data type oids, it's user's
-/// responsibility to provide structures with compatible data members.
-///
-/// @par Examples from tests
-///
-/// @snippet storages/postgres/tests/composite_types_pgtest.cpp User type declaration
-///
-/// @warning The type mapping specialization **must** be accessible at the
-/// points where parsing/formatting of the C++ type is instantiated. The
-/// header where the C++ type is declared is an appropriate place to do it.
-///
-/// @snippet storages/postgres/tests/composite_types_pgtest.cpp User type mapping
-///
-///
-/// ----------
-/// 
-/// @htmlonly <div class="bottom-nav"> @endhtmlonly
-/// ⇦ @ref pg_user_types | @ref pg_enum ⇨
-/// @htmlonly </div> @endhtmlonly
-
-// clang-format on
-
 namespace detail {
 
 void InitRecordParser();
@@ -195,13 +161,13 @@ struct AssertTupleHasFormatters<std::tuple<Members...>> : std::true_type {
 
 template <typename T>
 constexpr bool AssertHasCompositeParsers() {
-  static_assert(kIsRowType<T>);
+  io::traits::AssertIsValidRowType<T>();
   return AssertTupleHasParsers<typename io::RowType<T>::TupleType>::value;
 }
 
 template <typename T>
 constexpr bool AssertHasCompositeFormatters() {
-  static_assert(kIsRowType<T>);
+  io::traits::AssertIsValidRowType<T>();
   return AssertTupleHasFormatters<typename io::RowType<T>::TupleType>::value;
 }
 

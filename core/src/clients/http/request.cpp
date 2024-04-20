@@ -206,8 +206,7 @@ ProxyAuthType ProxyAuthTypeFromString(const std::string& auth_name) {
 
 // Request implementation
 
-Request::Request(std::shared_ptr<impl::EasyWrapper>&& wrapper,
-                 std::shared_ptr<RequestStats>&& req_stats,
+Request::Request(impl::EasyWrapper&& wrapper, RequestStats&& req_stats,
                  const std::shared_ptr<DestinationStatistics>& dest_stats,
                  clients::dns::Resolver* resolver,
                  impl::PluginPipeline& plugin_pipeline,
@@ -227,7 +226,8 @@ Request::Request(std::shared_ptr<impl::EasyWrapper>&& wrapper,
 }
 
 ResponseFuture Request::async_perform(utils::impl::SourceLocation location) {
-  return ResponseFuture{pimpl_->async_perform(location), pimpl_};
+  ResponseFuture future{pimpl_->async_perform(location), pimpl_};
+  return future;
 }
 
 StreamedResponse Request::async_perform_stream_body(
@@ -376,14 +376,14 @@ Request Request::data(std::string data) && {
   return std::move(this->data(std::move(data)));
 }
 
-Request& Request::form(const Form& form) & {
-  pimpl_->easy().set_http_post(form.GetNative());
+Request& Request::form(Form&& form) & {
+  pimpl_->easy().set_http_post(std::move(form).GetNative());
   pimpl_->easy().add_header(kHeaderExpect, "",
                             curl::easy::EmptyHeaderAction::kDoNotSend);
   return *this;
 }
-Request Request::form(const Form& form) && {
-  return std::move(this->form(form));
+Request Request::form(Form&& form) && {
+  return std::move(this->form(std::move(form)));
 }
 
 Request& Request::headers(const Headers& headers) & {
@@ -551,32 +551,32 @@ Request Request::head(const std::string& url) && {
   return std::move(this->head(url));
 }
 
-Request& Request::post(const std::string& url, const Form& form) & {
-  return this->url(url).form(form);
+Request& Request::post(const std::string& url, Form&& form) & {
+  return this->url(url).form(std::move(form));
 }
-Request Request::post(const std::string& url, const Form& form) && {
-  return std::move(this->post(url, form));
+Request Request::post(const std::string& url, Form&& form) && {
+  return std::move(this->post(url, std::move(form)));
 }
 
 Request& Request::post(const std::string& url, std::string data) & {
   return this->url(url).data(std::move(data)).post();
 }
 Request Request::post(const std::string& url, std::string data) && {
-  return std::move(this->post(url, data));
+  return std::move(this->post(url, std::move(data)));
 }
 
 Request& Request::put(const std::string& url, std::string data) & {
   return this->url(url).data(std::move(data)).put();
 }
 Request Request::put(const std::string& url, std::string data) && {
-  return std::move(this->put(url, data));
+  return std::move(this->put(url, std::move(data)));
 }
 
 Request& Request::patch(const std::string& url, std::string data) & {
   return this->url(url).data(std::move(data)).patch();
 }
 Request Request::patch(const std::string& url, std::string data) && {
-  return std::move(this->patch(url, data));
+  return std::move(this->patch(url, std::move(data)));
 }
 
 Request& Request::delete_method(const std::string& url) & {
@@ -590,7 +590,7 @@ Request& Request::delete_method(const std::string& url, std::string data) & {
   return this->url(url).data(std::move(data)).delete_method();
 }
 Request Request::delete_method(const std::string& url, std::string data) && {
-  return std::move(this->delete_method(url, data));
+  return std::move(this->delete_method(url, std::move(data)));
 }
 
 Request& Request::SetLoggedUrl(std::string url) & {
@@ -619,7 +619,7 @@ void Request::SetAllowedUrlsExtra(const std::vector<std::string>& urls) & {
 }
 
 void Request::SetDeadlinePropagationConfig(
-    const impl::DeadlinePropagationConfig& deadline_propagation_config) & {
+    const DeadlinePropagationConfig& deadline_propagation_config) & {
   pimpl_->SetDeadlinePropagationConfig(deadline_propagation_config);
 }
 
@@ -629,6 +629,10 @@ Request& Request::DisableReplyDecoding() & {
 }
 Request Request::DisableReplyDecoding() && {
   return std::move(this->DisableReplyDecoding());
+}
+
+void Request::SetCancellationPolicy(CancellationPolicy cp) {
+  pimpl_->SetCancellationPolicy(cp);
 }
 
 Request& Request::SetTracingManager(

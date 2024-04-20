@@ -2,12 +2,14 @@
 
 #include <cmath>
 #include <limits>
+#include <string>
 
 #include <formats/bson/value_impl.hpp>
 #include <formats/bson/wrappers.hpp>
 #include <userver/formats/bson/bson_builder.hpp>
 #include <userver/formats/bson/document.hpp>
 #include <userver/formats/bson/serialize.hpp>
+#include <userver/utils/algo.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -32,8 +34,10 @@ constexpr std::int64_t kMaxIntDouble{std::int64_t{1}
 template <typename T>
 auto CheckedNotTooNegative(T x, const Value& value) {
   if (x <= -1) {
-    throw ConversionException("Cannot convert to unsigned value from negative ")
-        << value.GetPath() << '=' << x;
+    throw ConversionException(
+        utils::StrCat("Cannot convert to unsigned value from negative value ",
+                      std::to_string(x)),
+        value.GetPath());
   }
   return x;
 }
@@ -129,9 +133,10 @@ int64_t Parse(const Value& value, parse::To<int64_t>) {
     double int_part = 0.0;
     auto frac_part = std::modf(as_double, &int_part);
     if (frac_part || std::abs(as_double) >= kMaxIntDouble) {
-      throw ConversionException("Conversion of ")
-          << value.GetPath() << '=' << as_double
-          << " to integer causes precision change";
+      throw ConversionException(
+          utils::StrCat("Conversion ", std::to_string(as_double),
+                        " to integer causes precision change"),
+          value.GetPath());
     }
     return static_cast<int64_t>(as_double);
   }
@@ -156,9 +161,10 @@ double Parse(const Value& value, parse::To<double>) {
     auto as_int = value.As<int64_t>();
     if (as_int == std::numeric_limits<int64_t>::min() ||
         std::abs(as_int) > kMaxIntDouble) {
-      throw ConversionException("Conversion of ")
-          << value.GetPath() << '=' << as_int
-          << " to double causes precision loss";
+      throw ConversionException(
+          utils::StrCat("Conversion of ", std::to_string(as_int),
+                        " to double causes precision loss"),
+          value.GetPath());
     }
     return static_cast<double>(as_int);
   }
