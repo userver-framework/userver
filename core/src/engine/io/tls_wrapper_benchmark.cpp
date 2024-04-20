@@ -137,87 +137,54 @@ v2R63aFo/UfQSQ4dhC0o2Vy74DyLwnO3pH8wudfBJ8/LX/Uz/A==
 -----END CERTIFICATE-----)";
 
 constexpr auto kShortTimeout = std::chrono::milliseconds{10};
+constexpr auto kDeadlineMaxTime = std::chrono::seconds{60};
 
-inline constexpr std::chrono::seconds kMaxWaitTime(60);
 }  // namespace
 
-// Macros for generating an initializer lists for tests WriteAll
-// - begin
-#define MSG "msg"
-#define IO_Data \
-  { MSG, 3 }
-#define IO_Data_5 IO_Data, IO_Data, IO_Data, IO_Data, IO_Data
-#define IO_Data_25 IO_Data_5, IO_Data_5, IO_Data_5, IO_Data_5, IO_Data_5
-#define IO_Data_125 IO_Data_25, IO_Data_25, IO_Data_25, IO_Data_25, IO_Data_25
-#define IO_Data_625 \
-  IO_Data_125, IO_Data_125, IO_Data_125, IO_Data_125, IO_Data_125
-#define IO_Data_3125 \
-  IO_Data_625, IO_Data_625, IO_Data_625, IO_Data_625, IO_Data_625
-#define IO_Data_15625 \
-  IO_Data_3125, IO_Data_3125, IO_Data_3125, IO_Data_3125, IO_Data_3125
-// - end
-
 [[maybe_unused]] void tls_write_all_buffered(benchmark::State& state) {
-  for ([[maybe_unused]] auto _ : state) {
-    engine::RunStandalone(2, [&]() {
-      const auto deadline = Deadline::FromDuration(kMaxWaitTime);
-      internal::net::TcpListener listener;
-      auto [server, client] = listener.MakeSocketPair(deadline);
+  engine::RunStandalone(2, [&]() {
+    const auto deadline = Deadline::FromDuration(kDeadlineMaxTime);
 
-      auto server_task = engine::AsyncNoSpan(
-          [deadline](auto&& server) {
-            auto tls_server = io::TlsWrapper::StartTlsServer(
-                std::forward<decltype(server)>(server),
-                crypto::Certificate::LoadFromString(cert),
-                crypto::PrivateKey::LoadFromString(key), deadline);
+    /// [TLS wrapper usage]
+    TcpListener tcp_listener;
+    auto [server, client] = tcp_listener.MakeSocketPair(deadline);
 
-            auto send_bytes = tls_server.WriteAll({IO_Data_15625}, deadline);
-            benchmark::DoNotOptimize(send_bytes);
-          },
-          std::move(server));
+    std::atomic<bool> reading{true};
+    auto server_task = engine::AsyncNoSpan(
+        [&reading, deadline](auto&& server) {
+          auto tls_server = io::TlsWrapper::StartTlsServer(
+              std::forward<decltype(server)>(server),
+              crypto::Certificate::LoadFromString(cert),
+              crypto::PrivateKey::LoadFromString(key), deadline);
 
-      auto tls_client =
-          io::TlsWrapper::StartTlsClient(std::move(client), {}, deadline);
-      server_task.Get();
-    });
-  }
+          std::array<char, 65'536> buf{};
+          while (tls_server.RecvSome(buf.data(), buf.size(), deadline) > 0 &&
+                 reading) {
+          }
+        },
+        std::move(server));
+
+    engine::io::IoData msg{"msg", 3};
+    std::string buf(16'384, ' ');
+    engine::io::IoData big_msg{buf.data(), 3};
+
+    auto tls_client =
+        io::TlsWrapper::StartTlsClient(std::move(client), {}, deadline);
+
+    for ([[maybe_unused]] auto _ : state) {
+      auto send_bytes =
+          tls_client.WriteAll({msg, msg, msg, msg, msg, big_msg}, deadline);
+      benchmark::DoNotOptimize(send_bytes);
+    }
+    /// [TLS wrapper usage]
+
+    reading.store(false);
+    server_task.Get();
+  });
 }
 
 BENCHMARK(tls_write_all_buffered)
-    ->Range(1 << 10, 1 << 14)
-    ->Unit(benchmark::kMillisecond);
-
-[[maybe_unused]] void tls_write_all_old(benchmark::State& state) {
-  for ([[maybe_unused]] auto _ : state) {
-    engine::RunStandalone(2, [&]() {
-      const auto deadline = Deadline::FromDuration(kMaxWaitTime);
-      internal::net::TcpListener listener;
-      auto [server, client] = listener.MakeSocketPair(deadline);
-
-      auto server_task = engine::AsyncNoSpan(
-          [deadline](auto&& server) {
-            auto tls_server = io::TlsWrapper::StartTlsServer(
-                std::forward<decltype(server)>(server),
-                crypto::Certificate::LoadFromString(cert),
-                crypto::PrivateKey::LoadFromString(key), deadline);
-
-            size_t result{0};
-            engine::io::IoData msg IO_Data;
-            for (int i = 0; i < 15625; ++i) {
-              result += tls_server.SendAll(msg.data, msg.len, deadline);
-            }
-          },
-          std::move(server));
-
-      auto tls_client =
-          io::TlsWrapper::StartTlsClient(std::move(client), {}, deadline);
-      server_task.Get();
-    });
-  }
-}
-
-BENCHMARK(tls_write_all_old)
-    ->Range(1 << 10, 1 << 14)
-    ->Unit(benchmark::kMillisecond);
+    ->Range(1, 1 << 8)
+    ->Unit(benchmark::kNanosecond);
 
 USERVER_NAMESPACE_END
