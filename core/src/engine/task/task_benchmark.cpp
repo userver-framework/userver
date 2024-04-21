@@ -12,7 +12,6 @@
 #include <userver/engine/task/single_threaded_task_processors_pool.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <utils/impl/parallelize_benchmark.hpp>
-#include "userver/engine/task/task.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -113,32 +112,21 @@ void engine_multiple_tasks_multiple_threads(benchmark::State& state) {
   engine::RunStandalone(state.range(0), [&] {
     std::atomic<std::uint64_t> tasks_count_total = 0;
     RunParallelBenchmark(state, [&](auto& range) {
-      const auto batch_size = state.range(1);
-      std::vector<engine::Task> tasks;
-      tasks.reserve(batch_size);
       std::uint64_t tasks_count = 0;
       for ([[maybe_unused]] auto _ : range) {
-        for (int64_t i = 0; i < batch_size; i++) {
-          tasks.push_back(engine::AsyncNoSpan([] {}));
-        }
-        for (auto& task : tasks) {
-          task.Wait();
-          tasks_count++;
-        }
-        tasks.clear();
-        tasks_count_total += tasks_count;
+        engine::AsyncNoSpan([] {}).Wait();
+        tasks_count++;
       }
-      benchmark::DoNotOptimize(tasks_count_total);
+      tasks_count_total += tasks_count;
+      benchmark::DoNotOptimize(tasks_count);
     });
     benchmark::DoNotOptimize(tasks_count_total);
   });
 }
 BENCHMARK(engine_multiple_tasks_multiple_threads)
     ->RangeMultiplier(2)
-    ->Ranges({{1, 32}, {4, 8}})
-    ->Args({6, 4})
-    ->Args({6, 8})
-    ->Args({12, 4})
-    ->Args({12, 8});
+    ->Range(1, 32)
+    ->Arg(6)
+    ->Arg(8);
 
 USERVER_NAMESPACE_END
