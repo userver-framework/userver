@@ -2,7 +2,7 @@ name: Build and publish ubuntu-22.04-userver images
 
 'on':
     schedule:
-      - cron: '30 5 * * 7'  # Every Sunday at 5:30
+      - cron: '30 5 * * 0'  # Every Sunday at 5:30
     workflow_dispatch:
     release:
         types: [published]
