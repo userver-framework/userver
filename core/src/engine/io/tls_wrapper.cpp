@@ -50,7 +50,7 @@ void BIO_set_shutdown(BIO* bio, int shutdown) { bio->shutdown = shutdown; }
 constexpr const char* kBioMethodName = "userver-socket";
 
 /// Each individual message shouldn't be larger than 16kB
-const std::size_t kBufSize = 16384;
+const std::size_t kBufSize = 16'384;
 
 struct SocketBioData {
   explicit SocketBioData(Socket&& socket) : socket(std::move(socket)) {
@@ -589,6 +589,10 @@ size_t TlsWrapper::SendAll(const void* buf, size_t len, Deadline deadline) {
   std::size_t sent_bytes = 0;
   for (const auto& io_data : list) {
     if (io_data.len > kBufSize) {
+      if (len != 0) {
+        sent_bytes += SendAll(buf, len, deadline);
+        len = 0;
+      }
       sent_bytes += SendAll(io_data.data, io_data.len, deadline);
       continue;
     }

@@ -1,21 +1,12 @@
 #include <benchmark/benchmark.h>
 
-#include <openssl/opensslv.h>
-#include <sys/socket.h>
-
-#include <stdexcept>
-#include <string_view>
 #include <vector>
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/io/socket.hpp>
 #include <userver/engine/io/tls_wrapper.hpp>
 #include <userver/engine/run_standalone.hpp>
-#include <userver/engine/single_consumer_event.hpp>
-#include <userver/engine/sleep.hpp>
 #include <userver/internal/net/net_listener.hpp>
-#include <userver/logging/log.hpp>
-#include <userver/utils/async.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
