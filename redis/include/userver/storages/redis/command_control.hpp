@@ -127,6 +127,11 @@ struct CommandControl {
   /// If set, command retries are directed to the master instance
   bool force_retries_to_master_on_nil_reply{false};
 
+  /// Need to be set to if you do manual retries and want retry budget to work.
+  /// If set value other than 0 then request treated as retry.
+  /// 0 - original request, 1 - first retry, 2 - second and so on
+  size_t retry_counter{0};
+
   CommandControl() = default;
   CommandControl(const std::optional<std::chrono::milliseconds>& timeout_single,
                  const std::optional<std::chrono::milliseconds>& timeout_all,
