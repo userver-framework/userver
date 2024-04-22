@@ -1724,6 +1724,7 @@
   "grpc/utest/include/userver/ugrpc/tests/service.hpp":"taxi/uservices/userver/grpc/utest/include/userver/ugrpc/tests/service.hpp",
   "grpc/utest/include/userver/ugrpc/tests/service_fixtures.hpp":"taxi/uservices/userver/grpc/utest/include/userver/ugrpc/tests/service_fixtures.hpp",
   "grpc/utest/src/ugrpc/tests/service.cpp":"taxi/uservices/userver/grpc/utest/src/ugrpc/tests/service.cpp",
+  "kafka/README.md":"taxi/uservices/userver/kafka/README.md",
   "kafka/include/userver/kafka/components/consumer_component.hpp":"taxi/uservices/userver/kafka/include/userver/kafka/components/consumer_component.hpp",
   "kafka/include/userver/kafka/components/producer_component.hpp":"taxi/uservices/userver/kafka/include/userver/kafka/components/producer_component.hpp",
   "kafka/include/userver/kafka/components/tests_messages_component.hpp":"taxi/uservices/userver/kafka/include/userver/kafka/components/tests_messages_component.hpp",
