@@ -144,7 +144,6 @@ UTEST(TlsWrapper, InitListSmall) {
   const engine::io::IoData kData{kString.data(), kString.size()};
   const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
-  /// [TLS wrapper usage]
   TcpListener tcp_listener;
   auto [server, client] = tcp_listener.MakeSocketPair(deadline);
 
@@ -167,7 +166,6 @@ UTEST(TlsWrapper, InitListSmall) {
   std::vector<char> buffer(kData.len * 4);
   const auto bytes_rcvd =
       tls_client.RecvAll(buffer.data(), buffer.size(), deadline);
-  /// [TLS wrapper usage]
 
   server_task.Get();
   std::string result(buffer.data(), bytes_rcvd);
@@ -179,7 +177,6 @@ UTEST(TlsWrapper, InitListLarge) {
   const engine::io::IoData kData{kString.data(), kString.size()};
   const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
-  /// [TLS wrapper usage]
   TcpListener tcp_listener;
   auto [server, client] = tcp_listener.MakeSocketPair(deadline);
 
@@ -201,7 +198,6 @@ UTEST(TlsWrapper, InitListLarge) {
       io::TlsWrapper::StartTlsClient(std::move(client), {}, deadline);
   std::vector<char> buffer(kData.len * 4);
   auto bytes_rcvd = tls_client.RecvAll(buffer.data(), buffer.size(), deadline);
-  /// [TLS wrapper usage]
 
   server_task.Get();
   std::string result(buffer.data(), bytes_rcvd);

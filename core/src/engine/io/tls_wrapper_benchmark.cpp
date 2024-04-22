@@ -145,7 +145,6 @@ constexpr auto kDeadlineMaxTime = std::chrono::seconds{60};
   engine::RunStandalone(2, [&]() {
     const auto deadline = Deadline::FromDuration(kDeadlineMaxTime);
 
-    /// [TLS wrapper usage]
     TcpListener tcp_listener;
     auto [server, client] = tcp_listener.MakeSocketPair(deadline);
 
@@ -176,7 +175,6 @@ constexpr auto kDeadlineMaxTime = std::chrono::seconds{60};
           tls_client.WriteAll({msg, msg, msg, msg, msg, big_msg}, deadline);
       benchmark::DoNotOptimize(send_bytes);
     }
-    /// [TLS wrapper usage]
 
     reading.store(false);
     server_task.Get();
@@ -191,7 +189,6 @@ BENCHMARK(tls_write_all_buffered)
   engine::RunStandalone(2, [&]() {
     const auto deadline = Deadline::FromDuration(kDeadlineMaxTime);
 
-    /// [TLS wrapper usage]
     TcpListener tcp_listener;
     auto [server, client] = tcp_listener.MakeSocketPair(deadline);
 
@@ -226,7 +223,6 @@ BENCHMARK(tls_write_all_buffered)
       send_bytes += tls_client.SendAll(big_msg.data, big_msg.len, deadline);
       benchmark::DoNotOptimize(send_bytes);
     }
-    /// [TLS wrapper usage]
 
     reading.store(false);
     server_task.Get();
