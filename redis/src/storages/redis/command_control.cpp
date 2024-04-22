@@ -141,6 +141,9 @@ CommandControl CommandControl::MergeWith(const CommandControl& b) const {
   if (b.force_server_id.has_value()) {
     res.force_server_id = b.force_server_id;
   }
+  if (b.retry_counter && b.retry_counter > res.retry_counter) {
+    res.retry_counter = b.retry_counter;
+  }
   return (b.force_retries_to_master_on_nil_reply
               ? res.MergeWith(RetryNilFromMaster{})
               : res);

@@ -28,7 +28,7 @@ jobs:
         run: |
             docker build -t ghcr.io/userver-framework/ubuntu-22.04-userver-base:${USERVER_IMAGE_TAG} -f scripts/docker/base-ubuntu-22.04.dockerfile .
             docker push ghcr.io/userver-framework/ubuntu-22.04-userver-base:${USERVER_IMAGE_TAG}
-      - name: Build the ubuntu-22.04-userver-pg Docker image
+      - name: Build the ubuntu-22.04-userver-base-ci Docker image
         run: |
             docker build -t ghcr.io/userver-framework/ubuntu-22.04-userver-base-ci:${USERVER_IMAGE_TAG} -f scripts/docker/base-ubuntu-22.04-ci.dockerfile .
             docker push ghcr.io/userver-framework/ubuntu-22.04-userver-base-ci:${USERVER_IMAGE_TAG}

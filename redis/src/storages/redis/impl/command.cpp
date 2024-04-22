@@ -72,9 +72,10 @@ CommandPtr PrepareCommand(CmdArgs&& args, ReplyCallback callback,
                           const CommandControl& command_control, int counter,
                           bool asking, size_t instance_idx, bool redirected,
                           bool read_only) {
-  return std::make_shared<Command>(std::move(args), std::move(callback),
-                                   command_control, counter, asking,
-                                   instance_idx, redirected, read_only);
+  return std::make_shared<Command>(
+      std::move(args), std::move(callback), command_control,
+      counter ? counter : command_control.retry_counter, asking, instance_idx,
+      redirected, read_only);
 }
 
 }  // namespace redis

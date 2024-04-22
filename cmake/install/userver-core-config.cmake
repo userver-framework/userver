@@ -20,6 +20,9 @@ find_package(UserverGBench REQUIRED)
 
 include("${USERVER_CMAKE_DIR}/UserverTestsuite.cmake")
 include("${USERVER_CMAKE_DIR}/Findc-ares.cmake")
+if (c-ares_FOUND AND NOT TARGET c-ares::cares)
+  add_library(c-ares::cares ALIAS c-ares)
+endif()
 
 add_library(userver::core ALIAS userver::userver-core)
 add_library(userver::utest ALIAS userver::userver-utest)
