@@ -173,7 +173,7 @@ UTEST(TlsWrapper, InitListSmall) {
 }
 
 UTEST(TlsWrapper, InitListLarge) {
-  const std::string kString(8192, 'a');
+  const std::string kString(8'192, 'a');
   const engine::io::IoData kData{kString.data(), kString.size()};
   const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
@@ -202,6 +202,42 @@ UTEST(TlsWrapper, InitListLarge) {
   server_task.Get();
   std::string result(buffer.data(), bytes_rcvd);
   EXPECT_EQ(result, kString + kString + kString + kString);
+}
+
+UTEST(TlsWrapper, InitListSmallThenLarge) {
+  const std::string kStringSmall(512, 'a');
+  const std::string kStringLarge(32'768, 'b');
+  const engine::io::IoData kDataSmall{kStringSmall.data(), kStringSmall.size()};
+  const engine::io::IoData kDataLarge{kStringLarge.data(), kStringLarge.size()};
+  const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+
+  TcpListener tcp_listener;
+  auto [server, client] = tcp_listener.MakeSocketPair(deadline);
+
+  auto server_task = utils::Async(
+      "tls-server",
+      [deadline, kDataSmall, kDataLarge](auto&& server) {
+        auto tls_server = io::TlsWrapper::StartTlsServer(
+            std::forward<decltype(server)>(server),
+            crypto::Certificate::LoadFromString(cert),
+            crypto::PrivateKey::LoadFromString(key), deadline);
+        if (tls_server.WriteAll(
+                {kDataSmall, kDataSmall, kDataSmall, kDataSmall, kDataLarge},
+                deadline) != kDataSmall.len * 4 + kDataLarge.len) {
+          throw std::runtime_error("Couldn't send data");
+        }
+      },
+      std::move(server));
+
+  auto tls_client =
+      io::TlsWrapper::StartTlsClient(std::move(client), {}, deadline);
+  std::vector<char> buffer(kDataSmall.len * 4 + kDataLarge.len);
+  auto bytes_rcvd = tls_client.RecvAll(buffer.data(), buffer.size(), deadline);
+
+  server_task.Get();
+  std::string result(buffer.data(), bytes_rcvd);
+  EXPECT_EQ(result, kStringSmall + kStringSmall + kStringSmall + kStringSmall +
+                        kStringLarge);
 }
 
 UTEST_MT(TlsWrapper, Smoke, 2) {
