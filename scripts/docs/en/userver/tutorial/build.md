@@ -342,7 +342,7 @@ Dependencies could be installed via:
   ```
 
 
-### Arch, Monjaro
+### Arch, Manjaro
 
 \b Dependencies: @ref scripts/docs/en/deps/arch.md "third_party/userver/scripts/docs/en/deps/arch.md"
 
