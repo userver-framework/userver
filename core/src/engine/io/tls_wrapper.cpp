@@ -50,7 +50,7 @@ void BIO_set_shutdown(BIO* bio, int shutdown) { bio->shutdown = shutdown; }
 constexpr const char* kBioMethodName = "userver-socket";
 
 /// Each individual message shouldn't be larger than 16kB
-const std::size_t kBufSize = 16'384;
+static constexpr std::size_t kBufSize = 16'384;
 
 struct SocketBioData {
   explicit SocketBioData(Socket&& socket) : socket(std::move(socket)) {

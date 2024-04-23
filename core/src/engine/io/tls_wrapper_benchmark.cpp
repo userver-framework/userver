@@ -103,13 +103,14 @@ constexpr auto kDeadlineMaxTime = std::chrono::seconds{60};
           std::array<char, 65'536> buf{};
           while (tls_server.RecvSome(buf.data(), buf.size(), deadline) > 0 &&
                  reading) {
+            /* receiving msgs */
           }
         },
         std::move(server));
 
     engine::io::IoData msg{"msg", 3};
-    std::string buf(16'384, ' ');
-    engine::io::IoData big_msg{buf.data(), 3};
+    const std::string payload(state.range(0), 'x');
+    engine::io::IoData big_msg{payload.data(), payload.size()};
 
     auto tls_client =
         io::TlsWrapper::StartTlsClient(std::move(client), {}, deadline);
@@ -126,7 +127,7 @@ constexpr auto kDeadlineMaxTime = std::chrono::seconds{60};
 }
 
 BENCHMARK(tls_write_all_buffered)
-    ->Range(1, 1 << 8)
+    ->Range(1 << 4, 1 << 14)
     ->Unit(benchmark::kNanosecond);
 
 [[maybe_unused]] void tls_write_all_default(benchmark::State& state) {
@@ -147,13 +148,14 @@ BENCHMARK(tls_write_all_buffered)
           std::array<char, 65'536> buf{};
           while (tls_server.RecvSome(buf.data(), buf.size(), deadline) > 0 &&
                  reading) {
+            /* receiving msgs */
           }
         },
         std::move(server));
 
     engine::io::IoData msg{"msg", 3};
-    std::string buf(16'384, ' ');
-    engine::io::IoData big_msg{buf.data(), 3};
+    const std::string payload(state.range(0), 'x');
+    engine::io::IoData big_msg{payload.data(), payload.size()};
 
     auto tls_client =
         io::TlsWrapper::StartTlsClient(std::move(client), {}, deadline);
@@ -174,7 +176,7 @@ BENCHMARK(tls_write_all_buffered)
 }
 
 BENCHMARK(tls_write_all_default)
-    ->Range(1, 1 << 8)
+    ->Range(1 << 4, 1 << 14)
     ->Unit(benchmark::kNanosecond);
 
 USERVER_NAMESPACE_END
