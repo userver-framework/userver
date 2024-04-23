@@ -351,6 +351,8 @@ class Field {
  protected:
   friend class Row;
 
+  Field() = default;
+
   Field(detail::ResultWrapperPtr res, size_type row, size_type col)
       : res_{std::move(res)}, row_index_{row}, field_index_{col} {}
 
@@ -364,14 +366,18 @@ class Field {
 
  private:
   detail::ResultWrapperPtr res_;
-  size_type row_index_;
-  size_type field_index_;
+  size_type row_index_{0};
+  size_type field_index_{0};
 };
 
 /// @brief Iterator over fields in a result set's row
 class ConstFieldIterator
     : public detail::ConstDataIterator<ConstFieldIterator, Field,
                                        detail::IteratorDirection::kForward> {
+ public:
+  ConstFieldIterator() = default;
+
+ private:
   friend class Row;
 
   ConstFieldIterator(detail::ResultWrapperPtr res, size_type row, size_type col)
@@ -382,6 +388,10 @@ class ConstFieldIterator
 class ReverseConstFieldIterator
     : public detail::ConstDataIterator<ReverseConstFieldIterator, Field,
                                        detail::IteratorDirection::kReverse> {
+ public:
+  ReverseConstFieldIterator() = default;
+
+ private:
   friend class Row;
 
   ReverseConstFieldIterator(detail::ResultWrapperPtr res, size_type row,
@@ -529,6 +539,8 @@ class Row {
  protected:
   friend class ResultSet;
 
+  Row() = default;
+
   Row(detail::ResultWrapperPtr res, size_type row)
       : res_{std::move(res)}, row_index_{row} {}
 
@@ -541,13 +553,17 @@ class Row {
   //@}
  private:
   detail::ResultWrapperPtr res_;
-  size_type row_index_;
+  size_type row_index_{0};
 };
 
 /// @name Iterator over rows in a result set
 class ConstRowIterator
     : public detail::ConstDataIterator<ConstRowIterator, Row,
                                        detail::IteratorDirection::kForward> {
+ public:
+  ConstRowIterator() = default;
+
+ private:
   friend class ResultSet;
 
   ConstRowIterator(detail::ResultWrapperPtr res, size_type row)
@@ -558,6 +574,10 @@ class ConstRowIterator
 class ReverseConstRowIterator
     : public detail::ConstDataIterator<ReverseConstRowIterator, Row,
                                        detail::IteratorDirection::kReverse> {
+ public:
+  ReverseConstRowIterator() = default;
+
+ private:
   friend class ResultSet;
 
   ReverseConstRowIterator(detail::ResultWrapperPtr res, size_type row)
