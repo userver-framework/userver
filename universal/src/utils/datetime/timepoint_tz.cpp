@@ -28,6 +28,42 @@ bool TimePointTzBase::operator==(const TimePointTzBase& other) const {
   return tp_ == other.tp_ && tz_offset_ == other.tz_offset_;
 }
 
+bool TimePointTzBase::operator<(const TimePointTzBase& other) const {
+  return tp_ < other.tp_;
+}
+
+bool TimePointTzBase::operator>(const TimePointTzBase& other) const {
+  return tp_ > other.tp_;
+}
+
+bool TimePointTzBase::operator<=(const TimePointTzBase& other) const {
+  return tp_ <= other.tp_;
+}
+
+bool TimePointTzBase::operator>=(const TimePointTzBase& other) const {
+  return tp_ >= other.tp_;
+}
+
+bool operator<(const TimePointTzBase::TimePoint& lhs,
+               const TimePointTzBase& rhs) {
+  return lhs < rhs.GetTimePoint();
+}
+
+bool operator>(const TimePointTzBase::TimePoint& lhs,
+               const TimePointTzBase& rhs) {
+  return lhs > rhs.GetTimePoint();
+}
+
+bool operator<=(const TimePointTzBase::TimePoint& lhs,
+                const TimePointTzBase& rhs) {
+  return lhs <= rhs.GetTimePoint();
+}
+
+bool operator>=(const TimePointTzBase::TimePoint& lhs,
+                const TimePointTzBase& rhs) {
+  return lhs >= rhs.GetTimePoint();
+}
+
 }  // namespace utils::datetime
 
 USERVER_NAMESPACE_END
