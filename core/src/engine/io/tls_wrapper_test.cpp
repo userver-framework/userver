@@ -140,8 +140,14 @@ constexpr auto kShortTimeout = std::chrono::milliseconds{10};
 }  // namespace
 
 UTEST(TlsWrapper, InitListSmall) {
-  const std::string kString(16, 'a');
-  const engine::io::IoData kData{kString.data(), kString.size()};
+  const std::string kStringA(16, 'a');
+  const std::string kStringB(32, 'b');
+  const std::string kStringC(16, 'c');
+  const std::string kStringD(64, 'd');
+  const engine::io::IoData kDataA{kStringA.data(), kStringA.size()};
+  const engine::io::IoData kDataB{kStringB.data(), kStringB.size()};
+  const engine::io::IoData kDataC{kStringC.data(), kStringC.size()};
+  const engine::io::IoData kDataD{kStringD.data(), kStringD.size()};
   const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   TcpListener tcp_listener;
@@ -149,13 +155,13 @@ UTEST(TlsWrapper, InitListSmall) {
 
   auto server_task = utils::Async(
       "tls-server",
-      [deadline, kData](auto&& server) {
+      [deadline, kDataA, kDataB, kDataC, kDataD](auto&& server) {
         auto tls_server = io::TlsWrapper::StartTlsServer(
             std::forward<decltype(server)>(server),
             crypto::Certificate::LoadFromString(cert),
             crypto::PrivateKey::LoadFromString(key), deadline);
-        if (tls_server.WriteAll({kData, kData, kData, kData}, deadline) !=
-            kData.len * 4) {
+        if (tls_server.WriteAll({kDataA, kDataB, kDataC, kDataD}, deadline) !=
+            kDataA.len + kDataB.len + kDataC.len + kDataD.len) {
           throw std::runtime_error("Couldn't send data");
         }
       },
@@ -163,13 +169,13 @@ UTEST(TlsWrapper, InitListSmall) {
 
   auto tls_client =
       io::TlsWrapper::StartTlsClient(std::move(client), {}, deadline);
-  std::vector<char> buffer(kData.len * 4);
+  std::vector<char> buffer(kDataA.len + kDataB.len + kDataC.len + kDataD.len);
   const auto bytes_rcvd =
       tls_client.RecvAll(buffer.data(), buffer.size(), deadline);
 
   server_task.Get();
   std::string result(buffer.data(), bytes_rcvd);
-  EXPECT_EQ(result, kString + kString + kString + kString);
+  EXPECT_EQ(result, kStringA + kStringB + kStringC + kStringD);
 }
 
 UTEST(TlsWrapper, InitListLarge) {
