@@ -1,12 +1,21 @@
 #include <benchmark/benchmark.h>
 
+#include <openssl/opensslv.h>
+#include <sys/socket.h>
+
+#include <stdexcept>
+#include <string_view>
 #include <vector>
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/io/socket.hpp>
 #include <userver/engine/io/tls_wrapper.hpp>
 #include <userver/engine/run_standalone.hpp>
+#include <userver/engine/single_consumer_event.hpp>
+#include <userver/engine/sleep.hpp>
 #include <userver/internal/net/net_listener.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/async.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -72,62 +81,6 @@ VfX6aXy77rZ1efGfLaWZD1yADp+bg033FkqpOf4PtZpixzbZyDmbh6hrvTuX/y4w
 VsNtFCX7LLH/W4mSvkvIws1tm8OtphLn3A==
 -----END CERTIFICATE-----)";
 
-// Certificates for testing were generated via the following command:
-// openssl req -x509 -sha256 -nodes -newkey rsa:2048
-//    -days 3650 -subj '/CN=tlswrapper_test_other'
-//    -keyout testing_priv.key -out testing_cert.crt
-//
-// NOTE: Ubuntu 20.04 requires RSA of at least 2048 length
-constexpr auto other_key = R"(-----BEGIN PRIVATE KEY-----
-MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDRXTl/iZajFxZa
-uJpE3yykbFE/o2TYnPQX3LclfToXv6RQIAPjGvwrvBgH4m1I9PaYYpnHolnxEYDN
-ur0VJutfkypdXKK9ONcVIx76N98z2hBA3u6XLSmorXu8wsHzgSBioEB1bjEYkvo3
-tZooStDgvR/ghCuOXJI4K8qjdUd+T4VhWUeP6qS3KlAOxVqwtr2U5aN3gpJGlZQu
-kJykUjQkQp1jcoW13EmYFnE2pRj3Ne3+TLDTVeM2smQf5dwL/eaesU6Yc+Mi8Q8G
-tMxH5hzT14b/xG3Fc5nGPUK4Kt8Il/+Nry90UGyFVhnbLcel4i1Sh8QXLZZPeCGM
-aJSCnB+7AgMBAAECggEBAJlXLkW7ABlzT2wiyNqomonSy69QfQwp6J2RipJqpaG/
-Oxl0WWR83zUpDnC35lMJF5OEpB0TS8zEhRIpM1PKrZnSr7SxpH/yoZVZo9agFVpk
-3IKmxRj0ew6QAZC/FE7ExHN3674Wdt8IxzsGR2I7acEww6gtJbmfE3kQmdoei752
-LGQbRkNM+DTYYk2yZeCXUVkOqA2J/d4OAPnQyjAhkBRcKU71jF1Zc/IZTWBfgn5e
-s4MX2T1KTnnawCBDWMW6oJS8gRRmRGwPkEFVRJ4K4V/kgEhn5wT2mokF+hHYMdo+
-V41bqiquvl9j0SqhBnD6OAYQi32npCCf4ddRhlUZbAECgYEA79IhYYiX8uc5Ypnq
-lNoR9VN+MAEyECnWrwNlf3obyVj68/KGusjFbljSy/rBSS6ShPQCeSRbzPS3j1B3
-nbqZZy+ZUbviAbOpw2D4xN+ur7jVOxxhLjEuTP0lnuPJCFflMQtN5vfkhdcDG89h
-YSRdm9MFcPXSysDHzoXgG1KXyB0CgYEA330WOM895a9tDKfxtVppznuZ9mJAEDwV
-xQqloZjpnbTbeL3l2CMo2tgcZRjVoYtc1GFE8ke0ZGafujZ+qiGAn8dYCsQgFY+Z
-PDKBSbGFQNhq6gcDbA33/Zkh3QvsDxUif5lRSSKEmXbYiTuoo9mUDQ8qKsb4T5v6
-uMovOi0d77cCgYEAjlnncJJ4xzkS6gE8qhBrOnjN3UbIZanAAfB9LdbYaYLEq0rZ
-SEPmVSKqNWPpmTvowrxoP2oih5z23D3CUsCxT/uEAW0JsULo0M1dvNadRTbscwLc
-eGO+/PoCe7bv3GD37U2tdxzL69n9wWMuhU/ltJnkj/GKpskZkPAMX4t+Bs0CgYAf
-ln+AkhIul6fzJP2t41SXIbM2NtbVNJjjG8kjWQiUCM8Idta4wOdyXx9MTsFLLvZ0
-8jabg/UER9kFqdQnWcrjSnqwMt5SDdTbxEuvzc6Gxs/9ufYK3MKTboRxyNCZpSQW
-IuZxTtatFjYu12bTmdoqKl2MZEkOf35lhfY848maawKBgACxJXDPWx/Ah4cT0LbN
-XFdWxjSVMU2BHlO0rWy8oZwFaOH8cy+dYe1cdMh+nQLMNXXTY+nu4WditpLfURof
-2GmF9LD5e6tUJw1rPLbKDVM5DXuO3ka0msRea4Y8Diaiql8eLytJhbMw12nE0B1g
-LKaaQekBQ5eebwM3oRc68q0K
------END PRIVATE KEY-----)";
-
-constexpr auto other_cert = R"(-----BEGIN CERTIFICATE-----
-MIIDITCCAgmgAwIBAgIUL5c8L0jabF9rZ2w383zGQmwcLZwwDQYJKoZIhvcNAQEL
-BQAwIDEeMBwGA1UEAwwVdGxzd3JhcHBlcl90ZXN0X290aGVyMB4XDTIyMDIxNzEy
-MjcxOVoXDTMyMDIxNTEyMjcxOVowIDEeMBwGA1UEAwwVdGxzd3JhcHBlcl90ZXN0
-X290aGVyMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0V05f4mWoxcW
-WriaRN8spGxRP6Nk2Jz0F9y3JX06F7+kUCAD4xr8K7wYB+JtSPT2mGKZx6JZ8RGA
-zbq9FSbrX5MqXVyivTjXFSMe+jffM9oQQN7uly0pqK17vMLB84EgYqBAdW4xGJL6
-N7WaKErQ4L0f4IQrjlySOCvKo3VHfk+FYVlHj+qktypQDsVasLa9lOWjd4KSRpWU
-LpCcpFI0JEKdY3KFtdxJmBZxNqUY9zXt/kyw01XjNrJkH+XcC/3mnrFOmHPjIvEP
-BrTMR+Yc09eG/8RtxXOZxj1CuCrfCJf/ja8vdFBshVYZ2y3HpeItUofEFy2WT3gh
-jGiUgpwfuwIDAQABo1MwUTAdBgNVHQ4EFgQU947UQygfsOw+udnjR3rywSlqnZIw
-HwYDVR0jBBgwFoAU947UQygfsOw+udnjR3rywSlqnZIwDwYDVR0TAQH/BAUwAwEB
-/zANBgkqhkiG9w0BAQsFAAOCAQEAZUrhuONUlLalvmtjaVEsNgoPErF8jPeLHHGA
-9dVAvkaumbwacO5AYWbODRhC0NCdYTNAqLaQVA4utxZGI3Z2pQKxI+OnlCM+ws3z
-Nrfh+E/6EJZblfqK7SBduPYlFxhkalQ19mi/R5E6p9EmBdV1sScR6Hsg3qSCpFbT
-Z49kghXJ5KAS4jOB6SxClxbR5Tpc1E3khduX6aGau1VOkgPJxfdqHHqsyUc1RH/Z
-3W6n4SmhCZxEpQzSQUw4YPIIpWuSUWUr7MS7TzGDdT4AgD0m5VLFbF2ca/Fsz2WW
-v2R63aFo/UfQSQ4dhC0o2Vy74DyLwnO3pH8wudfBJ8/LX/Uz/A==
------END CERTIFICATE-----)";
-
-constexpr auto kShortTimeout = std::chrono::milliseconds{10};
 constexpr auto kDeadlineMaxTime = std::chrono::seconds{60};
 
 }  // namespace
