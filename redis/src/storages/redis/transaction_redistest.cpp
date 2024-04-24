@@ -781,7 +781,9 @@ std::uint64_t GetCommandCount(
   std::for_each(stat.begin(), stat.end(), [&](auto& shard) {
     command_count +=
         shard.second.shard_total
-            .error_count[static_cast<std::size_t>(redis::ReplyStatus::kOk)];
+            .error_count[static_cast<std::size_t>(redis::ReplyStatus::kOk)]
+            .Load()
+            .value;
   });
   return command_count;
 }
