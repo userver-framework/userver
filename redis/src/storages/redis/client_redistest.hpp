@@ -1,8 +1,9 @@
 #pragma once
 
 #include <memory>
-#include <regex>
 #include <string>
+
+#include <boost/regex.hpp>
 
 #include <userver/utest/utest.hpp>
 
@@ -49,10 +50,10 @@ class RedisClientTest : public ::testing::Test {
     ASSERT_TRUE(info_reply->data.IsString());
     const auto info = info_reply->data.GetString();
 
-    std::regex redis_version_regex(R"(redis_version:(\d+.\d+.\d+))");
-    std::smatch redis_version_matches;
+    boost::regex redis_version_regex(R"(redis_version:(\d+.\d+.\d+))");
+    boost::smatch redis_version_matches;
     ASSERT_TRUE(
-        std::regex_search(info, redis_version_matches, redis_version_regex));
+        boost::regex_search(info, redis_version_matches, redis_version_regex));
     version_ = MakeVersion(redis_version_matches[1]);
   }
 
@@ -100,9 +101,9 @@ class RedisClientTest : public ::testing::Test {
   std::shared_ptr<storages::redis::SubscribeClient> subscribe_client_{};
 
   static Version MakeVersion(std::string from) {
-    std::regex rgx(R"((\d+).(\d+).(\d+))");
-    std::smatch matches;
-    const auto result = std::regex_search(from, matches, rgx);
+    boost::regex rgx(R"((\d+).(\d+).(\d+))");
+    boost::smatch matches;
+    const auto result = boost::regex_search(from, matches, rgx);
     EXPECT_TRUE(result);
     if (!result) return {};
     return {std::stoi(matches[1]), std::stoi(matches[2]),
