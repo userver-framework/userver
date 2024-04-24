@@ -584,26 +584,59 @@ size_t TlsWrapper::SendAll(const void* buf, size_t len, Deadline deadline) {
 
 [[nodiscard]] size_t TlsWrapper::WriteAll(std::initializer_list<IoData> list,
                                           Deadline deadline) {
-  char buf[kBufSize];
-  std::size_t len = 0;
+  std::array<std::byte, kBufSize> buf{};
+
   std::size_t sent_bytes = 0;
-  for (const auto& io_data : list) {
-    if (io_data.len > kBufSize) {
-      if (len != 0) {
-        sent_bytes += SendAll(buf, len, deadline);
-        len = 0;
+  std::size_t remaining_cap = kBufSize;
+  std::size_t cnt = 0;
+  auto last_begin = list.begin();
+  for (auto it = last_begin; it != list.end(); ++it) {
+    if (it->len > remaining_cap) {
+      if (cnt >= 2) {
+        auto ins_pos = buf.begin();
+        for (auto ins_it = last_begin; ins_it != it; ++ins_it) {
+          ins_pos = std::copy_n(
+              reinterpret_cast<const std::byte*>(ins_it->data),
+              ins_it->len,
+              ins_pos
+          );
+        }
+        sent_bytes += WriteAll(buf.data(), buf.size() - remaining_cap, deadline);
+      } else {
+        for (auto ins_it = last_begin; ins_it < it; ++ins_it) {
+          sent_bytes += WriteAll(ins_it->data, ins_it->len, deadline);
+        }
       }
-      sent_bytes += SendAll(io_data.data, io_data.len, deadline);
-      continue;
+
+      remaining_cap = kBufSize;
+      if (it->len < remaining_cap) {
+        cnt = 1;
+        last_begin = it;
+      } else {
+        cnt = 0;
+        sent_bytes += WriteAll(it->data, it->len, deadline);
+        last_begin = it + 1;
+      }
+
+    } else {
+      ++cnt;
+      remaining_cap -= it->len;
     }
-    if (len + io_data.len > kBufSize) {
-      sent_bytes += SendAll(buf, len, deadline);
-      len = 0;
-    }
-    std::memcpy(buf + len, io_data.data, io_data.len);
-    len += io_data.len;
   }
-  return sent_bytes + SendAll(buf, len, deadline);
+
+  if (cnt > 0) {
+    auto ins_pos = buf.begin();
+    for (auto ins_it = last_begin; ins_it != list.end(); ++ins_it) {
+      ins_pos = std::copy_n(
+          reinterpret_cast<const std::byte*>(ins_it->data),
+          ins_it->len,
+          ins_pos
+      );
+    }
+    sent_bytes += WriteAll(buf.data(), buf.size() - remaining_cap, deadline);
+  }
+
+  return sent_bytes;
 }
 
 Socket TlsWrapper::StopTls(Deadline deadline) {
