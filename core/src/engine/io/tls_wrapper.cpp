@@ -49,9 +49,6 @@ void BIO_set_shutdown(BIO* bio, int shutdown) { bio->shutdown = shutdown; }
 
 constexpr const char* kBioMethodName = "userver-socket";
 
-/// Each individual message shouldn't be larger than 16kB
-static constexpr std::size_t kBufSize = 16'384;
-
 struct SocketBioData {
   explicit SocketBioData(Socket&& socket) : socket(std::move(socket)) {
     if (!this->socket) {
@@ -584,6 +581,8 @@ size_t TlsWrapper::SendAll(const void* buf, size_t len, Deadline deadline) {
 
 [[nodiscard]] size_t TlsWrapper::WriteAll(std::initializer_list<IoData> list,
                                           Deadline deadline) {
+  static constexpr std::size_t kBufSize = 16'384;
+
   std::array<std::byte, kBufSize> buf{};
 
   std::size_t sent_bytes = 0;
@@ -595,13 +594,12 @@ size_t TlsWrapper::SendAll(const void* buf, size_t len, Deadline deadline) {
       if (cnt >= 2) {
         auto ins_pos = buf.begin();
         for (auto ins_it = last_begin; ins_it != it; ++ins_it) {
-          ins_pos = std::copy_n(
-              reinterpret_cast<const std::byte*>(ins_it->data),
-              ins_it->len,
-              ins_pos
-          );
+          ins_pos =
+              std::copy_n(reinterpret_cast<const std::byte*>(ins_it->data),
+                          ins_it->len, ins_pos);
         }
-        sent_bytes += WriteAll(buf.data(), buf.size() - remaining_cap, deadline);
+        sent_bytes +=
+            WriteAll(buf.data(), buf.size() - remaining_cap, deadline);
       } else {
         for (auto ins_it = last_begin; ins_it < it; ++ins_it) {
           sent_bytes += WriteAll(ins_it->data, ins_it->len, deadline);
@@ -627,11 +625,8 @@ size_t TlsWrapper::SendAll(const void* buf, size_t len, Deadline deadline) {
   if (cnt > 0) {
     auto ins_pos = buf.begin();
     for (auto ins_it = last_begin; ins_it != list.end(); ++ins_it) {
-      ins_pos = std::copy_n(
-          reinterpret_cast<const std::byte*>(ins_it->data),
-          ins_it->len,
-          ins_pos
-      );
+      ins_pos = std::copy_n(reinterpret_cast<const std::byte*>(ins_it->data),
+                            ins_it->len, ins_pos);
     }
     sent_bytes += WriteAll(buf.data(), buf.size() - remaining_cap, deadline);
   }
