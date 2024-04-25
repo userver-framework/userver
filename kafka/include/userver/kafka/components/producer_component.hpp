@@ -18,6 +18,8 @@ class ProducerComponent final : public components::LoggableComponentBase {
 
   Producer& GetProducer();
 
+  static yaml_config::Schema GetStaticConfigSchema();
+
  private:
   Producer producer_;
 };
