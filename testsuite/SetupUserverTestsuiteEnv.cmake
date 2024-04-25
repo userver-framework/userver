@@ -8,6 +8,11 @@ include(UserverTestsuite)
 
 userver_testsuite_requirements(REQUIREMENT_FILES_VAR requirements_files)
 
+if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+  list(APPEND requirements_files
+      "${USERVER_TESTSUITE_DIR}/requirements-net.txt")
+endif()
+
 userver_venv_setup(
   NAME userver-testenv
   PYTHON_OUTPUT_VAR TESTSUITE_PYTHON_BINARY
