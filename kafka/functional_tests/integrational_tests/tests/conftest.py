@@ -1,8 +1,8 @@
 import json
+import logging
 import os
 
 import pytest
-import logging
 
 
 pytest_plugins = ['pytest_userver.plugins.core']

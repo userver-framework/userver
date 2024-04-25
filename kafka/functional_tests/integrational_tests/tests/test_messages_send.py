@@ -1,6 +1,8 @@
 import asyncio
 import logging
 
+import pytest
+
 
 TOPIC = 'test-topic'
 
@@ -25,6 +27,7 @@ def _make_request_body(
     }
 
 
+@pytest.mark.skip(reason='Kafka error: Broker: Invalid replication factor')
 async def test_one_producer_send_sync(service_client):
     response = await service_client.post(
         PRODUCE_ROUTE, json=_make_request_body(0, 'test-key', 'test-message'),
