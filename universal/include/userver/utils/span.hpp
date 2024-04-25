@@ -50,7 +50,7 @@ class span final {
 
   constexpr span(T* begin, std::size_t size) noexcept
       : begin_(begin), end_(begin + size) {
-    UASSERT((begin != nullptr && size > 0) || (begin == nullptr && size == 0));
+    UASSERT((begin != nullptr) || (begin == nullptr && size == 0));
   }
 
   template <

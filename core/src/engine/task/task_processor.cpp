@@ -18,6 +18,7 @@
 #include <engine/task/task_context.hpp>
 #include <engine/task/task_processor_pools.hpp>
 #include <engine/task/work_stealing_queue/task_queue.hpp>
+#include "engine/task/task_processor_config.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -69,11 +70,15 @@ void TaskProcessorThreadStartedHook() {
 TaskProcessor::TaskProcessor(TaskProcessorConfig config,
                              std::shared_ptr<impl::TaskProcessorPools> pools)
     : task_counter_(config.worker_threads),
-      task_queue_(config),
+      task_queue_(std::in_place_index_t<1>(), config),
       config_(std::move(config)),
       pools_(std::move(pools)) {
   utils::impl::FinishStaticRegistration();
   try {
+    if (config.task_processor_queue ==
+        engine::TaskProcessorQueue::kMoodyCamelTaskQueue) {
+      task_queue_.emplace<0>(config);
+    }
     LOG_INFO() << "creating task_processor " << Name() << " "
                << "worker_threads=" << config_.worker_threads
                << " thread_name=" << config_.thread_name;
@@ -106,7 +111,7 @@ void TaskProcessor::Cleanup() noexcept {
   // Some tasks may be bound but not scheduled yet
   task_counter_.WaitForExhaustion();
 
-  task_queue_.StopProcessing();
+  std::visit([](auto&& arg) { return arg.StopProcessing(); }, task_queue_);
 
   for (auto& w : workers_) {
     w.join();
@@ -137,7 +142,7 @@ void TaskProcessor::Schedule(impl::TaskContext* context) {
 
   SetTaskQueueWaitTimepoint(context);
 
-  task_queue_.Push(context);
+  std::visit([&context](auto&& arg) { return arg.Push(context); }, task_queue_);
 }
 
 void TaskProcessor::Adopt(impl::TaskContext& context) {
@@ -250,7 +255,8 @@ void TaskProcessor::PrepareWorkerThread(std::size_t index) noexcept {
 
 void TaskProcessor::ProcessTasks() noexcept {
   while (true) {
-    auto context = task_queue_.PopBlocking();
+    auto context =
+        std::visit([](auto&& arg) { return arg.PopBlocking(); }, task_queue_);
     if (!context) break;
 
     GetTaskCounter().AccountTaskSwitchSlow();

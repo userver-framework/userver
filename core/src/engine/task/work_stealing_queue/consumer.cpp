@@ -27,9 +27,11 @@ void FutexWake(std::atomic<std::int32_t>* value, int count) {
 #endif
 
 namespace {
-constexpr std::size_t kConsumerStealBufferSize = 32;
 constexpr std::size_t kDefaultStealAttempts = 3;
 constexpr std::size_t kDefaultStealSize = 4;
+// frequency of visits to the global
+// queue to guarantee progress
+constexpr std::size_t kFrequencyGlobalQueuePop = 61;
 }  // namespace
 
 Consumer::Consumer(WorkStealingTaskQueue& owner,
@@ -124,18 +126,13 @@ impl::TaskContext* Consumer::TryPopFromOwnerQueue(bool is_global) {
 
 impl::TaskContext* Consumer::ProbabilisticPopFromOwnerQueues() {
   impl::TaskContext* context = nullptr;
-  if (steps_count_ % 61 == 0) {
+  if (steps_count_ % kFrequencyGlobalQueuePop == 0) {
     context = owner_.global_queue_.TryPop();
     if (context) {
       return context;
     }
   }
-  if (steps_count_ % 73 == 0) {
-    context = owner_.background_queue_.TryPop();
-    if (context) {
-      return context;
-    }
-  }
+
   return nullptr;
 }
 
@@ -165,8 +162,9 @@ impl::TaskContext* Consumer::TryPop() {
     context =
         StealFromAnotherConsumer(kDefaultStealAttempts, kDefaultStealSize);
     bool last = consumers_manager_.StopStealing();
-    if (last &&
-        context) {  // there are potentially other tasks that require a consumer
+
+    // there are potentially other tasks that require a consumer
+    if (last && context) {
       consumers_manager_.WakeUpOne();
     }
     if (context) {

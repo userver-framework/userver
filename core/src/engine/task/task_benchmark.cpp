@@ -2,9 +2,13 @@
 
 #include <atomic>
 #include <cstdint>
+#include <memory>
+#include <string>
 #include <thread>
 
 #include <engine/impl/standalone.hpp>
+#include <engine/task/task_processor_config.hpp>
+#include <engine/task/work_stealing_queue/task_queue.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/run_standalone.hpp>
 #include <userver/engine/sleep.hpp>
@@ -12,6 +16,10 @@
 #include <userver/engine/task/single_threaded_task_processors_pool.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <utils/impl/parallelize_benchmark.hpp>
+#include "engine/task/task_processor.hpp"
+#include "engine/task/work_stealing_queue/consumer.hpp"
+#include "userver/engine/impl/context_accessor.hpp"
+#include "userver/engine/task/task.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -127,6 +135,68 @@ BENCHMARK(engine_multiple_tasks_multiple_threads)
     ->RangeMultiplier(2)
     ->Range(1, 32)
     ->Arg(6)
-    ->Arg(8);
+    ->Arg(12);
+
+void engine_multiple_yield_two_task_processor_no_extra_wakeups(
+    benchmark::State& state) {
+  engine::RunStandalone([&] {
+    std::vector<std::unique_ptr<engine::TaskProcessor>> processors;
+    for (int i = 0; i < 2; i++) {
+      engine::TaskProcessorConfig proc_config;
+      proc_config.name = std::to_string(i);
+      proc_config.thread_name = std::to_string(i);
+      proc_config.worker_threads = state.range(0);
+      processors.push_back(std::make_unique<engine::TaskProcessor>(
+          std::move(proc_config),
+          engine::current_task::GetTaskProcessor().GetTaskProcessorPools()));
+    }
+    auto tasks_count{state.range(0) / 2};
+    std::vector<int64_t> tasks_per_tp{tasks_count, tasks_count - 1};
+    std::vector<engine::TaskWithResult<std::uint64_t>> tasks;
+    std::atomic<bool> keep_running{true};
+    for (int i = 0; i < 2; i++) {
+      for ([[maybe_unused]] auto _ : tasks_per_tp) {
+        tasks.push_back(engine::AsyncNoSpan(*processors[i].get(), [&] {
+          std::uint64_t yields_performed = 0;
+          while (keep_running) {
+            engine::Yield();
+            ++yields_performed;
+          }
+          return yields_performed;
+        }));
+      }
+    }
+
+    tasks.push_back(engine::AsyncNoSpan(*processors.back().get(), [&] {
+      std::uint64_t yields_performed = 0;
+      for ([[maybe_unused]] auto _ : state) {
+        engine::Yield();
+        ++yields_performed;
+      }
+      keep_running = false;
+      return yields_performed;
+    }));
+
+    std::uint64_t yields_performed = 0;
+    for (auto& task : tasks) {
+      yields_performed += task.Get();
+    }
+    state.counters["yields"] =
+        benchmark::Counter(yields_performed, benchmark::Counter::kIsRate);
+    state.counters["yields/thread"] = benchmark::Counter(
+        static_cast<double>(yields_performed) / state.range(0),
+        benchmark::Counter::kIsRate);
+  });
+}
+BENCHMARK(engine_multiple_yield_two_task_processor_no_extra_wakeups)
+    ->RangeMultiplier(2)
+    ->Range(2, 32)
+    ->Arg(6)
+    ->Arg(12);
+
+engine::impl::TaskContext* CreateInvalidTaskContextPtr() {
+  intptr_t fakeAddress = 1;
+  return reinterpret_cast<engine::impl::TaskContext*>(fakeAddress);
+}
 
 USERVER_NAMESPACE_END

@@ -47,13 +47,19 @@ class Consumer final {
   void Sleep(const std::int32_t old_sleep_counter);
   void WakeUp();
 
-  LocalQueue<impl::TaskContext, 63> local_queue_{};
+  // Empirical evaluation of the optimal local queue size.
+  // 2^n -1 so that the internal queue size is 2^n
+  static constexpr std::size_t kLocalQueueSize = 63;
+  // Equal to half the queue size
+  static constexpr std::size_t kConsumerStealBufferSize = 32;
+
+  LocalQueue<impl::TaskContext, kLocalQueueSize> local_queue_{};
   WorkStealingTaskQueue& owner_;
   ConsumersManager& consumers_manager_;
   std::size_t inner_index_{0};
-  std::array<impl::TaskContext*, 32> steal_buffer_{};
+  std::array<impl::TaskContext*, kConsumerStealBufferSize> steal_buffer_{};
   std::minstd_rand rnd_;
-  std::size_t steps_count_;
+  std::size_t steps_count_{0};
   std::atomic<std::int32_t> sleep_counter_{0};
 #ifndef __linux__
   std::condition_variable cv_;
