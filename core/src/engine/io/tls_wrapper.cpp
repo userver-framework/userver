@@ -582,54 +582,45 @@ size_t TlsWrapper::SendAll(const void* buf, size_t len, Deadline deadline) {
 [[nodiscard]] size_t TlsWrapper::WriteAll(std::initializer_list<IoData> list,
                                           Deadline deadline) {
   static constexpr std::size_t kBufSize = 16'384;
-
-  std::array<std::byte, kBufSize> buf{};
+  std::array<std::byte, kBufSize> buf;
 
   std::size_t sent_bytes = 0;
   std::size_t remaining_cap = kBufSize;
-  std::size_t cnt = 0;
   auto last_begin = list.begin();
   for (auto it = last_begin; it != list.end(); ++it) {
     if (it->len > remaining_cap) {
-      if (cnt >= 2) {
+      if (it - last_begin >= 2) {
         auto ins_pos = buf.begin();
         for (auto ins_it = last_begin; ins_it != it; ++ins_it) {
-          ins_pos =
-              std::copy_n(reinterpret_cast<const std::byte*>(ins_it->data),
-                          ins_it->len, ins_pos);
+          ins_pos = std::copy_n(reinterpret_cast<const std::byte*>(ins_it->data),
+                                ins_it->len, ins_pos);
         }
         sent_bytes +=
-            WriteAll(buf.data(), buf.size() - remaining_cap, deadline);
-      } else {
-        for (auto ins_it = last_begin; ins_it < it; ++ins_it) {
-          sent_bytes += WriteAll(ins_it->data, ins_it->len, deadline);
-        }
+            SendAll(buf.data(), buf.size() - remaining_cap, deadline);
+      } else if (last_begin != it) {
+        sent_bytes += SendAll(last_begin->data, last_begin->len, deadline);
       }
 
       remaining_cap = kBufSize;
+      last_begin = it;
       if (it->len < remaining_cap) {
-        cnt = 1;
-        last_begin = it;
+        remaining_cap -= it->len;
       } else {
-        cnt = 0;
-        sent_bytes += WriteAll(it->data, it->len, deadline);
-        last_begin = it + 1;
+        sent_bytes += SendAll(it->data, it->len, deadline);
+        ++last_begin;
       }
 
     } else {
-      ++cnt;
       remaining_cap -= it->len;
     }
   }
 
-  if (cnt > 0) {
-    auto ins_pos = buf.begin();
-    for (auto ins_it = last_begin; ins_it != list.end(); ++ins_it) {
-      ins_pos = std::copy_n(reinterpret_cast<const std::byte*>(ins_it->data),
-                            ins_it->len, ins_pos);
-    }
-    sent_bytes += WriteAll(buf.data(), buf.size() - remaining_cap, deadline);
+  auto ins_pos = buf.begin();
+  for (auto ins_it = last_begin; ins_it != list.end(); ++ins_it) {
+    ins_pos = std::copy_n(reinterpret_cast<const std::byte*>(ins_it->data),
+                          ins_it->len, ins_pos);
   }
+  sent_bytes += WriteAll(buf.data(), buf.size() - remaining_cap, deadline);
 
   return sent_bytes;
 }
