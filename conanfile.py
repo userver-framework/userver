@@ -4,35 +4,19 @@ import re
 
 from conan import ConanFile
 from conan import errors
-from conan.tools import load
 from conan.tools.cmake import CMake
 from conan.tools.cmake import cmake_layout
 from conan.tools.cmake import CMakeDeps
 from conan.tools.cmake import CMakeToolchain
 from conan.tools.files import copy
+from conan.tools.files import load
+
 
 required_conan_version = '>=1.51.0, <2.0.0'  # pylint: disable=invalid-name
 
 
-def get_userver_version() -> str:
-    content = load('cmake/GetUserverVersion.cmake')
-    major_version = (
-        re.search(r'set\(USERVER_MAJOR_VERSION (.*)\)', content)
-        .group(1)
-        .strip()
-    )
-    minor_version = (
-        re.search(r'set\(USERVER_MINOR_VERSION (.*)\)', content)
-        .group(1)
-        .strip()
-    )
-
-    return f'{major_version}.{minor_version}'
-
-
 class UserverConan(ConanFile):
     name = 'userver'
-    version = get_userver_version()
     description = 'The C++ Asynchronous Framework'
     topics = ('framework', 'coroutines', 'asynchronous')
     url = 'https://github.com/userver-framework/userver'
@@ -83,6 +67,21 @@ class UserverConan(ConanFile):
     #     'url': 'https://github.com/userver-framework/userver.git',
     #     'revision': 'develop'
     # }
+
+    def set_version(self):
+        content = load(self, 'cmake/GetUserverVersion.cmake')
+        major_version = (
+            re.search(r'set\(USERVER_MAJOR_VERSION (.*)\)', content)
+            .group(1)
+            .strip()
+        )
+        minor_version = (
+            re.search(r'set\(USERVER_MINOR_VERSION (.*)\)', content)
+            .group(1)
+            .strip()
+        )
+
+        self.version = f'{major_version}.{minor_version}'
 
     @property
     def _source_subfolder(self):
