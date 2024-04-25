@@ -2,29 +2,44 @@
 
 cache.any.documents.parse_failures: cache_name=key-value-pg-cache	GAUGE	0
 cache.any.documents.read_count: cache_name=key-value-pg-cache	GAUGE	0
+cache.any.documents.parse_failures.v2: cache_name=key-value-pg-cache	RATE	0
+cache.any.documents.read_count.v2: cache_name=key-value-pg-cache	RATE	0
 cache.any.time.last-update-duration-ms: cache_name=key-value-pg-cache	GAUGE	0
 cache.any.time.time-from-last-successful-start-ms: cache_name=key-value-pg-cache	GAUGE	0
 cache.any.time.time-from-last-update-start-ms: cache_name=key-value-pg-cache	GAUGE	0
 cache.any.update.attempts_count: cache_name=key-value-pg-cache	GAUGE	0
 cache.any.update.failures_count: cache_name=key-value-pg-cache	GAUGE	0
 cache.any.update.no_changes_count: cache_name=key-value-pg-cache	GAUGE	0
+cache.any.update.attempts_count.v2: cache_name=key-value-pg-cache	RATE	0
+cache.any.update.failures_count.v2: cache_name=key-value-pg-cache	RATE	0
+cache.any.update.no_changes_count.v2: cache_name=key-value-pg-cache	RATE	0
 cache.current-documents-count: cache_name=key-value-pg-cache	GAUGE	0
 cache.full.documents.parse_failures: cache_name=key-value-pg-cache	GAUGE	0
 cache.full.documents.read_count: cache_name=key-value-pg-cache	GAUGE	0
+cache.full.documents.parse_failures.v2: cache_name=key-value-pg-cache	RATE	0
+cache.full.documents.read_count.v2: cache_name=key-value-pg-cache	RATE	0
 cache.full.time.last-update-duration-ms: cache_name=key-value-pg-cache	GAUGE	0
 cache.full.time.time-from-last-successful-start-ms: cache_name=key-value-pg-cache	GAUGE	0
 cache.full.time.time-from-last-update-start-ms: cache_name=key-value-pg-cache	GAUGE	0
 cache.full.update.attempts_count: cache_name=key-value-pg-cache	GAUGE	0
 cache.full.update.failures_count: cache_name=key-value-pg-cache	GAUGE	0
 cache.full.update.no_changes_count: cache_name=key-value-pg-cache	GAUGE	0
+cache.full.update.attempts_count.v2: cache_name=key-value-pg-cache	RATE	0
+cache.full.update.failures_count.v2: cache_name=key-value-pg-cache	RATE	0
+cache.full.update.no_changes_count.v2: cache_name=key-value-pg-cache	RATE	0
 cache.incremental.documents.parse_failures: cache_name=key-value-pg-cache	GAUGE	0
 cache.incremental.documents.read_count: cache_name=key-value-pg-cache	GAUGE	0
+cache.incremental.documents.parse_failures.v2: cache_name=key-value-pg-cache	RATE	0
+cache.incremental.documents.read_count.v2: cache_name=key-value-pg-cache	RATE	0
 cache.incremental.time.last-update-duration-ms: cache_name=key-value-pg-cache	GAUGE	0
 cache.incremental.time.time-from-last-successful-start-ms: cache_name=key-value-pg-cache	GAUGE	0
 cache.incremental.time.time-from-last-update-start-ms: cache_name=key-value-pg-cache	GAUGE	0
 cache.incremental.update.attempts_count: cache_name=key-value-pg-cache	GAUGE	0
 cache.incremental.update.failures_count: cache_name=key-value-pg-cache	GAUGE	0
 cache.incremental.update.no_changes_count: cache_name=key-value-pg-cache	GAUGE	0
+cache.incremental.update.attempts_count.v2: cache_name=key-value-pg-cache	RATE	0
+cache.incremental.update.failures_count.v2: cache_name=key-value-pg-cache	RATE	0
+cache.incremental.update.no_changes_count.v2: cache_name=key-value-pg-cache	RATE	0
 
 
 ### PostgreSQL distlock related metrics
