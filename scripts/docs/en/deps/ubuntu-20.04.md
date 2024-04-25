@@ -47,3 +47,7 @@ python3-protobuf
 python3-venv
 python3-voluptuous
 zlib1g-dev
+libgflags-dev
+libsnappy-dev
+libbz2-dev
+libzstd-dev
