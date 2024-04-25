@@ -47,4 +47,9 @@ python3-protobuf
 python3-venv
 python3-voluptuous
 python3-yaml
+redis-server
+libgflags-dev
+libsnappy-dev
 zlib1g-dev
+libbz2-dev
+libzstd-dev

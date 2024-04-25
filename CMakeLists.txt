@@ -169,6 +169,7 @@ option(USERVER_FEATURE_GRPC "Provide asynchronous driver for gRPC" "${USERVER_LI
 option(USERVER_FEATURE_CLICKHOUSE "Provide asynchronous driver for ClickHouse" "${USERVER_CLICKHOUSE_DEFAULT}")
 option(USERVER_FEATURE_RABBITMQ "Provide asynchronous driver for RabbitMQ" "${USERVER_LIB_ENABLED_DEFAULT}")
 option(USERVER_FEATURE_MYSQL "Provide asynchronous driver for MariaDB/MySQL" "${USERVER_LIB_ENABLED_DEFAULT}")
+option(USERVER_FEATURE_ROCKS "Provide asynchronous driver for Rocks" "${USERVER_LIB_ENABLED_DEFAULT}")
 
 option(USERVER_FEATURE_UBOOST_CORO "Use vendored boost context instead of a system one" ON)
 
@@ -239,6 +240,11 @@ if (USERVER_FEATURE_MYSQL)
   _require_userver_core("USERVER_FEATURE_MYSQL")
   add_subdirectory(mysql "${CMAKE_BINARY_DIR}/userver/mysql")
   list(APPEND USERVER_AVAILABLE_COMPONENTS mysql)
+endif()
+
+if (USERVER_FEATURE_ROCKS)
+  _require_userver_core("USERVER_FEATURE_ROCKS")
+  add_subdirectory(rocks "${CMAKE_BINARY_DIR}/userver/rocks")
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT AND USERVER_FEATURE_CORE)
