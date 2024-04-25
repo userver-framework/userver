@@ -100,7 +100,7 @@ constexpr auto kDeadlineMaxTime = std::chrono::seconds{60};
               crypto::Certificate::LoadFromString(cert),
               crypto::PrivateKey::LoadFromString(key), deadline);
 
-          std::array<char, 65'536> buf{};
+          std::array<std::byte, 65'536> buf{};
           while (tls_server.RecvSome(buf.data(), buf.size(), deadline) > 0 &&
                  reading) {
             /* receiving msgs */
@@ -117,7 +117,7 @@ constexpr auto kDeadlineMaxTime = std::chrono::seconds{60};
 
     for ([[maybe_unused]] auto _ : state) {
       auto send_bytes =
-          tls_client.WriteAll({msg, msg, msg, msg, msg, big_msg}, deadline);
+          tls_client.WriteAll({msg, msg, msg, big_msg, msg, msg, big_msg, msg, big_msg, msg, msg}, deadline);
       benchmark::DoNotOptimize(send_bytes);
     }
 
@@ -145,7 +145,7 @@ BENCHMARK(tls_write_all_buffered)
               crypto::Certificate::LoadFromString(cert),
               crypto::PrivateKey::LoadFromString(key), deadline);
 
-          std::array<char, 65'536> buf{};
+          std::array<std::byte, 65'536> buf{};
           while (tls_server.RecvSome(buf.data(), buf.size(), deadline) > 0 &&
                  reading) {
             /* receiving msgs */
@@ -160,13 +160,11 @@ BENCHMARK(tls_write_all_buffered)
     auto tls_client =
         io::TlsWrapper::StartTlsClient(std::move(client), {}, deadline);
 
-    constexpr int kAmountOfsmallMsgs = 5;
+    std::size_t send_bytes{0};
     for ([[maybe_unused]] auto _ : state) {
-      std::size_t send_bytes{0};
-      for (int i = 0; i < kAmountOfsmallMsgs; ++i) {
-        send_bytes = tls_client.SendAll(msg.data, msg.len, deadline);
+      for (const auto& io_data : {msg, msg, msg, big_msg, msg, msg, big_msg, msg, big_msg, msg, msg}) {
+        send_bytes += tls_client.WriteAll(io_data.data, io_data.len, deadline);
       }
-      send_bytes += tls_client.SendAll(big_msg.data, big_msg.len, deadline);
       benchmark::DoNotOptimize(send_bytes);
     }
 
