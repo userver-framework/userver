@@ -461,6 +461,9 @@ Used by components::Postgres.
 ## REDIS_COMMANDS_BUFFERING_SETTINGS
 
 Dynamic config that controls command buffering for specific service.
+Enabling of this config activates a delay in sending commands. When commands are sent, they are combined into a single tcp packet and sent together.
+First command arms timer and then during `watch_command_timer_interval_us` commands are accumulated in the buffer
+
 
 Command buffering is disabled by default.
 
