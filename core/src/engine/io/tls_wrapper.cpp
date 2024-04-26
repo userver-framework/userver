@@ -590,8 +590,7 @@ size_t TlsWrapper::SendAll(const void* buf, size_t len, Deadline deadline) {
   for (auto it = fits_in_buf_begin; it != list.end(); ++it) {
     if (it->len > remaining_cap) {
       if (it - fits_in_buf_begin >= 2) {
-        auto* ins_pos = buf;
-        for (; fits_in_buf_begin != it; ++fits_in_buf_begin) {
+        for (auto* ins_pos = buf; fits_in_buf_begin != it; ++fits_in_buf_begin) {
           ins_pos = std::copy_n(
               static_cast<const std::byte*>(fits_in_buf_begin->data),
               fits_in_buf_begin->len, ins_pos
