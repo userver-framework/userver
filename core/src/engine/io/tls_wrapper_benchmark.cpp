@@ -127,6 +127,7 @@ constexpr auto kDeadlineMaxTime = std::chrono::seconds{60};
 }
 
 BENCHMARK(tls_write_all_buffered)
+    ->RangeMultiplier(2)
     ->Range(1 << 6, 1 << 12)
     ->Unit(benchmark::kNanosecond);
 
@@ -174,6 +175,7 @@ BENCHMARK(tls_write_all_buffered)
 }
 
 BENCHMARK(tls_write_all_default)
+    ->RangeMultiplier(2)
     ->Range(1 << 6, 1 << 12)
     ->Unit(benchmark::kNanosecond);
 
