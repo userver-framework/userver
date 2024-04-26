@@ -1,3 +1,17 @@
+"""
+pytest plugin that provides YDB fixtures for functional tests with
+testsuite; see
+@ref scripts/docs/en/userver/ydb.md for an introduction.
+
+@ingroup userver_testsuite_fixtures
+"""
+
+pytest_plugins = [
+    'pytest_userver.plugins.core',
+    'pytest_userver.plugins.ydb.ydbsupport',
+]
+
+
 def pytest_addoption(parser):
     group = parser.getgroup('ydb')
     group.addoption('--ydb-host', help='YDB host')
