@@ -173,7 +173,7 @@ properties:
                         `global-task-queue` default task queue.
                         `work-stealing-task-queue` experimental with
                         potentially better scalability than `global-task-queue`.
-                    defaultDescription: normal
+                    defaultDescription: global-task-queue
                     enum:
                       - global-task-queue
                       - work-stealing-task-queue
