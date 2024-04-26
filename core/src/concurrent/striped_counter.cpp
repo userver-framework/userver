@@ -44,11 +44,11 @@ void StripedCounter::Add(std::uintptr_t value) noexcept {
 
 std::uintptr_t StripedCounter::Read() const noexcept {
   auto sum = static_cast<std::uintptr_t>(
-      impl_->fallback.load(std::memory_order_relaxed));
+      impl_->fallback.load(std::memory_order_acquire));
 
   for (const auto& c : impl_->counters.Elements()) {
     // Ideally this should be a std::atomic_ref, of course
-    sum += static_cast<std::uintptr_t>(__atomic_load_n(&c, __ATOMIC_RELAXED));
+    sum += static_cast<std::uintptr_t>(__atomic_load_n(&c, __ATOMIC_ACQUIRE));
   }
 
   return sum;
@@ -65,7 +65,7 @@ void StripedCounter::Add(std::uintptr_t value) noexcept {
 }
 
 std::uintptr_t StripedCounter::Read() const noexcept {
-  return impl_->value.load(std::memory_order_relaxed);
+  return impl_->value.load(std::memory_order_acquire);
 }
 
 #endif

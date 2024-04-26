@@ -53,6 +53,10 @@ class StripedArray final {
     return array_.GetBase()[kStride * index];
   }
 
+  const std::intptr_t& operator[](std::size_t index) const noexcept {
+    return array_.GetBase()[kStride * index];
+  }
+
   auto Elements() {
     return utils::span<std::intptr_t>(
                array_.GetBase(),
