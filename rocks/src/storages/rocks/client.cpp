@@ -42,7 +42,7 @@ void Client::Delete(std::string_view key) {
 
 void Client::CheckStatus(rocksdb::Status status, std::string_view method_name) {
   if (!status.ok() && !status.IsNotFound()) {
-    throw USERVER_NAMESPACE::storages::rocks::impl::RequestFailedException(
+    throw USERVER_NAMESPACE::rocks::RequestFailedException(
         method_name, status.ToString());
   }
 }

@@ -4,7 +4,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::rocks::impl {
+namespace rocks {
 
 RequestFailedException::RequestFailedException(
     std::string_view request_description, std::string_view status)
@@ -16,6 +16,6 @@ std::string_view RequestFailedException::GetStatusString() const {
   return status_;
 }
 
-}  // namespace storages::rocks::impl
+}  // namespace storages::rocks
 
 USERVER_NAMESPACE_END
