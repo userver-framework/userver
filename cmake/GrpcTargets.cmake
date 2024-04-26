@@ -1,95 +1,103 @@
-# Functions to create a target consisting of generated gRPC files and their
-# wrappers. A separate target is required as gRPC generated headers require
-# relaxed compilation flags.
+# Functions for creating targets consisting of base protobuf files and userver
+# asynchronous gRPC adaptors.
+#
+# On inclusion:
+# - finds Protobuf package
+# - finds gRPC package
+# - sets up project-wide venv-userver-grpc for userver protobuf plugin
+#
+# Provides:
+# - userver_generate_grpc_files function
+# - userver_add_grpc_library function
+#
+# See the Doxygen documentation on add_grpc_library.
+#
+# Implementation note: public functions here should be usable even without
+# a direct include of this script, so the functions should not rely
+# on non-cache variables being present.
+
 include_guard()
 
-if(USERVER_CONAN)
-  find_package(gRPC REQUIRED)
-  find_package(Protobuf REQUIRED)  # For Protobuf_VERSION
-  set(USERVER_PROTOBUF_IMPORT_DIR "${protobuf_INCLUDE_DIR}")
-  get_target_property(PROTO_GRPC_CPP_PLUGIN gRPC::grpc_cpp_plugin LOCATION)
-  get_target_property(PROTO_GRPC_PYTHON_PLUGIN gRPC::grpc_python_plugin LOCATION)
-  set(PROTOBUF_PROTOC "${Protobuf_PROTOC_EXECUTABLE}")
-else()
-  if(NOT Protobuf_FOUND)
-    include(SetupProtobuf)
-  endif()
-  if(Protobuf_INCLUDE_DIR)
-    set(USERVER_PROTOBUF_IMPORT_DIR "${Protobuf_INCLUDE_DIR}")
-  elseif(Protobuf_INCLUDE_DIRS)
-    set(USERVER_PROTOBUF_IMPORT_DIR "${Protobuf_INCLUDE_DIRS}")
+function(_userver_prepare_grpc)
+  if(USERVER_CONAN)
+    find_package(gRPC REQUIRED)
+    find_package(Protobuf REQUIRED)  # For Protobuf_VERSION
+    get_target_property(PROTO_GRPC_CPP_PLUGIN gRPC::grpc_cpp_plugin LOCATION)
+    get_target_property(PROTO_GRPC_PYTHON_PLUGIN gRPC::grpc_python_plugin LOCATION)
+    set(PROTOBUF_PROTOC "${Protobuf_PROTOC_EXECUTABLE}")
   else()
-    set(USERVER_PROTOBUF_IMPORT_DIR "${protobuf_INCLUDE_DIRS}")
+    if(NOT Protobuf_FOUND)
+      include(SetupProtobuf)
+    endif()
+    include(SetupGrpc)
+  endif()
+  set_property(GLOBAL PROPERTY userver_grpc_cpp_plugin "${PROTO_GRPC_CPP_PLUGIN}")
+  set_property(GLOBAL PROPERTY userver_grpc_python_plugin "${PROTO_GRPC_PYTHON_PLUGIN}")
+  set_property(GLOBAL PROPERTY userver_protobuf_protoc "${PROTOBUF_PROTOC}")
+
+  if(NOT USERVER_GRPC_SCRIPTS_PATH)
+    get_filename_component(USERVER_DIR "${CMAKE_CURRENT_LIST_DIR}" DIRECTORY)
+    set(USERVER_GRPC_SCRIPTS_PATH "${USERVER_DIR}/scripts/grpc")
+  endif()
+  set_property(GLOBAL PROPERTY userver_grpc_scripts_path "${USERVER_GRPC_SCRIPTS_PATH}")
+
+  message(STATUS "Protobuf version: ${Protobuf_VERSION}")
+  message(STATUS "gRPC version: ${gRPC_VERSION}")
+
+  # Used by grpc/CMakeLists.txt
+  set(gRPC_VERSION "${gRPC_VERSION}" PARENT_SCOPE)
+
+  if(Protobuf_INCLUDE_DIR)
+    set_property(GLOBAL PROPERTY userver_protobuf_import_dir "${Protobuf_INCLUDE_DIR}")
+  elseif(protobuf_INCLUDE_DIR)
+    set_property(GLOBAL PROPERTY userver_protobuf_import_dir "${protobuf_INCLUDE_DIR}")
+  elseif(Protobuf_INCLUDE_DIRS)
+    set_property(GLOBAL PROPERTY userver_protobuf_import_dir "${Protobuf_INCLUDE_DIRS}")
+  elseif(protobuf_INCLUDE_DIRS)
+    set_property(GLOBAL PROPERTY userver_protobuf_import_dir "${protobuf_INCLUDE_DIRS}")
+  else()
+    message(FATAL_ERROR "Invalid Protobuf package")
   endif()
 
-  include(SetupGrpc)
-endif()
+  if (NOT gRPC_VERSION)
+    message(FATAL_ERROR "Invalid gRPC package")
+  endif()
+  if(NOT PROTOBUF_PROTOC)
+    message(FATAL_ERROR "protoc not found")
+  endif()
+  if(NOT PROTO_GRPC_CPP_PLUGIN)
+    message(FATAL_ERROR "grpc_cpp_plugin not found")
+  endif()
+  if(NOT PROTO_GRPC_PYTHON_PLUGIN)
+    message(FATAL_ERROR "grpc_python_plugin not found")
+  endif()
 
-get_filename_component(USERVER_DIR "${CMAKE_CURRENT_LIST_DIR}" DIRECTORY)
-if(NOT REQUIREMENTS_PATH_FOR_GRPC)
-    set(REQUIREMENTS_PATH_FOR_GRPC "${USERVER_DIR}/scripts/grpc")
-endif()
-
-if (NOT USERVER_PROTOBUF_IMPORT_DIR)
-  message(FATAL_ERROR "Invalid Protobuf package")
-endif()
-if (NOT gRPC_VERSION)
-  message(FATAL_ERROR "Invalid gRPC package")
-endif()
-
-set(PROTO_GRPC_USRV_PLUGIN "${REQUIREMENTS_PATH_FOR_GRPC}/protoc_usrv_plugin.sh")
-
-message(STATUS "Protobuf version: ${Protobuf_VERSION}")
-message(STATUS "gRPC version: ${gRPC_VERSION}")
-
-if(NOT USERVER_CONAN)
-  # For userver_venv_setup. With Conan, it's included automatically.
   include(UserverTestsuite)
-endif()
 
-if(Protobuf_VERSION VERSION_GREATER_EQUAL 5.26.0 AND
-    Protobuf_VERSION VERSION_LESS 6.0.0 OR
-    Protobuf_VERSION VERSION_GREATER_EQUAL 26.0.0)
-  set(file_requirements_protobuf "requirements-5.txt")
-elseif(Protobuf_VERSION VERSION_GREATER_EQUAL 3.20.0 AND
-    Protobuf_VERSION VERSION_LESS 4.0.0 OR
-    Protobuf_VERSION VERSION_GREATER_EQUAL 4.20.0 AND
-    Protobuf_VERSION VERSION_LESS 5.0.0 OR
-    Protobuf_VERSION VERSION_GREATER_EQUAL 20.0.0)
-  set(file_requirements_protobuf "requirements-4.txt")
-elseif(Protobuf_VERSION VERSION_GREATER 3.0.0 AND
-    Protobuf_VERSION VERSION_LESS 4.0.0)
-  set(file_requirements_protobuf "requirements-3.txt")
-else()
-  message(FATAL_ERROR "Unsupported Protobuf_VERSION: ${Protobuf_VERSION}")
-endif()
+  set(requirements_name "requirements-${USERVER_PROTOBUF_VERSION_CATEGORY}.txt")
+  userver_venv_setup(
+      NAME userver-grpc
+      PYTHON_OUTPUT_VAR USERVER_GRPC_PYTHON_BINARY
+      REQUIREMENTS "${USERVER_GRPC_SCRIPTS_PATH}/${requirements_name}"
+      UNIQUE
+  )
+  set(ENV{USERVER_GRPC_PYTHON_BINARY} "${USERVER_GRPC_PYTHON_BINARY}")
+endfunction()
 
-userver_venv_setup(
-    NAME userver-grpc
-    PYTHON_OUTPUT_VAR USERVER_GRPC_PYTHON_BINARY
-    REQUIREMENTS "${REQUIREMENTS_PATH_FOR_GRPC}/${file_requirements_protobuf}"
-    UNIQUE
-)
-set(ENV{USERVER_GRPC_PYTHON_BINARY} "${USERVER_GRPC_PYTHON_BINARY}")
-
-if(NOT PROTOBUF_PROTOC)
-  message(FATAL_ERROR "protoc not found")
-endif()
-
-if(NOT PROTO_GRPC_CPP_PLUGIN)
-  message(FATAL_ERROR "grpc_cpp_plugin not found")
-endif()
-
-if(NOT PROTO_GRPC_PYTHON_PLUGIN)
-  message(FATAL_ERROR "grpc_python_plugin not found")
-endif()
-
+_userver_prepare_grpc()
 
 function(userver_generate_grpc_files)
   set(options)
   set(one_value_args CPP_FILES CPP_USRV_FILES GENERATED_INCLUDES SOURCE_PATH)
   set(multi_value_args PROTOS INCLUDE_DIRECTORIES)
   cmake_parse_arguments(GEN_RPC "${options}" "${one_value_args}" "${multi_value_args}" ${ARGN})
+
+  get_property(USERVER_GRPC_SCRIPTS_PATH GLOBAL PROPERTY userver_grpc_scripts_path)
+  get_property(PROTO_GRPC_CPP_PLUGIN GLOBAL PROPERTY userver_grpc_cpp_plugin)
+  get_property(PROTO_GRPC_PYTHON_PLUGIN GLOBAL PROPERTY userver_grpc_python_plugin)
+  get_property(PROTOBUF_PROTOC GLOBAL PROPERTY userver_protobuf_protoc)
+  get_property(USERVER_PROTOBUF_IMPORT_DIR GLOBAL PROPERTY userver_protobuf_import_dir)
+  set(PROTO_GRPC_USRV_PLUGIN "${USERVER_GRPC_SCRIPTS_PATH}/protoc_usrv_plugin.sh")
 
   if(GEN_RPC_INCLUDE_DIRECTORIES)
     set(include_options)
@@ -161,7 +169,7 @@ function(userver_generate_grpc_files)
   list(APPEND proto_dependencies_globs
       "${root_path}/*.proto"
       "${USERVER_PROTOBUF_IMPORT_DIR}/*.proto"
-      "${USERVER_DIR}/scripts/grpc/*"
+      "${USERVER_GRPC_SCRIPTS_PATH}/*"
   )
   file(GLOB_RECURSE proto_dependencies ${proto_dependencies_globs})
 

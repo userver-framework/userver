@@ -1,10 +1,15 @@
+# Relies on variables from:
+# - find_package(Boost)
+# - userver_setup_environment
 function (userver_target_require_dwcas target visibility)
   option(USERVER_FEATURE_DWCAS "Require double-width compare-exchange-swap" ON)
 
-  if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
-    # All CPUs, which can run macOS, provide a DWCAS instruction.
-    # On the other hand, emulation via libatomic is not accessible there.
-    set(USERVER_FEATURE_DWCAS ON)
+  if(NOT USERVER_FEATURE_DWCAS AND CMAKE_SYSTEM_NAME MATCHES "Darwin")
+    message(FATAL_ERROR
+        "All CPUs, which can run macOS, provide a DWCAS instruction. "
+        "On the other hand, emulation via libatomic is not accessible there. "
+        "Please remove -DUSERVER_FEATURE_DWCAS=OFF CMake option"
+    )
   endif()
 
   if(NOT USERVER_FEATURE_DWCAS)

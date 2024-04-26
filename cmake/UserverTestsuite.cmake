@@ -1,22 +1,39 @@
+# Functions for setting up Python virtual environments and running
+# testsuite tests.
+#
+# Provides:
+# - USERVER_PYTHON_PATH option
+# - USERVER_FEATURE_TESTSUITE option
+# - USERVER_PIP_USE_SYSTEM_PACKAGES option
+# - USERVER_PIP_OPTIONS option
+# - userver_venv_setup function that sets up a Python virtual environment
+#   with the given requirements
+# - userver_testsuite_requirements function that returns a list of requirements
+#   files needed to run userver testsuite
+# - userver_testsuite_add function that registers a directory with testsuite
+#   tests in ctest. Note that userver testsuite requires some arguments, they
+#   should be passed manually using PYTEST_ARGS
+# - userver_testsuite_add_simple that automatically detects and fills in some
+#   PYTEST_ARGS
+#
+# Implementation note: public functions here should be usable even without
+# a direct include of this script, so the functions should not rely
+# on non-cache variables being present.
 include_guard(GLOBAL)
 
-include(CTest)
+function(_userver_prepare_testsuite)
+  set(USERVER_PYTHON_PATH "python3" CACHE FILEPATH "Path to python3 executable to use")
+  message(STATUS "Python: ${USERVER_PYTHON_PATH}")
 
-set(USERVER_PYTHON_PATH "python3" CACHE FILEPATH "Path to python3 executable to use")
-message(STATUS "Python: ${USERVER_PYTHON_PATH}")
+  option(USERVER_FEATURE_TESTSUITE "Enable functional tests via testsuite" ON)
+  option(
+      USERVER_PIP_USE_SYSTEM_PACKAGES
+      "Use system python packages inside venv"
+      OFF
+  )
+  set(USERVER_PIP_OPTIONS "" CACHE STRING "Options for all pip calls")
 
-option(USERVER_FEATURE_TESTSUITE "Enable functional tests via testsuite" ON)
-option(
-    USERVER_PIP_USE_SYSTEM_PACKAGES
-    "Use system python packages inside venv"
-    OFF
-)
-set(USERVER_PIP_OPTIONS "" CACHE STRING "Options for all pip calls")
-
-if(USERVER_FEATURE_TESTSUITE)
-  get_property(userver_python_dev_checked
-      GLOBAL PROPERTY userver_python_dev_checked)
-  if(NOT userver_python_dev_checked)
+  if(USERVER_FEATURE_TESTSUITE AND NOT USERVER_PYTHON_DEV_CHECKED)
     # find package python3-dev required by venv
     execute_process(
         COMMAND sh "-c" "command -v python3-config"
@@ -25,15 +42,17 @@ if(USERVER_FEATURE_TESTSUITE)
     if(NOT PYTHONCONFIG_FOUND)
       message(FATAL_ERROR "Python dev is not found")
     endif()
-    set_property(GLOBAL PROPERTY userver_python_dev_checked "TRUE")
+    set(USERVER_PYTHON_DEV_CHECKED TRUE CACHE INTERNAL "")
   endif()
-endif()
 
-if(NOT USERVER_TESTSUITE_DIR)
-  get_filename_component(
-      USERVER_TESTSUITE_DIR "${CMAKE_CURRENT_LIST_DIR}/../testsuite" ABSOLUTE)
-endif()
-set_property(GLOBAL PROPERTY userver_testsuite_dir "${USERVER_TESTSUITE_DIR}")
+  if(NOT USERVER_TESTSUITE_DIR)
+    get_filename_component(
+        USERVER_TESTSUITE_DIR "${CMAKE_CURRENT_LIST_DIR}/../testsuite" ABSOLUTE)
+  endif()
+  set_property(GLOBAL PROPERTY userver_testsuite_dir "${USERVER_TESTSUITE_DIR}")
+endfunction()
+
+_userver_prepare_testsuite()
 
 function(userver_venv_setup)
   set(options UNIQUE)
@@ -187,38 +206,13 @@ function(userver_testsuite_requirements)
       "${USERVER_TESTSUITE_DIR}/requirements.txt")
 
   if(USERVER_FEATURE_GRPC OR TARGET userver::grpc)
-    if(NOT Protobuf_FOUND)
-      if(USERVER_CONAN)
-        find_package(Protobuf REQUIRED)
-      else()
-        include(SetupProtobuf)
-      endif()
+    include(SetupProtobuf)
+    if(NOT USERVER_PROTOBUF_VERSION_CATEGORY)
+      message(FATAL_ERROR "Failed to get protobuf version category")
     endif()
-    if(NOT Protobuf_FOUND)
-      message(FATAL_ERROR
-          "SetupProtobuf should be run before setting up testsuite")
-    endif()
-
-    if(Protobuf_VERSION VERSION_GREATER_EQUAL 5.26.0 AND
-        Protobuf_VERSION VERSION_LESS 6.0.0 OR
-        Protobuf_VERSION VERSION_GREATER_EQUAL 26.0.0)
-      list(APPEND requirements_files
-          "${USERVER_TESTSUITE_DIR}/requirements-grpc-5.txt")
-    elseif(Protobuf_VERSION VERSION_GREATER_EQUAL 3.20.0 AND
-        Protobuf_VERSION VERSION_LESS 4.0.0 OR
-        Protobuf_VERSION VERSION_GREATER_EQUAL 4.20.0 AND
-        Protobuf_VERSION VERSION_LESS 5.0.0 OR
-        Protobuf_VERSION VERSION_GREATER_EQUAL 20.0.0)
-      list(APPEND requirements_files
-          "${USERVER_TESTSUITE_DIR}/requirements-grpc-4.txt")
-    elseif(Protobuf_VERSION VERSION_GREATER_EQUAL 3.0.0 AND
-        Protobuf_VERSION VERSION_LESS 4.0.0)
-      list(APPEND requirements_files
-          "${USERVER_TESTSUITE_DIR}/requirements-grpc-3.txt")
-      message(STATUS "Forcing old protobuf version for testsuite")
-    else()
-      message(FATAL_ERROR "Unsupported Protobuf_VERSION: ${Protobuf_VERSION}")
-    endif()
+    set(protobuf_category "${USERVER_PROTOBUF_VERSION_CATEGORY}")
+    list(APPEND requirements_files
+        "${USERVER_TESTSUITE_DIR}/requirements-grpc-${protobuf_category}.txt")
   endif()
 
   if(USERVER_FEATURE_MONGODB OR TARGET userver::mongo)
@@ -299,6 +293,8 @@ function(userver_testsuite_add)
   )
   cmake_parse_arguments(
     ARG "${options}" "${oneValueArgs}" "${multiValueArgs}"  ${ARGN})
+
+  include(CTest)
 
   get_property(USERVER_TESTSUITE_DIR GLOBAL PROPERTY userver_testsuite_dir)
 
