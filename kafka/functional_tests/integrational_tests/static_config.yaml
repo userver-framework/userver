@@ -1,0 +1,85 @@
+components_manager:
+    task_processors:
+        main-task-processor:
+            worker_threads: 4
+        fs-task-processor:
+            worker_threads: 4
+        consumer-task-processor:
+            thread_name: consumer
+            worker_threads: 4
+        producer-task-processor:
+            thread_name: producer
+            worker_threads: 4
+    default_task_processor: main-task-processor
+
+    components:
+        handler-kafka-producers:
+            path: /produce
+            task_processor: main-task-processor
+            method: POST
+            producers_list:
+              - "kafka-producer-first"
+              - "kafka-producer-second"
+
+        handler-kafka-consumer:
+            path: /consume
+            task_processor: main-task-processor
+            method: POST
+
+        kafka-consumer:
+            is_testsuite_mode: false
+            security_protocol: "PLAINTEXT"
+            env_pod_name: "HOSTNAME"
+            enable_auto_commit: false
+            group_id: "test-group"
+            auto_offset_reset: "smallest"
+            topics:
+              - "test-topic"
+            max_batch_size: 10
+        kafka-producer-first:
+            is_testsuite_mode: false
+            security_protocol: "PLAINTEXT"
+            delivery_timeout_ms: 10000
+            queue_buffering_max_ms: 100
+            enable_idempotence: true
+        kafka-producer-second:
+            is_testsuite_mode: false
+            security_protocol: "PLAINTEXT"
+            delivery_timeout_ms: 10000
+            queue_buffering_max_ms: 100
+            enable_idempotence: true
+
+        testsuite-support:
+
+        http-client:
+            fs-task-processor: main-task-processor
+
+        tests-control:
+            method: POST
+            path: /tests/{action}
+            skip-unregistered-testpoints: true
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            testpoint-url: $mockserver/testpoint
+            throttling_enabled: false
+
+        secdist: {}
+        default-secdist-provider:
+            config: /etc/kafka_service/secure_data.json
+            missing-ok: true
+            environment-secrets-key: SECDIST_CONFIG
+
+        server:
+            listener:
+                port: 8187
+                task_processor: main-task-processor
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+
+        dns-client:
+            fs-task-processor: fs-task-processor

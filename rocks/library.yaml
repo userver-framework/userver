@@ -1,0 +1,9 @@
+project-name: userver-rocks
+project-alt-names:
+  - yandex-userver-rocks
+maintainers:
+  - Common components
+description: RockDB driver
+
+libraries:
+  - userver-core

@@ -14,6 +14,7 @@ The following CMake options are used by userver:
 | USERVER_FEATURE_GRPC                   | Provide asynchronous driver for gRPC                                                                                  | ${USERVER_IS_THE_ROOT_PROJECT}                         |
 | USERVER_FEATURE_RABBITMQ               | Provide asynchronous driver for RabbitMQ (AMQP 0-9-1)                                                                 | ${USERVER_IS_THE_ROOT_PROJECT}                         |
 | USERVER_FEATURE_MYSQL                  | Provide asynchronous driver for MySQL/MariaDB                                                                         | ${USERVER_IS_THE_ROOT_PROJECT}                         |
+| USERVER_FEATURE_ROCKS                  | Provide asynchronous driver for RocksDB                                                                               | ${USERVER_IS_THE_ROOT_PROJECT}                         |
 | USERVER_FEATURE_UTEST                  | Provide 'utest' and 'ubench' for unit testing and benchmarking coroutines                                             | ${USERVER_FEATURE_CORE}                                |
 | USERVER_FEATURE_CRYPTOPP_BLAKE2        | Provide wrappers for blake2 algorithms of crypto++                                                                    | ON                                                     |
 | USERVER_FEATURE_PATCH_LIBPQ            | Apply patches to the libpq (add portals support), requires libpq.a                                                    | ON                                                     |
@@ -90,6 +91,7 @@ userver is split into multiple CMake libraries.
 | `userver-clickhouse` | `USERVER_FEATURE_CLICKHOUSE`                | `clickhouse`          | @ref clickhouse_driver                                   |
 | `userver-rabbitmq`   | `USERVER_FEATURE_RABBITMQ`                  | `rabbitmq`            | @ref rabbitmq_driver                                     |
 | `userver-mysql`      | `USERVER_FEATURE_MYSQL`                     | `mysql`               | @ref scripts/docs/en/userver/mysql/design_and_details.md |
+| `userver-rocks`      | `USERVER_FEATURE_ROCKS`                     | `rocks`               | TODO                                                     |
 
 For installed userver or Conan, cmake targets are named like `userver::{component}`, for instance: `userver::core`, `userver::mysql`, etc 
 
@@ -342,7 +344,7 @@ Dependencies could be installed via:
   ```
 
 
-### Arch, Monjaro
+### Arch, Manjaro
 
 \b Dependencies: @ref scripts/docs/en/deps/arch.md "third_party/userver/scripts/docs/en/deps/arch.md"
 

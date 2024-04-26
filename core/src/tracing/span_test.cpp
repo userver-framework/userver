@@ -1,4 +1,5 @@
 #include <fmt/format.h>
+#include <gmock/gmock.h>
 
 #include <logging/log_helper_impl.hpp>
 #include <logging/logging_test.hpp>
@@ -10,6 +11,9 @@
 #include <userver/utest/utest.hpp>
 #include <userver/utils/regex.hpp>
 #include <userver/utils/text_light.hpp>
+
+using testing::HasSubstr;
+using testing::Not;
 
 USERVER_NAMESPACE_BEGIN
 
@@ -69,16 +73,15 @@ class OpentracingSpan : public Span {
 UTEST_F(Span, Ctr) {
   {
     logging::LogFlush();
-    EXPECT_EQ(std::string::npos, GetStreamString().find("stopwatch_name="));
+    EXPECT_THAT(GetStreamString(), Not(HasSubstr("stopwatch_name=")));
 
     tracing::Span span("span_name");
     logging::LogFlush();
-    EXPECT_EQ(std::string::npos, GetStreamString().find("stopwatch_name="));
+    EXPECT_THAT(GetStreamString(), Not(HasSubstr("stopwatch_name=")));
   }
 
   logging::LogFlush();
-  EXPECT_NE(std::string::npos,
-            GetStreamString().find("stopwatch_name=span_name"));
+  EXPECT_THAT(GetStreamString(), HasSubstr("stopwatch_name=span_name"));
 }
 
 UTEST_F(Span, LogFormat) {
@@ -144,11 +147,8 @@ UTEST_F(Span, LogBufferSize) {
 UTEST_F(Span, SourceLocation) {
   { tracing::Span span("span_name"); }
   logging::LogFlush();
-  EXPECT_NE(std::string::npos, GetStreamString().find("module=TestBody ( "))
-      << GetStreamString();
-  EXPECT_NE(std::string::npos,
-            GetStreamString().find("userver/core/src/tracing"))
-      << GetStreamString();
+  EXPECT_THAT(GetStreamString(), HasSubstr("module=TestBody ( "));
+  EXPECT_THAT(GetStreamString(), HasSubstr("userver/core/src/tracing"));
 }
 
 UTEST_F(Span, Tag) {
@@ -157,10 +157,10 @@ UTEST_F(Span, Tag) {
     span.AddTag("k", "v");
 
     logging::LogFlush();
-    EXPECT_EQ(std::string::npos, GetStreamString().find("k=v"));
+    EXPECT_THAT(GetStreamString(), Not(HasSubstr("k=v")));
   }
   logging::LogFlush();
-  EXPECT_NE(std::string::npos, GetStreamString().find("k=v"));
+  EXPECT_THAT(GetStreamString(), HasSubstr("k=v"));
 }
 
 UTEST_F(Span, InheritTag) {
@@ -168,13 +168,13 @@ UTEST_F(Span, InheritTag) {
   tracing::Span::CurrentSpan().AddTag("k", "v");
 
   logging::LogFlush();
-  EXPECT_EQ(std::string::npos, GetStreamString().find("k=v"));
+  EXPECT_THAT(GetStreamString(), Not(HasSubstr("k=v")));
 
   tracing::Span span2("subspan");
   LOG_INFO() << "inside";
 
   logging::LogFlush();
-  EXPECT_NE(std::string::npos, GetStreamString().find("k=v"));
+  EXPECT_THAT(GetStreamString(), HasSubstr("k=v"));
 }
 
 UTEST_F(Span, NonInheritTag) {
@@ -184,7 +184,7 @@ UTEST_F(Span, NonInheritTag) {
   LOG_INFO() << "inside";
   logging::LogFlush();
 
-  EXPECT_EQ(std::string::npos, GetStreamString().find("k=v"));
+  EXPECT_THAT(GetStreamString(), Not(HasSubstr("k=v")));
 }
 
 UTEST_F(OpentracingSpan, Tags) {
@@ -201,14 +201,14 @@ UTEST_F(OpentracingSpan, Tags) {
   }
   FlushOpentracing();
   const auto log_str = GetOtStreamString();
-  EXPECT_EQ(std::string::npos, log_str.find("k=v"));
-  EXPECT_NE(std::string::npos, log_str.find("http.status_code"));
-  EXPECT_NE(std::string::npos, log_str.find("error"));
-  EXPECT_NE(std::string::npos, log_str.find("http.method"));
-  EXPECT_NE(std::string::npos, log_str.find("db.type"));
-  EXPECT_NE(std::string::npos, log_str.find("db.statement"));
-  EXPECT_NE(std::string::npos, log_str.find("peer.address"));
-  EXPECT_NE(std::string::npos, log_str.find("http.url"));
+  EXPECT_THAT(log_str, Not(HasSubstr("k=v")));
+  EXPECT_THAT(log_str, HasSubstr("http.status_code"));
+  EXPECT_THAT(log_str, HasSubstr("error"));
+  EXPECT_THAT(log_str, HasSubstr("http.method"));
+  EXPECT_THAT(log_str, HasSubstr("db.type"));
+  EXPECT_THAT(log_str, HasSubstr("db.statement"));
+  EXPECT_THAT(log_str, HasSubstr("peer.address"));
+  EXPECT_THAT(log_str, HasSubstr("http.url"));
 }
 
 UTEST_F(OpentracingSpan, FromTracerWithServiceName) {
@@ -220,7 +220,7 @@ UTEST_F(OpentracingSpan, FromTracerWithServiceName) {
   }
   FlushOpentracing();
   const auto log_str = GetOtStreamString();
-  EXPECT_NE(std::string::npos, log_str.find("service_name=test_service"));
+  EXPECT_THAT(log_str, HasSubstr("service_name=test_service"));
 }
 
 UTEST_F(OpentracingSpan, TagFormat) {
@@ -254,11 +254,11 @@ UTEST_F(Span, ScopeTime) {
     auto st = span.CreateScopeTime("xxx");
 
     logging::LogFlush();
-    EXPECT_EQ(std::string::npos, GetStreamString().find("xxx"));
+    EXPECT_THAT(GetStreamString(), Not(HasSubstr("xxx")));
   }
 
   logging::LogFlush();
-  EXPECT_NE(std::string::npos, GetStreamString().find("xxx_time="));
+  EXPECT_THAT(GetStreamString(), HasSubstr("xxx_time="));
 }
 
 UTEST_F(Span, ScopeTimeDoesntOverrideTotalTime) {
@@ -322,14 +322,14 @@ UTEST_F(Span, LocalLogLevel) {
 
     LOG_INFO() << "info1";
     logging::LogFlush();
-    EXPECT_NE(std::string::npos, GetStreamString().find("info1"));
+    EXPECT_THAT(GetStreamString(), HasSubstr("info1"));
 
     span.SetLocalLogLevel(logging::Level::kWarning);
     LOG_INFO() << "info2";
     LOG_WARNING() << "warning2";
     logging::LogFlush();
-    EXPECT_EQ(std::string::npos, GetStreamString().find("info2"));
-    EXPECT_NE(std::string::npos, GetStreamString().find("warning2"));
+    EXPECT_THAT(GetStreamString(), Not(HasSubstr("info2")));
+    EXPECT_THAT(GetStreamString(), HasSubstr("warning2"));
 
     {
       tracing::Span span("span2");
@@ -337,14 +337,14 @@ UTEST_F(Span, LocalLogLevel) {
       LOG_WARNING() << "warning3";
       LOG_INFO() << "info3";
       logging::LogFlush();
-      EXPECT_NE(std::string::npos, GetStreamString().find("warning3"));
-      EXPECT_EQ(std::string::npos, GetStreamString().find("info3"));
+      EXPECT_THAT(GetStreamString(), HasSubstr("warning3"));
+      EXPECT_THAT(GetStreamString(), Not(HasSubstr("info3")));
     }
   }
 
   LOG_INFO() << "info4";
   logging::LogFlush();
-  EXPECT_NE(std::string::npos, GetStreamString().find("info4"));
+  EXPECT_THAT(GetStreamString(), HasSubstr("info4"));
 }
 
 UTEST_F(Span, LowerLocalLogLevel) {
@@ -358,11 +358,11 @@ UTEST_F(Span, LowerLocalLogLevel) {
 
     LOG_INFO() << "simplelog";
     logging::LogFlush();
-    EXPECT_NE(std::string::npos, GetStreamString().find("simplelog"));
+    EXPECT_THAT(GetStreamString(), HasSubstr("simplelog"));
   }
 
   logging::LogFlush();
-  EXPECT_NE(std::string::npos, GetStreamString().find("logged_span"));
+  EXPECT_THAT(GetStreamString(), HasSubstr("logged_span"));
 }
 
 UTEST_F(Span, ConstructFromTracer) {
@@ -373,7 +373,7 @@ UTEST_F(Span, ConstructFromTracer) {
 
   LOG_INFO() << "tracerlog";
   logging::LogFlush();
-  EXPECT_NE(std::string::npos, GetStreamString().find("tracerlog"));
+  EXPECT_THAT(GetStreamString(), HasSubstr("tracerlog"));
 
   EXPECT_EQ(tracing::Span::CurrentSpanUnchecked(), &span);
 }
@@ -404,13 +404,12 @@ UTEST_F(Span, NoLogNames) {
 
   logging::LogFlush();
 
-  EXPECT_NE(std::string::npos, GetStreamString().find(kLogFirstSpan));
-  EXPECT_EQ(std::string::npos, GetStreamString().find(kIgnoreFirstSpan));
-  EXPECT_NE(std::string::npos, GetStreamString().find(kLogSecondSpan));
-  EXPECT_EQ(std::string::npos,
-            GetStreamString().find(kIgnoreSecondSpan + std::string("\t")));
-  EXPECT_NE(std::string::npos,
-            GetStreamString().find(kLogThirdSpan + std::string("\t")));
+  EXPECT_THAT(GetStreamString(), HasSubstr(kLogFirstSpan));
+  EXPECT_THAT(GetStreamString(), Not(HasSubstr(kIgnoreFirstSpan)));
+  EXPECT_THAT(GetStreamString(), HasSubstr(kLogSecondSpan));
+  EXPECT_THAT(GetStreamString(),
+              Not(HasSubstr(kIgnoreSecondSpan + std::string("\t"))));
+  EXPECT_THAT(GetStreamString(), HasSubstr(kLogThirdSpan + std::string("\t")));
 
   tracing::Tracer::SetNoLogSpans(tracing::NoLogSpans());
 }
@@ -463,15 +462,15 @@ UTEST_F(Span, NoLogPrefixes) {
   logging::LogFlush();
 
   const auto output = GetStreamString();
-  EXPECT_NE(std::string::npos, output.find(kLogSpan0)) << output;
-  EXPECT_NE(std::string::npos, output.find(kLogSpan1)) << output;
-  EXPECT_NE(std::string::npos, output.find(kLogSpan2)) << output;
-  EXPECT_NE(std::string::npos, output.find(kLogSpan3)) << output;
+  EXPECT_THAT(output, HasSubstr(kLogSpan0));
+  EXPECT_THAT(output, HasSubstr(kLogSpan1));
+  EXPECT_THAT(output, HasSubstr(kLogSpan2));
+  EXPECT_THAT(output, HasSubstr(kLogSpan3));
 
-  EXPECT_EQ(std::string::npos, output.find("=" + kIgnorePrefix0)) << output;
-  EXPECT_EQ(std::string::npos, output.find(kIgnorePrefix1)) << output;
-  EXPECT_EQ(std::string::npos, output.find(kIgnorePrefix2)) << output;
-  EXPECT_EQ(std::string::npos, output.find(kIgnoreSpan)) << output;
+  EXPECT_THAT(output, Not(HasSubstr("=" + kIgnorePrefix0)));
+  EXPECT_THAT(output, Not(HasSubstr(kIgnorePrefix1)));
+  EXPECT_THAT(output, Not(HasSubstr(kIgnorePrefix2)));
+  EXPECT_THAT(output, Not(HasSubstr(kIgnoreSpan)));
 
   tracing::Tracer::SetNoLogSpans(tracing::NoLogSpans());
 }
@@ -513,17 +512,16 @@ UTEST_F(Span, NoLogMixed) {
   logging::LogFlush();
 
   const auto output = GetStreamString();
-  EXPECT_NE(std::string::npos, output.find(kLogSpan0)) << output;
-  EXPECT_NE(std::string::npos, output.find(kLogSpan1)) << output;
-  EXPECT_NE(std::string::npos, output.find(kLogSpan2)) << output;
-  EXPECT_NE(std::string::npos, output.find(kLogSpan3)) << output;
-  EXPECT_NE(std::string::npos, output.find(kLogSpan4)) << output;
+  EXPECT_THAT(output, HasSubstr(kLogSpan0));
+  EXPECT_THAT(output, HasSubstr(kLogSpan1));
+  EXPECT_THAT(output, HasSubstr(kLogSpan2));
+  EXPECT_THAT(output, HasSubstr(kLogSpan3));
+  EXPECT_THAT(output, HasSubstr(kLogSpan4));
 
-  EXPECT_EQ(std::string::npos, output.find("=" + kIgnorePrefix0)) << output;
-  EXPECT_EQ(std::string::npos, output.find(kIgnorePrefix1)) << output;
-  EXPECT_EQ(std::string::npos, output.find(kIgnorePrefix2)) << output;
-  EXPECT_EQ(std::string::npos, output.find(kIgnoreSpan + std::string("\t")))
-      << output;
+  EXPECT_THAT(output, Not(HasSubstr("=" + kIgnorePrefix0)));
+  EXPECT_THAT(output, Not(HasSubstr(kIgnorePrefix1)));
+  EXPECT_THAT(output, Not(HasSubstr(kIgnorePrefix2)));
+  EXPECT_THAT(output, Not(HasSubstr(kIgnoreSpan + std::string("\t"))));
 
   tracing::Tracer::SetNoLogSpans(tracing::NoLogSpans());
 }
@@ -547,7 +545,7 @@ UTEST_F(Span, NoLogWithSetLogLevel) {
 
   logging::LogFlush();
 
-  EXPECT_EQ(std::string::npos, GetStreamString().find(kIgnoreFirstSpan));
+  EXPECT_THAT(GetStreamString(), Not(HasSubstr(kIgnoreFirstSpan)));
 
   {
     tracing::Span span2(kIgnoreSecondSpan);
@@ -556,7 +554,7 @@ UTEST_F(Span, NoLogWithSetLogLevel) {
 
   logging::LogFlush();
 
-  EXPECT_EQ(std::string::npos, GetStreamString().find(kIgnoreSecondSpan));
+  EXPECT_THAT(GetStreamString(), Not(HasSubstr(kIgnoreSecondSpan)));
 
   tracing::Tracer::SetNoLogSpans(tracing::NoLogSpans());
 }
@@ -590,13 +588,13 @@ UTEST_F(Span, ForeignSpan) {
   for (const auto& log : logs) {
     if (log.find("stopwatch_name=foreign") != std::string::npos) {
       found_sw = true;
-      EXPECT_NE(std::string::npos, log.find("link=foreign_link"));
+      EXPECT_THAT(log, HasSubstr("link=foreign_link"));
     }
 
     // check unlink
     if (log.find("tracerlog") != std::string::npos) {
       found_tr = true;
-      EXPECT_NE(std::string::npos, log.find("link=local_link"));
+      EXPECT_THAT(log, HasSubstr("link=local_link"));
     }
   }
 
@@ -647,9 +645,8 @@ UTEST_F(Span, SetLogLevelDoesntBreakGenealogyRoot) {
       EXPECT_EQ(grandchild_span.GetParentId(), root_span.GetSpanId());
     }
     logging::LogFlush();
-    EXPECT_NE(GetStreamString().find(
-                  fmt::format("parent_id={}", root_span.GetSpanId())),
-              std::string::npos);
+    EXPECT_THAT(GetStreamString(),
+                HasSubstr(fmt::format("parent_id={}", root_span.GetSpanId())));
   }
 }
 
@@ -663,9 +660,8 @@ UTEST_F(Span, SetLogLevelDoesntBreakGenealogyLoggableParent) {
       EXPECT_EQ(grandchild_span.GetParentId(), root_span.GetSpanId());
     }
     logging::LogFlush();
-    EXPECT_NE(GetStreamString().find(
-                  fmt::format("parent_id={}", root_span.GetSpanId())),
-              std::string::npos);
+    EXPECT_THAT(GetStreamString(),
+                HasSubstr(fmt::format("parent_id={}", root_span.GetSpanId())));
   }
 }
 
@@ -682,9 +678,9 @@ UTEST_F(Span, SetLogLevelDoesntBreakGenealogyMultiSkip) {
         EXPECT_EQ(child.GetParentId(), root_span.GetSpanId());
       }
       logging::LogFlush();
-      EXPECT_NE(GetStreamString().find(
-                    fmt::format("parent_id={}", root_span.GetSpanId())),
-                std::string::npos);
+      EXPECT_THAT(
+          GetStreamString(),
+          HasSubstr(fmt::format("parent_id={}", root_span.GetSpanId())));
     }
   }
 }

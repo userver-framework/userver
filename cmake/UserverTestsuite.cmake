@@ -260,6 +260,10 @@ function(userver_testsuite_requirements)
     list(APPEND testsuite_modules mysql)
   endif()
 
+  # This function returns "public" dependencies for userver-based services.
+  # For private dependencies that only userver's own tests need, see
+  # SetupUserverTestsuiteEnv.cmake
+
   file(READ "${USERVER_TESTSUITE_DIR}/requirements-testsuite.txt"
       requirements_testsuite_text)
   if(testsuite_modules)
@@ -271,11 +275,6 @@ function(userver_testsuite_requirements)
         requirements_testsuite_text
         "${requirements_testsuite_text}"
     )
-  endif()
-
-  if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    list(APPEND requirements_files
-        "${USERVER_TESTSUITE_DIR}/requirements-net.txt")
   endif()
 
   set(requirements_testsuite_file

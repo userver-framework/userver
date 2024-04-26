@@ -18,6 +18,8 @@ class ConsumerComponent final : public components::LoggableComponentBase {
 
   Consumer& GetConsumer();
 
+  static yaml_config::Schema GetStaticConfigSchema();
+
  private:
   Consumer consumer_;
 };

@@ -764,10 +764,10 @@ void ClusterTopologyHolder::GetStatistics(
     sentinels_->GetStatistics(true, settings, *stats.sentinel);
   }
   stats.internal.is_autotoplogy = true;
-  stats.internal.cluster_topology_checks =
-      cluster_slots_call_counter_.load(std::memory_order_relaxed);
-  stats.internal.cluster_topology_updates =
-      current_topology_version_.load(std::memory_order_relaxed);
+  stats.internal.cluster_topology_checks = utils::statistics::Rate{
+      cluster_slots_call_counter_.load(std::memory_order_relaxed)};
+  stats.internal.cluster_topology_updates = utils::statistics::Rate{
+      current_topology_version_.load(std::memory_order_relaxed)};
 
   auto topology = GetTopology();
   topology->GetStatistics(settings, stats);
