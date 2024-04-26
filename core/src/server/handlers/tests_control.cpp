@@ -11,6 +11,7 @@
 #include <testsuite/impl/actions/dynamic_config_defaults.hpp>
 #include <testsuite/impl/actions/http_allowed_urls_extra.hpp>
 #include <testsuite/impl/actions/logcapture.hpp>
+#include <testsuite/impl/actions/logflush.hpp>
 #include <testsuite/impl/actions/metrics_portability.hpp>
 #include <testsuite/impl/actions/periodic.hpp>
 #include <testsuite/impl/actions/reset_metrics.hpp>
@@ -85,6 +86,10 @@ TestsControl::TestsControl(
   // Log capture
   actions_.emplace("log_capture",
                    std::make_unique<actions::LogCapture>(component_context));
+
+  // Log flush
+  actions_.emplace("log_flush",
+                   std::make_unique<actions::LogFlush>(component_context));
 
   // Testsuite tasks support
   actions_.emplace("task_run",

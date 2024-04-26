@@ -892,6 +892,11 @@ class AiohttpClient(service_client.AiohttpClient):
                     testsuite_skip_prepare=testsuite_skip_prepare,
                 )
 
+    async def log_flush(self, logger_name: typing.Optional[str] = None):
+        await self._testsuite_action(
+            'log_flush', logger_name=logger_name, testsuite_skip_prepare=True,
+        )
+
     async def invalidate_caches(
             self,
             *,
@@ -1158,6 +1163,12 @@ class Client(ClientWrapper):
         return self._client.capture_logs(
             log_level=log_level, testsuite_skip_prepare=testsuite_skip_prepare,
         )
+
+    def log_flush(self, logger_name: typing.Optional[str] = None):
+        """
+        Flush service logs.
+        """
+        return self._client.log_flush(logger_name=logger_name)
 
     @_wrap_client_error
     async def invalidate_caches(

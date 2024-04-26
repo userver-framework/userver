@@ -6,6 +6,7 @@ Service main and monitor clients.
 import logging
 import typing
 
+import aiohttp.client_exceptions
 import pytest
 import websockets
 
@@ -81,6 +82,7 @@ async def service_client(
         dynamic_config,
         mock_configs_service,
         cleanup_userver_dumps,
+        userver_client_cleanup,
         _config_service_defaults_updated,
         _testsuite_client_config: client.TestsuiteClientConfig,
         _service_client_base,
@@ -102,13 +104,61 @@ async def service_client(
     daemon = await ensure_daemon_started(service_daemon)
 
     if not _testsuite_client_config.testsuite_action_path:
-        return _service_client_base
+        yield _service_client_base
+    else:
+        service_client = _service_client_testsuite(daemon)
+        await _config_service_defaults_updated.update(
+            service_client, dynamic_config,
+        )
 
-    service_client = _service_client_testsuite(daemon)
-    await _config_service_defaults_updated.update(
-        service_client, dynamic_config,
-    )
-    return service_client
+        async with userver_client_cleanup(service_client):
+            yield service_client
+
+
+@pytest.fixture
+def userver_client_cleanup(request, userver_flush_logs):
+    marker = request.node.get_closest_marker('suspend_periodic_tasks')
+    if marker:
+        tasks_to_suspend = marker.args
+    else:
+        tasks_to_suspend = ()
+
+    @compat.asynccontextmanager
+    async def cleanup_manager(client: client.AiohttpClient):
+        async with userver_flush_logs(client):
+            await client.suspend_periodic_tasks(tasks_to_suspend)
+            try:
+                yield client
+            finally:
+                await client.resume_all_periodic_tasks()
+
+    return cleanup_manager
+
+
+@pytest.fixture
+def userver_flush_logs(request):
+    """Flush logs in case of failure."""
+
+    @compat.asynccontextmanager
+    async def flush_logs(service_client: client.AiohttpClient):
+        async def do_flush():
+            try:
+                await service_client.log_flush()
+            except aiohttp.client_exceptions.ClientResponseError:
+                pass
+
+        failed = False
+        try:
+            yield
+        except Exception:
+            failed = True
+            raise
+        finally:
+            item = request.node
+            if failed or item.utestsuite_report.failed:
+                await do_flush()
+
+    return flush_logs
 
 
 @pytest.fixture
@@ -187,6 +237,7 @@ def _service_client_testsuite(
         testpoint,
         testpoint_control,
         cache_invalidation_state,
+        service_periodic_tasks_state,
         _testsuite_client_config: client.TestsuiteClientConfig,
 ) -> typing.Callable[[DaemonInstance], client.Client]:
     def create_client(daemon):
@@ -195,6 +246,7 @@ def _service_client_testsuite(
             config=_testsuite_client_config,
             testpoint=testpoint,
             testpoint_control=testpoint_control,
+            periodic_tasks_state=service_periodic_tasks_state,
             log_capture_fixture=userver_log_capture,
             mocked_time=mocked_time,
             cache_invalidation_state=cache_invalidation_state,
@@ -230,6 +282,11 @@ def monitor_baseurl(monitor_port) -> str:
     @ingroup userver_testsuite_fixtures
     """
     return f'http://localhost:{monitor_port}/'
+
+
+@pytest.fixture(scope='session')
+def service_periodic_tasks_state() -> client.PeriodicTasksState:
+    return client.PeriodicTasksState()
 
 
 @pytest.fixture(scope='session')

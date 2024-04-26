@@ -1311,6 +1311,8 @@
   "core/src/testsuite/impl/actions/http_allowed_urls_extra.hpp":"taxi/uservices/userver/core/src/testsuite/impl/actions/http_allowed_urls_extra.hpp",
   "core/src/testsuite/impl/actions/logcapture.cpp":"taxi/uservices/userver/core/src/testsuite/impl/actions/logcapture.cpp",
   "core/src/testsuite/impl/actions/logcapture.hpp":"taxi/uservices/userver/core/src/testsuite/impl/actions/logcapture.hpp",
+  "core/src/testsuite/impl/actions/logflush.cpp":"taxi/uservices/userver/core/src/testsuite/impl/actions/logflush.cpp",
+  "core/src/testsuite/impl/actions/logflush.hpp":"taxi/uservices/userver/core/src/testsuite/impl/actions/logflush.hpp",
   "core/src/testsuite/impl/actions/metrics_portability.cpp":"taxi/uservices/userver/core/src/testsuite/impl/actions/metrics_portability.cpp",
   "core/src/testsuite/impl/actions/metrics_portability.hpp":"taxi/uservices/userver/core/src/testsuite/impl/actions/metrics_portability.hpp",
   "core/src/testsuite/impl/actions/periodic.hpp":"taxi/uservices/userver/core/src/testsuite/impl/actions/periodic.hpp",
