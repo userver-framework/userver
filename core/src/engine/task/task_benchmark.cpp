@@ -7,6 +7,7 @@
 #include <thread>
 
 #include <engine/impl/standalone.hpp>
+#include <engine/task/task_processor.hpp>
 #include <engine/task/task_processor_config.hpp>
 #include <engine/task/work_stealing_queue/task_queue.hpp>
 #include <userver/engine/async.hpp>
@@ -16,10 +17,6 @@
 #include <userver/engine/task/single_threaded_task_processors_pool.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <utils/impl/parallelize_benchmark.hpp>
-#include "engine/task/task_processor.hpp"
-#include "engine/task/work_stealing_queue/consumer.hpp"
-#include "userver/engine/impl/context_accessor.hpp"
-#include "userver/engine/task/task.hpp"
 
 USERVER_NAMESPACE_BEGIN
 

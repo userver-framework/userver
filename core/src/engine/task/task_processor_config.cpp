@@ -45,6 +45,18 @@ OsScheduling Parse(const yaml_config::YamlConfig& value,
   return utils::ParseFromValueString(value, kMap);
 }
 
+TaskQueueType Parse(const yaml_config::YamlConfig& value,
+                    formats::parse::To<TaskQueueType>) {
+  static constexpr utils::TrivialBiMap kMap([](auto selector) {
+    return selector()
+        .Case(TaskQueueType::kGlobalTaskQueue, "global-task-queue")
+        .Case(TaskQueueType::kWorkStealingTaskQueue,
+              "work-stealing-task-queue");
+  });
+
+  return utils::ParseFromValueString(value, kMap);
+}
+
 TaskProcessorConfig Parse(const yaml_config::YamlConfig& value,
                           formats::parse::To<TaskProcessorConfig>) {
   TaskProcessorConfig config;
@@ -56,6 +68,8 @@ TaskProcessorConfig Parse(const yaml_config::YamlConfig& value,
       value["os-scheduling"].As<OsScheduling>(config.os_scheduling);
   config.spinning_iterations =
       value["spinning-iterations"].As<int>(config.spinning_iterations);
+  config.task_processor_queue = value["task-processor-queue"].As<TaskQueueType>(
+      config.task_processor_queue);
 
   const auto task_trace = value["task-trace"];
   if (!task_trace.IsMissing()) {

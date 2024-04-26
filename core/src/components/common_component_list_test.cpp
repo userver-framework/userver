@@ -41,6 +41,7 @@ components_manager:
       thread_name: bg-worker
       worker_threads: 2
       os-scheduling: idle
+      task-processor-queue: global-task-queue
       task-trace:
         every: 1000
         max-context-switch-count: 1000

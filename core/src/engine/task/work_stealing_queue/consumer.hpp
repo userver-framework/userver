@@ -69,5 +69,3 @@ class Consumer final {
 
 }  // namespace engine
 USERVER_NAMESPACE_END
-
-#include "consumers_manager.hpp"

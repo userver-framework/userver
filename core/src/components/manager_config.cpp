@@ -166,6 +166,17 @@ properties:
                         tunes the number of spin-wait iterations in case of
                         an empty task queue before threads go to sleep
                     defaultDescription: 10000
+                task-processor-queue:
+                    type: string
+                    description: |
+                        Task queue mode for the task processor.
+                        `global-task-queue` default task queue.
+                        `work-stealing-task-queue` experimental with
+                        potentially better scalability than `global-task-queue`.
+                    defaultDescription: normal
+                    enum:
+                      - global-task-queue
+                      - work-stealing-task-queue
                 task-trace:
                     type: object
                     description: .
