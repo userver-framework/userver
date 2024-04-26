@@ -4,6 +4,7 @@
 
 #include <moodycamel/blockingconcurrentqueue.h>
 #include <moodycamel/lightweightsemaphore.h>
+
 #include <userver/utils/span.hpp>
 
 USERVER_NAMESPACE_BEGIN
