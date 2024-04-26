@@ -94,6 +94,9 @@ class [[nodiscard]] TlsWrapper final : public RwBase {
     return SendAll(buf, len, deadline);
   }
 
+  [[nodiscard]] size_t WriteAll(std::initializer_list<IoData> list,
+                                Deadline deadline) override;
+
   int GetRawFd();
 
  private:

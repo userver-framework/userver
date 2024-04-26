@@ -977,6 +977,7 @@
   "core/src/engine/io/sys_linux/inotify.cpp":"taxi/uservices/userver/core/src/engine/io/sys_linux/inotify.cpp",
   "core/src/engine/io/sys_linux/inotify_test.cpp":"taxi/uservices/userver/core/src/engine/io/sys_linux/inotify_test.cpp",
   "core/src/engine/io/tls_wrapper.cpp":"taxi/uservices/userver/core/src/engine/io/tls_wrapper.cpp",
+  "core/src/engine/io/tls_wrapper_benchmark.cpp":"taxi/uservices/userver/core/src/engine/io/tls_wrapper_benchmark.cpp",
   "core/src/engine/io/tls_wrapper_test.cpp":"taxi/uservices/userver/core/src/engine/io/tls_wrapper_test.cpp",
   "core/src/engine/mutex.cpp":"taxi/uservices/userver/core/src/engine/mutex.cpp",
   "core/src/engine/mutex_benchmark.cpp":"taxi/uservices/userver/core/src/engine/mutex_benchmark.cpp",
