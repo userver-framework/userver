@@ -11,7 +11,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace concurrent {
 
-/// @ingroup userver_concurrency userver_containers
+/// @ingroup userver_concurrency
 ///
 /// @brief A contention-free sharded atomic counter, with memory consumption
 /// and read performance traded for write performance. Intended to be used for
@@ -47,7 +47,7 @@ class StripedCounter final {
 
   /// @brief Read the the total counter value. The counter uses the full range
   /// of `std::uintptr_t`, using wrap-around when necessary.
-  /// @note The read is done with a relaxed memory order.
+  /// @note The read is done with `std::memory_order_acquire`.
   ///
   /// Due to the underlying implementation being an array of counters, this
   /// function may return logically impossible values if `Subtract` is in play.
@@ -57,7 +57,7 @@ class StripedCounter final {
   std::uintptr_t Read() const noexcept;
 
   /// @brief Read the non-negative total counter value.
-  /// @note The read is done with a relaxed memory order.
+  /// @note The read is done with `std::memory_order_acquire`.
   ///
   /// This is almost exactly like `Read`, but for an `Add-Subtract` race,
   /// instead of returning a negative value, this function returns `0`. Consider
