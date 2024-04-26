@@ -22,14 +22,15 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/in
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
     userver-core
-  PRIVATE
     RocksDB::rocksdb
 )
 
 if (USERVER_IS_THE_ROOT_PROJECT)
     add_executable(${PROJECT_NAME}-unittest ${UNIT_TEST_SOURCES})
-    
-    target_include_directories(${PROJECT_NAME}-unittest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+    target_include_directories(${PROJECT_NAME}-unittest PRIVATE
+        $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
+    )
 
     target_link_libraries(${PROJECT_NAME}-unittest PRIVATE
       userver-core
