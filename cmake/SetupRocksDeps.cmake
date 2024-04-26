@@ -28,7 +28,7 @@ endif()
 
 find_library(ZLIB z zlib1g)
 If(NOT ZLIB)
-  message(FATAL_ERROR "${ZLIB} Failed to find zlib1g: Lunux: sudo apt-get install zlib1g-dev")
+  message(FATAL_ERROR "Failed to find zlib1g: Lunux: sudo apt-get install zlib1g-dev")
 endif()
 
 find_library(BZIP2 bz2 libbz2)

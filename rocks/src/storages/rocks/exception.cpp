@@ -1,10 +1,10 @@
-#include <userver/storages/rocks/impl/exception.hpp>
+#include <userver/storages/rocks/exception.hpp>
 
 #include <fmt/format.h>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace rocks {
+namespace storages::rocks {
 
 RequestFailedException::RequestFailedException(
     std::string_view request_description, std::string_view status)

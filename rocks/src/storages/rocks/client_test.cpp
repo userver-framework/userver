@@ -1,5 +1,4 @@
 #include <userver/storages/rocks/client.hpp>
-#include <userver/storages/rocks/impl/exception.hpp>
 #include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN
