@@ -1,4 +1,7 @@
-include_guard()
+# Implementation note: public functions here should be usable even without
+# a direct include of this script, so the functions should not rely
+# on non-cache variables being present.
+include_guard(GLOBAL)
 
 set_property(GLOBAL PROPERTY userver_cmake_dir "${CMAKE_CURRENT_LIST_DIR}")
 

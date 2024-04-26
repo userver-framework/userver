@@ -141,7 +141,6 @@ userver_venv_setup(
     NAME userver-cmake
     PYTHON_OUTPUT_VAR USERVER_CMAKE_GEN_PYTHON_BINARY
     REQUIREMENTS "${USERVER_ROOT_DIR}/scripts/external_deps/requirements.txt"
-    UNIQUE
 )
 execute_process(
     COMMAND
@@ -182,14 +181,15 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   add_subdirectory(testsuite)
 endif()
 
-add_subdirectory(universal "${CMAKE_BINARY_DIR}/userver/universal")
+add_subdirectory(universal)
 
 if (USERVER_FEATURE_CORE)
-  add_subdirectory(core "${CMAKE_BINARY_DIR}/userver/core")
+  add_subdirectory(core)
   list(APPEND USERVER_AVAILABLE_COMPONENTS core)
 endif()
+
 if (USERVER_FEATURE_CHAOTIC)
-  add_subdirectory(chaotic "${CMAKE_BINARY_DIR}/userver/chaotic")
+  add_subdirectory(chaotic)
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT AND USERVER_FEATURE_CORE)
@@ -202,37 +202,37 @@ endif()
 
 if (USERVER_FEATURE_MONGODB)
   _require_userver_core("USERVER_FEATURE_MONGODB")
-  add_subdirectory(mongo "${CMAKE_BINARY_DIR}/userver/mongo")
+  add_subdirectory(mongo)
   list(APPEND USERVER_AVAILABLE_COMPONENTS mongo)
 endif()
 
 if (USERVER_FEATURE_POSTGRESQL)
   _require_userver_core("USERVER_FEATURE_POSTGRESQL")
-  add_subdirectory(postgresql "${CMAKE_BINARY_DIR}/userver/postgresql")
+  add_subdirectory(postgresql)
   list(APPEND USERVER_AVAILABLE_COMPONENTS postgres)
 endif()
 
 if (USERVER_FEATURE_REDIS)
   _require_userver_core("USERVER_FEATURE_REDIS")
-  add_subdirectory(redis "${CMAKE_BINARY_DIR}/userver/redis")
+  add_subdirectory(redis)
   list(APPEND USERVER_AVAILABLE_COMPONENTS redis)
 endif()
 
 if (USERVER_FEATURE_GRPC)
   _require_userver_core("USERVER_FEATURE_GRPC")
-  add_subdirectory(grpc "${CMAKE_BINARY_DIR}/userver/grpc")
+  add_subdirectory(grpc)
   list(APPEND USERVER_AVAILABLE_COMPONENTS grpc)
 endif()
 
 if (USERVER_FEATURE_CLICKHOUSE)
   _require_userver_core("USERVER_FEATURE_CLICKHOUSE")
-  add_subdirectory(clickhouse "${CMAKE_BINARY_DIR}/userver/clickhouse")
+  add_subdirectory(clickhouse)
   list(APPEND USERVER_AVAILABLE_COMPONENTS clickhouse)
 endif()
 
 if (USERVER_FEATURE_RABBITMQ)
   _require_userver_core("USERVER_FEATURE_RABBITMQ")
-  add_subdirectory(rabbitmq "${CMAKE_BINARY_DIR}/userver/rabbitmq")
+  add_subdirectory(rabbitmq)
   list(APPEND USERVER_AVAILABLE_COMPONENTS rabbitmq)
 endif()
 

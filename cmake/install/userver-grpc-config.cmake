@@ -4,7 +4,7 @@ if(userver_grpc_FOUND)
   return()
 endif()
 
-set(REQUIREMENTS_PATH_FOR_GRPC "${USERVER_CMAKE_DIR}/grpc")
+set(USERVER_GRPC_SCRIPTS_PATH "${USERVER_CMAKE_DIR}/grpc")
 
 
 set(USERVER_DOWNLOAD_PACKAGES OFF)

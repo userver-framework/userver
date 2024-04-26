@@ -1,3 +1,7 @@
+# Implementation note: public functions here should be usable even without
+# a direct include of this script, so the functions should not rely
+# on non-cache variables being present.
+
 function(add_google_tests target)
     add_test(NAME ${target} COMMAND ${target}
         --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${target}.xml
