@@ -4,6 +4,7 @@
 #include <userver/components/component_context.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/storages/secdist/component.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 #include <cppkafka/configuration.h>
 
@@ -30,6 +31,30 @@ ProducerComponent::ProducerComponent(
 ProducerComponent::~ProducerComponent() = default;
 
 Producer& ProducerComponent::GetProducer() { return producer_; }
+
+yaml_config::Schema ProducerComponent::GetStaticConfigSchema() {
+  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+type: object
+description: Kafka producer component
+additionalProperties: false
+properties:
+    security_protocol:
+        type: string
+        description: TODO
+    delivery_timeout_ms:
+        type: integer
+        description: TODO
+    queue_buffering_max_ms:
+        type: integer
+        description: TODO
+    enable_idempotence:
+        type: boolean
+        description: TODO
+    is_testsuite_mode:
+        type: boolean
+        description: TODO
+)");
+}
 
 }  // namespace kafka
 

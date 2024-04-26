@@ -1,5 +1,7 @@
 #include <userver/logging/log_filepath.hpp>
 
+#include <string>
+
 #include <gtest/gtest.h>
 
 #include <userver/utils/algo.hpp>
@@ -18,7 +20,7 @@ constexpr std::string_view kExpectedUserverSourceRoot = "userver/";
 }  // namespace
 
 TEST(LogFilepath, UserverCroppedCorrectly) {
-  EXPECT_EQ(USERVER_FILEPATH,
+  EXPECT_EQ(std::string{USERVER_FILEPATH},
             utils::StrCat(kExpectedUserverSourceRoot,
                           "universal/src/logging/log_filepath_test.cpp"));
 }

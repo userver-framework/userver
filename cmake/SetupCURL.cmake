@@ -29,10 +29,7 @@ if(NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
 endif()
 
 set(CURL_LTO_OPTION)
-if(LTO_FLAG AND LTO)
-  if(NOT DEFINED LTO)
-    message(FATAL_ERROR "userver_setup_environment should be called before SetupCURL")
-  endif()
+if(USERVER_LTO)
   set(CURL_LTO_OPTION "CURL_LTO ON")
 endif()
 

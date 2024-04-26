@@ -36,10 +36,30 @@ class TimePointTzBase {
 
   bool operator==(const TimePointTzBase& other) const;
 
+  bool operator<(const TimePointTzBase& other) const;
+
+  bool operator>(const TimePointTzBase& other) const;
+
+  bool operator<=(const TimePointTzBase& other) const;
+
+  bool operator>=(const TimePointTzBase& other) const;
+
  private:
   TimePoint tp_{};
   std::chrono::seconds tz_offset_{};
 };
+
+bool operator<(const TimePointTzBase::TimePoint& lhs,
+               const TimePointTzBase& rhs);
+
+bool operator>(const TimePointTzBase::TimePoint& lhs,
+               const TimePointTzBase& rhs);
+
+bool operator<=(const TimePointTzBase::TimePoint& lhs,
+                const TimePointTzBase& rhs);
+
+bool operator>=(const TimePointTzBase::TimePoint& lhs,
+                const TimePointTzBase& rhs);
 
 /// Timepoint with timezone parsed in kRfc3339Format
 class TimePointTz final : public TimePointTzBase {
