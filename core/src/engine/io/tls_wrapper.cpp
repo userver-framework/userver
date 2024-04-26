@@ -582,7 +582,7 @@ size_t TlsWrapper::SendAll(const void* buf, size_t len, Deadline deadline) {
 [[nodiscard]] size_t TlsWrapper::WriteAll(std::initializer_list<IoData> list,
                                           Deadline deadline) {
   static constexpr std::size_t kBufSize = 16'384;
-  std::array<std::byte, kBufSize> buf;
+  std::byte buf[kBufSize];
 
   std::size_t sent_bytes = 0;
   std::size_t remaining_cap = kBufSize;
@@ -590,13 +590,12 @@ size_t TlsWrapper::SendAll(const void* buf, size_t len, Deadline deadline) {
   for (auto it = last_begin; it != list.end(); ++it) {
     if (it->len > remaining_cap) {
       if (it - last_begin >= 2) {
-        auto ins_pos = buf.begin();
+        auto ins_pos = buf;
         for (auto ins_it = last_begin; ins_it != it; ++ins_it) {
           ins_pos = std::copy_n(reinterpret_cast<const std::byte*>(ins_it->data),
                                 ins_it->len, ins_pos);
         }
-        sent_bytes +=
-            SendAll(buf.data(), buf.size() - remaining_cap, deadline);
+        sent_bytes += SendAll(buf, kBufSize - remaining_cap, deadline);
       } else if (last_begin != it) {
         sent_bytes += SendAll(last_begin->data, last_begin->len, deadline);
       }
@@ -615,12 +614,12 @@ size_t TlsWrapper::SendAll(const void* buf, size_t len, Deadline deadline) {
     }
   }
 
-  auto ins_pos = buf.begin();
+  auto ins_pos = buf;
   for (auto ins_it = last_begin; ins_it != list.end(); ++ins_it) {
     ins_pos = std::copy_n(reinterpret_cast<const std::byte*>(ins_it->data),
                           ins_it->len, ins_pos);
   }
-  sent_bytes += WriteAll(buf.data(), buf.size() - remaining_cap, deadline);
+  sent_bytes += SendAll(buf, kBufSize - remaining_cap, deadline);
 
   return sent_bytes;
 }
