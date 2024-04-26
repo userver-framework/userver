@@ -1,6 +1,7 @@
 #include <clients/dns/net_resolver.hpp>
 
 #include <sys/select.h>
+#include <unistd.h>
 
 #include <array>
 #include <chrono>
@@ -50,8 +51,19 @@ std::exception_ptr MakeNotResolvedException(std::string_view name,
 class NetResolver::Impl {
  public:
   struct Request {
+    Request(Impl& owner, std::string&& name)
+        : owner{owner}, name{std::move(name)} {}
+
+    Impl& owner;
+
+    // request info
     std::string name;
     engine::Promise<Response> promise;
+
+    // response data
+    std::chrono::system_clock::time_point processed_at;
+    int status{ARES_ENOTINITIALIZED};
+    impl::AddrinfoPtr addrinfo;
   };
 
   Impl(engine::TaskProcessor& fs_task_processor,
@@ -60,18 +72,40 @@ class NetResolver::Impl {
       : fs_task_processor(fs_task_processor),
         query_timeout(query_timeout),
         query_attempts(query_attempts),
-        servers_csv(std::move(servers_csv)) {}
+        servers_csv(std::move(servers_csv)) {
+    // Might've been better to replace asocket as well but that requires
+    // reimplementing a lot of configuration steps.
+    socket_functions.aclose = &SocketCloseCallback;
+  }
 
   engine::TaskProcessor& fs_task_processor;
   const std::chrono::milliseconds query_timeout;
   const int query_attempts;
   const std::string servers_csv;
 
+  struct ::ares_socket_functions socket_functions {};
+  std::vector<ares_socket_t> sockets_to_close;
   engine::io::Poller poller;
   impl::ChannelPtr channel;
   moodycamel::ConcurrentQueue<std::unique_ptr<Request>> requests_queue;
+  std::vector<std::unique_ptr<Request>> responses_queue;
   engine::Task worker_task;
 
+#if ARES_VERSION >= 0x011400
+  static void SockStateCallback(void*, ares_socket_t, int, int) {
+    UASSERT_MSG(false, "This function must not be used");
+  }
+
+  static int SocketCloseCallback(ares_socket_t socket_fd, void* data) noexcept {
+    auto* self = static_cast<Impl*>(data);
+    UASSERT(self);
+    // cannot operate on poller from here, deferring
+    self->sockets_to_close.push_back(socket_fd);
+    return 0;
+  }
+#else
+  // Old versions required replacing all socket functions which we don't want.
+  // But they weren't thread-aware so we can use old implementation.
   static void SockStateCallback(void* data, ares_socket_t socket_fd,
                                 int readable, int writable) noexcept {
     auto* self = static_cast<Impl*>(data);
@@ -82,59 +116,34 @@ class NetResolver::Impl {
     }
   }
 
+  static int SocketCloseCallback(ares_socket_t, void*) {
+    UASSERT_MSG(false, "This function must not be used");
+    return -1;
+  }
+#endif
+
   static void AddrinfoCallback(void* arg, int status, int /* timeouts */,
-                               struct ares_addrinfo* result) {
+                               struct ares_addrinfo* result) noexcept {
     std::unique_ptr<Request> request{static_cast<Request*>(arg)};
     UASSERT(request);
-    const utils::FastScopeGuard debug_guard{[&request, status]() noexcept {
-      try {
-        TESTPOINT("net-resolver", formats::json::MakeObject(
-                                      "name", request->name, "status", status));
-      } catch (const std::exception& e) {
-        // This is fine, testpoint is used only in tests
-        LOG_DEBUG() << "TESTPOINT 'net-resolver' encountered an error: " << e;
-      }
-    }};
-
-    Response response;
-    response.received_at = utils::datetime::MockNow();
-    if (status != ARES_SUCCESS) {
-      request->promise.set_exception(
-          MakeNotResolvedException(request->name, ares_strerror(status)));
-      return;
+    request->processed_at = utils::datetime::MockNow();
+    request->status = status;
+    if (status == ARES_SUCCESS) {
+      UASSERT(result);
+      request->addrinfo.reset(result);
     }
-    UASSERT(result);
-    impl::AddrinfoPtr ai{result};
-    // RFC2181 5.2: Consequently the use of differing TTLs in an RRSet is hereby
-    // deprecated, the TTLs of all RRs in an RRSet must be the same. [...]
-    // Should an authoritative source send such a malformed RRSet, the client
-    // should treat the RRs for all purposes as if all TTLs in the RRSet had
-    // been set to the value of the lowest TTL in the RRSet.
-    //
-    // NOTE: We're working with different RRSets here, but it's easier for
-    // caching purposes to process them together.
-    response.ttl = std::chrono::seconds::max();
-    for (auto* node = ai->nodes; node; node = node->ai_next) {
-      response.addrs.emplace_back(node->ai_addr);
-      if (response.ttl.count() > node->ai_ttl) {
-        response.ttl = std::chrono::seconds{node->ai_ttl};
-      }
-      LOG_DEBUG() << request->name << " resolved to " << response.addrs.back()
-                  << ", ttl=" << node->ai_ttl;
-    }
-    if (response.addrs.empty()) {
-      request->promise.set_exception(
-          MakeNotResolvedException(request->name, "Empty address list"));
-      return;
-    }
-    impl::SortAddrs(response.addrs);
-    request->promise.set_value(std::move(response));
+    auto& queue = request->owner.responses_queue;
+    queue.push_back(std::move(request));
   }
 
   void AddSocketEventsToPoller() {
     std::array<ares_socket_t, ARES_GETSOCK_MAXNUM> ares_sockets{};
-    const auto mask =
-        ::ares_getsock(channel.get(), ares_sockets.data(), ares_sockets.size());
+    int mask = 0;
+    {
+      auto channel_scope = channel.Use();
+      mask = ::ares_getsock(channel_scope->get(), ares_sockets.data(),
+                            ares_sockets.size());
+    }
     for (size_t i = 0; i < ares_sockets.size(); ++i) {
       utils::Flags<engine::io::Poller::Event::Type> events;
       if (ARES_GETSOCK_READABLE(mask, i)) {
@@ -174,16 +183,78 @@ class NetResolver::Impl {
           read_fd = poller_event.fd;
         }
 
-        ::ares_process_fd(channel.get(), read_fd, write_fd);
+        auto channel_scope = channel.Use();
+        ::ares_process_fd(channel_scope->get(), read_fd, write_fd);
       }
       poll_status = poller.NextEventNoblock(poller_event);
     }
   }
 
+  void ProcessResponses() {
+    for (auto& request : responses_queue) {
+      const utils::FastScopeGuard debug_guard{[&request]() noexcept {
+        try {
+          TESTPOINT("net-resolver",
+                    formats::json::MakeObject("name", request->name, "status",
+                                              request->status));
+        } catch (const std::exception& e) {
+          // This is fine, testpoint is used only in tests
+          LOG_DEBUG() << "TESTPOINT 'net-resolver' encountered an error: " << e;
+        }
+      }};
+
+      if (request->status != ARES_SUCCESS) {
+        request->promise.set_exception(MakeNotResolvedException(
+            request->name, ares_strerror(request->status)));
+        continue;
+      }
+
+      Response response;
+      response.received_at = request->processed_at;
+      // RFC2181 5.2: Consequently the use of differing TTLs in an RRSet is
+      // hereby deprecated, the TTLs of all RRs in an RRSet must be the same.
+      // [...] Should an authoritative source send such a malformed RRSet, the
+      // client should treat the RRs for all purposes as if all TTLs in the
+      // RRSet had been set to the value of the lowest TTL in the RRSet.
+      //
+      // NOTE: We're working with different RRSets here, but it's easier for
+      // caching purposes to process them together.
+      response.ttl = std::chrono::seconds::max();
+      for (auto* node = request->addrinfo->nodes; node; node = node->ai_next) {
+        response.addrs.emplace_back(node->ai_addr);
+        if (response.ttl.count() > node->ai_ttl) {
+          response.ttl = std::chrono::seconds{node->ai_ttl};
+        }
+        LOG_DEBUG() << request->name << " resolved to " << response.addrs.back()
+                    << " at " << response.received_at
+                    << ", ttl=" << node->ai_ttl;
+      }
+      if (response.addrs.empty()) {
+        request->promise.set_exception(
+            MakeNotResolvedException(request->name, "Empty address list"));
+        continue;
+      }
+      impl::SortAddrs(response.addrs);
+      request->promise.set_value(std::move(response));
+    }
+    responses_queue.clear();
+  }
+
+  void ProcessSocketsToClose() {
+    for (auto socket : sockets_to_close) {
+      poller.Remove(socket);
+      ::close(socket);
+    }
+    sockets_to_close.clear();
+  }
+
   void InitChannel() {
     constexpr int kOptmask = ARES_OPT_FLAGS | ARES_OPT_TIMEOUTMS |
                              ARES_OPT_TRIES | ARES_OPT_DOMAINS |
-                             ARES_OPT_LOOKUPS | ARES_OPT_SOCK_STATE_CB;
+#if ARES_VERSION < 0x011400
+                             ARES_OPT_SOCK_STATE_CB |
+#endif
+                             ARES_OPT_LOOKUPS;
     struct ares_options options {};
     options.flags = ARES_FLAG_STAYOPEN |  // do not close idle sockets
                     ARES_FLAG_NOSEARCH |  // do not use search domains
@@ -197,7 +268,10 @@ class NetResolver::Impl {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
     options.lookups = const_cast<char*>("b");  // network lookups only
 
-    channel.reset();
+    {
+      auto channel_scope = channel.Use();
+      channel_scope->reset();
+    }
 
     channel = utils::Async(fs_task_processor, "net-resolver-init", [&options] {
                 ares_channel native_channel = nullptr;
@@ -211,9 +285,14 @@ class NetResolver::Impl {
                 return impl::ChannelPtr{native_channel};
               }).Get();
 
+    auto channel_scope = channel.Use();
+#if ARES_VERSION >= 0x011400
+    ::ares_set_socket_functions(channel_scope->get(), &socket_functions, this);
+#endif
+
     if (!servers_csv.empty()) {
-      const int set_servers_ret =
-          ::ares_set_servers_ports_csv(channel.get(), servers_csv.c_str());
+      const int set_servers_ret = ::ares_set_servers_ports_csv(
+          channel_scope->get(), servers_csv.c_str());
       if (set_servers_ret != ARES_SUCCESS) {
         throw ResolverException(
             fmt::format("Cannot install custom server list: {}",
@@ -236,15 +315,22 @@ class NetResolver::Impl {
                                       std::back_inserter(current_requests), -1);
       for (auto& req : current_requests) {
         const auto* name_c_str = req->name.c_str();
-        ::ares_getaddrinfo(channel.get(), name_c_str, nullptr, &kHints,
+        auto channel_scope = channel.Use();
+        ::ares_getaddrinfo(channel_scope->get(), name_c_str, nullptr, &kHints,
                            &AddrinfoCallback, req.release());
       }
 
       AddSocketEventsToPoller();
       PollEvents();
+      {
+        // process timeouts even if no events
+        auto channel_scope = channel.Use();
+        ::ares_process_fd(channel_scope->get(), ARES_SOCKET_BAD,
+                          ARES_SOCKET_BAD);
+      }
 
-      // process timeouts even if no events
-      ::ares_process_fd(channel.get(), ARES_SOCKET_BAD, ARES_SOCKET_BAD);
+      ProcessResponses();
+      ProcessSocketsToClose();
     }
   }
 };
@@ -279,8 +365,7 @@ NetResolver::NetResolver(engine::TaskProcessor& fs_task_processor,
 NetResolver::~NetResolver() = default;
 
 engine::Future<NetResolver::Response> NetResolver::Resolve(std::string name) {
-  auto request = std::make_unique<Impl::Request>();
-  request->name = std::move(name);
+  auto request = std::make_unique<Impl::Request>(*impl_, std::move(name));
   auto future = request->promise.get_future();
   impl_->requests_queue.enqueue(std::move(request));
   impl_->poller.Interrupt();

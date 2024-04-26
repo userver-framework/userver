@@ -63,9 +63,11 @@ void Poller::Add(int fd, utils::Flags<Event::Type> events) {
 
 void Poller::Remove(int fd) {
   auto watcher_it = watchers_.find(fd);
-  UASSERT_MSG(watcher_it != watchers_.end(),
-              "Request for removal of an unknown fd from poller");
-  if (watcher_it == watchers_.end()) return;
+  if (watcher_it == watchers_.end()) {
+    LOG_DEBUG() << "Request for removal of an unknown fd " << fd
+                << " from poller";
+    return;
+  }
   auto& watcher = watcher_it->second;
 
   watcher.awaited_events = Event::kNone;
