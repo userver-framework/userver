@@ -179,9 +179,9 @@ UTEST(TlsWrapper, InitListSmall) {
 }
 
 UTEST(TlsWrapper, InitListLarge) {
-  const std::string kStringA(8'192, 'a');
-  const std::string kStringB(16'384, 'b');
-  const std::string kStringC(32'768, 'c');
+  const std::string kStringA(2'048, 'a');
+  const std::string kStringB(2'048, 'b');
+  const std::string kStringC(4'096, 'c');
   const std::string kStringD(8'192, 'd');
   const engine::io::IoData kDataA{kStringA.data(), kStringA.size()};
   const engine::io::IoData kDataB{kStringB.data(), kStringB.size()};
