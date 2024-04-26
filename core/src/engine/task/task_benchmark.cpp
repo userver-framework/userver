@@ -194,9 +194,4 @@ BENCHMARK(engine_multiple_yield_two_task_processor_no_extra_wakeups)
     ->Arg(6)
     ->Arg(12);
 
-engine::impl::TaskContext* CreateInvalidTaskContextPtr() {
-  intptr_t fakeAddress = 1;
-  return reinterpret_cast<engine::impl::TaskContext*>(fakeAddress);
-}
-
 USERVER_NAMESPACE_END
