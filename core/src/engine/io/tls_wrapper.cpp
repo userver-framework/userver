@@ -579,6 +579,53 @@ size_t TlsWrapper::SendAll(const void* buf, size_t len, Deadline deadline) {
                              deadline, "SendAll");
 }
 
+[[nodiscard]] size_t TlsWrapper::WriteAll(std::initializer_list<IoData> list,
+                                          Deadline deadline) {
+  static constexpr std::size_t kBufSize = 4'096;
+  std::byte buf[kBufSize];
+
+  std::size_t sent_bytes = 0;
+  std::size_t remaining_cap = kBufSize;
+  auto fits_in_buf_begin = list.begin();
+  for (auto it = fits_in_buf_begin; it != list.end(); ++it) {
+    if (it->len > remaining_cap) {
+      if (it - fits_in_buf_begin >= 2) {
+        for (auto* ins_pos = buf; fits_in_buf_begin != it;
+             ++fits_in_buf_begin) {
+          ins_pos = std::copy_n(
+              static_cast<const std::byte*>(fits_in_buf_begin->data),
+              fits_in_buf_begin->len, ins_pos);
+        }
+        sent_bytes += SendAll(buf, kBufSize - remaining_cap, deadline);
+      } else if (fits_in_buf_begin != it) {
+        sent_bytes +=
+            SendAll(fits_in_buf_begin->data, fits_in_buf_begin->len, deadline);
+        fits_in_buf_begin = it;
+      }
+
+      remaining_cap = kBufSize;
+      if (it->len < remaining_cap) {
+        remaining_cap -= it->len;
+      } else {
+        sent_bytes += SendAll(it->data, it->len, deadline);
+        ++fits_in_buf_begin;
+      }
+
+    } else {
+      remaining_cap -= it->len;
+    }
+  }
+
+  auto ins_pos = buf;
+  for (auto ins_it = fits_in_buf_begin; ins_it != list.end(); ++ins_it) {
+    ins_pos = std::copy_n(static_cast<const std::byte*>(ins_it->data),
+                          ins_it->len, ins_pos);
+  }
+  sent_bytes += SendAll(buf, kBufSize - remaining_cap, deadline);
+
+  return sent_bytes;
+}
+
 Socket TlsWrapper::StopTls(Deadline deadline) {
   if (impl_->ssl) {
     impl_->is_in_shutdown = true;

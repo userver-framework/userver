@@ -139,6 +139,120 @@ constexpr auto kShortTimeout = std::chrono::milliseconds{10};
 
 }  // namespace
 
+UTEST(TlsWrapper, InitListSmall) {
+  const std::string kStringA(16, 'a');
+  const std::string kStringB(32, 'b');
+  const std::string kStringC(16, 'c');
+  const std::string kStringD(64, 'd');
+  const engine::io::IoData kDataA{kStringA.data(), kStringA.size()};
+  const engine::io::IoData kDataB{kStringB.data(), kStringB.size()};
+  const engine::io::IoData kDataC{kStringC.data(), kStringC.size()};
+  const engine::io::IoData kDataD{kStringD.data(), kStringD.size()};
+  const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+
+  TcpListener tcp_listener;
+  auto [server, client] = tcp_listener.MakeSocketPair(deadline);
+
+  auto server_task = utils::Async(
+      "tls-server",
+      [deadline, kDataA, kDataB, kDataC, kDataD](auto&& server) {
+        auto tls_server = io::TlsWrapper::StartTlsServer(
+            std::forward<decltype(server)>(server),
+            crypto::Certificate::LoadFromString(cert),
+            crypto::PrivateKey::LoadFromString(key), deadline);
+        if (tls_server.WriteAll({kDataA, kDataB, kDataC, kDataD}, deadline) !=
+            kDataA.len + kDataB.len + kDataC.len + kDataD.len) {
+          throw std::runtime_error("Couldn't send data");
+        }
+      },
+      std::move(server));
+
+  auto tls_client =
+      io::TlsWrapper::StartTlsClient(std::move(client), {}, deadline);
+  std::vector<char> buffer(kDataA.len + kDataB.len + kDataC.len + kDataD.len);
+  const auto bytes_rcvd =
+      tls_client.RecvAll(buffer.data(), buffer.size(), deadline);
+
+  server_task.Get();
+  std::string result(buffer.data(), bytes_rcvd);
+  EXPECT_EQ(result, kStringA + kStringB + kStringC + kStringD);
+}
+
+UTEST(TlsWrapper, InitListLarge) {
+  const std::string kStringA(2'048, 'a');
+  const std::string kStringB(2'048, 'b');
+  const std::string kStringC(4'096, 'c');
+  const std::string kStringD(8'192, 'd');
+  const engine::io::IoData kDataA{kStringA.data(), kStringA.size()};
+  const engine::io::IoData kDataB{kStringB.data(), kStringB.size()};
+  const engine::io::IoData kDataC{kStringC.data(), kStringC.size()};
+  const engine::io::IoData kDataD{kStringD.data(), kStringD.size()};
+  const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+
+  TcpListener tcp_listener;
+  auto [server, client] = tcp_listener.MakeSocketPair(deadline);
+
+  auto server_task = utils::Async(
+      "tls-server",
+      [deadline, kDataA, kDataB, kDataC, kDataD](auto&& server) {
+        auto tls_server = io::TlsWrapper::StartTlsServer(
+            std::forward<decltype(server)>(server),
+            crypto::Certificate::LoadFromString(cert),
+            crypto::PrivateKey::LoadFromString(key), deadline);
+        if (tls_server.WriteAll({kDataA, kDataB, kDataC, kDataD}, deadline) !=
+            kDataA.len + kDataB.len + kDataC.len + kDataD.len) {
+          throw std::runtime_error("Couldn't send data");
+        }
+      },
+      std::move(server));
+
+  auto tls_client =
+      io::TlsWrapper::StartTlsClient(std::move(client), {}, deadline);
+  std::vector<char> buffer(kDataA.len + kDataB.len + kDataC.len + kDataD.len);
+  const auto bytes_rcvd =
+      tls_client.RecvAll(buffer.data(), buffer.size(), deadline);
+
+  server_task.Get();
+  std::string result(buffer.data(), bytes_rcvd);
+  EXPECT_EQ(result, kStringA + kStringB + kStringC + kStringD);
+}
+
+UTEST(TlsWrapper, InitListSmallThenLarge) {
+  const std::string kStringSmall(512, 'a');
+  const std::string kStringLarge(32'768, 'b');
+  const engine::io::IoData kDataSmall{kStringSmall.data(), kStringSmall.size()};
+  const engine::io::IoData kDataLarge{kStringLarge.data(), kStringLarge.size()};
+  const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+
+  TcpListener tcp_listener;
+  auto [server, client] = tcp_listener.MakeSocketPair(deadline);
+
+  auto server_task = utils::Async(
+      "tls-server",
+      [deadline, kDataSmall, kDataLarge](auto&& server) {
+        auto tls_server = io::TlsWrapper::StartTlsServer(
+            std::forward<decltype(server)>(server),
+            crypto::Certificate::LoadFromString(cert),
+            crypto::PrivateKey::LoadFromString(key), deadline);
+        if (tls_server.WriteAll(
+                {kDataSmall, kDataSmall, kDataSmall, kDataSmall, kDataLarge},
+                deadline) != kDataSmall.len * 4 + kDataLarge.len) {
+          throw std::runtime_error("Couldn't send data");
+        }
+      },
+      std::move(server));
+
+  auto tls_client =
+      io::TlsWrapper::StartTlsClient(std::move(client), {}, deadline);
+  std::vector<char> buffer(kDataSmall.len * 4 + kDataLarge.len);
+  auto bytes_rcvd = tls_client.RecvAll(buffer.data(), buffer.size(), deadline);
+
+  server_task.Get();
+  std::string result(buffer.data(), bytes_rcvd);
+  EXPECT_EQ(result, kStringSmall + kStringSmall + kStringSmall + kStringSmall +
+                        kStringLarge);
+}
+
 UTEST_MT(TlsWrapper, Smoke, 2) {
   const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
