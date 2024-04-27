@@ -89,7 +89,7 @@ class UserverConan(ConanFile):
 
     @property
     def _build_subfolder(self):
-        return os.path.join(self.build_folder, 'userver')
+        return os.path.join(self.build_folder)
 
     def configure(self):
         if self.options.shared:
