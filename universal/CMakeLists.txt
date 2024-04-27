@@ -44,7 +44,7 @@ include(UserverRequireDWCAS)  # Should be called after `find_package(Boost REQUI
 
 message(STATUS "boost: ${Boost_VERSION_STRING}")
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  if (MACOS AND Boost_FOUND)
+  if (CMAKE_SYSTEM_NAME MATCHES "Darwin" AND Boost_FOUND)
     # requires Boost_FOUND to make a valid expression
     if (${Boost_VERSION_STRING} VERSION_LESS "1.68.0")
       message(FATAL_ERROR "Boost Locale version less that 1.68 uses features deleted from standard. Please update your boost distribution.")
@@ -170,7 +170,7 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
 )
 
 # https://github.com/jemalloc/jemalloc/issues/820
-if (USERVER_FEATURE_JEMALLOC AND NOT USERVER_SANITIZE AND NOT MACOS)
+if (USERVER_FEATURE_JEMALLOC AND NOT USERVER_SANITIZE AND NOT CMAKE_SYSTEM_NAME MATCHES "Darwin")
   if (USERVER_CONAN)
     find_package(jemalloc REQUIRED)
     target_link_libraries(${PROJECT_NAME} PUBLIC jemalloc::jemalloc)
