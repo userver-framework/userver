@@ -5,7 +5,7 @@ if(NOT USERVER_LTO)
   add_compile_options("-fdata-sections" "-ffunction-sections")
 
   set(USERVER_IMPL_LTO_FLAGS "-Wl,--gc-sections")
-  if(MACOS)
+  if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
     set(USERVER_IMPL_LTO_FLAGS "-Wl,-dead_strip -Wl,-dead_strip_dylibs")
   endif()
 

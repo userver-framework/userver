@@ -22,7 +22,7 @@ find_package(cctz REQUIRED)
 find_package(CryptoPP REQUIRED)
 find_package(libyamlcpp REQUIRED)
 
-if (NOT USERVER_SANITIZE AND NOT MACOS)
+if (NOT USERVER_SANITIZE AND NOT CMAKE_SYSTEM_NAME MATCHES "Darwin")
   include("${USERVER_CMAKE_DIR}/FindJemalloc.cmake")
 endif()
 include("${USERVER_CMAKE_DIR}/AddGoogleTests.cmake")

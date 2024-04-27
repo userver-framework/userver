@@ -111,10 +111,6 @@ option(USERVER_DISABLE_RSEQ_ACCELERATION "Disable rseq-based optimizations" ${US
 
 option(USERVER_CHECK_PACKAGE_VERSIONS "Check package versions" ON)
 
-if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
-  set(MACOS found)
-endif()
-
 set(CMAKE_DEBUG_POSTFIX d)
 
 include(cmake/UserverSetupEnvironment.cmake)
