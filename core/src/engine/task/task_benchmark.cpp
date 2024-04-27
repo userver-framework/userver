@@ -17,6 +17,7 @@
 #include <userver/engine/task/single_threaded_task_processors_pool.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <utils/impl/parallelize_benchmark.hpp>
+#include <concurrent/impl/latch.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -190,5 +191,104 @@ BENCHMARK(engine_multiple_yield_two_task_processor_no_extra_wakeups)
     ->Range(2, 32)
     ->Arg(6)
     ->Arg(12);
+
+boost::intrusive_ptr<engine::impl::TaskContext> MakeContext() {
+  return engine::impl::MakeTask({engine::current_task::GetTaskProcessor(),
+                                 engine::Task::Importance::kNormal,
+                                 engine::Task::WaitMode::kSingleWaiter,
+                                 {}},
+                                [] {})
+      .Extract();
+}
+
+auto MakeContexts(const std::size_t tasks_count) {
+  std::vector<boost::intrusive_ptr<engine::impl::TaskContext>> contexts;
+  contexts.reserve(tasks_count);
+  for (std::size_t i = 0; i < tasks_count; ++i) {
+    contexts.push_back(MakeContext());
+  }
+
+  return contexts;
+}
+
+template <typename QueueType>
+void engine_task_queue(
+    benchmark::State& state) {
+  engine::TaskProcessorConfig config;
+  config.worker_threads = state.range(0);
+  QueueType task_queue(config);
+  std::atomic<bool> keep_running{true};
+  std::atomic<std::size_t> push_pop_count = 0;
+  concurrent::impl::Latch workers_left{
+        static_cast<std::ptrdiff_t>(config.worker_threads)};
+  
+  auto step = [&task_queue](std::vector<boost::intrusive_ptr<engine::impl::TaskContext>>& tasks) {
+    const std::size_t tasks_count = tasks.size();
+    for (auto&& task : tasks) {
+      task_queue.Push(std::move(task));
+      tasks.clear();
+      for (std::size_t i = 0; i < tasks_count; i++) {
+        auto context = task_queue.PopBlocking();
+        if (!context) {
+          break;
+        }
+        tasks.push_back(context);
+      }
+    }
+  };
+  auto common_task = [&](std::vector<boost::intrusive_ptr<engine::impl::TaskContext>> tasks) {
+    std::size_t iter_count = 0;
+    while (keep_running) {
+      step(tasks);
+      ++iter_count;
+    }
+    push_pop_count += iter_count;
+    workers_left.count_down();
+  };
+
+  auto state_task = [&](std::vector<boost::intrusive_ptr<engine::impl::TaskContext>> tasks) {
+    std::size_t iter_count = 0;
+    for ([[maybe_unused]] auto _ : state) {
+      step(tasks);
+      ++iter_count;
+    }
+    keep_running = false;
+    push_pop_count += iter_count;
+    workers_left.count_down();
+  };
+  
+  engine::RunStandalone([&] {
+    std::vector<std::thread> competing_threads;
+    benchmark::DoNotOptimize(push_pop_count);
+    for (int64_t i = 0; i < state.range(0) - 1; i++) {
+      auto tasks = MakeContexts(1);
+      competing_threads.emplace_back(common_task, tasks);
+    }
+    auto tasks = MakeContexts(1);
+    competing_threads.emplace_back( state_task, tasks);
+    workers_left.wait();
+    for (auto& thread : competing_threads) {
+      thread.join();
+    }
+    state.counters["push_pop"] =
+        benchmark::Counter(push_pop_count, benchmark::Counter::kIsRate);
+    state.counters["push_pop/thread"] = benchmark::Counter(
+        static_cast<double>(push_pop_count) / state.range(0),
+        benchmark::Counter::kIsRate);
+  });
+}
+BENCHMARK_TEMPLATE(engine_task_queue, engine::WorkStealingTaskQueue)
+    ->RangeMultiplier(2)
+    ->Ranges({{1, 32}, {1, 2}})
+    ->Args({6, 1})
+    ->Args({6, 2})
+    ->Args({12, 1})
+    ->Args({12, 2});
+BENCHMARK_TEMPLATE(engine_task_queue, engine::TaskQueue)
+    ->Ranges({{1, 32}, {1, 2}})
+    ->Args({6, 1})
+    ->Args({6, 2})
+    ->Args({12, 1})
+    ->Args({12, 2});
 
 USERVER_NAMESPACE_END
