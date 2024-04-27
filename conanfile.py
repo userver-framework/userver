@@ -333,6 +333,13 @@ class UserverConan(ConanFile):
                 src=os.path.join(self.source_folder, 'cmake'),
                 keep_path=True,
             )
+            copy(
+                self,
+                pattern='SetupProtobuf.cmake',
+                dst=os.path.join(self.package_folder, 'cmake'),
+                src=os.path.join(self.source_folder, 'cmake'),
+                keep_path=True,
+            )
         if self.options.with_postgresql:
             copy_component('postgresql')
 
