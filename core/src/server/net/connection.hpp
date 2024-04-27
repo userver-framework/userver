@@ -47,8 +47,6 @@ class Connection final {
 
   std::string Getpeername() const;
 
-  void ParseRequestData(http::HttpRequestParser& request_parser,
-                        const char* data, size_t size);
   bool ReadSome();
 
   const ConnectionConfig& config_;
