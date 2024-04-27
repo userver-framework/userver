@@ -206,11 +206,13 @@ function(userver_testsuite_requirements)
       "${USERVER_TESTSUITE_DIR}/requirements.txt")
 
   if(USERVER_FEATURE_GRPC OR TARGET userver::grpc)
-    include(SetupProtobuf)
-    if(NOT USERVER_PROTOBUF_VERSION_CATEGORY)
-      message(FATAL_ERROR "Failed to get protobuf version category")
+    get_property(protobuf_category
+        GLOBAL PROPERTY userver_protobuf_version_category)
+    if(NOT userver_protobuf_version_category)
+      include(SetupProtobuf)
+      get_property(protobuf_category
+          GLOBAL PROPERTY userver_protobuf_version_category)
     endif()
-    set(protobuf_category "${USERVER_PROTOBUF_VERSION_CATEGORY}")
     list(APPEND requirements_files
         "${USERVER_TESTSUITE_DIR}/requirements-grpc-${protobuf_category}.txt")
   endif()

@@ -74,7 +74,9 @@ function(_userver_prepare_grpc)
 
   include(UserverTestsuite)
 
-  set(requirements_name "requirements-${USERVER_PROTOBUF_VERSION_CATEGORY}.txt")
+  get_property(protobuf_category GLOBAL PROPERTY userver_protobuf_version_category)
+  set(requirements_name "requirements-${protobuf_category}.txt")
+
   userver_venv_setup(
       NAME userver-grpc
       PYTHON_OUTPUT_VAR USERVER_GRPC_PYTHON_BINARY
