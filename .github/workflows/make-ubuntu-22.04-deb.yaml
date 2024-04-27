@@ -1,0 +1,29 @@
+name: Build and publish userver-all-* artifact
+
+'on':
+    schedule:
+      - cron: '30 5 * * 0'  # Every Sunday at 5:30
+    workflow_dispatch:
+    pull_request:
+    push:
+        branches:
+          - master
+          - develop
+          - feature/**
+
+jobs:
+  build_and_publish:
+    runs-on: ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest
+    name: Build and publish DEB
+    env:
+        USERVER_IMAGE_TAG: ${{ github.event.release.tag_name || 'latest' }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build the DEB
+        run: |
+            ./scripts/build_and_install_all.sh
+      - uses: actions/upload-artifact@v4
+        with:
+            name: userver-all.deb
+            path: userver-all*.deb
+            overwrite: true
