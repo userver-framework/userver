@@ -103,10 +103,10 @@ class FastPimpl final {
 
   alignas(Alignment) std::byte storage_[Size];
 
-  T* AsHeld() noexcept { return reinterpret_cast<T*>(&storage_); }
+  T* AsHeld() noexcept { return std::launder(reinterpret_cast<T*>(&storage_)); }
 
   const T* AsHeld() const noexcept {
-    return reinterpret_cast<const T*>(&storage_);
+    return std::launder(reinterpret_cast<const T*>(&storage_));
   }
 };
 
