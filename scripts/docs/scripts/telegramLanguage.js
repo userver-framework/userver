@@ -7,7 +7,7 @@ function changeTelegramChannelLanguageForRussianSpeakingUser() {
 }
 
 function getAllTelegramLinkElements() {
-  return Array.from(document.querySelectorAll("a[href='https://t.me/userver_en']"));
+  return Array.from(document.querySelectorAll("a.generic_tg_link"));
 }
 
 function isBrowserUseRussianLanguage() {
