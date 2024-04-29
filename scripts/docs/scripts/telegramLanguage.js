@@ -3,10 +3,10 @@ function changeTelegramChannelLanguageForRussianSpeakingUser() {
     return;
   }
 
-  getAllTelegramLinkElements().map(element => element.href = "https://t.me/userver_ru");
+  getGenericTelegramLinkElements().map(element => element.href = "https://t.me/userver_ru");
 }
 
-function getAllTelegramLinkElements() {
+function getGenericTelegramLinkElements() {
   return Array.from(document.querySelectorAll("a.generic_tg_link"));
 }
 
