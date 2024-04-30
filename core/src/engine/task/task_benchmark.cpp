@@ -299,9 +299,8 @@ void moody_camel(
   moodycamel::ConcurrentQueue<std::size_t> task_queue;
   std::atomic<bool> keep_running{true};
   std::atomic<int> push_pop_count = 0;
-  std::atomic<std::size_t> size{1};
   
-  auto step = [&task_queue, &size](std::size_t tasks_count, moodycamel::ConsumerToken& token) {
+  auto step = [&task_queue](std::size_t tasks_count, moodycamel::ConsumerToken& token) {
     for (std::size_t i = 0; i < tasks_count; i++) {
       task_queue.enqueue(i);
     }
@@ -309,9 +308,6 @@ void moody_camel(
       std::size_t x{0};
       if (task_queue.try_dequeue(token, x)) {
         i++;
-      }
-      if (size.load() == 0) {
-        return;
       }
     }
   };
@@ -334,7 +330,6 @@ void moody_camel(
     }
     keep_running = false;
     push_pop_count += iter_count;
-    size--;
   };
   
   engine::RunStandalone([&] {
