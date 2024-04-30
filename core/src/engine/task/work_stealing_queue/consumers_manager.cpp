@@ -19,7 +19,7 @@ void ConsumersManager::NotifyNewTask() {
   UASSERT(curr_state.stealing_count <= consumers_count_);
   UASSERT(curr_state.stealing_count + curr_state.sleeping_count <=
           consumers_count_);
-  if (curr_state.sleeping_count > 0 && curr_state.stealing_count <= 1) {
+  if (curr_state.sleeping_count > 0 && curr_state.stealing_count < 1) {
     WakeUpOne();
   }
 }

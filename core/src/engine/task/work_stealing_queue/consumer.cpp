@@ -1,4 +1,5 @@
 #include <engine/task/work_stealing_queue/consumer.hpp>
+#include <memory>
 
 #ifdef __linux__
 #include <linux/futex.h>
@@ -10,6 +11,7 @@
 #include <engine/task/work_stealing_queue/task_queue.hpp>
 #include <userver/utils/rand.hpp>
 #include <userver/utils/span.hpp>
+// #include <iostream>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -39,9 +41,16 @@ Consumer::Consumer(WorkStealingTaskQueue& owner,
     : owner_(owner),
       consumers_manager_(consumers_manager),
       rnd_(utils::Rand()),
-      steps_count_(rnd_()) {}
+      steps_count_(rnd_()),
+      global_queue_token_(owner_.global_queue_.CreateConsumerToken()) {
+
+  }
 
 void Consumer::Push(impl::TaskContext* ctx) {
+  if (ctx && ctx->IsBackground()) {
+    owner_.global_queue_.Push(global_queue_token_, ctx);
+    return;
+  }
   if (!local_queue_.TryPush(ctx)) {
     MoveTasksToGlobalQueue(ctx);
   }
@@ -55,7 +64,10 @@ std::size_t Consumer::GetLocalQueueSize() const noexcept {
 
 WorkStealingTaskQueue* Consumer::GetOwner() const noexcept { return &owner_; }
 
-void Consumer::SetIndex(std::size_t index) noexcept { inner_index_ = index; }
+void Consumer::SetIndex(std::size_t index) noexcept {
+  inner_index_ = index;
+  //global_token_ = std::make_unique(owner_.global_queue_.CreateConsumerToken(index));//std::make_unique(owner_.global_queue_.CreateConsumerToken(index));
+}
 
 bool Consumer::IsStopped() const noexcept {
   return consumers_manager_.IsStopped();
@@ -66,7 +78,7 @@ void Consumer::MoveTasksToGlobalQueue(impl::TaskContext* extra) {
       utils::span(steal_buffer_.data(), kConsumerStealBufferSize - 1));
   steal_buffer_[size] = extra;
   size++;
-  owner_.global_queue_.PushBulk(utils::span(steal_buffer_.data(), size));
+  owner_.global_queue_.PushBulk(global_queue_token_, utils::span(steal_buffer_.data(), size));
 }
 
 impl::TaskContext* Consumer::StealFromAnotherConsumer(
@@ -102,16 +114,12 @@ std::size_t Consumer::Steal(utils::span<impl::TaskContext*> buffer) {
   return local_queue_.TryPopBulk(buffer);
 }
 
-impl::TaskContext* Consumer::TryPopFromOwnerQueue(bool is_global) {
-  GlobalQueue<impl::TaskContext>* queue = &owner_.global_queue_;
-  if (!is_global) {
-    queue = &owner_.background_queue_;
-  }
+impl::TaskContext* Consumer::TryPopFromOwnerQueue() {
+  NewGlobalQueue* queue = &owner_.global_queue_;
   const std::size_t consumers_count = owner_.consumers_count_;
-  std::size_t steal_size =
-      std::min((queue->GetSize() + consumers_count - 1) / consumers_count,
+  std::size_t steal_size = std::min((queue->GetSizeApproximate() + consumers_count) / consumers_count,
                kConsumerStealBufferSize);
-  steal_size = queue->PopBulk(utils::span(steal_buffer_.data(), steal_size));
+  steal_size = queue->PopBulk(global_queue_token_, utils::span(steal_buffer_.data(), steal_size));
   if (steal_size == 0) {
     return nullptr;
   }
@@ -127,7 +135,7 @@ impl::TaskContext* Consumer::TryPopFromOwnerQueue(bool is_global) {
 impl::TaskContext* Consumer::ProbabilisticPopFromOwnerQueues() {
   impl::TaskContext* context = nullptr;
   if (steps_count_ % kFrequencyGlobalQueuePop == 0) {
-    context = owner_.global_queue_.TryPop();
+    context = owner_.global_queue_.TryPop(global_queue_token_);
     if (context) {
       return context;
     }
@@ -148,15 +156,15 @@ impl::TaskContext* Consumer::TryPop() {
     return context;
   }
 
-  context = TryPopFromOwnerQueue(/* is_global */ true);
+  context = TryPopFromOwnerQueue();
   if (context) {
     return context;
   }
 
-  context = TryPopFromOwnerQueue(/* is_global */ false);
-  if (context) {
-    return context;
-  }
+  // context = TryPopFromOwnerQueue(/* is_global */ false);
+  // if (context) {
+  //   return context;
+  // }
 
   if (consumers_manager_.AllowStealing()) {
     context =
@@ -176,16 +184,16 @@ impl::TaskContext* Consumer::TryPop() {
 }
 
 impl::TaskContext* Consumer::TryPopBeforeSleep() {
-  impl::TaskContext* context = owner_.global_queue_.TryPop();
+  impl::TaskContext* context = owner_.global_queue_.TryPop(global_queue_token_);
   if (context) {
     return context;
   }
 
-  context = owner_.background_queue_.TryPop();
+  // context = owner_.background_queue_.TryPop();
 
-  if (context) {
-    return context;
-  }
+  // if (context) {
+  //   return context;
+  // }
 
   context = StealFromAnotherConsumer(1, 1);
 

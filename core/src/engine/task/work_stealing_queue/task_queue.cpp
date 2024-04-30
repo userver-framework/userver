@@ -2,6 +2,8 @@
 
 #include <engine/task/task_context.hpp>
 #include <engine/task/work_stealing_queue/consumers_manager.hpp>
+#include "engine/task/work_stealing_queue/global_queue.hpp"
+#include <userver/compiler/thread_local.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -16,6 +18,7 @@ thread_local Consumer* localConsumer = nullptr;
 WorkStealingTaskQueue::WorkStealingTaskQueue(const TaskProcessorConfig& config)
     : consumers_manager_(config.worker_threads),
       consumers_count_(config.worker_threads),
+      global_queue_(consumers_count_),
       consumers_(config.worker_threads, *this, consumers_manager_) {
   for (size_t i = 0; i < consumers_count_; ++i) {
     consumers_[i].SetIndex(i);
@@ -38,20 +41,18 @@ boost::intrusive_ptr<impl::TaskContext> WorkStealingTaskQueue::PopBlocking() {
   return context;
 }
 
-void WorkStealingTaskQueue::StopProcessing() { consumers_manager_.Stop(); }
+void WorkStealingTaskQueue::StopProcessing() { 
+  
+  consumers_manager_.Stop();
+  
+}
 
 std::size_t WorkStealingTaskQueue::GetSizeApproximate() const noexcept {
-  std::size_t size = global_queue_.GetSize();
-  for (const auto& consumer : consumers_) {
-    size += consumer.GetLocalQueueSize();
-  }
-  return size;
+  return 5;
 }
 
 void WorkStealingTaskQueue::DoPush(impl::TaskContext* context) {
-  if (context && context->IsBackground()) {
-    background_queue_.Push(context);
-  } else {
+  {
     Consumer* consumer = GetConsumer();
     if (consumer != nullptr && consumer->GetOwner() == this) {
       consumer->Push(context);

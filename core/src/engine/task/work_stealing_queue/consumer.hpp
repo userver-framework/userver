@@ -11,6 +11,7 @@
 
 #include <engine/task/task_context.hpp>
 #include <engine/task/work_stealing_queue/local_queue.hpp>
+#include "engine/task/work_stealing_queue/global_queue.hpp"
 
 USERVER_NAMESPACE_BEGIN
 namespace engine {
@@ -39,7 +40,7 @@ class Consumer final {
   impl::TaskContext* StealFromAnotherConsumer(const std::size_t attempts,
                                               std::size_t to_steal);
   std::size_t Steal(utils::span<impl::TaskContext*> buffer);
-  impl::TaskContext* TryPopFromOwnerQueue(bool is_global);
+  impl::TaskContext* TryPopFromOwnerQueue();
   impl::TaskContext* ProbabilisticPopFromOwnerQueues();
   impl::TaskContext* TryPop();
   impl::TaskContext* TryPopBeforeSleep();
@@ -61,6 +62,7 @@ class Consumer final {
   std::minstd_rand rnd_;
   std::size_t steps_count_{0};
   std::atomic<std::int32_t> sleep_counter_{0};
+  NewGlobalQueue::Token global_queue_token_;
 #ifndef __linux__
   std::condition_variable cv_;
   std::mutex mutex_;

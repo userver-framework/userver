@@ -1,4 +1,5 @@
 #include <benchmark/benchmark.h>
+#include <moodycamel/concurrentqueue.h>
 
 #include <atomic>
 #include <cstdint>
@@ -226,14 +227,15 @@ void engine_task_queue(
     const std::size_t tasks_count = tasks.size();
     for (auto&& task : tasks) {
       task_queue.Push(std::move(task));
-      tasks.clear();
-      for (std::size_t i = 0; i < tasks_count; i++) {
-        auto context = task_queue.PopBlocking();
-        if (!context) {
-          break;
-        }
-        tasks.push_back(context);
+    }
+
+    tasks.clear();
+    for (std::size_t i = 0; i < tasks_count; i++) {
+      auto context = task_queue.PopBlocking();
+      if (!context) {
+        break;
       }
+      tasks.push_back(context);
     }
   };
   auto common_task = [&](std::vector<boost::intrusive_ptr<engine::impl::TaskContext>> tasks) {
@@ -290,5 +292,70 @@ BENCHMARK_TEMPLATE(engine_task_queue, engine::TaskQueue)
     ->Args({6, 2})
     ->Args({12, 1})
     ->Args({12, 2});
+
+
+void moody_camel(
+    benchmark::State& state) {
+  moodycamel::ConcurrentQueue<std::size_t> task_queue;
+  std::atomic<bool> keep_running{true};
+  std::atomic<int> push_pop_count = 0;
+  std::atomic<std::size_t> size{1};
+  
+  auto step = [&task_queue, &size](std::size_t tasks_count, moodycamel::ConsumerToken& token) {
+    for (std::size_t i = 0; i < tasks_count; i++) {
+      task_queue.enqueue(i);
+    }
+    for (std::size_t i = 0; i < tasks_count;) {
+      std::size_t x{0};
+      if (task_queue.try_dequeue(token, x)) {
+        i++;
+      }
+      if (size.load() == 0) {
+        return;
+      }
+    }
+  };
+  auto common_task = [&]() {
+    moodycamel::ConsumerToken token(task_queue);
+    std::size_t iter_count = 0;
+    while (keep_running) {
+      step(1, token);
+      ++iter_count;
+    }
+    push_pop_count += iter_count;
+  };
+
+  auto state_task = [&]() {
+    moodycamel::ConsumerToken token(task_queue);
+    std::size_t iter_count = 0;
+    for ([[maybe_unused]] auto _ : state) {
+      step(1, token);
+      ++iter_count;
+    }
+    keep_running = false;
+    push_pop_count += iter_count;
+    size--;
+  };
+  
+  engine::RunStandalone([&] {
+    std::vector<std::thread> competing_threads;
+    benchmark::DoNotOptimize(push_pop_count);
+    for (int64_t i = 0; i < state.range(0) - 1; i++) {
+      competing_threads.emplace_back(common_task);
+    }
+    competing_threads.emplace_back( state_task);
+    for (auto& thread : competing_threads) {
+      thread.join();
+    }
+    state.counters["push_pop"] =
+        benchmark::Counter(push_pop_count, benchmark::Counter::kIsRate);
+    state.counters["push_pop/thread"] = benchmark::Counter(
+        static_cast<double>(push_pop_count) / state.range(0),
+        benchmark::Counter::kIsRate);
+  });
+}
+BENCHMARK(moody_camel)
+    ->RangeMultiplier(2)
+    ->Range(1, 32);
 
 USERVER_NAMESPACE_END
