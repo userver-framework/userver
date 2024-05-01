@@ -3704,6 +3704,7 @@
   "universal/src/utils/mock_now_test.cpp":"taxi/uservices/userver/universal/src/utils/mock_now_test.cpp",
   "universal/src/utils/not_null_test.cpp":"taxi/uservices/userver/universal/src/utils/not_null_test.cpp",
   "universal/src/utils/optional_ref_test.cpp":"taxi/uservices/userver/universal/src/utils/optional_ref_test.cpp",
+  "universal/src/utils/overloaded_test.cpp":"taxi/uservices/userver/universal/src/utils/overloaded_test.cpp",
   "universal/src/utils/projected_set_test.cpp":"taxi/uservices/userver/universal/src/utils/projected_set_test.cpp",
   "universal/src/utils/rand.cpp":"taxi/uservices/userver/universal/src/utils/rand.cpp",
   "universal/src/utils/rand_test.cpp":"taxi/uservices/userver/universal/src/utils/rand_test.cpp",
