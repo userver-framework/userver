@@ -5,7 +5,10 @@ if(userver_postgresql_FOUND)
 endif()
 
 find_package(PostgreSQL REQUIRED)
-include("${USERVER_CMAKE_DIR}/SetupPostgresqlDeps.cmake")
+
+if(USERVER_FEATURE_PATCH_LIBPQ)
+  include("${USERVER_CMAKE_DIR}/SetupPostgresqlDeps.cmake")
+endif()
 
 add_library(userver::postgresql ALIAS userver::userver-postgresql)
 
