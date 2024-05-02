@@ -1,0 +1,26 @@
+name: libgflags
+
+includes:
+    find:
+      - names:
+          - gflags/gflags.h
+          - gflags/gflags_completions.h
+          - gflags/gflags_declare.h
+          - gflags/gflags_gflags.h
+        path-suffixes:
+          - include
+
+libraries:
+    find:
+      - names:
+          - gflags
+        path-suffixes:
+          - lib
+
+debian-names:
+  - libgflags-dev
+formula-name: gflags
+rpm-names:
+  - libgflags-dev
+pacman-names:
+  - gflags

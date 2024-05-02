@@ -1,0 +1,25 @@
+name: libz
+
+includes:
+    find:
+      - names:
+          - zlib.h
+          - zconf.h
+        path-suffixes:
+          - include
+
+libraries:
+    find:
+      - names:
+          - zlib1g
+          - z
+        path-suffixes:
+          - lib
+
+debian-names:
+  - zlib1g-dev
+formula-name: zlib
+rpm-names:
+  - zlib1g-dev
+pacman-names:
+  - zlib

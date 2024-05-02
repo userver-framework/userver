@@ -2,7 +2,7 @@
 
 #include <fmt/format.h>
 
-#include <userver/storages/rocks/impl/exception.hpp>
+#include <userver/storages/rocks/exception.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -42,7 +42,7 @@ void Client::Delete(std::string_view key) {
 
 void Client::CheckStatus(rocksdb::Status status, std::string_view method_name) {
   if (!status.ok() && !status.IsNotFound()) {
-    throw USERVER_NAMESPACE::storages::rocks::impl::RequestFailedException(
+    throw USERVER_NAMESPACE::storages::rocks::RequestFailedException(
         method_name, status.ToString());
   }
 }

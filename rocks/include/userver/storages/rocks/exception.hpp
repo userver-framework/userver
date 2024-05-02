@@ -8,7 +8,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace storages::rocks::impl {
+namespace storages::rocks {
 
 /// Generic rocks-related exception
 class Exception : public std::runtime_error {
@@ -28,6 +28,6 @@ class RequestFailedException : public Exception {
   std::string_view status_;
 };
 
-}  // namespace storages::rocks::impl
+}  // namespace storages::rocks
 
 USERVER_NAMESPACE_END
