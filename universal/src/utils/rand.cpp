@@ -10,7 +10,7 @@ namespace {
 
 template <typename T>
 auto& AsLvalue(T&& rvalue) noexcept {
-  return rvalue;
+  return static_cast<T&>(rvalue);
 }
 
 compiler::ThreadLocal local_random_impl = [] { return impl::RandomImpl{}; };
