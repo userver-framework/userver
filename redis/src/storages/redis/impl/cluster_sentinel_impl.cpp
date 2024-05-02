@@ -59,7 +59,8 @@ struct NodeAddressesHasher {
   }
 };
 
-using NodesAddresesSet = std::unordered_set<NodeAddresses, NodeAddressesHasher>;
+using NodesAddressesSet =
+    std::unordered_set<NodeAddresses, NodeAddressesHasher>;
 using HostPort = std::string;
 
 size_t HashSlot(const std::string& key) {
@@ -460,7 +461,7 @@ std::optional<std::string> GetHostNameFromClusterNodesLine(
 }
 
 ClusterNodesResponseStatus ParseClusterNodesResponse(const ReplyPtr& reply,
-                                                     NodesAddresesSet& res) {
+                                                     NodesAddressesSet& res) {
   UASSERT(reply);
   if (reply->IsUnknownCommandError()) {
     return ClusterNodesResponseStatus::kNonCluster;
@@ -516,7 +517,7 @@ void ClusterTopologyHolder::ExploreNodes() {
 
   const auto cmd = PrepareCommand(
       {"CLUSTER", "NODES"}, [this](const CommandPtr& /*cmd*/, ReplyPtr reply) {
-        NodesAddresesSet host_ports;
+        NodesAddressesSet host_ports;
         std::unordered_set<HostPort> host_ports_to_create;
 
         if (ParseClusterNodesResponse(reply, host_ports) !=

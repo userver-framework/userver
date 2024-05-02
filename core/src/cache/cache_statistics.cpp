@@ -58,7 +58,7 @@ void DumpMetric(utils::statistics::Writer& writer,
                 const UpdateStatistics& stats) {
   // Note about sensor duplication with 'v2' suffix:
   // We have to duplicate metrics with different sensor name to change
-  // their type to RATE. Unfortunatelly, we can't change existing metrics
+  // their type to RATE. Unfortunately, we can't change existing metrics
   // because it will break dashboards/alerts for all current users.
   if (auto update = writer["update"]) {
     update["attempts_count"] = stats.update_attempt_count.Load().value;

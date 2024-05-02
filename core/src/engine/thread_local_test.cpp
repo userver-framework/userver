@@ -177,7 +177,7 @@ struct UserverCompilerThreadLocal {
   }
 };
 
-// Need for tests defending macroses for work with thread_local variables
+// Need for tests defending macros for work with thread_local variables
 struct ManuallyProtectedThreadLocal {
   USERVER_IMPL_PREVENT_TLS_CACHING
   static std::size_t* GetLocal() {
@@ -203,7 +203,7 @@ TYPED_UTEST_SUITE(ThreadLocalTyped, ThreadLocalTypes);
 
 // Created 4 threads and 8 tasks for concurrency mode
 // Use thread_local variable with types `compiler::ThreadLocal` and
-// `thread_local` with macroses.
+// `thread_local` with macros.
 // Compare pointer thread_local variable before
 // `engine::Yield` and after. Pointers must be different if thread_ids are
 // different

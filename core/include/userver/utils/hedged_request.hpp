@@ -294,7 +294,7 @@ struct Context {
   std::vector<RequestStrategy> inputs_;
   HedgingSettings settings;
 
-  /// Our plan of what we will do at wich time
+  /// Our plan of what we will do at what time
   std::priority_queue<PlanEntry, std::vector<PlanEntry>, std::greater<>>
       plan_{};
   std::vector<SubrequestWrapper<RequestStrategy>> subrequests_{};
@@ -427,11 +427,11 @@ auto HedgeRequestsBulk(std::vector<RequestStrategy> inputs,
 }
 
 /// Asynchronously perform bulk hedged requests described by RequestStrategy and
-/// return future wich returns Result of type
+/// return future which returns Result of type
 /// std::vector<std::optional<ResultType>>. Result contains replies for each
 /// element in @param inputs or std::nullopt in case either timeouts or bad
 /// replies (RequestStrategy::ProcessReply(RequestType&&) returned std::nullopt
-/// and RequestStrategy::ExtractReply() retruned std::nulopt)
+/// and RequestStrategy::ExtractReply() returned std::nulopt)
 template <typename RequestStrategy>
 auto HedgeRequestsBulkAsync(std::vector<RequestStrategy> inputs,
                             HedgingSettings settings) {
@@ -458,7 +458,7 @@ std::optional<typename RequestTraits<RequestStrategy>::ReplyType> HedgeRequest(
   return bulk_ret[0];
 }
 
-/// Create future wich perform hedged request described by RequestStrategy and
+/// Create future which perform hedged request described by RequestStrategy and
 /// return result or throw runtime_error. Exception can be thrown in case of
 /// timeout or if request was denied by strategy e.g. ProcessReply always
 /// returned std::nullopt or ExtractReply returned std::nullopt

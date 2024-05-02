@@ -49,7 +49,7 @@ class State final {
   /// Component with name `component_name` should be loaded.
   /// Components construction should finish before any call to this function
   /// is made. The result should now outlive the all the components
-  /// desctruction.
+  /// destruction.
   std::unordered_set<std::string_view> GetAllDependencies(
       std::string_view component_name) const;
 

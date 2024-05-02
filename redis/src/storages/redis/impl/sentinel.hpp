@@ -46,7 +46,7 @@ class Shard;
 
 class Sentinel {
  public:
-  /// Sentinel sends receieved message to callback and callback should
+  /// Sentinel sends received message to callback and callback should
   /// notify it about the outcome. This is internal mechanism for
   /// communicating between our sentinel and our SubscriptionTokenImpl
   enum class Outcome : uint32_t {

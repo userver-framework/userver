@@ -123,7 +123,7 @@ UTEST(HedgedRequest, base) {
 }
 
 UTEST(HedgedRequest, DontStartIfGotResult) {
-  /// Test we do not start aditional requests if we got reply before
+  /// Test we do not start additional requests if we got reply before
   /// hedging_delay elapsed
   const EventLog expected_event_log = {
       {Event::StartRequest, 0},

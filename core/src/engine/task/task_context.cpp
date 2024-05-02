@@ -46,8 +46,8 @@ void SetCurrentTaskContext(impl::TaskContext* context) {
 }  // namespace
 
 impl::TaskContext& GetCurrentTaskContext() noexcept {
-  auto curent_task_context = current_task_context_ptr.Use();
-  if (!*curent_task_context) {
+  auto current_task_context = current_task_context_ptr.Use();
+  if (!*current_task_context) {
     // AbortWithStacktrace MUST be a separate function! Putting the body of this
     // function into GetCurrentTaskContext() clobbers too many registers and
     // compiler decides to use stack memory in GetCurrentTaskContext(). This
@@ -57,12 +57,12 @@ impl::TaskContext& GetCurrentTaskContext() noexcept {
         "current_task::GetCurrentTaskContext() has been called "
         "outside of coroutine context");
   }
-  return **curent_task_context;
+  return **current_task_context;
 }
 
 impl::TaskContext* GetCurrentTaskContextUnchecked() noexcept {
-  auto curent_task_context = current_task_context_ptr.Use();
-  return *curent_task_context;
+  auto current_task_context = current_task_context_ptr.Use();
+  return *current_task_context;
 }
 
 }  // namespace current_task

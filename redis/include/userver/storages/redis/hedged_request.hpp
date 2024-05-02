@@ -82,7 +82,7 @@ HedgedRedisRequest<RedisRequestType> MakeHedgedRedisRequestAsync(
        args_tuple{std::tuple(std::move(args)...)}](
           int try_count) mutable -> std::optional<RedisRequestType> {
     cc.retry_counter = try_count;
-    cc.max_retries = 1;  ///< We do retries ourselfs
+    cc.max_retries = 1;  ///< We do retries ourselves
 
     return std::apply(
         [redis, method, cc](auto&&... args) {
@@ -111,7 +111,7 @@ RedisRequestType MakeHedgedRedisRequest(
        args_tuple{std::tuple(std::move(args)...)}](
           int try_count) mutable -> std::optional<RedisRequestType> {
     cc.retry_counter = try_count;
-    cc.max_retries = 1;  ///< We do retries ourselfs
+    cc.max_retries = 1;  ///< We do retries ourselves
 
     return std::apply(
         [redis, method, cc](auto&&... args) {

@@ -200,7 +200,7 @@ void DumpMetric(utils::statistics::Writer& writer,
                 const InstanceStatistics& stats, bool real_instance) {
   // Note about sensor duplication with 'v2' suffix:
   // We have to duplicate metrics with different sensor name to change
-  // their type to RATE. Unfortunatelly, we can't change existing metrics
+  // their type to RATE. Unfortunately, we can't change existing metrics
   // because it will break dashboards/alerts for all current users.
 
   writer["reconnects"] = stats.reconnects.Load().value;
@@ -286,7 +286,7 @@ void DumpMetric(utils::statistics::Writer& writer,
     writer["cluster_topology_updates"] =
         stats.internal.cluster_topology_updates.Load().value;
     // We have to duplicate metrics with different sensor name to change
-    // their type to RATE. Unfortunatelly, we can't change existing metrics
+    // their type to RATE. Unfortunately, we can't change existing metrics
     // because it will break dashboards/alerts for all current users.
     writer["cluster_topology_checks.v2"] =
         stats.internal.cluster_topology_checks.Load();
