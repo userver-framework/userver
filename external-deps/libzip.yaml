@@ -1,0 +1,24 @@
+name: libzip
+
+includes:
+    find:
+      - names:
+          - bzlib.h
+        path-suffixes:
+          - include
+
+libraries:
+    find:
+      - names:
+          - bz2
+          - libbz2
+        path-suffixes:
+          - lib
+
+debian-names:
+  - libbz2-dev
+formula-name: libbz2
+rpm-names:
+  - libbz2-dev
+pacman-names:
+  - libbz2

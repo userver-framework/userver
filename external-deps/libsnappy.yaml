@@ -1,0 +1,26 @@
+name: libsnappy
+
+includes:
+    find:
+      - names:
+          - snappy-c.h
+          - snappy-sinksource.h
+          - snappy-stubs-public.h
+          - snappy.h
+        path-suffixes:
+          - include
+
+libraries:
+    find:
+      - names:
+          - snappy
+        path-suffixes:
+          - lib
+
+debian-names:
+  - libsnappy-dev
+formula-name: snappy
+rpm-names:
+  - libsnappy-dev
+pacman-names:
+  - snappy
