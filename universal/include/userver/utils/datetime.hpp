@@ -5,6 +5,7 @@
 /// @ingroup userver_universal
 
 #include <chrono>
+#include <cstdint>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -28,7 +29,7 @@ inline const std::string kDefaultFormat = "%Y-%m-%dT%H:%M:%E*S%z";
 /// @snippet utils/datetime/from_string_saturating_test.cpp  kIsoFormat
 inline const std::string kIsoFormat = "%Y-%m-%dT%H:%M:%SZ";
 
-using timepair_t = std::pair<uint8_t, uint8_t>;
+using timepair_t = std::pair<std::uint8_t, std::uint8_t>;
 
 /// Date/time parsing error
 class DateParseError : public std::runtime_error {
@@ -194,11 +195,12 @@ std::string TimestampToString(std::time_t timestamp);
 /// @return number of 100nanosec intervals between current date and 01/01/0001
 /// Example:
 /// @snippet utils/datetime/datetime_test.cpp  TimePointToTicks example
-int64_t TimePointToTicks(
+std::int64_t TimePointToTicks(
     const std::chrono::system_clock::time_point& tp) noexcept;
 
 /// @brief Convert DotNet ticks to a time point
-std::chrono::system_clock::time_point TicksToTimePoint(int64_t ticks) noexcept;
+std::chrono::system_clock::time_point TicksToTimePoint(
+    std::int64_t ticks) noexcept;
 
 /// @brief Compute (a - b) with a specified duration
 template <class Duration, class Clock>
