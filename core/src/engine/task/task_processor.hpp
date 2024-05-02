@@ -90,12 +90,12 @@ class TaskProcessor final {
 
   void HandleOverload(impl::TaskContext& context);
 
-  impl::TaskCounter task_counter_;
   concurrent::impl::InterferenceShield<impl::DetachedTasksSyncBlock>
       detached_contexts_{impl::DetachedTasksSyncBlock::StopMode::kCancel};
   concurrent::impl::InterferenceShield<std::atomic<bool>>
       task_queue_wait_time_overloaded_{false};
   TaskQueue task_queue_;
+  impl::TaskCounter task_counter_;
 
   const TaskProcessorConfig config_;
   const std::shared_ptr<impl::TaskProcessorPools> pools_;

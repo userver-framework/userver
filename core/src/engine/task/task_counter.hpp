@@ -1,12 +1,11 @@
 #pragma once
 
 #include <array>
-#include <atomic>
-#include <chrono>
 #include <cstddef>
-#include <cstdint>
 
 #include <concurrent/impl/interference_shield.hpp>
+#include <userver/concurrent/impl/striped_read_indicator.hpp>
+#include <userver/concurrent/striped_counter.hpp>
 #include <userver/utils/fixed_array.hpp>
 #include <userver/utils/statistics/rate_counter.hpp>
 
@@ -74,9 +73,6 @@ class TaskCounter final {
  private:
   // Counters that may be mutated from outside the bound TaskProcessor.
   enum class GlobalCounterId : std::size_t {
-    kCreated,
-    kDestroyed,
-
     kCancelOverload,
     kOverload,
 
@@ -104,16 +100,11 @@ class TaskCounter final {
 
   using Counter = utils::statistics::RateCounter;
 
-  struct LocalCounters final {
-    std::array<Counter, kLocalCountersSize> purely_local_counters;
-    std::array<Counter, kGlobalCountersSize> localized_global_counters;
-  };
-
-  using LocalCounterPack = concurrent::impl::InterferenceShield<LocalCounters>;
+  using LocalCounterPack = concurrent::impl::InterferenceShield<
+      std::array<Counter, kLocalCountersSize>>;
 
   using GlobalCounterPack =
-      std::array<concurrent::impl::InterferenceShield<Counter>,
-                 kGlobalCountersSize>;
+      std::array<concurrent::StripedCounter, kGlobalCountersSize>;
 
   Rate GetApproximate(LocalCounterId) const noexcept;
 
@@ -125,6 +116,7 @@ class TaskCounter final {
 
   GlobalCounterPack global_counters_;
   utils::FixedArray<LocalCounterPack> local_counters_;
+  concurrent::impl::StripedReadIndicator tasks_alive_;
 };
 
 class TaskCounter::Token final {
@@ -132,13 +124,12 @@ class TaskCounter::Token final {
   explicit Token(TaskCounter& counter) noexcept;
 
   Token(const Token&) = delete;
-  Token(Token&&) = delete;
   Token& operator=(const Token&) = delete;
-  Token& operator=(Token&&) = delete;
-  ~Token();
+  Token(Token&&) noexcept = default;
+  Token& operator=(Token&&) noexcept = default;
 
  private:
-  TaskCounter& counter_;
+  concurrent::impl::StripedReadIndicatorLock lock_;
 };
 
 class TaskCounter::CoroToken final {
