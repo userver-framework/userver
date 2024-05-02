@@ -2,8 +2,6 @@
 
 #include <queue>
 
-#include <userver/kafka/stats.hpp>
-
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/utils/statistics/entry.hpp>
 #include <userver/utils/statistics/storage.hpp>
@@ -19,6 +17,12 @@ class Consumer;
 }  // namespace cppkafka
 
 namespace kafka {
+
+namespace impl {
+
+struct Stats;
+
+}  // namespace impl
 
 struct MessagePolled {
   std::string key;
@@ -97,21 +101,23 @@ class Consumer final {
 
   std::vector<MessagePolled> GetPolledMessages();
   void Init();
-  void GetAssigment();
+  void GetAssignment();
 
  private:
   std::atomic_flag started_processing_{false};
 
-  /// @note `stats_` must be initialized before `consumer_`
-  Stats stats_;
-
   const std::string& component_name_;
   const std::vector<std::string> topics_;
   const std::size_t max_batch_size_;
-  std::unique_ptr<cppkafka::Consumer> consumer_;
-  engine::Task poll_task_;
+
   engine::TaskProcessor& consumer_task_processor_;
   engine::TaskProcessor& main_task_processor_;
+
+  /// @note `stats_` must be initialized before `consumer_`
+  std::unique_ptr<impl::Stats> stats_;
+  std::unique_ptr<cppkafka::Configuration> config_;
+  std::unique_ptr<cppkafka::Consumer> consumer_;
+  engine::Task poll_task_;
 
   /// for testsuite
   std::queue<MessagePolled> tests_messages_;

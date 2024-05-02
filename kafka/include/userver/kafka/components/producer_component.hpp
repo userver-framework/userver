@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string_view>
+
 #include <userver/components/loggable_component_base.hpp>
 
 #include <userver/kafka/producer.hpp>
@@ -10,7 +12,7 @@ namespace kafka {
 
 class ProducerComponent final : public components::LoggableComponentBase {
  public:
-  static constexpr auto kName = "kafka-producer";
+  static constexpr std::string_view kName = "kafka-producer";
 
   ProducerComponent(const components::ComponentConfig& config,
                     const components::ComponentContext& context);

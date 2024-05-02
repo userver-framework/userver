@@ -4,9 +4,8 @@
 
 #include <userver/components/component_config.hpp>
 #include <userver/formats/json/value.hpp>
-#include <userver/utils/statistics/relaxed_counter.hpp>
 
-#include <userver/kafka/stats.hpp>
+#include <kafka/impl/stats.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -37,12 +36,9 @@ class BrokerSecrets {
 };
 
 std::unique_ptr<cppkafka::Configuration> SetErrorCallback(
-    std::unique_ptr<cppkafka::Configuration> config, Stats& stats);
+    std::unique_ptr<cppkafka::Configuration> config, impl::Stats& stats);
 
 std::unique_ptr<cppkafka::Configuration> MakeConsumerConfiguration(
-    const BrokerSecrets& secrets, const components::ComponentConfig& config);
-
-std::unique_ptr<cppkafka::Configuration> MakeProducerConfiguration(
     const BrokerSecrets& secrets, const components::ComponentConfig& config);
 
 }  // namespace kafka

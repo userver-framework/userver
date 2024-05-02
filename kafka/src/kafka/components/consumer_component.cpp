@@ -41,33 +41,71 @@ type: object
 description: Kafka consumer component
 additionalProperties: false
 properties:
-    security_protocol:
-        type: string
-        description: TODO
     env_pod_name:
         type: string
         description: TODO
     group_id:
         type: string
-        description: TODO
+        description: consumer group id
     enable_auto_commit:
         type: boolean
         description: TODO
+        description: |
+            whether to automatically and periodically commit
+            offsets in the background
     auto_offset_reset:
         type: string
-        description: TODO
+        description: |
+            action to take when there is no
+            initial offset in offset store
+            or the desired offset is out of range:
+            `smallest`, `earliest`, `beginning` - automatically reset
+            the offset to the smallest offset
+            `largest`, `latest`, `end` - automatically reset
+            the offset to the largest offset,
+            `error` - trigger an error (ERR__AUTO_OFFSET_RESET)
+        enum:
+          - smallest
+          - earliest
+          - beginning
+          - largest
+          - latest
+          - end
+          - error
     max_batch_size:
         type: integer
-        description: TODO
+        description: maximum batch size for one callback call
+    security_protocol:
+        type: string
+        description: protocol used to communicate with brokers
+        enum:
+          - PLAINTEXT
+          - SASL_SSL
+    sasl_mechanisms:
+        type: string
+        description: |
+            SASL mechanism to use for authentication.
+            Must be set if `security_protocol` equals `SASL_SSL`
+        defaultDescription: none
+        enum:
+          - PLAIN
+          - SCRAM-SHA-512
+    ssl_ca_location:
+        type: string
+        description: |
+            File or directory path to CA certificate(s) for verifying the broker's key.
+            Must be set if `security_protocol` equals `SASL_SSL`.
+            If set to `probe`, CA certificates are probed from the default certificates paths
+        defaultDescription: none
     topics:
         type: array
-        description: TODO
+        description: list of topics consumer will subscribe
         items:
             type: string
-            description: TODO
+            description: topic name
     is_testsuite_mode:
         type: boolean
-        description: TODO
+        description: whether to use Kafka Server mocks instead of real Kafka Broker
 )");
 };
 

@@ -20,16 +20,12 @@ TestsMessagesComponent::TestsMessagesComponent(
 void TestsMessagesComponent::FindConsumerComponents(
     const components::ComponentConfig& config,
     const components::ComponentContext& context) {
-  auto consumer_names = config["consumers_list"].As<std::vector<std::string>>();
+  const auto consumer_names =
+      config["consumers_list"].As<std::vector<std::string>>();
   for (const auto& name : consumer_names) {
     consumers_.emplace(
         name, context.FindComponent<ConsumerComponent>(name).GetConsumer());
   }
-}
-
-const std::string& TestsMessagesComponent::HandlerName() const {
-  static const std::string kHandlerName = kName;
-  return kHandlerName;
 }
 
 formats::json::Value TestsMessagesComponent::HandleRequestJsonThrow(

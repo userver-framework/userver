@@ -1,16 +1,14 @@
 #include <kafka/configuration.hpp>
 
-#include <map>
-
 #include <cppkafka/configuration.h>
 #include <cppkafka/logging.h>
 #include <fmt/format.h>
 
 #include <userver/engine/subprocess/environment_variables.hpp>
+#include <userver/formats/parse/common_containers.hpp>
 #include <userver/logging/log.hpp>
 
-#include <kafka/impl/async_state.hpp>
-#include <userver/kafka/stats.hpp>
+#include <kafka/impl/log_level.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -26,41 +24,22 @@ constexpr std::string_view kGroupIdField = "group_id";
 constexpr std::string_view kAutoCommitField = "enable_auto_commit";
 constexpr std::string_view kAutoOffsetResetField = "auto_offset_reset";
 
-constexpr std::string_view kDeliveryTimeoutField = "delivery_timeout_ms";
-constexpr std::string_view kQueueBufferingMaxMs = "queue_buffering_max_ms";
-constexpr std::string_view kEnableIdempotence = "enable_idempotence";
-
 constexpr std::string_view kPodNameSubstr = "{pod_name}";
 constexpr std::string_view kEnvPodName = "env_pod_name";
 
 logging::Level CppkafkalogLevelToLoggingLevel(
     const cppkafka::LogLevel& syslog_level) noexcept {
-  switch (syslog_level) {
-    case cppkafka::LogLevel::LogEmerg:
-    case cppkafka::LogLevel::LogAlert:
-    case cppkafka::LogLevel::LogCrit:
-      return logging::Level::kCritical;
-    case cppkafka::LogLevel::LogErr:
-      return logging::Level::kError;
-    case cppkafka::LogLevel::LogWarning:
-      return logging::Level::kWarning;
-    case cppkafka::LogLevel::LogNotice:
-    case cppkafka::LogLevel::LogInfo:
-      return logging::Level::kInfo;
-    case cppkafka::LogLevel::LogDebug:
-      return logging::Level::kDebug;
-    default:
-      return logging::Level::kInfo;
-  }
+  return impl::convertRdKafkaLogLevelToLoggingLevel(
+      static_cast<int>(syslog_level));
 }
 
 void CheckComponentNameStart(const std::string& component_name,
                              const std::string& start) {
   // producer's component should start with kafka-producer, consumer's - with
   // kafka-consumer
-  if (component_name.rfind(start, 0) != 0) {
-    throw std::runtime_error(
-        fmt::format("{} doesn't start with {}", component_name, start));
+  if (component_name.rfind(start) != 0) {
+    throw std::runtime_error{
+        fmt::format("{} doesn't start with {}", component_name, start)};
   }
 }
 
@@ -71,8 +50,9 @@ std::optional<std::string> GetPodName(
         fmt::format("Found '{}' in group id but not found '{}' in config",
                     kPodNameSubstr, kEnvPodName));
   }
-  auto env_pod_name = config[kEnvPodName].As<std::string>();
-  auto env_variables = engine::subprocess::GetCurrentEnvironmentVariablesPtr();
+  const auto env_pod_name = config[kEnvPodName].As<std::string>();
+  const auto env_variables =
+      engine::subprocess::GetCurrentEnvironmentVariablesPtr();
   if (auto pod_name = env_variables->GetValueOptional(env_pod_name)) {
     return *pod_name;
   }
@@ -144,7 +124,7 @@ std::unique_ptr<cppkafka::Configuration> MakeConfiguration(
 }
 
 std::unique_ptr<cppkafka::Configuration> SetErrorCallback(
-    std::unique_ptr<cppkafka::Configuration> config, Stats& stats) {
+    std::unique_ptr<cppkafka::Configuration> config, impl::Stats& stats) {
   config->set_error_callback([&stats](cppkafka::KafkaHandleBase&,
                                       int error_code,
                                       const std::string& reason) {
@@ -175,26 +155,27 @@ std::unique_ptr<cppkafka::Configuration> MakeConsumerConfiguration(
                        config[kAutoCommitField].As<bool>());
   cppkafka_config->set("auto.offset.reset",
                        config[kAutoOffsetResetField].As<std::string>());
+  cppkafka_config->set("topic.metadata.refresh.interval.ms", "1000");
+  cppkafka_config->set_offset_commit_callback(
+      [](cppkafka::Consumer&, cppkafka::Error error,
+         const cppkafka::TopicPartitionList& topic_partitions) {
+        if (error) {
+          LOG_WARNING() << fmt::format(
+              "Error occured when committing offsets: {}", error.to_string());
+        } else {
+          for (const auto& topic_partition : topic_partitions) {
+            if (topic_partition.get_offset() ==
+                topic_partition.OFFSET_INVALID) {
+              continue;
+            }
 
-  return cppkafka_config;
-}
-
-std::unique_ptr<cppkafka::Configuration> MakeProducerConfiguration(
-    const BrokerSecrets& secrets, const components::ComponentConfig& config) {
-  CheckComponentNameStart(config.Name(), "kafka-producer");
-  auto cppkafka_config = MakeConfiguration(secrets, config);
-  cppkafka_config->set_delivery_report_callback(
-      [](cppkafka::Producer&, const cppkafka::Message& message) {
-        auto* state = static_cast<impl::AsyncState*>(message.get_user_data());
-        state->promise.set_value(message.get_error());
-        delete state;
+            LOG_INFO() << fmt::format(
+                "Offset {} committed for topic '{}' in partition {}",
+                topic_partition.get_offset(), topic_partition.get_topic(),
+                topic_partition.get_partition());
+          }
+        }
       });
-  cppkafka_config->set("delivery.timeout.ms",
-                       config[kDeliveryTimeoutField].As<std::string>());
-  cppkafka_config->set("queue.buffering.max.ms",
-                       config[kQueueBufferingMaxMs].As<std::string>());
-  cppkafka_config->set("enable.idempotence",
-                       config[kEnableIdempotence].As<bool>(false));
 
   return cppkafka_config;
 }
