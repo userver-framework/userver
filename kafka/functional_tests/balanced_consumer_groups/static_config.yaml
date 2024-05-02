@@ -1,57 +1,34 @@
 components_manager:
     task_processors:
         main-task-processor:
-            worker_threads: 4
+            worker_threads: 8
         fs-task-processor:
             worker_threads: 4
         consumer-task-processor:
             thread_name: consumer
             worker_threads: 4
-        producer-task-processor:
-            thread_name: producer
-            worker_threads: 4
     default_task_processor: main-task-processor
 
     components:
-        handler-kafka-producers:
-            path: /produce
+        handler-kafka-consumer-groups:
+            path: /consume/{consumer_name}
             task_processor: main-task-processor
-            method: POST
-            producers_list:
-              - "kafka-producer-first"
-              - "kafka-producer-second"
+            method: PATCH,POST,PUT,DELETE
+            consumers_list:
+              - "kafka-consumer-first"
+              - "kafka-consumer-second"
 
-        handler-kafka-consumer:
-            path: /consume/{topic_name}
-            task_processor: main-task-processor
-            method: POST
-
-        kafka-consumer:
+        kafka-consumer-first: &kafka_consumer
             is_testsuite_mode: false
-            env_pod_name: "HOSTNAME"
             enable_auto_commit: false
             group_id: "test-group"
             auto_offset_reset: "smallest"
             security_protocol: "PLAINTEXT"
             topics:
-              - "test-topic-send"
-              - "test-topic-consume-1"
-              - "test-topic-consume-2"
-              - "test-topic-consume-produced-1"
-              - "test-topic-consume-produced-2"
-            max_batch_size: 10
-        kafka-producer-first:
-            is_testsuite_mode: false
-            delivery_timeout_ms: 10000
-            queue_buffering_max_ms: 100
-            enable_idempotence: true
-            security_protocol: "PLAINTEXT"
-        kafka-producer-second:
-            is_testsuite_mode: false
-            delivery_timeout_ms: 10000
-            queue_buffering_max_ms: 100
-            enable_idempotence: true
-            security_protocol: "PLAINTEXT"
+              - "test-topic"
+            max_batch_size: 1
+
+        kafka-consumer-second: *kafka_consumer
 
         testsuite-support:
 

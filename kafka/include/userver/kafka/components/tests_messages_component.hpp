@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string_view>
 #include <unordered_map>
 
 #include <userver/server/handlers/http_handler_json_base.hpp>
@@ -13,12 +14,10 @@ namespace kafka {
 class TestsMessagesComponent final
     : public server::handlers::HttpHandlerJsonBase {
  public:
-  static constexpr auto kName = "tests-kafka-messages";
+  static constexpr std::string_view kName = "tests-kafka-messages";
 
   void FindConsumerComponents(const components::ComponentConfig& config,
                               const components::ComponentContext& context);
-
-  const std::string& HandlerName() const override;
 
   formats::json::Value HandleRequestJsonThrow(
       const server::http::HttpRequest& request,

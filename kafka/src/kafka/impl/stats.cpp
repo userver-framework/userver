@@ -1,10 +1,10 @@
-#include <userver/utils/statistics/metadata.hpp>
+#include <kafka/impl/stats.hpp>
 
-#include <kafka/impl/common.hpp>
+#include <userver/utils/statistics/metadata.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace kafka {
+namespace kafka::impl {
 
 formats::json::Value ExtendStatistics(const Stats& stats) {
   formats::json::ValueBuilder stats_builder(formats::json::Type::kObject);
@@ -13,6 +13,8 @@ formats::json::Value ExtendStatistics(const Stats& stats) {
         topic_stats->avg_ms_spent_time.GetStatsForPeriod().GetCurrent().average;
     stats_builder[topic]["messages_total"] =
         topic_stats->messages_counts.messages_total.Load();
+    stats_builder[topic]["messages_success"] =
+        topic_stats->messages_counts.messages_success.Load();
     stats_builder[topic]["messages_error"] =
         topic_stats->messages_counts.messages_error.Load();
     utils::statistics::SolomonLabelValue(stats_builder[topic], "topic");
@@ -22,6 +24,6 @@ formats::json::Value ExtendStatistics(const Stats& stats) {
   return stats_builder.ExtractValue();
 }
 
-}  // namespace kafka
+}  // namespace kafka::impl
 
 USERVER_NAMESPACE_END
