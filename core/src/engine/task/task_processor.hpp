@@ -93,12 +93,12 @@ class TaskProcessor final {
 
   void UpdateTaskQueueSize();
 
-  impl::TaskCounter task_counter_;
   concurrent::impl::InterferenceShield<impl::DetachedTasksSyncBlock>
       detached_contexts_{impl::DetachedTasksSyncBlock::StopMode::kCancel};
   concurrent::impl::InterferenceShield<std::atomic<bool>>
       task_queue_wait_time_overloaded_{false};
   std::variant<TaskQueue, WorkStealingTaskQueue> task_queue_;
+  impl::TaskCounter task_counter_;
 
   const TaskProcessorConfig config_;
   const std::shared_ptr<impl::TaskProcessorPools> pools_;

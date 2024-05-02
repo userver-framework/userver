@@ -80,8 +80,8 @@ auto MakeTaskQueue(TaskProcessorConfig config) {
 
 TaskProcessor::TaskProcessor(TaskProcessorConfig config,
                              std::shared_ptr<impl::TaskProcessorPools> pools)
-    : task_counter_(config.worker_threads),
-      task_queue_(MakeTaskQueue(config)),
+    : task_queue_(MakeTaskQueue(config)),
+      task_counter_(config.worker_threads),
       config_(std::move(config)),
       pools_(std::move(pools)) {
   utils::impl::FinishStaticRegistration();
