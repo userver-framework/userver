@@ -34,7 +34,7 @@ std::uintptr_t StripedReadIndicator::GetReleaseCountApprox() const noexcept {
 
 std::uintptr_t StripedReadIndicator::GetActiveCountApprox() const noexcept {
   // It's important that for every lock operation, if released_count_.Add(1)
-  // is seen by an IsFree() call, then the preceeding acquired_count_.Add(1)
+  // is seen by an IsFree() call, then the preceding acquired_count_.Add(1)
   // is also seen by it. Otherwise IsFree() could falsely report 'true'.
   //
   // Proof that it holds. According to the C++ standard, [atomics.fences],
@@ -45,7 +45,7 @@ std::uintptr_t StripedReadIndicator::GetActiveCountApprox() const noexcept {
   // 3. (X) modifies (M)
   // 4. (B) reads the value written by (X)
   // Thus if (B) observes (X), then it observes all stores sequenced
-  // before (A), including the preceeding acquired_count_.Add(1).
+  // before (A), including the preceding acquired_count_.Add(1).
   //
   // The same proof holds for when a lock is copied, then the old lock is
   // destroyed.

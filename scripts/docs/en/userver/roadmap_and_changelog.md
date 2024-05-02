@@ -25,14 +25,79 @@ Changelog news also go to the
 * ✓ Implement middlewares for HTTP server.
 * ✓ Move most of the HTTP server functionality to middlewares.
 * ✓ Document middlewares/plugins for HTTP client.
-* Codegen parsers and serializers by JSON schema
-* Add YDB driver.
+* 👨‍💻 Codegen parsers and serializers by JSON schema
+* 👨‍💻 Add YDB driver.
+* 👨‍💻 Add basic Kafka driver.
 * Add retry budget or retry circuit breaker for clients.
 * Add web interface to the [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf)
-* Add basic Kafka driver.
 
 
 ## Changelog
+
+### April 2024
+
+* Initial CPack support. Now `userver-all.deb` packages could be build via:
+  ```
+  git clone --depth 1 https://github.com/userver-framework/userver.git
+  docker run --rm -it --network ip6net -v $(pwd):/home/user -w /home/user/userver \
+     --entrypoint bash ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest ./scripts/docker/run_as_user.sh \
+     ./scripts/build_and_install_all.sh
+  ```
+  We'll start publishing the packages soon.
+
+* New Docker images based on Ubuntu-22.04 with weekly builds and publishing:
+  * ghcr.io/userver-framework/ubuntu-22.04-userver-pg:latest - image with
+    preinstalled userver deb package and PostgreSQL database. All the
+    service templates now use it for tests
+  * ghcr.io/userver-framework/ubuntu-22.04-userver:latest - image with
+    preinstalled userver deb package. Good starting container for
+    developing servers that do not use POstgreSQL.
+  * ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest - an image
+    with only the build dependencies to build userver. Good for development of
+    userver itself.
+  More info at @ref scripts/docs/en/userver/tutorial/build.md
+
+* All the service templates were moved to a new components naming with `::`
+  (for example `userver::core`) and
+  now attempt to find an installed userver. Now in CMake component names with
+  `::` work regardless of the framework installation (CPM, `add_subdirectory`,
+  or `find_package`).
+
+* Added userver/utils/hedged_request.hpp with a bunch of helper classes to
+  perform hedged requests.
+* Improved testsuite logging for
+  @ref scripts/docs/en/userver/functional_testing.md "functional tests".
+* Consumers of concurrent queues now have a Reset() method. Thanks to
+  [akhoroshev](https://github.com/akhoroshev) for the PR!
+* Fixed gRPC builds and runs with ASAN. Thanks to
+  [Nikita](https://github.com/root-kidik) for the PR! 
+* Published early work on Kafka driver. API is not stable, build scripts,
+  improvements and samples to come. Thanks to [Fedor](https://github.com/fdr896)
+  for the work!
+* Published early work on RocksDB driver. API is not stable, build scripts,
+  improvements and samples to come. Thanks to
+  [Kirill](https://github.com/Shuba-Buba) for the work!
+
+* Optimizations:
+  * WriteAll for TLS became up to 7 times faster if multiple small chunks of
+    data are written. Thanks to [Илья Оплачкин](https://github.com/IoplachkinI)
+    and [VScdr](https://github.com/VS-CDR) for the PR! 
+  * Binary sizes were reduced if building without LTO. All the binaries linked
+    with userver became about 1MB smaller.
+  * Implemented asymmetric thread fences. This opens the door for optimizations
+    of rcu::Variable and internals of the scheduler.
+  * Caches in testsuite are now invalidated concurrently, leading to tens of
+    seconds speedup for services with multiple caches and tests.
+  * concurrent::StripedCounter became 8 times more memory efficient.
+
+* Build and docs:
+  * Updated PostgreSQL CMake scripts for Manjaro. Thanks to
+    [Ivan Gabrusevich](https://github.com/sddwbbs) for the PR!
+  * Disabled LTO for Conan builds. Thanks to
+    [Pavel Talashchenko](https://github.com/pavelbezpravel) for the PR!
+  * Fixed typo in 'Manjaro'. Thank to
+    [Igor Martynov](https://github.com/snailbaron) for the PR!
+
 
 ### March 2024
 
