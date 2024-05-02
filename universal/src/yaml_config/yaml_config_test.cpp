@@ -5,6 +5,8 @@
 #include <formats/common/value_test.hpp>
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/formats/yaml/value_builder.hpp>
+#include <userver/fs/blocking/temp_directory.hpp>
+#include <userver/fs/blocking/write.hpp>
 #include <userver/utest/assert_macros.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -119,6 +121,35 @@ some_element:
   yaml_config::YamlConfig yaml(std::move(node), {},
                                yaml_config::YamlConfig::Mode::kEnvAllowed);
   EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 5);
+}
+
+TEST(YamlConfig, FileOption) {
+  const auto dir = fs::blocking::TempDirectory::Create();
+  const auto path = dir.GetPath() + "/foo";
+  fs::blocking::RewriteFileContents(path, R"(
+# yaml
+file_element: file_value
+  )");
+  auto node = formats::yaml::FromString(fmt::format(R"(
+# yaml
+some_element:
+  some#file: {}
+  )", path));
+
+  yaml_config::YamlConfig yaml(std::move(node), {});
+  EXPECT_EQ(yaml["some_element"]["some"]["file_element"].As<std::string>(),
+            "file_value");
+}
+
+TEST(YamlConfig, FileOptionFileNotExist) {
+  auto node = formats::yaml::FromString(R"(
+# yaml
+some_element:
+  some#file: foo
+  )");
+
+  yaml_config::YamlConfig yaml(std::move(node), {});
+  UEXPECT_THROW(yaml["some_element"]["some"], yaml_config::ParseException);
 }
 
 TEST(YamlConfig, Basic) {

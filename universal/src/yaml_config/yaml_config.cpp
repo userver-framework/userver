@@ -34,6 +34,10 @@ std::string GetEnvName(std::string_view str) {
   return std::string{str} + "#env";
 }
 
+std::string GetFileName(std::string_view str) {
+  return std::string{str} + "#file";
+}
+
 template <typename Field>
 YamlConfig MakeMissingConfig(const YamlConfig& config, Field field) {
   const auto path = formats::common::MakeChildPath(config.GetPath(), field);
@@ -72,6 +76,16 @@ std::optional<formats::yaml::Value> GetFromEnvByKey(
   return {};
 }
 
+std::optional<formats::yaml::Value> GetFromFileByKey(
+  std::string_view key, const formats::yaml::Value& yaml) {
+  const auto file_name = yaml[GetFileName(key)];
+  if (!file_name.IsMissing()) {
+    return formats::yaml::blocking::FromFile(file_name.As<std::string>());
+  }
+
+  return {};
+}
+
 }  // namespace
 
 YamlConfig::YamlConfig(formats::yaml::Value yaml,
@@ -91,6 +105,17 @@ YamlConfig YamlConfig::operator[](std::string_view key) const {
     }
 
     // Avoid parsing #env as a string
+    return MakeMissingConfig(*this, key);
+  }
+
+  if (boost::algorithm::ends_with(key, "#file")) {
+    auto file_value = GetFromFileByKey(key, yaml_);
+    if (file_value) {
+      // Strip substitutions off to disallow nested substitutions
+      return YamlConfig{std::move(*file_value), {}, mode_};
+    }
+
+    // Avoid parsing #file as a string
     return MakeMissingConfig(*this, key);
   }
 
@@ -127,6 +152,12 @@ YamlConfig YamlConfig::operator[](std::string_view key) const {
     if (env_value) {
       // Strip substitutions off to disallow nested substitutions
       return YamlConfig{std::move(*env_value), {}, Mode::kSecure};
+    }
+
+    auto file_value = GetFromFileByKey(key, yaml_);
+    if (file_value) {
+      // Strip substitutions off to disallow nested substitutions
+      return YamlConfig{std::move(*file_value), {}};
     }
   }
 
