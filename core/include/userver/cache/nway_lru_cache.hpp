@@ -4,6 +4,8 @@
 #include <optional>
 #include <vector>
 
+#include <boost/container_hash/hash.hpp>
+
 #include <userver/cache/lru_map.hpp>
 #include <userver/dump/dumper.hpp>
 #include <userver/dump/operations.hpp>
