@@ -120,6 +120,9 @@ class CacheUpdateTrait {
   ///
   /// @throws std::exception on update failure
   ///
+  /// @warning If `Update` returns without throwing an exception and without
+  /// calling one of the `Finish*` methods, the behavior is undefined.
+  ///
   /// @see @ref scripts/docs/en/userver/caches.md
   virtual void Update(UpdateType type,
                       const std::chrono::system_clock::time_point& last_update,

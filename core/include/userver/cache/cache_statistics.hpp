@@ -47,10 +47,13 @@ enum class UpdateState { kNotFinished, kSuccess, kFailure };
 
 }  // namespace impl
 
-/// @brief Allows a specific cache to fill cache statistics during an `Update`
+/// @brief Allows a specific cache to fill cache statistics during an `Update`.
 ///
-/// Unless Finish or FinishNoChanges is called, the update is considered to be a
-/// failure.
+/// If `Update` returns without throwing an exception and without calling one
+/// of the `Finish*` methods, the behavior is undefined.
+///
+/// See components::CachingComponentBase::Set() for information on actual cache
+/// update, rather than statistics update.
 class UpdateStatisticsScope final {
  public:
   /// @cond
