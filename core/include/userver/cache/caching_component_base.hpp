@@ -152,12 +152,21 @@ class CachingComponentBase : public LoggableComponentBase,
   static yaml_config::Schema GetStaticConfigSchema();
 
  protected:
+  /// Sets the new value of cache. As a result the Get() member function starts
+  /// returning the value passed into this function after the Update() finishes.
+  ///
+  /// @warning Do not forget to update cache::UpdateStatisticsScope, otherwise
+  /// the behavior is undefined.
   void Set(std::unique_ptr<const T> value_ptr);
+
+  /// @overload
   void Set(T&& value);
 
+  /// @overload Set()
   template <typename... Args>
   void Emplace(Args&&... args);
 
+  /// Clears the content of the cache by string a default constructed T.
   void Clear();
 
   /// Whether Get() is expected to return nullptr.
