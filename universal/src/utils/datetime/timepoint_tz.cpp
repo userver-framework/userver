@@ -64,6 +64,15 @@ bool operator>=(const TimePointTzBase::TimePoint& lhs,
   return lhs >= rhs.GetTimePoint();
 }
 
+logging::LogHelper& operator<<(logging::LogHelper& os, const TimePointTz& v) {
+  return os << v.GetTimePoint();
+}
+
+logging::LogHelper& operator<<(logging::LogHelper& os,
+                               const TimePointTzIsoBasic& v) {
+  return os << v.GetTimePoint();
+}
+
 }  // namespace utils::datetime
 
 USERVER_NAMESPACE_END

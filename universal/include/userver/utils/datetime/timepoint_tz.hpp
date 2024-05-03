@@ -6,6 +6,8 @@
 
 #include <chrono>
 
+#include <userver/logging/log_helper.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::datetime {
@@ -66,10 +68,15 @@ class TimePointTz final : public TimePointTzBase {
   using TimePointTzBase::TimePointTzBase;
 };
 
+logging::LogHelper& operator<<(logging::LogHelper& os, const TimePointTz& v);
+
 /// Timepoint with timezone parsed in kDefaultFormat
 class TimePointTzIsoBasic final : public TimePointTzBase {
   using TimePointTzBase::TimePointTzBase;
 };
+
+logging::LogHelper& operator<<(logging::LogHelper& os,
+                               const TimePointTzIsoBasic& v);
 
 }  // namespace utils::datetime
 
