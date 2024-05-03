@@ -28,7 +28,7 @@
               documentation
             </a>
             <a
-              class="button button_outline"
+              class="button button_outline generic_tg_link"
               title="Go to the userver Telegram"
               href="https://t.me/userver_en"
             >
