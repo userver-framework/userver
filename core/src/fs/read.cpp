@@ -1,5 +1,7 @@
 #include <userver/fs/read.hpp>
 
+#include <boost/filesystem.hpp>
+
 #include <userver/engine/async.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/utils/async.hpp>

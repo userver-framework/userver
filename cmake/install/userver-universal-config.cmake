@@ -15,7 +15,11 @@ find_package(Boost REQUIRED COMPONENTS
 )
 find_package(Iconv REQUIRED)
 find_package(OpenSSL REQUIRED)
+
 find_package(fmt "8.1.1" REQUIRED)
+if(NOT TARGET fmt)
+  add_library(fmt ALIAS fmt::fmt)
+endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/..")
 find_package(cctz REQUIRED)

@@ -387,6 +387,7 @@ if (USERVER_INSTALL)
       "${CMAKE_BINARY_DIR}/cmake_generated/Findcctz.cmake"
       "${CMAKE_BINARY_DIR}/cmake_generated/FindJemalloc.cmake"
       "${USERVER_ROOT_DIR}/cmake/sanitize.blacklist.txt"
+      "${USERVER_ROOT_DIR}/cmake/sanitize-macos.blacklist.txt"
       "${USERVER_ROOT_DIR}/cmake/RequireLTO.cmake"
       "${USERVER_ROOT_DIR}/cmake/SetupLTO.cmake"
       "${USERVER_ROOT_DIR}/cmake/SetupLinker.cmake"

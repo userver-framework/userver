@@ -77,7 +77,7 @@ struct MockedResolver {
           throw std::exception{};
         }},
         resolver{
-            engine::current_task::GetTaskProcessor(), [=] {
+            engine::current_task::GetTaskProcessor(), [&] {
               clients::dns::ResolverConfig config;
               config.file_path = hosts_file.GetPath();
               config.file_update_interval = utest::kMaxTestWaitTime;
