@@ -4,8 +4,13 @@
 #include <string>
 #include <string_view>
 
+#ifdef USERVER_FEATURE_WOLFSSL
+#include <wolfssl/openssl/bio.h>
+#include <wolfssl/openssl/evp.h>
+#else
 #include <openssl/bio.h>
 #include <openssl/evp.h>
+#endif
 
 #include <userver/crypto/basic_types.hpp>
 #include <userver/crypto/hash.hpp>

@@ -53,7 +53,11 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 find_package(Iconv REQUIRED)
-find_package_required(OpenSSL "libssl-dev")
+if (USERVER_FEATURE_WOLFSSL)
+  find_package_required(WolfSSL "wolfssl")
+else()
+  find_package_required(OpenSSL "libssl-dev")
+endif()
 
 if (USERVER_CONAN)
   find_package(cryptopp REQUIRED)
@@ -232,9 +236,20 @@ target_link_libraries(${PROJECT_NAME}
     Boost::filesystem
     Boost::program_options
     Boost::regex
-    OpenSSL::Crypto
-    OpenSSL::SSL
 )
+
+if (USERVER_FEATURE_WOLFSSL)
+  target_link_libraries(${PROJECT_NAME}
+    PRIVATE
+      wolfssl
+  )
+else()
+  target_link_libraries(${PROJECT_NAME}
+    PRIVATE
+      OpenSSL::Crypto
+      OpenSSL::SSL
+  )
+endif()
 
 if (USERVER_CONAN)
   target_link_libraries(${PROJECT_NAME}

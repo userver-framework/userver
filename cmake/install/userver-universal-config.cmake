@@ -14,7 +14,11 @@ find_package(Boost REQUIRED COMPONENTS
     stacktrace_backtrace
 )
 find_package(Iconv REQUIRED)
-find_package(OpenSSL REQUIRED)
+if(USERVER_FEATURE_WOLFSSL)
+  find_package(WolfSSL REQUIRED)
+else()
+  find_package(OpenSSL REQUIRED)
+endif()
 find_package(fmt "8.1.1" REQUIRED)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/..")

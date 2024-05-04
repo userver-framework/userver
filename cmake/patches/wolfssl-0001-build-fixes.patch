@@ -1,0 +1,189 @@
+diff --git a/src/bio.c b/src/bio.c
+index 2dab43e..d26a03b 100644
+--- a/src/bio.c
++++ b/src/bio.c
+@@ -2336,7 +2336,7 @@ int wolfSSL_BIO_flush(WOLFSSL_BIO* bio)
+ 
+         if (b->ptr != NULL) {
+             int rc = wolfSSL_shutdown((WOLFSSL*)b->ptr);
+-            if (rc == SSL_SHUTDOWN_NOT_DONE) {
++            if (rc == WOLFSSL_SHUTDOWN_NOT_DONE) {
+                 /* In this case, call again to give us a chance to read the
+                  * close notify alert from the other end. */
+                 wolfSSL_shutdown((WOLFSSL*)b->ptr);
+diff --git a/src/pk.c b/src/pk.c
+index d7d32dd..c91aaa8 100644
+--- a/src/pk.c
++++ b/src/pk.c
+@@ -25,7 +25,7 @@
+ 
+ #include <wolfssl/wolfcrypt/settings.h>
+ 
+- #include <wolfssl/internal.h>
++#include <wolfssl/internal.h>
+ #ifndef WC_NO_RNG
+     #include <wolfssl/wolfcrypt/random.h>
+ #endif
+@@ -45,10 +45,12 @@
+     #endif
+ #else
+ 
+-#ifndef NO_RSA
++#ifdef OPENSSL_EXTRA
+     #include <wolfssl/wolfcrypt/rsa.h>
+ #endif
+ 
++#ifndef NO_RSA
++
+ #if defined(OPENSSL_EXTRA) && !defined(NO_BIO) && defined(WOLFSSL_KEY_GEN) && \
+     (defined(HAVE_ECC) || (!defined(NO_DSA) && !defined(HAVE_SELFTEST)))
+ /* Forward declaration for wolfSSL_PEM_write_bio_DSA_PUBKEY.
+@@ -57,6 +59,8 @@
+ static int pem_write_bio_pubkey(WOLFSSL_BIO* bio, WOLFSSL_EVP_PKEY* key);
+ #endif
+ 
++#endif
++
+ /*******************************************************************************
+  * COMMON FUNCTIONS
+  ******************************************************************************/
+@@ -137,7 +141,9 @@ static int pem_mem_to_der(const char* pem, int pemSz, wc_pem_password_cb* cb,
+ 
+     return ret;
+ }
+-#endif
++#endif /* 
++  (!NO_FILESYSTEM && (OPENSSL_EXTRA || OPENSSL_ALL)) || (!NO_BIO && OPENSSL_EXTRA)
++*/
+ 
+ #if !defined(NO_RSA) || !defined(WOLFCRYPT_ONLY)
+ #ifndef NO_BIO
+@@ -217,7 +223,7 @@ static int pem_read_file_key(XFILE fp, wc_pem_password_cb* cb, void* pass,
+     return ret;
+ }
+ #endif /* !NO_FILESYSTEM */
+-#endif
++#endif /* !NO_RSA || !WOLFCRYPT_ONLY */
+ 
+ #if defined(OPENSSL_EXTRA) && ((!defined(NO_RSA) && defined(WOLFSSL_KEY_GEN)) \
+     || !defined(WOLFCRYPT_ONLY))
+@@ -294,7 +300,7 @@ static int der_write_to_bio_as_pem(const unsigned char* der, int derSz,
+     XFREE(pem, bio->heap, DYNAMIC_TYPE_TMP_BUFFER);
+     return ret;
+ }
+-#endif
++#endif /* !NO_BIO */
+ #endif
+ 
+ #if (!defined(NO_RSA) && defined(WOLFSSL_KEY_GEN)) || \
+diff --git a/src/ssl.c b/src/ssl.c
+index ea66e42..8bede43 100644
+--- a/src/ssl.c
++++ b/src/ssl.c
+@@ -27200,7 +27200,7 @@ int wolfSSL_CTX_use_PrivateKey(WOLFSSL_CTX *ctx, WOLFSSL_EVP_PKEY *pkey)
+         /* ptr for WOLFSSL_EVP_PKEY struct is expected to be DER format */
+         return wolfSSL_CTX_use_PrivateKey_buffer(ctx,
+                                        (const unsigned char*)pkey->pkey.ptr,
+-                                       pkey->pkey_sz, SSL_FILETYPE_ASN1);
++                                       pkey->pkey_sz, WOLFSSL_FILETYPE_ASN1);
+     }
+ 
+     WOLFSSL_MSG("wolfSSL private key not set");
+@@ -27861,7 +27861,7 @@ int wolfSSL_CTX_use_RSAPrivateKey(WOLFSSL_CTX* ctx, WOLFSSL_RSA* rsa)
+         return WOLFSSL_FAILURE;
+     }
+     ret = wolfSSL_CTX_use_PrivateKey_buffer(ctx, (const unsigned char*)maxDerBuf,
+-                                                    derSize, SSL_FILETYPE_ASN1);
++                                                    derSize, WOLFSSL_FILETYPE_ASN1);
+     if (ret != WOLFSSL_SUCCESS) {
+         WOLFSSL_MSG("wolfSSL_CTX_USE_PrivateKey_buffer() failure");
+         XFREE(maxDerBuf, NULL, DYNAMIC_TYPE_TMP_BUFFER);
+diff --git a/src/x509.c b/src/x509.c
+index eefa69c..4d5244c 100644
+--- a/src/x509.c
++++ b/src/x509.c
+@@ -37,6 +37,7 @@
+ #ifndef NO_CERTS
+ 
+ #if defined(OPENSSL_EXTRA) || defined(OPENSSL_EXTRA_X509_SMALL)
++    #include <wolfssl/openssl/rsa.h>
+     #include <wolfssl/openssl/x509v3.h>
+ #endif
+ 
+@@ -11549,7 +11550,7 @@ err:
+ #ifndef NO_FILESYSTEM
+     WOLF_STACK_OF(WOLFSSL_X509_INFO)* wolfSSL_PEM_X509_INFO_read(
+             XFILE fp, WOLF_STACK_OF(WOLFSSL_X509_INFO)* sk,
+-            pem_password_cb* cb, void* u)
++            wc_pem_password_cb* cb, void* u)
+     {
+         WOLFSSL_BIO* fileBio = wolfSSL_BIO_new_fp(fp, BIO_NOCLOSE);
+         WOLF_STACK_OF(WOLFSSL_X509_INFO)* ret = NULL;
+diff --git a/wolfcrypt/src/evp.c b/wolfcrypt/src/evp.c
+index a365ff6..44dc74c 100644
+--- a/wolfcrypt/src/evp.c
++++ b/wolfcrypt/src/evp.c
+@@ -44,6 +44,7 @@
+ 
+ #include <wolfssl/openssl/ecdsa.h>
+ #include <wolfssl/openssl/evp.h>
++#include <wolfssl/openssl/rsa.h>
+ #include <wolfssl/openssl/kdf.h>
+ #include <wolfssl/wolfcrypt/wolfmath.h>
+ 
+@@ -8791,11 +8792,11 @@ WOLFSSL_DSA* wolfSSL_EVP_PKEY_get1_DSA(WOLFSSL_EVP_PKEY* key)
+ 
+     if (key->type == EVP_PKEY_DSA) {
+         if (wolfSSL_DSA_LoadDer(local, (const unsigned char*)key->pkey.ptr,
+-                    key->pkey_sz) != SSL_SUCCESS) {
++                    key->pkey_sz) != WOLFSSL_SUCCESS) {
+             /* now try public key */
+             if (wolfSSL_DSA_LoadDer_ex(local,
+                         (const unsigned char*)key->pkey.ptr, key->pkey_sz,
+-                        WOLFSSL_DSA_LOAD_PUBLIC) != SSL_SUCCESS) {
++                        WOLFSSL_DSA_LOAD_PUBLIC) != WOLFSSL_SUCCESS) {
+                 wolfSSL_DSA_free(local);
+                 local = NULL;
+             }
+@@ -8986,7 +8987,7 @@ WOLFSSL_DH* wolfSSL_EVP_PKEY_get1_DH(WOLFSSL_EVP_PKEY* key)
+                 return NULL;
+             }
+             if (wolfSSL_DH_LoadDer(local, (const unsigned char*)key->pkey.ptr,
+-                        key->pkey_sz) != SSL_SUCCESS) {
++                        key->pkey_sz) != WOLFSSL_SUCCESS) {
+                 wolfSSL_DH_free(local);
+                 WOLFSSL_MSG("Error wolfSSL_DH_LoadDer");
+                 local = NULL;
+diff --git a/wolfssl/openssl/cms.h b/wolfssl/openssl/cms.h
+index 5355c61..9e4585b 100644
+--- a/wolfssl/openssl/cms.h
++++ b/wolfssl/openssl/cms.h
+@@ -22,5 +22,4 @@
+ #ifndef WOLFSSL_CMS_H_
+ #define WOLFSSL_CMS_H_
+ 
+-
+ #endif /* WOLFSSL_CMS_H_ */
+diff --git a/wolfssl/ssl.h b/wolfssl/ssl.h
+index 804ec44..0e28177 100644
+--- a/wolfssl/ssl.h
++++ b/wolfssl/ssl.h
+@@ -40,6 +40,9 @@
+ 
+ /* For the types */
+ #include <wolfssl/openssl/compat_types.h>
++#ifdef OPENSSL_EXTRA
++#include <wolfssl/openssl/bn.h>
++#endif
+ 
+ #ifdef HAVE_WOLF_EVENT
+     #include <wolfssl/wolfcrypt/wolfevent.h>
+@@ -4481,7 +4484,7 @@ WOLFSSL_API WOLFSSL_X509 *wolfSSL_PEM_read_bio_X509_AUX
+ #ifndef NO_FILESYSTEM
+ WOLFSSL_API WOLF_STACK_OF(WOLFSSL_X509_INFO)* wolfSSL_PEM_X509_INFO_read(
+         XFILE fp, WOLF_STACK_OF(WOLFSSL_X509_INFO)* sk,
+-        pem_password_cb* cb, void* u);
++        wc_pem_password_cb* cb, void* u);
+ #endif
+ WOLFSSL_API WOLF_STACK_OF(WOLFSSL_X509_INFO)* wolfSSL_PEM_X509_INFO_read_bio(
+         WOLFSSL_BIO* bio, WOLF_STACK_OF(WOLFSSL_X509_INFO)* sk,

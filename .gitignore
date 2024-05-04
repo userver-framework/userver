@@ -13,7 +13,6 @@
 /cmake-build-*/
 /cmake/cmake_generated/
 /docs/
-/third_party/
 CMakeLists.txt.user
 compile_commands.json
 tags

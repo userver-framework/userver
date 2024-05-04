@@ -2,6 +2,16 @@
 
 #include <cryptopp/dsa.h>
 
+#ifdef USERVER_FEATURE_WOLFSSL
+#include <wolfssl/openssl/pem.h>
+// keep these two headers in this order
+#include <wolfssl/openssl/cms.h>
+
+#include <wolfssl/openssl/crypto.h>
+#include <wolfssl/openssl/evp.h>
+#include <wolfssl/openssl/stack.h>
+#include <wolfssl/openssl/x509.h>
+#else
 #include <openssl/pem.h>
 // keep these two headers in this order
 #include <openssl/cms.h>
@@ -9,6 +19,7 @@
 #include <openssl/crypto.h>
 #include <openssl/evp.h>
 #include <openssl/x509.h>
+#endif
 
 #include <crypto/helpers.hpp>
 #include <crypto/openssl.hpp>

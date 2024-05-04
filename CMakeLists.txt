@@ -99,6 +99,7 @@ else()
   set(JEMALLOC_DEFAULT ON)
 endif()
 option(USERVER_FEATURE_JEMALLOC "Enable linkage with jemalloc memory allocator" ${JEMALLOC_DEFAULT})
+option(USERVER_FEATURE_WOLFSSL "Enable usage of WolfSSL library instead of OpenSSL" OFF)
 
 option(USERVER_DISABLE_PHDR_CACHE "Disable caching of dl_phdr_info items, which interferes with dlopen" OFF)
 
@@ -167,6 +168,13 @@ option(USERVER_FEATURE_MYSQL "Provide asynchronous driver for MariaDB/MySQL" "${
 option(USERVER_FEATURE_ROCKS "Provide asynchronous driver for Rocks" "${USERVER_LIB_ENABLED_DEFAULT}")
 
 option(USERVER_FEATURE_UBOOST_CORO "Use vendored boost context instead of a system one" ON)
+
+if (USERVER_FEATURE_WOLFSSL)
+  include(cmake/SetupWolfSSL.cmake)
+  add_compile_definitions("OPENSSL_EXTRA=1")
+  add_compile_definitions("OPENSSL_ALL=1")
+  add_compile_definitions("USERVER_FEATURE_WOLFSSL=1")
+endif()
 
 if (USERVER_FEATURE_GRPC)
   include(cmake/SetupProtobuf.cmake)

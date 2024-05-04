@@ -3,6 +3,16 @@
 #include <cstring>
 #include <numeric>
 
+#ifdef USERVER_FEATURE_WOLFSSL
+#include <wolfssl/openssl/bio.h>
+#include <wolfssl/openssl/ec.h>
+#include <wolfssl/openssl/err.h>
+#include <wolfssl/openssl/evp.h>
+#include <wolfssl/openssl/obj_mac.h>
+#include <wolfssl/openssl/pem.h>
+#include <wolfssl/openssl/ssl.h>
+#include <wolfssl/openssl/x509.h>
+#else
 #include <openssl/bio.h>
 #include <openssl/ec.h>
 #include <openssl/err.h>
@@ -10,6 +20,7 @@
 #include <openssl/obj_mac.h>
 #include <openssl/pem.h>
 #include <openssl/x509.h>
+#endif
 
 #include <fmt/compile.h>
 #include <fmt/format.h>
@@ -186,9 +197,22 @@ std::unique_ptr<::BIO, decltype(&::BIO_free_all)> MakeBioMemoryBuffer() {
   return {::BIO_new(BIO_s_mem()), &::BIO_free_all};
 }
 
+#ifndef USERVER_FEATURE_WOLFSSL
 std::unique_ptr<::BIO, decltype(&::BIO_free_all)> MakeBioSecureMemoryBuffer() {
   return {::BIO_new(BIO_s_secmem()), &::BIO_free_all};
 }
+#endif
+
+#ifdef USERVER_FEATURE_WOLFSSL
+#ifndef EVP_PKEY_CTX_set_rsa_pss_saltlen
+#warning "EVP_PKEY_CTX_set_rsa_pss_saltlen() is undefined by wolfSSL"
+#define EVP_PKEY_CTX_set_rsa_pss_saltlen(...) 0
+#endif
+#ifndef EVP_PKEY_CTX_set_rsa_mgf1_md
+#warning "EVP_PKEY_CTX_set_rsa_mgf1_md() is undefined by wolfSSL"
+#define EVP_PKEY_CTX_set_rsa_mgf1_md(ctx, sha_md) ((sha_md), 0)
+#endif
+#endif
 
 void SetupJwaRsaPssPadding(EVP_PKEY_CTX* pkey_ctx, DigestSize bits) {
   if (EVP_PKEY_CTX_set_rsa_padding(pkey_ctx, RSA_PKCS1_PSS_PADDING) <= 0) {
