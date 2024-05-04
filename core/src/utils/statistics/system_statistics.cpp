@@ -13,7 +13,7 @@
 #include <string_view>
 
 #include <fmt/format.h>
-#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/pfr/core.hpp>
 #include <boost/system/error_code.hpp>
 

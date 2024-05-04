@@ -8,7 +8,10 @@ if (NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
   endif()
 
   if (fmt_FOUND)
-      return()
+    if(NOT TARGET fmt)
+      add_library(fmt ALIAS fmt::fmt)
+    endif()
+    return()
   endif()
 endif()
 

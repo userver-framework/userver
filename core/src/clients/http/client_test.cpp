@@ -443,7 +443,7 @@ struct ResolverWrapper {
               return config;
             }(),
             engine::current_task::GetTaskProcessor().GetTaskProcessorPools()},
-        resolver{fs_task_processor, [=] {
+        resolver{fs_task_processor, [&] {
                    clients::dns::ResolverConfig config;
                    config.file_path = hosts_file.GetPath();
                    config.file_update_interval = utest::kMaxTestWaitTime;
