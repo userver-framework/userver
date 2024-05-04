@@ -1,6 +1,6 @@
 async def test_file_not_found(service_client):
     response = await service_client.get('/file.not')
-    assert response.status == 404
+    assert response.status == 401
     assert response.content == b'File not found'
 
 

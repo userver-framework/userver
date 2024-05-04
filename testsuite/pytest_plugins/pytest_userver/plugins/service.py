@@ -199,35 +199,34 @@ async def service_daemon(
 
 
 @pytest.fixture(scope='session')
-def _userver_log_handler(pytestconfig, testsuite_logger, _uservice_logfile):
-    service_logs_pretty = pytestconfig.option.service_logs_pretty
-    if not service_logs_pretty and not bool(_uservice_logfile):
-        return None
+def _userver_log_handler(pytestconfig, testsuite_logger):
+    return None
+    # service_logs_pretty = pytestconfig.option.service_logs_pretty
+    # if not service_logs_pretty and not bool(False):
+    #     return None
 
-    if service_logs_pretty:
-        logger_plugin = pytestconfig.pluginmanager.getplugin(
-            'testsuite_logger',
-        )
-        logger_plugin.enable_logs_suspension()
+    # if service_logs_pretty:
+    #     logger_plugin = pytestconfig.pluginmanager.getplugin(
+    #         'testsuite_logger',
+    #     )
+    #     logger_plugin.enable_logs_suspension()
 
-    def log_handler(line_binary):
-        if _uservice_logfile:
-            _uservice_logfile.write(line_binary)
-        try:
-            line = line_binary.decode('utf-8').rstrip('\r\n')
-            testsuite_logger.log_service_line(line)
-        # flake8: noqa
-        except:
-            traceback.print_exc(file=sys.stderr)
+    # def log_handler(line_binary):
+    #     # if _uservice_logfile:
+    #     #     _uservice_logfile.write(line_binary)
+    #     try:
+    #         line = line_binary.decode('utf-8').rstrip('\r\n')
+    #         testsuite_logger.log_service_line(line)
+    #     # flake8: noqa
+    #     except:
+    #         traceback.print_exc(file=sys.stderr)
 
-    return log_handler
+    # return log_handler
 
 
 @pytest.fixture(scope='session')
-def _uservice_logfile(pytestconfig):
+def _uservice_logfile_path(pytestconfig, service_tmpdir) -> pathlib.Path:
     path = pytestconfig.option.service_logs_file
-    if not path:
-        yield None
-    else:
-        with path.open('wb') as fp:
-            yield fp
+    if path is None:
+        path = service_tmpdir / 'service.log'
+    return path

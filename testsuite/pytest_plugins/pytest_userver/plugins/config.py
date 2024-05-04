@@ -426,7 +426,7 @@ def userver_log_level(pytestconfig, userver_default_log_level) -> str:
 
 
 @pytest.fixture(scope='session')
-def userver_config_logging(userver_log_level):
+def userver_config_logging(userver_log_level, _uservice_logfile_path):
     """
     Returns a function that adjusts the static configuration file for testsuite.
     Sets the `logging.loggers.default` to log to `@stderr` with level set
@@ -440,7 +440,7 @@ def userver_config_logging(userver_log_level):
         if 'logging' in components:
             components['logging']['loggers'] = {
                 'default': {
-                    'file_path': '@stderr',
+                    'file_path': str(_uservice_logfile_path),
                     'level': userver_log_level,
                     'overflow_behavior': 'discard',
                 },
