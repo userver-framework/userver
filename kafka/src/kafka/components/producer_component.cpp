@@ -18,7 +18,8 @@ ProducerComponent::ProducerComponent(
           context.GetTaskProcessor("producer-task-processor"),
           config["poll_timeout_ms"].As<std::chrono::milliseconds>(
               Producer::kDefaultPollTimeout),
-          config["is_testsuite_mode"].As<bool>(),
+          config["send_retries_count"].As<std::size_t>(
+              Producer::kDefaultSendRetries),
           context.FindComponent<components::StatisticsStorage>().GetStorage()) {
 }
 
@@ -42,6 +43,14 @@ properties:
         type: boolean
         description: whether to make producer idempotent
         defaultDescription: false
+    poll_timeout_ms:
+        type: integer
+        description: time in milliseconds producer waits for new delivery events
+        defaultDescription: 10
+    send_retries_count:
+        type: integer
+        description: how many times producer retries transient delivery errors
+        defaultDescription: 5
     security_protocol:
         type: string
         description: protocol used to communicate with brokers
@@ -64,9 +73,6 @@ properties:
             Must be set if `security_protocol` equals `SASL_SSL`.
             If set to `probe`, CA certificates are probed from the default certificates paths
         defaultDescription: none
-    is_testsuite_mode:
-        type: boolean
-        description: whether to use Kafka Server mocks instead of real Kafka Broker
 )");
 }
 

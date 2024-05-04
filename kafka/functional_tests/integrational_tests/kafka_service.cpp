@@ -24,7 +24,6 @@
 
 #include <userver/kafka/components/consumer_component.hpp>
 #include <userver/kafka/components/producer_component.hpp>
-#include <userver/kafka/components/tests_messages_component.hpp>
 
 #include <userver/testsuite/testsuite_support.hpp>
 

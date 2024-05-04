@@ -1,9 +1,15 @@
-import os
+def generate_messages_to_consume(
+        topics: list[str], cnt: int,
+) -> dict[str, list[dict[str, str]]]:
+    messages: dict[str, list[dict[str, str]]] = {}
+    for topic in topics:
+        messages[topic] = [
+            {
+                'topic': topic,
+                'key': f'test-key-{i}',
+                'payload': f'test-value-{i}',
+            }
+            for i in range(cnt)
+        ]
 
-
-CONSUME_BASE_ROUTE = '/consume'
-PRODUCE_ROUTE = '/produce'
-
-
-def get_kafka_conf() -> dict[str, str]:
-    return {'bootstrap.servers': os.getenv('KAFKA_RECIPE_BROKER_LIST')}
+    return messages

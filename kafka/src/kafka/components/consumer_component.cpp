@@ -27,7 +27,6 @@ ConsumerComponent::ConsumerComponent(
           config["max_batch_size"].As<size_t>(),
           context.GetTaskProcessor("consumer-task-processor"),
           context.GetTaskProcessor("main-task-processor"),
-          config["is_testsuite_mode"].As<bool>(),
           context.FindComponent<components::StatisticsStorage>().GetStorage()) {
 }
 
@@ -103,9 +102,6 @@ properties:
         items:
             type: string
             description: topic name
-    is_testsuite_mode:
-        type: boolean
-        description: whether to use Kafka Server mocks instead of real Kafka Broker
 )");
 };
 

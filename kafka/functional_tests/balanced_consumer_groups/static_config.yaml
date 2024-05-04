@@ -19,7 +19,6 @@ components_manager:
               - "kafka-consumer-second"
 
         kafka-consumer-first: &kafka_consumer
-            is_testsuite_mode: false
             enable_auto_commit: false
             group_id: "test-group"
             auto_offset_reset: "smallest"
