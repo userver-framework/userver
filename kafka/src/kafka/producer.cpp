@@ -16,13 +16,14 @@ Producer::Producer(std::unique_ptr<Configuration> configuration,
                    const std::string& component_name,
                    engine::TaskProcessor& producer_task_processor,
                    std::chrono::milliseconds poll_timeout,
-                   bool is_testsuite_mode, utils::statistics::Storage& storage)
+                   std::size_t send_retries,
+                   utils::statistics::Storage& storage)
     : component_name_(component_name),
       producer_task_processor_(producer_task_processor),
       log_tags_({{"kafka_producer", component_name}}),
       configuration_(std::move(configuration)),
       poll_timeout_(poll_timeout),
-      is_testsuite_mode_(is_testsuite_mode),
+      send_retries_(send_retries),
       storage_(storage) {
   statistics_holder_ =
       storage_.RegisterExtender(component_name_, [this](const auto&) {
@@ -75,11 +76,7 @@ void Producer::InitProducerAndStartPollingIfFirstSend() const {
 
 void Producer::Send(const std::string& topic_name, std::string_view key,
                     std::string_view message,
-                    std::optional<int> partition) const {
-  if (!NeedSendMessageToKafka(topic_name, key, message)) {
-    return;
-  }
-
+                    std::optional<std::uint32_t> partition) const {
   InitProducerAndStartPollingIfFirstSend();
 
   LOG_INFO() << log_tags_
@@ -88,18 +85,17 @@ void Producer::Send(const std::string& topic_name, std::string_view key,
 
   utils::Async(producer_task_processor_, "producer_send",
                [this, &topic_name, key, message, partition] {
-                 producer_->Send(topic_name, key, message, partition);
+                 producer_->Send(topic_name, key, message, partition,
+                                 send_retries_);
+
+                 SendToTestPoint(topic_name, key, message);
                })
       .Get();
 }
 
 engine::TaskWithResult<void> Producer::SendAsync(
     std::string topic_name, std::string key, std::string message,
-    std::optional<int> partition) const {
-  if (!NeedSendMessageToKafka(topic_name, key, message)) {
-    return utils::Async("stub_task", [] {});
-  }
-
+    std::optional<std::uint32_t> partition) const {
   InitProducerAndStartPollingIfFirstSend();
 
   LOG_INFO() << log_tags_
@@ -109,20 +105,11 @@ engine::TaskWithResult<void> Producer::SendAsync(
   return utils::Async(
       producer_task_processor_, "producer_send_async",
       [this, topic_name = std::move(topic_name), key = std::move(key),
-       message = std::move(message),
-       partition] { producer_->Send(topic_name, key, message, partition); });
-}
+       message = std::move(message), partition] {
+        producer_->Send(topic_name, key, message, partition, send_retries_);
 
-bool Producer::NeedSendMessageToKafka(std::string_view topic_name,
-                                      std::string_view key,
-                                      std::string_view message) const {
-  if (!is_testsuite_mode_) {
-    return true;
-  }
-
-  SendToTestPoint(topic_name, key, message);
-
-  return false;
+        SendToTestPoint(topic_name, key, message);
+      });
 }
 
 void Producer::VerifyNotFinished() const {

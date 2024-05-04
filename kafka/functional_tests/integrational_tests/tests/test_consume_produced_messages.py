@@ -1,9 +1,9 @@
-import logging
-
-
-import common
-from utils import _make_producer_request_body
-from utils import prepare_producer
+from common import generate_messages_to_consume
+from utils import consume
+from utils import consume_topic_messages
+from utils import make_producer_request_body
+from utils import produce
+from utils import produce_batch
 
 
 TOPIC1 = 'test-topic-consume-produced-1'
@@ -18,24 +18,13 @@ async def test_one_producer_sync_one_consumer_one_topic(
         pass
 
     await service_client.enable_testpoints()
-    assert await prepare_producer(service_client), 'Failed to prepare producer'
 
-    response = await service_client.post(
-        common.PRODUCE_ROUTE,
-        json=_make_producer_request_body(
-            0, TOPIC1, 'test-key', 'test-message',
-        ),
-    )
-
-    assert response.status_code == 200
+    await produce(service_client, 0, TOPIC1, 'test-key', 'test-message')
 
     await received_messages_func.wait_call()
 
-    response = await service_client.post(
-        f'{common.CONSUME_BASE_ROUTE}/{TOPIC1}',
-    )
-    assert response.status_code == 200
-    assert response.json() == {
+    consumed = await consume(service_client, TOPIC1)
+    assert consumed == {
         'messages': [
             {'topic': TOPIC1, 'key': 'test-key', 'payload': 'test-message'},
         ],
@@ -50,52 +39,27 @@ async def test_many_producers_sync_one_consumer_many_topic(
         pass
 
     await service_client.enable_testpoints()
-    assert await prepare_producer(service_client), 'Failed to prepare producer'
 
-    topics = [TOPIC1, TOPIC2]
-    messages = {}
-    for topic in topics:
-        messages[topic] = [
-            {
-                'topic': topic,
-                'key': f'test-key-{i}',
-                'payload': f'test-value-{i}',
-            }
-            for i in range(15)
-        ]
+    topics: list[str] = [TOPIC1, TOPIC2]
+    messages: dict[str, list[dict[str, str]]] = generate_messages_to_consume(
+        topics=topics, cnt=15,
+    )
 
     for topic in topics:
         for i, message in enumerate(messages[topic]):
-            response = await service_client.post(
-                common.PRODUCE_ROUTE,
-                json=_make_producer_request_body(
-                    i % 2,
-                    message['topic'],
-                    message['key'],
-                    message['payload'],
-                ),
+            await produce(
+                service_client,
+                i % 2,
+                message['topic'],
+                message['key'],
+                message['payload'],
             )
-            assert response.status_code == 200
-
-    async def consume_topic_messages(topic):
-        response = await service_client.post(
-            f'{common.CONSUME_BASE_ROUTE}/{topic}',
-        )
-        assert response.status_code == 200
-
-        consumed_messages = response.json()['messages']
-        for consumed_message in consumed_messages:
-            logging.info(f'consumed: {consumed_message}')
-            logging.info(
-                f'topic messages {len(messages[topic])}: {messages[topic]}',
-            )
-            messages[topic].remove(consumed_message)
 
     while sum([len(messages[topic]) for topic in topics]) > 0:
         await received_messages_func.wait_call()
 
         for topic in topics:
-            await consume_topic_messages(topic)
+            await consume_topic_messages(service_client, topic, messages)
 
 
 async def test_many_producers_async_one_consumer_many_topic(
@@ -106,25 +70,17 @@ async def test_many_producers_async_one_consumer_many_topic(
         pass
 
     await service_client.enable_testpoints()
-    assert await prepare_producer(service_client), 'Failed to prepare producer'
 
-    topics = [TOPIC1, TOPIC2]
-    messages = {}
-    for topic in topics:
-        messages[topic] = [
-            {
-                'topic': topic,
-                'key': f'test-key-{i}',
-                'payload': f'test-value-{i}',
-            }
-            for i in range(15)
-        ]
+    topics: list[str] = [TOPIC1, TOPIC2]
+    messages: dict[str, list[dict[str, str]]] = generate_messages_to_consume(
+        topics=topics, cnt=15,
+    )
 
     requests: list[dict[str, str]] = []
     for topic in topics:
         for i, message in enumerate(messages[topic]):
             requests.append(
-                _make_producer_request_body(
+                make_producer_request_body(
                     i % 2,
                     message['topic'],
                     message['key'],
@@ -132,25 +88,10 @@ async def test_many_producers_async_one_consumer_many_topic(
                 ),
             )
 
-    response = await service_client.post(common.PRODUCE_ROUTE, json=requests)
-    assert response.status_code == 200
-
-    async def consume_topic_messages(topic):
-        response = await service_client.post(
-            f'{common.CONSUME_BASE_ROUTE}/{topic}',
-        )
-        assert response.status_code == 200
-
-        consumed_messages = response.json()['messages']
-        for consumed_message in consumed_messages:
-            logging.info(f'consumed: {consumed_message}')
-            messages[topic].remove(consumed_message)
-            logging.info(
-                f'topic messages {len(messages[topic])}: {messages[topic]}',
-            )
+    await produce_batch(service_client, requests)
 
     while sum([len(messages[topic]) for topic in topics]) > 0:
         await received_messages_func.wait_call()
 
         for topic in topics:
-            await consume_topic_messages(topic)
+            await consume_topic_messages(service_client, topic, messages)

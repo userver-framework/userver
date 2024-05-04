@@ -27,7 +27,6 @@ components_manager:
             method: POST
 
         kafka-consumer:
-            is_testsuite_mode: false
             env_pod_name: "HOSTNAME"
             enable_auto_commit: false
             group_id: "test-group"
@@ -41,14 +40,14 @@ components_manager:
               - "test-topic-consume-produced-2"
             max_batch_size: 10
         kafka-producer-first:
-            is_testsuite_mode: false
-            delivery_timeout_ms: 10000
+            delivery_timeout_ms: 3000
             queue_buffering_max_ms: 100
+            poll_timeout_ms: 10
+            send_retries_count: 5
             enable_idempotence: true
             security_protocol: "PLAINTEXT"
         kafka-producer-second:
-            is_testsuite_mode: false
-            delivery_timeout_ms: 10000
+            delivery_timeout_ms: 3000
             queue_buffering_max_ms: 100
             enable_idempotence: true
             security_protocol: "PLAINTEXT"

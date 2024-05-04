@@ -83,14 +83,12 @@ class Consumer final {
            const std::string& component_name,
            const std::vector<std::string>& topics, std::size_t max_batch_size,
            engine::TaskProcessor& consumer_task_processor,
-           engine::TaskProcessor& main_task_processor, bool is_testsuite_mode,
+           engine::TaskProcessor& main_task_processor,
            utils::statistics::Storage& storage);
 
   ~Consumer();
 
   ConsumerScope MakeConsumerScope();
-
-  void PushTestMessage(MessagePolled&& message);
 
  private:
   friend class ConsumerScope;
@@ -118,10 +116,6 @@ class Consumer final {
   std::unique_ptr<cppkafka::Configuration> config_;
   std::unique_ptr<cppkafka::Consumer> consumer_;
   engine::Task poll_task_;
-
-  /// for testsuite
-  std::queue<MessagePolled> tests_messages_;
-  const bool is_testsuite_mode_;
 
   /// @note Subscriptions must be the last fields! Add new fields above this
   /// comment.

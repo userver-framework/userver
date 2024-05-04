@@ -41,15 +41,14 @@ Consumer::Consumer(std::unique_ptr<cppkafka::Configuration> config,
                    const std::size_t max_batch_size,
                    engine::TaskProcessor& consumer_task_processor,
                    engine::TaskProcessor& main_task_processor,
-                   bool is_testsuite_mode, utils::statistics::Storage& storage)
+                   utils::statistics::Storage& storage)
     : component_name_(component_name),
       topics_(topics),
       max_batch_size_(max_batch_size),
       consumer_task_processor_(consumer_task_processor),
       main_task_processor_(main_task_processor),
       stats_(std::make_unique<impl::Stats>()),
-      config_(SetErrorCallback(std::move(config), *stats_)),
-      is_testsuite_mode_(is_testsuite_mode) {
+      config_(SetErrorCallback(std::move(config), *stats_)) {
   statistics_holder_ =
       storage.RegisterExtender(component_name, [this](const auto&) {
         return started_processing_.test()
@@ -143,58 +142,44 @@ void Consumer::AsyncCommit() {
   }).Get();
 }
 
-void Consumer::PushTestMessage(MessagePolled&& message) {
-  tests_messages_.push(std::move(message));
-}
-
 std::vector<MessagePolled> Consumer::GetPolledMessages() {
   std::vector<MessagePolled> messages_polled;
-  if (!is_testsuite_mode_) {
-    std::vector<cppkafka::Message> messages_batch =
-        consumer_->poll_batch(max_batch_size_, std::chrono::milliseconds(500));
-    if (messages_batch.empty()) {
-      return {};
-    }
-    LOG_INFO() << "Polled batch of " << messages_batch.size() << " messages";
-    TESTPOINT(fmt::format("tp_{}_polled", component_name_), {});
-    messages_polled.reserve(messages_batch.size());
-
-    auto& topics_stats = stats_->topics_stats;
-    for (auto&& message : messages_batch) {
-      MessagePolled message_polled{std::move(message)};
-
-      const auto& topic = message_polled.topic;
-      LOG_INFO() << fmt::format(
-          "Message from kafka topic '{}' received by '{}': '{}' -> '{}' with "
-          "partition {} by offset {}",
-          topic, component_name_, message_polled.key, message_polled.payload,
-          message_polled.partition, message_polled.offset);
-      ++topics_stats[topic]->messages_counts.messages_total;
-
-      const auto message_timestamp = message_polled.timestamp;
-      if (message_timestamp) {
-        const auto take_time =
-            std::chrono::system_clock::now().time_since_epoch();
-        const auto ms_duration =
-            std::chrono::duration_cast<std::chrono::milliseconds>(
-                take_time - message_timestamp.value())
-                .count();
-        topics_stats[topic]->avg_ms_spent_time.GetCurrentCounter().Account(
-            ms_duration);
-      } else {
-        LOG_WARNING() << "No message timestamp in kafka message";
-        continue;
-      }
-      messages_polled.push_back(std::move(message_polled));
-    }
-    return messages_polled;
+  std::vector<cppkafka::Message> messages_batch =
+      consumer_->poll_batch(max_batch_size_, std::chrono::milliseconds(500));
+  if (messages_batch.empty()) {
+    return {};
   }
-  for (std::size_t i = 0; i < max_batch_size_; ++i) {
-    if (tests_messages_.empty()) {
-      break;
+  LOG_INFO() << "Polled batch of " << messages_batch.size() << " messages";
+  TESTPOINT(fmt::format("tp_{}_polled", component_name_), {});
+  messages_polled.reserve(messages_batch.size());
+
+  auto& topics_stats = stats_->topics_stats;
+  for (auto&& message : messages_batch) {
+    MessagePolled message_polled{std::move(message)};
+
+    const auto& topic = message_polled.topic;
+    LOG_INFO() << fmt::format(
+        "Message from kafka topic '{}' received by '{}': '{}' -> '{}' with "
+        "partition {} by offset {}",
+        topic, component_name_, message_polled.key, message_polled.payload,
+        message_polled.partition, message_polled.offset);
+    ++topics_stats[topic]->messages_counts.messages_total;
+
+    const auto message_timestamp = message_polled.timestamp;
+    if (message_timestamp) {
+      const auto take_time =
+          std::chrono::system_clock::now().time_since_epoch();
+      const auto ms_duration =
+          std::chrono::duration_cast<std::chrono::milliseconds>(
+              take_time - message_timestamp.value())
+              .count();
+      topics_stats[topic]->avg_ms_spent_time.GetCurrentCounter().Account(
+          ms_duration);
+    } else {
+      LOG_WARNING() << "No message timestamp in kafka message";
+      continue;
     }
-    messages_polled.push_back(std::move(tests_messages_.front()));
-    tests_messages_.pop();
+    messages_polled.push_back(std::move(message_polled));
   }
   return messages_polled;
 }

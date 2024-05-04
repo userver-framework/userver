@@ -88,6 +88,7 @@ async def test_rebalance_after_failure(
         TOPIC, 'key-4', 'message-4', second_consumer_partition,
     )
     await first_consumer_received.wait_call()
+    await first_consumer_received.wait_call()
 
     first_consumer_messages = await get_consumed_messages(
         service_client, CONSUMERS[0],

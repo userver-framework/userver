@@ -8,6 +8,7 @@
 #include <userver/logging/log_extra.hpp>
 #include <userver/storages/secdist/component.hpp>
 #include <userver/utils/algo.hpp>
+#include <userver/utils/trivial_map.hpp>
 
 #include <librdkafka/rdkafka.h>
 
@@ -117,32 +118,48 @@ namespace producer {
 void DeliveryReportCallback([[maybe_unused]] rd_kafka_t* producer_,
                             const rd_kafka_message_t* message,
                             [[maybe_unused]] void* opaque) {
+  static constexpr utils::TrivialBiMap kMessageStatus{[](auto selector) {
+    return selector()
+        .Case(RD_KAFKA_MSG_STATUS_NOT_PERSISTED, "MSG_STATUS_NOT_PERSISTED")
+        .Case(RD_KAFKA_MSG_STATUS_POSSIBLY_PERSISTED,
+              "MSG_STATUS_POSSIBLY_PERSISTED")
+        .Case(RD_KAFKA_MSG_STATUS_PERSISTED, "MSG_STATUS_PERSISTED");
+  }};
+
+  auto* stats_and_logging_ = static_cast<impl::StatsAndLogging*>(opaque);
+  auto log_tags = stats_and_logging_->log_tags_;
+  log_tags.Extend({"kafka_callback", "delivery_callback"});
+
+  const auto message_status{rd_kafka_message_status(message)};
+  impl::DeliveryResult delivery_result{
+      .message_error = static_cast<int>(message->err),
+      .messages_status = static_cast<int>(message_status)};
+  LOG_DEBUG()
+      << log_tags
+      << fmt::format(
+             "Message delivery report: err: {}, status: {}",
+             rd_kafka_err2str(message->err),
+             kMessageStatus.TryFind(message_status).value_or("<bad status>"));
+
   auto* complete_handle = static_cast<impl::DeliveryWaiter*>(message->_private);
-  complete_handle->set_value(message->err);
+  complete_handle->set_value(std::move(delivery_result));
   delete complete_handle;
 
   const char* topic_name = rd_kafka_topic_name(message->rkt);
 
-  auto* stats_and_logging_ = static_cast<impl::StatsAndLogging*>(opaque);
-  auto& topic_stats = stats_and_logging_->stats->topics_stats[topic_name];
-  auto log_tags = stats_and_logging_->log_tags_;
-  log_tags.Extend({"kafka_callback", "delivery_callback"});
-
   if (message->err) {
-    ++topic_stats->messages_counts.messages_error;
     LOG_WARNING() << log_tags
                   << fmt::format("Failed to delivery message to topic '{}': {}",
                                  topic_name, rd_kafka_err2str(message->err));
     return;
   }
 
-  ++topic_stats->messages_counts.messages_success;
-  LOG_DEBUG() << log_tags
-              << fmt::format(
-                     "Message to topic '{}' delivered successfully to "
-                     "partition "
-                     "{} by offset {}",
-                     topic_name, message->partition, message->offset);
+  LOG_INFO() << log_tags
+             << fmt::format(
+                    "Message to topic '{}' delivered successfully to "
+                    "partition "
+                    "{} by offset {}",
+                    topic_name, message->partition, message->offset);
 }
 
 }  // namespace producer

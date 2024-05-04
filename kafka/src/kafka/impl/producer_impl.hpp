@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <cstdint>
 #include <optional>
 
 #include <kafka/impl/stats.hpp>
@@ -26,7 +27,7 @@ class ProducerImpl {
   static constexpr auto kCoolDownFlushTimeout = 2s;
 
  public:
-  /// @param conf is expected to point to `rd_kafka_t` object
+  /// @param conf is expected to point to `rd_kafka_conf_t` object
   ProducerImpl(void* conf,
                std::unique_ptr<impl::StatsAndLogging> stats_and_logging_);
 
@@ -37,10 +38,22 @@ class ProducerImpl {
 
   /// @brief Send the message and waits for its delivery.
   void Send(const std::string& topic_name, std::string_view key,
-            std::string_view message, std::optional<int> partition) const;
+            std::string_view message, std::optional<std::uint32_t> partition,
+            std::size_t retries) const;
 
   /// @brief Polls for delivery events for @param poll_timeout_ milliseconds
   void Poll(std::chrono::milliseconds poll_timeout) const;
+
+ private:
+  enum class SendResult {
+    Succeeded,
+    Failed,
+    Retryable,
+  };
+
+  SendResult SendImpl(const std::string& topic_name, std::string_view key,
+                      std::string_view message,
+                      std::optional<std::uint32_t> partition) const;
 
  private:
   std::unique_ptr<impl::ProducerHolder> producer_;

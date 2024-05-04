@@ -41,7 +41,7 @@ rd_kafka_t* MakeProducerFromConf(rd_kafka_conf_t* conf) {
   rd_kafka_t* producer =
       rd_kafka_new(RD_KAFKA_PRODUCER, conf, err_buf.data(), err_buf.size());
   if (producer == nullptr) {
-    /// @note `librdkafka` takens ownership on conf only if `rd_kafka_new`
+    /// @note `librdkafka` takes ownership on conf iff `rd_kafka_new`
     /// succeeds
     rd_kafka_conf_destroy(conf);
 
@@ -49,6 +49,21 @@ rd_kafka_t* MakeProducerFromConf(rd_kafka_conf_t* conf) {
   }
 
   return producer;
+}
+
+/// @note Message delivery may timeout due to timeout fired when request to
+/// broker was in-flight. That case, message will have status
+/// `RD_KAFKA_MSG_STATUS_POSSIBLY_PERSISTED`. It is not safe to retry such
+/// messages, because of reordering and duplication possibility
+/// @see
+/// https://docs.confluent.io/platform/current/clients/librdkafka/html/md_INTRODUCTION.html#autotoc_md21
+bool IsRetryable(rd_kafka_resp_err_t err,
+                 std::optional<rd_kafka_msg_status_t> status = std::nullopt) {
+  return (err == RD_KAFKA_RESP_ERR__MSG_TIMED_OUT ||
+          err == RD_KAFKA_RESP_ERR__QUEUE_FULL ||
+          err == RD_KAFKA_RESP_ERR_INVALID_REPLICATION_FACTOR) &&
+         status != RD_KAFKA_MSG_STATUS_PERSISTED &&
+         status != RD_KAFKA_MSG_STATUS_POSSIBLY_PERSISTED;
 }
 
 }  // namespace
@@ -81,56 +96,34 @@ const logging::LogExtra& ProducerImpl::GetLoggingTags() const {
 
 void ProducerImpl::Send(const std::string& topic_name, std::string_view key,
                         std::string_view message,
-                        std::optional<int> partition) const {
+                        std::optional<std::uint32_t> partition,
+                        std::size_t retries) const {
+  using enum SendResult;
+
   auto& topic_stats = stats_and_logging_->stats->topics_stats[topic_name];
   ++topic_stats->messages_counts.messages_total;
-
-  auto waiter = std::make_unique<impl::DeliveryWaiter>();
-  auto wait_handle = waiter->get_future();
 
   const auto produce_start_time =
       std::chrono::system_clock::now().time_since_epoch();
 
-  /// @note `rd_kafka_producev` does not block at all. It only enqueues
-  /// the message to the local queue to be send in future by `librdkafka`
-  /// internal thread
-  /// @note 0 msgflags implies no message copying and freeing by
-  /// `librdkafka` implementation. It is safe to pass actually a pointer
-  /// to message data because it lives till the delivery callback invoked
-  /// @see
-  /// https://github.com/confluentinc/librdkafka/blob/master/src/rdkafka.h#L4698
-  /// for understanding of `msgflags` argument
-  /// @note It is safe to release the `waiter` because (i)
-  /// `rd_kafka_producev` does not throws, therefore it owns the `waiter`,
-  /// (ii) delivery report callback fries its memory
-  /// @note const qualifier remove for `message` is required because of
-  /// the `librdkafka` API requirements. If `msgflags` set to
-  /// `RD_KAFKA_MSG_F_FREE`, produce implementation fries the message
-  /// data, though not const point is required
-  const rd_kafka_resp_err_t enqueue_error = rd_kafka_producev(
-      producer_->Handle(), RD_KAFKA_V_TOPIC(topic_name.c_str()),
-      RD_KAFKA_V_KEY(key.data(), key.size()),
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-      RD_KAFKA_V_VALUE(const_cast<char*>(message.data()), message.size()),
-      RD_KAFKA_V_MSGFLAGS(0),
-      RD_KAFKA_V_PARTITION(partition.value_or(RD_KAFKA_PARTITION_UA)),
-      RD_KAFKA_V_OPAQUE(waiter.release()), RD_KAFKA_V_END);
+  std::size_t retries_left{retries};
+  const auto ShouldRetry = [this, &retries_left](SendResult send_result) {
+    if (retries_left > 0 && send_result == Retryable) {
+      LOG_WARNING() << GetLoggingTags()
+                    << "Send request failed, but error may be transient, "
+                       "retrying..."
+                    << fmt::format("(retries left: {})", retries_left);
+      retries_left -= 1;
+      return true;
+    }
 
-  /// @note if `enqueue_error` equals to `RD_KAFKA_RESP_ERR__QUEUE_FULL`
-  /// (which means internal queue riched its max size which is configured
-  /// with `queue.buffering.max.kbytes` and
-  /// `queue.buffering.max.messages`), the produce can be retried. Such
-  /// logic is not implemented yet
-  if (enqueue_error != RD_KAFKA_RESP_ERR_NO_ERROR) {
-    throw std::runtime_error{
-        fmt::format("Failed to enqueue message to kafka local queue: {}",
-                    rd_kafka_err2str(enqueue_error))};
-  }
+    return false;
+  };
 
-  /// wait until delivery report callback invoked:
-  /// @see impl/configuration.cpp
-  const auto produce_error =
-      static_cast<rd_kafka_resp_err_t>(wait_handle.get());
+  std::optional<SendResult> send_result;
+  do {
+    send_result = SendImpl(topic_name, key, message, partition);
+  } while (ShouldRetry(send_result.value()));
 
   const auto produce_finish_time =
       std::chrono::system_clock::now().time_since_epoch();
@@ -141,25 +134,89 @@ void ProducerImpl::Send(const std::string& topic_name, std::string_view key,
   topic_stats->avg_ms_spent_time.GetCurrentCounter().Account(
       produce_duration_ms);
 
-  LOG_DEBUG() << GetLoggingTags()
-              << fmt::format(
-                     "Produced message to topic '{}' by key '{}' in {}ms",
-                     topic_name, key, produce_duration_ms);
-
-  if (produce_error != RD_KAFKA_RESP_ERR_NO_ERROR) {
-    const auto full_error =
-        fmt::format("Failed to deliver message to topic '{}': {}", topic_name,
-                    rd_kafka_err2str(produce_error));
-    throw std::runtime_error{full_error};
-  }
-
   LOG_INFO() << GetLoggingTags()
-             << fmt::format("Message to topic '{}' was successfully delivered",
-                            topic_name);
+             << fmt::format("Message produced to topic '{}' in {}ms {}",
+                            topic_name, produce_duration_ms,
+                            retries > retries_left
+                                ? fmt::format("(after {} retries)",
+                                              retries - retries_left)
+                                : "");
+
+  switch (send_result.value()) {
+    case SendResult::Succeeded: {
+      ++topic_stats->messages_counts.messages_success;
+      break;
+    }
+    case SendResult::Failed:
+    case SendResult::Retryable: {
+      ++topic_stats->messages_counts.messages_error;
+
+      throw std::runtime_error{fmt::format(
+          "Failed to deliver message to topic '{}' after {} retries",
+          topic_name, retries)};
+    }
+  }
 }
 
 void ProducerImpl::Poll(std::chrono::milliseconds poll_timeout) const {
   rd_kafka_poll(producer_->Handle(), static_cast<int>(poll_timeout.count()));
+}
+
+ProducerImpl::SendResult ProducerImpl::SendImpl(
+    const std::string& topic_name, std::string_view key,
+    std::string_view message, std::optional<std::uint32_t> partition) const {
+  using enum SendResult;
+
+  auto waiter = std::make_unique<impl::DeliveryWaiter>();
+  auto wait_handle = waiter->get_future();
+
+  /// @note `rd_kafka_producev` does not block at all. It only enqueues
+  /// the message to the local queue to be send in future by `librdkafka`
+  /// internal thread
+  /// @note 0 msgflags implies no message copying and freeing by
+  /// `librdkafka` implementation. It is safe to pass actually a pointer
+  /// to message data because it lives till the delivery callback is invoked
+  /// @see
+  /// https://github.com/confluentinc/librdkafka/blob/master/src/rdkafka.h#L4698
+  /// for understanding of `msgflags` argument
+  /// @note It is safe to release the `waiter` because (i)
+  /// `rd_kafka_producev` does not throws, therefore it owns the `waiter`,
+  /// (ii) delivery report callback fries its memory
+  /// @note const qualifier remove for `message` is required because of
+  /// the `librdkafka` API requirements. If `msgflags` set to
+  /// `RD_KAFKA_MSG_F_FREE`, produce implementation fries the message
+  /// data, though not const pointer is required
+  const rd_kafka_resp_err_t enqueue_error = rd_kafka_producev(
+      producer_->Handle(), RD_KAFKA_V_TOPIC(topic_name.c_str()),
+      RD_KAFKA_V_KEY(key.data(), key.size()),
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+      RD_KAFKA_V_VALUE(const_cast<char*>(message.data()), message.size()),
+      RD_KAFKA_V_MSGFLAGS(0),
+      RD_KAFKA_V_PARTITION(partition.value_or(RD_KAFKA_PARTITION_UA)),
+      RD_KAFKA_V_OPAQUE(waiter.release()), RD_KAFKA_V_END);
+
+  if (enqueue_error != RD_KAFKA_RESP_ERR_NO_ERROR) {
+    LOG_WARNING() << GetLoggingTags()
+                  << fmt::format(
+                         "Failed to enqueue message to Kafka local queue: {}",
+                         rd_kafka_err2str(enqueue_error));
+
+    return IsRetryable(enqueue_error) ? Retryable : Failed;
+  }
+
+  /// wait until delivery report callback is invoked:
+  /// @see impl/configuration.cpp
+  const auto delivery_result = wait_handle.get();
+  const auto delivery_error =
+      static_cast<rd_kafka_resp_err_t>(delivery_result.message_error);
+  const auto message_status =
+      static_cast<rd_kafka_msg_status_t>(delivery_result.messages_status);
+
+  if (delivery_error != RD_KAFKA_RESP_ERR_NO_ERROR) {
+    return IsRetryable(delivery_error, message_status) ? Retryable : Failed;
+  }
+
+  return Succeeded;
 }
 
 }  // namespace kafka
