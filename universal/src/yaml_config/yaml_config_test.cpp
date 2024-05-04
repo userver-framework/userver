@@ -124,6 +124,7 @@ some_element:
 }
 
 TEST(YamlConfig, FileOption) {
+  /// [sample file]
   const auto dir = fs::blocking::TempDirectory::Create();
   const auto path = dir.GetPath() + "/foo";
   fs::blocking::RewriteFileContents(path, R"(
@@ -139,6 +140,7 @@ some_element:
   yaml_config::YamlConfig yaml(std::move(node), {});
   EXPECT_EQ(yaml["some_element"]["some"]["file_element"].As<std::string>(),
             "file_value");
+  /// [sample file]
 }
 
 TEST(YamlConfig, FileOptionFileNotExist) {

@@ -39,6 +39,10 @@ using ParseException = formats::yaml::ParseException;
 /// environment variables of the process and returned as a value. For example:
 /// @snippet universal/src/yaml_config/yaml_config_test.cpp  sample env
 ///
+/// If YAML key ends on '#file', then the value of the key is the value read
+/// (with blocking read) from the file. For example:
+/// @snippet universal/src/yaml_config/yaml_config_test.cpp  sample file
+///
 /// If YAML key ends on '#fallback', then the value of the key is used as a
 /// fallback for environment and `$` variables. For example for the following
 /// YAML with YamlConfig::Mode::kEnvAllowed:
