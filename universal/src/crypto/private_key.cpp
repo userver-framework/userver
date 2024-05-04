@@ -48,23 +48,10 @@ std::optional<std::string> GetPemStringImpl(EVP_PKEY* key,
 
   std::string result;
   result.resize(BIO_pending(membio.get()));
-#ifdef USERVER_FEATURE_WOLFSSL
-#warning "BIO_read_ex does not supported by wolfSSL"
   if (1 != BIO_read(membio.get(), result.data(), result.size())) {
     throw SerializationError(
         FormatSslError("Error transferring PEM to string"));
   }
-#else
-  size_t readbytes = 0;
-  if (1 !=
-      BIO_read_ex(membio.get(), result.data(), result.size(), &readbytes)) {
-    throw SerializationError(
-        FormatSslError("Error transferring PEM to string"));
-  }
-  if (readbytes != result.size()) {
-    throw SerializationError("Error transferring PEM to string");
-  }
-#endif
   return result;
 }
 
