@@ -173,7 +173,6 @@ components_manager:
         method: GET,PUT
         task_processor: monitor-task-processor
 # /// [Sample handler log level component config]
-# /// [Sample handler inspect requests component config]
 # yaml
     handler-on-log-rotate:
         path: /service/on-log-rotate/

@@ -15,7 +15,7 @@ namespace utils::datetime {
 /// std::chrono::system_clock::time_point in UTC timezone and saturates on
 /// overflow
 /// Example:
-/// @snippet utils/datetime/from_string_saturating_test.cpp FromStringSaturation
+/// @snippet utils/datetime/from_string_saturating_test.cpp FromStringSaturation example
 std::chrono::system_clock::time_point FromRfc3339StringSaturating(
     const std::string& timestring);
 
