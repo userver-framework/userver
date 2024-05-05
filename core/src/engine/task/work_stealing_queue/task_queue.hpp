@@ -45,8 +45,8 @@ class WorkStealingTaskQueue final {
 
   ConsumersManager consumers_manager_;
   const std::size_t consumers_count_;
-  NewGlobalQueue global_queue_;
-  NewGlobalQueue background_queue_;
+  GlobalQueue global_queue_;
+  GlobalQueue background_queue_;
   utils::FixedArray<Consumer> consumers_;
 };
 

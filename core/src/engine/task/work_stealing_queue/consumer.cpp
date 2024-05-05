@@ -123,8 +123,8 @@ std::size_t Consumer::Steal(utils::span<impl::TaskContext*> buffer) {
 }
 
 impl::TaskContext* Consumer::TryPopFromOwnerQueue(const bool is_global) {
-  NewGlobalQueue* queue = &owner_.global_queue_;
-  NewGlobalQueue::Token* token = &global_queue_token_;
+  GlobalQueue* queue = &owner_.global_queue_;
+  GlobalQueue::Token* token = &global_queue_token_;
   if (!is_global) {
     queue = &owner_.background_queue_;
     token = &background_queue_token_;

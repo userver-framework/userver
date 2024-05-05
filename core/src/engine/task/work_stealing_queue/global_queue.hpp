@@ -16,18 +16,18 @@ namespace impl {
 class TaskContext;
 }  // namespace impl
 
-class NewGlobalQueue final {
+class GlobalQueue final {
  public:
   struct Token {
    private:
-    friend NewGlobalQueue;
+    friend GlobalQueue;
     Token(moodycamel::ConsumerToken&& moodycamel_token, const std::size_t index)
         : index_(index), moodycamel_token_(std::move(moodycamel_token)) {}
     const std::size_t index_;
     moodycamel::ConsumerToken moodycamel_token_;
   };
 
-  NewGlobalQueue(std::size_t consumers_count);
+  GlobalQueue(std::size_t consumers_count);
   std::size_t GetSizeApproximateDelayed() const noexcept { return size_; }
   std::size_t GetSizeApproximate() const noexcept {
     return queue_.size_approx();

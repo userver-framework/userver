@@ -75,8 +75,8 @@ class Consumer final {
   std::minstd_rand rnd_;
   std::size_t steps_count_{0};
   std::atomic<std::int32_t> sleep_counter_{0};
-  NewGlobalQueue::Token global_queue_token_;
-  NewGlobalQueue::Token background_queue_token_;
+  GlobalQueue::Token global_queue_token_;
+  GlobalQueue::Token background_queue_token_;
 #ifndef __linux__
   std::condition_variable cv_;
   std::mutex mutex_;
