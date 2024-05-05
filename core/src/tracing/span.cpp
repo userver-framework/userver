@@ -175,7 +175,7 @@ std::string Span::Impl::GetParentIdForLogging(const Span::Impl* parent) {
       return current->GetSpanId();
     }
     if (current == spans_ptr->begin()) break;
-  };
+  }
 
   return {};
 }

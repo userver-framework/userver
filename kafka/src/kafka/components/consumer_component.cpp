@@ -103,7 +103,7 @@ properties:
             type: string
             description: topic name
 )");
-};
+}
 
 }  // namespace kafka
 

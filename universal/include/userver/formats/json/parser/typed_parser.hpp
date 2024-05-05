@@ -137,7 +137,7 @@ class TypedParser : public BaseParser {
   /// It should not call Reset() of subparsers (if any).
   /// Subparsers' Reset() should be called just before pushing it onto the
   /// stack.
-  virtual void Reset(){};
+  virtual void Reset() {}
 
   /// Returns an actual parser.
   /// It is commonly used in PushParser() to identify typed parser

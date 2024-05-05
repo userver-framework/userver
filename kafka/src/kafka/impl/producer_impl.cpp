@@ -82,7 +82,7 @@ ProducerImpl::~ProducerImpl() {
     LOG_WARNING() << GetLoggingTags()
                   << "Producer flushing timeouted on producer destroy. Some "
                      "messages may be not delivered!!!";
-  };
+  }
   rd_kafka_destroy(producer);
 }
 
