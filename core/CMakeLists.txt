@@ -79,6 +79,10 @@ endif()
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 add_library(userver::core ALIAS ${PROJECT_NAME})
 
+# thread_local usage in Moodycamel is incompatible with userver scheduler
+# that migrates coroutines between threads.
+target_compile_definitions(${PROJECT_NAME} PUBLIC MOODYCAMEL_NO_THREAD_LOCAL)
+
 if (USERVER_DISABLE_PHDR_CACHE)
   target_compile_definitions(${PROJECT_NAME} PRIVATE USERVER_DISABLE_PHDR_CACHE)
 endif()
@@ -167,7 +171,7 @@ else()
          $<BUILD_INTERFACE:${USERVER_THIRD_PARTY_DIRS}/moodycamel/include>
     )
     _userver_directory_install(COMPONENT core
-        DIRECTORY ${USERVER_THIRD_PARTY_DIRS}/moodycamel/include 
+        DIRECTORY ${USERVER_THIRD_PARTY_DIRS}/moodycamel/include
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
     )
 endif()
@@ -183,7 +187,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 _userver_directory_install(COMPONENT core
   DIRECTORY
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${USERVER_THIRD_PARTY_DIRS}/pfr/include 
+    ${USERVER_THIRD_PARTY_DIRS}/pfr/include
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
 )
 
@@ -230,7 +234,7 @@ endif()
 
 if (USERVER_FEATURE_UTEST)
     add_library(userver-utest STATIC ${LIBUTEST_SOURCES})
-	add_library(userver::utest ALIAS userver-utest)
+    add_library(userver::utest ALIAS userver-utest)
     target_compile_definitions(userver-utest PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
 
     target_link_libraries(userver-utest
@@ -271,7 +275,7 @@ endif()
 
 if (USERVER_FEATURE_UTEST)
     add_library(userver-ubench ${LIBUBENCH_SOURCES})
-	add_library(userver::ubench ALIAS userver-ubench)
+    add_library(userver::ubench ALIAS userver-ubench)
     target_include_directories(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>)
     target_compile_definitions(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
     target_link_libraries(userver-ubench

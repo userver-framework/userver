@@ -24,8 +24,16 @@ extern "C" {
 }
 #elif defined(__MACH__)
 #include <mach/mach.h>
+#elif defined(__MVS__)
+#include <zos-semaphore.h>  // Y_IGNORE
 #elif defined(__unix__)
 #include <semaphore.h>
+
+#if defined(__GLIBC_PREREQ) && defined(_GNU_SOURCE)
+#if __GLIBC_PREREQ(2,30)
+#define MOODYCAMEL_LIGHTWEIGHTSEMAPHORE_MONOTONIC
+#endif
+#endif
 #endif
 
 namespace moodycamel
@@ -59,7 +67,7 @@ class Semaphore
 {
 private:
 	void* m_hSema;
-	
+
 	Semaphore(const Semaphore& other) MOODYCAMEL_DELETE_FUNCTION;
 	Semaphore& operator=(const Semaphore& other) MOODYCAMEL_DELETE_FUNCTION;
 
@@ -82,12 +90,12 @@ public:
 		const unsigned long infinite = 0xffffffff;
 		return WaitForSingleObject(m_hSema, infinite) == 0;
 	}
-	
+
 	bool try_wait()
 	{
 		return WaitForSingleObject(m_hSema, 0) == 0;
 	}
-	
+
 	bool timed_wait(std::uint64_t usecs)
 	{
 		return WaitForSingleObject(m_hSema, (unsigned long)(usecs / 1000)) == 0;
@@ -129,12 +137,12 @@ public:
 	{
 		return semaphore_wait(m_sema) == KERN_SUCCESS;
 	}
-	
+
 	bool try_wait()
 	{
 		return timed_wait(0);
 	}
-	
+
 	bool timed_wait(std::uint64_t timeout_usecs)
 	{
 		mach_timespec_t ts;
@@ -159,9 +167,9 @@ public:
 		}
 	}
 };
-#elif defined(__unix__)
+#elif defined(__unix__) || defined(__MVS__)
 //---------------------------------------------------------
-// Semaphore (POSIX, Linux)
+// Semaphore (POSIX, Linux, zOS)
 //---------------------------------------------------------
 class Semaphore
 {
@@ -209,7 +217,11 @@ public:
 		struct timespec ts;
 		const int usecs_in_1_sec = 1000000;
 		const int nsecs_in_1_sec = 1000000000;
+#ifdef MOODYCAMEL_LIGHTWEIGHTSEMAPHORE_MONOTONIC
+		clock_gettime(CLOCK_MONOTONIC, &ts);
+#else
 		clock_gettime(CLOCK_REALTIME, &ts);
+#endif
 		ts.tv_sec += (time_t)(usecs / usecs_in_1_sec);
 		ts.tv_nsec += (long)(usecs % usecs_in_1_sec) * 1000;
 		// sem_timedwait bombs if you have more than 1e9 in tv_nsec
@@ -221,7 +233,11 @@ public:
 
 		int rc;
 		do {
+#ifdef MOODYCAMEL_LIGHTWEIGHTSEMAPHORE_MONOTONIC
+			rc = sem_clockwait(&m_sema, CLOCK_MONOTONIC, &ts);
+#else
 			rc = sem_timedwait(&m_sema, &ts);
+#endif
 		} while (rc == -1 && errno == EINTR);
 		return rc == 0;
 	}
@@ -382,7 +398,7 @@ public:
 			result = waitManyWithPartialSpinning(max, timeout_usecs);
 		return result;
 	}
-	
+
 	ssize_t waitMany(ssize_t max)
 	{
 		ssize_t result = waitMany(max, -1);
@@ -400,7 +416,7 @@ public:
 			m_sema.signal((int)toRelease);
 		}
 	}
-	
+
 	std::size_t availableApprox() const
 	{
 		ssize_t count = m_count.load(std::memory_order_relaxed);
