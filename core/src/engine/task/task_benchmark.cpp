@@ -7,6 +7,7 @@
 #include <string>
 #include <thread>
 
+#include <concurrent/impl/latch.hpp>
 #include <engine/impl/standalone.hpp>
 #include <engine/task/task_processor.hpp>
 #include <engine/task/task_processor_config.hpp>
@@ -18,7 +19,6 @@
 #include <userver/engine/task/single_threaded_task_processors_pool.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <utils/impl/parallelize_benchmark.hpp>
-#include <concurrent/impl/latch.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -158,7 +158,7 @@ void engine_multiple_yield_two_task_processor_no_extra_wakeups(
         tasks.push_back(engine::AsyncNoSpan(*processors[i].get(), [&] {
           std::uint64_t yields_performed = 0;
           while (keep_running) {
-            engine::Yield();
+            engine::AsyncNoSpan([]() {}).Wait();
             ++yields_performed;
           }
           return yields_performed;
@@ -169,7 +169,7 @@ void engine_multiple_yield_two_task_processor_no_extra_wakeups(
     tasks.push_back(engine::AsyncNoSpan(*processors.back().get(), [&] {
       std::uint64_t yields_performed = 0;
       for ([[maybe_unused]] auto _ : state) {
-        engine::Yield();
+        engine::AsyncNoSpan([]() {}).Wait();
         ++yields_performed;
       }
       keep_running = false;
@@ -193,164 +193,30 @@ BENCHMARK(engine_multiple_yield_two_task_processor_no_extra_wakeups)
     ->Arg(6)
     ->Arg(12);
 
-boost::intrusive_ptr<engine::impl::TaskContext> MakeContext() {
-  return engine::impl::MakeTask({engine::current_task::GetTaskProcessor(),
-                                 engine::Task::Importance::kNormal,
-                                 engine::Task::WaitMode::kSingleWaiter,
-                                 {}},
-                                [] {})
-      .Extract();
-}
-
-auto MakeContexts(const std::size_t tasks_count) {
-  std::vector<boost::intrusive_ptr<engine::impl::TaskContext>> contexts;
-  contexts.reserve(tasks_count);
-  for (std::size_t i = 0; i < tasks_count; ++i) {
-    contexts.push_back(MakeContext());
-  }
-
-  return contexts;
-}
-
-template <typename QueueType>
-void engine_task_queue(
-    benchmark::State& state) {
-  engine::TaskProcessorConfig config;
-  config.worker_threads = state.range(0);
-  QueueType task_queue(config);
-  std::atomic<bool> keep_running{true};
-  std::atomic<std::size_t> push_pop_count = 0;
-  concurrent::impl::Latch workers_left{
-        static_cast<std::ptrdiff_t>(config.worker_threads)};
-  
-  auto step = [&task_queue](std::vector<boost::intrusive_ptr<engine::impl::TaskContext>>& tasks) {
-    const std::size_t tasks_count = tasks.size();
-    for (auto&& task : tasks) {
-      task_queue.Push(std::move(task));
-    }
-
-    tasks.clear();
-    for (std::size_t i = 0; i < tasks_count; i++) {
-      auto context = task_queue.PopBlocking();
-      if (!context) {
-        break;
-      }
-      tasks.push_back(context);
-    }
-  };
-  auto common_task = [&](std::vector<boost::intrusive_ptr<engine::impl::TaskContext>> tasks) {
-    std::size_t iter_count = 0;
-    while (keep_running) {
-      step(tasks);
-      ++iter_count;
-    }
-    push_pop_count += iter_count;
-    workers_left.count_down();
-  };
-
-  auto state_task = [&](std::vector<boost::intrusive_ptr<engine::impl::TaskContext>> tasks) {
-    std::size_t iter_count = 0;
-    for ([[maybe_unused]] auto _ : state) {
-      step(tasks);
-      ++iter_count;
-    }
-    keep_running = false;
-    push_pop_count += iter_count;
-    workers_left.count_down();
-  };
-  
+void engine_tasks_from_another_task_processor(benchmark::State& state) {
   engine::RunStandalone([&] {
-    std::vector<std::thread> competing_threads;
-    benchmark::DoNotOptimize(push_pop_count);
-    for (int64_t i = 0; i < state.range(0) - 1; i++) {
-      auto tasks = MakeContexts(1);
-      competing_threads.emplace_back(common_task, tasks);
+    engine::TaskProcessorConfig proc_config;
+    proc_config.name = "benchmark";
+    proc_config.thread_name = "benchmark";
+    proc_config.worker_threads = state.range(0);
+    engine::TaskProcessor task_processor(
+        std::move(proc_config),
+        engine::current_task::GetTaskProcessor().GetTaskProcessorPools());
+    std::deque<engine::TaskWithResult<void>> tasks;
+    for (std::size_t i = 0; i < proc_config.worker_threads; i++) {
+      tasks.push_back(engine::AsyncNoSpan(task_processor, []() {}));
     }
-    auto tasks = MakeContexts(1);
-    competing_threads.emplace_back( state_task, tasks);
-    workers_left.wait();
-    for (auto& thread : competing_threads) {
-      thread.join();
+    for ([[maybe_unused]] auto _ : state) {
+      tasks.front().Wait();
+      tasks.push_back(engine::AsyncNoSpan(task_processor, []() {}));
+      tasks.pop_front();
     }
-    state.counters["push_pop"] =
-        benchmark::Counter(push_pop_count, benchmark::Counter::kIsRate);
-    state.counters["push_pop/thread"] = benchmark::Counter(
-        static_cast<double>(push_pop_count) / state.range(0),
-        benchmark::Counter::kIsRate);
   });
 }
-BENCHMARK_TEMPLATE(engine_task_queue, engine::WorkStealingTaskQueue)
+BENCHMARK(engine_tasks_from_another_task_processor)
     ->RangeMultiplier(2)
-    ->Ranges({{1, 32}, {1, 2}})
-    ->Args({6, 1})
-    ->Args({6, 2})
-    ->Args({12, 1})
-    ->Args({12, 2});
-BENCHMARK_TEMPLATE(engine_task_queue, engine::TaskQueue)
-    ->Ranges({{1, 32}, {1, 2}})
-    ->Args({6, 1})
-    ->Args({6, 2})
-    ->Args({12, 1})
-    ->Args({12, 2});
-
-
-void moody_camel(
-    benchmark::State& state) {
-  moodycamel::ConcurrentQueue<std::size_t> task_queue;
-  std::atomic<bool> keep_running{true};
-  std::atomic<int> push_pop_count = 0;
-  
-  auto step = [&task_queue](std::size_t tasks_count, moodycamel::ConsumerToken& token) {
-    for (std::size_t i = 0; i < tasks_count; i++) {
-      task_queue.enqueue(i);
-    }
-    for (std::size_t i = 0; i < tasks_count;) {
-      std::size_t x{0};
-      if (task_queue.try_dequeue(token, x)) {
-        i++;
-      }
-    }
-  };
-  auto common_task = [&]() {
-    moodycamel::ConsumerToken token(task_queue);
-    std::size_t iter_count = 0;
-    while (keep_running) {
-      step(1, token);
-      ++iter_count;
-    }
-    push_pop_count += iter_count;
-  };
-
-  auto state_task = [&]() {
-    moodycamel::ConsumerToken token(task_queue);
-    std::size_t iter_count = 0;
-    for ([[maybe_unused]] auto _ : state) {
-      step(1, token);
-      ++iter_count;
-    }
-    keep_running = false;
-    push_pop_count += iter_count;
-  };
-  
-  engine::RunStandalone([&] {
-    std::vector<std::thread> competing_threads;
-    benchmark::DoNotOptimize(push_pop_count);
-    for (int64_t i = 0; i < state.range(0) - 1; i++) {
-      competing_threads.emplace_back(common_task);
-    }
-    competing_threads.emplace_back( state_task);
-    for (auto& thread : competing_threads) {
-      thread.join();
-    }
-    state.counters["push_pop"] =
-        benchmark::Counter(push_pop_count, benchmark::Counter::kIsRate);
-    state.counters["push_pop/thread"] = benchmark::Counter(
-        static_cast<double>(push_pop_count) / state.range(0),
-        benchmark::Counter::kIsRate);
-  });
-}
-BENCHMARK(moody_camel)
-    ->RangeMultiplier(2)
-    ->Range(1, 32);
+    ->Range(2, 32)
+    ->Arg(6)
+    ->Arg(12);
 
 USERVER_NAMESPACE_END

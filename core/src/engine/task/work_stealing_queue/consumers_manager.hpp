@@ -39,6 +39,7 @@ class ConsumersManager final {
 
  private:
   void WakeUpAll();
+
   const std::size_t consumers_count_;
   std::mutex mutex_;
   ConsumersState state_{};

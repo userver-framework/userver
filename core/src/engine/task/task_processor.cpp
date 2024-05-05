@@ -1,6 +1,7 @@
 #include "task_processor.hpp"
 
 #include <sys/types.h>
+#include <atomic>
 #include <csignal>
 
 #include <fmt/format.h>
@@ -133,6 +134,7 @@ void TaskProcessor::InitiateShutdown() {
 
 void TaskProcessor::Schedule(impl::TaskContext* context) {
   UASSERT(context);
+  UpdateTaskQueueSize();
   if (max_task_queue_wait_length_ && !context->IsCritical()) {
     const auto queue_size = GetTaskQueueSize();
     if (queue_size >= max_task_queue_wait_length_) {
@@ -252,6 +254,14 @@ void TaskProcessor::PrepareWorkerThread(std::size_t index) noexcept {
       break;
   }
 
+  std::visit(
+      [index](auto& obj) {
+        if constexpr (std::is_same_v<decltype(obj), WorkStealingTaskQueue&>) {
+          obj.PrepareWorker(index);
+        }
+      },
+      task_queue_);
+
   utils::SetCurrentThreadName(fmt::format("{}_{}", config_.thread_name, index));
 
   impl::SetLocalTaskCounterData(task_counter_, index);
@@ -342,6 +352,17 @@ void TaskProcessor::HandleOverload(impl::TaskContext& context) {
                   << " was waiting in queue for too long, but it is marked "
                      "as critical, not cancelling.";
     }
+  }
+}
+
+void TaskProcessor::UpdateTaskQueueSize() {
+  thread_local std::atomic<std::size_t> steps_count{0};
+  auto curr = steps_count.fetch_add(1, std::memory_order_relaxed) + 1;
+  if (curr >= workers_.size()) {
+    auto new_size = std::visit(
+        [](auto&& arg) { return arg.GetSizeApproximate(); }, task_queue_);
+    task_queue_size_.store(new_size, std::memory_order_relaxed);
+    steps_count.store(0, std::memory_order_relaxed);
   }
 }
 

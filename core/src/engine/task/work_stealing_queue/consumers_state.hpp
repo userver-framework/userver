@@ -32,6 +32,7 @@ class ConsumersState {
 
  private:
   State CreateState(std::uint64_t data);
+
   std::atomic<std::uint64_t> state_{0};
 };
 

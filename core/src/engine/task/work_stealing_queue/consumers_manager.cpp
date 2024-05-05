@@ -19,7 +19,7 @@ void ConsumersManager::NotifyNewTask() {
   UASSERT(curr_state.stealing_count <= consumers_count_);
   UASSERT(curr_state.stealing_count + curr_state.sleeping_count <=
           consumers_count_);
-  if (curr_state.sleeping_count > 0 && curr_state.stealing_count < 1) {
+  if (curr_state.sleeping_count > 0 && curr_state.stealing_count == 0) {
     WakeUpOne();
   }
 }
@@ -48,7 +48,7 @@ bool ConsumersManager::AllowStealing() noexcept {
   while (true) {
     ConsumersState curr_consumers_state = state_;
     ConsumersState::State curr_state = curr_consumers_state.Get();
-    if (curr_state.stealing_count * 2 >= consumers_count_) {
+    if (curr_state.stealing_count * 2 > consumers_count_) {
       return false;
     }
     if (state_.TryIncrementStealersCount(curr_consumers_state)) {

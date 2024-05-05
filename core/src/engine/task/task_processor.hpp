@@ -58,10 +58,7 @@ class TaskProcessor final {
 
   const impl::TaskCounter& GetTaskCounter() const { return task_counter_; }
 
-  size_t GetTaskQueueSize() const {
-    return std::visit([](auto&& arg) { return arg.GetSizeApproximate(); },
-                      task_queue_);
-  }
+  size_t GetTaskQueueSize() const { return task_queue_size_.load(); }
 
   size_t GetWorkerCount() const { return workers_.size(); }
 
@@ -94,6 +91,8 @@ class TaskProcessor final {
 
   void HandleOverload(impl::TaskContext& context);
 
+  void UpdateTaskQueueSize();
+
   impl::TaskCounter task_counter_;
   concurrent::impl::InterferenceShield<impl::DetachedTasksSyncBlock>
       detached_contexts_{impl::DetachedTasksSyncBlock::StopMode::kCancel};
@@ -116,6 +115,7 @@ class TaskProcessor final {
   std::atomic<bool> profiler_force_stacktrace_{false};
   std::atomic<bool> is_shutting_down_{false};
   std::atomic<bool> task_trace_logger_set_{false};
+  std::atomic<std::size_t> task_queue_size_{0};
 
   std::unique_ptr<utils::statistics::ThreadPoolCpuStatsStorage>
       cpu_stats_storage_{nullptr};
