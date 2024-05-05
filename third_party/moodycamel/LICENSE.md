@@ -1,9 +1,10 @@
 This license file applies to everything in this repository except that which
 is explicitly annotated as being written by other authors, i.e. the Boost
 queue (included in the benchmarks for comparison), Intel's TBB library (ditto),
+dlib::pipe (ditto),
 the CDSChecker tool (used for verification), the Relacy model checker (ditto),
 and Jeff Preshing's semaphore implementation (used in the blocking queue) which
-has a zlib license (embedded in blockingconcurrentqueue.h).
+has a zlib license (embedded in lightweightsempahore.h).
 
 ---
 
@@ -16,10 +17,10 @@ Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
 
 - Redistributions of source code must retain the above copyright notice, this list of
-conditions and the following disclaimer.
+  conditions and the following disclaimer.
 - Redistributions in binary form must reproduce the above copyright notice, this list of
-conditions and the following disclaimer in the documentation and/or other materials
-provided with the distribution.
+  conditions and the following disclaimer in the documentation and/or other materials
+  provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
 EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
