@@ -303,7 +303,7 @@ class CustomHandlerException : public std::runtime_error {
     return data_.external_body;
   }
 
-  const formats::json::Value& GetDetails() const { return data_.details; };
+  const formats::json::Value& GetDetails() const { return data_.details; }
 
   const Headers& GetExtraHeaders() const { return data_.headers; }
 

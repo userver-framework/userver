@@ -111,7 +111,7 @@ class MlockProcessDebugInfoScope final {
     mlocked_sections_.clear();
     mlocked_size_approx_ = 0;
     mlock_total_duration_ = decltype(mlock_total_duration_){0};
-  };
+  }
 
   bool DoMlock(const void* start, std::size_t len) {
     const auto now = [] { return std::chrono::steady_clock::now(); };

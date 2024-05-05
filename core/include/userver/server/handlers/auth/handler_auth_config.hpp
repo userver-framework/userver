@@ -13,7 +13,7 @@ class HandlerAuthConfig final : public yaml_config::YamlConfig {
  public:
   explicit HandlerAuthConfig(yaml_config::YamlConfig value);
 
-  const std::vector<std::string>& GetTypes() const { return types_; };
+  const std::vector<std::string>& GetTypes() const { return types_; }
 
  private:
   std::vector<std::string> types_;

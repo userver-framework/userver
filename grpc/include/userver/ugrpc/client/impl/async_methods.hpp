@@ -146,7 +146,7 @@ class RpcData final {
     AsyncMethodInvocationGuard(AsyncMethodInvocationGuard&&) = delete;
     ~AsyncMethodInvocationGuard() noexcept;
 
-    void Disarm() noexcept { disarm_ = true; };
+    void Disarm() noexcept { disarm_ = true; }
 
    private:
     RpcData& data_;

@@ -107,7 +107,7 @@ class SimpleServer::Impl {
  public:
   Impl(OnRequest callback, Protocol protocol);
 
-  [[nodiscard]] Port GetPort() const { return listener_.Port(); };
+  [[nodiscard]] Port GetPort() const { return listener_.Port(); }
 
   [[nodiscard]] Protocol GetProtocol() const {
     switch (listener_.addr.Domain()) {
@@ -118,7 +118,7 @@ class SimpleServer::Impl {
       default:
         UINVARIANT(false, "Unexpected listener domain");
     }
-  };
+  }
 
   std::uint64_t GetConnectionsOpenedCount() const {
     return connections_opened_count_;
