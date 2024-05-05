@@ -17,14 +17,13 @@ namespace {
 
 thread_local std::atomic<int> kThreadLocal{1};
 
-// NOTE: adding USERVER_IMPL_PREVENT_TLS_CACHING helps make the test pass, but
-// users have no access to it, and not all thread_locals are protected this way.
-/* USERVER_IMPL_PREVENT_TLS_CACHING */ int LoadThreadLocal() noexcept {
+// NOTE: adding compiler::ThreadLocal on these functions helps make the test
+// pass, but not all thread_locals are protected this way.
+int LoadThreadLocal() noexcept {
   return kThreadLocal.load(std::memory_order_relaxed);
 }
 
-/* USERVER_IMPL_PREVENT_TLS_CACHING */ void MultiplyThreadLocal(
-    int new_value) noexcept {
+void MultiplyThreadLocal(int new_value) noexcept {
   kThreadLocal.store(kThreadLocal.load(std::memory_order_relaxed) * new_value,
                      std::memory_order_relaxed);
 }
@@ -169,7 +168,7 @@ namespace {
 
 thread_local std::size_t manually_protected_var{};
 
-// Need for tests inner function for work with thread_local variables
+// Test that userver-based services can use thread-local variables.
 struct UserverCompilerThreadLocal {
   static std::size_t* GetLocal() {
     // Don't use it in production, use `compiler::ThreadLocal` instead
@@ -177,10 +176,10 @@ struct UserverCompilerThreadLocal {
   }
 };
 
-// Need for tests defending macros for work with thread_local variables
+// Test that third-party libraries can use thread-local variables
+// in a userver-compatible way.
 struct ManuallyProtectedThreadLocal {
-  USERVER_IMPL_PREVENT_TLS_CACHING
-  static std::size_t* GetLocal() {
+  __attribute__((noinline)) static std::size_t* GetLocal() {
     // Don't use it in production
     auto ptr = &manually_protected_var;
     // clang-format off
@@ -192,7 +191,7 @@ struct ManuallyProtectedThreadLocal {
 };
 
 template <typename T>
-struct ThreadLocalTyped : public ::testing::Test {};
+class ThreadLocalTyped : public ::testing::Test {};
 
 using ThreadLocalTypes =
     ::testing::Types<UserverCompilerThreadLocal, ManuallyProtectedThreadLocal>;
