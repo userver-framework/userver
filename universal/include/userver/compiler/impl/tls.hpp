@@ -3,26 +3,6 @@
 #include <type_traits>
 #include <utility>
 
-/// @cond
-
-// This attribute should be put on functions that read or write (or read the
-// address of) 'thread_local' variables. (And such functions should never
-// contain a context switch themselves.) It should prevent the compiler from
-// caching the TLS address across a coroutine context switch.
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_IMPL_PREVENT_TLS_CACHING __attribute__((noinline))
-
-// This macro should be put inside functions that read or write (or read the
-// address of) 'thread_local' variables. (And such functions should never
-// contain a context switch themselves.)
-// In conjunction with USERVER_IMPL_PREVENT_TLS_CACHING this prevents the
-// compiler from caching the TLS address across a coroutine context switch.
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_IMPL_PREVENT_TLS_CACHING_ASM \
-  __asm__ volatile("") /* NOLINT(hicpp-no-assembler) */
-
-/// @endcond
-
 USERVER_NAMESPACE_BEGIN
 
 namespace compiler::impl {
@@ -36,7 +16,11 @@ namespace compiler::impl {
 /// That is, after any usage of userver synchronization primitives or clients
 /// (web or db), the reference is invalidated and should not be used.
 template <typename Func>
-USERVER_IMPL_PREVENT_TLS_CACHING auto& ThreadLocal(Func&& factory) {
+__attribute__((noinline)) auto& ThreadLocal(Func&& factory) {
+  // Implementation note: this 'asm' and 'noinline' prevent the compiler
+  // from caching the TLS address across a coroutine context switch.
+  // The general approach is taken from:
+  // https://github.com/qemu/qemu/blob/stable-8.2/include/qemu/coroutine-tls.h#L153
   using VariableType = std::invoke_result_t<Func&&>;
 
   thread_local VariableType variable{std::forward<Func>(factory)()};
