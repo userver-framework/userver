@@ -1,10 +1,10 @@
 #pragma once
 
 #include <cstddef>
+#include <optional>
 
 #include <moodycamel/concurrentqueue.h>
 
-#include <optional>
 #include <userver/utils/fixed_array.hpp>
 #include <userver/utils/span.hpp>
 

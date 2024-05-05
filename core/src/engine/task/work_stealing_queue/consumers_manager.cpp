@@ -2,9 +2,10 @@
 
 #include <mutex>
 
+#include <userver/utils/assert.hpp>
+
 #include <engine/task/work_stealing_queue/consumer.hpp>
 #include <engine/task/work_stealing_queue/consumers_state.hpp>
-#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

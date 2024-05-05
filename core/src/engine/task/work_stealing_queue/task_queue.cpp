@@ -1,10 +1,11 @@
 #include <engine/task/work_stealing_queue/task_queue.hpp>
 
+#include <userver/utils/assert.hpp>
+
 #include <engine/task/task_context.hpp>
 #include <engine/task/work_stealing_queue/consumer.hpp>
 #include <engine/task/work_stealing_queue/consumers_manager.hpp>
 #include <engine/task/work_stealing_queue/global_queue.hpp>
-#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
