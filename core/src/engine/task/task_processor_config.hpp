@@ -33,7 +33,7 @@ struct TaskProcessorConfig {
   std::size_t worker_threads{6};
   std::string thread_name;
   OsScheduling os_scheduling{OsScheduling::kNormal};
-  int spinning_iterations{10000};
+  int spinning_iterations{1000};
   TaskQueueType task_processor_queue{TaskQueueType::kWorkStealingTaskQueue};
 
   std::size_t task_trace_every{1000};

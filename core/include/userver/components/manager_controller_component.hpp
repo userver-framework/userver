@@ -49,7 +49,7 @@ class Manager;
 /// thread_name | set OS thread name to this value | Part of the task_processor name before the first '-' symbol with '-worker' appended; for example 'fs-worker' or 'main-worker'
 /// worker_threads | threads count for the task processor | -
 /// os-scheduling | OS scheduling mode for the task processor threads. 'idle' sets the lowest priority. 'low-priority' sets the priority below 'normal' but higher than 'idle'. | normal
-/// spinning-iterations | tunes the number of spin-wait iterations in case of an empty task queue before threads go to sleep | 10000
+/// spinning-iterations | tunes the number of spin-wait iterations in case of an empty task queue before threads go to sleep | 1000
 /// task-processor-queue | Task queue mode for the task processor. `global-task-queue` default task queue. `work-stealing-task-queue` experimental with potentially better scalability than `global-task-queue`.
 /// task-trace | optional dictionary of tracing options | empty (disabled)
 /// task-trace.every | set N to trace each Nth task | 1000
