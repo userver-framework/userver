@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/utils/numeric_cast.hpp
+/// @brief @copybrief utils::numeric_cast
+
 #include <stdexcept>
 
 #include <fmt/format.h>
@@ -17,8 +20,14 @@ using PrintableValue = std::conditional_t<(sizeof(T) > 1), T, int>;
 
 }
 
+/// Detects loss of range when a numeric type is converted, and throws an
+/// exception if the range cannot be preserved
+///
+/// ## Example usage:
+///
+/// @snippet utils/numeric_cast_test.cpp  Sample utils::numeric_cast usage
 template <typename U, typename T>
-U numeric_cast(T input) {
+constexpr U numeric_cast(T input) {
   static_assert(std::is_integral_v<T>);
   static_assert(std::is_integral_v<U>);
 
