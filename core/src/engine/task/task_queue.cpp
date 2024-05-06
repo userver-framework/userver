@@ -38,7 +38,7 @@ boost::intrusive_ptr<impl::TaskContext> TaskQueue::PopBlocking() {
 void TaskQueue::StopProcessing() { DoPush(nullptr); }
 
 std::size_t TaskQueue::GetSizeApproximate() const noexcept {
-  return 5; //queue_.size_approx();
+  return 5;  // queue_.size_approx();
 }
 
 void TaskQueue::DoPush(impl::TaskContext* context) {
