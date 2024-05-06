@@ -3,8 +3,8 @@
 #include <cstdint>
 #include <type_traits>
 
-#include <concurrent/impl/intrusive_hooks.hpp>
-#include <concurrent/impl/intrusive_stack.hpp>
+#include <userver/concurrent/impl/intrusive_hooks.hpp>
+#include <userver/concurrent/impl/intrusive_stack.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN

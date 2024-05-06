@@ -3,7 +3,7 @@
 #include <atomic>
 
 #include <concurrent/impl/interference_shield.hpp>
-#include <concurrent/impl/intrusive_hooks.hpp>
+#include <userver/concurrent/impl/intrusive_hooks.hpp>
 #include <userver/utils/not_null.hpp>
 
 USERVER_NAMESPACE_BEGIN
