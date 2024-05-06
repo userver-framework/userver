@@ -17,12 +17,12 @@
 #include <userver/logging/impl/logger_base.hpp>
 
 #include <concurrent/impl/interference_shield.hpp>
-#include <concurrent/impl/intrusive_hooks.hpp>
 #include <engine/impl/async_flat_combining_queue.hpp>
 #include <logging/config.hpp>
 #include <logging/impl/base_sink.hpp>
 #include <logging/impl/reopen_mode.hpp>
 #include <logging/statistics/log_stats.hpp>
+#include <userver/concurrent/impl/intrusive_hooks.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

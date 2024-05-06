@@ -4,9 +4,9 @@
 
 #include <memory>  // for std::uninitialized_fill_n
 
-#include <concurrent/impl/intrusive_stack.hpp>
 #include <userver/compiler/impl/constexpr.hpp>
 #include <userver/compiler/impl/lsan.hpp>
+#include <userver/concurrent/impl/intrusive_stack.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

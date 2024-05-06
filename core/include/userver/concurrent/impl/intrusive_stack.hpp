@@ -4,8 +4,8 @@
 #include <cstdint>
 #include <type_traits>
 
-#include <concurrent/impl/intrusive_hooks.hpp>
-#include <concurrent/impl/tagged_ptr.hpp>
+#include <userver/concurrent/impl/intrusive_hooks.hpp>
+#include <userver/concurrent/impl/tagged_ptr.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -27,7 +27,6 @@ namespace concurrent::impl {
 template <typename T, typename HookExtractor>
 class IntrusiveStack final {
   static_assert(std::is_empty_v<HookExtractor>);
-  static_assert(std::is_invocable_r_v<SinglyLinkedHook<T>&, HookExtractor, T&>);
 
  public:
   constexpr IntrusiveStack() = default;
@@ -98,7 +97,8 @@ class IntrusiveStack final {
   static_assert(std::has_unique_object_representations_v<NodeTaggedPtr>);
 
   static std::atomic<T*>& GetNext(T& node) noexcept {
-    return static_cast<SinglyLinkedHook<T>&>(HookExtractor{}(node)).next_;
+    SinglyLinkedHook<T>& hook = HookExtractor{}(node);
+    return hook.next_;
   }
 
   template <typename U, typename Func>
