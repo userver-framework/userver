@@ -40,11 +40,17 @@ retry() {
 
 for BUILD_TYPE in Debug Release; do
   BUILD_DIR=build_${BUILD_TYPE,,}  # ',,' to lowercase the value
+
+  BUILD_TYPE_OPTIONS=""
+  if [ "$BUILD_TYPE" == "Debug" ]; then
+    BUILD_TYPE_OPTIONS="-DUSERVER_SANITIZE='ub addr'"
+  fi
+
   # Retry at most 5 times in case of network errors and problems with CPM
   retry 5 cmake -S./ -B ${BUILD_DIR} \
       -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
       -DUSERVER_INSTALL=ON \
-      -DUSERVER_SANITIZE="ub addr" \
+      ${BUILD_TYPE_OPTIONS} \
       ${ALL_FEATURES} \
       ${BUILD_OPTIONS:-""} \
       -GNinja
