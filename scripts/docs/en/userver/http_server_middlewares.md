@@ -35,8 +35,8 @@ Steps 2. and 4. are implemented by a number of logically-independent middlewares
 tune/enhance/rearrange things without going into massive refactoring,
 and allows our users to adjust the pipeline as they see fit.
 
-An important detail of the middlewares implementation is that technically middleware is not a @ref scripts/docs/en/userver/component_system.md "Component",
-but rather a @ref userver_clients "Client":
+An important detail of the middlewares implementation is that technically middleware is not a
+@ref scripts/docs/en/userver/component_system.md "Component", but rather a @ref userver_clients "Client":
 given M middlewares and H handlers, there will be M x H instances of middlewares in total, M instances for each handler.
 Such arguably more complicated approach is justified by the configurability-freedom it provides: instead of somehow
 adjusting the middleware behavior in the code (based on a route, for example), one can configure the middleware at
@@ -47,7 +47,8 @@ resource (say, global rate-limiting) or for performing database/http queries. Si
 it doesn't have a way to lookup it's dependencies from the @ref components::ComponentContext itself, but rather
 the dependencies should be injected into a middleware instance. This is where a MiddlewareFactory comes into play.
 
-Every @ref server::middlewares::HttpMiddlewareBase "Middleware" is paired with a corresponding @ref server::middlewares::HttpMiddlewareFactoryBase "Factory", which is a Component, and is responsible for creating
+Every @ref server::middlewares::HttpMiddlewareBase "Middleware" is paired with a corresponding
+@ref server::middlewares::HttpMiddlewareFactoryBase "Factory", which is a Component, and is responsible for creating
 middleware instances and injecting required dependencies into these instances. It goes like this: when a handler is
 constructed, it looks up all the factories specified by the pipeline configuration, requests each factory to create a
 middleware instance, and then builds the resulting pipeline from these instances.
@@ -90,28 +91,6 @@ and also passes the handler into the middleware constructor. Given the middlewar
 the factory implementation is just this:
 @snippet samples/http_middleware_service/http_middleware_service.cpp  Middlewares sample - some middleware factory implementation
 
-### Pipelines configuration
-
-Now, after we have a middleware and its factory implemented, it would be nice to actually use the middleware in the
-pipeline. 
-🐙 **userver** provides two interfaces for configuring middleware pipelines: one for a server-wide configuration,
-and one for a more granular per-handler configuration.
-The server-wide one is a server::middlewares::PipelineBuilder: by default it creates the pipeline by taking the server::middlewares::DefaultPipeline and appending
-some middlewares to it, which looks like this:
-@snippet samples/http_middleware_service/static_config.yaml  Middlewares sample - pipeline builder configuration
-If a more sophisticated behavior is desired one could derive from server::middlewares::PipelineBuilder and override its `BuildPipeline` method,
-but remember that messing with the default userver-provided pipeline is error-prone and leaves you on your own.
-
-To configure the pipeline at a per-handler basis 🐙 **userver** provides a server::middlewares::HandlerPipelineBuilder interface.
-By default, it returns the server-wide pipeline without any modifications to it. To change the behavior one should 
-derive from it, override the `BuildPipeline` method and specify the builder as the pipeline-builder for the handler.
-For example:
-@snippet samples/http_middleware_service/http_middleware_service.cpp  Middlewares sample - custom handler pipeline builder
-and to use the class as a pipeline builder we should append it to the @ref components::ComponentList "ComponentList"
-@snippet samples/http_middleware_service/http_middleware_service.cpp  Middlewares sample - custom handler pipeline builder registration
-and specify as a pipeline-builder for the handler (notice the middlewares.pipeline-builder section):
-@snippet samples/http_middleware_service/static_config.yaml  Middlewares sample - custom handler pipeline builder configuration
-
 ### Per-handler middleware configuration
 
 Basically, the whole point of having MiddlewareFactory-ies separated from Middleware-s, is to have a possibility to 
@@ -127,3 +106,39 @@ If a global configuration is desired (that is, for every middleware instance the
 would be to have a configuration in the Factory config, and for Factory to pass the configuration into the Middleware 
 constructor. This takes away the possibility to declare a Factory as a SimpleHttpMiddlewareFactory, but we find this
 tradeoff acceptable (after all, if a middleware needs a configuration it isn't that "Simple" already).
+
+## Pipelines configuration
+
+Now, after we have a middleware and its factory implemented, it would be nice to actually use the middleware in the
+pipeline.
+🐙 **userver** provides two interfaces for configuring middleware pipelines: one for a server-wide configuration,
+and one for a more granular per-handler configuration.
+
+### Server-wide middleware pipeline
+
+The server-wide pipeline is server::middlewares::PipelineBuilder. In its simple form, it takes
+server::middlewares::DefaultPipeline and appends the given middlewares to it, which looks like this:
+@snippet samples/http_middleware_service/static_config.yaml  Middlewares sample - pipeline builder configuration
+
+If a more sophisticated behavior is desired, derive from server::middlewares::PipelineBuilder and override
+its `BuildPipeline` method. Then set the custom pipeline component's name in the server config:
+
+```yaml
+        server:
+            # ...
+            middleware-pipeline-builder: custom-pipeline-builder
+```
+
+Remember that messing with the default userver-provided pipeline is error-prone and leaves you on your own.
+
+### Custom per-handler middleware pipelines
+
+To configure the pipeline at a per-handler basis 🐙 **userver** provides server::middlewares::HandlerPipelineBuilder interface.
+By default, it returns the server-wide pipeline without any modifications to it. To change the behavior one should
+derive from it, override the `BuildPipeline` method and specify the builder as the pipeline-builder for the handler.
+For example:
+@snippet samples/http_middleware_service/http_middleware_service.cpp  Middlewares sample - custom handler pipeline builder
+and to use the class as a pipeline builder we should append it to the @ref components::ComponentList "ComponentList"
+@snippet samples/http_middleware_service/http_middleware_service.cpp  Middlewares sample - custom handler pipeline builder registration
+and specify as a pipeline-builder for the handler (notice the middlewares.pipeline-builder section):
+@snippet samples/http_middleware_service/static_config.yaml  Middlewares sample - custom handler pipeline builder configuration
