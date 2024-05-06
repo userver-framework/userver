@@ -88,7 +88,8 @@ class TaskProcessor final {
 
   void SetTaskQueueWaitTimeOverloaded(bool new_value) noexcept;
 
-  void HandleOverload(impl::TaskContext& context);
+  void HandleOverload(impl::TaskContext& context,
+                      TaskProcessorSettings::OverloadAction);
 
   concurrent::impl::InterferenceShield<impl::DetachedTasksSyncBlock>
       detached_contexts_{impl::DetachedTasksSyncBlock::StopMode::kCancel};
@@ -104,11 +105,11 @@ class TaskProcessor final {
 
   std::atomic<std::chrono::microseconds> task_profiler_threshold_{{}};
   std::atomic<std::chrono::microseconds> sensor_task_queue_wait_time_{{}};
-  std::atomic<std::chrono::microseconds> max_task_queue_wait_time_{{}};
-  std::atomic<std::size_t> max_task_queue_wait_length_{0};
 
-  std::atomic<TaskProcessorSettings::OverloadAction> overload_action_{
-      TaskProcessorSettings::OverloadAction::kIgnore};
+  std::atomic<std::chrono::microseconds>
+      action_bit_and_max_task_queue_wait_time_{{}};
+  std::atomic<std::int64_t> action_bit_and_max_task_queue_wait_length_{0};
+
   std::atomic<bool> profiler_force_stacktrace_{false};
   std::atomic<bool> is_shutting_down_{false};
   std::atomic<bool> task_trace_logger_set_{false};
