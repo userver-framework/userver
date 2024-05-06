@@ -17,7 +17,7 @@ USERVER_NAMESPACE_BEGIN
 namespace utils::datetime {
 /// @snippet utils/datetime/from_string_saturating_test.cpp  kRfc3339Format
 inline const std::string kRfc3339Format = "%Y-%m-%dT%H:%M:%E*S%Ez";
-/// @snippet utils/datetime/datetime_test.cpp  kTaximeterFormat
+/// @snippet utils/datetime/from_string_saturating_test.cpp  kTaximeterFormat
 inline const std::string kTaximeterFormat = "%Y-%m-%dT%H:%M:%E6SZ";
 inline constexpr std::time_t kStartOfTheEpoch = 0;
 /// @snippet utils/datetime/datetime_test.cpp  kDefaultDriverTimezone
@@ -77,9 +77,13 @@ bool IsTimeBetween(int hour, int min, int hour_from, int min_from, int hour_to,
                    int min_to, bool include_time_to = false) noexcept;
 
 /// @brief Returns time in a string of specified format
+///
 /// @throws utils::datetime::TimezoneLookupError
+///
 /// Example:
+///
 /// @snippet utils/datetime/datetime_test.cpp  Timestring C time example
+///
 /// @see kRfc3339Format, kTaximeterFormat, kStartOfTheEpoch,
 /// kDefaultDriverTimezone, kDefaultTimezone, kDefaultFormat, kIsoFormat
 std::string Timestring(std::time_t timestamp,
@@ -94,7 +98,9 @@ std::string LocalTimezoneTimestring(std::time_t timestamp,
 
 /// @brief Returns time in a string of specified format
 /// @throws utils::datetime::TimezoneLookupError
+///
 /// Example:
+///
 /// @snippet utils/datetime/datetime_test.cpp Timestring example
 /// @see kRfc3339Format, kTaximeterFormat, kStartOfTheEpoch,
 /// kDefaultDriverTimezone, kDefaultTimezone, kDefaultFormat, kIsoFormat
@@ -111,7 +117,9 @@ std::string LocalTimezoneTimestring(std::chrono::system_clock::time_point tp,
 /// @brief Extracts time point from a string of a specified format
 /// @throws utils::datetime::DateParseError
 /// @throws utils::datetime::TimezoneLookupError
+///
 /// Example:
+///
 /// @snippet utils/datetime/datetime_test.cpp  Stringtime example
 /// @see kRfc3339Format, kTaximeterFormat, kStartOfTheEpoch,
 /// kDefaultDriverTimezone, kDefaultTimezone, kDefaultFormat, kIsoFormat
@@ -130,7 +138,9 @@ std::chrono::system_clock::time_point LocalTimezoneStringtime(
 /// @brief Extracts time point from a string, guessing the format
 /// @throws utils::datetime::DateParseError
 /// @throws utils::datetime::TimezoneLookupError
+///
 /// Example:
+///
 /// @snippet utils/datetime/datetime_test.cpp  GuessStringtime example
 std::chrono::system_clock::time_point GuessStringtime(
     const std::string& timestamp, const std::string& timezone);
@@ -141,8 +151,10 @@ std::chrono::system_clock::time_point GuessLocalTimezoneStringtime(
     const std::string& timestamp);
 
 /// @brief Returns optional time in a string of specified format
+///
 /// Example:
-/// @snippet utils/datetime/datetime_test.cpp OptionalTimestring example
+///
+/// @snippet utils/datetime/datetime_test.cpp OptionalStringtime example
 /// @see kRfc3339Format, kTaximeterFormat, kStartOfTheEpoch,
 /// kDefaultDriverTimezone, kDefaultTimezone, kDefaultFormat, kIsoFormat
 std::optional<std::chrono::system_clock::time_point> OptionalStringtime(
@@ -151,7 +163,9 @@ std::optional<std::chrono::system_clock::time_point> OptionalStringtime(
     const std::string& format = kDefaultFormat);
 
 /// @brief Converts time point to std::time_t
+///
 /// Example:
+///
 /// @snippet utils/datetime/datetime_test.cpp  Timestring C time example
 std::time_t Timestamp(std::chrono::system_clock::time_point tp) noexcept;
 
@@ -166,8 +180,10 @@ std::uint32_t ParseDayTime(const std::string& str);
 /// @brief Converts absolute time in std::chrono::system_clock::time_point to
 /// a civil time of a particular timezone.
 /// @throws utils::datetime::TimezoneLookupError
+///
 /// Example:
-/// @snippet utils/datetime/datetime_test.cpp  [Localize example]
+///
+/// @snippet utils/datetime/datetime_test.cpp  Localize example
 cctz::civil_second Localize(const std::chrono::system_clock::time_point& tp,
                             const std::string& timezone);
 
@@ -178,8 +194,10 @@ cctz::civil_second LocalTimezoneLocalize(
 
 /// @brief Converts a civil time in a specified timezone into an absolute time.
 /// @throws utils::datetime::TimezoneLookupError
+///
 /// Example:
-/// @snippet utils/datetime/datetime_test.cpp  [Localize example]
+///
+/// @snippet utils/datetime/datetime_test.cpp  Localize example
 std::time_t Unlocalize(const cctz::civil_second& local_tp,
                        const std::string& timezone);
 
@@ -193,7 +211,9 @@ std::string TimestampToString(std::time_t timestamp);
 /// @brief Convert time_point to DotNet ticks
 /// @param time point day time
 /// @return number of 100nanosec intervals between current date and 01/01/0001
+///
 /// Example:
+///
 /// @snippet utils/datetime/datetime_test.cpp  TimePointToTicks example
 std::int64_t TimePointToTicks(
     const std::chrono::system_clock::time_point& tp) noexcept;

@@ -15,7 +15,6 @@ components_manager:
             domains:
               - /v1/hello
             nonce-ttl: 1000s
-        # /// [digest config]
         auth-digest-checker-settings-proxy:
             algorithm: MD5
             qops:
