@@ -126,6 +126,7 @@ class DynamicConfigClientUpdater final
   const std::optional<cache::AllowedUpdateTypes> deduplicate_update_types_;
   dynamic_config::Client& config_client_;
 
+  bool is_empty_{true};
   dynamic_config::Client::Timestamp server_timestamp_;
   // for atomic updates of cached data
   engine::Mutex update_config_mutex_;
