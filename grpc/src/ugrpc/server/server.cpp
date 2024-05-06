@@ -20,6 +20,7 @@
 #include <ugrpc/impl/logging.hpp>
 #include <ugrpc/impl/to_string.hpp>
 #include <ugrpc/server/impl/parse_config.hpp>
+#include <userver/ugrpc/impl/deadline_timepoint.hpp>
 #include <userver/ugrpc/impl/statistics_storage.hpp>
 #include <userver/ugrpc/server/impl/queue_holder.hpp>
 #include <userver/ugrpc/server/impl/service_worker.hpp>
@@ -31,6 +32,7 @@ namespace ugrpc::server {
 namespace {
 
 constexpr std::size_t kMaxSocketPathLength = 107;
+constexpr std::chrono::seconds kShutdownGracePeriod{1};
 
 std::optional<int> ToOptionalInt(const std::string& str) {
   char* str_end{};
@@ -256,7 +258,7 @@ void Server::Impl::Stop() noexcept {
   // else
   if (server_) {
     LOG_INFO() << "Stopping the gRPC server";
-    server_->Shutdown();
+    server_->Shutdown(engine::Deadline::FromDuration(kShutdownGracePeriod));
   }
   service_workers_.clear();
   queue_.reset();
@@ -269,7 +271,7 @@ void Server::Impl::StopServing() noexcept {
   UASSERT(state_ != State::kStopped);
   if (server_) {
     LOG_INFO() << "Stopping serving on the gRPC server";
-    server_->Shutdown();
+    server_->Shutdown(engine::Deadline::FromDuration(kShutdownGracePeriod));
   }
   service_workers_.clear();
 
