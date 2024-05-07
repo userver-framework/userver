@@ -117,6 +117,8 @@ postgresql.replication-lag.min: postgresql_cluster_host_type=master, postgresql_
 postgresql.roundtrip-time.avg: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
 postgresql.roundtrip-time.max: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
 postgresql.roundtrip-time.min: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.statement_errors: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000, postgresql_query=metrics_insert_value	RATE	0
+postgresql.statement_executed: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000, postgresql_query=metrics_insert_value	RATE	0
 postgresql.statement_timings: percentile=p0, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000, postgresql_query=metrics_insert_value	GAUGE	0
 postgresql.statement_timings: percentile=p100, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000, postgresql_query=metrics_insert_value	GAUGE	0
 postgresql.statement_timings: percentile=p50, postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000, postgresql_query=metrics_insert_value	GAUGE	0

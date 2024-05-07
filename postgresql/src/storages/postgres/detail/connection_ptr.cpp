@@ -38,11 +38,10 @@ Connection& ConnectionPtr::operator*() const {
 
 Connection* ConnectionPtr::operator->() const noexcept { return conn_.get(); }
 
-const StatementTimingsStorage* ConnectionPtr::GetStatementTimingsStorage()
-    const {
+const StatementStatsStorage* ConnectionPtr::GetStatementStatsStorage() const {
   if (!pool_) return nullptr;
 
-  return &pool_->GetStatementTimingsStorage();
+  return &pool_->GetStatementStatsStorage();
 }
 
 std::optional<dynamic_config::Source> ConnectionPtr::GetConfigSource() const {

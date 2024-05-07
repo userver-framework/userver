@@ -2,7 +2,7 @@
 
 #include <storages/postgres/deadline.hpp>
 #include <storages/postgres/detail/cc_config.hpp>
-#include <storages/postgres/detail/statement_timings_storage.hpp>
+#include <storages/postgres/detail/statement_stats_storage.hpp>
 
 #include <userver/dynamic_config/value.hpp>
 #include <userver/engine/async.hpp>

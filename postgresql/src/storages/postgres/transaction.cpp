@@ -2,7 +2,7 @@
 
 #include <storages/postgres/deadline.hpp>
 #include <storages/postgres/detail/connection.hpp>
-#include <storages/postgres/detail/statement_timer.hpp>
+#include <storages/postgres/detail/statement_stats.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 #include <userver/testsuite/testpoint.hpp>
 
@@ -73,10 +73,15 @@ ResultSet Transaction::DoExecute(const Query& query,
   auto source = conn_.GetConfigSource();
   if (source) CheckDeadlineIsExpired(source->GetSnapshot());
 
-  detail::StatementTimer timer{query, conn_};
-  auto res = conn_->Execute(query, params, std::move(statement_cmd_ctl));
-  timer.Account();
-  return res;
+  detail::StatementStats stats{query, conn_};
+  try {
+    auto res = conn_->Execute(query, params, std::move(statement_cmd_ctl));
+    stats.AccountStatementExecution();
+    return res;
+  } catch (const std::exception& e) {
+    stats.AccountStatementError();
+    throw;
+  }
 }
 
 Portal Transaction::MakePortal(const PortalName& portal_name,

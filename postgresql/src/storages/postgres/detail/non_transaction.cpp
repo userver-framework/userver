@@ -2,7 +2,7 @@
 #include <userver/testsuite/testpoint.hpp>
 
 #include <storages/postgres/detail/connection.hpp>
-#include <storages/postgres/detail/statement_timer.hpp>
+#include <storages/postgres/detail/statement_stats.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -41,10 +41,15 @@ ResultSet NonTransaction::DoExecute(const Query& query,
         });
   }
 
-  StatementTimer timer{query, conn_};
-  auto res = conn_->Execute(query, params, statement_cmd_ctl);
-  timer.Account();
-  return res;
+  StatementStats stats{query, conn_};
+  try {
+    auto res = conn_->Execute(query, params, statement_cmd_ctl);
+    stats.AccountStatementExecution();
+    return res;
+  } catch (const std::exception& e) {
+    stats.AccountStatementError();
+    throw;
+  }
 }
 
 const UserTypes& NonTransaction::GetConnectionUserTypes() const {

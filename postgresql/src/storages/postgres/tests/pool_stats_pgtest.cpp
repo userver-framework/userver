@@ -100,8 +100,8 @@ UTEST_F(PostgrePoolStats, RunStatement) {
   auto ntrx = pg::detail::NonTransaction{std::move(conn)};
 
   UEXPECT_NO_THROW(ntrx.Execute(query));
-  pool->GetStatementTimingsStorage().WaitForExhaustion();
-  const auto stats = pool->GetStatementTimingsStorage().GetTimingsPercentiles();
+  pool->GetStatementStatsStorage().WaitForExhaustion();
+  const auto stats = pool->GetStatementStatsStorage().GetStatementsStats();
   EXPECT_NE(stats.find(statement_name), stats.end());
 }
 
@@ -124,8 +124,8 @@ UTEST_F(PostgrePoolStats, RunSingleTransaction) {
   trx.Execute(query);
   trx.Commit();
 
-  pool->GetStatementTimingsStorage().WaitForExhaustion();
-  const auto stats = pool->GetStatementTimingsStorage().GetTimingsPercentiles();
+  pool->GetStatementStatsStorage().WaitForExhaustion();
+  const auto stats = pool->GetStatementStatsStorage().GetStatementsStats();
   EXPECT_NE(stats.find(statement_name), stats.end());
 }
 

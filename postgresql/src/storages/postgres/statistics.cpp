@@ -57,10 +57,14 @@ void DumpMetric(USERVER_NAMESPACE::utils::statistics::Writer& writer,
   writer["prepared-per-connection"] = stats.connection.prepared_statements;
   writer["roundtrip-time"] = stats.topology.roundtrip_time;
   writer["replication-lag"] = stats.topology.replication_lag;
-  if (!stats.statement_timings.empty()) {
-    auto timings = writer["statement_timings"];
-    for (const auto& [name, percentile] : stats.statement_timings) {
-      timings.ValueWithLabels(percentile, {"postgresql_query", name});
+  if (!stats.per_statement_stats.empty()) {
+    for (const auto& [stmt, stmt_stats] : stats.per_statement_stats) {
+      writer["statement_timings"].ValueWithLabels(stmt_stats.timings,
+                                                  {"postgresql_query", stmt});
+      writer["statement_executed"].ValueWithLabels(stmt_stats.executed,
+                                                   {"postgresql_query", stmt});
+      writer["statement_errors"].ValueWithLabels(stmt_stats.errors,
+                                                 {"postgresql_query", stmt});
     }
   }
 }

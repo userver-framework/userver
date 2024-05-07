@@ -9,6 +9,7 @@
 #include <userver/rcu/rcu.hpp>
 #include <userver/storages/postgres/options.hpp>
 #include <userver/storages/postgres/statistics.hpp>
+#include <userver/utils/statistics/rate_counter.hpp>
 #include <userver/utils/statistics/recentperiod.hpp>
 
 #include <unordered_map>
@@ -17,17 +18,21 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres::detail {
 
-class StatementTimingsStorage final {
+class StatementStatsStorage final {
  public:
   using Percentile = postgres::Percentile;
+  using RateCounter = USERVER_NAMESPACE::utils::statistics::RateCounter;
 
-  StatementTimingsStorage(const StatementMetricsSettings& settings);
-  ~StatementTimingsStorage();
+  enum class ExecutionResult { kSuccess, kError };
 
-  void Account(const std::string& statement_name,
-               std::size_t duration_ms) const;
+  StatementStatsStorage(const StatementMetricsSettings& settings);
+  ~StatementStatsStorage();
 
-  std::unordered_map<std::string, Percentile> GetTimingsPercentiles() const;
+  void Account(const std::string& statement_name, std::size_t duration_ms,
+               ExecutionResult result) const;
+
+  std::unordered_map<std::string, StatementStatistics> GetStatementsStats()
+      const;
 
   void SetSettings(const StatementMetricsSettings& settings);
 
@@ -36,26 +41,38 @@ class StatementTimingsStorage final {
 
  private:
   struct StatementEvent final {
-    StatementEvent(const std::string& statement_name_, size_t duration_)
-        : statement_name{statement_name_}, duration_ms{duration_} {}
+    StatementEvent(const std::string& statement_name_, size_t duration_,
+                   ExecutionResult result_)
+        : statement_name{statement_name_},
+          duration_ms{duration_},
+          result{result_} {}
 
     std::string statement_name;
     std::size_t duration_ms;
+    ExecutionResult result;
   };
   using EventPtr = std::unique_ptr<StatementEvent>;
 
-  using Queue = USERVER_NAMESPACE::concurrent::MpscQueue<EventPtr>;
   using RecentPeriod =
       USERVER_NAMESPACE::utils::statistics::RecentPeriod<Percentile,
                                                          Percentile>;
+
+  struct StoredStatementStats final {
+    RecentPeriod timings{};
+    RateCounter executed{};
+    RateCounter errors{};
+  };
+
+  using Queue = USERVER_NAMESPACE::concurrent::MpscQueue<EventPtr>;
+
   using StorageType =
       USERVER_NAMESPACE::cache::LruMap<std::string,
-                                       std::unique_ptr<RecentPeriod>>;
+                                       std::unique_ptr<StoredStatementStats>>;
   using Storage =
       USERVER_NAMESPACE::concurrent::Variable<StorageType, engine::SharedMutex>;
 
   struct StorageData final {
-    std::unique_ptr<Storage> timings;
+    std::unique_ptr<Storage> stats;
     std::shared_ptr<Queue> events_queue;
 
     engine::TaskWithResult<void> consumer_task;

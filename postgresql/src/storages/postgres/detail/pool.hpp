@@ -33,7 +33,7 @@
 
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/pg_impl_types.hpp>
-#include <storages/postgres/detail/statement_timings_storage.hpp>
+#include <storages/postgres/detail/statement_stats_storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -88,7 +88,7 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
 
   void SetStatementMetricsSettings(const StatementMetricsSettings& settings);
 
-  const detail::StatementTimingsStorage& GetStatementTimingsStorage() const {
+  const detail::StatementStatsStorage& GetStatementStatsStorage() const {
     return sts_;
   }
 
@@ -154,7 +154,7 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
   const error_injection::Settings ei_settings_;
   RecentCounter recent_conn_errors_;
   USERVER_NAMESPACE::utils::TokenBucket cancel_limit_;
-  detail::StatementTimingsStorage sts_;
+  detail::StatementStatsStorage sts_;
   dynamic_config::Source config_source_;
 
   // Congestion control stuff
