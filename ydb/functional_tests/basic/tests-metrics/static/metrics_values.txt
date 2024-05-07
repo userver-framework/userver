@@ -1,0 +1,74 @@
+distlock.cancel-task-time-limit-exceeded: distlock_name=sample-dist-lock	RATE	0
+distlock.lock-failures: distlock_name=sample-dist-lock	RATE	0
+distlock.lock-successes: distlock_name=sample-dist-lock	RATE	0
+distlock.session-stopped: distlock_name=sample-dist-lock	RATE	0
+distlock.start-session-failures: distlock_name=sample-dist-lock	RATE	0
+distlock.start-session-successes: distlock_name=sample-dist-lock	RATE	0
+distlock.task-failures: distlock_name=sample-dist-lock	RATE	0
+distlock.task-successes: distlock_name=sample-dist-lock	RATE	0
+ydb.by-query.cancelled: ydb_database=sampledb, ydb_query=Begin	RATE	0
+ydb.by-query.cancelled: ydb_database=sampledb, ydb_query=Commit	RATE	0
+ydb.by-query.cancelled: ydb_database=sampledb, ydb_query=UNNAMED	RATE	0
+ydb.by-query.cancelled: ydb_database=sampledb, ydb_query=upsert-row	RATE	0
+ydb.by-query.error: ydb_database=sampledb, ydb_query=Begin	RATE	0
+ydb.by-query.error: ydb_database=sampledb, ydb_query=Commit	RATE	0
+ydb.by-query.error: ydb_database=sampledb, ydb_query=UNNAMED	RATE	0
+ydb.by-query.error: ydb_database=sampledb, ydb_query=upsert-row	RATE	0
+ydb.by-query.success: ydb_database=sampledb, ydb_query=Begin	RATE	3
+ydb.by-query.success: ydb_database=sampledb, ydb_query=Commit	RATE	3
+ydb.by-query.success: ydb_database=sampledb, ydb_query=UNNAMED	RATE	1
+ydb.by-query.success: ydb_database=sampledb, ydb_query=upsert-row	RATE	3
+ydb.by-query.timings: ydb_database=sampledb, ydb_query=Begin	HIST_RATE	[5]=3,[10]=0,[20]=0,[35]=0,[60]=0,[100]=0,[173]=0,[300]=0,[520]=0,[1000]=0,[3200]=0,[10000]=0,[32000]=0,[100000]=0,[inf]=0
+ydb.by-query.timings: ydb_database=sampledb, ydb_query=Commit	HIST_RATE	[5]=3,[10]=0,[20]=0,[35]=0,[60]=0,[100]=0,[173]=0,[300]=0,[520]=0,[1000]=0,[3200]=0,[10000]=0,[32000]=0,[100000]=0,[inf]=0
+ydb.by-query.timings: ydb_database=sampledb, ydb_query=UNNAMED	HIST_RATE	[5]=0,[10]=1,[20]=0,[35]=0,[60]=0,[100]=0,[173]=0,[300]=0,[520]=0,[1000]=0,[3200]=0,[10000]=0,[32000]=0,[100000]=0,[inf]=0
+ydb.by-query.timings: ydb_database=sampledb, ydb_query=upsert-row	HIST_RATE	[5]=3,[10]=0,[20]=0,[35]=0,[60]=0,[100]=0,[173]=0,[300]=0,[520]=0,[1000]=0,[3200]=0,[10000]=0,[32000]=0,[100000]=0,[inf]=0
+ydb.by-query.total: ydb_database=sampledb, ydb_query=Begin	RATE	3
+ydb.by-query.total: ydb_database=sampledb, ydb_query=Commit	RATE	3
+ydb.by-query.total: ydb_database=sampledb, ydb_query=UNNAMED	RATE	1
+ydb.by-query.total: ydb_database=sampledb, ydb_query=upsert-row	RATE	3
+ydb.by-transaction.cancelled: ydb_database=sampledb, ydb_transaction=trx	RATE	0
+ydb.by-transaction.error: ydb_database=sampledb, ydb_transaction=trx	RATE	0
+ydb.by-transaction.success: ydb_database=sampledb, ydb_transaction=trx	RATE	3
+ydb.by-transaction.timings: ydb_database=sampledb, ydb_transaction=trx	HIST_RATE	[5]=3,[10]=0,[20]=0,[35]=0,[60]=0,[100]=0,[173]=0,[300]=0,[520]=0,[1000]=0,[3200]=0,[10000]=0,[32000]=0,[100000]=0,[inf]=0
+ydb.by-transaction.total: ydb_database=sampledb, ydb_transaction=trx	RATE	3
+ydb.native.Discovery/FailedTransportError: database=/local, ydb_database=sampledb	RATE	0
+ydb.native.Discovery/Regular: database=/local, ydb_database=sampledb	RATE	0
+ydb.native.Discovery/TooManyBadEndpoints: database=/local, ydb_database=sampledb	RATE	0
+ydb.native.Endpoints/BadRatio: database=/local, ydb_database=sampledb	GAUGE	0
+ydb.native.Endpoints/Good: database=/local, ydb_database=sampledb	GAUGE	0
+ydb.native.Endpoints/Total: database=/local, ydb_database=sampledb	GAUGE	0
+ydb.native.Grpc/InFlight: database=/local, ydb_database=sampledb	GAUGE	0
+ydb.native.Grpc/InFlightByYdbHost: YdbHost=(REDACTED), database=/local, ydb_database=sampledb	GAUGE	0
+ydb.native.Request/ClientQueryCacheMiss: database=/local, ydb_database=sampledb	RATE	4
+ydb.native.Request/FailedDiscoveryQueueOverflow: database=/local, ydb_database=sampledb	RATE	0
+ydb.native.Request/FailedNoEndpoint: database=/local, ydb_database=sampledb	RATE	0
+ydb.native.Request/FailedTransportError: database=/local, ydb_database=sampledb	RATE	0
+ydb.native.Request/Latency: database=/local, ydb_database=sampledb	HIST_RATE	[1]=0,[2]=0,[4]=0,[8]=1,[16]=11,[32]=3,[64]=5,[128]=2,[256]=0,[512]=0,[1024]=0,[2048]=0,[4096]=0,[8192]=0,[16384]=0,[32768]=0,[65536]=0,[131072]=0,[262144]=0,[inf]=0
+ydb.native.Request/ParamsSize: database=/local, ydb_database=sampledb	HIST_RATE	[32]=0,[64]=0,[128]=8,[256]=0,[512]=0,[1024]=0,[2048]=0,[4096]=0,[8192]=0,[inf]=0
+ydb.native.Request/QuerySize: database=/local, ydb_database=sampledb	HIST_RATE	[32]=1,[64]=0,[128]=1,[256]=0,[512]=2,[1024]=0,[2048]=0,[4096]=0,[8192]=0,[16384]=0,[32768]=0,[65536]=0,[131072]=0,[262144]=0,[524288]=0,[1048576]=0,[2097152]=0,[4194304]=0,[8388608]=0,[inf]=0
+ydb.native.Request/ResultSize: database=/local, ydb_database=sampledb	HIST_RATE	[32]=1,[64]=0,[128]=12,[256]=3,[512]=0,[1024]=6,[2048]=0,[4096]=0,[8192]=0,[16384]=0,[32768]=0,[65536]=0,[131072]=0,[262144]=0,[524288]=0,[1048576]=0,[2097152]=0,[4194304]=0,[8388608]=0,[inf]=0
+ydb.native.SessionBalancer/RequestsMigrated: database=/local, ydb_database=sampledb	RATE	0
+ydb.native.SessionBalancer/SessionsRemoved: database=/local, ydb_database=sampledb	RATE	0
+ydb.native.SessionBalancer/Variation: database=/local, ydb_database=sampledb	GAUGE	0
+ydb.native.Sessions/InPool: database=/local, ydb_database=sampledb	GAUGE	1
+ydb.native.Sessions/InUse: database=/local, ydb_database=sampledb	GAUGE	0
+ydb.native.Sessions/SessionsLimitExceeded: database=/local, ydb_database=sampledb	RATE	0
+ydb.native.Sessions/WaitForReturn: database=/local, ydb_database=sampledb	GAUGE	0
+ydb.native.SessionsByYdbHost: YdbHost=(REDACTED), database=/local, ydb_database=sampledb	GAUGE	1
+ydb.retry_budget.account_fail: ydb_database=sampledb	RATE	0
+ydb.retry_budget.account_ok: ydb_database=sampledb	RATE	14
+ydb.retry_budget.approx_token_count: ydb_database=sampledb	GAUGE	100
+ydb.retry_budget.max_token_count: ydb_database=sampledb	GAUGE	100
+ydb.pool.active-sessions: ydb_database=sampledb	GAUGE	0
+ydb.pool.current-size: ydb_database=sampledb	GAUGE	1
+ydb.pool.max-size: ydb_database=sampledb	GAUGE	10
+ydb.queries-total.cancelled: ydb_database=sampledb	RATE	0
+ydb.queries-total.error: ydb_database=sampledb	RATE	0
+ydb.queries-total.success: ydb_database=sampledb	RATE	10
+ydb.queries-total.timings: ydb_database=sampledb	HIST_RATE	[1]=9,[2]=0,[3]=0,[5]=0,[7]=0,[10]=0,[13]=0,[16]=0,[20]=0,[24]=0,[29]=1,[35]=0,[42]=0,[50]=0,[60]=0,[71]=0,[84]=0,[100]=0,[120]=0,[144]=0,[173]=0,[208]=0,[250]=0,[300]=0,[360]=0,[430]=0,[520]=0,[620]=0,[730]=0,[850]=0,[1000]=0,[1800]=0,[3200]=0,[5600]=0,[10000]=0,[18000]=0,[32000]=0,[56000]=0,[100000]=0,[inf]=0
+ydb.queries-total.total: ydb_database=sampledb	RATE	10
+ydb.transactions-total.cancelled: ydb_database=sampledb	RATE	0
+ydb.transactions-total.error: ydb_database=sampledb	RATE	0
+ydb.transactions-total.success: ydb_database=sampledb	RATE	3
+ydb.transactions-total.timings: ydb_database=sampledb	HIST_RATE	[1]=3,[2]=0,[3]=0,[5]=0,[7]=0,[10]=0,[13]=0,[16]=0,[20]=0,[24]=0,[29]=0,[35]=0,[42]=0,[50]=0,[60]=0,[71]=0,[84]=0,[100]=0,[120]=0,[144]=0,[173]=0,[208]=0,[250]=0,[300]=0,[360]=0,[430]=0,[520]=0,[620]=0,[730]=0,[850]=0,[1000]=0,[1800]=0,[3200]=0,[5600]=0,[10000]=0,[18000]=0,[32000]=0,[56000]=0,[100000]=0,[inf]=0
+ydb.transactions-total.total: ydb_database=sampledb	RATE	3

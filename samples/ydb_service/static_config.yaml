@@ -1,0 +1,100 @@
+# yaml
+components_manager:
+    task_processors:                  # Task processor is an executor for coroutine tasks
+        main-task-processor:          # Make a task processor for CPU-bound couroutine tasks.
+            worker_threads: 4         # Process tasks in 4 threads.
+
+        fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
+            worker_threads: 1
+
+    default_task_processor: main-task-processor
+
+    components:                       # Configuring components that were registered via component_list
+        server:
+            listener:                 # configuring the main listening socket...
+                port: 8080            # ...to listen on this port and...
+                task_processor: main-task-processor    # ...process incoming requests on this task processor.
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
+        secdist:
+            provider: default-secdist-provider
+        default-secdist-provider:
+            config: secure_data.json
+
+        dynamic-config:
+            updates-enabled: true
+            fs-task-processor: fs-task-processor
+        dynamic-config-client:
+            config-url: localhost:8080
+            http-retries: 5
+            http-timeout: 20s
+            service-name: ydb-service
+        dynamic-config-client-updater:
+            config-settings: false
+            first-update-fail-ok: true
+            full-update-interval: 1m
+            update-interval: 5s
+
+        http-client:
+            fs-task-processor: fs-task-processor
+            user-agent: $server-name
+            user-agent#fallback: 'userver-based-service 1.0'
+        dns-client:
+            fs-task-processor: fs-task-processor
+
+        testsuite-support:
+        tests-control:
+            path: /tests/{action}
+            method: POST
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            testpoint-url: $mockserver/testpoint
+            throttling_enabled: false
+
+        ydb:
+            operation-settings:
+                cancel-after: 1000ms
+                client-timeout: 1100ms
+                operation-timeout: 1000ms
+                retries: 3
+            databases:
+                sampledb:
+                    database: sampledb
+                    max_pool_size: 10
+                    min_pool_size: 5
+
+        handler-bson-reading:
+            method: POST
+            path: /ydb/bson-reading
+            task_processor: main-task-processor
+        handler-bson-upserting:
+            method: POST
+            path: /ydb/bson-upserting
+            task_processor: main-task-processor
+        handler-select-rows:
+            method: POST
+            path: /ydb/select-rows
+            task_processor: main-task-processor
+        handler-upsert-row:
+            method: POST
+            path: /ydb/upsert-row
+            task_processor: main-task-processor
+        handler-upsert-rows:
+            method: POST
+            path: /ydb/upsert-rows
+            task_processor: main-task-processor
+        handler-upsert-2rows:
+            method: POST
+            path: /ydb/upsert-2rows
+            task_processor: main-task-processor
+
+        sample-topic-reader:
+            consumer-name: sample-consumer
+            topics:
+              - records/changefeed
+            restart-session-delay: 200ms

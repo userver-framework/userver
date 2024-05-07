@@ -1,0 +1,15 @@
+project-name: userver-ydb
+project-alt-names:
+  - yandex-userver-ydb
+description: Library for working with YDB
+wiki: https://wiki.yandex-team.ru/taxi/backend/userver/libraries/ydb/
+maintainers:
+  - Common components
+
+libraries:
+  - userver-core
+
+configs:
+    names:
+      - YDB_QUERIES_COMMAND_CONTROL
+      - YDB_RETRY_BUDGET
