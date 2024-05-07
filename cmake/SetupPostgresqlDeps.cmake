@@ -26,6 +26,7 @@ target_link_libraries(PostgreSQLInternal
     OpenSSL::Crypto
     GssApi
     Threads::Threads
+    m
 )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "BSD")
