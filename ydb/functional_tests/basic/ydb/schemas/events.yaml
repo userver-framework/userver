@@ -1,0 +1,23 @@
+  - path: events
+    schema:
+      - name: id
+        type: String
+      - name: name
+        type: Utf8
+      - name: service
+        type: String
+      - name: channel
+        type: Int64
+      - name: created
+        type: Timestamp
+      - name: state
+        type: Json
+    primary_key:
+      - id
+      - name
+    indexes:
+      - name: sample_index
+        index_columns:
+          - service
+          - channel
+          - created
