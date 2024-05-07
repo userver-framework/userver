@@ -65,4 +65,5 @@ def addLoggingLevel(levelName, levelNum, methodName=None):
     setattr(logging, methodName, logToRoot)
 
 
-addLoggingLevel('TRACE', logging.DEBUG - 5)
+if not hasattr(logging, 'TRACE'):
+    addLoggingLevel('TRACE', logging.DEBUG - 5)
