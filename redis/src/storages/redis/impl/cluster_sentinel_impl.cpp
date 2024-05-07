@@ -739,22 +739,27 @@ void ClusterTopologyHolder::UpdateClusterTopology() {
           }
         }
 
-        try {
-          auto topology = ClusterTopology(
-              ++current_topology_version_, std::chrono::steady_clock::now(),
-              std::move(shard_infos), password_, redis_thread_pool_, nodes_);
-          const auto new_shards_count = topology.GetShardsCount();
-          topology_.Assign(std::move(topology));
-          signal_topology_changed_(new_shards_count);
-        } catch (const rcu::MissingKeyException& e) {
-          LOG_WARNING() << "Failed to update cluster topology: " << e;
-          return;
-        }
-        is_topology_received_ = true;
-        cv_.NotifyAll();
+        auto topology = ClusterTopology(
+            ++current_topology_version_, std::chrono::steady_clock::now(),
+            std::move(shard_infos), password_, redis_thread_pool_, nodes_);
+        /// Run in ev_thread because topology_.Assign can free some old
+        /// topologies with their related redis connections, and these
+        /// connections must be freed on "sentinel" thread.
+        ev_thread_.RunInEvLoopAsync([this, topology{std::move(topology)}] {
+          try {
+            const auto new_shards_count = topology.GetShardsCount();
+            topology_.Assign(std::move(topology));
+            signal_topology_changed_(new_shards_count);
+          } catch (const rcu::MissingKeyException& e) {
+            LOG_WARNING() << "Failed to update cluster topology: " << e;
+            return;
+          }
+          is_topology_received_ = true;
+          cv_.NotifyAll();
 
-        LOG_DEBUG() << "Cluster topology updated to version"
-                    << current_topology_version_.load();
+          LOG_DEBUG() << "Cluster topology updated to version"
+                      << current_topology_version_.load();
+        });
       });
 }
 
@@ -900,8 +905,6 @@ void ClusterSentinelImpl::AsyncCommand(const SentinelCommand& scommand,
         const bool error_ask = reply->data.IsErrorAsk();
         const bool error_moved = reply->data.IsErrorMoved();
         if (error_moved) {
-          auto topology = topology_holder_->GetTopology();
-
           const auto& args = ccommand->args.args;
           LOG_DEBUG() << "MOVED" << reply->status_string
                       << " c.instance_idx:" << ccommand->instance_idx
