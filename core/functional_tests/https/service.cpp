@@ -1,6 +1,5 @@
 #include <userver/clients/dns/component.hpp>
 #include <userver/storages/secdist/component.hpp>
-#include <userver/storages/secdist/provider_component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 
 #include <userver/alerts/handler.hpp>
@@ -20,7 +19,6 @@
 int main(int argc, char* argv[]) {
   const auto component_list = components::MinimalServerComponentList()
                                   .Append<https::HttpServerHandler>()
-                                  .Append<components::DefaultSecdistProvider>()
                                   .Append<components::Secdist>()
                                   .Append<components::LoggingConfigurator>()
                                   .Append<components::HttpClient>()

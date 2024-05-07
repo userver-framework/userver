@@ -1,11 +1,12 @@
 #pragma once
 
-/// @file userver/storages/secdist/component.hpp
-/// @brief @copybrief components::Secdist
+/// @file userver/storages/secdist/component_base.hpp
+/// @brief @copybrief components::SecdistComponentBase
 
 #include <string>
 
-#include <userver/storages/secdist/component_base.hpp>
+#include <userver/components/loggable_component_base.hpp>
+#include <userver/storages/secdist/secdist.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -38,19 +39,22 @@ namespace components {
 
 // clang-format on
 
-class Secdist final : public SecdistComponentBase {
+class SecdistComponentBase : public LoggableComponentBase {
  public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of components::Secdist
-  static constexpr std::string_view kName = "secdist";
+  SecdistComponentBase(const ComponentConfig&, const ComponentContext&,
+          storages::secdist::SecdistConfig::Settings&&);
 
-  Secdist(const ComponentConfig&, const ComponentContext&);
+  const storages::secdist::SecdistConfig& Get() const;
+
+  rcu::ReadablePtr<storages::secdist::SecdistConfig> GetSnapshot() const;
+
+  storages::secdist::Secdist& GetStorage();
 
   static yaml_config::Schema GetStaticConfigSchema();
-};
 
-template <>
-inline constexpr bool kHasValidate<Secdist> = true;
+ private:
+  storages::secdist::Secdist secdist_;
+};
 
 }  // namespace components
 

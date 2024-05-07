@@ -78,7 +78,7 @@ enum class SecdistFormat {
 class SecdistConfig final {
  public:
   struct Settings {
-    SecdistProvider* provider{nullptr};
+    std::unique_ptr<SecdistProvider> provider{nullptr};
     std::chrono::milliseconds update_period{std::chrono::milliseconds::zero()};
   };
 

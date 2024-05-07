@@ -13,7 +13,7 @@
 #include <userver/utest/using_namespace_userver.hpp>
 
 /// [UserPasswords]
-#include <userver/storages/secdist/provider_component.hpp>
+#include <userver/storages/secdist/default_provider.hpp>
 #include <userver/storages/secdist/secdist.hpp>
 
 #include <userver/crypto/algorithm.hpp>
@@ -73,10 +73,12 @@ TEST(SecdistConfig, Sample) {
   auto temp_file = fs::blocking::TempFile::Create();
   fs::blocking::RewriteFileContents(temp_file.GetPath(), kSecdistJson);
 
-  storages::secdist::DefaultLoader provider{
-      {temp_file.GetPath(), storages::secdist::SecdistFormat::kJson, false,
-       std::nullopt}};
-  storages::secdist::SecdistConfig secdist_config{{&provider}};
+  storages::secdist::DefaultProvider::Settings provider_settings{
+      temp_file.GetPath(), storages::secdist::SecdistFormat::kJson, false,
+      std::nullopt};
+  storages::secdist::SecdistConfig secdist_config{
+      {std::make_unique<storages::secdist::DefaultProvider>(
+          std::move(provider_settings))}};
   /// [Secdist Usage Sample - SecdistConfig]
   const auto& user_passwords = secdist_config.Get<UserPasswords>();
 
@@ -90,11 +92,14 @@ TEST(SecdistYamlConfig, Sample) {
   auto temp_file = fs::blocking::TempFile::Create();
   fs::blocking::RewriteFileContents(temp_file.GetPath(), kSecdistYaml);
 
-  storages::secdist::DefaultLoader provider{
-      {temp_file.GetPath(), storages::secdist::SecdistFormat::kYaml, false,
-       std::nullopt}};
-  storages::secdist::SecdistConfig secdist_config{{&provider}};
+  storages::secdist::DefaultProvider::Settings provider_settings{
+      temp_file.GetPath(), storages::secdist::SecdistFormat::kYaml, false,
+      std::nullopt};
+  storages::secdist::SecdistConfig secdist_config{
+      {std::make_unique<storages::secdist::DefaultProvider>(
+          std::move(provider_settings))}};
 
+  /// [Secdist Usage Sample - SecdistConfig]
   const auto& user_passwords = secdist_config.Get<UserPasswords>();
 
   const auto password = UserPasswords::Password{"drowssap"};
@@ -102,6 +107,7 @@ TEST(SecdistYamlConfig, Sample) {
   EXPECT_TRUE(user_passwords.IsMatching("username", password));
   EXPECT_FALSE(user_passwords.IsMatching("username2", password));
   EXPECT_TRUE(user_passwords.IsMatching("another username", another_password));
+  /// [Secdist Usage Sample - SecdistConfig]
 }
 
 UTEST(SecdistConfig, EnvironmentVariable) {
@@ -111,9 +117,11 @@ UTEST(SecdistConfig, EnvironmentVariable) {
   ASSERT_EQ(setenv(kVarName.c_str(), kSecdistJson.c_str(), 1), 0);
   engine::subprocess::UpdateCurrentEnvironmentVariables();
 
-  storages::secdist::DefaultLoader provider{
-      {"", storages::secdist::SecdistFormat::kJson, false, kVarName}};
-  storages::secdist::SecdistConfig secdist_config{{&provider}};
+  storages::secdist::DefaultProvider::Settings provider_settings{
+      "", storages::secdist::SecdistFormat::kJson, false, kVarName};
+  storages::secdist::SecdistConfig secdist_config{
+      {std::make_unique<storages::secdist::DefaultProvider>(
+          std::move(provider_settings))}};
 
   const auto& user_passwords = secdist_config.Get<UserPasswords>();
 
@@ -154,10 +162,12 @@ UTEST(SecdistConfig, FileAndEnvironmentVariable) {
   ASSERT_EQ(setenv(kVarName.c_str(), kSecdistEnvVarJson.c_str(), 1), 0);
   engine::subprocess::UpdateCurrentEnvironmentVariables();
 
-  storages::secdist::DefaultLoader provider{
-      {temp_file.GetPath(), storages::secdist::SecdistFormat::kJson, false,
-       kVarName}};
-  storages::secdist::SecdistConfig secdist_config{{&provider}};
+  storages::secdist::DefaultProvider::Settings provider_settings{
+      temp_file.GetPath(), storages::secdist::SecdistFormat::kJson, false,
+      kVarName};
+  storages::secdist::SecdistConfig secdist_config{
+      {std::make_unique<storages::secdist::DefaultProvider>(
+          std::move(provider_settings))}};
 
   const auto& user_passwords = secdist_config.Get<UserPasswords>();
 
@@ -178,10 +188,12 @@ UTEST(Secdist, WithoutUpdates) {
   auto temp_file = fs::blocking::TempFile::Create();
   fs::blocking::RewriteFileContents(temp_file.GetPath(), kSecdistJson);
 
-  storages::secdist::DefaultLoader provider{
-      {temp_file.GetPath(), storages::secdist::SecdistFormat::kJson, false,
-       std::nullopt}};
-  storages::secdist::Secdist secdist{{&provider}};
+  storages::secdist::DefaultProvider::Settings provider_settings{
+      temp_file.GetPath(), storages::secdist::SecdistFormat::kJson, false,
+      std::nullopt};
+  storages::secdist::Secdist secdist{
+      {std::make_unique<storages::secdist::DefaultProvider>(
+          std::move(provider_settings))}};
 
   const auto& secdist_config = secdist.Get();
 
@@ -235,11 +247,13 @@ UTEST(Secdist, DynamicUpdate) {
   auto temp_file = fs::blocking::TempFile::Create();
   fs::blocking::RewriteFileContents(temp_file.GetPath(), kSecdistInitJson);
 
-  storages::secdist::DefaultLoader provider{
-      {temp_file.GetPath(), storages::secdist::SecdistFormat::kJson, false,
-       std::nullopt, &engine::current_task::GetTaskProcessor()}};
+  storages::secdist::DefaultProvider::Settings provider_settings{
+      temp_file.GetPath(), storages::secdist::SecdistFormat::kJson, false,
+      std::nullopt, &engine::current_task::GetTaskProcessor()};
   storages::secdist::Secdist secdist{
-      {&provider, std::chrono::milliseconds(100)}};
+      {std::make_unique<storages::secdist::DefaultProvider>(
+           std::move(provider_settings)),
+       std::chrono::milliseconds(100)}};
 
   auto subscriber = secdist.UpdateAndListen(
       &storage, "test/update_secdist", &SecdistConfigStorage::OnSecdistUpdate);
