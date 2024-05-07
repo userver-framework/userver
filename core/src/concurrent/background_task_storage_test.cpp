@@ -24,6 +24,15 @@ UTEST(BackgroundTaskStorage, TaskStart) {
   EXPECT_TRUE(event.WaitForEvent());
 }
 
+UTEST(BackgroundTaskStorage, CriticalTaskStart) {
+  concurrent::BackgroundTaskStorage bts;
+
+  engine::SingleConsumerEvent event;
+  bts.CriticalAsyncDetach("test", [&event] { event.Send(); });
+
+  EXPECT_TRUE(event.WaitForEvent());
+}
+
 UTEST(BackgroundTaskStorage, CancelAndWaitInDtr) {
   std::atomic<bool> started{false};
   std::atomic<bool> cancelled{false};
