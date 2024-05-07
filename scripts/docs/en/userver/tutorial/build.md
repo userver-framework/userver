@@ -238,6 +238,31 @@ After that, install the databases and compiler you are planning to use via
    See `scripts/docker/` directory and @ref scripts/docker/Readme.md for more
    inspiration on building your own custom docker containers.
 
+
+### Yandex Cloud with Ubuntu 22.04
+
+The userver framework is
+[available at Yandex Cloud Marketplace](https://yandex.cloud/en/marketplace/products/yc/userver).
+
+To create a VM with preinstalled userver just click the "Create VM" button and
+pay for the Cloud hardware usage.
+
+After that the VM is ready to use. SSH to it and use 
+`find_package(userver REQUIRED)` in the `CMakeLists.txt` to use the preinstalled
+userver framework.
+
+If there a need to update the userver in the VM do the following:
+```
+bash
+sudo apt remove userver-*
+
+cd /app/userver
+sudo git checkout develop
+sudo git pull
+sudo ./scripts/build_and_install_all.sh
+```
+
+
 ### Ubuntu 21.10 (Impish Indri)
 
 \b Dependencies: @ref scripts/docs/en/deps/ubuntu-21.10.md "third_party/userver/scripts/docs/en/deps/ubuntu-21.10.md"
