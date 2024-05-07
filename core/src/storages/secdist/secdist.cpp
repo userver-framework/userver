@@ -2,6 +2,8 @@
 
 #include <cerrno>
 
+#include <fmt/format.h>
+
 #include <userver/compiler/demangle.hpp>
 #include <userver/concurrent/async_event_channel.hpp>
 #include <userver/engine/subprocess/environment_variables.hpp>
@@ -36,7 +38,17 @@ SecdistConfig::SecdistConfig(const SecdistConfig::Settings& settings) {
 
 void SecdistConfig::Init(const formats::json::Value& doc) {
   for (const auto& config_factory : GetConfigFactories()) {
-    configs_.emplace_back(config_factory(doc));
+    try {
+      configs_.emplace_back(config_factory(doc));
+    } catch (const std::exception& ex) {
+      const std::string_view missing_comment =
+          doc.IsMissing() || doc.IsEmpty()
+              ? " (which is missing! see WARNING logs above for details)"
+              : "";
+      throw std::runtime_error(
+          fmt::format("Failed to parse secdist config from JSON{}: {}",
+                      missing_comment, ex.what()));
+    }
   }
 }
 

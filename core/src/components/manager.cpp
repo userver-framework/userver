@@ -324,7 +324,9 @@ void Manager::AddComponents(const ComponentList& component_list) {
           LOG_ERROR() << "Cannot start component " << adder->GetComponentName()
                       << ": " << ex;
           component_context_.CancelComponentsLoad();
-          throw;
+          throw std::runtime_error(fmt::format("Cannot start component {}: {}",
+                                               adder->GetComponentName(),
+                                               ex.what()));
         } catch (...) {
           component_context_.CancelComponentsLoad();
           throw;

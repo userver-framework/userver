@@ -3,11 +3,13 @@
 #include <fmt/format.h>
 #include <gmock/gmock.h>
 
+#include <userver/compiler/demangle.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/components/manager_controller_component.hpp>
 #include <userver/components/run.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/formats/json/exception.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>  // for fs::blocking::TempDirectory
 #include <userver/fs/blocking/write.hpp>  // for fs::blocking::RewriteFileContents
@@ -61,7 +63,8 @@ components_manager:
           level#fallback: info
 # /// [Sample task-switch tracing]
         default:
-          file_path: '@null'
+          file_path: $default-logger-path
+          file_path#fallback: '@null'
           level: warning
     dynamic-config:
       defaults: $dynamic-config-default-overrides
@@ -181,19 +184,33 @@ TEST_F(ServerMinimalComponentList, InvalidDynamicConfigParam) {
     dynamic-config-default-overrides:
       USERVER_LOG_DYNAMIC_DEBUG:
         force-disabled: []
-        force-enabled: 42  // <== error
+        force-enabled: 42  # <== error
     server-port: {0}
+    default-logger-path: {1}
   )";
+  const auto logs_path = GetTempRoot() + "/log.txt";
 
   fs::blocking::RewriteFileContents(
-      GetConfigVarsPath(), fmt::format(kConfigVarsTemplate, GetServerPort()));
+      GetConfigVarsPath(),
+      fmt::format(kConfigVarsTemplate, GetServerPort(), logs_path));
+
+  // This is a golden test that shows how exactly dynamic config parsing failure
+  // may look. Feel free to change this test if those messages ever change.
+  const auto expected_exception_message = fmt::format(
+      "Cannot start component dynamic-config: {} "
+      "while parsing dynamic config values. Error at path "
+      "'USERVER_LOG_DYNAMIC_DEBUG.force-enabled': Wrong type. "
+      "Expected: arrayValue, actual: intValue",
+      compiler::GetTypeName<formats::json::TypeMismatchException>());
 
   UEXPECT_THROW_MSG(
       components::RunOnce(components::InMemoryConfig{GetStaticConfig()},
                           components::MinimalServerComponentList()),
-      std::exception,
-      "Error at path 'USERVER_LOG_DYNAMIC_DEBUG.force-enabled': Wrong type. "
-      "Expected: arrayValue, actual: stringValue");
+      std::exception, expected_exception_message);
+
+  EXPECT_THAT(
+      fs::blocking::ReadFileContents(logs_path),
+      testing::HasSubstr("text=Loading failed: " + expected_exception_message));
 }
 
 USERVER_NAMESPACE_END
