@@ -70,6 +70,12 @@ if(USERVER_FEATURE_CORE AND USERVER_IS_THE_ROOT_PROJECT AND USERVER_BUILD_PLATFO
   set(USERVER_CLICKHOUSE_DEFAULT ON)
 endif()
 
+set(USERVER_YDB_DEFAULT OFF)
+if(USERVER_FEATURE_CORE AND USERVER_IS_THE_ROOT_PROJECT AND
+    DEFINED CMAKE_CXX_STANDARD AND CMAKE_CXX_STANDARD GREATER_EQUAL 20)
+  set(USERVER_YDB_DEFAULT ON)
+endif()
+
 option(USERVER_CONAN "Build with Conan packages" ${CONAN_EXPORTED})
 
 option(
@@ -165,7 +171,7 @@ option(USERVER_FEATURE_CLICKHOUSE "Provide asynchronous driver for ClickHouse" "
 option(USERVER_FEATURE_RABBITMQ "Provide asynchronous driver for RabbitMQ" "${USERVER_LIB_ENABLED_DEFAULT}")
 option(USERVER_FEATURE_MYSQL "Provide asynchronous driver for MariaDB/MySQL" "${USERVER_LIB_ENABLED_DEFAULT}")
 option(USERVER_FEATURE_ROCKS "Provide asynchronous driver for Rocks" "${USERVER_LIB_ENABLED_DEFAULT}")
-option(USERVER_FEATURE_YDB "Provide asynchronous driver for YDB" "${USERVER_LIB_ENABLED_DEFAULT}")
+option(USERVER_FEATURE_YDB "Provide asynchronous driver for YDB" "${USERVER_YDB_DEFAULT}")
 
 option(USERVER_FEATURE_UBOOST_CORO "Use vendored boost context instead of a system one" ON)
 
