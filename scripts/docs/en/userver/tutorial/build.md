@@ -15,6 +15,7 @@ The following CMake options are used by userver:
 | USERVER_FEATURE_RABBITMQ               | Provide asynchronous driver for RabbitMQ (AMQP 0-9-1)                                                                 | ${USERVER_IS_THE_ROOT_PROJECT}                         |
 | USERVER_FEATURE_MYSQL                  | Provide asynchronous driver for MySQL/MariaDB                                                                         | ${USERVER_IS_THE_ROOT_PROJECT}                         |
 | USERVER_FEATURE_ROCKS                  | Provide asynchronous driver for RocksDB                                                                               | ${USERVER_IS_THE_ROOT_PROJECT}                         |
+| USERVER_FEATURE_YDB                    | Provide asynchronous driver for YDB                                                                                   | ${USERVER_IS_THE_ROOT_PROJECT}                         |
 | USERVER_FEATURE_UTEST                  | Provide 'utest' and 'ubench' for unit testing and benchmarking coroutines                                             | ${USERVER_FEATURE_CORE}                                |
 | USERVER_FEATURE_CRYPTOPP_BLAKE2        | Provide wrappers for blake2 algorithms of crypto++                                                                    | ON                                                     |
 | USERVER_FEATURE_PATCH_LIBPQ            | Apply patches to the libpq (add portals support), requires libpq.a                                                    | ON                                                     |
@@ -52,6 +53,7 @@ The following CMake options are used by userver:
 | USERVER_DOWNLOAD_PACKAGE_GRPC          | Download and setup gRPC if no gRPC of matching version was found                                                      | ${USERVER_DOWNLOAD_PACKAGES}                           |
 | USERVER_DOWNLOAD_PACKAGE_GTEST         | Download and setup gtest if no gtest of matching version was found                                                    | ${USERVER_DOWNLOAD_PACKAGES}                           |
 | USERVER_DOWNLOAD_PACKAGE_PROTOBUF      | Download and setup Protobuf if no Protobuf of matching version was found                                              | ${USERVER_DOWNLOAD_PACKAGE_GRPC}                       |
+| USERVER_DOWNLOAD_PACKAGE_YDBCPPSDK     | Download and setup ydb-cpp-sdk if no ydb-cpp-sdk of matching version was found                                        | ${USERVER_DOWNLOAD_PACKAGES}                           |
 | USERVER_FORCE_DOWNLOAD_PACKAGES        | Download all possible third-party packages even if there is an installed system package                               | OFF                                                    |
 | USERVER_INSTALL                        | Build userver for further installation                       | OFF                                                    |
 | USERVER_IS_THE_ROOT_PROJECT            | Contributor mode: build userver tests, samples and helper tools                                                       | auto-detects if userver is the top level project       |
@@ -92,8 +94,9 @@ userver is split into multiple CMake libraries.
 | `userver-rabbitmq`   | `USERVER_FEATURE_RABBITMQ`                  | `rabbitmq`            | @ref rabbitmq_driver                                     |
 | `userver-mysql`      | `USERVER_FEATURE_MYSQL`                     | `mysql`               | @ref scripts/docs/en/userver/mysql/design_and_details.md |
 | `userver-rocks`      | `USERVER_FEATURE_ROCKS`                     | `rocks`               | TODO                                                     |
+| `userver-ydb`        | `USERVER_FEATURE_YDB`                       | `ydb`                 | TODO                                                     |
 
-For installed userver or Conan, cmake targets are named like `userver::{component}`, for instance: `userver::core`, `userver::mysql`, etc 
+For installed userver or Conan, cmake targets are named like `userver::{component}`, for instance: `userver::core`, `userver::mysql`, etc
 
 Make sure to:
 
@@ -406,7 +409,7 @@ Without AUR:
 At least MacOS 10.15 required with
 [Xcode](https://apps.apple.com/us/app/xcode/id497799835) and
 [Homebrew](https://brew.sh/).
-  
+
 Dependencies could be installed via:
   ```bash
   brew install $(cat third_party/userver/scripts/docs/en/deps/macos.md | tr '\n' ' ')
@@ -466,7 +469,7 @@ Next, write
 ```
 find_package(userver REQUIRED COMPONENTS core postgresql grpc redis clickhouse mysql rabbitmq mongo)
 ```
-in your `CMakeLists.txt`. Choose only the necessary components. 
+in your `CMakeLists.txt`. Choose only the necessary components.
 @see @ref userver_libraries
 
 Finally, link your source with userver component.
