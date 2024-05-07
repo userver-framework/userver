@@ -33,7 +33,7 @@ UTEST_F(YdbStructIO, StructRead) {
     ORDER BY test_table.item.key;
   )"};
   auto cursor =
-      GetTableClient().ExecuteDataQuery(kSelectQuery).ExtractSingleCursor();
+      GetTableClient().ExecuteDataQuery(kSelectQuery).GetSingleCursor();
   ASSERT_FALSE(cursor.IsTruncated());
 
   EXPECT_EQ(cursor.size(), 3);
@@ -56,7 +56,7 @@ UTEST_F(YdbStructIO, StructWrite) {
   ASSERT_EQ(response.GetCursorCount(), 0);
 
   auto result = GetTableClient().ExecuteDataQuery(kSelectAllRows);
-  AssertArePreFilledRows(std::move(result).ExtractSingleCursor(), {1});
+  AssertArePreFilledRows(result.GetSingleCursor(), {1});
 }
 
 /// [external specialization]
@@ -89,7 +89,7 @@ UTEST_F(YdbStructIO, StructWriteExternalSpecialization) {
   ASSERT_EQ(response.GetCursorCount(), 0);
 
   auto result = GetTableClient().ExecuteDataQuery(kSelectAllRows);
-  AssertArePreFilledRows(std::move(result).ExtractSingleCursor(), {1});
+  AssertArePreFilledRows(result.GetSingleCursor(), {1});
 }
 
 /// [custom names]
@@ -122,7 +122,7 @@ UTEST_F(YdbStructIO, StructWriteCustomNames) {
   ASSERT_EQ(response.GetCursorCount(), 0);
 
   auto result = GetTableClient().ExecuteDataQuery(kSelectAllRows);
-  AssertArePreFilledRows(std::move(result).ExtractSingleCursor(), {1});
+  AssertArePreFilledRows(result.GetSingleCursor(), {1});
 }
 
 UTEST_F(YdbStructIO, BulkUpsert) {
@@ -139,7 +139,7 @@ UTEST_F(YdbStructIO, BulkUpsert) {
   GetTableClient().BulkUpsert("test_table", builder.Build());
 
   auto result = GetTableClient().ExecuteDataQuery(kSelectAllRows);
-  AssertArePreFilledRows(std::move(result).ExtractSingleCursor(), {1, 2, 3});
+  AssertArePreFilledRows(result.GetSingleCursor(), {1, 2, 3});
 }
 
 USERVER_NAMESPACE_END

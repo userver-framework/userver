@@ -22,7 +22,7 @@ UTEST_F(YdbStructFromRow, StructReadRow) {
     ORDER BY key;
   )"};
   auto cursor =
-      GetTableClient().ExecuteDataQuery(kSelectQuery).ExtractSingleCursor();
+      GetTableClient().ExecuteDataQuery(kSelectQuery).GetSingleCursor();
   ASSERT_FALSE(cursor.IsTruncated());
 
   ASSERT_EQ(cursor.size(), 3);
@@ -59,7 +59,7 @@ UTEST_F(YdbStructFromRow, StructReadRowMissingColumn) {
     ORDER BY key;
   )"};
   auto cursor =
-      GetTableClient().ExecuteDataQuery(kSelectQuery).ExtractSingleCursor();
+      GetTableClient().ExecuteDataQuery(kSelectQuery).GetSingleCursor();
   ASSERT_FALSE(cursor.IsTruncated());
 
   ASSERT_EQ(cursor.size(), 3);
@@ -92,7 +92,7 @@ UTEST_F(YdbStructFromRow, StructReadRowExtraColumn) {
     ORDER BY key;
   )"};
   auto cursor =
-      GetTableClient().ExecuteDataQuery(kSelectQuery).ExtractSingleCursor();
+      GetTableClient().ExecuteDataQuery(kSelectQuery).GetSingleCursor();
   ASSERT_FALSE(cursor.IsTruncated());
 
   ASSERT_EQ(cursor.size(), 3);

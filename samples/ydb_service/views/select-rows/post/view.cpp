@@ -43,7 +43,7 @@ formats::json::Value SelectRowsHandler::HandleRequestJsonThrow(
   }
 
   formats::json::ValueBuilder items_builder(formats::json::Type::kArray);
-  for (auto row : std::move(response).ExtractSingleCursor()) {
+  for (auto row : response.GetSingleCursor()) {
     formats::json::ValueBuilder item;
     item["id"] = row.Get<std::string>("id");
     item["name"] = row.Get<ydb::Utf8>("name").GetUnderlying();

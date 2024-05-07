@@ -21,7 +21,7 @@ UTEST_F(YdbListIO, ReadVector) {
     SELECT AsList(1, 2, 3, 4, 5);
   )");
 
-  auto cursor = std::move(response).ExtractSingleCursor();
+  auto cursor = response.GetSingleCursor();
   const auto list = cursor.GetFirstRow().Get<std::vector<std::int32_t>>(0);
   EXPECT_THAT(list, testing::ElementsAreArray({1, 2, 3, 4, 5}));
 }
@@ -31,7 +31,7 @@ UTEST_F(YdbListIO, ReadUnorderedSet) {
     SELECT AsList(1, 2, 3, 4, 5);
   )");
 
-  auto cursor = std::move(response).ExtractSingleCursor();
+  auto cursor = response.GetSingleCursor();
   const auto list =
       cursor.GetFirstRow().Get<std::unordered_set<std::int32_t>>(0);
   EXPECT_THAT(list, testing::UnorderedElementsAreArray({1, 2, 3, 4, 5}));
@@ -43,7 +43,7 @@ UTEST_F(YdbListIO, BulkUpsertVectorOfStructs) {
   GetTableClient().BulkUpsert("test_table", kPreFilledRows);
 
   auto result = GetTableClient().ExecuteDataQuery(kSelectAllRows);
-  AssertArePreFilledRows(std::move(result).ExtractSingleCursor(), {1, 2, 3});
+  AssertArePreFilledRows(result.GetSingleCursor(), {1, 2, 3});
 }
 
 UTEST_F(YdbListIO, BulkUpsertEmptyVectorOfStructs) {
@@ -52,7 +52,7 @@ UTEST_F(YdbListIO, BulkUpsertEmptyVectorOfStructs) {
   GetTableClient().BulkUpsert("test_table", std::vector<tests::RowValue>{});
 
   auto result = GetTableClient().ExecuteDataQuery(kSelectAllRows);
-  AssertArePreFilledRows(std::move(result).ExtractSingleCursor(), {});
+  AssertArePreFilledRows(result.GetSingleCursor(), {});
 }
 
 UTEST_F(YdbListIO, BulkUpsertRangeOfStructs) {
@@ -64,7 +64,7 @@ UTEST_F(YdbListIO, BulkUpsertRangeOfStructs) {
   GetTableClient().BulkUpsert("test_table", std::move(serialized_rows));
 
   auto result = GetTableClient().ExecuteDataQuery(kSelectAllRows);
-  AssertArePreFilledRows(std::move(result).ExtractSingleCursor(), {1, 2, 3});
+  AssertArePreFilledRows(result.GetSingleCursor(), {1, 2, 3});
 }
 
 UTEST_F(YdbListIO, BulkUpsertEmptyRangeOfStructs) {
@@ -76,7 +76,7 @@ UTEST_F(YdbListIO, BulkUpsertEmptyRangeOfStructs) {
   GetTableClient().BulkUpsert("test_table", std::move(serialized_rows));
 
   auto result = GetTableClient().ExecuteDataQuery(kSelectAllRows);
-  AssertArePreFilledRows(std::move(result).ExtractSingleCursor(), {});
+  AssertArePreFilledRows(result.GetSingleCursor(), {});
 }
 
 USERVER_NAMESPACE_END

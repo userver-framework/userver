@@ -103,7 +103,7 @@ void DoTestPreparedRequestType(ydb::TableClient& table_client,
 
   auto result = table_client.ExecuteDataQuery(ydb::OperationSettings{}, query,
                                               std::move(builder));
-  auto cursor = std::move(result).ExtractSingleCursor();
+  auto cursor = result.GetSingleCursor();
   ASSERT_EQ(cursor.size(), 1);
   for (auto row : cursor) {
     AssertNullableColumn(row, "key", std::string{"key"});
@@ -138,7 +138,7 @@ UTEST_F(TTypesYdbTestCase, ResponseValueType) {
 
   auto result = GetTableClient().ExecuteDataQuery(ydb::OperationSettings{},
                                                   query, std::move(builder));
-  auto cursor = std::move(result).ExtractSingleCursor();
+  auto cursor = result.GetSingleCursor();
   ASSERT_EQ(cursor.size(), 1);
   for (auto row : cursor) {
     AssertNullableColumn(row, "key", std::string{"key"});
@@ -188,7 +188,7 @@ UTEST_F(TTypesYdbTestCase, ResponseNullValueType) {
 
   auto result = GetTableClient().ExecuteDataQuery(ydb::OperationSettings{},
                                                   query, std::move(builder));
-  auto cursor = std::move(result).ExtractSingleCursor();
+  auto cursor = result.GetSingleCursor();
   ASSERT_EQ(cursor.size(), 1);
   for (auto row : cursor) {
     AssertNullableColumn<std::string>(row, "key", "key_null");
@@ -311,7 +311,7 @@ UTEST_F(TTypesYdbTestCase, PreparedUpsertTypes) {
         WHERE key = "key_new_filled";
     )"});
 
-  auto cursor = std::move(result).ExtractSingleCursor();
+  auto cursor = result.GetSingleCursor();
   ASSERT_EQ(cursor.size(), 1);
   for (auto row : cursor) {
     AssertNullableColumn(row, "key", std::string{"key_new_filled"});
@@ -380,7 +380,7 @@ UTEST_F(TTypesYdbTestCase, PreparedStructUpsertTypes) {
         FROM different_types_test
         WHERE key = "key_new_filled_struct";
     )"});
-  auto cursor = std::move(result).ExtractSingleCursor();
+  auto cursor = result.GetSingleCursor();
   ASSERT_EQ(cursor.size(), 1);
   for (auto row : cursor) {
     AssertNullableColumn(row, "key", std::string{"key_new_filled_struct"});
@@ -488,7 +488,7 @@ UTEST_F(TTypesYdbTestCase, PreparedUpsertNullableTypes) {
         WHERE key = "key_new_nullable";
     )"});
 
-  auto cursor = std::move(result).ExtractSingleCursor();
+  auto cursor = result.GetSingleCursor();
   ASSERT_EQ(cursor.size(), 1);
   for (auto row : cursor) {
     AssertNullableColumn(row, "key", std::string{"key_new_nullable"});
@@ -559,7 +559,7 @@ UTEST_F(TTypesYdbTestCase, PreparedStructUpsertNullableTypes) {
         WHERE key = "key_new_nullable_struct";
     )"});
 
-  auto cursor = std::move(result).ExtractSingleCursor();
+  auto cursor = result.GetSingleCursor();
   ASSERT_EQ(cursor.size(), 1);
   for (auto row : cursor) {
     AssertNullableColumn(row, "key", std::string{"key_new_nullable_struct"});
@@ -660,7 +660,7 @@ UTEST_F(TTypesYdbTestCase, PreparedUpsertNullTypes) {
         WHERE key = "key_new_nulls";
     )"});
 
-  auto cursor = std::move(result).ExtractSingleCursor();
+  auto cursor = result.GetSingleCursor();
   ASSERT_EQ(cursor.size(), 1);
   for (auto row : cursor) {
     AssertNullableColumn<std::string>(row, "key", "key_new_nulls");
@@ -723,7 +723,7 @@ UTEST_F(TTypesYdbTestCase, PreparedUpsertNullStructTypes) {
         WHERE key = "key_new_nulls_struct";
     )"});
 
-  auto cursor = std::move(result).ExtractSingleCursor();
+  auto cursor = result.GetSingleCursor();
   ASSERT_EQ(cursor.size(), 1);
   for (auto row : cursor) {
     AssertNullableColumn<std::string>(row, "key", "key_new_nulls_struct");

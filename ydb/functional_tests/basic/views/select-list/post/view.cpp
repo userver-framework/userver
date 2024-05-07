@@ -32,7 +32,7 @@ formats::json::Value SelectListHandler::HandleRequestJsonThrow(
   if (response.GetCursorCount() != 1) {
     throw std::runtime_error("Unexpected response data");
   }
-  auto cursor = std::move(response).ExtractSingleCursor();
+  auto cursor = response.GetSingleCursor();
   if (cursor.IsTruncated()) {
     throw std::runtime_error("Truncated response data");
   }

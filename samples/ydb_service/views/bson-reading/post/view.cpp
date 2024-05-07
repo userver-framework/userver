@@ -21,7 +21,7 @@ SELECT doc FROM orders WHERE id = $id;
   if (response.GetCursorCount() != 1) {
     throw std::runtime_error("Unexpected response data");
   }
-  auto cursor = std::move(response).ExtractSingleCursor();
+  auto cursor = response.GetSingleCursor();
 
   if (!cursor.empty()) {
     auto row = cursor.GetFirstRow();

@@ -59,7 +59,7 @@ ydb::Cursor GetCursor(ydb::TableClient& table_client) {
 
   auto response = table_client.ExecuteDataQuery(ydb::OperationSettings{}, query,
                                                 std::move(builder));
-  auto cursor = std::move(response).ExtractSingleCursor();
+  auto cursor = response.GetSingleCursor();
   if (cursor.size() != 1) {
     throw std::runtime_error{"cursor size is not 1"};
   }

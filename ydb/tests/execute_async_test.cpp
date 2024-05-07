@@ -47,7 +47,7 @@ UTEST_F(YdbExecuteAsync, SimpleReadParallel) {
 
   auto results = engine::GetAll(responses);
   for (auto& result : results) {
-    auto cursor = std::move(result).ExtractSingleCursor();
+    auto cursor = result.GetSingleCursor();
     AssertArePreFilledRows(std::move(cursor), {1});
   }
 }
@@ -80,7 +80,7 @@ UTEST_F(YdbExecuteAsync, PreparedReadParallel) {
 
   auto results = engine::GetAll(responses);
   for (auto& result : results) {
-    AssertArePreFilledRows(std::move(result).ExtractSingleCursor(), {1});
+    AssertArePreFilledRows(result.GetSingleCursor(), {1});
   }
 }
 

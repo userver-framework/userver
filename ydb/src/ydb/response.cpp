@@ -20,9 +20,6 @@ namespace impl {
 ParseState::ParseState(const NYdb::TResultSet& result_set)
     : parser(result_set) {}
 
-ParseState::ParseState(NYdb::TResultSet&& result_set)
-    : parser(std::move(result_set)) {}
-
 }  // namespace impl
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -89,11 +86,6 @@ Cursor::Cursor(const NYdb::TResultSet& result_set)
     : truncated_(result_set.Truncated()),
       parse_state_(utils::MakeUniqueRef<impl::ParseState>(result_set)) {}
 
-Cursor::Cursor(NYdb::TResultSet&& result_set)
-    : truncated_(result_set.Truncated()),
-      parse_state_(
-          utils::MakeUniqueRef<impl::ParseState>(std::move(result_set))) {}
-
 size_t Cursor::ColumnsCount() const {
   return parse_state_->parser.ColumnsCount();
 }
@@ -112,7 +104,7 @@ Row Cursor::GetFirstRow() {
 
 bool Cursor::empty() const { return size() == 0; }
 
-std::size_t Cursor::size() const { return parse_state_->parser.RowsCount(); }
+std::size_t Cursor::size() const { return RowsCount(); }
 
 CursorIterator Cursor::begin() {
   if (is_consumed_) {
@@ -154,29 +146,28 @@ std::size_t ExecuteResponse::GetCursorCount() const {
 }
 
 Cursor ExecuteResponse::GetCursor(std::size_t index) const {
+  EnsureResultSetsNotEmpty();
+
   if (GetCursorCount() <= index) {
     throw BaseError(fmt::format("No cursor with index {}", index));
   }
-  if (result_sets_.empty()) {
-    throw EmptyResponseError{
-        "Expected that the ExecuteResponse was not consumed before"};
-  }
-  const auto& res = result_sets_[index];
-  return Cursor{res};
+
+  return Cursor{result_sets_[index]};
 }
 
-Cursor ExecuteResponse::ExtractSingleCursor() && {
+Cursor ExecuteResponse::GetSingleCursor() const {
+  EnsureResultSetsNotEmpty();
+
   if (result_sets_.size() != 1) {
     throw IgnoreResultsError(fmt::format(
-        "There are a {} results, but expected single", result_sets_.size()));
+        "There are {} results, but expected single", result_sets_.size()));
   }
-  auto res = std::move(result_sets_.front());
-  result_sets_.clear();
-  return Cursor{std::move(res)};
+
+  return Cursor{result_sets_.front()};
 }
 
-const std::optional<NYdb::NTable::TQueryStats>&  //
-ExecuteResponse::GetQueryStats() const noexcept {
+const std::optional<NYdb::NTable::TQueryStats>& ExecuteResponse::GetQueryStats()
+    const noexcept {
   return query_stats_;
 }
 
@@ -186,6 +177,12 @@ bool ExecuteResponse::IsFromServerQueryCache() const noexcept {
   const auto& stats_raw = NYdb::TProtoAccessor::GetProto(*query_stats_);
   if (!stats_raw.has_compilation()) return false;
   return stats_raw.compilation().from_cache();
+}
+
+void ExecuteResponse::EnsureResultSetsNotEmpty() const {
+  if (result_sets_.empty()) {
+    throw EmptyResponseError{"There are no result sets in ExecuteResponse"};
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////

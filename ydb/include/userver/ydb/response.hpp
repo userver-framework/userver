@@ -39,7 +39,6 @@ struct StructRowParser;
 
 struct ParseState final {
   explicit ParseState(const NYdb::TResultSet& result_set);
-  explicit ParseState(NYdb::TResultSet&& result_set);
 
   NYdb::TResultSetParser parser;
   const std::type_info* row_type_id{nullptr};
@@ -133,7 +132,6 @@ class Cursor final {
  public:
   /// @cond
   explicit Cursor(const NYdb::TResultSet& result_set);
-  explicit Cursor(NYdb::TResultSet&& result_set);
   /// @endcond
 
   Cursor(const Cursor&) = delete;
@@ -185,7 +183,7 @@ class ExecuteResponse final {
 
   std::size_t GetCursorCount() const;
   Cursor GetCursor(std::size_t index) const;
-  Cursor ExtractSingleCursor() &&;
+  Cursor GetSingleCursor() const;
 
   /// Query stats are only available if initially requested
   const std::optional<NYdb::NTable::TQueryStats>&  //
@@ -195,6 +193,8 @@ class ExecuteResponse final {
   bool IsFromServerQueryCache() const noexcept;
 
  private:
+  void EnsureResultSetsNotEmpty() const;
+
   std::optional<NYdb::NTable::TQueryStats> query_stats_;
   std::vector<NYdb::TResultSet> result_sets_;
 };

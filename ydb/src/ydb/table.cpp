@@ -188,7 +188,7 @@ ScanQueryResults TableClient::ExecuteScanQuery(
 
 void TableClient::Select1() {
   const auto response = ExecuteDataQuery(Query("SELECT 1"))
-                            .ExtractSingleCursor()
+                            .GetSingleCursor()
                             .GetFirstRow()
                             .Get<std::int32_t>(0);
   if (response != 1) {

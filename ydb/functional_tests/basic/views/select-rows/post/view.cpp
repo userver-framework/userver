@@ -40,7 +40,7 @@ formats::json::Value SelectRowsHandler::HandleRequestJsonThrow(
       "$created_key",
       request_json["created"].As<std::chrono::system_clock::time_point>());
 
-  auto cursor = std::move(response).ExtractSingleCursor();
+  auto cursor = response.GetSingleCursor();
 
   if (cursor.IsTruncated()) {
     throw std::runtime_error("Truncated response data");
