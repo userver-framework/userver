@@ -10,7 +10,7 @@
 #include <userver/server/handlers/auth/digest/context.hpp>
 #include <userver/server/handlers/auth/digest/directives_parser.hpp>
 #include <userver/server/handlers/auth/digest/standalone_checker.hpp>
-#include <userver/storages/secdist/provider_component.hpp>
+#include <userver/storages/secdist/default_provider.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/mock_now.hpp>
 
@@ -60,10 +60,14 @@ class StandAloneCheckerTest : public ::testing::Test {
   };
 
   StandAloneCheckerTest()
-      : default_loader({temp_file_provier.GetFilePath(),
-                        storages::secdist::SecdistFormat::kJson, true,
-                        std::nullopt}),
-        secdist_config({&default_loader, std::chrono::milliseconds::zero()}),
+      : secdist_config({
+        std::make_unique<storages::secdist::DefaultProvider>(
+          storages::secdist::DefaultProvider::Settings{
+            temp_file_provier.GetFilePath(),
+            storages::secdist::SecdistFormat::kJson,
+            true,
+            std::nullopt}),
+        std::chrono::milliseconds::zero()}),
         digest_settings_({
             "MD5",                             // algorithm
             std::vector<std::string>{"/"},     // domains
@@ -90,7 +94,6 @@ class StandAloneCheckerTest : public ::testing::Test {
   }
 
   TempFileProvider temp_file_provier;
-  storages::secdist::DefaultLoader default_loader;
   storages::secdist::SecdistConfig secdist_config;
 
   AuthCheckerSettings digest_settings_;

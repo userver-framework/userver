@@ -8,7 +8,7 @@
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/storages/secdist/exceptions.hpp>
-#include <userver/storages/secdist/provider_component.hpp>
+#include <userver/storages/secdist/default_provider.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
@@ -124,9 +124,9 @@ void UpdateFromEnv(formats::json::Value& doc,
 
 }  // namespace
 
-DefaultLoader::DefaultLoader(Settings settings) : settings_{settings} {}
+DefaultProvider::DefaultProvider(Settings settings) : settings_{settings} {}
 
-formats::json::Value DefaultLoader::Get() const {
+formats::json::Value DefaultProvider::Get() const {
   auto doc =
       LoadFromFile(settings_.config_path, settings_.format,
                    settings_.missing_ok, settings_.blocking_task_processor);
@@ -135,80 +135,5 @@ formats::json::Value DefaultLoader::Get() const {
 }
 
 }  // namespace storages::secdist
-
-namespace components {
-
-namespace {
-
-storages::secdist::SecdistFormat FormatFromString(std::string_view str) {
-  if (str.empty() || str == "json") {
-    return storages::secdist::SecdistFormat::kJson;
-  } else if (str == "yaml") {
-    return storages::secdist::SecdistFormat::kYaml;
-  }
-
-  UINVARIANT(
-      false,
-      fmt::format("Unknown secdist format '{}' (must be one of 'json', 'yaml')",
-                  str));
-}
-
-storages::secdist::DefaultLoader::Settings ParseSettings(
-    const components::ComponentConfig& config,
-    const components::ComponentContext& context) {
-  storages::secdist::DefaultLoader::Settings settings;
-  auto blocking_task_processor_name =
-      config["blocking-task-processor"].As<std::optional<std::string>>();
-  settings.blocking_task_processor =
-      blocking_task_processor_name
-          ? &context.GetTaskProcessor(*blocking_task_processor_name)
-          : nullptr;
-  settings.config_path = config["config"].As<std::string>({});
-  settings.format = FormatFromString(config["format"].As<std::string>({}));
-  settings.missing_ok = config["missing-ok"].As<bool>(false);
-  settings.environment_secrets_key =
-      config["environment-secrets-key"].As<std::optional<std::string>>();
-
-  return settings;
-}
-
-}  // namespace
-
-DefaultSecdistProvider::DefaultSecdistProvider(const ComponentConfig& config,
-                                               const ComponentContext& context)
-    : ComponentBase{config, context}, loader_{ParseSettings(config, context)} {}
-
-formats::json::Value DefaultSecdistProvider::Get() const {
-  return loader_.Get();
-}
-
-yaml_config::Schema DefaultSecdistProvider::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<ComponentBase>(R"(
-type: object
-description: Component that stores security related data (keys, passwords, ...).
-additionalProperties: false
-properties:
-    config:
-        type: string
-        description: path to the config file with data
-        defaultDescription: ''
-    format:
-        type: string
-        description: secdist format
-        defaultDescription: 'json'
-    missing-ok:
-        type: boolean
-        description: do not terminate components load if no file found by the config option
-        defaultDescription: false
-    environment-secrets-key:
-        type: string
-        description: name of environment variable from which to load additional data
-    blocking-task-processor:
-        type: string
-        description: name of task processor for background blocking operations
-)");
-}
-
-}  // namespace components
 
 USERVER_NAMESPACE_END

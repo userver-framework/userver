@@ -44,8 +44,7 @@ components_manager:
                 realm: registred@userver.com
         # /// [hello config]
         # /// [secdist config]
-        secdist: {}                                             # Component that stores configuration of hosts and passwords
-        default-secdist-provider:                               # Component that loads configuration of hosts and passwords
+        secdist:                                                # Component that stores configuration of hosts and passwords
             config: '/etc/digest_auth/secdist.json'             # Values are supposed to be stored in this file
             missing-ok: true                                    # ... but if the file is missing it is still ok
             environment-secrets-key: SERVER_DIGEST_AUTH_SECRET  # ... values will be loaded from this environment value
