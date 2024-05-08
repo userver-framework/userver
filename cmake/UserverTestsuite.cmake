@@ -208,7 +208,7 @@ function(userver_testsuite_requirements)
   if(USERVER_FEATURE_GRPC OR TARGET userver::grpc)
     get_property(protobuf_category
         GLOBAL PROPERTY userver_protobuf_version_category)
-    if(NOT userver_protobuf_version_category)
+    if(NOT protobuf_category)
       include(SetupProtobuf)
       get_property(protobuf_category
           GLOBAL PROPERTY userver_protobuf_version_category)
