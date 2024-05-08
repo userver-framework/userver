@@ -657,6 +657,9 @@ class UserverConan(ConanFile):
             )
         if self.options.with_grpc:
             build_modules.append(
+                os.path.join(self._cmake_subfolder, 'SetupProtobuf.cmake'),
+            )
+            build_modules.append(
                 os.path.join(self._cmake_subfolder, 'GrpcConan.cmake'),
             )
             build_modules.append(
