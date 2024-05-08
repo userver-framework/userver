@@ -517,7 +517,7 @@ def userver_config_testsuite(pytestconfig, mockserver_info):
 def userver_config_secdist(service_secdist_path):
     """
     Returns a function that adjusts the static configuration file for testsuite.
-    Sets the `default-secdist-provider.config` to the value of
+    Sets the `secdist.config` to the value of
     @ref pytest_userver.plugins.config.service_secdist_path "service_secdist_path"
     fixture.
 
@@ -529,7 +529,7 @@ def userver_config_secdist(service_secdist_path):
             return
 
         components = config_yaml['components_manager']['components']
-        if 'default-secdist-provider' not in components:
+        if 'secdist' not in components:
             return
 
         if not service_secdist_path.is_file():
@@ -538,7 +538,7 @@ def userver_config_secdist(service_secdist_path):
                 f'"--service-secdist" pytest option or override the '
                 f'"service_secdist_path" fixture.',
             )
-        components['default-secdist-provider']['config'] = str(
+        components['secdist']['config'] = str(
             service_secdist_path,
         )
 
