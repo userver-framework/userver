@@ -31,14 +31,19 @@ write_package_stub(jwt-cpp)
 write_package_stub(RapidJSON)
 set(RAPIDJSON_INCLUDE_DIRS "${USERVER_THIRD_PARTY_DIRS}/rapidjson/include")
 
-if (api-common-proto_LIBRARY)
-  set(YDB_SDK_GOOGLE_COMMON_PROTOS_TARGET "${api-common-proto_LIBRARY}")
+if (TARGET userver-api-common-protos)
+  set(YDB_SDK_GOOGLE_COMMON_PROTOS_TARGET userver-api-common-protos)
+else()
+  include(SetupGoogleProtoApis)
+  set(YDB_SDK_GOOGLE_COMMON_PROTOS_TARGET ${api-common-proto_LIBRARY})
 endif()
 
 CPMAddPackage(
   NAME ydb-cpp-sdk
   GIT_TAG main
   GITHUB_REPOSITORY ydb-platform/ydb-cpp-sdk
+  OPTIONS
+  "YDB_SDK_GOOGLE_COMMON_PROTOS_TARGET ${YDB_SDK_GOOGLE_COMMON_PROTOS_TARGET}"
 )
 
 list(APPEND ydb-cpp-sdk_INCLUDE_DIRS
