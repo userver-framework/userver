@@ -40,8 +40,7 @@ components_manager:
             testpoint-url: $mockserver/testpoint
             throttling_enabled: false
 
-        secdist: {}
-        default-secdist-provider:
+        secdist:
             config: /etc/redis_service/secure_data.json
             missing-ok: true
             environment-secrets-key: SECDIST_CONFIG
