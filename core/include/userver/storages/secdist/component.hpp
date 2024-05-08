@@ -44,7 +44,7 @@ class Secdist final : public SecdistComponentBase {
 
   static yaml_config::Schema GetStaticConfigSchema();
 };
-/// [Sample secdist - default secdist]
+
 template <>
 inline constexpr bool kHasValidate<Secdist> = true;
 
