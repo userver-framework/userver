@@ -111,7 +111,6 @@ components_manager:
       blocking_task_processor: pg-task-processor
       dbalias: devicenotify
     secdist:
-    default-secdist-provider:
       config: /etc/yandex/taxi-secdist/taxi.json
     server:
       listener:
@@ -217,7 +216,7 @@ TEST(ManagerConfig, Basic) {
 
   EXPECT_EQ(mc.task_processors.size(), 5);
 
-  ASSERT_EQ(mc.components.size(), 28);
+  ASSERT_EQ(mc.components.size(), 27);
 
   EXPECT_TRUE(std::any_of(
       mc.components.begin(), mc.components.end(),
