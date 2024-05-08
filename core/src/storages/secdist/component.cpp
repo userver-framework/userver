@@ -8,7 +8,7 @@
 #include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
-
+/// [Sample secdist - default secdist]
 namespace components {
 namespace {
 
@@ -87,5 +87,5 @@ properties:
 }
 
 }  // namespace components
-
+/// [Sample secdist - default secdist]
 USERVER_NAMESPACE_END

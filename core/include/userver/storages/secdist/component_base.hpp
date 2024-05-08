@@ -15,28 +15,18 @@ namespace components {
 
 /// @ingroup userver_components
 ///
-/// @brief Component that stores security related data (keys, passwords, ...).
+/// @brief Base component that stores security related data (keys, passwords, ...).
 ///
-/// The component must be configured in service config.
+/// You can use a ready-made components::Secdist or implement your own.
 ///
-/// Secdist requires a provider storages::secdist::SecdistProvider
-/// You can implement your own or use components::DefaultSecdistProvider
+/// ### Writing your own secrets distributor:
+/// Implement a custom provider class that contains the settings.
+/// @snippet core/include/userver/storages/secdist/default_provider.hpp Sample secdist - default provider
 ///
-/// ## Static configuration example:
+/// Implement a custom secdist component, configure it's static config schema
+/// and pass the custom provider to the storages::secdist::SecdistConfig::Settings.
+/// @snippet core/include/userver/storages/secdist/component.сpp Sample secdist - default secdist
 ///
-/// @snippet samples/redis_service/static_config.yaml Sample secdist static config
-///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// provider | optional secdist provider component name | 'default-secdist-provider'
-/// config | path to the config file with data | ''
-/// format | config format, either `json` or `yaml` | 'json'
-/// missing-ok | do not terminate components load if no file found by the config option | false
-/// environment-secrets-key | name of environment variable from which to load additional data | -
-/// update-period | period between data updates in utils::StringToDuration() suitable format ('0s' for no updates) | 0s
-/// blocking-task-processor | name of task processor for background blocking operations | --
-
 // clang-format on
 
 class SecdistComponentBase : public LoggableComponentBase {

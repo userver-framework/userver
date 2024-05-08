@@ -1,7 +1,7 @@
 #pragma once
 
-/// @file userver/storages/secdist/component.hpp
-/// @brief @copybrief components::DefaultSecdistProvider
+/// @file userver/storages/secdist/default_provider.hpp
+/// @brief @copybrief storages::secdist::DefaultProvider
 
 #include <string>
 
@@ -11,7 +11,15 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::secdist {
+// clang-format off
 
+/// @brief Default implementation of storages::secdist::SecdistProvider.
+///
+/// Provides components::Secdist configurations to the
+/// storages::secdist::SecdistConfig
+
+// clang-format on
+/// [Sample secdist - default provider]
 class DefaultProvider final : public storages::secdist::SecdistProvider {
  public:
   struct Settings {
@@ -29,7 +37,7 @@ class DefaultProvider final : public storages::secdist::SecdistProvider {
  private:
   Settings settings_;
 };
-
+/// [Sample secdist - default provider]
 }  // namespace storages::secdist
 
 USERVER_NAMESPACE_END
