@@ -99,7 +99,6 @@ TEST(SecdistYamlConfig, Sample) {
       {std::make_unique<storages::secdist::DefaultProvider>(
           std::move(provider_settings))}};
 
-  /// [Secdist Usage Sample - SecdistConfig]
   const auto& user_passwords = secdist_config.Get<UserPasswords>();
 
   const auto password = UserPasswords::Password{"drowssap"};
@@ -107,7 +106,6 @@ TEST(SecdistYamlConfig, Sample) {
   EXPECT_TRUE(user_passwords.IsMatching("username", password));
   EXPECT_FALSE(user_passwords.IsMatching("username2", password));
   EXPECT_TRUE(user_passwords.IsMatching("another username", another_password));
-  /// [Secdist Usage Sample - SecdistConfig]
 }
 
 UTEST(SecdistConfig, EnvironmentVariable) {

@@ -125,7 +125,8 @@ void UpdateFromEnv(formats::json::Value& doc,
 
 }  // namespace
 
-DefaultProvider::DefaultProvider(Settings settings) : settings_{settings} {}
+DefaultProvider::DefaultProvider(Settings settings)
+    : settings_{std::move(settings)} {}
 
 formats::json::Value DefaultProvider::Get() const {
   auto doc =
