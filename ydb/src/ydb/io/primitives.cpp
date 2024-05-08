@@ -248,7 +248,7 @@ template struct PrimitiveTraits<JsonTrait>;
 JsonTrait::Type JsonTrait::Parse(const NYdb::TValueParser& value_parser) {
   const auto& value = value_parser.GetJson();
   return formats::json::FromString(
-      std::string_view(value.Data(), value.Size()));
+      std::string_view(value.data(), value.size()));
 }
 
 template <typename Builder>
