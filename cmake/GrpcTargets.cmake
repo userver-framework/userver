@@ -72,7 +72,10 @@ function(_userver_prepare_grpc)
     message(FATAL_ERROR "grpc_python_plugin not found")
   endif()
 
-  include(UserverTestsuite)
+  if(NOT USERVER_CONAN)
+    # For Conan builds, UserverTestsuite is included automatically.
+    include(UserverTestsuite)
+  endif()
 
   get_property(protobuf_category GLOBAL PROPERTY userver_protobuf_version_category)
   set(requirements_name "requirements-${protobuf_category}.txt")
