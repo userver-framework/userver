@@ -14,12 +14,9 @@ namespace components {
 
 /// @ingroup userver_components
 ///
-/// @brief Component that stores security related data (keys, passwords, ...).
+/// @brief Default implementation of components::SecdistComponentBase.
 ///
 /// The component must be configured in service config.
-///
-/// Secdist requires a provider storages::secdist::SecdistProvider
-/// You can implement your own or use components::DefaultSecdistProvider
 ///
 /// ## Static configuration example:
 ///
@@ -28,7 +25,6 @@ namespace components {
 /// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// provider | optional secdist provider component name | 'default-secdist-provider'
 /// config | path to the config file with data | ''
 /// format | config format, either `json` or `yaml` | 'json'
 /// missing-ok | do not terminate components load if no file found by the config option | false
@@ -48,7 +44,7 @@ class Secdist final : public SecdistComponentBase {
 
   static yaml_config::Schema GetStaticConfigSchema();
 };
-
+/// [Sample secdist - default secdist]
 template <>
 inline constexpr bool kHasValidate<Secdist> = true;
 

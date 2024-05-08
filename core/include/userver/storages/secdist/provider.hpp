@@ -10,6 +10,15 @@ namespace storages::secdist {
 
 class SecdistProvider {
  public:
+  SecdistProvider() = default;
+  virtual ~SecdistProvider() = default;
+
+  SecdistProvider(const SecdistProvider&) = delete;
+  SecdistProvider& operator=(const SecdistProvider&) = delete;
+
+  SecdistProvider(SecdistProvider&&) = default;
+  SecdistProvider& operator=(SecdistProvider&&) = default;
+
   virtual formats::json::Value Get() const = 0;
 };
 
