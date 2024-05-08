@@ -2,8 +2,8 @@
 
 #include <userver/components/component.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/storages/secdist/exceptions.hpp>
 #include <userver/storages/secdist/default_provider.hpp>
+#include <userver/storages/secdist/exceptions.hpp>
 #include <userver/utils/string_to_duration.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
@@ -30,7 +30,8 @@ storages::secdist::SecdistConfig::Settings ParseSettings(
   using Provider = storages::secdist::DefaultProvider;
   Provider::Settings provider_settings;
   provider_settings.config_path = config["config"].As<std::string>({});
-  provider_settings.format = FormatFromString(config["format"].As<std::string>({}));
+  provider_settings.format =
+      FormatFromString(config["format"].As<std::string>({}));
   provider_settings.missing_ok = config["missing-ok"].As<bool>(false);
   provider_settings.environment_secrets_key =
       config["environment-secrets-key"].As<std::optional<std::string>>();
@@ -51,8 +52,7 @@ storages::secdist::SecdistConfig::Settings ParseSettings(
 
 }  // namespace
 
-Secdist::Secdist(const ComponentConfig& config,
-                               const ComponentContext& context)
+Secdist::Secdist(const ComponentConfig& config, const ComponentContext& context)
     : SecdistComponentBase(config, context, ParseSettings(config, context)) {}
 
 yaml_config::Schema Secdist::GetStaticConfigSchema() {

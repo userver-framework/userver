@@ -32,7 +32,7 @@ namespace components {
 class SecdistComponentBase : public LoggableComponentBase {
  public:
   SecdistComponentBase(const ComponentConfig&, const ComponentContext&,
-          storages::secdist::SecdistConfig::Settings&&);
+                       storages::secdist::SecdistConfig::Settings&&);
 
   const storages::secdist::SecdistConfig& Get() const;
 
