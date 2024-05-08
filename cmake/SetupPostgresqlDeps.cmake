@@ -16,6 +16,13 @@ find_package(GssApi REQUIRED)
 find_package(Threads REQUIRED)
 find_package(OpenSSL REQUIRED)
 
+include(CheckLibraryExists)
+CHECK_LIBRARY_EXISTS(m sin "" USERVER_HAS_LIB_MATH) 
+set(USERVER_LIB_MATH)
+if(USERVER_HAS_LIB_MATH)
+  set(USERVER_LIB_MATH m)
+endif()
+
 get_target_property(PQ_EXTRA_INITIAL_LIBRARIES_LIST
     PostgreSQLInternal INTERFACE_LINK_LIBRARIES
 )
@@ -26,6 +33,7 @@ target_link_libraries(PostgreSQLInternal
     OpenSSL::Crypto
     GssApi
     Threads::Threads
+    ${USERVER_LIB_MATH}
 )
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "BSD")
