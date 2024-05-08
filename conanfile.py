@@ -89,7 +89,7 @@ class UserverConan(ConanFile):
 
     @property
     def _build_subfolder(self):
-        return os.path.join(self.build_folder, 'userver')
+        return os.path.join(self.build_folder)
 
     def configure(self):
         if self.options.shared:
@@ -329,6 +329,13 @@ class UserverConan(ConanFile):
             copy(
                 self,
                 pattern='UserverTestsuite.cmake',
+                dst=os.path.join(self.package_folder, 'cmake'),
+                src=os.path.join(self.source_folder, 'cmake'),
+                keep_path=True,
+            )
+            copy(
+                self,
+                pattern='SetupProtobuf.cmake',
                 dst=os.path.join(self.package_folder, 'cmake'),
                 src=os.path.join(self.source_folder, 'cmake'),
                 keep_path=True,
@@ -649,6 +656,9 @@ class UserverConan(ConanFile):
                 os.path.join(self._cmake_subfolder, 'AddGoogleTests.cmake'),
             )
         if self.options.with_grpc:
+            build_modules.append(
+                os.path.join(self._cmake_subfolder, 'SetupProtobuf.cmake'),
+            )
             build_modules.append(
                 os.path.join(self._cmake_subfolder, 'GrpcConan.cmake'),
             )
