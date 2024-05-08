@@ -9,6 +9,7 @@
 #include <userver/logging/log.hpp>
 #include <userver/storages/secdist/exceptions.hpp>
 #include <userver/storages/secdist/default_provider.hpp>
+#include <userver/storages/secdist/exceptions.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
