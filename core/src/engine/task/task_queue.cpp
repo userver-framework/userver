@@ -1,6 +1,9 @@
-#include <engine/task/task_queue.hpp>
+#include <atomic>
+
+#include <userver/utils/rand.hpp>
 
 #include <engine/task/task_context.hpp>
+#include <engine/task/task_queue.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -11,7 +14,8 @@ constexpr std::size_t kSemaphoreInitialCount = 0;
 }
 
 TaskQueue::TaskQueue(const TaskProcessorConfig& config)
-    : queue_semaphore_(kSemaphoreInitialCount, config.spinning_iterations) {}
+    : workers_threads_(config.worker_threads),
+      queue_semaphore_(kSemaphoreInitialCount, config.spinning_iterations) {}
 
 void TaskQueue::Push(boost::intrusive_ptr<impl::TaskContext>&& context) {
   UASSERT(context);
@@ -37,8 +41,10 @@ boost::intrusive_ptr<impl::TaskContext> TaskQueue::PopBlocking() {
 
 void TaskQueue::StopProcessing() { DoPush(nullptr); }
 
+std::size_t TaskQueue::GetSize() const noexcept { return queue_.size_approx(); }
+
 std::size_t TaskQueue::GetSizeApproximate() const noexcept {
-  return 5;  // queue_.size_approx();
+  return queue_size_cached_.load(std::memory_order_relaxed);
 }
 
 void TaskQueue::DoPush(impl::TaskContext* context) {
@@ -46,6 +52,7 @@ void TaskQueue::DoPush(impl::TaskContext* context) {
   // moodycamel::BlockingConcurrentQueue::enqueue
   queue_.enqueue(context);
   queue_semaphore_.signal();
+  UpdateQueueSize();
 }
 
 impl::TaskContext* TaskQueue::DoPopBlocking(moodycamel::ConsumerToken& token) {
@@ -60,6 +67,12 @@ impl::TaskContext* TaskQueue::DoPopBlocking(moodycamel::ConsumerToken& token) {
   }
 
   return context;
+}
+
+void TaskQueue::UpdateQueueSize() {
+  if (utils::RandRange(workers_threads_) == 0) {
+    queue_size_cached_.store(GetSize(), std::memory_order_relaxed);
+  }
 }
 
 }  // namespace engine

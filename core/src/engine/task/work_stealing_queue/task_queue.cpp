@@ -1,6 +1,7 @@
 #include <engine/task/work_stealing_queue/task_queue.hpp>
 
 #include <userver/utils/assert.hpp>
+#include <userver/utils/rand.hpp>
 
 #include <engine/task/task_context.hpp>
 #include <engine/task/work_stealing_queue/consumer.hpp>
@@ -18,11 +19,11 @@ thread_local Consumer* localConsumer = nullptr;
 }  // namespace
 
 WorkStealingTaskQueue::WorkStealingTaskQueue(const TaskProcessorConfig& config)
-    : consumers_manager_(config.worker_threads),
-      consumers_count_(config.worker_threads),
+    : consumers_count_(config.worker_threads),
       global_queue_(consumers_count_),
       background_queue_(consumers_count_),
-      consumers_(config.worker_threads, *this, consumers_manager_) {
+      consumers_(config.worker_threads, *this, consumers_manager_),
+      consumers_manager_(consumers_count_) {
   for (size_t i = 0; i < consumers_count_; ++i) {
     consumers_[i].SetIndex(i);
   }
@@ -46,7 +47,7 @@ boost::intrusive_ptr<impl::TaskContext> WorkStealingTaskQueue::PopBlocking() {
 
 void WorkStealingTaskQueue::StopProcessing() { consumers_manager_.Stop(); }
 
-std::size_t WorkStealingTaskQueue::GetSizeApproximate() const noexcept {
+std::size_t WorkStealingTaskQueue::GetSize() const noexcept {
   std::size_t size{0};
   for (const auto& consumer : consumers_) {
     size += consumer.GetLocalQueueSize();
@@ -54,6 +55,10 @@ std::size_t WorkStealingTaskQueue::GetSizeApproximate() const noexcept {
   size += global_queue_.GetSizeApproximate();
   size += background_queue_.GetSizeApproximate();
   return size;
+}
+
+std::size_t WorkStealingTaskQueue::GetSizeApproximate() const noexcept {
+  return queue_size_cached_.load(std::memory_order_relaxed);
 }
 
 void WorkStealingTaskQueue::PrepareWorker(std::size_t index) {
@@ -83,6 +88,12 @@ impl::TaskContext* WorkStealingTaskQueue::DoPopBlocking() {
 }
 
 Consumer* WorkStealingTaskQueue::GetConsumer() { return localConsumer; }
+
+void WorkStealingTaskQueue::UpdateQueueSize() {
+  if (utils::RandRange(consumers_count_) == 0) {
+    queue_size_cached_.store(GetSize(), std::memory_order_relaxed);
+  }
+}
 
 }  // namespace engine
 

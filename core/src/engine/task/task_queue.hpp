@@ -27,13 +27,20 @@ class TaskQueue final {
 
   std::size_t GetSizeApproximate() const noexcept;
 
+  std::size_t GetSize() const noexcept;
+
  private:
   void DoPush(impl::TaskContext* context);
 
   impl::TaskContext* DoPopBlocking(moodycamel::ConsumerToken& token);
 
+  void UpdateQueueSize();
+
+  const std::size_t workers_threads_;
+
   moodycamel::ConcurrentQueue<impl::TaskContext*> queue_;
   moodycamel::LightweightSemaphore queue_semaphore_;
+  std::atomic<std::size_t> queue_size_cached_{0};
 };
 
 }  // namespace engine

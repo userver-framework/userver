@@ -2,7 +2,9 @@
 #include <moodycamel/concurrentqueue.h>
 
 #include <atomic>
+#include <cstddef>
 #include <cstdint>
+#include <deque>
 #include <memory>
 #include <string>
 #include <thread>
@@ -154,11 +156,11 @@ void engine_multiple_yield_two_task_processor_no_extra_wakeups(
     std::vector<engine::TaskWithResult<std::uint64_t>> tasks;
     std::atomic<bool> keep_running{true};
     for (int i = 0; i < 2; i++) {
-      for ([[maybe_unused]] auto _ : tasks_per_tp) {
+      for (auto j = 0; j < tasks_per_tp[i]; j++) {
         tasks.push_back(engine::AsyncNoSpan(*processors[i].get(), [&] {
           std::uint64_t yields_performed = 0;
           while (keep_running) {
-            engine::AsyncNoSpan([]() {}).Wait();
+            engine::Yield();
             ++yields_performed;
           }
           return yields_performed;
@@ -169,7 +171,7 @@ void engine_multiple_yield_two_task_processor_no_extra_wakeups(
     tasks.push_back(engine::AsyncNoSpan(*processors.back().get(), [&] {
       std::uint64_t yields_performed = 0;
       for ([[maybe_unused]] auto _ : state) {
-        engine::AsyncNoSpan([]() {}).Wait();
+        engine::Yield();
         ++yields_performed;
       }
       keep_running = false;

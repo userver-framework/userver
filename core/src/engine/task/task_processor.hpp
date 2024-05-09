@@ -58,7 +58,18 @@ class TaskProcessor final {
 
   const impl::TaskCounter& GetTaskCounter() const { return task_counter_; }
 
-  size_t GetTaskQueueSize() const { return task_queue_size_.load(); }
+  // This method is much slower,
+  // but more accurate than GetTaskQueueSizeApproximate()
+  size_t GetTaskQueueSize() const {
+    return std::visit([](auto&& arg) { return arg.GetSize(); }, task_queue_);
+  }
+
+  // This method is much faster,
+  // but less accurate than GetTaskQueueSize()
+  size_t GetTaskQueueSizeApproximate() const {
+    return std::visit([](auto&& arg) { return arg.GetSizeApproximate(); },
+                      task_queue_);
+  }
 
   size_t GetWorkerCount() const { return workers_.size(); }
 
@@ -91,7 +102,9 @@ class TaskProcessor final {
 
   void HandleOverload(impl::TaskContext& context);
 
-  void UpdateTaskQueueSize();
+  bool IsOverloadedByLength();
+
+  bool ComputeIsOverloadedByLength(const bool current_overloaded_status);
 
   concurrent::impl::InterferenceShield<impl::DetachedTasksSyncBlock>
       detached_contexts_{impl::DetachedTasksSyncBlock::StopMode::kCancel};
@@ -115,7 +128,8 @@ class TaskProcessor final {
   std::atomic<bool> profiler_force_stacktrace_{false};
   std::atomic<bool> is_shutting_down_{false};
   std::atomic<bool> task_trace_logger_set_{false};
-  std::atomic<std::size_t> task_queue_size_{0};
+  std::atomic<bool> overloaded_by_length_cache_{false};
+  std::atomic<std::size_t> task_queue_size_cache_{false};
 
   std::unique_ptr<utils::statistics::ThreadPoolCpuStatsStorage>
       cpu_stats_storage_{nullptr};

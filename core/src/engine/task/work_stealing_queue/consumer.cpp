@@ -36,6 +36,9 @@ constexpr std::size_t kDefaultStealSize = 5;
 // frequency of visits to the global
 // queue to guarantee progress
 constexpr std::size_t kFrequencyGlobalQueuePop = 61;
+// frequency of visits to the background
+// queue in stealing process
+constexpr std::size_t kFrequencyStealingBackgroundQueuePop = 10;
 }  // namespace
 
 Consumer::Consumer(WorkStealingTaskQueue& owner,
@@ -100,8 +103,18 @@ impl::TaskContext* Consumer::StealFromAnotherConsumerOrGlobalQueue(
       stealed_size += tasks_count;
       to_steal_count -= tasks_count;
     }
+
     if (to_steal_count > 0) {
       impl::TaskContext* ctx = owner_.global_queue_.TryPop(global_queue_token_);
+      if (ctx) {
+        steal_buffer_[stealed_size++] = ctx;
+        to_steal_count--;
+      }
+    }
+
+    if (to_steal_count > 0 && i % kFrequencyStealingBackgroundQueuePop == 0) {
+      impl::TaskContext* ctx =
+          owner_.background_queue_.TryPop(background_queue_token_);
       if (ctx) {
         steal_buffer_[stealed_size++] = ctx;
         to_steal_count--;
