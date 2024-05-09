@@ -286,6 +286,10 @@ bool TaskContext::SetCancellable(bool value) {
   return std::exchange(is_cancellable_, value);
 }
 
+void TaskContext::SetBackground(bool is_background) {
+  is_background_ = is_background;
+}
+
 TaskContext::WakeupSource TaskContext::Sleep(WaitStrategy& wait_strategy,
                                              Deadline deadline) {
   UASSERT(IsCurrent());

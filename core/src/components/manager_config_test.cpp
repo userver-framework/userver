@@ -33,6 +33,7 @@ components_manager:
       worker_threads: $bg_worker_threads
       worker_threads#fallback: 2
       os-scheduling: low-priority
+      task-processor-queue: global-task-queue
     fs-task-processor:
       thread_name: fs-worker
       worker_threads: $fs_worker_threads
