@@ -9,6 +9,7 @@
 
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/serialize/common_containers.hpp>
+#include <userver/fs/blocking/read.hpp>
 #include <userver/storages/secdist/helpers.hpp>
 #include <userver/utils/assert.hpp>
 
@@ -56,16 +57,32 @@ AuthSettings Parse(const formats::json::Value& doc,
   }
   if (!client_cert_path.IsMissing()) {
     ClientCertSettings client_cert_settings;
-    client_cert_settings.cert_path = client_cert_path.As<std::string>();
-    client_cert_settings.key_path = client_key_path.As<std::string>();
+
+    const auto& client_cert_contents =
+        fs::blocking::ReadFileContents(client_cert_path.As<std::string>());
+    client_cert_settings.cert =
+        crypto::Certificate::LoadFromString(client_cert_contents);
+
+    const auto& client_key_contents =
+        fs::blocking::ReadFileContents(client_key_path.As<std::string>());
+    client_cert_settings.key =
+        crypto::PrivateKey::LoadFromString(client_key_contents);
+
     tls_settings.client_cert_settings = client_cert_settings;
   }
-  tls_settings.ca_cert_paths =
+
+  const auto& ca_cert_paths =
       doc["tls"]["ca-paths"].As<std::vector<std::string>>({});
+  for (const auto& ca_cert_path : ca_cert_paths) {
+    const auto& ca_cert_contents = fs::blocking::ReadFileContents(ca_cert_path);
+    tls_settings.ca_certs.push_back(
+        crypto::Certificate::LoadFromString(ca_cert_contents));
+  }
+
   tls_settings.verify_host = doc["tls"]["verify_host"].As<bool>(true);
 
-  if (tls_settings.client_cert_settings ||
-      !tls_settings.ca_cert_paths.empty() || !tls_settings.verify_host) {
+  if (tls_settings.client_cert_settings || !tls_settings.ca_certs.empty() ||
+      !tls_settings.verify_host) {
     auth.tls_settings = tls_settings;
   }
 

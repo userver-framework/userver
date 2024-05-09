@@ -1,11 +1,14 @@
 #pragma once
 
 #include <cstddef>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 #include <userver/components/component_config.hpp>
+#include <userver/crypto/certificate.hpp>
+#include <userver/crypto/private_key.hpp>
 #include <userver/formats/json_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -21,13 +24,13 @@ struct EndpointInfo final {
 };
 
 struct ClientCertSettings {
-  std::string cert_path;
-  std::string key_path;
+  crypto::Certificate cert;
+  crypto::PrivateKey key;
 };
 
 struct TlsSettings {
   std::optional<ClientCertSettings> client_cert_settings;
-  std::vector<std::string> ca_cert_paths;
+  std::vector<crypto::Certificate> ca_certs;
   bool verify_host = true;
 };
 

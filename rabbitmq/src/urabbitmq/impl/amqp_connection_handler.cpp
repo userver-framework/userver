@@ -7,7 +7,6 @@
 #include <userver/engine/io/common.hpp>
 #include <userver/engine/io/socket.hpp>
 #include <userver/engine/io/tls_wrapper.hpp>
-#include <userver/fs/blocking/read.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/urabbitmq/client_settings.hpp>
 #include <userver/utils/assert.hpp>
@@ -53,31 +52,20 @@ std::unique_ptr<engine::io::RwBase> CreateSocketPtr(
   if (secure) {
     if (auth_settings.tls_settings) {
       const auto& tls_settings = *auth_settings.tls_settings;
-
-      crypto::Certificate client_cert;
-      crypto::PrivateKey client_key;
-      if (tls_settings.client_cert_settings) {
-        const auto& client_cert_contents = fs::blocking::ReadFileContents(
-            tls_settings.client_cert_settings->cert_path);
-        client_cert = crypto::Certificate::LoadFromString(client_cert_contents);
-
-        const auto& client_key_contents = fs::blocking::ReadFileContents(
-            tls_settings.client_cert_settings->key_path);
-        client_key = crypto::PrivateKey::LoadFromString(client_key_contents);
-      }
-
-      std::vector<crypto::Certificate> tls_certificate_authorities;
-      for (const auto& ca_path : tls_settings.ca_cert_paths) {
-        auto contents = fs::blocking::ReadFileContents(ca_path);
-        tls_certificate_authorities.push_back(
-            crypto::Certificate::LoadFromString(contents));
-      }
+      const crypto::Certificate& client_cert =
+          tls_settings.client_cert_settings
+              ? tls_settings.client_cert_settings->cert
+              : crypto::Certificate();
+      const crypto::PrivateKey& client_key =
+          tls_settings.client_cert_settings
+              ? tls_settings.client_cert_settings->key
+              : crypto::PrivateKey();
 
       return std::make_unique<engine::io::TlsWrapper>(
           engine::io::TlsWrapper::StartTlsClient(
               std::move(socket),
               tls_settings.verify_host ? address.hostname() : "", client_cert,
-              client_key, deadline, tls_certificate_authorities));
+              client_key, deadline, tls_settings.ca_certs));
     }
 
     return std::make_unique<engine::io::TlsWrapper>(
