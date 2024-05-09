@@ -1,9 +1,12 @@
 #include <kafka/impl/producer_impl.hpp>
 
 #include <userver/logging/log_extra.hpp>
+#include <userver/utils/trivial_map.hpp>
 
+#include <kafka/impl/configuration.hpp>
 #include <kafka/impl/delivery_waiter.hpp>
 #include <kafka/impl/error_buffer.hpp>
+#include <kafka/impl/stats.hpp>
 
 #include <librdkafka/rdkafka.h>
 
@@ -11,48 +14,45 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace kafka {
+namespace kafka::impl {
 
-namespace impl {
-
-class ProducerHolder {
+class ProducerImpl::ProducerHolder final {
  public:
-  ProducerHolder(rd_kafka_t* producer) : handle_(producer) {}
+  ProducerHolder(void* conf_ptr)
+      : handle_(rd_kafka_new(RD_KAFKA_PRODUCER,
+                             static_cast<rd_kafka_conf_t*>(conf_ptr),
+                             err_buf_.data(), err_buf_.size()),
+                &rd_kafka_destroy) {
+    if (handle_ == nullptr) {
+      /// @note `librdkafka` takes ownership on conf iff `rd_kafka_new`
+      /// succeeds
+      rd_kafka_conf_destroy(static_cast<rd_kafka_conf_t*>(conf_ptr));
 
-  ~ProducerHolder() {
-    UASSERT_MSG(handle_ == nullptr,
-                "ProducerHolder must be released before dctor called");
+      PrintErrorAndThrow("create producer", err_buf_);
+    }
   }
 
-  rd_kafka_t* Handle() { return handle_; }
-  rd_kafka_t* Release() { return std::exchange(handle_, nullptr); }
+  ~ProducerHolder() {
+    if (rd_kafka_flush(Handle(), ProducerImpl::kCoolDownFlushTimeout.count()) ==
+        RD_KAFKA_RESP_ERR__TIMED_OUT) {
+      LOG_WARNING() << "Producer flushing timeouted on producer destroy. "
+                       "Some messages may be not delivered!!!";
+    }
+  }
+
+  rd_kafka_t* Handle() const { return handle_.get(); }
 
  private:
-  rd_kafka_t* handle_;
-};
+  ErrorBuffer err_buf_{};
 
-}  // namespace impl
+  using HandleHolder = std::unique_ptr<rd_kafka_t, decltype(&rd_kafka_destroy)>;
+  HandleHolder handle_;
+};
 
 namespace {
 
-rd_kafka_t* MakeProducerFromConf(rd_kafka_conf_t* conf) {
-  impl::ErrorBuffer err_buf{};
-
-  rd_kafka_t* producer =
-      rd_kafka_new(RD_KAFKA_PRODUCER, conf, err_buf.data(), err_buf.size());
-  if (producer == nullptr) {
-    /// @note `librdkafka` takes ownership on conf iff `rd_kafka_new`
-    /// succeeds
-    rd_kafka_conf_destroy(conf);
-
-    impl::PrintErrorAndThrow("create producer", err_buf);
-  }
-
-  return producer;
-}
-
 /// @note Message delivery may timeout due to timeout fired when request to
-/// broker was in-flight. That case, message will have status
+/// broker was in-flight. In that case, message status is
 /// `RD_KAFKA_MSG_STATUS_POSSIBLY_PERSISTED`. It is not safe to retry such
 /// messages, because of reordering and duplication possibility
 /// @see
@@ -66,33 +66,70 @@ bool IsRetryable(rd_kafka_resp_err_t err,
          status != RD_KAFKA_MSG_STATUS_POSSIBLY_PERSISTED;
 }
 
+/// @param message represents the delivered (or not) message. Its `_private`
+/// field contains for `opaque` argument, which was passed to
+/// `rd_kafka_producev`
+/// @param opaque A global opaque parameter which is equal for all callbacks
+/// and is set with `rd_kafka_conf_set_opaque`
+void DeliveryReportCallback([[maybe_unused]] rd_kafka_t* producer_,
+                            const rd_kafka_message_t* message,
+                            void* opaque_ptr) {
+  static constexpr utils::TrivialBiMap kMessageStatus{[](auto selector) {
+    return selector()
+        .Case(RD_KAFKA_MSG_STATUS_NOT_PERSISTED, "MSG_STATUS_NOT_PERSISTED")
+        .Case(RD_KAFKA_MSG_STATUS_POSSIBLY_PERSISTED,
+              "MSG_STATUS_POSSIBLY_PERSISTED")
+        .Case(RD_KAFKA_MSG_STATUS_PERSISTED, "MSG_STATUS_PERSISTED");
+  }};
+
+  const auto& opaque = Opaque::FromPtr(opaque_ptr);
+  const auto log_tags = opaque.MakeCallbackLogTags("offset_commit_callback");
+
+  const auto message_status{rd_kafka_message_status(message)};
+  DeliveryResult delivery_result{
+      .message_error = static_cast<int>(message->err),
+      .messages_status = static_cast<int>(message_status)};
+  LOG_DEBUG()
+      << log_tags
+      << fmt::format(
+             "Message delivery report: err: {}, status: {}",
+             rd_kafka_err2str(message->err),
+             kMessageStatus.TryFind(message_status).value_or("<bad status>"));
+
+  auto* complete_handle = static_cast<DeliveryWaiter*>(message->_private);
+  complete_handle->set_value(std::move(delivery_result));
+  delete complete_handle;
+
+  const char* topic_name = rd_kafka_topic_name(message->rkt);
+
+  if (message->err) {
+    LOG_WARNING() << log_tags
+                  << fmt::format("Failed to delivery message to topic '{}': {}",
+                                 topic_name, rd_kafka_err2str(message->err));
+    return;
+  }
+
+  LOG_INFO() << log_tags
+             << fmt::format(
+                    "Message to topic '{}' delivered successfully to "
+                    "partition "
+                    "{} by offset {}",
+                    topic_name, message->partition, message->offset);
+}
+
 }  // namespace
 
-ProducerImpl::ProducerImpl(
-    void* conf, std::unique_ptr<impl::StatsAndLogging> stats_and_logging)
-    : producer_(std::make_unique<impl::ProducerHolder>(
-          MakeProducerFromConf(static_cast<rd_kafka_conf_t*>(conf)))),
-      stats_and_logging_(std::move(stats_and_logging)) {}
+ProducerImpl::ProducerImpl(std::unique_ptr<Configuration> configuration)
+    : opaque_(configuration->GetComponentName(), EntityType::kProducer),
+      producer_(std::make_unique<ProducerHolder>(
+          configuration->SetOpaque(opaque_)
+              .SetCallbacks([](void* conf) {
+                rd_kafka_conf_set_dr_msg_cb(static_cast<rd_kafka_conf_t*>(conf),
+                                            &DeliveryReportCallback);
+              })
+              .Release())) {}
 
-ProducerImpl::~ProducerImpl() {
-  rd_kafka_t* producer = producer_->Release();
-
-  if (rd_kafka_flush(producer, kCoolDownFlushTimeout.count()) ==
-      RD_KAFKA_RESP_ERR__TIMED_OUT) {
-    LOG_WARNING() << GetLoggingTags()
-                  << "Producer flushing timeouted on producer destroy. Some "
-                     "messages may be not delivered!!!";
-  }
-  rd_kafka_destroy(producer);
-}
-
-const impl::Stats& ProducerImpl::GetStats() const {
-  return *stats_and_logging_->stats;
-}
-
-const logging::LogExtra& ProducerImpl::GetLoggingTags() const {
-  return stats_and_logging_->log_tags_;
-}
+ProducerImpl::~ProducerImpl() = default;
 
 void ProducerImpl::Send(const std::string& topic_name, std::string_view key,
                         std::string_view message,
@@ -100,17 +137,19 @@ void ProducerImpl::Send(const std::string& topic_name, std::string_view key,
                         std::size_t retries) const {
   using enum SendResult;
 
-  auto& topic_stats = stats_and_logging_->stats->topics_stats[topic_name];
+  LOG_INFO() << fmt::format("Message to topic '{}' is requested to send",
+                            topic_name);
+
+  auto& topic_stats = opaque_.GetStats().topics_stats[topic_name];
   ++topic_stats->messages_counts.messages_total;
 
   const auto produce_start_time =
       std::chrono::system_clock::now().time_since_epoch();
 
   std::size_t retries_left{retries};
-  const auto ShouldRetry = [this, &retries_left](SendResult send_result) {
+  const auto ShouldRetry = [&retries_left](SendResult send_result) {
     if (retries_left > 0 && send_result == Retryable) {
-      LOG_WARNING() << GetLoggingTags()
-                    << "Send request failed, but error may be transient, "
+      LOG_WARNING() << "Send request failed, but error may be transient, "
                        "retrying..."
                     << fmt::format("(retries left: {})", retries_left);
       retries_left -= 1;
@@ -134,13 +173,12 @@ void ProducerImpl::Send(const std::string& topic_name, std::string_view key,
   topic_stats->avg_ms_spent_time.GetCurrentCounter().Account(
       produce_duration_ms);
 
-  LOG_INFO() << GetLoggingTags()
-             << fmt::format("Message produced to topic '{}' in {}ms {}",
-                            topic_name, produce_duration_ms,
-                            retries > retries_left
-                                ? fmt::format("(after {} retries)",
-                                              retries - retries_left)
-                                : "");
+  LOG_INFO() << fmt::format(
+      "Message produced to topic '{}' in {}ms {}", topic_name,
+      produce_duration_ms,
+      retries > retries_left
+          ? fmt::format("(after {} retries)", retries - retries_left)
+          : "");
 
   switch (send_result.value()) {
     case SendResult::Succeeded: {
@@ -167,22 +205,25 @@ ProducerImpl::SendResult ProducerImpl::SendImpl(
     std::string_view message, std::optional<std::uint32_t> partition) const {
   using enum SendResult;
 
-  auto waiter = std::make_unique<impl::DeliveryWaiter>();
+  auto waiter = std::make_unique<DeliveryWaiter>();
   auto wait_handle = waiter->get_future();
 
-  /// @note `rd_kafka_producev` does not block at all. It only enqueues
+  /// `rd_kafka_producev` does not block at all. It only enqueues
   /// the message to the local queue to be send in future by `librdkafka`
   /// internal thread
-  /// @note 0 msgflags implies no message copying and freeing by
+  ///
+  /// 0 msgflags implies no message copying and freeing by
   /// `librdkafka` implementation. It is safe to pass actually a pointer
   /// to message data because it lives till the delivery callback is invoked
   /// @see
   /// https://github.com/confluentinc/librdkafka/blob/master/src/rdkafka.h#L4698
   /// for understanding of `msgflags` argument
-  /// @note It is safe to release the `waiter` because (i)
+  ///
+  /// It is safe to release the `waiter` because (i)
   /// `rd_kafka_producev` does not throws, therefore it owns the `waiter`,
   /// (ii) delivery report callback fries its memory
-  /// @note const qualifier remove for `message` is required because of
+  ///
+  /// const qualifier remove for `message` is required because of
   /// the `librdkafka` API requirements. If `msgflags` set to
   /// `RD_KAFKA_MSG_F_FREE`, produce implementation fries the message
   /// data, though not const pointer is required
@@ -196,16 +237,15 @@ ProducerImpl::SendResult ProducerImpl::SendImpl(
       RD_KAFKA_V_OPAQUE(waiter.release()), RD_KAFKA_V_END);
 
   if (enqueue_error != RD_KAFKA_RESP_ERR_NO_ERROR) {
-    LOG_WARNING() << GetLoggingTags()
-                  << fmt::format(
-                         "Failed to enqueue message to Kafka local queue: {}",
-                         rd_kafka_err2str(enqueue_error));
+    LOG_WARNING() << fmt::format(
+        "Failed to enqueue message to Kafka local queue: {}",
+        rd_kafka_err2str(enqueue_error));
 
     return IsRetryable(enqueue_error) ? Retryable : Failed;
   }
 
   /// wait until delivery report callback is invoked:
-  /// @see impl/configuration.cpp
+  /// @see DeliveryCallback
   const auto delivery_result = wait_handle.get();
   const auto delivery_error =
       static_cast<rd_kafka_resp_err_t>(delivery_result.message_error);
@@ -219,6 +259,8 @@ ProducerImpl::SendResult ProducerImpl::SendImpl(
   return Succeeded;
 }
 
-}  // namespace kafka
+const Stats& ProducerImpl::GetStats() const { return opaque_.GetStats(); }
+
+}  // namespace kafka::impl
 
 USERVER_NAMESPACE_END

@@ -89,7 +89,7 @@ class HandlerKafkaConsumer final
   std::vector<formats::json::Value> ReleaseMessages(
       const std::string& topic) const;
 
-  void Consume(std::vector<kafka::MessagePolled>&& messages);
+  void Consume(kafka::MessageBatchView messages);
 
   void DumpCurrentConsumed(
       const MessagesByTopic& messages_by_topic,
@@ -139,12 +139,12 @@ namespace functional_tests {
 
 namespace {
 
-formats::json::Value Serialize(const kafka::MessagePolled& message,
+formats::json::Value Serialize(const kafka::Message& message,
                                formats::serialize::To<formats::json::Value>) {
   formats::json::ValueBuilder builder{formats::common::Type::kObject};
-  builder["topic"] = message.topic;
-  builder["key"] = message.key;
-  builder["payload"] = message.payload;
+  builder["topic"] = message.GetTopic();
+  builder["key"] = message.GetKey();
+  builder["payload"] = message.GetPayload();
 
   return builder.ExtractValue();
 }
@@ -182,19 +182,20 @@ bool IsCorrectRequest(const formats::json::Value& request_json) {
 
 }  // namespace
 
+/// [Kafka service sample - consumer usage]
 HandlerKafkaConsumer::HandlerKafkaConsumer(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
     : server::handlers::HttpHandlerJsonBase(config, context),
       consumer_(
           context.FindComponent<kafka::ConsumerComponent>("kafka-consumer")
-              .GetConsumer()
-              .MakeConsumerScope()) {
-  consumer_.Start([this](std::vector<kafka::MessagePolled>&& messages) {
-    Consume(std::move(messages));
+              .GetConsumer()) {
+  consumer_.Start([this](kafka::MessageBatchView messages) {
+    Consume(messages);
     consumer_.AsyncCommit();
   });
 }
+/// [Kafka service sample - consumer usage]
 
 formats::json::Value HandlerKafkaConsumer::HandleRequestJsonThrow(
     const server::http::HttpRequest& request,
@@ -244,16 +245,15 @@ std::vector<formats::json::Value> HandlerKafkaConsumer::ReleaseMessages(
   return consumed_messages;
 }
 
-void HandlerKafkaConsumer::Consume(
-    std::vector<kafka::MessagePolled>&& messages) {
+void HandlerKafkaConsumer::Consume(kafka::MessageBatchView messages) {
   auto thisMessages = messages_by_topic_.Lock();
 
   for (const auto& message : messages) {
-    if (!message.timestamp.has_value()) {
+    if (!message.GetTimestamp().has_value()) {
       continue;
     }
 
-    (*thisMessages)[message.topic].emplace_back(
+    (*thisMessages)[message.GetTopic()].emplace_back(
         Serialize(message, formats::serialize::To<formats::json::Value>{}));
   }
 

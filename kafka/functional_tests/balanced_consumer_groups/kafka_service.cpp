@@ -67,7 +67,7 @@ class HandlerKafkaConsumerGroups final
   void StopConsuming(const std::string& consumer_name) const;
 
   void Consume(const std::string& consumer_name,
-               std::vector<kafka::MessagePolled>&& messages) const;
+               kafka::MessageBatchView messages) const;
   formats::json::Value ReleaseMessages(const std::string& consumer_name) const;
 
   bool HasConsumer(const std::string& consumer_name) const;
@@ -94,13 +94,13 @@ namespace functional_tests {
 
 namespace {
 
-formats::json::Value Serialize(const kafka::MessagePolled& message,
+formats::json::Value Serialize(const kafka::Message& message,
                                formats::serialize::To<formats::json::Value>) {
   formats::json::ValueBuilder builder{formats::common::Type::kObject};
-  builder["topic"] = message.topic;
-  builder["key"] = message.key;
-  builder["payload"] = message.payload;
-  builder["partition"] = message.partition;
+  builder["topic"] = message.GetTopic();
+  builder["key"] = message.GetKey();
+  builder["payload"] = message.GetPayload();
+  builder["partition"] = message.GetPartition();
 
   return builder.ExtractValue();
 }
@@ -118,8 +118,7 @@ HandlerKafkaConsumerGroups::HandlerKafkaConsumerGroups(
     consumer_by_name->emplace(
         consumer_name, utils::LazyPrvalue([&context, &consumer_name] {
           return context.FindComponent<kafka::ConsumerComponent>(consumer_name)
-              .GetConsumer()
-              .MakeConsumerScope();
+              .GetConsumer();
         }));
     messages_by_consumer->emplace(consumer_name,
                                   std::vector<formats::json::Value>{});
@@ -161,8 +160,8 @@ void HandlerKafkaConsumerGroups::StartConsuming(
   auto& consumer = GetConsumerScope(consumer_name);
 
   consumer.Start([this, consumer_name = consumer_name,
-                  &consumer](std::vector<kafka::MessagePolled>&& messages) {
-    Consume(consumer_name, std::move(messages));
+                  &consumer](kafka::MessageBatchView messages) {
+    Consume(consumer_name, messages);
     consumer.AsyncCommit();
   });
 }
@@ -173,17 +172,19 @@ void HandlerKafkaConsumerGroups::StopConsuming(
 }
 
 void HandlerKafkaConsumerGroups::Consume(
-    const std::string& consumer_name,
-    std::vector<kafka::MessagePolled>&& messages) const {
+    const std::string& consumer_name, kafka::MessageBatchView messages) const {
   auto messages_by_consumer = messages_by_consumer_.Lock();
 
   auto messages_it = messages_by_consumer->find(consumer_name);
-  UASSERT_MSG(messages_it != messages_by_consumer->end(),
-              fmt::format("Expected to find consumer '{}'", consumer_name));
+  UINVARIANT(
+      messages_it != messages_by_consumer->end(),
+      fmt::format(
+          "Expected to find consumer '{}' (according to HasConsumer check)",
+          consumer_name));
 
   auto& messages_storage = messages_it->second;
   for (const auto& message : messages) {
-    if (should_fail_.load() && message.payload == kMessageToFail &&
+    if (should_fail_.load() && message.GetPayload() == kMessageToFail &&
         consumer_name == kFaultyConsumer) {
       LOG_WARNING() << "Received fail message!";
       throw std::runtime_error{"Bad messages, i am going to fail forever!"};
@@ -194,7 +195,7 @@ void HandlerKafkaConsumerGroups::Consume(
   }
 
   LOG_DEBUG() << fmt::format("Consumer '{}' consumed: {}", consumer_name,
-                             fmt::join(messages_storage, ","));
+                             fmt::join(messages_storage, ", "));
 }
 
 formats::json::Value HandlerKafkaConsumerGroups::ReleaseMessages(

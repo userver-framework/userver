@@ -8,7 +8,7 @@ namespace {
 
 /// @note `librdkafka` use the same log level as `syslog`
 /// @see
-/// https://a.yandex-team.ru/arcadia/contrib/libs/librdkafka/src/rd.h?rev=r13796908#L81
+/// https://github.com/confluentinc/librdkafka/blob/master/src/rd.h#L80
 enum class RdKafkaLogLevel {
   kRdLogEmerge = 0,
   kRdLogAlert = 1,

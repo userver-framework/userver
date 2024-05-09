@@ -26,6 +26,8 @@ components_manager:
             task_processor: main-task-processor
             method: POST
 
+# /// [Kafka service sample - consumer static config]
+# yaml
         kafka-consumer:
             env_pod_name: "HOSTNAME"
             enable_auto_commit: false
@@ -39,6 +41,10 @@ components_manager:
               - "test-topic-consume-produced-1"
               - "test-topic-consume-produced-2"
             max_batch_size: 10
+# /// [Kafka service sample - consumer static config]
+
+# /// [Kafka service sample - producer static config]
+# yaml
         kafka-producer-first:
             delivery_timeout_ms: 3000
             queue_buffering_max_ms: 100
@@ -46,6 +52,8 @@ components_manager:
             send_retries_count: 5
             enable_idempotence: true
             security_protocol: "PLAINTEXT"
+# /// [Kafka service sample - producer static config]
+
         kafka-producer-second:
             delivery_timeout_ms: 3000
             queue_buffering_max_ms: 100

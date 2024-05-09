@@ -2,46 +2,33 @@
 
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/testsuite/testpoint.hpp>
+#include <userver/tracing/span.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/text_light.hpp>
 
 #include <kafka/impl/configuration.hpp>
 #include <kafka/impl/producer_impl.hpp>
+#include <kafka/impl/stats.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace kafka {
 
-Producer::Producer(std::unique_ptr<Configuration> configuration,
-                   const std::string& component_name,
+Producer::Producer(std::unique_ptr<impl::Configuration> configuration,
                    engine::TaskProcessor& producer_task_processor,
                    std::chrono::milliseconds poll_timeout,
-                   std::size_t send_retries,
-                   utils::statistics::Storage& storage)
-    : component_name_(component_name),
+                   std::size_t send_retries)
+    : component_name_(configuration->GetComponentName()),
       producer_task_processor_(producer_task_processor),
-      log_tags_({{"kafka_producer", component_name}}),
-      configuration_(std::move(configuration)),
       poll_timeout_(poll_timeout),
       send_retries_(send_retries),
-      storage_(storage) {
-  statistics_holder_ =
-      storage_.RegisterExtender(component_name_, [this](const auto&) {
-        return !first_send_.load()
-                   ? ExtendStatistics(producer_->GetStats())
-                   : formats::json::ValueBuilder{formats::json::Type::kObject}
-                         .ExtractValue();
-      });
-}
+      configuration_(std::move(configuration)) {}
 
 Producer::~Producer() {
-  LOG_INFO() << log_tags_ << "Producer poll task is requested to cancel";
+  LOG_INFO() << "Producer poll task is requested to cancel";
   if (poll_task_.IsValid()) {
-    poll_task_.RequestCancel();
-    poll_task_.Wait();
+    poll_task_.SyncCancel();
   }
-
-  statistics_holder_.Unregister();
 
   utils::Async(producer_task_processor_, "producer_shutdown", [this] {
     producer_.reset();
@@ -54,22 +41,26 @@ void Producer::InitProducerAndStartPollingIfFirstSend() const {
     std::lock_guard lock{init_lock};
 
     if (producer_ == nullptr) {
-      producer_ = configuration_->MakeProducerImpl(log_tags_);
+      producer_ =
+          std::make_unique<impl::ProducerImpl>(std::move(configuration_));
 
       poll_task_ =
           utils::Async(producer_task_processor_, "producer_polling", [this] {
+            ExtendCurrentSpan();
+
+            LOG_INFO() << producer_ << "Producer started polling";
+
             while (!engine::current_task::ShouldCancel()) {
               producer_->Poll(poll_timeout_);
             }
           });
 
-      LOG_INFO() << log_tags_ << "Producer initialized";
       first_send_.store(false);
     }
   }
 
-  UASSERT_MSG(!first_send_.load() && producer_,
-              "Unsychronized producer configuration");
+  UINVARIANT(!first_send_.load() && producer_,
+             "Unsychronized producer configuration");
 
   VerifyNotFinished();
 }
@@ -79,12 +70,10 @@ void Producer::Send(const std::string& topic_name, std::string_view key,
                     std::optional<std::uint32_t> partition) const {
   InitProducerAndStartPollingIfFirstSend();
 
-  LOG_INFO() << log_tags_
-             << fmt::format("Message to topic '{}' is requested to send",
-                            topic_name);
-
   utils::Async(producer_task_processor_, "producer_send",
                [this, &topic_name, key, message, partition] {
+                 ExtendCurrentSpan();
+
                  producer_->Send(topic_name, key, message, partition,
                                  send_retries_);
 
@@ -98,18 +87,22 @@ engine::TaskWithResult<void> Producer::SendAsync(
     std::optional<std::uint32_t> partition) const {
   InitProducerAndStartPollingIfFirstSend();
 
-  LOG_INFO() << log_tags_
-             << fmt::format("Message to topic '{}' is requested to send",
-                            topic_name);
-
   return utils::Async(
       producer_task_processor_, "producer_send_async",
       [this, topic_name = std::move(topic_name), key = std::move(key),
        message = std::move(message), partition] {
+        ExtendCurrentSpan();
+
         producer_->Send(topic_name, key, message, partition, send_retries_);
 
         SendToTestPoint(topic_name, key, message);
       });
+}
+
+void Producer::WriteStatistics(utils::statistics::Writer& writer) const {
+  if (!first_send_.load()) {
+    impl::WriteStatistics(writer, producer_->GetStats());
+  }
 }
 
 void Producer::VerifyNotFinished() const {
@@ -132,6 +125,11 @@ void Producer::SendToTestPoint(std::string_view topic_name,
     }
     return builder.ExtractValue();
   }());
+}
+
+void Producer::ExtendCurrentSpan() const {
+  tracing::Span::CurrentSpan().AddTag(impl::Opaque::kProducerLogTagKey,
+                                      component_name_);
 }
 
 }  // namespace kafka
