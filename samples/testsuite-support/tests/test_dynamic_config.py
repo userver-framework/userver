@@ -25,6 +25,8 @@ async def test_set_values(service_client, dynamic_config):
     # automatically from the 'dynamic_config' fixture to the service.
     assert await get_service_config_value(service_client) == CUSTOM_VALUE
 
+    assert False
+
     dynamic_config.set_values({TEST_CONFIG: SPECIAL_VALUE})
     assert dynamic_config.get(TEST_CONFIG) == SPECIAL_VALUE
     # The config values changed again, so they are automatically synchronized
