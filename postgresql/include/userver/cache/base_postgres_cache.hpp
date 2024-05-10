@@ -428,9 +428,9 @@ class PostgreCache final
 
   static storages::postgres::Query GetAllQuery();
   static storages::postgres::Query GetDeltaQuery();
-  constexpr static std::string_view GetWhereClause();
-  constexpr static std::string_view GetDeltaWhereClause();
-  constexpr static std::string_view GetOrderByClause();
+  static std::string GetWhereClause();
+  static std::string GetDeltaWhereClause();
+  static std::string GetOrderByClause();
 
   std::chrono::milliseconds ParseCorrection(const ComponentConfig& config);
 
@@ -505,17 +505,16 @@ PostgreCache<PostgreCachePolicy>::~PostgreCache() {
 }
 
 template <typename PostgreCachePolicy>
-constexpr std::string_view PostgreCache<PostgreCachePolicy>::GetWhereClause() {
+std::string PostgreCache<PostgreCachePolicy>::GetWhereClause() {
   if constexpr (pg_cache::detail::kHasWhere<PostgreCachePolicy>) {
     return fmt::format(FMT_COMPILE("where {}"), PostgreCachePolicy::kWhere);
   } else {
-    return fmt::format(FMT_COMPILE(""));
+    return "";
   }
 }
 
 template <typename PostgreCachePolicy>
-constexpr std::string_view
-PostgreCache<PostgreCachePolicy>::GetDeltaWhereClause() {
+std::string PostgreCache<PostgreCachePolicy>::GetDeltaWhereClause() {
   if constexpr (pg_cache::detail::kHasWhere<PostgreCachePolicy>) {
     return fmt::format(FMT_COMPILE("where ({}) and {} >= $1"),
                        PostgreCachePolicy::kWhere,
@@ -527,13 +526,12 @@ PostgreCache<PostgreCachePolicy>::GetDeltaWhereClause() {
 }
 
 template <typename PostgreCachePolicy>
-constexpr std::string_view
-PostgreCache<PostgreCachePolicy>::GetOrderByClause() {
+std::string PostgreCache<PostgreCachePolicy>::GetOrderByClause() {
   if constexpr (pg_cache::detail::kHasOrderBy<PostgreCachePolicy>) {
     return fmt::format(FMT_COMPILE("order by {}"),
                        PostgreCachePolicy::kOrderBy);
   } else {
-    return fmt::format(FMT_COMPILE(""));
+    return "";
   }
 }
 
