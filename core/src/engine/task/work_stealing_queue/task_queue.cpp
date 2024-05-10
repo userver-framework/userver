@@ -7,6 +7,7 @@
 #include <engine/task/work_stealing_queue/consumer.hpp>
 #include <engine/task/work_stealing_queue/consumers_manager.hpp>
 #include <engine/task/work_stealing_queue/global_queue.hpp>
+#include <iostream>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -27,6 +28,13 @@ WorkStealingTaskQueue::WorkStealingTaskQueue(const TaskProcessorConfig& config)
   for (size_t i = 0; i < consumers_count_; ++i) {
     consumers_[i].SetIndex(i);
   }
+}
+
+WorkStealingTaskQueue::~WorkStealingTaskQueue() {
+  // for (std::size_t i = 0; i < consumers_count_; i++) {
+  //   std::cout << consumers_[i].sleep_counter_ << "\n";
+  // }
+  std::cout << "-------\n" << std::flush;
 }
 
 void WorkStealingTaskQueue::Push(

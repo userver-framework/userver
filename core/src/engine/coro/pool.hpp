@@ -60,6 +60,9 @@ class Pool final {
   std::atomic<std::size_t> total_coroutines_num_;
 };
 
+template<typename Task>
+thread_local std::vector<typename boost::coroutines2::coroutine<Task*>::push_type> local_coro_buffer;
+
 template <typename Task>
 class Pool<Task>::CoroutinePtr final {
  public:
@@ -126,7 +129,10 @@ typename Pool<Task>::CoroutinePtr Pool<Task>::GetCoroutine() {
   // First try to dequeue from 'working set': if we can get a coroutine
   // from there we are happy, because we saved on minor-page-faulting (thus
   // increasing resident memory usage) a not-yet-de-virtualized coroutine stack.
-  if (used_coroutines_.try_dequeue(
+  if (local_coro_buffer<Task>.size() > 0) {
+    mover = std::move(local_coro_buffer<Task>.back());
+    local_coro_buffer<Task>.pop_back();
+  } else if (used_coroutines_.try_dequeue(
           GetUsedPoolToken<moodycamel::ConsumerToken>(), mover) ||
       initial_coroutines_.try_dequeue(mover)) {
     --idle_coroutines_num_;
@@ -138,6 +144,10 @@ typename Pool<Task>::CoroutinePtr Pool<Task>::GetCoroutine() {
 
 template <typename Task>
 void Pool<Task>::PutCoroutine(CoroutinePtr&& coroutine_ptr) {
+  if (local_coro_buffer<Task>.size() < 16) {
+    local_coro_buffer<Task>.push_back(std::move(coroutine_ptr.Get()));
+    return;
+  }
   if (idle_coroutines_num_.load() >= config_.max_size) return;
   auto& token = GetUsedPoolToken<moodycamel::ProducerToken>();
   const bool ok =

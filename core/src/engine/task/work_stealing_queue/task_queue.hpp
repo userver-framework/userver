@@ -27,6 +27,8 @@ class WorkStealingTaskQueue final {
 
   void Push(boost::intrusive_ptr<impl::TaskContext>&& context);
 
+  ~WorkStealingTaskQueue();
+
   // Returns nullptr as a stop signal
   boost::intrusive_ptr<impl::TaskContext> PopBlocking();
 
