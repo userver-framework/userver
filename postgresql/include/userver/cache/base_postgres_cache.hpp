@@ -428,9 +428,9 @@ class PostgreCache final
 
   static storages::postgres::Query GetAllQuery();
   static storages::postgres::Query GetDeltaQuery();
-  constexpr static auto GetWhereClause();
-  constexpr static auto GetDeltaWhereClause();
-  constexpr static auto GetOrderByClause();
+  constexpr static std::string_view GetWhereClause();
+  constexpr static std::string_view GetDeltaWhereClause();
+  constexpr static std::string_view GetOrderByClause();
 
   std::chrono::milliseconds ParseCorrection(const ComponentConfig& config);
 
@@ -505,28 +505,36 @@ PostgreCache<PostgreCachePolicy>::~PostgreCache() {
 }
 
 template <typename PostgreCachePolicy>
-constexpr auto PostgreCache<PostgreCachePolicy>::GetWhereClause() {
+constexpr std::string_view PostgreCache<PostgreCachePolicy>::GetWhereClause() {
   if constexpr (pg_cache::detail::kHasWhere<PostgreCachePolicy>) {
-    return fmt::format("where {}", PostgreCachePolicy::kWhere);
+    return fmt::format(FMT_COMPILE("where {}"), PostgreCachePolicy::kWhere);
+  } else {
+    return fmt::format(FMT_COMPILE(""));
   }
-  return fmt::format("");
 }
 
 template <typename PostgreCachePolicy>
-constexpr auto PostgreCache<PostgreCachePolicy>::GetDeltaWhereClause() {
+constexpr std::string_view
+PostgreCache<PostgreCachePolicy>::GetDeltaWhereClause() {
   if constexpr (pg_cache::detail::kHasWhere<PostgreCachePolicy>) {
-    return fmt::format("where ({}) and {} >= $1", PostgreCachePolicy::kWhere,
+    return fmt::format(FMT_COMPILE("where ({}) and {} >= $1"),
+                       PostgreCachePolicy::kWhere,
+                       PostgreCachePolicy::kUpdatedField);
+  } else {
+    return fmt::format(FMT_COMPILE("where {} >= $1"),
                        PostgreCachePolicy::kUpdatedField);
   }
-  return fmt::format("where {} >= $1", PostgreCachePolicy::kUpdatedField);
 }
 
 template <typename PostgreCachePolicy>
-constexpr auto PostgreCache<PostgreCachePolicy>::GetOrderByClause() {
+constexpr std::string_view
+PostgreCache<PostgreCachePolicy>::GetOrderByClause() {
   if constexpr (pg_cache::detail::kHasOrderBy<PostgreCachePolicy>) {
-    return fmt::format("order by {}", PostgreCachePolicy::kOrderBy);
+    return fmt::format(FMT_COMPILE("order by {}"),
+                       PostgreCachePolicy::kOrderBy);
+  } else {
+    return fmt::format(FMT_COMPILE(""));
   }
-  return fmt::format("");
 }
 
 template <typename PostgreCachePolicy>
