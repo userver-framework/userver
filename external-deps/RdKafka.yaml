@@ -9,11 +9,9 @@ libraries:
     find:
       - names:
           - rdkafka
-          - librdkafka
-          - RdKafka
 
 debian-names:
   - librdkafka-dev
 formula-name: librdkafka
 pkg-config-names:
-  - librdkafka
+  - rdkafka

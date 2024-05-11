@@ -43,4 +43,6 @@ find_package(RdKafka REQUIRED)
 # message(STATUS "rdkafka binary directories: ${rdkafka_BINARY_DIR}")
 # message(STATUS "rdkafka list dir: ${CMAKE_CURRENT_LIST_DIR}")
 
-target_compile_options(rdkafka PUBLIC "-Wignored-qualifiers")
+add_library(rdkafka SHARED IMPORTED)
+set_target_properties(rdkafka PROPERTIES IMPORTED_LOCATION ${RdKafka_LIBRARIES})
+target_compile_options(rdkafka INTERFACE "-Wignored-qualifiers")

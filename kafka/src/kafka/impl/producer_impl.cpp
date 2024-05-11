@@ -8,7 +8,7 @@
 #include <kafka/impl/error_buffer.hpp>
 #include <kafka/impl/stats.hpp>
 
-#include <rdkafka.h>
+#include <librdkafka/rdkafka.h>
 
 #include <utility>
 

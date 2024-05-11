@@ -15,7 +15,7 @@
 #include <kafka/impl/opaque.hpp>
 #include <kafka/impl/stats.hpp>
 
-#include <rdkafka.h>
+#include <librdkafka/rdkafka.h>
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
