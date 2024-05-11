@@ -1,4 +1,5 @@
 name: RdKafka
+version: 2.4.0
 
 includes:
     find:

@@ -229,6 +229,7 @@ ProducerImpl::SendResult ProducerImpl::SendImpl(
       RD_KAFKA_V_VALUE(const_cast<char*>(message.data()), message.size()),
       RD_KAFKA_V_MSGFLAGS(0),
       RD_KAFKA_V_PARTITION(partition.value_or(RD_KAFKA_PARTITION_UA)),
+      // NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks)
       RD_KAFKA_V_OPAQUE(waiter.release()), RD_KAFKA_V_END);
 
   if (enqueue_error != RD_KAFKA_RESP_ERR_NO_ERROR) {
