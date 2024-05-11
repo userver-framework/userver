@@ -108,6 +108,13 @@ jobs:
                 #    | tee /etc/apt/sources.list.d/mariadb.list
                 echo "deb [arch=amd64,arm64,ppc64el signed-by=/usr/share/keyrings/mariadb.gpg] https://mirror.kumi.systems/mariadb/repo/10.11/ubuntu $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/mariadb.list
 
+                # Adding librdkafka confluent repositories as in https://docs.confluent.io/platform/current/installation/installing_cp/deb-ubuntu.html#get-the-software
+                curl https://packages.confluent.io/confluent-cli/deb/archive.key | sudo gpg --dearmor -o "/etc/apt/keyrings/confluent.gpg"
+                printf "\
+                deb [arch=amd64 signed-by=/usr/share/keyrings/confluent.gpg] https://packages.confluent.io/deb/7.6 stable main\n\
+                deb [signed-by=/usr/share/keyrings/confluent.gpg] https://packages.confluent.io/clients/deb $(lsb_release -cs) main\n" \
+                  | tee /etc/apt/sources.list.d/confluent.list
+
                 sudo apt update
                 sudo apt install --allow-downgrades -y clickhouse-common-static redis-server postgresql $(cat scripts/docs/en/deps/${{matrix.os}}.md | tr '\n' ' ')
                 if [ "${{matrix.os}}" = "ubuntu-22.04" ]; then

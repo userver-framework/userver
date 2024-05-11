@@ -1,4 +1,4 @@
-name: rdkafka
+name: RdKafka
 
 includes:
     find:
@@ -9,9 +9,11 @@ libraries:
     find:
       - names:
           - rdkafka
+          - librdkafka
+          - RdKafka
 
 debian-names:
   - librdkafka-dev
-formula-name: rdkafka
+formula-name: librdkafka
 pkg-config-names:
-  - rdkafka
+  - librdkafka
