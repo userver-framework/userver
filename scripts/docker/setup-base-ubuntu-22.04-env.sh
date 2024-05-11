@@ -53,7 +53,7 @@ echo "deb [arch=amd64,arm64,ppc64el signed-by=/usr/share/keyrings/mariadb.gpg] h
     | tee /etc/apt/sources.list.d/mariadb.list
 
 # Adding librdkafka confluent repositories as in https://docs.confluent.io/platform/current/installation/installing_cp/deb-ubuntu.html#get-the-software
-get_retriev_keyserver 8B1DA6120C2BF624 confluent
+gpg_retrieve_keyserver 8B1DA6120C2BF624 confluent
 printf "\
 deb [arch=amd64 signed-by=/usr/share/keyrings/confluent.gpg] https://packages.confluent.io/deb/7.6 stable main\n\
 deb [signed-by=/usr/share/keyrings/confluent.gpg] https://packages.confluent.io/clients/deb $(lsb_release -cs) main\n" \
