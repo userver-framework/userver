@@ -78,7 +78,7 @@ class ConsumerImpl final {
   std::unique_ptr<ConfHolder> conf_;
 
   class ConsumerHolder;
-  std::unique_ptr<ConsumerHolder> consumer_{nullptr};
+  std::unique_ptr<ConsumerHolder> consumer_;
 };
 
 }  // namespace kafka::impl
