@@ -49,7 +49,7 @@ _userver_install_targets(COMPONENT kafka TARGETS ${PROJECT_NAME})
 
 _userver_directory_install(COMPONENT kafka FILES
     "${USERVER_ROOT_DIR}/cmake/install/userver-kafka-config.cmake"
-    "${USERVER_ROOT_DIR}/cmake/SetupKafkaDeps.cmake"
+    "${CMAKE_BINARY_DIR}/cmake_generated/FindRdKafka.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
 )
 
