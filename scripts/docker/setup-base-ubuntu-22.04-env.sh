@@ -139,14 +139,6 @@ git clone --depth 1 -b ${CLICKHOUSE_VERSION} https://github.com/ClickHouse/click
 (cd clickhouse-cpp && mkdir build && cd build && \
   cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release .. && make -j $(nproc) && make install)
 
-# Installing librdkafka client libraries from sources
-git clone --depth 1 -b ${KAFKA_VERSION} https://github.com/confluentinc/librdkafka.git
-(cd librdkafka && mkdir build && cd build && \
-  cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release \
-  -DRDKAFKA_BUILD_STATIC=ON -DRDKAFKA_BUILD_EXAMPLES=OFF -DRDKAFKA_BUILD_TESTS=OFF \
-  -DWITH_SSL=ON -DWITH_SASL=ON -DWITH_ZLIB=OFF -DWITH_ZSTD=OFF -DWITH_LIBDL=OFF \
-  -DENABLE_LZ4_EXT=OFF .. && make -j $(nproc) && make install)
-
 # Installing RocksDB client libraries from sources
 git clone --depth 1 -b ${ROCKSDB_VERSION} https://github.com/facebook/rocksdb
 (cd rocksdb && mkdir build && cd build && \
