@@ -109,7 +109,7 @@ jobs:
                 echo "deb [arch=amd64,arm64,ppc64el signed-by=/usr/share/keyrings/mariadb.gpg] https://mirror.kumi.systems/mariadb/repo/10.11/ubuntu $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/mariadb.list
 
                 # Adding librdkafka confluent repositories as in https://docs.confluent.io/platform/current/installation/installing_cp/deb-ubuntu.html#get-the-software
-                curl https://packages.confluent.io/confluent-cli/deb/archive.key | sudo gpg --dearmor -o "/etc/apt/keyrings/confluent.gpg"
+                curl https://packages.confluent.io/confluent-cli/deb/archive.key | sudo gpg --dearmor -o "/usr/share/keyrings/confluent.gpg"
                 sudo chmod a+r "/usr/share/keyrings/confluent.gpg"
                 printf "\
                 deb [arch=amd64 signed-by=/usr/share/keyrings/confluent.gpg] https://packages.confluent.io/deb/7.6 stable main\n\
