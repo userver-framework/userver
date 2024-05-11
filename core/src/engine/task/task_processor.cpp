@@ -142,11 +142,11 @@ void TaskProcessor::Schedule(impl::TaskContext* context) {
   const auto [action, max_queue_length] =
       GetOverloadActionAndValue(action_bit_and_max_task_queue_wait_length_);
   if (max_queue_length && !context->IsCritical()) {
-    const auto queue_size = GetTaskQueueSize();
     UASSERT(max_queue_length > 0);
-    if (queue_size >= static_cast<std::size_t>(max_queue_length)) {
+    if (IsOverloadedByLength(static_cast<std::size_t>(max_queue_length))) {
       LOG_LIMITED_WARNING()
-          << "failed to enqueue task: task_queue_ size=" << queue_size << " >= "
+          << "failed to enqueue task: task_queue_size_approximate="
+          << task_queue_size_overloaded_cache_.load() << " >= "
           << "task_queue_size_threshold=" << max_queue_length
           << " task_processor=" << Name();
       HandleOverload(*context, action);
@@ -373,6 +373,35 @@ void TaskProcessor::HandleOverload(
                   << " was waiting in queue for too long, but it is marked "
                      "as critical, not cancelling.";
     }
+  }
+}
+
+bool TaskProcessor::IsOverloadedByLength(const std::size_t max_queue_length) {
+  bool overloaded_by_length = overloaded_by_length_cache_.load();
+  const int factor = overloaded_by_length ? 4 : 16;
+
+  if (utils::RandRange(factor) != 0) {
+    return overloaded_by_length;
+  }
+
+  overloaded_by_length =
+      ComputeIsOverloadedByLength(overloaded_by_length, max_queue_length);
+  overloaded_by_length_cache_.store(overloaded_by_length,
+                                    std::memory_order_relaxed);
+  return overloaded_by_length;
+}
+
+bool TaskProcessor::ComputeIsOverloadedByLength(
+    const bool current_overloaded_status, const std::size_t max_queue_length) {
+  static constexpr long double kExitOverloadStatusFactor = 0.95;
+  const auto queue_size = GetTaskQueueSize();
+  task_queue_size_overloaded_cache_.store(queue_size,
+                                          std::memory_order_relaxed);
+  if (current_overloaded_status) {
+    return (queue_size >= static_cast<std::size_t>(kExitOverloadStatusFactor *
+                                                   max_queue_length));
+  } else {
+    return (queue_size >= max_queue_length);
   }
 }
 

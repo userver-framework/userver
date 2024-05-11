@@ -57,7 +57,15 @@ class TaskProcessor final {
 
   const impl::TaskCounter& GetTaskCounter() const { return task_counter_; }
 
-  size_t GetTaskQueueSize() const { return task_queue_.GetSizeApproximate(); }
+  // This method is much slower,
+  // but more accurate than GetTaskQueueSizeApproximate()
+  size_t GetTaskQueueSize() const { return task_queue_.GetSize(); }
+
+  // This method is much faster,
+  // but less accurate than GetTaskQueueSize()
+  size_t GetTaskQueueSizeApproximate() const {
+    return task_queue_.GetSizeApproximate();
+  }
 
   size_t GetWorkerCount() const { return workers_.size(); }
 
@@ -91,6 +99,11 @@ class TaskProcessor final {
   void HandleOverload(impl::TaskContext& context,
                       TaskProcessorSettings::OverloadAction);
 
+  bool IsOverloadedByLength(const std::size_t max_queue_length);
+
+  bool ComputeIsOverloadedByLength(const bool current_overloaded_status,
+                                   const std::size_t max_queue_length);
+
   concurrent::impl::InterferenceShield<impl::DetachedTasksSyncBlock>
       detached_contexts_{impl::DetachedTasksSyncBlock::StopMode::kCancel};
   concurrent::impl::InterferenceShield<std::atomic<bool>>
@@ -102,6 +115,8 @@ class TaskProcessor final {
   const std::shared_ptr<impl::TaskProcessorPools> pools_;
   std::vector<std::thread> workers_;
   logging::LoggerPtr task_trace_logger_{nullptr};
+  std::atomic<bool> overloaded_by_length_cache_{false};
+  std::atomic<std::size_t> task_queue_size_overloaded_cache_{0};
 
   std::atomic<std::chrono::microseconds> task_profiler_threshold_{{}};
   std::atomic<std::chrono::microseconds> sensor_task_queue_wait_time_{{}};
