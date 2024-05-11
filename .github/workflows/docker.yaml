@@ -30,7 +30,6 @@ jobs:
                     id: ubuntu_clang_cxx17_core
                   - cmake-flags: >-
                         -DCMAKE_CXX_COMPILER=clang++-16 -DCMAKE_C_COMPILER=clang-16
-                        -DUSERVER_FEATURE_KAFKA=1
                         -DUSERVER_FEATURE_MYSQL=1
                         -DCMAKE_CXX_STANDARD=17
                     image: ubuntu-22.04-userver-base-ci
