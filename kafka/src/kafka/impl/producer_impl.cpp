@@ -222,6 +222,8 @@ ProducerImpl::SendResult ProducerImpl::SendImpl(
   /// the `librdkafka` API requirements. If `msgflags` set to
   /// `RD_KAFKA_MSG_F_FREE`, produce implementation fries the message
   /// data, though not const pointer is required
+
+  // NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks)
   const rd_kafka_resp_err_t enqueue_error = rd_kafka_producev(
       producer_->Handle(), RD_KAFKA_V_TOPIC(topic_name.c_str()),
       RD_KAFKA_V_KEY(key.data(), key.size()),
@@ -229,8 +231,8 @@ ProducerImpl::SendResult ProducerImpl::SendImpl(
       RD_KAFKA_V_VALUE(const_cast<char*>(message.data()), message.size()),
       RD_KAFKA_V_MSGFLAGS(0),
       RD_KAFKA_V_PARTITION(partition.value_or(RD_KAFKA_PARTITION_UA)),
-      // NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks)
       RD_KAFKA_V_OPAQUE(waiter.release()), RD_KAFKA_V_END);
+  // NOLINTEND(clang-analyzer-cplusplus.NewDeleteLeaks)
 
   if (enqueue_error != RD_KAFKA_RESP_ERR_NO_ERROR) {
     LOG_WARNING() << fmt::format(
