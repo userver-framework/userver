@@ -114,7 +114,7 @@ jobs:
                 printf "\
                 deb [arch=amd64 signed-by=/usr/share/keyrings/confluent.gpg] https://packages.confluent.io/deb/7.6 stable main\n\
                 deb [signed-by=/usr/share/keyrings/confluent.gpg] https://packages.confluent.io/clients/deb $(lsb_release -cs) main\n" \
-                  | tee /etc/apt/sources.list.d/confluent.list
+                  | sudo tee /etc/apt/sources.list.d/confluent.list
 
                 sudo apt update
                 sudo apt install --allow-downgrades -y clickhouse-common-static redis-server postgresql $(cat scripts/docs/en/deps/${{matrix.os}}.md | tr '\n' ' ')
