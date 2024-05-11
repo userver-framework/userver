@@ -26,8 +26,10 @@ message(STATUS "Linking ${PROJECT_NAME} to userver-core and rdkafka")
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
     userver-core
+  PRIVATE
     rdkafka
 )
+target_compile_options(${PROJECT_NAME} PRIVATE "-Wno-gnu-statement-expression")
 
 message(STATUS "Build interface: ${CMAKE_CURRENT_SOURCE_DIR}/include")
 message(STATUS "Library Sources: ${CMAKE_CURRENT_SOURCE_DIR}/src")

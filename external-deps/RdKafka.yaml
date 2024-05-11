@@ -10,6 +10,7 @@ libraries:
     find:
       - names:
           - rdkafka
+          - rdkafka.a
 
 debian-names:
   - librdkafka-dev

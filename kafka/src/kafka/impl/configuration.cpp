@@ -158,7 +158,7 @@ class Configuration::ConfHolder final {
   ConfHolder(const ConfHolder&) = delete;
   ConfHolder& operator=(const ConfHolder&) = delete;
 
-  ConfHolder(ConfHolder&& other) noexcept : handle_(std::move(other.handle_)) {}
+  ConfHolder(ConfHolder&& other) noexcept = default;
   ConfHolder& operator=(ConfHolder&&) noexcept = delete;
 
   rd_kafka_conf_t* Handle() { return handle_.get(); }
@@ -189,8 +189,6 @@ Configuration::Configuration(const components::ComponentConfig& config,
 }
 
 Configuration::~Configuration() = default;
-
-Configuration::Configuration(Configuration&& other) noexcept = default;
 
 const std::string& Configuration::GetComponentName() const {
   return component_name_;
