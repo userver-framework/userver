@@ -9,7 +9,6 @@
 #include <rocksdb/db.h>
 
 #include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/engine/task/task_with_result.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -28,9 +27,9 @@ class Client final {
    * @brief Constructor of the Client class.
    *
    * @param db_path The path to the RocksDB database.
-   * @param task_processor is a thread pool on which the tasks (engine::Task, engine::TaskWithresult) are executed.
+   * @param blocking_task_processor - task processor to execute blocking FS operations
    */
-  explicit Client(const std::string& db_path, engine::TaskProcessor& task_processor);
+  Client(const std::string& db_path, engine::TaskProcessor& blocking_task_processor);
 
   /**
    * @brief Puts a record into the database.
@@ -38,21 +37,21 @@ class Client final {
    * @param key The key of the record.
    * @param value The value of the record.
    */
-  engine::TaskWithResult<void> Put(std::string_view key, std::string_view value);
+  void Put(std::string_view key, std::string_view value);
 
   /**
    * @brief Retrieves the value of a record from the database by key.
    *
    * @param key The key of the record.
    */
-  engine::TaskWithResult<std::string> Get(std::string_view key);
+  std::string Get(std::string_view key);
 
   /**
    * @brief Deletes a record from the database by key.
    *
    * @param key The key of the record to be deleted.
    */
-  engine::TaskWithResult<void> Delete(std::string_view key);
+  void Delete(std::string_view key);
 
   /**
    * Checks the status of an operation and handles any errors based on the given
@@ -67,7 +66,7 @@ class Client final {
 
  private:
   rocksdb::DB* db_ = nullptr;
-  engine::TaskProcessor& task_processor_;
+  engine::TaskProcessor& blocking_task_processor_;
 };
 }  // namespace storages::rocks
 

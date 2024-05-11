@@ -12,16 +12,16 @@ UTEST(Rocks, CheckCRUD) {
 
   std::string key = "key";
 
-  std::string res = client.Get(key).Get();
+  std::string res = client.Get(key);
   EXPECT_EQ("", res);
 
   std::string value = "value";
-  client.Put(key, value).Get();
-  res = client.Get(key).Get();
+  client.Put(key, value);
+  res = client.Get(key);
   EXPECT_EQ(value, res);
 
-  client.Delete(key).Get();
-  res = client.Get(key).Get();
+  client.Delete(key);
+  res = client.Get(key);
   EXPECT_EQ("", res);
 }
 

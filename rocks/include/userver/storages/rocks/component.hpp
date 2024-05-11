@@ -7,6 +7,7 @@
 #include <userver/components/component_context.hpp>
 #include <userver/components/loggable_component_base.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/storages/rocks/client_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -14,20 +15,16 @@ namespace components {
 
 class Rocks : public LoggableComponentBase {
  public:
-  // Component constructor
   Rocks(const ComponentConfig&, const ComponentContext&);
 
-  // Component destructor
   ~Rocks() = default;
 
-  // make Client
-  template <typename Client>
-  Client MakeClient(const std::string& db_path);
+  storages::rocks::ClientPtr MakeClient();
 
-  // TODO: implement static yaml_config::Schema GetStaticConfigSchema();
+  static yaml_config::Schema GetStaticConfigSchema();
 
  private:
-  engine::TaskProcessor& task_processor_;
+  storages::rocks::ClientPtr client_ptr_;
 };
 
 }  // namespace components
