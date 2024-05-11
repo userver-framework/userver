@@ -14,29 +14,48 @@ namespace formats::json {
 namespace impl {
 
 using SchemaDocument =
-    rapidjson::GenericSchemaDocument<impl::Value, rapidjson::CrtAllocator>;
+  rapidjson::GenericSchemaDocument<impl::Value, rapidjson::CrtAllocator>;
 
 using SchemaValidator = rapidjson::GenericSchemaValidator<
-    impl::SchemaDocument, rapidjson::BaseReaderHandler<impl::UTF8, void>,
-    rapidjson::CrtAllocator>;
+  impl::SchemaDocument, rapidjson::BaseReaderHandler<impl::UTF8, void>,
+  rapidjson::CrtAllocator>;
 
-}  // namespace impl
+} // namespace impl
 
 struct Schema::Impl final {
   impl::SchemaDocument schemaDocument;
 };
 
-Schema::Schema(const formats::json::Value& doc)
-    : pimpl_(Impl{impl::SchemaDocument{doc.GetNative()}}) {}
+Schema::Schema(const Value& doc)
+  : pimpl_(Impl{impl::SchemaDocument{doc.GetNative()}}) {}
 
 Schema::~Schema() = default;
 
-bool Validate(const formats::json::Value& doc,
-              const formats::json::Schema& schema) {
+struct SchemaValidator::Impl final : public impl::SchemaValidator {
+  using impl::SchemaValidator::GenericSchemaValidator;
+};
+
+SchemaValidator::SchemaValidator(const Schema& schema)
+  : pimpl_(schema.pimpl_->schemaDocument) {}
+
+SchemaValidator::~SchemaValidator() = default;
+
+bool SchemaValidator::Validate(const Value& doc) {
+  if (!pimpl_->IsValid())
+    pimpl_->ResetError();
+  return AcceptNoRecursion(doc.GetNative(), *pimpl_);
+}
+
+Value SchemaValidator::GetError() const {
+  return pimpl_->GetError();
+}
+
+
+bool Validate(const Value& doc, const Schema& schema) {
   impl::SchemaValidator validator(schema.pimpl_->schemaDocument);
   return AcceptNoRecursion(doc.GetNative(), validator);
 }
 
-}  // namespace formats::json
+} // namespace formats::json
 
 USERVER_NAMESPACE_END

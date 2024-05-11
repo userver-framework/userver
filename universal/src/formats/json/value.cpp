@@ -108,6 +108,9 @@ Value::Value(impl::VersionedValuePtr root) noexcept
       root_ptr_for_path_{holder_.Get()},
       value_ptr_(holder_.Get()) {}
 
+Value::Value(const impl::Value& other)
+    : Value{impl::VersionedValuePtr::Create(other, g_allocator)} {}
+
 Value::Value(EmplaceEnabler, const impl::VersionedValuePtr& root,
              const impl::Value* root_ptr_for_path, const impl::Value* value_ptr,
              int depth)
@@ -398,7 +401,7 @@ void Value::DropRootPath() {
 }
 
 Value Value::Clone() const {
-  return Value{impl::VersionedValuePtr::Create(GetNative(), g_allocator)};
+  return GetNative();
 }
 
 void Value::EnsureNotMissing() const {

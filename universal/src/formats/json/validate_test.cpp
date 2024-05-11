@@ -2,6 +2,7 @@
 
 #include <userver/formats/json/validate.hpp>
 #include <userver/formats/json/value.hpp>
+#include "userver/formats/json/serialize.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -133,6 +134,22 @@ TEST(FormatsJsonValidate, InvalidInput) {
 
   formats::json::Schema schema(schemaDocument);
   EXPECT_FALSE(formats::json::Validate(jsonDocument, schema));
+}
+
+TEST(FormatsJsonSchemaValidator, ReuseValidator) {
+  auto schemaDocument = formats::json::FromString(kSchemaJson);
+  formats::json::Schema schema(schemaDocument);
+  formats::json::SchemaValidator validator(schema);
+
+  auto invalidJson = formats::json::FromString(kInvalidInputJson);
+  EXPECT_FALSE(validator.Validate(invalidJson));
+
+  auto err = validator.GetError();
+  EXPECT_EQ(err["required"]["missing"].GetSize(), 1);
+  EXPECT_EQ(err["required"]["missing"].begin()->As<std::string>(), "id");
+
+  auto validJson = formats::json::FromString(kValidInputJson);
+  EXPECT_TRUE(validator.Validate(validJson));
 }
 
 USERVER_NAMESPACE_END

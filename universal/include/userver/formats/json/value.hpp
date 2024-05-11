@@ -264,6 +264,7 @@ class Value final {
 
  private:
   explicit Value(impl::VersionedValuePtr root) noexcept;
+  Value(const impl::Value& other);
 
   bool IsUniqueReference() const;
   void EnsureNotMissing() const;
@@ -310,6 +311,7 @@ class Value final {
   friend class ValueBuilder;
   friend class StringBuilder;
   friend class Schema;
+  friend class SchemaValidator;
   friend class impl::InlineObjectBuilder;
   friend class impl::InlineArrayBuilder;
   friend class impl::MutableValueWrapper;

@@ -21,8 +21,23 @@ class Schema final {
   static constexpr std::size_t kAlignment = 8;
   utils::FastPimpl<Impl, kSize, kAlignment> pimpl_;
 
+  friend class SchemaValidator;
   friend bool Validate(const formats::json::Value&,
                        const formats::json::Schema&);
+};
+
+class SchemaValidator final {
+ public:
+  SchemaValidator(const formats::json::Schema& schema);
+  ~SchemaValidator();
+
+  bool Validate(const formats::json::Value& doc);
+
+  Value GetError() const;
+
+ private:
+  struct Impl;
+  utils::FastPimpl<Impl, 224, 8> pimpl_;
 };
 
 bool Validate(const formats::json::Value& doc,
