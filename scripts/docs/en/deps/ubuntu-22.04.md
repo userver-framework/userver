@@ -33,6 +33,7 @@ libidn11-dev
 libjemalloc-dev
 libkrb5-dev
 libldap2-dev
+librdkafka-dev
 liblz4-dev
 libmariadb-dev
 libmongoc-dev
@@ -40,6 +41,7 @@ libnghttp2-dev
 libpq-dev
 libprotoc-dev
 libsnappy-dev
+libsasl2-dev
 libssl-dev
 libxxhash-dev
 libyaml-cpp-dev

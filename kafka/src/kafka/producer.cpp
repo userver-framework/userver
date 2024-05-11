@@ -48,7 +48,7 @@ void Producer::InitProducerAndStartPollingIfFirstSend() const {
           utils::Async(producer_task_processor_, "producer_polling", [this] {
             ExtendCurrentSpan();
 
-            LOG_INFO() << producer_ << "Producer started polling";
+            LOG_INFO() << "Producer started polling";
 
             while (!engine::current_task::ShouldCancel()) {
               producer_->Poll(poll_timeout_);

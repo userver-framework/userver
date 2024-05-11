@@ -10,11 +10,9 @@ USERVER_NAMESPACE_BEGIN
 namespace kafka::impl {
 
 Secret Parse(const formats::json::Value& doc, formats::parse::To<Secret>) {
-  Secret secret{
-      .brokers = doc["brokers"].As<std::string>(),
-      .username = doc["username"].As<std::string>(),
-      .password = doc["password"].As<Secret::Password>(),
-  };
+  Secret secret{doc["brokers"].As<std::string>(),
+                doc["username"].As<std::string>(),
+                doc["password"].As<Secret::Password>()};
 
   return secret;
 }

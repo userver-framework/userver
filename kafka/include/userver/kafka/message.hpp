@@ -20,7 +20,7 @@ class ConsumerImpl;
 /// @note All `Message` instances must be destroyed before `Consumer` stop
 class Message final {
   struct Data;
-  using DataStorage = utils::FastPimpl<Data, 16 + 24 + 16, 8>;
+  using DataStorage = utils::FastPimpl<Data, 64, 8>;
 
  public:
   ~Message();

@@ -8,7 +8,7 @@
 #include <kafka/impl/error_buffer.hpp>
 #include <kafka/impl/stats.hpp>
 
-#include <librdkafka/rdkafka.h>
+#include <rdkafka.h>
 
 #include <utility>
 
@@ -86,9 +86,8 @@ void DeliveryReportCallback([[maybe_unused]] rd_kafka_t* producer_,
   const auto log_tags = opaque.MakeCallbackLogTags("offset_commit_callback");
 
   const auto message_status{rd_kafka_message_status(message)};
-  DeliveryResult delivery_result{
-      .message_error = static_cast<int>(message->err),
-      .messages_status = static_cast<int>(message_status)};
+  DeliveryResult delivery_result{static_cast<int>(message->err),
+                                 static_cast<int>(message_status)};
   LOG_DEBUG()
       << log_tags
       << fmt::format(
@@ -135,8 +134,6 @@ void ProducerImpl::Send(const std::string& topic_name, std::string_view key,
                         std::string_view message,
                         std::optional<std::uint32_t> partition,
                         std::size_t retries) const {
-  using enum SendResult;
-
   LOG_INFO() << fmt::format("Message to topic '{}' is requested to send",
                             topic_name);
 
@@ -148,7 +145,7 @@ void ProducerImpl::Send(const std::string& topic_name, std::string_view key,
 
   std::size_t retries_left{retries};
   const auto ShouldRetry = [&retries_left](SendResult send_result) {
-    if (retries_left > 0 && send_result == Retryable) {
+    if (retries_left > 0 && send_result == SendResult::Retryable) {
       LOG_WARNING() << "Send request failed, but error may be transient, "
                        "retrying..."
                     << fmt::format("(retries left: {})", retries_left);
@@ -203,8 +200,6 @@ void ProducerImpl::Poll(std::chrono::milliseconds poll_timeout) const {
 ProducerImpl::SendResult ProducerImpl::SendImpl(
     const std::string& topic_name, std::string_view key,
     std::string_view message, std::optional<std::uint32_t> partition) const {
-  using enum SendResult;
-
   auto waiter = std::make_unique<DeliveryWaiter>();
   auto wait_handle = waiter->get_future();
 
@@ -241,7 +236,8 @@ ProducerImpl::SendResult ProducerImpl::SendImpl(
         "Failed to enqueue message to Kafka local queue: {}",
         rd_kafka_err2str(enqueue_error));
 
-    return IsRetryable(enqueue_error) ? Retryable : Failed;
+    return IsRetryable(enqueue_error) ? SendResult::Retryable
+                                      : SendResult::Failed;
   }
 
   /// wait until delivery report callback is invoked:
@@ -253,10 +249,11 @@ ProducerImpl::SendResult ProducerImpl::SendImpl(
       static_cast<rd_kafka_msg_status_t>(delivery_result.messages_status);
 
   if (delivery_error != RD_KAFKA_RESP_ERR_NO_ERROR) {
-    return IsRetryable(delivery_error, message_status) ? Retryable : Failed;
+    return IsRetryable(delivery_error, message_status) ? SendResult::Retryable
+                                                       : SendResult::Failed;
   }
 
-  return Succeeded;
+  return SendResult::Succeeded;
 }
 
 const Stats& ProducerImpl::GetStats() const { return opaque_.GetStats(); }
