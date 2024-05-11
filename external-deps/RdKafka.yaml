@@ -1,0 +1,17 @@
+name: RdKafka
+
+includes:
+    find:
+      - names:
+          - librdkafka/rdkafka.h
+
+libraries:
+    find:
+      - names:
+          - rdkafka
+
+debian-names:
+  - librdkafka-dev
+formula-name: rdkafka
+pkg-config-names:
+  - rdkafka

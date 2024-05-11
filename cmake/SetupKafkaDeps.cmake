@@ -17,8 +17,7 @@ if (NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
   endif()
 endif()
 
-find_package_required(OpenSSL "libssl-dev")
-find_package(RdKafka REQUIRED)
+message(STATUS "Kafka not found :(")
 
 # include(DownloadUsingCPM)
 
@@ -41,5 +40,3 @@ find_package(RdKafka REQUIRED)
 # message(STATUS "rdkafka include directories: ${rdkafka_SOURCE_DIR}")
 # message(STATUS "rdkafka binary directories: ${rdkafka_BINARY_DIR}")
 # message(STATUS "rdkafka list dir: ${CMAKE_CURRENT_LIST_DIR}")
-
-add_library(RdKafka::rdkafka ALIAS rdkafka)
