@@ -223,6 +223,14 @@ ProducerImpl::SendResult ProducerImpl::SendImpl(
   /// `RD_KAFKA_MSG_F_FREE`, produce implementation fries the message
   /// data, though not const pointer is required
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wgnu-statement-expression"
+#else
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wgnu-statement-expression"
+#endif
+
   // NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks,cppcoreguidelines-pro-type-const-cast)
   const rd_kafka_resp_err_t enqueue_error = rd_kafka_producev(
       producer_->Handle(), RD_KAFKA_V_TOPIC(topic_name.c_str()),
