@@ -1,4 +1,4 @@
-name: RdKafka
+name: rdkafka
 
 includes:
     find:
