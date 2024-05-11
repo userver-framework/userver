@@ -110,6 +110,7 @@ jobs:
 
                 # Adding librdkafka confluent repositories as in https://docs.confluent.io/platform/current/installation/installing_cp/deb-ubuntu.html#get-the-software
                 curl https://packages.confluent.io/confluent-cli/deb/archive.key | sudo gpg --dearmor -o "/etc/apt/keyrings/confluent.gpg"
+                sudo chmod a+r "/usr/share/keyrings/confluent.gpg"
                 printf "\
                 deb [arch=amd64 signed-by=/usr/share/keyrings/confluent.gpg] https://packages.confluent.io/deb/7.6 stable main\n\
                 deb [signed-by=/usr/share/keyrings/confluent.gpg] https://packages.confluent.io/clients/deb $(lsb_release -cs) main\n" \
