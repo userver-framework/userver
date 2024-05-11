@@ -1,5 +1,6 @@
 ccache
 cmake
+cyrus-sasl
 git
 google-benchmark
 boost
@@ -17,6 +18,7 @@ ninja
 protobuf
 openssl
 yaml-cpp
+librdkafka-dev
 postgresql@14
 redis
 zlib
