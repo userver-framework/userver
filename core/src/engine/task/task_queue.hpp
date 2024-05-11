@@ -40,8 +40,6 @@ class TaskQueue final {
 
   void UpdateQueueSize();
 
-  const std::size_t workers_threads_;
-
   moodycamel::ConcurrentQueue<impl::TaskContext*> queue_;
   moodycamel::LightweightSemaphore queue_semaphore_;
   std::atomic<std::size_t> queue_size_cached_{0};

@@ -15,8 +15,7 @@ constexpr std::size_t kSemaphoreInitialCount = 0;
 }
 
 TaskQueue::TaskQueue(const TaskProcessorConfig& config)
-    : workers_threads_(config.worker_threads),
-      queue_semaphore_(kSemaphoreInitialCount, config.spinning_iterations) {}
+    : queue_semaphore_(kSemaphoreInitialCount, config.spinning_iterations) {}
 
 void TaskQueue::Push(boost::intrusive_ptr<impl::TaskContext>&& context) {
   UASSERT(context);
@@ -71,7 +70,8 @@ impl::TaskContext* TaskQueue::DoPopBlocking(moodycamel::ConsumerToken& token) {
 }
 
 void TaskQueue::UpdateQueueSize() {
-  if (utils::RandRange(workers_threads_) == 0) {
+  static constexpr std::size_t kUpdateSizeFactor = 16;
+  if (utils::RandRange(kUpdateSizeFactor) == 0) {
     queue_size_cached_.store(GetSize(), std::memory_order_relaxed);
   }
 }
