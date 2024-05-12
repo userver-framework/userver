@@ -42,8 +42,8 @@ constexpr OverloadActionAndValue<OverloadBitAndValue> GetOverloadActionAndValue(
 }
 
 void SetTaskQueueWaitTimepoint(impl::TaskContext* context) {
-  static constexpr size_t kTaskTimestampInterval = 4;
-  thread_local size_t task_count = 0;
+  static constexpr std::size_t kTaskTimestampInterval = 4;
+  thread_local std::size_t task_count = 0;
   if (task_count++ == kTaskTimestampInterval) {
     task_count = 0;
     context->SetQueueWaitTimepoint(std::chrono::steady_clock::now());
@@ -97,7 +97,7 @@ TaskProcessor::TaskProcessor(TaskProcessorConfig config,
     concurrent::impl::Latch workers_left{
         static_cast<std::ptrdiff_t>(config_.worker_threads)};
     workers_.reserve(config_.worker_threads);
-    for (size_t i = 0; i < config_.worker_threads; ++i) {
+    for (std::size_t i = 0; i < config_.worker_threads; ++i) {
       workers_.emplace_back([this, i, &workers_left] {
         PrepareWorkerThread(i);
         workers_left.count_down();
@@ -231,8 +231,8 @@ bool TaskProcessor::ShouldProfilerForceStacktrace() const {
   return profiler_force_stacktrace_.load();
 }
 
-size_t TaskProcessor::GetTaskTraceMaxCswForNewTask() const {
-  thread_local size_t count = 0;
+std::size_t TaskProcessor::GetTaskTraceMaxCswForNewTask() const {
+  thread_local std::size_t count = 0;
   if (count++ == config_.task_trace_every) {
     count = 0;
     return config_.task_trace_max_csw;
@@ -393,13 +393,15 @@ bool TaskProcessor::IsOverloadedByLength(const std::size_t max_queue_length) {
 
 bool TaskProcessor::ComputeIsOverloadedByLength(
     const bool current_overloaded_status, const std::size_t max_queue_length) {
-  static constexpr long double kExitOverloadStatusFactor = 0.95;
+  static constexpr std::size_t kExitOverloadStatusFactorNumerator = 19;
+  static constexpr std::size_t kExitOverloadStatusFactorDenominator = 20;
   const auto queue_size = GetTaskQueueSize();
   task_queue_size_overloaded_cache_.store(queue_size,
                                           std::memory_order_relaxed);
   if (current_overloaded_status) {
-    return (queue_size >= static_cast<std::size_t>(kExitOverloadStatusFactor *
-                                                   max_queue_length));
+    return (queue_size >= kExitOverloadStatusFactorNumerator *
+                              max_queue_length /
+                              kExitOverloadStatusFactorDenominator);
   } else {
     return (queue_size >= max_queue_length);
   }

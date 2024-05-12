@@ -57,17 +57,11 @@ class TaskProcessor final {
 
   const impl::TaskCounter& GetTaskCounter() const { return task_counter_; }
 
-  // This method is much slower,
-  // but more accurate than GetTaskQueueSizeApproximate()
-  size_t GetTaskQueueSize() const { return task_queue_.GetSize(); }
-
-  // This method is much faster,
-  // but less accurate than GetTaskQueueSize()
-  size_t GetTaskQueueSizeApproximate() const {
+  std::size_t GetTaskQueueSize() const {
     return task_queue_.GetSizeApproximate();
   }
 
-  size_t GetWorkerCount() const { return workers_.size(); }
+  std::size_t GetWorkerCount() const { return workers_.size(); }
 
   void SetSettings(const TaskProcessorSettings& settings);
 
@@ -75,7 +69,7 @@ class TaskProcessor final {
 
   bool ShouldProfilerForceStacktrace() const;
 
-  size_t GetTaskTraceMaxCswForNewTask() const;
+  std::size_t GetTaskTraceMaxCswForNewTask() const;
 
   const std::string& GetTaskTraceLoggerName() const;
 
@@ -99,10 +93,10 @@ class TaskProcessor final {
   void HandleOverload(impl::TaskContext& context,
                       TaskProcessorSettings::OverloadAction);
 
-  bool IsOverloadedByLength(const std::size_t max_queue_length);
+  bool IsOverloadedByLength(std::size_t max_queue_length);
 
-  bool ComputeIsOverloadedByLength(const bool current_overloaded_status,
-                                   const std::size_t max_queue_length);
+  bool ComputeIsOverloadedByLength(bool current_overloaded_status,
+                                   std::size_t max_queue_length);
 
   concurrent::impl::InterferenceShield<impl::DetachedTasksSyncBlock>
       detached_contexts_{impl::DetachedTasksSyncBlock::StopMode::kCancel};

@@ -1,9 +1,5 @@
 #include <engine/task/task_queue.hpp>
 
-#include <atomic>
-
-#include <userver/utils/rand.hpp>
-
 #include <engine/task/task_context.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -41,10 +37,8 @@ boost::intrusive_ptr<impl::TaskContext> TaskQueue::PopBlocking() {
 
 void TaskQueue::StopProcessing() { DoPush(nullptr); }
 
-std::size_t TaskQueue::GetSize() const noexcept { return queue_.size_approx(); }
-
 std::size_t TaskQueue::GetSizeApproximate() const noexcept {
-  return queue_size_cached_.load(std::memory_order_acquire);
+  return queue_.size_approx();
 }
 
 void TaskQueue::DoPush(impl::TaskContext* context) {
@@ -52,7 +46,6 @@ void TaskQueue::DoPush(impl::TaskContext* context) {
   // moodycamel::BlockingConcurrentQueue::enqueue
   queue_.enqueue(context);
   queue_semaphore_.signal();
-  UpdateQueueSize();
 }
 
 impl::TaskContext* TaskQueue::DoPopBlocking(moodycamel::ConsumerToken& token) {
@@ -67,13 +60,6 @@ impl::TaskContext* TaskQueue::DoPopBlocking(moodycamel::ConsumerToken& token) {
   }
 
   return context;
-}
-
-void TaskQueue::UpdateQueueSize() {
-  static constexpr std::size_t kUpdateSizeFactor = 16;
-  if (utils::RandRange(kUpdateSizeFactor) == 0) {
-    queue_size_cached_.store(GetSize(), std::memory_order_relaxed);
-  }
 }
 
 }  // namespace engine

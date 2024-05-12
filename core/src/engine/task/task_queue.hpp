@@ -25,12 +25,6 @@ class TaskQueue final {
 
   void StopProcessing();
 
-  // This method is much slower,
-  // but more accurate than GetSizeApproximate()
-  std::size_t GetSize() const noexcept;
-
-  // This method is much faster,
-  // but less accurate than GetSize()
   std::size_t GetSizeApproximate() const noexcept;
 
  private:
@@ -38,11 +32,8 @@ class TaskQueue final {
 
   impl::TaskContext* DoPopBlocking(moodycamel::ConsumerToken& token);
 
-  void UpdateQueueSize();
-
   moodycamel::ConcurrentQueue<impl::TaskContext*> queue_;
   moodycamel::LightweightSemaphore queue_semaphore_;
-  std::atomic<std::size_t> queue_size_cached_{0};
 };
 
 }  // namespace engine
