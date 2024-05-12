@@ -66,7 +66,7 @@ class Pool final {
 };
 
 template<typename Task>
-thread_local std::vector<std::optional<typename Pool<Task>::Coroutine>> local_coro_buffer;
+inline thread_local std::vector<std::optional<typename Pool<Task>::Coroutine>> local_coro_buffer;
 
 template <typename Task>
 class Pool<Task>::CoroutinePtr final {
