@@ -21,7 +21,7 @@
 #include <userver/storages/secdist/provider_component.hpp>
 #include <userver/utils/daemon_run.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
-#include "userver/storages/redis/impl/exception.hpp"
+#include "userver/storages/redis/exception.hpp"
 
 namespace chaos {
 

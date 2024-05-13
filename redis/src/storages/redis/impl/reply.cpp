@@ -6,7 +6,7 @@
 #include <hiredis/hiredis.h>
 #include <boost/algorithm/string/predicate.hpp>
 
-#include <userver/storages/redis/impl/exception.hpp>
+#include <userver/storages/redis/exception.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
 

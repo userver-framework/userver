@@ -8,7 +8,7 @@
 #include <userver/utils/assert.hpp>
 
 #include <userver/storages/redis/impl/base.hpp>
-#include <userver/storages/redis/impl/reply_status.hpp>
+#include <userver/storages/redis/reply_status.hpp>
 
 struct redisReply;
 
