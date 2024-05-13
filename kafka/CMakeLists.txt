@@ -1,8 +1,8 @@
 project(userver-kafka CXX)
 
 file(GLOB_RECURSE SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp
 )
 
 file(GLOB_RECURSE KAFKA_FUNCTIONAL_TEST_SOURCES
@@ -10,30 +10,17 @@ file(GLOB_RECURSE KAFKA_FUNCTIONAL_TEST_SOURCES
 )
 list(REMOVE_ITEM SOURCES ${KAFKA_FUNCTIONAL_TEST_SOURCES})
 
-message(STATUS "Statically linking ${PROJECT_NAME} with sources: ${SOURCES}")
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 add_library(userver::kafka ALIAS ${PROJECT_NAME})
 
-message(STATUS "Dirs:")
-message(STATUS "CMAKE_CURRENT_SOURCE_DIR: ${CMAKE_CURRENT_SOURCE_DIR}")
-message(STATUS "CMAKE_BINARY_DIR: ${CMAKE_BINARY_DIR}")
-message(STATUS "CMAKE_CURRENT_BINARY_DIR: ${CMAKE_CURRENT_BINARY_DIR}")
-message(STATUS "CMAKE_INSTALL_INCLUDEDIR: ${CMAKE_INSTALL_INCLUDEDIR}")
-
 include(SetupKafkaDeps)
 
-message(STATUS "Linking ${PROJECT_NAME} to userver-core and rdkafka")
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
     userver-core
   PRIVATE
     rdkafka
 )
-target_compile_options(${PROJECT_NAME} PRIVATE "-Wno-gnu-statement-expression")
-
-message(STATUS "Build interface: ${CMAKE_CURRENT_SOURCE_DIR}/include")
-message(STATUS "Library Sources: ${CMAKE_CURRENT_SOURCE_DIR}/src")
-message(STATUS "Kafka Sources: ${rdkafka_SOURCE_DIR}/src")
 
 target_include_directories(
     ${PROJECT_NAME}
@@ -41,7 +28,13 @@ target_include_directories(
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-message(STATUS "CMAKE_INSTALL_LIBDIR: ${CMAKE_INSTALL_LIBDIR}")
+if (KAFKA_CPM)
+  message(STATUS "Linking wrapper ${CMAKE_CURRENT_SOURCE_DIR}/wrapper/include")
+  target_include_directories(
+    ${PROJECT_NAME}
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/wrapper/include
+  )
+endif()
 
 _userver_directory_install(COMPONENT kafka
   DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include
