@@ -1,7 +1,6 @@
 #pragma once
 
 #include <algorithm>  // for std::max
-#include <array>
 #include <atomic>
 #include <cerrno>
 #include <optional>
@@ -16,7 +15,6 @@
 
 #include "pool_config.hpp"
 #include "pool_stats.hpp"
-#include "userver/utils/fixed_array.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
