@@ -113,9 +113,9 @@ void Manager::TaskProcessorsStorage::Reset() noexcept {
     task_processor->InitiateShutdown();
   }
   LOG_TRACE() << "Waiting for all coroutines to become idle";
-  while (task_processor_pools_->GetCoroPool().GetStats().active_coroutines) {
-    std::this_thread::sleep_for(std::chrono::milliseconds{10});
-  }
+  // while (task_processor_pools_->GetCoroPool().GetStats().active_coroutines) {
+  //   std::this_thread::sleep_for(std::chrono::milliseconds{10});
+  // }
   LOG_TRACE() << "Stopping task processors";
   task_processors_map_.clear();
   LOG_TRACE() << "Stopped task processors";
