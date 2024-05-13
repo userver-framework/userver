@@ -15,6 +15,8 @@ add_library(userver::kafka ALIAS ${PROJECT_NAME})
 
 include(SetupKafkaDeps)
 
+target_compile_options(${PROJECT_NAME} PRIVATE "-Wno-ignored-qualifiers")
+
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
     userver-core
