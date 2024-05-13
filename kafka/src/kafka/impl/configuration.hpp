@@ -30,7 +30,7 @@ class Configuration final {
   Configuration& operator=(const Configuration&) = delete;
 
   Configuration(Configuration&&) noexcept;
-  Configuration& operator=(Configuration) = delete;
+  Configuration& operator=(Configuration&&) = delete;
 
   const std::string& GetComponentName() const;
 

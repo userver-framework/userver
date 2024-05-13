@@ -14,7 +14,7 @@ constexpr std::string_view kSolomonLabel{"solomon_label"};
 
 }  // namespace
 
-void WriteStatistics(utils::statistics::Writer& writer, const Stats& stats) {
+void DumpMetric(utils::statistics::Writer& writer, const Stats& stats) {
   for (const auto& [topic, topic_stats] : stats.topics_stats) {
     const utils::statistics::LabelView label{kSolomonLabel, topic};
 

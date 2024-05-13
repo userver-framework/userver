@@ -21,6 +21,7 @@ jobs:
                         -DUSERVER_FEATURE_REDIS=0
                         -DUSERVER_FEATURE_CLICKHOUSE=0
                         -DUSERVER_FEATURE_GRPC=0
+                        -DUSERVER_FEATURE_KAFKA=0
                         -DUSERVER_FEATURE_RABBITMQ=0
                         -DUSERVER_FEATURE_ROCKS=0
                         -DCMAKE_CXX_STANDARD=17
@@ -51,6 +52,7 @@ jobs:
                   - cmake-flags: >-
                         -DCMAKE_CXX_COMPILER=g++-11 -DCMAKE_C_COMPILER=gcc-11
                         -DUSERVER_FEATURE_MYSQL=1
+                        -DUSERVER_FEATURE_YDB=0
                         -DCMAKE_CXX_STANDARD=20
                     image: ubuntu-22.04-userver-base-ci
                     info: ubuntu + gcc + cxx20

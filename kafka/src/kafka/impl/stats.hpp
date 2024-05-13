@@ -30,7 +30,7 @@ struct Stats final {
   utils::statistics::RelaxedCounter<uint64_t> connections_error = 0;
 };
 
-void WriteStatistics(utils::statistics::Writer& writer, const Stats& stats);
+void DumpMetric(utils::statistics::Writer& writer, const Stats& stats);
 
 }  // namespace kafka::impl
 

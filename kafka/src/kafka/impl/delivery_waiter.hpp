@@ -16,9 +16,6 @@ class DeliveryResult {
       rd_kafka_resp_err_t message_error,
       std::optional<rd_kafka_msg_status_t> message_status = std::nullopt);
 
-  DeliveryResult(const DeliveryResult&) = default;
-  DeliveryResult& operator=(const DeliveryResult&) = default;
-
   /// @note Message delivery may timeout due to timeout fired when request to
   /// broker was in-flight. In that case, message status is
   /// `RD_KAFKA_MSG_STATUS_POSSIBLY_PERSISTED`. It is not safe to retry such

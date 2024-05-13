@@ -55,8 +55,6 @@ struct Message::Data final {
 
 Message::~Message() = default;
 
-Message::Message(Message&& other) noexcept = default;
-
 const std::string& Message::GetTopic() const { return data_->topic; }
 
 std::string_view Message::GetKey() const {

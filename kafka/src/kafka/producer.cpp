@@ -99,9 +99,9 @@ engine::TaskWithResult<void> Producer::SendAsync(
       });
 }
 
-void Producer::WriteStatistics(utils::statistics::Writer& writer) const {
+void Producer::DumpMetric(utils::statistics::Writer& writer) const {
   if (!first_send_.load()) {
-    impl::WriteStatistics(writer, producer_->GetStats());
+    impl::DumpMetric(writer, producer_->GetStats());
   }
 }
 

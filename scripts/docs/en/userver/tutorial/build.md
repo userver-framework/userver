@@ -12,6 +12,7 @@ The following CMake options are used by userver:
 | USERVER_FEATURE_REDIS                  | Provide asynchronous driver for Redis                                                                                 | ${USERVER_IS_THE_ROOT_PROJECT}                         |
 | USERVER_FEATURE_CLICKHOUSE             | Provide asynchronous driver for ClickHouse                                                                            | ${USERVER_IS_THE_ROOT_PROJECT} AND x86\*               |
 | USERVER_FEATURE_GRPC                   | Provide asynchronous driver for gRPC                                                                                  | ${USERVER_IS_THE_ROOT_PROJECT}                         |
+| USERVER_FEATURE_KAFKA               | Provide asynchronous driver for Apache Kafka                                                                 | ${USERVER_IS_THE_ROOT_PROJECT}                         |
 | USERVER_FEATURE_RABBITMQ               | Provide asynchronous driver for RabbitMQ (AMQP 0-9-1)                                                                 | ${USERVER_IS_THE_ROOT_PROJECT}                         |
 | USERVER_FEATURE_MYSQL                  | Provide asynchronous driver for MySQL/MariaDB                                                                         | ${USERVER_IS_THE_ROOT_PROJECT}                         |
 | USERVER_FEATURE_ROCKS                  | Provide asynchronous driver for RocksDB                                                                               | ${USERVER_IS_THE_ROOT_PROJECT}                         |
@@ -53,6 +54,7 @@ The following CMake options are used by userver:
 | USERVER_DOWNLOAD_PACKAGE_GRPC          | Download and setup gRPC if no gRPC of matching version was found                                                      | ${USERVER_DOWNLOAD_PACKAGES}                           |
 | USERVER_DOWNLOAD_PACKAGE_GTEST         | Download and setup gtest if no gtest of matching version was found                                                    | ${USERVER_DOWNLOAD_PACKAGES}                           |
 | USERVER_DOWNLOAD_PACKAGE_PROTOBUF      | Download and setup Protobuf if no Protobuf of matching version was found                                              | ${USERVER_DOWNLOAD_PACKAGE_GRPC}                       |
+| USERVER_DOWNLOAD_PACKAGE_KAFKA     | Download and setup librdkafka if no librdkafka matching version was found                            | ${USERVER_DOWNLOAD_PACKAGES}                           |
 | USERVER_DOWNLOAD_PACKAGE_YDBCPPSDK     | Download and setup ydb-cpp-sdk if no ydb-cpp-sdk of matching version was found                                        | ${USERVER_DOWNLOAD_PACKAGES}                           |
 | USERVER_FORCE_DOWNLOAD_PACKAGES        | Download all possible third-party packages even if there is an installed system package                               | OFF                                                    |
 | USERVER_INSTALL                        | Build userver for further installation                                                                                | OFF                                                    |
@@ -91,6 +93,7 @@ userver is split into multiple CMake libraries.
 | `userver-postgresql` | `USERVER_FEATURE_POSTGRESQL`                | `postgresql`          | @ref pg_driver                                           |
 | `userver-redis`      | `USERVER_FEATURE_REDIS`                     | `redis`               | @ref scripts/docs/en/userver/redis.md                    |
 | `userver-clickhouse` | `USERVER_FEATURE_CLICKHOUSE`                | `clickhouse`          | @ref clickhouse_driver                                   |
+| `userver-kafka`      | `USERVER_FEATURE_KAFKA`                  | `kafka`            | TODO                                     |
 | `userver-rabbitmq`   | `USERVER_FEATURE_RABBITMQ`                  | `rabbitmq`            | @ref rabbitmq_driver                                     |
 | `userver-mysql`      | `USERVER_FEATURE_MYSQL`                     | `mysql`               | @ref scripts/docs/en/userver/mysql/design_and_details.md |
 | `userver-rocks`      | `USERVER_FEATURE_ROCKS`                     | `rocks`               | TODO                                                     |
@@ -250,7 +253,7 @@ The userver framework is
 To create a VM with preinstalled userver just click the "Create VM" button and
 pay for the Cloud hardware usage.
 
-After that the VM is ready to use. SSH to it and use 
+After that the VM is ready to use. SSH to it and use
 `find_package(userver REQUIRED)` in the `CMakeLists.txt` to use the preinstalled
 userver framework.
 

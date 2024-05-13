@@ -216,6 +216,11 @@ DeliveryResult ProducerImpl::SendImpl(const std::string& topic_name,
   /// `RD_KAFKA_MSG_F_FREE`, produce implementation fries the message
   /// data, though not const pointer is required
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wgnu-statement-expression"
+#endif
+
   // NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks,cppcoreguidelines-pro-type-const-cast)
   const rd_kafka_resp_err_t enqueue_error = rd_kafka_producev(
       producer_.Handle(), RD_KAFKA_V_TOPIC(topic_name.c_str()),
@@ -225,6 +230,10 @@ DeliveryResult ProducerImpl::SendImpl(const std::string& topic_name,
       RD_KAFKA_V_PARTITION(partition.value_or(RD_KAFKA_PARTITION_UA)),
       RD_KAFKA_V_OPAQUE(waiter.release()), RD_KAFKA_V_END);
   // NOLINTEND(clang-analyzer-cplusplus.NewDeleteLeaks,cppcoreguidelines-pro-type-const-cast)
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
   if (enqueue_error != RD_KAFKA_RESP_ERR_NO_ERROR) {
     LOG_WARNING() << fmt::format(

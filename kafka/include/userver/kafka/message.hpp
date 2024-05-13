@@ -25,7 +25,7 @@ class Message final {
  public:
   ~Message();
 
-  Message(Message&&) noexcept;
+  Message(Message&&) = default;
 
   const std::string& GetTopic() const;
   std::string_view GetKey() const;

@@ -110,9 +110,9 @@ class Producer final {
       std::string topic_name, std::string key, std::string message,
       std::optional<std::uint32_t> partition = std::nullopt) const;
 
-  /// @brief Writes per topic messages produce statistics.
+  /// @brief Dumps per topic messages produce statistics.
   /// @see impl/stats.hpp
-  void WriteStatistics(utils::statistics::Writer& writer) const;
+  void DumpMetric(utils::statistics::Writer& writer) const;
 
  private:
   void InitProducerAndStartPollingIfFirstSend() const;

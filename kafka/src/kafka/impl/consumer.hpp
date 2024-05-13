@@ -48,9 +48,9 @@ class Consumer final {
   /// @brief Creates the RAII object for user consumer interaction.
   ConsumerScope MakeConsumerScope();
 
-  /// @brief Writes per topic messages processing statistics.
+  /// @brief Dumps per topic messages processing statistics.
   /// @see impl/stats.hpp
-  void WriteStatistics(utils::statistics::Writer& writer) const;
+  void DumpMetric(utils::statistics::Writer& writer) const;
 
  private:
   friend class kafka::ConsumerScope;
