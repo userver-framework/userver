@@ -45,17 +45,15 @@ struct Message::Data final {
         topic(rd_kafka_topic_name(message->rkt)),
         timestamp(RetrieveTimestamp(message.get())) {}
 
-  Data(Data&& other) = default;
+  Data(Data&& other) noexcept = default;
 
   MessageHolder message;
 
-  const std::string topic;
+  std::string topic;
   std::optional<std::chrono::milliseconds> timestamp;
 };
 
 Message::~Message() = default;
-
-Message::Message(Message&& other) noexcept = default;
 
 const std::string& Message::GetTopic() const { return data_->topic; }
 

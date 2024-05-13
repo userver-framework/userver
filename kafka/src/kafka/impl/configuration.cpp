@@ -164,6 +164,10 @@ Configuration::~Configuration() {
   }
 }
 
+Configuration::Configuration(Configuration&& other) noexcept
+    : component_name_(std::move(other.component_name_)),
+      conf_(std::exchange(other.conf_, nullptr)) {}
+
 const std::string& Configuration::GetComponentName() const {
   return component_name_;
 }
