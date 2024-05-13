@@ -19,7 +19,7 @@
 #include <storages/redis/impl/keyshard_impl.hpp>
 #include <storages/redis/impl/sentinel.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
-#include <userver/storages/redis/impl/exception.hpp>
+#include <userver/storages/redis/exception.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
 
 #include "command_control_impl.hpp"

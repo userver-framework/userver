@@ -3,9 +3,9 @@
 #include <optional>
 #include <string>
 
+#include <userver/storages/redis/exception.hpp>
 #include <userver/storages/redis/impl/base.hpp>
 #include <userver/storages/redis/impl/command_options.hpp>
-#include <userver/storages/redis/impl/exception.hpp>
 
 #include <userver/storages/redis/scan_tag.hpp>
 

@@ -128,8 +128,7 @@ void Producer::SendToTestPoint(std::string_view topic_name,
 }
 
 void Producer::ExtendCurrentSpan() const {
-  tracing::Span::CurrentSpan().AddTag(impl::Opaque::kProducerLogTagKey,
-                                      component_name_);
+  tracing::Span::CurrentSpan().AddTag("kafka_producer", component_name_);
 }
 
 }  // namespace kafka

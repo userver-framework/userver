@@ -8,7 +8,7 @@
 
 #include <userver/concurrent/variable.hpp>
 #include <userver/rcu/rcu.hpp>
-#include <userver/storages/redis/impl/exception.hpp>
+#include <userver/storages/redis/exception.hpp>
 #include <userver/storages/redis/impl/redis_state.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
 #include <userver/utils/algo.hpp>

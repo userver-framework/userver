@@ -31,10 +31,10 @@ class Consumer final {
   /// committing. Note: if enabled, `AsyncCommit` should not be called manually
   /// @param consumer_task_processor -- task processor for message batches
   /// polling
-  /// All callbacks are invoked in @param main_task_processor
+  /// All callbacks are invoked in `main_task_processor`
   Consumer(std::unique_ptr<Configuration> configuration,
            const std::vector<std::string>& topics, std::size_t max_batch_size,
-           std::chrono::milliseconds poll_timeout, bool enable_auto_commit_,
+           std::chrono::milliseconds poll_timeout, bool enable_auto_commit,
            engine::TaskProcessor& consumer_task_processor,
            engine::TaskProcessor& main_task_processor);
 

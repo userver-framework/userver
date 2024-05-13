@@ -79,7 +79,7 @@ class ConsumerScope final {
 
   /// @brief Subscribes for configured topics and starts the consumer polling
   /// process.
-  /// @note If @param callback throws an exception, entire message batch (also
+  /// @note If `callback` throws an exception, entire message batch (also
   /// with successfully processed messages) come again, until callback succeedes
   void Start(Callback callback);
 

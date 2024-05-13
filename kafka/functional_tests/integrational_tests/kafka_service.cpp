@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <sstream>
 #include <unordered_map>
 
 #include <userver/utest/using_namespace_userver.hpp>
@@ -265,20 +266,29 @@ void HandlerKafkaConsumer::DumpCurrentConsumed(
     const std::optional<std::string>& topic) const {
   LOG_DEBUG() << fmt::format("Messages of {}:\n", topic.value_or("all topics"));
 
-  const auto print_topic_messages =
+  const auto format_topic_messages =
       [](const std::string& topic,
          const MessagesByTopic::mapped_type& messages) {
-        LOG_DEBUG() << fmt::format("Topic '{}' messages:", topic);
+        std::stringstream ss;
+
+        ss << fmt::format("Topic '{}' messages:", topic);
         for (const auto& message : messages) {
-          LOG_DEBUG() << fmt::format("Message: {}", message);
+          ss << fmt::format("Message: {}", message);
         }
+
+        return ss.str();
       };
+  if (!logging::ShouldLog(logging::Level::kDebug)) {
+    return;
+  }
+
   if (topic.has_value()) {
-    print_topic_messages(topic.value(), messages_by_topic.at(topic.value()));
+    LOG_DEBUG() << format_topic_messages(topic.value(),
+                                         messages_by_topic.at(topic.value()));
     return;
   }
   for (const auto& topic : messages_by_topic) {
-    print_topic_messages(topic.first, topic.second);
+    LOG_DEBUG() << format_topic_messages(topic.first, topic.second);
   }
 }
 

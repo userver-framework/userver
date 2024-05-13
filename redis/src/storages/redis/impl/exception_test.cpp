@@ -1,4 +1,4 @@
-#include <userver/storages/redis/impl/exception.hpp>
+#include <userver/storages/redis/exception.hpp>
 
 #include <gtest/gtest.h>
 

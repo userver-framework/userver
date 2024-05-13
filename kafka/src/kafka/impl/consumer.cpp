@@ -1,5 +1,7 @@
 #include <kafka/impl/consumer.hpp>
 
+#include <string_view>
+
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/testsuite/testpoint.hpp>
 #include <userver/tracing/span.hpp>
@@ -30,13 +32,16 @@ Consumer::Consumer(std::unique_ptr<Configuration> configuration,
       consumer_(std::make_unique<ConsumerImpl>(std::move(configuration))) {}
 
 Consumer::~Consumer() {
+  static constexpr std::string_view kErrShutdownFailed{
+      "Stop has somehow not been called, ConsumerScope leak?"};
+
   const bool shutdown_succeeded{!poll_task_.IsValid() ||
                                 poll_task_.IsFinished()};
 
   if (!shutdown_succeeded) {
-    UASSERT_MSG(false, "Stop has somehow not been called, ConsumerScope leak?");
+    UASSERT_MSG(false, kErrShutdownFailed);
     // in Release UASSERTs are skipped
-    LOG_ERROR() << "Stop has somehow not been called, ConsumerScope leak?";
+    LOG_ERROR() << kErrShutdownFailed;
   }
 }
 
@@ -122,7 +127,7 @@ void Consumer::AsyncCommit() {
 }
 
 void Consumer::Stop() noexcept {
-  if (poll_task_.IsValid()) {
+  if (processing_.load() && poll_task_.IsValid()) {
     LOG_INFO() << "Consumer stopping";
     poll_task_.SyncCancel();
     LOG_INFO() << "Leaving group. Messages polling stopped";
@@ -139,8 +144,7 @@ void Consumer::Stop() noexcept {
 }
 
 void Consumer::ExtendCurrentSpan() const {
-  tracing::Span::CurrentSpan().AddTag(Opaque::kConsumerLogTagKey,
-                                      component_name_);
+  tracing::Span::CurrentSpan().AddTag("kafka_consumer", component_name_);
 }
 
 }  // namespace kafka::impl
