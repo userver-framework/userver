@@ -503,8 +503,7 @@ storages::mysql::Query MySqlCache<MySqlCachePolicy>::GetAllQuery() {
   storages::mysql::Query query = PolicyCheckerType::GetQuery();
   if constexpr (mysql_cache::detail::kHasWhere<MySqlCachePolicy>) {
     return {fmt::format("{} where {}", query.GetStatement(),
-                        MySqlCachePolicy::kWhere),
-            query.GetName()};
+                        MySqlCachePolicy::kWhere)};
   } else {
     return query;
   }
@@ -517,12 +516,10 @@ storages::mysql::Query MySqlCache<MySqlCachePolicy>::GetDeltaQuery() {
     if constexpr (mysql_cache::detail::kHasWhere<MySqlCachePolicy>) {
       return {
           fmt::format("{} where ({}) and {} >= $1", query.GetStatement(),
-                      MySqlCachePolicy::kWhere, PolicyType::kUpdatedField),
-          query.GetName()};
+                      MySqlCachePolicy::kWhere, PolicyType::kUpdatedField)};
     } else {
       return {fmt::format("{} where {} >= $1", query.GetStatement(),
-                          PolicyType::kUpdatedField),
-              query.GetName()};
+                          PolicyType::kUpdatedField)};
     }
   } else {
     return GetAllQuery();
@@ -726,13 +723,14 @@ properties:
 
 }  // namespace components
 
-//  namespace utils::impl::projected_set {
-//
-//  template <typename Set, typename Value, typename KeyMember>
-//  void CacheInsertOrAssign(Set& set, Value&& value,
-//                         const KeyMember& /*key_member*/) {
-//  DoInsert(set, std::forward<Value>(value));
-//  }
-//}  // namespace utils::impl::projected_set
+namespace utils::impl::projected_set {
+
+template <typename Set, typename Value, typename KeyMember>
+void CacheInsertOrAssign(Set& set, Value&& value,
+                         const KeyMember& /*key_member*/) {
+  DoInsert(set, std::forward<Value>(value));
+}
+
+}  // namespace utils::impl::projected_set
 
 USERVER_NAMESPACE_END
