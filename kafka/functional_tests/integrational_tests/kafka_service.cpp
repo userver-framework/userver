@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <sstream>
 #include <unordered_map>
 
 #include <userver/utest/using_namespace_userver.hpp>
@@ -30,7 +31,7 @@
 #include <userver/utils/daemon_run.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
-#include <fmt/ranges.h>
+#include <fmt/format.h>
 
 namespace functional_tests {
 
@@ -263,12 +264,32 @@ void HandlerKafkaConsumer::Consume(kafka::MessageBatchView messages) {
 void HandlerKafkaConsumer::DumpCurrentConsumed(
     const MessagesByTopic& messages_by_topic,
     const std::optional<std::string>& topic) const {
-  LOG_DEBUG() << fmt::format("Messages of {}:\n", topic.value_or("all topics"))
-              << (topic.has_value()
-                      ? fmt::format(
-                            "{}", fmt::join(messages_by_topic.at(topic.value()),
-                                            "\n"))
-                      : fmt::format("{}", messages_by_topic));
+  LOG_DEBUG() << fmt::format("Messages of {}:\n", topic.value_or("all topics"));
+
+  const auto format_topic_messages =
+      [](const std::string& topic,
+         const MessagesByTopic::mapped_type& messages) {
+        std::stringstream ss;
+
+        ss << fmt::format("Topic '{}' messages:", topic);
+        for (const auto& message : messages) {
+          ss << fmt::format("Message: {}", message);
+        }
+
+        return ss.str();
+      };
+  if (!logging::ShouldLog(logging::Level::kDebug)) {
+    return;
+  }
+
+  if (topic.has_value()) {
+    LOG_DEBUG() << format_topic_messages(topic.value(),
+                                         messages_by_topic.at(topic.value()));
+    return;
+  }
+  for (const auto& topic : messages_by_topic) {
+    LOG_DEBUG() << format_topic_messages(topic.first, topic.second);
+  }
 }
 
 HandlerKafkaProducers::HandlerKafkaProducers(

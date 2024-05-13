@@ -4,13 +4,12 @@
 
 #include <userver/logging/log.hpp>
 #include <userver/testsuite/testpoint.hpp>
+#include <userver/tracing/span.hpp>
 #include <userver/utils/span.hpp>
 
 #include <kafka/impl/configuration.hpp>
 #include <kafka/impl/error_buffer.hpp>
 #include <kafka/impl/stats.hpp>
-
-#include <librdkafka/rdkafka.h>
 
 #include <fmt/format.h>
 
@@ -22,6 +21,10 @@ namespace {
 
 using MessageHolder =
     std::unique_ptr<rd_kafka_message_t, decltype(&rd_kafka_message_destroy)>;
+
+using TopicPartitionsListHolder =
+    std::unique_ptr<rd_kafka_topic_partition_list_t,
+                    decltype(&rd_kafka_topic_partition_list_destroy)>;
 
 std::optional<std::chrono::milliseconds> RetrieveTimestamp(
     const rd_kafka_message_t* message) {
@@ -42,10 +45,7 @@ struct Message::Data final {
         topic(rd_kafka_topic_name(message->rkt)),
         timestamp(RetrieveTimestamp(message.get())) {}
 
-  Data(Data&& other) noexcept
-      : message(std::move(other.message)),
-        topic(rd_kafka_topic_name(message->rkt)),
-        timestamp(RetrieveTimestamp(message.get())) {}
+  Data(Data&& other) = default;
 
   MessageHolder message;
 
@@ -89,28 +89,55 @@ namespace impl {
 
 namespace {
 
+void ErrorCallback(rd_kafka_t* consumer, int error_code, const char* reason,
+                   void* opaque_ptr) {
+  UASSERT(consumer);
+  UASSERT(opaque_ptr);
+
+  static_cast<ConsumerImpl*>(opaque_ptr)
+      ->ErrorCallbackProxy(error_code, reason);
+}
+
+void RebalanceCallback(rd_kafka_t* consumer, rd_kafka_resp_err_t err,
+                       rd_kafka_topic_partition_list_t* partitions,
+                       void* opaque_ptr) {
+  UASSERT(consumer);
+  UASSERT(opaque_ptr);
+
+  static_cast<ConsumerImpl*>(opaque_ptr)
+      ->RebalanceCallbackProxy(err, partitions);
+}
+
+void OffsetCommitCallback(rd_kafka_t* consumer, rd_kafka_resp_err_t err,
+                          rd_kafka_topic_partition_list_t* committed_offsets,
+                          void* opaque_ptr) {
+  UASSERT(consumer);
+  UASSERT(opaque_ptr);
+
+  static_cast<ConsumerImpl*>(opaque_ptr)
+      ->OffsetCommitCallbackProxy(err, committed_offsets);
+}
+
 void PrintTopicPartitionsList(
     const rd_kafka_topic_partition_list_t* list,
-    const logging::LogExtra& log_tags,
     std::function<std::string(const rd_kafka_topic_partition_t&)> log,
     bool skip_invalid_offsets = false) {
-  if (list == nullptr || list->cnt == 0) {
+  if (list == nullptr || list->cnt <= 0) {
     return;
   }
 
   utils::span<const rd_kafka_topic_partition_t> topic_partitions{
-      list->elems, static_cast<std::size_t>(list->cnt)};
+      list->elems, list->elems + static_cast<std::size_t>(list->cnt)};
   for (const auto& topic_partition : topic_partitions) {
     if (skip_invalid_offsets &&
         topic_partition.offset == RD_KAFKA_OFFSET_INVALID) {
-      /// @note `librdkafka` does not sets offsets for partitions that were not
-      /// committed in the current in the current commit
-      LOG_INFO() << log_tags << "Skipping partition "
-                 << topic_partition.partition;
+      /// @note `librdkafka` does not sets offsets for partitions that were
+      /// not committed in the current in the current commit
+      LOG_INFO() << "Skipping partition " << topic_partition.partition;
       continue;
     }
 
-    LOG_INFO() << log_tags << log(topic_partition);
+    LOG_INFO() << log(topic_partition);
   }
 }
 
@@ -126,193 +153,158 @@ void CallTestpoints(const rd_kafka_topic_partition_list_t* list,
   }
 }
 
-/// @brief Assigns (subscribes) the @param partitions list to the current
-/// consumer.
-void AssignPartitions(rd_kafka_t* consumer,
-                      const rd_kafka_topic_partition_list_t* partitions,
-                      const std::string& consumer_name,
-                      const logging::LogExtra& log_tags) {
-  LOG_INFO() << log_tags << "Assigning new partitions to consumer";
+}  // namespace
+
+ConsumerImpl::ConfHolder::ConfHolder(rd_kafka_conf_t* conf)
+    : handle_(conf, &rd_kafka_conf_destroy) {}
+
+ConsumerImpl::ConfHolder::HandleHolder ConsumerImpl::ConfHolder::MakeConfCopy()
+    const {
+  return {rd_kafka_conf_dup(handle_.get()), &rd_kafka_conf_destroy};
+}
+
+ConsumerImpl::ConsumerHolder::ConsumerHolder(
+    ConsumerImpl::ConfHolder::HandleHolder conf_handle) {
+  ErrorBuffer err_buf;
+
+  handle_ = HandleHolder{rd_kafka_new(RD_KAFKA_CONSUMER, conf_handle.get(),
+                                      err_buf.data(), err_buf.size()),
+                         rd_kafka_destroy};
+  if (handle_ == nullptr) {
+    /// @note `librdkafka` takes ownership on conf iff
+    /// `rd_kafka_new` succeeds
+
+    PrintErrorAndThrow("create consumer", err_buf);
+  }
+  /// @note `rd_kafka_new` takes an ownership on config, if succeeds
+  [[maybe_unused]] auto _ = conf_handle.release();
+
+  /// @note makes available to call `rd_kafka_consumer_poll`
+  rd_kafka_poll_set_consumer(Handle());
+}
+
+rd_kafka_t* ConsumerImpl::ConsumerHolder::Handle() { return handle_.get(); }
+
+void ConsumerImpl::AssignPartitions(
+    const rd_kafka_topic_partition_list_t* partitions) {
+  LOG_INFO() << "Assigning new partitions to consumer";
   PrintTopicPartitionsList(
-      partitions, log_tags, [](const rd_kafka_topic_partition_t& partition) {
+      partitions, [](const rd_kafka_topic_partition_t& partition) {
         return fmt::format("Partition {} for topic '{}' assigning",
                            partition.partition, partition.topic);
       });
 
-  const auto assign_err = rd_kafka_assign(consumer, partitions);
+  const auto assign_err = rd_kafka_assign(consumer_->Handle(), partitions);
   if (assign_err != RD_KAFKA_RESP_ERR_NO_ERROR) {
-    LOG_ERROR() << log_tags
-                << fmt::format("Failed to assign partitions: {}",
+    LOG_ERROR() << fmt::format("Failed to assign partitions: {}",
                                rd_kafka_err2str(assign_err));
     return;
   }
 
-  LOG_INFO() << log_tags << "Successfully assigned partitions";
-  CallTestpoints(partitions, fmt::format("tp_{}_subscribed", consumer_name));
+  LOG_INFO() << "Successfully assigned partitions";
 }
 
-/// @brief Revokes @param partitions from the current consumer.
-void RevokePartitions(rd_kafka_t* consumer,
-                      const rd_kafka_topic_partition_list_t* partitions,
-                      const std::string& consumer_name,
-                      const logging::LogExtra& log_tags) {
-  LOG_INFO() << log_tags << "Revoking existing partitions from consumer";
+void ConsumerImpl::RevokePartitions(
+    const rd_kafka_topic_partition_list_t* partitions) {
+  LOG_INFO() << "Revoking existing partitions from consumer";
 
   PrintTopicPartitionsList(
-      partitions, log_tags, [](const rd_kafka_topic_partition_t& partition) {
+      partitions, [](const rd_kafka_topic_partition_t& partition) {
         return fmt::format("Partition {} of '{}' topic revoking",
                            partition.partition, partition.topic);
       });
 
-  const auto revokation_err = rd_kafka_assign(consumer, nullptr);
+  const auto revokation_err = rd_kafka_assign(consumer_->Handle(), nullptr);
   if (revokation_err != RD_KAFKA_RESP_ERR_NO_ERROR) {
     LOG_ERROR() << fmt::format("Failed to revoke partitions: {}",
                                rd_kafka_err2str(revokation_err));
     return;
   }
 
-  LOG_INFO() << log_tags << "Successfully revoked partitions";
-  CallTestpoints(partitions, fmt::format("tp_{}_revoked", consumer_name));
+  LOG_INFO() << "Successfully revoked partitions";
 }
 
-/// @brief Callback that is called on each group join/leave and topic partition
-/// update.
-void RebalanceCallback(rd_kafka_t* consumer, rd_kafka_resp_err_t err,
-                       rd_kafka_topic_partition_list_t* partitions,
-                       void* opaque_ptr) {
-  const auto& opaque = Opaque::FromPtr(opaque_ptr);
-  const auto& consumer_name = opaque.GetComponentName();
-  const auto log_tags = opaque.MakeCallbackLogTags("rebalance_callback");
+void ConsumerImpl::ErrorCallbackProxy(int error_code, const char* reason) {
+  tracing::Span span{"error_callback"};
+  span.AddTag("kafka_callback", "error_callback");
 
-  LOG_INFO() << log_tags
-             << fmt::format("Consumer group rebalanced ('{}' protocol)",
-                            rd_kafka_rebalance_protocol(consumer));
+  LOG_ERROR() << fmt::format(
+      "Error {} occured because of '{}': {}", error_code, reason,
+      rd_kafka_err2str(static_cast<rd_kafka_resp_err_t>(error_code)));
+
+  if (error_code == RD_KAFKA_RESP_ERR__RESOLVE ||
+      error_code == RD_KAFKA_RESP_ERR__TRANSPORT ||
+      error_code == RD_KAFKA_RESP_ERR__AUTHENTICATION ||
+      error_code == RD_KAFKA_RESP_ERR__ALL_BROKERS_DOWN) {
+    ++stats_.connections_error;
+  }
+}
+
+void ConsumerImpl::RebalanceCallbackProxy(
+    rd_kafka_resp_err_t err, rd_kafka_topic_partition_list_t* partitions) {
+  tracing::Span span{"rebalance_callback"};
+  span.AddTag("kafka_callback", "rebalance_callback");
+
+  LOG_INFO() << fmt::format("Consumer group rebalanced ('{}' protocol)",
+                            rd_kafka_rebalance_protocol(consumer_->Handle()));
 
   switch (err) {
     case RD_KAFKA_RESP_ERR__ASSIGN_PARTITIONS:
-      AssignPartitions(consumer, partitions, consumer_name, log_tags);
+      AssignPartitions(partitions);
+      CallTestpoints(partitions,
+                     fmt::format("tp_{}_subscribed", component_name_));
       break;
     case RD_KAFKA_RESP_ERR__REVOKE_PARTITIONS:
-      RevokePartitions(consumer, partitions, consumer_name, log_tags);
+      RevokePartitions(partitions);
+      CallTestpoints(partitions, fmt::format("tp_{}_revoked", component_name_));
       break;
     default:
-      LOG_ERROR() << log_tags
-                  << fmt::format("Failed when rebalancing: {}",
+      LOG_ERROR() << fmt::format("Failed when rebalancing: {}",
                                  rd_kafka_err2str(err));
       break;
   }
 }
 
-/// @brief Callback which is callbed after succeeded/failed commit.
-/// Currently, used for logging purposes.
-void OffsetCommitCallback([[maybe_unused]] rd_kafka_t* consumer,
-                          rd_kafka_resp_err_t err,
-                          rd_kafka_topic_partition_list_t* committed_offsets,
-                          void* opaque_ptr) {
-  const auto& opaque = Opaque::FromPtr(opaque_ptr);
-  const auto log_tags = opaque.MakeCallbackLogTags("offset_commit_callback");
+void ConsumerImpl::OffsetCommitCallbackProxy(
+    rd_kafka_resp_err_t err,
+    rd_kafka_topic_partition_list_t* committed_offsets) {
+  tracing::Span span{"offset_commit_callback"};
+  span.AddTag("kafka_callback", "offset_commit_callback");
 
   if (err != RD_KAFKA_RESP_ERR_NO_ERROR) {
-    LOG_ERROR() << log_tags
-                << fmt::format("Failed to commit offsets: {}",
+    LOG_ERROR() << fmt::format("Failed to commit offsets: {}",
                                rd_kafka_err2str(err));
     return;
   }
 
-  LOG_INFO() << log_tags << "Successfully committed offsets";
+  LOG_INFO() << "Successfully committed offsets";
   PrintTopicPartitionsList(
-      committed_offsets, log_tags,
+      committed_offsets,
       [](const rd_kafka_topic_partition_t& offset) {
         return fmt::format(
-            "Offset {} committed for topic '{}' within partition {}",
+            "Offset {} committed for topic '{}' within partition "
+            "{}",
             offset.offset, offset.topic, offset.partition);
       },
       /*skip_invalid_offsets=*/true);
 }
 
-}  // namespace
-
-using TopicPartitionsListHolder =
-    std::unique_ptr<rd_kafka_topic_partition_list_t,
-                    decltype(&rd_kafka_topic_partition_list_destroy)>;
-
-class ConsumerImpl::ConfHolder final {
- public:
-  using HandleHolder =
-      std::unique_ptr<rd_kafka_conf_t, decltype(&rd_kafka_conf_destroy)>;
-
-  ConfHolder(void* conf)
-      : handle_(static_cast<rd_kafka_conf_t*>(conf), &rd_kafka_conf_destroy) {}
-
-  ConfHolder(const ConfHolder&) = delete;
-  ConfHolder& operator=(const ConfHolder&) = delete;
-
-  ConfHolder(ConfHolder&&) noexcept = delete;
-  ConfHolder& operator=(ConfHolder&&) noexcept = delete;
-
-  HandleHolder MakeConfCopy() const {
-    return {rd_kafka_conf_dup(handle_.get()), &rd_kafka_conf_destroy};
-  }
-
- private:
-  HandleHolder handle_;
-};
-
-class ConsumerImpl::ConsumerHolder final {
- public:
-  ConsumerHolder(ConfHolder::HandleHolder conf_handle, ErrorBuffer& err_buf)
-      : handle_(rd_kafka_new(RD_KAFKA_CONSUMER, conf_handle.get(),
-                             err_buf.data(), err_buf.size()),
-                &rd_kafka_destroy) {
-    if (handle_ == nullptr) {
-      /// @note `librdkafka` takes ownership on conf iff `rd_kafka_new`
-      /// succeeds
-
-      PrintErrorAndThrow("create consumer", err_buf);
-    }
-    /// @note `rd_kafka_new` takes an ownership on config, if succeeds
-    [[maybe_unused]] auto _ = conf_handle.release();
-
-    /// @note makes available to call `rd_kafka_consumer_poll`
-    rd_kafka_poll_set_consumer(Handle());
-  }
-
-  ~ConsumerHolder() {
-    if (handle_ != nullptr) {
-      rd_kafka_consumer_close(Handle());
-    }
-    LOG_INFO() << "Consumer closed";
-  }
-
-  ConsumerHolder(const ConsumerHolder&) = delete;
-  ConsumerHolder& operator=(const ConsumerHolder&) = delete;
-
-  ConsumerHolder(ConsumerHolder&& other) noexcept = delete;
-  ConsumerHolder& operator=(ConfHolder&& other) noexcept = delete;
-
-  rd_kafka_t* Handle() { return handle_.get(); }
-
- private:
-  using HandleHolder = std::unique_ptr<rd_kafka_t, decltype(&rd_kafka_destroy)>;
-  HandleHolder handle_;
-};
-
 ConsumerImpl::ConsumerImpl(std::unique_ptr<Configuration> configuration)
-    : opaque_(configuration->GetComponentName(), EntityType::kConsumer),
-      conf_(std::make_unique<ConfHolder>(
-          configuration->SetOpaque(opaque_)
-              .SetCallbacks([](void* conf) {
-                rd_kafka_conf_set_rebalance_cb(
-                    static_cast<rd_kafka_conf_t*>(conf), &RebalanceCallback);
-                rd_kafka_conf_set_offset_commit_cb(
-                    static_cast<rd_kafka_conf_t*>(conf), &OffsetCommitCallback);
-              })
-              .Release())) {}
+    : component_name_(configuration->GetComponentName()),
+      conf_([this, configuration = std::move(configuration)] {
+        rd_kafka_conf_t* conf = configuration->Release();
+        rd_kafka_conf_set_opaque(conf, this);
+        rd_kafka_conf_set_error_cb(conf, &ErrorCallback);
+        rd_kafka_conf_set_rebalance_cb(conf, &RebalanceCallback);
+        rd_kafka_conf_set_offset_commit_cb(conf, &OffsetCommitCallback);
+
+        return ConfHolder{conf};
+      }()) {}
 
 ConsumerImpl::~ConsumerImpl() = default;
 
 void ConsumerImpl::Subscribe(const std::vector<std::string>& topics) {
-  consumer_ = std::make_unique<ConsumerHolder>(conf_->MakeConfCopy(), err_buf_);
+  consumer_.emplace(conf_.MakeConfCopy());
 
   TopicPartitionsListHolder topic_partitions_list{
       rd_kafka_topic_partition_list_new(topics.size()),
@@ -328,7 +320,14 @@ void ConsumerImpl::Subscribe(const std::vector<std::string>& topics) {
   rd_kafka_subscribe(consumer_->Handle(), topic_partitions_list.get());
 }
 
-void ConsumerImpl::LeaveGroup() { consumer_.reset(); }
+void ConsumerImpl::LeaveGroup() {
+  const rd_kafka_resp_err_t err = rd_kafka_consumer_close(consumer_->Handle());
+  if (err != RD_KAFKA_RESP_ERR_NO_ERROR) {
+    LOG_ERROR() << fmt::format("Failed to propery close consumer: {}",
+                               rd_kafka_err2str(err));
+  }
+  consumer_.reset();
+}
 
 void ConsumerImpl::Resubscribe(const std::vector<std::string>& topics) {
   LeaveGroup();
@@ -401,11 +400,11 @@ ConsumerImpl::MessageBatch ConsumerImpl::PollBatch(std::size_t max_batch_size,
   return batch;
 }
 
-const Stats& ConsumerImpl::GetStats() const { return opaque_.GetStats(); }
+const Stats& ConsumerImpl::GetStats() const { return stats_; }
 
 std::shared_ptr<TopicStats> ConsumerImpl::GetTopicStats(
     const std::string& topic) {
-  return opaque_.GetStats().topics_stats[topic];
+  return stats_.topics_stats[topic];
 }
 
 void ConsumerImpl::AccountPolledMessageStat(const Message& polled_message) {

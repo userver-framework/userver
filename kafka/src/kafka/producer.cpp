@@ -48,7 +48,7 @@ void Producer::InitProducerAndStartPollingIfFirstSend() const {
           utils::Async(producer_task_processor_, "producer_polling", [this] {
             ExtendCurrentSpan();
 
-            LOG_INFO() << producer_ << "Producer started polling";
+            LOG_INFO() << "Producer started polling";
 
             while (!engine::current_task::ShouldCancel()) {
               producer_->Poll(poll_timeout_);
@@ -128,8 +128,7 @@ void Producer::SendToTestPoint(std::string_view topic_name,
 }
 
 void Producer::ExtendCurrentSpan() const {
-  tracing::Span::CurrentSpan().AddTag(impl::Opaque::kProducerLogTagKey,
-                                      component_name_);
+  tracing::Span::CurrentSpan().AddTag("kafka_producer", component_name_);
 }
 
 }  // namespace kafka
