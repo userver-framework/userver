@@ -711,14 +711,14 @@ yaml_config::Schema PostgreCache<PostgreCachePolicy>::GetStaticConfigSchema() {
 
 }  // namespace components
 
-namespace utils::impl::projected_set {
 
-template <typename Set, typename Value, typename KeyMember>
-void CacheInsertOrAssign(Set& set, Value&& value,
-                         const KeyMember& /*key_member*/) {
-  DoInsert(set, std::forward<Value>(value));
-}
-
-}  // namespace utils::impl::projected_set
-
+//namespace utils::impl::projected_set {
+//
+//template <typename Set, typename Value, typename KeyMember>
+//void CacheInsertOrAssign(Set& set, Value&& value,
+//                         const KeyMember& /*key_member*/) {
+//  DoInsert(set, std::forward<Value>(value));
+//}
+//
+//}  // namespace utils::impl::projected_set
 USERVER_NAMESPACE_END
