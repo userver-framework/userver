@@ -82,6 +82,8 @@ class TaskProcessor final {
 
   void PrepareWorkerThread(std::size_t index) noexcept;
 
+  void FinalizeWorkerThread() noexcept;
+
   void ProcessTasks() noexcept;
 
   void CheckWaitTime(impl::TaskContext& context);
