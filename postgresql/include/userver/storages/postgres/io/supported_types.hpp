@@ -127,8 +127,21 @@
 /// @code{.cpp}
 /// namespace pg = storages::postgres;
 /// using namespace std::string_literals;
+/// //using a "binary string"
 /// std::string s = "\0\xff\x0afoobar"s;
-/// trx.Execute("select $1", pg::Bytea(tp));
+/// std::vector<std::uint8_t> tgt_bin_str;
+/// trx.Execute("select $1", pg::Bytea(s)); //note: pg::Bytea(const T &) is used
+/// //storing a byte array:
+/// std::vector<std::uint8_t> bin_str{1, 2, 3, 4, 5, 6, 7, 8, 9};
+/// trx.Execute("INSERT INTO mytable (data) VALUES ($1)", pg::Bytea(bin_str)); //note: pg::Bytea(const T &) is used
+/// @endcode
+///
+/// To read data from bytea field:
+/// @code{.cpp}
+/// auto res = trx.Execute("SELECT id, data FROM mytable WHERE id = $1", id); //SQL: data BYTEA {NOT} NULL
+/// std::vector<std::uint8_t> tgt_bin_str;
+/// const auto& row = res.Front();
+/// row["data"].To(pg::Bytea(tgt_bin_str)); //note: pg::Bytea(T &) is used
 /// @endcode
 ///
 /// @par Network types
