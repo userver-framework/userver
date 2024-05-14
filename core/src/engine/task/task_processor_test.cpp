@@ -1,16 +1,13 @@
-#include <gtest/gtest.h>
 #include <userver/utest/utest.hpp>
 
 #include <engine/task/task_processor.hpp>
+#include <engine/task/task_processor_config.hpp>
+
 #include <userver/engine/async.hpp>
-#include <userver/engine/run_standalone.hpp>
-#include "engine/task/task_processor_config.hpp"
-#include "userver/engine/task/task_base.hpp"
-#include "userver/engine/task/task_with_result.hpp"
+#include <userver/engine/task/task_base.hpp>
+#include <userver/engine/task/task_with_result.hpp>
 
 USERVER_NAMESPACE_BEGIN
-
-using namespace std::chrono_literals;
 
 UTEST(TaskProcessor, Overload) {
   engine::TaskProcessorSettings settings;
