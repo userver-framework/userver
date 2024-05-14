@@ -33,12 +33,13 @@ UTEST(TaskProcessor, Overload) {
     }
   }
 
-  EXPECT_GE(canceled_tasks_count, kMinCanceledTasksCount) << "This test has a 0.15% chance of failing";
+  EXPECT_GE(canceled_tasks_count, kMinCanceledTasksCount)
+      << "This test has a 0.15% chance of failing";
 
   for (std::size_t i = 0; i < 10; ++i) {
     auto task = engine::AsyncNoSpan([]() {});
     task.Wait();
-    EXPECT_EQ(task.GetState(), engine::Task::State::kCompleted); 
+    EXPECT_EQ(task.GetState(), engine::Task::State::kCompleted);
   }
 }
 
