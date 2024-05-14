@@ -14,7 +14,9 @@ namespace tracing {
 namespace {
 
 constexpr std::string_view kSampledTag = "sampled";
-constexpr std::string_view kDefaultOtelTraceFlags = "00";
+// default value for Sampled flag is '01' as we always write spans by
+// default
+constexpr std::string_view kDefaultOtelTraceFlags = "01";
 
 // The order matter for TryFillSpanBuilderFromRequest as it returns on first
 // success
