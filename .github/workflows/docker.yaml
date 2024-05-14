@@ -94,6 +94,11 @@ jobs:
                 run --rm ${{ matrix.image}} bash -c
                 'cd /userver/build && make -j $(nproc)'
 
+          - name: Run ydb
+            run: |-
+                docker-compose -f .github/docker-compose.yml run -d --rm run-ydb
+                sleep 60
+
           - name: Run tests
             run: >-
                 docker-compose -f .github/docker-compose.yml
