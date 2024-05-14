@@ -13,6 +13,7 @@ from typing import List
 from typing import Optional
 
 import grpc
+from grpc import aio
 import pytest
 
 from testsuite.utils import callinfo
