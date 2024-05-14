@@ -17,6 +17,12 @@ class TooBigError : public DecompressionError {
   TooBigError() : DecompressionError("Decompressed data exceeds the limit") {}
 };
 
+class ErrWithCode : public DecompressionError {
+ public:
+  explicit ErrWithCode(int errCode) : DecompressionError(
+            fmt::format("Decompression failed with code: {}", errCode)) {}
+};
+
 }  // namespace compression
 
 USERVER_NAMESPACE_END
