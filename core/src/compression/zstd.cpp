@@ -34,6 +34,7 @@ std::string Decompress(std::string_view compressed, size_t max_size) {
 
       decompressed.append(static_cast<char*>(output.dst), output.size);
     }
+
     if (decompressed.size() > max_size) {
       throw TooBigError();
     }
