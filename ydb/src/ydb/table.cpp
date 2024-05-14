@@ -204,6 +204,10 @@ NYdb::NTable::TTableClient& TableClient::GetNativeTableClient() {
   return *table_client_;
 }
 
+utils::RetryBudget& TableClient::GetRetryBudget() {
+  return driver_->GetRetryBudget();
+}
+
 void TableClient::MakeDirectory(const std::string& path) {
   using Settings = NYdb::NScheme::TMakeDirectorySettings;
   ExecuteWithPathImpl<Settings>(

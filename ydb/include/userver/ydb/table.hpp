@@ -36,7 +36,6 @@ struct Stats;
 struct TableSettings;
 class Driver;
 struct RequestContext;
-struct RetryContext;
 enum class IsStreaming : bool {};
 }  // namespace impl
 
@@ -156,11 +155,11 @@ class TableClient final {
   /// @endcond
 
   NYdb::NTable::TTableClient& GetNativeTableClient();
+  utils::RetryBudget& GetRetryBudget();
 
  private:
   friend class Transaction;
   friend struct impl::RequestContext;
-  friend struct impl::RetryContext;
 
   std::string JoinDbPath(std::string_view path) const;
 

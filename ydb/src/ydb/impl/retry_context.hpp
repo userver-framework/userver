@@ -2,6 +2,7 @@
 
 #include <ydb-cpp-sdk/client/retry/retry.h>
 
+#include <userver/utils/retry_budget.hpp>
 #include <userver/ydb/table.hpp>
 
 #include <ydb/impl/request_context.hpp>
@@ -15,19 +16,31 @@ bool IsRetryableStatus(NYdb::EStatus status);
 
 void HandleOnceRetry(utils::RetryBudget& retry_budget, NYdb::EStatus status);
 
-struct RetryContext final {
-  RetryContext(TableClient& table_client, OperationSettings& settings);
+NYdb::NRetry::TRetryOperationSettings PrepareRetrySettings(
+    const OperationSettings& settings, bool is_retryable);
 
-  bool ApplyStatusAndCanRetry(NYdb::EStatus status);
+struct RetryContext final {
+  explicit RetryContext(utils::RetryBudget& retry_budget);
 
   utils::RetryBudget& retry_budget;
-  NYdb::NRetry::TRetryOperationSettings retry_settings;
   std::size_t retries{0};
 };
 
 inline NThreading::TFuture<NYdb::TStatus> MakeNonRetryableFuture() {
   return NThreading::MakeFuture<NYdb::TStatus>(
       NYdb::TStatus{NYdb::EStatus::BAD_REQUEST, NYql::TIssues()});
+}
+
+inline NThreading::TFuture<NYdb::TStatus> MakeSuccessFuture() {
+  return NThreading::MakeFuture<NYdb::TStatus>(
+      NYdb::TStatus{NYdb::EStatus::SUCCESS, NYql::TIssues()});
+}
+
+inline NThreading::TFuture<NYdb::TStatus> MakeRetryableFuture(
+    NYdb::EStatus status) {
+  UASSERT(IsRetryableStatus(status));
+  return NThreading::MakeFuture<NYdb::TStatus>(
+      NYdb::TStatus{status, NYql::TIssues()});
 }
 
 // Func: (NYdb::NTable::TSession) -> NThreading::TFuture<T>
@@ -45,26 +58,9 @@ auto RetryOperation(impl::RequestContext& request_context, Func&& func) {
 
   static_assert(std::is_convertible_v<const ResultType&, NYdb::TStatus>);
 
-  RetryContext retry_context{request_context.table_client,
-                             request_context.settings};
-
-  if constexpr (std::is_same_v<ResultType, NYdb::TStatus>) {
-    return request_context.table_client.GetNativeTableClient().RetryOperation(
-        [func = std::forward<Func>(func),
-         retry_context = std::move(retry_context)](FuncArg arg) mutable {
-          return func(std::forward<FuncArg>(arg))
-              // We inject this handling to manage retries
-              .Apply([retry_context = &retry_context](const auto& f) mutable {
-                if (!retry_context->ApplyStatusAndCanRetry(
-                        f.GetValue().GetStatus())) {
-                  // Stop retrying
-                  return MakeNonRetryableFuture();
-                }
-                return f;
-              });
-        },
-        retry_context.retry_settings);
-  }
+  RetryContext retry_context{request_context.table_client.GetRetryBudget()};
+  NYdb::NRetry::TRetryOperationSettings retry_settings{PrepareRetrySettings(
+      request_context.settings, retry_context.retry_budget.CanRetry())};
 
   auto final_result = utils::MakeSharedRef<std::optional<ResultType>>();
 
@@ -87,20 +83,23 @@ auto RetryOperation(impl::RequestContext& request_context, Func&& func) {
                   // will rethrow it, and `Apply` will pack it into the
                   // resulting future.
                   auto value = fut.ExtractValue();
-                  if (!retry_context->ApplyStatusAndCanRetry(
-                          value.GetStatus())) {
-                    final_result->emplace(std::move(value));
-                    // Stop retrying
-                    return MakeNonRetryableFuture();
-                  }
-                  // Note: slicing.
-                  auto status_future =
-                      NThreading::MakeFuture<NYdb::TStatus>(value);
+                  const auto status = value.GetStatus();
                   final_result->emplace(std::move(value));
-                  return status_future;
+                  if (status == NYdb::EStatus::SUCCESS) {
+                    retry_context->retry_budget.AccountOk();
+                    return MakeSuccessFuture();
+                  } else if (IsRetryableStatus(status) &&
+                             retry_context->retry_budget.CanRetry()) {
+                    retry_context->retries++;
+                    retry_context->retry_budget.AccountFail();
+                    // status is retryable
+                    return MakeRetryableFuture(status);
+                  }
+                  // Stop retrying
+                  return MakeNonRetryableFuture();
                 });
           },
-          retry_context.retry_settings)
+          retry_settings)
       .Apply([final_result = std::move(final_result)](
                  const NYdb::TAsyncStatus& const_fut) {
         const_fut.TryRethrow();
