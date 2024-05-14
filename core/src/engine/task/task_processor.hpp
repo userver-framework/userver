@@ -101,7 +101,7 @@ class TaskProcessor final {
   void HandleOverload(impl::TaskContext& context,
                       TaskProcessorSettings::OverloadAction);
 
-  OverloadByLength GetOverloadByLength(std::size_t max_queue_length);
+  OverloadByLength GetAndUpdateOverloadByLength(std::size_t max_queue_length);
 
   OverloadByLength ComputeOverloadByLength(
       OverloadByLength old_overload_by_length, std::size_t max_queue_length);

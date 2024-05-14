@@ -143,7 +143,7 @@ void TaskProcessor::Schedule(impl::TaskContext* context) {
       GetOverloadActionAndValue(action_bit_and_max_task_queue_wait_length_);
   if (max_queue_length && !context->IsCritical()) {
     UASSERT(max_queue_length > 0);
-    if (const auto overload_size = GetOverloadByLength(max_queue_length)) {
+    if (const auto overload_size = GetAndUpdateOverloadByLength(max_queue_length)) {
       LOG_LIMITED_WARNING()
           << "failed to enqueue task: task_queue_size_approximate="
           << overload_size << " >= "
@@ -297,6 +297,12 @@ void TaskProcessor::ProcessTasks() noexcept {
     GetTaskCounter().AccountTaskSwitchSlow();
     CheckWaitTime(*context);
 
+    const auto [_, max_queue_length] =
+      GetOverloadActionAndValue(action_bit_and_max_task_queue_wait_length_);
+    if (max_queue_length) {
+      GetAndUpdateOverloadByLength(max_queue_length);
+    }
+
     bool has_failed = false;
     try {
       context->DoStep();
@@ -376,7 +382,7 @@ void TaskProcessor::HandleOverload(
   }
 }
 
-TaskProcessor::OverloadByLength TaskProcessor::GetOverloadByLength(
+TaskProcessor::OverloadByLength TaskProcessor::GetAndUpdateOverloadByLength(
     const std::size_t max_queue_length) {
   const auto old_overload_by_length =
       overloaded_cache_->overload_by_length.load();

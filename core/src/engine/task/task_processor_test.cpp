@@ -1,3 +1,5 @@
+#include <gtest/gtest.h>
+#include <cstddef>
 #include <userver/utest/utest.hpp>
 
 #include <engine/task/task_processor.hpp>
@@ -33,7 +35,13 @@ UTEST(TaskProcessor, Overload) {
     }
   }
 
-  EXPECT_GE(canceled_tasks_count, kMinCanceledTasksCount);
+  EXPECT_GE(canceled_tasks_count, kMinCanceledTasksCount) << "This test has a 0.15% chance of failing";
+
+  for (std::size_t i = 0; i < 10; ++i) {
+    auto task = engine::AsyncNoSpan([]() {});
+    task.Wait();
+    EXPECT_EQ(task.GetState(), engine::Task::State::kCompleted); 
+  }
 }
 
 USERVER_NAMESPACE_END
