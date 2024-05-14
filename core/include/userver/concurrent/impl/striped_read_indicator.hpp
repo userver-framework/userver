@@ -1,8 +1,10 @@
 #pragma once
 
 #include <cstdint>
+#include <limits>
 
 #include <userver/concurrent/striped_counter.hpp>
+#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -58,6 +60,26 @@ class StripedReadIndicator final {
   /// has just become free. Never falsely returns `true`.
   /// @note Uses effectively `std::memory_order_acquire`.
   bool IsFree() const noexcept;
+
+  /// @returns `true` if there are no locks held on any of the `indicators`.
+  /// @see IsFree
+  template <typename StripedReadIndicatorRange>
+  static bool AreAllFree(StripedReadIndicatorRange&& indicators) {
+    // See GetActiveCountApprox for implementation strategy explanation.
+    std::uintptr_t released = 0;
+    for (const auto& indicator : indicators) {
+      released += indicator.released_count_.Read();
+    }
+
+    std::uintptr_t acquired = 0;
+    for (const auto& indicator : indicators) {
+      acquired += indicator.acquired_count_.Read();
+    }
+
+    UASSERT(acquired - released <=
+            std::numeric_limits<std::uintptr_t>::max() / 2);
+    return acquired == released;
+  }
 
   /// Get the total amount of `Lock` calls, useful for metrics.
   std::uintptr_t GetAcquireCountApprox() const noexcept;

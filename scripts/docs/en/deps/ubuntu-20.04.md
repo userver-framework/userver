@@ -27,12 +27,14 @@ libhiredis-dev
 libjemalloc-dev
 libkrb5-dev
 libldap2-dev
+librdkafka-dev
 libmariadb-dev
 libmongoc-dev
 libnghttp2-dev
 libpq-dev=12.*
 libpq5=12.*
 libprotoc-dev
+libsasl2-dev
 libssl-dev
 libyaml-cpp-dev
 netbase

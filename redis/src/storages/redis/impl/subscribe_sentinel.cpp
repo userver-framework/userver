@@ -24,8 +24,8 @@ std::shared_ptr<SubscriptionStorageBase> CreateSubscriptionStorage(
   const auto shards_count = shards.size();
   auto shard_names = std::make_shared<const std::vector<std::string>>(shards);
   if (is_cluster_mode) {
-    return std::make_shared<ClusterSubscriptionStorage>(
-        thread_pools, shards_count, is_cluster_mode);
+    return std::make_shared<ClusterSubscriptionStorage>(thread_pools,
+                                                        shards_count);
   }
 
   return std::make_shared<SubscriptionStorage>(
@@ -87,6 +87,7 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
     const secdist::RedisSettings& settings, std::string shard_group_name,
     dynamic_config::Source dynamic_config_source,
     const std::string& client_name, bool is_cluster_mode,
+    const CommandControl& command_control,
     const testsuite::RedisControl& testsuite_redis_control) {
   auto ready_callback = [](size_t shard, const std::string& shard_name,
                            bool ready) {
@@ -98,7 +99,7 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
   // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
   return Create(thread_pools, settings, std::move(shard_group_name),
                 dynamic_config_source, client_name, std::move(ready_callback),
-                is_cluster_mode, testsuite_redis_control);
+                is_cluster_mode, command_control, testsuite_redis_control);
 }
 
 std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
@@ -106,7 +107,7 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
     const secdist::RedisSettings& settings, std::string shard_group_name,
     dynamic_config::Source dynamic_config_source,
     const std::string& client_name, ReadyChangeCallback ready_callback,
-    bool is_cluster_mode,
+    bool is_cluster_mode, const CommandControl& command_control,
     const testsuite::RedisControl& testsuite_redis_control) {
   const auto& password = settings.password;
 
@@ -128,7 +129,6 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
                        (is_cluster_mode ? password : Password("")), false,
                        settings.secure_connection);
   }
-  redis::CommandControl command_control{};
   LOG_DEBUG() << "redis command_control: " << command_control.ToString();
 
   auto subscribe_sentinel = std::make_shared<SubscribeSentinel>(
@@ -179,7 +179,10 @@ PubsubClusterStatistics SubscribeSentinel::GetSubscriberStatistics(
 }
 
 void SubscribeSentinel::RebalanceSubscriptions(size_t shard_idx) {
-  auto server_weights = GetAvailableServersWeighted(shard_idx, false);
+  const auto with_master =
+      IsInClusterMode() ||
+      GetCommandControl({}).allow_reads_from_master.value_or(false);
+  auto server_weights = GetAvailableServersWeighted(shard_idx, with_master);
   storage_->RequestRebalance(shard_idx, std::move(server_weights));
 }
 

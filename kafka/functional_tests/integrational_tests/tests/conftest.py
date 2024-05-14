@@ -10,6 +10,7 @@ import pytest
 pytest_plugins = ['pytest_userver.plugins.core']
 
 
+# /// [Kafka service sample - secdist]
 @pytest.fixture(scope='session')
 def service_env():
     single_setting = {
@@ -28,6 +29,7 @@ def service_env():
     }
 
     return {'SECDIST_CONFIG': json.dumps(secdist_config)}
+    # /// [Kafka service sample - secdist]
 
 
 def _callback(err, msg):

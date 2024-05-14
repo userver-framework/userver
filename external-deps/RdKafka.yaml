@@ -1,0 +1,31 @@
+name: RdKafka
+version: 2.4.0
+
+includes:
+    find:
+      - names:
+          - librdkafka/rdkafka.h
+
+libraries:
+    find:
+      - names:
+          - librdkafka.a
+
+debian-names:
+  - librdkafka-dev
+formula-name: librdkafka
+pkg-config-names:
+  - rdkafka
+pacman-names:
+  - librdkafka
+
+extra-cmake-vars:
+    RDKAFKA_BUILD_STATIC: "ON"
+    RDKAFKA_BUILD_EXAMPLES: "OFF"
+    RDKAFKA_BUILD_TESTS: "OFF"
+    WITH_SSL: "ON"
+    WITH_SASL: "ON"
+    WITH_ZLIB: "OFF"
+    WITH_ZSTD: "OFF"
+    WITH_LIBDL: "OFF"
+    ENABLE_LZ4_EXT: "OFF"

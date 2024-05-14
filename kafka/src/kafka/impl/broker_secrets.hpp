@@ -9,7 +9,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace kafka::impl {
 
-struct Secret {
+struct Secret final {
   using Password = utils::NonLoggable<class PasswordTag, std::string>;
 
   std::string brokers;
@@ -17,9 +17,9 @@ struct Secret {
   Password password;
 };
 
-class BrokerSecrets {
+class BrokerSecrets final {
  public:
-  BrokerSecrets(const formats::json::Value& doc);
+  explicit BrokerSecrets(const formats::json::Value& doc);
 
   const Secret& GetSecretByComponentName(
       const std::string& component_name) const;

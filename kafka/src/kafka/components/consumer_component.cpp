@@ -3,12 +3,10 @@
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
 #include <userver/components/statistics_storage.hpp>
-#include <userver/storages/secdist/component.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
-#include <cppkafka/configuration.h>
-
-#include <kafka/configuration.hpp>
+#include <kafka/impl/configuration.hpp>
+#include <kafka/impl/consumer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -18,21 +16,29 @@ ConsumerComponent::ConsumerComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
     : components::LoggableComponentBase(config, context),
-      consumer_(
-          MakeConsumerConfiguration(context.FindComponent<components::Secdist>()
-                                        .Get()
-                                        .Get<BrokerSecrets>(),
-                                    config),
-          config.Name(), config["topics"].As<std::vector<std::string>>(),
-          config["max_batch_size"].As<size_t>(),
-          context.GetTaskProcessor("consumer-task-processor"),
-          context.GetTaskProcessor("main-task-processor"),
-          context.FindComponent<components::StatisticsStorage>().GetStorage()) {
+      consumer_(std::make_unique<impl::Configuration>(
+                    config, context, impl::EntityType::kConsumer),
+                config["topics"].As<std::vector<std::string>>(),
+                config["max_batch_size"].As<size_t>(),
+                config["poll_timeout"].As<std::chrono::milliseconds>(
+                    impl::Consumer::kDefaultPollTimeout),
+                config["enable_auto_commit"].As<bool>(false),
+                context.GetTaskProcessor("consumer-task-processor"),
+                context.GetTaskProcessor("main-task-processor")) {
+  auto& storage =
+      context.FindComponent<components::StatisticsStorage>().GetStorage();
+
+  statistics_holder_ = storage.RegisterWriter(
+      config.Name(), [this](utils::statistics::Writer& writer) {
+        consumer_->DumpMetric(writer);
+      });
 }
 
-ConsumerComponent::~ConsumerComponent() = default;
+ConsumerComponent::~ConsumerComponent() { statistics_holder_.Unregister(); }
 
-Consumer& ConsumerComponent::GetConsumer() { return consumer_; }
+ConsumerScope ConsumerComponent::GetConsumer() {
+  return consumer_->MakeConsumerScope();
+}
 
 yaml_config::Schema ConsumerComponent::GetStaticConfigSchema() {
   return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
@@ -40,18 +46,32 @@ type: object
 description: Kafka consumer component
 additionalProperties: false
 properties:
-    env_pod_name:
-        type: string
-        description: TODO
     group_id:
         type: string
-        description: consumer group id
+        description: |
+            consumer group id.
+            Topic partition evenly distributed
+            between consumers with the same `group_id`
+    env_pod_name:
+        type: string
+        description: |
+            if defined and `group_id` value contains
+            `{pod_name}` substring, the substring
+            is replaced with the value of the environment
+            variable `env_pod_name`
+        defaultDescription: none
+    topics:
+        type: array
+        description: list of topics consumer subscribes
+        items:
+            type: string
+            description: topic name
     enable_auto_commit:
         type: boolean
-        description: TODO
         description: |
-            whether to automatically and periodically commit
-            offsets in the background
+            whether to automatically and periodically commit offsets.
+            Note: manual automatic and manual commits is mutual exclsive
+        defaultDescription: false
     auto_offset_reset:
         type: string
         description: |
@@ -62,7 +82,9 @@ properties:
             the offset to the smallest offset
             `largest`, `latest`, `end` - automatically reset
             the offset to the largest offset,
-            `error` - trigger an error (ERR__AUTO_OFFSET_RESET)
+            `error` - trigger an error (ERR__AUTO_OFFSET_RESET).
+            Note: the policy applies iff there are not committed
+            offsets in topic
         enum:
           - smallest
           - earliest
@@ -92,16 +114,24 @@ properties:
     ssl_ca_location:
         type: string
         description: |
-            File or directory path to CA certificate(s) for verifying the broker's key.
+            file or directory path to CA certificate(s) for verifying the broker's key.
             Must be set if `security_protocol` equals `SASL_SSL`.
             If set to `probe`, CA certificates are probed from the default certificates paths
         defaultDescription: none
-    topics:
-        type: array
-        description: list of topics consumer will subscribe
-        items:
-            type: string
-            description: topic name
+    topic_metadata_refresh_interval_ms:
+        type: integer
+        description: |
+            period of time in milliseconds at which
+            topic and broker metadata is refreshed
+            in order to discover any new brokers,
+            topics, partitions or partition leader changes
+        defaultDescription: 300000
+    metadata_max_age_ms:
+        type: integer
+        description: |
+            metadata cache max age.
+            Recommended value is 3 times `topic_metadata_refresh_interval_ms`
+        defaultDescription: 900000
 )");
 }
 

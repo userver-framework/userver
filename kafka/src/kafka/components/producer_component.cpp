@@ -1,6 +1,9 @@
 #include <userver/kafka/components/producer_component.hpp>
 
+#include <userver/components/component_config.hpp>
+#include <userver/components/component_context.hpp>
 #include <userver/components/statistics_storage.hpp>
+#include <userver/utils/statistics/writer.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <kafka/impl/configuration.hpp>
@@ -13,17 +16,23 @@ ProducerComponent::ProducerComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
     : components::LoggableComponentBase(config, context),
-      producer_(
-          std::make_unique<Configuration>(config, context), config.Name(),
-          context.GetTaskProcessor("producer-task-processor"),
-          config["poll_timeout_ms"].As<std::chrono::milliseconds>(
-              Producer::kDefaultPollTimeout),
-          config["send_retries_count"].As<std::size_t>(
-              Producer::kDefaultSendRetries),
-          context.FindComponent<components::StatisticsStorage>().GetStorage()) {
+      producer_(std::make_unique<impl::Configuration>(
+                    config, context, impl::EntityType::kProducer),
+                context.GetTaskProcessor("producer-task-processor"),
+                config["poll_timeout_ms"].As<std::chrono::milliseconds>(
+                    Producer::kDefaultPollTimeout),
+                config["send_retries_count"].As<std::size_t>(
+                    Producer::kDefaultSendRetries)) {
+  auto& storage =
+      context.FindComponent<components::StatisticsStorage>().GetStorage();
+
+  statistics_holder_ = storage.RegisterWriter(
+      config.Name(), [this](utils::statistics::Writer& writer) {
+        producer_.DumpMetric(writer);
+      });
 }
 
-ProducerComponent::~ProducerComponent() = default;
+ProducerComponent::~ProducerComponent() { statistics_holder_.Unregister(); }
 
 Producer& ProducerComponent::GetProducer() { return producer_; }
 
@@ -69,7 +78,7 @@ properties:
     ssl_ca_location:
         type: string
         description: |
-            File or directory path to CA certificate(s) for verifying the broker's key.
+            file or directory path to CA certificate(s) for verifying the broker's key.
             Must be set if `security_protocol` equals `SASL_SSL`.
             If set to `probe`, CA certificates are probed from the default certificates paths
         defaultDescription: none

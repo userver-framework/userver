@@ -151,7 +151,7 @@ UTEST_MT(ThreadLocal, SafeThreadLocalWorks, 2) {
     return SafeLoadThreadLocal();
   });
 
-  engine::SleepFor(3s);
+  engine::SleepFor(300ms);
 
   // (6)
   EXPECT_NE(pthread_self(), thread1_id);

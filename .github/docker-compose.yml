@@ -12,6 +12,8 @@ services:
           - CCACHE_NOHASHDIR
           - CCACHE_PREFIX
           - CCACHE_SIZE=${CCACHE_SIZE:-10G}
+          - YDB_ENDPOINT=run-ydb:2136
+          - YDB_DATABASE=/local
         volumes:
           - ..:/userver:rw
         ports:
@@ -50,9 +52,8 @@ services:
           - 2136:2136
           - 8765:8765
         networks:
-          - overlay
-        hostname: localhost
-
+          - nexportfalse
+        hostname: run-ydb
 
 networks:
     nexportfalse:
@@ -63,4 +64,3 @@ networks:
             config:
               - subnet: 2001:db8:b::/64
                 gateway: 2001:db8:b::1
-    overlay:

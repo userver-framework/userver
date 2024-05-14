@@ -45,7 +45,7 @@ class RedisClusterClientTest : public ::testing::Test {
 
     subscribe_sentinel_ = redis::SubscribeSentinel::Create(
         thread_pools_, GetTestsuiteRedisClusterSettings(), "none",
-        configs_source, "pub", true, {});
+        configs_source, "pub", true, {}, {});
     subscribe_sentinel_->WaitConnectedDebug();
 
     auto info_reply =
