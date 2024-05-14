@@ -15,7 +15,7 @@ UTEST(TaskProcessor, Overload) {
       engine::TaskProcessorSettings::OverloadAction::kCancel;
   settings.wait_queue_length_limit = 500;
   const std::size_t kCreatedTasksCount = 1100;
-  const std::size_t kMinCanceledTasksCount = 500;
+  const std::size_t kMinCanceledTasksCount = 100;
   engine::current_task::GetTaskProcessor().SetSettings(settings);
 
   std::vector<engine::TaskWithResult<void>> tasks;
@@ -33,9 +33,19 @@ UTEST(TaskProcessor, Overload) {
     }
   }
 
-  EXPECT_GE(canceled_tasks_count, kMinCanceledTasksCount)
-      << "This test has a 0.15% chance of failing";
+  // The queue size for checking for overload 
+  // is updated with a probability of 1/16. 
+  // Therefore, with a probability of 1 - (15/16)^500, 
+  // by the time the last 100 tasks are added, 
+  // the queue size will be updated and
+  // these tasks will be canceled.
+  EXPECT_GE(canceled_tasks_count, kMinCanceledTasksCount);
 
+  // In an overload condition, the queue size is 
+  // updated with a 1/4 chance. Therefore, with a 
+  // chance of 1 - (3/4)^500, by this moment 
+  // the overload state will be updated and 
+  // the tasks will be accepted
   for (std::size_t i = 0; i < 10; ++i) {
     auto task = engine::AsyncNoSpan([]() {});
     task.Wait();
