@@ -8,6 +8,8 @@
 
 #include <rocksdb/db.h>
 
+#include <userver/engine/task/task_processor_fwd.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::rocks {
@@ -25,8 +27,11 @@ class Client final {
    * @brief Constructor of the Client class.
    *
    * @param db_path The path to the RocksDB database.
+   * @param blocking_task_processor - task processor to execute blocking FS
+   * operations
    */
-  explicit Client(const std::string& db_path);
+  Client(const std::string& db_path,
+         engine::TaskProcessor& blocking_task_processor);
 
   /**
    * @brief Puts a record into the database.
@@ -44,6 +49,13 @@ class Client final {
   std::string Get(std::string_view key);
 
   /**
+   * @brief Deletes a record from the database by key.
+   *
+   * @param key The key of the record to be deleted.
+   */
+  void Delete(std::string_view key);
+
+  /**
    * Checks the status of an operation and handles any errors based on the given
    * method name.
    *
@@ -52,17 +64,9 @@ class Client final {
    */
   void CheckStatus(rocksdb::Status status, std::string_view method_name);
 
-  /**
-   * @brief Deletes a record from the database by key.
-   *
-   * @param key The key of the record to be deleted.
-   */
-  void Delete(std::string_view key);
-
-  virtual ~Client() { delete db_; }
-
  private:
-  rocksdb::DB* db_ = nullptr;
+  std::unique_ptr<rocksdb::DB> db_;
+  engine::TaskProcessor& blocking_task_processor_;
 };
 }  // namespace storages::rocks
 
