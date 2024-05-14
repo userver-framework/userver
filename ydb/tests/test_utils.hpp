@@ -58,11 +58,11 @@ class TestClientsBase {
  protected:
   void InitializeClients() {
     // NOLINTNEXTLINE(concurrency-mt-unsafe)
-    const char* endpoint_env = std::getenv("YDB_ENDPOINT");
-    const std::string endpoint = endpoint_env ? endpoint_env : "";
+    const char* endpoint = std::getenv("YDB_ENDPOINT");
+    UINVARIANT(endpoint, "YDB_ENDPOINT env missing");
     // NOLINTNEXTLINE(concurrency-mt-unsafe)
-    const char* database_env = std::getenv("YDB_DATABASE");
-    const std::string database = database_env ? database_env : "";
+    const char* database = std::getenv("YDB_DATABASE");
+    UINVARIANT(database, "YDB_DATABASE env missing");
 
     ydb::impl::DriverSettings driver_settings;
     driver_settings.endpoint = endpoint;
