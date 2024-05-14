@@ -1,5 +1,3 @@
-#include <gtest/gtest.h>
-#include <cstddef>
 #include <userver/utest/utest.hpp>
 
 #include <engine/task/task_processor.hpp>
