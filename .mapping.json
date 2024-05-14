@@ -3058,6 +3058,7 @@
   "testsuite/pytest_plugins/pytest_userver/plugins/grpc/client.py":"taxi/uservices/userver/testsuite/pytest_plugins/pytest_userver/plugins/grpc/client.py",
   "testsuite/pytest_plugins/pytest_userver/plugins/grpc/mockserver.py":"taxi/uservices/userver/testsuite/pytest_plugins/pytest_userver/plugins/grpc/mockserver.py",
   "testsuite/pytest_plugins/pytest_userver/plugins/log_capture.py":"taxi/uservices/userver/testsuite/pytest_plugins/pytest_userver/plugins/log_capture.py",
+  "testsuite/pytest_plugins/pytest_userver/plugins/logging.py":"taxi/uservices/userver/testsuite/pytest_plugins/pytest_userver/plugins/logging.py",
   "testsuite/pytest_plugins/pytest_userver/plugins/mongo.py":"taxi/uservices/userver/testsuite/pytest_plugins/pytest_userver/plugins/mongo.py",
   "testsuite/pytest_plugins/pytest_userver/plugins/mysql.py":"taxi/uservices/userver/testsuite/pytest_plugins/pytest_userver/plugins/mysql.py",
   "testsuite/pytest_plugins/pytest_userver/plugins/postgresql.py":"taxi/uservices/userver/testsuite/pytest_plugins/pytest_userver/plugins/postgresql.py",
