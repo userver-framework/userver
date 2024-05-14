@@ -17,8 +17,7 @@ std::string Decompress(std::string_view compressed, size_t max_size) {
   auto* stream = ZSTD_createDStream();
   ZSTD_initDStream(stream);
 
-  size_t cur_pos(0);
-  while (cur_pos < compressed.size()) {
+  for (size_t cur_pos(0); cur_pos < compressed.size();) {
     char buf[kDecompressBufferSize];
     ZSTD_inBuffer_s input{
         compressed.data() + cur_pos,
@@ -34,6 +33,9 @@ std::string Decompress(std::string_view compressed, size_t max_size) {
       }
 
       decompressed.append(static_cast<char*>(output.dst), output.size);
+    }
+    if (decompressed.size() > max_size) {
+      throw TooBigError();
     }
 
     cur_pos += input.size;
