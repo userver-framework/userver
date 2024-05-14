@@ -2482,6 +2482,7 @@
   "redis/src/storages/redis/impl/cluster_shard_test.cpp":"taxi/uservices/userver/redis/src/storages/redis/impl/cluster_shard_test.cpp",
   "redis/src/storages/redis/impl/cluster_subscription_storage.cpp":"taxi/uservices/userver/redis/src/storages/redis/impl/cluster_subscription_storage.cpp",
   "redis/src/storages/redis/impl/cluster_subscription_storage.hpp":"taxi/uservices/userver/redis/src/storages/redis/impl/cluster_subscription_storage.hpp",
+  "redis/src/storages/redis/impl/cluster_subscription_storage_test.cpp":"taxi/uservices/userver/redis/src/storages/redis/impl/cluster_subscription_storage_test.cpp",
   "redis/src/storages/redis/impl/cluster_topology.cpp":"taxi/uservices/userver/redis/src/storages/redis/impl/cluster_topology.cpp",
   "redis/src/storages/redis/impl/cluster_topology.hpp":"taxi/uservices/userver/redis/src/storages/redis/impl/cluster_topology.hpp",
   "redis/src/storages/redis/impl/command.cpp":"taxi/uservices/userver/redis/src/storages/redis/impl/command.cpp",

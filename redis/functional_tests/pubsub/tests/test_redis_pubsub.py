@@ -1,5 +1,6 @@
 import asyncio
 
+import pytest
 import redis
 
 # Some messages may be lost (it's a Redis limitation)
@@ -34,18 +35,20 @@ async def _validate_pubsub(redis_db, service_client, msg, redis_type):
     return False
 
 
-async def test_happy_path_sentinel(service_client, redis_store):
+@pytest.mark.parametrize('db_name', ['sentinel', 'sentinel-with-master'])
+async def test_happy_path_sentinel(service_client, redis_store, db_name):
     msg = 'sentinel_message'
-    assert await _validate_pubsub(redis_store, service_client, msg, 'sentinel')
+    assert await _validate_pubsub(redis_store, service_client, msg, db_name)
 
 
+@pytest.mark.parametrize('db_name', ['sentinel', 'sentinel-with-master'])
 async def test_happy_path_sentinel_with_resubscription(
-        service_client, redis_store,
+        service_client, redis_store, db_name,
 ):
     msg = 'sentinel_message'
-    response = await service_client.put(_get_url('sentinel'))
+    response = await service_client.put(_get_url(db_name))
     assert response.status == 200
-    assert await _validate_pubsub(redis_store, service_client, msg, 'sentinel')
+    assert await _validate_pubsub(redis_store, service_client, msg, db_name)
 
 
 async def test_happy_path_cluster(service_client, redis_cluster_store):

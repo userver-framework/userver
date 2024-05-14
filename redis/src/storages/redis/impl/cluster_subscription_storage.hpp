@@ -8,7 +8,10 @@ namespace redis {
 class ClusterSubscriptionStorage : public SubscriptionStorageBase {
  public:
   ClusterSubscriptionStorage(const std::shared_ptr<ThreadPools>& thread_pools,
-                             size_t shards_count, bool is_cluster_mode);
+                             size_t shards_count);
+  /// For tests only
+  ClusterSubscriptionStorage(size_t shards_count);
+
   ~ClusterSubscriptionStorage() override;
 
   void SetSubscribeCallback(CommandCb) override;
