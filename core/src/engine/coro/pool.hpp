@@ -39,6 +39,7 @@ class Pool final {
 
  private:
   Coroutine CreateCoroutine(bool quiet = false);
+  bool TryPopulateLocalCache();
   void OnCoroutineDestruction() noexcept;
 
   template <typename Token>
@@ -131,34 +132,13 @@ typename Pool<Task>::CoroutinePtr Pool<Task>::GetCoroutine() {
   // First try to dequeue from 'working set': if we can get a coroutine
   // from there we are happy, because we saved on minor-page-faulting (thus
   // increasing resident memory usage) a not-yet-de-virtualized coroutine stack.
-  if (local_coro_buffer<Task>.size() > 0) {
+  if (!local_coro_buffer<Task>.empty() || TryPopulateLocalCache()) {
     coroutine = std::move(local_coro_buffer<Task>.back());
     local_coro_buffer<Task>.pop_back();
+  } else if (initial_coroutines_.try_dequeue(coroutine)) {
+    idle_coroutines_num_.fetch_sub(1, std::memory_order_release);
   } else {
-    const std::size_t deque_num =
-        std::min(idle_coroutines_num_.load(std::memory_order_acquire),
-                 kLocalCoroutineMoveSize);
-    if (deque_num > 0) {
-      local_coro_buffer<Task>.resize(deque_num);
-      const std::size_t dequed_num = used_coroutines_.try_dequeue_bulk(
-          GetUsedPoolToken<moodycamel::ConsumerToken>(),
-          local_coro_buffer<Task>.data(), deque_num);
-      local_coro_buffer<Task>.resize(dequed_num);
-
-      if (dequed_num > 0) {
-        coroutine = std::move(local_coro_buffer<Task>.back());
-        local_coro_buffer<Task>.pop_back();
-        idle_coroutines_num_.fetch_sub(dequed_num, std::memory_order_release);
-      }
-    }
-    if (!coroutine.has_value()) {
-      if (initial_coroutines_.try_dequeue(coroutine)) {
-        idle_coroutines_num_.fetch_sub(1, std::memory_order_release);
-        ;
-      } else {
-        coroutine.emplace(CreateCoroutine());
-      }
-    }
+    coroutine.emplace(CreateCoroutine());
   }
 
   return CoroutinePtr(std::move(*coroutine), *this);
@@ -252,6 +232,26 @@ typename Pool<Task>::Coroutine Pool<Task>::CreateCoroutine(bool quiet) {
 
     throw;
   }
+}
+
+template <typename Task>
+bool Pool<Task>::TryPopulateLocalCache() {
+  const std::size_t deque_num =
+        std::min(used_coroutines_.size_approx(),
+                 kLocalCoroutineMoveSize);
+  if (deque_num > 0) {
+    local_coro_buffer<Task>.resize(deque_num);
+    const std::size_t dequed_num = used_coroutines_.try_dequeue_bulk(
+        GetUsedPoolToken<moodycamel::ConsumerToken>(),
+        local_coro_buffer<Task>.data(), deque_num);
+    local_coro_buffer<Task>.resize(dequed_num);
+
+    if (dequed_num > 0) {
+      idle_coroutines_num_.fetch_sub(dequed_num, std::memory_order_release);
+      return true;
+    }
+  }
+  return false;
 }
 
 template <typename Task>
