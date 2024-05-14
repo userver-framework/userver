@@ -53,7 +53,7 @@ class Manager final {
   std::chrono::milliseconds GetLoadDuration() const;
 
  private:
-  class TaskProcessorsStorage {
+  class TaskProcessorsStorage final {
    public:
     explicit TaskProcessorsStorage(
         std::shared_ptr<engine::impl::TaskProcessorPools> task_processor_pools);
@@ -61,9 +61,8 @@ class Manager final {
 
     void Reset() noexcept;
 
-    using Map = TaskProcessorsMap;
+    const TaskProcessorsMap& GetMap() const { return task_processors_map_; }
 
-    const Map& GetMap() const { return task_processors_map_; }
     const std::shared_ptr<engine::impl::TaskProcessorPools>&
     GetTaskProcessorPools() const {
       return task_processor_pools_;
@@ -73,8 +72,10 @@ class Manager final {
              std::unique_ptr<engine::TaskProcessor>&& task_processor);
 
    private:
+    void WaitForAllTasksBlocking() const noexcept;
+
     std::shared_ptr<engine::impl::TaskProcessorPools> task_processor_pools_;
-    Map task_processors_map_;
+    TaskProcessorsMap task_processors_map_;
   };
 
   void CreateComponentContext(const ComponentList& component_list);

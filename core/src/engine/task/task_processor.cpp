@@ -121,7 +121,7 @@ void TaskProcessor::Cleanup() noexcept {
   InitiateShutdown();
 
   // Some tasks may be bound but not scheduled yet
-  task_counter_.WaitForExhaustion();
+  task_counter_.WaitForExhaustionBlocking();
 
   task_queue_.StopProcessing();
 

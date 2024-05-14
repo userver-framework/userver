@@ -3,7 +3,10 @@
 #include <array>
 #include <cstddef>
 
+#include <boost/range/adaptor/transformed.hpp>
+
 #include <concurrent/impl/interference_shield.hpp>
+#include <userver/concurrent/impl/asymmetric_fence.hpp>
 #include <userver/concurrent/impl/striped_read_indicator.hpp>
 #include <userver/concurrent/striped_counter.hpp>
 #include <userver/utils/fixed_array.hpp>
@@ -24,11 +27,23 @@ class TaskCounter final {
 
   ~TaskCounter();
 
-  void WaitForExhaustion() const noexcept;
+  void WaitForExhaustionBlocking() const noexcept;
 
   // May return 'true' when there are no tasks alive (due to races).
   // Never returns 'false' when there are tasks alive.
   bool MayHaveTasksAlive() const noexcept;
+
+  // May return 'true' when there are no tasks alive (due to races).
+  // Never returns 'false' when there are tasks alive.
+  template <typename TaskCounterRange>
+  static bool AnyMayHaveTasksAlive(TaskCounterRange&& counters) {
+    concurrent::impl::AsymmetricThreadFenceHeavy();
+    return !concurrent::impl::StripedReadIndicator::AreAllFree(
+        counters |
+        boost::adaptors::transformed([](const TaskCounter& counter) -> auto& {
+          return counter.tasks_alive_;
+        }));
+  }
 
   Rate GetCreatedTasks() const noexcept;
 

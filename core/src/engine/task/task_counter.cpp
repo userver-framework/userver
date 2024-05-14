@@ -3,7 +3,6 @@
 #include <thread>
 
 #include <userver/compiler/thread_local.hpp>
-#include <userver/concurrent/impl/asymmetric_fence.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -55,7 +54,7 @@ TaskCounter::TaskCounter(std::size_t thread_count)
 
 TaskCounter::~TaskCounter() { UASSERT(!MayHaveTasksAlive()); }
 
-void TaskCounter::WaitForExhaustion() const noexcept {
+void TaskCounter::WaitForExhaustionBlocking() const noexcept {
   while (MayHaveTasksAlive()) {
     std::this_thread::sleep_for(std::chrono::milliseconds{10});
   }
