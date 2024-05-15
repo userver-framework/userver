@@ -17,7 +17,7 @@ namespace ugrpc::impl {
 class StatisticsStorage final {
  public:
   explicit StatisticsStorage(utils::statistics::Storage& statistics_storage,
-                             std::string_view domain);
+                             StatisticsDomain domain);
 
   StatisticsStorage(const StatisticsStorage&) = delete;
   StatisticsStorage& operator=(const StatisticsStorage&) = delete;
@@ -44,6 +44,8 @@ class StatisticsStorage final {
   struct ServiceIdComparer final {
     bool operator()(ServiceId lhs, ServiceId rhs) const { return lhs == rhs; }
   };
+
+  const StatisticsDomain domain_;
 
   std::unordered_map<ServiceId, ugrpc::impl::ServiceStatistics,
                      std::hash<ServiceId>, ServiceIdComparer>
