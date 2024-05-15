@@ -79,9 +79,7 @@ template <typename Task>
 class Pool<Task>::CoroutinePtr final {
  public:
   CoroutinePtr(Coroutine&& coro, Pool<Task>& pool) noexcept
-      : coro_(std::move(coro)), pool_(&pool) {
-    UASSERT(kLocalCoroutineMoveSize <= kLocalCoroutineCacheMaxSize);
-  }
+      : coro_(std::move(coro)), pool_(&pool) {}
 
   CoroutinePtr(CoroutinePtr&&) noexcept = default;
   CoroutinePtr& operator=(CoroutinePtr&&) noexcept = default;
@@ -146,7 +144,7 @@ typename Pool<Task>::CoroutinePtr Pool<Task>::GetCoroutine() {
     coroutine = std::move(local_coro_buffer_.back());
     local_coro_buffer_.pop_back();
   } else if (initial_coroutines_.try_dequeue(mover)) {
-    idle_coroutines_num_.fetch_sub(1, std::memory_order_release);
+    idle_coroutines_num_.fetch_sub(1);
   } else {
     coroutine.emplace(CreateCoroutine());
   }
@@ -161,8 +159,7 @@ void Pool<Task>::PutCoroutine(CoroutinePtr&& coroutine_ptr) {
     return;
   }
 
-  const std::size_t current_idle_coroutines_num =
-      idle_coroutines_num_.load(std::memory_order_acquire);
+  const std::size_t current_idle_coroutines_num = idle_coroutines_num_.load();
   if (current_idle_coroutines_num >= config_.max_size) {
     ReduceLocalCacheBufferSize(local_coro_buffer_.size() -
                                kLocalCoroutineMoveSize);
@@ -177,8 +174,7 @@ void Pool<Task>::PutCoroutine(CoroutinePtr&& coroutine_ptr) {
           std::make_move_iterator(local_coro_buffer_.begin()) +
               local_coro_buffer_.size() - return_to_pool_from_local_cache_num,
           return_to_pool_from_local_cache_num)) {
-    idle_coroutines_num_.fetch_add(return_to_pool_from_local_cache_num,
-                                   std::memory_order_release);
+    idle_coroutines_num_.fetch_add(return_to_pool_from_local_cache_num);
   }
 
   ReduceLocalCacheBufferSize(local_coro_buffer_.size() -
@@ -199,8 +195,7 @@ PoolStats Pool<Task>::GetStats() const {
 
 template <typename Task>
 void Pool<Task>::ClearLocalCache() {
-  const std::size_t current_idle_coroutines_num =
-      idle_coroutines_num_.load(std::memory_order_acquire);
+  const std::size_t current_idle_coroutines_num = idle_coroutines_num_.load();
   if (current_idle_coroutines_num < config_.max_size) {
     const std::size_t return_to_pool_from_local_cache_num =
         std::min(config_.max_size - current_idle_coroutines_num,
@@ -210,8 +205,7 @@ void Pool<Task>::ClearLocalCache() {
             GetUsedPoolToken<moodycamel::ProducerToken>(),
             std::make_move_iterator(local_coro_buffer_.begin()),
             return_to_pool_from_local_cache_num)) {
-      idle_coroutines_num_.fetch_add(return_to_pool_from_local_cache_num,
-                                     std::memory_order_release);
+      idle_coroutines_num_.fetch_add(return_to_pool_from_local_cache_num);
     }
   }
   ReduceLocalCacheBufferSize(0);
@@ -249,8 +243,7 @@ bool Pool<Task>::TryPopulateLocalCache() {
   // using initial_coroutines_.size_approx() fast
   // because it has one producer queue
   const std::size_t deque_num =
-      std::min(idle_coroutines_num_.load(std::memory_order_acquire) -
-                   initial_coroutines_.size_approx(),
+      std::min(idle_coroutines_num_.load() - initial_coroutines_.size_approx(),
                kLocalCoroutineMoveSize);
   if (deque_num > 0) {
     const std::size_t dequed_num = used_coroutines_.try_dequeue_bulk(
@@ -258,7 +251,7 @@ bool Pool<Task>::TryPopulateLocalCache() {
         std::back_inserter(local_coro_buffer_), deque_num);
 
     if (dequed_num > 0) {
-      idle_coroutines_num_.fetch_sub(dequed_num, std::memory_order_release);
+      idle_coroutines_num_.fetch_sub(dequed_num);
       return true;
     }
   }
