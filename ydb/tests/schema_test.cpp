@@ -41,8 +41,8 @@ UTEST_F(YdbSchemaNoPredefinedTables, CreateAndDropTable) {
       NYdb::NTable::TTableBuilder{}
           .AddNonNullableColumn("key", NYdb::EPrimitiveType::String)
           .AddNullableColumn("some_id", NYdb::EPrimitiveType::Uint64)
-          .AddNonNullableColumn(
-              "some_money", NYdb::TDecimalType{/*precision=*/22, /*scale=*/9})
+          .AddNullableColumn("some_money",
+                             NYdb::TDecimalType{/*precision=*/22, /*scale=*/9})
           .SetPrimaryKeyColumn("key");
   UASSERT_NO_THROW(GetTableClient().CreateTable(kTableName, builder.Build()));
 
@@ -75,6 +75,8 @@ UTEST_F(YdbSchemaNoPredefinedTables, CreateAndDropTable) {
     const auto& column = columns[2];
     EXPECT_EQ(column.Name, "some_money");
     NYdb::TTypeParser parser{column.Type};
+    ASSERT_EQ(parser.GetKind(), NYdb::TTypeParser::ETypeKind::Optional);
+    parser.OpenOptional();
     ASSERT_EQ(parser.GetKind(), NYdb::TTypeParser::ETypeKind::Decimal);
     const auto decimal = parser.GetDecimal();
     EXPECT_EQ(decimal.Precision, 22);

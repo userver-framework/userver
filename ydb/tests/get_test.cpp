@@ -14,11 +14,11 @@ class TYdbRowGetTestCase : public ydb::ClientFixtureBase {
 
  private:
   void InitializeTable() {
+    // At this moment we could not create NOT NULL NON KEY fields
     DoCreateTable(
         "null_not_null_table",
         NYdb::NTable::TTableBuilder()
             .AddNonNullableColumn("key", NYdb::EPrimitiveType::Uint32)
-            .AddNonNullableColumn("non_null_col", NYdb::EPrimitiveType::String)
             .AddNullableColumn("nullable_bool", NYdb::EPrimitiveType::Bool)
             .AddNullableColumn("nullable_str", NYdb::EPrimitiveType::String)
             .SetPrimaryKeyColumn("key")
@@ -28,11 +28,11 @@ class TYdbRowGetTestCase : public ydb::ClientFixtureBase {
         R"(
           --!syntax_v1
           UPSERT INTO null_not_null_table (
-            key, non_null_col, nullable_bool, nullable_str
+            key, nullable_bool, nullable_str
           ) VALUES (
-            123, "hello", false, "world"
+            123, false, "helloworld"
           ), (
-            321, "hey", null, "hi"
+            321, null, "hi"
           );
         )",
         ydb::Query::Name{"FillTable/null_not_null_table"},
@@ -112,7 +112,7 @@ UTEST_F_DEATH(TYdbRowGetTestCaseDeathTest, TwiceGet) {
   auto row = cursor.GetFirstRow();
   UASSERT_NO_THROW(row.Get<std::optional<bool>>("nullable_bool"));
   UEXPECT_DEATH(row.Get<std::optional<bool>>("nullable_bool"),
-                "It is allowed to take the value of column only once. Index 2 "
+                "It is allowed to take the value of column only once. Index 1 "
                 "is already consumed");
 }
 
