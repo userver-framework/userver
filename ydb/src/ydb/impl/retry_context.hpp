@@ -26,21 +26,8 @@ struct RetryContext final {
   std::size_t retries{0};
 };
 
-inline NThreading::TFuture<NYdb::TStatus> MakeNonRetryableFuture() {
-  return NThreading::MakeFuture<NYdb::TStatus>(
-      NYdb::TStatus{NYdb::EStatus::BAD_REQUEST, NYql::TIssues()});
-}
-
-inline NThreading::TFuture<NYdb::TStatus> MakeSuccessFuture() {
-  return NThreading::MakeFuture<NYdb::TStatus>(
-      NYdb::TStatus{NYdb::EStatus::SUCCESS, NYql::TIssues()});
-}
-
-inline NThreading::TFuture<NYdb::TStatus> MakeRetryableFuture(
-    NYdb::EStatus status) {
-  UASSERT(IsRetryableStatus(status));
-  return NThreading::MakeFuture<NYdb::TStatus>(
-      NYdb::TStatus{status, NYql::TIssues()});
+inline NYdb::TStatus MakeNonRetryableStatus() {
+  return NYdb::TStatus{NYdb::EStatus::BAD_REQUEST, NYql::TIssues()};
 }
 
 // Func: (NYdb::NTable::TSession) -> NThreading::TFuture<T>
@@ -75,28 +62,29 @@ auto RetryOperation(impl::RequestContext& request_context, Func&& func) {
             return result_future.Apply(
                 [final_result, retry_context = &retry_context](
                     const AsyncResultType& const_fut) mutable {
-                  // Alternatively, we could just copy the TFuture,
-                  // inducing some pointless refcounting overhead.
-                  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-                  auto& fut = const_cast<AsyncResultType&>(const_fut);
-                  // If `fut` contains an exception, `ExtractValue` call
+                  // If `const_fut` contains an exception, `ExtractValue` call
                   // will rethrow it, and `Apply` will pack it into the
                   // resulting future.
-                  auto value = fut.ExtractValue();
-                  const auto status = value.GetStatus();
+                  //
+                  // Alternatively, we could just copy the TFuture,
+                  // inducing some pointless refcounting overhead.
+                  auto value =
+                      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+                      const_cast<AsyncResultType&>(const_fut).ExtractValue();
+                  // NOLINTNEXTLINE(cppcoreguidelines-slicing)
+                  NYdb::TStatus status{value};
                   final_result->emplace(std::move(value));
-                  if (status == NYdb::EStatus::SUCCESS) {
+                  if (status.IsSuccess()) {
                     retry_context->retry_budget.AccountOk();
-                    return MakeSuccessFuture();
-                  } else if (IsRetryableStatus(status) &&
-                             retry_context->retry_budget.CanRetry()) {
-                    retry_context->retries++;
-                    retry_context->retry_budget.AccountFail();
-                    // status is retryable
-                    return MakeRetryableFuture(status);
+                  } else if (IsRetryableStatus(status.GetStatus())) {
+                    if (retry_context->retry_budget.CanRetry()) {
+                      retry_context->retry_budget.AccountFail();
+                      retry_context->retries++;
+                    } else {
+                      return MakeNonRetryableStatus();
+                    }
                   }
-                  // Stop retrying
-                  return MakeNonRetryableFuture();
+                  return status;
                 });
           },
           retry_settings)
