@@ -1,7 +1,8 @@
 #pragma once
 
-#include <userver/components/loggable_component_base.hpp>
 #include <userver/kafka/consumer_scope.hpp>
+
+#include <userver/components/loggable_component_base.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/statistics/entry.hpp>
 

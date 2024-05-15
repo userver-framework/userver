@@ -99,5 +99,5 @@ requests and helps Mongo to return to the normal state with lower response timin
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref pg_bytea | @ref scripts/docs/en/userver/redis.md ⇨
+⇦ @ref scripts/docs/en/userver/kafka.md | @ref scripts/docs/en/userver/redis.md ⇨
 @htmlonly </div> @endhtmlonly

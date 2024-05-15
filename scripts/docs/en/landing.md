@@ -101,7 +101,7 @@ void Ins(storages::postgres::Transaction& tr,
               Efficient asynchronous drivers for databases (MongoDB, PostgreSQL,
               MySQL/MariaDB (experimental), Redis, ClickHouse, ...) and data
               transfer protocols (HTTP, WEbSockets, gRPC, TCP, AMQP-0.9.1
-              (experimental), ...), tasks construction and cancellation.
+              (experimental), Apache Kafka (experimental), ...), tasks construction and cancellation.
             </p>
           </div>
           <div class="values__card">

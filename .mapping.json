@@ -2903,6 +2903,7 @@
   "scripts/docs/en/userver/http_server_middlewares.md":"taxi/uservices/userver/scripts/docs/en/userver/http_server_middlewares.md",
   "scripts/docs/en/userver/intro.md":"taxi/uservices/userver/scripts/docs/en/userver/intro.md",
   "scripts/docs/en/userver/intro_io_bound_coro.md":"taxi/uservices/userver/scripts/docs/en/userver/intro_io_bound_coro.md",
+  "scripts/docs/en/userver/kafka.md":"taxi/uservices/userver/scripts/docs/en/userver/kafka.md",
   "scripts/docs/en/userver/log_level_running_service.md":"taxi/uservices/userver/scripts/docs/en/userver/log_level_running_service.md",
   "scripts/docs/en/userver/logging.md":"taxi/uservices/userver/scripts/docs/en/userver/logging.md",
   "scripts/docs/en/userver/lru_cache.md":"taxi/uservices/userver/scripts/docs/en/userver/lru_cache.md",

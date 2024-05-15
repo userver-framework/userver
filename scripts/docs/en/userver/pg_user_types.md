@@ -8,9 +8,9 @@ For a basic information on querying data see @ref pg_run_queries and
 and their mappings to C++ types is available at @ref pg_types.
 
 In PosgtgreSQL database the following kinds of user types are available:
-  - @ref pg_composite_types "composite (row) types" 
-  - @ref pg_enum "enumerations" 
-  - @ref pg_range_types "ranges" 
+  - @ref pg_composite_types "composite (row) types"
+  - @ref pg_enum "enumerations"
+  - @ref pg_range_types "ranges"
   - @ref pg_user_types "domains"
 
 
@@ -88,7 +88,7 @@ and a C++ enumeration declared as follows:
 The difference from mapping a PosgreSQL user type is that for an
 enumeration we need to provide a list of enumerators with corresponding
 literals. Note that the utils::TrivialBiMap could be reused in different parts
-of code. 
+of code.
 
 @warning The type mapping specialization **must** be accessible at the
 points where parsing/formatting of the C++ type is instantiated. The
@@ -167,7 +167,7 @@ The actual usage:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/pg_connlimit_mode_auto.md | @ref scripts/docs/en/userver/mongodb.md ⇨
+⇦ @ref scripts/docs/en/userver/pg_connlimit_mode_auto.md | scripts/docs/en/userver/kafka.md ⇨
 @htmlonly </div> @endhtmlonly
 
 
