@@ -2,6 +2,8 @@
 
 #include <stdexcept>
 
+#include <fmt/format.h>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace compression {
@@ -19,8 +21,8 @@ class TooBigError : public DecompressionError {
 
 class ErrWithCode : public DecompressionError {
  public:
-  explicit ErrWithCode(int errCode) : DecompressionError(
-            fmt::format("Decompression failed with code: {}", errCode)) {}
+  explicit ErrWithCode(const char* errName) : DecompressionError(
+            fmt::format("Decompression failed: {}", errName)) {}
 };
 
 }  // namespace compression
