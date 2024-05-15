@@ -156,8 +156,8 @@ typename Pool<Task>::CoroutinePtr Pool<Task>::GetCoroutine() {
 
 template <typename Task>
 void Pool<Task>::PutCoroutine(CoroutinePtr&& coroutine_ptr) {
-  local_coro_buffer_.push_back(std::move(coroutine_ptr.Get()));
-  if (local_coro_buffer_.size() <= kLocalCoroutineCacheMaxSize) {
+  if (local_coro_buffer_.size() < kLocalCoroutineCacheMaxSize) {
+    local_coro_buffer_.push_back(std::move(coroutine_ptr.Get()));
     return;
   }
 
@@ -183,6 +183,7 @@ void Pool<Task>::PutCoroutine(CoroutinePtr&& coroutine_ptr) {
 
   ReduceLocalCacheBufferSize(local_coro_buffer_.size() -
                              kLocalCoroutineMoveSize);
+  local_coro_buffer_.push_back(std::move(coroutine_ptr.Get()));
 }
 
 template <typename Task>
