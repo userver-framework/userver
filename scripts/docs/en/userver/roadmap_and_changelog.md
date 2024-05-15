@@ -16,23 +16,68 @@ Changelog news also go to the
 
 ## Roadmap
 
-* ✓ Simplify dynamic configs, embed defaults into the code.
-* ✓ Add PostgreSQL connection pools autoconfiguration.
-* ✓ LISTEN/NOTIFY support for PostgreSQL
-* ✓ New landing page for the website
-* ✓ Significantly reduce network data transmission for PostgreSQL
-* ✓ Support `install` in CMake.
-* ✓ Implement middlewares for HTTP server.
-* ✓ Move most of the HTTP server functionality to middlewares.
-* ✓ Document middlewares/plugins for HTTP client.
 * 👨‍💻 Codegen parsers and serializers by JSON schema
-* 👨‍💻 Add YDB driver.
-* 👨‍💻 Add basic Kafka driver.
-* Add retry budget or retry circuit breaker for clients.
+* 👨‍💻 Improve Kafka driver.
+* 👨‍💻 Add retry budget or retry circuit breaker for clients.
+* Improve OpenTelemetry Protocol (OTLP) support.
 * Add web interface to the [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf)
 
 
 ## Changelog
+
+
+### Release v2.0
+
+Big new features since the Beta announcement:
+
+* Simplify dynamic configs and embedded defaults into the code.
+* Added PostgreSQL connection pools auto-configuration.
+* Added YDB driver and basic Kafka driver.
+* LISTEN/NOTIFY support for PostgreSQL
+* New landing page for the website
+* Significantly reduced network data transmission for PostgreSQL
+* Supported `install` in CMake and CPack packaging.
+* Implemented middlewares for HTTP server, most of the HTTP server functionality
+  was moved to middlewares.
+* Improved documentation, added more samples and descriptions.
+* Numerous optimizations and build improvements.
+
+Detailed descriptions could be found below.
+
+
+### May 2024 (v2.0-rc)
+
+* Kafka driver is now documented, compiles and works. Thanks to
+  [Fedor](https://github.com/fdr896) for the work!
+* Added utils::numeric_cast for safe casting of integers of different width.
+* The userver framework is now
+  [available at Yandex Cloud Marketplace](https://yandex.cloud/en/marketplace/products/yc/userver).
+* YDB driver now can be built on modern Clang compilers in C++20 and above
+  modes.
+* Redis now allows to subscribe to master instances.
+* Improved logging of failures in testsuite.
+
+* Optimizations:
+  * rcu::Variable was optimized to use asymmetric fences and
+    concurrent::StripedCounter. x1000 performance improvement for some edge
+    cases, x3 improvement for the generic use case.
+  * Internal `TaskCounter` now uses concurrent::StripedCounter to reduce
+    contention on atomics on each async task construction and destruction.
+  * Adjusted the default spinning count in scheduler to better fit modern
+    hardware and typical loads.
+  * ~5% faster tasks queue overload detection logic. Many thanks to
+    [Egor Bocharov](https://github.com/egor-bystepdev) for the PR!
+
+* Docs, tests and build
+  * Fixed build of utils/rand.hpp related source files. Thanks to
+    [Nikita](https://github.com/root-kidik) for the PR!
+  * Improved logic of Telegram support chats URL selection. Many thanks to
+    [Mingaripov Niyaz](https://github.com/mnink275) for the PR!
+  * Fixed multiple `@snippet` links in docs. Many thanks to
+    [Mingaripov Niyaz](https://github.com/mnink275) for the PR!
+  * Fixed flaky `ThreadLocal.SafeThreadLocalWorks` test. Many thanks to
+    [Egor Bocharov](https://github.com/egor-bystepdev) for the PR!
+
 
 ### April 2024
 
@@ -70,7 +115,7 @@ Changelog news also go to the
 * Consumers of concurrent queues now have a Reset() method. Thanks to
   [akhoroshev](https://github.com/akhoroshev) for the PR!
 * Fixed gRPC builds and runs with ASAN. Thanks to
-  [Nikita](https://github.com/root-kidik) for the PR! 
+  [Nikita](https://github.com/root-kidik) for the PR!
 * Published early work on Kafka driver. API is not stable, build scripts,
   improvements and samples to come. Thanks to [Fedor](https://github.com/fdr896)
   for the work!
