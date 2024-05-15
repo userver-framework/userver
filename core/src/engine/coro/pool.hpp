@@ -41,6 +41,7 @@ class Pool final {
  private:
   Coroutine CreateCoroutine(bool quiet = false);
   bool TryPopulateLocalCache();
+  void ReduceLocalCacheBufferSize(std::size_t new_size);
   void OnCoroutineDestruction() noexcept;
 
   template <typename Token>
@@ -57,8 +58,7 @@ class Pool final {
   static constexpr std::size_t kLocalCoroutineMoveSize = 16;
   static_assert(kLocalCoroutineMoveSize <= kLocalCoroutineCacheMaxSize);
 
-  static inline thread_local std::vector<std::optional<Coroutine>>
-      local_coro_buffer_;
+  static inline thread_local std::vector<Coroutine> local_coro_buffer_;
 
   boost::coroutines2::protected_fixedsize_stack stack_allocator_;
 
@@ -68,8 +68,8 @@ class Pool final {
   //
   // The same could've been achieved with some LIFO container, but apparently
   // we don't have a container handy enough to not just use 2 queues.
-  moodycamel::ConcurrentQueue<std::optional<Coroutine>> initial_coroutines_;
-  moodycamel::ConcurrentQueue<std::optional<Coroutine>> used_coroutines_;
+  moodycamel::ConcurrentQueue<Coroutine> initial_coroutines_;
+  moodycamel::ConcurrentQueue<Coroutine> used_coroutines_;
 
   std::atomic<std::size_t> idle_coroutines_num_;
   std::atomic<std::size_t> total_coroutines_num_;
@@ -128,17 +128,24 @@ Pool<Task>::~Pool() = default;
 
 template <typename Task>
 typename Pool<Task>::CoroutinePtr Pool<Task>::GetCoroutine() {
-  std::optional<Coroutine> coroutine;
+  struct CoroutineMover {
+    std::optional<Coroutine>& result;
 
-  // First try to dequeue from 'working set' from local cache and maybe
-  // fetch Coroutine from used_coroutines_ to local cache and
-  // if we can get a coroutine  from there we are happy, because
-  // we saved on minor-page-faulting (thusincreasing resident memory usage)
-  // a not-yet-de-virtualized coroutine stack.
+    CoroutineMover& operator=(Coroutine&& coro) {
+      result.emplace(std::move(coro));
+      return *this;
+    }
+  };
+  std::optional<Coroutine> coroutine;
+  CoroutineMover mover{coroutine};
+
+  // First try to dequeue from 'working set': if we can get a coroutine
+  // from there we are happy, because we saved on minor-page-faulting (thus
+  // increasing resident memory usage) a not-yet-de-virtualized coroutine stack.
   if (!local_coro_buffer_.empty() || TryPopulateLocalCache()) {
     coroutine = std::move(local_coro_buffer_.back());
     local_coro_buffer_.pop_back();
-  } else if (initial_coroutines_.try_dequeue(coroutine)) {
+  } else if (initial_coroutines_.try_dequeue(mover)) {
     idle_coroutines_num_.fetch_sub(1, std::memory_order_release);
   } else {
     coroutine.emplace(CreateCoroutine());
@@ -157,8 +164,8 @@ void Pool<Task>::PutCoroutine(CoroutinePtr&& coroutine_ptr) {
   const std::size_t current_idle_coroutines_num =
       idle_coroutines_num_.load(std::memory_order_acquire);
   if (current_idle_coroutines_num >= config_.max_size) {
-    local_coro_buffer_.resize(local_coro_buffer_.size() -
-                              kLocalCoroutineMoveSize);
+    ReduceLocalCacheBufferSize(local_coro_buffer_.size() -
+                               kLocalCoroutineMoveSize);
     return;
   }
 
@@ -174,8 +181,8 @@ void Pool<Task>::PutCoroutine(CoroutinePtr&& coroutine_ptr) {
                                    std::memory_order_release);
   }
 
-  local_coro_buffer_.resize(local_coro_buffer_.size() -
-                            kLocalCoroutineMoveSize);
+  ReduceLocalCacheBufferSize(local_coro_buffer_.size() -
+                             kLocalCoroutineMoveSize);
 }
 
 template <typename Task>
@@ -206,7 +213,7 @@ void Pool<Task>::ClearLocalCache() {
                                      std::memory_order_release);
     }
   }
-  local_coro_buffer_.clear();
+  ReduceLocalCacheBufferSize(0);
 }
 
 template <typename Task>
@@ -255,6 +262,14 @@ bool Pool<Task>::TryPopulateLocalCache() {
     }
   }
   return false;
+}
+
+template <typename Task>
+void Pool<Task>::ReduceLocalCacheBufferSize(std::size_t new_size) {
+  UASSERT(new_size <= local_coro_buffer_.size());
+  while (local_coro_buffer_.size() > new_size) {
+    local_coro_buffer_.pop_back();
+  }
 }
 
 template <typename Task>
