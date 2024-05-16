@@ -46,7 +46,7 @@ message(STATUS "boost: ${Boost_VERSION_STRING}")
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   if (CMAKE_SYSTEM_NAME MATCHES "Darwin" AND Boost_FOUND)
     # requires Boost_FOUND to make a valid expression
-    if (${Boost_VERSION_STRING} VERSION_LESS "1.68.0")
+    if ("${Boost_VERSION_STRING}" VERSION_LESS "1.68.0")
       message(FATAL_ERROR "Boost Locale version less that 1.68 uses features deleted from standard. Please update your boost distribution.")
     endif()
   endif()

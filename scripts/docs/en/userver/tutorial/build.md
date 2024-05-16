@@ -12,7 +12,7 @@ The following CMake options are used by userver:
 | USERVER_FEATURE_REDIS                  | Provide asynchronous driver for Redis                                                                                 | ${USERVER_IS_THE_ROOT_PROJECT}                         |
 | USERVER_FEATURE_CLICKHOUSE             | Provide asynchronous driver for ClickHouse                                                                            | ${USERVER_IS_THE_ROOT_PROJECT} AND x86\*               |
 | USERVER_FEATURE_GRPC                   | Provide asynchronous driver for gRPC                                                                                  | ${USERVER_IS_THE_ROOT_PROJECT}                         |
-| USERVER_FEATURE_KAFKA               | Provide asynchronous driver for Apache Kafka                                                                 | ${USERVER_IS_THE_ROOT_PROJECT}                         |
+| USERVER_FEATURE_KAFKA                  | Provide asynchronous driver for Apache Kafka                                                                          | ${USERVER_IS_THE_ROOT_PROJECT}                         |
 | USERVER_FEATURE_RABBITMQ               | Provide asynchronous driver for RabbitMQ (AMQP 0-9-1)                                                                 | ${USERVER_IS_THE_ROOT_PROJECT}                         |
 | USERVER_FEATURE_MYSQL                  | Provide asynchronous driver for MySQL/MariaDB                                                                         | ${USERVER_IS_THE_ROOT_PROJECT}                         |
 | USERVER_FEATURE_ROCKS                  | Provide asynchronous driver for RocksDB                                                                               | ${USERVER_IS_THE_ROOT_PROJECT}                         |
@@ -68,7 +68,7 @@ The following CMake options are used by userver:
 | USERVER_MYSQL_ALLOW_BUGGY_LIBMARIADB   | Allows mysql driver to leak memory instead of aborting in some rare cases when linked against libmariadb3<3.3.4       | OFF                                                    |
 | USERVER_DISABLE_PHDR_CACHE             | Disable caching of dl_phdr_info items, which interferes with dlopen                                                   | OFF                                                    |
 | USERVER_DISABLE_RSEQ_ACCELERATION      | Disable rseq-based optimizations, which may not work depending on kernel/glibc/distro/etc version                     | OFF for x86 Linux, ON otherwise                        |
-| USERVER_FEATURE_UBOOST_CORO            | Build with vendored version of Boost.context and Boost.coroutine2, is needed for sanitizers builds                    | ON                                                     |
+| USERVER_FEATURE_UBOOST_CORO            | Build with vendored version of Boost.context and Boost.coroutine2, is needed for sanitizers builds                    | OFF for arm64 macOS, ON otherwise                      |
 
 [hi_malloc]: https://bugs.launchpad.net/ubuntu/+source/hiredis/+bug/1888025
 
