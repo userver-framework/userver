@@ -1,7 +1,7 @@
 # userver [<img src="./scripts/docs/img/logo.svg" align='right' width="10%">](https://userver.tech/)
 
 | Service Templates | Develop / Green Trunk  | v2.0 | v1.0 |
-|------------------------|-----|-----|
+|-------------------|------------------------|------|------|
 | Core: | [![CI](https://github.com/userver-framework/service_template/actions/workflows/ci.yml/badge.svg) ![Docker build](https://github.com/userver-framework/service_template/actions/workflows/docker.yaml/badge.svg)](https://github.com/userver-framework/service_template/) | [[➚]](https://github.com/userver-framework/service_template/tree/v2.0) | [[➚]](https://github.com/userver-framework/service_template/tree/v1.0.0) |
 | PostgreSQL: | [![CI](https://github.com/userver-framework/pg_service_template/actions/workflows/ci.yml/badge.svg) ![Docker build](https://github.com/userver-framework/pg_service_template/actions/workflows/docker.yaml/badge.svg)](https://github.com/userver-framework/pg_service_template/) | [[➚]](https://github.com/userver-framework/pg_service_template/tree/v2.0) | [[➚]](https://github.com/userver-framework/pg_service_template/tree/v1.0.0) |
 | gRPC+PostgreSQL: | [![CI](https://github.com/userver-framework/pg_grpc_service_template/actions/workflows/ci.yml/badge.svg) ![Docker build](https://github.com/userver-framework/pg_grpc_service_template/actions/workflows/docker.yaml/badge.svg)](https://github.com/userver-framework/pg_grpc_service_template)| [[➚]](https://github.com/userver-framework/pg_grpc_service_template/tree/v2.0) | [[➚]](https://github.com/userver-framework/pg_grpc_service_template/tree/v1.0.0) |
