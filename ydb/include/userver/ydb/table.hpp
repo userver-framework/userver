@@ -147,9 +147,6 @@ class TableClient final {
 
   /// @cond
   // For internal use only.
-  void SetDefaultSettings(OperationSettings settings);
-
-  // For internal use only.
   friend void DumpMetric(utils::statistics::Writer& writer,
                          const TableClient& table_client);
   /// @endcond
@@ -195,7 +192,7 @@ class TableClient final {
                            OperationSettings&& settings, Func&& func);
 
   dynamic_config::Source config_source_;
-  rcu::Variable<OperationSettings> default_settings_;
+  OperationSettings default_settings_;
   const bool keep_in_query_cache_;
   std::unique_ptr<impl::Stats> stats_;
   std::shared_ptr<impl::Driver> driver_;

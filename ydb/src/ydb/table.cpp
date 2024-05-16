@@ -196,10 +196,6 @@ void TableClient::Select1() {
   }
 }
 
-void TableClient::SetDefaultSettings(OperationSettings settings) {
-  default_settings_.Assign(std::move(settings));
-}
-
 NYdb::NTable::TTableClient& TableClient::GetNativeTableClient() {
   return *table_client_;
 }
@@ -425,17 +421,14 @@ void TableClient::PrepareSettings(
   // 2. OperationSettings passed in code
   // 3. Dynamic config
 
-  const auto default_settings_ptr = default_settings_.Read();
-  const auto& default_settings = *default_settings_ptr;
-
   if (os.retries == 0) {
-    os.retries = default_settings.retries;
+    os.retries = default_settings_.retries;
   }
   if (os.operation_timeout_ms == std::chrono::milliseconds::zero()) {
-    os.operation_timeout_ms = default_settings.operation_timeout_ms;
+    os.operation_timeout_ms = default_settings_.operation_timeout_ms;
   }
   if (os.cancel_after_ms == std::chrono::milliseconds::zero()) {
-    os.cancel_after_ms = default_settings.cancel_after_ms;
+    os.cancel_after_ms = default_settings_.cancel_after_ms;
   }
   // For streaming operations, client timeout is applied to the entire
   // streaming RPC. Meanwhile, streaming RPCs can be expected to take
@@ -446,14 +439,14 @@ void TableClient::PrepareSettings(
   // NOLINTNEXTLINE(bugprone-non-zero-enum-to-bool-conversion)
   if (!static_cast<bool>(is_streaming)) {
     if (os.client_timeout_ms == std::chrono::milliseconds::zero()) {
-      os.client_timeout_ms = default_settings.client_timeout_ms;
+      os.client_timeout_ms = default_settings_.client_timeout_ms;
     }
   }
   if (os.get_session_timeout_ms == std::chrono::milliseconds::zero()) {
-    os.get_session_timeout_ms = default_settings.get_session_timeout_ms;
+    os.get_session_timeout_ms = default_settings_.get_session_timeout_ms;
   }
   if (!os.tx_mode) {
-    os.tx_mode = default_settings.tx_mode.value();
+    os.tx_mode = default_settings_.tx_mode.value();
   }
 
   const auto& cc_map = config_snapshot[impl::kQueryCommandControl];

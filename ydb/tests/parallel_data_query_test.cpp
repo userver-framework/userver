@@ -13,7 +13,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-class YdbExecuteAsync : public YdbSmallTableTest {};
+class YdbExecuteParallelDataQuery : public YdbSmallTableTest {};
 
 void WaitSessionCountIsZero(const NYdb::NTable::TTableClient& table_client_) {
   constexpr auto sleep = std::chrono::milliseconds{10};
@@ -28,7 +28,7 @@ void WaitSessionCountIsZero(const NYdb::NTable::TTableClient& table_client_) {
 
 }  // namespace
 
-UTEST_F(YdbExecuteAsync, SimpleReadParallel) {
+UTEST_F(YdbExecuteParallelDataQuery, SimpleReadParallel) {
   CreateTable("simple_read", true);
   constexpr int requests_count = 5;
 
@@ -52,7 +52,7 @@ UTEST_F(YdbExecuteAsync, SimpleReadParallel) {
   }
 }
 
-UTEST_F(YdbExecuteAsync, PreparedReadParallel) {
+UTEST_F(YdbExecuteParallelDataQuery, PreparedReadParallel) {
   CreateTable("prepared_read", true);
   constexpr int requests_count = 5;
 
@@ -84,7 +84,7 @@ UTEST_F(YdbExecuteAsync, PreparedReadParallel) {
   }
 }
 
-UTEST_F(YdbExecuteAsync, SessionLeak) {
+UTEST_F(YdbExecuteParallelDataQuery, SessionLeak) {
   CreateTable("session_leak", false);
 
   constexpr size_t query_count = 100;
