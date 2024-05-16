@@ -25,7 +25,6 @@ async def test_select_rows(service_client):
     }
 
 
-@pytest.mark.skip(reason='restore in TAXICOMMON-8860')
 async def test_select_rows_empty(service_client):
     response = await service_client.post(
         'ydb/select-rows',
