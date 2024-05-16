@@ -3303,7 +3303,6 @@
   "third_party/uboost_coro/src/context/fiber.cpp":"taxi/uservices/userver/third_party/uboost_coro/src/context/fiber.cpp",
   "third_party/uboost_coro/src/context/posix/stack_traits.cpp":"taxi/uservices/userver/third_party/uboost_coro/src/context/posix/stack_traits.cpp",
   "third_party/uboost_coro/src/context/untested.cpp":"taxi/uservices/userver/third_party/uboost_coro/src/context/untested.cpp",
-  "third_party/uboost_coro/ya.make":"taxi/uservices/userver/third_party/uboost_coro/ya.make",
   "tools/congestion_control_emulator/CMakeLists.txt":"taxi/uservices/userver/tools/congestion_control_emulator/CMakeLists.txt",
   "tools/congestion_control_emulator/congestion_control_emulator.cpp":"taxi/uservices/userver/tools/congestion_control_emulator/congestion_control_emulator.cpp",
   "tools/congestion_control_emulator/data/const-overload.txt":"taxi/uservices/userver/tools/congestion_control_emulator/data/const-overload.txt",
