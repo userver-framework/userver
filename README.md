@@ -1,10 +1,10 @@
 # userver [<img src="./scripts/docs/img/logo.svg" align='right' width="10%">](https://userver.tech/)
 
-| Service Templates | Develop / Green Trunk  | v1.0 |
+| Service Templates | Develop / Green Trunk  | v2.0 | v1.0 |
 |------------------------|-----|-----|
-| Core: | [![CI](https://github.com/userver-framework/service_template/actions/workflows/ci.yml/badge.svg) ![Docker build](https://github.com/userver-framework/service_template/actions/workflows/docker.yaml/badge.svg)](https://github.com/userver-framework/service_template/) | [[➚]](https://github.com/userver-framework/service_template/tree/v1.0.x) |
-| PostgreSQL: | [![CI](https://github.com/userver-framework/pg_service_template/actions/workflows/ci.yml/badge.svg) ![Docker build](https://github.com/userver-framework/pg_service_template/actions/workflows/docker.yaml/badge.svg)](https://github.com/userver-framework/pg_service_template/) | [[➚]](https://github.com/userver-framework/pg_service_template/tree/v1.0.x) |
-| gRPC+PostgreSQL: | [![CI](https://github.com/userver-framework/pg_grpc_service_template/actions/workflows/ci.yml/badge.svg) ![Docker build](https://github.com/userver-framework/pg_grpc_service_template/actions/workflows/docker.yaml/badge.svg)](https://github.com/userver-framework/pg_grpc_service_template) | [[➚]](https://github.com/userver-framework/pg_grpc_service_template/tree/v1.0.x) |
+| Core: | [![CI](https://github.com/userver-framework/service_template/actions/workflows/ci.yml/badge.svg) ![Docker build](https://github.com/userver-framework/service_template/actions/workflows/docker.yaml/badge.svg)](https://github.com/userver-framework/service_template/) | [[➚]](https://github.com/userver-framework/service_template/tree/v2.0) | [[➚]](https://github.com/userver-framework/service_template/tree/v1.0.0) |
+| PostgreSQL: | [![CI](https://github.com/userver-framework/pg_service_template/actions/workflows/ci.yml/badge.svg) ![Docker build](https://github.com/userver-framework/pg_service_template/actions/workflows/docker.yaml/badge.svg)](https://github.com/userver-framework/pg_service_template/) | [[➚]](https://github.com/userver-framework/pg_service_template/tree/v2.0) | [[➚]](https://github.com/userver-framework/pg_service_template/tree/v1.0.0) |
+| gRPC+PostgreSQL: | [![CI](https://github.com/userver-framework/pg_grpc_service_template/actions/workflows/ci.yml/badge.svg) ![Docker build](https://github.com/userver-framework/pg_grpc_service_template/actions/workflows/docker.yaml/badge.svg)](https://github.com/userver-framework/pg_grpc_service_template)| [[➚]](https://github.com/userver-framework/pg_grpc_service_template/tree/v2.0) | [[➚]](https://github.com/userver-framework/pg_grpc_service_template/tree/v1.0.0) |
 
 **userver** is an open source asynchronous framework with a rich set of abstractions
 for fast and comfortable creation of C++ microservices, services and utilities.
@@ -29,16 +29,15 @@ avoid CPU-consuming context switches from OS, efficiently
 utilize the CPU with a small amount of execution threads.
 
 
-You can learn more about history and key features of userver from our articles 
-on [Medium](https://medium.com/p/d5d9c4204dc2) (English) 
-or [Habr](https://habr.com/post/674902) (Russian).
+You can learn more about history and key features of userver from our 
+[publications and videos](https://userver.tech/dc/d30/md_en_2userver_2publications.html).
 
 ## Other Features
 
 * Efficient asynchronous drivers for databases (MongoDB, PostgreSQL, Redis,
   ClickHouse, MySQL/MariaDB (experimental) ...) and data transfer protocols
-  (HTTP, gRPC, AMQP 0-9-1 (experimental), TCP, TLS, WebSocket ...), tasks
-  construction and cancellation.
+  (HTTP, gRPC, AMQP 0-9-1 (experimental), Kafka (experimental), TCP, TLS,
+  WebSocket ...), tasks construction and cancellation.
 * Rich set of high-level components for caches, tasks, distributed locking,
   logging, tracing, statistics, metrics, JSON/YAML/BSON.
 * Functionality to change the service configuration on-the-fly.
