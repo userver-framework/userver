@@ -1,6 +1,7 @@
 #pragma once
 
 #include <userver/server/handlers/auth/auth_checker_base.hpp>
+#include <userver/server/middlewares/builtin.hpp>
 #include <userver/server/middlewares/http_middleware_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -13,7 +14,7 @@ namespace server::middlewares {
 
 class Auth final : public HttpMiddlewareBase {
  public:
-  static constexpr std::string_view kName{"userver-auth-middleware"};
+  static constexpr std::string_view kName = builtin::kAuth;
 
   Auth(const components::ComponentContext&, const handlers::HttpHandlerBase&);
 

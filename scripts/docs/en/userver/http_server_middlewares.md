@@ -121,9 +121,10 @@ server::middlewares::DefaultPipeline and appends the given middlewares to it, wh
 @snippet samples/http_middleware_service/static_config.yaml  Middlewares sample - pipeline builder configuration
 
 If a more sophisticated behavior is desired, derive from server::middlewares::PipelineBuilder and override
-its `BuildPipeline` method. Then set the custom pipeline component's name in the server config:
+its `BuildPipeline` method. Then set the custom pipeline component's name in the config of components::Server:
 
-```yaml
+```
+# yaml
         server:
             # ...
             middleware-pipeline-builder: custom-pipeline-builder

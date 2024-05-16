@@ -1,5 +1,6 @@
 #pragma once
 
+#include <userver/server/middlewares/builtin.hpp>
 #include <userver/server/middlewares/http_middleware_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -8,8 +9,7 @@ namespace server::middlewares {
 
 class ExceptionsHandling final : public HttpMiddlewareBase {
  public:
-  static constexpr std::string_view kName{
-      "userver-exceptions-handling-middleware"};
+  static constexpr std::string_view kName = builtin::kExceptionsHandling;
 
   explicit ExceptionsHandling(const handlers::HttpHandlerBase&);
 
@@ -25,8 +25,7 @@ using ExceptionsHandlingFactory =
 
 class UnknownExceptionsHandling final : public HttpMiddlewareBase {
  public:
-  static constexpr std::string_view kName{
-      "userver-unknown-exceptions-handling-middleware"};
+  static constexpr std::string_view kName = builtin::kUnknownExceptionsHandling;
 
   explicit UnknownExceptionsHandling(const handlers::HttpHandlerBase&);
 

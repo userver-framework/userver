@@ -1,6 +1,7 @@
 #pragma once
 
 #include <userver/server/http/http_status.hpp>
+#include <userver/server/middlewares/builtin.hpp>
 #include <userver/server/middlewares/http_middleware_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -17,7 +18,7 @@ namespace server::middlewares {
 
 class Decompression final : public HttpMiddlewareBase {
  public:
-  static constexpr std::string_view kName{"userver-decompression-middleware"};
+  static constexpr std::string_view kName = builtin::kDecompression;
 
   explicit Decompression(const handlers::HttpHandlerBase&);
 

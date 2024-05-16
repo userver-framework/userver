@@ -547,6 +547,7 @@
   "core/include/userver/server/http/http_response_body_stream_fwd.hpp":"taxi/uservices/userver/core/include/userver/server/http/http_response_body_stream_fwd.hpp",
   "core/include/userver/server/http/http_response_cookie.hpp":"taxi/uservices/userver/core/include/userver/server/http/http_response_cookie.hpp",
   "core/include/userver/server/http/http_status.hpp":"taxi/uservices/userver/core/include/userver/server/http/http_status.hpp",
+  "core/include/userver/server/middlewares/builtin.hpp":"taxi/uservices/userver/core/include/userver/server/middlewares/builtin.hpp",
   "core/include/userver/server/middlewares/configuration.hpp":"taxi/uservices/userver/core/include/userver/server/middlewares/configuration.hpp",
   "core/include/userver/server/middlewares/http_middleware_base.hpp":"taxi/uservices/userver/core/include/userver/server/middlewares/http_middleware_base.hpp",
   "core/include/userver/server/request/request_base.hpp":"taxi/uservices/userver/core/include/userver/server/request/request_base.hpp",
