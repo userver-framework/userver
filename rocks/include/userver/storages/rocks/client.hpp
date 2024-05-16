@@ -64,10 +64,13 @@ class Client final {
    */
   void CheckStatus(rocksdb::Status status, std::string_view method_name);
 
+  Client MakeSnapshot(const std::string& checkpoint_path);
+
  private:
   std::unique_ptr<rocksdb::DB> db_;
   engine::TaskProcessor& blocking_task_processor_;
 };
+
 }  // namespace storages::rocks
 
 USERVER_NAMESPACE_END
