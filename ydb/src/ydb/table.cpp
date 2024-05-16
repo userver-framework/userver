@@ -381,7 +381,7 @@ tracing::Span TableClient::MakeSpan(const Query& query,
   } else {
     span.AddTag("yql_query", query.Statement());
   }
-  span.AddTag("max_attempts", settings.retries);
+  span.AddTag("max_retries", settings.retries);
   span.AddTag("get_session_timeout_ms",
               settings.get_session_timeout_ms.count());
   span.AddTag("operation_timeout_ms", settings.operation_timeout_ms.count());

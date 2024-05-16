@@ -17,7 +17,7 @@ async def test_query_span(service_client):
     assert capture.select(
         link=response.headers['x-yarequestid'],
         stopwatch_name='ydb_query',
-        max_attempts='3',
+        max_retries='3',
         get_session_timeout_ms='5000',
         operation_timeout_ms='1000',
         cancel_after_ms='1000',
@@ -52,7 +52,7 @@ async def test_config_command_control(service_client):
     assert capture.select(
         link=response.headers['x-yarequestid'],
         stopwatch_name='ydb_query',
-        max_attempts='10',
+        max_retries='10',
         get_session_timeout_ms='5004',
         operation_timeout_ms='5001',
         cancel_after_ms='5002',

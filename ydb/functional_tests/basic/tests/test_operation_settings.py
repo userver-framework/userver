@@ -14,7 +14,7 @@ async def test_get_settings_from_user_code(service_client):
     assert capture.select(
         link=response.headers['x-yarequestid'],
         stopwatch_name='ydb_query',
-        max_attempts='3',
+        max_retries='3',
         get_session_timeout_ms='4999',
         operation_timeout_ms='1000',
         cancel_after_ms='1000',
@@ -39,7 +39,7 @@ async def test_get_settings_from_static_config(service_client):
     assert capture.select(
         link=response.headers['x-yarequestid'],
         stopwatch_name='ydb_query',
-        max_attempts='2',
+        max_retries='2',
         get_session_timeout_ms='5001',
         operation_timeout_ms='1001',
         cancel_after_ms='1001',
@@ -79,7 +79,7 @@ async def test_get_settings_from_dynamic_config(
     assert capture.select(
         link=response.headers['x-yarequestid'],
         stopwatch_name='ydb_query',
-        max_attempts='4',
+        max_retries='4',
         operation_timeout_ms='1002',
         cancel_after_ms='1002',
         client_timeout_ms='1102',
