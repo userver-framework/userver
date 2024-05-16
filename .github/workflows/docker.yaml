@@ -44,8 +44,16 @@ jobs:
                     id: ubuntu_gcc_cxx17
                   - cmake-flags: >-
                         -DCMAKE_CXX_COMPILER=clang++-16 -DCMAKE_C_COMPILER=clang-16
-                        -DUSERVER_FEATURE_MYSQL=1
                         -DCMAKE_CXX_STANDARD=20
+                        -DUSERVER_FEATURE_CLICKHOUSE=0
+                        -DUSERVER_FEATURE_GRPC=1
+                        -DUSERVER_FEATURE_MYSQL=0
+                        -DUSERVER_FEATURE_MONGODB=1
+                        -DUSERVER_FEATURE_POSTGRESQL=0
+                        -DUSERVER_FEATURE_REDIS=0
+                        -DUSERVER_FEATURE_RABBITMQ=0
+                        -DUSERVER_FEATURE_ROCKS=0
+                        -DUSERVER_FEATURE_YDB=1
                     image: ubuntu-22.04-userver-base-ci
                     info: ubuntu + clang + cxx20
                     id: ubuntu_clang_cxx20
