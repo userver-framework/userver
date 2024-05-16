@@ -36,6 +36,7 @@ class Pool final {
   void PutCoroutine(CoroutinePtr&& coroutine_ptr);
   PoolStats GetStats() const;
   std::size_t GetStackSize() const;
+  void PrepareLocalCache();
   void ClearLocalCache();
 
  private:
@@ -50,13 +51,10 @@ class Pool final {
   const PoolConfig config_;
   const Executor executor_;
 
-  // Maximum thread local coroutine cache size
-  static constexpr std::size_t kLocalCoroutineCacheMaxSize = 32;
   // Maximum number of coroutines exchanged between
   // used_coroutines_ for thread local coroutine cache
-  // for sure kLocalCoroutineMoveSize <= kLocalCoroutineCacheMaxSize
-  static constexpr std::size_t kLocalCoroutineMoveSize = 16;
-  static_assert(kLocalCoroutineMoveSize <= kLocalCoroutineCacheMaxSize);
+  // local_coroutine_move_size_ <= config_.local_cache_size
+  const std::size_t local_coroutine_move_size_;
 
   static inline thread_local std::vector<Coroutine> local_coro_buffer_;
 
@@ -108,6 +106,7 @@ template <typename Task>
 Pool<Task>::Pool(PoolConfig config, Executor executor)
     : config_(std::move(config)),
       executor_(executor),
+      local_coroutine_move_size_((config_.local_cache_size + 1) / 2),
       stack_allocator_(config_.stack_size),
       initial_coroutines_(config_.initial_size),
       used_coroutines_(config_.max_size),
@@ -154,7 +153,7 @@ typename Pool<Task>::CoroutinePtr Pool<Task>::GetCoroutine() {
 
 template <typename Task>
 void Pool<Task>::PutCoroutine(CoroutinePtr&& coroutine_ptr) {
-  if (local_coro_buffer_.size() < kLocalCoroutineCacheMaxSize) {
+  if (local_coro_buffer_.size() < config_.max_size) {
     local_coro_buffer_.push_back(std::move(coroutine_ptr.Get()));
     return;
   }
@@ -162,12 +161,21 @@ void Pool<Task>::PutCoroutine(CoroutinePtr&& coroutine_ptr) {
   const std::size_t current_idle_coroutines_num = idle_coroutines_num_.load();
   if (current_idle_coroutines_num >= config_.max_size) {
     ReduceLocalCacheBufferSize(local_coro_buffer_.size() -
-                               kLocalCoroutineMoveSize);
+                               local_coroutine_move_size_);
     return;
   }
 
-  const std::size_t return_to_pool_from_local_cache_num = std::min(
-      config_.max_size - current_idle_coroutines_num, kLocalCoroutineMoveSize);
+  if (config_.local_cache_size == 0) {
+    if (used_coroutines_.enqueue(GetUsedPoolToken<moodycamel::ProducerToken>(),
+                                 std::move(coroutine_ptr.Get()))) {
+      ++idle_coroutines_num_;
+    }
+    return;
+  }
+
+  const std::size_t return_to_pool_from_local_cache_num =
+      std::min(config_.max_size - current_idle_coroutines_num,
+               local_coroutine_move_size_);
 
   if (used_coroutines_.enqueue_bulk(
           GetUsedPoolToken<moodycamel::ProducerToken>(),
@@ -178,7 +186,7 @@ void Pool<Task>::PutCoroutine(CoroutinePtr&& coroutine_ptr) {
   }
 
   ReduceLocalCacheBufferSize(local_coro_buffer_.size() -
-                             kLocalCoroutineMoveSize);
+                             local_coroutine_move_size_);
   local_coro_buffer_.push_back(std::move(coroutine_ptr.Get()));
 }
 
@@ -191,6 +199,11 @@ PoolStats Pool<Task>::GetStats() const {
   stats.total_coroutines =
       std::max(total_coroutines_num_.load(), stats.active_coroutines);
   return stats;
+}
+
+template <typename Task>
+void Pool<Task>::PrepareLocalCache() {
+  local_coro_buffer_.reserve(config_.max_size);
 }
 
 template <typename Task>
@@ -244,7 +257,7 @@ bool Pool<Task>::TryPopulateLocalCache() {
   // because it has one producer queue
   const std::size_t deque_num =
       std::min(idle_coroutines_num_.load() - initial_coroutines_.size_approx(),
-               kLocalCoroutineMoveSize);
+               config_.local_cache_size);
   if (deque_num > 0) {
     const std::size_t dequed_num = used_coroutines_.try_dequeue_bulk(
         GetUsedPoolToken<moodycamel::ConsumerToken>(),

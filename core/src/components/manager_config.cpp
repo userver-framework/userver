@@ -103,6 +103,10 @@ properties:
                 type: integer
                 description: size of a single coroutine, bytes
                 defaultDescription: 256 * 1024
+            local_cache_size:
+                type: integer
+                description: local coroutine cache size per thread
+                defaultDescription: 32
     event_thread_pool:
         type: object
         description: event thread pool options
