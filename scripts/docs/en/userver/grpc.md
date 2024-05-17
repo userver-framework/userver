@@ -92,6 +92,24 @@ Read the documentation on gRPC streams:
 
 On connection errors, exceptions from userver/ugrpc/server/exceptions.hpp are thrown. It is recommended not to catch them, leading to RPC interruption. You can catch exceptions for [specific gRPC error codes](https://grpc.github.io/grpc/core/md_doc_statuscodes.html) or all at once.
 
+### TLS / SSL
+
+May be enabled via
+```
+components_manager:
+    components:
+        grpc-client-factory:
+            auth-type: ssl
+```
+
+Available values are
+```
+- insecure (default)
+- ssl
+```
+
+Also note, that SSL **has to be disabled** in tests (e.g. via config_vars).
+
 ### Custom server credentials
 
 By default, gRPC server uses `grpc::InsecureServerCredentials`. To pass a custom credentials:

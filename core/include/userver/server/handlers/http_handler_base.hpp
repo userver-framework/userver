@@ -55,7 +55,7 @@ class HttpHandlerStatisticsScope;
 /// ---- | ----------- | -------------
 /// log-level | overrides log level for this handle | <no override>
 /// status-codes-log-level | map of "status": log_level items to override span log level for specific status codes | {}
-/// middleware-pipeline-builder | name of a component to build a middleware pipeline for this particular handler | default-handler-middleware-pipeline-builder
+/// middlewares.pipeline-builder | name of a component to build a middleware pipeline for this particular handler | default-handler-middleware-pipeline-builder
 ///
 /// ## Example usage:
 ///

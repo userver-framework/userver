@@ -90,6 +90,8 @@ and also passes the handler into the middleware constructor. Given the middlewar
 @snippet samples/http_middleware_service/http_middleware_service.cpp  Middlewares sample - some middleware implementation
 the factory implementation is just this:
 @snippet samples/http_middleware_service/http_middleware_service.cpp  Middlewares sample - some middleware factory implementation
+Do not forget to add components configs:
+@snippet samples/http_middleware_service/static_config.yaml  Middlewares sample - noop-middleware and server-middleware components configs
 
 ### Per-handler middleware configuration
 
@@ -106,6 +108,9 @@ If a global configuration is desired (that is, for every middleware instance the
 would be to have a configuration in the Factory config, and for Factory to pass the configuration into the Middleware 
 constructor. This takes away the possibility to declare a Factory as a SimpleHttpMiddlewareFactory, but we find this
 tradeoff acceptable (after all, if a middleware needs a configuration it isn't that "Simple" already).
+
+Do not forget to add components configs:
+@snippet samples/http_middleware_service/static_config.yaml  Middlewares sample - handler-middleware component config
 
 ## Pipelines configuration
 
