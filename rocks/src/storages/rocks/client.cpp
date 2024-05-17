@@ -60,22 +60,18 @@ void Client::CheckStatus(rocksdb::Status status, std::string_view method_name) {
 }
 
 Client Client::MakeSnapshot(const std::string& checkpoint_path) {
-  rocksdb::Checkpoint* checkpoint;
-  rocksdb::Status status = rocksdb::Checkpoint::Create(db_.get(), &checkpoint);
+  return engine::AsyncNoSpan(blocking_task_processor_, [this, checkpoint_path] {
+    rocksdb::Checkpoint* checkpoint{};
+    rocksdb::Status status = rocksdb::Checkpoint::Create(db_.get(), &checkpoint);
 
-  CheckStatus(status, "Create Checkpoint");
+    std::unique_ptr<rocksdb::Checkpoint> checkpoint_smart_ptr(checkpoint);
+    CheckStatus(status, "Create Checkpoint");
 
-  try {
-    status = checkpoint->CreateCheckpoint(checkpoint_path);
+    status = checkpoint_smart_ptr->CreateCheckpoint(checkpoint_path);
 
     CheckStatus(status, "Bind Checkpoint to the path");
-
-    delete checkpoint;
-  } catch (...) {
-    delete checkpoint;
-  }
-
-  return Client(checkpoint_path, blocking_task_processor_);
+    return Client(checkpoint_path, blocking_task_processor_);
+  }).Get();
 }
 
 }  // namespace storages::rocks

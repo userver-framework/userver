@@ -64,6 +64,10 @@ class Client final {
    */
   void CheckStatus(rocksdb::Status status, std::string_view method_name);
 
+  /**
+   * MakeSnapshot — creates a checkpoint of the RocksDB database. Checkpoints can be used as a point in time snapshot.
+   * @param checkpoint_path — the path to the file where the snapshot will be saved.
+   */
   Client MakeSnapshot(const std::string& checkpoint_path);
 
  private:
