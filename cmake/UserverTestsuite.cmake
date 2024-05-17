@@ -345,12 +345,13 @@ function(userver_testsuite_add)
 
   execute_process(
     COMMAND
-    "${python_binary}" ${USERVER_TESTSUITE_DIR}/create_runner.py
-    -o ${TESTSUITE_RUNNER}
-    --python=${python_binary}
+    "${python_binary}" "${USERVER_TESTSUITE_DIR}/create_runner.py"
+    -o "${TESTSUITE_RUNNER}"
+    "--python=${python_binary}"
     "--python-path=${ARG_PYTHONPATH}"
     --
-    --build-dir=${CMAKE_BINARY_DIR}
+    "--build-dir=${CMAKE_CURRENT_BINARY_DIR}"
+    "--service-logs-file=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/service.log"
     ${ARG_PYTEST_ARGS}
     RESULT_VARIABLE STATUS
   )
