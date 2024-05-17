@@ -226,8 +226,9 @@ void FillRequestWithTracingContext(
       YandexFillWithTracingContext(span, request);
       return;
     case Format::kOpenTelemetry:
+      // There can be loads of false positive logs so we set up debug log lvl
       OpenTelemetryFillWithTracingContext(span, request,
-                                          logging::Level::kWarning);
+                                          logging::Level::kDebug);
       return;
     case Format::kB3Alternative:
       B3FillWithTracingContext(span, request);
