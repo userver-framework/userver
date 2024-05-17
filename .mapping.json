@@ -2477,6 +2477,7 @@
   "redis/src/storages/redis/dynamic_config.cpp":"taxi/uservices/userver/redis/src/storages/redis/dynamic_config.cpp",
   "redis/src/storages/redis/dynamic_config.hpp":"taxi/uservices/userver/redis/src/storages/redis/dynamic_config.hpp",
   "redis/src/storages/redis/exception.cpp":"taxi/uservices/userver/redis/src/storages/redis/exception.cpp",
+  "redis/src/storages/redis/hedged_request_redistest.cpp":"taxi/uservices/userver/redis/src/storages/redis/hedged_request_redistest.cpp",
   "redis/src/storages/redis/impl/base.cpp":"taxi/uservices/userver/redis/src/storages/redis/impl/base.cpp",
   "redis/src/storages/redis/impl/cluster_sentinel_impl.cpp":"taxi/uservices/userver/redis/src/storages/redis/impl/cluster_sentinel_impl.cpp",
   "redis/src/storages/redis/impl/cluster_sentinel_impl.hpp":"taxi/uservices/userver/redis/src/storages/redis/impl/cluster_sentinel_impl.hpp",
