@@ -1,5 +1,7 @@
 ## MongoDB
 
+**Quality:** @ref QUALITY_TIERS "Platinum Tier".
+
 The mongo asynchronous driver provides an interface to work with MongoDB
 databases and the BSON format.
 

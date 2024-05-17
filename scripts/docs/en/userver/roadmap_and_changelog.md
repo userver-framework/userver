@@ -779,7 +779,7 @@ Detailed descriptions could be found below.
 
 ### Beta (April 2023)
 
-* MySQL driver was added, see @ref mysql_driver.
+* MySQL driver was added, see @ref scripts/docs/en/userver/mysql/mysql_driver.md.
 * Experimental support for HTTP "Baggage" header is implemented, including
   verification, forwarding from HTTP handlers to client, baggage manipulation.
   See baggage::BaggageManagerComponent for more info.

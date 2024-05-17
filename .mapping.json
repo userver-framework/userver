@@ -2914,6 +2914,7 @@
   "scripts/docs/en/userver/memory_profile_running_service.md":"taxi/uservices/userver/scripts/docs/en/userver/memory_profile_running_service.md",
   "scripts/docs/en/userver/mongodb.md":"taxi/uservices/userver/scripts/docs/en/userver/mongodb.md",
   "scripts/docs/en/userver/mysql/design_and_details.md":"taxi/uservices/userver/scripts/docs/en/userver/mysql/design_and_details.md",
+  "scripts/docs/en/userver/mysql/mysql_driver.md":"taxi/uservices/userver/scripts/docs/en/userver/mysql/mysql_driver.md",
   "scripts/docs/en/userver/mysql/supported_types.md":"taxi/uservices/userver/scripts/docs/en/userver/mysql/supported_types.md",
   "scripts/docs/en/userver/os_signals.md":"taxi/uservices/userver/scripts/docs/en/userver/os_signals.md",
   "scripts/docs/en/userver/periodics.md":"taxi/uservices/userver/scripts/docs/en/userver/periodics.md",

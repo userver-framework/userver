@@ -167,7 +167,7 @@ The actual usage:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/pg_connlimit_mode_auto.md | @ref scripts/docs/en/userver/kafka.md ⇨
+⇦ @ref scripts/docs/en/userver/pg_connlimit_mode_auto.md | @ref scripts/docs/en/userver/mysql/mysql_driver.md ⇨
 @htmlonly </div> @endhtmlonly
 
 

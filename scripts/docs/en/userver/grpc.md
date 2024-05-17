@@ -1,5 +1,7 @@
 # gRPC
 
+**Quality:** @ref QUALITY_TIERS "Platinum Tier".
+
 ## Introduction
 
 🐙 **userver** provides a gRPC driver as `userver-grpc` library. It uses ```namespace ugrpc::client``` and ```namespace ugrpc::server```.

@@ -35,8 +35,8 @@ You can learn more about history and key features of userver from our
 ## Other Features
 
 * Efficient asynchronous drivers for databases (MongoDB, PostgreSQL, Redis,
-  ClickHouse, MySQL/MariaDB (experimental) ...) and data transfer protocols
-  (HTTP, gRPC, AMQP 0-9-1 (experimental), Kafka (experimental), TCP, TLS,
+  ClickHouse, MySQL/MariaDB ...) and data transfer protocols
+  (HTTP, gRPC, AMQP 0-9-1, Kafka, TCP, TLS,
   WebSocket ...), tasks construction and cancellation.
 * Rich set of high-level components for caches, tasks, distributed locking,
   logging, tracing, statistics, metrics, JSON/YAML/BSON.
