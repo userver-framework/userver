@@ -1,12 +1,8 @@
 #include <userver/ydb/table.hpp>
 
 #include <userver/engine/deadline.hpp>
-#include <userver/formats/json/inline.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/server/request/task_inherited_data.hpp>
-#include <userver/testsuite/testpoint.hpp>
 #include <userver/tracing/span.hpp>
-#include <userver/utils/impl/userver_experiments.hpp>
 #include <userver/utils/statistics/writer.hpp>
 #include <userver/ydb/impl/cast.hpp>
 
@@ -21,9 +17,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ydb {
 namespace {
-
-utils::impl::UserverExperiment kYdbDeadlinePropagationExperiment(
-    "ydb-deadline-propagation");
 
 NYdb::NTable::TTxSettings PrepareTxSettings(const OperationSettings& settings) {
   switch (settings.tx_mode.value()) {
@@ -107,33 +100,6 @@ auto TableClient::ExecuteWithPathImpl(std::string_view path,
   return impl::GetFutureValueChecked(std::move(future), operation_name);
 }
 
-engine::Deadline TableClient::GetDeadline(
-    tracing::Span& span, const dynamic_config::Snapshot& config_snapshot) {
-  if (config_snapshot[impl::kDeadlinePropagationVersion] !=
-      impl::kDeadlinePropagationExperimentVersion) {
-    LOG_DEBUG() << "Wrong DP experiment version, config="
-                << config_snapshot[impl::kDeadlinePropagationVersion]
-                << ", experiment="
-                << impl::kDeadlinePropagationExperimentVersion;
-    return {};
-  }
-
-  if (!kYdbDeadlinePropagationExperiment.IsEnabled()) {
-    LOG_DEBUG() << "Deadline propagation is disabled via experiment";
-    return {};
-  }
-  const auto inherited_deadline = server::request::GetTaskInheritedDeadline();
-
-  if (inherited_deadline.IsReachable()) {
-    span.AddTag("deadline_timeout_ms",
-                std::chrono::duration_cast<std::chrono::milliseconds>(
-                    inherited_deadline.TimeLeft())
-                    .count());
-  }
-
-  return inherited_deadline;
-}
-
 void TableClient::BulkUpsert(std::string_view table, NYdb::TValue&& rows,
                              OperationSettings settings) {
   using Settings = NYdb::NTable::TBulkUpsertSettings;
@@ -202,6 +168,10 @@ NYdb::NTable::TTableClient& TableClient::GetNativeTableClient() {
 
 utils::RetryBudget& TableClient::GetRetryBudget() {
   return driver_->GetRetryBudget();
+}
+
+const OperationSettings& TableClient::GetDefaultOperationSettings() const {
+  return default_settings_;
 }
 
 void TableClient::MakeDirectory(const std::string& path) {
@@ -363,39 +333,6 @@ std::string TableClient::JoinDbPath(std::string_view path) const {
   return impl::JoinPath(driver_->GetDbPath(), path);
 }
 
-tracing::Span TableClient::MakeSpan(const Query& query,
-                                    const OperationSettings& settings,
-                                    tracing::Span* custom_parent_span,
-                                    utils::impl::SourceLocation location) {
-  auto span = custom_parent_span
-                  ? custom_parent_span->CreateChild("ydb_query")
-                  : tracing::Span("ydb_query", tracing::ReferenceType::kChild,
-                                  logging::Level::kInfo, location);
-
-  if (query.GetName()) {
-    span.AddTag("query_name", std::string{*query.GetName()});
-  } else {
-    span.AddTag("yql_query", query.Statement());
-  }
-  span.AddTag("max_retries", settings.retries);
-  span.AddTag("get_session_timeout_ms",
-              settings.get_session_timeout_ms.count());
-  span.AddTag("operation_timeout_ms", settings.operation_timeout_ms.count());
-  span.AddTag("cancel_after_ms", settings.cancel_after_ms.count());
-  span.AddTag("client_timeout_ms", settings.client_timeout_ms.count());
-
-  if (query.GetName()) {
-    try {
-      TESTPOINT("sql_statement", formats::json::MakeObject(
-                                     "name", query.GetName()->GetUnderlying()));
-    } catch (const std::exception& e) {
-      LOG_WARNING() << e;
-    }
-  }
-
-  return span;
-}
-
 void DumpMetric(utils::statistics::Writer& writer,
                 const TableClient& table_client) {
   writer = *table_client.stats_;
@@ -410,60 +347,6 @@ void DumpMetric(utils::statistics::Writer& writer,
 
 PreparedArgsBuilder TableClient::GetBuilder() const {
   return PreparedArgsBuilder(table_client_->GetParamsBuilder());
-}
-
-void TableClient::PrepareSettings(
-    const Query& query, const dynamic_config::Snapshot& config_snapshot,
-    OperationSettings& os, impl::IsStreaming is_streaming) const {
-  // Priority of the OperationSettings choosing. From low to high:
-  // 0. Driver's defaults
-  // 1. Static config
-  // 2. OperationSettings passed in code
-  // 3. Dynamic config
-
-  if (os.retries == 0) {
-    os.retries = default_settings_.retries;
-  }
-  if (os.operation_timeout_ms == std::chrono::milliseconds::zero()) {
-    os.operation_timeout_ms = default_settings_.operation_timeout_ms;
-  }
-  if (os.cancel_after_ms == std::chrono::milliseconds::zero()) {
-    os.cancel_after_ms = default_settings_.cancel_after_ms;
-  }
-  // For streaming operations, client timeout is applied to the entire
-  // streaming RPC. Meanwhile, streaming RPCs can be expected to take
-  // an unbounded amount of time. YDB gRPC machinery automatically checks
-  // that the server has not died, otherwise we'll get an exception.
-  //
-  // Timeouts specified in code, as well as in dynamic config, still apply.
-  // NOLINTNEXTLINE(bugprone-non-zero-enum-to-bool-conversion)
-  if (!static_cast<bool>(is_streaming)) {
-    if (os.client_timeout_ms == std::chrono::milliseconds::zero()) {
-      os.client_timeout_ms = default_settings_.client_timeout_ms;
-    }
-  }
-  if (os.get_session_timeout_ms == std::chrono::milliseconds::zero()) {
-    os.get_session_timeout_ms = default_settings_.get_session_timeout_ms;
-  }
-  if (!os.tx_mode) {
-    os.tx_mode = default_settings_.tx_mode.value();
-  }
-
-  const auto& cc_map = config_snapshot[impl::kQueryCommandControl];
-
-  if (!query.GetName()) return;
-  auto it = cc_map.find(query.GetName()->GetUnderlying());
-  if (it == cc_map.end()) return;
-
-  auto& cc = it->second;
-
-  if (cc.attempts) os.retries = cc.attempts.value();
-  if (cc.operation_timeout_ms)
-    os.operation_timeout_ms = cc.operation_timeout_ms.value();
-  if (cc.cancel_after_ms) os.cancel_after_ms = cc.cancel_after_ms.value();
-  if (cc.client_timeout_ms) os.client_timeout_ms = cc.client_timeout_ms.value();
-  if (cc.get_session_timeout_ms)
-    os.get_session_timeout_ms = cc.get_session_timeout_ms.value();
 }
 
 NYdb::NTable::TExecDataQuerySettings TableClient::ToExecQuerySettings(

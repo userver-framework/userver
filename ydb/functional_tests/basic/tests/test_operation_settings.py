@@ -53,7 +53,7 @@ async def test_get_settings_from_dynamic_config(
     async with service_client.capture_logs() as capture:
         operation_settings = {
             'select': {
-                'attempts': 4,
+                'attempts': 5,
                 'operation-timeout-ms': 1002,
                 'cancel-after-ms': 1002,
                 'client-timeout-ms': 1102,

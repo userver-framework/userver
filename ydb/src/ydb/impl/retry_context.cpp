@@ -9,8 +9,9 @@ namespace ydb::impl {
 NYdb::NRetry::TRetryOperationSettings PrepareRetrySettings(
     const OperationSettings& settings, bool is_retryable) {
   NYdb::NRetry::TRetryOperationSettings result;
-  if (settings.retries > 0 && is_retryable) {
-    result.MaxRetries(settings.retries);
+  if (is_retryable) {
+    UASSERT(settings.retries.has_value());
+    result.MaxRetries(*settings.retries);
   } else {
     result.MaxRetries(0);
   }
@@ -37,9 +38,6 @@ void HandleOnceRetry(utils::RetryBudget& retry_budget, NYdb::EStatus status) {
     retry_budget.AccountOk();
   }
 }
-
-RetryContext::RetryContext(utils::RetryBudget& retry_budget)
-    : retry_budget(retry_budget) {}
 
 }  // namespace ydb::impl
 

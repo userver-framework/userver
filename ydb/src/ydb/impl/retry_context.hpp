@@ -19,13 +19,6 @@ void HandleOnceRetry(utils::RetryBudget& retry_budget, NYdb::EStatus status);
 NYdb::NRetry::TRetryOperationSettings PrepareRetrySettings(
     const OperationSettings& settings, bool is_retryable);
 
-struct RetryContext final {
-  explicit RetryContext(utils::RetryBudget& retry_budget);
-
-  utils::RetryBudget& retry_budget;
-  std::size_t retries{0};
-};
-
 inline NYdb::TStatus MakeNonRetryableStatus() {
   return NYdb::TStatus{NYdb::EStatus::BAD_REQUEST, NYql::TIssues()};
 }
@@ -45,22 +38,22 @@ auto RetryOperation(impl::RequestContext& request_context, Func&& func) {
 
   static_assert(std::is_convertible_v<const ResultType&, NYdb::TStatus>);
 
-  RetryContext retry_context{request_context.table_client.GetRetryBudget()};
-  NYdb::NRetry::TRetryOperationSettings retry_settings{PrepareRetrySettings(
-      request_context.settings, retry_context.retry_budget.CanRetry())};
+  auto& retry_budget = request_context.table_client.GetRetryBudget();
+  NYdb::NRetry::TRetryOperationSettings retry_settings{
+      PrepareRetrySettings(request_context.settings, retry_budget.CanRetry())};
 
   auto final_result = utils::MakeSharedRef<std::optional<ResultType>>();
 
   return request_context.table_client.GetNativeTableClient()
       .RetryOperation(
           [final_result, func = std::forward<Func>(func),
-           retry_context = std::move(retry_context)](FuncArg arg) mutable {
+           &retry_budget = retry_budget](FuncArg arg) mutable {
             // If `func` throws, `RetryOperation` will immediately rethrow
             // the exception without further retries.
             AsyncResultType result_future = func(std::forward<FuncArg>(arg));
 
             return result_future.Apply(
-                [final_result, retry_context = &retry_context](
+                [final_result, &retry_budget = retry_budget](
                     const AsyncResultType& const_fut) mutable {
                   // If `const_fut` contains an exception, `ExtractValue` call
                   // will rethrow it, and `Apply` will pack it into the
@@ -75,11 +68,10 @@ auto RetryOperation(impl::RequestContext& request_context, Func&& func) {
                   NYdb::TStatus status{value};
                   final_result->emplace(std::move(value));
                   if (status.IsSuccess()) {
-                    retry_context->retry_budget.AccountOk();
+                    retry_budget.AccountOk();
                   } else if (IsRetryableStatus(status.GetStatus())) {
-                    if (retry_context->retry_budget.CanRetry()) {
-                      retry_context->retry_budget.AccountFail();
-                      retry_context->retries++;
+                    if (retry_budget.CanRetry()) {
+                      retry_budget.AccountFail();
                     } else {
                       return MakeNonRetryableStatus();
                     }
