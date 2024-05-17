@@ -203,7 +203,7 @@ PoolStats Pool<Task>::GetStats() const {
 
 template <typename Task>
 void Pool<Task>::PrepareLocalCache() {
-  local_coro_buffer_.reserve(config_.max_size);
+  local_coro_buffer_.reserve(config_.local_cache_size);
 }
 
 template <typename Task>

@@ -20,7 +20,7 @@ components_manager:
     max_size: $coro_pool_max_size
     max_size#fallback: 50000
     stack_size#env: USERVER_STACK_SIZE
-    local_cache_size#fallback: 32
+    local_cache_size: 32
   default_task_processor: main-task-processor
   mlock_debug_info: $variable_does_not_exist
   mlock_debug_info#env: MLOCK_DEBUG_INFO
