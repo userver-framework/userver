@@ -115,7 +115,6 @@ async def test_ok_compressed_zstd(call):
         data=zstd.compress('abcdefgh'.encode()),
         testsuite_skip_prepare=True,
     )
-    print(zstd.compress('abcdefgh'.encode()))
     assert response.status == 200
     assert response.text == 'OK!'
 
