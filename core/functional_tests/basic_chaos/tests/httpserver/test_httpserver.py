@@ -2,6 +2,7 @@
 import asyncio
 import enum
 import gzip
+import zstd
 import logging
 import typing
 
@@ -98,12 +99,23 @@ async def test_ok(call):
     assert response.text == 'OK!'
 
 
-async def test_ok_compressed(call):
+async def test_ok_compressed_gzip(call):
     response = await call(
         headers={'content-encoding': 'gzip'},
         data=gzip.compress('abcd'.encode()),
         testsuite_skip_prepare=True,
     )
+    assert response.status == 200
+    assert response.text == 'OK!'
+
+
+async def test_ok_compressed_zstd(call):
+    response = await call(
+        headers={'content-encoding': 'zstd'},
+        data=zstd.compress('abcdefgh'.encode()),
+        testsuite_skip_prepare=True,
+    )
+    print(zstd.compress('abcdefgh'.encode()))
     assert response.status == 200
     assert response.text == 'OK!'
 
