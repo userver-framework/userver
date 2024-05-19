@@ -26,6 +26,8 @@ UTEST(Zstd, DecompressSmall) {
       std::string_view(comp_buf, comp_size), max_size);
 
   EXPECT_EQ(str, decomp_str);
+
+  delete[] comp_buf;
 }
 
 UTEST(Zstd, DecompressLarge) {
@@ -47,6 +49,8 @@ UTEST(Zstd, DecompressLarge) {
       std::string_view(comp_buf, comp_size), max_size);
 
   EXPECT_EQ(str, decomp_str);
+
+  delete[] comp_buf;
 }
 
 USERVER_NAMESPACE_END
