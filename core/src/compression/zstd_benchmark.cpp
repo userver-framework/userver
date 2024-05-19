@@ -1,7 +1,7 @@
 #include <benchmark/benchmark.h>
 
-#include <iostream>
 #include <random>
+#include <chrono>
 
 #include <zstd.h>
 #include <compression/zstd.hpp>
@@ -14,7 +14,7 @@
 USERVER_NAMESPACE_BEGIN
 
 std::string GenerateRandomData(std::size_t size) {
-  std::mt19937 random_device;
+  std::mt19937 random_device(std::chrono::steady_clock::now().time_since_epoch().count());
   std::uniform_int_distribution<int> dist(0, 25);
   std::string output = "";
   for (std::size_t ind = 0; ind < size; ++ind) {
