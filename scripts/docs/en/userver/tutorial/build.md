@@ -69,6 +69,7 @@ The following CMake options are used by userver:
 | USERVER_DISABLE_PHDR_CACHE             | Disable caching of dl_phdr_info items, which interferes with dlopen                                                   | OFF                                                    |
 | USERVER_DISABLE_RSEQ_ACCELERATION      | Disable rseq-based optimizations, which may not work depending on kernel/glibc/distro/etc version                     | OFF for x86 Linux, ON otherwise                        |
 | USERVER_FEATURE_UBOOST_CORO            | Build with vendored version of Boost.context and Boost.coroutine2, is needed for sanitizers builds                    | OFF for arm64 macOS, ON otherwise                      |
+| USERVER_GENERATE_PROTOS_AT_CONFIGURE   | Run protoc at CMake Configure time for better IDE integration                                                         | OFF for downloaded Protobuf, ON otherwise              |
 
 [hi_malloc]: https://bugs.launchpad.net/ubuntu/+source/hiredis/+bug/1888025
 

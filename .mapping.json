@@ -144,7 +144,6 @@
   "cmake/AddGoogleTests.cmake":"taxi/uservices/userver/cmake/AddGoogleTests.cmake",
   "cmake/ChaoticGen.cmake":"taxi/uservices/userver/cmake/ChaoticGen.cmake",
   "cmake/CheckCompileFlags.cmake":"taxi/uservices/userver/cmake/CheckCompileFlags.cmake",
-  "cmake/CheckSubmodule.cmake":"taxi/uservices/userver/cmake/CheckSubmodule.cmake",
   "cmake/DetectVersion.cmake":"taxi/uservices/userver/cmake/DetectVersion.cmake",
   "cmake/DownloadUsingCPM.cmake":"taxi/uservices/userver/cmake/DownloadUsingCPM.cmake",
   "cmake/FindPackageRequired.cmake":"taxi/uservices/userver/cmake/FindPackageRequired.cmake",

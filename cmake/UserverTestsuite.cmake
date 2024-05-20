@@ -21,6 +21,7 @@
 # on non-cache variables being present.
 include_guard(GLOBAL)
 
+# Pack initialization into a function to avoid non-cache variable leakage.
 function(_userver_prepare_testsuite)
   set(USERVER_PYTHON_PATH "python3" CACHE FILEPATH "Path to python3 executable to use")
   message(STATUS "Python: ${USERVER_PYTHON_PATH}")
@@ -44,6 +45,8 @@ function(_userver_prepare_testsuite)
     endif()
     set(USERVER_PYTHON_DEV_CHECKED TRUE CACHE INTERNAL "")
   endif()
+
+  set_property(GLOBAL PROPERTY userver_cmake_dir "${CMAKE_CURRENT_LIST_DIR}")
 
   if(NOT USERVER_TESTSUITE_DIR)
     get_filename_component(
@@ -200,6 +203,7 @@ function(userver_testsuite_requirements)
   cmake_parse_arguments(
       ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}")
 
+  get_property(USERVER_CMAKE_DIR GLOBAL PROPERTY userver_cmake_dir)
   get_property(USERVER_TESTSUITE_DIR GLOBAL PROPERTY userver_testsuite_dir)
 
   list(APPEND requirements_files
@@ -209,7 +213,7 @@ function(userver_testsuite_requirements)
     get_property(protobuf_category
         GLOBAL PROPERTY userver_protobuf_version_category)
     if(NOT protobuf_category)
-      include(SetupProtobuf)
+      include("${USERVER_CMAKE_DIR}/SetupProtobuf.cmake")
       get_property(protobuf_category
           GLOBAL PROPERTY userver_protobuf_version_category)
     endif()

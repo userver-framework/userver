@@ -130,7 +130,6 @@ endif()
 
 include(GetUserverVersion)
 include(AddGoogleTests)
-include(CheckSubmodule)
 include(FindPackageRequired)
 include(IncludeWhatYouUse)
 # For userver_venv_setup below.
