@@ -22,13 +22,12 @@ std::string Decompress(std::string_view compressed, size_t max_size) {
   }
 
   {
-    ZSTD_ResetDirective reset = ZSTD_ResetDirective::ZSTD_reset_session_and_parameters;
-    auto err_code = ZSTD_DCtx_reset(stream, reset);
+    auto err_code = ZSTD_DCtx_reset(
+        stream, ZSTD_ResetDirective::ZSTD_reset_session_and_parameters);
     if (ZSTD_isError(err_code)) {
       throw ErrWithCode(ZSTD_getErrorName(err_code));
     }
   }
-
 
   auto stream_del = [](ZSTD_DStream* ptr) { ZSTD_freeDStream(ptr); };
   auto stream_guard =
