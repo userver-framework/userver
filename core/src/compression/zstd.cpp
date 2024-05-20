@@ -8,19 +8,17 @@ USERVER_NAMESPACE_BEGIN
 namespace compression::zstd {
 
 namespace {
-  /// The same size as in ZSTD_DStreamOutSize();
-  constexpr size_t kDecompressBufferSize = 131'072;
-}
+// The same size as in ZSTD_DStreamOutSize();
+constexpr size_t kDecompressBufferSize = 1024;
+}  // namespace
 
 std::string Decompress(std::string_view compressed, size_t max_size) {
-    std::string decompressed;
+  std::string decompressed;
 
   auto* stream = ZSTD_createDStream();
-
   if (stream == nullptr) {
     throw std::runtime_error("Couldn't create ZSTD decompression stream");
   }
-
   ZSTD_initDStream(stream);
 
   for (size_t cur_pos(0); cur_pos < compressed.size();) {
