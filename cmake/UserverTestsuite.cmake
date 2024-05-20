@@ -17,8 +17,8 @@ include_guard(GLOBAL)
 
 # Pack initialization into a function to avoid non-cache variable leakage.
 function(_userver_prepare_testsuite)
-  get_property(USERVER_CMAKE_DIR GLOBAL PROPERTY userver_cmake_dir)
-  include("${USERVER_CMAKE_DIR}/UserverVenv.cmake")
+  include("${CMAKE_CURRENT_LIST_DIR}/UserverVenv.cmake")
+  set_property(GLOBAL PROPERTY userver_cmake_dir "${CMAKE_CURRENT_LIST_DIR}")
 
   option(USERVER_FEATURE_TESTSUITE "Enable functional tests via testsuite" ON)
 
@@ -33,8 +33,6 @@ function(_userver_prepare_testsuite)
     endif()
     set(USERVER_PYTHON_DEV_CHECKED TRUE CACHE INTERNAL "")
   endif()
-
-  set_property(GLOBAL PROPERTY userver_cmake_dir "${CMAKE_CURRENT_LIST_DIR}")
 
   if(NOT USERVER_TESTSUITE_DIR)
     get_filename_component(

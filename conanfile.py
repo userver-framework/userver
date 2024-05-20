@@ -328,6 +328,13 @@ class UserverConan(ConanFile):
         if self.options.with_grpc or self.options.with_utest:
             copy(
                 self,
+                pattern='UserverVenv.cmake',
+                dst=os.path.join(self.package_folder, 'cmake'),
+                src=os.path.join(self.source_folder, 'cmake'),
+                keep_path=True,
+            )
+            copy(
+                self,
                 pattern='UserverTestsuite.cmake',
                 dst=os.path.join(self.package_folder, 'cmake'),
                 src=os.path.join(self.source_folder, 'cmake'),
@@ -649,7 +656,6 @@ class UserverConan(ConanFile):
         add_components(self._userver_components)
 
         build_modules = [
-            os.path.join(self._cmake_subfolder, 'UserverVenv.cmake'),
             os.path.join(self._cmake_subfolder, 'UserverTestsuite.cmake'),
         ]
         if self.options.with_utest:
