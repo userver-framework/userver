@@ -76,16 +76,6 @@ if(USERVER_FEATURE_CORE AND USERVER_IS_THE_ROOT_PROJECT AND
   set(USERVER_YDB_DEFAULT ON)
 endif()
 
-set(USERVER_UBOOST_CORO_DEFAULT ON)
-if(CMAKE_SYSTEM_NAME MATCHES "Darwin" AND CMAKE_SYSTEM_PROCESSOR MATCHES "arm64")
-  set(USERVER_UBOOST_CORO_DEFAULT OFF)
-  if("${Boost_VERSION_STRING}" VERSION_LESS "1.83.0")
-    message(FATAL_ERROR
-        "Please update Boost to at least 1.83.0, it contains important fixes "
-        "for Boost.Context and Boost.Coroutine2")
-  endif()
-endif()
-
 option(USERVER_CONAN "Build with Conan packages" ${CONAN_EXPORTED})
 
 option(
@@ -183,8 +173,6 @@ option(USERVER_FEATURE_RABBITMQ "Provide asynchronous driver for RabbitMQ" "${US
 option(USERVER_FEATURE_MYSQL "Provide asynchronous driver for MariaDB/MySQL" "${USERVER_LIB_ENABLED_DEFAULT}")
 option(USERVER_FEATURE_ROCKS "Provide asynchronous driver for Rocks" "${USERVER_LIB_ENABLED_DEFAULT}")
 option(USERVER_FEATURE_YDB "Provide asynchronous driver for YDB" "${USERVER_YDB_DEFAULT}")
-
-option(USERVER_FEATURE_UBOOST_CORO "Use vendored boost context instead of a system one" "${USERVER_UBOOST_CORO_DEFAULT}")
 
 if (USERVER_FEATURE_GRPC)
   include(cmake/SetupProtobuf.cmake)
