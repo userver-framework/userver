@@ -17,10 +17,10 @@ std::string Decompress(std::string_view compressed, size_t max_size) {
   std::string buf(kDecompressBufferSize, ' ');
 
   auto* stream = ZSTD_createDStream();
-  ZSTD_initDStream(stream);
   if (stream == nullptr) {
     throw std::runtime_error("Couldn't create ZSTD decompression stream");
   }
+  ZSTD_initDStream(stream);
 
   auto stream_del = [](ZSTD_DStream* ptr) { ZSTD_freeDStream(ptr); };
   auto stream_guard =
