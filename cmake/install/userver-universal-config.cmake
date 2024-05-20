@@ -34,6 +34,7 @@ include("${USERVER_CMAKE_DIR}/Sanitizers.cmake")
 include("${USERVER_CMAKE_DIR}/SetupLTO.cmake")
 include("${USERVER_CMAKE_DIR}/SetupLinker.cmake")
 include("${USERVER_CMAKE_DIR}/UserverSetupEnvironment.cmake")
+include("${USERVER_CMAKE_DIR}/UserverVenv.cmake")
 
 _userver_make_sanitize_blacklist()
 

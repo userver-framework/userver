@@ -395,6 +395,7 @@ if (USERVER_INSTALL)
       "${USERVER_ROOT_DIR}/cmake/AddGoogleTests.cmake"
       "${USERVER_ROOT_DIR}/cmake/DetectVersion.cmake"
       "${USERVER_ROOT_DIR}/cmake/UserverSetupEnvironment.cmake"
+      "${USERVER_ROOT_DIR}/cmake/UserverVenv.cmake"
       "${USERVER_ROOT_DIR}/cmake/install/userver-universal-config.cmake"
       DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
   )
