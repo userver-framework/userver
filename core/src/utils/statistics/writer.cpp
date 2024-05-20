@@ -1,5 +1,7 @@
 #include <userver/utils/statistics/writer.hpp>
 
+#include <algorithm>
+
 #include <fmt/format.h>
 #include <boost/numeric/conversion/cast.hpp>
 
