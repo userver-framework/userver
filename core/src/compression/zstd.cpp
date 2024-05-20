@@ -9,11 +9,12 @@ namespace compression::zstd {
 
 namespace {
 // The same size as in ZSTD_DStreamOutSize();
-constexpr size_t kDecompressBufferSize = 1024;
+const size_t kDecompressBufferSize = ZSTD_DStreamOutSize();
 }  // namespace
 
 std::string Decompress(std::string_view compressed, size_t max_size) {
   std::string decompressed;
+  const std::string buf(kDecompressBufferSize, ' ');
 
   auto* stream = ZSTD_createDStream();
   if (stream == nullptr) {
@@ -22,11 +23,11 @@ std::string Decompress(std::string_view compressed, size_t max_size) {
   ZSTD_initDStream(stream);
 
   for (size_t cur_pos(0); cur_pos < compressed.size();) {
-    char buf[kDecompressBufferSize];
-    ZSTD_inBuffer input{
-        compressed.data() + cur_pos,
-        std::min(kDecompressBufferSize, compressed.size() - cur_pos), 0};
-    ZSTD_outBuffer output{buf, sizeof(buf), 0};
+    ZSTD_inBuffer input{compressed.data() + cur_pos,
+                        std::min(kDecompressBufferSize,
+                                 compressed.size() - cur_pos),
+                        0};
+    ZSTD_outBuffer output{const_cast<char*>(buf.data()), buf.size(), 0};
     auto* output_pos = static_cast<char*>(output.dst);
 
     while (input.pos < input.size) {
