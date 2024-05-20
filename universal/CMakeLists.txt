@@ -234,6 +234,7 @@ target_link_libraries(${PROJECT_NAME}
     Boost::regex
     OpenSSL::Crypto
     OpenSSL::SSL
+    zstd
 )
 
 if (USERVER_CONAN)

@@ -1,4 +1,4 @@
-#include <compression/zstd.hpp>
+#include <userver/compression/zstd.hpp>
 
 #include <zstd.h>
 #include <zstd_errors.h>
@@ -23,10 +23,9 @@ std::string Decompress(std::string_view compressed, size_t max_size) {
   ZSTD_initDStream(stream);
 
   for (size_t cur_pos(0); cur_pos < compressed.size();) {
-    ZSTD_inBuffer input{compressed.data() + cur_pos,
-                        std::min(kDecompressBufferSize,
-                                 compressed.size() - cur_pos),
-                        0};
+    ZSTD_inBuffer input{
+        compressed.data() + cur_pos,
+        std::min(kDecompressBufferSize, compressed.size() - cur_pos), 0};
     ZSTD_outBuffer output{const_cast<char*>(buf.data()), buf.size(), 0};
     auto* output_pos = static_cast<char*>(output.dst);
 

@@ -116,7 +116,6 @@ target_link_libraries(${PROJECT_NAME}
     OpenSSL::Crypto
     OpenSSL::SSL
     ZLIB::ZLIB
-        zstd
 )
 
 add_subdirectory(${USERVER_THIRD_PARTY_DIRS}/llhttp llhttp)

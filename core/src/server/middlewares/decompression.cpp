@@ -1,7 +1,7 @@
 #include <server/middlewares/decompression.hpp>
 
 #include <compression/gzip.hpp>
-#include <compression/zstd.hpp>
+#include <userver/compression/zstd.hpp>
 
 #include <userver/http/common_headers.hpp>
 #include <userver/server/handlers/exceptions.hpp>

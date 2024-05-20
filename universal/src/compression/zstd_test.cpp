@@ -1,12 +1,12 @@
-#include <userver/utest/utest.hpp>
+#include <gtest/gtest.h>
 
 #include <userver/logging/log.hpp>
-#include <compression/zstd.hpp>
+#include <userver/compression/zstd.hpp>
 #include <zstd.h>
 
 USERVER_NAMESPACE_BEGIN
 
-UTEST(Zstd, DecompressSmall) {
+TEST(Zstd, DecompressSmall) {
   const std::size_t kSize = 8;
   const char* kBuf = "abcdefgh";
   std::string str(kBuf);
@@ -28,7 +28,7 @@ UTEST(Zstd, DecompressSmall) {
   EXPECT_EQ(str, decomp_str);
 }
 
-UTEST(Zstd, DecompressLarge) {
+TEST(Zstd, DecompressLarge) {
   const std::size_t kSize = 16'000;
   std::string str(kSize, 'a');
 
