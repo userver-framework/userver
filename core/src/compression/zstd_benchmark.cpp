@@ -31,10 +31,10 @@ static void ZstdDecompress(benchmark::State& state) {
     auto data = GenerateRandomData(kSize);
 
     const std::size_t kMaxSize = ZSTD_compressBound(kSize);
-    char* comp_buf = new char[kMaxSize];
+    std::string comp_buf (kMaxSize, '\0');
 
     const std::size_t kCompSize =
-        ZSTD_compress(comp_buf, kMaxSize, data.data(), kSize, 1);
+        ZSTD_compress(comp_buf.data(), kMaxSize, data.data(), kSize, 1);
 
     if (ZSTD_isError(kCompSize)) {
       LOG_ERROR() << "Couldn't compress data!";
@@ -43,7 +43,7 @@ static void ZstdDecompress(benchmark::State& state) {
 
     state.ResumeTiming();
     auto decomp_str = compression::zstd::Decompress(
-        std::string_view(comp_buf, kCompSize), kSize);
+        std::string_view(comp_buf.data(), kCompSize), kSize);
   }
 }
 BENCHMARK(ZstdDecompress)->RangeMultiplier(2)->Range(1 << 10, 1 << 15);
