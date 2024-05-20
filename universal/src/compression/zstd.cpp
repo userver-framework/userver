@@ -14,7 +14,7 @@ const size_t kDecompressBufferSize = ZSTD_DStreamOutSize();
 
 std::string Decompress(std::string_view compressed, size_t max_size) {
   std::string decompressed;
-  const std::string buf(kDecompressBufferSize, ' ');
+  std::string buf(kDecompressBufferSize, ' ');
 
   auto* stream = ZSTD_createDStream();
   if (stream == nullptr) {
@@ -26,7 +26,7 @@ std::string Decompress(std::string_view compressed, size_t max_size) {
     ZSTD_inBuffer input{
         compressed.data() + cur_pos,
         std::min(kDecompressBufferSize, compressed.size() - cur_pos), 0};
-    ZSTD_outBuffer output{const_cast<char*>(buf.data()), buf.size(), 0};
+    ZSTD_outBuffer output{static_cast<char*>(buf.data()), buf.size(), 0};
     auto* output_pos = static_cast<char*>(output.dst);
 
     while (input.pos < input.size) {
