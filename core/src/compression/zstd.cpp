@@ -3,8 +3,6 @@
 #include <zstd.h>
 #include <zstd_errors.h>
 
-#include <iostream>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace compression::zstd {
