@@ -63,6 +63,25 @@ Read the documentation on gRPC streams:
 
 On errors, exceptions from userver/ugrpc/client/exceptions.hpp are thrown. It is recommended to catch them outside the entire stream interaction. You can catch exceptions for [specific gRPC error codes](https://grpc.github.io/grpc/core/md_doc_statuscodes.html) or all at once.
 
+### TLS / SSL
+
+May be enabled via
+
+```
+# yaml
+components_manager:
+    components:
+        grpc-client-factory:
+            auth-type: ssl
+```
+
+Available values are:
+
+- `insecure` (default)
+- `ssl`
+
+SSL **has to be disabled** in tests (e.g. via `config_vars`), because it requires a public DNS.
+
 ## gRPC services
 
 ### Service creation
@@ -91,24 +110,6 @@ Read the documentation on gRPC streams:
 * Request stream, response stream ugrpc::server::BidirectionalStream
 
 On connection errors, exceptions from userver/ugrpc/server/exceptions.hpp are thrown. It is recommended not to catch them, leading to RPC interruption. You can catch exceptions for [specific gRPC error codes](https://grpc.github.io/grpc/core/md_doc_statuscodes.html) or all at once.
-
-### TLS / SSL
-
-May be enabled via
-```
-components_manager:
-    components:
-        grpc-client-factory:
-            auth-type: ssl
-```
-
-Available values are
-```
-- insecure (default)
-- ssl
-```
-
-Also note, that SSL **has to be disabled** in tests (e.g. via config_vars).
 
 ### Custom server credentials
 
