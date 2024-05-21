@@ -1,11 +1,15 @@
 #include <userver/utest/using_namespace_userver.hpp>
 
 /// [Hello service sample - component]
-#include <userver/components/minimal_server_component_list.hpp>
+#include "hello_service.hpp"
+
 #include <userver/server/handlers/http_handler_base.hpp>
-#include <userver/utils/daemon_run.hpp>
+
+#include "say_hello.hpp"
 
 namespace samples::hello {
+
+namespace {
 
 class Hello final : public server::handlers::HttpHandlerBase {
  public:
@@ -16,19 +20,17 @@ class Hello final : public server::handlers::HttpHandlerBase {
   using HttpHandlerBase::HttpHandlerBase;
 
   std::string HandleRequestThrow(
-      const server::http::HttpRequest&,
+      const server::http::HttpRequest& request,
       server::request::RequestContext&) const override {
-    return "Hello world!\n";
+    return samples::hello::SayHelloTo(request.GetArg("name"));
   }
 };
 
+}  // namespace
+
+void AppendHello(components::ComponentList& component_list) {
+  component_list.Append<Hello>();
+}
+
 }  // namespace samples::hello
 /// [Hello service sample - component]
-
-/// [Hello service sample - main]
-int main(int argc, char* argv[]) {
-  const auto component_list =
-      components::MinimalServerComponentList().Append<samples::hello::Hello>();
-  return utils::DaemonMain(argc, argv, component_list);
-}
-/// [Hello service sample - main]
