@@ -51,24 +51,19 @@ bool Decompression::DecompressRequestBody(http::HttpRequest& request) const {
   }};
 
   try {
+    std::string body;
     if (content_encoding == "gzip") {
-      auto body = compression::gzip::Decompress(request.RequestBody(),
+      body = compression::gzip::Decompress(request.RequestBody(),
                                                 max_request_size_);
-      request.SetRequestBody(std::move(body));
-      if (parse_args_from_body_) {
-        request.ParseArgsFromBody();
-      }
-      return true;
-    }
-    if (content_encoding == "zstd") {
-      auto body = compression::zstd::Decompress(request.RequestBody(),
+    } else if (content_encoding == "zstd") {
+      body = compression::zstd::Decompress(request.RequestBody(),
                                                 max_request_size_);
-      request.SetRequestBody(std::move(body));
-      if (parse_args_from_body_) {
-        request.ParseArgsFromBody();
-      }
-      return true;
     }
+    request.SetRequestBody(std::move(body));
+    if (parse_args_from_body_) {
+      request.ParseArgsFromBody();
+    }
+    return true;
   } catch (const compression::TooBigError&) {
     handler_.HandleCustomHandlerException(
         request,
