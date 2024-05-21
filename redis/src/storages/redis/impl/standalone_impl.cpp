@@ -153,11 +153,10 @@ void StandaloneImpl::ProcessWaitingCommandsOnStop() {
 
 namespace {
 
-template <typename Callback>
-std::shared_ptr<utils::FastScopeGuard<Callback>> MakeSharedScopeGuard(
-    Callback cb) {
-  return std::make_shared<utils::FastScopeGuard<Callback>>(std::move(cb));
-}
+constexpr redis::RedisCreationSettings makeRedisCreationSettings() {
+    // Нам нужно без READONLY - второй поле структуры RedisCreationSettings в false
+    return redis::RedisCreationSettings{ConnectionSecurity::kNone, false};
+  }
 
 }  // namespace
 
@@ -186,7 +185,7 @@ StandaloneImpl::StandaloneImpl(
       dynamic_config_source_(std::move(dynamic_config_source)),
       connection_holder_(new RedisConnectionHolder(
         ev_thread_, redis_thread_pool_, conn_.host, conn_.port, password_,
-        CommandsBufferingSettings{}, ReplicationMonitoringSettings{}, utils::RetryBudgetSettings{})),
+        CommandsBufferingSettings{}, ReplicationMonitoringSettings{}, utils::RetryBudgetSettings{}, makeRedisCreationSettings())),
       master_shard_ (kUnknownShard, connection_holder_, {}) {
   // https://github.com/boostorg/signals2/issues/59
   // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)

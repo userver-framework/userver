@@ -5,6 +5,7 @@
 #include <storages/redis/impl/cluster_sentinel_impl.hpp>
 #include <storages/redis/impl/redis.hpp>
 #include <storages/redis/impl/sentinel.hpp>
+#include <storages/redis/impl/redis_creation_settings.hpp>
 #include <userver/concurrent/variable.hpp>
 #include <userver/rcu/rcu.hpp>
 
@@ -17,13 +18,20 @@ namespace redis {
 class RedisConnectionHolder
     : public std::enable_shared_from_this<RedisConnectionHolder> {
  public:
+  static constexpr redis::RedisCreationSettings makeDefaultRedisCreationSettings() {
+    /// Here we allow read from replicas possibly stale data.
+    /// This does not affect connections to masters
+    return redis::RedisCreationSettings{ConnectionSecurity::kNone, true};
+  }
+
   RedisConnectionHolder(
       const engine::ev::ThreadControl& sentinel_thread_control,
       const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
       const std::string& host, uint16_t port, Password password,
       CommandsBufferingSettings buffering_settings,
       ReplicationMonitoringSettings replication_monitoring_settings,
-      utils::RetryBudgetSettings retry_budget_settings);
+      utils::RetryBudgetSettings retry_budget_settings,
+      redis::RedisCreationSettings redis_creation_settings = makeDefaultRedisCreationSettings());
   ~RedisConnectionHolder();
   RedisConnectionHolder(const RedisConnectionHolder&) = delete;
   RedisConnectionHolder& operator=(const RedisConnectionHolder&) = delete;
@@ -57,6 +65,7 @@ class RedisConnectionHolder
   const Password password_;
   rcu::Variable<std::shared_ptr<Redis>, StdMutexRcuTraits> redis_;
   engine::ev::PeriodicWatcher connection_check_timer_;
+  const RedisCreationSettings redis_creation_settings_;
 };
 
 }  // namespace redis
