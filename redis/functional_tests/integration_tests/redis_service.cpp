@@ -122,6 +122,7 @@ int main(int argc, char* argv[]) {
       components::MinimalServerComponentList()
           .Append<chaos::KeyValue>("handler-cluster")
           .Append<chaos::KeyValue>("handler-sentinel")
+          .Append<chaos::KeyValue>("handler-standalone")
           .Append<components::HttpClient>()
           .Append<components::Secdist>()
           .Append<components::DefaultSecdistProvider>()
