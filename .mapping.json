@@ -2758,7 +2758,6 @@
   "samples/production_service/tests/conftest.py":"taxi/uservices/userver/samples/production_service/tests/conftest.py",
   "samples/production_service/tests/test_ping.py":"taxi/uservices/userver/samples/production_service/tests/test_ping.py",
   "samples/production_service/tests/test_production.py":"taxi/uservices/userver/samples/production_service/tests/test_production.py",
-  "samples/pytest.ini":"taxi/uservices/userver/samples/pytest.ini",
   "samples/rabbitmq_service/CMakeLists.txt":"taxi/uservices/userver/samples/rabbitmq_service/CMakeLists.txt",
   "samples/rabbitmq_service/rabbitmq_service.cpp":"taxi/uservices/userver/samples/rabbitmq_service/rabbitmq_service.cpp",
   "samples/rabbitmq_service/static_config.yaml":"taxi/uservices/userver/samples/rabbitmq_service/static_config.yaml",

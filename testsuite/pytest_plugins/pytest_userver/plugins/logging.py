@@ -1,3 +1,4 @@
+import asyncio
 import io
 import logging
 import pathlib
@@ -33,19 +34,19 @@ class LogFile:
             eof_handler: typing.Optional[typing.Callable[[], bool]] = None,
     ):
         first_skipped = False
-        for line in _raw_line_reader(
+        for line, position in _raw_line_reader(
                 self.path, self.position, eof_handler=eof_handler,
         ):
             # userver does not give any gurantees about log file encoding
             line = line.decode(encoding='utf-8', errors='backslashreplace')
             if not first_skipped:
                 first_skipped = True
-                if not line.startswith('tskv '):
+                if not line.startswith('tskv\t'):
                     continue
             if not line.endswith('\n'):
                 continue
+            self.position = position
             yield line
-        self.update_position()
 
 
 class LiveLogHandler:
@@ -98,18 +99,32 @@ class UserverLoggingPlugin:
         self._logs = {}
         if live_logs_enabled:
             self._live_logs = LiveLogHandler(colorize_factory=colorize_factory)
+        self._flushers = []
 
     def pytest_sessionfinish(self, session):
         if self._live_logs:
             self._live_logs.join()
 
+    @pytest.hookimpl(wrapper=True)
     def pytest_runtest_setup(self, item):
-        for logfile in self._logs.values():
-            logfile.update_position()
+        self._flushers.clear()
+        self.update_position()
+        yield from self._userver_log_dump(item, 'setup')
+
+    @pytest.hookimpl(wrapper=True)
+    def pytest_runtest_call(self, item):
+        yield from self._userver_log_dump(item, 'call')
 
     @pytest.hookimpl(wrapper=True)
     def pytest_runtest_teardown(self, item):
         yield from self._userver_log_dump(item, 'teardown')
+
+    def update_position(self):
+        for logfile in self._logs.values():
+            logfile.update_position()
+
+    def register_flusher(self, func):
+        self._flushers.append(func)
 
     def register_logfile(self, path: pathlib.Path, title: str):
         logger.info('Watching service log file: %s', path)
@@ -124,10 +139,9 @@ class UserverLoggingPlugin:
         except Exception:
             self._userver_report_attach(item, when)
             raise
-        if item.utestsuite_report.failed:
-            self._userver_report_attach(item, when)
 
     def _userver_report_attach(self, item, when):
+        self._run_flushers()
         for (_, title), logfile in self._logs.items():
             self._userver_report_attach_log(logfile, item, when, title)
 
@@ -143,6 +157,13 @@ class UserverLoggingPlugin:
         value = report.getvalue()
         if value:
             item.add_report_section(when, title, value)
+
+        self._run_flushers()
+
+    def _run_flushers(self):
+        loop = asyncio.get_event_loop()
+        for flusher in self._flushers:
+            loop.run_until_complete(flusher())
 
 
 @pytest.fixture(scope='session')
@@ -267,24 +288,21 @@ def _raw_line_reader(
         path: pathlib.Path,
         position: int = 0,
         eof_handler: typing.Optional[typing.Callable[[], bool]] = None,
-        bufsize: int = 16384,
-):
-    buf = b''
+) -> int:
     with path.open('rb') as fp:
-        fp.seek(position)
+        position = fp.seek(position)
         while True:
-            chunk = fp.read(bufsize)
-            if not chunk:
-                if not eof_handler:
-                    break
-                if eof_handler():
-                    break
-            else:
-                buf += chunk
-                lines = buf.splitlines(keepends=True)
-                if not lines[-1].endswith(b'\n'):
-                    buf = lines[-1]
-                    del lines[-1]
+            partial = None
+            for line in fp:
+                if partial:
+                    line = partial + line
+                    partial = None
+                if line.endswith(b'\n'):
+                    position += len(line)
+                    yield line, position
                 else:
-                    buf = b''
-                yield from lines
+                    partial = line
+            if not eof_handler:
+                break
+            if eof_handler():
+                break

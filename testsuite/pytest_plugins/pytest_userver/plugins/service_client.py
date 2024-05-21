@@ -116,7 +116,7 @@ async def service_client(
 
 
 @pytest.fixture
-def userver_client_cleanup(request, userver_flush_logs):
+def userver_client_cleanup(request, _userver_logging_plugin):
     marker = request.node.get_closest_marker('suspend_periodic_tasks')
     if marker:
         tasks_to_suspend = marker.args
@@ -125,40 +125,23 @@ def userver_client_cleanup(request, userver_flush_logs):
 
     @compat.asynccontextmanager
     async def cleanup_manager(client: client.AiohttpClient):
-        async with userver_flush_logs(client):
-            await client.suspend_periodic_tasks(tasks_to_suspend)
-            try:
-                yield client
-            finally:
-                await client.resume_all_periodic_tasks()
-
-    return cleanup_manager
-
-
-@pytest.fixture
-def userver_flush_logs(request):
-    """Flush logs in case of failure."""
-
-    @compat.asynccontextmanager
-    async def flush_logs(service_client: client.AiohttpClient):
+        @_userver_logging_plugin.register_flusher
         async def do_flush():
             try:
-                await service_client.log_flush()
+                await client.log_flush()
             except aiohttp.client_exceptions.ClientResponseError:
                 pass
 
-        failed = False
-        try:
-            yield
-        except Exception:
-            failed = True
-            raise
-        finally:
-            item = request.node
-            if failed or item.utestsuite_report.failed:
-                await do_flush()
+        # Service is already started we don't want startup logs to be shown
+        _userver_logging_plugin.update_position()
 
-    return flush_logs
+        await client.suspend_periodic_tasks(tasks_to_suspend)
+        try:
+            yield client
+        finally:
+            await client.resume_all_periodic_tasks()
+
+    return cleanup_manager
 
 
 @pytest.fixture
