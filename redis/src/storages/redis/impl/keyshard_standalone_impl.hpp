@@ -3,7 +3,7 @@
 
 #include <userver/storages/redis/impl/keyshard.hpp>
 
-#include <numeric>
+#include <limits>
 
 USERVER_NAMESPACE_BEGIN
 
