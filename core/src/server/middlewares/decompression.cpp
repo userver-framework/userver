@@ -54,10 +54,10 @@ bool Decompression::DecompressRequestBody(http::HttpRequest& request) const {
     std::string body;
     if (content_encoding == "gzip") {
       body = compression::gzip::Decompress(request.RequestBody(),
-                                                max_request_size_);
+                                           max_request_size_);
     } else if (content_encoding == "zstd") {
       body = compression::zstd::Decompress(request.RequestBody(),
-                                                max_request_size_);
+                                           max_request_size_);
     }
     request.SetRequestBody(std::move(body));
     if (parse_args_from_body_) {
