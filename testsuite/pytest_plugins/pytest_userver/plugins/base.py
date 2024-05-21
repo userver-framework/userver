@@ -45,6 +45,9 @@ def pytest_addoption(parser) -> None:
     )
 
 
+def pytest_configure(config):
+    config.option.asyncio_mode = 'auto'
+
 @pytest.fixture(scope='session')
 def service_source_dir(pytestconfig) -> pathlib.Path:
     """
