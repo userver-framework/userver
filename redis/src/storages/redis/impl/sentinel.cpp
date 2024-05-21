@@ -23,6 +23,8 @@
 #include <storages/redis/impl/subscribe_sentinel.hpp>
 
 #include "command_control_impl.hpp"
+#include <storages/redis/impl/standalone_impl.hpp>
+#include "keyshard_standalone_impl.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -91,6 +93,16 @@ Sentinel::Sentinel(
           shards, conns, std::move(shard_group_name), client_name, password,
           connection_security, std::move(ready_callback), std::move(key_shard),
           dynamic_config_source, mode);
+
+    } else if(dynamic_cast<KeyShardStandalone*>(key_shard.get())) {
+
+      UASSERT_MSG(conns.size() == 1, "In standalone mode we expect exactly one redis node to connect!");
+      impl_ = std::make_unique<StandaloneImpl>(
+          *sentinel_thread_control_, thread_pools_->GetRedisThreadPool(), *this,
+          conns.front(), std::move(shard_group_name), client_name, password,
+          connection_security, std::move(ready_callback),
+          dynamic_config_source, mode);
+
     } else {
       impl_ = std::make_unique<SentinelImpl>(
           *sentinel_thread_control_, thread_pools_->GetRedisThreadPool(), *this,

@@ -375,13 +375,14 @@ properties:
                     description: name to refer to the cluster in components::Redis::GetClient()
                 sharding_strategy:
                     type: string
-                    description: one of RedisCluster, KeyShardCrc32, KeyShardTaximeterCrc32 or KeyShardGpsStorageDriver
+                    description: one of RedisStandalone, RedisCluster, KeyShardCrc32, KeyShardTaximeterCrc32 or KeyShardGpsStorageDriver
                     defaultDescription: "KeyShardTaximeterCrc32"
                     enum:
                       - RedisCluster
                       - KeyShardCrc32
                       - KeyShardTaximeterCrc32
                       - KeyShardGpsStorageDriver
+                      - RedisStandalone
                 allow_reads_from_master:
                     type: boolean
                     description: allows read requests from master instance

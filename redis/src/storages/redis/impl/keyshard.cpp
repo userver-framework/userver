@@ -1,4 +1,5 @@
 #include "keyshard_impl.hpp"
+#include "keyshard_standalone_impl.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -119,6 +120,8 @@ std::unique_ptr<redis::KeyShard> KeyShardFactory::operator()(size_t nshards) {
   if (type_ == KeyShardCrc32::kName)
     return std::make_unique<redis::KeyShardCrc32>(nshards);
   if (type_ == kRedisCluster) return nullptr;
+  if (type_ == KeyShardStandalone::kName)
+    return std::make_unique<redis::KeyShardStandalone>();
 
   return std::make_unique<redis::KeyShardTaximeterCrc32>(nshards);
 }
