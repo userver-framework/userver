@@ -38,6 +38,12 @@ include("${USERVER_CMAKE_DIR}/UserverVenv.cmake")
 
 _userver_make_sanitize_blacklist()
 
+if(NOT USERVER_IMPL_ORIGINAL_CXX_STANDARD STREQUAL CMAKE_CXX_STANDARD)
+  target_compile_definitions(userver::userver-universal INTERFACE
+      "USERVER_IMPL_ORIGINAL_CXX_STANDARD=${USERVER_IMPL_ORIGINAL_CXX_STANDARD}"
+  )
+endif()
+
 add_library(userver::universal ALIAS userver::userver-universal)
 
 set(userver_universal_FOUND TRUE)

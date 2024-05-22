@@ -69,16 +69,9 @@ CursorIterator& CursorIterator::operator++() {
 
 void CursorIterator::operator++(int) { ++*this; }
 
-#if __cpp_lib_ranges >= 201911L
 bool CursorIterator::operator==(const std::default_sentinel_t&) const noexcept {
   return parse_state_ == nullptr;
 }
-#else
-bool CursorIterator::operator==(const CursorIterator& other) const noexcept {
-  UASSERT(!parse_state_ || !other.parse_state_);
-  return parse_state_ == nullptr && other.parse_state_ == nullptr;
-}
-#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -117,11 +110,7 @@ CursorIterator Cursor::begin() {
   return b;
 }
 
-#if __cpp_lib_ranges >= 201911L
 std::default_sentinel_t Cursor::end() { return std::default_sentinel; }
-#else
-CursorIterator Cursor::end() { return CursorIterator(); }
-#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 
