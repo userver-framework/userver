@@ -2,6 +2,7 @@
 
 #include <thread>
 
+#include <userver/engine/task/task_base.hpp>
 #include <userver/formats/json/inline.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/testsuite/testpoint_control.hpp>
