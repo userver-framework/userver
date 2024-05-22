@@ -121,7 +121,7 @@ std::exception_ptr PrepareDeadlinePassedException(std::string_view url,
                                                   LocalStats stats) {
   return std::make_exception_ptr(CancelException(
       fmt::format("Timeout happened (deadline propagation), url: {}", url),
-      stats));
+      stats, ErrorKind::kDeadlinePropagation));
 }
 
 bool IsPrefix(const std::string& url,

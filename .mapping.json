@@ -321,6 +321,7 @@
   "core/include/userver/clients/http/config.hpp":"taxi/uservices/userver/core/include/userver/clients/http/config.hpp",
   "core/include/userver/clients/http/connect_to.hpp":"taxi/uservices/userver/core/include/userver/clients/http/connect_to.hpp",
   "core/include/userver/clients/http/error.hpp":"taxi/uservices/userver/core/include/userver/clients/http/error.hpp",
+  "core/include/userver/clients/http/error_kind.hpp":"taxi/uservices/userver/core/include/userver/clients/http/error_kind.hpp",
   "core/include/userver/clients/http/form.hpp":"taxi/uservices/userver/core/include/userver/clients/http/form.hpp",
   "core/include/userver/clients/http/local_stats.hpp":"taxi/uservices/userver/core/include/userver/clients/http/local_stats.hpp",
   "core/include/userver/clients/http/plugin.hpp":"taxi/uservices/userver/core/include/userver/clients/http/plugin.hpp",
