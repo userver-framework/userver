@@ -58,6 +58,8 @@ bool Decompression::DecompressRequestBody(http::HttpRequest& request) const {
     } else if (content_encoding == "zstd") {
       body = compression::zstd::Decompress(request.RequestBody(),
                                            max_request_size_);
+    } else {
+      return false;
     }
     request.SetRequestBody(std::move(body));
     if (parse_args_from_body_) {
