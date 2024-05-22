@@ -1,6 +1,12 @@
+cmake_minimum_required(VERSION 3.14)
 project(userver-samples-postgres_service CXX)
 
-add_executable(${PROJECT_NAME} "postgres_service.cpp")
-target_link_libraries(${PROJECT_NAME} userver::core userver::postgresql)
+if(NOT TARGET userver::postgresql)
+  find_package(userver COMPONENTS postgresql REQUIRED)
+  userver_setup_environment()
+endif()
 
-userver_sample_testsuite_add()
+add_executable(${PROJECT_NAME} "postgres_service.cpp")
+target_link_libraries(${PROJECT_NAME} userver::postgresql)
+
+userver_testsuite_add_simple()

@@ -2670,7 +2670,6 @@
   "samples/hello_service/CMakeLists.txt":"taxi/uservices/userver/samples/hello_service/CMakeLists.txt",
   "samples/hello_service/benchmarks/say_hello_bench.cpp":"taxi/uservices/userver/samples/hello_service/benchmarks/say_hello_bench.cpp",
   "samples/hello_service/main.cpp":"taxi/uservices/userver/samples/hello_service/main.cpp",
-  "samples/hello_service/pytest.ini":"taxi/uservices/userver/samples/hello_service/pytest.ini",
   "samples/hello_service/src/hello_service.cpp":"taxi/uservices/userver/samples/hello_service/src/hello_service.cpp",
   "samples/hello_service/src/hello_service.hpp":"taxi/uservices/userver/samples/hello_service/src/hello_service.hpp",
   "samples/hello_service/src/say_hello.cpp":"taxi/uservices/userver/samples/hello_service/src/say_hello.cpp",
