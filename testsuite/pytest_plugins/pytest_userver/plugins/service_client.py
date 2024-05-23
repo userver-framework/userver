@@ -124,12 +124,15 @@ def userver_client_cleanup(request, _userver_logging_plugin):
         tasks_to_suspend = ()
 
     @compat.asynccontextmanager
-    async def cleanup_manager(client: client.AiohttpClient):
+    async def cleanup_manager(client: client.Client):
         @_userver_logging_plugin.register_flusher
         async def do_flush():
             try:
                 await client.log_flush()
-            except aiohttp.client_exceptions.ClientResponseError:
+            except aiohttp.client_exceptions.ClientError:
+                pass
+            except RuntimeError:
+                # TODO: find a better way to handle closed aiohttp session
                 pass
 
         # Service is already started we don't want startup logs to be shown

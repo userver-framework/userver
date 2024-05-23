@@ -105,19 +105,16 @@ class UserverLoggingPlugin:
         if self._live_logs:
             self._live_logs.join()
 
-    @pytest.hookimpl(wrapper=True)
     def pytest_runtest_setup(self, item):
         self._flushers.clear()
         self.update_position()
-        yield from self._userver_log_dump(item, 'setup')
 
-    @pytest.hookimpl(wrapper=True)
-    def pytest_runtest_call(self, item):
-        yield from self._userver_log_dump(item, 'call')
-
-    @pytest.hookimpl(wrapper=True)
-    def pytest_runtest_teardown(self, item):
-        yield from self._userver_log_dump(item, 'teardown')
+    @pytest.hookimpl(wrapper=True, tryfirst=True)
+    def pytest_runtest_makereport(self, item, call):
+        report = yield
+        if report.failed:
+            self._userver_report_attach(report)
+        return report
 
     def update_position(self):
         for logfile in self._logs.values():
@@ -133,32 +130,23 @@ class UserverLoggingPlugin:
         if self._live_logs:
             self._live_logs.register_logfile(path)
 
-    def _userver_log_dump(self, item, when):
-        try:
-            yield
-        except Exception:
-            self._userver_report_attach(item, when)
-            raise
-
-    def _userver_report_attach(self, item, when):
+    def _userver_report_attach(self, report):
         self._run_flushers()
         for (_, title), logfile in self._logs.items():
-            self._userver_report_attach_log(logfile, item, when, title)
+            self._userver_report_attach_log(logfile, report, title)
 
-    def _userver_report_attach_log(self, logfile: LogFile, item, when, title):
-        report = io.StringIO()
+    def _userver_report_attach_log(self, logfile: LogFile, report, title):
+        log = io.StringIO()
         colorizer = self._colorize_factory()
         for line in logfile.readlines():
             line = line.rstrip('\r\n')
             line = colorizer(line)
             if line:
-                report.write(line)
-                report.write('\n')
-        value = report.getvalue()
+                log.write(line)
+                log.write('\n')
+        value = log.getvalue()
         if value:
-            item.add_report_section(when, title, value)
-
-        self._run_flushers()
+            report.sections.append((f'Captured {title} {report.when}', value))
 
     def _run_flushers(self):
         loop = asyncio.get_event_loop()

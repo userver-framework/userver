@@ -105,7 +105,6 @@ async def service_daemon(
         service_config,
         service_binary,
         service_non_http_health_checks,
-        testsuite_logger,
 ):
     """
     Configures the health checking to use service_http_ping_url fixture value
