@@ -12,9 +12,9 @@ namespace {
 const size_t kDecompressBufferSize = ZSTD_DStreamOutSize();
 }  // namespace
 
-std::string Decompress(std::string_view compressed, size_t max_size) {
+std::string DecompressStream(std::string_view compressed, size_t max_size) {
   std::string decompressed;
-  std::string buf(kDecompressBufferSize, ' ');
+  std::string buf(kDecompressBufferSize, '\0');
 
   auto* stream = ZSTD_createDStream();
   if (stream == nullptr) {
@@ -62,6 +62,34 @@ std::string Decompress(std::string_view compressed, size_t max_size) {
   return decompressed;
 }
 
-}  // namespace compression::zstd
+std::string Decompress(std::string_view compressed, size_t max_size) {
+  auto decompressed_size =
+      ZSTD_getFrameContentSize(compressed.data(), compressed.size());
 
+  switch (decompressed_size) {
+    case ZSTD_CONTENTSIZE_UNKNOWN:
+      return DecompressStream(compressed, max_size);
+    case ZSTD_CONTENTSIZE_ERROR:
+      throw std::runtime_error("Error while getting size");
+    default:
+      if (decompressed_size > max_size) {
+        throw TooBigError();
+      }
+      if (decompressed_size > std::numeric_limits<int64_t>::max() / 2) {
+        return DecompressStream(compressed, max_size);
+      }
+  }
+
+  std::string decompressed(decompressed_size, '\0');
+  auto ret = ZSTD_decompress(decompressed.data(), decompressed.capacity(),
+                             compressed.data(), compressed.size());
+
+  if (ZSTD_isError(ret)) {
+    throw ErrWithCode(ZSTD_getErrorName(ret));
+  }
+
+  return decompressed;
+}
+
+}  // namespace compression::zstd
 USERVER_NAMESPACE_END
