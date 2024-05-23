@@ -1,12 +1,10 @@
 cmake_minimum_required(VERSION 3.14)
 project(userver-samples-hello_service CXX)
 
-if(NOT TARGET userver::universal)
-  # /// [find_userver]
-  find_package(userver COMPONENTS core REQUIRED)
-  userver_setup_environment()
-  # /// [find_userver]
-endif() 
+# /// [find_userver]
+find_package(userver COMPONENTS core REQUIRED)
+userver_setup_environment()
+# /// [find_userver]
 
 # /// [objects]
 add_library(${PROJECT_NAME}_objs OBJECT

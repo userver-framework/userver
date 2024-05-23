@@ -17,6 +17,7 @@ option(
     "Prepare build of userver to install in system"
     OFF
 )
+
 set(USERVER_AVAILABLE_COMPONENTS universal)
 set(USERVER_NOT_INCLUDED_AS_SUBDIR OFF)
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR AND NOT USERVER_INSTALL)

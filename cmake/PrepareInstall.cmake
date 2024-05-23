@@ -1,4 +1,4 @@
-include_guard()
+include_guard(GLOBAL)
 
 set_property(GLOBAL PROPERTY userver_cmake_dir "${CMAKE_CURRENT_LIST_DIR}")
 
@@ -50,7 +50,7 @@ function(_userver_export_targets)
           FILE userver-targets.cmake
           CONFIGURATIONS RELEASE
           NAMESPACE userver::
-         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/release
+          DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/release
   )
   install(EXPORT userver-targets_d
           FILE userver-targets_d.cmake

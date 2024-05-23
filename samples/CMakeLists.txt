@@ -2,21 +2,6 @@ project(userver-samples CXX)
 
 add_custom_target(${PROJECT_NAME})
 
-function(userver_sample_testsuite_add)
-  set(options)
-  set(oneValueArgs TESTS_DIRECTORY ENV)
-  set(multiValueArgs PYTHONPATH)
-  cmake_parse_arguments(
-      ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
-
-  userver_testsuite_add_simple(
-      WORKING_DIRECTORY "${ARG_TESTS_DIRECTORY}"
-      PYTHON_BINARY "${TESTSUITE_PYTHON_BINARY}"
-      PYTHONPATH ${ARG_PYTHONPATH}
-      TEST_ENV "${ARG_ENV}"
-  )
-endfunction()
-
 add_subdirectory(config_service)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-config_service)
 

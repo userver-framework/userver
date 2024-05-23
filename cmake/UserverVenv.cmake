@@ -25,6 +25,26 @@ endfunction()
 
 _userver_prepare_venv_variables()
 
+function(_userver_append_requirements_from_file output_variable)
+  set(venv_requirements "")
+  foreach(requirement IN LISTS ARGN)
+    file(READ "${requirement}" requirement_contents)
+    if(NOT requirement_contents MATCHES "\n$")
+      message(FATAL_ERROR "venv requirements file must end with a newline")
+    endif()
+    string(APPEND venv_requirements "${requirement_contents}")
+  endforeach()
+
+  # Remove duplicates and comments
+  string(REPLACE "\n" ";" venv_requirements_list ${venv_requirements})
+  list(FILTER venv_requirements_list EXCLUDE REGEX "[ \t\r\n]*#.*")
+  list(SORT venv_requirements_list)
+  list(REMOVE_DUPLICATES venv_requirements_list)
+  string(REPLACE ";" "\n" venv_requirements "${venv_requirements_list}")
+
+  set(${output_variable} ${venv_requirements} PARENT_SCOPE)
+endfunction()
+
 function(userver_venv_setup)
   set(options UNIQUE)
   set(oneValueArgs NAME PYTHON_OUTPUT_VAR)
@@ -40,6 +60,13 @@ function(userver_venv_setup)
     )
     return()
   endif()
+
+  list(APPEND ARG_PIP_ARGS ${USERVER_PIP_OPTIONS})
+  set(venv_params "")
+  set(format_version 2)
+  string(APPEND venv_params "format-version=${format_version}\n")
+  string(APPEND venv_params "pip-args=${ARG_PIP_ARGS}\n")
+  _userver_append_requirements_from_file(venv_params ${ARG_REQUIREMENTS})
 
   if(NOT ARG_NAME)
     set(venv_name "venv")
@@ -63,7 +90,6 @@ function(userver_venv_setup)
   if(USERVER_PIP_USE_SYSTEM_PACKAGES)
     list(APPEND venv_additional_args "--system-site-packages")
   endif()
-  list(APPEND ARG_PIP_ARGS ${USERVER_PIP_OPTIONS})
 
   set(venv_dir "${parent_directory}/${venv_name}")
   set(venv_bin_dir "${venv_dir}/bin")
@@ -115,18 +141,6 @@ function(userver_venv_setup)
   # If pip has already installed packages using the same requirements,
   # then don't run it again. This optimization dramatically reduces
   # re-Configure times.
-  set(venv_params "")
-  set(format_version 2)
-  string(APPEND venv_params "format-version=${format_version}\n")
-  string(APPEND venv_params "pip-args=${ARG_PIP_ARGS}\n")
-  foreach(requirement IN LISTS ARG_REQUIREMENTS)
-    file(READ "${requirement}" requirement_contents)
-    if(NOT requirement_contents MATCHES "\n$")
-      message(FATAL_ERROR "venv requirements file must end with a newline")
-    endif()
-    string(APPEND venv_params "${requirement_contents}")
-  endforeach()
-
   set(should_run_pip TRUE)
   set(venv_params_file "${venv_dir}/venv-params.txt")
   if(EXISTS "${venv_params_file}")
