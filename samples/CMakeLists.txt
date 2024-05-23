@@ -55,6 +55,9 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-tcp_service)
 add_subdirectory(tcp_full_duplex_service)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-tcp_full_duplex_service)
 
+add_subdirectory(telegram_bot_service)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-telegram_bot_service)
+
 if (USERVER_FEATURE_MONGODB)
   add_subdirectory(http_caching)
   add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-http_caching)
