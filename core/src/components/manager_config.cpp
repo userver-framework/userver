@@ -103,6 +103,17 @@ properties:
                 type: integer
                 description: size of a single coroutine, bytes
                 defaultDescription: 256 * 1024
+            local_cache_size:
+                type: integer
+                description: |
+                    Tunes local coroutine cache size per TaskProcessor worker
+                    thread. Current coro pool size is computed with
+                    an inaccuracy of local_cache_size * total_worker_threads,
+                    which may be relevant when comparing against max_size.
+                    Lower values of local_cache_size lead to lower performance
+                    under heavy contention in the engine, while higher values
+                    lead to inaccuracy in coro pool size estimation.
+                defaultDescription: 32
     event_thread_pool:
         type: object
         description: event thread pool options

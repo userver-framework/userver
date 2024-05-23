@@ -10,6 +10,8 @@ PoolConfig Parse(const yaml_config::YamlConfig& value,
   config.initial_size = value["initial_size"].As<size_t>(config.initial_size);
   config.max_size = value["max_size"].As<size_t>(config.max_size);
   config.stack_size = value["stack_size"].As<size_t>(config.stack_size);
+  config.local_cache_size =
+      value["local_cache_size"].As<size_t>(config.stack_size);
   return config;
 }
 
