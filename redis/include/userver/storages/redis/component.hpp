@@ -75,14 +75,14 @@ namespace components {
 ///    # yaml
 ///    redis:
 ///        groups:
-///          - config_name: taxi-tmp
-///            db: taxi-tmp
-///            sharding_strategy: "RedisCluster"
-///          - config_name: taxi-tmp-pubsub
-///            db: taxi-tmp-pubsub
+///          - config_name: cats
+///            db: hello_service_cats_catalogue
+///            sharding_strategy: RedisCluster
+///          - config_name: dogs
+///            db: hello_service_dogs_catalogue
 ///        subscribe_groups:
-///          - config_name: taxi-tmp-pubsub
-///            db: taxi-tmp-pubsub
+///          - config_name: food
+///            db: hello_service_pet_food_orders
 ///        thread_pools:
 ///            redis_thread_pool_size: 8
 ///            sentinel_thread_pool_size: 1
@@ -108,6 +108,20 @@ namespace components {
 ///   }
 /// }
 /// @endcode
+///
+/// ## Cluster Redis setup
+///
+/// Redis cluster is the new recommended way of setting up Redis servers
+/// with improved stability.
+///
+/// To start, set `sharding_strategy: RedisCluster` in the static config
+/// as shown above.
+///
+/// Secdist configuration is simplified:
+///
+/// 1. `"shards"` field is ignored, you can specify an empty array there;
+/// 2. `"sentinels"` field should contain some of the cluster nodes. They are
+///    only used for topology discovery; it is not necessary to list all nodes.
 
 // clang-format on
 class Redis : public LoggableComponentBase {

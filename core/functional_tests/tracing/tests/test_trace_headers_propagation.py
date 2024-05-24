@@ -41,6 +41,8 @@ async def test_empty_otel_tracing_headers(service_client, mockserver):
     response = await service_client.get('/echo-no-body')
     assert _handler.times_called >= 1
     assert response.status_code == 200
+    assert response.headers['traceparent'].split('-')[0] == '00'
+    assert response.headers['traceparent'].split('-')[3] == '01'
 
 
 async def test_empty_taxi_tracing_headers(service_client, mockserver):

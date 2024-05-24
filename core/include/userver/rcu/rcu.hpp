@@ -10,10 +10,6 @@
 #include <utility>
 
 // TODO remove extra includes
-#include <list>
-#include <unordered_set>
-#include <userver/compiler/thread_local.hpp>
-
 #include <userver/concurrent/impl/asymmetric_fence.hpp>
 #include <userver/concurrent/impl/intrusive_hooks.hpp>
 #include <userver/concurrent/impl/intrusive_stack.hpp>

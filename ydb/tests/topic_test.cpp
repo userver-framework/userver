@@ -1,5 +1,6 @@
 #include <userver/utest/utest.hpp>
 
+#include <userver/engine/async.hpp>
 #include <userver/utils/overloaded.hpp>
 #include <userver/ydb/impl/cast.hpp>
 

@@ -4,7 +4,7 @@
 set -euox pipefail
 
 # Preparing to add new repos
-apt update 
+apt update
 DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
   apt-transport-https ca-certificates dirmngr wget curl software-properties-common \
   gnupg gnupg2
@@ -52,6 +52,13 @@ gpg_retrieve_curl http://mirror.mariadb.org/PublicKey_v2 mariadb
 echo "deb [arch=amd64,arm64,ppc64el signed-by=/usr/share/keyrings/mariadb.gpg] https://mirror.kumi.systems/mariadb/repo/10.11/ubuntu $(lsb_release -cs) main" \
     | tee /etc/apt/sources.list.d/mariadb.list
 
+# Adding librdkafka confluent repositories as in https://docs.confluent.io/platform/current/installation/installing_cp/deb-ubuntu.html#get-the-software
+gpg_retrieve_keyserver 8B1DA6120C2BF624 confluent
+printf "\
+deb [arch=amd64 signed-by=/usr/share/keyrings/confluent.gpg] https://packages.confluent.io/deb/7.6 stable main\n\
+deb [signed-by=/usr/share/keyrings/confluent.gpg] https://packages.confluent.io/clients/deb $(lsb_release -cs) main\n" \
+    | tee /etc/apt/sources.list.d/confluent.list
+
 # convoluted setup of rabbitmq + erlang taken from https://www.rabbitmq.com/install-debian.html#apt-quick-start-packagecloud
 ## Team RabbitMQ's main signing key
 gpg_retrieve_curl https://keys.openpgp.org/vks/v1/by-fingerprint/0A9AF2115F4687BD29803A206B73A36E6026DFCA com.rabbitmq.team
@@ -89,7 +96,7 @@ PACKAGES_TO_INSTALL=$(cat ubuntu-22.04.md | tr '\n' ' ')
 declare -a PACKAGES_FOR_MANUAL_INSTALL=(
   "postgresql-server-dev-14"
 )
-for PACKAGE in "${PACKAGES_FOR_MANUAL_INSTALL[@]}"; do   
+for PACKAGE in "${PACKAGES_FOR_MANUAL_INSTALL[@]}"; do
   PACKAGES_TO_INSTALL=( "${PACKAGES_TO_INSTALL[@]/$PACKAGE}" )
 done
 

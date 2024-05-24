@@ -7,11 +7,6 @@ import pathlib
 import pytest
 
 
-class TestsuiteReport:
-    def __init__(self):
-        self.failed = False
-
-
 def pytest_addoption(parser) -> None:
     group = parser.getgroup('userver')
     group.addoption(
@@ -50,15 +45,8 @@ def pytest_addoption(parser) -> None:
     )
 
 
-@pytest.hookimpl(hookwrapper=True, tryfirst=True)
-def pytest_runtest_makereport(item, call):
-    if not hasattr(item, 'utestsuite_report'):
-        item.utestsuite_report = TestsuiteReport()
-    outcome = yield
-    rep = outcome.get_result()
-    if rep.failed:
-        item.utestsuite_report.failed = True
-    return rep
+def pytest_configure(config):
+    config.option.asyncio_mode = 'auto'
 
 
 @pytest.fixture(scope='session')

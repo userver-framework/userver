@@ -1,5 +1,7 @@
 # gRPC
 
+**Quality:** @ref QUALITY_TIERS "Platinum Tier".
+
 ## Introduction
 
 🐙 **userver** provides a gRPC driver as `userver-grpc` library. It uses ```namespace ugrpc::client``` and ```namespace ugrpc::server```.
@@ -60,6 +62,25 @@ Read the documentation on gRPC streams:
 * Request stream, response stream ugrpc::client::BidirectionalStream
 
 On errors, exceptions from userver/ugrpc/client/exceptions.hpp are thrown. It is recommended to catch them outside the entire stream interaction. You can catch exceptions for [specific gRPC error codes](https://grpc.github.io/grpc/core/md_doc_statuscodes.html) or all at once.
+
+### TLS / SSL
+
+May be enabled via
+
+```
+# yaml
+components_manager:
+    components:
+        grpc-client-factory:
+            auth-type: ssl
+```
+
+Available values are:
+
+- `insecure` (default)
+- `ssl`
+
+SSL **has to be disabled** in tests (e.g. via `config_vars`), because it requires a public DNS.
 
 ## gRPC services
 

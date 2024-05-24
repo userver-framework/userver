@@ -26,8 +26,8 @@ namespace engine {
 namespace {
 
 void SetTaskQueueWaitTimepoint(impl::TaskContext* context) {
-  static constexpr size_t kTaskTimestampInterval = 4;
-  thread_local size_t task_count = 0;
+  static constexpr std::size_t kTaskTimestampInterval = 4;
+  thread_local std::size_t task_count = 0;
   if (task_count++ == kTaskTimestampInterval) {
     task_count = 0;
     context->SetQueueWaitTimepoint(std::chrono::steady_clock::now());
@@ -92,7 +92,7 @@ TaskProcessor::TaskProcessor(TaskProcessorConfig config,
     concurrent::impl::Latch workers_left{
         static_cast<std::ptrdiff_t>(config_.worker_threads)};
     workers_.reserve(config_.worker_threads);
-    for (size_t i = 0; i < config_.worker_threads; ++i) {
+    for (std::size_t i = 0; i < config_.worker_threads; ++i) {
       workers_.emplace_back([this, i, &workers_left] {
         PrepareWorkerThread(i);
         workers_left.count_down();
@@ -116,7 +116,7 @@ void TaskProcessor::Cleanup() noexcept {
   InitiateShutdown();
 
   // Some tasks may be bound but not scheduled yet
-  task_counter_.WaitForExhaustion();
+  task_counter_.WaitForExhaustionBlocking();
 
   std::visit([](auto&& arg) { return arg.StopProcessing(); }, task_queue_);
 
@@ -134,12 +134,15 @@ void TaskProcessor::InitiateShutdown() {
 
 void TaskProcessor::Schedule(impl::TaskContext* context) {
   UASSERT(context);
-  if (max_task_queue_wait_length_ && !context->IsCritical()) {
-    if (IsOverloadedByLength()) {
+  const auto [action, max_queue_length] =
+      GetOverloadActionAndValue(action_bit_and_max_task_queue_wait_length_);
+  if (max_queue_length && !context->IsCritical()) {
+    UASSERT(max_queue_length > 0);
+    if (const auto overload_size = GetOverloadByLength(max_queue_length)) {
       LOG_LIMITED_WARNING()
-          << "failed to enqueue task: task_queue_ approximate size="
-          << task_queue_size_cache_.load() << " >= "
-          << "task_queue_size_threshold=" << max_task_queue_wait_length_
+          << "failed to enqueue task: task_queue_size_approximate="
+          << overload_size << " >= "
+          << "task_queue_size_threshold=" << max_queue_length
           << " task_processor=" << Name();
       HandleOverload(*context);
     }
@@ -202,8 +205,8 @@ bool TaskProcessor::ShouldProfilerForceStacktrace() const {
   return profiler_force_stacktrace_.load();
 }
 
-size_t TaskProcessor::GetTaskTraceMaxCswForNewTask() const {
-  thread_local size_t count = 0;
+std::size_t TaskProcessor::GetTaskTraceMaxCswForNewTask() const {
+  thread_local std::size_t count = 0;
   if (count++ == config_.task_trace_every) {
     count = 0;
     return config_.task_trace_max_csw;
@@ -321,13 +324,14 @@ void TaskProcessor::CheckWaitTime(impl::TaskContext& context) {
   }
 
   // Don't cancel critical tasks, but use their timestamp to cancel other tasks
-  if (task_queue_wait_time_overloaded_->load()) {
-    HandleOverload(context);
+
+  if (overloaded_cache_->overloaded_by_wait_time.load()) {
+    HandleOverload(context, action);
   }
 }
 
 void TaskProcessor::SetTaskQueueWaitTimeOverloaded(bool new_value) noexcept {
-  auto& atomic = *task_queue_wait_time_overloaded_;
+  auto& atomic = overloaded_cache_->overloaded_by_wait_time;
   // The check helps to reduce contention.
   if (atomic.load(std::memory_order_relaxed) != new_value) {
     atomic.store(new_value, std::memory_order_relaxed);
@@ -354,32 +358,54 @@ void TaskProcessor::HandleOverload(impl::TaskContext& context) {
   }
 }
 
-bool TaskProcessor::IsOverloadedByLength() {
-  bool overloaded_by_length = overloaded_by_length_cache_.load();
-  const int factor = overloaded_by_length ? 4 : 16;
-
-  if (utils::RandRange(factor) != 0) {
-    return overloaded_by_length;
+TaskProcessor::OverloadByLength TaskProcessor::GetOverloadByLength(
+    const std::size_t max_queue_length) noexcept {
+  const auto old_overload_by_length =
+      overloaded_cache_->overload_by_length.load();
+  // With this choice of factor, the probability of skipping over 200 tasks
+  // before checking is negligible.
+  constexpr int kFactor = 16;
+  // In Overloaded state, checks are performed every time to stop cancelling
+  // tasks as soon as possible.
+  //
+  // If we applied any kind of factor for Overloaded state, then it's possible
+  // that even once the task queue size drops far enough below the limit, we
+  // won't accept a new task with a high probability. This is because
+  // the current implementation never updates the queue size cache after Pop.
+  if (old_overload_by_length == 0 && utils::RandRange(kFactor) != 0) {
+    return old_overload_by_length;
   }
 
-  overloaded_by_length = ComputeIsOverloadedByLength(overloaded_by_length);
-  overloaded_by_length_cache_.store(overloaded_by_length,
-                                    std::memory_order_relaxed);
-  return overloaded_by_length;
+  // ComputeOverloadByLength requires computing task queue length, which is
+  // too expensive to do on every Push. So we cache the Overloaded state and
+  // only recompute it once in a while.
+  return ComputeOverloadByLength(old_overload_by_length, max_queue_length);
 }
 
-bool TaskProcessor::ComputeIsOverloadedByLength(
-    const bool current_overloaded_status) {
-  static constexpr long double kExitOverloadStatusFactor = 0.95;
+TaskProcessor::OverloadByLength TaskProcessor::ComputeOverloadByLength(
+    const OverloadByLength old_overload_by_length,
+    const std::size_t max_queue_length) noexcept {
+  static constexpr std::size_t kExitOverloadStatusFactorNumerator = 19;
+  static constexpr std::size_t kExitOverloadStatusFactorDenominator = 20;
+
   const auto queue_size = GetTaskQueueSize();
-  task_queue_size_cache_.store(queue_size, std::memory_order_relaxed);
-  if (current_overloaded_status) {
-    return (queue_size >=
-            static_cast<std::size_t>(kExitOverloadStatusFactor *
-                                     max_task_queue_wait_length_));
-  } else {
-    return (queue_size >= max_task_queue_wait_length_);
+
+  // Avoid rapid entering-exiting "overloaded by length" state with associated
+  // contention.
+  const auto size_limit = old_overload_by_length
+                              ? kExitOverloadStatusFactorNumerator *
+                                    max_queue_length /
+                                    kExitOverloadStatusFactorDenominator
+                              : max_queue_length;
+
+  const OverloadByLength new_overload_by_length =
+      queue_size >= size_limit ? queue_size : 0;
+
+  if (new_overload_by_length != old_overload_by_length) {
+    overloaded_cache_->overload_by_length.store(new_overload_by_length,
+                                                std::memory_order_relaxed);
   }
+  return new_overload_by_length;
 }
 
 }  // namespace engine

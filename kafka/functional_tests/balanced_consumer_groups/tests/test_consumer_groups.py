@@ -137,7 +137,7 @@ async def test_rebalance_after_one_consumer_stopped(
         parse_message_keys(first_consumer_messages),
     )
 
-    await stop_consumers(service_client)
+    await stop_consumers(service_client, [CONSUMERS[0]])
 
 
 async def test_rebalance_after_second_consumer_came_after_subscription(
@@ -167,11 +167,12 @@ async def test_rebalance_after_second_consumer_came_after_subscription(
 
     await start_consumers(service_client, [CONSUMERS[0]])
 
+    await first_consumer_subscribed.wait_call()
+    await first_consumer_subscribed.wait_call()
+
     await kafka_producer.produce(TOPIC, 'key-1', 'message-1', 0)
     await kafka_producer.produce(TOPIC, 'key-2', 'message-2', 1)
 
-    await first_consumer_subscribed.wait_call()
-    await first_consumer_subscribed.wait_call()
     await first_consumer_received.wait_call()
     await first_consumer_received.wait_call()
 
@@ -184,11 +185,10 @@ async def test_rebalance_after_second_consumer_came_after_subscription(
     )
 
     await start_consumers(service_client, [CONSUMERS[1]])
-
     await first_consumer_revoked.wait_call()
     await first_consumer_revoked.wait_call()
-    await first_consumer_subscribed.wait_call()
     await second_consumer_subscribed.wait_call()
+    await first_consumer_subscribed.wait_call()
 
     await kafka_producer.produce(TOPIC, 'key-3', 'message-3', 0)
     await kafka_producer.produce(TOPIC, 'key-4', 'message-4', 1)
@@ -233,6 +233,10 @@ async def test_rebalance_full_partitions_exchange(
     def first_consumer_revoked(_data):
         logging.info('First consumer revoked')
 
+    @testpoint('tp_kafka-consumer-first_stopped')
+    def first_consumer_stopped(_data):
+        logging.info('First consumer stopped')
+
     @testpoint('tp_kafka-consumer-second')
     def second_consumer_received(_data):
         pass
@@ -241,15 +245,20 @@ async def test_rebalance_full_partitions_exchange(
     def second_consumer_subscribed(_data):
         logging.info('Second consumer subscribed')
 
+    @testpoint('tp_kafka-consumer-second_revoked')
+    def second_consumer_revoked(_data):
+        logging.info('Second consumer revoked')
+
     await service_client.enable_testpoints()
 
     await start_consumers(service_client, [CONSUMERS[0]])
 
+    await first_consumer_subscribed.wait_call()
+    await first_consumer_subscribed.wait_call()
+
     await kafka_producer.produce(TOPIC, 'key-1', 'message-1', 0)
     await kafka_producer.produce(TOPIC, 'key-2', 'message-2', 1)
 
-    await first_consumer_subscribed.wait_call()
-    await first_consumer_subscribed.wait_call()
     await first_consumer_received.wait_call()
     await first_consumer_received.wait_call()
 
@@ -263,17 +272,25 @@ async def test_rebalance_full_partitions_exchange(
 
     if exchange_order == 'stop_start':
         await stop_consumers(service_client, [CONSUMERS[0]])
-        await start_consumers(service_client, [CONSUMERS[1]])
+        await first_consumer_revoked.wait_call()
+        await first_consumer_revoked.wait_call()
+        await first_consumer_stopped.wait_call()
 
+        await start_consumers(service_client, [CONSUMERS[1]])
         await second_consumer_subscribed.wait_call()
         await second_consumer_subscribed.wait_call()
     elif exchange_order == 'start_stop':
         await start_consumers(service_client, [CONSUMERS[1]])
         await first_consumer_revoked.wait_call()
+        await first_consumer_revoked.wait_call()
         await second_consumer_subscribed.wait_call()
+        await first_consumer_subscribed.wait_call()
 
         await stop_consumers(service_client, [CONSUMERS[0]])
+        await first_consumer_revoked.wait_call()
+        await first_consumer_stopped.wait_call()
 
+        await second_consumer_revoked.wait_call()
         await second_consumer_subscribed.wait_call()
         await second_consumer_subscribed.wait_call()
 

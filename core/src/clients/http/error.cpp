@@ -71,24 +71,39 @@ std::exception_ptr PrepareRateLimitException(std::error_code ec,
 
 }  // namespace
 
+TimeoutException::TimeoutException(std::string_view message,
+                                   const LocalStats& stats)
+    : BaseException(std::string(message), stats, ErrorKind::kTimeout) {}
+
 BaseCodeException::BaseCodeException(std::error_code ec,
                                      std::string_view message,
                                      std::string_view url,
                                      const LocalStats& stats)
     : BaseException(fmt::format("{}, curl error: {}, url: {}", message,
                                 ec.message(), url),
-                    stats),
+                    stats, ErrorKind::kNetwork),
       ec_(ec) {}
 
-HttpException::HttpException(int code, const LocalStats& stats)
-    : HttpException(code, stats, {}) {}
-
 HttpException::HttpException(int code, const LocalStats& stats,
-                             std::string_view message)
+                             std::string_view message, ErrorKind error_kind)
     : BaseException(fmt::format("Raise for status exception, code = {}{}{}",
                                 code, message.empty() ? "" : ": ", message),
-                    stats),
+                    stats, error_kind),
       code_(code) {}
+
+HttpClientException::HttpClientException(int code, const LocalStats& stats)
+    : HttpClientException(code, stats, {}) {}
+
+HttpClientException::HttpClientException(int code, const LocalStats& stats,
+                                         std::string_view message)
+    : HttpException(code, stats, message, ErrorKind::kClient) {}
+
+HttpServerException::HttpServerException(int code, const LocalStats& stats)
+    : HttpServerException(code, stats, {}) {}
+
+HttpServerException::HttpServerException(int code, const LocalStats& stats,
+                                         std::string_view message)
+    : HttpException(code, stats, message, ErrorKind::kServer) {}
 
 std::exception_ptr PrepareException(std::error_code ec, std::string_view url,
                                     const LocalStats& stats) {

@@ -23,11 +23,11 @@ Let's write a simple JSON to YAML converter with the help of `userver-universal`
 The implementation is quite straightforward. Include the necessary C++ Standard
 library and userver headers:
 
-@snippet samples/json2yaml/json2yaml.cpp  json2yaml - includes
+@snippet samples/json2yaml/json2yaml.hpp  json2yaml - includes
 
 Write the logic for converting each of the JSON types to YAML type:
 
-@snippet samples/json2yaml/json2yaml.cpp  json2yaml - convert
+@snippet samples/json2yaml/json2yaml.hpp  json2yaml - convert
 
 Finally, read data from `std::cin`, parse it as JSON, convert to YAML and
 output it as text:
@@ -37,7 +37,10 @@ output it as text:
 
 ### Build and Run
 
-To build the sample, execute the following build steps at the userver root directory:
+To build the sample, execute the following build steps at the
+`userver/samples/json2yaml` (if userver is installed into the system) or from
+userver root directory:
+
 ```
 mkdir build_release
 cd build_release
@@ -64,12 +67,20 @@ key:
 ### Testing
 
 The code could be tested using any of the unit-testing frameworks, like
-Boost.Test, GTest, and so forth.
+Boost.Test, GTest, and so forth. Here's how to do it with GTest:
 
-However, to test the code with `pytest` some additional setup should be done:
+* Write a test:
+  @snippet samples/json2yaml/json2yaml_test.cpp  json2yaml - unittest
+* Add its run to CMakeLists.txt:
+  @snippet samples/json2yaml/CMakeLists.txt  add_unit_test
+* Run the test via `ctest -V`
 
-* Inform CMake about the test and that it should be started by Python. Pass the
-  path to the CMake built binary to Python:
+The above code tests the conversion logic, but not the final binary that may
+have issues in invoking the above logic. To test the final binary let's use
+Python with `pytest`:
+
+* Inform CMake about the test and that it should be started in a python venv
+  with `pytest` installed. Pass the path to the CMake built binary to venv:
   @snippet samples/json2yaml/CMakeLists.txt  add_test
 
 * Add a fixture to `conftest.py` to get the path to the CMake built binary:
@@ -82,8 +93,11 @@ However, to test the code with `pytest` some additional setup should be done:
 ## Full sources
 
 See the full example at:
+* @ref samples/json2yaml/json2yaml.hpp
 * @ref samples/json2yaml/json2yaml.cpp
+* @ref samples/json2yaml/json2yaml_test.cpp
 * @ref samples/json2yaml/CMakeLists.txt
+* @ref samples/json2yaml/requirements.txt
 * @ref samples/json2yaml/tests/conftest.py
 * @ref samples/json2yaml/tests/test_basic.py
 
@@ -94,7 +108,9 @@ See the full example at:
 @htmlonly </div> @endhtmlonly
 
 
+@example samples/json2yaml/json2yaml.hpp
 @example samples/json2yaml/json2yaml.cpp
+@example samples/json2yaml/json2yaml_test.cpp
 @example samples/json2yaml/CMakeLists.txt
 @example samples/json2yaml/tests/conftest.py
 @example samples/json2yaml/tests/test_basic.py

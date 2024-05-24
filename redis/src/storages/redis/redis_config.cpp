@@ -3,7 +3,7 @@
 #include <unordered_map>
 
 #include <userver/logging/log.hpp>
-#include <userver/storages/redis/impl/exception.hpp>
+#include <userver/storages/redis/exception.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

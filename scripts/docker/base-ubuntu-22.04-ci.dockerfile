@@ -3,7 +3,8 @@ FROM ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest
 # Apply the following:
 # * fix for porto layers
 # * set up ramdisk symlink for working tmpfs directory in tests
-# * install a bunch of databases and compilers 
+# * install a bunch of databases and compilers
+# * install testing tools
 RUN \
   mkdir -p /place/berkanavt/ && \
   mkdir -p /ramdrive && mkdir -p /mnt && ln -s /ramdrive /mnt/ramdisk && \
@@ -23,7 +24,9 @@ RUN \
     g++-13 gcc-13 \
     && \
   pip3 install pep8 && \
-  apt clean all
+  apt clean all && \
+  curl -fsSL https://raw.githubusercontent.com/pressly/goose/master/install.sh | sh && \
+  curl -sSL https://install.ydb.tech/cli | bash -s -- -i/usr/local
 
 EXPOSE 8080-8100
 EXPOSE 15672

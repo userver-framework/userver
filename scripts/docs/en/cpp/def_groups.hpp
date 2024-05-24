@@ -24,7 +24,7 @@
 /// @defgroup userver_clients Clients
 ///
 /// @brief Clients are classes that provide interfaces for requesting and
-/// retrieving data usually from remove server.
+/// retrieving data usually from remote server.
 ///
 /// All the clients are asynchronous. In other words, a request suspends the
 /// current engine::Task and other coroutines are processed on the task

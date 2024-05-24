@@ -50,14 +50,16 @@ void SubscribeImplImpl(
 }  // namespace
 
 ClusterSubscriptionStorage::ClusterSubscriptionStorage(
-    const std::shared_ptr<ThreadPools>& thread_pools, size_t shards_count,
-    bool /*is_cluster_mode*/)
+    const std::shared_ptr<ThreadPools>& thread_pools, size_t shards_count)
     : storage_impl_(shards_count, *this), thread_pools_(thread_pools) {
   /// TODO: support multiple shards for ssubscribe
   rebalance_scheduler_ = std::make_unique<SubscriptionRebalanceScheduler>(
       thread_pools->GetSentinelThreadPool(), *this,
       ClusterTopology::kUnknownShard);
 }
+
+ClusterSubscriptionStorage::ClusterSubscriptionStorage(size_t shards_count)
+    : storage_impl_(shards_count, *this), thread_pools_(nullptr) {}
 
 ClusterSubscriptionStorage::~ClusterSubscriptionStorage() = default;
 

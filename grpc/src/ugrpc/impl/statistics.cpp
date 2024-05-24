@@ -13,6 +13,8 @@ namespace ugrpc::impl {
 
 namespace {
 
+// See https://opentelemetry.io/docs/specs/semconv/rpc/grpc/
+// Except that we don't mark DEADLINE_EXCEEDED as a server error.
 bool IsServerError(grpc::StatusCode status) {
   switch (status) {
     case grpc::StatusCode::UNKNOWN:
@@ -45,7 +47,7 @@ void DumpMetric(utils::statistics::Writer& writer,
 
 }  // namespace
 
-MethodStatistics::MethodStatistics() = default;
+MethodStatistics::MethodStatistics(StatisticsDomain domain) : domain_(domain) {}
 
 void MethodStatistics::AccountStarted() noexcept { ++started_; }
 
@@ -78,6 +80,16 @@ void MethodStatistics::AccountCancelled() noexcept { ++cancelled_; }
 
 void DumpMetric(utils::statistics::Writer& writer,
                 const MethodStatistics& stats) {
+  if (stats.domain_ == StatisticsDomain::kClient && !stats.started_.Load()) {
+    // Don't write client metrics for methods, for which the current service has
+    // not performed any requests since the start.
+    //
+    // gRPC service clients may have tens of methods, of which only a few are
+    // actually used by the current service. Not writing extra metrics saves
+    // metrics quota and mirrors the behavior for HTTP destinations.
+    return;
+  }
+
   writer["timings"] = stats.timings_;
 
   utils::statistics::Rate total_requests{0};
@@ -146,9 +158,10 @@ std::uint64_t MethodStatistics::GetStarted() const noexcept {
 
 ServiceStatistics::~ServiceStatistics() = default;
 
-ServiceStatistics::ServiceStatistics(const StaticServiceMetadata& metadata)
+ServiceStatistics::ServiceStatistics(const StaticServiceMetadata& metadata,
+                                     StatisticsDomain domain)
     : metadata_(metadata),
-      method_statistics_(metadata.method_full_names.size()) {}
+      method_statistics_(metadata.method_full_names.size(), domain) {}
 
 MethodStatistics& ServiceStatistics::GetMethodStatistics(
     std::size_t method_id) {

@@ -52,6 +52,7 @@ unexpected(E) -> unexpected<E>;
 template <class S, class E>
 class [[nodiscard]] expected {
  public:
+  constexpr expected() noexcept(std::is_void_v<S>);
   expected(const S& success);
   expected(S&& success);
   expected(const unexpected<E>& error);
@@ -71,11 +72,10 @@ class [[nodiscard]] expected {
   /// @throws utils::bad_expected_access if *this contain an unexpected value
   S& value() &;
 
-  /// @brief Extracts the value or throws bad_expected_access
-  /// if it's not available
-  /// @throws utils::bad_expected_access if *this contain an unexpected value
-  S value() &&;
+  /// @overload
+  S&& value() &&;
 
+  /// @overload
   const S& value() const&;
 
   /// @brief Return reference to the error value or throws bad_expected_access
@@ -83,6 +83,7 @@ class [[nodiscard]] expected {
   /// @throws utils::bad_expected_access if success value is not available
   E& error();
 
+  /// @overload
   const E& error() const;
 
  private:
@@ -114,6 +115,10 @@ template <class E>
 const E& unexpected<E>::error() const noexcept {
   return value_;
 }
+
+template <class S, class E>
+constexpr expected<S, E>::expected() noexcept(std::is_void_v<S>)
+    : data_(std::in_place_index<0>) {}
 
 template <class S, class E>
 expected<S, E>::expected(const S& success) : data_(success) {}
@@ -154,7 +159,7 @@ S& expected<S, E>::value() & {
 }
 
 template <class S, class E>
-S expected<S, E>::value() && {
+S&& expected<S, E>::value() && {
   return std::move(value());
 }
 

@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <string>
 
-#include <userver/storages/redis/impl/exception.hpp>
+#include <userver/storages/redis/exception.hpp>
 #include <userver/storages/redis/impl/types.hpp>
 
 USERVER_NAMESPACE_BEGIN

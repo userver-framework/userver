@@ -8,7 +8,7 @@ namespace {
 
 /// @note `librdkafka` use the same log level as `syslog`
 /// @see
-/// https://a.yandex-team.ru/arcadia/contrib/libs/librdkafka/src/rd.h?rev=r13796908#L81
+/// https://github.com/confluentinc/librdkafka/blob/master/src/rd.h#L80
 enum class RdKafkaLogLevel {
   kRdLogEmerge = 0,
   kRdLogAlert = 1,
@@ -23,27 +23,24 @@ enum class RdKafkaLogLevel {
 }  // namespace
 
 logging::Level convertRdKafkaLogLevelToLoggingLevel(int log_level) noexcept {
-  using enum logging::Level;
-  using enum RdKafkaLogLevel;
-
   const auto rd_kafka_log_level = static_cast<RdKafkaLogLevel>(log_level);
 
   switch (rd_kafka_log_level) {
-    case kRdLogEmerge:
-    case kRdLogAlert:
-    case kRdLogCrit:
-      return kCritical;
-    case kRdLogErr:
-      return kError;
-    case kRdLogWarning:
-      return kWarning;
-    case kRdLogNotice:
-    case kRdLogInfo:
-      return kInfo;
-    case kRdLogDebug:
-      return kDebug;
+    case RdKafkaLogLevel::kRdLogEmerge:
+    case RdKafkaLogLevel::kRdLogAlert:
+    case RdKafkaLogLevel::kRdLogCrit:
+      return logging::Level::kCritical;
+    case RdKafkaLogLevel::kRdLogErr:
+      return logging::Level::kError;
+    case RdKafkaLogLevel::kRdLogWarning:
+      return logging::Level::kWarning;
+    case RdKafkaLogLevel::kRdLogNotice:
+    case RdKafkaLogLevel::kRdLogInfo:
+      return logging::Level::kInfo;
+    case RdKafkaLogLevel::kRdLogDebug:
+      return logging::Level::kDebug;
     default:
-      return kInfo;
+      return logging::Level::kInfo;
   }
 }
 

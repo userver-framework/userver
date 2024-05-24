@@ -247,6 +247,9 @@ class SubscriptionStorage : public SubscriptionStorageBase {
       const std::shared_ptr<ThreadPools>& thread_pools, size_t shards_count,
       bool is_cluster_mode,
       std::shared_ptr<const std::vector<std::string>> shard_names);
+  SubscriptionStorage(
+      size_t shards_count, bool is_cluster_mode,
+      std::shared_ptr<const std::vector<std::string>> shard_names);
   ~SubscriptionStorage() override;
 
   void SetSubscribeCallback(CommandCb) override;

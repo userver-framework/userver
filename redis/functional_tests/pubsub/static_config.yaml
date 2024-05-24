@@ -7,6 +7,12 @@ components_manager:
             task_processor: main-task-processor
             method: GET,DELETE,PUT
 
+        handler-sentinel-with-master:
+            db: redis-sentinel-with-master
+            path: /redis-sentinel-with-master
+            task_processor: main-task-processor
+            method: GET,DELETE,PUT
+
         handler-cluster:
             db: redis-cluster
             path: /redis-cluster
@@ -21,6 +27,9 @@ components_manager:
               - config_name: redis-cluster
                 db: redis-cluster
                 sharding_strategy: RedisCluster
+              - config_name: redis-sentinel
+                db: redis-sentinel-with-master
+                allow_reads_from_master: true
             thread_pools:
                 redis_thread_pool_size: 2
                 sentinel_thread_pool_size: 1

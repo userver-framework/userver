@@ -33,7 +33,8 @@ ClientFactory::ClientFactory(ClientFactorySettings&& settings,
                          ? settings.credentials
                          : grpc::InsecureChannelCredentials(),
                      settings.channel_args, settings.channel_count),
-      client_statistics_storage_(statistics_storage, "client"),
+      client_statistics_storage_(statistics_storage,
+                                 ugrpc::impl::StatisticsDomain::kClient),
       config_source_(source),
       testsuite_grpc_(testsuite_grpc) {
   ugrpc::impl::SetupNativeLogging();

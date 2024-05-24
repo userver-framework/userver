@@ -39,7 +39,7 @@ components_manager:
               - grpc-client-logging
               - grpc-client-baggage
         greeter-client:
-            endpoint: '[::]:8081'
+            endpoint: $greeter-client-endpoint
 
         # http server
         server:

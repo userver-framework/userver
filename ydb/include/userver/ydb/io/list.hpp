@@ -3,12 +3,9 @@
 #include <ydb-cpp-sdk/client/value/value.h>
 
 #include <iterator>
+#include <ranges>
 #include <type_traits>
 #include <vector>  // for InsertRow
-
-#if __cpp_lib_ranges >= 201911L
-#include <ranges>
-#endif
 
 #include <userver/utils/assert.hpp>
 #include <userver/utils/meta.hpp>

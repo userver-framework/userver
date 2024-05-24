@@ -41,7 +41,7 @@ class RedisClientTest : public ::testing::Test {
     sentinel_->WaitConnectedDebug();
     subscribe_sentinel_ = redis::SubscribeSentinel::Create(
         thread_pools_, GetTestsuiteRedisSettings(), "none",
-        dynamic_config::GetDefaultSource(), "pub", false, {});
+        dynamic_config::GetDefaultSource(), "pub", false, {}, {});
     subscribe_sentinel_->WaitConnectedDebug();
 
     auto info_reply =

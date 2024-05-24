@@ -4,7 +4,7 @@
 
 #include <userver/utils/trivial_map.hpp>
 
-#include <userver/storages/redis/impl/reply_status.hpp>
+#include <userver/storages/redis/reply_status.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

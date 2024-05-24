@@ -4,6 +4,10 @@ if(userver_core_FOUND)
   return()
 endif()
 
+find_package(userver REQUIRED COMPONENTS
+    universal
+)
+
 find_package(Boost REQUIRED COMPONENTS
     locale
     iostreams

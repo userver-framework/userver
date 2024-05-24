@@ -198,16 +198,20 @@ CDriverPoolImpl::CDriverPoolImpl(std::string id, const std::string& uri_string,
 
   init_data_.ssl_opt = MakeSslOpt(uri_.get());
 
+  std::size_t i = 0;
   try {
     tracing::Span span("mongo_prepopulate");
     LOG_INFO() << "Creating " << config.initial_size << " mongo connections";
-    for (size_t i = 0; i < config.initial_size; ++i) {
+    for (; i < config.initial_size; ++i) {
       engine::SemaphoreLock lock(in_use_semaphore_);
       Push(Create());
       lock.Release();
     }
   } catch (const std::exception& ex) {
-    LOG_ERROR() << "Mongo pool was not fully prepopulated: " << ex;
+    LOG_ERROR() << fmt::format(
+        "Mongo pool was not fully prepopulated. Expected {} connections, but "
+        "{} were created. Error: {}",
+        config.initial_size, i, ex.what());
   }
 
   maintenance_task_.Start(

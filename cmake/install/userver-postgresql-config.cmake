@@ -4,6 +4,10 @@ if(userver_postgresql_FOUND)
   return()
 endif()
 
+find_package(userver REQUIRED COMPONENTS
+    core
+)
+
 find_package(PostgreSQL REQUIRED)
 include("${USERVER_CMAKE_DIR}/SetupPostgresqlDeps.cmake")
 

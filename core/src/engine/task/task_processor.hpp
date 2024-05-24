@@ -58,20 +58,11 @@ class TaskProcessor final {
 
   const impl::TaskCounter& GetTaskCounter() const { return task_counter_; }
 
-  // This method is much slower,
-  // but more accurate than GetTaskQueueSizeApproximate()
-  size_t GetTaskQueueSize() const {
-    return std::visit([](auto&& arg) { return arg.GetSize(); }, task_queue_);
+  std::size_t GetTaskQueueSize() const {
+    return task_queue_.GetSizeApproximate();
   }
 
-  // This method is much faster,
-  // but less accurate than GetTaskQueueSize()
-  size_t GetTaskQueueSizeApproximate() const {
-    return std::visit([](auto&& arg) { return arg.GetSizeApproximate(); },
-                      task_queue_);
-  }
-
-  size_t GetWorkerCount() const { return workers_.size(); }
+  std::size_t GetWorkerCount() const { return workers_.size(); }
 
   void SetSettings(const TaskProcessorSettings& settings);
 
@@ -79,7 +70,7 @@ class TaskProcessor final {
 
   bool ShouldProfilerForceStacktrace() const;
 
-  size_t GetTaskTraceMaxCswForNewTask() const;
+  std::size_t GetTaskTraceMaxCswForNewTask() const;
 
   const std::string& GetTaskTraceLoggerName() const;
 
@@ -90,6 +81,14 @@ class TaskProcessor final {
   std::vector<std::uint8_t> CollectCurrentLoadPct() const;
 
  private:
+  // Contains queue size cache when overloaded by length, 0 otherwise.
+  using OverloadByLength = std::size_t;
+
+  struct OverloadedCache final {
+    std::atomic<bool> overloaded_by_wait_time{false};
+    std::atomic<OverloadByLength> overload_by_length{0};
+  };
+
   void Cleanup() noexcept;
 
   void PrepareWorkerThread(std::size_t index) noexcept;
@@ -106,11 +105,16 @@ class TaskProcessor final {
 
   bool ComputeIsOverloadedByLength(const bool current_overloaded_status);
 
+  OverloadByLength GetOverloadByLength(std::size_t max_queue_length) noexcept;
+
+  OverloadByLength ComputeOverloadByLength(
+      OverloadByLength old_overload_by_length,
+      std::size_t max_queue_length) noexcept;
+
   concurrent::impl::InterferenceShield<impl::DetachedTasksSyncBlock>
       detached_contexts_{impl::DetachedTasksSyncBlock::StopMode::kCancel};
-  concurrent::impl::InterferenceShield<std::atomic<bool>>
-      task_queue_wait_time_overloaded_{false};
-  std::variant<TaskQueue, WorkStealingTaskQueue> task_queue_;
+  concurrent::impl::InterferenceShield<OverloadedCache> overloaded_cache_;
+  TaskQueue task_queue_;
   impl::TaskCounter task_counter_;
 
   const TaskProcessorConfig config_;

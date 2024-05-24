@@ -1,6 +1,5 @@
 #pragma once
 
-#include <boost/algorithm/string/predicate.hpp>
 #include <userver/storages/redis/parse_reply.hpp>
 #include <userver/storages/redis/reply.hpp>
 #include <userver/storages/redis/request.hpp>
@@ -40,7 +39,7 @@ class [[nodiscard]] RequestEvalSha final {
     const auto& reply_data = reply_ptr->data;
     if (reply_data.IsError()) {
       const auto& msg = reply_data.GetError();
-      if (boost::starts_with(msg, "NOSCRIPT")) {
+      if (msg.find("NOSCRIPT", 0) == 0) {
         return EvalShaResult(true);
       }
     }

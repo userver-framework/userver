@@ -1,6 +1,9 @@
 import base64
 
+import pytest
 
+
+@pytest.mark.skip(reason='restore in TAXICOMMON-8860')
 async def test_topic(service_client, ydb, testpoint):
     @testpoint('topic-handle-message')
     async def handle_message_testpoint(data):

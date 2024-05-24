@@ -25,6 +25,7 @@ namespace handlers {
 class HttpHandlerBase;
 }
 
+/// HTTP server middlewares
 namespace middlewares {
 
 /// @ingroup userver_middlewares userver_base_classes

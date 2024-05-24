@@ -3,6 +3,7 @@
 /// @file userver/utils/sliding_interval.hpp
 /// @brief @copybrief utils::SlidingInterval
 
+#include <algorithm>
 #include <numeric>
 
 #include <userver/utils/assert.hpp>

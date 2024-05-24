@@ -104,7 +104,8 @@ std::future_status ResponseFuture::Wait() {
       CancelOrDetach();
 
       throw CancelException(
-          "HTTP response wait was aborted due to task cancellation", stats);
+          "HTTP response wait was aborted due to task cancellation", stats,
+          ErrorKind::kCancel);
     }
     case engine::FutureStatus::kTimeout:
       if (was_deadline_propagated_) {

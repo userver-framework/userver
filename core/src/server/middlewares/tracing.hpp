@@ -2,6 +2,7 @@
 
 #include <userver/dynamic_config/source.hpp>
 #include <userver/logging/level.hpp>
+#include <userver/server/middlewares/builtin.hpp>
 #include <userver/server/middlewares/http_middleware_base.hpp>
 #include <userver/tracing/span.hpp>
 
@@ -19,7 +20,7 @@ namespace server::middlewares {
 
 class Tracing final : public HttpMiddlewareBase {
  public:
-  static constexpr std::string_view kName{"userver-tracing-middleware"};
+  static constexpr std::string_view kName = builtin::kTracing;
 
   Tracing(const tracing::TracingManagerBase& tracing_manager,
           const handlers::HttpHandlerBase& handler);
