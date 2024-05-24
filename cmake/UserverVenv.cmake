@@ -53,6 +53,8 @@ function(userver_venv_setup)
   cmake_parse_arguments(
       ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}")
 
+  _userver_setup_environment_validate_impl()
+
   if(NOT ARG_REQUIREMENTS)
     message(FATAL_ERROR
         "In 'userver_venv_setup' provide a REQUIREMENTS option with a filepath "

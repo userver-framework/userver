@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.14)
 project(userver-samples-ydb_service CXX)
 
 find_package(userver COMPONENTS core REQUIRED)
-userver_setup_environment()
 
 add_executable(${PROJECT_NAME}
   "ydb_service.cpp"

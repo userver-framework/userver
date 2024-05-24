@@ -12,6 +12,9 @@ foreach(ITEM_COMPONENT IN LISTS userver_FIND_COMPONENTS)
 endforeach()
 
 if (NOT userver_FIND_COMPONENTS)
+  # UserverSetupEnvironment.cmake was already included (otherwise the
+  # userver::universal target could not been build).
+  userver_setup_environment()
   return()
 endif()
 

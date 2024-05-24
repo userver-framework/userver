@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.14)
 project(userver-samples-json2yaml CXX)
 
 find_package(userver COMPONENTS universal REQUIRED)
-userver_setup_environment()
 
 add_executable("${PROJECT_NAME}" json2yaml.cpp)
 target_link_libraries("${PROJECT_NAME}" userver::universal)

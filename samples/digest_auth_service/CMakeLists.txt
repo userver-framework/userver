@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.14)
 project(userver-samples-digest_auth CXX)
 
 find_package(userver COMPONENTS postgresql REQUIRED)
-userver_setup_environment()
 
 add_executable(${PROJECT_NAME} digest_auth_service.cpp auth_digest.cpp)
 target_link_libraries(${PROJECT_NAME} userver::postgresql)

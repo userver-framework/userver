@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.14)
 project(userver-samples-testsuite-support CXX)
 
 find_package(userver COMPONENTS core REQUIRED)
-userver_setup_environment()
 
 file(GLOB_RECURSE SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 add_executable(${PROJECT_NAME} ${SOURCES})

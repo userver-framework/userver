@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.14)
 project(userver-samples-flatbuf_service CXX)
 
 find_package(userver COMPONENTS core REQUIRED)
-userver_setup_environment()
 
 set(FLATC_OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/flatbuffer_schema.fbs.h)
 add_custom_command(
