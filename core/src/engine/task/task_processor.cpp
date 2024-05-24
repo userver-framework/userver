@@ -384,19 +384,24 @@ void TaskProcessor::HandleOverload(
 }
 
 TaskProcessor::OverloadByLength TaskProcessor::GetOverloadByLength(
-    const std::size_t max_queue_length) {
+    const std::size_t max_queue_length) noexcept {
   const auto old_overload_by_length =
       overloaded_cache_->overload_by_length.load();
-  // With this choice of 'factor', the probability of skipping over 200 tasks
-  // before checking is negligible. In Overloaded state, checks are performed
-  // more often to stop cancelling tasks as soon as possible.
-  const int factor = old_overload_by_length ? 4 : 16;
-
-  if (utils::RandRange(factor) != 0) {
+  // With this choice of factor, the probability of skipping over 200 tasks
+  // before checking is negligible.
+  constexpr int kFactor = 16;
+  // In Overloaded state, checks are performed every time to stop cancelling
+  // tasks as soon as possible.
+  //
+  // If we applied any kind of factor for Overloaded state, then it's possible
+  // that even once the task queue size drops far enough below the limit, we
+  // won't accept a new task with a high probability. This is because
+  // the current implementation never updates the queue size cache after Pop.
+  if (old_overload_by_length == 0 && utils::RandRange(kFactor) != 0) {
     return old_overload_by_length;
   }
 
-  // ComputeIsOverloadedByLength requires computing task queue length, which is
+  // ComputeOverloadByLength requires computing task queue length, which is
   // too expensive to do on every Push. So we cache the Overloaded state and
   // only recompute it once in a while.
   return ComputeOverloadByLength(old_overload_by_length, max_queue_length);
@@ -404,14 +409,14 @@ TaskProcessor::OverloadByLength TaskProcessor::GetOverloadByLength(
 
 TaskProcessor::OverloadByLength TaskProcessor::ComputeOverloadByLength(
     const OverloadByLength old_overload_by_length,
-    const std::size_t max_queue_length) {
+    const std::size_t max_queue_length) noexcept {
   static constexpr std::size_t kExitOverloadStatusFactorNumerator = 19;
   static constexpr std::size_t kExitOverloadStatusFactorDenominator = 20;
 
   const auto queue_size = GetTaskQueueSize();
 
-  // Avoid rapid entering-exiting "overloaded by
-  // length" state with associated contention.
+  // Avoid rapid entering-exiting "overloaded by length" state with associated
+  // contention.
   const auto size_limit = old_overload_by_length
                               ? kExitOverloadStatusFactorNumerator *
                                     max_queue_length /

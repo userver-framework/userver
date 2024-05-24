@@ -1053,6 +1053,7 @@
   "core/src/engine/task/task_processor_config.hpp":"taxi/uservices/userver/core/src/engine/task/task_processor_config.hpp",
   "core/src/engine/task/task_processor_pools.cpp":"taxi/uservices/userver/core/src/engine/task/task_processor_pools.cpp",
   "core/src/engine/task/task_processor_pools.hpp":"taxi/uservices/userver/core/src/engine/task/task_processor_pools.hpp",
+  "core/src/engine/task/task_processor_test.cpp":"taxi/uservices/userver/core/src/engine/task/task_processor_test.cpp",
   "core/src/engine/task/task_queue.cpp":"taxi/uservices/userver/core/src/engine/task/task_queue.cpp",
   "core/src/engine/task/task_queue.hpp":"taxi/uservices/userver/core/src/engine/task/task_queue.hpp",
   "core/src/engine/task/task_test.cpp":"taxi/uservices/userver/core/src/engine/task/task_test.cpp",

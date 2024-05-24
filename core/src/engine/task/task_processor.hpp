@@ -103,10 +103,11 @@ class TaskProcessor final {
   void HandleOverload(impl::TaskContext& context,
                       TaskProcessorSettings::OverloadAction);
 
-  OverloadByLength GetOverloadByLength(std::size_t max_queue_length);
+  OverloadByLength GetOverloadByLength(std::size_t max_queue_length) noexcept;
 
   OverloadByLength ComputeOverloadByLength(
-      OverloadByLength old_overload_by_length, std::size_t max_queue_length);
+      OverloadByLength old_overload_by_length,
+      std::size_t max_queue_length) noexcept;
 
   concurrent::impl::InterferenceShield<impl::DetachedTasksSyncBlock>
       detached_contexts_{impl::DetachedTasksSyncBlock::StopMode::kCancel};
