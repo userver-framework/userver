@@ -3,13 +3,10 @@
 #include <algorithm>  // for std::max
 #include <atomic>
 #include <cerrno>
-#include <cstddef>
-#include <iterator>
-#include <optional>
 #include <utility>
-#include <vector>
 
 #include <moodycamel/concurrentqueue.h>
+
 #include <coroutines/coroutine.hpp>
 
 #include <userver/logging/log.hpp>
@@ -37,31 +34,16 @@ class Pool final {
   void PutCoroutine(CoroutinePtr&& coroutine_ptr);
   PoolStats GetStats() const;
   std::size_t GetStackSize() const;
-  void PrepareLocalCache();
-  void ClearLocalCache();
 
  private:
   Coroutine CreateCoroutine(bool quiet = false);
   void OnCoroutineDestruction() noexcept;
-
-  bool TryPopulateLocalCache();
-  void DepopulateLocalCache();
 
   template <typename Token>
   Token& GetUsedPoolToken();
 
   const PoolConfig config_;
   const Executor executor_;
-
-  // Maximum number of coroutines exchanged between used_coroutines_ for thread
-  // local coroutine cache.
-  const std::size_t local_coroutine_move_size_;
-
-  // Reduces contention by allowing bulk operations on used_coroutines_.
-  // Coroutines in local_coro_buffer_ are counted as used in statistics.
-  // Unprotected thread_local is OK here, because coro::Pool is always used
-  // outside of any coroutine.
-  static inline thread_local std::vector<Coroutine> local_coro_buffer_;
 
   boost::coroutines2::protected_fixedsize_stack stack_allocator_;
 
@@ -111,13 +93,11 @@ template <typename Task>
 Pool<Task>::Pool(PoolConfig config, Executor executor)
     : config_(std::move(config)),
       executor_(executor),
-      local_coroutine_move_size_((config_.local_cache_size + 1) / 2),
       stack_allocator_(config_.stack_size),
       initial_coroutines_(config_.initial_size),
       used_coroutines_(config_.max_size),
       idle_coroutines_num_(config_.initial_size),
       total_coroutines_num_(0) {
-  UASSERT(local_coroutine_move_size_ < config_.local_cache_size);
   moodycamel::ProducerToken token(initial_coroutines_);
   for (std::size_t i = 0; i < config_.initial_size; ++i) {
     bool ok =
@@ -139,44 +119,31 @@ typename Pool<Task>::CoroutinePtr Pool<Task>::GetCoroutine() {
       return *this;
     }
   };
+
   std::optional<Coroutine> coroutine;
   CoroutineMover mover{coroutine};
 
   // First try to dequeue from 'working set': if we can get a coroutine
   // from there we are happy, because we saved on minor-page-faulting (thus
   // increasing resident memory usage) a not-yet-de-virtualized coroutine stack.
-  if (!local_coro_buffer_.empty() || TryPopulateLocalCache()) {
-    coroutine = std::move(local_coro_buffer_.back());
-    local_coro_buffer_.pop_back();
-  } else if (initial_coroutines_.try_dequeue(mover)) {
+  if (used_coroutines_.try_dequeue(
+          GetUsedPoolToken<moodycamel::ConsumerToken>(), mover) ||
+      initial_coroutines_.try_dequeue(mover)) {
     --idle_coroutines_num_;
   } else {
     coroutine.emplace(CreateCoroutine());
   }
-
   return CoroutinePtr(std::move(*coroutine), *this);
 }
 
 template <typename Task>
 void Pool<Task>::PutCoroutine(CoroutinePtr&& coroutine_ptr) {
-  if (local_coro_buffer_.size() < config_.local_cache_size) {
-    local_coro_buffer_.push_back(std::move(coroutine_ptr.Get()));
-    return;
-  }
-
-  if (config_.local_cache_size == 0) {
-    const bool ok =
-        // We only ever return coroutines into our 'working set'.
-        used_coroutines_.enqueue(GetUsedPoolToken<moodycamel::ProducerToken>(),
-                                 std::move(coroutine_ptr.Get()));
-    if (ok) {
-      ++idle_coroutines_num_;
-    }
-    return;
-  }
-
-  DepopulateLocalCache();
-  local_coro_buffer_.push_back(std::move(coroutine_ptr.Get()));
+  if (idle_coroutines_num_.load() >= config_.max_size) return;
+  auto& token = GetUsedPoolToken<moodycamel::ProducerToken>();
+  const bool ok =
+      // We only ever return coroutines into our 'working set'.
+      used_coroutines_.enqueue(token, std::move(coroutine_ptr.Get()));
+  if (ok) ++idle_coroutines_num_;
 }
 
 template <typename Task>
@@ -188,30 +155,6 @@ PoolStats Pool<Task>::GetStats() const {
   stats.total_coroutines =
       std::max(total_coroutines_num_.load(), stats.active_coroutines);
   return stats;
-}
-
-template <typename Task>
-void Pool<Task>::PrepareLocalCache() {
-  local_coro_buffer_.reserve(config_.local_cache_size);
-}
-
-template <typename Task>
-void Pool<Task>::ClearLocalCache() {
-  const std::size_t current_idle_coroutines_num = idle_coroutines_num_.load();
-  if (current_idle_coroutines_num < config_.max_size) {
-    const std::size_t return_to_pool_from_local_cache_num =
-        std::min(config_.max_size - current_idle_coroutines_num,
-                 local_coro_buffer_.size());
-
-    const bool ok = used_coroutines_.enqueue_bulk(
-        GetUsedPoolToken<moodycamel::ProducerToken>(),
-        std::make_move_iterator(local_coro_buffer_.begin()),
-        return_to_pool_from_local_cache_num);
-    if (ok) {
-      idle_coroutines_num_.fetch_add(return_to_pool_from_local_cache_num);
-    }
-  }
-  local_coro_buffer_.clear();
 }
 
 template <typename Task>
@@ -244,43 +187,6 @@ typename Pool<Task>::Coroutine Pool<Task>::CreateCoroutine(bool quiet) {
 template <typename Task>
 void Pool<Task>::OnCoroutineDestruction() noexcept {
   --total_coroutines_num_;
-}
-
-template <typename Task>
-bool Pool<Task>::TryPopulateLocalCache() {
-  if (local_coroutine_move_size_ == 0) return false;
-
-  const std::size_t dequed_num = used_coroutines_.try_dequeue_bulk(
-      GetUsedPoolToken<moodycamel::ConsumerToken>(),
-      std::back_inserter(local_coro_buffer_), local_coroutine_move_size_);
-  if (dequed_num == 0) return false;
-
-  idle_coroutines_num_.fetch_sub(dequed_num);
-  return true;
-}
-
-template <typename Task>
-void Pool<Task>::DepopulateLocalCache() {
-  const std::size_t current_idle_coroutines_num = idle_coroutines_num_.load();
-
-  if (current_idle_coroutines_num < config_.max_size) {
-    const std::size_t return_to_pool_from_local_cache_num =
-        std::min(config_.max_size - current_idle_coroutines_num,
-                 local_coroutine_move_size_);
-
-    const bool ok = used_coroutines_.enqueue_bulk(
-        GetUsedPoolToken<moodycamel::ProducerToken>(),
-        std::make_move_iterator(local_coro_buffer_.end() -
-                                return_to_pool_from_local_cache_num),
-        return_to_pool_from_local_cache_num);
-    if (ok) {
-      idle_coroutines_num_.fetch_add(return_to_pool_from_local_cache_num);
-    }
-  }
-
-  local_coro_buffer_.erase(
-      local_coro_buffer_.end() - local_coroutine_move_size_,
-      local_coro_buffer_.end());
 }
 
 template <typename Task>

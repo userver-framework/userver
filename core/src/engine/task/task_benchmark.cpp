@@ -107,25 +107,4 @@ void thread_yield(benchmark::State& state) {
 }
 BENCHMARK(thread_yield)->RangeMultiplier(2)->ThreadRange(1, 32);
 
-void engine_multiple_tasks_multiple_threads(benchmark::State& state) {
-  engine::RunStandalone(state.range(0), [&] {
-    std::atomic<std::uint64_t> tasks_count_total = 0;
-    RunParallelBenchmark(state, [&](auto& range) {
-      std::uint64_t tasks_count = 0;
-      for ([[maybe_unused]] auto _ : range) {
-        engine::AsyncNoSpan([] {}).Wait();
-        tasks_count++;
-      }
-      tasks_count_total += tasks_count;
-      benchmark::DoNotOptimize(tasks_count);
-    });
-    benchmark::DoNotOptimize(tasks_count_total);
-  });
-}
-BENCHMARK(engine_multiple_tasks_multiple_threads)
-    ->RangeMultiplier(2)
-    ->Range(1, 32)
-    ->Arg(6)
-    ->Arg(12);
-
 USERVER_NAMESPACE_END

@@ -102,7 +102,6 @@ TaskProcessor::TaskProcessor(TaskProcessorConfig config,
         PrepareWorkerThread(i);
         workers_left.count_down();
         ProcessTasks();
-        FinalizeWorkerThread();
       });
     }
 
@@ -283,17 +282,11 @@ void TaskProcessor::PrepareWorkerThread(std::size_t index) noexcept {
       break;
   }
 
-  pools_->GetCoroPool().PrepareLocalCache();
-
   utils::SetCurrentThreadName(fmt::format("{}_{}", config_.thread_name, index));
 
   impl::SetLocalTaskCounterData(task_counter_, index);
 
   TaskProcessorThreadStartedHook();
-}
-
-void TaskProcessor::FinalizeWorkerThread() noexcept {
-  pools_->GetCoroPool().ClearLocalCache();
 }
 
 void TaskProcessor::ProcessTasks() noexcept {
