@@ -87,12 +87,12 @@ class SessionReadTask {
                           << e.GetPartitionSession()->GetPartitionId() << "]";
               e.Confirm();  // partition revoked
             },
-            [](TReadSessionEvent::TEndPartitionSessionEvent& e) {
-              LOG_DEBUG() << "End partition session [TopicPath="
-                          << e.GetPartitionSession()->GetTopicPath()
-                          << ", PartitionId="
-                          << e.GetPartitionSession()->GetPartitionId() << "]";
-            },
+            // [](TReadSessionEvent::TEndPartitionSessionEvent& e) {
+            //   LOG_DEBUG() << "End partition session [TopicPath="
+            //               << e.GetPartitionSession()->GetTopicPath()
+            //               << ", PartitionId="
+            //               << e.GetPartitionSession()->GetPartitionId() << "]";
+            // },
             [](TReadSessionEvent::TPartitionSessionClosedEvent& e) {
               if (TReadSessionEvent::TPartitionSessionClosedEvent::EReason::
                       StopConfirmedByUser != e.GetReason()) {
