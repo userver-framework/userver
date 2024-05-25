@@ -59,7 +59,7 @@ std::string DecompressStream(std::string_view compressed, size_t max_size) {
 }
 
 std::string Decompress(std::string_view compressed, size_t max_size) {
-  auto decompressed_size =
+  const auto decompressed_size =
       ZSTD_getFrameContentSize(compressed.data(), compressed.size());
 
   switch (decompressed_size) {
