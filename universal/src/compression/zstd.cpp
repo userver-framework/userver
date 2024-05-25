@@ -36,18 +36,16 @@ std::string DecompressStream(std::string_view compressed, size_t max_size) {
     ZSTD_inBuffer input{
         compressed.data() + cur_pos,
         std::min(kDecompressBufferSize, compressed.size() - cur_pos), 0};
-    ZSTD_outBuffer output{buf.data(), buf.size(), 0};
 
-    for (auto* output_pos = static_cast<char*>(output.dst);
-         input.pos < input.size;
-         output_pos = static_cast<char*>(output.dst) + output.pos) {
+    while (input.pos < input.size) {
+      ZSTD_outBuffer output{buf.data(), buf.size(), 0};
 
       const auto ret = ZSTD_decompressStream(stream, &output, &input);
       if (ZSTD_isError(ret)) {
         throw ErrWithCode(ZSTD_getErrorName(ret));
       }
 
-      decompressed.append(output_pos, output_pos + output.pos);
+      decompressed.append(static_cast<char*>(output.dst), output.size);
     }
 
     if (decompressed.size() > max_size) {
