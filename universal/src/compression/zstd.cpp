@@ -20,19 +20,17 @@ std::string DecompressStream(std::string_view compressed, size_t max_size) {
   if (stream == nullptr) {
     throw std::runtime_error("Couldn't create ZSTD decompression stream");
   }
+  auto stream_del = [](ZSTD_DStream* ptr) { ZSTD_freeDStream(ptr); };
+  auto stream_guard =
+      std::unique_ptr<ZSTD_DStream, decltype(stream_del)>(stream, stream_del);
 
   {
     auto err_code = ZSTD_DCtx_reset(
         stream, ZSTD_ResetDirective::ZSTD_reset_session_and_parameters);
     if (ZSTD_isError(err_code)) {
-      ZSTD_freeDStream(stream);
       throw ErrWithCode(ZSTD_getErrorName(err_code));
     }
   }
-
-  auto stream_del = [](ZSTD_DStream* ptr) { ZSTD_freeDStream(ptr); };
-  auto stream_guard =
-      std::unique_ptr<ZSTD_DStream, decltype(stream_del)>(stream, stream_del);
 
   for (size_t cur_pos(0); cur_pos < compressed.size();) {
     ZSTD_inBuffer input{
@@ -74,9 +72,6 @@ std::string Decompress(std::string_view compressed, size_t max_size) {
     default:
       if (decompressed_size > max_size) {
         throw TooBigError();
-      }
-      if (decompressed_size > std::numeric_limits<int64_t>::max() / 2) {
-        return DecompressStream(compressed, max_size);
       }
   }
 
