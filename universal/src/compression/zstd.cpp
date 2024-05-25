@@ -74,8 +74,8 @@ std::string Decompress(std::string_view compressed, size_t max_size) {
   }
 
   std::string decompressed(decompressed_size, '\0');
-  auto ret = ZSTD_decompress(decompressed.data(), decompressed.capacity(),
-                             compressed.data(), compressed.size());
+  const auto ret = ZSTD_decompress(decompressed.data(), decompressed.capacity(),
+                                   compressed.data(), compressed.size());
 
   if (ZSTD_isError(ret)) {
     throw ErrWithCode(ZSTD_getErrorName(ret));
