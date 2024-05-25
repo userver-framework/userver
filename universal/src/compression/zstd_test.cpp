@@ -1,8 +1,6 @@
 #include <gtest/gtest.h>
 
-#include <userver/logging/log.hpp>
 #include <userver/compression/zstd.hpp>
-#include <zstd_errors.h>
 #include <zstd.h>
 
 USERVER_NAMESPACE_BEGIN
