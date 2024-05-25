@@ -25,7 +25,7 @@ std::string DecompressStream(std::string_view compressed, size_t max_size) {
       std::unique_ptr<ZSTD_DStream, decltype(stream_del)>(stream, stream_del);
 
   {
-    auto err_code = ZSTD_DCtx_reset(
+    const auto err_code = ZSTD_DCtx_reset(
         stream, ZSTD_ResetDirective::ZSTD_reset_session_and_parameters);
     if (ZSTD_isError(err_code)) {
       throw ErrWithCode(ZSTD_getErrorName(err_code));
