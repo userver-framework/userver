@@ -37,17 +37,17 @@ std::string DecompressStream(std::string_view compressed, size_t max_size) {
         compressed.data() + cur_pos,
         std::min(kDecompressBufferSize, compressed.size() - cur_pos), 0};
     ZSTD_outBuffer output{buf.data(), buf.size(), 0};
-    auto* output_pos = static_cast<char*>(output.dst);
 
-    while (input.pos < input.size) {
+    for (auto* output_pos = static_cast<char*>(output.dst);
+         input.pos < input.size;
+         output_pos = static_cast<char*>(output.dst) + output.pos) {
+
       const auto ret = ZSTD_decompressStream(stream, &output, &input);
-
       if (ZSTD_isError(ret)) {
         throw ErrWithCode(ZSTD_getErrorName(ret));
       }
 
       decompressed.append(output_pos, output_pos + output.pos);
-      output_pos = static_cast<char*>(output.dst) + output.pos;
     }
 
     if (decompressed.size() > max_size) {
