@@ -13,8 +13,8 @@ USERVER_NAMESPACE_BEGIN
 std::string GenerateRandomData(std::size_t size) {
   std::mt19937 random_device(
       std::chrono::steady_clock::now().time_since_epoch().count());
-  std::uniform_int_distribution<int> dist(0, 25);
-  std::string output = "";
+  std::uniform_int_distribution dist(0, 25);
+  std::string output;
   for (std::size_t ind = 0; ind < size; ++ind) {
     char rand_char = 'a' + static_cast<char>(dist(random_device));
     output.push_back(rand_char);
