@@ -5,10 +5,9 @@
 #include <string>
 #include <string_view>
 
-#include <boost/regex.hpp>
-
 #include <userver/dump/config.hpp>
 #include <userver/dump/helpers.hpp>
+#include <userver/utils/regex.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -68,8 +67,8 @@ class DumpLocator final {
   static TimePoint Round(std::chrono::system_clock::time_point);
 
   const Config config_;
-  const boost::regex filename_regex_;
-  const boost::regex tmp_filename_regex_;
+  const utils::regex filename_regex_;
+  const utils::regex tmp_filename_regex_;
 };
 
 }  // namespace dump

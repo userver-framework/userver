@@ -51,6 +51,23 @@ would to allow you mixing different versions of userver in a single binary
 without ODR-violations.
 
 
+@anchor QUALITY_TIERS
+## Quality Tiers
+
+🐙 **userver** consists of multiple drivers and technologies. Some of those are
+well tested on large scale of hundreds and thousands of services, some are
+less popular.
+
+There are tiers to differentiate technologies:
+
+* **Platinum Tier** - driver is known to be used in multiple high load critical
+  to uptime services in huge companies.
+* **Golden Tier** - driver that has not enought usage
+  feedback from huge companies. Still fine for production usage.
+* **Silver Tier** - early days of the driver. It passes all the tests and works
+  fine, but more feedback/time required to become a Golden Tier driver. Fine
+  for prototyping and production usage with some caution.
+
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly

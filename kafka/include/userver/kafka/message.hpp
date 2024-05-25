@@ -20,12 +20,12 @@ class ConsumerImpl;
 /// @note All `Message` instances must be destroyed before `Consumer` stop
 class Message final {
   struct Data;
-  using DataStorage = utils::FastPimpl<Data, 16 + 24 + 16, 8>;
+  using DataStorage = utils::FastPimpl<Data, 16 + 32 + 16, 8>;
 
  public:
   ~Message();
 
-  Message(Message&&) noexcept;
+  Message(Message&&) = default;
 
   const std::string& GetTopic() const;
   std::string_view GetKey() const;

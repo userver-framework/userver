@@ -126,7 +126,8 @@ class Server::Impl final {
 Server::Impl::Impl(ServerConfig&& config,
                    utils::statistics::Storage& statistics_storage,
                    dynamic_config::Source config_source)
-    : statistics_storage_(statistics_storage, "server"),
+    : statistics_storage_(statistics_storage,
+                          ugrpc::impl::StatisticsDomain::kServer),
       config_source_(config_source),
       access_tskv_logger_(std::move(config.access_tskv_logger)) {
   LOG_INFO() << "Configuring the gRPC server";

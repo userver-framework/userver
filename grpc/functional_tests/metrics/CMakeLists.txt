@@ -1,6 +1,6 @@
 project(userver-grpc-tests-metrics CXX)
 
-add_executable(${PROJECT_NAME} service.cpp)
+add_executable(${PROJECT_NAME} src/main.cpp)
 
 include(GrpcTargets)
 userver_add_grpc_library(${PROJECT_NAME}-proto PROTOS samples/greeter.proto)

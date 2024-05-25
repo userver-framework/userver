@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <stdexcept>
+#include <string>
 #include <type_traits>
 
 #include <userver/logging/log.hpp>
@@ -726,6 +727,14 @@ SubscriptionStorage::SubscriptionStorage(
   }
 }
 
+SubscriptionStorage::SubscriptionStorage(
+    size_t shards_count, bool is_cluster_mode,
+    std::shared_ptr<const std::vector<std::string>> shard_names)
+    : storage_impl_(shards_count, *this),
+      shard_names_(std::move(shard_names)),
+      is_cluster_mode_(is_cluster_mode),
+      shard_rotate_counter_(utils::RandRange(storage_impl_.shards_count_)) {}
+
 SubscriptionStorage::~SubscriptionStorage() = default;
 
 void SubscriptionStorage::SetSubscribeCallback(CommandCb cb) {
@@ -916,7 +925,6 @@ void SubscriptionStorage::PsubscribeImpl(const std::string& pattern,
   auto& channel_info = map_iter.second;
   auto& infos = channel_info.info;
   /// 1 fsm for cluster and shards_count fsms for non cluster
-  ///  !!! Is this missing line a bug????
   channel_info.active_fsm_count =
       is_cluster_mode_ ? 1 : storage_impl_.shards_count_;
 

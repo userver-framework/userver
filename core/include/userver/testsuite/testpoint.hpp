@@ -10,11 +10,7 @@
 #include <userver/utils/function_ref.hpp>
 
 // TODO remove extra includes
-#include <fmt/format.h>
-#include <atomic>
-#include <chrono>
-#include <userver/rcu/rcu.hpp>
-#include <userver/utils/async.hpp>
+#include <userver/logging/log.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

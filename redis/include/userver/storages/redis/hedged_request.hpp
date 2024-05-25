@@ -38,7 +38,7 @@ template <typename RedisRequestType>
 struct RedisRequestStrategy {
  public:
   using RequestType = RedisRequestType;
-  using ReplyType = RequestType::Reply;
+  using ReplyType = typename RequestType::Reply;
   using GenF = std::function<std::optional<RequestType>(int)>;
 
   explicit RedisRequestStrategy(GenF gen_callback)
@@ -102,7 +102,7 @@ using HedgedRedisRequest = utils::hedging::HedgedRequestFuture<
 template <typename RedisRequestType, typename... Args,
           typename M = RedisRequestType (storages::redis::Client::*)(
               Args..., const redis::CommandControl&)>
-RedisRequestType MakeHedgedRedisRequest(
+std::optional<typename RedisRequestType::Reply> MakeHedgedRedisRequest(
     std::shared_ptr<storages::redis::Client> redis, M method,
     const redis::CommandControl& cc,
     utils::hedging::HedgingSettings hedging_settings, Args... args) {

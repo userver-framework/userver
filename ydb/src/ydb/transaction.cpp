@@ -83,8 +83,7 @@ void Transaction::Commit(OperationSettings settings) {
 
   const auto commit_settings =
       impl::PrepareRequestSettings<NYdb::NTable::TCommitTxSettings>(
-          settings,
-          table_client_.GetDeadline(context.span, context.config_snapshot));
+          settings, impl::GetDeadline(context.span, context.config_snapshot));
 
   auto error_guard = ErrorGuard();
 
@@ -105,8 +104,7 @@ void Transaction::Rollback() {
 
   const auto rollback_settings =
       impl::PrepareRequestSettings<NYdb::NTable::TRollbackTxSettings>(
-          settings,
-          table_client_.GetDeadline(context.span, context.config_snapshot));
+          settings, impl::GetDeadline(context.span, context.config_snapshot));
 
   [[maybe_unused]] auto error_guard = ErrorGuard();
 
@@ -146,7 +144,7 @@ ExecuteResponse Transaction::Execute(QuerySettings query_settings,
   auto exec_settings = table_client_.ToExecQuerySettings(query_settings);
   impl::ApplyToRequestSettings(
       exec_settings, settings,
-      table_client_.GetDeadline(context.span, context.config_snapshot));
+      impl::GetDeadline(context.span, context.config_snapshot));
 
   // Must go after PrepareExecuteSettings, because an exception from there
   // leaves the transaction active.

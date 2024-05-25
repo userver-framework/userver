@@ -3,9 +3,8 @@
 #include <memory>
 #include <string>
 
-#include <boost/regex.hpp>
-
 #include <userver/utest/utest.hpp>
+#include <userver/utils/regex.hpp>
 
 #include <userver/storages/redis/impl/thread_pools.hpp>
 
@@ -45,7 +44,7 @@ class RedisClusterClientTest : public ::testing::Test {
 
     subscribe_sentinel_ = redis::SubscribeSentinel::Create(
         thread_pools_, GetTestsuiteRedisClusterSettings(), "none",
-        configs_source, "pub", true, {});
+        configs_source, "pub", true, {}, {});
     subscribe_sentinel_->WaitConnectedDebug();
 
     auto info_reply =
@@ -54,10 +53,10 @@ class RedisClusterClientTest : public ::testing::Test {
     ASSERT_TRUE(info_reply->data.IsString());
     const auto info = info_reply->data.GetString();
 
-    boost::regex redis_version_regex(R"(redis_version:(\d+.\d+.\d+))");
-    boost::smatch redis_version_matches;
+    utils::regex redis_version_regex(R"(redis_version:(\d+.\d+.\d+))");
+    utils::smatch redis_version_matches;
     ASSERT_TRUE(
-        boost::regex_search(info, redis_version_matches, redis_version_regex));
+        utils::regex_search(info, redis_version_matches, redis_version_regex));
     version_ = MakeVersion(redis_version_matches[1]);
   }
 
@@ -107,13 +106,15 @@ class RedisClusterClientTest : public ::testing::Test {
   std::shared_ptr<storages::redis::SubscribeClient> subscribe_client_{};
 
   static Version MakeVersion(std::string from) {
-    boost::regex rgx(R"((\d+).(\d+).(\d+))");
-    boost::smatch matches;
-    const auto result = boost::regex_search(from, matches, rgx);
+    utils::regex rgx(R"((\d+).(\d+).(\d+))");
+    utils::smatch matches;
+    const auto result = utils::regex_search(from, matches, rgx);
     EXPECT_TRUE(result);
     if (!result) return {};
-    return {std::stoi(matches[1]), std::stoi(matches[2]),
-            std::stoi(matches[3])};
+    const std::string major{matches[1]};
+    const std::string minor{matches[2]};
+    const std::string patch{matches[3]};
+    return {std::stoi(major), std::stoi(minor), std::stoi(patch)};
   }
 
   static dynamic_config::StorageMock MakeDynamicConfigStorage() {

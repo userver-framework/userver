@@ -8,7 +8,7 @@
 #include <vector>
 
 #include <userver/engine/impl/context_accessor.hpp>
-#include <userver/storages/redis/impl/exception.hpp>
+#include <userver/storages/redis/exception.hpp>
 #include <userver/storages/redis/reply_types.hpp>
 #include <userver/storages/redis/request_data_base.hpp>
 #include <userver/storages/redis/scan_tag.hpp>

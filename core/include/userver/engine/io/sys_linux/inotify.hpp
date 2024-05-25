@@ -1,9 +1,9 @@
 #pragma once
 
-#ifdef __linux__
-
 /// @file userver/engine/io/sys_linux/inotify.hpp
 /// @brief Linux-specific fs notification API
+
+#if defined(__linux__) || defined(DOXYGEN)
 
 #include <sys/inotify.h>
 
@@ -101,4 +101,4 @@ class Inotify final {
 
 USERVER_NAMESPACE_END
 
-#endif  // __linux__
+#endif

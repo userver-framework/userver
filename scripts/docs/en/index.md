@@ -59,7 +59,7 @@ are available at the
 * @ref scripts/docs/en/userver/component_system.md
     * @ref userver_clients "Clients"
     * @ref userver_http_handlers "HTTP Handlers"
-    * @ref userver_middlewares "HTTP Middlewares" 
+    * @ref userver_middlewares "HTTP Middlewares"
     * @ref userver_components "Other components"
 * @ref scripts/docs/en/userver/synchronization.md
 * @ref scripts/docs/en/userver/formats.md
@@ -120,9 +120,13 @@ are available at the
 
 
 ## MySQL
-* @ref mysql_driver
+* @ref scripts/docs/en/userver/mysql/mysql_driver.md
 * @ref scripts/docs/en/userver/mysql/supported_types.md
 * @ref scripts/docs/en/userver/mysql/design_and_details.md
+
+
+## Apache Kafka
+* @ref scripts/docs/en/userver/kafka.md
 
 
 ## Non relational databases

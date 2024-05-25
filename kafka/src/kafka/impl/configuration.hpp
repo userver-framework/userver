@@ -1,16 +1,14 @@
 #pragma once
 
-#include <functional>
-
 #include <userver/components/component_fwd.hpp>
 
 #include <kafka/impl/entity_type.hpp>
 
+#include <librdkafka/rdkafka.h>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace kafka::impl {
-
-class Opaque;
 
 /// @brief Wrapper for `librdkafka` `rd_kafka_conf_t`. Used as proxy between
 /// userver YAML configs and `librdkafka` configuration classes.
@@ -19,8 +17,6 @@ class Opaque;
 /// @see components/producer_component.cpp
 /// @see https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md
 class Configuration final {
-  using CallbacksSetter = std::function<void(void*)>;
-
  public:
   /// @brief Sets common Kafka objects configuration options, including broker
   /// SASL authentication mechanism, and consumer/producer specific options.
@@ -34,23 +30,14 @@ class Configuration final {
   Configuration& operator=(const Configuration&) = delete;
 
   Configuration(Configuration&&) noexcept;
-  Configuration& operator=(Configuration) = delete;
+  Configuration& operator=(Configuration&&) = delete;
 
   const std::string& GetComponentName() const;
-
-  /// @brief Set ups the opaque pointer that passed to all `librdkafka`
-  /// callbacks.
-  Configuration& SetOpaque(Opaque& opaque);
-
-  /// @brief Invokes the @param callback_setter with the stored
-  /// `rd_kafka_conf_t` pointer as a parameter. Can be used to set up
-  /// consumer/producer specific callbacks.
-  Configuration& SetCallbacks(CallbacksSetter callback_setter);
 
   /// @brief Releases stored `rd_kafka_conf_t` pointer to be passed as a
   /// parameter of `rd_kafka_new` function that takes ownership on
   /// configutation.
-  void* Release();
+  rd_kafka_conf_t* Release();
 
  private:
   void SetCommonOptions(const components::ComponentConfig& config,
@@ -61,10 +48,10 @@ class Configuration final {
   void SetProducerOptions(const components::ComponentConfig& config);
 
  private:
-  const std::string component_name_;
+  std::string component_name_;
 
-  class ConfHolder;
-  std::unique_ptr<ConfHolder> conf_;
+  // Pointer to `conf_` must be released and passed to `rd_kafka_new`
+  rd_kafka_conf_t* conf_;
 };
 
 }  // namespace kafka::impl

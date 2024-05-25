@@ -12,6 +12,8 @@
 
 /// @page clickhouse_driver ClickHouse Driver
 ///
+/// **Quality:** @ref QUALITY_TIERS "Golden Tier".
+///
 /// 🐙 **userver** provides access to ClickHouse databases servers via
 /// components::ClickHouse. The uClickHouse driver is asynchronous, it suspends
 /// current coroutine for carrying out network I/O.

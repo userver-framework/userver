@@ -16,24 +16,32 @@
 # a direct include of this script, so the functions should not rely
 # on non-cache variables being present.
 
-include_guard()
+include_guard(GLOBAL)
 
+# Pack initialization into a function to avoid non-cache variable leakage.
 function(_userver_prepare_grpc)
+  include("${CMAKE_CURRENT_LIST_DIR}/SetupProtobuf.cmake")
   if(USERVER_CONAN)
     find_package(gRPC REQUIRED)
-    find_package(Protobuf REQUIRED)  # For Protobuf_VERSION
     get_target_property(PROTO_GRPC_CPP_PLUGIN gRPC::grpc_cpp_plugin LOCATION)
     get_target_property(PROTO_GRPC_PYTHON_PLUGIN gRPC::grpc_python_plugin LOCATION)
     set(PROTOBUF_PROTOC "${Protobuf_PROTOC_EXECUTABLE}")
+    set(GENERATE_PROTOS_AT_CONFIGURE_DEFAULT ON)
   else()
-    if(NOT Protobuf_FOUND)
-      include(SetupProtobuf)
-    endif()
-    include(SetupGrpc)
+    include("${CMAKE_CURRENT_LIST_DIR}/SetupGrpc.cmake")
   endif()
+
   set_property(GLOBAL PROPERTY userver_grpc_cpp_plugin "${PROTO_GRPC_CPP_PLUGIN}")
   set_property(GLOBAL PROPERTY userver_grpc_python_plugin "${PROTO_GRPC_PYTHON_PLUGIN}")
   set_property(GLOBAL PROPERTY userver_protobuf_protoc "${PROTOBUF_PROTOC}")
+  set(generate_protos_at_configure_description
+      "Run protoc at CMake Configure time instead of the more traditional build time. "
+      "This avoids IDE errors before the first build, but requires re-running CMake "
+      "Configure each time .proto files change"
+  )
+  option(USERVER_GENERATE_PROTOS_AT_CONFIGURE
+      "${generate_protos_at_configure_description}"
+      "${GENERATE_PROTOS_AT_CONFIGURE_DEFAULT}")
 
   if(NOT USERVER_GRPC_SCRIPTS_PATH)
     get_filename_component(USERVER_DIR "${CMAKE_CURRENT_LIST_DIR}" DIRECTORY)
@@ -72,10 +80,7 @@ function(_userver_prepare_grpc)
     message(FATAL_ERROR "grpc_python_plugin not found")
   endif()
 
-  if(NOT USERVER_CONAN)
-    # For Conan builds, UserverTestsuite is included automatically.
-    include(UserverTestsuite)
-  endif()
+  include("${CMAKE_CURRENT_LIST_DIR}/UserverTestsuite.cmake")
 
   get_property(protobuf_category GLOBAL PROPERTY userver_protobuf_version_category)
   set(requirements_name "requirements-${protobuf_category}.txt")
@@ -219,16 +224,7 @@ function(userver_generate_grpc_files)
     endif()
   endforeach()
 
-  if(USERVER_GENERATE_PROTOS_AT_BUILD_TIME)
-    add_custom_command(
-        OUTPUT ${generated_cpps} ${generated_usrv_cpps}
-        COMMAND "${PROTOBUF_PROTOC}" ${protoc_flags} ${proto_abs_paths}
-        DEPENDS ${proto_dependencies}
-        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
-        COMMENT "Running gRPC C++ protocol buffer compiler for ${root_path}"
-    )
-    message(STATUS "Scheduled build-time generation of protos in ${root_path}")
-  else()
+  if(USERVER_GENERATE_PROTOS_AT_CONFIGURE)
     list(GET proto_dependencies 0 newest_proto_dependency)
     foreach(dependency ${proto_dependencies})
       if("${dependency}" IS_NEWER_THAN "${newest_proto_dependency}")
@@ -260,6 +256,16 @@ function(userver_generate_grpc_files)
     else()
       message(STATUS "Reused previously generated sources for protos in ${root_path}")
     endif()
+  else()
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/proto")
+    add_custom_command(
+        OUTPUT ${generated_cpps} ${generated_usrv_cpps}
+        COMMAND "${PROTOBUF_PROTOC}" ${protoc_flags} ${proto_abs_paths}
+        DEPENDS ${proto_dependencies}
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+        COMMENT "Running gRPC C++ protocol buffer compiler for ${root_path}"
+    )
+    message(STATUS "Scheduled build-time generation of protos in ${root_path}")
   endif()
 
   set_source_files_properties(

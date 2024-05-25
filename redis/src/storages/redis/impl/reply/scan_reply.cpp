@@ -1,6 +1,6 @@
 #include "scan_reply.hpp"
 
-#include <userver/storages/redis/impl/exception.hpp>
+#include <userver/storages/redis/exception.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

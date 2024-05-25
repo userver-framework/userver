@@ -6,8 +6,8 @@
 #include <memory>
 #include <string>
 
+#include <userver/storages/redis/exception.hpp>
 #include <userver/storages/redis/impl/base.hpp>
-#include <userver/storages/redis/impl/exception.hpp>
 #include <userver/storages/redis/impl/request.hpp>
 #include <userver/storages/redis/reply_types.hpp>
 #include <userver/storages/redis/request.hpp>

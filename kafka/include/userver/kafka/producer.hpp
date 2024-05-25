@@ -73,8 +73,8 @@ class Producer final {
   Producer& operator=(const Producer&) = delete;
   Producer& operator=(Producer&&) = delete;
 
-  /// @brief Sends given message to topic @param topic_name by given @param key
-  /// and @param partition (if passed) with payload contains the @param message
+  /// @brief Sends given message to topic `topic_name` by given `key`
+  /// and `partition` (if passed) with payload contains the `message`
   /// data. Asynchronously waits until the message is delivered or the delivery
   /// error occured.
   ///
@@ -87,13 +87,13 @@ class Producer final {
   /// `Producer::Send` call may take at most
   /// `delivery_timeout_ms` x `send_retries_count` milliseconds.
   ///
-  /// If @param partition not passed, partition is chosen by internal
+  /// If `partition` not passed, partition is chosen by internal
   /// Kafka partitioner.
   ///
   /// @warning if `enable_idempotence` option is enabled, do not use both
   /// explicit partitions and Kafka-chosen ones
   /// @throws std::runtime_error if message is not delivery and acked by Kafka
-  /// broker
+  /// Broker
   void Send(const std::string& topic_name, std::string_view key,
             std::string_view message,
             std::optional<std::uint32_t> partition = std::nullopt) const;
@@ -110,9 +110,9 @@ class Producer final {
       std::string topic_name, std::string key, std::string message,
       std::optional<std::uint32_t> partition = std::nullopt) const;
 
-  /// @brief Writes per topic messages produce statistics.
+  /// @brief Dumps per topic messages produce statistics.
   /// @see impl/stats.hpp
-  void WriteStatistics(utils::statistics::Writer& writer) const;
+  void DumpMetric(utils::statistics::Writer& writer) const;
 
  private:
   void InitProducerAndStartPollingIfFirstSend() const;

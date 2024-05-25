@@ -28,7 +28,7 @@ ProducerComponent::ProducerComponent(
 
   statistics_holder_ = storage.RegisterWriter(
       config.Name(), [this](utils::statistics::Writer& writer) {
-        producer_.WriteStatistics(writer);
+        producer_.DumpMetric(writer);
       });
 }
 

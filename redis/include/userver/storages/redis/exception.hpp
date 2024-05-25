@@ -1,12 +1,12 @@
 #pragma once
 
-/// @file userver/storages/redis/impl/exception.hpp
+/// @file userver/storages/redis/exception.hpp
 /// @brief redis-specific exceptions
 
 #include <stdexcept>
 #include <string_view>
 
-#include <userver/storages/redis/impl/reply_status.hpp>
+#include <userver/storages/redis/reply_status.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

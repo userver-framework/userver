@@ -8,6 +8,8 @@
 #include <type_traits>
 
 #include <fmt/core.h>
+#include <boost/range/adaptor/map.hpp>
+#include <boost/range/adaptor/transformed.hpp>
 
 #include <components/manager_config.hpp>
 #include <engine/task/exception_hacks.hpp>
@@ -112,10 +114,8 @@ void Manager::TaskProcessorsStorage::Reset() noexcept {
   for (auto& [name, task_processor] : task_processors_map_) {
     task_processor->InitiateShutdown();
   }
-  LOG_TRACE() << "Waiting for all coroutines to become idle";
-  while (task_processor_pools_->GetCoroPool().GetStats().active_coroutines) {
-    std::this_thread::sleep_for(std::chrono::milliseconds{10});
-  }
+  LOG_TRACE() << "Waiting for all tasks to stop";
+  WaitForAllTasksBlocking();
   LOG_TRACE() << "Stopping task processors";
   task_processors_map_.clear();
   LOG_TRACE() << "Stopped task processors";
@@ -128,6 +128,19 @@ void Manager::TaskProcessorsStorage::Reset() noexcept {
 void Manager::TaskProcessorsStorage::Add(
     std::string name, std::unique_ptr<engine::TaskProcessor>&& task_processor) {
   task_processors_map_.emplace(std::move(name), std::move(task_processor));
+}
+
+void Manager::TaskProcessorsStorage::WaitForAllTasksBlocking() const noexcept {
+  const auto indicators =
+      task_processors_map_ | boost::adaptors::map_values |
+      boost::adaptors::transformed(
+          [](const auto& task_processor_ptr) -> const auto& {
+            const engine::TaskProcessor& task_processor = *task_processor_ptr;
+            return task_processor.GetTaskCounter();
+          });
+  while (engine::impl::TaskCounter::AnyMayHaveTasksAlive(indicators)) {
+    std::this_thread::sleep_for(std::chrono::milliseconds{10});
+  }
 }
 
 Manager::Manager(std::unique_ptr<ManagerConfig>&& config,

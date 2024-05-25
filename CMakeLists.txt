@@ -17,6 +17,7 @@ option(
     "Prepare build of userver to install in system"
     OFF
 )
+
 set(USERVER_AVAILABLE_COMPONENTS universal)
 set(USERVER_NOT_INCLUDED_AS_SUBDIR OFF)
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR AND NOT USERVER_INSTALL)
@@ -130,7 +131,6 @@ endif()
 
 include(GetUserverVersion)
 include(AddGoogleTests)
-include(CheckSubmodule)
 include(FindPackageRequired)
 include(IncludeWhatYouUse)
 # For userver_venv_setup below.
@@ -168,12 +168,11 @@ option(USERVER_FEATURE_POSTGRESQL "Provide asynchronous driver for PostgreSQL" "
 option(USERVER_FEATURE_REDIS "Provide asynchronous driver for Redis" "${USERVER_LIB_ENABLED_DEFAULT}")
 option(USERVER_FEATURE_GRPC "Provide asynchronous driver for gRPC" "${USERVER_LIB_ENABLED_DEFAULT}")
 option(USERVER_FEATURE_CLICKHOUSE "Provide asynchronous driver for ClickHouse" "${USERVER_CLICKHOUSE_DEFAULT}")
+option(USERVER_FEATURE_KAFKA "Provide asynchronous driver for Apache Kafka" "${USERVER_LIB_ENABLED_DEFAULT}")
 option(USERVER_FEATURE_RABBITMQ "Provide asynchronous driver for RabbitMQ" "${USERVER_LIB_ENABLED_DEFAULT}")
 option(USERVER_FEATURE_MYSQL "Provide asynchronous driver for MariaDB/MySQL" "${USERVER_LIB_ENABLED_DEFAULT}")
 option(USERVER_FEATURE_ROCKS "Provide asynchronous driver for Rocks" "${USERVER_LIB_ENABLED_DEFAULT}")
 option(USERVER_FEATURE_YDB "Provide asynchronous driver for YDB" "${USERVER_YDB_DEFAULT}")
-
-option(USERVER_FEATURE_UBOOST_CORO "Use vendored boost context instead of a system one" ON)
 
 if (USERVER_FEATURE_GRPC)
   include(cmake/SetupProtobuf.cmake)
@@ -231,6 +230,12 @@ if (USERVER_FEATURE_CLICKHOUSE)
   _require_userver_core("USERVER_FEATURE_CLICKHOUSE")
   add_subdirectory(clickhouse)
   list(APPEND USERVER_AVAILABLE_COMPONENTS clickhouse)
+endif()
+
+if (USERVER_FEATURE_KAFKA)
+  _require_userver_core("USERVER_FEATURE_KAFKA")
+  add_subdirectory(kafka)
+  list(APPEND USERVER_AVAILABLE_COMPONENTS kafka)
 endif()
 
 if (USERVER_FEATURE_RABBITMQ)

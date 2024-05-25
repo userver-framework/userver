@@ -114,11 +114,7 @@ class CursorIterator final {
 
   void operator++(int);
 
-#if __cpp_lib_ranges >= 201911L
   bool operator==(const std::default_sentinel_t& other) const noexcept;
-#else
-  bool operator==(const CursorIterator& other) const noexcept;
-#endif
 
  private:
   friend class Cursor;
@@ -153,12 +149,7 @@ class Cursor final {
   std::size_t size() const;
 
   CursorIterator begin();
-
-#if __cpp_lib_ranges >= 201911L
   std::default_sentinel_t end();
-#else
-  CursorIterator end();
-#endif
 
  private:
   friend class Row;

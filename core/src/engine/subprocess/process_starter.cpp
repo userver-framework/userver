@@ -13,18 +13,17 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 
-#include <userver/logging/log.hpp>
-#include <userver/tracing/span.hpp>
-#include <utils/check_syscall.hpp>
-
 #include <engine/ev/child_process_map.hpp>
 #include <engine/ev/thread_control.hpp>
 #include <engine/ev/thread_pool.hpp>
+#include <engine/subprocess/child_process_impl.hpp>
 #include <engine/task/task_processor.hpp>
 #include <userver/engine/future.hpp>
 #include <userver/engine/task/cancel.hpp>
-
-#include <engine/subprocess/child_process_impl.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/tracing/span.hpp>
+#include <userver/utils/algo.hpp>
+#include <utils/check_syscall.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -60,8 +59,8 @@ void DoExecve(const std::string& command, const std::vector<std::string>& args,
   }
   argv_ptrs.push_back(nullptr);
 
-  for (const auto& elem : env) {
-    envp_buf.emplace_back(elem.first + '=' + elem.second);
+  for (const auto& [key, value] : env) {
+    envp_buf.emplace_back(utils::StrCat(key, "=", value));
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
     envp_ptrs.push_back(const_cast<char*>(envp_buf.back().c_str()));
   }
@@ -86,6 +85,7 @@ ChildProcess ProcessStarter::Exec(
   span.AddTag("command", command);
   Promise<ChildProcess> promise;
   auto future = promise.get_future();
+
   thread_control_.RunInEvLoopAsync([&, promise = std::move(promise)]() mutable {
     LOG_DEBUG() << "do fork() + execve(), command=" << command << ", args=["
                 << (args.empty() ? "" : '\'' + boost::join(args, "' '") + '\'')
@@ -99,7 +99,7 @@ ChildProcess ProcessStarter::Exec(
                                                 }),
                                       ", "))
                 << ']';
-    auto pid = utils::CheckSyscall(fork(), "fork");
+    const auto pid = utils::CheckSyscall(fork(), "fork");
     if (pid) {
       // in parent thread
       span.AddTag("child-process-pid", pid);
@@ -111,8 +111,8 @@ ChildProcess ProcessStarter::Exec(
         promise.set_value(ChildProcess{
             ChildProcessImpl{pid, res.first->status_promise.get_future()}});
       } else {
-        std::string msg = "process with pid=" + std::to_string(pid) +
-                          " already exists in child_process_map";
+        const auto msg = fmt::format(
+            "process with pid={} already exists in child_process_map", pid);
         LOG_ERROR() << msg << ", send SIGKILL";
         ChildProcessImpl(pid, Future<ChildProcessStatus>{}).SendSignal(SIGKILL);
         promise.set_exception(std::make_exception_ptr(std::runtime_error(msg)));
@@ -127,13 +127,14 @@ ChildProcess ProcessStarter::Exec(
         }
       } catch (...) {
         // must not do anything in a child
+        std::abort();
       }
       // on success execve does not return
       std::abort();
     }
   });
 
-  engine::TaskCancellationBlocker cancel_blocker;
+  const TaskCancellationBlocker cancel_blocker;
   return future.get();
 }
 
@@ -146,14 +147,6 @@ ChildProcess ProcessStarter::Exec(
               EnvironmentVariables{GetCurrentEnvironmentVariables()}.UpdateWith(
                   std::move(env_update)),
               stdout_file, stderr_file);
-}
-
-ChildProcess ProcessStarter::Exec(
-    const std::string& command, const std::vector<std::string>& args,
-    const std::optional<std::string>& stdout_file,
-    const std::optional<std::string>& stderr_file) {
-  return Exec(command, args, EnvironmentVariablesUpdate{{}}, stdout_file,
-              stderr_file);
 }
 
 }  // namespace engine::subprocess

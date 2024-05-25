@@ -2,6 +2,7 @@
 
 #include <userver/dynamic_config/source.hpp>
 #include <userver/server/http/http_status.hpp>
+#include <userver/server/middlewares/builtin.hpp>
 #include <userver/server/middlewares/http_middleware_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -14,8 +15,7 @@ namespace server::middlewares {
 
 class DeadlinePropagation final : public HttpMiddlewareBase {
  public:
-  static constexpr std::string_view kName{
-      "userver-deadline-propagation-middleware"};
+  static constexpr std::string_view kName = builtin::kDeadlinePropagation;
 
   explicit DeadlinePropagation(const handlers::HttpHandlerBase&);
 

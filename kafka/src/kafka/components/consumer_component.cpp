@@ -30,7 +30,7 @@ ConsumerComponent::ConsumerComponent(
 
   statistics_holder_ = storage.RegisterWriter(
       config.Name(), [this](utils::statistics::Writer& writer) {
-        consumer_->WriteStatistics(writer);
+        consumer_->DumpMetric(writer);
       });
 }
 

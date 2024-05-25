@@ -2,8 +2,9 @@
 
 #include <string_view>
 
-#include <userver/components/loggable_component_base.hpp>
 #include <userver/kafka/producer.hpp>
+
+#include <userver/components/loggable_component_base.hpp>
 #include <userver/utils/statistics/entry.hpp>
 
 USERVER_NAMESPACE_BEGIN

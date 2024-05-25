@@ -2,6 +2,7 @@
 
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_list.hpp>
+#include <userver/server/middlewares/builtin.hpp>
 #include <userver/testsuite/middlewares.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
@@ -23,26 +24,31 @@ namespace server::middlewares {
 MiddlewaresList DefaultPipeline() {
   return {
       // Metrics should go before everything else, basically.
-      std::string{HandlerMetrics::kName},
+      std::string{builtin::kHandlerMetrics},
       // Tracing should go before UnknownExceptionsHandlingMiddleware because it
       // adds some headers, which otherwise might be cleared
-      std::string{Tracing::kName},
+      std::string{builtin::kTracing},
       // Ditto
-      std::string{SetAcceptEncoding::kName},
+      std::string{builtin::kSetAcceptEncoding},
 
-      // Every exception caught here is transformed into Http500 without context
-      std::string{UnknownExceptionsHandling::kName},
+      // Every exception caught here is transformed into Http500 without
+      // context.
+      // All middlewares except for the most obscure ones should go below.
+      std::string{builtin::kUnknownExceptionsHandling},
 
       // Should be self-explanatory
-      std::string{RateLimit::kName},
-      std::string{DeadlinePropagation::kName},
-      std::string{Baggage::kName},
-      std::string{Auth::kName},
-      std::string{Decompression::kName},
+      std::string{builtin::kRateLimit},
+      std::string{builtin::kDeadlinePropagation},
+      std::string{builtin::kBaggage},
+      std::string{builtin::kAuth},
+      std::string{builtin::kDecompression},
 
       // Transforms CustomHandlerException into response as specified by the
-      // exception, transforms std::exception into Http500 without context
-      std::string{ExceptionsHandling::kName},
+      // exception, transforms std::exception into Http500 without context.
+      // Middlewares that throw CustomHandlerException on error should go below.
+      // Middlewares that call HttpHandlerBase::HandleCustomHandlerException or
+      // fill the response manually on error (which is faster) should go above.
+      std::string{builtin::kExceptionsHandling},
   };
 }
 /// [Middlewares sample - default pipeline]
