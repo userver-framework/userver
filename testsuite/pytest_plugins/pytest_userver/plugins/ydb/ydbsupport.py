@@ -5,7 +5,6 @@ import os
 import pathlib
 import subprocess
 from typing import List
-from typing import Optional
 
 import pytest
 import yaml
@@ -127,26 +126,28 @@ def _ydb_state():
 
 
 @pytest.fixture(scope='session')
-def ydb_migrate_dir(service_source_dir) -> pathlib.Path:
+def ydb_migration_dir(service_source_dir) -> pathlib.Path:
+    """
+    Directory with migration files
+
+    @ingroup userver_testsuite_fixtures
+    """
     return service_source_dir / 'ydb' / 'migrations'
 
 
-def _ydb_migrate(ydb_service_settings, ydb_migrate_dir):
-    if not ydb_migrate_dir.exists():
+def _ydb_migrate(ydb_service_settings, ydb_migration_dir, goose_binary_path):
+    if not ydb_migration_dir.exists():
         return
-    if not list(ydb_migrate_dir.iterdir()):
-        return
-
-    if not _get_goose():
+    if not list(ydb_migration_dir.iterdir()):
         return
 
     host = ydb_service_settings.host
     port = ydb_service_settings.grpc_port
 
     command = [
-        str(_get_goose()),
+        str(goose_binary_path),
         '-dir',
-        str(ydb_migrate_dir),
+        str(ydb_migration_dir),
         'ydb',
         (
             f'grpc://{host}:{port}/local?go_query_mode=scripting&'
@@ -157,10 +158,18 @@ def _ydb_migrate(ydb_service_settings, ydb_migrate_dir):
     try:
         shell.execute(command, verbose=True, command_alias='ydb/migrations')
     except shell.SubprocessFailed as exc:
-        raise Exception(f'YDB run migration failed:\n\n{exc}')
+        raise Exception(f'YDB run migration failed:\n{exc}')
 
 
-def _get_goose() -> Optional[pathlib.Path]:
+@pytest.fixture(scope='session')
+def goose_binary_path() -> pathlib.Path:
+    """
+    Path to 'goose' migration tool.
+
+    Override this fixture to change the way 'goose' binary is discovered.
+
+    @ingroup userver_testsuite_fixtures
+    """
     try:
         import yatest
 
@@ -168,18 +177,16 @@ def _get_goose() -> Optional[pathlib.Path]:
             'contrib/go/patched/goose/cmd/goose/goose',
         )
     except ImportError:
-        return None
+        return 'goose'
 
 
-def _ydb_fetch_table_names(ydb_service_settings) -> List[str]:
+def _ydb_fetch_table_names(ydb_service_settings, ydb_cli) -> List[str]:
     try:
-        import yatest
-
         host = ydb_service_settings.host
         port = ydb_service_settings.grpc_port
         output = subprocess.check_output(
             [
-                yatest.common.runtime.binary_path('contrib/ydb/apps/ydb/ydb'),
+                str(ydb_cli),
                 '-e',
                 f'grpc://{host}:{port}',
                 '-d',
@@ -200,8 +207,25 @@ def _ydb_fetch_table_names(ydb_service_settings) -> List[str]:
             path = line.split('│')[6].strip()
             tables.append(path)
         return tables
+    except subprocess.CalledProcessError as exc:
+        raise Exception(f'Could not fetch table names:\n{exc}')
+
+
+@pytest.fixture(scope='session')
+def ydb_cli() -> pathlib.Path:
+    """
+    Path to YDB CLI executable.
+
+    Override this fixture to change the way YDB CLI is discovered.
+
+    @ingroup userver_testsuite_fixtures
+    """
+    try:
+        import yatest
+
+        return yatest.common.runtime.binary_path('contrib/ydb/apps/ydb/ydb')
     except ImportError:
-        return []
+        return 'ydb'
 
 
 @pytest.fixture(scope='session')
@@ -210,9 +234,10 @@ def _ydb_prepare(
         _ydb_service_schemas,
         ydb_service_settings,
         _ydb_state,
-        ydb_migrate_dir,
+        ydb_migration_dir,
+        goose_binary_path,
 ):
-    if _ydb_service_schemas and ydb_migrate_dir.exists():
+    if _ydb_service_schemas and ydb_migration_dir.exists():
         raise Exception(
             'Both ydb/schema and ydb/migrations exist, '
             'which are mutually exclusive',
@@ -228,16 +253,16 @@ def _ydb_prepare(
             _ydb_state.tables.append(table_schema['path'])
 
     # goose
-    _ydb_migrate(ydb_service_settings, ydb_migrate_dir)
+    _ydb_migrate(ydb_service_settings, ydb_migration_dir, goose_binary_path)
 
     _ydb_state.init = True
 
 
 @pytest.fixture(scope='session')
-def _ydb_tables(_ydb_state, _ydb_prepare, ydb_service_settings):
+def _ydb_tables(_ydb_state, _ydb_prepare, ydb_service_settings, ydb_cli):
     tables = {
         *_ydb_state.tables,
-        *_ydb_fetch_table_names(ydb_service_settings),
+        *_ydb_fetch_table_names(ydb_service_settings, ydb_cli),
     }
     return tuple(sorted(tables))
 

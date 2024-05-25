@@ -26,7 +26,7 @@ RUN \
   pip3 install pep8 && \
   apt clean all && \
   curl -fsSL https://raw.githubusercontent.com/pressly/goose/master/install.sh | sh && \
-  curl -sSL https://install.ydb.tech/cli | bash -s -- -i/usr/local
+  curl -sSL https://install.ydb.tech/cli | bash -s -- -i/usr/local -n
 
 EXPOSE 8080-8100
 EXPOSE 15672

@@ -1,5 +1,4 @@
 import bson
-import pytest
 
 
 DATA = {'value': b'\x00\x01\x02\x03'}
@@ -11,7 +10,6 @@ WHERE id = "id1"
 """
 
 
-@pytest.mark.skip(reason='restore in TAXICOMMON-8860')
 async def test_ok(service_client, ydb):
     # validate YDB state
     cursor = ydb.execute(SQL_REQUEST)
