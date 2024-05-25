@@ -169,6 +169,8 @@ class CallData final {
         method_data_.service_data.metadata.service_full_name;
     const auto& method_name = method_data_.method_name;
 
+    const auto& middlewares = method_data_.service_data.settings.middlewares;
+
     SetupSpan(span_, context_, call_name);
     utils::FastScopeGuard destroy_span([&]() noexcept { span_.reset(); });
 
@@ -177,10 +179,10 @@ class CallData final {
     auto& access_tskv_logger =
         method_data_.service_data.settings.access_tskv_logger;
     utils::AnyStorage<StorageContext> storage_context;
-    Call responder(
-        CallParams{context_, call_name, statistics_scope, *access_tskv_logger,
-                   span_->Get(), storage_context},
-        raw_responder_);
+    Call responder(CallParams{context_, call_name, service_name, method_name,
+                              statistics_scope, *access_tskv_logger,
+                              span_->Get(), storage_context, middlewares},
+                   raw_responder_);
     auto do_call = [&] {
       if constexpr (std::is_same_v<InitialRequest, NoInitialRequest>) {
         (service.*service_method)(responder);
@@ -195,12 +197,11 @@ class CallData final {
         initial_request = &initial_request_;
       }
 
-      auto& middlewares = method_data_.service_data.settings.middlewares;
       MiddlewareCallContext middleware_context(
-          middlewares, responder, do_call, service_name, method_name,
+          middlewares, responder, do_call,
           method_data_.service_data.settings.config_source.GetSnapshot(),
           initial_request);
-      middleware_context.Next();
+      responder.RunMiddlewarePipeline(middleware_context);
     } catch (
         const USERVER_NAMESPACE::server::handlers::CustomHandlerException& ex) {
       ReportCustomError(ex, responder, span_->Get());

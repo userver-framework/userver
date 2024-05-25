@@ -7,6 +7,7 @@
 #include <userver/compiler/thread_local.hpp>
 #include <userver/logging/impl/logger_base.hpp>
 #include <userver/logging/logger.hpp>
+#include <userver/ugrpc/server/middlewares/base.hpp>
 #include <userver/ugrpc/status_codes.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/encoding/tskv.hpp>
@@ -130,6 +131,39 @@ void CallAnyBase::LogFinish(grpc::Status status) const {
                                     params_.call_span.GetStartSystemTime(),
                                     params_.call_name, status.error_code());
   params_.access_tskv_logger.Log(logging::Level::kInfo, std::move(str));
+}
+
+void CallAnyBase::ApplyRequestHook(google::protobuf::Message* request) {
+  UINVARIANT(middleware_call_context_, "MiddlewareCallContext must be invoked");
+  if (request) {
+    for (const auto& middleware : params_.middlewares) {
+      middleware->CallRequestHook(*middleware_call_context_, *request);
+    }
+  }
+}
+
+void CallAnyBase::ApplyResponseHook(google::protobuf::Message* response) {
+  UINVARIANT(middleware_call_context_, "MiddlewareCallContext must be invoked");
+  if (response) {
+    for (const auto& middleware :
+         boost::adaptors::reverse(params_.middlewares)) {
+      middleware->CallResponseHook(*middleware_call_context_, *response);
+    }
+  }
+}
+
+void CallAnyBase::RunMiddlewarePipeline(
+    MiddlewareCallContext& md_call_context) {
+  middleware_call_context_ = &md_call_context;
+  md_call_context.Next();
+}
+
+std::string_view CallAnyBase::GetServiceName() const {
+  return params_.service_name;
+}
+
+std::string_view CallAnyBase::GetMethodName() const {
+  return params_.method_name;
 }
 
 }  // namespace ugrpc::server
