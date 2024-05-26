@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class LogFile:
     def __init__(self, path: pathlib.Path):
         self.path = path
-        self.update_position()
+        self.position = 0
 
     def update_position(self):
         try:
