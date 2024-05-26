@@ -379,10 +379,6 @@ write_basic_package_version_file(
   ${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake
   VERSION ${USERVER_VERSION} COMPATIBILITY SameMajorVersion
 )
-
-if (NOT USERVER_INSTALL)
-  set(userver_DIR "${CMAKE_CURRENT_BINARY_DIR}/" CACHE INTERNAL "")
-endif()
   
 _userver_directory_install(COMPONENT universal FILES
     "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake"
