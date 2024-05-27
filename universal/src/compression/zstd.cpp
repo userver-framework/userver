@@ -44,7 +44,7 @@ std::string DecompressStream(std::string_view compressed, size_t max_size) {
         throw ErrWithCode(ZSTD_getErrorName(ret));
       }
 
-      decompressed.append(static_cast<char*>(output.dst), output.size);
+      decompressed.append(static_cast<char*>(output.dst), output.pos);
     }
 
     if (decompressed.size() > max_size) {
