@@ -10,165 +10,167 @@ namespace clients::http {
 
 std::ostream& operator<<(std::ostream& os, Status s) {
   switch (s) {
-    case Invalid:
+    case Status::kInvalid:
       return os << "Invalid status";
-    case Continue:
+    case Status::kContinue:
       return os << "100 Continue";
-    case SwitchingProtocols:
+    case Status::kSwitchingProtocols:
       return os << "101 Switching Protocols";
-    case Processing:
+    case Status::kProcessing:
       return os << "102 Processing";
-    case EarlyHints:
+    case Status::kEarlyHints:
       return os << "103 Early Hints";
-    case OK:
+    case Status::kOk:
       return os << "200 OK";
-    case Created:
+    case Status::kCreated:
       return os << "201 Created";
-    case Accepted:
+    case Status::kAccepted:
       return os << "202 Accepted";
-    case NonAuthoritativeInformation:
+    case Status::kNonAuthoritativeInformation:
       return os << "203 Non Authoritative Information";
-    case NoContent:
+    case Status::kNoContent:
       return os << "204 NoContent";
-    case ResetContent:
+    case Status::kResetContent:
       return os << "205 Reset Content";
-    case PartialContent:
+    case Status::kPartialContent:
       return os << "206 Partial Content";
-    case MultiStatus:
+    case Status::kMultiStatus:
       return os << "207 Multi Status";
-    case AlreadyReported:
+    case Status::kAlreadyReported:
       return os << "208 Already Reported";
-    case ThisIsFine:
+    case Status::kThisIsFine:
       return os << "218 This Is Fine";
-    case IMUsed:
+    case Status::kImUsed:
       return os << "226 IM Used";
-    case MultipleChoices:
+    case Status::kMultipleChoices:
       return os << "300 Multiple Choices";
-    case MovedPermanently:
+    case Status::kMovedPermanently:
       return os << "301 Moved Permanently";
-    case Found:
+    case Status::kFound:
       return os << "302 Found";
-    case SeeOther:
+    case Status::kSeeOther:
       return os << "303 See Other";
-    case NotModified:
+    case Status::kNotModified:
       return os << "304 Not Modified";
-    case UseProxy:
+    case Status::kUseProxy:
       return os << "305 Use Proxy";
-    case SwitchProxy:
+    case Status::kSwitchProxy:
       return os << "306 Switch Proxy";
-    case TemporaryRedirect:
+    case Status::kTemporaryRedirect:
       return os << "307 Temporary Redirect";
-    case PermanentRedirect:
+    case Status::kPermanentRedirect:
       return os << "308 Permanent Redirect";
-    case BadRequest:
+    case Status::kBadRequest:
       return os << "400 BadRequest";
-    case Unauthorized:
+    case Status::kUnauthorized:
       return os << "401 Unauthorized";
-    case PaymentRequired:
+    case Status::kPaymentRequired:
       return os << "402 Payment Required";
-    case Forbidden:
+    case Status::kForbidden:
       return os << "403 Forbidden";
-    case NotFound:
+    case Status::kNotFound:
       return os << "404 Not Found";
-    case MethodNotAllowed:
+    case Status::kMethodNotAllowed:
       return os << "405 Method Not Allowed";
-    case NotAcceptable:
+    case Status::kNotAcceptable:
       return os << "406 Not Acceptable";
-    case ProxyAuthenticationRequired:
+    case Status::kProxyAuthenticationRequired:
       return os << "407 Proxy Authentication Required";
-    case RequestTimeout:
+    case Status::kRequestTimeout:
       return os << "408 Request Timeout";
-    case Conflict:
+    case Status::kConflict:
       return os << "409 Conflict";
-    case Gone:
+    case Status::kGone:
       return os << "410 Gone";
-    case LengthRequired:
+    case Status::kLengthRequired:
       return os << "411 Length Required";
-    case PreconditionFailed:
+    case Status::kPreconditionFailed:
       return os << "412 Precondition Failed";
-    case PayloadTooLarge:
+    case Status::kPayloadTooLarge:
       return os << "413 Payload Too Large";
-    case UriTooLong:
+    case Status::kUriTooLong:
       return os << "414 Uri Too Long";
-    case UnsupportedMediaType:
+    case Status::kUnsupportedMediaType:
       return os << "415 Unsupported Media Type";
-    case RangeNotSatisfiable:
+    case Status::kRangeNotSatisfiable:
       return os << "416 Range Not Satisfiable";
-    case ExpectationFailed:
+    case Status::kExpectationFailed:
       return os << "417 Expectation Failed";
-    case ImATeapot:
+    case Status::kImATeapot:
       return os << "418 I'm A Teapot";
-    case PageExpired:
+    case Status::kPageExpired:
       return os << "419 Page Expired";
-    case MethodFailure:
+    case Status::kMethodFailure:
       return os << "420 Method Failure";
-    case MisdirectedRequest:
+    case Status::kMisdirectedRequest:
       return os << "421 Misdirected Request";
-    case UnprocessableEntity:
+    case Status::kUnprocessableEntity:
       return os << "422 Unprocessable Entity";
-    case Locked:
+    case Status::kLocked:
       return os << "423 Locked";
-    case FailedDependency:
+    case Status::kFailedDependency:
       return os << "424 Failed Dependency";
-    case TooEarly:
+    case Status::kTooEarly:
       return os << "425 Too Early";
-    case UpgradeRequired:
+    case Status::kUpgradeRequired:
       return os << "426 Upgrade Required";
-    case PreconditionRequired:
+    case Status::kPreconditionRequired:
       return os << "428 Precondition Required";
-    case TooManyRequests:
+    case Status::kTooManyRequests:
       return os << "429 Too Many Requests";
-    case RequestHeaderFieldsTooLarge:
+    case Status::kRequestHeaderFieldsTooLarge:
       return os << "431 Request Header Fields Too Large";
-    case NginxNoResponse:
+    case Status::kNginxNoResponse:
       return os << "444 Nginx No Response";
-    case UnavailableForLegalReasons:
+    case Status::kUnavailableForLegalReasons:
       return os << "451 Unavailable For Legal Reasons";
-    case NginxRequestHeaderTooLarge:
+    case Status::kNginxRequestHeaderTooLarge:
       return os << "494 Nginx Request Header Too Large";
-    case NginxSSLCertificateError:
+    case Status::kNginxSSLCertificateError:
       return os << "495 Nginx SSL Certificate Error";
-    case NginxSSLCertificateRequired:
+    case Status::kNginxSSLCertificateRequired:
       return os << "496 Nginx SSL Certificate Required";
-    case NginxHTTPRequestSenttoHTTPSPort:
+    case Status::kNginxHTTPRequestSenttoHTTPSPort:
       return os << "497 Nginx HTTP Request Sentto HTTPS Port";
-    case NginxClientClosedRequest:
+    case Status::kDeadlineExpired:
+      return os << "489 userver specific deadline expired";
+    case Status::kNginxClientClosedRequest:
       return os << "499 Nginx Client Closed Request";
-    case InternalServerError:
+    case Status::kInternalServerError:
       return os << "500 Internal Server Error";
-    case NotImplemented:
+    case Status::kNotImplemented:
       return os << "501 Not Implemented";
-    case BadGateway:
+    case Status::kBadGateway:
       return os << "502 Bad Gateway";
-    case ServiceUnavailable:
+    case Status::kServiceUnavailable:
       return os << "503 Service Unavailable";
-    case GatewayTimeout:
+    case Status::kGatewayTimeout:
       return os << "504 Gateway Timeout";
-    case HttpVersionNotSupported:
+    case Status::kHttpVersionNotSupported:
       return os << "505 Http Version Not Supported";
-    case VariantAlsoNegotiates:
+    case Status::kVariantAlsoNegotiates:
       return os << "506 Variant Also Negotiates";
-    case InsufficientStorage:
+    case Status::kInsufficientStorage:
       return os << "507 Insufficient Storage";
-    case LoopDetected:
+    case Status::kLoopDetected:
       return os << "508 Loop Detected";
-    case BandwidthLimitExceeded:
+    case Status::kBandwidthLimitExceeded:
       return os << "509 Bandwidth Limit Exceeded";
-    case NotExtended:
+    case Status::kNotExtended:
       return os << "510 Not Extended";
-    case NetworkAuthenticationRequired:
+    case Status::kNetworkAuthenticationRequired:
       return os << "511 Network Authentication Required";
-    case WebServerIsDown:
+    case Status::kWebServerIsDown:
       return os << "520 Web Server Is Down";
-    case ConnectionTimedOut:
+    case Status::kConnectionTimedOut:
       return os << "522 Connection Timed Out";
-    case OriginIsUnreachable:
+    case Status::kOriginIsUnreachable:
       return os << "523 Origin Is Unreachable";
-    case TimeoutOccurred:
+    case Status::kTimeoutOccurred:
       return os << "524 A Timeout Occurred";
-    case SslHandshakeFailed:
+    case Status::kSslHandshakeFailed:
       return os << "525 SSL Handshake Failed";
-    case InvalidSslCertificate:
+    case Status::kInvalidSslCertificate:
       return os << "526 Invalid SSL Certificate";
   }
 
