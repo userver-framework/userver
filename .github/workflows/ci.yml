@@ -85,6 +85,19 @@ jobs:
                     ${{matrix.os}} ${{matrix.info}} ccache-dir ${{github.ref}} run-'
                     ${{matrix.os}} ${{matrix.info}} ccache-
 
+          - name: Check place before maximize
+            run: df -h
+
+          - name: Maximize build space
+            uses: easimon/maximize-build-space@master
+            with:
+              root-reserve-mb: 512
+              swap-size-mb: 1024
+              remove-dotnet: 'true'
+
+          - name: Check place after maximize
+            run: df -h
+
           - name: Free disk space
             run: |
                 df -h
