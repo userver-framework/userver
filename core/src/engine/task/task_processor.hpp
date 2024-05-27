@@ -5,6 +5,7 @@
 #include <functional>
 #include <memory>
 #include <thread>
+#include <variant>
 #include <vector>
 
 #include <boost/smart_ptr/intrusive_ptr.hpp>
@@ -13,6 +14,7 @@
 #include <engine/task/task_counter.hpp>
 #include <engine/task/task_processor_config.hpp>
 #include <engine/task/task_queue.hpp>
+#include <engine/task/work_stealing_queue/task_queue.hpp>
 #include <utils/statistics/thread_statistics.hpp>
 
 #include <userver/engine/impl/detached_tasks_sync_block.hpp>
@@ -58,7 +60,8 @@ class TaskProcessor final {
   const impl::TaskCounter& GetTaskCounter() const { return task_counter_; }
 
   std::size_t GetTaskQueueSize() const {
-    return task_queue_.GetSizeApproximate();
+    return std::visit([](auto&& arg) { return arg.GetSizeApproximate(); },
+                      task_queue_);
   }
 
   std::size_t GetWorkerCount() const { return workers_.size(); }
@@ -110,7 +113,7 @@ class TaskProcessor final {
   concurrent::impl::InterferenceShield<impl::DetachedTasksSyncBlock>
       detached_contexts_{impl::DetachedTasksSyncBlock::StopMode::kCancel};
   concurrent::impl::InterferenceShield<OverloadedCache> overloaded_cache_;
-  TaskQueue task_queue_;
+  std::variant<TaskQueue, WorkStealingTaskQueue> task_queue_;
   impl::TaskCounter task_counter_;
 
   const TaskProcessorConfig config_;

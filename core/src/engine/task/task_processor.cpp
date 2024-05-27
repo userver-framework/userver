@@ -81,11 +81,22 @@ void TaskProcessorThreadStartedHook() {
   EmitMagicNanosleep();
 }
 
+auto MakeTaskQueue(TaskProcessorConfig config) {
+  using ResultType = std::variant<TaskQueue, WorkStealingTaskQueue>;
+  switch (config.task_processor_queue) {
+    case TaskQueueType::kGlobalTaskQueue:
+      return ResultType{std::in_place_index<0>, std::move(config)};
+    case TaskQueueType::kWorkStealingTaskQueue:
+      return ResultType{std::in_place_index<1>, std::move(config)};
+  }
+  UINVARIANT(false, "Unexpected value of ... enum");
+}
+
 }  // namespace
 
 TaskProcessor::TaskProcessor(TaskProcessorConfig config,
                              std::shared_ptr<impl::TaskProcessorPools> pools)
-    : task_queue_(config),
+    : task_queue_(MakeTaskQueue(config)),
       task_counter_(config.worker_threads),
       config_(std::move(config)),
       pools_(std::move(pools)) {
@@ -123,7 +134,7 @@ void TaskProcessor::Cleanup() noexcept {
   // Some tasks may be bound but not scheduled yet
   task_counter_.WaitForExhaustionBlocking();
 
-  task_queue_.StopProcessing();
+  std::visit([](auto&& arg) { return arg.StopProcessing(); }, task_queue_);
 
   for (auto& w : workers_) {
     w.join();
@@ -157,7 +168,7 @@ void TaskProcessor::Schedule(impl::TaskContext* context) {
 
   SetTaskQueueWaitTimepoint(context);
 
-  task_queue_.Push(context);
+  std::visit([&context](auto&& arg) { return arg.Push(context); }, task_queue_);
 }
 
 void TaskProcessor::Adopt(impl::TaskContext& context) {
@@ -282,6 +293,14 @@ void TaskProcessor::PrepareWorkerThread(std::size_t index) noexcept {
       break;
   }
 
+  std::visit(
+      [index](auto& obj) {
+        if constexpr (std::is_same_v<decltype(obj), WorkStealingTaskQueue&>) {
+          obj.PrepareWorker(index);
+        }
+      },
+      task_queue_);
+
   utils::SetCurrentThreadName(fmt::format("{}_{}", config_.thread_name, index));
 
   impl::SetLocalTaskCounterData(task_counter_, index);
@@ -291,7 +310,8 @@ void TaskProcessor::PrepareWorkerThread(std::size_t index) noexcept {
 
 void TaskProcessor::ProcessTasks() noexcept {
   while (true) {
-    auto context = task_queue_.PopBlocking();
+    auto context =
+        std::visit([](auto&& arg) { return arg.PopBlocking(); }, task_queue_);
     if (!context) break;
 
     GetTaskCounter().AccountTaskSwitchSlow();

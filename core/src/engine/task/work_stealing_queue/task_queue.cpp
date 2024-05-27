@@ -7,8 +7,6 @@
 #include <engine/task/work_stealing_queue/consumer.hpp>
 #include <engine/task/work_stealing_queue/consumers_manager.hpp>
 #include <engine/task/work_stealing_queue/global_queue.hpp>
-#include <iostream>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace engine {
@@ -48,7 +46,7 @@ boost::intrusive_ptr<impl::TaskContext> WorkStealingTaskQueue::PopBlocking() {
 
 void WorkStealingTaskQueue::StopProcessing() { consumers_manager_.Stop(); }
 
-std::size_t WorkStealingTaskQueue::GetSize() const noexcept {
+std::size_t WorkStealingTaskQueue::GetSizeApproximate() const noexcept {
   std::size_t size{0};
   for (const auto& consumer : consumers_) {
     size += consumer.GetLocalQueueSize();

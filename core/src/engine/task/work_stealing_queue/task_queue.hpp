@@ -26,15 +26,10 @@ class WorkStealingTaskQueue final {
   explicit WorkStealingTaskQueue(const TaskProcessorConfig& config);
 
   void Push(boost::intrusive_ptr<impl::TaskContext>&& context);
-
-  ~WorkStealingTaskQueue();
-
   // Returns nullptr as a stop signal
   boost::intrusive_ptr<impl::TaskContext> PopBlocking();
 
   void StopProcessing();
-
-  std::size_t GetSize() const noexcept;
 
   std::size_t GetSizeApproximate() const noexcept;
 
