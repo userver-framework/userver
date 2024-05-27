@@ -3,7 +3,6 @@
 /// @file userver/clients/http/response.hpp
 /// @brief @copybrief clients::http::Response
 
-#include <iosfwd>
 #include <string>
 
 #include <userver/clients/http/error.hpp>
@@ -18,8 +17,6 @@ USERVER_NAMESPACE_BEGIN
 namespace clients::http {
 
 using Status = USERVER_NAMESPACE::http::StatusCode; 
-
-std::ostream& operator<<(std::ostream& os, Status s);
 
 /// Headers container type
 using Headers = USERVER_NAMESPACE::http::headers::HeaderMap;
