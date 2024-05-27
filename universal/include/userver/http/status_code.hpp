@@ -5,6 +5,8 @@
 
 #include <cstdint>
 
+#include <fmt/format.h>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace http {
@@ -20,7 +22,7 @@ enum StatusCode : uint16_t {
   kEarlyHints = 103,
 
   // 2xx success
-  kOK = 200,
+  kOk = 200,
   kCreated = 201,
   kAccepted = 202,
   kNonAuthoritativeInformation = 203,
@@ -30,7 +32,7 @@ enum StatusCode : uint16_t {
   kMultiStatus = 207,
   kAlreadyReported = 208,
   kThisIsFine = 218,
-  kIMUsed = 226,
+  kImUsed = 226,
 
   // 3xx redirection
   kMultipleChoices = 300,
@@ -80,6 +82,7 @@ enum StatusCode : uint16_t {
   kNginxSSLCertificateError = 495,
   kNginxSSLCertificateRequired = 496,
   kNginxHTTPRequestSenttoHTTPSPort = 497,
+  kDeadlineExpired = 498,      // userver-specific
   kNginxClientClosedRequest = 499,
 
   // 5xx server errors
@@ -115,6 +118,23 @@ enum StatusCode : uint16_t {
   kClientClosedRequest = kNginxClientClosedRequest,
 };
 
+std::string_view HttpStatusString(StatusCode status);
+
+std::string ToString(StatusCode status);
+
 }  // namespace http
 
 USERVER_NAMESPACE_END
+
+template <>
+struct fmt::formatter<USERVER_NAMESPACE::http::StatusCode> {
+  constexpr static auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+  template <typename FormatContext>
+  auto format(USERVER_NAMESPACE::http::StatusCode status,
+              FormatContext& ctx) const {
+    return fmt::format_to(
+        ctx.out(), "{} {}", static_cast<int>(status),
+        USERVER_NAMESPACE::http::HttpStatusString(status));
+  }
+};
