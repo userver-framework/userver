@@ -37,6 +37,8 @@ std::optional<std::string_view> TryStatusCodeString(StatusCode status) {
       return "Multi-Status";
     case StatusCode::kAlreadyReported:
       return "Already Reported";
+    case StatusCode::kThisIsFine:
+      return "This is Fine";
     case StatusCode::kImUsed:
       return "IM Used";
     case StatusCode::kMultipleChoices:
@@ -51,6 +53,8 @@ std::optional<std::string_view> TryStatusCodeString(StatusCode status) {
       return "Not Modified";
     case StatusCode::kUseProxy:
       return "Use Proxy";
+    case StatusCode::kSwitchProxy:
+      return "Switch Proxy";
     case StatusCode::kTemporaryRedirect:
       return "Temporary Redirect";
     case StatusCode::kPermanentRedirect:
@@ -93,6 +97,10 @@ std::optional<std::string_view> TryStatusCodeString(StatusCode status) {
       return "Expectation Failed";
     case StatusCode::kImATeapot:
       return "I'm a teapot";
+    case StatusCode::kPageExpired:
+      return "Page Expired";
+    case StatusCode::kMethodFailure:
+      return "Method Failure";
     case StatusCode::kMisdirectedRequest:
       return "Misdirected Request";
     case StatusCode::kUnprocessableEntity:
