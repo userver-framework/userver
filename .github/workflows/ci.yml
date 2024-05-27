@@ -72,10 +72,6 @@ jobs:
         runs-on: ${{matrix.os}}
 
         steps:
-          - uses: actions/checkout@v3
-            with:
-                fetch-depth: 0
-
           - name: Reuse ccache directory
             uses: actions/cache@v2
             with:
@@ -97,6 +93,10 @@ jobs:
 
           - name: Check place after maximize
             run: df -h
+
+          - uses: actions/checkout@v3
+            with:
+                fetch-depth: 0
 
           - name: Free disk space
             run: |
