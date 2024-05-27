@@ -103,7 +103,8 @@ enum StatusCode : uint16_t {
   kInvalidSslCertificate = 526,
 
   // migration aliases
-  Ok = kOK,
+  Invalid = kInvalid,
+  OK = kOk,
   Created = kCreated,
   NoContent = kNoContent,
   BadRequest = kBadRequest,
@@ -111,6 +112,7 @@ enum StatusCode : uint16_t {
   Conflict = kConflict,
   TooManyRequests = kTooManyRequests,
   InternalServerError = kInternalServerError,
+  kClientClosedRequest = kNginxClientClosedRequest,
 };
 
 }  // namespace http
