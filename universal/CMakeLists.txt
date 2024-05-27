@@ -369,20 +369,7 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     add_google_benchmark_tests(${PROJECT_NAME}-benchmark)
 endif()
 
-configure_package_config_file(
-  ${USERVER_ROOT_DIR}/cmake/install/Config.cmake.in
-  ${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake
-  INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
-)
-
-write_basic_package_version_file(
-  ${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake
-  VERSION ${USERVER_VERSION} COMPATIBILITY SameMajorVersion
-)
-  
 _userver_directory_install(COMPONENT universal FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake"
     "${CMAKE_BINARY_DIR}/cmake_generated/FindCryptoPP.cmake"
     "${CMAKE_BINARY_DIR}/cmake_generated/Findlibyamlcpp.cmake"
     "${CMAKE_BINARY_DIR}/cmake_generated/Findcctz.cmake"

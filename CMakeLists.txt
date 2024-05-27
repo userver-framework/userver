@@ -261,11 +261,12 @@ if (USERVER_FEATURE_YDB)
   list(APPEND USERVER_AVAILABLE_COMPONENTS ydb)
 endif()
 
+_userver_export_targets()
+_userver_make_install_config()
+
 if (USERVER_IS_THE_ROOT_PROJECT AND USERVER_FEATURE_CORE)
   add_subdirectory(samples)
 endif()
-
-_userver_export_targets()
 
 if(USERVER_INSTALL)
   include(cmake/UserverPack.cmake)

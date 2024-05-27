@@ -304,7 +304,7 @@ if (USERVER_FEATURE_UTEST)
       PRIVATE
         userver-core-internal
     )
-_userver_install_targets(COMPONENT core TARGETS userver-ubench userver-universal-internal-ubench)
+    _userver_install_targets(COMPONENT core TARGETS userver-ubench userver-universal-internal-ubench)
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
@@ -335,7 +335,7 @@ file(GLOB_RECURSE TESTSUITE_INSTALL_FILES
     "${USERVER_ROOT_DIR}/testsuite/*.txt"
     "${USERVER_ROOT_DIR}/testsuite/*.py"
     "${USERVER_ROOT_DIR}/testsuite/env.in"
- )
+)
 
 _userver_directory_install(COMPONENT core
     FILES ${TESTSUITE_INSTALL_FILES}
