@@ -4,6 +4,7 @@
 /// @brief @copybrief http::StatusCode
 
 #include <cstdint>
+#include <iosfwd>
 
 #include <fmt/format.h>
 
@@ -118,7 +119,7 @@ enum StatusCode : uint16_t {
   kClientClosedRequest = kNginxClientClosedRequest,
 };
 
-std::string_view HttpStatusString(StatusCode status);
+std::string_view StatusCodeString(StatusCode status);
 
 std::string ToString(StatusCode status);
 
@@ -135,6 +136,6 @@ struct fmt::formatter<USERVER_NAMESPACE::http::StatusCode> {
               FormatContext& ctx) const {
     return fmt::format_to(
         ctx.out(), "{} {}", static_cast<int>(status),
-        USERVER_NAMESPACE::http::HttpStatusString(status));
+        USERVER_NAMESPACE::http::StatusCodeString(status));
   }
 };
