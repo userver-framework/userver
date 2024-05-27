@@ -32,7 +32,7 @@ LegacyJsonErrorBuilder::LegacyJsonErrorBuilder(
   if (!external_error_body.empty()) {
     response_json["message"] = external_error_body;
   } else {
-    response_json["message"] = HttpStatusString(status);
+    response_json["message"] = USERVER_NAMESPACE::server::http::HttpStatusString(status);
   }
 
   if (details.IsObject()) {
