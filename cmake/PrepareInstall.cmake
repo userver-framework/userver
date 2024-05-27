@@ -85,3 +85,26 @@ function(_userver_directory_install)
     install(DIRECTORY ${ARG_DIRECTORY} DESTINATION ${ARG_DESTINATION} COMPONENT ${ARG_COMPONENT} USE_SOURCE_PERMISSIONS)
   endif()
 endfunction()
+
+function(_userver_make_install_config)
+  if(NOT USERVER_INSTALL)
+    return()
+  endif()
+
+  configure_package_config_file(
+      "${USERVER_ROOT_DIR}/cmake/install/Config.cmake.in"
+      "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake"
+      INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver"
+  )
+
+  write_basic_package_version_file(
+      "${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake"
+      VERSION "${USERVER_VERSION}" COMPATIBILITY SameMajorVersion
+  )
+
+  _userver_directory_install(COMPONENT universal FILES
+      "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake"
+      "${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake"
+      DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver"
+  )
+endfunction()
