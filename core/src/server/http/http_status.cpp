@@ -6,6 +6,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
 
+// this functions must be doubled if userver-code linked as OBJECT
+// in other case user must be link userver-universal
+
 std::string_view HttpStatusString(HttpStatus status) {
   switch (status) {
     case HttpStatus::kContinue:
