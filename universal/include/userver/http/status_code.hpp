@@ -123,6 +123,8 @@ std::string_view StatusCodeString(StatusCode status);
 
 std::string ToString(StatusCode status);
 
+std::ostream& operator<<(std::ostream& os, StatusCode s);
+
 }  // namespace http
 
 USERVER_NAMESPACE_END
