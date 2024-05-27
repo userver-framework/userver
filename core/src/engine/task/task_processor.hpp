@@ -13,7 +13,6 @@
 #include <engine/task/task_counter.hpp>
 #include <engine/task/task_processor_config.hpp>
 #include <engine/task/task_queue.hpp>
-#include <engine/task/work_stealing_queue/task_queue.hpp>
 #include <utils/statistics/thread_statistics.hpp>
 
 #include <userver/engine/impl/detached_tasks_sync_block.hpp>
@@ -99,11 +98,8 @@ class TaskProcessor final {
 
   void SetTaskQueueWaitTimeOverloaded(bool new_value) noexcept;
 
-  void HandleOverload(impl::TaskContext& context);
-
-  bool IsOverloadedByLength();
-
-  bool ComputeIsOverloadedByLength(const bool current_overloaded_status);
+  void HandleOverload(impl::TaskContext& context,
+                      TaskProcessorSettings::OverloadAction);
 
   OverloadByLength GetOverloadByLength(std::size_t max_queue_length) noexcept;
 
@@ -124,16 +120,14 @@ class TaskProcessor final {
 
   std::atomic<std::chrono::microseconds> task_profiler_threshold_{{}};
   std::atomic<std::chrono::microseconds> sensor_task_queue_wait_time_{{}};
-  std::atomic<std::chrono::microseconds> max_task_queue_wait_time_{{}};
-  std::atomic<std::size_t> max_task_queue_wait_length_{0};
 
-  std::atomic<TaskProcessorSettings::OverloadAction> overload_action_{
-      TaskProcessorSettings::OverloadAction::kIgnore};
+  std::atomic<std::chrono::microseconds>
+      action_bit_and_max_task_queue_wait_time_{{}};
+  std::atomic<std::int64_t> action_bit_and_max_task_queue_wait_length_{0};
+
   std::atomic<bool> profiler_force_stacktrace_{false};
   std::atomic<bool> is_shutting_down_{false};
   std::atomic<bool> task_trace_logger_set_{false};
-  std::atomic<bool> overloaded_by_length_cache_{false};
-  std::atomic<std::size_t> task_queue_size_cache_{false};
 
   std::unique_ptr<utils::statistics::ThreadPoolCpuStatsStorage>
       cpu_stats_storage_{nullptr};
