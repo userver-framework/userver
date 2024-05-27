@@ -75,9 +75,9 @@ jobs:
                 rm --recursive --force "$AGENT_TOOLSDIRECTORY"
 
           # Free up disk space on Ubuntu
-           - name: Free Disk Space (Ubuntu)
-             uses: jlumbroso/free-disk-space@main
-             with:
+          - name: Free Disk Space (Ubuntu)
+            uses: jlumbroso/free-disk-space@main
+            with:
                 # This might remove tools that are actually needed, if set to "true" but frees about 6 GB
                 tool-cache: false
                 large-packages: true
