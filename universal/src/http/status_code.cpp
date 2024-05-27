@@ -1,5 +1,8 @@
 #include <userver/http/status_code.hpp>
 
+#include <ostream>
+
+
 USERVER_NAMESPACE_BEGIN
 
 namespace http {
