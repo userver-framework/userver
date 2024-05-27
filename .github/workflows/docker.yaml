@@ -65,12 +65,23 @@ jobs:
           - name: Check place before maximize
             run: df -h
 
-          - name: Maximize build space
-            uses: easimon/maximize-build-space@master
-            with:
-              root-reserve-mb: 512
-              swap-size-mb: 1024
-              remove-dotnet: 'true'
+          # Clean unnecessary files to save disk space
+          - name: clean unncessary files to save space
+            run: |
+                sudo rm -rf /usr/share/dotnet /etc/mysql /etc/php /etc/sudo apt/sources.list.d
+                sudo apt -y autoremove --purge
+                sudo apt -y autoclean
+                sudo apt clean
+                rm --recursive --force "$AGENT_TOOLSDIRECTORY"
+
+          # Free up disk space on Ubuntu
+           - name: Free Disk Space (Ubuntu)
+             uses: jlumbroso/free-disk-space@main
+             with:
+                # This might remove tools that are actually needed, if set to "true" but frees about 6 GB
+                tool-cache: false
+                large-packages: true
+                swap-storage: true
 
           - name: Check place after maximize
             run: df -h
