@@ -272,7 +272,7 @@ void HttpResponse::SendResponse(engine::io::RwBase& socket) {
         data = fmt::format_to(data, FMT_COMPILE("{}.{} {} "),
                               request_.GetHttpMajor(), request_.GetHttpMinor(),
                               static_cast<int>(status_));
-        AppendToCharArray(data, USERVER_NAMESPACE::server::http::HttpStatusString(status_));
+        AppendToCharArray(data, StatusCodeString(status_));
         AppendToCharArray(data, kCrlf);
         return data - old_data_pointer;
       });
