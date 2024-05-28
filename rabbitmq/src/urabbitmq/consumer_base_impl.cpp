@@ -98,10 +98,10 @@ void ConsumerBaseImpl::OnMessage(const AMQP::Message& message,
   std::string trace_id = message.headers().get("u-trace-id");
   std::string message_data{message.body(), message.bodySize()};
 
-  ConsumedMessage consumed{
-      .message = std::string(message.body(), message.bodySize()),
-      .metadata = {.exchange = message.exchange(),
-                   .routingKey = message.routingkey()}};
+  ConsumedMessage consumed;
+  consumed.message = std::string(message.body(), message.bodySize());
+  consumed.metadata.exchange = message.exchange();
+  consumed.metadata.routingKey = message.routingkey();
 
   bts_.Detach(engine::AsyncNoSpan(
       dispatcher_,

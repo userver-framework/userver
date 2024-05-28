@@ -62,6 +62,9 @@ enum class MessageType {
   kTransient,
 };
 
+/// @brief Structure holding an AMQP message body along with some of its
+/// metadata fields. This struct is used to pass messages to the end user,
+/// hiding the actual AMQP message object implementation.
 struct ConsumedMessage {
   struct Metadata {
     std::string exchange;

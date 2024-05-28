@@ -67,7 +67,7 @@ class ConsumerComponentBase : public components::LoggableComponentBase {
   /// It is however guaranteed for message to be requeued if `Process` fails.
   virtual void Process(std::string message) = 0;
 
-  /// @brief Override this method in derived class and implement
+  /// @brief You may override this method in derived class and implement
   /// message handling logic. By default it just calls `Process` with message
   /// body.
   ///
