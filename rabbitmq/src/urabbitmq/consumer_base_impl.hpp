@@ -25,7 +25,7 @@ class ConsumerBaseImpl final {
                    const ConsumerSettings& settings);
   ~ConsumerBaseImpl();
 
-  using DispatchCallback = std::function<void(std::string message)>;
+  using DispatchCallback = std::function<void(ConsumedMessage)>;
 
   void Start(DispatchCallback cb);
 

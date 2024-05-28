@@ -62,6 +62,16 @@ enum class MessageType {
   kTransient,
 };
 
+struct ConsumedMessageMetadata {
+  std::string exchange;
+  std::string routingKey;
+};
+
+struct ConsumedMessage {
+  std::string message;
+  ConsumedMessageMetadata metadata;
+};
+
 }  // namespace urabbitmq
 
 USERVER_NAMESPACE_END

@@ -70,6 +70,12 @@ class ConsumerBase {
   /// It is however guaranteed for message to be requeued if `Process` fails.
   virtual void Process(std::string message) = 0;
 
+  /// @brief Override this method in derived class and implement
+  /// message handling logic. By default it just calls `Process(std::string)`
+  /// with message body.
+  ///
+  virtual void Process(ConsumedMessage msg) { Process(std::move(msg.message)); }
+
  private:
   std::shared_ptr<Client> client_;
   const ConsumerSettings settings_;
