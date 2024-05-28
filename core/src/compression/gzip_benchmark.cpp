@@ -10,26 +10,27 @@
 USERVER_NAMESPACE_BEGIN
 
 std::string GenerateRandomData(std::size_t size) {
-  std::mt19937 random_device(
-      std::chrono::steady_clock::now().time_since_epoch().count());
+  std::mt19937 random_device(std::chrono::steady_clock::now().time_since_epoch().count());
   std::uniform_int_distribution dist(0, 25);
+
   std::string output;
   for (std::size_t ind = 0; ind < size; ++ind) {
     char rand_char = 'a' + static_cast<char>(dist(random_device));
     output.push_back(rand_char);
   }
+
   return output;
 }
 
 static void GzipDecompress(benchmark::State& state) {
+  constexpr int kCompBufSize = 1024;
+
   for ([[maybe_unused]] auto _ : state) {
     state.PauseTiming();
-    const std::size_t kSize = state.range(0);
+    const auto kSize = state.range(0);
     auto data = GenerateRandomData(kSize);
 
     namespace bio = boost::iostreams;
-
-    constexpr int kCompBufSize = 1024;
 
     bio::filtering_istream stream;
     stream.push(bio::gzip_compressor());
@@ -44,7 +45,8 @@ static void GzipDecompress(benchmark::State& state) {
     }
 
     state.ResumeTiming();
-    auto decomp_str = compression::gzip::Decompress(compressed, 1 << 30);
+
+    auto _ = compression::gzip::Decompress(compressed, 1 << 30);
   }
 }
 BENCHMARK(GzipDecompress)->RangeMultiplier(2)->Range(1 << 10, 1 << 15);
