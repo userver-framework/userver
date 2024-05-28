@@ -662,8 +662,21 @@ class UserverConan(ConanFile):
 
         add_components(self._userver_components)
 
+        with open(
+                os.path.join(self._cmake_subfolder, 'CallSetupEnv.cmake'),
+                'a+',
+        ) as cmake_file:
+            cmake_file.write('userver_setup_environment()')
+
         build_modules = [
             os.path.join(self._cmake_subfolder, 'UserverSetupEnvironment.cmake'),
+
+        with open(
+                os.path.join(self._cmake_subfolder, 'CallSetupEnv.cmake'),
+                'a+',
+        ) as cmake_file:
+            cmake_file.write('\nuserver_setup_environment()')
+            os.path.join(self._cmake_subfolder, 'CallSetupEnv.cmake'),
             os.path.join(self._cmake_subfolder, 'UserverVenv.cmake'),
             os.path.join(self._cmake_subfolder, 'UserverTestsuite.cmake'),
         ]
