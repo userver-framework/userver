@@ -62,14 +62,13 @@ enum class MessageType {
   kTransient,
 };
 
-struct ConsumedMessageMetadata {
-  std::string exchange;
-  std::string routingKey;
-};
-
 struct ConsumedMessage {
+  struct Metadata {
+    std::string exchange;
+    std::string routingKey;
+  };
   std::string message;
-  ConsumedMessageMetadata metadata;
+  Metadata metadata;
 };
 
 }  // namespace urabbitmq
