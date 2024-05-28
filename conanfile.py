@@ -663,6 +663,8 @@ class UserverConan(ConanFile):
         add_components(self._userver_components)
 
         build_modules = [
+            os.path.join(self._cmake_subfolder, 'UserverSetupEnvironment.cmake'),
+            os.path.join(self._cmake_subfolder, 'UserverVenv.cmake'),
             os.path.join(self._cmake_subfolder, 'UserverTestsuite.cmake'),
         ]
         if self.options.with_utest:
