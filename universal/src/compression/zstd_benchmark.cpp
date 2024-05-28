@@ -27,7 +27,7 @@ static void ZstdDecompress(benchmark::State& state) {
   for ([[maybe_unused]] auto _ : state) {
     state.PauseTiming();
     const auto kSize = state.range(0);
-    auto data = GenerateRandomData(kSize);
+    const auto data = GenerateRandomData(kSize);
 
     const auto kMaxSize = ZSTD_compressBound(kSize);
     std::string comp_buf(kMaxSize, '\0');
