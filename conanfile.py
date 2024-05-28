@@ -274,6 +274,20 @@ class UserverConan(ConanFile):
 
         copy_component('core')
         copy_component('universal')
+        copy(
+            self,
+            pattern='UserverSetupEnvironment.cmake',
+            dst=os.path.join(self.package_folder, 'cmake'),
+            src=os.path.join(self.source_folder, 'cmake'),
+            keep_path=True,
+        )
+        copy(
+            self,
+            pattern='UserverVenv.cmake',
+            dst=os.path.join(self.package_folder, 'cmake'),
+            src=os.path.join(self.source_folder, 'cmake'),
+            keep_path=True,
+        )
 
         if self.options.with_grpc:
             copy_component('grpc')
@@ -326,13 +340,6 @@ class UserverConan(ConanFile):
                 keep_path=True,
             )
         if self.options.with_grpc or self.options.with_utest:
-            copy(
-                self,
-                pattern='UserverVenv.cmake',
-                dst=os.path.join(self.package_folder, 'cmake'),
-                src=os.path.join(self.source_folder, 'cmake'),
-                keep_path=True,
-            )
             copy(
                 self,
                 pattern='UserverTestsuite.cmake',
