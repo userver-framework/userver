@@ -39,7 +39,7 @@ Tracer::Tracer(const ComponentConfig& config, const ComponentContext& context) {
 }
 
 yaml_config::Schema Tracer::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<impl::ComponentBase>(R"(
+  return yaml_config::MergeSchemas<RawComponentBase>(R"(
 type: object
 description: Component that initializes the request tracing facilities.
 additionalProperties: false

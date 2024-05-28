@@ -4,7 +4,7 @@
 /// @brief @copybrief alert::Component
 
 #include <userver/components/component_fwd.hpp>
-#include <userver/components/impl/component_base.hpp>
+#include <userver/components/raw_component_base.hpp>
 
 #include <userver/alerts/storage.hpp>
 
@@ -27,7 +27,7 @@ namespace alerts {
 /// @snippet components/common_component_list_test.cpp  Sample statistics storage component config
 
 // clang-format on
-class StorageComponent final : public components::impl::ComponentBase {
+class StorageComponent final : public components::RawComponentBase {
  public:
   /// @ingroup userver_component_names
   /// @brief The default name of alert::StorageComponent component

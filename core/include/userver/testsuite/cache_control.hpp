@@ -21,9 +21,9 @@ class CacheUpdateTrait;
 struct Config;
 }  // namespace cache
 
-namespace components::impl {
-class ComponentBase;
-}  // namespace components::impl
+namespace components {
+class RawComponentBase;
+}  // namespace components
 
 namespace testsuite {
 
@@ -189,7 +189,7 @@ CacheResetRegistration RegisterCache(
 template <typename Component>
 CacheResetRegistration CacheControl::RegisterCache(
     Component* self, std::string_view name, void (Component::*reset_method)()) {
-  static_assert(std::is_base_of_v<components::impl::ComponentBase, Component>,
+  static_assert(std::is_base_of_v<components::RawComponentBase, Component>,
                 "CacheControl can only be used with components");
   UASSERT(self);
   UASSERT(reset_method);

@@ -11,7 +11,7 @@
 #include <userver/components/component_context.hpp>
 #include <userver/components/component_fwd.hpp>
 #include <userver/components/component_list.hpp>
-#include <userver/components/impl/component_base.hpp>
+#include <userver/components/raw_component_base.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -87,7 +87,7 @@ class Manager final {
 
   void AddComponentImpl(
       const components::ComponentConfigMap& config_map, const std::string& name,
-      std::function<std::unique_ptr<components::impl::ComponentBase>(
+      std::function<std::unique_ptr<components::RawComponentBase>(
           const components::ComponentConfig&,
           const components::ComponentContext&)>
           factory);

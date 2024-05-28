@@ -4,7 +4,7 @@
 /// @brief @copybrief components::Tracer
 
 #include <userver/components/component_fwd.hpp>
-#include <userver/components/impl/component_base.hpp>
+#include <userver/components/raw_component_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -32,7 +32,7 @@ namespace components {
 /// @snippet components/common_component_list_test.cpp  Sample tracer component config
 
 // clang-format on
-class Tracer final : public impl::ComponentBase {
+class Tracer final : public RawComponentBase {
  public:
   /// @ingroup userver_component_names
   /// @brief The default name of components::Tracer

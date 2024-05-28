@@ -34,7 +34,7 @@ auto NameRegistrationFromComponentType(Args...) {
 }
 
 using ComponentBaseFactory =
-    std::function<std::unique_ptr<components::impl::ComponentBase>(
+    std::function<std::unique_ptr<components::RawComponentBase>(
         const components::ComponentConfig&,
         const components::ComponentContext&)>;
 
@@ -95,9 +95,9 @@ template <typename Component>
 void ComponentAdder<Component>::operator()(
     Manager& manager, const components::ComponentConfigMap& config_map) const {
   // Using std::is_convertible_v because std::is_base_of_v returns true even
-  // if ComponentBase is a private, protected, or ambiguous base class.
+  // if RawComponentBase is a private, protected, or ambiguous base class.
   static_assert(
-      std::is_convertible_v<Component*, components::impl::ComponentBase*>,
+      std::is_convertible_v<Component*, components::RawComponentBase*>,
       "Component should publicly inherit from components::LoggableComponentBase"
       " and the component definition should be visible at its registration");
   impl::AddComponentImpl(manager, config_map, GetComponentName(),

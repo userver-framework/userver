@@ -394,7 +394,7 @@ void Manager::AddComponents(const ComponentList& component_list) {
 
 void Manager::AddComponentImpl(
     const components::ComponentConfigMap& config_map, const std::string& name,
-    std::function<std::unique_ptr<components::impl::ComponentBase>(
+    std::function<std::unique_ptr<components::RawComponentBase>(
         const components::ComponentConfig&,
         const components::ComponentContext&)>
         factory) {

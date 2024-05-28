@@ -107,7 +107,7 @@ ComponentContextImpl::ComponentContextImpl(
   StartPrintAddingComponentsTask();
 }
 
-impl::ComponentBase* ComponentContextImpl::AddComponent(
+RawComponentBase* ComponentContextImpl::AddComponent(
     std::string_view name, const ComponentFactory& factory,
     ComponentContext& context) {
   auto& component_info = components_.at(impl::ComponentNameFromInfo{name});
@@ -285,7 +285,7 @@ void ComponentContextImpl::ThrowNonRegisteredComponent(
 
 void ComponentContextImpl::ThrowComponentTypeMismatch(
     std::string_view name, std::string_view type,
-    impl::ComponentBase* component) const {
+    RawComponentBase* component) const {
   auto data = shared_data_.Lock();
   throw std::runtime_error(fmt::format(
       "Component '{}' requested component with name '{}' that is actually "
@@ -392,8 +392,7 @@ void ComponentContextImpl::ProcessAllComponentLifetimeStageSwitchings(
         " cancelled but only StageSwitchingCancelledExceptions were caught");
 }
 
-impl::ComponentBase* ComponentContextImpl::DoFindComponent(
-    std::string_view name) {
+RawComponentBase* ComponentContextImpl::DoFindComponent(std::string_view name) {
   auto& component_info = components_.at(impl::ComponentNameFromInfo{name});
   AddDependency(component_info.Name());
 

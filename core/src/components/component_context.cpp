@@ -26,7 +26,7 @@ void ComponentContext::Reset() noexcept { impl_.reset(); }
 
 ComponentContext::~ComponentContext() = default;
 
-impl::ComponentBase* ComponentContext::AddComponent(
+RawComponentBase* ComponentContext::AddComponent(
     std::string_view name, const impl::ComponentFactory& factory) {
   return impl_->AddComponent(name, factory, *this);
 }
@@ -63,11 +63,11 @@ void ComponentContext::ThrowNonRegisteredComponent(
 
 void ComponentContext::ThrowComponentTypeMismatch(
     std::string_view name, std::string_view type,
-    impl::ComponentBase* component) const {
+    RawComponentBase* component) const {
   impl_->ThrowComponentTypeMismatch(name, type, component);
 }
 
-impl::ComponentBase* ComponentContext::DoFindComponent(
+RawComponentBase* ComponentContext::DoFindComponent(
     std::string_view name) const {
   return impl_->DoFindComponent(name);
 }
