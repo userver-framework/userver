@@ -435,9 +435,9 @@ auto HedgeRequestsBulk(std::vector<RequestStrategy> inputs,
 template <typename RequestStrategy>
 auto HedgeRequestsBulkAsync(std::vector<RequestStrategy> inputs,
                             HedgingSettings settings) {
-  return HedgedRequestBulkFuture(utils::Async(
+  return HedgedRequestBulkFuture<RequestStrategy>(utils::Async(
       "hedged-bulk-request",
-      [inputs{std::move(inputs)}, settings{std::move(settings)}] {
+      [inputs{std::move(inputs)}, settings{std::move(settings)}]() mutable {
         return HedgeRequestsBulk(std::move(inputs), std::move(settings));
       }));
 }
