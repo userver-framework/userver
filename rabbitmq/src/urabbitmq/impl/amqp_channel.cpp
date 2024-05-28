@@ -67,7 +67,7 @@ AMQP::Table CreateHeaders() {
 
   AMQP::Table headers;
   headers["u-trace-id"] = span->GetTraceId();
-  headers["u-parent-span-id"] = span->GetParentId();
+  headers["u-parent-span-id"] = span->GetSpanId();
 
   return headers;
 }
