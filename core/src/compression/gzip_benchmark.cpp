@@ -46,7 +46,7 @@ static void GzipDecompress(benchmark::State& state) {
 
     state.ResumeTiming();
 
-    auto _ = compression::gzip::Decompress(compressed, 1 << 30);
+    auto decompressed = compression::gzip::Decompress(compressed, 1 << 30);
   }
 }
 BENCHMARK(GzipDecompress)->RangeMultiplier(2)->Range(1 << 10, 1 << 15);

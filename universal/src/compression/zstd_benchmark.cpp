@@ -41,7 +41,7 @@ static void ZstdDecompress(benchmark::State& state) {
     }
 
     state.ResumeTiming();
-    auto _ = compression::zstd::Decompress(
+    auto decompressed = compression::zstd::Decompress(
         std::string_view(comp_buf.data(), kCompSize), kSize);
   }
 }
