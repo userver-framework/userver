@@ -8,11 +8,14 @@
 #include <userver/utils/not_null.hpp>
 
 #include <userver/ydb/exceptions.hpp>
+#include <ydb/impl/request_context.hpp>
 #include <ydb/impl/retry_context.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ydb::impl {
+
+void HandleOnceRetry(utils::RetryBudget& retry_budget, NYdb::EStatus status);
 
 template <typename T>
 void WaitForFuture(const NThreading::TFuture<T>& future) {
@@ -42,6 +45,18 @@ T GetFutureValueUnchecked(NThreading::TFuture<T>&& future) {
 
 template <typename T>
 T GetFutureValueChecked(NThreading::TFuture<T>&& future,
+                        std::string_view operation_name,
+                        RequestContext& request_context) {
+  auto status = impl::GetFutureValueUnchecked(std::move(future));
+  if (!status.IsSuccess()) {
+    request_context.HandleError(status);
+    throw YdbResponseError{operation_name, std::move(status)};
+  }
+  return status;
+}
+
+template <typename T>
+T GetFutureValueChecked(NThreading::TFuture<T>&& future,
                         std::string_view operation_name) {
   auto status = impl::GetFutureValueUnchecked(std::move(future));
   if (!status.IsSuccess()) {
@@ -53,10 +68,12 @@ T GetFutureValueChecked(NThreading::TFuture<T>&& future,
 template <typename T>
 T GetFutureValueChecked(NThreading::TFuture<T>&& future,
                         std::string_view operation_name,
-                        utils::RetryBudget& retry_budget) {
+                        utils::RetryBudget& retry_budget,
+                        RequestContext& request_context) {
   auto status = GetFutureValueUnchecked(std::move(future));
   HandleOnceRetry(retry_budget, status.GetStatus());
   if (!status.IsSuccess()) {
+    request_context.HandleError(status);
     throw YdbResponseError{operation_name, std::move(status)};
   }
   return status;

@@ -3923,6 +3923,7 @@
   "ydb/src/ydb/impl/dist_lock/statistics.hpp":"taxi/uservices/userver/ydb/src/ydb/impl/dist_lock/statistics.hpp",
   "ydb/src/ydb/impl/driver.cpp":"taxi/uservices/userver/ydb/src/ydb/impl/driver.cpp",
   "ydb/src/ydb/impl/driver.hpp":"taxi/uservices/userver/ydb/src/ydb/impl/driver.hpp",
+  "ydb/src/ydb/impl/future.cpp":"taxi/uservices/userver/ydb/src/ydb/impl/future.cpp",
   "ydb/src/ydb/impl/future.hpp":"taxi/uservices/userver/ydb/src/ydb/impl/future.hpp",
   "ydb/src/ydb/impl/native_metrics.cpp":"taxi/uservices/userver/ydb/src/ydb/impl/native_metrics.cpp",
   "ydb/src/ydb/impl/native_metrics.hpp":"taxi/uservices/userver/ydb/src/ydb/impl/native_metrics.hpp",

@@ -154,12 +154,24 @@ RequestContext::RequestContext(TableClient& table_client_, const Query& query,
             MakeSpan(query, settings, custom_parent_span, location))),
       deadline(GetDeadline(span, config_snapshot)) {}
 
-RequestContext::~RequestContext() {
-  if (std::uncaught_exceptions() > initial_uncaught_exceptions) {
-    stats_scope.OnError();
-    span.AddTag(tracing::kErrorFlag, true);
-  }
+void RequestContext::HandleError(const NYdb::TStatus& status) {
   if (engine::current_task::ShouldCancel()) {
+    return;
+  }
+  UASSERT(!status.IsSuccess());
+  // To protect against double handling of error in the 'HandleError` and in the
+  // destructor we have to set the flag
+  is_error_ = true;
+  span.AddTag(tracing::kErrorFlag, true);
+  if (status.IsTransportError()) {
+    stats_scope.OnTransportError();
+  } else {
+    stats_scope.OnError();
+  }
+}
+
+RequestContext::~RequestContext() {
+  if (engine::current_task::ShouldCancel() && !is_error_) {
     stats_scope.OnCancelled();
     span.AddTag("cancelled", true);
   }
