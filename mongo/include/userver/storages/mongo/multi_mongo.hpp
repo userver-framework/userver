@@ -85,6 +85,8 @@ class MultiMongo {
   const std::string& GetName() const { return name_; }
 
  private:
+  void OnConfigUpdate(const dynamic_config::Snapshot& config);
+
   storages::mongo::PoolPtr FindPool(const std::string& dbalias) const;
 
   const std::string name_;
@@ -93,6 +95,8 @@ class MultiMongo {
   const storages::mongo::PoolConfig pool_config_;
   clients::dns::Resolver* dns_resolver_;
   rcu::Variable<PoolMap> pool_map_;
+  // config_subscriber_ must be the last field.
+  concurrent::AsyncEventSubscriberScope config_subscriber_;
 };
 
 }  // namespace storages::mongo

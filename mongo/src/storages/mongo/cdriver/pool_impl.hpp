@@ -54,6 +54,8 @@ class CDriverPoolImpl final : public PoolImpl {
   /// @throws CancelledException, PoolOverloadException
   BoundClientPtr Acquire();
 
+  void SetPoolSettings(const PoolSettings& pool_settings) override;
+
  private:
   mongoc_client_t* Pop();
   void Push(mongoc_client_t*) noexcept;
@@ -70,7 +72,7 @@ class CDriverPoolImpl final : public PoolImpl {
   AsyncStreamInitiatorData init_data_;
 
   std::atomic<size_t> max_size_;
-  const size_t idle_limit_;
+  std::atomic<size_t> idle_limit_;
   const std::chrono::milliseconds queue_timeout_;
   std::atomic<size_t> size_;
   engine::Semaphore in_use_semaphore_;
