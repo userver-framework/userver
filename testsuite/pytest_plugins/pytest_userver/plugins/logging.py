@@ -1,3 +1,4 @@
+import asyncio
 import io
 import logging
 import pathlib
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 class LogFile:
     def __init__(self, path: pathlib.Path):
         self.path = path
-        self.update_position()
+        self.position = 0
 
     def update_position(self):
         try:
@@ -33,19 +34,19 @@ class LogFile:
             eof_handler: typing.Optional[typing.Callable[[], bool]] = None,
     ):
         first_skipped = False
-        for line in _raw_line_reader(
+        for line, position in _raw_line_reader(
                 self.path, self.position, eof_handler=eof_handler,
         ):
             # userver does not give any gurantees about log file encoding
             line = line.decode(encoding='utf-8', errors='backslashreplace')
             if not first_skipped:
                 first_skipped = True
-                if not line.startswith('tskv '):
+                if not line.startswith('tskv\t'):
                     continue
             if not line.endswith('\n'):
                 continue
+            self.position = position
             yield line
-        self.update_position()
 
 
 class LiveLogHandler:
@@ -93,23 +94,41 @@ class LiveLogHandler:
 class UserverLoggingPlugin:
     _live_logs = None
 
-    def __init__(self, *, colorize_factory, live_logs_enabled: bool = False):
+    def __init__(self, *, colorize_factory, config):
         self._colorize_factory = colorize_factory
+        self._config = config
         self._logs = {}
-        if live_logs_enabled:
-            self._live_logs = LiveLogHandler(colorize_factory=colorize_factory)
+        self._flushers = []
+
+    def pytest_sessionstart(self, session):
+        if _is_live_logs_enabled(self._config):
+            self._live_logs = LiveLogHandler(
+                colorize_factory=self._colorize_factory,
+            )
+        else:
+            self._live_logs = None
 
     def pytest_sessionfinish(self, session):
         if self._live_logs:
             self._live_logs.join()
 
     def pytest_runtest_setup(self, item):
+        self._flushers.clear()
+        self.update_position()
+
+    @pytest.hookimpl(wrapper=True, tryfirst=True)
+    def pytest_runtest_makereport(self, item, call):
+        report = yield
+        if report.failed and not self._live_logs:
+            self._userver_report_attach(report)
+        return report
+
+    def update_position(self):
         for logfile in self._logs.values():
             logfile.update_position()
 
-    @pytest.hookimpl(wrapper=True)
-    def pytest_runtest_teardown(self, item):
-        yield from self._userver_log_dump(item, 'teardown')
+    def register_flusher(self, func):
+        self._flushers.append(func)
 
     def register_logfile(self, path: pathlib.Path, title: str):
         logger.info('Watching service log file: %s', path)
@@ -118,31 +137,28 @@ class UserverLoggingPlugin:
         if self._live_logs:
             self._live_logs.register_logfile(path)
 
-    def _userver_log_dump(self, item, when):
-        try:
-            yield
-        except Exception:
-            self._userver_report_attach(item, when)
-            raise
-        if item.utestsuite_report.failed:
-            self._userver_report_attach(item, when)
-
-    def _userver_report_attach(self, item, when):
+    def _userver_report_attach(self, report):
+        self._run_flushers()
         for (_, title), logfile in self._logs.items():
-            self._userver_report_attach_log(logfile, item, when, title)
+            self._userver_report_attach_log(logfile, report, title)
 
-    def _userver_report_attach_log(self, logfile: LogFile, item, when, title):
-        report = io.StringIO()
+    def _userver_report_attach_log(self, logfile: LogFile, report, title):
+        log = io.StringIO()
         colorizer = self._colorize_factory()
         for line in logfile.readlines():
             line = line.rstrip('\r\n')
             line = colorizer(line)
             if line:
-                report.write(line)
-                report.write('\n')
-        value = report.getvalue()
+                log.write(line)
+                log.write('\n')
+        value = log.getvalue()
         if value:
-            item.add_report_section(when, title, value)
+            report.sections.append((f'Captured {title} {report.when}', value))
+
+    def _run_flushers(self):
+        loop = asyncio.get_event_loop()
+        for flusher in self._flushers:
+            loop.run_until_complete(flusher())
 
 
 @pytest.fixture(scope='session')
@@ -212,11 +228,6 @@ def _userver_logging_plugin(pytestconfig) -> UserverLoggingPlugin:
 
 
 def pytest_configure(config):
-    live_logs_enabled = bool(
-        config.option.capture == 'no'
-        and config.option.showcapture in ('all', 'log'),
-    )
-
     pretty_logs = config.option.service_logs_pretty
     colors_enabled = _should_enable_color(config)
     verbose = pretty_logs == 'verbose'
@@ -234,7 +245,7 @@ def pytest_configure(config):
         return handle_line
 
     plugin = UserverLoggingPlugin(
-        colorize_factory=colorize_factory, live_logs_enabled=live_logs_enabled,
+        colorize_factory=colorize_factory, config=config,
     )
     config.pluginmanager.register(plugin, 'userver_logging')
 
@@ -267,24 +278,30 @@ def _raw_line_reader(
         path: pathlib.Path,
         position: int = 0,
         eof_handler: typing.Optional[typing.Callable[[], bool]] = None,
-        bufsize: int = 16384,
-):
-    buf = b''
+) -> int:
     with path.open('rb') as fp:
-        fp.seek(position)
+        position = fp.seek(position)
         while True:
-            chunk = fp.read(bufsize)
-            if not chunk:
-                if not eof_handler:
-                    break
-                if eof_handler():
-                    break
-            else:
-                buf += chunk
-                lines = buf.splitlines(keepends=True)
-                if not lines[-1].endswith(b'\n'):
-                    buf = lines[-1]
-                    del lines[-1]
+            partial = None
+            for line in fp:
+                if partial:
+                    line = partial + line
+                    partial = None
+                if line.endswith(b'\n'):
+                    position += len(line)
+                    yield line, position
                 else:
-                    buf = b''
-                yield from lines
+                    partial = line
+            if not eof_handler:
+                break
+            if eof_handler():
+                break
+
+
+def _is_live_logs_enabled(config):
+    if not config.option.service_live_logs_disable:
+        return bool(
+            config.option.capture == 'no'
+            and config.option.showcapture in ('all', 'log'),
+        )
+    return False

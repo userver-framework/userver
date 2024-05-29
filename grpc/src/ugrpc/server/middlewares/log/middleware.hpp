@@ -18,6 +18,12 @@ class Middleware final : public MiddlewareBase {
 
   void Handle(MiddlewareCallContext& context) const override;
 
+  void CallRequestHook(const MiddlewareCallContext& context,
+                       google::protobuf::Message& request) override;
+
+  void CallResponseHook(const MiddlewareCallContext& context,
+                        google::protobuf::Message& response) override;
+
  private:
   Settings settings_;
 };

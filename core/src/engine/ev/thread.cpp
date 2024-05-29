@@ -268,12 +268,16 @@ void Thread::ChildWatcher(struct ev_loop*, ev_child* w, int) noexcept {
 
 void Thread::ChildWatcherImpl(ev_child* w) {
   auto* child_process_info = ChildProcessMapGetOptional(w->rpid);
-  UASSERT(child_process_info);
+  UASSERT_MSG(child_process_info,
+              "Don't use 'system' to start subprocesses, use "
+              "components::ProcessStarter instead");
   if (!child_process_info) {
     LOG_ERROR()
         << "Got signal for thread with pid=" << w->rpid
         << ", status=" << w->rstatus
-        << ", but thread with this pid was not found in child_process_map";
+        << ", but thread with this pid was not found in child_process_map. "
+           "Don't use 'system' to start subprocesses, use "
+           "components::ProcessStarter instead";
     return;
   }
 

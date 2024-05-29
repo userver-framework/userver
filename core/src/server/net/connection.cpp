@@ -249,8 +249,12 @@ engine::TaskWithResult<void> Connection::HandleQueueItem(
       request_task.Get();
     }
   } catch (const engine::TaskCancelledException& e) {
-    LOG_LIMITED_ERROR() << "Handler task was cancelled with reason: "
-                        << ToString(e.Reason());
+    auto reason = e.Reason();
+    auto lvl = reason == engine::TaskCancellationReason::kUserRequest
+                   ? logging::Level::kWarning
+                   : logging::Level::kError;
+    LOG_LIMITED(lvl) << "Handler task was cancelled with reason: "
+                     << ToString(reason);
     auto& response = request->GetResponse();
     if (!response.IsReady()) {
       response.SetReady();

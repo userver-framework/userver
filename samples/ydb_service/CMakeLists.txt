@@ -1,4 +1,7 @@
+cmake_minimum_required(VERSION 3.14)
 project(userver-samples-ydb_service CXX)
+
+find_package(userver COMPONENTS core REQUIRED)
 
 add_executable(${PROJECT_NAME}
   "ydb_service.cpp"
@@ -16,4 +19,4 @@ target_include_directories(${PROJECT_NAME}
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-userver_sample_testsuite_add()
+userver_testsuite_add_simple()

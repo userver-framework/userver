@@ -5,7 +5,7 @@
 #include <set>
 #include <string>
 
-#include <userver/components/impl/component_base.hpp>
+#include <userver/components/raw_component_base.hpp>
 #include <userver/engine/condition_variable.hpp>
 #include <userver/engine/mutex.hpp>
 
@@ -33,10 +33,10 @@ class ComponentInfo final {
 
   ComponentNameFromInfo Name() const { return ComponentNameFromInfo{name_}; }
 
-  void SetComponent(std::unique_ptr<ComponentBase>&& component);
+  void SetComponent(std::unique_ptr<RawComponentBase>&& component);
   void ClearComponent();
-  ComponentBase* GetComponent() const;
-  ComponentBase* WaitAndGetComponent() const;
+  RawComponentBase* GetComponent() const;
+  RawComponentBase* WaitAndGetComponent() const;
 
   void AddItDependsOn(ComponentNameFromInfo component);
   void AddDependsOnIt(ComponentNameFromInfo component);
@@ -99,13 +99,13 @@ class ComponentInfo final {
 
  private:
   bool HasComponent() const;
-  std::unique_ptr<ComponentBase> ExtractComponent();
+  std::unique_ptr<RawComponentBase> ExtractComponent();
 
   const std::string name_;
 
   mutable engine::Mutex mutex_;
   mutable engine::ConditionVariable cv_;
-  std::unique_ptr<ComponentBase> component_;
+  std::unique_ptr<RawComponentBase> component_;
   std::set<ComponentNameFromInfo> it_depends_on_;
   std::set<ComponentNameFromInfo> depends_on_it_;
   ComponentLifetimeStage stage_ = ComponentLifetimeStage::kNull;

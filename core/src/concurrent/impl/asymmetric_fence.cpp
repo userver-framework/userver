@@ -1,6 +1,6 @@
 #include <userver/concurrent/impl/asymmetric_fence.hpp>
 
-#ifdef __linux__
+#if defined(__linux__) && __has_include(<linux/membarrier.h>)
 
 #include <linux/membarrier.h>
 #include <sys/syscall.h>
@@ -19,6 +19,11 @@ USERVER_NAMESPACE_BEGIN
 namespace concurrent::impl {
 
 namespace {
+
+// These constants are not available on the host architecture pre-Linux 4.14.
+// Still, they may be supported by the target Linux kernel.
+constexpr int MEMBARRIER_CMD_PRIVATE_EXPEDITED = 1 << 3;
+constexpr int MEMBARRIER_CMD_REGISTER_PRIVATE_EXPEDITED = 1 << 4;
 
 enum class MembarrierRegistrationStatus : std::uint8_t {
   kNotCheckedYet = 0,

@@ -38,6 +38,8 @@ class PoolImpl {
   virtual size_t MaxSize() const = 0;
   virtual void SetMaxSize(size_t max_size) = 0;
 
+  virtual void SetPoolSettings(const PoolSettings& pool_settings) = 0;
+
  protected:
   PoolImpl(std::string&& id, const PoolConfig& static_config,
            dynamic_config::Source config_source);

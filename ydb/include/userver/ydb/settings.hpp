@@ -16,7 +16,7 @@ namespace ydb {
 enum class TransactionMode { kSerializableRW, kOnlineRO, kStaleRO };
 
 struct OperationSettings final {
-  std::uint32_t retries{0};
+  std::optional<std::uint32_t> retries{std::nullopt};
 
   // https://docs.yandex-team.ru/ydb-tech/best_practices/timeouts#operational
   std::chrono::milliseconds operation_timeout_ms{0};

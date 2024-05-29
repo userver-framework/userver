@@ -44,6 +44,13 @@ void MultiMongo::PoolSet::AddPool(std::string dbalias) {
         secdist::GetSecdistConnectionString(target_->secdist_, dbalias),
         target_->pool_config_, target_->dns_resolver_, target_->config_source_);
 
+    const auto config = target_->config_source_.GetSnapshot(kPoolSettings);
+    const auto new_pool_settings = config->GetOptional(target_->name_);
+    if (new_pool_settings.has_value()) {
+      new_pool_settings->Validate(target_->name_);
+      pool_ptr->SetPoolSettings(new_pool_settings.value());
+    }
+
     pool_ptr->Start();
   }
 
@@ -73,7 +80,10 @@ MultiMongo::MultiMongo(std::string name,
       secdist_(secdist),
       config_source_(config_source),
       pool_config_(std::move(pool_config)),
-      dns_resolver_(dns_resolver) {}
+      dns_resolver_(dns_resolver) {
+  config_subscriber_ = config_source_.UpdateAndListen(
+      this, "multi_mongo", &MultiMongo::OnConfigUpdate);
+}
 
 storages::mongo::PoolPtr MultiMongo::GetPool(const std::string& dbalias) const {
   auto pool_ptr = FindPool(dbalias);
@@ -111,6 +121,19 @@ void DumpMetric(utils::statistics::Writer& writer,
   for (const auto& [dbalias, pool] : *pool_map) {
     UASSERT(pool);
     writer.ValueWithLabels(*pool, {"mongo_database", dbalias});
+  }
+}
+
+void MultiMongo::OnConfigUpdate(const dynamic_config::Snapshot& config) {
+  const auto new_pool_settings = config[kPoolSettings].GetOptional(name_);
+  if (new_pool_settings.has_value()) {
+    new_pool_settings->Validate(name_);
+
+    const auto pool_map = pool_map_.Read();
+    for (const auto& [_, pool] : *pool_map) {
+      UASSERT(pool);
+      pool->SetPoolSettings(new_pool_settings.value());
+    }
   }
 }
 

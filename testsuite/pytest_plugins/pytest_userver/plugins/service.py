@@ -43,6 +43,11 @@ def pytest_addoption(parser) -> None:
         dest='service_logs_pretty',
         help='Disable pretty print and colorize service logs',
     )
+    group.addoption(
+        '--service-live-logs-disable',
+        action='store_true',
+        help='Disable service live logs (enabled with -s)',
+    )
 
 
 @pytest.fixture(scope='session')
@@ -105,7 +110,6 @@ async def service_daemon(
         service_config,
         service_binary,
         service_non_http_health_checks,
-        testsuite_logger,
 ):
     """
     Configures the health checking to use service_http_ping_url fixture value

@@ -4,7 +4,7 @@
 /// @brief @copybrief components::ManagerControllerComponent
 
 #include <userver/components/component_fwd.hpp>
-#include <userver/components/impl/component_base.hpp>
+#include <userver/components/raw_component_base.hpp>
 #include <userver/concurrent/async_event_source.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
@@ -63,7 +63,7 @@ class Manager;
 /// @snippet components/common_component_list_test.cpp  Sample components manager config component config
 
 // clang-format on
-class ManagerControllerComponent final : public impl::ComponentBase {
+class ManagerControllerComponent final : public RawComponentBase {
  public:
   ManagerControllerComponent(const components::ComponentConfig& config,
                              const components::ComponentContext& context);

@@ -90,6 +90,8 @@ and also passes the handler into the middleware constructor. Given the middlewar
 @snippet samples/http_middleware_service/http_middleware_service.cpp  Middlewares sample - some middleware implementation
 the factory implementation is just this:
 @snippet samples/http_middleware_service/http_middleware_service.cpp  Middlewares sample - some middleware factory implementation
+Do not forget to add components configs:
+@snippet samples/http_middleware_service/static_config.yaml  Middlewares sample - noop-middleware and server-middleware components configs
 
 ### Per-handler middleware configuration
 
@@ -107,6 +109,9 @@ would be to have a configuration in the Factory config, and for Factory to pass 
 constructor. This takes away the possibility to declare a Factory as a SimpleHttpMiddlewareFactory, but we find this
 tradeoff acceptable (after all, if a middleware needs a configuration it isn't that "Simple" already).
 
+Do not forget to add components configs:
+@snippet samples/http_middleware_service/static_config.yaml  Middlewares sample - handler-middleware component config
+
 ## Pipelines configuration
 
 Now, after we have a middleware and its factory implemented, it would be nice to actually use the middleware in the
@@ -121,9 +126,10 @@ server::middlewares::DefaultPipeline and appends the given middlewares to it, wh
 @snippet samples/http_middleware_service/static_config.yaml  Middlewares sample - pipeline builder configuration
 
 If a more sophisticated behavior is desired, derive from server::middlewares::PipelineBuilder and override
-its `BuildPipeline` method. Then set the custom pipeline component's name in the server config:
+its `BuildPipeline` method. Then set the custom pipeline component's name in the config of components::Server:
 
-```yaml
+```
+# yaml
         server:
             # ...
             middleware-pipeline-builder: custom-pipeline-builder

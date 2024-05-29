@@ -117,7 +117,7 @@ function(_userver_make_sanitize_target)
   )
 endfunction()
 
-# We mush use this function only in install
+# We must use this function only in install
 function(_userver_make_sanitize_blacklist)
   if (NOT TARGET userver::userver-internal-sanitize-options)
     message(FATAL_ERROR "target userver-internal-sanitize-options not defined")

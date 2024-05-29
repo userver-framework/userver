@@ -5,12 +5,30 @@ include_guard(GLOBAL)
 
 set_property(GLOBAL PROPERTY userver_cmake_dir "${CMAKE_CURRENT_LIST_DIR}")
 
+function(_userver_setup_environment_validate_impl)
+  if(NOT USERVER_IMPL_SETUP_ENV_WAS_RUN_FOR_THIS_DIR)
+    message(FATAL_ERROR
+      "Looks like userver is included into the project as "
+      "add_subdirectory(path/to/userver) or find_package(userver) in "
+      "subdirectory of the project. In that case "
+      "userver_setup_environment() should be called at the project root."
+    )
+    return()
+  endif()
+endfunction()
+
 function(_userver_setup_environment_impl)
+  if(USERVER_IMPL_SETUP_ENV_WAS_RUN_FOR_THIS_DIR)
+    return()
+  endif()
+  set(USERVER_IMPL_SETUP_ENV_WAS_RUN_FOR_THIS_DIR ON PARENT_SCOPE)
+
   get_property(USERVER_CMAKE_DIR GLOBAL PROPERTY userver_cmake_dir)
 
   message(STATUS "C compiler: ${CMAKE_C_COMPILER}")
   message(STATUS "C++ compiler: ${CMAKE_CXX_COMPILER}")
 
+  cmake_policy(SET CMP0057 NEW)
   if(NOT USERVER_CMAKE_DIR IN_LIST CMAKE_MODULE_PATH)
     set(CMAKE_MODULE_PATH
         ${CMAKE_MODULE_PATH}
@@ -45,11 +63,6 @@ function(_userver_setup_environment_impl)
       message(FATAL_ERROR "USERVER_COMPILATION_TIME_TRACE is only supported for Clang")
     endif()
     add_compile_options("-ftime-trace")
-  endif()
-
-  if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
-    # disable pkg-config as it's broken by homebrew -- TAXICOMMON-2264
-    set(PKG_CONFIG_EXECUTABLE "" PARENT_SCOPE)
   endif()
 
   include("${USERVER_CMAKE_DIR}/SetupLinker.cmake")

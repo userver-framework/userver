@@ -1,5 +1,6 @@
 #include <clients/http/destination_statistics.hpp>
 
+#include <userver/logging/log.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN

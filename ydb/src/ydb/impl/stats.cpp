@@ -46,6 +46,7 @@ void DoDumpMetric(utils::statistics::Writer& writer, const T& stats) {
   writer["total"] = success + error;
   writer["success"] = success;
   writer["error"] = error;
+  writer["transport-error"] = stats.transport_error;
 
   writer["timings"] = stats.timings;
 
@@ -72,6 +73,7 @@ StatsAggregator::StatsAggregator(utils::span<const double> histogram_bounds)
 void StatsAggregator::Add(const StatsCounters& other) {
   success += other.success.Load();
   error += other.error.Load();
+  transport_error += other.transport_error.Load();
   timings.Add(other.timings.GetView());
   cancelled += other.cancelled.Load();
 }
@@ -79,6 +81,7 @@ void StatsAggregator::Add(const StatsCounters& other) {
 void StatsAggregator::Assign(const StatsCounters& other) {
   success = other.success.Load();
   error = other.error.Load();
+  transport_error = other.transport_error.Load();
   timings.Reset();
   timings.Add(other.timings.GetView());
   cancelled = other.cancelled.Load();

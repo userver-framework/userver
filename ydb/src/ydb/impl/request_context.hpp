@@ -18,6 +18,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ydb::impl {
 
+engine::Deadline GetDeadline(tracing::Span& span,
+                             const dynamic_config::Snapshot& config_snapshot);
+
 struct RequestContext final {
   RequestContext(TableClient& client, const Query& query,
                  OperationSettings& settings,
@@ -25,6 +28,8 @@ struct RequestContext final {
                  tracing::Span* custom_parent_span = nullptr,
                  const utils::impl::SourceLocation& location =
                      utils::impl::SourceLocation::Current());
+
+  void HandleError(const NYdb::TStatus& status);
 
   ~RequestContext();
 
@@ -35,6 +40,7 @@ struct RequestContext final {
   dynamic_config::Snapshot config_snapshot;
   tracing::Span span;
   engine::Deadline deadline;
+  bool is_error_{false};
 };
 
 }  // namespace ydb::impl

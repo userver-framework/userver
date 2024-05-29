@@ -95,9 +95,14 @@ jobs:
                 'cd /userver/build && make -j $(nproc)'
 
           - name: Run ydb
-            run: |-
-                docker-compose -f .github/docker-compose.yml run -d --rm run-ydb
-                sleep 60
+            run: docker-compose -f .github/docker-compose.yml run -d --rm run-ydb
+
+          - name: Watch ydb
+            run: >-
+                docker-compose -f .github/docker-compose.yml
+                run --rm ${{ matrix.image}} bash -c
+                'curl --retry 15 --retry-all-errors --retry-delay 5 -s -o /dev/null
+                http://run-ydb:8765/monitoring/ -v'
 
           - name: Run tests
             run: >-

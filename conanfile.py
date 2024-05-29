@@ -274,6 +274,19 @@ class UserverConan(ConanFile):
 
         copy_component('core')
         copy_component('universal')
+        for cmake_file in (
+                'UserverSetupEnvironment',
+                'SetupLinker',
+                'SetupLTO',
+                'UserverVenv',
+        ):
+            copy(
+                self,
+                pattern=f'{cmake_file}.cmake',
+                dst=os.path.join(self.package_folder, 'cmake'),
+                src=os.path.join(self.source_folder, 'cmake'),
+                keep_path=True,
+            )
 
         if self.options.with_grpc:
             copy_component('grpc')
@@ -648,7 +661,18 @@ class UserverConan(ConanFile):
 
         add_components(self._userver_components)
 
+        with open(
+                os.path.join(self._cmake_subfolder, 'CallSetupEnv.cmake'),
+                'a+',
+        ) as cmake_file:
+            cmake_file.write('userver_setup_environment()')
+
         build_modules = [
+            os.path.join(
+                self._cmake_subfolder, 'UserverSetupEnvironment.cmake',
+            ),
+            os.path.join(self._cmake_subfolder, 'CallSetupEnv.cmake'),
+            os.path.join(self._cmake_subfolder, 'UserverVenv.cmake'),
             os.path.join(self._cmake_subfolder, 'UserverTestsuite.cmake'),
         ]
         if self.options.with_utest:

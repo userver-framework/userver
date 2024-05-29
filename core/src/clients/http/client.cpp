@@ -138,9 +138,11 @@ Request Client::CreateRequest() {
             destination_statistics_, resolver_,
             plugin_pipeline_,        *tracing_manager_.GetBase()};
       } catch (engine::WaitInterruptedException&) {
-        throw clients::http::CancelException();
+        throw clients::http::CancelException("wait interrupted", {},
+                                             ErrorKind::kCancel);
       } catch (engine::TaskCancelledException&) {
-        throw clients::http::CancelException();
+        throw clients::http::CancelException("task cancelled", {},
+                                             ErrorKind::kCancel);
       }
     }
   }();

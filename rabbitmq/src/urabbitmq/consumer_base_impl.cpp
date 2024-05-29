@@ -96,7 +96,7 @@ void ConsumerBaseImpl::OnMessage(const AMQP::Message& message,
   std::string span_name{fmt::format("consume_{}_{}", queue_name_,
                                     consumer_tag_.value_or("ctag:unknown"))};
   std::string trace_id = message.headers().get("u-trace-id");
-
+  std::string parent_span_id = message.headers().get("u-parent-span-id");
   ConsumedMessage consumed;
   consumed.message = std::string(message.body(), message.bodySize());
   consumed.metadata.exchange = message.exchange();
@@ -105,9 +105,9 @@ void ConsumerBaseImpl::OnMessage(const AMQP::Message& message,
   bts_.Detach(engine::AsyncNoSpan(
       dispatcher_,
       [this, consumed = std::move(consumed), span_name = std::move(span_name),
-       trace_id = std::move(trace_id), delivery_tag]() mutable {
-        auto span = tracing::Span::MakeSpan(std::move(span_name), trace_id, {});
-
+       trace_id = std::move(trace_id), parent_span_id = std::move(parent_span_id), 
+       delivery_tag]() mutable {
+        auto span = tracing::Span::MakeSpan(std::move(span_name), trace_id, {parent_span_id});
         bool success = false;
         try {
           dispatch_callback_(std::move(consumed));

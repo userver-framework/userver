@@ -136,7 +136,7 @@ std::chrono::milliseconds TestsuiteSupport::GetIncreasedTimeout() const
 }
 
 yaml_config::Schema TestsuiteSupport::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<impl::ComponentBase>(R"(
+  return yaml_config::MergeSchemas<RawComponentBase>(R"(
 type: object
 description: Testsuite support component
 additionalProperties: false

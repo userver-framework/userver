@@ -33,8 +33,9 @@ class UnitTestServiceCancelEcho final
   void Chat(ChatCall& call) override {
     sample::ugrpc::StreamGreetingRequest request;
     ASSERT_TRUE(call.Read(request));
+    sample::ugrpc::StreamGreetingResponse response{};
     // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
-    UASSERT_NO_THROW(call.Write({}));
+    UASSERT_NO_THROW(call.Write(response));
 
     ASSERT_FALSE(call.Read(request));
     UASSERT_THROW(call.Finish(), ugrpc::server::RpcInterruptedError);
@@ -70,8 +71,9 @@ class UnitTestServiceCancelEchoInf final
     for (;;) {
       sample::ugrpc::StreamGreetingRequest request;
       if (!call.Read(request)) return;
+      sample::ugrpc::StreamGreetingResponse response{};
       // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
-      call.Write({});
+      call.Write(response);
     }
   }
 };
@@ -109,9 +111,10 @@ class UnitTestServiceCancelEchoInfWrites final
     sample::ugrpc::StreamGreetingRequest request;
     EXPECT_TRUE(call.Read(request));
 
+    sample::ugrpc::StreamGreetingResponse response{};
     for (;;) {
       // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
-      call.Write({});
+      call.Write(response);
     }
   }
 };
@@ -152,9 +155,10 @@ class UnitTestServiceCancelEchoNoSecondWrite final
   void Chat(ChatCall& call) override {
     sample::ugrpc::StreamGreetingRequest request;
     EXPECT_TRUE(call.Read(request));
+    sample::ugrpc::StreamGreetingResponse response{};
 
     // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
-    call.Write({});
+    call.Write(response);
     call.Finish();
   }
 };
@@ -271,7 +275,7 @@ class UnitTestServiceCancelHello final
 
   void SayHello(SayHelloCall& call,
                 ::sample::ugrpc::GreetingRequest&&) override {
-    const sample::ugrpc::GreetingResponse response;
+    sample::ugrpc::GreetingResponse response;
 
     // Wait until cancelled.
     const bool success = wait_event_.WaitForEvent();
@@ -328,7 +332,8 @@ class UnitTestServiceCancelSleep final
   void SayHello(SayHelloCall& call,
                 ::sample::ugrpc::GreetingRequest&&) override {
     engine::SleepFor(std::chrono::seconds(1));
-    call.Finish({});
+    sample::ugrpc::GreetingResponse response{};
+    call.Finish(response);
   }
 };
 

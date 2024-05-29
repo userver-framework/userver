@@ -86,6 +86,9 @@ class HttpRequest final {
   /// Arguments are extracted from:
   /// - query part of the URL,
   /// - the HTTP body (only if `parse_args_from_body: true` for handler is set).
+  ///
+  /// In both cases, arg keys and values are url-decoded automatically when
+  /// parsing into the HttpRequest.
   const std::string& GetArg(std::string_view arg_name) const;
 
   /// @return Argument values with name `arg_name` or an empty vector if no
@@ -93,12 +96,18 @@ class HttpRequest final {
   /// Arguments are extracted from:
   /// - query part of the URL,
   /// - the HTTP body (only if `parse_args_from_body: true` for handler is set).
+  ///
+  /// In both cases, arg keys and values are url-decoded automatically when
+  /// parsing into the HttpRequest.
   const std::vector<std::string>& GetArgVector(std::string_view arg_name) const;
 
   /// @return true if argument with name arg_name exists, false otherwise.
   /// Arguments are extracted from:
   /// - query part of the URL,
   /// - the HTTP body (only if `parse_args_from_body: true` for handler is set).
+  ///
+  /// In both cases, arg keys and values are url-decoded automatically when
+  /// parsing into the HttpRequest.
   bool HasArg(std::string_view arg_name) const;
 
   /// @return Count of arguments.
@@ -133,9 +142,11 @@ class HttpRequest final {
   std::vector<std::string> FormDataArgNames() const;
 
   /// @return Named argument from URL path with wildcards.
+  /// @note Path args are currently NOT url-decoded automatically.
   const std::string& GetPathArg(std::string_view arg_name) const;
 
-  /// @return Argument from URL path with wildcards by its 0-based index
+  /// @return Argument from URL path with wildcards by its 0-based index.
+  /// @note Path args are currently NOT url-decoded automatically.
   const std::string& GetPathArg(size_t index) const;
 
   /// @return true if named argument from URL path with wildcards exists, false

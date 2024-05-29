@@ -83,13 +83,12 @@ void Transaction::Commit(OperationSettings settings) {
 
   const auto commit_settings =
       impl::PrepareRequestSettings<NYdb::NTable::TCommitTxSettings>(
-          settings,
-          table_client_.GetDeadline(context.span, context.config_snapshot));
+          settings, impl::GetDeadline(context.span, context.config_snapshot));
 
   auto error_guard = ErrorGuard();
 
   impl::GetFutureValueChecked(ydb_tx_.Commit(commit_settings), "Commit",
-                              table_client_.driver_->GetRetryBudget());
+                              table_client_.driver_->GetRetryBudget(), context);
 
   error_guard.Release();
   is_active_ = false;
@@ -105,13 +104,12 @@ void Transaction::Rollback() {
 
   const auto rollback_settings =
       impl::PrepareRequestSettings<NYdb::NTable::TRollbackTxSettings>(
-          settings,
-          table_client_.GetDeadline(context.span, context.config_snapshot));
+          settings, impl::GetDeadline(context.span, context.config_snapshot));
 
   [[maybe_unused]] auto error_guard = ErrorGuard();
 
   impl::GetFutureValueChecked(ydb_tx_.Rollback(rollback_settings), "Rollback",
-                              table_client_.driver_->GetRetryBudget());
+                              table_client_.driver_->GetRetryBudget(), context);
 
   // Successful rollback is still a transaction error for logs and stats.
 }
@@ -146,7 +144,7 @@ ExecuteResponse Transaction::Execute(QuerySettings query_settings,
   auto exec_settings = table_client_.ToExecQuerySettings(query_settings);
   impl::ApplyToRequestSettings(
       exec_settings, settings,
-      table_client_.GetDeadline(context.span, context.config_snapshot));
+      impl::GetDeadline(context.span, context.config_snapshot));
 
   // Must go after PrepareExecuteSettings, because an exception from there
   // leaves the transaction active.
@@ -158,7 +156,7 @@ ExecuteResponse Transaction::Execute(QuerySettings query_settings,
 
   auto status = impl::GetFutureValueChecked(
       std::move(execute_fut), "Transaction::Execute",
-      table_client_.driver_->GetRetryBudget());
+      table_client_.driver_->GetRetryBudget(), context);
 
   error_guard.Release();
   return ExecuteResponse(std::move(status));

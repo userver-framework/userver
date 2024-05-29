@@ -124,6 +124,25 @@ add_subdirectory(${USERVER_THIRD_PARTY_DIRS}/http-parser http-parser)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE userver-http-parser userver-llhttp)
 
+set(USERVER_UBOOST_CORO_DEFAULT ON)
+if(CMAKE_SYSTEM_NAME MATCHES "Darwin" AND CMAKE_SYSTEM_PROCESSOR MATCHES "arm64")
+  # Use system Boost.Context and Boost.Coroutine2 with latest patches
+  # for arm64, otherwise userver will crash at startup.
+  #
+  # NOTE: this makes it practically impossible to build userver with sanitizers
+  # on macOS, because Boost.Context and Boost.Coroutine2 will cause
+  # an odr violation when linking sanitized usages in userver with stock Debug
+  # static library.
+  set(USERVER_UBOOST_CORO_DEFAULT OFF)
+  if("${Boost_VERSION_STRING}" VERSION_LESS "1.83.0")
+    message(FATAL_ERROR
+        "Please update Boost to at least 1.83.0, it contains important fixes "
+        "for Boost.Context and Boost.Coroutine2")
+  endif()
+endif()
+
+option(USERVER_FEATURE_UBOOST_CORO "Use vendored boost context instead of a system one" "${USERVER_UBOOST_CORO_DEFAULT}")
+
 if (USERVER_FEATURE_UBOOST_CORO)
     add_subdirectory(${USERVER_THIRD_PARTY_DIRS}/uboost_coro uboost_coro_build)
     target_link_libraries(${PROJECT_NAME}
@@ -285,7 +304,7 @@ if (USERVER_FEATURE_UTEST)
       PRIVATE
         userver-core-internal
     )
-_userver_install_targets(COMPONENT core TARGETS userver-ubench userver-universal-internal-ubench)
+    _userver_install_targets(COMPONENT core TARGETS userver-ubench userver-universal-internal-ubench)
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
@@ -307,8 +326,6 @@ _userver_directory_install(COMPONENT core FILES
     "${CMAKE_BINARY_DIR}/cmake_generated/Findc-ares.cmake"
     "${CMAKE_BINARY_DIR}/cmake_generated/FindNghttp2.cmake"
     "${CMAKE_BINARY_DIR}/cmake_generated/FindLibEv.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/FindUserverGTest.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/FindUserverGBench.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
 )
 
@@ -316,7 +333,7 @@ file(GLOB_RECURSE TESTSUITE_INSTALL_FILES
     "${USERVER_ROOT_DIR}/testsuite/*.txt"
     "${USERVER_ROOT_DIR}/testsuite/*.py"
     "${USERVER_ROOT_DIR}/testsuite/env.in"
- )
+)
 
 _userver_directory_install(COMPONENT core
     FILES ${TESTSUITE_INSTALL_FILES}

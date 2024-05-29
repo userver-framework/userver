@@ -7,12 +7,8 @@
 #include <cstdlib>
 #include <memory>
 #include <optional>
-#include <utility>
-
-// TODO remove extra includes
-#include <list>
 #include <unordered_set>
-#include <userver/compiler/thread_local.hpp>
+#include <utility>
 
 #include <userver/concurrent/impl/asymmetric_fence.hpp>
 #include <userver/concurrent/impl/intrusive_hooks.hpp>
@@ -20,7 +16,6 @@
 #include <userver/concurrent/impl/striped_read_indicator.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/mutex.hpp>
-#include <userver/logging/log.hpp>
 #include <userver/rcu/fwd.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/wait_token_storage.hpp>

@@ -20,8 +20,8 @@ def config_echo_url(mockserver_info):
 
 
 @pytest.fixture(name='jaeger_logs_path', scope='session')
-def _jaeger_logs_path(tmp_path_factory):
-    return str(tmp_path_factory.mktemp('opentracing_dir') / 'log.txt')
+def _jaeger_logs_path(service_tmpdir):
+    return str(service_tmpdir / 'opentracing_log.txt')
 
 
 # Overriding the default testsuite behavior

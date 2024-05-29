@@ -1,12 +1,8 @@
 #include <userver/ydb/table.hpp>
 
 #include <userver/engine/deadline.hpp>
-#include <userver/formats/json/inline.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/server/request/task_inherited_data.hpp>
-#include <userver/testsuite/testpoint.hpp>
 #include <userver/tracing/span.hpp>
-#include <userver/utils/impl/userver_experiments.hpp>
 #include <userver/utils/statistics/writer.hpp>
 #include <userver/ydb/impl/cast.hpp>
 
@@ -21,9 +17,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ydb {
 namespace {
-
-utils::impl::UserverExperiment kYdbDeadlinePropagationExperiment(
-    "ydb-deadline-propagation");
 
 NYdb::NTable::TTxSettings PrepareTxSettings(const OperationSettings& settings) {
   switch (settings.tx_mode.value()) {
@@ -104,34 +97,8 @@ auto TableClient::ExecuteWithPathImpl(std::string_view path,
         return func(std::forward<FuncArg>(arg), full_path, query_settings);
       });
 
-  return impl::GetFutureValueChecked(std::move(future), operation_name);
-}
-
-engine::Deadline TableClient::GetDeadline(
-    tracing::Span& span, const dynamic_config::Snapshot& config_snapshot) {
-  if (config_snapshot[impl::kDeadlinePropagationVersion] !=
-      impl::kDeadlinePropagationExperimentVersion) {
-    LOG_DEBUG() << "Wrong DP experiment version, config="
-                << config_snapshot[impl::kDeadlinePropagationVersion]
-                << ", experiment="
-                << impl::kDeadlinePropagationExperimentVersion;
-    return {};
-  }
-
-  if (!kYdbDeadlinePropagationExperiment.IsEnabled()) {
-    LOG_DEBUG() << "Deadline propagation is disabled via experiment";
-    return {};
-  }
-  const auto inherited_deadline = server::request::GetTaskInheritedDeadline();
-
-  if (inherited_deadline.IsReachable()) {
-    span.AddTag("deadline_timeout_ms",
-                std::chrono::duration_cast<std::chrono::milliseconds>(
-                    inherited_deadline.TimeLeft())
-                    .count());
-  }
-
-  return inherited_deadline;
+  return impl::GetFutureValueChecked(std::move(future), operation_name,
+                                     context);
 }
 
 void TableClient::BulkUpsert(std::string_view table, NYdb::TValue&& rows,
@@ -164,7 +131,7 @@ ReadTableResults TableClient::ReadTable(
       });
 
   return ReadTableResults{
-      impl::GetFutureValueChecked(std::move(future), "ReadTable")};
+      impl::GetFutureValueChecked(std::move(future), "ReadTable", context)};
 }
 
 ScanQueryResults TableClient::ExecuteScanQuery(
@@ -182,8 +149,8 @@ ScanQueryResults TableClient::ExecuteScanQuery(
                                                    params, scan_settings);
       });
 
-  return ScanQueryResults{
-      impl::GetFutureValueChecked(std::move(future), "ExecuteScanQuery")};
+  return ScanQueryResults{impl::GetFutureValueChecked(
+      std::move(future), "ExecuteScanQuery", context)};
 }
 
 void TableClient::Select1() {
@@ -196,16 +163,16 @@ void TableClient::Select1() {
   }
 }
 
-void TableClient::SetDefaultSettings(OperationSettings settings) {
-  default_settings_.Assign(std::move(settings));
-}
-
 NYdb::NTable::TTableClient& TableClient::GetNativeTableClient() {
   return *table_client_;
 }
 
 utils::RetryBudget& TableClient::GetRetryBudget() {
   return driver_->GetRetryBudget();
+}
+
+const OperationSettings& TableClient::GetDefaultOperationSettings() const {
+  return default_settings_;
 }
 
 void TableClient::MakeDirectory(const std::string& path) {
@@ -311,8 +278,8 @@ Transaction TableClient::Begin(std::string transaction_name,
         return session.BeginTransaction(tx_settings, exec_settings);
       });
 
-  auto status =
-      impl::GetFutureValueChecked(std::move(future), "BeginTransaction");
+  auto status = impl::GetFutureValueChecked(std::move(future),
+                                            "BeginTransaction", context);
   return Transaction(*this, status.GetTransaction(),
                      std::move(transaction_name), std::move(settings));
 }
@@ -330,7 +297,8 @@ void TableClient::ExecuteSchemeQuery(const std::string& query) {
         return session.ExecuteSchemeQuery(impl::ToString(query), exec_settings);
       });
 
-  impl::GetFutureValueChecked(std::move(retry_future), "ExecuteSchemeQuery");
+  impl::GetFutureValueChecked(std::move(retry_future), "ExecuteSchemeQuery",
+                              context);
 }
 
 ExecuteResponse TableClient::ExecuteDataQuery(OperationSettings settings,
@@ -359,45 +327,12 @@ ExecuteResponse TableClient::ExecuteDataQuery(QuerySettings query_settings,
                                         exec_settings);
       });
 
-  return ExecuteResponse{
-      impl::GetFutureValueChecked(std::move(future), "ExecuteDataQuery")};
+  return ExecuteResponse{impl::GetFutureValueChecked(
+      std::move(future), "ExecuteDataQuery", context)};
 }
 
 std::string TableClient::JoinDbPath(std::string_view path) const {
   return impl::JoinPath(driver_->GetDbPath(), path);
-}
-
-tracing::Span TableClient::MakeSpan(const Query& query,
-                                    const OperationSettings& settings,
-                                    tracing::Span* custom_parent_span,
-                                    utils::impl::SourceLocation location) {
-  auto span = custom_parent_span
-                  ? custom_parent_span->CreateChild("ydb_query")
-                  : tracing::Span("ydb_query", tracing::ReferenceType::kChild,
-                                  logging::Level::kInfo, location);
-
-  if (query.GetName()) {
-    span.AddTag("query_name", std::string{*query.GetName()});
-  } else {
-    span.AddTag("yql_query", query.Statement());
-  }
-  span.AddTag("max_attempts", settings.retries);
-  span.AddTag("get_session_timeout_ms",
-              settings.get_session_timeout_ms.count());
-  span.AddTag("operation_timeout_ms", settings.operation_timeout_ms.count());
-  span.AddTag("cancel_after_ms", settings.cancel_after_ms.count());
-  span.AddTag("client_timeout_ms", settings.client_timeout_ms.count());
-
-  if (query.GetName()) {
-    try {
-      TESTPOINT("sql_statement", formats::json::MakeObject(
-                                     "name", query.GetName()->GetUnderlying()));
-    } catch (const std::exception& e) {
-      LOG_WARNING() << e;
-    }
-  }
-
-  return span;
 }
 
 void DumpMetric(utils::statistics::Writer& writer,
@@ -414,63 +349,6 @@ void DumpMetric(utils::statistics::Writer& writer,
 
 PreparedArgsBuilder TableClient::GetBuilder() const {
   return PreparedArgsBuilder(table_client_->GetParamsBuilder());
-}
-
-void TableClient::PrepareSettings(
-    const Query& query, const dynamic_config::Snapshot& config_snapshot,
-    OperationSettings& os, impl::IsStreaming is_streaming) const {
-  // Priority of the OperationSettings choosing. From low to high:
-  // 0. Driver's defaults
-  // 1. Static config
-  // 2. OperationSettings passed in code
-  // 3. Dynamic config
-
-  const auto default_settings_ptr = default_settings_.Read();
-  const auto& default_settings = *default_settings_ptr;
-
-  if (os.retries == 0) {
-    os.retries = default_settings.retries;
-  }
-  if (os.operation_timeout_ms == std::chrono::milliseconds::zero()) {
-    os.operation_timeout_ms = default_settings.operation_timeout_ms;
-  }
-  if (os.cancel_after_ms == std::chrono::milliseconds::zero()) {
-    os.cancel_after_ms = default_settings.cancel_after_ms;
-  }
-  // For streaming operations, client timeout is applied to the entire
-  // streaming RPC. Meanwhile, streaming RPCs can be expected to take
-  // an unbounded amount of time. YDB gRPC machinery automatically checks
-  // that the server has not died, otherwise we'll get an exception.
-  //
-  // Timeouts specified in code, as well as in dynamic config, still apply.
-  // NOLINTNEXTLINE(bugprone-non-zero-enum-to-bool-conversion)
-  if (!static_cast<bool>(is_streaming)) {
-    if (os.client_timeout_ms == std::chrono::milliseconds::zero()) {
-      os.client_timeout_ms = default_settings.client_timeout_ms;
-    }
-  }
-  if (os.get_session_timeout_ms == std::chrono::milliseconds::zero()) {
-    os.get_session_timeout_ms = default_settings.get_session_timeout_ms;
-  }
-  if (!os.tx_mode) {
-    os.tx_mode = default_settings.tx_mode.value();
-  }
-
-  const auto& cc_map = config_snapshot[impl::kQueryCommandControl];
-
-  if (!query.GetName()) return;
-  auto it = cc_map.find(query.GetName()->GetUnderlying());
-  if (it == cc_map.end()) return;
-
-  auto& cc = it->second;
-
-  if (cc.attempts) os.retries = cc.attempts.value();
-  if (cc.operation_timeout_ms)
-    os.operation_timeout_ms = cc.operation_timeout_ms.value();
-  if (cc.cancel_after_ms) os.cancel_after_ms = cc.cancel_after_ms.value();
-  if (cc.client_timeout_ms) os.client_timeout_ms = cc.client_timeout_ms.value();
-  if (cc.get_session_timeout_ms)
-    os.get_session_timeout_ms = cc.get_session_timeout_ms.value();
 }
 
 NYdb::NTable::TExecDataQuerySettings TableClient::ToExecQuerySettings(

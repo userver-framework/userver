@@ -12,9 +12,9 @@
 #include <userver/formats/json/exception.hpp>
 #include <userver/formats/json/impl/types.hpp>
 #include <userver/formats/json/iterator.hpp>
+#include <userver/formats/json/schema.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/string_builder_fwd.hpp>
-#include <userver/formats/json/validate.hpp>
 #include <userver/formats/parse/common.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -331,8 +331,6 @@ class Value final {
   friend std::string ToPrettyString(const formats::json::Value& doc,
                                     PrettyFormat format);
   friend logging::LogHelper& operator<<(logging::LogHelper&, const Value&);
-  friend bool Validate(const formats::json::Value&,
-                       const formats::json::Schema&);
 };
 
 template <typename T>

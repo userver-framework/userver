@@ -13,11 +13,10 @@
 #include <string_view>
 #include <type_traits>
 
-#include <boost/numeric/conversion/cast.hpp>
-
 #include <userver/dump/operations.hpp>
 #include <userver/dump/unsafe.hpp>
 #include <userver/utils/meta_light.hpp>
+#include <userver/utils/numeric_cast.hpp>
 
 namespace boost::uuids {
 struct uuid;
@@ -108,9 +107,9 @@ std::enable_if_t<meta::kIsInteger<T>, T> Read(Reader& reader, To<T>) {
   const auto raw = impl::ReadInteger(reader);
 
   if constexpr (std::is_signed_v<T>) {
-    return boost::numeric_cast<T>(static_cast<std::int64_t>(raw));
+    return utils::numeric_cast<T>(static_cast<std::int64_t>(raw));
   } else {
-    return boost::numeric_cast<T>(raw);
+    return utils::numeric_cast<T>(raw);
   }
 }
 

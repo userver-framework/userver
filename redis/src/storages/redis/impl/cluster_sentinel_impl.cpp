@@ -7,6 +7,7 @@
 #include <boost/crc.hpp>
 
 #include <userver/concurrent/variable.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/storages/redis/exception.hpp>
 #include <userver/storages/redis/impl/redis_state.hpp>

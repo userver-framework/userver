@@ -2,6 +2,7 @@
 
 #include <optional>
 
+#include <userver/server/middlewares/builtin.hpp>
 #include <userver/server/middlewares/http_middleware_base.hpp>
 #include <userver/utils/token_bucket.hpp>
 
@@ -15,7 +16,7 @@ namespace server::middlewares {
 
 class RateLimit final : public HttpMiddlewareBase {
  public:
-  static constexpr std::string_view kName{"userver-rate-limit-middleware"};
+  static constexpr std::string_view kName = builtin::kRateLimit;
 
   explicit RateLimit(const handlers::HttpHandlerBase&);
 

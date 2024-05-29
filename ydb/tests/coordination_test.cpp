@@ -1,3 +1,4 @@
+#include <userver/engine/async.hpp>
 #include <userver/utest/utest.hpp>
 
 #include "test_utils.hpp"

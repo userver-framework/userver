@@ -28,9 +28,9 @@ Changelog news also go to the
 
 ### Release v2.0
 
-Big new features since the Beta announcement:
+Big new features since the v1.0.0:
 
-* Simplify dynamic configs and embedded defaults into the code.
+* Simplified dynamic configs and embedded defaults into the code.
 * Added PostgreSQL connection pools auto-configuration.
 * Added YDB driver and basic Kafka driver.
 * LISTEN/NOTIFY support for PostgreSQL
@@ -43,6 +43,9 @@ Big new features since the Beta announcement:
 * Numerous optimizations and build improvements.
 
 Detailed descriptions could be found below.
+
+Binary Ubuntu 22.04 amd64 package could be found at
+[userver Releases](https://github.com/userver-framework/userver/releases).
 
 
 ### May 2024 (v2.0-rc)
@@ -776,7 +779,7 @@ Detailed descriptions could be found below.
 
 ### Beta (April 2023)
 
-* MySQL driver was added, see @ref mysql_driver.
+* MySQL driver was added, see @ref scripts/docs/en/userver/mysql/mysql_driver.md.
 * Experimental support for HTTP "Baggage" header is implemented, including
   verification, forwarding from HTTP handlers to client, baggage manipulation.
   See baggage::BaggageManagerComponent for more info.

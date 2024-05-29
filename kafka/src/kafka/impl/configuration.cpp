@@ -7,6 +7,7 @@
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
 #include <userver/engine/subprocess/environment_variables.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/logging/log_extra.hpp>
 #include <userver/storages/secdist/component.hpp>
 #include <userver/utils/algo.hpp>

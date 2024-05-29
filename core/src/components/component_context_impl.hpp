@@ -28,9 +28,9 @@ class ComponentContextImpl {
   ComponentContextImpl(const Manager& manager,
                        std::vector<std::string>&& loading_component_names);
 
-  impl::ComponentBase* AddComponent(std::string_view name,
-                                    const ComponentFactory& factory,
-                                    ComponentContext& context);
+  RawComponentBase* AddComponent(std::string_view name,
+                                 const ComponentFactory& factory,
+                                 ComponentContext& context);
 
   void OnAllComponentsLoaded();
 
@@ -58,9 +58,9 @@ class ComponentContextImpl {
                                                 std::string_view type) const;
   [[noreturn]] void ThrowComponentTypeMismatch(
       std::string_view name, std::string_view type,
-      impl::ComponentBase* component) const;
+      RawComponentBase* component) const;
 
-  impl::ComponentBase* DoFindComponent(std::string_view name);
+  RawComponentBase* DoFindComponent(std::string_view name);
 
  private:
   class TaskToComponentMapScope final {

@@ -6,6 +6,7 @@ Capture and work with logs.
 import asyncio
 import contextlib
 import enum
+import logging
 import sys
 import typing
 
@@ -19,6 +20,8 @@ from ..utils import tskv
 
 USERVER_CONFIG_HOOKS = ['_userver_config_logs_capture']
 DEFAULT_PORT = 2211
+
+logger = logging.getLogger(__name__)
 
 
 class LogLevel(enum.Enum):
@@ -76,6 +79,20 @@ class CaptureControl:
         self.default_log_level = log_level
         self._capture: typing.Optional[CapturedLogs] = None
         self._tasks = []
+        self._client_cond = asyncio.Condition()
+
+    async def wait_for_client(self, timeout: float = 10.0):
+        async def waiter():
+            async with self._client_cond:
+                await self._client_cond.wait_for(lambda: self._tasks)
+
+        logger.debug('Waiting for logcapture client to connect...')
+        try:
+            await asyncio.wait_for(waiter(), timeout=timeout)
+        except TimeoutError:
+            raise RuntimeError(
+                'Timedout while waiting for logcapture client to connect',
+            )
 
     @compat.asynccontextmanager
     async def start_capture(
@@ -119,6 +136,8 @@ class CaptureControl:
             await server.wait_closed()
 
     async def _handle_client(self, reader, writer):
+        logger.debug('logcapture client connected')
+
         async def log_reader():
             with contextlib.closing(writer):
                 async for line in reader:
@@ -127,6 +146,8 @@ class CaptureControl:
                         await self._capture.publish(row)
 
         self._tasks.append(asyncio.create_task(log_reader()))
+        async with self._client_cond:
+            self._client_cond.notify_all()
 
 
 def pytest_addoption(parser):

@@ -12,7 +12,7 @@
 
 #include <userver/compiler/demangle.hpp>
 #include <userver/components/component_fwd.hpp>
-#include <userver/components/impl/component_base.hpp>
+#include <userver/components/raw_component_base.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -33,7 +33,7 @@ class ComponentInfo;
 class ComponentContextImpl;
 
 using ComponentFactory =
-    std::function<std::unique_ptr<components::impl::ComponentBase>(
+    std::function<std::unique_ptr<components::RawComponentBase>(
         const components::ComponentContext&)>;
 
 template <class T>
@@ -173,8 +173,8 @@ class ComponentContext final {
 
   ~ComponentContext();
 
-  impl::ComponentBase* AddComponent(std::string_view name,
-                                    const impl::ComponentFactory& factory);
+  RawComponentBase* AddComponent(std::string_view name,
+                                 const impl::ComponentFactory& factory);
 
   void OnAllComponentsLoaded();
 
@@ -188,9 +188,9 @@ class ComponentContext final {
                                                 std::string_view type) const;
   [[noreturn]] void ThrowComponentTypeMismatch(
       std::string_view name, std::string_view type,
-      impl::ComponentBase* component) const;
+      RawComponentBase* component) const;
 
-  impl::ComponentBase* DoFindComponent(std::string_view name) const;
+  RawComponentBase* DoFindComponent(std::string_view name) const;
 
   std::unique_ptr<impl::ComponentContextImpl> impl_;
 };

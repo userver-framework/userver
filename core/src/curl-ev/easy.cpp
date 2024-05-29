@@ -9,6 +9,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <istream>
 #include <utility>
 
 #include <curl-ev/easy.hpp>

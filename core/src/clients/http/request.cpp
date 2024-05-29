@@ -221,7 +221,8 @@ Request::Request(impl::EasyWrapper&& wrapper, RequestStats&& req_stats,
 
   if (engine::current_task::ShouldCancel()) {
     throw CancelException(
-        "Failed to make HTTP request due to task cancellation", {});
+        "Failed to make HTTP request due to task cancellation", {},
+        ErrorKind::kCancel);
   }
 }
 

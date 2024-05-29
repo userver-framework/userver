@@ -3,17 +3,13 @@
 #include <ydb-cpp-sdk/client/table/table.h>
 
 #include <userver/dynamic_config/source.hpp>
-#include <userver/rcu/rcu.hpp>
-#include <userver/utils/impl/source_location.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 
 #include <userver/ydb/builder.hpp>
-#include <userver/ydb/exceptions.hpp>
 #include <userver/ydb/query.hpp>
 #include <userver/ydb/response.hpp>
 #include <userver/ydb/settings.hpp>
 #include <userver/ydb/transaction.hpp>
-#include <userver/ydb/types.hpp>
 
 namespace NMonitoring {
 class TMetricRegistry;
@@ -147,15 +143,13 @@ class TableClient final {
 
   /// @cond
   // For internal use only.
-  void SetDefaultSettings(OperationSettings settings);
-
-  // For internal use only.
   friend void DumpMetric(utils::statistics::Writer& writer,
                          const TableClient& table_client);
   /// @endcond
 
   NYdb::NTable::TTableClient& GetNativeTableClient();
   utils::RetryBudget& GetRetryBudget();
+  const OperationSettings& GetDefaultOperationSettings() const;
 
  private:
   friend class Transaction;
@@ -163,19 +157,7 @@ class TableClient final {
 
   std::string JoinDbPath(std::string_view path) const;
 
-  static tracing::Span MakeSpan(const Query& query,
-                                const OperationSettings& settings,
-                                tracing::Span* custom_parent_span,
-                                utils::impl::SourceLocation location);
-
   void Select1();
-
-  static engine::Deadline GetDeadline(
-      tracing::Span& span, const dynamic_config::Snapshot& config_snapshot);
-
-  void PrepareSettings(const Query& query,
-                       const dynamic_config::Snapshot& config_snapshot,
-                       OperationSettings& os, impl::IsStreaming) const;
 
   NYdb::NTable::TExecDataQuerySettings ToExecQuerySettings(
       QuerySettings query_settings) const;
@@ -195,7 +177,7 @@ class TableClient final {
                            OperationSettings&& settings, Func&& func);
 
   dynamic_config::Source config_source_;
-  rcu::Variable<OperationSettings> default_settings_;
+  OperationSettings default_settings_;
   const bool keep_in_query_cache_;
   std::unique_ptr<impl::Stats> stats_;
   std::shared_ptr<impl::Driver> driver_;

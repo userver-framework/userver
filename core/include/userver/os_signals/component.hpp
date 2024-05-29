@@ -6,7 +6,7 @@
 #include <csignal>
 
 #include <userver/components/component_fwd.hpp>
-#include <userver/components/impl/component_base.hpp>
+#include <userver/components/raw_component_base.hpp>
 #include <userver/os_signals/processor.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -21,7 +21,7 @@ namespace os_signals {
 /// Declaration in static config file may be skipped.
 ///
 /// @see @ref scripts/docs/en/userver/os_signals.md
-class ProcessorComponent final : public components::impl::ComponentBase {
+class ProcessorComponent final : public components::RawComponentBase {
  public:
   /// @ingroup userver_component_names
   /// @brief The default name of os_signals::ProcessorComponent

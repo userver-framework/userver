@@ -9,6 +9,7 @@
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <ugrpc/client/impl/client_factory_config.hpp>
+#include <userver/ugrpc/server/middlewares/fwd.hpp>
 #include <userver/ugrpc/server/server_component.hpp>
 
 USERVER_NAMESPACE_BEGIN

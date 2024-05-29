@@ -58,20 +58,22 @@ StatsScope::~StatsScope() {
       std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(
           total_time);
 
-  if (is_error_) {
+  if (is_cancelled_) {
+    ++stats_.cancelled;
+  } else if (is_error_) {
     ++stats_.error;
+  } else if (is_transport_error_) {
+    ++stats_.transport_error;
   } else {
     ++stats_.success;
   }
 
   stats_.timings.Account(total_time_ms.count());
-
-  if (is_cancelled_) {
-    ++stats_.cancelled;
-  }
 }
 
 void StatsScope::OnError() noexcept { is_error_ = true; }
+
+void StatsScope::OnTransportError() noexcept { is_transport_error_ = true; }
 
 void StatsScope::OnCancelled() noexcept { is_cancelled_ = true; }
 

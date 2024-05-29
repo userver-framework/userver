@@ -16,7 +16,7 @@ LoggableComponentBase::LoggableComponentBase(
 }
 
 yaml_config::Schema LoggableComponentBase::GetStaticConfigSchema() {
-  auto schema = impl::ComponentBase::GetStaticConfigSchema();
+  auto schema = RawComponentBase::GetStaticConfigSchema();
   schema.UpdateDescription(
       "Base class for all application components, it depends on "
       "components::Logger and optionally components::Tracer.");

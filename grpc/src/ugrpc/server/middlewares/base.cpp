@@ -10,15 +10,13 @@ MiddlewareBase::~MiddlewareBase() = default;
 
 MiddlewareCallContext::MiddlewareCallContext(
     const Middlewares& middlewares, CallAnyBase& call,
-    utils::function_ref<void()> user_call, std::string_view service_name,
-    std::string_view method_name, const dynamic_config::Snapshot& config,
-    const ::google::protobuf::Message* request)
+    utils::function_ref<void()> user_call,
+    const dynamic_config::Snapshot& config,
+    ::google::protobuf::Message* request)
     : middleware_(middlewares.begin()),
       middleware_end_(middlewares.end()),
       user_call_(std::move(user_call)),
       call_(call),
-      service_name_(service_name),
-      method_name_(method_name),
       config_(config),
       request_(request) {}
 
@@ -27,8 +25,13 @@ void MiddlewareCallContext::Next() {
     ClearMiddlewaresResources();
     user_call_();
   } else {
+    // It is important for non-stream calls
+    if (request_) {
+      (*middleware_)->CallRequestHook(*this, *request_);
+    }
     // NOLINTNEXTLINE(readability-qualified-auto)
     const auto middleware = middleware_++;
+
     (*middleware)->Handle(*this);
   }
 }
@@ -38,14 +41,14 @@ void MiddlewareCallContext::ClearMiddlewaresResources() {
   config_.reset();
 }
 
-CallAnyBase& MiddlewareCallContext::GetCall() { return call_; }
+CallAnyBase& MiddlewareCallContext::GetCall() const { return call_; }
 
 std::string_view MiddlewareCallContext::GetServiceName() const {
-  return service_name_;
+  return call_.GetServiceName();
 }
 
 std::string_view MiddlewareCallContext::GetMethodName() const {
-  return method_name_;
+  return call_.GetMethodName();
 }
 
 const dynamic_config::Snapshot& MiddlewareCallContext::GetInitialDynamicConfig()
@@ -54,9 +57,11 @@ const dynamic_config::Snapshot& MiddlewareCallContext::GetInitialDynamicConfig()
   return config_.value();
 }
 
-const ::google::protobuf::Message* MiddlewareCallContext::GetInitialRequest() {
-  return request_;
-}
+void MiddlewareBase::CallRequestHook(const MiddlewareCallContext&,
+                                     google::protobuf::Message&){};
+
+void MiddlewareBase::CallResponseHook(const MiddlewareCallContext&,
+                                      google::protobuf::Message&){};
 
 }  // namespace ugrpc::server
 

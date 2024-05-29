@@ -2,7 +2,6 @@ import bson
 import pytest
 
 
-@pytest.mark.skip(reason='restore in TAXICOMMON-8860')
 @pytest.mark.ydb(files=['fill_orders.sql'])
 async def test_bson_reading(service_client):
     response = await service_client.post(

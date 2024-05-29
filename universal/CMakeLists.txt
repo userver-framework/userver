@@ -46,7 +46,7 @@ message(STATUS "boost: ${Boost_VERSION_STRING}")
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   if (CMAKE_SYSTEM_NAME MATCHES "Darwin" AND Boost_FOUND)
     # requires Boost_FOUND to make a valid expression
-    if (${Boost_VERSION_STRING} VERSION_LESS "1.68.0")
+    if ("${Boost_VERSION_STRING}" VERSION_LESS "1.68.0")
       message(FATAL_ERROR "Boost Locale version less that 1.68 uses features deleted from standard. Please update your boost distribution.")
     endif()
   endif()
@@ -292,33 +292,22 @@ if (USERVER_IS_THE_ROOT_PROJECT OR USERVER_FEATURE_UTEST)
   if (USERVER_CONAN)
     find_package(GTest REQUIRED)
     find_package(benchmark REQUIRED)
-    target_link_libraries(${PROJECT_NAME}-internal-utest
-      INTERFACE
-        GTest::gtest
-        GTest::gmock
-        GTest::gtest_main
-        ${PROJECT_NAME}
-    )
-    target_link_libraries(${PROJECT_NAME}-internal-ubench
-      INTERFACE
-        benchmark::benchmark
-        ${PROJECT_NAME}
-    )
   else()
     include(SetupGTest)
     include(SetupGBench)
-    target_link_libraries(${PROJECT_NAME}-internal-utest
-      INTERFACE
-        libgtest
-        libgmock
-        ${PROJECT_NAME}
-    )
-    target_link_libraries(${PROJECT_NAME}-internal-ubench
-      INTERFACE
-        libbenchmark
-        ${PROJECT_NAME}
-    )
   endif()
+  target_link_libraries(${PROJECT_NAME}-internal-utest
+      INTERFACE
+      GTest::gtest
+      GTest::gmock
+      GTest::gtest_main
+      ${PROJECT_NAME}
+  )
+  target_link_libraries(${PROJECT_NAME}-internal-ubench
+      INTERFACE
+      benchmark::benchmark
+      ${PROJECT_NAME}
+  )
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
@@ -369,33 +358,24 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     add_google_benchmark_tests(${PROJECT_NAME}-benchmark)
 endif()
 
-if (USERVER_INSTALL)
-  configure_package_config_file("${USERVER_ROOT_DIR}/cmake/install/Config.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake"
-    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
-  )
-
-  write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake
-    VERSION ${USERVER_VERSION} COMPATIBILITY SameMajorVersion
-  )
-
-  _userver_directory_install(COMPONENT universal FILES
-      "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake"
-      "${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake"
-      "${CMAKE_BINARY_DIR}/cmake_generated/FindCryptoPP.cmake"
-      "${CMAKE_BINARY_DIR}/cmake_generated/Findlibyamlcpp.cmake"
-      "${CMAKE_BINARY_DIR}/cmake_generated/Findcctz.cmake"
-      "${CMAKE_BINARY_DIR}/cmake_generated/FindJemalloc.cmake"
-      "${USERVER_ROOT_DIR}/cmake/sanitize.blacklist.txt"
-      "${USERVER_ROOT_DIR}/cmake/sanitize-macos.blacklist.txt"
-      "${USERVER_ROOT_DIR}/cmake/RequireLTO.cmake"
-      "${USERVER_ROOT_DIR}/cmake/SetupLTO.cmake"
-      "${USERVER_ROOT_DIR}/cmake/SetupLinker.cmake"
-      "${USERVER_ROOT_DIR}/cmake/Sanitizers.cmake"
-      "${USERVER_ROOT_DIR}/cmake/AddGoogleTests.cmake"
-      "${USERVER_ROOT_DIR}/cmake/DetectVersion.cmake"
-      "${USERVER_ROOT_DIR}/cmake/UserverSetupEnvironment.cmake"
-      "${USERVER_ROOT_DIR}/cmake/install/userver-universal-config.cmake"
-      DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
-  )
-endif()
+_userver_directory_install(COMPONENT universal FILES
+    "${CMAKE_BINARY_DIR}/cmake_generated/FindCryptoPP.cmake"
+    "${CMAKE_BINARY_DIR}/cmake_generated/Findlibyamlcpp.cmake"
+    "${CMAKE_BINARY_DIR}/cmake_generated/Findcctz.cmake"
+    "${CMAKE_BINARY_DIR}/cmake_generated/FindJemalloc.cmake"
+    "${CMAKE_BINARY_DIR}/cmake_generated/FindUserverGBench.cmake"
+    "${USERVER_ROOT_DIR}/cmake/SetupGTest.cmake"
+    "${USERVER_ROOT_DIR}/cmake/SetupGBench.cmake"
+    "${USERVER_ROOT_DIR}/cmake/sanitize.blacklist.txt"
+    "${USERVER_ROOT_DIR}/cmake/sanitize-macos.blacklist.txt"
+    "${USERVER_ROOT_DIR}/cmake/RequireLTO.cmake"
+    "${USERVER_ROOT_DIR}/cmake/SetupLTO.cmake"
+    "${USERVER_ROOT_DIR}/cmake/SetupLinker.cmake"
+    "${USERVER_ROOT_DIR}/cmake/Sanitizers.cmake"
+    "${USERVER_ROOT_DIR}/cmake/AddGoogleTests.cmake"
+    "${USERVER_ROOT_DIR}/cmake/DetectVersion.cmake"
+    "${USERVER_ROOT_DIR}/cmake/UserverSetupEnvironment.cmake"
+    "${USERVER_ROOT_DIR}/cmake/UserverVenv.cmake"
+    "${USERVER_ROOT_DIR}/cmake/install/userver-universal-config.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
+)

@@ -120,7 +120,7 @@ are available at the
 
 
 ## MySQL
-* @ref mysql_driver
+* @ref scripts/docs/en/userver/mysql/mysql_driver.md
 * @ref scripts/docs/en/userver/mysql/supported_types.md
 * @ref scripts/docs/en/userver/mysql/design_and_details.md
 

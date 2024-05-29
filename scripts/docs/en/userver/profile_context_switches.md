@@ -31,9 +31,9 @@ Take a look at the following log:
 
 ```
 bash
-$ make -j4 userver-core_unittest && ./userver/core/userver-core_unittest --gtest_filter=CommonComponentList.ServerMinimal 2>/dev/null \
+$ make -j4 userver-core-unittest && ./userver/core/userver-core-unittest --gtest_filter=CommonComponentList.ServerMinimal 2>/dev/null \
     | ../scripts/human_logs.py -ign module
-[100%] Built target userver-core_unittest
+[100%] Built target userver-core-unittest
 1   Note: Google Test filter = CommonComponentList.ServerMinimal
 2   [==========] Running 1 test from 1 test suite.
 3   [----------] Global test environment set-up.
@@ -72,7 +72,7 @@ profiling logger to `debug` or `trace` to get the profiles with stacktraces:
 bash
 $ make -j4 userver-core_unittest && ./userver/core/userver-core_unittest --gtest_filter=CommonComponentList.ServerMinimal 2>/dev/null \
     | ../scripts/human_logs.py -ign module -v DEBUG
-[100%] Built target userver-core_unittest
+[100%] Built target userver-core-unittest
 1   Note: Google Test filter = CommonComponentList.ServerMinimal
 2   [==========] Running 1 test from 1 test suite.
 3   [----------] Global test environment set-up.

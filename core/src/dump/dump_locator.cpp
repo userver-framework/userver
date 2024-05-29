@@ -119,7 +119,7 @@ void DumpLocator::Cleanup() {
 
       std::string filename = file.path().filename().string();
 
-      if (boost::regex_match(filename, tmp_filename_regex_)) {
+      if (utils::regex_match(filename, tmp_filename_regex_)) {
         LOG_DEBUG() << "Removing a leftover tmp file \"" << file.path().string()
                     << "\"";
         boost::filesystem::remove(file);
@@ -167,20 +167,21 @@ std::optional<DumpFileStats> DumpLocator::ParseDumpName(
     std::string full_path) const {
   const auto filename = boost::filesystem::path{full_path}.filename().string();
 
-  boost::smatch regex;
-  if (boost::regex_match(filename, regex, filename_regex_)) {
+  utils::smatch regex;
+  if (utils::regex_match(filename, regex, filename_regex_)) {
     UASSERT_MSG(regex.size() == 3,
                 fmt::format("Incorrect sub-match count: {} for filename {}",
                             regex.size(), filename));
 
     try {
-      const auto date_string = regex[1].str();
+      const auto date_string = regex[1];
       const auto date_format = date_string.find(':') == std::string::npos
                                    ? kFilenameDateFormat
                                    : kLegacyFilenameDateFormat;
       const auto date =
           utils::datetime::Stringtime(date_string, kTimeZone, date_format);
-      const auto version = utils::FromString<uint64_t>(regex[2].str());
+      const std::string str = regex[2];
+      const auto version = utils::FromString<uint64_t>(str);
       return DumpFileStats{{Round(date)}, std::move(full_path), version};
     } catch (const std::exception& ex) {
       LOG_WARNING() << "A filename looks like a dump, but it is not, path=\""
@@ -210,7 +211,7 @@ std::optional<DumpFileStats> DumpLocator::GetLatestDumpImpl() const {
 
       auto curr_dump = ParseDumpName(file.path().string());
       if (!curr_dump) {
-        if (boost::regex_match(file.path().filename().string(),
+        if (utils::regex_match(file.path().filename().string(),
                                tmp_filename_regex_)) {
           LOG_DEBUG() << "A leftover tmp file found: \"" << file.path().string()
                       << "\". It will be removed on next Cleanup";

@@ -1,5 +1,6 @@
 #include <userver/ydb/topic.hpp>
 
+#include <userver/engine/async.hpp>
 #include <userver/ydb/impl/cast.hpp>
 
 #include <ydb/impl/config.hpp>
