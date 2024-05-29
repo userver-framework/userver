@@ -283,6 +283,20 @@ class UserverConan(ConanFile):
         )
         copy(
             self,
+            pattern='SetupLinker.cmake',
+            dst=os.path.join(self.package_folder, 'cmake'),
+            src=os.path.join(self.source_folder, 'cmake'),
+            keep_path=True,
+        ) 
+        copy(
+            self,
+            pattern='SetupLTO.cmake',
+            dst=os.path.join(self.package_folder, 'cmake'),
+            src=os.path.join(self.source_folder, 'cmake'),
+            keep_path=True,
+        )
+        copy(
+            self,
             pattern='UserverVenv.cmake',
             dst=os.path.join(self.package_folder, 'cmake'),
             src=os.path.join(self.source_folder, 'cmake'),
