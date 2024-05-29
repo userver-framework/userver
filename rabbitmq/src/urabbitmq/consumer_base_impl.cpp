@@ -105,9 +105,10 @@ void ConsumerBaseImpl::OnMessage(const AMQP::Message& message,
   bts_.Detach(engine::AsyncNoSpan(
       dispatcher_,
       [this, consumed = std::move(consumed), span_name = std::move(span_name),
-       trace_id = std::move(trace_id), parent_span_id = std::move(parent_span_id), 
-       delivery_tag]() mutable {
-        auto span = tracing::Span::MakeSpan(std::move(span_name), trace_id, {parent_span_id});
+       trace_id = std::move(trace_id),
+       parent_span_id = std::move(parent_span_id), delivery_tag]() mutable {
+        auto span = tracing::Span::MakeSpan(std::move(span_name), trace_id,
+                                            {parent_span_id});
         bool success = false;
         try {
           dispatch_callback_(std::move(consumed));

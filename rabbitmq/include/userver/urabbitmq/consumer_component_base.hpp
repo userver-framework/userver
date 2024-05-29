@@ -54,8 +54,8 @@ class ConsumerComponentBase : public components::LoggableComponentBase {
 
   void OnAllComponentsAreStopping() final;
 
-  /// @brief Override this method in derived class and implement
-  /// message handling logic.
+  /// @brief You may override this method in derived class and implement
+  /// message handling logic. By default it does nothing.
   ///
   /// If this method returns successfully message would be acked (best effort)
   /// to the broker, if this method throws the message would be requeued.
@@ -65,7 +65,8 @@ class ConsumerComponentBase : public components::LoggableComponentBase {
   /// that `ack` ever reached the broker (network issues or unexpected shutdown,
   /// for example).
   /// It is however guaranteed for message to be requeued if `Process` fails.
-  virtual void Process(std::string message) = 0;
+  virtual void Process(std::string) { /* do nothing */
+  }
 
   /// @brief You may override this method in derived class and implement
   /// message handling logic. By default it just calls `Process` with message
