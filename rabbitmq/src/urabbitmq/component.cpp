@@ -16,9 +16,7 @@ namespace components {
 namespace {
 
 std::string GetSecdistAlias(const components::ComponentConfig& config) {
-  return config.HasMember("secdist_alias")
-             ? config["secdist_alias"].As<std::string>()
-             : config.Name();
+  return config["secdist_alias"].As<std::string>(config.Name());
 }
 
 }  // namespace

@@ -16,18 +16,23 @@
 #include <userver/testsuite/testpoint.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/daemon_run.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 #include <userver/rabbitmq.hpp>
 
 namespace samples::amqp {
 
-class MyRabbitComponent final : public components::RabbitMQ {
+class MyRabbitProducer final : public components::LoggableComponentBase {
  public:
-  static constexpr std::string_view kName{"my-rabbit"};
+  static constexpr std::string_view kName{"my-producer"};
 
-  MyRabbitComponent(const components::ComponentConfig& config,
-                    const components::ComponentContext& context)
-      : components::RabbitMQ{config, context}, client_{GetClient()} {
+  MyRabbitProducer(const components::ComponentConfig& config,
+                   const components::ComponentContext& context)
+      : components::LoggableComponentBase{config, context},
+        client_{context
+                    .FindComponent<components::RabbitMQ>(
+                        config["rabbit_name"].As<std::string>())
+                    .GetClient()} {
     const auto setup_deadline =
         engine::Deadline::FromDuration(std::chrono::seconds{2});
 
@@ -38,7 +43,7 @@ class MyRabbitComponent final : public components::RabbitMQ {
     admin_channel.BindQueue(exchange_, queue_, routing_key_, setup_deadline);
   }
 
-  ~MyRabbitComponent() override {
+  ~MyRabbitProducer() override {
     auto admin_channel = client_->GetAdminChannel(
         engine::Deadline::FromDuration(std::chrono::seconds{1}));
 
@@ -52,6 +57,18 @@ class MyRabbitComponent final : public components::RabbitMQ {
     client_->PublishReliable(
         exchange_, routing_key_, message, urabbitmq::MessageType::kTransient,
         engine::Deadline::FromDuration(std::chrono::seconds{2}));
+  }
+
+  static yaml_config::Schema GetStaticConfigSchema() {
+    return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+type: object
+description: My RabbitMQ producer component
+additionalProperties: false
+properties:
+    rabbit_name:
+        type: string
+        description: name of RabbitMQ client component
+    )");
   }
 
  private:
@@ -102,7 +119,7 @@ class RequestHandler final : public server::handlers::HttpHandlerJsonBase {
   RequestHandler(const components::ComponentConfig& config,
                  const components::ComponentContext& context)
       : server::handlers::HttpHandlerJsonBase{config, context},
-        my_rabbit_{context.FindComponent<MyRabbitComponent>()},
+        my_producer_{context.FindComponent<MyRabbitProducer>()},
         my_consumer_{context.FindComponent<MyRabbitConsumer>()} {}
 
   ~RequestHandler() override = default;
@@ -123,14 +140,14 @@ class RequestHandler final : public server::handlers::HttpHandlerJsonBase {
             R"("{"error": "missing required field "message""}")");
       }
 
-      my_rabbit_.Publish(request_json["message"].As<std::string>());
+      my_producer_.Publish(request_json["message"].As<std::string>());
 
       return {};
     }
   }
 
  private:
-  MyRabbitComponent& my_rabbit_;
+  MyRabbitProducer& my_producer_;
   MyRabbitConsumer& my_consumer_;
 };
 
@@ -138,7 +155,8 @@ class RequestHandler final : public server::handlers::HttpHandlerJsonBase {
 
 int main(int argc, char* argv[]) {
   const auto components_list = components::MinimalServerComponentList()
-                                   .Append<samples::amqp::MyRabbitComponent>()
+                                   .Append<components::RabbitMQ>("my-rabbit")
+                                   .Append<samples::amqp::MyRabbitProducer>()
                                    .Append<samples::amqp::MyRabbitConsumer>()
                                    .Append<samples::amqp::RequestHandler>()
                                    .Append<clients::dns::Component>()

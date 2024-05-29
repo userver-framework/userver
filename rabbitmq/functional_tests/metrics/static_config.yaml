@@ -12,6 +12,8 @@ components_manager:
             max_in_flight_requests: 5
             use_secure_connection: false
 
+        my-producer:
+
         my-consumer:
             rabbit_name: my-rabbit
             queue: sample-queue
