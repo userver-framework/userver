@@ -10,7 +10,6 @@
 #include <fmt/format.h>
 #include <openssl/ssl.h>
 #include <openssl/x509.h>
-#include <boost/algorithm/string.hpp>
 #include <boost/range/adaptor/map.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 
@@ -25,6 +24,8 @@
 #include <userver/utils/encoding/hex.hpp>
 #include <userver/utils/overloaded.hpp>
 #include <userver/utils/rand.hpp>
+#include <userver/utils/text_light.hpp>
+
 #include <utils/impl/assert_extra.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -60,7 +61,7 @@ const std::map<std::string, std::error_code> kTestsuiteActions = {
     {"network", {curl::errc::EasyErrorCode::kCouldNotConnect}}};
 const std::string kTestsuiteSupportedErrorsKey = "X-Testsuite-Supported-Errors";
 const std::string kTestsuiteSupportedErrors =
-    boost::algorithm::join(boost::adaptors::keys(kTestsuiteActions), ",");
+    fmt::to_string(fmt::join(boost::adaptors::keys(kTestsuiteActions), ","));
 
 std::error_code TestsuiteResponseHook(Status status_code,
                                       const Headers& headers,
@@ -128,7 +129,7 @@ bool IsPrefix(const std::string& url,
               const std::vector<std::string>& prefixes) {
   return !(std::find_if(prefixes.begin(), prefixes.end(),
                         [&url](const std::string& prefix) {
-                          return boost::starts_with(url, prefix);
+                          return utils::text::StartsWith(url, prefix);
                         }) == prefixes.end());
 }
 

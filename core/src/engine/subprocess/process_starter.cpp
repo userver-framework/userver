@@ -10,7 +10,6 @@
 #include <iostream>
 
 #include <fmt/format.h>
-#include <boost/algorithm/string.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 
 #include <engine/ev/child_process_map.hpp>
@@ -87,18 +86,14 @@ ChildProcess ProcessStarter::Exec(
   auto future = promise.get_future();
 
   thread_control_.RunInEvLoopAsync([&, promise = std::move(promise)]() mutable {
-    LOG_DEBUG() << "do fork() + execve(), command=" << command << ", args=["
-                << (args.empty() ? "" : '\'' + boost::join(args, "' '") + '\'')
-                << "], env=["
-                << (env.empty()
-                        ? ""
-                        : boost::join(env | boost::adaptors::transformed(
-                                                [](const auto& key_value) {
-                                                  return key_value.first + '=' +
-                                                         key_value.second;
-                                                }),
-                                      ", "))
-                << ']';
+    const auto keys =
+        env | boost::adaptors::transformed([](const auto& key_value) {
+          return key_value.first + '=' + key_value.second;
+        });
+    LOG_DEBUG() << fmt::format(
+        "do fork() + execve(), command={}, args=[\'{}\'], env=[]",
+        fmt::join(args, "' '"), fmt::join(keys, ", "));
+
     const auto pid = utils::CheckSyscall(fork(), "fork");
     if (pid) {
       // in parent thread
