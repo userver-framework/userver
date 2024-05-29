@@ -148,6 +148,8 @@ function(userver_testsuite_add)
   cmake_parse_arguments(
     ARG "${options}" "${oneValueArgs}" "${multiValueArgs}"  ${ARGN})
 
+  _userver_setup_environment_validate_impl()
+
   include(CTest)
 
   get_property(USERVER_TESTSUITE_DIR GLOBAL PROPERTY userver_testsuite_dir)
@@ -268,6 +270,8 @@ function(userver_testsuite_add_simple)
   )
   cmake_parse_arguments(
       ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+  _userver_setup_environment_validate_impl()
 
   set(pytest_additional_args)
 

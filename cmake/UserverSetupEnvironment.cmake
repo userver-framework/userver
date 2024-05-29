@@ -28,6 +28,7 @@ function(_userver_setup_environment_impl)
   message(STATUS "C compiler: ${CMAKE_C_COMPILER}")
   message(STATUS "C++ compiler: ${CMAKE_CXX_COMPILER}")
 
+  cmake_policy(SET CMP0057 NEW)
   if(NOT USERVER_CMAKE_DIR IN_LIST CMAKE_MODULE_PATH)
     set(CMAKE_MODULE_PATH
         ${CMAKE_MODULE_PATH}
