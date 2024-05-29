@@ -6,7 +6,7 @@
 /// components::ComponentContext, function components::GetCurrentComponentName()
 
 #include <userver/components/component_fwd.hpp>
-#include <userver/components/impl/component_base.hpp>
+#include <userver/components/raw_component_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -16,7 +16,7 @@ namespace components {
 ///
 /// @brief Base class for all @ref userver_components "application components",
 /// it depends on components::Logger and components::Tracer.
-class LoggableComponentBase : public impl::ComponentBase {
+class LoggableComponentBase : public RawComponentBase {
  public:
   LoggableComponentBase(const ComponentConfig&, const ComponentContext&);
 

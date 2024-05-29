@@ -13,7 +13,8 @@
 #ifdef USERVER_FEATURE_REDIS_TLS
 #include <hiredis/hiredis_ssl.h>
 #endif
-#include <boost/algorithm/string.hpp>
+
+#include <fmt/format.h>
 
 #include <userver/logging/level.hpp>
 #include <userver/logging/log.hpp>
@@ -1200,8 +1201,8 @@ void Redis::RedisImpl::ProcessCommand(const CommandPtr& command) {
     }
     if (is_special &&
         (args.size() <= 1 || args[1] != kSubscriberPingChannelName)) {
-      LOG_INFO() << "Process '" << boost::join(args, " ") << "' command"
-                 << log_extra_;
+      LOG_INFO() << "Process '" << fmt::to_string(fmt::join(args, " "))
+                 << "' command" << log_extra_;
     }
 
     std::vector<const char*> argv;

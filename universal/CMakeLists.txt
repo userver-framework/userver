@@ -234,6 +234,7 @@ target_link_libraries(${PROJECT_NAME}
     Boost::regex
     OpenSSL::Crypto
     OpenSSL::SSL
+    zstd
 )
 
 if (USERVER_CONAN)
@@ -292,33 +293,22 @@ if (USERVER_IS_THE_ROOT_PROJECT OR USERVER_FEATURE_UTEST)
   if (USERVER_CONAN)
     find_package(GTest REQUIRED)
     find_package(benchmark REQUIRED)
-    target_link_libraries(${PROJECT_NAME}-internal-utest
-      INTERFACE
-        GTest::gtest
-        GTest::gmock
-        GTest::gtest_main
-        ${PROJECT_NAME}
-    )
-    target_link_libraries(${PROJECT_NAME}-internal-ubench
-      INTERFACE
-        benchmark::benchmark
-        ${PROJECT_NAME}
-    )
   else()
     include(SetupGTest)
     include(SetupGBench)
-    target_link_libraries(${PROJECT_NAME}-internal-utest
-      INTERFACE
-        libgtest
-        libgmock
-        ${PROJECT_NAME}
-    )
-    target_link_libraries(${PROJECT_NAME}-internal-ubench
-      INTERFACE
-        libbenchmark
-        ${PROJECT_NAME}
-    )
   endif()
+  target_link_libraries(${PROJECT_NAME}-internal-utest
+      INTERFACE
+      GTest::gtest
+      GTest::gmock
+      GTest::gtest_main
+      ${PROJECT_NAME}
+  )
+  target_link_libraries(${PROJECT_NAME}-internal-ubench
+      INTERFACE
+      benchmark::benchmark
+      ${PROJECT_NAME}
+  )
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
@@ -369,28 +359,14 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     add_google_benchmark_tests(${PROJECT_NAME}-benchmark)
 endif()
 
-configure_package_config_file(
-  ${USERVER_ROOT_DIR}/cmake/install/Config.cmake.in
-  ${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake
-  INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
-)
-
-write_basic_package_version_file(
-  ${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake
-  VERSION ${USERVER_VERSION} COMPATIBILITY SameMajorVersion
-)
-
-if (NOT USERVER_INSTALL)
-  set(userver_DIR "${CMAKE_CURRENT_BINARY_DIR}/" CACHE INTERNAL "")
-endif()
-  
 _userver_directory_install(COMPONENT universal FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake"
     "${CMAKE_BINARY_DIR}/cmake_generated/FindCryptoPP.cmake"
     "${CMAKE_BINARY_DIR}/cmake_generated/Findlibyamlcpp.cmake"
     "${CMAKE_BINARY_DIR}/cmake_generated/Findcctz.cmake"
     "${CMAKE_BINARY_DIR}/cmake_generated/FindJemalloc.cmake"
+    "${CMAKE_BINARY_DIR}/cmake_generated/FindUserverGBench.cmake"
+    "${USERVER_ROOT_DIR}/cmake/SetupGTest.cmake"
+    "${USERVER_ROOT_DIR}/cmake/SetupGBench.cmake"
     "${USERVER_ROOT_DIR}/cmake/sanitize.blacklist.txt"
     "${USERVER_ROOT_DIR}/cmake/sanitize-macos.blacklist.txt"
     "${USERVER_ROOT_DIR}/cmake/RequireLTO.cmake"

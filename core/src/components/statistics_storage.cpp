@@ -22,7 +22,7 @@ void StatisticsStorage::OnAllComponentsLoaded() {
 }
 
 yaml_config::Schema StatisticsStorage::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<impl::ComponentBase>(R"(
+  return yaml_config::MergeSchemas<RawComponentBase>(R"(
 type: object
 description: Component that keeps a utils::statistics::Storage storage for metrics.
 additionalProperties: false

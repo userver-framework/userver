@@ -71,6 +71,9 @@ class Pool {
   /// Writes pool statistics
   friend void DumpMetric(utils::statistics::Writer& writer, const Pool& pool);
 
+  /// Sets new dynamic pool settings
+  void SetPoolSettings(const PoolSettings& pool_settings);
+
  private:
   std::shared_ptr<impl::PoolImpl> impl_;
 };

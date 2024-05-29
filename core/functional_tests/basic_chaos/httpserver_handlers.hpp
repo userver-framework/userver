@@ -46,6 +46,10 @@ class HttpServerHandler final : public server::handlers::HttpHandlerBase {
       return kDefaultAnswer;
     }
 
+    if (type == "echo") {
+      return request.RequestBody();
+    }
+
     UINVARIANT(false, "Unexpected request type");
   }
 

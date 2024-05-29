@@ -304,7 +304,7 @@ if (USERVER_FEATURE_UTEST)
       PRIVATE
         userver-core-internal
     )
-_userver_install_targets(COMPONENT core TARGETS userver-ubench userver-universal-internal-ubench)
+    _userver_install_targets(COMPONENT core TARGETS userver-ubench userver-universal-internal-ubench)
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
@@ -326,8 +326,6 @@ _userver_directory_install(COMPONENT core FILES
     "${CMAKE_BINARY_DIR}/cmake_generated/Findc-ares.cmake"
     "${CMAKE_BINARY_DIR}/cmake_generated/FindNghttp2.cmake"
     "${CMAKE_BINARY_DIR}/cmake_generated/FindLibEv.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/FindUserverGTest.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/FindUserverGBench.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
 )
 
@@ -335,7 +333,7 @@ file(GLOB_RECURSE TESTSUITE_INSTALL_FILES
     "${USERVER_ROOT_DIR}/testsuite/*.txt"
     "${USERVER_ROOT_DIR}/testsuite/*.py"
     "${USERVER_ROOT_DIR}/testsuite/env.in"
- )
+)
 
 _userver_directory_install(COMPONENT core
     FILES ${TESTSUITE_INSTALL_FILES}

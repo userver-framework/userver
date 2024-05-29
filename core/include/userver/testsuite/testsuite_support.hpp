@@ -3,7 +3,7 @@
 /// @file userver/testsuite/testsuite_support.hpp
 /// @brief @copybrief components::TestsuiteSupport
 
-#include <userver/components/impl/component_base.hpp>
+#include <userver/components/raw_component_base.hpp>
 #include <userver/testsuite/cache_control.hpp>
 #include <userver/testsuite/dump_control.hpp>
 #include <userver/testsuite/grpc_control.hpp>
@@ -50,7 +50,7 @@ namespace components {
 
 // clang-format on
 
-class TestsuiteSupport final : public components::impl::ComponentBase {
+class TestsuiteSupport final : public components::RawComponentBase {
  public:
   /// @ingroup userver_component_names
   /// @brief The default name of components::TestsuiteSupport

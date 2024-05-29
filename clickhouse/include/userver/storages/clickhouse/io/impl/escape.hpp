@@ -58,6 +58,14 @@ std::string Escape(const Container& source) {
   return result;
 }
 
+template <typename T>
+std::string Escape(const std::optional<T>& source) {
+  if (!source.has_value()) {
+    return "NULL";
+  }
+  return Escape(source.value());
+}
+
 }  // namespace storages::clickhouse::io::impl
 
 USERVER_NAMESPACE_END

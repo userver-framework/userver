@@ -8,7 +8,7 @@
 
 #include <userver/alerts/storage.hpp>
 #include <userver/components/component_fwd.hpp>
-#include <userver/components/impl/component_base.hpp>
+#include <userver/components/raw_component_base.hpp>
 #include <userver/concurrent/async_event_source.hpp>
 #include <userver/os_signals/component.hpp>
 
@@ -76,7 +76,7 @@ namespace components {
 
 // clang-format on
 
-class Logging final : public impl::ComponentBase {
+class Logging final : public RawComponentBase {
  public:
   /// @ingroup userver_component_names
   /// @brief The default name of components::Logging component

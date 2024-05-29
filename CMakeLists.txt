@@ -3,6 +3,7 @@ cmake_policy(SET CMP0025 NEW)
 if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.15")
   cmake_policy(SET CMP0093 NEW)
 endif()
+set(CMAKE_POLICY_DEFAULT_CMP0028 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0048 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0063 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
@@ -123,7 +124,7 @@ set(CMAKE_DEBUG_POSTFIX d)
 include(cmake/UserverSetupEnvironment.cmake)
 userver_setup_environment()
 
-include(cmake/PrepareInstall.cmake)
+include(PrepareInstall)
 
 if(USERVER_INSTALL)
   include(GNUInstallDirs)
@@ -133,7 +134,6 @@ include(GetUserverVersion)
 include(AddGoogleTests)
 include(FindPackageRequired)
 include(IncludeWhatYouUse)
-# For userver_venv_setup below.
 include(UserverTestsuite)
 include(CheckCompileFlags)
 include(CMakePackageConfigHelpers)
@@ -174,8 +174,9 @@ option(USERVER_FEATURE_MYSQL "Provide asynchronous driver for MariaDB/MySQL" "${
 option(USERVER_FEATURE_ROCKS "Provide asynchronous driver for Rocks" "${USERVER_LIB_ENABLED_DEFAULT}")
 option(USERVER_FEATURE_YDB "Provide asynchronous driver for YDB" "${USERVER_YDB_DEFAULT}")
 
+include(SetupGTest)
 if (USERVER_FEATURE_GRPC)
-  include(cmake/SetupProtobuf.cmake)
+  include(SetupProtobuf)
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
@@ -261,11 +262,12 @@ if (USERVER_FEATURE_YDB)
   list(APPEND USERVER_AVAILABLE_COMPONENTS ydb)
 endif()
 
+_userver_export_targets()
+_userver_make_install_config()
+
 if (USERVER_IS_THE_ROOT_PROJECT AND USERVER_FEATURE_CORE)
   add_subdirectory(samples)
 endif()
-
-_userver_export_targets()
 
 if(USERVER_INSTALL)
   include(cmake/UserverPack.cmake)

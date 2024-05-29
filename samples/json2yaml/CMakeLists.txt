@@ -7,14 +7,13 @@ add_executable("${PROJECT_NAME}" json2yaml.cpp)
 target_link_libraries("${PROJECT_NAME}" userver::universal)
 
 # /// [add_unit_test]
-add_executable(${PROJECT_NAME}_unittest json2yaml_test.cpp)
+add_executable(${PROJECT_NAME}-unittest json2yaml_test.cpp)
 
-find_package(GTest REQUIRED)
-target_link_libraries(${PROJECT_NAME}_unittest
+target_link_libraries(${PROJECT_NAME}-unittest
   userver::universal
   GTest::gtest_main
 )
-add_google_tests(${PROJECT_NAME}_unittest)
+add_google_tests(${PROJECT_NAME}-unittest)
 # /// [add_unit_test]
 
 # /// [add_test]

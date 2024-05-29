@@ -29,6 +29,8 @@ struct RequestContext final {
                  const utils::impl::SourceLocation& location =
                      utils::impl::SourceLocation::Current());
 
+  void HandleError(const NYdb::TStatus& status);
+
   ~RequestContext();
 
   TableClient& table_client;
@@ -38,6 +40,7 @@ struct RequestContext final {
   dynamic_config::Snapshot config_snapshot;
   tracing::Span span;
   engine::Deadline deadline;
+  bool is_error_{false};
 };
 
 }  // namespace ydb::impl

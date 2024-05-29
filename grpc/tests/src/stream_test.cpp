@@ -16,8 +16,9 @@ class UnitTestServiceEcho final : public sample::ugrpc::UnitTestServiceBase {
  public:
   void Chat(ChatCall& call) override {
     sample::ugrpc::StreamGreetingRequest request;
+    sample::ugrpc::StreamGreetingResponse response{};
     while (call.Read(request)) {
-      call.Write({});
+      call.Write(response);
     }
     call.Finish();
   }

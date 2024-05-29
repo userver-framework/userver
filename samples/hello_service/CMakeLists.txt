@@ -24,9 +24,9 @@ target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_objs)
 # /// [executable]
 
 # /// [unittests]
-add_executable(${PROJECT_NAME}_unittest unittests/say_hello_test.cpp)
-target_link_libraries(${PROJECT_NAME}_unittest ${PROJECT_NAME}_objs userver::utest)
-add_google_tests(${PROJECT_NAME}_unittest)
+add_executable(${PROJECT_NAME}-unittest unittests/say_hello_test.cpp)
+target_link_libraries(${PROJECT_NAME}-unittest ${PROJECT_NAME}_objs userver::utest)
+add_google_tests(${PROJECT_NAME}-unittest)
 # /// [unittests]
 
 # /// [benchmarks]

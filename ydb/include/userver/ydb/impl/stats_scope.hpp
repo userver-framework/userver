@@ -23,6 +23,7 @@ class StatsScope final {
   ~StatsScope();
 
   void OnError() noexcept;
+  void OnTransportError() noexcept;
   void OnCancelled() noexcept;
 
  private:
@@ -32,6 +33,7 @@ class StatsScope final {
   const std::chrono::steady_clock::time_point start_;
   bool is_active_{true};
   bool is_error_{false};
+  bool is_transport_error_{false};
   bool is_cancelled_{false};
 };
 

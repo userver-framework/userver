@@ -43,6 +43,11 @@ def pytest_addoption(parser) -> None:
         dest='service_logs_pretty',
         help='Disable pretty print and colorize service logs',
     )
+    group.addoption(
+        '--service-live-logs-disable',
+        action='store_true',
+        help='Disable service live logs (enabled with -s)',
+    )
 
 
 @pytest.fixture(scope='session')

@@ -15,10 +15,15 @@ std::chrono::milliseconds ParseDefaultMaxTime(
 
 }  // namespace
 
+using JsonString = dynamic_config::DefaultAsJsonString;
+
+const dynamic_config::Key<dynamic_config::ValueDict<PoolSettings>>
+    kPoolSettings{"MONGO_CONNECTION_POOL_SETTINGS", JsonString{"{}"}};
+
 const dynamic_config::Key<std::chrono::milliseconds> kDefaultMaxTime{
     "MONGO_DEFAULT_MAX_TIME_MS",
     ParseDefaultMaxTime,
-    dynamic_config::DefaultAsJsonString{"0"},
+    JsonString{"0"},
 };
 
 const dynamic_config::Key<bool> kDeadlinePropagationEnabled{

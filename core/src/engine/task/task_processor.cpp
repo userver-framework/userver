@@ -113,6 +113,7 @@ TaskProcessor::TaskProcessor(TaskProcessorConfig config,
         PrepareWorkerThread(i);
         workers_left.count_down();
         ProcessTasks();
+        FinalizeWorkerThread();
       });
     }
 
@@ -300,12 +301,20 @@ void TaskProcessor::PrepareWorkerThread(std::size_t index) noexcept {
         }
       },
       task_queue_);
+      
+  pools_->GetCoroPool().PrepareLocalCache();
 
   utils::SetCurrentThreadName(fmt::format("{}_{}", config_.thread_name, index));
 
   impl::SetLocalTaskCounterData(task_counter_, index);
 
+  pools_->GetCoroPool().RegisterThread();
+
   TaskProcessorThreadStartedHook();
+}
+
+void TaskProcessor::FinalizeWorkerThread() noexcept {
+  pools_->GetCoroPool().ClearLocalCache();
 }
 
 void TaskProcessor::ProcessTasks() noexcept {
@@ -324,6 +333,8 @@ void TaskProcessor::ProcessTasks() noexcept {
       LOG_ERROR() << "uncaught exception from DoStep: " << ex;
       has_failed = true;
     }
+
+    pools_->GetCoroPool().AccountStackUsage();
 
     if (has_failed || context->IsFinished()) {
       context->FinishDetached();

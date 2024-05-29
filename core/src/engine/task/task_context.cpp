@@ -7,6 +7,7 @@
 #include <boost/exception/diagnostic_information.hpp>
 
 #include <engine/coro/pool.hpp>
+#include <engine/coro/stack_usage_monitor.hpp>
 #include <logging/log_extra_stacktrace.hpp>
 #include <userver/compiler/impl/tls.hpp>
 #include <userver/compiler/impl/tsan.hpp>
@@ -740,6 +741,8 @@ void TaskContext::ResetPayload() noexcept {
 
   std::destroy_at(std::exchange(payload_, nullptr));
 }
+
+CountedCoroutinePtr& TaskContext::GetCoroutinePtr() noexcept { return coro_; }
 
 void intrusive_ptr_add_ref(TaskContext* p) noexcept {
   UASSERT(p);

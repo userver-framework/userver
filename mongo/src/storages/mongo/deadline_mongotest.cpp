@@ -29,9 +29,9 @@ server::request::TaskInheritedData MakeRequestData(engine::Deadline deadline) {
 
 UTEST_F(DeadlinePropagation, PoolOverload) {
   auto pool_config = MakeTestPoolConfig();
-  pool_config.initial_size = 1;
-  pool_config.idle_limit = 1;
-  pool_config.max_size = 1;
+  pool_config.pool_settings.initial_size = 1;
+  pool_config.pool_settings.idle_limit = 1;
+  pool_config.pool_settings.max_size = 1;
   pool_config.queue_timeout = 10ms;
   auto pool = MakePool({}, pool_config);
 
@@ -50,9 +50,9 @@ UTEST_F(DeadlinePropagation, PoolOverload) {
 
 UTEST_F(DeadlinePropagation, PoolOverloadDeadlinePropagation) {
   auto pool_config = MakeTestPoolConfig();
-  pool_config.initial_size = 1;
-  pool_config.idle_limit = 1;
-  pool_config.max_size = 1;
+  pool_config.pool_settings.initial_size = 1;
+  pool_config.pool_settings.idle_limit = 1;
+  pool_config.pool_settings.max_size = 1;
   pool_config.queue_timeout = utest::kMaxTestWaitTime;
   auto pool = MakePool({}, pool_config);
 

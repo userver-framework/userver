@@ -22,17 +22,15 @@ class MiddlewareCallContext final {
   /// @cond
   MiddlewareCallContext(const Middlewares& middlewares, CallAnyBase& call,
                         utils::function_ref<void()> user_call,
-                        std::string_view service_name,
-                        std::string_view method_name,
                         const dynamic_config::Snapshot& config,
-                        const ::google::protobuf::Message* request);
+                        ::google::protobuf::Message* request);
   /// @endcond
 
   /// @brief Call next plugin, or gRPC handler if none
   void Next();
 
   /// @brief Get original gRPC Call
-  CallAnyBase& GetCall();
+  CallAnyBase& GetCall() const;
 
   /// @brief Get name of gRPC service
   std::string_view GetServiceName() const;
@@ -44,10 +42,6 @@ class MiddlewareCallContext final {
   /// deleted when the last meddleware completes
   const dynamic_config::Snapshot& GetInitialDynamicConfig() const;
 
-  /// @brief Get initial gRPC request. For RPC w/o initial request
-  /// returns nullptr.
-  const ::google::protobuf::Message* GetInitialRequest();
-
  private:
   void ClearMiddlewaresResources();
 
@@ -57,10 +51,8 @@ class MiddlewareCallContext final {
 
   CallAnyBase& call_;
 
-  std::string_view service_name_;
-  std::string_view method_name_;
   std::optional<dynamic_config::Snapshot> config_;
-  const ::google::protobuf::Message* request_;
+  ::google::protobuf::Message* request_;
 };
 
 /// @brief Base class for server gRPC middleware
@@ -77,6 +69,14 @@ class MiddlewareBase {
   /// @note You should call context.Next() inside, otherwise the call will be
   /// dropped
   virtual void Handle(MiddlewareCallContext& context) const = 0;
+
+  /// @brief Request hook. This function calls each request
+  virtual void CallRequestHook(const MiddlewareCallContext& context,
+                               google::protobuf::Message& request);
+
+  /// @brief Response hook. This function calls each response
+  virtual void CallResponseHook(const MiddlewareCallContext& context,
+                                google::protobuf::Message& response);
 };
 
 /// @brief Base class for middleware component

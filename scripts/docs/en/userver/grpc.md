@@ -80,7 +80,8 @@ Available values are:
 - `insecure` (default)
 - `ssl`
 
-SSL **has to be disabled** in tests (e.g. via `config_vars`), because it requires a public DNS.
+SSL **has to be disabled** in tests (e.g. via `config_vars`), because it
+requires the server to have a public domain name, which it does not in tests.
 
 ## gRPC services
 
@@ -118,8 +119,13 @@ By default, gRPC server uses `grpc::InsecureServerCredentials`. To pass a custom
 1. Do not pass `grpc-server.port` in the static config
 2. Create a custom component, e.g. `GrpcServerConfigurator`
 3. `context.FindComponent<ugrpc::server::ServerComponent>().GetServer()`
-4. Call ugrpc::server::Server::WithServerBuilder
-5. Using grpc::ServerBuilder API, add a port with your custom credentials
+4. Call @ref ugrpc::server::Server::WithServerBuilder "WithServerBuilder"
+   method on the returned @ref ugrpc::server::Server "server"
+5. Inside the callback, call `grpc::ServerBuilder::AddListeningPort`,
+   passing it your custom credentials
+    * Look into grpc++ documentation and into
+      `<grpcpp/security/server_credentials.h>` for available credentials
+    * SSL credentials are `grpc::SslServerCredentials`
 
 ### Middlewares
 

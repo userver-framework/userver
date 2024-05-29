@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class LogFile:
     def __init__(self, path: pathlib.Path):
         self.path = path
-        self.update_position()
+        self.position = 0
 
     def update_position(self):
         try:
@@ -94,12 +94,19 @@ class LiveLogHandler:
 class UserverLoggingPlugin:
     _live_logs = None
 
-    def __init__(self, *, colorize_factory, live_logs_enabled: bool = False):
+    def __init__(self, *, colorize_factory, config):
         self._colorize_factory = colorize_factory
+        self._config = config
         self._logs = {}
-        if live_logs_enabled:
-            self._live_logs = LiveLogHandler(colorize_factory=colorize_factory)
         self._flushers = []
+
+    def pytest_sessionstart(self, session):
+        if _is_live_logs_enabled(self._config):
+            self._live_logs = LiveLogHandler(
+                colorize_factory=self._colorize_factory,
+            )
+        else:
+            self._live_logs = None
 
     def pytest_sessionfinish(self, session):
         if self._live_logs:
@@ -112,7 +119,7 @@ class UserverLoggingPlugin:
     @pytest.hookimpl(wrapper=True, tryfirst=True)
     def pytest_runtest_makereport(self, item, call):
         report = yield
-        if report.failed:
+        if report.failed and not self._live_logs:
             self._userver_report_attach(report)
         return report
 
@@ -221,11 +228,6 @@ def _userver_logging_plugin(pytestconfig) -> UserverLoggingPlugin:
 
 
 def pytest_configure(config):
-    live_logs_enabled = bool(
-        config.option.capture == 'no'
-        and config.option.showcapture in ('all', 'log'),
-    )
-
     pretty_logs = config.option.service_logs_pretty
     colors_enabled = _should_enable_color(config)
     verbose = pretty_logs == 'verbose'
@@ -243,7 +245,7 @@ def pytest_configure(config):
         return handle_line
 
     plugin = UserverLoggingPlugin(
-        colorize_factory=colorize_factory, live_logs_enabled=live_logs_enabled,
+        colorize_factory=colorize_factory, config=config,
     )
     config.pluginmanager.register(plugin, 'userver_logging')
 
@@ -294,3 +296,12 @@ def _raw_line_reader(
                 break
             if eof_handler():
                 break
+
+
+def _is_live_logs_enabled(config):
+    if not config.option.service_live_logs_disable:
+        return bool(
+            config.option.capture == 'no'
+            and config.option.showcapture in ('all', 'log'),
+        )
+    return False

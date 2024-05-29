@@ -69,10 +69,10 @@ storages::mongo::PoolConfig MakeTestPoolConfig() {
   config.conn_timeout = kTestConnTimeout;
   config.so_timeout = kTestSoTimeout;
   config.queue_timeout = kTestQueueTimeout;
-  config.initial_size = kTestInitialSize;
-  config.max_size = kTestMaxSize;
-  config.idle_limit = kTestIdleLimit;
-  config.connecting_limit = kTestConnectingLimit;
+  config.pool_settings.initial_size = kTestInitialSize;
+  config.pool_settings.max_size = kTestMaxSize;
+  config.pool_settings.idle_limit = kTestIdleLimit;
+  config.pool_settings.connecting_limit = kTestConnectingLimit;
   config.maintenance_period = kTestMaintenancePeriod;
   return config;
 }

@@ -33,7 +33,8 @@ class UnitTestServiceWithTracingChecks final
  public:
   void SayHello(SayHelloCall& call, sample::ugrpc::GreetingRequest&&) override {
     SetMetadata(call.GetContext());
-    call.Finish({});
+    sample::ugrpc::GreetingResponse response{};
+    call.Finish(response);
   }
 
   void ReadMany(ReadManyCall& call,
@@ -44,7 +45,8 @@ class UnitTestServiceWithTracingChecks final
 
   void WriteMany(WriteManyCall& call) override {
     SetMetadata(call.GetContext());
-    call.Finish({});
+    sample::ugrpc::StreamGreetingResponse response{};
+    call.Finish(response);
   }
 
   void Chat(ChatCall& call) override {

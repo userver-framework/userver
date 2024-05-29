@@ -59,9 +59,7 @@ class UserverExperimentsScope final {
   const std::vector<utils::NotNull<UserverExperiment*>> old_enabled_;
 };
 
-// TODO move to userver/mongo once the issues with linker are resolved.
-extern UserverExperiment kRedisClusterAutoTopologyExperiment;
-extern UserverExperiment kRedisRetryBudgetExperiment;
+extern UserverExperiment kCoroutineStackUsageMonitorExperiment;
 
 }  // namespace utils::impl
 

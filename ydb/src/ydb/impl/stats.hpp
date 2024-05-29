@@ -22,6 +22,7 @@ struct StatsCounters final {
 
   utils::statistics::RateCounter success;
   utils::statistics::RateCounter error;
+  utils::statistics::RateCounter transport_error;
   utils::statistics::Histogram timings;
   utils::statistics::RateCounter cancelled;
 };
@@ -37,6 +38,7 @@ struct StatsAggregator final {
 
   utils::statistics::Rate success;
   utils::statistics::Rate error;
+  utils::statistics::Rate transport_error;
   utils::statistics::HistogramAggregator timings;
   utils::statistics::Rate cancelled;
 };

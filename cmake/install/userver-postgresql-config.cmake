@@ -9,7 +9,13 @@ find_package(userver REQUIRED COMPONENTS
 )
 
 find_package(PostgreSQL REQUIRED)
-include("${USERVER_CMAKE_DIR}/SetupPostgresqlDeps.cmake")
+
+if(EXISTS "${USERVER_CMAKE_DIR}/SetupPostgresqlDeps.cmake")
+  message(STATUS "libpq patch applied")
+  include("${USERVER_CMAKE_DIR}/SetupPostgresqlDeps.cmake")
+else()
+  message(STATUS "libpq patches disabled")
+endif()
 
 add_library(userver::postgresql ALIAS userver::userver-postgresql)
 

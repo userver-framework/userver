@@ -375,12 +375,34 @@ html.dark-mode .sm.sm-dox li:last-child ul li a {
   margin: 0px;
   margin-left: 5px;
   border-radius: 14px;
-  /* TODO: verify */
+  box-sizing: content-box;
   background: white !important;
 }
 
 #MSearchBox span.left {
   width: 100%;
+}
+
+.MSearchBoxInactive::before, .MSearchBoxInactive::after {
+  display: block;
+  position: absolute;
+  top: 7px;
+  background-color: #373148;
+  font-family: var(--font-family-monospace);
+  font-size: 13px;
+  line-height: 1;
+  border-radius: 4px;
+  padding: 3px 5px;
+}
+
+.MSearchBoxInactive::before {
+  content: "Ctrl";
+  right: 36px;
+}
+
+.MSearchBoxInactive::after {
+  content: "K";
+  right: 15px;
 }
 
 #projectbrief {
@@ -506,6 +528,7 @@ a.titlelink:hover {
 
 #MSearchCloseImg {
   width: 16px;
+  box-sizing: content-box;
 }
 
 .all-results-link {
@@ -595,6 +618,10 @@ doxygen-awesome-dark-mode-toggle {
 
   #MSearchBox {
     width: 390px;
+  }
+
+  .MSearchBoxInactive::before, .MSearchBoxInactive::after {
+    display: none;
   }
 
   #MSearchField {
@@ -762,6 +789,10 @@ doxygen-awesome-dark-mode-toggle {
 
   #MSearchBox {
     width: 100%;
+  }
+
+  .MSearchBoxInactive::before, .MSearchBoxInactive::after {
+    display: none;
   }
 
   #MSearchField {

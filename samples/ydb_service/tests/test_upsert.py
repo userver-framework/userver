@@ -1,7 +1,5 @@
 import json
 
-import pytest
-
 
 async def test_upsert_row(service_client, ydb):
     response = await service_client.post(
@@ -31,7 +29,6 @@ async def test_upsert_row(service_client, ydb):
     }
 
 
-@pytest.mark.skip(reason='restore in TAXICOMMON-8860')
 async def test_transaction(service_client, ydb):
     response = await service_client.post(
         'ydb/upsert-2rows',

@@ -3,9 +3,11 @@
 #include <sstream>
 #include <thread>
 
+#include <fmt/format.h>
 #include <boost/algorithm/string.hpp>
 
 #include <userver/utest/assert_macros.hpp>
+#include <userver/utils/text.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -221,15 +223,15 @@ MockRedisServer::HandlerPtr MockRedisServer::RegisterSentinelMastersHandler(
   reply_data.reserve(masters.size());
   for (const auto& master : masters) {
     // TODO: add fields like 'role-reported', ... if needed
-    reply_data.emplace_back(
-        redis::ReplyData::Array{{"name"},
-                                {master.name},
-                                {"ip"},
-                                {master.ip},
-                                {"port"},
-                                {std::to_string(master.port)},
-                                {"flags"},
-                                {boost::join(master.flags, ",")}});
+    reply_data.emplace_back(redis::ReplyData::Array{
+        {"name"},
+        {master.name},
+        {"ip"},
+        {master.ip},
+        {"port"},
+        {std::to_string(master.port)},
+        {"flags"},
+        {fmt::to_string(fmt::join(master.flags, ","))}});
   }
   return RegisterHandlerWithConstReply("SENTINEL", {"MASTERS"},
                                        std::move(reply_data));
@@ -249,7 +251,7 @@ MockRedisServer::HandlerPtr MockRedisServer::RegisterSentinelSlavesHandler(
                                 {"port"},
                                 {std::to_string(slave.port)},
                                 {"flags"},
-                                {boost::join(slave.flags, ",")},
+                                {fmt::to_string(fmt::join(slave.flags, ","))},
                                 {"master-link-status"},
                                 {slave.master_link_status}});
   }

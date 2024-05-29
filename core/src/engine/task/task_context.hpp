@@ -42,7 +42,7 @@ class WaitStrategy {
   // sure that there is no race between SetupWakeups() and WaitList-specific
   // wakeup (if "add task to wait list iff not ready" is not protected from
   // Wakeup, e.g. for WaitListLight). SetupWakeups() *may* call Wakeup() for
-  // current task - sleep_state_ is set in DoStep() and double checked for such
+  // current task - sleep_state_ is set in DoStep() and double-checked for such
   // early wakeups. It may not sleep.
   //
   // If EarlyWakeup{true} is returned, then:
@@ -191,6 +191,8 @@ class TaskContext final : public ContextAccessor {
   std::size_t DecrementFetchSharedTaskUsages() noexcept;
   std::size_t IncrementFetchSharedTaskUsages() noexcept;
   void ResetPayload() noexcept;
+
+  CountedCoroutinePtr& GetCoroutinePtr() noexcept;
 
  private:
   class LocalStorageGuard;

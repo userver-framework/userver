@@ -5,6 +5,7 @@
 
 #include <grpcpp/impl/codegen/proto_utils.h>
 #include <grpcpp/server_context.h>
+#include <boost/range/adaptor/reversed.hpp>
 
 #include <userver/utils/assert.hpp>
 
@@ -15,6 +16,7 @@
 #include <userver/ugrpc/server/exceptions.hpp>
 #include <userver/ugrpc/server/impl/async_methods.hpp>
 #include <userver/ugrpc/server/impl/call_params.hpp>
+#include <userver/ugrpc/server/middlewares/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -50,6 +52,12 @@ class CallAnyBase {
   /// @brief Name of the call. Consists of service and method names
   std::string_view GetCallName() const { return params_.call_name; }
 
+  /// @brief Get name of gRPC service
+  std::string_view GetServiceName() const;
+
+  /// @brief Get name of called gRPC method
+  std::string_view GetMethodName() const;
+
   tracing::Span& GetSpan() { return params_.call_span; }
 
   /// @brief Returns call context for storing per-call custom data
@@ -83,6 +91,9 @@ class CallAnyBase {
   /// @cond
   // For internal use only
   ugrpc::impl::RpcStatisticsScope& Statistics(ugrpc::impl::InternalTag);
+
+  // For internal use only
+  void RunMiddlewarePipeline(MiddlewareCallContext& md_call_context);
   /// @endcond
 
  protected:
@@ -92,8 +103,13 @@ class CallAnyBase {
 
   void LogFinish(grpc::Status status) const;
 
+  void ApplyRequestHook(google::protobuf::Message* request);
+
+  void ApplyResponseHook(google::protobuf::Message* response);
+
  private:
   impl::CallParams params_;
+  MiddlewareCallContext* middleware_call_context_{nullptr};
 };
 
 /// @brief Controls a single request -> single response RPC
@@ -108,7 +124,15 @@ class UnaryCall final : public CallAnyBase {
   ///
   /// @param response the single Response to send to the client
   /// @throws ugrpc::server::RpcError on an RPC error
-  void Finish(const Response& response);
+  void Finish(Response& response);
+
+  /// @brief Complete the RPC successfully
+  ///
+  /// `Finish` must not be called multiple times for the same RPC.
+  ///
+  /// @param response the single Response to send to the client
+  /// @throws ugrpc::server::RpcError on an RPC error
+  void Finish(Response&& response);
 
   /// @brief Complete the RPC with an error
   ///
@@ -155,7 +179,15 @@ class InputStream final : public CallAnyBase {
   ///
   /// @param response the single Response to send to the client
   /// @throws ugrpc::server::RpcError on an RPC error
-  void Finish(const Response& response);
+  void Finish(Response& response);
+
+  /// @brief Complete the RPC successfully
+  ///
+  /// `Finish` must not be called multiple times for the same RPC.
+  ///
+  /// @param response the single Response to send to the client
+  /// @throws ugrpc::server::RpcError on an RPC error
+  void Finish(Response&& response);
 
   /// @brief Complete the RPC with an error
   ///
@@ -196,7 +228,12 @@ class OutputStream final : public CallAnyBase {
   /// @brief Write the next outgoing message
   /// @param response the next message to write
   /// @throws ugrpc::server::RpcError on an RPC error
-  void Write(const Response& response);
+  void Write(Response& response);
+
+  /// @brief Write the next outgoing message
+  /// @param response the next message to write
+  /// @throws ugrpc::server::RpcError on an RPC error
+  void Write(Response&& response);
 
   /// @brief Complete the RPC successfully
   ///
@@ -221,7 +258,17 @@ class OutputStream final : public CallAnyBase {
   ///
   /// @param response the final response message
   /// @throws ugrpc::server::RpcError on an RPC error
-  void WriteAndFinish(const Response& response);
+  void WriteAndFinish(Response& response);
+
+  /// @brief Equivalent to `Write + Finish`
+  ///
+  /// This call saves one round-trip, compared to separate `Write` and `Finish`.
+  ///
+  /// `Finish` must not be called multiple times.
+  ///
+  /// @param response the final response message
+  /// @throws ugrpc::server::RpcError on an RPC error
+  void WriteAndFinish(Response&& response);
 
   /// For internal use only
   OutputStream(impl::CallParams&& call_params,
@@ -264,7 +311,12 @@ class BidirectionalStream : public CallAnyBase {
   /// @brief Write the next outgoing message
   /// @param response the next message to write
   /// @throws ugrpc::server::RpcError on an RPC error
-  void Write(const Response& response);
+  void Write(Response& response);
+
+  /// @brief Write the next outgoing message
+  /// @param response the next message to write
+  /// @throws ugrpc::server::RpcError on an RPC error
+  void Write(Response&& response);
 
   /// @brief Complete the RPC successfully
   ///
@@ -289,7 +341,17 @@ class BidirectionalStream : public CallAnyBase {
   ///
   /// @param response the final response message
   /// @throws ugrpc::server::RpcError on an RPC error
-  void WriteAndFinish(const Response& response);
+  void WriteAndFinish(Response& response);
+
+  /// @brief Equivalent to `Write + Finish`
+  ///
+  /// This call saves one round-trip, compared to separate `Write` and `Finish`.
+  ///
+  /// `Finish` must not be called multiple times.
+  ///
+  /// @param response the final response message
+  /// @throws ugrpc::server::RpcError on an RPC error
+  void WriteAndFinish(Response&& response);
 
   /// For internal use only
   BidirectionalStream(impl::CallParams&& call_params,
@@ -323,9 +385,16 @@ UnaryCall<Response>::~UnaryCall() {
 }
 
 template <typename Response>
-void UnaryCall<Response>::Finish(const Response& response) {
+void UnaryCall<Response>::Finish(Response&& response) {
+  Finish(response);
+}
+
+template <typename Response>
+void UnaryCall<Response>::Finish(Response& response) {
   UINVARIANT(!is_finished_, "'Finish' called on a finished call");
   is_finished_ = true;
+
+  ApplyResponseHook(&response);
 
   LogFinish(grpc::Status::OK);
   impl::Finish(stream_, response, grpc::Status::OK, GetCallName());
@@ -366,6 +435,7 @@ bool InputStream<Request, Response>::Read(Request& request) {
   UINVARIANT(state_ == State::kOpen,
              "'Read' called while the stream is half-closed for reads");
   if (impl::Read(stream_, request)) {
+    ApplyRequestHook(&request);
     return true;
   } else {
     state_ = State::kReadsDone;
@@ -374,11 +444,19 @@ bool InputStream<Request, Response>::Read(Request& request) {
 }
 
 template <typename Request, typename Response>
-void InputStream<Request, Response>::Finish(const Response& response) {
+void InputStream<Request, Response>::Finish(Response&& response) {
+  Finish(response);
+}
+
+template <typename Request, typename Response>
+void InputStream<Request, Response>::Finish(Response& response) {
   UINVARIANT(state_ != State::kFinished,
              "'Finish' called on a finished stream");
   state_ = State::kFinished;
   LogFinish(grpc::Status::OK);
+
+  ApplyResponseHook(&response);
+
   impl::Finish(stream_, response, grpc::Status::OK, GetCallName());
   Statistics().OnExplicitFinish(grpc::StatusCode::OK);
   ugrpc::impl::UpdateSpanWithStatus(GetSpan(), grpc::Status::OK);
@@ -416,7 +494,12 @@ OutputStream<Response>::~OutputStream() {
 }
 
 template <typename Response>
-void OutputStream<Response>::Write(const Response& response) {
+void OutputStream<Response>::Write(Response&& response) {
+  Write(response);
+}
+
+template <typename Response>
+void OutputStream<Response>::Write(Response& response) {
   UINVARIANT(state_ != State::kFinished, "'Write' called on a finished stream");
 
   // For some reason, gRPC requires explicit 'SendInitialMetadata' in output
@@ -426,6 +509,8 @@ void OutputStream<Response>::Write(const Response& response) {
   // Don't buffer writes, otherwise in an event subscription scenario, events
   // may never actually be delivered
   grpc::WriteOptions write_options{};
+
+  ApplyResponseHook(&response);
 
   impl::Write(stream_, response, write_options, GetCallName());
 }
@@ -455,7 +540,12 @@ void OutputStream<Response>::FinishWithError(const grpc::Status& status) {
 }
 
 template <typename Response>
-void OutputStream<Response>::WriteAndFinish(const Response& response) {
+void OutputStream<Response>::WriteAndFinish(Response&& response) {
+  WriteAndFinish(response);
+}
+
+template <typename Response>
+void OutputStream<Response>::WriteAndFinish(Response& response) {
   UINVARIANT(state_ != State::kFinished,
              "'WriteAndFinish' called on a finished stream");
   state_ = State::kFinished;
@@ -466,6 +556,9 @@ void OutputStream<Response>::WriteAndFinish(const Response& response) {
 
   const auto status = grpc::Status::OK;
   LogFinish(status);
+
+  ApplyResponseHook(&response);
+
   impl::WriteAndFinish(stream_, response, write_options, status, GetCallName());
 }
 
@@ -493,6 +586,7 @@ bool BidirectionalStream<Request, Response>::Read(Request& request) {
   UINVARIANT(!are_reads_done_,
              "'Read' called while the stream is half-closed for reads");
   if (impl::Read(stream_, request)) {
+    ApplyRequestHook(&request);
     return true;
   } else {
     are_reads_done_ = true;
@@ -501,11 +595,18 @@ bool BidirectionalStream<Request, Response>::Read(Request& request) {
 }
 
 template <typename Request, typename Response>
-void BidirectionalStream<Request, Response>::Write(const Response& response) {
+void BidirectionalStream<Request, Response>::Write(Response&& response) {
+  Write(response);
+}
+
+template <typename Request, typename Response>
+void BidirectionalStream<Request, Response>::Write(Response& response) {
   UINVARIANT(!is_finished_, "'Write' called on a finished stream");
 
   // Don't buffer writes, optimize for ping-pong-style interaction
   grpc::WriteOptions write_options{};
+
+  ApplyResponseHook(&response);
 
   try {
     impl::Write(stream_, response, write_options, GetCallName());
@@ -540,7 +641,13 @@ void BidirectionalStream<Request, Response>::FinishWithError(
 
 template <typename Request, typename Response>
 void BidirectionalStream<Request, Response>::WriteAndFinish(
-    const Response& response) {
+    Response&& response) {
+  WriteAndFinish(response);
+}
+
+template <typename Request, typename Response>
+void BidirectionalStream<Request, Response>::WriteAndFinish(
+    Response& response) {
   UINVARIANT(!is_finished_, "'WriteAndFinish' called on a finished stream");
   is_finished_ = true;
 
@@ -549,6 +656,9 @@ void BidirectionalStream<Request, Response>::WriteAndFinish(
 
   const auto status = grpc::Status::OK;
   LogFinish(status);
+
+  ApplyResponseHook(&response);
+
   impl::WriteAndFinish(stream_, response, write_options, status, GetCallName());
 }
 

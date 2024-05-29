@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/components/raw_component_base.hpp
+/// @brief @copybrief components::RawComponentBase
+
 USERVER_NAMESPACE_BEGIN
 
 namespace yaml_config {
@@ -29,18 +32,19 @@ enum class ConfigFileMode {
   kNotRequired
 };
 
-namespace impl {
-
-/// Don't use it for application components, use LoggableComponentBase instead
-class ComponentBase {
+/// @brief The base class for all components. Don't use it for application
+/// components, use LoggableComponentBase instead.
+///
+/// Only inherited directly by some of the built-in userver components.
+class RawComponentBase {
  public:
-  ComponentBase() = default;
+  RawComponentBase() = default;
 
-  ComponentBase(ComponentBase&&) = delete;
+  RawComponentBase(RawComponentBase&&) = delete;
 
-  ComponentBase(const ComponentBase&) = delete;
+  RawComponentBase(const RawComponentBase&) = delete;
 
-  virtual ~ComponentBase();
+  virtual ~RawComponentBase();
 
   virtual ComponentHealth GetComponentHealth() const {
     return ComponentHealth::kOk;
@@ -54,8 +58,6 @@ class ComponentBase {
 
   static yaml_config::Schema GetStaticConfigSchema();
 };
-
-}  // namespace impl
 
 /// Specialize it for typename Component to validate static config against
 /// schema from Component::GetStaticConfigSchema

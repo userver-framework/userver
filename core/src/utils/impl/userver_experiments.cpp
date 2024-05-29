@@ -96,6 +96,9 @@ void UserverExperimentsScope::EnableOnly(
   }
 }
 
+UserverExperiment kCoroutineStackUsageMonitorExperiment{
+    "coro-stack-usage-monitor", true};
+
 }  // namespace utils::impl
 
 USERVER_NAMESPACE_END

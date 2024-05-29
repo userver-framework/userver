@@ -97,7 +97,8 @@ auto TableClient::ExecuteWithPathImpl(std::string_view path,
         return func(std::forward<FuncArg>(arg), full_path, query_settings);
       });
 
-  return impl::GetFutureValueChecked(std::move(future), operation_name);
+  return impl::GetFutureValueChecked(std::move(future), operation_name,
+                                     context);
 }
 
 void TableClient::BulkUpsert(std::string_view table, NYdb::TValue&& rows,
@@ -130,7 +131,7 @@ ReadTableResults TableClient::ReadTable(
       });
 
   return ReadTableResults{
-      impl::GetFutureValueChecked(std::move(future), "ReadTable")};
+      impl::GetFutureValueChecked(std::move(future), "ReadTable", context)};
 }
 
 ScanQueryResults TableClient::ExecuteScanQuery(
@@ -148,8 +149,8 @@ ScanQueryResults TableClient::ExecuteScanQuery(
                                                    params, scan_settings);
       });
 
-  return ScanQueryResults{
-      impl::GetFutureValueChecked(std::move(future), "ExecuteScanQuery")};
+  return ScanQueryResults{impl::GetFutureValueChecked(
+      std::move(future), "ExecuteScanQuery", context)};
 }
 
 void TableClient::Select1() {
@@ -277,8 +278,8 @@ Transaction TableClient::Begin(std::string transaction_name,
         return session.BeginTransaction(tx_settings, exec_settings);
       });
 
-  auto status =
-      impl::GetFutureValueChecked(std::move(future), "BeginTransaction");
+  auto status = impl::GetFutureValueChecked(std::move(future),
+                                            "BeginTransaction", context);
   return Transaction(*this, status.GetTransaction(),
                      std::move(transaction_name), std::move(settings));
 }
@@ -296,7 +297,8 @@ void TableClient::ExecuteSchemeQuery(const std::string& query) {
         return session.ExecuteSchemeQuery(impl::ToString(query), exec_settings);
       });
 
-  impl::GetFutureValueChecked(std::move(retry_future), "ExecuteSchemeQuery");
+  impl::GetFutureValueChecked(std::move(retry_future), "ExecuteSchemeQuery",
+                              context);
 }
 
 ExecuteResponse TableClient::ExecuteDataQuery(OperationSettings settings,
@@ -325,8 +327,8 @@ ExecuteResponse TableClient::ExecuteDataQuery(QuerySettings query_settings,
                                         exec_settings);
       });
 
-  return ExecuteResponse{
-      impl::GetFutureValueChecked(std::move(future), "ExecuteDataQuery")};
+  return ExecuteResponse{impl::GetFutureValueChecked(
+      std::move(future), "ExecuteDataQuery", context)};
 }
 
 std::string TableClient::JoinDbPath(std::string_view path) const {

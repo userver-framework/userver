@@ -88,7 +88,7 @@ void Transaction::Commit(OperationSettings settings) {
   auto error_guard = ErrorGuard();
 
   impl::GetFutureValueChecked(ydb_tx_.Commit(commit_settings), "Commit",
-                              table_client_.driver_->GetRetryBudget());
+                              table_client_.driver_->GetRetryBudget(), context);
 
   error_guard.Release();
   is_active_ = false;
@@ -109,7 +109,7 @@ void Transaction::Rollback() {
   [[maybe_unused]] auto error_guard = ErrorGuard();
 
   impl::GetFutureValueChecked(ydb_tx_.Rollback(rollback_settings), "Rollback",
-                              table_client_.driver_->GetRetryBudget());
+                              table_client_.driver_->GetRetryBudget(), context);
 
   // Successful rollback is still a transaction error for logs and stats.
 }
@@ -156,7 +156,7 @@ ExecuteResponse Transaction::Execute(QuerySettings query_settings,
 
   auto status = impl::GetFutureValueChecked(
       std::move(execute_fut), "Transaction::Execute",
-      table_client_.driver_->GetRetryBudget());
+      table_client_.driver_->GetRetryBudget(), context);
 
   error_guard.Release();
   return ExecuteResponse(std::move(status));

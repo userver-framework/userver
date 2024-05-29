@@ -31,14 +31,6 @@ bool IsRetryableStatus(NYdb::EStatus status) {
       status == NYdb::EStatus::CLIENT_RESOURCE_EXHAUSTED;
 }
 
-void HandleOnceRetry(utils::RetryBudget& retry_budget, NYdb::EStatus status) {
-  if (IsRetryableStatus(status) && retry_budget.CanRetry()) {
-    retry_budget.AccountFail();
-  } else if (status == NYdb::EStatus::SUCCESS) {
-    retry_budget.AccountOk();
-  }
-}
-
 }  // namespace ydb::impl
 
 USERVER_NAMESPACE_END

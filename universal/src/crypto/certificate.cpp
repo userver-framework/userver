@@ -3,7 +3,7 @@
 #include <openssl/pem.h>
 #include <openssl/x509.h>
 
-#include <boost/algorithm/string/predicate.hpp>  // for boost::starts_with
+#include <userver/utils/text_light.hpp>
 
 #include <crypto/helpers.hpp>
 #include <crypto/openssl.hpp>
@@ -46,7 +46,7 @@ std::optional<std::string> Certificate::GetPemString() const {
 Certificate Certificate::LoadFromString(std::string_view certificate) {
   impl::Openssl::Init();
 
-  if (!boost::starts_with(certificate, "-----BEGIN CERTIFICATE-----")) {
+  if (!utils::text::StartsWith(certificate, "-----BEGIN CERTIFICATE-----")) {
     throw KeyParseError(FormatSslError("Not a certificate"));
   }
 

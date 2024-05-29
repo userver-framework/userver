@@ -14,8 +14,6 @@ namespace ydb::impl {
 // See TRetryContextBase for an understanding of error handling
 bool IsRetryableStatus(NYdb::EStatus status);
 
-void HandleOnceRetry(utils::RetryBudget& retry_budget, NYdb::EStatus status);
-
 NYdb::NRetry::TRetryOperationSettings PrepareRetrySettings(
     const OperationSettings& settings, bool is_retryable);
 
