@@ -96,7 +96,6 @@ void ConsumerBaseImpl::OnMessage(const AMQP::Message& message,
   std::string span_name{fmt::format("consume_{}_{}", queue_name_,
                                     consumer_tag_.value_or("ctag:unknown"))};
   std::string trace_id = message.headers().get("u-trace-id");
-  std::string message_data{message.body(), message.bodySize()};
 
   ConsumedMessage consumed;
   consumed.message = std::string(message.body(), message.bodySize());
