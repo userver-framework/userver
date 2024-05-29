@@ -12,6 +12,7 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task.hpp>
+#include <utils/sys_info.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -297,7 +298,10 @@ TEST(Task, CoroStackSizeSet) {
   engine::TaskProcessorPoolsConfig config{};
   config.coro_stack_size = 256 * 1024 + 123;
   engine::RunStandalone(1, config, []() {
-    ASSERT_EQ(engine::current_task::GetStackSize(), 256 * 1024 + 123);
+    const auto expected_stack_size =
+        256 * 1024 + /* The size should be rounded up to the page size */
+        utils::sys_info::GetPageSize();
+    ASSERT_EQ(engine::current_task::GetStackSize(), expected_stack_size);
   });
 }
 

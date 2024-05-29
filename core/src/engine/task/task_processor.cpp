@@ -286,6 +286,8 @@ void TaskProcessor::PrepareWorkerThread(std::size_t index) noexcept {
 
   impl::SetLocalTaskCounterData(task_counter_, index);
 
+  pools_->GetCoroPool().RegisterThread();
+
   TaskProcessorThreadStartedHook();
 }
 
@@ -304,6 +306,8 @@ void TaskProcessor::ProcessTasks() noexcept {
       LOG_ERROR() << "uncaught exception from DoStep: " << ex;
       has_failed = true;
     }
+
+    pools_->GetCoroPool().AccountStackUsage();
 
     if (has_failed || context->IsFinished()) {
       context->FinishDetached();

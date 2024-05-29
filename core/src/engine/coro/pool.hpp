@@ -12,8 +12,11 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 
+#include <utils/sys_info.hpp>
+
 #include "pool_config.hpp"
 #include "pool_stats.hpp"
+#include "stack_usage_monitor.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -35,7 +38,12 @@ class Pool final {
   PoolStats GetStats() const;
   std::size_t GetStackSize() const;
 
+  void RegisterThread();
+  void AccountStackUsage();
+
  private:
+  static PoolConfig FixupConfig(PoolConfig&& config);
+
   Coroutine CreateCoroutine(bool quiet = false);
   void OnCoroutineDestruction() noexcept;
 
@@ -46,6 +54,11 @@ class Pool final {
   const Executor executor_;
 
   boost::coroutines2::protected_fixedsize_stack stack_allocator_;
+  // Some pointers arithmetic in StackUsageMonitor depends on this.
+  // If you change the allocator, adjust the math there accordingly.
+  static_assert(std::is_same_v<decltype(stack_allocator_),
+                               boost::coroutines2::protected_fixedsize_stack>);
+  StackUsageMonitor stack_usage_monitor_;
 
   // We aim to reuse coroutines as much as possible,
   // because since coroutine stack is a mmap-ed chunk of memory and not actually
@@ -91,14 +104,18 @@ class Pool<Task>::CoroutinePtr final {
 
 template <typename Task>
 Pool<Task>::Pool(PoolConfig config, Executor executor)
-    : config_(std::move(config)),
+    : config_(FixupConfig(std::move(config))),
       executor_(executor),
       stack_allocator_(config_.stack_size),
+      stack_usage_monitor_(config_.stack_size),
       initial_coroutines_(config_.initial_size),
       used_coroutines_(config_.max_size),
       idle_coroutines_num_(config_.initial_size),
       total_coroutines_num_(0) {
   moodycamel::ProducerToken token(initial_coroutines_);
+
+  stack_usage_monitor_.Start();
+
   for (std::size_t i = 0; i < config_.initial_size; ++i) {
     bool ok =
         initial_coroutines_.enqueue(token, CreateCoroutine(/*quiet =*/true));
@@ -154,6 +171,8 @@ PoolStats Pool<Task>::GetStats() const {
       (used_coroutines_.size_approx() + initial_coroutines_.size_approx());
   stats.total_coroutines =
       std::max(total_coroutines_num_.load(), stats.active_coroutines);
+  stats.max_stack_usage_pct = stack_usage_monitor_.GetMaxStackUsagePct();
+  stats.is_stack_usage_monitor_active = stack_usage_monitor_.IsActive();
   return stats;
 }
 
@@ -166,6 +185,9 @@ typename Pool<Task>::Coroutine Pool<Task>::CreateCoroutine(bool quiet) {
       LOG_DEBUG() << "Created a coroutine #" << new_total << '/'
                   << config_.max_size;
     }
+
+    stack_usage_monitor_.Register(coroutine);
+
     return coroutine;
   } catch (const std::bad_alloc&) {
     if (errno == ENOMEM) {
@@ -192,6 +214,24 @@ void Pool<Task>::OnCoroutineDestruction() noexcept {
 template <typename Task>
 std::size_t Pool<Task>::GetStackSize() const {
   return config_.stack_size;
+}
+
+template <typename Task>
+PoolConfig Pool<Task>::FixupConfig(PoolConfig&& config) {
+  const auto page_size = utils::sys_info::GetPageSize();
+  config.stack_size = (config.stack_size + page_size - 1) & ~(page_size - 1);
+
+  return std::move(config);
+}
+
+template <typename Task>
+void Pool<Task>::RegisterThread() {
+  stack_usage_monitor_.RegisterThread();
+}
+
+template <typename Task>
+void Pool<Task>::AccountStackUsage() {
+  stack_usage_monitor_.AccountStackUsage();
 }
 
 template <typename Task>

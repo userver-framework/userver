@@ -98,6 +98,8 @@ dynamic-config.parse-errors:	RATE	0
 dynamic-config.was-last-parse-successful:	GAUGE	0
 engine.coro-pool.coroutines.active:	GAUGE	0
 engine.coro-pool.coroutines.total:	GAUGE	0
+engine.coro-pool.stack-usage.is-monitor-active:	GAUGE	0
+engine.coro-pool.stack-usage.max-usage-percent:	GAUGE	0
 engine.ev-threads.cpu-load-percent: ev_thread_name=event-worker_0	GAUGE	0
 engine.ev-threads.cpu-load-percent: ev_thread_name=event-worker_1	GAUGE	0
 engine.load-ms:	GAUGE	0

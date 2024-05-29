@@ -45,6 +45,15 @@ void SetLogLevel(logging::Level log_level) {
   logging::SetDefaultLoggerLevel(log_level);
 }
 
+void EnableStackUsageMonitor() {
+  static USERVER_NAMESPACE::utils::impl::UserverExperimentsScope
+      stack_usage_monitor_scope{};
+
+  stack_usage_monitor_scope.Set(
+      USERVER_NAMESPACE::utils::impl::kCoroutineStackUsageMonitorExperiment,
+      true);
+}
+
 void InitPhdrCache() { USERVER_NAMESPACE::engine::impl::InitPhdrCache(); }
 
 void TeardownPhdrCache() {
