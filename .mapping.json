@@ -1506,7 +1506,6 @@
   "external-deps/README.md":"taxi/uservices/userver/external-deps/README.md",
   "external-deps/RdKafka.yaml":"taxi/uservices/userver/external-deps/RdKafka.yaml",
   "external-deps/UserverGBench.yaml":"taxi/uservices/userver/external-deps/UserverGBench.yaml",
-  "external-deps/UserverGTest.yaml":"taxi/uservices/userver/external-deps/UserverGTest.yaml",
   "external-deps/UserverGrpc.yaml":"taxi/uservices/userver/external-deps/UserverGrpc.yaml",
   "external-deps/bson.yaml":"taxi/uservices/userver/external-deps/bson.yaml",
   "external-deps/c-ares.yaml":"taxi/uservices/userver/external-deps/c-ares.yaml",

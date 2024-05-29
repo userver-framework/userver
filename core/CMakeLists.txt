@@ -326,8 +326,6 @@ _userver_directory_install(COMPONENT core FILES
     "${CMAKE_BINARY_DIR}/cmake_generated/Findc-ares.cmake"
     "${CMAKE_BINARY_DIR}/cmake_generated/FindNghttp2.cmake"
     "${CMAKE_BINARY_DIR}/cmake_generated/FindLibEv.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/FindUserverGTest.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/FindUserverGBench.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
 )
 

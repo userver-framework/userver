@@ -292,33 +292,22 @@ if (USERVER_IS_THE_ROOT_PROJECT OR USERVER_FEATURE_UTEST)
   if (USERVER_CONAN)
     find_package(GTest REQUIRED)
     find_package(benchmark REQUIRED)
-    target_link_libraries(${PROJECT_NAME}-internal-utest
-      INTERFACE
-        GTest::gtest
-        GTest::gmock
-        GTest::gtest_main
-        ${PROJECT_NAME}
-    )
-    target_link_libraries(${PROJECT_NAME}-internal-ubench
-      INTERFACE
-        benchmark::benchmark
-        ${PROJECT_NAME}
-    )
   else()
     include(SetupGTest)
     include(SetupGBench)
-    target_link_libraries(${PROJECT_NAME}-internal-utest
-      INTERFACE
-        libgtest
-        libgmock
-        ${PROJECT_NAME}
-    )
-    target_link_libraries(${PROJECT_NAME}-internal-ubench
-      INTERFACE
-        libbenchmark
-        ${PROJECT_NAME}
-    )
   endif()
+  target_link_libraries(${PROJECT_NAME}-internal-utest
+      INTERFACE
+      GTest::gtest
+      GTest::gmock
+      GTest::gtest_main
+      ${PROJECT_NAME}
+  )
+  target_link_libraries(${PROJECT_NAME}-internal-ubench
+      INTERFACE
+      benchmark::benchmark
+      ${PROJECT_NAME}
+  )
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
@@ -374,6 +363,9 @@ _userver_directory_install(COMPONENT universal FILES
     "${CMAKE_BINARY_DIR}/cmake_generated/Findlibyamlcpp.cmake"
     "${CMAKE_BINARY_DIR}/cmake_generated/Findcctz.cmake"
     "${CMAKE_BINARY_DIR}/cmake_generated/FindJemalloc.cmake"
+    "${CMAKE_BINARY_DIR}/cmake_generated/FindUserverGBench.cmake"
+    "${USERVER_ROOT_DIR}/cmake/SetupGTest.cmake"
+    "${USERVER_ROOT_DIR}/cmake/SetupGBench.cmake"
     "${USERVER_ROOT_DIR}/cmake/sanitize.blacklist.txt"
     "${USERVER_ROOT_DIR}/cmake/sanitize-macos.blacklist.txt"
     "${USERVER_ROOT_DIR}/cmake/RequireLTO.cmake"

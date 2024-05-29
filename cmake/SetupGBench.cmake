@@ -1,4 +1,4 @@
-if (TARGET libbenchmark)
+if (TARGET benchmark::benchmark)
     return()
 endif()
 
@@ -12,8 +12,8 @@ if (NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
     endif()
 
     if (UserverGBench_FOUND)
-        if (NOT TARGET libbenchmark)
-            add_library(libbenchmark ALIAS UserverGBench)  # Unify link names
+        if (NOT TARGET benchmark::benchmark)
+            add_library(benchmark::benchmark ALIAS UserverGBench)  # Unify link names
         endif()
         return()
     endif()
@@ -33,4 +33,6 @@ CPMAddPackage(
 )
 
 target_compile_options(benchmark PRIVATE "-Wno-format-nonliteral")
-add_library(libbenchmark ALIAS benchmark)  # Unify link names
+if (NOT TARGET benchmark::benchmark)
+    add_library(benchmark::benchmark ALIAS benchmark)  # Unify link names
+endif()

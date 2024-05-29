@@ -329,7 +329,7 @@ TEST(Task, DISABLED_UseLargeStack) {
 // in glibc dl_iterate_phdr is when multiple threads are
 // unwinding simultaneously.
 //
-// sudo perf stat -e 'syscalls:sys_enter_futex' ./userver-core_unittest
+// sudo perf stat -e 'syscalls:sys_enter_futex' ./userver-core-unittest
 //     --gtest_filter='Task.ExceptionStorm'
 //
 // We use this manually to validate that our caching override

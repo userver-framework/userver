@@ -19,8 +19,6 @@ find_package(ZLIB REQUIRED)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/..")
 find_package(Nghttp2 REQUIRED)
 find_package(LibEv REQUIRED)
-find_package(UserverGTest REQUIRED)
-find_package(UserverGBench REQUIRED)
 
 include("${USERVER_CMAKE_DIR}/UserverTestsuite.cmake")
 include("${USERVER_CMAKE_DIR}/Findc-ares.cmake")
