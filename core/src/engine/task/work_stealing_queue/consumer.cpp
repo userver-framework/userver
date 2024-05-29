@@ -232,22 +232,22 @@ impl::TaskContext* Consumer::DoPop() {
     if (context) {
       return context;
     }
-    // const std::int32_t sleep_state = sleep_counter_.load();
-    // consumers_manager_.NotifySleep(this);
+    const std::int32_t sleep_state = sleep_counter_.load();
+    consumers_manager_.NotifySleep(this);
 
-    // context = TryPopBeforeSleep();
+    context = TryPopBeforeSleep();
 
-    // if (context) {
-    //   consumers_manager_.NotifyWakeUp(this);
-    //   return context;
-    // }
+    if (context) {
+      consumers_manager_.NotifyWakeUp(this);
+      return context;
+    }
 
-    // if (IsStopped()) {
-    //   return nullptr;
-    // }
+    if (IsStopped()) {
+      return nullptr;
+    }
 
-    // Sleep(sleep_state);
-    // consumers_manager_.NotifyWakeUp(this);
+    Sleep(sleep_state);
+    consumers_manager_.NotifyWakeUp(this);
   }
   return nullptr;
 }
