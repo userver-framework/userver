@@ -4,13 +4,11 @@
 /// @brief @copybrief TESTPOINT
 
 #include <string>
+#include <unordered_set>
 
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/utils/function_ref.hpp>
-
-// TODO remove extra includes
-#include <userver/logging/log.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

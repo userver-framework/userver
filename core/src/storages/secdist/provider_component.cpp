@@ -6,6 +6,7 @@
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/formats/yaml/serialize.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/storages/secdist/exceptions.hpp>
 #include <userver/storages/secdist/provider_component.hpp>
 #include <userver/utils/async.hpp>
