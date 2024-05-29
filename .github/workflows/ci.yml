@@ -72,6 +72,10 @@ jobs:
         runs-on: ${{matrix.os}}
 
         steps:
+          - uses: actions/checkout@v3
+            with:
+                fetch-depth: 0
+
           - name: Reuse ccache directory
             uses: actions/cache@v2
             with:
@@ -80,10 +84,6 @@ jobs:
                 restore-keys: |
                     ${{matrix.os}} ${{matrix.info}} ccache-dir ${{github.ref}} run-'
                     ${{matrix.os}} ${{matrix.info}} ccache-
-
-          - uses: actions/checkout@v3
-            with:
-                fetch-depth: 0
 
           - name: Free disk space
             run: |
@@ -139,27 +139,6 @@ jobs:
           - name: Install RabbitMQ packages
             run: |
                 ./scripts/rabbitmq/ubuntu_install_rabbitmq_server.sh
-
-          # Clean unnecessary files to save disk space
-          - name: clean unncessary files to save space
-            run: |
-                sudo rm -rf /usr/share/dotnet /etc/mysql /etc/php /etc/sudo apt/sources.list.d
-                sudo apt -y autoremove --purge
-                sudo apt -y autoclean
-                sudo apt clean
-                rm --recursive --force "$AGENT_TOOLSDIRECTORY"
-
-          # Free up disk space on Ubuntu
-          - name: Free Disk Space (Ubuntu)
-            uses: jlumbroso/free-disk-space@main
-            with:
-                # This might remove tools that are actually needed, if set to "true" but frees about 6 GB
-                tool-cache: false
-                large-packages: true
-                swap-storage: true
-
-          - name: Check place after maximize
-            run: df -h
 
           - name: Setup ccache
             run: |
