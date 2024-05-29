@@ -2,6 +2,8 @@
 
 #include <stdexcept>
 
+#include <fmt/format.h>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace compression {
@@ -15,6 +17,12 @@ class DecompressionError : public std::runtime_error {
 class TooBigError : public DecompressionError {
  public:
   TooBigError() : DecompressionError("Decompressed data exceeds the limit") {}
+};
+
+class ErrWithCode : public DecompressionError {
+ public:
+  explicit ErrWithCode(const char* errName)
+      : DecompressionError(fmt::format("Decompression failed: {}", errName)) {}
 };
 
 }  // namespace compression

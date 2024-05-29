@@ -6,12 +6,12 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace compression::gzip {
+namespace compression::zstd {
 
 /// Decompresses the string.
 /// @throws DecompressionError
 std::string Decompress(std::string_view compressed, size_t max_size);
 
-}  // namespace compression::gzip
+}  // namespace compression::zstd
 
 USERVER_NAMESPACE_END

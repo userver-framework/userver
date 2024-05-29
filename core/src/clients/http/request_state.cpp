@@ -234,8 +234,21 @@ RequestState::RequestState(
   easy().set_header_function(&RequestState::on_header);
   easy().set_header_data(this);
 
-  // set autodecoding for gzip and deflate
-  easy().set_accept_encoding("gzip,deflate,identity");
+  // set autodecoding
+  static const bool curl_supports_zstd = [] {
+#ifdef CURL_VERSION_ZSTD
+    return curl_version_info(curl::native::CURLVERSION_NOW)->features &
+           CURL_VERSION_ZSTD;
+#else
+    return false;
+#endif
+  }();
+
+  if (curl_supports_zstd) {
+    easy().set_accept_encoding("zstd,gzip,deflate,identity");
+  } else {
+    easy().set_accept_encoding("gzip,deflate,identity");
+  }
 }
 
 RequestState::~RequestState() {

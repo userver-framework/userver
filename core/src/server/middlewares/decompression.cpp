@@ -1,6 +1,7 @@
 #include <server/middlewares/decompression.hpp>
 
 #include <compression/gzip.hpp>
+#include <userver/compression/zstd.hpp>
 
 #include <userver/http/common_headers.hpp>
 #include <userver/server/handlers/exceptions.hpp>
@@ -50,10 +51,17 @@ bool Decompression::DecompressRequestBody(http::HttpRequest& request) const {
   }};
 
   try {
+    using FunctionPtr = std::string (*)(std::string_view, std::size_t);
+    FunctionPtr function_ptr = nullptr;
     if (content_encoding == "gzip") {
-      auto body = compression::gzip::Decompress(request.RequestBody(),
-                                                max_request_size_);
-      request.SetRequestBody(std::move(body));
+      function_ptr = &compression::gzip::Decompress;
+    } else if (content_encoding == "zstd") {
+      function_ptr = &compression::zstd::Decompress;
+    }
+
+    if (function_ptr) {
+      request.SetRequestBody(
+          function_ptr(request.RequestBody(), max_request_size_));
       if (parse_args_from_body_) {
         request.ParseArgsFromBody();
       }
@@ -103,7 +111,7 @@ void SetAcceptEncoding::SetResponseAcceptEncoding(
   // User didn't set Accept-Encoding, let us do that
   if (!response.HasHeader(USERVER_NAMESPACE::http::headers::kAcceptEncoding)) {
     response.SetHeader(USERVER_NAMESPACE::http::headers::kAcceptEncoding,
-                       "gzip, identity");
+                       "gzip, zstd, identity");
   }
 }
 

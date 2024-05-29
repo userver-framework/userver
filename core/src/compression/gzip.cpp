@@ -25,15 +25,19 @@ std::string Decompress(std::string_view compressed, size_t max_size) {
   stream.push(bio::gzip_decompressor());
   stream.push(bio::array_source(compressed.data(), compressed.size()));
 
-  while (stream && (decompressed.size() < max_size)) {
+  while (stream) {
     char buf[kDecompressBufferSize];
     stream.read(buf, sizeof(buf));
+
+    if (decompressed.size() + stream.gcount() > max_size) {
+      throw TooBigError();
+    }
+
     decompressed.insert(decompressed.end(), buf, buf + stream.gcount());
   }
 
   if (stream.bad())
     throw DecompressionError("failed to decompress gzip'ed data");
-  if (stream) throw TooBigError();
 
   return decompressed;
 }
