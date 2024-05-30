@@ -172,7 +172,7 @@ jobs:
             run: |
                 pwd
                 cd build_debug
-                make -j$(nproc)
+                VERBOSE=1 make -j$(nproc)
 
           - name: Run tests (universal)
             run: |
