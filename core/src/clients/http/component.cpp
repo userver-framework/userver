@@ -86,7 +86,7 @@ const dynamic_config::Key kClientConfig{
 
 HttpClient::HttpClient(const ComponentConfig& component_config,
                        const ComponentContext& context)
-    : LoggableComponentBase(component_config, context),
+    : ComponentBase(component_config, context),
       disable_pool_stats_(
           component_config["pool-statistics-disable"].As<bool>(false)),
       http_client_(
@@ -186,7 +186,7 @@ void HttpClient::WriteStatistics(utils::statistics::Writer& writer) {
 }
 
 yaml_config::Schema HttpClient::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: Component that manages clients::http::Client.
 additionalProperties: false

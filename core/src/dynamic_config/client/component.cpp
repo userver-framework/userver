@@ -27,7 +27,7 @@ std::string ReadStageName(const std::string& filepath) {
 
 DynamicConfigClient::DynamicConfigClient(const ComponentConfig& config,
                                          const ComponentContext& context)
-    : LoggableComponentBase(config, context) {
+    : ComponentBase(config, context) {
   dynamic_config::ClientConfig client_config;
   client_config.service_name = config["service-name"].As<std::string>();
   client_config.get_configs_overrides_for_service =
@@ -66,7 +66,7 @@ dynamic_config::Client& DynamicConfigClient::GetClient() const {
 }
 
 yaml_config::Schema DynamicConfigClient::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: Component that starts a clients::dynamic_config::Client client.
 additionalProperties: false

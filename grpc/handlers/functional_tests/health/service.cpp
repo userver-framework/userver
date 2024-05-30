@@ -7,7 +7,7 @@
 #include <fmt/format.h>
 
 #include <userver/components/component.hpp>
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>

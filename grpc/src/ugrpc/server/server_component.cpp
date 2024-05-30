@@ -14,7 +14,7 @@ namespace ugrpc::server {
 
 ServerComponent::ServerComponent(const components::ComponentConfig& config,
                                  const components::ComponentContext& context)
-    : LoggableComponentBase(config, context),
+    : ComponentBase(config, context),
       server_(
           impl::ParseServerConfig(config, context),
           context.FindComponent<components::StatisticsStorage>().GetStorage(),
@@ -37,7 +37,7 @@ void ServerComponent::OnAllComponentsLoaded() { server_.Start(); }
 void ServerComponent::OnAllComponentsAreStopping() { server_.StopServing(); }
 
 yaml_config::Schema ServerComponent::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: Component that configures and manages the gRPC server.
 additionalProperties: false

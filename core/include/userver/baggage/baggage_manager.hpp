@@ -6,9 +6,9 @@
 #include <userver/baggage/baggage.hpp>
 #include <userver/baggage/baggage_settings.hpp>
 
+#include <userver/components/component_base.hpp>
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
-#include <userver/components/loggable_component_base.hpp>
 #include <userver/dynamic_config/source.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -52,8 +52,8 @@ class BaggageManager final {
 /// @brief Component for relationship with header baggage.
 ///
 /// ## Static options:
-/// Inherits options from components::LoggableComponentBase.
-class BaggageManagerComponent final : public components::LoggableComponentBase {
+/// Inherits options from components::ComponentBase.
+class BaggageManagerComponent final : public components::ComponentBase {
  public:
   /// @ingroup userver_component_names
   /// @brief The default name of baggage::BaggageManagerComponent

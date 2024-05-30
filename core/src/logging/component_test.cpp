@@ -6,8 +6,8 @@
 #include <components/component_list_test.hpp>
 #include <userver/alerts/component.hpp>
 #include <userver/components/component.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/components/component_list.hpp>
-#include <userver/components/loggable_component_base.hpp>
 #include <userver/components/run.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>
@@ -101,13 +101,13 @@ TEST_F(ComponentList, NoDefaultLogger) {
 
 namespace {
 
-class TwoLoggersComponent final : public components::LoggableComponentBase {
+class TwoLoggersComponent final : public components::ComponentBase {
  public:
   static constexpr std::string_view kName = "two-loggers";
 
   TwoLoggersComponent(const components::ComponentConfig& config,
                       const components::ComponentContext& context)
-      : components::LoggableComponentBase(config, context),
+      : components::ComponentBase(config, context),
         custom_logger_(
             context.FindComponent<components::Logging>().GetLogger("custom")) {
     LOG_INFO() << "constructor default";

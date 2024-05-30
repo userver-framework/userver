@@ -1,10 +1,11 @@
 #pragma once
 
-#include <userver/components/component_fwd.hpp>
-
-#include <kafka/impl/entity_type.hpp>
+#include <string>
 
 #include <librdkafka/rdkafka.h>
+
+#include <kafka/impl/entity_type.hpp>
+#include <userver/components/component_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

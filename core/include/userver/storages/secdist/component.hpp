@@ -5,7 +5,7 @@
 
 #include <string>
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/storages/secdist/secdist.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -39,7 +39,7 @@ namespace components {
 
 // clang-format on
 
-class Secdist final : public LoggableComponentBase {
+class Secdist final : public ComponentBase {
  public:
   /// @ingroup userver_component_names
   /// @brief The default name of components::Secdist

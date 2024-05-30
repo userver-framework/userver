@@ -335,6 +335,7 @@
   "core/include/userver/components/common_component_list.hpp":"taxi/uservices/userver/core/include/userver/components/common_component_list.hpp",
   "core/include/userver/components/common_server_component_list.hpp":"taxi/uservices/userver/core/include/userver/components/common_server_component_list.hpp",
   "core/include/userver/components/component.hpp":"taxi/uservices/userver/core/include/userver/components/component.hpp",
+  "core/include/userver/components/component_base.hpp":"taxi/uservices/userver/core/include/userver/components/component_base.hpp",
   "core/include/userver/components/component_config.hpp":"taxi/uservices/userver/core/include/userver/components/component_config.hpp",
   "core/include/userver/components/component_context.hpp":"taxi/uservices/userver/core/include/userver/components/component_context.hpp",
   "core/include/userver/components/component_fwd.hpp":"taxi/uservices/userver/core/include/userver/components/component_fwd.hpp",

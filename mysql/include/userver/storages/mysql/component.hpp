@@ -5,7 +5,7 @@
 
 #include <memory>
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/utils/statistics/entry.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -51,7 +51,7 @@ namespace storages::mysql {
 /// max_pool_size            | maximum connection pool size (per host)     | 10
 ///
 // clang-format on
-class Component final : public components::LoggableComponentBase {
+class Component final : public components::ComponentBase {
  public:
   /// Component constructor
   Component(const components::ComponentConfig& config,

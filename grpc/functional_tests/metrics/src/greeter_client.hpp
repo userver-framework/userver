@@ -1,7 +1,7 @@
 #pragma once
 
 #include <userver/components/component.hpp>
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/utest/using_namespace_userver.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
@@ -11,13 +11,13 @@
 
 namespace functional_tests {
 
-class GreeterClient final : public components::LoggableComponentBase {
+class GreeterClient final : public components::ComponentBase {
  public:
   static constexpr std::string_view kName = "greeter-client";
 
   GreeterClient(const components::ComponentConfig& config,
                 const components::ComponentContext& context)
-      : LoggableComponentBase(config, context),
+      : ComponentBase(config, context),
         client_factory_(
             context.FindComponent<ugrpc::client::ClientFactoryComponent>()
                 .GetFactory()),
@@ -34,7 +34,7 @@ class GreeterClient final : public components::LoggableComponentBase {
 };
 
 inline yaml_config::Schema GreeterClient::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: >
     a user-defined wrapper around api::GreeterServiceClient that provides

@@ -3,7 +3,7 @@
 /// @file userver/congestion_control/component.hpp
 /// @brief @copybrief congestion_control::Component
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/server/congestion_control/limiter.hpp>
 #include <userver/server/congestion_control/sensor.hpp>
@@ -38,7 +38,7 @@ namespace congestion_control {
 
 // clang-format on
 
-class Component final : public components::LoggableComponentBase {
+class Component final : public components::ComponentBase {
  public:
   /// @ingroup userver_component_names
   /// @brief The default name of congestion_control::Component component

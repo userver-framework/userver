@@ -5,7 +5,7 @@
 
 #include <atomic>
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 
 #include <userver/ugrpc/server/middlewares/fwd.hpp>
@@ -31,7 +31,7 @@ class ServerComponent;
 
 // clang-format on
 
-class ServiceComponentBase : public components::LoggableComponentBase {
+class ServiceComponentBase : public components::ComponentBase {
  public:
   ServiceComponentBase(const components::ComponentConfig& config,
                        const components::ComponentContext& context);

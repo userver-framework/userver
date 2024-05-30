@@ -5,7 +5,7 @@
 
 #include <memory>
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -30,8 +30,7 @@ namespace components {
 /// headers | List of headers to propagate | []
 ///
 // clang-format on
-class HeadersPropagatorComponent final
-    : public components::LoggableComponentBase {
+class HeadersPropagatorComponent final : public components::ComponentBase {
  public:
   /// @ingroup userver_component_names
   /// @brief The default name of components::HeadersPropagatorComponent

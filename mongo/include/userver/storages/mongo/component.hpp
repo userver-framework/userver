@@ -3,7 +3,7 @@
 /// @file userver/storages/mongo/component.hpp
 /// @brief @copybrief components::Mongo
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/storages/mongo/multi_mongo.hpp>
 #include <userver/storages/mongo/pool.hpp>
 #include <userver/storages/secdist/component.hpp>
@@ -92,7 +92,7 @@ namespace components {
 
 // clang-format on
 
-class Mongo : public LoggableComponentBase {
+class Mongo : public ComponentBase {
  public:
   /// Component constructor
   Mongo(const ComponentConfig&, const ComponentContext&);
@@ -166,7 +166,7 @@ inline constexpr bool kHasValidate<Mongo> = true;
 
 // clang-format on
 
-class MultiMongo : public LoggableComponentBase {
+class MultiMongo : public ComponentBase {
  public:
   /// @ingroup userver_component_names
   /// @brief The default name of components::MultiMongo

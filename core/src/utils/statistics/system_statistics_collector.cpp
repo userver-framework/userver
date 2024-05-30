@@ -12,7 +12,7 @@ namespace components {
 
 SystemStatisticsCollector::SystemStatisticsCollector(
     const ComponentConfig& config, const ComponentContext& context)
-    : LoggableComponentBase(config, context),
+    : ComponentBase(config, context),
       with_nginx_(config["with-nginx"].As<bool>(false)),
       fs_task_processor_(context.GetTaskProcessor(
           config["fs-task-processor"].As<std::string>())) {
@@ -41,7 +41,7 @@ void SystemStatisticsCollector::ExtendStatistics(
 }
 
 yaml_config::Schema SystemStatisticsCollector::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: Component for system resource usage statistics collection.
 additionalProperties: false

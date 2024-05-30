@@ -142,13 +142,13 @@ class TaskProcessorsLoadMonitor::Impl final {
 TaskProcessorsLoadMonitor::TaskProcessorsLoadMonitor(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
-    : components::LoggableComponentBase{config, context},
+    : components::ComponentBase{config, context},
       impl_{std::make_unique<Impl>(config, context)} {}
 
 TaskProcessorsLoadMonitor::~TaskProcessorsLoadMonitor() = default;
 
 yaml_config::Schema TaskProcessorsLoadMonitor::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: task-processors-load-monitor config
 additionalProperties: false

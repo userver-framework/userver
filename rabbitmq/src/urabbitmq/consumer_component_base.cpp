@@ -47,7 +47,7 @@ class ConsumerComponentBase::Impl final : public ConsumerBase {
 ConsumerComponentBase::ConsumerComponentBase(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
-    : components::LoggableComponentBase{config, context},
+    : components::ComponentBase{config, context},
       impl_{std::make_unique<Impl>(
           context
               .FindComponent<components::RabbitMQ>(
@@ -62,7 +62,7 @@ void ConsumerComponentBase::OnAllComponentsLoaded() { impl_->Start(this); }
 void ConsumerComponentBase::OnAllComponentsAreStopping() { impl_->Stop(); }
 
 yaml_config::Schema ConsumerComponentBase::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: RabbitMQ consumer component
 additionalProperties: false

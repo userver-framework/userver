@@ -18,7 +18,7 @@ namespace components {
 
 ClickHouse::ClickHouse(const ComponentConfig& config,
                        const ComponentContext& context)
-    : LoggableComponentBase{config, context},
+    : ComponentBase{config, context},
       dns_{context.FindComponent<clients::dns::Component>()} {
   const auto& secdist = context.FindComponent<Secdist>().Get();
   const auto& settings_multi =
@@ -48,7 +48,7 @@ storages::clickhouse::ClusterPtr ClickHouse::GetCluster() const {
 }
 
 yaml_config::Schema ClickHouse::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: ClickHouse client component
 additionalProperties: false

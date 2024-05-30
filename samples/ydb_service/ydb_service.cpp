@@ -1,7 +1,7 @@
 #include <userver/clients/dns/component.hpp>
 #include <userver/clients/http/component.hpp>
 #include <userver/components/component.hpp>
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/dynamic_config/client/component.hpp>
 #include <userver/dynamic_config/storage/component.hpp>

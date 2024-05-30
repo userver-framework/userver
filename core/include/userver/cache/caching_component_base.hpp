@@ -12,8 +12,8 @@
 #include <userver/cache/cache_update_trait.hpp>
 #include <userver/cache/exceptions.hpp>
 #include <userver/compiler/demangle.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/components/component_fwd.hpp>
-#include <userver/components/loggable_component_base.hpp>
 #include <userver/concurrent/async_event_channel.hpp>
 #include <userver/dump/helpers.hpp>
 #include <userver/dump/meta.hpp>
@@ -122,7 +122,7 @@ namespace components {
 
 template <typename T>
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
-class CachingComponentBase : public LoggableComponentBase,
+class CachingComponentBase : public ComponentBase,
                              protected cache::CacheUpdateTrait {
  public:
   CachingComponentBase(const ComponentConfig& config, const ComponentContext&);
@@ -205,7 +205,7 @@ class CachingComponentBase : public LoggableComponentBase,
 template <typename T>
 CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
                                               const ComponentContext& context)
-    : LoggableComponentBase(config, context),
+    : ComponentBase(config, context),
       cache::CacheUpdateTrait(config, context),
       event_channel_(components::GetCurrentComponentName(config),
                      [this](auto& function) {

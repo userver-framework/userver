@@ -6,7 +6,7 @@
 #include <memory>
 #include <vector>
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/utils/function_ref.hpp>
 
 #include <userver/ugrpc/server/middlewares/fwd.hpp>
@@ -80,8 +80,8 @@ class MiddlewareBase {
 };
 
 /// @brief Base class for middleware component
-class MiddlewareComponentBase : public components::LoggableComponentBase {
-  using components::LoggableComponentBase::LoggableComponentBase;
+class MiddlewareComponentBase : public components::ComponentBase {
+  using components::ComponentBase::ComponentBase;
 
  public:
   /// @brief Returns a middleware according to the component's settings

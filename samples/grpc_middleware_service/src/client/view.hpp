@@ -3,7 +3,7 @@
 #include <userver/utest/using_namespace_userver.hpp>
 
 #include <userver/components/component.hpp>
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <samples/greeter_client.usrv.pb.hpp>
@@ -11,7 +11,7 @@
 
 namespace samples::grpc::auth {
 
-class GreeterClient final : public components::LoggableComponentBase {
+class GreeterClient final : public components::ComponentBase {
  public:
   static constexpr std::string_view kName = "greeter-client";
 

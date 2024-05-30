@@ -29,7 +29,7 @@ std::unordered_set<std::string> ChooseCurrentAllowedKeys(
 BaggageManagerComponent::BaggageManagerComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
-    : components::LoggableComponentBase(config, context),
+    : components::ComponentBase(config, context),
       baggage_manager_(
           context.FindComponent<components::DynamicConfig>().GetSource()) {}
 
@@ -38,7 +38,7 @@ BaggageManager& BaggageManagerComponent::GetManager() {
 }
 
 yaml_config::Schema BaggageManagerComponent::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: Component for interaction with Baggage header.
 additionalProperties: false

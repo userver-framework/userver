@@ -181,16 +181,16 @@ MongoCache<MongoCacheTraits>::MongoCache(const ComponentConfig& config,
           cache::AllowedUpdateTypes::kFullAndIncremental &&
       !mongo_cache::impl::kHasUpdateFieldName<MongoCacheTraits> &&
       !mongo_cache::impl::kHasFindOperation<MongoCacheTraits>) {
-    throw std::logic_error(
+    throw std::logic_error(fmt::format(
         "Incremental update support is requested in config but no update field "
-        "name is specified in traits of '" +
-        components::GetCurrentComponentName(config) + "' cache");
+        "name is specified in traits of '{}' cache",
+        components::GetCurrentComponentName(config)));
   }
   if (correction_.count() < 0) {
-    throw std::logic_error(
+    throw std::logic_error(fmt::format(
         "Refusing to set forward (negative) update correction requested in "
-        "config for '" +
-        components::GetCurrentComponentName(config) + "' cache");
+        "config for '{}' cache",
+        components::GetCurrentComponentName(config)));
   }
 
   this->StartPeriodicUpdates();

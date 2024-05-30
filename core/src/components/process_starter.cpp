@@ -21,13 +21,13 @@ engine::TaskProcessor& GetTaskProcessorOrDefault(
 
 ProcessStarter::ProcessStarter(const ComponentConfig& config,
                                const ComponentContext& context)
-    : LoggableComponentBase(config, context),
+    : ComponentBase(config, context),
       process_starter_(GetTaskProcessorOrDefault(
           config["task_processor"].As<std::optional<std::string>>(), context)) {
 }
 
 yaml_config::Schema ProcessStarter::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: process-starter
 additionalProperties: false

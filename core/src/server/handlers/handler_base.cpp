@@ -13,7 +13,7 @@ namespace server::handlers {
 HandlerBase::HandlerBase(const components::ComponentConfig& config,
                          const components::ComponentContext& context,
                          bool is_monitor)
-    : LoggableComponentBase(config, context),
+    : ComponentBase(config, context),
       is_monitor_(config["monitor-handler"].As<bool>(is_monitor)),
       config_(ParseHandlerConfigsWithDefaults(
           config,
@@ -23,7 +23,7 @@ HandlerBase::HandlerBase(const components::ComponentConfig& config,
 const HandlerConfig& HandlerBase::GetConfig() const { return config_; }
 
 yaml_config::Schema HandlerBase::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: Base class for the HTTP request handlers.
 additionalProperties: false

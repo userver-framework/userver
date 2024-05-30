@@ -77,7 +77,7 @@ components::ComponentList MinimalMiddlewareComponents() {
 
 PipelineBuilder::PipelineBuilder(const components::ComponentConfig& config,
                                  const components::ComponentContext& context)
-    : components::LoggableComponentBase{config, context},
+    : components::ComponentBase{config, context},
       middlewares_to_append_{config["append"].As<MiddlewaresList>({})} {}
 
 const MiddlewaresList& PipelineBuilder::GetMiddlewaresToAppend() const {
@@ -85,7 +85,7 @@ const MiddlewaresList& PipelineBuilder::GetMiddlewaresToAppend() const {
 }
 
 yaml_config::Schema PipelineBuilder::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: Base class for a component to configure server middlewares
 additionalProperties: false
@@ -103,7 +103,7 @@ properties:
 HandlerPipelineBuilder::HandlerPipelineBuilder(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
-    : components::LoggableComponentBase{config, context} {}
+    : components::ComponentBase{config, context} {}
 
 }  // namespace server::middlewares
 

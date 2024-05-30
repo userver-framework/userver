@@ -89,7 +89,7 @@ struct Component::Impl {
 
 Component::Component(const components::ComponentConfig& config,
                      const components::ComponentContext& context)
-    : components::LoggableComponentBase(config, context),
+    : components::ComponentBase(config, context),
       pimpl_(context.FindComponent<components::DynamicConfig>().GetSource(),
              context.FindComponent<components::Server>().GetServer(),
              engine::current_task::GetTaskProcessor(),
@@ -182,7 +182,7 @@ server::congestion_control::Sensor& Component::GetServerSensor() {
 }
 
 yaml_config::Schema Component::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: Component to limit too active requests, also known as CC.
 additionalProperties: false

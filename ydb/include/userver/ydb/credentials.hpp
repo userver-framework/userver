@@ -6,7 +6,7 @@
 #include <memory>
 #include <string>
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
 namespace NYdb {
@@ -17,9 +17,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ydb {
 
-class CredentialsProviderComponent : public components::LoggableComponentBase {
+class CredentialsProviderComponent : public components::ComponentBase {
  public:
-  using components::LoggableComponentBase::LoggableComponentBase;
+  using components::ComponentBase::ComponentBase;
 
   virtual std::shared_ptr<NYdb::ICredentialsProviderFactory>
   CreateCredentialsProviderFactory(

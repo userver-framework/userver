@@ -72,7 +72,7 @@ const dynamic_config::Key<std::string> kUpdatesSinkChain{
 
 std::string expected_updates_sink_chain;
 
-class TestFallbacksProducer final : public components::LoggableComponentBase {
+class TestFallbacksProducer final : public components::ComponentBase {
  public:
   // DO NOT replace with std::string_view, we want to have a check somewhere
   // that 'const char*' still works. If this component ends up being removed,
@@ -88,14 +88,14 @@ class TestFallbacksProducer final : public components::LoggableComponentBase {
 TestFallbacksProducer::TestFallbacksProducer(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
-    : components::LoggableComponentBase(config, context) {
+    : components::ComponentBase(config, context) {
   const auto& defaults =
       context.FindComponent<components::DynamicConfig>().GetDefaultDocsMap();
   dynamic_config::FindUpdatesSink(config, context).SetConfig(kName, defaults);
 }
 
 yaml_config::Schema TestFallbacksProducer::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: Test updates sink component.
 additionalProperties: false
@@ -156,7 +156,7 @@ void TestUpdatesSink::NotifyLoadingFailed(std::string_view updater,
 }
 
 yaml_config::Schema TestUpdatesSink::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: Test updates sink component.
 additionalProperties: false
@@ -168,18 +168,18 @@ properties:
 )");
 }
 
-class ChainVerifier final : public components::LoggableComponentBase {
+class ChainVerifier final : public components::ComponentBase {
  public:
   static constexpr std::string_view kName = "updates-sink-chain-verifier";
 
   ChainVerifier(const components::ComponentConfig& config,
                 const components::ComponentContext& context)
-      : components::LoggableComponentBase(config, context),
+      : components::ComponentBase(config, context),
         source_(
             context.FindComponent<components::DynamicConfig>().GetSource()) {}
 
   static yaml_config::Schema GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+    return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: Component that verifies chain of 'SetConfig' calls
 additionalProperties: false

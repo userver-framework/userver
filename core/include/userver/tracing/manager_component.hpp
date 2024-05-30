@@ -5,7 +5,7 @@
 
 #include <string>
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/tracing/manager.hpp>
 #include <userver/tracing/span.hpp>
 
@@ -15,7 +15,7 @@ namespace tracing {
 
 /// @brief Base component for implementing TracingManager component
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
-class TracingManagerComponentBase : public components::LoggableComponentBase,
+class TracingManagerComponentBase : public components::ComponentBase,
                                     public TracingManagerBase {
  public:
   TracingManagerComponentBase(const components::ComponentConfig&,
@@ -51,8 +51,7 @@ class TracingManagerComponentBase : public components::LoggableComponentBase,
 /// new-requests-format | Send tracing data in those formats supported by tracing::FormatFromString | ['taxi']
 ///
 // clang-format on
-class DefaultTracingManagerLocator final
-    : public components::LoggableComponentBase {
+class DefaultTracingManagerLocator final : public components::ComponentBase {
  public:
   /// @ingroup userver_component_names
   /// @brief The default name of tracing::DefaultTracingManagerLocator
