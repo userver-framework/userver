@@ -2,7 +2,7 @@
 
 #include <userver/kafka/consumer_scope.hpp>
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/statistics/entry.hpp>
 
@@ -50,7 +50,7 @@ class Consumer;
 
 // clang-format on
 
-class ConsumerComponent final : public components::LoggableComponentBase {
+class ConsumerComponent final : public components::ComponentBase {
  public:
   static constexpr std::string_view kName = "kafka-consumer";
 

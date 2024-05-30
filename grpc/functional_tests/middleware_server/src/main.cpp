@@ -2,7 +2,7 @@
 #include <userver/utest/using_namespace_userver.hpp>
 
 #include <userver/components/component.hpp>
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/server/handlers/server_monitor.hpp>
 #include <userver/testsuite/testsuite_support.hpp>

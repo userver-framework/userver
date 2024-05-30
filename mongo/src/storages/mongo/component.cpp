@@ -29,7 +29,7 @@ auto ParsePoolConfig(const ComponentConfig& config) {
 }  // namespace
 
 Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
-    : LoggableComponentBase(config, context) {
+    : ComponentBase(config, context) {
   auto dbalias = config["dbalias"].As<std::string>("");
 
   std::string connection_string;
@@ -97,7 +97,7 @@ properties:
 
 MultiMongo::MultiMongo(const ComponentConfig& config,
                        const ComponentContext& context)
-    : LoggableComponentBase(config, context),
+    : ComponentBase(config, context),
       multi_mongo_(config.Name(), context.FindComponent<Secdist>().GetStorage(),
                    ParsePoolConfig(config),
                    clients::dns::GetResolverPtr(config, context),
@@ -128,7 +128,7 @@ storages::mongo::MultiMongo::PoolSet MultiMongo::NewPoolSet() {
 }
 
 yaml_config::Schema MultiMongo::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: Dynamically configurable MongoDB client component
 additionalProperties: false

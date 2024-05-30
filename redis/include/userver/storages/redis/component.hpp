@@ -7,8 +7,8 @@
 #include <string>
 #include <unordered_map>
 
+#include <userver/components/component_base.hpp>
 #include <userver/components/component_fwd.hpp>
-#include <userver/components/loggable_component_base.hpp>
 #include <userver/dynamic_config/source.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/storages/redis/impl/base.hpp>
@@ -124,7 +124,7 @@ namespace components {
 ///    only used for topology discovery; it is not necessary to list all nodes.
 
 // clang-format on
-class Redis : public LoggableComponentBase {
+class Redis : public ComponentBase {
  public:
   Redis(const ComponentConfig& config,
         const ComponentContext& component_context);

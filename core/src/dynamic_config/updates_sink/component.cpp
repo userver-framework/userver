@@ -19,7 +19,7 @@ struct DynamicConfigUpdatesSinkBase::UsedByInfo {
 DynamicConfigUpdatesSinkBase::DynamicConfigUpdatesSinkBase(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
-    : LoggableComponentBase(config, context),
+    : ComponentBase(config, context),
       used_by_(std::make_unique<UsedByInfo>()) {}
 
 DynamicConfigUpdatesSinkBase::~DynamicConfigUpdatesSinkBase() = default;

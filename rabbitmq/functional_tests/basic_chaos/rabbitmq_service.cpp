@@ -75,13 +75,13 @@ class ChaosProducer final : public components::LoggableComponentBase {
   const std::shared_ptr<urabbitmq::Client> rabbit_client_;
 };
 
-class ChaosConsumer final : public components::LoggableComponentBase {
+class ChaosConsumer final : public components::ComponentBase {
  public:
   static constexpr std::string_view kName{"chaos-consumer"};
 
   ChaosConsumer(const components::ComponentConfig& config,
                 const components::ComponentContext& context)
-      : components::LoggableComponentBase{config, context},
+      : components::ComponentBase{config, context},
         consumer_{config, context, messages_} {
     Start();
   }

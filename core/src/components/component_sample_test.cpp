@@ -11,7 +11,7 @@ namespace myservice::smth {
 
 Component::Component(const components::ComponentConfig& config,
                      const components::ComponentContext& context)
-    : components::LoggableComponentBase(config, context),
+    : components::ComponentBase(config, context),
       config_(
           // Searching for some component to initialize members
           context.FindComponent<components::DynamicConfig>()
@@ -55,7 +55,7 @@ int Component::DoSomething() const {
 namespace myservice::smth {
 
 yaml_config::Schema Component::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: user component smth
 additionalProperties: false

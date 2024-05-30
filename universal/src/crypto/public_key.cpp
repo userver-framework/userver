@@ -9,7 +9,6 @@
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
 
-#include <boost/algorithm/string/predicate.hpp>  // for boost::starts_with
 #include <boost/numeric/conversion/cast.hpp>
 
 #include <crypto/helpers.hpp>
@@ -17,6 +16,7 @@
 #include <userver/crypto/exception.hpp>
 #include <userver/crypto/hash.hpp>
 #include <userver/utils/str_icase.hpp>
+#include <userver/utils/text_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -104,7 +104,7 @@ std::unique_ptr<EC_KEY, decltype(&::EC_KEY_free)> LoadEc(int curve_type,
 PublicKey PublicKey::LoadFromString(std::string_view key) {
   impl::Openssl::Init();
 
-  if (boost::starts_with(key, "-----BEGIN CERTIFICATE-----")) {
+  if (utils::text::StartsWith(key, "-----BEGIN CERTIFICATE-----")) {
     return LoadFromCertificate(Certificate::LoadFromString(key));
   }
 

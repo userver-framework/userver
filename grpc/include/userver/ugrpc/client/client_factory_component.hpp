@@ -3,7 +3,7 @@
 /// @file userver/ugrpc/client/client_factory_component.hpp
 /// @brief @copybrief ugrpc::client::ClientFactoryComponent
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 
 #include <userver/ugrpc/client/client_factory.hpp>
 #include <userver/ugrpc/client/queue_holder.hpp>
@@ -54,7 +54,7 @@ namespace ugrpc::client {
 
 // clang-format on
 
-class ClientFactoryComponent final : public components::LoggableComponentBase {
+class ClientFactoryComponent final : public components::ComponentBase {
  public:
   /// @ingroup userver_component_names
   /// @brief The default name of ugrpc::client::middlewares::log::Component

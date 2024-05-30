@@ -4,7 +4,7 @@
 #include <boost/filesystem/operations.hpp>
 
 #include <userver/components/component.hpp>
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/concurrent/variable.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
@@ -535,7 +535,7 @@ void Dumper::OnUpdateCompleted(TimePoint update_time, UpdateType update_type) {
 void Dumper::CancelWriteTaskAndWait() { impl_->CancelWriteTaskAndWait(); }
 
 yaml_config::Schema Dumper::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: Dumper sub-schema
 additionalProperties: false

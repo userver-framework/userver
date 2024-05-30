@@ -15,13 +15,15 @@ namespace ydb::impl {
 
 namespace {
 
-tracing::Span MakeSpan(const Query& query, const OperationSettings& settings,
+tracing::Span MakeSpan(const Query& query, OperationSettings& settings,
                        tracing::Span* custom_parent_span,
                        utils::impl::SourceLocation location) {
   auto span = custom_parent_span
                   ? custom_parent_span->CreateChild("ydb_query")
                   : tracing::Span("ydb_query", tracing::ReferenceType::kChild,
                                   logging::Level::kInfo, location);
+
+  settings.trace_id = span.GetTraceId();
 
   if (query.GetName()) {
     span.AddTag("query_name", std::string{*query.GetName()});
@@ -106,8 +108,6 @@ void PrepareSettings(const Query& query,
     os.get_session_timeout_ms = cc.get_session_timeout_ms.value();
 }
 
-}  // namespace
-
 utils::impl::UserverExperiment kYdbDeadlinePropagationExperiment(
     "ydb-deadline-propagation");
 
@@ -138,6 +138,8 @@ engine::Deadline GetDeadline(tracing::Span& span,
   return inherited_deadline;
 }
 
+}  // namespace
+
 RequestContext::RequestContext(TableClient& table_client_, const Query& query,
                                OperationSettings& settings,
                                IsStreaming is_streaming,
@@ -150,7 +152,7 @@ RequestContext::RequestContext(TableClient& table_client_, const Query& query,
       config_snapshot(table_client.config_source_.GetSnapshot()),
       // Note: comma operator is used to insert code between initializations.
       span((PrepareSettings(query, config_snapshot, settings, is_streaming,
-                            table_client.GetDefaultOperationSettings()),
+                            table_client.default_settings_),
             MakeSpan(query, settings, custom_parent_span, location))),
       deadline(GetDeadline(span, config_snapshot)) {}
 

@@ -32,6 +32,10 @@ regex& regex::operator=(regex&& r) noexcept {
   return *this;
 }
 
+bool regex::operator==(const regex& other) const {
+  return impl_->r == other.impl_->r;
+}
+
 std::string regex::str() const { return impl_->r.str(); }
 
 ////////////////////////////////////////////////////////////////

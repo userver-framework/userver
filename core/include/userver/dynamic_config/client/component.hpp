@@ -3,7 +3,7 @@
 /// @file userver/dynamic_config/client/component.hpp
 /// @brief @copybrief components::DynamicConfigClient
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/dynamic_config/client/client.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -39,7 +39,7 @@ namespace components {
 /// @snippet components/common_component_list_test.cpp  Sample dynamic configs client component config
 
 // clang-format on
-class DynamicConfigClient : public LoggableComponentBase {
+class DynamicConfigClient : public ComponentBase {
  public:
   /// @ingroup userver_component_names
   /// @brief The default name of components::DynamicConfigClient

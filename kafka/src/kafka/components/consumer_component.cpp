@@ -15,7 +15,7 @@ namespace kafka {
 ConsumerComponent::ConsumerComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
-    : components::LoggableComponentBase(config, context),
+    : components::ComponentBase(config, context),
       consumer_(std::make_unique<impl::Configuration>(
                     config, context, impl::EntityType::kConsumer),
                 config["topics"].As<std::vector<std::string>>(),
@@ -41,7 +41,7 @@ ConsumerScope ConsumerComponent::GetConsumer() {
 }
 
 yaml_config::Schema ConsumerComponent::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: Kafka consumer component
 additionalProperties: false

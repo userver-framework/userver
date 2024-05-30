@@ -5,7 +5,7 @@
 
 #include <memory>
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -18,15 +18,14 @@ namespace engine {
 /// the service, and dump per-thread stats into metrics.
 ///
 /// ## Static options:
-/// Inherits all the options from components::LoggableComponentBase and adds the
+/// Inherits all the options from components::ComponentBase and adds the
 /// following ones:
 ///
 /// Name           | Description                                    | Default value
 /// -------------- | ---------------------------------------------- | ---------------------------------
 /// task-processor | name of the TaskProcessor to run monitoring on | default monitoring task processor
 // clang-format on
-class TaskProcessorsLoadMonitor final
-    : public components::LoggableComponentBase {
+class TaskProcessorsLoadMonitor final : public components::ComponentBase {
  public:
   /// @ingroup userver_component_names
   /// @brief The default name of engine::TaskProcessorsLoadMonitor

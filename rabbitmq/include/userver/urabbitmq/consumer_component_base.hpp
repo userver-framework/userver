@@ -4,8 +4,7 @@
 /// @brief Base component for your consumers.
 
 #include <memory>
-
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/urabbitmq/typedefs.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -41,7 +40,7 @@ namespace urabbitmq {
 /// prefetch_count   | prefetch_count for the consumer, limits the amount of in-flight messages
 ///
 // clang-format on
-class ConsumerComponentBase : public components::LoggableComponentBase {
+class ConsumerComponentBase : public components::ComponentBase {
  public:
   ConsumerComponentBase(const components::ComponentConfig& config,
                         const components::ComponentContext& context);

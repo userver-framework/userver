@@ -7,7 +7,7 @@
 #include <string>
 #include <unordered_map>
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/dynamic_config/source.hpp>
 #include <userver/formats/json.hpp>
 #include <userver/utils/statistics/fwd.hpp>
@@ -58,7 +58,7 @@ class Driver;
 
 // clang-format on
 
-class YdbComponent final : public components::LoggableComponentBase {
+class YdbComponent final : public components::ComponentBase {
  public:
   /// @ingroup userver_component_names
   /// @brief The default name of ydb::YdbComponent component

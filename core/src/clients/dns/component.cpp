@@ -46,7 +46,7 @@ ResolverConfig ParseResolverConfig(
 
 Component::Component(const components::ComponentConfig& config,
                      const components::ComponentContext& context)
-    : LoggableComponentBase{config, context},
+    : ComponentBase{config, context},
       resolver_{context.GetTaskProcessor(
                     config["fs-task-processor"].As<std::string>()),
                 ParseResolverConfig(config)} {
@@ -72,7 +72,7 @@ void Component::Write(utils::statistics::Writer& writer) {
 }
 
 yaml_config::Schema Component::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: Caching DNS resolver component.
 additionalProperties: false

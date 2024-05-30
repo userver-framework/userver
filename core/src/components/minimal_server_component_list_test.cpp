@@ -5,7 +5,7 @@
 
 #include <userver/compiler/demangle.hpp>
 #include <userver/components/component.hpp>
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/components/manager_controller_component.hpp>
 #include <userver/components/run.hpp>
 #include <userver/engine/sleep.hpp>
@@ -94,13 +94,13 @@ class ServerMinimalComponentList : public ComponentList {
   std::string static_config_ = std::string{kStaticConfig} + GetConfigVarsPath();
 };
 
-class TaskTraceProducer final : public components::LoggableComponentBase {
+class TaskTraceProducer final : public components::ComponentBase {
  public:
   static constexpr std::string_view kName = "task-trace-producer";
 
   TaskTraceProducer(const components::ComponentConfig& config,
                     const components::ComponentContext& context)
-      : components::LoggableComponentBase(config, context) {
+      : components::ComponentBase(config, context) {
     // Task tracing is set up by ManagerControllerComponent.
     // It may not work in constructors of components that don't depend on it.
     [[maybe_unused]] const auto& manager_controller_component =

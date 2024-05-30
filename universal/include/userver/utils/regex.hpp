@@ -29,6 +29,8 @@ class regex final {
   regex& operator=(const regex&);
   regex& operator=(regex&&) noexcept;
 
+  bool operator==(const regex&) const;
+
   std::string str() const;
 
  private:

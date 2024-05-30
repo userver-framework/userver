@@ -15,7 +15,7 @@ namespace kafka {
 ProducerComponent::ProducerComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
-    : components::LoggableComponentBase(config, context),
+    : components::ComponentBase(config, context),
       producer_(std::make_unique<impl::Configuration>(
                     config, context, impl::EntityType::kProducer),
                 context.GetTaskProcessor("producer-task-processor"),
@@ -37,7 +37,7 @@ ProducerComponent::~ProducerComponent() { statistics_holder_.Unregister(); }
 Producer& ProducerComponent::GetProducer() { return producer_; }
 
 yaml_config::Schema ProducerComponent::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: Kafka producer component
 additionalProperties: false

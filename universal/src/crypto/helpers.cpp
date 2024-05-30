@@ -13,7 +13,6 @@
 
 #include <fmt/compile.h>
 #include <fmt/format.h>
-#include <boost/algorithm/string/predicate.hpp>
 
 #include <userver/crypto/base64.hpp>
 #include <userver/crypto/exception.hpp>

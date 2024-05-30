@@ -1,12 +1,12 @@
 #include <userver/yaml_config/impl/validate_static_config.hpp>
 
 #include <fmt/format.h>
-#include <boost/algorithm/string/predicate.hpp>
 #include <boost/range/adaptors.hpp>
 
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/text_light.hpp>
 #include <userver/yaml_config/schema.hpp>
 #include <utils/distances.hpp>
 
@@ -20,11 +20,11 @@ constexpr std::string_view kFallbackSuffix = "#fallback";
 constexpr std::string_view kEnvSuffix = "#env";
 
 std::string RemoveFallbackAndEnvSuffix(std::string_view option) {
-  if (boost::algorithm::ends_with(option, kFallbackSuffix)) {
+  if (utils::text::EndsWith(option, kFallbackSuffix)) {
     return std::string(
         option.substr(0, option.length() - kFallbackSuffix.length()));
   }
-  if (boost::algorithm::ends_with(option, kEnvSuffix)) {
+  if (utils::text::EndsWith(option, kEnvSuffix)) {
     return std::string(option.substr(0, option.length() - kEnvSuffix.length()));
   }
   return std::string(option);

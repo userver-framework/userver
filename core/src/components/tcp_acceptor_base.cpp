@@ -32,7 +32,7 @@ TcpAcceptorBase::TcpAcceptorBase(const ComponentConfig& config,
 TcpAcceptorBase::~TcpAcceptorBase() = default;
 
 yaml_config::Schema TcpAcceptorBase::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<ComponentBase>(R"(
 # yaml
 type: object
 description: |
@@ -68,7 +68,7 @@ properties:
 TcpAcceptorBase::TcpAcceptorBase(const ComponentConfig& config,
                                  const ComponentContext& context,
                                  const ListenerConfig& acceptor_config)
-    : LoggableComponentBase(config, context),
+    : ComponentBase(config, context),
       no_delay_(config["no_delay"].As<bool>(true)),
       acceptor_task_processor_(
           context.GetTaskProcessor(acceptor_config.task_processor)),

@@ -3,7 +3,7 @@
 /// @file userver/ugrpc/server/server_component.hpp
 /// @brief @copybrief ugrpc::server::ServerComponent
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 
 #include <userver/ugrpc/server/server.hpp>
 
@@ -38,7 +38,7 @@ struct ServiceDefaults;
 /// @see https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
 
 // clang-format on
-class ServerComponent final : public components::LoggableComponentBase {
+class ServerComponent final : public components::ComponentBase {
  public:
   /// @ingroup userver_component_names
   /// @brief The default name of ugrpc::server::ServerComponent

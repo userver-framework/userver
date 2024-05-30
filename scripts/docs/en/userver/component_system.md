@@ -48,7 +48,7 @@ configuring its own client. With components the configuration and dependency
 management problem is decomposed into small and manageable pieces:
 
 ```cpp
-class ComponentA: components::LoggableComponentBase {
+class ComponentA: components::ComponentBase {
  public:
   ComponentA(const components::ComponentConfig& config,
              const components::ComponentContext& context)
@@ -68,7 +68,7 @@ class ComponentA: components::LoggableComponentBase {
 Only components should know about components. Clients and other types
 constructed by components should not use components::ComponentConfig,
 components::ComponentContext, or components directly. All the components
-should inherit from components::LoggableComponentBase base class and may
+should inherit from components::ComponentBase base class and may
 override its methods.
 
 All the components are listed at the @ref userver_components API Group.
@@ -197,7 +197,7 @@ clients)
 
 ### HowTo
 Start writing your component from adding a header file with a class
-inherited from components::LoggableComponentBase.
+inherited from components::ComponentBase.
 @snippet components/component_sample_test.hpp  Sample user component header
 
 In source file write the implementation of the component:

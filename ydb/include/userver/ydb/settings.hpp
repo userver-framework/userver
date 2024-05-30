@@ -25,9 +25,7 @@ struct OperationSettings final {
   std::optional<TransactionMode> tx_mode{std::nullopt};
   std::chrono::milliseconds get_session_timeout_ms{0};
 
-  // @cond
-  std::string_view trace_id{};
-  // @endcond
+  std::string trace_id{};
 };
 
 struct QuerySettings final {

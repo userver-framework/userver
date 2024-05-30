@@ -9,6 +9,12 @@ from aiohttp import client_exceptions as exceptions
 import pytest
 from pytest_userver import chaos
 
+try:
+    import zstandard as zstd
+except ImportError:
+    import zstd
+
+
 from testsuite.utils import http
 
 HEADERS = {'Connection': 'keep-alive'}
@@ -98,14 +104,26 @@ async def test_ok(call):
     assert response.text == 'OK!'
 
 
-async def test_ok_compressed(call):
+async def test_ok_compressed_gzip(call):
     response = await call(
+        htype='echo',
         headers={'content-encoding': 'gzip'},
         data=gzip.compress('abcd'.encode()),
         testsuite_skip_prepare=True,
     )
     assert response.status == 200
-    assert response.text == 'OK!'
+    assert response.text == 'abcd'
+
+
+async def test_ok_compressed_zstd(call):
+    response = await call(
+        htype='echo',
+        headers={'content-encoding': 'zstd'},
+        data=zstd.compress('abcdefgh'.encode()),
+        testsuite_skip_prepare=True,
+    )
+    assert response.status == 200
+    assert response.text == 'abcdefgh'
 
 
 async def test_stop_accepting(call, gate, check_restore):

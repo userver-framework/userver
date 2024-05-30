@@ -67,6 +67,8 @@ int main(int argc, char** argv) {
 
   USERVER_NAMESPACE::utest::impl::SetLogLevel(config.log_level);
 
+  USERVER_NAMESPACE::utest::impl::EnableStackUsageMonitor();
+
   const PhdrCacheScope phdr_cache_scope{};
   return RUN_ALL_TESTS();
 }

@@ -137,7 +137,7 @@ redis::MetricsSettings::Level Parse(
 
 Redis::Redis(const ComponentConfig& config,
              const ComponentContext& component_context)
-    : LoggableComponentBase(config, component_context),
+    : ComponentBase(config, component_context),
       config_(component_context.FindComponent<DynamicConfig>().GetSource()) {
   const auto& testsuite_redis_control =
       component_context.FindComponent<components::TestsuiteSupport>()
@@ -343,7 +343,7 @@ void Redis::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
 }
 
 yaml_config::Schema Redis::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: Redis client component
 additionalProperties: false

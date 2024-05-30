@@ -7,7 +7,7 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::client::impl {
 
 yaml_config::Schema SimpleClientComponentAny::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: Provides a ClientFactory in the component system
 additionalProperties: false

@@ -70,7 +70,7 @@ struct YdbComponent::DatabaseUtils final {
 
 YdbComponent::YdbComponent(const components::ComponentConfig& config,
                            const components::ComponentContext& context)
-    : components::LoggableComponentBase(config, context),
+    : components::ComponentBase(config, context),
       config_(context.FindComponent<components::DynamicConfig>().GetSource()) {
   auto secdist_settings = context.FindComponent<components::Secdist>()
                               .Get()
@@ -173,7 +173,7 @@ void YdbComponent::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
 
 yaml_config::Schema YdbComponent::GetStaticConfigSchema() {
   // TODO remove blocking_task_processor
-  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: component for YDB
 additionalProperties: false

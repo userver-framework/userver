@@ -149,7 +149,6 @@ class TableClient final {
 
   NYdb::NTable::TTableClient& GetNativeTableClient();
   utils::RetryBudget& GetRetryBudget();
-  const OperationSettings& GetDefaultOperationSettings() const;
 
  private:
   friend class Transaction;
@@ -177,7 +176,7 @@ class TableClient final {
                            OperationSettings&& settings, Func&& func);
 
   dynamic_config::Source config_source_;
-  OperationSettings default_settings_;
+  const OperationSettings default_settings_;
   const bool keep_in_query_cache_;
   std::unique_ptr<impl::Stats> stats_;
   std::shared_ptr<impl::Driver> driver_;

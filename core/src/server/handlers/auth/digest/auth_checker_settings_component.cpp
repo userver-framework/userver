@@ -18,7 +18,7 @@ constexpr size_t kDefaultTtlMs = 10 * 1000;
 AuthCheckerSettingsComponent::AuthCheckerSettingsComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
-    : components::LoggableComponentBase(config, context) {
+    : components::ComponentBase(config, context) {
   // Reading config values from static config
   // Check for valid algorithms
   auto algorithm = config["algorithm"].As<std::string>("sha256");
@@ -51,7 +51,7 @@ const AuthCheckerSettings& AuthCheckerSettingsComponent::GetSettings() const {
 }
 
 yaml_config::Schema AuthCheckerSettingsComponent::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: settings for digest authentication
 additionalProperties: false

@@ -171,10 +171,6 @@ utils::RetryBudget& TableClient::GetRetryBudget() {
   return driver_->GetRetryBudget();
 }
 
-const OperationSettings& TableClient::GetDefaultOperationSettings() const {
-  return default_settings_;
-}
-
 void TableClient::MakeDirectory(const std::string& path) {
   using Settings = NYdb::NScheme::TMakeDirectorySettings;
   ExecuteWithPathImpl<Settings>(

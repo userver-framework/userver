@@ -6,7 +6,7 @@
 #include <memory>
 #include <string_view>
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/dynamic_config/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -37,7 +37,7 @@ namespace components {
 ///
 /// @warning Unless explicitly stated, descendants of this class expect that
 /// `SetConfig` method calls are serialized.
-class DynamicConfigUpdatesSinkBase : public LoggableComponentBase {
+class DynamicConfigUpdatesSinkBase : public ComponentBase {
  public:
   DynamicConfigUpdatesSinkBase(const components::ComponentConfig&,
                                const components::ComponentContext&);

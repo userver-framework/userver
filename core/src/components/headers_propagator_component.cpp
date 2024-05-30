@@ -14,14 +14,14 @@ namespace components {
 HeadersPropagatorComponent::HeadersPropagatorComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
-    : components::LoggableComponentBase(config, context),
+    : components::ComponentBase(config, context),
       propagator_(std::make_unique<server::http::HeadersPropagator>(
           config["headers"].As<std::vector<std::string>>({}))) {}
 
 HeadersPropagatorComponent::~HeadersPropagatorComponent() = default;
 
 yaml_config::Schema HeadersPropagatorComponent::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: component for propagating headers as-is
 additionalProperties: false
