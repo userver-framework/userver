@@ -1,3 +1,5 @@
+#include <string>
+
 #include <userver/urabbitmq/consumer_component_base.hpp>
 
 #include <userver/components/component_config.hpp>
@@ -35,9 +37,14 @@ class ConsumerComponentBase::Impl final : public ConsumerBase {
   }
 
  protected:
-  void Process(std::string message) override {
+  void Process(ConsumedMessage msg) override {
     UASSERT(parent_ != nullptr);
-    parent_->Process(std::move(message));
+    parent_->Process(std::move(msg));
+  }
+
+  void Process(std::string msg) override {
+    UASSERT(parent_ != nullptr);
+    parent_->Process(std::move(msg));
   }
 
  private:
