@@ -32,6 +32,10 @@ const dynamic_config::Key<bool> kDeadlinePropagationEnabled{
 const dynamic_config::Key<bool> kCongestionControlEnabled{
     "MONGO_CONGESTION_CONTROL_ENABLED", false};
 
+const dynamic_config::Key<dynamic_config::ValueDict<bool>>
+    kCongestionControlDatabasesSettings{
+        "MONGO_CONGESTION_CONTROL_DATABASES_SETTINGS", JsonString{"{}"}};
+
 }  // namespace storages::mongo
 
 USERVER_NAMESPACE_END

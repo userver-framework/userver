@@ -20,6 +20,9 @@ extern const dynamic_config::Key<bool> kDeadlinePropagationEnabled;
 
 extern const dynamic_config::Key<bool> kCongestionControlEnabled;
 
+extern const dynamic_config::Key<dynamic_config::ValueDict<bool>>
+    kCongestionControlDatabasesSettings;
+
 }  // namespace storages::mongo
 
 USERVER_NAMESPACE_END
