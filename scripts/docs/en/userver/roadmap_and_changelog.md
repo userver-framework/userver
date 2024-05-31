@@ -26,6 +26,54 @@ Changelog news also go to the
 ## Changelog
 
 
+### Release v2.1 (May 2024)
+
+* Coroutines stack usage is now shown in the
+  `engine.coro-pool.stack-usage.max-usage-percent` metric. Improved
+  stack-overflow diagnostics.
+* HTTP server and HTTP client now support ZSTD decompression. Thanks
+  to [Илья Оплачкин](https://github.com/IoplachkinI)
+  and [VScdr](https://github.com/VS-CDR) for the PR!
+* Added redis::MakeBulkHedgedRedisRequestAsync() and
+  redis::MakeBulkHedgedRedisRequest().
+* OpenTelemetry parent span-id is now passed through AMQP headers along with
+  trace-id. Thanks to [TertiumOrganum1](https://github.com/TertiumOrganum1) for
+  the PR!
+* ugrpc::server::MiddlewareBase now has CallRequestHook and CallResponseHook
+  for intercepting requests and responses.
+* components::LoggableComponentBase was renamed to components::ComponentBase.
+  components::RawComponentBase was published.
+* Multiple improvements for logging in testsuite.
+* gRPC metrics are now not written for methods that were not used at runtime.
+* Mongo pools now can be adjusted at runtime via dynamic config
+  @ref MONGO_CONNECTION_POOL_SETTINGS. Congestion Control for individual Mongo
+  databases now could be controlled via
+  @ref MONGO_CONGESTION_CONTROL_DATABASES_SETTINGS. Congestion Control is now
+  enabled by default.
+* Reduced contention in coro::Pool and added some tests and benchmarks. Many
+  thanks to [Egor Bocharov](https://github.com/egor-bystepdev) for the PRs!
+* Added urabbitmq::ConsumerComponentBase::Process() accepting the whole
+  urabbitmq::ConsumedMessage. Thanks to
+  [TertiumOrganum1](https://github.com/TertiumOrganum1) for the PR!
+* `human_logs.py` now supports more options and has more examples and docs
+  embedded. Thanks to
+  [TertiumOrganum1](https://github.com/TertiumOrganum1) for the PR!
+
+* Docs and build:
+  * `find_package(userver)` now implicitly calls `userver_setup_environment()`,
+    includes all the helper CMake userver scripts, making the configuration simpler.
+    Added diagnostics and fix-it hints for some of the CMake missuses.
+  * In docs `Ctrl+k` hotkey now focuses on `Search` input. Many thanks to
+    [Fedor Alekseev](https://github.com/atlz253) for the PR!
+  * ODR-violations are now avoided if the userver is built with different standard
+    version than the service.
+  * Each sample is now usable as a root project.
+  * Each driver now has a @ref QUALITY_TIERS "Quality Tier".
+  * Fixed minimal version requirements for Pythons gRPC modules. Thanks to
+    [Nikita](https://github.com/root-kidik) for the PR!
+  * Reduced build times by avoiding inclusion of heavy headers.
+  * Multiple improvements for docs, build and CI scripts.  
+
 ### Release v2.0
 
 Big new features since the v1.0.0:
@@ -129,7 +177,7 @@ Binary Ubuntu 22.04 amd64 package could be found at
 * Optimizations:
   * WriteAll for TLS became up to 7 times faster if multiple small chunks of
     data are written. Thanks to [Илья Оплачкин](https://github.com/IoplachkinI)
-    and [VScdr](https://github.com/VS-CDR) for the PR! 
+    and [VScdr](https://github.com/VS-CDR) for the PR!
   * Binary sizes were reduced if building without LTO. All the binaries linked
     with userver became about 1MB smaller.
   * Implemented asymmetric thread fences. This opens the door for optimizations
