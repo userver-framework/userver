@@ -4,10 +4,10 @@
 
 ### Getting started
 
-All userver test helpers live in `userver-utest` CMake target:
+All userver test helpers live in `userver::utest` CMake target:
 
 ```cmake
-target_link_libraries(your-test-target PRIVATE userver-utest)
+target_link_libraries(your-test-target PRIVATE userver::utest)
 ```
 
 To include gtest and userver-specific macros, do:
@@ -123,10 +123,10 @@ Default dynamic config values can be accessed using `<dynamic_config/test_helper
 
 ### Getting started
 
-All userver benchmark helpers live in `userver-ubench` CMake target:
+All userver benchmark helpers live in `userver::ubench` CMake target:
 
 ```cmake
-target_link_libraries(your-bench-target PRIVATE userver-ubench)
+target_link_libraries(your-bench-target PRIVATE userver::ubench)
 ```
 
 As usual, google-benchmark is available in `<benchmark/benchmark.h>`.

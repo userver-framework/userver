@@ -60,7 +60,7 @@ void Producer::InitProducerAndStartPollingIfFirstSend() const {
   }
 
   UINVARIANT(!first_send_.load() && producer_,
-             "Unsychronized producer configuration");
+             "Unsynchronized producer configuration");
 
   VerifyNotFinished();
 }

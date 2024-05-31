@@ -67,7 +67,7 @@ class ConsumerScope final {
  public:
   /// @brief Callback that invokes on each polled message batch.
   /// @warning If callback throws, it called over and over again with the batch
-  /// with the same messages, until successfull invokation.
+  /// with the same messages, until successful invocation.
   /// Though, user should consider idempotent message processing mechanism
   using Callback = std::function<void(MessageBatchView)>;
 
@@ -80,7 +80,7 @@ class ConsumerScope final {
   /// @brief Subscribes for configured topics and starts the consumer polling
   /// process.
   /// @note If `callback` throws an exception, entire message batch (also
-  /// with successfully processed messages) come again, until callback succeedes
+  /// with successfully processed messages) come again, until callback succeeds
   void Start(Callback callback);
 
   /// @brief Revokes all topic partition consumer was subscribed on. Also closes
@@ -92,13 +92,13 @@ class ConsumerScope final {
   /// actions in that destructor prevent the callback from functioning
   /// correctly.
   ///
-  /// After `Stop` call, subscribed topics parititions are destributed
+  /// After `Stop` call, subscribed topics partitions are distributed
   /// between other consumers with the same `group_id`.
   ///
   /// @warning Blocks until all `kafka::Message` destroyed.
   void Stop() noexcept;
 
-  /// @brief Schedules the current assignment offsets committment task.
+  /// @brief Schedules the current assignment offsets commitment task.
   /// Intended to be called after each message batch processing cycle.
   ///
   /// @warning Commit does not ensure that messages do not come again --
@@ -109,7 +109,7 @@ class ConsumerScope final {
   ///
   /// @note Instead of calling `AsyncCommit` manually, consider setting
   /// `enable_auto_commit: true` in the static config. But read Kafka
-  /// documentation carefully before to understand what auto committment
+  /// documentation carefully before to understand what auto commitment
   /// mechanism actually mean
   void AsyncCommit();
 

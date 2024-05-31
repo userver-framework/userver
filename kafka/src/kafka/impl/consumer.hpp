@@ -62,8 +62,8 @@ class Consumer final {
   /// @brief Calls `poll_task_.SyncCancel()`
   void Stop() noexcept;
 
-  /// @brief Schedules the committment task.
-  /// @see `ConsumerScope::AsyncCommit` for better committment process
+  /// @brief Schedules the commitment task.
+  /// @see `ConsumerScope::AsyncCommit` for better commitment process
   /// understanding
   void AsyncCommit();
 

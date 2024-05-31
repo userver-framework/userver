@@ -37,7 +37,7 @@ class Configuration final {
 
   /// @brief Releases stored `rd_kafka_conf_t` pointer to be passed as a
   /// parameter of `rd_kafka_new` function that takes ownership on
-  /// configutation.
+  /// configuration.
   rd_kafka_conf_t* Release();
 
  private:

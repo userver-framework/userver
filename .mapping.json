@@ -1962,6 +1962,7 @@
   "mongo/src/storages/mongo/util_mongotest.hpp":"taxi/uservices/userver/mongo/src/storages/mongo/util_mongotest.hpp",
   "mongo/src/storages/mongo/write_result.cpp":"taxi/uservices/userver/mongo/src/storages/mongo/write_result.cpp",
   "mysql/CMakeLists.txt":"taxi/uservices/userver/mysql/CMakeLists.txt",
+  "mysql/README.md":"taxi/uservices/userver/mysql/README.md",
   "mysql/TODO.md":"taxi/uservices/userver/mysql/TODO.md",
   "mysql/functional_tests/CMakeLists.txt":"taxi/uservices/userver/mysql/functional_tests/CMakeLists.txt",
   "mysql/functional_tests/basic_chaos/CMakeLists.txt":"taxi/uservices/userver/mysql/functional_tests/basic_chaos/CMakeLists.txt",

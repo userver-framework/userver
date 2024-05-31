@@ -69,7 +69,7 @@ void Consumer::StartMessageProcessing(ConsumerScope::Callback callback) {
 
           if (polled_messages.empty() || engine::current_task::ShouldCancel()) {
             /// @note Message batch may be not empty. It may be polled by
-            /// another consumer in future, because they are not commited
+            /// another consumer in future, because they are not committed
             continue;
           }
           TESTPOINT(fmt::format("tp_{}_polled", component_name_), {});
@@ -80,7 +80,7 @@ void Consumer::StartMessageProcessing(ConsumerScope::Callback callback) {
           try {
             batch_processing_task.Get();
 
-            consumer_->AccountMessageBatchProccessingSucceeded(polled_messages);
+            consumer_->AccountMessageBatchProcessingSucceeded(polled_messages);
             TESTPOINT(fmt::format("tp_{}", component_name_), {});
           } catch (const std::exception& e) {
             consumer_->AccountMessageBatchProcessingFailed(polled_messages);
@@ -119,7 +119,7 @@ void Consumer::AsyncCommit() {
                        "enabled. May cause an unexpected behaviour!!!";
     }
 
-    /// @note Only schedules the offsets committment. Actual commit
+    /// @note Only schedules the offsets commitment. Actual commit
     /// occurs in future, after some polling cycles.
     consumer_->AsyncCommit();
   }).Get();

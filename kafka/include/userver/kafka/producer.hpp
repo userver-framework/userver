@@ -53,7 +53,7 @@ class Producer final {
   /// requests may lead to messages reordering or duplication. Nevertheless, the
   /// library retries a small list of delivery errors (such as message
   /// guaranteed timeouts), including errors those are not retried by
-  /// `librdkafka` and errors that may occure when the Kafka cluster or topic
+  /// `librdkafka` and errors that may occur when the Kafka cluster or topic
   /// have just been created (for instance, in tests)
   /// @see impl/producer_impl.cpp for the list of errors retryable by library
   static constexpr std::size_t kDefaultSendRetries = 5;
@@ -76,7 +76,7 @@ class Producer final {
   /// @brief Sends given message to topic `topic_name` by given `key`
   /// and `partition` (if passed) with payload contains the `message`
   /// data. Asynchronously waits until the message is delivered or the delivery
-  /// error occured.
+  /// error occurred.
   ///
   /// No payload data is copied. Method holds the data until message is
   /// delivered.

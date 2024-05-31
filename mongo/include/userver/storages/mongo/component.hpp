@@ -22,6 +22,10 @@ namespace components {
 /// Provides access to a MongoDB database.
 ///
 /// ## Dynamic options:
+/// * @ref MONGO_CONGESTION_CONTROL_DATABASES_SETTINGS
+/// * @ref MONGO_CONGESTION_CONTROL_ENABLED
+/// * @ref MONGO_CONGESTION_CONTROL_SETTINGS
+/// * @ref MONGO_CONNECTION_POOL_SETTINGS
 /// * @ref MONGO_DEFAULT_MAX_TIME_MS
 ///
 /// ## Static configuration example:
@@ -124,6 +128,10 @@ inline constexpr bool kHasValidate<Mongo> = true;
 /// Provides access to a dynamically reconfigurable set of MongoDB databases.
 ///
 /// ## Dynamic options:
+/// * @ref MONGO_CONGESTION_CONTROL_DATABASES_SETTINGS
+/// * @ref MONGO_CONGESTION_CONTROL_ENABLED
+/// * @ref MONGO_CONGESTION_CONTROL_SETTINGS
+/// * @ref MONGO_CONNECTION_POOL_SETTINGS
 /// * @ref MONGO_DEFAULT_MAX_TIME_MS
 ///
 /// ## Static configuration example:

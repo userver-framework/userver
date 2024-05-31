@@ -6,7 +6,7 @@ The following CMake options are used by userver:
 
 | Option                                 | Description                                                                                                           | Default                                                |
 |----------------------------------------|-----------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------|
-| USERVER_FEATURE_CORE                   | Provide a core library with coroutines, otherwise build only `userver-universal`                                      | ON                                                     |
+| USERVER_FEATURE_CORE                   | Provide a core library with coroutines, otherwise build only `userver::universal`                                     | ON                                                     |
 | USERVER_FEATURE_MONGODB                | Provide asynchronous driver for MongoDB                                                                               | ${USERVER_IS_THE_ROOT_PROJECT} AND x86\* AND NOT \*BSD |
 | USERVER_FEATURE_POSTGRESQL             | Provide asynchronous driver for PostgreSQL                                                                            | ${USERVER_IS_THE_ROOT_PROJECT}                         |
 | USERVER_FEATURE_REDIS                  | Provide asynchronous driver for Redis                                                                                 | ${USERVER_IS_THE_ROOT_PROJECT}                         |
@@ -85,22 +85,20 @@ For example to use clang-12 compiler install it and add the following options to
 
 userver is split into multiple CMake libraries.
 
-| CMake target         | CMake option to enable building the library | Component for install | Main documentation page                                  |
-|----------------------|---------------------------------------------|-----------------------|----------------------------------------------------------|
-| `userver-universal`  | Always on                                   | `universal`           | @ref scripts/docs/en/index.md                            |
-| `userver-core`       | `USERVER_FEATURE_CORE` (`ON` by default)    | `core`                | @ref scripts/docs/en/index.md                            |
-| `userver-grpc`       | `USERVER_FEATURE_GRPC`                      | `grpc`                | @ref scripts/docs/en/userver/grpc.md                     |
-| `userver-mongo`      | `USERVER_FEATURE_MONGODB`                   | `mongo`               | @ref scripts/docs/en/userver/mongodb.md                  |
-| `userver-postgresql` | `USERVER_FEATURE_POSTGRESQL`                | `postgresql`          | @ref pg_driver                                           |
-| `userver-redis`      | `USERVER_FEATURE_REDIS`                     | `redis`               | @ref scripts/docs/en/userver/redis.md                    |
-| `userver-clickhouse` | `USERVER_FEATURE_CLICKHOUSE`                | `clickhouse`          | @ref clickhouse_driver                                   |
-| `userver-kafka`      | `USERVER_FEATURE_KAFKA`                     | `kafka`               | @ref scripts/docs/en/userver/kafka.md                    |
-| `userver-rabbitmq`   | `USERVER_FEATURE_RABBITMQ`                  | `rabbitmq`            | @ref rabbitmq_driver                                     |
-| `userver-mysql`      | `USERVER_FEATURE_MYSQL`                     | `mysql`               | @ref scripts/docs/en/userver/mysql/design_and_details.md |
-| `userver-rocks`      | `USERVER_FEATURE_ROCKS`                     | `rocks`               | TODO                                                     |
-| `userver-ydb`        | `USERVER_FEATURE_YDB`                       | `ydb`                 | TODO                                                     |
-
-For installed userver or Conan, cmake targets are named like `userver::{component}`, for instance: `userver::core`, `userver::mysql`, etc
+| CMake target          | CMake option to enable building the library | Component for install | Main documentation page                                  |
+|-----------------------|---------------------------------------------|-----------------------|----------------------------------------------------------|
+| `userver::universal`  | Always on                                   | `universal`           | @ref scripts/docs/en/index.md                            |
+| `userver::core`       | `USERVER_FEATURE_CORE` (`ON` by default)    | `core`                | @ref scripts/docs/en/index.md                            |
+| `userver::grpc`       | `USERVER_FEATURE_GRPC`                      | `grpc`                | @ref scripts/docs/en/userver/grpc.md                     |
+| `userver::mongo`      | `USERVER_FEATURE_MONGODB`                   | `mongo`               | @ref scripts/docs/en/userver/mongodb.md                  |
+| `userver::postgresql` | `USERVER_FEATURE_POSTGRESQL`                | `postgresql`          | @ref pg_driver                                           |
+| `userver::redis`      | `USERVER_FEATURE_REDIS`                     | `redis`               | @ref scripts/docs/en/userver/redis.md                    |
+| `userver::clickhouse` | `USERVER_FEATURE_CLICKHOUSE`                | `clickhouse`          | @ref clickhouse_driver                                   |
+| `userver::kafka`      | `USERVER_FEATURE_KAFKA`                     | `kafka`               | @ref scripts/docs/en/userver/kafka.md                    |
+| `userver::rabbitmq`   | `USERVER_FEATURE_RABBITMQ`                  | `rabbitmq`            | @ref rabbitmq_driver                                     |
+| `userver::mysql`      | `USERVER_FEATURE_MYSQL`                     | `mysql`               | @ref scripts/docs/en/userver/mysql/mysql_driver.md       |
+| `userver::rocks`      | `USERVER_FEATURE_ROCKS`                     | `rocks`               | TODO                                                     |
+| `userver::ydb`        | `USERVER_FEATURE_YDB`                       | `ydb`                 | TODO                                                     |
 
 Make sure to:
 
@@ -148,7 +146,7 @@ CPMAddPackage(
     "USERVER_FEATURE_GRPC ON"
 )
 
-target_link_libraries(${PROJECT_NAME} userver-grpc)
+target_link_libraries(${PROJECT_NAME} userver::grpc)
 ```
 
 Make sure to enable the CMake options to build userver libraries you need,
@@ -169,7 +167,7 @@ There are prepared and ready to use service templates at the github:
 Just use the template to make your own service:
 
 1. Press the green "Use this template" button at the top of the github template page
-2. Clone the service `git clone your-service-repo && cd your-service-repo && git submodule update --init`
+2. Clone the service `git clone your-service-repo && cd your-service-repo`
 3. Give a proper name to your service and replace all the occurrences of "*service_template" string with that name.
 4. Feel free to tweak, adjust or fully rewrite the source code of your service.
 
@@ -182,14 +180,14 @@ For local development of your service either
 
 The service templates allow to kickstart the development of your production-ready service,
 but there can't be a repo for each and every combination of userver libraries.
-To use additional userver libraries, e.g. `userver-grpc`, add to the root `CMakeLists.txt`:
+To use additional userver libraries, e.g. `userver::grpc`, add to the root `CMakeLists.txt`:
 
 ```cmake
 set(USERVER_FEATURE_GRPC ON CACHE BOOL "" FORCE)
 # ...
 add_subdirectory(third_party/userver)
 # ...
-target_link_libraries(${PROJECT_NAME} userver-grpc)
+target_link_libraries(${PROJECT_NAME} userver::grpc)
 ```
 
 @see @ref userver_libraries
