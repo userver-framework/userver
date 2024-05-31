@@ -72,6 +72,8 @@ Changelog news also go to the
   * Fixed minimal version requirements for Pythons gRPC modules. Thanks to
     [Nikita](https://github.com/root-kidik) for the PR!
   * Reduced build times by avoiding inclusion of heavy headers.
+  * Added an example on PostgreSQL `bytea` usage. Thanks to
+  [TertiumOrganum1](https://github.com/TertiumOrganum1) for the PR!
   * Multiple improvements for docs, build and CI scripts.  
 
 ### Release v2.0
