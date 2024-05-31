@@ -45,7 +45,20 @@ struct ContainerQueuePolicy {
 
 }  // namespace impl
 
-/// Queue with single and multi producer/consumer options
+/// @brief Queue with single and multi producer/consumer options.
+///
+/// @tparam T element type
+/// @tparam QueuePolicy policy type, it should have:
+/// 1. `static constexpr bool kIsMultipleProducer`
+/// 2. `static constexpr bool kIsMultipleConsumer`
+/// 3. `static std::size_t GetElementSize(const T& value)`
+///
+/// On practice, instead of using `GenericQueue` directly, use an alias:
+///
+/// * concurrent::NonFifoMpmcQueue
+/// * concurrent::NonFifoMpscQueue
+/// * concurrent::SpmcQueue
+/// * concurrent::SpscQueue
 ///
 /// @see @ref scripts/docs/en/userver/synchronization.md
 template <typename T, typename QueuePolicy>
@@ -215,12 +228,16 @@ class GenericQueue final
 
   template <typename Token>
   [[nodiscard]] bool Push(Token& token, T&& value, engine::Deadline deadline) {
-    return producer_side_.Push(token, std::move(value), deadline);
+    const std::size_t value_size = QueuePolicy::GetElementSize(value);
+    UASSERT(value_size > 0);
+    return producer_side_.Push(token, std::move(value), deadline, value_size);
   }
 
   template <typename Token>
   [[nodiscard]] bool PushNoblock(Token& token, T&& value) {
-    return producer_side_.PushNoblock(token, std::move(value));
+    const std::size_t value_size = QueuePolicy::GetElementSize(value);
+    UASSERT(value_size > 0);
+    return producer_side_.PushNoblock(token, std::move(value), value_size);
   }
 
   template <typename Token>
@@ -355,19 +372,27 @@ class GenericQueue<T, QueuePolicy>::SingleProducerSide final {
   // Blocks if there is a consumer to Pop the current value and task
   // shouldn't cancel and queue if full
   template <typename Token>
-  [[nodiscard]] bool Push(Token& token, T&& value, engine::Deadline deadline) {
-    if (DoPush(token, std::move(value))) {
-      return true;
-    }
-
-    return non_full_event_.WaitForEventUntil(deadline) &&
-           // NOLINTNEXTLINE(bugprone-use-after-move)
-           DoPush(token, std::move(value));
+  [[nodiscard]] bool Push(Token& token, T&& value, engine::Deadline deadline,
+                          std::size_t value_size) {
+    bool no_more_consumers = false;
+    const bool success = non_full_event_.WaitUntil(deadline, [&] {
+      if (queue_.NoMoreConsumers()) {
+        no_more_consumers = true;
+        return true;
+      }
+      if (DoPush(token, std::move(value), value_size)) {
+        return true;
+      }
+      return false;
+    });
+    return success && !no_more_consumers;
   }
 
   template <typename Token>
-  [[nodiscard]] bool PushNoblock(Token& token, T&& value) {
-    return DoPush(token, std::move(value));
+  [[nodiscard]] bool PushNoblock(Token& token, T&& value,
+                                 std::size_t value_size) {
+    return !queue_.NoMoreConsumers() &&
+           DoPush(token, std::move(value), value_size);
   }
 
   void OnElementPopped(std::size_t released_capacity) {
@@ -375,12 +400,9 @@ class GenericQueue<T, QueuePolicy>::SingleProducerSide final {
     non_full_event_.Send();
   }
 
-  void StopBlockingOnPush() {
-    total_capacity_ += kSemaphoreUnlockValue;
-    non_full_event_.Send();
-  }
+  void StopBlockingOnPush() { non_full_event_.Send(); }
 
-  void ResumeBlockingOnPush() { total_capacity_ -= kSemaphoreUnlockValue; }
+  void ResumeBlockingOnPush() {}
 
   void SetSoftMaxSize(std::size_t new_capacity) {
     const auto old_capacity = total_capacity_.exchange(new_capacity);
@@ -395,16 +417,13 @@ class GenericQueue<T, QueuePolicy>::SingleProducerSide final {
 
  private:
   template <typename Token>
-  [[nodiscard]] bool DoPush(Token& token, T&& value) {
-    const std::size_t value_size = QueuePolicy::GetElementSize(value);
-    if (queue_.NoMoreConsumers() ||
-        used_capacity_.load() + value_size > total_capacity_.load()) {
+  [[nodiscard]] bool DoPush(Token& token, T&& value, std::size_t value_size) {
+    if (used_capacity_.load() + value_size > total_capacity_.load()) {
       return false;
     }
 
     used_capacity_.fetch_add(value_size);
     queue_.DoPush(token, std::move(value));
-    non_full_event_.Reset();
     return true;
   }
 
@@ -426,18 +445,18 @@ class GenericQueue<T, QueuePolicy>::MultiProducerSide final {
   // Blocks if there is a consumer to Pop the current value and task
   // shouldn't cancel and queue if full
   template <typename Token>
-  [[nodiscard]] bool Push(Token& token, T&& value, engine::Deadline deadline) {
-    const std::size_t value_size = QueuePolicy::GetElementSize(value);
+  [[nodiscard]] bool Push(Token& token, T&& value, engine::Deadline deadline,
+                          std::size_t value_size) {
     return remaining_capacity_.try_lock_shared_until_count(deadline,
                                                            value_size) &&
-           DoPush(token, std::move(value));
+           DoPush(token, std::move(value), value_size);
   }
 
   template <typename Token>
-  [[nodiscard]] bool PushNoblock(Token& token, T&& value) {
-    const std::size_t value_size = QueuePolicy::GetElementSize(value);
+  [[nodiscard]] bool PushNoblock(Token& token, T&& value,
+                                 std::size_t value_size) {
     return remaining_capacity_.try_lock_shared_count(value_size) &&
-           DoPush(token, std::move(value));
+           DoPush(token, std::move(value), value_size);
   }
 
   void OnElementPopped(std::size_t value_size) {
@@ -466,9 +485,7 @@ class GenericQueue<T, QueuePolicy>::MultiProducerSide final {
 
  private:
   template <typename Token>
-  [[nodiscard]] bool DoPush(Token& token, T&& value) {
-    const std::size_t value_size = QueuePolicy::GetElementSize(value);
-    UASSERT(value_size > 0);
+  [[nodiscard]] bool DoPush(Token& token, T&& value, std::size_t value_size) {
     if (queue_.NoMoreConsumers()) {
       remaining_capacity_.unlock_shared_count(value_size);
       return false;
@@ -493,16 +510,23 @@ class GenericQueue<T, QueuePolicy>::SingleConsumerSide final {
   // Blocks only if queue is empty
   template <typename Token>
   [[nodiscard]] bool Pop(Token& token, T& value, engine::Deadline deadline) {
-    while (!DoPop(token, value)) {
-      if (queue_.NoMoreProducers() ||
-          !nonempty_event_.WaitForEventUntil(deadline)) {
+    bool no_more_consumers = false;
+    const bool success = nonempty_event_.WaitUntil(deadline, [&] {
+      if (DoPop(token, value)) {
+        return true;
+      }
+      if (queue_.NoMoreProducers()) {
         // Producer might have pushed something in queue between .pop()
         // and !producer_is_created_and_dead_ check. Check twice to avoid
         // TOCTOU.
-        return DoPop(token, value);
+        if (!DoPop(token, value)) {
+          no_more_consumers = true;
+        }
+        return true;
       }
-    }
-    return true;
+      return false;
+    });
+    return success && !no_more_consumers;
   }
 
   template <typename Token>

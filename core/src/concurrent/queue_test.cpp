@@ -178,7 +178,7 @@ UTEST_MT(NonFifoMpmcQueue, SizeAfterConsumersDie, kConsumersCount + 1) {
   EXPECT_EQ(0, queue->GetSizeApproximate());
 }
 
-UTEST_MT(NonFifoSpmcQueue, Spmc, 1 + kConsumersCount) {
+UTEST_MT(SpmcQueue, Spmc, 1 + kConsumersCount) {
   auto queue = concurrent::SpmcQueue<std::size_t>::Create(kMessageCount);
   std::optional producer(queue->GetProducer());
 
@@ -215,6 +215,36 @@ UTEST_MT(NonFifoSpmcQueue, Spmc, 1 + kConsumersCount) {
 
   ASSERT_TRUE(std::all_of(consumed_messages.begin(), consumed_messages.end(),
                           [](int item) { return item == 1; }));
+}
+
+// Reported in https://github.com/userver-framework/userver/issues/578
+UTEST_MT(SpscQueue, DeadConsumerRace, 3) {
+  struct Item {};
+
+  const auto test_deadline =
+      engine::Deadline::FromDuration(std::chrono::milliseconds{100});
+
+  while (!test_deadline.IsReached()) {
+    auto queue = concurrent::SpscQueue<Item>::Create();
+    auto consumer = queue->GetConsumer();
+    auto producer = queue->GetProducer();
+
+    auto consumer_task =
+        engine::AsyncNoSpan([consumer = std::move(consumer)]() mutable {
+          std::this_thread::yield();
+          std::move(consumer).Reset();
+        });
+
+    std::this_thread::yield();
+    // May or may not push, depending on token drop ordering. Should not hang.
+    (void)producer.Push(Item{});
+
+    std::this_thread::yield();
+    // May or may not push, depending on token drop ordering. Should not hang.
+    (void)producer.Push(Item{});
+
+    UEXPECT_NO_THROW(consumer_task.Get());
+  }
 }
 
 UTEST_MT(NonFifoMpscQueue, Mpsc, kProducersCount + 1) {
@@ -284,7 +314,7 @@ UTEST_MT(NonFifoMpscQueue, SizeAfterConsumersDie, 2) {
   EXPECT_EQ(0, queue->GetSizeApproximate());
 }
 
-UTEST_MT(NonFifoSpscQueue, Spsc, 1 + 1) {
+UTEST_MT(SpscQueue, Spsc, 1 + 1) {
   auto queue = concurrent::SpscQueue<std::size_t>::Create(kMessageCount);
 
   std::optional producer(queue->GetProducer());
@@ -307,9 +337,7 @@ UTEST_MT(NonFifoSpscQueue, Spsc, 1 + 1) {
                           [](int item) { return item == 1; }));
 }
 
-// TODO(TAXICOMMON-7429) the test occasionally hangs; fix and re-enable
-UTEST_MT(QueueFixture, DISABLED_MultiConsumerToken,
-         kProducersCount + kConsumersCount) {
+UTEST_MT(QueueFixture, MultiConsumerToken, kProducersCount + kConsumersCount) {
   using Message = std::size_t;
   using Queue = concurrent::NonFifoMpmcQueue<Message>;
   using ReceivedMessages = std::unordered_set<Message>;
