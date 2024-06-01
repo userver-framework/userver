@@ -24,6 +24,18 @@ DEFAULT_PORT = 2211
 logger = logging.getLogger(__name__)
 
 
+class BaseError(Exception):
+    pass
+
+
+class IncorrectUsageError(BaseError):
+    pass
+
+
+class ClientConnectTimeoutError(BaseError):
+    pass
+
+
 class LogLevel(enum.Enum):
     TRACE = 0
     DEBUG = 1
@@ -43,6 +55,10 @@ class CapturedLogs:
         self._log_level = LogLevel.from_string(log_level)
         self._logs: typing.List[tskv.TskvRow] = []
         self._subscribers: typing.List = []
+        self._closed = False
+
+    def close(self):
+        self._closed = True
 
     async def publish(self, row: tskv.TskvRow) -> None:
         self._logs.append(row)
@@ -51,11 +67,16 @@ class CapturedLogs:
                 await callback(**row)
 
     def select(self, **query) -> typing.List[tskv.TskvRow]:
+        if not self._closed:
+            raise IncorrectUsageError(
+                'select() is only supported for closed captures\n'
+                'Please move select() after context manager body',
+            )
         level = query.get('level')
         if level:
             log_level = LogLevel[level]
             if log_level.value < self._log_level.value:
-                raise RuntimeError(
+                raise IncorrectUsageError(
                     f'Requested log level={log_level.name} is lower than '
                     f'service log level {self._log_level.name}',
                 )
@@ -66,6 +87,12 @@ class CapturedLogs:
         return result
 
     def subscribe(self, **query):
+        if self._closed:
+            raise IncorrectUsageError(
+                'subscribe() is not supported for closed captures\n'
+                'Please move subscribe() into context manager body',
+            )
+
         def decorator(func):
             decorated = callinfo.acallqueue(func)
             self._subscribers.append((query, decorated))
@@ -90,7 +117,7 @@ class CaptureControl:
         try:
             await asyncio.wait_for(waiter(), timeout=timeout)
         except TimeoutError:
-            raise RuntimeError(
+            raise ClientConnectTimeoutError(
                 'Timedout while waiting for logcapture client to connect',
             )
 
@@ -112,6 +139,7 @@ class CaptureControl:
         try:
             yield self._capture
         finally:
+            self._capture.close()
             self._capture = None
             if self._tasks:
                 _, pending = await asyncio.wait(self._tasks, timeout=timeout)
@@ -218,3 +246,7 @@ def _match_entry(row: tskv.TskvRow, query) -> bool:
         if row.get(key) != value:
             return False
     return True
+
+
+def __tracebackhide__(excinfo):
+    return excinfo.errisinstance(BaseError)
