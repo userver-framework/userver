@@ -55,10 +55,11 @@ void LogFunction(::gpr_log_func_args* args) noexcept {
       utils::impl::SourceLocation::Custom(args->line, args->file, "");
   logging::LogHelper(logger, lvl, location) << args->message;
 
-  if (lvl == logging::Level::kError) {
-    // Error logs are often produced right before abort()
-    logging::LogFlush(logger);
-  }
+  // We used to call LogFlush for kError logging level here,
+  // but that might lead to a thread switch (there is a coroutine-aware
+  // .Wait somewhere down the call chain), which breaks the grpc-core badly:
+  // its ExecCtx/ApplicationCallbackExecCtx are attached to a current thread
+  // (thread_local that is), and switching threads violates that, obviously.
 }
 
 engine::Mutex native_log_level_mutex;
