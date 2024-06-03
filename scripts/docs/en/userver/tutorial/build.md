@@ -1,5 +1,67 @@
 ## Configure, Build and Install
 
+## Quick start for beginners
+
+1\. clone service template and userver repositories
+
+
+```shell
+git clone --depth 1 https://github.com/userver-framework/service_template.git && \
+git clone --depth 1 https://github.com/userver-framework/userver.git service_template/third_party/userver && \
+cd service_template
+```
+
+More information about the service template can be found here: @ref scripts/docs/en/userver/tutorial/hello_service.md
+
+2\. install build dependencies for userver
+
+see build dependencies here: @ref service_templates
+
+for example to install @ref ubuntu_22_04 build dependencies:
+
+```shell
+sudo apt update && \
+sudo apt install --allow-downgrades -y $(cat third_party/userver/scripts/docs/en/deps/ubuntu-22.04.md | tr '\n' ' ')
+```
+
+3\. build and start hello service
+
+```shell
+make build-release && \
+make service-start-release
+```
+
+During the build, you can make a coffee break until approximately the following output appears:
+
+```shell
+====================================================================================================
+Started service at http://localhost:8080/, configured monitor URL is http://localhost:-1/
+====================================================================================================
+
+PASSED
+[service-runner] Service started, use C-c to terminate
+INFO     <userver> Server is started
+...
+DEBUG    <userver> Accepted connection #2/32768
+DEBUG    <userver> Incoming connection from ::ffff:127.0.0.1, fd 43
+
+```
+
+4\. try to send request
+
+```shell
+curl http://127.0.0.1:8080/hello?name=userver
+```
+
+The answer should be something like this:
+
+```shell
+> curl http://127.0.0.1:8080/hello?name=userver
+Hello, userver!
+```
+
+5\. Now you are ready for fast and comfortable creation of C++ microservices, services and utilities!
+
 ## CMake options
 
 The following CMake options are used by userver:
@@ -194,7 +256,7 @@ target_link_libraries(${PROJECT_NAME} userver::grpc)
 
 See @ref tutorial_services for minimal usage examples of various userver libraries.
 
-
+@anchor ubuntu_22_04
 ### Ubuntu 22.04 (Jammy Jellyfish)
 
 \b Dependencies: @ref scripts/docs/en/deps/ubuntu-22.04.md "third_party/userver/scripts/docs/en/deps/ubuntu-22.04.md"
