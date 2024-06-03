@@ -510,7 +510,7 @@ class GenericQueue<T, QueuePolicy>::SingleConsumerSide final {
   // Blocks only if queue is empty
   template <typename Token>
   [[nodiscard]] bool Pop(Token& token, T& value, engine::Deadline deadline) {
-    bool no_more_consumers = false;
+    bool no_more_producers = false;
     const bool success = nonempty_event_.WaitUntil(deadline, [&] {
       if (DoPop(token, value)) {
         return true;
@@ -520,13 +520,13 @@ class GenericQueue<T, QueuePolicy>::SingleConsumerSide final {
         // and !producer_is_created_and_dead_ check. Check twice to avoid
         // TOCTOU.
         if (!DoPop(token, value)) {
-          no_more_consumers = true;
+          no_more_producers = true;
         }
         return true;
       }
       return false;
     });
-    return success && !no_more_consumers;
+    return success && !no_more_producers;
   }
 
   template <typename Token>
