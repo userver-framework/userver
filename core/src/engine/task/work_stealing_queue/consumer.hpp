@@ -62,9 +62,9 @@ class Consumer final {
 
   // Empirical evaluation of the optimal local queue size.
   // 2^n -1 so that the internal queue size is 2^n
-  static constexpr std::size_t kLocalQueueSize = 64;
+  static constexpr std::size_t kLocalQueueSize = 1024;
   // Equal to half the queue size
-  static constexpr std::size_t kConsumerStealBufferSize = 32;
+  static constexpr std::size_t kConsumerStealBufferSize = 512;
 
   LocalQueue<impl::TaskContext, kLocalQueueSize> local_queue_{};
   WorkStealingTaskQueue& owner_;

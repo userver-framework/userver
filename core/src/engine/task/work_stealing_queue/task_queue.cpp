@@ -7,6 +7,7 @@
 #include <engine/task/work_stealing_queue/consumer.hpp>
 #include <engine/task/work_stealing_queue/consumers_manager.hpp>
 #include <engine/task/work_stealing_queue/global_queue.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace engine {
@@ -65,6 +66,7 @@ void WorkStealingTaskQueue::PrepareWorker(std::size_t index) {
 void WorkStealingTaskQueue::DoPush(impl::TaskContext* context) {
   {
     Consumer* consumer = GetConsumer();
+
     if (consumer != nullptr && consumer->GetOwner() == this) {
       consumer->Push(context);
     } else if (context && context->IsBackground()) {
