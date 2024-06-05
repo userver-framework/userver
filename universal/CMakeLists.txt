@@ -60,6 +60,7 @@ if (USERVER_CONAN)
   find_package(yaml-cpp REQUIRED)
   find_package(fmt REQUIRED)
   find_package(cctz REQUIRED)
+  find_package(zstd REQUIRED)
 
   find_package(RapidJSON REQUIRED)
   target_compile_definitions(rapidjson INTERFACE RAPIDJSON_HAS_STDSTRING)
@@ -68,6 +69,7 @@ else()
   find_package_required(libyamlcpp "libyaml-cpp-dev")
   include(SetupFmt)
   include(SetupCCTZ)
+  find_package(libzstd REQUIRED)
 endif()
 
 # Compiler flags for userver code. Flags for all the code
@@ -234,7 +236,6 @@ target_link_libraries(${PROJECT_NAME}
     Boost::regex
     OpenSSL::Crypto
     OpenSSL::SSL
-    zstd
 )
 
 if (USERVER_CONAN)
@@ -247,6 +248,7 @@ if (USERVER_CONAN)
       yaml-cpp
       cryptopp::cryptopp
       rapidjson
+      zstd::libzstd_static
   )
 else()
   include(Stacktrace)
@@ -260,6 +262,7 @@ else()
       userver-stacktrace
     PRIVATE
       libyamlcpp
+      libzstd
       CryptoPP
   )
 endif()
@@ -362,6 +365,7 @@ endif()
 _userver_directory_install(COMPONENT universal FILES
     "${CMAKE_BINARY_DIR}/cmake_generated/FindCryptoPP.cmake"
     "${CMAKE_BINARY_DIR}/cmake_generated/Findlibyamlcpp.cmake"
+    "${CMAKE_BINARY_DIR}/cmake_generated/Findlibzstd.cmake"
     "${CMAKE_BINARY_DIR}/cmake_generated/Findcctz.cmake"
     "${CMAKE_BINARY_DIR}/cmake_generated/FindJemalloc.cmake"
     "${CMAKE_BINARY_DIR}/cmake_generated/FindUserverGBench.cmake"

@@ -112,6 +112,7 @@ class UserverConan(ConanFile):
         self.requires('rapidjson/cci.20220822', transitive_headers=True)
         self.requires('yaml-cpp/0.7.0')
         self.requires('zlib/1.2.13')
+        self.requires('zstd/1.5.6')
 
         if self.options.with_jemalloc:
             self.requires('jemalloc/5.3.0')
@@ -412,6 +413,9 @@ class UserverConan(ConanFile):
         def zlib():
             return ['zlib::zlib']
 
+        def zstd():
+            return ['zstd::libzstd_static']
+
         def jemalloc():
             return ['jemalloc::jemalloc'] if self.options.with_jemalloc else []
 
@@ -498,6 +502,7 @@ class UserverConan(ConanFile):
                         + cryptopp()
                         + jemalloc()
                         + openssl()
+                        + zstd()
                     ),
                 },
             ],
