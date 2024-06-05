@@ -117,7 +117,7 @@ class UserverConan(ConanFile):
             self.requires('jemalloc/5.3.0')
         if self.options.with_grpc:
             self.requires(
-                'grpc/1.54.3', transitive_headers=True, transitive_libs=True,
+                'grpc/1.48.4', transitive_headers=True, transitive_libs=True,
             )
             self.requires(
                 'googleapis/cci.20230501',
