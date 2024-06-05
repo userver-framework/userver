@@ -32,7 +32,12 @@ class LogFile:
     def readlines(
             self,
             eof_handler: typing.Optional[typing.Callable[[], bool]] = None,
+            limit_position: bool = False,
     ):
+        if limit_position:
+            max_position = self.path.stat().st_size
+        else:
+            max_position = None
         first_skipped = False
         for line, position in _raw_line_reader(
                 self.path, self.position, eof_handler=eof_handler,
@@ -47,6 +52,8 @@ class LogFile:
                 continue
             self.position = position
             yield line
+            if max_position is not None and position >= max_position:
+                break
 
 
 class LiveLogHandler:
@@ -145,7 +152,7 @@ class UserverLoggingPlugin:
     def _userver_report_attach_log(self, logfile: LogFile, report, title):
         log = io.StringIO()
         colorizer = self._colorize_factory()
-        for line in logfile.readlines():
+        for line in logfile.readlines(limit_position=True):
             line = line.rstrip('\r\n')
             line = colorizer(line)
             if line:
