@@ -22,8 +22,6 @@ components_manager:
                     level: debug
                     overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
         secdist:
-            provider: default-secdist-provider
-        default-secdist-provider:
             config: secure_data.json
 
         dynamic-config:

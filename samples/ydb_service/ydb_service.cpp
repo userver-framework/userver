@@ -9,7 +9,6 @@
 #include <userver/server/component.hpp>
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/storages/secdist/component.hpp>
-#include <userver/storages/secdist/provider_component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/daemon_run.hpp>
 
@@ -32,7 +31,6 @@ int main(int argc, char* argv[]) {
                             .Append<components::DynamicConfigClientUpdater>()
                             .Append<components::HttpClient>()
                             .Append<clients::dns::Component>()
-                            .Append<components::DefaultSecdistProvider>()
                             .Append<components::Secdist>()
                             .Append<sample::BsonReadingHandler>()
                             .Append<sample::BsonUpsertingHandler>()
