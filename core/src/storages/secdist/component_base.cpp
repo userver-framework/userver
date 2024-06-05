@@ -14,7 +14,7 @@ namespace components {
 SecdistComponentBase::SecdistComponentBase(
     const ComponentConfig& config, const ComponentContext& context,
     storages::secdist::SecdistConfig::Settings&& settings)
-    : LoggableComponentBase(config, context), secdist_(std::move(settings)) {}
+    : ComponentBase(config, context), secdist_(std::move(settings)) {}
 
 const storages::secdist::SecdistConfig& SecdistComponentBase::Get() const {
   return secdist_.Get();
@@ -30,7 +30,7 @@ storages::secdist::Secdist& SecdistComponentBase::GetStorage() {
 }
 
 yaml_config::Schema SecdistComponentBase::GetStaticConfigSchema() {
-  auto schema = LoggableComponentBase::GetStaticConfigSchema();
+  auto schema = ComponentBase::GetStaticConfigSchema();
   schema.UpdateDescription(
       "Base class for user defined secdists and DefaultSecdist");
   return schema;

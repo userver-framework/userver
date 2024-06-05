@@ -5,7 +5,7 @@
 
 #include <string>
 
-#include <userver/storages/secdist/provider.hpp>
+#include <userver/storages/secdist/provider_base.hpp>
 #include <userver/storages/secdist/secdist.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -13,14 +13,14 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::secdist {
 // clang-format off
 
-/// @brief Default implementation of storages::secdist::SecdistProvider.
+/// @brief Default implementation of storages::secdist::SecdistProviderBase.
 ///
 /// Provides components::Secdist configurations to the
 /// storages::secdist::SecdistConfig
 
 // clang-format on
 /// [Sample secdist - default provider]
-class DefaultProvider final : public storages::secdist::SecdistProvider {
+class DefaultProvider final : public storages::secdist::SecdistProviderBase {
  public:
   struct Settings {
     std::string config_path;
