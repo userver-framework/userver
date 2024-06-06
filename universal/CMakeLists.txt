@@ -248,9 +248,13 @@ if (USERVER_CONAN)
       yaml-cpp
       cryptopp::cryptopp
       rapidjson
-      # Accordong to https://conan.io/center/recipes/zstd should be zstd::libzstd_static , but does not work that way
-      zstd
   )
+  # Accordong to https://conan.io/center/recipes/zstd should be zstd::libzstd_static , but it does not work that way
+  if (TARGET zstd::libzstd_static)
+    target_link_libraries(${PROJECT_NAME} PRIVATE zstd::libzstd_static)
+  else()
+    target_link_libraries(${PROJECT_NAME} PRIVATE zstd::libzstd_shared)
+  endif()
 else()
   include(Stacktrace)
   _make_stacktrace_target(userver-stacktrace "${Boost_VERSION_STRING}")
