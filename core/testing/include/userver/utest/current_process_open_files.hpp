@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/utest/current_process_open_files.hpp
-/// @brief @copyprief std::vector<std::string> CurrentProcessOpenFiles()
+/// @brief @copybrief std::vector<std::string> CurrentProcessOpenFiles()
 
 #include <string>
 #include <vector>

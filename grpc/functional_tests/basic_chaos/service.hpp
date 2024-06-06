@@ -124,17 +124,17 @@ void GreeterServiceComponent::SayHelloIndependentStreams(
         }
       });
 
-  auto write_task =
-      engine::AsyncNoSpan([&call, prefix = prefix_, &kTimeIntervalWrite] {
-        api::GreetingResponse response;
-        std::array kNames = {"Python", "C++",       "linux", "userver", "grpc",
-                             "kernel", "developer", "core",  "anonim",  "user"};
-        for (const auto& name : kNames) {
-          response.set_greeting(fmt::format("{}, {}", prefix, name));
-          call.Write(response);
-          engine::SleepFor(kTimeIntervalWrite);
-        }
-      });
+  auto write_task = engine::AsyncNoSpan([&call, prefix = prefix_,
+                                         &kTimeIntervalWrite] {
+    api::GreetingResponse response;
+    std::array kNames = {"Python", "C++",       "linux", "userver",   "grpc",
+                         "kernel", "developer", "core",  "anonymous", "user"};
+    for (const auto& name : kNames) {
+      response.set_greeting(fmt::format("{}, {}", prefix, name));
+      call.Write(response);
+      engine::SleepFor(kTimeIntervalWrite);
+    }
+  });
 
   read_task.Get();
   write_task.Get();

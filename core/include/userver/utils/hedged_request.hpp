@@ -431,7 +431,7 @@ auto HedgeRequestsBulk(std::vector<RequestStrategy> inputs,
 /// std::vector<std::optional<ResultType>>. Result contains replies for each
 /// element in @param inputs or std::nullopt in case either timeouts or bad
 /// replies (RequestStrategy::ProcessReply(RequestType&&) returned std::nullopt
-/// and RequestStrategy::ExtractReply() returned std::nulopt)
+/// and RequestStrategy::ExtractReply() returned std::nullopt)
 template <typename RequestStrategy>
 auto HedgeRequestsBulkAsync(std::vector<RequestStrategy> inputs,
                             HedgingSettings settings) {

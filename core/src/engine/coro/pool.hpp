@@ -277,12 +277,12 @@ template <typename Task>
 bool Pool<Task>::TryPopulateLocalCache() {
   if (local_coroutine_move_size_ == 0) return false;
 
-  const std::size_t dequed_num = used_coroutines_.try_dequeue_bulk(
+  const std::size_t dequeued_num = used_coroutines_.try_dequeue_bulk(
       GetUsedPoolToken<moodycamel::ConsumerToken>(),
       std::back_inserter(local_coro_buffer_), local_coroutine_move_size_);
-  if (dequed_num == 0) return false;
+  if (dequeued_num == 0) return false;
 
-  idle_coroutines_num_.fetch_sub(dequed_num);
+  idle_coroutines_num_.fetch_sub(dequeued_num);
   return true;
 }
 

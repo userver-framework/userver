@@ -49,7 +49,7 @@ std::string_view ToString(WarningCode code);
 using PortabilityWarnings =
     std::unordered_map<WarningCode, std::vector<Warning>>;
 
-/// JSON serilization for the PortabilityInfo in the following format:
+/// JSON serialization for the PortabilityInfo in the following format:
 /// @code
 /// {
 ///   "warning_code": [

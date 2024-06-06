@@ -59,7 +59,7 @@ properties:
         defaultDescription: 0
     background-update:
         type: boolean
-        description: enables asynchronous updates for expring values
+        description: enables asynchronous updates for expiring values
         defaultDescription: false
     config-settings:
         type: boolean

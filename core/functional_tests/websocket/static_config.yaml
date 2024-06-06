@@ -1,7 +1,7 @@
 components_manager:
 
     task_processors:                  # Task processor is an executor for coroutine tasks
-        main-task-processor:          # Make a task processor for CPU-bound couroutine tasks.
+        main-task-processor:          # Make a task processor for CPU-bound coroutine tasks.
             worker_threads: 4         # Process tasks in 4 threads.
         fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
             worker_threads: 4

@@ -53,7 +53,8 @@ class Mutex final {
   /// Tries to lock the mutex without blocking the coroutine, returns true if
   /// succeeded.
   ///
-  /// @note The behavior of the function is not affected by cancelation request.
+  /// @note The behavior of the function is not affected by the cancellation
+  /// requests.
   [[nodiscard]] bool try_lock() noexcept;
 
   /// Tries to lock the mutex in specified duration. Blocks current coroutine if

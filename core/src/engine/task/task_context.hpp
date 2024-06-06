@@ -254,7 +254,7 @@ class TaskContext final : public ContextAccessor {
   // refcounter for task abandoning (cancellation) in engine::SharedTask
   std::atomic<std::size_t> shared_task_usages_{1};
 
-  // refcounter for resources and memory dealocation
+  // refcounter for resources and memory deallocation
   std::atomic<std::size_t> intrusive_refcount_{1};
   friend void intrusive_ptr_add_ref(TaskContext* p) noexcept;
   friend void intrusive_ptr_release(TaskContext* p) noexcept;

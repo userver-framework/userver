@@ -39,7 +39,7 @@ class MiddlewareCallContext final {
   std::string_view GetMethodName() const;
 
   /// @brief Get values extracted from dynamic_config. Snapshot will be
-  /// deleted when the last meddleware completes
+  /// deleted when the last middleware completes
   const dynamic_config::Snapshot& GetInitialDynamicConfig() const;
 
  private:

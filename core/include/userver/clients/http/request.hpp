@@ -269,7 +269,7 @@ class Request final {
     return *this;
   }
 
-  /// Override log URL. Usefull for "there's a secret in the query".
+  /// Override log URL. Useful for "there's a secret in the query".
   /// @warning The query might be logged by other intermediate HTTP agents
   ///          (nginx, L7 balancer, etc.).
   Request& SetLoggedUrl(std::string url) &;
@@ -324,7 +324,6 @@ class Request final {
   ///
   /// The HTTP client uses queue producer.
   /// StreamedResponse uses queue consumer.
-  /// @see src/clients/http/partial_pesponse.hpp
   [[nodiscard]] StreamedResponse async_perform_stream_body(
       const std::shared_ptr<concurrent::StringStreamQueue>& queue,
       utils::impl::SourceLocation location =

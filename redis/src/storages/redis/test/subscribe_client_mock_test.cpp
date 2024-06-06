@@ -42,7 +42,7 @@ TEST(MockSubscribeClientTest, SubscriptionToken) {
   //! [SbTknExmpl1]
   // Create a mocked subscribe client
   auto client_mock = std::make_shared<MockSubscribeClient>();
-  // Create a mocked token explicitly to set expectaitons on it.
+  // Create a mocked token explicitly to set expectations on it.
   auto token_mock = std::make_unique<MockSubscriptionTokenImpl>();
 
   using testing::_;

@@ -38,7 +38,7 @@ TEST(GetAddrInfo, LocalhostIpV6) {
   EXPECT_EQ(data.front().PrimaryAddressString(), "::1");
 }
 
-TEST(GetAddrInfo, NotResoveHost) {
+TEST(GetAddrInfo, NotResolveHost) {
   EXPECT_THROW(net::blocking::GetAddrInfo("unknown_host.local", "8085"),
                std::runtime_error);
 }

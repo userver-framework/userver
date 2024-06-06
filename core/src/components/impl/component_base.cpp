@@ -7,7 +7,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
-// Putting detructor into a cpp file to force vtable instantiation in only 1
+// Putting destructor into a cpp file to force vtable instantiation in only 1
 // translation unit
 RawComponentBase::~RawComponentBase() = default;
 

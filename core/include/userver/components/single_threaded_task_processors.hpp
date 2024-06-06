@@ -22,7 +22,7 @@ namespace components {
 ///
 /// @brief Component that starts multiple single threaded task processors.
 ///
-/// Usefull to process tasks in a single threaded third-party libraries
+/// Useful to process tasks in a single threaded third-party libraries
 /// (for example in Python/JS interpreters).
 ///
 /// ## Static options:
