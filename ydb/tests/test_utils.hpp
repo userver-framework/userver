@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ydb-cpp-sdk/client/table/table.h>
-#include <ydb-cpp-sdk/client/topic/topic.h>
+#include <ydb-cpp-sdk/client/topic/client.h>
 
 #include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/utest/utest.hpp>

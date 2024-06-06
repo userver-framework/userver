@@ -4,7 +4,7 @@
 #include <memory>
 #include <string>
 
-#include <ydb-cpp-sdk/client/topic/topic.h>
+#include <ydb-cpp-sdk/client/topic/client.h>
 
 USERVER_NAMESPACE_BEGIN
 
