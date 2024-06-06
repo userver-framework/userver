@@ -120,7 +120,7 @@ class Consumer final {
   /// @returns whether something was popped before the deadline.
   /// @note `false` can be returned before the deadline when the producer is no
   /// longer alive.
-  /// @warning Be carefully when using a method in a loop. The
+  /// @warning Be careful when using a method in a loop. The
   /// `engine::Deadline` is a wrapper over `std::chrono::time_point`, not
   /// `duration`! If you need a timeout, you must reconstruct the deadline in
   /// the loop.
