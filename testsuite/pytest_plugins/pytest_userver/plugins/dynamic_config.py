@@ -544,7 +544,11 @@ def mock_configs_service(
 
     @mockserver.json_handler('/configs-service/configs/status')
     def _mock_configs_status(_request):
-        return {'updated_at': dynamic_config_changelog.timestamp}
+        return {
+            'updated_at': dynamic_config_changelog.timestamp.strftime(
+                '%Y-%m-%dT%H:%M:%SZ',
+            ),
+        }
 
 
 @pytest.fixture

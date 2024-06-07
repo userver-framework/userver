@@ -60,31 +60,32 @@ ConfigPatch Parse(const formats::json::Value& value,
                   formats::parse::To<ConfigPatch>);
 
 struct Config final {
+  Config() = default;
   explicit Config(const yaml_config::YamlConfig& config,
                   const std::optional<dump::Config>& dump_config);
 
   Config MergeWith(const ConfigPatch& patch) const;
 
-  AllowedUpdateTypes allowed_update_types;
-  bool allow_first_update_failure;
+  AllowedUpdateTypes allowed_update_types{};
+  bool allow_first_update_failure{};
   std::optional<bool> force_periodic_update;
-  bool config_updates_enabled;
-  bool has_pre_assign_check;
+  bool config_updates_enabled{};
+  bool has_pre_assign_check{};
   std::optional<std::string> task_processor_name;
-  std::chrono::milliseconds cleanup_interval;
-  bool is_strong_period;
+  std::chrono::milliseconds cleanup_interval{};
+  bool is_strong_period{};
   std::optional<std::uint64_t> failed_updates_before_expiration;
 
-  FirstUpdateMode first_update_mode;
-  FirstUpdateType first_update_type;
+  FirstUpdateMode first_update_mode{};
+  FirstUpdateType first_update_type{};
 
-  std::chrono::milliseconds update_interval;
-  std::chrono::milliseconds update_jitter;
-  std::chrono::milliseconds full_update_interval;
-  std::chrono::milliseconds full_update_jitter;
+  std::chrono::milliseconds update_interval{};
+  std::chrono::milliseconds update_jitter{};
+  std::chrono::milliseconds full_update_interval{};
+  std::chrono::milliseconds full_update_jitter{};
   std::optional<std::chrono::milliseconds> exception_interval;
-  bool updates_enabled;
-  std::uint64_t alert_on_failing_to_update_times;
+  bool updates_enabled{};
+  std::uint64_t alert_on_failing_to_update_times{};
 };
 
 extern const dynamic_config::Key<std::unordered_map<std::string, ConfigPatch>>
