@@ -1,7 +1,7 @@
 #include <userver/yaml_config/yaml_config.hpp>
 
 #include <fmt/format.h>
-#include <boost/algorithm/string/predicate.hpp>
+#include <boost/filesystem/operations.hpp>
 
 #include <userver/formats/common/conversion_stack.hpp>
 #include <userver/formats/json/value.hpp>
@@ -9,6 +9,7 @@
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/string_to_duration.hpp>
+#include <userver/utils/text_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -26,12 +27,16 @@ std::string GetSubstitutionVarName(const formats::yaml::Value& value) {
   return value.As<std::string>().substr(1);
 }
 
-std::string GetFallbackName(std::string_view str) {
-  return std::string{str} + "#fallback";
-}
-
 std::string GetEnvName(std::string_view str) {
   return std::string{str} + "#env";
+}
+
+std::string GetFileName(std::string_view str) {
+  return std::string{str} + "#file";
+}
+
+std::string GetFallbackName(std::string_view str) {
+  return std::string{str} + "#fallback";
 }
 
 template <typename Field>
@@ -41,35 +46,51 @@ YamlConfig MakeMissingConfig(const YamlConfig& config, Field field) {
 }
 
 void AssertEnvMode(YamlConfig::Mode mode) {
-  if (mode != YamlConfig::Mode::kEnvAllowed) {
+  if (mode == YamlConfig::Mode::kSecure) {
     throw std::runtime_error(
-        "YamlConfig was not constructed with Mode::kEnvAllowed but an attempt "
+        "YamlConfig was not constructed with Mode::kEnvAllowed or "
+        "Mode::kEnvAndFileAllowed but an attempt "
         "to read an environment variable was made");
   }
 }
 
-std::optional<formats::yaml::Value> GetFromEnvByKey(
-    std::string_view key, const formats::yaml::Value& yaml,
-    YamlConfig::Mode mode) {
-  const auto env_name = yaml[GetEnvName(key)];
-  if (!env_name.IsMissing()) {
-    AssertEnvMode(mode);
+void AssertFileMode(YamlConfig::Mode mode) {
+  if (mode != YamlConfig::Mode::kEnvAndFileAllowed) {
+    throw std::runtime_error(
+        "YamlConfig was not constructed with Mode::kEnvAndFileAllowed "
+        "but an attempt to read a file was made");
+  }
+}
 
-    // NOLINTNEXTLINE(concurrency-mt-unsafe)
-    const auto* env_value = std::getenv(env_name.As<std::string>().c_str());
-    if (env_value) {
-      LOG_INFO() << "using env value for '" << key << '\'';
-      return formats::yaml::FromString(env_value);
-    }
+std::optional<formats::yaml::Value> GetFromEnvImpl(
+    const formats::yaml::Value& env_name, YamlConfig::Mode mode) {
+  if (env_name.IsMissing()) {
+    return {};
+  }
 
-    const auto fallback_name = GetFallbackName(key);
-    if (yaml.HasMember(fallback_name)) {
-      LOG_INFO() << "using fallback value for '" << key << '\'';
-      return yaml[fallback_name];
-    }
+  AssertEnvMode(mode);
+
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
+  const auto* env_value = std::getenv(env_name.As<std::string>().c_str());
+  if (env_value) {
+    return formats::yaml::FromString(env_value);
   }
 
   return {};
+}
+
+std::optional<formats::yaml::Value> GetFromFileImpl(
+    const formats::yaml::Value& file_name, YamlConfig::Mode mode) {
+  if (file_name.IsMissing()) {
+    return {};
+  }
+
+  AssertFileMode(mode);
+  const auto str_filename = file_name.As<std::string>();
+  if (!boost::filesystem::exists(str_filename)) {
+    return {};
+  }
+  return formats::yaml::blocking::FromFile(str_filename);
 }
 
 }  // namespace
@@ -83,20 +104,17 @@ YamlConfig::YamlConfig(formats::yaml::Value yaml,
 const formats::yaml::Value& YamlConfig::Yaml() const { return yaml_; }
 
 YamlConfig YamlConfig::operator[](std::string_view key) const {
-  if (boost::algorithm::ends_with(key, "#env")) {
-    auto env_value = GetFromEnvByKey(key, yaml_, mode_);
-    if (env_value) {
-      // Strip substitutions off to disallow nested substitutions
-      return YamlConfig{std::move(*env_value), {}, Mode::kSecure};
-    }
-
-    // Avoid parsing #env as a string
+  // TODO: fix the iterators and assert this case in TAXICOMMON-8973
+  if (utils::text::EndsWith(key, "#env") ||
+      utils::text::EndsWith(key, "#file") ||
+      utils::text::EndsWith(key, "#fallback")) {
     return MakeMissingConfig(*this, key);
   }
 
   auto value = yaml_[key];
 
-  if (IsSubstitution(value)) {
+  const bool is_substitution = IsSubstitution(value);
+  if (is_substitution) {
     const auto var_name = GetSubstitutionVarName(value);
 
     auto var_data = config_vars_[var_name];
@@ -104,33 +122,36 @@ YamlConfig YamlConfig::operator[](std::string_view key) const {
       // Strip substitutions off to disallow nested substitutions
       return YamlConfig{std::move(var_data), {}, Mode::kSecure};
     }
+  }
 
-    auto env_value = GetFromEnvByKey(key, yaml_, mode_);
-    if (env_value) {
-      // Strip substitutions off to disallow nested substitutions
-      return YamlConfig{std::move(*env_value), {}, Mode::kSecure};
-    }
+  if (!value.IsMissing() && !is_substitution) {
+    return YamlConfig{std::move(value), config_vars_, mode_};
+  }
 
+  const auto env_name = yaml_[GetEnvName(key)];
+  auto env_value = GetFromEnvImpl(env_name, mode_);
+  if (env_value) {
+    // Strip substitutions off to disallow nested substitutions
+    return YamlConfig{std::move(*env_value), {}, Mode::kSecure};
+  }
+
+  const auto file_name = yaml_[GetFileName(key)];
+  auto file_value = GetFromFileImpl(file_name, mode_);
+  if (file_value) {
+    // Strip substitutions off to disallow nested substitutions
+    return YamlConfig{std::move(*file_value), {}, Mode::kSecure};
+  }
+
+  if (is_substitution || !env_name.IsMissing() || !file_name.IsMissing()) {
     const auto fallback_name = GetFallbackName(key);
     if (yaml_.HasMember(fallback_name)) {
       LOG_INFO() << "using fallback value for '" << key << '\'';
       // Strip substitutions off to disallow nested substitutions
       return YamlConfig{yaml_[fallback_name], {}, Mode::kSecure};
     }
-
-    // Avoid parsing $substitution as a string
-    return MakeMissingConfig(*this, key);
   }
 
-  if (value.IsMissing()) {
-    auto env_value = GetFromEnvByKey(key, yaml_, mode_);
-    if (env_value) {
-      // Strip substitutions off to disallow nested substitutions
-      return YamlConfig{std::move(*env_value), {}, Mode::kSecure};
-    }
-  }
-
-  return YamlConfig{std::move(value), config_vars_, mode_};
+  return MakeMissingConfig(*this, key);
 }
 
 YamlConfig YamlConfig::operator[](size_t index) const {

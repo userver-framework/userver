@@ -5,6 +5,8 @@
 #include <formats/common/value_test.hpp>
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/formats/yaml/value_builder.hpp>
+#include <userver/fs/blocking/temp_directory.hpp>
+#include <userver/fs/blocking/write.hpp>
 #include <userver/utest/assert_macros.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -75,6 +77,7 @@ TEST(YamlConfig, SampleMultiple) {
 # yaml
 some_element:
     some: $variable
+    some#file: /some/path/to/the/file.yaml
     some#env: SOME_ENV_VARIABLE
     some#fallback: 100500
 # /// [sample multiple]
@@ -91,6 +94,10 @@ some_element:
                                  yaml_config::YamlConfig::Mode::kEnvAllowed);
   EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 42);
 
+  yaml = yaml_config::YamlConfig(
+      node, vars, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
+  EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 42);
+
   yaml = yaml_config::YamlConfig(node, {},
                                  yaml_config::YamlConfig::Mode::kEnvAllowed);
   EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 100);
@@ -103,6 +110,10 @@ some_element:
 
   yaml = yaml_config::YamlConfig(node, {},
                                  yaml_config::YamlConfig::Mode::kEnvAllowed);
+  UEXPECT_THROW(yaml["some_element"]["some"].As<int>(), std::exception);
+
+  yaml = yaml_config::YamlConfig(
+      node, {}, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
   EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 100500);
 }
 
@@ -119,6 +130,48 @@ some_element:
   yaml_config::YamlConfig yaml(std::move(node), {},
                                yaml_config::YamlConfig::Mode::kEnvAllowed);
   EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 5);
+}
+
+TEST(YamlConfig, SampleFile) {
+  const auto dir = fs::blocking::TempDirectory::Create();
+  const auto path_to_file = dir.GetPath() + "/read_file_sample";
+
+  /// [sample read_file]
+  fs::blocking::RewriteFileContents(path_to_file, R"(some_key: ['a', 'b'])");
+  const auto yaml_content = fmt::format("some#file: {}", path_to_file);
+  auto node = formats::yaml::FromString(yaml_content);
+
+  yaml_config::YamlConfig yaml(
+      std::move(node), {}, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
+  EXPECT_EQ(yaml["some"]["some_key"][0].As<std::string>(), "a");
+  /// [sample read_file]
+}
+
+TEST(YamlConfig, FileFallback) {
+  auto node = formats::yaml::FromString(R"(
+some_element:
+    some#file: /some/path/to/the/file.yaml
+    some#fallback: 5
+  )");
+
+  yaml_config::YamlConfig yaml(
+      std::move(node), {}, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
+  EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 5);
+}
+
+TEST(YamlConfig, FileFallbackUnallowed) {
+  auto node = formats::yaml::FromString(R"(
+some_element:
+    some#file: /some/path/to/the/file.yaml
+    some#fallback: 5
+  )");
+
+  yaml_config::YamlConfig yaml(node, {},
+                               yaml_config::YamlConfig::Mode::kEnvAllowed);
+  UEXPECT_THROW(yaml["some_element"]["some"].As<int>(), std::exception);
+
+  yaml = yaml_config::YamlConfig{node, {}, {}};
+  UEXPECT_THROW(yaml["some_element"]["some"].As<int>(), std::exception);
 }
 
 TEST(YamlConfig, Basic) {

@@ -34,19 +34,26 @@ using ParseException = formats::yaml::ParseException;
 /// @snippet universal/src/yaml_config/yaml_config_test.cpp  sample vars
 /// Then the result of `yaml["some_element"]["some"].As<int>()` is `42`.
 ///
-/// If YAML key ends on '#env' and the mode is YamlConfig::Mode::kEnvAllowed,
+/// If YAML key ends on '#env' and the mode is YamlConfig::Mode::kEnvAllowed
+/// or YamlConfig::Mode::kEnvAndFileAllowed,
 /// then the value of the key is searched in
 /// environment variables of the process and returned as a value. For example:
 /// @snippet universal/src/yaml_config/yaml_config_test.cpp  sample env
 ///
+/// If YAML key ends on '#file' and the mode is
+/// YamlConfig::Mode::kEnvAndFileAllowed, then the value of the key is the
+/// content of specified YAML parsed file. For example:
+/// @snippet universal/src/yaml_config/yaml_config_test.cpp  sample read_file
+///
 /// If YAML key ends on '#fallback', then the value of the key is used as a
-/// fallback for environment and `$` variables. For example for the following
-/// YAML with YamlConfig::Mode::kEnvAllowed:
+/// fallback for environment, file and `$` variables. For example for the
+/// following YAML with YamlConfig::Mode::kEnvAndFileAllowed:
 /// @snippet universal/src/yaml_config/yaml_config_test.cpp  sample multiple
 /// The result of `yaml["some_element"]["some"].As<int>()` is the value of
 /// `variable` from `config_vars` if it exists; otherwise the value is the
 /// contents of the environment variable `SOME_ENV_VARIABLE` if it exists;
-/// otherwise the value if `100500`, from the fallback.
+/// otherwise the value is the content of the file with name `file.yaml`;
+/// otherwise the value is `100500`, from the fallback.
 ///
 /// Another example:
 /// @snippet universal/src/yaml_config/yaml_config_test.cpp  sample env fallback
@@ -54,9 +61,10 @@ using ParseException = formats::yaml::ParseException;
 /// `yaml["some_element"]["value"].As<int>()` is the value of `ENV_NAME`
 /// environment variable if it exists; otherwise it is `5`.
 ///
-/// @warning YamlConfig::Mode::kEnvAllowed should be used only on configs that
+/// @warning YamlConfig::Mode::kEnvAllowed or
+/// YamlConfig::Mode::kEnvAndFileAllowed should be used only on configs that
 /// come from trusted environments. Otherwise, an attacker could create a
-/// config with `#env` and read any of your environment variables, including
+/// config and read any of your environment variables of files, including
 /// variables that contain passwords and other sensitive data.
 class YamlConfig {
  public:
@@ -68,8 +76,10 @@ class YamlConfig {
   struct DefaultConstructed {};
 
   enum class Mode {
-    kSecure,      /// < secure mode, without reading environment variables
-    kEnvAllowed,  /// < allows reading of environment variables
+    kSecure,  /// < secure mode, without reading environment variables or files
+    kEnvAllowed,         /// < allows reading of environment variables
+    kEnvAndFileAllowed,  /// < allows reading of environment variables and
+                         /// files
   };
 
   using const_iterator = Iterator<IterTraits>;

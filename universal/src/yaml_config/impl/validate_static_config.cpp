@@ -16,18 +16,14 @@ namespace yaml_config::impl {
 
 namespace {
 
-constexpr std::string_view kFallbackSuffix = "#fallback";
-constexpr std::string_view kEnvSuffix = "#env";
-
+// TODO: remove in TAXICOMMON-8973
 std::string RemoveFallbackAndEnvSuffix(std::string_view option) {
-  if (utils::text::EndsWith(option, kFallbackSuffix)) {
-    return std::string(
-        option.substr(0, option.length() - kFallbackSuffix.length()));
+  for (const std::string_view suffix : {"#env", "#file", "#fallback"}) {
+    if (utils::text::EndsWith(option, suffix)) {
+      return std::string{option.substr(0, option.size() - suffix.size())};
+    }
   }
-  if (utils::text::EndsWith(option, kEnvSuffix)) {
-    return std::string(option.substr(0, option.length() - kEnvSuffix.length()));
-  }
-  return std::string(option);
+  return std::string{option};
 }
 
 bool IsTypeValid(FieldType type, const formats::yaml::Value& value) {
