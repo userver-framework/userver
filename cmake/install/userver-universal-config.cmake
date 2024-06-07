@@ -26,7 +26,9 @@ find_package(cctz REQUIRED)
 find_package(CryptoPP REQUIRED)
 find_package(libyamlcpp REQUIRED)
 find_package(libzstd REQUIRED)
-if (NOT USERVER_SANITIZE AND NOT CMAKE_SYSTEM_NAME MATCHES "Darwin")
+if (USERVER_IMPL_FEATURE_JEMALLOC AND
+    NOT USERVER_SANITIZE AND
+    NOT CMAKE_SYSTEM_NAME MATCHES "Darwin")
   find_package(Jemalloc REQUIRED)
 endif()
 
