@@ -414,7 +414,9 @@ class UserverConan(ConanFile):
             return ['zlib::zlib']
 
         def zstd():
-            return ['zstd::libzstd_static']
+            # According to https://conan.io/center/recipes/zstd should be
+            # zstd::libzstd_static, but it does not work that way
+            return ['zstd::zstd']
 
         def jemalloc():
             return ['jemalloc::jemalloc'] if self.options.with_jemalloc else []
