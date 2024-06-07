@@ -171,6 +171,52 @@ UTEST_F(RedisClientTest, Append) {
   EXPECT_EQ(client->Get("key", {}).Get(), "Hello World");
 }
 
+UTEST_F(RedisClientTest, BitopAnd) {
+  auto client = GetClient();
+  client->Set("bit1", "acbd", {}).Get();
+  client->Set("bit2", "def8", {}).Get();
+  EXPECT_EQ(client
+                ->Bitop(storages::redis::BitOperation::kAnd, "dest",
+                        {"bit1", "bit2"}, {})
+                .Get(),
+            4);
+  EXPECT_EQ(client->Get("dest", {}).Get(), "`ab ");
+}
+
+UTEST_F(RedisClientTest, BitopOr) {
+  auto client = GetClient();
+  client->Set("bit1", "acbd", {}).Get();
+  client->Set("bit2", "def8", {}).Get();
+  EXPECT_EQ(client
+                ->Bitop(storages::redis::BitOperation::kOr, "dest",
+                        {"bit1", "bit2"}, {})
+                .Get(),
+            4);
+  EXPECT_EQ(client->Get("dest", {}).Get(), "egf|");
+}
+
+UTEST_F(RedisClientTest, BitopXor) {
+  auto client = GetClient();
+  client->Set("bit1", "acbd", {}).Get();
+  client->Set("bit2", "def8", {}).Get();
+  EXPECT_EQ(client
+                ->Bitop(storages::redis::BitOperation::kXor, "dest",
+                        {"bit1", "bit2"}, {})
+                .Get(),
+            4);
+  EXPECT_EQ(client->Get("dest", {}).Get(), "\x5\x6\x4\\");
+}
+
+UTEST_F(RedisClientTest, BitopNot) {
+  auto client = GetClient();
+  client->Set("bit1", "acbd", {}).Get();
+  EXPECT_EQ(
+      client->Bitop(storages::redis::BitOperation::kNot, "dest", {"bit1"}, {})
+          .Get(),
+      4);
+  EXPECT_EQ(client->Get("dest", {}).Get(), "\x9E\x9C\x9D\x9B");
+}
+
 UTEST_F(RedisClientTest, Dbsize) {
   auto client = GetClient();
   EXPECT_EQ(client->Dbsize(0, {}).Get(), 0);

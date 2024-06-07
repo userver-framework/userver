@@ -55,6 +55,14 @@ RequestAppend MockClientBase::Append(
   return RequestAppend{nullptr};
 }
 
+RequestBitop MockClientBase::Bitop(BitOperation /*op*/,
+                                   std::string /*dest_key*/,
+                                   std::vector<std::string> /*src_keys*/,
+                                   const CommandControl& /*command_control*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestBitop{nullptr};
+}
+
 RequestDbsize MockClientBase::Dbsize(
     size_t /*shard*/, const CommandControl& /*command_control*/) {
   UASSERT_MSG(false, "redis method not mocked");

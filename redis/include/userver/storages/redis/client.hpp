@@ -10,6 +10,7 @@
 #include <userver/storages/redis/impl/base.hpp>
 #include <userver/storages/redis/impl/wait_connected_mode.hpp>
 
+#include <userver/storages/redis/bit_operation.hpp>
 #include <userver/storages/redis/client_fwd.hpp>
 #include <userver/storages/redis/command_options.hpp>
 #include <userver/storages/redis/request.hpp>
@@ -61,6 +62,10 @@ class Client {
 
   virtual RequestAppend Append(std::string key, std::string value,
                                const CommandControl& command_control) = 0;
+
+  virtual RequestBitop Bitop(BitOperation op, std::string dest_key,
+                             std::vector<std::string> src_keys,
+                             const CommandControl& command_control) = 0;
 
   virtual RequestDbsize Dbsize(size_t shard,
                                const CommandControl& command_control) = 0;

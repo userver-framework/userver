@@ -80,6 +80,9 @@ class TransactionImpl final : public Transaction {
 
   RequestAppend Append(std::string key, std::string value) override;
 
+  RequestBitop Bitop(BitOperation op, std::string dest,
+                     std::vector<std::string> srcs) override;
+
   RequestDbsize Dbsize(size_t shard) override;
 
   RequestDel Del(std::string key) override;

@@ -62,6 +62,10 @@ class ClientImpl final : public Client,
   RequestAppend Append(std::string key, std::string value,
                        const CommandControl& command_control) override;
 
+  RequestBitop Bitop(BitOperation op, std::string dest_key,
+                     std::vector<std::string> src_keys,
+                     const CommandControl& command_control) override;
+
   RequestDbsize Dbsize(size_t shard,
                        const CommandControl& command_control) override;
 

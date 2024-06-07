@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 
+#include <userver/storages/redis/bit_operation.hpp>
 #include <userver/storages/redis/command_options.hpp>
 #include <userver/storages/redis/request.hpp>
 
@@ -42,6 +43,9 @@ class Transaction {
   // redis commands:
 
   virtual RequestAppend Append(std::string key, std::string value) = 0;
+
+  virtual RequestBitop Bitop(BitOperation op, std::string dest,
+                             std::vector<std::string> srcs) = 0;
 
   virtual RequestDbsize Dbsize(size_t shard) = 0;
 
