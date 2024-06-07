@@ -80,8 +80,9 @@ Available values are:
 - `insecure` (default)
 - `ssl`
 
-SSL **has to be disabled** in tests (e.g. via `config_vars`), because it
+SSL has to be disabled in tests, because it
 requires the server to have a public domain name, which it does not in tests.
+In testsuite, SSL in gRPC clients is disabled automatically.
 
 ## gRPC services
 
