@@ -84,7 +84,7 @@ AuthSettings Parse(const formats::json::Value& doc,
 
   if (tls_settings.client_cert_settings || !tls_settings.ca_certs.empty() ||
       !tls_settings.verify_host) {
-    auth.tls_settings = tls_settings;
+    auth.tls_settings = std::move(tls_settings);
   }
 
   return auth;
