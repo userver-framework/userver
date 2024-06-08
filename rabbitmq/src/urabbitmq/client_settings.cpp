@@ -68,7 +68,7 @@ AuthSettings Parse(const formats::json::Value& doc,
     client_cert_settings.key =
         crypto::PrivateKey::LoadFromString(client_key_contents);
 
-    tls_settings.client_cert_settings = client_cert_settings;
+    tls_settings.client_cert_settings = std::move(client_cert_settings);
   }
 
   const auto& ca_cert_paths =
