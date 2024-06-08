@@ -65,9 +65,9 @@ ManagerConfig ParseFromAny(
     config_vars = builder.ExtractValue();
   }
 
-  auto config =
-      yaml_config::YamlConfig(config_yaml, std::move(config_vars),
-                              yaml_config::YamlConfig::Mode::kEnvAllowed);
+  auto config = yaml_config::YamlConfig(
+      config_yaml, std::move(config_vars),
+      yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
   auto result = config[kManagerConfigField].As<ManagerConfig>();
   result.enabled_experiments =
       config[kUserverExperimentsField].As<utils::impl::UserverExperimentSet>(
@@ -103,6 +103,18 @@ properties:
                 type: integer
                 description: size of a single coroutine, bytes
                 defaultDescription: 256 * 1024
+            local_cache_size:
+                type: integer
+                description: |
+                    Tunes local coroutine cache size per TaskProcessor worker
+                    thread. Current coro pool size is computed with
+                    an inaccuracy of local_cache_size * total_worker_threads,
+                    which may be relevant when comparing against max_size.
+                    Lower values of local_cache_size lead to lower performance
+                    under heavy contention in the engine, while higher values
+                    lead to inaccuracy in coro pool size estimation.
+                    local_cache_size=0 disables local cache.
+                defaultDescription: 8
     event_thread_pool:
         type: object
         description: event thread pool options

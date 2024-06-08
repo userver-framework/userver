@@ -1,3 +1,4 @@
+# pylint: disable=too-many-lines
 """
 Python module that provides testsuite support for
 chaos tests; see
@@ -8,7 +9,6 @@ chaos tests; see
 
 import asyncio
 import dataclasses
-import errno
 import fcntl
 import logging
 import os
@@ -73,23 +73,19 @@ async def _yield() -> None:
 
 
 def _try_get_message(
-        recv_socket: Socket,
+        recv_socket: Socket, flags: int,
 ) -> typing.Tuple[typing.Optional[bytes], typing.Optional[Address]]:
-
     try:
-        return recv_socket.recvfrom(RECV_MAX_SIZE, socket.MSG_PEEK)
-    except socket.error as exc:
-        err = exc.args[0]
-        if err in {errno.EAGAIN, errno.EWOULDBLOCK}:
-            return None, None
-        raise exc
+        return recv_socket.recvfrom(RECV_MAX_SIZE, flags)
+    except (BlockingIOError, InterruptedError):
+        return None, None
 
 
-async def _wait_for_message_task(
+async def _get_message_task(
         recv_socket: Socket,
 ) -> typing.Tuple[bytes, Address]:
     while True:
-        msg, addr = _try_get_message(recv_socket)
+        msg, addr = _try_get_message(recv_socket, 0)
         if msg:
             assert addr
             return msg, addr
@@ -98,7 +94,7 @@ async def _wait_for_message_task(
 
 
 def _incoming_data_size(recv_socket: Socket) -> int:
-    msg, _ = _try_get_message(recv_socket)
+    msg, _ = _try_get_message(recv_socket, socket.MSG_PEEK)
     return len(msg) if msg else 0
 
 
@@ -298,12 +294,64 @@ async def _cancel_and_join(task: typing.Optional[asyncio.Task]) -> None:
         logger.error('Exception in _cancel_and_join: %s', exc)
 
 
+def _make_socket_nonblocking(sock: Socket) -> None:
+    sock.setblocking(False)
+    if sock.type == socket.SOCK_STREAM:
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+    fcntl.fcntl(sock, fcntl.F_SETFL, os.O_NONBLOCK)
+
+
+class _UdpDemuxSocketMock:
+    """
+    Emulates a point-to-point connection over UDP socket
+    with a non-blocking socket interface
+    """
+
+    def __init__(self, sock: Socket, peer_address: Address):
+        self._sock: Socket = sock
+        self._peeraddr: Address = peer_address
+
+        sockpair = socket.socketpair(type=socket.SOCK_DGRAM)
+        self._demux_in: Socket = sockpair[0]
+        self._demux_out: Socket = sockpair[1]
+        _make_socket_nonblocking(self._demux_in)
+        _make_socket_nonblocking(self._demux_out)
+        self._is_active: bool = True
+
+    @property
+    def peer_address(self):
+        return self._peeraddr
+
+    async def push(self, loop: EvLoop, data: bytes):
+        return await loop.sock_sendall(self._demux_in, data)
+
+    def is_active(self):
+        return self._is_active
+
+    def close(self):
+        self._is_active = False
+        self._demux_out.close()
+        self._demux_in.close()
+
+    def recvfrom(self, bufsize: int, flags: int = 0):
+        return self._demux_out.recvfrom(bufsize, flags)
+
+    def recv(self, bufsize: int, flags: int = 0):
+        return self._demux_out.recv(bufsize, flags)
+
+    def fileno(self):
+        return self._demux_out.fileno()
+
+    def send(self, data: bytes):
+        return self._sock.sendto(data, self._peeraddr)
+
+
 class _SocketsPaired:
     def __init__(
             self,
             proxy_name: str,
             loop: EvLoop,
-            client: socket.socket,
+            client: typing.Union[socket.socket, _UdpDemuxSocketMock],
             server: socket.socket,
             to_server_intercept: Interceptor,
             to_client_intercept: Interceptor,
@@ -448,8 +496,6 @@ class BaseGate:
         self._accept_sockets: typing.List[socket.socket] = []
         self._accept_tasks: typing.List[asyncio.Task[None]] = []
 
-        self._connected_event = asyncio.Event()
-
         self._sockets: typing.Set[_SocketsPaired] = set()
 
     async def __aenter__(self) -> 'BaseGate':
@@ -516,14 +562,13 @@ class BaseGate:
         self.to_server_pass()
         self.to_client_pass()
 
-        for sock in self._accept_sockets:
-            sock.close()
-
         await BaseGate.stop_accepting(self)
         logger.info('Before close() %s', self.info())
         await self.sockets_close()
         assert not self._sockets
 
+        for sock in self._accept_sockets:
+            sock.close()
         self._accept_sockets.clear()
         logger.info('Stopped. %s', self.info())
 
@@ -762,6 +807,7 @@ class TcpGate(BaseGate):
     """
 
     def __init__(self, route: GateRoute, loop: EvLoop) -> None:
+        self._connected_event = asyncio.Event()
         BaseGate.__init__(self, route, loop)
 
     def connections_count(self) -> int:
@@ -795,11 +841,6 @@ class TcpGate(BaseGate):
             )
             self._connected_event.clear()
 
-    def _make_socket_nonblocking(self, sock: Socket) -> None:
-        sock.setblocking(False)
-        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        fcntl.fcntl(sock, fcntl.F_SETFL, os.O_NONBLOCK)
-
     def _create_accepting_sockets(self) -> typing.List[Socket]:
         res: typing.List[Socket] = []
         for addr in socket.getaddrinfo(
@@ -808,7 +849,7 @@ class TcpGate(BaseGate):
                 type=socket.SOCK_STREAM,
         ):
             sock = Socket(addr[0], addr[1])
-            self._make_socket_nonblocking(sock)
+            _make_socket_nonblocking(sock)
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             sock.bind(addr[4])
             sock.listen()
@@ -829,7 +870,7 @@ class TcpGate(BaseGate):
         for addr in addrs:
             server = Socket(addr[0], addr[1])
             try:
-                self._make_socket_nonblocking(server)
+                _make_socket_nonblocking(server)
                 await self._loop.sock_connect(server, addr[4])
                 logging.trace('Connected to %s', addr[4])
                 return server
@@ -840,7 +881,7 @@ class TcpGate(BaseGate):
     async def _do_accept(self, accept_sock: Socket) -> None:
         while accept_sock:
             client, _ = await self._loop.sock_accept(accept_sock)
-            self._make_socket_nonblocking(client)
+            _make_socket_nonblocking(client)
 
             server = await self._connect_to_server()
             if server:
@@ -863,19 +904,17 @@ class TcpGate(BaseGate):
 
 class UdpGate(BaseGate):
     """
-    Implements UDP chaos-proxy logic such as waiting for first
-    message and setting up sockets for forwarding messages between
-    udp-client and udp-server
+    Implements UDP chaos-proxy logic such as demuxing incoming datagrams
+    from different clients.
+    Separate connections to server are made for each new client.
 
     @ingroup userver_testsuite
 
     @see @ref scripts/docs/en/userver/chaos_testing.md
     """
 
-    _NOT_IMPLEMENTED_IN_UDP = 'This method is not allowed in UDP gate'
-
     def __init__(self, route: GateRoute, loop: EvLoop):
-        self._client_addr: typing.Optional[Address] = None
+        self._clients: typing.Set[_UdpDemuxSocketMock] = set()
         BaseGate.__init__(self, route, loop)
 
     def is_connected(self) -> bool:
@@ -885,10 +924,6 @@ class UdpGate(BaseGate):
         """
         return len(self._sockets) > 0
 
-    def _make_socket_nonblocking(self, sock: Socket) -> None:
-        sock.setblocking(False)
-        fcntl.fcntl(sock, fcntl.F_SETFL, os.O_NONBLOCK)
-
     def _create_accepting_sockets(self) -> typing.List[Socket]:
         res: typing.List[Socket] = []
         for addr in socket.getaddrinfo(
@@ -897,7 +932,7 @@ class UdpGate(BaseGate):
                 type=socket.SOCK_DGRAM,
         ):
             sock = socket.socket(addr[0], addr[1])
-            self._make_socket_nonblocking(sock)
+            _make_socket_nonblocking(sock)
             sock.bind(addr[4])
             logger.debug(f'Accepting connections on {sock.getsockname()}')
             res.append(sock)
@@ -913,56 +948,49 @@ class UdpGate(BaseGate):
         for addr in addrs:
             server = Socket(addr[0], addr[1])
             try:
-                self._make_socket_nonblocking(server)
+                _make_socket_nonblocking(server)
                 await self._loop.sock_connect(server, addr[4])
                 logging.trace('Connected to %s', addr[4])
                 return server
             except Exception as exc:  # pylint: disable=broad-except
                 logging.warning('Could not connect to %s: %s', addr[4], exc)
 
+    def _collect_garbage(self) -> None:
+        super()._collect_garbage()
+        self._clients = {c for c in self._clients if c.is_active()}
+
     async def _do_accept(self, accept_sock: Socket):
-        if not accept_sock:
-            return
+        while True:
+            data, addr = await _get_message_task(accept_sock)
 
-        _, addr = await _wait_for_message_task(accept_sock)
+            client: typing.Optional[_UdpDemuxSocketMock] = None
+            for known_clients in self._clients:
+                if addr == known_clients.peer_address:
+                    client = known_clients
+                    break
 
-        self._client_addr = addr
-        try:
-            await self._loop.sock_connect(accept_sock, addr)
-        except Exception as exc:  # pylint: disable=broad-except
-            logging.warning('Could not connect to %s: %s', addr, exc)
+            if client is None:
+                server = await self._connect_to_server()
+                if not server:
+                    accept_sock.close()
+                    break
 
-        server = await self._connect_to_server()
-        if server:
-            self._sockets.add(
-                _SocketsPaired(
-                    self._route.name,
-                    self._loop,
-                    accept_sock,
-                    server,
-                    self._to_server_intercept,
-                    self._to_client_intercept,
-                ),
-            )
-            self._connected_event.set()
-        else:
-            accept_sock.close()
+                client = _UdpDemuxSocketMock(accept_sock, addr)
+                self._clients.add(client)
 
-        self._collect_garbage()
+                self._sockets.add(
+                    _SocketsPaired(
+                        self._route.name,
+                        self._loop,
+                        client,
+                        server,
+                        self._to_server_intercept,
+                        self._to_client_intercept,
+                    ),
+                )
 
-    def start_accepting(self) -> None:
-        raise NotImplementedError(
-            'Since UdpGate can only have one connection, you cannot start or '
-            'stop accepting tasks manually. Use start() and stop() methods to '
-            'stop data transferring',
-        )
-
-    async def stop_accepting(self) -> None:
-        raise NotImplementedError(
-            'Since UdpGate can only have one connection, you cannot start or '
-            'stop accepting tasks manually. Use start() and stop() methods to '
-            'stop data transferring',
-        )
+            await client.push(self._loop, data)
+            self._collect_garbage()
 
     def to_server_concat_packets(self, packet_size: int) -> None:
         raise NotImplementedError('Udp packets cannot be concatenated')

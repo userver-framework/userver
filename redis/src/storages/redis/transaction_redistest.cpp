@@ -157,6 +157,45 @@ UTEST_F(RedisClientTransactionTest, Append) {
   EXPECT_EQ(Get(client->Get("key")), "Hello World");
 }
 
+UTEST_F(RedisClientTransactionTest, BitopAnd) {
+  auto& client = GetTransactionClient();
+  Get(client->Set("bit1", "acbd"));
+  Get(client->Set("bit2", "def8"));
+  EXPECT_EQ(Get(client->Bitop(storages::redis::BitOperation::kAnd, "dest",
+                              {"bit1", "bit2"})),
+            4);
+  EXPECT_EQ(Get(client->Get("dest")), "`ab ");
+}
+
+UTEST_F(RedisClientTransactionTest, BitopOr) {
+  auto& client = GetTransactionClient();
+  Get(client->Set("bit1", "acbd"));
+  Get(client->Set("bit2", "def8"));
+  EXPECT_EQ(Get(client->Bitop(storages::redis::BitOperation::kOr, "dest",
+                              {"bit1", "bit2"})),
+            4);
+  EXPECT_EQ(Get(client->Get("dest")), "egf|");
+}
+
+UTEST_F(RedisClientTransactionTest, BitopXor) {
+  auto& client = GetTransactionClient();
+  Get(client->Set("bit1", "acbd"));
+  Get(client->Set("bit2", "def8"));
+  EXPECT_EQ(Get(client->Bitop(storages::redis::BitOperation::kXor, "dest",
+                              {"bit1", "bit2"})),
+            4);
+  EXPECT_EQ(Get(client->Get("dest")), "\x5\x6\x4\\");
+}
+
+UTEST_F(RedisClientTransactionTest, BitopNot) {
+  auto& client = GetTransactionClient();
+  Get(client->Set("bit1", "acbd"));
+  EXPECT_EQ(
+      Get(client->Bitop(storages::redis::BitOperation::kNot, "dest", {"bit1"})),
+      4);
+  EXPECT_EQ(Get(client->Get("dest")), "\x9E\x9C\x9D\x9B");
+}
+
 UTEST_F(RedisClientTransactionTest, Dbsize) {
   auto& client = GetTransactionClient();
   EXPECT_EQ(Get(client->Dbsize(0)), 0);
@@ -781,7 +820,9 @@ std::uint64_t GetCommandCount(
   std::for_each(stat.begin(), stat.end(), [&](auto& shard) {
     command_count +=
         shard.second.shard_total
-            .error_count[static_cast<std::size_t>(redis::ReplyStatus::kOk)];
+            .error_count[static_cast<std::size_t>(redis::ReplyStatus::kOk)]
+            .Load()
+            .value;
   });
   return command_count;
 }

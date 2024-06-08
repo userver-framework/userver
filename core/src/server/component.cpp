@@ -23,7 +23,7 @@ const storages::secdist::SecdistConfig& GetSecdist(
 
 Server::Server(const components::ComponentConfig& component_config,
                const components::ComponentContext& component_context)
-    : LoggableComponentBase(component_config, component_context),
+    : ComponentBase(component_config, component_context),
       server_(std::make_unique<server::Server>(
           component_config.As<server::ServerConfig>(),
           GetSecdist(component_context), component_context)) {
@@ -68,7 +68,7 @@ void Server::WriteStatistics(utils::statistics::Writer& writer) {
 }
 
 yaml_config::Schema Server::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: server schema
 additionalProperties: false
@@ -184,6 +184,10 @@ properties:
                         type: integer
                         description: timeout in seconds to drop connection if there's not data received from it
                         defaultDescription: 600
+                    stream_close_check_delay:
+                        type: integer
+                        description: delay in microseconds of the start of abort check routine
+                        defaultDescription: 20ms
             shards:
                 type: integer
                 description: how many concurrent tasks harvest data from a single socket; do not set if not sure what it is doing

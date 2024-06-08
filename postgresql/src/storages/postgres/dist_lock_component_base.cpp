@@ -14,7 +14,7 @@ namespace storages::postgres {
 DistLockComponentBase::DistLockComponentBase(
     const components::ComponentConfig& component_config,
     const components::ComponentContext& component_context)
-    : components::LoggableComponentBase(component_config, component_context) {
+    : components::ComponentBase(component_config, component_context) {
   auto cluster = component_context
                      .FindComponent<components::Postgres>(
                          component_config["cluster"].As<std::string>())
@@ -94,7 +94,7 @@ void DistLockComponentBase::AutostartDistLock() {
 void DistLockComponentBase::StopDistLock() { worker_->Stop(); }
 
 yaml_config::Schema DistLockComponentBase::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: Base class for postgres-based distlock worker components
 additionalProperties: false

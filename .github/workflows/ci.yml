@@ -38,19 +38,6 @@ jobs:
                         -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0
                         -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
                         -DUSERVER_NO_WERROR=1
-                        -DUSERVER_SANITIZE="ub addr"
-                        -DUSERVER_NAMESPACE=userver
-                        -DUSERVER_NAMESPACE_BEGIN="namespace userver {"
-                        -DUSERVER_NAMESPACE_END="}"
-                        -DCMAKE_BUILD_TYPE=Debug
-                    os: ubuntu-20.04
-                    info: g++-9 + debug + sanitize addr+ub
-                    tests-flags: '--gtest_filter=-HttpClient.Cancel*:HttpClient.Retr*:HttpClient.RedirectHeaders:HttpClient.TestUseIPv4v6'
-
-                  - cmake-flags: >-
-                        -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0
-                        -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
-                        -DUSERVER_NO_WERROR=1
                         -DCMAKE_BUILD_TYPE=Release
                     os: ubuntu-20.04
                     info: g++-9 + release
@@ -100,12 +87,29 @@ jobs:
                 sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 8919F6BD2B48D754
                 echo "deb https://packages.clickhouse.com/deb stable main" | sudo tee /etc/apt/sources.list.d/clickhouse.list
 
-                wget https://downloads.mariadb.com/MariaDB/mariadb_repo_setup
-                chmod +x mariadb_repo_setup
-                sudo ./mariadb_repo_setup
+                # Adding mariadb repositories (from https://www.linuxcapable.com/how-to-install-mariadb-on-ubuntu-linux/ )
+                curl -fsSL http://mirror.mariadb.org/PublicKey_v2 | sudo gpg --dearmor -o "/usr/share/keyrings/mariadb.gpg"
+                sudo chmod a+r "/usr/share/keyrings/mariadb.gpg"
+                # Restore the correct URL after https://jira.mariadb.org/browse/MDBF-651
+                #echo "deb [arch=amd64,arm64,ppc64el signed-by=/usr/share/keyrings/mariadb.gpg] https://deb.mariadb.org/10.11/ubuntu $(lsb_release -cs) main" \
+                #    | tee /etc/apt/sources.list.d/mariadb.list
+                echo "deb [arch=amd64,arm64,ppc64el signed-by=/usr/share/keyrings/mariadb.gpg] https://mirror.kumi.systems/mariadb/repo/10.11/ubuntu $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/mariadb.list
+
+                # Adding librdkafka confluent repositories as in https://docs.confluent.io/platform/current/installation/installing_cp/deb-ubuntu.html#get-the-software
+                gpg_retrieve_keyserver() {
+                  GNUPGHOME=$(mktemp -d)
+                  GNUPGHOME="$GNUPGHOME" gpg --no-default-keyring --keyring "/usr/share/keyrings/$2.gpg" --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys $1
+                  rm -rf "$GNUPGHOME"
+                  chmod a+r "/usr/share/keyrings/$2.gpg"
+                }
+                gpg_retrieve_keyserver 8B1DA6120C2BF624 confluent
+                printf "\
+                deb [arch=amd64 signed-by=/usr/share/keyrings/confluent.gpg] https://packages.confluent.io/deb/7.6 stable main\n\
+                deb [signed-by=/usr/share/keyrings/confluent.gpg] https://packages.confluent.io/clients/deb $(lsb_release -cs) main\n" \
+                  | sudo tee /etc/apt/sources.list.d/confluent.list
 
                 sudo apt update
-                sudo apt install --allow-downgrades -y clickhouse-common-static libmariadb-dev $(cat scripts/docs/en/deps/${{matrix.os}}.md | tr '\n' ' ')
+                sudo apt install --allow-downgrades -y clickhouse-common-static redis-server postgresql $(cat scripts/docs/en/deps/${{matrix.os}}.md | tr '\n' ' ')
                 if [ "${{matrix.os}}" = "ubuntu-22.04" ]; then
                   # GH Ubuntu image has libpq version 15+ from pg's repo that is API incompatible with postgresql-14.
                   sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 7FCC7D46ACCC4CF8
@@ -117,6 +121,7 @@ jobs:
                 if [ "${{matrix.info}}" = "g++-8 + debug" ]; then
                   sudo apt install --allow-downgrades -y g++-8
                 fi
+
 
           - name: Install RabbitMQ packages
             run: |
@@ -160,45 +165,45 @@ jobs:
             run: |
                 echo "UBSAN_OPTIONS=${UBSAN_OPTIONS} ASAN_OPTIONS=${ASAN_OPTIONS}"
                 cd build_debug
-                ./userver/universal/userver-universal-unittest ${{matrix.tests-flags}}
+                ./universal/userver-universal-unittest ${{matrix.tests-flags}}
 
           - name: Run tests (core)
             run: |
                 cd build_debug
-                ./userver/core/userver-core-unittest ${{matrix.tests-flags}}
+                ./core/userver-core-unittest ${{matrix.tests-flags}}
 
           - name: Run tests (clickhouse)
             run: |
                 cd build_debug
-                mkdir userver/clickhouse || :
-                cd userver/clickhouse
+                mkdir clickhouse || :
+                cd clickhouse
                 ctest -V
 
           - name: Run tests (rabbitmq)
             run: |
                 cd build_debug
-                mkdir userver/rabbitmq || :
-                cd userver/rabbitmq
+                mkdir rabbitmq || :
+                cd rabbitmq
                 ctest -V
 
           - name: Run tests (mysql)
             run: |
                 sudo apt install mariadb-server
                 cd build_debug
-                mkdir userver/mysql || :
-                cd userver/mysql
+                mkdir mysql || :
+                cd mysql
                 ctest -V
 
           - name: Run tests (postgresql)
             run: |
                 cd build_debug
-                mkdir userver/postgresql || :
-                cd userver/postgresql
+                mkdir postgresql || :
+                cd postgresql
                 ctest -V
 
           - name: Run tests (redis)
             run: |
-                cd build_debug/userver/redis/
+                cd build_debug/redis/
                 ctest -V
 
           - name: Run tests (mongo)
@@ -206,8 +211,8 @@ jobs:
             if: matrix.info != 'g++-9 + debug + sanitize addr+ub'
             run: |
                 cd build_debug
-                mkdir userver/mongo || :
-                cd userver/mongo
+                mkdir mongo || :
+                cd mongo
                 if [ -f ./userver-mongo-unittest ]; then ./userver-mongo-unittest ; fi
                 # Mongo is not available on Ubuntu 22.04 from default repos
                 if [ "${{matrix.os}}" != "ubuntu-22.04" ]; then ctest -V -R userver-mongo-mongotest ; fi
@@ -217,6 +222,6 @@ jobs:
             if: matrix.info != 'clang-14 + debug + sanitize addr+ub'
             run: |
                 cd build_debug
-                mkdir userver/grpc || :
-                cd userver/grpc
+                mkdir grpc || :
+                cd grpc
                 ctest -V

@@ -1,3 +1,5 @@
+#include <string>
+
 #include <userver/urabbitmq/consumer_component_base.hpp>
 
 #include <userver/components/component_config.hpp>
@@ -35,9 +37,14 @@ class ConsumerComponentBase::Impl final : public ConsumerBase {
   }
 
  protected:
-  void Process(std::string message) override {
+  void Process(ConsumedMessage msg) override {
     UASSERT(parent_ != nullptr);
-    parent_->Process(std::move(message));
+    parent_->Process(std::move(msg));
+  }
+
+  void Process(std::string msg) override {
+    UASSERT(parent_ != nullptr);
+    parent_->Process(std::move(msg));
   }
 
  private:
@@ -47,7 +54,7 @@ class ConsumerComponentBase::Impl final : public ConsumerBase {
 ConsumerComponentBase::ConsumerComponentBase(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
-    : components::LoggableComponentBase{config, context},
+    : components::ComponentBase{config, context},
       impl_{std::make_unique<Impl>(
           context
               .FindComponent<components::RabbitMQ>(
@@ -62,7 +69,7 @@ void ConsumerComponentBase::OnAllComponentsLoaded() { impl_->Start(this); }
 void ConsumerComponentBase::OnAllComponentsAreStopping() { impl_->Stop(); }
 
 yaml_config::Schema ConsumerComponentBase::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: RabbitMQ consumer component
 additionalProperties: false

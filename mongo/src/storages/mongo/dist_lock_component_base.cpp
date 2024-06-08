@@ -16,7 +16,7 @@ DistLockComponentBase::DistLockComponentBase(
     const components::ComponentConfig& component_config,
     const components::ComponentContext& component_context,
     storages::mongo::Collection collection)
-    : components::LoggableComponentBase(component_config, component_context) {
+    : components::ComponentBase(component_config, component_context) {
   auto lock_name = component_config["lockname"].As<std::string>();
 
   auto ttl = component_config["lock-ttl"].As<std::chrono::milliseconds>();
@@ -90,7 +90,7 @@ void DistLockComponentBase::Start() {
 void DistLockComponentBase::Stop() { worker_->Stop(); }
 
 yaml_config::Schema DistLockComponentBase::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: Base class for mongo-based distlock worker components
 additionalProperties: false

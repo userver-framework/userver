@@ -143,8 +143,8 @@ ClusterStatisticsPtr ClusterImpl::GetStatistics() const {
     cluster_stats->master.stats.Add(host_pools_[dsn_index]->GetStatistics(),
                                     dsn_stats[dsn_index]);
     cluster_stats->master.stats.Add(host_pools_[dsn_index]
-                                        ->GetStatementTimingsStorage()
-                                        .GetTimingsPercentiles());
+                                        ->GetStatementStatsStorage()
+                                        .GetStatementsStats());
     is_host_pool_seen[dsn_index] = 1;
   }
 
@@ -160,8 +160,8 @@ ClusterStatisticsPtr ClusterImpl::GetStatistics() const {
     cluster_stats->sync_slave.stats.Add(host_pools_[dsn_index]->GetStatistics(),
                                         dsn_stats[dsn_index]);
     cluster_stats->sync_slave.stats.Add(host_pools_[dsn_index]
-                                            ->GetStatementTimingsStorage()
-                                            .GetTimingsPercentiles());
+                                            ->GetStatementStatsStorage()
+                                            .GetStatementsStats());
     is_host_pool_seen[dsn_index] = 1;
   }
 
@@ -181,8 +181,8 @@ ClusterStatisticsPtr ClusterImpl::GetStatistics() const {
       slave_desc.stats.Add(host_pools_[dsn_index]->GetStatistics(),
                            dsn_stats[dsn_index]);
       slave_desc.stats.Add(host_pools_[dsn_index]
-                               ->GetStatementTimingsStorage()
-                               .GetTimingsPercentiles());
+                               ->GetStatementStatsStorage()
+                               .GetStatementsStats());
       is_host_pool_seen[dsn_index] = 1;
     }
   }
@@ -196,7 +196,7 @@ ClusterStatisticsPtr ClusterImpl::GetStatistics() const {
     UASSERT(i < dsn_stats.size());
     desc.stats.Add(host_pools_[i]->GetStatistics(), dsn_stats[i]);
     desc.stats.Add(
-        host_pools_[i]->GetStatementTimingsStorage().GetTimingsPercentiles());
+        host_pools_[i]->GetStatementStatsStorage().GetStatementsStats());
 
     cluster_stats->unknown.push_back(std::move(desc));
   }

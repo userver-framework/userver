@@ -16,7 +16,7 @@ Checks:
   ,portability-*\
   ,readability-*\
   # it will work from clang-16
-  #,bugprone-unchecked-optional-access\
+  ,-bugprone-unchecked-optional-access\
   ,-bugprone-easily-swappable-parameters\
   ,-bugprone-exception-escape\
   ,-bugprone-implicit-widening-of-multiplication-result\

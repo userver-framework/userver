@@ -1,6 +1,6 @@
 #include "zadd_reply.hpp"
 
-#include <userver/storages/redis/impl/exception.hpp>
+#include <userver/storages/redis/exception.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
 
 USERVER_NAMESPACE_BEGIN

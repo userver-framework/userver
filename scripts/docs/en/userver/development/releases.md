@@ -40,6 +40,8 @@ snapshots of the `develop` sources with
 Releases do not evolve, all the new functionality and bugfixes go to
 develop branch of git to become a new release some day.
 
+Starting from userver 2.0 we do a new minor release monthly.
+
 
 ## Issue, feature and pull requests (PR)
 

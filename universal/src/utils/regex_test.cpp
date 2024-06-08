@@ -35,6 +35,22 @@ TEST(Regex, Search) {
   EXPECT_TRUE(utils::regex_search("a123a", r));
 }
 
+TEST(Regex, SearchWithResult) {
+  utils::regex r("^[a-z][0-9]+");
+  utils::smatch fail;
+  const std::string str_empty{};
+  EXPECT_FALSE(utils::regex_search(str_empty, fail, r));
+  ASSERT_EQ(fail.size(), 1);
+  const std::string empty = fail[0];
+  EXPECT_EQ(empty, str_empty);
+  utils::smatch success;
+  const std::string str{"a1234"};
+  EXPECT_TRUE(utils::regex_search(str, success, r));
+  ASSERT_EQ(success.size(), 1);
+  const std::string res = success[0];
+  EXPECT_EQ(res, str);
+}
+
 TEST(Regex, Replace) {
   utils::regex r("[a-z]{2}");
   std::string repl{"R"};
@@ -42,6 +58,22 @@ TEST(Regex, Replace) {
   EXPECT_EQ(utils::regex_replace({"a0AB1c2"}, r, repl), "a0AB1c2");
   EXPECT_EQ(utils::regex_replace("ab0ef1", r, repl), "R0R1");
   EXPECT_EQ(utils::regex_replace("abcd", r, repl), "RR");
+}
+
+TEST(Regex, MatchWithResult) {
+  utils::regex r("^[a-z][0-9]+");
+  utils::smatch fail;
+  const std::string str_empty{};
+  EXPECT_FALSE(utils::regex_search(str_empty, fail, r));
+  ASSERT_EQ(fail.size(), 1);
+  const std::string empty = fail[0];
+  EXPECT_EQ(empty, str_empty);
+  utils::smatch success;
+  const std::string str{"a1234"};
+  EXPECT_TRUE(utils::regex_match(str, success, r));
+  ASSERT_EQ(success.size(), 1);
+  const std::string res = success[0];
+  EXPECT_EQ(res, str);
 }
 
 USERVER_NAMESPACE_END

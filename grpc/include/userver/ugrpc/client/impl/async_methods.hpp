@@ -146,7 +146,7 @@ class RpcData final {
     AsyncMethodInvocationGuard(AsyncMethodInvocationGuard&&) = delete;
     ~AsyncMethodInvocationGuard() noexcept;
 
-    void Disarm() noexcept { disarm_ = true; };
+    void Disarm() noexcept { disarm_ = true; }
 
    private:
     RpcData& data_;
@@ -173,7 +173,7 @@ class RpcData final {
   // FinishAsyncMethodInvocation that will correctly close all our
   // tracing::Span objects and account everything in statistics.
   // In stream response, we use AsyncMethodInvocation for every intermediate
-  // Read* call, because we don't need to close span and/or accout stats
+  // Read* call, because we don't need to close span and/or account stats
   // when finishing Read* call.
   std::variant<std::monostate, AsyncMethodInvocation,
                FinishAsyncMethodInvocation>

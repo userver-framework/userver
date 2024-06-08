@@ -1,5 +1,7 @@
 # gRPC
 
+**Quality:** @ref QUALITY_TIERS "Platinum Tier".
+
 ## Introduction
 
 🐙 **userver** provides a gRPC driver as `userver-grpc` library. It uses ```namespace ugrpc::client``` and ```namespace ugrpc::server```.
@@ -61,6 +63,27 @@ Read the documentation on gRPC streams:
 
 On errors, exceptions from userver/ugrpc/client/exceptions.hpp are thrown. It is recommended to catch them outside the entire stream interaction. You can catch exceptions for [specific gRPC error codes](https://grpc.github.io/grpc/core/md_doc_statuscodes.html) or all at once.
 
+### TLS / SSL
+
+May be enabled via
+
+```
+# yaml
+components_manager:
+    components:
+        grpc-client-factory:
+            auth-type: ssl
+```
+
+Available values are:
+
+- `insecure` (default)
+- `ssl`
+
+SSL has to be disabled in tests, because it
+requires the server to have a public domain name, which it does not in tests.
+In testsuite, SSL in gRPC clients is disabled automatically.
+
 ## gRPC services
 
 ### Service creation
@@ -97,8 +120,13 @@ By default, gRPC server uses `grpc::InsecureServerCredentials`. To pass a custom
 1. Do not pass `grpc-server.port` in the static config
 2. Create a custom component, e.g. `GrpcServerConfigurator`
 3. `context.FindComponent<ugrpc::server::ServerComponent>().GetServer()`
-4. Call ugrpc::server::Server::WithServerBuilder
-5. Using grpc::ServerBuilder API, add a port with your custom credentials
+4. Call @ref ugrpc::server::Server::WithServerBuilder "WithServerBuilder"
+   method on the returned @ref ugrpc::server::Server "server"
+5. Inside the callback, call `grpc::ServerBuilder::AddListeningPort`,
+   passing it your custom credentials
+    * Look into grpc++ documentation and into
+      `<grpcpp/security/server_credentials.h>` for available credentials
+    * SSL credentials are `grpc::SslServerCredentials`
 
 ### Middlewares
 

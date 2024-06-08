@@ -131,6 +131,7 @@ class SubscriptionStorageBase
     }
 
     void AccountMessage(ServerId server_id, size_t message_size);
+    void AccountDiscardedByOverflow(size_t discarded);
   };
 
  protected:
@@ -139,6 +140,8 @@ class SubscriptionStorageBase
   using PmessageCallback = std::function<void(
       ServerId, const std::string& pattern, const std::string& channel,
       const std::string& message)>;
+
+  using SubscribedCallbackOutcome = Sentinel::Outcome;
 
   struct RebalanceState {
     RebalanceState(size_t shard_idx, ServerWeights weights);
@@ -244,6 +247,9 @@ class SubscriptionStorage : public SubscriptionStorageBase {
       const std::shared_ptr<ThreadPools>& thread_pools, size_t shards_count,
       bool is_cluster_mode,
       std::shared_ptr<const std::vector<std::string>> shard_names);
+  SubscriptionStorage(
+      size_t shards_count, bool is_cluster_mode,
+      std::shared_ptr<const std::vector<std::string>> shard_names);
   ~SubscriptionStorage() override;
 
   void SetSubscribeCallback(CommandCb) override;
@@ -290,7 +296,7 @@ class SubscriptionStorage : public SubscriptionStorageBase {
 
  private:
   /* We could use Fsm per shard (single Fsm for all channels), but in
-   * this case it would be hard to create new subsciptions for shards
+   * this case it would be hard to create new subscriptions for shards
    * with Fsms in transition states (e.g. previous subscription
    * requests are sent, we're waiting for the reply). So use
    * independent Fsms for distinct channels.

@@ -31,7 +31,7 @@ $generatedby <a href="https://www.doxygen.org/index.html">Doxygen</a> $doxygenve
           <a href="https://github.com/userver-framework/" rel="noopener" target="_blank" class="titlelink">
               <img src="$relpath^github_logo.svg" alt="Github" class="gh-logo"/> 
           </a>
-          <a href="https://t.me/userver_en" rel="noopener" id='telegram_channel' target="_blank" class="titlelink">
+          <a href="https://t.me/userver_en" rel="noopener" id='telegram_channel' target="_blank" class="titlelink generic_tg_link">
               <img src="$relpath^telegram_logo.svg" alt="Telegram"/>
           </a>
       `
@@ -42,6 +42,7 @@ $generatedby <a href="https://www.doxygen.org/index.html">Doxygen</a> $doxygenve
     $(document).ready(function() {
       setTimeout(() => {
       init_all_results_button();
+      init_search_hotkey();
       init_header();
       addLinks();
       changeTelegramChannelLanguageForRussianSpeakingUser();

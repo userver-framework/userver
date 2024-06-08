@@ -73,7 +73,7 @@ void validate_filesend(const HttpRequest& request, std::string key,
       << "failed to find 'image/jpeg' in:" << request;
 
   EXPECT_LT(multipart_pos, filename_pos)
-      << "Filename apperas before 'multipart/form-data': " << request;
+      << "Filename appears before 'multipart/form-data': " << request;
 
   EXPECT_LT(multipart_pos, content_type_pos)
       << "Nested content type appears before 'multipart/form-data': "

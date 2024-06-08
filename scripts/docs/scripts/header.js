@@ -63,13 +63,14 @@ const remove_legacy_searchbox = () => {
 
 const add_docs_versioning = () => {
     // const brief = document.getElementById('projectbrief').getElementsByTagName('a')[0];
-    // brief.textContent += " v1.0";
+    // brief.textContent += " v2.0";
 
     const footer = document.getElementById('nav-path').getElementsByTagName('ul')[0];
     footer.innerHTML = `
     <li style="box-shadow: inset -1px 0 0 0 var(--separator-color); background-image: none; margin-right: 48px;">
         <span style="color: var(--toc-foreground);">Docs version:</span>
-        <a href="/docs/v1.0` + window.location.pathname + `">v1.0</a>, 
+        <a href="/docs/v1.0` + window.location.pathname + `">v1.0</a>,
+        <a href="/docs/v2.0` + window.location.pathname + `">v2.0</a>,
         <span style="background-image: none; color: var(--toc-active-color); font-weight: bold;">trunk/develop</span>
     </li>`
     + footer.innerHTML;

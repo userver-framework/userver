@@ -134,7 +134,7 @@ class Shard {
   boost::signals2::signal<void(ServerId, bool)> signal_instance_ready_;
 
   utils::SwappingSmart<CommandsBufferingSettings> commands_buffering_settings_;
-  utils::SwappingSmart<utils::RetryBudgetSettings> retry_budet_settings_;
+  utils::SwappingSmart<utils::RetryBudgetSettings> retry_budget_settings_;
 
   bool prev_connected_ = false;
   const bool cluster_mode_ = false;

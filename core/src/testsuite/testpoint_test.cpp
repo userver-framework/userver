@@ -2,6 +2,7 @@
 
 #include <thread>
 
+#include <userver/engine/task/task_base.hpp>
 #include <userver/formats/json/inline.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/testsuite/testpoint_control.hpp>
@@ -46,7 +47,7 @@ UTEST(Testpoint, Smoke) {
   EXPECT_EQ(response, formats::json::MakeObject("name", "what", "body", "foo"));
 }
 
-UTEST(Testpoint, ReentrableInitialization) {
+UTEST(Testpoint, ReenterableInitialization) {
   for (int i = 0; i < 2; ++i) {
     testsuite::TestpointControl testpoint_control;
 

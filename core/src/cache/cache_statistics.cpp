@@ -30,14 +30,16 @@ std::int64_t TimeStampToMillisecondsFromNow(
 void CombineStatistics(const impl::UpdateStatistics& a,
                        const impl::UpdateStatistics& b,
                        impl::UpdateStatistics& result) {
-  result.update_attempt_count = a.update_attempt_count + b.update_attempt_count;
+  result.update_attempt_count =
+      a.update_attempt_count.Load() + b.update_attempt_count.Load();
   result.update_no_changes_count =
-      a.update_no_changes_count + b.update_no_changes_count;
+      a.update_no_changes_count.Load() + b.update_no_changes_count.Load();
   result.update_failures_count =
-      a.update_failures_count + b.update_failures_count;
-  result.documents_read_count = a.documents_read_count + b.documents_read_count;
+      a.update_failures_count.Load() + b.update_failures_count.Load();
+  result.documents_read_count =
+      a.documents_read_count.Load() + b.documents_read_count.Load();
   result.documents_parse_failures =
-      a.documents_parse_failures + b.documents_parse_failures;
+      a.documents_parse_failures.Load() + b.documents_parse_failures.Load();
 
   result.last_update_start_time = std::max(a.last_update_start_time.load(),
                                            b.last_update_start_time.load());
@@ -54,15 +56,26 @@ namespace impl {
 
 void DumpMetric(utils::statistics::Writer& writer,
                 const UpdateStatistics& stats) {
+  // Note about sensor duplication with 'v2' suffix:
+  // We have to duplicate metrics with different sensor name to change
+  // their type to RATE. Unfortunately, we can't change existing metrics
+  // because it will break dashboards/alerts for all current users.
   if (auto update = writer["update"]) {
-    update["attempts_count"] = stats.update_attempt_count;
-    update["no_changes_count"] = stats.update_no_changes_count;
-    update["failures_count"] = stats.update_failures_count;
+    update["attempts_count"] = stats.update_attempt_count.Load().value;
+    update["no_changes_count"] = stats.update_no_changes_count.Load().value;
+    update["failures_count"] = stats.update_failures_count.Load().value;
+    // v2 - please see note above
+    update["attempts_count.v2"] = stats.update_attempt_count;
+    update["no_changes_count.v2"] = stats.update_no_changes_count;
+    update["failures_count.v2"] = stats.update_failures_count;
   }
 
   if (auto documents = writer["documents"]) {
-    documents["read_count"] = stats.documents_read_count;
-    documents["parse_failures"] = stats.documents_parse_failures;
+    documents["read_count"] = stats.documents_read_count.Load().value;
+    documents["parse_failures"] = stats.documents_parse_failures.Load().value;
+    // v2 - please see note above
+    documents["read_count.v2"] = stats.documents_read_count;
+    documents["parse_failures.v2"] = stats.documents_parse_failures;
   }
 
   if (auto age = writer["time"]) {
@@ -130,11 +143,11 @@ void UpdateStatisticsScope::FinishWithError() {
 }
 
 void UpdateStatisticsScope::IncreaseDocumentsReadCount(std::size_t add) {
-  update_stats_.documents_read_count += add;
+  update_stats_.documents_read_count += utils::statistics::Rate{add};
 }
 
 void UpdateStatisticsScope::IncreaseDocumentsParseFailures(std::size_t add) {
-  update_stats_.documents_parse_failures += add;
+  update_stats_.documents_parse_failures += utils::statistics::Rate{add};
 }
 
 void UpdateStatisticsScope::DoFinish(impl::UpdateState new_state) {

@@ -4,7 +4,7 @@
 /// @brief @copybrief components::ManagerControllerComponent
 
 #include <userver/components/component_fwd.hpp>
-#include <userver/components/impl/component_base.hpp>
+#include <userver/components/raw_component_base.hpp>
 #include <userver/concurrent/async_event_source.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
@@ -33,6 +33,7 @@ class Manager;
 /// coro_pool.initial_size | amount of coroutines to preallocate on startup | 1000
 /// coro_pool.max_size | max amount of coroutines to keep preallocated | 4000
 /// coro_pool.stack_size | size of a single coroutine | 256 * 1024
+/// coro_pool.local_cache_size | local coroutine cache size per thread | 32
 /// event_thread_pool.threads | number of threads to process low level IO system calls (number of ev loops to start in libev) | 2
 /// event_thread_pool.thread_name | set OS thread name to this value | 'event-worker'
 /// components | dictionary of "component name": "options" | -
@@ -49,7 +50,7 @@ class Manager;
 /// thread_name | set OS thread name to this value | Part of the task_processor name before the first '-' symbol with '-worker' appended; for example 'fs-worker' or 'main-worker'
 /// worker_threads | threads count for the task processor | -
 /// os-scheduling | OS scheduling mode for the task processor threads. 'idle' sets the lowest priority. 'low-priority' sets the priority below 'normal' but higher than 'idle'. | normal
-/// spinning-iterations | tunes the number of spin-wait iterations in case of an empty task queue before threads go to sleep | 10000
+/// spinning-iterations | tunes the number of spin-wait iterations in case of an empty task queue before threads go to sleep | 1000
 /// task-trace | optional dictionary of tracing options | empty (disabled)
 /// task-trace.every | set N to trace each Nth task | 1000
 /// task-trace.max-context-switch-count | set upper limit of context switches to trace for a single task | 1000
@@ -63,7 +64,7 @@ class Manager;
 /// @snippet components/common_component_list_test.cpp  Sample components manager config component config
 
 // clang-format on
-class ManagerControllerComponent final : public impl::ComponentBase {
+class ManagerControllerComponent final : public RawComponentBase {
  public:
   ManagerControllerComponent(const components::ComponentConfig& config,
                              const components::ComponentContext& context);

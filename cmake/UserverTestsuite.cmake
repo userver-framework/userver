@@ -1,22 +1,28 @@
+# Functions for running testsuite tests.
+#
+# Provides:
+# - USERVER_FEATURE_TESTSUITE option
+# - userver_testsuite_requirements function that returns a list of requirements
+#   files needed to run userver testsuite
+# - userver_testsuite_add function that registers a directory with testsuite
+#   tests in ctest. Note that userver testsuite requires some arguments, they
+#   should be passed manually using PYTEST_ARGS
+# - userver_testsuite_add_simple that automatically detects and fills in some
+#   PYTEST_ARGS
+#
+# Implementation note: public functions here should be usable even without
+# a direct include of this script, so the functions should not rely
+# on non-cache variables being present.
 include_guard(GLOBAL)
 
-include(CTest)
+# Pack initialization into a function to avoid non-cache variable leakage.
+function(_userver_prepare_testsuite)
+  include("${CMAKE_CURRENT_LIST_DIR}/UserverVenv.cmake")
+  set_property(GLOBAL PROPERTY userver_cmake_dir "${CMAKE_CURRENT_LIST_DIR}")
 
-set(USERVER_PYTHON_PATH "python3" CACHE FILEPATH "Path to python3 executable to use")
-message(STATUS "Python: ${USERVER_PYTHON_PATH}")
+  option(USERVER_FEATURE_TESTSUITE "Enable functional tests via testsuite" ON)
 
-option(USERVER_FEATURE_TESTSUITE "Enable functional tests via testsuite" ON)
-option(
-    USERVER_PIP_USE_SYSTEM_PACKAGES
-    "Use system python packages inside venv"
-    OFF
-)
-set(USERVER_PIP_OPTIONS "" CACHE STRING "Options for all pip calls")
-
-if(USERVER_FEATURE_TESTSUITE)
-  get_property(userver_python_dev_checked
-      GLOBAL PROPERTY userver_python_dev_checked)
-  if(NOT userver_python_dev_checked)
+  if(USERVER_FEATURE_TESTSUITE AND NOT USERVER_PYTHON_DEV_CHECKED)
     # find package python3-dev required by venv
     execute_process(
         COMMAND sh "-c" "command -v python3-config"
@@ -25,153 +31,17 @@ if(USERVER_FEATURE_TESTSUITE)
     if(NOT PYTHONCONFIG_FOUND)
       message(FATAL_ERROR "Python dev is not found")
     endif()
-    set_property(GLOBAL PROPERTY userver_python_dev_checked "TRUE")
-  endif()
-endif()
-
-if(NOT USERVER_TESTSUITE_DIR)
-  get_filename_component(
-      USERVER_TESTSUITE_DIR "${CMAKE_CURRENT_LIST_DIR}/../testsuite" ABSOLUTE)
-endif()
-set_property(GLOBAL PROPERTY userver_testsuite_dir "${USERVER_TESTSUITE_DIR}")
-
-function(userver_venv_setup)
-  set(options UNIQUE)
-  set(oneValueArgs NAME PYTHON_OUTPUT_VAR)
-  set(multiValueArgs REQUIREMENTS PIP_ARGS)
-
-  cmake_parse_arguments(
-      ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}")
-
-  if(NOT ARG_REQUIREMENTS)
-    message(FATAL_ERROR "No REQUIREMENTS given for venv")
-    return()
+    set(USERVER_PYTHON_DEV_CHECKED TRUE CACHE INTERNAL "")
   endif()
 
-  if(NOT ARG_NAME)
-    set(venv_name "venv")
-    set(python_output_var "TESTSUITE_VENV_PYTHON")
-  else()
-    set(venv_name "venv-${ARG_NAME}")
-    string(TOUPPER "TESTSUITE_VENV_${ARG_NAME}_PYTHON" python_output_var)
+  if(NOT USERVER_TESTSUITE_DIR)
+    get_filename_component(
+        USERVER_TESTSUITE_DIR "${CMAKE_CURRENT_LIST_DIR}/../testsuite" ABSOLUTE)
   endif()
-
-  if(ARG_PYTHON_OUTPUT_VAR)
-    set(python_output_var "${ARG_PYTHON_OUTPUT_VAR}")
-  endif()
-
-  if(ARG_UNIQUE)
-    set(parent_directory "${CMAKE_BINARY_DIR}")
-  else()
-    set(parent_directory "${CMAKE_CURRENT_BINARY_DIR}")
-  endif()
-
-  set(venv_additional_args)
-  if(USERVER_PIP_USE_SYSTEM_PACKAGES)
-    list(APPEND venv_additional_args "--system-site-packages")
-  endif()
-  list(APPEND ARG_PIP_ARGS ${USERVER_PIP_OPTIONS})
-
-  set(venv_dir "${parent_directory}/${venv_name}")
-  set(venv_bin_dir "${venv_dir}/bin")
-  set("${python_output_var}" "${venv_bin_dir}/python" PARENT_SCOPE)
-
-  # A unique venv is set up once for the whole build.
-  # For example, a userver gRPC cmake script may be included multiple times
-  # during the Configure, but only 1 venv should be created.
-  # Global properties are used to check that all userver_venv_setup
-  # for a given venv are invoked with the same params.
-  if(ARG_UNIQUE)
-    set(venv_unique_params
-        venv ${ARG_REQUIREMENTS} ${venv_additional_args} ${ARG_PIP_ARGS})
-    get_property(cached_venv_unique_params
-        GLOBAL PROPERTY "userver-venv-${ARG_NAME}-params")
-    if(cached_venv_unique_params)
-      if(NOT cached_venv_unique_params STREQUAL venv_unique_params)
-        message(FATAL_ERROR
-            "Unique venv '${ARG_NAME}' is created multiple times with "
-            "different params, "
-            "before='${cached_venv_unique_params}' "
-            "after='${venv_unique_params}'")
-      endif()
-      return()
-    endif()
-  endif()
-
-  message(STATUS "Setting up the venv at ${venv_dir}")
-
-  if(NOT EXISTS "${venv_dir}")
-    execute_process(
-        COMMAND
-        "${USERVER_PYTHON_PATH}"
-        -m venv
-        "${venv_dir}"
-        ${venv_additional_args}
-        RESULT_VARIABLE status
-    )
-    if(status)
-      file(REMOVE_RECURSE "${venv_dir}")
-      message(FATAL_ERROR
-          "Failed to create Python virtual environment. "
-          "On Debian-based systems, venv is installed separately:\n"
-          "sudo apt install python3-venv"
-      )
-    endif()
-  endif()
-
-  # If pip has already installed packages using the same requirements,
-  # then don't run it again. This optimization dramatically reduces
-  # re-Configure times.
-  set(venv_params "")
-  set(format_version 2)
-  string(APPEND venv_params "format-version=${format_version}\n")
-  string(APPEND venv_params "pip-args=${ARG_PIP_ARGS}\n")
-  foreach(requirement IN LISTS ARG_REQUIREMENTS)
-    file(READ "${requirement}" requirement_contents)
-    if(NOT requirement_contents MATCHES "\n$")
-      message(FATAL_ERROR "venv requirements file must end with a newline")
-    endif()
-    string(APPEND venv_params "${requirement_contents}")
-  endforeach()
-
-  set(should_run_pip TRUE)
-  set(venv_params_file "${venv_dir}/venv-params.txt")
-  if(EXISTS "${venv_params_file}")
-    file(READ "${venv_params_file}" venv_params_old)
-    if(venv_params_old STREQUAL venv_params)
-      set(should_run_pip FALSE)
-    endif()
-  endif()
-
-  if(should_run_pip)
-    message(STATUS "Installing requirements:")
-    foreach(requirement IN LISTS ARG_REQUIREMENTS)
-      message(STATUS "  ${requirement}")
-    endforeach()
-    list(
-        TRANSFORM ARG_REQUIREMENTS
-        PREPEND "--requirement="
-        OUTPUT_VARIABLE pip_requirements
-    )
-    execute_process(
-        COMMAND
-        "${venv_bin_dir}/pip" install
-        --disable-pip-version-check
-        -U ${pip_requirements}
-        ${ARG_PIP_ARGS}
-        RESULT_VARIABLE status
-    )
-    if(status)
-      message(FATAL_ERROR "Failed to install venv requirements")
-    endif()
-    file(WRITE "${venv_params_file}" "${venv_params}")
-  endif()
-
-  if(ARG_UNIQUE)
-    set_property(GLOBAL PROPERTY "userver-venv-${ARG_NAME}-params"
-        ${venv_unique_params})
-  endif()
+  set_property(GLOBAL PROPERTY userver_testsuite_dir "${USERVER_TESTSUITE_DIR}")
 endfunction()
+
+_userver_prepare_testsuite()
 
 function(userver_testsuite_requirements)
   set(options)
@@ -181,35 +51,22 @@ function(userver_testsuite_requirements)
   cmake_parse_arguments(
       ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}")
 
+  get_property(USERVER_CMAKE_DIR GLOBAL PROPERTY userver_cmake_dir)
   get_property(USERVER_TESTSUITE_DIR GLOBAL PROPERTY userver_testsuite_dir)
 
   list(APPEND requirements_files
       "${USERVER_TESTSUITE_DIR}/requirements.txt")
 
   if(USERVER_FEATURE_GRPC OR TARGET userver::grpc)
-    if(NOT Protobuf_FOUND)
-      if(USERVER_CONAN)
-        find_package(Protobuf REQUIRED)
-      else()
-        include(SetupProtobuf)
-      endif()
+    get_property(protobuf_category
+        GLOBAL PROPERTY userver_protobuf_version_category)
+    if(NOT protobuf_category)
+      include("${USERVER_CMAKE_DIR}/SetupProtobuf.cmake")
+      get_property(protobuf_category
+          GLOBAL PROPERTY userver_protobuf_version_category)
     endif()
-    if(NOT Protobuf_FOUND)
-      message(FATAL_ERROR
-          "SetupProtobuf should be run before setting up testsuite")
-    endif()
-
-    if(Protobuf_VERSION VERSION_GREATER_EQUAL 5.26.0)
-      list(APPEND requirements_files
-          "${USERVER_TESTSUITE_DIR}/requirements-grpc-5.txt")
-    elseif(Protobuf_VERSION VERSION_GREATER_EQUAL 4.20.0)
-      list(APPEND requirements_files
-          "${USERVER_TESTSUITE_DIR}/requirements-grpc-4.txt")
-    else()
-      list(APPEND requirements_files
-          "${USERVER_TESTSUITE_DIR}/requirements-grpc-3.txt")
-      message(STATUS "Forcing old protobuf version for testsuite")
-    endif()
+    list(APPEND requirements_files
+        "${USERVER_TESTSUITE_DIR}/requirements-grpc-${protobuf_category}.txt")
   endif()
 
   if(USERVER_FEATURE_MONGODB OR TARGET userver::mongo)
@@ -251,6 +108,10 @@ function(userver_testsuite_requirements)
     list(APPEND testsuite_modules mysql)
   endif()
 
+  # This function returns "public" dependencies for userver-based services.
+  # For private dependencies that only userver's own tests need, see
+  # SetupUserverTestsuiteEnv.cmake
+
   file(READ "${USERVER_TESTSUITE_DIR}/requirements-testsuite.txt"
       requirements_testsuite_text)
   if(testsuite_modules)
@@ -263,6 +124,7 @@ function(userver_testsuite_requirements)
         "${requirements_testsuite_text}"
     )
   endif()
+
   set(requirements_testsuite_file
       "${CMAKE_BINARY_DIR}/requirements-userver-testsuite.txt")
   file(WRITE "${requirements_testsuite_file}" "${requirements_testsuite_text}")
@@ -285,6 +147,10 @@ function(userver_testsuite_add)
   )
   cmake_parse_arguments(
     ARG "${options}" "${oneValueArgs}" "${multiValueArgs}"  ${ARGN})
+
+  _userver_setup_environment_validate_impl()
+
+  include(CTest)
 
   get_property(USERVER_TESTSUITE_DIR GLOBAL PROPERTY userver_testsuite_dir)
 
@@ -333,12 +199,13 @@ function(userver_testsuite_add)
 
   execute_process(
     COMMAND
-    "${python_binary}" ${USERVER_TESTSUITE_DIR}/create_runner.py
-    -o ${TESTSUITE_RUNNER}
-    --python=${python_binary}
+    "${python_binary}" "${USERVER_TESTSUITE_DIR}/create_runner.py"
+    -o "${TESTSUITE_RUNNER}"
+    "--python=${python_binary}"
     "--python-path=${ARG_PYTHONPATH}"
     --
-    --build-dir=${CMAKE_BINARY_DIR}
+    "--build-dir=${CMAKE_CURRENT_BINARY_DIR}"
+    "--service-logs-file=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/service.log"
     ${ARG_PYTEST_ARGS}
     RESULT_VARIABLE STATUS
   )
@@ -403,6 +270,8 @@ function(userver_testsuite_add_simple)
   )
   cmake_parse_arguments(
       ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+  _userver_setup_environment_validate_impl()
 
   set(pytest_additional_args)
 

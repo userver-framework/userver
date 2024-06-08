@@ -44,9 +44,9 @@ include(UserverRequireDWCAS)  # Should be called after `find_package(Boost REQUI
 
 message(STATUS "boost: ${Boost_VERSION_STRING}")
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  if (MACOS AND Boost_FOUND)
+  if (CMAKE_SYSTEM_NAME MATCHES "Darwin" AND Boost_FOUND)
     # requires Boost_FOUND to make a valid expression
-    if (${Boost_VERSION_STRING} VERSION_LESS "1.68.0")
+    if ("${Boost_VERSION_STRING}" VERSION_LESS "1.68.0")
       message(FATAL_ERROR "Boost Locale version less that 1.68 uses features deleted from standard. Please update your boost distribution.")
     endif()
   endif()
@@ -60,6 +60,7 @@ if (USERVER_CONAN)
   find_package(yaml-cpp REQUIRED)
   find_package(fmt REQUIRED)
   find_package(cctz REQUIRED)
+  find_package(zstd REQUIRED)
 
   find_package(RapidJSON REQUIRED)
   target_compile_definitions(rapidjson INTERFACE RAPIDJSON_HAS_STDSTRING)
@@ -68,6 +69,7 @@ else()
   find_package_required(libyamlcpp "libyaml-cpp-dev")
   include(SetupFmt)
   include(SetupCCTZ)
+  find_package(libzstd REQUIRED)
 endif()
 
 # Compiler flags for userver code. Flags for all the code
@@ -157,9 +159,9 @@ add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
 include(GetUserverVersion)
 set(USERVER_NAMESPACE "userver" CACHE STRING "C++ namespace to use")
-if (NOT "${USERVER_NAMESPACE}" STREQUAL "")
-	set(USERVER_NAMESPACE_BEGIN "namespace ${USERVER_NAMESPACE} { inline namespace ${USERVER_VERSION_STR} { " CACHE STRING "Open C++ namespace to use")
-    set(USERVER_NAMESPACE_END "} }" CACHE STRING "Close C++ namespace to use")
+if(NOT "${USERVER_NAMESPACE}" STREQUAL "")
+  set(USERVER_NAMESPACE_BEGIN "namespace ${USERVER_NAMESPACE} { inline namespace ${USERVER_VERSION_STR} { " CACHE STRING "Open C++ namespace to use")
+  set(USERVER_NAMESPACE_END "} }" CACHE STRING "Close C++ namespace to use")
 endif()
 message(STATUS "Putting userver into namespace '${USERVER_NAMESPACE}': ${USERVER_NAMESPACE_BEGIN} ${USERVER_NAMESPACE_END}")
 target_compile_definitions(${PROJECT_NAME} PUBLIC
@@ -170,7 +172,7 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
 )
 
 # https://github.com/jemalloc/jemalloc/issues/820
-if (USERVER_FEATURE_JEMALLOC AND NOT USERVER_SANITIZE AND NOT MACOS)
+if (USERVER_FEATURE_JEMALLOC AND NOT USERVER_SANITIZE AND NOT CMAKE_SYSTEM_NAME MATCHES "Darwin")
   if (USERVER_CONAN)
     find_package(jemalloc REQUIRED)
     target_link_libraries(${PROJECT_NAME} PUBLIC jemalloc::jemalloc)
@@ -192,27 +194,27 @@ set(USERVER_ERASE_LOG_WITH_LEVEL_PENDING ${USERVER_FEATURE_ERASE_LOG_WITH_LEVEL}
 separate_arguments(USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
 list(REMOVE_DUPLICATES USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
 
-if ("error" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
-	target_compile_definitions(${PROJECT_NAME} PUBLIC
+if("error" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC
       "USERVER_FEATURE_ERASE_LOG_WITH_LEVEL=4"
-    )
-elseif ("warning" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
-	target_compile_definitions(${PROJECT_NAME} PUBLIC
+  )
+elseif("warning" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC
       "USERVER_FEATURE_ERASE_LOG_WITH_LEVEL=3"
-    )
-elseif ("info" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
-	target_compile_definitions(${PROJECT_NAME} PUBLIC
+  )
+elseif("info" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC
       "USERVER_FEATURE_ERASE_LOG_WITH_LEVEL=2"
-    )
-elseif ("debug" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
-	target_compile_definitions(${PROJECT_NAME} PUBLIC
+  )
+elseif("debug" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC
       "USERVER_FEATURE_ERASE_LOG_WITH_LEVEL=1"
-    )
-elseif ("trace" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
-	target_compile_definitions(${PROJECT_NAME} PUBLIC
+  )
+elseif("trace" IN_LIST USERVER_ERASE_LOG_WITH_LEVEL_PENDING)
+  target_compile_definitions(${PROJECT_NAME} PUBLIC
       "USERVER_FEATURE_ERASE_LOG_WITH_LEVEL=0"
-    )
-endif ()
+  )
+endif()
 
 # Suppress OpenSSL 3 warnings: we still primarily support OpenSSL 1.1.x
 target_compile_definitions(${PROJECT_NAME} PRIVATE OPENSSL_SUPPRESS_DEPRECATED=)
@@ -247,6 +249,13 @@ if (USERVER_CONAN)
       cryptopp::cryptopp
       rapidjson
   )
+  # According to https://conan.io/center/recipes/zstd should be
+  # zstd::libzstd_static, but it does not work that way
+  if (TARGET zstd::libzstd_static)
+    target_link_libraries(${PROJECT_NAME} PRIVATE zstd::libzstd_static)
+  else()
+    target_link_libraries(${PROJECT_NAME} PRIVATE zstd::libzstd_shared)
+  endif()
 else()
   include(Stacktrace)
   _make_stacktrace_target(userver-stacktrace "${Boost_VERSION_STRING}")
@@ -259,6 +268,7 @@ else()
       userver-stacktrace
     PRIVATE
       libyamlcpp
+      libzstd
       CryptoPP
   )
 endif()
@@ -276,6 +286,7 @@ target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
   ${USERVER_THIRD_PARTY_DIRS}/rapidjson/include
 )
 
+add_library(userver::universal ALIAS ${PROJECT_NAME})
 _userver_directory_install(COMPONENT universal
   DIRECTORY 
     ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -291,33 +302,22 @@ if (USERVER_IS_THE_ROOT_PROJECT OR USERVER_FEATURE_UTEST)
   if (USERVER_CONAN)
     find_package(GTest REQUIRED)
     find_package(benchmark REQUIRED)
-    target_link_libraries(${PROJECT_NAME}-internal-utest
-      INTERFACE
-        GTest::gtest
-        GTest::gmock
-        GTest::gtest_main
-        ${PROJECT_NAME}
-    )
-    target_link_libraries(${PROJECT_NAME}-internal-ubench
-      INTERFACE
-        benchmark::benchmark
-        ${PROJECT_NAME}
-    )
   else()
     include(SetupGTest)
     include(SetupGBench)
-    target_link_libraries(${PROJECT_NAME}-internal-utest
-      INTERFACE
-        libgtest
-        libgmock
-        ${PROJECT_NAME}
-    )
-    target_link_libraries(${PROJECT_NAME}-internal-ubench
-      INTERFACE
-        libbenchmark
-        ${PROJECT_NAME}
-    )
   endif()
+  target_link_libraries(${PROJECT_NAME}-internal-utest
+      INTERFACE
+      GTest::gtest
+      GTest::gmock
+      GTest::gtest_main
+      ${PROJECT_NAME}
+  )
+  target_link_libraries(${PROJECT_NAME}-internal-ubench
+      INTERFACE
+      benchmark::benchmark
+      ${PROJECT_NAME}
+  )
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
@@ -368,31 +368,25 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     add_google_benchmark_tests(${PROJECT_NAME}-benchmark)
 endif()
 
-if (USERVER_INSTALL)
-  configure_package_config_file("${USERVER_ROOT_DIR}/cmake/install/Config.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake"
-    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
-  )
-
-  write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake
-    VERSION ${USERVER_VERSION} COMPATIBILITY SameMajorVersion
-  )
-
-  _userver_directory_install(COMPONENT universal FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake"
+_userver_directory_install(COMPONENT universal FILES
     "${CMAKE_BINARY_DIR}/cmake_generated/FindCryptoPP.cmake"
     "${CMAKE_BINARY_DIR}/cmake_generated/Findlibyamlcpp.cmake"
+    "${CMAKE_BINARY_DIR}/cmake_generated/Findlibzstd.cmake"
     "${CMAKE_BINARY_DIR}/cmake_generated/Findcctz.cmake"
     "${CMAKE_BINARY_DIR}/cmake_generated/FindJemalloc.cmake"
-	"${USERVER_ROOT_DIR}/cmake/sanitize.blacklist.txt"
-	"${USERVER_ROOT_DIR}/cmake/RequireLTO.cmake"
+    "${CMAKE_BINARY_DIR}/cmake_generated/FindUserverGBench.cmake"
+    "${USERVER_ROOT_DIR}/cmake/SetupGTest.cmake"
+    "${USERVER_ROOT_DIR}/cmake/SetupGBench.cmake"
+    "${USERVER_ROOT_DIR}/cmake/sanitize.blacklist.txt"
+    "${USERVER_ROOT_DIR}/cmake/sanitize-macos.blacklist.txt"
+    "${USERVER_ROOT_DIR}/cmake/RequireLTO.cmake"
     "${USERVER_ROOT_DIR}/cmake/SetupLTO.cmake"
     "${USERVER_ROOT_DIR}/cmake/SetupLinker.cmake"
     "${USERVER_ROOT_DIR}/cmake/Sanitizers.cmake"
-	"${USERVER_ROOT_DIR}/cmake/AddGoogleTests.cmake"
-	"${USERVER_ROOT_DIR}/cmake/DetectVersion.cmake"
-	"${USERVER_ROOT_DIR}/cmake/install/userver-universal-config.cmake"
+    "${USERVER_ROOT_DIR}/cmake/AddGoogleTests.cmake"
+    "${USERVER_ROOT_DIR}/cmake/DetectVersion.cmake"
+    "${USERVER_ROOT_DIR}/cmake/UserverSetupEnvironment.cmake"
+    "${USERVER_ROOT_DIR}/cmake/UserverVenv.cmake"
+    "${USERVER_ROOT_DIR}/cmake/install/userver-universal-config.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
-  )
-endif()
+)

@@ -28,7 +28,7 @@
               documentation
             </a>
             <a
-              class="button button_outline"
+              class="button button_outline generic_tg_link"
               title="Go to the userver Telegram"
               href="https://t.me/userver_en"
             >
@@ -99,9 +99,9 @@ void Ins(storages::postgres::Transaction& tr,
             <span class="values__icon thumbnail thumbnail_asynchronous"></span>
             <p class="values__cardinfo">
               Efficient asynchronous drivers for databases (MongoDB, PostgreSQL,
-              MySQL/MariaDB (experimental), Redis, ClickHouse, ...) and data
-              transfer protocols (HTTP, WEbSockets, gRPC, TCP, AMQP-0.9.1
-              (experimental), ...), tasks construction and cancellation.
+              MySQL/MariaDB, Redis, ClickHouse, ...) and data
+              transfer protocols (HTTP, WEbSockets, gRPC, TCP, AMQP-0.9.1,
+              Apache Kafka, ...), tasks construction and cancellation.
             </p>
           </div>
           <div class="values__card">
@@ -128,7 +128,7 @@ void Ins(storages::postgres::Transaction& tr,
           </div>
         </div>
       </section>
-      <!--section class="section companies container">
+      <section class="section companies container">
         <h2>
           Brands and companies using <span class="userver__title">userver</span>
         </h2>
@@ -138,7 +138,7 @@ void Ins(storages::postgres::Transaction& tr,
           <span class="logo logo_matchmaker" title="Matchmaker"></span>
           <span class="logo logo_yago" title="Yandex Go"></span>
         </div>
-      </section-->
+      </section>
     </main>
     <!-- Highlight codeblocks -->
     <script src="highlight.min.js"></script>

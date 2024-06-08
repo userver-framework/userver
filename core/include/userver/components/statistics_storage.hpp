@@ -4,7 +4,7 @@
 /// @brief @copybrief components::StatisticsStorage
 
 #include <userver/components/component_fwd.hpp>
-#include <userver/components/impl/component_base.hpp>
+#include <userver/components/raw_component_base.hpp>
 #include <userver/utils/statistics/metrics_storage.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
@@ -29,7 +29,7 @@ namespace components {
 /// @snippet components/common_component_list_test.cpp  Sample statistics storage component config
 
 // clang-format on
-class StatisticsStorage final : public impl::ComponentBase {
+class StatisticsStorage final : public RawComponentBase {
  public:
   /// @ingroup userver_component_names
   /// @brief The default name of components::StatisticsStorage component

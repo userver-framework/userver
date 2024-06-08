@@ -19,6 +19,11 @@ bool State::HasDependencyOn(std::string_view component_name,
   return impl_.HasDependencyOn(component_name, dependency);
 }
 
+std::unordered_set<std::string_view> State::GetAllDependencies(
+    std::string_view component_name) const {
+  return impl_.GetAllDependencies(component_name);
+}
+
 }  // namespace components
 
 USERVER_NAMESPACE_END

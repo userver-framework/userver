@@ -1,5 +1,6 @@
 # pylint: disable=no-member
 import os
+import re
 
 from conan import ConanFile
 from conan import errors
@@ -8,13 +9,14 @@ from conan.tools.cmake import cmake_layout
 from conan.tools.cmake import CMakeDeps
 from conan.tools.cmake import CMakeToolchain
 from conan.tools.files import copy
+from conan.tools.files import load
+
 
 required_conan_version = '>=1.51.0, <2.0.0'  # pylint: disable=invalid-name
 
 
 class UserverConan(ConanFile):
     name = 'userver'
-    version = '1.0.0'
     description = 'The C++ Asynchronous Framework'
     topics = ('framework', 'coroutines', 'asynchronous')
     url = 'https://github.com/userver-framework/userver'
@@ -44,7 +46,7 @@ class UserverConan(ConanFile):
     default_options = {
         'shared': False,
         'fPIC': True,
-        'lto': True,
+        'lto': False,
         'with_jemalloc': True,
         'with_mongodb': True,
         'with_postgresql': True,
@@ -66,13 +68,28 @@ class UserverConan(ConanFile):
     #     'revision': 'develop'
     # }
 
+    def set_version(self):
+        content = load(self, 'cmake/GetUserverVersion.cmake')
+        major_version = (
+            re.search(r'set\(USERVER_MAJOR_VERSION (.*)\)', content)
+            .group(1)
+            .strip()
+        )
+        minor_version = (
+            re.search(r'set\(USERVER_MINOR_VERSION (.*)\)', content)
+            .group(1)
+            .strip()
+        )
+
+        self.version = f'{major_version}.{minor_version}'
+
     @property
     def _source_subfolder(self):
         return 'source'
 
     @property
     def _build_subfolder(self):
-        return os.path.join(self.build_folder, 'userver')
+        return os.path.join(self.build_folder)
 
     def configure(self):
         if self.options.shared:
@@ -95,6 +112,7 @@ class UserverConan(ConanFile):
         self.requires('rapidjson/cci.20220822', transitive_headers=True)
         self.requires('yaml-cpp/0.7.0')
         self.requires('zlib/1.2.13')
+        self.requires('zstd/1.5.6')
 
         if self.options.with_jemalloc:
             self.requires('jemalloc/5.3.0')
@@ -257,6 +275,19 @@ class UserverConan(ConanFile):
 
         copy_component('core')
         copy_component('universal')
+        for cmake_file in (
+                'UserverSetupEnvironment',
+                'SetupLinker',
+                'SetupLTO',
+                'UserverVenv',
+        ):
+            copy(
+                self,
+                pattern=f'{cmake_file}.cmake',
+                dst=os.path.join(self.package_folder, 'cmake'),
+                src=os.path.join(self.source_folder, 'cmake'),
+                keep_path=True,
+            )
 
         if self.options.with_grpc:
             copy_component('grpc')
@@ -312,6 +343,13 @@ class UserverConan(ConanFile):
             copy(
                 self,
                 pattern='UserverTestsuite.cmake',
+                dst=os.path.join(self.package_folder, 'cmake'),
+                src=os.path.join(self.source_folder, 'cmake'),
+                keep_path=True,
+            )
+            copy(
+                self,
+                pattern='SetupProtobuf.cmake',
                 dst=os.path.join(self.package_folder, 'cmake'),
                 src=os.path.join(self.source_folder, 'cmake'),
                 keep_path=True,
@@ -374,6 +412,11 @@ class UserverConan(ConanFile):
 
         def zlib():
             return ['zlib::zlib']
+
+        def zstd():
+            # According to https://conan.io/center/recipes/zstd should be
+            # zstd::libzstd_static, but it does not work that way
+            return ['zstd::zstd']
 
         def jemalloc():
             return ['jemalloc::jemalloc'] if self.options.with_jemalloc else []
@@ -461,6 +504,7 @@ class UserverConan(ConanFile):
                         + cryptopp()
                         + jemalloc()
                         + openssl()
+                        + zstd()
                     ),
                 },
             ],
@@ -624,7 +668,18 @@ class UserverConan(ConanFile):
 
         add_components(self._userver_components)
 
+        with open(
+                os.path.join(self._cmake_subfolder, 'CallSetupEnv.cmake'),
+                'a+',
+        ) as cmake_file:
+            cmake_file.write('userver_setup_environment()')
+
         build_modules = [
+            os.path.join(
+                self._cmake_subfolder, 'UserverSetupEnvironment.cmake',
+            ),
+            os.path.join(self._cmake_subfolder, 'CallSetupEnv.cmake'),
+            os.path.join(self._cmake_subfolder, 'UserverVenv.cmake'),
             os.path.join(self._cmake_subfolder, 'UserverTestsuite.cmake'),
         ]
         if self.options.with_utest:
@@ -632,6 +687,9 @@ class UserverConan(ConanFile):
                 os.path.join(self._cmake_subfolder, 'AddGoogleTests.cmake'),
             )
         if self.options.with_grpc:
+            build_modules.append(
+                os.path.join(self._cmake_subfolder, 'SetupProtobuf.cmake'),
+            )
             build_modules.append(
                 os.path.join(self._cmake_subfolder, 'GrpcConan.cmake'),
             )

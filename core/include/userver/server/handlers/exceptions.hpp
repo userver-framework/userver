@@ -32,7 +32,7 @@ enum class HandlerErrorCode {
                   //!< to a description, shouldn't be used in client code
   kClientError,   //!< kInvalidRequest Invalid request data
   kRequestParseError,  //!< kRequestParseError
-  kUnauthorized,  //!< kUnauthorized Client is not authorised to execute this
+  kUnauthorized,  //!< kUnauthorized Client is not authorized to execute this
                   //!< handler
   kForbidden,     //!< kForbidden Requested action is forbidden
   kResourceNotFound,  //!< kResourceNoFound Requested resource doesn't exist
@@ -303,7 +303,7 @@ class CustomHandlerException : public std::runtime_error {
     return data_.external_body;
   }
 
-  const formats::json::Value& GetDetails() const { return data_.details; };
+  const formats::json::Value& GetDetails() const { return data_.details; }
 
   const Headers& GetExtraHeaders() const { return data_.headers; }
 

@@ -1,4 +1,4 @@
-include_guard()
+include_guard(GLOBAL)
 
 set_property(GLOBAL PROPERTY userver_cmake_dir "${CMAKE_CURRENT_LIST_DIR}")
 
@@ -50,7 +50,7 @@ function(_userver_export_targets)
           FILE userver-targets.cmake
           CONFIGURATIONS RELEASE
           NAMESPACE userver::
-         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/release
+          DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/release
   )
   install(EXPORT userver-targets_d
           FILE userver-targets_d.cmake
@@ -84,4 +84,27 @@ function(_userver_directory_install)
   if(ARG_DIRECTORY)
     install(DIRECTORY ${ARG_DIRECTORY} DESTINATION ${ARG_DESTINATION} COMPONENT ${ARG_COMPONENT} USE_SOURCE_PERMISSIONS)
   endif()
+endfunction()
+
+function(_userver_make_install_config)
+  if(NOT USERVER_INSTALL)
+    return()
+  endif()
+
+  configure_package_config_file(
+      "${USERVER_ROOT_DIR}/cmake/install/Config.cmake.in"
+      "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake"
+      INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver"
+  )
+
+  write_basic_package_version_file(
+      "${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake"
+      VERSION "${USERVER_VERSION}" COMPATIBILITY SameMajorVersion
+  )
+
+  _userver_directory_install(COMPONENT universal FILES
+      "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake"
+      "${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake"
+      DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver"
+  )
 endfunction()

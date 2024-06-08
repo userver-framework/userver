@@ -16,6 +16,8 @@ class MockTransactionImplBase {
 
   virtual RequestAppend Append(std::string key, std::string value);
 
+  virtual RequestBitop Bitop(BitOperation op, std::string dest_key,
+                             std::vector<std::string> src_keys);
   virtual RequestDbsize Dbsize(size_t shard);
 
   virtual RequestDel Del(std::string key);

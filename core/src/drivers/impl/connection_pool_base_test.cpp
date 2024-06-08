@@ -220,7 +220,7 @@ UTEST(ConnectionPoolBase, HonorsMaxPoolSize) {
   EXPECT_NO_THROW(acquire());
 }
 
-UTEST(ConnectionPoolBase, HonorsMaxSimultaneosulyConnectingClients) {
+UTEST(ConnectionPoolBase, HonorsMaxSimultaneouslyConnectingClients) {
   constexpr std::size_t max_connecting = 3;
   auto pool = CreatePool<BasicPool>(0, max_connecting + 1, max_connecting);
 
@@ -248,7 +248,7 @@ UTEST(ConnectionPoolBase, HonorsMaxSimultaneosulyConnectingClients) {
   EXPECT_EQ(pool->GetOverloadCount(), 1);
 }
 
-UTEST(ConnectionPoolBase, HonorsMaxSimultaneosulyConnectingClientsInInit) {
+UTEST(ConnectionPoolBase, HonorsMaxSimultaneouslyConnectingClientsInInit) {
   constexpr std::size_t max_connecting = 3;
   auto pool = std::make_shared<BasicPool>(max_connecting + 1, max_connecting);
 

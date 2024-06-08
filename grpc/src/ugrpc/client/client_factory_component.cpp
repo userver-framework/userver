@@ -9,6 +9,7 @@
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <ugrpc/client/impl/client_factory_config.hpp>
+#include <userver/ugrpc/server/middlewares/fwd.hpp>
 #include <userver/ugrpc/server/server_component.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -32,7 +33,7 @@ const storages::secdist::SecdistConfig* GetSecdist(
 ClientFactoryComponent::ClientFactoryComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
-    : LoggableComponentBase(config, context) {
+    : ComponentBase(config, context) {
   auto& task_processor =
       context.GetTaskProcessor(config["task-processor"].As<std::string>());
 
@@ -71,7 +72,7 @@ ClientFactoryComponent::ClientFactoryComponent(
 ClientFactory& ClientFactoryComponent::GetFactory() { return *factory_; }
 
 yaml_config::Schema ClientFactoryComponent::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: Provides a ClientFactory in the component system
 additionalProperties: false

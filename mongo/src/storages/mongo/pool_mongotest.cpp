@@ -76,9 +76,9 @@ UTEST(NonexistentPool, ConnectionFailure) {
 
 UTEST_F(Pool, Limits) {
   auto limited_config = MakeTestPoolConfig();
-  limited_config.initial_size = 1;
-  limited_config.idle_limit = 1;
-  limited_config.max_size = 1;
+  limited_config.pool_settings.initial_size = 1;
+  limited_config.pool_settings.idle_limit = 1;
+  limited_config.pool_settings.max_size = 1;
   auto limited_pool = MakePool({}, limited_config);
 
   std::vector<formats::bson::Document> docs;

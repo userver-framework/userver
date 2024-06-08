@@ -544,11 +544,11 @@ public:
 	// Returns true if the underlying atomic variables used by
 	// the queue are lock-free (they should be on most platforms).
 	// Thread-safe.
-	static bool is_lock_free()
+	static constexpr bool is_lock_free()
 	{
 		return ConcurrentQueue::is_lock_free();
 	}
-	
+
 
 private:
 	template<typename U, typename A1, typename A2>
@@ -557,7 +557,7 @@ private:
 		void* p = (Traits::malloc)(sizeof(U));
 		return p != nullptr ? new (p) U(std::forward<A1>(a1), std::forward<A2>(a2)) : nullptr;
 	}
-	
+
 	template<typename U>
 	static inline void destroy(U* p)
 	{
@@ -566,7 +566,7 @@ private:
 		}
 		(Traits::free)(p);
 	}
-	
+
 private:
 	ConcurrentQueue inner;
 	std::unique_ptr<LightweightSemaphore, void (*)(LightweightSemaphore*)> sema;

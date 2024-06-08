@@ -25,6 +25,7 @@
 #include <userver/fs/blocking/file_descriptor.hpp>
 #include <userver/fs/blocking/temp_file.hpp>
 #include <userver/logging/format.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/logging/logger.hpp>
 #include <userver/utest/current_process_open_files.hpp>
 #include <userver/utils/text.hpp>

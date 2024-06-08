@@ -200,6 +200,11 @@ class SwitchByFirst final {
     return *this;
   }
 
+  template <typename T, typename U = void>
+  constexpr SwitchByFirst& Type() {
+    return *this;
+  }
+
   [[nodiscard]] constexpr std::optional<Second> Extract() noexcept {
     return state_.Extract();
   }
@@ -217,6 +222,11 @@ class SwitchByFirst<First, void> final {
     if (!state_.IsFound() && state_.GetKey() == first) {
       state_.SetValue(Found{0});
     }
+    return *this;
+  }
+
+  template <typename T, typename U = void>
+  constexpr SwitchByFirst& Type() {
     return *this;
   }
 
@@ -245,6 +255,11 @@ class SwitchByFirstICase final {
     return *this;
   }
 
+  template <typename T, typename U>
+  constexpr SwitchByFirstICase& Type() {
+    return *this;
+  }
+
   [[nodiscard]] constexpr std::optional<Second> Extract() noexcept {
     return state_.Extract();
   }
@@ -268,6 +283,11 @@ class SwitchByFirstICase<void> final {
         impl::ICaseEqualLowercase(first, state_.GetKey())) {
       state_.SetValue(Found{0});
     }
+    return *this;
+  }
+
+  template <typename T, typename U>
+  constexpr SwitchByFirstICase& Type() {
     return *this;
   }
 
@@ -298,6 +318,11 @@ class SwitchBySecondICase final {
     return *this;
   }
 
+  template <typename T, typename U>
+  constexpr SwitchBySecondICase& Type() {
+    return *this;
+  }
+
   [[nodiscard]] constexpr std::optional<First> Extract() noexcept {
     return state_.Extract();
   }
@@ -315,6 +340,11 @@ class SwitchBySecond final {
     if (!state_.IsFound() && state_.GetKey() == second) {
       state_.SetValue(first);
     }
+    return *this;
+  }
+
+  template <typename T, typename U>
+  constexpr SwitchBySecond& Type() {
     return *this;
   }
 
@@ -350,6 +380,16 @@ class SwitchTypesDetector final {
 
   template <typename First, typename Second>
   constexpr auto Case(First, Second) noexcept {
+    return Type<First, Second>();
+  }
+
+  template <typename First>
+  constexpr auto Case(First) noexcept {
+    return Type<First, void>();
+  }
+
+  template <typename First, typename Second = void>
+  constexpr auto Type() noexcept {
     using first_type =
         std::conditional_t<std::is_convertible_v<First, std::string_view>,
                            std::string_view, First>;
@@ -357,14 +397,6 @@ class SwitchTypesDetector final {
         std::conditional_t<std::is_convertible_v<Second, std::string_view>,
                            std::string_view, Second>;
     return SwitchTypesDetected<first_type, second_type>{};
-  }
-
-  template <typename First>
-  constexpr auto Case(First) noexcept {
-    using first_type =
-        std::conditional_t<std::is_convertible_v<First, std::string_view>,
-                           std::string_view, First>;
-    return SwitchTypesDetected<first_type, void>{};
   }
 };
 
@@ -379,6 +411,11 @@ class CaseCounter final {
   template <typename First>
   constexpr CaseCounter& Case(First) noexcept {
     ++count_;
+    return *this;
+  }
+
+  template <typename T, typename U>
+  constexpr CaseCounter& Type() {
     return *this;
   }
 
@@ -400,6 +437,11 @@ class CaseDescriber final {
 
     description_ += fmt::format("('{}', '{}')", first, second);
 
+    return *this;
+  }
+
+  template <typename T, typename U>
+  constexpr CaseDescriber& Type() {
     return *this;
   }
 
@@ -429,6 +471,11 @@ class CaseFirstDescriber final {
     return Case(first);
   }
 
+  template <typename T, typename U>
+  constexpr CaseFirstDescriber& Type() {
+    return *this;
+  }
+
   [[nodiscard]] std::string Extract() && noexcept {
     return std::move(description_);
   }
@@ -447,6 +494,11 @@ class CaseSecondDescriber final {
 
     description_ += fmt::format("'{}'", second);
 
+    return *this;
+  }
+
+  template <typename T, typename U>
+  constexpr CaseSecondDescriber& Type() {
     return *this;
   }
 
@@ -477,6 +529,11 @@ class CaseGetValuesByIndex final {
     return *this;
   }
 
+  template <typename T, typename U>
+  constexpr CaseGetValuesByIndex& Type() {
+    return *this;
+  }
+
   [[nodiscard]] constexpr First GetFirst() noexcept {
     return std::move(first_);
   }
@@ -502,6 +559,11 @@ class CaseFirstIndexer final {
       state_.SetValue(index_);
     }
     ++index_;
+    return *this;
+  }
+
+  template <typename T, typename U = void>
+  constexpr CaseFirstIndexer& Type() {
     return *this;
   }
 
@@ -537,6 +599,10 @@ class CaseFirstIndexer final {
 /// into a switch and it usually takes O(1) to find the match.
 ///
 /// @snippet universal/src/utils/trivial_map_test.cpp  sample bidir bimap
+///
+/// Empty map:
+///
+/// @snippet universal/src/utils/trivial_map_test.cpp  sample empty bimap
 ///
 /// For a single value Case statements see @ref utils::TrivialSet.
 template <typename BuilderFunc>

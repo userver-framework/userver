@@ -9,13 +9,6 @@
 #include <userver/formats/json/value.hpp>
 #include <userver/utils/function_ref.hpp>
 
-// TODO remove extra includes
-#include <fmt/format.h>
-#include <atomic>
-#include <chrono>
-#include <userver/rcu/rcu.hpp>
-#include <userver/utils/async.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace testsuite {

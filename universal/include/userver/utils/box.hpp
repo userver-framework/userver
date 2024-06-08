@@ -19,9 +19,18 @@ namespace utils {
 namespace impl {
 
 template <typename Self, typename... Args>
-struct ArgsAreNotSelf
-    : std::bool_constant<((sizeof...(Args) > 1) || ... ||
-                          !std::is_same_v<std::decay_t<Args>, Self>)> {};
+inline constexpr bool kArgsAreNotSelf =
+    ((sizeof...(Args) > 1) || ... || !std::is_same_v<std::decay_t<Args>, Self>);
+
+template <bool Condition, template <typename...> typename Trait,
+          typename... Args>
+constexpr bool ConjunctionWithTrait() noexcept {
+  if constexpr (Condition) {
+    return Trait<Args...>::value;
+  } else {
+    return false;
+  }
+}
 
 }  // namespace impl
 
@@ -53,26 +62,26 @@ class Box {
 
   /// Allocate a `T`, copying or moving @a arg.
   template <typename U = T,
-            std::enable_if_t<std::conjunction_v<
+            std::enable_if_t<impl::ConjunctionWithTrait<
                                  // Protection against hiding special
                                  // constructors.
-                                 impl::ArgsAreNotSelf<Box, U>,
+                                 impl::kArgsAreNotSelf<Box, U>,
                                  // Only allow the implicit conversion to Box<T>
                                  // if U is implicitly convertible to T. Also,
                                  // support SFINAE.
-                                 std::is_convertible<U&&, T>>,
+                                 std::is_convertible, U&&, T>(),
                              int> = 0>
   /*implicit*/ Box(U&& arg)
       : data_(std::make_unique<T>(std::forward<U>(arg))) {}
 
   /// Allocate the value, emplacing it with the given @a args.
   template <typename... Args,
-            std::enable_if_t<std::conjunction_v<
+            std::enable_if_t<impl::ConjunctionWithTrait<
                                  // Protection against hiding special
                                  // constructors.
-                                 impl::ArgsAreNotSelf<Box, Args...>,
+                                 impl::kArgsAreNotSelf<Box, Args...>,
                                  // Support SFINAE.
-                                 std::is_constructible<T, Args&&...>>,
+                                 std::is_constructible, T, Args&&...>(),
                              int> = 0>
   explicit Box(Args&&... args)
       : data_(std::make_unique<T>(std::forward<Args>(args)...)) {}
@@ -80,7 +89,7 @@ class Box {
   /// Allocate the value as constructed by the given @a factory.
   /// Allows to save an extra move of the contained value.
   template <typename Factory>
-  Box MakeWithFactory(Factory&& factory) {
+  static Box MakeWithFactory(Factory&& factory) {
     return Box(EmplaceFactory{}, std::forward<Factory>(factory));
   }
 
@@ -95,14 +104,16 @@ class Box {
   }
 
   /// Assigns-through to the contained value.
-  template <typename U = T, std::enable_if_t<std::conjunction_v<
-                                                 // Protection against hiding
-                                                 // special constructors.
-                                                 impl::ArgsAreNotSelf<Box, U>,
-                                                 // Support SFINAE.
-                                                 std::is_constructible<T, U>,
-                                                 std::is_assignable<T&, U>>,
-                                             int> = 0>
+  template <typename U = T,
+            std::enable_if_t<impl::ConjunctionWithTrait<  //
+                                 impl::ConjunctionWithTrait<
+                                     // Protection against hiding
+                                     // special constructors.
+                                     impl::kArgsAreNotSelf<Box, U>,
+                                     // Support SFINAE.
+                                     std::is_constructible, T, U>(),
+                                 std::is_assignable, T&, U>(),
+                             int> = 0>
   Box& operator=(U&& other) {
     if (data_) {
       *data_ = std::forward<U>(other);

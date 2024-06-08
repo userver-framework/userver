@@ -13,7 +13,7 @@
 #include <string_view>
 
 #include <fmt/format.h>
-#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/pfr/core.hpp>
 #include <boost/system/error_code.hpp>
 
@@ -192,7 +192,9 @@ SystemStats GetSystemStatisticsByExeNameFromProc(std::string_view name) {
   SystemStats cumulative;
   for (; !ec && it != boost::filesystem::directory_iterator{};
        it.increment(ec)) {
-    if (!boost::filesystem::is_directory(it->status())) continue;
+    const auto directory_entry_status = it->status(ec);
+    if (ec) continue;
+    if (!boost::filesystem::is_directory(directory_entry_status)) continue;
     if (!IsAllDigits(it->path().filename())) continue;
 
     std::string stat_data;

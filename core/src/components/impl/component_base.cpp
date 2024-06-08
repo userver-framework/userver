@@ -1,20 +1,20 @@
-#include <userver/components/impl/component_base.hpp>
+#include <userver/components/raw_component_base.hpp>
 
 #include <userver/yaml_config/merge_schemas.hpp>
 #include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace components::impl {
+namespace components {
 
-// Putting detructor into a cpp file to force vtable instantiation in only 1
+// Putting destructor into a cpp file to force vtable instantiation in only 1
 // translation unit
-ComponentBase::~ComponentBase() = default;
+RawComponentBase::~RawComponentBase() = default;
 
-yaml_config::Schema ComponentBase::GetStaticConfigSchema() {
+yaml_config::Schema RawComponentBase::GetStaticConfigSchema() {
   return yaml_config::impl::SchemaFromString(R"(
 type: object
-description: base component. Don't use it for application components, use LoggableComponentBase instead
+description: base component. Don't use it for application components, use ComponentBase instead
 additionalProperties: false
 properties:
     load-enabled:
@@ -24,6 +24,6 @@ properties:
 )");
 }
 
-}  // namespace components::impl
+}  // namespace components
 
 USERVER_NAMESPACE_END

@@ -32,7 +32,7 @@ std::shared_ptr<storages::mysql::Cluster> CreateCluster(
 
 Component::Component(const components::ComponentConfig& config,
                      const components::ComponentContext& context)
-    : LoggableComponentBase{config, context},
+    : ComponentBase{config, context},
       dns_{context.FindComponent<clients::dns::Component>()},
       cluster_{CreateCluster(dns_.GetResolver(), config, context)} {
   auto& statistics_storage =
@@ -50,7 +50,7 @@ std::shared_ptr<storages::mysql::Cluster> Component::GetCluster() const {
 }
 
 yaml_config::Schema Component::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: MySQL client component
 additionalProperties: false

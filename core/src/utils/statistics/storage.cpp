@@ -1,5 +1,6 @@
 #include <userver/utils/statistics/storage.hpp>
 
+#include <algorithm>
 #include <utility>
 
 #include <boost/container/small_vector.hpp>

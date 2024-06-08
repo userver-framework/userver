@@ -35,6 +35,7 @@ USERVER_CONFIG_HOOKS = [
     'userver_config_logging',
     'userver_config_testsuite',
     'userver_config_secdist',
+    'userver_config_testsuite_middleware',
 ]
 
 
@@ -400,19 +401,32 @@ def userver_config_http_client(
 
 
 @pytest.fixture(scope='session')
-def userver_default_log_level():
+def userver_default_log_level() -> str:
+    """
+    Default log level to use in userver if no caoomand line option was provided.
+
+    Returns 'debug'.
+
+    @ingroup userver_testsuite_fixtures
+    """
     return 'debug'
 
 
 @pytest.fixture(scope='session')
-def userver_log_level(pytestconfig, userver_default_log_level):
+def userver_log_level(pytestconfig, userver_default_log_level) -> str:
+    """
+    Returns --service-log-level value if provided, otherwise returns
+    userver_default_log_level() value from fixture.
+
+    @ingroup userver_testsuite_fixtures
+    """
     if pytestconfig.option.service_log_level:
         return pytestconfig.option.service_log_level
     return userver_default_log_level
 
 
 @pytest.fixture(scope='session')
-def userver_config_logging(userver_log_level):
+def userver_config_logging(userver_log_level, _service_logfile_path):
     """
     Returns a function that adjusts the static configuration file for testsuite.
     Sets the `logging.loggers.default` to log to `@stderr` with level set
@@ -421,15 +435,21 @@ def userver_config_logging(userver_log_level):
     @ingroup userver_testsuite_fixtures
     """
 
+    if _service_logfile_path:
+        default_file_path = str(_service_logfile_path)
+    else:
+        default_file_path = '@stderr'
+
     def _patch_config(config_yaml, config_vars):
         components = config_yaml['components_manager']['components']
         if 'logging' in components:
-            components['logging']['loggers'] = {
-                'default': {
-                    'file_path': '@stderr',
-                    'level': userver_log_level,
-                    'overflow_behavior': 'discard',
-                },
+            loggers = components['logging'].setdefault('loggers', {})
+            for logger in loggers.values():
+                logger['file_path'] = '@null'
+            loggers['default'] = {
+                'file_path': default_file_path,
+                'level': userver_log_level,
+                'overflow_behavior': 'discard',
             }
         config_vars['logger_level'] = userver_log_level
 
@@ -472,6 +492,7 @@ def userver_config_testsuite(pytestconfig, mockserver_info):
             return
         testsuite_support = components['testsuite-support'] or {}
         testsuite_support['testsuite-increased-timeout'] = '30s'
+        testsuite_support['testsuite-grpc-is-tls-enabled'] = False
         _set_postgresql_options(testsuite_support)
         _set_redis_timeout(testsuite_support)
         service_runner = pytestconfig.getoption('--service-runner-mode', False)
@@ -522,3 +543,30 @@ def userver_config_secdist(service_secdist_path):
         )
 
     return _patch_config
+
+
+@pytest.fixture(scope='session')
+def userver_config_testsuite_middleware(
+        userver_testsuite_middleware_enabled: bool,
+):
+    def patch_config(config_yaml, config_vars):
+        if not userver_testsuite_middleware_enabled:
+            return
+
+        components = config_yaml['components_manager']['components']
+        if 'server' not in components:
+            return
+
+        pipeline_builder = components.setdefault(
+            'default-server-middleware-pipeline-builder', {},
+        )
+        middlewares = pipeline_builder.setdefault('append', [])
+        middlewares.append('testsuite-exceptions-handling-middleware')
+
+    return patch_config
+
+
+@pytest.fixture(scope='session')
+def userver_testsuite_middleware_enabled() -> bool:
+    """Enabled testsuite middleware."""
+    return True

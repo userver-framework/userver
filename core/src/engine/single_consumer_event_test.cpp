@@ -1,12 +1,14 @@
 #include <userver/engine/single_consumer_event.hpp>
 
 #include <atomic>
+#include <optional>
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utest/utest.hpp>
+#include <userver/utils/fixed_array.hpp>
 
 using namespace std::chrono_literals;
 
@@ -223,6 +225,51 @@ UTEST_MT(SingleConsumerEvent, ParallelSend, 3) {
   for (auto& producer : producers) {
     producer.RequestCancel();
     UEXPECT_NO_THROW(producer.Get());
+  }
+}
+
+UTEST_MT(SingleConsumerEvent, AsConditionVariable, 4) {
+  /// [CV init]
+  std::atomic<std::uint64_t> count{1};
+  engine::SingleConsumerEvent event;
+  /// [CV init]
+
+  auto incrementers =
+      utils::GenerateFixedArray(GetThreadCount() - 1, [&](std::size_t) {
+        return engine::CriticalAsyncNoSpan([&count, &event] {
+          while (!engine::current_task::ShouldCancel()) {
+            /// [CV notifier]
+            // First, mutate the state.
+            // Notifiers and the waiter will access the state in parallel.
+            // Operations must be atomic, can be std::memory_order_relaxed.
+            count.fetch_add(1, std::memory_order_relaxed);
+            // Second, notify the waiter.
+            event.Send();
+            /// [CV notifier]
+
+            engine::Yield();
+          }
+        });
+      });
+
+  /// [CV waiter]
+  std::uint64_t count_acquired{};
+  const bool success = event.WaitUntil({}, [&] {
+    // Operations must be atomic, can be std::memory_order_relaxed.
+    count_acquired = count.load(std::memory_order_relaxed);
+    return count_acquired % 2 == 0 &&
+           count.compare_exchange_strong(count_acquired, 0,
+                                         std::memory_order_relaxed);
+  });
+  /// [CV waiter]
+
+  EXPECT_TRUE(success);
+  EXPECT_TRUE(count_acquired != 0);
+  EXPECT_TRUE(count_acquired % 2 == 0);
+
+  for (auto& incrementer : incrementers) {
+    incrementer.RequestCancel();
+    UEXPECT_NO_THROW(incrementer.Get());
   }
 }
 

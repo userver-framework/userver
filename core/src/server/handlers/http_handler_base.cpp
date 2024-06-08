@@ -453,7 +453,7 @@ void HttpHandlerBase::LogUnknownException(const std::exception& ex) const {
   }
 }
 
-const std::optional<logging::Level> HttpHandlerBase::GetLogLevel() const {
+const std::optional<logging::Level>& HttpHandlerBase::GetLogLevel() const {
   return log_level_;
 }
 

@@ -11,6 +11,7 @@
 #include <userver/congestion_control/controllers/linear.hpp>
 #include <userver/utils/statistics/min_max_avg.hpp>
 #include <userver/utils/statistics/percentile.hpp>
+#include <userver/utils/statistics/rate_counter.hpp>
 #include <userver/utils/statistics/recentperiod.hpp>
 #include <userver/utils/statistics/relaxed_counter.hpp>
 #include <userver/utils/statistics/writer.hpp>
@@ -124,6 +125,7 @@ struct InstanceStatisticsTemplate {
       congestion_control{};
 };
 
+using RateCounter = USERVER_NAMESPACE::utils::statistics::RateCounter;
 using Percentile = USERVER_NAMESPACE::utils::statistics::Percentile<2048>;
 using MinMaxAvg = USERVER_NAMESPACE::utils::statistics::MinMaxAvg<uint32_t>;
 using InstanceStatistics = InstanceStatisticsTemplate<
@@ -132,6 +134,18 @@ using InstanceStatistics = InstanceStatisticsTemplate<
         Percentile, Percentile, detail::SteadyCoarseClock>,
     USERVER_NAMESPACE::utils::statistics::RecentPeriod<
         MinMaxAvg, MinMaxAvg, detail::SteadyCoarseClock>>;
+
+struct StatementStatistics final {
+  Percentile timings{};
+  RateCounter executed{};
+  RateCounter errors{};
+
+  void Add(const StatementStatistics& other) {
+    timings.Add(other.timings);
+    executed.Add(other.executed.Load());
+    errors.Add(other.errors.Load());
+  }
+};
 
 using InstanceStatisticsNonatomicBase =
     InstanceStatisticsTemplate<uint32_t, Percentile, MinMaxAvg>;
@@ -198,17 +212,19 @@ struct InstanceStatisticsNonatomic : InstanceStatisticsNonatomicBase {
   }
 
   InstanceStatisticsNonatomic& Add(
-      const std::unordered_map<std::string, Percentile>& timings) {
-    for (const auto& [name, percentile] : timings) {
+      const std::unordered_map<std::string, StatementStatistics>& stats) {
+    for (const auto& [statement_name, statement_stats] : stats) {
       const auto [it, inserted] =
-          statement_timings.try_emplace(name, percentile);
-      if (!inserted) it->second.Add(percentile);
+          per_statement_stats.try_emplace(statement_name, statement_stats);
+      if (!inserted) {
+        it->second.Add(statement_stats);
+      }
     }
 
     return *this;
   }
 
-  std::unordered_map<std::string, Percentile> statement_timings;
+  std::unordered_map<std::string, StatementStatistics> per_statement_stats;
 };
 
 /// @brief Instance statistics with description

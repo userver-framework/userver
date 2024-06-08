@@ -5,7 +5,7 @@
 
 #include <memory>
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/server/server.hpp>
 #include <userver/utils/statistics/entry.hpp>
@@ -76,6 +76,7 @@ namespace components {
 /// connection.in_buffer_size | size of the buffer to preallocate for request receive: bigger values use more RAM and less CPU | 32 * 1024
 /// connection.requests_queue_size_threshold | drop requests from handlers that allow throttling if there's more pending requests than allowed by this value | 100
 /// connection.keepalive_timeout | timeout in seconds to drop connection if there's not data received from it | 600
+/// connection.stream_close_check_delay | delay in microseconds of the start of stream close check routine; do not set if not sure what it is doing | 20ms
 /// shards | how many concurrent tasks harvest data from a single socket; do not set if not sure what it is doing | -
 /// middleware-pipeline-builder | name of a component to build a server-wide middleware pipeline | default-server-middleware-pipeline-builder
 ///
@@ -83,7 +84,7 @@ namespace components {
 
 // clang-format on
 
-class Server final : public LoggableComponentBase {
+class Server final : public ComponentBase {
  public:
   /// @ingroup userver_component_names
   /// @brief The default name of components::Server component

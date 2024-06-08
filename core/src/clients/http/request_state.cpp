@@ -10,7 +10,6 @@
 #include <fmt/format.h>
 #include <openssl/ssl.h>
 #include <openssl/x509.h>
-#include <boost/algorithm/string.hpp>
 #include <boost/range/adaptor/map.hpp>
 #include <boost/range/adaptor/transformed.hpp>
 
@@ -25,6 +24,8 @@
 #include <userver/utils/encoding/hex.hpp>
 #include <userver/utils/overloaded.hpp>
 #include <userver/utils/rand.hpp>
+#include <userver/utils/text_light.hpp>
+
 #include <utils/impl/assert_extra.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -60,7 +61,7 @@ const std::map<std::string, std::error_code> kTestsuiteActions = {
     {"network", {curl::errc::EasyErrorCode::kCouldNotConnect}}};
 const std::string kTestsuiteSupportedErrorsKey = "X-Testsuite-Supported-Errors";
 const std::string kTestsuiteSupportedErrors =
-    boost::algorithm::join(boost::adaptors::keys(kTestsuiteActions), ",");
+    fmt::to_string(fmt::join(boost::adaptors::keys(kTestsuiteActions), ","));
 
 std::error_code TestsuiteResponseHook(Status status_code,
                                       const Headers& headers,
@@ -121,14 +122,14 @@ std::exception_ptr PrepareDeadlinePassedException(std::string_view url,
                                                   LocalStats stats) {
   return std::make_exception_ptr(CancelException(
       fmt::format("Timeout happened (deadline propagation), url: {}", url),
-      stats));
+      stats, ErrorKind::kDeadlinePropagation));
 }
 
 bool IsPrefix(const std::string& url,
               const std::vector<std::string>& prefixes) {
   return !(std::find_if(prefixes.begin(), prefixes.end(),
                         [&url](const std::string& prefix) {
-                          return boost::starts_with(url, prefix);
+                          return utils::text::StartsWith(url, prefix);
                         }) == prefixes.end());
 }
 
@@ -233,8 +234,21 @@ RequestState::RequestState(
   easy().set_header_function(&RequestState::on_header);
   easy().set_header_data(this);
 
-  // set autodecoding for gzip and deflate
-  easy().set_accept_encoding("gzip,deflate,identity");
+  // set autodecoding
+  static const bool curl_supports_zstd = [] {
+#ifdef CURL_VERSION_ZSTD
+    return curl_version_info(curl::native::CURLVERSION_NOW)->features &
+           CURL_VERSION_ZSTD;
+#else
+    return false;
+#endif
+  }();
+
+  if (curl_supports_zstd) {
+    easy().set_accept_encoding("zstd,gzip,deflate,identity");
+  } else {
+    easy().set_accept_encoding("gzip,deflate,identity");
+  }
 }
 
 RequestState::~RequestState() {

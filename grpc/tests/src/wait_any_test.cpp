@@ -35,7 +35,7 @@ class AsyncTestService final : public sample::ugrpc::UnitTestServiceBase {
       // here, we have lock
       // drop flag back
       answers_count_--;
-      // lock is droped automatically upon exiting this scope
+      // lock is dropped automatically upon exiting this scope
     }
 
     if (!wait_result) {

@@ -10,6 +10,7 @@
 #include <userver/storages/redis/impl/redis_state.hpp>
 #include <userver/storages/redis/impl/types.hpp>
 #include <userver/utils/statistics/percentile.hpp>
+#include <userver/utils/statistics/rate_counter.hpp>
 #include <userver/utils/statistics/recentperiod.hpp>
 
 #include <storages/redis/impl/reply_status_strings.hpp>
@@ -40,7 +41,7 @@ class Statistics {
                                       utils::datetime::SteadyClock>;
 
   std::atomic<RedisState> state{RedisState::kInit};
-  std::atomic_llong reconnects{0};
+  utils::statistics::RateCounter reconnects{0};
   std::atomic<std::chrono::milliseconds> session_start_time{};
   RecentPeriod request_size_percentile;
   RecentPeriod reply_size_percentile;
@@ -50,7 +51,8 @@ class Statistics {
   std::atomic_bool is_syncing = false;
   std::atomic_size_t offset_from_master_bytes = 0;
 
-  std::array<std::atomic_llong, kReplyStatusMap.size()> error_count{{}};
+  std::array<utils::statistics::RateCounter, kReplyStatusMap.size()>
+      error_count{{}};
 };
 
 struct InstanceStatistics {
@@ -58,7 +60,7 @@ struct InstanceStatistics {
 
   void Fill(const Statistics& other) {
     state = other.state.load(std::memory_order_relaxed);
-    reconnects = other.reconnects.load(std::memory_order_relaxed);
+    reconnects = other.reconnects;
     session_start_time =
         other.session_start_time.load(std::memory_order_relaxed);
     request_size_percentile = other.request_size_percentile.GetStatsForPeriod();
@@ -69,7 +71,7 @@ struct InstanceStatistics {
     offset_from_master =
         other.offset_from_master_bytes.load(std::memory_order_relaxed);
     for (size_t i = 0; i < error_count.size(); i++)
-      error_count[i] = other.error_count[i].load(std::memory_order_relaxed);
+      error_count[i] = other.error_count[i];
     for (const auto& [command, timings] : other.command_timings_percentile) {
       auto stats = timings.GetStatsForPeriod();
       if (!stats.Count()) continue;
@@ -92,7 +94,7 @@ struct InstanceStatistics {
 
   const MetricsSettings& settings;
   RedisState state{RedisState::kInit};
-  long long reconnects{};
+  utils::statistics::RateCounter reconnects{};
   std::chrono::milliseconds session_start_time{};
   Statistics::Percentile request_size_percentile;
   Statistics::Percentile reply_size_percentile;
@@ -103,7 +105,8 @@ struct InstanceStatistics {
   bool is_syncing{};
   long long offset_from_master{};
 
-  std::array<long long, kReplyStatusMap.size()> error_count{{}};
+  std::array<utils::statistics::RateCounter, kReplyStatusMap.size()>
+      error_count{{}};
 };
 
 struct ShardStatistics {
@@ -119,15 +122,13 @@ struct SentinelStatisticsInternal {
   SentinelStatisticsInternal() = default;
   SentinelStatisticsInternal(const SentinelStatisticsInternal& other)
       : redis_not_ready(other.redis_not_ready.load(std::memory_order_relaxed)),
-        cluster_topology_checks(
-            other.cluster_topology_checks.load(std::memory_order_relaxed)),
-        cluster_topology_updates(
-            other.cluster_topology_updates.load(std::memory_order_relaxed)) {}
+        cluster_topology_checks(other.cluster_topology_checks),
+        cluster_topology_updates(other.cluster_topology_updates) {}
 
   std::atomic_llong redis_not_ready{0};
   std::atomic_bool is_autotoplogy{false};
-  std::atomic_size_t cluster_topology_checks{0};
-  std::atomic_size_t cluster_topology_updates{0};
+  utils::statistics::RateCounter cluster_topology_checks{0};
+  utils::statistics::RateCounter cluster_topology_updates{0};
 };
 
 struct SentinelStatistics {

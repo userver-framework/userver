@@ -230,7 +230,7 @@ void Logging::FlushLogs() {
 }
 
 yaml_config::Schema Logging::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<impl::ComponentBase>(R"(
+  return yaml_config::MergeSchemas<RawComponentBase>(R"(
 type: object
 description: Logging component
 additionalProperties: false

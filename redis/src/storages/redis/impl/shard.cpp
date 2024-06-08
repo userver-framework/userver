@@ -303,8 +303,8 @@ bool Shard::ProcessCreation(
     if (auto commands_buffering_settings = commands_buffering_settings_.Get())
       entry.instance->SetCommandsBufferingSettings(
           *commands_buffering_settings);
-    if (auto retry_budet_settings = retry_budet_settings_.Get())
-      entry.instance->SetRetryBudgetSettings(*retry_budet_settings);
+    if (auto retry_budget_settings = retry_budget_settings_.Get())
+      entry.instance->SetRetryBudgetSettings(*retry_budget_settings);
     auto server_id = entry.instance->GetServerId();
     entry.instance->signal_state_change.connect(
         [this, server_id](Redis::State state) {
@@ -477,7 +477,7 @@ void Shard::SetRetryBudgetSettings(
     instance.instance->SetRetryBudgetSettings(retry_budget_settings);
   }
 
-  retry_budet_settings_.Set(
+  retry_budget_settings_.Set(
       std::make_shared<utils::RetryBudgetSettings>(retry_budget_settings));
 }
 

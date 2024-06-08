@@ -47,6 +47,10 @@ size_t SubscribeClientImpl::ShardsCount() const {
   return redis_client_->ShardsCount();
 }
 
+bool SubscribeClientImpl::IsInClusterMode() const {
+  return redis_client_->IsInClusterMode();
+}
+
 USERVER_NAMESPACE::redis::SubscribeSentinel& SubscribeClientImpl::GetNative()
     const {
   return *redis_client_;

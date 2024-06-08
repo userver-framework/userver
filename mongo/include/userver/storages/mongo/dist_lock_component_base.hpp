@@ -3,7 +3,7 @@
 /// @file userver/storages/mongo/dist_lock_component_base.hpp
 /// @brief @copybrief storages::mongo::DistLockComponentBase
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/dist_lock/dist_locked_worker.hpp>
 #include <userver/storages/mongo/collection.hpp>
 #include <userver/storages/mongo/dist_lock_strategy.hpp>
@@ -58,7 +58,7 @@ namespace storages::mongo {
 
 // clang-format on
 
-class DistLockComponentBase : public components::LoggableComponentBase {
+class DistLockComponentBase : public components::ComponentBase {
  public:
   DistLockComponentBase(const components::ComponentConfig&,
                         const components::ComponentContext&,

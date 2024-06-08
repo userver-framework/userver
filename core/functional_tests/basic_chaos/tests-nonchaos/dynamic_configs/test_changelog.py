@@ -1,107 +1,135 @@
 import contextlib
 
+import pytest
 from pytest_userver.plugins import dynamic_config
 
 
-def test_basic(cache_invalidation_state):
-    defaults = {'FOO': 1, 'BAR': 1}
-    changelog = dynamic_config._Changelog()
-
-    timestamp = ''
+class ConfigHelper:
+    def __init__(self, *, cache_invalidation_state, defaults):
+        self.cache_invalidation_state = cache_invalidation_state
+        self.defaults = defaults
+        self.changelog = dynamic_config._Changelog()
 
     @contextlib.contextmanager
-    def new_config():
+    def new_config(self):
         config = dynamic_config.DynamicConfig(
-            initial_values=defaults,
+            initial_values=self.defaults,
             config_cache_components=[],
-            cache_invalidation_state=cache_invalidation_state,
-            changelog=changelog,
+            cache_invalidation_state=self.cache_invalidation_state,
+            changelog=self.changelog,
         )
-        with changelog.rollback(defaults):
+        with self.changelog.rollback(self.defaults):
             yield config
 
-    def get_updated_since():
-        updates = changelog.get_updated_since(
+    def get_updated_since(self, config, timestamp):
+        updates = self.changelog.get_updated_since(
             config.get_values_unsafe(), timestamp,
         )
         return updates.timestamp, updates
 
-    with new_config() as config:
-        timestamp, updates = get_updated_since()
+
+@pytest.fixture
+def config_helper(cache_invalidation_state):
+    def factory(*, defaults):
+        return ConfigHelper(
+            cache_invalidation_state=cache_invalidation_state,
+            defaults=defaults,
+        )
+
+    return factory
+
+
+def test_basic(config_helper):
+    helper = config_helper(defaults={'FOO': 1, 'BAR': 1})
+
+    timestamp = ''
+
+    with helper.new_config() as config:
+        timestamp, updates = helper.get_updated_since(config, timestamp)
         assert updates.values == {'FOO': 1, 'BAR': 1}
 
-        timestamp, updates = get_updated_since()
+        timestamp, updates = helper.get_updated_since(config, timestamp)
         assert updates.values == {}
         config.set(FOO=2)
 
-        timestamp, updates = get_updated_since()
+        timestamp, updates = helper.get_updated_since(config, timestamp)
         assert updates.values == {'FOO': 2}
 
-    with new_config() as config:
+    with helper.new_config() as config:
         config.set(BAR=2)
 
-        timestamp, updates = get_updated_since()
+        timestamp, updates = helper.get_updated_since(config, timestamp)
         assert updates.values == {'FOO': 1, 'BAR': 2}
 
-        timestamp, updates = get_updated_since()
+        timestamp, updates = helper.get_updated_since(config, timestamp)
         assert updates.values == {}
 
-    with new_config() as config:
+    with helper.new_config() as config:
         config.set(BAR=2)
 
-        timestamp, updates = get_updated_since()
+        timestamp, updates = helper.get_updated_since(config, timestamp)
         assert updates.values == {}
 
 
-def test_removal(cache_invalidation_state):
-    defaults = {'FOO': 1}
-    changelog = dynamic_config._Changelog()
+def test_removal(config_helper):
+    helper = config_helper(defaults={'FOO': 1})
 
     timestamp = ''
 
-    @contextlib.contextmanager
-    def new_config():
-        config = dynamic_config.DynamicConfig(
-            initial_values=defaults,
-            config_cache_components=[],
-            cache_invalidation_state=cache_invalidation_state,
-            changelog=changelog,
-        )
-        with changelog.rollback(defaults):
-            yield config
-
-    def get_updated_since():
-        updates = changelog.get_updated_since(
-            config.get_values_unsafe(), timestamp,
-        )
-        return updates.timestamp, updates
-
-    with new_config() as config:
-        timestamp, updates = get_updated_since()
+    with helper.new_config() as config:
+        timestamp, updates = helper.get_updated_since(config, timestamp)
         assert updates.values == {'FOO': 1}
         assert updates.removed == []
 
-        timestamp, updates = get_updated_since()
+        timestamp, updates = helper.get_updated_since(config, timestamp)
         assert updates.values == {}
         assert updates.removed == []
         config.remove('FOO')
 
-        timestamp, updates = get_updated_since()
+        timestamp, updates = helper.get_updated_since(config, timestamp)
         assert updates.values == {}
         assert updates.removed == ['FOO']
 
-    with new_config() as config:
-        timestamp, updates = get_updated_since()
+    with helper.new_config() as config:
+        timestamp, updates = helper.get_updated_since(config, timestamp)
         assert updates.values == {'FOO': 1}
 
-        timestamp, updates = get_updated_since()
+        timestamp, updates = helper.get_updated_since(config, timestamp)
         assert updates.values == {}
         config.set(BAR=2)
 
-        timestamp, updates = get_updated_since()
+        timestamp, updates = helper.get_updated_since(config, timestamp)
         assert updates.values == {'BAR': 2}
 
-    with new_config() as config:
-        timestamp, updates = get_updated_since()
+    with helper.new_config() as config:
+        timestamp, updates = helper.get_updated_since(config, timestamp)
         assert updates.values == {}
         assert updates.removed == ['BAR']
+
+
+def test_set_twice(config_helper):
+    helper = config_helper(defaults={'FOO': 1})
+
+    timestamp = ''
+
+    with helper.new_config() as config:
+        timestamp, updates = helper.get_updated_since(config, timestamp)
+        assert updates.values == {'FOO': 1}
+        assert updates.removed == []
+
+    with helper.new_config() as config:
+        config.set(FOO=2)
+        timestamp, updates = helper.get_updated_since(config, timestamp)
+        assert updates.values == {'FOO': 2}
+        assert updates.removed == []
+
+    with helper.new_config() as config:
+        config.set(FOO=2)
+        timestamp, updates = helper.get_updated_since(config, timestamp)
+        assert updates.values == {}
+        assert updates.removed == []
+
+    with helper.new_config() as config:
+        timestamp, updates = helper.get_updated_since(config, timestamp)
+        assert updates.values == {'FOO': 1}
+        assert updates.removed == []

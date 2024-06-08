@@ -59,7 +59,7 @@ TEST_P(ClusterShardGetStatIndexTests, Base) {
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    TestCasses, ClusterShardGetStatIndexTests,
+    TestCases, ClusterShardGetStatIndexTests,
     ::testing::Values(
         ///{ Test read_only request first try, first attempt, every dc,
         ///  do not allow reads from master. So expected results only 0 and 1

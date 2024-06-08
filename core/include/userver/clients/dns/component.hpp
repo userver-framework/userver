@@ -4,7 +4,7 @@
 /// @brief @copybrief clients::dns::Component
 
 #include <userver/clients/dns/resolver.hpp>
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/utils/statistics/entry.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -39,7 +39,7 @@ namespace clients::dns {
 /// @snippet components/common_component_list_test.cpp  Sample dns client component config
 
 // clang-format on
-class Component final : public components::LoggableComponentBase {
+class Component final : public components::ComponentBase {
  public:
   /// @ingroup userver_component_names
   /// @brief The default name of clients::dns::Component component

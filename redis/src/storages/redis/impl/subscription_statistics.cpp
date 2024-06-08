@@ -9,6 +9,7 @@ void DumpMetric(utils::statistics::Writer& writer,
   writer["messages"]["count"] = stats.messages_count;
   writer["messages"]["alien-count"] = stats.messages_alien_count;
   writer["messages"]["size"] = stats.messages_size;
+  writer["messages"]["discarded"] = stats.messages_discarded;
 
   if (stats.server_id) {
     auto diff = std::chrono::steady_clock::now() - stats.subscription_timestamp;

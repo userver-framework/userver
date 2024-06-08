@@ -3,11 +3,13 @@
 #include <atomic>
 
 #include <fmt/format.h>
+#include <boost/container_hash/hash.hpp>
 #include <boost/crc.hpp>
 
 #include <userver/concurrent/variable.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/rcu/rcu.hpp>
-#include <userver/storages/redis/impl/exception.hpp>
+#include <userver/storages/redis/exception.hpp>
 #include <userver/storages/redis/impl/redis_state.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
 #include <userver/utils/algo.hpp>
@@ -37,6 +39,30 @@ bool CheckQuorum(size_t requests_sent, size_t responses_parsed) {
   const size_t quorum = requests_sent / 2 + 1;
   return responses_parsed >= quorum;
 }
+
+struct NodeAddresses {
+  bool operator==(const NodeAddresses& other) const noexcept {
+    return ip == other.ip && fqdn_name == other.fqdn_name;
+  }
+
+  std::string ip;
+  std::optional<std::string> fqdn_name;
+};
+
+struct NodeAddressesHasher {
+  std::size_t operator()(const NodeAddresses& addr) const noexcept {
+    std::size_t result = 0;
+    boost::hash_combine(result, addr.ip);
+    if (addr.fqdn_name.has_value()) {
+      boost::hash_combine(result, *addr.fqdn_name);
+    }
+    return result;
+  }
+};
+
+using NodesAddressesSet =
+    std::unordered_set<NodeAddresses, NodeAddressesHasher>;
+using HostPort = std::string;
 
 size_t HashSlot(const std::string& key) {
   size_t start = 0;
@@ -275,10 +301,17 @@ class ClusterTopologyHolder
 
   std::shared_ptr<Redis> GetRedisInstance(const HostPort& host_port) const {
     const auto connection = nodes_.Get(host_port);
-    if (!connection) {
-      return {};
+    if (connection) {
+      return std::const_pointer_cast<Redis>(connection->Get());
     }
-    return std::const_pointer_cast<Redis>(connection->Get());
+    if (auto ip = ip_by_fqdn_.Get(host_port); ip) {
+      const auto connection = nodes_.Get(*ip);
+      if (connection) {
+        return std::const_pointer_cast<Redis>(connection->Get());
+      }
+    }
+
+    return {};
   }
 
   void GetStatistics(SentinelStatistics& stats,
@@ -365,7 +398,7 @@ class ClusterTopologyHolder
   engine::ev::AsyncWatcher create_nodes_watch_;
   void CreateNodes();
 
-  /// Delete non-atual nodes
+  /// Delete non-actual nodes
   engine::ev::PeriodicWatcher delete_expired_nodes_timer_;
   void DeleteNodes();
 
@@ -402,6 +435,9 @@ class ClusterTopologyHolder
   // work only from sentinel thread so no need to synchronize it
   std::unordered_map<HostPort, utils::datetime::SteadyCoarseClock::time_point>
       nodes_last_seen_time_;
+  rcu::RcuMap<std::string, std::string,
+              StdMutexRcuMapTraits<std::string, std::string>>
+      ip_by_fqdn_;
 
   static std::atomic<size_t> cluster_slots_call_counter_;
 };
@@ -409,13 +445,24 @@ class ClusterTopologyHolder
 std::atomic<size_t> ClusterTopologyHolder::cluster_slots_call_counter_(0);
 
 namespace {
+
 enum class ClusterNodesResponseStatus {
   kOk,
   kFail,
   kNonCluster,
 };
-ClusterNodesResponseStatus ParseClusterNodesResponse(
-    const ReplyPtr& reply, std::unordered_set<std::string>& res) {
+
+std::optional<std::string> GetHostNameFromClusterNodesLine(
+    std::string_view line, std::string_view port) {
+  auto it = line.rfind(',');
+  if (it == std::string_view::npos) {
+    return std::nullopt;
+  }
+  return std::string(line.substr(it + 1)) + ":" + std::string(port);
+}
+
+ClusterNodesResponseStatus ParseClusterNodesResponse(const ReplyPtr& reply,
+                                                     NodesAddressesSet& res) {
   UASSERT(reply);
   if (reply->IsUnknownCommandError()) {
     return ClusterNodesResponseStatus::kNonCluster;
@@ -450,7 +497,12 @@ ClusterNodesResponseStatus ParseClusterNodesResponse(
     if (port_it == std::string::npos) {
       return ClusterNodesResponseStatus::kFail;
     }
-    res.emplace(std::move(host_port));
+    auto port = host_port.substr(port_it + 1);
+    NodeAddresses addrs;
+    addrs.ip = std::move(host_port);
+    addrs.fqdn_name =
+        GetHostNameFromClusterNodesLine(host_port_communication_port, port);
+    res.emplace(addrs);
   }
 
   return ClusterNodesResponseStatus::kOk;
@@ -466,7 +518,7 @@ void ClusterTopologyHolder::ExploreNodes() {
 
   const auto cmd = PrepareCommand(
       {"CLUSTER", "NODES"}, [this](const CommandPtr& /*cmd*/, ReplyPtr reply) {
-        std::unordered_set<HostPort> host_ports;
+        NodesAddressesSet host_ports;
         std::unordered_set<HostPort> host_ports_to_create;
 
         if (ParseClusterNodesResponse(reply, host_ports) !=
@@ -476,13 +528,30 @@ void ClusterTopologyHolder::ExploreNodes() {
         }
 
         for (const auto& host_port : host_ports) {
-          if (!nodes_.Get(host_port)) {
-            host_ports_to_create.insert(host_port);
+          if (!nodes_.Get(host_port.ip)) {
+            host_ports_to_create.insert(host_port.ip);
           }
         }
         if (!host_ports.empty()) {
-          auto ptr = actual_nodes_.Lock();
-          ptr->merge(std::move(host_ports));
+          for (const auto& [ip, fqdn] : host_ports) {
+            if (!fqdn.has_value()) {
+              continue;
+            }
+            auto ptr = ip_by_fqdn_.Get(*fqdn);
+            if (!ptr || *ptr != ip) {
+              ip_by_fqdn_.InsertOrAssign(*fqdn,
+                                         std::make_shared<std::string>(ip));
+            }
+          }
+
+          std::unordered_set<HostPort> ips;
+          {
+            for (auto& addr : host_ports) {
+              ips.insert(std::move(addr.ip));
+            }
+            auto ptr = actual_nodes_.Lock();
+            ptr->merge(std::move(ips));
+          }
         }
 
         if (!host_ports_to_create.empty()) {
@@ -671,22 +740,27 @@ void ClusterTopologyHolder::UpdateClusterTopology() {
           }
         }
 
-        try {
-          auto topology = ClusterTopology(
-              ++current_topology_version_, std::chrono::steady_clock::now(),
-              std::move(shard_infos), password_, redis_thread_pool_, nodes_);
-          const auto new_shards_count = topology.GetShardsCount();
-          topology_.Assign(std::move(topology));
-          signal_topology_changed_(new_shards_count);
-        } catch (const rcu::MissingKeyException& e) {
-          LOG_WARNING() << "Failed to update cluster topology: " << e;
-          return;
-        }
-        is_topology_received_ = true;
-        cv_.NotifyAll();
+        auto topology = ClusterTopology(
+            ++current_topology_version_, std::chrono::steady_clock::now(),
+            std::move(shard_infos), password_, redis_thread_pool_, nodes_);
+        /// Run in ev_thread because topology_.Assign can free some old
+        /// topologies with their related redis connections, and these
+        /// connections must be freed on "sentinel" thread.
+        ev_thread_.RunInEvLoopAsync([this, topology{std::move(topology)}] {
+          try {
+            const auto new_shards_count = topology.GetShardsCount();
+            topology_.Assign(std::move(topology));
+            signal_topology_changed_(new_shards_count);
+          } catch (const rcu::MissingKeyException& e) {
+            LOG_WARNING() << "Failed to update cluster topology: " << e;
+            return;
+          }
+          is_topology_received_ = true;
+          cv_.NotifyAll();
 
-        LOG_DEBUG() << "Cluster topology updated to version"
-                    << current_topology_version_.load();
+          LOG_DEBUG() << "Cluster topology updated to version"
+                      << current_topology_version_.load();
+        });
       });
 }
 
@@ -697,10 +771,10 @@ void ClusterTopologyHolder::GetStatistics(
     sentinels_->GetStatistics(true, settings, *stats.sentinel);
   }
   stats.internal.is_autotoplogy = true;
-  stats.internal.cluster_topology_checks =
-      cluster_slots_call_counter_.load(std::memory_order_relaxed);
-  stats.internal.cluster_topology_updates =
-      current_topology_version_.load(std::memory_order_relaxed);
+  stats.internal.cluster_topology_checks = utils::statistics::Rate{
+      cluster_slots_call_counter_.load(std::memory_order_relaxed)};
+  stats.internal.cluster_topology_updates = utils::statistics::Rate{
+      current_topology_version_.load(std::memory_order_relaxed)};
 
   auto topology = GetTopology();
   topology->GetStatistics(settings, stats);
@@ -832,8 +906,6 @@ void ClusterSentinelImpl::AsyncCommand(const SentinelCommand& scommand,
         const bool error_ask = reply->data.IsErrorAsk();
         const bool error_moved = reply->data.IsErrorMoved();
         if (error_moved) {
-          auto topology = topology_holder_->GetTopology();
-
           const auto& args = ccommand->args.args;
           LOG_DEBUG() << "MOVED" << reply->status_string
                       << " c.instance_idx:" << ccommand->instance_idx

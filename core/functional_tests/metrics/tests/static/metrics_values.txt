@@ -1,5 +1,9 @@
+cache.any.documents.parse_failures.v2: cache_name=dynamic-config-client-updater	RATE	0
+cache.any.documents.parse_failures.v2: cache_name=sample-cache	RATE	0
 cache.any.documents.parse_failures: cache_name=dynamic-config-client-updater	GAUGE	0
 cache.any.documents.parse_failures: cache_name=sample-cache	GAUGE	0
+cache.any.documents.read_count.v2: cache_name=dynamic-config-client-updater	RATE	0
+cache.any.documents.read_count.v2: cache_name=sample-cache	RATE	0
 cache.any.documents.read_count: cache_name=dynamic-config-client-updater	GAUGE	0
 cache.any.documents.read_count: cache_name=sample-cache	GAUGE	0
 cache.any.time.last-update-duration-ms: cache_name=dynamic-config-client-updater	GAUGE	0
@@ -8,10 +12,16 @@ cache.any.time.time-from-last-successful-start-ms: cache_name=dynamic-config-cli
 cache.any.time.time-from-last-successful-start-ms: cache_name=sample-cache	GAUGE	0
 cache.any.time.time-from-last-update-start-ms: cache_name=dynamic-config-client-updater	GAUGE	0
 cache.any.time.time-from-last-update-start-ms: cache_name=sample-cache	GAUGE	0
+cache.any.update.attempts_count.v2: cache_name=dynamic-config-client-updater	RATE	0
+cache.any.update.attempts_count.v2: cache_name=sample-cache	RATE	0
 cache.any.update.attempts_count: cache_name=dynamic-config-client-updater	GAUGE	0
 cache.any.update.attempts_count: cache_name=sample-cache	GAUGE	0
+cache.any.update.failures_count.v2: cache_name=dynamic-config-client-updater	RATE	0
+cache.any.update.failures_count.v2: cache_name=sample-cache	RATE	0
 cache.any.update.failures_count: cache_name=dynamic-config-client-updater	GAUGE	0
 cache.any.update.failures_count: cache_name=sample-cache	GAUGE	0
+cache.any.update.no_changes_count.v2: cache_name=dynamic-config-client-updater	RATE	0
+cache.any.update.no_changes_count.v2: cache_name=sample-cache	RATE	0
 cache.any.update.no_changes_count: cache_name=dynamic-config-client-updater	GAUGE	0
 cache.any.update.no_changes_count: cache_name=sample-cache	GAUGE	0
 cache.background-updates: cache_name=sample-lru-cache	GAUGE	0
@@ -20,8 +30,12 @@ cache.current-documents-count: cache_name=sample-cache	GAUGE	0
 cache.current-documents-count: cache_name=sample-lru-cache	GAUGE	0
 cache.dump.is-current-from-dump: cache_name=sample-cache	GAUGE	0
 cache.dump.is-loaded-from-dump: cache_name=sample-cache	GAUGE	0
+cache.full.documents.parse_failures.v2: cache_name=dynamic-config-client-updater	RATE	0
+cache.full.documents.parse_failures.v2: cache_name=sample-cache	RATE	0
 cache.full.documents.parse_failures: cache_name=dynamic-config-client-updater	GAUGE	0
 cache.full.documents.parse_failures: cache_name=sample-cache	GAUGE	0
+cache.full.documents.read_count.v2: cache_name=dynamic-config-client-updater	RATE	0
+cache.full.documents.read_count.v2: cache_name=sample-cache	RATE	0
 cache.full.documents.read_count: cache_name=dynamic-config-client-updater	GAUGE	0
 cache.full.documents.read_count: cache_name=sample-cache	GAUGE	0
 cache.full.time.last-update-duration-ms: cache_name=dynamic-config-client-updater	GAUGE	0
@@ -30,16 +44,26 @@ cache.full.time.time-from-last-successful-start-ms: cache_name=dynamic-config-cl
 cache.full.time.time-from-last-successful-start-ms: cache_name=sample-cache	GAUGE	0
 cache.full.time.time-from-last-update-start-ms: cache_name=dynamic-config-client-updater	GAUGE	0
 cache.full.time.time-from-last-update-start-ms: cache_name=sample-cache	GAUGE	0
+cache.full.update.attempts_count.v2: cache_name=dynamic-config-client-updater	RATE	0
+cache.full.update.attempts_count.v2: cache_name=sample-cache	RATE	0
 cache.full.update.attempts_count: cache_name=dynamic-config-client-updater	GAUGE	0
 cache.full.update.attempts_count: cache_name=sample-cache	GAUGE	0
+cache.full.update.failures_count.v2: cache_name=dynamic-config-client-updater	RATE	0
+cache.full.update.failures_count.v2: cache_name=sample-cache	RATE	0
 cache.full.update.failures_count: cache_name=dynamic-config-client-updater	GAUGE	0
 cache.full.update.failures_count: cache_name=sample-cache	GAUGE	0
+cache.full.update.no_changes_count.v2: cache_name=dynamic-config-client-updater	RATE	0
+cache.full.update.no_changes_count.v2: cache_name=sample-cache	RATE	0
 cache.full.update.no_changes_count: cache_name=dynamic-config-client-updater	GAUGE	0
 cache.full.update.no_changes_count: cache_name=sample-cache	GAUGE	0
 cache.hit_ratio.1min: cache_name=sample-lru-cache	GAUGE	0
 cache.hits: cache_name=sample-lru-cache	GAUGE	0
+cache.incremental.documents.parse_failures.v2: cache_name=dynamic-config-client-updater	RATE	0
+cache.incremental.documents.parse_failures.v2: cache_name=sample-cache	RATE	0
 cache.incremental.documents.parse_failures: cache_name=dynamic-config-client-updater	GAUGE	0
 cache.incremental.documents.parse_failures: cache_name=sample-cache	GAUGE	0
+cache.incremental.documents.read_count.v2: cache_name=dynamic-config-client-updater	RATE	0
+cache.incremental.documents.read_count.v2: cache_name=sample-cache	RATE	0
 cache.incremental.documents.read_count: cache_name=dynamic-config-client-updater	GAUGE	0
 cache.incremental.documents.read_count: cache_name=sample-cache	GAUGE	0
 cache.incremental.time.last-update-duration-ms: cache_name=dynamic-config-client-updater	GAUGE	0
@@ -48,10 +72,16 @@ cache.incremental.time.time-from-last-successful-start-ms: cache_name=dynamic-co
 cache.incremental.time.time-from-last-successful-start-ms: cache_name=sample-cache	GAUGE	0
 cache.incremental.time.time-from-last-update-start-ms: cache_name=dynamic-config-client-updater	GAUGE	0
 cache.incremental.time.time-from-last-update-start-ms: cache_name=sample-cache	GAUGE	0
+cache.incremental.update.attempts_count.v2: cache_name=dynamic-config-client-updater	RATE	0
+cache.incremental.update.attempts_count.v2: cache_name=sample-cache	RATE	0
 cache.incremental.update.attempts_count: cache_name=dynamic-config-client-updater	GAUGE	0
 cache.incremental.update.attempts_count: cache_name=sample-cache	GAUGE	0
+cache.incremental.update.failures_count.v2: cache_name=dynamic-config-client-updater	RATE	0
+cache.incremental.update.failures_count.v2: cache_name=sample-cache	RATE	0
 cache.incremental.update.failures_count: cache_name=dynamic-config-client-updater	GAUGE	0
 cache.incremental.update.failures_count: cache_name=sample-cache	GAUGE	0
+cache.incremental.update.no_changes_count.v2: cache_name=dynamic-config-client-updater	RATE	0
+cache.incremental.update.no_changes_count.v2: cache_name=sample-cache	RATE	0
 cache.incremental.update.no_changes_count: cache_name=dynamic-config-client-updater	GAUGE	0
 cache.incremental.update.no_changes_count: cache_name=sample-cache	GAUGE	0
 cache.misses: cache_name=sample-lru-cache	GAUGE	0
@@ -68,6 +98,8 @@ dynamic-config.parse-errors:	RATE	0
 dynamic-config.was-last-parse-successful:	GAUGE	0
 engine.coro-pool.coroutines.active:	GAUGE	0
 engine.coro-pool.coroutines.total:	GAUGE	0
+engine.coro-pool.stack-usage.is-monitor-active:	GAUGE	0
+engine.coro-pool.stack-usage.max-usage-percent:	GAUGE	0
 engine.ev-threads.cpu-load-percent: ev_thread_name=event-worker_0	GAUGE	0
 engine.ev-threads.cpu-load-percent: ev_thread_name=event-worker_1	GAUGE	0
 engine.load-ms:	GAUGE	0
@@ -325,8 +357,8 @@ http.handler.total.timings: percentile=p99, version=2	GAUGE	0
 http.handler.total.timings: percentile=p99_6, version=2	GAUGE	0
 http.handler.total.timings: percentile=p99_9, version=2	GAUGE	0
 http.handler.total.too-many-requests-in-flight: version=2	RATE	0
-httpclient.cancelled-by-deadline: version=2	RATE	0
 httpclient.cancelled-by-deadline: http_destination=http://localhost:00000/configs-service/configs/values, version=2	RATE	0
+httpclient.cancelled-by-deadline: version=2	RATE	0
 httpclient.errors: http_destination=http://localhost:00000/configs-service/configs/values, http_error=cancelled, version=2	RATE	0
 httpclient.errors: http_destination=http://localhost:00000/configs-service/configs/values, http_error=host-resolution-failed, version=2	RATE	0
 httpclient.errors: http_destination=http://localhost:00000/configs-service/configs/values, http_error=ok, version=2	RATE	0
@@ -345,25 +377,25 @@ httpclient.errors: http_error=too-many-redirects, version=2	RATE	0
 httpclient.errors: http_error=unknown-error, version=2	RATE	0
 httpclient.event-loop-load.1min: version=2	GAUGE	0
 httpclient.last-time-to-start-us: version=2	GAUGE	0
-httpclient.pending-requests: version=2	GAUGE	0
 httpclient.pending-requests: http_destination=http://localhost:00000/configs-service/configs/values, version=2	GAUGE	0
-httpclient.reply-statuses: http_code=200, version=2	RATE	0
+httpclient.pending-requests: version=2	GAUGE	0
 httpclient.reply-statuses: http_code=200, http_destination=http://localhost:00000/configs-service/configs/values, version=2	RATE	0
-httpclient.reply-statuses: http_code=300, version=2	RATE	0
+httpclient.reply-statuses: http_code=200, version=2	RATE	0
 httpclient.reply-statuses: http_code=300, http_destination=http://localhost:00000/configs-service/configs/values, version=2	RATE	0
-httpclient.reply-statuses: http_code=500, version=2	RATE	0
+httpclient.reply-statuses: http_code=300, version=2	RATE	0
 httpclient.reply-statuses: http_code=500, http_destination=http://localhost:00000/configs-service/configs/values, version=2	RATE	0
-httpclient.reply-statuses: http_code=501, version=2	RATE	0
+httpclient.reply-statuses: http_code=500, version=2	RATE	0
 httpclient.reply-statuses: http_code=501, http_destination=http://localhost:00000/configs-service/configs/values, version=2	RATE	0
-httpclient.retries: version=2	RATE	0
+httpclient.reply-statuses: http_code=501, version=2	RATE	0
 httpclient.retries: http_destination=http://localhost:00000/configs-service/configs/values, version=2	RATE	0
+httpclient.retries: version=2	RATE	0
 httpclient.sockets.active: version=2	RATE	0
 httpclient.sockets.close: version=2	RATE	0
-httpclient.sockets.open: version=2	RATE	0
 httpclient.sockets.open: http_destination=http://localhost:00000/configs-service/configs/values, version=2	RATE	0
+httpclient.sockets.open: version=2	RATE	0
 httpclient.sockets.throttled: version=2	RATE	0
-httpclient.timeout-updated-by-deadline: version=2	RATE	0
 httpclient.timeout-updated-by-deadline: http_destination=http://localhost:00000/configs-service/configs/values, version=2	RATE	0
+httpclient.timeout-updated-by-deadline: version=2	RATE	0
 httpclient.timings: http_destination=http://localhost:00000/configs-service/configs/values, percentile=p0, version=2	GAUGE	0
 httpclient.timings: http_destination=http://localhost:00000/configs-service/configs/values, percentile=p100, version=2	GAUGE	0
 httpclient.timings: http_destination=http://localhost:00000/configs-service/configs/values, percentile=p50, version=2	GAUGE	0
@@ -384,16 +416,36 @@ httpclient.timings: percentile=p99_6, version=2	GAUGE	0
 httpclient.timings: percentile=p99_9, version=2	GAUGE	0
 io_read_bytes:	GAUGE	0
 io_write_bytes:	GAUGE	0
+logger.by_level: level=critical, logger=access	RATE	0
+logger.by_level: level=critical, logger=access-tskv	RATE	0
 logger.by_level: level=critical, logger=default	RATE	0
+logger.by_level: level=debug, logger=access	RATE	0
+logger.by_level: level=debug, logger=access-tskv	RATE	0
 logger.by_level: level=debug, logger=default	RATE	0
+logger.by_level: level=error, logger=access	RATE	0
+logger.by_level: level=error, logger=access-tskv	RATE	0
 logger.by_level: level=error, logger=default	RATE	0
+logger.by_level: level=info, logger=access	RATE	0
+logger.by_level: level=info, logger=access-tskv	RATE	0
 logger.by_level: level=info, logger=default	RATE	0
+logger.by_level: level=none, logger=access	RATE	0
+logger.by_level: level=none, logger=access-tskv	RATE	0
 logger.by_level: level=none, logger=default	RATE	0
+logger.by_level: level=trace, logger=access	RATE	0
+logger.by_level: level=trace, logger=access-tskv	RATE	0
 logger.by_level: level=trace, logger=default	RATE	0
+logger.by_level: level=warning, logger=access	RATE	0
+logger.by_level: level=warning, logger=access-tskv	RATE	0
 logger.by_level: level=warning, logger=default	RATE	0
+logger.dropped: logger=access, version=2	RATE	0
+logger.dropped: logger=access-tskv, version=2	RATE	0
 logger.dropped: logger=default, version=2	RATE	0
-logger.total: logger=default	RATE	0
+logger.has_reopening_error: logger=access	GAUGE	0
+logger.has_reopening_error: logger=access-tskv	GAUGE	0
 logger.has_reopening_error: logger=default	GAUGE	0
+logger.total: logger=access	RATE	0
+logger.total: logger=access-tskv	RATE	0
+logger.total: logger=default	RATE	0
 major_pagefaults:	GAUGE	0
 open_files:	GAUGE	0
 rss_kb:	GAUGE	0

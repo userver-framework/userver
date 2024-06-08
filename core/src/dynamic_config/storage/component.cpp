@@ -385,7 +385,7 @@ void DynamicConfig::NotifyLoadingFailed(std::string_view updater,
 }
 
 yaml_config::Schema DynamicConfig::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: Component that stores the runtime config.
 additionalProperties: false

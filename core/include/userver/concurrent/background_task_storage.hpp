@@ -157,6 +157,20 @@ class BackgroundTaskStorage final {
                                         std::forward<Args>(args)...));
   }
 
+  /// @brief Launch a task that will be cancelled and waited for in the BTS
+  /// destructor.
+  ///
+  /// Execution of function is guaranteed to start regardless
+  /// of engine::TaskProcessor load limits.
+  /// engine::TaskInheritedVariable instances are not
+  /// inherited from the caller except baggage::Baggage. See
+  /// utils::CriticalAsyncBackground for details.
+  template <typename... Args>
+  void CriticalAsyncDetach(std::string name, Args&&... args) {
+    core_.Detach(utils::CriticalAsyncBackground(
+        std::move(name), task_processor_, std::forward<Args>(args)...));
+  }
+
   /// Approximate number of currently active tasks
   std::int64_t ActiveTasksApprox() const noexcept;
 

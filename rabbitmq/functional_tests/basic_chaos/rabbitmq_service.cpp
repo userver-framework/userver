@@ -20,13 +20,16 @@
 
 namespace chaos {
 
-class ChaosRabbit final : public components::RabbitMQ {
+class ChaosProducer final : public components::LoggableComponentBase {
  public:
-  static constexpr std::string_view kName{"chaos-rabbit"};
+  static constexpr std::string_view kName{"chaos-producer"};
 
-  ChaosRabbit(const components::ComponentConfig& config,
-              const components::ComponentContext& context)
-      : components::RabbitMQ{config, context}, rabbit_client_{GetClient()} {
+  ChaosProducer(const components::ComponentConfig& config,
+                const components::ComponentContext& context)
+      : components::LoggableComponentBase{config, context},
+        rabbit_client_{
+            context.FindComponent<components::RabbitMQ>("chaos-rabbit")
+                .GetClient()} {
     const auto setup_deadline =
         engine::Deadline::FromDuration(kDefaultOperationTimeout);
 
@@ -37,7 +40,7 @@ class ChaosRabbit final : public components::RabbitMQ {
     admin_channel.BindQueue(exchange_, queue_, routing_key_, setup_deadline);
   }
 
-  ~ChaosRabbit() override {
+  ~ChaosProducer() override {
     const auto teardown_deadline =
         engine::Deadline::FromDuration(kDefaultOperationTimeout);
 
@@ -72,13 +75,13 @@ class ChaosRabbit final : public components::RabbitMQ {
   const std::shared_ptr<urabbitmq::Client> rabbit_client_;
 };
 
-class ChaosConsumer final : public components::LoggableComponentBase {
+class ChaosConsumer final : public components::ComponentBase {
  public:
   static constexpr std::string_view kName{"chaos-consumer"};
 
   ChaosConsumer(const components::ComponentConfig& config,
                 const components::ComponentContext& context)
-      : components::LoggableComponentBase{config, context},
+      : components::ComponentBase{config, context},
         consumer_{config, context, messages_} {
     Start();
   }
@@ -151,7 +154,7 @@ class ChaosHandler final : public server::handlers::HttpHandlerBase {
   ChaosHandler(const components::ComponentConfig& config,
                const components::ComponentContext& context)
       : server::handlers::HttpHandlerBase{config, context},
-        rabbit_{context.FindComponent<ChaosRabbit>()},
+        producer_{context.FindComponent<ChaosProducer>()},
         consumer_{context.FindComponent<ChaosConsumer>()} {}
 
   std::string HandleRequestThrow(
@@ -182,9 +185,9 @@ class ChaosHandler final : public server::handlers::HttpHandlerBase {
 
     const auto& reliable = request.GetArg("reliable");
     if (!reliable.empty()) {
-      rabbit_.PublishReliable(message);
+      producer_.PublishReliable(message);
     } else {
-      rabbit_.PublishUnreliable(message);
+      producer_.PublishUnreliable(message);
     }
 
     return {};
@@ -217,7 +220,7 @@ class ChaosHandler final : public server::handlers::HttpHandlerBase {
     return {};
   }
 
-  const ChaosRabbit& rabbit_;
+  const ChaosProducer& producer_;
   ChaosConsumer& consumer_;
 };
 
@@ -225,7 +228,8 @@ class ChaosHandler final : public server::handlers::HttpHandlerBase {
 
 int main(int argc, char* argv[]) {
   const auto component_list = components::MinimalServerComponentList()
-                                  .Append<chaos::ChaosRabbit>()
+                                  .Append<components::RabbitMQ>("chaos-rabbit")
+                                  .Append<chaos::ChaosProducer>()
                                   .Append<chaos::ChaosConsumer>()
                                   .Append<chaos::ChaosHandler>()
                                   //

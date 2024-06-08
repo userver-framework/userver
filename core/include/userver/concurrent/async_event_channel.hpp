@@ -78,8 +78,8 @@ class AsyncEventChannel : public AsyncEventSource<Args...> {
 
   /// @brief The primary constructor
   /// @param name used for diagnostic purposes and is also accessible with Name
-  explicit AsyncEventChannel(std::string name)
-      : name_(std::move(name)), data_(ListenersData{{}, {}}) {}
+  explicit AsyncEventChannel(std::string_view name)
+      : name_(name), data_(ListenersData{{}, {}}) {}
 
   /// @brief The constructor with `AsyncEventSubscriberScope` usage checking.
   ///
@@ -99,9 +99,8 @@ class AsyncEventChannel : public AsyncEventSource<Args...> {
   /// @param on_listener_removal the callback used for check
   ///
   /// @see impl::CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnsubscribing
-  AsyncEventChannel(std::string name, OnRemoveCallback on_listener_removal)
-      : name_(std::move(name)),
-        data_(ListenersData{{}, std::move(on_listener_removal)}) {}
+  AsyncEventChannel(std::string_view name, OnRemoveCallback on_listener_removal)
+      : name_(name), data_(ListenersData{{}, std::move(on_listener_removal)}) {}
 
   /// @brief For use in `UpdateAndListen` of specific event channels
   ///

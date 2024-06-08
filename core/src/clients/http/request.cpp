@@ -53,7 +53,7 @@ curl::easy::http_version_t ToNative(HttpVersion version) {
     case HttpVersion::k2:
       return curl::easy::http_version_t::http_version_2_0;
     case HttpVersion::k2Tls:
-      return curl::easy::http_version_t::http_vertion_2tls;
+      return curl::easy::http_version_t::http_version_2tls;
     case HttpVersion::k2PriorKnowledge:
       return curl::easy::http_version_t::http_version_2_prior_knowledge;
   }
@@ -221,7 +221,8 @@ Request::Request(impl::EasyWrapper&& wrapper, RequestStats&& req_stats,
 
   if (engine::current_task::ShouldCancel()) {
     throw CancelException(
-        "Failed to make HTTP request due to task cancellation", {});
+        "Failed to make HTTP request due to task cancellation", {},
+        ErrorKind::kCancel);
   }
 }
 

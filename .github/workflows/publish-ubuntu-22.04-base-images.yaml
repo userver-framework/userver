@@ -1,0 +1,34 @@
+name: Build and publish ubuntu-22.04-userver-base images
+
+'on':
+    schedule:
+      - cron: '30 5 * * 6'  # Every Saturday at 5:30
+    workflow_dispatch:
+    release:
+        types: [published]
+
+jobs:
+  build_and_publish_base:
+    runs-on: ubuntu-22.04
+    name: Build and publish base images
+    permissions:
+      contents: read
+      packages: write
+    env:
+        USERVER_IMAGE_TAG: ${{ github.event.release.tag_name || 'latest' }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+            registry: ghcr.io
+            username: ${{ github.actor }}
+            password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build the ubuntu-22.04-userver-base Docker image
+        run: |
+            docker build -t ghcr.io/userver-framework/ubuntu-22.04-userver-base:${USERVER_IMAGE_TAG} -f scripts/docker/base-ubuntu-22.04.dockerfile .
+            docker push ghcr.io/userver-framework/ubuntu-22.04-userver-base:${USERVER_IMAGE_TAG}
+      - name: Build the ubuntu-22.04-userver-base-ci Docker image
+        run: |
+            docker build -t ghcr.io/userver-framework/ubuntu-22.04-userver-base-ci:${USERVER_IMAGE_TAG} -f scripts/docker/base-ubuntu-22.04-ci.dockerfile .
+            docker push ghcr.io/userver-framework/ubuntu-22.04-userver-base-ci:${USERVER_IMAGE_TAG}

@@ -76,7 +76,6 @@ set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
-_userver_directory_install(COMPONENT core DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
 
 target_compile_options(${PROJECT_NAME} PRIVATE "-w") # no warnings
 target_compile_definitions(${PROJECT_NAME} PRIVATE "BOOST_CONTEXT_SOURCE")

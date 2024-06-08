@@ -97,7 +97,7 @@ void LoggingConfigurator::OnConfigUpdate(
 }
 
 yaml_config::Schema LoggingConfigurator::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<impl::ComponentBase>(R"(
+  return yaml_config::MergeSchemas<RawComponentBase>(R"(
 type: object
 description: Helper component to configure logging
 additionalProperties: false

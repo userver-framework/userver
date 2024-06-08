@@ -21,37 +21,40 @@ jobs:
                         -DUSERVER_FEATURE_REDIS=0
                         -DUSERVER_FEATURE_CLICKHOUSE=0
                         -DUSERVER_FEATURE_GRPC=0
+                        -DUSERVER_FEATURE_KAFKA=0
                         -DUSERVER_FEATURE_RABBITMQ=0
+                        -DUSERVER_FEATURE_ROCKS=0
                         -DCMAKE_CXX_STANDARD=17
-                    image: userver-ubuntu-core
+                    image: ubuntu-22.04-userver-base
                     info: ubuntu + clang + cxx17 + core
                     id: ubuntu_clang_cxx17_core
                   - cmake-flags: >-
                         -DCMAKE_CXX_COMPILER=clang++-16 -DCMAKE_C_COMPILER=clang-16
                         -DUSERVER_FEATURE_MYSQL=1
                         -DCMAKE_CXX_STANDARD=17
-                    image: userver-ubuntu
+                    image: ubuntu-22.04-userver-base-ci
                     info: ubuntu + clang + cxx17
                     id: ubuntu_clang_cxx17
                   - cmake-flags: >-
                         -DCMAKE_CXX_COMPILER=g++-11 -DCMAKE_C_COMPILER=gcc-11
                         -DUSERVER_FEATURE_MYSQL=1
                         -DCMAKE_CXX_STANDARD=17
-                    image: userver-ubuntu
+                    image: ubuntu-22.04-userver-base-ci
                     info: ubuntu + gcc + cxx17
                     id: ubuntu_gcc_cxx17
                   - cmake-flags: >-
                         -DCMAKE_CXX_COMPILER=clang++-16 -DCMAKE_C_COMPILER=clang-16
                         -DUSERVER_FEATURE_MYSQL=1
                         -DCMAKE_CXX_STANDARD=20
-                    image: userver-ubuntu
+                    image: ubuntu-22.04-userver-base-ci
                     info: ubuntu + clang + cxx20
                     id: ubuntu_clang_cxx20
                   - cmake-flags: >-
                         -DCMAKE_CXX_COMPILER=g++-11 -DCMAKE_C_COMPILER=gcc-11
                         -DUSERVER_FEATURE_MYSQL=1
+                        -DUSERVER_FEATURE_YDB=0
                         -DCMAKE_CXX_STANDARD=20
-                    image: userver-ubuntu
+                    image: ubuntu-22.04-userver-base-ci
                     info: ubuntu + gcc + cxx20
                     id: ubuntu_gcc_cxx20
 
@@ -59,6 +62,10 @@ jobs:
         name: '${{ matrix.info }}'
         steps:
           - uses: actions/checkout@v2
+
+          - name: Install packages
+            run: |
+                sudo apt install -y docker-compose
 
           - name: Reuse ccache directory
             uses: actions/cache@v2
@@ -69,6 +76,14 @@ jobs:
                     ccache-dir-${{ matrix.id }}_${{github.ref}}_run-
                     ccache-dir-${{ matrix.id }}_
                     ccache-
+
+          - name: Free disk space
+            run: |
+                df -h
+                # See https://stackoverflow.com/questions/75536771/github-runner-out-of-disk-space-after-building-docker-image
+                sudo rm -rf /usr/share/dotnet /usr/local/lib/android /usr/lib/php* /opt/ghc \
+                    /usr/local/share/powershell /usr/share/swift /usr/local/.ghcup || true
+                df -h
 
           - name: Setup ccache
             run: docker-compose -f .github/docker-compose.yml run --rm ${{ matrix.image
@@ -86,6 +101,16 @@ jobs:
                 docker-compose -f .github/docker-compose.yml
                 run --rm ${{ matrix.image}} bash -c
                 'cd /userver/build && make -j $(nproc)'
+
+          - name: Run ydb
+            run: docker-compose -f .github/docker-compose.yml run -d --rm run-ydb
+
+          - name: Watch ydb
+            run: >-
+                docker-compose -f .github/docker-compose.yml
+                run --rm ${{ matrix.image}} bash -c
+                'curl --retry 15 --retry-all-errors --retry-delay 5 -s -o /dev/null
+                http://run-ydb:8765/monitoring/ -v'
 
           - name: Run tests
             run: >-

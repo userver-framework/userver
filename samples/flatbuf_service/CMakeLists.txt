@@ -1,4 +1,7 @@
+cmake_minimum_required(VERSION 3.14)
 project(userver-samples-flatbuf_service CXX)
+
+find_package(userver COMPONENTS core REQUIRED)
 
 set(FLATC_OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/flatbuffer_schema.fbs.h)
 add_custom_command(
@@ -14,6 +17,6 @@ add_custom_command(
 
 add_executable(${PROJECT_NAME} flatbuf_service.cpp ${FLATC_OUTPUT})
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-target_link_libraries(${PROJECT_NAME} userver-core)
+target_link_libraries(${PROJECT_NAME} userver::core)
 
-userver_sample_testsuite_add()
+userver_testsuite_add_simple()

@@ -876,21 +876,30 @@ class AiohttpClient(service_client.AiohttpClient):
         async with self._log_capture_fixture.start_capture(
                 log_level=log_level,
         ) as capture:
+            logger.debug('Starting logcapture')
             await self._testsuite_action(
                 'log_capture',
                 log_level=log_level,
                 socket_logging_duplication=True,
                 testsuite_skip_prepare=testsuite_skip_prepare,
             )
+
             try:
+                await self._log_capture_fixture.wait_for_client()
                 yield capture
             finally:
+                logger.debug('Finishing logcapture')
                 await self._testsuite_action(
                     'log_capture',
                     log_level=self._log_capture_fixture.default_log_level,
                     socket_logging_duplication=False,
                     testsuite_skip_prepare=testsuite_skip_prepare,
                 )
+
+    async def log_flush(self, logger_name: typing.Optional[str] = None):
+        await self._testsuite_action(
+            'log_flush', logger_name=logger_name, testsuite_skip_prepare=True,
+        )
 
     async def invalidate_caches(
             self,
@@ -1142,10 +1151,28 @@ class Client(ClientWrapper):
     def spawn_task(self, name: str):
         return self._client.spawn_task(name)
 
-    def capture_logs(self, *, testsuite_skip_prepare: bool = False):
+    def capture_logs(
+            self,
+            *,
+            log_level: str = 'DEBUG',
+            testsuite_skip_prepare: bool = False,
+    ):
+        """
+        Captures logs from the service.
+
+        @param log_level Do not capture logs below this level.
+
+        @see @ref testsuite_logs_capture
+        """
         return self._client.capture_logs(
-            testsuite_skip_prepare=testsuite_skip_prepare,
+            log_level=log_level, testsuite_skip_prepare=testsuite_skip_prepare,
         )
+
+    def log_flush(self, logger_name: typing.Optional[str] = None):
+        """
+        Flush service logs.
+        """
+        return self._client.log_flush(logger_name=logger_name)
 
     @_wrap_client_error
     async def invalidate_caches(

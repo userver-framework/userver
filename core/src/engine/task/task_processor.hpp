@@ -57,9 +57,11 @@ class TaskProcessor final {
 
   const impl::TaskCounter& GetTaskCounter() const { return task_counter_; }
 
-  size_t GetTaskQueueSize() const { return task_queue_.GetSizeApproximate(); }
+  std::size_t GetTaskQueueSize() const {
+    return task_queue_.GetSizeApproximate();
+  }
 
-  size_t GetWorkerCount() const { return workers_.size(); }
+  std::size_t GetWorkerCount() const { return workers_.size(); }
 
   void SetSettings(const TaskProcessorSettings& settings);
 
@@ -67,7 +69,7 @@ class TaskProcessor final {
 
   bool ShouldProfilerForceStacktrace() const;
 
-  size_t GetTaskTraceMaxCswForNewTask() const;
+  std::size_t GetTaskTraceMaxCswForNewTask() const;
 
   const std::string& GetTaskTraceLoggerName() const;
 
@@ -78,9 +80,19 @@ class TaskProcessor final {
   std::vector<std::uint8_t> CollectCurrentLoadPct() const;
 
  private:
+  // Contains queue size cache when overloaded by length, 0 otherwise.
+  using OverloadByLength = std::size_t;
+
+  struct OverloadedCache final {
+    std::atomic<bool> overloaded_by_wait_time{false};
+    std::atomic<OverloadByLength> overload_by_length{0};
+  };
+
   void Cleanup() noexcept;
 
   void PrepareWorkerThread(std::size_t index) noexcept;
+
+  void FinalizeWorkerThread() noexcept;
 
   void ProcessTasks() noexcept;
 
@@ -88,14 +100,20 @@ class TaskProcessor final {
 
   void SetTaskQueueWaitTimeOverloaded(bool new_value) noexcept;
 
-  void HandleOverload(impl::TaskContext& context);
+  void HandleOverload(impl::TaskContext& context,
+                      TaskProcessorSettings::OverloadAction);
 
-  impl::TaskCounter task_counter_;
+  OverloadByLength GetOverloadByLength(std::size_t max_queue_length) noexcept;
+
+  OverloadByLength ComputeOverloadByLength(
+      OverloadByLength old_overload_by_length,
+      std::size_t max_queue_length) noexcept;
+
   concurrent::impl::InterferenceShield<impl::DetachedTasksSyncBlock>
       detached_contexts_{impl::DetachedTasksSyncBlock::StopMode::kCancel};
-  concurrent::impl::InterferenceShield<std::atomic<bool>>
-      task_queue_wait_time_overloaded_{false};
+  concurrent::impl::InterferenceShield<OverloadedCache> overloaded_cache_;
   TaskQueue task_queue_;
+  impl::TaskCounter task_counter_;
 
   const TaskProcessorConfig config_;
   const std::shared_ptr<impl::TaskProcessorPools> pools_;
@@ -104,11 +122,11 @@ class TaskProcessor final {
 
   std::atomic<std::chrono::microseconds> task_profiler_threshold_{{}};
   std::atomic<std::chrono::microseconds> sensor_task_queue_wait_time_{{}};
-  std::atomic<std::chrono::microseconds> max_task_queue_wait_time_{{}};
-  std::atomic<std::size_t> max_task_queue_wait_length_{0};
 
-  std::atomic<TaskProcessorSettings::OverloadAction> overload_action_{
-      TaskProcessorSettings::OverloadAction::kIgnore};
+  std::atomic<std::chrono::microseconds>
+      action_bit_and_max_task_queue_wait_time_{{}};
+  std::atomic<std::int64_t> action_bit_and_max_task_queue_wait_length_{0};
+
   std::atomic<bool> profiler_force_stacktrace_{false};
   std::atomic<bool> is_shutting_down_{false};
   std::atomic<bool> task_trace_logger_set_{false};

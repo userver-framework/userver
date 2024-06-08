@@ -107,11 +107,16 @@ void ManagerControllerComponent::WriteStatistics(
 
   // coroutines
   if (auto coro_pool = writer["coro-pool"]) {
+    const auto stats =
+        components_manager_.GetTaskProcessorPools()->GetCoroPool().GetStats();
     if (auto coro_stats = coro_pool["coroutines"]) {
-      auto stats =
-          components_manager_.GetTaskProcessorPools()->GetCoroPool().GetStats();
       coro_stats["active"] = stats.active_coroutines;
       coro_stats["total"] = stats.total_coroutines;
+    }
+    if (auto stack_usage_stats = coro_pool["stack-usage"]) {
+      stack_usage_stats["max-usage-percent"] = stats.max_stack_usage_pct;
+      stack_usage_stats["is-monitor-active"] =
+          stats.is_stack_usage_monitor_active;
     }
   }
 

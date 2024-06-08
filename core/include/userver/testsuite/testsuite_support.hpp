@@ -3,7 +3,7 @@
 /// @file userver/testsuite/testsuite_support.hpp
 /// @brief @copybrief components::TestsuiteSupport
 
-#include <userver/components/impl/component_base.hpp>
+#include <userver/components/raw_component_base.hpp>
 #include <userver/testsuite/cache_control.hpp>
 #include <userver/testsuite/dump_control.hpp>
 #include <userver/testsuite/grpc_control.hpp>
@@ -42,6 +42,7 @@ namespace components {
 /// testsuite-redis-timeout-all | minimum command timeout for redis | -
 /// testsuite-tasks-enabled | enable testsuite tasks facility | false
 /// testsuite-increased-timeout | increase timeouts for connections, statement executions, RPC timeouts to avoid timeouts happening in testing environments, where the hardware differs from production. Overrides postgres, redis and grpc timeouts if these are missing | 0ms
+/// cache-update-execution |  If 'sequential' the caches are updated by testsuite sequentially in the order for cache component registration, which makes sense if service has components that push value into a cache component. If 'concurrent' the caches are updated concurrently with respect to the cache component dependencies. | concurrent
 ///
 /// ## Static configuration example:
 ///
@@ -49,7 +50,7 @@ namespace components {
 
 // clang-format on
 
-class TestsuiteSupport final : public components::impl::ComponentBase {
+class TestsuiteSupport final : public components::RawComponentBase {
  public:
   /// @ingroup userver_component_names
   /// @brief The default name of components::TestsuiteSupport

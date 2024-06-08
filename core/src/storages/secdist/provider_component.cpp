@@ -6,6 +6,7 @@
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/formats/yaml/serialize.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/storages/secdist/exceptions.hpp>
 #include <userver/storages/secdist/provider_component.hpp>
 #include <userver/utils/async.hpp>
@@ -175,15 +176,14 @@ storages::secdist::DefaultLoader::Settings ParseSettings(
 
 DefaultSecdistProvider::DefaultSecdistProvider(const ComponentConfig& config,
                                                const ComponentContext& context)
-    : LoggableComponentBase{config, context},
-      loader_{ParseSettings(config, context)} {}
+    : ComponentBase{config, context}, loader_{ParseSettings(config, context)} {}
 
 formats::json::Value DefaultSecdistProvider::Get() const {
   return loader_.Get();
 }
 
 yaml_config::Schema DefaultSecdistProvider::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: Component that stores security related data (keys, passwords, ...).
 additionalProperties: false

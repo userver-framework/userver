@@ -6,7 +6,7 @@
 #include <vector>
 
 #include <dump/internal_helpers_test.hpp>
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/dump/common.hpp>
 #include <userver/dump/common_containers.hpp>
 #include <userver/dump/factory.hpp>
@@ -353,15 +353,14 @@ namespace {
 
 /// [Sample Dumper usage]
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
-class SampleComponentWithDumps final : public components::LoggableComponentBase,
+class SampleComponentWithDumps final : public components::ComponentBase,
                                        private dump::DumpableEntity {
  public:
   static constexpr std::string_view kName = "component-with-dumps";
 
   SampleComponentWithDumps(const components::ComponentConfig& config,
                            const components::ComponentContext& context)
-      : LoggableComponentBase(config, context),
-        dumper_(config, context, *this) {
+      : ComponentBase(config, context), dumper_(config, context, *this) {
     dumper_.ReadDump();
   }
 

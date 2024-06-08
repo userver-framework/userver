@@ -84,14 +84,14 @@ class PortabilityInfoCollector final
       if (label.Name().size() > kMaxLabelNameLen) {
         ReportError(
             info_[WarningCode::kLabelNameLength], path, labels,
-            fmt::format("Label '{}' exceeeds recommended label name length {}",
+            fmt::format("Label '{}' exceeds recommended label name length {}",
                         label.Name(), kMaxLabelNameLen));
       }
 
       if (label.Value().size() > kMaxLabelValueLen) {
         ReportError(
             info_[WarningCode::kLabelValueLength], path, labels,
-            fmt::format("Value of label '{}' exceeeds recommended length {}",
+            fmt::format("Value of label '{}' exceeds recommended length {}",
                         label.Name(), kMaxLabelValueLen));
       }
 

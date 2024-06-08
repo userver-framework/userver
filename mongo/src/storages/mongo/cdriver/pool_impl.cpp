@@ -176,15 +176,15 @@ CDriverPoolImpl::CDriverPoolImpl(std::string id, const std::string& uri_string,
     : PoolImpl(std::move(id), config, config_source),
       app_name_(config.app_name),
       init_data_{dns_resolver, {}},
-      max_size_(config.max_size),
-      idle_limit_(config.idle_limit),
+      max_size_(config.pool_settings.max_size),
+      idle_limit_(config.pool_settings.idle_limit),
       queue_timeout_(config.queue_timeout),
       size_(0),
-      in_use_semaphore_(config.max_size),
-      connecting_semaphore_(config.connecting_limit),
+      in_use_semaphore_(config.pool_settings.max_size),
+      connecting_semaphore_(config.pool_settings.connecting_limit),
       // FP?: pointer magic in boost.lockfree
       // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
-      queue_(config.max_size) {
+      queue_(config.pool_settings.max_size) {
   static const GlobalInitializer kInitMongoc;
   GlobalInitializer::LogInitWarningsOnce();
 
@@ -198,16 +198,21 @@ CDriverPoolImpl::CDriverPoolImpl(std::string id, const std::string& uri_string,
 
   init_data_.ssl_opt = MakeSslOpt(uri_.get());
 
+  std::size_t i = 0;
   try {
     tracing::Span span("mongo_prepopulate");
-    LOG_INFO() << "Creating " << config.initial_size << " mongo connections";
-    for (size_t i = 0; i < config.initial_size; ++i) {
+    LOG_INFO() << "Creating " << config.pool_settings.initial_size
+               << " mongo connections";
+    for (; i < config.pool_settings.initial_size; ++i) {
       engine::SemaphoreLock lock(in_use_semaphore_);
       Push(Create());
       lock.Release();
     }
   } catch (const std::exception& ex) {
-    LOG_ERROR() << "Mongo pool was not fully prepopulated: " << ex;
+    LOG_ERROR() << fmt::format(
+        "Mongo pool was not fully prepopulated. Expected {} connections, but "
+        "{} were created. Error: {}",
+        config.pool_settings.initial_size, i, ex.what());
   }
 
   maintenance_task_.Start(
@@ -243,6 +248,14 @@ void CDriverPoolImpl::SetMaxSize(size_t max_size) { max_size_ = max_size; }
 
 const std::string& CDriverPoolImpl::DefaultDatabaseName() const {
   return default_database_;
+}
+
+void CDriverPoolImpl::SetPoolSettings(const PoolSettings& pool_settings) {
+  SetMaxSize(pool_settings.max_size);
+  idle_limit_ = pool_settings.idle_limit;
+  in_use_semaphore_.SetCapacity(pool_settings.max_size);
+  connecting_semaphore_.SetCapacity(pool_settings.connecting_limit);
+  queue_.reserve(pool_settings.max_size);
 }
 
 void CDriverPoolImpl::Ping() {

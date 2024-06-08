@@ -65,6 +65,14 @@ RequestAppend TransactionImpl::Append(std::string key, std::string value) {
                                std::move(value));
 }
 
+RequestBitop TransactionImpl::Bitop(BitOperation op, std::string dest,
+                                    std::vector<std::string> srcs) {
+  UpdateShard(dest);
+  const auto operation = ToString(op);
+  return AddCmd<RequestBitop>("bitop", true, std::move(operation),
+                              std::move(dest), std::move(srcs));
+}
+
 RequestDbsize TransactionImpl::Dbsize(size_t shard) {
   UpdateShard(shard);
   return AddCmd<RequestDbsize>("dbsize", false);

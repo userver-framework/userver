@@ -96,7 +96,8 @@ void UserverExperimentsScope::EnableOnly(
   }
 }
 
-UserverExperiment kRedisRetryBudgetExperiment{"redis-retry-budget"};
+UserverExperiment kCoroutineStackUsageMonitorExperiment{
+    "coro-stack-usage-monitor", true};
 
 }  // namespace utils::impl
 

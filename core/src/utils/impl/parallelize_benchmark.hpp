@@ -43,7 +43,7 @@ void RunParallelBenchmark(benchmark::State& state, Func func) {
   if (engine::current_task::IsTaskProcessorThread()) {
     utils::FixedArray<engine::TaskWithResult<void>> competing_threads =
         utils::GenerateFixedArray(state.range(0) - 1, [&](std::size_t) {
-          return engine::AsyncNoSpan([func, &keep_running] {
+          return engine::CriticalAsyncNoSpan([func, &keep_running] {
             const impl::KeepRunningRange range{keep_running};
             func(range);
           });

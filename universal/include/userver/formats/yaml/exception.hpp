@@ -20,6 +20,8 @@ class Exception : public std::exception {
 
   const char* what() const noexcept final { return msg_.c_str(); }
 
+  std::string_view GetMessage() const noexcept { return msg_; }
+
  private:
   std::string msg_;
 };
@@ -29,13 +31,24 @@ class ParseException : public Exception {
   using Exception::Exception;
 };
 
+class ExceptionWithPath : public Exception {
+ public:
+  explicit ExceptionWithPath(std::string_view msg, std::string_view path);
+
+  std::string_view GetPath() const noexcept;
+  std::string_view GetMessageWithoutPath() const noexcept;
+
+ private:
+  std::size_t path_size_;
+};
+
 class BadStreamException : public Exception {
  public:
   explicit BadStreamException(const std::istream& is);
   explicit BadStreamException(const std::ostream& os);
 };
 
-class TypeMismatchException : public Exception {
+class TypeMismatchException : public ExceptionWithPath {
  public:
   TypeMismatchException(Type actual, Type expected, std::string_view path);
   TypeMismatchException(int actual, int expected, std::string_view path);
@@ -43,12 +56,12 @@ class TypeMismatchException : public Exception {
                         std::string_view path);
 };
 
-class OutOfBoundsException : public Exception {
+class OutOfBoundsException : public ExceptionWithPath {
  public:
   OutOfBoundsException(size_t index, size_t size, std::string_view path);
 };
 
-class MemberMissingException : public Exception {
+class MemberMissingException : public ExceptionWithPath {
  public:
   explicit MemberMissingException(std::string_view path);
 };

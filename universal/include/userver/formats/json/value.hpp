@@ -12,9 +12,9 @@
 #include <userver/formats/json/exception.hpp>
 #include <userver/formats/json/impl/types.hpp>
 #include <userver/formats/json/iterator.hpp>
+#include <userver/formats/json/schema.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/string_builder_fwd.hpp>
-#include <userver/formats/json/validate.hpp>
 #include <userver/formats/parse/common.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -71,6 +71,7 @@ class Value final {
       Iterator<IterTraits, common::IteratorDirection::kReverse>;
   using Exception = formats::json::Exception;
   using ParseException = formats::json::ParseException;
+  using ExceptionWithPath = formats::json::ExceptionWithPath;
   using Builder = ValueBuilder;
 
   /// @brief Constructs a Value that holds a null.
@@ -330,8 +331,6 @@ class Value final {
   friend std::string ToPrettyString(const formats::json::Value& doc,
                                     PrettyFormat format);
   friend logging::LogHelper& operator<<(logging::LogHelper&, const Value&);
-  friend bool Validate(const formats::json::Value&,
-                       const formats::json::Schema&);
 };
 
 template <typename T>
@@ -414,6 +413,9 @@ T Value::ConvertTo(First&& default_arg, Rest&&... more_default_args) const {
 }
 
 inline Value Parse(const Value& value, parse::To<Value>) { return value; }
+
+std::chrono::microseconds Parse(const Value& value,
+                                parse::To<std::chrono::microseconds>);
 
 std::chrono::milliseconds Parse(const Value& value,
                                 parse::To<std::chrono::milliseconds>);

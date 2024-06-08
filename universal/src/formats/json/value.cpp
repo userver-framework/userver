@@ -41,8 +41,9 @@ template <typename T>
 auto CheckedNotTooNegative(T x, const Value& value) {
   if (x <= -1) {
     throw ConversionException(
-        "Cannot convert to unsigned value from negative " + value.GetPath() +
-        '=' + std::to_string(x));
+        "Cannot convert to unsigned value from negative value = " +
+            std::to_string(x),
+        value.GetPath());
   }
   return x;
 }
@@ -511,6 +512,11 @@ Value::LazyDetachedPath Value::LazyDetachedPath::Chain(
       formats::common::MakeChildPath(std::move(result.virtual_path_), key);
 
   return result;
+}
+
+std::chrono::microseconds Parse(const Value& value,
+                                parse::To<std::chrono::microseconds>) {
+  return ParseJsonDuration<std::chrono::microseconds>(value);
 }
 
 std::chrono::milliseconds Parse(const Value& value,

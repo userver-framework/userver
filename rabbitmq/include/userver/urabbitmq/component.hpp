@@ -5,9 +5,8 @@
 
 #include <memory>
 
-#include <userver/components/loggable_component_base.hpp>
-
-#include <userver/utils/statistics/storage.hpp>
+#include <userver/components/component_base.hpp>
+#include <userver/utils/statistics/entry.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -54,7 +53,7 @@ namespace components {
 ///
 // clang-format on
 
-class RabbitMQ : public LoggableComponentBase {
+class RabbitMQ final : public ComponentBase {
  public:
   /// Component constructor
   RabbitMQ(const ComponentConfig& config, const ComponentContext& context);
@@ -68,8 +67,9 @@ class RabbitMQ : public LoggableComponentBase {
 
  private:
   clients::dns::Component& dns_;
-
   std::shared_ptr<urabbitmq::Client> client_;
+
+  // Must be the last field
   utils::statistics::Entry statistics_holder_;
 };
 

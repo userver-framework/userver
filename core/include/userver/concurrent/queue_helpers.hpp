@@ -118,8 +118,12 @@ class Consumer final {
   /// Pop element from queue. May wait asynchronously if the queue is empty,
   /// but the producer is alive.
   /// @returns whether something was popped before the deadline.
-  /// @note `false` can be returned before the deadline
-  /// when the producer is no longer alive.
+  /// @note `false` can be returned before the deadline when the producer is no
+  /// longer alive.
+  /// @warning Be careful when using a method in a loop. The
+  /// `engine::Deadline` is a wrapper over `std::chrono::time_point`, not
+  /// `duration`! If you need a timeout, you must reconstruct the deadline in
+  /// the loop.
   [[nodiscard]] bool Pop(ValueType& value,
                          engine::Deadline deadline = {}) const {
     return queue_->Pop(token_, value, deadline);
@@ -130,6 +134,12 @@ class Consumer final {
   /// @return whether something was popped.
   [[nodiscard]] bool PopNoblock(ValueType& value) const {
     return queue_->PopNoblock(token_, value);
+  }
+
+  void Reset() && {
+    if (queue_) queue_->MarkConsumerIsDead();
+    queue_.reset();
+    [[maybe_unused]] ConsumerToken for_destruction = std::move(token_);
   }
 
   /// Const access to source queue.

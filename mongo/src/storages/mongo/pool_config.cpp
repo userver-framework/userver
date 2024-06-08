@@ -6,6 +6,7 @@
 #include <mongoc/mongoc.h>
 
 #include <userver/components/component.hpp>
+#include <userver/formats/json/value.hpp>
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/parse/to.hpp>
 #include <userver/storages/mongo/exception.hpp>
@@ -42,7 +43,38 @@ constexpr utils::TrivialBiMap kStatsVerbosityMapping([](auto selector) {
       .Case(StatsVerbosity::kFull, "full");
 });
 
+template <typename ConfigType>
+PoolSettings ParsePoolSettings(const ConfigType& config) {
+  PoolSettings result{};
+
+  result.max_size = config["max_size"].template As<size_t>(result.max_size);
+  result.connecting_limit =
+      config["connecting_limit"].template As<size_t>(result.connecting_limit);
+
+  auto user_idle_limit =
+      config["idle_limit"].template As<std::optional<size_t>>();
+  result.idle_limit =
+      user_idle_limit.value_or(std::min(result.idle_limit, result.max_size));
+
+  auto user_initial_size =
+      config["initial_size"].template As<std::optional<size_t>>();
+  result.initial_size = user_initial_size.value_or(
+      std::min(result.initial_size, result.idle_limit));
+
+  return result;
+}
+
 }  // namespace
+
+PoolSettings Parse(const formats::json::Value& config,
+                   formats::parse::To<PoolSettings>) {
+  return ParsePoolSettings(config);
+}
+
+PoolSettings Parse(const yaml_config::YamlConfig& config,
+                   formats::parse::To<PoolSettings>) {
+  return ParsePoolSettings(config);
+}
 
 static auto Parse(const yaml_config::YamlConfig& config,
                   formats::parse::To<PoolConfig::DriverImpl>) {
@@ -65,9 +97,6 @@ PoolConfig Parse(const yaml_config::YamlConfig& config,
       config["so_timeout"].As<std::chrono::milliseconds>(result.so_timeout);
   result.queue_timeout = config["queue_timeout"].As<std::chrono::milliseconds>(
       result.queue_timeout);
-  result.max_size = config["max_size"].As<size_t>(result.max_size);
-  result.connecting_limit =
-      config["connecting_limit"].As<size_t>(result.connecting_limit);
   result.local_threshold =
       config["local_threshold"].As<std::optional<std::chrono::milliseconds>>();
   result.maintenance_period =
@@ -83,29 +112,12 @@ PoolConfig Parse(const yaml_config::YamlConfig& config,
   result.cc_config =
       config["congestion_control"]
           .As<congestion_control::v2::LinearController::StaticConfig>();
-
-  auto user_idle_limit = config["idle_limit"].As<std::optional<size_t>>();
-  result.idle_limit = user_idle_limit
-                          ? *user_idle_limit
-                          : std::min(result.idle_limit, result.max_size);
-
-  auto user_initial_size = config["initial_size"].As<std::optional<size_t>>();
-  result.initial_size = user_initial_size
-                            ? *user_initial_size
-                            : std::min(result.initial_size, result.idle_limit);
+  result.pool_settings = config.As<PoolSettings>();
 
   return result;
 }
 
-void PoolConfig::Validate(const std::string& pool_id) const {
-  CheckDuration(conn_timeout, "connection timeout", pool_id);
-  CheckDuration(so_timeout, "socket timeout", pool_id);
-  CheckDuration(queue_timeout, "queue wait timeout", pool_id);
-  if (local_threshold) {
-    CheckDuration(*local_threshold, "local threshold", pool_id);
-  }
-  CheckDuration(maintenance_period, "pool maintenance period", pool_id);
-
+void PoolSettings::Validate(const std::string& pool_id) const {
   if (!max_size) {
     throw InvalidConfigException("invalid max pool size in ")
         << pool_id << " pool config";
@@ -125,6 +137,18 @@ void PoolConfig::Validate(const std::string& pool_id) const {
     throw InvalidConfigException("invalid establishing connections limit in ")
         << pool_id << " pool config";
   }
+}
+
+void PoolConfig::Validate(const std::string& pool_id) const {
+  CheckDuration(conn_timeout, "connection timeout", pool_id);
+  CheckDuration(so_timeout, "socket timeout", pool_id);
+  CheckDuration(queue_timeout, "queue wait timeout", pool_id);
+  if (local_threshold) {
+    CheckDuration(*local_threshold, "local threshold", pool_id);
+  }
+  CheckDuration(maintenance_period, "pool maintenance period", pool_id);
+
+  pool_settings.Validate(pool_id);
 
   if (!IsValidAppName(app_name)) {
     throw InvalidConfigException("Invalid appname in ")

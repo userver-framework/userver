@@ -3,8 +3,8 @@
 #include <atomic>
 #include <functional>
 
-#include <concurrent/impl/intrusive_hooks.hpp>
 #include <concurrent/impl/intrusive_mpsc_queue.hpp>
+#include <userver/concurrent/impl/intrusive_hooks.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

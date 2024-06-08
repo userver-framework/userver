@@ -1,4 +1,4 @@
-OWNER(g:taxi-common)
+SUBSCRIBER(g:taxi-common)
 
 PY3TEST()
 

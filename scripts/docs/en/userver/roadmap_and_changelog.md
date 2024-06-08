@@ -16,23 +16,246 @@ Changelog news also go to the
 
 ## Roadmap
 
-* ✓ Simplify dynamic configs, embed defaults into the code.
-* ✓ Add PostgreSQL connection pools autoconfiguration.
-* ✓ LISTEN/NOTIFY support for PostgreSQL
-* ✓ New landing page for the website
-* ✓ Significantly reduce network data transmission for PostgreSQL
-* Implement middlewares for HTTP server.
-* Move most of the HTTP server functionality to middlewares.
-* Document middlewares/plugins for HTTP client.
-* Codegen parsers and serializers by JSON schema
-* Support `install` in CMake.
-* Add YDB driver.
-* Add retry budget or retry circuit breaker for clients.
+* 👨‍💻 Codegen parsers and serializers by JSON schema
+* 👨‍💻 Improve Kafka driver.
+* 👨‍💻 Add retry budget or retry circuit breaker for clients.
+* Improve OpenTelemetry Protocol (OTLP) support.
 * Add web interface to the [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf)
-* Add basic Kafka driver.
 
 
 ## Changelog
+
+
+### Release v2.1 (May 2024)
+
+* Coroutines stack usage is now shown in the
+  `engine.coro-pool.stack-usage.max-usage-percent` metric. Improved
+  stack-overflow diagnostics.
+* HTTP server and HTTP client now support ZSTD decompression. Thanks
+  to [Илья Оплачкин](https://github.com/IoplachkinI)
+  and [VScdr](https://github.com/VS-CDR) for the PR!
+* Added redis::MakeBulkHedgedRedisRequestAsync() and
+  redis::MakeBulkHedgedRedisRequest().
+* OpenTelemetry parent span-id is now passed through AMQP headers along with
+  trace-id. Thanks to [TertiumOrganum1](https://github.com/TertiumOrganum1) for
+  the PR!
+* ugrpc::server::MiddlewareBase now has CallRequestHook and CallResponseHook
+  for intercepting requests and responses.
+* components::LoggableComponentBase was renamed to components::ComponentBase.
+  components::RawComponentBase was published.
+* Multiple improvements for logging in testsuite.
+* gRPC metrics are now not written for methods that were not used at runtime.
+* Mongo pools now can be adjusted at runtime via dynamic config
+  @ref MONGO_CONNECTION_POOL_SETTINGS. Congestion Control for individual Mongo
+  databases now could be controlled via
+  @ref MONGO_CONGESTION_CONTROL_DATABASES_SETTINGS. Congestion Control is now
+  enabled by default.
+* Reduced contention in coro::Pool and added some tests and benchmarks. Many
+  thanks to [Egor Bocharov](https://github.com/egor-bystepdev) for the PRs!
+* Added urabbitmq::ConsumerComponentBase::Process() accepting the whole
+  urabbitmq::ConsumedMessage. Thanks to
+  [TertiumOrganum1](https://github.com/TertiumOrganum1) for the PR!
+* `human_logs.py` now supports more options and has more examples and docs
+  embedded. Thanks to
+  [TertiumOrganum1](https://github.com/TertiumOrganum1) for the PR!
+
+* Docs and build:
+  * `find_package(userver)` now implicitly calls `userver_setup_environment()`,
+    includes all the helper CMake userver scripts, making the configuration simpler.
+    Added diagnostics and fix-it hints for some of the CMake missuses.
+  * In docs `Ctrl+k` hotkey now focuses on `Search` input. Many thanks to
+    [Fedor Alekseev](https://github.com/atlz253) for the PR!
+  * ODR-violations are now avoided if the userver is built with different standard
+    version than the service.
+  * Each sample is now usable as a root project.
+  * Each driver now has a @ref QUALITY_TIERS "Quality Tier".
+  * Fixed minimal version requirements for Pythons gRPC modules. Thanks to
+    [Nikita](https://github.com/root-kidik) for the PR!
+  * Reduced build times by avoiding inclusion of heavy headers.
+  * Added an example on PostgreSQL `bytea` usage. Thanks to
+  [TertiumOrganum1](https://github.com/TertiumOrganum1) for the PR!
+  * Multiple improvements for docs, build and CI scripts.  
+
+### Release v2.0
+
+Big new features since the v1.0.0:
+
+* Simplified dynamic configs and embedded defaults into the code.
+* Added PostgreSQL connection pools auto-configuration.
+* Added YDB driver and basic Kafka driver.
+* LISTEN/NOTIFY support for PostgreSQL
+* New landing page for the website
+* Significantly reduced network data transmission for PostgreSQL
+* Supported `install` in CMake and CPack packaging.
+* Implemented middlewares for HTTP server, most of the HTTP server functionality
+  was moved to middlewares.
+* Improved documentation, added more samples and descriptions.
+* Numerous optimizations and build improvements.
+
+Detailed descriptions could be found below.
+
+Binary Ubuntu 22.04 amd64 package could be found at
+[userver Releases](https://github.com/userver-framework/userver/releases).
+
+
+### May 2024 (v2.0-rc)
+
+* Kafka driver is now documented, compiles and works. Thanks to
+  [Fedor](https://github.com/fdr896) for the work!
+* Added utils::numeric_cast for safe casting of integers of different width.
+* The userver framework is now
+  [available at Yandex Cloud Marketplace](https://yandex.cloud/en/marketplace/products/yc/userver).
+* YDB driver now can be built on modern Clang compilers in C++20 and above
+  modes.
+* Redis now allows to subscribe to master instances.
+* Improved logging of failures in testsuite.
+
+* Optimizations:
+  * rcu::Variable was optimized to use asymmetric fences and
+    concurrent::StripedCounter. x1000 performance improvement for some edge
+    cases, x3 improvement for the generic use case.
+  * Internal `TaskCounter` now uses concurrent::StripedCounter to reduce
+    contention on atomics on each async task construction and destruction.
+  * Adjusted the default spinning count in scheduler to better fit modern
+    hardware and typical loads.
+  * ~5% faster tasks queue overload detection logic. Many thanks to
+    [Egor Bocharov](https://github.com/egor-bystepdev) for the PR!
+
+* Docs, tests and build
+  * Fixed build of utils/rand.hpp related source files. Thanks to
+    [Nikita](https://github.com/root-kidik) for the PR!
+  * Improved logic of Telegram support chats URL selection. Many thanks to
+    [Mingaripov Niyaz](https://github.com/mnink275) for the PR!
+  * Fixed multiple `@snippet` links in docs. Many thanks to
+    [Mingaripov Niyaz](https://github.com/mnink275) for the PR!
+  * Fixed flaky `ThreadLocal.SafeThreadLocalWorks` test. Many thanks to
+    [Egor Bocharov](https://github.com/egor-bystepdev) for the PR!
+
+
+### April 2024
+
+* Initial CPack support. Now `userver-all.deb` packages could be build via:
+  ```
+  git clone --depth 1 https://github.com/userver-framework/userver.git
+  docker run --rm -it --network ip6net -v $(pwd):/home/user -w /home/user/userver \
+     --entrypoint bash ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest ./scripts/docker/run_as_user.sh \
+     ./scripts/build_and_install_all.sh
+  ```
+  We'll start publishing the packages soon.
+
+* New Docker images based on Ubuntu-22.04 with weekly builds and publishing:
+  * ghcr.io/userver-framework/ubuntu-22.04-userver-pg:latest - image with
+    preinstalled userver deb package and PostgreSQL database. All the
+    service templates now use it for tests
+  * ghcr.io/userver-framework/ubuntu-22.04-userver:latest - image with
+    preinstalled userver deb package. Good starting container for
+    developing servers that do not use POstgreSQL.
+  * ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest - an image
+    with only the build dependencies to build userver. Good for development of
+    userver itself.
+  More info at @ref scripts/docs/en/userver/tutorial/build.md
+
+* All the service templates were moved to a new components naming with `::`
+  (for example `userver::core`) and
+  now attempt to find an installed userver. Now in CMake component names with
+  `::` work regardless of the framework installation (CPM, `add_subdirectory`,
+  or `find_package`).
+
+* Added userver/utils/hedged_request.hpp with a bunch of helper classes to
+  perform hedged requests.
+* Improved testsuite logging for
+  @ref scripts/docs/en/userver/functional_testing.md "functional tests".
+* Consumers of concurrent queues now have a Reset() method. Thanks to
+  [akhoroshev](https://github.com/akhoroshev) for the PR!
+* Fixed gRPC builds and runs with ASAN. Thanks to
+  [Nikita](https://github.com/root-kidik) for the PR!
+* Published early work on Kafka driver. API is not stable, build scripts,
+  improvements and samples to come. Thanks to [Fedor](https://github.com/fdr896)
+  for the work!
+* Published early work on RocksDB driver. API is not stable, build scripts,
+  improvements and samples to come. Thanks to
+  [Kirill](https://github.com/Shuba-Buba) for the work!
+
+* Optimizations:
+  * WriteAll for TLS became up to 7 times faster if multiple small chunks of
+    data are written. Thanks to [Илья Оплачкин](https://github.com/IoplachkinI)
+    and [VScdr](https://github.com/VS-CDR) for the PR!
+  * Binary sizes were reduced if building without LTO. All the binaries linked
+    with userver became about 1MB smaller.
+  * Implemented asymmetric thread fences. This opens the door for optimizations
+    of rcu::Variable and internals of the scheduler.
+  * Caches in testsuite are now invalidated concurrently, leading to tens of
+    seconds speedup for services with multiple caches and tests.
+  * concurrent::StripedCounter became 8 times more memory efficient.
+
+* Build and docs:
+  * Updated PostgreSQL CMake scripts for Manjaro. Thanks to
+    [Ivan Gabrusevich](https://github.com/sddwbbs) for the PR!
+  * Disabled LTO for Conan builds. Thanks to
+    [Pavel Talashchenko](https://github.com/pavelbezpravel) for the PR!
+  * Fixed typo in 'Manjaro'. Thank to
+    [Igor Martynov](https://github.com/snailbaron) for the PR!
+
+
+### March 2024
+
+* Installation via `cmake --install` was implemented. See @ref userver_install
+  for more info.
+* Implemented @ref scripts/docs/en/userver/http_server_middlewares.md
+* @ref USERVER_LOG_DYNAMIC_DEBUG now provides fine granted runtime control over
+  logging.
+* Now all the modern versions of `libmongoc` are supported in `userver-mongo`.
+* @ref POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED is now `on` by default.
+* A secret value for the digest nonce generating now could be provided in
+  `http_server_digest_auth_secret` key via components::Secdist. Many thanks to
+  [Mingaripov Niyaz](https://github.com/mnink275) for the PR!
+* ugrpc::server::ServerComponent now has a `unix-socket-path` static option to
+  listen on unix domain socket path instead of an inet socket.
+* All the `formats::*::ValueBuilder` now support std::string_view. Thanks to
+  Андрей Будиловский for the bug report!
+* clients::http::Form is now movable and slightly more efficient. Thanks to
+  [Alexandr Kondratev](https://github.com/theg4sh) for the PR!
+* Redis now supports `SSUBSCRIBE` and removes dead nodes.
+* engine::WaitAny() now can wait for an engine::io::Socket/engine::io::TlsWrapper
+  to become readable or writable. For example:
+  `engine::WaitAny(socket.GetReadableBase(), task1, tls_socket.GetWritableBase(), future1);`
+* New tracing::Span::MakeRootSpan() helper function.
+
+* Optimizations:
+  * Switched from unmaintained `http_parser` to a 156% faster `llhttp`.
+  * Implemented a concurrent::StripedCounter that allows to have a per-cpu data
+    in user space with kernel-provided transactional guarantees. Works
+    at least x2 faster than std::atomic on a single thread and scales
+    linearly (unlike std::atomic). As a result gives more than x10 performance
+    improvement under heavy contention.
+  * An explicit control over cache invalidations in testsuite. As a result,
+    less caches are invalidated between tests and the overall time to run tests
+    goes down significantly.
+  * Components start was optimized to copy less containers during component
+    dependencies detection.
+  * Per each incoming HTTP request:
+    * one less `std::chrono::steady_clock::now()` call
+    * one less `StrCaseHash` construction (2 calls into `std::uniform_int_distribution<std::uint64_t>` over `std::mt19937`)
+    * one less `dynamic_config::Snapshot` construction (at least one atomic CAS)
+  * HTTP Client now copies less `std::shared_ptr` variables in implementation.
+  * Optimized up to an order of magnitude the user types query in PostgreSQL
+    driver.
+  * pytest_userver.client.Client.capture_logs() now accepts `log_level` to
+    filter out messages with lower log level in the service itself and minimize
+    CPU and memory consumption during tests.
+  * Up to two times faster utils::statistics::RecentPeriod statistics in
+    PostgreSQL driver due to switching to a utils::datetime::SteadyCoarseClock.
+
+* Build:
+  * Workarounds for the Protobuf >= 5.26.0
+  * Removed redundant semicolon, thanks to Oleksii Demchenko for the
+    [PR](https://github.com/userver-framework/userver/commit/b3abb84d6bb1da693).
+  * utils::FastScopeGuard now uses proper traits. Thanks to
+    [Илья Оплачкин](https://github.com/IoplachkinI) for the PR and to
+    [Artyom Kolpakov](https://github.com/ddvamp) for the report!
+  * Added missing dependency for Arch based distros. Thanks to
+    [VScdr](https://github.com/VS-CDR) for the PR!
+
 
 ### February 2024
 
@@ -606,7 +829,7 @@ Detailed descriptions could be found below.
 
 ### Beta (April 2023)
 
-* MySQL driver was added, see @ref mysql_driver.
+* MySQL driver was added, see @ref scripts/docs/en/userver/mysql/mysql_driver.md.
 * Experimental support for HTTP "Baggage" header is implemented, including
   verification, forwarding from HTTP handlers to client, baggage manipulation.
   See baggage::BaggageManagerComponent for more info.

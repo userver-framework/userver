@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/storages/redis/subscriptioin_token.hpp
+/// @file userver/storages/redis/subscription_token.hpp
 /// @brief @copybrief storages::redis::SubscriptionToken
 
 #include <functional>
@@ -63,7 +63,7 @@ class [[nodiscard]] SubscriptionToken final {
 
   SubscriptionToken& operator=(SubscriptionToken&&) noexcept;
 
-  /// There is a MPSC queue inside the connection. This parameter requlates
+  /// There is a MPSC queue inside the connection. This parameter regulates
   /// its maximum length. If it overflows, new messages are discarded.
   void SetMaxQueueLength(size_t length);
 
@@ -73,7 +73,7 @@ class [[nodiscard]] SubscriptionToken final {
 
   /// Checks that token is not empty. Empty token has no implementation
   /// inside. This method is mostly useful in unit tests. All methods
-  /// of this class works correctly on empty tokens.
+  /// of this class work correctly on empty tokens.
   bool IsEmpty() const noexcept { return impl_ == nullptr; }
 
  private:

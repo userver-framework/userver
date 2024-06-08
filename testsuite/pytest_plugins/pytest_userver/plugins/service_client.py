@@ -6,6 +6,7 @@ Service main and monitor clients.
 import logging
 import typing
 
+import aiohttp.client_exceptions
 import pytest
 import websockets
 
@@ -81,12 +82,15 @@ async def service_client(
         dynamic_config,
         mock_configs_service,
         cleanup_userver_dumps,
-        extra_client_deps,
-        auto_client_deps,
+        userver_client_cleanup,
         _config_service_defaults_updated,
         _testsuite_client_config: client.TestsuiteClientConfig,
         _service_client_base,
         _service_client_testsuite,
+        # User defined client deps must be last in order to use
+        # fixtures defined above.
+        extra_client_deps,
+        auto_client_deps,
 ) -> client.Client:
     """
     Main fixture that provides access to userver based service.
@@ -100,13 +104,47 @@ async def service_client(
     daemon = await ensure_daemon_started(service_daemon)
 
     if not _testsuite_client_config.testsuite_action_path:
-        return _service_client_base
+        yield _service_client_base
+    else:
+        service_client = _service_client_testsuite(daemon)
+        await _config_service_defaults_updated.update(
+            service_client, dynamic_config,
+        )
 
-    service_client = _service_client_testsuite(daemon)
-    await _config_service_defaults_updated.update(
-        service_client, dynamic_config,
-    )
-    return service_client
+        async with userver_client_cleanup(service_client):
+            yield service_client
+
+
+@pytest.fixture
+def userver_client_cleanup(request, _userver_logging_plugin):
+    marker = request.node.get_closest_marker('suspend_periodic_tasks')
+    if marker:
+        tasks_to_suspend = marker.args
+    else:
+        tasks_to_suspend = ()
+
+    @compat.asynccontextmanager
+    async def cleanup_manager(client: client.Client):
+        @_userver_logging_plugin.register_flusher
+        async def do_flush():
+            try:
+                await client.log_flush()
+            except aiohttp.client_exceptions.ClientError:
+                pass
+            except RuntimeError:
+                # TODO: find a better way to handle closed aiohttp session
+                pass
+
+        # Service is already started we don't want startup logs to be shown
+        _userver_logging_plugin.update_position()
+
+        await client.suspend_periodic_tasks(tasks_to_suspend)
+        try:
+            yield client
+        finally:
+            await client.resume_all_periodic_tasks()
+
+    return cleanup_manager
 
 
 @pytest.fixture
@@ -185,6 +223,7 @@ def _service_client_testsuite(
         testpoint,
         testpoint_control,
         cache_invalidation_state,
+        service_periodic_tasks_state,
         _testsuite_client_config: client.TestsuiteClientConfig,
 ) -> typing.Callable[[DaemonInstance], client.Client]:
     def create_client(daemon):
@@ -193,6 +232,7 @@ def _service_client_testsuite(
             config=_testsuite_client_config,
             testpoint=testpoint,
             testpoint_control=testpoint_control,
+            periodic_tasks_state=service_periodic_tasks_state,
             log_capture_fixture=userver_log_capture,
             mocked_time=mocked_time,
             cache_invalidation_state=cache_invalidation_state,
@@ -228,6 +268,11 @@ def monitor_baseurl(monitor_port) -> str:
     @ingroup userver_testsuite_fixtures
     """
     return f'http://localhost:{monitor_port}/'
+
+
+@pytest.fixture(scope='session')
+def service_periodic_tasks_state() -> client.PeriodicTasksState:
+    return client.PeriodicTasksState()
 
 
 @pytest.fixture(scope='session')

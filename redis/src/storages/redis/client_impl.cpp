@@ -48,6 +48,9 @@ void ClientImpl::WaitConnectedOnce(
 }
 
 size_t ClientImpl::ShardsCount() const { return redis_client_->ShardsCount(); }
+bool ClientImpl::IsInClusterMode() const {
+  return redis_client_->IsInClusterMode();
+}
 
 size_t ClientImpl::ShardByKey(const std::string& key) const {
   return redis_client_->ShardByKey(key);
@@ -94,6 +97,18 @@ RequestAppend ClientImpl::Append(std::string key, std::string value,
   return CreateRequest<RequestAppend>(
       MakeRequest(CmdArgs{"append", std::move(key), std::move(value)}, shard,
                   true, GetCommandControl(command_control)));
+}
+
+RequestBitop ClientImpl::Bitop(BitOperation op, std::string dest_key,
+                               std::vector<std::string> src_keys,
+                               const CommandControl& command_control) {
+  auto shard = ShardByKey(dest_key, command_control);
+  const auto operation = ToString(op);
+
+  return CreateRequest<RequestBitop>(
+      MakeRequest(CmdArgs{"bitop", std::move(operation), std::move(dest_key),
+                          std::move(src_keys)},
+                  shard, true, GetCommandControl(command_control)));
 }
 
 RequestDbsize ClientImpl::Dbsize(size_t shard,

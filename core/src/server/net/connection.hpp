@@ -1,15 +1,14 @@
 #pragma once
 
-#include <functional>
 #include <memory>
 #include <string>
 
+#include <server/http/http_request_parser.hpp>
 #include <server/http/request_handler_base.hpp>
 #include <server/net/connection_config.hpp>
 #include <server/net/stats.hpp>
 #include <server/request/request_parser.hpp>
 
-#include <userver/concurrent/queue.hpp>
 #include <userver/engine/io/socket.hpp>
 #include <userver/server/request/request_base.hpp>
 #include <userver/server/request/request_config.hpp>
@@ -35,24 +34,20 @@ class Connection final {
   int Fd() const;
 
  private:
-  using QueueItem = std::pair<std::shared_ptr<request::RequestBase>,
-                              engine::TaskWithResult<void>>;
-  using Queue = concurrent::SpscQueue<QueueItem>;
-
   void Shutdown() noexcept;
 
   bool IsRequestTasksEmpty() const noexcept;
 
-  void ListenForRequests(Queue::Producer producer,
-                         engine::TaskCancellationToken token) noexcept;
-  bool NewRequest(std::shared_ptr<request::RequestBase>&& request_ptr,
-                  Queue::Producer&);
+  void ListenForRequests() noexcept;
+  void ProcessRequest(std::shared_ptr<request::RequestBase>&& request_ptr);
 
-  void ProcessResponses(Queue::Consumer&) noexcept;
-  void HandleQueueItem(QueueItem& item) noexcept;
+  engine::TaskWithResult<void> HandleQueueItem(
+      const std::shared_ptr<request::RequestBase>& request) noexcept;
   void SendResponse(request::RequestBase& request);
 
   std::string Getpeername() const;
+
+  bool ReadSome();
 
   const ConnectionConfig& config_;
   const request::HttpRequestConfig& handler_defaults_config_;
@@ -64,7 +59,8 @@ class Connection final {
   engine::io::Sockaddr remote_address_;
   std::string peer_name_;
 
-  std::shared_ptr<Queue> request_tasks_;
+  std::vector<char> pending_data_{};
+  size_t pending_data_size_{0};
 
   bool is_accepting_requests_{true};
   bool is_response_chain_valid_{true};

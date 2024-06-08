@@ -4,7 +4,6 @@
 #include <sstream>
 #include <thread>
 
-#include <boost/algorithm/string.hpp>
 #include <boost/crc.hpp>
 
 #include <fmt/format.h>
@@ -19,7 +18,7 @@
 #include <storages/redis/impl/keyshard_impl.hpp>
 #include <storages/redis/impl/sentinel.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
-#include <userver/storages/redis/impl/exception.hpp>
+#include <userver/storages/redis/exception.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
 
 #include "command_control_impl.hpp"
@@ -512,7 +511,8 @@ void SentinelImpl::Stop() {
       while (!commands_.empty()) {
         auto command = commands_.back().command;
         for (const auto& args : command->args.args) {
-          LOG_ERROR() << "Killing request: " << boost::join(args, ", ");
+          LOG_ERROR() << fmt::format("Killing request: {}",
+                                     fmt::join(args, ", "));
           auto reply = std::make_shared<Reply>(
               args[0], nullptr, ReplyStatus::kEndOfFileError,
               "Stopping, killing commands remaining in send queue");
@@ -779,7 +779,7 @@ bool SentinelImpl::SetConnectionInfo(
           conn_strs.push_back(conn_str.Fulltext());
         LOG_INFO() << "Redis state changed for client=" << client_name_
                    << " shard=" << j->first << ", now it is "
-                   << boost::join(conn_strs, ", ")
+                   << fmt::to_string(fmt::join(conn_strs, ", "))
                    << ", connections=" << shard_ptr->InstancesSize();
         res = true;
       }

@@ -50,6 +50,8 @@ class RetryBudget final {
   void SetSettings(const RetryBudgetSettings& settings);
 
  private:
+  friend void DumpMetric(statistics::Writer& writer, const RetryBudget& budget);
+
   std::atomic<std::uint32_t> max_tokens_;
   std::atomic<std::uint32_t> token_ratio_;
   std::atomic<std::int32_t> token_count_;
@@ -59,8 +61,6 @@ class RetryBudget final {
   utils::statistics::RateCounter ok_rate_counter_;
   // rate of account fails
   utils::statistics::RateCounter fail_rate_counter_;
-
-  friend void DumpMetric(statistics::Writer& writer, const RetryBudget& budget);
 };
 
 RetryBudgetSettings Parse(const formats::json::Value& elem,

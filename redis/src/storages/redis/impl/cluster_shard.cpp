@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 
+#include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 
 #include "command_control_impl.hpp"

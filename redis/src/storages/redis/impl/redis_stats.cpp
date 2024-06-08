@@ -20,6 +20,7 @@ namespace {
 const std::string_view kCommandTypes[] = {
     "append",
     "auth",
+    "bitop",
     "cluster",
     "dbsize",
     "del",
@@ -178,7 +179,9 @@ void Statistics::AccountReplyReceived(const ReplyPtr& reply,
   } else {
     LOG_LIMITED_WARNING() << "Cannot account timings for unknown command '"
                           << cmd->GetName() << '\'';
-    UASSERT_MSG(false, "Cannot account timings for unknown command");
+    UASSERT_MSG(false,
+                fmt::format("Cannot account timings for unknown command {}",
+                            cmd->GetName()));
   }
 
   AccountError(reply->status);
@@ -198,7 +201,13 @@ InstanceStatistics SentinelStatistics::GetShardGroupTotalStatistics() const {
 
 void DumpMetric(utils::statistics::Writer& writer,
                 const InstanceStatistics& stats, bool real_instance) {
-  writer["reconnects"] = stats.reconnects;
+  // Note about sensor duplication with 'v2' suffix:
+  // We have to duplicate metrics with different sensor name to change
+  // their type to RATE. Unfortunately, we can't change existing metrics
+  // because it will break dashboards/alerts for all current users.
+
+  writer["reconnects"] = stats.reconnects.Load().value;
+  writer["reconnects.v2"] = stats.reconnects;
 
   if (stats.settings.IsRequestSizesEnabled()) {
     writer["request_sizes"] = stats.request_size_percentile;
@@ -220,7 +229,10 @@ void DumpMetric(utils::statistics::Writer& writer,
 
   for (size_t i = 0; i < kReplyStatusMap.size(); ++i) {
     writer["errors"].ValueWithLabels(
-        stats.error_count[i],
+        stats.error_count[i].Load().value,
+        {"redis_error", ToString(static_cast<ReplyStatus>(i))});
+    writer["errors.v2"].ValueWithLabels(
+        stats.error_count[i].Load(),
         {"redis_error", ToString(static_cast<ReplyStatus>(i))});
   }
 
@@ -273,9 +285,16 @@ void DumpMetric(utils::statistics::Writer& writer,
                                    {"redis_error", "redis_not_ready"});
   if (stats.internal.is_autotoplogy.load()) {
     writer["cluster_topology_checks"] =
-        stats.internal.cluster_topology_checks.load();
+        stats.internal.cluster_topology_checks.Load().value;
     writer["cluster_topology_updates"] =
-        stats.internal.cluster_topology_updates.load();
+        stats.internal.cluster_topology_updates.Load().value;
+    // We have to duplicate metrics with different sensor name to change
+    // their type to RATE. Unfortunately, we can't change existing metrics
+    // because it will break dashboards/alerts for all current users.
+    writer["cluster_topology_checks.v2"] =
+        stats.internal.cluster_topology_checks.Load();
+    writer["cluster_topology_updates.v2"] =
+        stats.internal.cluster_topology_updates.Load();
   }
 
   ConnStateStatistic conn_stat_masters;

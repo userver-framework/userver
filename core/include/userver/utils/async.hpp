@@ -232,7 +232,7 @@ template <typename Function, typename... Args>
 /// Task execution may be cancelled before the function starts execution
 /// in case of TaskProcessor overload.
 ///
-/// @param tasks_processor Task processor to run on
+/// @param task_processor Task processor to run on
 /// @param name Name of the task to show in logs
 /// @param f Function to execute asynchronously
 /// @param args Arguments to pass to the function
@@ -251,7 +251,7 @@ template <typename Function, typename... Args>
 /// Execution of function is guaranteed to start regardless
 /// of engine::TaskProcessor load limits. Prefer utils::Async by default.
 ///
-/// @param tasks_processor Task processor to run on
+/// @param task_processor Task processor to run on
 /// @param name Name for the tracing::Span to use with this task
 /// @param f Function to execute asynchronously
 /// @param args Arguments to pass to the function
@@ -271,7 +271,7 @@ template <typename Function, typename... Args>
 /// Execution of function is guaranteed to start regardless
 /// of engine::TaskProcessor load limits. Prefer utils::SharedAsync by default.
 ///
-/// @param tasks_processor Task processor to run on
+/// @param task_processor Task processor to run on
 /// @param name Name for the tracing::Span to use with this task
 /// @param f Function to execute asynchronously
 /// @param args Arguments to pass to the function
@@ -291,7 +291,7 @@ template <typename Function, typename... Args>
 /// Task execution may be cancelled before the function starts execution
 /// in case of TaskProcessor overload.
 ///
-/// @param tasks_processor Task processor to run on
+/// @param task_processor Task processor to run on
 /// @param name Name of the task to show in logs
 /// @param f Function to execute asynchronously
 /// @param args Arguments to pass to the function
@@ -310,7 +310,7 @@ template <typename Function, typename... Args>
 /// Task execution may be cancelled before the function starts execution
 /// in case of TaskProcessor overload.
 ///
-/// @param tasks_processor Task processor to run on
+/// @param task_processor Task processor to run on
 /// @param name Name of the task to show in logs
 /// @param f Function to execute asynchronously
 /// @param args Arguments to pass to the function
@@ -330,7 +330,7 @@ template <typename Function, typename... Args>
 /// Task execution may be cancelled before the function starts execution
 /// in case of TaskProcessor overload.
 ///
-/// @param tasks_processor Task processor to run on
+/// @param task_processor Task processor to run on
 /// @param name Name of the task to show in logs
 /// @param f Function to execute asynchronously
 /// @param args Arguments to pass to the function
@@ -459,7 +459,7 @@ template <typename Function, typename... Args>
 /// wrap it in `std::ref / std::cref` or capture the arguments using a lambda.
 ///
 /// @param name Name of the task to show in logs
-/// @param tasks_processor Task processor to run on
+/// @param task_processor Task processor to run on
 /// @param f Function to execute asynchronously
 /// @param args Arguments to pass to the function
 /// @returns engine::TaskWithResult
@@ -468,6 +468,31 @@ template <typename Function, typename... Args>
                                    engine::TaskProcessor& task_processor,
                                    Function&& f, Args&&... args) {
   return engine::AsyncNoSpan(
+      task_processor, utils::LazyPrvalue([&] {
+        return impl::SpanWrapCall(std::move(name),
+                                  impl::SpanWrapCall::InheritVariables::kNo);
+      }),
+      std::forward<Function>(f), std::forward<Args>(args)...);
+}
+
+/// @overload
+/// @ingroup userver_concurrency
+///
+/// Execution of function is guaranteed to start regardless
+/// of engine::TaskProcessor load limits. Use for background tasks for which
+/// failing to start not just breaks handling of a single request, but harms
+/// the whole service instance.
+///
+/// @param name Name of the task to show in logs
+/// @param task_processor Task processor to run on
+/// @param f Function to execute asynchronously
+/// @param args Arguments to pass to the function
+/// @returns engine::TaskWithResult
+template <typename Function, typename... Args>
+[[nodiscard]] auto CriticalAsyncBackground(
+    std::string name, engine::TaskProcessor& task_processor, Function&& f,
+    Args&&... args) {
+  return engine::CriticalAsyncNoSpan(
       task_processor, utils::LazyPrvalue([&] {
         return impl::SpanWrapCall(std::move(name),
                                   impl::SpanWrapCall::InheritVariables::kNo);

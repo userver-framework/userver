@@ -11,7 +11,7 @@ const FsCache::Client& FsCache::GetClient() const { return client_; }
 
 FsCache::FsCache(const components::ComponentConfig& config,
                  const components::ComponentContext& context)
-    : components::LoggableComponentBase(config, context),
+    : components::ComponentBase(config, context),
       client_(
           config["dir"].As<std::string>("/var/www"),
           config["update-period"].As<std::chrono::milliseconds>(0),
@@ -19,7 +19,7 @@ FsCache::FsCache(const components::ComponentConfig& config,
               "fs-task-processor"))) {}
 
 yaml_config::Schema FsCache::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: component fs cache storage
 additionalProperties: false

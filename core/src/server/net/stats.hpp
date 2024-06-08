@@ -4,14 +4,14 @@
 #include <cstddef>
 #include <vector>
 
-#include <concurrent/impl/striped_counter.hpp>
+#include <userver/concurrent/striped_counter.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace server::net {
 
 struct ParserStats {
-  concurrent::impl::StripedCounter parsing_request_count;
+  concurrent::StripedCounter parsing_request_count;
 };
 
 struct ParserStatsAggregation final {
@@ -37,8 +37,8 @@ struct Stats {
 
   // per connection
   ParserStats parser_stats;
-  concurrent::impl::StripedCounter active_request_count;
-  concurrent::impl::StripedCounter requests_processed_count;
+  concurrent::StripedCounter active_request_count;
+  concurrent::StripedCounter requests_processed_count;
 };
 
 struct StatsAggregation final {

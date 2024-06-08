@@ -36,7 +36,7 @@ void RetryBudget::AccountOk() noexcept {
       std::memory_order_relaxed, std::memory_order_relaxed))
     ;
 
-  ok_rate_counter_++;
+  ++ok_rate_counter_;
 }
 
 void RetryBudget::AccountFail() noexcept {
@@ -50,7 +50,7 @@ void RetryBudget::AccountFail() noexcept {
       std::memory_order_relaxed))
     ;
 
-  fail_rate_counter_++;
+  ++fail_rate_counter_;
 }
 
 bool RetryBudget::CanRetry() const {

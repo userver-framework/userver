@@ -120,13 +120,16 @@ class CacheControl:
         Returns pair (staged, [(cache_name, action), ...])
         """
         if not self._enabled:
-            return {}, []
+            if cache_names is None:
+                cache_names = self._fixtures.keys()
+            return {cache_name: None for cache_name in cache_names}, []
         staged = {}
         actions = []
         for cache_name, fixture in self._fixtures.items():
-            if cache_name in self._caches_disabled:
-                continue
             if cache_names and cache_name not in cache_names:
+                continue
+            if cache_name in self._caches_disabled:
+                staged[cache_name] = None
                 continue
             context = self._context.get(cache_name)
             request = CacheControlRequest()
@@ -210,14 +213,16 @@ def userver_cache_control(
     enabled = True
     caches_disabled = set()
 
-    def handle_mark(caches=None):
+    def userver_cache_control_disabled(
+            caches: typing.Sequence[str] = None, *, reason: str,
+    ):
         if caches is not None:
             caches_disabled.update(caches)
             return enabled
         return False
 
     for mark in request.node.iter_markers('userver_cache_control_disabled'):
-        enabled = handle_mark(*mark.args, **mark.kwargs)
+        enabled = userver_cache_control_disabled(*mark.args, **mark.kwargs)
 
     def get_cache_control(daemon: DaemonInstance):
         context = _userver_cache_control_context.setdefault(daemon.id, {})

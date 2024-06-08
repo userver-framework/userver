@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <future>
+#include <stdexcept>
 #include <thread>
 
 #include <engine/task/task_context.hpp>
@@ -371,7 +372,7 @@ UTEST(Rcu, SampleRcuVariable) {
     int x;
     std::string s;
   };
-  rcu::Variable<Data> data = Data{kOldValue, kOldString};
+  rcu::Variable<Data> data{Data{kOldValue, kOldString}};
 
   {
     auto ro_ptr = data.Read();
@@ -427,10 +428,13 @@ UTEST_MT(Rcu, TortureTest, kTotalTasks) {
   for (std::size_t i = 0; i < kReadablePtrPingPongTasks; ++i) {
     tasks.push_back(engine::AsyncNoSpan([&] {
       while (keep_running) {
-        std::lock_guard lock(ping_pong_mutex);
-        // copy a ptr created by another thread
-        ptr = rcu::ReadablePtr{ptr};
-        ASSERT_GT(ptr->value, 0);
+        {
+          std::lock_guard lock(ping_pong_mutex);
+          // copy a ptr created by another thread
+          ptr = rcu::ReadablePtr{ptr};
+          ASSERT_GT(ptr->value, 0);
+        }
+        std::this_thread::yield();
       }
     }));
   }
@@ -622,6 +626,27 @@ TEST(Rcu, StdMutexConcurrentWrites) {
 
   auto reader = ptr.Read();
   EXPECT_EQ(std::make_pair(3, 2), *reader);
+}
+
+namespace {
+
+struct ThrowsOnZero final {
+  explicit ThrowsOnZero(int x) {
+    if (x == 0) throw std::runtime_error("Zero");
+  }
+};
+
+}  // namespace
+
+UTEST(Rcu, EmplaceException) {
+  rcu::Variable<ThrowsOnZero> var{42};
+  UEXPECT_THROW_MSG(var.Emplace(0), std::runtime_error, "Zero");
+  // Should not leak memory, detectable by Asan.
+}
+
+UTEST(Rcu, EmplaceExceptionInitial) {
+  UEXPECT_THROW_MSG(rcu::Variable<ThrowsOnZero>{0}, std::runtime_error, "Zero");
+  // Should not leak memory, detectable by Asan.
 }
 
 USERVER_NAMESPACE_END

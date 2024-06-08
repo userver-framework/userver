@@ -12,6 +12,8 @@
 
 /// @page pg_driver uPg Driver
 ///
+/// **Quality:** @ref QUALITY_TIERS "Platinum Tier".
+///
 /// 🐙 **userver** provides access to PostgreSQL database servers via
 /// components::Postgres. The uPg driver is asynchronous, it suspends
 /// current coroutine for carrying out network I/O.

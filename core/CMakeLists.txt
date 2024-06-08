@@ -77,6 +77,11 @@ else()
 endif()
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
+add_library(userver::core ALIAS ${PROJECT_NAME})
+
+# thread_local usage in Moodycamel is incompatible with userver scheduler
+# that migrates coroutines between threads.
+target_compile_definitions(${PROJECT_NAME} PUBLIC MOODYCAMEL_NO_THREAD_LOCAL)
 
 if (USERVER_DISABLE_PHDR_CACHE)
   target_compile_definitions(${PROJECT_NAME} PRIVATE USERVER_DISABLE_PHDR_CACHE)
@@ -90,7 +95,7 @@ else()
 endif()
 
 # https://github.com/jemalloc/jemalloc/issues/820
-if (USERVER_FEATURE_JEMALLOC AND NOT USERVER_SANITIZE AND NOT MACOS)
+if (USERVER_FEATURE_JEMALLOC AND NOT USERVER_SANITIZE AND NOT CMAKE_SYSTEM_NAME MATCHES "Darwin")
   set_property(
     SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/src/utils/jemalloc.cpp
     APPEND PROPERTY COMPILE_FLAGS -DUSERVER_FEATURE_JEMALLOC_ENABLED=1
@@ -118,6 +123,25 @@ add_subdirectory(${USERVER_THIRD_PARTY_DIRS}/llhttp llhttp)
 add_subdirectory(${USERVER_THIRD_PARTY_DIRS}/http-parser http-parser)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE userver-http-parser userver-llhttp)
+
+set(USERVER_UBOOST_CORO_DEFAULT ON)
+if(CMAKE_SYSTEM_NAME MATCHES "Darwin" AND CMAKE_SYSTEM_PROCESSOR MATCHES "arm64")
+  # Use system Boost.Context and Boost.Coroutine2 with latest patches
+  # for arm64, otherwise userver will crash at startup.
+  #
+  # NOTE: this makes it practically impossible to build userver with sanitizers
+  # on macOS, because Boost.Context and Boost.Coroutine2 will cause
+  # an odr violation when linking sanitized usages in userver with stock Debug
+  # static library.
+  set(USERVER_UBOOST_CORO_DEFAULT OFF)
+  if("${Boost_VERSION_STRING}" VERSION_LESS "1.83.0")
+    message(FATAL_ERROR
+        "Please update Boost to at least 1.83.0, it contains important fixes "
+        "for Boost.Context and Boost.Coroutine2")
+  endif()
+endif()
+
+option(USERVER_FEATURE_UBOOST_CORO "Use vendored boost context instead of a system one" "${USERVER_UBOOST_CORO_DEFAULT}")
 
 if (USERVER_FEATURE_UBOOST_CORO)
     add_subdirectory(${USERVER_THIRD_PARTY_DIRS}/uboost_coro uboost_coro_build)
@@ -166,12 +190,12 @@ else()
          $<BUILD_INTERFACE:${USERVER_THIRD_PARTY_DIRS}/moodycamel/include>
     )
     _userver_directory_install(COMPONENT core
-        DIRECTORY ${USERVER_THIRD_PARTY_DIRS}/moodycamel/include 
+        DIRECTORY ${USERVER_THIRD_PARTY_DIRS}/moodycamel/include
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
     )
 endif()
 
-if (NOT MACOS AND NOT ${CMAKE_SYSTEM_NAME} MATCHES "BSD")
+if (NOT CMAKE_SYSTEM_NAME MATCHES "Darwin" AND NOT CMAKE_SYSTEM_NAME MATCHES "BSD")
   target_link_libraries(${PROJECT_NAME} PUBLIC atomic)
 endif()
 
@@ -182,7 +206,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 _userver_directory_install(COMPONENT core
   DIRECTORY
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${USERVER_THIRD_PARTY_DIRS}/pfr/include 
+    ${USERVER_THIRD_PARTY_DIRS}/pfr/include
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
 )
 
@@ -229,6 +253,7 @@ endif()
 
 if (USERVER_FEATURE_UTEST)
     add_library(userver-utest STATIC ${LIBUTEST_SOURCES})
+    add_library(userver::utest ALIAS userver-utest)
     target_compile_definitions(userver-utest PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
 
     target_link_libraries(userver-utest
@@ -269,6 +294,7 @@ endif()
 
 if (USERVER_FEATURE_UTEST)
     add_library(userver-ubench ${LIBUBENCH_SOURCES})
+    add_library(userver::ubench ALIAS userver-ubench)
     target_include_directories(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>)
     target_compile_definitions(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
     target_link_libraries(userver-ubench
@@ -278,7 +304,7 @@ if (USERVER_FEATURE_UTEST)
       PRIVATE
         userver-core-internal
     )
-_userver_install_targets(COMPONENT core TARGETS userver-ubench userver-universal-internal-ubench)
+    _userver_install_targets(COMPONENT core TARGETS userver-ubench userver-universal-internal-ubench)
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
@@ -300,8 +326,6 @@ _userver_directory_install(COMPONENT core FILES
     "${CMAKE_BINARY_DIR}/cmake_generated/Findc-ares.cmake"
     "${CMAKE_BINARY_DIR}/cmake_generated/FindNghttp2.cmake"
     "${CMAKE_BINARY_DIR}/cmake_generated/FindLibEv.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/FindUserverGTest.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/FindUserverGBench.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
 )
 
@@ -309,7 +333,7 @@ file(GLOB_RECURSE TESTSUITE_INSTALL_FILES
     "${USERVER_ROOT_DIR}/testsuite/*.txt"
     "${USERVER_ROOT_DIR}/testsuite/*.py"
     "${USERVER_ROOT_DIR}/testsuite/env.in"
- )
+)
 
 _userver_directory_install(COMPONENT core
     FILES ${TESTSUITE_INSTALL_FILES}

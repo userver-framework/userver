@@ -14,7 +14,9 @@ namespace tracing {
 namespace {
 
 constexpr std::string_view kSampledTag = "sampled";
-constexpr std::string_view kDefaultOtelTraceFlags = "00";
+// default value for Sampled flag is '01' as we always write spans by
+// default
+constexpr std::string_view kDefaultOtelTraceFlags = "01";
 
 // The order matter for TryFillSpanBuilderFromRequest as it returns on first
 // success
@@ -107,7 +109,8 @@ bool OpenTelemetryTryFillSpanBuilderFromRequest(
 }
 
 template <class T>
-void OpenTelemetryFillWithTracingContext(const tracing::Span& span, T& target) {
+void OpenTelemetryFillWithTracingContext(const tracing::Span& span, T& target,
+                                         const logging::Level log_level) {
   const auto* data = kOTelTracingHeadersInheritedData.GetOptional();
 
   std::string_view traceflags = kDefaultOtelTraceFlags;
@@ -118,7 +121,7 @@ void OpenTelemetryFillWithTracingContext(const tracing::Span& span, T& target) {
       span.GetTraceId(), span.GetSpanId(), traceflags);
 
   if (!traceparent_result.has_value()) {
-    LOG_LIMITED_WARNING() << fmt::format(
+    LOG_LIMITED(log_level) << fmt::format(
         "Cannot build opentelemetry traceparent header ({})",
         traceparent_result.error());
     return;
@@ -223,7 +226,9 @@ void FillRequestWithTracingContext(
       YandexFillWithTracingContext(span, request);
       return;
     case Format::kOpenTelemetry:
-      OpenTelemetryFillWithTracingContext(span, request);
+      // There can be loads of false positive logs so we set up debug log lvl
+      OpenTelemetryFillWithTracingContext(span, request,
+                                          logging::Level::kDebug);
       return;
     case Format::kB3Alternative:
       B3FillWithTracingContext(span, request);
@@ -243,7 +248,13 @@ void FillResponseWithTracingContext(Format format, const Span& span,
       YandexFillWithTracingContext(span, response);
       return;
     case Format::kOpenTelemetry:
-      OpenTelemetryFillWithTracingContext(span, response);
+      // We can only fail to set otel header from Span here if the request did
+      // not provide otel-compatible tracing headers. In this case the external
+      // client will surely be satisfied with response tracing headers in the
+      // original format. Thus we swallow the Span -> otel conversion error, if
+      // any.
+      OpenTelemetryFillWithTracingContext(span, response,
+                                          logging::Level::kTrace);
       return;
     case Format::kB3Alternative:
       B3FillWithTracingContext(span, response);

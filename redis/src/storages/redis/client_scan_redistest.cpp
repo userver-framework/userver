@@ -1,6 +1,6 @@
-#include <userver/utest/utest.hpp>
-
 #include <storages/redis/client_redistest.hpp>
+
+#include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -26,11 +26,11 @@ class RedisClientScanTest : public RedisClientTest {
 
   static std::vector<std::string> GetExpected() {
     std::vector<std::string> expected;
-    std::regex rgx(pattern_cpp);
-    std::smatch match;
+    utils::regex rgx(pattern_cpp);
+    utils::smatch match;
     for (int i = 0; i < N; i++) {
       auto key = "key:" + std::to_string(i);
-      if (std::regex_match(key, match, rgx)) expected.emplace_back(key);
+      if (utils::regex_match(key, match, rgx)) expected.emplace_back(key);
     }
     std::sort(expected.begin(), expected.end());
     return expected;

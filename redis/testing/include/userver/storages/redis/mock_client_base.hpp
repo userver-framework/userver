@@ -49,6 +49,7 @@ class MockClientBase : public Client,
       USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected) override;
 
   size_t ShardsCount() const override;
+  bool IsInClusterMode() const override;
 
   size_t ShardByKey(const std::string& key) const override;
 
@@ -60,6 +61,10 @@ class MockClientBase : public Client,
 
   RequestAppend Append(std::string key, std::string value,
                        const CommandControl& command_control) override;
+
+  RequestBitop Bitop(BitOperation op, std::string dest_key,
+                     std::vector<std::string> src_keys,
+                     const CommandControl& command_control) override;
 
   RequestDbsize Dbsize(size_t shard,
                        const CommandControl& command_control) override;

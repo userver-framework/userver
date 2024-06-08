@@ -27,11 +27,11 @@ TEST(FromStringSaturation, Rfc3339) {
   EXPECT_EQ(
       utils::datetime::FromRfc3339StringSaturating("9999-12-31T00:00:00+0000"),
       GetDateTimePlatformSpecificBigValue());
-  /// [FromStringSaturation example]
+  /// [FromStringSaturation]
   EXPECT_EQ(
       utils::datetime::FromRfc3339StringSaturating("10000-01-01T00:00:00+0000"),
       std::chrono::system_clock::time_point::max());
-  /// [FromStringSaturation example]
+  /// [FromStringSaturation]
 }
 
 TEST(FromStringSaturation, MicroSeconds) {

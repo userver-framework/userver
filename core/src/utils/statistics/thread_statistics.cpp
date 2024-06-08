@@ -177,7 +177,7 @@ class ThreadPoolCpuStatsStorage::Impl final {
         std::chrono::nanoseconds{
             (static_cast<std::uint64_t>(ts.tv_sec) * 1'000'000'000 +
              static_cast<std::uint64_t>(ts.tv_nsec))});
-  };
+  }
 
   using Clock = std::chrono::steady_clock;
 

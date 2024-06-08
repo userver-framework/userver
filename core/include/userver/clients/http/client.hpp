@@ -119,7 +119,7 @@ class Client final {
   /// @brief Returns the current proxy that is automatically used for each
   /// request.
   ///
-  /// @warning The value may become immediately obsole as the proxy could be
+  /// @warning The value may become immediately obsolete as the proxy could be
   /// concurrently changed from runtime config.
   std::string GetProxy() const;
 

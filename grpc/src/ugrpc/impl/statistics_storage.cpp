@@ -5,15 +5,26 @@
 #include <userver/utils/algo.hpp>
 #include <userver/utils/statistics/storage.hpp>
 #include <userver/utils/statistics/writer.hpp>
+#include <userver/utils/trivial_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::impl {
 
+std::string_view ToString(StatisticsDomain domain) {
+  static constexpr utils::TrivialBiMap kMap = [](auto selector) {
+    return selector()
+        .Case(StatisticsDomain::kClient, "client")
+        .Case(StatisticsDomain::kServer, "server");
+  };
+  return utils::impl::EnumToStringView(domain, kMap);
+}
+
 StatisticsStorage::StatisticsStorage(
-    utils::statistics::Storage& statistics_storage, std::string_view domain) {
+    utils::statistics::Storage& statistics_storage, StatisticsDomain domain)
+    : domain_(domain) {
   statistics_holder_ = statistics_storage.RegisterWriter(
-      fmt::format("grpc.{}", domain),
+      fmt::format("grpc.{}", ToString(domain)),
       [this](utils::statistics::Writer& writer) { ExtendStatistics(writer); });
 }
 
@@ -26,7 +37,7 @@ ugrpc::impl::ServiceStatistics& StatisticsStorage::GetServiceStatistics(
   const ServiceId service_id = metadata.service_full_name.data();
 
   {
-    std::shared_lock lock(mutex_);
+    const std::shared_lock lock(mutex_);
     if (auto* stats = utils::FindOrNullptr(service_statistics_, service_id)) {
       return *stats;
     }
@@ -35,15 +46,15 @@ ugrpc::impl::ServiceStatistics& StatisticsStorage::GetServiceStatistics(
   // All the other clients are blocked while we instantiate stats for a new
   // service. This is OK, because it will only happen a finite number of times
   // during startup.
-  std::lock_guard lock(mutex_);
+  const std::lock_guard lock(mutex_);
 
   const auto [iter, is_new] =
-      service_statistics_.try_emplace(service_id, metadata);
+      service_statistics_.try_emplace(service_id, metadata, domain_);
   return iter->second;
 }
 
 void StatisticsStorage::ExtendStatistics(utils::statistics::Writer& writer) {
-  std::shared_lock lock(mutex_);
+  const std::shared_lock lock(mutex_);
   {
     auto by_destination = writer["by-destination"];
     for (const auto& [_, service_stats] : service_statistics_) {

@@ -2,6 +2,8 @@ redis-pubsub.messages.alien-count: redis_database=metrics_test, redis_pubsub_cha
 redis-pubsub.messages.alien-count: redis_database=metrics_test, redis_pubsub_channel=post_channel0, redis_shard=test_master0	GAUGE	0
 redis-pubsub.messages.count: redis_database=metrics_test, redis_pubsub_channel=post_channel0	GAUGE	0
 redis-pubsub.messages.count: redis_database=metrics_test, redis_pubsub_channel=post_channel0, redis_shard=test_master0	GAUGE	0
+redis-pubsub.messages.discarded: redis_database=metrics_test, redis_pubsub_channel=post_channel0	RATE	0
+redis-pubsub.messages.discarded: redis_database=metrics_test, redis_pubsub_channel=post_channel0, redis_shard=test_master0	RATE	0
 redis-pubsub.messages.size: redis_database=metrics_test, redis_pubsub_channel=post_channel0	GAUGE	0
 redis-pubsub.messages.size: redis_database=metrics_test, redis_pubsub_channel=post_channel0, redis_shard=test_master0	GAUGE	0
 redis-pubsub.subscribed-ms: redis_database=metrics_test, redis_pubsub_channel=post_channel0, redis_shard=test_master0	GAUGE	0
@@ -153,6 +155,42 @@ redis.errors: redis_database=metrics_test, redis_error=timeout, redis_instance=1
 redis.errors: redis_database=metrics_test, redis_error=timeout, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0
 redis.errors: redis_database=metrics_test, redis_error=timeout, redis_instance_type=sentinels	GAUGE	0
 
+redis.errors.v2: redis_database=metrics_test, redis_error=EOF	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=EOF, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=EOF, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=EOF, redis_instance_type=masters, redis_shard=test_master0	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=EOF, redis_instance_type=sentinels	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=OK	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=OK, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=OK, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=OK, redis_instance_type=masters, redis_shard=test_master0	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=OK, redis_instance_type=sentinels	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=OOM	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=OOM, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=OOM, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=OOM, redis_instance_type=masters, redis_shard=test_master0	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=OOM, redis_instance_type=sentinels	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=input_output_error	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=input_output_error, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=input_output_error, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=input_output_error, redis_instance_type=masters, redis_shard=test_master0	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=input_output_error, redis_instance_type=sentinels	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=other_error	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=other_error, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=other_error, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=other_error, redis_instance_type=masters, redis_shard=test_master0	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=other_error, redis_instance_type=sentinels	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=protocol_error	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=protocol_error, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=protocol_error, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=protocol_error, redis_instance_type=masters, redis_shard=test_master0	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=protocol_error, redis_instance_type=sentinels	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=timeout	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=timeout, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=timeout, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=timeout, redis_instance_type=masters, redis_shard=test_master0	RATE	0
+redis.errors.v2: redis_database=metrics_test, redis_error=timeout, redis_instance_type=sentinels	RATE	0
+
 # Redis uses a separate pool of ev-threads. Following metrics show the ev-threads CPU usage
 redis.ev_threads.cpu_load_percent: ev_thread_name=redis_client_0	GAUGE	0
 redis.ev_threads.cpu_load_percent: ev_thread_name=redis_client_1	GAUGE	0
@@ -181,6 +219,11 @@ redis.reconnects: redis_database=metrics_test, redis_instance=127.0.0.1:00000, r
 redis.reconnects: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0
 redis.reconnects: redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0
 redis.reconnects: redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0
+redis.reconnects.v2: redis_database=metrics_test	RATE	0
+redis.reconnects.v2: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	RATE	0
+redis.reconnects.v2: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	RATE	0
+redis.reconnects.v2: redis_database=metrics_test, redis_instance_type=masters, redis_shard=test_master0	RATE	0
+redis.reconnects.v2: redis_database=metrics_test, redis_instance_type=sentinels	RATE	0
 redis.reply_sizes: percentile=p0, redis_database=metrics_test	GAUGE	0
 redis.reply_sizes: percentile=p0, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=masters, redis_shard=test_master0	GAUGE	0
 redis.reply_sizes: percentile=p0, redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_instance_type=sentinels	GAUGE	0

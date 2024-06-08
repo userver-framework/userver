@@ -77,7 +77,7 @@ DynamicConfigClientUpdater::DynamicConfigClientUpdater(
   StartPeriodicUpdates();
   utils::FastScopeGuard stop_guard([&]() noexcept { StopPeriodicUpdates(); });
 
-  if (!GetUnsafe()) {
+  if (is_empty_) {
     updates_sink_.NotifyLoadingFailed(
         kName, fmt::format("(See the previous ERROR from {})", kName));
   }
@@ -200,6 +200,7 @@ void DynamicConfigClientUpdater::UpdateFull(
 
   stats.Finish(size);
   server_timestamp_ = reply.timestamp;
+  is_empty_ = false;
 }
 
 void DynamicConfigClientUpdater::UpdateIncremental(

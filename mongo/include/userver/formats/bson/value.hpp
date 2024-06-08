@@ -46,7 +46,8 @@ class Value {
   using const_reverse_iterator =
       Iterator<const Value, common::IteratorDirection::kReverse>;
   using Exception = formats::bson::BsonException;
-  using ParseException = formats::bson::ConversionException;
+  using ParseException = formats::bson::ParseException;
+  using ExceptionWithPath = formats::bson::ExceptionWithPath;
   using Builder = ValueBuilder;
 
   /// @brief Selectors for duplicate fields parsing behavior

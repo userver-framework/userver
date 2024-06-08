@@ -3,7 +3,7 @@
 /// @file userver/server/handlers/auth/auth_checker_settings_component.hpp
 /// @brief @copybrief components::AuthCheckerSettings
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/storages/secdist/component.hpp>
 
 #include "auth_checker_settings.hpp"
@@ -24,7 +24,7 @@ namespace components {
 
 // clang-format on
 
-class AuthCheckerSettings final : public LoggableComponentBase {
+class AuthCheckerSettings final : public ComponentBase {
  public:
   AuthCheckerSettings(const ComponentConfig&, const ComponentContext&);
 

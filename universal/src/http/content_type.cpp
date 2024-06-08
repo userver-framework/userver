@@ -7,11 +7,11 @@
 #include <fmt/compile.h>
 #include <fmt/format.h>
 #include <fmt/ostream.h>
-#include <boost/algorithm/string/predicate.hpp>
 #include <boost/functional/hash.hpp>
 
 #include <userver/utils/assert.hpp>
 #include <userver/utils/str_icase.hpp>
+#include <userver/utils/text_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -69,7 +69,7 @@ int ParseQuality(std::string_view param_value) {
           return quality;
         }
       }
-    } else if (boost::starts_with("1.000", param_value)) {
+    } else if (utils::text::StartsWith("1.000", param_value)) {
       // value is a prefix of "1.000"
       return kMaxQuality;
     }

@@ -392,6 +392,7 @@ components_manager:
     coro_pool:
         initial_size: 100         # Save memory and do not allocate many coroutines at start.
         max_size: 200             # Do not keep more than 200 preallocated coroutines.
+        local_cache_size: 8       # Reduce thread-local coroutine cache size to avoid consuming extra coroutines.
 
     task_processors:
         main-task-processor:

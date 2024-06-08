@@ -6,7 +6,7 @@
 #include <memory>
 #include <vector>
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/utils/function_ref.hpp>
 
 #include <userver/ugrpc/server/middlewares/fwd.hpp>
@@ -22,17 +22,15 @@ class MiddlewareCallContext final {
   /// @cond
   MiddlewareCallContext(const Middlewares& middlewares, CallAnyBase& call,
                         utils::function_ref<void()> user_call,
-                        std::string_view service_name,
-                        std::string_view method_name,
                         const dynamic_config::Snapshot& config,
-                        const ::google::protobuf::Message* request);
+                        ::google::protobuf::Message* request);
   /// @endcond
 
   /// @brief Call next plugin, or gRPC handler if none
   void Next();
 
   /// @brief Get original gRPC Call
-  CallAnyBase& GetCall();
+  CallAnyBase& GetCall() const;
 
   /// @brief Get name of gRPC service
   std::string_view GetServiceName() const;
@@ -41,12 +39,8 @@ class MiddlewareCallContext final {
   std::string_view GetMethodName() const;
 
   /// @brief Get values extracted from dynamic_config. Snapshot will be
-  /// deleted when the last meddleware completes
+  /// deleted when the last middleware completes
   const dynamic_config::Snapshot& GetInitialDynamicConfig() const;
-
-  /// @brief Get initial gRPC request. For RPC w/o initial request
-  /// returns nullptr.
-  const ::google::protobuf::Message* GetInitialRequest();
 
  private:
   void ClearMiddlewaresResources();
@@ -57,12 +51,12 @@ class MiddlewareCallContext final {
 
   CallAnyBase& call_;
 
-  std::string_view service_name_;
-  std::string_view method_name_;
   std::optional<dynamic_config::Snapshot> config_;
-  const ::google::protobuf::Message* request_;
+  ::google::protobuf::Message* request_;
 };
 
+/// @ingroup userver_base_classes
+///
 /// @brief Base class for server gRPC middleware
 class MiddlewareBase {
  public:
@@ -77,11 +71,21 @@ class MiddlewareBase {
   /// @note You should call context.Next() inside, otherwise the call will be
   /// dropped
   virtual void Handle(MiddlewareCallContext& context) const = 0;
+
+  /// @brief Request hook. The function is invoked on each request
+  virtual void CallRequestHook(const MiddlewareCallContext& context,
+                               google::protobuf::Message& request);
+
+  /// @brief Response hook. The function is invoked on each response
+  virtual void CallResponseHook(const MiddlewareCallContext& context,
+                                google::protobuf::Message& response);
 };
 
+/// @ingroup userver_base_classes
+///
 /// @brief Base class for middleware component
-class MiddlewareComponentBase : public components::LoggableComponentBase {
-  using components::LoggableComponentBase::LoggableComponentBase;
+class MiddlewareComponentBase : public components::ComponentBase {
+  using components::ComponentBase::ComponentBase;
 
  public:
   /// @brief Returns a middleware according to the component's settings

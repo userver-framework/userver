@@ -21,7 +21,8 @@ StageSwitchingCancelledException::StageSwitchingCancelledException(
 
 ComponentInfo::ComponentInfo(std::string name) : name_(std::move(name)) {}
 
-void ComponentInfo::SetComponent(std::unique_ptr<ComponentBase>&& component) {
+void ComponentInfo::SetComponent(
+    std::unique_ptr<RawComponentBase>&& component) {
   bool call_on_loading_cancelled = false;
   {
     std::lock_guard lock{mutex_};
@@ -44,12 +45,12 @@ void ComponentInfo::ClearComponent() {
   LOG_DEBUG() << "Stopped component";
 }
 
-ComponentBase* ComponentInfo::GetComponent() const {
+RawComponentBase* ComponentInfo::GetComponent() const {
   std::lock_guard lock{mutex_};
   return component_.get();
 }
 
-ComponentBase* ComponentInfo::WaitAndGetComponent() const {
+RawComponentBase* ComponentInfo::WaitAndGetComponent() const {
   std::unique_lock lock{mutex_};
   auto ok = cv_.Wait(lock, [this]() {
     return stage_switching_cancelled_ || component_ != nullptr;
@@ -172,8 +173,8 @@ bool ComponentInfo::HasComponent() const {
   return !!component_;
 }
 
-std::unique_ptr<ComponentBase> ComponentInfo::ExtractComponent() {
-  std::unique_ptr<ComponentBase> component;
+std::unique_ptr<RawComponentBase> ComponentInfo::ExtractComponent() {
+  std::unique_ptr<RawComponentBase> component;
   {
     std::lock_guard lock{mutex_};
     std::swap(component, component_);

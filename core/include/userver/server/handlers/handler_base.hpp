@@ -3,7 +3,7 @@
 /// @file userver/server/handlers/handler_base.hpp
 /// @brief @copybrief server::handlers::HandlerBase
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/server/handlers/handler_config.hpp>
 #include <userver/server/request/request_base.hpp>
@@ -45,7 +45,7 @@ namespace server::handlers {
 /// deadline_expired_status_code | the HTTP status code to return if the request @ref scripts/docs/en/userver/deadline_propagation.md "deadline expires" | 498
 
 // clang-format on
-class HandlerBase : public components::LoggableComponentBase {
+class HandlerBase : public components::ComponentBase {
  public:
   HandlerBase(const components::ComponentConfig& config,
               const components::ComponentContext& component_context,

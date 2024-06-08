@@ -103,7 +103,7 @@ UnknownBufferCategory::UnknownBufferCategory(std::string_view context,
                                              Oid type_oid)
     : ResultSetError(fmt::format(
           "Query {} doesn't have a parser. Type oid is {}", context, type_oid)),
-      type_oid{type_oid} {};
+      type_oid{type_oid} {}
 
 InvalidInputBufferSize::InvalidInputBufferSize(std::size_t size,
                                                std::string_view message)

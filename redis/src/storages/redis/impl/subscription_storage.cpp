@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <stdexcept>
+#include <string>
 #include <type_traits>
 
 #include <userver/logging/log.hpp>
@@ -449,18 +450,28 @@ void SubscriptionStorageBase::SubscriptionStorageImpl<
                                           const std::string& channel,
                                           const std::string& message,
                                           size_t shard_idx) {
+  size_t discarded{0};
   try {
     const std::lock_guard<std::mutex> lock(mutex_);
     auto& m = callback_map_.at(channel);
     for (const auto& it : m.callbacks) {
       try {
-        it.second(channel, message);
+        const auto result = it.second(channel, message);
+        switch (result) {
+          case SubscribedCallbackOutcome::kOk:
+            break;  // do nothing
+          case SubscribedCallbackOutcome::kOverflowDiscarded:
+            discarded++;
+            break;
+        }
       } catch (const std::exception& e) {
         LOG_ERROR() << "Unhandled exception in subscriber: " << e.what();
       }
     }
 
-    m.GetInfo(shard_idx).AccountMessage(server_id, message.size());
+    auto& info = m.GetInfo(shard_idx);
+    info.AccountMessage(server_id, message.size());
+    info.AccountDiscardedByOverflow(discarded);
   } catch (const std::out_of_range& e) {
     LOG_ERROR() << "Got MESSAGE while not subscribed on it, channel="
                 << channel;
@@ -474,18 +485,28 @@ void SubscriptionStorageBase::SubscriptionStorageImpl<
                                            const std::string& channel,
                                            const std::string& message,
                                            size_t shard_idx) {
+  size_t discarded{0};
   try {
     const std::lock_guard<std::mutex> lock(mutex_);
     auto& m = pattern_callback_map_.at(pattern);
     for (const auto& it : m.callbacks) {
       try {
-        it.second(pattern, channel, message);
+        const auto result = it.second(pattern, channel, message);
+        switch (result) {
+          case SubscribedCallbackOutcome::kOk:
+            break;  // do nothing
+          case SubscribedCallbackOutcome::kOverflowDiscarded:
+            discarded++;
+            break;
+        }
       } catch (const std::exception& e) {
         LOG_ERROR() << "Unhandled exception in subscriber: " << e.what();
       }
     }
 
-    m.GetInfo(shard_idx).AccountMessage(server_id, message.size());
+    auto& info = m.GetInfo(shard_idx);
+    info.AccountMessage(server_id, message.size());
+    info.AccountDiscardedByOverflow(discarded);
   } catch (const std::out_of_range& e) {
     LOG_ERROR() << "Got PMESSAGE while not subscribed on it, channel="
                 << channel;
@@ -498,18 +519,28 @@ void SubscriptionStorageBase::SubscriptionStorageImpl<
                                            const std::string& channel,
                                            const std::string& message,
                                            size_t shard_idx) {
+  size_t discarded{0};
   try {
     const std::lock_guard<std::mutex> lock(mutex_);
     auto& m = sharded_callback_map_.at(channel);
     for (const auto& it : m.callbacks) {
       try {
-        it.second(channel, message);
+        const auto result = it.second(channel, message);
+        switch (result) {
+          case SubscribedCallbackOutcome::kOk:
+            break;  // do nothing
+          case SubscribedCallbackOutcome::kOverflowDiscarded:
+            discarded++;
+            break;
+        }
       } catch (const std::exception& e) {
         LOG_ERROR() << "Unhandled exception in subscriber: " << e.what();
       }
     }
 
-    m.GetInfo(shard_idx).AccountMessage(server_id, message.size());
+    auto& info = m.GetInfo(shard_idx);
+    info.AccountMessage(server_id, message.size());
+    info.AccountDiscardedByOverflow(discarded);
   } catch (const std::out_of_range& e) {
     LOG_ERROR() << "Got MESSAGE while not subscribed on it, channel="
                 << channel;
@@ -536,6 +567,12 @@ void SubscriptionStorageBase::ShardChannelInfo::AccountMessage(
 
     statistics.AccountAlienMessage();
   }
+}
+
+void SubscriptionStorageBase::ShardChannelInfo::AccountDiscardedByOverflow(
+    size_t discarded) {
+  statistics.messages_discarded +=
+      USERVER_NAMESPACE::utils::statistics::Rate{discarded};
 }
 
 // logically better as non-static func
@@ -689,6 +726,14 @@ SubscriptionStorage::SubscriptionStorage(
             thread_pools->GetSentinelThreadPool(), *this, shard_idx));
   }
 }
+
+SubscriptionStorage::SubscriptionStorage(
+    size_t shards_count, bool is_cluster_mode,
+    std::shared_ptr<const std::vector<std::string>> shard_names)
+    : storage_impl_(shards_count, *this),
+      shard_names_(std::move(shard_names)),
+      is_cluster_mode_(is_cluster_mode),
+      shard_rotate_counter_(utils::RandRange(storage_impl_.shards_count_)) {}
 
 SubscriptionStorage::~SubscriptionStorage() = default;
 
@@ -880,7 +925,6 @@ void SubscriptionStorage::PsubscribeImpl(const std::string& pattern,
   auto& channel_info = map_iter.second;
   auto& infos = channel_info.info;
   /// 1 fsm for cluster and shards_count fsms for non cluster
-  ///  !!! Is this missing line a bug????
   channel_info.active_fsm_count =
       is_cluster_mode_ ? 1 : storage_impl_.shards_count_;
 

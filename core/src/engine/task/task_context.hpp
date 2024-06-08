@@ -42,7 +42,7 @@ class WaitStrategy {
   // sure that there is no race between SetupWakeups() and WaitList-specific
   // wakeup (if "add task to wait list iff not ready" is not protected from
   // Wakeup, e.g. for WaitListLight). SetupWakeups() *may* call Wakeup() for
-  // current task - sleep_state_ is set in DoStep() and double checked for such
+  // current task - sleep_state_ is set in DoStep() and double-checked for such
   // early wakeups. It may not sleep.
   //
   // If EarlyWakeup{true} is returned, then:
@@ -189,6 +189,8 @@ class TaskContext final : public ContextAccessor {
   std::size_t IncrementFetchSharedTaskUsages() noexcept;
   void ResetPayload() noexcept;
 
+  CountedCoroutinePtr& GetCoroutinePtr() noexcept;
+
  private:
   class LocalStorageGuard;
 
@@ -252,7 +254,7 @@ class TaskContext final : public ContextAccessor {
   // refcounter for task abandoning (cancellation) in engine::SharedTask
   std::atomic<std::size_t> shared_task_usages_{1};
 
-  // refcounter for resources and memory dealocation
+  // refcounter for resources and memory deallocation
   std::atomic<std::size_t> intrusive_refcount_{1};
   friend void intrusive_ptr_add_ref(TaskContext* p) noexcept;
   friend void intrusive_ptr_release(TaskContext* p) noexcept;

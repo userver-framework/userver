@@ -28,15 +28,16 @@ libhiredis-dev
 libjemalloc-dev
 libkrb5-dev
 libldap2-dev
+librdkafka-dev
 libmongoc-dev
 libnghttp2-dev
 libpq-dev
 libprotoc-dev
+libsasl2-dev
 libssl-dev
 libyaml-cpp-dev
 netbase
 ninja-build
-postgresql-13
 postgresql-server-dev-13
 protobuf-compiler-grpc
 python3-dev
@@ -44,5 +45,8 @@ python3-jinja2
 python3-protobuf
 python3-venv
 python3-voluptuous
-redis-server
 zlib1g-dev
+libgflags-dev
+libsnappy-dev
+libbz2-dev
+libzstd-dev

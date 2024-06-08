@@ -1,4 +1,5 @@
 #include <userver/formats/yaml/exception.hpp>
+#include <userver/utils/algo.hpp>
 
 #include <fmt/format.h>
 
@@ -45,29 +46,25 @@ const char* NameForType(Type expected) {
 }
 
 template <typename TType>
-std::string MsgForType(TType actual, TType expected, std::string_view path) {
+std::string MsgForType(TType actual, TType expected) {
   UASSERT(actual != expected);
   return fmt::format(
-      "Field '{}' is of wrong type. Expected YAML "
+      "Wrong type. Expected YAML "
       "type '{}', but found '{}'",
-      path, NameForType(expected), NameForType(actual));
+      NameForType(expected), NameForType(actual));
 }
 
-std::string MsgForType(std::string_view expected_type, std::string_view path,
+std::string MsgForType(std::string_view expected_type,
                        const YAML::Node& value) {
   return fmt::format(
-      "Field '{}' is not representable as '{}'. Can "
+      "Not representable as '{}'. Can "
       "not convert from value '{}'",
-      path, expected_type, value.Scalar());
+      expected_type, value.Scalar());
 }
 
-std::string MsgForIndex(size_t index, size_t size, std::string_view path) {
-  return fmt::format("Index {} of array '{}' of size {} is out of bounds",
-                     index, path, size);
-}
-
-std::string MsgForMissing(std::string_view path) {
-  return fmt::format("Field '{}' is missing", path);
+std::string MsgForIndex(size_t index, size_t size) {
+  return fmt::format("Index {} of array of size {} is out of bounds", index,
+                     size);
 }
 
 std::string MsgForPathPrefix(std::string_view old_path,
@@ -77,7 +74,24 @@ std::string MsgForPathPrefix(std::string_view old_path,
       old_path);
 }
 
+constexpr std::string_view kErrorAtPath1 = "Error at path '";
+constexpr std::string_view kErrorAtPath2 = "': ";
+
 }  // namespace
+
+ExceptionWithPath::ExceptionWithPath(std::string_view msg,
+                                     std::string_view path)
+    : Exception(utils::StrCat(kErrorAtPath1, path, kErrorAtPath2, msg)),
+      path_size_(path.size()) {}
+
+std::string_view ExceptionWithPath::GetPath() const noexcept {
+  return GetMessage().substr(kErrorAtPath1.size(), path_size_);
+}
+
+std::string_view ExceptionWithPath::GetMessageWithoutPath() const noexcept {
+  return GetMessage().substr(path_size_ + kErrorAtPath1.size() +
+                             kErrorAtPath2.size());
+}
 
 BadStreamException::BadStreamException(const std::istream& is)
     : Exception(MsgForState(is.rdstate(), "input")) {}
@@ -87,24 +101,25 @@ BadStreamException::BadStreamException(const std::ostream& os)
 
 TypeMismatchException::TypeMismatchException(Type actual, Type expected,
                                              std::string_view path)
-    : Exception(MsgForType(actual, expected, path)) {}
+    : ExceptionWithPath(MsgForType(actual, expected), path) {}
 
 TypeMismatchException::TypeMismatchException(int actual, int expected,
                                              std::string_view path)
-    : Exception(MsgForType(static_cast<impl::Type>(actual),
-                           static_cast<impl::Type>(expected), path)) {}
+    : ExceptionWithPath(MsgForType(static_cast<impl::Type>(actual),
+                                   static_cast<impl::Type>(expected)),
+                        path) {}
 
 TypeMismatchException::TypeMismatchException(const YAML::Node& value,
                                              std::string_view expected_type,
                                              std::string_view path)
-    : Exception(MsgForType(expected_type, path, value)) {}
+    : ExceptionWithPath(MsgForType(expected_type, value), path) {}
 
 OutOfBoundsException::OutOfBoundsException(size_t index, size_t size,
                                            std::string_view path)
-    : Exception(MsgForIndex(index, size, path)) {}
+    : ExceptionWithPath(MsgForIndex(index, size), path) {}
 
 MemberMissingException::MemberMissingException(std::string_view path)
-    : Exception(MsgForMissing(path)) {}
+    : ExceptionWithPath("Field is missing", path) {}
 
 PathPrefixException::PathPrefixException(std::string_view old_path,
                                          std::string_view prefix)

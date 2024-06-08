@@ -1,13 +1,34 @@
-include_guard()
+# Implementation note: public functions here should be usable even without
+# a direct include of this script, so the functions should not rely
+# on non-cache variables being present.
+include_guard(GLOBAL)
 
 set_property(GLOBAL PROPERTY userver_cmake_dir "${CMAKE_CURRENT_LIST_DIR}")
 
-function(userver_setup_environment)
+function(_userver_setup_environment_validate_impl)
+  if(NOT USERVER_IMPL_SETUP_ENV_WAS_RUN_FOR_THIS_DIR)
+    message(FATAL_ERROR
+      "Looks like userver is included into the project as "
+      "add_subdirectory(path/to/userver) or find_package(userver) in "
+      "subdirectory of the project. In that case "
+      "userver_setup_environment() should be called at the project root."
+    )
+    return()
+  endif()
+endfunction()
+
+function(_userver_setup_environment_impl)
+  if(USERVER_IMPL_SETUP_ENV_WAS_RUN_FOR_THIS_DIR)
+    return()
+  endif()
+  set(USERVER_IMPL_SETUP_ENV_WAS_RUN_FOR_THIS_DIR ON PARENT_SCOPE)
+
   get_property(USERVER_CMAKE_DIR GLOBAL PROPERTY userver_cmake_dir)
 
   message(STATUS "C compiler: ${CMAKE_C_COMPILER}")
   message(STATUS "C++ compiler: ${CMAKE_CXX_COMPILER}")
 
+  cmake_policy(SET CMP0057 NEW)
   if(NOT USERVER_CMAKE_DIR IN_LIST CMAKE_MODULE_PATH)
     set(CMAKE_MODULE_PATH
         ${CMAKE_MODULE_PATH}
@@ -44,11 +65,6 @@ function(userver_setup_environment)
     add_compile_options("-ftime-trace")
   endif()
 
-  if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
-    # disable pkg-config as it's broken by homebrew -- TAXICOMMON-2264
-    set(PKG_CONFIG_EXECUTABLE "" PARENT_SCOPE)
-  endif()
-
   include("${USERVER_CMAKE_DIR}/SetupLinker.cmake")
   include("${USERVER_CMAKE_DIR}/SetupLTO.cmake")
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}" PARENT_SCOPE)
@@ -83,6 +99,9 @@ function(userver_setup_environment)
     # enable additional glibc checks (used in debian packaging, requires -O)
     add_compile_definitions("_FORTIFY_SOURCE=2")
   endif()
-
-  enable_testing()
 endfunction()
+
+macro(userver_setup_environment)
+  _userver_setup_environment_impl()
+  enable_testing()  # Does not work if placed into function
+endmacro()

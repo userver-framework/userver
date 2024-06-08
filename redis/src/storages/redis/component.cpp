@@ -90,6 +90,7 @@ struct SubscribeRedisGroup {
   std::string db;
   std::string config_name;
   std::string sharding_strategy;
+  bool allow_reads_from_master{false};
 };
 
 SubscribeRedisGroup Parse(const yaml_config::YamlConfig& value,
@@ -98,6 +99,8 @@ SubscribeRedisGroup Parse(const yaml_config::YamlConfig& value,
   config.db = value["db"].As<std::string>();
   config.config_name = value["config_name"].As<std::string>();
   config.sharding_strategy = value["sharding_strategy"].As<std::string>("");
+  config.allow_reads_from_master =
+      value["allow_reads_from_master"].As<bool>(false);
   return config;
 }
 
@@ -134,7 +137,7 @@ redis::MetricsSettings::Level Parse(
 
 Redis::Redis(const ComponentConfig& config,
              const ComponentContext& component_context)
-    : LoggableComponentBase(config, component_context),
+    : ComponentBase(config, component_context),
       config_(component_context.FindComponent<DynamicConfig>().GetSource()) {
   const auto& testsuite_redis_control =
       component_context.FindComponent<components::TestsuiteSupport>()
@@ -246,10 +249,12 @@ void Redis::Connect(const ComponentConfig& config,
 
     bool is_cluster_mode = USERVER_NAMESPACE::redis::IsClusterStrategy(
         redis_group.sharding_strategy);
+    redis::CommandControl cc{};
+    cc.allow_reads_from_master = redis_group.allow_reads_from_master;
 
     auto sentinel = redis::SubscribeSentinel::Create(
         thread_pools_, settings, redis_group.config_name, config_source,
-        redis_group.db, is_cluster_mode, testsuite_redis_control);
+        redis_group.db, is_cluster_mode, cc, testsuite_redis_control);
     if (sentinel)
       subscribe_clients_.emplace(
           redis_group.db,
@@ -338,7 +343,7 @@ void Redis::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
 }
 
 yaml_config::Schema Redis::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: Redis client component
 additionalProperties: false
@@ -410,6 +415,10 @@ properties:
                     enum:
                       - RedisCluster
                       - KeyShardTaximeterCrc32
+                allow_reads_from_master:
+                    type: boolean
+                    description: allows subscriptions to master instance to distribute load
+                    defaultDescription: false
 )");
 }
 

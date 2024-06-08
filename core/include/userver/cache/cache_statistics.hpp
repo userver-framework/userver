@@ -10,6 +10,7 @@
 #include <userver/cache/update_type.hpp>
 #include <userver/utils/internal_tag_fwd.hpp>
 #include <userver/utils/statistics/fwd.hpp>
+#include <userver/utils/statistics/rate_counter.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -18,12 +19,12 @@ namespace cache {
 namespace impl {
 
 struct UpdateStatistics final {
-  std::atomic<std::size_t> update_attempt_count{0};
-  std::atomic<std::size_t> update_no_changes_count{0};
-  std::atomic<std::size_t> update_failures_count{0};
+  utils::statistics::RateCounter update_attempt_count{0};
+  utils::statistics::RateCounter update_no_changes_count{0};
+  utils::statistics::RateCounter update_failures_count{0};
 
-  std::atomic<std::size_t> documents_read_count{0};
-  std::atomic<std::size_t> documents_parse_failures{0};
+  utils::statistics::RateCounter documents_read_count{0};
+  utils::statistics::RateCounter documents_parse_failures{0};
 
   std::atomic<std::chrono::steady_clock::time_point> last_update_start_time{{}};
   std::atomic<std::chrono::steady_clock::time_point>
@@ -46,10 +47,13 @@ enum class UpdateState { kNotFinished, kSuccess, kFailure };
 
 }  // namespace impl
 
-/// @brief Allows a specific cache to fill cache statistics during an `Update`
+/// @brief Allows a specific cache to fill cache statistics during an `Update`.
 ///
-/// Unless Finish or FinishNoChanges is called, the update is considered to be a
-/// failure.
+/// If `Update` returns without throwing an exception and without calling one
+/// of the `Finish*` methods, the behavior is undefined.
+///
+/// See components::CachingComponentBase::Set() for information on actual cache
+/// update, rather than statistics update.
 class UpdateStatisticsScope final {
  public:
   /// @cond

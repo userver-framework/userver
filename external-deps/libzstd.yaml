@@ -1,0 +1,25 @@
+name: libzstd
+
+includes:
+    find:
+      - names:
+          - zdict.h
+          - zstd.h
+          - zstd_errors.h
+        path-suffixes:
+          - include
+
+libraries:
+    find:
+      - names:
+          - zstd
+        path-suffixes:
+          - lib
+
+debian-names:
+  - libzstd-dev
+formula-name: libzstd
+rpm-names:
+  - libzstd-dev
+pacman-names:
+  - libzstd

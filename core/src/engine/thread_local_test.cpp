@@ -17,14 +17,13 @@ namespace {
 
 thread_local std::atomic<int> kThreadLocal{1};
 
-// NOTE: adding USERVER_IMPL_PREVENT_TLS_CACHING helps make the test pass, but
-// users have no access to it, and not all thread_locals are protected this way.
-/* USERVER_IMPL_PREVENT_TLS_CACHING */ int LoadThreadLocal() noexcept {
+// NOTE: adding compiler::ThreadLocal on these functions helps make the test
+// pass, but not all thread_locals are protected this way.
+int LoadThreadLocal() noexcept {
   return kThreadLocal.load(std::memory_order_relaxed);
 }
 
-/* USERVER_IMPL_PREVENT_TLS_CACHING */ void MultiplyThreadLocal(
-    int new_value) noexcept {
+void MultiplyThreadLocal(int new_value) noexcept {
   kThreadLocal.store(kThreadLocal.load(std::memory_order_relaxed) * new_value,
                      std::memory_order_relaxed);
 }
@@ -152,7 +151,7 @@ UTEST_MT(ThreadLocal, SafeThreadLocalWorks, 2) {
     return SafeLoadThreadLocal();
   });
 
-  engine::SleepFor(3s);
+  engine::SleepFor(300ms);
 
   // (6)
   EXPECT_NE(pthread_self(), thread1_id);
@@ -163,6 +162,72 @@ UTEST_MT(ThreadLocal, SafeThreadLocalWorks, 2) {
   EXPECT_EQ(mutator_task.Get(), 3);
 
   UEXPECT_NO_THROW(sleep2.Get());
+}
+
+namespace {
+
+thread_local std::size_t manually_protected_var{};
+
+// Test that userver-based services can use thread-local variables.
+struct UserverCompilerThreadLocal {
+  static std::size_t* GetLocal() {
+    // Don't use it in production, use `compiler::ThreadLocal` instead
+    return &compiler::impl::ThreadLocal([] { return std::size_t{0}; });
+  }
+};
+
+// Test that third-party libraries can use thread-local variables
+// in a userver-compatible way.
+struct ManuallyProtectedThreadLocal {
+  __attribute__((noinline)) static std::size_t* GetLocal() {
+    // Don't use it in production
+    auto ptr = &manually_protected_var;
+    // clang-format off
+    // NOLINTNEXTLINE(hicpp-no-assembler)
+    asm volatile("" : "+rm" (ptr));
+    // clang-format on
+    return ptr;
+  }
+};
+
+template <typename T>
+class ThreadLocalTyped : public ::testing::Test {};
+
+using ThreadLocalTypes =
+    ::testing::Types<UserverCompilerThreadLocal, ManuallyProtectedThreadLocal>;
+
+}  // namespace
+
+TYPED_UTEST_SUITE(ThreadLocalTyped, ThreadLocalTypes);
+
+// Created 4 threads and 8 tasks for concurrency mode
+// Use thread_local variable with types `compiler::ThreadLocal` and
+// `thread_local` with macros.
+// Compare pointer thread_local variable before
+// `engine::Yield` and after. Pointers must be different if thread_ids are
+// different
+TYPED_UTEST_MT(ThreadLocalTyped, SmallFunctionUseInnerTL, 4) {
+  constexpr std::size_t kNumTasks = 8;
+
+  std::vector<engine::TaskWithResult<void>> tasks;
+  tasks.reserve(kNumTasks);
+  for (std::size_t i = 0; i < kNumTasks; ++i) {
+    tasks.push_back(engine::AsyncNoSpan([&] {
+      for (auto i = 0; i < 1000; ++i) {
+        const auto thread_local_ptr_before = TypeParam::GetLocal();
+        const auto thread_id_before = std::this_thread::get_id();
+        engine::Yield();
+        const auto thread_local_ptr_after = TypeParam::GetLocal();
+        const auto thread_id_after = std::this_thread::get_id();
+        if (thread_id_before != thread_id_after) {
+          EXPECT_NE(thread_local_ptr_before, thread_local_ptr_after);
+        }
+      }
+    }));
+  }
+  for (auto& task : tasks) {
+    UEXPECT_NO_THROW(task.Get());
+  }
 }
 
 USERVER_NAMESPACE_END

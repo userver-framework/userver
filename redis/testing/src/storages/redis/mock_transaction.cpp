@@ -119,6 +119,12 @@ RequestAppend MockTransaction::Append(std::string key, std::string value) {
   return AddSubrequest(impl_->Append(std::move(key), std::move(value)));
 }
 
+RequestBitop MockTransaction::Bitop(BitOperation op, std::string dest,
+                                    std::vector<std::string> srcs) {
+  UpdateShard(dest);
+  return AddSubrequest(impl_->Bitop(op, std::move(dest), std::move(srcs)));
+}
+
 RequestDbsize MockTransaction::Dbsize(size_t shard) {
   UpdateShard(shard);
   return AddSubrequest(impl_->Dbsize(shard));

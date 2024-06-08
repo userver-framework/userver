@@ -16,16 +16,14 @@ namespace components {
 namespace {
 
 std::string GetSecdistAlias(const components::ComponentConfig& config) {
-  return config.HasMember("secdist_alias")
-             ? config["secdist_alias"].As<std::string>()
-             : config.Name();
+  return config["secdist_alias"].As<std::string>(config.Name());
 }
 
 }  // namespace
 
 RabbitMQ::RabbitMQ(const ComponentConfig& config,
                    const ComponentContext& context)
-    : LoggableComponentBase{config, context},
+    : ComponentBase{config, context},
       dns_{context.FindComponent<clients::dns::Component>()} {
   const auto& secdist = context.FindComponent<Secdist>().Get();
   const auto& settings_multi = secdist.Get<urabbitmq::RabbitEndpointsMulti>();
@@ -49,7 +47,7 @@ std::shared_ptr<urabbitmq::Client> RabbitMQ::GetClient() const {
 }
 
 yaml_config::Schema RabbitMQ::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<ComponentBase>(R"(
 # yaml
 type: object
 description: RabbitMQ client component

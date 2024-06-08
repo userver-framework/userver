@@ -166,21 +166,6 @@ class CustomHandlerPipelineBuilder final
 
 }  // namespace samples::http_middlewares
 
-template <>
-constexpr auto components::kConfigFileMode<
-    samples::http_middlewares::CustomHandlerPipelineBuilder> =
-    components::ConfigFileMode::kNotRequired;
-
-template <>
-constexpr auto components::kConfigFileMode<
-    samples::http_middlewares::SomeHandlerMiddlewareFactory> =
-    components::ConfigFileMode::kNotRequired;
-
-template <>
-constexpr auto components::kConfigFileMode<
-    samples::http_middlewares::NoopMiddlewareFactory> =
-    components::ConfigFileMode::kNotRequired;
-
 int main(int argc, char* argv[]) {
   const auto component_list =
       components::MinimalServerComponentList()

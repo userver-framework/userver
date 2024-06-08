@@ -39,7 +39,7 @@ userver_generate_grpc_files(
 add_library(userver-api-common-protos STATIC ${generated_sources})
 target_compile_options(userver-api-common-protos PUBLIC -Wno-unused-parameter)
 target_include_directories(userver-api-common-protos SYSTEM PUBLIC $<BUILD_INTERFACE:${include_paths}>)
-target_link_libraries(userver-api-common-protos PUBLIC userver-core userver-grpc-deps)
+target_link_libraries(userver-api-common-protos PUBLIC userver-grpc-deps)
 
 _userver_directory_install(COMPONENT grpc
   DIRECTORY ${include_paths}

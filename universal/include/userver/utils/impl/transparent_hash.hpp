@@ -5,7 +5,17 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#if __cpp_lib_generic_unordered_lookup < 201811L
+#if defined(USERVER_IMPL_ORIGINAL_CXX_STANDARD)
+
+#if USERVER_IMPL_ORIGINAL_CXX_STANDARD <= 17
+#define USERVER_IMPL_TRANSPARENT_HASH_LEGACY
+#endif
+
+#elif __cpp_lib_generic_unordered_lookup < 201811L
+#define USERVER_IMPL_TRANSPARENT_HASH_LEGACY
+#endif
+
+#ifdef USERVER_IMPL_TRANSPARENT_HASH_LEGACY
 #include <boost/unordered_map.hpp>
 #include <boost/unordered_set.hpp>
 #endif
@@ -26,7 +36,7 @@ struct TransparentHash : public std::hash<std::string_view> {
 // - std::unordered_{map,set} in C++20
 // - boost::unordered_{map,set} in C++17
 
-#if __cpp_lib_generic_unordered_lookup >= 201811L
+#ifndef USERVER_IMPL_TRANSPARENT_HASH_LEGACY
 template <typename Key, typename Value, typename Hash = TransparentHash<Key>,
           typename Equal = std::equal_to<>>
 using TransparentMap = std::unordered_map<Key, Value, Hash, Equal>;
@@ -47,7 +57,7 @@ using TransparentSet = boost::unordered_set<Key, Hash, Equal>;
 template <typename TransparentContainer, typename Key>
 auto FindTransparent(TransparentContainer&& container, const Key& key) {
   static_assert(!std::is_rvalue_reference_v<TransparentContainer>, "Dangling");
-#if __cpp_lib_generic_unordered_lookup >= 201811L
+#ifndef USERVER_IMPL_TRANSPARENT_HASH_LEGACY
   return container.find(key);
 #else
   return container.find(key, container.hash_function(), container.key_eq());
@@ -67,7 +77,7 @@ void TransparentInsertOrAssign(TransparentMap& map, Key&& key, Value&& value) {
   using ForwardedKey =
       std::conditional_t<std::is_same_v<std::decay_t<Key>, StoredKey>, Key&&,
                          StoredKey>;
-#if __cpp_lib_generic_unordered_lookup >= 201811L
+#ifndef USERVER_IMPL_TRANSPARENT_HASH_LEGACY
   // Still no heterogeneous support in insert_or_assign - this will result in
   // an extra copy of 'key' if 'key' is already present. See wg21.link/P2363.
   map.insert_or_assign(static_cast<ForwardedKey>(key),

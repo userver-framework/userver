@@ -500,7 +500,7 @@ class easy final : public std::enable_shared_from_this<easy> {
     http_version_1_0 = native::CURL_HTTP_VERSION_1_0,
     http_version_1_1 = native::CURL_HTTP_VERSION_1_1,
     http_version_2_0 = native::CURL_HTTP_VERSION_2_0,
-    http_vertion_2tls = native::CURL_HTTP_VERSION_2TLS,
+    http_version_2tls = native::CURL_HTTP_VERSION_2TLS,
     http_version_2_prior_knowledge =
         native::CURL_HTTP_VERSION_2_PRIOR_KNOWLEDGE,
   };

@@ -26,12 +26,9 @@ compiler::ThreadLocal local_task_counter_data = [] {
 
 }  // namespace
 
-TaskCounter::Token::Token(TaskCounter& counter) noexcept : counter_(counter) {
-  counter_.Increment(GlobalCounterId::kCreated);
-}
-
-TaskCounter::Token::~Token() {
-  counter_.Increment(GlobalCounterId::kDestroyed);
+TaskCounter::Token::Token(TaskCounter& counter) noexcept
+    : lock_(counter.tasks_alive_.Lock()) {
+  concurrent::impl::AsymmetricThreadFenceLight();
 }
 
 TaskCounter::CoroToken::CoroToken(TaskCounter& counter) noexcept
@@ -57,28 +54,23 @@ TaskCounter::TaskCounter(std::size_t thread_count)
 
 TaskCounter::~TaskCounter() { UASSERT(!MayHaveTasksAlive()); }
 
-void TaskCounter::WaitForExhaustion() const noexcept {
+void TaskCounter::WaitForExhaustionBlocking() const noexcept {
   while (MayHaveTasksAlive()) {
     std::this_thread::sleep_for(std::chrono::milliseconds{10});
   }
 }
 
 bool TaskCounter::MayHaveTasksAlive() const noexcept {
-  const auto destroyed = GetApproximate(GlobalCounterId::kDestroyed);
-  // Individual loads are relaxed, but we need to sequence 'created' loads after
-  // 'destroyed' loads.
-  std::atomic_thread_fence(std::memory_order_seq_cst);
-  const auto created = GetApproximate(GlobalCounterId::kCreated);
-  UASSERT(created >= destroyed);
-  return created > destroyed;
+  concurrent::impl::AsymmetricThreadFenceHeavy();
+  return !tasks_alive_.IsFree();
 }
 
 Rate TaskCounter::GetCreatedTasks() const noexcept {
-  return GetApproximate(GlobalCounterId::kCreated);
+  return Rate{tasks_alive_.GetAcquireCountApprox()};
 }
 
 Rate TaskCounter::GetDestroyedTasks() const noexcept {
-  return GetApproximate(GlobalCounterId::kDestroyed);
+  return Rate{tasks_alive_.GetReleaseCountApprox()};
 }
 
 Rate TaskCounter::GetStartedTasks() const noexcept {
@@ -156,40 +148,26 @@ void TaskCounter::AccountSpuriousWakeup() noexcept {
 Rate TaskCounter::GetApproximate(LocalCounterId id) const noexcept {
   Rate total;
   for (const auto& local_counters_block : local_counters_) {
-    total += local_counters_block
-                 ->purely_local_counters[static_cast<std::size_t>(id)]
-                 .Load();
+    total += (*local_counters_block)[static_cast<std::size_t>(id)].Load();
   }
   return total;
 }
 
 Rate TaskCounter::GetApproximate(GlobalCounterId id) const noexcept {
-  Rate total{global_counters_[static_cast<std::size_t>(id)]->Load()};
-  for (const auto& local_counters_block : local_counters_) {
-    total += local_counters_block
-                 ->localized_global_counters[static_cast<std::size_t>(id)]
-                 .Load();
-  }
+  Rate total{global_counters_[static_cast<std::size_t>(id)].Read()};
   return total;
 }
 
 void TaskCounter::Increment(LocalCounterId id) noexcept {
   auto local_data = local_task_counter_data.Use();
   UASSERT(local_data->local_counter == this);
-  auto& counter = local_counters_[local_data->task_processor_thread_index]
-                      ->purely_local_counters[static_cast<std::size_t>(id)];
+  auto& counter = (*local_counters_[local_data->task_processor_thread_index])
+      [static_cast<std::size_t>(id)];
   counter.Store(counter.Load() + Rate{1});
 }
 
 void TaskCounter::Increment(GlobalCounterId id) noexcept {
-  auto local_data = local_task_counter_data.Use();
-  auto& counter =
-      (local_data->local_counter == this)
-          ? local_counters_[local_data->task_processor_thread_index]
-                ->localized_global_counters[static_cast<std::size_t>(id)]
-          : *global_counters_[static_cast<std::size_t>(id)];
-  // seq_cst synchronizes-with MayHaveTasksAlive.
-  counter.Add(Rate{1}, std::memory_order_seq_cst);
+  global_counters_[static_cast<std::size_t>(id)].Add(1);
 }
 
 void SetLocalTaskCounterData(TaskCounter& counter, std::size_t thread_id) {

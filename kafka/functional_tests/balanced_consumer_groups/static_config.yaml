@@ -1,0 +1,65 @@
+components_manager:
+    task_processors:
+        main-task-processor:
+            worker_threads: 8
+        fs-task-processor:
+            worker_threads: 4
+        consumer-task-processor:
+            thread_name: consumer
+            worker_threads: 4
+    default_task_processor: main-task-processor
+
+    components:
+        handler-kafka-consumer-groups:
+            path: /consume/{consumer_name}
+            task_processor: main-task-processor
+            method: PATCH,POST,PUT,DELETE
+            consumers_list:
+              - "kafka-consumer-first"
+              - "kafka-consumer-second"
+
+        kafka-consumer-first: &kafka_consumer
+            enable_auto_commit: false
+            group_id: "test-group"
+            auto_offset_reset: "smallest"
+            security_protocol: "PLAINTEXT"
+            topics:
+              - "test-topic"
+            max_batch_size: 1
+
+        kafka-consumer-second: *kafka_consumer
+
+        testsuite-support:
+
+        http-client:
+            fs-task-processor: main-task-processor
+
+        tests-control:
+            method: POST
+            path: /tests/{action}
+            skip-unregistered-testpoints: true
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            testpoint-url: $mockserver/testpoint
+            throttling_enabled: false
+
+        secdist: {}
+        default-secdist-provider:
+            config: /etc/kafka_service/secure_data.json
+            missing-ok: true
+            environment-secrets-key: SECDIST_CONFIG
+
+        server:
+            listener:
+                port: 8187
+                task_processor: main-task-processor
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+
+        dns-client:
+            fs-task-processor: fs-task-processor

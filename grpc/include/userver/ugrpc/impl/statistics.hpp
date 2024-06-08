@@ -20,9 +20,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::impl {
 
+enum class StatisticsDomain { kClient, kServer };
+
+std::string_view ToString(StatisticsDomain);
+
 class MethodStatistics final {
  public:
-  MethodStatistics();
+  explicit MethodStatistics(StatisticsDomain domain);
 
   void AccountStarted() noexcept;
 
@@ -59,6 +63,7 @@ class MethodStatistics final {
   static constexpr std::size_t kCodesCount =
       static_cast<std::size_t>(grpc::StatusCode::UNAUTHENTICATED) + 1;
 
+  const StatisticsDomain domain_;
   RateCounter started_{0};
   std::array<RateCounter, kCodesCount> status_codes_{};
   utils::statistics::RecentPeriod<Percentile, Percentile> timings_;
@@ -72,7 +77,8 @@ class MethodStatistics final {
 
 class ServiceStatistics final {
  public:
-  explicit ServiceStatistics(const StaticServiceMetadata& metadata);
+  ServiceStatistics(const StaticServiceMetadata& metadata,
+                    StatisticsDomain domain);
 
   ~ServiceStatistics();
 

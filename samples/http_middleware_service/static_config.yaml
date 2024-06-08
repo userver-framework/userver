@@ -1,7 +1,7 @@
 # yaml
 components_manager:
     task_processors:                  # Task processor is an executor for coroutine tasks
-        main-task-processor:          # Make a task processor for CPU-bound couroutine tasks.
+        main-task-processor:          # Make a task processor for CPU-bound coroutine tasks.
             worker_threads: 4         # Process tasks in 4 threads.
 
         fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
@@ -15,12 +15,24 @@ components_manager:
                 port: 8080            # ...to listen on this port and...
                 task_processor: main-task-processor    # ...process incoming requests on this task processor.
 
+# [Middlewares sample - noop-middleware and server-middleware components configs]
+        noop-middleware: {}
+
+        server-middleware: {}
+# [Middlewares sample - noop-middleware and server-middleware components configs]
+
+# [Middlewares sample - handler-middleware component config]
+        handler-middleware: {}
+# [Middlewares sample - handler-middleware component config]
+
 # [Middlewares sample - pipeline builder configuration]
         # yaml
         default-server-middleware-pipeline-builder:
             append:
               - server-middleware     # Or we could implement the same in the code, consider it a shortcut.
 # [Middlewares sample - pipeline builder configuration]
+
+        custom-handler-pipeline-builder: {}
 
         logging:
             fs-task-processor: fs-task-processor

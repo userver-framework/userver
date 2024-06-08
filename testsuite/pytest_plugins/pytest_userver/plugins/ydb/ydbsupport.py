@@ -5,7 +5,6 @@ import os
 import pathlib
 import subprocess
 from typing import List
-from typing import Optional
 
 import pytest
 import yaml
@@ -22,6 +21,8 @@ if hasattr(yaml, 'CLoader'):
 else:
     _YamlLoader = yaml.Loader  # type: ignore
 
+USERVER_CONFIG_HOOKS = ['userver_config_ydb']
+
 
 @pytest.fixture
 def ydb(_ydb_client, _ydb_init):
@@ -35,9 +36,9 @@ def _ydb_client(_ydb_client_pool):
 
 
 @pytest.fixture(scope='session')
-def _ydb_client_pool(_ydb_service, _ydb_service_settings):
+def _ydb_client_pool(_ydb_service, ydb_service_settings):
     endpoint = '{}:{}'.format(
-        _ydb_service_settings.host, _ydb_service_settings.grpc_port,
+        ydb_service_settings.host, ydb_service_settings.grpc_port,
     )
     pool = []
 
@@ -47,7 +48,7 @@ def _ydb_client_pool(_ydb_service, _ydb_service_settings):
             ydb_client = pool.pop()
         except IndexError:
             ydb_client = client.YdbClient(
-                endpoint, _ydb_service_settings.database,
+                endpoint, ydb_service_settings.database,
             )
         try:
             yield ydb_client
@@ -62,19 +63,14 @@ def pytest_service_register(register_service):
 
 
 @pytest.fixture(scope='session')
-def _ydb_service(pytestconfig, ensure_service_started, _ydb_service_settings):
+def _ydb_service(pytestconfig, ensure_service_started, ydb_service_settings):
     if os.environ.get('YDB_ENDPOINT') or pytestconfig.option.ydb_host:
         return
-    ensure_service_started('ydb', settings=_ydb_service_settings)
+    ensure_service_started('ydb', settings=ydb_service_settings)
 
 
 @pytest.fixture(scope='session')
-def ydb_service_settings(_ydb_service_settings):
-    return _ydb_service_settings
-
-
-@pytest.fixture(scope='session')
-def _ydb_service_settings(pytestconfig):
+def ydb_service_settings(pytestconfig) -> service.ServiceSettings:
     endpoint_from_env = os.environ.get('YDB_ENDPOINT')
     database = os.environ.get('YDB_DATABASE', 'local')
 
@@ -106,13 +102,13 @@ def _ydb_service_schemas(service_source_dir):
 
 
 @pytest.fixture(scope='session')
-def ydb_settings_substitute(_ydb_service_settings):
+def ydb_settings_substitute(ydb_service_settings):
     def secdist_settings(*args, **kwargs):
         return {
             'endpoint': '{}:{}'.format(
-                _ydb_service_settings.host, _ydb_service_settings.grpc_port,
+                ydb_service_settings.host, ydb_service_settings.grpc_port,
             ),
-            'database': '/{}'.format(_ydb_service_settings.database),
+            'database': '/{}'.format(ydb_service_settings.database),
             'token': '',
         }
 
@@ -130,26 +126,28 @@ def _ydb_state():
 
 
 @pytest.fixture(scope='session')
-def ydb_migrate_dir(service_source_dir) -> pathlib.Path:
+def ydb_migration_dir(service_source_dir) -> pathlib.Path:
+    """
+    Directory with migration files
+
+    @ingroup userver_testsuite_fixtures
+    """
     return service_source_dir / 'ydb' / 'migrations'
 
 
-def _ydb_migrate(_ydb_service_settings, ydb_migrate_dir):
-    if not ydb_migrate_dir.exists():
+def _ydb_migrate(ydb_service_settings, ydb_migration_dir, goose_binary_path):
+    if not ydb_migration_dir.exists():
         return
-    if not list(ydb_migrate_dir.iterdir()):
-        return
-
-    if not _get_goose():
+    if not list(ydb_migration_dir.iterdir()):
         return
 
-    host = _ydb_service_settings.host
-    port = _ydb_service_settings.grpc_port
+    host = ydb_service_settings.host
+    port = ydb_service_settings.grpc_port
 
     command = [
-        str(_get_goose()),
+        str(goose_binary_path),
         '-dir',
-        str(ydb_migrate_dir),
+        str(ydb_migration_dir),
         'ydb',
         (
             f'grpc://{host}:{port}/local?go_query_mode=scripting&'
@@ -160,10 +158,18 @@ def _ydb_migrate(_ydb_service_settings, ydb_migrate_dir):
     try:
         shell.execute(command, verbose=True, command_alias='ydb/migrations')
     except shell.SubprocessFailed as exc:
-        raise Exception(f'YDB run migration failed:\n\n{exc}')
+        raise Exception(f'YDB run migration failed:\n{exc}')
 
 
-def _get_goose() -> Optional[pathlib.Path]:
+@pytest.fixture(scope='session')
+def goose_binary_path() -> pathlib.Path:
+    """
+    Path to 'goose' migration tool.
+
+    Override this fixture to change the way 'goose' binary is discovered.
+
+    @ingroup userver_testsuite_fixtures
+    """
     try:
         import yatest
 
@@ -171,18 +177,16 @@ def _get_goose() -> Optional[pathlib.Path]:
             'contrib/go/patched/goose/cmd/goose/goose',
         )
     except ImportError:
-        return None
+        return 'goose'
 
 
-def _ydb_fetch_table_names(_ydb_service_settings) -> List[str]:
+def _ydb_fetch_table_names(ydb_service_settings, ydb_cli) -> List[str]:
     try:
-        import yatest
-
-        host = _ydb_service_settings.host
-        port = _ydb_service_settings.grpc_port
+        host = ydb_service_settings.host
+        port = ydb_service_settings.grpc_port
         output = subprocess.check_output(
             [
-                yatest.common.runtime.binary_path('contrib/ydb/apps/ydb/ydb'),
+                str(ydb_cli),
                 '-e',
                 f'grpc://{host}:{port}',
                 '-d',
@@ -203,19 +207,37 @@ def _ydb_fetch_table_names(_ydb_service_settings) -> List[str]:
             path = line.split('│')[6].strip()
             tables.append(path)
         return tables
+    except subprocess.CalledProcessError as exc:
+        raise Exception(f'Could not fetch table names:\n{exc}')
+
+
+@pytest.fixture(scope='session')
+def ydb_cli() -> pathlib.Path:
+    """
+    Path to YDB CLI executable.
+
+    Override this fixture to change the way YDB CLI is discovered.
+
+    @ingroup userver_testsuite_fixtures
+    """
+    try:
+        import yatest
+
+        return yatest.common.runtime.binary_path('contrib/ydb/apps/ydb/ydb')
     except ImportError:
-        return []
+        return 'ydb'
 
 
 @pytest.fixture(scope='session')
 def _ydb_prepare(
         _ydb_client,
         _ydb_service_schemas,
-        _ydb_service_settings,
+        ydb_service_settings,
         _ydb_state,
-        ydb_migrate_dir,
+        ydb_migration_dir,
+        goose_binary_path,
 ):
-    if _ydb_service_schemas and ydb_migrate_dir.exists():
+    if _ydb_service_schemas and ydb_migration_dir.exists():
         raise Exception(
             'Both ydb/schema and ydb/migrations exist, '
             'which are mutually exclusive',
@@ -231,16 +253,16 @@ def _ydb_prepare(
             _ydb_state.tables.append(table_schema['path'])
 
     # goose
-    _ydb_migrate(_ydb_service_settings, ydb_migrate_dir)
+    _ydb_migrate(ydb_service_settings, ydb_migration_dir, goose_binary_path)
 
     _ydb_state.init = True
 
 
 @pytest.fixture(scope='session')
-def _ydb_tables(_ydb_state, _ydb_prepare, _ydb_service_settings):
+def _ydb_tables(_ydb_state, _ydb_prepare, ydb_service_settings, ydb_cli):
     tables = {
         *_ydb_state.tables,
-        *_ydb_fetch_table_names(_ydb_service_settings),
+        *_ydb_fetch_table_names(ydb_service_settings, ydb_cli),
     }
     return tuple(sorted(tables))
 
@@ -250,7 +272,7 @@ def _ydb_init(
         request,
         _ydb_client,
         _ydb_state,
-        _ydb_service_settings,
+        ydb_service_settings,
         _ydb_prepare,
         _ydb_tables,
         _ydb_client_pool,
@@ -300,3 +322,31 @@ def userver_ydb_trx(testpoint) -> sql.RegisteredTrx:
         return {'trx_should_fail': should_fail}
 
     return registered
+
+
+@pytest.fixture(scope='session')
+def userver_config_ydb(ydb_service_settings):
+    """
+    Returns a function that adjusts the static configuration file for testsuite.
+
+    For all `ydb.databases`, sets `endpoint` and `database` to the local test
+    YDB instance.
+
+    @ingroup userver_testsuite_fixtures
+    """
+
+    endpoint = f'{ydb_service_settings.host}:{ydb_service_settings.grpc_port}'
+    database = (
+        '' if ydb_service_settings.database.startswith('/') else '/'
+    ) + ydb_service_settings.database
+
+    def patch_config(config, config_vars):
+        ydb_component = config['components_manager']['components']['ydb']
+        if isinstance(ydb_component, str):
+            ydb_component = config_vars[ydb_component[1:]]
+        databases = ydb_component['databases']
+        for dbname, dbconfig in databases.items():
+            dbconfig['endpoint'] = endpoint
+            dbconfig['database'] = database
+
+    return patch_config

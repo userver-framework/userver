@@ -3,6 +3,7 @@ cmake_policy(SET CMP0025 NEW)
 if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.15")
   cmake_policy(SET CMP0093 NEW)
 endif()
+set(CMAKE_POLICY_DEFAULT_CMP0028 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0048 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0063 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
@@ -17,6 +18,7 @@ option(
     "Prepare build of userver to install in system"
     OFF
 )
+
 set(USERVER_AVAILABLE_COMPONENTS universal)
 set(USERVER_NOT_INCLUDED_AS_SUBDIR OFF)
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR AND NOT USERVER_INSTALL)
@@ -70,6 +72,12 @@ if(USERVER_FEATURE_CORE AND USERVER_IS_THE_ROOT_PROJECT AND USERVER_BUILD_PLATFO
   set(USERVER_CLICKHOUSE_DEFAULT ON)
 endif()
 
+set(USERVER_YDB_DEFAULT OFF)
+if(USERVER_FEATURE_CORE AND USERVER_IS_THE_ROOT_PROJECT AND
+    DEFINED CMAKE_CXX_STANDARD AND CMAKE_CXX_STANDARD GREATER_EQUAL 20)
+  set(USERVER_YDB_DEFAULT ON)
+endif()
+
 option(USERVER_CONAN "Build with Conan packages" ${CONAN_EXPORTED})
 
 option(
@@ -111,16 +119,12 @@ option(USERVER_DISABLE_RSEQ_ACCELERATION "Disable rseq-based optimizations" ${US
 
 option(USERVER_CHECK_PACKAGE_VERSIONS "Check package versions" ON)
 
-if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
-  set(MACOS found)
-endif()
-
 set(CMAKE_DEBUG_POSTFIX d)
 
 include(cmake/UserverSetupEnvironment.cmake)
 userver_setup_environment()
 
-include(cmake/PrepareInstall.cmake)
+include(PrepareInstall)
 
 if(USERVER_INSTALL)
   include(GNUInstallDirs)
@@ -128,10 +132,8 @@ endif()
 
 include(GetUserverVersion)
 include(AddGoogleTests)
-include(CheckSubmodule)
 include(FindPackageRequired)
 include(IncludeWhatYouUse)
-# For userver_venv_setup below.
 include(UserverTestsuite)
 include(CheckCompileFlags)
 include(CMakePackageConfigHelpers)
@@ -141,7 +143,6 @@ userver_venv_setup(
     NAME userver-cmake
     PYTHON_OUTPUT_VAR USERVER_CMAKE_GEN_PYTHON_BINARY
     REQUIREMENTS "${USERVER_ROOT_DIR}/scripts/external_deps/requirements.txt"
-    UNIQUE
 )
 execute_process(
     COMMAND
@@ -167,13 +168,15 @@ option(USERVER_FEATURE_POSTGRESQL "Provide asynchronous driver for PostgreSQL" "
 option(USERVER_FEATURE_REDIS "Provide asynchronous driver for Redis" "${USERVER_LIB_ENABLED_DEFAULT}")
 option(USERVER_FEATURE_GRPC "Provide asynchronous driver for gRPC" "${USERVER_LIB_ENABLED_DEFAULT}")
 option(USERVER_FEATURE_CLICKHOUSE "Provide asynchronous driver for ClickHouse" "${USERVER_CLICKHOUSE_DEFAULT}")
+option(USERVER_FEATURE_KAFKA "Provide asynchronous driver for Apache Kafka" "${USERVER_LIB_ENABLED_DEFAULT}")
 option(USERVER_FEATURE_RABBITMQ "Provide asynchronous driver for RabbitMQ" "${USERVER_LIB_ENABLED_DEFAULT}")
 option(USERVER_FEATURE_MYSQL "Provide asynchronous driver for MariaDB/MySQL" "${USERVER_LIB_ENABLED_DEFAULT}")
+option(USERVER_FEATURE_ROCKS "Provide asynchronous driver for Rocks" "${USERVER_LIB_ENABLED_DEFAULT}")
+option(USERVER_FEATURE_YDB "Provide asynchronous driver for YDB" "${USERVER_YDB_DEFAULT}")
 
-option(USERVER_FEATURE_UBOOST_CORO "Use vendored boost context instead of a system one" ON)
-
+include(SetupGTest)
 if (USERVER_FEATURE_GRPC)
-  include(cmake/SetupProtobuf.cmake)
+  include(SetupProtobuf)
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
@@ -181,14 +184,15 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   add_subdirectory(testsuite)
 endif()
 
-add_subdirectory(universal "${CMAKE_BINARY_DIR}/userver/universal")
+add_subdirectory(universal)
 
 if (USERVER_FEATURE_CORE)
-  add_subdirectory(core "${CMAKE_BINARY_DIR}/userver/core")
+  add_subdirectory(core)
   list(APPEND USERVER_AVAILABLE_COMPONENTS core)
 endif()
+
 if (USERVER_FEATURE_CHAOTIC)
-  add_subdirectory(chaotic "${CMAKE_BINARY_DIR}/userver/chaotic")
+  add_subdirectory(chaotic)
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT AND USERVER_FEATURE_CORE)
@@ -201,49 +205,70 @@ endif()
 
 if (USERVER_FEATURE_MONGODB)
   _require_userver_core("USERVER_FEATURE_MONGODB")
-  add_subdirectory(mongo "${CMAKE_BINARY_DIR}/userver/mongo")
+  add_subdirectory(mongo)
   list(APPEND USERVER_AVAILABLE_COMPONENTS mongo)
 endif()
 
 if (USERVER_FEATURE_POSTGRESQL)
   _require_userver_core("USERVER_FEATURE_POSTGRESQL")
-  add_subdirectory(postgresql "${CMAKE_BINARY_DIR}/userver/postgresql")
+  add_subdirectory(postgresql)
   list(APPEND USERVER_AVAILABLE_COMPONENTS postgres)
 endif()
 
 if (USERVER_FEATURE_REDIS)
   _require_userver_core("USERVER_FEATURE_REDIS")
-  add_subdirectory(redis "${CMAKE_BINARY_DIR}/userver/redis")
+  add_subdirectory(redis)
   list(APPEND USERVER_AVAILABLE_COMPONENTS redis)
 endif()
 
 if (USERVER_FEATURE_GRPC)
   _require_userver_core("USERVER_FEATURE_GRPC")
-  add_subdirectory(grpc "${CMAKE_BINARY_DIR}/userver/grpc")
+  add_subdirectory(grpc)
   list(APPEND USERVER_AVAILABLE_COMPONENTS grpc)
 endif()
 
 if (USERVER_FEATURE_CLICKHOUSE)
   _require_userver_core("USERVER_FEATURE_CLICKHOUSE")
-  add_subdirectory(clickhouse "${CMAKE_BINARY_DIR}/userver/clickhouse")
+  add_subdirectory(clickhouse)
   list(APPEND USERVER_AVAILABLE_COMPONENTS clickhouse)
+endif()
+
+if (USERVER_FEATURE_KAFKA)
+  _require_userver_core("USERVER_FEATURE_KAFKA")
+  add_subdirectory(kafka)
+  list(APPEND USERVER_AVAILABLE_COMPONENTS kafka)
 endif()
 
 if (USERVER_FEATURE_RABBITMQ)
   _require_userver_core("USERVER_FEATURE_RABBITMQ")
-  add_subdirectory(rabbitmq "${CMAKE_BINARY_DIR}/userver/rabbitmq")
+  add_subdirectory(rabbitmq)
   list(APPEND USERVER_AVAILABLE_COMPONENTS rabbitmq)
 endif()
 
 if (USERVER_FEATURE_MYSQL)
   _require_userver_core("USERVER_FEATURE_MYSQL")
-  add_subdirectory(mysql "${CMAKE_BINARY_DIR}/userver/mysql")
+  add_subdirectory(mysql)
   list(APPEND USERVER_AVAILABLE_COMPONENTS mysql)
 endif()
+
+if (USERVER_FEATURE_ROCKS)
+  _require_userver_core("USERVER_FEATURE_ROCKS")
+  add_subdirectory(rocks)
+endif()
+
+if (USERVER_FEATURE_YDB)
+  _require_userver_core("USERVER_FEATURE_YDB")
+  add_subdirectory(ydb)
+  list(APPEND USERVER_AVAILABLE_COMPONENTS ydb)
+endif()
+
+_userver_export_targets()
+_userver_make_install_config()
 
 if (USERVER_IS_THE_ROOT_PROJECT AND USERVER_FEATURE_CORE)
   add_subdirectory(samples)
 endif()
 
-_userver_export_targets()
-
+if(USERVER_INSTALL)
+  include(cmake/UserverPack.cmake)
+endif()

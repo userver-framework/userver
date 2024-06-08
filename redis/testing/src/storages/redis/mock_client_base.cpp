@@ -26,6 +26,8 @@ void MockClientBase::WaitConnectedOnce(
 
 size_t MockClientBase::ShardsCount() const { return 1; }
 
+bool MockClientBase::IsInClusterMode() const { return false; }
+
 size_t MockClientBase::ShardByKey(const std::string& /*key*/) const {
   return 0;
 }
@@ -51,6 +53,14 @@ RequestAppend MockClientBase::Append(
     const CommandControl& /*command_control*/) {
   UASSERT_MSG(false, "redis method not mocked");
   return RequestAppend{nullptr};
+}
+
+RequestBitop MockClientBase::Bitop(BitOperation /*op*/,
+                                   std::string /*dest_key*/,
+                                   std::vector<std::string> /*src_keys*/,
+                                   const CommandControl& /*command_control*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestBitop{nullptr};
 }
 
 RequestDbsize MockClientBase::Dbsize(

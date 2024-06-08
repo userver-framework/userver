@@ -8,7 +8,7 @@
 
 #include <userver/alerts/storage.hpp>
 #include <userver/components/component_fwd.hpp>
-#include <userver/components/impl/component_base.hpp>
+#include <userver/components/raw_component_base.hpp>
 #include <userver/concurrent/async_event_source.hpp>
 #include <userver/os_signals/component.hpp>
 
@@ -60,7 +60,7 @@ namespace components {
 /// - Use `@stderr` to write your logs to standard error stream;
 /// - Use `@null` to suppress sending of logs;
 /// - Use `%file_name%` to write your logs in file. Use USR1 signal or `OnLogRotate` handler to reopen files after log rotation;
-/// - Use `unix:%socket_name%` to write your logs to unix socket. Socket must be created before the service starts and closed by listener afert service is shuted down.
+/// - Use `unix:%socket_name%` to write your logs to unix socket. Socket must be created before the service starts and closed by listener after service is shut down.
 ///
 /// ### testsuite-capture options:
 /// Name | Description | Default value
@@ -76,7 +76,7 @@ namespace components {
 
 // clang-format on
 
-class Logging final : public impl::ComponentBase {
+class Logging final : public RawComponentBase {
  public:
   /// @ingroup userver_component_names
   /// @brief The default name of components::Logging component

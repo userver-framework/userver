@@ -7,7 +7,7 @@
 #include <fmt/format.h>
 
 #include <userver/components/component.hpp>
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
@@ -26,13 +26,13 @@ namespace samples {
 /// [gRPC sample - client]
 // A user-defined wrapper around api::GreeterServiceClient that provides
 // a simplified interface.
-class GreeterClient final : public components::LoggableComponentBase {
+class GreeterClient final : public components::ComponentBase {
  public:
   static constexpr std::string_view kName = "greeter-client";
 
   GreeterClient(const components::ComponentConfig& config,
                 const components::ComponentContext& context)
-      : LoggableComponentBase(config, context),
+      : ComponentBase(config, context),
         // ClientFactory is used to create gRPC clients
         client_factory_(
             context.FindComponent<ugrpc::client::ClientFactoryComponent>()
@@ -76,7 +76,7 @@ std::string GreeterClient::SayHello(std::string name) {
 /// [gRPC sample - client RPC handling]
 
 yaml_config::Schema GreeterClient::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: >
     a user-defined wrapper around api::GreeterServiceClient that provides

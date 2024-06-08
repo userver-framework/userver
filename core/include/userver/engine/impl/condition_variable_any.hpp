@@ -5,9 +5,7 @@
 #include <userver/engine/condition_variable_status.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/impl/wait_list_fwd.hpp>
-
-// TODO remove extra includes
-#include <userver/engine/task/task.hpp>
+#include <userver/engine/task/task_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
