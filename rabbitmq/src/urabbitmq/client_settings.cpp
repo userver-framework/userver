@@ -79,7 +79,8 @@ AuthSettings Parse(const formats::json::Value& doc,
         crypto::Certificate::LoadFromString(ca_cert_contents));
   }
 
-  tls_settings.verify_host = doc["tls"]["verify_host"].As<bool>(true);
+  tls_settings.verify_host =
+      doc["tls"]["verify_host"].As<bool>(tls_settings.verify_host);
 
   if (tls_settings.client_cert_settings || !tls_settings.ca_certs.empty() ||
       !tls_settings.verify_host) {
