@@ -50,7 +50,7 @@ std::unique_ptr<engine::io::RwBase> CreateSocketPtr(
 
   const bool secure = address.secure();
   if (secure) {
-    if (auth_settings.tls_settings) {
+    if (auth_settings.tls_settings.has_value()) {
       const auto& tls_settings = *auth_settings.tls_settings;
       const crypto::Certificate& client_cert =
           tls_settings.client_cert_settings
