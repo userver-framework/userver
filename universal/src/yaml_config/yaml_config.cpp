@@ -104,10 +104,10 @@ YamlConfig::YamlConfig(formats::yaml::Value yaml,
 const formats::yaml::Value& YamlConfig::Yaml() const { return yaml_; }
 
 YamlConfig YamlConfig::operator[](std::string_view key) const {
-  // TODO: fix the iterators and assert this case in TAXICOMMON-8973
   if (utils::text::EndsWith(key, "#env") ||
       utils::text::EndsWith(key, "#file") ||
       utils::text::EndsWith(key, "#fallback")) {
+    UASSERT_MSG(false, "Do not use names ending on #env, #file and #fallback");
     return MakeMissingConfig(*this, key);
   }
 

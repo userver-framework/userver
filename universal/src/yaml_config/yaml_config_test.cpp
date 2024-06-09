@@ -1,5 +1,6 @@
 #include <userver/yaml_config/yaml_config.hpp>
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <formats/common/value_test.hpp>
@@ -115,6 +116,80 @@ some_element:
   yaml = yaml_config::YamlConfig(
       node, {}, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
   EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 100500);
+}
+
+TEST(YamlConfig, IterationSkipInternalFields) {
+  const auto node = formats::yaml::FromString(R"(
+element1:
+    some0: 0
+    some1: $variable
+    some1#file: /some/path/to/the/file.yaml
+    some1#env: SOME_ENV_VARIABLE
+    some1#fallback: 100500
+    some2: 0
+element2:
+    some#file: /some/path/to/the/file.yaml
+    some#env: SOME_ENV_VARIABLE
+    some#fallback: 100500
+  )");
+
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
+  ::setenv("SOME_ENV_VARIABLE", "100", 1);
+
+  const auto vars = formats::yaml::FromString("variable: 0");
+
+  yaml_config::YamlConfig yaml(
+      node, vars, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
+
+  std::size_t count = 0;
+  for (auto [key, value] : Items(yaml["element1"])) {
+    ++count;
+    EXPECT_THAT(key, testing::Not(testing::HasSubstr("#")));
+    EXPECT_EQ(value.As<int>(), 0);
+  }
+  ASSERT_EQ(count, 3);
+
+  count = 0;
+  for (const auto& value : yaml["element1"]) {
+    ++count;
+    EXPECT_EQ(value.As<int>(), 0);
+  }
+  ASSERT_EQ(count, 3);
+
+  count = 0;
+  auto element1 = yaml["element1"];
+  // Testing suffix increment
+  for (auto it = element1.begin(); it != element1.end(); it++) {
+    ++count;
+    EXPECT_THAT(it.GetName(), testing::Not(testing::HasSubstr("#")));
+    EXPECT_EQ(it->As<int>(), 0);
+  }
+  ASSERT_EQ(count, 3);
+
+  count = 0;
+  for (auto [key, value] : Items(yaml["element2"])) {
+    ++count;
+    EXPECT_THAT(key, testing::Not(testing::HasSubstr("#")));
+    EXPECT_EQ(value.As<int>(), 100);
+  }
+  ASSERT_EQ(count, 1);
+
+  count = 0;
+  for (const auto& value : yaml["element2"]) {
+    ++count;
+    EXPECT_EQ(value.As<int>(), 100);
+  }
+  ASSERT_EQ(count, 1);
+
+  count = 0;
+  auto element2 = yaml["element2"];
+  // Testing suffix increment
+  for (auto it = element2.begin(); it != element2.end(); it++) {
+    ++count;
+    EXPECT_THAT(it.GetName(), testing::Not(testing::HasSubstr("#")));
+    EXPECT_EQ(it->As<int>(), 100);
+  }
+  ASSERT_EQ(count, 1);
 }
 
 TEST(YamlConfig, SampleEnvFallback) {

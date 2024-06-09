@@ -16,16 +16,6 @@ namespace yaml_config::impl {
 
 namespace {
 
-// TODO: remove in TAXICOMMON-8973
-std::string RemoveFallbackAndEnvSuffix(std::string_view option) {
-  for (const std::string_view suffix : {"#env", "#file", "#fallback"}) {
-    if (utils::text::EndsWith(option, suffix)) {
-      return std::string{option.substr(0, option.size() - suffix.size())};
-    }
-  }
-  return std::string{option};
-}
-
 bool IsTypeValid(FieldType type, const formats::yaml::Value& value) {
   switch (type) {
     case FieldType::kInteger:
@@ -85,8 +75,7 @@ void ValidateObject(const YamlConfig& object, const Schema& schema) {
   const auto& properties = schema.properties.value();
 
   for (const auto& [name, value] : Items(object)) {
-    const std::string search_name = RemoveFallbackAndEnvSuffix(name);
-    if (const auto it = properties.find(search_name); it != properties.end()) {
+    if (const auto it = properties.find(name); it != properties.end()) {
       ValidateIfPresent(value, *it->second);
       continue;
     }
@@ -107,7 +96,7 @@ void ValidateObject(const YamlConfig& object, const Schema& schema) {
         "made a typo or forgot to define components' static config schema.{}",
         value.GetPath(), schema.path, KeysAsString(properties),
         utils::SuggestNearestName(properties | boost::adaptors::map_keys,
-                                  search_name)));
+                                  name)));
   }
 }
 
