@@ -33,7 +33,7 @@ class Driver;
 ///
 /// @brief YDB client component
 ///
-/// Provides access to ydb::TableClient.
+/// Provides access to ydb::TableClient, ydb::TopicClient, ydb::CoordinationClient.
 ///
 /// ## Static options:
 /// Name | Description | Default value
@@ -69,15 +69,25 @@ class YdbComponent final : public components::ComponentBase {
 
   ~YdbComponent();
 
+  /// Get table client
+  /// @param dbname database name from static config key
   std::shared_ptr<TableClient> GetTableClient(const std::string& dbname) const;
 
+  /// Get topic client
+  /// @param dbname database name from static config key
   std::shared_ptr<TopicClient> GetTopicClient(const std::string& dbname) const;
 
+  /// Get coordination client
+  /// @param dbname database name from static config key
   std::shared_ptr<CoordinationClient> GetCoordinationClient(
       const std::string& dbname) const;
 
+  /// Get native driver
+  /// @param dbname database name from static config key
   const NYdb::TDriver& GetNativeDriver(const std::string& dbname) const;
 
+  /// Get database path
+  /// @param dbname database name from static config key
   const std::string& GetDatabasePath(const std::string& dbname) const;
 
   static yaml_config::Schema GetStaticConfigSchema();
