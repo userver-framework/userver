@@ -37,9 +37,7 @@ std::string WebsocketHandlerBase::HandleRequestThrow(
           "websocket" ||
       request.GetHeader(USERVER_NAMESPACE::http::headers::kConnection) !=
           "Upgrade") {
-    LOG_WARNING()
-        << "Not a GET 'Upgrade: websocket' and 'Connection: Upgrade' request";
-    throw server::handlers::ClientError();
+    HandleNonWebsocketRequest(request, context);
   }
 
   const std::string& secWebsocketKey =
