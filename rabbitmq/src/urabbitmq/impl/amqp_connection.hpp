@@ -91,14 +91,11 @@ class AmqpConnection final {
 
   AMQP::Connection conn_;
 
+  engine::Mutex mutex_{};
   AMQP::Channel channel_;
-
   AMQP::Channel reliable_channel_;
   std::unique_ptr<ReliableChannel> reliable_;
 
-  // This can't be SingleWaitingTaskMutex, because consumers might issue a lot
-  // of ack/nack in parallel.
-  engine::Mutex mutex_{};
   engine::Semaphore waiters_sema_;
 };
 
