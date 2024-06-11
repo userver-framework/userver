@@ -131,7 +131,7 @@ UTEST(HedgedRequest, DontStartIfGotResult) {
       {Event::Finish, 0},
   };
   const utils::hedging::HedgingSettings settings{
-      3, std::chrono::milliseconds(10), std::chrono::milliseconds(1000)};
+      3, std::chrono::milliseconds(100), std::chrono::milliseconds(1000)};
   auto program = AttemptProgram{
       {std::chrono::milliseconds(1), std::nullopt},
   };
@@ -152,7 +152,7 @@ UTEST(HedgedRequest, SuccessfulHedging) {
       {Event::Finish, 1},
   };
   const utils::hedging::HedgingSettings settings{
-      3, std::chrono::milliseconds(10), std::chrono::milliseconds(1000)};
+      2, std::chrono::milliseconds(10), std::chrono::milliseconds(1000)};
   auto program = AttemptProgram{
       {std::chrono::milliseconds(100), std::nullopt},  ///< slow attempt
       {std::chrono::milliseconds(1), std::nullopt},    ///< hedged request
@@ -201,7 +201,7 @@ UTEST(HedgedRequest, refuse) {
       {Event::Finish, 0},       {Event::Finish, 1},
   };
   const utils::hedging::HedgingSettings settings{
-      3, std::chrono::milliseconds(10), std::chrono::milliseconds(1000)};
+      2, std::chrono::milliseconds(10), std::chrono::milliseconds(1000)};
   auto program = AttemptProgram{
       {std::chrono::milliseconds(1), std::chrono::milliseconds(10)},
       {std::chrono::milliseconds(1), std::nullopt},
