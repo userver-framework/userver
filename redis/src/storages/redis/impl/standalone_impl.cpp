@@ -15,6 +15,7 @@
 #include <userver/utils/datetime/steady_coarse_clock.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/text.hpp>
+#include <userver/logging/log.hpp>
 
 #include <userver/engine/sleep.hpp>
 #include <engine/ev/watcher.hpp>
