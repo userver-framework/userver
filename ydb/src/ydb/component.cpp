@@ -242,6 +242,11 @@ properties:
                     minimum: 1
                     defaultDescription: 10
                     description: minimum connection pool size
+                get_session_retry_limit:
+                    type: integer
+                    minimum: 0
+                    defaultDescription: 5
+                    description: retries count to get session, every attempt with a get-session-timeout
                 keep-in-query-cache:
                     type: boolean
                     defaultDescription: true

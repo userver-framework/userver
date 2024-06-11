@@ -52,6 +52,7 @@ TableClient::TableClient(impl::TableSettings settings,
   NYdb::NTable::TSessionPoolSettings session_config;
   session_config.MaxActiveSessions(settings.max_pool_size)
       .MinPoolSize(settings.min_pool_size);
+  session_config.RetryLimit(settings.get_session_retry_limit);
 
   NYdb::NTable::TClientSettings client_config;
   client_config.SessionPoolSettings(session_config);

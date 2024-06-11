@@ -75,6 +75,7 @@ components_manager:
                     database: sampledb
                     max_pool_size: 10
                     min_pool_size: 5
+                    get_session_retry_limit: 1
 
         handler-select-rows:
             method: POST
