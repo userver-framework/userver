@@ -9,6 +9,7 @@
 
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/serialize/common_containers.hpp>
+#include <userver/fs/blocking/read.hpp>
 #include <userver/storages/secdist/helpers.hpp>
 #include <userver/utils/assert.hpp>
 
@@ -44,6 +45,47 @@ AuthSettings Parse(const formats::json::Value& doc,
   auth.login = doc["login"].As<std::string>();
   auth.password = doc["password"].As<std::string>();
   auth.vhost = doc["vhost"].As<std::string>();
+
+  TlsSettings tls_settings;
+  const auto& client_cert_path = doc["tls"]["client-cert-path"];
+  const auto& client_key_path = doc["tls"]["client-key-path"];
+  if (client_cert_path.IsMissing() != client_key_path.IsMissing()) {
+    throw std::runtime_error(
+        "Either set both tls.client-cert-path and "
+        "tls.client-key-path options or none of "
+        "them");
+  }
+  if (!client_cert_path.IsMissing()) {
+    ClientCertSettings client_cert_settings;
+
+    const auto& client_cert_contents =
+        fs::blocking::ReadFileContents(client_cert_path.As<std::string>());
+    client_cert_settings.cert =
+        crypto::Certificate::LoadFromString(client_cert_contents);
+
+    const auto& client_key_contents =
+        fs::blocking::ReadFileContents(client_key_path.As<std::string>());
+    client_cert_settings.key =
+        crypto::PrivateKey::LoadFromString(client_key_contents);
+
+    tls_settings.client_cert_settings = std::move(client_cert_settings);
+  }
+
+  const auto& ca_cert_paths =
+      doc["tls"]["ca-paths"].As<std::vector<std::string>>({});
+  for (const auto& ca_cert_path : ca_cert_paths) {
+    const auto& ca_cert_contents = fs::blocking::ReadFileContents(ca_cert_path);
+    tls_settings.ca_certs.push_back(
+        crypto::Certificate::LoadFromString(ca_cert_contents));
+  }
+
+  tls_settings.verify_host =
+      doc["tls"]["verify_host"].As<bool>(tls_settings.verify_host);
+
+  if (tls_settings.client_cert_settings || !tls_settings.ca_certs.empty() ||
+      !tls_settings.verify_host) {
+    auth.tls_settings = std::move(tls_settings);
+  }
 
   return auth;
 }

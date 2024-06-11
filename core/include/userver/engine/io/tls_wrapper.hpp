@@ -31,11 +31,18 @@ class [[nodiscard]] TlsWrapper final : public RwBase {
                                    const std::string& server_name,
                                    Deadline deadline);
 
+  /// Starts a TLS client with client cert on an opened socket
+  static TlsWrapper StartTlsClient(
+      Socket&& socket, const std::string& server_name,
+      const crypto::Certificate& cert, const crypto::PrivateKey& key,
+      Deadline deadline,
+      const std::vector<crypto::Certificate>& extra_cert_authorities = {});
+
   /// Starts a TLS server on an opened socket
   static TlsWrapper StartTlsServer(
       Socket&& socket, const crypto::Certificate& cert,
       const crypto::PrivateKey& key, Deadline deadline,
-      const std::vector<crypto::Certificate>& cert_authorities = {});
+      const std::vector<crypto::Certificate>& extra_cert_authorities = {});
 
   ~TlsWrapper() override;
 
