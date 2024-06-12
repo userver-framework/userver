@@ -6,9 +6,9 @@
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/distances.hpp>
 #include <userver/utils/text_light.hpp>
 #include <userver/yaml_config/schema.hpp>
-#include <utils/distances.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

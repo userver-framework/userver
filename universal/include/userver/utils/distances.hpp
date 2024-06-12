@@ -1,7 +1,9 @@
 #pragma once
 
+/// @file userver/utils/distances.hpp
+/// @brief Distances between strings and nearest string suggestions
+
 #include <optional>
-#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -10,34 +12,29 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
-enum class DistanceType { kLevenshtein, kDamerauLevenshtein };
+namespace impl {
 
+std::string SuggestNameErrorMsg(std::optional<std::string_view> suggest_name);
+
+}  // namespace impl
+
+/// Returns the Levenshtein distance between two strings.
 std::size_t GetLevenshteinDistance(std::string_view view1,
                                    std::string_view view2);
 
+/// Returns the Damerau-Levenshtein distance between two strings.
 std::size_t GetDamerauLevenshteinDistance(std::string_view view1,
                                           std::string_view view2);
 
-template <typename StringViews,
-          std::enable_if_t<
-              std::is_convertible_v<typename StringViews::iterator::value_type,
-                                    std::string_view>,
-              bool> = true>
+/// Returns a nearest string for a key from a bunch of strings.
+template <typename StringViews, typename DistanceFunc = std::size_t (*)(
+                                    std::string_view, std::string_view)>
 std::optional<std::string_view> GetNearestString(
     const StringViews& strings, std::string_view key, std::size_t max_distance,
-    DistanceType distance_type = DistanceType::kLevenshtein) {
-  using DistanceFunc = std::size_t (*)(std::string_view, std::string_view);
-  DistanceFunc distance_func = nullptr;
-  switch (distance_type) {
-    case DistanceType::kLevenshtein:
-      distance_func = GetLevenshteinDistance;
-      break;
-    case DistanceType::kDamerauLevenshtein:
-      distance_func = GetDamerauLevenshteinDistance;
-      break;
-    default:
-      throw std::runtime_error("Current type of distance is not supported.");
-  }
+    DistanceFunc distance_func = &utils::GetLevenshteinDistance) {
+  static_assert(
+      std::is_convertible_v<decltype(*std::begin(strings)), std::string_view>,
+      "Parameter `strings` should be an iterable over strings.");
 
   std::optional<std::string_view> nearest_str;
   std::size_t min_distance = 0;
@@ -55,17 +52,16 @@ std::optional<std::string_view> GetNearestString(
   return {};
 }
 
-std::string SuggestNameErrorMsg(std::optional<std::string_view> suggest_name);
-
-template <typename StringViews,
-          std::enable_if_t<
-              std::is_convertible_v<typename StringViews::iterator::value_type,
-                                    std::string_view>,
-              bool> = true>
+/// Returns a suggestion for a key
+template <typename StringViews>
 std::string SuggestNearestName(const StringViews& strings,
                                std::string_view key) {
+  static_assert(
+      std::is_convertible_v<decltype(*std::begin(strings)), std::string_view>,
+      "Parameter `strings` should be an iterable over strings.");
   constexpr std::size_t kMaxDistance = 3;
-  return SuggestNameErrorMsg(GetNearestString(strings, key, kMaxDistance));
+  return impl::SuggestNameErrorMsg(
+      utils::GetNearestString(strings, key, kMaxDistance));
 }
 
 }  // namespace utils

@@ -22,7 +22,7 @@
 #include <userver/logging/log.hpp>
 #include <userver/os_signals/component.hpp>
 #include <userver/utils/async.hpp>
-#include <utils/distances.hpp>
+#include <userver/utils/distances.hpp>
 #include <utils/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
