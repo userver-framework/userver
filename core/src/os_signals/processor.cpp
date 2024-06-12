@@ -4,9 +4,9 @@
 
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/strerror.hpp>
 
 #include <utils/internal_tag.hpp>
-#include <utils/strerror.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

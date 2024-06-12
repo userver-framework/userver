@@ -2,8 +2,9 @@
 
 #include <cstring>
 
+#include <userver/utils/strerror.hpp>
+
 #include <utils/check_syscall.hpp>
-#include <utils/strerror.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

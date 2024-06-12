@@ -28,11 +28,11 @@
 #include <userver/utils/impl/static_registration.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 #include <userver/utils/overloaded.hpp>
+#include <userver/utils/strerror.hpp>
 #include <userver/utils/traceful_exception.hpp>
 #include <utils/ignore_signal_scope.hpp>
 #include <utils/jemalloc.hpp>
 #include <utils/signal_catcher.hpp>
-#include <utils/strerror.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -24,9 +24,9 @@ auto PQXsendQueryPrepared(PGconn* conn, const char* stmtName, int nParams,
 #include <userver/logging/log.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/strerror.hpp>
 #include <utils/impl/assert_extra.hpp>
 #include <utils/internal_tag.hpp>
-#include <utils/strerror.hpp>
 
 #include <storages/postgres/detail/cancel.hpp>
 #include <storages/postgres/detail/pg_message_severity.hpp>

@@ -7,7 +7,7 @@
 #include <cstring>
 
 #include <userver/logging/log.hpp>
-#include <utils/strerror.hpp>
+#include <userver/utils/strerror.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

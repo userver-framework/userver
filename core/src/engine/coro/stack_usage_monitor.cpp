@@ -40,8 +40,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/atomic.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
+#include <userver/utils/strerror.hpp>
 #include <userver/utils/thread_name.hpp>
-#include <utils/strerror.hpp>
 
 #endif
 

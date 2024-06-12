@@ -29,7 +29,7 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/str_icase.hpp>
-#include <utils/strerror.hpp>
+#include <userver/utils/strerror.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
