@@ -1,20 +1,9 @@
-#include <userver/utest/utest.hpp>
+#include <storages/redis/client_cluster_redistest.hpp>
 
-#include <memory>
-
-#include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/sleep.hpp>
 
-#include <storages/redis/client_cluster_redistest.hpp>
-#include <storages/redis/client_impl.hpp>
-#include <storages/redis/dynamic_config.hpp>
 #include <storages/redis/impl/cluster_sentinel_impl.hpp>
-#include <storages/redis/impl/keyshard_impl.hpp>
-#include <storages/redis/impl/sentinel.hpp>
-#include <storages/redis/impl/subscribe_sentinel.hpp>
-#include <storages/redis/subscribe_client_impl.hpp>
-#include <storages/redis/util_redistest.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

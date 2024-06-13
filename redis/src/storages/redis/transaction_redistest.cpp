@@ -1,7 +1,5 @@
 #include <userver/utest/utest.hpp>
 
-#include <algorithm>
-
 #include <storages/redis/client_redistest.hpp>
 
 USERVER_NAMESPACE_BEGIN

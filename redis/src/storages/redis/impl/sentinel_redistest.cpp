@@ -1,49 +1,23 @@
 #include <userver/utest/utest.hpp>
 
-#include <memory>
-
 #include <userver/engine/sleep.hpp>
-#include <userver/utils/text.hpp>
-
-#include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
 
-#include <storages/redis/client_impl.hpp>
-#include <storages/redis/dynamic_config.hpp>
 #include <storages/redis/impl/command.hpp>
-#include <storages/redis/impl/sentinel.hpp>
-#include <storages/redis/impl/subscribe_sentinel.hpp>
-#include <storages/redis/util_redistest.hpp>
+#include <storages/redis/utest/impl/redis_connection_state.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-class SentinelTest : public ::testing::Test {
+// NOLINTNEXTLINE(fuchsia-multiple-inheritance)
+class SentinelTest : public ::testing::Test,
+                     public storages::redis::utest::impl::RedisConnectionState {
  protected:
-  SentinelTest()
-      : thread_pools_(std::make_shared<redis::ThreadPools>(
-            redis::kDefaultSentinelThreadPoolSize,
-            redis::kDefaultRedisThreadPoolSize)),
-        sentinel_(redis::Sentinel::CreateSentinel(
-            thread_pools_, GetTestsuiteRedisSettings(), "none",
-            dynamic_config::GetDefaultSource(), "pub",
-            redis::KeyShardFactory{""})) {
-    sentinel_->WaitConnectedDebug();
-  }
-
-  auto GetThreadPools() const { return thread_pools_; }
-
-  auto GetSentinel() const { return sentinel_; }
-
   auto RequestKeys(redis::CommandControl cc = {}) {
-    return sentinel_->MakeRequest({"keys", "*"}, 0, false,
-                                  sentinel_->GetCommandControl(cc));
+    return GetSentinel()->MakeRequest({"keys", "*"}, 0, false,
+                                      GetSentinel()->GetCommandControl(cc));
   }
-
- private:
-  std::shared_ptr<redis::ThreadPools> thread_pools_;
-  std::shared_ptr<redis::Sentinel> sentinel_;
 };
 
 }  // namespace

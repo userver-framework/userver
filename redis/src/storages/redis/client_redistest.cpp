@@ -1,12 +1,6 @@
 #include <storages/redis/client_redistest.hpp>
 
-#include <algorithm>
-#include <memory>
-#include <string_view>
-#include <tuple>
-#include <vector>
-
-#include <userver/engine/task/task.hpp>
+#include <userver/engine/task/cancel.hpp>
 #include <userver/engine/wait_any.hpp>
 
 USERVER_NAMESPACE_BEGIN
