@@ -510,7 +510,7 @@ class StackUsageMonitor::Impl final {
 
  private:
   void MonitorForPageFaults() {
-    utils::SetCurrentThreadName("stack-usage-monitor");
+    utils::SetCurrentThreadName("stack-usage");
 
     UASSERT(monitor_fd_.Get() != -1);
     UASSERT(stop_fd_.Get() != -1);
