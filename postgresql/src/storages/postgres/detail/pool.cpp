@@ -12,9 +12,8 @@
 #include <userver/storages/postgres/detail/time_types.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 #include <userver/testsuite/testpoint.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
-
-#include <utils/impl/assert_extra.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -259,7 +258,7 @@ void ConnectionPool::AccountConnectionStats(Connection::Statistics conn_stats) {
 
 void ConnectionPool::Release(Connection* connection) {
   UASSERT(connection);
-  using DecGuard = USERVER_NAMESPACE::utils::SizeGuard<
+  using DecGuard = storages::postgres::SizeGuard<
       USERVER_NAMESPACE::utils::statistics::RelaxedCounter<uint32_t>>;
   DecGuard dg{stats_.connection.used, DecGuard::DontIncrement{}};
 

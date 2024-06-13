@@ -19,8 +19,6 @@
 #include <storages/postgres/io/pg_type_parsers.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 
-#include <utils/impl/assert_extra.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 using USERVER_NAMESPACE::utils::RandRange;

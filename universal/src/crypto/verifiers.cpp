@@ -10,9 +10,10 @@
 #include <openssl/evp.h>
 #include <openssl/x509.h>
 
-#include <crypto/helpers.hpp>
-#include <crypto/openssl.hpp>
+#include <userver/crypto/openssl.hpp>
 #include <userver/utils/assert.hpp>
+
+#include <crypto/helpers.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -154,7 +155,7 @@ template <DsaType type, DigestSize bits>
 DsaVerifier<type, bits>::DsaVerifier(PublicKey pubkey)
     : Verifier(EnumValueToString(type) + EnumValueToString(bits)),
       pkey_(std::move(pubkey)) {
-  impl::Openssl::Init();
+  Openssl::Init();
 
   if constexpr (type == DsaType::kEc) {
     if (EVP_PKEY_base_id(pkey_.GetNative()) != EVP_PKEY_EC) {

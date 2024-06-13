@@ -8,9 +8,9 @@
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/uuid4.hpp>
-#include <utils/impl/assert_extra.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -11,11 +11,7 @@
 #include <boost/exception/diagnostic_information.hpp>
 #include <boost/stacktrace/stacktrace.hpp>
 
-#include <components/manager.hpp>
-#include <components/manager_config.hpp>
-#include <crypto/openssl.hpp>
-#include <logging/config.hpp>
-#include <logging/tp_logger_utils.hpp>
+#include <userver/crypto/openssl.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/dynamic_config/value.hpp>
 #include <userver/formats/json/serialize.hpp>
@@ -30,6 +26,11 @@
 #include <userver/utils/overloaded.hpp>
 #include <userver/utils/strerror.hpp>
 #include <userver/utils/traceful_exception.hpp>
+
+#include <components/manager.hpp>
+#include <components/manager_config.hpp>
+#include <logging/config.hpp>
+#include <logging/tp_logger_utils.hpp>
 #include <utils/ignore_signal_scope.hpp>
 #include <utils/jemalloc.hpp>
 #include <utils/signal_catcher.hpp>
@@ -193,7 +194,7 @@ void DoRun(const PathOrConfig& config,
   const utils::IgnoreSignalScope ignore_sigpipe_scope(SIGPIPE);
 
   ++server::handlers::auth::apikey::auth_checker_apikey_module_activation;
-  crypto::impl::Openssl::Init();
+  crypto::Openssl::Init();
 
   LogScope log_scope;
   auto manager_config = ParseManagerConfigAndSetupLogging(

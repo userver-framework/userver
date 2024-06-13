@@ -8,20 +8,21 @@
 
 #include <mongoc/mongoc.h>
 
-#include <build_config.hpp>
-#include <crypto/openssl.hpp>
-#include <storages/mongo/cdriver/logger.hpp>
+#include <userver/crypto/openssl.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/userver_info.hpp>
+
+#include <build_config.hpp>
+#include <storages/mongo/cdriver/logger.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::impl::cdriver {
 
 GlobalInitializer::GlobalInitializer() {
-  crypto::impl::Openssl::Init();
+  crypto::Openssl::Init();
   mongoc_log_set_handler(&LogMongocMessage, nullptr);
   mongoc_init();
   mongoc_handshake_data_append("userver", utils::GetUserverVcsRevision(),

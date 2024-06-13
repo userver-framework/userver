@@ -1,6 +1,7 @@
 #include <curl-ev/wrappers.hpp>
 
-#include <crypto/openssl.hpp>
+#include <userver/crypto/openssl.hpp>
+
 #include <curl-ev/error_code.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -8,7 +9,7 @@ USERVER_NAMESPACE_BEGIN
 namespace curl::impl {
 
 CurlGlobal::CurlGlobal() {
-  crypto::impl::Openssl::Init();
+  crypto::Openssl::Init();
   std::error_code ec{static_cast<errc::EasyErrorCode>(
       native::curl_global_init(CURL_GLOBAL_DEFAULT))};
   throw_error(ec, "cURL global initialization failed");

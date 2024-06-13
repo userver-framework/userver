@@ -4,10 +4,11 @@
 #include <openssl/pem.h>
 #include <openssl/x509.h>
 
-#include <crypto/helpers.hpp>
-#include <crypto/openssl.hpp>
 #include <userver/crypto/exception.hpp>
 #include <userver/crypto/hash.hpp>
+#include <userver/crypto/openssl.hpp>
+
+#include <crypto/helpers.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -71,7 +72,7 @@ PrivateKey PrivateKey::LoadFromString(std::string_view key) {
 
 PrivateKey PrivateKey::LoadFromString(std::string_view key,
                                       std::string_view password) {
-  impl::Openssl::Init();
+  Openssl::Init();
 
   auto privkey_bio = MakeBioString(key);
 

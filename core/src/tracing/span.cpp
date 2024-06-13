@@ -319,6 +319,11 @@ void Span::AddNonInheritableTag(std::string key,
   pimpl_->log_extra_local_->Extend(std::move(key), std::move(value));
 }
 
+void Span::AddNonInheritableTags(const logging::LogExtra& log_extra) {
+  if (!pimpl_->log_extra_local_) pimpl_->log_extra_local_.emplace();
+  pimpl_->log_extra_local_->Extend(log_extra);
+}
+
 void Span::SetLogLevel(logging::Level log_level) {
   if (pimpl_->is_no_log_span_) return;
   pimpl_->log_level_ = log_level;
@@ -340,12 +345,6 @@ void Span::AddTag(std::string key, logging::LogExtra::Value value) {
 
 void Span::AddTags(const logging::LogExtra& log_extra, utils::InternalTag) {
   pimpl_->log_extra_inheritable_.Extend(log_extra);
-}
-
-void Span::AddNonInheritableTags(const logging::LogExtra& log_extra,
-                                 utils::InternalTag) {
-  if (!pimpl_->log_extra_local_) pimpl_->log_extra_local_.emplace();
-  pimpl_->log_extra_local_->Extend(log_extra);
 }
 
 impl::TimeStorage& Span::GetTimeStorage() { return pimpl_->GetTimeStorage(); }

@@ -26,8 +26,6 @@
 #include <userver/utils/rand.hpp>
 #include <userver/utils/text_light.hpp>
 
-#include <utils/impl/assert_extra.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace clients::http {

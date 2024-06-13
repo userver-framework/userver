@@ -147,6 +147,9 @@ class Span final {
   /// future children) and logged only once in the destructor of the Span.
   void AddNonInheritableTag(std::string key, logging::LogExtra::Value value);
 
+  /// @overload AddNonInheritableTag
+  void AddNonInheritableTags(const logging::LogExtra&);
+
   /// @brief Sets level for tags logging
   void SetLogLevel(logging::Level log_level);
 
@@ -204,8 +207,6 @@ class Span final {
 
   /// @cond
   void AddTags(const logging::LogExtra&, utils::InternalTag);
-
-  void AddNonInheritableTags(const logging::LogExtra&, utils::InternalTag);
 
   impl::TimeStorage& GetTimeStorage();
 

@@ -2,10 +2,8 @@
 
 #include <utility>
 
-#include <userver/utils/assert.hpp>
-
 #include <userver/engine/task/task.hpp>
-#include <utils/impl/assert_extra.hpp>
+#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

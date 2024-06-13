@@ -12,7 +12,6 @@
 #include <userver/testsuite/postgres_control.hpp>
 #include <userver/utils/statistics/min_max_avg.hpp>
 #include <userver/utils/strong_typedef.hpp>
-#include <utils/size_guard.hpp>
 
 #include <userver/storages/postgres/detail/query_parameters.hpp>
 #include <userver/storages/postgres/detail/time_types.hpp>
@@ -22,6 +21,8 @@
 #include <userver/storages/postgres/parameter_store.hpp>
 #include <userver/storages/postgres/result_set.hpp>
 #include <userver/storages/postgres/transaction.hpp>
+
+#include <storages/postgres/detail/size_guard.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -110,8 +111,7 @@ class Connection {
     SteadyClock::duration sum_query_duration{0};
   };
 
-  using SizeGuard =
-      USERVER_NAMESPACE::utils::SizeGuard<std::shared_ptr<std::atomic<size_t>>>;
+  using SizeGuard = postgres::SizeGuard<std::shared_ptr<std::atomic<size_t>>>;
 
   Connection(const Connection&) = delete;
   Connection(Connection&&) = delete;

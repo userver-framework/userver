@@ -2,7 +2,7 @@
 
 #include <stdexcept>
 
-#include <utils/impl/assert_extra.hpp>
+#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

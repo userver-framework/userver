@@ -1,4 +1,4 @@
-#include <crypto/openssl.hpp>
+#include <userver/crypto/openssl.hpp>
 
 #include <cerrno>
 #include <cstdio>
@@ -16,7 +16,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace crypto::impl {
+namespace crypto {
 namespace {
 
 // OpenSSL >= 1.1 has builtin threading support
@@ -84,6 +84,6 @@ Openssl::Openssl() noexcept {
 
 void Openssl::Init() noexcept { [[maybe_unused]] static Openssl lock; }
 
-}  // namespace crypto::impl
+}  // namespace crypto
 
 USERVER_NAMESPACE_END

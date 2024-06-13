@@ -25,7 +25,6 @@
 #include <engine/task/coro_unwinder.hpp>
 #include <engine/task/cxxabi_eh_globals.hpp>
 #include <engine/task/task_processor.hpp>
-#include <utils/impl/assert_extra.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -18,6 +18,7 @@
 #include <userver/http/url.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/utils/str_icase.hpp>
 #include <userver/utils/trivial_map.hpp>
 
@@ -28,7 +29,6 @@
 #include <clients/http/testsuite.hpp>
 #include <crypto/helpers.hpp>
 #include <engine/ev/watcher/timer_watcher.hpp>
-#include <utils/impl/assert_extra.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

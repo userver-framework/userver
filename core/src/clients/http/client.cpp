@@ -7,6 +7,7 @@
 #include <moodycamel/concurrentqueue.h>
 
 #include <userver/components/headers_propagator_component.hpp>
+#include <userver/crypto/openssl.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/tracing/manager.hpp>
 #include <userver/utils/async.hpp>
@@ -17,7 +18,6 @@
 #include <clients/http/easy_wrapper.hpp>
 #include <clients/http/statistics.hpp>
 #include <clients/http/testsuite.hpp>
-#include <crypto/openssl.hpp>
 #include <curl-ev/multi.hpp>
 #include <curl-ev/ratelimit.hpp>
 #include <engine/ev/thread_pool.hpp>

@@ -8,12 +8,13 @@
 #include <openssl/bio.h>
 #include <openssl/ssl.h>
 
-#include <crypto/helpers.hpp>
-#include <crypto/openssl.hpp>
-#include <engine/io/fd_control.hpp>
+#include <userver/crypto/openssl.hpp>
 #include <userver/engine/io/exception.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+
+#include <crypto/helpers.hpp>
+#include <engine/io/fd_control.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -196,7 +197,7 @@ int SSL_write_ex(SSL* ssl, const void* data, size_t len,
 #endif
 
 SslCtx MakeSslCtx() {
-  crypto::impl::Openssl::Init();
+  crypto::Openssl::Init();
 
   SslCtx ssl_ctx{SSL_CTX_new(SSLv23_method())};
   if (!ssl_ctx) {

@@ -13,26 +13,32 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::impl {
 
-void UASSERT_failed(std::string_view expr, const char* file, unsigned int line,
-                    const char* function, std::string_view msg) noexcept {
+[[noreturn]] void AbortWithStacktrace(std::string_view message) noexcept {
+  if (dump_stacktrace_on_assert_failure) {
+    LOG_CRITICAL() << message << logging::LogExtra::Stacktrace();
+  } else {
+    LOG_CRITICAL() << message;
+  }
+  logging::LogFlush();
+
   auto trace = dump_stacktrace_on_assert_failure
                    ? boost::stacktrace::stacktrace()
                    : boost::stacktrace::stacktrace(0, 0);
 
+  // Use fmt::format to output the message without interleaving with other logs.
+  std::cerr << fmt::format("{}. Stacktrace: {}", message,
+                           boost::stacktrace::to_string(trace));
+  std::abort();
+}
+
+void UASSERT_failed(std::string_view expr, const char* file, unsigned int line,
+                    const char* function, std::string_view msg) noexcept {
   // TODO pass file, line, function to LogHelper
   const auto message = fmt::format(
       "ERROR at {}:{}:{}. Assertion '{}' failed{}{}", file, line,
       (function ? function : ""), expr,
       (msg.empty() ? std::string_view{} : std::string_view{": "}), msg);
-  LOG_CRITICAL() << message;
-  logging::LogFlush();
-
-  // Use fmt::format to output the message without interleaving with other logs.
-  std::cerr << fmt::format("{}. Stacktrace:\n{}\n", message,
-                           boost::stacktrace::to_string(trace))
-            << std::flush;
-
-  abort();
+  AbortWithStacktrace(message);
 }
 
 void LogAndThrowInvariantError(std::string_view condition,

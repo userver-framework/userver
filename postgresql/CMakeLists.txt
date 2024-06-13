@@ -53,9 +53,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC
   PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
-target_include_directories (${PROJECT_NAME} PRIVATE
-    $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
-)
 
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
@@ -111,6 +108,7 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   add_executable(${PROJECT_NAME}-pgtest ${PG_TEST_SOURCES})
   target_include_directories (${PROJECT_NAME}-pgtest PRIVATE
       $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
+      $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
   )
   target_link_libraries(${PROJECT_NAME}-pgtest userver-utest ${PROJECT_NAME})
   add_test(NAME ${PROJECT_NAME}_pgtest COMMAND env

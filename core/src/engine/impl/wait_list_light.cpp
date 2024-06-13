@@ -11,7 +11,6 @@
 #include <engine/task/task_context.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/underlying_value.hpp>
-#include <utils/impl/assert_extra.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

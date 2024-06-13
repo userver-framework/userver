@@ -15,7 +15,6 @@
 #include <userver/utils/thread_name.hpp>
 
 #include <utils/check_syscall.hpp>
-#include <utils/impl/assert_extra.hpp>
 #include <utils/statistics/thread_statistics.hpp>
 
 #include "child_process_map.hpp"
