@@ -15,6 +15,7 @@
 #include <userver/engine/exception.hpp>
 #include <userver/engine/impl/task_context_factory.hpp>
 #include <userver/engine/task/cancel.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/logging/stacktrace_cache.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/underlying_value.hpp>

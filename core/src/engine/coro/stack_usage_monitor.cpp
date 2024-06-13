@@ -3,6 +3,7 @@
 #include <coroutines/coroutine.hpp>
 
 #include <engine/task/task_context.hpp>
+#include <utils/sys_info.hpp>
 
 // userfaultfd is linux-specific,
 // and we use x86-64-specific RSP to calculate stack offsets

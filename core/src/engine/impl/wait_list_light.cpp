@@ -9,6 +9,7 @@
 #include <concurrent/impl/fast_atomic.hpp>
 #include <engine/task/sleep_state.hpp>
 #include <engine/task/task_context.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/underlying_value.hpp>
 

@@ -2,6 +2,7 @@
 
 #include <engine/impl/wait_list_light.hpp>
 #include <engine/task/task_context.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN

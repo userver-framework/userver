@@ -65,7 +65,7 @@ class WaitStrategy {
 class TaskContext final : public ContextAccessor {
  public:
   struct NoEpoch {};
-  using TaskPipe = coro::Pool<TaskContext>::TaskPipe;
+  using TaskPipe = coro::Pool::TaskPipe;
   using TaskId = uint64_t;
 
   enum class YieldReason { kNone, kTaskWaiting, kTaskCancelled, kTaskComplete };

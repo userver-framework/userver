@@ -906,6 +906,7 @@
   "core/src/dynamic_config/value_test.cpp":"taxi/uservices/userver/core/src/dynamic_config/value_test.cpp",
   "core/src/engine/condition_variable.cpp":"taxi/uservices/userver/core/src/engine/condition_variable.cpp",
   "core/src/engine/condition_variable_test.cpp":"taxi/uservices/userver/core/src/engine/condition_variable_test.cpp",
+  "core/src/engine/coro/pool.cpp":"taxi/uservices/userver/core/src/engine/coro/pool.cpp",
   "core/src/engine/coro/pool.hpp":"taxi/uservices/userver/core/src/engine/coro/pool.hpp",
   "core/src/engine/coro/pool_config.cpp":"taxi/uservices/userver/core/src/engine/coro/pool_config.cpp",
   "core/src/engine/coro/pool_config.hpp":"taxi/uservices/userver/core/src/engine/coro/pool_config.hpp",
