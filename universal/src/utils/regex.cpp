@@ -40,23 +40,26 @@ std::string regex::str() const { return impl_->r.str(); }
 
 ////////////////////////////////////////////////////////////////
 
-struct smatch::Impl {
-  boost::smatch m;
+struct match_results::Impl {
+  boost::cmatch m;
 
   Impl() = default;
 };
 
-smatch::smatch() = default;
+match_results::match_results() = default;
 
-smatch::~smatch() = default;
+match_results::~match_results() = default;
 
-smatch::smatch(const smatch&) = default;
+match_results::match_results(const match_results&) = default;
 
-smatch& smatch::operator=(const smatch&) = default;
+match_results& match_results::operator=(const match_results&) = default;
 
-std::size_t smatch::size() const { return impl_->m.size(); }
+std::size_t match_results::size() const { return impl_->m.size(); }
 
-std::string smatch::operator[](int sub) const { return impl_->m[sub].str(); }
+std::string_view match_results::operator[](int sub) const {
+  auto substr = impl_->m[sub];
+  return {&*substr.begin(), static_cast<std::size_t>(substr.length())};
+}
 
 ////////////////////////////////////////////////////////////////
 
@@ -64,16 +67,19 @@ bool regex_match(std::string_view str, const regex& pattern) {
   return boost::regex_match(str.begin(), str.end(), pattern.impl_->r);
 }
 
-bool regex_match(const std::string& str, smatch& m, const regex& pattern) {
-  return boost::regex_match(str, m.impl_->m, pattern.impl_->r);
+bool regex_match(std::string_view str, match_results& m, const regex& pattern) {
+  return boost::regex_match(str.begin(), str.end(), m.impl_->m,
+                            pattern.impl_->r);
 }
 
 bool regex_search(std::string_view str, const regex& pattern) {
   return boost::regex_search(str.begin(), str.end(), pattern.impl_->r);
 }
 
-bool regex_search(const std::string& str, smatch& m, const regex& pattern) {
-  return boost::regex_search(str, m.impl_->m, pattern.impl_->r);
+bool regex_search(std::string_view str, match_results& m,
+                  const regex& pattern) {
+  return boost::regex_search(str.begin(), str.end(), m.impl_->m,
+                             pattern.impl_->r);
 }
 
 std::string regex_replace(std::string_view str, const regex& pattern,

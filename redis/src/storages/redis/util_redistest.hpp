@@ -2,6 +2,7 @@
 
 #include <userver/utest/utest.hpp>
 
+#include <userver/utils/from_string.hpp>
 #include <userver/utils/regex.hpp>
 
 #include <storages/redis/utest/impl/redis_connection_state.hpp>
@@ -31,7 +32,7 @@ class BaseRedisClientTestEx  // NOLINT(fuchsia-multiple-inheritance)
     const auto info = info_reply->data.GetString();
 
     utils::regex redis_version_regex(R"(redis_version:(\d+.\d+.\d+))");
-    utils::smatch redis_version_matches;
+    utils::match_results redis_version_matches;
     ASSERT_TRUE(
         utils::regex_search(info, redis_version_matches, redis_version_regex));
     version_ = MakeVersion(redis_version_matches[1]);
@@ -49,14 +50,15 @@ class BaseRedisClientTestEx  // NOLINT(fuchsia-multiple-inheritance)
   }
 
  private:
-  static Version MakeVersion(std::string from) {
+  static Version MakeVersion(std::string_view from) {
     utils::regex rgx(R"((\d+).(\d+).(\d+))");
-    utils::smatch matches;
+    utils::match_results matches;
     const auto result = utils::regex_search(from, matches, rgx);
     EXPECT_TRUE(result);
     if (!result) return {};
-    return {std::stoi(matches[1]), std::stoi(matches[2]),
-            std::stoi(matches[3])};
+    return {utils::FromString<int>(matches[1]),
+            utils::FromString<int>(matches[2]),
+            utils::FromString<int>(matches[3])};
   }
 
   Version version_;
