@@ -289,15 +289,15 @@ integer division (in order for `ceil()` to work).
 
 For explicit producers (using tokens to enqueue):
 
-    (ceil(N / BLOCK_SIZE) + 1) * MAX_NUM_PRODUCERS * BLOCK_SIZE
+    (ceil(N / BLOCK_SIZE_QUEUE) + 1) * MAX_NUM_PRODUCERS * BLOCK_SIZE_QUEUE
 
 For implicit producers (no tokens):
 
-    (ceil(N / BLOCK_SIZE) - 1 + 2 * MAX_NUM_PRODUCERS) * BLOCK_SIZE
+    (ceil(N / BLOCK_SIZE_QUEUE) - 1 + 2 * MAX_NUM_PRODUCERS) * BLOCK_SIZE_QUEUE
 
 When using mixed producer types:
 
-    ((ceil(N / BLOCK_SIZE) - 1) * (MAX_EXPLICIT_PRODUCERS + 1) + 2 * (MAX_IMPLICIT_PRODUCERS + MAX_EXPLICIT_PRODUCERS)) * BLOCK_SIZE
+    ((ceil(N / BLOCK_SIZE_QUEUE) - 1) * (MAX_EXPLICIT_PRODUCERS + 1) + 2 * (MAX_IMPLICIT_PRODUCERS + MAX_EXPLICIT_PRODUCERS)) * BLOCK_SIZE_QUEUE
 
 If these formulas seem rather inconvenient, you can use the constructor overload that accepts the minimum
 number of elements (`N`) and the maximum number of explicit and implicit producers directly, and let it do the
@@ -345,7 +345,7 @@ and override only the values you wish to change. Example:
 
     struct MyTraits : public moodycamel::ConcurrentQueueDefaultTraits
     {
-    	static const size_t BLOCK_SIZE = 256;		// Use bigger blocks
+    	static const size_t BLOCK_SIZE_QUEUE = 256;		// Use bigger blocks
     };
     
     moodycamel::ConcurrentQueue<int, MyTraits> q;
