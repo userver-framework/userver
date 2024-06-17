@@ -924,6 +924,8 @@
   "core/src/engine/ev/data_pipe_to_ev.cpp":"taxi/uservices/userver/core/src/engine/ev/data_pipe_to_ev.cpp",
   "core/src/engine/ev/data_pipe_to_ev.hpp":"taxi/uservices/userver/core/src/engine/ev/data_pipe_to_ev.hpp",
   "core/src/engine/ev/data_pipe_to_ev_test.cpp":"taxi/uservices/userver/core/src/engine/ev/data_pipe_to_ev_test.cpp",
+  "core/src/engine/ev/event_loop.cpp":"taxi/uservices/userver/core/src/engine/ev/event_loop.cpp",
+  "core/src/engine/ev/event_loop.hpp":"taxi/uservices/userver/core/src/engine/ev/event_loop.hpp",
   "core/src/engine/ev/thread.cpp":"taxi/uservices/userver/core/src/engine/ev/thread.cpp",
   "core/src/engine/ev/thread.hpp":"taxi/uservices/userver/core/src/engine/ev/thread.hpp",
   "core/src/engine/ev/thread_control.cpp":"taxi/uservices/userver/core/src/engine/ev/thread_control.cpp",
