@@ -23,9 +23,36 @@
 #include <userver/ugrpc/server/middlewares/fwd.hpp>
 #include <userver/ugrpc/server/service_base.hpp>
 
+#include <userver/formats/parse/common_containers.hpp>
+#include <userver/dynamic_config/storage/component.hpp>
+#include <userver/dynamic_config/value.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
+#include <userver/yaml_config/yaml_config.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
+
+struct SslConf
+{
+  int port;
+  std::string server_cert;
+  std::string server_private_key;
+  std::string client_root_cert;
+  bool need_verify_client_cert;
+};
+
+inline SslConf Parse(const userver::yaml_config::YamlConfig& cfg, userver::formats::parse::To<SslConf>)
+{
+      return SslConf
+      {
+          cfg["port"].As<int>(),
+          cfg["server_cert"].As<std::string>(),
+          cfg["server_private_key"].As<std::string>(),
+          cfg["client_root_cert"].As<std::string>(""),
+          cfg["verify_client_cert"].As<bool>(false)
+      };
+}
 
 /// Settings relating to the whole gRPC server
 struct ServerConfig final {
@@ -33,6 +60,8 @@ struct ServerConfig final {
   /// If none, the ports have to be configured programmatically using
   /// Server::WithServerBuilder.
   std::optional<int> port{0};
+
+  std::optional<SslConf> sslConf;
 
   /// Absolute path to the unix socket to listen to.
   /// A server can listen to both port and unix socket simultaneously.
