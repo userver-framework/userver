@@ -42,6 +42,9 @@ properties:
         items:
             type: string
             description: middleware component name
+    end-point:
+      type: string
+      description: service endpoint
 )");
 }
 

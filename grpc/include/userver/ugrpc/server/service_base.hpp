@@ -19,6 +19,7 @@ struct ServiceConfig final {
 
   /// Server middlewares to use for the gRPC service.
   Middlewares middlewares;
+  std::optional<std::string> end_point;
 };
 
 /// @brief The type-erased base class for all gRPC service implementations
