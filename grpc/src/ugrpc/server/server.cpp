@@ -183,20 +183,32 @@ void Server::Impl::AddSslConfiguration(const SslConf& config)
                 "As of now, AddSslConfiguration can be called no more than once");
     ssl_port_ = config.port;
     grpc::SslServerCredentialsOptions ssl_opts;
-    ssl_opts.pem_root_certs = userver::fs::blocking::ReadFileContents(config.client_root_cert);
-    auto server_key = userver::fs::blocking::ReadFileContents(config.server_private_key);
-    auto server_cert = userver::fs::blocking::ReadFileContents(config.server_cert);
-    if(config.need_verify_client_cert) {
-      ssl_opts.client_certificate_request =
-          GRPC_SSL_REQUEST_CLIENT_CERTIFICATE_AND_VERIFY;
+    try {
+      auto server_key =
+          userver::fs::blocking::ReadFileContents(config.server_private_key);
+      auto server_cert =
+          userver::fs::blocking::ReadFileContents(config.server_cert);
+      if (config.need_verify_client_cert) {
+        ssl_opts.client_certificate_request =
+            GRPC_SSL_REQUEST_CLIENT_CERTIFICATE_AND_VERIFY;
+        if (!config.client_root_cert.empty()) {
+          ssl_opts.pem_root_certs =
+              userver::fs::blocking::ReadFileContents(config.client_root_cert);
+        } else {
+          LOG_INFO() << "Client root cert is not provided, try to find it in system certs";
+        }
+      } else {
+        ssl_opts.client_certificate_request =
+            GRPC_SSL_REQUEST_CLIENT_CERTIFICATE_BUT_DONT_VERIFY;
+      }
+      grpc::SslServerCredentialsOptions::PemKeyCertPair pkcp = {server_key,
+                                                                server_cert};
+      ssl_opts.pem_key_cert_pairs.push_back(pkcp);
     }
-    else
-    {
-      ssl_opts.client_certificate_request = GRPC_SSL_REQUEST_CLIENT_CERTIFICATE_BUT_DONT_VERIFY;
+    catch (const std::exception& ex) {
+      LOG_ERROR() << "The gRPC server failed to add ssl configuration. " << ex;
+      throw;
     }
-    grpc::SslServerCredentialsOptions::PemKeyCertPair pkcp = {server_key, server_cert};
-    ssl_opts.pem_key_cert_pairs.push_back(pkcp);
-
     auto server_creds = SslServerCredentials(ssl_opts);
     const auto uri = fmt::format("[::]:{}", ssl_port_.value());
     LOG_INFO() << "Add ssl listening port "<<ssl_port_.value();
