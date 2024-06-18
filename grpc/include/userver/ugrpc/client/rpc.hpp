@@ -156,6 +156,8 @@ class CallAnyBase {
 template <typename Response>
 class [[nodiscard]] UnaryCall final : public CallAnyBase {
  public:
+  using ResponseType = Response;
+
   /// @brief Await and read the response
   ///
   /// `Finish` should not be called multiple times for the same RPC.

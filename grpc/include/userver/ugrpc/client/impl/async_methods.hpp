@@ -185,7 +185,7 @@ class FutureImpl final {
  public:
   explicit FutureImpl(RpcData& data) noexcept;
 
-  virtual ~FutureImpl() noexcept = default;
+  ~FutureImpl() noexcept = default;
 
   FutureImpl(FutureImpl&&) noexcept;
   FutureImpl& operator=(FutureImpl&&) noexcept;
