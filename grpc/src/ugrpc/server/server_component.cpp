@@ -8,6 +8,8 @@
 
 #include <ugrpc/server/impl/parse_config.hpp>
 
+#include <userver/testsuite/testsuite_support.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
@@ -15,12 +17,13 @@ namespace ugrpc::server {
 ServerComponent::ServerComponent(const components::ComponentConfig& config,
                                  const components::ComponentContext& context)
     : ComponentBase(config, context),
-      server_(
+      server_(context.FindComponent<components::TestsuiteSupport>().GetGrpcControl(),
           impl::ParseServerConfig(config, context),
           context.FindComponent<components::StatisticsStorage>().GetStorage(),
           context.FindComponent<components::DynamicConfig>().GetSource()),
       service_defaults_(std::make_unique<impl::ServiceDefaults>(
-          impl::ParseServiceDefaults(config["service-defaults"], context))) {}
+          impl::ParseServiceDefaults(config["service-defaults"], context))) {
+}
 
 ServerComponent::~ServerComponent() { server_.Stop(); }
 

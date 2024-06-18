@@ -74,11 +74,11 @@ class ServiceBase {
  private:
   utils::statistics::Storage statistics_storage_;
   dynamic_config::StorageMock config_storage_;
+  testsuite::GrpcControl testsuite_;
   server::Server server_;
   server::Middlewares server_middlewares_;
   client::MiddlewareFactories middleware_factories_;
   bool adding_middlewares_allowed_{true};
-  testsuite::GrpcControl testsuite_;
   std::optional<std::string> endpoint_;
   std::optional<client::ClientFactory> client_factory_;
 };

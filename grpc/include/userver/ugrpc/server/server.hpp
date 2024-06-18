@@ -29,6 +29,8 @@
 #include <userver/yaml_config/merge_schemas.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
+#include <userver/testsuite/grpc_control.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
@@ -96,7 +98,7 @@ class Server final
   using SetupHook = utils::function_ref<void(grpc::ServerBuilder&)>;
 
   /// @brief Start building the server
-  explicit Server(ServerConfig&& config,
+  explicit Server(testsuite::GrpcControl& grpcControl, ServerConfig&& config,
                   utils::statistics::Storage& statistics_storage,
                   dynamic_config::Source config_source);
 

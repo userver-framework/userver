@@ -81,7 +81,7 @@ bool AreServicesUnique(
 
 class Server::Impl final {
  public:
-  explicit Impl(ServerConfig&& config,
+  explicit Impl(testsuite::GrpcControl& grpcControl, ServerConfig&& config,
                 utils::statistics::Storage& statistics_storage,
                 dynamic_config::Source);
   ~Impl();
@@ -132,15 +132,17 @@ class Server::Impl final {
   ugrpc::impl::StatisticsStorage statistics_storage_;
   const dynamic_config::Source config_source_;
   logging::LoggerPtr access_tskv_logger_;
+  testsuite::GrpcControl& grpcControl_;
 };
 
-Server::Impl::Impl(ServerConfig&& config,
+Server::Impl::Impl(testsuite::GrpcControl& grpcControl, ServerConfig&& config,
                    utils::statistics::Storage& statistics_storage,
                    dynamic_config::Source config_source)
     : statistics_storage_(statistics_storage,
                           ugrpc::impl::StatisticsDomain::kServer),
       config_source_(config_source),
-      access_tskv_logger_(std::move(config.access_tskv_logger)) {
+      access_tskv_logger_(std::move(config.access_tskv_logger)),
+      grpcControl_(grpcControl){
   LOG_INFO() << "Configuring the gRPC server";
   ugrpc::impl::SetupNativeLogging();
   ugrpc::impl::UpdateNativeLogLevel(config.native_log_level);
@@ -160,7 +162,7 @@ Server::Impl::Impl(ServerConfig&& config,
 
   if (config.port) AddListeningPort(*config.port);
 
-  if (config.sslConf)
+  if (config.sslConf && grpcControl_.IsTlsEnabled())
   {
       AddSslConfiguration(*config.sslConf);
   }
@@ -376,10 +378,10 @@ void Server::Impl::DoStart() {
   }
 }
 
-Server::Server(ServerConfig&& config,
+Server::Server(testsuite::GrpcControl& grpcControl, ServerConfig&& config,
                utils::statistics::Storage& statistics_storage,
                dynamic_config::Source config_source)
-    : impl_(std::make_unique<Impl>(std::move(config), statistics_storage,
+    : impl_(std::make_unique<Impl>(grpcControl, std::move(config), statistics_storage,
                                    config_source)) {}
 
 Server::~Server() = default;
