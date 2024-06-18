@@ -53,6 +53,7 @@ class MiddlewareCallContext final {
 
   std::optional<dynamic_config::Snapshot> config_;
   ::google::protobuf::Message* request_;
+  bool is_called_from_handle_{false};
 };
 
 /// @ingroup userver_base_classes

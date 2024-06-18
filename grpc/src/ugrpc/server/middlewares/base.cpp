@@ -21,18 +21,19 @@ MiddlewareCallContext::MiddlewareCallContext(
       request_(request) {}
 
 void MiddlewareCallContext::Next() {
-  if (middleware_ == middleware_end_) {
-    ClearMiddlewaresResources();
-    user_call_();
-  } else {
+  if (is_called_from_handle_) {
     // It is important for non-stream calls
     if (request_) {
       (*middleware_)->CallRequestHook(*this, *request_);
     }
-    // NOLINTNEXTLINE(readability-qualified-auto)
-    const auto middleware = middleware_++;
-
-    (*middleware)->Handle(*this);
+    ++middleware_;
+  }
+  if (middleware_ == middleware_end_) {
+    ClearMiddlewaresResources();
+    user_call_();
+  } else {
+    is_called_from_handle_ = true;
+    (*middleware_)->Handle(*this);
   }
 }
 

@@ -31,10 +31,19 @@ std::string FormatLogMessage(
 
 }
 
+/// @brief RPCs kinds
+enum class CallKind {
+  kUnaryCall,
+  kRequestStream,
+  kResponseStream,
+  kBidirectionalStream,
+};
+
 /// @brief A non-typed base class for any gRPC call
 class CallAnyBase {
  public:
-  CallAnyBase(impl::CallParams&& params) : params_(std::move(params)) {}
+  CallAnyBase(impl::CallParams&& params, CallKind call_kind)
+      : params_(std::move(params)), call_kind_(call_kind) {}
 
   /// @brief Complete the RPC with an error
   ///
@@ -59,6 +68,9 @@ class CallAnyBase {
   std::string_view GetMethodName() const;
 
   tracing::Span& GetSpan() { return params_.call_span; }
+
+  /// @brief Get RPCs kind of method
+  CallKind GetCallKind() const { return call_kind_; }
 
   /// @brief Returns call context for storing per-call custom data
   ///
@@ -109,6 +121,7 @@ class CallAnyBase {
 
  private:
   impl::CallParams params_;
+  CallKind call_kind_;
   MiddlewareCallContext* middleware_call_context_{nullptr};
 };
 
@@ -374,7 +387,8 @@ class BidirectionalStream : public CallAnyBase {
 template <typename Response>
 UnaryCall<Response>::UnaryCall(impl::CallParams&& call_params,
                                impl::RawResponseWriter<Response>& stream)
-    : CallAnyBase(std::move(call_params)), stream_(stream) {}
+    : CallAnyBase(std::move(call_params), CallKind::kUnaryCall),
+      stream_(stream) {}
 
 template <typename Response>
 UnaryCall<Response>::~UnaryCall() {
@@ -420,7 +434,8 @@ bool UnaryCall<Response>::IsFinished() const {
 template <typename Request, typename Response>
 InputStream<Request, Response>::InputStream(
     impl::CallParams&& call_params, impl::RawReader<Request, Response>& stream)
-    : CallAnyBase(std::move(call_params)), stream_(stream) {}
+    : CallAnyBase(std::move(call_params), CallKind::kRequestStream),
+      stream_(stream) {}
 
 template <typename Request, typename Response>
 InputStream<Request, Response>::~InputStream() {
@@ -483,7 +498,8 @@ bool InputStream<Request, Response>::IsFinished() const {
 template <typename Response>
 OutputStream<Response>::OutputStream(impl::CallParams&& call_params,
                                      impl::RawWriter<Response>& stream)
-    : CallAnyBase(std::move(call_params)), stream_(stream) {}
+    : CallAnyBase(std::move(call_params), CallKind::kResponseStream),
+      stream_(stream) {}
 
 template <typename Response>
 OutputStream<Response>::~OutputStream() {
@@ -571,7 +587,8 @@ template <typename Request, typename Response>
 BidirectionalStream<Request, Response>::BidirectionalStream(
     impl::CallParams&& call_params,
     impl::RawReaderWriter<Request, Response>& stream)
-    : CallAnyBase(std::move(call_params)), stream_(stream) {}
+    : CallAnyBase(std::move(call_params), CallKind::kBidirectionalStream),
+      stream_(stream) {}
 
 template <typename Request, typename Response>
 BidirectionalStream<Request, Response>::~BidirectionalStream() {
@@ -655,10 +672,10 @@ void BidirectionalStream<Request, Response>::WriteAndFinish(
   grpc::WriteOptions write_options{};
 
   const auto status = grpc::Status::OK;
-  LogFinish(status);
 
   ApplyResponseHook(&response);
 
+  LogFinish(status);
   impl::WriteAndFinish(stream_, response, write_options, status, GetCallName());
 }
 
