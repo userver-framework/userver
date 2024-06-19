@@ -99,6 +99,7 @@ class HttpRequestImpl final : public request::RequestBase {
   bool IsUpgradeWebsocket() const override {
     return static_cast<bool>(upgrade_websocket_cb_);
   }
+  bool IsUpgradeHttp() const override { return is_need_to_upgrade_http_; }
   void SetUpgradeWebsocket(UpgradeCallback cb) {
     upgrade_websocket_cb_ = std::move(cb);
   }
@@ -136,9 +137,12 @@ class HttpRequestImpl final : public request::RequestBase {
 
   void SetHttpHandlerStatistics(handlers::HttpRequestStatistics&);
 
+  void SetResponseStreamId(std::uint32_t);
+
   friend class HttpRequestConstructor;
 
  private:
+  bool is_need_to_upgrade_http_{false};
   HttpMethod method_{HttpMethod::kUnknown};
   unsigned short http_major_{1};
   unsigned short http_minor_{1};
