@@ -18,7 +18,7 @@ Controller::Controller(std::string name, dynamic_config::Source config_source)
 bool Controller::IsOverloadedNow(const Sensor::Data& data,
                                  const Policy& policy) const {
   // Use on/off limits for anti-flap
-  bool overload_limit =
+  const size_t overload_limit =
       state_.is_overloaded ? policy.down_count : policy.up_count;
 
   if (data.overload_events_count <= overload_limit) {
