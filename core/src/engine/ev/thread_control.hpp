@@ -133,9 +133,6 @@ class ThreadControlBase {
 
   bool IsInEvThread() const noexcept;
 
-  std::uint8_t GetCurrentLoadPercent() const;
-  const std::string& GetName() const;
-
  protected:
   explicit ThreadControlBase(Thread& thread) noexcept;
 

@@ -77,9 +77,9 @@ Client::Client(ClientSettings settings,
   // As we want httpclient to be non-blocking, we have to shift curl's init code
   // to a fs task processor.
   engine::AsyncNoSpan(fs_task_processor_, [this, io_threads] {
-    for (auto* thread_control_ptr : thread_pool_->NextThreads(io_threads)) {
-      multis_.push_back(std::make_unique<curl::multi>(*thread_control_ptr,
-                                                      connect_rate_limiter_));
+    for (std::size_t i = 0; i < io_threads; ++i) {
+      multis_.push_back(std::make_unique<curl::multi>(
+          thread_pool_->NextThread(), connect_rate_limiter_));
     }
   }).Get();
 

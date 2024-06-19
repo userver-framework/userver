@@ -42,14 +42,6 @@ namespace {
 const auto kStatisticsName = "redis";
 const auto kSubscribeStatisticsName = "redis-pubsub";
 
-void DumpThreadPoolMetric(utils::statistics::Writer& writer,
-                          engine::ev::ThreadPool& pool) {
-  for (const auto* thread : pool.NextThreads(pool.GetSize())) {
-    writer.ValueWithLabels(thread->GetCurrentLoadPercent(),
-                           {"ev_thread_name", thread->GetName()});
-  }
-}
-
 template <typename RedisGroup>
 USERVER_NAMESPACE::secdist::RedisSettings GetSecdistSettings(
     components::Secdist& secdist_component, const RedisGroup& redis_group) {
@@ -288,8 +280,8 @@ void Redis::WriteStatistics(utils::statistics::Writer& writer) {
                            {"redis_database", name});
   }
   auto threads_writer = writer["ev_threads"]["cpu_load_percent"];
-  DumpThreadPoolMetric(threads_writer, *thread_pools_->GetRedisThreadPool());
-  DumpThreadPoolMetric(threads_writer, thread_pools_->GetSentinelThreadPool());
+  threads_writer.ValueWithLabels(*thread_pools_->GetRedisThreadPool(), {});
+  threads_writer.ValueWithLabels(thread_pools_->GetSentinelThreadPool(), {});
 }
 
 void Redis::WriteStatisticsPubsub(utils::statistics::Writer& writer) {
