@@ -59,10 +59,10 @@ const dynamic_config::Snapshot& MiddlewareCallContext::GetInitialDynamicConfig()
 }
 
 void MiddlewareBase::CallRequestHook(const MiddlewareCallContext&,
-                                     google::protobuf::Message&){};
+                                     google::protobuf::Message&) {}
 
 void MiddlewareBase::CallResponseHook(const MiddlewareCallContext&,
-                                      google::protobuf::Message&){};
+                                      google::protobuf::Message&) {}
 
 }  // namespace ugrpc::server
 

@@ -22,12 +22,12 @@ std::string ProtobufAsJsonString(const google::protobuf::Message& message,
       google::protobuf::util::MessageToJsonString(message, &as_json, options);
   if (!status.ok()) {
     std::string log =
-        fmt::format("Error getting a json string: {}", status.message().data());
+        fmt::format("Error getting a json string: {}", status.ToString());
     LOG_WARNING() << log;
     return log;
   }
   return std::string{utils::log::ToLimitedUtf8(as_json, max_msg_size)};
-};
+}
 
 }  // namespace
 
