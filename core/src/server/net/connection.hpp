@@ -3,7 +3,6 @@
 #include <memory>
 #include <string>
 
-#include <server/http/http2_request_parser.hpp>
 #include <server/http/http_request_parser.hpp>
 #include <server/http/request_handler_base.hpp>
 #include <server/net/connection_config.hpp>

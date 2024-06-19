@@ -64,7 +64,7 @@ UTEST_P(HttpRequestCookies, Test) {
       });
 
   const auto request = "GET / HTTP/1.1\r\nCookie: " + param.data + "\r\n\r\n";
-  parser->Parse(request.data(), request.size());
+  parser.Parse(request.data(), request.size());
   EXPECT_EQ(parsed, true);
 }
 
@@ -518,7 +518,7 @@ UTEST(HttpRequestCookiesHashDos, HashDos) {
 
   auto start = std::chrono::steady_clock::now();
   for (int i = 0; i < 100; i++) {
-    parser->Parse(request.data(), request.size());
+    parser.Parse(request.data(), request.size());
   }
   EXPECT_EQ(parsed, true);
   auto stop = std::chrono::steady_clock::now();

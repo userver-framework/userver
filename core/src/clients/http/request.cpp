@@ -42,19 +42,19 @@ std::string ToString(HttpMethod method) {
   return std::string{ToStringView(method)};
 }
 
-curl::easy::http_version_t ToNative(utils::http::HttpVersion version) {
+curl::easy::http_version_t ToNative(HttpVersion version) {
   switch (version) {
-    case utils::http::HttpVersion::kDefault:
+    case HttpVersion::kDefault:
       return curl::easy::http_version_t::http_version_none;
-    case utils::http::HttpVersion::k10:
+    case HttpVersion::k10:
       return curl::easy::http_version_t::http_version_1_0;
-    case utils::http::HttpVersion::k11:
+    case HttpVersion::k11:
       return curl::easy::http_version_t::http_version_1_1;
-    case utils::http::HttpVersion::k2:
+    case HttpVersion::k2:
       return curl::easy::http_version_t::http_version_2_0;
-    case utils::http::HttpVersion::k2Tls:
+    case HttpVersion::k2Tls:
       return curl::easy::http_version_t::http_version_2tls;
-    case utils::http::HttpVersion::k2PriorKnowledge:
+    case HttpVersion::k2PriorKnowledge:
       return curl::easy::http_version_t::http_version_2_prior_knowledge;
   }
 
@@ -319,11 +319,11 @@ Request Request::client_key_cert(crypto::PrivateKey pkey,
   return std::move(this->client_key_cert(std::move(pkey), std::move(cert)));
 }
 
-Request& Request::http_version(utils::http::HttpVersion version) & {
+Request& Request::http_version(HttpVersion version) & {
   pimpl_->http_version(ToNative(version));
   return *this;
 }
-Request Request::http_version(utils::http::HttpVersion version) && {
+Request Request::http_version(HttpVersion version) && {
   return std::move(this->http_version(version));
 }
 

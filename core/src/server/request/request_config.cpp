@@ -7,22 +7,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::request {
 
-namespace {
-
-utils::http::HttpVersion GetHttpVersion(const std::string& http_ver) {
-  if (http_ver == "2") {
-    return utils::http::HttpVersion::k2;
-  } else if (http_ver == "1.1") {
-    return utils::http::HttpVersion::k11;
-  }
-  throw std::runtime_error{fmt::format(
-      "Invalid http protocol version. Expected '1.1' or '2', actual: "
-      "{}",
-      http_ver)};
-}
-
-}  // namespace
-
 HttpRequestConfig Parse(const yaml_config::YamlConfig& value,
                         formats::parse::To<HttpRequestConfig>) {
   HttpRequestConfig conf{};
@@ -48,9 +32,6 @@ HttpRequestConfig Parse(const yaml_config::YamlConfig& value,
   conf.deadline_expired_status_code =
       value["deadline_expired_status_code"].As<http::HttpStatus>(
           conf.deadline_expired_status_code);
-
-  conf.http_version =
-      GetHttpVersion(value["http_version"].As<std::string>("1.1"));
 
   return conf;
 }

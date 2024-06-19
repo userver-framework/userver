@@ -25,7 +25,6 @@ class RequestBase {
 
   virtual bool IsFinal() const = 0;
   virtual bool IsUpgradeWebsocket() const = 0;
-  virtual bool IsUpgradeHttp() const = 0;
   virtual void DoUpgrade(std::unique_ptr<engine::io::RwBase>&& socket,
                          engine::io::Sockaddr&& peer_name) const = 0;
 

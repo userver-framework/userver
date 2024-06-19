@@ -6,7 +6,6 @@
 #include <userver/utest/http_client.hpp>
 #include <userver/utest/simple_server.hpp>
 #include <userver/utest/utest.hpp>
-#include <userver/utils/http_version.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -103,7 +102,7 @@ UTEST(HttpClient, WaitAnySingle) {
                            .post(http_echo_server.GetBaseUrl(), kTestData)
                            .retry(1)
                            .verify(true)
-                           .http_version(utils::http::HttpVersion::k11)
+                           .http_version(clients::http::HttpVersion::k11)
                            .timeout(utest::kMaxTestWaitTime)
                            .async_perform();
 
@@ -126,7 +125,7 @@ UTEST(HttpClient, WaitAny) {
                               .post(http_sleep_server.GetBaseUrl(), kTestData)
                               .retry(1)
                               .verify(true)
-                              .http_version(utils::http::HttpVersion::k11)
+                              .http_version(clients::http::HttpVersion::k11)
                               .timeout(utest::kMaxTestWaitTime)
                               .async_perform();
 
@@ -134,7 +133,7 @@ UTEST(HttpClient, WaitAny) {
                            .post(http_echo_server.GetBaseUrl(), kTestData)
                            .retry(1)
                            .verify(true)
-                           .http_version(utils::http::HttpVersion::k11)
+                           .http_version(clients::http::HttpVersion::k11)
                            .timeout(utest::kMaxTestWaitTime)
                            .async_perform();
 
@@ -159,7 +158,7 @@ UTEST(HttpClient, WaitAnyMany) {
                                  .post(http_echo_server.GetBaseUrl(), kTestData)
                                  .retry(1)
                                  .verify(true)
-                                 .http_version(utils::http::HttpVersion::k11)
+                                 .http_version(clients::http::HttpVersion::k11)
                                  .timeout(utest::kMaxTestWaitTime)
                                  .async_perform());
   }

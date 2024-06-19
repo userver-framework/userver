@@ -25,7 +25,6 @@
 #include <userver/logging/log.hpp>
 #include <userver/tracing/tracing.hpp>
 #include <userver/utils/async.hpp>
-#include <userver/utils/http_version.hpp>
 #include <userver/utils/userver_info.hpp>
 
 #include <userver/utest/http_client.hpp>
@@ -123,7 +122,7 @@ class RequestMethodTestData final {
     }
 
     return request.verify(true)
-        .http_version(utils::http::HttpVersion::k11)
+        .http_version(clients::http::HttpVersion::k11)
         .timeout(kTimeout);
   }
 
@@ -476,7 +475,7 @@ std::string DifferentUrlsRetry(std::string data, clients::http::Client& http,
                      .post()
                      .data(std::move(data))  // no copying
                      .retry(1)
-                     .http_version(utils::http::HttpVersion::k11)
+                     .http_version(clients::http::HttpVersion::k11)
                      .timeout(timeout);
 
   for (const auto& url : urls_list) {
@@ -503,7 +502,7 @@ std::string DifferentUrlsRetryStreamResponseBody(
                      .post()
                      .data(std::move(data))  // no copying
                      .retry(1)
-                     .http_version(utils::http::HttpVersion::k11)
+                     .http_version(clients::http::HttpVersion::k11)
                      .timeout(timeout);
 
   for (const auto& url : urls_list) {
@@ -542,7 +541,7 @@ std::string DifferentUrlsRetry(std::string data, clients::http::Client& http,
                      .post()
                      .data(std::move(data))  // no copying
                      .retry(1)
-                     .http_version(utils::http::HttpVersion::k11)
+                     .http_version(clients::http::HttpVersion::k11)
                      .timeout(timeout);
 
   for (const auto& url : urls_list) {
@@ -577,7 +576,7 @@ UTEST(HttpClient, PostEcho) {
                      .post(http_server.GetBaseUrl(), kTestData)
                      .retry(1)
                      .verify(true)
-                     .http_version(utils::http::HttpVersion::k11)
+                     .http_version(clients::http::HttpVersion::k11)
                      .timeout(kTimeout);
   {
     const auto res = request.perform();
@@ -622,7 +621,7 @@ UTEST(HttpClient, StatsOnTimeout) {
                      .post(http_server.GetBaseUrl(), kTestData)
                      .retry(kRetries)
                      .verify(true)
-                     .http_version(utils::http::HttpVersion::k11)
+                     .http_version(clients::http::HttpVersion::k11)
                      .timeout(kSmallTimeout);
 
   try {
@@ -709,7 +708,7 @@ UTEST(HttpClient, CancelRetries) {
           .post(http_server.GetBaseUrl(), kTestData)
           .retry(kRetriesCount)
           .verify(true)
-          .http_version(utils::http::HttpVersion::k11)
+          .http_version(clients::http::HttpVersion::k11)
           .timeout(kSmallTimeout)
           .async_perform());
 
@@ -767,7 +766,7 @@ UTEST(HttpClient, PostShutdownWithPendingRequest) {
         .post(http_server.GetBaseUrl(), kTestData)
         .retry(1)
         .verify(true)
-        .http_version(utils::http::HttpVersion::k11)
+        .http_version(clients::http::HttpVersion::k11)
         .timeout(kSmallTimeout)
         .async_perform()
         .Detach();  // Do not do like this in production code!
@@ -790,7 +789,7 @@ UTEST(HttpClient, PostShutdownWithPendingRequestHuge) {
         .post(http_server.GetBaseUrl(), request)
         .retry(1)
         .verify(true)
-        .http_version(utils::http::HttpVersion::k11)
+        .http_version(clients::http::HttpVersion::k11)
         .timeout(kSmallTimeout)
         .async_perform()
         .Detach();  // Do not do like this in production code!
@@ -804,7 +803,7 @@ UTEST(HttpClient, PutEcho) {
                      .put(http_server.GetBaseUrl(), kTestData)
                      .retry(1)
                      .verify(true)
-                     .http_version(utils::http::HttpVersion::k11)
+                     .http_version(clients::http::HttpVersion::k11)
                      .timeout(kTimeout);
   EXPECT_EQ(request.perform()->body(), kTestData);
   EXPECT_EQ(request.perform()->body(), kTestData);
@@ -818,7 +817,7 @@ UTEST(HttpClient, PutValidateHeader) {
                      .put(http_server.GetBaseUrl(), kTestData)
                      .retry(1)
                      .verify(true)
-                     .http_version(utils::http::HttpVersion::k11)
+                     .http_version(clients::http::HttpVersion::k11)
                      .timeout(kTimeout);
 
   EXPECT_TRUE(request.perform()->IsOk());
@@ -834,7 +833,7 @@ UTEST(HttpClient, PutShutdownWithPendingRequest) {
         .put(http_server.GetBaseUrl(), kTestData)
         .retry(1)
         .verify(true)
-        .http_version(utils::http::HttpVersion::k11)
+        .http_version(clients::http::HttpVersion::k11)
         .timeout(kSmallTimeout)
         .async_perform()
         .Detach();  // Do not do like this in production code!
@@ -857,7 +856,7 @@ UTEST(HttpClient, PutShutdownWithPendingRequestHuge) {
         .put(http_server.GetBaseUrl(), request)
         .retry(1)
         .verify(true)
-        .http_version(utils::http::HttpVersion::k11)
+        .http_version(clients::http::HttpVersion::k11)
         .timeout(kSmallTimeout)
         .async_perform()
         .Detach();  // Do not do like this in production code!
@@ -872,7 +871,7 @@ UTEST(HttpClient, PutShutdownWithHugeResponse) {
         .put(http_server.GetBaseUrl(), kTestData)
         .retry(1)
         .verify(true)
-        .http_version(utils::http::HttpVersion::k11)
+        .http_version(clients::http::HttpVersion::k11)
         .timeout(kSmallTimeout)
         .async_perform()
         .Detach();  // Do not do like this in production code!
@@ -1008,7 +1007,7 @@ UTEST(HttpClient, MethodsMixReuseRequestData) {
   auto request = http_client->CreateRequest()
                      .url(http_server.GetBaseUrl())
                      .verify(true)
-                     .http_version(utils::http::HttpVersion::k11)
+                     .http_version(clients::http::HttpVersion::k11)
                      .timeout(kTimeout)
                      .data(kTestData);
 
@@ -1040,7 +1039,7 @@ UTEST(HttpClient, Headers) {
                        .retry(1)
                        .headers(headers)
                        .verify(true)
-                       .http_version(utils::http::HttpVersion::k11)
+                       .http_version(clients::http::HttpVersion::k11)
                        .timeout(kTimeout);
 
     EXPECT_TRUE(request.perform()->IsOk());
@@ -1058,7 +1057,7 @@ UTEST(HttpClient, HeadersUserAgent) {
                      .retry(1)
                      .headers({{http::headers::kUserAgent, kTestUserAgent}})
                      .verify(true)
-                     .http_version(utils::http::HttpVersion::k11)
+                     .http_version(clients::http::HttpVersion::k11)
                      .timeout(kTimeout);
 
   auto response = request.perform();
@@ -1071,7 +1070,7 @@ UTEST(HttpClient, HeadersUserAgent) {
                  .post(http_server.GetBaseUrl(), kTestData)
                  .retry(1)
                  .verify(true)
-                 .http_version(utils::http::HttpVersion::k11)
+                 .http_version(clients::http::HttpVersion::k11)
                  .timeout(kTimeout)
                  .headers({{http::headers::kUserAgent, "Header to override"}})
                  .headers({{http::headers::kUserAgent, kTestUserAgent}})
@@ -1083,7 +1082,7 @@ UTEST(HttpClient, HeadersUserAgent) {
                  .post(http_server_no_ua.GetBaseUrl(), kTestData)
                  .retry(1)
                  .verify(true)
-                 .http_version(utils::http::HttpVersion::k11)
+                 .http_version(clients::http::HttpVersion::k11)
                  .timeout(kTimeout)
                  .perform();
   EXPECT_TRUE(response->IsOk());
@@ -1100,7 +1099,7 @@ UTEST(HttpClient, Cookies) {
                                 .retry(1)
                                 .cookies(cookies)
                                 .verify(true)
-                                .http_version(utils::http::HttpVersion::k11)
+                                .http_version(clients::http::HttpVersion::k11)
                                 .timeout(kTimeout)
                                 .perform();
       EXPECT_TRUE(response->IsOk());
@@ -1331,7 +1330,7 @@ UTEST(HttpClient, TinyTimeout) {
                                .post(http_server.GetBaseUrl(), kTestData)
                                .retry(1)
                                .verify(true)
-                               .http_version(utils::http::HttpVersion::k11)
+                               .http_version(clients::http::HttpVersion::k11)
                                .timeout(std::chrono::milliseconds(1))
                                .async_perform();
 
@@ -1355,7 +1354,7 @@ UTEST(HttpClient, UsingResolver) {
                      .post(server_url, kTestData)
                      .retry(1)
                      .verify(true)
-                     .http_version(utils::http::HttpVersion::k11)
+                     .http_version(clients::http::HttpVersion::k11)
                      .timeout(kTimeout);
 
   auto res = request.perform();
@@ -1377,7 +1376,7 @@ UTEST(HttpClient, UsingResolverWithIpv6Addrs) {
                      .post(server_url, kTestData)
                      .retry(1)
                      .verify(true)
-                     .http_version(utils::http::HttpVersion::k11)
+                     .http_version(clients::http::HttpVersion::k11)
                      .timeout(kSmallTimeout);
 
   auto res = request.perform();
@@ -1402,7 +1401,7 @@ UTEST(HttpClient, RequestReuseBasic) {
                      .post(server_url, data)
                      .retry(1)
                      .verify(true)
-                     .http_version(utils::http::HttpVersion::k11)
+                     .http_version(clients::http::HttpVersion::k11)
                      .timeout(kTimeout);
 
   std::shared_ptr<clients::http::Response> res;
@@ -1488,7 +1487,7 @@ UTEST(HttpClient, RequestReuseDifferentUrlAndTimeout) {
                      .post(http_sleep_server.GetBaseUrl(), kTestData)
                      .retry(1)
                      .verify(true)
-                     .http_version(utils::http::HttpVersion::k11)
+                     .http_version(clients::http::HttpVersion::k11)
                      .timeout(std::chrono::milliseconds(1));
 
   UEXPECT_THROW(request.perform()->status_code(), std::exception);
@@ -1555,7 +1554,7 @@ UTEST(HttpClient, TestConnectTo) {
                      .connect_to(connect_to)
                      .post("http://0.0.0.0:42", kTestData)
                      .retry(1)
-                     .http_version(utils::http::HttpVersion::k11)
+                     .http_version(clients::http::HttpVersion::k11)
                      .timeout(kTimeout);
   {
     const auto res = request.perform();
@@ -1577,7 +1576,7 @@ UTEST(HttpClient, TestUseIPv4v6) {
             .post("http://localhost:" + std::to_string(http_server.GetPort()),
                   kTestData)
             .retry(1)
-            .http_version(utils::http::HttpVersion::k11)
+            .http_version(clients::http::HttpVersion::k11)
             .timeout(kTimeout)
             .use_ipv4();
     {
@@ -1594,7 +1593,7 @@ UTEST(HttpClient, TestUseIPv4v6) {
             .post("http://localhost:" + std::to_string(http_server.GetPort()),
                   kTestData)
             .retry(1)
-            .http_version(utils::http::HttpVersion::k11)
+            .http_version(clients::http::HttpVersion::k11)
             .timeout(kTimeout)
             .use_ipv6();
 
@@ -1629,7 +1628,7 @@ UTEST(HttpClient, DigestAuth) {
                        .get(http_server.GetBaseUrl())
                        .retry(1)
                        .verify(true)
-                       .http_version(utils::http::HttpVersion::k11)
+                       .http_version(clients::http::HttpVersion::k11)
                        .timeout(kTimeout)
                        .http_auth_type(clients::http::HttpAuthType::kDigest,
                                        false, "user", "password");
@@ -1647,7 +1646,7 @@ UTEST(HttpClient, DigestAuth) {
                        .get(http_server.GetBaseUrl())
                        .retry(1)
                        .verify(true)
-                       .http_version(utils::http::HttpVersion::k11)
+                       .http_version(clients::http::HttpVersion::k11)
                        .timeout(kTimeout);
 
     const auto res = request.perform();

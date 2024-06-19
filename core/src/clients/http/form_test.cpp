@@ -4,7 +4,6 @@
 #include <userver/utest/http_client.hpp>
 #include <userver/utest/simple_server.hpp>
 #include <userver/utest/utest.hpp>
-#include <userver/utils/http_version.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -121,7 +120,7 @@ UTEST(CurlFormTest, MultipartFileWithContentType) {
                   .post(http_server.GetBaseUrl(), std::move(form))
                   .retry(1)
                   .verify(true)
-                  .http_version(utils::http::HttpVersion::k11)
+                  .http_version(clients::http::HttpVersion::k11)
                   .timeout(std::chrono::milliseconds(100))
                   .perform();
 
@@ -143,7 +142,7 @@ UTEST(CurlFormTest, FilesWithContentType) {
                   .post(http_server.GetBaseUrl(), std::move(form))
                   .retry(1)
                   .verify(true)
-                  .http_version(utils::http::HttpVersion::k11)
+                  .http_version(clients::http::HttpVersion::k11)
                   .timeout(std::chrono::milliseconds(100))
                   .perform();
 
@@ -173,7 +172,7 @@ UTEST(CurlFormTest, FormMovable) {
                   .post(http_server.GetBaseUrl(), std::move(new_form))
                   .retry(1)
                   .verify(true)
-                  .http_version(utils::http::HttpVersion::k11)
+                  .http_version(clients::http::HttpVersion::k11)
                   .timeout(std::chrono::milliseconds(100))
                   .perform();
 
