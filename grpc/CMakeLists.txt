@@ -142,6 +142,7 @@ if (USERVER_IS_THE_ROOT_PROJECT)
       # As well as paths relative to CMAKE_CURRENT_SOURCE_DIR
       tests/messages.proto
       tests/same_service_and_method_name.proto
+      tests/global_package.proto
       INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/proto
   )
 
