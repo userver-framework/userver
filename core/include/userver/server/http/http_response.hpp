@@ -22,6 +22,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
 
+class Http2ResponseWriter;
+
 namespace impl {
 
 void OutputHeader(USERVER_NAMESPACE::http::headers::HeadersString& header,
@@ -142,6 +144,8 @@ class HttpResponse final : public request::ResponseBase {
   Queue::Producer GetBodyProducer();
 
  private:
+  friend class Http2ResponseWriter;
+
   // Returns total size of the response
   std::size_t SetBodyStreamed(
       engine::io::RwBase& socket,

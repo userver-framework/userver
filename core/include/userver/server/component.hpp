@@ -73,6 +73,7 @@ namespace components {
 /// handler-defaults.set_tracing_headers | whether to set http tracing headers (X-YaTraceId, X-YaSpanId, X-RequestId) | true
 /// handler-defaults.deadline_propagation_enabled | when `false`, disables HTTP handler deadline propagation | true
 /// handler-defaults.deadline_expired_status_code | the HTTP status code to return if the request deadline expires | 498
+/// handler-defaults.http_version | the HTTP protocol version | '1.1'
 /// connection.in_buffer_size | size of the buffer to preallocate for request receive: bigger values use more RAM and less CPU | 32 * 1024
 /// connection.requests_queue_size_threshold | drop requests from handlers that allow throttling if there's more pending requests than allowed by this value | 100
 /// connection.keepalive_timeout | timeout in seconds to drop connection if there's not data received from it | 600

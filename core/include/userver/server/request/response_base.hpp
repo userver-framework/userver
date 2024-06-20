@@ -72,7 +72,8 @@ class ResponseBase {
     return ready_time_;
   }
   std::chrono::steady_clock::time_point SentTime() const { return sent_time_; }
-
+  std::optional<std::uint32_t> GetStreamId() const { return stream_id_; }
+  void SetStreamId(std::uint32_t stream_id);
   virtual void SendResponse(engine::io::RwBase& socket) = 0;
 
   virtual void SetStatusServiceUnavailable() = 0;
@@ -113,6 +114,7 @@ class ResponseBase {
   size_t bytes_sent_ = 0;
   bool is_ready_ = false;
   bool is_sent_ = false;
+  std::optional<std::uint32_t> stream_id_;
 };
 
 }  // namespace server::request

@@ -74,6 +74,9 @@ std::string HttpConnectionUriFromSocket(engine::io::Socket& sock) {
   return fmt::format("http://localhost:{}", sock.Getsockname().Port());
 }
 
+static const utils::http::HttpVersion kDefaultHttpVer =
+    utils::http::HttpVersion::k11;
+
 enum class ConnectionHeader {
   kKeepAlive,
   kClose,
@@ -81,8 +84,10 @@ enum class ConnectionHeader {
 
 clients::http::ResponseFuture CreateRequest(
     clients::http::Client& http_client, engine::io::Socket& request_socket,
+    utils::http::HttpVersion http_ver = utils::http::HttpVersion::k11,
     ConnectionHeader header = ConnectionHeader::kKeepAlive) {
   auto ret = http_client.CreateRequest()
+                 .http_version(http_ver)
                  .get(HttpConnectionUriFromSocket(request_socket))
                  .retry(1)
                  .timeout(std::chrono::milliseconds(100));
@@ -92,20 +97,34 @@ clients::http::ResponseFuture CreateRequest(
   return ret.async_perform();
 }
 
-net::ListenerConfig CreateConfig() {
+net::ListenerConfig CreateConfig(
+    utils::http::HttpVersion http_ver = utils::http::HttpVersion::k11) {
   net::ListenerConfig config;
   config.handler_defaults = server::request::HttpRequestConfig{};
+  config.handler_defaults.http_version = http_ver;
   return config;
 }
 
+const std::vector<utils::http::HttpVersion> protocols{
+    utils::http::HttpVersion::k11, utils::http::HttpVersion::k2};
+
+// The param tells which http protocol to use.
+class ServerNetConnection
+    : public testing::TestWithParam<utils::http::HttpVersion> {};
+
 }  // namespace
 
-UTEST(ServerNetConnection, EarlyCancel) {
-  net::ListenerConfig config = CreateConfig();
+INSTANTIATE_UTEST_SUITE_P(/*no prefix*/, ServerNetConnection,
+                          ::testing::Values(utils::http::HttpVersion::k11,
+                                            utils::http::HttpVersion::k2));
+
+UTEST_P(ServerNetConnection, EarlyCancel) {
+  const auto http_ver = GetParam();
+  net::ListenerConfig config = CreateConfig(http_ver);
   auto request_socket = net::CreateSocket(config);
 
   auto http_client_ptr = utest::CreateHttpClient();
-  auto request = CreateRequest(*http_client_ptr, request_socket,
+  auto request = CreateRequest(*http_client_ptr, request_socket, http_ver,
                                ConnectionHeader::kKeepAlive);
 
   auto peer = request_socket.Accept(Deadline::FromDuration(kAcceptTimeout));
@@ -134,12 +153,13 @@ UTEST(ServerNetConnection, EarlyCancel) {
          "was received and processed). Too bad: the test tested nothing";
 }
 
-UTEST(ServerNetConnection, EarlyTimeout) {
-  net::ListenerConfig config = CreateConfig();
+UTEST_P(ServerNetConnection, EarlyTimeout) {
+  const auto http_ver = GetParam();
+  net::ListenerConfig config = CreateConfig(http_ver);
   auto request_socket = net::CreateSocket(config);
 
   auto http_client_ptr = utest::CreateHttpClient();
-  auto res = CreateRequest(*http_client_ptr, request_socket,
+  auto res = CreateRequest(*http_client_ptr, request_socket, http_ver,
                            ConnectionHeader::kKeepAlive);
 
   engine::io::Socket peer =
@@ -163,12 +183,13 @@ UTEST(ServerNetConnection, EarlyTimeout) {
   EXPECT_TRUE(task.IsFinished());
 }
 
-UTEST(ServerNetConnection, TimeoutWithTaskCancellation) {
-  net::ListenerConfig config = CreateConfig();
+UTEST_P(ServerNetConnection, TimeoutWithTaskCancellation) {
+  const auto http_ver = GetParam();
+  net::ListenerConfig config = CreateConfig(http_ver);
   auto request_socket = net::CreateSocket(config);
 
   auto http_client_ptr = utest::CreateHttpClient();
-  auto res = CreateRequest(*http_client_ptr, request_socket,
+  auto res = CreateRequest(*http_client_ptr, request_socket, http_ver,
                            ConnectionHeader::kKeepAlive);
 
   engine::io::Socket peer =
@@ -193,13 +214,14 @@ UTEST(ServerNetConnection, TimeoutWithTaskCancellation) {
   UEXPECT_THROW(res.Get(), clients::http::TimeoutException);
 }
 
-UTEST(ServerNetConnection, EarlyTeardown) {
-  net::ListenerConfig config = CreateConfig();
+UTEST_P(ServerNetConnection, EarlyTeardown) {
+  const auto http_ver = GetParam();
+  net::ListenerConfig config = CreateConfig(http_ver);
   auto request_socket = net::CreateSocket(config);
 
   auto http_client_ptr = utest::CreateHttpClient();
-  auto res =
-      CreateRequest(*http_client_ptr, request_socket, ConnectionHeader::kClose);
+  auto res = CreateRequest(*http_client_ptr, request_socket, http_ver,
+                           ConnectionHeader::kClose);
 
   engine::io::Socket peer =
       request_socket.Accept(Deadline::FromDuration(kAcceptTimeout));
@@ -212,13 +234,13 @@ UTEST(ServerNetConnection, EarlyTeardown) {
   http_client_ptr.reset();
 }
 
-UTEST(ServerNetConnection, RemoteClosed) {
+UTEST_P(ServerNetConnection, RemoteClosed) {
   net::ListenerConfig config = CreateConfig();
   auto request_socket = net::CreateSocket(config);
 
   auto http_client_ptr = utest::CreateHttpClient();
-  auto request =
-      CreateRequest(*http_client_ptr, request_socket, ConnectionHeader::kClose);
+  auto request = CreateRequest(*http_client_ptr, request_socket,
+                               kDefaultHttpVer, ConnectionHeader::kClose);
 
   auto peer = request_socket.Accept(Deadline::FromDuration(kAcceptTimeout));
   ASSERT_TRUE(peer.IsValid());
@@ -241,7 +263,7 @@ UTEST(ServerNetConnection, RemoteClosed) {
   EXPECT_TRUE(task.IsFinished());
 }
 
-UTEST(ServerNetConnection, KeepAlive) {
+UTEST_P(ServerNetConnection, KeepAlive) {
   net::ListenerConfig config = CreateConfig();
   auto request_socket = net::CreateSocket(config);
 
@@ -249,7 +271,7 @@ UTEST(ServerNetConnection, KeepAlive) {
   http_client_ptr->SetMaxHostConnections(1);
 
   auto request = CreateRequest(*http_client_ptr, request_socket,
-                               ConnectionHeader::kKeepAlive);
+                               kDefaultHttpVer, ConnectionHeader::kKeepAlive);
 
   auto peer = request_socket.Accept(Deadline::FromDuration(kAcceptTimeout));
   ASSERT_TRUE(peer.IsValid());
@@ -268,13 +290,13 @@ UTEST(ServerNetConnection, KeepAlive) {
   EXPECT_EQ(request.Get()->status_code(), 404);
 
   EXPECT_EQ(handler.asyncs_finished, 1);
-  request = CreateRequest(*http_client_ptr, request_socket,
+  request = CreateRequest(*http_client_ptr, request_socket, kDefaultHttpVer,
                           ConnectionHeader::kKeepAlive);
   EXPECT_EQ(request.Get()->status_code(), 404);
   EXPECT_EQ(handler.asyncs_finished, 2);
 }
 
-UTEST(ServerNetConnection, CancelMultipleInFlight) {
+UTEST_P(ServerNetConnection, CancelMultipleInFlight) {
   constexpr std::size_t kInFlightRequests = 10;
   constexpr std::size_t kMaxAttempts = 10;
   net::ListenerConfig config = CreateConfig();

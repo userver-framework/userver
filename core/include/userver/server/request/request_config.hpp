@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include <userver/server/http/http_status.hpp>
+#include <userver/utils/http_version.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -19,6 +20,7 @@ struct HttpRequestConfig {
   bool set_tracing_headers = true;
   bool deadline_propagation_enabled = true;
   http::HttpStatus deadline_expired_status_code{498};
+  utils::http::HttpVersion http_version = utils::http::HttpVersion::k11;
 };
 
 HttpRequestConfig Parse(const yaml_config::YamlConfig& value,

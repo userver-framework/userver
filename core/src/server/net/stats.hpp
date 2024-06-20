@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <cstddef>
+#include <optional>
 #include <vector>
 
 #include <userver/concurrent/striped_counter.hpp>
@@ -10,8 +11,17 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::net {
 
+struct Http2Stats {
+  std::atomic<std::size_t> streams_count_{0};
+  std::atomic<std::size_t> streams_parse_error_{0};
+  std::atomic<std::size_t> streams_close_{0};
+  std::atomic<std::size_t> reset_streams_{0};
+  std::atomic<std::size_t> goaway_streams_{0};
+};
+
 struct ParserStats {
   concurrent::StripedCounter parsing_request_count;
+  Http2Stats http2_stats;
 };
 
 struct ParserStatsAggregation final {

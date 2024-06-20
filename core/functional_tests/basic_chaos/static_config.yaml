@@ -67,6 +67,7 @@ components_manager:
             listener-monitor:
                 port: 8188
                 task_processor: main-task-processor
+
         logging:
             fs-task-processor: fs-task-processor
             loggers:

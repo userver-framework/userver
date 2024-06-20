@@ -89,6 +89,11 @@ void ResponseBase::SetSent(std::size_t bytes_sent,
   guard_.reset();
 }
 
+void ResponseBase::SetStreamId(std::uint32_t stream_id) {
+  UASSERT(!stream_id_.has_value());
+  stream_id_.emplace(stream_id);
+}
+
 }  // namespace server::request
 
 USERVER_NAMESPACE_END

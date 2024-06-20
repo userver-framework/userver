@@ -4,6 +4,7 @@
 #include <system_error>
 #include <vector>
 
+#include <server/http/http_writer.hpp>
 #include <server/http/request_handler_base.hpp>
 
 #include <userver/engine/async.hpp>
@@ -16,6 +17,7 @@
 #include <userver/server/request/request_config.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
+#include <userver/utils/http_version.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -78,13 +80,19 @@ void Connection::ListenForRequests() noexcept {
 
   try {
     std::vector<RequestBasePtr> pending_requests;
-
-    http::HttpRequestParser request_parser(
-        request_handler_.GetHandlerInfoIndex(), handler_defaults_config_,
-        [&pending_requests](RequestBasePtr&& request_ptr) {
-          pending_requests.push_back(std::move(request_ptr));
-        },
-        stats_->parser_stats, data_accounter_);
+    const auto on_req_cb = [&pending_requests](RequestBasePtr&& request_ptr) {
+      pending_requests.push_back(std::move(request_ptr));
+    };
+    if (handler_defaults_config_.http_version == utils::http::HttpVersion::k2) {
+      request_parser_ = std::make_unique<http::Http2RequestParser>(
+          request_handler_.GetHandlerInfoIndex(), handler_defaults_config_,
+          on_req_cb, stats_->parser_stats, data_accounter_);
+    } else {
+      request_parser_ = std::make_unique<http::HttpRequestParser>(
+          request_handler_.GetHandlerInfoIndex(), handler_defaults_config_,
+          on_req_cb, stats_->parser_stats, data_accounter_);
+    }
+    UASSERT(request_parser_);
 
     pending_data_.resize(config_.in_buffer_size);
     while (is_accepting_requests_) {
@@ -128,7 +136,7 @@ void Connection::ListenForRequests() noexcept {
       }
 
       bool should_stop_accepting_requests = false;
-      if (!request_parser.Parse(pending_data_.data(), pending_data_size_)) {
+      if (!request_parser_->Parse(pending_data_.data(), pending_data_size_)) {
         LOG_DEBUG() << "Malformed request from " << Getpeername() << " on fd "
                     << Fd();
 
@@ -271,13 +279,30 @@ engine::TaskWithResult<void> Connection::HandleQueueItem(
 }
 
 void Connection::SendResponse(request::RequestBase& request) {
+  if (auto s = request.UpgradeHttp(); s.has_value()) {
+    const auto send =
+        (*peer_socket_).WriteAll(s->data(), s->size(), engine::Deadline{});
+    LOG_ERROR() << fmt::format("___sent = {}, vs request = {}", send,
+                               s->size());
+    return;
+  }
   auto& response = request.GetResponse();
   UASSERT(!response.IsSent());
   request.SetStartSendResponseTime();
   if (is_response_chain_valid_ && peer_socket_) {
     try {
       // Might be a stream reading or a fully constructed response
-      response.SendResponse(*peer_socket_);
+      // TODO: There is only one inheritor of the request::ResponseBase
+      UASSERT(dynamic_cast<http::HttpResponse*>(&response));
+      if (handler_defaults_config_.http_version ==
+          utils::http::HttpVersion::k2) {
+        auto* r = dynamic_cast<http::HttpResponse*>(&response);
+        http::WriteHttp2ResponseToSocket(
+            *peer_socket_, *r,
+            *dynamic_cast<http::Http2RequestParser*>(request_parser_.get()));
+      } else {
+        response.SendResponse(*peer_socket_);
+      }
     } catch (const engine::io::IoSystemError& ex) {
       // working with raw values because std::errc compares error_category
       // default_error_category() fixed only in GCC 9.1 (PR libstdc++/60555)

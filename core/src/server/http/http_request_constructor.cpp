@@ -56,6 +56,11 @@ HttpRequestConstructor::HttpRequestConstructor(
 
 HttpRequestConstructor::~HttpRequestConstructor() = default;
 
+void HttpRequestConstructor::SetUpgradeHttpResponse(
+    std::string upgrade_http_response) {
+  request_->upgrade_http_response = std::move(upgrade_http_response);
+}
+
 void HttpRequestConstructor::SetMethod(HttpMethod method) {
   request_->method_ = method;
 }
@@ -171,10 +176,18 @@ void HttpRequestConstructor::AppendBody(const char* data, size_t size) {
 }
 
 void HttpRequestConstructor::SetIsFinal(bool is_final) {
+  UASSERT(request_);
   request_->is_final_ = is_final;
 }
 
+void HttpRequestConstructor::SetResponseStreamId(std::uint32_t stream_id) {
+  request_->SetResponseStreamId(stream_id);
+}
+
 std::shared_ptr<request::RequestBase> HttpRequestConstructor::Finalize() {
+  if (request_->UpgradeHttp().has_value()) {
+    return std::move(request_);
+  }
   LOG_TRACE() << "method=" << request_->GetMethodStr();
 
   FinalizeImpl();
