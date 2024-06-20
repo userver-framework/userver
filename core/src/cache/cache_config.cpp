@@ -48,6 +48,8 @@ constexpr std::string_view kFirstUpdateType = "first-update-type";
 constexpr std::string_view kAlertOnFailingToUpdateTimes =
     "alert-on-failing-to-update-times";
 
+constexpr std::string_view kSafeDataLifetime = "safe-data-lifetime";
+
 constexpr auto kDefaultCleanupInterval = std::chrono::seconds{10};
 
 std::chrono::milliseconds GetDefaultJitter(std::chrono::milliseconds interval) {
@@ -151,6 +153,7 @@ Config::Config(const yaml_config::YamlConfig& config,
       is_strong_period(config[kIsStrongPeriod].As<bool>(false)),
       failed_updates_before_expiration(config[kFailedUpdatesBeforeExpiration]
                                            .As<std::optional<std::uint64_t>>()),
+      is_safe_data_lifetime(config[kSafeDataLifetime].As<bool>(true)),
       first_update_mode(
           config[dump::kDump][kFirstUpdateMode].As<FirstUpdateMode>(
               FirstUpdateMode::kSkip)),

@@ -80,6 +80,13 @@ properties:
             takes priority over static
         defaultDescription: 0
         minimum: 0
+    safe-data-lifetime:
+        type: boolean
+        description: |
+            enables awaiting data destructors in the component's destructor.
+            Can be set to `false` if the stored data does not refer to the component
+            and its dependencies.
+        defaultDescription: true
     dump:
         type: object
         description: Manages cache behavior after dump load

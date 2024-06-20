@@ -75,6 +75,7 @@ struct Config final {
   std::chrono::milliseconds cleanup_interval{};
   bool is_strong_period{};
   std::optional<std::uint64_t> failed_updates_before_expiration;
+  bool is_safe_data_lifetime{};
 
   FirstUpdateMode first_update_mode{};
   FirstUpdateType first_update_type{};

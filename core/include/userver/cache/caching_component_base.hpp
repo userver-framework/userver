@@ -71,6 +71,7 @@ namespace components {
 /// failed-updates-before-expiration | the number of consecutive failed updates for data expiration | --
 /// has-pre-assign-check | enables the check before changing the value in the cache, by default it is the check that the new value is not empty | false
 /// alert-on-failing-to-update-times | fire an alert if the cache update failed specified amount of times in a row. If zero - alerts are disabled. Value from dynamic config takes priority over static | 0
+/// safe-data-lifetime | enables awaiting data destructors in the component's destructor. Can be set to `false` if the stored data does not refer to the component and its dependencies. | true
 /// dump.* | Manages cache behavior after dump load | -
 /// dump.first-update-mode | Behavior of update after successful load from dump. See info on modes below | skip
 /// dump.first-update-type | Update type after successful load from dump (`full`, `incremental` or `incremental-then-async-full`) | full
@@ -197,6 +198,9 @@ class CachingComponentBase : public ComponentBase,
   void GetAndWrite(dump::Writer& writer) const final;
   void ReadAndSet(dump::Reader& reader) final;
 
+  std::shared_ptr<const T> TransformNewValue(
+      std::unique_ptr<const T> new_value);
+
   rcu::Variable<std::shared_ptr<const T>> cache_;
   concurrent::AsyncEventChannel<const std::shared_ptr<const T>&> event_channel_;
   utils::impl::WaitTokenStorage wait_token_storage_;
@@ -257,22 +261,8 @@ utils::SharedReadablePtr<T> CachingComponentBase<T>::GetUnsafe() const {
 
 template <typename T>
 void CachingComponentBase<T>::Set(std::unique_ptr<const T> value_ptr) {
-  auto deleter = [token = wait_token_storage_.GetToken(),
-                  &cache_task_processor =
-                      GetCacheTaskProcessor()](const T* raw_ptr) mutable {
-    std::unique_ptr<const T> ptr{raw_ptr};
-
-    // Kill garbage asynchronously as T::~T() might be very slow
-    engine::CriticalAsyncNoSpan(cache_task_processor, [ptr = std::move(ptr),
-                                                       token = std::move(
-                                                           token)]() mutable {
-      // Make sure *ptr is deleted before token is destroyed
-      ptr.reset();
-    }).Detach();
-  };
-
-  const std::shared_ptr<const T> new_value(value_ptr.release(),
-                                           std::move(deleter));
+  const std::shared_ptr<const T> new_value =
+      TransformNewValue(std::move(value_ptr));
 
   if (HasPreAssignCheck()) {
     auto old_value = cache_.Read();
@@ -363,7 +353,19 @@ namespace impl {
 
 yaml_config::Schema GetCachingComponentBaseSchema();
 
+template <typename T, typename Deleter>
+auto MakeAsyncDeleter(engine::TaskProcessor& task_processor, Deleter deleter) {
+  return [&task_processor,
+          deleter = std::move(deleter)](const T* raw_ptr) mutable {
+    std::unique_ptr<const T, Deleter> ptr(raw_ptr, std::move(deleter));
+
+    engine::CriticalAsyncNoSpan(task_processor, [ptr =
+                                                     std::move(ptr)]() mutable {
+    }).Detach();
+  };
 }
+
+}  // namespace impl
 
 template <typename T>
 yaml_config::Schema CachingComponentBase<T>::GetStaticConfigSchema() {
@@ -384,6 +386,29 @@ void CachingComponentBase<T>::PreAssignCheck(
     if (!new_value_ptr || std::size(*new_value_ptr) == 0) {
       throw cache::EmptyDataError(Name());
     }
+  }
+}
+
+template <typename T>
+std::shared_ptr<const T> CachingComponentBase<T>::TransformNewValue(
+    std::unique_ptr<const T> new_value) {
+  // Kill garbage asynchronously as T::~T() might be very slow
+  if (IsSafeDataLifetime()) {
+    // Use token only if `safe-data-lifetime` is true
+    auto deleter_with_token =
+        [token = wait_token_storage_.GetToken()](const T* raw_ptr) {
+          // Make sure *raw_ptr is deleted before token is destroyed
+          std::default_delete<const T>{}(raw_ptr);
+        };
+    return std::shared_ptr<const T>(
+        new_value.release(),
+        impl::MakeAsyncDeleter<T>(GetCacheTaskProcessor(),
+                                  std::move(deleter_with_token)));
+  } else {
+    return std::shared_ptr<const T>(
+        new_value.release(),
+        impl::MakeAsyncDeleter<T>(GetCacheTaskProcessor(),
+                                  std::default_delete<const T>{}));
   }
 }
 

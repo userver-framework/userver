@@ -85,6 +85,10 @@ class CacheUpdateTrait {
   // For internal use only.
   bool HasPreAssignCheck() const;
 
+  // Returns value of the flag safe-data-lifetime.
+  // For internal use only.
+  bool IsSafeDataLifetime() const;
+
   // For internal use only.
   void SetDataSizeStatistic(std::size_t size) noexcept;
 

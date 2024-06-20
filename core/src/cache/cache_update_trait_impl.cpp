@@ -375,6 +375,10 @@ bool CacheUpdateTrait::Impl::HasPreAssignCheck() const {
   return static_config_.has_pre_assign_check;
 }
 
+bool CacheUpdateTrait::Impl::IsSafeDataLifetime() const {
+  return static_config_.is_safe_data_lifetime;
+}
+
 void CacheUpdateTrait::Impl::SetDataSizeStatistic(std::size_t size) noexcept {
   statistics_.documents_current_count = size;
 }
