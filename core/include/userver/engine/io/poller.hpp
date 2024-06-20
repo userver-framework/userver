@@ -1,14 +1,14 @@
 #pragma once
 
-#include <atomic>
-#include <mutex>
+/// @file userver/engine/io/poller.hpp
+/// @brief @copybrief engine::io::Poller
+
 #include <unordered_map>
 
-#include <engine/ev/thread_control.hpp>
-#include <engine/ev/watcher.hpp>
 #include <userver/concurrent/mpsc_queue.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/io/common.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/flags.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -48,6 +48,7 @@ class Poller final {
   };
 
   Poller();
+  ~Poller();
 
   Poller(const Poller&) = delete;
   Poller(Poller&&) = delete;
@@ -74,31 +75,25 @@ class Poller final {
   /// Emits an event for an invalid fd with empty event types set.
   void Interrupt();
 
+  /// Clears all the watched events and file descriptors
+  void Reset();
+
  private:
   explicit Poller(
       const std::shared_ptr<USERVER_NAMESPACE::concurrent::MpscQueue<Event>>&);
 
-  struct IoWatcher {
-    explicit IoWatcher(Poller&);
+  struct IoWatcher;
 
-    IoWatcher(const IoWatcher&) = delete;
-    IoWatcher(IoWatcher&&) = delete;
-
-    Poller& poller;
-    std::atomic<size_t> coro_epoch;
-    size_t ev_epoch{0};
-    ev::Watcher<ev_io> ev_watcher;
-    utils::AtomicFlags<Event::Type> awaited_events;
-  };
+  void RemoveImpl(IoWatcher& watcher);
 
   template <typename EventSource>
   Status EventsFilter(EventSource, Event&);
 
-  static void IoEventCb(struct ev_loop*, ev_io*, int) noexcept;
-
   USERVER_NAMESPACE::concurrent::MpscQueue<Event>::Consumer event_consumer_;
   USERVER_NAMESPACE::concurrent::MpscQueue<Event>::Producer event_producer_;
-  std::unordered_map<int, IoWatcher> watchers_;
+  utils::FastPimpl<std::unordered_map<int, IoWatcher>, 56, alignof(double),
+                   false>
+      watchers_;
 };
 
 }  // namespace engine::io
