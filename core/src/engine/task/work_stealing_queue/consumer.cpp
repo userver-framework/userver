@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <memory>
+#include "userver/utils/assert.hpp"
 
 #ifdef __linux__
 #include <linux/futex.h>
@@ -57,15 +58,24 @@ void Consumer::Push(impl::TaskContext* ctx) {
     owner_.background_queue_.Push(background_queue_token_, ctx);
     return;
   }
+  const std::size_t surplus_queue_size = local_queue_surplus_.GetSize();
+  if (surplus_queue_size) {
+    if (!local_queue_surplus_.TryPush(ctx)) {
+      EmptySurplusQueue(ctx);
+    }
+    return;
+  }
   if (!local_queue_.TryPush(ctx)) {
-    MoveTasksToGlobalQueue(ctx);
+    // local_queue_surplus_ must be empty
+    bool ok = local_queue_surplus_.TryPush(ctx);
+    UASSERT(ok);
   }
 }
 
 impl::TaskContext* Consumer::PopBlocking() { return DoPop(); }
 
 std::size_t Consumer::GetLocalQueueSize() const noexcept {
-  return local_queue_.GetSize();
+  return local_queue_.GetSize() + local_queue_surplus_.GetSize();
 }
 
 WorkStealingTaskQueue* Consumer::GetOwner() const noexcept { return &owner_; }
@@ -76,13 +86,22 @@ bool Consumer::IsStopped() const noexcept {
   return consumers_manager_.IsStopped();
 }
 
-void Consumer::MoveTasksToGlobalQueue(impl::TaskContext* extra) {
-  std::size_t size = local_queue_.TryPopBulk(
-      utils::span(steal_buffer_.data(), kConsumerStealBufferSize - 1));
-  steal_buffer_[size] = extra;
-  size++;
-  owner_.global_queue_.PushBulk(global_queue_token_,
-                                utils::span(steal_buffer_.data(), size));
+void Consumer::EmptySurplusQueue(impl::TaskContext* extra) {
+  // Pop all tasks from surplus queue
+  std::size_t free_tasks_count = local_queue_surplus_.TryPopBulk(
+      utils::span(steal_buffer_.data(), kConsumerStealBufferSize));
+  steal_buffer_[free_tasks_count++] = extra;
+
+  // First, we fill the local queue with the maximum number of tasks
+  const size_t pushed_shift = local_queue_.PushBulk(
+      utils::span(steal_buffer_.data(), free_tasks_count));
+
+  // Second, we push the remaining tasks to the global queue
+  if (pushed_shift < free_tasks_count) {
+    owner_.global_queue_.PushBulk(
+        global_queue_token_, utils::span(steal_buffer_.data() + pushed_shift,
+                                         free_tasks_count - pushed_shift));
+  }
 }
 
 impl::TaskContext* Consumer::StealFromAnotherConsumerOrGlobalQueue(
@@ -133,7 +152,11 @@ impl::TaskContext* Consumer::StealFromAnotherConsumerOrGlobalQueue(
 }
 
 std::size_t Consumer::Steal(utils::span<impl::TaskContext*> buffer) {
-  return local_queue_.TryPopBulk(buffer);
+  const size_t stealed_count = local_queue_.TryPopBulk(buffer);
+  if (stealed_count) {
+    return stealed_count;
+  }
+  return local_queue_surplus_.TryPopBulk(buffer);
 }
 
 impl::TaskContext* Consumer::TryPopFromOwnerQueue(const bool is_global) {
@@ -174,7 +197,12 @@ impl::TaskContext* Consumer::ProbabilisticPopFromOwnerQueues() {
 }
 
 impl::TaskContext* Consumer::TryPop() {
-  impl::TaskContext* context = TryPopFromOwnerQueue(/* is_global */ true);
+  impl::TaskContext* context = TryPopLocal();
+  if (context) {
+    return context;
+  }
+
+  context = TryPopFromOwnerQueue(/* is_global */ true);
   if (context) {
     return context;
   }
@@ -202,7 +230,13 @@ impl::TaskContext* Consumer::TryPop() {
 }
 
 impl::TaskContext* Consumer::TryPopBeforeSleep() {
-  impl::TaskContext* context = StealFromAnotherConsumerOrGlobalQueue(1, 1);
+  impl::TaskContext* context = TryPopLocal();
+
+  if (context) {
+    return context;
+  }
+
+  context = StealFromAnotherConsumerOrGlobalQueue(1, 1);
   if (context) {
     return context;
   }
@@ -215,14 +249,28 @@ impl::TaskContext* Consumer::TryPopBeforeSleep() {
   return nullptr;
 }
 
-impl::TaskContext* Consumer::DoPop() {
-  ++steps_count_;
-  impl::TaskContext* context = ProbabilisticPopFromOwnerQueues();
+impl::TaskContext* Consumer::TryPopLocal() {
+  impl::TaskContext* context = local_queue_.TryPop();
   if (context) {
     return context;
   }
+  const size_t surplus_tasks_count = local_queue_surplus_.TryPopBulk(
+      utils::span(steal_buffer_.data(), kConsumerStealBufferSize));
+  if (surplus_tasks_count) {
+    context = steal_buffer_[0];
+    if (surplus_tasks_count > 1) {
+      // In this case, the local queue is empty and `kConsumerStealBufferSize`
+      // is less than its capacity
+      local_queue_.PushBulk(
+          utils::span(steal_buffer_.data() + 1, surplus_tasks_count - 1));
+    }
+  }
+  return context;
+}
 
-  context = local_queue_.TryPop();
+impl::TaskContext* Consumer::DoPop() {
+  ++steps_count_;
+  impl::TaskContext* context = ProbabilisticPopFromOwnerQueues();
   if (context) {
     return context;
   }

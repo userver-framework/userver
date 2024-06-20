@@ -39,7 +39,7 @@ class Consumer final {
 
   bool IsStopped() const noexcept;
 
-  void MoveTasksToGlobalQueue(impl::TaskContext* extra);
+  void EmptySurplusQueue(impl::TaskContext* extra);
 
   impl::TaskContext* StealFromAnotherConsumerOrGlobalQueue(
       const std::size_t attempts, std::size_t to_steal);
@@ -54,6 +54,8 @@ class Consumer final {
 
   impl::TaskContext* TryPopBeforeSleep();
 
+  impl::TaskContext* TryPopLocal();
+
   impl::TaskContext* DoPop();
 
   void Sleep(const std::int32_t old_sleep_counter);
@@ -67,11 +69,14 @@ class Consumer final {
   static constexpr std::size_t kConsumerStealBufferSize = 512;
 
   LocalQueue<impl::TaskContext, kLocalQueueSize> local_queue_{};
+  LocalQueue<impl::TaskContext, kConsumerStealBufferSize>
+      local_queue_surplus_{};
   WorkStealingTaskQueue& owner_;
   ConsumersManager& consumers_manager_;
   const std::size_t steal_attempts_count_;
   std::size_t inner_index_{0};
-  std::array<impl::TaskContext*, kConsumerStealBufferSize> steal_buffer_{};
+  // kConsumerStealBufferSize + 1 for extra task in push
+  std::array<impl::TaskContext*, kConsumerStealBufferSize + 1> steal_buffer_{};
   std::minstd_rand rnd_;
   std::size_t steps_count_{0};
   std::atomic<std::int32_t> sleep_counter_{0};

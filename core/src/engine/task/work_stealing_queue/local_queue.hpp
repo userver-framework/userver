@@ -22,17 +22,27 @@ class LocalQueue {
                  std::ptrdiff_t{0}));
   }
 
-  // Use only when queue empty
-  void PushBulk(utils::span<T*> buffer) {
-    const std::size_t curr_tail = tail_.load();
-    UASSERT(tail_.load() - head_.load() == 0);
-    UASSERT(buffer.size() <= Capacity);
+  // For producer only
+  std::size_t FreeSpace() const noexcept { return Capacity - GetSize(); }
 
-    for (std::size_t i = 0; i < buffer.size(); ++i) {
+  // Returns the number of elements added
+  // Adds elements from the beginning of `buffer`
+  // TODO TryPush?
+  size_t PushBulk(utils::span<T*> buffer) {
+    const std::size_t curr_tail = tail_.load();
+    const size_t curr_head = head_.load();
+    const size_t to_push_count = std::min(
+        buffer.size(),
+        Capacity - static_cast<std::size_t>(std::max(
+                       static_cast<std::ptrdiff_t>(curr_tail - curr_head),
+                       std::ptrdiff_t{0})));
+
+    for (std::size_t i = 0; i < to_push_count; ++i) {
       ring_buffer_[GetIndex(curr_tail + i)].store(buffer[i]);
     }
 
-    tail_.store(curr_tail + buffer.size());
+    tail_.store(curr_tail + to_push_count);
+    return to_push_count;
   }
 
   bool TryPush(T* element) {
