@@ -321,7 +321,7 @@ userver framework.
 If there a need to update the userver in the VM do the following:
 ```
 bash
-sudo apt remove userver-*
+sudo apt remove libuserver-*
 
 cd /app/userver
 sudo git checkout develop
@@ -511,6 +511,9 @@ If there's a strong need to build \b only the userver and run its tests, then se
 
 You can install userver globally and then use it from anywhere with `find_package`.
 Make sure to use the same build mode as for your service, otherwise subtle linkage issues will arise.
+
+### Install with cmake --install
+
 To install userver build it with `USERVER_INSTALL=ON` flags in `Debug` and `Release` modes:
 ```
 cmake -S./ -B./build_debug \
@@ -526,6 +529,22 @@ cmake --build build_debug/
 cmake --build build_release/
 cmake --install build_debug/
 cmake --install build_release/
+```
+
+### Build and install Debian package
+
+To build `libuserver-all-dev.deb` package run the following shell command:
+
+```
+docker run --rm -it --network ip6net -v $(pwd):/home/user -w /home/user/userver \
+   --entrypoint bash ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest ./scripts/docker/run_as_user.sh \
+   ./scripts/build_and_install_all.sh
+```
+
+And install the package with the following:
+
+```
+sudo dpkg -i ./libuserver-all-dev*.deb
 ```
 
 ### Use userver in your projects
