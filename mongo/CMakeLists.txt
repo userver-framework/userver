@@ -54,9 +54,6 @@ target_include_directories(
   PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
-target_include_directories (${PROJECT_NAME} SYSTEM PRIVATE
-  $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
-)
 
 _userver_directory_install(COMPONENT mongo
   DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include
