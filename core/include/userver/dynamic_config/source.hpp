@@ -5,7 +5,6 @@
 
 #include <optional>
 #include <string_view>
-#include <tuple>
 #include <utility>
 
 #include <userver/concurrent/async_event_source.hpp>
@@ -200,10 +199,8 @@ class Source final {
       Class* obj, std::string_view name,
       void (Class::*func)(const dynamic_config::Snapshot& config),
       const Keys&... keys) {
-    auto wrapper = [obj, func, keys = std::make_tuple(std::cref(keys)...)](
-                       const Diff& diff) {
-      const auto args = std::tuple_cat(std::tie(diff), keys);
-      if (!std::apply(HasChanged<Keys...>, args)) return;
+    auto wrapper = [obj, func, &keys...](const Diff& diff) {
+      if (!HasChanged(diff, keys...)) return;
       (obj->*func)(diff.current);
     };
     return DoUpdateAndListen(concurrent::FunctionId(obj), name,
