@@ -2,11 +2,10 @@
 
 #include <atomic>
 #include <chrono>
-#include <tuple>
 #include <type_traits>
-#include <vector>
 
 #include <userver/utils/datetime.hpp>
+#include <userver/utils/fixed_array.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 #include <userver/utils/statistics/recentperiod_detail.hpp>
 
@@ -46,12 +45,12 @@ class RecentPeriod {
       : epoch_duration_(epoch_duration),
         max_duration_(max_duration),
         epoch_index_(0),
-        items_(get_size_for_duration(epoch_duration, max_duration)) {}
+        items_(GetSizeForDuration(epoch_duration, max_duration)) {}
 
-  Counter& GetCurrentCounter() { return items_[get_current_index()].counter; }
+  Counter& GetCurrentCounter() { return items_[GetCurrentIndex()].counter; }
 
   Counter& GetPreviousCounter(int epochs_ago) {
-    return items_[get_previous_index(epochs_ago)].counter;
+    return items_[GetPreviousIndex(epochs_ago)].counter;
   }
 
   /** \brief Aggregates counters within given time range
@@ -73,12 +72,12 @@ class RecentPeriod {
 
     Result result{};
     Duration now = Timer::now().time_since_epoch();
-    Duration current_epoch = get_epoch_for_duration(now);
+    Duration current_epoch = GetEpochForDuration(now);
     Duration start_epoch = current_epoch - duration;
     Duration first_epoch_duration = now - current_epoch;
-    size_t index = epoch_index_.load();
+    std::size_t index = epoch_index_.load();
 
-    for (size_t i = 0; i < items_.size();
+    for (std::size_t i = 0; i < items_.size();
          i++, index = (index + items_.size() - 1) % items_.size()) {
       Duration epoch = items_[index].epoch;
 
@@ -105,7 +104,7 @@ class RecentPeriod {
 
   Duration GetMaxDuration() const { return max_duration_; }
 
-  void UpdateEpochIfOld() { std::ignore = get_current_index(); }
+  void UpdateEpochIfOld() { [[maybe_unused]] auto ignore = GetCurrentIndex(); }
 
   void Reset() {
     for (auto& item : items_) {
@@ -114,15 +113,15 @@ class RecentPeriod {
   }
 
  private:
-  size_t get_current_index() const {
+  size_t GetCurrentIndex() const {
     while (true) {
       Duration now = Timer::now().time_since_epoch();
-      Duration epoch = get_epoch_for_duration(now);
-      size_t index = epoch_index_.load();
+      Duration epoch = GetEpochForDuration(now);
+      std::size_t index = epoch_index_.load();
       Duration bucket_epoch = items_[index].epoch.load();
 
       if (epoch != bucket_epoch) {
-        size_t new_index = (index + 1) % items_.size();
+        std::size_t new_index = (index + 1) % items_.size();
 
         if (epoch_index_.compare_exchange_weak(index, new_index)) {
           items_[new_index].epoch = epoch;
@@ -135,19 +134,19 @@ class RecentPeriod {
     }
   }
 
-  size_t get_previous_index(int epochs_ago) {
-    int index = static_cast<int>(get_current_index()) - epochs_ago;
+  std::size_t GetPreviousIndex(int epochs_ago) {
+    int index = static_cast<int>(GetCurrentIndex()) - epochs_ago;
     while (index < 0) index += items_.size();
     return index % items_.size();
   }
 
-  Duration get_epoch_for_duration(Duration duration) const {
+  Duration GetEpochForDuration(Duration duration) const {
     auto now = std::chrono::duration_cast<Duration>(duration);
     return now - now % epoch_duration_;
   }
 
-  static size_t get_size_for_duration(Duration epoch_duration,
-                                      Duration max_duration) {
+  static std::size_t GetSizeForDuration(Duration epoch_duration,
+                                        Duration max_duration) {
     /* 3 = current bucket, next zero bucket and extra one to handle
        possible race. */
     return max_duration.count() / epoch_duration.count() + 3;
@@ -173,7 +172,7 @@ class RecentPeriod {
   const Duration epoch_duration_;
   const Duration max_duration_;
   mutable std::atomic_size_t epoch_index_;
-  mutable std::vector<EpochBucket> items_;
+  mutable utils::FixedArray<EpochBucket> items_;
 };
 
 /// @a Writer support for @a RecentPeriod
