@@ -13,6 +13,7 @@
 #include <userver/storages/postgres/exceptions.hpp>
 #include <userver/testsuite/testpoint.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/async.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -61,6 +62,12 @@ class Stopwatch {
   Accumulator& accum_;
   SteadyClock::time_point start_;
 };
+
+auto MakeLogExtraFromConnectionStats(const InstanceStatistics& stats) {
+  return logging::LogExtra{{{"pg_conn_active", stats.connection.active},
+                            {"pg_conn_open", stats.connection.open_total},
+                            {"pg_conn_max", stats.connection.maximum}}};
+}
 
 }  // namespace
 
@@ -275,8 +282,8 @@ void ConnectionPool::Release(Connection* connection) {
   } else {
     // Connection cleanup is done asynchronously while returning control to
     // the user
-    close_task_storage_.Detach(engine::CriticalAsyncNoSpan(
-        [this, connection, dec_cnt = std::move(dg)] {
+    close_task_storage_.Detach(USERVER_NAMESPACE::utils::CriticalAsync(
+        "clear_conn_after_cancel", [this, connection, dec_cnt = std::move(dg)] {
           LOG_LIMITED_WARNING()
               << "Released connection in busy state. Trying to clean up...";
           TESTPOINT("pg_cleanup", formats::json::Value{});
@@ -405,7 +412,7 @@ bool ConnectionPool::DoConnect(engine::SemaphoreLock size_lock) {
   engine::SemaphoreLock connecting_lock{connecting_semaphore_,
                                         kConnectingTimeout};
   if (!connecting_lock) {
-    LOG_LIMITED_WARNING() << "Pool has too many establishing connections";
+    LOG_WARNING() << "Pool has too many establishing connections";
     return false;
   }
   const uint32_t conn_id = ++stats_.connection.open_total;
@@ -433,7 +440,7 @@ bool ConnectionPool::DoConnect(engine::SemaphoreLock size_lock) {
   } catch (const Error& ex) {
     ++stats_.connection.error_total;
     ++stats_.connection.drop_total;
-    LOG_LIMITED_WARNING() << "Connection creation failed with error: " << ex;
+    LOG_WARNING() << "Connection creation failed with error: " << ex;
     throw;
   }
   LOG_TRACE() << "PostgreSQL connection created";
@@ -495,8 +502,7 @@ void ConnectionPool::Push(Connection* connection) {
     conn_available_.NotifyOne();
   } else {
     // TODO Reflect this as a statistics error
-    LOG_LIMITED_WARNING()
-        << "Couldn't push connection back to the pool. Deleting...";
+    LOG_WARNING() << "Couldn't push connection back to the pool. Deleting...";
     DeleteConnection(connection);
   }
 }
@@ -551,7 +557,11 @@ Connection* ConnectionPool::Pop(engine::Deadline deadline) {
   }
 
   ++stats_.pool_exhaust_errors;
-  throw PoolError("No available connections found", db_name_);
+  throw PoolError(
+      fmt::format("No available connections found. Active {}. Open {}. Max {}",
+                  stats_.connection.active, stats_.connection.open_total,
+                  stats_.connection.maximum),
+      db_name_);
 }
 
 void ConnectionPool::Clear() {
@@ -591,7 +601,8 @@ void ConnectionPool::CleanupConnection(Connection* connection) {
   } catch (const std::exception& e) {
     LOG_WARNING() << "Exception while cleaning up a dirty connection: " << e;
   }
-  LOG_WARNING() << "Failed to cleanup a dirty connection, deleting...";
+  LOG_WARNING() << "Failed to cleanup a dirty connection, deleting..."
+                << MakeLogExtraFromConnectionStats(stats_);
   ++stats_.connection.error_total;
   DeleteConnection(connection);
 }
@@ -603,17 +614,20 @@ void ConnectionPool::DeleteConnection(Connection* connection) {
 
 void ConnectionPool::DeleteBrokenConnection(Connection* connection) {
   ++stats_.connection.error_total;
-  LOG_LIMITED_WARNING() << "Released connection in closed state. Deleting...";
+  LOG_WARNING() << "Released connection in closed state. Deleting..."
+                << MakeLogExtraFromConnectionStats(stats_);
   DeleteConnection(connection);
 }
 
 void ConnectionPool::DropExpiredConnection(Connection* connection) {
-  LOG_LIMITED_INFO() << "Dropping expired connection";
+  LOG_INFO() << "Dropping expired connection"
+             << MakeLogExtraFromConnectionStats(stats_);
   DeleteConnection(connection);
 }
 
 void ConnectionPool::DropOutdatedConnection(Connection* connection) {
-  LOG_LIMITED_INFO() << "Dropping connection with outdated settings";
+  LOG_INFO() << "Dropping connection with outdated settings"
+             << MakeLogExtraFromConnectionStats(stats_);
   DeleteConnection(connection);
 }
 
