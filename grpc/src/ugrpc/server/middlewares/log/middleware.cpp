@@ -29,6 +29,15 @@ std::string ProtobufAsJsonString(const google::protobuf::Message& message,
   return std::string{utils::log::ToLimitedUtf8(as_json, max_msg_size)};
 }
 
+std::string GetMessageForLogging(const google::protobuf::Message& message,
+                                 const Middleware::Settings& settings) {
+  if (logging::ShouldLog(settings.msg_log_level)) {
+    return ProtobufAsJsonString(message, settings.max_msg_size);
+  } else {
+    return "hidden by log level";
+  }
+}
+
 }  // namespace
 
 Middleware::Middleware(const Settings& settings) : settings_(settings) {}
@@ -36,39 +45,34 @@ Middleware::Middleware(const Settings& settings) : settings_(settings) {}
 void Middleware::CallRequestHook(const MiddlewareCallContext& context,
                                  google::protobuf::Message& request) {
   auto& storage = context.GetCall().GetStorageContext();
-  auto log = ProtobufAsJsonString(request, settings_.max_msg_size);
-
-  logging::LogExtra log_extra{{"grpc_type", "request"},
-                              {"body", std::move(log)}};
+  auto& span = context.GetCall().GetSpan();
+  logging::LogExtra log_extra{
+      {"grpc_type", "request"},
+      {"body", GetMessageForLogging(request, settings_)}};
 
   if (storage.Get(kIsFirstRequest)) {
     storage.Set(kIsFirstRequest, false);
     log_extra.Extend("type", "request");
   }
-  LOG(settings_.msg_log_level)
-      << "gRPC request message" << std::move(log_extra);
+  LOG(span.GetLogLevel()) << "gRPC request message" << std::move(log_extra);
 }
 
 void Middleware::CallResponseHook(const MiddlewareCallContext& context,
                                   google::protobuf::Message& response) {
   auto& span = context.GetCall().GetSpan();
   const auto call_kind = context.GetCall().GetCallKind();
-  auto log = ProtobufAsJsonString(response, settings_.max_msg_size);
 
   if (call_kind == CallKind::kUnaryCall ||
       call_kind == CallKind::kRequestStream) {
     span.AddTag("grpc_type", "response");
     span.AddNonInheritableTag("type", "response");
-    if (logging::ShouldLog(settings_.msg_log_level)) {
-      span.AddNonInheritableTag("body", std::move(log));
-    } else {
-      span.AddNonInheritableTag("body", "hidden by log level");
-    }
+    span.AddNonInheritableTag("body",
+                              GetMessageForLogging(response, settings_));
   } else {
-    logging::LogExtra log_extra{{"grpc_type", "response"},
-                                {"body", std::move(log)}};
-    LOG(settings_.msg_log_level)
-        << "gRPC response message" << std::move(log_extra);
+    logging::LogExtra log_extra{
+        {"grpc_type", "response"},
+        {"body", GetMessageForLogging(response, settings_)}};
+    LOG(span.GetLogLevel()) << "gRPC response message" << std::move(log_extra);
   }
 }
 
