@@ -38,7 +38,6 @@ file(GLOB_RECURSE BENCH_SOURCES
 list (REMOVE_ITEM SOURCES ${BENCH_SOURCES})
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
-add_library(userver::mongo ALIAS ${PROJECT_NAME})
 
 target_link_libraries(${PROJECT_NAME}
   PUBLIC

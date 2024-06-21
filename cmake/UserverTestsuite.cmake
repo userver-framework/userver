@@ -200,7 +200,7 @@ function(userver_testsuite_add)
   execute_process(
     COMMAND
     "${python_binary}" "${USERVER_TESTSUITE_DIR}/create_runner.py"
-    -o "${TESTSUITE_RUNNER}"
+    "--output=${TESTSUITE_RUNNER}"
     "--python=${python_binary}"
     "--python-path=${ARG_PYTHONPATH}"
     --

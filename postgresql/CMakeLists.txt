@@ -44,7 +44,6 @@ list (REMOVE_ITEM SOURCES ${BENCH_SOURCES})
 
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
-add_library(userver::postgresql ALIAS ${PROJECT_NAME})
 
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
@@ -111,13 +110,13 @@ if (USERVER_IS_THE_ROOT_PROJECT)
       $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
   )
   target_link_libraries(${PROJECT_NAME}-pgtest userver-utest ${PROJECT_NAME})
-  add_test(NAME ${PROJECT_NAME}_pgtest COMMAND env
+  add_test(NAME ${PROJECT_NAME}-pgtest COMMAND env
       POSTGRES_TEST_DSN=postgresql://testsuite@localhost:15433/postgres
       ${CMAKE_BINARY_DIR}/testsuite/env
       --databases=postgresql
       run --
       $<TARGET_FILE:${PROJECT_NAME}-pgtest>
-      --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_pgtest.xml
+      --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}-pgtest.xml
   )
 
   add_subdirectory(functional_tests)

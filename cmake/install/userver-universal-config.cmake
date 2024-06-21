@@ -44,11 +44,9 @@ include("${USERVER_CMAKE_DIR}/SetupGTest.cmake")
 include("${USERVER_CMAKE_DIR}/SetupGBench.cmake")
 
 if(NOT USERVER_IMPL_ORIGINAL_CXX_STANDARD STREQUAL CMAKE_CXX_STANDARD)
-  target_compile_definitions(userver::userver-universal INTERFACE
+  target_compile_definitions(userver::universal INTERFACE
       "USERVER_IMPL_ORIGINAL_CXX_STANDARD=${USERVER_IMPL_ORIGINAL_CXX_STANDARD}"
   )
 endif()
-
-add_library(userver::universal ALIAS userver::userver-universal)
 
 set(userver_universal_FOUND TRUE)

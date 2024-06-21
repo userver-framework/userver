@@ -3,10 +3,13 @@
 /// @file userver/utest/log_capture_fixture.hpp
 /// @brief @copybrief utest::LogCaptureFixture
 
-#include <userver/concurrent/variable.hpp>
+#include <mutex>
+
+#include <fmt/format.h>
+#include <gtest/gtest.h>
+
 #include <userver/logging/impl/logger_base.hpp>
 #include <userver/utest/default_logger_fixture.hpp>
-#include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -22,17 +25,18 @@ class ToStringLogger : public logging::impl::LoggerBase {
   }
 
   void Log(logging::Level level, std::string_view str) override {
-    auto locked_ptr = log_.Lock();
-    *locked_ptr += fmt::format("level={}\t{}", logging::ToString(level), str);
+    const std::lock_guard lock{log_mutex_};
+    log_ += fmt::format("level={}\t{}", logging::ToString(level), str);
   }
 
   std::string ExtractLog() {
-    auto locked_ptr = log_.Lock();
-    return std::exchange(*locked_ptr, std::string{});
+    const std::lock_guard lock{log_mutex_};
+    return std::exchange(log_, std::string{});
   }
 
  private:
-  concurrent::Variable<std::string, std::mutex> log_;
+  std::string log_;
+  std::mutex log_mutex_;
 };
 
 }  // namespace impl

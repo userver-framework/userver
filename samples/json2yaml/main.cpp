@@ -1,7 +1,7 @@
 /// [json2yaml - main]
-#include "json2yaml.hpp"
-
 #include <iostream>
+
+#include <json2yaml.hpp>
 
 int main() {
   namespace formats = USERVER_NAMESPACE::formats;

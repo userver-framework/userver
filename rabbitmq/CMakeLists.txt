@@ -15,7 +15,6 @@ file(GLOB_RECURSE RMQ_FUNCTIONAL_TEST_SOURCES
 list(REMOVE_ITEM SOURCES ${RMQ_FUNCTIONAL_TEST_SOURCES})
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
-add_library(userver::rabbitmq ALIAS ${PROJECT_NAME})
 
 target_link_libraries(${PROJECT_NAME} PUBLIC userver-core)
 if (USERVER_CONAN)
@@ -43,20 +42,20 @@ _userver_directory_install(COMPONENT rabbitmq FILES
 )
 
 if (USERVER_IS_THE_ROOT_PROJECT)
-  add_executable(${PROJECT_NAME}_rmqtest ${RABBITMQ_TEST_SOURCES})
-  target_include_directories (${PROJECT_NAME}_rmqtest PRIVATE
+  add_executable(${PROJECT_NAME}-rmqtest ${RABBITMQ_TEST_SOURCES})
+  target_include_directories(${PROJECT_NAME}-rmqtest PRIVATE
     $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
   )
-  target_link_libraries(${PROJECT_NAME}_rmqtest userver-utest ${PROJECT_NAME})
-  add_test(${PROJECT_NAME}_rmqtest
+  target_link_libraries(${PROJECT_NAME}-rmqtest userver-utest ${PROJECT_NAME})
+  add_test(${PROJECT_NAME}-rmqtest
     env
     ${CMAKE_BINARY_DIR}/testsuite/env
     --databases=rabbitmq
     run --
-    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}_rmqtest
-    --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_rmqtest.xml
+    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-rmqtest
+    --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}-rmqtest.xml
   )
-  set_tests_properties(${PROJECT_NAME}_rmqtest PROPERTIES ENVIRONMENT
+  set_tests_properties(${PROJECT_NAME}-rmqtest PROPERTIES ENVIRONMENT
           "TESTSUITE_RABBITMQ_SERVER_START_TIMEOUT=120.0")
 
   add_subdirectory(functional_tests)

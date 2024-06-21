@@ -1,5 +1,5 @@
 /// [json2yaml - unittest]
-#include "json2yaml.hpp"
+#include <json2yaml.hpp>
 
 #include <gtest/gtest.h>
 

@@ -1,19 +1,13 @@
-/// [json2yaml - includes]
-#pragma once
+#include <json2yaml.hpp>
 
 #include <string>
 
-#include <userver/formats/json.hpp>
-#include <userver/formats/parse/to.hpp>
-#include <userver/formats/yaml.hpp>
-/// [json2yaml - includes]
-
-/// [json2yaml - convert]
+/// [json2yaml - convert cpp]
 USERVER_NAMESPACE_BEGIN
 
 namespace formats::parse {
 
-inline yaml::Value Convert(const json::Value& json, parse::To<yaml::Value>) {
+yaml::Value Convert(const json::Value& json, To<yaml::Value>) {
   yaml::ValueBuilder yaml_vb;
 
   if (json.IsBool()) {
@@ -44,4 +38,4 @@ inline yaml::Value Convert(const json::Value& json, parse::To<yaml::Value>) {
 }  // namespace formats::parse
 
 USERVER_NAMESPACE_END
-/// [json2yaml - convert]
+/// [json2yaml - convert cpp]

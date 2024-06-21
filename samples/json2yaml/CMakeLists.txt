@@ -3,15 +3,18 @@ project(userver-samples-json2yaml CXX)
 
 find_package(userver COMPONENTS universal REQUIRED)
 
-add_executable("${PROJECT_NAME}" json2yaml.cpp)
-target_link_libraries("${PROJECT_NAME}" userver::universal)
+add_library(${PROJECT_NAME}-lib STATIC src/json2yaml.cpp)
+target_include_directories(${PROJECT_NAME}-lib PUBLIC src)
+target_link_libraries(${PROJECT_NAME}-lib userver::universal)
+
+add_executable(${PROJECT_NAME} main.cpp)
+target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}-lib)
 
 # /// [add_unit_test]
-add_executable(${PROJECT_NAME}-unittest json2yaml_test.cpp)
-
+add_executable(${PROJECT_NAME}-unittest unittests/json2yaml_test.cpp)
 target_link_libraries(${PROJECT_NAME}-unittest
-  userver::universal
-  GTest::gtest_main
+  ${PROJECT_NAME}-lib
+  userver::universal-utest
 )
 add_google_tests(${PROJECT_NAME}-unittest)
 # /// [add_unit_test]

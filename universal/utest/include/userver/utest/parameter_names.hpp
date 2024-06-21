@@ -62,7 +62,7 @@ std::string TestTupleParamToString(const std::tuple<Args...>& params_tuple) {
 ///
 /// Special-purpose field `test_name` of type `std::string` may be used for describing test input in a human-readable form.
 ///
-/// @snippet core/testing/src/utest/parameter_names_test.cpp  PrintTestName Example Usage - Singly-Parameterized Test
+/// @snippet universal/utest/src/utest/parameter_names_test.cpp  PrintTestName Example Usage - Singly-Parameterized Test
 ///
 /// This should result in printing `test_name` field as a test name during test run.
 ///
@@ -77,7 +77,7 @@ std::string TestTupleParamToString(const std::tuple<Args...>& params_tuple) {
 /// Helper class `::utest::PrintTestName()` also supports conventional `PrintTo` override.
 /// However field `test_name` of a parameters' structure has a higher priority for overriding a test name than a `PrintTo` function.
 ///
-/// @snippet core/testing/src/utest/parameter_names_test.cpp  PrintTestName Example Usage - Override PrintTo
+/// @snippet universal/utest/src/utest/parameter_names_test.cpp  PrintTestName Example Usage - Override PrintTo
 ///
 /// ### Doubly-parametrized test.
 ///
@@ -85,7 +85,7 @@ std::string TestTupleParamToString(const std::tuple<Args...>& params_tuple) {
 /// you can also use `::utest::PrintTestName()` to combine names for the dimensions of every parameter.
 /// You can mix methods for overriding test names for the dimension of every parameter independently.
 ///
-/// @snippet core/testing/src/utest/parameter_names_test.cpp  PrintTestName Example Usage - Doubly-Parameterized Test
+/// @snippet universal/utest/src/utest/parameter_names_test.cpp  PrintTestName Example Usage - Doubly-Parameterized Test
 ///
 /// This should result in printing concatenated test names for all combined test parameters dimensions.
 ///

@@ -27,7 +27,8 @@ library and userver headers:
 
 Write the logic for converting each of the JSON types to YAML type:
 
-@snippet samples/json2yaml/json2yaml.hpp  json2yaml - convert
+@snippet samples/json2yaml/json2yaml.hpp  json2yaml - convert hpp
+@snippet samples/json2yaml/json2yaml.hpp  json2yaml - convert cpp
 
 Finally, read data from `std::cin`, parse it as JSON, convert to YAML and
 output it as text:

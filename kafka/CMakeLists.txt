@@ -6,7 +6,6 @@ file(GLOB_RECURSE SOURCES
 )
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
-add_library(userver::kafka ALIAS ${PROJECT_NAME})
 
 include(SetupRdKafka)
 

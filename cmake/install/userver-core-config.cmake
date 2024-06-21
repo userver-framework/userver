@@ -26,8 +26,4 @@ if (c-ares_FOUND AND NOT TARGET c-ares::cares)
   add_library(c-ares::cares ALIAS c-ares)
 endif()
 
-add_library(userver::core ALIAS userver::userver-core)
-add_library(userver::utest ALIAS userver::userver-utest)
-add_library(userver::ubench ALIAS userver::userver-ubench)
-
 set(userver_core_FOUND TRUE)

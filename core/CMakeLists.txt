@@ -16,28 +16,24 @@ if(${CMAKE_SOURCE_DIR}/.git/HEAD IS_NEWER_THAN ${BUILD_CONFIG})
 endif()
 
 file(GLOB_RECURSE SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/*pp
-  ${CMAKE_CURRENT_SOURCE_DIR}/internal/*pp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/*pp
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/internal/*.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/internal/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
 )
 
 file(GLOB_RECURSE UNIT_TEST_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/*_test.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp
 )
-
-file(GLOB_RECURSE LIBUTEST_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/testing/*.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/testing/*.hpp
-)
-list(REMOVE_ITEM LIBUTEST_SOURCES ${UNIT_TEST_SOURCES})
 
 list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES})
 
 file(GLOB_RECURSE BENCH_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/*_benchmark.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*_benchmark.cpp
 )
 file(GLOB_RECURSE LIBUBENCH_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/core_benchmark.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/main.cpp
 )
 list (REMOVE_ITEM SOURCES ${BENCH_SOURCES} ${LIBUBENCH_SOURCES})
 
@@ -77,7 +73,6 @@ else()
 endif()
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
-add_library(userver::core ALIAS ${PROJECT_NAME})
 
 # thread_local usage in Moodycamel is incompatible with userver scheduler
 # that migrates coroutines between threads.
@@ -251,31 +246,8 @@ if (USERVER_IS_THE_ROOT_PROJECT OR USERVER_FEATURE_UTEST)
   _userver_install_targets(COMPONENT core TARGETS userver-core-internal)
 endif()
 
-if (USERVER_FEATURE_UTEST)
-    add_library(userver-utest STATIC ${LIBUTEST_SOURCES})
-    add_library(userver::utest ALIAS userver-utest)
-    target_compile_definitions(userver-utest PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
-
-    target_link_libraries(userver-utest
-      PUBLIC
-        ${PROJECT_NAME}
-        userver-universal-internal-utest
-      PRIVATE
-        userver-core-internal
-        Boost::program_options
-    )
-
-    target_include_directories(userver-utest PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/testing/include>
-    )
-    target_include_directories(userver-utest PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/
-        ${CMAKE_CURRENT_SOURCE_DIR}/testing/src/
-    )
-    _userver_directory_install(COMPONENT core DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/testing/include
-      DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..)
-    _userver_install_targets(COMPONENT core
-      TARGETS userver-utest userver-universal-internal-utest)
+if (USERVER_FEATURE_UTEST OR USERVER_IS_THE_ROOT_PROJECT)
+  add_subdirectory(utest)
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
@@ -292,9 +264,8 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     add_subdirectory(functional_tests)
 endif()
 
-if (USERVER_FEATURE_UTEST)
+if (USERVER_FEATURE_UTEST OR USERVER_IS_THE_ROOT_PROJECT)
     add_library(userver-ubench ${LIBUBENCH_SOURCES})
-    add_library(userver::ubench ALIAS userver-ubench)
     target_include_directories(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>)
     target_compile_definitions(userver-ubench PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
     target_link_libraries(userver-ubench

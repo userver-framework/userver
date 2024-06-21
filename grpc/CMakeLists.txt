@@ -46,7 +46,6 @@ if (api-common-proto_USRV_SOURCES)
 endif()
 
 add_library(${PROJECT_NAME}-internal STATIC ${SOURCES})
-add_library(userver::grpc ALIAS ${PROJECT_NAME}-internal)
 
 if (NOT USERVER_GPRC_BUILD_FROM_SOURCE) 
   target_compile_definitions(${PROJECT_NAME}-internal PUBLIC GRPC_ASAN_SUPPRESSED GRPC_TSAN_SUPPRESSED) 

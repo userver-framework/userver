@@ -12,15 +12,16 @@ include(Sanitizers)
 _userver_make_sanitize_target()
 
 file(GLOB_RECURSE SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
 )
 
 file(GLOB_RECURSE UNIT_TEST_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/*_test.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp
 )
 file(GLOB_RECURSE BENCH_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/*_benchmark.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*_benchmark.cpp
 )
 file(GLOB_RECURSE INTERNAL_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/internal/*.cpp
@@ -286,7 +287,6 @@ target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
   ${USERVER_THIRD_PARTY_DIRS}/rapidjson/include
 )
 
-add_library(userver::universal ALIAS ${PROJECT_NAME})
 _userver_directory_install(COMPONENT universal
   DIRECTORY 
     ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -297,22 +297,14 @@ _userver_directory_install(COMPONENT universal
 _userver_install_targets(COMPONENT universal TARGETS ${PROJECT_NAME})
 
 if (USERVER_IS_THE_ROOT_PROJECT OR USERVER_FEATURE_UTEST)
-  add_library(${PROJECT_NAME}-internal-utest INTERFACE)
+  add_subdirectory(utest)
+
   add_library(${PROJECT_NAME}-internal-ubench INTERFACE)
   if (USERVER_CONAN)
-    find_package(GTest REQUIRED)
     find_package(benchmark REQUIRED)
   else()
-    include(SetupGTest)
     include(SetupGBench)
   endif()
-  target_link_libraries(${PROJECT_NAME}-internal-utest
-      INTERFACE
-      GTest::gtest
-      GTest::gmock
-      GTest::gtest_main
-      ${PROJECT_NAME}
-  )
   target_link_libraries(${PROJECT_NAME}-internal-ubench
       INTERFACE
       benchmark::benchmark
@@ -322,7 +314,9 @@ endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
     add_library(${PROJECT_NAME}-internal OBJECT ${INTERNAL_SOURCES})
-    target_compile_definitions(${PROJECT_NAME}-internal PUBLIC $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>)
+    target_compile_definitions(${PROJECT_NAME}-internal PUBLIC
+        $<TARGET_PROPERTY:${PROJECT_NAME},COMPILE_DEFINITIONS>
+    )
     target_include_directories(${PROJECT_NAME}-internal PUBLIC
       $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
       ${CMAKE_CURRENT_SOURCE_DIR}/internal/include
@@ -342,13 +336,14 @@ if (USERVER_IS_THE_ROOT_PROJECT)
       PRIVATE
         Boost::program_options
         ${PROJECT_NAME}-internal
-        ${PROJECT_NAME}-internal-utest
+        ${PROJECT_NAME}-utest
     )
-
     add_google_tests(${PROJECT_NAME}-unittest)
 
-    add_executable(${PROJECT_NAME}-benchmark ${BENCH_SOURCES})
-
+    add_executable(${PROJECT_NAME}-benchmark
+        ${BENCH_SOURCES}
+        "${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/main.cpp"
+    )
     target_include_directories (${PROJECT_NAME}-benchmark SYSTEM PRIVATE
         $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
     )
