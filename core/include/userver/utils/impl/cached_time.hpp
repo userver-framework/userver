@@ -1,7 +1,6 @@
 #pragma once
 
 #include <chrono>
-#include <tuple>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -15,9 +14,14 @@ using SteadyTimePoint = std::chrono::steady_clock::time_point;
 // be costly, so as an optimization we cache now() globally.
 void UpdateGlobalTime();
 
+struct SystemAndSteadyTimePoints {
+  SystemTimePoint system;
+  SteadyTimePoint steady;
+};
+
 // Note: the two time points are not synchronized. They may also come from
 // different 'UpdateGlobalTime' calls.
-std::tuple<SystemTimePoint, SteadyTimePoint> GetGlobalTime();
+SystemAndSteadyTimePoints GetGlobalTime();
 
 }  // namespace utils::impl
 
