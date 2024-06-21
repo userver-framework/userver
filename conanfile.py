@@ -321,7 +321,16 @@ class UserverConan(ConanFile):
                 pattern='*',
                 dst=os.path.join(self.package_folder, 'include', 'utest'),
                 src=os.path.join(
-                    self.source_folder, 'core', 'testing', 'include',
+                    self.source_folder, 'universal', 'utest', 'include',
+                ),
+                keep_path=True,
+            )
+            copy(
+                self,
+                pattern='*',
+                dst=os.path.join(self.package_folder, 'include', 'utest'),
+                src=os.path.join(
+                    self.source_folder, 'core', 'utest', 'include',
                 ),
                 keep_path=True,
             )
