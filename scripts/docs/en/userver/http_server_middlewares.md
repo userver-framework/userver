@@ -93,6 +93,22 @@ the factory implementation is just this:
 Do not forget to add components configs:
 @snippet samples/http_middleware_service/static_config.yaml  Middlewares sample - noop-middleware and server-middleware components configs
 
+### Global middleware configuration
+
+Normally, the process of configuring a middleware is the same as configuring any other component,
+see @ref scripts/docs/en/userver/component_system.md
+
+As a component, a `MiddlewareFactory` takes `(config, context)` parameters in its constructor.
+It can parse some fields from `config` and store them in the component.
+Then it can pass this configuration (references are OK) to each `Middleware` created in its
+@ref server::middlewares::HttpMiddlewareFactoryBase::Create "Create" method.
+
+All used config fields should be described in `MyMiddlewareFactory::GetStaticConfigSchema`.
+
+Global configuration should be preferred to per-handler configuration,
+because the latter leads to copy-pasta in configs.
+For some options, it's a good idea to implement both global and per-handler configuration.
+
 ### Per-handler middleware configuration
 
 Basically, the whole point of having MiddlewareFactory-ies separated from Middleware-s, is to have a possibility to 
