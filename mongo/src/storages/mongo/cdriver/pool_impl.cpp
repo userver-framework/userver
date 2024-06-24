@@ -255,7 +255,6 @@ void CDriverPoolImpl::SetPoolSettings(const PoolSettings& pool_settings) {
   idle_limit_ = pool_settings.idle_limit;
   in_use_semaphore_.SetCapacity(pool_settings.max_size);
   connecting_semaphore_.SetCapacity(pool_settings.connecting_limit);
-  queue_.reserve(pool_settings.max_size);
 }
 
 void CDriverPoolImpl::Ping() {
