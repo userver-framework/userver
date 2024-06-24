@@ -147,20 +147,23 @@ For example to use clang-12 compiler install it and add the following options to
 
 userver is split into multiple CMake libraries.
 
-| CMake target          | CMake option to enable building the library | Component for install | Main documentation page                                  |
-|-----------------------|---------------------------------------------|-----------------------|----------------------------------------------------------|
-| `userver::universal`  | Always on                                   | `universal`           | @ref scripts/docs/en/index.md                            |
-| `userver::core`       | `USERVER_FEATURE_CORE` (`ON` by default)    | `core`                | @ref scripts/docs/en/index.md                            |
-| `userver::grpc`       | `USERVER_FEATURE_GRPC`                      | `grpc`                | @ref scripts/docs/en/userver/grpc.md                     |
-| `userver::mongo`      | `USERVER_FEATURE_MONGODB`                   | `mongo`               | @ref scripts/docs/en/userver/mongodb.md                  |
-| `userver::postgresql` | `USERVER_FEATURE_POSTGRESQL`                | `postgresql`          | @ref pg_driver                                           |
-| `userver::redis`      | `USERVER_FEATURE_REDIS`                     | `redis`               | @ref scripts/docs/en/userver/redis.md                    |
-| `userver::clickhouse` | `USERVER_FEATURE_CLICKHOUSE`                | `clickhouse`          | @ref clickhouse_driver                                   |
-| `userver::kafka`      | `USERVER_FEATURE_KAFKA`                     | `kafka`               | @ref scripts/docs/en/userver/kafka.md                    |
-| `userver::rabbitmq`   | `USERVER_FEATURE_RABBITMQ`                  | `rabbitmq`            | @ref rabbitmq_driver                                     |
-| `userver::mysql`      | `USERVER_FEATURE_MYSQL`                     | `mysql`               | @ref scripts/docs/en/userver/mysql/mysql_driver.md       |
-| `userver::rocks`      | `USERVER_FEATURE_ROCKS`                     | `rocks`               | TODO                                                     |
-| `userver::ydb`        | `USERVER_FEATURE_YDB`                       | `ydb`                 | TODO                                                     |
+| CMake target               | CMake option to enable building the library      | Component for install | Main documentation page                            |
+|----------------------------|--------------------------------------------------|-----------------------|----------------------------------------------------|
+| `userver::universal`       | Always on                                        | `universal`           | @ref scripts/docs/en/index.md                      |
+| `userver::universal-utest` | `USERVER_FEATURE_UTEST` (`ON` by default)        | `universal`           | @ref scripts/docs/en/userver/testing.md            |
+| `userver::core`            | `USERVER_FEATURE_CORE` (`ON` by default)         | `core`                | @ref scripts/docs/en/index.md                      |
+| `userver::utest`           | `USERVER_FEATURE_CORE` + `USERVER_FEATURE_UTEST` | `core`                | @ref scripts/docs/en/userver/testing.md            |
+| `userver::ubench`          | `USERVER_FEATURE_CORE` + `USERVER_FEATURE_UTEST` | `core`                | @ref scripts/docs/en/userver/testing.md            |
+| `userver::grpc`            | `USERVER_FEATURE_GRPC`                           | `grpc`                | @ref scripts/docs/en/userver/grpc.md               |
+| `userver::mongo`           | `USERVER_FEATURE_MONGODB`                        | `mongo`               | @ref scripts/docs/en/userver/mongodb.md            |
+| `userver::postgresql`      | `USERVER_FEATURE_POSTGRESQL`                     | `postgresql`          | @ref pg_driver                                     |
+| `userver::redis`           | `USERVER_FEATURE_REDIS`                          | `redis`               | @ref scripts/docs/en/userver/redis.md              |
+| `userver::clickhouse`      | `USERVER_FEATURE_CLICKHOUSE`                     | `clickhouse`          | @ref clickhouse_driver                             |
+| `userver::kafka`           | `USERVER_FEATURE_KAFKA`                          | `kafka`               | @ref scripts/docs/en/userver/kafka.md              |
+| `userver::rabbitmq`        | `USERVER_FEATURE_RABBITMQ`                       | `rabbitmq`            | @ref rabbitmq_driver                               |
+| `userver::mysql`           | `USERVER_FEATURE_MYSQL`                          | `mysql`               | @ref scripts/docs/en/userver/mysql/mysql_driver.md |
+| `userver::rocks`           | `USERVER_FEATURE_ROCKS`                          | `rocks`               | TODO                                               |
+| `userver::ydb`             | `USERVER_FEATURE_YDB`                            | `ydb`                 | TODO                                               |
 
 Make sure to:
 

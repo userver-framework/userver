@@ -39,7 +39,7 @@ function(_require_userver_core FEATURE)
   endif()
 endfunction()
 
-option(USERVER_FEATURE_UTEST "Provide 'utest' and 'ubench' for unit testing and benchmarking coroutines" ${USERVER_FEATURE_CORE})
+option(USERVER_FEATURE_UTEST "Provide 'utest' and 'ubench' for gtest and gbenchmark integration" ON)
 if (USERVER_FEATURE_UTEST)
   message(STATUS "Building utest with gtest and ubench with gbench")
 endif()

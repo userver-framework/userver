@@ -1,13 +1,21 @@
 # Unit Tests and Benchmarks
 
-## Unit tests (googletest)
+## Unit tests (gtest)
 
 ### Getting started
 
-All userver test helpers live in `userver::utest` CMake target:
+userver test helpers live in `userver::utest` CMake target:
 
 ```cmake
 target_link_libraries(your-test-target PRIVATE userver::utest)
+```
+
+When being limited to `userver::universal`, you can use a subset of the helpers
+that don't require coroutine environment via `userver::universal-utest`
+CMake target:
+
+```cmake
+target_link_libraries(your-test-target PRIVATE userver::universal-utest)
 ```
 
 To include gtest and userver-specific macros, do:
@@ -16,7 +24,12 @@ To include gtest and userver-specific macros, do:
 #include <userver/utest/utest.hpp>
 ```
 
-The header provides alternative gtest-like macros that run tests in a coroutine environment:
+As usual, gmock is available in `<gmock/gmock.h>`.
+
+### Unit tests with coroutine environment
+
+`utest.hpp` header provides alternative gtest-like macros that run tests
+in a coroutine environment:
 
 *  UTEST(test_suite_name, test_name)
 *  UTEST_MT(test_suite_name, test_name, thread_count)
@@ -34,13 +47,6 @@ The header provides alternative gtest-like macros that run tests in a coroutine 
 *  #REGISTER_TYPED_UTEST_SUITE_P(test_suite_name, ...)
 *  INSTANTIATE_TYPED_UTEST_SUITE_P(prefix, test_suite_name, types)
 *  TYPED_UTEST_SUITE_P(test_suite_name)
-
-As usual, gmock is available in `<gmock/gmock.h>`.
-
-See also utest::PrintTestName for info on how to simplify writing parametrized
-tests and [official gtest documentation](https://google.github.io/googletest/).
-
-### Coroutine environment
 
 To test code that uses coroutine environment (e.g. creates tasks or uses
 @ref scripts/docs/en/userver/synchronization.md "synchronization primitives"),
@@ -70,7 +76,8 @@ with gtest's `waitpid()` calls.
 ### Exception assertions
 
 Standard gtest exception assertions provide poor error messages. Their
-equivalents with proper diagnostics are available in `<userver/utest/utest.hpp>`:
+equivalents with proper diagnostics are available in `<userver/utest/assert_macros.hpp>`
+(which gets pulled in by `<userver/utest/utest.hpp>` automatically):
 
 * #UEXPECT_THROW_MSG(statement, exception_type, message_substring)
 * #UASSERT_THROW_MSG(statement, exception_type, message_substring)
@@ -83,6 +90,8 @@ Example usage:
 
 @snippet universal/src/utest/assert_macros_test.cpp  Sample assert macros usage
 
+### Exception assertions
+
 @anchor utest-mocked-time
 ### Mocked time
 
@@ -93,6 +102,11 @@ Example usage:
 - Control the mocked time in tests using `<userver/utils/mock_now.hpp>`
 
 @snippet universal/src/utils/mock_now_test.cpp  Mocked time sample
+
+### Parametrized tests with custom names
+
+See utest::PrintTestName for info on how to simplify writing parametrized
+tests and [official gtest documentation](https://google.github.io/googletest/).
 
 @anchor utest-dynamic-config
 ### Mocked dynamic config
@@ -117,6 +131,15 @@ Default dynamic config values can be accessed using `<dynamic_config/test_helper
 - `dynamic_config::MakeDefaultStorage(overrides)`
 
 @snippet core/src/dynamic_config/config_test.cpp Sample StorageMock defaults
+
+### Testing userver logging
+
+API for capturing userver logs can be found in
+@ref userver/utest/default_logger_fixture.hpp
+
+It can be used for testing that a certain piece of code produces logs
+with the given text (which is brittle, but sometimes needs to be done).
+It can also be used for testing @ref logging::LogHelper serialization functions.
 
 
 ## Benchmarks (google-benchmark)

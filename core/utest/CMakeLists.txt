@@ -1,15 +1,19 @@
 project(userver-utest CXX)
 
 file(GLOB_RECURSE UNIT_TEST_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/*_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp
 )
 file(GLOB_RECURSE SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
 )
 list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES})
 
-add_library(userver-utest STATIC ${SOURCES})
+add_library(userver-utest STATIC
+    ${SOURCES}
+    ${CMAKE_CURRENT_SOURCE_DIR}/main/main.cpp
+)
 target_compile_definitions(userver-utest PUBLIC
     $<TARGET_PROPERTY:userver-core,COMPILE_DEFINITIONS>
 )
@@ -17,7 +21,6 @@ target_link_libraries(userver-utest
     PUBLIC
     userver-core
     userver-universal-utest-base
-    GTest::gmock_main  # TODO should use core/utest/main instead
     PRIVATE
     userver-core-internal
     Boost::program_options
