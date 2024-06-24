@@ -53,6 +53,7 @@ namespace components {
 /// * @ref USERVER_DUMPS
 ///
 /// ## Static options:
+///
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// update-types | specifies whether incremental and/or full updates will be used | see below
@@ -61,7 +62,7 @@ namespace components {
 /// full-update-interval | interval between full updates | --
 /// full-update-jitter | max. amount of time by which full-update-interval may be adjusted for requests dispersal | full-update-interval / 10
 /// updates-enabled | if false, cache updates are disabled (except for the first one if !first-update-fail-ok) | true
-/// first-update-fail-ok | whether first update failure is non-fatal | false
+/// first-update-fail-ok | whether first update failure is non-fatal; see also @ref MayReturnNull | false
 /// task-processor | the name of the TaskProcessor for running DoWork | main-task-processor
 /// config-settings | enables dynamic reconfiguration with CacheConfigSet | true
 /// exception-interval | Used instead of `update-interval` in case of exception | update_interval
@@ -75,6 +76,7 @@ namespace components {
 /// dump.* | Manages cache behavior after dump load | -
 /// dump.first-update-mode | Behavior of update after successful load from dump. See info on modes below | skip
 /// dump.first-update-type | Update type after successful load from dump (`full`, `incremental` or `incremental-then-async-full`) | full
+///
 /// ### Update types
 ///  * `full-and-incremental`: both `update-interval` and `full-update-interval`
 ///    must be specified. Updates with UpdateType::kIncremental will be triggered
@@ -87,6 +89,7 @@ namespace components {
 ///    each `update-interval` (adjusted by jitter).
 ///
 /// ### Avoiding memory leaks
+///
 /// If you don't implement the deletion of objects that are deleted from the data source and don't use full updates,
 /// you may get an effective memory leak, because garbage objects will pile up in the cached data.
 ///
@@ -98,7 +101,31 @@ namespace components {
 ///
 /// full-update-interval = (size-of-database * 20% / removal-rate) = 400s
 ///
+/// ### Dealing with nullptr data in CachingComponentBase
+///
+/// The cache can become `nullptr` through multiple ways:
+///
+/// * If the first cache update fails, and `first-update-fail-ok` config
+///   option is set to `true` (otherwise the service shutdown at start)
+/// * Through manually calling @ref Set with `nullptr` in @ref Update
+/// * If `failed-updates-before-expiration` is set, and that many periodic
+///   updates fail in a row
+///
+/// By default, the cache's user can expect that the pointer returned
+/// from @ref Get will never be `nullptr`. If the cache for some reason is
+/// in `nullptr` state, then @ref Get will throw. This is the safe default
+/// behavior for most cases.
+///
+/// If all systems of a service are expected to work with a cache in `nullptr`
+/// state, then such a cache should override `MayReturnNull` to return `true`.
+/// It will also serve self-documentation purposes: if a cache defines
+/// @ref MayReturnNull, then pointers returned from @ref Get should be checked
+/// for `nullptr` before usage.
+///
 /// ### `first-update-mode` modes
+///
+/// Further customizes the behavior of @ref dump::Dumper "cache dumps".
+///
 /// Mode          | Description
 /// ------------- | -----------
 /// `skip`        | after successful load from dump, do nothing
@@ -133,8 +160,10 @@ class CachingComponentBase : public ComponentBase,
 
   using DataType = T;
 
-  /// @return cache contents. May be nullptr if and only if MayReturnNull()
-  /// returns true.
+  /// @return cache contents. May be `nullptr` if and only if @ref MayReturnNull
+  /// returns `true`.
+  /// @throws cache::EmptyCacheError if the contents are `nullptr`, and
+  /// @ref MayReturnNull returns `false` (which is the default behavior).
   utils::SharedReadablePtr<T> Get() const;
 
   /// @return cache contents. May be nullptr regardless of MayReturnNull().
@@ -170,9 +199,7 @@ class CachingComponentBase : public ComponentBase,
   /// Clears the content of the cache by string a default constructed T.
   void Clear();
 
-  /// Whether Get() is expected to return nullptr.
-  /// If MayReturnNull() returns false, Get() throws an exception instead of
-  /// returning nullptr.
+  /// Whether @ref Get is expected to return `nullptr`.
   virtual bool MayReturnNull() const;
 
   /// @{
