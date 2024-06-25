@@ -14,6 +14,7 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/userver_info.hpp>
 
+#include <build_config.hpp>
 #include <storages/mongo/cdriver/logger.hpp>
 
 USERVER_NAMESPACE_BEGIN

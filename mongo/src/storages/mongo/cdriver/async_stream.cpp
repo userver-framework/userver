@@ -21,7 +21,6 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/io/exception.hpp>
-#include <userver/engine/io/poller.hpp>
 #include <userver/engine/io/sockaddr.hpp>
 #include <userver/engine/io/socket.hpp>
 #include <userver/engine/task/cancel.hpp>
@@ -32,6 +31,7 @@
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/assert.hpp>
 
+#include <storages/mongo/cdriver/async_stream_poller.hpp>
 #include <storages/mongo/cdriver/wrappers.hpp>
 #include <storages/mongo/tcp_connect_precheck.hpp>
 
@@ -57,6 +57,13 @@ static_assert(sizeof(ExpectedMongocStreamLayout) == sizeof(mongoc_stream_t),
 
 static_assert(std::size(mongoc_stream_t{}.padding) == 3,
               "Unexpected mongoc_stream_t structure layout");
+
+void SetWatcher(AsyncStreamPoller::WatcherPtr& old_watcher,
+                AsyncStreamPoller::WatcherPtr new_watcher) {
+  if (old_watcher == new_watcher) return;
+  if (old_watcher) old_watcher->Stop();
+  old_watcher = std::move(new_watcher);
+}
 
 class AsyncStream : public mongoc_stream_t {
  public:
@@ -92,6 +99,8 @@ class AsyncStream : public mongoc_stream_t {
 
   const uint64_t epoch_;
   engine::io::Socket socket_;
+  AsyncStreamPoller::WatcherPtr read_watcher_;
+  AsyncStreamPoller::WatcherPtr write_watcher_;
   bool is_timed_out_{false};
   bool is_created_{false};
 
@@ -262,40 +271,17 @@ uint64_t GetNextStreamEpoch() {
 // to only reset poller when a new poll cycle begins.
 class PollerDispenser {
  public:
-  class Guard {
-   public:
-    Guard(engine::io::Poller& poller, std::atomic<bool>& is_locked) noexcept
-        : poller_{poller}, is_locked_{is_locked} {
-      UASSERT_MSG(!is_locked_.exchange(true),
-                  "Someone is using the poller concurrently");
-    }
-
-    ~Guard() {
-      UASSERT_MSG(is_locked_.exchange(false), "The poller was not locked");
-    }
-
-    engine::io::Poller* operator->() const noexcept { return &poller_; }
-
-   private:
-    engine::io::Poller& poller_;
-    std::atomic<bool>& is_locked_;
-  };
-
-  Guard Get(uint64_t current_epoch) {
-    Guard guard{poller_, is_locked_};
-
+  AsyncStreamPoller& Get(uint64_t current_epoch) {
     if (seen_epoch_ < current_epoch) {
       poller_.Reset();
       seen_epoch_ = current_epoch;
     }
-
-    return guard;
+    return poller_;
   }
 
  private:
   uint64_t seen_epoch_{0};
-  engine::io::Poller poller_;
-  std::atomic<bool> is_locked_{false};
+  AsyncStreamPoller poller_;
 };
 
 engine::TaskLocalVariable<PollerDispenser> poller_dispenser;
@@ -440,11 +426,8 @@ int AsyncStream::Close(mongoc_stream_t* stream) noexcept {
   LOG_TRACE() << "Closing async stream " << self;
   self->is_timed_out_ = false;
 
-  {
-    auto poller = poller_dispenser->Get(self->epoch_);
-    poller->Remove(self->socket_.Fd());
-  }
-
+  SetWatcher(self->read_watcher_, {});
+  SetWatcher(self->write_watcher_, {});
   try {
     self->socket_.Close();
   } catch (const std::exception&) {
@@ -606,34 +589,37 @@ ssize_t AsyncStream::Poll(mongoc_stream_poll_t* streams, size_t nstreams,
     current_epoch = std::max(current_epoch, stream->epoch_);
     stream_fds[i] = stream->socket_.Fd();
   }
+  auto& poller = poller_dispenser->Get(current_epoch);
 
-  auto poller = poller_dispenser->Get(current_epoch);
   for (size_t i = 0; i < nstreams; ++i) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+    auto* stream = static_cast<AsyncStream*>(streams[i].stream);
     if (streams[i].events & POLLOUT) {
-      poller->Add(stream_fds[i], {engine::io::Poller::Event::kError,
-                                  engine::io::Poller::Event::kWrite});
+      SetWatcher(stream->write_watcher_, poller.AddWrite(stream_fds[i]));
     } else if (streams[i].events) {
-      poller->Add(stream_fds[i], {engine::io::Poller::Event::kError,
-                                  engine::io::Poller::Event::kRead});
+      SetWatcher(stream->read_watcher_, poller.AddRead(stream_fds[i]));
     }
     streams[i].revents = 0;
   }
 
   ssize_t ready = 0;
   try {
-    engine::io::Poller::Event poller_event;
-    for (auto status = poller->NextEvent(poller_event, deadline);
-         status == engine::io::Poller::Status::kSuccess;
-         status = poller->NextEventNoblock(poller_event)) {
+    AsyncStreamPoller::Event poller_event;
+    for (bool has_more = poller.NextEvent(poller_event, deadline); has_more;
+         has_more = poller.NextEventNoblock(poller_event)) {
       for (size_t i = 0; i < nstreams; ++i) {
         if (stream_fds[i] == poller_event.fd) {
           ready += !streams[i].revents;
-          if (poller_event.type & engine::io::Poller::Event::kError) {
-            streams[i].revents |= POLLERR;
-          } else if (poller_event.type & engine::io::Poller::Event::kRead) {
-            streams[i].revents |= streams[i].events & POLLIN;
-          } else if (poller_event.type & engine::io::Poller::Event::kWrite) {
-            streams[i].revents |= streams[i].events & POLLOUT;
+          switch (poller_event.type) {
+            case AsyncStreamPoller::Event::kError:
+              streams[i].revents |= POLLERR;
+              break;
+            case AsyncStreamPoller::Event::kRead:
+              streams[i].revents |= streams[i].events & POLLIN;
+              break;
+            case AsyncStreamPoller::Event::kWrite:
+              streams[i].revents |= streams[i].events & POLLOUT;
+              break;
           }
           break;
         }
