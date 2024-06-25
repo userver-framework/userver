@@ -193,6 +193,7 @@ endif()
 
 if (USERVER_FEATURE_CHAOTIC)
   add_subdirectory(chaotic)
+  list(APPEND USERVER_AVAILABLE_COMPONENTS chaotic)
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT AND USERVER_FEATURE_CORE)
