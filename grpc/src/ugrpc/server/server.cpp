@@ -68,10 +68,12 @@ void ApplyChannelArgs(grpc::ServerBuilder& builder,
 
 bool AreServicesUnique(
     const std::vector<std::unique_ptr<impl::ServiceWorker>>& workers) {
-  std::vector<std::string_view> names;
+  std::vector<std::string> names;
   names.reserve(workers.size());
   for (const auto& worker : workers) {
-    names.push_back(worker->GetMetadata().service_full_name);
+    std::string service_name = std::string(worker->GetMetadata().service_full_name) + worker->EndPoint().value_or("");
+    names.push_back(service_name);
+    LOG_INFO()<<"Added service name "<<service_name;
   }
   std::sort(names.begin(), names.end());
   return std::adjacent_find(names.begin(), names.end()) == names.end();
@@ -353,12 +355,12 @@ void Server::Impl::DoStart() {
     auto end_point = worker->EndPoint();
     if(end_point)
     {
-      LOG_INFO() << "Register service to endpoint  "<<end_point.value();
+      LOG_INFO() << "Register service "<<worker->GetMetadata().service_full_name<<" to endpoint  "<<end_point.value();
       server_builder_->RegisterService(end_point.value(), &worker->GetService());
     }
     else
     {
-      LOG_INFO() << "Register service wo endpoint  ";
+      LOG_INFO() << "Register service "<<worker->GetMetadata().service_full_name<<" wo endpoint  ";
       server_builder_->RegisterService(&worker->GetService());
     }
   }

@@ -64,7 +64,7 @@ ClientFactoryComponent::ClientFactoryComponent(
   auto factory_config = config.As<impl::ClientFactoryConfig>();
 
   const auto* secdist = GetSecdist(context);
-  factory_.emplace(MakeFactorySettings(std::move(factory_config), secdist),
+  factory_.emplace(MakeFactorySettings(std::move(factory_config), secdist, testsuite_grpc),
                    task_processor, mws, *queue, statistics_storage,
                    testsuite_grpc, config_source);
 }
@@ -103,6 +103,18 @@ properties:
         enum:
           - insecure
           - ssl
+    pem-root-certs:
+        type: string
+        description: The buffer containing the PEM encoding of the server root certificates
+        defaultDescription: absent
+    pem-private-key:
+        type: string
+        description: The buffer containing the PEM encoding of the client's private key
+        defaultDescription: absent
+    pem-cert-chain:
+        type: string
+        description: The buffer containing the PEM encoding of the client's certificate chain
+        defaultDescription: absent
     auth-token:
         type: string
         description: auth token name from secdist

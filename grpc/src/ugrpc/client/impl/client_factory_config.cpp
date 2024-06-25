@@ -6,6 +6,7 @@
 
 #include <ugrpc/client/secdist.hpp>
 #include <ugrpc/impl/to_string.hpp>
+#include <userver/fs/blocking/read.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -62,6 +63,20 @@ ClientFactoryConfig Parse(const yaml_config::YamlConfig& value,
   ClientFactoryConfig config;
   config.auth_type = value["auth-type"].As<AuthType>(AuthType::kInsecure);
 
+  /// The buffer containing the PEM encoding of the server root certificates. If
+  /// this parameter is empty, the default roots will be used.  The default
+  /// roots can be overridden using the \a GRPC_DEFAULT_SSL_ROOTS_FILE_PATH
+  /// environment variable pointing to a file on the file system containing the
+  /// roots.
+  config.pem_root_certs = value["pem-root-certs"].As<std::optional<std::string>>();
+  /// The buffer containing the PEM encoding of the client's private key. This
+  /// parameter can be empty if the client does not have a private key.
+  config.pem_private_key = value["pem-private-key"].As<std::optional<std::string>>();
+  /// The buffer containing the PEM encoding of the client's certificate chain.
+  /// This parameter can be empty if the client does not have a certificate
+  /// chain.
+  config.pem_cert_chain = value["pem-cert-chain"].As<std::optional<std::string>>();
+
   config.channel_args =
       MakeChannelArgs(value["channel-args"], value["default-service-config"]);
   config.native_log_level =
@@ -74,8 +89,37 @@ ClientFactoryConfig Parse(const yaml_config::YamlConfig& value,
 
 ClientFactorySettings MakeFactorySettings(
     ClientFactoryConfig&& config,
-    const storages::secdist::SecdistConfig* secdist) {
-  auto creds = MakeDefaultCredentials(config.auth_type);
+    const storages::secdist::SecdistConfig* secdist, const testsuite::GrpcControl& testsuite_grpc) {
+  std::shared_ptr<grpc::ChannelCredentials> creds;
+  if(!testsuite_grpc.IsTlsEnabled()) {
+      creds = MakeDefaultCredentials(config.auth_type);
+  }
+  else
+  {
+      if(config.auth_type == AuthType::kSsl) {
+        grpc::SslCredentialsOptions options;
+        if(config.pem_root_certs.has_value())
+        {
+            options.pem_root_certs = userver::fs::blocking::ReadFileContents(config.pem_root_certs.value());
+        }
+
+        if(config.pem_private_key.has_value())
+        {
+            options.pem_private_key = userver::fs::blocking::ReadFileContents(config.pem_private_key.value());
+        }
+
+        if(config.pem_cert_chain.has_value())
+        {
+            options.pem_cert_chain = userver::fs::blocking::ReadFileContents(config.pem_cert_chain.value());
+        }
+        creds = grpc::SslCredentials(options);
+        LOG_INFO()<<"GRPC client SSL credetials initialized...";
+        LOG_INFO()<<"GRPC client SSL pem_root_certs = "<<config.pem_root_certs.value_or("(undefined)");
+        LOG_INFO()<<"GRPC client SSL pem_private_key = "<<config.pem_private_key.value_or("(undefined)");
+        LOG_INFO()<<"GRPC client SSL pem_cert_chain = "<<config.pem_cert_chain.value_or("(undefined)");
+      }
+  }
+
   std::unordered_map<std::string, std::shared_ptr<grpc::ChannelCredentials>>
       client_creds;
 
