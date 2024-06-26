@@ -77,6 +77,7 @@ const std::string_view kCommandTypes[] = {
     "scan",
     "scard",
     "script",
+    "select",
     "sentinel",
     "set",
     "setex",

@@ -63,15 +63,18 @@ void OnSubscribeImpl(std::string_view message_type,
 
 }  // namespace
 
-Sentinel::Sentinel(
-    const std::shared_ptr<ThreadPools>& thread_pools,
-    const std::vector<std::string>& shards,
-    const std::vector<ConnectionInfo>& conns, std::string shard_group_name,
-    const std::string& client_name, const Password& password,
-    ConnectionSecurity connection_security, ReadyChangeCallback ready_callback,
-    dynamic_config::Source dynamic_config_source,
-    std::unique_ptr<KeyShard>&& key_shard, CommandControl command_control,
-    const testsuite::RedisControl& testsuite_redis_control, ConnectionMode mode)
+Sentinel::Sentinel(const std::shared_ptr<ThreadPools>& thread_pools,
+                   const std::vector<std::string>& shards,
+                   const std::vector<ConnectionInfo>& conns,
+                   std::string shard_group_name, const std::string& client_name,
+                   const Password& password,
+                   ConnectionSecurity connection_security,
+                   ReadyChangeCallback ready_callback,
+                   dynamic_config::Source dynamic_config_source,
+                   std::unique_ptr<KeyShard>&& key_shard,
+                   CommandControl command_control,
+                   const testsuite::RedisControl& testsuite_redis_control,
+                   ConnectionMode mode, size_t database_index)
     : thread_pools_(thread_pools),
       secdist_default_command_control_(command_control),
       testsuite_redis_control_(testsuite_redis_control) {
@@ -96,7 +99,7 @@ Sentinel::Sentinel(
           *sentinel_thread_control_, thread_pools_->GetRedisThreadPool(), *this,
           shards, conns, std::move(shard_group_name), client_name, password,
           connection_security, std::move(ready_callback), std::move(key_shard),
-          dynamic_config_source, mode);
+          dynamic_config_source, mode, database_index);
     }
   });
 }
@@ -176,7 +179,8 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
         thread_pools, shards, conns, std::move(shard_group_name), client_name,
         password, settings.secure_connection, std::move(ready_callback),
         dynamic_config_source, std::move(key_shard), command_control,
-        testsuite_redis_control);
+        testsuite_redis_control, ConnectionMode::kCommands,
+        settings.database_index);
     client->Start();
   }
 

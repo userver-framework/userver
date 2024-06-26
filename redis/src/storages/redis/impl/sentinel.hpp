@@ -71,7 +71,8 @@ class Sentinel {
            std::unique_ptr<KeyShard>&& key_shard = nullptr,
            CommandControl command_control = {},
            const testsuite::RedisControl& testsuite_redis_control = {},
-           ConnectionMode mode = ConnectionMode::kCommands);
+           ConnectionMode mode = ConnectionMode::kCommands,
+           size_t database_index = 0);
   virtual ~Sentinel();
 
   void Start();

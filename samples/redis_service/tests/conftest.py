@@ -14,6 +14,7 @@ def service_env(redis_sentinels):
         'redis_settings': {
             'taxi-tmp': {
                 'password': '',
+                'database_index': 0,
                 'sentinels': redis_sentinels,
                 'shards': [{'name': 'test_master0'}],
             },

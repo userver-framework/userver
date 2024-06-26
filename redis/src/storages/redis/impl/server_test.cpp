@@ -18,6 +18,7 @@ constexpr std::chrono::milliseconds kSmallPeriod{500};
 constexpr std::chrono::milliseconds kWaitPeriod{10};
 constexpr auto kWaitRetries = 100;
 constexpr auto kCheckCount = 10;
+constexpr auto kRedisDatabaseIndex = 46;
 
 const std::string kLocalhost = "127.0.0.1";
 
@@ -103,6 +104,56 @@ TEST(Redis, AuthTimeout) {
 
   EXPECT_TRUE(
       auth_error_handler->WaitForFirstReply(sleep_period + kSmallPeriod));
+  PeriodicCheck([&] { return !IsConnected(*redis); });
+}
+
+TEST(Redis, Select) {
+  MockRedisServer server;
+  auto ping_handler = server.RegisterPingHandler();
+  auto select_handler = server.RegisterStatusReplyHandler("SELECT", "OK");
+
+  auto pool = std::make_shared<redis::ThreadPools>(1, 1);
+  redis::RedisCreationSettings redis_settings;
+  auto redis = std::make_shared<redis::Redis>(pool->GetRedisThreadPool(),
+                                              redis_settings);
+  redis->Connect({kLocalhost}, server.GetPort(), {}, kRedisDatabaseIndex);
+
+  EXPECT_TRUE(select_handler->WaitForFirstReply(kSmallPeriod));
+  EXPECT_TRUE(ping_handler->WaitForFirstReply(kSmallPeriod));
+}
+
+TEST(Redis, SelectFail) {
+  MockRedisServer server;
+  auto ping_handler = server.RegisterPingHandler();
+  auto select_error_handler =
+      server.RegisterErrorReplyHandler("SELECT", "NO PASARAN");
+
+  auto pool = std::make_shared<redis::ThreadPools>(1, 1);
+  redis::RedisCreationSettings redis_settings;
+  auto redis = std::make_shared<redis::Redis>(pool->GetRedisThreadPool(),
+                                              redis_settings);
+  redis->Connect({kLocalhost}, server.GetPort(), {}, kRedisDatabaseIndex);
+
+  EXPECT_TRUE(select_error_handler->WaitForFirstReply(kSmallPeriod));
+  PeriodicCheck([&] { return !IsConnected(*redis); });
+}
+
+TEST(Redis, SelectTimeout) {
+  MockRedisServer server;
+  redis::CommandControl cc{};
+  auto ping_handler = server.RegisterPingHandler();
+  auto sleep_period = redis::kDefaultTimeoutSingle + std::chrono::milliseconds(30);
+  auto select_error_handler =
+      server.RegisterTimeoutHandler("SELECT", sleep_period);
+
+  auto pool = std::make_shared<redis::ThreadPools>(1, 1);
+  redis::RedisCreationSettings redis_settings;
+  auto redis = std::make_shared<redis::Redis>(pool->GetRedisThreadPool(),
+                                              redis_settings);
+  redis->Connect({kLocalhost}, server.GetPort(), {}, kRedisDatabaseIndex);
+
+  EXPECT_TRUE(
+      select_error_handler->WaitForFirstReply(sleep_period + kSmallPeriod));
   PeriodicCheck([&] { return !IsConnected(*redis); });
 }
 

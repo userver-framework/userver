@@ -29,6 +29,7 @@
 #include <storages/redis/impl/redis_stats.hpp>
 #include <storages/redis/impl/tcp_socket.hpp>
 #include <userver/storages/redis/impl/reply.hpp>
+#include <userver/utils/scope_guard.hpp>
 
 #include "command_control_impl.hpp"
 
@@ -147,7 +148,7 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
   ~RedisImpl();
 
   void Connect(const ConnectionInfo::HostVector& host_addrs, int port,
-               const Password& password);
+               const Password& password, size_t database_index);
   void Disconnect();
 
   bool AsyncCommand(const CommandPtr& command);
@@ -234,6 +235,7 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
   void ProcessCommand(const CommandPtr& command);
 
   void Authenticate();
+  void SelectDatabase();
   void SendReadOnly();
   void FreeCommands();
 
@@ -252,7 +254,8 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
   static bool WatchCommandTimerEnabled(
       const CommandsBufferingSettings& commands_buffering_settings);
 
-  bool Connect(const std::string& host, int port, const Password& password);
+  bool Connect(const std::string& host, int port, const Password& password,
+               size_t database_index);
 
   Redis* redis_obj_;
   engine::ev::ThreadControl ev_thread_control_;
@@ -273,6 +276,7 @@ class Redis::RedisImpl : public std::enable_shared_from_this<Redis::RedisImpl> {
   uint16_t port_ = 0;
   std::string server_;
   Password password_{std::string()};
+  std::size_t database_index_ = 0;
   std::atomic<size_t> commands_size_ = 0;
   size_t sent_count_ = 0;
   size_t cmd_counter_ = 0;
@@ -337,8 +341,9 @@ Redis::~Redis() {
 }
 
 void Redis::Connect(const ConnectionInfo::HostVector& host_addrs, int port,
-                    const Password& password) {
-  impl_->Connect(host_addrs, port, password);
+                    const Password& password,
+                    size_t database_index) {
+  impl_->Connect(host_addrs, port, password, database_index);
 }
 
 bool Redis::AsyncCommand(const CommandPtr& command) {
@@ -446,9 +451,10 @@ void Redis::RedisImpl::Detach() {
 }
 
 void Redis::RedisImpl::Connect(const ConnectionInfo::HostVector& host_addrs,
-                               int port, const Password& password) {
+                               int port, const Password& password,
+                               size_t database_index) {
   for (const auto& host : host_addrs)
-    if (Connect(host, port, password)) return;
+    if (Connect(host, port, password, database_index)) return;
 
   LOG_ERROR() << "error async connect to Redis server (host addrs ="
               << host_addrs << ", port=" << port << ")";
@@ -456,7 +462,8 @@ void Redis::RedisImpl::Connect(const ConnectionInfo::HostVector& host_addrs,
 }
 
 bool Redis::RedisImpl::Connect(const std::string& host, int port,
-                               const Password& password) {
+                               const Password& password,
+                               size_t database_index) {
   UASSERT(context_ == nullptr);
   UASSERT(state_ == State::kInit);
 
@@ -467,6 +474,7 @@ bool Redis::RedisImpl::Connect(const std::string& host, int port,
   log_extra_.Extend("redis_server", GetServer());
   log_extra_.Extend("server_id", GetServerId().GetId());
   password_ = password;
+  database_index_ = database_index;
   LOG_INFO() << log_extra_ << "Async connect to Redis server=" << GetServer();
   context_ = redisAsyncConnect(host.c_str(), port);
 
@@ -1041,19 +1049,13 @@ bool Redis::RedisImpl::InitSecureConnection() {
 
 void Redis::RedisImpl::Authenticate() {
   if (password_.GetUnderlying().empty()) {
-    if (send_readonly_)
-      SendReadOnly();
-    else
-      SetState(State::kConnected);
+    SendReadOnly();
   } else {
     ProcessCommand(PrepareCommand(
         CmdArgs{"AUTH", password_.GetUnderlying()},
         [this](const CommandPtr&, ReplyPtr reply) {
           if (*reply && reply->data.IsStatus()) {
-            if (send_readonly_)
-              SendReadOnly();
-            else
-              SetState(State::kConnected);
+            SendReadOnly();
           } else {
             if (*reply) {
               if (reply->IsUnknownCommandError()) {
@@ -1080,12 +1082,17 @@ void Redis::RedisImpl::Authenticate() {
 }
 
 void Redis::RedisImpl::SendReadOnly() {
+  if (!send_readonly_) {
+    SelectDatabase();
+    return;
+  }
+
   LOG_DEBUG() << "Send READONLY command to slave "
               << GetServerId().GetDescription() << " in cluster mode";
   ProcessCommand(PrepareCommand(CmdArgs{"READONLY"}, [this](const CommandPtr&,
                                                             ReplyPtr reply) {
     if (*reply && reply->data.IsStatus()) {
-      SetState(State::kConnected);
+      SelectDatabase();
     } else {
       if (*reply) {
         LOG_LIMITED_ERROR()
@@ -1100,6 +1107,49 @@ void Redis::RedisImpl::SendReadOnly() {
       Disconnect();
     }
   }));
+}
+
+void Redis::RedisImpl::SelectDatabase() {
+  // To get rid of the redundant `SELECT 0` command
+  // since 0 is the default database index, and it will be set automatically
+  if (database_index_ == 0) {
+    SetState(RedisState::kConnected);
+    return;
+  }
+
+  ProcessCommand(PrepareCommand(
+      CmdArgs{"SELECT", database_index_},
+      [this](const CommandPtr&, ReplyPtr reply) {
+        if (*reply && reply->data.IsStatus()) {
+          SetState(RedisState::kConnected);
+          LOG_INFO() << log_extra_
+                     << "Selected redis logical database with index "
+                     << database_index_;
+          return;
+        }
+
+        const utils::ScopeGuard auto_disconnect([this]() { Disconnect(); });
+
+        if (!*reply) {
+          LOG_LIMITED_ERROR()
+              << "SELECT failed with status " << reply->status << " ("
+              << reply->status_string << ") " << log_extra_;
+          return;
+        }
+
+        if (reply->IsUnknownCommandError()) {
+          LOG_WARNING() << log_extra_
+                        << "SELECT failed: unknown command `SELECT` - "
+                           "possible when connecting to Sentinel instead "
+                           "of Redis master or slave instance";
+          return;
+        }
+
+        LOG_LIMITED_ERROR()
+            << log_extra_
+            << "SELECT failed: response type=" << reply->data.GetTypeString()
+            << " msg=" << reply->data.ToDebugString();
+      }));
 }
 
 void Redis::RedisImpl::OnRedisReply(redisAsyncContext* c, void* r,

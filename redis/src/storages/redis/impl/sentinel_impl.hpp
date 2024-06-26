@@ -112,7 +112,8 @@ class SentinelImpl : public SentinelImplBase {
                ReadyChangeCallback ready_callback,
                std::unique_ptr<KeyShard>&& key_shard,
                dynamic_config::Source dynamic_config_source,
-               ConnectionMode mode = ConnectionMode::kCommands);
+               ConnectionMode mode = ConnectionMode::kCommands,
+               size_t database_index = 0);
   ~SentinelImpl() override;
 
   std::unordered_map<ServerId, size_t, ServerIdHasher>
@@ -285,6 +286,7 @@ class SentinelImpl : public SentinelImplBase {
   std::optional<CommandsBufferingSettings> commands_buffering_settings_;
   dynamic_config::Source dynamic_config_source_;
   std::atomic<int> publish_shard_{0};
+  std::size_t database_index_{0};
 };
 
 }  // namespace redis

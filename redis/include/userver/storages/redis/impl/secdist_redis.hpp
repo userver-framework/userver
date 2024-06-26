@@ -21,6 +21,7 @@ struct RedisSettings {
 
   std::vector<std::string> shards;
   std::vector<HostPort> sentinels;
+  size_t database_index{0};
   redis::Password password{std::string()};
   redis::ConnectionSecurity secure_connection{redis::ConnectionSecurity::kNone};
 };
