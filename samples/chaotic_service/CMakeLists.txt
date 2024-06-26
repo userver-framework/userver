@@ -26,7 +26,7 @@ userver_target_generate_chaotic(${PROJECT_NAME}-chgen
         -n "/definitions/([^/]*)/=samples::hello::{0}"
         -f "(.*)={0}"
         # Don't call clang-format
-        --clang-format=  
+        --clang-format=
         # Generate serializers for responses
         --generate-serializers
     OUTPUT_DIR

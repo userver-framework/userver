@@ -21,6 +21,9 @@ Changelog news also go to the
 * 👨‍💻 Add retry budget or retry circuit breaker for clients.
 * Improve OpenTelemetry Protocol (OTLP) support.
 * Add web interface to the [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf)
+* Generate full-blown accessories for OpenAPI:
+  * clients
+  * handlers
 
 
 ## Changelog

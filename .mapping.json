@@ -2938,6 +2938,7 @@
   "scripts/docs/en/userver/cache_dumps.md":"taxi/uservices/userver/scripts/docs/en/userver/cache_dumps.md",
   "scripts/docs/en/userver/caches.md":"taxi/uservices/userver/scripts/docs/en/userver/caches.md",
   "scripts/docs/en/userver/chaos_testing.md":"taxi/uservices/userver/scripts/docs/en/userver/chaos_testing.md",
+  "scripts/docs/en/userver/chaotic.md":"taxi/uservices/userver/scripts/docs/en/userver/chaotic.md",
   "scripts/docs/en/userver/component_system.md":"taxi/uservices/userver/scripts/docs/en/userver/component_system.md",
   "scripts/docs/en/userver/deadline_propagation.md":"taxi/uservices/userver/scripts/docs/en/userver/deadline_propagation.md",
   "scripts/docs/en/userver/deploy_env.md":"taxi/uservices/userver/scripts/docs/en/userver/deploy_env.md",
