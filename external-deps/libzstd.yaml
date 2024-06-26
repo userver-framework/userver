@@ -22,4 +22,4 @@ formula-name: libzstd
 rpm-names:
   - libzstd-dev
 pacman-names:
-  - libzstd
+  - zstd
