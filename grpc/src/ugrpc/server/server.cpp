@@ -164,9 +164,14 @@ Server::Impl::Impl(testsuite::GrpcControl& grpcControl, ServerConfig&& config,
 
   if (config.port) AddListeningPort(*config.port);
 
-  if (config.sslConf && grpcControl_.IsTlsEnabled())
+  if (config.sslConf)
   {
+    if(grpcControl_.IsTlsEnabled()) {
       AddSslConfiguration(*config.sslConf);
+    }else
+    {
+      AddListeningPort(config.sslConf->port);
+    }
   }
 }
 
