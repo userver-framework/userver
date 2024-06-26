@@ -21,4 +21,4 @@ formula-name: libbz2
 rpm-names:
   - libbz2-dev
 pacman-names:
-  - libbz2
+  - bzip2
