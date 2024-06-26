@@ -34,6 +34,14 @@ struct IsConvertibleChecker {
 
 auto MakeMissingNode() { return YAML::Node{}[0]; }
 
+// yaml-cpp allows to parse quoted and typed strings into bool and numeric
+// types, leaving the interpretation of quotes and tags to the user.
+// https://github.com/jbeder/yaml-cpp/issues/261
+bool IsExplicitlyTypedString(const YAML::Node& node) noexcept {
+  UASSERT(node);
+  return node.Tag() == "!" || node.Tag() == "tag:yaml.org,2002:str";
+}
+
 }  // namespace
 
 Value::Value() noexcept : Value(YAML::Node()) {}
@@ -136,23 +144,23 @@ bool Value::operator!=(const Value& other) const { return !(*this == other); }
 bool Value::IsMissing() const { return !*value_pimpl_; }
 
 template <class T>
-bool Value::IsConvertible() const {
+bool Value::IsConvertibleToArithmetic() const {
   if (IsMissing()) {
     return false;
   }
 
   bool ok = true;
   value_pimpl_->as<T>(IsConvertibleChecker<T>{ok});
-  return ok;
+  return ok && !IsExplicitlyTypedString(*value_pimpl_);
 }
 
 template <class T>
-T Value::ValueAs() const {
+T Value::ValueAsArithmetic() const {
   CheckNotMissing();
 
   bool ok = true;
   auto res = value_pimpl_->as<T>(IsConvertibleChecker<T>{ok});
-  if (!ok) {
+  if (!ok || IsExplicitlyTypedString(*value_pimpl_)) {
     throw TypeMismatchException(*value_pimpl_, compiler::GetTypeName<T>(),
                                 path_.ToStringView());
   }
@@ -160,15 +168,24 @@ T Value::ValueAs() const {
 }
 
 bool Value::IsNull() const noexcept {
-  return !IsMissing() && value_pimpl_->IsNull();
+  return !IsMissing() && value_pimpl_->IsNull() &&
+         !IsExplicitlyTypedString(*value_pimpl_);
 }
-bool Value::IsBool() const noexcept { return IsConvertible<bool>(); }
-bool Value::IsInt() const noexcept { return IsConvertible<int32_t>(); }
-bool Value::IsInt64() const noexcept { return IsConvertible<long long>(); }
+bool Value::IsBool() const noexcept {
+  return IsConvertibleToArithmetic<bool>();
+}
+bool Value::IsInt() const noexcept {
+  return IsConvertibleToArithmetic<int32_t>();
+}
+bool Value::IsInt64() const noexcept {
+  return IsConvertibleToArithmetic<long long>();
+}
 bool Value::IsUInt64() const noexcept {
-  return IsConvertible<unsigned long long>();
+  return IsConvertibleToArithmetic<unsigned long long>();
 }
-bool Value::IsDouble() const noexcept { return IsConvertible<double>(); }
+bool Value::IsDouble() const noexcept {
+  return IsConvertibleToArithmetic<double>();
+}
 bool Value::IsString() const noexcept {
   return !IsMissing() && value_pimpl_->IsScalar();
 }
@@ -180,19 +197,19 @@ bool Value::IsObject() const noexcept {
 }
 
 bool Parse(const Value& value, parse::To<bool>) {
-  return value.ValueAs<bool>();
+  return value.ValueAsArithmetic<bool>();
 }
 
 int64_t Parse(const Value& value, parse::To<int64_t>) {
-  return value.ValueAs<int64_t>();
+  return value.ValueAsArithmetic<int64_t>();
 }
 
 uint64_t Parse(const Value& value, parse::To<uint64_t>) {
-  return value.ValueAs<uint64_t>();
+  return value.ValueAsArithmetic<uint64_t>();
 }
 
 double Parse(const Value& value, parse::To<double>) {
-  return value.ValueAs<double>();
+  return value.ValueAsArithmetic<double>();
 }
 
 std::string Parse(const Value& value, parse::To<std::string>) {

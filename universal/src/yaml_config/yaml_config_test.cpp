@@ -1,10 +1,15 @@
 #include <userver/yaml_config/yaml_config.hpp>
 
+#include <utility>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <formats/common/value_test.hpp>
+#include <userver/formats/json/serialize.hpp>
+#include <userver/formats/json/value.hpp>
 #include <userver/formats/yaml/serialize.hpp>
+#include <userver/formats/yaml/value.hpp>
 #include <userver/formats/yaml/value_builder.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>
 #include <userver/fs/blocking/write.hpp>
@@ -698,6 +703,62 @@ TEST(YamlConfig, IteratorArray) {
   it++;
   EXPECT_EQ(it, eit);
   EXPECT_NE(cit, it);
+}
+
+TEST(YamlConfig, ExplicitStringType) {
+  // Note: yaml-cpp 0.6.3 and older fails to parse !!str null as a string
+  // https://github.com/jbeder/yaml-cpp/issues/590
+  const yaml_config::YamlConfig conf{
+      formats::yaml::FromString(R"(
+        quoted-number: '123'
+        str-number: !!str 123
+        quoted-bool: 'true'
+        str-bool: !!str true
+        quoted-null: 'null'
+        # str-null: !!str null
+      )"),
+      {},
+  };
+
+  const std::pair<std::string, std::string> kExpectedValues[]{
+      {"quoted-number", "123"}, {"str-number", "123"},
+      {"quoted-bool", "true"},  {"str-bool", "true"},
+      {"quoted-null", "null"},
+  };
+
+  for (const auto& [key_raw, expected_value_raw] : kExpectedValues) {
+    using Exception = formats::yaml::TypeMismatchException;
+
+    // UEXPECT_THROW is implemented using a lambda, which refuses to capture
+    // structured bindings in C++17.
+    const auto& key = key_raw;
+    const auto& expected_value = expected_value_raw;
+
+    EXPECT_TRUE(conf[key].IsString());
+    UEXPECT_NO_THROW(EXPECT_EQ(conf[key].As<std::string>(), expected_value));
+
+    EXPECT_FALSE(conf[key].IsInt());
+    UEXPECT_THROW(conf[key].As<int>(), Exception);
+    EXPECT_FALSE(conf[key].IsInt64());
+    UEXPECT_THROW(conf[key].As<std::int64_t>(), Exception);
+    EXPECT_FALSE(conf[key].IsUInt64());
+    UEXPECT_THROW(conf[key].As<std::uint64_t>(), Exception);
+    EXPECT_FALSE(conf[key].IsBool());
+    UEXPECT_THROW(conf[key].As<bool>(), Exception);
+    EXPECT_FALSE(conf[key].IsNull());
+  }
+
+  const auto json = conf.As<formats::json::Value>();
+  EXPECT_EQ(json, formats::json::FromString(R"(
+    {
+      "quoted-number": "123",
+      "str-number": "123",
+      "quoted-bool": "true",
+      "str-bool": "true",
+      "quoted-null": "null"
+    }
+  )")) << "Actual json value: "
+       << ToString(json);
 }
 
 USERVER_NAMESPACE_END

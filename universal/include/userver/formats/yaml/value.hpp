@@ -247,10 +247,10 @@ class Value final {
   int GetExtendedType() const;
 
   template <class T>
-  bool IsConvertible() const;
+  bool IsConvertibleToArithmetic() const;
 
   template <class T>
-  T ValueAs() const;
+  T ValueAsArithmetic() const;
 
   static constexpr std::size_t kNativeNodeSize = 64;
   static constexpr std::size_t kNativeAlignment = alignof(void*);

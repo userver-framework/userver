@@ -26,7 +26,7 @@ namespace utils::impl {
                    : boost::stacktrace::stacktrace(0, 0);
 
   // Use fmt::format to output the message without interleaving with other logs.
-  std::cerr << fmt::format("{}. Stacktrace: {}", message,
+  std::cerr << fmt::format("{}. Stacktrace:\n{}", message,
                            boost::stacktrace::to_string(trace));
   std::abort();
 }
