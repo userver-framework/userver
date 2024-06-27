@@ -303,11 +303,15 @@ _userver_directory_install(COMPONENT core FILES
 file(GLOB_RECURSE TESTSUITE_INSTALL_FILES
     "${USERVER_ROOT_DIR}/testsuite/*.txt"
     "${USERVER_ROOT_DIR}/testsuite/*.py"
-    "${USERVER_ROOT_DIR}/testsuite/env.in"
 )
 
 _userver_directory_install(COMPONENT core
     FILES ${TESTSUITE_INSTALL_FILES}
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/testsuite
+)
+
+_userver_directory_install(COMPONENT core
+    PROGRAMS "${USERVER_ROOT_DIR}/testsuite/env.in"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/testsuite
 )
 
