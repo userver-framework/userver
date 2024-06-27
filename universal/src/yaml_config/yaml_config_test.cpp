@@ -706,12 +706,14 @@ TEST(YamlConfig, IteratorArray) {
 }
 
 TEST(YamlConfig, ExplicitStringType) {
-  // Note: yaml-cpp 0.6.3 and older fails to parse !!str null as a string
+  // Note: yaml-cpp 0.6.3 and older fails to parse `!!str null` as a string
   // https://github.com/jbeder/yaml-cpp/issues/590
   const yaml_config::YamlConfig conf{
       formats::yaml::FromString(R"(
-        quoted-number: '123'
-        str-number: !!str 123
+        quoted-int: '123'
+        str-int: !!str 123
+        quoted-float: '123.5'
+        str-float: !!str 123.5
         quoted-bool: 'true'
         str-bool: !!str true
         quoted-null: 'null'
@@ -721,8 +723,9 @@ TEST(YamlConfig, ExplicitStringType) {
   };
 
   const std::pair<std::string, std::string> kExpectedValues[]{
-      {"quoted-number", "123"}, {"str-number", "123"},
-      {"quoted-bool", "true"},  {"str-bool", "true"},
+      {"quoted-int", "123"},     {"str-int", "123"},
+      {"quoted-float", "123.5"}, {"str-float", "123.5"},
+      {"quoted-bool", "true"},   {"str-bool", "true"},
       {"quoted-null", "null"},
   };
 
@@ -743,6 +746,8 @@ TEST(YamlConfig, ExplicitStringType) {
     UEXPECT_THROW(conf[key].As<std::int64_t>(), Exception);
     EXPECT_FALSE(conf[key].IsUInt64());
     UEXPECT_THROW(conf[key].As<std::uint64_t>(), Exception);
+    EXPECT_FALSE(conf[key].IsDouble());
+    UEXPECT_THROW(conf[key].As<double>(), Exception);
     EXPECT_FALSE(conf[key].IsBool());
     UEXPECT_THROW(conf[key].As<bool>(), Exception);
     EXPECT_FALSE(conf[key].IsNull());
@@ -751,8 +756,10 @@ TEST(YamlConfig, ExplicitStringType) {
   const auto json = conf.As<formats::json::Value>();
   EXPECT_EQ(json, formats::json::FromString(R"(
     {
-      "quoted-number": "123",
-      "str-number": "123",
+      "quoted-int": "123",
+      "str-int": "123",
+      "quoted-float": "123.5",
+      "str-float": "123.5",
       "quoted-bool": "true",
       "str-bool": "true",
       "quoted-null": "null"
