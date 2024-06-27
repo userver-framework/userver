@@ -18,6 +18,7 @@ namespace storages::redis::utest {
 ///
 /// see example:
 /// @snippet userver/samples/redis_service/unittests
+// NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class RedisTest : public ::testing::Test, public RedisLocal {
  public:
   RedisTest() { FlushDb(); }
