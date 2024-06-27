@@ -1,0 +1,8 @@
+syntax = "proto3";
+message Empty {
+}
+
+service ServiceName {
+  rpc MethodName(Empty) returns(Empty) {}
+}
+
