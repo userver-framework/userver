@@ -124,8 +124,9 @@ class Server::Impl final {
 
   State state_{State::kConfiguration};
   std::optional<grpc::ServerBuilder> server_builder_;
-  std::optional<int> port_;
-  std::optional<int> ssl_port_;
+//  std::optional<int> port_;
+//  std::optional<int> ssl_port_;
+  std::vector<int> ports_;
   std::vector<std::unique_ptr<impl::ServiceWorker>> service_workers_;
   std::optional<impl::QueueHolder> queue_;
   std::unique_ptr<grpc::Server> server_;
@@ -188,9 +189,10 @@ void Server::Impl::AddSslConfiguration(const SslConf& config)
 {
     LOG_INFO() << "Configuring the gRPC server with ssl config";
     UINVARIANT(config.port >= 0 && config.port <= 65535, "Invalid gRPC listening ssl port");
-    UASSERT_MSG(!ssl_port_,
-                "As of now, AddSslConfiguration can be called no more than once");
-    ssl_port_ = config.port;
+//    UASSERT_MSG(!ssl_port_,
+//                "As of now, AddSslConfiguration can be called no more than once");
+//    ssl_port_ = config.port;
+    ports_.push_back(config.port);
     grpc::SslServerCredentialsOptions ssl_opts;
     try {
       auto server_key =
@@ -219,24 +221,24 @@ void Server::Impl::AddSslConfiguration(const SslConf& config)
       throw;
     }
     auto server_creds = SslServerCredentials(ssl_opts);
-    const auto uri = fmt::format("[::]:{}", ssl_port_.value());
-    LOG_INFO() << "Add ssl listening port "<<ssl_port_.value();
+    const auto uri = fmt::format("[::]:{}", ports_.back());
+    LOG_INFO() << "Add ssl listening port "<<ports_.back();
     server_builder_->AddListeningPort(ugrpc::impl::ToGrpcString(uri),
-                                      server_creds, &*ssl_port_);
+                                      server_creds, &ports_.back());
 }
 
 void Server::Impl::AddListeningPort(int port) {
   std::lock_guard lock(configuration_mutex_);
   UASSERT(state_ == State::kConfiguration);
 
-  UASSERT_MSG(!port_,
-              "As of now, AddListeningPort can be called no more than once");
-  port_ = port;
+//  UASSERT_MSG(!port_,
+//              "As of now, AddListeningPort can be called no more than once");
+//  port_ = port;
   UINVARIANT(port >= 0 && port <= 65535, "Invalid gRPC listening port");
-
-  const auto uri = fmt::format("[::]:{}", port);
+  ports_.push_back(port);
+  const auto uri = fmt::format("[::]:{}", ports_.back());
   server_builder_->AddListeningPort(ugrpc::impl::ToGrpcString(uri),
-                                    grpc::InsecureServerCredentials(), &*port_);
+                                    grpc::InsecureServerCredentials(), &ports_.back());
 }
 
 void Server::Impl::AddListeningUnixSocket(std::string_view path) {
@@ -312,8 +314,8 @@ void Server::Impl::Start() {
 int Server::Impl::GetPort() const noexcept {
   UASSERT(state_ == State::kActive);
 
-  UASSERT_MSG(port_, "No port has been registered using AddListeningPort");
-  return *port_;
+  UASSERT_MSG(!ports_.empty(), "No port has been registered using AddListeningPort");
+  return ports_.back();
 }
 
 void Server::Impl::Stop() noexcept {
@@ -378,8 +380,13 @@ void Server::Impl::DoStart() {
     worker->Start();
   }
 
-  if (port_) {
-    LOG_INFO() << "gRPC server started on port " << *port_;
+  if (!ports_.empty()) {
+    LOG_INFO() << "gRPC server started on the following ports: ";
+    for(auto port : ports_)
+    {
+      LOG_INFO()<<port<<" ";
+    }
+
   } else {
     LOG_INFO() << "gRPC server started without using AddListeningPort";
   }
