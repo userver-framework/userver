@@ -26,7 +26,7 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR AND NOT USERVER_INSTALL)
 endif()
 
 option(USERVER_FEATURE_CORE "Provide a core library with coroutines, otherwise build only userver-universal" ON)
-option(USERVER_FEATURE_CHAOTIC "Provide chaotic-codegen for jsonschema" OFF)
+option(USERVER_FEATURE_CHAOTIC "Provide chaotic-codegen for jsonschema" ON)
 
 set(USERVER_BUILD_PLATFORM_X86 OFF)
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "^x86")

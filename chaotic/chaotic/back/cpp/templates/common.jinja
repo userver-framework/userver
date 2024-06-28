@@ -1,0 +1,6 @@
+{% macro switch_namespace(new_ns) %}
+    {% if get_current_namespace() != new_ns %}
+        {{ close_namespace() }}
+        {{ open_namespace(new_ns) }}
+    {% endif %}
+{% endmacro %}

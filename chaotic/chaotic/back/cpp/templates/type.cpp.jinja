@@ -1,0 +1,290 @@
+#include "{{ pair_header }}.hpp"
+
+#include <userver/chaotic/type_bundle_cpp.hpp>
+{% for file in definition_includes(types.values()) %}
+    #include <{{ file }}>
+{%- endfor %}
+
+#include "{{ pair_header }}_parsers.ipp"
+
+
+{% macro generate_parser_definition_call(name, type, format) %}
+    {% if not type.may_generate_for_format(format) %}
+        /* Parse({{ format }}::Value, To<{{ name }}>) was not generated: {{ type.only_json_reason() }} */
+    {% else %}
+        {{ _generate_parser_definition_call(name, type, format) }}
+    {% endif %}
+{% endmacro %}
+
+
+{% macro _generate_parser_definition_call(name, type, format) %}
+    {# handle subtypes #}
+    {%- for schema in type.subtypes() -%}
+        {{ generate_parser_definition_call(
+                schema.cpp_global_name(),
+		schema,
+		format
+           )
+        }}
+    {% endfor %}
+
+    {% if type.need_dom_parser() %}
+        {{ type.cpp_name_wo_namespace() }} Parse({{ format }}::Value json,
+                                                 {{ userver }}::formats::parse::To<{{ name }}> to)
+    {
+        return Parse<{{ format }}::Value>(json, to);
+    }
+    {% endif %}
+{% endmacro %}
+
+
+{% macro generate_string_parser_definition(name, type) %}
+    {# handle subtypes #}
+    {%- for schema in type.subtypes() -%}
+        {{ generate_string_parser_definition(
+                schema.cpp_global_name(),
+                schema
+           )
+        }}
+    {% endfor %}
+
+    {% if type.need_dom_parser() %}
+        {% if type.get_py_type() == 'CppStringEnum' %}
+            {{ name }} FromString(std::string_view value,
+                            {{userver}}::formats::parse::To<{{ name }}>)
+            {
+                const auto result = k{{ type.cpp_global_struct_field_name() }}_Mapping.TryFindBySecond(value);
+                if (result.has_value()) {
+                    return result.value();
+                }
+                throw std::runtime_error(fmt::format("Invalid enum value ({}) for type {{name}}", value));
+            }
+
+            {{ name }} Parse(std::string_view value,
+                            {{userver}}::formats::parse::To<{{ name }}> to)
+            {
+                return FromString(value, to);
+            }
+        {% endif %}
+    {% endif %}
+{% endmacro %}
+
+
+{% macro generate_serializer_definition(name, type) %}
+    {# handle subtypes #}
+    {%- for schema in type.subtypes() -%}
+        {{ generate_serializer_definition(
+                schema.cpp_global_name(),
+                schema
+           )
+        }}
+    {% endfor %}
+
+    {% if type.get_py_type() == 'CppStruct' %}
+        {{ userver }}::formats::json::Value Serialize(
+            [[maybe_unused]] const {{ name }}& value,
+            {{ userver }}::formats::serialize::To<{{ userver }}::formats::json::Value>
+        )
+        {
+            {{ userver }}::formats::json::ValueBuilder vb
+                {%- if type.extra_type == True -%}
+                    {# additionalProperties: true #}
+                    = value.extra;
+                {%- elif type.extra_type -%}
+                    {# additionalProperties: ... #}
+                    ;
+
+                    for (const auto&[field_key, field_value]: value.extra) {
+                        vb.EmplaceNocheck(field_key,
+                            {{ type.extra_type.parser_type('', '') }}{
+                                field_value
+                            }
+                        );
+                    }
+                {%- else -%}
+                    {# additionalProperties: false #}
+                    = {{ userver }}::formats::common::Type::kObject;
+                {%- endif %}
+
+            {# properties #}
+            {%- for fname, field in type.fields.items() -%}
+                {% if field.is_optional() %}
+                    if (value.{{ field.cpp_field_name() }}) {
+                        vb["{{ fname }}"] = 
+                            {{ field.schema.parser_type('', '') }}{
+                                value.{{ field.cpp_field_name() }}.value()
+                            };
+                    }
+                {% else %}
+                    vb["{{ fname }}"] = 
+                        {{ field.schema.parser_type('', '') }}{
+                            value.{{ field.cpp_field_name() }}
+                        };
+                {% endif %}
+            {%- endfor %}
+
+            {# additionalProperties #}
+            return vb.ExtractValue();
+        }
+    {% elif type.get_py_type() in ('CppPrimitiveType', 'CppStringWithFormat', 'CppArray', 'CppRef', 'CppVariant', 'CppVariantWithDiscriminator') %}
+        {# No new type #}
+    {% elif type.get_py_type() == 'CppIntEnum' %}
+        {{ userver }}::formats::json::Value Serialize(
+            const {{ name }}& value,
+            {{ userver }}::formats::serialize::To<{{ userver }}::formats::json::Value> to
+        )
+        {
+            const auto result = k{{ type.cpp_global_struct_field_name() }}_Mapping.TryFindByFirst(value);
+            if (result.has_value()) {
+                return Serialize(result.value(), to);
+            }
+            {#- TODO: text #}
+            throw std::runtime_error("Bad enum value");
+        }
+    {% elif type.get_py_type() == 'CppStringEnum' %}
+        {{ userver }}::formats::json::Value Serialize(
+            const {{ name }}& value,
+            {{ userver }}::formats::serialize::To<{{ userver }}::formats::json::Value>
+        )
+        {
+            return {{ userver }}::formats::json::ValueBuilder(ToString(value)).ExtractValue();
+        }
+    {% elif type.get_py_type() == 'CppStructAllOf' %}
+        {# parse allOf #}
+        {{ userver }}::formats::json::Value Serialize(
+            const {{ name }}& value,
+            {{ userver }}::formats::serialize::To<{{ userver }}::formats::json::Value>
+        )
+        {
+            {{ userver }}::formats::json::ValueBuilder vb =
+                {{ userver }}::formats::common::Type::kObject;
+
+            {%- for parent in type.parents -%}
+                {{userver}}::formats::common::Merge(
+                    vb,
+                    {{ userver }}::formats::json::ValueBuilder{static_cast<{{ parent.cpp_global_name() }}>(value)}.ExtractValue()
+                );
+            {%- endfor -%}
+
+            return vb.ExtractValue();
+        }
+    {% else %}
+        {{ NOT_IMPLEMENTED(type) }}
+    {% endif %}
+{% endmacro %}
+
+{% macro generate_tostring_definition(name, type) %}
+    {# handle subtypes #}
+    {%- for schema in type.subtypes() -%}
+        {{ generate_tostring_definition(
+               schema.cpp_global_name(),
+               schema,
+           )
+        }}
+    {% endfor %}
+
+    {% if type.get_py_type() == 'CppStringEnum' %}
+        std::string ToString({{ name }} value) {
+            const auto result = k{{ type.cpp_global_struct_field_name() }}_Mapping.TryFindByFirst(value);
+            if (result.has_value()) {
+                return std::string{result.value()};
+            }
+            {#- TODO: text #}
+            throw std::runtime_error("Bad enum value");
+        }
+    {% endif %}
+{% endmacro %}
+
+
+{% macro generate_operator_eq_definition(name, type) %}
+    {# handle subtypes #}
+    {%- for schema in type.subtypes() -%}
+        {{ generate_operator_eq_definition(
+               schema.cpp_global_name(),
+               schema,
+           )
+        }}
+    {% endfor %}
+
+    {% if type.get_py_type() == 'CppStruct' %}
+        bool operator==(const {{ name }} & lhs,const {{ name }} & rhs) {
+          {%- if not type.fields %} 
+            (void)lhs;
+            (void)rhs;
+          {% endif %}
+            return
+            {% for fname, field in type.fields.items() -%}
+                lhs.{{ field.cpp_field_name() }} == rhs.{{ field.cpp_field_name() }}
+                &&
+            {%- endfor -%}
+            {% if type.extra_type %}
+                lhs.extra == rhs.extra
+                &&
+            {% endif %}
+                true;
+        }
+    {% elif type.get_py_type() == 'CppStructAllOf' %}
+        bool operator==(const {{ name }} & lhs,const {{ name }} & rhs) {
+            return
+            {% for parent in type.parents -%}
+                    static_cast<const {{ parent.cpp_global_name() }}&>(lhs) ==
+                    static_cast<const {{ parent.cpp_global_name() }}&>(rhs)
+                {% if not loop.last %} && {% endif -%}
+            {%- endfor -%}
+                ;
+        }
+    {% elif type.get_py_type() in ('CppPrimitiveType', 'CppStringWithFormat', 'CppArray', 'CppRef', 'CppIntEnum', 'CppStringEnum', 'CppVariant', 'CppVariantWithDiscriminator') %}
+        {# No new type #}
+    {% else %}
+        {{ NOT_IMPLEMENTED(type) }}
+    {% endif %}
+{% endmacro %}
+
+{% macro generate_operator_lshift_definition(name, type) %}
+    {# handle subtypes #}
+    {%- for schema in type.subtypes() -%}
+        {{ generate_operator_lshift_definition(
+               schema.cpp_global_name(),
+               schema,
+           )
+        }}
+    {% endfor %}
+
+    {% if type.get_py_type() == 'CppStringEnum' %}
+        {{ userver }}::logging::LogHelper& operator<<({{ userver }}::logging::LogHelper& lh, const {{ name }}& value)
+        {
+            return lh << ToString(value);
+        }
+    {% elif type.need_operator_lshift() %}
+        {% if generate_serializer %}
+            {{ userver }}::logging::LogHelper& operator<<({{ userver }}::logging::LogHelper& lh, const {{ name }}& value)
+            {
+                return lh << ToString({{ userver }}::formats::json::ValueBuilder(value).ExtractValue());
+            }
+        {% endif %}
+    {% endif %}
+{% endmacro %}
+
+{% import 'templates/common.jinja' as common %}
+
+{% for name, type in types.items() %}
+    {{ common.switch_namespace(cpp_namespace(name)) }}
+
+    {{ generate_operator_eq_definition(name, type) }}
+
+    {{ generate_operator_lshift_definition(name, type) }}
+
+    {% for parse_format in parse_formats %}
+        {{ generate_parser_definition_call(name, type, userver + parse_format) }}
+    {% endfor %}
+
+    {{ generate_string_parser_definition(name, type) }}
+
+    {% if generate_serializer %}
+        {{ generate_serializer_definition(name, type) }}
+    {% endif %}
+
+    {{ generate_tostring_definition(name, type) }}
+{% endfor %}
+
+{{ common.switch_namespace('') }}

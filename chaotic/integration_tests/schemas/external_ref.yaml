@@ -1,0 +1,7 @@
+definitions:
+    ObjectWithExternalRef:
+        type: object
+        properties:
+            empty:
+                $ref: 'object_empty.yaml#/definitions/ObjectEmpty'
+        additionalProperties: false
