@@ -161,7 +161,7 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
   cc::Sensor cc_sensor_;
   cc::Limiter cc_limiter_;
   congestion_control::v2::LinearController cc_controller_;
-  std::atomic<std::size_t> cc_max_connections_;
+  std::atomic<std::size_t> cc_max_connections_{0};
 };
 
 }  // namespace storages::postgres::detail
