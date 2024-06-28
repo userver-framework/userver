@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+#include <string>
 #include <string_view>
 #include <unordered_map>
 
@@ -25,7 +27,8 @@ class StatisticsStorage final {
   ~StatisticsStorage();
 
   ugrpc::impl::ServiceStatistics& GetServiceStatistics(
-      const ugrpc::impl::StaticServiceMetadata& metadata);
+      const ugrpc::impl::StaticServiceMetadata& metadata,
+      std::optional<std::string> endpoint);
 
   // Can only be called on StatisticsStorage for gRPC services (not clients).
   // Can only be called strictly after all the components are loaded.
@@ -36,19 +39,25 @@ class StatisticsStorage final {
   // Pointer to service name from its metadata is used as a unique service ID
   using ServiceId = const char*;
 
+  struct ServiceKey {
+    ServiceId service_id;
+    std::optional<std::string> endpoint;
+  };
+
   void ExtendStatistics(utils::statistics::Writer& writer);
 
-  // std::equal_to<const char*> specialized in arcadia/util/str_stl.h
-  // so we need to define our own comparer to use it in map and avoid
-  // specialization after instantiation problem
-  struct ServiceIdComparer final {
-    bool operator()(ServiceId lhs, ServiceId rhs) const { return lhs == rhs; }
+  struct ServiceKeyComparer final {
+    bool operator()(ServiceKey lhs, ServiceKey rhs) const;
+  };
+
+  struct ServiceKeyHasher final {
+    std::size_t operator()(const ServiceKey& key) const;
   };
 
   const StatisticsDomain domain_;
 
-  std::unordered_map<ServiceId, ugrpc::impl::ServiceStatistics,
-                     std::hash<ServiceId>, ServiceIdComparer>
+  std::unordered_map<ServiceKey, ugrpc::impl::ServiceStatistics,
+                     ServiceKeyHasher, ServiceKeyComparer>
       service_statistics_;
   engine::SharedMutex mutex_;
 

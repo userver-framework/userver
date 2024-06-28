@@ -84,8 +84,8 @@ class ClientFactory final {
 template <typename Client>
 Client ClientFactory::MakeClient(const std::string& client_name,
                                  const std::string& endpoint) {
-  auto& statistics =
-      client_statistics_storage_.GetServiceStatistics(Client::GetMetadata());
+  auto& statistics = client_statistics_storage_.GetServiceStatistics(
+      Client::GetMetadata(), endpoint);
 
   Middlewares mws;
   mws.reserve(mws_.size());

@@ -30,7 +30,6 @@ function(_userver_prepare_grpc)
   else()
     include("${CMAKE_CURRENT_LIST_DIR}/SetupGrpc.cmake")
   endif()
-
   set_property(GLOBAL PROPERTY userver_grpc_cpp_plugin "${PROTO_GRPC_CPP_PLUGIN}")
   set_property(GLOBAL PROPERTY userver_grpc_python_plugin "${PROTO_GRPC_PYTHON_PLUGIN}")
   set_property(GLOBAL PROPERTY userver_protobuf_protoc "${PROTOBUF_PROTOC}")

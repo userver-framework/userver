@@ -3,6 +3,7 @@
 #include <chrono>
 #include <exception>
 #include <functional>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -64,8 +65,8 @@ struct ServiceData final {
               const ugrpc::impl::StaticServiceMetadata& metadata)
       : settings(settings),
         metadata(metadata),
-        statistics(settings.statistics_storage.GetServiceStatistics(metadata)) {
-  }
+        statistics(settings.statistics_storage.GetServiceStatistics(
+            metadata, std::nullopt)) {}
 
   ~ServiceData() = default;
 
