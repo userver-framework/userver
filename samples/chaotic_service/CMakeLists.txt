@@ -19,11 +19,11 @@ target_include_directories(${PROJECT_NAME}_objs PUBLIC src)
 # /// [objects]
 
 # /// [chaotic]
-file(GLOB_RECURSE SCHEMAS ${CMAKE_CURRENT_SOURCE_DIR}/src/schemas/*.yaml)
+file(GLOB_RECURSE SCHEMAS ${CMAKE_CURRENT_SOURCE_DIR}/schemas/*.yaml)
 userver_target_generate_chaotic(${PROJECT_NAME}-chgen
     ARGS
-        # Map '/definition/*' JSONSchema types to C++ types in 'samples::hello' namespace
-        -n "/definitions/([^/]*)/=samples::hello::{0}"
+        # Map '/components/schemas/*' JSONSchema types to C++ types in 'samples::hello' namespace
+        -n "/components/schemas/([^/]*)/=samples::hello::{0}"
         -f "(.*)={0}"
         # Don't call clang-format
         --clang-format=
@@ -34,7 +34,7 @@ userver_target_generate_chaotic(${PROJECT_NAME}-chgen
     SCHEMAS
         ${SCHEMAS}
     RELATIVE_TO
-        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}
 )
 target_link_libraries(${PROJECT_NAME}_objs ${PROJECT_NAME}-chgen)
 # /// [chaotic]

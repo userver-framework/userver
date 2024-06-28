@@ -28,7 +28,13 @@ Types must be described using [JSONSchema](https://json-schema.org/learn/getting
 declarative yaml-based language.
 You choose the file layout (i.e. in what YAML subpath your types are described).
 
-@include samples/chaotic_service/src/schemas/hello.yaml
+`schemas/hello.yaml`:
+
+@include samples/chaotic_service/schemas/hello.yaml
+
+`schemas/types.yaml`:
+
+@include samples/chaotic_service/schemas/types.yaml
 
 You may search for schemas in `CMakeLists.txt` with `file()` command:
 
@@ -191,17 +197,19 @@ struct X {
 It adds a member `extra` which holds all non-enumerated fields.
 In case of `true` it holds raw `formats::json::Value`.
 In case of more specific types it holds a map of this type.
+If you don't need `extra` member, you may disable its generation via `x-usrv-cpp-extra-member: false`.
 
-You may change the container type of `extra` field with `x-usrv-extra-type`:
+You may change the container type of `extra` field with `x-usrv-cpp-extra-type`:
 
-| x-usrv-extra-type | C++ type of extra member             |
-|-------------------|--------------------------------------|
-| -                 | `std::unordered_map<std::string, T>` |
-| `Custom`          | `Custom<std::string, T>`             |
+| x-usrv-cpp-extra-type | C++ type of extra member             |
+|-----------------------|--------------------------------------|
+| -                     | `std::unordered_map<std::string, T>` |
+| `Custom`              | `Custom<std::string, T>`             |
 
 
-Unknown fields are ignored during parsing by default.
-It can be overriden by setting `x-usrv-strict-parsing: true`.
+Any unknown field leads to a validation failure in case of `additionalProperties: false`.
+It can be overriden by setting `x-usrv-strict-parsing: false`.
+In this case unknown fields will be ignored.
 
 
 #### oneOf
@@ -247,10 +255,10 @@ TreeNode:
         data:
             type: string
         left:
-            $ref: '#/definitions/TreeNode'
+            $ref: '#/TreeNode'
             x-usrv-cpp-indirect: true
         right:
-            $ref: '#/definitions/TreeNode'
+            $ref: '#/TreeNode'
             x-usrv-cpp-indirect: true
 ```
 
