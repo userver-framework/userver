@@ -25,6 +25,41 @@ std::shared_ptr<grpc::ChannelCredentials> MakeDefaultCredentials(
   UINVARIANT(false, "Invalid AuthType");
 }
 
+
+std::shared_ptr<grpc::ChannelCredentials> MakeCredentials(const ClientFactoryConfig& config, bool isTlsEnabled)
+{
+  if(isTlsEnabled && config.auth_type == AuthType::kSsl) {
+      grpc::SslCredentialsOptions options;
+      if(config.pem_root_certs.has_value())
+      {
+        options.pem_root_certs = userver::fs::blocking::ReadFileContents(config.pem_root_certs.value());
+      }
+
+      if(config.pem_private_key.has_value())
+      {
+        options.pem_private_key = userver::fs::blocking::ReadFileContents(config.pem_private_key.value());
+      }
+
+      if(config.pem_cert_chain.has_value())
+      {
+        options.pem_cert_chain = userver::fs::blocking::ReadFileContents(config.pem_cert_chain.value());
+      }
+
+      LOG_INFO()<<"GRPC client SSL credetials initialized...";
+      LOG_INFO()<<"GRPC client SSL pem_root_certs = "<<config.pem_root_certs.value_or("(undefined)");
+      LOG_INFO()<<"GRPC client SSL pem_private_key = "<<config.pem_private_key.value_or("(undefined)");
+      LOG_INFO()<<"GRPC client SSL pem_cert_chain = "<<config.pem_cert_chain.value_or("(undefined)");
+
+      return grpc::SslCredentials(options);
+    }
+    else
+    {
+      LOG_INFO()<<"GRPC client with non ssl initialized...";
+      return grpc::InsecureChannelCredentials();
+    }
+}
+
+
 grpc::ChannelArguments MakeChannelArgs(
     const yaml_config::YamlConfig& channel_args,
     const yaml_config::YamlConfig& default_service_config) {
@@ -90,35 +125,7 @@ ClientFactoryConfig Parse(const yaml_config::YamlConfig& value,
 ClientFactorySettings MakeFactorySettings(
     ClientFactoryConfig&& config,
     const storages::secdist::SecdistConfig* secdist, const testsuite::GrpcControl& testsuite_grpc) {
-  std::shared_ptr<grpc::ChannelCredentials> creds;
-  if(!testsuite_grpc.IsTlsEnabled()) {
-      creds = MakeDefaultCredentials(config.auth_type);
-  }
-  else
-  {
-      if(config.auth_type == AuthType::kSsl) {
-        grpc::SslCredentialsOptions options;
-        if(config.pem_root_certs.has_value())
-        {
-            options.pem_root_certs = userver::fs::blocking::ReadFileContents(config.pem_root_certs.value());
-        }
-
-        if(config.pem_private_key.has_value())
-        {
-            options.pem_private_key = userver::fs::blocking::ReadFileContents(config.pem_private_key.value());
-        }
-
-        if(config.pem_cert_chain.has_value())
-        {
-            options.pem_cert_chain = userver::fs::blocking::ReadFileContents(config.pem_cert_chain.value());
-        }
-        creds = grpc::SslCredentials(options);
-        LOG_INFO()<<"GRPC client SSL credetials initialized...";
-        LOG_INFO()<<"GRPC client SSL pem_root_certs = "<<config.pem_root_certs.value_or("(undefined)");
-        LOG_INFO()<<"GRPC client SSL pem_private_key = "<<config.pem_private_key.value_or("(undefined)");
-        LOG_INFO()<<"GRPC client SSL pem_cert_chain = "<<config.pem_cert_chain.value_or("(undefined)");
-      }
-  }
+  std::shared_ptr<grpc::ChannelCredentials> creds = MakeCredentials(config, testsuite_grpc.IsTlsEnabled());
 
   std::unordered_map<std::string, std::shared_ptr<grpc::ChannelCredentials>>
       client_creds;
