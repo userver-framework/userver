@@ -851,7 +851,7 @@ html.dark-mode .values__card {
   display: block;
   width: max-content;
   opacity: 0;
-  transition: opacity 0.5s;
+  transition: background-color 0.3s, border-color 0.3s, color 0.3s, opacity 0.5s;
 }
 
 .feedback__stars:valid + .feedback__button {
