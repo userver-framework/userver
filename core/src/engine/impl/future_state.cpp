@@ -13,13 +13,13 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::impl {
 
 FutureStateBase::FutureStateBase() noexcept
-    : is_ready_(false),
-      is_result_store_locked_(false),
-      is_future_created_(false) {}
+    : is_result_store_locked_(false), is_future_created_(false) {}
 
 FutureStateBase::~FutureStateBase() = default;
 
-bool FutureStateBase::IsReady() const noexcept { return is_ready_.load(); }
+bool FutureStateBase::IsReady() const noexcept {
+  return finish_waiters_->IsSignaled();
+}
 
 FutureStatus FutureStateBase::WaitUntil(Deadline deadline) {
   if (IsReady()) return FutureStatus::kReady;
@@ -48,8 +48,7 @@ void FutureStateBase::LockResultStore() {
 }
 
 void FutureStateBase::ReleaseResultStore() {
-  is_ready_.store(true);
-  finish_waiters_->WakeupOne();
+  finish_waiters_->SetSignalAndWakeupOne();
 }
 
 void FutureStateBase::WaitForResult() {
@@ -60,10 +59,8 @@ void FutureStateBase::WaitForResult() {
 }
 
 EarlyWakeup FutureStateBase::TryAppendWaiter(TaskContext& waiter) {
-  // TODO exterminate is_ready_, use finish_waiters_.GetSignalOrAppend?
-  finish_waiters_->Append(&waiter);
-  if (is_ready_.load()) {
-    finish_waiters_->WakeupOne();
+  if (finish_waiters_->GetSignalOrAppend(&waiter)) {
+    waiter.WakeupCurrent();
     return EarlyWakeup{true};
   }
   return EarlyWakeup{false};
