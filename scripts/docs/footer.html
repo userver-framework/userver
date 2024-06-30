@@ -15,13 +15,11 @@
 $generatedby <a href="https://www.doxygen.org/index.html">Doxygen</a> $doxygenversion
 </small></address>
 <!--END !GENERATE_TREEVIEW-->
-
 <script type="text/javascript" src="$relpath^codeHighlight.js"></script>
 <script type="text/javascript" src="$relpath^telegramLanguage.js"></script>
 <script type="text/javascript" src="$relpath^styledBtn.js"></script>
 <script type="text/javascript" src="$relpath^search.js"></script>
 <script type="text/javascript" src="$relpath^header.js"></script>
-<script type="text/javascript" src="$relpath^feedback.js"></script>
 <script type="text/javascript" src="$relpath^searchHighlight.js"></script>
 <script>
   const addLinks = () =>  {
@@ -47,19 +45,19 @@ $generatedby <a href="https://www.doxygen.org/index.html">Doxygen</a> $doxygenve
       init_header();
       addLinks();
       changeTelegramChannelLanguageForRussianSpeakingUser();
-      document.getElementById("side-nav").style.display = "none"; // TODO: disable treeview and save sticky footer
+      document.getElementById("side-nav").style.display = "none";
 
       const isLanding = document.getElementById('landing_logo_id') !== null;
 
       if (isLanding) return;
 
       draw_toc();
-      PageFeedback.init();
       highlight_code();
-      styleNavButtons(); // TODO: code style?
+      styleNavButtons();
     }, 0);
     });
   });
 </script>
+<script type="module" src="$relpath^feedback.js"></script>
 </body>
 </html>

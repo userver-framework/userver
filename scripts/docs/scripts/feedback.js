@@ -1,4 +1,30 @@
-class PageFeedback extends HTMLElement {
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getDatabase,
+  ref,
+  runTransaction,
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const FEEDBACK_FORM_LINK =
+  "https://forms.yandex.ru/u/667d482fe010db2f53e00edf/";
+
+const firebaseConfig = Object.freeze({
+  apiKey: "AIzaSyDZVAx6BhwsFIvTe0JbBP9lf8VULw7Co6s",
+  authDomain: "userver-test-74c30.firebaseapp.com",
+  projectId: "userver-test-74c30",
+  storageBucket: "userver-test-74c30.appspot.com",
+  messagingSenderId: "949186490366",
+  appId: "1:949186490366:web:838a0823848dcb5a69daaf",
+  measurementId: "G-PSNRVCVKCL",
+});
+const firebaseApp = initializeApp(firebaseConfig);
+
+const firebasePageFeedbackActions = Object.freeze({
+  like: "like",
+  dislike: "dislike",
+});
+
+export class PageFeedback extends HTMLElement {
   #likeCheckbox = this.#makeFeedbackCheckbox({
     className: "like-checkbox",
     title: "Helpful",
@@ -7,10 +33,18 @@ class PageFeedback extends HTMLElement {
     className: "dislike-checkbox",
     title: "Not helpful",
   });
+
   #popup = document.createElement("page-feedback-popup");
+
   #docContentElement = document.getElementById("doc-content");
   #contentsElement = document.querySelector(".contents");
   #resizeObserver = new ResizeObserver(this.#updatePosition.bind(this));
+
+  #title = document.querySelector(".title");
+
+  get #pageTitle() {
+    return this.#title.textContent.replace(/[.$#[\]/]/g, "-");
+  }
 
   static init() {
     const toc = document.querySelector(".toc");
@@ -35,6 +69,7 @@ class PageFeedback extends HTMLElement {
         oppositeCheckbox: this.#dislikeCheckbox,
         modalOffset: -152,
         title: "Thank you!",
+        actionName: firebasePageFeedbackActions.like,
       })
     );
     this.#dislikeCheckbox.addEventListener(
@@ -44,6 +79,7 @@ class PageFeedback extends HTMLElement {
         oppositeCheckbox: this.#likeCheckbox,
         modalOffset: -125,
         title: "Tell us what's wrong",
+        actionName: firebasePageFeedbackActions.dislike,
       })
     );
   }
@@ -53,15 +89,43 @@ class PageFeedback extends HTMLElement {
     oppositeCheckbox,
     modalOffset,
     title,
+    actionName,
   }) {
     return () => {
       if (checkbox.checked) {
-        this.#popup.open({ modalOffset, title });
-        oppositeCheckbox.checked = false;
+        this.#handleCheckedAction({
+          oppositeCheckbox,
+          modalOffset,
+          title,
+          actionName,
+        });
       } else if (!oppositeCheckbox.checked) {
-        this.#popup.close();
+        this.#handleUncheckedAction(actionName);
       }
     };
+  }
+
+  #handleCheckedAction({ oppositeCheckbox, modalOffset, title, actionName }) {
+    this.#popup.open({ modalOffset, title });
+    if (oppositeCheckbox.checked) {
+      this.#switchFirebaseDatabaseFeedbackField(actionName);
+    } else {
+      FirebasePageDatabase.incrementField(this.#pageTitle, actionName);
+    }
+    oppositeCheckbox.checked = false;
+  }
+
+  #switchFirebaseDatabaseFeedbackField(field) {
+    const { like: likeField, dislike: dislikeField } =
+      firebasePageFeedbackActions;
+    const oppositeField = field === likeField ? dislikeField : likeField;
+    FirebasePageDatabase.incrementField(this.#pageTitle, field);
+    FirebasePageDatabase.decrementField(this.#pageTitle, oppositeField);
+  }
+
+  #handleUncheckedAction(actionName) {
+    FirebasePageDatabase.decrementField(this.#pageTitle, actionName);
+    this.#popup.close();
   }
 
   connectedCallback() {
@@ -91,7 +155,8 @@ class PageFeedback extends HTMLElement {
     const paddingRight = parseFloat(
       window.getComputedStyle(this.#contentsElement).paddingRight
     );
-    const scrollbarWidth = this.#docContentElement.offsetWidth - this.#docContentElement.clientWidth;
+    const scrollbarWidth =
+      this.#docContentElement.offsetWidth - this.#docContentElement.clientWidth;
     this.style.right = `${marginRight + paddingRight + scrollbarWidth}px`;
   }
 }
@@ -103,9 +168,7 @@ class PageFeedbackPopup extends HTMLElement {
   #paragraph = this.#makeParagraph(
     "Your opinion will help to improve our service"
   );
-  #link = this.#makeFeedbackLink(
-    "https://forms.yandex.ru/u/667d482fe010db2f53e00edf/"
-  );
+  #link = this.#makeFeedbackLink(FEEDBACK_FORM_LINK);
 
   #currentFadeOutAnimation = null;
 
@@ -258,5 +321,99 @@ class PageFeedbackPopup extends HTMLElement {
   }
 }
 
+class LandingFeedback {
+  static #lastStarRatingLabel = null;
+
+  static init() {
+    this.#updateFormLinkInFeedbackButton();
+    this.#addStarFeedbackMetricSendOnChangeEventListeners();
+  }
+
+  static #updateFormLinkInFeedbackButton() {
+    const feedbackButton = document.querySelector(".feedback__button");
+
+    if (feedbackButton !== null) {
+      feedbackButton.href = FEEDBACK_FORM_LINK;
+    }
+  }
+
+  static #addStarFeedbackMetricSendOnChangeEventListeners() {
+    const starFeedbackRadios = document.querySelectorAll(".feedback__star");
+
+    starFeedbackRadios.forEach((star) => {
+      star.addEventListener("change", () => {
+        if (this.#lastStarRatingLabel !== null) {
+          FirebasePageDatabase.decrementField(
+            "Landing",
+            this.#lastStarRatingLabel
+          );
+        }
+
+        FirebasePageDatabase.incrementField("Landing", star.ariaLabel);
+        this.#lastStarRatingLabel = star.ariaLabel;
+      });
+    });
+  }
+}
+
+class FirebasePageDatabase {
+  static incrementField(pageTitle, field) {
+    this.#doAction({
+      callback: (page) => this.#incrementPageField(page, field),
+      pageTitle: pageTitle,
+    });
+  }
+
+  static #incrementPageField(page, field) {
+    if (page[field] === undefined) {
+      page[field] = 1;
+    } else {
+      page[field]++;
+    }
+  }
+
+  static decrementField(pageTitle, field) {
+    this.#doAction({
+      callback: (page) => this.#decrementPageField(page, field),
+      pageTitle: pageTitle,
+    });
+  }
+
+  static #decrementPageField(page, field) {
+    if (page[field] === undefined) {
+      page[field] = 0;
+    } else {
+      page[field]--;
+    }
+  }
+
+  static #doAction({ callback, pageTitle }) {
+    const db = getDatabase(firebaseApp);
+    const pageRef = ref(db, `feedback/${pageTitle}`);
+
+    runTransaction(pageRef, (page) => {
+      if (page === null) {
+        page = {};
+      }
+      callback(page);
+      return page;
+    });
+  }
+}
+
 customElements.define("page-feedback", PageFeedback);
 customElements.define("page-feedback-popup", PageFeedbackPopup);
+
+$(function () {
+  $(document).ready(function () {
+    setTimeout(() => {
+      const isLanding = document.getElementById("landing_logo_id") !== null;
+
+      if (isLanding) {
+        LandingFeedback.init();
+      } else {
+        PageFeedback.init();
+      }
+    }, 0);
+  });
+});
