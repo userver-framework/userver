@@ -16,7 +16,6 @@
 #include <userver/utils/encoding/hex.hpp>
 #include <userver/utils/rand.hpp>
 #include <userver/utils/uuid4.hpp>
-#include <utils/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -343,11 +342,14 @@ void Span::AddTag(std::string key, logging::LogExtra::Value value) {
   pimpl_->log_extra_inheritable_.Extend(std::move(key), std::move(value));
 }
 
-void Span::AddTags(const logging::LogExtra& log_extra, utils::InternalTag) {
+void Span::AddTags(const logging::LogExtra& log_extra,
+                   utils::impl::InternalTag) {
   pimpl_->log_extra_inheritable_.Extend(log_extra);
 }
 
-impl::TimeStorage& Span::GetTimeStorage() { return pimpl_->GetTimeStorage(); }
+impl::TimeStorage& Span::GetTimeStorage(utils::impl::InternalTag) {
+  return pimpl_->GetTimeStorage();
+}
 
 std::string Span::GetTag(std::string_view tag) const {
   const auto& value = pimpl_->log_extra_inheritable_.GetValue(tag);

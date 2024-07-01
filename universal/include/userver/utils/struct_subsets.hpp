@@ -11,7 +11,7 @@
 #include <boost/preprocessor/seq/for_each.hpp>
 
 #include <userver/utils/impl/boost_variadic_to_seq.hpp>
-#include <userver/utils/impl/weak_internal_tag.hpp>
+#include <userver/utils/impl/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -20,7 +20,7 @@ namespace utils::impl {
 struct RequireSemicolon;
 
 struct NonMovable final {
-  explicit NonMovable(WeakInternalTag) {}
+  constexpr explicit NonMovable(InternalTag) noexcept {}
 };
 
 template <typename T>
@@ -48,7 +48,7 @@ USERVER_NAMESPACE_END
 #define USERVER_IMPL_MAKE_FROM_SUPERSET(Self, ...)                             \
   template <typename OtherDeps>                                                \
   static Self MakeFromSupersetImpl(                                            \
-      OtherDeps&& other, USERVER_NAMESPACE::utils::impl::WeakInternalTag) {    \
+      OtherDeps&& other, USERVER_NAMESPACE::utils::impl::InternalTag) {        \
     return {BOOST_PP_SEQ_FOR_EACH(USERVER_IMPL_STRUCT_MAP, BOOST_PP_EMPTY(),   \
                                   USERVER_IMPL_VARIADIC_TO_SEQ(__VA_ARGS__))}; \
   }
@@ -79,7 +79,7 @@ USERVER_NAMESPACE_END
           Enable = 0>                                                          \
   /*implicit*/ operator Other() const& {                                       \
     return Other::MakeFromSupersetImpl(                                        \
-        *this, USERVER_NAMESPACE::utils::impl::WeakInternalTag{});             \
+        *this, USERVER_NAMESPACE::utils::impl::InternalTag{});                 \
   }                                                                            \
                                                                                \
   template <                                                                   \
@@ -89,7 +89,7 @@ USERVER_NAMESPACE_END
           Enable = 0>                                                          \
   /*implicit*/ operator Other()&& {                                            \
     return Other::MakeFromSupersetImpl(                                        \
-        std::move(*this), USERVER_NAMESPACE::utils::impl::WeakInternalTag{});  \
+        std::move(*this), USERVER_NAMESPACE::utils::impl::InternalTag{});      \
   }                                                                            \
                                                                                \
   friend struct USERVER_NAMESPACE::utils::impl::RequireSemicolon
@@ -157,7 +157,7 @@ USERVER_NAMESPACE_END
                                                                                \
     /* Protects against copying into async functions */                        \
     USERVER_NAMESPACE::utils::impl::NonMovable _impl_non_movable{              \
-        USERVER_NAMESPACE::utils::impl::WeakInternalTag{}};                    \
+        USERVER_NAMESPACE::utils::impl::InternalTag{}};                        \
                                                                                \
     USERVER_IMPL_MAKE_FROM_SUPERSET(SubsetStructRef, __VA_ARGS__)              \
                                                                                \

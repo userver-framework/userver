@@ -10,8 +10,8 @@
 #include <userver/logging/log_extra.hpp>
 #include <userver/tracing/scope_time.hpp>
 #include <userver/tracing/tracer_fwd.hpp>
+#include <userver/utils/impl/internal_tag.hpp>
 #include <userver/utils/impl/source_location.hpp>
-#include <userver/utils/internal_tag_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -206,9 +206,11 @@ class Span final {
   std::chrono::system_clock::time_point GetStartSystemTime() const;
 
   /// @cond
-  void AddTags(const logging::LogExtra&, utils::InternalTag);
+  // For internal use only.
+  void AddTags(const logging::LogExtra&, utils::impl::InternalTag);
 
-  impl::TimeStorage& GetTimeStorage();
+  // For internal use only.
+  impl::TimeStorage& GetTimeStorage(utils::impl::InternalTag);
 
   // For internal use only.
   void LogTo(logging::impl::TagWriter writer) const&;

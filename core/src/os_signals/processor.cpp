@@ -6,8 +6,6 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/strerror.hpp>
 
-#include <utils/internal_tag.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace os_signals {
@@ -24,7 +22,7 @@ Processor::Processor(engine::TaskProcessor& task_processor)
     : channel_(kOsSignalProcessorChannelName.data()),
       task_processor_(task_processor) {}
 
-void Processor::Notify(int signum, utils::InternalTag) {
+void Processor::Notify(int signum, utils::impl::InternalTag) {
   UINVARIANT(signum == SIGUSR1 || signum == SIGUSR2,
              "Processor::Notify() should be used only with SIGUSR1 and SIGUSR2 "
              "signum values");

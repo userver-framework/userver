@@ -20,7 +20,6 @@
 #include <dump/dump_locator.hpp>
 #include <userver/dump/factory.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
-#include <utils/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -403,7 +402,8 @@ void CacheUpdateTrait::Impl::DoUpdate(UpdateType update_type,
 
   try {
     customized_trait_.Update(update_type, last_update_, now, stats);
-    CheckUpdateState(stats.GetState(utils::InternalTag{}), update_type_str);
+    CheckUpdateState(stats.GetState(utils::impl::InternalTag{}),
+                     update_type_str);
   } catch (const std::exception& e) {
     OnUpdateFailure(config);
     throw;

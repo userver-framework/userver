@@ -8,8 +8,8 @@
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/serialize/common_containers.hpp>
 #include <userver/utils/default_dict.hpp>
+#include <userver/utils/impl/internal_tag.hpp>
 #include <userver/utils/impl/transparent_hash.hpp>
-#include <userver/utils/internal_tag_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -35,14 +35,16 @@ class DocsMap final {
   bool AreContentsEqual(const DocsMap& other) const;
 
   /// @cond
-  // For internal use only
+  // For internal use only.
   // Set of configs expected to be used is automatically updated when
   // configs are retrieved with 'Get' method.
   void SetConfigsExpectedToBeUsed(
-      utils::impl::TransparentSet<std::string> configs, utils::InternalTag);
+      utils::impl::TransparentSet<std::string> configs,
+      utils::impl::InternalTag);
 
+  // For internal use only.
   const utils::impl::TransparentSet<std::string>& GetConfigsExpectedToBeUsed(
-      utils::InternalTag) const;
+      utils::impl::InternalTag) const;
   /// @endcond
 
  private:

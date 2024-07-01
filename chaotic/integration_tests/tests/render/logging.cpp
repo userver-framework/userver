@@ -13,20 +13,18 @@ using Logging = utest::LogCaptureFixture<>;
 
 TEST_F(Logging, Object) {
   auto json = formats::json::MakeObject(
-      "integer", 1, "boolean", true, "number", 1.1, "string", "foo",
+      "integer", 1, "boolean", true, "number", 1.5, "string", "foo",
       "string-enum", "1", "object", formats::json::MakeObject(), "array",
       formats::json::MakeArray(1));
   auto obj = json.As<ns::ObjectTypes>();
 
-  LOG_INFO() << obj;
-  ASSERT_THAT(
-      ExtractRawLog(),
-      testing::HasSubstr(
-          "text={\"boolean\":true,\"integer\":1,\"number\":1.1,\"string\":"
-          "\"foo\",\"object\":{},\"array\":[1],\"string-enum\":\"1\"}\n"));
+  const auto obj_string = GetLogCapture().ToStringViaLogging(obj);
+  EXPECT_EQ(obj_string,
+            R"({"boolean":true,"integer":1,"number":1.5,"string":"foo",)"
+            R"("object":{},"array":[1],"string-enum":"1"})");
 
-  LOG_INFO() << obj.string_enum;
-  ASSERT_THAT(ExtractRawLog(), testing::HasSubstr("\ttext=1\n"));
+  const auto enum_string = GetLogCapture().ToStringViaLogging(obj.string_enum);
+  ASSERT_EQ(enum_string, "1");
 }
 
 USERVER_NAMESPACE_END

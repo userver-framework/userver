@@ -2,8 +2,6 @@
 
 #include <userver/engine/task/task_base.hpp>
 
-#include <utils/internal_tag.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace os_signals {

@@ -8,7 +8,7 @@
 #include <cstddef>
 
 #include <userver/cache/update_type.hpp>
-#include <userver/utils/internal_tag_fwd.hpp>
+#include <userver/utils/impl/internal_tag.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 #include <userver/utils/statistics/rate_counter.hpp>
 
@@ -62,7 +62,8 @@ class UpdateStatisticsScope final {
 
   ~UpdateStatisticsScope();
 
-  impl::UpdateState GetState(utils::InternalTag) const;
+  // For internal use only
+  impl::UpdateState GetState(utils::impl::InternalTag) const;
   /// @endcond
 
   /// @brief Mark that the `Update` has finished with changes

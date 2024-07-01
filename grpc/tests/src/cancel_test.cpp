@@ -353,12 +353,13 @@ UTEST_F(GrpcCancelSleep, CancelByTimeoutLogging) {
 
   engine::SleepFor(std::chrono::seconds(1));
 
-  ASSERT_THAT(
-      ExtractRawLog(),
-      testing::HasSubstr("Handler task cancelled, error in "
-                         "'sample.ugrpc.UnitTestService/SayHello': "
-                         "'sample.ugrpc.UnitTestService/SayHello' failed: "
-                         "connection error at Finish"));
+  EXPECT_THAT(
+      GetLogCapture().Filter("Handler task cancelled, error in "
+                             "'sample.ugrpc.UnitTestService/SayHello': "
+                             "'sample.ugrpc.UnitTestService/SayHello' failed: "
+                             "connection error at Finish"),
+      testing::SizeIs(1))
+      << GetLogCapture().GetAll();
 }
 
 namespace {
@@ -385,10 +386,11 @@ UTEST_F(GrpcCancelError, CancelByError) {
 
   engine::SleepFor(std::chrono::seconds(1));
 
-  ASSERT_THAT(ExtractRawLog(),
-              testing::HasSubstr("Handler task cancelled, error in "
-                                 "'sample.ugrpc.UnitTestService/Chat': "
-                                 "Some error (std::runtime_error)"));
+  ASSERT_THAT(GetLogCapture().Filter("Handler task cancelled, error in "
+                                     "'sample.ugrpc.UnitTestService/Chat': "
+                                     "Some error (std::runtime_error)"),
+              testing::SizeIs(1))
+      << GetLogCapture().GetAll();
 }
 
 USERVER_NAMESPACE_END

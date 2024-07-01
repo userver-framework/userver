@@ -6,7 +6,6 @@
 
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value_builder.hpp>
-#include <utils/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -83,12 +82,13 @@ bool DocsMap::AreContentsEqual(const DocsMap& other) const {
 }
 
 void DocsMap::SetConfigsExpectedToBeUsed(
-    utils::impl::TransparentSet<std::string> configs, utils::InternalTag) {
+    utils::impl::TransparentSet<std::string> configs,
+    utils::impl::InternalTag) {
   configs_to_be_used_ = std::move(configs);
 }
 
 const utils::impl::TransparentSet<std::string>&
-DocsMap::GetConfigsExpectedToBeUsed(utils::InternalTag) const {
+DocsMap::GetConfigsExpectedToBeUsed(utils::impl::InternalTag) const {
   return configs_to_be_used_;
 }
 

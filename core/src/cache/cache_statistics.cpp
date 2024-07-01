@@ -3,7 +3,6 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/statistics/writer.hpp>
-#include <utils/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -123,7 +122,8 @@ UpdateStatisticsScope::~UpdateStatisticsScope() {
   }
 }
 
-impl::UpdateState UpdateStatisticsScope::GetState(utils::InternalTag) const {
+impl::UpdateState UpdateStatisticsScope::GetState(
+    utils::impl::InternalTag) const {
   return state_;
 }
 

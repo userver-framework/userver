@@ -1,8 +1,10 @@
 #include <userver/utest/utest.hpp>
 
+#include <gmock/gmock.h>
 #include <grpcpp/grpcpp.h>
+#include <boost/utility/base_from_member.hpp>
 
-#include <userver/logging/impl/logger_base.hpp>
+#include <userver/utest/log_capture_fixture.hpp>
 #include <userver/utils/regex.hpp>
 
 #include <tests/unit_test_client.usrv.pb.hpp>
@@ -13,25 +15,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-class Logger final : public logging::impl::LoggerBase {
- public:
-  Logger() noexcept : LoggerBase(logging::Format::kRaw) {
-    LoggerBase::SetLevel(logging::Level::kInfo);
-  }
-
-  void SetLevel(logging::Level) override {}  // do nothing
-  void Log(logging::Level, std::string_view str) override { log += str; }
-  void Flush() override {}
-
-  std::string log;
-};
-
-struct LoggerHolder {
-  std::shared_ptr<Logger> logger_;
-};
-
 ugrpc::server::ServerConfig MakeServerConfig(
-    std::shared_ptr<Logger> access_tskv_logger) {
+    logging::LoggerPtr access_tskv_logger) {
   ugrpc::server::ServerConfig config;
   config.port = 0;
   config.access_tskv_logger = access_tskv_logger;
@@ -50,15 +35,16 @@ class UnitTestService final : public sample::ugrpc::UnitTestServiceBase {
 
 template <typename GrpcService>
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
-class ServiceWithAccessLogFixture : public LoggerHolder,
-                                    public ugrpc::tests::Service<GrpcService>,
-                                    public ::testing::Test {
+class ServiceWithAccessLogFixture
+    : protected boost::base_from_member<utest::LogCaptureLogger>,
+      public ugrpc::tests::Service<GrpcService>,
+      public ::testing::Test {
  public:
   ServiceWithAccessLogFixture()
-      : LoggerHolder{std::make_shared<Logger>()},
+      : boost::base_from_member<utest::LogCaptureLogger>(logging::Format::kRaw),
         ugrpc::tests::Service<GrpcService>(
-            dynamic_config::MakeDefaultStorage({}), MakeServerConfig(logger_)) {
-  }
+            dynamic_config::MakeDefaultStorage({}),
+            MakeServerConfig(member.GetLogger())) {}
 };
 
 }  // namespace
@@ -85,8 +71,10 @@ UTEST_F(GrpcAccessLog, Test) {
       R"(grpc_status=\d+\t)"
       R"(grpc_status_code=[A-Z_]+\n)";
 
-  EXPECT_TRUE(utils::regex_match(logger_->log, utils::regex(kExpectedPattern)))
-      << logger_->log;
+  const auto logs = member.ExtractSingle();
+  EXPECT_TRUE(
+      utils::regex_match(logs.GetLogRaw(), utils::regex(kExpectedPattern)))
+      << logs;
 }
 
 USERVER_NAMESPACE_END

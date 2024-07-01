@@ -23,7 +23,6 @@
 #include <userver/os_signals/component.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/distances.hpp>
-#include <utils/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -233,7 +232,7 @@ void Manager::OnSignal(int signum) {
   std::shared_lock<std::shared_timed_mutex> lock(context_mutex_);
   if (components_cleared_) return;
   if (signal_processor_) {
-    signal_processor_->Get().Notify(signum, utils::InternalTag{});
+    signal_processor_->Get().Notify(signum, utils::impl::InternalTag{});
   }
 }
 
