@@ -187,6 +187,14 @@ class ThreadControl;
     return results;                                                        \
   }
 
+#ifdef CURL_SSLVERSION_DEFAULT
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define CURL_SSLVERSION_NAMESPACE
+#else
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define CURL_SSLVERSION_NAMESPACE native::
+#endif
+
 namespace curl {
 // class form;
 class multi;
@@ -610,10 +618,10 @@ class easy final : public std::enable_shared_from_this<easy> {
   DELETE_CURL_OPTION_BLOB(set_ssl_key_blob);
 #endif
   enum ssl_version_t {
-    ssl_version_default = native::CURL_SSLVERSION_DEFAULT,
-    ssl_version_tls_v1 = native::CURL_SSLVERSION_TLSv1,
-    ssl_version_ssl_v2 = native::CURL_SSLVERSION_SSLv2,
-    ssl_version_ssl_v3 = native::CURL_SSLVERSION_SSLv3
+    ssl_version_default = CURL_SSLVERSION_NAMESPACE CURL_SSLVERSION_DEFAULT,
+    ssl_version_tls_v1 = CURL_SSLVERSION_NAMESPACE CURL_SSLVERSION_TLSv1,
+    ssl_version_ssl_v2 = CURL_SSLVERSION_NAMESPACE CURL_SSLVERSION_SSLv2,
+    ssl_version_ssl_v3 = CURL_SSLVERSION_NAMESPACE CURL_SSLVERSION_SSLv3,
   };
   IMPLEMENT_CURL_OPTION_ENUM(set_ssl_version, native::CURLOPT_SSLVERSION,
                              ssl_version_t, long);
