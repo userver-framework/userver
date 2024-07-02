@@ -58,12 +58,7 @@ if(USERVER_FEATURE_REDIS_TLS)
   add_compile_definitions(USERVER_FEATURE_REDIS_TLS=1)
 endif()
 
-target_link_libraries(${PROJECT_NAME}
-  PUBLIC
-    userver-core
-  PRIVATE
-    userver-uboost-coro
-)
+target_link_libraries(${PROJECT_NAME} PUBLIC userver-core)
 if (USERVER_CONAN)
   find_package(hiredis REQUIRED)
   target_link_libraries(${PROJECT_NAME} PUBLIC hiredis::hiredis)
