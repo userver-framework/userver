@@ -1899,6 +1899,7 @@
   "grpc/tests/src/statistics_test.cpp":"taxi/uservices/userver/grpc/tests/src/statistics_test.cpp",
   "grpc/tests/src/stream_test.cpp":"taxi/uservices/userver/grpc/tests/src/stream_test.cpp",
   "grpc/tests/src/tests/deadline_helpers.hpp":"taxi/uservices/userver/grpc/tests/src/tests/deadline_helpers.hpp",
+  "grpc/tests/src/tests/service_multichannel.hpp":"taxi/uservices/userver/grpc/tests/src/tests/service_multichannel.hpp",
   "grpc/tests/src/tracing_test.cpp":"taxi/uservices/userver/grpc/tests/src/tracing_test.cpp",
   "grpc/tests/src/unimplemented_test.cpp":"taxi/uservices/userver/grpc/tests/src/unimplemented_test.cpp",
   "grpc/tests/src/wait_any_test.cpp":"taxi/uservices/userver/grpc/tests/src/wait_any_test.cpp",

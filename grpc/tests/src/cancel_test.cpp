@@ -202,22 +202,7 @@ using GrpcServerEcho = ugrpc::tests::ServiceFixture<UnitTestServiceEcho>;
 }  // namespace
 
 UTEST_F_MT(GrpcServerEcho, DestroyServerDuringRequest, 2) {
-  utils::statistics::Storage statistics_storage;
-
-  // A separate client queue is necessary, since the client stops after the
-  // server in this test.
-  ugrpc::client::QueueHolder client_queue;
-
-  testsuite::GrpcControl ts({}, false);
-  ugrpc::client::MiddlewareFactories mwfs;
-  ugrpc::client::ClientFactory client_factory(
-      ugrpc::client::ClientFactorySettings{},
-      engine::current_task::GetTaskProcessor(), mwfs, client_queue.GetQueue(),
-      statistics_storage, ts, GetConfigSource());
-
-  const std::string endpoint = fmt::format("[::1]:{}", GetServer().GetPort());
-  auto client = client_factory.MakeClient<sample::ugrpc::UnitTestServiceClient>(
-      "test", endpoint);
+  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
 
   auto call = client.Chat();
   EXPECT_TRUE(call.Write({}));
@@ -226,7 +211,7 @@ UTEST_F_MT(GrpcServerEcho, DestroyServerDuringRequest, 2) {
   EXPECT_TRUE(call.Read(response));
 
   auto complete_rpc = engine::AsyncNoSpan([&] {
-    // Make sure that 'server.Stop' call starts
+    // Make sure that 'server.StopServing()' call starts
     engine::SleepFor(50ms);
 
     // The server should wait for the ongoing RPC to complete
@@ -236,6 +221,7 @@ UTEST_F_MT(GrpcServerEcho, DestroyServerDuringRequest, 2) {
     UEXPECT_NO_THROW(EXPECT_FALSE(call.Read(response)));
   });
 
+  GetServer().StopServing();
   complete_rpc.Get();
 }
 

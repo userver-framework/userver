@@ -10,6 +10,7 @@
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/utils/algo.hpp>
 
+#include <tests/service_multichannel.hpp>
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
 #include <userver/ugrpc/tests/service_fixtures.hpp>
@@ -334,7 +335,7 @@ UTEST_F(GrpcClientLongAnswerTest, AsyncUnaryLongAnswerRPC) {
 }
 
 using GrpcClientMultichannelTest =
-    ugrpc::tests::ServiceFixtureMultichannel<UnitTestService>;
+    tests::ServiceFixtureMultichannel<UnitTestService>;
 
 UTEST_P_MT(GrpcClientMultichannelTest, MultiThreadedClientTest, 4) {
   auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();

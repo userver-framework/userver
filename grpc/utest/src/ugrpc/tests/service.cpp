@@ -7,7 +7,6 @@
 #include <ugrpc/server/middlewares/deadline_propagation/middleware.hpp>
 #include <ugrpc/server/middlewares/log/middleware.hpp>
 #include <userver/engine/task/task.hpp>
-#include <userver/logging/null_logger.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -31,9 +30,10 @@ using ServerDpMiddleware =
 
 }  // namespace
 
-ServiceBase::ServiceBase(dynamic_config::StorageMock&& dynconf,
-                         server::ServerConfig&& server_config)
-    : config_storage_(std::move(dynconf)),
+ServiceBase::ServiceBase() : ServiceBase(server::ServerConfig{}) {}
+
+ServiceBase::ServiceBase(server::ServerConfig&& server_config)
+    : config_storage_(dynamic_config::MakeDefaultStorage({})),
       server_(std::move(server_config), statistics_storage_,
               config_storage_.GetSource()),
       server_middlewares_(
@@ -75,6 +75,10 @@ void ServiceBase::StopServer() noexcept {
 void ServiceBase::ExtendDynamicConfig(
     const std::vector<dynamic_config::KeyValue>& overrides) {
   config_storage_.Extend(overrides);
+}
+
+utils::statistics::Storage& ServiceBase::GetStatisticsStorage() {
+  return statistics_storage_;
 }
 
 server::Server& ServiceBase::GetServer() noexcept { return server_; }

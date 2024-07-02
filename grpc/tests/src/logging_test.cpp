@@ -43,7 +43,6 @@ class ServiceWithAccessLogFixture
   ServiceWithAccessLogFixture()
       : boost::base_from_member<utest::LogCaptureLogger>(logging::Format::kRaw),
         ugrpc::tests::Service<GrpcService>(
-            dynamic_config::MakeDefaultStorage({}),
             MakeServerConfig(member.GetLogger())) {}
 };
 

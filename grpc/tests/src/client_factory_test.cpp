@@ -1,45 +1,24 @@
 #include <userver/ugrpc/client/client_factory.hpp>
 
-#include <userver/engine/task/task.hpp>
-#include <userver/formats/json/serialize.hpp>
-#include <userver/formats/yaml/value.hpp>
-#include <userver/formats/yaml/value_builder.hpp>
-#include <userver/utest/utest.hpp>
-#include <userver/utils/statistics/storage.hpp>
-#include <userver/yaml_config/yaml_config.hpp>
-
-#include <userver/ugrpc/client/channels.hpp>
 #include <userver/ugrpc/client/impl/client_data.hpp>
-#include <userver/ugrpc/client/queue_holder.hpp>
+#include <userver/utest/utest.hpp>
 
+#include <tests/service_multichannel.hpp>
 #include <tests/unit_test_client.usrv.pb.hpp>
-#include "userver/dynamic_config/storage_mock.hpp"
+#include <tests/unit_test_service.usrv.pb.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-UTEST(GrpcClient, ChannelsCount) {
-  constexpr int kChannelsCount = 4;
-  ugrpc::client::ClientFactorySettings settings;
-  settings.channel_count = kChannelsCount;
-  ugrpc::client::QueueHolder client_queue;
+using GrpcClientMultichannel =
+    tests::ServiceFixtureMultichannel<sample::ugrpc::UnitTestServiceBase>;
 
-  utils::statistics::Storage statistics_storage;
-  dynamic_config::StorageMock config_storage;
-
-  testsuite::GrpcControl ts({}, false);
-  ugrpc::client::MiddlewareFactories mws;
-  ugrpc::client::ClientFactory client_factory(
-      std::move(settings), engine::current_task::GetTaskProcessor(), mws,
-      client_queue.GetQueue(), statistics_storage, ts,
-      config_storage.GetSource());
-
-  const std::string endpoint{"[::]:50051"};
-  auto client = client_factory.MakeClient<sample::ugrpc::UnitTestServiceClient>(
-      "test", endpoint);
-
+UTEST_P(GrpcClientMultichannel, ChannelsCount) {
+  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
   auto& data = ugrpc::client::impl::GetClientData(client);
-
-  ASSERT_EQ(kChannelsCount, data.GetChannelToken().GetChannelCount());
+  ASSERT_EQ(data.GetChannelToken().GetChannelCount(), GetParam());
 }
+
+INSTANTIATE_UTEST_SUITE_P(/*no prefix*/, GrpcClientMultichannel,
+                          testing::Values(std::size_t{1}, std::size_t{4}));
 
 USERVER_NAMESPACE_END
