@@ -14,9 +14,9 @@ project(userver)
 set(USERVER_ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}")
 
 option(
-    USERVER_INSTALL
-    "Prepare build of userver to install in system"
-    OFF
+  USERVER_INSTALL
+  "Prepare build of userver to install in system"
+  OFF
 )
 
 set(USERVER_AVAILABLE_COMPONENTS universal)
@@ -45,9 +45,9 @@ if (USERVER_FEATURE_UTEST)
 endif()
 
 option(
-    USERVER_IS_THE_ROOT_PROJECT
-    "Contributor mode: build userver tests, samples and helper tools"
-    "${USERVER_NOT_INCLUDED_AS_SUBDIR}"
+  USERVER_IS_THE_ROOT_PROJECT
+  "Contributor mode: build userver tests, samples and helper tools"
+  "${USERVER_NOT_INCLUDED_AS_SUBDIR}"
 )
 if (USERVER_IS_THE_ROOT_PROJECT)
   message(STATUS "Building userver as a primary project")
@@ -74,21 +74,21 @@ endif()
 
 set(USERVER_YDB_DEFAULT OFF)
 if(USERVER_FEATURE_CORE AND USERVER_IS_THE_ROOT_PROJECT AND
-    DEFINED CMAKE_CXX_STANDARD AND CMAKE_CXX_STANDARD GREATER_EQUAL 20)
+  DEFINED CMAKE_CXX_STANDARD AND CMAKE_CXX_STANDARD GREATER_EQUAL 20)
   set(USERVER_YDB_DEFAULT ON)
 endif()
 
 option(USERVER_CONAN "Build with Conan packages" ${CONAN_EXPORTED})
 
 option(
-    USERVER_DOWNLOAD_PACKAGES
-    "Download missing third party packages and use the downloaded versions"
-    ON
+  USERVER_DOWNLOAD_PACKAGES
+  "Download missing third party packages and use the downloaded versions"
+  ON
 )
 option(
-    USERVER_FORCE_DOWNLOAD_PACKAGES
-    "Download all possible third party packages even if a system package is available"
-    OFF
+  USERVER_FORCE_DOWNLOAD_PACKAGES
+  "Download all possible third party packages even if a system package is available"
+  OFF
 )
 
 option(USERVER_FEATURE_CRYPTOPP_BLAKE2 "Provide wrappers for blake2 algorithms of crypto++" ON)
@@ -151,22 +151,22 @@ include(CMakePackageConfigHelpers)
 
 message(STATUS "Generating cmake files ...")
 userver_venv_setup(
-    NAME userver-cmake
-    PYTHON_OUTPUT_VAR USERVER_CMAKE_GEN_PYTHON_BINARY
-    REQUIREMENTS "${USERVER_ROOT_DIR}/scripts/external_deps/requirements.txt"
+  NAME userver-cmake
+  PYTHON_OUTPUT_VAR USERVER_CMAKE_GEN_PYTHON_BINARY
+  REQUIREMENTS "${USERVER_ROOT_DIR}/scripts/external_deps/requirements.txt"
 )
 execute_process(
-    COMMAND
-    "${USERVER_CMAKE_GEN_PYTHON_BINARY}"
-    -u "${USERVER_ROOT_DIR}/scripts/external_deps/cmake_generator.py"
-    --repo-dir "${USERVER_ROOT_DIR}"
-    --build-dir "${CMAKE_BINARY_DIR}"
-    RESULT_VARIABLE RESULT
-    WORKING_DIRECTORY "${USERVER_ROOT_DIR}"
+  COMMAND
+  "${USERVER_CMAKE_GEN_PYTHON_BINARY}"
+  -u "${USERVER_ROOT_DIR}/scripts/external_deps/cmake_generator.py"
+  --repo-dir "${USERVER_ROOT_DIR}"
+  --build-dir "${CMAKE_BINARY_DIR}"
+  RESULT_VARIABLE RESULT
+  WORKING_DIRECTORY "${USERVER_ROOT_DIR}"
 )
 if(RESULT)
   message(FATAL_ERROR
-      "Generating cmake files failed with exit code: ${RESULT}"
+    "Generating cmake files failed with exit code: ${RESULT}"
   )
 endif(RESULT)
 
