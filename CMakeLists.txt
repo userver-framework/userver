@@ -15,9 +15,9 @@ project(userver)
 set(USERVER_ROOT_DIR "${CMAKE_CURRENT_LIST_DIR}")
 
 option(
-    USERVER_INSTALL
-    "Prepare build of userver to install in system"
-    OFF
+  USERVER_INSTALL
+  "Prepare build of userver to install in system"
+  OFF
 )
 if(CMAKE_VERSION GREATER_EQUAL 3.31)
   cmake_policy(SET CMP0177 NEW)
@@ -91,14 +91,14 @@ endif()
 option(USERVER_CONAN "Build with Conan packages" "${CONAN_EXPORTED}")
 
 option(
-    USERVER_DOWNLOAD_PACKAGES
-    "Download missing third party packages and use the downloaded versions"
-    ON
+  USERVER_DOWNLOAD_PACKAGES
+  "Download missing third party packages and use the downloaded versions"
+  ON
 )
 option(
-    USERVER_FORCE_DOWNLOAD_PACKAGES
-    "Download all possible third party packages even if a system package is available"
-    OFF
+  USERVER_FORCE_DOWNLOAD_PACKAGES
+  "Download all possible third party packages even if a system package is available"
+  OFF
 )
 
 option(USERVER_FEATURE_CRYPTOPP_BLAKE2 "Provide wrappers for blake2 algorithms of crypto++" ON)
