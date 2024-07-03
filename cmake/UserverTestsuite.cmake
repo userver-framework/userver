@@ -40,15 +40,17 @@ function(_userver_prepare_testsuite)
   endif()
   set_property(GLOBAL PROPERTY userver_testsuite_dir "${USERVER_TESTSUITE_DIR}")
 
-  userver_testsuite_requirements(REQUIREMENTS_FILES_VAR requirements_files TESTSUITE_ONLY)
-  userver_venv_setup(
-    NAME utest
-    # TESTSUITE_PYTHON_BINARY is used in `env.in`
-    PYTHON_OUTPUT_VAR TESTSUITE_PYTHON_BINARY
-    REQUIREMENTS ${requirements_files}
-    UNIQUE
-  )
-  configure_file(${USERVER_TESTSUITE_DIR}/env.in ${CMAKE_BINARY_DIR}/testsuite/env @ONLY)
+  if(USERVER_FEATURE_TESTSUITE)
+    userver_testsuite_requirements(REQUIREMENTS_FILES_VAR requirements_files TESTSUITE_ONLY)
+    userver_venv_setup(
+      NAME utest
+      # TESTSUITE_PYTHON_BINARY is used in `env.in`
+      PYTHON_OUTPUT_VAR TESTSUITE_PYTHON_BINARY
+      REQUIREMENTS ${requirements_files}
+      UNIQUE
+      )
+    configure_file(${USERVER_TESTSUITE_DIR}/env.in ${CMAKE_BINARY_DIR}/testsuite/env @ONLY)
+  endif()
 endfunction()
 
 function(userver_testsuite_requirements)
@@ -441,6 +443,10 @@ function(userver_add_utest)
 
   cmake_parse_arguments(
       ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+  if (NOT USERVER_FEATURE_TESTSUITE)
+    message(FATAL_ERROR "userver_add_utest requires 'USERVER_FEATURE_TESTSUITE=ON'")
+  endif()
 
   set(additional_args)
   if(ARG_DATABASES)
