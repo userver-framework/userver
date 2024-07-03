@@ -261,7 +261,7 @@ void DynamicConfig::Impl::ReadFallback(const ComponentConfig& config) {
     try {
       const auto fallback_contents =
           fs::ReadFileContents(*fs_task_processor_, *default_overrides_path);
-      fallback_config_.Parse(fallback_contents, false);
+      fallback_config_.Parse(fallback_contents, true);
     } catch (const std::exception& ex) {
       throw std::runtime_error(
           fmt::format("Failed to load dynamic config fallback from '{}': {}",

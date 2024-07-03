@@ -24,8 +24,6 @@ USERVER_CACHE_CONTROL_HOOKS = {
     'dynamic-config-client-updater': '_userver_dynconfig_cache_control',
 }
 
-_CONFIG_CACHES = tuple(USERVER_CACHE_CONTROL_HOOKS.keys())
-
 
 class BaseError(Exception):
     """Base class for exceptions from this module"""
@@ -35,8 +33,19 @@ class DynamicConfigNotFoundError(BaseError):
     """Config parameter was not found and no default was provided"""
 
 
+class DynamicConfigUninitialized(BaseError):
+    """
+    Calling `dynamic_config.get` before defaults are fetched from the service.
+    Try adding a dependency on `service_client` in your fixture.
+    """
+
+
 class InvalidDefaultsError(BaseError):
     """Dynamic config defaults action returned invalid response"""
+
+
+class UnknownConfigError(BaseError):
+    """Invalid dynamic config name in @pytest.mark.config"""
 
 
 ConfigDict = typing.Dict[str, typing.Any]
@@ -220,11 +229,15 @@ class DynamicConfig:
             self,
             *,
             initial_values: ConfigDict,
+            defaults: typing.Optional[ConfigDict],
             config_cache_components: typing.Iterable[str],
             cache_invalidation_state: caches.InvalidationState,
             changelog: _Changelog,
     ):
         self._values = initial_values.copy()
+        # Defaults are only there for convenience, to allow accessing them
+        # in tests using dynamic_config.get. They are not sent to the service.
+        self._defaults = defaults
         self._cache_invalidation_state = cache_invalidation_state
         self._config_cache_components = config_cache_components
         self._changelog = changelog
@@ -244,11 +257,20 @@ class DynamicConfig:
         return self._values
 
     def get(self, key: str, default: typing.Any = None) -> typing.Any:
-        if key not in self._values:
-            if default is not None:
-                return default
-            raise DynamicConfigNotFoundError(f'Config {key!r} is not found')
-        return copy.deepcopy(self._values[key])
+        if key in self._values:
+            return copy.deepcopy(self._values[key])
+        if self._defaults is not None and key in self._defaults:
+            return copy.deepcopy(self._defaults[key])
+        if default is not None:
+            return default
+        if self._defaults is None:
+            raise DynamicConfigUninitialized(
+                f'Defaults for config {key!r} have not yet been fetched '
+                'from the service. Options:\n'
+                '1. add a dependency on service_client in your fixture;\n'
+                '2. pass `default` parameter to `dynamic_config.get`',
+            )
+        raise DynamicConfigNotFoundError(f'Config {key!r} is not found')
 
     def remove_values(self, keys):
         extra_keys = set(keys).difference(self._values.keys())
@@ -290,9 +312,10 @@ def dynamic_config(
         search_path,
         object_substitute,
         cache_invalidation_state,
-        _config_service_defaults_updated,
+        _dynamic_config_defaults_storage,
+        config_service_defaults,
         dynamic_config_changelog,
-        _dynconfig_load_json_cached,
+        _dynconf_load_json_cached,
         dynconf_cache_names,
 ) -> DynamicConfig:
     """
@@ -308,17 +331,17 @@ def dynamic_config(
     @ingroup userver_testsuite_fixtures
     """
     config = DynamicConfig(
-        initial_values=_config_service_defaults_updated.snapshot,
+        initial_values=config_service_defaults,
+        defaults=_dynamic_config_defaults_storage.snapshot,
         config_cache_components=dynconf_cache_names,
         cache_invalidation_state=cache_invalidation_state,
         changelog=dynamic_config_changelog,
     )
-    updates = {}
-    with dynamic_config_changelog.rollback(
-            _config_service_defaults_updated.snapshot,
-    ):
+
+    with dynamic_config_changelog.rollback(config_service_defaults):
+        updates = {}
         for path in reversed(list(search_path('config.json'))):
-            values = _dynconfig_load_json_cached(path)
+            values = _dynconf_load_json_cached(path)
             updates.update(values)
         for marker in request.node.iter_markers('config'):
             marker_json = object_substitute(marker.kwargs)
@@ -327,22 +350,31 @@ def dynamic_config(
         yield config
 
 
-@pytest.fixture(scope='session')
-def dynconf_cache_names():
-    return tuple(_CONFIG_CACHES)
+def pytest_configure(config):
+    config.addinivalue_line(
+        'markers', 'config: per-test dynamic config values',
+    )
+    config.addinivalue_line(
+        'markers', 'disable_config_check: disable config mark keys check',
+    )
 
 
 @pytest.fixture(scope='session')
-def _dynconfig_json_cache():
+def dynconf_cache_names() -> typing.Iterable[str]:
+    return tuple(USERVER_CACHE_CONTROL_HOOKS.keys())
+
+
+@pytest.fixture(scope='session')
+def _dynconf_json_cache():
     return {}
 
 
 @pytest.fixture
-def _dynconfig_load_json_cached(json_loads, _dynconfig_json_cache):
+def _dynconf_load_json_cached(json_loads, _dynconf_json_cache):
     def load(path: pathlib.Path):
-        if path not in _dynconfig_json_cache:
-            _dynconfig_json_cache[path] = json_loads(path.read_text())
-        return _dynconfig_json_cache[path]
+        if path not in _dynconf_json_cache:
+            _dynconf_json_cache[path] = json_loads(path.read_text())
+        return _dynconf_json_cache[path]
 
     return load
 
@@ -399,38 +431,49 @@ def config_service_defaults(
         return fallback
 
     raise RuntimeError(
-        'Either provide the path to dynamic config defaults file using '
-        '--config-fallback pytest option, or override '
-        f'{config_service_defaults.__name__} fixture to provide custom '
-        'dynamic config loading behavior.',
+        'Invalid path specified in config_fallback_path fixture. '
+        'Probably invalid path was passed in --config-fallback pytest option.',
     )
 
 
 @dataclasses.dataclass(frozen=False)
 class _ConfigDefaults:
-    snapshot: ConfigDict
+    snapshot: typing.Optional[ConfigDict]
 
     async def update(self, client, dynamic_config) -> None:
-        if not self.snapshot:
-            values = await client.get_dynamic_config_defaults()
-            if not isinstance(values, dict):
+        if self.snapshot is None:
+            defaults = await client.get_dynamic_config_defaults()
+            if not isinstance(defaults, dict):
                 raise InvalidDefaultsError()
-            # There may already be some config overrides from the current test.
-            values.update(dynamic_config.get_values_unsafe())
-            self.snapshot = values
-            dynamic_config.set_values(self.snapshot)
+            self.snapshot = defaults
+            # pylint:disable=protected-access
+            dynamic_config._defaults = defaults
 
 
-# If there is no config_fallback_path, then we want to ask the service
+# config_service_defaults fetches the dynamic config overrides, e.g. specified
+# in the json file, then userver_config_dynconf_fallback forwards them
+# to the service so that it has the correct dynamic config defaults.
+#
+# Independently of that, it is useful to have values for all configs, even
+# unspecified in tests, on the testsuite side. For that, we ask the service
 # for the dynamic config defaults after it's launched. It's enough to update
 # defaults once per service launch.
 @pytest.fixture(scope='package')
-def _config_service_defaults_updated(config_service_defaults):
-    return _ConfigDefaults(snapshot=config_service_defaults)
+def _dynamic_config_defaults_storage() -> _ConfigDefaults:
+    return _ConfigDefaults(snapshot=None)
 
 
 @pytest.fixture(scope='session')
 def userver_config_dynconf_cache(service_tmpdir):
+    """
+    Returns a function that adjusts the static configuration file for
+    the testsuite.
+    Sets `dynamic-config.fs-cache-path` to a file that is reset after the tests
+    to avoid leaking dynamic config values between test sessions.
+
+    @ingroup userver_testsuite_fixtures
+    """
+
     def patch_config(config, _config_vars) -> None:
         components = config['components_manager']['components']
         dynamic_config_component = components.get('dynamic-config', None) or {}
@@ -453,7 +496,7 @@ def userver_config_dynconf_fallback(config_service_defaults):
     """
     Returns a function that adjusts the static configuration file for
     the testsuite.
-    Sets `dynamic-config.defaults-path` according to `config_service_defaults`.
+    Removes `dynamic-config.defaults-path`.
     Updates `dynamic-config.defaults` with `config_service_defaults`.
 
     @ingroup userver_testsuite_fixtures
@@ -562,3 +605,41 @@ def _userver_dynconfig_cache_control(dynamic_config_changelog: _Changelog):
         return entry.timestamp
 
     return cache_control
+
+
+_CHECK_CONFIG_ERROR = (
+    'Your are trying to override config value using '
+    '@pytest.mark.config({}) '
+    'that does not seem to be used by your service.\n\n'
+    'In case you really need to disable this check please add the '
+    'following mark to your testcase:\n\n'
+    '@pytest.mark.disable_config_check'
+)
+
+
+# Should be invoked after _dynamic_config_defaults_storage is filled.
+@pytest.fixture
+def _check_config_marks(
+        request, _dynamic_config_defaults_storage,
+) -> typing.Callable[[], None]:
+    def check():
+        config_defaults = _dynamic_config_defaults_storage.snapshot
+        assert config_defaults is not None
+
+        if request.node.get_closest_marker('disable_config_check'):
+            return
+
+        unknown_configs = [
+            key
+            for marker in request.node.iter_markers('config')
+            for key in marker.kwargs
+            if key not in config_defaults
+        ]
+
+        if unknown_configs:
+            message = _CHECK_CONFIG_ERROR.format(
+                ', '.join(f'{key}=...' for key in sorted(unknown_configs)),
+            )
+            raise UnknownConfigError(message)
+
+    return check
