@@ -2,11 +2,9 @@ project(userver-chaotic CXX)
 
 include(ChaoticGen)
 
-add_subdirectory(integration_tests "${CMAKE_BINARY_DIR}/userver/chaotic/integration_tests")
-
 file(GLOB_RECURSE SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp
 )
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 target_include_directories(
@@ -16,23 +14,25 @@ target_include_directories(
 )
 target_link_libraries(${PROJECT_NAME} PUBLIC userver-universal)
 
-if (USERVER_IS_THE_ROOT_PROJECT)
-    userver_venv_setup(
-        NAME userver-chaotic-tests
-        PYTHON_OUTPUT_VAR USERVER_CHAOTIC_PYTEST_PYTHON_BINARY
-        REQUIREMENTS
-            "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/chaotic/requirements.txt"
-            "${CMAKE_CURRENT_SOURCE_DIR}/../testsuite/requirements.txt"
-        UNIQUE
-    )
-    add_test(
-        NAME chaotic-tests-pytest
-        COMMAND
-        env PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}
-        ${USERVER_CHAOTIC_PYTEST_PYTHON_BINARY} -m pytest
-        -vvs
-        ${CMAKE_CURRENT_SOURCE_DIR}/tests
-    )
+if(USERVER_IS_THE_ROOT_PROJECT)
+  userver_venv_setup(
+      NAME userver-chaotic-tests
+      PYTHON_OUTPUT_VAR USERVER_CHAOTIC_PYTEST_PYTHON_BINARY
+      REQUIREMENTS
+          "${USERVER_ROOT_DIR}/scripts/chaotic/requirements.txt"
+          "${USERVER_ROOT_DIR}/testsuite/requirements.txt"
+      UNIQUE
+  )
+  add_test(
+      NAME chaotic-tests-pytest
+      COMMAND
+      env PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}
+      ${USERVER_CHAOTIC_PYTEST_PYTHON_BINARY} -m pytest
+      -vvs
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests
+  )
+
+  add_subdirectory(integration_tests)
 endif()
 
 _userver_directory_install(COMPONENT chaotic
