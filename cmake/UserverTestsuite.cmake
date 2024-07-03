@@ -194,13 +194,21 @@ function(userver_testsuite_add)
           "PYTHON_BINARY and REQUIREMENTS options are incompatible")
     endif()
     set(python_binary "${ARG_PYTHON_BINARY}")
-  else()
+  elseif(ARG_REQUIREMENTS)
     userver_testsuite_requirements(REQUIREMENTS_FILES_VAR requirements_files)
     list(APPEND requirements_files ${ARG_REQUIREMENTS})
     userver_venv_setup(
         NAME "${TESTSUITE_TARGET}"
         REQUIREMENTS ${requirements_files}
         PYTHON_OUTPUT_VAR python_binary
+    )
+  else()
+    userver_testsuite_requirements(REQUIREMENTS_FILES_VAR requirements_files)
+    userver_venv_setup(
+        NAME userver-default
+        REQUIREMENTS ${requirements_files}
+        PYTHON_OUTPUT_VAR python_binary
+        UNIQUE
     )
   endif()
 
