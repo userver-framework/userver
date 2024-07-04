@@ -558,9 +558,12 @@ Connection* ConnectionPool::Pop(engine::Deadline deadline) {
 
   ++stats_.pool_exhaust_errors;
   throw PoolError(
-      fmt::format("No available connections found. Active {}. Open {}. Max {}",
-                  stats_.connection.active, stats_.connection.open_total,
-                  stats_.connection.maximum),
+      fmt::format(
+          "No available connections found. Connecting: {}. Max concurrent "
+          "connecting: {}. Active: {}. Max active {}",
+          connecting_semaphore_.UsedApprox(),
+          connecting_semaphore_.GetCapacity(), size_semaphore_.UsedApprox(),
+          size_semaphore_.GetCapacity()),
       db_name_);
 }
 
