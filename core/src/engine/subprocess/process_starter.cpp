@@ -24,15 +24,17 @@
 #include <userver/utils/algo.hpp>
 #include <utils/check_syscall.hpp>
 
+extern char** environ;
+
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::subprocess {
 namespace {
 
-void DoExecve(const std::string& command, const std::vector<std::string>& args,
-              const EnvironmentVariables& env,
-              const std::optional<std::string>& stdout_file,
-              const std::optional<std::string>& stderr_file) {
+void DoExec(const std::string& command, const std::vector<std::string>& args,
+            const EnvironmentVariables& env,
+            const std::optional<std::string>& stdout_file,
+            const std::optional<std::string>& stderr_file, bool use_path) {
   if (stdout_file) {
     if (!std::freopen(stdout_file->c_str(), "a", stdout)) {
       utils::CheckSyscall(-1, "freopen stdout to {}", *stdout_file);
@@ -65,8 +67,33 @@ void DoExecve(const std::string& command, const std::vector<std::string>& args,
   }
   envp_ptrs.push_back(nullptr);
 
-  utils::CheckSyscall(
-      execve(command.c_str(), argv_ptrs.data(), envp_ptrs.data()), "execve");
+  environ = envp_ptrs.data();  // The variable is assigned to the environment to
+                               // use the execv, execvp functions
+
+  if (!use_path) {
+    utils::CheckSyscall(execv(command.c_str(), argv_ptrs.data()), "execv");
+  } else {
+    utils::CheckSyscall(execvp(command.c_str(), argv_ptrs.data()), "execvp");
+  }
+}
+
+EnvironmentVariables ApplyEnviromentUpdate(
+    std::optional<EnvironmentVariables>&& env,
+    std::optional<EnvironmentVariablesUpdate>&& env_update) {
+  if (env) {
+    if (env_update) {
+      return env->UpdateWith(std::move(env_update.value()));
+    } else {
+      return std::move(env.value());
+    }
+  } else {
+    if (env_update) {
+      return GetCurrentEnvironmentVariables().UpdateWith(
+          std::move(env_update.value()));
+    } else {
+      return GetCurrentEnvironmentVariables();
+    }
+  }
 }
 
 }  // namespace
@@ -75,11 +102,19 @@ ProcessStarter::ProcessStarter(TaskProcessor& task_processor)
     : thread_control_(
           task_processor.EventThreadPool().GetEvDefaultLoopThread()) {}
 
-ChildProcess ProcessStarter::Exec(
-    const std::string& command, const std::vector<std::string>& args,
-    const EnvironmentVariables& env,
-    const std::optional<std::string>& stdout_file,
-    const std::optional<std::string>& stderr_file) {
+ChildProcess ProcessStarter::Exec(const std::string& command,
+                                  const std::vector<std::string>& args,
+                                  ExecOptions&& options) {
+  EnvironmentVariables env = ApplyEnviromentUpdate(
+      std::move(options.env), std::move(options.env_update));
+
+  if (options.use_path && command.find('/') != std::string::npos &&
+      !env.GetValueOptional("PATH")) {
+    throw std::runtime_error(
+        "execvp potential vulnerability. more details "
+        "https://github.com/userver-framework/userver/issues/588");
+  }
+
   tracing::Span span("ProcessStarter::Exec");
   span.AddTag("command", command);
   Promise<ChildProcess> promise;
@@ -91,8 +126,9 @@ ChildProcess ProcessStarter::Exec(
           return key_value.first + '=' + key_value.second;
         });
     LOG_DEBUG() << fmt::format(
-        "do fork() + execve(), command={}, args=[\'{}\'], env=[]",
-        fmt::join(args, "' '"), fmt::join(keys, ", "));
+        "do fork() + {}(), command={}, args=[\'{}\'], env=[]",
+        options.use_path ? "execv" : "execvp", fmt::join(args, "' '"),
+        fmt::join(keys, ", "));
 
     const auto pid = utils::CheckSyscall(fork(), "fork");
     if (pid) {
@@ -116,7 +152,8 @@ ChildProcess ProcessStarter::Exec(
       // in child thread
       try {
         try {
-          DoExecve(command, args, env, stdout_file, stderr_file);
+          DoExec(command, args, env, options.stdout_file, options.stderr_file,
+                 options.use_path);
         } catch (const std::exception& ex) {
           std::cerr << "Cannot execute child: " << ex.what();
         }
@@ -124,7 +161,7 @@ ChildProcess ProcessStarter::Exec(
         // must not do anything in a child
         std::abort();
       }
-      // on success execve does not return
+      // on success execve or execvp does not return
       std::abort();
     }
   });
@@ -135,13 +172,22 @@ ChildProcess ProcessStarter::Exec(
 
 ChildProcess ProcessStarter::Exec(
     const std::string& command, const std::vector<std::string>& args,
+    const EnvironmentVariables& env,
+    const std::optional<std::string>& stdout_file,
+    const std::optional<std::string>& stderr_file) {
+  ExecOptions options{std::move(env), std::nullopt, std::move(stdout_file),
+                      std::move(stderr_file), false};
+  return Exec(command, args, std::move(options));
+}
+
+ChildProcess ProcessStarter::Exec(
+    const std::string& command, const std::vector<std::string>& args,
     EnvironmentVariablesUpdate env_update,
     const std::optional<std::string>& stdout_file,
     const std::optional<std::string>& stderr_file) {
-  return Exec(command, args,
-              EnvironmentVariables{GetCurrentEnvironmentVariables()}.UpdateWith(
-                  std::move(env_update)),
-              stdout_file, stderr_file);
+  ExecOptions options{std::nullopt, std::move(env_update),
+                      std::move(stdout_file), std::move(stderr_file), false};
+  return Exec(command, args, std::move(options));
 }
 
 }  // namespace engine::subprocess
