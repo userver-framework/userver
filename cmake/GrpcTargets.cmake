@@ -159,6 +159,7 @@ function(userver_generate_grpc_files)
       "--plugin=protoc-gen-grpc=${PROTO_GRPC_CPP_PLUGIN}"
       "--plugin=protoc-gen-usrv=${PROTO_GRPC_USRV_PLUGIN}"
       "--plugin=protoc-gen-grpc_python=${PROTO_GRPC_PYTHON_PLUGIN}"
+      "--experimental_allow_proto3_optional"
   )
 
   set(proto_abs_paths)
