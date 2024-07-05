@@ -111,7 +111,9 @@ class HttpHandlerBase : public HandlerBase {
                               const std::exception& ex) const;
 
   /// Helper function to log an unknown exception
-  void LogUnknownException(const std::exception& ex) const;
+  void LogUnknownException(
+      const std::exception& ex,
+      std::optional<logging::Level> log_level_override = {}) const;
 
   /// Returns the default log level for the handler
   const std::optional<logging::Level>& GetLogLevel() const;

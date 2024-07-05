@@ -114,7 +114,7 @@ void DeadlinePropagation::HandleRequest(
     if (dp_scope.shared_dp_context.IsCancelledByDeadline()) {
       // No matter what the error is we're setting our response, log and swallow
       // the exception.
-      handler_.LogUnknownException(ex);
+      handler_.LogUnknownException(ex, logging::Level::kWarning);
       return;
     } else {
       // Let it fly further, not our problem.

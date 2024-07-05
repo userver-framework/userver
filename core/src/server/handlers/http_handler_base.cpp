@@ -444,12 +444,15 @@ void HttpHandlerBase::HandleUnknownException(const http::HttpRequest& request,
   }
 }
 
-void HttpHandlerBase::LogUnknownException(const std::exception& ex) const {
+void HttpHandlerBase::LogUnknownException(
+    const std::exception& ex, std::optional<logging::Level> log_level) const {
   if (engine::current_task::ShouldCancel()) {
-    LOG_WARNING() << "request task cancelled, exception in '" << HandlerName()
-                  << "' handler: " << ex;
+    LOG(log_level.value_or(logging::Level::kWarning))
+        << "request task cancelled, exception in '" << HandlerName()
+        << "' handler: " << ex;
   } else {
-    LOG_ERROR() << "exception in '" << HandlerName() << "' handler: " << ex;
+    LOG(log_level.value_or(logging::Level::kError))
+        << "exception in '" << HandlerName() << "' handler: " << ex;
   }
 }
 
