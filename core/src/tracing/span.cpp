@@ -180,6 +180,11 @@ std::string Span::Impl::GetParentIdForLogging(const Span::Impl* parent) {
 }
 
 bool Span::Impl::ShouldLog() const {
+  // do not log span if tsv format
+  const auto& logger = logging::GetDefaultLogger();
+  if (logger.GetFormat() == logging::Format::kTsv)
+    return false;
+
   /* We must honour default log level, but use span's level from ourselves,
    * not the previous span's.
    */

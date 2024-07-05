@@ -40,9 +40,9 @@ void ComponentInfo::ClearComponent() {
   span.AddTag(kComponentName, name_);
 
   auto component = ExtractComponent();
-  LOG_DEBUG() << "Stopping component";
+  LOG_DEBUG() << fmt::format("Stopping component {}", name_);
   component.reset();
-  LOG_DEBUG() << "Stopped component";
+  LOG_DEBUG() << fmt::format("Stopped component {}", name_);
 }
 
 RawComponentBase* ComponentInfo::GetComponent() const {

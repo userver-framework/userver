@@ -153,9 +153,11 @@ LogHelper::LogHelper(LoggerRef logger, Level level,
     // The following functions actually never throw if the assertions at the
     // bottom hold.
     pimpl_->PutMessageBegin();
-    auto tag_writer = GetTagWriter();
-    tag_writer.PutTag("module", Module{location});
-    logger.PrependCommonTags(tag_writer);
+    if (logger.GetFormat() != Format::kTsv) {
+      auto tag_writer = GetTagWriter();
+      tag_writer.PutTag("module", Module{location});
+      logger.PrependCommonTags(tag_writer);
+    }
 
     pimpl_->StartText();
     // Must not log further system info after this point
