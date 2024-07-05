@@ -80,6 +80,10 @@ class CoordinationClient final {
 
   NYdb::NCoordination::TNodeDescription DescribeNode(std::string_view path);
 
+  /// Get native coordination client
+  /// @warning Use with care! Facilities from
+  /// `<core/include/userver/drivers/subscribable_futures.hpp>` can help with
+  /// non-blocking wait operations.
   NYdb::NCoordination::TClient& GetNativeCoordinationClient();
 
  private:

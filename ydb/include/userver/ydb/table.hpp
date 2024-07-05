@@ -147,7 +147,12 @@ class TableClient final {
                          const TableClient& table_client);
   /// @endcond
 
+  /// Get native table client
+  /// @warning Use with care! Facilities from
+  /// `<core/include/userver/drivers/subscribable_futures.hpp>` can help with
+  /// non-blocking wait operations.
   NYdb::NTable::TTableClient& GetNativeTableClient();
+
   utils::RetryBudget& GetRetryBudget();
 
  private:

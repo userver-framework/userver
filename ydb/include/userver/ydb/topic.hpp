@@ -49,6 +49,9 @@ class TopicReadSession final {
   bool Close(std::chrono::milliseconds timeout);
 
   /// Get native read session
+  /// @warning Use with care! Facilities from
+  /// `<core/include/userver/drivers/subscribable_futures.hpp>` can help with
+  /// non-blocking wait operations.
   std::shared_ptr<NYdb::NTopic::IReadSession> GetNativeTopicReadSession();
 
  private:
@@ -82,6 +85,9 @@ class TopicClient final {
       const NYdb::NTopic::TReadSessionSettings& settings);
 
   /// Get native topic client
+  /// @warning Use with care! Facilities from
+  /// `<core/include/userver/drivers/subscribable_futures.hpp>` can help with
+  /// non-blocking wait operations.
   NYdb::NTopic::TTopicClient& GetNativeTopicClient();
 
  private:
