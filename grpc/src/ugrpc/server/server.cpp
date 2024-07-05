@@ -25,6 +25,14 @@
 #include <userver/ugrpc/server/impl/queue_holder.hpp>
 #include <userver/ugrpc/server/impl/service_worker.hpp>
 
+
+#include <grpcpp/impl/server_builder_option.h>
+#include <grpcpp/impl/server_builder_plugin.h>
+#include <grpcpp/security/authorization_policy_provider.h>
+#include <grpcpp/server.h>
+#include <grpcpp/support/config.h>
+#include <userver/fs/blocking/read.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
@@ -60,10 +68,12 @@ void ApplyChannelArgs(grpc::ServerBuilder& builder,
 
 bool AreServicesUnique(
     const std::vector<std::unique_ptr<impl::ServiceWorker>>& workers) {
-  std::vector<std::string_view> names;
+  std::vector<std::string> names;
   names.reserve(workers.size());
   for (const auto& worker : workers) {
-    names.push_back(worker->GetMetadata().service_full_name);
+    std::string service_name = std::string(worker->GetMetadata().service_full_name) + worker->EndPoint().value_or("");
+    names.push_back(service_name);
+    LOG_INFO()<<"Added service name "<<service_name;
   }
   std::sort(names.begin(), names.end());
   return std::adjacent_find(names.begin(), names.end()) == names.end();
@@ -73,7 +83,7 @@ bool AreServicesUnique(
 
 class Server::Impl final {
  public:
-  explicit Impl(ServerConfig&& config,
+  explicit Impl(testsuite::GrpcControl& grpcControl, ServerConfig&& config,
                 utils::statistics::Storage& statistics_storage,
                 dynamic_config::Source);
   ~Impl();
@@ -106,6 +116,8 @@ class Server::Impl final {
 
   void AddListeningPort(int port);
 
+  void AddSslConfiguration(const SslConf& conf);
+
   void AddListeningUnixSocket(std::string_view path);
 
   void DoStart();
@@ -113,6 +125,7 @@ class Server::Impl final {
   State state_{State::kConfiguration};
   std::optional<grpc::ServerBuilder> server_builder_;
   std::optional<int> port_;
+  std::optional<int> ssl_port_;
   std::vector<std::unique_ptr<impl::ServiceWorker>> service_workers_;
   std::optional<impl::QueueHolder> queue_;
   std::unique_ptr<grpc::Server> server_;
@@ -121,15 +134,17 @@ class Server::Impl final {
   ugrpc::impl::StatisticsStorage statistics_storage_;
   const dynamic_config::Source config_source_;
   logging::LoggerPtr access_tskv_logger_;
+  testsuite::GrpcControl& grpcControl_;
 };
 
-Server::Impl::Impl(ServerConfig&& config,
+Server::Impl::Impl(testsuite::GrpcControl& grpcControl, ServerConfig&& config,
                    utils::statistics::Storage& statistics_storage,
                    dynamic_config::Source config_source)
     : statistics_storage_(statistics_storage,
                           ugrpc::impl::StatisticsDomain::kServer),
       config_source_(config_source),
-      access_tskv_logger_(std::move(config.access_tskv_logger)) {
+      access_tskv_logger_(std::move(config.access_tskv_logger)),
+      grpcControl_(grpcControl){
   LOG_INFO() << "Configuring the gRPC server";
   ugrpc::impl::SetupNativeLogging();
   ugrpc::impl::UpdateNativeLogLevel(config.native_log_level);
@@ -148,6 +163,11 @@ Server::Impl::Impl(ServerConfig&& config,
   if (config.unix_socket_path) AddListeningUnixSocket(*config.unix_socket_path);
 
   if (config.port) AddListeningPort(*config.port);
+
+  if (config.sslConf && grpcControl_.IsTlsEnabled())
+  {
+    AddSslConfiguration(*config.sslConf);
+  }
 }
 
 Server::Impl::~Impl() {
@@ -157,6 +177,47 @@ Server::Impl::~Impl() {
                    "ensure that it is destroyed before services.";
     Stop();
   }
+}
+
+void Server::Impl::AddSslConfiguration(const SslConf& config)
+{
+    LOG_INFO() << "Configuring the gRPC server with ssl config";
+    UINVARIANT(config.port >= 0 && config.port <= 65535, "Invalid gRPC listening ssl port");
+    UASSERT_MSG(!ssl_port_,
+                "As of now, AddSslConfiguration can be called no more than once");
+    ssl_port_ = config.port;
+    grpc::SslServerCredentialsOptions ssl_opts;
+    try {
+      auto server_key =
+          userver::fs::blocking::ReadFileContents(config.server_private_key);
+      auto server_cert =
+          userver::fs::blocking::ReadFileContents(config.server_cert);
+      if (config.need_verify_client_cert) {
+        ssl_opts.client_certificate_request =
+            GRPC_SSL_REQUEST_CLIENT_CERTIFICATE_AND_VERIFY;
+        if (!config.client_root_cert.empty()) {
+          ssl_opts.pem_root_certs =
+              userver::fs::blocking::ReadFileContents(config.client_root_cert);
+        } else {
+          LOG_INFO() << "Client root cert is not provided, try to find it in system certs";
+        }
+      } else {
+        ssl_opts.client_certificate_request =
+            GRPC_SSL_REQUEST_CLIENT_CERTIFICATE_BUT_DONT_VERIFY;
+      }
+      grpc::SslServerCredentialsOptions::PemKeyCertPair pkcp = {server_key,
+                                                                server_cert};
+      ssl_opts.pem_key_cert_pairs.push_back(pkcp);
+    }
+    catch (const std::exception& ex) {
+      LOG_ERROR() << "The gRPC server failed to add ssl configuration. " << ex;
+      throw;
+    }
+    auto server_creds = SslServerCredentials(ssl_opts);
+    const auto uri = fmt::format("[::]:{}", ssl_port_.value());
+    LOG_INFO() << "Add ssl listening port "<<ssl_port_.value();
+    server_builder_->AddListeningPort(ugrpc::impl::ToGrpcString(uri),
+                                      server_creds, &*ssl_port_);
 }
 
 void Server::Impl::AddListeningPort(int port) {
@@ -200,6 +261,7 @@ void Server::Impl::AddService(ServiceBase& service, ServiceConfig&& config) {
       std::move(config.middlewares),
       access_tskv_logger_,
       config_source_,
+      config.end_point
   }));
 }
 
@@ -290,7 +352,17 @@ void Server::Impl::DoStart() {
               "Multiple services have been registered "
               "for the same gRPC method");
   for (auto& worker : service_workers_) {
-    server_builder_->RegisterService(&worker->GetService());
+    auto end_point = worker->EndPoint();
+    if(end_point)
+    {
+      LOG_INFO() << "Register service "<<worker->GetMetadata().service_full_name<<" to endpoint  "<<end_point.value();
+      server_builder_->RegisterService(end_point.value(), &worker->GetService());
+    }
+    else
+    {
+      LOG_INFO() << "Register service "<<worker->GetMetadata().service_full_name<<" wo endpoint  ";
+      server_builder_->RegisterService(&worker->GetService());
+    }
   }
 
   server_ = server_builder_->BuildAndStart();
@@ -308,10 +380,10 @@ void Server::Impl::DoStart() {
   }
 }
 
-Server::Server(ServerConfig&& config,
+Server::Server(testsuite::GrpcControl& grpcControl, ServerConfig&& config,
                utils::statistics::Storage& statistics_storage,
                dynamic_config::Source config_source)
-    : impl_(std::make_unique<Impl>(std::move(config), statistics_storage,
+    : impl_(std::make_unique<Impl>(grpcControl, std::move(config), statistics_storage,
                                    config_source)) {}
 
 Server::~Server() = default;

@@ -254,6 +254,10 @@ class ServiceWorkerImpl final : public ServiceWorker {
     return service_data_.metadata;
   }
 
+  const std::optional<std::string> EndPoint() const override {
+    return service_data_.settings.end_point;
+  }
+
   void Start() override { start_(); }
 
  private:

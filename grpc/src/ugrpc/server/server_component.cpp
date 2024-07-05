@@ -8,6 +8,8 @@
 
 #include <ugrpc/server/impl/parse_config.hpp>
 
+#include <userver/testsuite/testsuite_support.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
@@ -15,12 +17,13 @@ namespace ugrpc::server {
 ServerComponent::ServerComponent(const components::ComponentConfig& config,
                                  const components::ComponentContext& context)
     : ComponentBase(config, context),
-      server_(
+      server_(context.FindComponent<components::TestsuiteSupport>().GetGrpcControl(),
           impl::ParseServerConfig(config, context),
           context.FindComponent<components::StatisticsStorage>().GetStorage(),
           context.FindComponent<components::DynamicConfig>().GetSource()),
       service_defaults_(std::make_unique<impl::ServiceDefaults>(
-          impl::ParseServiceDefaults(config["service-defaults"], context))) {}
+          impl::ParseServiceDefaults(config["service-defaults"], context))) {
+}
 
 ServerComponent::~ServerComponent() { server_.Stop(); }
 
@@ -45,6 +48,26 @@ properties:
     port:
         type: integer
         description: the port to use for all gRPC services, or 0 to pick any available
+    ssl-conf:
+      type: object
+      description: ssl conf for grpc server
+      properties:
+        port:
+          type: integer
+          description: the port to use for all gRPC services, or 0 to pick any available
+        server_cert:
+          type: string
+          description: server ssl cert
+        server_private_key:
+          type: string
+          description: server ssl private key
+        client_root_cert:
+          type: string
+          description: client ssl root cert
+        verify_client_cert:
+          type: boolean
+          description: verify client cert
+      additionalProperties: false
     unix-socket-path:
         type: string
         description: unix socket absolute path

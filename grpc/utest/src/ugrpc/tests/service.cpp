@@ -34,15 +34,15 @@ ServiceBase::ServiceBase() : ServiceBase(server::ServerConfig{}) {}
 
 ServiceBase::ServiceBase(server::ServerConfig&& server_config)
     : config_storage_(dynamic_config::MakeDefaultStorage({})),
-      server_(std::move(server_config), statistics_storage_,
+      testsuite_({}, false),
+      server_(testsuite_, std::move(server_config), statistics_storage_,
               config_storage_.GetSource()),
       server_middlewares_(
           {std::make_shared<ServerLogMiddleware>(ServerLogMiddlewareSettings{}),
            std::make_shared<ServerDpMiddleware>()}),
       middleware_factories_({std::make_shared<ClientLogMiddlewareFactory>(
                                  ClientLogMiddlewareSettings{}),
-                             std::make_shared<ClientDpMiddlewareFactory>()}),
-      testsuite_({}, false) {}
+                             std::make_shared<ClientDpMiddlewareFactory>()}) {}
 
 ServiceBase::~ServiceBase() = default;
 

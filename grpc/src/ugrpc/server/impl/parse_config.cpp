@@ -88,6 +88,7 @@ server::ServiceConfig ParseServiceConfig(
           MergeField(value[kMiddlewaresKey], defaults.middleware_names, context,
                      ParseMiddlewares),
           context),
+      value["end-point"].As<std::optional<std::string>>()
   };
 }
 
@@ -97,6 +98,7 @@ ServerConfig ParseServerConfig(const yaml_config::YamlConfig& value,
   config.unix_socket_path =
       value["unix-socket-path"].As<std::optional<std::string>>();
   config.port = value["port"].As<std::optional<int>>();
+  config.sslConf =  value["ssl-conf"].As<std::optional<SslConf>>();
   config.completion_queue_num = value["completion-queue-count"].As<int>(2);
   config.channel_args =
       value["channel-args"].As<decltype(config.channel_args)>({});

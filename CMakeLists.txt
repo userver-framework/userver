@@ -176,7 +176,8 @@ init_debian_depends()
 
 include(SetupGTest)
 if (USERVER_FEATURE_GRPC)
-  include(SetupProtobuf)
+  include(cmake/SetupProtobuf.cmake)
+  include(cmake/GrpcTargets.cmake)
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
