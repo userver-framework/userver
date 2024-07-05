@@ -33,7 +33,7 @@ struct LoggerConfig final {
 
   std::string file_path;
   Level level = Level::kInfo;
-  Format format = Format::kTskv;
+  Format format = Format::kTsv;
   Level flush_level = Level::kWarning;
 
   // must be a power of 2

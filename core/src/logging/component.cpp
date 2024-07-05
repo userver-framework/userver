@@ -257,11 +257,12 @@ properties:
                 format:
                     type: string
                     description: log output format
-                    defaultDescription: tskv
+                    defaultDescription: tsv
                     enum:
                       - tskv
                       - ltsv
                       - raw
+                      - tsv
                 flush_level:
                     type: string
                     description: messages of this and higher levels get flushed to the file immediately

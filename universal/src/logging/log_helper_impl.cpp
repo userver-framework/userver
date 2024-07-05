@@ -25,6 +25,8 @@ char GetSeparatorFromLogger(LoggerRef logger) {
       return '=';
     case Format::kLtsv:
       return ':';
+    case Format::kTsv:
+      return ' ';
   }
 
   UINVARIANT(false, "Invalid logging::Format enum value");
@@ -128,22 +130,42 @@ void LogHelper::Impl::PutMessageBegin() {
       msg_.append(std::string_view{"tskv"});
       return;
     }
+    // Tab Separated Values
+    case Format::kTsv: {
+      constexpr std::string_view kTemplate = "0000-00-00T00:00:00.000000\t";
+      const auto now = TimePoint::clock::now();
+      const auto level_string = logging::ToUpperCaseString(level_);
+      msg_.resize(kTemplate.size() + level_string.size());
+      fmt::format_to(msg_.data(), FMT_COMPILE("{}.{:06}\t{}"),
+                     GetCurrentTimeString(now).ToStringView(),
+                     FractionalMicroseconds(now), level_string);
+      return;
+    }
+      UASSERT_MSG(false, "Invalid value of Format enum");
   }
-  UASSERT_MSG(false, "Invalid value of Format enum");
 }
 
 void LogHelper::Impl::PutMessageEnd() { msg_.push_back('\n'); }
 
 void LogHelper::Impl::PutKey(std::string_view key) {
-  if (!utils::encoding::ShouldKeyBeEscaped(key)) {
-    PutRawKey(key);
-  } else {
+  if (logger_->GetFormat() != Format::kTsv) {
+    if (!utils::encoding::ShouldKeyBeEscaped(key)) {
+      PutRawKey(key);
+    } else {
+      UASSERT(!std::exchange(is_within_value_, true));
+      CheckRepeatedKeys(key);
+      msg_.push_back(utils::encoding::kTskvPairsSeparator);
+      utils::encoding::EncodeTskv(
+          msg_, key, utils::encoding::EncodeTskvMode::kKeyReplacePeriod);
+      msg_.push_back(key_value_separator_);
+    }
+  }
+  else
+  {
+    // no key, only value, just put tab separator before value
     UASSERT(!std::exchange(is_within_value_, true));
     CheckRepeatedKeys(key);
     msg_.push_back(utils::encoding::kTskvPairsSeparator);
-    utils::encoding::EncodeTskv(
-        msg_, key, utils::encoding::EncodeTskvMode::kKeyReplacePeriod);
-    msg_.push_back(key_value_separator_);
   }
 }
 
@@ -151,13 +173,19 @@ void LogHelper::Impl::PutRawKey(std::string_view key) {
   UASSERT(!std::exchange(is_within_value_, true));
   CheckRepeatedKeys(key);
   const auto old_size = msg_.size();
-  msg_.resize(old_size + 1 + key.size() + 1);
+  const auto format = logger_->GetFormat();
+  if (format != Format::kTsv)
+    msg_.resize(old_size + 1 + key.size() + 1);
+  else
+    msg_.resize(old_size + 1);
 
   auto* position = msg_.data() + old_size;
   *(position++) = utils::encoding::kTskvPairsSeparator;
-  key.copy(position, key.size());
-  position += key.size();
-  *(position++) = key_value_separator_;
+  if (format != Format::kTsv) {
+    key.copy(position, key.size());
+    position += key.size();
+    *(position++) = key_value_separator_;
+  }
 }
 
 void LogHelper::Impl::PutValuePart(std::string_view value) {
