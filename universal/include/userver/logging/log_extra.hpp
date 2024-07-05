@@ -12,6 +12,7 @@
 
 #include <userver/compiler/select.hpp>
 #include <userver/logging/fwd.hpp>
+#include <userver/logging/json_string.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -36,7 +37,8 @@ class TagWriter;
 class LogExtra final {
  public:
   using Value = std::variant<std::string, int, long, long long, unsigned int,
-                             unsigned long, unsigned long long, float, double>;
+                             unsigned long, unsigned long long, float, double,
+                             JsonString>;
   using Key = std::string;
   using Pair = std::pair<Key, Value>;
 
