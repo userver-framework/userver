@@ -130,7 +130,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Darwin" AND CMAKE_SYSTEM_PROCESSOR MATCHES "arm64"
   # static library.
   set(USERVER_UBOOST_CORO_DEFAULT OFF)
   if("${Boost_VERSION_STRING}" VERSION_LESS "1.83.0")
-    message(FATAL_ERROR
+    message(WARNING
         "Please update Boost to at least 1.83.0, it contains important fixes "
         "for Boost.Context and Boost.Coroutine2")
   endif()
