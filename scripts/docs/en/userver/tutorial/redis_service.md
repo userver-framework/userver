@@ -144,6 +144,13 @@ Content-Length: 1
 ```
 
 
+### Unit tests
+@ref scripts/docs/en/userver/testing.md "Unit tests" for the service could be
+implemented with one of UTEST macros in the following way:
+
+@snippet samples/redis_service/unittests/redis_test.cpp  Unit test
+
+
 ### Functional testing
 @ref scripts/docs/en/userver/functional_testing.md "Functional tests" for the service could be
 implemented using the testsuite. To do that you have to:
