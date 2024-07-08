@@ -85,6 +85,8 @@ class CacheUpdateTrait::Impl final {
 
   void OnUpdateFailure(const Config& config);
 
+  void OnUpdateSkipped();
+
   // Throws if `Update` throws
   void DoUpdate(UpdateType type, const Config& config);
   void CheckUpdateState(impl::UpdateState update_state,

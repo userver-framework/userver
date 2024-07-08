@@ -282,10 +282,10 @@ rcu::ReadablePtr<Config> CacheUpdateTrait::Impl::GetConfig() const {
 UpdateType CacheUpdateTrait::Impl::NextUpdateType(const Config& config) {
   if (dump_first_update_type_) {
     return *dump_first_update_type_;
-  } else if (last_update_ == dump::TimePoint{}) {
+  }
+  if (last_update_ == dump::TimePoint{}) {
     return UpdateType::kFull;
   }
-
   if (force_full_update_) {
     return UpdateType::kFull;
   }
@@ -326,6 +326,10 @@ void CacheUpdateTrait::Impl::DoPeriodicUpdate() {
   if (!config->updates_enabled &&
       (!is_first_update || static_config_.allow_first_update_failure)) {
     LOG_INFO() << "Periodic updates are disabled for cache " << Name();
+    OnUpdateSkipped();
+    // TODO should use `exception_period` for the next sleep to make sure that
+    // it takes the same amount of time to MarkAsExpired in case of failed
+    // updates and in case of skipped updates.
     return;
   }
 
@@ -342,6 +346,19 @@ void CacheUpdateTrait::Impl::DoPeriodicUpdate() {
 }
 
 void CacheUpdateTrait::Impl::OnUpdateFailure(const Config& config) {
+  OnUpdateSkipped();
+
+  if (config.alert_on_failing_to_update_times != 0 &&
+      failed_updates_counter_ >= config.alert_on_failing_to_update_times) {
+    alerts_storage_.FireAlert(
+        "cache_update_error",
+        fmt::format("cache '{}' hasn't been updated for {} times", Name(),
+                    failed_updates_counter_),
+        alerts::kInfinity);
+  }
+}
+
+void CacheUpdateTrait::Impl::OnUpdateSkipped() {
   const auto failed_updates_before_expiration =
       static_config_.failed_updates_before_expiration;
   failed_updates_counter_++;
@@ -351,14 +368,6 @@ void CacheUpdateTrait::Impl::OnUpdateFailure(const Config& config) {
         << "Cache is marked as expired because the number of "
            "failed updates has reached 'failed-updates-before-expiration' ("
         << failed_updates_before_expiration << ")";
-  }
-  if (config.alert_on_failing_to_update_times != 0 &&
-      failed_updates_counter_ >= config.alert_on_failing_to_update_times) {
-    alerts_storage_.FireAlert(
-        "cache_update_error",
-        fmt::format("cache '{}' hasn't been updated for {} times", Name(),
-                    failed_updates_counter_),
-        alerts::kInfinity);
   }
 }
 
