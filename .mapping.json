@@ -3145,6 +3145,7 @@
   "scripts/docs/en/userver/tutorial/tcp_full.md":"taxi/uservices/userver/scripts/docs/en/userver/tutorial/tcp_full.md",
   "scripts/docs/en/userver/tutorial/tcp_service.md":"taxi/uservices/userver/scripts/docs/en/userver/tutorial/tcp_service.md",
   "scripts/docs/en/userver/tutorial/websocket_service.md":"taxi/uservices/userver/scripts/docs/en/userver/tutorial/websocket_service.md",
+  "scripts/docs/en/userver/ydb.md":"taxi/uservices/userver/scripts/docs/en/userver/ydb.md",
   "scripts/docs/fontello/README.txt":"taxi/uservices/userver/scripts/docs/fontello/README.txt",
   "scripts/docs/fontello/config.json":"taxi/uservices/userver/scripts/docs/fontello/config.json",
   "scripts/docs/fontello/css/animation.css":"taxi/uservices/userver/scripts/docs/fontello/css/animation.css",

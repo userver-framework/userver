@@ -130,6 +130,10 @@ are available at the
 * @ref scripts/docs/en/userver/kafka.md
 
 
+## YDB
+* @ref scripts/docs/en/userver/ydb.md
+
+
 ## Non relational databases
 * @ref scripts/docs/en/userver/mongodb.md
 * @ref scripts/docs/en/userver/redis.md

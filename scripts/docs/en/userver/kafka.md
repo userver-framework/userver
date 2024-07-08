@@ -46,6 +46,6 @@ making the message polling non-blocking and leading to better library scalabilit
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/pg_user_types.md |
-@ref scripts/docs/en/userver/mongodb.md ⇨
+⇦ @ref scripts/docs/en/userver/mysql/design_and_details.md |
+@ref scripts/docs/en/userver/ydb.md ⇨
 @htmlonly </div> @endhtmlonly
