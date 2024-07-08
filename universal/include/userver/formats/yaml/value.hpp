@@ -183,10 +183,30 @@ class Value final {
   /// @note This method available **only** for formats::yaml::Value.
   int GetLine() const;
 
+  /// @brief Returns YAML tag of this node.
+  /// If tag is not explicitly specified, its value depends on node value. For
+  /// explicitly sepcified tags, its value depends on used `TAG` directives and
+  /// node value. There is an implicit `TAG` derictive for `!!` with prefix
+  /// `tag:yaml.org,2002:`.
+  ///
+  /// For example:
+  /// - `""` if field is null, even when tag is specified
+  /// - `"!"` for quoted and block strings if tag is not specified
+  /// - `"?"` for other fields if tag is not specified
+  /// - `"tag:yaml.org,2002:str"` for `!!str` tag
+  /// - `"!!str"` for `!<!!str>` tag
+  /// - `"!custom_tag"` for `!custom_tag` tag, if no additional `TAG` directives
+  ///   are specified
+  ///
+  /// For details see YAML specification.
+  /// @throws MemberMissingException if `this->IsMissing()`.
+  /// @note This method available **only** for formats::yaml::Value.
+  std::string_view GetTag() const;
+
   /// @brief Returns new value that is an exact copy if the existing one
   /// but references different memory (a deep copy of a *this). The returned
   /// value is a root value with path '/'.
-  /// @throws MemberMissingException id `this->IsMissing()`.
+  /// @throws MemberMissingException if `this->IsMissing()`.
   Value Clone() const;
 
   /// @throw MemberMissingException if `this->IsMissing()`.

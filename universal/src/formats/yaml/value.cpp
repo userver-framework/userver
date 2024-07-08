@@ -254,6 +254,8 @@ int Value::GetLine() const {
   return IsMissing() ? -1 : GetMark(GetNative()).line;
 }
 
+std::string_view Value::GetTag() const { return GetNative().Tag(); }
+
 Value Value::Clone() const {
   Value v;
   *v.value_pimpl_ = YAML::Clone(GetNative());
