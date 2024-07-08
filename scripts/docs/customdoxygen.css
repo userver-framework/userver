@@ -474,7 +474,7 @@ a.titlelink:hover {
 
 /* Burger menu */
 .main-menu-btn {
-  margin-left: 7px;
+  margin-left: 5px;
 }
 
 .main-menu-btn-icon,
@@ -635,6 +635,19 @@ doxygen-awesome-dark-mode-toggle {
     transform: translate(-54px, 20px) !important;
   }
 
+  #links {
+    margin-left: 5px;
+  }
+
+  #telegram_channel {
+    display: none;
+  }
+
+  #github_header {
+    padding: 0;
+    order: 3;
+  }
+
   #navbar-main-menu {
     display: none;
     position: absolute;
@@ -689,8 +702,7 @@ doxygen-awesome-dark-mode-toggle {
   }
 
   .sm.sm-dox>li {
-    padding: 5px 70px;
-    /* TODO: adaptive width */
+    padding: 5px;
   }
 
   .sm.sm-dox>li:first-child {
@@ -702,13 +714,9 @@ doxygen-awesome-dark-mode-toggle {
   }
 
   .main-menu-btn {
-    order: 3;
+    order: 4;
     position: relative;
     top: 0px;
-  }
-
-  #links {
-    display: none;
   }
 }
 
@@ -753,8 +761,7 @@ doxygen-awesome-dark-mode-toggle {
   }
 
   .sm.sm-dox>li {
-    padding: 5px 70px;
-    /* TODO: adaptive width */
+    padding: 5px;
   }
 
   .sm.sm-dox>li:first-child {
@@ -823,17 +830,11 @@ doxygen-awesome-dark-mode-toggle {
   }
 
   .main-menu-btn {
-    position: relative;
-    top: 0px;
-  }
-
-  #links {
-    display: none;
+    width: 45px;
   }
 
   #MSearchCloseImg {
-    width: 34px;
-    transform: translate(-2px, -6px);
+    width: 16px;
   }
 }
 
