@@ -94,9 +94,3 @@ function draw_toc() {
     ])
     .insertAfter("#MSearchResultsWindow");
 }
-
-window.addEventListener("load", () => {
-  if (document.getElementById("landing_logo_id") === null) {
-    draw_toc();
-  }
-});
