@@ -132,6 +132,12 @@ $ curl 127.0.0.1:8080/hello
 Hello, unknown user!
 ```
 
+### Unit tests
+
+@ref scripts/docs/en/userver/testing.md "Unit tests" could be implemented with one of UTEST macros in the following way:
+
+@snippet samples/hello_service/unittests/say_hello_test.cpp  Unit test
+
 ### Functional testing
 
 @ref scripts/docs/en/userver/functional_testing.md "Functional tests" for the service could be
