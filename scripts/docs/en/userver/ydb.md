@@ -13,6 +13,11 @@ YDB asynchronous driver provides interface to work with Tables, Topics and Coord
 To use YDB you have to add the component ydb::YdbComponent and configure it according to the documentation.
 From component you can access required client (ydb::TableClient, ydb::TopicClient, ydb::CoordinationClient).
 
+## Examples
+
+[Sample YDB usage](https://github.com/userver-framework/userver/tree/develop/samples/ydb_service)
+[YDB tests](https://github.com/userver-framework/userver/tree/develop/ydb/tests)
+
 ## More information
 - https://ydb.tech/
 
