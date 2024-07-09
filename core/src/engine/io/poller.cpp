@@ -136,6 +136,11 @@ void Poller::Reset() {
     RemoveImpl(watcher);
   }
   watchers_->clear();
+
+  Event ignore_stale_event;
+  while (event_consumer_.PopNoblock(ignore_stale_event)) {
+    // do nothing
+  }
 }
 
 template <typename EventSource>
