@@ -14,40 +14,42 @@ For missing functionality or if we found no info on the functionality we
 use ❌ and ❓ respectively.
 
 
-| Feature                           | 🐙 userver                                     | go-micro  4.7.0        | dapr 1.5.3                     | actix 0.13.0 + tokio 1.19.2 | drogon  1.7.5              |
-|-----------------------------------|------------------------------------------------|-------------------------|-------------------------------|------------------------|----------------------------------|
-| Programming model for IO-bound apps | stackful coroutines                            | stackful coroutines     | actors                        | stackless coroutines | callbacks / stackless coroutines |
-| Programming language to use       | С++                                            | Go-lang                 | Python, JS, .Net, PHP, Java, Go | Rust                 | C++                              |
-| Caching data from remote or DB    | ✔️ @ref scripts/docs/en/userver/caches.md "[↗]"            | ❌                      | ❌                            | ❌                    | ❌                              |
-| Dynamic Config @ref fcmp1 "[1]"   | ✔️ @ref scripts/docs/en/schemas/dynamic_configs.md "[↗]"   | ✔️ [[↗]][gom-features]  | ❌                            | ❌                   | ❌                              |
-| Unit testing                      | ✔️ C++ @ref scripts/docs/en/userver/testing.md "[↗]"       | ✔️ via Go-lang          | ✔️ PHP [[↗]][dapr-testig]    | ✔️                    | ✔️ [[↗]][drog-testig]           |
-| Functional Testing @ref fcmp2 "[2]" | ✔️ @ref scripts/docs/en/userver/functional_testing.md "[↗]" | ❌     | ❌ [[↗]][dapr-testig]        | ❌ [[↗]][actix-test] | ❌ [[↗]][drog-testig]          |
-| Async synchronization primitives  | ✔️ @ref scripts/docs/en/userver/synchronization.md "[↗]"   | ✔️ via Go-lang          | ❌ [forces turn based access][dapr-actors]  | ✔️ [[↗]][tokio-sync] | ❌               |
-| Dist locks                        | ✔️                                             | ✔️ [[↗]][gom-features] | ❌ [[↗]][dapr-distlock]       | ± third-party libs    | ❌                             |
-| Async HTTP client                 | ✔️ @ref clients::http::Client "[↗]"           | ✔️                      | ✔️                            | ✔️                     | ✔️ [[↗]][drog-http-client]   |
-| Async HTTP server                 | ✔️ @ref components::Server "[↗]"              | ✔️                      | ✔️                            | ✔️                     | ✔️                             |
-| Async gRPC client                 | ✔️ @ref scripts/docs/en/userver/grpc.md "[↗]"              | ✔️                      | ✔️                            | ± third-party libs     | ❌                            |
-| Async gRPC server                 | ✔️ @ref scripts/docs/en/userver/grpc.md "[↗]"              | ✔️                      | ✔️                            | ± third-party libs     | ❌                            |
-| Async PostgreSQL                   | ✔️ @ref pg_driver "[↗]"                       | ± third-party driver   | ✔️ [[↗]][dapr-postgre]       | ❌ [manual offloading][acti-db] | ✔️ [[↗]][drog-db]    |
-| PostgreSQL pipelining, binary protocol | ✔️ @ref pg_driver "[↗]"                   | ❌                      | ❌                            | ± third-party libs     | ❌                            |
-| Async Redis                       | ✔️ @ref scripts/docs/en/userver/redis.md "[↗]"             | ± third-party driver   | ✔️ [[↗]][dapr-redis]         | ± third-party libs      | ✔️ [[↗]][drog-redis]         |
-| Async Mongo                       | ✔️ @ref scripts/docs/en/userver/mongodb.md "[↗]"           | ± third-party driver   | ✔️ [[↗]][dapr-mongo]         | ❌ [manual offloading][acti-db] | ❌ [[↗]][drog-db]    |
-| Async ClickHouse                  | ✔️ @ref clickhouse_driver "[↗]"               | ± third-party driver   | ❌                            | ± third-party libs      | ❌ [[↗]][drog-db]            |
-| Async MySQL                       | ✔️ @ref mysql_driver                           | ± third-party driver   | ✔️ [[↗]][dapr-mysql]         | ❌ [[↗]][acti-db]      | ✔️ [[↗]][drog-db]            |
-| Metrics                           | ✔️ @ref scripts/docs/en/userver/service_monitor.md "[↗]"   | ± third-party driver   | ✔️ [[↗]][dapr-configs]       | ❌                      | ❌                            |
-| No args evaluation for disabled logs | ✔️ @ref scripts/docs/en/userver/logging.md "[↗]"        | ❌                      | ❌                            | ± third-party libs       | ❌                           |
-| Secrets Management                | ± @ref storages::secdist::SecdistConfig "[↗]"  | ❓                      | ✔️                            | ❓                      | ❓                          |
-| Distributed Tracing               | ✔️ @ref scripts/docs/en/userver/logging.md "[↗]"           | ❓                      | ✔️ [[↗]][dapr-configs]       | ± third-party libs       | ❌                           |
-| JSON, BSON, YAML                  | ✔️ @ref scripts/docs/en/userver/formats.md "[↗]"           | ± third-party libs       | ± third-party libs            | ± third-party libs       | ± only JSON                  |
-| Content compression/decompression | ✔️                                             | ✔️                      | ❓                            | ✔️                      | ✔️                          | 
-| Service Discovery                 | ✔️ DNS, DB topology discovery                  | ✔️ [[↗]][gom-features]  | ❓                            | ❓                      | ❓                          |
-| Async TCP/UDP                     | ✔️ @ref engine::io::Socket "[↗]"              | ✔️                      | ❓                            | ✔️ [[↗]][tokio-net]     | ❌                           |
-| Async TLS Socket                  | ✔️ @ref engine::io::TlsWrapper "[↗]"          | ✔️                      | ❓                            | ± third-party libs       | ❌                           |
-| Async HTTPS client                | ✔️ @ref clients::http::Client "[↗]"           | ✔️                      | ❓                            | ✔️                      | ❓                          |
-| Async HTTPS server                | ✔️ @ref components::Server "[↗]"              | ❓                      | ❓                            | ✔️                      | ❓                          |
-| WebSockets Server                 | ✔️ @ref components::Server "[↗]"              | ± third-party libs       | ❌ [[↗]][dapr-websock]       | ± third-party libs      | ✔️ [[↗]][drogon]            |
-| Deadlines and Cancellations       | ✔️                                             | ❓                      | ❓                            | ❓                      | ± [[↗]][drog-timeout]      |
-| Retries and Load Balancing        | ✔️                                             | ✔️ [[↗]][gom-features] | ✔️                            | ❓                      |❓                          |
+| Feature                           | 🐙 userver                                     | go-micro  4.7.0        | dapr 1.5.3                     | actix 0.13.0 + tokio 1.19.2 | drogon  1.7.5              | POCO 1.13.3   |
+|-----------------------------------|------------------------------------------------|-------------------------|-------------------------------|------------------------|---------------------------------|---------------|
+| Programming model for IO-bound apps | stackful coroutines                            | stackful coroutines     | actors                        | stackless coroutines | callbacks / stackless coroutines | thread pool  |
+| Programming language to use       | С++                                            | Go-lang                 | Python, JS, .Net, PHP, Java, Go | Rust                 | C++                              | C++          |
+| Caching data from remote or DB    | ✔️ @ref scripts/docs/en/userver/caches.md "[↗]"            | ❌                      | ❌                            | ❌                    | ❌                              | ✔️ [[↗]][poco-cache] |
+| Dynamic Config @ref fcmp1 "[1]"   | ✔️ @ref scripts/docs/en/schemas/dynamic_configs.md "[↗]"   | ✔️ [[↗]][gom-features]  | ❌                            | ❌                   | ❌                              | ❌ |
+| Unit testing                      | ✔️ C++ @ref scripts/docs/en/userver/testing.md "[↗]"       | ✔️ via Go-lang          | ✔️ PHP [[↗]][dapr-testig]    | ✔️                    | ✔️ [[↗]][drog-testig]           | ❓ |
+| Functional Testing @ref fcmp2 "[2]" | ✔️ @ref scripts/docs/en/userver/functional_testing.md "[↗]" | ❌     | ❌ [[↗]][dapr-testig]        | ❌ [[↗]][actix-test] | ❌ [[↗]][drog-testig]          | ❓ |
+| Async synchronization primitives  | ✔️ @ref scripts/docs/en/userver/synchronization.md "[↗]"   | ✔️ via Go-lang          | ❌ [forces turn based access][dapr-actors]  | ✔️ [[↗]][tokio-sync] | ❌               | ✔️ [[↗]][poco-sync] |
+| Dist locks                        | ✔️                                             | ✔️ [[↗]][gom-features] | ❌ [[↗]][dapr-distlock]       | ± third-party libs    | ❌                             | ❓ |
+| Async HTTP client                 | ✔️ @ref clients::http::Client "[↗]"           | ✔️                      | ✔️                            | ✔️                     | ✔️ [[↗]][drog-http-client]   | ❓ |
+| Async HTTP server                 | ✔️ @ref components::Server "[↗]"              | ✔️                      | ✔️                            | ✔️                     | ✔️                             | ✔️ [[↗]][poco-net] |
+| Async gRPC client                 | ✔️ @ref scripts/docs/en/userver/grpc.md "[↗]"              | ✔️                      | ✔️                            | ± third-party libs     | ❌                            | ❌ |
+| Async gRPC server                 | ✔️ @ref scripts/docs/en/userver/grpc.md "[↗]"              | ✔️                      | ✔️                            | ± third-party libs     | ❌                            | ❌ |
+| Async PostgreSQL                   | ✔️ @ref pg_driver "[↗]"                       | ± third-party driver   | ✔️ [[↗]][dapr-postgre]       | ❌ [manual offloading][acti-db] | ✔️ [[↗]][drog-db]    | ✔️ [[↗]][poco-db] |
+| PostgreSQL pipelining, binary protocol | ✔️ @ref pg_driver "[↗]"                   | ❌                      | ❌                            | ± third-party libs     | ❌                            | ❓ |
+| Async Redis                       | ✔️ @ref scripts/docs/en/userver/redis.md "[↗]"             | ± third-party driver   | ✔️ [[↗]][dapr-redis]         | ± third-party libs      | ✔️ [[↗]][drog-redis]         | ❓|
+| Async Mongo                       | ✔️ @ref scripts/docs/en/userver/mongodb.md "[↗]"           | ± third-party driver   | ✔️ [[↗]][dapr-mongo]         | ❌ [manual offloading][acti-db] | ❌ [[↗]][drog-db]    |❓|
+| Async ClickHouse                  | ✔️ @ref clickhouse_driver "[↗]"               | ± third-party driver   | ❌                            | ± third-party libs      | ❌ [[↗]][drog-db]            |❓|
+| Async MySQL                       | ✔️ @ref mysql_driver                           | ± third-party driver   | ✔️ [[↗]][dapr-mysql]         | ❌ [[↗]][acti-db]      | ✔️ [[↗]][drog-db]            | ✔️ [[↗]][poco-db] |
+| Async ODBC                        | ❌ | ❓ | ❓ |❓|❓| ✔️ [[↗]][poco-db] |
+| Metrics                           | ✔️ @ref scripts/docs/en/userver/service_monitor.md "[↗]"   | ± third-party driver   | ✔️ [[↗]][dapr-configs]       | ❌                      | ❌                            |❓|
+| No args evaluation for disabled logs | ✔️ @ref scripts/docs/en/userver/logging.md "[↗]"        | ❌                      | ❌                            | ± third-party libs       | ❌                           | ❌ |
+| Secrets Management                | ± @ref storages::secdist::SecdistConfig "[↗]"  | ❓                      | ✔️                            | ❓                      | ❓                          |❓|
+| Distributed Tracing               | ✔️ @ref scripts/docs/en/userver/logging.md "[↗]"           | ❓                      | ✔️ [[↗]][dapr-configs]       | ± third-party libs       | ❌                           |❓|
+| JSON, BSON, YAML                  | ✔️ @ref scripts/docs/en/userver/formats.md "[↗]"           | ± third-party libs       | ± third-party libs            | ± third-party libs       | ± only JSON                  |❓|
+| XML                               | ❌ | ❓ | ❓ | ❓ |❓ | ✔️ [[↗]][poco-xml] |
+| Content compression/decompression | ✔️                                             | ✔️                      | ❓                            | ✔️                      | ✔️                          | ✔️ [[↗]][poco-streams] |
+| Service Discovery                 | ✔️ DNS, DB topology discovery                  | ✔️ [[↗]][gom-features]  | ❓                            | ❓                      | ❓                          | ± [[↗]][poco-net] (DNS) |
+| Async TCP/UDP                     | ✔️ @ref engine::io::Socket "[↗]"              | ✔️                      | ❓                            | ✔️ [[↗]][tokio-net]     | ❌                           | ✔️ [[↗]][poco-net] |
+| Async TLS Socket                  | ✔️ @ref engine::io::TlsWrapper "[↗]"          | ✔️                      | ❓                            | ± third-party libs       | ❌                           | ✔️ [[↗]][poco-net] |
+| Async HTTPS client                | ✔️ @ref clients::http::Client "[↗]"           | ✔️                      | ❓                            | ✔️                      | ❓                          | ✔️ [[↗]][poco-net] |
+| Async HTTPS server                | ✔️ @ref components::Server "[↗]"              | ❓                      | ❓                            | ✔️                      | ❓                          |✔️ [[↗]][poco-net] |
+| WebSockets Server                 | ✔️ @ref components::Server "[↗]"              | ± third-party libs       | ❌ [[↗]][dapr-websock]       | ± third-party libs      | ✔️ [[↗]][drogon]            |❌|
+| Deadlines and Cancellations       | ✔️                                             | ❓                      | ❓                            | ❓                      | ± [[↗]][drog-timeout]      |❌|
+| Retries and Load Balancing        | ✔️                                             | ✔️ [[↗]][gom-features] | ✔️                            | ❓                      |❓                          | ❌ |
 
 
 [userver-docs-pr]: https://github.com/userver-framework/userver/blob/develop/scripts/docs/en/userver/
@@ -71,6 +73,12 @@ use ❌ and ❓ respectively.
 [drog-timeout]: https://drogon.docsforge.com/master/session/
 [tokio-sync]: https://docs.rs/tokio/0.2.18/tokio/sync/index.html
 [tokio-net]: https://docs.rs/tokio/0.1.22/tokio/net/index.html
+[poco-cache]: https://pocoproject.org/slides/140-Cache.pdf
+[poco-xml]: https://pocoproject.org/slides/170-XML.pdf
+[poco-net]: https://pocoproject.org/slides/200-Network.pdf
+[poco-sync]: https://pocoproject.org/slides/130-Threads.pdf
+[poco-streams]: https://pocoproject.org/slides/100-Streams.pdf
+[poco-db]: https://docs.pocoproject.org/current/Poco.Data.html
 
 @anchor fcmp1 [1]: "Dynamic Configs" stands for any out-of-the-box functionality
 that allows to change behavior of the service without downtime and restart.
