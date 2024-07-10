@@ -222,6 +222,15 @@ These are the metrics provided for each gRPC method:
      process itself, but with the infrastructure
 * `active` — The number of currently active RPCs (created and not finished)
 
+
+## Unit tests and benchmarks
+
+* @ref scripts/docs/en/userver/tutorial/grpc_service.md shows how to test
+  userver gRPC services and clients in gtest
+* @ref ugrpc::tests::Service and ugrpc::tests::ServiceBase can be used
+  to benchmark userver gRPC services and clients, as well as create more
+  complex gtest tests with multiple services and perhaps databases.
+
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly

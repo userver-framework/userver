@@ -4,55 +4,82 @@
 
 Make sure that you can compile and run core tests and read a basic example @ref scripts/docs/en/userver/tutorial/hello_service.md.
 
+Make sure that you understand the basic concepts of @ref scripts/docs/en/userver/grpc.md "userver grpc driver".
+
 ## Step by step guide
 
 In this example, we will write a client side and a server side for a simple `GreeterService` from `greeter.proto` (see the schema below). Its single `SayHello` method accepts a `name` string and replies with a corresponding `greeting` string.
 
 ### Installation
 
-We generate and link to a CMake library from our `.proto` schema:
+Find and link to userver gRPC:
 
-@snippet samples/grpc_service/CMakeLists.txt  gRPC sample - CMake
+@snippet samples/grpc_service/CMakeLists.txt  ugrpc
 
-Register the necessary `ugrpc` components:
+Generate and link to a CMake library from our `.proto` schema:
 
-@snippet samples/grpc_service/grpc_service.cpp  gRPC sample - ugrpc registration
+@snippet samples/grpc_service/CMakeLists.txt  add_grpc_library
+
+By default, `userver_add_grpc_library` looks in `${CMAKE_CURRENT_SOURCE_DIR}/proto`, you can override this using the `SOURCE_PATH` option.
+
+Proto includes can be specified in `INCLUDE_DIRECTORIES` option (multiple directories can be specified).
 
 ### The client side
 
 Wrap the generated `api::GreeterServiceClient` in a component that exposes a simplified interface:
 
-@snippet samples/grpc_service/grpc_service.cpp  gRPC sample - client
+@snippet samples/grpc_service/src/greeter_client.hpp  includes
+
+@snippet samples/grpc_service/src/greeter_client.hpp  client
+
+@snippet samples/grpc_service/src/greeter_client.hpp  component
+
+@snippet samples/grpc_service/src/greeter_client.cpp  component
+
+We intentionally split `GreeterClient` from `GreeterClientComponent`
+to make the logic unit-testable. If you don't need gtest tests,
+you can put the logic into the component directly.
 
 A single request-response RPC handling is simple: fill in `request` and `context`, initiate the RPC, receive the `response`.
 
-@snippet samples/grpc_service/grpc_service.cpp  gRPC sample - client RPC handling
+@snippet samples/grpc_service/src/greeter_client.cpp  client
 
 Fill in the static config entries for the client side:
 
-@snippet samples/grpc_service/static_config.yaml  gRPC sample - static config client
+@snippet samples/grpc_service/static_config.yaml  static config client
 
-@snippet samples/grpc_service/static_config.yaml  gRPC sample - task processor
+@snippet samples/grpc_service/static_config.yaml  task processor
 
 ### The server side
 
-Implement the generated `api::GreeterServiceBase`. As a convenience, a derived `api::GreeterServiceBase::Component` class is provided for easy integration with the component system.
+Implement the generated `api::GreeterServiceBase`.
+As a convenience, `api::GreeterServiceBase::Component` base class is provided
+that inherits from both
+`api::GreeterServiceBase` and `ugrpc::server::ServiceComponentBase`.
+However, for in this example we will also test our service using gtest, so we
+need to split the logic from the component.
 
-@snippet samples/grpc_service/grpc_service.cpp  gRPC sample - service
+@snippet samples/grpc_service/src/grpc_service.hpp  includes
+
+@snippet samples/grpc_service/src/grpc_service.hpp  service
+
+@snippet samples/grpc_service/src/grpc_service.hpp  component
+
+@snippet samples/grpc_service/src/grpc_service.cpp  component
 
 A single request-response RPC handling is simple: fill in the `response` and send it.
 
-@snippet samples/grpc_service/grpc_service.cpp  gRPC sample - server RPC handling
+@snippet samples/grpc_service/src/grpc_service.cpp  service
 
 Fill in the static config entries for the server side:
 
-@snippet samples/grpc_service/static_config.yaml  gRPC sample - static config server
+@snippet samples/grpc_service/static_config.yaml  static config server
 
 ### int main()
 
 Finally, we register our components and start the server.
 
-@snippet samples/http_caching/http_caching.cpp  HTTP caching sample - main
+@snippet samples/grpc_service/main.cpp  main
 
 ### Build and Run
 
@@ -77,11 +104,13 @@ To start the service manually run
 The service is available locally at port 8091 (as per our `static_config.yaml`).
 
 
-### Functional testing
+### Functional testing for the sample gRPC service and client
+
 To implement @ref scripts/docs/en/userver/functional_testing.md "Functional tests" for the
 service some preparational steps should be done.
 
 #### Preparations
+
 First of all, import the required modules and add the required
 pytest_userver.plugins.grpc pytest plugin:
 
@@ -115,12 +144,35 @@ Use it to do gRPC requests to the service:
 @snippet samples/grpc_service/tests/test_grpc.py  grpc server test
 
 
+### Unit testing for the sample gRPC service and client (gtest)
+
+First, link the unit tests to `userver::grpc-utest`:
+
+@snippet samples/grpc_service/CMakeLists.txt  gtest
+
+Create a fixture that sets up the gRPC service in unit tests:
+
+@snippet samples/grpc_service/unittests/greeter_service_test.cpp  service fixture
+
+Finally, we can create gRPC service and client in unit tests:
+
+@snippet samples/grpc_service/unittests/greeter_service_test.cpp  service tests
+
+We can also use toy test-only gRPC services for unit tests:
+
+@snippet samples/grpc_service/unittests/greeter_service_test.cpp  client tests
+
+
 ## Full sources
 
 See the full example at:
 
-* @ref samples/grpc_service/grpc_service.cpp
 * @ref samples/grpc_service/proto/samples/greeter.proto
+* @ref samples/grpc_service/src/greeter_client.hpp
+* @ref samples/grpc_service/src/greeter_client.cpp
+* @ref samples/grpc_service/src/greeter_service.hpp
+* @ref samples/grpc_service/src/greeter_service.cpp
+* @ref samples/grpc_service/main.cpp
 * @ref samples/grpc_service/static_config.yaml
 * @ref samples/grpc_service/tests/conftest.py
 * @ref samples/grpc_service/tests/test_grpc.py
@@ -132,8 +184,13 @@ See the full example at:
 ⇦ @ref scripts/docs/en/userver/tutorial/flatbuf_service.md | @ref scripts/docs/en/userver/tutorial/grpc_middleware_service.md ⇨
 @htmlonly </div> @endhtmlonly
 
-@example samples/grpc_service/grpc_service.cpp
 @example samples/grpc_service/proto/samples/greeter.proto
+@example samples/grpc_service/src/greeter_client.hpp
+@example samples/grpc_service/src/greeter_client.cpp
+@example samples/grpc_service/src/greeter_service.hpp
+@example samples/grpc_service/src/greeter_service.cpp
+@example samples/grpc_service/main.cpp
+@example samples/grpc_service/grpc_service.cpp
 @example samples/grpc_service/static_config.yaml
 @example samples/grpc_service/tests/conftest.py
 @example samples/grpc_service/tests/test_grpc.py
