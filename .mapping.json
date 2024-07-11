@@ -2049,8 +2049,6 @@
   "mongo/src/storages/mongo/cc_config.hpp":"taxi/uservices/userver/mongo/src/storages/mongo/cc_config.hpp",
   "mongo/src/storages/mongo/cdriver/async_stream.cpp":"taxi/uservices/userver/mongo/src/storages/mongo/cdriver/async_stream.cpp",
   "mongo/src/storages/mongo/cdriver/async_stream.hpp":"taxi/uservices/userver/mongo/src/storages/mongo/cdriver/async_stream.hpp",
-  "mongo/src/storages/mongo/cdriver/async_stream_poller.cpp":"taxi/uservices/userver/mongo/src/storages/mongo/cdriver/async_stream_poller.cpp",
-  "mongo/src/storages/mongo/cdriver/async_stream_poller.hpp":"taxi/uservices/userver/mongo/src/storages/mongo/cdriver/async_stream_poller.hpp",
   "mongo/src/storages/mongo/cdriver/collection_impl.cpp":"taxi/uservices/userver/mongo/src/storages/mongo/cdriver/collection_impl.cpp",
   "mongo/src/storages/mongo/cdriver/collection_impl.hpp":"taxi/uservices/userver/mongo/src/storages/mongo/cdriver/collection_impl.hpp",
   "mongo/src/storages/mongo/cdriver/cursor_impl.cpp":"taxi/uservices/userver/mongo/src/storages/mongo/cdriver/cursor_impl.cpp",
