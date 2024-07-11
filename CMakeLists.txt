@@ -175,6 +175,9 @@ set(USERVER_THIRD_PARTY_DIRS ${USERVER_ROOT_DIR}/third_party CACHE INTERNAL "")
 init_debian_depends()
 
 include(SetupGTest)
+
+option(USERVER_FEATURE_OTLP "Provide asynchronous OTLP exporters" "${USERVER_LIB_ENABLED_DEFAULT}")
+
 if (USERVER_FEATURE_GRPC)
   include(SetupProtobuf)
 endif()
@@ -226,6 +229,15 @@ if (USERVER_FEATURE_GRPC)
   _require_userver_core("USERVER_FEATURE_GRPC")
   add_subdirectory(grpc)
   list(APPEND USERVER_AVAILABLE_COMPONENTS grpc)
+endif()
+
+if (USERVER_FEATURE_OTLP)
+  if (NOT USERVER_FEATURE_GRPC)
+    message(FATAL_ERROR "'USERVER_FEATURE_OTLP' requires 'USERVER_FEATURE_GRPC=ON'")
+  endif()
+  _require_userver_core("USERVER_FEATURE_OTLP")
+  add_subdirectory(otlp)
+  list(APPEND USERVER_AVAILABLE_COMPONENTS otlp)
 endif()
 
 if (USERVER_FEATURE_CLICKHOUSE)

@@ -169,11 +169,13 @@ ManagerConfig ParseManagerConfigAndSetupLogging(
 
     const auto default_logger_config =
         logging::impl::ExtractDefaultLoggerConfig(manager_config);
-    auto default_logger = logging::impl::MakeTpLogger(default_logger_config);
+    if (default_logger_config) {
+      auto default_logger = logging::impl::MakeTpLogger(*default_logger_config);
 
-    // This line enables basic logging. Any LOG_XXX before it is meaningless,
-    // because it would typically go straight to a NullLogger.
-    log_scope.SetLogger(std::move(default_logger));
+      // This line enables basic logging. Any LOG_XXX before it is meaningless,
+      // because it would typically go straight to a NullLogger.
+      log_scope.SetLogger(std::move(default_logger));
+    }
 
     LOG_INFO() << "Parsed " << details;
     return manager_config;

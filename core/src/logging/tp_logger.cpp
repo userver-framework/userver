@@ -6,6 +6,7 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/logging/impl/tag_writer.hpp>
+#include <userver/logging/logger.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/enumerate.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
@@ -151,26 +152,11 @@ void TpLogger::Log(Level level, std::string_view msg) {
 }
 
 void TpLogger::PrependCommonTags(TagWriter writer) const {
-  auto* const span = tracing::Span::CurrentSpanUnchecked();
-  if (span) span->LogTo(writer);
-
-  auto* const task = engine::current_task::GetCurrentTaskContextUnchecked();
-  writer.PutTag("task_id", HexShort{task});
-
-  auto* const thread_id = reinterpret_cast<void*>(pthread_self());
-  writer.PutTag("thread_id", Hex{thread_id});
+  impl::default_::PrependCommonTags(writer);
 }
 
 bool TpLogger::DoShouldLog(Level level) const noexcept {
-  const auto* const span = tracing::Span::CurrentSpanUnchecked();
-  if (span) {
-    const auto local_log_level = span->GetLocalLogLevel();
-    if (local_log_level && *local_log_level > level) {
-      return false;
-    }
-  }
-
-  return true;
+  return impl::default_::DoShouldLog(level);
 }
 
 void TpLogger::AddSink(impl::SinkPtr&& sink) {
