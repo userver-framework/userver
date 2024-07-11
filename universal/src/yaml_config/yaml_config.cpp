@@ -101,7 +101,7 @@ std::optional<YamlConfig::YamlConfig> GetYamlConfig(
   const bool is_substitution = IsSubstitution(value);
   if (is_substitution) {
     const auto var_name = GetSubstitutionVarName(value);
-    auto substitution_config = GetYamlConfig(config_vars, {}, mode, var_name);
+    auto substitution_config = GetYamlConfig(config_vars, {}, Mode::kSecure, var_name);
     if (substitution_config) {
        // Strip substitutions off to disallow nested substitutions
       return substitution_config;
@@ -109,18 +109,18 @@ std::optional<YamlConfig::YamlConfig> GetYamlConfig(
   }
 
   if (!value.IsMissing()) {
-    return YamlConfig{std::move(value), config_vars, mode_};
+    return YamlConfig{std::move(value), config_vars, mode};
   }
 
   const auto env_name = yaml[GetEnvName(key)];
-  auto env_value = GetFromEnvImpl(env_name, mode_);
+  auto env_value = GetFromEnvImpl(env_name, mode);
   if (env_value) {
     // Strip substitutions off to disallow nested substitutions
     return YamlConfig{std::move(*env_value), {}, Mode::kSecure};
   }
 
   const auto file_name = yaml[GetFileName(key)];
-  auto file_value = GetFromFileImpl(file_name, mode_);
+  auto file_value = GetFromFileImpl(file_name, mode);
   if (file_value) {
     // Strip substitutions off to disallow nested substitutions
     return YamlConfig{std::move(*file_value), {}, Mode::kSecure};
