@@ -27,16 +27,10 @@ const std::string kTimestampFormat = "%Y-%m-%dT%H:%M:%E*S";
 }  // namespace
 
 Logger::Logger(
-    std::shared_ptr<
-        opentelemetry::proto::collector::logs::v1::LogsServiceClient>
-        client,
-    std::shared_ptr<
-        opentelemetry::proto::collector::trace::v1::TraceServiceClient>
-        trace_client,
+    opentelemetry::proto::collector::logs::v1::LogsServiceClient client,
+    opentelemetry::proto::collector::trace::v1::TraceServiceClient trace_client,
     LoggerConfig&& config)
     : LoggerBase(logging::Format::kTskv),
-      client_(std::move(client)),
-      trace_client_(std::move(trace_client)),
       config_(std::move(config)),
       queue_(Queue::Create(config_.max_queue_size)),
       queue_producer_(queue_->GetMultiProducer()) {
@@ -45,13 +39,16 @@ Logger::Logger(
   std::cerr << "OTLP logger has started\n";
 
   sender_task_ = engine::CriticalAsyncNoSpan(
-      [this, consumer = queue_->GetConsumer()]() mutable {
-        SendingLoop(consumer);
+      [this, consumer = queue_->GetConsumer(), log_client = std::move(client),
+       trace_client = std::move(trace_client)]() mutable {
+        SendingLoop(consumer, log_client, trace_client);
       });
   ;
 }
 
-Logger::~Logger() { sender_task_.SyncCancel(); }
+Logger::~Logger() { Stop(); }
+
+void Logger::Stop() noexcept { sender_task_.SyncCancel(); }
 
 void Logger::Log(logging::Level, std::string_view msg) {
   // Trim trailing \n
@@ -216,7 +213,8 @@ void Logger::HandleTracing(const std::vector<std::string_view>& key_values) {
   // TODO: count drops
 }
 
-void Logger::SendingLoop(Queue::Consumer& consumer) {
+void Logger::SendingLoop(Queue::Consumer& consumer, LogClient& log_client,
+                         TraceClient& trace_client) {
   // Create dummy span to completely disable logging in current coroutine
   tracing::Span span("");
   span.SetLocalLogLevel(logging::Level::kNone);
@@ -256,8 +254,8 @@ void Logger::SendingLoop(Queue::Consumer& consumer) {
           action);
     } while (consumer.Pop(action, deadline));
 
-    DoLog(log_request);
-    DoTrace(trace_request);
+    DoLog(log_request, log_client);
+    DoTrace(trace_request, trace_client);
   }
 }
 
@@ -290,9 +288,10 @@ void Logger::FillAttributes(
 
 void Logger::DoLog(
     const opentelemetry::proto::collector::logs::v1::ExportLogsServiceRequest&
-        request) {
+        request,
+    LogClient& client) {
   try {
-    auto call = client_->Export(request);
+    auto call = client.Export(request);
     auto response = call.Finish();
   } catch (const ugrpc::client::RpcCancelledError&) {
     std::cerr << "Stopping OTLP sender task\n";
@@ -306,9 +305,10 @@ void Logger::DoLog(
 
 void Logger::DoTrace(
     const opentelemetry::proto::collector::trace::v1::ExportTraceServiceRequest&
-        request) {
+        request,
+    TraceClient& trace_client) {
   try {
-    auto call = trace_client_->Export(request);
+    auto call = trace_client.Export(request);
     auto response = call.Finish();
   } catch (const ugrpc::client::RpcCancelledError&) {
     std::cerr << "Stopping OTLP sender task\n";

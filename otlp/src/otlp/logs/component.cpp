@@ -26,17 +26,13 @@ LoggerComponent::LoggerComponent(const components::ComponentConfig& config,
           .GetFactory();
 
   auto endpoint = config["endpoint"].As<std::string>();
-  auto client = std::make_shared<
+  auto client = client_factory.MakeClient<
       opentelemetry::proto::collector::logs::v1::LogsServiceClient>(
-      client_factory.MakeClient<
-          opentelemetry::proto::collector::logs::v1::LogsServiceClient>(
-          "otlp-logger", endpoint));
+      "otlp-logger", endpoint);
 
-  auto trace_client = std::make_shared<
+  auto trace_client = client_factory.MakeClient<
       opentelemetry::proto::collector::trace::v1::TraceServiceClient>(
-      client_factory.MakeClient<
-          opentelemetry::proto::collector::trace::v1::TraceServiceClient>(
-          "otlp-tracer", endpoint));
+      "otlp-tracer", endpoint);
 
   LoggerConfig logger_config;
   logger_config.max_queue_size = config["max-queue-size"].As<size_t>(65535);
@@ -58,6 +54,11 @@ LoggerComponent::LoggerComponent(const components::ComponentConfig& config,
 LoggerComponent::~LoggerComponent() {
   std::cerr << "Destroying default logger\n";
   logging::impl::SetDefaultLoggerRef(logging::GetNullLogger());
+
+  logger_->Stop();
+
+  static std::shared_ptr<Logger> logger_pin;
+  logger_pin = logger_;
 }
 
 yaml_config::Schema LoggerComponent::GetStaticConfigSchema() {

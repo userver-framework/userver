@@ -25,20 +25,21 @@ struct LoggerConfig {
 
 class Logger final : public logging::impl::LoggerBase {
  public:
-  explicit Logger(
-      std::shared_ptr<
-          opentelemetry::proto::collector::logs::v1::LogsServiceClient>
-          client,
-      std::shared_ptr<
-          opentelemetry::proto::collector::trace::v1::TraceServiceClient>
-          trace_client,
-      LoggerConfig&& config);
+  using LogClient =
+      opentelemetry::proto::collector::logs::v1::LogsServiceClient;
+  using TraceClient =
+      opentelemetry::proto::collector::trace::v1::TraceServiceClient;
+
+  explicit Logger(LogClient client, TraceClient trace_client,
+                  LoggerConfig&& config);
 
   ~Logger() override;
 
   void Log(logging::Level level, std::string_view msg) override;
 
   void PrependCommonTags(logging::impl::TagWriter writer) const override;
+
+  void Stop() noexcept;
 
  protected:
   bool DoShouldLog(logging::Level level) const noexcept override;
@@ -48,7 +49,8 @@ class Logger final : public logging::impl::LoggerBase {
                               ::opentelemetry::proto::trace::v1::Span>;
   using Queue = concurrent::NonFifoMpscQueue<Action>;
 
-  void SendingLoop(Queue::Consumer& consumer);
+  void SendingLoop(Queue::Consumer& consumer, LogClient& log_client,
+                   TraceClient& trace_client);
 
   bool IsTracingEntry(const std::vector<std::string_view>& key_values) const;
 
@@ -60,16 +62,13 @@ class Logger final : public logging::impl::LoggerBase {
 
   void DoLog(
       const opentelemetry::proto::collector::logs::v1::ExportLogsServiceRequest&
-          request);
+          request,
+      LogClient& client);
 
   void DoTrace(const opentelemetry::proto::collector::trace::v1::
-                   ExportTraceServiceRequest& request);
+                   ExportTraceServiceRequest& request,
+               TraceClient& trace_client);
 
-  std::shared_ptr<opentelemetry::proto::collector::logs::v1::LogsServiceClient>
-      client_;
-  std::shared_ptr<
-      opentelemetry::proto::collector::trace::v1::TraceServiceClient>
-      trace_client_;
   const LoggerConfig config_;
   std::shared_ptr<Queue> queue_;
   Queue::MultiProducer queue_producer_;
