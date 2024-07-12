@@ -54,8 +54,8 @@ def write_file(filepath: str, content: str) -> None:
 
     if os.path.exists(filepath):
         with open(filepath, 'r', encoding='utf8') as ifile:
-            old_conent = ifile.read()
-            if old_conent == content:
+            old_content = ifile.read()
+            if old_content == content:
                 return
 
     with open(filepath, 'w') as ofile:

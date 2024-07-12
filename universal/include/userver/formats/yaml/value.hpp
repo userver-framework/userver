@@ -185,7 +185,7 @@ class Value final {
 
   /// @brief Returns YAML tag of this node.
   /// If tag is not explicitly specified, its value depends on node value. For
-  /// explicitly sepcified tags, its value depends on used `TAG` directives and
+  /// explicitly specified tags, its value depends on used `TAG` directives and
   /// node value. There is an implicit `TAG` derictive for `!!` with prefix
   /// `tag:yaml.org,2002:`.
   ///

@@ -16,10 +16,10 @@ Changelog news also go to the
 
 ## Roadmap
 
-* 👨‍💻 Codegen parsers and serializers by JSON schema
+* ✔️ Codegen parsers and serializers by JSON schema
 * 👨‍💻 Improve Kafka driver.
 * 👨‍💻 Add retry budget or retry circuit breaker for clients.
-* Improve OpenTelemetry Protocol (OTLP) support.
+* 👨‍💻 Improve OpenTelemetry Protocol (OTLP) support.
 * Add web interface to the [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf)
 * Generate full-blown accessories for OpenAPI:
   * clients
@@ -28,6 +28,34 @@ Changelog news also go to the
 
 ## Changelog
 
+### Release v2.2
+
+* Added @ref scripts/docs/en/userver/chaotic.md "codegen parsers and serializers by JSON schema"
+* Improved the ability to unit test of gRPC clients and servers, Redis and
+  Mongo databases, logs. Samples and docs were improved.
+* Implemented feedback forms and likes/dislikes for each documentation page.
+  **Feedback would be appreciated!**
+  Many thanks to [Fedor Alekseev](https://github.com/atlz253) for the PR and to
+  [MariaGrinchenko](https://github.com/MariaGrinchenko) for the buttons design!
+* Added @ref scripts/docs/en/userver/ydb.md "docs on YDB".
+* Mobile header view was improved. Many thanks to
+  [Fedor Alekseev](https://github.com/atlz253) for the PR.
+* engine::subprocess::ProcessStarter::Exec now can lookup binaries via
+  `PATH` variable.
+* Fixed gRPC generation for nested namespaces with repetitions. Many thanks to
+  [nfrmtk](https://github.com/nfrmtk) for the PR!
+* Handle both websocket and plain HTTP requests for the same path. Many thanks
+  to [Hovard Smith](https://github.com/w15eacre) for the PR!
+* Support setting client + CA certs in RabbitMQ. Many thanks to
+  [Alexey Dyumin](https://github.com/dyumin) for  the PR!
+* yaml_config::YamlConfig now can read files via `#file`. Now the static
+  config of the service could refer to other files.
+* Added support of bit operations to Redis.
+* Added quick start for beginners to @ref scripts/docs/en/userver/tutorial/build.md.
+  Many thanks to [Fedor Alekseev](https://github.com/atlz253) for the PR.
+* Improved path to sources trimming for Conan builds. Many thanks to
+  [Kirill](https://github.com/KVolodin) for the PR!
+* Multiple minor improvements to build, packaging, docs and testing.
 
 ### Release v2.1 (May 2024)
 
@@ -61,6 +89,9 @@ Changelog news also go to the
 * `human_logs.py` now supports more options and has more examples and docs
   embedded. Thanks to
   [TertiumOrganum1](https://github.com/TertiumOrganum1) for the PR!
+* server::http::HttpStatus and client::http::Status are now aliases to
+  http::StatusCode. Many thanks to
+  [SidorovichPavel](https://github.com/SidorovichPavel) for the PR!
 
 * Docs and build:
   * `find_package(userver)` now implicitly calls `userver_setup_environment()`,

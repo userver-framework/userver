@@ -494,7 +494,7 @@ class Generator:
             user_cpp_type = None
 
         return cpp_types.CppArray(
-            raw_cpp_type='NOT_USED',  # _cpp_type() is overriden in array
+            raw_cpp_type='NOT_USED',  # _cpp_type() is overridden in array
             json_schema=schema,
             nullable=schema.nullable,
             user_cpp_type=user_cpp_type,

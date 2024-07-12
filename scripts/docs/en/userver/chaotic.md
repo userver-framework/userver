@@ -1,4 +1,4 @@
-## Chaotic codegen
+## JSON schema codegen - the Chaotic
 
 Sometimes it is required to declare a data structure and to define parse/serialize methods for it.
 It is OK if you do it manually once a month, but it becomes uncomfortable to do it manually more frequently.
@@ -18,7 +18,7 @@ You can use chaotic in three simple steps:
 
 3) use generated .hpp and .cpp files in your C++ project.
 
-Also we've made `chaotic-gen` cmake wrappers for your convinience.
+Also we've made `chaotic-gen` cmake wrappers for your convenience.
 
 Let's go through the list number by number.
 
@@ -54,7 +54,7 @@ Some frequently used parameters are described below.
 * `-n` defines types mapping from in-yaml object path to C++ type name (with namespace).
   The path regex is written first, then equal sign `=`, then C++ type name.
   `-n` can be passed multiple times.
-* `-f` defines file mapping from yaml filenames to C++ filenames (exluding the extentions).
+* `-f` defines file mapping from yaml filenames to C++ filenames (excluding the extensions).
   Usually as-is mapping is used.
 * `--parse-extra-formats` generates YAML and YAML config parsers besides JSON parser.
 * `--generate-serializers` generates serializers into JSON besides JSON parser from `formats::json::Value`.
@@ -208,7 +208,7 @@ You may change the container type of `extra` field with `x-usrv-cpp-extra-type`:
 
 
 Any unknown field leads to a validation failure in case of `additionalProperties: false`.
-It can be overriden by setting `x-usrv-strict-parsing: false`.
+It can be overridden by setting `x-usrv-strict-parsing: false`.
 In this case unknown fields will be ignored.
 
 
