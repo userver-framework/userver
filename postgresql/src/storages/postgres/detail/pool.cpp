@@ -30,7 +30,7 @@ constexpr std::chrono::seconds kRecentErrorPeriod{15};
 constexpr std::size_t kCancelRatio = 2;
 constexpr std::chrono::seconds kCancelPeriod{1};
 
-constexpr std::chrono::seconds kCleanupTimeout{1};
+constexpr std::chrono::seconds kCleanupTimeout{2};
 
 constexpr std::chrono::seconds kMaintainInterval{30};
 constexpr std::chrono::seconds kMaxIdleDuration{15};
