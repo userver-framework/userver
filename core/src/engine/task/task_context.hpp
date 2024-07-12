@@ -106,10 +106,7 @@ class TaskContext final : public ContextAccessor {
   bool IsSharedWaitAllowed() const;
 
   // whether user code finished executing, coroutine may still be running
-  bool IsFinished() const noexcept {
-    return state_ == Task::State::kCompleted ||
-           state_ == Task::State::kCancelled;
-  }
+  bool IsFinished() const noexcept;
 
   void SetDetached(DetachedTasksSyncBlock::Token& token) noexcept;
   void FinishDetached() noexcept;
