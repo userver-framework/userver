@@ -230,6 +230,8 @@ void DeadlinePropagation::CompleteDeadlinePropagation(
 
   if (cancelled_by_deadline &&
       !dp_scope.shared_dp_context.IsCancelledByDeadline()) {
+    dp_scope.shared_dp_context.SetCancelledByDeadline();
+
     const auto& original_body = response.GetData();
     if (!original_body.empty() && span_opt && span_opt->ShouldLogDefault()) {
       span_opt->AddNonInheritableTag("dp_original_body_size",
