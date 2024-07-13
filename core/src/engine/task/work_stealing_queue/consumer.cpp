@@ -33,7 +33,7 @@ void FutexWake(std::atomic<std::int32_t>* value, int count) {
 
 namespace {
 constexpr std::size_t kDefaultStealSpins = 10000;
-constexpr std::size_t kDefaultStealSize = 5;
+constexpr std::size_t kDefaultStealSize = 7;
 // frequency of visits to the global
 // queue to guarantee progress
 constexpr std::size_t kFrequencyGlobalQueuePop = 61;
@@ -110,8 +110,9 @@ impl::TaskContext* Consumer::StealFromAnotherConsumerOrGlobalQueue(
   for (std::size_t i = 0;
        i < attempts && to_steal_count > 0 && stealed_size == 0; ++i) {
     std::size_t start_index = rnd_() % owner_.consumers_count_;
-    for (std::size_t shift = 0;
-         shift < owner_.consumers_count_ && to_steal_count > 0; ++shift) {
+    for (std::size_t shift = 0; shift < owner_.consumers_count_ &&
+                                to_steal_count > 0 && stealed_size == 0;
+         ++shift) {
       std::size_t index = (start_index + shift) % owner_.consumers_count_;
       Consumer* victim = &owner_.consumers_[index];
       if (victim == this) {
@@ -123,7 +124,7 @@ impl::TaskContext* Consumer::StealFromAnotherConsumerOrGlobalQueue(
       to_steal_count -= tasks_count;
     }
 
-    if (to_steal_count > 0) {
+    if (stealed_size == 0) {
       impl::TaskContext* ctx = owner_.global_queue_.TryPop(global_queue_token_);
       if (ctx) {
         steal_buffer_[stealed_size++] = ctx;
@@ -131,7 +132,7 @@ impl::TaskContext* Consumer::StealFromAnotherConsumerOrGlobalQueue(
       }
     }
 
-    if (to_steal_count > 0 && i % kFrequencyStealingBackgroundQueuePop == 0) {
+    if (stealed_size == 0 && i % kFrequencyStealingBackgroundQueuePop == 0) {
       impl::TaskContext* ctx =
           owner_.background_queue_.TryPop(background_queue_token_);
       if (ctx) {
@@ -152,11 +153,22 @@ impl::TaskContext* Consumer::StealFromAnotherConsumerOrGlobalQueue(
 }
 
 std::size_t Consumer::Steal(utils::span<impl::TaskContext*> buffer) {
-  const size_t stealed_count = local_queue_.TryPopBulk(buffer);
-  if (stealed_count) {
-    return stealed_count;
+  std::size_t can_be_stealed_count = local_queue_.GetSize();
+  if (can_be_stealed_count) {
+    const size_t stealed_count = local_queue_.TryPopBulk(
+        utils::span(buffer.data(),
+                    std::min(buffer.size(), (can_be_stealed_count + 1) / 2)));
+    if (stealed_count) {
+      return stealed_count;
+    }
   }
-  return local_queue_surplus_.TryPopBulk(buffer);
+
+  can_be_stealed_count = local_queue_surplus_.GetSize();
+  return (can_be_stealed_count
+              ? local_queue_surplus_.TryPopBulk(utils::span(
+                    buffer.data(),
+                    std::min(buffer.size(), (can_be_stealed_count + 1) / 2)))
+              : 0);
 }
 
 impl::TaskContext* Consumer::TryPopFromOwnerQueue(const bool is_global) {
@@ -197,12 +209,7 @@ impl::TaskContext* Consumer::ProbabilisticPopFromOwnerQueues() {
 }
 
 impl::TaskContext* Consumer::TryPop() {
-  impl::TaskContext* context = TryPopLocal();
-  if (context) {
-    return context;
-  }
-
-  context = TryPopFromOwnerQueue(/* is_global */ true);
+  impl::TaskContext* context = TryPopFromOwnerQueue(/* is_global */ true);
   if (context) {
     return context;
   }
@@ -230,13 +237,7 @@ impl::TaskContext* Consumer::TryPop() {
 }
 
 impl::TaskContext* Consumer::TryPopBeforeSleep() {
-  impl::TaskContext* context = TryPopLocal();
-
-  if (context) {
-    return context;
-  }
-
-  context = StealFromAnotherConsumerOrGlobalQueue(1, 1);
+  impl::TaskContext* context = StealFromAnotherConsumerOrGlobalQueue(1, 1);
   if (context) {
     return context;
   }
@@ -271,6 +272,11 @@ impl::TaskContext* Consumer::TryPopLocal() {
 impl::TaskContext* Consumer::DoPop() {
   ++steps_count_;
   impl::TaskContext* context = ProbabilisticPopFromOwnerQueues();
+  if (context) {
+    return context;
+  }
+
+  context = TryPopLocal();
   if (context) {
     return context;
   }
