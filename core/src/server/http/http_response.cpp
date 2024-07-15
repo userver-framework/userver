@@ -160,6 +160,10 @@ bool HttpResponse::SetHeader(std::string_view name, std::string value) {
   return SetHeader(std::string{name}, std::move(value));
 }
 
+bool HttpResponse::SetHeader(std::string_view name, std::string_view value) {
+  return SetHeader(std::string{name}, std::string{value});
+}
+
 bool HttpResponse::SetHeader(
     const USERVER_NAMESPACE::http::headers::PredefinedHeader& header,
     std::string value) {

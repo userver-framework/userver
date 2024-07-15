@@ -27,8 +27,18 @@ components_manager:
 
         # Our GreeterService implementation
         greeter-service:
+            echo-url: 'mockserver/v1/translations'  # Some other microservice listens on this URL
             task-processor: main-task-processor
             middlewares: []
+
+        http-client:
+            fs-task-processor: main-task-processor
+
+        dns-client:
+            fs-task-processor: fs-task-processor
+
+        headers-propagator:
+            headers: ["custom-header-1", "custom-header-2"]
 
         server:
             listener:

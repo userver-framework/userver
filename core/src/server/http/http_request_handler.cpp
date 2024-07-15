@@ -5,7 +5,6 @@
 
 #include <server/handlers/http_handler_base_statistics.hpp>
 #include <server/handlers/http_server_settings.hpp>
-#include <server/request/task_inherited_request_impl.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/value.hpp>
@@ -78,6 +77,28 @@ namespace {
 
 utils::statistics::MetricTag<std::atomic<size_t>> kCcStatusCodeIsCustom{
     "congestion-control.rps.is-custom-status-activated"};
+
+class HttpRequestContainer final : public server::request::RequestContainer {
+ public:
+  explicit HttpRequestContainer(std::shared_ptr<http::HttpRequestImpl> request)
+      : request_(std::move(request)) {
+    UASSERT_MSG(
+        request_,
+        "Should not be called outside of the task that does HTTP handling");
+  }
+  std::string_view GetHeader(std::string_view header_name) const override {
+    if (!request_) {
+      return {};
+    }
+    return request_->GetHeader(header_name);
+  }
+  bool HasHeader(std::string_view header_name) const override {
+    return request_ && request_->HasHeader(header_name);
+  }
+
+ private:
+  std::shared_ptr<http::HttpRequestImpl> request_;
+};
 
 }  // namespace
 
@@ -165,8 +186,9 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(
   }
 
   auto payload = [request = std::move(request), handler] {
-    server::request::kTaskInheritedRequest.Set(
+    HttpRequestContainer request_container(
         std::static_pointer_cast<HttpRequestImpl>(request));
+    SetTaskInheritedRequest(request_container);
 
     request->SetTaskStartTime();
 

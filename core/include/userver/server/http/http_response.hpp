@@ -65,6 +65,11 @@ class HttpResponse final : public request::ResponseBase {
   /// were already sent for stream'ed response and the new header was not set.
   bool SetHeader(std::string_view name, std::string value);
 
+  /// @brief Add a new response header or rewrite an existing one.
+  /// @returns true if the header was set. Returns false if headers
+  /// were already sent for stream'ed response and the new header was not set.
+  bool SetHeader(std::string_view name, std::string_view value);
+
   /// @overload
   bool SetHeader(
       const USERVER_NAMESPACE::http::headers::PredefinedHeader& header,

@@ -17,6 +17,7 @@
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
+#include <userver/server/request/task_inherited_request.hpp>
 #include <userver/tracing/in_place_span.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
@@ -33,6 +34,7 @@
 #include <userver/ugrpc/server/impl/call_params.hpp>
 #include <userver/ugrpc/server/impl/call_traits.hpp>
 #include <userver/ugrpc/server/impl/error_code.hpp>
+#include <userver/ugrpc/server/impl/request_container.hpp>
 #include <userver/ugrpc/server/impl/service_worker.hpp>
 #include <userver/ugrpc/server/middlewares/base.hpp>
 #include <userver/ugrpc/server/rpc.hpp>
@@ -197,6 +199,9 @@ class CallData final {
       if constexpr (!std::is_same_v<InitialRequest, NoInitialRequest>) {
         initial_request = &initial_request_;
       }
+      GrpcRequestContainer request_container(context_);
+      USERVER_NAMESPACE::server::request::SetTaskInheritedRequest(
+          request_container);
 
       MiddlewareCallContext middleware_context(
           middlewares, responder, do_call,
