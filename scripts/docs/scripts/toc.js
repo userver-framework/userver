@@ -1,3 +1,5 @@
+import { LandingFeedback, PageFeedback } from "./feedback.js";
+
 const LOWER_CASE_TRANSLITTERATION_MAPPING = {
   а: "a",
   б: "b",
@@ -94,3 +96,19 @@ function draw_toc() {
     ])
     .insertAfter("#MSearchResultsWindow");
 }
+
+$(function () {
+  $(document).ready(function () {
+    setTimeout(() => {
+      const isLanding = document.getElementById("landing_logo_id") !== null;
+
+      if (isLanding) {
+        LandingFeedback.init();
+      } else {
+        draw_toc();
+        DoxygenAwesomeInteractiveToc.init();
+        PageFeedback.init();
+      }
+    }, 0);
+  });
+});

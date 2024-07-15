@@ -91,6 +91,9 @@ html {
   --font-family-monospace: "fontello", "Roboto Mono", ui-monospace, SFMono-Regular, SF Mono,
     Menlo, Consolas, Liberation Mono, monospace;
 
+  /* The content is centered and constraint in it's width. To make the content fill the whole page, set the variable to auto.*/
+  --content-maxwidth: 1440px;
+
   /* table colors */
   --tablehead-background: var(--primary-color-1);
 
@@ -227,10 +230,6 @@ span.paramname em {
   color: var(--primary-dark-color);
 }
 
-/* Too wide page makes people uncomfortable, keep content in center */
-div.contents {
-  max-width: 1440px;
-}
 
 /* Scale down image to the page width */
 .image img {
@@ -253,7 +252,7 @@ hr {
   justify-content: space-between;
   background-color: var(--black-color-1);
   color: white !important;
-  padding: 20px;
+  padding: 15px 20px;
 }
 
 #titlearea {
@@ -271,7 +270,7 @@ hr {
 }
 
 #projectlogo img {
-  width: 70px;
+  width: 55px;
   max-height: none;
 }
 
@@ -279,18 +278,20 @@ hr {
   padding-left: 0.5em;
 }
 
-#projectalign div {
-  line-height: 26px;
-}
-
-#projectname a {
-  font-size: 42px;
-  color: white !important;
-}
-
+#projectname a,
 #projectbrief a {
-  font-size: 17px;
   color: white !important;
+}
+
+#projectname {
+  line-height: 26px;
+  font-size: 38px;
+}
+
+#projectbrief {
+  margin-top: 2px;
+  font-size: 16px;
+  line-height: 18px;
 }
 
 #links a:hover {
@@ -406,10 +407,6 @@ html.dark-mode .sm.sm-dox li:last-child ul li a {
   right: 15px;
 }
 
-#projectbrief {
-  font-size: 120%;
-}
-
 #projectlogo img {
   margin: 0px;
 }
@@ -424,6 +421,12 @@ div.header {
 
 div.header .summary {
   display: none;
+}
+
+div.header .title {
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .sm-dox ul a:hover,
@@ -599,22 +602,18 @@ doxygen-awesome-dark-mode-toggle {
     max-height: none;
   }
 
-  #projectalign div {
-    line-height: 12px;
-  }
-
   td#projectalign {
     padding: 5px;
   }
 
-  #projectname a {
-    font-size: 15px;
-    color: white !important;
+  #projectname {
+    font-size: 18px;
+    line-height: 12px;
   }
 
-  #projectbrief a {
-    font-size: 9px;
-    color: white !important;
+  #projectbrief {
+    line-height: 12px;
+    font-size: 10px;
   }
 
   #MSearchBox {
@@ -776,10 +775,6 @@ doxygen-awesome-dark-mode-toggle {
 
   td#projectalign {
     padding: 5px;
-  }
-
-  #projectalign div {
-    line-height: 10px;
   }
 
   #projectalign {
@@ -963,7 +958,7 @@ div.contents .toc {
   box-sizing: border-box;
   min-width: 300px;
   padding: 16px 16px;
-  top: 97px;
+  top: 77px;
   max-height: calc(100vh - 255px);
 }
 
@@ -1021,7 +1016,7 @@ div.toc li a.active {
 
 page-feedback {
   position: absolute;
-  top: 170px;
+  top: 136px;
   right: 30px;
 }
 

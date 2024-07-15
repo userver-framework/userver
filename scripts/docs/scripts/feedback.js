@@ -321,7 +321,7 @@ class PageFeedbackPopup extends HTMLElement {
   }
 }
 
-class LandingFeedback {
+export class LandingFeedback {
   static #lastStarRatingLabel = null;
 
   static init() {
@@ -403,17 +403,3 @@ class FirebasePageDatabase {
 
 customElements.define("page-feedback", PageFeedback);
 customElements.define("page-feedback-popup", PageFeedbackPopup);
-
-$(function () {
-  $(document).ready(function () {
-    setTimeout(() => {
-      const isLanding = document.getElementById("landing_logo_id") !== null;
-
-      if (isLanding) {
-        LandingFeedback.init();
-      } else {
-        PageFeedback.init();
-      }
-    }, 0);
-  });
-});

@@ -351,12 +351,15 @@ a.button.button_outline {
   display: block;
   top: -84px;
   right: -200px;
-  background-color: var(--primary-color);
   border-radius: 280px;
   transition: background-color 0.3s;
 }
 
-.info__logo:hover {
+#landing_logo_id {
+  background-color: var(--primary-color);
+}
+
+#landing_logo_id:hover {
   background-color: var(--primary-dark-color);
 }
 
@@ -854,7 +857,7 @@ html.dark-mode .values__card {
   transition: background-color 0.3s, border-color 0.3s, color 0.3s, opacity 0.5s;
 }
 
-.feedback__stars:valid + .feedback__button {
+.feedback__stars:valid+.feedback__button {
   opacity: 1;
 }
 
