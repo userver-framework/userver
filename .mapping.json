@@ -2942,7 +2942,6 @@
   "samples/mysql_service/tests/conftest.py":"taxi/uservices/userver/samples/mysql_service/tests/conftest.py",
   "samples/mysql_service/tests/test_mysql.py":"taxi/uservices/userver/samples/mysql_service/tests/test_mysql.py",
   "samples/otlp_service/CMakeLists.txt":"taxi/uservices/userver/samples/otlp_service/CMakeLists.txt",
-  "samples/otlp_service/config_vars.yaml":"taxi/uservices/userver/samples/otlp_service/config_vars.yaml",
   "samples/otlp_service/otlp_service.cpp":"taxi/uservices/userver/samples/otlp_service/otlp_service.cpp",
   "samples/otlp_service/secure_data.json":"taxi/uservices/userver/samples/otlp_service/secure_data.json",
   "samples/otlp_service/static_config.yaml":"taxi/uservices/userver/samples/otlp_service/static_config.yaml",

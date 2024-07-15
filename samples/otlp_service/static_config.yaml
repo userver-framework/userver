@@ -5,13 +5,7 @@ components_manager:
         logging:
             fs-task-processor: fs-task-processor
             loggers: {}
-        #         default:
-        #             file_path: '@stderr'
-        #             level: debug
-        #             overflow_behavior: discard
 
-# /// [gRPC sample - static config client]
-# yaml
         # Creates gRPC clients
         grpc-client-factory:
             # The TaskProcessor for blocking connection initiation
@@ -21,10 +15,12 @@ components_manager:
             # https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
             channel-args: {}
 
+# /// [otlp logger]
         otlp-logger:
             endpoint: '0.0.0.0:4317'
-            service-name: 'otlp-example'
-            log-level: 'debug'
+            service-name: otlp-example
+            log-level: debug
+# /// [otlp logger]
 
         handler-server-monitor:
             path: /metrics
@@ -50,13 +46,10 @@ components_manager:
 
     default_task_processor: main-task-processor  # Task processor in which components start.
 
-# /// [gRPC sample - task processor]
-# yaml
     task_processors:
         grpc-blocking-task-processor:  # For blocking gRPC channel creation
             worker_threads: 2
             thread_name: grpc-worker
-# /// [gRPC sample - task processor]
         main-task-processor:           # For non-blocking operations
             worker_threads: 8
         fs-task-processor:             # For blocking filesystem operations
