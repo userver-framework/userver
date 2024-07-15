@@ -128,7 +128,7 @@ void Logger::HandleLog(const std::vector<std::string_view>& key_values) {
     }
 
     auto attributes = log_records.add_attributes();
-    attributes->set_key(std::string{key});
+    attributes->set_key(std::string{MapAttribute(key)});
     attributes->mutable_value()->set_string_value(std::string{value});
   }
 
@@ -199,7 +199,7 @@ void Logger::HandleTracing(const std::vector<std::string_view>& key_values) {
     }
 
     auto attributes = span.add_attributes();
-    attributes->set_key(std::string{key});
+    attributes->set_key(std::string{MapAttribute(key)});
     attributes->mutable_value()->set_string_value(std::string{value});
   }
 
@@ -286,7 +286,7 @@ void Logger::FillAttributes(
     attr->mutable_value()->set_string_value(std::string{config_.service_name});
   }
 
-  for (const auto& [key, value] : config_.attributes) {
+  for (const auto& [key, value] : config_.extra_attributes) {
     auto* attr = resource.add_attributes();
     attr->set_key(std::string{key});
     attr->mutable_value()->set_string_value(std::string{value});
@@ -325,6 +325,13 @@ void Logger::DoTrace(
               << typeid(e).name() << "\n";
   }
   // TODO: count exceptions
+}
+
+std::string_view Logger::MapAttribute(std::string_view attr) const {
+  for (const auto& [key, value] : config_.attributes_mapping) {
+    if (key == attr) return value;
+  }
+  return attr;
 }
 
 }  // namespace otlp

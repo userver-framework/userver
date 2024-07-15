@@ -43,6 +43,12 @@ LoggerComponent::LoggerComponent(const components::ComponentConfig& config,
       config["service-name"].As<std::string>("unknown_service");
   logger_config.log_level =
       config["log-level"].As<USERVER_NAMESPACE::logging::Level>();
+  logger_config.extra_attributes =
+      config["extra-attributes"]
+          .As<std::unordered_map<std::string, std::string>>({});
+  logger_config.attributes_mapping =
+      config["attributes-mapping"]
+          .As<std::unordered_map<std::string, std::string>>({});
   logger_ = std::make_shared<Logger>(std::move(client), std::move(trace_client),
                                      std::move(logger_config));
 
@@ -95,13 +101,20 @@ properties:
     service-name:
         type: string
         description: service name
-    attributes:
+    attributes-mapping:
+        type: object
+        description: rename rules for OTLP attributes
+        properties: {}
+        additionalProperties:
+            type: string
+            description: new attribute name
+    extra-attributes:
         type: object
         description: extra OTLP attributes
         properties: {}
         additionalProperties:
-          type: string
-          description: attribute value
+            type: string
+            description: attribute value
 
 )");
 }

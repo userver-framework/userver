@@ -20,6 +20,9 @@ components_manager:
             endpoint: '0.0.0.0:4317'
             service-name: otlp-example
             log-level: debug
+            # How to rename attributes, if you really need to
+            attributes-mapping:
+                module: line
 # /// [otlp logger]
 
         handler-server-monitor:

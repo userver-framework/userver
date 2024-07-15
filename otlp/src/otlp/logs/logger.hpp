@@ -20,7 +20,8 @@ struct LoggerConfig {
   std::chrono::milliseconds max_batch_delay{};
 
   std::string service_name;
-  std::unordered_map<std::string, std::string> attributes;
+  std::unordered_map<std::string, std::string> extra_attributes;
+  std::unordered_map<std::string, std::string> attributes_mapping;
   logging::Level log_level{logging::Level::kInfo};
 };
 
@@ -71,6 +72,8 @@ class Logger final : public logging::impl::LoggerBase {
   void DoTrace(const opentelemetry::proto::collector::trace::v1::
                    ExportTraceServiceRequest& request,
                TraceClient& trace_client);
+
+  std::string_view MapAttribute(std::string_view attr) const;
 
   logging::impl::LogStatistics stats_;
   const LoggerConfig config_;
