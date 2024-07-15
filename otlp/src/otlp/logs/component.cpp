@@ -2,6 +2,7 @@
 
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
+#include <userver/components/statistics_storage.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/logging/component.hpp>
 #include <userver/logging/level_serialization.hpp>
@@ -49,6 +50,16 @@ LoggerComponent::LoggerComponent(const components::ComponentConfig& config,
   context.FindComponent<components::Logging>();
 
   logging::impl::SetDefaultLoggerRef(*logger_);
+
+  auto* const statistics_storage =
+      context.FindComponentOptional<components::StatisticsStorage>();
+  if (statistics_storage) {
+    statistics_holder_ = statistics_storage->GetStorage().RegisterWriter(
+        "logger", [this](utils::statistics::Writer& writer) {
+          writer.ValueWithLabels(logger_->GetStatistics(),
+                                 {"logger", "default"});
+        });
+  }
 }
 
 LoggerComponent::~LoggerComponent() {

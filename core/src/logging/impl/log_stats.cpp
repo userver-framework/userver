@@ -1,12 +1,13 @@
-#include "log_stats.hpp"
+#include <userver/logging/impl/log_stats.hpp>
 
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace logging::statistics {
+namespace logging::impl {
 
-void DumpMetric(utils::statistics::Writer& writer, const LogStatistics& stats) {
+void DumpMetric(utils::statistics::Writer& writer,
+                const impl::LogStatistics& stats) {
   writer["dropped"].ValueWithLabels(stats.dropped, {"version", "2"});
 
   utils::statistics::Rate total;
@@ -22,6 +23,6 @@ void DumpMetric(utils::statistics::Writer& writer, const LogStatistics& stats) {
   writer["has_reopening_error"] = stats.has_reopening_error.load();
 }
 
-}  // namespace logging::statistics
+}  // namespace logging::impl
 
 USERVER_NAMESPACE_END

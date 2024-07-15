@@ -8,6 +8,7 @@
 
 #include <userver/concurrent/queue.hpp>
 #include <userver/engine/task/task.hpp>
+#include <userver/logging/impl/log_stats.hpp>
 #include <userver/logging/impl/logger_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -41,6 +42,8 @@ class Logger final : public logging::impl::LoggerBase {
 
   void Stop() noexcept;
 
+  const logging::impl::LogStatistics& GetStatistics() const;
+
  protected:
   bool DoShouldLog(logging::Level level) const noexcept override;
 
@@ -69,6 +72,7 @@ class Logger final : public logging::impl::LoggerBase {
                    ExportTraceServiceRequest& request,
                TraceClient& trace_client);
 
+  logging::impl::LogStatistics stats_;
   const LoggerConfig config_;
   std::shared_ptr<Queue> queue_;
   Queue::MultiProducer queue_producer_;

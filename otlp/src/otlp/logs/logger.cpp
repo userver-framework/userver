@@ -50,7 +50,11 @@ Logger::~Logger() { Stop(); }
 
 void Logger::Stop() noexcept { sender_task_.SyncCancel(); }
 
-void Logger::Log(logging::Level, std::string_view msg) {
+const logging::impl::LogStatistics& Logger::GetStatistics() const {
+  return stats_;
+}
+
+void Logger::Log(logging::Level level, std::string_view msg) {
   // Trim trailing \n
   if (msg.size() > 1 && msg[msg.size() - 1] == '\n') {
     msg = msg.substr(0, msg.size() - 1);
@@ -58,6 +62,8 @@ void Logger::Log(logging::Level, std::string_view msg) {
 
   std::vector<std::string_view> key_values =
       utils::text::SplitIntoStringViewVector(msg, "\t");
+
+  ++stats_.by_level[static_cast<int>(level)];
 
   if (IsTracingEntry(key_values)) {
     HandleTracing(key_values);
@@ -136,10 +142,10 @@ void Logger::HandleLog(const std::vector<std::string_view>& key_values) {
   log_records.set_time_unix_nano(nanoseconds.count());
 
   // Drop a log if overflown
-  [[maybe_unused]] auto ok =
-      queue_producer_.PushNoblock(std::move(log_records));
-
-  // TODO: count drops
+  auto ok = queue_producer_.PushNoblock(std::move(log_records));
+  if (!ok) {
+    ++stats_.dropped;
+  }
 }
 
 void Logger::HandleTracing(const std::vector<std::string_view>& key_values) {
@@ -208,9 +214,10 @@ void Logger::HandleTracing(const std::vector<std::string_view>& key_values) {
                               1'000'000'000);
 
   // Drop a trace if overflown
-  [[maybe_unused]] auto ok = queue_producer_.PushNoblock(std::move(span));
-
-  // TODO: count drops
+  auto ok = queue_producer_.PushNoblock(std::move(span));
+  if (!ok) {
+    ++stats_.dropped;
+  }
 }
 
 void Logger::SendingLoop(Queue::Consumer& consumer, LogClient& log_client,

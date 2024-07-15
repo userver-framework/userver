@@ -124,7 +124,7 @@ void TpLogger::Flush() {
   }
 }
 
-statistics::LogStatistics& TpLogger::GetStatistics() noexcept { return stats_; }
+impl::LogStatistics& TpLogger::GetStatistics() noexcept { return stats_; }
 
 void TpLogger::Log(Level level, std::string_view msg) {
   ++stats_.by_level[static_cast<std::size_t>(level)];

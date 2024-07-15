@@ -9,7 +9,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace logging::statistics {
+namespace logging::impl {
 
 using Counter = utils::statistics::RateCounter;
 
@@ -22,6 +22,6 @@ struct LogStatistics final {
 
 void DumpMetric(utils::statistics::Writer& writer, const LogStatistics& stats);
 
-}  // namespace logging::statistics
+}  // namespace logging::impl
 
 USERVER_NAMESPACE_END
