@@ -1,38 +1,53 @@
 #include <userver/server/request/task_inherited_request.hpp>
 
-#include <string>
-
-#include <userver/engine/task/inherited_variable.hpp>
+#include <server/http/http_request_impl.hpp>
+#include <server/request/task_inherited_request_impl.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace server::request {
 
 namespace {
-inline engine::TaskInheritedVariable<
-    std::reference_wrapper<const RequestContainer>>
-    kTaskInheritedRequest;
-}  // namespace
+const std::string kEmptyHeader{};
 
-void SetTaskInheritedRequest(const RequestContainer& request) {
-  kTaskInheritedRequest.Set(request);
-}
-
-std::string_view GetTaskInheritedHeader(std::string_view header_name) {
+template <typename Header>
+const std::string& DoGetTaskInheritedHeader(const Header& header_name) {
   const auto* request = kTaskInheritedRequest.GetOptional();
   if (request == nullptr) {
-    return {};
+    return kEmptyHeader;
   }
-  return (*request).get().GetHeader(header_name);
+  return (*request)->GetHeader(header_name);
 }
 
-bool HasTaskInheritedHeader(std::string_view header_name) {
+template <typename Header>
+bool DoHasTaskInheritedHeader(const Header& header_name) {
   const auto* request = kTaskInheritedRequest.GetOptional();
   if (request == nullptr) {
     return false;
   }
-  return (*request).get().HasHeader(header_name);
+  return (*request)->HasHeader(header_name);
 }
+
+}  // namespace
+
+const std::string& GetTaskInheritedHeader(std::string_view header_name) {
+  return DoGetTaskInheritedHeader(header_name);
+}
+
+const std::string& GetTaskInheritedHeader(
+    const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name) {
+  return DoGetTaskInheritedHeader(header_name);
+}
+
+bool HasTaskInheritedHeader(std::string_view header_name) {
+  return DoHasTaskInheritedHeader(header_name);
+}
+
+bool HasTaskInheritedHeader(
+    const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name) {
+  return DoHasTaskInheritedHeader(header_name);
+}
+
 }  // namespace server::request
 
 USERVER_NAMESPACE_END
