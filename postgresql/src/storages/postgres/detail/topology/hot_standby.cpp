@@ -39,31 +39,58 @@ using ReplicationLag = std::chrono::milliseconds;
 constexpr const char* kDiscoveryTaskName = "pg_topology";
 
 const std::string kShowSyncStandbyNames = "SHOW synchronous_standby_names";
+const std::string kCheckAuroraQuery =
+    "SELECT 'aws_commons' = ANY(string_to_array(setting, ', ')) "
+    "FROM pg_settings "
+    "WHERE name = 'rds.extensions';";
+
+bool IsAuroraConnection(std::unique_ptr<Connection>& connection) {
+  const auto res = connection->Execute(kCheckAuroraQuery);
+
+  if (res.IsEmpty()) {
+    return false;
+  }
+  bool is_aurora = false;
+  res.Front().To(is_aurora);
+
+  return is_aurora;
+}
 
 struct WalInfoStatements {
   int min_version;
+  bool is_aurora;
   std::string master;
   std::string slave;
 };
 
-const WalInfoStatements& GetWalInfoStatementsForVersion(int version) {
+const WalInfoStatements& GetWalInfoStatementsForVersion(int version,
+                                                        bool is_aurora) {
   // must be in descending min_version order
   static const WalInfoStatements kKnownStatements[]{
       // Master doesn't provide last xact timestamp without
       // `track_commit_timestamp` enabled, use current server time
       // as an approximation.
       // Also note that all times here are sourced from the master.
-      {100000, "SELECT pg_current_wal_lsn(), now()",
+      {100000, /* is_aurora */ false, "SELECT pg_current_wal_lsn(), now()",
        "SELECT pg_last_wal_replay_lsn(), pg_last_xact_replay_timestamp()"},
 
       // Versions for 9.4-9.x servers.
       // (Functions were actually available since 8.2 but returned TEXT.)
-      {90400, "SELECT pg_current_xlog_location(), now()",
+      {90400, /* is_aurora */ false, "SELECT pg_current_xlog_location(), now()",
        "SELECT pg_last_xlog_replay_location(), "
-       "pg_last_xact_replay_timestamp()"}};
+       "pg_last_xact_replay_timestamp()"},
+
+      // AWS Aurora doesn't support pg functions above, so use aurora's
+      // alternatives instead
+      {90400, /* is_aurora */ true,
+       "SELECT highest_lsn_rcvd, now() "
+       "FROM aurora_replica_status() WHERE session_id != 'MASTER_SESSION_ID'",
+       "SELECT current_read_lsn, "
+       "now() - (replica_lag_in_msec || ' milliseconds')::interval "
+       "FROM aurora_replica_status() WHERE session_id != 'MASTER_SESSION_ID'"}};
 
   for (const auto& cand : kKnownStatements) {
-    if (version >= cand.min_version) return cand;
+    if (is_aurora == cand.is_aurora && version >= cand.min_version) return cand;
   }
   throw PoolError{fmt::format("Unsupported database version: {}", version)};
 }
@@ -311,8 +338,9 @@ void HotStandby::RunCheck(DsnIndex idx) {
     state.roundtrip_time = std::chrono::duration_cast<Rtt>(
         std::chrono::steady_clock::now() - start);
 
-    const auto& wal_info_stmts =
-        GetWalInfoStatementsForVersion(state.connection->GetServerVersion());
+    const bool is_aurora = IsAuroraConnection(state.connection);
+    const auto& wal_info_stmts = GetWalInfoStatementsForVersion(
+        state.connection->GetServerVersion(), is_aurora);
     std::optional<std::chrono::system_clock::time_point> current_xact_timestamp;
 
     const auto wal_info = state.connection->Execute(
