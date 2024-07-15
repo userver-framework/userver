@@ -21,8 +21,16 @@ RUN ( \
   cd /userver_tmp \
   && ./setup-base-ubuntu-22.04-env.sh \
   && ./pip-install.sh \
-  && mkdir /app && cd /app && git clone --depth 1 -b 1.50.0 https://github.com/googleapis/api-common-protos.git && rm -rf /app/api-common-protos/.git \
+  && mkdir /app \
+  && cd /app \
+  && git clone --depth 1 -b 1.50.0 https://github.com/googleapis/api-common-protos.git \
+  && rm -rf /app/api-common-protos/.git \
   && rm -rf /userver_tmp \
+)
+RUN ( \
+  cd /app \
+  && git clone --depth 1 -b v1.3.2 https://github.com/open-telemetry/opentelemetry-proto \
+  && rm -rf /app/opentelemetry-proto/.git \
 )
 
 # add expose ports

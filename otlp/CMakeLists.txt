@@ -1,6 +1,7 @@
 project(userver-otlp CXX)
 
 include(GrpcTargets)
+include(SetupOpentelemetryProto)
 
 find_package(Boost REQUIRED regex)
 
@@ -18,16 +19,6 @@ file(GLOB_RECURSE BENCH_SOURCES
 )
 list (REMOVE_ITEM SOURCES ${BENCH_SOURCES})
 
-userver_add_grpc_library(${PROJECT_NAME}-proto
-  PROTOS
-    opentelemetry/proto/collector/trace/v1/trace_service.proto
-    opentelemetry/proto/collector/logs/v1/logs_service.proto
-    opentelemetry/proto/common/v1/common.proto
-    opentelemetry/proto/logs/v1/logs.proto
-    opentelemetry/proto/resource/v1/resource.proto
-    opentelemetry/proto/trace/v1/trace.proto
-)
-
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
@@ -44,14 +35,14 @@ target_include_directories (${PROJECT_NAME} PRIVATE
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
     userver-core
-    ${PROJECT_NAME}-proto
+    userver-otlp-proto
 )
 
 _userver_directory_install(COMPONENT otlp
   DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
 )
-_userver_install_targets(COMPONENT otlp TARGETS ${PROJECT_NAME} ${PROJECT_NAME}-proto)
+_userver_install_targets(COMPONENT otlp TARGETS ${PROJECT_NAME} userver-otlp-proto)
 
 _userver_directory_install(COMPONENT otlp FILES
   "${USERVER_ROOT_DIR}/cmake/install/userver-otlp-config.cmake"
