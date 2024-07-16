@@ -152,10 +152,15 @@ ServerImpl::ServerImpl(ServerConfig config,
   if (config_.listener.tls) {
     auto contents =
         fs::blocking::ReadFileContents(config_.listener.tls_private_key_path);
-    auto pph = secdist.Get<PassphraseConfig>().GetPassphrase(
-        config_.listener.tls_private_key_passphrase_name);
-    config_.listener.tls_private_key =
-        crypto::PrivateKey::LoadFromString(contents, pph.GetUnderlying());
+    if (config_.listener.tls_private_key_passphrase_name.empty()) {
+      config_.listener.tls_private_key =
+          crypto::PrivateKey::LoadFromString(contents);
+    } else {
+      auto pph = secdist.Get<PassphraseConfig>().GetPassphrase(
+          config_.listener.tls_private_key_passphrase_name);
+      config_.listener.tls_private_key =
+          crypto::PrivateKey::LoadFromString(contents, pph.GetUnderlying());
+    }
   }
 
   main_port_info_.Init(config_, config_.listener, component_context, false);
