@@ -43,4 +43,7 @@ target_link_libraries(${PROJECT_NAME}_clickhouse ${PROJECT_NAME}_objs userver::c
 add_executable(${PROJECT_NAME}_universal test_universal.cpp)
 target_link_libraries(${PROJECT_NAME}_universal ${PROJECT_NAME}_objs userver::universal)
 
+add_executable(${PROJECT_NAME}_kafka test_kafka.cpp)
+target_link_libraries(${PROJECT_NAME}_kafka ${PROJECT_NAME}_objs userver::kafka)
+
 add_subdirectory(hello_service)
