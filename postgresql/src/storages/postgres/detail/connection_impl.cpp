@@ -590,7 +590,7 @@ bool ConnectionImpl::Cleanup(TimeoutDuration timeout) {
   if (state > ConnectionState::kIdle) {
     Rollback();
   }
-  return true;
+  return GetConnectionState() == ConnectionState::kIdle;
 }
 
 void ConnectionImpl::SetParameter(std::string_view name, std::string_view value,
