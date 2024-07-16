@@ -15,6 +15,7 @@
 
 #include "httpclient_handlers.hpp"
 #include "httpserver_handlers.hpp"
+#include "httpserver_with_exception_handler.hpp"
 #include "resolver_handlers.hpp"
 
 int main(int argc, char* argv[]) {
@@ -24,6 +25,7 @@ int main(int argc, char* argv[]) {
           .Append<chaos::StreamHandler>()
           .Append<chaos::HttpServerHandler>()
           .Append<chaos::ResolverHandler>()
+          .Append<chaos::HttpServerWithExceptionHandler>()
           .Append<components::LoggingConfigurator>()
           .Append<components::HttpClient>()
           .Append<components::TestsuiteSupport>()

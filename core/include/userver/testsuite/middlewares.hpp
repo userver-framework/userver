@@ -13,11 +13,13 @@ class ExceptionsHandlingMiddleware final
       "testsuite-exceptions-handling-middleware"};
 
   explicit ExceptionsHandlingMiddleware(
-      const server::handlers::HttpHandlerBase&) {}
+      const server::handlers::HttpHandlerBase& handler);
 
  private:
   void HandleRequest(server::http::HttpRequest& request,
                      server::request::RequestContext& context) const override;
+
+  const server::handlers::HttpHandlerBase& handler_;
 };
 
 using ExceptionsHandlingMiddlewareFactory =
