@@ -30,6 +30,8 @@ bool LoggerBase::ShouldFlush(Level level) const {
   return flush_level_ <= level;
 }
 
+void LoggerBase::ForwardTo(LoggerBase&) {}
+
 bool LoggerBase::DoShouldLog(Level /*level*/) const noexcept { return true; }
 
 bool ShouldLogNoSpan(const LoggerBase& logger, Level level) noexcept {

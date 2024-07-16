@@ -55,7 +55,9 @@ LoggerComponent::LoggerComponent(const components::ComponentConfig& config,
   // We must init after the default logger is initialized
   context.FindComponent<components::Logging>();
 
+  auto& old_logger = logging::GetDefaultLogger();
   logging::impl::SetDefaultLoggerRef(*logger_);
+  old_logger.ForwardTo(*logger_);
 
   auto* const statistics_storage =
       context.FindComponentOptional<components::StatisticsStorage>();

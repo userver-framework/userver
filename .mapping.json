@@ -3664,6 +3664,7 @@
   "universal/include/userver/logging/format.hpp":"taxi/uservices/userver/universal/include/userver/logging/format.hpp",
   "universal/include/userver/logging/fwd.hpp":"taxi/uservices/userver/universal/include/userver/logging/fwd.hpp",
   "universal/include/userver/logging/impl/logger_base.hpp":"taxi/uservices/userver/universal/include/userver/logging/impl/logger_base.hpp",
+  "universal/include/userver/logging/impl/mem_logger.hpp":"taxi/uservices/userver/universal/include/userver/logging/impl/mem_logger.hpp",
   "universal/include/userver/logging/impl/tag_writer.hpp":"taxi/uservices/userver/universal/include/userver/logging/impl/tag_writer.hpp",
   "universal/include/userver/logging/level.hpp":"taxi/uservices/userver/universal/include/userver/logging/level.hpp",
   "universal/include/userver/logging/log.hpp":"taxi/uservices/userver/universal/include/userver/logging/log.hpp",

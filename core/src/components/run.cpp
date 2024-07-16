@@ -17,7 +17,6 @@
 #include <userver/formats/json/serialize.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/logging/null_logger.hpp>
 #include <userver/logging/stacktrace_cache.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
@@ -59,6 +58,8 @@ class LogScope final {
     // Destroys the old logger_new_
     logger_new_ = std::move(logger);
   }
+
+  logging::LoggerRef GetPrevLogger() { return logger_prev_; }
 
  private:
   logging::LoggerPtr logger_new_;
@@ -172,9 +173,10 @@ ManagerConfig ParseManagerConfigAndSetupLogging(
     if (default_logger_config) {
       auto default_logger = logging::impl::MakeTpLogger(*default_logger_config);
 
-      // This line enables basic logging. Any LOG_XXX before it is meaningless,
-      // because it would typically go straight to a NullLogger.
-      log_scope.SetLogger(std::move(default_logger));
+      // This line enables basic logging. Any logging before would go to
+      // MemLogger and be transferred to the logger in the cycle below.
+      log_scope.SetLogger(default_logger);
+      log_scope.GetPrevLogger().ForwardTo(*default_logger);
     }
 
     LOG_INFO() << "Parsed " << details;

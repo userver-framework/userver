@@ -39,6 +39,8 @@ class LoggerBase {
   void SetFlushOn(Level level);
   bool ShouldFlush(Level level) const;
 
+  virtual void ForwardTo(LoggerBase& logger_to);
+
  protected:
   virtual bool DoShouldLog(Level level) const noexcept;
 
