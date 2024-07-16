@@ -2,6 +2,7 @@ import argparse
 import dataclasses
 import os
 import re
+import sys
 from typing import Any
 from typing import Callable
 from typing import Dict
@@ -284,6 +285,10 @@ def main() -> None:
                 os.path.join(args.output_dir, filename_rel + file.ext),
                 file.content,
             )
+    print(
+        f'Handled {len(types)} schema types in {len(outputs)} file groups.',
+        file=sys.stderr,
+    )
 
 
 if __name__ == '__main__':
