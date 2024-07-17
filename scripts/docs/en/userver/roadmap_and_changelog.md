@@ -38,8 +38,8 @@ Changelog news also go to the
   Many thanks to [Fedor Alekseev](https://github.com/atlz253) for the PR and to
   [MariaGrinchenko](https://github.com/MariaGrinchenko) for the buttons design!
 * Added @ref scripts/docs/en/userver/ydb.md "docs on YDB".
-* Mobile header view was improved. Many thanks to
-  [Fedor Alekseev](https://github.com/atlz253) for the PR.
+* Mobile header view and docs layout was improved. Many thanks to
+  [Fedor Alekseev](https://github.com/atlz253) for the PRs.
 * engine::subprocess::ProcessStarter::Exec now can lookup binaries via
   `PATH` variable.
 * Fixed gRPC generation for nested namespaces with repetitions. Many thanks to
@@ -51,6 +51,7 @@ Changelog news also go to the
 * yaml_config::YamlConfig now can read files via `#file`. Now the static
   config of the service could refer to other files.
 * Added support of bit operations to Redis.
+* PostgreSQL driver now works with AWS Aurora.
 * Added quick start for beginners to @ref scripts/docs/en/userver/tutorial/build.md.
   Many thanks to [Fedor Alekseev](https://github.com/atlz253) for the PR.
 * Improved path to sources trimming for Conan builds. Many thanks to
