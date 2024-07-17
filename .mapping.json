@@ -364,6 +364,7 @@
   "conan/test_package/test_clickhouse.cpp":"taxi/uservices/userver/conan/test_package/test_clickhouse.cpp",
   "conan/test_package/test_core.cpp":"taxi/uservices/userver/conan/test_package/test_core.cpp",
   "conan/test_package/test_grpc.cpp":"taxi/uservices/userver/conan/test_package/test_grpc.cpp",
+  "conan/test_package/test_kafka.cpp":"taxi/uservices/userver/conan/test_package/test_kafka.cpp",
   "conan/test_package/test_mongo.cpp":"taxi/uservices/userver/conan/test_package/test_mongo.cpp",
   "conan/test_package/test_postgresql.cpp":"taxi/uservices/userver/conan/test_package/test_postgresql.cpp",
   "conan/test_package/test_rabbitmq.cpp":"taxi/uservices/userver/conan/test_package/test_rabbitmq.cpp",
