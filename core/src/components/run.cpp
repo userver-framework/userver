@@ -50,13 +50,17 @@ class LogScope final {
       : logger_prev_{logging::GetDefaultLogger()},
         level_scope_{logging::GetDefaultLoggerLevel()} {}
 
-  ~LogScope() { logging::impl::SetDefaultLoggerRef(logger_prev_); }
+  ~LogScope() {
+    logger_prev_.ForwardTo(nullptr);
+    logging::impl::SetDefaultLoggerRef(logger_prev_);
+  }
 
   void SetLogger(logging::LoggerPtr logger) {
     UASSERT(logger);
     logging::impl::SetDefaultLoggerRef(*logger);
     // Destroys the old logger_new_
     logger_new_ = std::move(logger);
+    logger_prev_.ForwardTo(&*logger_new_);
   }
 
   logging::LoggerRef GetPrevLogger() { return logger_prev_; }
@@ -176,7 +180,6 @@ ManagerConfig ParseManagerConfigAndSetupLogging(
       // This line enables basic logging. Any logging before would go to
       // MemLogger and be transferred to the logger in the cycle below.
       log_scope.SetLogger(default_logger);
-      log_scope.GetPrevLogger().ForwardTo(*default_logger);
     }
 
     LOG_INFO() << "Parsed " << details;

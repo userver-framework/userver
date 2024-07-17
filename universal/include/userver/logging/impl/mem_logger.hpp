@@ -42,12 +42,15 @@ class MemLogger final : public LoggerBase {
   }
   void Flush() override {}
 
-  void ForwardTo(LoggerBase& logger_to) override {
+  void ForwardTo(LoggerBase* logger_to) override {
     std::unique_lock lock(mutex_);
-    for (const auto& log : data_) {
-      logger_to.Log(log.level, log.msg);
+    if (logger_to) {
+      for (const auto& log : data_) {
+        logger_to->Log(log.level, log.msg);
+      }
+      data_.clear();
     }
-    forward_logger_ = &logger_to;
+    forward_logger_ = logger_to;
   }
 
  protected:

@@ -57,7 +57,7 @@ LoggerComponent::LoggerComponent(const components::ComponentConfig& config,
 
   auto& old_logger = logging::GetDefaultLogger();
   logging::impl::SetDefaultLoggerRef(*logger_);
-  old_logger.ForwardTo(*logger_);
+  old_logger.ForwardTo(&*logger_);
 
   auto* const statistics_storage =
       context.FindComponentOptional<components::StatisticsStorage>();

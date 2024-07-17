@@ -30,7 +30,7 @@ bool LoggerBase::ShouldFlush(Level level) const {
   return flush_level_ <= level;
 }
 
-void LoggerBase::ForwardTo(LoggerBase&) {}
+void LoggerBase::ForwardTo(LoggerBase*) {}
 
 bool LoggerBase::DoShouldLog(Level /*level*/) const noexcept { return true; }
 
