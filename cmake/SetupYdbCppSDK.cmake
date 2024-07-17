@@ -1,6 +1,7 @@
 option(USERVER_DOWNLOAD_PACKAGE_YDBCPPSDK "Download and setup ydb-cpp-sdk" ${USERVER_DOWNLOAD_PACKAGES})
 
 include(DownloadUsingCPM)
+include(SetupBrotli)
 
 CPMAddPackage(
   NAME base64
@@ -9,15 +10,6 @@ CPMAddPackage(
 )
 write_package_stub(base64)
 add_library(aklomp::base64 ALIAS base64)
-
-CPMAddPackage(
-  NAME Brotli
-  VERSION 1.1.0
-  GITHUB_REPOSITORY google/brotli
-)
-write_package_stub(Brotli)
-add_library(Brotli::dec ALIAS brotlidec)
-add_library(Brotli::enc ALIAS brotlienc)
 
 CPMAddPackage(
   NAME jwt-cpp
@@ -43,6 +35,7 @@ CPMAddPackage(
   GIT_TAG main
   GITHUB_REPOSITORY ydb-platform/ydb-cpp-sdk
   OPTIONS
+  "Brotli_VERSION ${Brotli_VERSION}"
   "RAPIDJSON_INCLUDE_DIRS ${RAPIDJSON_INCLUDE_DIRS}"
   "YDB_SDK_GOOGLE_COMMON_PROTOS_TARGET ${YDB_SDK_GOOGLE_COMMON_PROTOS_TARGET}"
 )
