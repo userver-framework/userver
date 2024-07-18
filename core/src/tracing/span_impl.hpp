@@ -72,11 +72,6 @@ class Span::Impl
   void AttachToCoroStack();
 
  private:
-  void LogOpenTracing() const;
-  void DoLogOpenTracing(logging::impl::TagWriter writer) const;
-  static void AddOpentracingTags(formats::json::StringBuilder& output,
-                                 const logging::LogExtra& input);
-
   static std::string GetParentIdForLogging(const Span::Impl* parent);
   bool ShouldLog() const;
 

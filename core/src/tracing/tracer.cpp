@@ -21,8 +21,7 @@ constexpr std::string_view kParentIdName = "parent_id";
 
 class NoopTracer final : public Tracer {
  public:
-  NoopTracer(std::string_view service_name, logging::LoggerPtr logger)
-      : Tracer(service_name, std::move(logger)) {}
+  explicit NoopTracer(std::string_view service_name) : Tracer(service_name) {}
 
   void LogSpanContextTo(const Span::Impl&,
                         logging::impl::TagWriter) const override;
@@ -41,7 +40,7 @@ auto& GlobalNoLogSpans() {
 }
 
 auto& GlobalTracer() {
-  static rcu::Variable<TracerPtr> tracer(tracing::MakeTracer({}, {}));
+  static rcu::Variable<TracerPtr> tracer(tracing::MakeTracer({}));
   return tracer;
 }
 
@@ -112,12 +111,8 @@ Span Tracer::CreateSpan(std::string name, const Span& parent,
   return Span(shared_from_this(), std::move(name), &parent, reference_type);
 }
 
-tracing::TracerPtr MakeTracer(std::string_view service_name,
-                              logging::LoggerPtr logger,
-                              std::string_view tracer_type) {
-  UINVARIANT(tracer_type == "native",
-             "Only 'native' tracer type is available at the moment");
-  return std::make_shared<tracing::NoopTracer>(service_name, std::move(logger));
+tracing::TracerPtr MakeTracer(std::string_view service_name) {
+  return std::make_shared<tracing::NoopTracer>(service_name);
 }
 
 }  // namespace tracing

@@ -136,8 +136,6 @@ void Span::Impl::PutIntoLogger(logging::impl::TagWriter writer) && {
     log_extra_inheritable_.Extend(std::move(*log_extra_local_));
   }
   writer.PutLogExtra(log_extra_inheritable_);
-
-  LogOpenTracing();
 }
 
 void Span::Impl::LogTo(logging::impl::TagWriter writer) {

@@ -19,57 +19,6 @@ USERVER_NAMESPACE_BEGIN
 
 class Span : public LoggingTest {};
 
-class OpentracingSpan : public Span {
- protected:
-  OpentracingSpan()
-      : opentracing_logger_(
-            MakeNamedStreamLogger("openstracing", logging::Format::kTskv)) {
-    tracing::Tracer::SetTracer(
-        tracing::MakeTracer("service-test-name", opentracing_logger_.logger));
-
-    // Discard logs
-    logging::LogFlush(*opentracing_logger_.logger);
-    opentracing_logger_.stream.str({});
-  }
-
-  ~OpentracingSpan() override {
-    tracing::Tracer::SetTracer(tracing::MakeTracer({}, {}));
-  }
-
-  // NOLINTNEXTLINE(readability-make-member-function-const)
-  void FlushOpentracing() { logging::LogFlush(*opentracing_logger_.logger); }
-
-  static void CheckTagFormat(const formats::json::Value& tag) {
-    EXPECT_TRUE(tag.HasMember("key"));
-    EXPECT_TRUE(tag.HasMember("value"));
-    EXPECT_TRUE(tag.HasMember("type"));
-  }
-
-  static void CheckTagTypeAndValue(const formats::json::Value& tag,
-                                   const std::string& type,
-                                   const std::string& value) {
-    EXPECT_EQ(type, tag["type"].As<std::string>());
-    EXPECT_EQ(value, tag["value"].As<std::string>());
-  }
-
-  static formats::json::Value GetTagsJson(const std::string& log_output) {
-    auto tags_start = log_output.find("tags=");
-    if (tags_start == std::string::npos) return {};
-    tags_start += 5;
-    auto tags_str = log_output.substr(tags_start);
-    auto const tags_end = tags_str.find(']');
-    if (tags_end == std::string::npos) return {};
-    return formats::json::FromString(tags_str.substr(0, tags_end + 1));
-  }
-
-  std::string GetOtStreamString() const {
-    return opentracing_logger_.stream.str();
-  }
-
- private:
-  StringStreamLogger opentracing_logger_;
-};
-
 UTEST_F(Span, Ctr) {
   {
     logging::LogFlush();
@@ -185,67 +134,6 @@ UTEST_F(Span, NonInheritTag) {
   logging::LogFlush();
 
   EXPECT_THAT(GetStreamString(), Not(HasSubstr("k=v")));
-}
-
-UTEST_F(OpentracingSpan, Tags) {
-  {
-    tracing::Span span("span_name");
-    span.AddTag("k", "v");
-    span.AddTag("meta_code", 200);
-    span.AddTag("error", false);
-    span.AddTag("method", "POST");
-    span.AddTag("db.type", "postgres");
-    span.AddTag("db.statement", "SELECT * ");
-    span.AddTag("peer.address", "127.0.0.1:8080");
-    span.AddTag("http.url", "http://example.com/example");
-  }
-  FlushOpentracing();
-  const auto log_str = GetOtStreamString();
-  EXPECT_THAT(log_str, Not(HasSubstr("k=v")));
-  EXPECT_THAT(log_str, HasSubstr("http.status_code"));
-  EXPECT_THAT(log_str, HasSubstr("error"));
-  EXPECT_THAT(log_str, HasSubstr("http.method"));
-  EXPECT_THAT(log_str, HasSubstr("db.type"));
-  EXPECT_THAT(log_str, HasSubstr("db.statement"));
-  EXPECT_THAT(log_str, HasSubstr("peer.address"));
-  EXPECT_THAT(log_str, HasSubstr("http.url"));
-}
-
-UTEST_F(OpentracingSpan, FromTracerWithServiceName) {
-  auto tracer = tracing::MakeTracer(
-      "test_service", tracing::Tracer::GetTracer()->GetOptionalLogger());
-  {
-    tracing::Span span(tracer, "span_name", nullptr,
-                       tracing::ReferenceType::kChild);
-  }
-  FlushOpentracing();
-  const auto log_str = GetOtStreamString();
-  EXPECT_THAT(log_str, HasSubstr("service_name=test_service"));
-}
-
-UTEST_F(OpentracingSpan, TagFormat) {
-  {
-    tracing::Span span("span_name");
-    span.AddTag("meta_code", 200);
-    span.AddTag("error", false);
-    span.AddTag("method", "POST");
-  }
-  FlushOpentracing();
-  const auto tags = GetTagsJson(GetOtStreamString());
-  EXPECT_EQ(3, tags.GetSize());
-  for (const auto& tag : tags) {
-    CheckTagFormat(tag);
-    const auto key = tag["key"].As<std::string>();
-    if (key == "http.status_code") {
-      CheckTagTypeAndValue(tag, "int64", "200");
-    } else if (key == "error") {
-      CheckTagTypeAndValue(tag, "bool", "0");
-    } else if (key == "http.method") {
-      CheckTagTypeAndValue(tag, "string", "POST");
-    } else {
-      FAIL() << "Got unknown key in tags: " << key;
-    }
-  }
 }
 
 UTEST_F(Span, ScopeTime) {
@@ -366,7 +254,7 @@ UTEST_F(Span, LowerLocalLogLevel) {
 }
 
 UTEST_F(Span, ConstructFromTracer) {
-  auto tracer = tracing::MakeTracer("test_service", {});
+  auto tracer = tracing::MakeTracer("test_service");
 
   tracing::Span span(tracer, "name", nullptr, tracing::ReferenceType::kChild);
   span.SetLink("some_link");
@@ -560,7 +448,7 @@ UTEST_F(Span, NoLogWithSetLogLevel) {
 }
 
 UTEST_F(Span, ForeignSpan) {
-  auto tracer = tracing::MakeTracer("test_service", {});
+  auto tracer = tracing::MakeTracer("test_service");
 
   tracing::Span local_span(tracer, "local", nullptr,
                            tracing::ReferenceType::kChild);
