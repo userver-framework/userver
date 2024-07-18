@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdio>
+
 #include <mutex>
 #include <string>
 #include <vector>
@@ -19,6 +21,12 @@ class MemLogger final : public LoggerBase {
   MemLogger() noexcept : LoggerBase(Format::kTskv) { SetLevel(Level::kDebug); }
   MemLogger(const MemLogger&) = delete;
   MemLogger(MemLogger&&) = delete;
+
+  ~MemLogger() override {
+    for (const auto& data : data_) {
+      fputs(data.msg.c_str(), stderr);
+    }
+  }
 
   static MemLogger& GetMemLogger() noexcept {
     static MemLogger logger;
@@ -40,6 +48,7 @@ class MemLogger final : public LoggerBase {
     if (data_.size() > kMaxLogItems) return;
     data_.push_back({level, std::string{msg}});
   }
+
   void Flush() override {}
 
   void ForwardTo(LoggerBase* logger_to) override {

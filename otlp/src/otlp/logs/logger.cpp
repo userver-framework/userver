@@ -48,7 +48,10 @@ Logger::Logger(
 
 Logger::~Logger() { Stop(); }
 
-void Logger::Stop() noexcept { sender_task_.SyncCancel(); }
+void Logger::Stop() noexcept {
+  sender_task_.SyncCancel();
+  sender_task_ = {};
+}
 
 const logging::impl::LogStatistics& Logger::GetStatistics() const {
   return stats_;

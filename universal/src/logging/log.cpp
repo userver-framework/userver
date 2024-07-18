@@ -5,7 +5,7 @@
 #include <logging/dynamic_debug.hpp>
 #include <logging/rate_limit.hpp>
 #include <userver/logging/impl/logger_base.hpp>
-#include <userver/logging/impl/mem_logger.hpp>
+#include <userver/logging/null_logger.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -14,8 +14,11 @@ namespace logging {
 namespace {
 
 auto& NonOwningDefaultLoggerInternal() noexcept {
+  // Initial logger should be Null logger as non-service utils
+  // may use userver's universal without logger. They should not suffer from any
+  // logger at all.
   static std::atomic<impl::LoggerBase*> default_logger_ptr{
-      &impl::MemLogger::GetMemLogger()};
+      &logging::GetNullLogger()};
   return default_logger_ptr;
 }
 

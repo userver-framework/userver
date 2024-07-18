@@ -16,6 +16,7 @@
 #include <userver/dynamic_config/value.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/fs/blocking/read.hpp>
+#include <userver/logging/impl/mem_logger.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/logging/stacktrace_cache.hpp>
 #include <userver/utils/assert.hpp>
@@ -48,7 +49,10 @@ class LogScope final {
  public:
   LogScope()
       : logger_prev_{logging::GetDefaultLogger()},
-        level_scope_{logging::GetDefaultLoggerLevel()} {}
+        level_scope_{logging::GetDefaultLoggerLevel()} {
+    logging::impl::SetDefaultLoggerRef(
+        logging::impl::MemLogger::GetMemLogger());
+  }
 
   ~LogScope() {
     logger_prev_.ForwardTo(nullptr);
@@ -180,6 +184,7 @@ ManagerConfig ParseManagerConfigAndSetupLogging(
       // This line enables basic logging. Any logging before would go to
       // MemLogger and be transferred to the logger in the cycle below.
       log_scope.SetLogger(default_logger);
+      log_scope.GetPrevLogger().ForwardTo(&*default_logger);
     }
 
     LOG_INFO() << "Parsed " << details;

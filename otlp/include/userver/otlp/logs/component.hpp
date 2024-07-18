@@ -8,6 +8,7 @@
 
 #include <userver/components/component_fwd.hpp>
 #include <userver/components/raw_component_base.hpp>
+#include <userver/logging/fwd.hpp>
 #include <userver/utils/statistics/entry.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -45,6 +46,7 @@ class LoggerComponent final : public components::RawComponentBase {
 
  private:
   std::shared_ptr<Logger> logger_;
+  logging::LoggerRef old_logger_;
   utils::statistics::Entry statistics_holder_;
 };
 

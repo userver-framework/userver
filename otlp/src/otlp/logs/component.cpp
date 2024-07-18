@@ -5,6 +5,7 @@
 #include <userver/components/statistics_storage.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/logging/component.hpp>
+#include <userver/logging/impl/mem_logger.hpp>
 #include <userver/logging/level_serialization.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/logging/null_logger.hpp>
@@ -21,7 +22,8 @@ USERVER_NAMESPACE_BEGIN
 namespace otlp {
 
 LoggerComponent::LoggerComponent(const components::ComponentConfig& config,
-                                 const components::ComponentContext& context) {
+                                 const components::ComponentContext& context)
+    : old_logger_(logging::GetDefaultLogger()) {
   auto& client_factory =
       context.FindComponent<ugrpc::client::ClientFactoryComponent>()
           .GetFactory();
@@ -53,11 +55,17 @@ LoggerComponent::LoggerComponent(const components::ComponentConfig& config,
                                      std::move(logger_config));
 
   // We must init after the default logger is initialized
-  context.FindComponent<components::Logging>();
+  auto& logging_component = context.FindComponent<components::Logging>();
+  if (logging_component.GetLoggerOptional("default")) {
+    throw std::runtime_error(
+        "You have registered both 'otlp-logger' component and 'default' logger "
+        "in 'logging' component. Either disable default logger or otlp "
+        "logger.");
+  }
+  UASSERT(dynamic_cast<logging::impl::MemLogger*>(&old_logger_));
 
-  auto& old_logger = logging::GetDefaultLogger();
   logging::impl::SetDefaultLoggerRef(*logger_);
-  old_logger.ForwardTo(&*logger_);
+  old_logger_.ForwardTo(&*logger_);
 
   auto* const statistics_storage =
       context.FindComponentOptional<components::StatisticsStorage>();
@@ -71,8 +79,8 @@ LoggerComponent::LoggerComponent(const components::ComponentConfig& config,
 }
 
 LoggerComponent::~LoggerComponent() {
-  std::cerr << "Destroying default logger\n";
-  logging::impl::SetDefaultLoggerRef(logging::GetNullLogger());
+  old_logger_.ForwardTo(nullptr);
+  logging::impl::SetDefaultLoggerRef(old_logger_);
 
   logger_->Stop();
 
