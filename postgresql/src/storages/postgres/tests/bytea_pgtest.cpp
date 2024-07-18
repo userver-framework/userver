@@ -136,7 +136,7 @@ UTEST_P(PostgreConnection, ByteaRoundTripTypes) {
 
   {
     /// [bytea_string]
-    // sending a "binary string"
+    // sending a binary string
     std::string s = "\0\xff\x0afoobar"s;
     pg::ResultSet res = GetConn()->Execute("select $1", pg::Bytea(s));
 
@@ -149,11 +149,11 @@ UTEST_P(PostgreConnection, ByteaRoundTripTypes) {
 
   {
     /// [bytea_vector]
-    // storing a byte array:
+    // storing a byte vector:
     std::vector<std::uint8_t> bin_str{1, 2, 3, 4, 5, 6, 7, 8, 9};
     auto res = GetConn()->Execute("select $1", pg::Bytea(bin_str));
 
-    // reading a binary string
+    // reading a byte vector
     std::vector<std::uint8_t> received;
     res[0][0].To(pg::Bytea(received));
     EXPECT_EQ(received, bin_str);
