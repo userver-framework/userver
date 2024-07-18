@@ -10,6 +10,7 @@
 #include <userver/fs/blocking/file_descriptor.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/boost_uuid4.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -70,9 +71,9 @@ void RewriteFileContentsFSync(const std::string& path,
   constexpr OpenMode flags{OpenFlag::kWrite, OpenFlag::kCreateIfNotExists,
                            OpenFlag::kTruncate};
   auto fd = FileDescriptor::Open(path, flags);
-
   fd.Write(contents);
   fd.FSync();
+
   std::move(fd).Close();
 }
 
@@ -89,12 +90,20 @@ void Rename(const std::string& source, const std::string& destination) {
 void RewriteFileContentsAtomically(const std::string& path,
                                    std::string_view contents,
                                    boost::filesystem::perms perms) {
-  auto tmp_path =
+  const auto tmp_path =
       fmt::format("{}{}.tmp", path, utils::generators::GenerateBoostUuid());
-  const auto directory = boost::filesystem::path{path}.parent_path().string();
+  const boost::filesystem::path boost_tmp_path{path};
+  const auto directory = boost_tmp_path.parent_path().string();
+
+  utils::FastScopeGuard guard{[&boost_tmp_path]() noexcept {
+    boost::system::error_code ignore_error;
+    boost::filesystem::remove(boost_tmp_path, ignore_error);
+  }};
   fs::blocking::RewriteFileContentsFSync(tmp_path, contents);
   fs::blocking::Chmod(tmp_path, perms);
   fs::blocking::Rename(tmp_path, path);
+  guard.Release();
+
   fs::blocking::SyncDirectoryContents(directory);
 }
 
