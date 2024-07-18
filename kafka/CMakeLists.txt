@@ -39,9 +39,16 @@ _userver_install_targets(COMPONENT kafka TARGETS ${PROJECT_NAME})
 
 _userver_directory_install(COMPONENT kafka FILES
     "${USERVER_ROOT_DIR}/cmake/install/userver-kafka-config.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/FindRdKafka.cmake"
+    "${USERVER_ROOT_DIR}/cmake/SetupRdKafka.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
 )
+
+if (NOT USERVER_CONAN)
+  _userver_directory_install(COMPONENT kafka FILES
+    "${CMAKE_BINARY_DIR}/cmake_generated/FindRdKafka.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
+  )
+endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
   add_subdirectory(functional_tests)
