@@ -80,12 +80,19 @@ use ❌ and ❓ respectively.
 [poco-streams]: https://pocoproject.org/slides/100-Streams.pdf
 [poco-db]: https://docs.pocoproject.org/current/Poco.Data.html
 
+The table above shows the well-developed functionality of userver. Additionally userver is highly effective which is proven by the results of the Techempower benchmark run. Userver comes ahead of its competitors from the table. @ref bnchrs "[3]", see [[↗]][techempower-run]
+
+![top15](scripts/docs/img/top15.png)
+
+[techempower-run]: https://www.techempower.com/benchmarks/#section=test&runid=3c2e9871-9c2a-4ff3-bc31-620f65da4e74&hw=ph&test=composite
+
 @anchor fcmp1 [1]: "Dynamic Configs" stands for any out-of-the-box functionality
 that allows to change behavior of the service without downtime and restart.
 
 @anchor fcmp2 [2]: Functional Testing includes DB startup and initialization; mocks for other
 microservices; testpoints functionality.
 
+@anchor bnchrs [3]: Techempower run № 3c2e9871-9c2a-4ff3-bc31-620f65da4e74.
 
 ----------
 
