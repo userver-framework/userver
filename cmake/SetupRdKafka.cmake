@@ -4,6 +4,12 @@ option(USERVER_DOWNLOAD_PACKAGE_KAFKA "Download and setup librdkafka if no librd
 
 set(USERVER_KAFKA_VERSION "2.4.0")
 
+if (USERVER_CONAN)
+  find_package(RdKafka REQUIRED)
+  add_library(rdkafka ALIAS RdKafka::rdkafka++)
+  return()
+endif()
+
 if (NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
   if (USERVER_DOWNLOAD_PACKAGE_KAFKA)
     find_package(RdKafka QUIET)
