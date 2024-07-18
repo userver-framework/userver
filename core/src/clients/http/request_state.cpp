@@ -18,7 +18,6 @@
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/clients/http/connect_to.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
-#include <userver/utils/algo.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/encoding/hex.hpp>
@@ -675,6 +674,12 @@ const std::string& RequestState::GetLoggedOriginalUrl() const noexcept {
   return log_url_ ? *log_url_ : easy().get_original_url();
 }
 
+std::string_view RequestState::GetLoggedEffectiveUrl() noexcept {
+  // If log_url_ exists, we use log_url_ with a semantic like original_url,
+  // instead of effective_url
+  return log_url_ ? *log_url_ : easy().get_effective_url();
+}
+
 engine::Future<std::shared_ptr<Response>> RequestState::async_perform(
     utils::impl::SourceLocation location) {
   data_.emplace<FullBufferedData>();
@@ -913,11 +918,11 @@ void RequestState::AccountResponse(std::error_code err) {
 
 std::exception_ptr RequestState::PrepareException(std::error_code err) {
   if (deadline_expired_) {
-    return PrepareDeadlinePassedException(easy().get_effective_url(),
+    return PrepareDeadlinePassedException(GetLoggedEffectiveUrl(),
                                           easy().get_local_stats());
   }
 
-  return http::PrepareException(err, easy().get_effective_url(),
+  return http::PrepareException(err, GetLoggedEffectiveUrl(),
                                 easy().get_local_stats());
 }
 

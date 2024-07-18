@@ -167,6 +167,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   bool ShouldRetryResponse();
 
   const std::string& GetLoggedOriginalUrl() const noexcept;
+  std::string_view GetLoggedEffectiveUrl() noexcept;
 
   static size_t StreamWriteFunction(char* ptr, size_t size, size_t nmemb,
                                     void* userdata);
