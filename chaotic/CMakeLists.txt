@@ -33,6 +33,7 @@ if(USERVER_IS_THE_ROOT_PROJECT)
   )
 
   add_subdirectory(integration_tests)
+  add_subdirectory(golden_tests)
 endif()
 
 _userver_directory_install(COMPONENT chaotic
