@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <climits>
 
+#include <userver/engine/task/task_base.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 #include <utils/check_syscall.hpp>
@@ -60,7 +61,7 @@ logging::LogHelper& operator<<(logging::LogHelper& lh,
   return lh;
 }
 
-Inotify::Inotify() {
+Inotify::Inotify() : fd_(engine::current_task::GetEventThread()) {
   fd_.Reset(inotify_init(), FdPoller::Kind::kRead);
   UASSERT(fd_.GetFd() != -1);
 }

@@ -15,6 +15,10 @@ namespace engine::impl {
 class ContextAccessor;
 }
 
+namespace engine::ev {
+class ThreadControl;
+}
+
 namespace engine::io {
 
 namespace impl {
@@ -34,7 +38,13 @@ class FdPoller final {
     kReadWrite = 3,  /// < wait for either read or write availability
   };
 
-  FdPoller();
+  /// Constructor for FdPoller. `contol` parameter could be obtained via
+  /// engine::current_task::GetEventThread().
+  ///
+  /// It is recommended to place read and write FdPoller's of the same FD to
+  /// the same `control` for better ev threads balancing.
+  explicit FdPoller(const ev::ThreadControl& control);
+
   FdPoller(const FdPoller&) = delete;
   FdPoller(FdPoller&&) = delete;
   FdPoller& operator=(const FdPoller&) = delete;

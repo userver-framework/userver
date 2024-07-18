@@ -1,6 +1,7 @@
 #include <userver/utest/utest.hpp>
 
 #include <userver/engine/io/fd_poller.hpp>
+#include <userver/engine/task/task_base.hpp>
 #include <userver/engine/wait_any.hpp>
 #include <utils/check_syscall.hpp>
 
@@ -40,10 +41,10 @@ const auto kSmallWaitTime = std::chrono::milliseconds(100);
 
 UTEST(FdPoller, WaitAnyRead) {
   Pipe pipe;
-  engine::io::FdPoller poller_read;
+  engine::io::FdPoller poller_read{engine::current_task::GetEventThread()};
   poller_read.Reset(pipe.In(), engine::io::FdPoller::Kind::kRead);
 
-  engine::io::FdPoller poller_write;
+  engine::io::FdPoller poller_write{engine::current_task::GetEventThread()};
   poller_write.Reset(pipe.Out(), engine::io::FdPoller::Kind::kWrite);
 
   // Cannot read from an empty pipe
