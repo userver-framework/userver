@@ -727,7 +727,7 @@ class UserverConan(ConanFile):
             )
         if self.options.with_kafka:
             build_modules.append(
-                os.path.join(self._cmake_subfolder, 'SetupRdKafa.cmake'),
+                os.path.join(self._cmake_subfolder, 'SetupRdKafka.cmake'),
             )
 
         self.cpp_info.set_property('cmake_build_modules', build_modules)
