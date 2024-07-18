@@ -222,6 +222,8 @@ impl::TagWriter LogHelper::GetTagWriterAfterText(InternalTag) {
   return GetTagWriter();
 }
 
+void LogHelper::MarkAsTrace(InternalTag) { pimpl_->MarkAsTrace(); }
+
 LogHelper& LogHelper::operator<<(char value) noexcept {
   try {
     Put(value);

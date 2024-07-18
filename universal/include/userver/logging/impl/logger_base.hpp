@@ -26,6 +26,8 @@ class LoggerBase {
 
   virtual void Log(Level level, std::string_view msg) = 0;
 
+  virtual void Trace(Level level, std::string_view msg);
+
   virtual void Flush();
 
   virtual void PrependCommonTags(TagWriter writer) const;

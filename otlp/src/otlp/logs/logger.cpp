@@ -9,6 +9,7 @@
 #include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/encoding/hex.hpp>
+#include <userver/utils/encoding/tskv_parser_read.hpp>
 #include <userver/utils/overloaded.hpp>
 #include <userver/utils/text_light.hpp>
 
@@ -20,8 +21,6 @@ namespace {
 constexpr std::string_view kTelemetrySdkLanguage = "telemetry.sdk.language";
 constexpr std::string_view kTelemetrySdkName = "telemetry.sdk.name";
 constexpr std::string_view kServiceName = "service.name";
-
-constexpr std::string_view kStopwatchNameEq = "stopwatch_name=";
 
 const std::string kTimestampFormat = "%Y-%m-%dT%H:%M:%E*S";
 }  // namespace
@@ -57,24 +56,6 @@ const logging::impl::LogStatistics& Logger::GetStatistics() const {
   return stats_;
 }
 
-void Logger::Log(logging::Level level, std::string_view msg) {
-  // Trim trailing \n
-  if (msg.size() > 1 && msg[msg.size() - 1] == '\n') {
-    msg = msg.substr(0, msg.size() - 1);
-  }
-
-  std::vector<std::string_view> key_values =
-      utils::text::SplitIntoStringViewVector(msg, "\t");
-
-  ++stats_.by_level[static_cast<int>(level)];
-
-  if (IsTracingEntry(key_values)) {
-    HandleTracing(key_values);
-  } else {
-    HandleLog(key_values);
-  }
-}
-
 void Logger::PrependCommonTags(logging::impl::TagWriter writer) const {
   logging::impl::default_::PrependCommonTags(writer);
 }
@@ -83,133 +64,100 @@ bool Logger::DoShouldLog(logging::Level level) const noexcept {
   return logging::impl::default_::DoShouldLog(level);
 }
 
-bool Logger::IsTracingEntry(
-    const std::vector<std::string_view>& key_values) const {
-  for (const auto& key_value : key_values) {
-    if (key_value.substr(0, kStopwatchNameEq.size()) == kStopwatchNameEq)
-      return true;
-  }
-  return false;
-}
+void Logger::Log(logging::Level level, std::string_view msg) {
+  utils::encoding::TskvParser parser{msg};
 
-void Logger::HandleLog(const std::vector<std::string_view>& key_values) {
-  ::opentelemetry::proto::logs::v1::LogRecord log_records;
-  std::string text;
-  std::string trace_id;
-  std::string span_id;
-  std::string level;
+  ::opentelemetry::proto::logs::v1::LogRecord log_record;
   std::chrono::system_clock::time_point timestamp;
 
-  for (const auto key_value : key_values) {
-    auto eq_pos = key_value.find('=');
-    if (eq_pos == std::string::npos) continue;
+  ++stats_.by_level[static_cast<int>(level)];
 
-    auto key = key_value.substr(0, eq_pos);
-    auto value = key_value.substr(eq_pos + 1);
+  [[maybe_unused]] auto parse_ok = utils::encoding::TskvReadRecord(
+      parser, [&](std::string_view key, std::string_view value) {
+        if (key == "text") {
+          log_record.mutable_body()->set_string_value(
+              grpc::string(std::string{value}));
+          return true;
+        }
+        if (key == "trace_id") {
+          log_record.set_trace_id(utils::encoding::FromHex(value));
+          return true;
+        }
+        if (key == "span_id") {
+          log_record.set_span_id(utils::encoding::FromHex(value));
+          return true;
+        }
+        if (key == "timestamp") {
+          timestamp = utils::datetime::Stringtime(
+              std::string{value}, utils::datetime::kDefaultTimezone,
+              kTimestampFormat);
+          return true;
+        }
+        if (key == "level") {
+          log_record.set_severity_text(grpc::string(std::string{value}));
+          return true;
+        }
 
-    if (key == "text") {
-      text = std::string{value};
-      continue;
-    }
-    if (key == "trace_id") {
-      trace_id = utils::encoding::FromHex(value);
-      continue;
-    }
-    if (key == "span_id") {
-      span_id = utils::encoding::FromHex(value);
-      continue;
-    }
-    if (key == "timestamp") {
-      timestamp = utils::datetime::Stringtime(std::string{value},
-                                              utils::datetime::kDefaultTimezone,
-                                              kTimestampFormat);
-      continue;
-    }
-    if (key == "level") {
-      level = value;
-      continue;
-    }
-
-    auto attributes = log_records.add_attributes();
-    attributes->set_key(std::string{MapAttribute(key)});
-    attributes->mutable_value()->set_string_value(std::string{value});
-  }
-
-  log_records.set_severity_text(grpc::string(level));
-  log_records.mutable_body()->set_string_value(grpc::string(text));
-  log_records.set_trace_id(std::move(trace_id));
-  log_records.set_span_id(std::move(span_id));
+        auto attributes = log_record.add_attributes();
+        attributes->set_key(std::string{MapAttribute(key)});
+        attributes->mutable_value()->set_string_value(std::string{value});
+        return true;
+      });
 
   auto nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(
       timestamp.time_since_epoch());
-  log_records.set_time_unix_nano(nanoseconds.count());
+  log_record.set_time_unix_nano(nanoseconds.count());
 
   // Drop a log if overflown
-  auto ok = queue_producer_.PushNoblock(std::move(log_records));
+  auto ok = queue_producer_.PushNoblock(std::move(log_record));
   if (!ok) {
     ++stats_.dropped;
   }
 }
 
-void Logger::HandleTracing(const std::vector<std::string_view>& key_values) {
+void Logger::Trace(logging::Level, std::string_view msg) {
+  utils::encoding::TskvParser parser{msg};
+
   ::opentelemetry::proto::trace::v1::Span span;
-  std::string trace_id;
-  std::string span_id;
-  std::string parent_span_id;
-  std::string_view level;
-  std::string_view stopwatch_name;
 
   std::string start_timestamp;
   std::string total_time;
 
-  for (const auto key_value : key_values) {
-    auto eq_pos = key_value.find('=');
-    if (eq_pos == std::string::npos) continue;
+  [[maybe_unused]] auto parse_ok = utils::encoding::TskvReadRecord(
+      parser, [&](std::string_view key, std::string_view value) {
+        if (key == "trace_id") {
+          span.set_trace_id(utils::encoding::FromHex(value));
+          return true;
+        }
+        if (key == "span_id") {
+          span.set_span_id(utils::encoding::FromHex(value));
+          return true;
+        }
+        if (key == "parent_span_id") {
+          span.set_parent_span_id(utils::encoding::FromHex(value));
+          return true;
+        }
+        if (key == "stopwatch_name") {
+          span.set_name(std::string(value));
+          return true;
+        }
+        if (key == "total_time") {
+          total_time = value;
+          return true;
+        }
+        if (key == "start_timestamp") {
+          start_timestamp = value;
+          return true;
+        }
+        if (key == "timestamp" || key == "text") {
+          return true;
+        }
 
-    auto key = key_value.substr(0, eq_pos);
-    auto value = key_value.substr(eq_pos + 1);
-
-    if (key == "trace_id") {
-      trace_id = utils::encoding::FromHex(value);
-      continue;
-    }
-    if (key == "span_id") {
-      span_id = utils::encoding::FromHex(value);
-      continue;
-    }
-    if (key == "parent_span_id") {
-      parent_span_id = utils::encoding::FromHex(value);
-      continue;
-    }
-    if (key == "stopwatch_name") {
-      stopwatch_name = value;
-      continue;
-    }
-    if (key == "total_time") {
-      total_time = value;
-      continue;
-    }
-    if (key == "start_timestamp") {
-      start_timestamp = value;
-      continue;
-    }
-    if (key == "level") {
-      level = value;
-      continue;
-    }
-    if (key == "timestamp" || key == "text") {
-      continue;
-    }
-
-    auto attributes = span.add_attributes();
-    attributes->set_key(std::string{MapAttribute(key)});
-    attributes->mutable_value()->set_string_value(std::string{value});
-  }
-
-  span.set_trace_id(std::string(trace_id));
-  span.set_span_id(std::string(span_id));
-  span.set_parent_span_id(std::string(parent_span_id));
-  span.set_name(std::string(stopwatch_name));
+        auto attributes = span.add_attributes();
+        attributes->set_key(std::string{MapAttribute(key)});
+        attributes->mutable_value()->set_string_value(std::string{value});
+        return true;
+      });
 
   auto start_timestamp_double = std::stod(start_timestamp);
   span.set_start_time_unix_nano(start_timestamp_double * 1'000'000'000);

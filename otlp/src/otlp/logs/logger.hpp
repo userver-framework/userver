@@ -39,6 +39,8 @@ class Logger final : public logging::impl::LoggerBase {
 
   void Log(logging::Level level, std::string_view msg) override;
 
+  void Trace(logging::Level level, std::string_view msg) override;
+
   void PrependCommonTags(logging::impl::TagWriter writer) const override;
 
   void Stop() noexcept;
@@ -55,12 +57,6 @@ class Logger final : public logging::impl::LoggerBase {
 
   void SendingLoop(Queue::Consumer& consumer, LogClient& log_client,
                    TraceClient& trace_client);
-
-  bool IsTracingEntry(const std::vector<std::string_view>& key_values) const;
-
-  void HandleTracing(const std::vector<std::string_view>& key_values);
-
-  void HandleLog(const std::vector<std::string_view>& key_values);
 
   void FillAttributes(::opentelemetry::proto::resource::v1::Resource& resource);
 

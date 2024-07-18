@@ -10,6 +10,8 @@ LoggerBase::LoggerBase(Format format) noexcept : format_(format) {}
 
 LoggerBase::~LoggerBase() = default;
 
+void LoggerBase::Trace(Level level, std::string_view msg) { Log(level, msg); }
+
 void LoggerBase::Flush() {}
 
 void LoggerBase::PrependCommonTags(TagWriter /*writer*/) const {}

@@ -52,6 +52,8 @@ class LogHelper::Impl final {
 
   bool IsBroken() const noexcept;
 
+  void MarkAsTrace() noexcept;
+
  private:
   class BufferStd final : public std::streambuf {
    public:
@@ -86,6 +88,7 @@ class LogHelper::Impl final {
   LogExtra extra_;
   std::size_t initial_length_{0};
   bool is_within_value_{false};
+  bool is_trace_{false};
   std::optional<std::unordered_set<std::string>> debug_tag_keys_;
 };
 
