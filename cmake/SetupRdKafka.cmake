@@ -6,6 +6,7 @@ set(USERVER_KAFKA_VERSION "2.4.0")
 
 if (USERVER_CONAN)
   find_package(RdKafka REQUIRED)
+  set_target_properties(RdKafka::rdkafka++ PROPERTIES IMPORTED_GLOBAL TRUE)
   add_library(rdkafka ALIAS RdKafka::rdkafka++)
   return()
 endif()
