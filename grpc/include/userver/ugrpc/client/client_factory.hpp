@@ -50,7 +50,9 @@ struct ClientFactorySettings final {
   std::size_t channel_count{1};
 };
 
-/// @brief Creates generated gRPC clients. Has a minimal built-in channel cache:
+/// @ingroup userver_clients
+///
+/// @brief Creates gRPC clients. Has a minimal built-in channel cache:
 /// as long as a channel to the same endpoint is used somewhere, the same
 /// channel is given out.
 class ClientFactory final {
@@ -84,17 +86,16 @@ class ClientFactory final {
 template <typename Client>
 Client ClientFactory::MakeClient(const std::string& client_name,
                                  const std::string& endpoint) {
-  auto& statistics = client_statistics_storage_.GetServiceStatistics(
-      Client::GetMetadata(), endpoint);
-
-  Middlewares mws;
-  mws.reserve(mws_.size());
-  for (const auto& mw_factory : mws_)
-    mws.push_back(mw_factory->GetMiddleware(client_name));
-
   return Client(impl::ClientParams{
-      client_name, std::move(mws), queue_, statistics,
-      GetChannel(client_name, endpoint), config_source_, testsuite_grpc_});
+      client_name,
+      endpoint,
+      impl::InstantiateMiddlewares(mws_, client_name),
+      queue_,
+      client_statistics_storage_,
+      GetChannel(client_name, endpoint),
+      config_source_,
+      testsuite_grpc_,
+  });
 }
 
 }  // namespace ugrpc::client

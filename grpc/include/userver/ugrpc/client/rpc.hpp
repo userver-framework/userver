@@ -180,11 +180,9 @@ class [[nodiscard]] UnaryCall final : public CallAnyBase {
 
   /// @cond
   // For internal use only
-  template <typename Stub, typename Request>
-  UnaryCall(
-      impl::CallParams&& params, Stub& stub,
-      impl::RawResponseReaderPreparer<Stub, Request, Response> prepare_func,
-      const Request& req);
+  template <typename PrepareFunc, typename Request>
+  UnaryCall(impl::CallParams&& params, PrepareFunc prepare_func,
+            const Request& req);
   /// @endcond
 
   UnaryCall(UnaryCall&&) noexcept = default;
@@ -223,9 +221,8 @@ class [[nodiscard]] InputStream final : public CallAnyBase {
   // For internal use only
   using RawStream = grpc::ClientAsyncReader<Response>;
 
-  template <typename Stub, typename Request>
-  InputStream(impl::CallParams&& params, Stub& stub,
-              impl::RawReaderPreparer<Stub, Request, Response> prepare_func,
+  template <typename PrepareFunc, typename Request>
+  InputStream(impl::CallParams&& params, PrepareFunc prepare_func,
               const Request& req);
   /// @endcond
 
@@ -293,9 +290,8 @@ class [[nodiscard]] OutputStream final : public CallAnyBase {
   // For internal use only
   using RawStream = grpc::ClientAsyncWriter<Request>;
 
-  template <typename Stub>
-  OutputStream(impl::CallParams&& params, Stub& stub,
-               impl::RawWriterPreparer<Stub, Request, Response> prepare_func);
+  template <typename PrepareFunc>
+  OutputStream(impl::CallParams&& params, PrepareFunc prepare_func);
   /// @endcond
 
   OutputStream(OutputStream&&) noexcept = default;
@@ -399,10 +395,8 @@ class [[nodiscard]] BidirectionalStream final : public CallAnyBase {
   // For internal use only
   using RawStream = grpc::ClientAsyncReaderWriter<Request, Response>;
 
-  template <typename Stub>
-  BidirectionalStream(
-      impl::CallParams&& params, Stub& stub,
-      impl::RawReaderWriterPreparer<Stub, Request, Response> prepare_func);
+  template <typename PrepareFunc>
+  BidirectionalStream(impl::CallParams&& params, PrepareFunc prepare_func);
   /// @endcond
 
   BidirectionalStream(BidirectionalStream&&) noexcept = default;
@@ -477,20 +471,22 @@ bool StreamReadFuture<RPC>::IsReady() const noexcept {
 }
 
 template <typename Response>
-template <typename Stub, typename Request>
-UnaryCall<Response>::UnaryCall(
-    impl::CallParams&& params, Stub& stub,
-    impl::RawResponseReaderPreparer<Stub, Request, Response> prepare_func,
-    const Request& req)
+template <typename PrepareFunc, typename Request>
+UnaryCall<Response>::UnaryCall(impl::CallParams&& params,
+                               PrepareFunc prepare_func, const Request& req)
     : CallAnyBase(std::move(params)) {
+  const ::google::protobuf::Message* req_message = nullptr;
+  if constexpr (std::is_base_of_v<::google::protobuf::Message, Request>) {
+    req_message = &req;
+  }
   impl::CallMiddlewares(
       GetData().GetMiddlewares(), *this,
       [&] {
-        reader_ = (stub.*prepare_func)(&GetData().GetContext(), req,
-                                       &GetData().GetQueue());
+        reader_ =
+            prepare_func(&GetData().GetContext(), req, &GetData().GetQueue());
         reader_->StartCall();
       },
-      &req);
+      req_message);
   GetData().SetWritesFinished();
 }
 
@@ -514,20 +510,22 @@ UnaryFuture UnaryCall<Response>::FinishAsync(Response& response) {
 }
 
 template <typename Response>
-template <typename Stub, typename Request>
-InputStream<Response>::InputStream(
-    impl::CallParams&& params, Stub& stub,
-    impl::RawReaderPreparer<Stub, Request, Response> prepare_func,
-    const Request& req)
+template <typename PrepareFunc, typename Request>
+InputStream<Response>::InputStream(impl::CallParams&& params,
+                                   PrepareFunc prepare_func, const Request& req)
     : CallAnyBase(std::move(params)) {
+  const ::google::protobuf::Message* req_message = nullptr;
+  if constexpr (std::is_base_of_v<::google::protobuf::Message, Request>) {
+    req_message = &req;
+  }
   impl::CallMiddlewares(
       GetData().GetMiddlewares(), *this,
       [&] {
-        stream_ = (stub.*prepare_func)(&GetData().GetContext(), req,
-                                       &GetData().GetQueue());
+        stream_ =
+            prepare_func(&GetData().GetContext(), req, &GetData().GetQueue());
         impl::StartCall(*stream_, GetData());
       },
-      &req);
+      req_message);
   GetData().SetWritesFinished();
 }
 
@@ -544,19 +542,17 @@ bool InputStream<Response>::Read(Response& response) {
 }
 
 template <typename Request, typename Response>
-template <typename Stub>
-OutputStream<Request, Response>::OutputStream(
-    impl::CallParams&& params, Stub& stub,
-    impl::RawWriterPreparer<Stub, Request, Response> prepare_func)
+template <typename PrepareFunc>
+OutputStream<Request, Response>::OutputStream(impl::CallParams&& params,
+                                              PrepareFunc prepare_func)
     : CallAnyBase(std::move(params)),
       final_response_(std::make_unique<Response>()) {
   impl::CallMiddlewares(
       GetData().GetMiddlewares(), *this,
       [&] {
         // 'final_response_' will be filled upon successful 'Finish' async call
-        stream_ =
-            (stub.*prepare_func)(&GetData().GetContext(), final_response_.get(),
-                                 &GetData().GetQueue());
+        stream_ = prepare_func(&GetData().GetContext(), final_response_.get(),
+                               &GetData().GetQueue());
         impl::StartCall(*stream_, GetData());
       },
       nullptr);
@@ -596,16 +592,14 @@ Response OutputStream<Request, Response>::Finish() {
 }
 
 template <typename Request, typename Response>
-template <typename Stub>
+template <typename PrepareFunc>
 BidirectionalStream<Request, Response>::BidirectionalStream(
-    impl::CallParams&& params, Stub& stub,
-    impl::RawReaderWriterPreparer<Stub, Request, Response> prepare_func)
+    impl::CallParams&& params, PrepareFunc prepare_func)
     : CallAnyBase(std::move(params)) {
   impl::CallMiddlewares(
       GetData().GetMiddlewares(), *this,
       [&] {
-        stream_ = (stub.*prepare_func)(&GetData().GetContext(),
-                                       &GetData().GetQueue());
+        stream_ = prepare_func(&GetData().GetContext(), &GetData().GetQueue());
         impl::StartCall(*stream_, GetData());
       },
       nullptr);

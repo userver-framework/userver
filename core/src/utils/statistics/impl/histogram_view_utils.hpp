@@ -21,7 +21,8 @@ namespace utils::statistics::impl::histogram {
 
 struct Access final {
   static HistogramView MakeView(const Bucket* buckets) noexcept {
-    return HistogramView{buckets};
+    UASSERT(buckets);
+    return HistogramView{*buckets};
   }
 
   template <typename AnyHistogramView>

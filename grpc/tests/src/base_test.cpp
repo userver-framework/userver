@@ -132,6 +132,7 @@ UTEST_F(GrpcClientTest, UnaryRPC) {
   out.set_name("userver");
   auto call_for_move = client.SayHello(out, PrepareClientContext());
   auto call = std::move(call_for_move);  // test move operation
+  EXPECT_EQ(call.GetCallName(), "sample.ugrpc.UnitTestService/SayHello");
 
   sample::ugrpc::GreetingResponse in;
   UEXPECT_NO_THROW(in = call.Finish());

@@ -4,11 +4,14 @@
 /// @brief @copybrief ugrpc::client::middlewares::log::Component
 
 #include <userver/ugrpc/client/middlewares/base.hpp>
+#include <userver/utils/box.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 /// Client logging middleware
 namespace ugrpc::client::middlewares::log {
+
+struct Settings;
 
 // clang-format off
 
@@ -33,13 +36,14 @@ class Component final : public MiddlewareComponentBase {
   Component(const components::ComponentConfig& config,
             const components::ComponentContext& context);
 
+  ~Component() override;
+
   std::shared_ptr<const MiddlewareFactoryBase> GetMiddlewareFactory() override;
 
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
-  std::size_t max_size_;
-  logging::Level log_level_;
+  const utils::Box<Settings> settings_;
 };
 
 }  // namespace ugrpc::client::middlewares::log

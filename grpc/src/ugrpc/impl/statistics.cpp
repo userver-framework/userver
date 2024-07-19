@@ -2,6 +2,7 @@
 
 #include <userver/logging/log.hpp>
 #include <userver/utils/enumerate.hpp>
+#include <userver/utils/statistics/striped_rate_counter.hpp>
 #include <userver/utils/statistics/writer.hpp>
 #include <userver/utils/underlying_value.hpp>
 
@@ -47,9 +48,15 @@ void DumpMetric(utils::statistics::Writer& writer,
 
 }  // namespace
 
-MethodStatistics::MethodStatistics(StatisticsDomain domain) : domain_(domain) {}
+MethodStatistics::MethodStatistics(
+    StatisticsDomain domain,
+    utils::statistics::StripedRateCounter& global_started)
+    : domain_(domain), global_started_(global_started) {}
 
-void MethodStatistics::AccountStarted() noexcept { ++started_; }
+void MethodStatistics::AccountStarted() noexcept {
+  ++started_;
+  ++global_started_;
+}
 
 void MethodStatistics::AccountStatus(grpc::StatusCode code) noexcept {
   if (static_cast<std::size_t>(code) < kCodesCount) {
@@ -158,10 +165,12 @@ std::uint64_t MethodStatistics::GetStarted() const noexcept {
 
 ServiceStatistics::~ServiceStatistics() = default;
 
-ServiceStatistics::ServiceStatistics(const StaticServiceMetadata& metadata,
-                                     StatisticsDomain domain)
+ServiceStatistics::ServiceStatistics(
+    const StaticServiceMetadata& metadata, StatisticsDomain domain,
+    utils::statistics::StripedRateCounter& global_started)
     : metadata_(metadata),
-      method_statistics_(metadata.method_full_names.size(), domain) {}
+      method_statistics_(metadata.method_full_names.size(), domain,
+                         global_started) {}
 
 MethodStatistics& ServiceStatistics::GetMethodStatistics(
     std::size_t method_id) {

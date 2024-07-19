@@ -15,8 +15,7 @@ namespace ugrpc::tests {
 namespace {
 
 using ClientLogMiddlewareFactory = client::middlewares::log::MiddlewareFactory;
-using ClientLogMiddlewareSettings =
-    client::middlewares::log::Middleware::Settings;
+using ClientLogMiddlewareSettings = client::middlewares::log::Settings;
 
 using ClientDpMiddlewareFactory =
     client::middlewares::deadline_propagation::MiddlewareFactory;

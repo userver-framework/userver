@@ -18,6 +18,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace utils::statistics {
+class StripedRateCounter;
+}  // namespace utils::statistics
+
 namespace ugrpc::impl {
 
 enum class StatisticsDomain { kClient, kServer };
@@ -26,7 +30,9 @@ std::string_view ToString(StatisticsDomain);
 
 class MethodStatistics final {
  public:
-  explicit MethodStatistics(StatisticsDomain domain);
+  explicit MethodStatistics(
+      StatisticsDomain domain,
+      utils::statistics::StripedRateCounter& global_started);
 
   void AccountStarted() noexcept;
 
@@ -57,6 +63,7 @@ class MethodStatistics final {
  private:
   using Percentile =
       utils::statistics::Percentile<2000, std::uint32_t, 256, 100>;
+  using Timings = utils::statistics::RecentPeriod<Percentile, Percentile>;
   using RateCounter = utils::statistics::RateCounter;
   // StatusCode enum cases have consecutive underlying values, starting from 0.
   // UNAUTHENTICATED currently has the largest value.
@@ -64,9 +71,11 @@ class MethodStatistics final {
       static_cast<std::size_t>(grpc::StatusCode::UNAUTHENTICATED) + 1;
 
   const StatisticsDomain domain_;
+  utils::statistics::StripedRateCounter& global_started_;
+
   RateCounter started_{0};
   std::array<RateCounter, kCodesCount> status_codes_{};
-  utils::statistics::RecentPeriod<Percentile, Percentile> timings_;
+  Timings timings_;
   RateCounter network_errors_{0};
   RateCounter internal_errors_{0};
   RateCounter cancelled_{0};
@@ -78,7 +87,8 @@ class MethodStatistics final {
 class ServiceStatistics final {
  public:
   ServiceStatistics(const StaticServiceMetadata& metadata,
-                    StatisticsDomain domain);
+                    StatisticsDomain domain,
+                    utils::statistics::StripedRateCounter& global_started);
 
   ~ServiceStatistics();
 

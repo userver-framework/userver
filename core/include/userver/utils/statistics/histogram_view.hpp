@@ -26,8 +26,8 @@ struct Access;
 class HistogramView final {
  public:
   // trivially copyable
-  HistogramView(const HistogramView&) noexcept = default;
-  HistogramView& operator=(const HistogramView&) noexcept = default;
+  constexpr HistogramView(const HistogramView&) noexcept = default;
+  constexpr HistogramView& operator=(const HistogramView&) noexcept = default;
 
   /// Returns the number of "normal" (non-"infinity") buckets.
   std::size_t GetBucketCount() const noexcept;
@@ -48,7 +48,9 @@ class HistogramView final {
  private:
   friend struct impl::histogram::Access;
 
-  explicit HistogramView(const impl::histogram::Bucket* buckets) noexcept;
+  constexpr explicit HistogramView(
+      const impl::histogram::Bucket& buckets) noexcept
+      : buckets_(&buckets) {}
 
   const impl::histogram::Bucket* buckets_;
 };

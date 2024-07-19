@@ -17,6 +17,18 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
+namespace impl {
+
+template <typename T>
+struct TypeIdentityImpl final {
+  using type = T;
+};
+
+template <typename T>
+using TypeIdentity = typename TypeIdentityImpl<T>::type;
+
+}  // namespace impl
+
 /// A polyfill for std::span from C++20
 template <typename T>
 class span final {
@@ -48,7 +60,11 @@ class span final {
                                 T*>>>
   // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
   constexpr /*implicit*/ span(Container&& cont) noexcept
-      : span(std::data(cont), std::data(cont) + std::size(cont)) {}
+      : span(std::data(cont), std::size(cont)) {}
+
+  template <std::size_t Size>
+  constexpr /*implicit*/ span(impl::TypeIdentity<T> (&array)[Size]) noexcept
+      : span(std::data(array), std::size(array)) {}
 
   constexpr T* begin() const noexcept { return begin_; }
   constexpr T* end() const noexcept { return end_; }
@@ -72,8 +88,8 @@ class span final {
     return span{begin_ + offset, end_};
   }
 
-  constexpr span<T> subspan(std::size_t offset, std::size_t count) const
-      noexcept {
+  constexpr span<T> subspan(std::size_t offset,  //
+                            std::size_t count) const noexcept {
     UASSERT(offset + count <= size());
     return span{begin_ + offset, begin_ + offset + count};
   }

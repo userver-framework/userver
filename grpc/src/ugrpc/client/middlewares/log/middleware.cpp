@@ -20,7 +20,7 @@ void Middleware::Handle(MiddlewareCallContext& context) const {
   context.Next();
 }
 
-MiddlewareFactory::MiddlewareFactory(const Middleware::Settings& settings)
+MiddlewareFactory::MiddlewareFactory(const Settings& settings)
     : settings_(settings) {}
 
 std::shared_ptr<const MiddlewareBase> MiddlewareFactory::GetMiddleware(

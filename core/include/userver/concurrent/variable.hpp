@@ -93,6 +93,12 @@ class Variable final {
     return {mutex_, data_};
   }
 
+  /// Useful for grabbing a reference to an object in a node-based container,
+  /// e.g. `std::unordered_map`. Values must support concurrent modification.
+  LockedPtr<std::shared_lock<Mutex>, Data> SharedMutableLockUnsafe() {
+    return {mutex_, data_};
+  }
+
   LockedPtr<std::lock_guard<Mutex>, Data> Lock() { return {mutex_, data_}; }
 
   LockedPtr<std::lock_guard<Mutex>, const Data> Lock() const {

@@ -70,7 +70,7 @@ UTEST_F(GrpcAccessLog, Test) {
       R"(grpc_status=\d+\t)"
       R"(grpc_status_code=[A-Z_]+\n)";
 
-  const auto logs = member.ExtractSingle();
+  const auto logs = GetSingleLog(member.GetAll());
   EXPECT_TRUE(
       utils::regex_match(logs.GetLogRaw(), utils::regex(kExpectedPattern)))
       << logs;

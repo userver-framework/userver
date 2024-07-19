@@ -15,6 +15,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utest {
 
+namespace {}  // namespace
+
 namespace impl {
 
 class ToStringLogger : public logging::impl::LoggerBase {
@@ -64,7 +66,7 @@ class ToStringLogger : public logging::impl::LoggerBase {
 const std::string& LogRecord::GetText() const { return GetTag("text"); }
 
 const std::string& LogRecord::GetTag(std::string_view key) const {
-  auto tag_value = GetTagOptional(key);
+  auto tag_value = GetTagOrNullptr(key);
   if (!tag_value) {
     throw std::runtime_error(
         fmt::format("No '{}' tag in log record:\n{}", key, log_raw_));
@@ -72,7 +74,15 @@ const std::string& LogRecord::GetTag(std::string_view key) const {
   return *std::move(tag_value);
 }
 
-const std::string* LogRecord::GetTagOptional(std::string_view key) const {
+std::optional<std::string> LogRecord::GetTagOptional(
+    std::string_view key) const {
+  if (const auto* const value = GetTagOrNullptr(key)) {
+    return *value;
+  }
+  return std::nullopt;
+}
+
+const std::string* LogRecord::GetTagOrNullptr(std::string_view key) const {
   const auto iter =
       std::find_if(tags_.begin(), tags_.end(),
                    [&](const std::pair<std::string, std::string>& tag) {
@@ -131,6 +141,21 @@ std::ostream& operator<<(std::ostream& os, const std::vector<LogRecord>& data) {
   return os;
 }
 
+LogRecord GetSingleLog(utils::span<const LogRecord> log,
+                       const utils::impl::SourceLocation& source_location) {
+  if (log.size() != 1) {
+    std::string msg =
+        fmt::format("There are {} log records instead of 1 at {}:\n",
+                    log.size(), ToString(source_location));
+    for (const auto& record : log) {
+      msg += record.GetLogRaw();
+    }
+    throw NotSingleLogError(msg);
+  }
+  auto single_record = std::move(log[0]);
+  return single_record;
+}
+
 LogCaptureLogger::LogCaptureLogger(logging::Format format)
     : logger_(utils::MakeSharedRef<impl::ToStringLogger>(format)) {}
 
@@ -142,29 +167,14 @@ std::vector<LogRecord> LogCaptureLogger::GetAll() const {
   return logger_->GetAll();
 }
 
-LogRecord LogCaptureLogger::ExtractSingle() {
-  auto log = GetAll();
-  if (log.size() != 1) {
-    std::string msg =
-        fmt::format("There are {} log records instead of 1:\n", log.size());
-    for (const auto& record : log) {
-      msg += record.GetLogRaw();
-    }
-    throw std::runtime_error(msg);
-  }
-  auto single_record = std::move(log[0]);
-  Clear();
-  return single_record;
-}
-
 std::vector<LogRecord> LogCaptureLogger::Filter(
     std::string_view text_substring,
-    utils::span<std::pair<std::string_view, std::string_view>> tag_substrings)
-    const {
+    utils::span<const std::pair<std::string_view, std::string_view>>
+        tag_substrings) const {
   return Filter([&](const LogRecord& record) {
     return record.GetText().find(text_substring) != std::string_view::npos &&
            boost::algorithm::all_of(tag_substrings, [&](const auto& kv) {
-             const auto* tag_value = record.GetTagOptional(kv.first);
+             const auto* tag_value = record.GetTagOrNullptr(kv.first);
              return tag_value &&
                     tag_value->find(kv.second) != std::string_view::npos;
            });

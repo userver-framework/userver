@@ -4,6 +4,7 @@
 /// @brief Utilities for analyzing emitted metrics in unit tests
 
 #include <iosfwd>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>

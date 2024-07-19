@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <utility>
 
 #include <grpcpp/channel.h>
@@ -18,17 +19,24 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace ugrpc::impl {
+class StatisticsStorage;
+}  // namespace ugrpc::impl
+
 namespace ugrpc::client::impl {
 
 struct ClientParams final {
   std::string client_name;
+  std::string endpoint;
   Middlewares mws;
   grpc::CompletionQueue& queue;
-  ugrpc::impl::ServiceStatistics& statistics_storage;
+  ugrpc::impl::StatisticsStorage& statistics_storage;
   impl::ChannelCache::Token channel_token;
   const dynamic_config::Source config_source;
   testsuite::GrpcControl& testsuite_grpc;
 };
+
+struct GenericClientTag final {};
 
 /// A helper class for generated gRPC clients
 class ClientData final {
@@ -41,14 +49,16 @@ class ClientData final {
   template <typename Service>
   ClientData(ClientParams&& params, ugrpc::impl::StaticServiceMetadata metadata,
              std::in_place_type_t<Service>)
-      : params_(std::move(params)), metadata_(metadata) {
-    const std::size_t channel_count = GetChannelToken().GetChannelCount();
-    stubs_ = utils::GenerateFixedArray(channel_count, [&](std::size_t index) {
-      return StubPtr(
-          Service::NewStub(GetChannelToken().GetChannel(index)).release(),
-          &StubDeleter<Service>);
-    });
-  }
+      : params_(std::move(params)),
+        metadata_(metadata),
+        service_statistics_(&GetServiceStatistics()),
+        stubs_(MakeStubs<Service>(params_.channel_token)) {}
+
+  template <typename Service>
+  ClientData(ClientParams&& params, GenericClientTag,
+             std::in_place_type_t<Service>)
+      : params_(std::move(params)),
+        stubs_(MakeStubs<Service>(params_.channel_token)) {}
 
   ClientData(ClientData&&) noexcept = default;
   ClientData& operator=(ClientData&&) = delete;
@@ -68,9 +78,10 @@ class ClientData final {
     return params_.config_source.GetSnapshot();
   }
 
-  ugrpc::impl::MethodStatistics& GetStatistics(std::size_t method_id) const {
-    return params_.statistics_storage.GetMethodStatistics(method_id);
-  }
+  ugrpc::impl::MethodStatistics& GetStatistics(std::size_t method_id) const;
+
+  ugrpc::impl::MethodStatistics& GetGenericStatistics(
+      std::string_view call_name) const;
 
   ChannelCache::Token& GetChannelToken() { return params_.channel_token; }
 
@@ -78,9 +89,7 @@ class ClientData final {
 
   const Middlewares& GetMiddlewares() const { return params_.mws; }
 
-  const ugrpc::impl::StaticServiceMetadata& GetMetadata() const {
-    return metadata_;
-  }
+  const ugrpc::impl::StaticServiceMetadata& GetMetadata() const;
 
   const testsuite::GrpcControl& GetTestsuiteControl() const {
     return params_.testsuite_grpc;
@@ -95,8 +104,22 @@ class ClientData final {
     delete static_cast<Stub<Service>*>(ptr);
   }
 
+  template <typename Service>
+  static utils::FixedArray<StubPtr> MakeStubs(
+      impl::ChannelCache::Token& channel_token) {
+    const std::size_t channel_count = channel_token.GetChannelCount();
+    return utils::GenerateFixedArray(channel_count, [&](std::size_t index) {
+      return StubPtr(
+          Service::NewStub(channel_token.GetChannel(index)).release(),
+          &StubDeleter<Service>);
+    });
+  }
+
+  ugrpc::impl::ServiceStatistics& GetServiceStatistics();
+
   ClientParams params_;
-  ugrpc::impl::StaticServiceMetadata metadata_;
+  std::optional<ugrpc::impl::StaticServiceMetadata> metadata_{std::nullopt};
+  ugrpc::impl::ServiceStatistics* service_statistics_{nullptr};
   utils::FixedArray<StubPtr> stubs_;
 };
 

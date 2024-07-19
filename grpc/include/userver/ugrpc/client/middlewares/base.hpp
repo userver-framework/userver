@@ -94,6 +94,13 @@ class MiddlewareComponentBase : public components::ComponentBase {
   GetMiddlewareFactory() = 0;
 };
 
+namespace impl {
+
+Middlewares InstantiateMiddlewares(const MiddlewareFactories& factories,
+                                   const std::string& client_name);
+
+}  // namespace impl
+
 }  // namespace ugrpc::client
 
 USERVER_NAMESPACE_END

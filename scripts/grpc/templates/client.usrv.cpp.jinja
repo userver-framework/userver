@@ -57,12 +57,12 @@ constexpr const auto& k{{service.name}}ClientQosConfig =
     std::unique_ptr<::grpc::ClientContext> context,
     const USERVER_NAMESPACE::ugrpc::client::Qos& qos
 ) const {
+      auto& stub = impl_.NextStub<{{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}>();
       return {
         USERVER_NAMESPACE::ugrpc::client::impl::CreateCallParams(
           impl_, {{method_id}}, std::move(context), k{{service.name}}ClientQosConfig, qos
         ),
-        impl_.NextStub<{{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}>(),
-        &{{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}::Stub::PrepareAsync{{method.name}},
+        [&stub](auto&&... args) { return stub.PrepareAsync{{method.name}}(std::forward<decltype(args)>(args)...); },
         {% if method.client_streaming %}
       };
         {% else %}

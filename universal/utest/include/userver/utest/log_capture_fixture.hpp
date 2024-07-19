@@ -4,6 +4,7 @@
 /// @brief @copybrief utest::LogCaptureFixture
 
 #include <iosfwd>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -17,6 +18,7 @@
 #include <userver/utest/default_logger_fixture.hpp>
 #include <userver/utils/function_ref.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
+#include <userver/utils/impl/source_location.hpp>
 #include <userver/utils/not_null.hpp>
 #include <userver/utils/span.hpp>
 
@@ -42,7 +44,10 @@ class LogRecord final {
   const std::string& GetTag(std::string_view key) const;
 
   /// @returns decoded value of the tag in the log record, or `std::nullopt`
-  const std::string* GetTagOptional(std::string_view key) const;
+  std::optional<std::string> GetTagOptional(std::string_view key) const;
+
+  /// @returns decoded value of the tag in the log record, or `nullptr`
+  const std::string* GetTagOrNullptr(std::string_view key) const;
 
   /// @returns serialized log record
   const std::string& GetLogRaw() const;
@@ -66,6 +71,18 @@ std::ostream& operator<<(std::ostream&, const LogRecord& data);
 
 std::ostream& operator<<(std::ostream&, const std::vector<LogRecord>& data);
 
+/// Thrown by @ref GetSingleLog.
+class NotSingleLogError final : public std::runtime_error {
+ public:
+  using std::runtime_error::runtime_error;
+};
+
+/// @returns the only log record from `log`.
+/// @throws NotSingleLogError if there are zero or multiple log records.
+LogRecord GetSingleLog(utils::span<const LogRecord> log,
+                       const utils::impl::SourceLocation& source_location =
+                           utils::impl::SourceLocation::Current());
+
 /// @brief A mocked logger that stores the log records in memory.
 /// @see @ref utest::LogCaptureFixture
 class LogCaptureLogger final {
@@ -76,20 +93,19 @@ class LogCaptureLogger final {
   logging::LoggerPtr GetLogger() const;
 
   /// @returns all collected logs.
+  /// @see @ref GetSingleLog
   std::vector<LogRecord> GetAll() const;
-
-  /// @returns the single collected log record, then clears logs.
-  /// @throws std::runtime_error if there are zero or multiple log records.
-  LogRecord ExtractSingle();
 
   /// @returns logs filtered by (optional) text substring and (optional) tags
   /// substrings.
+  /// @see @ref GetSingleLog
   std::vector<LogRecord> Filter(
       std::string_view text_substring,
-      utils::span<std::pair<std::string_view, std::string_view>>
+      utils::span<const std::pair<std::string_view, std::string_view>>
           tag_substrings = {}) const;
 
   /// @returns logs filtered by an arbitrary predicate.
+  /// @see @ref GetSingleLog
   std::vector<LogRecord> Filter(
       utils::function_ref<bool(const LogRecord&)> predicate) const;
 
@@ -101,7 +117,9 @@ class LogCaptureLogger final {
   std::string ToStringViaLogging(const T& value) {
     Clear();
     LOG_CRITICAL() << value;
-    return ExtractSingle().GetText();
+    auto text = GetSingleLog(GetAll()).GetText();
+    Clear();
+    return text;
   }
 
  private:
