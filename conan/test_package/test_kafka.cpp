@@ -17,8 +17,8 @@ int main(int argc, char* argv[]) {
           .Append<userver::components::TestsuiteSupport>()
           .Append<userver::components::HttpClient>()
           .Append<userver::server::handlers::TestsControl>()
-          .Append<userver::components::kafka::ProducerComponent>("")
-          .Append<userver::components::kafka::ConsumerComponent>("");
+          .Append<userver::kafka::ProducerComponent>()
+          .Append<userver::kafka::ConsumerComponent>();
 
   service_template::AppendHello(component_list);
 
