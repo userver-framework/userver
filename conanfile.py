@@ -57,7 +57,7 @@ class UserverConan(ConanFile):
         'with_clickhouse': True,
         'with_rabbitmq': True,
         'with_utest': True,
-        'with_kafka': False,
+        'with_kafka': True,
         'namespace': 'userver',
         'namespace_begin': 'namespace userver {',
         'namespace_end': '}',
@@ -484,7 +484,7 @@ class UserverConan(ConanFile):
             )
 
         def librdkafka():
-            return ['RdKafka::rdkafka++'] if self.options.with_kafka else []
+            return ['librdkafka::librdkafka'] if self.options.with_kafka else []
 
         userver_components = [
             {
