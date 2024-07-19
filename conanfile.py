@@ -57,7 +57,7 @@ class UserverConan(ConanFile):
         'with_clickhouse': True,
         'with_rabbitmq': True,
         'with_utest': True,
-        'with_kafka': True,
+        'with_kafka': False,
         'namespace': 'userver',
         'namespace_begin': 'namespace userver {',
         'namespace_end': '}',

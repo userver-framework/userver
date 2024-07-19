@@ -7,7 +7,13 @@ file(GLOB_RECURSE SOURCES
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
-include(SetupRdKafka)
+if (USERVER_CONAN)
+  find_package(RdKafka REQUIRED)
+  set_target_properties(RdKafka::rdkafka++ PROPERTIES IMPORTED_GLOBAL TRUE)
+  add_library(rdkafka ALIAS RdKafka::rdkafka++)
+else()
+  include(SetupRdKafka)
+endif()
 
 target_compile_options(${PROJECT_NAME} PRIVATE "-Wno-ignored-qualifiers")
 target_link_libraries(${PROJECT_NAME}
