@@ -11,14 +11,13 @@
 #include "hello.hpp"
 
 int main(int argc, char* argv[]) {
-  auto component_list =
-      userver::components::MinimalServerComponentList()
-          .Append<userver::server::handlers::Ping>()
-          .Append<userver::components::TestsuiteSupport>()
-          .Append<userver::components::HttpClient>()
-          .Append<userver::server::handlers::TestsControl>()
-          .Append<userver::components::kafka::ProducerComponent>("")
-          .Append<userver::components::kafka::ConsumerComponent>("");
+  auto component_list = userver::components::MinimalServerComponentList()
+                            .Append<userver::server::handlers::Ping>()
+                            .Append<userver::components::TestsuiteSupport>()
+                            .Append<userver::components::HttpClient>()
+                            .Append<userver::server::handlers::TestsControl>()
+                            .Append<userver::kafka::ProducerComponent>()
+                            .Append<userver::kafka::ConsumerComponent>();
 
   service_template::AppendHello(component_list);
 
