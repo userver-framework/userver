@@ -26,6 +26,8 @@ class PluginRequest final {
 
   void SetHeader(std::string_view name, std::string value);
 
+  void AddQueryParams(std::string_view params);
+
   void SetTimeout(std::chrono::milliseconds ms);
 
  private:
