@@ -34,7 +34,6 @@ Logger::Logger(
       queue_(Queue::Create(config_.max_queue_size)),
       queue_producer_(queue_->GetMultiProducer()) {
   SetLevel(config_.log_level);
-  Log(logging::Level::kInfo, "OTLP logger has started");
   std::cerr << "OTLP logger has started\n";
 
   sender_task_ = engine::CriticalAsyncNoSpan(
@@ -88,9 +87,8 @@ void Logger::Log(logging::Level level, std::string_view msg) {
           return true;
         }
         if (key == "timestamp") {
-          timestamp = utils::datetime::Stringtime(
-              std::string{value}, utils::datetime::kDefaultTimezone,
-              kTimestampFormat);
+          timestamp = utils::datetime::LocalTimezoneStringtime(
+              std::string{value}, kTimestampFormat);
           return true;
         }
         if (key == "level") {

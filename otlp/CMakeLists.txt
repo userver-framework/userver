@@ -48,3 +48,16 @@ _userver_directory_install(COMPONENT otlp FILES
   "${USERVER_ROOT_DIR}/cmake/install/userver-otlp-config.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
 )
+
+if (USERVER_IS_THE_ROOT_PROJECT)
+  add_executable(${PROJECT_NAME}-unittest ${UNIT_TEST_SOURCES})
+  target_include_directories(${PROJECT_NAME}-unittest PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/src
+  )
+  target_link_libraries(${PROJECT_NAME}-unittest
+      userver-utest
+      userver-grpc-utest
+      ${PROJECT_NAME}
+  )
+  add_google_tests(${PROJECT_NAME}-unittest)
+endif()

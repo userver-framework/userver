@@ -2282,6 +2282,7 @@
   "otlp/src/otlp/logs/component.cpp":"taxi/uservices/userver/otlp/src/otlp/logs/component.cpp",
   "otlp/src/otlp/logs/logger.cpp":"taxi/uservices/userver/otlp/src/otlp/logs/logger.cpp",
   "otlp/src/otlp/logs/logger.hpp":"taxi/uservices/userver/otlp/src/otlp/logs/logger.hpp",
+  "otlp/tests/service_test.cpp":"taxi/uservices/userver/otlp/tests/service_test.cpp",
   "postgresql/CMakeLists.txt":"taxi/uservices/userver/postgresql/CMakeLists.txt",
   "postgresql/README.md":"taxi/uservices/userver/postgresql/README.md",
   "postgresql/functional_tests/CMakeLists.txt":"taxi/uservices/userver/postgresql/functional_tests/CMakeLists.txt",
