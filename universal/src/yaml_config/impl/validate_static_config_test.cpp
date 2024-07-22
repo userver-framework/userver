@@ -30,7 +30,7 @@ incorrect_filed_name:
       std::runtime_error,
       "Schema field name must be one of ['type', 'description', "
       "'defaultDescription', 'additionalProperties', 'properties', 'items', "
-      "'enum', 'minimum', 'maximum'], but 'incorrect_filed_name' was given. "
+      "'enum', 'minimum', 'maximum', 'minItems', 'maxItems'], but 'incorrect_filed_name' was given. "
       "Schema path: '/'");
 }
 
@@ -332,7 +332,7 @@ properties:
     arr:
         type: array
         description: integer array
-        mixItems: 1
+        minItems: 1
         maxItems: 3
         items:
             type: integer

@@ -173,8 +173,8 @@ Schema Parse(const formats::yaml::Value& schema, formats::parse::To<Schema>) {
   result.minimum = schema["minimum"].As<std::optional<double>>();
   result.maximum = schema["maximum"].As<std::optional<double>>();
 
-  result.min_items = schema["min_items"].As<std::optional<size_t>>();
-  result.max_items = schema["max_items"].As<std::optional<size_t>>();
+  result.min_items = schema["minItems"].As<std::optional<size_t>>();
+  result.max_items = schema["maxItems"].As<std::optional<size_t>>();
 
   CheckFieldsNames(schema);
 
