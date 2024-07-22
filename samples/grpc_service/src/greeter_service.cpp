@@ -26,7 +26,7 @@ void GreeterService::SayHello(api::GreeterServiceBase::SayHelloCall& call,
 }
 /// [server RPC handling]
 
-/// [service]
+/// [component]
 GreeterServiceComponent::GreeterServiceComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
@@ -34,7 +34,7 @@ GreeterServiceComponent::GreeterServiceComponent(
       service_(config["greeting-prefix"].As<std::string>()) {
   RegisterService(service_);
 }
-/// [service]
+/// [component]
 
 yaml_config::Schema GreeterServiceComponent::GetStaticConfigSchema() {
   return yaml_config::MergeSchemas<ugrpc::server::ServiceComponentBase>(R"(

@@ -59,17 +59,17 @@ that inherits from both
 However, for in this example we will also test our service using gtest, so we
 need to split the logic from the component.
 
-@snippet samples/grpc_service/src/grpc_service.hpp  includes
+@snippet samples/grpc_service/src/greeter_service.hpp  includes
 
-@snippet samples/grpc_service/src/grpc_service.hpp  service
+@snippet samples/grpc_service/src/greeter_service.hpp  service
 
-@snippet samples/grpc_service/src/grpc_service.hpp  component
+@snippet samples/grpc_service/src/greeter_service.hpp  component
 
-@snippet samples/grpc_service/src/grpc_service.cpp  component
+@snippet samples/grpc_service/src/greeter_service.cpp  component
 
 A single request-response RPC handling is simple: fill in the `response` and send it.
 
-@snippet samples/grpc_service/src/grpc_service.cpp  service
+@snippet samples/grpc_service/src/greeter_service.cpp  server RPC handling
 
 Fill in the static config entries for the server side:
 
@@ -114,7 +114,7 @@ service some preparational steps should be done.
 First of all, import the required modules and add the required
 pytest_userver.plugins.grpc pytest plugin:
 
-@snippet samples/grpc_service/tests/conftest.py  Prepare modules
+@snippet samples/grpc_service/testsuite/conftest.py  Prepare modules
 
 
 #### gRPC server mock
@@ -122,26 +122,26 @@ pytest_userver.plugins.grpc pytest plugin:
 To mock the gRPC server provide a hook for the static config to change
 the endpoint:
 
-@snippet samples/grpc_service/tests/conftest.py  Prepare configs
+@snippet samples/grpc_service/testsuite/conftest.py  Prepare configs
 
 Write the mocking fixtures using @ref pytest_userver.plugins.grpc_mockserver.grpc_mockserver "grpc_mockserver":
 
-@snippet samples/grpc_service/tests/conftest.py  Prepare server mock
+@snippet samples/grpc_service/testsuite/conftest.py  Prepare server mock
 
 After that everything is ready to check the service client requests:
 
-@snippet samples/grpc_service/tests/test_grpc.py  grpc client test
+@snippet samples/grpc_service/testsuite/test_grpc.py  grpc client test
 
 #### gRPC client
 
 To do the gRPC requests write a client fixture using
 @ref pytest_userver.plugins.grpc_client.grpc_channel "grpc_channel":
 
-@snippet samples/grpc_service/tests/conftest.py  grpc client
+@snippet samples/grpc_service/testsuite/conftest.py  grpc client
 
 Use it to do gRPC requests to the service:
 
-@snippet samples/grpc_service/tests/test_grpc.py  grpc server test
+@snippet samples/grpc_service/testsuite/test_grpc.py  grpc server test
 
 
 ### Unit testing for the sample gRPC service and client (gtest)
