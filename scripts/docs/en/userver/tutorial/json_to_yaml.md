@@ -33,7 +33,7 @@ Write the logic for converting each of the JSON types to YAML type:
 Finally, read data from `std::cin`, parse it as JSON, convert to YAML and
 output it as text:
 
-@snippet samples/json2yaml/json2yaml.cpp  json2yaml - main
+@snippet samples/json2yaml/main.cpp  json2yaml - main
 
 
 ### Build and Run
@@ -49,7 +49,7 @@ cmake -DCMAKE_BUILD_TYPE=Release ..
 make userver-samples-json2yaml
 ```
 
-After that a tool is compiled an it could be used:
+After that a tool is compiled and it could be used:
 ```
 bash
 $ samples/json2yaml/userver-samples-json2yaml

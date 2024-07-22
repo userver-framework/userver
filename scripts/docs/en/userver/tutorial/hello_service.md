@@ -60,7 +60,7 @@ HTTP response code will be set to `500`.
 Note that the component in an anonymous namespace and the only way to add it
 to the component lists in via calling `AppendHello` from "hello_service.hpp":
 
-@snippet samples/hello_service/src/hello_service.hpp  Hello service sample - component interface 
+@snippet samples/hello_service/main.cpp  Hello service sample - main
 
 
 ### Static config
