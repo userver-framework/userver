@@ -45,6 +45,26 @@ properties:
     port:
         type: integer
         description: the port to use for all gRPC services, or 0 to pick any available
+    ssl-conf:
+      type: object
+      description: ssl conf for grpc server
+      properties:
+        port:
+          type: integer
+          description: the port to use for all gRPC services, or 0 to pick any available
+        server_cert:
+          type: string
+          description: server ssl cert
+        server_private_key:
+          type: string
+          description: server ssl private key
+        client_root_cert:
+          type: string
+          description: client ssl root cert
+        verify_client_cert:
+          type: boolean
+          description: verify client cert
+      additionalProperties: false
     unix-socket-path:
         type: string
         description: unix socket absolute path

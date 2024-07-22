@@ -31,6 +31,7 @@ struct ServiceSettings final {
   Middlewares middlewares;
   logging::LoggerPtr access_tskv_logger;
   const dynamic_config::Source config_source;
+  std::optional<std::string> end_point;
 };
 
 /// @brief Listens to requests for a gRPC service, forwarding them to a
@@ -48,6 +49,8 @@ class ServiceWorker {
 
   /// Get the static per-gRPC-service metadata provided by codegen
   virtual const ugrpc::impl::StaticServiceMetadata& GetMetadata() const = 0;
+
+  virtual const std::optional<std::string> EndPoint() const = 0;
 
   /// Start serving requests. Should be called after the grpcpp server starts.
   virtual void Start() = 0;
