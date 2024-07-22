@@ -68,6 +68,8 @@ struct Schema final {
   std::optional<std::unordered_set<std::string>> enum_values;
   std::optional<double> minimum;
   std::optional<double> maximum;
+  std::optional<size_t> min_items;
+  std::optional<size_t> max_items;
 };
 
 Schema Parse(const formats::yaml::Value& schema, formats::parse::To<Schema>);

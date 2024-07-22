@@ -267,6 +267,82 @@ properties:
       "'properties.arr.items'");
 }
 
+TEST(StaticConfigValidator, MinArrayLenFailed) {
+  const std::string kStaticConfig = R"(
+arr: [1]
+)";
+
+  const std::string kSchema = R"(
+type: object
+description: simple array
+additionalProperties: false
+properties:
+    arr:
+        type: array
+        description: integer array
+        minItems: 2
+        items:
+            type: integer
+            description: element of array
+)";
+
+  UEXPECT_THROW_MSG(
+      Validate(kStaticConfig, kSchema), std::runtime_error,
+      "Error while validating static config against schema. "
+      "Expected length of array at path '/' to be >= 2 (actual: 1).");
+
+}
+
+TEST(StaticConfigValidator, MaxArrayLenFailed) {
+  const std::string kStaticConfig = R"(
+arr: [1, 2, 3]
+)";
+
+  const std::string kSchema = R"(
+type: object
+description: simple array
+additionalProperties: false
+properties:
+    arr:
+        type: array
+        description: integer array
+        maxItems: 2
+        items:
+            type: integer
+            description: element of array
+)";
+
+  UEXPECT_THROW_MSG(
+      Validate(kStaticConfig, kSchema), std::runtime_error,
+      "Error while validating static config against schema. "
+      "Expected length of array at path '/' to be <= 2 (actual: 3).");
+
+}
+
+TEST(StaticConfigValidator, ArrayLenPassed) {
+  const std::string kStaticConfig = R"(
+arr: [1, 2, 3]
+)";
+
+  const std::string kSchema = R"(
+type: object
+description: simple array
+additionalProperties: false
+properties:
+    arr:
+        type: array
+        description: integer array
+        mixItems: 1
+        maxItems: 3
+        items:
+            type: integer
+            description: element of array
+)";
+
+  UEXPECT_NO_THROW(Validate(kStaticConfig, kSchema));
+
+}
+
 TEST(StaticConfigValidator, Recursive) {
   const std::string kStaticConfig = R"(
 huge-object:

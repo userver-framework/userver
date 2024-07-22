@@ -27,7 +27,9 @@ void CheckFieldsNames(const formats::yaml::Value& yaml_schema) {
         .Case("items")
         .Case("enum")
         .Case("minimum")
-        .Case("maximum");
+        .Case("maximum")
+        .Case("minItems")
+        .Case("maxItems");
   };
 
   for (const auto& [name, value] : Items(yaml_schema)) {
@@ -71,6 +73,8 @@ void CheckSchemaStructure(const Schema& schema) {
                          {FieldType::kInteger, FieldType::kNumber});
   CheckTypeSupportsField(schema, "maximum", schema.maximum,
                          {FieldType::kInteger, FieldType::kNumber});
+  CheckTypeSupportsField(schema, "minItems", schema.min_items, {FieldType::kArray});
+  CheckTypeSupportsField(schema, "maxItems", schema.max_items, {FieldType::kArray});
 
   if (schema.type == FieldType::kObject) {
     if (!schema.properties.has_value()) {
@@ -169,6 +173,9 @@ Schema Parse(const formats::yaml::Value& schema, formats::parse::To<Schema>) {
   result.minimum = schema["minimum"].As<std::optional<double>>();
   result.maximum = schema["maximum"].As<std::optional<double>>();
 
+  result.min_items = schema["min_items"].As<std::optional<size_t>>();
+  result.max_items = schema["max_items"].As<std::optional<size_t>>();
+
   CheckFieldsNames(schema);
 
   CheckSchemaStructure(result);
@@ -195,6 +202,8 @@ formats::yaml::Value Serialize(const Schema& schema,
   if (schema.enum_values) builder["enum"] = *schema.enum_values;
   if (schema.minimum) builder["minimum"] = *schema.minimum;
   if (schema.maximum) builder["maximum"] = *schema.maximum;
+  if (schema.min_items) builder["minItems"] = *schema.min_items;
+  if (schema.max_items) builder["maxItems"] = *schema.max_items;
   return builder.ExtractValue();
 }
 
