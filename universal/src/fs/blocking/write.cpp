@@ -92,7 +92,7 @@ void RewriteFileContentsAtomically(const std::string& path,
                                    boost::filesystem::perms perms) {
   const auto tmp_path =
       fmt::format("{}{}.tmp", path, utils::generators::GenerateBoostUuid());
-  const boost::filesystem::path boost_tmp_path{path};
+  const boost::filesystem::path boost_tmp_path{tmp_path};
   const auto directory = boost_tmp_path.parent_path().string();
 
   utils::FastScopeGuard guard{[&boost_tmp_path]() noexcept {
