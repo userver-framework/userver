@@ -23,12 +23,12 @@ Let's write a simple JSON to YAML converter with the help of `userver-universal`
 The implementation is quite straightforward. Include the necessary C++ Standard
 library and userver headers:
 
-@snippet samples/json2yaml/json2yaml.hpp  json2yaml - includes
+@snippet samples/json2yaml/src/json2yaml.hpp  json2yaml - includes
 
 Write the logic for converting each of the JSON types to YAML type:
 
-@snippet samples/json2yaml/json2yaml.hpp  json2yaml - convert hpp
-@snippet samples/json2yaml/json2yaml.hpp  json2yaml - convert cpp
+@snippet samples/json2yaml/src/json2yaml.hpp  json2yaml - convert hpp
+@snippet samples/json2yaml/src/json2yaml.cpp  json2yaml - convert cpp
 
 Finally, read data from `std::cin`, parse it as JSON, convert to YAML and
 output it as text:
@@ -71,7 +71,7 @@ The code could be tested using any of the unit-testing frameworks, like
 Boost.Test, GTest, and so forth. Here's how to do it with GTest:
 
 * Write a test:
-  @snippet samples/json2yaml/json2yaml_test.cpp  json2yaml - unittest
+  @snippet samples/json2yaml/unittests/json2yaml_test.cpp  json2yaml - unittest
 * Add its run to CMakeLists.txt:
   @snippet samples/json2yaml/CMakeLists.txt  add_unit_test
 * Run the test via `ctest -V`
@@ -85,10 +85,10 @@ Python with `pytest`:
   @snippet samples/json2yaml/CMakeLists.txt  add_test
 
 * Add a fixture to `conftest.py` to get the path to the CMake built binary:
-  @snippet samples/json2yaml/tests/conftest.py  pytest
+  @snippet samples/json2yaml/testsuite/conftest.py  pytest
 
 * Write the test:
-  @snippet samples/json2yaml/tests/test_basic.py  pytest
+  @snippet samples/json2yaml/testsuite/test_basic.py  pytest
 
 
 ## Full sources

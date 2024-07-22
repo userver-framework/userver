@@ -126,13 +126,13 @@ implemented using the testsuite. To do that you have to:
 
 * Turn on the pytest_userver.plugins.mongo plugin and provide Mongo settings
   info for the testsuite:
-  @snippet samples/mongo_service/tests/conftest.py mongodb settings
+  @snippet samples/mongo_service/testsuite/conftest.py mongodb settings
   The pytest_userver.plugins.service_client.auto_client_deps() fixture
   already known about the mongodb fixture, so there's no need to override the
   extra_client_deps() fixture.
 
 * Write the test:
-  @snippet samples/mongo_service/tests/test_mongo.py  Functional test
+  @snippet samples/mongo_service/testsuite/test_mongo.py  Functional test
 
 ## Full sources
 
