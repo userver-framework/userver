@@ -101,7 +101,7 @@ void ValidateObject(const YamlConfig& object, const Schema& schema) {
 }
 
 void ValidateArrayLen(const YamlConfig& array, const Schema& schema) {
-  if (schema.min_items && (array.GetSize() >= *schema.min_items)) {
+  if (schema.min_items && !(array.GetSize() >= *schema.min_items)) {
     throw std::runtime_error(
         fmt::format("Error while validating static config against schema. "
                     "Expected length of {} at path '{}' to be >= {} (actual: {}).",
@@ -109,7 +109,7 @@ void ValidateArrayLen(const YamlConfig& array, const Schema& schema) {
                     array.GetSize()));
   }
 
-  if (schema.max_items && (array.GetSize() <= *schema.max_items)) {
+  if (schema.max_items && !(array.GetSize() <= *schema.max_items)) {
     throw std::runtime_error(
         fmt::format("Error while validating static config against schema. "
                     "Expected length of {} at path '{}' to be <= {} (actual: {}).",

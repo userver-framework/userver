@@ -289,7 +289,7 @@ properties:
   UEXPECT_THROW_MSG(
       Validate(kStaticConfig, kSchema), std::runtime_error,
       "Error while validating static config against schema. "
-      "Expected length of array at path '/' to be >= 2 (actual: 1).");
+      "Expected length of array at path 'arr' to be >= 2 (actual: 1).");
 
 }
 
@@ -315,7 +315,7 @@ properties:
   UEXPECT_THROW_MSG(
       Validate(kStaticConfig, kSchema), std::runtime_error,
       "Error while validating static config against schema. "
-      "Expected length of array at path '/' to be <= 2 (actual: 3).");
+      "Expected length of array at path 'arr' to be <= 2 (actual: 3).");
 
 }
 
