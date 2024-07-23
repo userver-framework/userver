@@ -61,6 +61,9 @@ using ParseException = formats::yaml::ParseException;
 /// `yaml["some_element"]["value"].As<int>()` is the value of `ENV_NAME`
 /// environment variable if it exists; otherwise it is `5`.
 ///
+/// @note `#env`, `#file` and `#fallback` also work for keys inside
+/// `config_vars`.
+///
 /// @warning YamlConfig::Mode::kEnvAllowed or
 /// YamlConfig::Mode::kEnvAndFileAllowed should be used only on configs that
 /// come from trusted environments. Otherwise, an attacker could create a
