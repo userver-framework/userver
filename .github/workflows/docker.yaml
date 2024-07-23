@@ -15,6 +15,7 @@ jobs:
             matrix:
                 include:
                   - cmake-flags: >-
+                        -DUSERVER_FEATURE_CHAOTIC=0
                         -DUSERVER_FEATURE_MYSQL=0
                         -DUSERVER_FEATURE_MONGODB=0
                         -DUSERVER_FEATURE_POSTGRESQL=0
