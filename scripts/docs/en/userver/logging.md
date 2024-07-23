@@ -229,6 +229,7 @@ For example, this is how you can disable logging of all Span for MongoDB (that i
 ```
 
 
+@anchor opentelemetry
 ## OpenTelemetry protocol
 
 It is possible to use OpenTelemetry protocol for logs and tracing exporting.

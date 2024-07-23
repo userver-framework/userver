@@ -79,6 +79,7 @@ The following CMake options are used by userver:
 | USERVER_FEATURE_MYSQL                  | Provide asynchronous driver for MySQL/MariaDB                                                                         | ${USERVER_IS_THE_ROOT_PROJECT}                         |
 | USERVER_FEATURE_ROCKS                  | Provide asynchronous driver for RocksDB                                                                               | ${USERVER_IS_THE_ROOT_PROJECT}                         |
 | USERVER_FEATURE_YDB                    | Provide asynchronous driver for YDB                                                                                   | ${USERVER_IS_THE_ROOT_PROJECT} AND C++ standard >= 20  |
+| USERVER_FEATURE_OTLP                   | Provide Logger for OpenTelemetry protocol                                                                             | ${USERVER_IS_THE_ROOT_PROJECT}                         |
 | USERVER_FEATURE_UTEST                  | Provide 'utest' and 'ubench' for unit testing and benchmarking coroutines                                             | ${USERVER_FEATURE_CORE}                                |
 | USERVER_FEATURE_CRYPTOPP_BLAKE2        | Provide wrappers for blake2 algorithms of crypto++                                                                    | ON                                                     |
 | USERVER_FEATURE_PATCH_LIBPQ            | Apply patches to the libpq (add portals support), requires libpq.a                                                    | ON                                                     |
@@ -165,6 +166,7 @@ userver is split into multiple CMake libraries.
 | `userver::mysql`           | `USERVER_FEATURE_MYSQL`                          | `mysql`               | @ref scripts/docs/en/userver/mysql/mysql_driver.md |
 | `userver::rocks`           | `USERVER_FEATURE_ROCKS`                          | `rocks`               | TODO                                               |
 | `userver::ydb`             | `USERVER_FEATURE_YDB`                            | `ydb`                 | TODO                                               |
+| `userver::otlp`            | `USERVER_FEATURE_OTLP`                           | `otlp`                | @ref opentelemetry "OpenTelemetry Protocol"        |
 
 Make sure to:
 
