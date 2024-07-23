@@ -32,12 +32,6 @@ class MiddlewareCallContext final {
   /// @brief Get original gRPC Call
   CallAnyBase& GetCall() const;
 
-  /// @brief Get name of gRPC service
-  std::string_view GetServiceName() const;
-
-  /// @brief Get name of called gRPC method
-  std::string_view GetMethodName() const;
-
   /// @brief Get values extracted from dynamic_config. Snapshot will be
   /// deleted when the last middleware completes
   const dynamic_config::Snapshot& GetInitialDynamicConfig() const;

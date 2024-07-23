@@ -31,7 +31,7 @@ function(_userver_prepare_testsuite)
     if(NOT PYTHONCONFIG_FOUND)
       message(FATAL_ERROR "Python dev is not found")
     endif()
-    set(USERVER_PYTHON_DEV_CHECKED TRUE CACHE INTERNAL "")
+    set(USERVER_PYTHON_DEV_CHECKED TRUE CACHE INTERNAL "" FORCE)
   endif()
 
   if(NOT USERVER_TESTSUITE_DIR)

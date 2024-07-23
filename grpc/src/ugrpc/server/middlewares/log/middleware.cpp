@@ -52,7 +52,12 @@ void Middleware::CallRequestHook(const MiddlewareCallContext& context,
 
   if (storage.Get(kIsFirstRequest)) {
     storage.Set(kIsFirstRequest, false);
-    log_extra.Extend("type", "request");
+
+    const auto call_kind = context.GetCall().GetCallKind();
+    if (call_kind == CallKind::kUnaryCall ||
+        call_kind == CallKind::kResponseStream) {
+      log_extra.Extend("type", "request");
+    }
   }
   LOG(span.GetLogLevel()) << "gRPC request message" << std::move(log_extra);
 }
@@ -65,7 +70,6 @@ void Middleware::CallResponseHook(const MiddlewareCallContext& context,
   if (call_kind == CallKind::kUnaryCall ||
       call_kind == CallKind::kRequestStream) {
     span.AddTag("grpc_type", "response");
-    span.AddNonInheritableTag("type", "response");
     span.AddNonInheritableTag("body",
                               GetMessageForLogging(response, settings_));
   } else {
@@ -83,16 +87,30 @@ void Middleware::Handle(MiddlewareCallContext& context) const {
 
   auto& span = context.GetCall().GetSpan();
   if (settings_.local_log_level) {
-    span.SetLocalLogLevel(*settings_.local_log_level);
+    span.SetLocalLogLevel(settings_.local_log_level);
   }
-  const auto meta_type =
-      fmt::format("{}/{}", context.GetServiceName(), context.GetMethodName());
 
-  span.AddTag("meta_type", meta_type);
+  span.AddTag("meta_type", std::string{context.GetCall().GetCallName()});
+  span.AddNonInheritableTag("type", "response");
   if (call_kind == CallKind::kResponseStream ||
       call_kind == CallKind::kBidirectionalStream) {
-    span.AddNonInheritableTag("type", "response");
-    span.AddNonInheritableTag("body", "stream finished");
+    // Just like in HTTP, there must be a single trailing Span log
+    // with type=response and some body. We don't have a real single response
+    // (responses are written separately, 1 log per response), so we fake
+    // the required response log.
+    span.AddNonInheritableTag("body", "response stream finished");
+  }
+
+  if (call_kind == CallKind::kRequestStream ||
+      call_kind == CallKind::kBidirectionalStream) {
+    // Just like in HTTP, there must be a single initial log
+    // with type=request and some body. We don't have a real single request
+    // (requests are written separately, 1 log per request), so we fake
+    // the required request log.
+    LOG(span.GetLogLevel())
+        << "gRPC request stream"
+        << logging::LogExtra{{"body", "request stream started"},
+                             {"type", "request"}};
   }
 
   context.Next();
