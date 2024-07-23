@@ -16,7 +16,17 @@ namespace ugrpc::tests {
 
 /// @see @ref ugrpc::tests::ServiceBase
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
-class ServiceFixtureBase : protected ServiceBase, public ::testing::Test {};
+class ServiceFixtureBase : protected ServiceBase, public ::testing::Test {
+ protected:
+  /// @returns the statistics of the server and clients.
+  utils::statistics::Snapshot GetStatistics(
+      std::string prefix,
+      std::vector<utils::statistics::Label> require_labels = {}) {
+    return utils::statistics::Snapshot{this->GetStatisticsStorage(),
+                                       std::move(prefix),
+                                       std::move(require_labels)};
+  }
+};
 
 /// @see @ref ugrpc::tests::Service
 template <typename GrpcService>

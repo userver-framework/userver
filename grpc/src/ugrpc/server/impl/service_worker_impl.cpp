@@ -100,6 +100,21 @@ void SetupSpan(std::optional<tracing::InPlaceSpan>& span_holder,
                              ugrpc::impl::ToGrpcString(span.GetLink()));
 }
 
+void ParseGenericCallName(std::string_view generic_call_name,
+                          std::string_view& call_name,
+                          std::string_view& service_name,
+                          std::string_view& method_name) {
+  UINVARIANT(!generic_call_name.empty() && generic_call_name[0] == '/',
+             "Generic service call name must start with a '/'");
+  generic_call_name.remove_prefix(1);
+  const auto slash_pos = generic_call_name.find('/');
+  UINVARIANT(slash_pos != std::string_view::npos,
+             "Generic service call name must contain a '/'");
+  call_name = generic_call_name;
+  service_name = generic_call_name.substr(0, slash_pos);
+  method_name = generic_call_name.substr(slash_pos + 1);
+}
+
 }  // namespace ugrpc::server::impl
 
 USERVER_NAMESPACE_END

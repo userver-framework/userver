@@ -3,6 +3,7 @@
 /// @file userver/ugrpc/server/rpc.hpp
 /// @brief Classes representing an incoming RPC
 
+#include <google/protobuf/message.h>
 #include <grpcpp/impl/codegen/proto_utils.h>
 #include <grpcpp/server_context.h>
 #include <boost/range/adaptor/reversed.hpp>
@@ -468,13 +469,15 @@ void InputStream<Request, Response>::Finish(Response& response) {
   UINVARIANT(state_ != State::kFinished,
              "'Finish' called on a finished stream");
   state_ = State::kFinished;
-  LogFinish(grpc::Status::OK);
+
+  const auto& status = grpc::Status::OK;
+  LogFinish(status);
 
   ApplyResponseHook(&response);
 
-  impl::Finish(stream_, response, grpc::Status::OK, GetCallName());
-  Statistics().OnExplicitFinish(grpc::StatusCode::OK);
-  ugrpc::impl::UpdateSpanWithStatus(GetSpan(), grpc::Status::OK);
+  impl::Finish(stream_, response, status, GetCallName());
+  Statistics().OnExplicitFinish(status.error_code());
+  ugrpc::impl::UpdateSpanWithStatus(GetSpan(), status);
 }
 
 template <typename Request, typename Response>
@@ -536,7 +539,8 @@ void OutputStream<Response>::Finish() {
   UINVARIANT(state_ != State::kFinished,
              "'Finish' called on a finished stream");
   state_ = State::kFinished;
-  const auto status = grpc::Status::OK;
+
+  const auto& status = grpc::Status::OK;
   LogFinish(status);
   impl::Finish(stream_, status, GetCallName());
   Statistics().OnExplicitFinish(grpc::StatusCode::OK);
@@ -570,12 +574,14 @@ void OutputStream<Response>::WriteAndFinish(Response& response) {
   // may never actually be delivered
   grpc::WriteOptions write_options{};
 
-  const auto status = grpc::Status::OK;
+  const auto& status = grpc::Status::OK;
   LogFinish(status);
 
   ApplyResponseHook(&response);
 
   impl::WriteAndFinish(stream_, response, write_options, status, GetCallName());
+  Statistics().OnExplicitFinish(grpc::StatusCode::OK);
+  ugrpc::impl::UpdateSpanWithStatus(GetSpan(), status);
 }
 
 template <typename Response>
@@ -603,7 +609,9 @@ bool BidirectionalStream<Request, Response>::Read(Request& request) {
   UINVARIANT(!are_reads_done_,
              "'Read' called while the stream is half-closed for reads");
   if (impl::Read(stream_, request)) {
-    ApplyRequestHook(&request);
+    if constexpr (std::is_base_of_v<google::protobuf::Message, Request>) {
+      ApplyRequestHook(&request);
+    }
     return true;
   } else {
     are_reads_done_ = true;
@@ -623,7 +631,9 @@ void BidirectionalStream<Request, Response>::Write(Response& response) {
   // Don't buffer writes, optimize for ping-pong-style interaction
   grpc::WriteOptions write_options{};
 
-  ApplyResponseHook(&response);
+  if constexpr (std::is_base_of_v<google::protobuf::Message, Response>) {
+    ApplyResponseHook(&response);
+  }
 
   try {
     impl::Write(stream_, response, write_options, GetCallName());
@@ -637,7 +647,8 @@ template <typename Request, typename Response>
 void BidirectionalStream<Request, Response>::Finish() {
   UINVARIANT(!is_finished_, "'Finish' called on a finished stream");
   is_finished_ = true;
-  const auto status = grpc::Status::OK;
+
+  const auto& status = grpc::Status::OK;
   LogFinish(status);
   impl::Finish(stream_, status, GetCallName());
   Statistics().OnExplicitFinish(grpc::StatusCode::OK);
@@ -671,12 +682,16 @@ void BidirectionalStream<Request, Response>::WriteAndFinish(
   // Don't buffer writes, optimize for ping-pong-style interaction
   grpc::WriteOptions write_options{};
 
-  const auto status = grpc::Status::OK;
-
-  ApplyResponseHook(&response);
-
+  const auto& status = grpc::Status::OK;
   LogFinish(status);
+
+  if constexpr (std::is_base_of_v<google::protobuf::Message, Response>) {
+    ApplyResponseHook(&response);
+  }
+
   impl::WriteAndFinish(stream_, response, write_options, status, GetCallName());
+  Statistics().OnExplicitFinish(status.error_code());
+  ugrpc::impl::UpdateSpanWithStatus(GetSpan(), status);
 }
 
 template <typename Request, typename Response>

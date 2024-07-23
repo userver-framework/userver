@@ -24,7 +24,7 @@ file(GLOB_RECURSE SOURCES
 
 file(GLOB_RECURSE UNIT_TEST_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/tests/src/*pp
+  ${CMAKE_CURRENT_SOURCE_DIR}/tests/*pp
   ${CMAKE_CURRENT_SOURCE_DIR}/utest/src/*_test.cpp
 )
 list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES})
@@ -149,7 +149,7 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   add_executable(${PROJECT_NAME}-unittest ${UNIT_TEST_SOURCES})
   target_include_directories(${PROJECT_NAME}-unittest PRIVATE
       ${CMAKE_CURRENT_SOURCE_DIR}/src
-      ${CMAKE_CURRENT_SOURCE_DIR}/tests/src
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests
   )
   target_link_libraries(${PROJECT_NAME}-unittest
       PUBLIC

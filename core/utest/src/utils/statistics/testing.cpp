@@ -11,6 +11,7 @@
 #include <boost/container/flat_set.hpp>
 #include <boost/range/iterator_range.hpp>
 
+#include <userver/utils/assert.hpp>
 #include <userver/utils/statistics/fmt.hpp>
 #include <userver/utils/statistics/histogram.hpp>
 
@@ -130,6 +131,7 @@ MetricValue Snapshot::SingleMetric(std::string path,
 }
 
 void PrintTo(const Snapshot& data, std::ostream* out) {
+  UASSERT(out);
   *out << "{";
   for (const auto& [path, entry] : data.data_->metrics) {
     *out << fmt::format("{};{} {}", path, fmt::join(entry.labels, ";"),
@@ -137,6 +139,11 @@ void PrintTo(const Snapshot& data, std::ostream* out) {
     *out << ";\n";
   }
   *out << "}";
+}
+
+void PrintTo(MetricValue value, std::ostream* out) {
+  UASSERT(out);
+  *out << fmt::to_string(value);
 }
 
 }  // namespace utils::statistics

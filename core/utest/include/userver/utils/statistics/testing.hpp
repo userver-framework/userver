@@ -74,6 +74,9 @@ class Snapshot final {
 /// @endcode
 void PrintTo(const Snapshot& data, std::ostream*);
 
+/// @brief Support for gtest diagnostics for utils::statistics::MetricValue.
+void PrintTo(MetricValue value, std::ostream*);
+
 }  // namespace utils::statistics
 
 USERVER_NAMESPACE_END

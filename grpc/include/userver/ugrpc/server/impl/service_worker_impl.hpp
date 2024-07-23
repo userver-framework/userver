@@ -58,30 +58,35 @@ void ReportCustomError(
 void SetupSpan(std::optional<tracing::InPlaceSpan>& span_holder,
                grpc::ServerContext& context, std::string_view call_name);
 
+void ParseGenericCallName(std::string_view generic_call_name,
+                          std::string_view& call_name,
+                          std::string_view& service_name,
+                          std::string_view& method_name);
+
 /// Per-gRPC-service data
 template <typename GrpcppService>
 struct ServiceData final {
   ServiceData(const ServiceSettings& settings,
-              const ugrpc::impl::StaticServiceMetadata& metadata)
+              const ugrpc::impl::StaticServiceMetadata& metadata,
+              ugrpc::impl::ServiceStatistics* service_statistics)
       : settings(settings),
         metadata(metadata),
-        statistics(settings.statistics_storage.GetServiceStatistics(
-            metadata, std::nullopt)) {}
+        service_statistics(service_statistics) {}
 
-  ~ServiceData() = default;
+  ~ServiceData() { wait_tokens.WaitForAllTokens(); }
 
   const ServiceSettings settings;
   const ugrpc::impl::StaticServiceMetadata metadata;
   AsyncService<GrpcppService> async_service{metadata.method_full_names.size()};
   utils::impl::WaitTokenStorage wait_tokens;
-  ugrpc::impl::ServiceStatistics& statistics;
+  ugrpc::impl::ServiceStatistics* const service_statistics;
 };
 
 /// Per-gRPC-method data
 template <typename GrpcppService, typename CallTraits>
 struct MethodData final {
   ServiceData<GrpcppService>& service_data;
-  int queue_num{0};
+  const std::size_t queue_id{};
   const std::size_t method_id{};
   typename CallTraits::ServiceBase& service;
   const typename CallTraits::ServiceMethod service_method;
@@ -91,8 +96,10 @@ struct MethodData final {
   // Remove name of the service and slash
   std::string_view method_name{
       call_name.substr(service_data.metadata.service_full_name.size() + 1)};
-  ugrpc::impl::MethodStatistics& statistics{
-      service_data.statistics.GetMethodStatistics(method_id)};
+  ugrpc::impl::MethodStatistics* const statistics{
+      service_data.service_statistics
+          ? &service_data.service_statistics->GetMethodStatistics(method_id)
+          : nullptr};
 };
 
 template <typename GrpcppService, typename CallTraits>
@@ -116,10 +123,10 @@ class CallData final {
 
     context_.AsyncNotifyWhenDone(notify_when_done.GetTag());
 
-    // the request for an incoming RPC must be performed synchronously
     auto& queue = method_data_.service_data.settings.queue.GetQueue(
-        method_data_.queue_num);
+        method_data_.queue_id);
 
+    // the request for an incoming RPC must be performed synchronously
     method_data_.service_data.async_service.template Prepare<CallTraits>(
         method_data_.method_id, context_, initial_request_, raw_responder_,
         queue, queue, prepare_.GetTag());
@@ -137,16 +144,18 @@ class CallData final {
       return;
     }
 
+    utils::FastScopeGuard await_notify_when_done([&]() noexcept {
+      // Even if we finished before receiving notification that call is done, we
+      // should wait on this async operation. CompletionQueue has a pointer to
+      // stack-allocated object, that object is going to be freed upon exit. To
+      // prevent segfaults, wait until queue is done with this object.
+      notify_when_done.Wait();
+    });
+
     // start a concurrent listener immediately, as advised by gRPC docs
     ListenAsync(method_data_);
 
     HandleRpc();
-
-    // Even if we finished before receiving notification that call is done, we
-    // should wait on this async operation. CompletionQueue has a pointer to
-    // stack-allocated object, that object is going to be freed upon exit. To
-    // prevent segfaults, wait until queue is done with this object.
-    notify_when_done.Wait();
   }
 
   static void ListenAsync(const MethodData<GrpcppService, CallTraits>& data) {
@@ -162,20 +171,24 @@ class CallData final {
   using Call = typename CallTraits::Call;
 
   void HandleRpc() {
-    const auto call_name = method_data_.call_name;
-    auto& service = method_data_.service;
-    const auto service_method = method_data_.service_method;
-
-    const auto& service_name =
-        method_data_.service_data.metadata.service_full_name;
-    const auto& method_name = method_data_.method_name;
+    auto call_name = method_data_.call_name;
+    auto service_name = method_data_.service_data.metadata.service_full_name;
+    auto method_name = method_data_.method_name;
+    if constexpr (CallTraits::kCallCategory == CallCategory::kGeneric) {
+      ParseGenericCallName(context_.method(), call_name, service_name,
+                           method_name);
+    }
 
     const auto& middlewares = method_data_.service_data.settings.middlewares;
 
     SetupSpan(span_, context_, call_name);
     utils::FastScopeGuard destroy_span([&]() noexcept { span_.reset(); });
 
-    ugrpc::impl::RpcStatisticsScope statistics_scope(method_data_.statistics);
+    ugrpc::impl::RpcStatisticsScope statistics_scope{
+        method_data_.statistics
+            ? *method_data_.statistics
+            : method_data_.service_data.settings.statistics_storage
+                  .GetGenericStatistics(call_name, std::nullopt)};
 
     auto& access_tskv_logger =
         method_data_.service_data.settings.access_tskv_logger;
@@ -186,9 +199,10 @@ class CallData final {
                    raw_responder_);
     auto do_call = [&] {
       if constexpr (std::is_same_v<InitialRequest, NoInitialRequest>) {
-        (service.*service_method)(responder);
+        (method_data_.service.*(method_data_.service_method))(responder);
       } else {
-        (service.*service_method)(responder, std::move(initial_request_));
+        (method_data_.service.*(method_data_.service_method))(
+            responder, std::move(initial_request_));
       }
     };
 
@@ -219,12 +233,24 @@ class CallData final {
 
   MethodData<GrpcppService, CallTraits> method_data_;
 
-  grpc::ServerContext context_{};
+  typename CallTraits::ContextType context_{};
   InitialRequest initial_request_{};
   RawCall raw_responder_{&context_};
   ugrpc::impl::AsyncMethodInvocation prepare_;
   std::optional<tracing::InPlaceSpan> span_{};
 };
+
+template <typename GrpcppService, typename Service, typename... ServiceMethods>
+void StartServing(ServiceData<GrpcppService>& service_data, Service& service,
+                  ServiceMethods... service_methods) {
+  for (std::size_t queue_id = 0;
+       queue_id < service_data.settings.queue.GetSize(); ++queue_id) {
+    std::size_t method_id = 0;
+    (CallData<GrpcppService, CallTraits<ServiceMethods>>::ListenAsync(
+         {service_data, queue_id, method_id++, service, service_methods}),
+     ...);
+  }
+}
 
 template <typename GrpcppService>
 class ServiceWorkerImpl final : public ServiceWorker {
@@ -233,20 +259,12 @@ class ServiceWorkerImpl final : public ServiceWorker {
   ServiceWorkerImpl(ServiceSettings&& settings,
                     ugrpc::impl::StaticServiceMetadata&& metadata,
                     Service& service, ServiceMethods... service_methods)
-      : service_data_(settings, metadata),
-        start_{[this, &service, service_methods...] {
-          for (size_t i = 0; i < service_data_.settings.queue.GetSize(); i++) {
-            std::size_t method_id = 0;
-            (CallData<GrpcppService, CallTraits<ServiceMethods>>::ListenAsync(
-                 {service_data_, static_cast<int>(i), method_id++, service,
-                  service_methods}),
-             ...);
-          }
-        }} {}
-
-  ~ServiceWorkerImpl() override {
-    service_data_.wait_tokens.WaitForAllTokens();
-  }
+      : statistics_(settings.statistics_storage.GetServiceStatistics(
+            metadata, std::nullopt)),
+        service_data_(std::move(settings), std::move(metadata), &statistics_),
+        start_([this, &service, service_methods...] {
+          impl::StartServing(service_data_, service, service_methods...);
+        }) {}
 
   grpc::Service& GetService() override { return service_data_.async_service; }
 
@@ -257,6 +275,7 @@ class ServiceWorkerImpl final : public ServiceWorker {
   void Start() override { start_(); }
 
  private:
+  ugrpc::impl::ServiceStatistics& statistics_;
   ServiceData<GrpcppService> service_data_;
   std::function<void()> start_;
 };

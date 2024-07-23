@@ -27,6 +27,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
 
+class GenericServiceBase;
+
 /// Settings relating to the whole gRPC server
 struct ServerConfig final {
   /// The port to listen to. If `0`, a free port will be picked automatically.
@@ -79,6 +81,9 @@ class Server final
   /// component is responsible for keeping `service` and `middlewares` alive at
   /// least until `Stop` is called.
   void AddService(ServiceBase& service, ServiceConfig&& config);
+
+  /// @overload
+  void AddService(GenericServiceBase& service, ServiceConfig&& config);
 
   /// @brief Get names of all registered services
   std::vector<std::string_view> GetServiceNames() const;

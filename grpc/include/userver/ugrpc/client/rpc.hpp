@@ -336,7 +336,7 @@ class [[nodiscard]] OutputStream final : public CallAnyBase {
 /// will throw an exception.
 /// ## Usage example:
 ///
-/// @snippet grpc/tests/src/stream_test.cpp concurrent bidirectional stream
+/// @snippet grpc/tests/stream_test.cpp concurrent bidirectional stream
 ///
 template <typename Request, typename Response>
 class [[nodiscard]] BidirectionalStream final : public CallAnyBase {

@@ -45,10 +45,19 @@ ServiceBase::~ServiceBase() = default;
 
 void ServiceBase::RegisterService(server::ServiceBase& service) {
   adding_middlewares_allowed_ = false;
-  server_.AddService(service, server::ServiceConfig{
-                                  engine::current_task::GetTaskProcessor(),
-                                  server_middlewares_,
-                              });
+  server_.AddService(service, MakeServiceConfig());
+}
+
+void ServiceBase::RegisterService(server::GenericServiceBase& service) {
+  adding_middlewares_allowed_ = false;
+  server_.AddService(service, MakeServiceConfig());
+}
+
+server::ServiceConfig ServiceBase::MakeServiceConfig() {
+  return server::ServiceConfig{
+      engine::current_task::GetTaskProcessor(),
+      server_middlewares_,
+  };
 }
 
 void ServiceBase::StartServer(

@@ -1,13 +1,13 @@
-#include <userver/utest/utest.hpp>
+#include <userver/ugrpc/client/generic.hpp>
 
 #include <cstdint>
 
 #include <ugrpc/client/middlewares/log/middleware.hpp>
 #include <userver/ugrpc/byte_buffer_utils.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
-#include <userver/ugrpc/client/generic.hpp>
 #include <userver/ugrpc/tests/service_fixtures.hpp>
 #include <userver/utest/log_capture_fixture.hpp>
+#include <userver/utest/utest.hpp>
 
 #include <tests/unit_test_service.usrv.pb.hpp>
 
@@ -15,7 +15,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-const grpc::string kSayHelloCallName = "sample.ugrpc.UnitTestService/SayHello";
+constexpr std::string_view kSayHelloCallName =
+    "sample.ugrpc.UnitTestService/SayHello";
 
 class UnitTestService final : public sample::ugrpc::UnitTestServiceBase {
  public:
@@ -36,7 +37,8 @@ sample::ugrpc::GreetingResponse PerformGenericUnaryCall(
   /// [sample]
   const auto client = client_factory.MakeClient<ugrpc::client::GenericClient>();
 
-  const grpc::string call_name = "sample.ugrpc.UnitTestService/SayHello";
+  constexpr std::string_view call_name =
+      "sample.ugrpc.UnitTestService/SayHello";
 
   sample::ugrpc::GreetingRequest request;
   request.set_name("generic");

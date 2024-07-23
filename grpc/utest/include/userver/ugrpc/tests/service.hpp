@@ -18,6 +18,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace ugrpc::server {
+class GenericServiceBase;
+}  // namespace ugrpc::server
+
 /// userver gRPC testing facilities
 namespace ugrpc::tests {
 
@@ -35,6 +39,9 @@ class ServiceBase {
   /// Register a gRPC service implementation. The caller owns the service and
   /// should ensure that the services live at least until StopServer is called.
   void RegisterService(server::ServiceBase& service);
+
+  /// @overload
+  void RegisterService(server::GenericServiceBase& service);
 
   /// Starts the server and connects a grpc channel to it.
   /// Should be called after the services are registered.
@@ -72,6 +79,8 @@ class ServiceBase {
   utils::statistics::Storage& GetStatisticsStorage();
 
  private:
+  server::ServiceConfig MakeServiceConfig();
+
   utils::statistics::Storage statistics_storage_;
   dynamic_config::StorageMock config_storage_;
   server::Server server_;
