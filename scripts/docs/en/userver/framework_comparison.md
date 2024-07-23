@@ -82,7 +82,7 @@ use ❌ and ❓ respectively.
 
 The table above shows the well-developed functionality of userver. Additionally userver is highly effective which is proven by the results of the Techempower benchmark run. Userver comes ahead of its competitors from the table. @ref bnchrs "[3]", see [[↗]][techempower-run]
 
-![top15](scripts/docs/img/top15.png)
+![top15](/top15.png)
 
 [techempower-run]: https://www.techempower.com/benchmarks/#section=test&runid=3c2e9871-9c2a-4ff3-bc31-620f65da4e74&hw=ph&test=composite
 
