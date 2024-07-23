@@ -7,6 +7,7 @@
 #include <userver/engine/io/socket.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/utils/async.hpp>
+#include <userver/utils/str_icase.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <userver/server/websocket/server.hpp>
@@ -33,10 +34,8 @@ std::string WebsocketHandlerBase::HandleRequestThrow(
     const server::http::HttpRequest& request,
     server::request::RequestContext& context) const {
   if (request.GetMethod() != server::http::HttpMethod::kGet ||
-      request.GetHeader(USERVER_NAMESPACE::http::headers::kUpgrade) !=
-          "websocket" ||
-      request.GetHeader(USERVER_NAMESPACE::http::headers::kConnection) !=
-          "Upgrade") {
+      !utils::StrIcaseEqual()(request.GetHeader(USERVER_NAMESPACE::http::headers::kUpgrade), std::string_view("websocket")) ||
+      !utils::StrIcaseEqual()(request.GetHeader(USERVER_NAMESPACE::http::headers::kConnection), std::string_view("upgrade"))) {
     HandleNonWebsocketRequest(request, context);
   }
 
