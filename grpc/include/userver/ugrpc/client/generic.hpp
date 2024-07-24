@@ -59,6 +59,8 @@ struct GenericOptions {
 /// ## Example GenericClient usage with known message types
 ///
 /// @snippet grpc/tests/generic_client_test.cpp  sample
+///
+/// For a more complete sample, see @ref grpc_generic_api.
 class GenericClient final {
  public:
   GenericClient(GenericClient&&) noexcept = default;

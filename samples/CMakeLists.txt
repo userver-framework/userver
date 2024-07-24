@@ -22,6 +22,9 @@ if (USERVER_FEATURE_OTLP)
 endif()
 
 if (USERVER_FEATURE_GRPC)
+  add_subdirectory(grpc-generic-proxy)
+  add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-grpc-generic-proxy)
+
   add_subdirectory(grpc_service)
   add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-grpc_service)
 

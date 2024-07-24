@@ -169,6 +169,34 @@ Use ugrpc::server::MiddlewareBase and ugrpc::client::MiddlewareBase to implement
 new middlewares.
 
 
+@anchor grpc_generic_api
+## Generic API
+
+gRPC generic API allows to call and accept RPCs with dynamic service and method names.
+The other side will see this as a normal RPC, it does not need to use generic API.
+
+Intended mainly for use in proxies. Metadata can be used to proxy the request without parsing it.
+
+See details in:
+
+* @ref ugrpc::client::GenericClient ;
+* @ref ugrpc::server::GenericServiceBase .
+
+Full example showing the usage of both:
+
+* @include samples/grpc-generic-proxy/src/proxy_service.hpp
+* @include samples/grpc-generic-proxy/src/proxy_service.cpp
+* @include samples/grpc-generic-proxy/main.cpp
+* @include samples/grpc-generic-proxy/static_config.yaml
+* @include samples/grpc-generic-proxy/config_vars.yaml
+* @include samples/grpc-generic-proxy/CMakeLists.txt
+
+Based on:
+
+* grpcpp [generic stub](https://grpc.github.io/grpc/cpp/grpcpp_2generic_2generic__stub_8h.html);
+* grpcpp [generic service](https://grpc.github.io/grpc/cpp/grpcpp_2generic_2async__generic__service_8h.html).
+
+
 ## Metrics
 
 * Client metrics are put inside `grpc.client.by-destination {grpc_destination=FULL_SERVICE_NAME/METHOD_NAME}`

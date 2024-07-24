@@ -16,6 +16,7 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::server {
 
 class ServerComponent;
+class GenericServiceBase;
 
 // clang-format off
 
@@ -43,6 +44,9 @@ class ServiceComponentBase : public components::ComponentBase {
   /// RegisterService with it
   void RegisterService(ServiceBase& service);
 
+  /// @overload
+  void RegisterService(GenericServiceBase& service);
+
  private:
   ServerComponent& server_;
   ServiceConfig config_;
@@ -55,7 +59,8 @@ template <typename ServiceInterface>
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class ServiceComponentBase : public server::ServiceComponentBase,
                              public ServiceInterface {
-  static_assert(std::is_base_of_v<ServiceBase, ServiceInterface>);
+  static_assert(std::is_base_of_v<ServiceBase, ServiceInterface> ||
+                std::is_base_of_v<GenericServiceBase, ServiceInterface>);
 
  public:
   ServiceComponentBase(const components::ComponentConfig& config,

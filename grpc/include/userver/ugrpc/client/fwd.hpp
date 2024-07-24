@@ -12,6 +12,7 @@ class GrpcControl;
 namespace ugrpc::client {
 
 class ClientFactory;
+class GenericClient;
 
 }  // namespace ugrpc::client
 

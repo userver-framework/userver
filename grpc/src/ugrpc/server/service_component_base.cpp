@@ -25,6 +25,11 @@ void ServiceComponentBase::RegisterService(ServiceBase& service) {
   server_.GetServer().AddService(service, std::move(config_));
 }
 
+void ServiceComponentBase::RegisterService(GenericServiceBase& service) {
+  UINVARIANT(!registered_.exchange(true), "Register must only be called once");
+  server_.GetServer().AddService(service, std::move(config_));
+}
+
 yaml_config::Schema ServiceComponentBase::GetStaticConfigSchema() {
   return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object

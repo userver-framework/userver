@@ -43,6 +43,8 @@ namespace ugrpc::server {
 /// ## Example GenericServiceBase usage with known message types
 ///
 /// @snippet grpc/tests/generic_server_test.cpp  sample
+///
+/// For a more complete sample, see @ref grpc_generic_api.
 class GenericServiceBase {
  public:
   /// Inherits from both @ref GenericServiceBase and @ref ServiceComponentBase.

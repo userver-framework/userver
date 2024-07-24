@@ -145,11 +145,9 @@ def _create_servicer_mock(
 
             method = mock.get(name, None)
             if method is not None:
-                call = method(*args, **kwargs)
+                return await method(*args, **kwargs)
             else:
-                call = default_method(self, *args, **kwargs)
-
-            return await call
+                return default_method(self, *args, **kwargs)
 
         @functools.wraps(default_method)
         async def run_stream_method(self, *args, **kwargs):
