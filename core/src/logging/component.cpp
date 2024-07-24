@@ -133,7 +133,9 @@ Logging::~Logging() { Stop(); }
 
 void Logging::Stop() noexcept {
   /// [Signals sample - destr]
+
   signal_subscriber_.Unsubscribe();
+
   /// [Signals sample - destr]
   flush_task_.Stop();
 

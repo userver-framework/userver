@@ -235,7 +235,7 @@ collected functions and fixtures are applied.
 
 Example usage:
 
-@snippet samples/grpc_service/tests/conftest.py Prepare configs
+@snippet samples/grpc_service/testsuite/conftest.py Prepare configs
 
 #### Service client
 
@@ -256,7 +256,7 @@ caches, mocked time, etc.
 Use @ref pytest_userver.plugins.service.service_env "service_env" fixture
 to provide extra environment variables for your service:
 
-@snippet samples/redis_service/tests/conftest.py service_env
+@snippet samples/redis_service/testsuite/conftest.py service_env
 
 #### Extra client dependencies
 

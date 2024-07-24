@@ -88,7 +88,7 @@ equivalents with proper diagnostics are available in `<userver/utest/assert_macr
 
 Example usage:
 
-@snippet universal/src/utest/assert_macros_test.cpp  Sample assert macros usage
+@snippet universal/utest/src/utest/assert_macros_test.cpp  Sample assert macros usage
 
 ### Exception assertions
 

@@ -8,5 +8,7 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 target_link_libraries(${PROJECT_NAME} userver::mongo)
 
 # /// [testsuite - cmake]
+
 userver_testsuite_add_simple()
+
 # /// [testsuite - cmake]

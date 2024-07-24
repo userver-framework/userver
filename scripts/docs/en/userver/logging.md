@@ -182,7 +182,7 @@ All logs in the current task are implicitly linked to the current `Span` for the
 
 If you want to get the current `Span` (for example, you want to write something to `LogExtra`, but do not want to create an additional `Span`), then you can use the following approach:
 
-@snippet tracing/span_test.cpp  Example get current span
+@snippet core/src/tracing/span_test.cpp  Example get current span
 
 ### Creating a Span
 
