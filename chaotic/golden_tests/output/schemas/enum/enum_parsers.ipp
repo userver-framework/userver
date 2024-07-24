@@ -7,7 +7,7 @@ namespace ns {
 static constexpr USERVER_NAMESPACE::utils::TrivialBiMap kns__Enum__Foo_Mapping =
     [](auto selector) {
       return selector()
-          .template Type<ns::Enum::Foo, std::string>()
+          .template Type<ns::Enum::Foo, std::string_view>()
           .Case(ns::Enum::Foo::kOne, "one")
           .Case(ns::Enum::Foo::kTwo, "two")
           .Case(ns::Enum::Foo::kThree, "three");
@@ -15,7 +15,7 @@ static constexpr USERVER_NAMESPACE::utils::TrivialBiMap kns__Enum__Foo_Mapping =
 
 static constexpr USERVER_NAMESPACE::utils::TrivialSet
     kns__Enum_PropertiesNames = [](auto selector) {
-      return selector().template Type<std::string>().Case("foo");
+      return selector().template Type<std::string_view>().Case("foo");
     };
 
 template <typename Value>
@@ -24,7 +24,7 @@ ns::Enum::Foo Parse(Value val,
   const auto value = val.template As<std::string>();
   const auto result = kns__Enum__Foo_Mapping.TryFindBySecond(value);
   if (result.has_value()) {
-    return result.value();
+    return *result;
   }
   USERVER_NAMESPACE::chaotic::ThrowForValue(
       fmt::format("Invalid enum value ({}) for type ns::Enum::Foo", value),

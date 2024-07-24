@@ -49,7 +49,7 @@ USERVER_NAMESPACE::formats::json::Value Serialize(
   if (value.foo) {
     vb["foo"] = USERVER_NAMESPACE::chaotic::Variant<
         USERVER_NAMESPACE::chaotic::Primitive<int>,
-        USERVER_NAMESPACE::chaotic::Primitive<std::string>>{value.foo.value()};
+        USERVER_NAMESPACE::chaotic::Primitive<std::string>>{*value.foo};
   }
 
   return vb.ExtractValue();

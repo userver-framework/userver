@@ -62,7 +62,7 @@ ns::Enum::Foo FromString(std::string_view value,
                          USERVER_NAMESPACE::formats::parse::To<ns::Enum::Foo>) {
   const auto result = kns__Enum__Foo_Mapping.TryFindBySecond(value);
   if (result.has_value()) {
-    return result.value();
+    return *result;
   }
   throw std::runtime_error(
       fmt::format("Invalid enum value ({}) for type ns::Enum::Foo", value));
@@ -89,7 +89,7 @@ USERVER_NAMESPACE::formats::json::Value Serialize(
 
   if (value.foo) {
     vb["foo"] =
-        USERVER_NAMESPACE::chaotic::Primitive<ns::Enum::Foo>{value.foo.value()};
+        USERVER_NAMESPACE::chaotic::Primitive<ns::Enum::Foo>{*value.foo};
   }
 
   return vb.ExtractValue();
@@ -98,7 +98,7 @@ USERVER_NAMESPACE::formats::json::Value Serialize(
 std::string ToString(ns::Enum::Foo value) {
   const auto result = kns__Enum__Foo_Mapping.TryFindByFirst(value);
   if (result.has_value()) {
-    return std::string{result.value()};
+    return std::string{*result};
   }
   throw std::runtime_error("Bad enum value");
 }

@@ -98,8 +98,7 @@ USERVER_NAMESPACE::formats::json::Value Serialize(
   USERVER_NAMESPACE::formats::json::ValueBuilder vb = value.extra;
 
   if (value.foo) {
-    vb["foo"] =
-        USERVER_NAMESPACE::chaotic::Primitive<std::string>{value.foo.value()};
+    vb["foo"] = USERVER_NAMESPACE::chaotic::Primitive<std::string>{*value.foo};
   }
 
   return vb.ExtractValue();
@@ -112,7 +111,7 @@ USERVER_NAMESPACE::formats::json::Value Serialize(
   USERVER_NAMESPACE::formats::json::ValueBuilder vb = value.extra;
 
   if (value.bar) {
-    vb["bar"] = USERVER_NAMESPACE::chaotic::Primitive<int>{value.bar.value()};
+    vb["bar"] = USERVER_NAMESPACE::chaotic::Primitive<int>{*value.bar};
   }
 
   return vb.ExtractValue();
@@ -144,8 +143,8 @@ USERVER_NAMESPACE::formats::json::Value Serialize(
       USERVER_NAMESPACE::formats::common::Type::kObject;
 
   if (value.foo) {
-    vb["foo"] = USERVER_NAMESPACE::chaotic::Primitive<ns::AllOf::Foo>{
-        value.foo.value()};
+    vb["foo"] =
+        USERVER_NAMESPACE::chaotic::Primitive<ns::AllOf::Foo>{*value.foo};
   }
 
   return vb.ExtractValue();

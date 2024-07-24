@@ -19,7 +19,7 @@
             static constexpr {{ userver }}::utils::TrivialSet
                 k{{type.cpp_global_struct_field_name()}}_PropertiesNames =
                 [](auto selector) {
-		    return selector().template Type<std::string>()
+		    return selector().template Type<std::string_view>()
                         {%- for fname in type.fields -%}
                             .Case("{{ fname }}")
                         {%- endfor -%}
@@ -39,7 +39,7 @@
     {% elif type.get_py_type() == 'CppStringEnum' %}
         static constexpr {{ userver }}::utils::TrivialBiMap k{{ type.cpp_global_struct_field_name() }}_Mapping =
             [](auto selector) {
-            return selector().template Type<{{ type.cpp_global_name() }}, std::string>()
+            return selector().template Type<{{ type.cpp_global_name() }}, std::string_view>()
                 {%- for item in type.enums %}
                     .Case({{ type.cpp_global_name() }}::{{ item.cpp_name }}, "{{ item.raw_name }}")
                 {%- endfor -%}
@@ -114,7 +114,7 @@
             const auto value = val.template As<std::int32_t>();
             const auto result = k{{ type.cpp_global_struct_field_name() }}_Mapping.TryFindBySecond(value);
             if (result.has_value()) {
-                return result.value();
+                return *result;
             }
             {{ userver }}::chaotic::ThrowForValue(fmt::format("Invalid enum value ({}) for type {{name}}", value), val);
         }
@@ -126,7 +126,7 @@
             const auto value = val.template As<std::string>();
             const auto result = k{{ type.cpp_global_struct_field_name() }}_Mapping.TryFindBySecond(value);
             if (result.has_value()) {
-                return result.value();
+                return *result;
             }
             {{ userver }}::chaotic::ThrowForValue(fmt::format("Invalid enum value ({}) for type {{name}}", value), val);
         }

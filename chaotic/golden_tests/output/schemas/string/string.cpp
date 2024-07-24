@@ -45,8 +45,7 @@ USERVER_NAMESPACE::formats::json::Value Serialize(
       USERVER_NAMESPACE::formats::common::Type::kObject;
 
   if (value.foo) {
-    vb["foo"] =
-        USERVER_NAMESPACE::chaotic::Primitive<std::string>{value.foo.value()};
+    vb["foo"] = USERVER_NAMESPACE::chaotic::Primitive<std::string>{*value.foo};
   }
 
   return vb.ExtractValue();

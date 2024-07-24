@@ -6,7 +6,7 @@ namespace ns {
 
 static constexpr USERVER_NAMESPACE::utils::TrivialSet
     kns__String_PropertiesNames = [](auto selector) {
-      return selector().template Type<std::string>().Case("foo");
+      return selector().template Type<std::string_view>().Case("foo");
     };
 
 template <typename Value>

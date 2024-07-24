@@ -6,17 +6,17 @@ namespace ns {
 
 static constexpr USERVER_NAMESPACE::utils::TrivialSet
     kns__AllOf__Foo__P0_PropertiesNames = [](auto selector) {
-      return selector().template Type<std::string>().Case("foo");
+      return selector().template Type<std::string_view>().Case("foo");
     };
 
 static constexpr USERVER_NAMESPACE::utils::TrivialSet
     kns__AllOf__Foo__P1_PropertiesNames = [](auto selector) {
-      return selector().template Type<std::string>().Case("bar");
+      return selector().template Type<std::string_view>().Case("bar");
     };
 
 static constexpr USERVER_NAMESPACE::utils::TrivialSet
     kns__AllOf_PropertiesNames = [](auto selector) {
-      return selector().template Type<std::string>().Case("foo");
+      return selector().template Type<std::string_view>().Case("foo");
     };
 
 template <typename Value>
