@@ -75,6 +75,11 @@ class FormatChooser:
                 mark_as_only_json(parent, reason)
 
         for type_ in self.parent:
+            if isinstance(type_, cpp_types.CppVariantWithDiscriminator):
+                mark_as_only_json(
+                    type_,
+                    f'{type_.raw_cpp_type} has JSON-specific field "extra"',
+                )
             if isinstance(type_, cpp_types.CppStruct):
                 assert isinstance(type_, cpp_types.CppStruct)
 

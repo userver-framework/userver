@@ -4,4 +4,4 @@ namespace ns {
 
 struct Enum;
 
-}
+}  // namespace ns

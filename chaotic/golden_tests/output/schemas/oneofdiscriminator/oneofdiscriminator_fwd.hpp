@@ -2,6 +2,10 @@
 
 namespace ns {
 
-struct OneOf;
+struct A;
+
+struct B;
+
+struct OneOfDiscriminator;
 
 }  // namespace ns

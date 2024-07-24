@@ -4,4 +4,4 @@ namespace ns {
 
 struct String;
 
-}
+}  // namespace ns

@@ -9,8 +9,9 @@
 #include <userver/chaotic/type_bundle_hpp.hpp>
 
 namespace ns {
-namespace impl {}
+namespace impl {}  // namespace impl
 }  // namespace ns
+
 namespace ns {
 
 struct String {

@@ -4,4 +4,4 @@ namespace ns {
 
 struct AllOf;
 
-}
+}  // namespace ns
