@@ -140,8 +140,8 @@ See the full example:
 * @ref samples/mongo_service/mongo_service.cpp
 * @ref samples/mongo_service/static_config.yaml
 * @ref samples/mongo_service/CMakeLists.txt
-* @ref samples/mongo_service/tests/conftest.py
-* @ref samples/mongo_service/tests/test_mongo.py
+* @ref samples/mongo_service/testsuite/conftest.py
+* @ref samples/mongo_service/testsuite/test_mongo.py
 
 ----------
 
@@ -153,5 +153,5 @@ See the full example:
 @example samples/mongo_service/mongo_service.cpp
 @example samples/mongo_service/static_config.yaml
 @example samples/mongo_service/CMakeLists.txt
-@example samples/mongo_service/tests/conftest.py
-@example samples/mongo_service/tests/test_mongo.py
+@example samples/mongo_service/testsuite/conftest.py
+@example samples/mongo_service/testsuite/test_mongo.py

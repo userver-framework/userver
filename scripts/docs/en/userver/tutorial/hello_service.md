@@ -53,14 +53,11 @@ would be used for HTTP response body. Otherwise if an exception `exc` derived fr
 `std::exception` is thrown from the function then the
 HTTP response code will be set to `500`.
 
-@snippet samples/hello_service/src/hello_service.cpp  Hello service sample - component
+@include samples/hello_service/src/hello_handler.hpp
+
+@include samples/hello_service/src/hello_handler.cpp
 
 @warning `Handle*` functions are invoked concurrently on the same instance of the handler class. Use @ref scripts/docs/en/userver/synchronization.md "synchronization primitives" or do not modify shared data in `Handle*`.
-
-Note that the component in an anonymous namespace and the only way to add it
-to the component lists in via calling `AppendHello` from "hello_service.hpp":
-
-@snippet samples/hello_service/main.cpp  Hello service sample - main
 
 
 ### Static config
@@ -82,7 +79,7 @@ Finally, we
 add our component to the `components::MinimalServerComponentList()`,
 and start the server with static configuration file passed from command line.
 
-@snippet samples/hello_service/main.cpp  Hello service sample - main
+@include samples/hello_service/main.cpp
 
 
 ### CMake
@@ -154,8 +151,8 @@ Do not forget to add the plugin in conftest.py:
 ## Full sources
 
 See the full example at:
-* @ref samples/hello_service/src/hello_service.hpp
-* @ref samples/hello_service/src/hello_service.cpp
+* @ref samples/hello_service/src/hello_handler.hpp
+* @ref samples/hello_service/src/hello_handler.cpp
 * @ref samples/hello_service/src/say_hello.hpp
 * @ref samples/hello_service/src/say_hello.cpp
 * @ref samples/hello_service/static_config.yaml
@@ -173,8 +170,8 @@ See the full example at:
 @htmlonly </div> @endhtmlonly
 
 
-@example samples/hello_service/src/hello_service.hpp
-@example samples/hello_service/src/hello_service.cpp
+@example samples/hello_service/src/hello_handler.hpp
+@example samples/hello_service/src/hello_handler.cpp
 @example samples/hello_service/src/say_hello.hpp
 @example samples/hello_service/src/say_hello.cpp
 @example samples/hello_service/static_config.yaml

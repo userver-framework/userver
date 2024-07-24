@@ -11,8 +11,8 @@ find_package(userver COMPONENTS core REQUIRED)
 add_library(${PROJECT_NAME}_objs OBJECT
     src/say_hello.hpp
     src/say_hello.cpp
-    src/hello_service.hpp
-    src/hello_service.cpp
+    src/hello_handler.hpp
+    src/hello_handler.cpp
 )
 target_link_libraries(${PROJECT_NAME}_objs userver::core)
 target_include_directories(${PROJECT_NAME}_objs PUBLIC src)
