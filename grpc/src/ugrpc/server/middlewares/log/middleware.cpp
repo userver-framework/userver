@@ -13,6 +13,16 @@ namespace ugrpc::server::middlewares::log {
 
 namespace {
 
+bool IsRequestStream(CallKind kind) {
+  return kind == CallKind::kRequestStream ||
+         kind == CallKind::kBidirectionalStream;
+}
+
+bool IsResponseStream(CallKind kind) {
+  return kind == CallKind::kResponseStream ||
+         kind == CallKind::kBidirectionalStream;
+}
+
 std::string ProtobufAsJsonString(const google::protobuf::Message& message,
                                  uint64_t max_msg_size) {
   google::protobuf::util::JsonPrintOptions options;
@@ -54,8 +64,7 @@ void Middleware::CallRequestHook(const MiddlewareCallContext& context,
     storage.Set(kIsFirstRequest, false);
 
     const auto call_kind = context.GetCall().GetCallKind();
-    if (call_kind == CallKind::kUnaryCall ||
-        call_kind == CallKind::kResponseStream) {
+    if (!IsRequestStream(call_kind)) {
       log_extra.Extend("type", "request");
     }
   }
@@ -67,8 +76,7 @@ void Middleware::CallResponseHook(const MiddlewareCallContext& context,
   auto& span = context.GetCall().GetSpan();
   const auto call_kind = context.GetCall().GetCallKind();
 
-  if (call_kind == CallKind::kUnaryCall ||
-      call_kind == CallKind::kRequestStream) {
+  if (!IsResponseStream(call_kind)) {
     span.AddTag("grpc_type", "response");
     span.AddNonInheritableTag("body",
                               GetMessageForLogging(response, settings_));
@@ -92,17 +100,20 @@ void Middleware::Handle(MiddlewareCallContext& context) const {
 
   span.AddTag("meta_type", std::string{context.GetCall().GetCallName()});
   span.AddNonInheritableTag("type", "response");
-  if (call_kind == CallKind::kResponseStream ||
-      call_kind == CallKind::kBidirectionalStream) {
+  if (IsResponseStream(call_kind)) {
     // Just like in HTTP, there must be a single trailing Span log
-    // with type=response and some body. We don't have a real single response
+    // with type=response and some `body`. We don't have a real single response
     // (responses are written separately, 1 log per response), so we fake
     // the required response log.
     span.AddNonInheritableTag("body", "response stream finished");
+  } else {
+    // Write this dummy `body` in case unary response RPC fails
+    // (with our without status) before receiving the response.
+    // If the RPC finishes with OK status, `body` tag will be overwritten.
+    span.AddNonInheritableTag("body", "error status");
   }
 
-  if (call_kind == CallKind::kRequestStream ||
-      call_kind == CallKind::kBidirectionalStream) {
+  if (IsRequestStream(call_kind)) {
     // Just like in HTTP, there must be a single initial log
     // with type=request and some body. We don't have a real single request
     // (requests are written separately, 1 log per request), so we fake

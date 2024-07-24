@@ -108,7 +108,7 @@ UTEST_F(GenericServerLoggingTest, Logs) {
   EXPECT_EQ(span_log.GetTagOptional("stopwatch_name"),
             "grpc/sample.ugrpc.UnitTestService/SayHello")
       << span_log;
-  EXPECT_EQ(span_log.GetTagOptional("grpc_status"), "OK") << span_log;
+  EXPECT_EQ(span_log.GetTagOptional("grpc_code"), "OK") << span_log;
 }
 
 USERVER_NAMESPACE_END
