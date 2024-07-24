@@ -153,7 +153,7 @@ LogHelper::LogHelper(LoggerRef logger, Level level,
     // The following functions actually never throw if the assertions at the
     // bottom hold.
     pimpl_->PutMessageBegin();
-    if (logger.GetFormat() != Format::kTsv) {
+    if (logger.GetFormat() != Format::kTskvEx) {
       auto tag_writer = GetTagWriter();
       tag_writer.PutTag("module", Module{location});
       logger.PrependCommonTags(tag_writer);

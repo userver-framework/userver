@@ -151,7 +151,7 @@ void TpLogger::Log(Level level, std::string_view msg) {
 }
 
 void TpLogger::PrependCommonTags(TagWriter writer) const {
-  if (GetFormat() == Format::kTsv)
+  if (GetFormat() == Format::kTskvEx)
     return;
 
   auto* const span = tracing::Span::CurrentSpanUnchecked();

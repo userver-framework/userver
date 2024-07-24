@@ -23,13 +23,13 @@ Format FormatFromString(std::string_view format_str) {
     return Format::kRaw;
   }
 
-  if (format_str == "tsv") {
-    return Format::kTsv;
+  if (format_str == "tskv_ex") {
+    return Format::kTskvEx;
   }
 
   UINVARIANT(
       false,
-      fmt::format("Unknown logging format '{}' (must be one of 'tskv', 'ltsv', 'tsv')",
+      fmt::format("Unknown logging format '{}' (must be one of 'tskv', 'ltsv', 'tskv_ex')",
                   format_str));
 }
 
