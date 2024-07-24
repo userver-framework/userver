@@ -41,8 +41,8 @@ std::string WebsocketHandlerBase::HandleRequestThrow(
 
   const std::string& secWebsocketKey =
       request.GetHeader(USERVER_NAMESPACE::http::headers::kWebsocketKey);
-  if (secWebsocketKey.empty()) {
-    LOG_WARNING() << "Empty or missing Websocket Key";
+  if (secWebsocketKey.empty() || 16 != crypto::base64::Base64Decode(secWebsocketKey).size()) {
+    LOG_WARNING() << "Empty or invalid Websocket Key";
     throw server::handlers::ClientError();
   }
 
