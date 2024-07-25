@@ -132,10 +132,6 @@ class HttpHandlerBase : public HandlerBase {
   virtual std::string HandleRequestThrow(
       const http::HttpRequest& request, request::RequestContext& context) const;
 
-  virtual void OnRequestCompleteThrow(
-      const http::HttpRequest& /*request*/,
-      request::RequestContext& /*context*/) const {}
-
   /// The core method for HTTP request handling.
   /// `request` arg contains HTTP headers, full body, etc.
   /// The response body is passed in parts to `ResponseBodyStream`.
