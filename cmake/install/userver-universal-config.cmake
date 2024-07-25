@@ -21,7 +21,6 @@ if(NOT TARGET fmt)
   add_library(fmt ALIAS fmt::fmt)
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/..")
 find_package(cctz REQUIRED)
 find_package(CryptoPP REQUIRED)
 find_package(libyamlcpp REQUIRED)

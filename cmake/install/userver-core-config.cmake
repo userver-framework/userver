@@ -14,9 +14,7 @@ find_package(Boost REQUIRED COMPONENTS
 )
 
 find_package(CURL "7.68" REQUIRED)
-find_package(ZLIB REQUIRED) 
-
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/..")
+find_package(ZLIB REQUIRED)
 find_package(Nghttp2 REQUIRED)
 find_package(LibEv REQUIRED)
 

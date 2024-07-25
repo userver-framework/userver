@@ -88,7 +88,7 @@ _userver_install_targets(COMPONENT redis TARGETS ${PROJECT_NAME})
 
 _userver_directory_install(COMPONENT redis FILES
     "${USERVER_ROOT_DIR}/cmake/install/userver-redis-config.cmake"
-	"${CMAKE_BINARY_DIR}/cmake_generated/FindHiredis.cmake"
+	  "${USERVER_ROOT_DIR}/cmake/modules/FindHiredis.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
 )
 

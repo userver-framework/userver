@@ -62,8 +62,8 @@ _userver_install_targets(COMPONENT mongo TARGETS ${PROJECT_NAME})
 
 _userver_directory_install(COMPONENT mongo FILES
     "${USERVER_ROOT_DIR}/cmake/install/userver-mongo-config.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/Findmongoc.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/Findbson.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findmongoc.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findbson.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
 )
 

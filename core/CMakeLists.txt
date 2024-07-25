@@ -294,9 +294,9 @@ _userver_install_targets(COMPONENT core TARGETS ${PROJECT_NAME})
 _userver_directory_install(COMPONENT core FILES
     "${USERVER_ROOT_DIR}/cmake/UserverTestsuite.cmake"
     "${USERVER_ROOT_DIR}/cmake/install/userver-core-config.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/Findc-ares.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/FindNghttp2.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/FindLibEv.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findc-ares.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/FindNghttp2.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/FindLibEv.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
 )
 

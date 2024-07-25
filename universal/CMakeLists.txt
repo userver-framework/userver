@@ -364,12 +364,13 @@ if (USERVER_IS_THE_ROOT_PROJECT)
 endif()
 
 _userver_directory_install(COMPONENT universal FILES
-    "${CMAKE_BINARY_DIR}/cmake_generated/FindCryptoPP.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/Findlibyamlcpp.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/Findlibzstd.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/Findcctz.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/FindJemalloc.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/FindUserverGBench.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/FindCryptoPP.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findlibyamlcpp.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findlibzstd.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findcctz.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/FindJemalloc.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/FindUserverGBench.cmake"
+    "${USERVER_ROOT_DIR}/cmake/ModuleHelpers.cmake"
     "${USERVER_ROOT_DIR}/cmake/SetupGTest.cmake"
     "${USERVER_ROOT_DIR}/cmake/SetupGBench.cmake"
     "${USERVER_ROOT_DIR}/cmake/sanitize.blacklist.txt"

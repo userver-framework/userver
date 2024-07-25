@@ -141,6 +141,7 @@ if(USERVER_INSTALL)
   include(GNUInstallDirs)
 endif()
 
+include(ModuleHelpers)
 include(GetUserverVersion)
 include(AddGoogleTests)
 include(FindPackageRequired)
@@ -148,27 +149,6 @@ include(IncludeWhatYouUse)
 include(UserverTestsuite)
 include(CheckCompileFlags)
 include(CMakePackageConfigHelpers)
-
-message(STATUS "Generating cmake files ...")
-userver_venv_setup(
-    NAME userver-cmake
-    PYTHON_OUTPUT_VAR USERVER_CMAKE_GEN_PYTHON_BINARY
-    REQUIREMENTS "${USERVER_ROOT_DIR}/scripts/external_deps/requirements.txt"
-)
-execute_process(
-    COMMAND
-    "${USERVER_CMAKE_GEN_PYTHON_BINARY}"
-    -u "${USERVER_ROOT_DIR}/scripts/external_deps/cmake_generator.py"
-    --repo-dir "${USERVER_ROOT_DIR}"
-    --build-dir "${CMAKE_BINARY_DIR}"
-    RESULT_VARIABLE RESULT
-    WORKING_DIRECTORY "${USERVER_ROOT_DIR}"
-)
-if(RESULT)
-  message(FATAL_ERROR
-      "Generating cmake files failed with exit code: ${RESULT}"
-  )
-endif(RESULT)
 
 set(USERVER_THIRD_PARTY_DIRS ${USERVER_ROOT_DIR}/third_party CACHE INTERNAL "")
 
