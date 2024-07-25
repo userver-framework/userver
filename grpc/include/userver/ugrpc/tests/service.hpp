@@ -2,7 +2,7 @@
 
 /// @file userver/ugrpc/tests/service.hpp
 /// @brief Base classes for testing and benchmarking ugrpc service
-/// implementations. Requires linking to `userver::grpc-utest`.
+/// implementations in a simplified gRPC environment.
 
 #include <memory>
 #include <utility>

@@ -117,6 +117,7 @@ if (USERVER_FEATURE_UTEST)
   target_link_libraries(${PROJECT_NAME}-utest
       PUBLIC
       ${PROJECT_NAME}-internal
+      userver::utest
   )
 
   target_include_directories(${PROJECT_NAME}-utest PUBLIC
@@ -128,8 +129,8 @@ if (USERVER_FEATURE_UTEST)
   )
   _userver_install_targets(COMPONENT grpc TARGETS ${PROJECT_NAME}-utest)
   _userver_directory_install(COMPONENT grpc
-    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/utest/include
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
+      DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/utest/include
+      DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
   )
 endif()
 
@@ -154,7 +155,6 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   target_link_libraries(${PROJECT_NAME}-unittest
       PUBLIC
       ${PROJECT_NAME}-internal
-      userver-utest
       ${PROJECT_NAME}-utest
       PRIVATE
       ${PROJECT_NAME}-unittest-proto
@@ -165,11 +165,10 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   target_link_libraries(${PROJECT_NAME}-benchmark
       ${PROJECT_NAME}-internal
       userver-ubench
-      ${PROJECT_NAME}-utest
       ${PROJECT_NAME}-unittest-proto
   )
   target_include_directories(${PROJECT_NAME}-benchmark PRIVATE
-    $<TARGET_PROPERTY:${PROJECT_NAME}-internal,INCLUDE_DIRECTORIES>
+      $<TARGET_PROPERTY:${PROJECT_NAME}-internal,INCLUDE_DIRECTORIES>
   )
   add_google_benchmark_tests(${PROJECT_NAME}-benchmark)
 

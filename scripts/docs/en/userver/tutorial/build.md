@@ -157,6 +157,7 @@ userver is split into multiple CMake libraries.
 | `userver::utest`           | `USERVER_FEATURE_CORE` + `USERVER_FEATURE_UTEST` | `core`                | @ref scripts/docs/en/userver/testing.md            |
 | `userver::ubench`          | `USERVER_FEATURE_CORE` + `USERVER_FEATURE_UTEST` | `core`                | @ref scripts/docs/en/userver/testing.md            |
 | `userver::grpc`            | `USERVER_FEATURE_GRPC`                           | `grpc`                | @ref scripts/docs/en/userver/grpc.md               |
+| `userver::grpc-utest`      | `USERVER_FEATURE_GRPC` + `USERVER_FEATURE_UTEST` | `grpc`                | @ref scripts/docs/en/userver/grpc.md               |
 | `userver::mongo`           | `USERVER_FEATURE_MONGODB`                        | `mongo`               | @ref scripts/docs/en/userver/mongodb.md            |
 | `userver::postgresql`      | `USERVER_FEATURE_POSTGRESQL`                     | `postgresql`          | @ref pg_driver                                     |
 | `userver::redis`           | `USERVER_FEATURE_REDIS`                          | `redis`               | @ref scripts/docs/en/userver/redis.md              |
