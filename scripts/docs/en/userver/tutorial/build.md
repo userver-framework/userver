@@ -494,9 +494,9 @@ Dependencies could be installed via:
       -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_DOWNLOAD_PACKAGE_CRYPTOPP=1 \
       -DUSERVER_FEATURE_CLICKHOUSE=0 \
       -DUSERVER_FEATURE_RABBITMQ=0 \
-      -DOPENSSL_ROOT_DIR=$(brew --prefix openssl) \
-      -DUSERVER_PG_LIBRARY_DIR=$(pg_config --libdir) -DUSERVER_PG_INCLUDE_DIR=$(pg_config --includedir) \
-      -DUSERVER_PG_SERVER_LIBRARY_DIR=$(pg_config --pkglibdir) -DUSERVER_PG_SERVER_INCLUDE_DIR=$(pg_config --includedir-server)
+      -DOPENSSL_ROOT_DIR=$(shell brew --prefix openssl) \
+      -DUSERVER_PG_LIBRARY_DIR=$(shell pg_config --libdir) -DUSERVER_PG_INCLUDE_DIR=$(shell pg_config --includedir) \
+      -DUSERVER_PG_SERVER_LIBRARY_DIR=$(shell pg_config --pkglibdir) -DUSERVER_PG_SERVER_INCLUDE_DIR=$(shell pg_config --includedir-server)
   ```
 
 After that the `make test` would build and run the service tests.
