@@ -17,6 +17,7 @@
 #include <userver/baggage/baggage.hpp>
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/clients/http/connect_to.hpp>
+#include <userver/clients/http/plugins/headers_propagator/plugin.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/async.hpp>
@@ -1084,7 +1085,8 @@ void RequestState::SetTracingManager(const tracing::TracingManagerBase& m) {
 }
 
 void RequestState::SetHeadersPropagator(
-    const server::http::HeadersPropagator* propagator) {
+    const clients::http::plugins::headers_propagator::HeadersPropagator*
+        propagator) {
   headers_propagator_ = propagator;
 }
 

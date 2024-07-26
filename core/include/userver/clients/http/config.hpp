@@ -13,9 +13,9 @@ namespace tracing {
 class TracingManagerBase;
 }  // namespace tracing
 
-namespace server::http {
+namespace clients::http::plugins::headers_propagator {
 class HeadersPropagator;
-}  // namespace server::http
+}  // namespace clients::http::plugins::headers_propagator
 
 namespace clients::http {
 
@@ -38,7 +38,8 @@ struct ClientSettings final {
   bool defer_events{false};
   DeadlinePropagationConfig deadline_propagation{};
   const tracing::TracingManagerBase* tracing_manager{nullptr};
-  const server::http::HeadersPropagator* headers_propagator{nullptr};
+  const clients::http::plugins::headers_propagator::HeadersPropagator*
+      headers_propagator{nullptr};
   CancellationPolicy cancellation_policy{CancellationPolicy::kCancel};
 };
 

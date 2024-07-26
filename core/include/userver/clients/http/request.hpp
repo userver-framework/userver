@@ -23,9 +23,9 @@ namespace tracing {
 class TracingManagerBase;
 }  // namespace tracing
 
-namespace server::http {
+namespace clients::http::plugins::headers_propagator {
 class HeadersPropagator;
-}  // namespace server::http
+}  // namespace clients::http::plugins::headers_propagator
 
 /// HTTP client helpers
 namespace clients::http {
@@ -292,7 +292,8 @@ class Request final {
   void SetDeadlinePropagationConfig(
       const DeadlinePropagationConfig& deadline_propagation_config) &;
 
-  void SetHeadersPropagator(const server::http::HeadersPropagator*) &;
+  void SetHeadersPropagator(
+      const clients::http::plugins::headers_propagator::HeadersPropagator*) &;
   /// @endcond
 
   /// Disable auto-decoding of received replies.

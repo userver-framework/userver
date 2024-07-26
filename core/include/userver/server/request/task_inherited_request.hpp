@@ -11,7 +11,11 @@ USERVER_NAMESPACE_BEGIN
 
 namespace http::headers {
 class PredefinedHeader;
-}
+}  // namespace http::headers
+
+namespace server::http {
+class HttpRequestImpl;
+}  // namespace server::http
 
 namespace server::request {
 

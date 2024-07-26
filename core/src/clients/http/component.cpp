@@ -4,9 +4,9 @@
 
 #include <userver/clients/dns/resolver_utils.hpp>
 #include <userver/components/component.hpp>
-#include <userver/components/headers_propagator_component.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
+#include <userver/server/middlewares/headers_propagator.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 
 #include <clients/http/destination_statistics.hpp>
@@ -34,8 +34,8 @@ clients::http::ClientSettings GetClientSettings(
   auto& tracing_locator =
       context.FindComponent<tracing::DefaultTracingManagerLocator>();
   settings.tracing_manager = &tracing_locator.GetTracingManager();
-  auto* propagator_component =
-      context.FindComponentOptional<components::HeadersPropagatorComponent>();
+  auto* propagator_component = context.FindComponentOptional<
+      server::middlewares::HeadersPropagatorFactory>();
   if (propagator_component) {
     settings.headers_propagator = &propagator_component->Get();
   }

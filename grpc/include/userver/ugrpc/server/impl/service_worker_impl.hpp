@@ -16,7 +16,6 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/server/request/task_inherited_data.hpp>
 #include <userver/tracing/in_place_span.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
