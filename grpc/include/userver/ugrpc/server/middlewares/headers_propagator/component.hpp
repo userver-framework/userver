@@ -29,7 +29,7 @@ class Component final : public MiddlewareComponentBase {
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
-  const components::ComponentConfig& config_;
+  const std::vector<std::string> headers_;
 };
 
 }  // namespace ugrpc::server::middlewares::headers_propagator

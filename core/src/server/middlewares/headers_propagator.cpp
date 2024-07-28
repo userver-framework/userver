@@ -13,8 +13,8 @@ USERVER_NAMESPACE_BEGIN
 namespace server::middlewares {
 
 HeadersPropagator::HeadersPropagator(const handlers::HttpHandlerBase&,
-                                     const std::vector<std::string>& headers)
-    : headers_(headers) {}
+                                     std::vector<std::string> headers)
+    : headers_(std::move(headers)) {}
 
 void HeadersPropagator::HandleRequest(http::HttpRequest& request,
                                       request::RequestContext& context) const {

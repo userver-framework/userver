@@ -8,8 +8,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::middlewares::headers_propagator {
 
-Middleware::Middleware(const std::vector<std::string>& headers)
-    : headers_(headers) {}
+Middleware::Middleware(std::vector<std::string> headers)
+    : headers_(std::move(headers)) {}
 
 void Middleware::Handle(MiddlewareCallContext& context) const {
   auto& call = context.GetCall();

@@ -8,7 +8,7 @@ namespace ugrpc::server::middlewares::headers_propagator {
 
 class Middleware final : public MiddlewareBase {
  public:
-  explicit Middleware(const std::vector<std::string>& headers);
+  explicit Middleware(std::vector<std::string> headers);
 
   void Handle(MiddlewareCallContext& context) const override;
 

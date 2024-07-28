@@ -10,11 +10,11 @@ namespace ugrpc::server::middlewares::headers_propagator {
 
 Component::Component(const components::ComponentConfig& config,
                      const components::ComponentContext& context)
-    : MiddlewareComponentBase(config, context), config_(config) {}
+    : MiddlewareComponentBase(config, context),
+      headers_(config["headers"].As<std::vector<std::string>>({})) {}
 
 std::shared_ptr<MiddlewareBase> Component::GetMiddleware() {
-  return std::make_shared<Middleware>(
-      config_["headers"].As<std::vector<std::string>>({}));
+  return std::make_shared<Middleware>(headers_);
 }
 
 yaml_config::Schema Component::GetStaticConfigSchema() {

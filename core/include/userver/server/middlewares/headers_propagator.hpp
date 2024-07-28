@@ -13,13 +13,13 @@ namespace server::middlewares {
 class HeadersPropagator final : public HttpMiddlewareBase {
  public:
   explicit HeadersPropagator(const handlers::HttpHandlerBase&,
-                             const std::vector<std::string>& headers);
+                             std::vector<std::string> headers);
 
  private:
   void HandleRequest(http::HttpRequest& request,
                      request::RequestContext& context) const override;
 
-  const std::vector<std::string>& headers_;
+  std::vector<std::string> headers_;
 };
 
 class HeadersPropagatorFactory final : public HttpMiddlewareFactoryBase {
