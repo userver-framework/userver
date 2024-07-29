@@ -14,6 +14,7 @@
 #include <engine/task/work_stealing_queue/local_queue.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
 namespace engine {
 
 class WorkStealingTaskQueue;

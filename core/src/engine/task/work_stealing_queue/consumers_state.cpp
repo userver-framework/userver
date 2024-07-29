@@ -11,7 +11,7 @@ namespace {
 constexpr std::uint64_t kConsumersSleepingShift = static_cast<std::uint64_t>(1)
                                                   << 32;
 
-}
+}  // namespace
 
 ConsumersState::ConsumersState(const ConsumersState& other)
     : state_(other.state_.load()) {}

@@ -23,12 +23,15 @@ class GlobalQueue final {
     friend GlobalQueue;
     Token(moodycamel::ConsumerToken&& moodycamel_token, const std::size_t index)
         : index_(index), moodycamel_token_(std::move(moodycamel_token)) {}
+
     const std::size_t index_;
     moodycamel::ConsumerToken moodycamel_token_;
   };
 
-  GlobalQueue(std::size_t consumers_count);
+  explicit GlobalQueue(std::size_t consumers_count);
+
   std::size_t GetSizeApproximateDelayed() const noexcept { return size_; }
+
   std::size_t GetSizeApproximate() const noexcept {
     return queue_.size_approx();
   }

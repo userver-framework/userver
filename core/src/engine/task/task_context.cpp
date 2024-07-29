@@ -288,6 +288,8 @@ bool TaskContext::SetCancellable(bool value) {
 }
 
 void TaskContext::SetBackground(bool is_background) {
+  UASSERT(IsCurrent());
+  UASSERT(state_ == Task::State::kRunning);
   is_background_ = is_background;
 }
 

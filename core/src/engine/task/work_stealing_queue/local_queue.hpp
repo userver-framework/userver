@@ -12,7 +12,7 @@ USERVER_NAMESPACE_BEGIN
 namespace engine {
 
 template <typename T, std::size_t Capacity>
-class LocalQueue {
+class LocalQueue final {
  public:
   LocalQueue() = default;
 
@@ -99,7 +99,7 @@ class LocalQueue {
   }
 
  private:
-  std::size_t GetIndex(std::size_t pos) { return pos % (Capacity + 1); }
+  static std::size_t GetIndex(std::size_t pos) { return pos % (Capacity + 1); }
 
   std::array<std::atomic<T*>, Capacity + 1> ring_buffer_{};
   std::atomic<std::size_t> head_{0};

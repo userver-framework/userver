@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include <atomic>
@@ -47,6 +46,7 @@ class ConsumersManager final {
   std::deque<Consumer*> sleep_dq_{};
   std::vector<bool> is_sleeping_{};
 };
+
 }  // namespace engine
 
 USERVER_NAMESPACE_END

@@ -29,6 +29,7 @@ GlobalQueue::GlobalQueue(std::size_t consumers_count)
 void GlobalQueue::Push(impl::TaskContext* ctx) {
   DoPush(GetRandomIndex(), utils::span(&ctx, 1));
 }
+
 void GlobalQueue::PushBulk(const utils::span<impl::TaskContext*> buffer) {
   DoPush(GetRandomIndex(), buffer);
 }
@@ -36,15 +37,18 @@ void GlobalQueue::PushBulk(const utils::span<impl::TaskContext*> buffer) {
 void GlobalQueue::Push(Token& token, impl::TaskContext* ctx) {
   DoPush(token.index_, utils::span(&ctx, 1));
 }
+
 void GlobalQueue::PushBulk(Token& token,
                            const utils::span<impl::TaskContext*> buffer) {
   DoPush(token.index_, buffer);
 }
+
 impl::TaskContext* GlobalQueue::TryPop(Token& token) {
   impl::TaskContext* context = nullptr;
   PopBulk(token, utils::span(&context, 1));
   return context;
 }
+
 std::size_t GlobalQueue::PopBulk(Token& token,
                                  utils::span<impl::TaskContext*> buffer) {
   const auto shared_index = token.index_;

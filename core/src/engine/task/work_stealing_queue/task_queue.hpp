@@ -1,12 +1,11 @@
-
-
 #pragma once
+
+#include <cstddef>
 
 #include <moodycamel/blockingconcurrentqueue.h>
 #include <moodycamel/lightweightsemaphore.h>
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 
-#include <cstddef>
 #include <engine/task/task_processor_config.hpp>
 #include <engine/task/work_stealing_queue/consumer.hpp>
 #include <engine/task/work_stealing_queue/consumers_manager.hpp>

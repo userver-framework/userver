@@ -2,13 +2,15 @@
 
 #include <cstddef>
 #include <memory>
-#include "userver/utils/assert.hpp"
 
 #ifdef __linux__
+
 #include <linux/futex.h>
 #include <sys/syscall.h>
+
 #endif
 
+#include <userver/utils/assert.hpp>
 #include <userver/utils/rand.hpp>
 #include <userver/utils/span.hpp>
 

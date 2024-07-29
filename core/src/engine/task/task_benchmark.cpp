@@ -1,5 +1,4 @@
 #include <benchmark/benchmark.h>
-#include <moodycamel/concurrentqueue.h>
 
 #include <atomic>
 #include <cstddef>
@@ -220,6 +219,5 @@ BENCHMARK(engine_tasks_from_another_task_processor)
     ->Range(2, 32)
     ->Arg(6)
     ->Arg(12);
-
 
 USERVER_NAMESPACE_END
