@@ -184,12 +184,12 @@ See details in:
 
 Full example showing the usage of both:
 
-* @include samples/grpc-generic-proxy/src/proxy_service.hpp
-* @include samples/grpc-generic-proxy/src/proxy_service.cpp
-* @include samples/grpc-generic-proxy/main.cpp
-* @include samples/grpc-generic-proxy/static_config.yaml
-* @include samples/grpc-generic-proxy/config_vars.yaml
-* @include samples/grpc-generic-proxy/CMakeLists.txt
+* @ref samples/grpc-generic-proxy/src/proxy_service.hpp
+* @ref samples/grpc-generic-proxy/src/proxy_service.cpp
+* @ref samples/grpc-generic-proxy/main.cpp
+* @ref samples/grpc-generic-proxy/static_config.yaml
+* @ref samples/grpc-generic-proxy/config_vars.yaml
+* @ref samples/grpc-generic-proxy/CMakeLists.txt
 
 Based on:
 
