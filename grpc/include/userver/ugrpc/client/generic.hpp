@@ -24,14 +24,15 @@ struct GenericOptions {
   Qos qos{};
 
   /// If non-`nullopt`, metrics are accounted for specified fake call name.
-  /// If `nullopt` (by default), writes a set of metrics per real call name.
+  /// If `nullopt`, writes a set of metrics per real call name.
   /// If the microservice serves as a proxy and has untrusted clients, it is
   /// a good idea to have this option set to non-`nullopt` to avoid
   /// the situations where an upstream client can spam various RPCs with
   /// non-existent names, which leads to this microservice spamming RPCs
   /// with non-existent names, which leads to creating storage for infinite
   /// metrics and causes OOM.
-  std::optional<std::string_view> metrics_call_name{};
+  /// The default is to specify `"Generic/Generic"` fake call name.
+  std::optional<std::string_view> metrics_call_name{"Generic/Generic"};
 };
 
 /// @ingroup userver_clients
@@ -53,8 +54,8 @@ struct GenericOptions {
 /// message hooks are called, meaning that there won't be any logs of messages
 /// from the default middleware.
 ///
-/// Metrics are written per-method by default, which causes OOM in some corner
-/// cases, for details see @ref GenericOptions::metrics_call_name.
+/// There are no per-call-name metrics by default,
+/// for details see @ref GenericOptions::metrics_call_name.
 ///
 /// ## Example GenericClient usage with known message types
 ///

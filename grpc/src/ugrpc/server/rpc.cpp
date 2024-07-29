@@ -3,12 +3,15 @@
 #include <fmt/chrono.h>
 #include <fmt/compile.h>
 #include <fmt/format.h>
+#include <boost/range/adaptor/reversed.hpp>
 
 #include <userver/compiler/thread_local.hpp>
 #include <userver/logging/impl/logger_base.hpp>
 #include <userver/logging/logger.hpp>
+#include <userver/ugrpc/impl/statistics_storage.hpp>
 #include <userver/ugrpc/server/middlewares/base.hpp>
 #include <userver/ugrpc/status_codes.hpp>
+#include <userver/utils/algo.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/encoding/tskv.hpp>
 #include <userver/utils/text.hpp>
@@ -115,7 +118,19 @@ std::string FormatLogMessage(
 
 }  // namespace impl
 
-ugrpc::impl::RpcStatisticsScope& CallAnyBase::Statistics(
+void CallAnyBase::SetMetricsCallName(std::string_view call_name) {
+  UASSERT_MSG(!call_name.empty(), "call_name must NOT be empty");
+  UASSERT_MSG(
+      call_name[0] != '/',
+      utils::StrCat("call_name must NOT start with /, given: ", call_name));
+  UASSERT_MSG(call_name.find('/') != std::string_view::npos,
+              utils::StrCat("call_name must contain /, given: ", call_name));
+
+  params_.statistics.RedirectTo(
+      params_.statistics_storage.GetGenericStatistics(call_name, std::nullopt));
+}
+
+ugrpc::impl::RpcStatisticsScope& CallAnyBase::GetStatistics(
     ugrpc::impl::InternalTag) {
   return params_.statistics;
 }
@@ -153,7 +168,7 @@ void CallAnyBase::ApplyResponseHook(google::protobuf::Message* response) {
 }
 
 void CallAnyBase::RunMiddlewarePipeline(
-    MiddlewareCallContext& md_call_context) {
+    utils::impl::InternalTag, MiddlewareCallContext& md_call_context) {
   middleware_call_context_ = &md_call_context;
   md_call_context.Next();
 }

@@ -41,19 +41,6 @@ class SampleGenericService final : public ugrpc::server::GenericServiceBase {
 };
 /// [sample]
 
-class GenericServiceTest : public ugrpc::tests::ServiceFixtureBase {
- protected:
-  GenericServiceTest() {
-    RegisterService(service_);
-    StartServer();
-  }
-
-  ~GenericServiceTest() override { StopServer(); }
-
- private:
-  SampleGenericService service_{};
-};
-
 void PerformGenericUnaryCall(
     const sample::ugrpc::UnitTestServiceClient& client) {
   sample::ugrpc::GreetingRequest out;
@@ -61,29 +48,87 @@ void PerformGenericUnaryCall(
 
   auto call = client.SayHello(out);
 
-  sample::ugrpc::GreetingResponse in;
-  UASSERT_NO_THROW(in = call.Finish());
+  const auto in = call.Finish();
   EXPECT_EQ(in.name(), "Hello generic");
 }
 
+class RealCallNameGenericService final
+    : public ugrpc::server::GenericServiceBase {
+ public:
+  void Handle(Call& call) override {
+    call.SetMetricsCallName(call.GetCallName());
+    call.FinishWithError(grpc::Status{grpc::StatusCode::UNAUTHENTICATED,
+                                      "To avoid message parsing buerocracy"});
+  }
+};
+
 }  // namespace
+
+using GenericServiceTest = ugrpc::tests::ServiceFixture<SampleGenericService>;
 
 UTEST_F(GenericServiceTest, UnaryCall) {
   PerformGenericUnaryCall(MakeClient<sample::ugrpc::UnitTestServiceClient>());
 }
 
-UTEST_F(GenericServiceTest, Metrics) {
+using RealCallNameGenericServiceTest =
+    ugrpc::tests::ServiceFixture<RealCallNameGenericService>;
+
+UTEST_F(RealCallNameGenericServiceTest, MetricsRealUnsafe) {
+  UEXPECT_THROW_MSG(PerformGenericUnaryCall(
+                        MakeClient<sample::ugrpc::UnitTestServiceClient>()),
+                    ugrpc::client::UnauthenticatedError,
+                    "To avoid message parsing buerocracy");
+
+  // Server writes metrics after Finish, after the client might have returned
+  // from Finish.
+  GetServer().StopServing();
+
+  {
+    const auto stats = GetStatistics(
+        "grpc.server.by-destination",
+        {
+            {"grpc_service", "sample.ugrpc.UnitTestService"},
+            {"grpc_method", "SayHello"},
+            {"grpc_destination", "sample.ugrpc.UnitTestService/SayHello"},
+        });
+    UEXPECT_NO_THROW(
+        EXPECT_EQ(
+            stats.SingleMetric("status", {{"grpc_code", "UNAUTHENTICATED"}}),
+            utils::statistics::Rate{1})
+        << testing::PrintToString(stats))
+        << testing::PrintToString(stats);
+  }
+
+  {
+    const auto stats =
+        GetStatistics("grpc.server.by-destination",
+                      {
+                          {"grpc_service", "Generic"},
+                          {"grpc_method", "Generic"},
+                          {"grpc_destination", "Generic/Generic"},
+                      });
+    UEXPECT_NO_THROW(
+        EXPECT_EQ(
+            stats.SingleMetric("status", {{"grpc_code", "UNAUTHENTICATED"}}),
+            utils::statistics::Rate{0})
+        << testing::PrintToString(stats))
+        << testing::PrintToString(stats);
+  }
+}
+
+UTEST_F(GenericServiceTest, MetricsDefaultCallNameIsFake) {
   PerformGenericUnaryCall(MakeClient<sample::ugrpc::UnitTestServiceClient>());
 
   // Server writes metrics after Finish, after the client might have returned
   // from Finish.
   GetServer().StopServing();
 
-  const auto stats = GetStatistics(
-      "grpc.server.by-destination",
-      {{"grpc_method", "SayHello"},
-       {"grpc_service", "sample.ugrpc.UnitTestService"},
-       {"grpc_destination", "sample.ugrpc.UnitTestService/SayHello"}});
+  const auto stats = GetStatistics("grpc.server.by-destination",
+                                   {
+                                       {"grpc_service", "Generic"},
+                                       {"grpc_method", "Generic"},
+                                       {"grpc_destination", "Generic/Generic"},
+                                   });
   UEXPECT_NO_THROW(
       EXPECT_EQ(stats.SingleMetric("status", {{"grpc_code", "OK"}}),
                 utils::statistics::Rate{1})

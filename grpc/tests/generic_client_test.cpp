@@ -63,8 +63,20 @@ UTEST_F(GenericClientTest, UnaryCall) {
   EXPECT_EQ(response.name(), "Hello generic");
 }
 
-UTEST_F(GenericClientTest, Metrics) {
-  PerformGenericUnaryCall(*this);
+UTEST_F(GenericClientTest, MetricsRealUnsafe) {
+  const auto client = MakeClient<ugrpc::client::GenericClient>();
+
+  sample::ugrpc::GreetingRequest request;
+  request.set_name("generic");
+
+  ugrpc::client::GenericOptions options;
+  options.metrics_call_name = std::nullopt;
+
+  auto rpc =
+      client.UnaryCall(kSayHelloCallName, ugrpc::SerializeToByteBuffer(request),
+                       std::make_unique<grpc::ClientContext>(), options);
+  EXPECT_EQ(rpc.GetCallName(), kSayHelloCallName);
+  rpc.Finish();
 
   const auto stats = GetStatistics(
       "grpc.client.by-destination",
@@ -78,26 +90,13 @@ UTEST_F(GenericClientTest, Metrics) {
       << testing::PrintToString(stats);
 }
 
-UTEST_F(GenericClientTest, MetricsCustomCallName) {
-  const auto client = MakeClient<ugrpc::client::GenericClient>();
+UTEST_F(GenericClientTest, MetricsDefaultCallNameIsFake) {
+  PerformGenericUnaryCall(*this);
 
-  sample::ugrpc::GreetingRequest request;
-  request.set_name("generic");
-
-  ugrpc::client::GenericOptions options;
-  options.metrics_call_name = "GenericService/GenericMethod";
-
-  auto rpc =
-      client.UnaryCall(kSayHelloCallName, ugrpc::SerializeToByteBuffer(request),
-                       std::make_unique<grpc::ClientContext>(), options);
-  EXPECT_EQ(rpc.GetCallName(), kSayHelloCallName);
-  rpc.Finish();
-
-  const auto stats =
-      GetStatistics("grpc.client.by-destination",
-                    {{"grpc_method", "GenericMethod"},
-                     {"grpc_service", "GenericService"},
-                     {"grpc_destination", "GenericService/GenericMethod"}});
+  const auto stats = GetStatistics("grpc.client.by-destination",
+                                   {{"grpc_method", "Generic"},
+                                    {"grpc_service", "Generic"},
+                                    {"grpc_destination", "Generic/Generic"}});
   UEXPECT_NO_THROW(
       EXPECT_EQ(stats.SingleMetric("status", {{"grpc_code", "OK"}}),
                 utils::statistics::Rate{1})

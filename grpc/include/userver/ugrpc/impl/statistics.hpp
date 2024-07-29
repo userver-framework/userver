@@ -60,6 +60,8 @@ class MethodStatistics final {
 
   std::uint64_t GetStarted() const noexcept;
 
+  void MoveStartedTo(MethodStatistics& other) noexcept;
+
  private:
   using Percentile =
       utils::statistics::Percentile<2000, std::uint32_t, 256, 100>;
@@ -74,6 +76,7 @@ class MethodStatistics final {
   utils::statistics::StripedRateCounter& global_started_;
 
   RateCounter started_{0};
+  RateCounter started_renamed_{0};
   std::array<RateCounter, kCodesCount> status_codes_{};
   Timings timings_;
   RateCounter network_errors_{0};

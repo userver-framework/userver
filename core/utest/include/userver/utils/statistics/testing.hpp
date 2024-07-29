@@ -49,6 +49,10 @@ class Snapshot final {
   MetricValue SingleMetric(std::string path,
                            std::vector<Label> require_labels = {}) const;
 
+  /// @overload
+  std::optional<MetricValue> SingleMetricOptional(
+      std::string path, std::vector<Label> require_labels = {}) const;
+
  private:
   friend void PrintTo(const Snapshot& data, std::ostream*);
 

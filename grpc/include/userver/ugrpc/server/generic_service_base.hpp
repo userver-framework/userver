@@ -32,13 +32,22 @@ namespace ugrpc::server {
 /// message hooks are called, meaning that there won't be any logs of messages
 /// from the default middleware.
 ///
-/// Metrics are written per-method by default. If malicious clients initiate
-/// RPCs with a lot of different garbage names, it may cause OOM due to
-/// per-method metrics piling up.
-/// TODO(TAXICOMMON-9108) allow limiting the amount of metrics.
-///
 /// Statically-typed services, if registered, take priority over generic
 /// services. It only makes sense to register at most 1 generic service.
+///
+/// ## Generic gRPC service metrics
+///
+/// Metrics are accounted for `"Generic/Generic"` fake call name by default.
+/// This is the safe choice that avoids potential OOMs.
+/// To use the real dynamic RPC name for metrics, use
+/// @ref CallAnyBase::SetMetricsCallName in conjunction with
+/// @ref CallAnyBase::GetCallName.
+///
+/// @warning If the microservice serves as a proxy and has untrusted clients, it
+/// is a good idea to avoid having per-RPC metrics to avoid the
+/// situations where an upstream client can spam various RPCs with non-existent
+/// names, which leads to this microservice spamming RPCs with non-existent
+/// names, which leads to creating storage for infinite metrics and causes OOM.
 ///
 /// ## Example GenericServiceBase usage with known message types
 ///

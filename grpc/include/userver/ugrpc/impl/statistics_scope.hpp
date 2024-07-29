@@ -6,6 +6,8 @@
 
 #include <grpcpp/support/status.h>
 
+#include <userver/utils/not_null.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::impl {
@@ -30,6 +32,9 @@ class RpcStatisticsScope final {
 
   void Flush();
 
+  // Not thread-safe with respect to Flush.
+  void RedirectTo(MethodStatistics& statistics);
+
  private:
   // Represents how the RPC was finished. Kinds with higher numeric values
   // override those with lower ones.
@@ -53,11 +58,12 @@ class RpcStatisticsScope final {
 
   void AccountTiming();
 
-  std::atomic<bool> is_cancelled_{false};
-  MethodStatistics& statistics_;
+  utils::NotNull<MethodStatistics*> statistics_;
   std::optional<std::chrono::steady_clock::time_point> start_time_;
   FinishKind finish_kind_{FinishKind::kAutomatic};
   grpc::StatusCode finish_code_{};
+  std::atomic<bool> is_cancelled_{false};
+  bool is_deadline_propagated_{false};
 };
 
 }  // namespace ugrpc::impl

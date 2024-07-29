@@ -50,6 +50,13 @@ ProxyService::ProxyService(const components::ComponentConfig& config,
 void ProxyService::Handle(Call& call) {
   // In this example we proxy any unary RPC to client_, adding some metadata.
 
+  // By default, generic service metrics are written with labels corresponding
+  // to the fake 'Generic/Generic' call name.
+  // In this example, we accept the OOM potential and store metrics per
+  // the actual call name.
+  // Read docs on ugrpc::server::GenericServiceBase for details.
+  call.SetMetricsCallName(call.GetCallName());
+
   grpc::ByteBuffer request_bytes;
   // Read might throw on a broken RPC, just rethrow then.
   if (!call.Read(request_bytes)) {

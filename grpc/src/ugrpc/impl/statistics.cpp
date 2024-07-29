@@ -1,5 +1,7 @@
 #include <userver/ugrpc/impl/statistics.hpp>
 
+#include <limits>
+
 #include <userver/logging/log.hpp>
 #include <userver/utils/enumerate.hpp>
 #include <userver/utils/statistics/striped_rate_counter.hpp>
@@ -121,6 +123,7 @@ void DumpMetric(utils::statistics::Writer& writer,
   const auto abandoned_errors_value = stats.internal_errors_.Load();
   const auto deadline_cancelled_value = stats.deadline_cancelled_.Load();
   const auto cancelled_value = stats.cancelled_.Load();
+  const auto started_renamed = stats.started_renamed_.Load();
 
   // 'total_requests' and 'error_requests' originally only count RPCs that
   // finished with a status code. 'network_errors', 'deadline_cancelled' and
@@ -144,6 +147,7 @@ void DumpMetric(utils::statistics::Writer& writer,
 
   // "active" is not a rate metric. Also, beware of overflow
   writer["active"] = static_cast<std::int64_t>(stats.started_.Load().value) -
+                     static_cast<std::int64_t>(started_renamed.value) -
                      static_cast<std::int64_t>(total_requests.value);
 
   writer["rps"] = AsRateAndGauge{total_requests};
@@ -160,7 +164,15 @@ void DumpMetric(utils::statistics::Writer& writer,
 }
 
 std::uint64_t MethodStatistics::GetStarted() const noexcept {
-  return started_.Load().value;
+  return started_.Load().value - started_renamed_.Load().value;
+}
+
+void MethodStatistics::MoveStartedTo(MethodStatistics& other) noexcept {
+  UASSERT(&global_started_ == &other.global_started_);
+  // Any increment order may result in minor logical inconsistencies
+  // on the dashboard at times. Oh well.
+  ++started_renamed_;
+  ++other.started_;
 }
 
 ServiceStatistics::~ServiceStatistics() = default;

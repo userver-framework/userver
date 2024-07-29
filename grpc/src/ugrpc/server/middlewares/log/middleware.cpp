@@ -108,7 +108,7 @@ void Middleware::Handle(MiddlewareCallContext& context) const {
     span.AddNonInheritableTag("body", "response stream finished");
   } else {
     // Write this dummy `body` in case unary response RPC fails
-    // (with our without status) before receiving the response.
+    // (with or without status) before receiving the response.
     // If the RPC finishes with OK status, `body` tag will be overwritten.
     span.AddNonInheritableTag("body", "error status");
   }

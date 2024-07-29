@@ -16,6 +16,8 @@ constexpr std::string_view kGenericMethodFullNamesFake[] = {
     "Generic/Generic",
 };
 constexpr std::string_view kGenericServiceNameFake = "Generic";
+constexpr ugrpc::impl::StaticServiceMetadata kGenericMetadataFake{
+    kGenericServiceNameFake, kGenericMethodFullNamesFake};
 
 }  // namespace
 
@@ -62,10 +64,7 @@ class AsyncService<GenericServiceTag> final {
 struct GenericServiceWorker::Impl {
   Impl(GenericServiceBase& service, ServiceSettings&& settings)
       : service(service),
-        service_data(std::move(settings),
-                     ugrpc::impl::StaticServiceMetadata{
-                         kGenericServiceNameFake, kGenericMethodFullNamesFake},
-                     /*service_statistics*/ nullptr) {}
+        service_data(std::move(settings), kGenericMetadataFake) {}
 
   GenericServiceBase& service;
   ServiceData<GenericServiceTag> service_data;

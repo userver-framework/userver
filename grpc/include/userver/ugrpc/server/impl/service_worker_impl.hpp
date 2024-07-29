@@ -66,11 +66,8 @@ void ParseGenericCallName(std::string_view generic_call_name,
 template <typename GrpcppService>
 struct ServiceData final {
   ServiceData(const ServiceSettings& settings,
-              const ugrpc::impl::StaticServiceMetadata& metadata,
-              ugrpc::impl::ServiceStatistics* service_statistics)
-      : settings(settings),
-        metadata(metadata),
-        service_statistics(service_statistics) {}
+              const ugrpc::impl::StaticServiceMetadata& metadata)
+      : settings(settings), metadata(metadata) {}
 
   ~ServiceData() { wait_tokens.WaitForAllTokens(); }
 
@@ -78,7 +75,8 @@ struct ServiceData final {
   const ugrpc::impl::StaticServiceMetadata metadata;
   AsyncService<GrpcppService> async_service{metadata.method_full_names.size()};
   utils::impl::WaitTokenStorage wait_tokens;
-  ugrpc::impl::ServiceStatistics* const service_statistics;
+  ugrpc::impl::ServiceStatistics& service_statistics{
+      settings.statistics_storage.GetServiceStatistics(metadata, std::nullopt)};
 };
 
 /// Per-gRPC-method data
@@ -95,10 +93,8 @@ struct MethodData final {
   // Remove name of the service and slash
   std::string_view method_name{
       call_name.substr(service_data.metadata.service_full_name.size() + 1)};
-  ugrpc::impl::MethodStatistics* const statistics{
-      service_data.service_statistics
-          ? &service_data.service_statistics->GetMethodStatistics(method_id)
-          : nullptr};
+  ugrpc::impl::MethodStatistics& statistics{
+      service_data.service_statistics.GetMethodStatistics(method_id)};
 };
 
 template <typename GrpcppService, typename CallTraits>
@@ -183,19 +179,18 @@ class CallData final {
     SetupSpan(span_, context_, call_name);
     utils::FastScopeGuard destroy_span([&]() noexcept { span_.reset(); });
 
-    ugrpc::impl::RpcStatisticsScope statistics_scope{
-        method_data_.statistics
-            ? *method_data_.statistics
-            : method_data_.service_data.settings.statistics_storage
-                  .GetGenericStatistics(call_name, std::nullopt)};
+    ugrpc::impl::RpcStatisticsScope statistics_scope{method_data_.statistics};
 
     auto& access_tskv_logger =
         method_data_.service_data.settings.access_tskv_logger;
+    auto& statistics_storage =
+        method_data_.service_data.settings.statistics_storage;
     utils::AnyStorage<StorageContext> storage_context;
-    Call responder(CallParams{context_, call_name, service_name, method_name,
-                              statistics_scope, *access_tskv_logger,
-                              span_->Get(), storage_context, middlewares},
-                   raw_responder_);
+    Call responder(
+        CallParams{context_, call_name, service_name, method_name,
+                   statistics_scope, statistics_storage, *access_tskv_logger,
+                   span_->Get(), storage_context, middlewares},
+        raw_responder_);
     auto do_call = [&] {
       if constexpr (std::is_same_v<InitialRequest, NoInitialRequest>) {
         (method_data_.service.*(method_data_.service_method))(responder);
@@ -215,7 +210,8 @@ class CallData final {
           middlewares, responder, do_call,
           method_data_.service_data.settings.config_source.GetSnapshot(),
           initial_request);
-      responder.RunMiddlewarePipeline(middleware_context);
+      responder.RunMiddlewarePipeline(utils::impl::InternalTag{},
+                                      middleware_context);
     } catch (
         const USERVER_NAMESPACE::server::handlers::CustomHandlerException& ex) {
       ReportCustomError(ex, responder, span_->Get());
@@ -258,9 +254,7 @@ class ServiceWorkerImpl final : public ServiceWorker {
   ServiceWorkerImpl(ServiceSettings&& settings,
                     ugrpc::impl::StaticServiceMetadata&& metadata,
                     Service& service, ServiceMethods... service_methods)
-      : statistics_(settings.statistics_storage.GetServiceStatistics(
-            metadata, std::nullopt)),
-        service_data_(std::move(settings), std::move(metadata), &statistics_),
+      : service_data_(std::move(settings), std::move(metadata)),
         start_([this, &service, service_methods...] {
           impl::StartServing(service_data_, service, service_methods...);
         }) {}
@@ -274,7 +268,6 @@ class ServiceWorkerImpl final : public ServiceWorker {
   void Start() override { start_(); }
 
  private:
-  ugrpc::impl::ServiceStatistics& statistics_;
   ServiceData<GrpcppService> service_data_;
   std::function<void()> start_;
 };
