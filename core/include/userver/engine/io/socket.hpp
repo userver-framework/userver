@@ -169,7 +169,7 @@ class [[nodiscard]] Socket final : public RwBase, public NonblockingReadableBase
   }
 
   // Either receives len bytes or returns -1 AND EAGAIN/EWOULDBLOCK
-  [[nodiscard]] virtual std::int64_t ReadNonblocking(void* buf, size_t len ) override {
+  [[nodiscard]] std::int64_t ReadNonblocking(void* buf, size_t len ) override {
     return RecvNonblocking(buf, len);
   }
 
