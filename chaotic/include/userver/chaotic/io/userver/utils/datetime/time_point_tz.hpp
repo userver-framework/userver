@@ -7,7 +7,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::datetime {
 
-TimePointTz Convert(std::string&& str, chaotic::convert::To<TimePointTz>);
+TimePointTz Convert(const std::string& str, chaotic::convert::To<TimePointTz>);
 
 std::string Convert(const TimePointTz& tp, chaotic::convert::To<std::string>);
 

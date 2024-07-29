@@ -15,14 +15,15 @@ std::string Convert(const decimal64::Decimal<Prec, RoundPolicy>& value,
 
 template <int Prec, typename RoundPolicy>
 decimal64::Decimal<Prec, RoundPolicy> Convert(
-    std::string&& str,
+    const std::string& str,
     chaotic::convert::To<decimal64::Decimal<Prec, RoundPolicy>>) {
   return decimal64::Decimal<Prec, RoundPolicy>(str);
 }
 
 template <int Prec, typename RoundPolicy>
 decimal64::Decimal<Prec, RoundPolicy> Convert(
-    int&& str, chaotic::convert::To<decimal64::Decimal<Prec, RoundPolicy>>) {
+    const int& str,
+    chaotic::convert::To<decimal64::Decimal<Prec, RoundPolicy>>) {
   return decimal64::Decimal<Prec, RoundPolicy>(str);
 }
 

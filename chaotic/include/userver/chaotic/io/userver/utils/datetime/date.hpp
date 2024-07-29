@@ -7,7 +7,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::datetime {
 
-Date Convert(std::string&& value, chaotic::convert::To<Date>);
+Date Convert(const std::string& value, chaotic::convert::To<Date>);
 
 std::string Convert(const Date& value, chaotic::convert::To<std::string>);
 

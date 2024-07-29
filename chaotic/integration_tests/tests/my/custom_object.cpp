@@ -4,7 +4,7 @@
 
 namespace my {
 
-CustomObject::CustomObject(ns::CustomObject&& obj) : foo(obj.foo) {}
+CustomObject::CustomObject(const ns::CustomObject& obj) : foo(obj.foo) {}
 
 ns::CustomObject Convert(
     const CustomObject& value,

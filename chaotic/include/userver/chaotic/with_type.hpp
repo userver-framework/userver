@@ -17,10 +17,11 @@ struct WithType final {
 };
 
 template <typename Value, typename RawType, typename UserType>
-UserType Parse(Value value, formats::parse::To<WithType<RawType, UserType>>) {
+UserType Parse(const Value& value,
+               formats::parse::To<WithType<RawType, UserType>>) {
   auto result = value.template As<RawType>();
   try {
-    return Convert(std::move(result), convert::To<UserType>{});
+    return Convert(result, convert::To<UserType>{});
   } catch (const std::exception& e) {
     chaotic::ThrowForValue(e.what(), value);
   }

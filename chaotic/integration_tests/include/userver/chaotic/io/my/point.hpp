@@ -15,7 +15,7 @@ bool operator==(const Point& a, const Point& b) {
   return a.lon == b.lon && a.lat == b.lat;
 }
 
-inline Point Convert(std::vector<double>&& arr,
+inline Point Convert(const std::vector<double>& arr,
                      USERVER_NAMESPACE::chaotic::convert::To<Point>) {
   return Point{arr.at(0), arr.at(1)};
 }
@@ -27,7 +27,7 @@ inline std::vector<double> Convert(
 }
 
 template <typename T>
-Point Convert(T&& obj, USERVER_NAMESPACE::chaotic::convert::To<Point>) {
+Point Convert(const T& obj, USERVER_NAMESPACE::chaotic::convert::To<Point>) {
   return Point{obj.lon, obj.lat};
 }
 

@@ -13,7 +13,7 @@ namespace my {
 struct CustomObject {
   CustomObject() = default;
 
-  CustomObject(ns::CustomObject&&);
+  CustomObject(const ns::CustomObject&);
 
   explicit CustomObject(std::string&& foo) : foo(std::move(foo)) {}
 

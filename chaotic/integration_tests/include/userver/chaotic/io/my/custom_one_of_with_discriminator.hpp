@@ -5,6 +5,7 @@
 
 #include <userver/chaotic/convert.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/overloaded.hpp>
 
 // From chaotic
 namespace ns {
@@ -30,14 +31,14 @@ inline bool operator==(const CustomOneOfWithDiscriminator& lhs,
 
 template <typename U, typename V>
 CustomOneOfWithDiscriminator Convert(
-    std::variant<U, V>&& value,
+    const std::variant<U, V>& value,
     USERVER_NAMESPACE::chaotic::convert::To<CustomOneOfWithDiscriminator>) {
-  U* u = std::get_if<U>(&value);
-  if (u) return {u->field1};
-  V* v = std::get_if<V>(&value);
-  if (v) return {v->field2};
-  UASSERT(false);
-  return {};
+  return USERVER_NAMESPACE::utils::Visit(
+      value,
+      [](const U& value) { return CustomOneOfWithDiscriminator{value.field1}; },
+      [](const V& value) {
+        return CustomOneOfWithDiscriminator{value.field2};
+      });
 }
 
 std::variant<ns::CustomStruct1, ns::CustomStruct2> Convert(

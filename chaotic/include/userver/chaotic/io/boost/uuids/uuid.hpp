@@ -9,7 +9,7 @@ USERVER_NAMESPACE_BEGIN
 namespace chaotic::convert {
 
 boost::uuids::uuid Convert(
-    std::string&& str,
+    const std::string& str,
     USERVER_NAMESPACE::chaotic::convert::To<boost::uuids::uuid>);
 
 std::string Convert(const boost::uuids::uuid& uuid,

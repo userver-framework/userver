@@ -22,7 +22,7 @@ Convert(unsigned value, To<T>) {
 template <typename T>
 std::enable_if_t<
     std::is_integral_v<T> && !std::is_same_v<unsigned, std::uint32_t>, unsigned>
-Convert(T&& value, To<unsigned>) {
+Convert(const T& value, To<unsigned>) {
   return utils::numeric_cast<unsigned>(value);
 }
 
