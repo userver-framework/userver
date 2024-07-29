@@ -34,7 +34,7 @@ enum class SocketType {
 /// thread-safe to concurrently write to socket. However it is safe to
 /// concurrently read and write into socket:
 /// @snippet src/engine/io/socket_test.cpp send self concurrent
-class [[nodiscard]] Socket final : public RwBase {
+class [[nodiscard]] Socket final : public RwBase, public NonblockingReadableBase{
  public:
   struct RecvFromResult {
     size_t bytes_received{0};
@@ -82,6 +82,9 @@ class [[nodiscard]] Socket final : public RwBase {
   /// @brief Receives exactly len bytes from the socket.
   /// @note Can return less than len if socket is closed by peer.
   [[nodiscard]] size_t RecvAll(void* buf, size_t len, Deadline deadline);
+
+  /// @brief Non-blocking recv: either receives bytes or returns -1 AND EAGAIN/EWOULDBLOCK == errno
+  [[nodiscard]] std::int64_t RecvNonblocking(void* buf, size_t len);
 
   /// @brief Sends a buffer vector to the socket.
   /// @note Can return less than len if socket is closed by peer.
@@ -163,6 +166,11 @@ class [[nodiscard]] Socket final : public RwBase {
   [[nodiscard]] size_t ReadAll(void* buf, size_t len,
                                Deadline deadline) override {
     return RecvAll(buf, len, deadline);
+  }
+
+  // Either receives len bytes or returns -1 AND EAGAIN/EWOULDBLOCK
+  [[nodiscard]] virtual std::int64_t ReadNonblocking(void* buf, size_t len ) override {
+    return RecvNonblocking(buf, len);
   }
 
   /// @brief Writes exactly len bytes to the socket.

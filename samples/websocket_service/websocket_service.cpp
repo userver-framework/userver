@@ -19,9 +19,9 @@ class WebsocketsHandler final : public server::websocket::WebsocketHandlerBase {
               server::request::RequestContext&) const override {
     server::websocket::Message message;
     while (!engine::current_task::ShouldCancel()) {
-      chat.Recv(message);
-      if (message.close_status) break;
-      chat.Send(std::move(message));
+      chat.Recv(message);                           // throws on closed/dropped connection
+      if (message.close_status) break;              // explicit close if any
+      chat.Send(std::move(message));                // throws on closed/dropped connection
     }
     if (message.close_status) chat.Close(*message.close_status);
   }

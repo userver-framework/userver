@@ -2,6 +2,7 @@
 
 #include <cstdlib>
 #include <cstring>
+#include <type_traits>
 
 #include <cryptopp/sha.h>
 #include <boost/endian/conversion.hpp>
@@ -21,6 +22,42 @@ inline void RecvExactly(engine::io::ReadableBase& readable,
                         utils::span<char> buffer, engine::Deadline deadline) {
   if (readable.ReadAll(buffer.data(), buffer.size(), deadline) != buffer.size())
     throw(engine::io::IoException() << "Socket closed during transfer ");
+}
+
+inline bool RecvMaybe(engine::io::ReadableBase& readable,
+                        utils::span<char> buffer, size_t& offset) {
+   static_assert(std::is_convertible<engine::io::Socket*, engine::io::ReadableBase*>::value, "Socket MUST inherit ReadableBase");
+   static_assert(std::is_convertible<engine::io::Socket*, engine::io::NonblockingReadableBase*>::value, "Socket MUST inherit NonblockingReadableBase");
+   auto& readable2 = static_cast<engine::io::NonblockingReadableBase&>(static_cast<engine::io::Socket&>(readable));
+
+   UASSERT(0 != buffer.size());
+   UASSERT(offset < buffer.size());
+
+   const std::int64_t leftToRead = buffer.size() - offset;
+   const auto read = readable2.ReadNonblocking(buffer.data(), leftToRead);
+   if (leftToRead == read)
+   {
+       offset = 0;
+       return true;
+   }
+   else if (read > 0)
+   {
+       offset += read;
+       return false;
+   }
+   else if (read < 0 &&
+#if EAGAIN != EWOULDBLOCK
+          EWOULDBLOCK == errno
+#else
+          EAGAIN == errno
+#endif
+       )
+    {
+       return false;
+   }
+
+   // either 0 == read or errno doesn't correspond to non-block
+   throw(engine::io::IoException() << "Socket closed during transfer ");
 }
 
 template <class T>
@@ -151,10 +188,9 @@ std::string WebsocketSecAnswer(std::string_view sec_key) {
                        sizeof(webSocketRespKeySHA1)));
 }
 
-CloseStatus ReadWSFrame(FrameParserState& frame, engine::io::ReadableBase& io,
+CloseStatus ReadWSFrameImpl(WSHeader& hdr, FrameParserState& frame, engine::io::ReadableBase& io,
                         unsigned max_payload_size, std::size_t& payload_len) {
-  WSHeader hdr;
-  RecvExactly(io, AsWritableBytes(MakeSpan(&hdr, 1)), {});
+  // we assume that the WSHeader has been read a while ago
   if (engine::current_task::ShouldCancel()) return CloseStatus::kGoingAway;
 
   const bool isDataFrame =
@@ -232,6 +268,22 @@ CloseStatus ReadWSFrame(FrameParserState& frame, engine::io::ReadableBase& io,
       return CloseStatus::kProtocolError;
   }
   return CloseStatus::kNone;
+}
+
+CloseStatus ReadWSFrame(FrameParserState& frame, engine::io::ReadableBase& io,
+                        unsigned max_payload_size, std::size_t& payload_len) {
+  WSHeader hdr;
+  RecvExactly(io, AsWritableBytes(MakeSpan(&hdr, 1)), {});
+  return ReadWSFrameImpl(hdr, frame, io, max_payload_size, payload_len);
+}
+
+std::optional<CloseStatus> ReadWSFrameNonblocking(FrameParserState& frame, engine::io::ReadableBase& io,
+                                                  unsigned max_payload_size, std::size_t& payload_len) {
+  WSHeader hdr;
+  if (!RecvMaybe(io, AsWritableBytes(MakeSpan(&hdr, 1)), frame.offset_when_nonblocking))
+       return {};
+
+  return ReadWSFrameImpl(hdr, frame, io, max_payload_size, payload_len);
 }
 
 }  // namespace server::websocket::impl

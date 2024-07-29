@@ -4,6 +4,7 @@
 /// @brief Common definitions and base classes for stream like objects
 
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 
 #include <userver/engine/deadline.hpp>
@@ -49,6 +50,12 @@ class ReadableBase {
 
  private:
   impl::ContextAccessor* ca_{nullptr};
+};
+
+class NonblockingReadableBase {
+ public:
+  // Either receives len bytes or returns -1 AND EAGAIN/EWOULDBLOCK
+  [[nodiscard]] virtual int64_t ReadNonblocking(void* buf, size_t len) = 0;
 };
 
 /// IoData for vector send

@@ -186,6 +186,63 @@ class WebSocketConnectionImpl final : public WebSocketConnection {
     }
   }
 
+  // Aware! we can't drop the msg's buffer so for data sending we need to yet another message.
+  bool Recv2(Message& msg) override {
+    msg.data.resize(0);  // do not call .clear() to keep the allocated memory
+    frame_.payload = &msg.data;
+
+    try {
+      while (true) {
+       size_t payload_len = 0;
+       std::optional<CloseStatus> opt_status_raw =
+         ReadWSFrameNonblocking(frame_, *io, config.max_remote_payload, payload_len);
+       if (!opt_status_raw) return false;
+
+       auto status = static_cast<CloseStatusInt>(*opt_status_raw);
+       LOG_TRACE() << fmt::format(
+           "Read frame is_text {}, closed {}, data size {} status {} "
+           "waitCont {}",
+           frame_.is_text, frame_.closed, frame_.payload->size(), status,
+           frame_.waiting_continuation);
+       if (status != 0) {
+         MessageExtended close_msg{{}, impl::WSOpcodes::kClose, opt_status_raw};
+         SendExtended(close_msg);
+         msg = CloseMessage(*opt_status_raw);
+         return true;
+       }
+
+       if (frame_.closed) {
+         msg = CloseMessage(
+             static_cast<CloseStatus>(frame_.remote_close_status));
+         return true;
+       }
+
+       if (frame_.ping_received) {
+         MessageExtended pongMsg{
+             MakeBinarySpan(*frame_.payload), impl::WSOpcodes::kPong, {}};
+         SendExtended(pongMsg);
+         frame_.payload->resize(frame_.payload->size() - payload_len);
+         frame_.ping_received = false;
+         continue;
+       }
+       if (frame_.pong_received) {
+         frame_.pong_received = false;
+         continue;
+       }
+       if (frame_.waiting_continuation) continue;
+
+       msg.is_text = frame_.is_text;
+       stats_.msg_recv++;
+       stats_.bytes_recv += msg.data.size();
+       return true;
+      }
+    } catch (std::exception const& e) {
+      LOG_TRACE() << "Exception during frame_ parsing " << e;
+      throw;
+    }
+  }
+
+
   void Close(CloseStatus status_code) override {
     Send(CloseMessage(status_code));
   }
