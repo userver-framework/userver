@@ -1,6 +1,7 @@
 import argparse
 import dataclasses
 import os
+from pathlib import Path
 import re
 import sys
 from typing import Any
@@ -263,7 +264,7 @@ def main() -> None:
     outputs = renderer.OneToOneFileRenderer(
         relative_to=args.relative_to,
         vfilepath_to_relfilepath={
-            file: file.split('.')[0] for file in args.file
+            file: str(Path(file).with_suffix('')) for file in args.file
         },
         clang_format_bin=args.clang_format,
         parse_extra_formats=args.parse_extra_formats,
