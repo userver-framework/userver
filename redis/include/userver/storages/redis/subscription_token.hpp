@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/storages/redis/subscriptioin_token.hpp
+/// @file userver/storages/redis/subscription_token.hpp
 /// @brief @copybrief storages::redis::SubscriptionToken
 
 #include <functional>
@@ -63,7 +63,7 @@ class [[nodiscard]] SubscriptionToken final {
 
   SubscriptionToken& operator=(SubscriptionToken&&) noexcept;
 
-  /// There is a MPSC queue inside the connection. This parameter requlates
+  /// There is a MPSC queue inside the connection. This parameter regulates
   /// its maximum length. If it overflows, new messages are discarded.
   void SetMaxQueueLength(size_t length);
 

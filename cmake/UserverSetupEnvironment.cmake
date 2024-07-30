@@ -33,8 +33,8 @@ function(_userver_setup_environment_impl)
     set(CMAKE_MODULE_PATH
         ${CMAKE_MODULE_PATH}
         "${USERVER_CMAKE_DIR}"
+        "${USERVER_CMAKE_DIR}/modules"
         "${CMAKE_BINARY_DIR}"
-        "${CMAKE_BINARY_DIR}/cmake_generated"
         PARENT_SCOPE
     )
     set(CMAKE_PREFIX_PATH

@@ -85,23 +85,6 @@ std::size_t ThreadPool::GetSize() const {
 
 ThreadControl& ThreadPool::NextThread() { return default_threads_.Next(); }
 
-std::vector<ThreadControl*> ThreadPool::NextThreads(std::size_t count) {
-  std::vector<ThreadControl*> res;
-  if (!count) return res;
-  UASSERT(!default_threads_.Empty());
-  res.reserve(count);
-
-  // just ignore counter_ overflow
-  const auto start = default_threads_.next_thread_idx.fetch_add(count);
-  for (std::size_t i = 0; i < count; i++) {
-    res.push_back(
-        &default_threads_
-             .thread_controls[(start + i) %
-                              default_threads_.thread_controls.size()]);
-  }
-  return res;
-}
-
 TimerThreadControl& ThreadPool::NextTimerThread() {
   return timer_threads_.Next();
 }
@@ -110,6 +93,13 @@ ThreadControl& ThreadPool::GetEvDefaultLoopThread() {
   UINVARIANT(!default_threads_.Empty() && use_ev_default_loop_,
              "no ev_default_loop in current thread_pool");
   return default_threads_.thread_controls[0];
+}
+
+void ThreadPool::WriteStats(utils::statistics::Writer& writer) const {
+  for (auto& thread : default_threads_.threads) {
+    writer.ValueWithLabels(thread.GetCurrentLoadPercent(),
+                           {{"ev_thread_name", thread.GetName()}});
+  }
 }
 
 }  // namespace engine::ev

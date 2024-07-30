@@ -398,7 +398,7 @@ class ClusterTopologyHolder
   engine::ev::AsyncWatcher create_nodes_watch_;
   void CreateNodes();
 
-  /// Delete non-atual nodes
+  /// Delete non-actual nodes
   engine::ev::PeriodicWatcher delete_expired_nodes_timer_;
   void DeleteNodes();
 

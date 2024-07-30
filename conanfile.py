@@ -38,6 +38,7 @@ class UserverConan(ConanFile):
         'with_clickhouse': [True, False],
         'with_rabbitmq': [True, False],
         'with_utest': [True, False],
+        'with_kafka': [True, False],
         'namespace': ['ANY'],
         'namespace_begin': ['ANY'],
         'namespace_end': ['ANY'],
@@ -56,6 +57,7 @@ class UserverConan(ConanFile):
         'with_clickhouse': True,
         'with_rabbitmq': True,
         'with_utest': True,
+        'with_kafka': True,
         'namespace': 'userver',
         'namespace_begin': 'namespace userver {',
         'namespace_end': '}',
@@ -112,6 +114,7 @@ class UserverConan(ConanFile):
         self.requires('rapidjson/cci.20220822', transitive_headers=True)
         self.requires('yaml-cpp/0.7.0')
         self.requires('zlib/1.2.13')
+        self.requires('zstd/1.5.6')
 
         if self.options.with_jemalloc:
             self.requires('jemalloc/5.3.0')
@@ -159,6 +162,8 @@ class UserverConan(ConanFile):
                 transitive_headers=True,
                 transitive_libs=True,
             )
+        if self.options.with_kafka:
+            self.requires('librdkafka/2.4.0')
 
     def validate(self):
         if (
@@ -209,7 +214,7 @@ class UserverConan(ConanFile):
         tool_ch.variables[
             'USERVER_FEATURE_TESTSUITE'
         ] = self.options.with_utest
-
+        tool_ch.variables['USERVER_FEATURE_KAFKA'] = self.options.with_kafka
         tool_ch.generate()
 
         CMakeDeps(self).generate()
@@ -320,7 +325,16 @@ class UserverConan(ConanFile):
                 pattern='*',
                 dst=os.path.join(self.package_folder, 'include', 'utest'),
                 src=os.path.join(
-                    self.source_folder, 'core', 'testing', 'include',
+                    self.source_folder, 'universal', 'utest', 'include',
+                ),
+                keep_path=True,
+            )
+            copy(
+                self,
+                pattern='*',
+                dst=os.path.join(self.package_folder, 'include', 'utest'),
+                src=os.path.join(
+                    self.source_folder, 'core', 'utest', 'include',
                 ),
                 keep_path=True,
             )
@@ -368,6 +382,9 @@ class UserverConan(ConanFile):
         if self.options.with_clickhouse:
             copy_component('clickhouse')
 
+        if self.options.with_kafka:
+            copy_component('kafka')
+
     @property
     def _userver_components(self):
         def abseil():
@@ -411,6 +428,11 @@ class UserverConan(ConanFile):
 
         def zlib():
             return ['zlib::zlib']
+
+        def zstd():
+            # According to https://conan.io/center/recipes/zstd should be
+            # zstd::libzstd_static, but it does not work that way
+            return ['zstd::zstd']
 
         def jemalloc():
             return ['jemalloc::jemalloc'] if self.options.with_jemalloc else []
@@ -461,6 +483,11 @@ class UserverConan(ConanFile):
                 else []
             )
 
+        def librdkafka():
+            return (
+                ['librdkafka::librdkafka'] if self.options.with_kafka else []
+            )
+
         userver_components = [
             {
                 'target': 'core',
@@ -498,6 +525,7 @@ class UserverConan(ConanFile):
                         + cryptopp()
                         + jemalloc()
                         + openssl()
+                        + zstd()
                     ),
                 },
             ],
@@ -596,6 +624,16 @@ class UserverConan(ConanFile):
                         'target': 'clickhouse',
                         'lib': 'clickhouse',
                         'requires': ['core'] + clickhouse(),
+                    },
+                ],
+            )
+        if self.options.with_kafka:
+            userver_components.extend(
+                [
+                    {
+                        'target': 'kafka',
+                        'lib': 'kafka',
+                        'requires': ['core'] + librdkafka(),
                     },
                 ],
             )

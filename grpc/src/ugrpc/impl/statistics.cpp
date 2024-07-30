@@ -1,7 +1,10 @@
 #include <userver/ugrpc/impl/statistics.hpp>
 
+#include <limits>
+
 #include <userver/logging/log.hpp>
 #include <userver/utils/enumerate.hpp>
+#include <userver/utils/statistics/striped_rate_counter.hpp>
 #include <userver/utils/statistics/writer.hpp>
 #include <userver/utils/underlying_value.hpp>
 
@@ -47,9 +50,15 @@ void DumpMetric(utils::statistics::Writer& writer,
 
 }  // namespace
 
-MethodStatistics::MethodStatistics(StatisticsDomain domain) : domain_(domain) {}
+MethodStatistics::MethodStatistics(
+    StatisticsDomain domain,
+    utils::statistics::StripedRateCounter& global_started)
+    : domain_(domain), global_started_(global_started) {}
 
-void MethodStatistics::AccountStarted() noexcept { ++started_; }
+void MethodStatistics::AccountStarted() noexcept {
+  ++started_;
+  ++global_started_;
+}
 
 void MethodStatistics::AccountStatus(grpc::StatusCode code) noexcept {
   if (static_cast<std::size_t>(code) < kCodesCount) {
@@ -114,6 +123,7 @@ void DumpMetric(utils::statistics::Writer& writer,
   const auto abandoned_errors_value = stats.internal_errors_.Load();
   const auto deadline_cancelled_value = stats.deadline_cancelled_.Load();
   const auto cancelled_value = stats.cancelled_.Load();
+  const auto started_renamed = stats.started_renamed_.Load();
 
   // 'total_requests' and 'error_requests' originally only count RPCs that
   // finished with a status code. 'network_errors', 'deadline_cancelled' and
@@ -137,6 +147,7 @@ void DumpMetric(utils::statistics::Writer& writer,
 
   // "active" is not a rate metric. Also, beware of overflow
   writer["active"] = static_cast<std::int64_t>(stats.started_.Load().value) -
+                     static_cast<std::int64_t>(started_renamed.value) -
                      static_cast<std::int64_t>(total_requests.value);
 
   writer["rps"] = AsRateAndGauge{total_requests};
@@ -153,15 +164,25 @@ void DumpMetric(utils::statistics::Writer& writer,
 }
 
 std::uint64_t MethodStatistics::GetStarted() const noexcept {
-  return started_.Load().value;
+  return started_.Load().value - started_renamed_.Load().value;
+}
+
+void MethodStatistics::MoveStartedTo(MethodStatistics& other) noexcept {
+  UASSERT(&global_started_ == &other.global_started_);
+  // Any increment order may result in minor logical inconsistencies
+  // on the dashboard at times. Oh well.
+  ++started_renamed_;
+  ++other.started_;
 }
 
 ServiceStatistics::~ServiceStatistics() = default;
 
-ServiceStatistics::ServiceStatistics(const StaticServiceMetadata& metadata,
-                                     StatisticsDomain domain)
+ServiceStatistics::ServiceStatistics(
+    const StaticServiceMetadata& metadata, StatisticsDomain domain,
+    utils::statistics::StripedRateCounter& global_started)
     : metadata_(metadata),
-      method_statistics_(metadata.method_full_names.size(), domain) {}
+      method_statistics_(metadata.method_full_names.size(), domain,
+                         global_started) {}
 
 MethodStatistics& ServiceStatistics::GetMethodStatistics(
     std::size_t method_id) {

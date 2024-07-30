@@ -296,7 +296,7 @@ class SubscriptionStorage : public SubscriptionStorageBase {
 
  private:
   /* We could use Fsm per shard (single Fsm for all channels), but in
-   * this case it would be hard to create new subsciptions for shards
+   * this case it would be hard to create new subscriptions for shards
    * with Fsms in transition states (e.g. previous subscription
    * requests are sent, we're waiting for the reply). So use
    * independent Fsms for distinct channels.

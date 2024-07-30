@@ -1,7 +1,7 @@
 # yaml
 components_manager:
     task_processors:                  # Task processor is an executor for coroutine tasks
-        main-task-processor:          # Make a task processor for CPU-bound couroutine tasks.
+        main-task-processor:          # Make a task processor for CPU-bound coroutine tasks.
             worker_threads: 4         # Process tasks in 4 threads.
 
         fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
@@ -75,6 +75,7 @@ components_manager:
                     database: sampledb
                     max_pool_size: 10
                     min_pool_size: 5
+                    get_session_retry_limit: 1
 
         handler-select-rows:
             method: POST

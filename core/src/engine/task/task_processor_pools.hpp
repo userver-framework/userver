@@ -11,7 +11,7 @@ class TaskContext;
 
 class TaskProcessorPools final {
  public:
-  using CoroPool = coro::Pool<TaskContext>;
+  using CoroPool = coro::Pool;
 
   TaskProcessorPools(coro::PoolConfig coro_pool_config,
                      ev::ThreadPoolConfig ev_pool_config);

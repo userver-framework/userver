@@ -1,9 +1,14 @@
-#include <engine/io/poller.hpp>
+#include <userver/engine/io/poller.hpp>
+
+#include <atomic>
 
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+
+#include <engine/ev/thread_control.hpp>
+#include <engine/ev/watcher.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -32,8 +37,25 @@ utils::Flags<Poller::Event::Type> FromEvEvents(int ev_events) {
 
 }  // namespace
 
+struct Poller::IoWatcher {
+  explicit IoWatcher(Poller&);
+
+  IoWatcher(const IoWatcher&) = delete;
+  IoWatcher(IoWatcher&&) = delete;
+
+  static void IoEventCb(struct ev_loop*, ev_io*, int) noexcept;
+
+  Poller& poller;
+  std::atomic<size_t> coro_epoch;
+  size_t ev_epoch{0};
+  ev::Watcher<ev_io> ev_watcher;
+  utils::AtomicFlags<Event::Type> awaited_events;
+};
+
 Poller::Poller()
     : Poller(USERVER_NAMESPACE::concurrent::MpscQueue<Event>::Create()) {}
+
+Poller::~Poller() = default;
 
 Poller::Poller(
     const std::shared_ptr<USERVER_NAMESPACE::concurrent::MpscQueue<Event>>&
@@ -42,7 +64,7 @@ Poller::Poller(
       event_producer_(queue->GetProducer()) {}
 
 void Poller::Add(int fd, utils::Flags<Event::Type> events) {
-  auto& watcher = watchers_.emplace(fd, *this).first->second;
+  auto& watcher = watchers_->emplace(fd, *this).first->second;
 
   const auto old_events = watcher.awaited_events.Exchange(events);
   if (old_events == events) return;
@@ -62,18 +84,21 @@ void Poller::Add(int fd, utils::Flags<Event::Type> events) {
 }
 
 void Poller::Remove(int fd) {
-  auto watcher_it = watchers_.find(fd);
-  if (watcher_it == watchers_.end()) {
+  auto watcher_it = watchers_->find(fd);
+  if (watcher_it == watchers_->end()) {
     LOG_DEBUG() << "Request for removal of an unknown fd " << fd
                 << " from poller";
     return;
   }
   auto& watcher = watcher_it->second;
+  RemoveImpl(watcher);
+}
 
+void Poller::RemoveImpl(Poller::IoWatcher& watcher) {
   watcher.awaited_events = Event::kNone;
 
-  // At this point Poller::IoEventCb may be calling Stop() on watcher,
-  // Poller::EventsFilter may have been already called and
+  // At this point Poller::IoWatcher::IoEventCb may be calling Stop() on
+  // watcher, Poller::EventsFilter may have been already called and
   // awaited_events == Event::kNone.
   //
   // Have to call Stop() for watcher to avoid early return from this function,
@@ -106,14 +131,26 @@ void Poller::Interrupt() {
   UASSERT(is_sent);
 }
 
+void Poller::Reset() {
+  for (auto& [fd, watcher] : *watchers_) {
+    RemoveImpl(watcher);
+  }
+  watchers_->clear();
+
+  Event ignore_stale_event;
+  while (event_consumer_.PopNoblock(ignore_stale_event)) {
+    // do nothing
+  }
+}
+
 template <typename EventSource>
 Poller::Status Poller::EventsFilter(EventSource get_event, Event& buf) {
   bool has_event = get_event(buf);
   while (has_event) {
     if (buf.fd == kInvalidFd) return Status::kInterrupt;
 
-    const auto it = watchers_.find(buf.fd);
-    UASSERT(it != watchers_.end());
+    const auto it = watchers_->find(buf.fd);
+    UASSERT(it != watchers_->end());
     buf.type &= Event::kError | it->second.awaited_events;
     if (buf.epoch == it->second.coro_epoch && buf.type) {
       it->second.awaited_events = Event::kNone;
@@ -124,7 +161,8 @@ Poller::Status Poller::EventsFilter(EventSource get_event, Event& buf) {
   return has_event ? Status::kSuccess : Status::kNoEvents;
 }
 
-void Poller::IoEventCb(struct ev_loop*, ev_io* watcher, int revents) noexcept {
+void Poller::IoWatcher::IoEventCb(struct ev_loop*, ev_io* watcher,
+                                  int revents) noexcept {
   UASSERT(watcher->active);
   UASSERT((watcher->events & ~(EV_READ | EV_WRITE)) == 0);
 

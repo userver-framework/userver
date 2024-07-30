@@ -4,18 +4,27 @@
 
 include_guard(GLOBAL)
 
-# Pack initialization into a function to avoid non-cache variable leakage.
 function(_userver_prepare_chaotic)
   include("${CMAKE_CURRENT_LIST_DIR}/UserverTestsuite.cmake")
 
-  set(CHAOTIC_BIN "${CMAKE_CURRENT_LIST_DIR}/../chaotic/bin/chaotic-gen")
+  find_program(CHAOTIC_BIN chaotic-gen
+      PATHS
+          "${CMAKE_CURRENT_SOURCE_DIR}/../chaotic/bin"
+          "${CMAKE_CURRENT_LIST_DIR}/../../../bin"
+      NO_DEFAULT_PATH
+  )
   message(STATUS "Found chaotic-gen: ${CHAOTIC_BIN}")
   set_property(GLOBAL PROPERTY userver_chaotic_bin "${CHAOTIC_BIN}")
+
+  if(NOT USERVER_CHAOTIC_SCRIPTS_PATH)
+    get_filename_component(USERVER_DIR "${CMAKE_CURRENT_LIST_DIR}" DIRECTORY)
+    set(USERVER_CHAOTIC_SCRIPTS_PATH "${USERVER_DIR}/scripts/chaotic")
+  endif()
 
   userver_venv_setup(
       NAME userver-chaotic
       PYTHON_OUTPUT_VAR USERVER_CHAOTIC_PYTHON_BINARY
-      REQUIREMENTS "${CMAKE_CURRENT_SOURCE_DIR}/../scripts/chaotic/requirements.txt"
+      REQUIREMENTS "${USERVER_CHAOTIC_SCRIPTS_PATH}/requirements.txt"
       UNIQUE
   )
   set_property(GLOBAL PROPERTY userver_chaotic_python_binary
@@ -33,6 +42,7 @@ function(userver_target_generate_chaotic TARGET)
   )
 
   get_property(CHAOTIC_BIN GLOBAL PROPERTY userver_chaotic_bin)
+  get_property(CHAOTIC_EXTRA_ARGS GLOBAL PROPERTY userver_chaotic_extra_args)
   get_property(USERVER_CHAOTIC_PYTHON_BINARY
       GLOBAL PROPERTY userver_chaotic_python_binary)
 
@@ -65,9 +75,10 @@ function(userver_target_generate_chaotic TARGET)
       COMMAND
           env USERVER_PYTHON=${USERVER_CHAOTIC_PYTHON_BINARY}
           ${CHAOTIC_BIN}
+          ${CHAOTIC_EXTRA_ARGS}
           ${PARSE_ARGS}
           -o "${PARSE_OUTPUT_DIR}"
-          --relative-to "${RELATIVE_TO}"
+          --relative-to "${PARSE_RELATIVE_TO}"
           ${PARSE_SCHEMAS}
       DEPENDS
           ${PARSE_SCHEMAS}
@@ -76,7 +87,7 @@ function(userver_target_generate_chaotic TARGET)
       VERBATIM
   )
   add_library(${TARGET} ${SCHEMAS})
-  target_link_libraries(${TARGET} userver-universal userver-chaotic)
+  target_link_libraries(${TARGET} userver::chaotic)
   target_include_directories(${TARGET} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
   target_include_directories(${TARGET} PUBLIC "${PARSE_OUTPUT_DIR}")
 endfunction()

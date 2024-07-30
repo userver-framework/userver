@@ -1,4 +1,4 @@
-#include <utils/distances.hpp>
+#include <userver/utils/distances.hpp>
 
 #include <algorithm>
 #include <vector>
@@ -12,6 +12,13 @@ USERVER_NAMESPACE_BEGIN
 namespace utils {
 
 namespace impl {
+
+std::string SuggestNameErrorMsg(std::optional<std::string_view> suggest_name) {
+  if (suggest_name.has_value()) {
+    return fmt::format(" Perhaps you meant '{}' ?", suggest_name.value());
+  }
+  return "";
+}
 
 template <typename RandomIt>
 std::size_t GetLevenshteinDistance(RandomIt begin1, RandomIt end1,
@@ -81,13 +88,6 @@ std::size_t GetDamerauLevenshteinDistance(std::string_view view1,
                                           std::string_view view2) {
   return impl::GetDamerauLevenshteinDistance(view1.begin(), view1.end(),
                                              view2.begin(), view2.end());
-}
-
-std::string SuggestNameErrorMsg(std::optional<std::string_view> suggest_name) {
-  if (suggest_name.has_value()) {
-    return fmt::format(" Perhaps you meant '{}' ?", suggest_name.value());
-  }
-  return "";
 }
 
 }  // namespace utils

@@ -84,14 +84,25 @@ async def grpc_mockserver(grpc_mockserver_endpoint) -> grpc.aio.Server:
     """
     server = grpc.aio.server()
     server.add_insecure_port(grpc_mockserver_endpoint)
-    server_task = asyncio.create_task(server.start())
+    await server.start()
 
     try:
         yield server
     finally:
-        await asyncio.shield(server.stop(grace=None))
-        await asyncio.shield(server.wait_for_termination())
-        await asyncio.shield(server_task)
+
+        async def stop_server():
+            await server.stop(grace=None)
+            await server.wait_for_termination()
+
+        stop_server_task = asyncio.shield(asyncio.create_task(stop_server()))
+        # asyncio.shield does not protect our await from cancellations, and we
+        # really need to wait for the server stopping before continuing.
+        try:
+            await stop_server_task
+        except asyncio.CancelledError:
+            await stop_server_task
+            # Propagate cancellation when we are done
+            raise
 
 
 @pytest.fixture(scope='session')
@@ -134,11 +145,9 @@ def _create_servicer_mock(
 
             method = mock.get(name, None)
             if method is not None:
-                call = method(*args, **kwargs)
+                return await method(*args, **kwargs)
             else:
-                call = default_method(self, *args, **kwargs)
-
-            return await call
+                return default_method(self, *args, **kwargs)
 
         @functools.wraps(default_method)
         async def run_stream_method(self, *args, **kwargs):

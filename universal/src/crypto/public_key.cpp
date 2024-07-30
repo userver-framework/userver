@@ -11,12 +11,13 @@
 
 #include <boost/numeric/conversion/cast.hpp>
 
-#include <crypto/helpers.hpp>
-#include <crypto/openssl.hpp>
 #include <userver/crypto/exception.hpp>
 #include <userver/crypto/hash.hpp>
+#include <userver/crypto/openssl.hpp>
 #include <userver/utils/str_icase.hpp>
 #include <userver/utils/text_light.hpp>
+
+#include <crypto/helpers.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -102,7 +103,7 @@ std::unique_ptr<EC_KEY, decltype(&::EC_KEY_free)> LoadEc(int curve_type,
 }  // namespace
 
 PublicKey PublicKey::LoadFromString(std::string_view key) {
-  impl::Openssl::Init();
+  Openssl::Init();
 
   if (utils::text::StartsWith(key, "-----BEGIN CERTIFICATE-----")) {
     return LoadFromCertificate(Certificate::LoadFromString(key));

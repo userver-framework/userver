@@ -99,7 +99,7 @@ void Ins(storages::postgres::Transaction& tr,
             <span class="values__icon thumbnail thumbnail_asynchronous"></span>
             <p class="values__cardinfo">
               Efficient asynchronous drivers for databases (MongoDB, PostgreSQL,
-              MySQL/MariaDB, Redis, ClickHouse, ...) and data
+              MySQL/MariaDB, Redis, ClickHouse, YDB, ...) and data
               transfer protocols (HTTP, WEbSockets, gRPC, TCP, AMQP-0.9.1,
               Apache Kafka, ...), tasks construction and cancellation.
             </p>
@@ -139,6 +139,68 @@ void Ins(storages::postgres::Transaction& tr,
           <span class="logo logo_yago" title="Yandex Go"></span>
         </div>
       </section>
+      <section class="section feedback">
+        <div class="feedback__wrapper container">
+          <div class="feedback__content">
+            <h2>Leave Your Feedback</h2>
+            <p class="feedback__info">
+              Your opinion will help to improve our service
+            </p>
+            <form class="feedback__form">
+              <fieldset class="feedback__stars">
+                <input
+                  class="feedback__star"
+                  type="radio"
+                  name="rating"
+                  value="1"
+                  aria-label="1 star"
+                  required
+                />
+                <input
+                  class="feedback__star"
+                  type="radio"
+                  name="rating"
+                  value="2"
+                  aria-label="2 star"
+                  required
+                />
+                <input
+                  class="feedback__star"
+                  type="radio"
+                  name="rating"
+                  value="3"
+                  aria-label="3 star"
+                  required
+                />
+                <input
+                  class="feedback__star"
+                  type="radio"
+                  name="rating"
+                  value="4"
+                  aria-label="4 star"
+                  required
+                />
+                <input
+                  class="feedback__star"
+                  type="radio"
+                  name="rating"
+                  value="5"
+                  aria-label="5 star"
+                  required
+                />
+              </fieldset>
+              <a
+                href="https://forms.yandex.ru/u/667d482fe010db2f53e00edf/"
+                target="_blank"
+                class="button feedback__button"
+                title="Fill out the feedback form">
+                Go to the feedback form >
+              </a>
+            </form>
+          </div>
+          <img class="feedback__image" src="feedback.svg" alt="userver logo" />
+        </div>
+      </section>
     </main>
     <!-- Highlight codeblocks -->
     <script src="highlight.min.js"></script>
@@ -151,5 +213,4 @@ void Ins(storages::postgres::Transaction& tr,
     <script type="text/javascript">
       document.querySelector(".header").style.display = "none";
     </script>
-
 \endhtmlonly

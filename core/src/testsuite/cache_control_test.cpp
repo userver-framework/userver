@@ -6,7 +6,7 @@
 
 #include <userver/cache/cache_config.hpp>
 #include <userver/cache/cache_update_trait.hpp>
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/concurrent/variable.hpp>
 #include <userver/dump/common.hpp>
 #include <userver/dump/unsafe.hpp>
@@ -153,13 +153,13 @@ UTEST_DEATH(CacheControlDeathTest, MissingCache) {
 namespace {
 
 /// [sample]
-class MyCache final : public components::LoggableComponentBase {
+class MyCache final : public components::ComponentBase {
  public:
   static constexpr std::string_view kName = "my-component-default-name";
 
   MyCache(const components::ComponentConfig& config,
           const components::ComponentContext& context)
-      : components::LoggableComponentBase(config, context) {
+      : components::ComponentBase(config, context) {
     {
       auto cache = cached_token_.Lock();
       *cache = FetchToken();
@@ -202,13 +202,13 @@ std::atomic<std::size_t> expected_resets_count{0};
 
 void AssertConcurrentResets();
 
-class Component1 final : public components::LoggableComponentBase {
+class Component1 final : public components::ComponentBase {
  public:
   static constexpr std::string_view kName = "component-1";
 
   Component1(const components::ComponentConfig& config,
              const components::ComponentContext& context)
-      : components::LoggableComponentBase(config, context) {
+      : components::ComponentBase(config, context) {
     reset_registration_ = testsuite::RegisterCache(config, context, this,
                                                    &Component1::ResetCache);
   }
@@ -225,13 +225,13 @@ class Component1 final : public components::LoggableComponentBase {
   testsuite::CacheResetRegistration reset_registration_;
 };
 
-class Component1a final : public components::LoggableComponentBase {
+class Component1a final : public components::ComponentBase {
  public:
   static constexpr std::string_view kName = "component-1a";
 
   Component1a(const components::ComponentConfig& config,
               const components::ComponentContext& context)
-      : components::LoggableComponentBase(config, context) {
+      : components::ComponentBase(config, context) {
     reset_registration_ = testsuite::RegisterCache(config, context, this,
                                                    &Component1a::ResetCache);
   }
@@ -248,13 +248,13 @@ class Component1a final : public components::LoggableComponentBase {
   testsuite::CacheResetRegistration reset_registration_;
 };
 
-class Component1b final : public components::LoggableComponentBase {
+class Component1b final : public components::ComponentBase {
  public:
   static constexpr std::string_view kName = "component-1b";
 
   Component1b(const components::ComponentConfig& config,
               const components::ComponentContext& context)
-      : components::LoggableComponentBase(config, context) {
+      : components::ComponentBase(config, context) {
     reset_registration_ = testsuite::RegisterCache(config, context, this,
                                                    &Component1b::ResetCache);
   }
@@ -271,13 +271,13 @@ class Component1b final : public components::LoggableComponentBase {
   testsuite::CacheResetRegistration reset_registration_;
 };
 
-class Component1c final : public components::LoggableComponentBase {
+class Component1c final : public components::ComponentBase {
  public:
   static constexpr std::string_view kName = "component-1c";
 
   Component1c(const components::ComponentConfig& config,
               const components::ComponentContext& context)
-      : components::LoggableComponentBase(config, context) {
+      : components::ComponentBase(config, context) {
     reset_registration_ = testsuite::RegisterCache(config, context, this,
                                                    &Component1c::ResetCache);
   }
@@ -294,13 +294,13 @@ class Component1c final : public components::LoggableComponentBase {
   testsuite::CacheResetRegistration reset_registration_;
 };
 
-class Component2 final : public components::LoggableComponentBase {
+class Component2 final : public components::ComponentBase {
  public:
   static constexpr std::string_view kName = "component-2";
 
   Component2(const components::ComponentConfig& config,
              const components::ComponentContext& context)
-      : components::LoggableComponentBase(config, context) {
+      : components::ComponentBase(config, context) {
     context.FindComponent<Component1>();
     reset_registration_ = testsuite::RegisterCache(config, context, this,
                                                    &Component2::ResetCache);
@@ -318,13 +318,13 @@ class Component2 final : public components::LoggableComponentBase {
   testsuite::CacheResetRegistration reset_registration_;
 };
 
-class ComponentNotLoaded final : public components::LoggableComponentBase {
+class ComponentNotLoaded final : public components::ComponentBase {
  public:
   static constexpr std::string_view kName = "component-not-loaded";
 
   ComponentNotLoaded(const components::ComponentConfig& config,
                      const components::ComponentContext& context)
-      : components::LoggableComponentBase(config, context) {
+      : components::ComponentBase(config, context) {
     context.FindComponent<Component1>();
     reset_registration_ = testsuite::RegisterCache(
         config, context, this, &ComponentNotLoaded::ResetCache);
@@ -337,13 +337,13 @@ class ComponentNotLoaded final : public components::LoggableComponentBase {
   testsuite::CacheResetRegistration reset_registration_;
 };
 
-class Component3 final : public components::LoggableComponentBase {
+class Component3 final : public components::ComponentBase {
  public:
   static constexpr std::string_view kName = "component-3";
 
   Component3(const components::ComponentConfig& config,
              const components::ComponentContext& context)
-      : components::LoggableComponentBase(config, context),
+      : components::ComponentBase(config, context),
         cc_{testsuite::FindCacheControl(context)} {
     context.FindComponentOptional<Component2>();
     context.FindComponentOptional<ComponentNotLoaded>();

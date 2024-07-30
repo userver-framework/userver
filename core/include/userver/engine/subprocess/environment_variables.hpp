@@ -48,8 +48,10 @@ class EnvironmentVariables {
   /// @brief Constructs an instance from pairs: key, value taken from the map.
   explicit EnvironmentVariables(Map vars);
 
-  /// Constructs copy of the instance.
   EnvironmentVariables(const EnvironmentVariables&) = default;
+  EnvironmentVariables& operator=(const EnvironmentVariables&) = default;
+  EnvironmentVariables(EnvironmentVariables&&) noexcept = default;
+  EnvironmentVariables& operator=(EnvironmentVariables&&) noexcept = default;
 
   /// @brief Updates variable.
   /// @note If variable does not exist then it is added.
@@ -69,6 +71,9 @@ class EnvironmentVariables {
   /// Returns the reference to the value.
   std::string& operator[](const std::string& variable_name);
 
+  /// Compares equal if thee map of environment variables are equal.
+  bool operator==(const EnvironmentVariables& rhs) const;
+
   /// Checks whether the container is empty.
   auto empty() const { return vars_.empty(); }
 
@@ -76,6 +81,7 @@ class EnvironmentVariables {
   auto size() const { return vars_.size(); }
 
   using const_iterator = Map::const_iterator;
+  using iterator = const_iterator;
 
   /// Returns a const iterator to the beginning.
   auto begin() const { return vars_.begin(); }
@@ -116,6 +122,17 @@ void SetEnvironmentVariable(const std::string& variable_name,
 /// @brief Unsets the environment variable.
 /// @warning Not thread-safe.
 void UnsetEnvironmentVariable(const std::string& variable_name);
+
+/// @brief RAII idiom guard of environment variables.
+/// @warning The constructor and destructor are not thread-safe.
+class EnvironmentVariablesScope {
+ public:
+  EnvironmentVariablesScope();
+  ~EnvironmentVariablesScope();
+
+ private:
+  rcu::ReadablePtr<EnvironmentVariables> old_env_;
+};
 
 }  // namespace engine::subprocess
 

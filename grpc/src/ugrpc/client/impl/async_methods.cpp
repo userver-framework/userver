@@ -88,15 +88,15 @@ void FutureImpl::ClearData() noexcept { data_ = nullptr; }
 
 RpcData::RpcData(impl::CallParams&& params)
     : context_(std::move(params.context)),
-      client_name_(params.call_name),
-      call_name_(params.call_name),
+      client_name_(params.client_name),
+      call_name_(std::move(params.call_name)),
       stats_scope_(params.statistics),
       queue_(params.queue),
       config_values_(params.config),
       mws_(params.mws) {
   UASSERT(context_);
   UASSERT(!client_name_.empty());
-  SetupSpan(span_, *context_, call_name_);
+  SetupSpan(span_, *context_, call_name_.Get());
 }
 
 RpcData::~RpcData() {
@@ -136,7 +136,7 @@ const Middlewares& RpcData::GetMiddlewares() const noexcept {
 
 std::string_view RpcData::GetCallName() const noexcept {
   UASSERT(context_);
-  return call_name_;
+  return call_name_.Get();
 }
 
 std::string_view RpcData::GetClientName() const noexcept {
@@ -282,7 +282,8 @@ void ProcessFinishResult(RpcData& data,
                                  std::move(parsed_gstatus.gstatus_string));
     }
   } else {
-    data.GetStatsScope().Flush();
+    data.GetSpan().AddTag("grpc_code",
+                          std::string{ugrpc::ToString(grpc::StatusCode::OK)});
     data.ResetSpan();
   }
 }

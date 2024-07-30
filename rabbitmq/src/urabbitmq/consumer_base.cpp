@@ -51,7 +51,7 @@ void ConsumerBase::Start() {
   try {
     impl_ = CreateAndStartConsumerImpl(
         *client_->impl_, settings_,
-        [this](std::string message) { Process(std::move(message)); });
+        [this](ConsumedMessage message) { Process(std::move(message)); });
   } catch (const std::exception& ex) {
     LOG_WARNING() << "Failed to start a consumer: '" << ex.what()
                   << "'; will try to start again";
@@ -70,9 +70,10 @@ void ConsumerBase::Start() {
             // nodes fail or we are just unlucky. Not sure how much of a problem
             // that is, but still
             impl_.reset();
-            impl_ = CreateAndStartConsumerImpl(
-                *client_->impl_, settings_,
-                [this](std::string message) { Process(std::move(message)); });
+            impl_ = CreateAndStartConsumerImpl(*client_->impl_, settings_,
+                                               [this](ConsumedMessage message) {
+                                                 Process(std::move(message));
+                                               });
             LOG_INFO() << "Restarted successfully";
           } catch (const std::exception& ex) {
             LOG_WARNING() << "Failed to restart a consumer: '" << ex.what()

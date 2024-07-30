@@ -21,11 +21,13 @@ if(NOT TARGET fmt)
   add_library(fmt ALIAS fmt::fmt)
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/..")
 find_package(cctz REQUIRED)
 find_package(CryptoPP REQUIRED)
 find_package(libyamlcpp REQUIRED)
-if (NOT USERVER_SANITIZE AND NOT CMAKE_SYSTEM_NAME MATCHES "Darwin")
+find_package(libzstd REQUIRED)
+if (USERVER_IMPL_FEATURE_JEMALLOC AND
+    NOT USERVER_SANITIZE AND
+    NOT CMAKE_SYSTEM_NAME MATCHES "Darwin")
   find_package(Jemalloc REQUIRED)
 endif()
 
@@ -41,11 +43,9 @@ include("${USERVER_CMAKE_DIR}/SetupGTest.cmake")
 include("${USERVER_CMAKE_DIR}/SetupGBench.cmake")
 
 if(NOT USERVER_IMPL_ORIGINAL_CXX_STANDARD STREQUAL CMAKE_CXX_STANDARD)
-  target_compile_definitions(userver::userver-universal INTERFACE
+  target_compile_definitions(userver::universal INTERFACE
       "USERVER_IMPL_ORIGINAL_CXX_STANDARD=${USERVER_IMPL_ORIGINAL_CXX_STANDARD}"
   )
 endif()
-
-add_library(userver::universal ALIAS userver::userver-universal)
 
 set(userver_universal_FOUND TRUE)

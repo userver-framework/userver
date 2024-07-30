@@ -17,6 +17,4 @@ else()
   message(STATUS "libpq patches disabled")
 endif()
 
-add_library(userver::postgresql ALIAS userver::userver-postgresql)
-
 set(userver_postgresql_FOUND TRUE)

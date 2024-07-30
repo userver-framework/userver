@@ -4,7 +4,7 @@
 
 #include <userver/kafka/producer.hpp>
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/utils/statistics/entry.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -42,7 +42,7 @@ namespace kafka {
 
 // clang-format on
 
-class ProducerComponent final : public components::LoggableComponentBase {
+class ProducerComponent final : public components::ComponentBase {
  public:
   static constexpr std::string_view kName = "kafka-producer";
 

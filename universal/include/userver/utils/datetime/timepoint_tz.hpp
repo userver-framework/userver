@@ -5,8 +5,9 @@
 /// @ingroup userver_universal
 
 #include <chrono>
+#include <string>
 
-#include <userver/logging/log_helper.hpp>
+#include <userver/logging/log_helper_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -66,6 +67,8 @@ bool operator>=(const TimePointTzBase::TimePoint& lhs,
 /// Timepoint with timezone parsed in kRfc3339Format
 class TimePointTz final : public TimePointTzBase {
   using TimePointTzBase::TimePointTzBase;
+
+  explicit TimePointTz(const std::string& timestring);
 };
 
 logging::LogHelper& operator<<(logging::LogHelper& os, const TimePointTz& v);
@@ -73,6 +76,8 @@ logging::LogHelper& operator<<(logging::LogHelper& os, const TimePointTz& v);
 /// Timepoint with timezone parsed in kDefaultFormat
 class TimePointTzIsoBasic final : public TimePointTzBase {
   using TimePointTzBase::TimePointTzBase;
+
+  explicit TimePointTzIsoBasic(const std::string& timestring);
 };
 
 logging::LogHelper& operator<<(logging::LogHelper& os,

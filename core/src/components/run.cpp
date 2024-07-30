@@ -11,28 +11,29 @@
 #include <boost/exception/diagnostic_information.hpp>
 #include <boost/stacktrace/stacktrace.hpp>
 
-#include <components/manager.hpp>
-#include <components/manager_config.hpp>
-#include <crypto/openssl.hpp>
-#include <logging/config.hpp>
-#include <logging/tp_logger_utils.hpp>
+#include <userver/crypto/openssl.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/dynamic_config/value.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/fs/blocking/read.hpp>
+#include <userver/logging/impl/mem_logger.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/logging/null_logger.hpp>
 #include <userver/logging/stacktrace_cache.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/impl/static_registration.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 #include <userver/utils/overloaded.hpp>
+#include <userver/utils/strerror.hpp>
 #include <userver/utils/traceful_exception.hpp>
+
+#include <components/manager.hpp>
+#include <components/manager_config.hpp>
+#include <logging/config.hpp>
+#include <logging/tp_logger_utils.hpp>
 #include <utils/ignore_signal_scope.hpp>
 #include <utils/jemalloc.hpp>
 #include <utils/signal_catcher.hpp>
-#include <utils/strerror.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -48,16 +49,25 @@ class LogScope final {
  public:
   LogScope()
       : logger_prev_{logging::GetDefaultLogger()},
-        level_scope_{logging::GetDefaultLoggerLevel()} {}
+        level_scope_{logging::GetDefaultLoggerLevel()} {
+    logging::impl::SetDefaultLoggerRef(
+        logging::impl::MemLogger::GetMemLogger());
+  }
 
-  ~LogScope() { logging::impl::SetDefaultLoggerRef(logger_prev_); }
+  ~LogScope() {
+    logger_prev_.ForwardTo(nullptr);
+    logging::impl::SetDefaultLoggerRef(logger_prev_);
+  }
 
   void SetLogger(logging::LoggerPtr logger) {
     UASSERT(logger);
     logging::impl::SetDefaultLoggerRef(*logger);
     // Destroys the old logger_new_
     logger_new_ = std::move(logger);
+    logger_prev_.ForwardTo(&*logger_new_);
   }
+
+  logging::LoggerRef GetPrevLogger() { return logger_prev_; }
 
  private:
   logging::LoggerPtr logger_new_;
@@ -168,11 +178,14 @@ ManagerConfig ParseManagerConfigAndSetupLogging(
 
     const auto default_logger_config =
         logging::impl::ExtractDefaultLoggerConfig(manager_config);
-    auto default_logger = logging::impl::MakeTpLogger(default_logger_config);
+    if (default_logger_config) {
+      auto default_logger = logging::impl::MakeTpLogger(*default_logger_config);
 
-    // This line enables basic logging. Any LOG_XXX before it is meaningless,
-    // because it would typically go straight to a NullLogger.
-    log_scope.SetLogger(std::move(default_logger));
+      // This line enables basic logging. Any logging before would go to
+      // MemLogger and be transferred to the logger in the cycle below.
+      log_scope.SetLogger(default_logger);
+      log_scope.GetPrevLogger().ForwardTo(&*default_logger);
+    }
 
     LOG_INFO() << "Parsed " << details;
     return manager_config;
@@ -193,7 +206,7 @@ void DoRun(const PathOrConfig& config,
   const utils::IgnoreSignalScope ignore_sigpipe_scope(SIGPIPE);
 
   ++server::handlers::auth::apikey::auth_checker_apikey_module_activation;
-  crypto::impl::Openssl::Init();
+  crypto::Openssl::Init();
 
   LogScope log_scope;
   auto manager_config = ParseManagerConfigAndSetupLogging(

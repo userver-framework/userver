@@ -33,7 +33,6 @@ file(GLOB_RECURSE REDIS_FUNCTIONAL_TEST_SOURCES
 list(REMOVE_ITEM SOURCES ${REDIS_FUNCTIONAL_TEST_SOURCES})
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
-add_library(userver::redis ALIAS ${PROJECT_NAME})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
 # for libev
@@ -59,12 +58,7 @@ if(USERVER_FEATURE_REDIS_TLS)
   add_compile_definitions(USERVER_FEATURE_REDIS_TLS=1)
 endif()
 
-target_link_libraries(${PROJECT_NAME}
-  PUBLIC
-    userver-core
-  PRIVATE
-    userver-uboost-coro
-)
+target_link_libraries(${PROJECT_NAME} PUBLIC userver-core)
 if (USERVER_CONAN)
   find_package(hiredis REQUIRED)
   target_link_libraries(${PROJECT_NAME} PUBLIC hiredis::hiredis)
@@ -94,7 +88,7 @@ _userver_install_targets(COMPONENT redis TARGETS ${PROJECT_NAME})
 
 _userver_directory_install(COMPONENT redis FILES
     "${USERVER_ROOT_DIR}/cmake/install/userver-redis-config.cmake"
-	"${CMAKE_BINARY_DIR}/cmake_generated/FindHiredis.cmake"
+	  "${USERVER_ROOT_DIR}/cmake/modules/FindHiredis.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
 )
 
@@ -154,10 +148,6 @@ if (USERVER_IS_THE_ROOT_PROJECT)
       run --
       ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-redistest
       --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_redistest.xml
-  )
-  set_property(
-    TEST ${PROJECT_NAME}-redistest
-    PROPERTY ENVIRONMENT "TESTSUITE_REDIS_HOSTNAME=localhost"
   )
 
   add_executable(${PROJECT_NAME}-benchmark ${REDIS_BENCH_SOURCES})

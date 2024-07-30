@@ -68,7 +68,7 @@ FdPoller::Kind GetUserMode(int ev_events) {
 }  // namespace
 
 struct FdPoller::Impl final : public engine::impl::ContextAccessor {
-  Impl();
+  Impl(ev::ThreadControl control);
 
   ~Impl();
 
@@ -117,7 +117,7 @@ struct FdPoller::Impl final : public engine::impl::ContextAccessor {
 
 void FdPoller::Impl::WakeupWaiters() { waiters_->SetSignalAndWakeupOne(); }
 
-FdPoller::Impl::Impl() : watcher_(current_task::GetEventThread(), this) {
+FdPoller::Impl::Impl(ev::ThreadControl control) : watcher_(control, this) {
   watcher_.Init(&IoWatcherCb);
 }
 
@@ -182,7 +182,9 @@ bool FdPoller::Impl::IsValid() const noexcept {
   return state_ != State::kInvalid;
 }
 
-FdPoller::FdPoller() { static_assert(std::atomic<State>::is_always_lock_free); }
+FdPoller::FdPoller(const ev::ThreadControl& control) : pimpl_(control) {
+  static_assert(std::atomic<State>::is_always_lock_free);
+}
 
 FdPoller::~FdPoller() = default;
 

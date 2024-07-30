@@ -6,6 +6,7 @@
 #include <engine/ev/thread_control.hpp>
 #include <engine/ev/thread_pool_config.hpp>
 #include <userver/utils/fixed_array.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -26,14 +27,20 @@ class ThreadPool final {
   std::size_t GetSize() const;
 
   ThreadControl& NextThread();
-  std::vector<ThreadControl*> NextThreads(std::size_t count);
 
   TimerThreadControl& NextTimerThread();
 
   ThreadControl& GetEvDefaultLoopThread();
 
+  friend void DumpMetric(utils::statistics::Writer& writer,
+                         const ThreadPool& self) {
+    self.WriteStats(writer);
+  }
+
  private:
   ThreadPool(ThreadPoolConfig config, bool use_ev_default_loop);
+
+  void WriteStats(utils::statistics::Writer& writer) const;
 
   bool use_ev_default_loop_;
 

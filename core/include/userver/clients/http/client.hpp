@@ -29,9 +29,9 @@ namespace tracing {
 class TracingManagerBase;
 }  // namespace tracing
 
-namespace server::http {
+namespace clients::http::plugins::headers_propagator {
 class HeadersPropagator;
-}  // namespace server::http
+}  // namespace clients::http::plugins::headers_propagator
 
 namespace curl {
 class easy;
@@ -119,7 +119,7 @@ class Client final {
   /// @brief Returns the current proxy that is automatically used for each
   /// request.
   ///
-  /// @warning The value may become immediately obsole as the proxy could be
+  /// @warning The value may become immediately obsolete as the proxy could be
   /// concurrently changed from runtime config.
   std::string GetProxy() const;
 
@@ -178,7 +178,8 @@ class Client final {
 
   clients::dns::Resolver* resolver_{nullptr};
   utils::NotNull<const tracing::TracingManagerBase*> tracing_manager_;
-  const server::http::HeadersPropagator* headers_propagator_{nullptr};
+  const clients::http::plugins::headers_propagator::HeadersPropagator*
+      headers_propagator_{nullptr};
   impl::PluginPipeline plugin_pipeline_;
 };
 

@@ -114,7 +114,7 @@ void DeadlinePropagation::HandleRequest(
     if (dp_scope.shared_dp_context.IsCancelledByDeadline()) {
       // No matter what the error is we're setting our response, log and swallow
       // the exception.
-      handler_.LogUnknownException(ex);
+      handler_.LogUnknownException(ex, logging::Level::kWarning);
       return;
     } else {
       // Let it fly further, not our problem.
@@ -230,6 +230,8 @@ void DeadlinePropagation::CompleteDeadlinePropagation(
 
   if (cancelled_by_deadline &&
       !dp_scope.shared_dp_context.IsCancelledByDeadline()) {
+    dp_scope.shared_dp_context.SetCancelledByDeadline();
+
     const auto& original_body = response.GetData();
     if (!original_body.empty() && span_opt && span_opt->ShouldLogDefault()) {
       span_opt->AddNonInheritableTag("dp_original_body_size",

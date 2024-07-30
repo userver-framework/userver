@@ -30,7 +30,11 @@ const dynamic_config::Key<bool> kDeadlinePropagationEnabled{
     "MONGO_DEADLINE_PROPAGATION_ENABLED_V2", true};
 
 const dynamic_config::Key<bool> kCongestionControlEnabled{
-    "MONGO_CONGESTION_CONTROL_ENABLED", false};
+    "MONGO_CONGESTION_CONTROL_ENABLED", true};
+
+const dynamic_config::Key<dynamic_config::ValueDict<bool>>
+    kCongestionControlDatabasesSettings{
+        "MONGO_CONGESTION_CONTROL_DATABASES_SETTINGS", JsonString{"{}"}};
 
 }  // namespace storages::mongo
 

@@ -1,10 +1,11 @@
 #pragma once
 
-#include <userver/components/component_fwd.hpp>
-
-#include <kafka/impl/entity_type.hpp>
+#include <string>
 
 #include <librdkafka/rdkafka.h>
+
+#include <kafka/impl/entity_type.hpp>
+#include <userver/components/component_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -36,7 +37,7 @@ class Configuration final {
 
   /// @brief Releases stored `rd_kafka_conf_t` pointer to be passed as a
   /// parameter of `rd_kafka_new` function that takes ownership on
-  /// configutation.
+  /// configuration.
   rd_kafka_conf_t* Release();
 
  private:

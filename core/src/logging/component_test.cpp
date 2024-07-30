@@ -6,8 +6,8 @@
 #include <components/component_list_test.hpp>
 #include <userver/alerts/component.hpp>
 #include <userver/components/component.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/components/component_list.hpp>
-#include <userver/components/loggable_component_base.hpp>
 #include <userver/components/run.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>
@@ -55,59 +55,13 @@ TEST_F(ComponentList, NoLogging) {
 
 namespace {
 
-constexpr std::string_view kNoDefaultLoggerConfig = R"(
-components_manager:
-  coro_pool:
-    initial_size: 50
-    max_size: 500
-  default_task_processor: main-task-processor
-  event_thread_pool:
-    threads: 1
-  task_processors:
-    main-task-processor:
-      worker_threads: 1
-  components:
-    logging:
-      fs-task-processor: main-task-processor
-      loggers:
-        some-logger:
-          file_path: '@stderr'
-          format: tskv
-    tracer:
-      service-name: test-service
-)";
-
-components::ComponentList MakeNoDefaultLoggerComponentList() {
-  return components::ComponentList()
-      .Append<os_signals::ProcessorComponent>()
-      .Append<components::Logging>()
-      .Append<components::Tracer>()
-      .Append<alerts::StorageComponent>();
-}
-
-}  // namespace
-
-TEST_F(ComponentList, NoDefaultLogger) {
-  UEXPECT_THROW_MSG(
-      components::RunOnce(
-          components::InMemoryConfig{std::string{kNoDefaultLoggerConfig}},
-          MakeNoDefaultLoggerComponentList()),
-      std::exception,
-      "Error while parsing configs from in-memory config. Details: Error at "
-      "path "
-      "'components_manager.components.logging.loggers.default.file_path': "
-      "Field is missing");
-}
-
-namespace {
-
-class TwoLoggersComponent final : public components::LoggableComponentBase {
+class TwoLoggersComponent final : public components::ComponentBase {
  public:
   static constexpr std::string_view kName = "two-loggers";
 
   TwoLoggersComponent(const components::ComponentConfig& config,
                       const components::ComponentContext& context)
-      : components::LoggableComponentBase(config, context),
+      : components::ComponentBase(config, context),
         custom_logger_(
             context.FindComponent<components::Logging>().GetLogger("custom")) {
     LOG_INFO() << "constructor default";

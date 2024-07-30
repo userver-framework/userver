@@ -1,6 +1,9 @@
 #include <userver/ugrpc/impl/statistics_storage.hpp>
 
+#include <tuple>
+
 #include <fmt/format.h>
+#include <boost/functional/hash.hpp>
 
 #include <userver/utils/algo.hpp>
 #include <userver/utils/statistics/storage.hpp>
@@ -30,15 +33,17 @@ StatisticsStorage::StatisticsStorage(
 
 StatisticsStorage::~StatisticsStorage() { statistics_holder_.Unregister(); }
 
-ugrpc::impl::ServiceStatistics& StatisticsStorage::GetServiceStatistics(
-    const ugrpc::impl::StaticServiceMetadata& metadata) {
+ServiceStatistics& StatisticsStorage::GetServiceStatistics(
+    const StaticServiceMetadata& metadata,
+    std::optional<std::string> endpoint) {
   // We exploit the fact that 'service_full_name' always points to the same
   // static string for a given service.
   const ServiceId service_id = metadata.service_full_name.data();
+  ServiceKey service_key{service_id, std::move(endpoint)};
 
   {
-    const std::shared_lock lock(mutex_);
-    if (auto* stats = utils::FindOrNullptr(service_statistics_, service_id)) {
+    auto service_statistics = service_statistics_.SharedMutableLockUnsafe();
+    if (auto* stats = utils::FindOrNullptr(*service_statistics, service_key)) {
       return *stats;
     }
   }
@@ -46,32 +51,123 @@ ugrpc::impl::ServiceStatistics& StatisticsStorage::GetServiceStatistics(
   // All the other clients are blocked while we instantiate stats for a new
   // service. This is OK, because it will only happen a finite number of times
   // during startup.
-  const std::lock_guard lock(mutex_);
+  auto service_statistics = service_statistics_.Lock();
 
-  const auto [iter, is_new] =
-      service_statistics_.try_emplace(service_id, metadata, domain_);
+  const auto [iter, is_new] = service_statistics->try_emplace(
+      std::move(service_key), metadata, domain_, global_started_);
+  return iter->second;
+}
+
+MethodStatistics& StatisticsStorage::GetGenericStatistics(
+    std::string_view call_name, std::optional<std::string_view> endpoint) {
+  const GenericKeyView generic_key{call_name, endpoint};
+
+  {
+    auto generic_statistics = generic_statistics_.SharedMutableLockUnsafe();
+    if (auto* stats = utils::impl::FindTransparentOrNullptr(*generic_statistics,
+                                                            generic_key)) {
+      return *stats;
+    }
+  }
+
+  // All the other clients are blocked while we instantiate stats for a new
+  // service. This is OK, because it will only happen a finite number of times
+  // during startup.
+  auto generic_statistics = generic_statistics_.Lock();
+
+  const auto [iter, is_new] = generic_statistics->try_emplace(
+      generic_key.Dereference(), domain_, global_started_);
   return iter->second;
 }
 
 void StatisticsStorage::ExtendStatistics(utils::statistics::Writer& writer) {
-  const std::shared_lock lock(mutex_);
+  auto by_destination = writer["by-destination"];
   {
-    auto by_destination = writer["by-destination"];
-    for (const auto& [_, service_stats] : service_statistics_) {
-      by_destination = service_stats;
+    auto service_statistics = service_statistics_.SharedLock();
+    for (const auto& [key, service_stats] : *service_statistics) {
+      if (key.endpoint) {
+        by_destination.ValueWithLabels(std::move(service_stats),
+                                       {"endpoint", *key.endpoint});
+      } else {
+        by_destination = service_stats;
+      }
+    }
+  }
+  {
+    auto generic_statistics = generic_statistics_.SharedLock();
+    for (const auto& [key, service_stats] : *generic_statistics) {
+      const std::string_view call_name = key.call_name;
+
+      const auto slash_pos = call_name.find('/');
+      if (slash_pos == std::string_view::npos || slash_pos == 0) {
+        UASSERT(false);
+        continue;
+      }
+
+      const auto service_name = call_name.substr(0, slash_pos);
+      const auto method_name = call_name.substr(slash_pos + 1);
+
+      if (key.endpoint) {
+        by_destination.ValueWithLabels(std::move(service_stats),
+                                       {{"grpc_service", service_name},
+                                        {"grpc_method", method_name},
+                                        {"grpc_destination", key.call_name},
+                                        {"endpoint", *key.endpoint}});
+      } else {
+        by_destination.ValueWithLabels(std::move(service_stats),
+                                       {{"grpc_service", service_name},
+                                        {"grpc_method", method_name},
+                                        {"grpc_destination", key.call_name}});
+      }
     }
   }
 }
 
 std::uint64_t StatisticsStorage::GetStartedRequests() const {
-  std::uint64_t result{0};
-  // mutex_ is not locked as we might be inside a common thread w/o coroutine
-  // environment. service_statistics_ is not changed as all gRPC services (not
-  // clients!) are already registered.
-  for (const auto& [name, stats] : service_statistics_) {
-    result += stats.GetStartedRequests();
-  }
-  return result;
+  return global_started_.Load().value;
+}
+
+StatisticsStorage::GenericKey  //
+StatisticsStorage::GenericKeyView::Dereference() const {
+  return GenericKey{
+      std::string{call_name},
+      endpoint ? std::make_optional(std::string{*endpoint}) : std::nullopt,
+  };
+}
+
+bool StatisticsStorage::ServiceKeyComparer::operator()(ServiceKey lhs,
+                                                       ServiceKey rhs) const {
+  return lhs.service_id == rhs.service_id && lhs.endpoint == rhs.endpoint;
+}
+
+std::size_t StatisticsStorage::ServiceKeyHasher::operator()(
+    const ServiceKey& key) const noexcept {
+  return boost::hash_value(std::tie(key.service_id, key.endpoint));
+}
+
+bool StatisticsStorage::GenericKeyComparer::operator()(
+    const GenericKey& lhs, const GenericKey& rhs) const {
+  return lhs.call_name == rhs.call_name && lhs.endpoint == rhs.endpoint;
+}
+
+bool StatisticsStorage::GenericKeyComparer::operator()(
+    const GenericKeyView& lhs, const GenericKey& rhs) const {
+  return lhs.call_name == rhs.call_name && lhs.endpoint == rhs.endpoint;
+}
+
+bool StatisticsStorage::GenericKeyComparer::operator()(
+    const GenericKey& lhs, const GenericKeyView& rhs) const {
+  return lhs.call_name == rhs.call_name && lhs.endpoint == rhs.endpoint;
+}
+
+std::size_t StatisticsStorage::GenericKeyHasher::operator()(
+    const GenericKey& key) const noexcept {
+  return boost::hash_value(std::tie(key.call_name, key.endpoint));
+}
+
+std::size_t StatisticsStorage::GenericKeyHasher::operator()(
+    const GenericKeyView& key) const noexcept {
+  return boost::hash_value(std::tie(key.call_name, key.endpoint));
 }
 
 }  // namespace ugrpc::impl

@@ -65,9 +65,9 @@ ManagerConfig ParseFromAny(
     config_vars = builder.ExtractValue();
   }
 
-  auto config =
-      yaml_config::YamlConfig(config_yaml, std::move(config_vars),
-                              yaml_config::YamlConfig::Mode::kEnvAllowed);
+  auto config = yaml_config::YamlConfig(
+      config_yaml, std::move(config_vars),
+      yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
   auto result = config[kManagerConfigField].As<ManagerConfig>();
   result.enabled_experiments =
       config[kUserverExperimentsField].As<utils::impl::UserverExperimentSet>(

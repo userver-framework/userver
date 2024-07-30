@@ -7,7 +7,7 @@
 #include <optional>
 #include <vector>
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/utils/function_ref.hpp>
 
 #include <userver/ugrpc/client/middlewares/fwd.hpp>
@@ -85,14 +85,21 @@ using MiddlewareFactories =
 /// @ingroup userver_base_classes
 ///
 /// @brief Base class for client middleware component
-class MiddlewareComponentBase : public components::LoggableComponentBase {
-  using components::LoggableComponentBase::LoggableComponentBase;
+class MiddlewareComponentBase : public components::ComponentBase {
+  using components::ComponentBase::ComponentBase;
 
  public:
   /// @brief Returns a middleware according to the component's settings
   virtual std::shared_ptr<const MiddlewareFactoryBase>
   GetMiddlewareFactory() = 0;
 };
+
+namespace impl {
+
+Middlewares InstantiateMiddlewares(const MiddlewareFactories& factories,
+                                   const std::string& client_name);
+
+}  // namespace impl
 
 }  // namespace ugrpc::client
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 
 #include <userver/utils/statistics/recentperiod.hpp>
 

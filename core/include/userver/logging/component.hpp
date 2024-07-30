@@ -12,6 +12,7 @@
 #include <userver/concurrent/async_event_source.hpp>
 #include <userver/os_signals/component.hpp>
 
+#include <userver/rcu/rcu_map.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/periodic_task.hpp>
 #include <userver/utils/statistics/entry.hpp>
@@ -21,15 +22,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace logging {
-struct LoggerConfig;
-
-namespace impl {
+namespace logging::impl {
 class TpLogger;
 class TcpSocketSink;
-}  // namespace impl
-
-}  // namespace logging
+}  // namespace logging::impl
 
 namespace components {
 
@@ -60,7 +56,7 @@ namespace components {
 /// - Use `@stderr` to write your logs to standard error stream;
 /// - Use `@null` to suppress sending of logs;
 /// - Use `%file_name%` to write your logs in file. Use USR1 signal or `OnLogRotate` handler to reopen files after log rotation;
-/// - Use `unix:%socket_name%` to write your logs to unix socket. Socket must be created before the service starts and closed by listener afert service is shuted down.
+/// - Use `unix:%socket_name%` to write your logs to unix socket. Socket must be created before the service starts and closed by listener after service is shut down.
 ///
 /// ### testsuite-capture options:
 /// Name | Description | Default value
@@ -92,6 +88,11 @@ class Logging final : public RawComponentBase {
   /// @throws std::runtime_error if logger with this name is not registered
   logging::LoggerPtr GetLogger(const std::string& name);
 
+  /// @brief Sets a logger
+  /// @param name Name of the logger
+  /// @param logger Logger to set
+  void SetLogger(const std::string& name, logging::LoggerPtr logger);
+
   /// @brief Returns a logger by its name
   /// @param name Name of the logger
   /// @returns Pointer to the Logger instance, or `nullptr` if not registered
@@ -117,6 +118,7 @@ class Logging final : public RawComponentBase {
   engine::TaskProcessor* fs_task_processor_{nullptr};
   std::unordered_map<std::string, std::shared_ptr<logging::impl::TpLogger>>
       loggers_;
+  rcu::RcuMap<std::string, logging::LoggerPtr> extra_loggers_;
   utils::PeriodicTask flush_task_;
   logging::impl::TcpSocketSink* socket_sink_{nullptr};
   alerts::Storage& alert_storage_;

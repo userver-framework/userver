@@ -1,12 +1,74 @@
 ## Configure, Build and Install
 
+## Quick start for beginners
+
+1\. clone service template and userver repositories
+
+
+```shell
+git clone --depth 1 https://github.com/userver-framework/service_template.git && \
+git clone --depth 1 https://github.com/userver-framework/userver.git service_template/third_party/userver && \
+cd service_template
+```
+
+More information about the service template can be found here: @ref scripts/docs/en/userver/tutorial/hello_service.md
+
+2\. install build dependencies for userver
+
+see build dependencies here: @ref service_templates
+
+for example to install @ref ubuntu_22_04 build dependencies:
+
+```shell
+sudo apt update && \
+sudo apt install --allow-downgrades -y $(cat third_party/userver/scripts/docs/en/deps/ubuntu-22.04.md | tr '\n' ' ')
+```
+
+3\. build and start hello service
+
+```shell
+make build-release && \
+make service-start-release
+```
+
+During the build, you can make a coffee break until approximately the following output appears:
+
+```shell
+====================================================================================================
+Started service at http://localhost:8080/, configured monitor URL is http://localhost:-1/
+====================================================================================================
+
+PASSED
+[service-runner] Service started, use C-c to terminate
+INFO     <userver> Server is started
+...
+DEBUG    <userver> Accepted connection #2/32768
+DEBUG    <userver> Incoming connection from ::ffff:127.0.0.1, fd 43
+
+```
+
+4\. try to send request
+
+```shell
+curl http://127.0.0.1:8080/hello?name=userver
+```
+
+The answer should be something like this:
+
+```shell
+> curl http://127.0.0.1:8080/hello?name=userver
+Hello, userver!
+```
+
+5\. Now you are ready for fast and comfortable creation of C++ microservices, services and utilities!
+
 ## CMake options
 
 The following CMake options are used by userver:
 
 | Option                                 | Description                                                                                                           | Default                                                |
 |----------------------------------------|-----------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------|
-| USERVER_FEATURE_CORE                   | Provide a core library with coroutines, otherwise build only `userver-universal`                                      | ON                                                     |
+| USERVER_FEATURE_CORE                   | Provide a core library with coroutines, otherwise build only `userver::universal`                                     | ON                                                     |
 | USERVER_FEATURE_MONGODB                | Provide asynchronous driver for MongoDB                                                                               | ${USERVER_IS_THE_ROOT_PROJECT} AND x86\* AND NOT \*BSD |
 | USERVER_FEATURE_POSTGRESQL             | Provide asynchronous driver for PostgreSQL                                                                            | ${USERVER_IS_THE_ROOT_PROJECT}                         |
 | USERVER_FEATURE_REDIS                  | Provide asynchronous driver for Redis                                                                                 | ${USERVER_IS_THE_ROOT_PROJECT}                         |
@@ -17,6 +79,7 @@ The following CMake options are used by userver:
 | USERVER_FEATURE_MYSQL                  | Provide asynchronous driver for MySQL/MariaDB                                                                         | ${USERVER_IS_THE_ROOT_PROJECT}                         |
 | USERVER_FEATURE_ROCKS                  | Provide asynchronous driver for RocksDB                                                                               | ${USERVER_IS_THE_ROOT_PROJECT}                         |
 | USERVER_FEATURE_YDB                    | Provide asynchronous driver for YDB                                                                                   | ${USERVER_IS_THE_ROOT_PROJECT} AND C++ standard >= 20  |
+| USERVER_FEATURE_OTLP                   | Provide Logger for OpenTelemetry protocol                                                                             | ${USERVER_IS_THE_ROOT_PROJECT}                         |
 | USERVER_FEATURE_UTEST                  | Provide 'utest' and 'ubench' for unit testing and benchmarking coroutines                                             | ${USERVER_FEATURE_CORE}                                |
 | USERVER_FEATURE_CRYPTOPP_BLAKE2        | Provide wrappers for blake2 algorithms of crypto++                                                                    | ON                                                     |
 | USERVER_FEATURE_PATCH_LIBPQ            | Apply patches to the libpq (add portals support), requires libpq.a                                                    | ON                                                     |
@@ -44,6 +107,7 @@ The following CMake options are used by userver:
 | USERVER_DOWNLOAD_PACKAGES              | Download missing third party packages and use the downloaded versions                                                 | ON                                                     |
 | USERVER_PIP_USE_SYSTEM_PACKAGES        | Use system python packages inside venv                                                                                | OFF                                                    |
 | USERVER_PIP_OPTIONS                    | Options for all pip calls                                                                                             | ''                                                     |
+| USERVER_DOWNLOAD_PACKAGE_BROTLI        | Download and setup Brotli if no Brotli of matching version was found                                                  | ${USERVER_DOWNLOAD_PACKAGES}                           |
 | USERVER_DOWNLOAD_PACKAGE_CARES         | Download and setup c-ares if no c-ares of matching version was found                                                  | ${USERVER_DOWNLOAD_PACKAGES}                           |
 | USERVER_DOWNLOAD_PACKAGE_CCTZ          | Download and setup cctz if no cctz of matching version was found                                                      | ${USERVER_DOWNLOAD_PACKAGES}                           |
 | USERVER_DOWNLOAD_PACKAGE_CLICKHOUSECPP | Download and setup clickhouse-cpp                                                                                     | ${USERVER_DOWNLOAD_PACKAGES}                           |
@@ -85,22 +149,25 @@ For example to use clang-12 compiler install it and add the following options to
 
 userver is split into multiple CMake libraries.
 
-| CMake target         | CMake option to enable building the library | Component for install | Main documentation page                                  |
-|----------------------|---------------------------------------------|-----------------------|----------------------------------------------------------|
-| `userver-universal`  | Always on                                   | `universal`           | @ref scripts/docs/en/index.md                            |
-| `userver-core`       | `USERVER_FEATURE_CORE` (`ON` by default)    | `core`                | @ref scripts/docs/en/index.md                            |
-| `userver-grpc`       | `USERVER_FEATURE_GRPC`                      | `grpc`                | @ref scripts/docs/en/userver/grpc.md                     |
-| `userver-mongo`      | `USERVER_FEATURE_MONGODB`                   | `mongo`               | @ref scripts/docs/en/userver/mongodb.md                  |
-| `userver-postgresql` | `USERVER_FEATURE_POSTGRESQL`                | `postgresql`          | @ref pg_driver                                           |
-| `userver-redis`      | `USERVER_FEATURE_REDIS`                     | `redis`               | @ref scripts/docs/en/userver/redis.md                    |
-| `userver-clickhouse` | `USERVER_FEATURE_CLICKHOUSE`                | `clickhouse`          | @ref clickhouse_driver                                   |
-| `userver-kafka`      | `USERVER_FEATURE_KAFKA`                     | `kafka`               | @ref scripts/docs/en/userver/kafka.md                    |
-| `userver-rabbitmq`   | `USERVER_FEATURE_RABBITMQ`                  | `rabbitmq`            | @ref rabbitmq_driver                                     |
-| `userver-mysql`      | `USERVER_FEATURE_MYSQL`                     | `mysql`               | @ref scripts/docs/en/userver/mysql/design_and_details.md |
-| `userver-rocks`      | `USERVER_FEATURE_ROCKS`                     | `rocks`               | TODO                                                     |
-| `userver-ydb`        | `USERVER_FEATURE_YDB`                       | `ydb`                 | TODO                                                     |
-
-For installed userver or Conan, cmake targets are named like `userver::{component}`, for instance: `userver::core`, `userver::mysql`, etc
+| CMake target               | CMake option to enable building the library      | Component for install | Main documentation page                            |
+|----------------------------|--------------------------------------------------|-----------------------|----------------------------------------------------|
+| `userver::universal`       | Always on                                        | `universal`           | @ref scripts/docs/en/index.md                      |
+| `userver::universal-utest` | `USERVER_FEATURE_UTEST` (`ON` by default)        | `universal`           | @ref scripts/docs/en/userver/testing.md            |
+| `userver::core`            | `USERVER_FEATURE_CORE` (`ON` by default)         | `core`                | @ref scripts/docs/en/index.md                      |
+| `userver::utest`           | `USERVER_FEATURE_CORE` + `USERVER_FEATURE_UTEST` | `core`                | @ref scripts/docs/en/userver/testing.md            |
+| `userver::ubench`          | `USERVER_FEATURE_CORE` + `USERVER_FEATURE_UTEST` | `core`                | @ref scripts/docs/en/userver/testing.md            |
+| `userver::grpc`            | `USERVER_FEATURE_GRPC`                           | `grpc`                | @ref scripts/docs/en/userver/grpc.md               |
+| `userver::grpc-utest`      | `USERVER_FEATURE_GRPC` + `USERVER_FEATURE_UTEST` | `grpc`                | @ref scripts/docs/en/userver/grpc.md               |
+| `userver::mongo`           | `USERVER_FEATURE_MONGODB`                        | `mongo`               | @ref scripts/docs/en/userver/mongodb.md            |
+| `userver::postgresql`      | `USERVER_FEATURE_POSTGRESQL`                     | `postgresql`          | @ref pg_driver                                     |
+| `userver::redis`           | `USERVER_FEATURE_REDIS`                          | `redis`               | @ref scripts/docs/en/userver/redis.md              |
+| `userver::clickhouse`      | `USERVER_FEATURE_CLICKHOUSE`                     | `clickhouse`          | @ref clickhouse_driver                             |
+| `userver::kafka`           | `USERVER_FEATURE_KAFKA`                          | `kafka`               | @ref scripts/docs/en/userver/kafka.md              |
+| `userver::rabbitmq`        | `USERVER_FEATURE_RABBITMQ`                       | `rabbitmq`            | @ref rabbitmq_driver                               |
+| `userver::mysql`           | `USERVER_FEATURE_MYSQL`                          | `mysql`               | @ref scripts/docs/en/userver/mysql/mysql_driver.md |
+| `userver::rocks`           | `USERVER_FEATURE_ROCKS`                          | `rocks`               | TODO                                               |
+| `userver::ydb`             | `USERVER_FEATURE_YDB`                            | `ydb`                 | TODO                                               |
+| `userver::otlp`            | `USERVER_FEATURE_OTLP`                           | `otlp`                | @ref opentelemetry "OpenTelemetry Protocol"        |
 
 Make sure to:
 
@@ -148,7 +215,7 @@ CPMAddPackage(
     "USERVER_FEATURE_GRPC ON"
 )
 
-target_link_libraries(${PROJECT_NAME} userver-grpc)
+target_link_libraries(${PROJECT_NAME} userver::grpc)
 ```
 
 Make sure to enable the CMake options to build userver libraries you need,
@@ -169,7 +236,7 @@ There are prepared and ready to use service templates at the github:
 Just use the template to make your own service:
 
 1. Press the green "Use this template" button at the top of the github template page
-2. Clone the service `git clone your-service-repo && cd your-service-repo && git submodule update --init`
+2. Clone the service `git clone your-service-repo && cd your-service-repo`
 3. Give a proper name to your service and replace all the occurrences of "*service_template" string with that name.
 4. Feel free to tweak, adjust or fully rewrite the source code of your service.
 
@@ -182,21 +249,21 @@ For local development of your service either
 
 The service templates allow to kickstart the development of your production-ready service,
 but there can't be a repo for each and every combination of userver libraries.
-To use additional userver libraries, e.g. `userver-grpc`, add to the root `CMakeLists.txt`:
+To use additional userver libraries, e.g. `userver::grpc`, add to the root `CMakeLists.txt`:
 
 ```cmake
 set(USERVER_FEATURE_GRPC ON CACHE BOOL "" FORCE)
 # ...
 add_subdirectory(third_party/userver)
 # ...
-target_link_libraries(${PROJECT_NAME} userver-grpc)
+target_link_libraries(${PROJECT_NAME} userver::grpc)
 ```
 
 @see @ref userver_libraries
 
 See @ref tutorial_services for minimal usage examples of various userver libraries.
 
-
+@anchor ubuntu_22_04
 ### Ubuntu 22.04 (Jammy Jellyfish)
 
 \b Dependencies: @ref scripts/docs/en/deps/ubuntu-22.04.md "third_party/userver/scripts/docs/en/deps/ubuntu-22.04.md"
@@ -261,7 +328,7 @@ userver framework.
 If there a need to update the userver in the VM do the following:
 ```
 bash
-sudo apt remove userver-*
+sudo apt remove libuserver-*
 
 cd /app/userver
 sudo git checkout develop
@@ -427,9 +494,9 @@ Dependencies could be installed via:
       -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_DOWNLOAD_PACKAGE_CRYPTOPP=1 \
       -DUSERVER_FEATURE_CLICKHOUSE=0 \
       -DUSERVER_FEATURE_RABBITMQ=0 \
-      -DOPENSSL_ROOT_DIR=$(brew --prefix openssl) \
-      -DUSERVER_PG_LIBRARY_DIR=$(pg_config --libdir) -DUSERVER_PG_INCLUDE_DIR=$(pg_config --includedir) \
-      -DUSERVER_PG_SERVER_LIBRARY_DIR=$(pg_config --pkglibdir) -DUSERVER_PG_SERVER_INCLUDE_DIR=$(pg_config --includedir-server)
+      -DOPENSSL_ROOT_DIR=$(shell brew --prefix openssl) \
+      -DUSERVER_PG_LIBRARY_DIR=$(shell pg_config --libdir) -DUSERVER_PG_INCLUDE_DIR=$(shell pg_config --includedir) \
+      -DUSERVER_PG_SERVER_LIBRARY_DIR=$(shell pg_config --pkglibdir) -DUSERVER_PG_SERVER_INCLUDE_DIR=$(shell pg_config --includedir-server)
   ```
 
 After that the `make test` would build and run the service tests.
@@ -451,6 +518,9 @@ If there's a strong need to build \b only the userver and run its tests, then se
 
 You can install userver globally and then use it from anywhere with `find_package`.
 Make sure to use the same build mode as for your service, otherwise subtle linkage issues will arise.
+
+### Install with cmake --install
+
 To install userver build it with `USERVER_INSTALL=ON` flags in `Debug` and `Release` modes:
 ```
 cmake -S./ -B./build_debug \
@@ -466,6 +536,22 @@ cmake --build build_debug/
 cmake --build build_release/
 cmake --install build_debug/
 cmake --install build_release/
+```
+
+### Build and install Debian package
+
+To build `libuserver-all-dev.deb` package run the following shell command:
+
+```
+docker run --rm -it --network ip6net -v $(pwd):/home/user -w /home/user/userver \
+   --entrypoint bash ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest ./scripts/docker/run_as_user.sh \
+   ./scripts/build_and_install_all.sh
+```
+
+And install the package with the following:
+
+```
+sudo dpkg -i ./libuserver-all-dev*.deb
 ```
 
 ### Use userver in your projects

@@ -15,7 +15,6 @@ file(GLOB_RECURSE FUNCTIONAL_TEST_SOURCES
 list(REMOVE_ITEM SOURCES ${FUNCTIONAL_TEST_SOURCES})
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
-add_library(userver::ydb ALIAS ${PROJECT_NAME})
 
 # Enforce that userver-ydb requires C++20
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)

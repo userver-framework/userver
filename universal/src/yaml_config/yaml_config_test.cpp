@@ -1,10 +1,18 @@
 #include <userver/yaml_config/yaml_config.hpp>
 
+#include <utility>
+
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <formats/common/value_test.hpp>
+#include <userver/formats/json/serialize.hpp>
+#include <userver/formats/json/value.hpp>
 #include <userver/formats/yaml/serialize.hpp>
+#include <userver/formats/yaml/value.hpp>
 #include <userver/formats/yaml/value_builder.hpp>
+#include <userver/fs/blocking/temp_directory.hpp>
+#include <userver/fs/blocking/write.hpp>
 #include <userver/utest/assert_macros.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -75,6 +83,7 @@ TEST(YamlConfig, SampleMultiple) {
 # yaml
 some_element:
     some: $variable
+    some#file: /some/path/to/the/file.yaml
     some#env: SOME_ENV_VARIABLE
     some#fallback: 100500
 # /// [sample multiple]
@@ -91,6 +100,10 @@ some_element:
                                  yaml_config::YamlConfig::Mode::kEnvAllowed);
   EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 42);
 
+  yaml = yaml_config::YamlConfig(
+      node, vars, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
+  EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 42);
+
   yaml = yaml_config::YamlConfig(node, {},
                                  yaml_config::YamlConfig::Mode::kEnvAllowed);
   EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 100);
@@ -103,7 +116,85 @@ some_element:
 
   yaml = yaml_config::YamlConfig(node, {},
                                  yaml_config::YamlConfig::Mode::kEnvAllowed);
+  UEXPECT_THROW(yaml["some_element"]["some"].As<int>(), std::exception);
+
+  yaml = yaml_config::YamlConfig(
+      node, {}, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
   EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 100500);
+}
+
+TEST(YamlConfig, IterationSkipInternalFields) {
+  const auto node = formats::yaml::FromString(R"(
+element1:
+    some0: 0
+    some1: $variable
+    some1#file: /some/path/to/the/file.yaml
+    some1#env: SOME_ENV_VARIABLE
+    some1#fallback: 100500
+    some2: 0
+element2:
+    some#file: /some/path/to/the/file.yaml
+    some#env: SOME_ENV_VARIABLE
+    some#fallback: 100500
+  )");
+
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
+  ::setenv("SOME_ENV_VARIABLE", "100", 1);
+
+  const auto vars = formats::yaml::FromString("variable: 0");
+
+  yaml_config::YamlConfig yaml(
+      node, vars, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
+
+  std::size_t count = 0;
+  for (auto [key, value] : Items(yaml["element1"])) {
+    ++count;
+    EXPECT_THAT(key, testing::Not(testing::HasSubstr("#")));
+    EXPECT_EQ(value.As<int>(), 0);
+  }
+  ASSERT_EQ(count, 3);
+
+  count = 0;
+  for (const auto& value : yaml["element1"]) {
+    ++count;
+    EXPECT_EQ(value.As<int>(), 0);
+  }
+  ASSERT_EQ(count, 3);
+
+  count = 0;
+  auto element1 = yaml["element1"];
+  // Testing suffix increment
+  for (auto it = element1.begin(); it != element1.end(); it++) {
+    ++count;
+    EXPECT_THAT(it.GetName(), testing::Not(testing::HasSubstr("#")));
+    EXPECT_EQ(it->As<int>(), 0);
+  }
+  ASSERT_EQ(count, 3);
+
+  count = 0;
+  for (auto [key, value] : Items(yaml["element2"])) {
+    ++count;
+    EXPECT_THAT(key, testing::Not(testing::HasSubstr("#")));
+    EXPECT_EQ(value.As<int>(), 100);
+  }
+  ASSERT_EQ(count, 1);
+
+  count = 0;
+  for (const auto& value : yaml["element2"]) {
+    ++count;
+    EXPECT_EQ(value.As<int>(), 100);
+  }
+  ASSERT_EQ(count, 1);
+
+  count = 0;
+  auto element2 = yaml["element2"];
+  // Testing suffix increment
+  for (auto it = element2.begin(); it != element2.end(); it++) {
+    ++count;
+    EXPECT_THAT(it.GetName(), testing::Not(testing::HasSubstr("#")));
+    EXPECT_EQ(it->As<int>(), 100);
+  }
+  ASSERT_EQ(count, 1);
 }
 
 TEST(YamlConfig, SampleEnvFallback) {
@@ -119,6 +210,48 @@ some_element:
   yaml_config::YamlConfig yaml(std::move(node), {},
                                yaml_config::YamlConfig::Mode::kEnvAllowed);
   EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 5);
+}
+
+TEST(YamlConfig, SampleFile) {
+  const auto dir = fs::blocking::TempDirectory::Create();
+  const auto path_to_file = dir.GetPath() + "/read_file_sample";
+
+  /// [sample read_file]
+  fs::blocking::RewriteFileContents(path_to_file, R"(some_key: ['a', 'b'])");
+  const auto yaml_content = fmt::format("some#file: {}", path_to_file);
+  auto node = formats::yaml::FromString(yaml_content);
+
+  yaml_config::YamlConfig yaml(
+      std::move(node), {}, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
+  EXPECT_EQ(yaml["some"]["some_key"][0].As<std::string>(), "a");
+  /// [sample read_file]
+}
+
+TEST(YamlConfig, FileFallback) {
+  auto node = formats::yaml::FromString(R"(
+some_element:
+    some#file: /some/path/to/the/file.yaml
+    some#fallback: 5
+  )");
+
+  yaml_config::YamlConfig yaml(
+      std::move(node), {}, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
+  EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 5);
+}
+
+TEST(YamlConfig, FileFallbackUnallowed) {
+  auto node = formats::yaml::FromString(R"(
+some_element:
+    some#file: /some/path/to/the/file.yaml
+    some#fallback: 5
+  )");
+
+  yaml_config::YamlConfig yaml(node, {},
+                               yaml_config::YamlConfig::Mode::kEnvAllowed);
+  UEXPECT_THROW(yaml["some_element"]["some"].As<int>(), std::exception);
+
+  yaml = yaml_config::YamlConfig{node, {}, {}};
+  UEXPECT_THROW(yaml["some_element"]["some"].As<int>(), std::exception);
 }
 
 TEST(YamlConfig, Basic) {
@@ -570,6 +703,121 @@ TEST(YamlConfig, IteratorArray) {
   it++;
   EXPECT_EQ(it, eit);
   EXPECT_NE(cit, it);
+}
+
+TEST(YamlConfig, ExplicitStringType) {
+  // Note: yaml-cpp 0.6.3 and older fails to parse `!!str null` as a string
+  // https://github.com/jbeder/yaml-cpp/issues/590
+  const yaml_config::YamlConfig conf{
+      formats::yaml::FromString(R"(
+        quoted-int: '123'
+        str-int: !!str 123
+        quoted-float: '123.5'
+        str-float: !!str 123.5
+        quoted-bool: 'true'
+        str-bool: !!str true
+        quoted-null: 'null'
+        # str-null: !!str null
+      )"),
+      {},
+  };
+
+  const std::pair<std::string, std::string> kExpectedValues[]{
+      {"quoted-int", "123"},     {"str-int", "123"},
+      {"quoted-float", "123.5"}, {"str-float", "123.5"},
+      {"quoted-bool", "true"},   {"str-bool", "true"},
+      {"quoted-null", "null"},
+  };
+
+  for (const auto& [key_raw, expected_value_raw] : kExpectedValues) {
+    using Exception = formats::yaml::TypeMismatchException;
+
+    // UEXPECT_THROW is implemented using a lambda, which refuses to capture
+    // structured bindings in C++17.
+    const auto& key = key_raw;
+    const auto& expected_value = expected_value_raw;
+
+    EXPECT_TRUE(conf[key].IsString());
+    UEXPECT_NO_THROW(EXPECT_EQ(conf[key].As<std::string>(), expected_value));
+
+    EXPECT_FALSE(conf[key].IsInt());
+    UEXPECT_THROW(conf[key].As<int>(), Exception);
+    EXPECT_FALSE(conf[key].IsInt64());
+    UEXPECT_THROW(conf[key].As<std::int64_t>(), Exception);
+    EXPECT_FALSE(conf[key].IsUInt64());
+    UEXPECT_THROW(conf[key].As<std::uint64_t>(), Exception);
+    EXPECT_FALSE(conf[key].IsDouble());
+    UEXPECT_THROW(conf[key].As<double>(), Exception);
+    EXPECT_FALSE(conf[key].IsBool());
+    UEXPECT_THROW(conf[key].As<bool>(), Exception);
+    EXPECT_FALSE(conf[key].IsNull());
+  }
+
+  const auto json = conf.As<formats::json::Value>();
+  EXPECT_EQ(json, formats::json::FromString(R"(
+    {
+      "quoted-int": "123",
+      "str-int": "123",
+      "quoted-float": "123.5",
+      "str-float": "123.5",
+      "quoted-bool": "true",
+      "str-bool": "true",
+      "quoted-null": "null"
+    }
+  )")) << "Actual json value: "
+       << ToString(json);
+}
+
+TEST(YamlConfig, SampleMultipleWithVarsEnv) {
+  const auto node = formats::yaml::FromString(R"(
+# /// [sample multiple]
+# yaml
+some_element:
+    some: $variable
+    some#file: /some/path/to/the/file.yaml
+    some#env: SOME_ENV_VARIABLE
+    some#fallback: 100500
+# /// [sample multiple]
+  )");
+  const auto vars = formats::yaml::FromString("variable#env: VARIABLE_ENV");
+
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
+  ::setenv("SOME_ENV_VARIABLE", "100", 1);
+
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
+  ::setenv("VARIABLE_ENV", "42", 1);
+
+  yaml_config::YamlConfig yaml(node, vars);
+  UEXPECT_THROW(yaml["some_element"]["some"].As<int>(), std::exception);
+
+  yaml = yaml_config::YamlConfig(node, vars,
+                                 yaml_config::YamlConfig::Mode::kEnvAllowed);
+  EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 42);
+
+  yaml = yaml_config::YamlConfig(
+      node, vars, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
+  EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 42);
+
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
+  ::unsetenv("VARIABLE_ENV");
+
+  yaml = yaml_config::YamlConfig(node, {},
+                                 yaml_config::YamlConfig::Mode::kEnvAllowed);
+  EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 100);
+
+  yaml = yaml_config::YamlConfig(node, {});
+  UEXPECT_THROW(yaml["some_element"]["some"].As<int>(), std::exception);
+
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
+  ::unsetenv("SOME_ENV_VARIABLE");
+
+  yaml = yaml_config::YamlConfig(node, {},
+                                 yaml_config::YamlConfig::Mode::kEnvAllowed);
+  UEXPECT_THROW(yaml["some_element"]["some"].As<int>(), std::exception);
+
+  yaml = yaml_config::YamlConfig(
+      node, {}, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
+  EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 100500);
 }
 
 USERVER_NAMESPACE_END

@@ -65,7 +65,7 @@ class WaitStrategy {
 class TaskContext final : public ContextAccessor {
  public:
   struct NoEpoch {};
-  using TaskPipe = coro::Pool<TaskContext>::TaskPipe;
+  using TaskPipe = coro::Pool::TaskPipe;
   using TaskId = uint64_t;
 
   enum class YieldReason { kNone, kTaskWaiting, kTaskCancelled, kTaskComplete };
@@ -106,10 +106,7 @@ class TaskContext final : public ContextAccessor {
   bool IsSharedWaitAllowed() const;
 
   // whether user code finished executing, coroutine may still be running
-  bool IsFinished() const noexcept {
-    return state_ == Task::State::kCompleted ||
-           state_ == Task::State::kCancelled;
-  }
+  bool IsFinished() const noexcept;
 
   void SetDetached(DetachedTasksSyncBlock::Token& token) noexcept;
   void FinishDetached() noexcept;
@@ -258,7 +255,7 @@ class TaskContext final : public ContextAccessor {
   // refcounter for task abandoning (cancellation) in engine::SharedTask
   std::atomic<std::size_t> shared_task_usages_{1};
 
-  // refcounter for resources and memory dealocation
+  // refcounter for resources and memory deallocation
   std::atomic<std::size_t> intrusive_refcount_{1};
   friend void intrusive_ptr_add_ref(TaskContext* p) noexcept;
   friend void intrusive_ptr_release(TaskContext* p) noexcept;

@@ -59,7 +59,7 @@ for BUILD_TYPE in Debug Release; do
 done
 
 cpack -G DEB --config build_release/CPackConfig.cmake -D CPACK_INSTALL_CMAKE_PROJECTS="build_debug;userver;ALL;/;build_release;userver;ALL;/" ${PACKAGE_OPTIONS:-""}
-DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends ./userver-all*.deb
+DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends ./libuserver-all-dev*.deb
 
 rm -rf ./build_debug/ ./build_release/
 

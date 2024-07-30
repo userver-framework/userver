@@ -21,8 +21,8 @@
 #include <logging/config.hpp>
 #include <logging/impl/base_sink.hpp>
 #include <logging/impl/reopen_mode.hpp>
-#include <logging/statistics/log_stats.hpp>
 #include <userver/concurrent/impl/intrusive_hooks.hpp>
+#include <userver/logging/impl/log_stats.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -83,7 +83,7 @@ class TpLogger final : public LoggerBase {
 
   std::string_view GetLoggerName() const noexcept;
 
-  statistics::LogStatistics& GetStatistics() noexcept;
+  impl::LogStatistics& GetStatistics() noexcept;
 
  protected:
   bool DoShouldLog(Level level) const noexcept override;
@@ -116,7 +116,7 @@ class TpLogger final : public LoggerBase {
 
   const std::string logger_name_;
   std::vector<impl::SinkPtr> sinks_;
-  mutable statistics::LogStatistics stats_{};
+  mutable impl::LogStatistics stats_{};
 
   engine::Mutex capacity_waiters_mutex_;
   engine::ConditionVariable capacity_waiters_cv_;

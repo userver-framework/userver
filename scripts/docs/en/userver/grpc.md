@@ -80,8 +80,9 @@ Available values are:
 - `insecure` (default)
 - `ssl`
 
-SSL **has to be disabled** in tests (e.g. via `config_vars`), because it
+SSL has to be disabled in tests, because it
 requires the server to have a public domain name, which it does not in tests.
+In testsuite, SSL in gRPC clients is disabled automatically.
 
 ## gRPC services
 
@@ -168,6 +169,34 @@ Use ugrpc::server::MiddlewareBase and ugrpc::client::MiddlewareBase to implement
 new middlewares.
 
 
+@anchor grpc_generic_api
+## Generic API
+
+gRPC generic API allows to call and accept RPCs with dynamic service and method names.
+The other side will see this as a normal RPC, it does not need to use generic API.
+
+Intended mainly for use in proxies. Metadata can be used to proxy the request without parsing it.
+
+See details in:
+
+* @ref ugrpc::client::GenericClient ;
+* @ref ugrpc::server::GenericServiceBase .
+
+Full example showing the usage of both:
+
+* @ref samples/grpc-generic-proxy/src/proxy_service.hpp
+* @ref samples/grpc-generic-proxy/src/proxy_service.cpp
+* @ref samples/grpc-generic-proxy/main.cpp
+* @ref samples/grpc-generic-proxy/static_config.yaml
+* @ref samples/grpc-generic-proxy/config_vars.yaml
+* @ref samples/grpc-generic-proxy/CMakeLists.txt
+
+Based on:
+
+* grpcpp [generic stub](https://grpc.github.io/grpc/cpp/grpcpp_2generic_2generic__stub_8h.html);
+* grpcpp [generic service](https://grpc.github.io/grpc/cpp/grpcpp_2generic_2async__generic__service_8h.html).
+
+
 ## Metrics
 
 * Client metrics are put inside `grpc.client.by-destination {grpc_destination=FULL_SERVICE_NAME/METHOD_NAME}`
@@ -220,6 +249,15 @@ These are the metrics provided for each gRPC method:
      for troubleshooting to say that there are issues not with the uservice
      process itself, but with the infrastructure
 * `active` — The number of currently active RPCs (created and not finished)
+
+
+## Unit tests and benchmarks
+
+* @ref scripts/docs/en/userver/tutorial/grpc_service.md shows how to test
+  userver gRPC services and clients in gtest
+* @ref ugrpc::tests::Service and ugrpc::tests::ServiceBase can be used
+  to benchmark userver gRPC services and clients, as well as create more
+  complex gtest tests with multiple services and perhaps databases.
 
 ----------
 

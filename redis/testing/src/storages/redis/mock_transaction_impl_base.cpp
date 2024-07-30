@@ -14,6 +14,13 @@ RequestAppend MockTransactionImplBase::Append(std::string /*key*/,
   return RequestAppend{nullptr};
 }
 
+RequestBitop MockTransactionImplBase::Bitop(
+    BitOperation /*op*/, std::string /*dest_key*/,
+    std::vector<std::string> /*src_keys*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestBitop{nullptr};
+}
+
 RequestDbsize MockTransactionImplBase::Dbsize(size_t /*shard*/) {
   UASSERT_MSG(false, "redis method not mocked");
   return RequestDbsize{nullptr};

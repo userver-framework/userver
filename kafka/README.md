@@ -1,3 +1,3 @@
 # userver: Kafka Driver
 
-Early development version of Kafka driver
+Docs: https://userver.tech/d0/db8/md_en_2userver_2kafka.html

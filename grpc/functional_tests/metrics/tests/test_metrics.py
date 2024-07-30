@@ -1,3 +1,4 @@
+import re
 import typing
 
 import pytest
@@ -9,6 +10,7 @@ def _normalize_metrics(metrics: str) -> typing.Set[str]:
 
     result = _drop_non_grpc_metrics(result)
     result = _hide_metrics_values(result)
+    result = _rewrite_endpoint_label(result)
 
     return set(result)
 
@@ -24,6 +26,13 @@ def _drop_non_grpc_metrics(metrics: typing.List[str]) -> typing.List[str]:
 
 def _hide_metrics_values(metrics: typing.List[str]) -> typing.List[str]:
     return [line.rsplit('\t', 1)[0] for line in metrics]
+
+
+def _rewrite_endpoint_label(metrics: typing.List[str]) -> typing.List[str]:
+    return [
+        re.sub(r'endpoint=.*?,', 'endpoint=my_endpoint,', line, count=1)
+        for line in metrics
+    ]
 
 
 @pytest.fixture(name='force_metrics_to_appear')

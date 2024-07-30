@@ -16,7 +16,7 @@ namespace ugrpc::server {
 ServiceComponentBase::ServiceComponentBase(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
-    : LoggableComponentBase(config, context),
+    : ComponentBase(config, context),
       server_(context.FindComponent<ServerComponent>()),
       config_(server_.ParseServiceConfig(config, context)) {}
 
@@ -25,8 +25,13 @@ void ServiceComponentBase::RegisterService(ServiceBase& service) {
   server_.GetServer().AddService(service, std::move(config_));
 }
 
+void ServiceComponentBase::RegisterService(GenericServiceBase& service) {
+  UINVARIANT(!registered_.exchange(true), "Register must only be called once");
+  server_.GetServer().AddService(service, std::move(config_));
+}
+
 yaml_config::Schema ServiceComponentBase::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: base class for all the gRPC service components
 additionalProperties: false

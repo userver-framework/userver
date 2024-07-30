@@ -1,0 +1,12 @@
+#!/bin/sh
+
+BINDIR=`dirname $0`
+USERVER_PYTHON="${USERVER_PYTHON:-python3}"
+
+CHAOTIC_DIR=$BINDIR/..
+if ! [ -e $CHAOTIC_DIR/chaotic/main.py ]; then
+    CHAOTIC_DIR=$BINDIR/../lib/userver/
+fi
+
+export PYTHONPATH=$CHAOTIC_DIR
+exec ${USERVER_PYTHON} $CHAOTIC_DIR/chaotic/main.py "$@"

@@ -39,6 +39,9 @@ TableSettings ParseTableSettings(const yaml_config::YamlConfig& dbconfig,
       dbconfig["min_pool_size"].As<std::uint32_t>(result.min_pool_size);
   result.max_pool_size =
       dbconfig["max_pool_size"].As<std::uint32_t>(result.max_pool_size);
+  result.get_session_retry_limit =
+      dbconfig["get_session_retry_limit"].As<std::uint32_t>(
+          result.get_session_retry_limit);
   result.keep_in_query_cache =
       dbconfig["keep-in-query-cache"].As<bool>(result.keep_in_query_cache);
 

@@ -52,6 +52,7 @@ TableClient::TableClient(impl::TableSettings settings,
   NYdb::NTable::TSessionPoolSettings session_config;
   session_config.MaxActiveSessions(settings.max_pool_size)
       .MinPoolSize(settings.min_pool_size);
+  session_config.RetryLimit(settings.get_session_retry_limit);
 
   NYdb::NTable::TClientSettings client_config;
   client_config.SessionPoolSettings(session_config);
@@ -169,10 +170,6 @@ NYdb::NTable::TTableClient& TableClient::GetNativeTableClient() {
 
 utils::RetryBudget& TableClient::GetRetryBudget() {
   return driver_->GetRetryBudget();
-}
-
-const OperationSettings& TableClient::GetDefaultOperationSettings() const {
-  return default_settings_;
 }
 
 void TableClient::MakeDirectory(const std::string& path) {

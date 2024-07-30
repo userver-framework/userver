@@ -21,7 +21,6 @@
 #include <userver/dynamic_config/updates_sink/component.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/utils/impl/transparent_hash.hpp>
-#include <userver/utils/internal_tag_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

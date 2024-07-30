@@ -51,7 +51,7 @@ constexpr std::string_view kTestHeaderMixedCase = "x-TEST-headeR";
 
 constexpr char kTestUserAgent[] = "correct/2.0 (user agent) taxi_userver/000f";
 
-// Certifiacte for testing was generated via the following command:
+// Certificate for testing was generated via the following command:
 //   `openssl req -x509 -sha256 -nodes -newkey rsa:1024 -keyout priv.key -out
 //   cert.crt`
 constexpr const char* kPrivateKey =

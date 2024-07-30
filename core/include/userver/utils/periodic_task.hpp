@@ -189,7 +189,7 @@ class PeriodicTask final {
   /// Make this periodic task available for testsuite. Testsuite provides a way
   /// to call it directly from testcase.
   void RegisterInTestsuite(
-      testsuite::PeriodicTaskControl& periodic_task_control);
+      USERVER_NAMESPACE::testsuite::PeriodicTaskControl& periodic_task_control);
 
   /// Get current settings. Note that they might become stale very quickly.
   Settings GetCurrentSettings() const;
@@ -221,7 +221,8 @@ class PeriodicTask final {
   engine::Mutex step_mutex_;
   std::atomic<SuspendState> suspend_state_;
 
-  std::optional<testsuite::PeriodicTaskRegistrationHolder> registration_holder_;
+  std::optional<USERVER_NAMESPACE::testsuite::PeriodicTaskRegistrationHolder>
+      registration_holder_;
 };
 
 }  // namespace utils

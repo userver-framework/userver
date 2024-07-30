@@ -167,21 +167,20 @@ std::optional<DumpFileStats> DumpLocator::ParseDumpName(
     std::string full_path) const {
   const auto filename = boost::filesystem::path{full_path}.filename().string();
 
-  utils::smatch regex;
+  utils::match_results regex;
   if (utils::regex_match(filename, regex, filename_regex_)) {
     UASSERT_MSG(regex.size() == 3,
                 fmt::format("Incorrect sub-match count: {} for filename {}",
                             regex.size(), filename));
 
     try {
-      const auto date_string = regex[1];
+      const std::string date_string{regex[1]};
       const auto date_format = date_string.find(':') == std::string::npos
                                    ? kFilenameDateFormat
                                    : kLegacyFilenameDateFormat;
       const auto date =
           utils::datetime::Stringtime(date_string, kTimeZone, date_format);
-      const std::string str = regex[2];
-      const auto version = utils::FromString<uint64_t>(str);
+      const auto version = utils::FromString<uint64_t>(regex[2]);
       return DumpFileStats{{Round(date)}, std::move(full_path), version};
     } catch (const std::exception& ex) {
       LOG_WARNING() << "A filename looks like a dump, but it is not, path=\""

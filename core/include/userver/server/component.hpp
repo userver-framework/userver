@@ -5,7 +5,7 @@
 
 #include <memory>
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/server/server.hpp>
 #include <userver/utils/statistics/entry.hpp>
@@ -84,7 +84,7 @@ namespace components {
 
 // clang-format on
 
-class Server final : public LoggableComponentBase {
+class Server final : public ComponentBase {
  public:
   /// @ingroup userver_component_names
   /// @brief The default name of components::Server component

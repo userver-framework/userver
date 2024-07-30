@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -46,7 +46,7 @@ MiddlewaresList DefaultPipeline();
 ///
 /// @brief Base class to build a server-wide middleware pipeline.
 /// One may inherit from it and implement any custom logic, if desired.
-class PipelineBuilder : public components::LoggableComponentBase {
+class PipelineBuilder : public components::ComponentBase {
  public:
   static constexpr std::string_view kName{
       "default-server-middleware-pipeline-builder"};
@@ -87,7 +87,7 @@ class PipelineBuilder : public components::LoggableComponentBase {
 /// @brief Base class to build a per-handler middleware pipeline.
 /// One may inherit from it and implement any custom logic, if desired.
 /// By default the behavior is to use the server-wide pipeline.
-class HandlerPipelineBuilder : public components::LoggableComponentBase {
+class HandlerPipelineBuilder : public components::ComponentBase {
  public:
   static constexpr std::string_view kName{
       "default-handler-middleware-pipeline-builder"};

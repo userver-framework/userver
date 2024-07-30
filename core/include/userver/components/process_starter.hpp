@@ -3,7 +3,7 @@
 /// @file userver/components/process_starter.hpp
 /// @brief @copybrief components::ProcessStarter
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 
 #include <userver/engine/subprocess/process_starter.hpp>
 
@@ -23,7 +23,7 @@ namespace components {
 /// task_processor | the name of the TaskProcessor for asynchronous process starting | `main-task-processor`
 
 // clang-format on
-class ProcessStarter final : public LoggableComponentBase {
+class ProcessStarter final : public ComponentBase {
  public:
   /// @ingroup userver_component_names
   /// @brief The default name of components::ProcessStarter component

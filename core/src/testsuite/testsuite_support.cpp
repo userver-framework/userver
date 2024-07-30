@@ -63,11 +63,11 @@ std::unique_ptr<testsuite::TestsuiteTasks> ParseTestsuiteTasks(
 testsuite::GrpcControl ParseGrpcControl(
     const components::ComponentConfig& config,
     std::chrono::milliseconds increased_timeout) {
-  bool is_tls_enabled{config["testsuite-grpc-is-tls-enabled"].As<bool>(false)};
-  std::chrono::milliseconds timeout{
-      config["testsuite-grpc-client-timeout-ms"].As<int>(
-          increased_timeout.count())};
-
+  const bool is_tls_enabled =
+      config["testsuite-grpc-is-tls-enabled"].As<bool>(true);
+  const std::chrono::milliseconds timeout{
+      config["testsuite-grpc-client-timeout-ms"]
+          .As<std::chrono::milliseconds::rep>(increased_timeout.count())};
   return testsuite::GrpcControl(timeout, is_tls_enabled);
 }
 
@@ -130,8 +130,8 @@ testsuite::GrpcControl& TestsuiteSupport::GetGrpcControl() {
   return grpc_control_;
 }
 
-std::chrono::milliseconds TestsuiteSupport::GetIncreasedTimeout() const
-    noexcept {
+std::chrono::milliseconds  //
+TestsuiteSupport::GetIncreasedTimeout() const noexcept {
   return increased_timeout_;
 }
 

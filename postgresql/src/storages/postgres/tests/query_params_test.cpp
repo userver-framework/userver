@@ -18,10 +18,10 @@ static_assert(!tt::HasOutputOperator<no_output_operator>::value,
               "Test output metafunction");
 static_assert(tt::HasOutputOperator<int>::value, "Test output metafunction");
 static_assert(!tt::kHasFormatter<no_output_operator>,
-              "Test has formatter metafuction");
+              "Test has formatter metafunction");
 
 static_assert(tt::kHasFormatter<std::optional<int>>,
-              "Test has formatter metafuction");
+              "Test has formatter metafunction");
 
 }  // namespace static_test
 

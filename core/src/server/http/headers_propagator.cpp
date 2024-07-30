@@ -1,24 +1,19 @@
-#include <server/http/headers_propagator.hpp>
+#include <userver/clients/http/plugins/headers_propagator/plugin.hpp>
 
-#include <userver/server/request/task_inherited_request.hpp>
+#include <userver/server/request/task_inherited_headers.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server::http {
-
-HeadersPropagator::HeadersPropagator(std::vector<std::string>&& headers)
-    : headers_(std::move(headers)) {}
+namespace clients::http::plugins::headers_propagator {
 
 void HeadersPropagator::PropagateHeaders(
     clients::http::RequestTracingEditor request) const {
-  for (const auto& header : headers_) {
-    if (server::request::HasTaskInheritedHeader(header)) {
-      request.SetHeader(header,
-                        server::request::GetTaskInheritedHeader(header));
-    }
+  for (const auto& [header, value] :
+       server::request::GetTaskInheritedHeaders()) {
+    request.SetHeader(header, value);
   }
 }
 
-}  // namespace server::http
+}  // namespace clients::http::plugins::headers_propagator
 
 USERVER_NAMESPACE_END

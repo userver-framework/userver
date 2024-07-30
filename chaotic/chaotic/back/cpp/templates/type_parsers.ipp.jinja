@@ -1,0 +1,161 @@
+#pragma once
+
+#include "{{ pair_header }}.hpp"
+
+
+{% macro generate_global_struct_field_definition(name, type) %}
+    {# handle subtypes #}
+    {%- for schema in type.subtypes() -%}
+        {{ generate_global_struct_field_definition(
+                schema.cpp_global_name(),
+                schema,
+           )
+        }}
+    {% endfor %}
+
+    {% if type.get_py_type() == 'CppStruct' %}
+        {# additionalProperties #}
+        {% if type.extra_type or cpp_struct_is_strict_parsing(type) %}
+            static constexpr {{ userver }}::utils::TrivialSet
+                k{{type.cpp_global_struct_field_name()}}_PropertiesNames =
+                [](auto selector) {
+		    return selector().template Type<std::string_view>()
+                        {%- for fname in type.fields -%}
+                            .Case("{{ fname }}")
+                        {%- endfor -%}
+                        ;
+                };
+
+        {% endif %}
+    {% elif type.get_py_type() == 'CppIntEnum' %}
+        static constexpr {{ userver }}::utils::TrivialBiMap k{{ type.cpp_global_struct_field_name() }}_Mapping =
+            [](auto selector) {
+            return selector().template Type<{{ type.cpp_global_name() }}, int>()
+                {%- for item in type.enums %}
+                    .Case({{ type.cpp_global_name() }}::k{{ item }}, {{ item }})
+                {%- endfor -%}
+                ;
+        };
+    {% elif type.get_py_type() == 'CppStringEnum' %}
+        static constexpr {{ userver }}::utils::TrivialBiMap k{{ type.cpp_global_struct_field_name() }}_Mapping =
+            [](auto selector) {
+            return selector().template Type<{{ type.cpp_global_name() }}, std::string_view>()
+                {%- for item in type.enums %}
+                    .Case({{ type.cpp_global_name() }}::{{ item.cpp_name }}, "{{ item.raw_name }}")
+                {%- endfor -%}
+                ;
+        };
+    {% elif type.get_py_type() in ('CppPrimitiveType', 'CppStringWithFormat', 'CppArray', 'CppRef', 'CppVariant', 'CppVariantWithDiscriminator', 'CppStructAllOf') %}
+        {# No new type #}
+    {% else %}
+        {{ NOT_IMPLEMENTED(type) }}
+    {% endif %}
+{% endmacro %}
+
+
+{% macro generate_parser_definition(name, type) %}
+    {# handle subtypes #}
+    {%- for schema in type.subtypes() -%}
+        {{ generate_parser_definition(
+                schema.cpp_global_name(),
+                schema,
+           )
+        }}
+    {% endfor %}
+
+    {% if type.get_py_type() == 'CppStruct' %}
+        {# parse object #}
+	template<typename Value>
+        {{ name }} Parse(Value value,
+                         {{userver}}::formats::parse::To<{{ name }}>)
+        {
+            value.CheckNotMissing();
+            value.CheckObjectOrNull();
+
+            {{ name }} res;
+
+            {# properties #}
+            {%- for fname, field in type.fields.items() -%}
+                res.{{ field.cpp_field_name() }} =
+                    value["{{ fname }}"].template As<{{ field.cpp_field_parse_type() }}>
+                    ({{ field.get_default() }});
+            {%- endfor %}
+
+            {# additionalProperties #}
+            {% if type.extra_type %}
+                res.extra =
+                    {%- if type.extra_type == True %}
+                        {{userver}}::chaotic::ExtractAdditionalPropertiesTrue(
+                    {%- else %}
+                        {{userver}}::chaotic::ExtractAdditionalProperties<
+                            {{ extra_cpp_parser_type(type.extra_type) }},
+                            {{ type.extra_container() }}
+                        >(
+                    {%- endif -%}
+                        value, k{{type.cpp_global_struct_field_name()}}_PropertiesNames
+                        );
+
+            {% endif %}
+
+            {% if cpp_struct_is_strict_parsing(type) %}
+                {{userver}}::chaotic::ValidateNoAdditionalProperties(
+                    value, k{{type.cpp_global_struct_field_name()}}_PropertiesNames
+                );
+            {% endif %}
+            return res;
+        }
+    {% elif type.get_py_type() in ('CppPrimitiveType', 'CppStringWithFormat', 'CppArray', 'CppRef', 'CppVariant', 'CppVariant', 'CppVariantWithDiscriminator') %}
+        {# No new type #}
+    {% elif type.get_py_type() == 'CppIntEnum' %}
+	template<typename Value>
+        {{ name }} Parse(Value val,
+                         {{userver}}::formats::parse::To<{{ name }}>)
+        {
+            const auto value = val.template As<std::int32_t>();
+            const auto result = k{{ type.cpp_global_struct_field_name() }}_Mapping.TryFindBySecond(value);
+            if (result.has_value()) {
+                return *result;
+            }
+            {{ userver }}::chaotic::ThrowForValue(fmt::format("Invalid enum value ({}) for type {{name}}", value), val);
+        }
+    {% elif type.get_py_type() == 'CppStringEnum' %}
+	template<typename Value>
+        {{ name }} Parse(Value val,
+                         {{userver}}::formats::parse::To<{{ name }}>)
+        {
+            const auto value = val.template As<std::string>();
+            const auto result = k{{ type.cpp_global_struct_field_name() }}_Mapping.TryFindBySecond(value);
+            if (result.has_value()) {
+                return *result;
+            }
+            {{ userver }}::chaotic::ThrowForValue(fmt::format("Invalid enum value ({}) for type {{name}}", value), val);
+        }
+    {% elif type.get_py_type() == 'CppStructAllOf' %}
+        {# parse allOf #}
+	template<typename Value>
+        {{ name }} Parse(Value value,
+                         {{userver}}::formats::parse::To<{{ name }}>)
+        {
+            return {{ name }}(
+                {%- for parent in type.parents -%}
+                    value.template As<{{ parent.cpp_global_name() }}>()
+                    {%- if not loop.last %} , {% endif -%}
+                {%- endfor -%}
+            );
+        }
+    {% else %}
+        {{ NOT_IMPLEMENTED(type) }}
+    {% endif %}
+{% endmacro %}
+
+{% import 'templates/common.jinja' as common %}
+
+{% for name, type in types.items() %}
+    {{ common.switch_namespace(cpp_namespace(name)) }}
+
+    {{ generate_global_struct_field_definition(name, type) }}
+
+    {{ generate_parser_definition(name, type) }}
+{% endfor %}
+
+{{ common.switch_namespace('') }}

@@ -85,6 +85,10 @@ class CacheUpdateTrait {
   // For internal use only.
   bool HasPreAssignCheck() const;
 
+  // Returns value of the flag safe-data-lifetime.
+  // For internal use only.
+  bool IsSafeDataLifetime() const;
+
   // For internal use only.
   void SetDataSizeStatistic(std::size_t size) noexcept;
 
@@ -100,17 +104,21 @@ class CacheUpdateTrait {
   ///
   /// A. If the update succeeded and has changes...
   ///    1. call CachingComponentBase::Set to update the stored value and send a
-  ///    notification to subscribers
+  ///       notification to subscribers
   ///    2. call UpdateStatisticsScope::Finish
   ///    3. return normally (an exception is allowed in edge cases)
+  ///
   /// B. If the update succeeded and verified that there are no changes...
   ///    1. DON'T call CachingComponentBase::Set
   ///    2. call UpdateStatisticsScope::FinishNoChanges
   ///    3. return normally (an exception is allowed in edge cases)
+  ///
   /// C. If the update failed...
   ///    1. DON'T call CachingComponentBase::Set
   ///    2. call UpdateStatisticsScope::FinishWithError, or...
   ///    3. throw an exception, which will be logged nicely
+  ///       (if there already is an exception, prefer rethrowing it instead
+  ///       of calling UpdateStatisticsScope::FinishWithError)
   ///
   /// @param type type of the update
   /// @param last_update time of the last update (value of `now` from previous

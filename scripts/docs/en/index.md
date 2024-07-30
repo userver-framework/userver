@@ -63,6 +63,7 @@ are available at the
     * @ref userver_components "Other components"
 * @ref scripts/docs/en/userver/synchronization.md
 * @ref scripts/docs/en/userver/formats.md
+* @ref scripts/docs/en/userver/chaotic.md
 * @ref scripts/docs/en/userver/logging.md
 * @ref scripts/docs/en/userver/task_processors_guide.md
 * @ref scripts/docs/en/userver/periodics.md
@@ -127,6 +128,10 @@ are available at the
 
 ## Apache Kafka
 * @ref scripts/docs/en/userver/kafka.md
+
+
+## YDB
+* @ref scripts/docs/en/userver/ydb.md
 
 
 ## Non relational databases

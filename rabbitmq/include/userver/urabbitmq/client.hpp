@@ -115,7 +115,7 @@ class Client : public std::enable_shared_from_this<Client>,
 
  private:
   friend class ConsumerBase;
-  utils::FastPimpl<ClientImpl, 232, 8> impl_;
+  utils::FastPimpl<ClientImpl, 296, 8> impl_;
 };
 
 }  // namespace urabbitmq

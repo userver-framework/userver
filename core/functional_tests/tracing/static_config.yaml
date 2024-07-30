@@ -26,11 +26,6 @@ components_manager:
         logging:
             fs-task-processor: fs-task-processor
             loggers:
-                opentracing:    # Required for writing opentracing data into a separate file
-                    file_path: /var/log/file/overwritten/by-testsuit
-                    level: info
-                    flush_level: info
-                    overflow_behavior: block
                 default:
                     file_path: '@stderr'
                     level: debug

@@ -29,7 +29,7 @@ storages::secdist::SecdistConfig::Settings ParseSettings(
 }  // namespace
 
 Secdist::Secdist(const ComponentConfig& config, const ComponentContext& context)
-    : LoggableComponentBase(config, context),
+    : ComponentBase(config, context),
       secdist_(ParseSettings(config, context)) {}
 
 const storages::secdist::SecdistConfig& Secdist::Get() const {
@@ -44,7 +44,7 @@ rcu::ReadablePtr<storages::secdist::SecdistConfig> Secdist::GetSnapshot()
 storages::secdist::Secdist& Secdist::GetStorage() { return secdist_; }
 
 yaml_config::Schema Secdist::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: Component that stores security related data (keys, passwords, ...).
 additionalProperties: false

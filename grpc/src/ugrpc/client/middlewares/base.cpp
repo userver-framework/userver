@@ -40,6 +40,20 @@ const ::google::protobuf::Message* MiddlewareCallContext::GetInitialRequest() {
 
 MiddlewareFactoryBase::~MiddlewareFactoryBase() = default;
 
+namespace impl {
+
+Middlewares InstantiateMiddlewares(const MiddlewareFactories& factories,
+                                   const std::string& client_name) {
+  Middlewares mws;
+  mws.reserve(factories.size());
+  for (const auto& mw_factory : factories) {
+    mws.push_back(mw_factory->GetMiddleware(client_name));
+  }
+  return mws;
+}
+
+}  // namespace impl
+
 }  // namespace ugrpc::client
 
 USERVER_NAMESPACE_END

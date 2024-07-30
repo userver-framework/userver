@@ -4,7 +4,10 @@ option(USERVER_DOWNLOAD_PACKAGE_GRPC "Download and setup gRPC"
     ${USERVER_DOWNLOAD_PACKAGES})
 
 macro(try_find_cmake_grpc)
-  find_package(gRPC QUIET)
+  find_package(gRPC QUIET CONFIG)
+  if(NOT gRPC_FOUND)
+    find_package(gRPC QUIET)
+  endif()
 
   if(gRPC_FOUND)
     # Use the found CMake-enabled gRPC package

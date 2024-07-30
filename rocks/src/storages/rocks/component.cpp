@@ -11,7 +11,7 @@ namespace storages::rocks {
 
 Component::Component(const components::ComponentConfig& config,
                      const components::ComponentContext& context)
-    : LoggableComponentBase(config, context),
+    : ComponentBase(config, context),
       client_ptr_(std::make_shared<storages::rocks::Client>(
           config["db-path"].As<std::string>(),
           context.GetTaskProcessor(
@@ -20,7 +20,7 @@ Component::Component(const components::ComponentConfig& config,
 storages::rocks::ClientPtr Component::MakeClient() { return client_ptr_; }
 
 yaml_config::Schema Component::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: Rocks client component
 additionalProperties: false

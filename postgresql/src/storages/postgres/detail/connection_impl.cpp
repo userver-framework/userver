@@ -19,8 +19,6 @@
 #include <storages/postgres/io/pg_type_parsers.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 
-#include <utils/impl/assert_extra.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 using USERVER_NAMESPACE::utils::RandRange;
@@ -562,40 +560,37 @@ void ConnectionImpl::CancelAndCleanup(TimeoutDuration timeout) {
 }
 
 bool ConnectionImpl::Cleanup(TimeoutDuration timeout) {
-  auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(timeout);
-  if (conn_wrapper_.TryConsumeInput(deadline, nullptr)) {
-    auto state = GetConnectionState();
-    if (state == ConnectionState::kOffline) {
-      return false;
-    }
-    if (state == ConnectionState::kTranActive) {
-      return false;
-    }
-    if (state > ConnectionState::kIdle) {
-      Rollback();
-    }
-    // We might need more timeout here
-    // We are no more bound with SLA, user has his exception.
-    // We need to try and save the connection without canceling current query
-    // not to kill the pgbouncer
-    SetConnectionStatementTimeout(GetDefaultCommandControl().statement,
-                                  deadline);
-    if (IsPipelineActive()) {
-      // In pipeline mode SetConnectionStatementTimeout writes a query into
-      // connection query queue without waiting for its result.
-      // We should process the results of this query, otherwise the connection
-      // is not IDLE and gets deleted by the pool.
-      //
-      // If the query timeouts we won't be IDLE, and apart from timeouts there's
-      // no other way for the query to fail, so just discard its result.
-      conn_wrapper_.DiscardInput(deadline);
-    } else if (settings_.pipeline_mode == PipelineMode::kEnabled) {
-      // Reenter pipeline mode if necessary
-      conn_wrapper_.EnterPipelineMode();
-    }
-    return true;
+  const auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(timeout);
+  conn_wrapper_.DiscardInput(deadline);
+  auto state = GetConnectionState();
+  if (state == ConnectionState::kOffline) {
+    return false;
   }
-  return false;
+  if (state == ConnectionState::kTranActive) {
+    return false;
+  }
+  // We might need more timeout here
+  // We are no more bound with SLA, user has his exception.
+  // We need to try and save the connection without canceling current query
+  // not to kill the pgbouncer
+  SetConnectionStatementTimeout(GetDefaultCommandControl().statement, deadline);
+  if (IsPipelineActive()) {
+    // In pipeline mode SetConnectionStatementTimeout writes a query into
+    // connection query queue without waiting for its result.
+    // We should process the results of this query, otherwise the connection
+    // is not IDLE and gets deleted by the pool.
+    //
+    // If the query timeouts we won't be IDLE, and apart from timeouts there's
+    // no other way for the query to fail, so just discard its result.
+    conn_wrapper_.DiscardInput(deadline);
+  } else if (settings_.pipeline_mode == PipelineMode::kEnabled) {
+    // Reenter pipeline mode if necessary
+    conn_wrapper_.EnterPipelineMode();
+  }
+  if (state > ConnectionState::kIdle) {
+    Rollback();
+  }
+  return GetConnectionState() == ConnectionState::kIdle;
 }
 
 void ConnectionImpl::SetParameter(std::string_view name, std::string_view value,

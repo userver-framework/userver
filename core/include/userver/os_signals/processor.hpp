@@ -6,7 +6,7 @@
 #include <userver/concurrent/async_event_channel.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/os_signals/subscriber.hpp>
-#include <userver/utils/internal_tag_fwd.hpp>
+#include <userver/utils/impl/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -64,7 +64,7 @@ class Processor final {
 
   /// @cond
   // For internal use
-  void Notify(int signum, utils::InternalTag);
+  void Notify(int signum, utils::impl::InternalTag);
   /// @endcond
  private:
   concurrent::AsyncEventChannel<int> channel_;

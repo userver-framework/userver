@@ -50,7 +50,7 @@ class PGConnectionWrapper {
   /// @brief Asynchronously connect PG instance.
   ///
   /// Start asynchronous connection and wait for it's completion (suspending
-  /// current couroutine)
+  /// current coroutine)
   void AsyncConnect(const Dsn& dsn, Deadline deadline, tracing::ScopeTime&);
 
   /// @brief Causes a connection to enter pipeline mode.

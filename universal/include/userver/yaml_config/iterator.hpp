@@ -26,15 +26,9 @@ class Iterator final {
   Iterator& operator=(const Iterator&);
   Iterator& operator=(Iterator&&) noexcept;
 
-  Iterator operator++(int) {
-    current_.reset();
-    return Iterator{*container_, it_++};
-  }
-  Iterator& operator++() {
-    ++it_;
-    current_.reset();
-    return *this;
-  }
+  Iterator operator++(int);
+  Iterator& operator++();
+
   reference operator*() const {
     UpdateValue();
     return *current_;
@@ -51,13 +45,14 @@ class Iterator final {
   }
 
   // Get member name - only if iterator is over object
-  auto GetName() const { return it_.GetName(); }
+  std::string GetName() const;
 
   bool operator==(const Iterator& other) const { return it_ == other.it_; }
   bool operator!=(const Iterator& other) const { return it_ != other.it_; }
 
  private:
   void UpdateValue() const;
+  void IncrementInternalIterator();
 
   // Pointer to the 'container' yaml - because substitution parsing
   // only works with container[index/key] statements

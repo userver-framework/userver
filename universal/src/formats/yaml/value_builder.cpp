@@ -2,7 +2,7 @@
 
 #include <yaml-cpp/yaml.h>
 
-#include <formats/common/validations.hpp>
+#include <userver/formats/common/validations.hpp>
 #include <userver/formats/yaml/exception.hpp>
 #include <userver/utils/assert.hpp>
 

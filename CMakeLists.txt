@@ -26,7 +26,7 @@ if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR AND NOT USERVER_INSTALL)
 endif()
 
 option(USERVER_FEATURE_CORE "Provide a core library with coroutines, otherwise build only userver-universal" ON)
-option(USERVER_FEATURE_CHAOTIC "Provide chaotic-codegen for jsonschema" OFF)
+option(USERVER_FEATURE_CHAOTIC "Provide chaotic-codegen for jsonschema" ON)
 
 set(USERVER_BUILD_PLATFORM_X86 OFF)
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "^x86")
@@ -39,7 +39,7 @@ function(_require_userver_core FEATURE)
   endif()
 endfunction()
 
-option(USERVER_FEATURE_UTEST "Provide 'utest' and 'ubench' for unit testing and benchmarking coroutines" ${USERVER_FEATURE_CORE})
+option(USERVER_FEATURE_UTEST "Provide 'utest' and 'ubench' for gtest and gbenchmark integration" ON)
 if (USERVER_FEATURE_UTEST)
   message(STATUS "Building utest with gtest and ubench with gbench")
 endif()
@@ -119,50 +119,6 @@ option(USERVER_DISABLE_RSEQ_ACCELERATION "Disable rseq-based optimizations" ${US
 
 option(USERVER_CHECK_PACKAGE_VERSIONS "Check package versions" ON)
 
-set(CMAKE_DEBUG_POSTFIX d)
-
-include(cmake/UserverSetupEnvironment.cmake)
-userver_setup_environment()
-
-include(PrepareInstall)
-
-if(USERVER_INSTALL)
-  include(GNUInstallDirs)
-endif()
-
-include(GetUserverVersion)
-include(AddGoogleTests)
-include(FindPackageRequired)
-include(IncludeWhatYouUse)
-include(UserverTestsuite)
-include(CheckCompileFlags)
-include(CMakePackageConfigHelpers)
-
-message(STATUS "Generating cmake files ...")
-userver_venv_setup(
-    NAME userver-cmake
-    PYTHON_OUTPUT_VAR USERVER_CMAKE_GEN_PYTHON_BINARY
-    REQUIREMENTS "${USERVER_ROOT_DIR}/scripts/external_deps/requirements.txt"
-)
-execute_process(
-    COMMAND
-    "${USERVER_CMAKE_GEN_PYTHON_BINARY}"
-    -u "${USERVER_ROOT_DIR}/scripts/external_deps/cmake_generator.py"
-    --repo-dir "${USERVER_ROOT_DIR}"
-    --build-dir "${CMAKE_BINARY_DIR}"
-    RESULT_VARIABLE RESULT
-    WORKING_DIRECTORY "${USERVER_ROOT_DIR}"
-)
-if(RESULT)
-  message(FATAL_ERROR
-      "Generating cmake files failed with exit code: ${RESULT}"
-  )
-endif(RESULT)
-
-set(USERVER_THIRD_PARTY_DIRS ${USERVER_ROOT_DIR}/third_party CACHE INTERNAL "")
-
-init_debian_depends()
-
 option(USERVER_FEATURE_MONGODB "Provide asynchronous driver for MongoDB" "${USERVER_MONGODB_DEFAULT}")
 option(USERVER_FEATURE_POSTGRESQL "Provide asynchronous driver for PostgreSQL" "${USERVER_LIB_ENABLED_DEFAULT}")
 option(USERVER_FEATURE_REDIS "Provide asynchronous driver for Redis" "${USERVER_LIB_ENABLED_DEFAULT}")
@@ -174,7 +130,34 @@ option(USERVER_FEATURE_MYSQL "Provide asynchronous driver for MariaDB/MySQL" "${
 option(USERVER_FEATURE_ROCKS "Provide asynchronous driver for Rocks" "${USERVER_LIB_ENABLED_DEFAULT}")
 option(USERVER_FEATURE_YDB "Provide asynchronous driver for YDB" "${USERVER_YDB_DEFAULT}")
 
+set(CMAKE_DEBUG_POSTFIX d)
+
+include(cmake/UserverSetupEnvironment.cmake)
+userver_setup_environment()
+
+include(PrepareInstall)
+
+if(USERVER_INSTALL)
+  include(GNUInstallDirs)
+endif()
+
+include(ModuleHelpers)
+include(GetUserverVersion)
+include(AddGoogleTests)
+include(FindPackageRequired)
+include(IncludeWhatYouUse)
+include(UserverTestsuite)
+include(CheckCompileFlags)
+include(CMakePackageConfigHelpers)
+
+set(USERVER_THIRD_PARTY_DIRS ${USERVER_ROOT_DIR}/third_party CACHE INTERNAL "")
+
+init_debian_depends()
+
 include(SetupGTest)
+
+option(USERVER_FEATURE_OTLP "Provide asynchronous OTLP exporters" "${USERVER_LIB_ENABLED_DEFAULT}")
+
 if (USERVER_FEATURE_GRPC)
   include(SetupProtobuf)
 endif()
@@ -193,6 +176,7 @@ endif()
 
 if (USERVER_FEATURE_CHAOTIC)
   add_subdirectory(chaotic)
+  list(APPEND USERVER_AVAILABLE_COMPONENTS chaotic)
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT AND USERVER_FEATURE_CORE)
@@ -225,6 +209,15 @@ if (USERVER_FEATURE_GRPC)
   _require_userver_core("USERVER_FEATURE_GRPC")
   add_subdirectory(grpc)
   list(APPEND USERVER_AVAILABLE_COMPONENTS grpc)
+endif()
+
+if (USERVER_FEATURE_OTLP)
+  if (NOT USERVER_FEATURE_GRPC)
+    message(FATAL_ERROR "'USERVER_FEATURE_OTLP' requires 'USERVER_FEATURE_GRPC=ON'")
+  endif()
+  _require_userver_core("USERVER_FEATURE_OTLP")
+  add_subdirectory(otlp)
+  list(APPEND USERVER_AVAILABLE_COMPONENTS otlp)
 endif()
 
 if (USERVER_FEATURE_CLICKHOUSE)

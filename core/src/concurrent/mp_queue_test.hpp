@@ -84,7 +84,7 @@ class TypedQueueFixture : public ::testing::Test {
   int Unwrap(const ValueType& object) {
     return ValueHelper<ValueType>::Unwrap(object);
   }
-  // Some types may implement tracking to detect memory leaks. ValueTypehis
+  // Some types may implement tracking to detect memory leaks. ValueType this
   // method queries whether everything is OK or not.
   static bool CheckMemoryOk() {
     return ValueHelper<ValueType>::CheckMemoryOk();
@@ -194,7 +194,7 @@ TYPED_UTEST_P(TypedQueueFixture, QueueCleanUp) {
     EXPECT_FALSE(this->CheckMemoryOk());
   }
 
-  // Producer is deat at this point. 'queue' variable is the only one
+  // Producer is dead at this point. 'queue' variable is the only one
   // holding MpscQueue alive. Destroying it and checking that there is no
   // memory leak
   queue = nullptr;

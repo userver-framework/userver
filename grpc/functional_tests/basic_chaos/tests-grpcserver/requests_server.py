@@ -98,7 +98,7 @@ async def _say_hello_indept_streams(grpc_client, gate):
         'Hello, kernel',
         'Hello, developer',
         'Hello, core',
-        'Hello, anonim',
+        'Hello, anonymous',
         'Hello, user',
         'If this message has arrived, then everything works',
     ]

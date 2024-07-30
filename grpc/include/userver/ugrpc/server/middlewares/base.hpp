@@ -6,7 +6,7 @@
 #include <memory>
 #include <vector>
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/utils/function_ref.hpp>
 
 #include <userver/ugrpc/server/middlewares/fwd.hpp>
@@ -32,14 +32,8 @@ class MiddlewareCallContext final {
   /// @brief Get original gRPC Call
   CallAnyBase& GetCall() const;
 
-  /// @brief Get name of gRPC service
-  std::string_view GetServiceName() const;
-
-  /// @brief Get name of called gRPC method
-  std::string_view GetMethodName() const;
-
   /// @brief Get values extracted from dynamic_config. Snapshot will be
-  /// deleted when the last meddleware completes
+  /// deleted when the last middleware completes
   const dynamic_config::Snapshot& GetInitialDynamicConfig() const;
 
  private:
@@ -53,8 +47,11 @@ class MiddlewareCallContext final {
 
   std::optional<dynamic_config::Snapshot> config_;
   ::google::protobuf::Message* request_;
+  bool is_called_from_handle_{false};
 };
 
+/// @ingroup userver_base_classes
+///
 /// @brief Base class for server gRPC middleware
 class MiddlewareBase {
  public:
@@ -70,18 +67,20 @@ class MiddlewareBase {
   /// dropped
   virtual void Handle(MiddlewareCallContext& context) const = 0;
 
-  /// @brief Request hook. This function calls each request
+  /// @brief Request hook. The function is invoked on each request
   virtual void CallRequestHook(const MiddlewareCallContext& context,
                                google::protobuf::Message& request);
 
-  /// @brief Response hook. This function calls each response
+  /// @brief Response hook. The function is invoked on each response
   virtual void CallResponseHook(const MiddlewareCallContext& context,
                                 google::protobuf::Message& response);
 };
 
+/// @ingroup userver_base_classes
+///
 /// @brief Base class for middleware component
-class MiddlewareComponentBase : public components::LoggableComponentBase {
-  using components::LoggableComponentBase::LoggableComponentBase;
+class MiddlewareComponentBase : public components::ComponentBase {
+  using components::ComponentBase::ComponentBase;
 
  public:
   /// @brief Returns a middleware according to the component's settings

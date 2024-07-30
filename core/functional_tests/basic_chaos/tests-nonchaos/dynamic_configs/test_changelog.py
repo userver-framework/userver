@@ -14,6 +14,7 @@ class ConfigHelper:
     def new_config(self):
         config = dynamic_config.DynamicConfig(
             initial_values=self.defaults,
+            defaults=None,
             config_cache_components=[],
             cache_invalidation_state=self.cache_invalidation_state,
             changelog=self.changelog,

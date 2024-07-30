@@ -3,12 +3,12 @@
 /// [Sample user component header]
 #pragma once
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/dynamic_config/source.hpp>
 
 namespace myservice::smth {
 
-class Component final : public components::LoggableComponentBase {
+class Component final : public components::ComponentBase {
  public:
   // name of your component to refer in static config
   static constexpr std::string_view kName = "smth";

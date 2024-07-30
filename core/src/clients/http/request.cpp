@@ -18,6 +18,7 @@
 #include <userver/http/url.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/utils/str_icase.hpp>
 #include <userver/utils/trivial_map.hpp>
 
@@ -28,7 +29,6 @@
 #include <clients/http/testsuite.hpp>
 #include <crypto/helpers.hpp>
 #include <engine/ev/watcher/timer_watcher.hpp>
-#include <utils/impl/assert_extra.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -53,7 +53,7 @@ curl::easy::http_version_t ToNative(HttpVersion version) {
     case HttpVersion::k2:
       return curl::easy::http_version_t::http_version_2_0;
     case HttpVersion::k2Tls:
-      return curl::easy::http_version_t::http_vertion_2tls;
+      return curl::easy::http_version_t::http_version_2tls;
     case HttpVersion::k2PriorKnowledge:
       return curl::easy::http_version_t::http_version_2_prior_knowledge;
   }
@@ -647,7 +647,8 @@ Request Request::SetTracingManager(
 }
 
 void Request::SetHeadersPropagator(
-    const server::http::HeadersPropagator* headers_propagator) & {
+    const clients::http::plugins::headers_propagator::HeadersPropagator*
+        headers_propagator) & {
   pimpl_->SetHeadersPropagator(headers_propagator);
 }
 

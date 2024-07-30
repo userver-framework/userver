@@ -7,14 +7,14 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
-// Putting detructor into a cpp file to force vtable instantiation in only 1
+// Putting destructor into a cpp file to force vtable instantiation in only 1
 // translation unit
 RawComponentBase::~RawComponentBase() = default;
 
 yaml_config::Schema RawComponentBase::GetStaticConfigSchema() {
   return yaml_config::impl::SchemaFromString(R"(
 type: object
-description: base component. Don't use it for application components, use LoggableComponentBase instead
+description: base component. Don't use it for application components, use ComponentBase instead
 additionalProperties: false
 properties:
     load-enabled:

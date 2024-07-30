@@ -17,16 +17,14 @@
 #include <userver/baggage/baggage.hpp>
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/clients/http/connect_to.hpp>
+#include <userver/clients/http/plugins/headers_propagator/plugin.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
-#include <userver/utils/algo.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/encoding/hex.hpp>
 #include <userver/utils/overloaded.hpp>
 #include <userver/utils/rand.hpp>
 #include <userver/utils/text_light.hpp>
-
-#include <utils/impl/assert_extra.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -677,6 +675,12 @@ const std::string& RequestState::GetLoggedOriginalUrl() const noexcept {
   return log_url_ ? *log_url_ : easy().get_original_url();
 }
 
+std::string_view RequestState::GetLoggedEffectiveUrl() noexcept {
+  // If log_url_ exists, we use log_url_ with a semantic like original_url,
+  // instead of effective_url
+  return log_url_ ? *log_url_ : easy().get_effective_url();
+}
+
 engine::Future<std::shared_ptr<Response>> RequestState::async_perform(
     utils::impl::SourceLocation location) {
   data_.emplace<FullBufferedData>();
@@ -915,11 +919,11 @@ void RequestState::AccountResponse(std::error_code err) {
 
 std::exception_ptr RequestState::PrepareException(std::error_code err) {
   if (deadline_expired_) {
-    return PrepareDeadlinePassedException(easy().get_effective_url(),
+    return PrepareDeadlinePassedException(GetLoggedEffectiveUrl(),
                                           easy().get_local_stats());
   }
 
-  return http::PrepareException(err, easy().get_effective_url(),
+  return http::PrepareException(err, GetLoggedEffectiveUrl(),
                                 easy().get_local_stats());
 }
 
@@ -1081,7 +1085,8 @@ void RequestState::SetTracingManager(const tracing::TracingManagerBase& m) {
 }
 
 void RequestState::SetHeadersPropagator(
-    const server::http::HeadersPropagator* propagator) {
+    const clients::http::plugins::headers_propagator::HeadersPropagator*
+        propagator) {
   headers_propagator_ = propagator;
 }
 

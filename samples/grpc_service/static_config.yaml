@@ -10,7 +10,7 @@ components_manager:
                     level: debug
                     overflow_behavior: discard
 
-# /// [gRPC sample - static config client]
+# /// [static config client]
 # yaml
         # Creates gRPC clients
         grpc-client-factory:
@@ -26,9 +26,9 @@ components_manager:
             # The service endpoint (URI). We talk to our own service,
             # which is kind of pointless, but works for an example
             endpoint: '[::1]:8091'
-# /// [gRPC sample - static config client]
+# /// [static config client]
 
-# /// [gRPC sample - static config server]
+# /// [static config server]
 # yaml
         # Common configuration for gRPC server
         grpc-server:
@@ -42,7 +42,7 @@ components_manager:
             task-processor: main-task-processor
             greeting-prefix: Hello
             middlewares: []
-# /// [gRPC sample - static config server]
+# /// [static config server]
 
         # In this example, the tests still communicate with the microservice
         # using HTTP, so we still need an HTTP server and an HTTP handler.
@@ -59,13 +59,13 @@ components_manager:
 
     default_task_processor: main-task-processor  # Task processor in which components start.
 
-# /// [gRPC sample - task processor]
+# /// [task processor]
 # yaml
     task_processors:
         grpc-blocking-task-processor:  # For blocking gRPC channel creation
             worker_threads: 2
             thread_name: grpc-worker
-# /// [gRPC sample - task processor]
+# /// [task processor]
         main-task-processor:           # For non-blocking operations
             worker_threads: 8
         fs-task-processor:             # For blocking filesystem operations

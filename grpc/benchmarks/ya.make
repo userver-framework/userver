@@ -7,7 +7,6 @@ SUBSCRIBER(g:taxi-common)
 
 PEERDIR(
     taxi/uservices/userver-arc-utils/grpc/gen/grpc
-    taxi/uservices/userver/grpc/utest
     taxi/uservices/userver/grpc
 )
 

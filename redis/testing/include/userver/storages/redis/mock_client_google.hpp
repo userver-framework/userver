@@ -33,6 +33,12 @@ class GMockClient : public MockClientBase {
                const CommandControl& command_control),
               (override));
 
+  MOCK_METHOD(RequestBitop, Bitop,
+              (BitOperation op, std::string dest_key,
+               std::vector<std::string> src_keys,
+               const CommandControl& command_control),
+              (override));
+
   MOCK_METHOD(RequestDbsize, Dbsize,
               (size_t shard, const CommandControl& command_control),
               (override));

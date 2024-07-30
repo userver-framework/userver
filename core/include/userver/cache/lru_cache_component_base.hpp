@@ -7,7 +7,7 @@
 
 #include <userver/cache/expirable_lru_cache.hpp>
 #include <userver/cache/lru_cache_config.hpp>
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/concurrent/async_event_source.hpp>
 #include <userver/dump/dumper.hpp>
 #include <userver/dump/meta.hpp>
@@ -74,7 +74,7 @@ yaml_config::Schema GetLruCacheComponentBaseSchema();
 template <typename Key, typename Value, typename Hash = std::hash<Key>,
           typename Equal = std::equal_to<Key>>
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
-class LruCacheComponent : public components::LoggableComponentBase,
+class LruCacheComponent : public components::ComponentBase,
                           private dump::DumpableEntity {
  public:
   using Cache = ExpirableLruCache<Key, Value, Hash, Equal>;
@@ -125,7 +125,7 @@ template <typename Key, typename Value, typename Hash, typename Equal>
 LruCacheComponent<Key, Value, Hash, Equal>::LruCacheComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
-    : LoggableComponentBase(config, context),
+    : ComponentBase(config, context),
       name_(components::GetCurrentComponentName(config)),
       static_config_(config),
       cache_(std::make_shared<Cache>(static_config_.ways,

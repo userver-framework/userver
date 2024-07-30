@@ -12,8 +12,8 @@
 #include <userver/cache/cache_update_trait.hpp>
 #include <userver/cache/exceptions.hpp>
 #include <userver/compiler/demangle.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/components/component_fwd.hpp>
-#include <userver/components/loggable_component_base.hpp>
 #include <userver/concurrent/async_event_channel.hpp>
 #include <userver/dump/helpers.hpp>
 #include <userver/dump/meta.hpp>
@@ -53,6 +53,7 @@ namespace components {
 /// * @ref USERVER_DUMPS
 ///
 /// ## Static options:
+///
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// update-types | specifies whether incremental and/or full updates will be used | see below
@@ -61,7 +62,7 @@ namespace components {
 /// full-update-interval | interval between full updates | --
 /// full-update-jitter | max. amount of time by which full-update-interval may be adjusted for requests dispersal | full-update-interval / 10
 /// updates-enabled | if false, cache updates are disabled (except for the first one if !first-update-fail-ok) | true
-/// first-update-fail-ok | whether first update failure is non-fatal | false
+/// first-update-fail-ok | whether first update failure is non-fatal; see also @ref MayReturnNull | false
 /// task-processor | the name of the TaskProcessor for running DoWork | main-task-processor
 /// config-settings | enables dynamic reconfiguration with CacheConfigSet | true
 /// exception-interval | Used instead of `update-interval` in case of exception | update_interval
@@ -71,9 +72,11 @@ namespace components {
 /// failed-updates-before-expiration | the number of consecutive failed updates for data expiration | --
 /// has-pre-assign-check | enables the check before changing the value in the cache, by default it is the check that the new value is not empty | false
 /// alert-on-failing-to-update-times | fire an alert if the cache update failed specified amount of times in a row. If zero - alerts are disabled. Value from dynamic config takes priority over static | 0
+/// safe-data-lifetime | enables awaiting data destructors in the component's destructor. Can be set to `false` if the stored data does not refer to the component and its dependencies. | true
 /// dump.* | Manages cache behavior after dump load | -
 /// dump.first-update-mode | Behavior of update after successful load from dump. See info on modes below | skip
 /// dump.first-update-type | Update type after successful load from dump (`full`, `incremental` or `incremental-then-async-full`) | full
+///
 /// ### Update types
 ///  * `full-and-incremental`: both `update-interval` and `full-update-interval`
 ///    must be specified. Updates with UpdateType::kIncremental will be triggered
@@ -86,6 +89,7 @@ namespace components {
 ///    each `update-interval` (adjusted by jitter).
 ///
 /// ### Avoiding memory leaks
+///
 /// If you don't implement the deletion of objects that are deleted from the data source and don't use full updates,
 /// you may get an effective memory leak, because garbage objects will pile up in the cached data.
 ///
@@ -97,7 +101,31 @@ namespace components {
 ///
 /// full-update-interval = (size-of-database * 20% / removal-rate) = 400s
 ///
+/// ### Dealing with nullptr data in CachingComponentBase
+///
+/// The cache can become `nullptr` through multiple ways:
+///
+/// * If the first cache update fails, and `first-update-fail-ok` config
+///   option is set to `true` (otherwise the service shutdown at start)
+/// * Through manually calling @ref Set with `nullptr` in @ref Update
+/// * If `failed-updates-before-expiration` is set, and that many periodic
+///   updates fail in a row
+///
+/// By default, the cache's user can expect that the pointer returned
+/// from @ref Get will never be `nullptr`. If the cache for some reason is
+/// in `nullptr` state, then @ref Get will throw. This is the safe default
+/// behavior for most cases.
+///
+/// If all systems of a service are expected to work with a cache in `nullptr`
+/// state, then such a cache should override `MayReturnNull` to return `true`.
+/// It will also serve self-documentation purposes: if a cache defines
+/// @ref MayReturnNull, then pointers returned from @ref Get should be checked
+/// for `nullptr` before usage.
+///
 /// ### `first-update-mode` modes
+///
+/// Further customizes the behavior of @ref dump::Dumper "cache dumps".
+///
 /// Mode          | Description
 /// ------------- | -----------
 /// `skip`        | after successful load from dump, do nothing
@@ -122,7 +150,7 @@ namespace components {
 
 template <typename T>
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
-class CachingComponentBase : public LoggableComponentBase,
+class CachingComponentBase : public ComponentBase,
                              protected cache::CacheUpdateTrait {
  public:
   CachingComponentBase(const ComponentConfig& config, const ComponentContext&);
@@ -132,8 +160,10 @@ class CachingComponentBase : public LoggableComponentBase,
 
   using DataType = T;
 
-  /// @return cache contents. May be nullptr if and only if MayReturnNull()
-  /// returns true.
+  /// @return cache contents. May be `nullptr` if and only if @ref MayReturnNull
+  /// returns `true`.
+  /// @throws cache::EmptyCacheError if the contents are `nullptr`, and
+  /// @ref MayReturnNull returns `false` (which is the default behavior).
   utils::SharedReadablePtr<T> Get() const;
 
   /// @return cache contents. May be nullptr regardless of MayReturnNull().
@@ -169,9 +199,7 @@ class CachingComponentBase : public LoggableComponentBase,
   /// Clears the content of the cache by string a default constructed T.
   void Clear();
 
-  /// Whether Get() is expected to return nullptr.
-  /// If MayReturnNull() returns false, Get() throws an exception instead of
-  /// returning nullptr.
+  /// Whether @ref Get is expected to return `nullptr`.
   virtual bool MayReturnNull() const;
 
   /// @{
@@ -197,6 +225,9 @@ class CachingComponentBase : public LoggableComponentBase,
   void GetAndWrite(dump::Writer& writer) const final;
   void ReadAndSet(dump::Reader& reader) final;
 
+  std::shared_ptr<const T> TransformNewValue(
+      std::unique_ptr<const T> new_value);
+
   rcu::Variable<std::shared_ptr<const T>> cache_;
   concurrent::AsyncEventChannel<const std::shared_ptr<const T>&> event_channel_;
   utils::impl::WaitTokenStorage wait_token_storage_;
@@ -205,7 +236,7 @@ class CachingComponentBase : public LoggableComponentBase,
 template <typename T>
 CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
                                               const ComponentContext& context)
-    : LoggableComponentBase(config, context),
+    : ComponentBase(config, context),
       cache::CacheUpdateTrait(config, context),
       event_channel_(components::GetCurrentComponentName(config),
                      [this](auto& function) {
@@ -257,22 +288,8 @@ utils::SharedReadablePtr<T> CachingComponentBase<T>::GetUnsafe() const {
 
 template <typename T>
 void CachingComponentBase<T>::Set(std::unique_ptr<const T> value_ptr) {
-  auto deleter = [token = wait_token_storage_.GetToken(),
-                  &cache_task_processor =
-                      GetCacheTaskProcessor()](const T* raw_ptr) mutable {
-    std::unique_ptr<const T> ptr{raw_ptr};
-
-    // Kill garbage asynchronously as T::~T() might be very slow
-    engine::CriticalAsyncNoSpan(cache_task_processor, [ptr = std::move(ptr),
-                                                       token = std::move(
-                                                           token)]() mutable {
-      // Make sure *ptr is deleted before token is destroyed
-      ptr.reset();
-    }).Detach();
-  };
-
-  const std::shared_ptr<const T> new_value(value_ptr.release(),
-                                           std::move(deleter));
+  const std::shared_ptr<const T> new_value =
+      TransformNewValue(std::move(value_ptr));
 
   if (HasPreAssignCheck()) {
     auto old_value = cache_.Read();
@@ -363,7 +380,19 @@ namespace impl {
 
 yaml_config::Schema GetCachingComponentBaseSchema();
 
+template <typename T, typename Deleter>
+auto MakeAsyncDeleter(engine::TaskProcessor& task_processor, Deleter deleter) {
+  return [&task_processor,
+          deleter = std::move(deleter)](const T* raw_ptr) mutable {
+    std::unique_ptr<const T, Deleter> ptr(raw_ptr, std::move(deleter));
+
+    engine::CriticalAsyncNoSpan(task_processor, [ptr =
+                                                     std::move(ptr)]() mutable {
+    }).Detach();
+  };
 }
+
+}  // namespace impl
 
 template <typename T>
 yaml_config::Schema CachingComponentBase<T>::GetStaticConfigSchema() {
@@ -384,6 +413,29 @@ void CachingComponentBase<T>::PreAssignCheck(
     if (!new_value_ptr || std::size(*new_value_ptr) == 0) {
       throw cache::EmptyDataError(Name());
     }
+  }
+}
+
+template <typename T>
+std::shared_ptr<const T> CachingComponentBase<T>::TransformNewValue(
+    std::unique_ptr<const T> new_value) {
+  // Kill garbage asynchronously as T::~T() might be very slow
+  if (IsSafeDataLifetime()) {
+    // Use token only if `safe-data-lifetime` is true
+    auto deleter_with_token =
+        [token = wait_token_storage_.GetToken()](const T* raw_ptr) {
+          // Make sure *raw_ptr is deleted before token is destroyed
+          std::default_delete<const T>{}(raw_ptr);
+        };
+    return std::shared_ptr<const T>(
+        new_value.release(),
+        impl::MakeAsyncDeleter<T>(GetCacheTaskProcessor(),
+                                  std::move(deleter_with_token)));
+  } else {
+    return std::shared_ptr<const T>(
+        new_value.release(),
+        impl::MakeAsyncDeleter<T>(GetCacheTaskProcessor(),
+                                  std::default_delete<const T>{}));
   }
 }
 

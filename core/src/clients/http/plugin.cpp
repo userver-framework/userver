@@ -2,6 +2,7 @@
 
 #include <clients/http/request_state.hpp>
 #include <userver/clients/http/request.hpp>
+#include <userver/utils/algo.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -11,6 +12,15 @@ PluginRequest::PluginRequest(RequestState& state) : state_(state) {}
 
 void PluginRequest::SetHeader(std::string_view name, std::string value) {
   state_.easy().add_header(name, value);
+}
+
+void PluginRequest::AddQueryParams(std::string_view params) {
+  const auto& url = state_.easy().get_original_url();
+  if (url.find('?') != std::string::npos) {
+    state_.easy().set_url(utils::StrCat(url, "&", params));
+  } else {
+    state_.easy().set_url(utils::StrCat(url, "?", params));
+  }
 }
 
 void PluginRequest::SetTimeout(std::chrono::milliseconds ms) {

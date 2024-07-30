@@ -14,9 +14,9 @@ namespace ugrpc::client {
 
 namespace impl {
 
-class SimpleClientComponentAny : public components::LoggableComponentBase {
+class SimpleClientComponentAny : public components::ComponentBase {
  public:
-  using components::LoggableComponentBase::LoggableComponentBase;
+  using components::ComponentBase::ComponentBase;
 
   static yaml_config::Schema GetStaticConfigSchema();
 };

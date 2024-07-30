@@ -100,18 +100,21 @@ class CacheControl final {
   template <typename Component>
   CacheResetRegistration RegisterCache(Component* self, std::string_view name,
                                        void (Component::*reset_method)());
-  /// @endcond
- private:
-  friend class CacheResetRegistration;
 
   struct CacheInfo final {
     std::string name;
     std::function<void(cache::UpdateType)> reset;
     bool needs_span{true};
   };
-
   struct CacheInfoNode;
   using CacheInfoIterator = CacheInfoNode*;
+
+  // For internal use only.
+  CacheInfoIterator DoRegisterCache(CacheInfo&& info);
+  /// @endcond
+ private:
+  friend class CacheResetRegistration;
+
   class CacheResetJob;
 
   void DoResetCaches(
@@ -125,8 +128,6 @@ class CacheControl final {
       std::unordered_set<std::string>* reset_only_names,
       const std::unordered_set<std::string>& force_incremental_names,
       const std::unordered_set<std::string>* exclude_names);
-
-  CacheInfoIterator DoRegisterCache(CacheInfo&& info);
 
   void UnregisterCache(CacheInfoIterator) noexcept;
 

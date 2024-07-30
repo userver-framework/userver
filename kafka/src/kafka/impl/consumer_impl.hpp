@@ -44,7 +44,7 @@ class ConsumerImpl final {
   /// @brief Synchronously commits the current assignment offsets.
   void Commit();
 
-  /// @brief Schedules the committment task.
+  /// @brief Schedules the commitment task.
   void AsyncCommit();
 
   /// @brief Polls the message until `deadline` is reached.
@@ -52,15 +52,15 @@ class ConsumerImpl final {
   /// @note Must be called periodically to maintain consumer group membership
   std::optional<Message> PollMessage(engine::Deadline deadline);
 
-  /// @brief Effectively calles `PollMessage` until `deadline` is reached
+  /// @brief Effectively calls `PollMessage` until `deadline` is reached
   /// and no more than `max_batch_size` messages polled.
   MessageBatch PollBatch(std::size_t max_batch_size, engine::Deadline deadline);
 
   const Stats& GetStats() const;
 
-  void AccountMessageProccessingSucceeded(const Message& message);
-  void AccountMessageBatchProccessingSucceeded(const MessageBatch& batch);
-  void AccountMessageProccessingFailed(const Message& message);
+  void AccountMessageProcessingSucceeded(const Message& message);
+  void AccountMessageBatchProcessingSucceeded(const MessageBatch& batch);
+  void AccountMessageProcessingFailed(const Message& message);
   void AccountMessageBatchProcessingFailed(const MessageBatch& batch);
 
   void ErrorCallbackProxy(int error_code, const char* reason);

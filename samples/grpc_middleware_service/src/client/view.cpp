@@ -4,7 +4,7 @@ namespace samples::grpc::auth {
 
 GreeterClient::GreeterClient(const components::ComponentConfig& config,
                              const components::ComponentContext& context)
-    : LoggableComponentBase(config, context),
+    : ComponentBase(config, context),
       client_factory_(
           context.FindComponent<ugrpc::client::ClientFactoryComponent>()
               .GetFactory()),
@@ -27,7 +27,7 @@ std::string GreeterClient::SayHello(std::string name) {
 }
 
 yaml_config::Schema GreeterClient::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: >
     a user-defined wrapper around api::GreeterServiceClient that provides

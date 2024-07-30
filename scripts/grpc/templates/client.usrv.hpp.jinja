@@ -52,11 +52,11 @@ class {{service.name}}Client final {
   static USERVER_NAMESPACE::ugrpc::impl::StaticServiceMetadata GetMetadata();
 
  private:
-  {# All non-template related client data should be placed in ClientData #}
   template <typename Client>
   friend USERVER_NAMESPACE::ugrpc::client::impl::ClientData&
   USERVER_NAMESPACE::ugrpc::client::impl::GetClientData(Client& client);
 
+  {# All non-template related client data should be placed in ClientData #}
   USERVER_NAMESPACE::ugrpc::client::impl::ClientData impl_;
 };
 {% endfor %}

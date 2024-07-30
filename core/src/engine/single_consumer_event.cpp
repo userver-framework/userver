@@ -2,6 +2,8 @@
 
 #include <engine/impl/wait_list_light.hpp>
 #include <engine/task/task_context.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -77,6 +79,11 @@ bool SingleConsumerEvent::GetIsSignaled() noexcept {
   } else {
     return waiters_->IsSignaled();
   }
+}
+
+void SingleConsumerEvent::CheckIsAutoResetForWaitPredicate() {
+  UINVARIANT(IsAutoReset(),
+             "Wait with predicate requires auto-reset functionality");
 }
 
 }  // namespace engine

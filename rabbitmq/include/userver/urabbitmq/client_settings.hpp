@@ -1,11 +1,14 @@
 #pragma once
 
 #include <cstddef>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 #include <userver/components/component_config.hpp>
+#include <userver/crypto/certificate.hpp>
+#include <userver/crypto/private_key.hpp>
 #include <userver/formats/json_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -20,6 +23,17 @@ struct EndpointInfo final {
   uint16_t port = 5672;
 };
 
+struct ClientCertSettings {
+  crypto::Certificate cert;
+  crypto::PrivateKey key;
+};
+
+struct TlsSettings {
+  std::optional<ClientCertSettings> client_cert_settings;
+  std::vector<crypto::Certificate> ca_certs;
+  bool verify_host = true;
+};
+
 struct AuthSettings final {
   /// Login to use
   std::string login = "guest";
@@ -29,6 +43,9 @@ struct AuthSettings final {
 
   /// RabbitMQs vhost
   std::string vhost = "/";
+
+  /// TLS
+  std::optional<TlsSettings> tls_settings;
 };
 
 struct RabbitEndpoints final {

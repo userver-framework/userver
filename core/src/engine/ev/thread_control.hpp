@@ -86,8 +86,11 @@ class CallerOwnedPayloadBlocking final
     {
       std::lock_guard lock(mutex_);
       finished_ = true;
+      // It's important to do this under lock to preserve the object lifetime,
+      // otherwise the object could be destroyed if the waiting thread sees
+      // `finished_ = true` before waiting on the cv_ to get notified.
+      cv_.notify_one();
     }
-    cv_.notify_one();
   }
 
   Func& func_;
@@ -129,9 +132,6 @@ class ThreadControlBase {
   void RunInEvLoopBlocking(Func&& func);
 
   bool IsInEvThread() const noexcept;
-
-  std::uint8_t GetCurrentLoadPercent() const;
-  const std::string& GetName() const;
 
  protected:
   explicit ThreadControlBase(Thread& thread) noexcept;

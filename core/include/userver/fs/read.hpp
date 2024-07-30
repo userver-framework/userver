@@ -58,7 +58,7 @@ FileInfoWithDataMap ReadRecursiveFilesInfoWithData(
 std::string ReadFileContents(engine::TaskProcessor& async_tp,
                              const std::string& path);
 
-/// @brief Checks whether the file exists asynchronosly
+/// @brief Checks whether the file exists asynchronously
 /// @param async_tp TaskProcessor for synchronous waiting
 /// @param path file path to check
 /// @returns true if file exists, false if file doesn't exist

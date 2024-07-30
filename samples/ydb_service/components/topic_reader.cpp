@@ -137,7 +137,7 @@ class SessionReadTask {
 
     /*
       If it throws, read session will be closed and recreated in
-      {restart_session_delay} ms All uncommited messages will be received again
+      {restart_session_delay} ms All uncommitted messages will be received again
     */
   }
 
@@ -186,7 +186,7 @@ class TopicReader {
 TopicReaderComponent::TopicReaderComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
-    : components::LoggableComponentBase(config, context) {
+    : components::ComponentBase(config, context) {
   const auto consumer_name = config["consumer-name"].As<std::string>();
   const auto topics = config["topics"].As<std::vector<std::string>>();
   const auto restart_session_delay =
@@ -203,7 +203,7 @@ TopicReaderComponent::TopicReaderComponent(
 }
 
 yaml_config::Schema TopicReaderComponent::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: sample topic reader
 additionalProperties: false

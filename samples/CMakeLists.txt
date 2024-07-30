@@ -11,7 +11,20 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-config_service)
 add_subdirectory(testsuite-support)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-testsuite-support)
 
+if (USERVER_FEATURE_CHAOTIC)
+  add_subdirectory(chaotic_service)
+  add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-chaotic_service)
+endif()
+
+if (USERVER_FEATURE_OTLP)
+  add_subdirectory(otlp_service)
+  add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-otlp_service)
+endif()
+
 if (USERVER_FEATURE_GRPC)
+  add_subdirectory(grpc-generic-proxy)
+  add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-grpc-generic-proxy)
+
   add_subdirectory(grpc_service)
   add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-grpc_service)
 

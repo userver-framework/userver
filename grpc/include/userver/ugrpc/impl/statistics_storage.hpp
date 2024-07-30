@@ -1,10 +1,15 @@
 #pragma once
 
+#include <optional>
+#include <string>
 #include <string_view>
 #include <unordered_map>
 
+#include <userver/concurrent/variable.hpp>
 #include <userver/engine/shared_mutex.hpp>
+#include <userver/utils/impl/transparent_hash.hpp>
 #include <userver/utils/statistics/entry.hpp>
+#include <userver/utils/statistics/striped_rate_counter.hpp>
 
 #include <userver/ugrpc/impl/statistics.hpp>
 
@@ -12,8 +17,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::impl {
 
-/// Clients are created on-the-fly, so we must use a separate stable container
-/// for storing their statistics.
+/// Allows to create ServiceStatistics and generic MethodStatistics on the fly.
 class StatisticsStorage final {
  public:
   explicit StatisticsStorage(utils::statistics::Storage& statistics_storage,
@@ -21,37 +25,74 @@ class StatisticsStorage final {
 
   StatisticsStorage(const StatisticsStorage&) = delete;
   StatisticsStorage& operator=(const StatisticsStorage&) = delete;
-
   ~StatisticsStorage();
 
-  ugrpc::impl::ServiceStatistics& GetServiceStatistics(
-      const ugrpc::impl::StaticServiceMetadata& metadata);
+  ServiceStatistics& GetServiceStatistics(const StaticServiceMetadata& metadata,
+                                          std::optional<std::string> endpoint);
 
-  // Can only be called on StatisticsStorage for gRPC services (not clients).
-  // Can only be called strictly after all the components are loaded.
-  // gRPC services must not be [un]registered during GetStartedRequests().
+  MethodStatistics& GetGenericStatistics(
+      std::string_view call_name, std::optional<std::string_view> endpoint);
+
   std::uint64_t GetStartedRequests() const;
 
  private:
   // Pointer to service name from its metadata is used as a unique service ID
   using ServiceId = const char*;
 
-  void ExtendStatistics(utils::statistics::Writer& writer);
-
-  // std::equal_to<const char*> specialized in arcadia/util/str_stl.h
-  // so we need to define our own comparer to use it in map and avoid
-  // specialization after instantiation problem
-  struct ServiceIdComparer final {
-    bool operator()(ServiceId lhs, ServiceId rhs) const { return lhs == rhs; }
+  struct ServiceKey {
+    ServiceId service_id{};
+    std::optional<std::string> endpoint;
   };
 
+  struct GenericKey {
+    std::string call_name;
+    std::optional<std::string> endpoint;
+  };
+
+  struct GenericKeyView {
+    GenericKey Dereference() const;
+
+    std::string_view call_name;
+    std::optional<std::string_view> endpoint;
+  };
+
+  struct ServiceKeyComparer {
+    bool operator()(ServiceKey lhs, ServiceKey rhs) const;
+  };
+
+  struct ServiceKeyHasher {
+    std::size_t operator()(const ServiceKey& key) const noexcept;
+  };
+
+  struct GenericKeyComparer {
+    using is_transparent [[maybe_unused]] = void;
+
+    bool operator()(const GenericKey& lhs, const GenericKey& rhs) const;
+    bool operator()(const GenericKeyView& lhs, const GenericKey& rhs) const;
+    bool operator()(const GenericKey& lhs, const GenericKeyView& rhs) const;
+  };
+
+  struct GenericKeyHasher {
+    using is_transparent [[maybe_unused]] = void;
+
+    std::size_t operator()(const GenericKey& key) const noexcept;
+    std::size_t operator()(const GenericKeyView& key) const noexcept;
+  };
+
+  void ExtendStatistics(utils::statistics::Writer& writer);
+
   const StatisticsDomain domain_;
-
-  std::unordered_map<ServiceId, ugrpc::impl::ServiceStatistics,
-                     std::hash<ServiceId>, ServiceIdComparer>
+  utils::statistics::StripedRateCounter global_started_;
+  concurrent::Variable<std::unordered_map<ServiceKey, ServiceStatistics,
+                                          ServiceKeyHasher, ServiceKeyComparer>,
+                       engine::SharedMutex>
       service_statistics_;
-  engine::SharedMutex mutex_;
-
+  concurrent::Variable<
+      utils::impl::TransparentMap<GenericKey, MethodStatistics,
+                                  GenericKeyHasher, GenericKeyComparer>,
+      engine::SharedMutex>
+      generic_statistics_;
+  // statistics_holder_ must be the last field.
   utils::statistics::Entry statistics_holder_;
 };
 

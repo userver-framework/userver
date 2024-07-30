@@ -64,7 +64,7 @@ enum class Format : short {
   /// tracing::opentelemetry::TraceParentData as per OpenTelemetry.
   kOpenTelemetry = 1 << 3,
 
-  /// Openzipkin b3 alternative propagation, where Span ID goes to partern ID:
+  /// Openzipkin b3 alternative propagation, where Span ID goes to parent ID:
   /// @code
   /// b3::kTraceId -> tracing::Span::GetTraceId() -> b3::kTraceId
   /// b3::kSpanId -> tracing::Span::GetParentId(); tracing::Span::GetSpanId() -> b3::kSpanId

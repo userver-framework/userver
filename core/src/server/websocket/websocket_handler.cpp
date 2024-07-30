@@ -7,6 +7,7 @@
 #include <userver/engine/io/socket.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/utils/async.hpp>
+#include <userver/utils/str_icase.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <userver/server/websocket/server.hpp>
@@ -33,19 +34,22 @@ std::string WebsocketHandlerBase::HandleRequestThrow(
     const server::http::HttpRequest& request,
     server::request::RequestContext& context) const {
   if (request.GetMethod() != server::http::HttpMethod::kGet ||
-      request.GetHeader(USERVER_NAMESPACE::http::headers::kUpgrade) !=
-          "websocket" ||
-      request.GetHeader(USERVER_NAMESPACE::http::headers::kConnection) !=
-          "Upgrade") {
-    LOG_WARNING()
-        << "Not a GET 'Upgrade: websocket' and 'Connection: Upgrade' request";
-    throw server::handlers::ClientError();
+      !utils::StrIcaseEqual()(
+          request.GetHeader(USERVER_NAMESPACE::http::headers::kUpgrade),
+          std::string_view("websocket")) ||
+      !utils::StrIcaseEqual()(
+          request.GetHeader(USERVER_NAMESPACE::http::headers::kConnection),
+          std::string_view("upgrade"))) {
+    HandleNonWebsocketRequest(request, context);
   }
 
   const std::string& secWebsocketKey =
       request.GetHeader(USERVER_NAMESPACE::http::headers::kWebsocketKey);
-  if (secWebsocketKey.empty()) {
-    LOG_WARNING() << "Empty or missing Websocket Key";
+
+  // We are fine if `secWebsocketKey` is not properly base64-ecoded
+  static constexpr std::size_t kLengthOfBase64Encoded16Bytes = 24;
+  if (kLengthOfBase64Encoded16Bytes != secWebsocketKey.size()) {
+    LOG_WARNING() << "Empty or invalid Websocket Key";
     throw server::handlers::ClientError();
   }
 

@@ -69,7 +69,7 @@ void InitialSetup(CoordinationClient& coordination_client,
 DistLockComponentBase::DistLockComponentBase(
     const components::ComponentConfig& component_config,
     const components::ComponentContext& component_context)
-    : components::LoggableComponentBase(component_config, component_context),
+    : components::ComponentBase(component_config, component_context),
       testsuite_tasks_(testsuite::GetTestsuiteTasks(component_context)),
       testsuite_task_name_("distlock/" + component_config.Name()) {
   const auto semaphore_name =
@@ -136,7 +136,7 @@ void DistLockComponentBase::Start() {
 void DistLockComponentBase::Stop() noexcept { worker_->Stop(); }
 
 yaml_config::Schema DistLockComponentBase::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: YDB distlock component
 additionalProperties: false

@@ -41,7 +41,6 @@ class FutureStateBase : private ContextAccessor {
   void AfterWait() noexcept final;
 
   FastPimplWaitListLight finish_waiters_;
-  std::atomic<bool> is_ready_;
   std::atomic<bool> is_result_store_locked_;
   std::atomic<bool> is_future_created_;
 };

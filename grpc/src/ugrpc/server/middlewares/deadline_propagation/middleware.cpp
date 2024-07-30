@@ -59,8 +59,9 @@ void Middleware::Handle(MiddlewareCallContext& context) const {
   auto& call = context.GetCall();
 
   if (!CheckAndSetupDeadline(call.GetSpan(), call.GetContext(),
-                             context.GetServiceName(), context.GetMethodName(),
-                             call.Statistics(ugrpc::impl::InternalTag()),
+                             context.GetCall().GetServiceName(),
+                             context.GetCall().GetMethodName(),
+                             call.GetStatistics(ugrpc::impl::InternalTag()),
                              context.GetInitialDynamicConfig())) {
     call.FinishWithError(grpc::Status{
         grpc::StatusCode::DEADLINE_EXCEEDED,

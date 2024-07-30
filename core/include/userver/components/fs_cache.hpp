@@ -4,7 +4,7 @@
 /// @brief @copybrief components::FsCache
 
 #include <unordered_map>
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/fs/fs_cache_client.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
@@ -27,7 +27,7 @@ namespace components {
 
 // clang-format on
 
-class FsCache final : public components::LoggableComponentBase {
+class FsCache final : public components::ComponentBase {
  public:
   using Client = fs::FsCacheClient;
 

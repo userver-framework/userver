@@ -3,6 +3,7 @@
 #include <coroutines/coroutine.hpp>
 
 #include <engine/task/task_context.hpp>
+#include <utils/sys_info.hpp>
 
 // userfaultfd is linux-specific,
 // and we use x86-64-specific RSP to calculate stack offsets
@@ -40,8 +41,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/atomic.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
+#include <userver/utils/strerror.hpp>
 #include <userver/utils/thread_name.hpp>
-#include <utils/strerror.hpp>
 
 #endif
 
@@ -509,7 +510,7 @@ class StackUsageMonitor::Impl final {
 
  private:
   void MonitorForPageFaults() {
-    utils::SetCurrentThreadName("stack-usage-monitor");
+    utils::SetCurrentThreadName("stack-usage");
 
     UASSERT(monitor_fd_.Get() != -1);
     UASSERT(stop_fd_.Get() != -1);

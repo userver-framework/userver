@@ -12,7 +12,6 @@
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/string_to_duration.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
-#include <utils/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -94,7 +93,8 @@ dynamic_config::DocsMap DynamicConfigClientUpdater::MergeDocsMap(
     const std::vector<std::string>& removed) {
   dynamic_config::DocsMap combined(std::move(update));
   combined.MergeMissing(current);
-  combined.SetConfigsExpectedToBeUsed(docs_map_keys_, utils::InternalTag{});
+  combined.SetConfigsExpectedToBeUsed(docs_map_keys_,
+                                      utils::impl::InternalTag{});
   for (const auto& key : removed) {
     combined.Remove(key);
   }

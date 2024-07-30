@@ -1,12 +1,12 @@
 #pragma once
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/utest/using_namespace_userver.hpp>
 
 namespace sample {
 
-class TopicReaderComponent final : public components::LoggableComponentBase {
+class TopicReaderComponent final : public components::ComponentBase {
  public:
   static constexpr std::string_view kName = "sample-topic-reader";
 

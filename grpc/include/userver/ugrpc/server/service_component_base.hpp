@@ -5,7 +5,7 @@
 
 #include <atomic>
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 
 #include <userver/ugrpc/server/middlewares/fwd.hpp>
@@ -16,6 +16,7 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::server {
 
 class ServerComponent;
+class GenericServiceBase;
 
 // clang-format off
 
@@ -31,7 +32,7 @@ class ServerComponent;
 
 // clang-format on
 
-class ServiceComponentBase : public components::LoggableComponentBase {
+class ServiceComponentBase : public components::ComponentBase {
  public:
   ServiceComponentBase(const components::ComponentConfig& config,
                        const components::ComponentContext& context);
@@ -42,6 +43,9 @@ class ServiceComponentBase : public components::LoggableComponentBase {
   /// Derived classes must store the actual service class in a field and call
   /// RegisterService with it
   void RegisterService(ServiceBase& service);
+
+  /// @overload
+  void RegisterService(GenericServiceBase& service);
 
  private:
   ServerComponent& server_;
@@ -55,7 +59,8 @@ template <typename ServiceInterface>
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class ServiceComponentBase : public server::ServiceComponentBase,
                              public ServiceInterface {
-  static_assert(std::is_base_of_v<ServiceBase, ServiceInterface>);
+  static_assert(std::is_base_of_v<ServiceBase, ServiceInterface> ||
+                std::is_base_of_v<GenericServiceBase, ServiceInterface>);
 
  public:
   ServiceComponentBase(const components::ComponentConfig& config,

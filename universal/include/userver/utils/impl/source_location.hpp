@@ -95,6 +95,8 @@ class SourceLocation final {
   std::string_view function_name_;
 };
 
+std::string ToString(const SourceLocation& location);
+
 }  // namespace utils::impl
 
 USERVER_NAMESPACE_END

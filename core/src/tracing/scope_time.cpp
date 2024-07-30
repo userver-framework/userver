@@ -9,10 +9,12 @@ USERVER_NAMESPACE_BEGIN
 namespace tracing {
 
 ScopeTime::ScopeTime()
-    : ScopeTime(tracing::Span::CurrentSpan().GetTimeStorage()) {}
+    : ScopeTime(tracing::Span::CurrentSpan().GetTimeStorage(
+          utils::impl::InternalTag{})) {}
 
 ScopeTime::ScopeTime(std::string scope_name)
-    : ScopeTime(tracing::Span::CurrentSpan().GetTimeStorage(),
+    : ScopeTime(tracing::Span::CurrentSpan().GetTimeStorage(
+                    utils::impl::InternalTag{}),
                 std::move(scope_name)) {}
 
 std::optional<ScopeTime> ScopeTime::CreateOptionalScopeTime() {

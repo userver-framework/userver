@@ -5,9 +5,7 @@
 
 #include <atomic>
 #include <cstdlib>
-#include <memory>
 #include <optional>
-#include <unordered_set>
 #include <utility>
 
 #include <userver/concurrent/impl/asymmetric_fence.hpp>

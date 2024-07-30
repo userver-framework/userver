@@ -56,6 +56,8 @@ class CacheUpdateTrait::Impl final {
 
   bool HasPreAssignCheck() const;
 
+  bool IsSafeDataLifetime() const;
+
   void SetDataSizeStatistic(std::size_t size) noexcept;
 
   rcu::ReadablePtr<Config> GetConfig() const;
@@ -82,6 +84,8 @@ class CacheUpdateTrait::Impl final {
   void DoPeriodicUpdate();
 
   void OnUpdateFailure(const Config& config);
+
+  void OnUpdateSkipped();
 
   // Throws if `Update` throws
   void DoUpdate(UpdateType type, const Config& config);

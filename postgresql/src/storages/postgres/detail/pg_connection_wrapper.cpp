@@ -18,15 +18,13 @@ auto PQXsendQueryPrepared(PGconn* conn, const char* stmtName, int nParams,
 }
 #endif
 
-#include <crypto/openssl.hpp>
 #include <userver/concurrent/background_task_storage.hpp>
+#include <userver/crypto/openssl.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/assert.hpp>
-#include <utils/impl/assert_extra.hpp>
-#include <utils/internal_tag.hpp>
-#include <utils/strerror.hpp>
+#include <userver/utils/strerror.hpp>
 
 #include <storages/postgres/detail/cancel.hpp>
 #include <storages/postgres/detail/pg_message_severity.hpp>
@@ -119,7 +117,7 @@ struct Openssl {
   Openssl() {
     // When using OpenSSL < 1.1 duplicate initialization can be problematic
     PQinitSSL(0);
-    crypto::impl::Openssl::Init();
+    crypto::Openssl::Init();
   }
 };
 
@@ -673,8 +671,7 @@ void PGConnectionWrapper::FillSpanTags(tracing::Span& span,
                                        const CommandControl& cc) const {
   // With inheritable tags, they would end up being duplicated in current Span
   // and in log_extra_ (passed by PGCW_LOG_ macros).
-  span.AddNonInheritableTags(log_extra_,
-                             USERVER_NAMESPACE::utils::InternalTag{});
+  span.AddNonInheritableTags(log_extra_);
   span.AddTag("network_timeout_ms", cc.execute.count());
   span.AddTag("statement_timeout_ms", cc.statement.count());
 }

@@ -53,7 +53,7 @@ _userver_install_targets(COMPONENT postgres TARGETS ${PROJECT_NAME})
 
 _userver_directory_install(COMPONENT postgres FILES
     "${USERVER_ROOT_DIR}/cmake/SetupPostgresqlDeps.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/FindPostgreSQLInternal.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/FindGssApi.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/FindPostgreSQLInternal.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/FindGssApi.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
 )

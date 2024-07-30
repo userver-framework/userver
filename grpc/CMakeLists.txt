@@ -24,7 +24,7 @@ file(GLOB_RECURSE SOURCES
 
 file(GLOB_RECURSE UNIT_TEST_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/tests/src/*pp
+  ${CMAKE_CURRENT_SOURCE_DIR}/tests/*pp
   ${CMAKE_CURRENT_SOURCE_DIR}/utest/src/*_test.cpp
 )
 list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES})
@@ -46,7 +46,6 @@ if (api-common-proto_USRV_SOURCES)
 endif()
 
 add_library(${PROJECT_NAME}-internal STATIC ${SOURCES})
-add_library(userver::grpc ALIAS ${PROJECT_NAME}-internal)
 
 if (NOT USERVER_GPRC_BUILD_FROM_SOURCE) 
   target_compile_definitions(${PROJECT_NAME}-internal PUBLIC GRPC_ASAN_SUPPRESSED GRPC_TSAN_SUPPRESSED) 
@@ -118,6 +117,7 @@ if (USERVER_FEATURE_UTEST)
   target_link_libraries(${PROJECT_NAME}-utest
       PUBLIC
       ${PROJECT_NAME}-internal
+      userver::utest
   )
 
   target_include_directories(${PROJECT_NAME}-utest PUBLIC
@@ -129,8 +129,8 @@ if (USERVER_FEATURE_UTEST)
   )
   _userver_install_targets(COMPONENT grpc TARGETS ${PROJECT_NAME}-utest)
   _userver_directory_install(COMPONENT grpc
-    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/utest/include
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
+      DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/utest/include
+      DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
   )
 endif()
 
@@ -142,18 +142,19 @@ if (USERVER_IS_THE_ROOT_PROJECT)
       # As well as paths relative to CMAKE_CURRENT_SOURCE_DIR
       tests/messages.proto
       tests/same_service_and_method_name.proto
+      tests/global_package.proto
+      tests/repeating_word_in_package_name.proto
       INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/proto
   )
 
   add_executable(${PROJECT_NAME}-unittest ${UNIT_TEST_SOURCES})
   target_include_directories(${PROJECT_NAME}-unittest PRIVATE
       ${CMAKE_CURRENT_SOURCE_DIR}/src
-      ${CMAKE_CURRENT_SOURCE_DIR}/tests/src
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests
   )
   target_link_libraries(${PROJECT_NAME}-unittest
       PUBLIC
       ${PROJECT_NAME}-internal
-      userver-utest
       ${PROJECT_NAME}-utest
       PRIVATE
       ${PROJECT_NAME}-unittest-proto
@@ -164,11 +165,10 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   target_link_libraries(${PROJECT_NAME}-benchmark
       ${PROJECT_NAME}-internal
       userver-ubench
-      ${PROJECT_NAME}-utest
       ${PROJECT_NAME}-unittest-proto
   )
   target_include_directories(${PROJECT_NAME}-benchmark PRIVATE
-    $<TARGET_PROPERTY:${PROJECT_NAME}-internal,INCLUDE_DIRECTORIES>
+      $<TARGET_PROPERTY:${PROJECT_NAME}-internal,INCLUDE_DIRECTORIES>
   )
   add_google_benchmark_tests(${PROJECT_NAME}-benchmark)
 
@@ -188,7 +188,7 @@ _userver_directory_install(COMPONENT grpc FILES
     "${USERVER_ROOT_DIR}/cmake/SetupGrpc.cmake"
     "${USERVER_ROOT_DIR}/cmake/GrpcTargets.cmake"
     "${USERVER_ROOT_DIR}/cmake/install/userver-grpc-config.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/FindUserverGrpc.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/FindUserverGrpc.cmake"
     DIRECTORY
     "${USERVER_ROOT_DIR}/scripts/grpc"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver

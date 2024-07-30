@@ -98,12 +98,7 @@ void ManagerControllerComponent::WriteStatistics(
 
   // ev-threads
   const auto& pools_ptr = components_manager_.GetTaskProcessorPools();
-  auto& ev_thread_pool = pools_ptr->EventThreadPool();
-  for (auto* thread : ev_thread_pool.NextThreads(ev_thread_pool.GetSize())) {
-    writer["ev-threads"]["cpu-load-percent"].ValueWithLabels(
-        thread->GetCurrentLoadPercent(),
-        {{"ev_thread_name", thread->GetName()}});
-  }
+  writer["ev-threads"]["cpu-load-percent"] = pools_ptr->EventThreadPool();
 
   // coroutines
   if (auto coro_pool = writer["coro-pool"]) {

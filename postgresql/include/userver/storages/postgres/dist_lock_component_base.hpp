@@ -3,7 +3,7 @@
 /// @file userver/storages/postgres/dist_lock_component_base.hpp
 /// @brief @copybrief storages::postgres::DistLockComponentBase
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/dist_lock/dist_locked_worker.hpp>
 #include <userver/storages/postgres/dist_lock_strategy.hpp>
 #include <userver/utils/statistics/entry.hpp>
@@ -71,7 +71,7 @@ namespace storages::postgres {
 
 // clang-format on
 
-class DistLockComponentBase : public components::LoggableComponentBase {
+class DistLockComponentBase : public components::ComponentBase {
  public:
   DistLockComponentBase(const components::ComponentConfig&,
                         const components::ComponentContext&);

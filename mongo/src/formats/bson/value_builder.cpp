@@ -3,8 +3,8 @@
 #include <formats/bson/int_utils.hpp>
 #include <formats/bson/value_impl.hpp>
 #include <formats/bson/wrappers.hpp>
-#include <formats/common/validations.hpp>
 #include <userver/formats/bson/exception.hpp>
+#include <userver/formats/common/validations.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN

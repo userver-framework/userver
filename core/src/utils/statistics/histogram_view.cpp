@@ -16,11 +16,6 @@ static_assert(std::is_trivially_copyable_v<HistogramView> &&
               "HistogramView should fit in registers, because it is expected "
               "to be passed around by value");
 
-HistogramView::HistogramView(const impl::histogram::Bucket* buckets) noexcept
-    : buckets_(buckets) {
-  UASSERT(buckets);
-}
-
 std::size_t HistogramView::GetBucketCount() const noexcept {
   UASSERT(buckets_);
   return buckets_[0].upper_bound.size;

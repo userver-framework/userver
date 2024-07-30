@@ -6,7 +6,7 @@
 
 #include <moodycamel/concurrentqueue.h>
 
-#include <userver/components/headers_propagator_component.hpp>
+#include <userver/crypto/openssl.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/tracing/manager.hpp>
 #include <userver/utils/async.hpp>
@@ -17,11 +17,9 @@
 #include <clients/http/easy_wrapper.hpp>
 #include <clients/http/statistics.hpp>
 #include <clients/http/testsuite.hpp>
-#include <crypto/openssl.hpp>
 #include <curl-ev/multi.hpp>
 #include <curl-ev/ratelimit.hpp>
 #include <engine/ev/thread_pool.hpp>
-#include <server/http/headers_propagator.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -77,9 +75,9 @@ Client::Client(ClientSettings settings,
   // As we want httpclient to be non-blocking, we have to shift curl's init code
   // to a fs task processor.
   engine::AsyncNoSpan(fs_task_processor_, [this, io_threads] {
-    for (auto* thread_control_ptr : thread_pool_->NextThreads(io_threads)) {
-      multis_.push_back(std::make_unique<curl::multi>(*thread_control_ptr,
-                                                      connect_rate_limiter_));
+    for (std::size_t i = 0; i < io_threads; ++i) {
+      multis_.push_back(std::make_unique<curl::multi>(
+          thread_pool_->NextThread(), connect_rate_limiter_));
     }
   }).Get();
 

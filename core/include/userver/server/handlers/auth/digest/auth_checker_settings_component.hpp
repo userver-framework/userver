@@ -9,7 +9,7 @@
 #include <optional>
 #include <string>
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/dynamic_config/source.hpp>
 
 #include "auth_checker_settings.hpp"
@@ -35,7 +35,7 @@ namespace server::handlers::auth::digest {
 
 // clang-format on
 
-class AuthCheckerSettingsComponent : public components::LoggableComponentBase {
+class AuthCheckerSettingsComponent : public components::ComponentBase {
  public:
   /// @ingroup userver_component_names
   /// @brief The default name of

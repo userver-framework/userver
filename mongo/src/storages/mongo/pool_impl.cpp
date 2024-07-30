@@ -29,7 +29,10 @@ void PoolImpl::Start() { cc_controller_.Start(); }
 void PoolImpl::Stop() { cc_controller_.Stop(); }
 
 void PoolImpl::OnConfigUpdate(const dynamic_config::Snapshot& config) {
-  cc_controller_.SetEnabled(config[kCongestionControlEnabled]);
+  bool cc_enabled =
+      config[kCongestionControlDatabasesSettings].GetOptional(id_).value_or(
+          config[kCongestionControlEnabled]);
+  cc_controller_.SetEnabled(cc_enabled);
 
   const auto new_pool_settings = config[kPoolSettings].GetOptional(id_);
   if (new_pool_settings.has_value()) {

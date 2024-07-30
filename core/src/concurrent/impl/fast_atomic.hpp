@@ -9,7 +9,7 @@
 #endif
 
 #include <userver/compiler/impl/tsan.hpp>
-#include <utils/impl/assert_extra.hpp>
+#include <userver/utils/assert.hpp>
 
 #ifdef USERVER_PROTECT_DWCAS
 #define USERVER_IMPL_PROTECT_DWCAS_ATTR __attribute__((noinline, flatten))

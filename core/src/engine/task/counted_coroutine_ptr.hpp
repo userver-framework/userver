@@ -14,7 +14,7 @@ class TaskContext;
 
 class CountedCoroutinePtr final {
  public:
-  using CoroPool = coro::Pool<TaskContext>;
+  using CoroPool = coro::Pool;
 
   CountedCoroutinePtr() = default;
   CountedCoroutinePtr(CoroPool::CoroutinePtr, TaskProcessor&);

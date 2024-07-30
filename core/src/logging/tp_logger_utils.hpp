@@ -20,7 +20,11 @@ std::shared_ptr<TpLogger> GetDefaultLoggerOrMakeTpLogger(
 
 TcpSocketSink* GetTcpSocketSink(TpLogger& logger);
 
-LoggerConfig ExtractDefaultLoggerConfig(
+class NoLoggerComponent final : public std::runtime_error {
+  using std::runtime_error::runtime_error;
+};
+
+std::optional<LoggerConfig> ExtractDefaultLoggerConfig(
     const components::ManagerConfig& config);
 
 }  // namespace logging::impl

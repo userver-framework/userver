@@ -11,7 +11,11 @@ USERVER_NAMESPACE_BEGIN
 
 namespace http::headers {
 class PredefinedHeader;
-}
+}  // namespace http::headers
+
+namespace server::http {
+class HttpRequestImpl;
+}  // namespace server::http
 
 namespace server::request {
 
@@ -32,6 +36,16 @@ bool HasTaskInheritedHeader(std::string_view header_name);
 /// @overload
 bool HasTaskInheritedHeader(
     const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name);
+
+/// @brief Get a query parameter from server::http::HttpRequest that is handled
+/// by the current task hierarchy.
+/// @return Parameter value or an empty string, if none such
+const std::string& GetTaskInheritedQueryParameter(std::string_view name);
+
+/// @brief Checks whether specified query parameter exists in
+/// server::http::HttpRequest that is handled by the current task hierarchy.
+/// @return `true` if the parameter exists, `false` otherwise
+bool HasTaskInheritedQueryParameter(std::string_view name);
 
 }  // namespace server::request
 

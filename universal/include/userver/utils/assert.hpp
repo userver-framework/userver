@@ -25,6 +25,8 @@ inline constexpr bool kEnableAssert = true;
 
 extern bool dump_stacktrace_on_assert_failure;
 
+[[noreturn]] void AbortWithStacktrace(std::string_view message) noexcept;
+
 }  // namespace utils::impl
 
 USERVER_NAMESPACE_END

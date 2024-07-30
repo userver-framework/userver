@@ -49,6 +49,10 @@ bool CacheUpdateTrait::HasPreAssignCheck() const {
   return impl_->HasPreAssignCheck();
 }
 
+bool CacheUpdateTrait::IsSafeDataLifetime() const {
+  return impl_->IsSafeDataLifetime();
+}
+
 void CacheUpdateTrait::SetDataSizeStatistic(std::size_t size) noexcept {
   impl_->SetDataSizeStatistic(size);
 }

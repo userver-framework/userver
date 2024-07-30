@@ -11,7 +11,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
-class smatch;
+class match_results;
 
 /// @ingroup userver_universal userver_containers
 ///
@@ -29,18 +29,20 @@ class regex final {
   regex& operator=(const regex&);
   regex& operator=(regex&&) noexcept;
 
+  bool operator==(const regex&) const;
+
   std::string str() const;
 
  private:
   struct Impl;
   utils::FastPimpl<Impl, 16, 8> impl_;
 
-  friend class smatch;
+  friend class match_results;
   friend bool regex_match(std::string_view str, const regex& pattern);
-  friend bool regex_match(const std::string& str, smatch& m,
+  friend bool regex_match(std::string_view str, match_results& m,
                           const regex& pattern);
   friend bool regex_search(std::string_view str, const regex& pattern);
-  friend bool regex_search(const std::string& str, smatch& m,
+  friend bool regex_search(std::string_view str, match_results& m,
                            const regex& pattern);
   friend std::string regex_replace(std::string_view str, const regex& pattern,
                                    std::string_view repl);
@@ -49,44 +51,44 @@ class regex final {
 /// @ingroup userver_universal userver_containers
 ///
 /// @brief Small alias for boost::smatch / std::regex without huge includes
-class smatch final {
+class match_results final {
  public:
-  smatch();
+  match_results();
 
-  ~smatch();
+  ~match_results();
 
-  smatch(const smatch&);
+  match_results(const match_results&);
 
-  smatch& operator=(const smatch&);
+  match_results& operator=(const match_results&);
 
   std::size_t size() const;
-  std::string operator[](int sub) const;
+  std::string_view operator[](int sub) const;
 
  private:
   struct Impl;
   utils::FastPimpl<Impl, 80, 8> impl_;
 
   friend bool regex_match(std::string_view str, const regex& pattern);
-  friend bool regex_match(const std::string& str, smatch& m,
+  friend bool regex_match(std::string_view str, match_results& m,
                           const regex& pattern);
   friend bool regex_search(std::string_view str, const regex& pattern);
-  friend bool regex_search(const std::string& str, smatch& m,
+  friend bool regex_search(std::string_view str, match_results& m,
                            const regex& pattern);
   friend std::string regex_replace(std::string_view str, const regex& pattern,
                                    std::string_view repl);
 };
 
-// @brief Returns true if the specified regular expression matches
-// the whole of the input. Fills in what matched in m.
-bool regex_match(const std::string& str, smatch& m, const regex& pattern);
-
 /// @brief Determines whether the regular expression matches the entire target
 /// character sequence
 bool regex_match(std::string_view str, const regex& pattern);
 
+/// @brief Returns true if the specified regular expression matches
+/// the whole of the input. Fills in what matched in m.
+bool regex_match(std::string_view str, match_results& m, const regex& pattern);
+
 /// @brief Determines whether the regular expression matches anywhere in the
 /// target character sequence. Fills in what matched in m
-bool regex_search(const std::string& str, smatch& m, const regex& pattern);
+bool regex_search(std::string_view str, match_results& m, const regex& pattern);
 
 /// @brief Determines whether the regular expression matches anywhere in the
 /// target character sequence

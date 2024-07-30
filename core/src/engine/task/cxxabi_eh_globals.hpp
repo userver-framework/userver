@@ -16,9 +16,7 @@ namespace engine::impl {
 // This structure is a __cxa_eh_globals storage for coroutines.
 // It is required to allow task switching during unwind.
 struct EhGlobals {
-  void* data[4];
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-  EhGlobals() noexcept { ::memset(data, 0, sizeof(data)); }
+  void* data[4] = {nullptr, nullptr, nullptr, nullptr};
 };
 
 // NOLINTNEXTLINE(hicpp-use-noexcept,modernize-use-noexcept)

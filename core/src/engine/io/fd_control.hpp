@@ -92,7 +92,7 @@ class Direction final {
 
  private:
   friend class FdControl;
-  explicit Direction(Kind kind);
+  Direction(Kind kind, const ev::ThreadControl& control);
 
   void Reset(int fd);
   void WakeupWaiters() { poller_.WakeupWaiters(); }
@@ -114,7 +114,7 @@ class FdControl final {
   // fd will be silently forced to nonblocking mode
   static FdControlHolder Adopt(int fd);
 
-  FdControl();
+  explicit FdControl(const ev::ThreadControl& control);
   ~FdControl();
 
   explicit operator bool() const { return IsValid(); }

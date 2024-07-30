@@ -18,7 +18,7 @@ ninja
 protobuf
 openssl
 yaml-cpp
-librdkafka-dev
+librdkafka
 postgresql@14
 redis
 zlib

@@ -17,10 +17,10 @@
 
 #include <clients/dns/helpers.hpp>
 #include <clients/dns/wrappers.hpp>
-#include <engine/io/poller.hpp>
 #include <userver/clients/dns/common.hpp>
 #include <userver/clients/dns/exception.hpp>
 #include <userver/engine/async.hpp>
+#include <userver/engine/io/poller.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/formats/json.hpp>

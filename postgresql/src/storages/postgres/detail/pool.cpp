@@ -12,9 +12,9 @@
 #include <userver/storages/postgres/detail/time_types.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 #include <userver/testsuite/testpoint.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/async.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
-
-#include <utils/impl/assert_extra.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -30,7 +30,7 @@ constexpr std::chrono::seconds kRecentErrorPeriod{15};
 constexpr std::size_t kCancelRatio = 2;
 constexpr std::chrono::seconds kCancelPeriod{1};
 
-constexpr std::chrono::seconds kCleanupTimeout{1};
+constexpr std::chrono::seconds kCleanupTimeout{2};
 
 constexpr std::chrono::seconds kMaintainInterval{30};
 constexpr std::chrono::seconds kMaxIdleDuration{15};
@@ -62,6 +62,12 @@ class Stopwatch {
   Accumulator& accum_;
   SteadyClock::time_point start_;
 };
+
+auto MakeLogExtraFromConnectionStats(const InstanceStatistics& stats) {
+  return logging::LogExtra{{{"pg_conn_active", stats.connection.active},
+                            {"pg_conn_open", stats.connection.open_total},
+                            {"pg_conn_max", stats.connection.maximum}}};
+}
 
 }  // namespace
 
@@ -259,7 +265,7 @@ void ConnectionPool::AccountConnectionStats(Connection::Statistics conn_stats) {
 
 void ConnectionPool::Release(Connection* connection) {
   UASSERT(connection);
-  using DecGuard = USERVER_NAMESPACE::utils::SizeGuard<
+  using DecGuard = storages::postgres::SizeGuard<
       USERVER_NAMESPACE::utils::statistics::RelaxedCounter<uint32_t>>;
   DecGuard dg{stats_.connection.used, DecGuard::DontIncrement{}};
 
@@ -276,8 +282,8 @@ void ConnectionPool::Release(Connection* connection) {
   } else {
     // Connection cleanup is done asynchronously while returning control to
     // the user
-    close_task_storage_.Detach(engine::CriticalAsyncNoSpan(
-        [this, connection, dec_cnt = std::move(dg)] {
+    close_task_storage_.Detach(USERVER_NAMESPACE::utils::CriticalAsync(
+        "clear_conn_after_cancel", [this, connection, dec_cnt = std::move(dg)] {
           LOG_LIMITED_WARNING()
               << "Released connection in busy state. Trying to clean up...";
           TESTPOINT("pg_cleanup", formats::json::Value{});
@@ -406,7 +412,7 @@ bool ConnectionPool::DoConnect(engine::SemaphoreLock size_lock) {
   engine::SemaphoreLock connecting_lock{connecting_semaphore_,
                                         kConnectingTimeout};
   if (!connecting_lock) {
-    LOG_LIMITED_WARNING() << "Pool has too many establishing connections";
+    LOG_WARNING() << "Pool has too many establishing connections";
     return false;
   }
   const uint32_t conn_id = ++stats_.connection.open_total;
@@ -434,7 +440,7 @@ bool ConnectionPool::DoConnect(engine::SemaphoreLock size_lock) {
   } catch (const Error& ex) {
     ++stats_.connection.error_total;
     ++stats_.connection.drop_total;
-    LOG_LIMITED_WARNING() << "Connection creation failed with error: " << ex;
+    LOG_WARNING() << "Connection creation failed with error: " << ex;
     throw;
   }
   LOG_TRACE() << "PostgreSQL connection created";
@@ -496,8 +502,7 @@ void ConnectionPool::Push(Connection* connection) {
     conn_available_.NotifyOne();
   } else {
     // TODO Reflect this as a statistics error
-    LOG_LIMITED_WARNING()
-        << "Couldn't push connection back to the pool. Deleting...";
+    LOG_WARNING() << "Couldn't push connection back to the pool. Deleting...";
     DeleteConnection(connection);
   }
 }
@@ -552,7 +557,14 @@ Connection* ConnectionPool::Pop(engine::Deadline deadline) {
   }
 
   ++stats_.pool_exhaust_errors;
-  throw PoolError("No available connections found", db_name_);
+  throw PoolError(
+      fmt::format(
+          "No available connections found. Connecting: {}. Max concurrent "
+          "connecting: {}. Active: {}. Max active {}",
+          connecting_semaphore_.UsedApprox(),
+          connecting_semaphore_.GetCapacity(), size_semaphore_.UsedApprox(),
+          size_semaphore_.GetCapacity()),
+      db_name_);
 }
 
 void ConnectionPool::Clear() {
@@ -592,7 +604,8 @@ void ConnectionPool::CleanupConnection(Connection* connection) {
   } catch (const std::exception& e) {
     LOG_WARNING() << "Exception while cleaning up a dirty connection: " << e;
   }
-  LOG_WARNING() << "Failed to cleanup a dirty connection, deleting...";
+  LOG_WARNING() << "Failed to cleanup a dirty connection, deleting..."
+                << MakeLogExtraFromConnectionStats(stats_);
   ++stats_.connection.error_total;
   DeleteConnection(connection);
 }
@@ -604,17 +617,20 @@ void ConnectionPool::DeleteConnection(Connection* connection) {
 
 void ConnectionPool::DeleteBrokenConnection(Connection* connection) {
   ++stats_.connection.error_total;
-  LOG_LIMITED_WARNING() << "Released connection in closed state. Deleting...";
+  LOG_WARNING() << "Released connection in closed state. Deleting..."
+                << MakeLogExtraFromConnectionStats(stats_);
   DeleteConnection(connection);
 }
 
 void ConnectionPool::DropExpiredConnection(Connection* connection) {
-  LOG_LIMITED_INFO() << "Dropping expired connection";
+  LOG_INFO() << "Dropping expired connection"
+             << MakeLogExtraFromConnectionStats(stats_);
   DeleteConnection(connection);
 }
 
 void ConnectionPool::DropOutdatedConnection(Connection* connection) {
-  LOG_LIMITED_INFO() << "Dropping connection with outdated settings";
+  LOG_INFO() << "Dropping connection with outdated settings"
+             << MakeLogExtraFromConnectionStats(stats_);
   DeleteConnection(connection);
 }
 

@@ -5,7 +5,7 @@
 
 #include <string>
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/storages/secdist/provider.hpp>
 #include <userver/storages/secdist/secdist.hpp>
 
@@ -53,7 +53,7 @@ namespace components {
 
 // clang-format on
 
-class DefaultSecdistProvider final : public LoggableComponentBase,
+class DefaultSecdistProvider final : public ComponentBase,
                                      public storages::secdist::SecdistProvider {
  public:
   /// @ingroup userver_component_names

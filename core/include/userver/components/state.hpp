@@ -28,7 +28,7 @@ class State final {
   /// @returns true if one of the components is in fatal state and can not
   /// work. A component is in fatal state if the
   /// components::ComponentHealth::kFatal value is returned from the overridden
-  /// components::LoggableComponentBase::GetComponentHealth().
+  /// components::ComponentBase::GetComponentHealth().
   bool IsAnyComponentInFatalState() const;
 
   /// @returns true if component with name `component_name` depends

@@ -9,7 +9,7 @@
 #include <optional>
 #include <string>
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/dynamic_config/source.hpp>
 #include <userver/server/handlers/auth/digest/auth_checker_settings_component.hpp>
 

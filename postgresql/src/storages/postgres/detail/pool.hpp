@@ -18,7 +18,6 @@
 #include <userver/testsuite/postgres_control.hpp>
 #include <userver/utils/periodic_task.hpp>
 #include <userver/utils/token_bucket.hpp>
-#include <utils/size_guard.hpp>
 
 #include <storages/postgres/congestion_control/limiter.hpp>
 #include <storages/postgres/congestion_control/sensor.hpp>
@@ -33,6 +32,7 @@
 
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/pg_impl_types.hpp>
+#include <storages/postgres/detail/size_guard.hpp>
 #include <storages/postgres/detail/statement_stats_storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -97,7 +97,7 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
   dynamic_config::Source GetConfigSource() const;
 
  private:
-  using SizeGuard = USERVER_NAMESPACE::utils::SizeGuard<std::atomic<size_t>>;
+  using SizeGuard = postgres::SizeGuard<std::atomic<size_t>>;
 
   void Init(InitMode mode);
 
@@ -161,7 +161,7 @@ class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
   cc::Sensor cc_sensor_;
   cc::Limiter cc_limiter_;
   congestion_control::v2::LinearController cc_controller_;
-  std::atomic<std::size_t> cc_max_connections_;
+  std::atomic<std::size_t> cc_max_connections_{0};
 };
 
 }  // namespace storages::postgres::detail

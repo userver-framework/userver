@@ -16,7 +16,6 @@
 #include <userver/utils/encoding/hex.hpp>
 #include <userver/utils/rand.hpp>
 #include <userver/utils/uuid4.hpp>
-#include <utils/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -108,6 +107,7 @@ Span::Impl::~Impl() {
     const DetachLocalSpansScope ignore_local_span;
     logging::LogHelper lh{logging::GetDefaultLogger(), log_level_,
                           source_location_};
+    lh.MarkAsTrace(logging::LogHelper::InternalTag{});
     std::move(*this).PutIntoLogger(lh.GetTagWriterAfterText({}));
   }
 }
@@ -137,8 +137,6 @@ void Span::Impl::PutIntoLogger(logging::impl::TagWriter writer) && {
     log_extra_inheritable_.Extend(std::move(*log_extra_local_));
   }
   writer.PutLogExtra(log_extra_inheritable_);
-
-  LogOpenTracing();
 }
 
 void Span::Impl::LogTo(logging::impl::TagWriter writer) {
@@ -319,6 +317,11 @@ void Span::AddNonInheritableTag(std::string key,
   pimpl_->log_extra_local_->Extend(std::move(key), std::move(value));
 }
 
+void Span::AddNonInheritableTags(const logging::LogExtra& log_extra) {
+  if (!pimpl_->log_extra_local_) pimpl_->log_extra_local_.emplace();
+  pimpl_->log_extra_local_->Extend(log_extra);
+}
+
 void Span::SetLogLevel(logging::Level log_level) {
   if (pimpl_->is_no_log_span_) return;
   pimpl_->log_level_ = log_level;
@@ -338,17 +341,14 @@ void Span::AddTag(std::string key, logging::LogExtra::Value value) {
   pimpl_->log_extra_inheritable_.Extend(std::move(key), std::move(value));
 }
 
-void Span::AddTags(const logging::LogExtra& log_extra, utils::InternalTag) {
+void Span::AddTags(const logging::LogExtra& log_extra,
+                   utils::impl::InternalTag) {
   pimpl_->log_extra_inheritable_.Extend(log_extra);
 }
 
-void Span::AddNonInheritableTags(const logging::LogExtra& log_extra,
-                                 utils::InternalTag) {
-  if (!pimpl_->log_extra_local_) pimpl_->log_extra_local_.emplace();
-  pimpl_->log_extra_local_->Extend(log_extra);
+impl::TimeStorage& Span::GetTimeStorage(utils::impl::InternalTag) {
+  return pimpl_->GetTimeStorage();
 }
-
-impl::TimeStorage& Span::GetTimeStorage() { return pimpl_->GetTimeStorage(); }
 
 std::string Span::GetTag(std::string_view tag) const {
   const auto& value = pimpl_->log_extra_inheritable_.GetValue(tag);

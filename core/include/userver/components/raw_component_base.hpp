@@ -33,7 +33,7 @@ enum class ConfigFileMode {
 };
 
 /// @brief The base class for all components. Don't use it for application
-/// components, use LoggableComponentBase instead.
+/// components, use ComponentBase instead.
 ///
 /// Only inherited directly by some of the built-in userver components.
 class RawComponentBase {

@@ -116,19 +116,28 @@ class AnyStorage final {
   void Erase(const AnyStorageDataTag<StorageTag, Data>& tag);
 
  private:
-  std::unique_ptr<std::byte[]> raw_data_;
-
   struct AllocRecord {
     void (*deleter)(std::byte*) noexcept;
     std::size_t offset;
   };
 
   AllocRecord* GetRecords() noexcept;
+
+  static any_storage::impl::Offset CalcOffset() noexcept;
+
+  std::unique_ptr<std::byte[]> raw_data_;
 };
 
 template <typename StorageTag>
+any_storage::impl::Offset AnyStorage<StorageTag>::CalcOffset() noexcept {
+  const auto offset = any_storage::impl::data_offset<StorageTag>;
+  return ((offset + alignof(AllocRecord) - 1) / alignof(AllocRecord)) *
+         alignof(AllocRecord);
+}
+
+template <typename StorageTag>
 AnyStorage<StorageTag>::AnyStorage()
-    : raw_data_(new std::byte[any_storage::impl::data_offset<StorageTag> +
+    : raw_data_(new std::byte[CalcOffset() +
                               sizeof(AllocRecord) *
                                   any_storage::impl::count<StorageTag>]) {
   static_assert(std::is_trivial_v<AllocRecord>);
@@ -212,8 +221,7 @@ const Data* AnyStorage<StorageTag>::GetOptional(
 template <typename StorageTag>
 typename AnyStorage<StorageTag>::AllocRecord*
 AnyStorage<StorageTag>::GetRecords() noexcept {
-  return reinterpret_cast<AllocRecord*>(
-      &raw_data_[any_storage::impl::data_offset<StorageTag>]);
+  return reinterpret_cast<AllocRecord*>(&raw_data_[CalcOffset()]);
 }
 
 }  // namespace utils

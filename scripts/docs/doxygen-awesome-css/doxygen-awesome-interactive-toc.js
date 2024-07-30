@@ -33,35 +33,44 @@ class DoxygenAwesomeInteractiveToc {
     static headers = []
 
     static init() {
-        window.addEventListener("load", () => {
-            let toc = document.querySelector(".contents > .toc")
-            if(toc) {
-                toc.classList.add("interactive")
-                if(!DoxygenAwesomeInteractiveToc.hideMobileMenu) {
+        if (document.readyState === "loading") {
+            window.addEventListener(
+                "load",
+                () => DoxygenAwesomeInteractiveToc.#parseHeaders()
+            );
+        }
+        else {
+            DoxygenAwesomeInteractiveToc.#parseHeaders();
+        }
+        DoxygenAwesomeInteractiveToc.update();
+    }
+
+    static #parseHeaders() {
+        DoxygenAwesomeInteractiveToc.headers = [];
+        let toc = document.querySelector(".contents > .toc")
+        if(toc) {
+            toc.classList.add("interactive")
+            if(!DoxygenAwesomeInteractiveToc.hideMobileMenu) {
+                toc.classList.add("open")
+            }
+            document.querySelector(".contents > .toc > h3")?.addEventListener("click", () => {
+                if(toc.classList.contains("open")) {
+                    toc.classList.remove("open")
+                } else {
                     toc.classList.add("open")
                 }
-                document.querySelector(".contents > .toc > h3")?.addEventListener("click", () => {
-                    if(toc.classList.contains("open")) {
-                        toc.classList.remove("open")
-                    } else {
-                        toc.classList.add("open")
-                    }
+            })
+
+            document.querySelectorAll(".contents > .toc > ul a").forEach((node) => {
+                let id = node.getAttribute("href").substring(1)
+                DoxygenAwesomeInteractiveToc.headers.push({
+                    node: node,
+                    headerNode: document.getElementById(id)
                 })
 
-                document.querySelectorAll(".contents > .toc > ul a").forEach((node) => {
-                    let id = node.getAttribute("href").substring(1)
-                    DoxygenAwesomeInteractiveToc.headers.push({
-                        node: node,
-                        headerNode: document.getElementById(id)
-                    })
-
-                    document.getElementById("doc-content")?.addEventListener("scroll", () => {
-                        DoxygenAwesomeInteractiveToc.update()
-                    })
-                })
-                DoxygenAwesomeInteractiveToc.update()
-            }
-        })
+                document.getElementById("doc-content")?.addEventListener("scroll",this.throttle(DoxygenAwesomeInteractiveToc.update, 100))
+            })
+        }
     }
 
     static update() {
@@ -77,5 +86,17 @@ class DoxygenAwesomeInteractiveToc {
         })
         active?.classList.add("active")
         active?.classList.remove("aboveActive")
+    }
+
+    static throttle(func, delay) {
+        let lastCall = 0;
+        return function (...args) {
+            const now = new Date().getTime();
+            if (now - lastCall < delay) {
+                return;
+            }
+            lastCall = now;
+            return setTimeout(() => {func(...args)}, delay);
+        };
     }
 }

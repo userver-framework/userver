@@ -23,9 +23,9 @@ namespace tracing {
 class TracingManagerBase;
 }  // namespace tracing
 
-namespace server::http {
+namespace clients::http::plugins::headers_propagator {
 class HeadersPropagator;
-}  // namespace server::http
+}  // namespace clients::http::plugins::headers_propagator
 
 /// HTTP client helpers
 namespace clients::http {
@@ -269,7 +269,7 @@ class Request final {
     return *this;
   }
 
-  /// Override log URL. Usefull for "there's a secret in the query".
+  /// Override log URL. Useful for "there's a secret in the query".
   /// @warning The query might be logged by other intermediate HTTP agents
   ///          (nginx, L7 balancer, etc.).
   Request& SetLoggedUrl(std::string url) &;
@@ -292,7 +292,8 @@ class Request final {
   void SetDeadlinePropagationConfig(
       const DeadlinePropagationConfig& deadline_propagation_config) &;
 
-  void SetHeadersPropagator(const server::http::HeadersPropagator*) &;
+  void SetHeadersPropagator(
+      const clients::http::plugins::headers_propagator::HeadersPropagator*) &;
   /// @endcond
 
   /// Disable auto-decoding of received replies.
@@ -324,7 +325,6 @@ class Request final {
   ///
   /// The HTTP client uses queue producer.
   /// StreamedResponse uses queue consumer.
-  /// @see src/clients/http/partial_pesponse.hpp
   [[nodiscard]] StreamedResponse async_perform_stream_body(
       const std::shared_ptr<concurrent::StringStreamQueue>& queue,
       utils::impl::SourceLocation location =

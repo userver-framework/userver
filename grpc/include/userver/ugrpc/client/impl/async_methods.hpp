@@ -20,6 +20,7 @@
 #include <userver/ugrpc/client/impl/async_method_invocation.hpp>
 #include <userver/ugrpc/client/impl/call_params.hpp>
 #include <userver/ugrpc/impl/async_method_invocation.hpp>
+#include <userver/ugrpc/impl/maybe_owned_string.hpp>
 #include <userver/ugrpc/impl/statistics_scope.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -43,27 +44,6 @@ using RawWriter = std::unique_ptr<grpc::ClientAsyncWriter<Request>>;
 template <typename Request, typename Response>
 using RawReaderWriter =
     std::unique_ptr<grpc::ClientAsyncReaderWriter<Request, Response>>;
-/// @}
-
-/// @{
-/// @brief Helper type aliases for stub member function pointers
-template <typename Stub, typename Request, typename Response>
-using RawResponseReaderPreparer = RawResponseReader<Response> (Stub::*)(
-    grpc::ClientContext*, const Request&, grpc::CompletionQueue*);
-
-template <typename Stub, typename Request, typename Response>
-using RawReaderPreparer = RawReader<Response> (Stub::*)(grpc::ClientContext*,
-                                                        const Request&,
-                                                        grpc::CompletionQueue*);
-
-template <typename Stub, typename Request, typename Response>
-using RawWriterPreparer = RawWriter<Request> (Stub::*)(grpc::ClientContext*,
-                                                       Response*,
-                                                       grpc::CompletionQueue*);
-
-template <typename Stub, typename Request, typename Response>
-using RawReaderWriterPreparer = RawReaderWriter<Request, Response> (Stub::*)(
-    grpc::ClientContext*, grpc::CompletionQueue*);
 /// @}
 
 struct RpcConfigValues final {
@@ -156,7 +136,7 @@ class RpcData final {
  private:
   std::unique_ptr<grpc::ClientContext> context_;
   std::string client_name_;
-  std::string_view call_name_;
+  ugrpc::impl::MaybeOwnedString call_name_;
   bool writes_finished_{false};
   bool is_finished_{false};
   bool is_deadline_propagated_{false};
@@ -185,7 +165,7 @@ class FutureImpl final {
  public:
   explicit FutureImpl(RpcData& data) noexcept;
 
-  virtual ~FutureImpl() noexcept = default;
+  ~FutureImpl() noexcept = default;
 
   FutureImpl(FutureImpl&&) noexcept;
   FutureImpl& operator=(FutureImpl&&) noexcept;

@@ -45,14 +45,33 @@ engine::io::Socket CreateSocket(clients::dns::Resolver& resolver,
 
 std::unique_ptr<engine::io::RwBase> CreateSocketPtr(
     clients::dns::Resolver& resolver, const AMQP::Address& address,
-    engine::Deadline deadline) {
+    const AuthSettings& auth_settings, engine::Deadline deadline) {
   auto socket = CreateSocket(resolver, address, deadline);
 
   const bool secure = address.secure();
   if (secure) {
+    if (auth_settings.tls_settings.has_value()) {
+      const auto& tls_settings = *auth_settings.tls_settings;
+      const crypto::Certificate& client_cert =
+          tls_settings.client_cert_settings
+              ? tls_settings.client_cert_settings->cert
+              : crypto::Certificate();
+      const crypto::PrivateKey& client_key =
+          tls_settings.client_cert_settings
+              ? tls_settings.client_cert_settings->key
+              : crypto::PrivateKey();
+
+      return std::make_unique<engine::io::TlsWrapper>(
+          engine::io::TlsWrapper::StartTlsClient(
+              std::move(socket),
+              tls_settings.verify_host ? address.hostname() : "", client_cert,
+              client_key, deadline, tls_settings.ca_certs));
+    }
+
     return std::make_unique<engine::io::TlsWrapper>(
-        engine::io::TlsWrapper::StartTlsClient(std::move(socket), "",
-                                               deadline));
+        engine::io::TlsWrapper::StartTlsClient(
+            std::move(socket), address.hostname(),
+            deadline));  // verify_host is true by default
   } else {
     return std::make_unique<engine::io::Socket>(std::move(socket));
   }
@@ -72,7 +91,7 @@ AmqpConnectionHandler::AmqpConnectionHandler(
     const AuthSettings& auth_settings, bool secure,
     statistics::ConnectionStatistics& stats, engine::Deadline deadline)
     : address_{ToAmqpAddress(endpoint, auth_settings, secure)},
-      socket_{CreateSocketPtr(resolver, address_, deadline)},
+      socket_{CreateSocketPtr(resolver, address_, auth_settings, deadline)},
       reader_{*this, *socket_},
       stats_{stats} {}
 

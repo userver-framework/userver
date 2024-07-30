@@ -77,7 +77,7 @@ void ProducerImpl::ErrorCallbackProxy(int error_code, const char* reason) {
   span.AddTag("kafka_callback", "error_callback");
 
   LOG_ERROR() << fmt::format(
-      "Error {} occured because of '{}': {}", error_code, reason,
+      "Error {} occurred because of '{}': {}", error_code, reason,
       rd_kafka_err2str(static_cast<rd_kafka_resp_err_t>(error_code)));
 
   if (error_code == RD_KAFKA_RESP_ERR__RESOLVE ||

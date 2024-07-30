@@ -13,26 +13,11 @@ namespace {
 constexpr std::string_view kNativeTrace = "native";
 }
 
-Tracer::Tracer(const ComponentConfig& config, const ComponentContext& context) {
-  auto& logging_component = context.FindComponent<Logging>();
-  auto opentracing_logger = logging_component.GetLoggerOptional("opentracing");
+Tracer::Tracer(const ComponentConfig& config, const ComponentContext&) {
   auto service_name = config["service-name"].As<std::string>({});
   const auto tracer_type = config["tracer"].As<std::string>(kNativeTrace);
   if (tracer_type == kNativeTrace) {
-    if (service_name.empty() && opentracing_logger) {
-      throw std::runtime_error(
-          "Opentracing logger was set, but the `service-name` is empty. "
-          "Please provide a service name to use in OpenTracing");
-    }
-
-    if (opentracing_logger) {
-      LOG_INFO() << "Opentracing enabled.";
-    } else {
-      LOG_INFO() << "Opentracing logger is not registered";
-    }
-
-    tracing::Tracer::SetTracer(tracing::MakeTracer(
-        std::move(service_name), std::move(opentracing_logger), tracer_type));
+    tracing::Tracer::SetTracer(tracing::MakeTracer(std::move(service_name)));
   } else {
     throw std::runtime_error("Tracer type is not supported: " + tracer_type);
   }

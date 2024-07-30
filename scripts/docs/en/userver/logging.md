@@ -182,7 +182,7 @@ All logs in the current task are implicitly linked to the current `Span` for the
 
 If you want to get the current `Span` (for example, you want to write something to `LogExtra`, but do not want to create an additional `Span`), then you can use the following approach:
 
-@snippet tracing/span_test.cpp  Example get current span
+@snippet core/src/tracing/span_test.cpp  Example get current span
 
 ### Creating a Span
 
@@ -229,8 +229,35 @@ For example, this is how you can disable logging of all Span for MongoDB (that i
 ```
 
 
+@anchor opentelemetry
+## OpenTelemetry protocol
+
+It is possible to use OpenTelemetry protocol for logs and tracing exporting.
+To use it, register all prerequisites for gRPC client and register `otlp::LoggerComponent` in component list in your `main` function.
+The static config file should contain a component section with OTLP logger.
+Also remove `default` logger from `logging.loggers` as the default logger is handled by otlp component from now on.
+
+The related part of static config:
+
+@snippet samples/otlp_service/static_config.yaml otlp logger
+
+`endpoint` contains OTLP collector host and port,
+`service-name` contains your service name,
+and `log-level` contains service log level.
+
+After the service start you'll see the following in stderr:
+
+```
+  OTLP logger has started
+```
+
+It means the logger is successfully initialized and is ready to process the logs.
+
+If somethings goes wrong (e.g. OTLP collector agent is not available), you'll see errors in stderr.
+The service buffers not-yet-sent logs and traces in memory, but drops them on overflow.
+
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/formats.md | @ref scripts/docs/en/userver/task_processors_guide.md ⇨
+⇦ @ref scripts/docs/en/userver/chaotic.md | @ref scripts/docs/en/userver/task_processors_guide.md ⇨
 @htmlonly </div> @endhtmlonly

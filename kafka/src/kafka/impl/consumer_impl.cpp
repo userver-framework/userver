@@ -227,7 +227,7 @@ void ConsumerImpl::ErrorCallbackProxy(int error_code, const char* reason) {
   span.AddTag("kafka_callback", "error_callback");
 
   LOG_ERROR() << fmt::format(
-      "Error {} occured because of '{}': {}", error_code, reason,
+      "Error {} occurred because of '{}': {}", error_code, reason,
       rd_kafka_err2str(static_cast<rd_kafka_resp_err_t>(error_code)));
 
   if (error_code == RD_KAFKA_RESP_ERR__RESOLVE ||
@@ -321,7 +321,7 @@ void ConsumerImpl::Subscribe(const std::vector<std::string>& topics) {
 void ConsumerImpl::LeaveGroup() {
   const rd_kafka_resp_err_t err = rd_kafka_consumer_close(consumer_->Handle());
   if (err != RD_KAFKA_RESP_ERR_NO_ERROR) {
-    LOG_ERROR() << fmt::format("Failed to propery close consumer: {}",
+    LOG_ERROR() << fmt::format("Failed to properly close consumer: {}",
                                rd_kafka_err2str(err));
   }
   consumer_.reset();
@@ -423,24 +423,24 @@ void ConsumerImpl::AccountPolledMessageStat(const Message& polled_message) {
         polled_message.GetTopic(), polled_message.GetKey());
   }
 }
-void ConsumerImpl::AccountMessageProccessingSucceeded(const Message& message) {
+void ConsumerImpl::AccountMessageProcessingSucceeded(const Message& message) {
   ++GetTopicStats(message.GetTopic())->messages_counts.messages_success;
 }
 
-void ConsumerImpl::AccountMessageBatchProccessingSucceeded(
+void ConsumerImpl::AccountMessageBatchProcessingSucceeded(
     const MessageBatch& batch) {
   for (const auto& message : batch) {
-    AccountMessageProccessingSucceeded(message);
+    AccountMessageProcessingSucceeded(message);
   }
 }
-void ConsumerImpl::AccountMessageProccessingFailed(const Message& message) {
+void ConsumerImpl::AccountMessageProcessingFailed(const Message& message) {
   ++GetTopicStats(message.GetTopic())->messages_counts.messages_error;
 }
 
 void ConsumerImpl::AccountMessageBatchProcessingFailed(
     const MessageBatch& batch) {
   for (const auto& message : batch) {
-    AccountMessageProccessingFailed(message);
+    AccountMessageProcessingFailed(message);
   }
 }
 

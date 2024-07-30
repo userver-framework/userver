@@ -26,7 +26,6 @@
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <dynamic_config/storage_data.hpp>
-#include <utils/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -199,9 +198,9 @@ dynamic_config::impl::SnapshotData DynamicConfig::Impl::ParseConfig(
 void DynamicConfig::Impl::DoSetConfig(const dynamic_config::DocsMap& value) {
   auto config = ParseConfig(value);
 
-  if (!value.GetConfigsExpectedToBeUsed(utils::InternalTag{}).empty()) {
+  if (!value.GetConfigsExpectedToBeUsed(utils::impl::InternalTag{}).empty()) {
     LOG_INFO() << "Some configs expected to be used are actually not needed: "
-               << value.GetConfigsExpectedToBeUsed(utils::InternalTag{});
+               << value.GetConfigsExpectedToBeUsed(utils::impl::InternalTag{});
   }
 
   auto after_assign_hook = [&] {
@@ -262,7 +261,7 @@ void DynamicConfig::Impl::ReadFallback(const ComponentConfig& config) {
     try {
       const auto fallback_contents =
           fs::ReadFileContents(*fs_task_processor_, *default_overrides_path);
-      fallback_config_.Parse(fallback_contents, false);
+      fallback_config_.Parse(fallback_contents, true);
     } catch (const std::exception& ex) {
       throw std::runtime_error(
           fmt::format("Failed to load dynamic config fallback from '{}': {}",
@@ -385,7 +384,7 @@ void DynamicConfig::NotifyLoadingFailed(std::string_view updater,
 }
 
 yaml_config::Schema DynamicConfig::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: Component that stores the runtime config.
 additionalProperties: false

@@ -65,6 +65,11 @@ void Logging::Init(const ComponentConfig& config,
   const auto logger_configs =
       yaml_config::ParseMapToArray<logging::LoggerConfig>(config["loggers"]);
 
+  if (logger_configs.empty()) {
+    // We don't own default logger, we have no stats to report
+    return;
+  }
+
   for (const auto& logger_config : logger_configs) {
     const bool is_default_logger = (logger_config.logger_name == "default");
 
@@ -83,10 +88,12 @@ void Logging::Init(const ComponentConfig& config,
       if (logger_config.queue_overflow_behavior ==
           logging::QueueOverflowBehavior::kBlock) {
         throw std::runtime_error(
-            "'default' logger should not be set to 'overflow_behavior: block'! "
+            "'default' logger should not be set to 'overflow_behavior: "
+            "block'! "
             "Default logger is used by the userver internals, including the "
             "logging internals. Blocking inside the engine internals could "
-            "lead to hardly reproducible hangups in some border cases of error "
+            "lead to hardly reproducible hangups in some border cases of "
+            "error "
             "reporting.");
       }
 
@@ -126,7 +133,9 @@ Logging::~Logging() { Stop(); }
 
 void Logging::Stop() noexcept {
   /// [Signals sample - destr]
+
   signal_subscriber_.Unsubscribe();
+
   /// [Signals sample - destr]
   flush_task_.Stop();
 
@@ -137,9 +146,19 @@ void Logging::Stop() noexcept {
   }
 }
 
+void Logging::SetLogger(const std::string& name, logging::LoggerPtr logger) {
+  auto [_, inserted] = extra_loggers_.Emplace(name, std::move(logger));
+  if (!inserted) {
+    throw std::runtime_error(fmt::format("Duplicate logger name: {}", name));
+  }
+}
+
 logging::LoggerPtr Logging::GetLogger(const std::string& name) {
   auto it = loggers_.find(name);
   if (it == loggers_.end()) {
+    auto logger = extra_loggers_.Get(name);
+    if (logger) return *logger;
+
     throw std::runtime_error("logger '" + name + "' not found");
   }
   return it->second;

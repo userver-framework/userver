@@ -1,7 +1,7 @@
 #include "view.hpp"
 
 #include <userver/components/component.hpp>
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 
 namespace samples::grpc::auth {
 

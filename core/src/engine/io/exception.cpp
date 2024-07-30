@@ -3,7 +3,7 @@
 #include <fmt/compile.h>
 #include <fmt/format.h>
 
-#include <utils/strerror.hpp>
+#include <userver/utils/strerror.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

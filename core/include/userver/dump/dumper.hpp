@@ -158,7 +158,7 @@ class Dumper final {
   void CancelWriteTaskAndWait();
 
   /// @brief Returns the static config schema for a
-  /// components::LoggableComponentBase with an added `dump` sub-section.
+  /// components::ComponentBase with an added `dump` sub-section.
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:

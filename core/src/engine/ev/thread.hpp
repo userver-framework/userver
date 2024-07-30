@@ -12,6 +12,7 @@
 
 #include <concurrent/impl/intrusive_mpsc_queue.hpp>
 #include <engine/ev/async_payload_base.hpp>
+#include <engine/ev/event_loop.hpp>
 #include <utils/statistics/thread_statistics.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -36,9 +37,10 @@ class Thread final {
 
   Thread(const std::string& thread_name, RegisterEventMode);
   Thread(const std::string& thread_name, UseDefaultEvLoop, RegisterEventMode);
+
   ~Thread();
 
-  struct ev_loop* GetEvLoop() const { return loop_; }
+  struct ev_loop* GetEvLoop() const { return event_loop_.GetEvLoop(); }
 
   // Callbacks passed to RunInEvLoopAsync() are serialized.
   // All callbacks are guaranteed to execute.
@@ -56,7 +58,7 @@ class Thread final {
   const std::string& GetName() const;
 
  private:
-  Thread(const std::string& thread_name, bool use_ev_default_loop,
+  Thread(const std::string& thread_name, EventLoop::EvLoopType ev_loop_type,
          RegisterEventMode register_event_mode);
 
   void RegisterInEvLoop(AsyncPayloadBase& payload);
@@ -71,34 +73,30 @@ class Thread final {
   void UpdateLoopWatcherImpl();
   static void BreakLoopWatcher(struct ev_loop*, ev_async* w, int) noexcept;
   void BreakLoopWatcherImpl();
-  static void ChildWatcher(struct ev_loop*, ev_child* w, int) noexcept;
-  static void ChildWatcherImpl(ev_child* w);
 
   static void Acquire(struct ev_loop* loop) noexcept;
   static void Release(struct ev_loop* loop) noexcept;
   void AcquireImpl() noexcept;
   void ReleaseImpl() noexcept;
 
-  concurrent::impl::IntrusiveMpscQueue<AsyncPayloadBase> func_queue_;
+  concurrent::impl::IntrusiveMpscQueue<AsyncPayloadBase> func_queue_{};
 
-  bool use_ev_default_loop_;
   RegisterEventMode register_event_mode_;
 
-  struct ev_loop* loop_;
-  std::thread thread_;
-  std::mutex loop_mutex_;
-  std::unique_lock<std::mutex> lock_;
+  EventLoop event_loop_;
+
+  std::thread thread_{};
+  std::mutex loop_mutex_{};
+  std::unique_lock<std::mutex> lock_{loop_mutex_, std::defer_lock};
 
   ev_timer timers_driver_{};
   ev_timer stats_timer_{};
   ev_async watch_update_{};
   ev_async watch_break_{};
-  ev_child watch_child_{};
 
   const std::string name_;
   utils::statistics::ThreadCpuStatsStorage cpu_stats_storage_;
-
-  bool is_running_;
+  bool is_running_{false};
 };
 
 }  // namespace engine::ev

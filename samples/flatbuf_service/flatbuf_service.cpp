@@ -43,13 +43,13 @@ class FbsSumEcho final
 namespace samples::fbs_request {
 
 /// [Flatbuf service sample - http component]
-class FbsRequest final : public components::LoggableComponentBase {
+class FbsRequest final : public components::ComponentBase {
  public:
   static constexpr std::string_view kName = "fbs-request";
 
   FbsRequest(const components::ComponentConfig& config,
              const components::ComponentContext& context)
-      : LoggableComponentBase(config, context),
+      : ComponentBase(config, context),
         http_client_{
             context.FindComponent<components::HttpClient>().GetHttpClient()},
         task_{utils::Async("requests", [this]() { KeepRequesting(); })} {}

@@ -12,6 +12,10 @@ const utils::AnyStorageDataTag<MyStorage, int> kInt;
 const utils::AnyStorageDataTag<MyStorage, std::string> kStr;
 const utils::AnyStorageDataTag<MyStorage, std::string> kStr2;
 
+struct BoolStorage {};
+
+const utils::AnyStorageDataTag<BoolStorage, bool> kBool;
+
 TEST(AnyStorage, Simple) {
   utils::AnyStorage<MyStorage> storage;
 
@@ -50,6 +54,14 @@ TEST(AnyStorage, Alignment) {
       reinterpret_cast<uintptr_t>(&storage.Get(kStr)) % alignof(std::string),
       0);
   EXPECT_EQ(&storage.Get(kStr) + 1, &storage.Get(kStr2));
+}
+
+TEST(AnyStorage, BoolData) {
+  utils::AnyStorage<BoolStorage> storage;
+
+  storage.Emplace(kBool, true);
+
+  EXPECT_EQ(storage.Get(kBool), true);
 }
 
 USERVER_NAMESPACE_END

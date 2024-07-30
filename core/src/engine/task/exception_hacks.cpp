@@ -35,7 +35,6 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
-#include <utils/impl/assert_extra.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

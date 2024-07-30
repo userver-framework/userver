@@ -98,7 +98,7 @@ void ComponentAdder<Component>::operator()(
   // if RawComponentBase is a private, protected, or ambiguous base class.
   static_assert(
       std::is_convertible_v<Component*, components::RawComponentBase*>,
-      "Component should publicly inherit from components::LoggableComponentBase"
+      "Component should publicly inherit from components::ComponentBase"
       " and the component definition should be visible at its registration");
   impl::AddComponentImpl(manager, config_map, GetComponentName(),
                          [](const components::ComponentConfig& config,

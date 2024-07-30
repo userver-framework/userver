@@ -72,7 +72,7 @@ struct UserData final {
 /// digest-authentication logic.
 class AuthCheckerBase : public auth::AuthCheckerBase {
  public:
-  /// Assepts digest-authentication settings from
+  /// Accepts digest-authentication settings from
   /// @ref server::handlers::auth::DigestCheckerSettingsComponent and "realm"
   /// from handler config in static_config.yaml.
   AuthCheckerBase(const AuthCheckerSettings& digest_settings,

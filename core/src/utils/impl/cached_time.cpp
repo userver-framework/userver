@@ -23,7 +23,7 @@ void UpdateGlobalTime() {
                          std::memory_order_relaxed);
 }
 
-std::tuple<SystemTimePoint, SteadyTimePoint> GetGlobalTime() {
+SystemAndSteadyTimePoints GetGlobalTime() {
   return {system_clock_now.load(std::memory_order_relaxed),
           steady_clock_now.load(std::memory_order_relaxed)};
 }

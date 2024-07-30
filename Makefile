@@ -11,11 +11,7 @@ NPROCS ?= $(shell nproc)
 ifeq ($(KERNEL),Darwin)
 CMAKE_COMMON_FLAGS += -DUSERVER_NO_WERROR=1 -DUSERVER_CHECK_PACKAGE_VERSIONS=0 \
   -DUSERVER_DOWNLOAD_PACKAGE_CRYPTOPP=1 \
-  -DOPENSSL_ROOT_DIR=$(shell brew --prefix openssl) \
-  -DUSERVER_PG_INCLUDE_DIR=$(shell pg_config --includedir) \
-  -DUSERVER_PG_LIBRARY_DIR=$(shell pg_config --libdir) \
-  -DUSERVER_PG_SERVER_LIBRARY_DIR=$(shell pg_config --pkglibdir) \
-  -DUSERVER_PG_SERVER_INCLUDE_DIR=$(shell pg_config --includedir-server)
+  -DOPENSSL_ROOT_DIR=$(shell brew --prefix openssl)
 endif
 
 # NOTE: use Makefile.local for customization
@@ -29,6 +25,20 @@ gen:
 .PHONY: docs
 docs:
 	@rm -rf docs/*
+	@$(DOXYGEN) --version >/dev/null 2>&1 || { \
+		echo "!!! No Doxygen found."; \
+		exit 2; \
+	}
+	@{ \
+		DOXYGEN_VERSION_MIN="1.10.0" && \
+		DOXYGEN_VERSION_CUR=$$($(DOXYGEN) --version | awk -F " " '{print $$1}') && \
+		DOXYGEN_VERSION_VALID=$$(printf "%s\n%s\n" "$$DOXYGEN_VERSION_MIN" "$$DOXYGEN_VERSION_CUR" | sort -C && echo 0 || echo 1) && \
+		if [ "$$DOXYGEN_VERSION_VALID" != "0" ]; then \
+			echo "!!! Doxygen expected version is $$DOXYGEN_VERSION_MIN, but $$DOXYGEN_VERSION_CUR found."; \
+			echo "!!! See userver/scripts/docs/README.md"; \
+			exit 2; \
+		fi \
+	}
 	@( \
 	    cat scripts/docs/doxygen.conf; \
 	    echo OUTPUT_DIRECTORY=docs \

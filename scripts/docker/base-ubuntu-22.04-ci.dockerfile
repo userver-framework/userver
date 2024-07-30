@@ -8,7 +8,7 @@ FROM ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest
 RUN \
   mkdir -p /place/berkanavt/ && \
   mkdir -p /ramdrive && mkdir -p /mnt && ln -s /ramdrive /mnt/ramdisk && \
-  \
+  apt update && \
   PORTO_WORKAROUND="fuse dupload libuv1 libuv1-dev openssh-client"; \
   DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
     $PORTO_WORKAROUND \
@@ -18,8 +18,8 @@ RUN \
     postgresql-14 \
     rabbitmq-server \
     redis-server \
-    clang-16 lld-16 llvm-16 libclang-rt-16-dev\
-    clang-14 lld-14 llvm \
+    clang-16 lld-16 llvm-16 clang-format-16 libclang-rt-16-dev\
+    clang-14 lld-14 llvm clang-format \
     g++-11 gcc-11 \
     g++-13 gcc-13 \
     && \

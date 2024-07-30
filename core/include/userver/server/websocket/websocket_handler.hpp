@@ -57,6 +57,16 @@ class WebsocketHandlerBase : public server::handlers::HttpHandlerBase {
   static yaml_config::Schema GetStaticConfigSchema();
   /// @endcond
 
+  /// @brief If \a request isn't a websocket request the function handles a
+  /// request.
+  virtual void HandleNonWebsocketRequest(
+      [[maybe_unused]] const server::http::HttpRequest& request,
+      [[maybe_unused]] server::request::RequestContext& context) const {
+    LOG_WARNING()
+        << "Not a GET 'Upgrade: websocket' and 'Connection: Upgrade' request";
+    throw server::handlers::ClientError();
+  }
+
  private:
   std::string HandleRequestThrow(
       const server::http::HttpRequest& request,

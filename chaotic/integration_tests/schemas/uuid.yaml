@@ -1,0 +1,8 @@
+definitions:
+    ObjectUuid:
+        type: object
+        additionalProperties: false
+        properties:
+            uuid:
+                type: string
+                format: uuid

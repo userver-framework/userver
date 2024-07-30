@@ -31,7 +31,7 @@ function(_userver_prepare_testsuite)
     if(NOT PYTHONCONFIG_FOUND)
       message(FATAL_ERROR "Python dev is not found")
     endif()
-    set(USERVER_PYTHON_DEV_CHECKED TRUE CACHE INTERNAL "")
+    set(USERVER_PYTHON_DEV_CHECKED TRUE CACHE INTERNAL "" FORCE)
   endif()
 
   if(NOT USERVER_TESTSUITE_DIR)
@@ -39,13 +39,23 @@ function(_userver_prepare_testsuite)
         USERVER_TESTSUITE_DIR "${CMAKE_CURRENT_LIST_DIR}/../testsuite" ABSOLUTE)
   endif()
   set_property(GLOBAL PROPERTY userver_testsuite_dir "${USERVER_TESTSUITE_DIR}")
+
+  if(USERVER_FEATURE_TESTSUITE)
+    userver_testsuite_requirements(REQUIREMENTS_FILES_VAR requirements_files TESTSUITE_ONLY)
+    userver_venv_setup(
+      NAME utest
+      # TESTSUITE_PYTHON_BINARY is used in `env.in`
+      PYTHON_OUTPUT_VAR TESTSUITE_PYTHON_BINARY
+      REQUIREMENTS ${requirements_files}
+      UNIQUE
+      )
+    configure_file(${USERVER_TESTSUITE_DIR}/env.in ${CMAKE_BINARY_DIR}/testsuite/env @ONLY)
+  endif()
 endfunction()
 
-_userver_prepare_testsuite()
-
 function(userver_testsuite_requirements)
-  set(options)
-  set(oneValueArgs REQUIREMENT_FILES_VAR)
+  set(options TESTSUITE_ONLY)
+  set(oneValueArgs REQUIREMENTS_FILES_VAR)
   set(multiValueArgs)
 
   cmake_parse_arguments(
@@ -130,7 +140,11 @@ function(userver_testsuite_requirements)
   file(WRITE "${requirements_testsuite_file}" "${requirements_testsuite_text}")
   list(APPEND requirements_files "${requirements_testsuite_file}")
 
-  set("${ARG_REQUIREMENT_FILES_VAR}" ${requirements_files} PARENT_SCOPE)
+  if(NOT ARG_TESTSUITE_ONLY)
+    set("${ARG_REQUIREMENTS_FILES_VAR}" ${requirements_files} PARENT_SCOPE)
+  else()
+    set("${ARG_REQUIREMENTS_FILES_VAR}" ${requirements_testsuite_file} PARENT_SCOPE)
+  endif()
 endfunction()
 
 function(userver_testsuite_add)
@@ -180,13 +194,21 @@ function(userver_testsuite_add)
           "PYTHON_BINARY and REQUIREMENTS options are incompatible")
     endif()
     set(python_binary "${ARG_PYTHON_BINARY}")
-  else()
-    userver_testsuite_requirements(REQUIREMENT_FILES_VAR requirement_files)
-    list(APPEND requirement_files ${ARG_REQUIREMENTS})
+  elseif(ARG_REQUIREMENTS)
+    userver_testsuite_requirements(REQUIREMENTS_FILES_VAR requirements_files)
+    list(APPEND requirements_files ${ARG_REQUIREMENTS})
     userver_venv_setup(
         NAME "${TESTSUITE_TARGET}"
-        REQUIREMENTS ${requirement_files}
+        REQUIREMENTS ${requirements_files}
         PYTHON_OUTPUT_VAR python_binary
+    )
+  else()
+    userver_testsuite_requirements(REQUIREMENTS_FILES_VAR requirements_files)
+    userver_venv_setup(
+        NAME userver-default
+        REQUIREMENTS ${requirements_files}
+        PYTHON_OUTPUT_VAR python_binary
+        UNIQUE
     )
   endif()
 
@@ -200,7 +222,7 @@ function(userver_testsuite_add)
   execute_process(
     COMMAND
     "${python_binary}" "${USERVER_TESTSUITE_DIR}/create_runner.py"
-    -o "${TESTSUITE_RUNNER}"
+    "--output=${TESTSUITE_RUNNER}"
     "--python=${python_binary}"
     "--python-path=${ARG_PYTHONPATH}"
     --
@@ -420,3 +442,32 @@ function(userver_testsuite_add_simple)
     )
   endif()
 endfunction()
+
+# add utest, test runs in testsuite env
+function(userver_add_utest)
+  set(options)
+  set(oneValueArgs NAME)
+  set(multiValueArgs DATABASES)
+
+  cmake_parse_arguments(
+      ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+  if (NOT USERVER_FEATURE_TESTSUITE)
+    message(FATAL_ERROR "userver_add_utest requires 'USERVER_FEATURE_TESTSUITE=ON'")
+  endif()
+
+  set(additional_args)
+  if(ARG_DATABASES)
+    list(JOIN ARG_DATABASES "," databases_value)
+    list(APPEND additional_args "--databases=${databases_value}")
+  endif()
+
+  add_test(NAME "${ARG_NAME}" COMMAND
+    ${CMAKE_BINARY_DIR}/testsuite/env
+    ${additional_args} run --
+    $<TARGET_FILE:${ARG_NAME}>
+    --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${ARG_NAME}.xml
+  )
+endfunction()
+
+_userver_prepare_testsuite()

@@ -46,12 +46,12 @@ FlagsFormat Parse(const yaml_config::YamlConfig& value,
 TracingManagerComponentBase::TracingManagerComponentBase(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
-    : components::LoggableComponentBase(config, context) {}
+    : components::ComponentBase(config, context) {}
 
 DefaultTracingManagerLocator::DefaultTracingManagerLocator(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
-    : components::LoggableComponentBase(config, context),
+    : components::ComponentBase(config, context),
       default_manager_(config["incoming-format"].As<FlagsFormat>(),
                        config["new-requests-format"].As<FlagsFormat>()),
       tracing_manager_(
@@ -63,7 +63,7 @@ const TracingManagerBase& DefaultTracingManagerLocator::GetTracingManager()
 }
 
 yaml_config::Schema DefaultTracingManagerLocator::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: component for finding actual tracing manager
 additionalProperties: false

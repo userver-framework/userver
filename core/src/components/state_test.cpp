@@ -2,8 +2,8 @@
 
 #include <components/component_list_test.hpp>
 #include <userver/alerts/component.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/components/component_context.hpp>
-#include <userver/components/loggable_component_base.hpp>
 #include <userver/components/run.hpp>
 #include <userver/components/state.hpp>
 #include <userver/components/statistics_storage.hpp>
@@ -19,13 +19,13 @@ namespace {
 
 void CheckTheComponents(components::State state, std::string_view where);
 
-class Component1 final : public components::LoggableComponentBase {
+class Component1 final : public components::ComponentBase {
  public:
   static constexpr std::string_view kName = "component-1";
 
   Component1(const components::ComponentConfig& config,
              const components::ComponentContext& context)
-      : components::LoggableComponentBase(config, context), state_{context} {}
+      : components::ComponentBase(config, context), state_{context} {}
 
   void OnAllComponentsLoaded() override {
     CheckTheComponents(state_, "Component1::OnAllComponentsLoaded()");
@@ -43,13 +43,13 @@ class Component1 final : public components::LoggableComponentBase {
   components::State state_;
 };
 
-class Component2 final : public components::LoggableComponentBase {
+class Component2 final : public components::ComponentBase {
  public:
   static constexpr std::string_view kName = "component-2";
 
   Component2(const components::ComponentConfig& config,
              const components::ComponentContext& context)
-      : components::LoggableComponentBase(config, context), state_{context} {
+      : components::ComponentBase(config, context), state_{context} {
     context.FindComponent<Component1>();
   }
 
@@ -69,13 +69,13 @@ class Component2 final : public components::LoggableComponentBase {
   const components::State state_;
 };
 
-class ComponentNotLoaded final : public components::LoggableComponentBase {
+class ComponentNotLoaded final : public components::ComponentBase {
  public:
   static constexpr std::string_view kName = "component-not-loaded";
 
   ComponentNotLoaded(const components::ComponentConfig& config,
                      const components::ComponentContext& context)
-      : components::LoggableComponentBase(config, context), state_{context} {
+      : components::ComponentBase(config, context), state_{context} {
     context.FindComponent<Component1>();
   }
 
@@ -96,13 +96,13 @@ class ComponentNotLoaded final : public components::LoggableComponentBase {
   const components::State state_;
 };
 
-class Component3 final : public components::LoggableComponentBase {
+class Component3 final : public components::ComponentBase {
  public:
   static constexpr std::string_view kName = "component-3";
 
   Component3(const components::ComponentConfig& config,
              const components::ComponentContext& context)
-      : components::LoggableComponentBase(config, context), state_{context} {
+      : components::ComponentBase(config, context), state_{context} {
     context.FindComponentOptional<Component2>();
     context.FindComponentOptional<ComponentNotLoaded>();
   }

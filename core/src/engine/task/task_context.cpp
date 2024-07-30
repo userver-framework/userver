@@ -15,6 +15,7 @@
 #include <userver/engine/exception.hpp>
 #include <userver/engine/impl/task_context_factory.hpp>
 #include <userver/engine/task/cancel.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/logging/stacktrace_cache.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/underlying_value.hpp>
@@ -25,7 +26,6 @@
 #include <engine/task/coro_unwinder.hpp>
 #include <engine/task/cxxabi_eh_globals.hpp>
 #include <engine/task/task_processor.hpp>
-#include <utils/impl/assert_extra.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -159,6 +159,10 @@ bool TaskContext::IsSharedWaitAllowed() const {
   return finish_waiters_->IsShared();
 }
 
+bool TaskContext::IsFinished() const noexcept {
+  return finish_waiters_->IsSignaled();
+}
+
 void TaskContext::SetDetached(DetachedTasksSyncBlock::Token& token) noexcept {
   DetachedTasksSyncBlock::Token* expected = nullptr;
   if (!detached_token_.compare_exchange_strong(expected, &token)) {
@@ -234,7 +238,7 @@ void TaskContext::DoStep() {
       }
       SetState(new_state);
       deadline_timer_.Finalize();
-      finish_waiters_->WakeupAll();
+      finish_waiters_->SetSignalAndWakeupAll();
       TraceStateTransition(new_state);
     } break;
 
@@ -557,12 +561,7 @@ bool TaskContext::IsReady() const noexcept { return IsFinished(); }
 
 EarlyWakeup TaskContext::TryAppendWaiter(TaskContext& waiter) {
   if (&waiter == this) ReportDeadlock();
-  finish_waiters_->Append(&waiter);
-  if (IsFinished()) {
-    finish_waiters_->WakeupAll();
-    return EarlyWakeup{true};
-  }
-  return EarlyWakeup{false};
+  return EarlyWakeup{finish_waiters_->GetSignalOrAppend(&waiter)};
 }
 
 void TaskContext::RemoveWaiter(TaskContext& waiter) noexcept {
@@ -614,62 +613,9 @@ TaskContext::WakeupSource TaskContext::GetPrimaryWakeupSource(
 bool TaskContext::WasStartedAsCritical() const { return is_critical_; }
 
 void TaskContext::SetState(Task::State new_state) {
-  auto old_state = Task::State::kNew;
-
-  // CAS optimization
-  switch (new_state) {
-    case Task::State::kQueued:
-      old_state = Task::State::kSuspended;
-      break;
-    case Task::State::kRunning:
-      old_state = Task::State::kQueued;
-      break;
-    case Task::State::kSuspended:
-    case Task::State::kCompleted:
-      old_state = Task::State::kRunning;
-      break;
-    case Task::State::kCancelled:
-      old_state = Task::State::kSuspended;
-      break;
-    case Task::State::kInvalid:
-    case Task::State::kNew:
-      UASSERT(!"Invalid new task state");
-  }
-
-  if (new_state == Task::State::kRunning ||
-      new_state == Task::State::kSuspended) {
-    if (new_state == Task::State::kRunning) {
-      UASSERT(IsCurrent());
-    } else {
-      UASSERT(current_task::GetCurrentTaskContextUnchecked() == nullptr);
-    }
-    UASSERT(old_state == state_);
-    // For kRunning we don't care other threads see old state_ (kQueued) for
-    // some time.
-    // For kSuspended synchronization point is DoStep()'s
-    // sleep_state_.FetchOr().
-    state_.store(new_state, std::memory_order_relaxed);
-    return;
-  }
-  if (new_state == Task::State::kQueued) {
-    UASSERT(old_state == state_ || state_ == Task::State::kNew);
-    // Synchronization point is TaskProcessor::Schedule()
-    state_.store(new_state, std::memory_order_relaxed);
-    return;
-  }
-
-  // use strong CAS here to avoid losing transitions to finished
-  while (!state_.compare_exchange_strong(old_state, new_state)) {
-    if (old_state == new_state) {
-      // someone else did the job
-      return;
-    }
-    if (old_state == Task::State::kCompleted ||
-        old_state == Task::State::kCancelled) {
-      // leave as finished, do not wakeup
-      return;
-    }
-  }
+  // 'release', because if someone detects kCompleted or kCancelled by running
+  // in a loop, they should acquire the task's results.
+  state_.store(new_state, std::memory_order_release);
 }
 
 void TaskContext::Schedule() {

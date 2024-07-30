@@ -28,14 +28,6 @@ bool ThreadControlBase::IsInEvThread() const noexcept {
   return thread_.IsInEvThread();
 }
 
-std::uint8_t ThreadControlBase::GetCurrentLoadPercent() const {
-  return thread_.GetCurrentLoadPercent();
-}
-
-const std::string& ThreadControlBase::GetName() const {
-  return thread_.GetName();
-}
-
 // NOLINTNEXTLINE(readability-make-member-function-const)
 void ThreadControlBase::DoStart(ev_timer& w) noexcept {
   UASSERT(IsInEvThread());

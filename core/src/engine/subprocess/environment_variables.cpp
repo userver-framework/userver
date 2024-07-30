@@ -14,6 +14,30 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::subprocess {
 namespace {
 
+void UnsetEnvironmentVariableWithoutSync(const std::string& variable_name) {
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
+  ::unsetenv(variable_name.c_str());
+}
+
+void SetEnvironmentVariableWithoutSync(const std::string& variable_name,
+                                       const std::string& value,
+                                       Overwrite overwrite) {
+  const auto read_ptr = GetCurrentEnvironmentVariablesPtr();
+  const bool value_exist =
+      (read_ptr->GetValueOptional(variable_name) != nullptr);
+  if (value_exist) {
+    UINVARIANT(overwrite != Overwrite::kForbidden,
+               "variable with name= " + variable_name +
+                   " was set earlier and prohibits rewriting");
+    if (overwrite == Overwrite::kIgnored) {
+      return;
+    }
+  }
+
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
+  ::setenv(variable_name.c_str(), value.c_str(), 1);
+}
+
 EnvironmentVariables::Map GetCurrentEnvironmentVariablesMap() {
   EnvironmentVariables::Map map;
 
@@ -69,6 +93,10 @@ std::string& EnvironmentVariables::operator[](
   return vars_[variable_name];
 }
 
+bool EnvironmentVariables::operator==(const EnvironmentVariables& rhs) const {
+  return vars_ == rhs.vars_;
+}
+
 EnvironmentVariables GetCurrentEnvironmentVariables() {
   return GetCurrentEnvironmentVariablesStorage().ReadCopy();
 }
@@ -82,30 +110,38 @@ void UpdateCurrentEnvironmentVariables() {
       EnvironmentVariables{GetCurrentEnvironmentVariablesMap()});
 }
 
-void SetEnvironmentVariable(const std::string& variable_name,
-                            const std::string& value, Overwrite overwrite) {
-  const auto read_ptr = GetCurrentEnvironmentVariablesPtr();
-  const bool value_exist =
-      (read_ptr->GetValueOptional(variable_name) != nullptr);
-  if (value_exist) {
-    UINVARIANT(overwrite != Overwrite::kForbidden,
-               "variable with name= " + variable_name +
-                   " was set earlier and prohibits rewriting");
-    if (overwrite == Overwrite::kIgnored) {
-      return;
+EnvironmentVariablesScope::EnvironmentVariablesScope()
+    : old_env_(GetCurrentEnvironmentVariablesPtr()) {}
+
+EnvironmentVariablesScope::~EnvironmentVariablesScope() {
+  const auto snapshot = GetCurrentEnvironmentVariablesStorage().Read();
+  const auto& env = *snapshot;
+
+  for (const auto& [variable_name, value] : *old_env_) {
+    if (!env.GetValueOptional(variable_name) ||
+        env.GetValue(variable_name) != value) {
+      SetEnvironmentVariableWithoutSync(variable_name, value,
+                                        Overwrite::kAllowed);
     }
   }
 
-  // NOLINTNEXTLINE(concurrency-mt-unsafe)
-  ::setenv(variable_name.c_str(), value.c_str(), 1);
+  for (const auto& [variable_name, value] : env) {
+    if (!old_env_->GetValueOptional(variable_name)) {
+      UnsetEnvironmentVariableWithoutSync(variable_name);
+    }
+  }
 
   UpdateCurrentEnvironmentVariables();
 }
 
-void UnsetEnvironmentVariable(const std::string& variable_name) {
-  // NOLINTNEXTLINE(concurrency-mt-unsafe)
-  ::unsetenv(variable_name.c_str());
+void SetEnvironmentVariable(const std::string& variable_name,
+                            const std::string& value, Overwrite overwrite) {
+  SetEnvironmentVariableWithoutSync(variable_name, value, overwrite);
+  UpdateCurrentEnvironmentVariables();
+}
 
+void UnsetEnvironmentVariable(const std::string& variable_name) {
+  UnsetEnvironmentVariableWithoutSync(variable_name);
   UpdateCurrentEnvironmentVariables();
 }
 

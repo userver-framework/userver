@@ -40,6 +40,18 @@ LoggerPtr MakeStdoutLogger(const std::string& name, Format format,
 LoggerPtr MakeFileLogger(const std::string& name, const std::string& path,
                          Format format, Level level = Level::kInfo);
 
+namespace impl {
+class TagWriter;
+}
+
+namespace impl::default_ {
+
+bool DoShouldLog(Level) noexcept;
+
+void PrependCommonTags(TagWriter writer);
+
+}  // namespace impl::default_
+
 }  // namespace logging
 
 USERVER_NAMESPACE_END

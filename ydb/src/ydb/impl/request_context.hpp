@@ -18,9 +18,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ydb::impl {
 
-engine::Deadline GetDeadline(tracing::Span& span,
-                             const dynamic_config::Snapshot& config_snapshot);
-
 struct RequestContext final {
   RequestContext(TableClient& client, const Query& query,
                  OperationSettings& settings,

@@ -20,6 +20,7 @@ namespace {
 const std::string_view kCommandTypes[] = {
     "append",
     "auth",
+    "bitop",
     "cluster",
     "dbsize",
     "del",
@@ -178,7 +179,9 @@ void Statistics::AccountReplyReceived(const ReplyPtr& reply,
   } else {
     LOG_LIMITED_WARNING() << "Cannot account timings for unknown command '"
                           << cmd->GetName() << '\'';
-    UASSERT_MSG(false, "Cannot account timings for unknown command");
+    UASSERT_MSG(false,
+                fmt::format("Cannot account timings for unknown command {}",
+                            cmd->GetName()));
   }
 
   AccountError(reply->status);

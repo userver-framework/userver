@@ -44,7 +44,7 @@ storages::postgres::ConnlimitMode ParseConnlimitMode(const std::string& value) {
 
 Postgres::Postgres(const ComponentConfig& config,
                    const ComponentContext& context)
-    : LoggableComponentBase(config, context),
+    : ComponentBase(config, context),
       name_{config.Name()},
       database_{std::make_shared<storages::postgres::Database>()} {
   storages::postgres::LogRegisteredTypesOnce();
@@ -210,7 +210,7 @@ void Postgres::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
 }
 
 yaml_config::Schema Postgres::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: PosgreSQL client component
 additionalProperties: false

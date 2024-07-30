@@ -42,14 +42,6 @@ namespace {
 const auto kStatisticsName = "redis";
 const auto kSubscribeStatisticsName = "redis-pubsub";
 
-void DumpThreadPoolMetric(utils::statistics::Writer& writer,
-                          engine::ev::ThreadPool& pool) {
-  for (const auto* thread : pool.NextThreads(pool.GetSize())) {
-    writer.ValueWithLabels(thread->GetCurrentLoadPercent(),
-                           {"ev_thread_name", thread->GetName()});
-  }
-}
-
 template <typename RedisGroup>
 USERVER_NAMESPACE::secdist::RedisSettings GetSecdistSettings(
     components::Secdist& secdist_component, const RedisGroup& redis_group) {
@@ -137,7 +129,7 @@ redis::MetricsSettings::Level Parse(
 
 Redis::Redis(const ComponentConfig& config,
              const ComponentContext& component_context)
-    : LoggableComponentBase(config, component_context),
+    : ComponentBase(config, component_context),
       config_(component_context.FindComponent<DynamicConfig>().GetSource()) {
   const auto& testsuite_redis_control =
       component_context.FindComponent<components::TestsuiteSupport>()
@@ -288,8 +280,8 @@ void Redis::WriteStatistics(utils::statistics::Writer& writer) {
                            {"redis_database", name});
   }
   auto threads_writer = writer["ev_threads"]["cpu_load_percent"];
-  DumpThreadPoolMetric(threads_writer, *thread_pools_->GetRedisThreadPool());
-  DumpThreadPoolMetric(threads_writer, thread_pools_->GetSentinelThreadPool());
+  threads_writer.ValueWithLabels(*thread_pools_->GetRedisThreadPool(), {});
+  threads_writer.ValueWithLabels(thread_pools_->GetSentinelThreadPool(), {});
 }
 
 void Redis::WriteStatisticsPubsub(utils::statistics::Writer& writer) {
@@ -343,7 +335,7 @@ void Redis::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
 }
 
 yaml_config::Schema Redis::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<LoggableComponentBase>(R"(
+  return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: Redis client component
 additionalProperties: false

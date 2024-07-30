@@ -4,7 +4,6 @@
 /// @brief @copybrief TESTPOINT
 
 #include <string>
-#include <unordered_set>
 
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/formats/json/value.hpp>

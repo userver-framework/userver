@@ -1,10 +1,14 @@
 #pragma once
 
 #include <userver/ugrpc/server/middlewares/base.hpp>
+#include <userver/ugrpc/server/storage_context.hpp>
+#include <userver/utils/any_storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::middlewares::log {
+
+inline const utils::AnyStorageDataTag<StorageContext, bool> kIsFirstRequest;
 
 class Middleware final : public MiddlewareBase {
  public:

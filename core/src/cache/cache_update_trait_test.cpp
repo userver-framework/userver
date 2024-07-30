@@ -614,6 +614,8 @@ class ExpirableCache : public cache::CacheMockBase {
 
   const auto& GetExpiredLog() const { return expired_log_; }
 
+  bool IsExpired() const { return is_expired_; }
+
  private:
   void Update(cache::UpdateType /*type*/,
               const std::chrono::system_clock::time_point& /*last_update*/,
@@ -629,6 +631,7 @@ class ExpirableCache : public cache::CacheMockBase {
   void MarkAsExpired() override { is_expired_ = true; }
 
   std::function<bool(std::uint64_t)> is_update_failed_;
+  // There is only 1 TaskProcessor thread in these tests, so no need to sync.
   std::vector<bool> expired_log_;
   bool is_expired_ = false;
 };
@@ -645,6 +648,20 @@ first-update-fail-ok: true
       {}};
 }
 
+void SetExpirableUpdatesEnabled(dynamic_config::StorageMock& config_storage,
+                                bool updates_enabled) {
+  cache::ConfigPatch config;
+  config.update_interval = std::chrono::milliseconds{1};
+  config.updates_enabled = updates_enabled;
+
+  config_storage.Extend({
+      {cache::kCacheConfigSet,
+       {
+           {std::string{ExpirableCache::kName}, config},
+       }},
+  });
+}
+
 }  // namespace
 
 UTEST(ExpirableCacheUpdateTrait, TwoFailed) {
@@ -656,15 +673,47 @@ UTEST(ExpirableCacheUpdateTrait, TwoFailed) {
     return std::count(failed.begin(), failed.end(), i);
   });
 
-  while (cache.GetExpiredLog().size() < 13) {
+  const std::vector expected{false, false, false, false, true, true, false,
+                             false, false, false, true,  true, false};
+
+  while (cache.GetExpiredLog().size() < expected.size()) {
     engine::Yield();
   }
 
-  const auto& actual = cache.GetExpiredLog();
-  const std::vector<bool> expected{false, false, false, false, true,
-                                   true,  false, false, false, false,
-                                   true,  true,  false};
+  auto actual = cache.GetExpiredLog();
+  actual.resize(expected.size());
   EXPECT_EQ(actual, expected);
+}
+
+UTEST(ExpirableCacheUpdateTrait, UpdatesDisabled) {
+  auto config = MakeExpirableCacheConfig(2);
+  cache::MockEnvironment environment(
+      testsuite::impl::PeriodicUpdatesMode::kEnabled);
+  ExpirableCache cache(config, environment, [&environment](auto i) -> bool {
+    if (i == 3) {
+      SetExpirableUpdatesEnabled(environment.config_storage, false);
+    }
+    // Update always succeeds.
+    return false;
+  });
+
+  while (!cache.IsExpired()) {
+    engine::Yield();
+  }
+
+  // The cache might attempt and skip some more updates during this time.
+  engine::SleepFor(std::chrono::milliseconds{10});
+
+  SetExpirableUpdatesEnabled(environment.config_storage, true);
+
+  while (cache.IsExpired()) {
+    engine::Yield();
+  }
+
+  SUCCEED() << "The cache succeeded to drop its data after certain amount of "
+               "update skips (because its data is considered stale at this "
+               "point), then once the cache updates are enabled again, it "
+               "repaired itself using Update";
 }
 
 namespace {

@@ -58,7 +58,7 @@ void http_headers_serialization_inplace(benchmark::State& state) {
           };
           append("HTTP/");
           data = fmt::format_to(data, FMT_COMPILE("{}.{} {} "), 1, 1, 200);
-          append(HttpStatusString(server::http::HttpStatus::kOk));
+          append(StatusCodeString(server::http::HttpStatus::kOk));
           append("\r\n");
           return data - old_data_pointer;
         });
@@ -83,7 +83,7 @@ void http_headers_serialization_no_ostreams(benchmark::State& state) {
 
     os.append("HTTP/");
     fmt::format_to(std::back_inserter(os), FMT_COMPILE("{}.{} {} "), 1, 1, 200);
-    os.append(HttpStatusString(server::http::HttpStatus::kOk));
+    os.append(StatusCodeString(server::http::HttpStatus::kOk));
     os.append("\r\n");
 
     for (const auto& header : kHeaders) {
@@ -105,8 +105,7 @@ void http_headers_serialization_ostreams(benchmark::State& state) {
     std::ostringstream os;
 
     os << "HTTP/" << 1 << "." << 1 << " " << 200
-       << server::http::HttpStatusString(server::http::HttpStatus::kOk)
-       << "\r\n";
+       << StatusCodeString(server::http::HttpStatus::kOk) << "\r\n";
 
     for (const auto& header : kHeaders) {
       os << header.first << ": " << header.second << "\r\n";

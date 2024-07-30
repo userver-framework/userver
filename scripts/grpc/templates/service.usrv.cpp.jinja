@@ -41,7 +41,7 @@ std::unique_ptr<USERVER_NAMESPACE::ugrpc::server::impl::ServiceWorker>
 {{service.name}}Base::MakeWorker(
     USERVER_NAMESPACE::ugrpc::server::impl::ServiceSettings&& settings) {
   return USERVER_NAMESPACE::ugrpc::server::impl::MakeServiceWorker<
-      {{proto.namespace}}::{{service.name}}>(
+      {{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}>(
       std::move(settings), k{{service.name}}MethodNames, *this,
       {% for method in service.method %}
       &{{service.name}}Base::{{method.name}}{{ "," if not loop.last else ");" }}

@@ -16,15 +16,100 @@ Changelog news also go to the
 
 ## Roadmap
 
-* 👨‍💻 Codegen parsers and serializers by JSON schema
+* ✔️ Codegen parsers and serializers by JSON schema
 * 👨‍💻 Improve Kafka driver.
 * 👨‍💻 Add retry budget or retry circuit breaker for clients.
-* Improve OpenTelemetry Protocol (OTLP) support.
+* 👨‍💻 Improve OpenTelemetry Protocol (OTLP) support.
 * Add web interface to the [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf)
+* Generate full-blown accessories for OpenAPI:
+  * clients
+  * handlers
 
 
 ## Changelog
 
+### Release v2.2
+
+* Added @ref scripts/docs/en/userver/chaotic.md "codegen parsers and serializers by JSON schema"
+* Improved the ability to unit test of gRPC clients and servers, Redis and
+  Mongo databases, logs. Samples and docs were improved.
+* Implemented feedback forms and likes/dislikes for each documentation page.
+  **Feedback would be appreciated!**
+  Many thanks to [Fedor Alekseev](https://github.com/atlz253) for the PR and to
+  [MariaGrinchenko](https://github.com/MariaGrinchenko) for the buttons design!
+* Added @ref scripts/docs/en/userver/ydb.md "docs on YDB".
+* Mobile header view and docs layout was improved. Many thanks to
+  [Fedor Alekseev](https://github.com/atlz253) for the PRs.
+* engine::subprocess::ProcessStarter::Exec now can lookup binaries via
+  `PATH` variable.
+* Fixed gRPC generation for nested namespaces with repetitions. Many thanks to
+  [nfrmtk](https://github.com/nfrmtk) for the PR!
+* Handle both websocket and plain HTTP requests for the same path. Many thanks
+  to [Hovard Smith](https://github.com/w15eacre) for the PR!
+* Support setting client + CA certs in RabbitMQ. Many thanks to
+  [Alexey Dyumin](https://github.com/dyumin) for  the PR!
+* yaml_config::YamlConfig now can read files via `#file`. Now the static
+  config of the service could refer to other files.
+* Added support of bit operations to Redis.
+* PostgreSQL driver now works with AWS Aurora.
+* Added quick start for beginners to @ref scripts/docs/en/userver/tutorial/build.md.
+  Many thanks to [Fedor Alekseev](https://github.com/atlz253) for the PR.
+* Improved path to sources trimming for Conan builds. Many thanks to
+  [Kirill](https://github.com/KVolodin) for the PR!
+* Multiple minor improvements to build, packaging, docs and testing.
+
+### Release v2.1 (May 2024)
+
+* Coroutines stack usage is now shown in the
+  `engine.coro-pool.stack-usage.max-usage-percent` metric. Improved
+  stack-overflow diagnostics.
+* HTTP server and HTTP client now support ZSTD decompression. Thanks
+  to [Илья Оплачкин](https://github.com/IoplachkinI)
+  and [VScdr](https://github.com/VS-CDR) for the PR!
+* Added redis::MakeBulkHedgedRedisRequestAsync() and
+  redis::MakeBulkHedgedRedisRequest().
+* OpenTelemetry parent span-id is now passed through AMQP headers along with
+  trace-id. Thanks to [TertiumOrganum1](https://github.com/TertiumOrganum1) for
+  the PR!
+* ugrpc::server::MiddlewareBase now has CallRequestHook and CallResponseHook
+  for intercepting requests and responses.
+* components::LoggableComponentBase was renamed to components::ComponentBase.
+  components::RawComponentBase was published.
+* Multiple improvements for logging in testsuite.
+* gRPC metrics are now not written for methods that were not used at runtime.
+* Mongo pools now can be adjusted at runtime via dynamic config
+  @ref MONGO_CONNECTION_POOL_SETTINGS. Congestion Control for individual Mongo
+  databases now could be controlled via
+  @ref MONGO_CONGESTION_CONTROL_DATABASES_SETTINGS. Congestion Control is now
+  enabled by default.
+* Reduced contention in coro::Pool and added some tests and benchmarks. Many
+  thanks to [Egor Bocharov](https://github.com/egor-bystepdev) for the PRs!
+* Added urabbitmq::ConsumerComponentBase::Process() accepting the whole
+  urabbitmq::ConsumedMessage. Thanks to
+  [TertiumOrganum1](https://github.com/TertiumOrganum1) for the PR!
+* `human_logs.py` now supports more options and has more examples and docs
+  embedded. Thanks to
+  [TertiumOrganum1](https://github.com/TertiumOrganum1) for the PR!
+* server::http::HttpStatus and client::http::Status are now aliases to
+  http::StatusCode. Many thanks to
+  [SidorovichPavel](https://github.com/SidorovichPavel) for the PR!
+
+* Docs and build:
+  * `find_package(userver)` now implicitly calls `userver_setup_environment()`,
+    includes all the helper CMake userver scripts, making the configuration simpler.
+    Added diagnostics and fix-it hints for some of the CMake missuses.
+  * In docs `Ctrl+k` hotkey now focuses on `Search` input. Many thanks to
+    [Fedor Alekseev](https://github.com/atlz253) for the PR!
+  * ODR-violations are now avoided if the userver is built with different standard
+    version than the service.
+  * Each sample is now usable as a root project.
+  * Each driver now has a @ref QUALITY_TIERS "Quality Tier".
+  * Fixed minimal version requirements for Pythons gRPC modules. Thanks to
+    [Nikita](https://github.com/root-kidik) for the PR!
+  * Reduced build times by avoiding inclusion of heavy headers.
+  * Added an example on PostgreSQL `bytea` usage. Thanks to
+  [TertiumOrganum1](https://github.com/TertiumOrganum1) for the PR!
+  * Multiple improvements for docs, build and CI scripts.  
 
 ### Release v2.0
 
@@ -129,7 +214,7 @@ Binary Ubuntu 22.04 amd64 package could be found at
 * Optimizations:
   * WriteAll for TLS became up to 7 times faster if multiple small chunks of
     data are written. Thanks to [Илья Оплачкин](https://github.com/IoplachkinI)
-    and [VScdr](https://github.com/VS-CDR) for the PR! 
+    and [VScdr](https://github.com/VS-CDR) for the PR!
   * Binary sizes were reduced if building without LTO. All the binaries linked
     with userver became about 1MB smaller.
   * Implemented asymmetric thread fences. This opens the door for optimizations

@@ -1,0 +1,11 @@
+definitions:
+    RecursiveObject:
+        type: object
+        additionalProperties: false
+        properties:
+            data:
+                type: string
+            next:
+                type: array
+                items:
+                    $ref: '#/definitions/RecursiveObject'

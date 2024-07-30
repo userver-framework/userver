@@ -37,17 +37,17 @@ TEST(Regex, Search) {
 
 TEST(Regex, SearchWithResult) {
   utils::regex r("^[a-z][0-9]+");
-  utils::smatch fail;
+  utils::match_results fail;
   const std::string str_empty{};
   EXPECT_FALSE(utils::regex_search(str_empty, fail, r));
   ASSERT_EQ(fail.size(), 1);
-  const std::string empty = fail[0];
+  const std::string_view empty = fail[0];
   EXPECT_EQ(empty, str_empty);
-  utils::smatch success;
+  utils::match_results success;
   const std::string str{"a1234"};
   EXPECT_TRUE(utils::regex_search(str, success, r));
   ASSERT_EQ(success.size(), 1);
-  const std::string res = success[0];
+  const std::string_view res = success[0];
   EXPECT_EQ(res, str);
 }
 
@@ -62,17 +62,17 @@ TEST(Regex, Replace) {
 
 TEST(Regex, MatchWithResult) {
   utils::regex r("^[a-z][0-9]+");
-  utils::smatch fail;
+  utils::match_results fail;
   const std::string str_empty{};
   EXPECT_FALSE(utils::regex_search(str_empty, fail, r));
   ASSERT_EQ(fail.size(), 1);
-  const std::string empty = fail[0];
+  const std::string_view empty = fail[0];
   EXPECT_EQ(empty, str_empty);
-  utils::smatch success;
+  utils::match_results success;
   const std::string str{"a1234"};
   EXPECT_TRUE(utils::regex_match(str, success, r));
   ASSERT_EQ(success.size(), 1);
-  const std::string res = success[0];
+  const std::string_view res = success[0];
   EXPECT_EQ(res, str);
 }
 

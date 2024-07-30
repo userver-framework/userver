@@ -6,29 +6,15 @@
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/distances.hpp>
 #include <userver/utils/text_light.hpp>
 #include <userver/yaml_config/schema.hpp>
-#include <utils/distances.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace yaml_config::impl {
 
 namespace {
-
-constexpr std::string_view kFallbackSuffix = "#fallback";
-constexpr std::string_view kEnvSuffix = "#env";
-
-std::string RemoveFallbackAndEnvSuffix(std::string_view option) {
-  if (utils::text::EndsWith(option, kFallbackSuffix)) {
-    return std::string(
-        option.substr(0, option.length() - kFallbackSuffix.length()));
-  }
-  if (utils::text::EndsWith(option, kEnvSuffix)) {
-    return std::string(option.substr(0, option.length() - kEnvSuffix.length()));
-  }
-  return std::string(option);
-}
 
 bool IsTypeValid(FieldType type, const formats::yaml::Value& value) {
   switch (type) {
@@ -89,8 +75,7 @@ void ValidateObject(const YamlConfig& object, const Schema& schema) {
   const auto& properties = schema.properties.value();
 
   for (const auto& [name, value] : Items(object)) {
-    const std::string search_name = RemoveFallbackAndEnvSuffix(name);
-    if (const auto it = properties.find(search_name); it != properties.end()) {
+    if (const auto it = properties.find(name); it != properties.end()) {
       ValidateIfPresent(value, *it->second);
       continue;
     }
@@ -111,11 +96,31 @@ void ValidateObject(const YamlConfig& object, const Schema& schema) {
         "made a typo or forgot to define components' static config schema.{}",
         value.GetPath(), schema.path, KeysAsString(properties),
         utils::SuggestNearestName(properties | boost::adaptors::map_keys,
-                                  search_name)));
+                                  name)));
+  }
+}
+
+void ValidateArrayLen(const YamlConfig& array, const Schema& schema) {
+  if (schema.min_items && !(array.GetSize() >= *schema.min_items)) {
+    throw std::runtime_error(fmt::format(
+        "Error while validating static config against schema. "
+        "Expected length of {} at path '{}' to be >= {} (actual: {}).",
+        ToString(schema.type), array.GetPath(), *schema.min_items,
+        array.GetSize()));
+  }
+
+  if (schema.max_items && !(array.GetSize() <= *schema.max_items)) {
+    throw std::runtime_error(fmt::format(
+        "Error while validating static config against schema. "
+        "Expected length of {} at path '{}' to be <= {} (actual: {}).",
+        ToString(schema.type), array.GetPath(), *schema.max_items,
+        array.GetSize()));
   }
 }
 
 void ValidateArray(const YamlConfig& array, const Schema& schema) {
+  ValidateArrayLen(array, schema);
+
   for (const auto& element : array) {
     ValidateIfPresent(element, *schema.items.value());
   }

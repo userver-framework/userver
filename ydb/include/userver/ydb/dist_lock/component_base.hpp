@@ -6,7 +6,7 @@
 #include <optional>
 #include <string>
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/utils/statistics/entry.hpp>
 #include <userver/ydb/dist_lock/worker.hpp>
 
@@ -52,7 +52,7 @@ namespace ydb {
 /// @see @ref scripts/docs/en/userver/periodics.md
 
 // clang-format on
-class DistLockComponentBase : public components::LoggableComponentBase {
+class DistLockComponentBase : public components::ComponentBase {
  public:
   DistLockComponentBase(const components::ComponentConfig&,
                         const components::ComponentContext&);

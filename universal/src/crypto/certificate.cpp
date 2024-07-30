@@ -3,12 +3,12 @@
 #include <openssl/pem.h>
 #include <openssl/x509.h>
 
+#include <userver/crypto/exception.hpp>
+#include <userver/crypto/hash.hpp>
+#include <userver/crypto/openssl.hpp>
 #include <userver/utils/text_light.hpp>
 
 #include <crypto/helpers.hpp>
-#include <crypto/openssl.hpp>
-#include <userver/crypto/exception.hpp>
-#include <userver/crypto/hash.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -44,7 +44,7 @@ std::optional<std::string> Certificate::GetPemString() const {
 }
 
 Certificate Certificate::LoadFromString(std::string_view certificate) {
-  impl::Openssl::Init();
+  Openssl::Init();
 
   if (!utils::text::StartsWith(certificate, "-----BEGIN CERTIFICATE-----")) {
     throw KeyParseError(FormatSslError("Not a certificate"));

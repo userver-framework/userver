@@ -6,9 +6,14 @@ file(GLOB_RECURSE SOURCES
 )
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
-add_library(userver::kafka ALIAS ${PROJECT_NAME})
 
-include(SetupRdKafka)
+if (USERVER_CONAN)
+  find_package(RdKafka REQUIRED)
+  set_target_properties(RdKafka::rdkafka++ PROPERTIES IMPORTED_GLOBAL TRUE)
+  add_library(rdkafka ALIAS RdKafka::rdkafka++)
+else()
+  include(SetupRdKafka)
+endif()
 
 target_compile_options(${PROJECT_NAME} PRIVATE "-Wno-ignored-qualifiers")
 target_link_libraries(${PROJECT_NAME}
@@ -40,7 +45,7 @@ _userver_install_targets(COMPONENT kafka TARGETS ${PROJECT_NAME})
 
 _userver_directory_install(COMPONENT kafka FILES
     "${USERVER_ROOT_DIR}/cmake/install/userver-kafka-config.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/FindRdKafka.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/FindRdKafka.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
 )
 

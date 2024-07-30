@@ -9,7 +9,7 @@ namespace tests::handlers {
 
 TasksSample::TasksSample(const components::ComponentConfig& config,
                          const components::ComponentContext& context)
-    : components::LoggableComponentBase(config, context) {
+    : components::ComponentBase(config, context) {
   /// [register]
   auto& testsuite_tasks = testsuite::GetTestsuiteTasks(context);
   // Only register task for testsuite environment

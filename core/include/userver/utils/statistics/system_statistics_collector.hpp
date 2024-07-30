@@ -3,8 +3,8 @@
 /// @file userver/utils/statistics/system_statistics_collector.hpp
 /// @brief @copybrief components::SystemStatisticsCollector
 
+#include <userver/components/component_base.hpp>
 #include <userver/components/component_fwd.hpp>
-#include <userver/components/loggable_component_base.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/statistics/entry.hpp>
 
@@ -35,7 +35,7 @@ namespace components {
 
 // clang-format on
 
-class SystemStatisticsCollector final : public LoggableComponentBase {
+class SystemStatisticsCollector final : public ComponentBase {
  public:
   /// @ingroup userver_component_names
   /// @brief The default name of components::SystemStatisticsCollector
