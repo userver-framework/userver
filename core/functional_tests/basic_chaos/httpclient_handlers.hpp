@@ -54,7 +54,7 @@ class HttpClientHandler final : public server::handlers::HttpHandlerBase {
     if (type == "common") {
       auto url = fmt::format("http://localhost:{}/test", port);
       auto response = client_.CreateRequest()
-                          .get(url)  //
+                          .get(url)
                           .timeout(timeout)
                           .retry(attempts, retry_network_errors)
                           .perform();

@@ -117,7 +117,9 @@ void DeadlinePropagation::HandleRequest(
       handler_.LogUnknownException(ex, logging::Level::kWarning);
       return;
     } else {
-      // Let it fly further, not our problem.
+      // If the exception is raised but not related to Deadline Propagation,
+      // it will be caught by another middleware from DefaultPipeline, likely
+      // kExceptionsHandling.
       throw;
     }
   }

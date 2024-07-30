@@ -38,7 +38,6 @@ MiddlewaresList DefaultPipeline() {
 
       // Should be self-explanatory
       std::string{builtin::kRateLimit},
-      std::string{builtin::kDeadlinePropagation},
       std::string{builtin::kBaggage},
       std::string{builtin::kAuth},
       std::string{builtin::kDecompression},
@@ -49,6 +48,12 @@ MiddlewaresList DefaultPipeline() {
       // Middlewares that call HttpHandlerBase::HandleCustomHandlerException or
       // fill the response manually on error (which is faster) should go above.
       std::string{builtin::kExceptionsHandling},
+
+      // DeadlinePropagation should go after ExceptionsHandlingMiddleware
+      // if the request threw an std::exception and was canceled by deadline
+      // propagation,
+      // then it must be handled differently.
+      std::string{builtin::kDeadlinePropagation},
   };
 }
 /// [Middlewares sample - default pipeline]
