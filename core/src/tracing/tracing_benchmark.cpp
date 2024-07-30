@@ -10,7 +10,7 @@ namespace {
 
 void tracing_noop_ctr(benchmark::State& state) {
   engine::RunStandalone([&] {
-    auto tracer = tracing::MakeTracer("test_service");
+    auto tracer = tracing::MakeTracer("test_service", {});
 
     for ([[maybe_unused]] auto _ : state)
       benchmark::DoNotOptimize(tracer->CreateSpanWithoutParent("name"));
@@ -25,7 +25,7 @@ void tracing_happy_log(benchmark::State& state) {
     // TODO Null logger ignores log level and keeps kNone, this benchmark
     //  measures nothing. Should use TpLogger instead.
     const logging::DefaultLoggerLevelScope level_scope{logging::Level::kInfo};
-    auto tracer = tracing::MakeTracer("test_service");
+    auto tracer = tracing::MakeTracer("test_service", {});
 
     for ([[maybe_unused]] auto _ : state)
       benchmark::DoNotOptimize(tracer->CreateSpanWithoutParent("name"));
@@ -42,8 +42,9 @@ tracing::Span GetSpanWithOpentracingHttpTags(tracing::TracerPtr tracer) {
 }
 
 void tracing_opentracing_ctr(benchmark::State& state) {
+  auto logger = logging::MakeNullLogger();
   engine::RunStandalone([&] {
-    auto tracer = tracing::MakeTracer("test_service");
+    auto tracer = tracing::MakeTracer("test_service", logger);
     for ([[maybe_unused]] auto _ : state) {
       benchmark::DoNotOptimize(GetSpanWithOpentracingHttpTags(tracer));
     }

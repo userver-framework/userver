@@ -1591,6 +1591,7 @@
   "core/src/tracing/span.cpp":"taxi/uservices/userver/core/src/tracing/span.cpp",
   "core/src/tracing/span_builder.cpp":"taxi/uservices/userver/core/src/tracing/span_builder.cpp",
   "core/src/tracing/span_impl.hpp":"taxi/uservices/userver/core/src/tracing/span_impl.hpp",
+  "core/src/tracing/span_opentracing.cpp":"taxi/uservices/userver/core/src/tracing/span_opentracing.cpp",
   "core/src/tracing/span_test.cpp":"taxi/uservices/userver/core/src/tracing/span_test.cpp",
   "core/src/tracing/tag_scope.cpp":"taxi/uservices/userver/core/src/tracing/tag_scope.cpp",
   "core/src/tracing/tag_scope_test.cpp":"taxi/uservices/userver/core/src/tracing/tag_scope_test.cpp",
