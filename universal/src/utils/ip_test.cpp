@@ -126,6 +126,19 @@ TEST(NetworkV4Test, TransformToCidrFormatTest) {
             NetworkV4(AddressV4({255, 255, 240, 0}), 20));
 }
 
+TEST(NetworkV4Test, ContainsAddressTest) {
+  using utils::ip::AddressV4FromString;
+  using utils::ip::NetworkV4FromString;
+
+  NetworkV4 network = NetworkV4FromString("66.249.77.96/27");
+
+  AddressV4 address1 = AddressV4FromString("66.249.77.127");
+  EXPECT_TRUE(network.ContainsAddress(address1));
+
+  AddressV4 address2 = AddressV4FromString("66.249.77.128");
+  EXPECT_FALSE(network.ContainsAddress(address2));
+}
+
 TEST(NetworkV6Test, PrefixLengthTests) {
   using utils::ip::AddressV6;
   using utils::ip::NetworkV6;
@@ -187,6 +200,20 @@ TEST(NetworkV6Test, TransformToCidrFormatTest) {
   const auto net2 = NetworkV6FromString("2001:db8:85a3::8a2e:370:7334/120");
   EXPECT_EQ(TransformToCidrFormat(net2),
             NetworkV6FromString("2001:db8:85a3::8a2e:370:7300/120"));
+}
+
+TEST(NetworkV6Test, ContainsAddressTest) {
+  using utils::ip::AddressV6FromString;
+  using utils::ip::NetworkV6FromString;
+
+  NetworkV6 network = NetworkV6FromString("2001:4860:4801:11::/64");
+
+  AddressV6 address1 =
+      AddressV6FromString("2001:4860:4801:11:ffff:ffff:ffff:ffff");
+  EXPECT_TRUE(network.ContainsAddress(address1));
+
+  AddressV6 address2 = AddressV6FromString("2001:4860:4801:12::");
+  EXPECT_FALSE(network.ContainsAddress(address2));
 }
 
 TEST(InetNetworkTest, ConstructorTests) {
