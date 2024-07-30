@@ -19,19 +19,24 @@ namespace engine::ev {
 namespace {
 
 // We approach libev/OS timer resolution here
-constexpr std::chrono::milliseconds kPeriodicEventsDriverInterval{1};
+constexpr std::chrono::milliseconds kDedicatedDeferInterval{1};
 
 // There is a periodic timer in ev-thread with 1ms interval that processes
 // starts/restarts/stops, thus we don't need to explicitly call ev_async_send
 // for every operation. However there are some timers with resolution lower
 // than 1ms, and for such presumably rare occasions we still want to notify
 // ev-loop explicitly.
-const auto kEventImmediateSetupThreshold =
-    kPeriodicEventsDriverInterval +
-    utils::datetime::SteadyCoarseClock::resolution();
+const auto kDedicatedDeferThreshold =
+    kDedicatedDeferInterval + utils::datetime::SteadyCoarseClock::resolution();
 
 constexpr std::chrono::milliseconds kCpuStatsCollectInterval{1000};
-constexpr std::size_t kCpuStatsThrottle{16};
+
+const auto kDeferedInterval =
+    kMinDurationToDefer - utils::datetime::SteadyCoarseClock::resolution();
+
+// Check the time at least twice per collect interval
+const auto kCpuStatsThrottle =
+    static_cast<std::size_t>(kCpuStatsCollectInterval / kDeferedInterval / 2);
 
 }  // namespace
 
@@ -53,6 +58,8 @@ Thread::Thread(const std::string& thread_name,
       lock_(loop_mutex_, std::defer_lock),
       name_{thread_name},
       cpu_stats_storage_{kCpuStatsCollectInterval, kCpuStatsThrottle} {
+  UASSERT_MSG(kDeferedInterval > std::chrono::milliseconds{4},
+              "Timer events would happen too often");
   Start();
 }
 
@@ -68,21 +75,29 @@ void Thread::RunInEvLoopAsync(AsyncPayloadBase& payload) noexcept {
 
 void Thread::RunInEvLoopDeferred(AsyncPayloadBase& payload,
                                  Deadline deadline) noexcept {
-  switch (register_event_mode_) {
-    case RegisterEventMode::kImmediate: {
-      RunInEvLoopAsync(payload);
+  RegisterInEvLoop(payload);
+
+  if (IsInEvThread() || ev_async_pending(&watch_update_)) {
+    return;
+  }
+
+  if (deadline.IsReachable()) {
+    const auto time_left = deadline.TimeLeftApprox();
+    if (time_left >= kMinDurationToDefer) {
       return;
     }
-    case RegisterEventMode::kDeferred: {
-      if (deadline.IsReachable() &&
-          deadline.TimeLeftApprox() < kEventImmediateSetupThreshold) {
-        RunInEvLoopAsync(payload);
-      } else {
-        RegisterInEvLoop(payload);
-      }
+
+    if (register_event_mode_ == RegisterEventMode::kDedicatedDeferred &&
+        time_left >= kDedicatedDeferThreshold) {
+      return;
+    }
+  } else {
+    if (register_event_mode_ == RegisterEventMode::kDedicatedDeferred) {
       return;
     }
   }
+
+  ev_async_send(GetEvLoop(), &watch_update_);
 }
 
 void Thread::RegisterInEvLoop(AsyncPayloadBase& payload) {
@@ -124,24 +139,15 @@ void Thread::Start() {
   ev_async_start(loop, &watch_break_);
 
   using LibEvDuration = std::chrono::duration<double>;
-  if (register_event_mode_ == RegisterEventMode::kDeferred) {
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
-    ev_timer_init(
-        &timers_driver_, UpdateTimersWatcher, 0.0,
-        std::chrono::duration_cast<LibEvDuration>(kPeriodicEventsDriverInterval)
-            .count());
-    ev_timer_start(loop, &timers_driver_);
-  } else {
-    // We set up a noop high-interval timer here to wake up the loop: that
-    // helps to avoid cpu-stats stall with outdated values if we become idle
-    // after a burst. No point in doing so if we already have timers_driver.
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
-    ev_timer_init(
-        &stats_timer_, UpdateTimersWatcher, 0.0,
-        std::chrono::duration_cast<LibEvDuration>(kCpuStatsCollectInterval)
-            .count());
-    ev_timer_start(loop, &stats_timer_);
-  }
+  const auto defer_duration = std::chrono::duration_cast<LibEvDuration>(
+      register_event_mode_ == RegisterEventMode::kDedicatedDeferred
+          ? kDedicatedDeferInterval
+          : kDeferedInterval);
+
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
+  ev_timer_init(&defer_timer_, UpdateTimersWatcher, 0.0,
+                defer_duration.count());
+  ev_timer_start(loop, &defer_timer_);
 
   is_running_ = true;
   thread_ = std::thread([this] {
@@ -170,11 +176,7 @@ void Thread::RunEvLoop() {
 
   ev_async_stop(GetEvLoop(), &watch_update_);
   ev_async_stop(GetEvLoop(), &watch_break_);
-  if (register_event_mode_ == RegisterEventMode::kDeferred) {
-    ev_timer_stop(GetEvLoop(), &timers_driver_);
-  } else {
-    ev_timer_stop(GetEvLoop(), &stats_timer_);
-  }
+  ev_timer_stop(GetEvLoop(), &defer_timer_);
 }
 
 void Thread::UpdateLoopWatcher(struct ev_loop* loop, ev_async*, int) noexcept {

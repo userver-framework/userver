@@ -14,7 +14,7 @@ namespace engine::ev {
 namespace {
 
 Thread::RegisterEventMode GetRegisterEventMode(bool defer_timers) {
-  return defer_timers ? Thread::RegisterEventMode::kDeferred
+  return defer_timers ? Thread::RegisterEventMode::kDedicatedDeferred
                       : Thread::RegisterEventMode::kImmediate;
 }
 
@@ -52,7 +52,7 @@ ThreadPool::ThreadPool(ThreadPoolConfig config, bool use_ev_default_loop)
     timer_threads_.threads = utils::GenerateFixedArray(
         config.dedicated_timer_threads, [](std::size_t index) {
           return Thread{fmt::format("ev-timer_{}", index),
-                        Thread::RegisterEventMode::kDeferred};
+                        Thread::RegisterEventMode::kDedicatedDeferred};
         });
 
     // Although we expect to always have a dedicated timer thread[s]

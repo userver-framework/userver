@@ -19,6 +19,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::ev {
 
+// Avoid ev_async_send on timers that have bigger timeouts
+inline constexpr std::chrono::microseconds kMinDurationToDefer{19500};
+
 class Thread final {
  public:
   struct UseDefaultEvLoop {};
@@ -32,7 +35,7 @@ class Thread final {
     // a periodic timer, running with ~1ms resolution. It helps to avoid
     // the ev_async_send call, which incurs very noticeable overhead, however
     // event execution becomes delayed for a aforementioned ~1ms.
-    kDeferred
+    kDedicatedDeferred
   };
 
   Thread(const std::string& thread_name, RegisterEventMode);
@@ -89,8 +92,7 @@ class Thread final {
   std::mutex loop_mutex_{};
   std::unique_lock<std::mutex> lock_{loop_mutex_, std::defer_lock};
 
-  ev_timer timers_driver_{};
-  ev_timer stats_timer_{};
+  ev_timer defer_timer_{};
   ev_async watch_update_{};
   ev_async watch_break_{};
 
