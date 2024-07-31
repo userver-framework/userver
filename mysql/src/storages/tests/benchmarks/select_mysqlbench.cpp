@@ -33,7 +33,6 @@ BENCHMARK(select)->Range(1, 256)->RangeMultiplier(2);
 
 void select_many_small_columns(benchmark::State& state) {
   engine::TaskProcessorPoolsConfig config{};
-  config.defer_events = false;
 
   engine::RunStandalone(1, config, [&state] {
     tests::ClusterWrapper cluster;

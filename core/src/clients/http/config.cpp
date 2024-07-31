@@ -53,7 +53,6 @@ ClientSettings Parse(const yaml_config::YamlConfig& value,
   result.thread_name_prefix =
       value["thread-name-prefix"].As<std::string>(result.thread_name_prefix);
   result.io_threads = value["threads"].As<size_t>(result.io_threads);
-  result.defer_events = value["defer-events"].As<bool>(result.defer_events);
   result.deadline_propagation = ParseDeadlinePropagationConfig(value);
   return result;
 }

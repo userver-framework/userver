@@ -37,7 +37,6 @@ namespace components {
 /// pool-statistics-disable | set to true to disable statistics for connection pool | false
 /// thread-name-prefix | set OS thread name to this value | ''
 /// threads | number of threads to process low level HTTP related IO system calls | 8
-/// defer-events | whether to defer events execution to a periodic timer; might affect timings a bit, might boost performance, use with care | false
 /// fs-task-processor | task processor to run blocking HTTP related calls, like DNS resolving or hosts reading | -
 /// destination-metrics-auto-max-size | set max number of automatically created destination metrics | 100
 /// user-agent | User-Agent HTTP header to show on all requests, result of utils::GetUserverIdentifier() if empty | empty

@@ -35,7 +35,6 @@ CancellationPolicy Parse(yaml_config::YamlConfig value,
 struct ClientSettings final {
   std::string thread_name_prefix{};
   size_t io_threads{8};
-  bool defer_events{false};
   DeadlinePropagationConfig deadline_propagation{};
   const tracing::TracingManagerBase* tracing_manager{nullptr};
   const clients::http::plugins::headers_propagator::HeadersPropagator*

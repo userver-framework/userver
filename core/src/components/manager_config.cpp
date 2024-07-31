@@ -132,11 +132,6 @@ properties:
                     (if set to zero timer events will be processed
                     intermixed with IO events)
                 defaultDescription: 0
-            defer_events:
-                type: boolean
-                description: >
-                    Whether to defer timer events to a per-thread periodic timer
-                    or notify ev-loop right away
     components:
         type: object
         description: 'dictionary of "component name": "options"'

@@ -87,7 +87,6 @@ components_manager:
       pool-statistics-disable: false
       thread-name-prefix: http-client
       threads: 2
-      defer-events: false
       fs-task-processor: fs-task-processor
       destination-metrics-auto-max-size: 100
       user-agent: common_component_list sample

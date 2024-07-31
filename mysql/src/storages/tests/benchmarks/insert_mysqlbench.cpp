@@ -48,7 +48,6 @@ BENCHMARK(insert_retrieve)->Range(1 << 10, 1 << 20)->RangeMultiplier(4);
 
 void batch_insert(benchmark::State& state) {
   engine::TaskProcessorPoolsConfig config{};
-  config.defer_events = false;
 
   engine::RunStandalone(1, config, [&state] {
     tests::ClusterWrapper cluster;

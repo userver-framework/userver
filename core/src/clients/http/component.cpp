@@ -203,10 +203,6 @@ properties:
         type: integer
         description: number of threads to process low level HTTP related IO system calls
         defaultDescription: 8
-    defer-events:
-        type: boolean
-        description: whether to defer events execution to a periodic timer; might affect timings a bit, might boost performance, use with care
-        defaultDescription: false
     fs-task-processor:
         type: string
         description: task processor to run blocking HTTP related calls, like DNS resolving or hosts reading

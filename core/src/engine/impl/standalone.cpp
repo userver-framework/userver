@@ -24,7 +24,6 @@ std::shared_ptr<TaskProcessorPools> MakeTaskProcessorPools(
   ev_config.threads = pools_config.ev_threads_num;
   ev_config.thread_name = pools_config.ev_thread_name;
   ev_config.ev_default_loop_disabled = pools_config.ev_default_loop_disabled;
-  ev_config.defer_events = pools_config.defer_events;
 
   return std::make_shared<TaskProcessorPools>(std::move(coro_config),
                                               std::move(ev_config));

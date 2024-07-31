@@ -64,7 +64,6 @@ Client::Client(ClientSettings settings,
   ev_config.thread_name =
       kIoThreadName +
       (thread_name_prefix.empty() ? "" : ("-" + thread_name_prefix));
-  ev_config.defer_events = settings.defer_events;
   thread_pool_ = std::make_unique<engine::ev::ThreadPool>(std::move(ev_config));
 
   ReinitEasy();

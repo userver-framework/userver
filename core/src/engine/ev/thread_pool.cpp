@@ -11,15 +11,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::ev {
 
-namespace {
-
-Thread::RegisterEventMode GetRegisterEventMode(bool defer_timers) {
-  return defer_timers ? Thread::RegisterEventMode::kDedicatedDeferred
-                      : Thread::RegisterEventMode::kImmediate;
-}
-
-}  // namespace
-
 ThreadPool::ThreadPool(ThreadPoolConfig config)
     : ThreadPool(std::move(config), false) {}
 
@@ -28,8 +19,7 @@ ThreadPool::ThreadPool(ThreadPoolConfig config, UseDefaultEvLoop)
 
 ThreadPool::ThreadPool(ThreadPoolConfig config, bool use_ev_default_loop)
     : use_ev_default_loop_(use_ev_default_loop) {
-  const auto register_timer_event_mode =
-      GetRegisterEventMode(config.defer_events);
+  const auto register_timer_event_mode = Thread::RegisterEventMode::kImmediate;
 
   {
     default_threads_.threads =
