@@ -131,6 +131,20 @@ class CompilerBase:
         )
         self._definitions[name] = (schemas, types)
 
+    def definitions_includes_hpp(self) -> List[str]:
+        types = self._collect_types()
+        includes: List[str] = []
+        for type_ in types.values():
+            includes += type_.declaration_includes()
+        return sorted(set(includes))
+
+    def definitions_includes_cpp(self) -> List[str]:
+        types = self._collect_types()
+        includes: List[str] = []
+        for type_ in types.values():
+            includes += type_.definition_includes()
+        return sorted(set(includes))
+
     def parse_variable(
             self, filepath: str, name: str, include_dirs: List[str] = [],
     ) -> None:
