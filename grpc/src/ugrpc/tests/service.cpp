@@ -20,10 +20,6 @@ using ClientLogMiddlewareSettings = client::middlewares::log::Settings;
 using ClientDpMiddlewareFactory =
     client::middlewares::deadline_propagation::MiddlewareFactory;
 
-using ServerLogMiddleware = server::middlewares::log::Middleware;
-using ServerLogMiddlewareSettings =
-    server::middlewares::log::Middleware::Settings;
-
 using ServerDpMiddleware =
     server::middlewares::deadline_propagation::Middleware;
 

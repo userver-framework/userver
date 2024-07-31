@@ -1,16 +1,17 @@
 #pragma once
 
-/// @file userver/ugrpc/server/logging/component.hpp
+/// @file userver/ugrpc/server/middlewares/log/component.hpp
 /// @brief @copybrief ugrpc::server::middlewares::log::Component
 
-#include <optional>
-
 #include <userver/ugrpc/server/middlewares/base.hpp>
+#include <userver/utils/box.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 /// Server logging middleware
 namespace ugrpc::server::middlewares::log {
+
+struct Settings;
 
 // clang-format off
 
@@ -35,14 +36,14 @@ class Component final : public MiddlewareComponentBase {
   Component(const components::ComponentConfig& config,
             const components::ComponentContext& context);
 
+  ~Component() override;
+
   std::shared_ptr<MiddlewareBase> GetMiddleware() override;
 
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
-  std::size_t max_size_;
-  logging::Level msg_log_level_;
-  std::optional<logging::Level> local_log_level_;
+  const utils::Box<Settings> settings_;
 };
 
 }  // namespace ugrpc::server::middlewares::log

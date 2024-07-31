@@ -2,6 +2,8 @@
 
 #include <userver/utils/log.hpp>
 
+#include <ugrpc/impl/protobuf_utils.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::middlewares::log {
@@ -11,11 +13,13 @@ Middleware::Middleware(const Settings& settings) : settings_(settings) {}
 void Middleware::Handle(MiddlewareCallContext& context) const {
   const auto* request = context.GetInitialRequest();
   if (request) {
+    std::unique_ptr<google::protobuf::Message> trimmed{request->New()};
+    trimmed->CopyFrom(*request);
+    ugrpc::impl::TrimSecrets(*trimmed);
     LOG(settings_.log_level)
-        << "gRPC message: " << [request, this]() -> std::string {
-      const auto& str = request->Utf8DebugString();
-      return utils::log::ToLimitedUtf8(str, settings_.max_msg_size);
-    }();
+        << "gRPC message: "
+        << utils::log::ToLimitedUtf8(trimmed->Utf8DebugString(),
+                                     settings_.max_msg_size);
   }
   context.Next();
 }

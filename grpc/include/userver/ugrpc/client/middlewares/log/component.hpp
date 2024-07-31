@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/ugrpc/client/middleware/log/component.hpp
+/// @file userver/ugrpc/client/middlewares/log/component.hpp
 /// @brief @copybrief ugrpc::client::middlewares::log::Component
 
 #include <userver/ugrpc/client/middlewares/base.hpp>

@@ -47,8 +47,8 @@ endif()
 
 add_library(${PROJECT_NAME}-internal STATIC ${SOURCES})
 
-if (NOT USERVER_GPRC_BUILD_FROM_SOURCE) 
-  target_compile_definitions(${PROJECT_NAME}-internal PUBLIC GRPC_ASAN_SUPPRESSED GRPC_TSAN_SUPPRESSED) 
+if (NOT USERVER_GPRC_BUILD_FROM_SOURCE)
+  target_compile_definitions(${PROJECT_NAME}-internal PUBLIC GRPC_ASAN_SUPPRESSED GRPC_TSAN_SUPPRESSED)
 endif()
 
 set_target_properties(${PROJECT_NAME}-internal PROPERTIES LINKER_LANGUAGE CXX)
@@ -69,7 +69,20 @@ if (DEFINED api-common-proto_LIBRARY)
   _userver_install_targets(COMPONENT grpc TARGETS ${api-common-proto_LIBRARY})
 endif()
 
-target_link_libraries(${PROJECT_NAME}-internal PUBLIC userver-core)
+userver_generate_grpc_files(
+  PROTOS userver/field_options.proto
+  GENERATED_INCLUDES proto_include_paths
+  CPP_FILES generated_proto_sources
+)
+add_library(${PROJECT_NAME}-proto STATIC ${generated_proto_sources})
+target_link_libraries(${PROJECT_NAME}-proto PUBLIC ${PROJECT_NAME}-deps)
+target_include_directories(${PROJECT_NAME}-proto SYSTEM PUBLIC $<BUILD_INTERFACE:${proto_include_paths}>)
+_userver_install_targets(COMPONENT grpc TARGETS ${PROJECT_NAME}-proto)
+
+target_link_libraries(${PROJECT_NAME}-internal PUBLIC
+    userver-core
+    ${PROJECT_NAME}-proto
+)
 
 set(CHANNELZ_MIN_VERSION "1.17.0")
 if (${gRPC_VERSION} VERSION_GREATER_EQUAL ${CHANNELZ_MIN_VERSION})
@@ -102,7 +115,7 @@ endif()
 
 target_link_libraries(${PROJECT_NAME}-internal PUBLIC ${PROJECT_NAME}-deps)
 _userver_install_targets(COMPONENT grpc TARGETS ${PROJECT_NAME}-internal ${PROJECT_NAME}-deps)
- 
+
 if (Protobuf_VERSION VERSION_GREATER_EQUAL 4.23.0)
     target_link_libraries(${PROJECT_NAME}-internal PUBLIC
         absl::log_globals
@@ -144,6 +157,7 @@ if (USERVER_IS_THE_ROOT_PROJECT)
       tests/same_service_and_method_name.proto
       tests/global_package.proto
       tests/repeating_word_in_package_name.proto
+      tests/secret_fields.proto
       INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/proto
   )
 
