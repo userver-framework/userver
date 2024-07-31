@@ -572,6 +572,9 @@ class Decimal {
     return *this;
   }
 
+#ifdef __cpp_lib_three_way_comparison
+  constexpr auto operator<=>(const Decimal& rhs) const = default;
+#else
   constexpr bool operator==(Decimal rhs) const { return value_ == rhs.value_; }
 
   constexpr bool operator!=(Decimal rhs) const { return value_ != rhs.value_; }
@@ -583,6 +586,7 @@ class Decimal {
   constexpr bool operator>(Decimal rhs) const { return value_ > rhs.value_; }
 
   constexpr bool operator>=(Decimal rhs) const { return value_ >= rhs.value_; }
+#endif
 
   constexpr Decimal operator+() const { return *this; }
 

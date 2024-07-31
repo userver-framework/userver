@@ -104,11 +104,12 @@ struct InitializerListImpl<T, void_t<typename T::value_type>> {
 template <class T>
 using InitializerList = typename InitializerListImpl<T>::type;
 
-template <class Tag, class T, StrongTypedefOps Ops, class Other>
+template <class Tag, class T, StrongTypedefOps Ops, class Other,
+          class Result = bool>
 using EnableTransparentCompare = std::enable_if_t<
     (Ops & StrongTypedefOps::kCompareTransparentOnly) &&
         !std::is_base_of<StrongTypedef<Tag, T, Ops>, Other>::value,
-    bool>;
+    Result>;
 
 struct StrongTypedefTag {};
 
@@ -260,6 +261,42 @@ class StrongTypedef : public impl::strong_typedef::StrongTypedefTag {
 };
 
 // Relational operators
+
+#ifdef __cpp_lib_three_way_comparison
+
+template <class Tag1, class T1, StrongTypedefOps Ops1, class Tag2, class T2,
+          StrongTypedefOps Ops2>
+constexpr auto operator<=>(const StrongTypedef<Tag1, T1, Ops1>&,
+                           const StrongTypedef<Tag2, T2, Ops2>&) {
+  static_assert(!sizeof(T1), "Comparing those StrongTypedefs is forbidden");
+  return false;
+}
+
+template <class Tag, class T, StrongTypedefOps Ops>
+constexpr auto operator<=>(const StrongTypedef<Tag, T, Ops>& lhs,
+                           const StrongTypedef<Tag, T, Ops>& rhs)
+    -> std::enable_if_t<Ops & StrongTypedefOps::kCompareStrong,
+                        decltype(lhs.GetUnderlying() <=> rhs.GetUnderlying())> {
+  return lhs.GetUnderlying() <=> rhs.GetUnderlying();
+}
+
+template <class Tag, class T, StrongTypedefOps Ops, class Other>
+constexpr auto operator<=>(const StrongTypedef<Tag, T, Ops>& lhs,
+                           const Other& rhs)
+    -> impl::strong_typedef::EnableTransparentCompare<
+        Tag, T, Ops, Other, decltype(lhs.GetUnderlying() <=> rhs)> {
+  return lhs.GetUnderlying() <=> rhs;
+}
+
+template <class Tag, class T, StrongTypedefOps Ops, class Other>
+constexpr auto operator<=>(const Other& lhs,
+                           const StrongTypedef<Tag, T, Ops>& rhs)
+    -> impl::strong_typedef::EnableTransparentCompare<
+        Tag, T, Ops, Other, decltype(lhs <=> rhs.GetUnderlying())> {
+  return lhs <=> rhs.GetUnderlying();
+}
+
+#endif  // #ifdef __cpp_lib_three_way_comparison
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define UTILS_STRONG_TYPEDEF_REL_OP(OPERATOR)                                  \

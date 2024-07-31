@@ -86,12 +86,17 @@ class TimeOfDay<std::chrono::duration<Rep, Period>> {
 
   //@{
   /** @name Comparison operators */
+
+#ifdef __cpp_lib_three_way_comparison
+  constexpr auto operator<=>(const TimeOfDay&) const = default;
+#else
   constexpr bool operator==(const TimeOfDay&) const;
   constexpr bool operator!=(const TimeOfDay&) const;
   constexpr bool operator<(const TimeOfDay&) const;
   constexpr bool operator<=(const TimeOfDay&) const;
   constexpr bool operator>(const TimeOfDay&) const;
   constexpr bool operator>=(const TimeOfDay&) const;
+#endif
   //@}
 
   //@{
@@ -417,6 +422,7 @@ constexpr TimeOfDay<std::chrono::duration<Rep, Period>>::TimeOfDay(
     std::string_view str)
     : since_midnight_{detail::TimeOfDayParser<Rep, Period>{}(str)} {}
 
+#ifndef __cpp_lib_three_way_comparison
 template <typename Rep, typename Period>
 constexpr bool TimeOfDay<std::chrono::duration<Rep, Period>>::operator==(
     const TimeOfDay& rhs) const {
@@ -452,6 +458,7 @@ constexpr bool TimeOfDay<std::chrono::duration<Rep, Period>>::operator>=(
     const TimeOfDay& rhs) const {
   return since_midnight_ >= rhs.since_midnight_;
 }
+#endif
 
 template <typename Rep, typename Period>
 constexpr std::chrono::hours
