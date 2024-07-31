@@ -6,10 +6,12 @@
 #include <userver/utest/using_namespace_userver.hpp>
 
 #include <hello_handler.hpp>
+#include <upy_component.hpp>
 
 int main(int argc, char* argv[]) {
   auto component_list = components::MinimalServerComponentList()
-                            .Append<samples::hello::HelloHandler>();
+                        .Append<samples::hello::HelloHandler>()
+                        .Append<upython::Component>();
 
   return utils::DaemonMain(argc, argv, component_list);
 }

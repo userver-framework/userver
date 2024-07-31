@@ -7,12 +7,23 @@ find_package(userver COMPONENTS core REQUIRED)
 # the userver_setup_environment() should be called here.
 # /// [find_userver]
 
+add_compile_options(
+   # TODO:  $(shell $(PYTHON3_CONFIG) --cflags)
+  -I/usr/include/python3.12 -I/usr/include/python3.12  -fno-strict-overflow -Wsign-compare  -DNDEBUG
+)
+add_link_options(
+  # TODO:  $(shell $(PYTHON3_CONFIG) --ldflags)
+  -L/usr/lib64 -lpython3.12 -ldl  -lm 
+)
+
 # /// [objects]
 add_library(${PROJECT_NAME}_objs OBJECT
     src/say_hello.hpp
     src/say_hello.cpp
     src/hello_handler.hpp
     src/hello_handler.cpp
+    src/upy_component.cpp
+    src/upy_component.hpp
 )
 target_link_libraries(${PROJECT_NAME}_objs userver::core)
 target_include_directories(${PROJECT_NAME}_objs PUBLIC src)
