@@ -1,10 +1,13 @@
 #pragma once
 
-#include <moodycamel/blockingconcurrentqueue.h>
-#include <moodycamel/lightweightsemaphore.h>
+#include <cstddef>
+
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 
 #include <engine/task/task_processor_config.hpp>
+#include <engine/task/work_stealing_queue/consumer.hpp>
+#include <engine/task/work_stealing_queue/consumers_manager.hpp>
+#include <engine/task/work_stealing_queue/global_queue.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -14,12 +17,13 @@ namespace impl {
 class TaskContext;
 }  // namespace impl
 
-class TaskQueue final {
+class WorkStealingTaskQueue final {
+  friend class Consumer;
+
  public:
-  explicit TaskQueue(const TaskProcessorConfig& config);
+  explicit WorkStealingTaskQueue(const TaskProcessorConfig& config);
 
   void Push(boost::intrusive_ptr<impl::TaskContext>&& context);
-
   // Returns nullptr as a stop signal
   boost::intrusive_ptr<impl::TaskContext> PopBlocking();
 
@@ -32,10 +36,16 @@ class TaskQueue final {
  private:
   void DoPush(impl::TaskContext* context);
 
-  impl::TaskContext* DoPopBlocking(moodycamel::ConsumerToken& token);
+  impl::TaskContext* DoPopBlocking();
 
-  moodycamel::ConcurrentQueue<impl::TaskContext*> queue_;
-  moodycamel::LightweightSemaphore queue_semaphore_;
+  Consumer* GetConsumer();
+
+  const std::size_t consumers_count_;
+
+  GlobalQueue global_queue_;
+  GlobalQueue background_queue_;
+  utils::FixedArray<Consumer> consumers_;
+  ConsumersManager consumers_manager_;
 };
 
 }  // namespace engine

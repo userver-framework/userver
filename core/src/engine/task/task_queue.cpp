@@ -41,6 +41,8 @@ std::size_t TaskQueue::GetSizeApproximate() const noexcept {
   return queue_.size_approx();
 }
 
+void TaskQueue::PrepareWorker(std::size_t) {}
+
 void TaskQueue::DoPush(impl::TaskContext* context) {
   // This piece of code is copy-pasted from
   // moodycamel::BlockingConcurrentQueue::enqueue

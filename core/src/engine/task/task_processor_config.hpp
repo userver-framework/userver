@@ -18,8 +18,13 @@ enum class OsScheduling {
   kIdle,
 };
 
+enum class TaskQueueType { kGlobalTaskQueue, kWorkStealingTaskQueue };
+
 OsScheduling Parse(const yaml_config::YamlConfig& value,
                    formats::parse::To<OsScheduling>);
+
+TaskQueueType Parse(const yaml_config::YamlConfig& value,
+                    formats::parse::To<TaskQueueType>);
 
 struct TaskProcessorConfig {
   std::string name;
@@ -29,6 +34,7 @@ struct TaskProcessorConfig {
   std::string thread_name;
   OsScheduling os_scheduling{OsScheduling::kNormal};
   int spinning_iterations{1000};
+  TaskQueueType task_processor_queue{TaskQueueType::kGlobalTaskQueue};
 
   std::size_t task_trace_every{1000};
   std::size_t task_trace_max_csw{0};
