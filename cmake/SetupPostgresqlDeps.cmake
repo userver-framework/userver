@@ -1,22 +1,10 @@
 include_guard(GLOBAL)
 
-function(_set_default_pg_dir variable pg_config_args)
-    if(NOT ${variable})
-        execute_process(
-            COMMAND pg_config ${pg_config_args}
-            OUTPUT_VARIABLE output
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-        )
-        set(${variable} ${output} PARENT_SCOPE)
-    endif()
-endfunction()
-
-if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
-    _set_default_pg_dir(USERVER_PG_INCLUDE_DIR "--includedir")
-    _set_default_pg_dir(USERVER_PG_LIBRARY_DIR "--libdir")
-    _set_default_pg_dir(USERVER_PG_SERVER_INCLUDE_DIR "--includedir-server")
-    _set_default_pg_dir(USERVER_PG_SERVER_LIBRARY_DIR "--pkglibdir")
-endif()
+_userver_macos_set_default_dir(USERVER_PG_INCLUDE_DIR pg_config;--includedir)
+_userver_macos_set_default_dir(USERVER_PG_LIBRARY_DIR pg_config;--libdir)
+_userver_macos_set_default_dir(USERVER_PG_SERVER_INCLUDE_DIR pg_config;--includedir-server)
+_userver_macos_set_default_dir(USERVER_PG_SERVER_LIBRARY_DIR pg_config;--pkglibdir)
+_userver_macos_set_default_dir(OPENSSL_ROOT_DIR brew;--prefix;openssl)
 
 # We need libldap to statically link with libpq
 # There is no FindLdap.cmake and no package config files

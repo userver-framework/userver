@@ -360,7 +360,9 @@ Dependencies could be installed via:
 
 \b Recommended \b Makefile.local:
   ```
-  CMAKE_COMMON_FLAGS += -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
+  CMAKE_COMMON_FLAGS += \
+      -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 \
+      -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
   ```
 
 
@@ -376,9 +378,12 @@ Dependencies could be installed via:
 
 \b Recommended \b Makefile.local:
   ```
-  CMAKE_COMMON_FLAGS += -DCMAKE_CXX_COMPILER=g++-8 -DCMAKE_C_COMPILER=gcc-8 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 \
-    -DUSERVER_FEATURE_CRYPTOPP_BASE64_URL=0 -DUSERVER_FEATURE_GRPC=0 -DUSERVER_FEATURE_POSTGRESQL=0 \
-    -DUSERVER_FEATURE_MONGODB=0 -DUSERVER_USE_LD=gold
+  CMAKE_COMMON_FLAGS += \
+      -DCMAKE_CXX_COMPILER=g++-8 \
+      -DCMAKE_C_COMPILER=gcc-8 \
+      -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 \
+      -DUSERVER_FEATURE_CRYPTOPP_BASE64_URL=0 \
+      -DUSERVER_USE_LD=gold
   ```
 
 
@@ -393,7 +398,9 @@ Dependencies could be installed via:
 
 \b Recommended \b Makefile.local:
   ```
-  CMAKE_COMMON_FLAGS += -DCMAKE_C_FLAGS='-D_FILE_OFFSET_BITS=64' -DCMAKE_CXX_FLAGS='-D_FILE_OFFSET_BITS=64'
+  CMAKE_COMMON_FLAGS += \
+      -DCMAKE_C_FLAGS='-D_FILE_OFFSET_BITS=64' \
+      -DCMAKE_CXX_FLAGS='-D_FILE_OFFSET_BITS=64'
   ```
 
 ### Fedora 35
@@ -408,7 +415,9 @@ Fedora dependencies could be installed via:
 
 \b Recommended \b Makefile.local:
   ```
-  CMAKE_COMMON_FLAGS += -DUSERVER_FEATURE_STACKTRACE=0 -DUSERVER_FEATURE_PATCH_LIBPQ=0
+  CMAKE_COMMON_FLAGS += \
+      -DUSERVER_FEATURE_STACKTRACE=0 \
+      -DUSERVER_FEATURE_PATCH_LIBPQ=0
   ```
 
 ### Fedora 36
@@ -423,7 +432,9 @@ Fedora dependencies could be installed via:
 
 \b Recommended \b Makefile.local:
   ```
-  CMAKE_COMMON_FLAGS += -DUSERVER_FEATURE_STACKTRACE=0 -DUSERVER_FEATURE_PATCH_LIBPQ=0
+  CMAKE_COMMON_FLAGS += \
+      -DUSERVER_FEATURE_STACKTRACE=0 \
+      -DUSERVER_FEATURE_PATCH_LIBPQ=0
   ```
 
 ### Gentoo
@@ -438,8 +449,8 @@ Dependencies could be installed via:
 
 \b Recommended \b Makefile.local:
   ```
-  CMAKE_COMMON_FLAGS += -DUSERVER_CHECK_PACKAGE_VERSIONS=0 -DUSERVER_FEATURE_GRPC=0 \
-    -DUSERVER_FEATURE_CLICKHOUSE=0
+  CMAKE_COMMON_FLAGS += \
+      -DUSERVER_CHECK_PACKAGE_VERSIONS=0
   ```
 
 
@@ -470,7 +481,8 @@ Without AUR:
 
 \b Recommended \b Makefile.local:
   ```
-  CMAKE_COMMON_FLAGS += -DUSERVER_FEATURE_PATCH_LIBPQ=0
+  CMAKE_COMMON_FLAGS += \
+      -DUSERVER_FEATURE_PATCH_LIBPQ=0
   ```
 
 
@@ -488,15 +500,10 @@ Dependencies could be installed via:
 
 \b Recommended \b Makefile.local:
   ```
-  CMAKE_COMMON_FLAGS += -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-      -DUSERVER_NO_WERROR=1 -DUSERVER_CHECK_PACKAGE_VERSIONS=0 \
+  CMAKE_COMMON_FLAGS += \
+      -DUSERVER_CHECK_PACKAGE_VERSIONS=0 \
       -DUSERVER_FEATURE_REDIS_HI_MALLOC=1 \
-      -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0 -DUSERVER_DOWNLOAD_PACKAGE_CRYPTOPP=1 \
-      -DUSERVER_FEATURE_CLICKHOUSE=0 \
-      -DUSERVER_FEATURE_RABBITMQ=0 \
-      -DOPENSSL_ROOT_DIR=$(shell brew --prefix openssl) \
-      -DUSERVER_PG_LIBRARY_DIR=$(shell pg_config --libdir) -DUSERVER_PG_INCLUDE_DIR=$(shell pg_config --includedir) \
-      -DUSERVER_PG_SERVER_LIBRARY_DIR=$(shell pg_config --pkglibdir) -DUSERVER_PG_SERVER_INCLUDE_DIR=$(shell pg_config --includedir-server)
+      -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0
   ```
 
 After that the `make test` would build and run the service tests.

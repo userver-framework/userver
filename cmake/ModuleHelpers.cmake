@@ -350,3 +350,14 @@ macro(_userver_module_end)
     endif()
   endif()
 endmacro()
+
+function(_userver_macos_set_default_dir variable command_args)
+  if(CMAKE_SYSTEM_NAME MATCHES "Darwin" AND NOT DEFINED ${variable})
+    execute_process(
+        COMMAND ${command_args}
+        OUTPUT_VARIABLE output
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    set("${variable}" "${output}" CACHE PATH "")
+  endif()
+endfunction()
