@@ -59,11 +59,7 @@ void FutureStateBase::WaitForResult() {
 }
 
 EarlyWakeup FutureStateBase::TryAppendWaiter(TaskContext& waiter) {
-  if (finish_waiters_->GetSignalOrAppend(&waiter)) {
-    waiter.WakeupCurrent();
-    return EarlyWakeup{true};
-  }
-  return EarlyWakeup{false};
+  return EarlyWakeup{finish_waiters_->GetSignalOrAppend(&waiter)};
 }
 
 void FutureStateBase::RemoveWaiter(TaskContext& context) noexcept {

@@ -88,7 +88,6 @@ void WaitListLight::Append(
 bool WaitListLight::GetSignalOrAppend(
     boost::intrusive_ptr<TaskContext>&& context) noexcept {
   UASSERT(context);
-  UASSERT(context->IsCurrent());
 
   const Waiter new_waiter{context.get(), context->GetEpoch()};
   LOG_TRACE() << "Append waiter=" << fmt::to_string(new_waiter)
@@ -144,7 +143,6 @@ void WaitListLight::SetSignalAndWakeupOne() {
 }
 
 void WaitListLight::Remove(TaskContext& context) noexcept {
-  UASSERT(context.IsCurrent());
   const Waiter expected{&context, context.GetEpoch()};
 
   auto old_waiter = expected;

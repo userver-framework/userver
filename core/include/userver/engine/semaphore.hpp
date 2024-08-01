@@ -113,6 +113,7 @@ class CancellableSemaphore final {
 
  private:
   enum class TryLockStatus { kSuccess, kTransientFailure, kPermanentFailure };
+  class SemaphoreWaitStrategy;
 
   TryLockStatus DoTryLock(Counter count);
   TryLockStatus LockFastPath(Counter count);

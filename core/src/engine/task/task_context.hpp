@@ -154,7 +154,6 @@ class TaskContext final : public ContextAccessor {
   // normally non-blocking, except corner cases in TaskProcessor::Schedule()
   void Wakeup(WakeupSource, SleepState::Epoch epoch);
   void Wakeup(WakeupSource, NoEpoch);
-  void WakeupCurrent();
 
   static void CoroFunc(TaskPipe& task_pipe);
 
