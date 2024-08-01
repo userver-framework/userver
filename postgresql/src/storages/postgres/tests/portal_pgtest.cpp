@@ -147,6 +147,27 @@ UTEST_P(PostgreConnection, PortalCreateFromTrx) {
   UEXPECT_NO_THROW(trx.Commit());
 }
 
+UTEST_P(PostgreConnection, PortalCreateFromTrxRecordArray) {
+  CheckConnection(GetConn());
+
+  pg::Transaction trx{std::move(GetConn()), pg::TransactionOptions{}};
+  const std::string query =
+      "select array_agg(t.typname) from pg_catalog.pg_type t";
+  auto cnt = trx.Execute(query);
+  auto expected = cnt.Front().As<std::vector<std::string>>();
+  ASSERT_FALSE(expected.empty());
+
+  pg::Portal portal{nullptr, "", {}};
+  UEXPECT_NO_THROW(portal = trx.MakePortal(query));
+  std::size_t chunkSize = 2;
+  auto from_portal_result = portal.Fetch(chunkSize);
+  auto from_portal = from_portal_result.Front().As<std::vector<std::string>>();
+  ASSERT_TRUE(portal.Done());
+  EXPECT_EQ(expected, from_portal);
+  EXPECT_ANY_THROW(portal.Fetch(chunkSize));
+  UEXPECT_NO_THROW(trx.Commit());
+}
+
 UTEST_P(PostgreConnection, PortalFetchAll) {
   CheckConnection(GetConn());
 
