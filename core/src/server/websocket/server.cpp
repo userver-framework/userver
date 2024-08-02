@@ -187,7 +187,7 @@ class WebSocketConnectionImpl final : public WebSocketConnection {
   }
 
   // Aware! we can't drop the msg's buffer so for data sending we need to yet another message.
-  bool Recv2(Message& msg) override {
+  bool TryRecv(Message& msg) override {
     msg.data.resize(0);  // do not call .clear() to keep the allocated memory
     frame_.payload = &msg.data;
 

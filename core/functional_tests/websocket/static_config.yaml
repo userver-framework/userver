@@ -27,14 +27,14 @@ components_manager:
             task_processor: main-task-processor  # Run it on CPU bound task processor
             max-remote-payload: 100000
             fragment-size: 10
-        websocket-duplex-handler:     # Finally! Websocket handler.
-            path: /duplex             # Registering handlers '/*' find files.
+        websocket-handler-alt:        # Finally! Websocket handler.
+            path: /handler-alt        # Registering handlers '/*' find files.
             method: GET               # Handle only GET requests.
             task_processor: main-task-processor  # Run it on CPU bound task processor
             max-remote-payload: 100000
             fragment-size: 10
-        websocket-duplex-handler-alt: # Finally! Websocket handler.
-            path: /duplex-alt         # Registering handlers '/*' find files.
+        websocket-duplex-handler:     # Finally! Websocket handler.
+            path: /duplex             # Registering handlers '/*' find files.
             method: GET               # Handle only GET requests.
             task_processor: main-task-processor  # Run it on CPU bound task processor
             max-remote-payload: 100000
