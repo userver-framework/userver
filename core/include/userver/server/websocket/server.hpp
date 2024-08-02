@@ -83,7 +83,7 @@ class WebSocketConnection {
   
   /// @brief Behaves in the same way as Recv(), but in case of message absense gives the control up to a client
   /// @returns false in case of messages absence, otherwise true and behaves like Recv()
-  virtual bool Recv2(Message& message) = 0;
+  virtual bool TryRecv(Message& message) = 0;
 
   /// @brief Send a message to websocket.
   /// @param message message to send
