@@ -67,7 +67,7 @@ class WebsocketsHandlerAlt final
       const bool msgIsReceived = chat.TryRecv(message);
       if (msgIsReceived) {
         if (message.close_status) break;
-        chat.SendBinary(message);
+        chat.Send(std::move(message));
       }
       else {
          // we could've sent yet another server::websocket::Message

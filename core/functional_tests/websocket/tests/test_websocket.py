@@ -102,7 +102,7 @@ async def test_duplex_but_handler_alt(websocket_client):
     async with websocket_client.get('handler-alt') as chat:
         await chat.send('ping')
         response = await chat.recv()
-        assert response == b'ping'
+        assert response == 'ping'
 
 
 async def test_two_but_handler_alt(websocket_client):
@@ -115,7 +115,7 @@ async def test_two_but_handler_alt(websocket_client):
 
             for _ in range(10):
                 msg = await chat2.recv()
-                assert msg == b'B'
+                assert msg == 'B'
             for _ in range(10):
                 msg = await chat1.recv()
-                assert msg == b'A'
+                assert msg == 'A'
