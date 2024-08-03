@@ -38,6 +38,8 @@ class ReadableBase {
   ///  empty optional otherwise
   [[nodiscard]] virtual std::optional<size_t> ReadNoblock(void* buf, size_t len)
   {
+      (void)buf;
+      (void)len;
       UINVARIANT(false, "not implemented yet");
       return {};
   }

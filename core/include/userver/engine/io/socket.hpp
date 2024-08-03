@@ -171,7 +171,7 @@ class [[nodiscard]] Socket final : public RwBase {
 
   /// @brief Receives up to len bytes from the stream.
   /// @returns Can return 0 bytes if socket is closed by peer.
-  virtual std::optional<size_t> ReadNoblock(void* buf, size_t len) override {
+  [[nodiscard]] std::optional<size_t> ReadNoblock(void* buf, size_t len) override {
     return RecvNoblock(buf, len);
   }
 
