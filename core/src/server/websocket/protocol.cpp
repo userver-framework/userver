@@ -29,7 +29,7 @@ inline bool RecvAny(engine::io::ReadableBase& readable,
    UASSERT(0 != buffer.size());
    UASSERT(offset < buffer.size());
 
-   const std::int64_t leftToRead = buffer.size() - offset;
+   const size_t leftToRead = buffer.size() - offset;
    const auto optRead = readable.ReadNoblock(buffer.data(), leftToRead);
    if (!optRead) return false;
    
