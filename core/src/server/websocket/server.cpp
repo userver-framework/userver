@@ -195,7 +195,7 @@ class WebSocketConnectionImpl final : public WebSocketConnection {
       while (true) {
        size_t payload_len = 0;
        std::optional<CloseStatus> opt_status_raw =
-         ReadWSFrameNonblocking(frame_, *io, config.max_remote_payload, payload_len);
+         ReadWSFrameNoblock(frame_, *io, config.max_remote_payload, payload_len);
        if (!opt_status_raw) return false;
 
        auto status = static_cast<CloseStatusInt>(*opt_status_raw);

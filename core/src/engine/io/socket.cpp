@@ -242,14 +242,24 @@ size_t Socket::RecvAll(void* buf, size_t len, Deadline deadline) {
                        peername_);
 }
 
-std::int64_t Socket::RecvNonblocking(void* buf, size_t len) {
+std::optional<size_t> Socket::RecvNoblock(void* buf, size_t len) {
   if (!IsValid()) {
-    throw IoException("Attempt to RecvNonblocking from closed socket");
+    throw IoException("Attempt to RecvNoblock from closed socket");
   }
   auto& dir = fd_control_->Read();
   dir.ResetReady();
   impl::Direction::SingleUserGuard guard(dir);
-  return RecvWrapper(fd_control_->Fd(), buf, len);
+  const auto bytesRead = RecvWrapper(fd_control_->Fd(), buf, len);
+  if (bytesRead >= 0) return {bytesRead};
+  else if (
+#if EAGAIN != EWOULDBLOCK
+          EWOULDBLOCK == errno
+#else
+          EAGAIN == errno
+#endif
+          ) return {};
+
+  throw IoException("Attempt to RecvNoblock from closed socket");
 }
 
 size_t Socket::SendAll(std::initializer_list<IoData> list, Deadline deadline) {

@@ -24,40 +24,27 @@ inline void RecvExactly(engine::io::ReadableBase& readable,
     throw(engine::io::IoException() << "Socket closed during transfer ");
 }
 
-inline bool RecvMaybe(engine::io::ReadableBase& readable,
+inline bool RecvAny(engine::io::ReadableBase& readable,
                         utils::span<char> buffer, size_t& offset) {
-   static_assert(std::is_convertible<engine::io::Socket*, engine::io::ReadableBase*>::value, "Socket MUST inherit ReadableBase");
-   static_assert(std::is_convertible<engine::io::Socket*, engine::io::NonblockingReadableBase*>::value, "Socket MUST inherit NonblockingReadableBase");
-   auto& readable2 = static_cast<engine::io::NonblockingReadableBase&>(static_cast<engine::io::Socket&>(readable));
-
    UASSERT(0 != buffer.size());
    UASSERT(offset < buffer.size());
 
    const std::int64_t leftToRead = buffer.size() - offset;
-   const auto read = readable2.ReadNonblocking(buffer.data(), leftToRead);
-   if (leftToRead == read)
+   const auto optRead = readable.ReadNoblock(buffer.data(), leftToRead);
+   if (!optRead) return false;
+   
+   if (leftToRead == *optRead)
    {
        offset = 0;
        return true;
    }
-   else if (read > 0)
+   else if (*optRead > 0)
    {
-       offset += read;
+       offset += *optRead;
        return false;
    }
-   else if (read < 0 &&
-#if EAGAIN != EWOULDBLOCK
-          EWOULDBLOCK == errno
-#else
-          EAGAIN == errno
-#endif
-       )
-    {
-       return false;
-   }
-
-   // either 0 == read or errno doesn't correspond to non-block
-   throw(engine::io::IoException() << "Socket closed during transfer ");
+   else // 0 == *optRead
+     throw(engine::io::IoException() << "Socket closed during transfer ");
 }
 
 template <class T>
@@ -277,10 +264,10 @@ CloseStatus ReadWSFrame(FrameParserState& frame, engine::io::ReadableBase& io,
   return ReadWSFrameImpl(hdr, frame, io, max_payload_size, payload_len);
 }
 
-std::optional<CloseStatus> ReadWSFrameNonblocking(FrameParserState& frame, engine::io::ReadableBase& io,
+std::optional<CloseStatus> ReadWSFrameNoblock(FrameParserState& frame, engine::io::ReadableBase& io,
                                                   unsigned max_payload_size, std::size_t& payload_len) {
   WSHeader hdr;
-  if (!RecvMaybe(io, AsWritableBytes(MakeSpan(&hdr, 1)), frame.offset_when_nonblocking))
+  if (!RecvAny(io, AsWritableBytes(MakeSpan(&hdr, 1)), frame.offset_when_noblock))
        return {};
 
   return ReadWSFrameImpl(hdr, frame, io, max_payload_size, payload_len);

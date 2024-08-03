@@ -96,7 +96,7 @@ struct FrameParserState {
   bool waiting_continuation = false;
   bool is_text = false;
   CloseStatusInt remote_close_status = 0;
-  size_t offset_when_nonblocking = 0;
+  size_t offset_when_noblock = 0;
 
   std::string* payload = nullptr;
 };
@@ -104,8 +104,8 @@ struct FrameParserState {
 CloseStatus ReadWSFrame(FrameParserState& frame, engine::io::ReadableBase& io,
                         unsigned max_payload_size, std::size_t& payload_len);
 
-std::optional<CloseStatus> ReadWSFrameNonblocking(FrameParserState& frame, engine::io::ReadableBase& io,
-                                                  unsigned max_payload_size, std::size_t& payload_len);
+std::optional<CloseStatus> ReadWSFrameNoblock(FrameParserState& frame, engine::io::ReadableBase& io,
+                                              unsigned max_payload_size, std::size_t& payload_len);
 
 }  // namespace server::websocket::impl
 

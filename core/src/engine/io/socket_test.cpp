@@ -106,10 +106,10 @@ UTEST(Socket, ListenConnect) {
     ASSERT_EQ(1, first_client.RecvAll(&c, 1, test_deadline));
     EXPECT_EQ('1', c);
     for(int64_t bytesRead = 0; bytesRead < 1;) {
-      const auto read = third_client.ReadNonblocking(&c, 1);
-      if (read > 0) {
-        bytesRead += read;
-        ASSERT_EQ(1, read);
+      const auto optRead = third_client.RecvNoblock(&c, 1);
+      if (optRead && *optRead > 0) {
+        bytesRead += *optRead;
+        ASSERT_EQ(1, *optRead);
         EXPECT_EQ('3', c);
       }
       else if (test_deadline.IsReached())
