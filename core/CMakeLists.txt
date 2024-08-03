@@ -206,7 +206,7 @@ _userver_directory_install(COMPONENT core
 )
 
 target_include_directories(${PROJECT_NAME} SYSTEM BEFORE PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/libc_include_fixes>
+  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/libc_include_fixes>>
 )
 
 # The bug is only triggered with optimizations enabled -- TAXICOMMON-1729
