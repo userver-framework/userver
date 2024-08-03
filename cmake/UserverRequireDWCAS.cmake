@@ -84,7 +84,7 @@ function (userver_target_require_dwcas target visibility)
     return()
   endif()
 
-  if(NOT CMAKE_SYSTEM_NAME MATCHES "Darwin" AND NOT CMAKE_SYSTEM MATCHES "BSD")
+  if(NOT CMAKE_SYSTEM_NAME MATCHES "Darwin" AND NOT CMAKE_SYSTEM MATCHES "BSD" AND NOT WIN32)
     list(APPEND TEST_LIBRARIES "atomic")
   endif()
 
