@@ -84,9 +84,15 @@ endif()
 add_library(userver-internal-compile-options INTERFACE)
 userver_target_require_dwcas(userver-internal-compile-options INTERFACE)
 target_compile_features(userver-internal-compile-options INTERFACE cxx_std_17)
-target_compile_options(userver-internal-compile-options INTERFACE
-  "-Wall" "-Wextra" "-Wpedantic"
-)
+if (MSVC)
+  target_compile_options(userver-internal-compile-options INTERFACE
+    "/W4" "/sdl"
+  )
+else()
+  target_compile_options(userver-internal-compile-options INTERFACE
+    "-Wall" "-Wextra" "-Wpedantic"
+  )
+endif()
 
 include(UserverCxxCompileOptionsIfSupported)
 userver_target_cxx_compile_options_if_supported(userver-internal-compile-options INTERFACE
