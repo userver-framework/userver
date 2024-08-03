@@ -95,7 +95,12 @@ function(userver_venv_setup)
 
   set(venv_dir "${parent_directory}/${venv_name}")
   set(venv_bin_dir "${venv_dir}/bin")
-  set("${python_output_var}" "${venv_bin_dir}/python" PARENT_SCOPE)
+  find_program(venv_python
+    NAMES python python3
+    PATHS "${venv_dir}/bin" "${venv_dir}/Scripts"
+    REQUIRED NO_DEFAULT_PATH
+  )
+  set("${python_output_var}" "${venv_python}" PARENT_SCOPE)
 
   # A unique venv is set up once for the whole build.
   # For example, a userver gRPC cmake script may be included multiple times
@@ -164,7 +169,7 @@ function(userver_venv_setup)
     )
     execute_process(
         COMMAND
-        "${venv_bin_dir}/python3" -m pip install
+        "${venv_python}" -m pip install
         --disable-pip-version-check
         -U ${pip_requirements}
         ${ARG_PIP_ARGS}
