@@ -2,7 +2,6 @@
 
 #include <cstdlib>
 #include <cstring>
-#include <type_traits>
 
 #include <cryptopp/sha.h>
 #include <boost/endian/conversion.hpp>
