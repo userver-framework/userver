@@ -35,7 +35,8 @@ class HttpRequestConstructor final : public request::RequestConstructor {
 
   HttpRequestConstructor(Config config,
                          const HandlerInfoIndex& handler_info_index,
-                         request::ResponseDataAccounter& data_accounter);
+                         request::ResponseDataAccounter& data_accounter,
+                         engine::io::Sockaddr remote_address);
 
   ~HttpRequestConstructor() override;
 

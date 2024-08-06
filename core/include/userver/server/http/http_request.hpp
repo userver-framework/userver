@@ -16,6 +16,7 @@
 #include <userver/server/http/http_response.hpp>
 #include <userver/utils/impl/projecting_view.hpp>
 #include <userver/utils/str_icase.hpp>
+#include <userver/engine/io/sockaddr.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -80,6 +81,9 @@ class HttpRequest final {
 
   /// @return Host from the URL.
   const std::string& GetHost() const;
+
+  /// @return Request remote address
+  const engine::io::Sockaddr& GetRemoteAddress() const;
 
   /// @return First argument value with name `arg_name` or an empty string if no
   /// such argument.

@@ -47,6 +47,10 @@ std::chrono::duration<double> HttpRequest::GetResponseTime() const {
 
 const std::string& HttpRequest::GetHost() const { return impl_.GetHost(); }
 
+const engine::io::Sockaddr& HttpRequest::GetRemoteAddress() const {
+  return impl_.GetRemoteAddress();
+}
+
 const std::string& HttpRequest::GetArg(std::string_view arg_name) const {
   return impl_.GetArg(arg_name);
 }

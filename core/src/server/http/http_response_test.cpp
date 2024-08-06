@@ -18,7 +18,7 @@ UTEST(HttpResponse, Smoke) {
       engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   server::request::ResponseDataAccounter accounter;
-  server::http::HttpRequestImpl request{accounter};
+  server::http::HttpRequestImpl request{accounter, engine::io::Sockaddr{}};
   server::http::HttpResponse response{request, accounter};
 
   constexpr std::string_view kBody = "test data";
@@ -48,7 +48,8 @@ UTEST(HttpResponse, Smoke) {
 
 UTEST(HttpResponse, AccounterLifetimeIfNotSent) {
   auto accounter = std::make_unique<server::request::ResponseDataAccounter>();
-  const server::http::HttpRequestImpl request{*accounter};
+  const server::http::HttpRequestImpl request{*accounter,
+                                              engine::io::Sockaddr{}};
   request.GetHttpResponse().SetSendFailed(std::chrono::steady_clock::now());
   accounter.reset();
   // Now we just should not crash
@@ -59,7 +60,8 @@ UTEST(HttpResponse, AccounterLifetimeIfSent) {
       engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
   auto accounter = std::make_unique<server::request::ResponseDataAccounter>();
 
-  const server::http::HttpRequestImpl request{*accounter};
+  const server::http::HttpRequestImpl request{*accounter,
+                                              engine::io::Sockaddr{}};
   auto& response = request.GetHttpResponse();
 
   const std::string body = "test data";
@@ -90,7 +92,7 @@ UTEST_P(HttpResponseBody, ForbiddenBody) {
       engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
 
   server::request::ResponseDataAccounter accounter;
-  server::http::HttpRequestImpl request{accounter};
+  server::http::HttpRequestImpl request{accounter, engine::io::Sockaddr{}};
   server::http::HttpResponse response{request, accounter};
 
   response.SetData("test data");
@@ -119,7 +121,8 @@ INSTANTIATE_UTEST_SUITE_P(HttpResponseForbiddenBody, HttpResponseBody,
 
 TEST(HttpResponse, GetHeaderDoesntThrow) {
   server::request::ResponseDataAccounter accounter{};
-  const server::http::HttpRequestImpl request_impl{accounter};
+  const server::http::HttpRequestImpl request_impl{accounter,
+                                                   engine::io::Sockaddr{}};
   const server::http::HttpResponse response{request_impl, accounter};
 
   const auto& header = response.GetHeader("nonexistent-header");
