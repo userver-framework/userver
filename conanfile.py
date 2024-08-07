@@ -71,7 +71,13 @@ class UserverConan(ConanFile):
     # }
 
     def set_version(self):
-        content = load(self, 'cmake/GetUserverVersion.cmake')
+        content = load(
+            self,
+            os.path.join(
+                os.path.dirname(os.path.realpath(__file__)),
+                'cmake/GetUserverVersion.cmake',
+            ),
+        )
         major_version = (
             re.search(r'set\(USERVER_MAJOR_VERSION (.*)\)', content)
             .group(1)
