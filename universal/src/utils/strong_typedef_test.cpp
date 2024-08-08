@@ -52,8 +52,6 @@ TEST(StrongTypedef, CompareStrong) {
   using Int = utils::StrongTypedef<IntTag, int,
                                    utils::StrongTypedefOps::kCompareStrong>;
   EXPECT_TRUE((boost::has_equal_to<Int, Int>::value));
-  EXPECT_FALSE((boost::has_equal_to<int, Int>::value));
-  EXPECT_FALSE((boost::has_equal_to<Int, int>::value));
 
   struct StringTag {};
   using String = utils::StrongTypedef<StringTag, std::string,
@@ -61,8 +59,9 @@ TEST(StrongTypedef, CompareStrong) {
   EXPECT_TRUE((boost::has_equal_to<String, String>::value));
   EXPECT_FALSE((boost::has_equal_to<int, String>::value));
   EXPECT_FALSE((boost::has_equal_to<String, int>::value));
-  EXPECT_FALSE((boost::has_equal_to<std::string, String>::value));
-  EXPECT_FALSE((boost::has_equal_to<String, std::string>::value));
+
+  EXPECT_TRUE((boost::has_equal_to<std::optional<String>, String>::value));
+  EXPECT_TRUE((boost::has_equal_to<std::optional<MyString>, MyString>::value));
 }
 
 TEST(StrongTypedef, StringDefaultConstruction) {

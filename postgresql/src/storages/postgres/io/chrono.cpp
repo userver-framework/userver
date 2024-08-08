@@ -1,10 +1,40 @@
 #include <userver/storages/postgres/io/chrono.hpp>
 
+#include <userver/logging/log_helper.hpp>
 #include <userver/storages/postgres/io/type_mapping.hpp>
+#include <userver/utils/datetime.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres {
+
+logging::LogHelper& operator<<(logging::LogHelper& lh, TimePointTz tp) {
+  lh << tp.GetUnderlying();
+  return lh;
+}
+
+logging::LogHelper& operator<<(logging::LogHelper& lh, TimePointWithoutTz tp) {
+  lh << tp.GetUnderlying();
+  return lh;
+}
+
+std::ostream& operator<<(std::ostream& os, TimePointTz tp) {
+  os << USERVER_NAMESPACE::utils::datetime::Timestring(tp.GetUnderlying());
+  return os;
+}
+
+std::ostream& operator<<(std::ostream& os, TimePointWithoutTz tp) {
+  os << USERVER_NAMESPACE::utils::datetime::Timestring(tp.GetUnderlying());
+  return os;
+}
+
+TimePointTz Now() {
+  return TimePointTz{USERVER_NAMESPACE::utils::datetime::Now()};
+}
+
+TimePointWithoutTz NowWithoutTz() {
+  return TimePointWithoutTz{USERVER_NAMESPACE::utils::datetime::Now()};
+}
 
 namespace io {
 

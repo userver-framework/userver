@@ -16,7 +16,7 @@ namespace example {
 struct MyStructure {
   int id = 0;
   std::string bar{};
-  std::chrono::system_clock::time_point updated;
+  storages::postgres::TimePointWithoutTz updated;
 
   int get_id() const { return id; }
 };
@@ -139,7 +139,7 @@ static_assert(pg_cache::detail::ClusterHostType<PostgresExamplePolicy2>() ==
 struct MyStructureWithRevision {
   int id = 0;
   std::string bar{};
-  std::chrono::system_clock::time_point updated;
+  storages::postgres::TimePointWithoutTz updated;
   int32_t revision = 0;
 
   int get_id() const { return id; }
@@ -194,8 +194,8 @@ struct PostgresExamplePolicy4 {
   }
 
   static constexpr const char* kUpdatedField = "updated";
-  using UpdatedFieldType =
-      storages::postgres::TimePoint;  // no time zone (should be avoided)
+  // no time zone (should be avoided)
+  using UpdatedFieldType = storages::postgres::TimePointWithoutTz;
 };
 /*! [Pg Cache Policy GetQuery Example] */
 

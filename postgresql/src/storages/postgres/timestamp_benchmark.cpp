@@ -43,7 +43,7 @@ void PgTimestampBinaryFormat(benchmark::State& state) {
   namespace pg = storages::postgres;
   namespace io = pg::io;
 
-  auto tp = std::chrono::system_clock::now();
+  const pg::TimePointWithoutTz tp{std::chrono::system_clock::now()};
   pg::test::Buffer buffer;
   for (auto _ : state) {
     io::WriteBuffer(types, buffer, tp);
@@ -54,7 +54,7 @@ void PgTimestampBinaryFormat(benchmark::State& state) {
 void PgTimestampBinaryParse(benchmark::State& state) {
   namespace pg = storages::postgres;
   namespace io = pg::io;
-  auto tp = std::chrono::system_clock::now();
+  pg::TimePointWithoutTz tp{std::chrono::system_clock::now()};
   pg::test::Buffer buffer;
   io::WriteBuffer(types, buffer, tp);
   auto fp = pg::test::MakeFieldBuffer(buffer);
@@ -70,10 +70,9 @@ BENCHMARK(PgTimestampBinaryParse);
 
 BENCHMARK_F(PgConnection, TimestampBinaryRoundtrip)(benchmark::State& state) {
   namespace pg = storages::postgres;
-  namespace io = pg::io;
 
   RunStandalone(state, [this, &state] {
-    auto tp = std::chrono::system_clock::now();
+    pg::TimePointWithoutTz tp{std::chrono::system_clock::now()};
     for (auto _ : state) {
       auto res = GetConnection().Execute("select $1", tp);
       res.Front().To(tp);

@@ -69,17 +69,20 @@ pg::TimePoint ParseUTC(const ::std::string& value) {
 
 TEST(PostgreIO, Chrono) {
   // postgres only supports microsecond resolution
-  auto now = std::chrono::time_point_cast<std::chrono::microseconds>(
-      std::chrono::system_clock::now());
+  const pg::TimePointWithoutTz now{
+      std::chrono::time_point_cast<std::chrono::microseconds>(
+          std::chrono::system_clock::now())};
   pg::test::Buffer buffer;
   UEXPECT_NO_THROW(io::WriteBuffer(types, buffer, now));
   auto fb = pg::test::MakeFieldBuffer(buffer);
-  pg::TimePoint tgt;
+  pg::TimePointWithoutTz tgt;
   UEXPECT_NO_THROW(io::ReadBuffer(fb, tgt));
   EXPECT_EQ(now, tgt) << "Parse buffer "
                       << std::string{buffer.begin(), buffer.end()}
-                      << ", expected: " << now.time_since_epoch().count()
-                      << ", got: " << tgt.time_since_epoch().count();
+                      << ", expected: "
+                      << now.GetUnderlying().time_since_epoch().count()
+                      << ", got: "
+                      << tgt.GetUnderlying().time_since_epoch().count();
 }
 
 TEST(PostgreIO, ChronoTz) {
@@ -147,9 +150,9 @@ void CheckInTimezone(pg::detail::ConnectionPtr& conn,
   UEXPECT_NO_THROW(conn->Execute(
       "create temp table tstest(fmt text, notz timestamp, tz timestamptz)"));
   for (auto src : timepoints) {
-    UEXPECT_NO_THROW(
-        conn->Execute("insert into tstest(fmt, notz, tz) values ($1, $2, $3)",
-                      "bin", src, pg::TimePointTz(src)));
+    UEXPECT_NO_THROW(conn->Execute(
+        "insert into tstest(fmt, notz, tz) values ($1, $2, $3)", "bin",
+        pg::TimePointWithoutTz{src}, pg::TimePointTz(src)));
     std::string select_timezones = R"~(
         select fmt, notz, tz, tz at time zone current_setting('TIMEZONE'),
           tz at time zone 'UTC', current_setting('TIMEZONE')
@@ -163,23 +166,24 @@ void CheckInTimezone(pg::detail::ConnectionPtr& conn,
     for (const auto& r : res) {
       std::string fmt;
       std::string tz_setting;
-      pg::TimePoint tp;
-      pg::TimePoint tptz;
-      pg::TimePoint tp_utc;
+      pg::TimePointWithoutTz tp;
+      pg::TimePointWithoutTz tptz;
+      pg::TimePointWithoutTz tp_utc;
       pg::TimePointTz tp_curr_tz;
       r.To(fmt, tp, tptz, tp_curr_tz, tp_utc, tz_setting);
-      EXPECT_TRUE(EqualToMicroseconds(tp, tptz))
+      EXPECT_TRUE(EqualToMicroseconds(tp.GetUnderlying(), tptz.GetUnderlying()))
           << "Should be seen equal locally. " << tmp_tz;
-      EXPECT_TRUE(EqualToMicroseconds(utils::UnderlyingValue(tp_curr_tz), tptz))
+      EXPECT_TRUE(
+          EqualToMicroseconds(tp_curr_tz.GetUnderlying(), tptz.GetUnderlying()))
           << "Should be seen equal locally. " << tmp_tz;
       ADD_FAILURE() << fmt
                     << ": According to server timestamp without time zone "
-                    << FormatToLocal(tp)
+                    << FormatToLocal(tp.GetUnderlying())
                     << " is different from timestamp with time zone "
-                    << FormatToLocal(tptz) << " Timestamp with tz at "
-                    << tz_setting << " = "
-                    << FormatToLocal(utils::UnderlyingValue(tp_curr_tz))
-                    << ", at UTC " << FormatToLocal(tp_utc) << " " << tmp_tz;
+                    << FormatToLocal(tptz.GetUnderlying())
+                    << " Timestamp with tz at " << tz_setting << " = "
+                    << FormatToLocal(tp_curr_tz.GetUnderlying()) << ", at UTC "
+                    << FormatToLocal(tp_utc.GetUnderlying()) << " " << tmp_tz;
     }
     UEXPECT_NO_THROW(conn->Execute("delete from tstest"));
   }
@@ -191,24 +195,22 @@ UTEST_P(PostgreConnection, Timestamp) {
 
   pg::ResultSet res{nullptr};
   auto now = std::chrono::system_clock::now();
-  pg::TimePoint tp;
+  pg::TimePointWithoutTz tp;
   pg::TimePointTz tptz;
 
-  UEXPECT_NO_THROW(
-      res = GetConn()->Execute("select $1::timestamp, $2::timestamptz", now,
-                               pg::TimePointTz(now)));
+  UEXPECT_NO_THROW(res = GetConn()->Execute(
+                       "select $1::timestamp, $2::timestamptz",
+                       pg::TimePointWithoutTz{now}, pg::TimePointTz{now}));
 
   UEXPECT_NO_THROW(res.Front().To(tp, tptz));
-  EXPECT_TRUE(EqualToMicroseconds(tp, now)) << "no tz";
-  EXPECT_TRUE(EqualToMicroseconds(utils::UnderlyingValue(tptz), now))
-      << "with tz";
-  EXPECT_TRUE(EqualToMicroseconds(tp, utils::UnderlyingValue(tptz)));
+  EXPECT_TRUE(EqualToMicroseconds(tp.GetUnderlying(), now)) << "no tz";
+  EXPECT_TRUE(EqualToMicroseconds(tptz.GetUnderlying(), now)) << "with tz";
+  EXPECT_TRUE(EqualToMicroseconds(tp.GetUnderlying(), tptz.GetUnderlying()));
 
-  tp = pg::TimePoint{};
+  tp = pg::TimePointWithoutTz{};
   tptz = pg::TimePointTz{};
-  EXPECT_FALSE(EqualToMicroseconds(tp, now)) << "After reset";
-  EXPECT_FALSE(EqualToMicroseconds(utils::UnderlyingValue(tptz), now))
-      << "After reset";
+  EXPECT_FALSE(EqualToMicroseconds(tp.GetUnderlying(), now)) << "After reset";
+  EXPECT_FALSE(EqualToMicroseconds(tptz.GetUnderlying(), now)) << "After reset";
 
   const char* timezones[]{
       "",  // local
@@ -265,16 +267,17 @@ UTEST_P(PostgreConnection, TimestampInfinity) {
 
   UEXPECT_NO_THROW(res = GetConn()->Execute(
                        "select 'infinity'::timestamp, '-infinity'::timestamp"));
-  pg::TimePoint pos_inf;
-  pg::TimePoint neg_inf;
+  pg::TimePointWithoutTz pos_inf;
+  pg::TimePointWithoutTz neg_inf;
 
   UEXPECT_NO_THROW(res.Front().To(pos_inf, neg_inf));
   EXPECT_EQ(pg::kTimestampPositiveInfinity, pos_inf);
   EXPECT_EQ(pg::kTimestampNegativeInfinity, neg_inf);
 
-  UEXPECT_NO_THROW(res = GetConn()->Execute("select $1, $2",
-                                            pg::kTimestampPositiveInfinity,
-                                            pg::kTimestampNegativeInfinity));
+  UEXPECT_NO_THROW(res = GetConn()->Execute(
+                       "select $1, $2",
+                       pg::TimePointTz{pg::kTimestampPositiveInfinity},
+                       pg::TimePointTz{pg::kTimestampNegativeInfinity}));
   UEXPECT_NO_THROW(res.Front().To(pos_inf, neg_inf));
   EXPECT_EQ(pg::kTimestampPositiveInfinity, pos_inf);
   EXPECT_EQ(pg::kTimestampNegativeInfinity, neg_inf);
@@ -285,18 +288,18 @@ UTEST_P(PostgreConnection, TimestampStored) {
 
   pg::ResultSet res{nullptr};
   auto now = std::chrono::system_clock::now();
-  UEXPECT_NO_THROW(res = GetConn()->Execute(
-                       "select $1, $2", pg::ParameterStore{}
-                                            .PushBack(pg::TimePoint{now})
-                                            .PushBack(pg::TimePointTz{now})));
+  UEXPECT_NO_THROW(
+      res = GetConn()->Execute("select $1, $2",
+                               pg::ParameterStore{}
+                                   .PushBack(pg::TimePointWithoutTz{now})
+                                   .PushBack(pg::TimePointTz{now})));
 
-  pg::TimePoint tp;
+  pg::TimePointWithoutTz tp;
   pg::TimePointTz tptz;
   UEXPECT_NO_THROW(res.Front().To(tp, tptz));
-  EXPECT_TRUE(EqualToMicroseconds(tp, now)) << "no tz";
-  EXPECT_TRUE(EqualToMicroseconds(utils::UnderlyingValue(tptz), now))
-      << "with tz";
-  EXPECT_TRUE(EqualToMicroseconds(tp, utils::UnderlyingValue(tptz)));
+  EXPECT_TRUE(EqualToMicroseconds(tp.GetUnderlying(), now)) << "no tz";
+  EXPECT_TRUE(EqualToMicroseconds(tptz.GetUnderlying(), now)) << "with tz";
+  EXPECT_TRUE(EqualToMicroseconds(tp.GetUnderlying(), tptz.GetUnderlying()));
 }
 
 }  // namespace

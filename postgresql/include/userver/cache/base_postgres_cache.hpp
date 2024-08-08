@@ -270,13 +270,15 @@ using UpdatedFieldType =
 template <typename T>
 constexpr bool CheckUpdatedFieldType() {
   if constexpr (kHasUpdatedFieldType<T>) {
-    static_assert(
-        std::is_same_v<typename T::UpdatedFieldType,
-                       storages::postgres::TimePointTz> ||
-            std::is_same_v<typename T::UpdatedFieldType,
-                           storages::postgres::TimePoint> ||
-            kHasCustomUpdated<T>,
-        "Invalid UpdatedFieldType, must be either TimePointTz or TimePoint");
+    static_assert(std::is_same_v<typename T::UpdatedFieldType,
+                                 storages::postgres::TimePointTz> ||
+                      std::is_same_v<typename T::UpdatedFieldType,
+                                     storages::postgres::TimePointWithoutTz> ||
+                      std::is_same_v<typename T::UpdatedFieldType,
+                                     storages::postgres::TimePoint> ||
+                      kHasCustomUpdated<T>,
+                  "Invalid UpdatedFieldType, must be either TimePointTz or "
+                  "TimePointWithoutTz or (legacy) system_clock::time_point");
   } else {
     static_assert(!kWantIncrementalUpdates<T>,
                   "UpdatedFieldType must be explicitly specified when using "
