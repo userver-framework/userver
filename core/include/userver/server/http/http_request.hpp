@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include <userver/engine/io/sockaddr.hpp>
 #include <userver/http/header_map.hpp>
 #include <userver/logging/log_helper_fwd.hpp>
 #include <userver/server/http/form_data_arg.hpp>
@@ -80,6 +81,9 @@ class HttpRequest final {
 
   /// @return Host from the URL.
   const std::string& GetHost() const;
+
+  /// @return Request remote address
+  const engine::io::Sockaddr& GetRemoteAddress() const;
 
   /// @return First argument value with name `arg_name` or an empty string if no
   /// such argument.

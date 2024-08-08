@@ -49,10 +49,12 @@ struct HttpRequestConstructor::HttpParserUrl {
 
 HttpRequestConstructor::HttpRequestConstructor(
     Config config, const HandlerInfoIndex& handler_info_index,
-    request::ResponseDataAccounter& data_accounter)
+    request::ResponseDataAccounter& data_accounter,
+    engine::io::Sockaddr remote_address)
     : config_(config),
       handler_info_index_(handler_info_index),
-      request_(std::make_shared<HttpRequestImpl>(data_accounter)) {}
+      request_(std::make_shared<HttpRequestImpl>(data_accounter,
+                                                 std::move(remote_address))) {}
 
 HttpRequestConstructor::~HttpRequestConstructor() = default;
 

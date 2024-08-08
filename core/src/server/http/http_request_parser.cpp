@@ -53,12 +53,14 @@ HttpRequestParser::HttpRequestParser(
     const HandlerInfoIndex& handler_info_index,
     const request::HttpRequestConfig& request_config,
     OnNewRequestCb&& on_new_request_cb, net::ParserStats& stats,
-    request::ResponseDataAccounter& data_accounter)
+    request::ResponseDataAccounter& data_accounter,
+    engine::io::Sockaddr remote_address)
     : handler_info_index_(handler_info_index),
       request_constructor_config_{request_config},
       on_new_request_cb_(std::move(on_new_request_cb)),
       stats_(stats),
-      data_accounter_(data_accounter) {
+      data_accounter_(data_accounter),
+      remote_address_(std::move(remote_address)) {
   llhttp_init(&parser_, HTTP_REQUEST, &parser_settings);
   parser_.data = this;
 }
@@ -213,7 +215,7 @@ int HttpRequestParser::OnMessageCompleteImpl(llhttp_t* p) {
 void HttpRequestParser::CreateRequestConstructor() {
   stats_.parsing_request_count.Add(1);
   request_constructor_.emplace(request_constructor_config_, handler_info_index_,
-                               data_accounter_);
+                               data_accounter_, remote_address_);
   url_complete_ = false;
 }
 

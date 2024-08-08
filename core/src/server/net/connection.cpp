@@ -84,7 +84,7 @@ void Connection::ListenForRequests() noexcept {
         [&pending_requests](RequestBasePtr&& request_ptr) {
           pending_requests.push_back(std::move(request_ptr));
         },
-        stats_->parser_stats, data_accounter_);
+        stats_->parser_stats, data_accounter_, remote_address_);
 
     pending_data_.resize(config_.in_buffer_size);
     while (is_accepting_requests_) {

@@ -30,9 +30,9 @@ inline server::http::HttpRequestParser CreateBenchmarkParser(
   };
   static server::net::ParserStats test_stats;
   static server::request::ResponseDataAccounter test_accounter;
-  return server::http::HttpRequestParser(kTestHandlerInfoIndex,
-                                         kTestRequestConfig, std::move(cb),
-                                         test_stats, test_accounter);
+  return server::http::HttpRequestParser(
+      kTestHandlerInfoIndex, kTestRequestConfig, std::move(cb), test_stats,
+      test_accounter, engine::io::Sockaddr{});
 }
 
 }  // namespace

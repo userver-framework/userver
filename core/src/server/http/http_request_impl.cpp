@@ -74,14 +74,16 @@ namespace server::http {
 // Use hash_function() magic to pass out the same RNG seed among all
 // unordered_maps because we don't need different seeds and want to avoid its
 // overhead.
-HttpRequestImpl::HttpRequestImpl(request::ResponseDataAccounter& data_accounter)
+HttpRequestImpl::HttpRequestImpl(request::ResponseDataAccounter& data_accounter,
+                                 engine::io::Sockaddr remote_address)
     : form_data_args_(kZeroAllocationBucketCount,
                       request_args_.hash_function()),
       path_args_by_name_index_(kZeroAllocationBucketCount,
                                request_args_.hash_function()),
       headers_(kBucketCount),
       cookies_(kZeroAllocationBucketCount, request_args_.hash_function()),
-      response_(*this, data_accounter, StartTime(), cookies_.hash_function()) {}
+      response_(*this, data_accounter, StartTime(), cookies_.hash_function()),
+      remote_address_(std::move(remote_address)) {}
 
 HttpRequestImpl::~HttpRequestImpl() = default;
 
@@ -95,6 +97,10 @@ std::chrono::duration<double> HttpRequestImpl::GetResponseTime() const {
 
 const std::string& HttpRequestImpl::GetHost() const {
   return GetHeader(USERVER_NAMESPACE::http::headers::kHost);
+}
+
+const engine::io::Sockaddr& HttpRequestImpl::GetRemoteAddress() const {
+  return remote_address_;
 }
 
 const std::string& HttpRequestImpl::GetArg(std::string_view arg_name) const {

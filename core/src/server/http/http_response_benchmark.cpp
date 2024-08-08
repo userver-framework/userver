@@ -124,7 +124,8 @@ void http_headers_serialization_ostreams(benchmark::State& state) {
 
 void HttpResponseSetHeaderBenchmark(benchmark::State& state) {
   server::request::ResponseDataAccounter accounter{};
-  const server::http::HttpRequestImpl request_impl{accounter};
+  const server::http::HttpRequestImpl request_impl{accounter,
+                                                   engine::io::Sockaddr{}};
   server::http::HttpResponse response{request_impl, accounter};
 
   namespace Headers = USERVER_NAMESPACE::http::headers;
