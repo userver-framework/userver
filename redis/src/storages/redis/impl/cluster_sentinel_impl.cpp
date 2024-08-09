@@ -917,10 +917,10 @@ void ClusterSentinelImpl::AsyncCommand(const SentinelCommand& scommand,
         const bool retry_to_master =
             !master && reply->data.IsNil() &&
             command->control.force_retries_to_master_on_nil_reply;
-        const bool retry = retry_to_master ||
-                           reply->status != ReplyStatus::kOk || error_ask ||
-                           error_moved || reply->IsUnusableInstanceError() ||
-                           reply->IsReadonlyError();
+        const bool retry =
+            retry_to_master || reply->status != ReplyStatus::kOk || error_ask ||
+            error_moved || reply->IsUnusableInstanceError() ||
+            reply->IsReadonlyError() || reply->data.IsErrorClusterdown();
 
         std::shared_ptr<Redis> moved_to_instance;
         if (retry) {
