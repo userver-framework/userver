@@ -3,7 +3,6 @@
 #include <memory>
 #include <string>
 
-#include <server/http/http_request_parser.hpp>
 #include <server/http/request_handler_base.hpp>
 #include <server/net/connection_config.hpp>
 #include <server/net/stats.hpp>
@@ -48,6 +47,7 @@ class Connection final {
   std::string Getpeername() const;
 
   bool ReadSome();
+  USERVER_NAMESPACE::http::HttpVersion GetHttpVersion() const noexcept;
 
   const ConnectionConfig& config_;
   const request::HttpRequestConfig& handler_defaults_config_;
@@ -55,6 +55,7 @@ class Connection final {
   const http::RequestHandlerBase& request_handler_;
   const std::shared_ptr<Stats> stats_;
   request::ResponseDataAccounter& data_accounter_;
+  std::unique_ptr<request::RequestParser> request_parser_{nullptr};
 
   engine::io::Sockaddr remote_address_;
   std::string peer_name_;

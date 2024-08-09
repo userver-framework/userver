@@ -8,6 +8,7 @@
 #include <userver/clients/http/client.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/run_standalone.hpp>
+#include <userver/http/http_version.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/logging/logger.hpp>
 
@@ -27,7 +28,8 @@ struct Config {
   long timeout_ms = 1000;
   bool multiplexing = false;
   size_t max_host_connections = 0;
-  http::HttpVersion http_version = http::HttpVersion::k11;
+  USERVER_NAMESPACE::http::HttpVersion http_version =
+      USERVER_NAMESPACE::http::HttpVersion::k11;
   std::string url_file;
 };
 
@@ -88,15 +90,16 @@ Config ParseConfig(int argc, char* argv[]) {
   if (vm.count("http-version")) {
     auto value = vm["http-version"].as<std::string>();
     if (value == "1.0")
-      config.http_version = http::HttpVersion::k10;
+      config.http_version = USERVER_NAMESPACE::http::HttpVersion::k10;
     else if (value == "1.1")
-      config.http_version = http::HttpVersion::k11;
+      config.http_version = USERVER_NAMESPACE::http::HttpVersion::k11;
     else if (value == "2")
-      config.http_version = http::HttpVersion::k2;
+      config.http_version = USERVER_NAMESPACE::http::HttpVersion::k2;
     else if (value == "2tls")
-      config.http_version = http::HttpVersion::k2Tls;
+      config.http_version = USERVER_NAMESPACE::http::HttpVersion::k2Tls;
     else if (value == "2-prior")
-      config.http_version = http::HttpVersion::k2PriorKnowledge;
+      config.http_version =
+          USERVER_NAMESPACE::http::HttpVersion::k2PriorKnowledge;
     else {
       std::cerr << "--http-version value is unknown" << std::endl;
       exit(1);

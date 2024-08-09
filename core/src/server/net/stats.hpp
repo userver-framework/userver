@@ -2,16 +2,27 @@
 
 #include <atomic>
 #include <cstddef>
+#include <optional>
 #include <vector>
 
 #include <userver/concurrent/striped_counter.hpp>
+#include <userver/utils/statistics/striped_rate_counter.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace server::net {
 
+struct Http2Stats {
+  utils::statistics::StripedRateCounter streams_count_{0};
+  utils::statistics::StripedRateCounter streams_parse_error_{0};
+  utils::statistics::StripedRateCounter streams_close_{0};
+  utils::statistics::StripedRateCounter reset_streams_{0};
+  utils::statistics::StripedRateCounter goaway_streams_{0};
+};
+
 struct ParserStats {
   concurrent::StripedCounter parsing_request_count;
+  Http2Stats http2_stats;
 };
 
 struct ParserStatsAggregation final {
@@ -22,11 +33,22 @@ struct ParserStatsAggregation final {
 
   ParserStatsAggregation& operator+=(const ParserStatsAggregation& other) {
     parsing_request_count += other.parsing_request_count;
+    streams_count += other.streams_count;
+    streams_parse_error += other.streams_parse_error;
+    streams_close += other.streams_close;
+    reset_streams += other.reset_streams;
+    goaway_streams += other.goaway_streams;
 
     return *this;
   }
 
   std::size_t parsing_request_count{0};
+  // HTTP/2.0
+  std::size_t streams_count{0};
+  std::size_t streams_parse_error{0};
+  std::size_t streams_close{0};
+  std::size_t reset_streams{0};
+  std::size_t goaway_streams{0};
 };
 
 struct Stats {

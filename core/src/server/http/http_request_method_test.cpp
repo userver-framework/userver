@@ -59,7 +59,7 @@ UTEST_P(HttpRequestMethods, Test) {
 
   const std::string request = param.method_query + " / HTTP/1.1\r\n\r\n";
 
-  parser.Parse(request.data(), request.size());
+  parser->Parse(request.data(), request.size());
 
   EXPECT_EQ(parsed, true);
 }

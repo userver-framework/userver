@@ -2,6 +2,7 @@
 
 #include <server/http/parse_http_status.hpp>
 #include <userver/logging/level_serialization.hpp>
+#include <userver/utils/trivial_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -32,6 +33,10 @@ HttpRequestConfig Parse(const yaml_config::YamlConfig& value,
   conf.deadline_expired_status_code =
       value["deadline_expired_status_code"].As<http::HttpStatus>(
           conf.deadline_expired_status_code);
+
+  conf.http_version =
+      value["http_version"].As<USERVER_NAMESPACE::http::HttpVersion>(
+          conf.http_version);
 
   return conf;
 }

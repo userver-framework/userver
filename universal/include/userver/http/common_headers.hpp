@@ -196,6 +196,14 @@ inline constexpr std::string_view kInFlight{"max-requests-in-flight"};
 }  // namespace ratelimit_reason
 /// @}
 
+namespace k2 {
+inline constexpr std::string_view kMethod = ":method";
+inline constexpr std::string_view kScheme = ":scheme";
+inline constexpr std::string_view kAuthority = ":authority";
+inline constexpr std::string_view kPath = ":path";
+inline constexpr std::string_view kStatus = ":status";
+}  // namespace k2
+
 }  // namespace http::headers
 
 USERVER_NAMESPACE_END

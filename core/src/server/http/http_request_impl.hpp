@@ -139,6 +139,8 @@ class HttpRequestImpl final : public request::RequestBase {
 
   void SetHttpHandlerStatistics(handlers::HttpRequestStatistics&);
 
+  void SetResponseStreamId(std::uint32_t);
+
   friend class HttpRequestConstructor;
 
  private:

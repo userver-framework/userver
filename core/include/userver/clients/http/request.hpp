@@ -15,6 +15,7 @@
 #include <userver/concurrent/queue.hpp>
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/private_key.hpp>
+#include <userver/http/http_version.hpp>
 #include <userver/utils/impl/source_location.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -48,15 +49,7 @@ enum class HttpMethod { kGet, kPost, kHead, kPut, kDelete, kPatch, kOptions };
 
 std::string_view ToStringView(HttpMethod method);
 
-/// HTTP version to use
-enum class HttpVersion {
-  kDefault,  ///< unspecified version
-  k10,       ///< HTTP/1.0 only
-  k11,       ///< HTTP/1.1 only
-  k2,        ///< HTTP/2 with fallback to HTTP/1.1
-  k2Tls,     ///< HTTP/2 over TLS only, otherwise (no TLS or h2) HTTP/1.1
-  k2PriorKnowledge,  ///< HTTP/2 only (without Upgrade)
-};
+using USERVER_NAMESPACE::http::HttpVersion;
 
 enum class HttpAuthType {
   kBasic,      ///< "basic"
