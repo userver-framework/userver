@@ -28,7 +28,17 @@ class GreeterClient final {
 
   std::string SayHello(std::string name) const;
 
+  std::vector<std::string> SayHelloResponseStream(std::string name) const;
+
+  std::string SayHelloRequestStream(
+      const std::vector<std::string_view>& names) const;
+
+  std::vector<std::string> SayHelloStreams(
+      const std::vector<std::string_view>& names) const;
+
  private:
+  static std::unique_ptr<grpc::ClientContext> MakeClientContext();
+
   api::GreeterServiceClient raw_client_;
 };
 /// [client]

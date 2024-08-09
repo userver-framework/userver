@@ -1,8 +1,6 @@
 #pragma once
 
-#include <string>
 #include <string_view>
-
 #include <userver/utest/using_namespace_userver.hpp>
 
 /// [includes]
@@ -20,6 +18,13 @@ class GreeterService final : public api::GreeterServiceBase {
   explicit GreeterService(std::string prefix);
 
   void SayHello(SayHelloCall& call, api::GreetingRequest&& request) override;
+
+  void SayHelloResponseStream(SayHelloResponseStreamCall& call,
+                              api::GreetingRequest&& request) override;
+
+  void SayHelloRequestStream(SayHelloRequestStreamCall& call) override;
+
+  void SayHelloStreams(SayHelloStreamsCall& call) override;
 
  private:
   const std::string prefix_;

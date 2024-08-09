@@ -1,9 +1,23 @@
 #include <greeter_service.hpp>
 
+#include <chrono>
+#include <string_view>
+#include <utility>
+
 #include <fmt/format.h>
 
 #include <userver/components/component.hpp>
+#include <userver/engine/async.hpp>
+#include <userver/engine/sleep.hpp>
+#include <userver/utest/using_namespace_userver.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
+
+#include <userver/components/component_base.hpp>
+#include <userver/testsuite/testpoint.hpp>
+#include <userver/ugrpc/server/service_component_base.hpp>
+
+#include <samples/greeter_client.usrv.pb.hpp>
+#include <samples/greeter_service.usrv.pb.hpp>
 
 namespace samples {
 
@@ -25,6 +39,51 @@ void GreeterService::SayHello(api::GreeterServiceBase::SayHelloCall& call,
   call.Finish(response);
 }
 /// [server RPC handling]
+
+/// [server RPC handling response_stream]
+void GreeterService::SayHelloResponseStream(
+    api::GreeterServiceBase::SayHelloResponseStreamCall& call,
+    api::GreetingRequest&& request) {
+  std::string message = fmt::format("{}, {}", prefix_, request.name());
+  api::GreetingResponse response;
+  constexpr auto kCountSend = 5;
+  for (auto i = 0; i < kCountSend; ++i) {
+    message.push_back('!');
+    response.set_greeting(grpc::string(message));
+    call.Write(response);
+  }
+  call.Finish();
+}
+/// [server RPC handling response_stream]
+
+/// [server RPC handling request_stream]
+void GreeterService::SayHelloRequestStream(
+    api::GreeterServiceBase::SayHelloRequestStreamCall& call) {
+  std::string message{};
+  api::GreetingRequest request;
+  while (call.Read(request)) {
+    message.append(request.name());
+  }
+  api::GreetingResponse response;
+  response.set_greeting(fmt::format("{}, {}", prefix_, message));
+  call.Finish(response);
+}
+/// [server RPC handling request_stream]
+
+/// [server RPC handling streams]
+void GreeterService::SayHelloStreams(
+    api::GreeterServiceBase::SayHelloStreamsCall& call) {
+  std::string message;
+  api::GreetingRequest request;
+  api::GreetingResponse response;
+  while (call.Read(request)) {
+    message.append(request.name());
+    response.set_greeting(fmt::format("{}, {}", prefix_, message));
+    call.Write(response);
+  }
+  call.Finish();
+}
+/// [server RPC handling streams]
 
 /// [component]
 GreeterServiceComponent::GreeterServiceComponent(

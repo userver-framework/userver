@@ -22,7 +22,10 @@ def prepare_service_config(grpc_mockserver_endpoint):
 # /// [Prepare server mock]
 @pytest.fixture(name='mock_grpc_greeter_session', scope='session')
 def _mock_grpc_greeter_session(grpc_mockserver, create_grpc_mock):
-    mock = create_grpc_mock(greeter_services.GreeterServiceServicer)
+    mock = create_grpc_mock(
+        greeter_services.GreeterServiceServicer,
+        stream_method_names=['SayHelloResponseStream', 'SayHelloStreams'],
+    )
     greeter_services.add_GreeterServiceServicer_to_server(
         mock.servicer, grpc_mockserver,
     )
