@@ -15,7 +15,7 @@ PeriodicWatcher::PeriodicWatcher(engine::ev::ThreadControl ev_thread,
   timer_.Set({}, interval_);
 }
 
-void PeriodicWatcher::Start() { timer_.Start(); }
+void PeriodicWatcher::Start() { timer_.StartAsync(); }
 
 void PeriodicWatcher::Stop() { timer_.Stop(); }
 

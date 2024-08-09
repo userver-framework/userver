@@ -1176,6 +1176,7 @@
   "core/src/engine/ev/watcher/timer_watcher.cpp":"taxi/uservices/userver/core/src/engine/ev/watcher/timer_watcher.cpp",
   "core/src/engine/ev/watcher/timer_watcher.hpp":"taxi/uservices/userver/core/src/engine/ev/watcher/timer_watcher.hpp",
   "core/src/engine/ev/watcher/timer_watcher_test.cpp":"taxi/uservices/userver/core/src/engine/ev/watcher/timer_watcher_test.cpp",
+  "core/src/engine/ev/watcher_benchmark.cpp":"taxi/uservices/userver/core/src/engine/ev/watcher_benchmark.cpp",
   "core/src/engine/exception.cpp":"taxi/uservices/userver/core/src/engine/exception.cpp",
   "core/src/engine/future_benchmark.cpp":"taxi/uservices/userver/core/src/engine/future_benchmark.cpp",
   "core/src/engine/future_test.cpp":"taxi/uservices/userver/core/src/engine/future_test.cpp",

@@ -40,8 +40,7 @@ class Watcher final : public MultiShotAsyncPayload<Watcher<EvType>> {
   std::enable_if_t<std::is_same_v<T, ev_timer>> Set(LibEvDuration after,
                                                     LibEvDuration repeat);
 
-  // Synchronously start/stop ev_xxx. Can be used from coroutines only.
-  void Start();
+  // Synchronously stop ev_xxx. Can be used from coroutines only.
   void Stop();
 
   // Asynchronously start ev_xxx.
@@ -101,11 +100,6 @@ template <typename EvType>
 Watcher<EvType>::~Watcher() {
   Stop();
   UASSERT(!IsActive());
-}
-
-template <typename EvType>
-void Watcher<EvType>::Start() {
-  RunInBoundEvLoopSync([this] { StartImpl(); });
 }
 
 template <typename EvType>

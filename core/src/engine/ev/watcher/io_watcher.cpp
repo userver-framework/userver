@@ -38,7 +38,7 @@ void IoWatcher::ReadAsync(Callback cb) {
         "Called ReadAsync() while another read wait is already pending");
 
   watcher_read_.Init(&IoWatcher::OnEventRead, fd_, EV_READ);
-  watcher_read_.Start();
+  watcher_read_.StartAsync();
 }
 
 void IoWatcher::WriteAsync(Callback cb) {
@@ -51,7 +51,7 @@ void IoWatcher::WriteAsync(Callback cb) {
         "Called WriteAsync() while another write wait is already pending");
 
   watcher_write_.Init(&IoWatcher::OnEventWrite, fd_, EV_WRITE);
-  watcher_write_.Start();
+  watcher_write_.StartAsync();
 }
 
 void IoWatcher::OnEventRead(struct ev_loop*, ev_io* io, int events) noexcept {

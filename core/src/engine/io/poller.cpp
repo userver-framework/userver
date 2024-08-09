@@ -78,7 +78,7 @@ void Poller::Add(int fd, utils::Flags<Event::Type> events) {
     ++watcher.ev_epoch;
     if (ev_events && watcher.ev_epoch == watcher.coro_epoch) {
       watcher.ev_watcher.Set(fd, ev_events);
-      watcher.ev_watcher.Start();
+      watcher.ev_watcher.StartAsync();
     }
   });
 }
