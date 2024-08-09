@@ -79,6 +79,8 @@ class CacheUpdateTrait::Impl final {
 
   enum class FirstUpdateInvalidation { kNo, kYes, kFinished };
 
+  void DoInvalidateAsync();
+
   UpdateType NextUpdateType(const Config& config);
 
   void DoPeriodicUpdate();

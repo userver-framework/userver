@@ -36,12 +36,6 @@ T CheckNotNull(T ptr) {
 }  // namespace
 
 void CacheUpdateTrait::Impl::InvalidateAsync(UpdateType update_type) {
-  if (!periodic_update_enabled_) {
-    // We are in testsuite, update synchronously for repeatability.
-    UpdateSyncDebug(update_type);
-    return;
-  }
-
   if (static_config_.allowed_update_types == AllowedUpdateTypes::kOnlyFull &&
       update_type == UpdateType::kIncremental) {
     LOG_WARNING() << "Requested incremental update for cache '" << name_
@@ -56,8 +50,34 @@ void CacheUpdateTrait::Impl::InvalidateAsync(UpdateType update_type) {
   auto actual = FirstUpdateInvalidation::kNo;
   first_update_invalidation_.compare_exchange_strong(
       actual, FirstUpdateInvalidation::kYes);
-  if (actual == FirstUpdateInvalidation::kFinished) {
+  if (actual != FirstUpdateInvalidation::kFinished) {
+    // Invalidation was requested before StartPeriodicUpdates.
+    return;
+  }
+
+  DoInvalidateAsync();
+}
+
+void CacheUpdateTrait::Impl::DoInvalidateAsync() {
+  if (periodic_update_enabled_) {
     update_task_.ForceStepAsync();
+  } else {
+    if (!is_running_) {
+      // InvalidateAsync outside of StartPeriodicUpdates-StopPeriodicUpdates
+      // is noop, just like in production.
+      return;
+    }
+
+    // We are in testsuite, update synchronously for repeatability.
+    utils::CriticalAsync(task_processor_, update_task_name_, [this] {
+      try {
+        DoPeriodicUpdate();
+      } catch (const std::exception& ex) {
+        // The exception has already been logged in DoPeriodicUpdate.
+        LOG_DEBUG() << "Exception from DoPeriodicUpdate of cache '" << name_
+                    << "': " << ex;
+      }
+    }).Get();
   }
 }
 
@@ -211,14 +231,15 @@ void CacheUpdateTrait::Impl::StartPeriodicUpdates(
       periodic_task_flags_ |= utils::PeriodicTask::Flags::kStrong;
     }
 
-    if (periodic_update_enabled_) {
-      const auto first_update_invalidation =
-          first_update_invalidation_.exchange(
-              FirstUpdateInvalidation::kFinished);
-      if (first_update_invalidation == FirstUpdateInvalidation::kYes) {
-        update_task_.ForceStepAsync();
-      }
+    const auto first_update_invalidation =
+        first_update_invalidation_.exchange(FirstUpdateInvalidation::kFinished);
+    if (first_update_invalidation == FirstUpdateInvalidation::kYes) {
+      // InvalidateAsync was called during the first update, the cache is
+      // considered to already be stale.
+      DoInvalidateAsync();
+    }
 
+    if (periodic_update_enabled_) {
       update_task_.Start(update_task_name_, GetPeriodicTaskSettings(*config),
                          [this] { DoPeriodicUpdate(); });
 

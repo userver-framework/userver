@@ -2,12 +2,15 @@
 
 #include <chrono>
 #include <exception>
+#include <iomanip>
 #include <optional>
 #include <utility>
 #include <vector>
 
 #include <fmt/format.h>
+#include <gmock/gmock.h>
 #include <boost/filesystem.hpp>
+#include <boost/pfr/io_fields.hpp>
 
 #include <cache/internal_helpers_test.hpp>
 #include <dump/internal_helpers_test.hpp>
@@ -26,9 +29,20 @@
 #include <userver/testsuite/dump_control.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/enumerate.hpp>
+#include <userver/utils/underlying_value.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace testsuite::impl {
+
+// NOLINTNEXTLINE(misc-use-anonymous-namespace)
+[[maybe_unused]] static std::ostream& operator<<(std::ostream& os,
+                                                 PeriodicUpdatesMode value) {
+  return os << utils::UnderlyingValue(value);
+}
+
+}  // namespace testsuite::impl
 
 namespace {
 
@@ -793,6 +807,11 @@ class ForcedUpdateCache : public cache::CacheMockBase {
   const Settings settings_;
 };
 
+[[maybe_unused]] std::ostream& operator<<(
+    std::ostream& os, const ForcedUpdateCache::Settings& value) {
+  return os << std::boolalpha << boost::pfr::io_fields(value);
+}
+
 yaml_config::YamlConfig MakeForcedUpdateCacheConfig() {
   static const std::string kConfig = R"(
 update-types: full-and-incremental
@@ -818,12 +837,28 @@ void YieldNTimes(std::size_t n) {
   }
 }
 
+class CacheInvalidateAsync
+    : public testing::TestWithParam<testsuite::impl::PeriodicUpdatesMode> {};
+
+INSTANTIATE_UTEST_SUITE_P(
+    /* no prefix */, CacheInvalidateAsync,
+    testing::Values(testsuite::impl::PeriodicUpdatesMode::kEnabled,
+                    testsuite::impl::PeriodicUpdatesMode::kDisabled));
+
 }  // namespace
 
-UTEST(CacheInvalidateAsync, UpdateType) {
-  cache::MockEnvironment environment(
-      testsuite::impl::PeriodicUpdatesMode::kEnabled);
-  ForcedUpdateCache cache(MakeForcedUpdateCacheConfig(), environment, {});
+UTEST(CacheInvalidateAsyncTest, UpdateType) {
+  cache::MockEnvironment environment{
+      testsuite::impl::PeriodicUpdatesMode::kEnabled};
+  ForcedUpdateCache cache{
+      MakeForcedUpdateCacheConfig(),
+      environment,
+      {
+          InvalidateBeforeStartPeriodicUpdates{false},
+          InvalidateAtFirstUpdate{false},
+          FirstSyncUpdate{false},
+      },
+  };
 
   for (const auto update_type :
        {cache::UpdateType::kFull, cache::UpdateType::kIncremental}) {
@@ -834,6 +869,9 @@ UTEST(CacheInvalidateAsync, UpdateType) {
   EXPECT_EQ(cache.GetFullUpdatesCount(), 1);
   EXPECT_EQ(cache.GetIncrementalUpdatesCount(), 1);
 
+  // With 1 TaskProcessor thread, the 2nd invalidation requests is guaranteed to
+  // happen while the 1st one is not complete yet. They should result in a
+  // single cache update.
   cache.InvalidateAsync(cache::UpdateType::kFull);
   cache.InvalidateAsync(cache::UpdateType::kIncremental);
   YieldNTimes(10);
@@ -841,13 +879,47 @@ UTEST(CacheInvalidateAsync, UpdateType) {
   EXPECT_EQ(cache.GetIncrementalUpdatesCount(), 1);
 }
 
-UTEST(CacheInvalidateAsync, BeforeStartPeriodicUpdates) {
-  cache::MockEnvironment environment(
-      testsuite::impl::PeriodicUpdatesMode::kEnabled);
-  const ForcedUpdateCache::Settings settings{
-      InvalidateBeforeStartPeriodicUpdates{true},
-      InvalidateAtFirstUpdate{false}, FirstSyncUpdate{false}};
-  ForcedUpdateCache cache(MakeForcedUpdateCacheConfig(), environment, settings);
+UTEST(CacheInvalidateAsyncTest, TestsuiteUpdateTypes) {
+  cache::MockEnvironment environment{
+      testsuite::impl::PeriodicUpdatesMode::kDisabled};
+  ForcedUpdateCache cache{
+      MakeForcedUpdateCacheConfig(),
+      environment,
+      {
+          InvalidateBeforeStartPeriodicUpdates{false},
+          InvalidateAtFirstUpdate{false},
+          FirstSyncUpdate{true},
+      },
+  };
+
+  for (const auto update_type :
+       {cache::UpdateType::kFull, cache::UpdateType::kIncremental}) {
+    cache.InvalidateAsync(update_type);
+    EXPECT_EQ(cache.GetLastUpdateType(), update_type);
+  }
+  EXPECT_EQ(cache.GetFullUpdatesCount(), 2);
+  EXPECT_EQ(cache.GetIncrementalUpdatesCount(), 1);
+
+  // With PeriodicUpdatesMode::kDisabled, InvalidateAsync is actually sync,
+  // so the 2nd invalidation request is guaranteed to happen when the 1st one
+  // is already complete. They should result in two cache updates.
+  cache.InvalidateAsync(cache::UpdateType::kFull);
+  cache.InvalidateAsync(cache::UpdateType::kIncremental);
+  EXPECT_EQ(cache.GetFullUpdatesCount(), 3);
+  EXPECT_EQ(cache.GetIncrementalUpdatesCount(), 2);
+}
+
+UTEST_P(CacheInvalidateAsync, BeforeStartPeriodicUpdates) {
+  cache::MockEnvironment environment{GetParam()};
+  ForcedUpdateCache cache{
+      MakeForcedUpdateCacheConfig(),
+      environment,
+      {
+          InvalidateBeforeStartPeriodicUpdates{true},
+          InvalidateAtFirstUpdate{false},
+          FirstSyncUpdate{false},
+      },
+  };
 
   YieldNTimes(10);
 
@@ -855,11 +927,17 @@ UTEST(CacheInvalidateAsync, BeforeStartPeriodicUpdates) {
   EXPECT_EQ(cache.GetIncrementalUpdatesCount(), 0);
 }
 
-UTEST(CacheInvalidateAsync, PeriodicUpdatesNotEnabled) {
-  cache::MockEnvironment environment(
-      testsuite::impl::PeriodicUpdatesMode::kEnabled);
-  ForcedUpdateCache cache(MakeForcedUpdateDisabledCacheConfig(), environment,
-                          {});
+UTEST_P(CacheInvalidateAsync, PeriodicUpdatesNotEnabled) {
+  cache::MockEnvironment environment{GetParam()};
+  ForcedUpdateCache cache{
+      MakeForcedUpdateDisabledCacheConfig(),
+      environment,
+      {
+          InvalidateBeforeStartPeriodicUpdates{false},
+          InvalidateAtFirstUpdate{false},
+          FirstSyncUpdate{false},
+      },
+  };
 
   for (auto update_type :
        {cache::UpdateType::kFull, cache::UpdateType::kIncremental}) {
@@ -872,47 +950,110 @@ UTEST(CacheInvalidateAsync, PeriodicUpdatesNotEnabled) {
 
 namespace {
 
-auto SimulateCacheStartup(ForcedUpdateCache::Settings settings) {
-  std::vector<std::size_t> actual;
+struct UpdatesCounts final {
+  std::size_t initial_sync{};
+  std::size_t initial_async{};
+  std::size_t after_full_invalidation{};
+};
 
-  cache::MockEnvironment environment(
-      testsuite::impl::PeriodicUpdatesMode::kEnabled);
-  ForcedUpdateCache cache(MakeForcedUpdateCacheConfig(), environment, settings);
-  actual.push_back(cache.GetUpdatesCount());
-  YieldNTimes(10);
-  actual.push_back(cache.GetUpdatesCount());
-  cache.InvalidateAsync(UpdateType::kFull);
-  YieldNTimes(10);
-  actual.push_back(cache.GetUpdatesCount());
-
-  return actual;
+[[maybe_unused]] std::ostream& operator<<(std::ostream& os,
+                                          const UpdatesCounts& value) {
+  return os << boost::pfr::io_fields(value);
 }
+
+struct CacheInvalidateAsyncParams final {
+  testsuite::impl::PeriodicUpdatesMode periodic_updates_mode;
+  ForcedUpdateCache::Settings settings;
+  UpdatesCounts expected_updates_counts;
+};
+
+[[maybe_unused]] std::ostream& operator<<(
+    std::ostream& os, const CacheInvalidateAsyncParams& value) {
+  return os << boost::pfr::io_fields(value);
+}
+
+class TestInvalidateAsyncAtStartup
+    : public testing::TestWithParam<CacheInvalidateAsyncParams> {};
 
 }  // namespace
 
-UTEST(CacheInvalidateAsync, AtStartup) {
-  cache::MockEnvironment environment(
-      testsuite::impl::PeriodicUpdatesMode::kEnabled);
-  ForcedUpdateCache::Settings settings;
+UTEST_P(TestInvalidateAsyncAtStartup, Test) {
+  const auto& [periodic_updates_mode, settings, expected_updates_counts] =
+      GetParam();
 
-  settings = {InvalidateBeforeStartPeriodicUpdates{true},
-              InvalidateAtFirstUpdate{true}, FirstSyncUpdate{true}};
-  std::vector<std::size_t> actual = SimulateCacheStartup(settings);
-  std::vector<std::size_t> expected{1, 2, 3};
-  EXPECT_EQ(actual, expected);
+  cache::MockEnvironment environment{periodic_updates_mode};
+  ForcedUpdateCache cache{MakeForcedUpdateCacheConfig(), environment, settings};
 
-  settings = {InvalidateBeforeStartPeriodicUpdates{false},
-              InvalidateAtFirstUpdate{true}, FirstSyncUpdate{true}};
-  actual = SimulateCacheStartup(settings);
-  expected = {1, 2, 3};
-  EXPECT_EQ(actual, expected);
+  EXPECT_EQ(cache.GetUpdatesCount(), expected_updates_counts.initial_sync);
 
-  settings = {InvalidateBeforeStartPeriodicUpdates{true},
-              InvalidateAtFirstUpdate{false}, FirstSyncUpdate{true}};
-  actual = SimulateCacheStartup(settings);
-  expected = {1, 1, 2};
-  EXPECT_EQ(actual, expected);
+  YieldNTimes(10);
+  EXPECT_EQ(cache.GetUpdatesCount(), expected_updates_counts.initial_async);
+
+  cache.InvalidateAsync(UpdateType::kFull);
+  YieldNTimes(10);
+  EXPECT_EQ(cache.GetUpdatesCount(),
+            expected_updates_counts.after_full_invalidation);
 }
+
+INSTANTIATE_UTEST_SUITE_P(
+    /* empty */, TestInvalidateAsyncAtStartup,
+    Values(
+        CacheInvalidateAsyncParams{
+            testsuite::impl::PeriodicUpdatesMode::kEnabled,
+            {
+                InvalidateBeforeStartPeriodicUpdates{true},
+                InvalidateAtFirstUpdate{true},
+                FirstSyncUpdate{true},
+            },
+            {1, 2, 3},
+        },
+        CacheInvalidateAsyncParams{
+            testsuite::impl::PeriodicUpdatesMode::kEnabled,
+            {
+                InvalidateBeforeStartPeriodicUpdates{false},
+                InvalidateAtFirstUpdate{true},
+                FirstSyncUpdate{true},
+            },
+            {1, 2, 3},
+        },
+        CacheInvalidateAsyncParams{
+            testsuite::impl::PeriodicUpdatesMode::kEnabled,
+            {
+                InvalidateBeforeStartPeriodicUpdates{true},
+                InvalidateAtFirstUpdate{false},
+                FirstSyncUpdate{true},
+            },
+            {1, 1, 2},
+        },
+        // With periodic updates disabled, InvalidateAsync is actually performed
+        // synchronously, hence initial_sync == initial_async.
+        CacheInvalidateAsyncParams{
+            testsuite::impl::PeriodicUpdatesMode::kDisabled,
+            {
+                InvalidateBeforeStartPeriodicUpdates{true},
+                InvalidateAtFirstUpdate{true},
+                FirstSyncUpdate{true},
+            },
+            {2, 2, 3},
+        },
+        CacheInvalidateAsyncParams{
+            testsuite::impl::PeriodicUpdatesMode::kDisabled,
+            {
+                InvalidateBeforeStartPeriodicUpdates{false},
+                InvalidateAtFirstUpdate{true},
+                FirstSyncUpdate{true},
+            },
+            {2, 2, 3},
+        },
+        CacheInvalidateAsyncParams{
+            testsuite::impl::PeriodicUpdatesMode::kDisabled,
+            {
+                InvalidateBeforeStartPeriodicUpdates{true},
+                InvalidateAtFirstUpdate{false},
+                FirstSyncUpdate{true},
+            },
+            {1, 1, 2},
+        }));
 
 namespace {
 
@@ -926,7 +1067,7 @@ class FinishWithErrorCache final : public cache::CacheMockBase {
     StartPeriodicUpdates(cache::CacheUpdateTrait::Flag::kNoFirstUpdate);
   }
 
-  ~FinishWithErrorCache() final { StopPeriodicUpdates(); }
+  ~FinishWithErrorCache() override { StopPeriodicUpdates(); }
 
  private:
   void Update(cache::UpdateType /*type*/,
