@@ -1,54 +1,16 @@
 #include <userver/ugrpc/impl/statistics.hpp>
 
-#include <limits>
-
-#include <userver/logging/log.hpp>
 #include <userver/utils/enumerate.hpp>
+#include <userver/utils/impl/internal_tag.hpp>
 #include <userver/utils/statistics/striped_rate_counter.hpp>
 #include <userver/utils/statistics/writer.hpp>
-#include <userver/utils/underlying_value.hpp>
 
+#include <ugrpc/impl/rate_and_gauge.hpp>
 #include <userver/ugrpc/status_codes.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::impl {
-
-namespace {
-
-// See https://opentelemetry.io/docs/specs/semconv/rpc/grpc/
-// Except that we don't mark DEADLINE_EXCEEDED as a server error.
-bool IsServerError(grpc::StatusCode status) {
-  switch (status) {
-    case grpc::StatusCode::UNKNOWN:
-    case grpc::StatusCode::UNIMPLEMENTED:
-    case grpc::StatusCode::INTERNAL:
-    case grpc::StatusCode::UNAVAILABLE:
-    case grpc::StatusCode::DATA_LOSS:
-      return true;
-    default:
-      return false;
-  }
-}
-
-// For now, we need to dump metrics in legacy format - without 'rate'
-// support - in order not to break existing dashboards
-struct AsRateAndGauge final {
-  utils::statistics::Rate value;
-};
-
-void DumpMetric(utils::statistics::Writer& writer,
-                const AsRateAndGauge& stats) {
-  // old format. Currently it is 'rate' as well, as we are
-  // in our final stages of fully moving to RateCounter
-  // See https://st.yandex-team.ru/TAXICOMMON-6872
-  writer = stats.value;
-  // new format, with 'rate' support but into different sensor
-  // This sensor will be deleted soon.
-  writer["v2"] = stats.value;
-}
-
-}  // namespace
 
 MethodStatistics::MethodStatistics(
     StatisticsDomain domain,
@@ -61,11 +23,7 @@ void MethodStatistics::AccountStarted() noexcept {
 }
 
 void MethodStatistics::AccountStatus(grpc::StatusCode code) noexcept {
-  if (static_cast<std::size_t>(code) < kCodesCount) {
-    ++status_codes_[static_cast<std::size_t>(code)];
-  } else {
-    LOG_ERROR() << "Invalid grpc::StatusCode " << utils::UnderlyingValue(code);
-  }
+  status_codes_.Account(code);
 }
 
 void MethodStatistics::AccountTiming(
@@ -88,8 +46,8 @@ void MethodStatistics::AccountDeadlinePropagated() noexcept {
 void MethodStatistics::AccountCancelled() noexcept { ++cancelled_; }
 
 void DumpMetric(utils::statistics::Writer& writer,
-                const MethodStatistics& stats) {
-  if (stats.domain_ == StatisticsDomain::kClient && !stats.started_.Load()) {
+                const MethodStatisticsSnapshot& stats) {
+  if (stats.domain == StatisticsDomain::kClient && !stats.started) {
     // Don't write client metrics for methods, for which the current service has
     // not performed any requests since the start.
     //
@@ -99,31 +57,25 @@ void DumpMetric(utils::statistics::Writer& writer,
     return;
   }
 
-  writer["timings"] = stats.timings_;
+  writer["timings"] = stats.timings;
 
   utils::statistics::Rate total_requests{0};
   utils::statistics::Rate error_requests{0};
 
   {
-    auto status = writer["status"];
-    for (const auto& [idx, counter] : utils::enumerate(stats.status_codes_)) {
-      const auto code = static_cast<grpc::StatusCode>(idx);
-      const auto count = counter.Load();
-      total_requests += count;
-      if (IsServerError(code)) error_requests += count;
-      status.ValueWithLabels(AsRateAndGauge{count},
-                             {"grpc_code", ugrpc::ToString(code)});
-    }
+    auto cnt = stats.status_codes.DumpMetricHelper(writer);
+    total_requests += cnt.total_requests;
+    error_requests += cnt.error_requests;
   }
 
-  const auto network_errors_value = stats.network_errors_.Load();
+  const auto network_errors_value = stats.network_errors;
   // 'abandoned_errors' need not be accounted in eps or rps, because such
   // requests also separately report the error that occurred during the
   // automatic request termination.
-  const auto abandoned_errors_value = stats.internal_errors_.Load();
-  const auto deadline_cancelled_value = stats.deadline_cancelled_.Load();
-  const auto cancelled_value = stats.cancelled_.Load();
-  const auto started_renamed = stats.started_renamed_.Load();
+  const auto abandoned_errors_value = stats.internal_errors;
+  const auto deadline_cancelled_value = stats.deadline_cancelled;
+  const auto cancelled_value = stats.cancelled;
+  const auto started_renamed = stats.started_renamed;
 
   // 'total_requests' and 'error_requests' originally only count RPCs that
   // finished with a status code. 'network_errors', 'deadline_cancelled' and
@@ -146,7 +98,7 @@ void DumpMetric(utils::statistics::Writer& writer,
   total_requests += cancelled_value;
 
   // "active" is not a rate metric. Also, beware of overflow
-  writer["active"] = static_cast<std::int64_t>(stats.started_.Load().value) -
+  writer["active"] = static_cast<std::int64_t>(stats.started.value) -
                      static_cast<std::int64_t>(started_renamed.value) -
                      static_cast<std::int64_t>(total_requests.value);
 
@@ -157,10 +109,49 @@ void DumpMetric(utils::statistics::Writer& writer,
   writer["abandoned-error"] = AsRateAndGauge{abandoned_errors_value};
   writer["cancelled"] = AsRateAndGauge{cancelled_value};
 
-  writer["deadline-propagated"] =
-      AsRateAndGauge{stats.deadline_updated_.Load()};
+  writer["deadline-propagated"] = AsRateAndGauge{stats.deadline_updated};
   writer["cancelled-by-deadline-propagation"] =
       AsRateAndGauge{deadline_cancelled_value};
+}
+
+void DumpMetric(utils::statistics::Writer& writer,
+                const MethodStatistics& stats) {
+  writer = MethodStatisticsSnapshot{stats};
+}
+
+MethodStatisticsSnapshot::MethodStatisticsSnapshot(
+    const StatisticsDomain domain)
+    : domain(domain) {}
+
+MethodStatisticsSnapshot::MethodStatisticsSnapshot(
+    const MethodStatistics& stats)
+    : domain(stats.domain_),
+      started_renamed(stats.started_renamed_.Load()),
+      status_codes(stats.status_codes_),
+      timings(stats.timings_.GetStatsForPeriod()),
+      network_errors(stats.network_errors_.Load()),
+      internal_errors(stats.internal_errors_.Load()),
+      cancelled(stats.cancelled_.Load()),
+      deadline_updated(stats.deadline_updated_.Load()),
+      deadline_cancelled(stats.deadline_cancelled_.Load()) {
+  // For the 'active' metric, it is important to load the 'started' value after
+  // loading the 'started_renamed' and 'total_requests' values.
+  // More details in DumpMetric for MethodStatisticsSnapshot
+  started = stats.started_.Load();
+}
+
+void MethodStatisticsSnapshot::Add(const MethodStatisticsSnapshot& other) {
+  UASSERT(domain == other.domain);
+
+  started += other.started;
+  started_renamed += other.started_renamed;
+  status_codes += other.status_codes;
+  timings.Add(other.timings);
+  network_errors += other.network_errors;
+  internal_errors += other.internal_errors;
+  cancelled += other.cancelled;
+  deadline_updated += other.deadline_updated;
+  deadline_cancelled += other.deadline_cancelled;
 }
 
 std::uint64_t MethodStatistics::GetStarted() const noexcept {
@@ -206,19 +197,32 @@ const StaticServiceMetadata& ServiceStatistics::GetMetadata() const {
   return metadata_;
 }
 
-void DumpMetric(utils::statistics::Writer& writer,
-                const ServiceStatistics& stats) {
-  const auto service_full_name = stats.metadata_.service_full_name;
+void ServiceStatistics::DumpAndCountTotal(
+    utils::statistics::Writer& writer, MethodStatisticsSnapshot& total) const {
+  const auto service_full_name = metadata_.service_full_name;
   for (const auto& [i, method_full_name] :
-       utils::enumerate(stats.metadata_.method_full_names)) {
+       utils::enumerate(metadata_.method_full_names)) {
     const auto method_name =
-        method_full_name.substr(stats.metadata_.service_full_name.size() + 1);
-    writer.ValueWithLabels(stats.method_statistics_[i],
-                           {{"grpc_service", service_full_name},
-                            {"grpc_method", method_name},
-                            {"grpc_destination", method_full_name}});
+        method_full_name.substr(metadata_.service_full_name.size() + 1);
+
+    writer.WithLabels(
+        utils::impl::InternalTag{},
+        {
+            {"grpc_service", service_full_name},
+            {"grpc_method", method_name},
+            {"grpc_destination", method_full_name},
+        },
+        [&total, &method_statistic =
+                     method_statistics_[i]](utils::statistics::Writer& writer) {
+          const MethodStatisticsSnapshot snapshot{method_statistic};
+          writer = snapshot;
+          total.Add(snapshot);
+        });
   }
 }
+
+static_assert(utils::statistics::kHasWriterSupport<MethodStatisticsSnapshot>);
+static_assert(utils::statistics::kHasWriterSupport<MethodStatistics>);
 
 }  // namespace ugrpc::impl
 

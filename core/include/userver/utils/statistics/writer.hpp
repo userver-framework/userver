@@ -7,6 +7,7 @@
 #include <string_view>
 #include <type_traits>
 
+#include <userver/utils/impl/internal_tag.hpp>
 #include <userver/utils/statistics/histogram_view.hpp>
 #include <userver/utils/statistics/labels.hpp>
 #include <userver/utils/statistics/rate.hpp>
@@ -140,6 +141,29 @@ class Writer final {
   void ValueWithLabels(const T& value, const LabelView& label) {
     ValueWithLabels(value, LabelsSpan{&label, &label + 1});
   }
+
+  /// @cond
+  /// func must be called even for filtered out Writers, e.g. to always collect
+  /// totals
+  template <class Func>
+  void WithLabels(utils::impl::InternalTag, LabelsSpan labels, Func func) {
+    auto new_writer = MakeChild();
+    new_writer.AppendLabelsSpan(labels);
+    func(new_writer);
+  }
+
+  template <class Func>
+  void WithLabels(utils::impl::InternalTag, std::initializer_list<LabelView> il,
+                  Func func) {
+    WithLabels(utils::impl::InternalTag{}, LabelsSpan{il}, func);
+  }
+
+  template <class Func>
+  void WithLabels(utils::impl::InternalTag, const LabelView& label, Func func) {
+    WithLabels(utils::impl::InternalTag{}, LabelsSpan{&label, &label + 1},
+               func);
+  }
+  /// @endcond
 
   /// Returns true if this writer would actually write data. Returns false if
   /// the data is not required by request and metrics construction could be

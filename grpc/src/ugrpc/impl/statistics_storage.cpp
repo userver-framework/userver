@@ -6,6 +6,7 @@
 #include <boost/functional/hash.hpp>
 
 #include <userver/utils/algo.hpp>
+#include <userver/utils/impl/internal_tag.hpp>
 #include <userver/utils/statistics/storage.hpp>
 #include <userver/utils/statistics/writer.hpp>
 #include <userver/utils/trivial_map.hpp>
@@ -42,7 +43,7 @@ ServiceStatistics& StatisticsStorage::GetServiceStatistics(
   ServiceKey service_key{service_id, std::move(endpoint)};
 
   {
-    auto service_statistics = service_statistics_.SharedMutableLockUnsafe();
+    auto service_statistics = service_statistics_map_.SharedMutableLockUnsafe();
     if (auto* stats = utils::FindOrNullptr(*service_statistics, service_key)) {
       return *stats;
     }
@@ -51,7 +52,7 @@ ServiceStatistics& StatisticsStorage::GetServiceStatistics(
   // All the other clients are blocked while we instantiate stats for a new
   // service. This is OK, because it will only happen a finite number of times
   // during startup.
-  auto service_statistics = service_statistics_.Lock();
+  auto service_statistics = service_statistics_map_.Lock();
 
   const auto [iter, is_new] = service_statistics->try_emplace(
       std::move(service_key), metadata, domain_, global_started_);
@@ -63,7 +64,7 @@ MethodStatistics& StatisticsStorage::GetGenericStatistics(
   const GenericKeyView generic_key{call_name, endpoint};
 
   {
-    auto generic_statistics = generic_statistics_.SharedMutableLockUnsafe();
+    auto generic_statistics = generic_statistics_map_.SharedMutableLockUnsafe();
     if (auto* stats = utils::impl::FindTransparentOrNullptr(*generic_statistics,
                                                             generic_key)) {
       return *stats;
@@ -73,7 +74,7 @@ MethodStatistics& StatisticsStorage::GetGenericStatistics(
   // All the other clients are blocked while we instantiate stats for a new
   // service. This is OK, because it will only happen a finite number of times
   // during startup.
-  auto generic_statistics = generic_statistics_.Lock();
+  auto generic_statistics = generic_statistics_map_.Lock();
 
   const auto [iter, is_new] = generic_statistics->try_emplace(
       generic_key.Dereference(), domain_, global_started_);
@@ -81,45 +82,61 @@ MethodStatistics& StatisticsStorage::GetGenericStatistics(
 }
 
 void StatisticsStorage::ExtendStatistics(utils::statistics::Writer& writer) {
-  auto by_destination = writer["by-destination"];
+  MethodStatisticsSnapshot total{domain_};
+
   {
-    auto service_statistics = service_statistics_.SharedLock();
-    for (const auto& [key, service_stats] : *service_statistics) {
-      if (key.endpoint) {
-        by_destination.ValueWithLabels(std::move(service_stats),
-                                       {"endpoint", *key.endpoint});
-      } else {
-        by_destination = service_stats;
+    auto by_destination = writer["by-destination"];
+    {
+      auto service_statistics_map = service_statistics_map_.SharedLock();
+      for (const auto& [key, service_stats] : *service_statistics_map) {
+        if (key.endpoint) {
+          by_destination.WithLabels(
+              utils::impl::InternalTag{}, {"endpoint", *key.endpoint},
+              [&service_stats = service_stats,
+               &total = total](utils::statistics::Writer& writer) {
+                service_stats.DumpAndCountTotal(writer, total);
+              });
+        } else {
+          service_stats.DumpAndCountTotal(by_destination, total);
+        }
+      }
+    }
+    {
+      auto generic_statistics_map = generic_statistics_map_.SharedLock();
+      for (const auto& [key, method_stats] : *generic_statistics_map) {
+        const std::string_view call_name = key.call_name;
+
+        const auto slash_pos = call_name.find('/');
+        if (slash_pos == std::string_view::npos || slash_pos == 0) {
+          UASSERT(false);
+          continue;
+        }
+
+        const auto service_name = call_name.substr(0, slash_pos);
+        const auto method_name = call_name.substr(slash_pos + 1);
+
+        const MethodStatisticsSnapshot snapshot{method_stats};
+        total.Add(snapshot);
+
+        if (key.endpoint) {
+          by_destination.ValueWithLabels(snapshot,
+                                         {{"grpc_service", service_name},
+                                          {"grpc_method", method_name},
+                                          {"grpc_destination", key.call_name},
+                                          {"endpoint", *key.endpoint}});
+        } else {
+          by_destination.ValueWithLabels(snapshot,
+                                         {{"grpc_service", service_name},
+                                          {"grpc_method", method_name},
+                                          {"grpc_destination", key.call_name}});
+        }
       }
     }
   }
-  {
-    auto generic_statistics = generic_statistics_.SharedLock();
-    for (const auto& [key, service_stats] : *generic_statistics) {
-      const std::string_view call_name = key.call_name;
 
-      const auto slash_pos = call_name.find('/');
-      if (slash_pos == std::string_view::npos || slash_pos == 0) {
-        UASSERT(false);
-        continue;
-      }
-
-      const auto service_name = call_name.substr(0, slash_pos);
-      const auto method_name = call_name.substr(slash_pos + 1);
-
-      if (key.endpoint) {
-        by_destination.ValueWithLabels(std::move(service_stats),
-                                       {{"grpc_service", service_name},
-                                        {"grpc_method", method_name},
-                                        {"grpc_destination", key.call_name},
-                                        {"endpoint", *key.endpoint}});
-      } else {
-        by_destination.ValueWithLabels(std::move(service_stats),
-                                       {{"grpc_service", service_name},
-                                        {"grpc_method", method_name},
-                                        {"grpc_destination", key.call_name}});
-      }
-    }
+  // Just writing grpc.server.total metrics for now
+  if (domain_ == StatisticsDomain::kServer) {
+    writer["total"] = total;
   }
 }
 

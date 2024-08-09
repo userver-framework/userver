@@ -112,3 +112,60 @@ grpc.client.by-destination.cancelled: endpoint=[::]:38149, grpc_destination=samp
 grpc.server.by-destination.cancelled.v2: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
 grpc.server.by-destination.cancelled: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
 grpc.client.by-destination.cancelled.v2: endpoint=[::]:38149, grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE	0
+grpc.server.total.timings: percentile=p0	GAUGE	0
+grpc.server.total.timings: percentile=p50	GAUGE	0
+grpc.server.total.timings: percentile=p90	GAUGE	0
+grpc.server.total.timings: percentile=p95	GAUGE	0
+grpc.server.total.timings: percentile=p98	GAUGE	0
+grpc.server.total.timings: percentile=p99	GAUGE	0
+grpc.server.total.timings: percentile=p99_6	GAUGE	0
+grpc.server.total.timings: percentile=p99_9	GAUGE	0
+grpc.server.total.timings: percentile=p100	GAUGE	0
+grpc.server.total.status: grpc_code=OK	RATE	0
+grpc.server.total.status.v2: grpc_code=OK	RATE	0
+grpc.server.total.status: grpc_code=CANCELLED	RATE	0
+grpc.server.total.status.v2: grpc_code=CANCELLED	RATE	0
+grpc.server.total.status: grpc_code=UNKNOWN	RATE	0
+grpc.server.total.status.v2: grpc_code=UNKNOWN	RATE	0
+grpc.server.total.status: grpc_code=INVALID_ARGUMENT	RATE	0
+grpc.server.total.status.v2: grpc_code=INVALID_ARGUMENT	RATE	0
+grpc.server.total.status: grpc_code=DEADLINE_EXCEEDED	RATE	0
+grpc.server.total.status.v2: grpc_code=DEADLINE_EXCEEDED	RATE	0
+grpc.server.total.status: grpc_code=NOT_FOUND	RATE	0
+grpc.server.total.status.v2: grpc_code=NOT_FOUND	RATE	0
+grpc.server.total.status: grpc_code=ALREADY_EXISTS	RATE	0
+grpc.server.total.status.v2: grpc_code=ALREADY_EXISTS	RATE	0
+grpc.server.total.status: grpc_code=PERMISSION_DENIED	RATE	0
+grpc.server.total.status.v2: grpc_code=PERMISSION_DENIED	RATE	0
+grpc.server.total.status: grpc_code=RESOURCE_EXHAUSTED	RATE	0
+grpc.server.total.status.v2: grpc_code=RESOURCE_EXHAUSTED	RATE	0
+grpc.server.total.status: grpc_code=FAILED_PRECONDITION	RATE	0
+grpc.server.total.status.v2: grpc_code=FAILED_PRECONDITION	RATE	0
+grpc.server.total.status: grpc_code=ABORTED	RATE	0
+grpc.server.total.status.v2: grpc_code=ABORTED	RATE	0
+grpc.server.total.status: grpc_code=OUT_OF_RANGE	RATE	0
+grpc.server.total.status.v2: grpc_code=OUT_OF_RANGE	RATE	0
+grpc.server.total.status: grpc_code=UNIMPLEMENTED	RATE	0
+grpc.server.total.status.v2: grpc_code=UNIMPLEMENTED	RATE	0
+grpc.server.total.status: grpc_code=INTERNAL	RATE	0
+grpc.server.total.status.v2: grpc_code=INTERNAL	RATE	0
+grpc.server.total.status: grpc_code=UNAVAILABLE	RATE	0
+grpc.server.total.status.v2: grpc_code=UNAVAILABLE	RATE	0
+grpc.server.total.status: grpc_code=DATA_LOSS	RATE	0
+grpc.server.total.status.v2: grpc_code=DATA_LOSS	RATE	0
+grpc.server.total.status: grpc_code=UNAUTHENTICATED	RATE	0
+grpc.server.total.status.v2: grpc_code=UNAUTHENTICATED	RATE	0
+grpc.server.total.active:	GAUGE	0
+grpc.server.total.rps:	RATE	0
+grpc.server.total.rps.v2:	RATE	0
+grpc.server.total.eps:	RATE	0
+grpc.server.total.network-error:	RATE	0
+grpc.server.total.network-error.v2:	RATE	0
+grpc.server.total.abandoned-error:	RATE	0
+grpc.server.total.abandoned-error.v2:	RATE	0
+grpc.server.total.cancelled:	RATE	0
+grpc.server.total.cancelled.v2:	RATE	0
+grpc.server.total.deadline-propagated:	RATE	0
+grpc.server.total.deadline-propagated.v2:	RATE	0
+grpc.server.total.cancelled-by-deadline-propagation:	RATE	0
+grpc.server.total.cancelled-by-deadline-propagation.v2:	RATE	0

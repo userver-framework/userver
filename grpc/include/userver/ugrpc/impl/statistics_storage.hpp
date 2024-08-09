@@ -86,12 +86,12 @@ class StatisticsStorage final {
   concurrent::Variable<std::unordered_map<ServiceKey, ServiceStatistics,
                                           ServiceKeyHasher, ServiceKeyComparer>,
                        engine::SharedMutex>
-      service_statistics_;
+      service_statistics_map_;
   concurrent::Variable<
       utils::impl::TransparentMap<GenericKey, MethodStatistics,
                                   GenericKeyHasher, GenericKeyComparer>,
       engine::SharedMutex>
-      generic_statistics_;
+      generic_statistics_map_;
   // statistics_holder_ must be the last field.
   utils::statistics::Entry statistics_holder_;
 };
