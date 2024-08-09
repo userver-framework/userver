@@ -111,19 +111,16 @@ class ThreadControlBase {
   void RunPayloadInEvLoopAsync(AsyncPayloadBase& payload) noexcept;
 
   /// Fast non allocating function to register a `func(*data)` in EvLoop.
-  /// Does not wake up the ev thread immediately as an optimization.
-  /// Depending on thread settings might fallback to RunPayloadInEvLoopAsync.
+  /// Does not wake up the ev thread immediately if the `deadline` would happen
+  /// after the ev wakeup (delays the registration up to `deadline`).
+  ///
+  /// @warning Make sure that payload knows that it is delayed up to deadline
   void RunPayloadInEvLoopDeferred(AsyncPayloadBase& payload,
                                   Deadline deadline) noexcept;
 
   /// Allocating function to execute `func()` in EvLoop.
   template <typename Func>
   void RunInEvLoopAsync(Func&& func);
-
-  /// Allocating function to execute `func()` in EvLoop.
-  /// Does not wake up the ev thread immediately as an optimization.
-  template <typename Func>
-  void RunInEvLoopDeferred(Func&& func);
 
   template <typename Func>
   void RunInEvLoopSync(Func&& func);
@@ -162,19 +159,6 @@ void ThreadControlBase::RunInEvLoopAsync(Func&& func) {
   auto payload = std::make_unique<Payload>(std::forward<Func>(func));
 
   RunPayloadInEvLoopAsync(*payload.release());
-}
-
-template <typename Func>
-void ThreadControlBase::RunInEvLoopDeferred(Func&& func) {
-  if (IsInEvThread()) {
-    func();
-    return;
-  }
-
-  using Payload = impl::UniquePayloadAsync<std::remove_reference_t<Func>>;
-  auto payload = std::make_unique<Payload>(std::forward<Func>(func));
-
-  RunPayloadInEvLoopDeferred(*payload.release(), {});
 }
 
 template <typename Func>

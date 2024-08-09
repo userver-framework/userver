@@ -27,19 +27,8 @@ class Thread final {
   struct UseDefaultEvLoop {};
   static constexpr UseDefaultEvLoop kUseDefaultEvLoop{};
 
-  enum class RegisterEventMode {
-    // With this mode RegisterEventInEvLoop will notify ev-loop right away,
-    // behaving exactly as RunInEvLoopAsync.
-    kImmediate,
-    // With this mode RegisterEventInEvLoop will defer events execution to
-    // a periodic timer, running with ~1ms resolution. It helps to avoid
-    // the ev_async_send call, which incurs very noticeable overhead, however
-    // event execution becomes delayed for a aforementioned ~1ms.
-    kDedicatedDeferred
-  };
-
-  Thread(const std::string& thread_name, RegisterEventMode);
-  Thread(const std::string& thread_name, UseDefaultEvLoop, RegisterEventMode);
+  explicit Thread(const std::string& thread_name);
+  Thread(const std::string& thread_name, UseDefaultEvLoop);
 
   ~Thread();
 
@@ -61,8 +50,7 @@ class Thread final {
   const std::string& GetName() const;
 
  private:
-  Thread(const std::string& thread_name, EventLoop::EvLoopType ev_loop_type,
-         RegisterEventMode register_event_mode);
+  Thread(const std::string& thread_name, EventLoop::EvLoopType ev_loop_type);
 
   void RegisterInEvLoop(AsyncPayloadBase& payload);
 
@@ -83,8 +71,6 @@ class Thread final {
   void ReleaseImpl() noexcept;
 
   concurrent::impl::IntrusiveMpscQueue<AsyncPayloadBase> func_queue_{};
-
-  RegisterEventMode register_event_mode_;
 
   EventLoop event_loop_;
 

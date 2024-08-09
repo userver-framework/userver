@@ -42,24 +42,26 @@ class ThreadPool final {
 
   void WriteStats(utils::statistics::Writer& writer) const;
 
-  bool use_ev_default_loop_;
-
   template <typename Control>
-  struct BunchOfThreads final {
-    utils::FixedArray<Thread> threads;
-    utils::FixedArray<Control> thread_controls;
-    std::atomic<std::size_t> next_thread_idx{0};
+  struct BunchOfControls final {
+    utils::FixedArray<Control> controls;
+    std::atomic<std::size_t> next_idx{0};
 
-    Control& Next() {
-      UASSERT(!thread_controls.empty());
-      // just ignore counter_ overflow
-      return thread_controls[next_thread_idx++ % thread_controls.size()];
+    Control& Next() noexcept {
+      UASSERT(!controls.empty());
+      // just ignore next_idx overflow
+      return controls[next_idx++ % controls.size()];
     }
-    bool Empty() const noexcept { return thread_controls.empty(); }
+
+    bool Empty() const noexcept { return controls.empty(); }
   };
 
-  BunchOfThreads<ThreadControl> default_threads_;
-  BunchOfThreads<TimerThreadControl> timer_threads_;
+  BunchOfControls<ThreadControl> default_controls_;
+  BunchOfControls<TimerThreadControl> timer_controls_;
+
+  utils::FixedArray<Thread> threads_;
+
+  const bool use_ev_default_loop_;
 };
 
 }  // namespace engine::ev

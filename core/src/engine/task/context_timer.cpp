@@ -123,7 +123,7 @@ void ContextTimer::Impl::Finalize() {
   // two ev runs with the same data can happen. The first run would drop
   // 'context_', potentially destroying *this. The second run would
   // use-after-free.
-  thread_control_->RunPayloadInEvLoopDeferred(GetFinalizer(), {});
+  thread_control_->RunPayloadInEvLoopAsync(GetFinalizer());
 }
 
 void ContextTimer::Impl::DoArmTimerInEvThread() {

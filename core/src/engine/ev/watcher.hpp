@@ -193,7 +193,7 @@ void Watcher<EvType>::PushAsyncOp(AsyncOpType op) {
   pending_async_op_.store(op, std::memory_order_relaxed);
   if (this->PrepareEnqueue()) {
     ++pending_op_count_;
-    thread_control_.RunPayloadInEvLoopDeferred(*this, {});
+    thread_control_.RunPayloadInEvLoopAsync(*this);
   }
 }
 

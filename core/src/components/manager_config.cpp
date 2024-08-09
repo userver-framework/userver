@@ -125,13 +125,6 @@ properties:
                 description: >
                     number of threads to process low level IO system calls
                     (number of ev loops to start in libev)
-            dedicated_timer_threads:
-                type: integer
-                description: >
-                    number of threads dedicated to processing timer events
-                    (if set to zero timer events will be processed
-                    intermixed with IO events)
-                defaultDescription: 0
     components:
         type: object
         description: 'dictionary of "component name": "options"'

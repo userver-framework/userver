@@ -18,17 +18,6 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::ev {
 namespace {
 
-// We approach libev/OS timer resolution here
-constexpr std::chrono::milliseconds kDedicatedDeferInterval{1};
-
-// There is a periodic timer in ev-thread with 1ms interval that processes
-// starts/restarts/stops, thus we don't need to explicitly call ev_async_send
-// for every operation. However there are some timers with resolution lower
-// than 1ms, and for such presumably rare occasions we still want to notify
-// ev-loop explicitly.
-const auto kDedicatedDeferThreshold =
-    kDedicatedDeferInterval + utils::datetime::SteadyCoarseClock::resolution();
-
 constexpr std::chrono::milliseconds kCpuStatsCollectInterval{1000};
 
 const auto kDeferedInterval =
@@ -40,21 +29,15 @@ const auto kCpuStatsThrottle =
 
 }  // namespace
 
-Thread::Thread(const std::string& thread_name,
-               RegisterEventMode register_event_mode)
-    : Thread(thread_name, EventLoop::EvLoopType::kNewLoop,
-             register_event_mode) {}
+Thread::Thread(const std::string& thread_name)
+    : Thread(thread_name, EventLoop::EvLoopType::kNewLoop) {}
 
-Thread::Thread(const std::string& thread_name, UseDefaultEvLoop,
-               RegisterEventMode register_event_mode)
-    : Thread(thread_name, EventLoop::EvLoopType::kDefaultLoop,
-             register_event_mode) {}
+Thread::Thread(const std::string& thread_name, UseDefaultEvLoop)
+    : Thread(thread_name, EventLoop::EvLoopType::kDefaultLoop) {}
 
 Thread::Thread(const std::string& thread_name,
-               EventLoop::EvLoopType ev_loop_type,
-               RegisterEventMode register_event_mode)
-    : register_event_mode_(register_event_mode),
-      event_loop_(ev_loop_type),
+               EventLoop::EvLoopType ev_loop_type)
+    : event_loop_(ev_loop_type),
       lock_(loop_mutex_, std::defer_lock),
       name_{thread_name},
       cpu_stats_storage_{kCpuStatsCollectInterval, kCpuStatsThrottle} {
@@ -75,26 +58,19 @@ void Thread::RunInEvLoopAsync(AsyncPayloadBase& payload) noexcept {
 
 void Thread::RunInEvLoopDeferred(AsyncPayloadBase& payload,
                                  Deadline deadline) noexcept {
+  UASSERT_MSG(
+      deadline.IsReachable(),
+      "RunInEvLoopDeferred with unreachable deadline may produce unpredictable "
+      "latency. Use RunInEvLoopAsync or provide a reachable dedaline");
   RegisterInEvLoop(payload);
 
   if (IsInEvThread() || ev_async_pending(&watch_update_)) {
     return;
   }
 
-  if (deadline.IsReachable()) {
-    const auto time_left = deadline.TimeLeftApprox();
-    if (time_left >= kMinDurationToDefer) {
-      return;
-    }
-
-    if (register_event_mode_ == RegisterEventMode::kDedicatedDeferred &&
-        time_left >= kDedicatedDeferThreshold) {
-      return;
-    }
-  } else {
-    if (register_event_mode_ == RegisterEventMode::kDedicatedDeferred) {
-      return;
-    }
+  const auto time_left = deadline.TimeLeftApprox();
+  if (time_left >= kMinDurationToDefer) {
+    return;
   }
 
   ev_async_send(GetEvLoop(), &watch_update_);
@@ -139,10 +115,8 @@ void Thread::Start() {
   ev_async_start(loop, &watch_break_);
 
   using LibEvDuration = std::chrono::duration<double>;
-  const auto defer_duration = std::chrono::duration_cast<LibEvDuration>(
-      register_event_mode_ == RegisterEventMode::kDedicatedDeferred
-          ? kDedicatedDeferInterval
-          : kDeferedInterval);
+  const auto defer_duration =
+      std::chrono::duration_cast<LibEvDuration>(kDeferedInterval);
 
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
   ev_timer_init(&defer_timer_, UpdateTimersWatcher, 0.0,

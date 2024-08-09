@@ -11,7 +11,6 @@ namespace engine::ev {
 
 struct ThreadPoolConfig {
   std::size_t threads = 2;
-  std::size_t dedicated_timer_threads = 0;
   std::string thread_name = "event-worker";
   bool ev_default_loop_disabled = false;
 };
