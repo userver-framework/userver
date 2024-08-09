@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import os
@@ -32,7 +33,7 @@ def service_env():
     return {'SECDIST_CONFIG': json.dumps(secdist_config)}
 
 
-def _callback(err, msg):
+def _callback(err, msg) -> None:
     if err is not None:
         logging.error(
             f'Failed to deliver message to topic {msg.topic()}: {str(err)}',
@@ -51,7 +52,7 @@ def kafka_producer():
 
         async def produce(
                 self, topic, key, value, partition, callback=_callback,
-        ):
+        ) -> None:
             self.producer.produce(
                 topic,
                 value=value,
@@ -62,3 +63,19 @@ def kafka_producer():
             self.producer.flush()
 
     return Wrapper()
+
+
+@pytest.fixture(name='stop_consumers', autouse=True)
+async def stop_consumers(service_client):
+    yield
+
+    logging.debug('Stopping consumers after test...')
+
+    await asyncio.sleep(1.0)  # wait until messages are consumed
+    for consumer in common.CONSUMERS:  # clear consumed messages, if exists
+        await common.get_consumed_messages(service_client, consumer)
+
+    # guarantee the consumers to be stopped after each test
+    await common.stop_consumers(service_client)
+
+    logging.debug('All consumers are stopped')

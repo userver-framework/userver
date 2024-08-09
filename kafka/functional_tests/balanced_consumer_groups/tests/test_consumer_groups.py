@@ -60,8 +60,6 @@ async def test_partitions_share(service_client, testpoint, kafka_producer):
     )
     assert messages == set(['key-1', 'key-2'])
 
-    await stop_consumers(service_client)
-
 
 async def test_rebalance_after_one_consumer_stopped(
         service_client, testpoint, kafka_producer,
@@ -137,8 +135,6 @@ async def test_rebalance_after_one_consumer_stopped(
         parse_message_keys(first_consumer_messages),
     )
 
-    await stop_consumers(service_client, [CONSUMERS[0]])
-
 
 async def test_rebalance_after_second_consumer_came_after_subscription(
         service_client, testpoint, kafka_producer,
@@ -213,8 +209,6 @@ async def test_rebalance_after_second_consumer_came_after_subscription(
         + parse_message_keys(second_consumer_messages),
     )
     assert messages == set(['key-3', 'key-4'])
-
-    await stop_consumers(service_client)
 
 
 @pytest.mark.parametrize('exchange_order', ['stop_start', 'start_stop'])
@@ -309,5 +303,3 @@ async def test_rebalance_full_partitions_exchange(
     assert set(['key-3', 'key-4']) == set(
         parse_message_keys(second_consumer_messages),
     )
-
-    await stop_consumers(service_client, [CONSUMERS[1]])
