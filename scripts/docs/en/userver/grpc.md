@@ -29,7 +29,7 @@ See also:
 
 Generate and link a library from `.proto` schemas and link to it in your `CMakeLists.txt`:
 
-@snippet samples/grpc_service/CMakeLists.txt  gRPC sample - CMake
+@snippet samples/grpc_service/CMakeLists.txt  add_grpc_library
 
 `userver_add_grpc_library` will link `userver-grpc` transitively and will generate the usual `.pb.h + .pb.cc` files. For service definitions, it will additionally generate asynchronous interfaces `foo_client.usrv.pb.hpp` and `foo_service.usrv.pb.hpp`.
 
