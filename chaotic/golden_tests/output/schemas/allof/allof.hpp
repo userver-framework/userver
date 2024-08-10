@@ -10,10 +10,6 @@
 #include <userver/chaotic/type_bundle_hpp.hpp>
 
 namespace ns {
-namespace impl {}  // namespace impl
-}  // namespace ns
-
-namespace ns {
 
 struct AllOf {
   struct Foo__P0 {
@@ -72,10 +68,10 @@ AllOf Parse(USERVER_NAMESPACE::formats::json::Value json,
             USERVER_NAMESPACE::formats::parse::To<ns::AllOf>);
 
 /* Parse(USERVER_NAMESPACE::formats::yaml::Value, To<ns::AllOf>) was not
- * generated: ns::AllOf@Foo__P0 has JSON-specific field "extra" */
+ * generated: ns::AllOf::Foo__P0 has JSON-specific field "extra" */
 
 /* Parse(USERVER_NAMESPACE::yaml_config::Value, To<ns::AllOf>) was not
- * generated: ns::AllOf@Foo__P0 has JSON-specific field "extra" */
+ * generated: ns::AllOf::Foo__P0 has JSON-specific field "extra" */
 
 USERVER_NAMESPACE::formats::json::Value Serialize(
     const ns::AllOf::Foo__P0& value,

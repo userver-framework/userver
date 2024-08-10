@@ -1,3 +1,4 @@
+from chaotic.back.cpp import type_name
 from chaotic.back.cpp import types as cpp_types
 from chaotic.back.cpp.translator import Generator
 from chaotic.back.cpp.translator import GeneratorConfig
@@ -34,7 +35,7 @@ def test_import(simple_gen):
     assert ext_schemas.schemas == {'vfull#/type1': types.String(type='string')}
     assert ext_types == {
         '/type1': cpp_types.CppPrimitiveType(
-            raw_cpp_type='std::string',
+            raw_cpp_type=type_name.TypeName('std::string'),
             nullable=False,
             user_cpp_type=None,
             json_schema=types.String(type='string'),
@@ -58,7 +59,7 @@ def test_import(simple_gen):
             orig_cpp_type=ext_types['/type1'],
             indirect=False,
             self_ref=False,
-            raw_cpp_type='',
+            raw_cpp_type=type_name.TypeName(''),
             nullable=False,
             user_cpp_type=None,
             json_schema=new_schemas.schemas['vfull#/type2'],

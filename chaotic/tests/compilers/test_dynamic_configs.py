@@ -3,6 +3,7 @@ import tempfile
 from typing import Any
 
 from chaotic import error
+from chaotic.back.cpp import type_name
 from chaotic.back.cpp import types
 from chaotic.compilers import dynamic_config
 
@@ -22,7 +23,7 @@ def parse_variable_content(
 def test_smoke():
     var = parse_variable_content({'schema': {'type': 'integer'}, 'default': 1})
     expected = types.CppPrimitiveType(
-        raw_cpp_type='int',
+        raw_cpp_type=type_name.TypeName('int'),
         nullable=False,
         user_cpp_type=None,
         json_schema=None,

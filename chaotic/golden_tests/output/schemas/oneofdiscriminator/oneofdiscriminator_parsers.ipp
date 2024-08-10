@@ -76,7 +76,7 @@ ns::OneOfDiscriminator Parse(
       value["foo"]
           .template As<
               std::optional<USERVER_NAMESPACE::chaotic::OneOfWithDiscriminator<
-                  &ns::impl::kns__OneOfDiscriminator__Foo_Settings,
+                  &ns::OneOfDiscriminator::kFoo_Settings,
                   USERVER_NAMESPACE::chaotic::Primitive<ns::A>,
                   USERVER_NAMESPACE::chaotic::Primitive<ns::B>>>>();
 

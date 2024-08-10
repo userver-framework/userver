@@ -12,10 +12,6 @@
 #include <userver/chaotic/type_bundle_hpp.hpp>
 
 namespace ns {
-namespace impl {}  // namespace impl
-}  // namespace ns
-
-namespace ns {
 
 struct A {
   std::optional<std::string> type{};
@@ -42,14 +38,6 @@ USERVER_NAMESPACE::formats::json::Value Serialize(
     const ns::A& value, USERVER_NAMESPACE::formats::serialize::To<
                             USERVER_NAMESPACE::formats::json::Value>);
 
-}  // namespace ns
-
-namespace ns {
-namespace impl {}  // namespace impl
-}  // namespace ns
-
-namespace ns {
-
 struct B {
   std::optional<std::string> type{};
   std::optional<int> b_prop{};
@@ -75,24 +63,14 @@ USERVER_NAMESPACE::formats::json::Value Serialize(
     const ns::B& value, USERVER_NAMESPACE::formats::serialize::To<
                             USERVER_NAMESPACE::formats::json::Value>);
 
-}  // namespace ns
-
-namespace ns {
-namespace impl {
-
-[[maybe_unused]] static constexpr USERVER_NAMESPACE::chaotic::OneOfSettings
-    kns__OneOfDiscriminator__Foo_Settings = {
-        "type", USERVER_NAMESPACE::utils::TrivialSet([](auto selector) {
-          return selector().template Type<std::string>().Case("aaa").Case(
-              "bbb");
-        })};
-
-}  // namespace impl
-}  // namespace ns
-
-namespace ns {
-
 struct OneOfDiscriminator {
+  [[maybe_unused]] static constexpr USERVER_NAMESPACE::chaotic::OneOfSettings
+      kFoo_Settings = {
+          "type", USERVER_NAMESPACE::utils::TrivialSet([](auto selector) {
+            return selector().template Type<std::string>().Case("aaa").Case(
+                "bbb");
+          })};
+
   using Foo = std::variant<ns::A, ns::B>;
 
   std::optional<ns::OneOfDiscriminator::Foo> foo{};
@@ -110,11 +88,11 @@ OneOfDiscriminator Parse(
     USERVER_NAMESPACE::formats::parse::To<ns::OneOfDiscriminator>);
 
 /* Parse(USERVER_NAMESPACE::formats::yaml::Value, To<ns::OneOfDiscriminator>)
- * was not generated: ns::OneOfDiscriminator@Foo has JSON-specific field "extra"
- */
+ * was not generated: ns::OneOfDiscriminator::Foo has JSON-specific field
+ * "extra" */
 
 /* Parse(USERVER_NAMESPACE::yaml_config::Value, To<ns::OneOfDiscriminator>) was
- * not generated: ns::OneOfDiscriminator@Foo has JSON-specific field "extra" */
+ * not generated: ns::OneOfDiscriminator::Foo has JSON-specific field "extra" */
 
 USERVER_NAMESPACE::formats::json::Value Serialize(
     const ns::OneOfDiscriminator& value,

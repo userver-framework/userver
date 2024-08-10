@@ -117,11 +117,11 @@ OneOfDiscriminator Parse(
 }
 
 /* Parse(USERVER_NAMESPACE::formats::yaml::Value, To<ns::OneOfDiscriminator>)
- * was not generated: ns::OneOfDiscriminator@Foo has JSON-specific field "extra"
- */
+ * was not generated: ns::OneOfDiscriminator::Foo has JSON-specific field
+ * "extra" */
 
 /* Parse(USERVER_NAMESPACE::yaml_config::Value, To<ns::OneOfDiscriminator>) was
- * not generated: ns::OneOfDiscriminator@Foo has JSON-specific field "extra" */
+ * not generated: ns::OneOfDiscriminator::Foo has JSON-specific field "extra" */
 
 USERVER_NAMESPACE::formats::json::Value Serialize(
     [[maybe_unused]] const ns::OneOfDiscriminator& value,
@@ -132,7 +132,7 @@ USERVER_NAMESPACE::formats::json::Value Serialize(
 
   if (value.foo) {
     vb["foo"] = USERVER_NAMESPACE::chaotic::OneOfWithDiscriminator<
-        &ns::impl::kns__OneOfDiscriminator__Foo_Settings,
+        &ns::OneOfDiscriminator::kFoo_Settings,
         USERVER_NAMESPACE::chaotic::Primitive<ns::A>,
         USERVER_NAMESPACE::chaotic::Primitive<ns::B>>{*value.foo};
   }

@@ -29,7 +29,7 @@
     {% endfor %}
 
     {% if type.need_dom_parser() %}
-        {{ type.cpp_name_wo_namespace() }} Parse({{ format }}::Value json,
+        {{ type.raw_cpp_type.in_scope(get_current_namespace()) }} Parse({{ format }}::Value json,
                                                  {{ userver }}::formats::parse::To<{{ name }}> to)
     {
         return Parse<{{ format }}::Value>(json, to);
