@@ -159,8 +159,12 @@ void TaskProcessor::Schedule(impl::TaskContext* context) {
       LOG_LIMITED_WARNING()
           << "failed to enqueue task: task_queue_size_approximate="
           << overload_size << " >= "
-          << "task_queue_size_threshold=" << max_queue_length
-          << " task_processor=" << Name();
+          << "length_limit=" << max_queue_length << " task_processor=" << Name()
+          << ". Make sure that there's enough system resources to process so "
+             "many tasks, adjust the "
+             "`default-service.default-task-processor.wait_queue_overload."
+             "length_limit` parameter in USERVER_TASK_PROCESSOR_QOS dynamic "
+             "config to increase the limit.";
       HandleOverload(*context, action);
     }
   }
@@ -393,7 +397,11 @@ void TaskProcessor::HandleOverload(
     if (!context.IsCritical()) {
       LOG_LIMITED_WARNING()
           << "Task with task_id=" << logging::HexShort(context.GetTaskId())
-          << " was waiting in queue for too long, cancelling.";
+          << " was waiting in queue for too long, cancelling. Make sure that "
+             "there's no blocking syscalls in the task, use utils::CpuRelax. "
+             "Adjust the `default-service.default-task-processor."
+             "wait_queue_overload.sensor_time_limit_us` parameter in "
+             "USERVER_TASK_PROCESSOR_QOS dynamic config to increase the limit.";
 
       context.RequestCancel(TaskCancellationReason::kOverload);
       GetTaskCounter().AccountTaskCancelOverload();
