@@ -297,14 +297,13 @@ class Generator:
                 f'userver::utils::StrongTypedef<{typedef_tag}, {raw_cpp_type}>'
             )
 
-        tname = name
         validators = cpp_types.CppPrimitiveValidator(
             min=schema.minimum,
             max=schema.maximum,
             exclusiveMin=schema.exclusiveMinimum,
             exclusiveMax=schema.exclusiveMaximum,
-            namespace=tname.namespace(),
-            prefix=tname.in_local_scope(),
+            namespace=name.namespace(),
+            prefix=name.in_local_scope(),
         )
         validators.fix_legacy_exclusive()
         return cpp_types.CppPrimitiveType(
@@ -321,14 +320,13 @@ class Generator:
     ) -> cpp_types.CppType:
         user_cpp_type = self._extract_user_cpp_type(schema)
 
-        tname = name
         validators = cpp_types.CppPrimitiveValidator(
             min=schema.minimum,
             max=schema.maximum,
             exclusiveMin=schema.exclusiveMinimum,
             exclusiveMax=schema.exclusiveMaximum,
-            namespace=tname.namespace(),
-            prefix=tname.in_local_scope(),
+            namespace=name.namespace(),
+            prefix=name.in_local_scope(),
         )
         validators.fix_legacy_exclusive()
         return cpp_types.CppPrimitiveType(
@@ -382,13 +380,12 @@ class Generator:
                 default=default,
             )
 
-        tname = name
         validators = cpp_types.CppPrimitiveValidator(
             minLength=schema.minLength,
             maxLength=schema.maxLength,
             pattern=schema.pattern,
-            namespace=tname.namespace(),
-            prefix=tname.in_local_scope(),
+            namespace=name.namespace(),
+            prefix=name.in_local_scope(),
         )
 
         typedef_tag = schema.get_x_property_str(
@@ -501,9 +498,8 @@ class Generator:
             user_cpp_type = None
 
         return cpp_types.CppArray(
-            raw_cpp_type=type_name.TypeName(
-                'NOT_USED',
-            ),  # _cpp_type() is overridden in array
+            # _cpp_type() is overridden in array
+            raw_cpp_type=type_name.TypeName('NOT_USED'),
             json_schema=schema,
             nullable=schema.nullable,
             user_cpp_type=user_cpp_type,

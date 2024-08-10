@@ -65,11 +65,13 @@ USERVER_NAMESPACE::formats::json::Value Serialize(
 
 struct OneOfDiscriminator {
   [[maybe_unused]] static constexpr USERVER_NAMESPACE::chaotic::OneOfSettings
-      kFoo_Settings = {
-          "type", USERVER_NAMESPACE::utils::TrivialSet([](auto selector) {
-            return selector().template Type<std::string>().Case("aaa").Case(
-                "bbb");
-          })};
+      kFoo_Settings = {"type",
+                       USERVER_NAMESPACE::utils::TrivialSet([](auto selector) {
+                         return selector()
+                             .template Type<std::string_view>()
+                             .Case("aaa")
+                             .Case("bbb");
+                       })};
 
   using Foo = std::variant<ns::A, ns::B>;
 

@@ -115,7 +115,7 @@
             "{{ type.property_name }}",
             {{ userver }}::utils::TrivialSet(
                 [](auto selector) {
-		    return selector().template Type<std::string>()
+		    return selector().template Type<std::string_view>()
                         {%- for var_name in type.variants -%}
                             .Case("{{ var_name }}")
                         {%- endfor -%}
