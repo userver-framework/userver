@@ -270,6 +270,12 @@ class CompilerBase:
             generate_serializer=parse_extra_formats,
         )
 
+    def variable_type(self, name: str) -> str:
+        types = self._variables_types[name]
+        name_lower = self.format_ns_name(name)
+        var_type = types[f'taxi_config::{name_lower}::VariableTypeRaw']
+        return var_type.cpp_user_name()
+
     # TODO: move jinja files to arcadia_compiler
     def generate_variable(
             self, name: str, output_dir: str, parse_extra_formats: bool,
