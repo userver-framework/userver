@@ -6,6 +6,7 @@ from typing import Dict
 from typing import Generator
 from typing import List
 from typing import NoReturn
+from typing import Optional
 from typing import Union
 
 from chaotic import error
@@ -285,7 +286,7 @@ class SchemaParser:
     def _parse_int(self, input_: dict) -> types.Integer:
         format_str = input_.pop('format', None)
 
-        fmt: None | types.IntegerFormat
+        fmt: Optional[types.IntegerFormat]
         if format_str:
             fmt = types.IntegerFormat.from_string(format_str)
         else:
@@ -300,7 +301,7 @@ class SchemaParser:
 
     def _parse_string(self, input_: dict) -> types.String:
         format_str = input_.pop('format', None)
-        fmt: None | types.StringFormat
+        fmt: Optional[types.StringFormat]
         if format_str:
             fmt = types.StringFormat.from_string(format_str)
         else:

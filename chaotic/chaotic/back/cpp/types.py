@@ -428,7 +428,7 @@ class CppRef(CppType):
     orig_cpp_type: CppType
     indirect: bool
     self_ref: bool
-    cpp_name: str | None = None
+    cpp_name: Optional[str] = None
 
     KNOWN_X_PROPERTIES = ['x-usrv-cpp-indirect', 'x-taxi-cpp-indirect']
 

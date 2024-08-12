@@ -591,7 +591,7 @@ class Generator:
             for field_name, schema in schema.properties.items()
         }
 
-        extra_type: cpp_types.CppType | bool | None
+        extra_type: cpp_types.CppType | Optional[bool]
         if schema.additionalProperties:
             if isinstance(schema.additionalProperties, types.Schema):
                 extra_name = 'Extra'
