@@ -1,13 +1,15 @@
 # HTTP, HTTPS, WebSocket
 
 **Quality:**
-* HTTP - @ref QUALITY_TIERS "Platinum Tier".
-* HTTPS - @ref QUALITY_TIERS "Golden Tier".
+* HTTP 1.x - @ref QUALITY_TIERS "Platinum Tier".
+* HTTPS 1.x - @ref QUALITY_TIERS "Golden Tier".
 * WebSocket - @ref QUALITY_TIERS "Golden Tier".
+* HTTP 2.0 - @ref QUALITY_TIERS "Silver Tier".
 
 ## Introduction
 
-🐙 **userver** implements HTTP/HTTPS 1.1 and WebSocket server in `userver-core` library using @ref components::Server component.
+🐙 **userver** implements HTTP/HTTPS 1.1, HTTP 2.0 and WebSocket server in
+`userver-core` library using @ref components::Server component.
 
 ## Capabilities
 
@@ -28,7 +30,10 @@
 
 ## Streaming API
 
-Interactive clients (e.g. web browser) might want to get at least first bytes of the HTTP response if the whole HTTP response is generated slowly. In this case the HTTP handler might want to use Streaming API and return HTTP response body as a byte stream rather than as a single-part blob.
+Interactive clients (e.g. web browser) might want to get at least first bytes of
+the HTTP response if the whole HTTP response is generated slowly. In this case
+the HTTP handler might want to use Streaming API and return HTTP response body
+as a byte stream rather than as a single-part blob.
 
 To enable Streaming API in your handler:
 

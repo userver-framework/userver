@@ -38,7 +38,7 @@ class FdPoller final {
     kReadWrite = 3,  /// < wait for either read or write availability
   };
 
-  /// Constructor for FdPoller. `contol` parameter could be obtained via
+  /// Constructor for FdPoller. `control` parameter could be obtained via
   /// engine::current_task::GetEventThread().
   ///
   /// It is recommended to place read and write FdPoller's of the same FD to

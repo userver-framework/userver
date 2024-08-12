@@ -130,7 +130,7 @@ int Http2RequestParser::OnFrameRecv(nghttp2_session* session,
   switch (frame->hd.type) {
     case NGHTTP2_RST_STREAM: {
       parser.RemoveStreamData(frame->rst_stream.hd.stream_id);
-      LOG_ERROR() << fmt::format("RESET stream reqeust. Error code {}",
+      LOG_ERROR() << fmt::format("RESET stream request. Error code {}",
                                  frame->rst_stream.error_code);
       CheckConnectionHealthy(parser.session_.get());
     } break;

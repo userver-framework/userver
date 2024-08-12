@@ -9,7 +9,7 @@ USERVER_NAMESPACE_BEGIN
 namespace engine {
 
 namespace {
-std::size_t CalculateDistibutedCountersCount(
+std::size_t CalculateDistributedCountersCount(
     const std::size_t consumers_count) {
   return std::min(
       {consumers_count * 2, consumers_count + 2,
@@ -19,7 +19,7 @@ std::size_t CalculateDistibutedCountersCount(
 
 GlobalQueue::GlobalQueue(std::size_t consumers_count)
     : consumers_count_(consumers_count),
-      shared_counters_(CalculateDistibutedCountersCount(consumers_count), 0) {}
+      shared_counters_(CalculateDistributedCountersCount(consumers_count), 0) {}
 
 void GlobalQueue::Push(impl::TaskContext* ctx) {
   DoPush(GetRandomIndex(), utils::span(&ctx, 1));

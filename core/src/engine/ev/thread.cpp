@@ -20,12 +20,12 @@ namespace {
 
 constexpr std::chrono::milliseconds kCpuStatsCollectInterval{1000};
 
-const auto kDeferedInterval =
+const auto kDeferredInterval =
     kMinDurationToDefer - utils::datetime::SteadyCoarseClock::resolution();
 
 // Check the time at least twice per collect interval
 const auto kCpuStatsThrottle =
-    static_cast<std::size_t>(kCpuStatsCollectInterval / kDeferedInterval / 2);
+    static_cast<std::size_t>(kCpuStatsCollectInterval / kDeferredInterval / 2);
 
 }  // namespace
 
@@ -41,7 +41,7 @@ Thread::Thread(const std::string& thread_name,
       lock_(loop_mutex_, std::defer_lock),
       name_{thread_name},
       cpu_stats_storage_{kCpuStatsCollectInterval, kCpuStatsThrottle} {
-  UASSERT_MSG(kDeferedInterval > std::chrono::milliseconds{4},
+  UASSERT_MSG(kDeferredInterval > std::chrono::milliseconds{4},
               "Timer events would happen too often");
   Start();
 }
@@ -116,7 +116,7 @@ void Thread::Start() {
 
   using LibEvDuration = std::chrono::duration<double>;
   const auto defer_duration =
-      std::chrono::duration_cast<LibEvDuration>(kDeferedInterval);
+      std::chrono::duration_cast<LibEvDuration>(kDeferredInterval);
 
   // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
   ev_timer_init(&defer_timer_, UpdateTimersWatcher, 0.0,
