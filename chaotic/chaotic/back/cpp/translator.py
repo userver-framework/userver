@@ -216,6 +216,7 @@ class Generator:
             ref.orig_cpp_type = orig_cpp_type
             ref.indirect = ref.json_schema.indirect
             ref.self_ref = ref.json_schema.self_ref
+            ref.cpp_name = name
 
     def fixup_formats(self) -> None:
         chooser = FormatChooser(list(self._state.types.values()))

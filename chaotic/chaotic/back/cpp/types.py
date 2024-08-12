@@ -428,6 +428,7 @@ class CppRef(CppType):
     orig_cpp_type: CppType
     indirect: bool
     self_ref: bool
+    cpp_name: str | None = None
 
     KNOWN_X_PROPERTIES = ['x-usrv-cpp-indirect', 'x-taxi-cpp-indirect']
 
@@ -453,7 +454,14 @@ class CppRef(CppType):
                 f'Box<{self.orig_cpp_type.cpp_user_name()}>'
             )
         else:
-            return self.orig_cpp_type.cpp_user_name()
+            if not self.cpp_name or (
+                    self.orig_cpp_type.cpp_user_name()
+                    != self.orig_cpp_type.cpp_global_name()
+            ):
+                # x-usrv-cpp-type
+                return self.orig_cpp_type.cpp_user_name()
+            else:
+                return self.cpp_name
 
     def declaration_includes(self) -> List[str]:
         if self.indirect:

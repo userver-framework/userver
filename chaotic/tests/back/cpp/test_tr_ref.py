@@ -52,6 +52,7 @@ def test_simple_ref(clean):
             nullable=False,
             indirect=False,
             self_ref=False,
+            cpp_name='Type',
             user_cpp_type=None,
             orig_cpp_type=CppStruct(
                 raw_cpp_type=type_name.TypeName('Type'),
