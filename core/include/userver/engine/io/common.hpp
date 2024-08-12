@@ -5,6 +5,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <optional>
 
 #include <userver/engine/deadline.hpp>
 
@@ -31,6 +32,17 @@ class ReadableBase {
 
   /// Suspends current task until the stream has data available.
   [[nodiscard]] virtual bool WaitReadable(Deadline) = 0;
+
+  /// Receives up to len (including zero) bytes from the stream.
+  /// @returns filled-in optional on data presense (e.g. 0, 1, 2... bytes)
+  ///  empty optional otherwise
+  [[nodiscard]] virtual std::optional<size_t> ReadNoblock(void* buf,
+                                                          size_t len) {
+    (void)buf;
+    (void)len;
+    UINVARIANT(false, "not implemented yet");
+    return {};
+  }
 
   /// Receives at least one byte from the stream.
   [[nodiscard]] virtual size_t ReadSome(void* buf, size_t len,

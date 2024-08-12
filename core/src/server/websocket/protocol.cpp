@@ -23,6 +23,25 @@ inline void RecvExactly(engine::io::ReadableBase& readable,
     throw(engine::io::IoException() << "Socket closed during transfer ");
 }
 
+inline bool RecvAny(engine::io::ReadableBase& readable,
+                    utils::span<char> buffer, size_t& offset) {
+  UASSERT(0 != buffer.size());
+  UASSERT(offset < buffer.size());
+
+  const size_t leftToRead = buffer.size() - offset;
+  const auto optRead = readable.ReadNoblock(buffer.data(), leftToRead);
+  if (!optRead) return false;
+
+  if (leftToRead == *optRead) {
+    offset = 0;
+    return true;
+  } else if (*optRead > 0) {
+    offset += *optRead;
+    return false;
+  } else  // 0 == *optRead
+    throw(engine::io::IoException() << "Socket closed during transfer ");
+}
+
 template <class T>
 utils::span<char> AsWritableBytes(utils::span<T> s) noexcept {
   return utils::span<char>{reinterpret_cast<char*>(s.data()),
@@ -151,10 +170,11 @@ std::string WebsocketSecAnswer(std::string_view sec_key) {
                        sizeof(webSocketRespKeySHA1)));
 }
 
-CloseStatus ReadWSFrame(FrameParserState& frame, engine::io::ReadableBase& io,
-                        unsigned max_payload_size, std::size_t& payload_len) {
-  WSHeader hdr;
-  RecvExactly(io, AsWritableBytes(MakeSpan(&hdr, 1)), {});
+CloseStatus ReadWSFrameImpl(WSHeader& hdr, FrameParserState& frame,
+                            engine::io::ReadableBase& io,
+                            unsigned max_payload_size,
+                            std::size_t& payload_len) {
+  // we assume that the WSHeader has been read a while ago
   if (engine::current_task::ShouldCancel()) return CloseStatus::kGoingAway;
 
   const bool isDataFrame =
@@ -232,6 +252,24 @@ CloseStatus ReadWSFrame(FrameParserState& frame, engine::io::ReadableBase& io,
       return CloseStatus::kProtocolError;
   }
   return CloseStatus::kNone;
+}
+
+CloseStatus ReadWSFrame(FrameParserState& frame, engine::io::ReadableBase& io,
+                        unsigned max_payload_size, std::size_t& payload_len) {
+  WSHeader hdr;
+  RecvExactly(io, AsWritableBytes(MakeSpan(&hdr, 1)), {});
+  return ReadWSFrameImpl(hdr, frame, io, max_payload_size, payload_len);
+}
+
+std::optional<CloseStatus> ReadWSFrameDontWaitForHeader(
+    FrameParserState& frame, engine::io::ReadableBase& io,
+    unsigned max_payload_size, std::size_t& payload_len) {
+  WSHeader hdr;
+  if (!RecvAny(io, AsWritableBytes(MakeSpan(&hdr, 1)),
+               frame.offset_when_noblock))
+    return {};
+
+  return ReadWSFrameImpl(hdr, frame, io, max_payload_size, payload_len);
 }
 
 }  // namespace server::websocket::impl
