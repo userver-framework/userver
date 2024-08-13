@@ -1,7 +1,7 @@
 #include "test_utils.hpp"
 
-#include <ydb-cpp-sdk/library/json/json_reader.h>
-#include <ydb-cpp-sdk/library/json/writer/json_value.h>
+#include <library/cpp/json/json_reader.h>
+#include <library/cpp/json/writer/json_value.h>
 
 #include <string>
 
