@@ -56,8 +56,16 @@ std::vector<std::string> GreeterClient::SayHelloResponseStream(
 
   api::GreetingResponse response;
   std::vector<std::string> result;
-  while (stream.Read(response)) {
+  constexpr auto kCountSend = 5;
+  for (int i = 0; i < kCountSend; i++) {
+    if (!stream.Read(response)) {
+      throw ugrpc::client::RpcError(stream.GetCallName(), "Missing responses");
+    }
     result.push_back(std::move(*response.mutable_greeting()));
+  }
+
+  if (stream.Read(response)) {
+    throw ugrpc::client::RpcError(stream.GetCallName(), "Extra responses");
   }
   return result;
 }

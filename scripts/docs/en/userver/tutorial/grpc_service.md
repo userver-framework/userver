@@ -8,7 +8,9 @@ Make sure that you understand the basic concepts of @ref scripts/docs/en/userver
 
 ## Step by step guide
 
-In this example, we will write a client side and a server side for a simple `GreeterService` from `greeter.proto` (see the schema below). Its single `SayHello` method accepts a `name` string and replies with a corresponding `greeting` string.
+In this example, we will write a client side and a server side for a simple
+`GreeterService` from `greeter.proto` (see the schema below). The service has
+4 methods. Its methods accept a `name` and reply with a `greeting`: @ref samples/grpc_service/proto/samples/greeter.proto
 
 ### Installation
 
@@ -20,9 +22,11 @@ Generate and link to a CMake library from our `.proto` schema:
 
 @snippet samples/grpc_service/CMakeLists.txt  add_grpc_library
 
-By default, `userver_add_grpc_library` looks in `${CMAKE_CURRENT_SOURCE_DIR}/proto`, you can override this using the `SOURCE_PATH` option.
+By default, `userver_add_grpc_library` looks in `${CMAKE_CURRENT_SOURCE_DIR}/proto`,
+you can override this using the `SOURCE_PATH` option.
 
-Proto includes can be specified in `INCLUDE_DIRECTORIES` option (multiple directories can be specified).
+Proto includes can be specified in `INCLUDE_DIRECTORIES` option (multiple directories
+can be specified).
 
 ### The client side
 
@@ -40,9 +44,21 @@ We intentionally split `GreeterClient` from `GreeterClientComponent`
 to make the logic unit-testable. If you don't need gtest tests,
 you can put the logic into the component directly.
 
-A single request-response RPC handling is simple: fill in `request` and `context`, initiate the RPC, receive the `response`.
+Single request - single response RPC handling is simple: fill in `request` and `context`, initiate the RPC, receive the `response`.
 
 @snippet samples/grpc_service/src/greeter_client.cpp  client
+
+Single request - stream response RPC handling:
+
+@snippet samples/grpc_service/src/greeter_client.cpp  client_response_stream
+
+Stream request - single response RPC handling:
+
+@snippet samples/grpc_service/src/greeter_client.cpp  client_request_stream
+
+Stream request - stream response RPC handling:
+
+@snippet samples/grpc_service/src/greeter_client.cpp  client_streams
 
 Fill in the static config entries for the client side:
 
@@ -67,9 +83,22 @@ need to split the logic from the component.
 
 @snippet samples/grpc_service/src/greeter_service.cpp  component
 
-A single request-response RPC handling is simple: fill in the `response` and send it.
+Single request - single response RPC handling is simple: fill in the `response`
+and send it.
 
 @snippet samples/grpc_service/src/greeter_service.cpp  server RPC handling
+
+Single request - stream response RPC handling:
+
+@snippet samples/grpc_service/src/greeter_service.cpp  server RPC handling response_stream
+
+Stream request - single response RPC handling:
+
+@snippet samples/grpc_service/src/greeter_service.cpp  server RPC handling request_stream
+
+Stream request - stream response RPC handling:
+
+@snippet samples/grpc_service/src/greeter_service.cpp  server RPC handling streams
 
 Fill in the static config entries for the server side:
 
@@ -95,19 +124,18 @@ make userver-samples-grpc_service
 
 The sample could be started by running
 `make start-userver-samples-grpc_service`. The command would invoke
-@ref scripts/docs/en/userver/functional_testing.md "testsuite start target" that sets proper
-paths in the configuration files and starts the service.
+@ref scripts/docs/en/userver/functional_testing.md "testsuite start target" 
+that sets proper paths in the configuration files and starts the service.
 
 To start the service manually run
 `./samples/grpc_service/userver-samples-grpc_service -c </path/to/static_config.yaml>`.
 
 The service is available locally at port 8091 (as per our `static_config.yaml`).
 
-
 ### Functional testing for the sample gRPC service and client
 
-To implement @ref scripts/docs/en/userver/functional_testing.md "Functional tests" for the
-service some preparational steps should be done.
+To implement @ref scripts/docs/en/userver/functional_testing.md "Functional tests"
+for the service some preparational steps should be done.
 
 #### Preparations
 
@@ -115,7 +143,6 @@ First of all, import the required modules and add the required
 pytest_userver.plugins.grpc pytest plugin:
 
 @snippet samples/grpc_service/testsuite/conftest.py  Prepare modules
-
 
 #### gRPC server mock
 
@@ -128,9 +155,21 @@ Write the mocking fixtures using @ref pytest_userver.plugins.grpc_mockserver.grp
 
 @snippet samples/grpc_service/testsuite/conftest.py  Prepare server mock
 
-After that everything is ready to check the service client requests:
+After that everything is ready to check single request - single response service client requests:
 
 @snippet samples/grpc_service/testsuite/test_grpc.py  grpc client test
+
+To check single request - stream response service client requests:
+
+@snippet samples/grpc_service/testsuite/test_grpc.py  grpc client test response stream
+
+To check stream request - single response service client requests:
+
+@snippet samples/grpc_service/testsuite/test_grpc.py  grpc client test request stream
+
+To check stream request - stream response service client requests:
+
+@snippet samples/grpc_service/testsuite/test_grpc.py  grpc client test streams
 
 #### gRPC client
 
@@ -139,12 +178,27 @@ To do the gRPC requests write a client fixture using
 
 @snippet samples/grpc_service/testsuite/conftest.py  grpc client
 
-Use it to do gRPC requests to the service:
+Use it to do single request - single response gRPC requests to the service:
 
 @snippet samples/grpc_service/testsuite/test_grpc.py  grpc server test
 
+To do single request - stream response gRPC requests to the service:
+
+@snippet samples/grpc_service/testsuite/test_grpc.py  grpc server test response stream
+
+To do stream request - single response gRPC requests to the service:
+
+@snippet samples/grpc_service/testsuite/test_grpc.py  grpc server test request stream
+
+To do stream request - stream response gRPC requests to the service:
+
+@snippet samples/grpc_service/testsuite/test_grpc.py  grpc server test streams
 
 ### Unit testing for the sample gRPC service and client (gtest)
+
+To implement unit testing for the sample gRPC service and client some preparational steps should be done.
+
+#### Preparations
 
 First, link the unit tests to `userver::grpc-utest`:
 
@@ -154,14 +208,44 @@ Create a fixture that sets up the gRPC service in unit tests:
 
 @snippet samples/grpc_service/unittests/greeter_service_test.cpp  service fixture
 
-Finally, we can create gRPC service and client in unit tests:
+#### Unit testing for the gRPC service
+
+Finally, we can create gRPC service and client in unit tests.
+To do single request - single response requests:
 
 @snippet samples/grpc_service/unittests/greeter_service_test.cpp  service tests
 
-We can also use toy test-only gRPC services for unit tests:
+To do single request - stream response service client requests:
+
+@snippet samples/grpc_service/unittests/greeter_service_test.cpp  service tests response stream
+
+To do stream request - single response service client requests:
+
+@snippet samples/grpc_service/unittests/greeter_service_test.cpp  service tests request stream
+
+To do stream request - stream response service client requests:
+
+@snippet samples/grpc_service/unittests/greeter_service_test.cpp  service tests streams
+
+#### Unit testing for the gRPC client
+
+We can use toy test-only services to test the service client as a unit.
+
+Testing single request - single response client RPC-handling:
 
 @snippet samples/grpc_service/unittests/greeter_service_test.cpp  client tests
 
+Testing single request - stream response client RPC-handling:
+
+@snippet samples/grpc_service/unittests/greeter_service_test.cpp  client tests response stream
+
+Testing stream request - single response client RPC-handling:
+
+@snippet samples/grpc_service/unittests/greeter_service_test.cpp  client tests request stream
+
+Testing stream request - stream response client RPC-handling:
+
+@snippet samples/grpc_service/unittests/greeter_service_test.cpp  client tests streams
 
 ## Full sources
 
