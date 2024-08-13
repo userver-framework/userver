@@ -3,7 +3,6 @@ FROM ubuntu:22.04
 COPY scripts/docs/en/deps/ubuntu-22.04.md /userver_tmp/
 COPY scripts/docker/setup-base-ubuntu-22.04-env.sh /userver_tmp/
 
-COPY scripts/external_deps/requirements.txt  /userver_tmp/requirements/external-deps.txt
 COPY scripts/grpc/requirements-3.txt         /userver_tmp/requirements/grpc-userver.txt
 #COPY scripts/chaotic/requirements.txt       /userver_tmp/requirements/chaotic.txt
 #COPY testsuite/requirements-ydb.txt         /userver_tmp/requirements/ydb.txt
