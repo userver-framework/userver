@@ -153,10 +153,9 @@ template class HmacShaSigner<DigestSize::k512>;
 ///
 
 template <DsaType type, DigestSize bits>
-DsaSigner<type, bits>::DsaSigner(const std::string& key,
-                                 const std::string& password)
+DsaSigner<type, bits>::DsaSigner(PrivateKey pkey)
     : Signer(EnumValueToString(type) + EnumValueToString(bits)),
-      pkey_(PrivateKey::LoadFromString(key, password)) {
+      pkey_(std::move(pkey)) {
   Openssl::Init();
 
   if constexpr (type == DsaType::kEc) {
@@ -172,6 +171,9 @@ DsaSigner<type, bits>::DsaSigner(const std::string& key,
     }
   }
 }
+
+template <DsaType type, DigestSize bits>
+DsaSigner<type, bits>::DsaSigner(const std::string& key, const std::string& password) : DsaSigner(PrivateKey::LoadFromString(key, password)){}
 
 template <DsaType type, DigestSize bits>
 std::string DsaSigner<type, bits>::Sign(

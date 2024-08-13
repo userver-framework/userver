@@ -67,6 +67,7 @@ using SignerHs512 = HmacShaSigner<DigestSize::k512>;
 template <DsaType type, DigestSize bits>
 class DsaSigner final : public Signer {
  public:
+  explicit DsaSigner(PrivateKey pkey);
   /// Constructor from a PEM-encoded private key and an optional passphrase
   explicit DsaSigner(const std::string& privkey,
                      const std::string& password = {});
