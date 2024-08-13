@@ -1,6 +1,6 @@
 #include <ydb/impl/native_metrics.hpp>
 
-#include <ydb-cpp-sdk/library/monlib/metrics/metric_consumer.h>
+#include <library/cpp/monlib/metrics/metric_consumer.h>
 
 #include <limits>
 
