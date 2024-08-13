@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ydb-cpp-sdk/library/monlib/metrics/metric_type.h>
+#include <library/cpp/monlib/metrics/metric_type.h>
 
 USERVER_NAMESPACE_BEGIN
 

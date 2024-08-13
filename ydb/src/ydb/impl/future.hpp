@@ -1,8 +1,8 @@
 #pragma once
 
+#include <library/cpp/threading/future/core/future.h>
 #include <ydb-cpp-sdk/client/retry/retry.h>
 #include <ydb-cpp-sdk/client/table/table.h>
-#include <ydb-cpp-sdk/library/threading/future/core/future.h>
 
 #include <userver/drivers/subscribable_futures.hpp>
 #include <userver/utils/not_null.hpp>
