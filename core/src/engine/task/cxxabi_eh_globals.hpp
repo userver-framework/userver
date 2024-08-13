@@ -24,8 +24,7 @@ abi::__cxa_eh_globals* GetGlobals() throw();
 
 }  // namespace engine::impl
 
-#elif defined(_LIBCPP_VERSION) && \
-    (defined(__APPLE__) || defined(BSD) || defined(Y_CXA_EH_GLOBALS_COMPLETE))
+#elif defined(_LIBCPP_VERSION)
 
 // MAC_COMPAT, YA_COMPAT
 // "only INSERTED libraries can interpose", you say
