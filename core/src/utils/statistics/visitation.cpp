@@ -206,8 +206,7 @@ void ProcessLeaf(BaseFormatBuilder& builder, DfsLabelsBag& labels,
           labels_vector.emplace_back(l);
         }
 
-        builder.HandleMetric(path.Get(), LabelsSpan{labels_vector},
-                             *metric_value);
+        builder.HandleMetric(path.Get(), labels_vector, *metric_value);
       }
     }
   }

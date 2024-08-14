@@ -55,8 +55,7 @@ class WriterMetricConsumer final : public NMonitoring::IMetricConsumer {
       return;
     }
 
-    writer_[sensor_].ValueWithLabels(*metric_value,
-                                     utils::statistics::LabelsSpan{labels_});
+    writer_[sensor_].ValueWithLabels(*metric_value, labels_);
   }
 
   void OnLabelsBegin() override { labels_written_ = true; }

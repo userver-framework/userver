@@ -69,11 +69,14 @@ class LabelsSpan final {
   LabelsSpan(std::initializer_list<LabelView> il) noexcept
       : LabelsSpan(il.begin(), il.end()) {}
 
-  template <class Container>
-  explicit LabelsSpan(
-      const Container& cont,
-      std::enable_if_t<std::is_same_v<decltype(*(cont.data() + cont.size())),
-                                      const LabelView&>>* = nullptr) noexcept
+  template <
+      class Container,
+      std::enable_if_t<
+          std::is_same_v<decltype(*(std::declval<const Container&>().data() +
+                                    std::declval<const Container&>().size())),
+                         const LabelView&>,
+          int> = 0>
+  /*implicit*/ LabelsSpan(const Container& cont) noexcept
       : LabelsSpan(cont.data(), cont.data() + cont.size()) {}
 
   const LabelView* begin() const noexcept { return begin_; }
