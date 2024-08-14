@@ -258,8 +258,8 @@ See the full example at:
 * @ref samples/grpc_service/src/greeter_service.cpp
 * @ref samples/grpc_service/main.cpp
 * @ref samples/grpc_service/static_config.yaml
-* @ref samples/grpc_service/tests/conftest.py
-* @ref samples/grpc_service/tests/test_grpc.py
+* @ref samples/grpc_service/testsuite/conftest.py
+* @ref samples/grpc_service/testsuite/test_grpc.py
 * @ref samples/grpc_service/CMakeLists.txt
 
 ----------
@@ -276,6 +276,6 @@ See the full example at:
 @example samples/grpc_service/main.cpp
 @example samples/grpc_service/grpc_service.cpp
 @example samples/grpc_service/static_config.yaml
-@example samples/grpc_service/tests/conftest.py
-@example samples/grpc_service/tests/test_grpc.py
+@example samples/grpc_service/testsuite/conftest.py
+@example samples/grpc_service/testsuite/test_grpc.py
 @example samples/grpc_service/CMakeLists.txt
