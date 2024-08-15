@@ -231,8 +231,6 @@ struct BufferParser<TimePointWithoutTz>
   using TimePointStrongTypedefParser::TimePointStrongTypedefParser;
 };
 
-#if USERVER_POSTGRES_ENABLE_LEGACY_TIMESTAMP
-
 /// @cond
 
 // @brief Binary formatter for TimePoint. Implicitly converts
@@ -247,13 +245,18 @@ struct BufferFormatter<TimePoint> {
 
   template <typename Buffer>
   void operator()(const UserTypes& types, Buffer& buf) const {
+#if !USERVER_POSTGRES_ENABLE_LEGACY_TIMESTAMP
+    static_assert(sizeof(Buffer) == 0,
+                  "====================> userver: Writing "
+                  "std::chrono::system_clock::time_point is not supported. "
+                  "Rewrite using the TimePointWithoutTz or TimePointTz types, "
+                  "or define USERVER_POSTGRES_ENABLE_LEGACY_TIMESTAMP to 1.");
+#endif
     detail::DoFormatTimePoint(value, types, buf);
   }
 };
 
 /// @endcond
-
-#endif
 
 /// @brief Binary parser for TimePoint. Implicitly converts TimePoint
 /// to TimePointWithoutTz.
