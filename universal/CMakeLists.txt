@@ -279,6 +279,7 @@ target_include_directories(${PROJECT_NAME}
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<BUILD_INTERFACE:${USERVER_THIRD_PARTY_DIRS}/date/include>
     $<BUILD_INTERFACE:${USERVER_THIRD_PARTY_DIRS}/function_backports/include>
+    $<INSTALL_INTERFACE:include/userver/third_party>
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/
     ${CMAKE_CURRENT_BINARY_DIR}
@@ -288,11 +289,16 @@ target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
 )
 
 _userver_directory_install(COMPONENT universal
-  DIRECTORY 
+  DIRECTORY
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${USERVER_THIRD_PARTY_DIRS}/date/include
-    ${USERVER_THIRD_PARTY_DIRS}/function_backports/include
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
+  PATTERN "*pp"  # ignore .gitignore in userver/third_party
+)
+_userver_directory_install(COMPONENT universal
+  DIRECTORY
+    ${USERVER_THIRD_PARTY_DIRS}/date/include/date
+    ${USERVER_THIRD_PARTY_DIRS}/function_backports/include/function_backports
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/userver/third_party/
 )
 _userver_install_targets(COMPONENT universal TARGETS ${PROJECT_NAME})
 

@@ -12,6 +12,4 @@ set(USERVER_GRPC_SCRIPTS_PATH "${USERVER_CMAKE_DIR}/grpc")
 
 include("${USERVER_CMAKE_DIR}/GrpcTargets.cmake")
 
-include_directories(${USERVER_CMAKE_DIR}/proto_generated/proto)
-
 set(userver_grpc_FOUND TRUE)

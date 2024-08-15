@@ -42,8 +42,9 @@ target_include_directories(userver-api-common-protos SYSTEM PUBLIC $<BUILD_INTER
 target_link_libraries(userver-api-common-protos PUBLIC userver-grpc-deps)
 
 _userver_directory_install(COMPONENT grpc
-  DIRECTORY ${include_paths}
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/proto_generated
+  DIRECTORY ${include_paths}/google
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/userver/third_party
+  PATTERN "*.pb.h"
 )
 
 set(api-common-proto_LIBRARY userver-api-common-protos)
