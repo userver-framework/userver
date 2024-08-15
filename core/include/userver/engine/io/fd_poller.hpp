@@ -57,7 +57,7 @@ class FdPoller final {
   bool IsValid() const noexcept;
 
   /// If IsValid(), get file descriptor.
-  int GetFd() const;
+  int GetFd() const noexcept;
 
   /// When you're done with fd, call Invalidate(). It unregisters the fd, after
   /// that you have to call close(2) by yourself. After Invalidate() you may not
@@ -101,7 +101,7 @@ class FdPoller final {
   void SwitchStateToReadyToUse();
 
   struct Impl;
-  utils::FastPimpl<Impl, 144, 16> pimpl_;
+  utils::FastPimpl<Impl, 128, 16> pimpl_;
 };
 
 }  // namespace engine::io
