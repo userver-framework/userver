@@ -1931,8 +1931,6 @@
   "grpc/src/ugrpc/impl/protobuf_utils.cpp":"taxi/uservices/userver/grpc/src/ugrpc/impl/protobuf_utils.cpp",
   "grpc/src/ugrpc/impl/protobuf_utils.hpp":"taxi/uservices/userver/grpc/src/ugrpc/impl/protobuf_utils.hpp",
   "grpc/src/ugrpc/impl/queue_runner.cpp":"taxi/uservices/userver/grpc/src/ugrpc/impl/queue_runner.cpp",
-  "grpc/src/ugrpc/impl/rate_and_gauge.cpp":"taxi/uservices/userver/grpc/src/ugrpc/impl/rate_and_gauge.cpp",
-  "grpc/src/ugrpc/impl/rate_and_gauge.hpp":"taxi/uservices/userver/grpc/src/ugrpc/impl/rate_and_gauge.hpp",
   "grpc/src/ugrpc/impl/rpc_metadata_keys.cpp":"taxi/uservices/userver/grpc/src/ugrpc/impl/rpc_metadata_keys.cpp",
   "grpc/src/ugrpc/impl/rpc_metadata_keys.hpp":"taxi/uservices/userver/grpc/src/ugrpc/impl/rpc_metadata_keys.hpp",
   "grpc/src/ugrpc/impl/span.cpp":"taxi/uservices/userver/grpc/src/ugrpc/impl/span.cpp",

@@ -74,12 +74,12 @@ std::unique_ptr<grpc::ClientContext> PrepareClientContext() {
 void ExpectCancelledStats(const utils::statistics::Snapshot& stats) {
   // The is_cancelled_ flag may not be set at the point of sending statistics.
   // However, if it is set, then it is 1.
-  EXPECT_LE(stats.SingleMetric("cancelled.v2").AsRate(), 1);
+  EXPECT_LE(stats.SingleMetric("cancelled").AsRate(), 1);
 
   EXPECT_EQ(stats.SingleMetric("eps").AsRate(), 0);
-  EXPECT_EQ(stats.SingleMetric("rps.v2").AsRate(), 1);
-  EXPECT_EQ(stats.SingleMetric("network-error.v2").AsRate(), 0);
-  EXPECT_EQ(stats.SingleMetric("abandoned-error.v2").AsRate(), 0);
+  EXPECT_EQ(stats.SingleMetric("rps").AsRate(), 1);
+  EXPECT_EQ(stats.SingleMetric("network-error").AsRate(), 0);
+  EXPECT_EQ(stats.SingleMetric("abandoned-error").AsRate(), 0);
 }
 
 }  // namespace

@@ -5,7 +5,6 @@
 #include <userver/utils/statistics/striped_rate_counter.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
-#include <ugrpc/impl/rate_and_gauge.hpp>
 #include <userver/ugrpc/status_codes.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -102,16 +101,15 @@ void DumpMetric(utils::statistics::Writer& writer,
                      static_cast<std::int64_t>(started_renamed.value) -
                      static_cast<std::int64_t>(total_requests.value);
 
-  writer["rps"] = AsRateAndGauge{total_requests};
+  writer["rps"] = total_requests;
   writer["eps"] = error_requests;
 
-  writer["network-error"] = AsRateAndGauge{network_errors_value};
-  writer["abandoned-error"] = AsRateAndGauge{abandoned_errors_value};
-  writer["cancelled"] = AsRateAndGauge{cancelled_value};
+  writer["network-error"] = network_errors_value;
+  writer["abandoned-error"] = abandoned_errors_value;
+  writer["cancelled"] = cancelled_value;
 
-  writer["deadline-propagated"] = AsRateAndGauge{stats.deadline_updated};
-  writer["cancelled-by-deadline-propagation"] =
-      AsRateAndGauge{deadline_cancelled_value};
+  writer["deadline-propagated"] = stats.deadline_updated;
+  writer["cancelled-by-deadline-propagation"] = deadline_cancelled_value;
 }
 
 void DumpMetric(utils::statistics::Writer& writer,

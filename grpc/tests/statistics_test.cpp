@@ -51,7 +51,7 @@ UTEST_F(GrpcStatistics, LongRequest) {
         {{"grpc_destination", "sample.ugrpc.UnitTestService/SayHello"}});
 
     const auto get_status_code_count_legacy = [&](const std::string& code) {
-      return stats.SingleMetric("status.v2", {{"grpc_code", code}}).AsRate();
+      return stats.SingleMetric("status", {{"grpc_code", code}}).AsRate();
     };
     const auto get_status_code_count = [&](const std::string& code) {
       return stats.SingleMetric("status", {{"grpc_code", code}}).AsRate();
@@ -68,9 +68,9 @@ UTEST_F(GrpcStatistics, LongRequest) {
     EXPECT_EQ(get_status_code_count_legacy("OK"), 0);
     EXPECT_EQ(get_status_code_count_legacy("INVALID_ARGUMENT"), 1);
     EXPECT_EQ(get_status_code_count_legacy("ALREADY_EXISTS"), 0);
-    EXPECT_EQ(stats.SingleMetric("rps.v2").AsRate(), 1);
-    EXPECT_EQ(stats.SingleMetric("network-error.v2").AsRate(), 0);
-    EXPECT_EQ(stats.SingleMetric("abandoned-error.v2").AsRate(), 0);
+    EXPECT_EQ(stats.SingleMetric("rps").AsRate(), 1);
+    EXPECT_EQ(stats.SingleMetric("network-error").AsRate(), 0);
+    EXPECT_EQ(stats.SingleMetric("abandoned-error").AsRate(), 0);
   }
 }
 
@@ -92,11 +92,11 @@ UTEST_F(GrpcStatistics, StatsBeforeGet) {
       {{"grpc_destination", "sample.ugrpc.UnitTestService/SayHello"}});
 
   // check status
-  EXPECT_EQ(stats.SingleMetric("status.v2", {{"grpc_code", "INVALID_ARGUMENT"}})
+  EXPECT_EQ(stats.SingleMetric("status", {{"grpc_code", "INVALID_ARGUMENT"}})
                 .AsRate(),
             1);
   // check rps
-  EXPECT_EQ(stats.SingleMetric("rps.v2").AsRate(), 1);
+  EXPECT_EQ(stats.SingleMetric("rps").AsRate(), 1);
 
   // check timings
   auto timing = stats.SingleMetric("timings", {{"percentile", "p100"}}).AsInt();

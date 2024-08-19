@@ -9,8 +9,6 @@
 #include <userver/utils/statistics/writer.hpp>
 #include <userver/utils/underlying_value.hpp>
 
-#include <ugrpc/impl/rate_and_gauge.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::impl {
@@ -65,8 +63,7 @@ CodeStatisticsSummary CodeStatistics::Snapshot::DumpMetricHelper(
     const auto code = static_cast<grpc::StatusCode>(idx);
     cnt.total_requests += count;
     if (IsServerError(code)) cnt.error_requests += count;
-    status.ValueWithLabels(AsRateAndGauge{count},
-                           {"grpc_code", ugrpc::ToString(code)});
+    status.ValueWithLabels(count, {"grpc_code", ugrpc::ToString(code)});
   }
   return cnt;
 }

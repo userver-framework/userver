@@ -5,14 +5,15 @@ import pytest
 import samples.greeter_pb2 as greeter_protos  # noqa: E402, E501
 
 
-def _normalize_metrics(metrics: str) -> typing.Set[str]:
+def _normalize_metrics(metrics: str) -> str:
     result = metrics.splitlines()
 
     result = _drop_non_grpc_metrics(result)
     result = _hide_metrics_values(result)
     result = _rewrite_endpoint_label(result)
 
-    return set(result)
+    result.sort()
+    return '\n'.join(result) + '\n'
 
 
 def _drop_non_grpc_metrics(metrics: typing.List[str]) -> typing.List[str]:
@@ -25,7 +26,7 @@ def _drop_non_grpc_metrics(metrics: typing.List[str]) -> typing.List[str]:
 
 
 def _hide_metrics_values(metrics: typing.List[str]) -> typing.List[str]:
-    return [line.rsplit('\t', 1)[0] for line in metrics]
+    return ['\t'.join(line.split('\t')[0:2]) for line in metrics]
 
 
 def _rewrite_endpoint_label(metrics: typing.List[str]) -> typing.List[str]:
@@ -66,7 +67,6 @@ async def test_metrics(monitor_client, load, force_metrics_to_appear):
     all_metrics = _normalize_metrics(
         await monitor_client.metrics_raw(output_format='pretty'),
     )
-    assert all_metrics == reference
     assert all_metrics == reference, (
         '\n===== Service metrics start =====\n'
         f'{all_metrics}\n'
