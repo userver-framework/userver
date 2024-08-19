@@ -86,6 +86,7 @@ class DynamicConfig final : public DynamicConfigUpdatesSinkBase {
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
+  ComponentHealth GetComponentHealth() const override;
   void OnLoadingCancelled() override;
 
   void SetConfig(std::string_view updater,

@@ -61,7 +61,10 @@ class CacheUpdateTrait {
   /// Periodic update flags
   enum class Flag {
     kNone = 0,
-    kNoFirstUpdate = 1 << 0,  ///< Disable initial update on start
+
+    /// @brief Disable initial update on start
+    /// @deprecated Use `first-update-fail-ok: true` instead
+    kNoFirstUpdate = 1 << 0,
   };
 
   /// Starts periodic updates
