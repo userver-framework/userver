@@ -5,30 +5,15 @@ async def _check_metrics(
         approx_token_count,
         max_token_count,
 ):
-    metrics = await monitor_client.metrics_raw(output_format='pretty')
-    retry_budget_metrics = [
-        line for line in metrics.splitlines() if 'retry_budget' in line
-    ]
-    assert len(retry_budget_metrics) == 4
-    assert (
-        retry_budget_metrics[0]
-        == 'ydb.retry_budget.account_ok: '
-        + f'ydb_database=sampledb	RATE	{account_ok}'
+    metrics = await monitor_client.metrics(prefix='ydb.retry_budget')
+    assert len(metrics) == 4
+    assert account_fail == metrics.value_at('ydb.retry_budget.account_fail')
+    assert account_ok == metrics.value_at('ydb.retry_budget.account_ok')
+    assert approx_token_count == metrics.value_at(
+        'ydb.retry_budget.approx_token_count',
     )
-    assert (
-        retry_budget_metrics[1]
-        == 'ydb.retry_budget.account_fail: '
-        + f'ydb_database=sampledb	RATE	{account_fail}'
-    )
-    assert (
-        retry_budget_metrics[2]
-        == 'ydb.retry_budget.approx_token_count: '
-        + f'ydb_database=sampledb	GAUGE	{approx_token_count}'
-    )
-    assert (
-        retry_budget_metrics[3]
-        == 'ydb.retry_budget.max_token_count: '
-        + f'ydb_database=sampledb	GAUGE	{max_token_count}'
+    assert max_token_count == metrics.value_at(
+        'ydb.retry_budget.max_token_count',
     )
 
 
@@ -45,14 +30,12 @@ async def _make_success_request(service_client):
 
 
 async def _get_current_metric(monitor_client, metric_name):
-    metrics = await monitor_client.metrics_raw(output_format='pretty')
-    account_check_line = [
-        line
-        for line in metrics.splitlines()
-        if f'ydb.retry_budget.{metric_name}' in line
-    ]
-    assert len(account_check_line) == 1
-    return int(account_check_line[0].split()[-1])
+    metrics = await monitor_client.metrics()
+    assert len(metrics) > 1
+    metric = await monitor_client.single_metric(
+        f'ydb.retry_budget.{metric_name}',
+    )
+    return metric.value
 
 
 async def test_retry_budget(dynamic_config, service_client, monitor_client):
