@@ -1,10 +1,10 @@
 #pragma once
 
-#include <array>
-#include <atomic>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
+#include <string_view>
 
 #include <userver/ugrpc/impl/code_statistics.hpp>
 #include <userver/ugrpc/impl/static_metadata.hpp>
@@ -110,6 +110,12 @@ struct MethodStatisticsSnapshot final {
 void DumpMetric(utils::statistics::Writer& writer,
                 const MethodStatisticsSnapshot& stats);
 
+void DumpMetricWithLabels(utils::statistics::Writer& writer,
+                          const MethodStatisticsSnapshot& stats,
+                          std::optional<std::string_view> client_name,
+                          std::string_view call_name,
+                          std::string_view service_name);
+
 class ServiceStatistics final {
  public:
   ServiceStatistics(const StaticServiceMetadata& metadata,
@@ -126,6 +132,7 @@ class ServiceStatistics final {
   std::uint64_t GetStartedRequests() const;
 
   void DumpAndCountTotal(utils::statistics::Writer& writer,
+                         std::optional<std::string_view> client_name,
                          MethodStatisticsSnapshot& total) const;
 
  private:

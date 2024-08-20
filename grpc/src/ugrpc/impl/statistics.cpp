@@ -1,5 +1,8 @@
 #include <userver/ugrpc/impl/statistics.hpp>
 
+#include <boost/container/static_vector.hpp>
+
+#include <userver/utils/algo.hpp>
 #include <userver/utils/enumerate.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
 #include <userver/utils/statistics/striped_rate_counter.hpp>
@@ -43,6 +46,11 @@ void MethodStatistics::AccountDeadlinePropagated() noexcept {
 }
 
 void MethodStatistics::AccountCancelled() noexcept { ++cancelled_; }
+
+void DumpMetric(utils::statistics::Writer& writer,
+                const MethodStatistics& stats) {
+  writer = MethodStatisticsSnapshot{stats};
+}
 
 void DumpMetric(utils::statistics::Writer& writer,
                 const MethodStatisticsSnapshot& stats) {
@@ -112,11 +120,6 @@ void DumpMetric(utils::statistics::Writer& writer,
   writer["cancelled-by-deadline-propagation"] = deadline_cancelled_value;
 }
 
-void DumpMetric(utils::statistics::Writer& writer,
-                const MethodStatistics& stats) {
-  writer = MethodStatisticsSnapshot{stats};
-}
-
 MethodStatisticsSnapshot::MethodStatisticsSnapshot(
     const StatisticsDomain domain)
     : domain(domain) {}
@@ -150,6 +153,28 @@ void MethodStatisticsSnapshot::Add(const MethodStatisticsSnapshot& other) {
   cancelled += other.cancelled;
   deadline_updated += other.deadline_updated;
   deadline_cancelled += other.deadline_cancelled;
+}
+
+void DumpMetricWithLabels(utils::statistics::Writer& writer,
+                          const MethodStatisticsSnapshot& stats,
+                          std::optional<std::string_view> client_name,
+                          std::string_view call_name,
+                          std::string_view service_name) {
+  const auto method_name = call_name.substr(service_name.size() + 1);
+
+  std::string grpc_destination_full;
+  boost::container::static_vector<utils::statistics::LabelView, 4> labels{
+      {"grpc_service", service_name},
+      {"grpc_method", method_name},
+      {"grpc_destination", call_name},
+  };
+
+  if (client_name) {
+    grpc_destination_full = utils::StrCat(*client_name, "/", call_name);
+    labels.emplace_back("grpc_destination_full", grpc_destination_full);
+  }
+
+  writer.ValueWithLabels(stats, labels);
 }
 
 std::uint64_t MethodStatistics::GetStarted() const noexcept {
@@ -196,26 +221,15 @@ const StaticServiceMetadata& ServiceStatistics::GetMetadata() const {
 }
 
 void ServiceStatistics::DumpAndCountTotal(
-    utils::statistics::Writer& writer, MethodStatisticsSnapshot& total) const {
-  const auto service_full_name = metadata_.service_full_name;
+    utils::statistics::Writer& writer,
+    std::optional<std::string_view> client_name,
+    MethodStatisticsSnapshot& total) const {
   for (const auto& [i, method_full_name] :
        utils::enumerate(metadata_.method_full_names)) {
-    const auto method_name =
-        method_full_name.substr(metadata_.service_full_name.size() + 1);
-
-    writer.WithLabels(
-        utils::impl::InternalTag{},
-        {
-            {"grpc_service", service_full_name},
-            {"grpc_method", method_name},
-            {"grpc_destination", method_full_name},
-        },
-        [&total, &method_statistic =
-                     method_statistics_[i]](utils::statistics::Writer& writer) {
-          const MethodStatisticsSnapshot snapshot{method_statistic};
-          writer = snapshot;
-          total.Add(snapshot);
-        });
+    const MethodStatisticsSnapshot snapshot{method_statistics_[i]};
+    total.Add(snapshot);
+    DumpMetricWithLabels(writer, snapshot, client_name, method_full_name,
+                         metadata_.service_full_name);
   }
 }
 

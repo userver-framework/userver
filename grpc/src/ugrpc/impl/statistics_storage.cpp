@@ -4,6 +4,7 @@
 
 #include <fmt/format.h>
 #include <boost/functional/hash.hpp>
+#include <boost/pfr/ops_fields.hpp>
 
 #include <userver/utils/algo.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
@@ -36,11 +37,11 @@ StatisticsStorage::~StatisticsStorage() { statistics_holder_.Unregister(); }
 
 ServiceStatistics& StatisticsStorage::GetServiceStatistics(
     const StaticServiceMetadata& metadata,
-    std::optional<std::string> endpoint) {
+    std::optional<std::string> client_name) {
   // We exploit the fact that 'service_full_name' always points to the same
   // static string for a given service.
   const ServiceId service_id = metadata.service_full_name.data();
-  ServiceKey service_key{service_id, std::move(endpoint)};
+  ServiceKey service_key{service_id, std::move(client_name)};
 
   {
     auto service_statistics = service_statistics_map_.SharedMutableLockUnsafe();
@@ -60,8 +61,8 @@ ServiceStatistics& StatisticsStorage::GetServiceStatistics(
 }
 
 MethodStatistics& StatisticsStorage::GetGenericStatistics(
-    std::string_view call_name, std::optional<std::string_view> endpoint) {
-  const GenericKeyView generic_key{call_name, endpoint};
+    std::string_view call_name, std::optional<std::string_view> client_name) {
+  const GenericKeyView generic_key{call_name, client_name};
 
   {
     auto generic_statistics = generic_statistics_map_.SharedMutableLockUnsafe();
@@ -89,16 +90,7 @@ void StatisticsStorage::ExtendStatistics(utils::statistics::Writer& writer) {
     {
       auto service_statistics_map = service_statistics_map_.SharedLock();
       for (const auto& [key, service_stats] : *service_statistics_map) {
-        if (key.endpoint) {
-          by_destination.WithLabels(
-              utils::impl::InternalTag{}, {"endpoint", *key.endpoint},
-              [&service_stats = service_stats,
-               &total = total](utils::statistics::Writer& writer) {
-                service_stats.DumpAndCountTotal(writer, total);
-              });
-        } else {
-          service_stats.DumpAndCountTotal(by_destination, total);
-        }
+        service_stats.DumpAndCountTotal(by_destination, key.client_name, total);
       }
     }
     {
@@ -108,28 +100,18 @@ void StatisticsStorage::ExtendStatistics(utils::statistics::Writer& writer) {
 
         const auto slash_pos = call_name.find('/');
         if (slash_pos == std::string_view::npos || slash_pos == 0) {
-          UASSERT(false);
+          UASSERT_MSG(false,
+                      fmt::format("Generic RPC name '{}' does not contain /",
+                                  call_name));
           continue;
         }
 
         const auto service_name = call_name.substr(0, slash_pos);
-        const auto method_name = call_name.substr(slash_pos + 1);
 
         const MethodStatisticsSnapshot snapshot{method_stats};
         total.Add(snapshot);
-
-        if (key.endpoint) {
-          by_destination.ValueWithLabels(snapshot,
-                                         {{"grpc_service", service_name},
-                                          {"grpc_method", method_name},
-                                          {"grpc_destination", key.call_name},
-                                          {"endpoint", *key.endpoint}});
-        } else {
-          by_destination.ValueWithLabels(snapshot,
-                                         {{"grpc_service", service_name},
-                                          {"grpc_method", method_name},
-                                          {"grpc_destination", key.call_name}});
-        }
+        DumpMetricWithLabels(by_destination, snapshot, key.client_name,
+                             call_name, service_name);
       }
     }
   }
@@ -148,43 +130,44 @@ StatisticsStorage::GenericKey  //
 StatisticsStorage::GenericKeyView::Dereference() const {
   return GenericKey{
       std::string{call_name},
-      endpoint ? std::make_optional(std::string{*endpoint}) : std::nullopt,
+      client_name ? std::make_optional(std::string{*client_name})
+                  : std::nullopt,
   };
 }
 
 bool StatisticsStorage::ServiceKeyComparer::operator()(ServiceKey lhs,
                                                        ServiceKey rhs) const {
-  return lhs.service_id == rhs.service_id && lhs.endpoint == rhs.endpoint;
+  return boost::pfr::eq_fields(lhs, rhs);
 }
 
 std::size_t StatisticsStorage::ServiceKeyHasher::operator()(
     const ServiceKey& key) const noexcept {
-  return boost::hash_value(std::tie(key.service_id, key.endpoint));
+  return boost::pfr::hash_fields(key);
 }
 
 bool StatisticsStorage::GenericKeyComparer::operator()(
     const GenericKey& lhs, const GenericKey& rhs) const {
-  return lhs.call_name == rhs.call_name && lhs.endpoint == rhs.endpoint;
+  return boost::pfr::eq_fields(lhs, rhs);
 }
 
 bool StatisticsStorage::GenericKeyComparer::operator()(
     const GenericKeyView& lhs, const GenericKey& rhs) const {
-  return lhs.call_name == rhs.call_name && lhs.endpoint == rhs.endpoint;
+  return boost::pfr::eq_fields(lhs, rhs);
 }
 
 bool StatisticsStorage::GenericKeyComparer::operator()(
     const GenericKey& lhs, const GenericKeyView& rhs) const {
-  return lhs.call_name == rhs.call_name && lhs.endpoint == rhs.endpoint;
+  return boost::pfr::eq_fields(lhs, rhs);
 }
 
 std::size_t StatisticsStorage::GenericKeyHasher::operator()(
     const GenericKey& key) const noexcept {
-  return boost::hash_value(std::tie(key.call_name, key.endpoint));
+  return boost::pfr::hash_fields(key);
 }
 
 std::size_t StatisticsStorage::GenericKeyHasher::operator()(
     const GenericKeyView& key) const noexcept {
-  return boost::hash_value(std::tie(key.call_name, key.endpoint));
+  return boost::pfr::hash_fields(key);
 }
 
 }  // namespace ugrpc::impl

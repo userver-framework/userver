@@ -41,14 +41,14 @@ void CodeStatistics::Account(grpc::StatusCode code) noexcept {
 }
 
 CodeStatistics::Snapshot::Snapshot(const CodeStatistics& other) noexcept {
-  for (std::size_t i = 0; i < codes_.size(); ++i) {
+  for (std::size_t i = 0; i < kCodesCount; ++i) {
     codes_[i] = other.codes_[i].Load();
   }
 }
 
 CodeStatistics::Snapshot& CodeStatistics::Snapshot::operator+=(
     const Snapshot& other) {
-  for (std::size_t i = 0; i < codes_.size(); ++i) {
+  for (std::size_t i = 0; i < kCodesCount; ++i) {
     codes_[i] += other.codes_[i];
   }
   return *this;

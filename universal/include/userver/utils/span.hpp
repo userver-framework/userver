@@ -7,10 +7,6 @@
 #include <iterator>
 #include <type_traits>
 
-#if __has_include(<span>)
-#include <span>
-#endif
-
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN

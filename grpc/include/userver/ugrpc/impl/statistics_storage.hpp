@@ -27,11 +27,12 @@ class StatisticsStorage final {
   StatisticsStorage& operator=(const StatisticsStorage&) = delete;
   ~StatisticsStorage();
 
-  ServiceStatistics& GetServiceStatistics(const StaticServiceMetadata& metadata,
-                                          std::optional<std::string> endpoint);
+  ServiceStatistics& GetServiceStatistics(
+      const StaticServiceMetadata& metadata,
+      std::optional<std::string> client_name);
 
   MethodStatistics& GetGenericStatistics(
-      std::string_view call_name, std::optional<std::string_view> endpoint);
+      std::string_view call_name, std::optional<std::string_view> client_name);
 
   std::uint64_t GetStartedRequests() const;
 
@@ -41,19 +42,19 @@ class StatisticsStorage final {
 
   struct ServiceKey {
     ServiceId service_id{};
-    std::optional<std::string> endpoint;
+    std::optional<std::string> client_name;
   };
 
   struct GenericKey {
     std::string call_name;
-    std::optional<std::string> endpoint;
+    std::optional<std::string> client_name;
   };
 
   struct GenericKeyView {
     GenericKey Dereference() const;
 
     std::string_view call_name;
-    std::optional<std::string_view> endpoint;
+    std::optional<std::string_view> client_name;
   };
 
   struct ServiceKeyComparer {

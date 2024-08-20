@@ -22,7 +22,10 @@ class GreeterClient final : public components::ComponentBase {
             context.FindComponent<ugrpc::client::ClientFactoryComponent>()
                 .GetFactory()),
         client_(client_factory_.MakeClient<samples::api::GreeterServiceClient>(
-            "greeter", config["endpoint"].As<std::string>())) {}
+            // The name of the microservice we are talking to, for diagnostics.
+            "greeter",
+            // The service endpoint (URI).
+            config["endpoint"].As<std::string>())) {}
 
   std::string SayHello(std::string name);
 

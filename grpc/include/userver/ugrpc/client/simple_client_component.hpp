@@ -39,18 +39,25 @@ class SimpleClientComponentAny : public components::ComponentBase {
 /// int main(...)
 /// {
 ///    ...
-///    component_list.Append<ugrpc::client::SimpleClientComponent<MyClient>>();
+///    component_list.Append<ugrpc::client::SimpleClientComponent<HelloClient>>("hello-client");
 ///    ...
 /// }
 ///
 /// MyComponent::MyComponent(const components::ComponentConfig& config,
 ///                          const components::ComponentContext& context)
 /// {
-///    auto& component = context.FindComponent<ugrpc::client::SimpleClientComponent<MyClient>>();
-///    MyClient& client = component.GetClient();
+///    HelloClient& client = context.FindComponent<
+///        ugrpc::client::SimpleClientComponent<HelloClient>>("hello-client").GetClient();
 ///    ... use client ...
 /// }
 /// ```
+///
+/// ## Static config options:
+/// Name | Description | Default value
+/// ---- | ----------- | -------------
+/// endpoint | URL of the gRPC service | --
+/// client-name | name of the gRPC server we talk to, for diagnostics | <uses the component name>
+/// factory-component | ClientFactoryComponent name to use for client creation | --
 
 // clang-format on
 
@@ -66,7 +73,8 @@ class SimpleClientComponent final : public impl::SimpleClientComponentAny {
                             ClientFactoryComponent::kName))
                     .GetFactory()
                     .MakeClient<Client>(
-                        config.Name(), config["endpoint"].As<std::string>())) {}
+                        config["client-name"].As<std::string>(config.Name()),
+                        config["endpoint"].As<std::string>())) {}
 
   /// @@brief Get gRPC service client
   Client& GetClient() { return client_; }

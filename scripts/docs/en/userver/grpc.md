@@ -199,8 +199,17 @@ Based on:
 
 ## Metrics
 
-* Client metrics are put inside `grpc.client.by-destination {grpc_destination=FULL_SERVICE_NAME/METHOD_NAME}`
-* Server metrics are put inside `grpc.server.by-destination {grpc_destination=FULL_SERVICE_NAME/METHOD_NAME}`
+* Client metrics are put inside `grpc.client.by-destination`
+* Server metrics are put inside `grpc.server.by-destination`
+* Client-wide totals are currently NOT computed
+* Server-wide totals are put inside `grpc.server.total`
+
+Each metric has the following labels:
+
+* `grpc_service` - fully qualified grpc (proto) service name
+* `grpc_method` - fully qualified grpc method name
+* `grpc_destination` = `grpc_service/grpc_method`
+* `grpc_destination_full` = `client_name/grpc_service/grpc_method` (only for client metrics)
 
 These are the metrics provided for each gRPC method:
 
@@ -249,6 +258,8 @@ These are the metrics provided for each gRPC method:
      for troubleshooting to say that there are issues not with the uservice
      process itself, but with the infrastructure
 * `active` — The number of currently active RPCs (created and not finished)
+
+@ref grpc/functional_tests/metrics/tests/static/metrics_values.txt "An example of userver gRPC metrics".
 
 
 ## Unit tests and benchmarks

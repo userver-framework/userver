@@ -1,7 +1,5 @@
 #pragma once
 
-#include <array>
-
 #include <grpcpp/support/status.h>
 
 #include <userver/utils/statistics/fwd.hpp>
@@ -14,8 +12,8 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::impl {
 
 struct CodeStatisticsSummary final {
-  utils::statistics::Rate total_requests{0};
-  utils::statistics::Rate error_requests{0};
+  utils::statistics::Rate total_requests{};
+  utils::statistics::Rate error_requests{};
 };
 
 class CodeStatistics final {
@@ -34,7 +32,7 @@ class CodeStatistics final {
   static constexpr std::size_t kCodesCount =
       static_cast<std::size_t>(grpc::StatusCode::UNAUTHENTICATED) + 1;
 
-  std::array<utils::statistics::RateCounter, kCodesCount> codes_;
+  utils::statistics::RateCounter codes_[kCodesCount]{};
 };
 
 class CodeStatistics::Snapshot final {
@@ -53,7 +51,7 @@ class CodeStatistics::Snapshot final {
       utils::statistics::Writer& writer) const;
 
  private:
-  std::array<utils::statistics::Rate, kCodesCount> codes_;
+  utils::statistics::Rate codes_[kCodesCount]{};
 };
 
 }  // namespace ugrpc::impl

@@ -16,7 +16,7 @@ ugrpc::impl::MethodStatistics& ClientData::GetStatistics(
 ugrpc::impl::MethodStatistics& ClientData::GetGenericStatistics(
     std::string_view call_name) const {
   return params_.statistics_storage.GetGenericStatistics(call_name,
-                                                         params_.endpoint);
+                                                         params_.client_name);
 }
 
 const ugrpc::impl::StaticServiceMetadata& ClientData::GetMetadata() const {
@@ -26,7 +26,7 @@ const ugrpc::impl::StaticServiceMetadata& ClientData::GetMetadata() const {
 
 ugrpc::impl::ServiceStatistics& ClientData::GetServiceStatistics() {
   return params_.statistics_storage.GetServiceStatistics(GetMetadata(),
-                                                         params_.endpoint);
+                                                         params_.client_name);
 }
 
 }  // namespace ugrpc::client::impl
