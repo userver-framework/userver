@@ -4,6 +4,7 @@
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/ugrpc/client/impl/async_methods.hpp>
+#include <userver/ugrpc/impl/deadline_timepoint.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -60,10 +61,8 @@ void UpdateDeadline(impl::RpcData& data) {
 
 }  // namespace
 
-void Middleware::Handle(MiddlewareCallContext& context) const {
-  UpdateDeadline(context.GetCall().GetData(ugrpc::impl::InternalTag{}));
-
-  context.Next();
+void Middleware::PreStartCall(MiddlewareCallContext& context) const {
+  UpdateDeadline(context.GetData(ugrpc::impl::InternalTag{}));
 }
 
 std::shared_ptr<const MiddlewareBase> MiddlewareFactory::GetMiddleware(

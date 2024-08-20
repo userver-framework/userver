@@ -13,7 +13,8 @@ class Middleware final : public ugrpc::client::MiddlewareBase {
 
   ~Middleware() override;
 
-  void Handle(ugrpc::client::MiddlewareCallContext& context) const override;
+  void PreStartCall(
+      ugrpc::client::MiddlewareCallContext& context) const override;
 };
 
 class MiddlewareFactory final : public ugrpc::client::MiddlewareFactoryBase {

@@ -11,7 +11,7 @@ class Middleware final : public MiddlewareBase {
  public:
   explicit Middleware() = default;
 
-  void Handle(MiddlewareCallContext& context) const override;
+  void PreStartCall(MiddlewareCallContext& context) const override;
 };
 
 /// @cond

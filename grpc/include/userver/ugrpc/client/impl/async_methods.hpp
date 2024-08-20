@@ -15,7 +15,9 @@
 #include <userver/dynamic_config/fwd.hpp>
 #include <userver/tracing/in_place_span.hpp>
 #include <userver/tracing/span.hpp>
+#include <userver/utils/function_ref.hpp>
 
+#include <userver/ugrpc/client/call_kind.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/client/impl/async_method_invocation.hpp>
 #include <userver/ugrpc/client/impl/call_params.hpp>
@@ -57,7 +59,7 @@ using ugrpc::impl::AsyncMethodInvocation;
 
 class RpcData final {
  public:
-  explicit RpcData(CallParams&&);
+  RpcData(CallParams&&, CallKind);
 
   RpcData(RpcData&&) noexcept = delete;
   RpcData& operator=(RpcData&&) noexcept = delete;
@@ -78,6 +80,8 @@ class RpcData final {
   const RpcConfigValues& GetConfigValues() const noexcept;
 
   const Middlewares& GetMiddlewares() const noexcept;
+
+  CallKind GetCallKind() const noexcept;
 
   void ResetSpan() noexcept;
 
@@ -147,6 +151,8 @@ class RpcData final {
   RpcConfigValues config_values_;
   const Middlewares& mws_;
 
+  CallKind call_kind_{};
+
   // This data is common for all types of grpc calls - unary and streaming
   // However, in unary call the call is finished as soon as grpc core
   // gives us back a response - so for unary call we use
@@ -194,13 +200,18 @@ void StartCall(GrpcStream& stream, RpcData& data) {
 
 void PrepareFinish(RpcData& data);
 
-void ProcessFinishResult(RpcData& data,
-                         AsyncMethodInvocation::WaitStatus wait_status,
-                         grpc::Status&& status, ParsedGStatus&& parsed_gstatus,
-                         bool throw_on_error);
+void ProcessFinishResult(
+    RpcData& data, AsyncMethodInvocation::WaitStatus wait_status,
+    grpc::Status&& status, ParsedGStatus&& parsed_gstatus,
+    utils::function_ref<void(RpcData& data, const grpc::Status& status)>
+        post_finish,
+    bool throw_on_error);
 
 template <typename GrpcStream>
-void Finish(GrpcStream& stream, RpcData& data, bool throw_on_error) {
+void Finish(GrpcStream& stream, RpcData& data,
+            utils::function_ref<void(RpcData& data, const grpc::Status& status)>
+                post_finish,
+            bool throw_on_error) {
   PrepareFinish(data);
 
   FinishAsyncMethodInvocation finish(data);
@@ -213,7 +224,8 @@ void Finish(GrpcStream& stream, RpcData& data, bool throw_on_error) {
     if (throw_on_error) throw RpcCancelledError(data.GetCallName(), "Finish");
   }
   ProcessFinishResult(data, wait_status, std::move(status),
-                      std::move(finish.GetParsedGStatus()), throw_on_error);
+                      std::move(finish.GetParsedGStatus()), post_finish,
+                      throw_on_error);
 }
 
 void PrepareRead(RpcData& data);

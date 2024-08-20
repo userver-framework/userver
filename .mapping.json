@@ -1819,6 +1819,7 @@
   "grpc/handlers/src/ugrpc/server/health/health.cpp":"taxi/uservices/userver/grpc/handlers/src/ugrpc/server/health/health.cpp",
   "grpc/handlers/src/ugrpc/server/health/test_test.cpp":"taxi/uservices/userver/grpc/handlers/src/ugrpc/server/health/test_test.cpp",
   "grpc/include/userver/ugrpc/byte_buffer_utils.hpp":"taxi/uservices/userver/grpc/include/userver/ugrpc/byte_buffer_utils.hpp",
+  "grpc/include/userver/ugrpc/client/call_kind.hpp":"taxi/uservices/userver/grpc/include/userver/ugrpc/client/call_kind.hpp",
   "grpc/include/userver/ugrpc/client/channels.hpp":"taxi/uservices/userver/grpc/include/userver/ugrpc/client/channels.hpp",
   "grpc/include/userver/ugrpc/client/client_factory.hpp":"taxi/uservices/userver/grpc/include/userver/ugrpc/client/client_factory.hpp",
   "grpc/include/userver/ugrpc/client/client_factory_component.hpp":"taxi/uservices/userver/grpc/include/userver/ugrpc/client/client_factory_component.hpp",

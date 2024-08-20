@@ -58,14 +58,13 @@ class UnitTestService final : public sample::ugrpc::UnitTestServiceBase {
 
 class MockMiddleware final : public ugrpc::client::MiddlewareBase {
  public:
-  void Handle(ugrpc::client::MiddlewareCallContext& context) const override {
+  void PreStartCall(
+      ugrpc::client::MiddlewareCallContext& /*context*/) const override {
     times_called++;
     if (throw_exception) throw std::runtime_error("error");
-    if (call_next) context.Next();
   }
 
   mutable std::size_t times_called{0};
-  bool call_next{true};
   bool throw_exception{false};
 };
 
@@ -131,16 +130,6 @@ UTEST_F(GrpcMiddlewares, Exception) {
   request.set_name("userver");
   UEXPECT_THROW(auto r = GetClient().SayHello(request), std::runtime_error);
   EXPECT_EQ(GetMockMiddleware().times_called, 1);
-}
-
-UTEST_F_DEATH(GrpcMiddlewaresDeathTest, Drop) {
-  EXPECT_EQ(GetMockMiddleware().times_called, 0);
-
-  GetMockMiddleware().call_next = false;
-  sample::ugrpc::GreetingRequest request;
-  request.set_name("userver");
-  EXPECT_UINVARIANT_FAILURE_MSG(GetClient().SayHello(request).Finish(),
-                                "forgot to call context.Next()");
 }
 
 USERVER_NAMESPACE_END

@@ -86,14 +86,15 @@ RpcData* FutureImpl::GetData() noexcept { return data_; }
 
 void FutureImpl::ClearData() noexcept { data_ = nullptr; }
 
-RpcData::RpcData(impl::CallParams&& params)
+RpcData::RpcData(impl::CallParams&& params, CallKind call_kind)
     : context_(std::move(params.context)),
       client_name_(params.client_name),
       call_name_(std::move(params.call_name)),
       stats_scope_(params.statistics),
       queue_(params.queue),
       config_values_(params.config),
-      mws_(params.mws) {
+      mws_(params.mws),
+      call_kind_(call_kind) {
   UASSERT(context_);
   UASSERT(!client_name_.empty());
   SetupSpan(span_, *context_, call_name_.Get());
@@ -149,6 +150,8 @@ tracing::Span& RpcData::GetSpan() noexcept {
   UASSERT(span_);
   return span_->Get();
 }
+
+CallKind RpcData::GetCallKind() const noexcept { return call_kind_; }
 
 void RpcData::ResetSpan() noexcept {
   UASSERT(context_);
@@ -262,16 +265,20 @@ void PrepareFinish(RpcData& data) {
   data.SetFinished();
 }
 
-void ProcessFinishResult(RpcData& data,
-                         AsyncMethodInvocation::WaitStatus wait_status,
-                         grpc::Status&& status, ParsedGStatus&& parsed_gstatus,
-                         bool throw_on_error) {
+void ProcessFinishResult(
+    RpcData& data, AsyncMethodInvocation::WaitStatus wait_status,
+    grpc::Status&& status, ParsedGStatus&& parsed_gstatus,
+    utils::function_ref<void(RpcData& data, const grpc::Status& status)>
+        post_finish,
+    bool throw_on_error) {
   const auto ok = wait_status == impl::AsyncMethodInvocation::WaitStatus::kOk;
   UASSERT_MSG(ok,
               "ok=false in async Finish method invocation is prohibited "
               "by gRPC docs, see grpc::CompletionQueue::Next");
   data.GetStatsScope().OnExplicitFinish(status.error_code());
   data.GetStatsScope().Flush();
+
+  post_finish(data, status);
 
   if (!status.ok()) {
     SetStatusDetailsForSpan(data, status, parsed_gstatus.gstatus_string);
