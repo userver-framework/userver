@@ -43,6 +43,7 @@ void SetupSpan(std::optional<tracing::InPlaceSpan>& span_holder,
 
 void SetStatusDetailsForSpan(RpcData& data, grpc::Status& status,
                              const std::optional<std::string>& message) {
+  data.GetSpan().SetLogLevel(logging::Level::kWarning);
   data.GetSpan().AddTag(tracing::kErrorFlag, true);
   data.GetSpan().AddTag("grpc_code",
                         std::string{ugrpc::ToString(status.error_code())});
@@ -55,6 +56,7 @@ void SetStatusDetailsForSpan(RpcData& data, grpc::Status& status,
 }
 
 void SetErrorForSpan(RpcData& data, std::string&& message) {
+  data.GetSpan().SetLogLevel(logging::Level::kWarning);
   data.GetSpan().AddTag(tracing::kErrorFlag, true);
   data.GetSpan().AddTag(tracing::kErrorMessage, std::move(message));
   data.ResetSpan();

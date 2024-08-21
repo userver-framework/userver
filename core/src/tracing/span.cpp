@@ -104,7 +104,7 @@ Span::Impl::~Impl() {
   }
 
   {
-    const DetachLocalSpansScope ignore_local_span;
+    const impl::DetachLocalSpansScope ignore_local_span;
     logging::LogHelper lh{logging::GetDefaultLogger(), log_level_,
                           source_location_};
     lh.MarkAsTrace(logging::LogHelper::InternalTag{});
@@ -423,10 +423,16 @@ const Span::Impl* GetParentSpanImpl() {
   return !spans_ptr || spans_ptr->empty() ? nullptr : &spans_ptr->back();
 }
 
+namespace impl {
+
+struct DetachLocalSpansScope::Impl {
+  SpanStack old_spans;
+};
+
 DetachLocalSpansScope::DetachLocalSpansScope() noexcept {
   if (engine::current_task::IsTaskProcessorThread()) {
     if (auto* const spans_ptr = task_local_spans.GetOptional()) {
-      old_spans_ = std::move(*spans_ptr);
+      impl_->old_spans = std::move(*spans_ptr);
       UASSERT(spans_ptr->empty());
     }
   }
@@ -436,16 +442,14 @@ DetachLocalSpansScope::~DetachLocalSpansScope() {
   UASSERT_MSG(!engine::current_task::IsTaskProcessorThread() ||
                   !task_local_spans.GetOptional() || task_local_spans->empty(),
               "A Span was constructed while in DetachLocalSpansScope");
-  if (!old_spans_.empty()) {
-    *task_local_spans = std::move(old_spans_);
+  if (!impl_->old_spans.empty()) {
+    *task_local_spans = std::move(impl_->old_spans);
   }
 }
 
-namespace impl {
-
 logging::LogHelper& operator<<(logging::LogHelper& lh,
-                               LogSpanAsLastNonCoro span) {
-  UASSERT(!engine::current_task::IsTaskProcessorThread());
+                               LogSpanAsLastNoCurrent span) {
+  UASSERT(nullptr == Span::CurrentSpanUnchecked());
   span.span.LogTo(lh.GetTagWriterAfterText({}));
   return lh;
 }

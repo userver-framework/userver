@@ -120,18 +120,6 @@ Span::Impl* AllocateImpl(Args&&... args) {
   return new Span::Impl(std::forward<Args>(args)...);
 }
 
-class DetachLocalSpansScope final {
- public:
-  DetachLocalSpansScope() noexcept;
-
-  DetachLocalSpansScope(DetachLocalSpansScope&&) = delete;
-  DetachLocalSpansScope& operator=(DetachLocalSpansScope&&) = delete;
-  ~DetachLocalSpansScope();
-
- private:
-  SpanStack old_spans_;
-};
-
 }  // namespace tracing
 
 USERVER_NAMESPACE_END

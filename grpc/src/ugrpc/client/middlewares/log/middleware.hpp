@@ -22,11 +22,16 @@ class Middleware final : public MiddlewareBase {
  public:
   explicit Middleware(const Settings& settings);
 
+  void PreStartCall(MiddlewareCallContext& context) const override;
+
   void PreSendMessage(MiddlewareCallContext& context,
                       const google::protobuf::Message& message) const override;
 
   void PostRecvMessage(MiddlewareCallContext& context,
                        const google::protobuf::Message& message) const override;
+
+  void PostFinish(MiddlewareCallContext& context,
+                  const grpc::Status& status) const override;
 
  private:
   Settings settings_;
