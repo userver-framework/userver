@@ -15,17 +15,17 @@ components_manager:
             task_processor: main-task-processor
             method: PATCH,POST,PUT,DELETE
             consumers_list:
-              - "kafka-consumer-first"
-              - "kafka-consumer-second"
+              - kafka-consumer-first
+              - kafka-consumer-second
 
         kafka-consumer-first: &kafka_consumer
-            enable_auto_commit: false
-            group_id: "test-group"
-            auto_offset_reset: "smallest"
-            security_protocol: "PLAINTEXT"
+            group_id: test-group
             topics:
-              - "test-topic"
+              - test-topic
+            auto_offset_reset: smallest
             max_batch_size: 1
+            enable_auto_commit: false
+            security_protocol: PLAINTEXT
 
         kafka-consumer-second: *kafka_consumer
 
@@ -57,7 +57,7 @@ components_manager:
             fs-task-processor: fs-task-processor
             loggers:
                 default:
-                    file_path: '@stderr'
+                    file_path: "@stderr"
                     level: debug
                     overflow_behavior: discard
 

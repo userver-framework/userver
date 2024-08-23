@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string_view>
+
 #include <userver/kafka/consumer_scope.hpp>
 
 #include <userver/components/component_base.hpp>
@@ -44,9 +46,9 @@ class Consumer;
 /// env_pod_name                       | environment variable to substitute `{pod_name}` substring in `group_id` | none
 /// security_protocol                  | protocol used to communicate with brokers | --
 /// sasl_mechanisms                    | SASL mechanism to use for authentication | none
-/// ssl_ca_location                    | File or directory path to CA certificate(s) for verifying the broker's key | 300000
-/// topic_metadata_refresh_interval_ms | period of time in milliseconds at which topic and broker metadata is refreshed | 900000
-/// metadata_max_age_ms                | metadata cache max age | none
+/// ssl_ca_location                    | File or directory path to CA certificate(s) for verifying the broker's key | 5m
+/// topic_metadata_refresh_interval    | period of time at which topic and broker metadata is refreshed | 15m
+/// metadata_max_age                   | metadata cache max age | none
 
 // clang-format on
 

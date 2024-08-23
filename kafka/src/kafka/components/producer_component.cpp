@@ -3,9 +3,11 @@
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
 #include <userver/components/statistics_storage.hpp>
+#include <userver/storages/secdist/component.hpp>
 #include <userver/utils/statistics/writer.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
+#include <kafka/impl/broker_secrets.hpp>
 #include <kafka/impl/configuration.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -16,13 +18,23 @@ ProducerComponent::ProducerComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
     : components::ComponentBase(config, context),
-      producer_(std::make_unique<impl::Configuration>(
-                    config, context, impl::EntityType::kProducer),
-                context.GetTaskProcessor("producer-task-processor"),
-                config["poll_timeout_ms"].As<std::chrono::milliseconds>(
-                    Producer::kDefaultPollTimeout),
-                config["send_retries_count"].As<std::size_t>(
-                    Producer::kDefaultSendRetries)) {
+      producer_(
+          config.Name(), context.GetTaskProcessor("producer-task-processor"),
+          config.As<impl::ProducerConfiguration>(),
+          context.FindComponent<components::Secdist>()
+              .Get()
+              .Get<impl::BrokerSecrets>()
+              .GetSecretByComponentName(config.Name()),
+          [&config] {
+            ProducerExecutionParams params{};
+            params.poll_timeout =
+                config["poll_timeout"].As<std::chrono::milliseconds>(
+                    params.poll_timeout);
+            params.send_retries = config["send_retries_count"].As<std::size_t>(
+                params.send_retries);
+
+            return params;
+          }()) {
   auto& storage =
       context.FindComponent<components::StatisticsStorage>().GetStorage();
 
@@ -42,20 +54,20 @@ type: object
 description: Kafka producer component
 additionalProperties: false
 properties:
-    delivery_timeout_ms:
-        type: integer
+    delivery_timeout:
+        type: string
         description: time a produced message waits for successful delivery
-    queue_buffering_max_ms:
-        type: integer
+    queue_buffering_max:
+        type: string
         description: delay to wait for messages to be transmitted to broker
     enable_idempotence:
         type: boolean
         description: whether to make producer idempotent
         defaultDescription: false
-    poll_timeout_ms:
-        type: integer
-        description: time in milliseconds producer waits for new delivery events
-        defaultDescription: 10
+    poll_timeout:
+        type: string
+        description: time producer waits for new delivery events
+        defaultDescription: 10ms
     send_retries_count:
         type: integer
         description: how many times producer retries transient delivery errors

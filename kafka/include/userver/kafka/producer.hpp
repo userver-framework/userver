@@ -17,7 +17,30 @@ namespace impl {
 class Configuration;
 class ProducerImpl;
 
+struct ProducerConfiguration;
+struct Secret;
+
 }  // namespace impl
+
+/// @brief Parameters `Producer` uses in runtime.
+/// The struct is used only for documentation purposes, `Producer` can be
+/// created through `ProducerComponent`.
+struct ProducerExecutionParams final {
+  /// @brief Time producer waits for new delivery events.
+  std::chrono::milliseconds poll_timeout{10};
+
+  /// @brief How many times `Produce::Send*` retries when delivery
+  /// failures. Retries take place only when errors are transient.
+  ///
+  /// @remark `librdkafka` already has a retry mechanism. Moreover, user-retried
+  /// requests may lead to messages reordering or duplication. Nevertheless, the
+  /// library retries a small list of delivery errors (such as message
+  /// guaranteed timeouts), including errors those are not retried by
+  /// `librdkafka` and errors that may occur when the Kafka cluster or topic
+  /// have just been created (for instance, in tests)
+  /// @see impl/producer_impl.cpp for the list of errors retryable by library
+  std::size_t send_retries{5};
+};
 
 /// @ingroup userver_clients
 ///
@@ -43,25 +66,16 @@ class ProducerImpl;
 /// @see https://docs.confluent.io/platform/current/clients/producer.html
 class Producer final {
  public:
-  /// @brief Time producer waits for new delivery events.
-  static constexpr std::chrono::milliseconds kDefaultPollTimeout{10};
-
-  /// @brief How many times `Produce::Send*` retries when delivery
-  /// failures. Retries take place only when errors are transient.
-  ///
-  /// @remark `librdkafka` already has a retry mechanism. Moreover, user-retried
-  /// requests may lead to messages reordering or duplication. Nevertheless, the
-  /// library retries a small list of delivery errors (such as message
-  /// guaranteed timeouts), including errors those are not retried by
-  /// `librdkafka` and errors that may occur when the Kafka cluster or topic
-  /// have just been created (for instance, in tests)
-  /// @see impl/producer_impl.cpp for the list of errors retryable by library
-  static constexpr std::size_t kDefaultSendRetries = 5;
-
   /// @brief Creates the Kafka Producer.
-  Producer(std::unique_ptr<impl::Configuration> configuration,
+  ///
+  /// @param producer_task_processor where producer polls for delivery reports
+  /// and creates tasks for message delivery scheduling.
+  /// Currently, producer_task_processor **must contain at least 2
+  /// threads for each producer**
+  Producer(const std::string& name,
            engine::TaskProcessor& producer_task_processor,
-           std::chrono::milliseconds poll_timeout, std::size_t send_retries);
+           const impl::ProducerConfiguration& configuration,
+           const impl::Secret& secrets, ProducerExecutionParams params);
 
   /// @brief Waits until all messages are sent for a certain timeout and destroy
   /// the inner producer.
@@ -85,7 +99,7 @@ class Producer final {
   /// simultaneously.
   ///
   /// `Producer::Send` call may take at most
-  /// `delivery_timeout_ms` x `send_retries_count` milliseconds.
+  /// `delivery_timeout` x `send_retries_count` milliseconds.
   ///
   /// If `partition` not passed, partition is chosen by internal
   /// Kafka partitioner.

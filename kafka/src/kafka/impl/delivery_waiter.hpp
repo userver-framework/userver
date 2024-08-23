@@ -2,9 +2,9 @@
 
 #include <cstdint>
 
-#include <userver/engine/future.hpp>
-
 #include <librdkafka/rdkafka.h>
+
+#include <userver/engine/future.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

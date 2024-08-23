@@ -31,10 +31,10 @@ namespace kafka {
 /// ## Static options:
 /// Name                     | Description                                      | Default value
 /// ------------------------ | ------------------------------------------------ | ---------------
-/// delivery_timeout_ms      | time a produced message waits for successful delivery | --
-/// queue_buffering_max_ms   | delay to wait for messages to be transmitted to broker | --
+/// delivery_timeout         | time a produced message waits for successful delivery | --
+/// queue_buffering_max      | delay to wait for messages to be transmitted to broker | --
 /// enable_idempotence       | whether to make producer idempotent | false
-/// poll_timeout_ms          | time in milliseconds producer waits for new delivery events | 10
+/// poll_timeout             | time producer waits for new delivery events | 10ms
 /// send_retries_count       | how many times producer retries transient delivery errors | 5
 /// security_protocol        | protocol used to communicate with brokers | --
 /// sasl_mechanisms          | SASL mechanism to use for authentication | none

@@ -2,6 +2,8 @@
 
 #include <chrono>
 
+#include <fmt/format.h>
+
 #include <userver/logging/log.hpp>
 #include <userver/testsuite/testpoint.hpp>
 #include <userver/tracing/span.hpp>
@@ -10,8 +12,6 @@
 #include <kafka/impl/configuration.hpp>
 #include <kafka/impl/error_buffer.hpp>
 #include <kafka/impl/stats.hpp>
-
-#include <fmt/format.h>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -287,10 +287,10 @@ void ConsumerImpl::OffsetCommitCallbackProxy(
       /*skip_invalid_offsets=*/true);
 }
 
-ConsumerImpl::ConsumerImpl(std::unique_ptr<Configuration> configuration)
-    : component_name_(configuration->GetComponentName()),
-      conf_([this, configuration = std::move(configuration)] {
-        rd_kafka_conf_t* conf = configuration->Release();
+ConsumerImpl::ConsumerImpl(Configuration&& configuration)
+    : component_name_(configuration.GetName()),
+      conf_([this, configuration = std::move(configuration)]() mutable {
+        rd_kafka_conf_t* conf = std::move(configuration).Release();
         rd_kafka_conf_set_opaque(conf, this);
         rd_kafka_conf_set_error_cb(conf, &ErrorCallback);
         rd_kafka_conf_set_rebalance_cb(conf, &RebalanceCallback);

@@ -5,10 +5,10 @@
 #include <memory>
 #include <optional>
 
+#include <librdkafka/rdkafka.h>
+
 #include <kafka/impl/delivery_waiter.hpp>
 #include <kafka/impl/stats.hpp>
-
-#include <librdkafka/rdkafka.h>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -17,10 +17,10 @@ namespace kafka::impl {
 class Configuration;
 
 class ProducerImpl final {
- public:
   static constexpr std::chrono::milliseconds kCoolDownFlushTimeout{2000};
 
-  explicit ProducerImpl(std::unique_ptr<Configuration> configuration);
+ public:
+  explicit ProducerImpl(Configuration&& configuration);
 
   ~ProducerImpl();
 

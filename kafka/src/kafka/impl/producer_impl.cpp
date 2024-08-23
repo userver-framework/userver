@@ -142,9 +142,9 @@ void ProducerImpl::DeliveryReportCallbackProxy(
   delete complete_handle;
 }
 
-ProducerImpl::ProducerImpl(std::unique_ptr<Configuration> configuration)
-    : producer_([this, configuration = std::move(configuration)] {
-        rd_kafka_conf_t* conf = configuration->Release();
+ProducerImpl::ProducerImpl(Configuration&& configuration)
+    : producer_([this, configuration = std::move(configuration)]() mutable {
+        rd_kafka_conf_t* conf = std::move(configuration).Release();
         rd_kafka_conf_set_opaque(conf, this);
         rd_kafka_conf_set_error_cb(conf, &ErrorCallback);
         rd_kafka_conf_set_dr_msg_cb(conf, &DeliveryReportCallback);

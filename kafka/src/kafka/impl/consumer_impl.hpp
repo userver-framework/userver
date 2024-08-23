@@ -3,12 +3,12 @@
 #include <optional>
 #include <vector>
 
+#include <librdkafka/rdkafka.h>
+
 #include <userver/engine/deadline.hpp>
 #include <userver/kafka/message.hpp>
 
 #include <kafka/impl/stats.hpp>
-
-#include <librdkafka/rdkafka.h>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -25,7 +25,7 @@ class ConsumerImpl final {
   using MessageBatch = std::vector<Message>;
 
  public:
-  explicit ConsumerImpl(std::unique_ptr<Configuration> configuration);
+  explicit ConsumerImpl(Configuration&& configuration);
 
   ~ConsumerImpl();
 
