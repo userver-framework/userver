@@ -1,3 +1,14 @@
+# grpcio <= 1.49.0 fail to build with Python 3.11+
+# Newer Python versions require:
+#   * gRPC >= 1.50.0 and
+#   * a matching version of Protobuf >= 3.20.0.
+# For newer Python versions, please either:
+#   A) use -DUSERVER_FORCE_DOWNLOAD_PROTOBUF=1 -DUSERVER_FORCE_DOWNLOAD_GRPC=1
+#   B) install gRPC packages from source, or
+#   C) build in userver docker images, or
+#   D) install Python 3.10 and pass -DUSERVER_PYTHON_PATH=python3.10
+new_python_is_incompatible_with_old_grpc >= 9999; python_version >= '3.11'
+
 grpcio >= 1.32.0, <= 1.49.0
 grpcio-tools >= 1.32.0, <= 1.49.0
 protobuf >= 3.12.0, < 4.0dev

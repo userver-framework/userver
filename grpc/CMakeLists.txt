@@ -14,6 +14,15 @@ if(USERVER_CONAN AND "${gRPC_VERSION}" VERSION_GREATER_EQUAL "1.41")
   )
 endif()
 
+if("${gRPC_VERSION}" VERSION_GREATER_EQUAL "1.66")
+  message(
+      FATAL_ERROR
+      "userver currently does not support gRPC >= 1.66 due to a breaking "
+      "change in grpc-core that requires a fix in userver "
+      "https://github.com/grpc/grpc/pull/37321/files"
+  )
+endif()
+
 if(NOT TARGET userver-api-common-protos)
   include(SetupGoogleProtoApis)
 endif()
@@ -85,16 +94,17 @@ target_link_libraries(${PROJECT_NAME}-internal PUBLIC
 )
 
 set(CHANNELZ_MIN_VERSION "1.17.0")
-if (${gRPC_VERSION} VERSION_GREATER_EQUAL ${CHANNELZ_MIN_VERSION})
-    set(HAS_CHANNELZ TRUE)
+if(${gRPC_VERSION} VERSION_GREATER_EQUAL ${CHANNELZ_MIN_VERSION} AND
+    NOT GRPC_USE_SYSTEM_PACKAGE)
+  set(HAS_CHANNELZ TRUE)
 else()
-    set(HAS_CHANNELZ FALSE)
+  set(HAS_CHANNELZ FALSE)
 endif()
 option(USERVER_FEATURE_GRPC_CHANNELZ "Enable Channelz for gRPC" ${HAS_CHANNELZ})
-if (${USERVER_FEATURE_GRPC_CHANNELZ} AND NOT ${HAS_CHANNELZ})
-    message(FATAL_ERROR
-        "For Channelz, install gRPC >= ${CHANNELZ_MIN_VERSION}"
-        "(found: ${gRPC_VERSION})")
+if(${USERVER_FEATURE_GRPC_CHANNELZ} AND NOT ${HAS_CHANNELZ})
+  message(FATAL_ERROR
+      "For Channelz, install gRPC >= ${CHANNELZ_MIN_VERSION}"
+      "(found: ${gRPC_VERSION}); gRPC must be installed with CMake bindings")
 endif()
 
 if (USERVER_FEATURE_GRPC_CHANNELZ)

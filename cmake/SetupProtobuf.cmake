@@ -1,4 +1,9 @@
 option(USERVER_DOWNLOAD_PACKAGE_PROTOBUF "Download and setup Protobuf" ${USERVER_DOWNLOAD_PACKAGE_GRPC})
+option(
+    USERVER_FORCE_DOWNLOAD_PROTOBUF
+    "Download Protobuf even if there is an installed system package"
+    ${USERVER_FORCE_DOWNLOAD_PACKAGES}
+)
 
 function(_userver_set_protobuf_version_category)
   if(Protobuf_VERSION VERSION_GREATER_EQUAL 5.26.0 AND
@@ -25,7 +30,7 @@ if(USERVER_CONAN)
   return()
 endif()
 
-if(NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
+if(NOT USERVER_FORCE_DOWNLOAD_PROTOBUF)
   # Use the builtin CMake FindProtobuf
   if(USERVER_DOWNLOAD_PACKAGE_PROTOBUF)
     find_package(Protobuf QUIET)
