@@ -431,7 +431,7 @@ void UnaryCall<Response>::Finish(Response& response) {
 
 template <typename Response>
 void UnaryCall<Response>::FinishWithError(const grpc::Status& status) {
-  UINVARIANT(!is_finished_, "'FinishWithError' called on a finished call");
+  if (IsFinished()) return;
   is_finished_ = true;
   LogFinish(status);
   impl::FinishWithError(stream_, status, GetCallName());
@@ -497,8 +497,7 @@ template <typename Request, typename Response>
 void InputStream<Request, Response>::FinishWithError(
     const grpc::Status& status) {
   UASSERT(!status.ok());
-  UINVARIANT(state_ != State::kFinished,
-             "'FinishWithError' called on a finished stream");
+  if (IsFinished()) return;
   state_ = State::kFinished;
   LogFinish(status);
   impl::FinishWithError(stream_, status, GetCallName());
@@ -564,8 +563,7 @@ void OutputStream<Response>::Finish() {
 template <typename Response>
 void OutputStream<Response>::FinishWithError(const grpc::Status& status) {
   UASSERT(!status.ok());
-  UINVARIANT(state_ != State::kFinished,
-             "'Finish' called on a finished stream");
+  if (IsFinished()) return;
   state_ = State::kFinished;
   LogFinish(status);
   impl::Finish(stream_, status, GetCallName());
@@ -674,7 +672,7 @@ template <typename Request, typename Response>
 void BidirectionalStream<Request, Response>::FinishWithError(
     const grpc::Status& status) {
   UASSERT(!status.ok());
-  UINVARIANT(!is_finished_, "'FinishWithError' called on a finished stream");
+  if (IsFinished()) return;
   is_finished_ = true;
   LogFinish(status);
   impl::Finish(stream_, status, GetCallName());
