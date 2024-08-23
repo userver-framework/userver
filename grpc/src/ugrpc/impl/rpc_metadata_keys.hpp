@@ -12,6 +12,7 @@ extern const grpc::string kXYaTraceId;
 extern const grpc::string kXYaSpanId;
 extern const grpc::string kXYaRequestId;
 extern const grpc::string kXBaggage;
+extern const grpc::string kTraceParent;
 
 }  // namespace ugrpc::impl
 

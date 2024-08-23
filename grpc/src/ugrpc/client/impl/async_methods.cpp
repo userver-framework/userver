@@ -14,6 +14,7 @@
 #include <ugrpc/impl/rpc_metadata_keys.hpp>
 #include <ugrpc/impl/status.hpp>
 #include <ugrpc/impl/to_string.hpp>
+#include <userver/tracing/opentelemetry.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/impl/deadline_timepoint.hpp>
 #include <userver/ugrpc/status_codes.hpp>
@@ -23,6 +24,7 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::client::impl {
 
 namespace {
+constexpr std::string_view kDefaultOtelTraceFlags = "01";
 
 void SetupSpan(std::optional<tracing::InPlaceSpan>& span_holder,
                grpc::ClientContext& context, std::string_view call_name) {
@@ -39,6 +41,18 @@ void SetupSpan(std::optional<tracing::InPlaceSpan>& span_holder,
                       ugrpc::impl::ToGrpcString(span.GetSpanId()));
   context.AddMetadata(ugrpc::impl::kXYaRequestId,
                       ugrpc::impl::ToGrpcString(span.GetLink()));
+
+  auto traceparent = tracing::opentelemetry::BuildTraceParentHeader(
+      span.GetTraceId(), span.GetSpanId(), kDefaultOtelTraceFlags);
+
+  if (!traceparent.has_value()) {
+    LOG_LIMITED_DEBUG() << fmt::format(
+        "Cannot build opentelemetry traceparent header ({})",
+        traceparent.error());
+    return;
+  }
+  context.AddMetadata(ugrpc::impl::kTraceParent,
+                      ugrpc::impl::ToGrpcString(traceparent.value()));
 }
 
 void SetStatusDetailsForSpan(RpcData& data, grpc::Status& status,
