@@ -2,6 +2,7 @@
 
 #include <server/http/http_request_parser.hpp>
 #include <userver/crypto/base64.hpp>
+#include <userver/engine/io/socket.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 
@@ -11,10 +12,8 @@ namespace server::http {
 
 namespace {
 
-constexpr std::string_view kHttp2SettingsHeader{"HTTP2-Settings: "};
-constexpr std::size_t kClientMagicSize{24};
-
 constexpr std::size_t kSettingsSize = 1;
+
 constexpr nghttp2_settings_entry kDefaultSettings[kSettingsSize] = {
     {NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS,
      server::http::kDefaultMaxConcurrentStreams}};
@@ -60,8 +59,8 @@ int Http2RequestParser::FinalizeRequest(StreamData& stream_data) {
   try {
     stream_data.constructor.SetResponseStreamId(stream_data.stream_id);
     stream_data.constructor.ParseUrl();
-  } catch (const std::exception& ex) {
-    LOG_WARNING() << "Can't parse a url: " << ex;
+  } catch (const std::exception& e) {
+    LOG_WARNING() << "Can't parse a url: " << e;
     return NGHTTP2_ERR_CALLBACK_FAILURE;
   }
 
@@ -85,11 +84,7 @@ Http2RequestParser::Http2RequestParser(
       on_new_request_cb_(std::move(on_new_request_cb)),
       stats_(stats),
       data_accounter_(data_accounter),
-      remote_address_(remote_address),
-      http1_parser_(std::make_unique<HttpRequestParser>(
-          handler_info_index_, request_config,
-          OnNewRequestCb{on_new_request_cb_}, stats, data_accounter_,
-          remote_address)) {
+      remote_address_(remote_address) {
   nghttp2_session_callbacks* callbacks{nullptr};
   UINVARIANT(nghttp2_session_callbacks_new(&callbacks) == 0,
              "Failed to init callbacks for HTTP/2.0");
@@ -130,25 +125,32 @@ int Http2RequestParser::OnFrameRecv(nghttp2_session* session,
   switch (frame->hd.type) {
     case NGHTTP2_RST_STREAM: {
       parser.RemoveStreamData(frame->rst_stream.hd.stream_id);
-      LOG_ERROR() << fmt::format("RESET stream request. Error code {}",
-                                 frame->rst_stream.error_code);
+      LOG_WARNING() << fmt::format("RESET stream request. Error code {}",
+                                   frame->rst_stream.error_code);
       CheckConnectionHealthy(parser.session_.get());
+      return NGHTTP2_ERR_CALLBACK_FAILURE;
     } break;
     case NGHTTP2_GOAWAY: {
       ++parser.stats_.http2_stats.goaway_streams_;
       CheckConnectionHealthy(parser.session_.get());
+      return NGHTTP2_ERR_CALLBACK_FAILURE;
     } break;
     case NGHTTP2_WINDOW_UPDATE: {
-      LOG_INFO() << "NGHTTP2_WINDOW_UPDATE";
-
+      LOG_TRACE() << "NGHTTP2_WINDOW_UPDATE = "
+                  << frame->window_update.window_size_increment;
     } break;
     case NGHTTP2_SETTINGS: {
-      LOG_INFO() << "NGHTTP2_SETTINGS";
+      LOG_TRACE() << "NGHTTP2_SETTINGS";
       for (std::size_t i = 0; i < frame->settings.niv; i++) {
         const nghttp2_settings_entry& entry = frame->settings.iv[i];
-        // TODO handle other client settings
-        if (entry.settings_id == NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS) {
-          parser.max_concurrent_streams_ = entry.value;
+        switch (entry.settings_id) {
+          case NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS: {
+            parser.max_concurrent_streams_ = entry.value;
+          } break;
+          case NGHTTP2_SETTINGS_INITIAL_WINDOW_SIZE: {
+            UASSERT(entry.value != 0);
+            parser.remote_window_size_ = entry.value;
+          } break;
         }
       }
     } break;
@@ -159,6 +161,11 @@ int Http2RequestParser::OnFrameRecv(nghttp2_session* session,
       }
       // End of the request
       auto& stream_data = GetStreamData(session, frame->hd.stream_id);
+      try {
+        stream_data.constructor.AppendHeaderField("", 0);
+      } catch (const std::exception& e) {
+        LOG_WARNING() << "can't append header field: " << e;
+      }
       return parser.FinalizeRequest(stream_data);
     } break;
   }
@@ -169,13 +176,13 @@ int Http2RequestParser::OnHeader(nghttp2_session*, const nghttp2_frame* frame,
                                  const uint8_t* name, size_t namelen,
                                  const uint8_t* value, size_t valuelen, uint8_t,
                                  void* user_data) {
-  auto& parser = GetParser(user_data);
   UASSERT(frame);
   switch (frame->hd.type) {
     case NGHTTP2_HEADERS:
       if (frame->headers.cat != NGHTTP2_HCAT_REQUEST) {
         break;
       }
+      auto& parser = GetParser(user_data);
       auto& stream_data =
           GetStreamData(parser.session_.get(), frame->hd.stream_id);
       const std::string_view hname(reinterpret_cast<const char*>(name),
@@ -187,11 +194,20 @@ int Http2RequestParser::OnHeader(nghttp2_session*, const nghttp2_frame* frame,
       if (hname == USERVER_NAMESPACE::http::headers::k2::kMethod) {
         ctor.SetMethod(HttpMethodFromString(hvalue));
       } else if (hname == USERVER_NAMESPACE::http::headers::k2::kPath) {
-        const std::string_view url{hvalue.data(), hvalue.size()};
-        ctor.AppendUrl(url.data(), url.size());
+        try {
+          ctor.AppendUrl(hvalue.data(), hvalue.size());
+        } catch (const std::exception& e) {
+          LOG_WARNING() << "can't append url: " << e;
+          return NGHTTP2_ERR_CALLBACK_FAILURE;
+        }
       } else {
-        ctor.AppendHeaderField(hname.data(), hname.size());
-        ctor.AppendHeaderValue(hvalue.data(), hvalue.size());
+        try {
+          ctor.AppendHeaderField(hname.data(), hname.size());
+          ctor.AppendHeaderValue(hvalue.data(), hvalue.size());
+        } catch (const std::exception& e) {
+          LOG_WARNING() << "can't append header field: " << e;
+          return NGHTTP2_ERR_CALLBACK_FAILURE;
+        }
       }
       break;
   }
@@ -211,7 +227,7 @@ int Http2RequestParser::OnStreamClose(nghttp2_session* session,
   parser.RemoveStreamData(stream_id);
 
   ++parser.stats_.http2_stats.streams_close_;
-  LOG_DEBUG() << fmt::format("The stream {} was closed with code {}", stream_id,
+  LOG_TRACE() << fmt::format("The stream {} was closed with code {}", stream_id,
                              error_code);
 
   return 0;
@@ -237,17 +253,24 @@ int Http2RequestParser::OnBeginHeaders(nghttp2_session*,
 int Http2RequestParser::OnDataChunkRecv(nghttp2_session* session,
                                         uint8_t /*flags*/, int32_t stream_id,
                                         const uint8_t* data, size_t len,
-                                        void* /*user_data*/) {
+                                        void*) {
   auto& stream_data = GetStreamData(session, stream_id);
-
-  const std::string_view sdata(reinterpret_cast<const char*>(data), len);
-  stream_data.constructor.AppendBody(sdata.data(), sdata.size());
+  try {
+    const std::string_view sdata(reinterpret_cast<const char*>(data), len);
+    stream_data.constructor.AppendBody(sdata.data(), sdata.size());
+  } catch (const std::exception& e) {
+    LOG_WARNING() << "can't append body: " << e;
+    return NGHTTP2_ERR_CALLBACK_FAILURE;
+  }
   return 0;
 }
 
-long Http2RequestParser::OnSend(nghttp2_session*, const uint8_t*, size_t, int,
-                                void*) {
+long Http2RequestParser::OnSend(nghttp2_session* session, const uint8_t* data,
+                                size_t, int, void* user_data) {
   // TODO: Here we can send body without copying
+  UASSERT(session);
+  UASSERT(data);
+  UASSERT(user_data);
   return NGHTTP2_ERR_WOULDBLOCK;
 }
 
@@ -287,41 +310,24 @@ void Http2RequestParser::SubmitRequest(
   on_new_request_cb_(std::move(request));
 }
 
-bool Http2RequestParser::Parse(const char* data, size_t datalen) {
-  if (!std::exchange(upgrade_completed_, true)) {
-    if (DoUpgrade({data, datalen})) {
-      return true;
-    } else {
-      LOG_INFO() << "Client already uses http2";
-    }
-  }
+bool Http2RequestParser::Parse(std::string_view req) {
   int readlen = nghttp2_session_mem_recv(
-      session_.get(), reinterpret_cast<const uint8_t*>(data), datalen);
+      session_.get(), reinterpret_cast<const uint8_t*>(req.data()), req.size());
+  if (readlen == NGHTTP2_ERR_FATAL) {
+    throw std::runtime_error{
+        fmt::format("Fatal error in nghttp2: {}", nghttp2_strerror(readlen))};
+  }
   if (readlen < 0) {
-    LOG_ERROR() << fmt::format("Fatal error in Parse: {}",
-                               nghttp2_strerror(readlen));
+    LOG_ERROR() << fmt::format("Error in Parse: {}", nghttp2_strerror(readlen));
     ++stats_.http2_stats.streams_parse_error_;
     return false;
   }
-  if (static_cast<std::size_t>(readlen) != datalen) {
-    LOG_ERROR() << fmt::format("Parsed = {} but expected {}", readlen, datalen);
+  if (static_cast<std::size_t>(readlen) != req.size()) {
+    LOG_ERROR() << fmt::format("Parsed = {} but expected {}", readlen,
+                               req.size());
     return false;
   }
   return true;
-}
-
-bool Http2RequestParser::DoUpgrade(std::string_view data) {
-  // TODO: this is a very bad way to detect HTTP/1.1
-  if (const auto pos = data.find(kHttp2SettingsHeader);
-      pos != std::string_view::npos) {
-    const std::size_t shift = pos + kHttp2SettingsHeader.size();
-    const std::string_view client_magic(data.data() + shift, kClientMagicSize);
-    UpgradeToHttp2(client_magic);
-    // Parse HTTP/1.1
-    http1_parser_->Parse(data.data(), data.size());
-    return true;
-  }
-  return false;
 }
 
 void Http2RequestParser::UpgradeToHttp2(std::string_view client_magic) {

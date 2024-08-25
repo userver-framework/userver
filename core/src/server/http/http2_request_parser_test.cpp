@@ -1,14 +1,16 @@
+#include <server/http/handler_info_index.hpp>
 #include <server/http/http2_request_parser.hpp>
+#include <server/http/http_request_parser.hpp>
+#include <server/net/stats.hpp>
 
 #include <fmt/format.h>
 #include <nghttp2/nghttp2.h>
-
 #include <curl-ev/easy.hpp>
-#include <server/http/handler_info_index.hpp>
-#include <server/net/stats.hpp>
+
 #include <userver/clients/http/client.hpp>
 #include <userver/concurrent/queue.hpp>
 #include <userver/engine/io/socket.hpp>
+#include <userver/http/common_headers.hpp>
 
 #include <userver/utest/http_client.hpp>
 #include <userver/utest/simple_server.hpp>
@@ -43,6 +45,11 @@ class Http2RequestParserTest : public ::testing::Test {
               NewRequestCallback(std::move(request));
             },
             USERVER_NAMESPACE::http::HttpVersion::k2)),
+        parser1_(CreateTestParser(
+            [this](ParsedRequestPtr&& request) {
+              NewRequestCallback(std::move(request));
+            },
+            USERVER_NAMESPACE::http::HttpVersion::k11)),
         server_([this](const MockHttpRequest& request) -> MockHttpResponse {
           return ServerHandler(request);
         }),
@@ -67,30 +74,32 @@ class Http2RequestParserTest : public ::testing::Test {
   void SetSliceSize(int slice_size) { slice_size_ = slice_size; }
 
  private:
-  std::size_t iter_{0};
-
   void NewRequestCallback(ParsedRequestPtr&& request) {
-    if (iter_ == 0) {
+    auto request_impl = std::dynamic_pointer_cast<HttpRequestImpl>(request);
+    if (const auto& h = request_impl->GetHeader(
+            USERVER_NAMESPACE::http::headers::k2::kHttp2SettingsHeader);
+        !h.empty()) {
       is_upgrade_http_ = true;
-    } else if (iter_ > 0) {
-      // We have to skip the first message(iter_=0) which has been parsed with
-      // HTTP/1.1 parser
-      UASSERT(request->GetResponse().GetStreamId().has_value());
-      cur_stream_id_ = *request->GetResponse().GetStreamId();
-      auto request_impl = std::dynamic_pointer_cast<HttpRequestImpl>(request);
-      EXPECT_TRUE(producer_.Push(std::move(request_impl)));
+      dynamic_cast<Http2RequestParser*>(parser_.get())->UpgradeToHttp2(h);
+      return;
     }
-    iter_++;
+    UASSERT(request->GetResponse().GetStreamId().has_value());
+    cur_stream_id_ = *request->GetResponse().GetStreamId();
+    EXPECT_TRUE(producer_.Push(std::move(request_impl)));
   }
 
   void ParseHttp2Request(const MockHttpRequest& request) {
     if (slice_size_ == -1) {
-      EXPECT_TRUE(parser_->Parse(request.data(), request.size()));
+      if (request.find("HTTP/1.1") != std::string::npos) {
+        parser1_->Parse(request);
+      } else {
+        EXPECT_TRUE(parser_->Parse(request));
+      }
     } else {
       UASSERT(slice_size_);
       for (size_t i = 0; i < request.size(); i += slice_size_) {
         const auto slice = std::string_view{request}.substr(i, slice_size_);
-        EXPECT_TRUE(parser_->Parse(slice.data(), slice.size()));
+        EXPECT_TRUE(parser_->Parse(slice));
       }
     }
   }
@@ -153,6 +162,7 @@ class Http2RequestParserTest : public ::testing::Test {
   net::ParserStats stats_;
 
   std::shared_ptr<request::RequestParser> parser_;
+  std::shared_ptr<request::RequestParser> parser1_;
 
   const utest::SimpleServer server_;
 
@@ -184,7 +194,7 @@ UTEST_F(Http2RequestParserTest, SimpleRequest) {
 }
 
 UTEST_F(Http2RequestParserTest, SmallDataParst) {
-  // Set size of buffer what will be provided to
+  // Set a size of the buffer what will be provided to
   // nghttp2_session_mem_recv
   SetSliceSize(1);
 

@@ -33,7 +33,7 @@ class HttpRequestParser final : public request::RequestParser {
   HttpRequestParser(HttpRequestParser&&) = delete;
   HttpRequestParser& operator=(HttpRequestParser&&) = delete;
 
-  bool Parse(const char* data, size_t size) override;
+  bool Parse(std::string_view request) override;
 
  private:
   static int OnMessageBegin(llhttp_t* p);

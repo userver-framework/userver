@@ -13,11 +13,11 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
 
-constexpr std::string_view kSwitchingProtocolResponse{
+inline constexpr std::string_view kSwitchingProtocolResponse{
     "HTTP/1.1 101 Switching Protocols\r\nConnection: Upgrade\r\nUpgrade: "
     "h2c\r\n\r\n"};
 
-constexpr std::size_t kDefaultMaxConcurrentStreams = 100;
+inline constexpr std::size_t kDefaultMaxConcurrentStreams = 100;
 
 class HttpRequestParser;
 
@@ -52,11 +52,9 @@ class Http2RequestParser final : public request::RequestParser {
   Http2RequestParser& operator=(const Http2RequestParser&) = delete;
   Http2RequestParser& operator=(Http2RequestParser&&) = delete;
 
-  bool Parse(const char* data, size_t size) override;
+  bool Parse(std::string_view req) override;
 
   nghttp2_session* GetNghttp2SessionPtr() { return session_.get(); }
-
-  bool DoUpgrade(std::string_view data);
 
   void UpgradeToHttp2(std::string_view client_magic);
 
@@ -98,15 +96,12 @@ class Http2RequestParser final : public request::RequestParser {
   const HandlerInfoIndex& handler_info_index_;
   const HttpRequestConstructor::Config request_constructor_config_;
 
-  bool upgrade_completed_{false};
-
   OnNewRequestCb on_new_request_cb_;
 
   net::ParserStats& stats_;
   request::ResponseDataAccounter& data_accounter_;
   engine::io::Sockaddr remote_address_;
-  // This is need to parse a upgrade request
-  std::unique_ptr<HttpRequestParser> http1_parser_{nullptr};
+  std::size_t remote_window_size_{0};
 };
 
 }  // namespace server::http

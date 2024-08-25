@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <string_view>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -14,7 +15,7 @@ class RequestParser {
 
   virtual ~RequestParser() noexcept = default;
 
-  virtual bool Parse(const char* data, size_t size) = 0;
+  virtual bool Parse(std::string_view request) = 0;
 };
 
 }  // namespace server::request

@@ -29,7 +29,13 @@ struct ParserStatsAggregation final {
   ParserStatsAggregation() = default;
 
   explicit ParserStatsAggregation(const ParserStats& stats)
-      : parsing_request_count{stats.parsing_request_count.NonNegativeRead()} {}
+      : parsing_request_count{stats.parsing_request_count.NonNegativeRead()},
+        streams_count(stats.http2_stats.streams_count_.Load().value),
+        streams_parse_error(
+            stats.http2_stats.streams_parse_error_.Load().value),
+        streams_close(stats.http2_stats.streams_close_.Load().value),
+        reset_streams(stats.http2_stats.reset_streams_.Load().value),
+        goaway_streams(stats.http2_stats.goaway_streams_.Load().value) {}
 
   ParserStatsAggregation& operator+=(const ParserStatsAggregation& other) {
     parsing_request_count += other.parsing_request_count;

@@ -1,11 +1,12 @@
 #pragma once
 
-#include <server/http/http2_request_parser.hpp>
 #include <userver/server/http/http_response.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
+
+class Http2RequestParser;
 
 void WriteHttp2ResponseToSocket(engine::io::RwBase& socket,
                                 HttpResponse& response,

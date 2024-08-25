@@ -47,7 +47,7 @@ void http_request_parser_parse_benchmark_small(benchmark::State& state) {
       [](std::shared_ptr<server::request::RequestBase>&&) {});
 
   for ([[maybe_unused]] auto _ : state) {
-    parser.Parse(kHttpRequestDataSmall.data(), kHttpRequestDataSmall.size());
+    parser.Parse(kHttpRequestDataSmall);
   }
 }
 
@@ -56,7 +56,7 @@ void http_request_parser_parse_benchmark_middle(benchmark::State& state) {
       [](std::shared_ptr<server::request::RequestBase>&&) {});
 
   for ([[maybe_unused]] auto _ : state) {
-    parser.Parse(kHttpRequestDataMiddle.data(), kHttpRequestDataMiddle.size());
+    parser.Parse(kHttpRequestDataMiddle);
   }
 }
 
@@ -72,7 +72,7 @@ void http_request_parser_parse_benchmark_large_url(benchmark::State& state) {
       fmt::format("GET {} HTTP/1.1\r\n\r\n", large_url);
 
   for ([[maybe_unused]] auto _ : state) {
-    parser.Parse(http_request_data.data(), http_request_data.size());
+    parser.Parse(http_request_data);
   }
 }
 
@@ -90,7 +90,7 @@ void http_request_parser_parse_benchmark_large_body(benchmark::State& state) {
       large_body.size(), large_body);
 
   for ([[maybe_unused]] auto _ : state) {
-    parser.Parse(http_request_data.data(), http_request_data.size());
+    parser.Parse(http_request_data);
   }
 }
 
@@ -108,7 +108,7 @@ void http_request_parser_parse_benchmark_many_headers(benchmark::State& state) {
       headers);
 
   for ([[maybe_unused]] auto _ : state) {
-    parser.Parse(http_request_data.data(), http_request_data.size());
+    parser.Parse(http_request_data);
   }
 }
 

@@ -197,11 +197,12 @@ inline constexpr std::string_view kInFlight{"max-requests-in-flight"};
 /// @}
 
 namespace k2 {
-inline constexpr std::string_view kMethod = ":method";
-inline constexpr std::string_view kScheme = ":scheme";
-inline constexpr std::string_view kAuthority = ":authority";
-inline constexpr std::string_view kPath = ":path";
-inline constexpr std::string_view kStatus = ":status";
+inline constexpr PredefinedHeader kHttp2SettingsHeader{"HTTP2-Settings"};
+inline constexpr PredefinedHeader kMethod{":method"};
+inline constexpr PredefinedHeader kScheme{":scheme"};
+inline constexpr PredefinedHeader kAuthority{":authority"};
+inline constexpr PredefinedHeader kPath{":path"};
+inline constexpr PredefinedHeader kStatus{":status"};
 }  // namespace k2
 
 }  // namespace http::headers
