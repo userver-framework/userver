@@ -27,17 +27,25 @@ ConfHolder RetrieveConf(kafka::impl::Configuration&& configuration) {
 }
 
 std::string GetConfOption(const ConfHolder& conf, const char* option) {
-  UASSERT(conf);
-  std::size_t result_size{0};
-  UASSERT(RD_KAFKA_CONF_OK ==
-          rd_kafka_conf_get(conf.get(), option, nullptr, &result_size));
-  UASSERT(result_size > 0);
-  std::vector<char> result_data(result_size);
-  UASSERT(RD_KAFKA_CONF_OK == rd_kafka_conf_get(conf.get(), option,
-                                                result_data.data(),
-                                                &result_size));
+  UINVARIANT(conf, "Null conf");
 
-  return std::string{result_data.data()};
+  std::size_t result_size{0};
+  const auto get_size_status =
+      rd_kafka_conf_get(conf.get(), option, nullptr, &result_size);
+  UINVARIANT(RD_KAFKA_CONF_OK == get_size_status,
+             fmt::format("Failed to retrieve configuration option {}", option));
+  UINVARIANT(
+      result_size > 0,
+      fmt::format("Got size=0 while retrieving config option {}", option));
+
+  std::string result_data(result_size, '\0');
+  const auto get_result_status =
+      rd_kafka_conf_get(conf.get(), option, result_data.data(), &result_size);
+  UINVARIANT(RD_KAFKA_CONF_OK == get_result_status,
+             fmt::format("Failed to retrieve configuration option {}", option));
+
+  result_data.resize(result_data.size() - 1);
+  return result_data;
 }
 
 }  // namespace
