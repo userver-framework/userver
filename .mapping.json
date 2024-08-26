@@ -1931,6 +1931,7 @@
   "grpc/src/ugrpc/impl/async_method_invocation.cpp":"taxi/uservices/userver/grpc/src/ugrpc/impl/async_method_invocation.cpp",
   "grpc/src/ugrpc/impl/code_statistics.cpp":"taxi/uservices/userver/grpc/src/ugrpc/impl/code_statistics.cpp",
   "grpc/src/ugrpc/impl/deadline_timepoint.cpp":"taxi/uservices/userver/grpc/src/ugrpc/impl/deadline_timepoint.cpp",
+  "grpc/src/ugrpc/impl/grpc_string_logging.hpp":"taxi/uservices/userver/grpc/src/ugrpc/impl/grpc_string_logging.hpp",
   "grpc/src/ugrpc/impl/internal_tag.hpp":"taxi/uservices/userver/grpc/src/ugrpc/impl/internal_tag.hpp",
   "grpc/src/ugrpc/impl/logging.cpp":"taxi/uservices/userver/grpc/src/ugrpc/impl/logging.cpp",
   "grpc/src/ugrpc/impl/logging.hpp":"taxi/uservices/userver/grpc/src/ugrpc/impl/logging.hpp",
