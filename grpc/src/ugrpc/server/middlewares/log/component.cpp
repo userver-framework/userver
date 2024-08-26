@@ -31,7 +31,7 @@ properties:
         description: gRPC handlers log level
     msg-log-level:
         type: string
-        description: set up log level for request/response messages body
+        description: gRPC message body logging level
     msg-size-log-limit:
         type: string
         description: max message size to log, the rest will be truncated

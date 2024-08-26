@@ -45,7 +45,7 @@ class SecretFieldsServiceFixture : public ugrpc::tests::ServiceFixtureBase {
             server_log_settings));
 
     ugrpc::client::middlewares::log::Settings client_log_settings;
-    client_log_settings.log_level = logging::Level::kInfo;
+    client_log_settings.msg_log_level = logging::Level::kInfo;
     AddClientMiddleware(
         std::make_shared<ugrpc::client::middlewares::log::MiddlewareFactory>(
             client_log_settings));

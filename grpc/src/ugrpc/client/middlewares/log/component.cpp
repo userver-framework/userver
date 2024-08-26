@@ -16,6 +16,8 @@ Settings Parse(const yaml_config::YamlConfig& config,
       config["msg-size-log-limit"].As<std::size_t>(settings.max_msg_size);
   settings.log_level =
       config["log-level"].As<logging::Level>(settings.log_level);
+  settings.log_level =
+      config["msg-log-level"].As<logging::Level>(settings.msg_log_level);
   return settings;
 }
 
@@ -38,7 +40,10 @@ additionalProperties: false
 properties:
     log-level:
         type: string
-        description: log level of message log
+        description: gRPC logging level
+    msg-log-level:
+        type: string
+        description: set up log level for request/response messages body
     msg-size-log-limit:
         type: string
         description: max message size to log, the rest will be truncated

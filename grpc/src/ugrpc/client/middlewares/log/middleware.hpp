@@ -13,7 +13,10 @@ struct Settings {
   /// Max gRPC message size, the rest will be truncated
   std::size_t max_msg_size{512};
 
-  /// gRPC message logging level
+  /// gRPC message body logging level
+  logging::Level msg_log_level{logging::Level::kDebug};
+
+  /// gRPC logging level
   logging::Level log_level{logging::Level::kDebug};
 };
 

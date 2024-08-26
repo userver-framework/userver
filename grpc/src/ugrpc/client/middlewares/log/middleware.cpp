@@ -21,27 +21,32 @@ bool IsSingleResponse(CallKind kind) {
 }
 
 std::string ToLogString(const google::protobuf::Message& message,
-                        std::size_t max_size) {
-  std::unique_ptr<google::protobuf::Message> trimmed{message.New()};
-  trimmed->CopyFrom(message);
-  ugrpc::impl::TrimSecrets(*trimmed);
-  return utils::log::ToLimitedUtf8(trimmed->Utf8DebugString(), max_size);
+                        logging::Level msg_log_level,
+                        std::size_t max_msg_size) {
+  if (logging::ShouldLog(msg_log_level)) {
+    std::unique_ptr<google::protobuf::Message> trimmed{message.New()};
+    trimmed->CopyFrom(message);
+    ugrpc::impl::TrimSecrets(*trimmed);
+    return utils::log::ToLimitedUtf8(trimmed->Utf8DebugString(), max_msg_size);
+  } else {
+    return "hidden by log level";
+  }
 }
 
 class SpanLogger {
  public:
-  SpanLogger(const tracing::Span& span, logging::Level level)
-      : span_{span}, level_{level} {}
+  SpanLogger(const tracing::Span& span, logging::Level log_level)
+      : span_{span}, log_level_{log_level} {}
 
   void Log(std::string_view message, logging::LogExtra&& extra) const {
     const tracing::impl::DetachLocalSpansScope ignore_local_span;
-    LOG(level_) << message << std::move(extra)
-                << tracing::impl::LogSpanAsLastNoCurrent{span_};
+    LOG(log_level_) << message << std::move(extra)
+                    << tracing::impl::LogSpanAsLastNoCurrent{span_};
   }
 
  private:
   const tracing::Span& span_;
-  logging::Level level_{};
+  logging::Level log_level_{};
 };
 
 }  // namespace
@@ -60,9 +65,9 @@ void Middleware::PreSendMessage(
     MiddlewareCallContext& context,
     const google::protobuf::Message& message) const {
   SpanLogger logger{context.GetSpan(), settings_.log_level};
-  logging::LogExtra extra{
-      {"grpc_type", "request"},
-      {"body", ToLogString(message, settings_.max_msg_size)}};
+  logging::LogExtra extra{{"grpc_type", "request"},
+                          {"body", ToLogString(message, settings_.msg_log_level,
+                                               settings_.max_msg_size)}};
   if (IsSingleRequest(context.GetCallKind())) {
     logger.Log("gRPC request", std::move(extra));
   } else {
@@ -74,9 +79,9 @@ void Middleware::PostRecvMessage(
     MiddlewareCallContext& context,
     const google::protobuf::Message& message) const {
   SpanLogger logger{context.GetSpan(), settings_.log_level};
-  logging::LogExtra extra{
-      {"grpc_type", "response"},
-      {"body", ToLogString(message, settings_.max_msg_size)}};
+  logging::LogExtra extra{{"grpc_type", "response"},
+                          {"body", ToLogString(message, settings_.msg_log_level,
+                                               settings_.max_msg_size)}};
   if (IsSingleResponse(context.GetCallKind())) {
     logger.Log("gRPC response", std::move(extra));
   } else {
