@@ -1,4 +1,4 @@
-#include "http2_request_parser.hpp"
+#include <server/http/http2_session.hpp>
 
 #include <server/http/http_request_parser.hpp>
 #include <userver/crypto/base64.hpp>
@@ -32,14 +32,14 @@ void ThrowWithInfoMsgIfErr(std::string_view msg, int error_code) {
   }
 }
 
-Http2RequestParser& GetParser(void* user_data) {
+Http2Session& GetParser(void* user_data) {
   UASSERT(user_data);
-  return *static_cast<Http2RequestParser*>(user_data);
+  return *static_cast<Http2Session*>(user_data);
 }
 
-Http2RequestParser::StreamData& GetStreamData(nghttp2_session* session,
-                                              int stream_id) {
-  auto* stream_data = static_cast<Http2RequestParser::StreamData*>(
+Http2Session::StreamData& GetStreamData(nghttp2_session* session,
+                                        int stream_id) {
+  auto* stream_data = static_cast<Http2Session::StreamData*>(
       nghttp2_session_get_stream_user_data(session, stream_id));
   UASSERT(stream_data);
   return *stream_data;
@@ -47,7 +47,7 @@ Http2RequestParser::StreamData& GetStreamData(nghttp2_session* session,
 
 }  // namespace
 
-Http2RequestParser::StreamData::StreamData(
+Http2Session::StreamData::StreamData(
     HttpRequestConstructor::Config config,
     const HandlerInfoIndex& handler_info_index,
     request::ResponseDataAccounter& data_accounter, StreamId stream_id_,
@@ -55,7 +55,7 @@ Http2RequestParser::StreamData::StreamData(
     : constructor(config, handler_info_index, data_accounter, remote_address),
       stream_id(stream_id_) {}
 
-int Http2RequestParser::FinalizeRequest(StreamData& stream_data) {
+int Http2Session::FinalizeRequest(StreamData& stream_data) {
   try {
     stream_data.constructor.SetResponseStreamId(stream_data.stream_id);
     stream_data.constructor.ParseUrl();
@@ -73,12 +73,12 @@ int Http2RequestParser::FinalizeRequest(StreamData& stream_data) {
   return 0;
 }
 
-Http2RequestParser::Http2RequestParser(
-    const HandlerInfoIndex& handler_info_index,
-    const request::HttpRequestConfig& request_config,
-    OnNewRequestCb&& on_new_request_cb, net::ParserStats& stats,
-    request::ResponseDataAccounter& data_accounter,
-    engine::io::Sockaddr remote_address)
+Http2Session::Http2Session(const HandlerInfoIndex& handler_info_index,
+                           const request::HttpRequestConfig& request_config,
+                           OnNewRequestCb&& on_new_request_cb,
+                           net::ParserStats& stats,
+                           request::ResponseDataAccounter& data_accounter,
+                           engine::io::Sockaddr remote_address)
     : handler_info_index_(handler_info_index),
       request_constructor_config_(request_config),
       on_new_request_cb_(std::move(on_new_request_cb)),
@@ -115,9 +115,8 @@ Http2RequestParser::Http2RequestParser(
   ThrowWithInfoMsgIfErr("Error when session send", rv);
 }
 
-int Http2RequestParser::OnFrameRecv(nghttp2_session* session,
-                                    const nghttp2_frame* frame,
-                                    void* user_data) {
+int Http2Session::OnFrameRecv(nghttp2_session* session,
+                              const nghttp2_frame* frame, void* user_data) {
   auto& parser = GetParser(user_data);
   UASSERT(session);
   UASSERT(frame);
@@ -172,10 +171,10 @@ int Http2RequestParser::OnFrameRecv(nghttp2_session* session,
   return 0;
 }
 
-int Http2RequestParser::OnHeader(nghttp2_session*, const nghttp2_frame* frame,
-                                 const uint8_t* name, size_t namelen,
-                                 const uint8_t* value, size_t valuelen, uint8_t,
-                                 void* user_data) {
+int Http2Session::OnHeader(nghttp2_session*, const nghttp2_frame* frame,
+                           const uint8_t* name, size_t namelen,
+                           const uint8_t* value, size_t valuelen, uint8_t,
+                           void* user_data) {
   UASSERT(frame);
   switch (frame->hd.type) {
     case NGHTTP2_HEADERS:
@@ -214,10 +213,9 @@ int Http2RequestParser::OnHeader(nghttp2_session*, const nghttp2_frame* frame,
   return 0;
 }
 
-int Http2RequestParser::OnStreamClose(nghttp2_session* session,
-                                      int32_t stream_id, uint32_t error_code,
-                                      void* user_data) {
-  const auto* stream_data = static_cast<Http2RequestParser::StreamData*>(
+int Http2Session::OnStreamClose(nghttp2_session* session, int32_t stream_id,
+                                uint32_t error_code, void* user_data) {
+  const auto* stream_data = static_cast<Http2Session::StreamData*>(
       nghttp2_session_get_stream_user_data(session, stream_id));
   if (!stream_data) {
     return 0;
@@ -233,9 +231,8 @@ int Http2RequestParser::OnStreamClose(nghttp2_session* session,
   return 0;
 }
 
-int Http2RequestParser::OnBeginHeaders(nghttp2_session*,
-                                       const nghttp2_frame* frame,
-                                       void* user_data) {
+int Http2Session::OnBeginHeaders(nghttp2_session*, const nghttp2_frame* frame,
+                                 void* user_data) {
   auto& parser = GetParser(user_data);
 
   UASSERT(frame);
@@ -250,10 +247,9 @@ int Http2RequestParser::OnBeginHeaders(nghttp2_session*,
   return 0;
 }
 
-int Http2RequestParser::OnDataChunkRecv(nghttp2_session* session,
-                                        uint8_t /*flags*/, int32_t stream_id,
-                                        const uint8_t* data, size_t len,
-                                        void*) {
+int Http2Session::OnDataChunkRecv(nghttp2_session* session, uint8_t /*flags*/,
+                                  int32_t stream_id, const uint8_t* data,
+                                  size_t len, void*) {
   auto& stream_data = GetStreamData(session, stream_id);
   try {
     const std::string_view sdata(reinterpret_cast<const char*>(data), len);
@@ -265,8 +261,8 @@ int Http2RequestParser::OnDataChunkRecv(nghttp2_session* session,
   return 0;
 }
 
-long Http2RequestParser::OnSend(nghttp2_session* session, const uint8_t* data,
-                                size_t, int, void* user_data) {
+long Http2Session::OnSend(nghttp2_session* session, const uint8_t* data, size_t,
+                          int, void* user_data) {
   // TODO: Here we can send body without copying
   UASSERT(session);
   UASSERT(data);
@@ -274,7 +270,7 @@ long Http2RequestParser::OnSend(nghttp2_session* session, const uint8_t* data,
   return NGHTTP2_ERR_WOULDBLOCK;
 }
 
-void Http2RequestParser::RegisterStreamData(StreamId stream_id) {
+void Http2Session::RegisterStreamData(StreamId stream_id) {
   if (streams_.size() >= max_concurrent_streams_) {
     UINVARIANT(false, "Not implemented for HTTP/2.0");
     return;
@@ -298,19 +294,19 @@ void Http2RequestParser::RegisterStreamData(StreamId stream_id) {
   ThrowWithInfoMsgIfErr("Cannot to set stream user data", res);
 }
 
-void Http2RequestParser::RemoveStreamData(StreamId stream_id) {
+void Http2Session::RemoveStreamData(StreamId stream_id) {
   const auto it = streams_.find(stream_id);
   UASSERT(it != streams_.end());
   streams_.erase(it);
   stats_.parsing_request_count.Subtract(1);
 }
 
-void Http2RequestParser::SubmitRequest(
+void Http2Session::SubmitRequest(
     std::shared_ptr<request::RequestBase>&& request) {
   on_new_request_cb_(std::move(request));
 }
 
-bool Http2RequestParser::Parse(std::string_view req) {
+bool Http2Session::Parse(std::string_view req) {
   int readlen = nghttp2_session_mem_recv(
       session_.get(), reinterpret_cast<const uint8_t*>(req.data()), req.size());
   if (readlen == NGHTTP2_ERR_FATAL) {
@@ -330,7 +326,7 @@ bool Http2RequestParser::Parse(std::string_view req) {
   return true;
 }
 
-void Http2RequestParser::UpgradeToHttp2(std::string_view client_magic) {
+void Http2Session::UpgradeToHttp2(std::string_view client_magic) {
   const auto settings_payload = crypto::base64::Base64UrlDecode(client_magic);
   auto session = session_.get();
   const int rv = nghttp2_session_upgrade2(

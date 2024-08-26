@@ -2,7 +2,7 @@
 
 #include <fmt/format.h>
 
-#include <server/http/http2_request_parser.hpp>
+#include <server/http/http2_session.hpp>
 #include <server/http/http_cached_date.hpp>
 #include <server/http/http_request_parser.hpp>
 #include <userver/engine/io/socket.hpp>
@@ -242,8 +242,7 @@ class Http2ResponseWriter final {
 };
 
 void WriteHttp2ResponseToSocket(engine::io::RwBase& socket,
-                                HttpResponse& response,
-                                Http2RequestParser& parser) {
+                                HttpResponse& response, Http2Session& parser) {
   Http2ResponseWriter w{response, parser.GetNghttp2SessionPtr()};
   w.WriteHttpResponse(socket);
 }

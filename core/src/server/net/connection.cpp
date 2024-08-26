@@ -4,7 +4,7 @@
 #include <system_error>
 #include <vector>
 
-#include <server/http/http2_request_parser.hpp>
+#include <server/http/http2_session.hpp>
 #include <server/http/http2_writer.hpp>
 #include <server/http/http_request_parser.hpp>
 #include <server/http/request_handler_base.hpp>
@@ -308,9 +308,9 @@ void Connection::SendResponse(request::RequestBase& request) {
                 USERVER_NAMESPACE::http::headers::k2::kHttp2SettingsHeader);
             !h.empty()) {
           auto parser = MakeParser(USERVER_NAMESPACE::http::HttpVersion::k2);
-          UASSERT(dynamic_cast<http::Http2RequestParser*>(parser.get()));
+          UASSERT(dynamic_cast<http::Http2Session*>(parser.get()));
           // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-          auto parser2 = static_cast<http::Http2RequestParser*>(parser.get());
+          auto parser2 = static_cast<http::Http2Session*>(parser.get());
           parser2->UpgradeToHttp2(h);
           // nghttp2_session_upgrade2 opens the stream with id=1 and we must use
           // it. See docs:
@@ -331,10 +331,10 @@ void Connection::SendResponse(request::RequestBase& request) {
                        .GetHttpMajor() == 1) {
           response.SendResponse(*peer_socket_);
         } else {
-          UASSERT(dynamic_cast<http::Http2RequestParser*>(parser_.get()));
+          UASSERT(dynamic_cast<http::Http2Session*>(parser_.get()));
           auto parser2 =
               // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-              static_cast<http::Http2RequestParser*>(parser_.get());
+              static_cast<http::Http2Session*>(parser_.get());
           http::WriteHttp2ResponseToSocket(*peer_socket_, http_response,
                                            *parser2);
         }
@@ -379,7 +379,7 @@ std::unique_ptr<request::RequestParser> Connection::MakeParser(
     pending_requests_.push_back(std::move(request_ptr));
   };
   if (ver == USERVER_NAMESPACE::http::HttpVersion::k2) {
-    return std::make_unique<http::Http2RequestParser>(
+    return std::make_unique<http::Http2Session>(
         request_handler_.GetHandlerInfoIndex(), handler_defaults_config_,
         on_req_cb, stats_->parser_stats, data_accounter_, remote_address_);
   }

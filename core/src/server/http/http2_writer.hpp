@@ -6,11 +6,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
 
-class Http2RequestParser;
+class Http2Session;
 
 void WriteHttp2ResponseToSocket(engine::io::RwBase& socket,
-                                HttpResponse& response,
-                                Http2RequestParser& parser);
+                                HttpResponse& response, Http2Session& parser);
 
 }  // namespace server::http
 

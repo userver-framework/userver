@@ -21,7 +21,7 @@ inline constexpr std::size_t kDefaultMaxConcurrentStreams = 100;
 
 class HttpRequestParser;
 
-class Http2RequestParser final : public request::RequestParser {
+class Http2Session final : public request::RequestParser {
  public:
   using OnNewRequestCb =
       std::function<void(std::shared_ptr<request::RequestBase>&&)>;
@@ -40,17 +40,16 @@ class Http2RequestParser final : public request::RequestParser {
 
   using Streams = std::unordered_map<StreamId, StreamData>;
 
-  Http2RequestParser(const HandlerInfoIndex& handler_info_index,
-                     const request::HttpRequestConfig& request_config,
-                     OnNewRequestCb&& on_new_request_cb,
-                     net::ParserStats& stats,
-                     request::ResponseDataAccounter& data_accounter,
-                     engine::io::Sockaddr remote_address);
+  Http2Session(const HandlerInfoIndex& handler_info_index,
+               const request::HttpRequestConfig& request_config,
+               OnNewRequestCb&& on_new_request_cb, net::ParserStats& stats,
+               request::ResponseDataAccounter& data_accounter,
+               engine::io::Sockaddr remote_address);
 
-  Http2RequestParser(const Http2RequestParser&) = delete;
-  Http2RequestParser(Http2RequestParser&&) = delete;
-  Http2RequestParser& operator=(const Http2RequestParser&) = delete;
-  Http2RequestParser& operator=(Http2RequestParser&&) = delete;
+  Http2Session(const Http2Session&) = delete;
+  Http2Session(Http2Session&&) = delete;
+  Http2Session& operator=(const Http2Session&) = delete;
+  Http2Session& operator=(Http2Session&&) = delete;
 
   bool Parse(std::string_view req) override;
 

@@ -1,5 +1,5 @@
 #include <server/http/handler_info_index.hpp>
-#include <server/http/http2_request_parser.hpp>
+#include <server/http/http2_session.hpp>
 #include <server/http/http_request_parser.hpp>
 #include <server/net/stats.hpp>
 
@@ -36,9 +36,9 @@ using RequestsQueue = concurrent::SpscQueue<ParsedRequestImplPtr>;
 
 // Fixture - nghttp2_client
 // API - create request with custorm headers, type, url+query, body
-class Http2RequestParserTest : public ::testing::Test {
+class Http2SessionTest : public ::testing::Test {
  public:
-  Http2RequestParserTest()
+  Http2SessionTest()
       : ::testing::Test(),
         parser_(CreateTestParser(
             [this](ParsedRequestPtr&& request) {
@@ -80,7 +80,7 @@ class Http2RequestParserTest : public ::testing::Test {
             USERVER_NAMESPACE::http::headers::k2::kHttp2SettingsHeader);
         !h.empty()) {
       is_upgrade_http_ = true;
-      dynamic_cast<Http2RequestParser*>(parser_.get())->UpgradeToHttp2(h);
+      dynamic_cast<Http2Session*>(parser_.get())->UpgradeToHttp2(h);
       return;
     }
     UASSERT(request->GetResponse().GetStreamId().has_value());
@@ -112,8 +112,8 @@ class Http2RequestParserTest : public ::testing::Test {
           reinterpret_cast<std::uint8_t*>(status200.data()), status.size(),
           status200.size(), NGHTTP2_NV_FLAG_NONE}}};
 
-    auto session_ptr = dynamic_cast<Http2RequestParser*>(parser_.get())
-                           ->GetNghttp2SessionPtr();
+    auto session_ptr =
+        dynamic_cast<Http2Session*>(parser_.get())->GetNghttp2SessionPtr();
     int rv = nghttp2_submit_response(session_ptr, cur_stream_id_,
                                      headers.data(), headers.size(), nullptr);
 
@@ -173,7 +173,7 @@ class Http2RequestParserTest : public ::testing::Test {
   RequestsQueue::Producer producer_;
 };
 
-UTEST_F(Http2RequestParserTest, SimpleRequest) {
+UTEST_F(Http2SessionTest, SimpleRequest) {
   auto& client = GetClient();
   const auto url = GetServer().GetBaseUrl();
 
@@ -193,7 +193,7 @@ UTEST_F(Http2RequestParserTest, SimpleRequest) {
   EXPECT_EQ(request->GetHttpMinor(), 0);
 }
 
-UTEST_F(Http2RequestParserTest, SmallDataParst) {
+UTEST_F(Http2SessionTest, SmallDataParst) {
   // Set a size of the buffer what will be provided to
   // nghttp2_session_mem_recv
   SetSliceSize(1);
@@ -217,7 +217,7 @@ UTEST_F(Http2RequestParserTest, SmallDataParst) {
   EXPECT_EQ(request->GetHttpMinor(), 0);
 }
 
-UTEST_F(Http2RequestParserTest, Url) {
+UTEST_F(Http2SessionTest, Url) {
   auto& client = GetClient();
   const auto url = GetServer().GetBaseUrl() + "/test_url";
 
@@ -247,7 +247,7 @@ UTEST_F(Http2RequestParserTest, Url) {
   EXPECT_EQ(request->GetMethod(), HttpMethod::kGet);
 }
 
-UTEST_F(Http2RequestParserTest, Headers) {
+UTEST_F(Http2SessionTest, Headers) {
   auto& client = GetClient();
   const auto url = GetServer().GetBaseUrl();
 
@@ -280,7 +280,7 @@ UTEST_F(Http2RequestParserTest, Headers) {
   EXPECT_EQ(request->GetMethod(), HttpMethod::kGet);
 }
 
-UTEST_F(Http2RequestParserTest, Body) {
+UTEST_F(Http2SessionTest, Body) {
   auto& client = GetClient();
   const auto url = GetServer().GetBaseUrl();
 
@@ -313,7 +313,7 @@ UTEST_F(Http2RequestParserTest, Body) {
   EXPECT_EQ(request->GetMethod(), HttpMethod::kPost);
 }
 
-UTEST_F(Http2RequestParserTest, QueryArgs) {
+UTEST_F(Http2SessionTest, QueryArgs) {
   auto& client = GetClient();
   auto consumer = GetConsumer();
   ParsedRequestImplPtr request;
@@ -335,7 +335,7 @@ UTEST_F(Http2RequestParserTest, QueryArgs) {
   EXPECT_EQ(request->GetArg("query2"), "value2");
 }
 
-UTEST_F(Http2RequestParserTest, HeavyHeader) {
+UTEST_F(Http2SessionTest, HeavyHeader) {
   auto& client = GetClient();
   const auto url = GetServer().GetBaseUrl() + "/hello";
 
@@ -359,7 +359,7 @@ UTEST_F(Http2RequestParserTest, HeavyHeader) {
   EXPECT_EQ(request->GetMethod(), HttpMethod::kGet);
 }
 
-UTEST_F(Http2RequestParserTest, ForCurl) {
+UTEST_F(Http2SessionTest, ForCurl) {
   auto& client = GetClient();
   const auto url = GetServer().GetBaseUrl() + "/hello";
 

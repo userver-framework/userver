@@ -8,7 +8,7 @@
 
 #include <userver/server/http/http_request.hpp>
 
-#include <server/http/http2_request_parser.hpp>
+#include <server/http/http2_session.hpp>
 #include <server/http/http_request_parser.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -34,7 +34,7 @@ inline std::shared_ptr<request::RequestParser> CreateTestParser(
   static server::net::ParserStats test_stats;
   static server::request::ResponseDataAccounter test_accounter;
   if (http_version == USERVER_NAMESPACE::http::HttpVersion::k2) {
-    return std::make_shared<server::http::Http2RequestParser>(
+    return std::make_shared<server::http::Http2Session>(
         kTestHandlerInfoIndex, kTestRequestConfig, std::move(cb), test_stats,
         test_accounter, engine::io::Sockaddr{});
   } else {
