@@ -7,8 +7,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::impl {
 
+// NOLINTNEXTLINE(bugprone-forward-declaration-namespace)
 class InternalTag;
 
-}
+}  // namespace ugrpc::impl
 
 USERVER_NAMESPACE_END

@@ -93,6 +93,66 @@ std::optional<formats::yaml::Value> GetFromFileImpl(
   return formats::yaml::blocking::FromFile(str_filename);
 }
 
+std::optional<YamlConfig> GetSharpCommandValue(const formats::yaml::Value& yaml,
+                                               YamlConfig::Mode mode,
+                                               std::string_view key,
+                                               bool met_substitution) {
+  const auto env_name = yaml[GetEnvName(key)];
+  auto env_value = GetFromEnvImpl(env_name, mode);
+  if (env_value) {
+    // Strip substitutions off to disallow nested substitutions
+    return YamlConfig{std::move(*env_value), {}, YamlConfig::Mode::kSecure};
+  }
+
+  const auto file_name = yaml[GetFileName(key)];
+  auto file_value = GetFromFileImpl(file_name, mode);
+  if (file_value) {
+    // Strip substitutions off to disallow nested substitutions
+    return YamlConfig{std::move(*file_value), {}, YamlConfig::Mode::kSecure};
+  }
+
+  if (met_substitution || !env_name.IsMissing() || !file_name.IsMissing()) {
+    const auto fallback_name = GetFallbackName(key);
+    if (yaml.HasMember(fallback_name)) {
+      LOG_INFO() << "using fallback value for '" << key << '\'';
+      // Strip substitutions off to disallow nested substitutions
+      return YamlConfig{yaml[fallback_name], {}, YamlConfig::Mode::kSecure};
+    }
+  }
+
+  return {};
+}
+
+std::optional<YamlConfig> GetYamlConfig(const formats::yaml::Value& yaml,
+                                        const formats::yaml::Value& config_vars,
+                                        YamlConfig::Mode mode,
+                                        std::string_view key) {
+  auto value = yaml[key];
+
+  const bool is_substitution = IsSubstitution(value);
+  if (is_substitution) {
+    const auto var_name = GetSubstitutionVarName(value);
+    auto var_data = config_vars[var_name];
+    if (!var_data.IsMissing()) {
+      // Strip substitutions off to disallow nested substitutions
+      return YamlConfig{std::move(var_data), {}, YamlConfig::Mode::kSecure};
+    }
+
+    auto res = GetSharpCommandValue(config_vars, mode, var_name,
+                                    /*met_substitution*/ false);
+    if (res) {
+      return std::move(*res);
+    }
+  }
+
+  if (!value.IsMissing() && !is_substitution) {
+    return YamlConfig{std::move(value), config_vars, mode};
+  }
+
+  return GetSharpCommandValue(yaml, mode, key,
+                              /*met_substitution*/ is_substitution);
+}
+
 }  // namespace
 
 YamlConfig::YamlConfig(formats::yaml::Value yaml,
@@ -111,44 +171,9 @@ YamlConfig YamlConfig::operator[](std::string_view key) const {
     return MakeMissingConfig(*this, key);
   }
 
-  auto value = yaml_[key];
-
-  const bool is_substitution = IsSubstitution(value);
-  if (is_substitution) {
-    const auto var_name = GetSubstitutionVarName(value);
-
-    auto var_data = config_vars_[var_name];
-    if (!var_data.IsMissing()) {
-      // Strip substitutions off to disallow nested substitutions
-      return YamlConfig{std::move(var_data), {}, Mode::kSecure};
-    }
-  }
-
-  if (!value.IsMissing() && !is_substitution) {
-    return YamlConfig{std::move(value), config_vars_, mode_};
-  }
-
-  const auto env_name = yaml_[GetEnvName(key)];
-  auto env_value = GetFromEnvImpl(env_name, mode_);
-  if (env_value) {
-    // Strip substitutions off to disallow nested substitutions
-    return YamlConfig{std::move(*env_value), {}, Mode::kSecure};
-  }
-
-  const auto file_name = yaml_[GetFileName(key)];
-  auto file_value = GetFromFileImpl(file_name, mode_);
-  if (file_value) {
-    // Strip substitutions off to disallow nested substitutions
-    return YamlConfig{std::move(*file_value), {}, Mode::kSecure};
-  }
-
-  if (is_substitution || !env_name.IsMissing() || !file_name.IsMissing()) {
-    const auto fallback_name = GetFallbackName(key);
-    if (yaml_.HasMember(fallback_name)) {
-      LOG_INFO() << "using fallback value for '" << key << '\'';
-      // Strip substitutions off to disallow nested substitutions
-      return YamlConfig{yaml_[fallback_name], {}, Mode::kSecure};
-    }
+  auto yaml_config = GetYamlConfig(yaml_, config_vars_, mode_, key);
+  if (yaml_config) {
+    return std::move(*yaml_config);
   }
 
   return MakeMissingConfig(*this, key);
@@ -164,6 +189,12 @@ YamlConfig YamlConfig::operator[](size_t index) const {
     if (!var_data.IsMissing()) {
       // Strip substitutions off to disallow nested substitutions
       return YamlConfig{std::move(var_data), {}, Mode::kSecure};
+    }
+
+    auto res = GetSharpCommandValue(config_vars_, mode_, var_name,
+                                    /*met_substitution*/ false);
+    if (res) {
+      return std::move(*res);
     }
 
     // Avoid parsing $substitution as a string

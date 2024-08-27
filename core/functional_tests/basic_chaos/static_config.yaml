@@ -17,6 +17,11 @@ components_manager:
             task_processor: main-task-processor
             method: GET,DELETE,POST
 
+        handler-chaos-httpserver-with-exception:
+            path: /chaos/httpserver-with-exception
+            task_processor: main-task-processor
+            method: GET
+
         handler-chaos-dns-resolver:
             path: /chaos/resolver
             task_processor: main-task-processor

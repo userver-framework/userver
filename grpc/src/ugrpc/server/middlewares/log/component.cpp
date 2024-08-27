@@ -12,15 +12,12 @@ namespace ugrpc::server::middlewares::log {
 Component::Component(const components::ComponentConfig& config,
                      const components::ComponentContext& context)
     : MiddlewareComponentBase(config, context),
-      max_size_(config["msg-size-log-limit"].As<std::size_t>(512)),
-      msg_log_level_(
-          config["msg-log-level"].As<logging::Level>(logging::Level::kDebug)),
-      local_log_level_(
-          config["log-level"].As<std::optional<logging::Level>>()) {}
+      settings_(config.As<Settings>()) {}
+
+Component::~Component() = default;
 
 std::shared_ptr<MiddlewareBase> Component::GetMiddleware() {
-  return std::make_shared<Middleware>(
-      Middleware::Settings{max_size_, msg_log_level_, local_log_level_});
+  return std::make_shared<Middleware>(*settings_);
 }
 
 yaml_config::Schema Component::GetStaticConfigSchema() {
@@ -34,7 +31,7 @@ properties:
         description: gRPC handlers log level
     msg-log-level:
         type: string
-        description: set up log level for request/response messages body
+        description: gRPC message body logging level
     msg-size-log-limit:
         type: string
         description: max message size to log, the rest will be truncated

@@ -10,8 +10,8 @@ namespace taxi_config{% if libname %}::{{ libname.replace('-', '_') }}{% endif %
 struct TaxiConfig final {
   static const dynamic_config::Key<TaxiConfig> kDeprecatedKey;
 
-{% for name, var in variables.items() -%}
-  {{ var.cpp_user_name() }} {{ name | lower }};
+{% for name, type_ in variables.items() -%}
+  {{ type_ }} {{ name | lower }};
 {% endfor %}
 };
 

@@ -37,7 +37,10 @@ def get_current_namespace() -> str:
 
 def close_namespace() -> str:
     if current_namespace:
-        return '}' * (current_namespace.count('::') + 1)
+        data = ''
+        for name in reversed(current_namespace.split('::')):
+            data += '} //' + name + '\n'
+        return data
     else:
         return ''
 

@@ -7,7 +7,7 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::clickhouse::io::columns {
 
 namespace {
-using NativeType = clickhouse::impl::clickhouse_cpp::ColumnUInt8;
+using NativeType = clickhouse::impl::clickhouse_cpp::ColumnUInt16;
 }
 
 UInt16Column::UInt16Column(ColumnRef column)

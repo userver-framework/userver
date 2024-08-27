@@ -16,22 +16,21 @@ namespace kafka::impl {
 
 namespace {
 
-void ErrorCallback(rd_kafka_t* producer, int error_code, const char* reason,
-                   void* opaque_ptr) {
+void ErrorCallbackProxy(rd_kafka_t* producer, int error_code,
+                        const char* reason, void* opaque_ptr) {
   UASSERT(producer);
   UASSERT(opaque_ptr);
 
-  static_cast<ProducerImpl*>(opaque_ptr)
-      ->ErrorCallbackProxy(error_code, reason);
+  static_cast<ProducerImpl*>(opaque_ptr)->ErrorCallback(error_code, reason);
 }
 
-void DeliveryReportCallback(rd_kafka_t* producer,
-                            const rd_kafka_message_t* message,
-                            void* opaque_ptr) {
+void DeliveryReportCallbackProxy(rd_kafka_t* producer,
+                                 const rd_kafka_message_t* message,
+                                 void* opaque_ptr) {
   UASSERT(producer);
   UASSERT(opaque_ptr);
 
-  static_cast<ProducerImpl*>(opaque_ptr)->DeliveryReportCallbackProxy(message);
+  static_cast<ProducerImpl*>(opaque_ptr)->DeliveryReportCallback(message);
 }
 
 std::chrono::milliseconds GetMessageLatencySeconds(
@@ -45,34 +44,7 @@ std::chrono::milliseconds GetMessageLatencySeconds(
 
 }  // namespace
 
-ProducerImpl::ProducerHolder::ProducerHolder(rd_kafka_conf_t* conf) {
-  ErrorBuffer err_buf;
-
-  handle_ = HandleHolder{
-      rd_kafka_new(RD_KAFKA_PRODUCER, conf, err_buf.data(), err_buf.size()),
-      &rd_kafka_destroy};
-  if (handle_ == nullptr) {
-    /// @note `librdkafka` takes ownership on conf iff `rd_kafka_new`
-    /// succeeds
-    rd_kafka_conf_destroy(conf);
-
-    PrintErrorAndThrow("create producer", err_buf);
-  }
-}
-
-ProducerImpl::ProducerHolder::~ProducerHolder() {
-  if (rd_kafka_flush(Handle(), ProducerImpl::kCoolDownFlushTimeout.count()) ==
-      RD_KAFKA_RESP_ERR__TIMED_OUT) {
-    LOG_WARNING() << "Producer flushing timeouted on producer destroy. "
-                     "Some messages may be not delivered!!!";
-  }
-}
-
-rd_kafka_t* ProducerImpl::ProducerHolder::Handle() const {
-  return handle_.get();
-}
-
-void ProducerImpl::ErrorCallbackProxy(int error_code, const char* reason) {
+void ProducerImpl::ErrorCallback(int error_code, const char* reason) {
   tracing::Span span{"error_callback"};
   span.AddTag("kafka_callback", "error_callback");
 
@@ -88,8 +60,7 @@ void ProducerImpl::ErrorCallbackProxy(int error_code, const char* reason) {
   }
 }
 
-void ProducerImpl::DeliveryReportCallbackProxy(
-    const rd_kafka_message_t* message) {
+void ProducerImpl::DeliveryReportCallback(const rd_kafka_message_t* message) {
   static constexpr utils::TrivialBiMap kMessageStatus{[](auto selector) {
     return selector()
         .Case(RD_KAFKA_MSG_STATUS_NOT_PERSISTED, "MSG_STATUS_NOT_PERSISTED")
@@ -142,17 +113,24 @@ void ProducerImpl::DeliveryReportCallbackProxy(
   delete complete_handle;
 }
 
-ProducerImpl::ProducerImpl(std::unique_ptr<Configuration> configuration)
-    : producer_([this, configuration = std::move(configuration)] {
-        rd_kafka_conf_t* conf = configuration->Release();
-        rd_kafka_conf_set_opaque(conf, this);
-        rd_kafka_conf_set_error_cb(conf, &ErrorCallback);
-        rd_kafka_conf_set_dr_msg_cb(conf, &DeliveryReportCallback);
+ProducerImpl::ProducerImpl(Configuration&& configuration)
+    : producer_([this, configuration = std::move(configuration)]() mutable {
+        ConfHolder conf = std::move(configuration).Release();
+        rd_kafka_conf_set_opaque(conf.GetHandle(), this);
+        rd_kafka_conf_set_error_cb(conf.GetHandle(), &ErrorCallbackProxy);
+        rd_kafka_conf_set_dr_msg_cb(conf.GetHandle(),
+                                    &DeliveryReportCallbackProxy);
 
-        return ProducerHolder{conf};
+        return ProducerHolder{std::move(conf), RD_KAFKA_PRODUCER};
       }()) {}
 
-ProducerImpl::~ProducerImpl() = default;
+ProducerImpl::~ProducerImpl() {
+  if (rd_kafka_flush(producer_.GetHandle(), kCoolDownFlushTimeout.count()) ==
+      RD_KAFKA_RESP_ERR__TIMED_OUT) {
+    LOG_WARNING() << "Producer flushing timeouted on producer destroy. "
+                     "Some messages may be not delivered!!!";
+  }
+}
 
 void ProducerImpl::Send(const std::string& topic_name, std::string_view key,
                         std::string_view message,
@@ -184,7 +162,7 @@ void ProducerImpl::Send(const std::string& topic_name, std::string_view key,
 }
 
 void ProducerImpl::Poll(std::chrono::milliseconds poll_timeout) const {
-  rd_kafka_poll(producer_.Handle(), static_cast<int>(poll_timeout.count()));
+  rd_kafka_poll(producer_.GetHandle(), static_cast<int>(poll_timeout.count()));
 }
 
 DeliveryResult ProducerImpl::SendImpl(const std::string& topic_name,
@@ -223,7 +201,7 @@ DeliveryResult ProducerImpl::SendImpl(const std::string& topic_name,
 
   // NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks,cppcoreguidelines-pro-type-const-cast)
   const rd_kafka_resp_err_t enqueue_error = rd_kafka_producev(
-      producer_.Handle(), RD_KAFKA_V_TOPIC(topic_name.c_str()),
+      producer_.GetHandle(), RD_KAFKA_V_TOPIC(topic_name.c_str()),
       RD_KAFKA_V_KEY(key.data(), key.size()),
       RD_KAFKA_V_VALUE(const_cast<char*>(message.data()), message.size()),
       RD_KAFKA_V_MSGFLAGS(0),

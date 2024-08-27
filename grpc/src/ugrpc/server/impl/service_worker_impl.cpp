@@ -5,6 +5,7 @@
 #include <grpc/support/time.h>
 
 #include <userver/logging/log.hpp>
+#include <userver/tracing/opentelemetry.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/from_string.hpp>
@@ -74,7 +75,25 @@ void SetupSpan(std::optional<tracing::InPlaceSpan>& span_holder,
       utils::FindOrNullptr(client_metadata, ugrpc::impl::kXYaTraceId);
   const auto* const parent_span_id =
       utils::FindOrNullptr(client_metadata, ugrpc::impl::kXYaSpanId);
-  if (trace_id) {
+  const auto* const traceparent =
+      utils::FindOrNullptr(client_metadata, ugrpc::impl::kTraceParent);
+  if (traceparent) {
+    auto extraction_result = tracing::opentelemetry::ExtractTraceParentData(
+        ugrpc::impl::ToString(*traceparent));
+    if (!extraction_result.has_value()) {
+      LOG_LIMITED_WARNING() << fmt::format(
+          "Invalid traceparent header format ({}). Skipping Opentelemetry "
+          "headers",
+          extraction_result.error());
+      span_holder.emplace(std::move(span_name),
+                          utils::impl::SourceLocation::Current());
+    } else {
+      auto data = std::move(extraction_result).value();
+      span_holder.emplace(std::move(span_name), std::move(data.trace_id),
+                          std::move(data.span_id),
+                          utils::impl::SourceLocation::Current());
+    }
+  } else if (trace_id) {
     span_holder.emplace(
         std::move(span_name), ugrpc::impl::ToString(*trace_id),
         parent_span_id ? ugrpc::impl::ToString(*parent_span_id) : std::string{},
@@ -98,6 +117,21 @@ void SetupSpan(std::optional<tracing::InPlaceSpan>& span_holder,
                              ugrpc::impl::ToGrpcString(span.GetSpanId()));
   context.AddInitialMetadata(ugrpc::impl::kXYaRequestId,
                              ugrpc::impl::ToGrpcString(span.GetLink()));
+}
+
+void ParseGenericCallName(std::string_view generic_call_name,
+                          std::string_view& call_name,
+                          std::string_view& service_name,
+                          std::string_view& method_name) {
+  UINVARIANT(!generic_call_name.empty() && generic_call_name[0] == '/',
+             "Generic service call name must start with a '/'");
+  generic_call_name.remove_prefix(1);
+  const auto slash_pos = generic_call_name.find('/');
+  UINVARIANT(slash_pos != std::string_view::npos,
+             "Generic service call name must contain a '/'");
+  call_name = generic_call_name;
+  service_name = generic_call_name.substr(0, slash_pos);
+  method_name = generic_call_name.substr(slash_pos + 1);
 }
 
 }  // namespace ugrpc::server::impl

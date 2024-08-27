@@ -9,6 +9,7 @@ namespace server::request {
 
 namespace {
 const std::string kEmptyHeader{};
+const std::string kEmptyParameter{};
 
 template <typename Header>
 const std::string& DoGetTaskInheritedHeader(const Header& header_name) {
@@ -46,6 +47,22 @@ bool HasTaskInheritedHeader(std::string_view header_name) {
 bool HasTaskInheritedHeader(
     const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name) {
   return DoHasTaskInheritedHeader(header_name);
+}
+
+const std::string& GetTaskInheritedQueryParameter(std::string_view name) {
+  const auto* request = kTaskInheritedRequest.GetOptional();
+  if (request == nullptr) {
+    return kEmptyParameter;
+  }
+  return (*request)->GetArg(name);
+}
+
+bool HasTaskInheritedQueryParameter(std::string_view name) {
+  const auto* request = kTaskInheritedRequest.GetOptional();
+  if (request == nullptr) {
+    return false;
+  }
+  return (*request)->HasArg(name);
 }
 
 }  // namespace server::request

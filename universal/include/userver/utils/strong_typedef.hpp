@@ -104,11 +104,20 @@ struct InitializerListImpl<T, void_t<typename T::value_type>> {
 template <class T>
 using InitializerList = typename InitializerListImpl<T>::type;
 
-template <class Tag, class T, StrongTypedefOps Ops, class Other>
-using EnableTransparentCompare = std::enable_if_t<
-    (Ops & StrongTypedefOps::kCompareTransparentOnly) &&
-        !std::is_base_of<StrongTypedef<Tag, T, Ops>, Other>::value,
-    bool>;
+template <class T, class U>
+constexpr void CheckStrongCompare() {
+  static_assert(
+      std::is_same_v<typename T::UnderlyingType, typename U::UnderlyingType> &&
+          std::is_same_v<typename T::TagType, typename U::TagType> &&
+          T::kOps == U::kOps && (T::kOps & StrongTypedefOps::kCompareStrong),
+      "Comparing those StrongTypedefs is forbidden");
+}
+
+template <class Typedef>
+constexpr void CheckTransparentCompare() {
+  static_assert(Typedef::kOps & StrongTypedefOps::kCompareTransparentOnly,
+                "Comparing this StrongTypedef to a raw value is forbidden");
+}
 
 struct StrongTypedefTag {};
 
@@ -116,6 +125,15 @@ template <typename T>
 using IsStrongTypedef =
     std::conjunction<std::is_base_of<StrongTypedefTag, T>,
                      std::is_convertible<T&, StrongTypedefTag&>>;
+
+template <class T>
+const auto& UnwrapIfStrongTypedef(const T& value) {
+  if constexpr (IsStrongTypedef<T>{}) {
+    return value.GetUnderlying();
+  } else {
+    return value;
+  }
+}
 
 // For 'std::string', begin-end methods are not forwarded, because otherwise
 // it might get serialized as an array.
@@ -262,32 +280,27 @@ class StrongTypedef : public impl::strong_typedef::StrongTypedefTag {
 // Relational operators
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define UTILS_STRONG_TYPEDEF_REL_OP(OPERATOR)                                  \
-  template <class Tag1, class T1, StrongTypedefOps Ops1, class Tag2, class T2, \
-            StrongTypedefOps Ops2>                                             \
-  constexpr bool operator OPERATOR(const StrongTypedef<Tag1, T1, Ops1>&,       \
-                                   const StrongTypedef<Tag2, T2, Ops2>&) {     \
-    static_assert(!sizeof(T1), "Comparing those StrongTypedefs is forbidden"); \
-    return false;                                                              \
-  }                                                                            \
-                                                                               \
-  template <class Tag, class T, StrongTypedefOps Ops>                          \
-  constexpr std::enable_if_t<Ops & StrongTypedefOps::kCompareStrong, bool>     \
-  operator OPERATOR(const StrongTypedef<Tag, T, Ops>& lhs,                     \
-                    const StrongTypedef<Tag, T, Ops>& rhs) {                   \
-    return lhs.GetUnderlying() OPERATOR rhs.GetUnderlying();                   \
-  }                                                                            \
-                                                                               \
-  template <class Tag, class T, StrongTypedefOps Ops, class Other>             \
-  constexpr impl::strong_typedef::EnableTransparentCompare<Tag, T, Ops, Other> \
-  operator OPERATOR(const StrongTypedef<Tag, T, Ops>& lhs, const Other& rhs) { \
-    return lhs.GetUnderlying() OPERATOR rhs;                                   \
-  }                                                                            \
-                                                                               \
-  template <class Tag, class T, StrongTypedefOps Ops, class Other>             \
-  constexpr impl::strong_typedef::EnableTransparentCompare<Tag, T, Ops, Other> \
-  operator OPERATOR(const Other& lhs, const StrongTypedef<Tag, T, Ops>& rhs) { \
-    return lhs OPERATOR rhs.GetUnderlying();                                   \
+#define UTILS_STRONG_TYPEDEF_REL_OP(OPERATOR)                                \
+  template <class T, class U,                                                \
+            std::enable_if_t<impl::strong_typedef::IsStrongTypedef<T>{} ||   \
+                                 impl::strong_typedef::IsStrongTypedef<U>{}, \
+                             int> /*Enable*/                                 \
+            = 0>                                                             \
+  constexpr auto operator OPERATOR(const T& lhs, const U& rhs)               \
+      ->decltype(impl::strong_typedef::UnwrapIfStrongTypedef(                \
+          lhs) OPERATOR impl::strong_typedef::UnwrapIfStrongTypedef(rhs)) {  \
+    if constexpr (impl::strong_typedef::IsStrongTypedef<T>{}) {              \
+      if constexpr (impl::strong_typedef::IsStrongTypedef<U>{}) {            \
+        impl::strong_typedef::CheckStrongCompare<T, U>();                    \
+        return lhs.GetUnderlying() OPERATOR rhs.GetUnderlying();             \
+      } else {                                                               \
+        impl::strong_typedef::CheckTransparentCompare<T>();                  \
+        return lhs.GetUnderlying() OPERATOR rhs;                             \
+      }                                                                      \
+    } else {                                                                 \
+      impl::strong_typedef::CheckTransparentCompare<U>();                    \
+      return lhs OPERATOR rhs.GetUnderlying();                               \
+    }                                                                        \
   }
 
 UTILS_STRONG_TYPEDEF_REL_OP(==)
@@ -296,6 +309,10 @@ UTILS_STRONG_TYPEDEF_REL_OP(<)
 UTILS_STRONG_TYPEDEF_REL_OP(>)
 UTILS_STRONG_TYPEDEF_REL_OP(<=)
 UTILS_STRONG_TYPEDEF_REL_OP(>=)
+
+#if __cpp_lib_three_way_comparison >= 201907L
+UTILS_STRONG_TYPEDEF_REL_OP(<=>)
+#endif
 
 #undef UTILS_STRONG_TYPEDEF_REL_OP
 

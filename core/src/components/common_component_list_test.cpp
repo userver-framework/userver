@@ -41,6 +41,7 @@ components_manager:
       thread_name: bg-worker
       worker_threads: 2
       os-scheduling: idle
+      task-processor-queue: global-task-queue
       task-trace:
         every: 1000
         max-context-switch-count: 1000
@@ -87,7 +88,6 @@ components_manager:
       pool-statistics-disable: false
       thread-name-prefix: http-client
       threads: 2
-      defer-events: false
       fs-task-processor: fs-task-processor
       destination-metrics-auto-max-size: 100
       user-agent: common_component_list sample

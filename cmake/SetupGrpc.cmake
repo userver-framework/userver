@@ -2,9 +2,17 @@ cmake_policy(SET CMP0079 NEW)
 
 option(USERVER_DOWNLOAD_PACKAGE_GRPC "Download and setup gRPC"
     ${USERVER_DOWNLOAD_PACKAGES})
+option(
+    USERVER_FORCE_DOWNLOAD_GRPC
+    "Download gRPC even if there is an installed system package"
+    ${USERVER_FORCE_DOWNLOAD_PACKAGES}
+)
 
 macro(try_find_cmake_grpc)
-  find_package(gRPC QUIET)
+  find_package(gRPC QUIET CONFIG)
+  if(NOT gRPC_FOUND)
+    find_package(gRPC QUIET)
+  endif()
 
   if(gRPC_FOUND)
     # Use the found CMake-enabled gRPC package
@@ -39,7 +47,7 @@ macro(try_find_system_grpc)
   endif()
 endmacro()
 
-if(NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
+if(NOT USERVER_FORCE_DOWNLOAD_GRPC)
   try_find_cmake_grpc()
   if(gRPC_FOUND)
     return()

@@ -144,15 +144,22 @@ Content-Length: 1
 ```
 
 
+### Unit tests
+@ref scripts/docs/en/userver/testing.md "Unit tests" for the service could be
+implemented with one of UTEST macros in the following way:
+
+@snippet samples/redis_service/unittests/redis_test.cpp  Unit test
+
+
 ### Functional testing
 @ref scripts/docs/en/userver/functional_testing.md "Functional tests" for the service could be
 implemented using the testsuite. To do that you have to:
 
 * Prepare the pytest by importing the pytest_userver.plugins.redis plugin:
-  @snippet samples/redis_service/tests/conftest.py redis setup
+  @snippet samples/redis_service/testsuite/conftest.py redis setup
 
 * Add the Redis Secdist settings info to the service environment variable:
-  @snippet samples/redis_service/tests/conftest.py service_env
+  @snippet samples/redis_service/testsuite/conftest.py service_env
   The @ref pytest_userver.plugins.service_client.auto_client_deps "auto_client_deps"
   fixture already knows about the redis_store fixture, so there's no need to override
   the @ref pytest_userver.plugins.service_client.extra_client_deps "extra_client_deps"
@@ -161,7 +168,7 @@ implemented using the testsuite. To do that you have to:
   For details on Redis Secdist format, see @ref components::Redis.
 
 * Write the test:
-  @snippet samples/redis_service/tests/test_redis.py  Functional test
+  @snippet samples/redis_service/testsuite/test_redis.py  Functional test
 
 
 ## Full sources

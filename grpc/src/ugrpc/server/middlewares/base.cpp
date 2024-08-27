@@ -44,14 +44,6 @@ void MiddlewareCallContext::ClearMiddlewaresResources() {
 
 CallAnyBase& MiddlewareCallContext::GetCall() const { return call_; }
 
-std::string_view MiddlewareCallContext::GetServiceName() const {
-  return call_.GetServiceName();
-}
-
-std::string_view MiddlewareCallContext::GetMethodName() const {
-  return call_.GetMethodName();
-}
-
 const dynamic_config::Snapshot& MiddlewareCallContext::GetInitialDynamicConfig()
     const {
   UASSERT(config_);

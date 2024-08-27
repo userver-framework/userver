@@ -23,6 +23,13 @@ class [[nodiscard]] RequestEval final {
                                                request_description);
   }
 
+  /// @cond
+  /// Internal helper for WaitAny/WaitAll
+  engine::impl::ContextAccessor* TryGetContextAccessor() noexcept {
+    return request_.TryGetContextAccessor();
+  }
+  /// @endcond
+
  private:
   RequestEvalCommon request_;
 };

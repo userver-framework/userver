@@ -15,14 +15,15 @@ namespace {
 constexpr std::string_view kZeroTimePoint = "1970-01-01T00:00:00";
 }
 
-TimePointTz Convert(std::string&& str, chaotic::convert::To<TimePointTz>) {
-  auto tp = utils::datetime::FromStringSaturating(
-      str, utils::datetime::kRfc3339Format);
+TimePointTz Convert(const std::string& str, chaotic::convert::To<TimePointTz>) {
+  auto s = str;
+  auto tp =
+      utils::datetime::FromStringSaturating(s, utils::datetime::kRfc3339Format);
 
-  UINVARIANT(str.size() >= kZeroTimePoint.size(), "Invalid datetime");
-  memcpy(str.data(), kZeroTimePoint.data(), kZeroTimePoint.length());
-  auto tp_tz = utils::datetime::Stringtime(
-      str, utils::datetime::kDefaultTimezone, utils::datetime::kRfc3339Format);
+  UINVARIANT(s.size() >= kZeroTimePoint.size(), "Invalid datetime");
+  memcpy(s.data(), kZeroTimePoint.data(), kZeroTimePoint.length());
+  auto tp_tz = utils::datetime::Stringtime(s, utils::datetime::kDefaultTimezone,
+                                           utils::datetime::kRfc3339Format);
   return TimePointTz{tp, -std::chrono::duration_cast<std::chrono::seconds>(
                              tp_tz.time_since_epoch())};
 }

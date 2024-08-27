@@ -12,38 +12,45 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
-namespace {
-
-class SemaphoreWaitStrategy final : public impl::WaitStrategy {
+class CancellableSemaphore::SemaphoreWaitStrategy final
+    : public impl::WaitStrategy {
  public:
-  SemaphoreWaitStrategy(impl::WaitList& waiters,
-                        impl::TaskContext& current) noexcept
-      : waiters_(waiters),
+  SemaphoreWaitStrategy(impl::TaskContext& current, CancellableSemaphore& sem,
+                        CancellableSemaphore::Counter count) noexcept
+      : sem_(sem),
         current_(current),
-        waiter_token_(waiters_),
-        lock_(waiters_) {}
+        waiter_token_(*sem_.lock_waiters_),
+        count_(count) {}
 
   impl::EarlyWakeup SetupWakeups() override {
-    waiters_.Append(lock_, &current_);
-    lock_.unlock();
+    impl::WaitList::Lock lock(*sem_.lock_waiters_);
+    status_ = sem_.DoTryLock(count_);
+    if (status_ != TryLockStatus::kTransientFailure) {
+      return impl::EarlyWakeup{status_ == TryLockStatus::kSuccess};
+    }
+    if (sem_.UsedApprox() <= sem_.GetCapacity() - count_) {
+      return impl::EarlyWakeup{true};
+    }
     // A race is not possible here, because check + Append is performed under
     // WaitList::Lock, and notification also takes WaitList::Lock.
+    sem_.lock_waiters_->Append(lock, &current_);
     return impl::EarlyWakeup{false};
   }
 
   void DisableWakeups() noexcept override {
-    lock_.lock();
-    waiters_.Remove(lock_, current_);
+    impl::WaitList::Lock lock(*sem_.lock_waiters_);
+    sem_.lock_waiters_->Remove(lock, current_);
   }
 
+  TryLockStatus GetTryLockStatus() const noexcept { return status_; }
+
  private:
-  impl::WaitList& waiters_;
+  CancellableSemaphore& sem_;
   impl::TaskContext& current_;
   const impl::WaitList::WaitersScopeCounter waiter_token_;
-  impl::WaitList::Lock lock_;
+  const CancellableSemaphore::Counter count_;
+  TryLockStatus status_{TryLockStatus::kTransientFailure};
 };
-
-}  // namespace
 
 CancellableSemaphore::CancellableSemaphore(Counter capacity)
     : acquired_locks_(0), capacity_(capacity) {}
@@ -143,15 +150,13 @@ bool CancellableSemaphore::LockSlowPath(Deadline deadline,
   UASSERT(count > 0);
 
   auto& current = current_task::GetCurrentTaskContext();
-  SemaphoreWaitStrategy wait_strategy{*lock_waiters_, current};
+  SemaphoreWaitStrategy wait_strategy{current, *this, count};
 
   while (true) {
-    const auto status = DoTryLock(count);
-    if (status != TryLockStatus::kTransientFailure) {
-      return status == TryLockStatus::kSuccess;
-    }
-
     const auto wakeup_source = current.Sleep(wait_strategy, deadline);
+    if (wait_strategy.GetTryLockStatus() != TryLockStatus::kTransientFailure) {
+      return wait_strategy.GetTryLockStatus() == TryLockStatus::kSuccess;
+    }
     if (!impl::HasWaitSucceeded(wakeup_source)) {
       return false;
     }

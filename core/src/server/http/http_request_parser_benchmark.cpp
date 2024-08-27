@@ -2,6 +2,8 @@
 
 #include <benchmark/benchmark.h>
 
+#include <userver/http/http_version.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace {
@@ -20,19 +22,22 @@ constexpr size_t kEntryCount = 1024;
 inline server::http::HttpRequestParser CreateBenchmarkParser(
     server::http::HttpRequestParser::OnNewRequestCb&& cb) {
   static const server::http::HandlerInfoIndex kTestHandlerInfoIndex;
-  static constexpr server::request::HttpRequestConfig kTestRequestConfig{
+  static server::request::HttpRequestConfig kTestRequestConfig{
       /*.max_url_size = */ 8192,
       /*.max_request_size = */ 1024 * 1024,
       /*.max_headers_size = */ 65536,
       /*.parse_args_from_body = */ false,
       /*.testing_mode = */ true,  // non default value
       /*.decompress_request = */ false,
-  };
+      /* set_tracing_headers = */ true,
+      /* deadline_propagation_enabled = */ true,
+      /* deadline_expired_status_code = */ server::http::HttpStatus{498},
+      /* http_version = */ USERVER_NAMESPACE::http::HttpVersion::k11};
   static server::net::ParserStats test_stats;
   static server::request::ResponseDataAccounter test_accounter;
-  return server::http::HttpRequestParser(kTestHandlerInfoIndex,
-                                         kTestRequestConfig, std::move(cb),
-                                         test_stats, test_accounter);
+  return server::http::HttpRequestParser(
+      kTestHandlerInfoIndex, kTestRequestConfig, std::move(cb), test_stats,
+      test_accounter, engine::io::Sockaddr{});
 }
 
 }  // namespace
@@ -42,7 +47,7 @@ void http_request_parser_parse_benchmark_small(benchmark::State& state) {
       [](std::shared_ptr<server::request::RequestBase>&&) {});
 
   for ([[maybe_unused]] auto _ : state) {
-    parser.Parse(kHttpRequestDataSmall.data(), kHttpRequestDataSmall.size());
+    parser.Parse(kHttpRequestDataSmall);
   }
 }
 
@@ -51,7 +56,7 @@ void http_request_parser_parse_benchmark_middle(benchmark::State& state) {
       [](std::shared_ptr<server::request::RequestBase>&&) {});
 
   for ([[maybe_unused]] auto _ : state) {
-    parser.Parse(kHttpRequestDataMiddle.data(), kHttpRequestDataMiddle.size());
+    parser.Parse(kHttpRequestDataMiddle);
   }
 }
 
@@ -67,7 +72,7 @@ void http_request_parser_parse_benchmark_large_url(benchmark::State& state) {
       fmt::format("GET {} HTTP/1.1\r\n\r\n", large_url);
 
   for ([[maybe_unused]] auto _ : state) {
-    parser.Parse(http_request_data.data(), http_request_data.size());
+    parser.Parse(http_request_data);
   }
 }
 
@@ -85,7 +90,7 @@ void http_request_parser_parse_benchmark_large_body(benchmark::State& state) {
       large_body.size(), large_body);
 
   for ([[maybe_unused]] auto _ : state) {
-    parser.Parse(http_request_data.data(), http_request_data.size());
+    parser.Parse(http_request_data);
   }
 }
 
@@ -103,7 +108,7 @@ void http_request_parser_parse_benchmark_many_headers(benchmark::State& state) {
       headers);
 
   for ([[maybe_unused]] auto _ : state) {
-    parser.Parse(http_request_data.data(), http_request_data.size());
+    parser.Parse(http_request_data);
   }
 }
 

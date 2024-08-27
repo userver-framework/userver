@@ -6,7 +6,6 @@
 
 #include <moodycamel/concurrentqueue.h>
 
-#include <userver/components/headers_propagator_component.hpp>
 #include <userver/crypto/openssl.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/tracing/manager.hpp>
@@ -21,7 +20,6 @@
 #include <curl-ev/multi.hpp>
 #include <curl-ev/ratelimit.hpp>
 #include <engine/ev/thread_pool.hpp>
-#include <server/http/headers_propagator.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -66,7 +64,6 @@ Client::Client(ClientSettings settings,
   ev_config.thread_name =
       kIoThreadName +
       (thread_name_prefix.empty() ? "" : ("-" + thread_name_prefix));
-  ev_config.defer_events = settings.defer_events;
   thread_pool_ = std::make_unique<engine::ev::ThreadPool>(std::move(ev_config));
 
   ReinitEasy();

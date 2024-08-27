@@ -454,5 +454,10 @@ server.connections.closed:	GAUGE	0
 server.connections.opened:	GAUGE	0
 server.requests.active:	GAUGE	0
 server.requests.avg-lifetime-ms:	GAUGE	0
+server.requests.http2.goaway-streams:	GAUGE	0
+server.requests.http2.reset-streams:	GAUGE	0
+server.requests.http2.streams-close:	GAUGE	0
+server.requests.http2.streams-count:	GAUGE	0
+server.requests.http2.streams-parse_error:	GAUGE	0
 server.requests.parsing:	GAUGE	0
 server.requests.processed:	GAUGE	0

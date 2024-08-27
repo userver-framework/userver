@@ -19,12 +19,15 @@ class PassphraseConfig final {
                 {})) {}
 
   Passphrase GetPassphrase(const std::string& name) const {
-    try {
-      return passphrases_.at(name);
-    } catch (const std::out_of_range& e) {
-      LOG_ERROR() << "No passphrase for name '" << name << "'";
-      throw;
+    auto it = passphrases_.find(name);
+    if (it == passphrases_.cend()) {
+      auto message = fmt::format(
+          "No passphrase with name '{}' in secdist 'passphrases' entry", name);
+      LOG_ERROR() << message;
+      throw std::runtime_error(std::move(message));
     }
+
+    return it->second;
   }
 
  private:

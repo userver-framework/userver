@@ -11,13 +11,24 @@ USERVER_NAMESPACE_BEGIN
 
 namespace kafka::impl {
 
-class Configuration;
 class ConsumerImpl;
+
+struct ConsumerConfiguration;
+struct Secret;
+
+/// @brief Parameters `Consumer` uses in runtime.
+/// The struct is used only for documentation purposes, `Consumer` can be
+/// created through `ConsumerComponent`.
+struct ConsumerExecutionParams final {
+  /// @brief stands for max polled message batches size
+  std::size_t max_batch_size{1};
+
+  /// @brief timeout for one message batch polling loop
+  std::chrono::milliseconds poll_timeout{500};
+};
 
 class Consumer final {
  public:
-  static constexpr std::chrono::milliseconds kDefaultPollTimeout{500};
-
   /// @brief Creates the Kafka Consumer.
   ///
   /// @note No messages processing starts. Use `ConsumerScope::Start` to launch
@@ -25,18 +36,14 @@ class Consumer final {
   ///
   /// @param topics stands for topics list that consumer subscribes to
   /// after `ConsumerScope::Start` called
-  /// @param max_batch_size stands for max polled message batches size
-  /// @param poll_timeout is a timeout for one message batch polling loop
-  /// @param enable_auto_commit enables automatic periodically offsets
-  /// committing. Note: if enabled, `AsyncCommit` should not be called manually
   /// @param consumer_task_processor -- task processor for message batches
   /// polling
   /// All callbacks are invoked in `main_task_processor`
-  Consumer(std::unique_ptr<Configuration> configuration,
-           const std::vector<std::string>& topics, std::size_t max_batch_size,
-           std::chrono::milliseconds poll_timeout, bool enable_auto_commit,
+  Consumer(const std::string& name, const std::vector<std::string>& topics,
            engine::TaskProcessor& consumer_task_processor,
-           engine::TaskProcessor& main_task_processor);
+           engine::TaskProcessor& main_task_processor,
+           const ConsumerConfiguration& consumer_configuration,
+           const Secret& secrets, ConsumerExecutionParams params);
 
   /// @brief Cancels the consumer polling task and stop the underlying consumer.
   /// @see `ConsumerScope::Stop` for stopping process understanding
@@ -77,8 +84,7 @@ class Consumer final {
 
   const std::vector<std::string> topics_;
   const std::size_t max_batch_size_{};
-  const std::chrono::milliseconds poll_timeout{};
-  const bool enable_auto_commit_{};
+  const std::chrono::milliseconds poll_timeout_{};
 
   engine::TaskProcessor& consumer_task_processor_;
   engine::TaskProcessor& main_task_processor_;

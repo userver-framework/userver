@@ -125,18 +125,6 @@ properties:
                 description: >
                     number of threads to process low level IO system calls
                     (number of ev loops to start in libev)
-            dedicated_timer_threads:
-                type: integer
-                description: >
-                    number of threads dedicated to processing timer events
-                    (if set to zero timer events will be processed
-                    intermixed with IO events)
-                defaultDescription: 0
-            defer_events:
-                type: boolean
-                description: >
-                    Whether to defer timer events to a per-thread periodic timer
-                    or notify ev-loop right away
     components:
         type: object
         description: 'dictionary of "component name": "options"'
@@ -178,6 +166,17 @@ properties:
                         tunes the number of spin-wait iterations in case of
                         an empty task queue before threads go to sleep
                     defaultDescription: 10000
+                task-processor-queue:
+                    type: string
+                    description: |
+                        Task queue mode for the task processor.
+                        `global-task-queue` default task queue.
+                        `work-stealing-task-queue` experimental with
+                        potentially better scalability than `global-task-queue`.
+                    defaultDescription: global-task-queue
+                    enum:
+                      - global-task-queue
+                      - work-stealing-task-queue
                 task-trace:
                     type: object
                     description: .

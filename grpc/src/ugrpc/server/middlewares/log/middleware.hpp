@@ -1,8 +1,13 @@
 #pragma once
 
+#include <cstddef>
+#include <optional>
+
+#include <userver/logging/level.hpp>
 #include <userver/ugrpc/server/middlewares/base.hpp>
 #include <userver/ugrpc/server/storage_context.hpp>
 #include <userver/utils/any_storage.hpp>
+#include <userver/yaml_config/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -10,14 +15,17 @@ namespace ugrpc::server::middlewares::log {
 
 inline const utils::AnyStorageDataTag<StorageContext, bool> kIsFirstRequest;
 
+struct Settings final {
+  std::size_t max_msg_size{512};
+  logging::Level msg_log_level{logging::Level::kDebug};
+  std::optional<logging::Level> local_log_level{};
+};
+
+Settings Parse(const yaml_config::YamlConfig& config,
+               formats::parse::To<Settings>);
+
 class Middleware final : public MiddlewareBase {
  public:
-  struct Settings {
-    size_t max_msg_size{};
-    USERVER_NAMESPACE::logging::Level msg_log_level{};
-    std::optional<USERVER_NAMESPACE::logging::Level> local_log_level;
-  };
-
   explicit Middleware(const Settings& settings);
 
   void Handle(MiddlewareCallContext& context) const override;

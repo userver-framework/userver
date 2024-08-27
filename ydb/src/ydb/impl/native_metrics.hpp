@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ydb-cpp-sdk/library/monlib/metrics/metric_registry.h>
+#include <library/cpp/monlib/metrics/metric_registry.h>
 
 #include <userver/utils/statistics/writer.hpp>
 

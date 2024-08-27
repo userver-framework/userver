@@ -15,9 +15,9 @@ Middleware::Middleware() = default;
 
 Middleware::~Middleware() = default;
 
-void Middleware::Handle(ugrpc::client::MiddlewareCallContext& context) const {
-  ApplyCredentials(context.GetCall().GetContext());
-  context.Next();
+void Middleware::PreStartCall(
+    ugrpc::client::MiddlewareCallContext& context) const {
+  ApplyCredentials(context.GetContext());
 }
 
 MiddlewareFactory::MiddlewareFactory(const components::ComponentContext&) {}

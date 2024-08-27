@@ -52,6 +52,30 @@ class WebsocketsHandler final : public server::websocket::WebsocketHandlerBase {
   }
 };
 
+class WebsocketsHandlerAlt final
+    : public server::websocket::WebsocketHandlerBase {
+ public:
+  static constexpr std::string_view kName = "websocket-handler-alt";
+
+  using WebsocketHandlerBase::WebsocketHandlerBase;
+
+  void Handle(server::websocket::WebSocketConnection& chat,
+              server::request::RequestContext&) const override {
+    server::websocket::Message message;
+    while (!engine::current_task::ShouldCancel()) {
+      const bool msgIsReceived = chat.TryRecv(message);
+      if (msgIsReceived) {
+        if (message.close_status) break;
+        chat.Send(std::move(message));
+      } else {
+        // we could've sent yet another server::websocket::Message
+        // e.g. chat.SendBinary(server::websocket::Message{ "blah", {}, true });
+      }
+    }
+    if (message.close_status) chat.Close(*message.close_status);
+  }
+};
+
 class WebsocketsFullDuplexHandler final
     : public server::websocket::WebsocketHandlerBase {
  public:
@@ -93,6 +117,7 @@ class WebsocketsFullDuplexHandler final
 int main(int argc, char* argv[]) {
   const auto component_list = components::MinimalServerComponentList()
                                   .Append<WebsocketsHandler>()
+                                  .Append<WebsocketsHandlerAlt>()
                                   .Append<WebsocketsFullDuplexHandler>()
                                   .Append<clients::dns::Component>()
                                   .Append<components::HttpClient>()

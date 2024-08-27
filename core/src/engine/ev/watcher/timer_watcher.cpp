@@ -24,7 +24,7 @@ void TimerWatcher::SingleshotAsync(std::chrono::milliseconds timeout,
   }
 
   ev_timer_.Set(timeout, {});
-  ev_timer_.Start();
+  ev_timer_.StartAsync();
 }
 
 void TimerWatcher::OnEventTimeout(struct ev_loop*, ev_timer* timer,

@@ -139,10 +139,9 @@ void Storage::VisitMetrics(BaseFormatBuilder& out,
       }
 
       try {
-        auto writer =
-            (entry.prefix_path.empty()
-                 ? Writer{state, LabelsSpan{labels_vector}}
-                 : Writer{state, LabelsSpan{labels_vector}}[entry.prefix_path]);
+        auto writer = (entry.prefix_path.empty()
+                           ? Writer{state, labels_vector}
+                           : Writer{state, labels_vector}[entry.prefix_path]);
         if (writer) {
           LOG_DEBUG() << "Getting statistics for prefix=" << entry.prefix_path;
           entry.writer(writer);

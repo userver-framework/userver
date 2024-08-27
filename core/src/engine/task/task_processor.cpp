@@ -81,11 +81,22 @@ void TaskProcessorThreadStartedHook() {
   EmitMagicNanosleep();
 }
 
+auto MakeTaskQueue(TaskProcessorConfig config) {
+  using ResultType = std::variant<TaskQueue, WorkStealingTaskQueue>;
+  switch (config.task_processor_queue) {
+    case TaskQueueType::kGlobalTaskQueue:
+      return ResultType{std::in_place_index<0>, std::move(config)};
+    case TaskQueueType::kWorkStealingTaskQueue:
+      return ResultType{std::in_place_index<1>, std::move(config)};
+  }
+  UINVARIANT(false, "Unexpected value of TaskQueueType enum");
+}
+
 }  // namespace
 
 TaskProcessor::TaskProcessor(TaskProcessorConfig config,
                              std::shared_ptr<impl::TaskProcessorPools> pools)
-    : task_queue_(config),
+    : task_queue_(MakeTaskQueue(config)),
       task_counter_(config.worker_threads),
       config_(std::move(config)),
       pools_(std::move(pools)) {
@@ -124,7 +135,7 @@ void TaskProcessor::Cleanup() noexcept {
   // Some tasks may be bound but not scheduled yet
   task_counter_.WaitForExhaustionBlocking();
 
-  task_queue_.StopProcessing();
+  std::visit([](auto&& arg) { return arg.StopProcessing(); }, task_queue_);
 
   for (auto& w : workers_) {
     w.join();
@@ -148,8 +159,12 @@ void TaskProcessor::Schedule(impl::TaskContext* context) {
       LOG_LIMITED_WARNING()
           << "failed to enqueue task: task_queue_size_approximate="
           << overload_size << " >= "
-          << "task_queue_size_threshold=" << max_queue_length
-          << " task_processor=" << Name();
+          << "length_limit=" << max_queue_length << " task_processor=" << Name()
+          << ". Make sure that there's enough system resources to process so "
+             "many tasks, adjust the "
+             "`default-service.default-task-processor.wait_queue_overload."
+             "length_limit` parameter in USERVER_TASK_PROCESSOR_QOS dynamic "
+             "config to increase the limit.";
       HandleOverload(*context, action);
     }
   }
@@ -158,7 +173,7 @@ void TaskProcessor::Schedule(impl::TaskContext* context) {
 
   SetTaskQueueWaitTimepoint(context);
 
-  task_queue_.Push(context);
+  std::visit([&context](auto&& arg) { return arg.Push(context); }, task_queue_);
 }
 
 void TaskProcessor::Adopt(impl::TaskContext& context) {
@@ -171,6 +186,11 @@ ev::ThreadPool& TaskProcessor::EventThreadPool() {
 
 impl::CountedCoroutinePtr TaskProcessor::GetCoroutine() {
   return {pools_->GetCoroPool().GetCoroutine(), *this};
+}
+
+std::size_t TaskProcessor::GetTaskQueueSize() const {
+  return std::visit([](auto&& arg) { return arg.GetSizeApproximate(); },
+                    task_queue_);
 }
 
 void TaskProcessor::SetSettings(const TaskProcessorSettings& settings) {
@@ -283,6 +303,8 @@ void TaskProcessor::PrepareWorkerThread(std::size_t index) noexcept {
       break;
   }
 
+  std::visit([index](auto& obj) { obj.PrepareWorker(index); }, task_queue_);
+
   pools_->GetCoroPool().PrepareLocalCache();
 
   utils::SetCurrentThreadName(fmt::format("{}_{}", config_.thread_name, index));
@@ -300,7 +322,8 @@ void TaskProcessor::FinalizeWorkerThread() noexcept {
 
 void TaskProcessor::ProcessTasks() noexcept {
   while (true) {
-    auto context = task_queue_.PopBlocking();
+    auto context =
+        std::visit([](auto&& arg) { return arg.PopBlocking(); }, task_queue_);
     if (!context) break;
 
     GetTaskCounter().AccountTaskSwitchSlow();
@@ -374,7 +397,11 @@ void TaskProcessor::HandleOverload(
     if (!context.IsCritical()) {
       LOG_LIMITED_WARNING()
           << "Task with task_id=" << logging::HexShort(context.GetTaskId())
-          << " was waiting in queue for too long, cancelling.";
+          << " was waiting in queue for too long, cancelling. Make sure that "
+             "there's no blocking syscalls in the task, use utils::CpuRelax. "
+             "Adjust the `default-service.default-task-processor."
+             "wait_queue_overload.sensor_time_limit_us` parameter in "
+             "USERVER_TASK_PROCESSOR_QOS dynamic config to increase the limit.";
 
       context.RequestCancel(TaskCancellationReason::kOverload);
       GetTaskCounter().AccountTaskCancelOverload();

@@ -2,6 +2,7 @@
 
 #include <cstdint>
 
+#include <userver/http/http_version.hpp>
 #include <userver/server/http/http_status.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
@@ -18,7 +19,9 @@ struct HttpRequestConfig {
   bool decompress_request = false;
   bool set_tracing_headers = true;
   bool deadline_propagation_enabled = true;
-  http::HttpStatus deadline_expired_status_code{498};
+  http::HttpStatus deadline_expired_status_code = http::HttpStatus{498};
+  USERVER_NAMESPACE::http::HttpVersion http_version =
+      USERVER_NAMESPACE::http::HttpVersion::k11;
 };
 
 HttpRequestConfig Parse(const yaml_config::YamlConfig& value,

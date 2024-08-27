@@ -33,6 +33,7 @@ FlagsFormat Parse(const yaml_config::YamlConfig& value,
   utils::Flags<tracing::Format> format = tracing::Format{};
 
   if (!value.IsArray()) {
+    format |= tracing::FormatFromString(value.As<std::string>("opentelemetry"));
     format |= tracing::FormatFromString(value.As<std::string>("taxi"));
   } else {
     for (const auto& f : value) {

@@ -8,6 +8,7 @@ const grpc::string kXYaTraceId = "x-yatraceid";
 const grpc::string kXYaSpanId = "x-yaspanid";
 const grpc::string kXYaRequestId = "x-yarequestid";
 const grpc::string kXBaggage = "baggage";
+const grpc::string kTraceParent = "traceparent";
 
 }  // namespace ugrpc::impl
 

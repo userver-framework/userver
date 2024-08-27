@@ -15,6 +15,10 @@ namespace engine::impl {
 class ContextAccessor;
 }
 
+namespace engine::ev {
+class ThreadControl;
+}
+
 namespace engine::io {
 
 namespace impl {
@@ -34,7 +38,13 @@ class FdPoller final {
     kReadWrite = 3,  /// < wait for either read or write availability
   };
 
-  FdPoller();
+  /// Constructor for FdPoller. `control` parameter could be obtained via
+  /// engine::current_task::GetEventThread().
+  ///
+  /// It is recommended to place read and write FdPoller's of the same FD to
+  /// the same `control` for better ev threads balancing.
+  explicit FdPoller(const ev::ThreadControl& control);
+
   FdPoller(const FdPoller&) = delete;
   FdPoller(FdPoller&&) = delete;
   FdPoller& operator=(const FdPoller&) = delete;
@@ -47,7 +57,7 @@ class FdPoller final {
   bool IsValid() const noexcept;
 
   /// If IsValid(), get file descriptor.
-  int GetFd() const;
+  int GetFd() const noexcept;
 
   /// When you're done with fd, call Invalidate(). It unregisters the fd, after
   /// that you have to call close(2) by yourself. After Invalidate() you may not
@@ -91,7 +101,7 @@ class FdPoller final {
   void SwitchStateToReadyToUse();
 
   struct Impl;
-  utils::FastPimpl<Impl, 144, 16> pimpl_;
+  utils::FastPimpl<Impl, 128, 16> pimpl_;
 };
 
 }  // namespace engine::io

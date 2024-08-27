@@ -49,10 +49,12 @@ struct HttpRequestConstructor::HttpParserUrl {
 
 HttpRequestConstructor::HttpRequestConstructor(
     Config config, const HandlerInfoIndex& handler_info_index,
-    request::ResponseDataAccounter& data_accounter)
+    request::ResponseDataAccounter& data_accounter,
+    engine::io::Sockaddr remote_address)
     : config_(config),
       handler_info_index_(handler_info_index),
-      request_(std::make_shared<HttpRequestImpl>(data_accounter)) {}
+      request_(std::make_shared<HttpRequestImpl>(data_accounter,
+                                                 std::move(remote_address))) {}
 
 HttpRequestConstructor::~HttpRequestConstructor() = default;
 
@@ -171,7 +173,12 @@ void HttpRequestConstructor::AppendBody(const char* data, size_t size) {
 }
 
 void HttpRequestConstructor::SetIsFinal(bool is_final) {
+  UASSERT(request_);
   request_->is_final_ = is_final;
+}
+
+void HttpRequestConstructor::SetResponseStreamId(std::uint32_t stream_id) {
+  request_->SetResponseStreamId(stream_id);
 }
 
 std::shared_ptr<request::RequestBase> HttpRequestConstructor::Finalize() {

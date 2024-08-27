@@ -33,6 +33,7 @@ USERVER_CONFIG_HOOKS = [
     'userver_config_http_server',
     'userver_config_http_client',
     'userver_config_logging',
+    'userver_config_logging_otlp',
     'userver_config_testsuite',
     'userver_config_secdist',
     'userver_config_testsuite_middleware',
@@ -68,9 +69,6 @@ class _UserverConfig(typing.NamedTuple):
 
 def pytest_configure(config):
     config.pluginmanager.register(_UserverConfigPlugin(), 'userver_config')
-    config.addinivalue_line(
-        'markers', 'config: per-test dynamic config values',
-    )
 
 
 def pytest_addoption(parser) -> None:
@@ -452,6 +450,24 @@ def userver_config_logging(userver_log_level, _service_logfile_path):
                 'overflow_behavior': 'discard',
             }
         config_vars['logger_level'] = userver_log_level
+
+    return _patch_config
+
+
+@pytest.fixture(scope='session')
+def userver_config_logging_otlp():
+    """
+    Returns a function that adjusts the static configuration file for testsuite.
+    Sets the `otlp-logger.load-enabled` to `false` to disable OTLP logging and
+    leave the default file logger.
+
+    @ingroup userver_testsuite_fixtures
+    """
+
+    def _patch_config(config_yaml, config_vars):
+        components = config_yaml['components_manager']['components']
+        if 'otlp-logger' in components:
+            components['otlp-logger']['load-enabled'] = False
 
     return _patch_config
 

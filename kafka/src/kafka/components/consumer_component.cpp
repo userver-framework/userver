@@ -3,8 +3,10 @@
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
 #include <userver/components/statistics_storage.hpp>
+#include <userver/storages/secdist/component.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
+#include <kafka/impl/broker_secrets.hpp>
 #include <kafka/impl/configuration.hpp>
 #include <kafka/impl/consumer.hpp>
 
@@ -16,15 +18,23 @@ ConsumerComponent::ConsumerComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
     : components::ComponentBase(config, context),
-      consumer_(std::make_unique<impl::Configuration>(
-                    config, context, impl::EntityType::kConsumer),
-                config["topics"].As<std::vector<std::string>>(),
-                config["max_batch_size"].As<size_t>(),
-                config["poll_timeout"].As<std::chrono::milliseconds>(
-                    impl::Consumer::kDefaultPollTimeout),
-                config["enable_auto_commit"].As<bool>(false),
+      consumer_(config.Name(), config["topics"].As<std::vector<std::string>>(),
                 context.GetTaskProcessor("consumer-task-processor"),
-                context.GetTaskProcessor("main-task-processor")) {
+                context.GetTaskProcessor("main-task-processor"),
+                config.As<impl::ConsumerConfiguration>(),
+                context.FindComponent<components::Secdist>()
+                    .Get()
+                    .Get<impl::BrokerSecrets>()
+                    .GetSecretByComponentName(config.Name()),
+                [&config] {
+                  impl::ConsumerExecutionParams params{};
+                  params.max_batch_size = config["max_batch_size"].As<size_t>();
+                  params.poll_timeout =
+                      config["poll_timeout"].As<std::chrono::milliseconds>(
+                          params.poll_timeout);
+
+                  return params;
+                }()) {
   auto& storage =
       context.FindComponent<components::StatisticsStorage>().GetStorage();
 
@@ -118,20 +128,20 @@ properties:
             Must be set if `security_protocol` equals `SASL_SSL`.
             If set to `probe`, CA certificates are probed from the default certificates paths
         defaultDescription: none
-    topic_metadata_refresh_interval_ms:
-        type: integer
+    topic_metadata_refresh_interval:
+        type: string
         description: |
-            period of time in milliseconds at which
+            period of time at which
             topic and broker metadata is refreshed
             in order to discover any new brokers,
             topics, partitions or partition leader changes
-        defaultDescription: 300000
-    metadata_max_age_ms:
-        type: integer
+        defaultDescription: 5m
+    metadata_max_age:
+        type: string
         description: |
             metadata cache max age.
-            Recommended value is 3 times `topic_metadata_refresh_interval_ms`
-        defaultDescription: 900000
+            Recommended value is 3 times `topic_metadata_refresh_interval`
+        defaultDescription: 15m
 )");
 }
 

@@ -229,6 +229,13 @@ TEST(Decimal64, DivisionByZero) {
   EXPECT_THROW(Dec4{1} / 0, decimal64::DivisionByZeroError);
 }
 
+#ifdef __cpp_lib_three_way_comparison
+TEST(Decimal64, ThreeWayComparison) {
+  EXPECT_EQ(Dec4{1} <=> Dec4{1}, 1 <=> 1);
+  EXPECT_EQ(Dec4{1} <=> Dec4{2}, 1 <=> 2);
+}
+#endif
+
 TEST(Decimal64, RoundToMultipleOf) {
   const auto dec = Dec4{"12.346"};
   const auto max_decimal =

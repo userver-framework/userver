@@ -18,47 +18,47 @@ components_manager:
             task_processor: main-task-processor
             method: POST
             producers_list:
-              - "kafka-producer-first"
-              - "kafka-producer-second"
+              - kafka-producer-first
+              - kafka-producer-second
 
         handler-kafka-consumer:
             path: /consume/{topic_name}
             task_processor: main-task-processor
             method: POST
 
-# /// [Kafka service sample - consumer static config]
-# yaml
+        # /// [Kafka service sample - consumer static config]
+        # yaml
         kafka-consumer:
-            env_pod_name: "HOSTNAME"
-            enable_auto_commit: false
-            group_id: "test-group"
-            auto_offset_reset: "smallest"
-            security_protocol: "PLAINTEXT"
+            group_id: test-group
             topics:
-              - "test-topic-send"
-              - "test-topic-consume-1"
-              - "test-topic-consume-2"
-              - "test-topic-consume-produced-1"
-              - "test-topic-consume-produced-2"
+              - test-topic-send
+              - test-topic-consume-1
+              - test-topic-consume-2
+              - test-topic-consume-produced-1
+              - test-topic-consume-produced-2
+            auto_offset_reset: smallest
             max_batch_size: 10
-# /// [Kafka service sample - consumer static config]
+            env_pod_name: HOSTNAME
+            enable_auto_commit: false
+            security_protocol: PLAINTEXT
+        # /// [Kafka service sample - consumer static config]
 
-# /// [Kafka service sample - producer static config]
-# yaml
+        # /// [Kafka service sample - producer static config]
+        # yaml
         kafka-producer-first:
-            delivery_timeout_ms: 3000
-            queue_buffering_max_ms: 100
-            poll_timeout_ms: 10
+            delivery_timeout: 3000ms
+            queue_buffering_max: 100ms
+            poll_timeout: 10ms
             send_retries_count: 5
             enable_idempotence: true
-            security_protocol: "PLAINTEXT"
-# /// [Kafka service sample - producer static config]
+            security_protocol: PLAINTEXT
+        # /// [Kafka service sample - producer static config]
 
         kafka-producer-second:
-            delivery_timeout_ms: 3000
-            queue_buffering_max_ms: 100
+            delivery_timeout: 3000ms
+            queue_buffering_max: 100ms
             enable_idempotence: true
-            security_protocol: "PLAINTEXT"
+            security_protocol: PLAINTEXT
 
         testsuite-support:
 
@@ -88,7 +88,7 @@ components_manager:
             fs-task-processor: fs-task-processor
             loggers:
                 default:
-                    file_path: '@stderr'
+                    file_path: "@stderr"
                     level: debug
                     overflow_behavior: discard
 

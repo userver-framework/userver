@@ -9,6 +9,7 @@
 
 #include <server/net/stats.hpp>
 #include <server/request/request_parser.hpp>
+#include <userver/engine/io/sockaddr.hpp>
 
 #include <userver/server/request/request_config.hpp>
 
@@ -26,12 +27,13 @@ class HttpRequestParser final : public request::RequestParser {
   HttpRequestParser(const HandlerInfoIndex& handler_info_index,
                     const request::HttpRequestConfig& request_config,
                     OnNewRequestCb&& on_new_request_cb, net::ParserStats& stats,
-                    request::ResponseDataAccounter& data_accounter);
+                    request::ResponseDataAccounter& data_accounter,
+                    engine::io::Sockaddr remote_address);
 
   HttpRequestParser(HttpRequestParser&&) = delete;
   HttpRequestParser& operator=(HttpRequestParser&&) = delete;
 
-  bool Parse(const char* data, size_t size) override;
+  bool Parse(std::string_view request) override;
 
  private:
   static int OnMessageBegin(llhttp_t* p);
@@ -70,6 +72,7 @@ class HttpRequestParser final : public request::RequestParser {
   static const llhttp_settings_t parser_settings;
   net::ParserStats& stats_;
   request::ResponseDataAccounter& data_accounter_;
+  engine::io::Sockaddr remote_address_;
 };
 
 }  // namespace server::http

@@ -1,5 +1,7 @@
-#include <userver/storages/mongo/utest/mongo_fixture.hpp>
 #include <userver/utest/using_namespace_userver.hpp>
+
+/// [Unit test]
+#include <userver/storages/mongo/utest/mongo_fixture.hpp>
 
 #include <userver/formats/bson/inline.hpp>
 
@@ -11,3 +13,4 @@ UTEST_F(MongoTest, Sample) {
   collection.InsertOne(formats::bson::MakeDoc("x", 2));
   EXPECT_EQ(1, collection.Count({}));
 }
+/// [Unit test]

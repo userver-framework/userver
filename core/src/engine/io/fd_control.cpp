@@ -65,26 +65,10 @@ Direction::SingleUserGuard::~SingleUserGuard() {
 }
 #endif  // #ifndef NDEBUG
 
-Direction::Direction(Kind kind) : kind_(kind) {}
-
-Direction::~Direction() = default;
-
-bool Direction::Wait(Deadline deadline) {
-  return poller_.Wait(deadline).has_value();
-}
-
-void Direction::ResetReady() noexcept { poller_.ResetReady(); }
-
-engine::impl::ContextAccessor* Direction::TryGetContextAccessor() noexcept {
-  return poller_.TryGetContextAccessor();
-}
-
-void Direction::Reset(int fd) { poller_.Reset(fd, kind_); }
-
-void Direction::Invalidate() { poller_.Invalidate(); }
-
-FdControl::FdControl()
-    : read_(Direction::Kind::kRead), write_(Direction::Kind::kWrite) {}
+// Write operations on socket usually do not block, so it makes sense to reuse
+// the same ThreadControl for the sake of better balancing of ev threads.
+FdControl::FdControl(const ev::ThreadControl& control)
+    : read_(control), write_(control) {}
 
 FdControl::~FdControl() {
   try {
@@ -95,13 +79,13 @@ FdControl::~FdControl() {
 }
 
 FdControlHolder FdControl::Adopt(int fd) {
-  FdControlHolder fd_control{new FdControl()};
+  FdControlHolder fd_control{new FdControl(current_task::GetEventThread())};
   // TODO: add conditional CLOEXEC set
   SetCloexec(fd);
   SetNonblock(fd);
   ReduceSigpipe(fd);
-  fd_control->read_.Reset(fd);
-  fd_control->write_.Reset(fd);
+  fd_control->read_.Reset(fd, Direction::Kind::kRead);
+  fd_control->write_.Reset(fd, Direction::Kind::kWrite);
   return fd_control;
 }
 

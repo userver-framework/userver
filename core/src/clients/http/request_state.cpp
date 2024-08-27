@@ -17,8 +17,8 @@
 #include <userver/baggage/baggage.hpp>
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/clients/http/connect_to.hpp>
+#include <userver/clients/http/plugins/headers_propagator/plugin.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
-#include <userver/utils/algo.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/encoding/hex.hpp>
@@ -69,7 +69,7 @@ std::error_code TestsuiteResponseHook(Status status_code,
 
     if (headers.end() != it) {
       LOG_INFO() << "Mockserver faked error of type " << it->second
-                 << tracing::impl::LogSpanAsLastNonCoro{span};
+                 << tracing::impl::LogSpanAsLastNoCurrent{span};
 
       const auto error_it = kTestsuiteActions.find(it->second);
       if (error_it != kTestsuiteActions.end()) {
@@ -555,7 +555,7 @@ void RequestState::on_retry(std::shared_ptr<RequestState> holder,
   UASSERT(holder);
   UASSERT(holder->span_storage_);
   LOG_TRACE() << "RequestImpl::on_retry"
-              << tracing::impl::LogSpanAsLastNonCoro{
+              << tracing::impl::LogSpanAsLastNoCurrent{
                      holder->span_storage_->Get()};
 
   // We do not need to retry:
@@ -673,6 +673,12 @@ void RequestState::SetLoggedUrl(std::string url) { log_url_ = std::move(url); }
 const std::string& RequestState::GetLoggedOriginalUrl() const noexcept {
   // We may want to use original_url if effective_url is not available yet.
   return log_url_ ? *log_url_ : easy().get_original_url();
+}
+
+std::string_view RequestState::GetLoggedEffectiveUrl() noexcept {
+  // If log_url_ exists, we use log_url_ with a semantic like original_url,
+  // instead of effective_url
+  return log_url_ ? *log_url_ : easy().get_effective_url();
 }
 
 engine::Future<std::shared_ptr<Response>> RequestState::async_perform(
@@ -913,11 +919,11 @@ void RequestState::AccountResponse(std::error_code err) {
 
 std::exception_ptr RequestState::PrepareException(std::error_code err) {
   if (deadline_expired_) {
-    return PrepareDeadlinePassedException(easy().get_effective_url(),
+    return PrepareDeadlinePassedException(GetLoggedEffectiveUrl(),
                                           easy().get_local_stats());
   }
 
-  return http::PrepareException(err, easy().get_effective_url(),
+  return http::PrepareException(err, GetLoggedEffectiveUrl(),
                                 easy().get_local_stats());
 }
 
@@ -966,7 +972,7 @@ size_t RequestState::StreamWriteFunction(char* ptr, size_t size, size_t nmemb,
   LOG_DEBUG() << fmt::format(
                      "Got bytes in stream API chunk, chunk of ({} bytes)",
                      actual_size)
-              << tracing::impl::LogSpanAsLastNonCoro{rs.span_storage_->Get()};
+              << tracing::impl::LogSpanAsLastNoCurrent{rs.span_storage_->Get()};
 
   std::string buffer(ptr, actual_size);
   auto& queue_producer = stream_data->queue_producer;
@@ -1079,7 +1085,8 @@ void RequestState::SetTracingManager(const tracing::TracingManagerBase& m) {
 }
 
 void RequestState::SetHeadersPropagator(
-    const server::http::HeadersPropagator* propagator) {
+    const clients::http::plugins::headers_propagator::HeadersPropagator*
+        propagator) {
   headers_propagator_ = propagator;
 }
 

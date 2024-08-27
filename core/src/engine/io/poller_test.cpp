@@ -327,4 +327,50 @@ UTEST(Poller, Remove) {
       Poller::Status::kNoEvents);
 }
 
+UTEST(Poller, Reset) {
+  Pipe pipe;
+  Poller poller;
+  poller.Add(pipe.In(), Poller::Event::kRead);
+
+  Poller::Event event{};
+  poller.Reset();
+  WriteOne(pipe.Out());
+  ASSERT_EQ(poller.NextEventNoblock(event), Poller::Status::kNoEvents);
+  ReadOne(pipe.In());
+
+  poller.Reset();
+  poller.Add(pipe.In(), Poller::Event::kRead);
+  WriteOne(pipe.Out());
+  ASSERT_EQ(
+      poller.NextEvent(event, engine::Deadline::FromDuration(kReadTimeout)),
+      Poller::Status::kSuccess);
+  EXPECT_EQ(event.type, Poller::Event::kRead);
+  EXPECT_EQ(event.fd, pipe.In());
+  ReadOne(pipe.In());
+}
+
+UTEST(Poller, ResetActiveEvent) {
+  Pipe pipe;
+  Poller poller;
+  Poller::Event event{};
+
+  WriteOne(pipe.Out());
+  for (unsigned i = 0; i < 50000; ++i) {
+    poller.Add(pipe.In(), Poller::Event::kRead);
+    poller.Reset();
+    ASSERT_EQ(poller.NextEventNoblock(event), Poller::Status::kNoEvents);
+  }
+  ReadOne(pipe.In());
+
+  poller.Add(pipe.In(), Poller::Event::kRead);
+  WriteOne(pipe.Out());
+  ASSERT_EQ(
+      poller.NextEvent(event, engine::Deadline::FromDuration(kReadTimeout)),
+      Poller::Status::kSuccess);
+  EXPECT_EQ(event.type, Poller::Event::kRead);
+  EXPECT_EQ(event.fd, pipe.In());
+  ReadOne(pipe.In());
+  poller.Reset();
+}
+
 USERVER_NAMESPACE_END

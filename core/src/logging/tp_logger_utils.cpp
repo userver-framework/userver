@@ -114,7 +114,7 @@ TcpSocketSink* GetTcpSocketSink(TpLogger& logger) {
   return nullptr;
 }
 
-LoggerConfig ExtractDefaultLoggerConfig(
+std::optional<LoggerConfig> ExtractDefaultLoggerConfig(
     const components::ManagerConfig& config) {
   // Note: this is a slight violation of separation of concerns. The component
   // system itself should not specifically care about 'logging' component, but
@@ -126,12 +126,13 @@ LoggerConfig ExtractDefaultLoggerConfig(
     return config.Name() == "logging";
   });
   if (iter == config.components.end()) {
-    throw std::runtime_error(
+    throw NoLoggerComponent(
         "No component config found for 'logging', which is a required "
         "component");
   }
 
   const auto logger_config_yaml = (*iter)["loggers"][kDefaultLoggerName];
+  if (logger_config_yaml.IsMissing()) return {};
   auto logger_config = logger_config_yaml.As<LoggerConfig>();
 
   logger_config.SetName(std::string{kDefaultLoggerName});

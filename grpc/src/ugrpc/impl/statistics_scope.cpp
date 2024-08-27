@@ -10,7 +10,7 @@ namespace ugrpc::impl {
 
 RpcStatisticsScope::RpcStatisticsScope(MethodStatistics& statistics)
     : statistics_(statistics), start_time_(std::chrono::steady_clock::now()) {
-  statistics_.AccountStarted();
+  statistics_->AccountStarted();
 }
 
 RpcStatisticsScope::~RpcStatisticsScope() { Flush(); }
@@ -29,7 +29,7 @@ void RpcStatisticsScope::OnCancelledByDeadlinePropagation() {
 }
 
 void RpcStatisticsScope::OnDeadlinePropagated() {
-  statistics_.AccountDeadlinePropagated();
+  is_deadline_propagated_ = true;
 }
 
 void RpcStatisticsScope::OnCancelled() {
@@ -59,32 +59,45 @@ void RpcStatisticsScope::Flush() {
     finish_kind_ = std::max(finish_kind_, FinishKind::kCancelled);
   }
 
+  if (is_deadline_propagated_) {
+    statistics_->AccountDeadlinePropagated();
+  }
+
   AccountTiming();
   switch (finish_kind_) {
     case FinishKind::kAutomatic:
-      statistics_.AccountStatus(grpc::StatusCode::UNKNOWN);
-      statistics_.AccountInternalError();
+      statistics_->AccountStatus(grpc::StatusCode::UNKNOWN);
+      statistics_->AccountInternalError();
       return;
     case FinishKind::kExplicit:
-      statistics_.AccountStatus(finish_code_);
+      statistics_->AccountStatus(finish_code_);
       return;
     case FinishKind::kNetworkError:
-      statistics_.AccountNetworkError();
+      statistics_->AccountNetworkError();
       return;
     case FinishKind::kDeadlinePropagation:
-      statistics_.AccountCancelledByDeadlinePropagation();
+      statistics_->AccountCancelledByDeadlinePropagation();
       return;
     case FinishKind::kCancelled:
-      statistics_.AccountCancelled();
+      statistics_->AccountCancelled();
       return;
   }
   UASSERT_MSG(false, "Invalid FinishKind");
 }
 
+void RpcStatisticsScope::RedirectTo(MethodStatistics& statistics) {
+  if (!start_time_) return;
+
+  // Relies on the fact that all metrics, except for 'started' metric,
+  // are only actually accounted in Flush.
+  statistics_->MoveStartedTo(statistics);
+  statistics_ = statistics;
+}
+
 void RpcStatisticsScope::AccountTiming() {
   if (!start_time_) return;
 
-  statistics_.AccountTiming(
+  statistics_->AccountTiming(
       std::chrono::duration_cast<std::chrono::milliseconds>(
           std::chrono::steady_clock::now() - *start_time_));
   start_time_.reset();

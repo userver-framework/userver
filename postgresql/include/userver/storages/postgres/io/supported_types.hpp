@@ -1,5 +1,6 @@
 #pragma once
 
+// clang-format off
 /// @page pg_types uPg: Supported data types
 ///
 /// uPg provides data type support with a system of buffer parsers and
@@ -124,27 +125,19 @@
 /// @warning When reading to `std::string_view` the value MUST NOT be used after
 /// the PostgreSQL result set is destroyed.
 ///
-/// @code{.cpp}
-/// namespace pg = storages::postgres;
-/// using namespace std::string_literals;
-/// // using a "binary string"
-/// std::string s = "\0\xff\x0afoobar"s;
-/// std::vector<std::uint8_t> tgt_bin_str;
-/// // note: pg::Bytea(const T &) is used
-/// trx.Execute("select $1", pg::Bytea(s));
-/// // storing a byte array:
-/// std::vector<std::uint8_t> bin_str{1, 2, 3, 4, 5, 6, 7, 8, 9};
-/// trx.Execute("INSERT INTO mytable (data) VALUES ($1)", pg::Bytea(bin_str));
-/// // note: pg::Bytea(const T &) is used
-/// @endcode
 ///
-/// To read data from bytea field:
-/// @code{.cpp}
-/// // SQL: data BYTEA {NOT} NULL
-/// auto res = trx.Execute("SELECT id, data FROM mytable WHERE id = $1", id);
-/// std::vector<std::uint8_t> tgt_bin_str; const auto& row = res.Front();
-/// row["data"].To(pg::Bytea(tgt_bin_str));  // note: pg::Bytea(T &) is used
-/// @endcode
+///
+///
+/// Bytea() is a helper function for reading and writing binary data from/to a database.
+///
+/// Example usage of Bytea():
+/// @snippet postgresql/src/storages/postgres/tests/bytea_pgtest.cpp bytea_simple
+/// @snippet postgresql/src/storages/postgres/tests/bytea_pgtest.cpp bytea_string
+/// @snippet postgresql/src/storages/postgres/tests/bytea_pgtest.cpp bytea_vector
+///
+///
+///
+///
 ///
 /// @par Network types
 ///
@@ -173,6 +166,7 @@
 /// @htmlonly <div class="bottom-nav"> @endhtmlonly
 /// ⇦ @ref pg_process_results | @ref pg_user_row_types ⇨
 /// @htmlonly </div> @endhtmlonly
+// clang-format on
 
 //@{
 /** @name Traits etc */

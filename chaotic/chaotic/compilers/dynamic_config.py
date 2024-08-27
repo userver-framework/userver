@@ -54,8 +54,8 @@ def write_file(filepath: str, content: str) -> None:
 
     if os.path.exists(filepath):
         with open(filepath, 'r', encoding='utf8') as ifile:
-            old_conent = ifile.read()
-            if old_conent == content:
+            old_content = ifile.read()
+            if old_content == content:
                 return
 
     with open(filepath, 'w') as ofile:
@@ -131,6 +131,20 @@ class CompilerBase:
         )
         self._definitions[name] = (schemas, types)
 
+    def definitions_includes_hpp(self) -> List[str]:
+        types = self._collect_types()
+        includes: List[str] = []
+        for type_ in types.values():
+            includes += type_.declaration_includes()
+        return sorted(set(includes))
+
+    def definitions_includes_cpp(self) -> List[str]:
+        types = self._collect_types()
+        includes: List[str] = []
+        for type_ in types.values():
+            includes += type_.definition_includes()
+        return sorted(set(includes))
+
     def parse_variable(
             self, filepath: str, name: str, include_dirs: List[str] = [],
     ) -> None:
@@ -202,6 +216,27 @@ class CompilerBase:
         )
         return schemas, types
 
+    def variables_includes_hpp(self, name: str) -> List[str]:
+        types = self._variables_types[name]
+        includes: List[str] = []
+        for type_ in types.values():
+            includes += type_.declaration_includes()
+
+        return sorted(set(includes))
+
+    def variables_includes_cpp(self, name: str) -> List[str]:
+        types = self._variables_types[name]
+        includes: List[str] = []
+        for type_ in types.values():
+            includes += type_.definition_includes()
+        return sorted(set(includes))
+
+    def variables_external_includes_hpp(self, name: str) -> List[str]:
+        types = self._variables_types[name]
+        return self.renderer_for_variable(
+            name, False,
+        ).extract_external_includes(types, '')
+
     def _read_default(self, filepath: str) -> Any:
         with open(filepath, 'r') as ifile:
             content = yaml.load(ifile, Loader=yaml.CLoader)
@@ -215,32 +250,41 @@ class CompilerBase:
     ) -> List[Tuple[str, str]]:
         return []
 
+    def renderer_for_variable(
+            self, name: str, parse_extra_formats: bool,
+    ) -> renderer.OneToOneFileRenderer:
+        return renderer.OneToOneFileRenderer(
+            relative_to='/',
+            vfilepath_to_relfilepath={
+                name: f'taxi_config/variables/{name}.types.hpp',
+                **{
+                    name: (
+                        'taxi_config/definitions/'
+                        f'{name.split(".")[0].replace("/", "_")}.hpp'
+                    )
+                    for name in self._definitions
+                },
+            },
+            clang_format_bin=get_clang_format_bin(),
+            parse_extra_formats=parse_extra_formats,
+            generate_serializer=parse_extra_formats,
+        )
+
+    def variable_type(self, name: str) -> str:
+        types = self._variables_types[name]
+        name_lower = self.format_ns_name(name)
+        var_type = types[f'taxi_config::{name_lower}::VariableTypeRaw']
+        return var_type.cpp_user_name()
+
     # TODO: move jinja files to arcadia_compiler
     def generate_variable(
             self, name: str, output_dir: str, parse_extra_formats: bool,
     ) -> None:
         types = self._variables_types[name]
-        outputs = (
-            renderer.OneToOneFileRenderer(
-                relative_to='/',
-                vfilepath_to_relfilepath={
-                    name: f'taxi_config/variables/{name}.types.hpp',
-                    **{
-                        name: (
-                            'taxi_config/definitions/'
-                            f'{name.split(".")[0].replace("/", "_")}.hpp'
-                        )
-                        for name in self._definitions
-                    },
-                },
-                clang_format_bin=get_clang_format_bin(),
-                parse_extra_formats=parse_extra_formats,
-                generate_serializer=parse_extra_formats,
-            ).render(
-                types,
-                local_pair_header=False,
-                # pair_header=f'taxi_config/variables/{name}.types.hpp',
-            )
+        outputs = self.renderer_for_variable(name, parse_extra_formats).render(
+            types,
+            local_pair_header=False,
+            # pair_header=f'taxi_config/variables/{name}.types.hpp',
         )
 
         name_lower = self.format_ns_name(name)

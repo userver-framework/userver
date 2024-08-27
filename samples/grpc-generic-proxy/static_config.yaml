@@ -1,0 +1,80 @@
+# yaml
+components_manager:
+    components:
+        # Base userver components
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+        testsuite-support:
+        congestion-control:
+
+        # HTTP client and server are (sadly) needed for testsuite support
+        server:
+            load-enabled: $testsuite-enabled
+            listener:
+                port: $server-port
+                task_processor: main-task-processor
+            listener-monitor:
+                port: $monitor-port
+                task_processor: monitor-task-processor
+        http-client:
+            load-enabled: $testsuite-enabled
+            fs-task-processor: fs-task-processor
+        dns-client:
+            load-enabled: $testsuite-enabled
+            fs-task-processor: fs-task-processor
+        tests-control:
+            load-enabled: $testsuite-enabled
+            path: /tests/{action}
+            method: POST
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            testpoint-url: mockserver/testpoint
+            throttling_enabled: false
+
+        # gRPC client setup (ClientFactoryComponent and SimpleClientComponent)
+        grpc-client-factory:
+            task-processor: grpc-blocking-task-processor
+            middlewares:
+              - grpc-client-logging
+              - grpc-client-deadline-propagation
+
+        grpc-client-logging:
+        grpc-client-deadline-propagation:
+
+        generic-client:
+            endpoint: $grpc-generic-endpoint
+
+        # gRPC server setup (ServerComponent and ProxyService)
+        grpc-server:
+            port: $grpc-server-port
+            service-defaults:
+                task-processor: main-task-processor
+                middlewares:
+                  - grpc-server-logging
+                  - grpc-server-deadline-propagation
+                  - grpc-server-congestion-control
+
+        grpc-server-logging:
+        grpc-server-deadline-propagation:
+        grpc-server-congestion-control:
+
+        proxy-service:
+
+    default_task_processor: main-task-processor
+
+    task_processors:
+        main-task-processor:
+            worker_threads: 4
+        monitor-task-processor:
+            worker_threads: 1
+            thread_name: mon-worker
+        fs-task-processor:
+            worker_threads: 2
+        grpc-blocking-task-processor:
+            worker_threads: 2
+            thread_name: grpc-worker

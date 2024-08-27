@@ -81,6 +81,12 @@ class WebSocketConnection {
   /// connection.
   virtual void Recv(Message& message) = 0;
 
+  /// @brief Behaves in the same way as Recv(), but in case of first bytes of
+  /// message are not yet ready to receive gives the control up to a client.
+  /// @returns false in case of messages absence, otherwise true and behaves
+  /// like Recv()
+  virtual bool TryRecv(Message& message) = 0;
+
   /// @brief Send a message to websocket.
   /// @param message message to send
   /// @throws engine::io::IoException in case of socket errors

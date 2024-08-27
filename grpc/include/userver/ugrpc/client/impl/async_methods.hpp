@@ -15,11 +15,14 @@
 #include <userver/dynamic_config/fwd.hpp>
 #include <userver/tracing/in_place_span.hpp>
 #include <userver/tracing/span.hpp>
+#include <userver/utils/function_ref.hpp>
 
+#include <userver/ugrpc/client/call_kind.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/client/impl/async_method_invocation.hpp>
 #include <userver/ugrpc/client/impl/call_params.hpp>
 #include <userver/ugrpc/impl/async_method_invocation.hpp>
+#include <userver/ugrpc/impl/maybe_owned_string.hpp>
 #include <userver/ugrpc/impl/statistics_scope.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -45,27 +48,6 @@ using RawReaderWriter =
     std::unique_ptr<grpc::ClientAsyncReaderWriter<Request, Response>>;
 /// @}
 
-/// @{
-/// @brief Helper type aliases for stub member function pointers
-template <typename Stub, typename Request, typename Response>
-using RawResponseReaderPreparer = RawResponseReader<Response> (Stub::*)(
-    grpc::ClientContext*, const Request&, grpc::CompletionQueue*);
-
-template <typename Stub, typename Request, typename Response>
-using RawReaderPreparer = RawReader<Response> (Stub::*)(grpc::ClientContext*,
-                                                        const Request&,
-                                                        grpc::CompletionQueue*);
-
-template <typename Stub, typename Request, typename Response>
-using RawWriterPreparer = RawWriter<Request> (Stub::*)(grpc::ClientContext*,
-                                                       Response*,
-                                                       grpc::CompletionQueue*);
-
-template <typename Stub, typename Request, typename Response>
-using RawReaderWriterPreparer = RawReaderWriter<Request, Response> (Stub::*)(
-    grpc::ClientContext*, grpc::CompletionQueue*);
-/// @}
-
 struct RpcConfigValues final {
   explicit RpcConfigValues(const dynamic_config::Snapshot& config);
 
@@ -77,7 +59,7 @@ using ugrpc::impl::AsyncMethodInvocation;
 
 class RpcData final {
  public:
-  explicit RpcData(CallParams&&);
+  RpcData(CallParams&&, CallKind);
 
   RpcData(RpcData&&) noexcept = delete;
   RpcData& operator=(RpcData&&) noexcept = delete;
@@ -98,6 +80,8 @@ class RpcData final {
   const RpcConfigValues& GetConfigValues() const noexcept;
 
   const Middlewares& GetMiddlewares() const noexcept;
+
+  CallKind GetCallKind() const noexcept;
 
   void ResetSpan() noexcept;
 
@@ -156,7 +140,7 @@ class RpcData final {
  private:
   std::unique_ptr<grpc::ClientContext> context_;
   std::string client_name_;
-  std::string_view call_name_;
+  ugrpc::impl::MaybeOwnedString call_name_;
   bool writes_finished_{false};
   bool is_finished_{false};
   bool is_deadline_propagated_{false};
@@ -166,6 +150,8 @@ class RpcData final {
   grpc::CompletionQueue& queue_;
   RpcConfigValues config_values_;
   const Middlewares& mws_;
+
+  CallKind call_kind_{};
 
   // This data is common for all types of grpc calls - unary and streaming
   // However, in unary call the call is finished as soon as grpc core
@@ -214,13 +200,18 @@ void StartCall(GrpcStream& stream, RpcData& data) {
 
 void PrepareFinish(RpcData& data);
 
-void ProcessFinishResult(RpcData& data,
-                         AsyncMethodInvocation::WaitStatus wait_status,
-                         grpc::Status&& status, ParsedGStatus&& parsed_gstatus,
-                         bool throw_on_error);
+void ProcessFinishResult(
+    RpcData& data, AsyncMethodInvocation::WaitStatus wait_status,
+    grpc::Status&& status, ParsedGStatus&& parsed_gstatus,
+    utils::function_ref<void(RpcData& data, const grpc::Status& status)>
+        post_finish,
+    bool throw_on_error);
 
 template <typename GrpcStream>
-void Finish(GrpcStream& stream, RpcData& data, bool throw_on_error) {
+void Finish(GrpcStream& stream, RpcData& data,
+            utils::function_ref<void(RpcData& data, const grpc::Status& status)>
+                post_finish,
+            bool throw_on_error) {
   PrepareFinish(data);
 
   FinishAsyncMethodInvocation finish(data);
@@ -233,7 +224,8 @@ void Finish(GrpcStream& stream, RpcData& data, bool throw_on_error) {
     if (throw_on_error) throw RpcCancelledError(data.GetCallName(), "Finish");
   }
   ProcessFinishResult(data, wait_status, std::move(status),
-                      std::move(finish.GetParsedGStatus()), throw_on_error);
+                      std::move(finish.GetParsedGStatus()), post_finish,
+                      throw_on_error);
 }
 
 void PrepareRead(RpcData& data);

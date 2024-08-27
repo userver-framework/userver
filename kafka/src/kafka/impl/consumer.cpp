@@ -15,21 +15,20 @@ USERVER_NAMESPACE_BEGIN
 
 namespace kafka::impl {
 
-Consumer::Consumer(std::unique_ptr<Configuration> configuration,
+Consumer::Consumer(const std::string& name,
                    const std::vector<std::string>& topics,
-                   std::size_t max_batch_size,
-                   std::chrono::milliseconds poll_timeout,
-                   bool enable_auto_commit,
                    engine::TaskProcessor& consumer_task_processor,
-                   engine::TaskProcessor& main_task_processor)
-    : component_name_(configuration->GetComponentName()),
+                   engine::TaskProcessor& main_task_processor,
+                   const ConsumerConfiguration& configuration,
+                   const Secret& secrets, ConsumerExecutionParams params)
+    : component_name_(name),
       topics_(topics),
-      max_batch_size_(max_batch_size),
-      poll_timeout(poll_timeout),
-      enable_auto_commit_(enable_auto_commit),
+      max_batch_size_(params.max_batch_size),
+      poll_timeout_(params.poll_timeout),
       consumer_task_processor_(consumer_task_processor),
       main_task_processor_(main_task_processor),
-      consumer_(std::make_unique<ConsumerImpl>(std::move(configuration))) {}
+      consumer_(std::make_unique<ConsumerImpl>(
+          Configuration{name, configuration, secrets})) {}
 
 Consumer::~Consumer() {
   static constexpr std::string_view kErrShutdownFailed{
@@ -65,7 +64,7 @@ void Consumer::StartMessageProcessing(ConsumerScope::Callback callback) {
 
         while (!engine::current_task::ShouldCancel()) {
           auto polled_messages = consumer_->PollBatch(
-              max_batch_size_, engine::Deadline::FromDuration(poll_timeout));
+              max_batch_size_, engine::Deadline::FromDuration(poll_timeout_));
 
           if (polled_messages.empty() || engine::current_task::ShouldCancel()) {
             /// @note Message batch may be not empty. It may be polled by
@@ -113,11 +112,6 @@ void Consumer::AsyncCommit() {
 
   utils::Async(consumer_task_processor_, "consumer_committing", [this] {
     ExtendCurrentSpan();
-
-    if (enable_auto_commit_) {
-      LOG_WARNING() << "Manually commit invoked while `enable_auto_commit` "
-                       "enabled. May cause an unexpected behaviour!!!";
-    }
 
     /// @note Only schedules the offsets commitment. Actual commit
     /// occurs in future, after some polling cycles.

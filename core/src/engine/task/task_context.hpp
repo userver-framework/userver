@@ -106,10 +106,7 @@ class TaskContext final : public ContextAccessor {
   bool IsSharedWaitAllowed() const;
 
   // whether user code finished executing, coroutine may still be running
-  bool IsFinished() const noexcept {
-    return state_ == Task::State::kCompleted ||
-           state_ == Task::State::kCancelled;
-  }
+  bool IsFinished() const noexcept;
 
   void SetDetached(DetachedTasksSyncBlock::Token& token) noexcept;
   void FinishDetached() noexcept;
@@ -141,6 +138,9 @@ class TaskContext final : public ContextAccessor {
     return IsCancelRequested() && IsCancellable();
   }
 
+  void SetBackground(bool);
+  bool IsBackground() const noexcept { return is_background_; };
+
   // causes this to yield and wait for wakeup
   // must only be called from this context
   // "spurious wakeups" may be caused by wakeup queueing
@@ -154,7 +154,6 @@ class TaskContext final : public ContextAccessor {
   // normally non-blocking, except corner cases in TaskProcessor::Schedule()
   void Wakeup(WakeupSource, SleepState::Epoch epoch);
   void Wakeup(WakeupSource, NoEpoch);
-  void WakeupCurrent();
 
   static void CoroFunc(TaskPipe& task_pipe);
 
@@ -220,6 +219,7 @@ class TaskContext final : public ContextAccessor {
   TaskCounter::Token task_counter_token_;
   const bool is_critical_;
   bool is_cancellable_{true};
+  bool is_background_{false};
   bool within_sleep_{false};
   EhGlobals eh_globals_;
 

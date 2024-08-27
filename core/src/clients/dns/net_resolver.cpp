@@ -26,7 +26,6 @@
 #include <userver/formats/json.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/rcu/rcu.hpp>
-#include <userver/testsuite/testpoint.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/mock_now.hpp>
@@ -192,17 +191,6 @@ class NetResolver::Impl {
 
   void ProcessResponses() {
     for (auto& request : responses_queue) {
-      const utils::FastScopeGuard debug_guard{[&request]() noexcept {
-        try {
-          TESTPOINT("net-resolver",
-                    formats::json::MakeObject("name", request->name, "status",
-                                              request->status));
-        } catch (const std::exception& e) {
-          // This is fine, testpoint is used only in tests
-          LOG_DEBUG() << "TESTPOINT 'net-resolver' encountered an error: " << e;
-        }
-      }};
-
       if (request->status != ARES_SUCCESS) {
         request->promise.set_exception(MakeNotResolvedException(
             request->name, ares_strerror(request->status)));

@@ -768,4 +768,56 @@ TEST(YamlConfig, ExplicitStringType) {
        << ToString(json);
 }
 
+TEST(YamlConfig, SampleMultipleWithVarsEnv) {
+  const auto node = formats::yaml::FromString(R"(
+# /// [sample multiple]
+# yaml
+some_element:
+    some: $variable
+    some#file: /some/path/to/the/file.yaml
+    some#env: SOME_ENV_VARIABLE
+    some#fallback: 100500
+# /// [sample multiple]
+  )");
+  const auto vars = formats::yaml::FromString("variable#env: VARIABLE_ENV");
+
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
+  ::setenv("SOME_ENV_VARIABLE", "100", 1);
+
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
+  ::setenv("VARIABLE_ENV", "42", 1);
+
+  yaml_config::YamlConfig yaml(node, vars);
+  UEXPECT_THROW(yaml["some_element"]["some"].As<int>(), std::exception);
+
+  yaml = yaml_config::YamlConfig(node, vars,
+                                 yaml_config::YamlConfig::Mode::kEnvAllowed);
+  EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 42);
+
+  yaml = yaml_config::YamlConfig(
+      node, vars, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
+  EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 42);
+
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
+  ::unsetenv("VARIABLE_ENV");
+
+  yaml = yaml_config::YamlConfig(node, {},
+                                 yaml_config::YamlConfig::Mode::kEnvAllowed);
+  EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 100);
+
+  yaml = yaml_config::YamlConfig(node, {});
+  UEXPECT_THROW(yaml["some_element"]["some"].As<int>(), std::exception);
+
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
+  ::unsetenv("SOME_ENV_VARIABLE");
+
+  yaml = yaml_config::YamlConfig(node, {},
+                                 yaml_config::YamlConfig::Mode::kEnvAllowed);
+  UEXPECT_THROW(yaml["some_element"]["some"].As<int>(), std::exception);
+
+  yaml = yaml_config::YamlConfig(
+      node, {}, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
+  EXPECT_EQ(yaml["some_element"]["some"].As<int>(), 100500);
+}
+
 USERVER_NAMESPACE_END

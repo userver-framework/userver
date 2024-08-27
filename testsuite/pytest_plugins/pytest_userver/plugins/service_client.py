@@ -83,7 +83,6 @@ async def service_client(
         mock_configs_service,
         cleanup_userver_dumps,
         userver_client_cleanup,
-        _config_service_defaults_updated,
         _testsuite_client_config: client.TestsuiteClientConfig,
         _service_client_base,
         _service_client_testsuite,
@@ -107,16 +106,27 @@ async def service_client(
         yield _service_client_base
     else:
         service_client = _service_client_testsuite(daemon)
-        await _config_service_defaults_updated.update(
-            service_client, dynamic_config,
-        )
-
         async with userver_client_cleanup(service_client):
             yield service_client
 
 
 @pytest.fixture
-def userver_client_cleanup(request, _userver_logging_plugin):
+def userver_client_cleanup(
+        request,
+        _userver_logging_plugin,
+        _dynamic_config_defaults_storage,
+        _check_config_marks,
+        dynamic_config,
+) -> typing.Callable[[client.Client], typing.AsyncGenerator]:
+    """
+    Contains the pre-test and post-test setup that depends
+    on @ref service_client.
+
+    Feel free to override, but in that case make sure to call the original
+    `userver_client_cleanup` fixture instance.
+
+    @ingroup userver_testsuite_fixtures
+    """
     marker = request.node.get_closest_marker('suspend_periodic_tasks')
     if marker:
         tasks_to_suspend = marker.args
@@ -138,9 +148,12 @@ def userver_client_cleanup(request, _userver_logging_plugin):
         # Service is already started we don't want startup logs to be shown
         _userver_logging_plugin.update_position()
 
+        await _dynamic_config_defaults_storage.update(client, dynamic_config)
+        _check_config_marks()
+
         await client.suspend_periodic_tasks(tasks_to_suspend)
         try:
-            yield client
+            yield
         finally:
             await client.resume_all_periodic_tasks()
 

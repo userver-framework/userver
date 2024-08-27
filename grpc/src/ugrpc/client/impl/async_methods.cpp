@@ -14,6 +14,7 @@
 #include <ugrpc/impl/rpc_metadata_keys.hpp>
 #include <ugrpc/impl/status.hpp>
 #include <ugrpc/impl/to_string.hpp>
+#include <userver/tracing/opentelemetry.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/impl/deadline_timepoint.hpp>
 #include <userver/ugrpc/status_codes.hpp>
@@ -23,6 +24,7 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::client::impl {
 
 namespace {
+constexpr std::string_view kDefaultOtelTraceFlags = "01";
 
 void SetupSpan(std::optional<tracing::InPlaceSpan>& span_holder,
                grpc::ClientContext& context, std::string_view call_name) {
@@ -39,10 +41,23 @@ void SetupSpan(std::optional<tracing::InPlaceSpan>& span_holder,
                       ugrpc::impl::ToGrpcString(span.GetSpanId()));
   context.AddMetadata(ugrpc::impl::kXYaRequestId,
                       ugrpc::impl::ToGrpcString(span.GetLink()));
+
+  auto traceparent = tracing::opentelemetry::BuildTraceParentHeader(
+      span.GetTraceId(), span.GetSpanId(), kDefaultOtelTraceFlags);
+
+  if (!traceparent.has_value()) {
+    LOG_LIMITED_DEBUG() << fmt::format(
+        "Cannot build opentelemetry traceparent header ({})",
+        traceparent.error());
+    return;
+  }
+  context.AddMetadata(ugrpc::impl::kTraceParent,
+                      ugrpc::impl::ToGrpcString(traceparent.value()));
 }
 
 void SetStatusDetailsForSpan(RpcData& data, grpc::Status& status,
                              const std::optional<std::string>& message) {
+  data.GetSpan().SetLogLevel(logging::Level::kWarning);
   data.GetSpan().AddTag(tracing::kErrorFlag, true);
   data.GetSpan().AddTag("grpc_code",
                         std::string{ugrpc::ToString(status.error_code())});
@@ -55,6 +70,7 @@ void SetStatusDetailsForSpan(RpcData& data, grpc::Status& status,
 }
 
 void SetErrorForSpan(RpcData& data, std::string&& message) {
+  data.GetSpan().SetLogLevel(logging::Level::kWarning);
   data.GetSpan().AddTag(tracing::kErrorFlag, true);
   data.GetSpan().AddTag(tracing::kErrorMessage, std::move(message));
   data.ResetSpan();
@@ -86,17 +102,18 @@ RpcData* FutureImpl::GetData() noexcept { return data_; }
 
 void FutureImpl::ClearData() noexcept { data_ = nullptr; }
 
-RpcData::RpcData(impl::CallParams&& params)
+RpcData::RpcData(impl::CallParams&& params, CallKind call_kind)
     : context_(std::move(params.context)),
-      client_name_(params.call_name),
-      call_name_(params.call_name),
+      client_name_(params.client_name),
+      call_name_(std::move(params.call_name)),
       stats_scope_(params.statistics),
       queue_(params.queue),
       config_values_(params.config),
-      mws_(params.mws) {
+      mws_(params.mws),
+      call_kind_(call_kind) {
   UASSERT(context_);
   UASSERT(!client_name_.empty());
-  SetupSpan(span_, *context_, call_name_);
+  SetupSpan(span_, *context_, call_name_.Get());
 }
 
 RpcData::~RpcData() {
@@ -136,7 +153,7 @@ const Middlewares& RpcData::GetMiddlewares() const noexcept {
 
 std::string_view RpcData::GetCallName() const noexcept {
   UASSERT(context_);
-  return call_name_;
+  return call_name_.Get();
 }
 
 std::string_view RpcData::GetClientName() const noexcept {
@@ -149,6 +166,8 @@ tracing::Span& RpcData::GetSpan() noexcept {
   UASSERT(span_);
   return span_->Get();
 }
+
+CallKind RpcData::GetCallKind() const noexcept { return call_kind_; }
 
 void RpcData::ResetSpan() noexcept {
   UASSERT(context_);
@@ -262,16 +281,20 @@ void PrepareFinish(RpcData& data) {
   data.SetFinished();
 }
 
-void ProcessFinishResult(RpcData& data,
-                         AsyncMethodInvocation::WaitStatus wait_status,
-                         grpc::Status&& status, ParsedGStatus&& parsed_gstatus,
-                         bool throw_on_error) {
+void ProcessFinishResult(
+    RpcData& data, AsyncMethodInvocation::WaitStatus wait_status,
+    grpc::Status&& status, ParsedGStatus&& parsed_gstatus,
+    utils::function_ref<void(RpcData& data, const grpc::Status& status)>
+        post_finish,
+    bool throw_on_error) {
   const auto ok = wait_status == impl::AsyncMethodInvocation::WaitStatus::kOk;
   UASSERT_MSG(ok,
               "ok=false in async Finish method invocation is prohibited "
               "by gRPC docs, see grpc::CompletionQueue::Next");
   data.GetStatsScope().OnExplicitFinish(status.error_code());
   data.GetStatsScope().Flush();
+
+  post_finish(data, status);
 
   if (!status.ok()) {
     SetStatusDetailsForSpan(data, status, parsed_gstatus.gstatus_string);
@@ -282,7 +305,8 @@ void ProcessFinishResult(RpcData& data,
                                  std::move(parsed_gstatus.gstatus_string));
     }
   } else {
-    data.GetStatsScope().Flush();
+    data.GetSpan().AddTag("grpc_code",
+                          std::string{ugrpc::ToString(grpc::StatusCode::OK)});
     data.ResetSpan();
   }
 }

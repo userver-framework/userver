@@ -57,14 +57,30 @@ struct ByteaRefWrapper {
 
 }  // namespace detail
 
-/// Helper function for writing binary data
+// clang-format off
+/// Helper function for reading binary data
+///
+/// Example usage:
+/// @snippet postgresql/src/storages/postgres/tests/bytea_pgtest.cpp bytea_simple
+/// @snippet postgresql/src/storages/postgres/tests/bytea_pgtest.cpp bytea_string
+/// @snippet postgresql/src/storages/postgres/tests/bytea_pgtest.cpp bytea_vector
+// clang-format on
+
 template <typename ByteContainer>
 detail::ByteaRefWrapper<const ByteContainer&> Bytea(
     const ByteContainer& bytes) {
   return {bytes};
 }
 
+// clang-format off
 /// Helper function for reading binary data
+///
+/// Example usage:
+/// @snippet postgresql/src/storages/postgres/tests/bytea_pgtest.cpp bytea_simple
+/// @snippet postgresql/src/storages/postgres/tests/bytea_pgtest.cpp bytea_string
+/// @snippet postgresql/src/storages/postgres/tests/bytea_pgtest.cpp bytea_vector
+// clang-format on
+
 template <typename ByteContainer>
 detail::ByteaRefWrapper<ByteContainer&> Bytea(ByteContainer& bytes) {
   return {bytes};

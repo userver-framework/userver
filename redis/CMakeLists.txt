@@ -58,12 +58,7 @@ if(USERVER_FEATURE_REDIS_TLS)
   add_compile_definitions(USERVER_FEATURE_REDIS_TLS=1)
 endif()
 
-target_link_libraries(${PROJECT_NAME}
-  PUBLIC
-    userver-core
-  PRIVATE
-    userver-uboost-coro
-)
+target_link_libraries(${PROJECT_NAME} PUBLIC userver-core)
 if (USERVER_CONAN)
   find_package(hiredis REQUIRED)
   target_link_libraries(${PROJECT_NAME} PUBLIC hiredis::hiredis)
@@ -93,7 +88,7 @@ _userver_install_targets(COMPONENT redis TARGETS ${PROJECT_NAME})
 
 _userver_directory_install(COMPONENT redis FILES
     "${USERVER_ROOT_DIR}/cmake/install/userver-redis-config.cmake"
-	"${CMAKE_BINARY_DIR}/cmake_generated/FindHiredis.cmake"
+	  "${USERVER_ROOT_DIR}/cmake/modules/FindHiredis.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
 )
 

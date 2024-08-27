@@ -8,6 +8,7 @@ from typing import Optional
 from typing import Union
 
 from chaotic.back.cpp import keywords as cpp_keywords
+from chaotic.back.cpp import type_name
 from chaotic.front import types
 
 USERVER_COLONCOLON = 'userver::'
@@ -15,7 +16,7 @@ USERVER_COLONCOLON = 'userver::'
 
 @dataclasses.dataclass
 class CppType:
-    raw_cpp_type: str
+    raw_cpp_type: type_name.TypeName
     json_schema: Optional[types.Schema]
     nullable: bool  # TODO: maybe move into  field?
     user_cpp_type: Optional[str]
@@ -64,7 +65,6 @@ class CppType:
     def get_py_type(self) -> str:
         return self.__class__.__name__
 
-    # TODO: names of cpp_*()
     def _cpp_name(self) -> str:
         """
         C++ type for declarations. May contain '@':
@@ -72,21 +72,8 @@ class CppType:
             namespace::Struct@Field
             ^^^^^^^^^^^^^^^^^^^^^^^
         """
-        return self.raw_cpp_type
+        return self.raw_cpp_type.in_global_scope()
 
-    def cpp_name_wo_namespace(self) -> str:
-        """
-        C++ type in the declaration namespace:
-
-            namespace::Struct::Field
-                       ^^^^^^^^^^^^^
-        E.g. for parser declaration:
-
-            Struct::Field Parse(...);
-        """
-        return self._cpp_name().split('::')[-1].replace('@', '::')
-
-    # TODO: replace with cpp_global_name() and namespace prefix elimination
     def cpp_local_name(self) -> str:
         """
         C++ type in the parent struct:
@@ -97,7 +84,7 @@ class CppType:
 
             class SubStruct { ... };
         """
-        return self._cpp_name().split('@')[-1].split('::')[-1]
+        return self.raw_cpp_type.in_local_scope()
 
     def cpp_global_name(self) -> str:
         """
@@ -106,7 +93,7 @@ class CppType:
             namespace::Struct::SubStruct
             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         """
-        return self._cpp_name().replace('@', '::')
+        return self._cpp_name()
 
     def cpp_user_name(self) -> str:
         """
@@ -165,7 +152,7 @@ class CppType:
     def _primitive_parser_type(self) -> str:
         raw_cpp_type = (
             'USERVER_NAMESPACE::chaotic::Primitive'
-            f'<{self.raw_cpp_type.replace("@", "::")}>'
+            f'<{self.raw_cpp_type.in_global_scope()}>'
         )
         if self.user_cpp_type:
             user_cpp_type = self.cpp_user_name()
@@ -346,7 +333,7 @@ class CppPrimitiveType(CppType):
             )
 
         parser_type = (
-            f'USERVER_NAMESPACE::chaotic::Primitive<{self.raw_cpp_type}'
+            f'USERVER_NAMESPACE::chaotic::Primitive<{self.raw_cpp_type.in_global_scope()}'
             f'{validators}>'
         )
         if self.user_cpp_type:
@@ -417,9 +404,7 @@ class CppStringWithFormat(CppType):
                 'USERVER_NAMESPACE::'
                 + format_cpp_type[len(USERVER_COLONCOLON) :]
             )
-        parser_type = (
-            f'USERVER_NAMESPACE::chaotic::Primitive<{self.raw_cpp_type}>'
-        )
+        parser_type = f'USERVER_NAMESPACE::chaotic::Primitive<{self.raw_cpp_type.in_global_scope()}>'
         parser_type = (
             f'USERVER_NAMESPACE::chaotic::WithType<{parser_type}, '
             f'{format_cpp_type}>'
@@ -443,6 +428,7 @@ class CppRef(CppType):
     orig_cpp_type: CppType
     indirect: bool
     self_ref: bool
+    cpp_name: Optional[str] = None
 
     KNOWN_X_PROPERTIES = ['x-usrv-cpp-indirect', 'x-taxi-cpp-indirect']
 
@@ -468,7 +454,14 @@ class CppRef(CppType):
                 f'Box<{self.orig_cpp_type.cpp_user_name()}>'
             )
         else:
-            return self.orig_cpp_type.cpp_user_name()
+            if not self.cpp_name or (
+                    self.orig_cpp_type.cpp_user_name()
+                    != self.orig_cpp_type.cpp_global_name()
+            ):
+                # x-usrv-cpp-type
+                return self.orig_cpp_type.cpp_user_name()
+            else:
+                return self.cpp_name
 
     def declaration_includes(self) -> List[str]:
         if self.indirect:
@@ -1016,12 +1009,10 @@ class CppVariantWithDiscriminator(CppType):
         variants = ', '.join(variants_list)
 
         settings_name = (
-            self.raw_cpp_type.rsplit('::', 1)[0]
-            + '::impl::'
-            + 'k'
-            + self.cpp_global_struct_field_name()
-            + '_Settings'
-        )
+            self.raw_cpp_type.parent().joinns(
+                'k' + self.cpp_local_name() + '_Settings',
+            )
+        ).in_global_scope()
 
         parser_type = (
             'USERVER_NAMESPACE::chaotic::OneOfWithDiscriminator'

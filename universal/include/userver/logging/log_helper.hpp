@@ -162,6 +162,8 @@ class LogHelper final {
 
   // For internal use only!
   impl::TagWriter GetTagWriterAfterText(InternalTag);
+
+  void MarkAsTrace(InternalTag);
   /// @endcond
 
  private:

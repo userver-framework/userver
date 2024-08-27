@@ -2,6 +2,8 @@
 #include <sstream>
 #include <unordered_map>
 
+#include <fmt/format.h>
+
 #include <userver/utest/using_namespace_userver.hpp>
 
 #include <userver/components/component_config.hpp>
@@ -30,8 +32,6 @@
 
 #include <userver/utils/daemon_run.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
-
-#include <fmt/format.h>
 
 namespace functional_tests {
 

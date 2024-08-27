@@ -52,8 +52,6 @@ TEST(StrongTypedef, CompareStrong) {
   using Int = utils::StrongTypedef<IntTag, int,
                                    utils::StrongTypedefOps::kCompareStrong>;
   EXPECT_TRUE((boost::has_equal_to<Int, Int>::value));
-  EXPECT_FALSE((boost::has_equal_to<int, Int>::value));
-  EXPECT_FALSE((boost::has_equal_to<Int, int>::value));
 
   struct StringTag {};
   using String = utils::StrongTypedef<StringTag, std::string,
@@ -61,8 +59,9 @@ TEST(StrongTypedef, CompareStrong) {
   EXPECT_TRUE((boost::has_equal_to<String, String>::value));
   EXPECT_FALSE((boost::has_equal_to<int, String>::value));
   EXPECT_FALSE((boost::has_equal_to<String, int>::value));
-  EXPECT_FALSE((boost::has_equal_to<std::string, String>::value));
-  EXPECT_FALSE((boost::has_equal_to<String, std::string>::value));
+
+  EXPECT_TRUE((boost::has_equal_to<std::optional<String>, String>::value));
+  EXPECT_TRUE((boost::has_equal_to<std::optional<MyString>, MyString>::value));
 }
 
 TEST(StrongTypedef, StringDefaultConstruction) {
@@ -128,8 +127,31 @@ TEST(StrongTypedef, IntTransparentComparisons) {
   EXPECT_LT(i, 2);
   EXPECT_GT(i, 0);
 
+  EXPECT_EQ(1, i);
+  EXPECT_LE(1, i);
+  EXPECT_GT(2, i);
+  EXPECT_LT(0, i);
+
   EXPECT_EQ(UnderlyingValue(i), 1);
 }
+
+#ifdef __cpp_lib_three_way_comparison
+TEST(StrongTypedef, IntThreeWayTransparentComparison) {
+  MySpecialInt i;
+  ASSERT_EQ(0 <=> i, 0 <=> 0);
+
+  ++i.GetUnderlying();
+  ASSERT_EQ(0 <=> i, 0 <=> 1);
+  ASSERT_EQ(1 <=> i, 1 <=> 1);
+  ASSERT_EQ(2 <=> i, 2 <=> 1);
+
+  ASSERT_EQ(i <=> 0, 1 <=> 0);
+  ASSERT_EQ(i <=> 1, 1 <=> 1);
+  ASSERT_EQ(i <=> 2, 1 <=> 2);
+
+  EXPECT_EQ(UnderlyingValue(i), 1);
+}
+#endif
 
 TEST(StrongTypedef, IntStreamingAndLogging) {
   MySpecialInt i;

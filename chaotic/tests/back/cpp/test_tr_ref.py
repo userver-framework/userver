@@ -1,3 +1,4 @@
+from chaotic.back.cpp import type_name
 from chaotic.back.cpp.translator import Generator
 from chaotic.back.cpp.translator import GeneratorConfig
 from chaotic.back.cpp.types import CppRef
@@ -39,21 +40,22 @@ def test_simple_ref(clean):
 
     assert cpp_types == {
         'Type': CppStruct(
-            raw_cpp_type='Type',
+            raw_cpp_type=type_name.TypeName('Type'),
             json_schema=None,
             nullable=False,
             user_cpp_type=None,
             fields={},
         ),
         'ref': CppRef(
-            raw_cpp_type='',
+            raw_cpp_type=type_name.TypeName(''),
             json_schema=None,
             nullable=False,
             indirect=False,
             self_ref=False,
+            cpp_name='Type',
             user_cpp_type=None,
             orig_cpp_type=CppStruct(
-                raw_cpp_type='Type',
+                raw_cpp_type=type_name.TypeName('Type'),
                 json_schema=SchemaObject(
                     additionalProperties=False, properties={},
                 ),

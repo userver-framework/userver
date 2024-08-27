@@ -21,16 +21,34 @@ class MetricValue final {
  public:
   using RawType = std::variant<std::int64_t, double, Rate, HistogramView>;
 
+  /// Creates an unspecified metric value.
+  constexpr MetricValue() noexcept : value_(std::int64_t{0}) {}
+
+  /// Constructs MetricValue for tests.
+  /// @{
+  constexpr /*implicit*/ MetricValue(std::int64_t value) noexcept
+      : value_(value) {}
+
+  constexpr /*implicit*/ MetricValue(double value) noexcept : value_(value) {}
+
+  constexpr /*implicit*/ MetricValue(Rate value) noexcept : value_(value) {}
+
+  constexpr /*implicit*/ MetricValue(HistogramView value) noexcept
+      : value_(value) {}
+  /// @}
+
   // trivially copyable
   MetricValue(const MetricValue&) = default;
   MetricValue& operator=(const MetricValue&) = default;
 
-  bool operator==(const MetricValue& other) const noexcept {
-    return value_ == other.value_;
+  friend bool operator==(const MetricValue& lhs,
+                         const MetricValue& rhs) noexcept {
+    return lhs.value_ == rhs.value_;
   }
 
-  bool operator!=(const MetricValue& other) const noexcept {
-    return value_ != other.value_;
+  friend bool operator!=(const MetricValue& lhs,
+                         const MetricValue& rhs) noexcept {
+    return lhs.value_ != rhs.value_;
   }
 
   /// @brief Retrieve the value of an integer metric.
@@ -65,8 +83,6 @@ class MetricValue final {
   }
 
   /// @cond
-  MetricValue() noexcept : value_(std::int64_t{0}) {}
-
   explicit MetricValue(RawType value) noexcept : value_(value) {}
   /// @endcond
 

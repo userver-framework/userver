@@ -37,6 +37,8 @@ class MutexImpl {
  private:
   class MutexWaitStrategy;
 
+  bool TryLockWithTaskContext(TaskContext& current);
+
   bool LockFastPath(TaskContext&) noexcept;
   bool LockSlowPath(TaskContext&, Deadline);
 
@@ -48,29 +50,28 @@ template <>
 class MutexImpl<WaitList>::MutexWaitStrategy final : public WaitStrategy {
  public:
   MutexWaitStrategy(MutexImpl<WaitList>& mutex, TaskContext& current)
-      : mutex_(mutex),
-        current_(current),
-        waiter_token_(mutex_.lock_waiters_),
-        lock_(mutex_.lock_waiters_) {}
+      : mutex_(mutex), current_(current), waiter_token_(mutex_.lock_waiters_) {}
 
   EarlyWakeup SetupWakeups() override {
-    mutex_.lock_waiters_.Append(lock_, &current_);
-    lock_.unlock();
+    WaitList::Lock lock(mutex_.lock_waiters_);
+    if (mutex_.TryLockWithTaskContext(current_)) {
+      return EarlyWakeup{true};
+    }
     // A race is not possible here, because check + Append is performed under
     // WaitList::Lock, and notification also takes WaitList::Lock.
+    mutex_.lock_waiters_.Append(lock, &current_);
     return EarlyWakeup{false};
   }
 
   void DisableWakeups() noexcept override {
-    lock_.lock();
-    mutex_.lock_waiters_.Remove(lock_, current_);
+    WaitList::Lock lock(mutex_.lock_waiters_);
+    mutex_.lock_waiters_.Remove(lock, current_);
   }
 
  private:
   MutexImpl<WaitList>& mutex_;
   TaskContext& current_;
   const WaitList::WaitersScopeCounter waiter_token_;
-  WaitList::Lock lock_;
 };
 
 template <>
@@ -80,6 +81,9 @@ class MutexImpl<WaitListLight>::MutexWaitStrategy final : public WaitStrategy {
       : mutex_(mutex), current_(current) {}
 
   EarlyWakeup SetupWakeups() override {
+    if (TryLock()) {
+      return EarlyWakeup{true};
+    }
     mutex_.lock_waiters_.Append(&current_);
     if (mutex_.owner_.load() == nullptr) {
       mutex_.lock_waiters_.Remove(current_);
@@ -93,6 +97,17 @@ class MutexImpl<WaitListLight>::MutexWaitStrategy final : public WaitStrategy {
   }
 
  private:
+  bool TryLock() {
+    TaskContext* expected = nullptr;
+    if (mutex_.owner_.compare_exchange_strong(expected, &current_,
+                                              std::memory_order_relaxed)) {
+      return true;
+    }
+    UINVARIANT(expected != &current_,
+               "MutexImpl is locked twice from the same task");
+    return false;
+  }
+
   MutexImpl<WaitListLight>& mutex_;
   TaskContext& current_;
 };
@@ -121,21 +136,16 @@ bool MutexImpl<Waiters>::LockFastPath(TaskContext& current) noexcept {
 
 template <class Waiters>
 bool MutexImpl<Waiters>::LockSlowPath(TaskContext& current, Deadline deadline) {
-  TaskContext* expected = nullptr;
-
   const engine::TaskCancellationBlocker block_cancels;
   MutexWaitStrategy wait_manager{*this, current};
-  while (!owner_.compare_exchange_strong(expected, &current,
-                                         std::memory_order_relaxed)) {
-    UINVARIANT(expected != &current,
-               "MutexImpl is locked twice from the same task");
-
+  while (true) {
     const auto wakeup_source = current.Sleep(wait_manager, deadline);
+    if (owner_.load() == &current) {
+      return true;
+    }
     if (!HasWaitSucceeded(wakeup_source)) {
       return false;
     }
-
-    expected = nullptr;
   }
   return true;
 }
@@ -170,11 +180,16 @@ void MutexImpl<Waiters>::unlock() {
 
 template <class Waiters>
 bool MutexImpl<Waiters>::try_lock() {
+  auto& current = current_task::GetCurrentTaskContext();
+  return TryLockWithTaskContext(current);
+}
+
+template <class Waiters>
+bool MutexImpl<Waiters>::TryLockWithTaskContext(TaskContext& current) {
 #if USERVER_IMPL_HAS_TSAN
   __tsan_mutex_pre_lock(this, __tsan_mutex_try_lock);
 #endif
 
-  auto& current = current_task::GetCurrentTaskContext();
   const auto result = LockFastPath(current);
 
 #if USERVER_IMPL_HAS_TSAN

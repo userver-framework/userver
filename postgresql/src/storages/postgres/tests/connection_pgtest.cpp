@@ -361,9 +361,9 @@ UTEST_P(PostgreConnection, StatementTimeout) {
   EXPECT_FALSE(GetConn()->IsBroken());
 }
 
-UTEST_P(PostgreConnection, QueryTaskCancel) {
-  CheckConnection(GetConn());
-  EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
+void CleanupConnectionTest(storages::postgres::detail::ConnectionPtr& conn,
+                           bool use_cancel) {
+  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
 
   DefaultCommandControlScope scope(
       pg::CommandControl{utest::kMaxTestWaitTime, utest::kMaxTestWaitTime});
@@ -371,7 +371,7 @@ UTEST_P(PostgreConnection, QueryTaskCancel) {
   engine::SingleConsumerEvent task_started;
   auto task = engine::AsyncNoSpan([&] {
     task_started.Send();
-    UEXPECT_THROW(GetConn()->Execute("select pg_sleep(1)"),
+    UEXPECT_THROW(conn->Execute("select pg_sleep(1)"),
                   pg::ConnectionInterrupted);
   });
   ASSERT_TRUE(task_started.WaitForEventFor(utest::kMaxTestWaitTime));
@@ -379,9 +379,23 @@ UTEST_P(PostgreConnection, QueryTaskCancel) {
   task.WaitFor(utest::kMaxTestWaitTime);
   ASSERT_TRUE(task.IsFinished());
 
-  EXPECT_EQ(pg::ConnectionState::kTranActive, GetConn()->GetState());
-  UEXPECT_NO_THROW(GetConn()->CancelAndCleanup(utest::kMaxTestWaitTime));
-  EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
+  EXPECT_EQ(pg::ConnectionState::kTranActive, conn->GetState());
+  if (use_cancel) {
+    UEXPECT_NO_THROW(conn->CancelAndCleanup(utest::kMaxTestWaitTime));
+  } else {
+    UEXPECT_NO_THROW(conn->Cleanup(std::chrono::seconds{2}));
+  }
+  EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+}
+
+UTEST_P(PostgreConnection, QueryTaskCancelAndCleanup) {
+  CheckConnection(GetConn());
+  CleanupConnectionTest(GetConn(), /*use cancel=*/true);
+}
+
+UTEST_P(PostgreConnection, QueryTaskCleanup) {
+  CheckConnection(GetConn());
+  CleanupConnectionTest(GetConn(), /*use cancel=*/false);
 }
 
 UTEST_P(PostgreConnection, CachedPlanChange) {

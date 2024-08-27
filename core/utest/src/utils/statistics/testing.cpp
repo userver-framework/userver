@@ -11,6 +11,7 @@
 #include <boost/container/flat_set.hpp>
 #include <boost/range/iterator_range.hpp>
 
+#include <userver/utils/assert.hpp>
 #include <userver/utils/statistics/fmt.hpp>
 #include <userver/utils/statistics/histogram.hpp>
 
@@ -83,8 +84,9 @@ void PrependPrefix(std::string& path, const Request& request) {
   path = fmt::format("{}{}{}", request.prefix, separator, path);
 }
 
-Metric GetSingle(const impl::SnapshotData& data, const std::string& path,
-                 const std::vector<Label>& required_labels) {
+std::optional<Metric> GetSingleOptional(
+    const impl::SnapshotData& data, const std::string& path,
+    const std::vector<Label>& required_labels) {
   std::optional<Metric> found_metric;
   const auto iterator_pair = data.metrics.equal_range(path);
 
@@ -107,11 +109,7 @@ Metric GetSingle(const impl::SnapshotData& data, const std::string& path,
     }
   }
 
-  if (!found_metric) {
-    throw MetricQueryError(fmt::format("No metric found for request {};{}",
-                                       path, fmt::join(required_labels, ";")));
-  }
-  return std::move(*found_metric);
+  return found_metric;
 }
 
 }  // namespace
@@ -125,11 +123,25 @@ Snapshot::Snapshot(const Storage& storage, std::string prefix,
 MetricValue Snapshot::SingleMetric(std::string path,
                                    std::vector<Label> require_labels) const {
   PrependPrefix(path, request_);
-  auto result = statistics::GetSingle(*data_, path, require_labels);
-  return result.value;
+  const auto result =
+      statistics::GetSingleOptional(*data_, path, require_labels);
+  if (!result) {
+    throw MetricQueryError(fmt::format("No metric found for request {};{}",
+                                       path, fmt::join(require_labels, ";")));
+  }
+  return result->value;
+}
+
+std::optional<MetricValue> Snapshot::SingleMetricOptional(
+    std::string path, std::vector<Label> require_labels) const {
+  PrependPrefix(path, request_);
+  const auto result =
+      statistics::GetSingleOptional(*data_, path, require_labels);
+  return result ? std::make_optional(result->value) : std::nullopt;
 }
 
 void PrintTo(const Snapshot& data, std::ostream* out) {
+  UASSERT(out);
   *out << "{";
   for (const auto& [path, entry] : data.data_->metrics) {
     *out << fmt::format("{};{} {}", path, fmt::join(entry.labels, ";"),
@@ -137,6 +149,11 @@ void PrintTo(const Snapshot& data, std::ostream* out) {
     *out << ";\n";
   }
   *out << "}";
+}
+
+void PrintTo(MetricValue value, std::ostream* out) {
+  UASSERT(out);
+  *out << fmt::to_string(value);
 }
 
 }  // namespace utils::statistics

@@ -9,7 +9,7 @@ namespace ugrpc::client::middlewares::baggage {
 /// @brief middleware for gRPC client baggage
 class Middleware final : public MiddlewareBase {
  public:
-  void Handle(MiddlewareCallContext& context) const override;
+  void PreStartCall(MiddlewareCallContext& context) const override;
 };
 ///
 

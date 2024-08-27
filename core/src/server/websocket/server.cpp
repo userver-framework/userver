@@ -131,59 +131,75 @@ class WebSocketConnectionImpl final : public WebSocketConnection {
     SendExtended(mext);
   }
 
-  void Recv(Message& msg) override {
+  bool RecvImpl(Message& msg, bool do_not_wait_for_message_header) {
     msg.data.resize(0);  // do not call .clear() to keep the allocated memory
     frame_.payload = &msg.data;
 
-    try {
-      while (true) {
-        size_t payload_len = 0;
+    while (true) {
+      std::size_t payload_len = 0;
+      CloseStatus status_raw{};
+
+      if (do_not_wait_for_message_header) {
+        const auto opt_status_raw = ReadWSFrameDontWaitForHeader(
+            frame_, *io, config.max_remote_payload, payload_len);
+        if (!opt_status_raw) return false;
+        status_raw = *opt_status_raw;
+      } else {
         // ReadWSFrame() returns kGoingAway in case of task cancellation
-        CloseStatus status_raw =
+        status_raw =
             ReadWSFrame(frame_, *io, config.max_remote_payload, payload_len);
-
-        auto status = static_cast<CloseStatusInt>(status_raw);
-        LOG_TRACE() << fmt::format(
-            "Read frame is_text {}, closed {}, data size {} status {} "
-            "waitCont {}",
-            frame_.is_text, frame_.closed, frame_.payload->size(), status,
-            frame_.waiting_continuation);
-        if (status != 0) {
-          MessageExtended close_msg{{}, impl::WSOpcodes::kClose, status_raw};
-          SendExtended(close_msg);
-          msg = CloseMessage(status_raw);
-          return;
-        }
-
-        if (frame_.closed) {
-          msg = CloseMessage(
-              static_cast<CloseStatus>(frame_.remote_close_status));
-          return;
-        }
-
-        if (frame_.ping_received) {
-          MessageExtended pongMsg{
-              MakeBinarySpan(*frame_.payload), impl::WSOpcodes::kPong, {}};
-          SendExtended(pongMsg);
-          frame_.payload->resize(frame_.payload->size() - payload_len);
-          frame_.ping_received = false;
-          continue;
-        }
-        if (frame_.pong_received) {
-          frame_.pong_received = false;
-          continue;
-        }
-        if (frame_.waiting_continuation) continue;
-
-        msg.is_text = frame_.is_text;
-        stats_.msg_recv++;
-        stats_.bytes_recv += msg.data.size();
-        return;
       }
-    } catch (std::exception const& e) {
-      LOG_TRACE() << "Exception during frame_ parsing " << e;
-      throw;
+
+      const auto status = static_cast<CloseStatusInt>(status_raw);
+      LOG_TRACE() << fmt::format(
+          "Read frame is_text {}, closed {}, data size {} status {} "
+          "waitCont {}",
+          frame_.is_text, frame_.closed, frame_.payload->size(), status,
+          frame_.waiting_continuation);
+
+      if (status != 0) {
+        MessageExtended close_msg{{}, impl::WSOpcodes::kClose, status_raw};
+        SendExtended(close_msg);
+        msg = CloseMessage(status_raw);
+        return true;
+      }
+
+      if (frame_.closed) {
+        msg =
+            CloseMessage(static_cast<CloseStatus>(frame_.remote_close_status));
+        return true;
+      }
+
+      if (frame_.ping_received) {
+        MessageExtended pongMsg{
+            MakeBinarySpan(*frame_.payload), impl::WSOpcodes::kPong, {}};
+        SendExtended(pongMsg);
+        frame_.payload->resize(frame_.payload->size() - payload_len);
+        frame_.ping_received = false;
+        continue;
+      }
+      if (frame_.pong_received) {
+        frame_.pong_received = false;
+        continue;
+      }
+      if (frame_.waiting_continuation) continue;
+
+      msg.is_text = frame_.is_text;
+      stats_.msg_recv++;
+      stats_.bytes_recv += msg.data.size();
+      return true;
     }
+  }
+
+  void Recv(Message& msg) override {
+    const auto ok = RecvImpl(msg, /*do_not_wait_for_message_header*/ false);
+    UASSERT(ok);
+  }
+
+  // Aware! we can't drop the msg's buffer so for data sending we need to yet
+  // another message.
+  bool TryRecv(Message& msg) override {
+    return RecvImpl(msg, /*do_not_wait_for_message_header*/ true);
   }
 
   void Close(CloseStatus status_code) override {

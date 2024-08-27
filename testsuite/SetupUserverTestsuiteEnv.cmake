@@ -8,10 +8,8 @@ include(UserverTestsuite)
 
 userver_testsuite_requirements(REQUIREMENTS_FILES_VAR requirements_files)
 
-if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-  list(APPEND requirements_files
-      "${USERVER_ROOT_DIR}/testsuite/requirements-net.txt")
-endif()
+list(APPEND requirements_files
+  "${USERVER_ROOT_DIR}/testsuite/requirements-internal-tests.txt")
 
 userver_venv_setup(
   NAME userver-testenv

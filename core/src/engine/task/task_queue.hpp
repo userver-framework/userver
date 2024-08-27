@@ -27,6 +27,8 @@ class TaskQueue final {
 
   std::size_t GetSizeApproximate() const noexcept;
 
+  void PrepareWorker(std::size_t index);
+
  private:
   void DoPush(impl::TaskContext* context);
 

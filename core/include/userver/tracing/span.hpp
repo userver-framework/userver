@@ -242,12 +242,25 @@ class Span final {
 
 namespace impl {
 
-struct LogSpanAsLastNonCoro final {
+class DetachLocalSpansScope final {
+ public:
+  DetachLocalSpansScope() noexcept;
+  ~DetachLocalSpansScope();
+
+  DetachLocalSpansScope(DetachLocalSpansScope&&) = delete;
+  DetachLocalSpansScope& operator=(DetachLocalSpansScope&&) = delete;
+
+ private:
+  struct Impl;
+  utils::FastPimpl<Impl, 16, 8> impl_;
+};
+
+struct LogSpanAsLastNoCurrent final {
   const Span& span;
 };
 
 logging::LogHelper& operator<<(logging::LogHelper& lh,
-                               LogSpanAsLastNonCoro span);
+                               LogSpanAsLastNoCurrent span);
 
 }  // namespace impl
 

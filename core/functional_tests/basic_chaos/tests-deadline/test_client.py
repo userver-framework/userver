@@ -206,6 +206,33 @@ def _fake_deadline_expired_mock(mockserver):
     return mock
 
 
+async def test_fake_deadline_expired_with_exception(
+        service_client, call, fake_deadline_expired_mock, mockserver,
+):
+    async with service_client.capture_logs() as capture:
+        response = await call(
+            headers={DP_TIMEOUT_MS: '300'}, timeout=500, attempts=3,
+        )
+        assert response.status == 504
+        assert response.text == 'Deadline expired'
+
+    errors = capture.select(level='ERROR')
+    warnings = capture.select(level='WARNING')
+    assert len(errors) == 0
+    assert len(warnings) == 2
+
+    exception_warning = warnings[0]
+    deadline_warning = warnings[1]
+
+    assert exception_warning['text'].startswith(
+        f'exception in \'handler-chaos-httpclient\' handler: Timeout happened (deadline propagation), '
+        f'url: {mockserver.url("test")}',
+    )
+
+    assert deadline_warning['body'] == 'Deadline expired'
+    assert deadline_warning['meta_code'] == '504'
+
+
 async def test_fake_deadline_expired(
         service_client, call, client_metrics, fake_deadline_expired_mock,
 ):

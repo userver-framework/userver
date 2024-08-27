@@ -138,7 +138,7 @@ void BatchOfUnaryRPC(benchmark::State& state) {
   engine::RunStandalone(
       state.range(0),
       engine::TaskProcessorPoolsConfig{10000, 100000, 256 * 1024ULL, 1, "ev",
-                                       false, false},
+                                       false},
       [&] {
         static constexpr std::size_t kBatchSize = 16;
         GrpcClientTest client_factory;
@@ -170,7 +170,7 @@ void BatchOfUnaryRPCNewClient(benchmark::State& state) {
   engine::RunStandalone(
       state.range(0),
       engine::TaskProcessorPoolsConfig{10000, 100000, 256 * 1024ULL, 1, "ev",
-                                       false, false},
+                                       false},
       [&] {
         static constexpr std::size_t kBatchSize = 16;
         GrpcClientTest client_factory;
@@ -202,7 +202,7 @@ void BatchOfNewClient(benchmark::State& state) {
   engine::RunStandalone(
       state.range(0),
       engine::TaskProcessorPoolsConfig{10000, 100000, 256 * 1024ULL, 1, "ev",
-                                       false, false},
+                                       false},
       [&] {
         static constexpr std::size_t kBatchSize = 16;
         GrpcClientTest client_factory;

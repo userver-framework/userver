@@ -19,7 +19,7 @@ std::enable_if_t<std::is_integral_v<T>, T> Convert(const std::uint64_t& value,
 
 template <typename T>
 std::enable_if_t<std::is_integral_v<T>, std::uint64_t> Convert(
-    T&& value, To<std::uint64_t>) {
+    const T& value, To<std::uint64_t>) {
   return utils::numeric_cast<std::uint64_t>(value);
 }
 

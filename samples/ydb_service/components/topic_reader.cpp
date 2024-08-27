@@ -137,7 +137,7 @@ class SessionReadTask {
 
     /*
       If it throws, read session will be closed and recreated in
-      {restart_session_delay} ms All uncommited messages will be received again
+      {restart_session_delay} ms All uncommitted messages will be received again
     */
   }
 

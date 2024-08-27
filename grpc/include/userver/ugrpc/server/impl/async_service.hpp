@@ -38,9 +38,11 @@ class AsyncService final : public Service::Service {
       this->RequestAsyncServerStreaming(method_id, &context, &initial_request,
                                         &stream, &call_cq, &notification_cq,
                                         tag);
-    } else {
+    } else if constexpr (kCallCategory == CallCategory::kBidirectionalStream) {
       this->RequestAsyncBidiStreaming(method_id, &context, &stream, &call_cq,
                                       &notification_cq, tag);
+    } else {
+      static_assert(!sizeof(CallTraits), "Invalid kCallCategory");
     }
   }
 };

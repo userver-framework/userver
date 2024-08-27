@@ -185,8 +185,8 @@ else()
          $<BUILD_INTERFACE:${USERVER_THIRD_PARTY_DIRS}/moodycamel/include>
     )
     _userver_directory_install(COMPONENT core
-        DIRECTORY ${USERVER_THIRD_PARTY_DIRS}/moodycamel/include
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
+        DIRECTORY ${USERVER_THIRD_PARTY_DIRS}/moodycamel/include/moodycamel
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/userver/third_party
     )
 endif()
 
@@ -201,8 +201,12 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 _userver_directory_install(COMPONENT core
   DIRECTORY
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${USERVER_THIRD_PARTY_DIRS}/pfr/include
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
+)
+_userver_directory_install(COMPONENT core
+  DIRECTORY
+    ${USERVER_THIRD_PARTY_DIRS}/pfr/include/boost
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/userver/third_party
 )
 
 target_include_directories(${PROJECT_NAME} SYSTEM BEFORE PUBLIC
@@ -294,9 +298,9 @@ _userver_install_targets(COMPONENT core TARGETS ${PROJECT_NAME})
 _userver_directory_install(COMPONENT core FILES
     "${USERVER_ROOT_DIR}/cmake/UserverTestsuite.cmake"
     "${USERVER_ROOT_DIR}/cmake/install/userver-core-config.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/Findc-ares.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/FindNghttp2.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/FindLibEv.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findc-ares.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/FindNghttp2.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/FindLibEv.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
 )
 

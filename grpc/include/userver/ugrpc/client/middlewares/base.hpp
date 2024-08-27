@@ -4,11 +4,9 @@
 /// @brief @copybrief ugrpc::client::MiddlewareBase
 
 #include <memory>
-#include <optional>
 #include <vector>
 
 #include <userver/components/component_base.hpp>
-#include <userver/utils/function_ref.hpp>
 
 #include <userver/ugrpc/client/middlewares/fwd.hpp>
 #include <userver/ugrpc/client/rpc.hpp>
@@ -26,46 +24,68 @@ namespace ugrpc::client {
 class MiddlewareCallContext final {
  public:
   /// @cond
-  MiddlewareCallContext(const Middlewares& middlewares, CallAnyBase& call,
-                        utils::function_ref<void()> user_call,
-                        const ::google::protobuf::Message* request);
+  explicit MiddlewareCallContext(impl::RpcData& data);
   /// @endcond
 
-  /// @brief Call next plugin, or gRPC handler if none
-  void Next();
+  /// @returns the `ClientContext` used for this RPC
+  grpc::ClientContext& GetContext() noexcept;
 
-  /// @brief Get original gRPC Call
-  CallAnyBase& GetCall();
+  /// @returns client name
+  std::string_view GetClientName() const noexcept;
 
-  /// @brief Get initial gRPC request. For RPC w/o initial request
-  /// returns nullptr.
-  const ::google::protobuf::Message* GetInitialRequest();
+  /// @returns RPC name
+  std::string_view GetCallName() const noexcept;
+
+  /// @returns RPC kind
+  CallKind GetCallKind() const noexcept;
+
+  /// @returns RPC span
+  tracing::Span& GetSpan() noexcept;
+
+  /// @cond
+  // For internal use only
+  impl::RpcData& GetData(ugrpc::impl::InternalTag);
+  /// @endcond
 
  private:
-  Middlewares::const_iterator middleware_;
-  Middlewares::const_iterator middleware_end_;
-  std::optional<utils::function_ref<void()>> user_call_;
-
-  CallAnyBase& call_;
-  const ::google::protobuf::Message* request_;
+  impl::RpcData& data_;
 };
 
 /// @ingroup userver_base_classes
 ///
-/// @brief Base class for server gRPC middleware
+/// @brief Base class for client gRPC middleware
 class MiddlewareBase {
  public:
-  MiddlewareBase();
+  virtual ~MiddlewareBase();
+
   MiddlewareBase(const MiddlewareBase&) = delete;
+
   MiddlewareBase& operator=(const MiddlewareBase&) = delete;
   MiddlewareBase& operator=(MiddlewareBase&&) = delete;
 
-  virtual ~MiddlewareBase();
+  // default implemented methods
 
-  /// @brief Handles the gRPC request
-  /// @note You MUST call context.Next() inside eventually, otherwise it will
-  /// assert
-  virtual void Handle(MiddlewareCallContext& context) const = 0;
+  /// called before `StartCall`
+  virtual void PreStartCall(MiddlewareCallContext&) const;
+
+  /// called after Finish
+  /// @note could be not called if `Finish` was not called (eg deadline or
+  /// network problem)
+  /// @see @ref RpcInterruptedError
+  virtual void PostFinish(MiddlewareCallContext&, const grpc::Status&) const;
+
+  /// called before send message
+  /// @note not called for `GenericClient` messages
+  virtual void PreSendMessage(MiddlewareCallContext&,
+                              const google::protobuf::Message&) const;
+
+  /// called after receive message
+  /// @note not called for `GenericClient` messages
+  virtual void PostRecvMessage(MiddlewareCallContext&,
+                               const google::protobuf::Message&) const;
+
+ protected:
+  MiddlewareBase();
 };
 
 /// @ingroup userver_base_classes
@@ -93,6 +113,13 @@ class MiddlewareComponentBase : public components::ComponentBase {
   virtual std::shared_ptr<const MiddlewareFactoryBase>
   GetMiddlewareFactory() = 0;
 };
+
+namespace impl {
+
+Middlewares InstantiateMiddlewares(const MiddlewareFactories& factories,
+                                   const std::string& client_name);
+
+}  // namespace impl
 
 }  // namespace ugrpc::client
 

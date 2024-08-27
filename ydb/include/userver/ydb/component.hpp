@@ -85,6 +85,9 @@ class YdbComponent final : public components::ComponentBase {
 
   /// Get native driver
   /// @param dbname database name from static config key
+  /// @warning Use with care! Facilities from
+  /// `<core/include/userver/drivers/subscribable_futures.hpp>` can help with
+  /// non-blocking wait operations.
   const NYdb::TDriver& GetNativeDriver(const std::string& dbname) const;
 
   /// Get database path

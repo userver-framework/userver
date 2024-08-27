@@ -36,12 +36,6 @@ T CheckNotNull(T ptr) {
 }  // namespace
 
 void CacheUpdateTrait::Impl::InvalidateAsync(UpdateType update_type) {
-  if (!periodic_update_enabled_) {
-    // We are in testsuite, update synchronously for repeatability.
-    UpdateSyncDebug(update_type);
-    return;
-  }
-
   if (static_config_.allowed_update_types == AllowedUpdateTypes::kOnlyFull &&
       update_type == UpdateType::kIncremental) {
     LOG_WARNING() << "Requested incremental update for cache '" << name_
@@ -56,8 +50,34 @@ void CacheUpdateTrait::Impl::InvalidateAsync(UpdateType update_type) {
   auto actual = FirstUpdateInvalidation::kNo;
   first_update_invalidation_.compare_exchange_strong(
       actual, FirstUpdateInvalidation::kYes);
-  if (actual == FirstUpdateInvalidation::kFinished) {
+  if (actual != FirstUpdateInvalidation::kFinished) {
+    // Invalidation was requested before StartPeriodicUpdates.
+    return;
+  }
+
+  DoInvalidateAsync();
+}
+
+void CacheUpdateTrait::Impl::DoInvalidateAsync() {
+  if (periodic_update_enabled_) {
     update_task_.ForceStepAsync();
+  } else {
+    if (!is_running_) {
+      // InvalidateAsync outside of StartPeriodicUpdates-StopPeriodicUpdates
+      // is noop, just like in production.
+      return;
+    }
+
+    // We are in testsuite, update synchronously for repeatability.
+    utils::CriticalAsync(task_processor_, update_task_name_, [this] {
+      try {
+        DoPeriodicUpdate();
+      } catch (const std::exception& ex) {
+        // The exception has already been logged in DoPeriodicUpdate.
+        LOG_DEBUG() << "Exception from DoPeriodicUpdate of cache '" << name_
+                    << "': " << ex;
+      }
+    }).Get();
   }
 }
 
@@ -211,14 +231,15 @@ void CacheUpdateTrait::Impl::StartPeriodicUpdates(
       periodic_task_flags_ |= utils::PeriodicTask::Flags::kStrong;
     }
 
-    if (periodic_update_enabled_) {
-      const auto first_update_invalidation =
-          first_update_invalidation_.exchange(
-              FirstUpdateInvalidation::kFinished);
-      if (first_update_invalidation == FirstUpdateInvalidation::kYes) {
-        update_task_.ForceStepAsync();
-      }
+    const auto first_update_invalidation =
+        first_update_invalidation_.exchange(FirstUpdateInvalidation::kFinished);
+    if (first_update_invalidation == FirstUpdateInvalidation::kYes) {
+      // InvalidateAsync was called during the first update, the cache is
+      // considered to already be stale.
+      DoInvalidateAsync();
+    }
 
+    if (periodic_update_enabled_) {
       update_task_.Start(update_task_name_, GetPeriodicTaskSettings(*config),
                          [this] { DoPeriodicUpdate(); });
 
@@ -282,10 +303,10 @@ rcu::ReadablePtr<Config> CacheUpdateTrait::Impl::GetConfig() const {
 UpdateType CacheUpdateTrait::Impl::NextUpdateType(const Config& config) {
   if (dump_first_update_type_) {
     return *dump_first_update_type_;
-  } else if (last_update_ == dump::TimePoint{}) {
+  }
+  if (last_update_ == dump::TimePoint{}) {
     return UpdateType::kFull;
   }
-
   if (force_full_update_) {
     return UpdateType::kFull;
   }
@@ -326,6 +347,10 @@ void CacheUpdateTrait::Impl::DoPeriodicUpdate() {
   if (!config->updates_enabled &&
       (!is_first_update || static_config_.allow_first_update_failure)) {
     LOG_INFO() << "Periodic updates are disabled for cache " << Name();
+    OnUpdateSkipped();
+    // TODO should use `exception_period` for the next sleep to make sure that
+    // it takes the same amount of time to MarkAsExpired in case of failed
+    // updates and in case of skipped updates.
     return;
   }
 
@@ -342,6 +367,19 @@ void CacheUpdateTrait::Impl::DoPeriodicUpdate() {
 }
 
 void CacheUpdateTrait::Impl::OnUpdateFailure(const Config& config) {
+  OnUpdateSkipped();
+
+  if (config.alert_on_failing_to_update_times != 0 &&
+      failed_updates_counter_ >= config.alert_on_failing_to_update_times) {
+    alerts_storage_.FireAlert(
+        "cache_update_error",
+        fmt::format("cache '{}' hasn't been updated for {} times", Name(),
+                    failed_updates_counter_),
+        alerts::kInfinity);
+  }
+}
+
+void CacheUpdateTrait::Impl::OnUpdateSkipped() {
   const auto failed_updates_before_expiration =
       static_config_.failed_updates_before_expiration;
   failed_updates_counter_++;
@@ -351,14 +389,6 @@ void CacheUpdateTrait::Impl::OnUpdateFailure(const Config& config) {
         << "Cache is marked as expired because the number of "
            "failed updates has reached 'failed-updates-before-expiration' ("
         << failed_updates_before_expiration << ")";
-  }
-  if (config.alert_on_failing_to_update_times != 0 &&
-      failed_updates_counter_ >= config.alert_on_failing_to_update_times) {
-    alerts_storage_.FireAlert(
-        "cache_update_error",
-        fmt::format("cache '{}' hasn't been updated for {} times", Name(),
-                    failed_updates_counter_),
-        alerts::kInfinity);
   }
 }
 

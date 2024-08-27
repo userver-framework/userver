@@ -174,6 +174,13 @@ TEST(TimeOfDay, Arithmetic) {
   EXPECT_EQ(Mins{"06:30"}, Mins{"06:30"} - std::chrono::hours{24});
 }
 
+#ifdef __cpp_lib_three_way_comparison
+TEST(TimeOfDay, ThreeWay) {
+  EXPECT_EQ(Mins{"05:45"} <=> Mins{"05:45"},
+            std::chrono::minutes{1} <=> std::chrono::minutes{1});
+}
+#endif
+
 }  // namespace utils::datetime::test
 
 USERVER_NAMESPACE_END

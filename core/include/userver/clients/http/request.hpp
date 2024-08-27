@@ -15,6 +15,7 @@
 #include <userver/concurrent/queue.hpp>
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/private_key.hpp>
+#include <userver/http/http_version.hpp>
 #include <userver/utils/impl/source_location.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -23,9 +24,9 @@ namespace tracing {
 class TracingManagerBase;
 }  // namespace tracing
 
-namespace server::http {
+namespace clients::http::plugins::headers_propagator {
 class HeadersPropagator;
-}  // namespace server::http
+}  // namespace clients::http::plugins::headers_propagator
 
 /// HTTP client helpers
 namespace clients::http {
@@ -48,15 +49,7 @@ enum class HttpMethod { kGet, kPost, kHead, kPut, kDelete, kPatch, kOptions };
 
 std::string_view ToStringView(HttpMethod method);
 
-/// HTTP version to use
-enum class HttpVersion {
-  kDefault,  ///< unspecified version
-  k10,       ///< HTTP/1.0 only
-  k11,       ///< HTTP/1.1 only
-  k2,        ///< HTTP/2 with fallback to HTTP/1.1
-  k2Tls,     ///< HTTP/2 over TLS only, otherwise (no TLS or h2) HTTP/1.1
-  k2PriorKnowledge,  ///< HTTP/2 only (without Upgrade)
-};
+using USERVER_NAMESPACE::http::HttpVersion;
 
 enum class HttpAuthType {
   kBasic,      ///< "basic"
@@ -292,7 +285,8 @@ class Request final {
   void SetDeadlinePropagationConfig(
       const DeadlinePropagationConfig& deadline_propagation_config) &;
 
-  void SetHeadersPropagator(const server::http::HeadersPropagator*) &;
+  void SetHeadersPropagator(
+      const clients::http::plugins::headers_propagator::HeadersPropagator*) &;
   /// @endcond
 
   /// Disable auto-decoding of received replies.

@@ -72,32 +72,50 @@ UTEST(Socket, ListenConnect) {
 
   uint16_t first_client_port = 0;
   uint16_t second_client_port = 0;
+  uint16_t third_client_port = 0;
   auto listen_task = engine::AsyncNoSpan([&] {
     auto first_client = listener.socket.Accept(test_deadline);
     EXPECT_TRUE(first_client.IsValid());
     auto second_client = listener.socket.Accept(test_deadline);
     EXPECT_TRUE(second_client.IsValid());
+    auto third_client = listener.socket.Accept(test_deadline);
+    EXPECT_TRUE(third_client.IsValid());
 
     EXPECT_EQ("::1", first_client.Getsockname().PrimaryAddressString());
     EXPECT_EQ("::1", first_client.Getpeername().PrimaryAddressString());
     EXPECT_EQ("::1", second_client.Getsockname().PrimaryAddressString());
     EXPECT_EQ("::1", second_client.Getpeername().PrimaryAddressString());
+    EXPECT_EQ("::1", third_client.Getsockname().PrimaryAddressString());
+    EXPECT_EQ("::1", third_client.Getpeername().PrimaryAddressString());
 
     {
       std::lock_guard<engine::Mutex> lock(ports_mutex);
       first_client_port = first_client.Getpeername().Port();
       second_client_port = second_client.Getpeername().Port();
+      third_client_port = third_client.Getpeername().Port();
       are_ports_filled = true;
       ports_cv.NotifyOne();
     }
     EXPECT_EQ(listener.Port(), first_client.Getsockname().Port());
     EXPECT_EQ(listener.Port(), second_client.Getsockname().Port());
+    EXPECT_EQ(listener.Port(), third_client.Getsockname().Port());
 
     char c = 0;
     ASSERT_EQ(1, second_client.RecvSome(&c, 1, test_deadline));
     EXPECT_EQ('2', c);
     ASSERT_EQ(1, first_client.RecvAll(&c, 1, test_deadline));
     EXPECT_EQ('1', c);
+    for (int64_t bytesRead = 0; bytesRead < 1;) {
+      const auto optRead = third_client.RecvNoblock(&c, 1);
+      if (optRead && *optRead > 0) {
+        bytesRead += *optRead;
+        ASSERT_EQ(1, *optRead);
+        EXPECT_EQ('3', c);
+      } else if (test_deadline.IsReached()) {
+        FAIL() << "third_client: deadline is reached w/o value being set";
+        break;
+      }
+    }
   });
 
   io::Socket first_client{listener.addr.Domain(), TcpListener::kType};
@@ -106,6 +124,9 @@ UTEST(Socket, ListenConnect) {
   io::Socket second_client{listener.addr.Domain(), TcpListener::kType};
   EXPECT_TRUE(second_client.IsValid());
   second_client.Connect(listener.addr, test_deadline);
+  io::Socket third_client{listener.addr.Domain(), TcpListener::kType};
+  EXPECT_TRUE(third_client.IsValid());
+  third_client.Connect(listener.addr, test_deadline);
 
   {
     std::unique_lock<engine::Mutex> lock(ports_mutex);
@@ -116,9 +137,12 @@ UTEST(Socket, ListenConnect) {
   EXPECT_EQ(listener.Port(), first_client.Getpeername().Port());
   EXPECT_EQ(second_client_port, second_client.Getsockname().Port());
   EXPECT_EQ(listener.Port(), second_client.Getpeername().Port());
+  EXPECT_EQ(third_client_port, third_client.Getsockname().Port());
+  EXPECT_EQ(listener.Port(), third_client.Getpeername().Port());
 
   ASSERT_EQ(1, first_client.SendAll("1", 1, test_deadline));
   ASSERT_EQ(1, second_client.SendAll("2", 1, test_deadline));
+  ASSERT_EQ(1, third_client.SendAll("3", 1, test_deadline));
   listen_task.Get();
 }
 

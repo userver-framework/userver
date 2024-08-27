@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package userver;
+
+import "google/protobuf/descriptor.proto";
+
+message FieldOptions {
+  bool secret = 1;
+}
+
+extend google.protobuf.FieldOptions {
+  userver.FieldOptions field = 90132;
+}

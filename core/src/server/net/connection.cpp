@@ -4,6 +4,9 @@
 #include <system_error>
 #include <vector>
 
+#include <server/http/http2_session.hpp>
+#include <server/http/http2_writer.hpp>
+#include <server/http/http_request_parser.hpp>
 #include <server/http/request_handler_base.hpp>
 
 #include <userver/engine/async.hpp>
@@ -12,14 +15,22 @@
 #include <userver/engine/io/tls_wrapper.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/wait_any.hpp>
+#include <userver/http/common_headers.hpp>
+#include <userver/http/http_version.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/server/request/request_config.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
+#include <userver/utils/text_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace server::net {
+
+namespace {
+constexpr std::string_view kHttp2Preface = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
+constexpr std::string_view kPrefaceBegin = kHttp2Preface.substr(0, 2);
+}  // namespace
 
 Connection::Connection(
     const ConnectionConfig& config,
@@ -74,19 +85,15 @@ void Connection::Shutdown() noexcept {
 }
 
 void Connection::ListenForRequests() noexcept {
-  using RequestBasePtr = std::shared_ptr<request::RequestBase>;
-
+  using HttpVersion = USERVER_NAMESPACE::http::HttpVersion;
   try {
-    std::vector<RequestBasePtr> pending_requests;
-
-    http::HttpRequestParser request_parser(
-        request_handler_.GetHandlerInfoIndex(), handler_defaults_config_,
-        [&pending_requests](RequestBasePtr&& request_ptr) {
-          pending_requests.push_back(std::move(request_ptr));
-        },
-        stats_->parser_stats, data_accounter_);
+    if (GetHttpVersion() != HttpVersion::k2) {
+      parser_ = MakeParser(HttpVersion::k11);
+    }
 
     pending_data_.resize(config_.in_buffer_size);
+    std::string http_version_buffer;
+    http_version_buffer.reserve(kPrefaceBegin.size());
     while (is_accepting_requests_) {
       auto deadline = engine::Deadline::FromDuration(config_.keepalive_timeout);
 
@@ -128,7 +135,19 @@ void Connection::ListenForRequests() noexcept {
       }
 
       bool should_stop_accepting_requests = false;
-      if (!request_parser.Parse(pending_data_.data(), pending_data_size_)) {
+      bool res = false;
+      const std::string_view req{pending_data_.data(), pending_data_size_};
+      if (GetHttpVersion() == HttpVersion::k2) {
+        if (parser_ || TryDetectHttpVersion(http_version_buffer, req)) {
+          res = parser_->Parse(req);
+        } else {
+          // Wait next bytes to detect version
+          res = true;
+        }
+      } else {  // Pure HTTP/1.1
+        res = parser_->Parse(req);
+      }
+      if (!res) {
         LOG_DEBUG() << "Malformed request from " << Getpeername() << " on fd "
                     << Fd();
 
@@ -137,10 +156,10 @@ void Connection::ListenForRequests() noexcept {
       }
       pending_data_size_ = 0;
 
-      for (auto&& request : pending_requests) {
+      for (auto&& request : pending_requests_) {
         ProcessRequest(std::move(request));
       }
-      pending_requests.resize(0);
+      pending_requests_.resize(0);
       if (should_stop_accepting_requests) is_accepting_requests_ = false;
     }
 
@@ -277,7 +296,51 @@ void Connection::SendResponse(request::RequestBase& request) {
   if (is_response_chain_valid_ && peer_socket_) {
     try {
       // Might be a stream reading or a fully constructed response
-      response.SendResponse(*peer_socket_);
+      if (GetHttpVersion() == USERVER_NAMESPACE::http::HttpVersion::k2) {
+        // TODO: There is only one inheritor of the request::ResponseBase
+        UASSERT(dynamic_cast<http::HttpResponse*>(&response));
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+        auto& http_response = static_cast<http::HttpResponse&>(response);
+        UASSERT(dynamic_cast<http::HttpRequestImpl*>(&request));
+        if (const auto& h =
+                // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+            static_cast<http::HttpRequestImpl&>(request).GetHeader(
+                USERVER_NAMESPACE::http::headers::k2::kHttp2SettingsHeader);
+            !h.empty()) {
+          auto parser = MakeParser(USERVER_NAMESPACE::http::HttpVersion::k2);
+          UASSERT(dynamic_cast<http::Http2Session*>(parser.get()));
+          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+          auto parser2 = static_cast<http::Http2Session*>(parser.get());
+          parser2->UpgradeToHttp2(h);
+          // nghttp2_session_upgrade2 opens the stream with id=1 and we must use
+          // it. See docs:
+          // https://nghttp2.org/documentation/nghttp2_session_upgrade2.html#nghttp2-session-upgrade2
+          http_response.SetStreamId(1);
+
+          const auto send = peer_socket_->WriteAll(
+              http::kSwitchingProtocolResponse.data(),
+              http::kSwitchingProtocolResponse.size(), engine::Deadline{});
+          LOG_TRACE() << fmt::format("Write {} bytes, and wanted write {}",
+                                     send,
+                                     http::kSwitchingProtocolResponse.size());
+          http::WriteHttp2ResponseToSocket(*peer_socket_, http_response,
+                                           *parser2);
+          parser_ = std::move(parser);
+          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+        } else if (static_cast<http::HttpRequestImpl&>(request)
+                       .GetHttpMajor() == 1) {
+          response.SendResponse(*peer_socket_);
+        } else {
+          UASSERT(dynamic_cast<http::Http2Session*>(parser_.get()));
+          auto parser2 =
+              // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+              static_cast<http::Http2Session*>(parser_.get());
+          http::WriteHttp2ResponseToSocket(*peer_socket_, http_response,
+                                           *parser2);
+        }
+      } else {
+        response.SendResponse(*peer_socket_);
+      }
     } catch (const engine::io::IoSystemError& ex) {
       // working with raw values because std::errc compares error_category
       // default_error_category() fixed only in GCC 9.1 (PR libstdc++/60555)
@@ -303,6 +366,46 @@ void Connection::SendResponse(request::RequestBase& request) {
 }
 
 std::string Connection::Getpeername() const { return peer_name_; }
+
+USERVER_NAMESPACE::http::HttpVersion Connection::GetHttpVersion() const
+    noexcept {
+  return handler_defaults_config_.http_version;
+}
+
+std::unique_ptr<request::RequestParser> Connection::MakeParser(
+    USERVER_NAMESPACE::http::HttpVersion ver) {
+  const auto on_req_cb = [&pending_requests_ =
+                              pending_requests_](RequestBasePtr&& request_ptr) {
+    pending_requests_.push_back(std::move(request_ptr));
+  };
+  if (ver == USERVER_NAMESPACE::http::HttpVersion::k2) {
+    return std::make_unique<http::Http2Session>(
+        request_handler_.GetHandlerInfoIndex(), handler_defaults_config_,
+        on_req_cb, stats_->parser_stats, data_accounter_, remote_address_);
+  }
+  return std::make_unique<http::HttpRequestParser>(
+      request_handler_.GetHandlerInfoIndex(), handler_defaults_config_,
+      on_req_cb, stats_->parser_stats, data_accounter_, remote_address_);
+}
+
+bool Connection::TryDetectHttpVersion(std::string& buffer,
+                                      std::string_view req) {
+  using HttpVersion = USERVER_NAMESPACE::http::HttpVersion;
+  const auto first_piece = buffer;
+  // We can receive a 1 byte, so we have to save bytes until there are
+  // enough(2 bytes) of them to detect the version
+  buffer.append(req.substr(
+      0, std::min(kPrefaceBegin.size() - buffer.size(), req.size())));
+  if (buffer.size() > 1) {
+    parser_ = (buffer == kPrefaceBegin) ? MakeParser(HttpVersion::k2)
+                                        : MakeParser(HttpVersion::k11);
+    UASSERT(parser_);
+    if (!first_piece.empty()) {
+      parser_->Parse(first_piece);
+    }
+  }
+  return !!parser_;
+}
 
 }  // namespace server::net
 

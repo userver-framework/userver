@@ -47,13 +47,13 @@ FirstUpdateType Parse(const yaml_config::YamlConfig& config,
 std::string_view ToString(FirstUpdateType);
 
 struct ConfigPatch final {
-  std::chrono::milliseconds update_interval;
-  std::chrono::milliseconds update_jitter;
-  std::chrono::milliseconds full_update_interval;
-  std::chrono::milliseconds full_update_jitter;
-  std::optional<std::chrono::milliseconds> exception_interval;
-  bool updates_enabled;
-  std::uint64_t alert_on_failing_to_update_times;
+  std::chrono::milliseconds update_interval{};
+  std::chrono::milliseconds update_jitter{};
+  std::chrono::milliseconds full_update_interval{};
+  std::chrono::milliseconds full_update_jitter{};
+  std::optional<std::chrono::milliseconds> exception_interval{};
+  bool updates_enabled{true};
+  std::uint64_t alert_on_failing_to_update_times{0};
 };
 
 ConfigPatch Parse(const formats::json::Value& value,

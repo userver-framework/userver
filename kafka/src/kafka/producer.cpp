@@ -14,15 +14,16 @@ USERVER_NAMESPACE_BEGIN
 
 namespace kafka {
 
-Producer::Producer(std::unique_ptr<impl::Configuration> configuration,
+Producer::Producer(const std::string& name,
                    engine::TaskProcessor& producer_task_processor,
-                   std::chrono::milliseconds poll_timeout,
-                   std::size_t send_retries)
-    : component_name_(configuration->GetComponentName()),
+                   const impl::ProducerConfiguration& configuration,
+                   const impl::Secret& secrets, ProducerExecutionParams params)
+    : component_name_(name),
       producer_task_processor_(producer_task_processor),
-      poll_timeout_(poll_timeout),
-      send_retries_(send_retries),
-      configuration_(std::move(configuration)) {}
+      poll_timeout_(params.poll_timeout),
+      send_retries_(params.send_retries),
+      configuration_(std::make_unique<impl::Configuration>(name, configuration,
+                                                           secrets)) {}
 
 Producer::~Producer() {
   LOG_INFO() << "Producer poll task is requested to cancel";
@@ -42,7 +43,7 @@ void Producer::InitProducerAndStartPollingIfFirstSend() const {
 
     if (producer_ == nullptr) {
       producer_ =
-          std::make_unique<impl::ProducerImpl>(std::move(configuration_));
+          std::make_unique<impl::ProducerImpl>(std::move(*configuration_));
 
       poll_task_ =
           utils::Async(producer_task_processor_, "producer_polling", [this] {

@@ -10,7 +10,7 @@ namespace my {
 struct CustomOneOf {
   CustomOneOf() = default;
 
-  CustomOneOf(std::variant<int, std::string>&& value) : a(std::move(value)) {}
+  CustomOneOf(const std::variant<int, std::string>& value) : a(value) {}
 
   std::variant<int, std::string> a;
 };

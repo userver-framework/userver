@@ -32,7 +32,6 @@
 #include <clients/http/testsuite.hpp>
 #include <crypto/helpers.hpp>
 #include <engine/ev/watcher/timer_watcher.hpp>
-#include <server/http/headers_propagator.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -133,7 +132,8 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   void SetEasyTimeout(std::chrono::milliseconds timeout);
 
   void SetTracingManager(const tracing::TracingManagerBase&);
-  void SetHeadersPropagator(const server::http::HeadersPropagator*);
+  void SetHeadersPropagator(
+      const clients::http::plugins::headers_propagator::HeadersPropagator*);
 
   RequestTracingEditor GetEditableTracingInstance();
 
@@ -167,6 +167,7 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   bool ShouldRetryResponse();
 
   const std::string& GetLoggedOriginalUrl() const noexcept;
+  std::string_view GetLoggedEffectiveUrl() noexcept;
 
   static size_t StreamWriteFunction(char* ptr, size_t size, size_t nmemb,
                                     void* userdata);
@@ -215,7 +216,8 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   bool deadline_expired_{false};
 
   utils::NotNull<const tracing::TracingManagerBase*> tracing_manager_;
-  const server::http::HeadersPropagator* headers_propagator_{nullptr};
+  const clients::http::plugins::headers_propagator::HeadersPropagator*
+      headers_propagator_{nullptr};
   /// struct for reties
   struct {
     /// maximum number of retries

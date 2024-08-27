@@ -1,5 +1,11 @@
 include_guard(GLOBAL)
 
+_userver_macos_set_default_dir(USERVER_PG_INCLUDE_DIR pg_config;--includedir)
+_userver_macos_set_default_dir(USERVER_PG_LIBRARY_DIR pg_config;--libdir)
+_userver_macos_set_default_dir(USERVER_PG_SERVER_INCLUDE_DIR pg_config;--includedir-server)
+_userver_macos_set_default_dir(USERVER_PG_SERVER_LIBRARY_DIR pg_config;--pkglibdir)
+_userver_macos_set_default_dir(OPENSSL_ROOT_DIR brew;--prefix;openssl)
+
 # We need libldap to statically link with libpq
 # There is no FindLdap.cmake and no package config files
 # for ldap library, so need to search for it by hand.
@@ -17,7 +23,7 @@ find_package(Threads REQUIRED)
 find_package(OpenSSL REQUIRED)
 
 include(CheckLibraryExists)
-CHECK_LIBRARY_EXISTS(m sin "" USERVER_HAS_LIB_MATH) 
+CHECK_LIBRARY_EXISTS(m sin "" USERVER_HAS_LIB_MATH)
 set(USERVER_LIB_MATH)
 if(USERVER_HAS_LIB_MATH)
   set(USERVER_LIB_MATH m)

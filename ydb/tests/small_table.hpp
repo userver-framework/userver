@@ -56,11 +56,6 @@ inline const std::vector<tests::RowValue> kPreFilledRows = {
     {"key3", "value3", 3},
 };
 
-inline std::string ToString(const utils::impl::SourceLocation& location) {
-  return fmt::format("at {}, {}:{}", location.GetFunctionName(),
-                     location.GetFileName(), location.GetLineString());
-}
-
 template <typename T>
 void AssertNullableColumn(ydb::Row& row, std::string_view column_name,
                           const T& expected,
@@ -89,7 +84,7 @@ inline auto AssertArePreFilledRows(ydb::Cursor cursor,
                                    const utils::impl::SourceLocation& location =
                                        utils::impl::SourceLocation::Current()) {
   ASSERT_THAT(cursor, testing::SizeIs(indexes.size()))
-      << "expected " << indexes.size() << " rows in cursor "
+      << "expected " << indexes.size() << " rows in cursor at "
       << ToString(location);
 
   for (auto [pos, row] : utils::enumerate(cursor)) {

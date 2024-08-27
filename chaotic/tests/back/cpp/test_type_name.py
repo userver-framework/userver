@@ -23,3 +23,13 @@ def test_ns():
     assert name.in_scope('ns::ns2::some') == 'some_name'
     assert name.in_scope('ns::ns2::some_name') == 'some_name'
     assert name.in_scope('ns::ns2::some_name::x') == 'some_name'
+
+
+def test_modifiers():
+    name = type_name.TypeName('ns::ns2::some_name')
+
+    assert name.parent() == type_name.TypeName('ns::ns2')
+    assert name.joinns('xxx') == type_name.TypeName('ns::ns2::some_name::xxx')
+    assert name.add_suffix('xxx') == type_name.TypeName(
+        'ns::ns2::some_namexxx',
+    )

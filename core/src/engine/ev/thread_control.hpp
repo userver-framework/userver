@@ -49,14 +49,23 @@ class CallerOwnedPayloadSync final
   static_assert(!std::is_reference_v<Func>);
 
  public:
-  explicit CallerOwnedPayloadSync(Func& func) : func_(func) {}
+  explicit CallerOwnedPayloadSync(Func& func) noexcept : func_(func) {
+    static_assert(noexcept(engine::SingleUseEvent{}),
+                  "CallerOwnedPayloadSync is used in destructors and its "
+                  "constructor should be truly noexcept");
+  }
 
-  void DoPerformAndRelease() {
+  void DoPerformAndRelease() noexcept(std::is_nothrow_invocable_v<Func>) {
     utils::FastScopeGuard guard([this]() noexcept { event_.Send(); });
     func_();
   }
 
-  void Wait() noexcept { event_.WaitNonCancellable(); }
+  void Wait() noexcept {
+    event_.WaitNonCancellable();
+    static_assert(noexcept(event_.WaitNonCancellable()),
+                  "CallerOwnedPayloadSync::Wait() is used in destructors and "
+                  "it should be truly noexcept");
+  }
 
  private:
   Func& func_;
@@ -111,8 +120,10 @@ class ThreadControlBase {
   void RunPayloadInEvLoopAsync(AsyncPayloadBase& payload) noexcept;
 
   /// Fast non allocating function to register a `func(*data)` in EvLoop.
-  /// Does not wake up the ev thread immediately as an optimization.
-  /// Depending on thread settings might fallback to RunPayloadInEvLoopAsync.
+  /// Does not wake up the ev thread immediately if the `deadline` would happen
+  /// after the ev wakeup (delays the registration up to `deadline`).
+  ///
+  /// @warning Make sure that payload knows that it is delayed up to deadline
   void RunPayloadInEvLoopDeferred(AsyncPayloadBase& payload,
                                   Deadline deadline) noexcept;
 
@@ -120,13 +131,8 @@ class ThreadControlBase {
   template <typename Func>
   void RunInEvLoopAsync(Func&& func);
 
-  /// Allocating function to execute `func()` in EvLoop.
-  /// Does not wake up the ev thread immediately as an optimization.
   template <typename Func>
-  void RunInEvLoopDeferred(Func&& func);
-
-  template <typename Func>
-  void RunInEvLoopSync(Func&& func);
+  void RunInEvLoopSync(Func&& func) noexcept(noexcept(func()));
 
   template <typename Func>
   void RunInEvLoopBlocking(Func&& func);
@@ -165,20 +171,8 @@ void ThreadControlBase::RunInEvLoopAsync(Func&& func) {
 }
 
 template <typename Func>
-void ThreadControlBase::RunInEvLoopDeferred(Func&& func) {
-  if (IsInEvThread()) {
-    func();
-    return;
-  }
-
-  using Payload = impl::UniquePayloadAsync<std::remove_reference_t<Func>>;
-  auto payload = std::make_unique<Payload>(std::forward<Func>(func));
-
-  RunPayloadInEvLoopDeferred(*payload.release(), {});
-}
-
-template <typename Func>
-void ThreadControlBase::RunInEvLoopSync(Func&& func) {
+void ThreadControlBase::RunInEvLoopSync(Func&& func) noexcept(
+    noexcept(func())) {
   if (IsInEvThread()) {
     func();
     return;
@@ -190,6 +184,12 @@ void ThreadControlBase::RunInEvLoopSync(Func&& func) {
   RunPayloadInEvLoopAsync(payload);
 
   payload.Wait();
+
+  static_assert(
+      noexcept(IsInEvThread())&& noexcept(Payload{func})&& noexcept(
+          RunPayloadInEvLoopAsync(payload))&& noexcept(payload.Wait()),
+      "RunInEvLoopSync() is used in destructors. It should be noexcept if the "
+      "`func` invocation is noexcept");
 }
 
 template <typename Func>

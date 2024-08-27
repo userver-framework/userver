@@ -9,7 +9,7 @@ USERVER_NAMESPACE_BEGIN
 namespace utils {
 
 template <typename T, typename U>
-DefaultDict<T> Convert(U&& value, chaotic::convert::To<DefaultDict<T>>) {
+DefaultDict<T> Convert(const U& value, chaotic::convert::To<DefaultDict<T>>) {
   auto& extra = value.extra;
   auto dict = DefaultDict<T>{{extra.begin(), extra.end()}};
 

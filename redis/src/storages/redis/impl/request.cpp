@@ -101,7 +101,7 @@ CommandPtr Request::PrepareRequest(CmdArgs&& args,
 
         reply->FillSpanTags(state_ptr->Span());
         LOG_TRACE() << "Got reply from redis"
-                    << tracing::impl::LogSpanAsLastNonCoro{state_ptr->Span()};
+                    << tracing::impl::LogSpanAsLastNoCurrent{state_ptr->Span()};
 
         state_ptr->Promise().set_value(std::move(reply));
         state_ptr.reset();

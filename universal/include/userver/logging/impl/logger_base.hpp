@@ -26,6 +26,8 @@ class LoggerBase {
 
   virtual void Log(Level level, std::string_view msg) = 0;
 
+  virtual void Trace(Level level, std::string_view msg);
+
   virtual void Flush();
 
   virtual void PrependCommonTags(TagWriter writer) const;
@@ -38,6 +40,8 @@ class LoggerBase {
 
   void SetFlushOn(Level level);
   bool ShouldFlush(Level level) const;
+
+  virtual void ForwardTo(LoggerBase* logger_to);
 
  protected:
   virtual bool DoShouldLog(Level level) const noexcept;

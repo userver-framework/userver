@@ -13,7 +13,7 @@ inline bool operator==(const CustomNumber& lhs, const CustomNumber& rhs) {
 }
 
 inline CustomNumber Convert(
-    double&& s, USERVER_NAMESPACE::chaotic::convert::To<CustomNumber>) {
+    const double& s, USERVER_NAMESPACE::chaotic::convert::To<CustomNumber>) {
   return {s};
 }
 

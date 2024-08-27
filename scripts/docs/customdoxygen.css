@@ -39,10 +39,10 @@ html {
   font-family: 'fontello';
   src: url('fontello.eot?53870425');
   src: url('fontello.eot?53870425#iefix') format('embedded-opentype'),
-       url('fontello.woff2?53870425') format('woff2'),
-       url('fontello.woff?53870425') format('woff'),
-       url('fontello.ttf?53870425') format('truetype'),
-       url('fontello.svg?53870425#fontello') format('svg');
+    url('fontello.woff2?53870425') format('woff2'),
+    url('fontello.woff?53870425') format('woff'),
+    url('fontello.ttf?53870425') format('truetype'),
+    url('fontello.svg?53870425#fontello') format('svg');
   font-weight: normal;
   font-style: normal;
 }
@@ -90,6 +90,9 @@ html {
     Helvetica Neue, sans-serif;
   --font-family-monospace: "fontello", "Roboto Mono", ui-monospace, SFMono-Regular, SF Mono,
     Menlo, Consolas, Liberation Mono, monospace;
+
+  /* The content is centered and constraint in it's width. To make the content fill the whole page, set the variable to auto.*/
+  --content-maxwidth: 1440px;
 
   /* table colors */
   --tablehead-background: var(--primary-color-1);
@@ -227,10 +230,6 @@ span.paramname em {
   color: var(--primary-dark-color);
 }
 
-/* Too wide page makes people uncomfortable, keep content in center */
-div.contents {
-  max-width: 1440px;
-}
 
 /* Scale down image to the page width */
 .image img {
@@ -253,7 +252,7 @@ hr {
   justify-content: space-between;
   background-color: var(--black-color-1);
   color: white !important;
-  padding: 20px;
+  padding: 15px 20px;
 }
 
 #titlearea {
@@ -271,7 +270,7 @@ hr {
 }
 
 #projectlogo img {
-  width: 70px;
+  width: 55px;
   max-height: none;
 }
 
@@ -279,18 +278,20 @@ hr {
   padding-left: 0.5em;
 }
 
-#projectalign div {
-  line-height: 26px;
-}
-
-#projectname a {
-  font-size: 42px;
-  color: white !important;
-}
-
+#projectname a,
 #projectbrief a {
-  font-size: 17px;
   color: white !important;
+}
+
+#projectname {
+  line-height: 26px;
+  font-size: 38px;
+}
+
+#projectbrief {
+  margin-top: 2px;
+  font-size: 16px;
+  line-height: 18px;
 }
 
 #links a:hover {
@@ -383,7 +384,8 @@ html.dark-mode .sm.sm-dox li:last-child ul li a {
   width: 100%;
 }
 
-.MSearchBoxInactive::before, .MSearchBoxInactive::after {
+.MSearchBoxInactive::before,
+.MSearchBoxInactive::after {
   display: block;
   position: absolute;
   top: 7px;
@@ -405,10 +407,6 @@ html.dark-mode .sm.sm-dox li:last-child ul li a {
   right: 15px;
 }
 
-#projectbrief {
-  font-size: 120%;
-}
-
 #projectlogo img {
   margin: 0px;
 }
@@ -423,6 +421,12 @@ div.header {
 
 div.header .summary {
   display: none;
+}
+
+div.header .title {
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .sm-dox ul a:hover,
@@ -474,7 +478,7 @@ a.titlelink:hover {
 
 /* Burger menu */
 .main-menu-btn {
-  margin-left: 7px;
+  margin-left: 5px;
 }
 
 .main-menu-btn-icon,
@@ -598,29 +602,26 @@ doxygen-awesome-dark-mode-toggle {
     max-height: none;
   }
 
-  #projectalign div {
-    line-height: 12px;
-  }
-
   td#projectalign {
     padding: 5px;
   }
 
-  #projectname a {
-    font-size: 15px;
-    color: white !important;
+  #projectname {
+    font-size: 18px;
+    line-height: 12px;
   }
 
-  #projectbrief a {
-    font-size: 9px;
-    color: white !important;
+  #projectbrief {
+    line-height: 12px;
+    font-size: 10px;
   }
 
   #MSearchBox {
     width: 390px;
   }
 
-  .MSearchBoxInactive::before, .MSearchBoxInactive::after {
+  .MSearchBoxInactive::before,
+  .MSearchBoxInactive::after {
     display: none;
   }
 
@@ -633,6 +634,19 @@ doxygen-awesome-dark-mode-toggle {
     max-height: 80vh !important;
     width: 390px !important;
     transform: translate(-54px, 20px) !important;
+  }
+
+  #links {
+    margin-left: 5px;
+  }
+
+  #telegram_channel {
+    display: none;
+  }
+
+  #github_header {
+    padding: 0;
+    order: 3;
   }
 
   #navbar-main-menu {
@@ -689,8 +703,7 @@ doxygen-awesome-dark-mode-toggle {
   }
 
   .sm.sm-dox>li {
-    padding: 5px 70px;
-    /* TODO: adaptive width */
+    padding: 5px;
   }
 
   .sm.sm-dox>li:first-child {
@@ -702,13 +715,9 @@ doxygen-awesome-dark-mode-toggle {
   }
 
   .main-menu-btn {
-    order: 3;
+    order: 4;
     position: relative;
     top: 0px;
-  }
-
-  #links {
-    display: none;
   }
 }
 
@@ -753,8 +762,7 @@ doxygen-awesome-dark-mode-toggle {
   }
 
   .sm.sm-dox>li {
-    padding: 5px 70px;
-    /* TODO: adaptive width */
+    padding: 5px;
   }
 
   .sm.sm-dox>li:first-child {
@@ -767,10 +775,6 @@ doxygen-awesome-dark-mode-toggle {
 
   td#projectalign {
     padding: 5px;
-  }
-
-  #projectalign div {
-    line-height: 10px;
   }
 
   #projectalign {
@@ -791,7 +795,8 @@ doxygen-awesome-dark-mode-toggle {
     width: 100%;
   }
 
-  .MSearchBoxInactive::before, .MSearchBoxInactive::after {
+  .MSearchBoxInactive::before,
+  .MSearchBoxInactive::after {
     display: none;
   }
 
@@ -823,17 +828,11 @@ doxygen-awesome-dark-mode-toggle {
   }
 
   .main-menu-btn {
-    position: relative;
-    top: 0px;
-  }
-
-  #links {
-    display: none;
+    width: 45px;
   }
 
   #MSearchCloseImg {
-    width: 34px;
-    transform: translate(-2px, -6px);
+    width: 16px;
   }
 }
 
@@ -928,6 +927,7 @@ html.dark-mode .btn-title {
 }
 
 /* Table of contents */
+
 div.toc li.level1 {
   margin-left: 0px;
 }
@@ -958,6 +958,8 @@ div.contents .toc {
   box-sizing: border-box;
   min-width: 300px;
   padding: 16px 16px;
+  top: 77px;
+  max-height: calc(100vh - 255px);
 }
 
 div.toc li.level1:first-child {
@@ -1007,6 +1009,157 @@ div.toc li a.active {
 
   .bottom-nav .button {
     font-size: 14px;
+  }
+}
+
+/* Page feedback */
+
+page-feedback {
+  position: absolute;
+  top: 136px;
+  right: 30px;
+}
+
+page-feedback>input {
+  -webkit-appearance: none;
+  appearance: none;
+  box-shadow: none;
+  margin: 0;
+  border: 0;
+  background-color: transparent;
+  cursor: pointer;
+  padding: 0;
+  background-color: var(--page-foreground-color);
+  width: 20px;
+  height: 20px;
+  mask-size: contain;
+  -webkit-mask-size: contain;
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-position: center;
+  transition: filter 0.3s;
+}
+
+page-feedback>input:not(:first-child) {
+  margin-left: 8px;
+}
+
+page-feedback>input.like-checkbox {
+  mask-image: url("like.svg");
+  -webkit-mask-image: url("like.svg");
+}
+
+page-feedback>input.like-checkbox:checked {
+  background-color: var(--primary-color);
+}
+
+page-feedback>input.dislike-checkbox {
+  mask-image: url("dislike.svg");
+  -webkit-mask-image: url("dislike.svg");
+}
+
+page-feedback>input.dislike-checkbox:checked {
+  background-color: var(--primary-color);
+}
+
+page-feedback-popup {
+  opacity: 0;
+  background-color: var(--page-background-color);
+  border-radius: var(--border-radius-large);
+  border: 1px solid var(--separator-color);
+  width: 150px;
+  display: block;
+  top: 22px;
+  position: absolute;
+  padding: 10px;
+  box-shadow: 0 6px 10px 0 rgba(0, 0, 0, 0.1);
+  z-index: -1;
+}
+
+page-feedback-popup>h6,
+page-feedback-popup>p {
+  margin: 0;
+}
+
+page-feedback-popup>h6 {
+  font-size: 16px;
+}
+
+page-feedback-popup>p,
+page-feedback-popup>a {
+  margin-top: 8px;
+}
+
+page-feedback-popup>p {
+  font-size: 14px;
+  line-height: 18px !important;
+}
+
+page-feedback-popup>a {
+  display: block;
+  font-size: 16px;
+  background-image: none !important;
+}
+
+page-feedback-popup>a:hover {
+  filter: brightness(1.2);
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not(.light-mode) page-feedback-popup {
+    box-shadow: 0 6px 10px 0 rgba(128, 128, 128, 0.1);
+  }
+}
+
+html.dark-mode page-feedback-popup {
+  box-shadow: 0 6px 10px 0 rgba(128, 128, 128, 0.1);
+}
+
+@media (hover: hover) and (prefers-color-scheme: dark) {
+  page-feedback>input:hover {
+    filter: brightness(0.7);
+  }
+}
+
+@media (hover: hover) {
+  page-feedback>input:hover {
+    filter: brightness(2.5);
+  }
+
+  page-feedback>input:checked:hover {
+    filter: brightness(1.3);
+  }
+
+  html.dark-mode page-feedback>input:hover {
+    filter: brightness(0.7);
+  }
+}
+
+@media screen and (max-width: 1439px) {
+  page-feedback {
+    top: 135px;
+  }
+}
+
+@media screen and (max-width: 999px) {
+  div.contents .toc {
+    top: unset;
+    margin-top: 15px;
+  }
+
+  page-feedback {
+    position: relative;
+    right: 0px !important;
+    top: 0px;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  /* in the mobile version, the popup is always on the right side */
+  page-feedback-popup {
+    left: unset !important;
+    right: 0px;
   }
 }
 

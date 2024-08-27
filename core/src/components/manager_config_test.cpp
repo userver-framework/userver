@@ -27,13 +27,13 @@ components_manager:
   event_thread_pool:
     threads: $event_threads
     threads#fallback: 2
-    defer_events: false
   task_processors:
     bg-task-processor:
       thread_name: bg-worker
       worker_threads: $bg_worker_threads
       worker_threads#fallback: 2
       os-scheduling: low-priority
+      task-processor-queue: global-task-queue
     fs-task-processor:
       thread_name: fs-worker
       worker_threads: $fs_worker_threads

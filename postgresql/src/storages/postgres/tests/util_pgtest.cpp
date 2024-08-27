@@ -9,6 +9,8 @@
 #include <storages/postgres/detail/connection.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 
+#include <iomanip>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace pg = storages::postgres;

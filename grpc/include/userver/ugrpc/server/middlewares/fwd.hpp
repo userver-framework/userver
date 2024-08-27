@@ -6,8 +6,6 @@
 #include <memory>
 #include <vector>
 
-#include <boost/container/small_vector.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
@@ -17,8 +15,7 @@ class MiddlewareBase;
 class MiddlewareCallContext;
 
 /// @brief A chain of middlewares
-using Middlewares =
-    boost::container::small_vector<std::shared_ptr<MiddlewareBase>, 5>;
+using Middlewares = std::vector<std::shared_ptr<MiddlewareBase>>;
 
 }  // namespace ugrpc::server
 

@@ -2,14 +2,14 @@
 
 #include <fmt/format.h>
 
+#include <components/component_list_test.hpp>
 #include <userver/components/common_component_list.hpp>
 #include <userver/components/run.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>  // for fs::blocking::TempDirectory
 #include <userver/fs/blocking/write.hpp>  // for fs::blocking::RewriteFileContents
-#include <userver/server/handlers/ping.hpp>
-
-#include <components/component_list_test.hpp>
 #include <userver/internal/net/net_listener.hpp>
+#include <userver/logging/impl/mem_logger.hpp>
+#include <userver/server/handlers/ping.hpp>
 #include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -285,6 +285,29 @@ TEST_F(CommonServerComponentList, Smoke) {
       components::CommonComponentList()
           .AppendComponentList(components::CommonServerComponentList())
           .Append<server::handlers::Ping>());
+}
+
+TEST_F(CommonServerComponentList, Logger) {
+  auto& old_logger = logging::GetDefaultLogger();
+  logging::impl::SetDefaultLoggerRef(logging::impl::MemLogger::GetMemLogger());
+
+  fs::blocking::RewriteFileContents(
+      GetConfigVarsPath(),
+      fmt::format(kConfigVarsTemplate, GetDumpsRoot(),
+                  GetDynamicConfigCachePath(), "warning", "'@null'", "discard",
+                  GetPorts().server_port, GetPorts().monitor_port));
+
+  components::RunOnce(
+      components::InMemoryConfig{std::string{kStaticConfig} +
+                                 GetConfigVarsPath()},
+      components::CommonComponentList()
+          .AppendComponentList(components::CommonServerComponentList())
+          .Append<server::handlers::Ping>());
+
+  logging::SetDefaultLoggerLevel(logging::Level::kInfo);
+  LOG_CRITICAL() << "some text";
+
+  logging::impl::SetDefaultLoggerRef(old_logger);
 }
 
 TEST_F(CommonServerComponentList, TraceLogging) {

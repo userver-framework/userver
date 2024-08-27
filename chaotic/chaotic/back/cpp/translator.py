@@ -75,6 +75,11 @@ class FormatChooser:
                 mark_as_only_json(parent, reason)
 
         for type_ in self.parent:
+            if isinstance(type_, cpp_types.CppVariantWithDiscriminator):
+                mark_as_only_json(
+                    type_,
+                    f'{type_.raw_cpp_type} has JSON-specific field "extra"',
+                )
             if isinstance(type_, cpp_types.CppStruct):
                 assert isinstance(type_, cpp_types.CppStruct)
 
@@ -114,7 +119,7 @@ class Generator:
             fq_cpp_name = self._gen_fq_cpp_name(name)
             self._state.refs[schema] = fq_cpp_name
             self._state.types[fq_cpp_name] = self._generate_type(
-                fq_cpp_name, schema,
+                type_name.TypeName(fq_cpp_name), schema,
             )
 
         self.fixup_refs()
@@ -211,13 +216,14 @@ class Generator:
             ref.orig_cpp_type = orig_cpp_type
             ref.indirect = ref.json_schema.indirect
             ref.self_ref = ref.json_schema.self_ref
+            ref.cpp_name = name
 
     def fixup_formats(self) -> None:
         chooser = FormatChooser(list(self._state.types.values()))
         chooser.check_for_json_onlyness()
 
     def _generate_type(
-            self, fq_cpp_name: str, schema: types.Schema,
+            self, fq_cpp_name: type_name.TypeName, schema: types.Schema,
     ) -> cpp_types.CppType:
         method = SCHEMA_GENERATORS[type(schema)]
         cpp_type = method(self, fq_cpp_name, schema)  # type: ignore
@@ -238,20 +244,20 @@ class Generator:
             return name
 
     def _gen_boolean(
-            self, name: str, schema: types.Boolean,
+            self, name: type_name.TypeName, schema: types.Boolean,
     ) -> cpp_types.CppType:
 
         return cpp_types.CppPrimitiveType(
             json_schema=schema,
             nullable=schema.nullable,
-            raw_cpp_type='bool',
+            raw_cpp_type=type_name.TypeName('bool'),
             user_cpp_type=self._extract_user_cpp_type(schema),
             validators=cpp_types.CppPrimitiveValidator(),
             default=schema.default,
         )
 
     def _gen_integer(
-            self, name: str, schema: types.Integer,
+            self, name: type_name.TypeName, schema: types.Integer,
     ) -> cpp_types.CppType:
         user_cpp_type = self._extract_user_cpp_type(schema)
 
@@ -264,7 +270,7 @@ class Generator:
                 nullable=schema.nullable,
                 raw_cpp_type=name,
                 user_cpp_type=None,
-                name=name,
+                name=name.in_global_scope(),
                 enums=schema.enum,
             )
 
@@ -292,44 +298,42 @@ class Generator:
                 f'userver::utils::StrongTypedef<{typedef_tag}, {raw_cpp_type}>'
             )
 
-        tname = type_name.TypeName(name.replace('@', '::'))
         validators = cpp_types.CppPrimitiveValidator(
             min=schema.minimum,
             max=schema.maximum,
             exclusiveMin=schema.exclusiveMinimum,
             exclusiveMax=schema.exclusiveMaximum,
-            namespace=tname.namespace(),
-            prefix=tname.in_local_scope(),
+            namespace=name.namespace(),
+            prefix=name.in_local_scope(),
         )
         validators.fix_legacy_exclusive()
         return cpp_types.CppPrimitiveType(
             json_schema=schema,
             nullable=schema.nullable,
-            raw_cpp_type=raw_cpp_type,
+            raw_cpp_type=type_name.TypeName(raw_cpp_type),
             user_cpp_type=user_cpp_type,
             validators=validators,
             default=schema.default,
         )
 
     def _gen_number(
-            self, name: str, schema: types.Number,
+            self, name: type_name.TypeName, schema: types.Number,
     ) -> cpp_types.CppType:
         user_cpp_type = self._extract_user_cpp_type(schema)
 
-        tname = type_name.TypeName(name.replace('@', '::'))
         validators = cpp_types.CppPrimitiveValidator(
             min=schema.minimum,
             max=schema.maximum,
             exclusiveMin=schema.exclusiveMinimum,
             exclusiveMax=schema.exclusiveMaximum,
-            namespace=tname.namespace(),
-            prefix=tname.in_local_scope(),
+            namespace=name.namespace(),
+            prefix=name.in_local_scope(),
         )
         validators.fix_legacy_exclusive()
         return cpp_types.CppPrimitiveType(
             json_schema=schema,
             nullable=schema.nullable,
-            raw_cpp_type='double',
+            raw_cpp_type=type_name.TypeName('double'),
             user_cpp_type=user_cpp_type,
             validators=validators,
             default=schema.default,
@@ -342,7 +346,7 @@ class Generator:
         return 'k' + cpp_name
 
     def _gen_string(
-            self, name: str, schema: types.String,
+            self, name: type_name.TypeName, schema: types.String,
     ) -> cpp_types.CppType:
         user_cpp_type = self._extract_user_cpp_type(schema)
 
@@ -360,7 +364,7 @@ class Generator:
             default: Optional[cpp_types.EnumItemName]
             if schema.default:
                 default = cpp_types.EnumItemName(
-                    name.replace('@', '::')
+                    name.in_global_scope()
                     + '::'
                     + self._str_enum_name(schema.default),
                 )
@@ -372,18 +376,17 @@ class Generator:
                 nullable=schema.nullable,
                 raw_cpp_type=name,
                 user_cpp_type=None,
-                name=name,
+                name=name.in_global_scope(),
                 enums=enums,
                 default=default,
             )
 
-        tname = type_name.TypeName(name.replace('@', '::'))
         validators = cpp_types.CppPrimitiveValidator(
             minLength=schema.minLength,
             maxLength=schema.maxLength,
             pattern=schema.pattern,
-            namespace=tname.namespace(),
-            prefix=tname.in_local_scope(),
+            namespace=name.namespace(),
+            prefix=name.in_local_scope(),
         )
 
         typedef_tag = schema.get_x_property_str(
@@ -425,7 +428,7 @@ class Generator:
             return cpp_types.CppStringWithFormat(
                 json_schema=schema,
                 nullable=schema.nullable,
-                raw_cpp_type='std::string',
+                raw_cpp_type=type_name.TypeName('std::string'),
                 user_cpp_type=user_cpp_type,
                 default=schema.default,
                 format_cpp_type=format_cpp_type,
@@ -434,7 +437,7 @@ class Generator:
         return cpp_types.CppPrimitiveType(
             json_schema=schema,
             nullable=schema.nullable,
-            raw_cpp_type='std::string',
+            raw_cpp_type=type_name.TypeName('std::string'),
             user_cpp_type=user_cpp_type,
             validators=validators,
             default=schema.default,
@@ -446,7 +449,7 @@ class Generator:
 
     def _gen_field(
             self,
-            class_name: str,
+            class_name: type_name.TypeName,
             field_name: str,
             schema: types.Schema,
             required: bool,
@@ -457,7 +460,7 @@ class Generator:
             type_name = type_name + '_'
 
         # Struct X may not have subtype X
-        if type_name == class_name.split('@')[-1].split('::')[-1]:
+        if type_name == class_name.in_local_scope():
             type_name = type_name + '_'
 
         type_name = self._normalize_name(type_name)
@@ -468,7 +471,7 @@ class Generator:
         schema.delete_x_property('x-usrv-cpp-name')
         schema.delete_x_property('x-taxi-cpp-name')
 
-        name = f'{class_name}@{type_name}'
+        name = class_name.joinns(type_name)
         type_ = self._generate_type(name, schema)
 
         field = cpp_types.CppStructField(
@@ -479,9 +482,11 @@ class Generator:
 
         return field
 
-    def _gen_array(self, name: str, schema: types.Array) -> cpp_types.CppType:
+    def _gen_array(
+            self, name: type_name.TypeName, schema: types.Array,
+    ) -> cpp_types.CppType:
         # TODO: name?
-        items = self._generate_type(name + 'A', schema.items)
+        items = self._generate_type(name.add_suffix('A'), schema.items)
 
         user_cpp_type = self._extract_user_cpp_type(schema)
         container = self._extract_container(schema)
@@ -494,7 +499,8 @@ class Generator:
             user_cpp_type = None
 
         return cpp_types.CppArray(
-            raw_cpp_type='NOT_USED',  # _cpp_type() is overriden in array
+            # _cpp_type() is overridden in array
+            raw_cpp_type=type_name.TypeName('NOT_USED'),
             json_schema=schema,
             nullable=schema.nullable,
             user_cpp_type=user_cpp_type,
@@ -505,10 +511,14 @@ class Generator:
             ),
         )
 
-    def _gen_all_of(self, name: str, schema: types.AllOf) -> cpp_types.CppType:
+    def _gen_all_of(
+            self, name: type_name.TypeName, schema: types.AllOf,
+    ) -> cpp_types.CppType:
         parents = []
         for num, subtype in enumerate(schema.allOf):
-            parents.append(self._generate_type(f'{name}__P{num}', subtype))
+            parents.append(
+                self._generate_type(name.add_suffix(f'__P{num}'), subtype),
+            )
 
         user_cpp_type = self._extract_user_cpp_type(schema)
 
@@ -521,11 +531,15 @@ class Generator:
         )
 
     def _gen_one_of(
-            self, name: str, schema: types.OneOfWithoutDiscriminator,
+            self,
+            name: type_name.TypeName,
+            schema: types.OneOfWithoutDiscriminator,
     ) -> cpp_types.CppType:
         variants = []
         for num, subtype in enumerate(schema.oneOf):
-            variants.append(self._generate_type(f'{name}__O{num}', subtype))
+            variants.append(
+                self._generate_type(name.add_suffix(f'__O{num}'), subtype),
+            )
 
         user_cpp_type = self._extract_user_cpp_type(schema)
 
@@ -539,13 +553,17 @@ class Generator:
         return obj
 
     def _gen_one_of_with_discriminator(
-            self, name: str, schema: types.OneOfWithDiscriminator,
+            self,
+            name: type_name.TypeName,
+            schema: types.OneOfWithDiscriminator,
     ) -> cpp_types.CppType:
         variants = {}
         for item in zip(schema.oneOf, schema.mapping):
             field_value, refs = item
             for ref in refs:
-                variants[ref] = self._gen_ref('', field_value)
+                variants[ref] = self._gen_ref(
+                    type_name.TypeName(''), field_value,
+                )
 
         assert schema.discriminator_property
 
@@ -561,7 +579,7 @@ class Generator:
         )
 
     def _gen_object(
-            self, name: str, schema: types.SchemaObject,
+            self, name: type_name.TypeName, schema: types.SchemaObject,
     ) -> cpp_types.CppType:
         assert schema.properties is not None
         required = schema.required or []
@@ -573,15 +591,15 @@ class Generator:
             for field_name, schema in schema.properties.items()
         }
 
-        extra_type: cpp_types.CppType | bool | None
+        extra_type: cpp_types.CppType | Optional[bool]
         if schema.additionalProperties:
             if isinstance(schema.additionalProperties, types.Schema):
                 extra_name = 'Extra'
-                if extra_name == name.split('@')[-1].split('::')[-1]:
+                if extra_name == name.in_local_scope():
                     extra_name += '_'
 
                 type_ = self._generate_type(
-                    name + '@' + extra_name, schema.additionalProperties,
+                    name.joinns(extra_name), schema.additionalProperties,
                 )
                 extra_type = type_
             else:
@@ -622,19 +640,21 @@ class Generator:
             strict_parsing=strict_parsing,
         )
 
-    def _gen_ref(self, name: str, schema: types.Ref) -> cpp_types.CppType:
+    def _gen_ref(
+            self, name: type_name.TypeName, schema: types.Ref,
+    ) -> cpp_types.CppType:
         ref = cpp_types.CppRef(
             json_schema=schema,
             nullable=False,
             # stub
             user_cpp_type=None,
             orig_cpp_type=cpp_types.CppType(
-                raw_cpp_type='',
+                raw_cpp_type=type_name.TypeName(''),
                 json_schema=None,
                 nullable=False,
                 user_cpp_type=None,
             ),
-            raw_cpp_type='',
+            raw_cpp_type=type_name.TypeName(''),
             indirect=False,
             self_ref=False,
         )

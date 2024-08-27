@@ -2,7 +2,6 @@
 
 #include <userver/utils/fast_scope_guard.hpp>
 
-#include <ugrpc/impl/internal_tag.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/client/middlewares/base.hpp>
 
@@ -10,7 +9,46 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
 
-UnaryFuture::UnaryFuture(impl::RpcData& data) noexcept : impl_(data) {
+namespace impl {
+
+void MiddlewarePipeline::PreStartCall(impl::RpcData& data) {
+  MiddlewareCallContext context{data};
+  for (const auto& mw : data.GetMiddlewares()) {
+    mw->PreStartCall(context);
+  }
+}
+
+void MiddlewarePipeline::PreSendMessage(
+    impl::RpcData& data, const google::protobuf::Message& message) {
+  MiddlewareCallContext context{data};
+  for (const auto& mw : data.GetMiddlewares()) {
+    mw->PreSendMessage(context, message);
+  }
+}
+
+void MiddlewarePipeline::PostRecvMessage(
+    impl::RpcData& data, const google::protobuf::Message& message) {
+  MiddlewareCallContext context{data};
+  for (const auto& mw : data.GetMiddlewares()) {
+    mw->PostRecvMessage(context, message);
+  }
+}
+
+void MiddlewarePipeline::PostFinish(impl::RpcData& data,
+                                    const grpc::Status& status) {
+  MiddlewareCallContext context{data};
+  for (const auto& mw : data.GetMiddlewares()) {
+    mw->PostFinish(context, status);
+  }
+}
+
+}  // namespace impl
+
+UnaryFuture::UnaryFuture(
+    impl::RpcData& data,
+    std::function<void(impl::RpcData& data, const grpc::Status& status)>
+        post_finish) noexcept
+    : impl_(data), post_finish_(std::move(post_finish)) {
   // We expect that FinishAsyncMethodInvocation was already emplaced
   // For unary future it is done in UnaryCall::FinishAsync
   UASSERT(data.HoldsFinishAsyncMethodInvocationDebug());
@@ -21,7 +59,6 @@ UnaryFuture::~UnaryFuture() noexcept {
     impl::RpcData::AsyncMethodInvocationGuard guard(*data);
 
     auto& finish = data->GetFinishAsyncMethodInvocation();
-    auto& status = finish.GetStatus();
 
     data->GetContext().TryCancel();
 
@@ -31,8 +68,9 @@ UnaryFuture::~UnaryFuture() noexcept {
       case impl::AsyncMethodInvocation::WaitStatus::kOk:
         [[fallthrough]];
       case impl::AsyncMethodInvocation::WaitStatus::kError:
-        impl::ProcessFinishResult(*data, wait_status, std::move(status),
-                                  std::move(finish.GetParsedGStatus()), false);
+        impl::ProcessFinishResult(
+            *data, wait_status, std::move(finish.GetStatus()),
+            std::move(finish.GetParsedGStatus()), post_finish_, false);
         break;
       case impl::AsyncMethodInvocation::WaitStatus::kCancelled:
         data->GetStatsScope().OnCancelled();
@@ -49,6 +87,7 @@ UnaryFuture& UnaryFuture::operator=(UnaryFuture&& other) noexcept {
   if (this == &other) return *this;
   [[maybe_unused]] auto for_destruction = std::move(*this);
   impl_ = std::move(other.impl_);
+  post_finish_ = std::move(other.post_finish_);
   return *this;
 }
 
@@ -103,9 +142,9 @@ engine::FutureStatus UnaryFuture::Get(engine::Deadline deadline) {
     case impl::AsyncMethodInvocation::WaitStatus::kOk:
       [[fallthrough]];
     case impl::AsyncMethodInvocation::WaitStatus::kError:
-      impl::ProcessFinishResult(*data, wait_status,
-                                std::move(finish.GetStatus()),
-                                std::move(finish.GetParsedGStatus()), true);
+      impl::ProcessFinishResult(
+          *data, wait_status, std::move(finish.GetStatus()),
+          std::move(finish.GetParsedGStatus()), post_finish_, true);
       return engine::FutureStatus::kReady;
     case impl::AsyncMethodInvocation::WaitStatus::kCancelled:
       data->GetStatsScope().OnCancelled();
@@ -134,25 +173,9 @@ engine::impl::ContextAccessor* UnaryFuture::TryGetContextAccessor() noexcept {
 
 bool UnaryFuture::IsReady() const noexcept { return impl_.IsReady(); }
 
-namespace impl {
-
-void CallMiddlewares(const Middlewares& mws, CallAnyBase& call,
-                     utils::function_ref<void()> user_call,
-                     const ::google::protobuf::Message* request) {
-  MiddlewareCallContext mw_ctx(mws, call, user_call, request);
-  mw_ctx.Next();
-}
-
-}  // namespace impl
-
 grpc::ClientContext& CallAnyBase::GetContext() { return data_->GetContext(); }
 
 impl::RpcData& CallAnyBase::GetData() {
-  UASSERT(data_);
-  return *data_;
-}
-
-impl::RpcData& CallAnyBase::GetData(ugrpc::impl::InternalTag) {
   UASSERT(data_);
   return *data_;
 }

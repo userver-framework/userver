@@ -647,7 +647,8 @@ Request Request::SetTracingManager(
 }
 
 void Request::SetHeadersPropagator(
-    const server::http::HeadersPropagator* headers_propagator) & {
+    const clients::http::plugins::headers_propagator::HeadersPropagator*
+        headers_propagator) & {
   pimpl_->SetHeadersPropagator(headers_propagator);
 }
 

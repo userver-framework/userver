@@ -53,9 +53,6 @@ target_include_directories(
   PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
-target_include_directories (${PROJECT_NAME} SYSTEM PRIVATE
-  $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
-)
 
 _userver_directory_install(COMPONENT mongo
   DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -65,8 +62,8 @@ _userver_install_targets(COMPONENT mongo TARGETS ${PROJECT_NAME})
 
 _userver_directory_install(COMPONENT mongo FILES
     "${USERVER_ROOT_DIR}/cmake/install/userver-mongo-config.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/Findmongoc.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/Findbson.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findmongoc.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findbson.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
 )
 

@@ -181,6 +181,8 @@ void LogHelper::Impl::MarkValueEnd() noexcept {
   UASSERT(std::exchange(is_within_value_, false));
 }
 
+void LogHelper::Impl::MarkAsTrace() noexcept { is_trace_ = true; }
+
 void LogHelper::Impl::StartText() {
   PutRawKey("text");
   initial_length_ = msg_.size();
@@ -201,7 +203,10 @@ void LogHelper::Impl::LogTheMessage() const {
 
   UASSERT(logger_);
   const std::string_view message(msg_.data(), msg_.size());
-  logger_->Log(level_, message);
+  if (is_trace_)
+    logger_->Trace(level_, message);
+  else
+    logger_->Log(level_, message);
 }
 
 void LogHelper::Impl::MarkAsBroken() noexcept { logger_ = nullptr; }

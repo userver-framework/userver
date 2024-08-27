@@ -51,7 +51,7 @@ _userver_install_targets(COMPONENT clickhouse TARGETS ${PROJECT_NAME})
 
 _userver_directory_install(COMPONENT clickhouse FILES
     "${USERVER_ROOT_DIR}/cmake/install/userver-clickhouse-config.cmake"
-	"${CMAKE_BINARY_DIR}/cmake_generated/Findclickhouse-cpp.cmake"
+	  "${USERVER_ROOT_DIR}/cmake/modules/Findclickhouse-cpp.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
 )
 

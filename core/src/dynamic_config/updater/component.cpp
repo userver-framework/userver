@@ -74,14 +74,6 @@ DynamicConfigClientUpdater::DynamicConfigClientUpdater(
               .GetDefaultDocsMap()
               .GetNames())) {
   StartPeriodicUpdates();
-  utils::FastScopeGuard stop_guard([&]() noexcept { StopPeriodicUpdates(); });
-
-  if (is_empty_) {
-    updates_sink_.NotifyLoadingFailed(
-        kName, fmt::format("(See the previous ERROR from {})", kName));
-  }
-
-  stop_guard.Release();
 }
 
 DynamicConfigClientUpdater::~DynamicConfigClientUpdater() {
@@ -101,10 +93,10 @@ dynamic_config::DocsMap DynamicConfigClientUpdater::MergeDocsMap(
   return combined;
 }
 
-void DynamicConfigClientUpdater::StoreIfEnabled() {
+void DynamicConfigClientUpdater::StoreIfEnabled(
+    const dynamic_config::DocsMap& value) {
   if (store_enabled_) {
-    auto ptr = Get();
-    updates_sink_.SetConfig(kName, *ptr);
+    updates_sink_.SetConfig(kName, value);
   }
 }
 
@@ -162,13 +154,18 @@ void DynamicConfigClientUpdater::Update(
     const std::chrono::system_clock::time_point& /*last_update*/,
     const std::chrono::system_clock::time_point& /*now*/,
     cache::UpdateStatisticsScope& stats) {
-  auto additional_docs_map_keys = additional_docs_map_keys_.Lock();
-  const auto docs_map_keys = GetDocsMapKeysToFetch(*additional_docs_map_keys);
+  try {
+    auto additional_docs_map_keys = additional_docs_map_keys_.Lock();
+    const auto docs_map_keys = GetDocsMapKeysToFetch(*additional_docs_map_keys);
 
-  if (update_type == cache::UpdateType::kFull) {
-    UpdateFull(docs_map_keys, stats);
-  } else {
-    UpdateIncremental(docs_map_keys, stats);
+    if (update_type == cache::UpdateType::kFull) {
+      UpdateFull(docs_map_keys, stats);
+    } else {
+      UpdateIncremental(docs_map_keys, stats);
+    }
+  } catch (const std::exception& ex) {
+    updates_sink_.NotifyLoadingFailed(kName, ex.what());
+    throw;
   }
 }
 
@@ -194,13 +191,12 @@ void DynamicConfigClientUpdater::UpdateFull(
       return;
     }
 
+    StoreIfEnabled(docs_map);
     Set(std::move(docs_map));
-    StoreIfEnabled();
   }
 
   stats.Finish(size);
   server_timestamp_ = reply.timestamp;
-  is_empty_ = false;
 }
 
 void DynamicConfigClientUpdater::UpdateIncremental(
@@ -234,10 +230,12 @@ void DynamicConfigClientUpdater::UpdateIncremental(
       return;
     }
 
-    auto size = combined.Size();
-    Emplace(std::move(combined));
-    StoreIfEnabled();
+    // May throw a config parsing error, in which case the cache update will be
+    // marked as unsuccessful.
+    StoreIfEnabled(combined);
 
+    auto size = combined.Size();
+    Set(std::move(combined));
     stats.Finish(size);
   }
   server_timestamp_ = reply.timestamp;
@@ -255,8 +253,8 @@ void DynamicConfigClientUpdater::UpdateAdditionalKeys(
     auto combined =
         MergeDocsMap(additional_configs, std::move(docs_map), reply.removed);
 
+    StoreIfEnabled(combined);
     Emplace(std::move(combined));
-    StoreIfEnabled();
   }
 }
 

@@ -139,19 +139,19 @@ schema:
             description: Percent of errors to enable СС
             type: number
         deactivate-delta:
-            description: СС turned off if this amount of free conections is reached 
+            description: СС turned off if this amount of free connections is reached 
             type: integer
         timings-burst-times-threshold:
             description: CC is turned on if request times grow to this value
             type: number
         min-timings-ms:
-            description: minimal value of timeings after wich the CC heuristics turn on
+            description: minimal value of timeings after which the CC heuristics turn on
             type: integer
         min-limit:
-            description: minimal value of connections after wich the CC heuristics turn on
+            description: minimal value of connections after which the CC heuristics turn on
             type: integer
         min-qps:
-            description: minimal value of queries per second after wich the CC heuristics turn on
+            description: minimal value of queries per second after which the CC heuristics turn on
             type: integer
 ```
 

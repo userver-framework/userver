@@ -35,7 +35,8 @@ class HttpRequestConstructor final : public request::RequestConstructor {
 
   HttpRequestConstructor(Config config,
                          const HandlerInfoIndex& handler_info_index,
-                         request::ResponseDataAccounter& data_accounter);
+                         request::ResponseDataAccounter& data_accounter,
+                         engine::io::Sockaddr remote_address);
 
   ~HttpRequestConstructor() override;
 
@@ -53,6 +54,8 @@ class HttpRequestConstructor final : public request::RequestConstructor {
   void AppendBody(const char* data, size_t size);
 
   void SetIsFinal(bool is_final);
+
+  void SetResponseStreamId(std::uint32_t);
 
   std::shared_ptr<request::RequestBase> Finalize() override;
 

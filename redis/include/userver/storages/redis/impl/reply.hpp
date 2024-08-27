@@ -151,6 +151,10 @@ class ReplyData final {
     return IsError() && !string_.compare(0, 4, "ASK ");
   }
 
+  bool IsErrorClusterdown() const {
+    return IsError() && !string_.compare(0, 12, "CLUSTERDOWN ");
+  }
+
   const std::string& GetString() const {
     UASSERT(IsString());
     return string_;

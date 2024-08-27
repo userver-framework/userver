@@ -1,7 +1,9 @@
 import argparse
 import dataclasses
 import os
+import pathlib
 import re
+import sys
 from typing import Any
 from typing import Callable
 from typing import Dict
@@ -232,8 +234,8 @@ def read_schemas(
 def write_file(filepath: str, content: str) -> None:
     if os.path.exists(filepath):
         with open(filepath, 'r', encoding='utf8') as ifile:
-            old_conent = ifile.read()
-            if old_conent == content:
+            old_content = ifile.read()
+            if old_content == content:
                 return
 
     with open(filepath, 'w') as ofile:
@@ -262,7 +264,7 @@ def main() -> None:
     outputs = renderer.OneToOneFileRenderer(
         relative_to=args.relative_to,
         vfilepath_to_relfilepath={
-            file: file.split('.')[0] for file in args.file
+            file: str(pathlib.Path(file).with_suffix('')) for file in args.file
         },
         clang_format_bin=args.clang_format,
         parse_extra_formats=args.parse_extra_formats,
@@ -284,6 +286,10 @@ def main() -> None:
                 os.path.join(args.output_dir, filename_rel + file.ext),
                 file.content,
             )
+    print(
+        f'Handled {len(types)} schema types in {len(outputs)} file groups.',
+        file=sys.stderr,
+    )
 
 
 if __name__ == '__main__':

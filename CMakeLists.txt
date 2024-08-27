@@ -141,6 +141,7 @@ if(USERVER_INSTALL)
   include(GNUInstallDirs)
 endif()
 
+include(ModuleHelpers)
 include(GetUserverVersion)
 include(AddGoogleTests)
 include(FindPackageRequired)
@@ -149,32 +150,14 @@ include(UserverTestsuite)
 include(CheckCompileFlags)
 include(CMakePackageConfigHelpers)
 
-message(STATUS "Generating cmake files ...")
-userver_venv_setup(
-  NAME userver-cmake
-  PYTHON_OUTPUT_VAR USERVER_CMAKE_GEN_PYTHON_BINARY
-  REQUIREMENTS "${USERVER_ROOT_DIR}/scripts/external_deps/requirements.txt"
-)
-execute_process(
-  COMMAND
-  "${USERVER_CMAKE_GEN_PYTHON_BINARY}"
-  -u "${USERVER_ROOT_DIR}/scripts/external_deps/cmake_generator.py"
-  --repo-dir "${USERVER_ROOT_DIR}"
-  --build-dir "${CMAKE_BINARY_DIR}"
-  RESULT_VARIABLE RESULT
-  WORKING_DIRECTORY "${USERVER_ROOT_DIR}"
-)
-if(RESULT)
-  message(FATAL_ERROR
-    "Generating cmake files failed with exit code: ${RESULT}"
-  )
-endif(RESULT)
-
 set(USERVER_THIRD_PARTY_DIRS ${USERVER_ROOT_DIR}/third_party CACHE INTERNAL "")
 
 init_debian_depends()
 
 include(SetupGTest)
+
+option(USERVER_FEATURE_OTLP "Provide asynchronous OTLP exporters" "${USERVER_LIB_ENABLED_DEFAULT}")
+
 if (USERVER_FEATURE_GRPC)
   include(SetupProtobuf)
 endif()
@@ -226,6 +209,15 @@ if (USERVER_FEATURE_GRPC)
   _require_userver_core("USERVER_FEATURE_GRPC")
   add_subdirectory(grpc)
   list(APPEND USERVER_AVAILABLE_COMPONENTS grpc)
+endif()
+
+if (USERVER_FEATURE_OTLP)
+  if (NOT USERVER_FEATURE_GRPC)
+    message(FATAL_ERROR "'USERVER_FEATURE_OTLP' requires 'USERVER_FEATURE_GRPC=ON'")
+  endif()
+  _require_userver_core("USERVER_FEATURE_OTLP")
+  add_subdirectory(otlp)
+  list(APPEND USERVER_AVAILABLE_COMPONENTS otlp)
 endif()
 
 if (USERVER_FEATURE_CLICKHOUSE)

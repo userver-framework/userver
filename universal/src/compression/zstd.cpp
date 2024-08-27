@@ -1,5 +1,7 @@
 #include <userver/compression/zstd.hpp>
 
+#include <memory>
+
 #include <zstd.h>
 #include <zstd_errors.h>
 

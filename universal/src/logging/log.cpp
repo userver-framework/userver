@@ -14,7 +14,11 @@ namespace logging {
 namespace {
 
 auto& NonOwningDefaultLoggerInternal() noexcept {
-  static std::atomic<impl::LoggerBase*> default_logger_ptr{&GetNullLogger()};
+  // Initial logger should be Null logger as non-service utils
+  // may use userver's universal without logger. They should not suffer from any
+  // logger at all.
+  static std::atomic<impl::LoggerBase*> default_logger_ptr{
+      &logging::GetNullLogger()};
   return default_logger_ptr;
 }
 

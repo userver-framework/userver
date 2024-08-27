@@ -1,6 +1,6 @@
 #include <ydb/impl/native_metrics.hpp>
 
-#include <ydb-cpp-sdk/library/monlib/metrics/metric_consumer.h>
+#include <library/cpp/monlib/metrics/metric_consumer.h>
 
 #include <limits>
 
@@ -55,8 +55,7 @@ class WriterMetricConsumer final : public NMonitoring::IMetricConsumer {
       return;
     }
 
-    writer_[sensor_].ValueWithLabels(*metric_value,
-                                     utils::statistics::LabelsSpan{labels_});
+    writer_[sensor_].ValueWithLabels(*metric_value, labels_);
   }
 
   void OnLabelsBegin() override { labels_written_ = true; }

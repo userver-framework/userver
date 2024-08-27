@@ -65,16 +65,18 @@ class Direction final {
   Direction(Direction&&) = delete;
   Direction& operator=(const Direction&) = delete;
   Direction& operator=(Direction&&) = delete;
-  ~Direction();
+  ~Direction() = default;
 
   explicit operator bool() const noexcept { return static_cast<bool>(poller_); }
   bool IsValid() const noexcept { return poller_.IsValid(); }
 
-  int Fd() const { return poller_.GetFd(); }
+  int Fd() const noexcept { return poller_.GetFd(); }
 
-  [[nodiscard]] bool Wait(Deadline);
+  [[nodiscard]] bool Wait(Deadline deadline) {
+    return poller_.Wait(deadline).has_value();
+  }
 
-  void ResetReady() noexcept;
+  void ResetReady() noexcept { poller_.ResetReady(); }
 
   // (IoFunc*)(int, void*, size_t), e.g. read
   template <typename IoFunc, typename... Context>
@@ -88,17 +90,20 @@ class Direction final {
                     TransferMode mode, Deadline deadline,
                     const Context&... context);
 
-  engine::impl::ContextAccessor* TryGetContextAccessor() noexcept;
+  engine::impl::ContextAccessor* TryGetContextAccessor() noexcept {
+    return poller_.TryGetContextAccessor();
+  }
 
  private:
   friend class FdControl;
-  explicit Direction(Kind kind);
+  explicit Direction(const ev::ThreadControl& control) : poller_(control) {}
 
-  void Reset(int fd);
+  void Reset(int fd, Kind kind) { poller_.Reset(fd, kind); }
+
   void WakeupWaiters() { poller_.WakeupWaiters(); }
 
   // does not notify
-  void Invalidate();
+  void Invalidate() { poller_.Invalidate(); }
 
   template <typename... Context>
   ErrorMode TryHandleError(int error_code, size_t processed_bytes,
@@ -106,7 +111,6 @@ class Direction final {
                            Context&... context);
 
   FdPoller poller_;
-  Kind kind_;
 };
 
 class FdControl final {
@@ -114,13 +118,13 @@ class FdControl final {
   // fd will be silently forced to nonblocking mode
   static FdControlHolder Adopt(int fd);
 
-  FdControl();
+  explicit FdControl(const ev::ThreadControl& control);
   ~FdControl();
 
   explicit operator bool() const { return IsValid(); }
   bool IsValid() const { return read_.IsValid(); }
 
-  int Fd() const { return read_.Fd(); }
+  int Fd() const noexcept { return read_.Fd(); }
 
   Direction& Read() {
     UASSERT(IsValid());

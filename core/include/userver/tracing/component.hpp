@@ -16,8 +16,7 @@ namespace components {
 ///
 /// @brief Component that initializes the request tracing facilities.
 ///
-/// Finds the components::Logging component and requests an optional
-/// "opentracing" logger to use for Opentracing.
+/// Finds the components::Logging component.
 ///
 /// The component must be configured in service config.
 ///

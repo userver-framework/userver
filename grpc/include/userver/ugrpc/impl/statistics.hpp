@@ -1,12 +1,13 @@
 #pragma once
 
-#include <array>
-#include <atomic>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
+#include <string_view>
 
-#include <grpcpp/support/status.h>
+#include <userver/ugrpc/impl/code_statistics.hpp>
+#include <userver/ugrpc/impl/static_metadata.hpp>
 
 #include <userver/utils/fixed_array.hpp>
 #include <userver/utils/statistics/fwd.hpp>
@@ -14,9 +15,11 @@
 #include <userver/utils/statistics/rate_counter.hpp>
 #include <userver/utils/statistics/recentperiod.hpp>
 
-#include <userver/ugrpc/impl/static_metadata.hpp>
-
 USERVER_NAMESPACE_BEGIN
+
+namespace utils::statistics {
+class StripedRateCounter;
+}  // namespace utils::statistics
 
 namespace ugrpc::impl {
 
@@ -26,7 +29,9 @@ std::string_view ToString(StatisticsDomain);
 
 class MethodStatistics final {
  public:
-  explicit MethodStatistics(StatisticsDomain domain);
+  explicit MethodStatistics(
+      StatisticsDomain domain,
+      utils::statistics::StripedRateCounter& global_started);
 
   void AccountStarted() noexcept;
 
@@ -54,19 +59,23 @@ class MethodStatistics final {
 
   std::uint64_t GetStarted() const noexcept;
 
+  void MoveStartedTo(MethodStatistics& other) noexcept;
+
  private:
   using Percentile =
       utils::statistics::Percentile<2000, std::uint32_t, 256, 100>;
+  using Timings = utils::statistics::RecentPeriod<Percentile, Percentile>;
   using RateCounter = utils::statistics::RateCounter;
-  // StatusCode enum cases have consecutive underlying values, starting from 0.
-  // UNAUTHENTICATED currently has the largest value.
-  static constexpr std::size_t kCodesCount =
-      static_cast<std::size_t>(grpc::StatusCode::UNAUTHENTICATED) + 1;
+
+  friend struct MethodStatisticsSnapshot;
 
   const StatisticsDomain domain_;
+  utils::statistics::StripedRateCounter& global_started_;
+
   RateCounter started_{0};
-  std::array<RateCounter, kCodesCount> status_codes_{};
-  utils::statistics::RecentPeriod<Percentile, Percentile> timings_;
+  RateCounter started_renamed_{0};
+  CodeStatistics status_codes_{};
+  Timings timings_;
   RateCounter network_errors_{0};
   RateCounter internal_errors_{0};
   RateCounter cancelled_{0};
@@ -75,10 +84,43 @@ class MethodStatistics final {
   RateCounter deadline_cancelled_{0};
 };
 
+struct MethodStatisticsSnapshot final {
+  using Rate = utils::statistics::Rate;
+
+  explicit MethodStatisticsSnapshot(const MethodStatistics& stats);
+
+  explicit MethodStatisticsSnapshot(const StatisticsDomain domain);
+
+  void Add(const MethodStatisticsSnapshot& other);
+
+  StatisticsDomain domain;
+
+  Rate started{0};
+  Rate started_renamed{0};
+  CodeStatistics::Snapshot status_codes{};
+  MethodStatistics::Percentile timings;
+  Rate network_errors{0};
+  Rate internal_errors{0};
+  Rate cancelled{0};
+
+  Rate deadline_updated{0};
+  Rate deadline_cancelled{0};
+};
+
+void DumpMetric(utils::statistics::Writer& writer,
+                const MethodStatisticsSnapshot& stats);
+
+void DumpMetricWithLabels(utils::statistics::Writer& writer,
+                          const MethodStatisticsSnapshot& stats,
+                          std::optional<std::string_view> client_name,
+                          std::string_view call_name,
+                          std::string_view service_name);
+
 class ServiceStatistics final {
  public:
   ServiceStatistics(const StaticServiceMetadata& metadata,
-                    StatisticsDomain domain);
+                    StatisticsDomain domain,
+                    utils::statistics::StripedRateCounter& global_started);
 
   ~ServiceStatistics();
 
@@ -89,8 +131,9 @@ class ServiceStatistics final {
 
   std::uint64_t GetStartedRequests() const;
 
-  friend void DumpMetric(utils::statistics::Writer& writer,
-                         const ServiceStatistics& stats);
+  void DumpAndCountTotal(utils::statistics::Writer& writer,
+                         std::optional<std::string_view> client_name,
+                         MethodStatisticsSnapshot& total) const;
 
  private:
   const StaticServiceMetadata metadata_;

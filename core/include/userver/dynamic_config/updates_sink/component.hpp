@@ -58,11 +58,14 @@ class DynamicConfigUpdatesSinkBase : public ComponentBase {
   virtual void SetConfig(std::string_view updater,
                          const dynamic_config::DocsMap& config);
 
-  /// Called when updater failed to load dynamic config.
-  /// When service is started and dynamic config cache file is not found,
-  /// components::DynamicConfig expects updater to provide current version of
-  /// the dynamic config and blocks all reads until it is received. Updater is
-  /// expected to call this method if it can't load dynamic config.
+  /// Should be called when updater fails to load dynamic config.
+  /// When the service starts up and dynamic config cache file is not found,
+  /// components::DynamicConfig expects updater to provide the current version
+  /// of the dynamic config and blocks all reads until it is received. Updater
+  /// is expected to call this method if it can't load dynamic config
+  /// to interrupt the service startup with proper diagnostics.
+  /// This method should not typically throw any exceptions.
+  /// If the config is already loaded, calling this method should do nothing.
   /// @param updater updater name used for logging
   /// @param error error to be outputted to log
   virtual void NotifyLoadingFailed(std::string_view updater,

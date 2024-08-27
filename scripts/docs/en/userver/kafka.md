@@ -7,7 +7,7 @@ two independent interfaces: kafka::ProducerComponent and
 kafka::ConsumerComponent.
 
 They expose APIs for sending messages to Kafka topics, suspending
-coroutine until message delivery succeeded or failed, and for proccess message
+coroutine until message delivery succeeded or failed, and for process message
 batches from the subscribed set of topics, asynchronously polling messages
 in separate task processor.
 
@@ -34,7 +34,7 @@ in separate task processor.
 ## Planned Enhancements
 - Transfer from raw polling with timeouts to events processing,
 making the message polling non-blocking and leading to better library scalability;
-- on_error callback for Consumer for convinient error processing;
+- on_error callback for Consumer for convenient error processing;
 - testsuite Kafka support in OSS;
 - Support of different compression codecs (GZIP, LZ4, ZSTD, etc..);
 - Support more SASL authentication mechanisms (GSSAPI, OAUTHBEARER);
@@ -46,6 +46,6 @@ making the message polling non-blocking and leading to better library scalabilit
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/pg_user_types.md |
-@ref scripts/docs/en/userver/mongodb.md ⇨
+⇦ @ref scripts/docs/en/userver/mysql/design_and_details.md |
+@ref scripts/docs/en/userver/ydb.md ⇨
 @htmlonly </div> @endhtmlonly

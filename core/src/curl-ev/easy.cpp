@@ -155,7 +155,7 @@ void easy::async_perform(handler_type handler) {
   LOG_TRACE() << "easy::async_perform start " << this;
   size_t request_num = ++request_counter_;
   if (multi_) {
-    multi_->GetThreadControl().RunInEvLoopDeferred(
+    multi_->GetThreadControl().RunInEvLoopAsync(
         [self = shared_from_this(), this, handler = std::move(handler),
          request_num]() mutable {
           return do_ev_async_perform(std::move(handler), request_num);

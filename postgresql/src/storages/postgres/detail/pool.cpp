@@ -30,7 +30,7 @@ constexpr std::chrono::seconds kRecentErrorPeriod{15};
 constexpr std::size_t kCancelRatio = 2;
 constexpr std::chrono::seconds kCancelPeriod{1};
 
-constexpr std::chrono::seconds kCleanupTimeout{1};
+constexpr std::chrono::seconds kCleanupTimeout{2};
 
 constexpr std::chrono::seconds kMaintainInterval{30};
 constexpr std::chrono::seconds kMaxIdleDuration{15};
@@ -558,9 +558,12 @@ Connection* ConnectionPool::Pop(engine::Deadline deadline) {
 
   ++stats_.pool_exhaust_errors;
   throw PoolError(
-      fmt::format("No available connections found. Active {}. Open {}. Max {}",
-                  stats_.connection.active, stats_.connection.open_total,
-                  stats_.connection.maximum),
+      fmt::format(
+          "No available connections found. Connecting: {}. Max concurrent "
+          "connecting: {}. Active: {}. Max active {}",
+          connecting_semaphore_.UsedApprox(),
+          connecting_semaphore_.GetCapacity(), size_semaphore_.UsedApprox(),
+          size_semaphore_.GetCapacity()),
       db_name_);
 }
 

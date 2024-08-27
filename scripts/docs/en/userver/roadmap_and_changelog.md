@@ -16,10 +16,11 @@ Changelog news also go to the
 
 ## Roadmap
 
-* 👨‍💻 Codegen parsers and serializers by JSON schema
+* ✔️ Codegen parsers and serializers by JSON schema
+* ✔️ HTTP 2.0 server support
+* ✔️ Improve OpenTelemetry Protocol (OTLP) support.
 * 👨‍💻 Improve Kafka driver.
 * 👨‍💻 Add retry budget or retry circuit breaker for clients.
-* Improve OpenTelemetry Protocol (OTLP) support.
 * Add web interface to the [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf)
 * Generate full-blown accessories for OpenAPI:
   * clients
@@ -28,6 +29,97 @@ Changelog news also go to the
 
 ## Changelog
 
+### Release v2.3
+
+* Initial HTTP 2.0 server support is now implemented. Use
+  `handler-defaults.http_version` static config option of components::Server to
+  enable.
+* Logger for OpenTelemetry protocol was implemented. Could be enabled via
+  `USERVER_FEATURE_OTLP` CMake option. See @ref opentelemetry "the docs" for
+  more info.  
+* Client address in handler now could be retrieved via
+  server::http::HttpRequest::GetRemoteAddress(). Many thanks to
+  [Daniil Shvalov](https://github.com/danilshvalov) for the PR.
+* The scheduler implementation now could be adjusted for each task_processor
+  via `task-processor-queue` static option. A more efficient
+  `work-stealing-task-queue` was introduced. Many thanks to
+  [Egor Bocharov](https://github.com/egor-bystepdev) for the PR!
+* Added storages::postgres::TimePointWithoutTz for more explicit declaration of
+  intent. Direct work with std::chrono::system_clock is now deprecated in
+  PostgreSQL driver.
+* Validation of static config schemas now understands `minItems` and `maxItems`
+  for arrays. Many thanks to [eparoshin](https://github.com/eparoshin) for the
+  PR.
+* Websockets now have case insensitive check of headers. Thanks to
+  [Alexander Enaldiev](https://github.com/Turim) for the PR!
+* Added engine::io::Socket::ReadNoblock() function to check if there's a
+  pending data and read it if any. server::websocket::WebSocketConnection now
+  has a TryRecv() function to receive a message if its first bytes already came.
+  Thanks to [Alexander Enaldiev](https://github.com/Turim) for the PR!
+* `#env`, `#file` and `#fallback` now could be used in `config_vars` file.
+  See yaml_config::YamlConfig for more info. Thanks to
+  [Artyom Samuylik](https://github.com/Matrix-On) for the PR.
+* gRPC
+  * Sensitive data now could be hidden in logs via applying a
+    `[(userver.field).secret = true]` option to a protobuf field in schema.
+  * Generic server now could be implemented via
+    ugrpc::server::GenericServiceBase. Generic client
+    ugrpc::client::GenericClient was also implemented. The functionality of
+    generic client/server is useful for writing gRPC proxies.
+  * gRPC server now shows aggregated `grpc.server.total` metrics
+  * More samples and docs.
+* Optimizations:
+  * IO events are now uniformly distributed between ev threads. This leads
+    to better performance on high loads in default configurations. Even number
+    of ev threads now works as good as odd number of threads.
+  * IO watchers now always start asynchronously, leading to x2 less CPU
+    consumption for each start+stop operation. As a result ev threads of HTTP
+    client and Redis driver now use less CPU.
+  * Timer events with reachable deadlines now are deferred if that does not
+    affect latencies. This gives ~5% RPS improvement for `service_template`. 
+* Build
+  * `Find*.cmake` files are not generated any more, leading to simpler code base
+    and faster configure times.
+  * Fixed incorrect handling of dots in chaotic paths. Thanks to
+    [Alexander Chernov](https://github.com/blackav) for the PR!
+  * MacOS build options are now part of the CMake files, leading to less
+    boilerplate while compiling for that platform. Many thanks to
+    [Daniil Shvalov](https://github.com/danilshvalov) for the PR.
+  * Kafka driver is now enabled in Conan. Many thanks to
+    [Aleksandr Gusev](https://github.com/ALumad) for the PR.
+  * Conan related build fixes. Thanks to [Alex](https://github.com/leha-bot) for
+    the PR.
+
+
+### Release v2.2
+
+* Added @ref scripts/docs/en/userver/chaotic.md "codegen parsers and serializers by JSON schema"
+* Improved the ability to unit test of gRPC clients and servers, Redis and
+  Mongo databases, logs. Samples and docs were improved.
+* Implemented feedback forms and likes/dislikes for each documentation page.
+  **Feedback would be appreciated!**
+  Many thanks to [Fedor Alekseev](https://github.com/atlz253) for the PR and to
+  [MariaGrinchenko](https://github.com/MariaGrinchenko) for the buttons design!
+* Added @ref scripts/docs/en/userver/ydb.md "docs on YDB".
+* Mobile header view and docs layout was improved. Many thanks to
+  [Fedor Alekseev](https://github.com/atlz253) for the PRs.
+* engine::subprocess::ProcessStarter::Exec now can lookup binaries via
+  `PATH` variable.
+* Fixed gRPC generation for nested namespaces with repetitions. Many thanks to
+  [nfrmtk](https://github.com/nfrmtk) for the PR!
+* Handle both websocket and plain HTTP requests for the same path. Many thanks
+  to [Hovard Smith](https://github.com/w15eacre) for the PR!
+* Support setting client + CA certs in RabbitMQ. Many thanks to
+  [Alexey Dyumin](https://github.com/dyumin) for  the PR!
+* yaml_config::YamlConfig now can read files via `#file`. Now the static
+  config of the service could refer to other files.
+* Added support of bit operations to Redis.
+* PostgreSQL driver now works with AWS Aurora.
+* Added quick start for beginners to @ref scripts/docs/en/userver/tutorial/build.md.
+  Many thanks to [Fedor Alekseev](https://github.com/atlz253) for the PR.
+* Improved path to sources trimming for Conan builds. Many thanks to
+  [Kirill](https://github.com/KVolodin) for the PR!
+* Multiple minor improvements to build, packaging, docs and testing.
 
 ### Release v2.1 (May 2024)
 
@@ -61,6 +153,9 @@ Changelog news also go to the
 * `human_logs.py` now supports more options and has more examples and docs
   embedded. Thanks to
   [TertiumOrganum1](https://github.com/TertiumOrganum1) for the PR!
+* server::http::HttpStatus and client::http::Status are now aliases to
+  http::StatusCode. Many thanks to
+  [SidorovichPavel](https://github.com/SidorovichPavel) for the PR!
 
 * Docs and build:
   * `find_package(userver)` now implicitly calls `userver_setup_environment()`,

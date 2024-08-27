@@ -10,6 +10,8 @@ LoggerBase::LoggerBase(Format format) noexcept : format_(format) {}
 
 LoggerBase::~LoggerBase() = default;
 
+void LoggerBase::Trace(Level level, std::string_view msg) { Log(level, msg); }
+
 void LoggerBase::Flush() {}
 
 void LoggerBase::PrependCommonTags(TagWriter /*writer*/) const {}
@@ -29,6 +31,8 @@ void LoggerBase::SetFlushOn(Level level) { flush_level_ = level; }
 bool LoggerBase::ShouldFlush(Level level) const {
   return flush_level_ <= level;
 }
+
+void LoggerBase::ForwardTo(LoggerBase*) {}
 
 bool LoggerBase::DoShouldLog(Level /*level*/) const noexcept { return true; }
 

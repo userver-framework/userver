@@ -30,7 +30,8 @@ incorrect_filed_name:
       std::runtime_error,
       "Schema field name must be one of ['type', 'description', "
       "'defaultDescription', 'additionalProperties', 'properties', 'items', "
-      "'enum', 'minimum', 'maximum'], but 'incorrect_filed_name' was given. "
+      "'enum', 'minimum', 'maximum', 'minItems', 'maxItems'], but "
+      "'incorrect_filed_name' was given. "
       "Schema path: '/'");
 }
 
@@ -265,6 +266,79 @@ properties:
       "Error while validating static config against schema. Field "
       "'arr[1].not_declared_option' is not declared in schema "
       "'properties.arr.items'");
+}
+
+TEST(StaticConfigValidator, MinArrayLenFailed) {
+  const std::string kStaticConfig = R"(
+arr: [1]
+)";
+
+  const std::string kSchema = R"(
+type: object
+description: simple array
+additionalProperties: false
+properties:
+    arr:
+        type: array
+        description: integer array
+        minItems: 2
+        items:
+            type: integer
+            description: element of array
+)";
+
+  UEXPECT_THROW_MSG(
+      Validate(kStaticConfig, kSchema), std::runtime_error,
+      "Error while validating static config against schema. "
+      "Expected length of array at path 'arr' to be >= 2 (actual: 1).");
+}
+
+TEST(StaticConfigValidator, MaxArrayLenFailed) {
+  const std::string kStaticConfig = R"(
+arr: [1, 2, 3]
+)";
+
+  const std::string kSchema = R"(
+type: object
+description: simple array
+additionalProperties: false
+properties:
+    arr:
+        type: array
+        description: integer array
+        maxItems: 2
+        items:
+            type: integer
+            description: element of array
+)";
+
+  UEXPECT_THROW_MSG(
+      Validate(kStaticConfig, kSchema), std::runtime_error,
+      "Error while validating static config against schema. "
+      "Expected length of array at path 'arr' to be <= 2 (actual: 3).");
+}
+
+TEST(StaticConfigValidator, ArrayLenPassed) {
+  const std::string kStaticConfig = R"(
+arr: [1, 2, 3]
+)";
+
+  const std::string kSchema = R"(
+type: object
+description: simple array
+additionalProperties: false
+properties:
+    arr:
+        type: array
+        description: integer array
+        minItems: 1
+        maxItems: 3
+        items:
+            type: integer
+            description: element of array
+)";
+
+  UEXPECT_NO_THROW(Validate(kStaticConfig, kSchema));
 }
 
 TEST(StaticConfigValidator, Recursive) {

@@ -56,7 +56,7 @@ UTEST(HttpRequestParserParser, Small) {
         EXPECT_EQ(http_request_impl.GetHttpMinor(), 1);
       });
 
-  parser.Parse(kHttpRequestSmall.data(), kHttpRequestSmall.size());
+  parser->Parse(kHttpRequestSmall);
   EXPECT_EQ(parsed, true);
 }
 
@@ -75,9 +75,12 @@ UTEST(HttpRequestParserParser, OriginUrl) {
         EXPECT_EQ(http_request_impl.GetUrl(),
                   "/foo/bar?query1=value1&query2=value2");
         EXPECT_EQ(http_request_impl.GetRequestPath(), "/foo/bar");
+        EXPECT_EQ(http_request_impl.ArgCount(), 2);
+        EXPECT_EQ(http_request_impl.GetArg("query1"), "value1");
+        EXPECT_EQ(http_request_impl.GetArg("query2"), "value2");
       });
 
-  parser.Parse(kHttpRequestOriginUrl.data(), kHttpRequestOriginUrl.size());
+  parser->Parse(kHttpRequestOriginUrl);
   EXPECT_EQ(parsed, true);
 }
 
@@ -99,7 +102,7 @@ UTEST(HttpRequestParserParser, AbsoluteUrl) {
                   "/pub/WWW/TheProject.html");
       });
 
-  parser.Parse(kHttpRequestAbsoluteUrl.data(), kHttpRequestAbsoluteUrl.size());
+  parser->Parse(kHttpRequestAbsoluteUrl);
   EXPECT_EQ(parsed, true);
 }
 
@@ -123,8 +126,7 @@ UTEST(HttpRequestParserParser, HeadersSimple) {
         EXPECT_EQ(http_request_impl.GetHeader("user-agent"), "curl/7.58.0");
       });
 
-  parser.Parse(kHttpRequestHeadersSimple.data(),
-               kHttpRequestHeadersSimple.size());
+  parser->Parse(kHttpRequestHeadersSimple);
   EXPECT_EQ(parsed, true);
 }
 
@@ -148,8 +150,7 @@ UTEST(HttpRequestParserParser, HeadersNoSpaces) {
         EXPECT_EQ(http_request_impl.GetHeader("user-agent"), "curl/7.58.0");
       });
 
-  parser.Parse(kHttpRequestHeadersNoSpaces.data(),
-               kHttpRequestHeadersNoSpaces.size());
+  parser->Parse(kHttpRequestHeadersNoSpaces);
   EXPECT_EQ(parsed, true);
 }
 
@@ -173,8 +174,7 @@ UTEST(HttpRequestParserParser, HeadersCaseInsensitive) {
         EXPECT_EQ(http_request_impl.GetHeader("user-agent"), "curl/7.58.0");
       });
 
-  parser.Parse(kHttpRequestHeadersCaseInsensitive.data(),
-               kHttpRequestHeadersCaseInsensitive.size());
+  parser->Parse(kHttpRequestHeadersCaseInsensitive);
   EXPECT_EQ(parsed, true);
 }
 
@@ -198,8 +198,7 @@ UTEST(HttpRequestParserParser, HeaderValues) {
         EXPECT_EQ(http_request_impl.GetHeader("user-agent"), "[-]{~},/");
       });
 
-  parser.Parse(kHttpRequestHeaderValues.data(),
-               kHttpRequestHeaderValues.size());
+  parser->Parse(kHttpRequestHeaderValues);
   EXPECT_EQ(parsed, true);
 }
 
@@ -218,7 +217,7 @@ UTEST(HttpRequestParserParser, BodySimple) {
         EXPECT_EQ(http_request_impl.RequestBody(), "body");
       });
 
-  parser.Parse(kHttpRequestBodySimple.data(), kHttpRequestBodySimple.size());
+  parser->Parse(kHttpRequestBodySimple);
   EXPECT_EQ(parsed, true);
 }
 
@@ -253,8 +252,7 @@ UTEST(HttpRequestParserParser, MethodWrongCase) {
                   server::http::HttpMethod::kUnknown);
       });
 
-  parser.Parse(kHttpRequestMethodWrongCase.data(),
-               kHttpRequestMethodWrongCase.size());
+  parser->Parse(kHttpRequestMethodWrongCase);
   EXPECT_EQ(parsed, true);
 }
 
@@ -271,7 +269,7 @@ UTEST(HttpRequestParserParser, NoURL) {
                   server::http::HttpMethod::kUnknown);
       });
 
-  parser.Parse(kHttpRequestNoURL.data(), kHttpRequestNoURL.size());
+  parser->Parse(kHttpRequestNoURL);
   EXPECT_EQ(parsed, true);
 }
 
@@ -282,7 +280,7 @@ UTEST(HttpRequestParserParser, AbsentCRLF) {
         parsed = true;
       });
 
-  parser.Parse(kHttpRequestAbsentCRLF.data(), kHttpRequestAbsentCRLF.size());
+  parser->Parse(kHttpRequestAbsentCRLF);
   EXPECT_EQ(parsed, false);
 }
 
@@ -293,8 +291,7 @@ UTEST(HttpRequestParserParser, BodyContentLengthTooLong) {
         parsed = true;
       });
 
-  parser.Parse(kHttpRequestBodyContentLengthTooLong.data(),
-               kHttpRequestBodyContentLengthTooLong.size());
+  parser->Parse(kHttpRequestBodyContentLengthTooLong);
   EXPECT_EQ(parsed, false);
 }
 

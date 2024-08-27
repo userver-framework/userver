@@ -14,7 +14,7 @@ AsyncWatcher::AsyncWatcher(ThreadControl& thread_control, Callback cb)
 
 AsyncWatcher::~AsyncWatcher() = default;
 
-void AsyncWatcher::Start() { ev_async_.Start(); }
+void AsyncWatcher::Start() { ev_async_.StartAsync(); }
 
 void AsyncWatcher::OnEvent(struct ev_loop*, ev_async* async,
                            int events) noexcept {

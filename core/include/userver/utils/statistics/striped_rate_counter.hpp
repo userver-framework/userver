@@ -90,7 +90,7 @@ class StripedRateCounter final {
     return val_.Read() + offset_.load(std::memory_order_relaxed);
   }
 
-  concurrent::StripedCounter val_;
+  USERVER_NAMESPACE::concurrent::StripedCounter val_;
   std::atomic<std::uintptr_t> offset_{0};
 };
 

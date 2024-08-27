@@ -11,32 +11,6 @@
 
 #include <userver/chaotic/type_bundle_hpp.hpp>
 
-{% macro generate_impl(name, type) %}
-    {# handle subtypes #}
-    {%- for schema in type.subtypes() -%}
-        {{ generate_impl(
-                schema.cpp_global_name(),
-                schema
-           )
-        }}
-    {% endfor %}
-
-    {% if type.get_py_type() == 'CppVariantWithDiscriminator' %}
-        [[maybe_unused]] static constexpr {{ userver }}::chaotic::OneOfSettings k{{ type.cpp_global_struct_field_name() }}_Settings = {
-            "{{ type.property_name }}",
-            {{ userver }}::utils::TrivialSet(
-                [](auto selector) {
-		    return selector().template Type<std::string>()
-                        {%- for var_name in type.variants -%}
-                            .Case("{{ var_name }}")
-                        {%- endfor -%}
-                        ;
-                }
-            )
-        };
-    {% endif %}
-{% endmacro %}
-
 {% macro generate_type(name, type) %}
     {% if type.get_py_type() == 'CppStruct' %}
         {{ type.cpp_comment() }}
@@ -137,6 +111,19 @@
             {%- endfor -%}
         >;
     {% elif type.get_py_type() == 'CppVariantWithDiscriminator' %}
+        [[maybe_unused]] static constexpr {{ userver }}::chaotic::OneOfSettings k{{ type.cpp_local_name() }}_Settings = {
+            "{{ type.property_name }}",
+            {{ userver }}::utils::TrivialSet(
+                [](auto selector) {
+		    return selector().template Type<std::string_view>()
+                        {%- for var_name in type.variants -%}
+                            .Case("{{ var_name }}")
+                        {%- endfor -%}
+                        ;
+                }
+            )
+        };
+
         using {{ type.cpp_local_name() }} = std::variant<
             {%- for variant in type.variants.values() -%}
                 {{ variant.cpp_global_name() }}
@@ -224,7 +211,7 @@
     {% endfor %}
 
     {% if type.need_dom_parser() %}
-        {{ type.cpp_name_wo_namespace() }} Parse({{ format }}::Value json,
+        {{ type.raw_cpp_type.in_scope(get_current_namespace()) }} Parse({{ format }}::Value json,
                          {{ userver }}::formats::parse::To<{{ name }}>);
     {% endif %}
 {% endmacro %}
@@ -241,11 +228,11 @@
 
     {% if type.need_dom_parser() %}
         {% if type.get_py_type() == 'CppStringEnum' %}
-            {{ type.cpp_name_wo_namespace() }} FromString(std::string_view value,
+            {{ type.raw_cpp_type.in_scope(get_current_namespace()) }} FromString(std::string_view value,
                             {{ userver }}::formats::parse::To<{{ name }}>);
 
             {# backward compatibility #}
-            {{ type.cpp_name_wo_namespace() }} Parse(std::string_view value,
+            {{ type.raw_cpp_type.in_scope(get_current_namespace()) }} Parse(std::string_view value,
                             {{ userver }}::formats::parse::To<{{ name }}>);
         {% endif %}
     {% endif %}
@@ -287,10 +274,6 @@
 {% import 'templates/common.jinja' as common %}
 
 {% for name, type in types.items() %}
-    {{ common.switch_namespace(cpp_namespace(name) + '::impl') }}
-
-    {{ generate_impl(name, type) }}
-
     {{ common.switch_namespace(cpp_namespace(name)) }}
 
     {{ generate_type(name, type) }}

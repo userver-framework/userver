@@ -16,6 +16,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace ugrpc::impl {
+class StatisticsStorage;
+}  // namespace ugrpc::impl
+
 namespace ugrpc::server::impl {
 
 struct CallParams {
@@ -24,6 +28,7 @@ struct CallParams {
   const std::string_view service_name;
   const std::string_view method_name;
   ugrpc::impl::RpcStatisticsScope& statistics;
+  ugrpc::impl::StatisticsStorage& statistics_storage;
   logging::LoggerRef access_tskv_logger;
   tracing::Span& call_span;
   utils::AnyStorage<StorageContext>& storage_context;

@@ -59,7 +59,8 @@ class HttpHandlerStatisticsScope;
 ///
 /// ## Example usage:
 ///
-/// @snippet samples/hello_service/hello_service.cpp Hello service sample - component
+/// @include samples/hello_service/src/hello_handler.hpp
+/// @include samples/hello_service/src/hello_handler.cpp
 
 // clang-format on
 
@@ -111,7 +112,9 @@ class HttpHandlerBase : public HandlerBase {
                               const std::exception& ex) const;
 
   /// Helper function to log an unknown exception
-  void LogUnknownException(const std::exception& ex) const;
+  void LogUnknownException(
+      const std::exception& ex,
+      std::optional<logging::Level> log_level_override = {}) const;
 
   /// Returns the default log level for the handler
   const std::optional<logging::Level>& GetLogLevel() const;
@@ -128,10 +131,6 @@ class HttpHandlerBase : public HandlerBase {
   /// @note It is used only if IsStreamed() returned `false`.
   virtual std::string HandleRequestThrow(
       const http::HttpRequest& request, request::RequestContext& context) const;
-
-  virtual void OnRequestCompleteThrow(
-      const http::HttpRequest& /*request*/,
-      request::RequestContext& /*context*/) const {}
 
   /// The core method for HTTP request handling.
   /// `request` arg contains HTTP headers, full body, etc.

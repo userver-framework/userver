@@ -1,8 +1,9 @@
 #include <storages/mysql/impl/socket.hpp>
 
-#include <storages/mysql/impl/mariadb_include.hpp>
-
+#include <userver/engine/task/task_base.hpp>
 #include <userver/storages/mysql/exceptions.hpp>
+
+#include <storages/mysql/impl/mariadb_include.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -48,7 +49,9 @@ int ToMySQLEvents(engine::io::FdPoller::Kind kind) {
 }  // namespace
 
 Socket::Socket(int fd, int mysql_events)
-    : fd_{fd}, mysql_events_to_wait_on_{mysql_events} {}
+    : fd_{fd},
+      poller_{engine::current_task::GetEventThread()},
+      mysql_events_to_wait_on_{mysql_events} {}
 
 // Poller is Reset + Invalidated transactionally in Wait, so we don't need to
 // invalidate it in destructor.

@@ -1,0 +1,62 @@
+# yaml
+components_manager:
+    task_processors:
+        main-task-processor:
+            worker_threads: 4
+
+        fs-task-processor:
+            worker_threads: 1
+
+    default_task_processor: main-task-processor
+
+    components:
+        server:
+            listener:
+                port: 8080
+                task_processor: main-task-processor
+                handler-defaults:
+                    http_version: '2'
+            listener-monitor:
+                port: 8081
+                task_processor: main-task-processor
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: error
+                    overflow_behavior: discard
+
+        http-client:
+            fs-task-processor: fs-task-processor
+            user-agent: $server-name
+            user-agent#fallback: 'userver-based-service 1.0'
+        dns-client:
+            fs-task-processor: fs-task-processor
+        testsuite-support:
+        tests-control:
+            path: /tests/{action}
+            method: POST
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            testpoint-url: $mockserver/testpoint
+            throttling_enabled: false
+
+        handler-server-monitor:
+            path: /service/monitor
+            method: GET
+            task_processor: main-task-processor
+
+        handler-ping:
+            path: /ping
+            method: GET
+            task_processor: main-task-processor
+            throttling_enabled: false
+            url_trailing_slash: strict-match
+
+        handler-http2:
+            path: /http2server
+            method: GET,POST,PUT,DELETE
+            task_processor: main-task-processor
+            throttling_enabled: false
+

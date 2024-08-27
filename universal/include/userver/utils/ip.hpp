@@ -4,6 +4,7 @@
 /// @brief IPv4 and IPv6 addresses and networks
 
 #include <array>
+#include <cstddef>
 #include <exception>
 #include <string>
 #include <system_error>
@@ -105,6 +106,28 @@ class NetworkBase final {
 
   /// @brief Get prefix length of address network
   unsigned char GetPrefixLength() const noexcept { return prefix_length_; }
+
+  /// @brief Returns true if the address is in network
+  bool ContainsAddress(const AddressType& address) const {
+    const auto network_bytes = address_.GetBytes();
+    const auto address_bytes = address.GetBytes();
+
+    std::uint8_t diff = 0;
+    for (std::size_t byte_index = 0; byte_index < kMaximumPrefixLength / 8;
+         ++byte_index) {
+      std::uint8_t mask_byte = 0;
+      if (byte_index == prefix_length_ / 8) {
+        mask_byte = ~((1 << (8 - prefix_length_ % 8)) - 1);
+      }
+      if (byte_index < prefix_length_ / 8) {
+        mask_byte = 255;
+      }
+
+      diff |=
+          (network_bytes[byte_index] ^ address_bytes[byte_index]) & mask_byte;
+    }
+    return !diff;
+  }
 
   friend bool operator==(const NetworkBase<Address>& a,
                          const NetworkBase<Address>& b) noexcept {

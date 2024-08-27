@@ -1,6 +1,8 @@
 #include "middleware.hpp"
 
 #include <userver/baggage/baggage_manager.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/ugrpc/client/impl/async_methods.hpp>
 #include <userver/utils/log.hpp>
 
 #include <ugrpc/impl/rpc_metadata_keys.hpp>
@@ -10,16 +12,14 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::middlewares::baggage {
 
-void Middleware::Handle(MiddlewareCallContext& context) const {
+void Middleware::PreStartCall(MiddlewareCallContext& context) const {
   const auto* bg = USERVER_NAMESPACE::baggage::BaggageManager::TryGetBaggage();
   if (bg) {
     LOG_DEBUG() << "Send baggage " << bg->ToString();
-    auto& client_context = context.GetCall().GetContext();
+    auto& client_context = context.GetContext();
     client_context.AddMetadata(ugrpc::impl::kXBaggage,
                                ugrpc::impl::ToGrpcString(bg->ToString()));
   }
-
-  context.Next();
 }
 
 std::shared_ptr<const MiddlewareBase> MiddlewareFactory::GetMiddleware(

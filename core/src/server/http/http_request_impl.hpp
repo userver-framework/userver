@@ -8,6 +8,7 @@
 
 #include <userver/engine/task/task_processor_fwd.hpp>
 
+#include <userver/engine/io/sockaddr.hpp>
 #include <userver/server/http/http_method.hpp>
 #include <userver/server/http/http_request.hpp>
 #include <userver/server/http/http_response.hpp>
@@ -28,7 +29,8 @@ namespace http {
 
 class HttpRequestImpl final : public request::RequestBase {
  public:
-  HttpRequestImpl(request::ResponseDataAccounter& data_accounter);
+  HttpRequestImpl(request::ResponseDataAccounter& data_accounter,
+                  engine::io::Sockaddr remote_address);
   ~HttpRequestImpl() override;
 
   const HttpMethod& GetMethod() const { return method_; }
@@ -42,6 +44,7 @@ class HttpRequestImpl final : public request::RequestBase {
   std::chrono::duration<double> GetResponseTime() const;
 
   const std::string& GetHost() const;
+  const engine::io::Sockaddr& GetRemoteAddress() const;
 
   const std::string& GetArg(std::string_view arg_name) const;
   const std::vector<std::string>& GetArgVector(std::string_view arg_name) const;
@@ -136,6 +139,8 @@ class HttpRequestImpl final : public request::RequestBase {
 
   void SetHttpHandlerStatistics(handlers::HttpRequestStatistics&);
 
+  void SetResponseStreamId(std::uint32_t);
+
   friend class HttpRequestConstructor;
 
  private:
@@ -161,6 +166,7 @@ class HttpRequestImpl final : public request::RequestBase {
   UpgradeCallback upgrade_websocket_cb_;
 
   mutable HttpResponse response_;
+  engine::io::Sockaddr remote_address_;
   engine::TaskProcessor* task_processor_{nullptr};
   const handlers::HttpHandlerBase* handler_{nullptr};
   handlers::HttpRequestStatistics* request_statistics_{nullptr};

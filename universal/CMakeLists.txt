@@ -126,7 +126,7 @@ if (USERVER_COMPILER_HAS_MACRO_PREFIX_MAP)
     -fmacro-prefix-map=${BIN_LOG_PATH_BASE}=
     -fmacro-prefix-map=${BASE_PREFIX}=
   )
-  if (NOT SRC_LOG_PATH_BASE MATCHES "${BASE_PREFIX}.*")
+  if (NOT SRC_LOG_PATH_BASE MATCHES "${BASE_PREFIX}.*" OR NOT "${USERVER_ROOT_DIR}" MATCHES [=[/userver$]=])
     target_compile_options(userver-internal-compile-options INTERFACE
       -fmacro-prefix-map=${SRC_LOG_PATH_BASE}=
     )
@@ -279,6 +279,7 @@ target_include_directories(${PROJECT_NAME}
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<BUILD_INTERFACE:${USERVER_THIRD_PARTY_DIRS}/date/include>
     $<BUILD_INTERFACE:${USERVER_THIRD_PARTY_DIRS}/function_backports/include>
+    $<INSTALL_INTERFACE:include/userver/third_party>
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/
     ${CMAKE_CURRENT_BINARY_DIR}
@@ -288,11 +289,16 @@ target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
 )
 
 _userver_directory_install(COMPONENT universal
-  DIRECTORY 
+  DIRECTORY
     ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${USERVER_THIRD_PARTY_DIRS}/date/include
-    ${USERVER_THIRD_PARTY_DIRS}/function_backports/include
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
+  PATTERN "*pp"  # ignore .gitignore in userver/third_party
+)
+_userver_directory_install(COMPONENT universal
+  DIRECTORY
+    ${USERVER_THIRD_PARTY_DIRS}/date/include/date
+    ${USERVER_THIRD_PARTY_DIRS}/function_backports/include/function_backports
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/userver/third_party/
 )
 _userver_install_targets(COMPONENT universal TARGETS ${PROJECT_NAME})
 
@@ -364,12 +370,13 @@ if (USERVER_IS_THE_ROOT_PROJECT)
 endif()
 
 _userver_directory_install(COMPONENT universal FILES
-    "${CMAKE_BINARY_DIR}/cmake_generated/FindCryptoPP.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/Findlibyamlcpp.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/Findlibzstd.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/Findcctz.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/FindJemalloc.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/FindUserverGBench.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/FindCryptoPP.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findlibyamlcpp.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findlibzstd.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findcctz.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/FindJemalloc.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/FindUserverGBench.cmake"
+    "${USERVER_ROOT_DIR}/cmake/ModuleHelpers.cmake"
     "${USERVER_ROOT_DIR}/cmake/SetupGTest.cmake"
     "${USERVER_ROOT_DIR}/cmake/SetupGBench.cmake"
     "${USERVER_ROOT_DIR}/cmake/sanitize.blacklist.txt"

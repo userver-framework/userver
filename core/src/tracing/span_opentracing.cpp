@@ -86,7 +86,7 @@ void Span::Impl::LogOpenTracing() const {
 
   auto logger = tracer_->GetOptionalLogger();
   if (logger) {
-    const DetachLocalSpansScope ignore_local_span;
+    const impl::DetachLocalSpansScope ignore_local_span;
     logging::LogHelper lh(*logger, log_level_);
     DoLogOpenTracing(lh.GetTagWriterAfterText({}));
   }

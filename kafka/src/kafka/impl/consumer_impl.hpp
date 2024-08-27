@@ -3,12 +3,13 @@
 #include <optional>
 #include <vector>
 
+#include <librdkafka/rdkafka.h>
+
 #include <userver/engine/deadline.hpp>
 #include <userver/kafka/message.hpp>
 
+#include <kafka/impl/holders.hpp>
 #include <kafka/impl/stats.hpp>
-
-#include <librdkafka/rdkafka.h>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -25,7 +26,7 @@ class ConsumerImpl final {
   using MessageBatch = std::vector<Message>;
 
  public:
-  explicit ConsumerImpl(std::unique_ptr<Configuration> configuration);
+  explicit ConsumerImpl(Configuration&& configuration);
 
   ~ConsumerImpl();
 
@@ -63,12 +64,12 @@ class ConsumerImpl final {
   void AccountMessageProcessingFailed(const Message& message);
   void AccountMessageBatchProcessingFailed(const MessageBatch& batch);
 
-  void ErrorCallbackProxy(int error_code, const char* reason);
+  void ErrorCallback(int error_code, const char* reason);
 
   /// @brief Callback that is called on each group join/leave and topic
   /// partition update. Used as a dispatcher of rebalance events.
-  void RebalanceCallbackProxy(rd_kafka_resp_err_t err,
-                              rd_kafka_topic_partition_list_s* partitions);
+  void RebalanceCallback(rd_kafka_resp_err_t err,
+                         rd_kafka_topic_partition_list_s* partitions);
 
   /// @brief Assigns (subscribes) the `partitions` list to the current
   /// consumer.
@@ -92,48 +93,7 @@ class ConsumerImpl final {
   const std::string component_name_;
   Stats stats_;
 
-  class ConsumerHolder;
-  class ConfHolder final {
-    using HandleHolder =
-        std::unique_ptr<rd_kafka_conf_t, decltype(&rd_kafka_conf_destroy)>;
-
-   public:
-    ConfHolder(rd_kafka_conf_t* conf);
-
-    ConfHolder(const ConfHolder&) = delete;
-    ConfHolder& operator=(const ConfHolder&) = delete;
-
-    ConfHolder(ConfHolder&&) noexcept = delete;
-    ConfHolder& operator=(ConfHolder&&) noexcept = delete;
-
-    HandleHolder MakeConfCopy() const;
-
-   private:
-    friend class ConsumerHolder;
-
-    HandleHolder handle_;
-  };
   ConfHolder conf_;
-
-  class ConsumerHolder final {
-   public:
-    ConsumerHolder(ConsumerImpl::ConfHolder::HandleHolder conf_handle);
-
-    ~ConsumerHolder() = default;
-
-    ConsumerHolder(const ConsumerHolder&) = delete;
-    ConsumerHolder& operator=(const ConsumerHolder&) = delete;
-
-    ConsumerHolder(ConsumerHolder&&) noexcept = delete;
-    ConsumerHolder& operator=(ConsumerHolder&&) noexcept = delete;
-
-    rd_kafka_t* Handle();
-
-   private:
-    using HandleHolder =
-        std::unique_ptr<rd_kafka_t, decltype(&rd_kafka_destroy)>;
-    HandleHolder handle_{nullptr, rd_kafka_destroy};
-  };
   std::optional<ConsumerHolder> consumer_;
 };
 

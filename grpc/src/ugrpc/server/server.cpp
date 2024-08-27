@@ -19,6 +19,7 @@
 
 #include <ugrpc/impl/logging.hpp>
 #include <ugrpc/impl/to_string.hpp>
+#include <ugrpc/server/impl/generic_service_worker.hpp>
 #include <ugrpc/server/impl/parse_config.hpp>
 #include <userver/ugrpc/impl/deadline_timepoint.hpp>
 #include <userver/ugrpc/impl/statistics_storage.hpp>
@@ -80,6 +81,8 @@ class Server::Impl final {
 
   void AddService(ServiceBase& service, ServiceConfig&& config);
 
+  void AddService(GenericServiceBase& service, ServiceConfig&& config);
+
   std::vector<std::string_view> GetServiceNames() const;
 
   void WithServerBuilder(SetupHook setup);
@@ -104,6 +107,8 @@ class Server::Impl final {
     kStopped,
   };
 
+  impl::ServiceSettings MakeServiceSettings(ServiceConfig&& config);
+
   void AddListeningPort(int port);
 
   void AddListeningUnixSocket(std::string_view path);
@@ -114,6 +119,7 @@ class Server::Impl final {
   std::optional<grpc::ServerBuilder> server_builder_;
   std::optional<int> port_;
   std::vector<std::unique_ptr<impl::ServiceWorker>> service_workers_;
+  std::vector<impl::GenericServiceWorker> generic_service_workers_;
   std::optional<impl::QueueHolder> queue_;
   std::unique_ptr<grpc::Server> server_;
   mutable engine::Mutex configuration_mutex_;
@@ -189,18 +195,31 @@ void Server::Impl::AddListeningUnixSocket(std::string_view path) {
                                     grpc::InsecureServerCredentials());
 }
 
-void Server::Impl::AddService(ServiceBase& service, ServiceConfig&& config) {
-  const std::lock_guard lock(configuration_mutex_);
-  UASSERT(state_ == State::kConfiguration);
-
-  service_workers_.push_back(service.MakeWorker(impl::ServiceSettings{
+impl::ServiceSettings Server::Impl::MakeServiceSettings(
+    ServiceConfig&& config) {
+  return impl::ServiceSettings{
       *queue_,
       config.task_processor,
       statistics_storage_,
       std::move(config.middlewares),
       access_tskv_logger_,
       config_source_,
-  }));
+  };
+}
+
+void Server::Impl::AddService(ServiceBase& service, ServiceConfig&& config) {
+  const std::lock_guard lock(configuration_mutex_);
+  UASSERT(state_ == State::kConfiguration);
+  service_workers_.push_back(
+      service.MakeWorker(MakeServiceSettings(std::move(config))));
+}
+
+void Server::Impl::AddService(GenericServiceBase& service,
+                              ServiceConfig&& config) {
+  const std::lock_guard lock(configuration_mutex_);
+  UASSERT(state_ == State::kConfiguration);
+  generic_service_workers_.emplace_back(service,
+                                        MakeServiceSettings(std::move(config)));
 }
 
 std::vector<std::string_view> Server::Impl::GetServiceNames() const {
@@ -262,6 +281,7 @@ void Server::Impl::Stop() noexcept {
     server_->Shutdown(engine::Deadline::FromDuration(kShutdownGracePeriod));
   }
   service_workers_.clear();
+  generic_service_workers_.clear();
   queue_.reset();
   server_.reset();
 
@@ -275,6 +295,7 @@ void Server::Impl::StopServing() noexcept {
     server_->Shutdown(engine::Deadline::FromDuration(kShutdownGracePeriod));
   }
   service_workers_.clear();
+  generic_service_workers_.clear();
 
   state_ = State::kServingStopped;
 }
@@ -292,6 +313,9 @@ void Server::Impl::DoStart() {
   for (auto& worker : service_workers_) {
     server_builder_->RegisterService(&worker->GetService());
   }
+  for (auto& worker : generic_service_workers_) {
+    server_builder_->RegisterAsyncGenericService(&worker.GetService());
+  }
 
   server_ = server_builder_->BuildAndStart();
   UINVARIANT(server_, "See grpcpp logs for details");
@@ -299,6 +323,9 @@ void Server::Impl::DoStart() {
 
   for (auto& worker : service_workers_) {
     worker->Start();
+  }
+  for (auto& worker : generic_service_workers_) {
+    worker.Start();
   }
 
   if (port_) {
@@ -317,6 +344,10 @@ Server::Server(ServerConfig&& config,
 Server::~Server() = default;
 
 void Server::AddService(ServiceBase& service, ServiceConfig&& config) {
+  impl_->AddService(service, std::move(config));
+}
+
+void Server::AddService(GenericServiceBase& service, ServiceConfig&& config) {
   impl_->AddService(service, std::move(config));
 }
 

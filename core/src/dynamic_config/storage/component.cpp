@@ -60,6 +60,7 @@ class DynamicConfig::Impl final {
   const dynamic_config::DocsMap& GetDefaultDocsMap() const;
   bool AreUpdatesEnabled() const;
 
+  ComponentHealth GetComponentHealth() const;
   void OnLoadingCancelled();
 
   void SetConfig(std::string_view updater, dynamic_config::DocsMap&& value);
@@ -93,6 +94,7 @@ class DynamicConfig::Impl final {
   const bool fs_write_enabled_;
   std::atomic<bool> is_loaded_{false};
   bool config_load_cancelled_{false};
+  std::optional<std::string> load_cancellation_message_;
   mutable engine::Mutex loaded_mutex_;
   mutable engine::ConditionVariable loaded_cv_;
   DynamicConfigStatistics stats_;
@@ -143,22 +145,22 @@ void DynamicConfig::Impl::WaitUntilLoaded() {
   if (Has()) return;
 
   LOG_TRACE() << "Wait started";
-  {
-    std::unique_lock lock(loaded_mutex_);
-    while (!Has() && !config_load_cancelled_) {
-      const auto res = loaded_cv_.WaitFor(lock, kWaitInterval);
-      if (res == engine::CvStatus::kTimeout) {
-        std::string_view fs_note = " Last error while reading config from FS: ";
-        if (fs_loading_error_msg_.empty()) fs_note = {};
-        LOG_WARNING() << "Waiting for the config load." << fs_note
-                      << fs_loading_error_msg_;
-      }
+  std::unique_lock lock(loaded_mutex_);
+  while (!Has() && !config_load_cancelled_) {
+    const auto res = loaded_cv_.WaitFor(lock, kWaitInterval);
+    if (res == engine::CvStatus::kTimeout) {
+      std::string_view fs_note = " Last error while reading config from FS: ";
+      if (fs_loading_error_msg_.empty()) fs_note = {};
+      LOG_WARNING() << "Waiting for the config load." << fs_note
+                    << fs_loading_error_msg_;
     }
   }
   LOG_TRACE() << "Wait finished";
 
-  if (!Has() || config_load_cancelled_)
-    throw ComponentsLoadCancelledException("config load cancelled");
+  if (!Has() || config_load_cancelled_) {
+    throw ComponentsLoadCancelledException(
+        load_cancellation_message_.value_or("config load cancelled"));
+  }
 }
 
 void DynamicConfig::Impl::NotifyLoadingFailed(std::string_view updater,
@@ -173,7 +175,13 @@ void DynamicConfig::Impl::NotifyLoadingFailed(std::string_view updater,
           fs_cache_path_, fs_loading_error_msg_);
     }
     message += fmt::format("Error from '{}' updater: ({})", updater, error);
-    throw std::runtime_error(message);
+
+    {
+      const std::lock_guard lock(loaded_mutex_);
+      config_load_cancelled_ = true;
+      load_cancellation_message_ = std::move(message);
+    }
+    loaded_cv_.NotifyAll();
   }
 }
 
@@ -221,6 +229,10 @@ void DynamicConfig::Impl::SetConfig(std::string_view updater,
   WriteFsCache(value);
 }
 
+ComponentHealth DynamicConfig::Impl::GetComponentHealth() const {
+  return Has() ? ComponentHealth::kOk : ComponentHealth::kFatal;
+}
+
 void DynamicConfig::Impl::OnLoadingCancelled() {
   if (Has()) return;
 
@@ -261,7 +273,7 @@ void DynamicConfig::Impl::ReadFallback(const ComponentConfig& config) {
     try {
       const auto fallback_contents =
           fs::ReadFileContents(*fs_task_processor_, *default_overrides_path);
-      fallback_config_.Parse(fallback_contents, false);
+      fallback_config_.Parse(fallback_contents, true);
     } catch (const std::exception& ex) {
       throw std::runtime_error(
           fmt::format("Failed to load dynamic config fallback from '{}': {}",
@@ -364,6 +376,10 @@ dynamic_config::Source DynamicConfig::GetSource() { return impl_->GetSource(); }
 
 const dynamic_config::DocsMap& DynamicConfig::GetDefaultDocsMap() const {
   return impl_->GetDefaultDocsMap();
+}
+
+ComponentHealth DynamicConfig::GetComponentHealth() const {
+  return impl_->GetComponentHealth();
 }
 
 void DynamicConfig::OnLoadingCancelled() { impl_->OnLoadingCancelled(); }

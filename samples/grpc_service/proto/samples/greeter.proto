@@ -4,6 +4,9 @@ package samples.api;
 
 service GreeterService {
   rpc SayHello(GreetingRequest) returns(GreetingResponse) {}
+  rpc SayHelloResponseStream(GreetingRequest) returns(stream GreetingResponse) {}
+  rpc SayHelloRequestStream(stream GreetingRequest) returns(GreetingResponse) {}
+  rpc SayHelloStreams(stream GreetingRequest) returns(stream GreetingResponse) {}
 }
 
 message GreetingRequest {

@@ -4,12 +4,41 @@
 #include <userver/server/http/http_method.hpp>
 #include <userver/server/request/request_base.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/str_icase.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
 
 namespace {
+
+constexpr std::string_view kWebsocketUpgradeHeaderName = "Upgrade:";
+constexpr std::string_view kWebsocketUpgradeHeaderValue = "websocket\r\n";
+
+// find the header by ignoring spaces. Also case insensitive comparison
+bool IsWebSocketUpgradeRequest(std::string_view req) {
+  auto it = std::search(
+      req.begin(), req.end(), kWebsocketUpgradeHeaderName.begin(),
+      kWebsocketUpgradeHeaderName.end(),
+      [](char l, char r) { return std::tolower(l) == std::tolower(r); });
+  if (it == req.end()) {
+    return false;
+  }
+  it += kWebsocketUpgradeHeaderName.size();
+  if (it == req.end()) {
+    return false;
+  }
+  while (*it == ' ' && it != req.end()) {
+    ++it;
+  }
+  const auto end = it + kWebsocketUpgradeHeaderValue.size();
+  if (end >= req.end()) {
+    return false;
+  }
+  return utils::StrIcaseEqual{}(
+      std::string_view{it, kWebsocketUpgradeHeaderValue.size()},
+      kWebsocketUpgradeHeaderValue);
+}
 
 HttpMethod ConvertHttpMethod(llhttp_method method) {
   switch (method) {
@@ -53,27 +82,30 @@ HttpRequestParser::HttpRequestParser(
     const HandlerInfoIndex& handler_info_index,
     const request::HttpRequestConfig& request_config,
     OnNewRequestCb&& on_new_request_cb, net::ParserStats& stats,
-    request::ResponseDataAccounter& data_accounter)
+    request::ResponseDataAccounter& data_accounter,
+    engine::io::Sockaddr remote_address)
     : handler_info_index_(handler_info_index),
       request_constructor_config_{request_config},
       on_new_request_cb_(std::move(on_new_request_cb)),
       stats_(stats),
-      data_accounter_(data_accounter) {
+      data_accounter_(data_accounter),
+      remote_address_(std::move(remote_address)) {
   llhttp_init(&parser_, HTTP_REQUEST, &parser_settings);
   parser_.data = this;
 }
 
-bool HttpRequestParser::Parse(const char* data, size_t size) {
-  const auto err = llhttp_execute(&parser_, data, size);
+bool HttpRequestParser::Parse(std::string_view req) {
+  const auto err = llhttp_execute(&parser_, req.data(), req.size());
+  if (parser_.upgrade && err == HPE_PAUSED_UPGRADE) {
+    FinalizeRequest();
+    // returns true iff it is an HTTP/2 upgrade request
+    return !IsWebSocketUpgradeRequest(req);
+  }
   if (err != HPE_OK) {
     const auto parsed =
-        static_cast<size_t>(llhttp_get_error_pos(&parser_) - data + 1);
-    LOG_WARNING() << "parsed=" << parsed << " size=" << size
+        static_cast<size_t>(llhttp_get_error_pos(&parser_) - req.data() + 1);
+    LOG_WARNING() << "parsed=" << parsed << " size=" << req.size()
                   << " error_description=" << llhttp_errno_name(err);
-    FinalizeRequest();
-    return false;
-  }
-  if (parser_.upgrade) {
     FinalizeRequest();
     return false;
   }
@@ -201,7 +233,7 @@ int HttpRequestParser::OnBodyImpl(llhttp_t* p, const char* data, size_t size) {
 int HttpRequestParser::OnMessageCompleteImpl(llhttp_t* p) {
   UASSERT(request_constructor_);
   if (p->upgrade) {
-    return -1;  // error
+    return 0;
   }
   request_constructor_->SetIsFinal(!llhttp_should_keep_alive(p));
   if (!CheckUrlComplete(p)) return -1;
@@ -213,7 +245,7 @@ int HttpRequestParser::OnMessageCompleteImpl(llhttp_t* p) {
 void HttpRequestParser::CreateRequestConstructor() {
   stats_.parsing_request_count.Add(1);
   request_constructor_.emplace(request_constructor_config_, handler_info_index_,
-                               data_accounter_);
+                               data_accounter_, remote_address_);
   url_complete_ = false;
 }
 

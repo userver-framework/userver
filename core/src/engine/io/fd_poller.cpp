@@ -68,7 +68,7 @@ FdPoller::Kind GetUserMode(int ev_events) {
 }  // namespace
 
 struct FdPoller::Impl final : public engine::impl::ContextAccessor {
-  Impl();
+  Impl(ev::ThreadControl control);
 
   ~Impl();
 
@@ -79,7 +79,7 @@ struct FdPoller::Impl final : public engine::impl::ContextAccessor {
   void Invalidate();
   void Reset(int fd, Kind kind);
 
-  void StopWatcher();
+  void StopWatcher() noexcept;
 
   static void IoWatcherCb(struct ev_loop*, ev_io*, int) noexcept;
   void WakeupWaiters();
@@ -108,7 +108,6 @@ struct FdPoller::Impl final : public engine::impl::ContextAccessor {
 
   void RethrowErrorResult() const override {}
 
-  int fd_{-1};
   std::atomic<FdPoller::State> state_{FdPoller::State::kInvalid};
   engine::impl::FastPimplWaitListLight waiters_;
   ev::Watcher<ev_io> watcher_;
@@ -117,7 +116,7 @@ struct FdPoller::Impl final : public engine::impl::ContextAccessor {
 
 void FdPoller::Impl::WakeupWaiters() { waiters_->SetSignalAndWakeupOne(); }
 
-FdPoller::Impl::Impl() : watcher_(current_task::GetEventThread(), this) {
+FdPoller::Impl::Impl(ev::ThreadControl control) : watcher_(control, this) {
   watcher_.Init(&IoWatcherCb);
 }
 
@@ -153,7 +152,7 @@ void FdPoller::Impl::Invalidate() {
           State::kReadyToUse, old_state));
 }
 
-void FdPoller::Impl::StopWatcher() {
+void FdPoller::Impl::StopWatcher() noexcept {
   UASSERT(IsValid());
   watcher_.Stop();
 }
@@ -182,7 +181,9 @@ bool FdPoller::Impl::IsValid() const noexcept {
   return state_ != State::kInvalid;
 }
 
-FdPoller::FdPoller() { static_assert(std::atomic<State>::is_always_lock_free); }
+FdPoller::FdPoller(const ev::ThreadControl& control) : pimpl_(control) {
+  static_assert(std::atomic<State>::is_always_lock_free);
+}
 
 FdPoller::~FdPoller() = default;
 
@@ -190,7 +191,7 @@ FdPoller::operator bool() const noexcept { return IsValid(); }
 
 bool FdPoller::IsValid() const noexcept { return pimpl_->IsValid(); }
 
-int FdPoller::GetFd() const { return pimpl_->fd_; }
+int FdPoller::GetFd() const noexcept { return pimpl_->watcher_.GetFd(); }
 
 std::optional<FdPoller::Kind> FdPoller::Wait(Deadline deadline) {
   ResetReady();
@@ -245,9 +246,8 @@ void FdPoller::SwitchStateToReadyToUse() {
 
 void FdPoller::Impl::Reset(int fd, Kind kind) {
   UASSERT(!IsValid());
-  UASSERT(fd_ == fd || fd_ == -1);
-  fd_ = fd;
-  watcher_.Set(fd_, GetEvMode(kind));
+  UASSERT(watcher_.GetFd() == fd || watcher_.GetFd() == -1);
+  watcher_.Set(fd, GetEvMode(kind));
   state_ = State::kReadyToUse;
 }
 

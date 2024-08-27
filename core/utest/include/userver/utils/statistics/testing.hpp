@@ -4,6 +4,7 @@
 /// @brief Utilities for analyzing emitted metrics in unit tests
 
 #include <iosfwd>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -48,6 +49,10 @@ class Snapshot final {
   MetricValue SingleMetric(std::string path,
                            std::vector<Label> require_labels = {}) const;
 
+  /// @overload
+  std::optional<MetricValue> SingleMetricOptional(
+      std::string path, std::vector<Label> require_labels = {}) const;
+
  private:
   friend void PrintTo(const Snapshot& data, std::ostream*);
 
@@ -72,6 +77,9 @@ class Snapshot final {
 /// EXPECT_EQ(stream.str(), ...);
 /// @endcode
 void PrintTo(const Snapshot& data, std::ostream*);
+
+/// @brief Support for gtest diagnostics for utils::statistics::MetricValue.
+void PrintTo(MetricValue value, std::ostream*);
 
 }  // namespace utils::statistics
 

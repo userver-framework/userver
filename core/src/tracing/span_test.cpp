@@ -630,7 +630,9 @@ UTEST_F(Span, DocsData) {
   }
   {
     /// [Example get current span]
+
     tracing::Span::CurrentSpan().AddTag("key", "value");
+
     /// [Example get current span]
   }
 }

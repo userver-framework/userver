@@ -43,7 +43,7 @@ _userver_install_targets(COMPONENT mysql TARGETS ${PROJECT_NAME})
 
 _userver_directory_install(COMPONENT mysql FILES
     "${USERVER_ROOT_DIR}/cmake/install/userver-mysql-config.cmake"
-    "${CMAKE_BINARY_DIR}/cmake_generated/Findlibmariadb.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findlibmariadb.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
 )
 

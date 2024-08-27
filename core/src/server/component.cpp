@@ -167,6 +167,13 @@ properties:
                         defaultDescription: 498
                         minimum: 400
                         maximum: 599
+                    http_version:
+                        type: string
+                        description: HTTP protocol version - 1.1 or 2
+                        enum:
+                          - 1.1
+                          - 2
+
             connection:
                 type: object
                 description: connection options

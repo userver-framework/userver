@@ -99,8 +99,6 @@ async def test_rebalance_after_failure(
         parse_message_keys(first_consumer_messages),
     )
 
-    await stop_consumers(service_client, [CONSUMERS[0]])
-
 
 async def test_message_reprocessed_after_failure(
         service_client, testpoint, kafka_producer,
@@ -153,5 +151,3 @@ async def test_message_reprocessed_after_failure(
     assert len(second_consumer_messages) == 1
 
     assert ['key-3'] == parse_message_keys(second_consumer_messages)
-
-    await stop_consumers(service_client, [CONSUMERS[1]])
