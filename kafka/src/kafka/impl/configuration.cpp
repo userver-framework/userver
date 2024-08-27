@@ -197,7 +197,7 @@ ProducerConfiguration Parse(const yaml_config::YamlConfig& config,
 Configuration::Configuration(const std::string& name,
                              const ConsumerConfiguration& configuration,
                              const Secret& secrets)
-    : name_(name), conf_(rd_kafka_conf_new(), &rd_kafka_conf_destroy) {
+    : name_(name), conf_(rd_kafka_conf_new()) {
   VerifyComponentNamePrefix(name, "kafka-consumer");
 
   SetCommon(configuration.common);
@@ -208,7 +208,7 @@ Configuration::Configuration(const std::string& name,
 Configuration::Configuration(const std::string& name,
                              const ProducerConfiguration& configuration,
                              const Secret& secrets)
-    : name_(name), conf_(rd_kafka_conf_new(), &rd_kafka_conf_destroy) {
+    : name_(name), conf_(rd_kafka_conf_new()) {
   VerifyComponentNamePrefix(name, "kafka-producer");
 
   SetCommon(configuration.common);
@@ -218,7 +218,7 @@ Configuration::Configuration(const std::string& name,
 
 const std::string& Configuration::GetName() const { return name_; }
 
-rd_kafka_conf_s* Configuration::Release() && { return conf_.release(); }
+ConfHolder Configuration::Release() && { return std::move(conf_); }
 
 void Configuration::SetCommon(const CommonConfiguration& common) {
   SetOption("topic.metadata.refresh.interval.ms",
@@ -226,7 +226,7 @@ void Configuration::SetCommon(const CommonConfiguration& common) {
   SetOption("metadata.max.age.ms",
             std::to_string(common.metadata_max_age.count()));
 
-  rd_kafka_conf_set_log_cb(conf_.get(), &LogCallback);
+  rd_kafka_conf_set_log_cb(conf_.GetHandle(), &LogCallback);
 }
 
 void Configuration::SetSecurity(const SecurityConfiguration& security,
@@ -272,13 +272,13 @@ void Configuration::SetProducer(const ProducerConfiguration& configuration) {
 }
 
 void Configuration::SetOption(const char* option, const char* value) {
-  UASSERT(conf_);
+  UASSERT(conf_.GetHandle());
   UASSERT(option);
   UASSERT(value);
 
   ErrorBuffer err_buf;
   const rd_kafka_conf_res_t err = rd_kafka_conf_set(
-      conf_.get(), option, value, err_buf.data(), err_buf.size());
+      conf_.GetHandle(), option, value, err_buf.data(), err_buf.size());
   if (err == RD_KAFKA_CONF_OK) {
     LOG_INFO() << fmt::format("Kafka conf option: '{}' -> '{}'", option, value);
     return;

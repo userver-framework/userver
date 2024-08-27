@@ -2052,6 +2052,8 @@
   "kafka/src/kafka/impl/delivery_waiter.hpp":"taxi/uservices/userver/kafka/src/kafka/impl/delivery_waiter.hpp",
   "kafka/src/kafka/impl/error_buffer.cpp":"taxi/uservices/userver/kafka/src/kafka/impl/error_buffer.cpp",
   "kafka/src/kafka/impl/error_buffer.hpp":"taxi/uservices/userver/kafka/src/kafka/impl/error_buffer.hpp",
+  "kafka/src/kafka/impl/holders.cpp":"taxi/uservices/userver/kafka/src/kafka/impl/holders.cpp",
+  "kafka/src/kafka/impl/holders.hpp":"taxi/uservices/userver/kafka/src/kafka/impl/holders.hpp",
   "kafka/src/kafka/impl/log_level.cpp":"taxi/uservices/userver/kafka/src/kafka/impl/log_level.cpp",
   "kafka/src/kafka/impl/log_level.hpp":"taxi/uservices/userver/kafka/src/kafka/impl/log_level.hpp",
   "kafka/src/kafka/impl/producer_impl.cpp":"taxi/uservices/userver/kafka/src/kafka/impl/producer_impl.cpp",

@@ -1,7 +1,6 @@
 #include "test_utils.hpp"
 
 #include <optional>
-#include <vector>
 
 #include <gmock/gmock.h>
 #include <librdkafka/rdkafka.h>
@@ -19,19 +18,13 @@ using namespace std::chrono_literals;
 
 class ConfigurationTest : public KafkaCluster {};
 
-using ConfHolder =
-    std::unique_ptr<rd_kafka_conf_t, decltype(&rd_kafka_conf_destroy)>;
-
-ConfHolder RetrieveConf(kafka::impl::Configuration&& configuration) {
-  return ConfHolder{std::move(configuration).Release(), &rd_kafka_conf_destroy};
-}
-
-std::string GetConfOption(const ConfHolder& conf, const char* option) {
-  UINVARIANT(conf, "Null conf");
+std::string GetConfOption(const kafka::impl::ConfHolder& conf,
+                          const char* option) {
+  UINVARIANT(conf.GetHandle(), "Null conf");
 
   std::size_t result_size{0};
   const auto get_size_status =
-      rd_kafka_conf_get(conf.get(), option, nullptr, &result_size);
+      rd_kafka_conf_get(conf.GetHandle(), option, nullptr, &result_size);
   UINVARIANT(RD_KAFKA_CONF_OK == get_size_status,
              fmt::format("Failed to retrieve configuration option {}", option));
   UINVARIANT(
@@ -39,8 +32,8 @@ std::string GetConfOption(const ConfHolder& conf, const char* option) {
       fmt::format("Got size=0 while retrieving config option {}", option));
 
   std::string result_data(result_size, '\0');
-  const auto get_result_status =
-      rd_kafka_conf_get(conf.get(), option, result_data.data(), &result_size);
+  const auto get_result_status = rd_kafka_conf_get(
+      conf.GetHandle(), option, result_data.data(), &result_size);
   UINVARIANT(RD_KAFKA_CONF_OK == get_result_status,
              fmt::format("Failed to retrieve configuration option {}", option));
 
@@ -55,7 +48,7 @@ UTEST_F(ConfigurationTest, Producer) {
   UEXPECT_NO_THROW(
       configuration.emplace(MakeProducerConfiguration("kafka-producer")));
 
-  const auto conf = RetrieveConf(std::move(*configuration));
+  const auto conf = std::move(*configuration).Release();
   const kafka::impl::ProducerConfiguration default_producer{};
   EXPECT_EQ(
       GetConfOption(conf, "topic.metadata.refresh.interval.ms"),
@@ -84,7 +77,7 @@ UTEST_F(ConfigurationTest, ProducerNonDefault) {
   UEXPECT_NO_THROW(configuration.emplace(
       MakeProducerConfiguration("kafka-producer", producer_configuration)));
 
-  const auto conf = RetrieveConf(std::move(*configuration));
+  const auto conf = std::move(*configuration).Release();
   const kafka::impl::ProducerConfiguration default_producer{};
   EXPECT_EQ(GetConfOption(conf, "topic.metadata.refresh.interval.ms"), "10");
   EXPECT_EQ(GetConfOption(conf, "metadata.max.age.ms"), "30");
@@ -105,7 +98,7 @@ UTEST_F(ConfigurationTest, Consumer) {
   UEXPECT_NO_THROW(
       configuration.emplace(MakeConsumerConfiguration("kafka-consumer")));
 
-  const auto conf = RetrieveConf(std::move(*configuration));
+  const auto conf = std::move(*configuration).Release();
   const kafka::impl::ConsumerConfiguration default_consumer{};
   EXPECT_EQ(
       GetConfOption(conf, "topic.metadata.refresh.interval.ms"),
@@ -136,7 +129,7 @@ UTEST_F(ConfigurationTest, ProducerSecure) {
   UEXPECT_NO_THROW(configuration.emplace(MakeProducerConfiguration(
       "kafka-producer", producer_configuration, secrets)));
 
-  const auto conf = RetrieveConf(std::move(*configuration));
+  const auto conf = std::move(*configuration).Release();
   const kafka::impl::SecurityConfiguration::SaslSsl default_sasl_ssl{};
   EXPECT_EQ(GetConfOption(conf, "security.protocol"), "sasl_ssl");
   EXPECT_EQ(GetConfOption(conf, "sasl.mechanism"), "SCRAM-SHA-512");
@@ -160,7 +153,7 @@ UTEST_F(ConfigurationTest, ConsumerSecure) {
   UEXPECT_NO_THROW(configuration.emplace(MakeConsumerConfiguration(
       "kafka-consumer", consumer_configuration, secrets)));
 
-  const auto conf = RetrieveConf(std::move(*configuration));
+  const auto conf = std::move(*configuration).Release();
   const kafka::impl::SecurityConfiguration::SaslSsl default_sasl_ssl{};
   EXPECT_EQ(GetConfOption(conf, "security.protocol"), "sasl_ssl");
   EXPECT_EQ(GetConfOption(conf, "sasl.mechanism"), "SCRAM-SHA-512");
@@ -188,7 +181,7 @@ UTEST_F(ConfigurationTest, ConsumerResolveGroupId) {
   UEXPECT_NO_THROW(configuration.emplace(
       MakeConsumerConfiguration("kafka-consumer", consumer_configuration)));
 
-  const auto conf = RetrieveConf(std::move(*configuration));
+  const auto conf = std::move(*configuration).Release();
   EXPECT_EQ(GetConfOption(conf, "group.id"), "test-group-pod-example-com");
 }
 

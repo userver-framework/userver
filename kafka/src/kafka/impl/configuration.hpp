@@ -1,7 +1,6 @@
 #pragma once
 
 #include <chrono>
-#include <memory>
 #include <optional>
 #include <string>
 #include <variant>
@@ -10,6 +9,8 @@
 
 #include <userver/formats/parse/to.hpp>
 #include <userver/yaml_config/fwd.hpp>
+
+#include <kafka/impl/holders.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -68,9 +69,6 @@ ProducerConfiguration Parse(const yaml_config::YamlConfig& config,
 /// @see components/producer_component.cpp
 /// @see https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md
 class Configuration final {
-  using ConfHolder =
-      std::unique_ptr<rd_kafka_conf_t, decltype(&rd_kafka_conf_destroy)>;
-
  public:
   /// @brief Sets common Kafka objects configuration options, including broker
   /// SASL authentication mechanism, and consumer/producer specific options.
@@ -92,10 +90,10 @@ class Configuration final {
 
   const std::string& GetName() const;
 
-  /// @brief Releases stored `rd_kafka_conf_t` pointer to be passed as a
+  /// @brief Releases stored conf to be passed as a
   /// parameter of `rd_kafka_new` function that takes ownership on
   /// configuration.
-  rd_kafka_conf_t* Release() &&;
+  ConfHolder Release() &&;
 
  private:
   void SetCommon(const CommonConfiguration& common);
