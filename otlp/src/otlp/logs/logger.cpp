@@ -131,7 +131,7 @@ void Logger::Trace(logging::Level, std::string_view msg) {
           span.set_span_id(utils::encoding::FromHex(value));
           return true;
         }
-        if (key == "parent_span_id") {
+        if (key == "parent_id") {
           span.set_parent_span_id(utils::encoding::FromHex(value));
           return true;
         }
@@ -159,8 +159,9 @@ void Logger::Trace(logging::Level, std::string_view msg) {
 
   auto start_timestamp_double = std::stod(start_timestamp);
   span.set_start_time_unix_nano(start_timestamp_double * 1'000'000'000);
-  span.set_end_time_unix_nano((start_timestamp_double + std::stod(total_time)) *
-                              1'000'000'000);
+  span.set_end_time_unix_nano(
+      (start_timestamp_double + std::stod(total_time) / 1'000) *
+      1'000'000'000LL);
 
   // Drop a trace if overflown
   auto ok = queue_producer_.PushNoblock(std::move(span));

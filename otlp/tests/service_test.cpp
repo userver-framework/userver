@@ -67,13 +67,24 @@ class TraceService final
  public:
   void Export(
       ExportCall& call,
-      ::opentelemetry::proto::collector::trace::v1::ExportTraceServiceRequest&&)
-      override {
+      ::opentelemetry::proto::collector::trace::v1::ExportTraceServiceRequest&&
+          request) override {
     // Don't emit new traces to avoid recursive traces/logs
     tracing::Span::CurrentSpan().SetLogLevel(logging::Level::kNone);
 
+    for (const auto& rs : request.resource_spans()) {
+      for (const auto& ss : rs.scope_spans()) {
+        for (const auto& span : ss.spans()) {
+          spans.push_back(span);
+        }
+      }
+    }
+
     call.Finish({});
   }
+
+  // no sync as there is only a single grpc client
+  std::vector<::opentelemetry::proto::trace::v1::Span> spans;
 };
 
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
@@ -98,14 +109,14 @@ class LogServiceTest : public Service<LogService, TraceService>,
 
 }  // namespace
 
-UTEST_F(LogServiceTest, DISABLED_NoInfiniteLogsInTrace) {
+UTEST_F(LogServiceTest, NoInfiniteLogsInTrace) {
   LOG_INFO() << "dummy log";
 
   engine::SleepFor(std::chrono::seconds(1));
   EXPECT_EQ(GetService1().logs.size(), 1);
 }
 
-UTEST_F(LogServiceTest, DISABLED_Smoke) {
+UTEST_F(LogServiceTest, SmokeLogs) {
   auto timestamp = std::chrono::duration_cast<std::chrono::nanoseconds>(
       std::chrono::system_clock::now().time_since_epoch());
   LOG_INFO() << "log";
@@ -122,6 +133,26 @@ UTEST_F(LogServiceTest, DISABLED_Smoke) {
   EXPECT_LE(timestamp.count(), log.time_unix_nano());
   EXPECT_LE(log.time_unix_nano(), timestamp.count() + 1'000'000'000)
       << log.time_unix_nano() - timestamp.count() - 1'000'000'000;
+}
+
+UTEST_F(LogServiceTest, SmokeTrace) {
+  auto timestamp = std::chrono::duration_cast<std::chrono::nanoseconds>(
+      std::chrono::system_clock::now().time_since_epoch());
+  { tracing::Span span("some_span"); }
+  auto timestamp2 = std::chrono::duration_cast<std::chrono::nanoseconds>(
+      std::chrono::system_clock::now().time_since_epoch());
+
+  while (GetService2().spans.size() < 1) {
+    engine::SleepFor(std::chrono::milliseconds(10));
+  }
+
+  auto& span = GetService2().spans[0];
+
+  EXPECT_EQ(span.name(), "some_span");
+
+  EXPECT_LE(timestamp.count(), span.start_time_unix_nano());
+  EXPECT_LE(span.start_time_unix_nano(), span.end_time_unix_nano());
+  EXPECT_LE(span.end_time_unix_nano(), timestamp2.count());
 }
 
 USERVER_NAMESPACE_END
