@@ -23,9 +23,13 @@ enum class LockerMode {
 
 class Locker final {
  public:
+  static constexpr DistLockRetryMode kDefaultRetryMode =
+      DistLockRetryMode::kRetry;
+
   Locker(std::string name, std::shared_ptr<DistLockStrategyBase> strategy,
          const DistLockSettings& settings, std::function<void()> worker_func,
-         DistLockRetryMode retry_mode = DistLockRetryMode::kRetry);
+         DistLockRetryMode retry_mode = kDefaultRetryMode,
+         logging::Level base_log_level = logging::Level::kInfo);
 
   const std::string& Name() const;
   const std::string& Id() const;
@@ -65,6 +69,7 @@ class Locker final {
   std::atomic<std::chrono::steady_clock::duration> lock_acquire_since_epoch_{};
 
   Statistics stats_;
+  const logging::Level base_log_level_;
 };
 
 }  // namespace dist_lock::impl

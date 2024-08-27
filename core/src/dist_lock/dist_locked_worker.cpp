@@ -15,10 +15,12 @@ namespace dist_lock {
 DistLockedWorker::DistLockedWorker(
     std::string name, WorkerFunc worker_func,
     std::shared_ptr<DistLockStrategyBase> strategy,
-    const DistLockSettings& settings, engine::TaskProcessor* task_processor)
-    : locker_ptr_(std::make_shared<impl::Locker>(std::move(name),
-                                                 std::move(strategy), settings,
-                                                 std::move(worker_func))),
+    const DistLockSettings& settings, engine::TaskProcessor* task_processor,
+    logging::Level locker_log_level)
+    : locker_ptr_(std::make_shared<impl::Locker>(
+          std::move(name), std::move(strategy), settings,
+          std::move(worker_func), impl::Locker::kDefaultRetryMode,
+          locker_log_level)),
       task_processor_(task_processor) {}
 
 DistLockedWorker::~DistLockedWorker() {

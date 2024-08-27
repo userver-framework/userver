@@ -57,13 +57,15 @@ class Locker::LockGuard {
 
 Locker::Locker(std::string name, std::shared_ptr<DistLockStrategyBase> strategy,
                const DistLockSettings& settings,
-               std::function<void()> worker_func, DistLockRetryMode retry_mode)
+               std::function<void()> worker_func, DistLockRetryMode retry_mode,
+               logging::Level base_log_level)
     : name_(std::move(name)),
       id_(MakeLockerId(name_)),
       strategy_(std::move(strategy)),
       worker_func_(std::move(worker_func)),
       settings_(settings),
-      retry_mode_(retry_mode) {
+      retry_mode_(retry_mode),
+      base_log_level_(base_log_level) {
   UASSERT(strategy_);
 }
 
@@ -113,7 +115,8 @@ void Locker::Run(LockerMode mode, dist_lock::DistLockWaitingMode waiting_mode,
         LOG_DEBUG() << "Started watchdog task";
       }
     } catch (const LockIsAcquiredByAnotherHostException&) {
-      LOG_INFO() << "Fail to acquire lock. It was acquired by another host";
+      LOG(base_log_level_)
+          << "Fail to acquire lock. It was acquired by another host";
       stats_.lock_failures++;
       if (is_locked_) {
         LOG_ERROR()
@@ -193,20 +196,20 @@ bool Locker::ExchangeLockState(bool is_locked,
   auto was_locked = is_locked_.exchange(is_locked);
   if (is_locked != was_locked) {
     if (!was_locked) {
-      LOG_INFO() << "Acquired the lock";
+      LOG(base_log_level_) << "Acquired the lock";
       lock_acquire_since_epoch_ = when.time_since_epoch();
     } else {
-      LOG_INFO() << "Released (or lost) the lock";
+      LOG(base_log_level_) << "Released (or lost) the lock";
     }
   }
   return was_locked;
 }
 
 void Locker::RunWatchdog() {
-  LOG_INFO() << "Starting worker task";
+  LOG(base_log_level_) << "Starting worker task";
   auto worker_task =
       utils::CriticalAsync("lock-worker-" + name_, [this] { worker_func_(); });
-  LOG_INFO() << "Started worker task";
+  LOG(base_log_level_) << "Started worker task";
 
   while (!engine::current_task::ShouldCancel() && !worker_task.IsFinished()) {
     const auto settings = GetSettings();
@@ -235,7 +238,7 @@ void Locker::RunWatchdog() {
       // do nothing
     }
   }
-  LOG_INFO() << "Waiting for worker task";
+  LOG(base_log_level_) << "Waiting for worker task";
   worker_task.RequestCancel();
 
   std::exception_ptr exception;
@@ -247,7 +250,7 @@ void Locker::RunWatchdog() {
       throw WorkerFuncFailedException{
           fmt::format("worker name='{}' id='{}' task failed", name_, id_)};
   }
-  LOG_INFO() << "Worker task completed";
+  LOG(base_log_level_) << "Worker task completed";
 }
 
 }  // namespace dist_lock::impl

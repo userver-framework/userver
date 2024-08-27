@@ -45,6 +45,10 @@ DistLockComponentBase::DistLockComponentBase(
       task_processor_name
           ? &component_context.GetTaskProcessor(task_processor_name.value())
           : nullptr;
+
+  auto locker_log_level = logging::LevelFromString(
+      component_config["locker-log-level"].As<std::string>("info"));
+
   worker_ = std::make_unique<dist_lock::DistLockedWorker>(
       lock_name,
       [this]() {
@@ -54,7 +58,7 @@ DistLockComponentBase::DistLockComponentBase(
           DoWork();
         }
       },
-      std::move(strategy), settings, task_processor);
+      std::move(strategy), settings, task_processor, locker_log_level);
 
   autostart_ = component_config["autostart"].As<bool>(false);
 
@@ -130,6 +134,9 @@ properties:
         type: boolean
         description: Enable testsuite support
         defaultDescription: false
+    locker-log-level:
+        type: string
+        description: Base logging level for locker logs (default is info)
 )");
 }
 

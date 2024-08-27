@@ -11,6 +11,7 @@
 #include <userver/dist_lock/statistics.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/task/task_with_result.hpp>
+#include <userver/logging/level.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -36,13 +37,15 @@ class DistLockedWorker final {
   /// @param strategy distributed locking strategy
   /// @param task_processor TaskProcessor for running `worker_func`,
   /// using current TaskProcessor if `nullptr`
+  /// @param locker_log_level Log level for Locker (default is info)
   /// @note `worker_func` must honour task cancellation and stop ASAP when
   /// it is cancelled, otherwise brain split is possible (IOW, two different
   /// users do work assuming both of them hold the lock, which is not true).
   DistLockedWorker(std::string name, WorkerFunc worker_func,
                    std::shared_ptr<DistLockStrategyBase> strategy,
                    const DistLockSettings& settings = {},
-                   engine::TaskProcessor* task_processor = nullptr);
+                   engine::TaskProcessor* task_processor = nullptr,
+                   logging::Level locker_log_level = logging::Level::kInfo);
 
   ~DistLockedWorker();
 
