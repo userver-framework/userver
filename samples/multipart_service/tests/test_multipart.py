@@ -20,6 +20,7 @@ async def test_ok(service_client, load_binary):
     # Making a request and checking the result
     response = await service_client.post('/v1/multipart', data=form_data)
     assert response.status == 200
+    assert 'application/json' in response.headers['Content-Type']
     assert response.text == f'city={address["city"]} image_size={len(image)}'
     # /// [Functional test]
 

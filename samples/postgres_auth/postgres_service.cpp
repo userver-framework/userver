@@ -23,8 +23,9 @@ class Hello final : public server::handlers::HttpHandlerBase {
   using HttpHandlerBase::HttpHandlerBase;
 
   std::string HandleRequestThrow(
-      const server::http::HttpRequest&,
+      const server::http::HttpRequest& request,
       server::request::RequestContext& ctx) const override {
+    request.GetHttpResponse().SetContentType(http::content_type::kTextPlain);
     return "Hello world, " + ctx.GetData<std::string>("name") + "!\n";
   }
 };

@@ -128,6 +128,8 @@ class RequestHandler final : public server::handlers::HttpHandlerJsonBase {
       const server::http::HttpRequest& request,
       const formats::json::Value& request_json,
       server::request::RequestContext&) const override {
+    request.GetHttpResponse().SetContentType(
+        http::content_type::kApplicationJson);
     if (request.GetMethod() == server::http::HttpMethod::kGet) {
       formats::json::ValueBuilder builder{formats::json::Type::kObject};
       builder["messages"] = my_consumer_.GetConsumedMessages();

@@ -12,8 +12,11 @@
 namespace sample {
 
 formats::json::Value SelectRowsHandler::HandleRequestJsonThrow(
-    const server::http::HttpRequest&, const formats::json::Value& request_json,
+    const server::http::HttpRequest& request,
+    const formats::json::Value& request_json,
     server::request::RequestContext&) const {
+  request.GetHttpResponse().SetContentType(
+      http::content_type::kApplicationJson);
   ydb::OperationSettings query_params = {
       3,                                // retries
       std::chrono::milliseconds(1000),  // operation_timeout

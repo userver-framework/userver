@@ -83,6 +83,7 @@ std::string KeyValue::HandleRequestThrow(
         server::handlers::ExternalBody{"No 'key' query argument"});
   }
 
+  request.GetHttpResponse().SetContentType(http::content_type::kTextPlain);
   switch (request.GetMethod()) {
     case server::http::HttpMethod::kGet:
       return GetValue(key, request);
@@ -143,6 +144,8 @@ std::string EvalSha::HandleRequestThrow(
     const server::http::HttpRequest& request,
     server::request::RequestContext&) const {
   const auto& command = request.GetArg("command");
+  request.GetHttpResponse().SetContentType(http::content_type::kTextPlain);
+
   if (command.empty()) {
     throw server::handlers::ClientError(
         server::handlers::ExternalBody{"No 'command' query argument"});

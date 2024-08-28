@@ -12,6 +12,7 @@ async def test_query_span(service_client):
             },
         )
         assert response.status_code == 200
+        assert 'application/json' in response.headers['Content-Type']
         assert response.json() == {'items': []}
 
     assert capture.select(
@@ -47,6 +48,7 @@ async def test_config_command_control(service_client):
             },
         )
         assert response.status_code == 200
+        assert 'application/json' in response.headers['Content-Type']
         assert response.json() == {'items': []}
 
     assert capture.select(

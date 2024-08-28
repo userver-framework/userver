@@ -202,6 +202,7 @@ class GreetUser final : public server::handlers::HttpHandlerBase {
     using samples::http_cache::KeyLang;
     const auto& hello = cache_snapshot->at(KeyLang{"hello", "ru"});
     const auto& welcome = cache_snapshot->at(KeyLang{"welcome", "ru"});
+    request.GetHttpResponse().SetContentType(http::content_type::kTextPlain);
     return fmt::format("{}, {}! {}", hello, request.GetArg("username"),
                        welcome);
   }

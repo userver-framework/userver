@@ -27,6 +27,7 @@ async def test_cert_ok(service_client, service_port):
                 f'https://localhost:{service_port}/hello',
         ) as response:
             assert response.status == 200
+            assert 'text/plain' in response.headers['Content-Type']
             assert await response.text() == 'Hello world!\n'
     # /// [Functional test]
 

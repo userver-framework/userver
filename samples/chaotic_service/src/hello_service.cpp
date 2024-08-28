@@ -22,6 +22,9 @@ class Hello final : public server::handlers::HttpHandlerBase {
   std::string HandleRequestThrow(
       const server::http::HttpRequest& request,
       server::request::RequestContext&) const override {
+    request.GetHttpResponse().SetContentType(
+        http::content_type::kApplicationJson);
+
     auto request_json = formats::json::FromString(request.RequestBody());
 
     // Use generated parser for As()

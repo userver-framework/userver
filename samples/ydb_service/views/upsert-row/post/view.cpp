@@ -6,8 +6,11 @@
 namespace sample {
 
 formats::json::Value UpsertRowHandler::HandleRequestJsonThrow(
-    const server::http::HttpRequest&, const formats::json::Value& request,
+    const server::http::HttpRequest& httpRequest,
+    const formats::json::Value& request,
     server::request::RequestContext&) const {
+  httpRequest.GetHttpResponse().SetContentType(
+      http::content_type::kApplicationJson);
   static const ydb::Query kUpsertQuery{
       R"(
 --!syntax_v1

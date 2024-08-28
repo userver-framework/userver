@@ -61,7 +61,7 @@ std::string HandlerDb::HandleRequestThrow(
   const storages::clickhouse::Query query{
       "SELECT toString(c.number) FROM system.numbers c LIMIT toInt32({})"};
   const auto result = clickhouse_->Execute(query, limit).As<Result>();
-
+  request.GetHttpResponse().SetContentType(http::content_type::kTextPlain);
   return fmt::to_string(fmt::join(result.values, ""));
 }
 

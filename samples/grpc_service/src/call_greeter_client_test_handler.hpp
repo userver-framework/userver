@@ -27,6 +27,8 @@ class CallGreeterClientTestHandler final
       const server::http::HttpRequest& request,
       server::request::RequestContext&) const override {
     const auto& arg_case = request.GetArg("case");
+    request.GetHttpResponse().SetContentType(http::content_type::kTextPlain);
+
     if (arg_case == "say_hello") {
       return grpc_greeter_client_.SayHello(request.RequestBody());
     } else if (arg_case == "say_hello_response_stream") {

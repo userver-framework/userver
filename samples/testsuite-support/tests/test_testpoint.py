@@ -10,6 +10,7 @@ async def test_basic(service_client, testpoint):
 
     response = await service_client.get('/testpoint')
     assert response.status == 200
+    assert 'application/json' in response.headers['Content-Type']
     assert simple_testpoint.times_called == 1
     # /// [Testpoint - fixture]
 
@@ -22,6 +23,7 @@ async def test_injection(service_client, testpoint):
 
     response = await service_client.get('/testpoint')
     assert response.status == 200
+    assert 'application/json' in response.headers['Content-Type']
     assert response.json() == {'value': 'injected'}
 
     # testpoint supports callqueue interface

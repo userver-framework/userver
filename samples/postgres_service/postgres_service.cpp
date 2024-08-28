@@ -69,6 +69,7 @@ std::string KeyValue::HandleRequestThrow(
         server::handlers::ExternalBody{"No 'key' query argument"});
   }
 
+  request.GetHttpResponse().SetContentType(http::content_type::kTextPlain);
   switch (request.GetMethod()) {
     case server::http::HttpMethod::kGet:
       return GetValue(key, request);

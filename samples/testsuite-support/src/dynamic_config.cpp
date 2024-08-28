@@ -23,6 +23,7 @@ DynamicConfig::DynamicConfig(const components::ComponentConfig& config,
 std::string DynamicConfig::HandleRequestThrow(
     [[maybe_unused]] const server::http::HttpRequest& request,
     [[maybe_unused]] server::request::RequestContext& context) const {
+  request.GetHttpResponse().SetContentType(http::content_type::kTextPlain);
   const int config_value = config_source_.GetCopy(kMeaningOfLife);
   return std::to_string(config_value);
 }

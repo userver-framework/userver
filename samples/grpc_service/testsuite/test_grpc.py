@@ -14,6 +14,7 @@ async def test_grpc_client_mock_say_hello(service_client, mock_grpc_greeter):
 
     response = await service_client.post('/hello?case=say_hello', data='tests')
     assert response.status == 200
+    assert 'text/plain' in response.headers['Content-Type']
     assert response.text == 'Hello, tests from mockserver!'
     assert _mock_say_hello.times_called == 1
 
@@ -36,6 +37,7 @@ async def test_grpc_client_mock_say_hello_response_stream(
         '/hello?case=say_hello_response_stream', data='Python',
     )
     assert response.status == 200
+    assert 'text/plain' in response.headers['Content-Type']
     assert (
         response.text
         == """Hello, Python!
@@ -66,6 +68,7 @@ async def test_grpc_client_mock_say_hello_request_stream(
         '/hello?case=say_hello_request_stream', data='Python\n!\n!\n!',
     )
     assert response.status == 200
+    assert 'text/plain' in response.headers['Content-Type']
     assert response.text == 'Hello, Python!!!'
     assert _mock_say_hello_request_stream.times_called == 1
 
@@ -88,6 +91,7 @@ async def test_grpc_client_mock_say_hello_streams(
         '/hello?case=say_hello_streams', data='Python\n!\n!\n!',
     )
     assert response.status == 200
+    assert 'text/plain' in response.headers['Content-Type']
     assert (
         response.text
         == """Hello, Python

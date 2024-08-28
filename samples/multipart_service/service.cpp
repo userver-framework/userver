@@ -41,6 +41,7 @@ std::string Multipart::HandleRequestThrow(
     return "Expecting PNG image format";
   }
 
+  req.GetHttpResponse().SetContentType(http::content_type::kApplicationJson);
   const auto& address = req.GetFormDataArg("address");
   auto json_addr = formats::json::FromString(address.value);
 

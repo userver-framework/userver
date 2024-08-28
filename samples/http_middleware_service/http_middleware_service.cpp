@@ -65,7 +65,6 @@ class SomeServerMiddleware final
   void HandleRequest(server::http::HttpRequest& request,
                      server::request::RequestContext& context) const override {
     Next(request, context);
-
     request.GetHttpResponse().SetHeader(kCustomServerHeader, "1");
   }
 

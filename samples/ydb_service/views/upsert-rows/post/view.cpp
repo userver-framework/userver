@@ -27,8 +27,11 @@ UpsertRowsRequest Parse(const formats::json::Value& json,
 }
 
 formats::json::Value UpsertRowsHandler::HandleRequestJsonThrow(
-    const server::http::HttpRequest&, const formats::json::Value& request_json,
+    const server::http::HttpRequest& request,
+    const formats::json::Value& request_json,
     server::request::RequestContext&) const {
+  request.GetHttpResponse().SetContentType(
+      http::content_type::kApplicationJson);
   static const ydb::Query kUpsertQuery{
       R"(
 --!syntax_v1

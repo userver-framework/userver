@@ -68,6 +68,8 @@ formats::json::Value KeyValue::HandleRequestJsonThrow(
     const server::http::HttpRequest& request,
     const formats::json::Value& request_json,
     server::request::RequestContext&) const {
+  request.GetHttpResponse().SetContentType(
+      http::content_type::kApplicationJson);
   switch (request.GetMethod()) {
     case server::http::HttpMethod::kPost:
       return InsertValues(request_json);

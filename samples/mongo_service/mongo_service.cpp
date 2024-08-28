@@ -23,6 +23,8 @@ class Translations final : public server::handlers::HttpHandlerBase {
   std::string HandleRequestThrow(
       const server::http::HttpRequest& request,
       server::request::RequestContext&) const override {
+    request.GetHttpResponse().SetContentType(
+        http::content_type::kApplicationJson);
     if (request.GetMethod() == server::http::HttpMethod::kPatch) {
       InsertNew(request);
       return {};

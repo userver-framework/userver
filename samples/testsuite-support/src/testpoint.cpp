@@ -19,6 +19,8 @@ formats::json::Value Testpoint::HandleRequestJsonThrow(
   }());
   /// [Testpoint - TESTPOINT()]
 
+  request.GetHttpResponse().SetContentType(
+      http::content_type::kApplicationJson);
   /// [Sample TESTPOINT_CALLBACK usage cpp]
   formats::json::ValueBuilder result;
 

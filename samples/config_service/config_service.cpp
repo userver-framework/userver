@@ -92,7 +92,7 @@ formats::json::ValueBuilder MakeConfigs(
     const formats::json::Value& request);
 
 formats::json::Value ConfigDistributor::HandleRequestJsonThrow(
-    const server::http::HttpRequest&, const formats::json::Value& json,
+    const server::http::HttpRequest& request, const formats::json::Value& json,
     server::request::RequestContext&) const {
   formats::json::ValueBuilder result;
 
@@ -101,7 +101,8 @@ formats::json::Value ConfigDistributor::HandleRequestJsonThrow(
 
   const auto updated_at = config_values_ptr->updated_at;
   result["updated_at"] = utils::datetime::Timestring(updated_at);
-
+  request.GetHttpResponse().SetContentType(
+      http::content_type::kApplicationJson);
   return result.ExtractValue();
 }
 /// [Config service sample - HandleRequestJsonThrow]

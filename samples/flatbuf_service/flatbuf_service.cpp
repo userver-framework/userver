@@ -27,9 +27,11 @@ class FbsSumEcho final
       : HttpHandlerFlatbufBase(config, context) {}
 
   fbs::SampleResponse::NativeTableType HandleRequestFlatbufThrow(
-      const server::http::HttpRequest& /*request*/,
+      const server::http::HttpRequest& request,
       const fbs::SampleRequest::NativeTableType& fbs_request,
       server::request::RequestContext&) const override {
+    request.GetHttpResponse().SetContentType(
+        http::content_type::kApplicationOctetStream);
     fbs::SampleResponse::NativeTableType res;
     res.sum = fbs_request.arg1 + fbs_request.arg2;
     res.echo = fbs_request.data;
