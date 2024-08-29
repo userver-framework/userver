@@ -499,6 +499,7 @@ void ConnectionPool::Push(Connection* connection) {
   }
 
   if (queue_.push(connection)) {
+    { const std::lock_guard lock{wait_mutex_}; }
     conn_available_.NotifyOne();
   } else {
     // TODO Reflect this as a statistics error
