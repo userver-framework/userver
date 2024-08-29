@@ -43,6 +43,10 @@ void CacheUpdateTrait::AssertPeriodicUpdateStarted() {
   impl_->AssertPeriodicUpdateStarted();
 }
 
+void CacheUpdateTrait::AssertPeriodicUpdateStopped() {
+  impl_->AssertPeriodicUpdateStopped();
+}
+
 void CacheUpdateTrait::OnCacheModified() { impl_->OnCacheModified(); }
 
 bool CacheUpdateTrait::HasPreAssignCheck() const {

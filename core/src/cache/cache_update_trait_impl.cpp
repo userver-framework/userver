@@ -398,6 +398,12 @@ void CacheUpdateTrait::Impl::AssertPeriodicUpdateStarted() {
                                       "StartPeriodicUpdates(), call it in ctr");
 }
 
+void CacheUpdateTrait::Impl::AssertPeriodicUpdateStopped() {
+  UASSERT_MSG(!is_running_.load(), "Cache " + name_ +
+                                       " has been destructed without calling "
+                                       "StopPeriodicUpdates(), call it in dtr");
+}
+
 void CacheUpdateTrait::Impl::OnCacheModified() { cache_modified_ = true; }
 
 bool CacheUpdateTrait::Impl::HasPreAssignCheck() const {

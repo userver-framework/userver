@@ -76,6 +76,8 @@ class CacheUpdateTrait {
 
   void AssertPeriodicUpdateStarted();
 
+  void AssertPeriodicUpdateStopped();
+
   /// Called in `CachingComponentBase::Set` during update to indicate
   /// that the cached data has been modified
   void OnCacheModified();

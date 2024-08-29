@@ -52,6 +52,8 @@ class CacheUpdateTrait::Impl final {
 
   void AssertPeriodicUpdateStarted();
 
+  void AssertPeriodicUpdateStopped();
+
   void OnCacheModified();
 
   bool HasPreAssignCheck() const;
