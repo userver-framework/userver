@@ -29,7 +29,7 @@ class CongestionControlTest : public ugrpc::tests::ServiceFixtureBase {
     auto congestion_control_middleware = std::make_shared<
         ugrpc::server::middlewares::congestion_control::Middleware>();
     congestion_control_middleware->SetLimit(0);
-    AddServerMiddleware(congestion_control_middleware);
+    SetServerMiddlewares({congestion_control_middleware});
 
     RegisterService(service_);
     StartServer();

@@ -47,8 +47,8 @@ class ServerBaggageTestService final
 class GrpcServerTestBaggage : public ugrpc::tests::ServiceFixtureBase {
  public:
   GrpcServerTestBaggage() {
-    AddServerMiddleware(
-        std::make_shared<ugrpc::server::middlewares::baggage::Middleware>());
+    SetServerMiddlewares(
+        {std::make_shared<ugrpc::server::middlewares::baggage::Middleware>()});
 
     ExtendDynamicConfig({
         {baggage::kBaggageSettings, {{"key1", "key2", "key3"}}},
@@ -149,9 +149,8 @@ class GrpcClientTestBaggage : public ugrpc::tests::ServiceFixtureBase {
         {baggage::kBaggageSettings, {{"key1", "key2", "key3"}}},
         {baggage::kBaggageEnabled, true},
     });
-    AddClientMiddleware(
-        std::make_shared<
-            ugrpc::client::middlewares::baggage::MiddlewareFactory>());
+    SetClientMiddlewareFactories({std::make_shared<
+        ugrpc::client::middlewares::baggage::MiddlewareFactory>()});
     RegisterService(service_);
     StartServer();
   };

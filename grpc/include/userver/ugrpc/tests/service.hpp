@@ -61,11 +61,11 @@ class ServiceBase {
   server::Server& GetServer() noexcept;
 
   /// Server middlewares can be modified before the first RegisterService call.
-  void AddServerMiddleware(std::shared_ptr<server::MiddlewareBase> middleware);
+  void SetServerMiddlewares(server::Middlewares middlewares);
 
   /// Client middlewares can be modified before the first RegisterService call.
-  void AddClientMiddleware(
-      std::shared_ptr<const client::MiddlewareFactoryBase> middleware_factory);
+  void SetClientMiddlewareFactories(
+      client::MiddlewareFactories middleware_factories);
 
   /// Modifies the internal dynamic configs storage. It is used by the server
   /// and clients, and is accessible through @ref GetConfigSource.
@@ -85,12 +85,18 @@ class ServiceBase {
   dynamic_config::StorageMock config_storage_;
   server::Server server_;
   server::Middlewares server_middlewares_;
-  client::MiddlewareFactories middleware_factories_;
-  bool adding_middlewares_allowed_{true};
+  client::MiddlewareFactories client_middleware_factories_;
+  bool middlewares_change_allowed_{true};
   testsuite::GrpcControl testsuite_;
   std::optional<std::string> endpoint_;
   std::optional<client::ClientFactory> client_factory_;
 };
+
+/// @brief return list of default server middlewares for tests
+server::Middlewares GetDefaultServerMiddlewares();
+
+/// @brief return list of default client middleware factories for tests
+client::MiddlewareFactories GetDefaultClientMiddlewareFactories();
 
 /// @brief Sets up a mini gRPC server using a single service implementation.
 /// @see @ref ugrpc::tests::ServiceBase
@@ -112,6 +118,8 @@ class Service : public ServiceBase {
           Args&&... args)
       : ServiceBase(std::move(server_config)),
         service_(std::forward<Args>(args)...) {
+    SetServerMiddlewares(GetDefaultServerMiddlewares());
+    SetClientMiddlewareFactories(GetDefaultClientMiddlewareFactories());
     RegisterService(service_);
     StartServer();
   }

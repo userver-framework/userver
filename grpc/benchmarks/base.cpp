@@ -7,9 +7,15 @@
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/task_with_result.hpp>
+#include <userver/logging/format.hpp>
+#include <userver/logging/impl/logger_base.hpp>
+#include <userver/logging/level.hpp>
 #include <userver/ugrpc/tests/service.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/fixed_array.hpp>
+
+#include <ugrpc/client/middlewares/log/middleware.hpp>
+#include <ugrpc/server/middlewares/log/middleware.hpp>
 
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
@@ -70,7 +76,41 @@ class UnitTestService final : public sample::ugrpc::UnitTestServiceBase {
   }
 };
 
-using GrpcClientTest = tests::Service<UnitTestService>;
+template <typename GrpcService, bool Logging>
+class TestService : public tests::ServiceBase {
+ public:
+  template <typename... Args>
+  TestService(Args&&... args)
+      : tests::ServiceBase(std::forward<Args>(args)...) {
+    if constexpr (Logging) {
+      server::middlewares::log::Settings server_log_settings;
+      server_log_settings.local_log_level = logging::Level::kInfo;
+      server_log_settings.msg_log_level = logging::Level::kInfo;
+      SetServerMiddlewares(
+          {std::make_shared<server::middlewares::log::Middleware>(
+              server_log_settings)});
+
+      client::middlewares::log::Settings client_log_settings;
+      client_log_settings.log_level = logging::Level::kInfo;
+      client_log_settings.msg_log_level = logging::Level::kInfo;
+      SetClientMiddlewareFactories(
+          {std::make_shared<client::middlewares::log::MiddlewareFactory>(
+              client_log_settings)});
+    }
+    RegisterService(service_);
+    StartServer();
+  }
+
+  ~TestService() override { StopServer(); }
+
+  GrpcService& GetService() { return service_; }
+
+ private:
+  GrpcService service_{};
+};
+
+using GrpcClientTest = TestService<UnitTestService, false>;
+using GrpcClientTestWithLogging = TestService<UnitTestService, true>;
 
 std::unique_ptr<grpc::ClientContext> PrepareClientContext() {
   auto context = std::make_unique<grpc::ClientContext>();
@@ -104,9 +144,21 @@ void NewClientRepeated(GrpcClientTest& client_factory) {
   }
 }
 
+class NoopLogger : public logging::impl::LoggerBase {
+ public:
+  NoopLogger() noexcept : LoggerBase(logging::Format::kRaw) {
+    SetLevel(logging::Level::kInfo);
+  }
+  void Log(logging::Level, std::string_view) override {}
+  void Flush() override {}
+};
+
 }  // namespace
 
 void UnaryRPC(benchmark::State& state) {
+  const logging::DefaultLoggerGuard logger_guard{
+      std::make_shared<NoopLogger>()};
+
   engine::RunStandalone(state.range(0), [&] {
     GrpcClientTest client_factory;
     auto client =
@@ -119,6 +171,23 @@ void UnaryRPC(benchmark::State& state) {
 }
 
 BENCHMARK(UnaryRPC)->DenseRange(1, 4)->Unit(benchmark::kMicrosecond);
+
+void UnaryRPCWithLogging(benchmark::State& state) {
+  const logging::DefaultLoggerGuard logger_guard{
+      std::make_shared<NoopLogger>()};
+
+  engine::RunStandalone(state.range(0), [&] {
+    GrpcClientTestWithLogging client_factory;
+    auto client =
+        client_factory.MakeClient<sample::ugrpc::UnitTestServiceClient>();
+
+    for (auto _ : state) {
+      UnaryRPCPayload(client);
+    }
+  });
+}
+
+BENCHMARK(UnaryRPCWithLogging)->DenseRange(1, 4)->Unit(benchmark::kMicrosecond);
 
 void UnaryRPCNewClient(benchmark::State& state) {
   engine::RunStandalone(state.range(0), [&] {

@@ -40,15 +40,15 @@ class SecretFieldsServiceFixture : public ugrpc::tests::ServiceFixtureBase {
   SecretFieldsServiceFixture() {
     ugrpc::server::middlewares::log::Settings server_log_settings;
     server_log_settings.msg_log_level = logging::Level::kInfo;
-    AddServerMiddleware(
-        std::make_shared<ugrpc::server::middlewares::log::Middleware>(
-            server_log_settings));
+    SetServerMiddlewares(
+        {std::make_shared<ugrpc::server::middlewares::log::Middleware>(
+            server_log_settings)});
 
     ugrpc::client::middlewares::log::Settings client_log_settings;
     client_log_settings.msg_log_level = logging::Level::kInfo;
-    AddClientMiddleware(
-        std::make_shared<ugrpc::client::middlewares::log::MiddlewareFactory>(
-            client_log_settings));
+    SetClientMiddlewareFactories(
+        {std::make_shared<ugrpc::client::middlewares::log::MiddlewareFactory>(
+            client_log_settings)});
 
     RegisterService(service_);
     StartServer();

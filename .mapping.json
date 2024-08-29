@@ -1746,6 +1746,7 @@
   "grpc/README.md":"taxi/uservices/userver/grpc/README.md",
   "grpc/benchmarks/base.cpp":"taxi/uservices/userver/grpc/benchmarks/base.cpp",
   "grpc/benchmarks/format_log_message.cpp":"taxi/uservices/userver/grpc/benchmarks/format_log_message.cpp",
+  "grpc/benchmarks/trim_secrets.cpp":"taxi/uservices/userver/grpc/benchmarks/trim_secrets.cpp",
   "grpc/benchmarks/ya.make":"taxi/uservices/userver/grpc/benchmarks/ya.make",
   "grpc/functional_tests/CMakeLists.txt":"taxi/uservices/userver/grpc/functional_tests/CMakeLists.txt",
   "grpc/functional_tests/basic_chaos/CMakeLists.txt":"taxi/uservices/userver/grpc/functional_tests/basic_chaos/CMakeLists.txt",

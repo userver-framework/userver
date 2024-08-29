@@ -85,7 +85,7 @@ class MockMiddlewareFactory final
 class GrpcMiddlewares : public ugrpc::tests::ServiceFixtureBase {
  protected:
   GrpcMiddlewares() {
-    AddClientMiddleware(mwf_);
+    SetClientMiddlewareFactories({mwf_});
     RegisterService(service_);
     StartServer();
     client_.emplace(MakeClient<sample::ugrpc::UnitTestServiceClient>());
