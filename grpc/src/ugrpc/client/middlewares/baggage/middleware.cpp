@@ -5,7 +5,7 @@
 #include <userver/ugrpc/client/impl/async_methods.hpp>
 #include <userver/utils/log.hpp>
 
-#include <ugrpc/impl/rpc_metadata_keys.hpp>
+#include <ugrpc/impl/rpc_metadata.hpp>
 #include <ugrpc/impl/to_string.hpp>
 
 USERVER_NAMESPACE_BEGIN

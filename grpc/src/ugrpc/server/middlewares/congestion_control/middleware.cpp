@@ -1,5 +1,7 @@
 #include "middleware.hpp"
 
+#include <ugrpc/impl/rpc_metadata.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::middlewares::congestion_control {
@@ -43,6 +45,14 @@ void Middleware::Handle(MiddlewareCallContext& context) const {
   auto& call = context.GetCall();
 
   if (!CheckRatelimit(rate_limit_, context.GetCall().GetCallName())) {
+    auto& server_context = context.GetCall().GetContext();
+
+    server_context.AddInitialMetadata(ugrpc::impl::kXYaTaxiRatelimitedBy,
+                                      ugrpc::impl::kHostname);
+    server_context.AddInitialMetadata(
+        ugrpc::impl::kXYaTaxiRatelimitReason,
+        ugrpc::impl::kCongestionControlRatelimitReason);
+
     call.FinishWithError(
         grpc::Status{grpc::StatusCode::RESOURCE_EXHAUSTED,
                      "Congestion control: rate limit exceeded"});

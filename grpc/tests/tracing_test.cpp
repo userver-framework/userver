@@ -3,7 +3,7 @@
 #include <userver/tracing/span.hpp>
 #include <userver/utils/algo.hpp>
 
-#include <ugrpc/impl/rpc_metadata_keys.hpp>
+#include <ugrpc/impl/rpc_metadata.hpp>
 #include <ugrpc/impl/to_string.hpp>
 
 #include <tests/unit_test_client.usrv.pb.hpp>

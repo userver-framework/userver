@@ -5,7 +5,7 @@
 #include <userver/utils/algo.hpp>
 
 #include <ugrpc/impl/grpc_string_logging.hpp>
-#include <ugrpc/impl/rpc_metadata_keys.hpp>
+#include <ugrpc/impl/rpc_metadata.hpp>
 #include <ugrpc/impl/to_string.hpp>
 
 USERVER_NAMESPACE_BEGIN

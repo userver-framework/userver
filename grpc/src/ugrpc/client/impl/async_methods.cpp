@@ -11,7 +11,7 @@
 #include <userver/utils/impl/source_location.hpp>
 
 #include <ugrpc/client/impl/client_configs.hpp>
-#include <ugrpc/impl/rpc_metadata_keys.hpp>
+#include <ugrpc/impl/rpc_metadata.hpp>
 #include <ugrpc/impl/status.hpp>
 #include <ugrpc/impl/to_string.hpp>
 #include <userver/tracing/opentelemetry.hpp>
