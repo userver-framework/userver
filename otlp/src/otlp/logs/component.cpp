@@ -38,6 +38,7 @@ LoggerComponent::LoggerComponent(const components::ComponentConfig& config,
       "otlp-tracer", endpoint);
 
   LoggerConfig logger_config;
+  bool send_logs = config["send-logs"].As<bool>(true);
   logger_config.max_queue_size = config["max-queue-size"].As<size_t>(65535);
   logger_config.max_batch_delay =
       config["max-batch-delay"].As<std::chrono::milliseconds>(100);
@@ -51,18 +52,35 @@ LoggerComponent::LoggerComponent(const components::ComponentConfig& config,
   logger_config.attributes_mapping =
       config["attributes-mapping"]
           .As<std::unordered_map<std::string, std::string>>({});
+
   logger_ = std::make_shared<Logger>(std::move(client), std::move(trace_client),
                                      std::move(logger_config));
-
   // We must init after the default logger is initialized
   auto& logging_component = context.FindComponent<components::Logging>();
-  if (logging_component.GetLoggerOptional("default")) {
-    throw std::runtime_error(
-        "You have registered both 'otlp-logger' component and 'default' logger "
-        "in 'logging' component. Either disable default logger or otlp "
-        "logger.");
+  logging::LoggerPtr def_logger{};
+  if (send_logs) {
+    if (logging_component.GetLoggerOptional("default")) {
+      throw std::runtime_error(
+          "You have registered both 'otlp-logger' component and 'default' "
+          "logger in 'logging' component while 'otlp-logger.send-logs' is "
+          "true. Either disable default logger or otlp logger.");
+    }
+  } else {
+    try {
+      def_logger = logging_component.GetLogger("default");
+    } catch (const std::exception&) {
+      def_logger = nullptr;
+    }
+    if (!def_logger) {
+      throw std::runtime_error(
+          "You have 'otlp-logger.send-logs' set to false, but haven't register "
+          "'default' logger in logging component, so logs won't be written. ");
+    }
   }
+
   UASSERT(dynamic_cast<logging::impl::MemLogger*>(&old_logger_));
+
+  logger_->setDefLogger(def_logger);
 
   logging::impl::SetDefaultLoggerRef(*logger_);
   old_logger_.ForwardTo(&*logger_);
@@ -111,6 +129,9 @@ properties:
     service-name:
         type: string
         description: service name
+    send-logs:
+        type: boolean
+        description: "send logs to otel collector, default: true; if false - using 'default' logger; traces will be sent anyway"
     attributes-mapping:
         type: object
         description: rename rules for OTLP attributes

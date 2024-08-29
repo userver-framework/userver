@@ -64,6 +64,11 @@ bool Logger::DoShouldLog(logging::Level level) const noexcept {
 }
 
 void Logger::Log(logging::Level level, std::string_view msg) {
+  if (def_logger_) {
+    def_logger_->Log(level, msg);
+    return;
+  }
+
   utils::encoding::TskvParser parser{msg};
 
   ::opentelemetry::proto::logs::v1::LogRecord log_record;
@@ -211,7 +216,7 @@ void Logger::SendingLoop(Queue::Consumer& consumer, LogClient& log_client,
           action);
     } while (consumer.Pop(action, deadline));
 
-    DoLog(log_request, log_client);
+    if (!def_logger_) DoLog(log_request, log_client);
     DoTrace(trace_request, trace_client);
   }
 }
