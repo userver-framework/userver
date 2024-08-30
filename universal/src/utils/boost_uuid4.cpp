@@ -101,9 +101,21 @@ boost::uuids::uuid FromChars(const char* begin, const char* end) {
   return u;
 }
 
+struct LocalRandomPtr final {
+  using result_type = uint32_t;
+
+  result_type operator()() { return random(); }
+
+  static constexpr result_type min() { return RandomBase::min(); }
+  static constexpr result_type max() { return RandomBase::max(); }
+
+  RandomBase& random{
+      WithDefaultRandom([](RandomBase& rng) -> auto& { return rng; })};
+};
+
 compiler::ThreadLocal local_uuid_generator = [] {
   return WithDefaultRandom([](RandomBase& rng) {
-    return boost::uuids::basic_random_generator<RandomBase>(rng);
+    return boost::uuids::basic_random_generator<LocalRandomPtr>();
   });
 };
 
