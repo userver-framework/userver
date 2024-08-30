@@ -121,11 +121,11 @@ struct ShardStatistics {
 struct SentinelStatisticsInternal {
   SentinelStatisticsInternal() = default;
   SentinelStatisticsInternal(const SentinelStatisticsInternal& other)
-      : redis_not_ready(other.redis_not_ready.load(std::memory_order_relaxed)),
+      : redis_not_ready(other.redis_not_ready),
         cluster_topology_checks(other.cluster_topology_checks),
         cluster_topology_updates(other.cluster_topology_updates) {}
 
-  std::atomic_llong redis_not_ready{0};
+  utils::statistics::RateCounter redis_not_ready{0};
   std::atomic_bool is_autotoplogy{false};
   utils::statistics::RateCounter cluster_topology_checks{0};
   utils::statistics::RateCounter cluster_topology_updates{0};

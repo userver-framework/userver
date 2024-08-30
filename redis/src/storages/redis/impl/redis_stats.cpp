@@ -281,8 +281,10 @@ void DumpMetric(utils::statistics::Writer& writer,
                 const SentinelStatistics& stats) {
   const auto& settings = stats.shard_group_total.settings;
   DumpMetric(writer, stats.shard_group_total, false);
-  writer["errors"].ValueWithLabels(stats.internal.redis_not_ready.load(),
+  writer["errors"].ValueWithLabels(stats.internal.redis_not_ready.Load().value,
                                    {"redis_error", "redis_not_ready"});
+  writer["errors.v2"].ValueWithLabels(stats.internal.redis_not_ready.Load(),
+                                      {"redis_error", "redis_not_ready"});
   if (stats.internal.is_autotoplogy.load()) {
     writer["cluster_topology_checks"] =
         stats.internal.cluster_topology_checks.Load().value;
