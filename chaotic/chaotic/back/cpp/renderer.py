@@ -77,14 +77,14 @@ def declaration_includes(types: List[cpp_types.CppType]) -> List[str]:
     includes = set()
     for type_ in types:
         includes.update(set(type_.declaration_includes()))
-    return list(includes)
+    return sorted(includes)
 
 
 def definition_includes(types: List[cpp_types.CppType]) -> List[str]:
     includes = set()
     for type_ in types:
         includes.update(set(type_.definition_includes()))
-    return list(includes)
+    return sorted(includes)
 
 
 def extra_cpp_type(type_: cpp_types.CppStruct) -> str:
@@ -220,7 +220,7 @@ class OneToOneFileRenderer:
             visitor(type_.json_schema, None)
             type_.json_schema.visit_children(visitor)
 
-        return list(result)
+        return sorted(result)
 
     def filepath_to_include(self, filepath_wo_ext: str) -> str:
         if filepath_wo_ext.startswith('/'):
