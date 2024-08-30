@@ -48,6 +48,9 @@ class FsCacheClient final {
 
   void HandleCreateDirectory(engine::io::sys_linux::Inotify& inotify,
                              const std::string& path);
+
+  void HandleCreateDirectoryBlocking(engine::io::sys_linux::Inotify& inotify,
+                                     const std::string& path);
 #endif
 
   const std::string dir_;

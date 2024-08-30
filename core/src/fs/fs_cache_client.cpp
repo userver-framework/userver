@@ -122,6 +122,13 @@ void FsCacheClient::HandleCreate(const std::string& path) {
 
 void FsCacheClient::HandleCreateDirectory(
     engine::io::sys_linux::Inotify& inotify, const std::string& path) {
+  engine::AsyncNoSpan(tp_, [&] {
+    return HandleCreateDirectoryBlocking(inotify, path);
+  }).Get();
+}
+
+void FsCacheClient::HandleCreateDirectoryBlocking(
+    engine::io::sys_linux::Inotify& inotify, const std::string& path) {
   LOG_INFO() << "HandleCreateDirectory(" << path << ")";
   namespace sys_linux = engine::io::sys_linux;
   inotify.AddWatch(path, {
@@ -132,16 +139,11 @@ void FsCacheClient::HandleCreateDirectory(
                              sys_linux::EventType::kCreate,
                          });
 
-  for (auto it =
-           utils::Async(
-               tp_, "init",
-               [&path] { return boost::filesystem::directory_iterator(path); })
-               .Get();
-       it != boost::filesystem::directory_iterator();
-       utils::Async(tp_, "next", [&it] { ++it; }).Get()) {
+  for (auto it = boost::filesystem::directory_iterator(path);
+       it != boost::filesystem::directory_iterator(); ++it) {
     if (is_directory(it->status())) {
-      HandleCreateDirectory(inotify,
-                            path + '/' + it->path().filename().string());
+      HandleCreateDirectoryBlocking(
+          inotify, path + '/' + it->path().filename().string());
     } else {
       HandleCreate(path + '/' + it->path().filename().string());
     }
