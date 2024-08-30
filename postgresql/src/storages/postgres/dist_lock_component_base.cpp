@@ -90,6 +90,10 @@ dist_lock::DistLockedWorker& DistLockComponentBase::GetWorker() {
   return *worker_;
 }
 
+bool DistLockComponentBase::OwnsLock() const noexcept {
+  return worker_->OwnsLock();
+}
+
 void DistLockComponentBase::AutostartDistLock() {
   if (testsuite_enabled_) return;
   if (autostart_) worker_->Start();

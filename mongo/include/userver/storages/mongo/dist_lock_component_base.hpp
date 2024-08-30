@@ -68,6 +68,8 @@ class DistLockComponentBase : public components::ComponentBase {
 
   dist_lock::DistLockedWorker& GetWorker();
 
+  bool OwnsLock() const noexcept;
+
   static yaml_config::Schema GetStaticConfigSchema();
 
  protected:

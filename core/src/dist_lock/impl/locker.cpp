@@ -188,6 +188,8 @@ engine::TaskWithResult<void> Locker::RunAsync(
       });
 }
 
+bool Locker::OwnsLock() const noexcept { return is_locked_.load(); }
+
 bool Locker::ExchangeLockState(bool is_locked,
                                std::chrono::steady_clock::time_point when) {
   lock_refresh_since_epoch_.store(when.time_since_epoch(),

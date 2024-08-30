@@ -74,6 +74,9 @@ class DistLockedWorker final {
   /// @returns whether the DistLockedTask is started.
   bool IsRunning() const;
 
+  /// @returns is current worker owns the lock
+  bool OwnsLock() const noexcept;
+
   /// Returns for how long the lock is held (if held at all). Returned value
   /// may be less than the real duration.
   std::optional<std::chrono::steady_clock::duration> GetLockedDuration() const;

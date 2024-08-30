@@ -44,6 +44,8 @@ class Locker final {
   engine::TaskWithResult<void> RunAsync(engine::TaskProcessor& task_processor,
                                         LockerMode, DistLockWaitingMode);
 
+  bool OwnsLock() const noexcept;
+
  private:
   class LockGuard;
 
