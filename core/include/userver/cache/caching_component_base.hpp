@@ -158,6 +158,8 @@ class CachingComponentBase : public ComponentBase,
 
   using cache::CacheUpdateTrait::Name;
 
+  using cache::CacheUpdateTrait::InvalidateAsync;
+
   using DataType = T;
 
   /// @return cache contents. May be `nullptr` if and only if @ref MayReturnNull
