@@ -1,7 +1,10 @@
+#include <cctype>
 #include <storages/postgres/detail/connection_impl.hpp>
 
 #include <boost/functional/hash.hpp>
 
+#include <string>
+#include <string_view>
 #include <userver/error_injection/hook.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/testsuite/testpoint.hpp>
@@ -41,6 +44,40 @@ const Query kSetConfigQuery{fmt::format("SELECT set_config($1, $2, $3) as {}",
 // we hope lc_messages is en_US, we don't control it anyway
 const std::string kBadCachedPlanErrorMessage =
     "cached plan must not change result type";
+
+bool IsBorder(char c) {
+  return !std::isalnum(static_cast<unsigned char>(c)) && c != '"' && c != '_' &&
+         c != '-';
+}
+
+// retuns first word; if it is "with" returns all words before "as"
+std::string_view FindQueryShortInfo(std::string_view str) {
+  auto start = std::find_if_not(str.begin(), str.end(), IsBorder);
+  auto end = std::find_if(start, str.end(), IsBorder);
+  if (end - start == 4 &&
+      std::equal(start, end, "with", [](unsigned char a, unsigned char b) {
+        return std::tolower(a) == std::tolower(b);
+      })) {
+    auto after_with = end;
+    while (after_with != str.end()) {
+      after_with = std::find_if_not(after_with, str.end(), IsBorder);
+      auto next_word_end = std::find_if(after_with, str.end(), IsBorder);
+      if (next_word_end - after_with == 2 &&
+          std::equal(after_with, next_word_end, "as",
+                     [](unsigned char a, unsigned char b) {
+                       return std::tolower(a) == std::tolower(b);
+                     })) {
+        auto result = std::string_view(start, after_with - start);
+        while (!result.empty() && std::isspace(result.back())) {
+          result.remove_suffix(1);
+        }
+        return result;
+      }
+      after_with = next_word_end;
+    }
+  }
+  return std::string_view(start, end - start);
+}
 
 std::size_t QueryHash(const std::string& statement,
                       const QueryParameters& params) {
@@ -457,8 +494,7 @@ Connection::StatementId ConnectionImpl::PortalBind(
   TimeoutDuration network_timeout = ExecuteTimeout(statement_cmd_ctl);
   auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(network_timeout);
   SetStatementTimeout(std::move(statement_cmd_ctl));
-
-  tracing::Span span{scopes::kQuery};
+  tracing::Span span{scopes::kBind + ":" + portal_name};
   conn_wrapper_.FillSpanTags(span, {network_timeout, GetStatementTimeout()});
   span.AddTag(tracing::kDatabaseStatement, statement);
   CheckDeadlineReached(deadline);
@@ -489,8 +525,7 @@ ResultSet ConnectionImpl::PortalExecute(
   UASSERT_MSG(prepared_info,
               "Portal execute uses statement id that is absent in prepared "
               "statements");
-
-  tracing::Span span{scopes::kQuery};
+  tracing::Span span{scopes::kExec + ":" + portal_name};
   conn_wrapper_.FillSpanTags(span, {network_timeout, GetStatementTimeout()});
   span.AddTag(tracing::kDatabaseStatement, prepared_info->statement);
   if (deadline.IsReached()) {
@@ -639,7 +674,8 @@ void ConnectionImpl::CheckDeadlineReached(const engine::Deadline& deadline) {
 
 tracing::Span ConnectionImpl::MakeQuerySpan(const Query& query,
                                             const CommandControl& cc) const {
-  tracing::Span span{scopes::kQuery};
+  tracing::Span span{scopes::kQuery + ":" +
+                     std::string(FindQueryShortInfo(query.Statement()))};
   conn_wrapper_.FillSpanTags(span, cc);
   query.FillSpanTags(span);
   return span;
@@ -870,7 +906,8 @@ const ConnectionImpl::PreparedStatementInfo& ConnectionImpl::PrepareStatement(
 
   const auto& statement = query.Statement();
 
-  tracing::Span span{scopes::kQuery};
+  tracing::Span span{scopes::kPrepare + ":" +
+                     std::string(FindQueryShortInfo(query.Statement()))};
   conn_wrapper_.FillSpanTags(span, {timeout, GetStatementTimeout()});
   span.AddTag(tracing::kDatabaseStatement, statement);
 
