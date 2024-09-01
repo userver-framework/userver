@@ -15,10 +15,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace otlp {
 
+enum class SinkType { kBoth, kDefault, kOtlp };
+
 struct LoggerConfig {
   size_t max_queue_size{10000};
   std::chrono::milliseconds max_batch_delay{};
-
+  SinkType logs_sink{SinkType::kOtlp};
+  SinkType tracing_sink{SinkType::kOtlp};
   std::string service_name;
   std::unordered_map<std::string, std::string> extra_attributes;
   std::unordered_map<std::string, std::string> attributes_mapping;
@@ -47,7 +50,9 @@ class Logger final : public logging::impl::LoggerBase {
 
   const logging::impl::LogStatistics& GetStatistics() const;
 
-  void setDefLogger(logging::LoggerPtr def_logger) { def_logger_ = def_logger; }
+  void setDefaultLogger(logging::LoggerPtr default_logger) {
+    default_logger_ = default_logger;
+  }
 
  protected:
   bool DoShouldLog(logging::Level level) const noexcept override;
@@ -77,7 +82,7 @@ class Logger final : public logging::impl::LoggerBase {
   const LoggerConfig config_;
   std::shared_ptr<Queue> queue_;
   Queue::MultiProducer queue_producer_;
-  logging::LoggerPtr def_logger_{};
+  logging::LoggerPtr default_logger_{};
   engine::Task sender_task_;  // Must be the last member
 };
 

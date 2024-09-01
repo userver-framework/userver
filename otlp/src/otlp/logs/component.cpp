@@ -1,3 +1,4 @@
+#include <string>
 #include <userver/otlp/logs/component.hpp>
 
 #include <userver/components/component_config.hpp>
@@ -21,6 +22,18 @@ USERVER_NAMESPACE_BEGIN
 
 namespace otlp {
 
+namespace {
+SinkType GetSinkTypeFromString(const std::string& destination) {
+  if (destination == "both") {
+    return SinkType::kBoth;
+  }
+  if (destination == "default") {
+    return SinkType::kDefault;
+  }
+  return SinkType::kOtlp;
+}
+}  // namespace
+
 LoggerComponent::LoggerComponent(const components::ComponentConfig& config,
                                  const components::ComponentContext& context)
     : old_logger_(logging::GetDefaultLogger()) {
@@ -38,7 +51,6 @@ LoggerComponent::LoggerComponent(const components::ComponentConfig& config,
       "otlp-tracer", endpoint);
 
   LoggerConfig logger_config;
-  bool send_logs = config["send-logs"].As<bool>(true);
   logger_config.max_queue_size = config["max-queue-size"].As<size_t>(65535);
   logger_config.max_batch_delay =
       config["max-batch-delay"].As<std::chrono::milliseconds>(100);
@@ -53,34 +65,45 @@ LoggerComponent::LoggerComponent(const components::ComponentConfig& config,
       config["attributes-mapping"]
           .As<std::unordered_map<std::string, std::string>>({});
 
+  if (config.HasMember("sinks")) {
+    auto sinks = config["sinks"];
+    auto logs_sink_str = sinks["logs"].As<std::string>("otlp");
+    logger_config.logs_sink = GetSinkTypeFromString(logs_sink_str);
+    auto tracing_sink_str = sinks["tracing"].As<std::string>("otlp");
+    logger_config.tracing_sink = GetSinkTypeFromString(tracing_sink_str);
+  }
+
   logger_ = std::make_shared<Logger>(std::move(client), std::move(trace_client),
                                      std::move(logger_config));
   // We must init after the default logger is initialized
   auto& logging_component = context.FindComponent<components::Logging>();
-  logging::LoggerPtr def_logger{};
-  if (send_logs) {
+  logging::LoggerPtr default_logger{};
+  if (logger_config.logs_sink == SinkType::kOtlp &&
+      logger_config.tracing_sink == SinkType::kOtlp) {
     if (logging_component.GetLoggerOptional("default")) {
       throw std::runtime_error(
-          "You have registered both 'otlp-logger' component and 'default' "
-          "logger in 'logging' component while 'otlp-logger.send-logs' is "
-          "true. Either disable default logger or otlp logger.");
+          "You've registered both the 'otlp-logger' component and the "
+          "'default' logger in 'logging' component, but have opted to "
+          "send both logs and traces using oltp. Either disable default "
+          "logger or otlp logger.");
     }
   } else {
     try {
-      def_logger = logging_component.GetLogger("default");
+      default_logger = logging_component.GetLogger("default");
     } catch (const std::exception&) {
-      def_logger = nullptr;
+      default_logger = nullptr;
     }
-    if (!def_logger) {
+    if (!default_logger) {
       throw std::runtime_error(
-          "You have 'otlp-logger.send-logs' set to false, but haven't register "
-          "'default' logger in logging component, so logs won't be written. ");
+          "You've opted to use the 'default' logger, but it's not registered "
+          "in 'loggers' of the 'logging' component. Please register it, or "
+          "your logs and/or traces won't be saved.");
     }
   }
 
   UASSERT(dynamic_cast<logging::impl::MemLogger*>(&old_logger_));
 
-  logger_->setDefLogger(def_logger);
+  logger_->setDefaultLogger(default_logger);
 
   logging::impl::SetDefaultLoggerRef(*logger_);
   old_logger_.ForwardTo(&*logger_);
@@ -129,9 +152,21 @@ properties:
     service-name:
         type: string
         description: service name
-    send-logs:
-        type: boolean
-        description: "send logs to otel collector, default: true; if false - using 'default' logger; traces will be sent anyway"
+    sinks: 
+        type: object
+        description: sinks to send logs/traces to
+        additionalProperties: false
+        properties:
+            logs:
+                type: string
+                enum: [otlp, default, both]
+                description: logs sink
+                defaultDescription: otlp
+            tracing:
+                type: string
+                enum: [otlp, default, both]
+                description: tracing sink
+                defaultDescription: otlp
     attributes-mapping:
         type: object
         description: rename rules for OTLP attributes

@@ -64,9 +64,12 @@ bool Logger::DoShouldLog(logging::Level level) const noexcept {
 }
 
 void Logger::Log(logging::Level level, std::string_view msg) {
-  if (def_logger_) {
-    def_logger_->Log(level, msg);
-    return;
+  if (config_.logs_sink == SinkType::kDefault ||
+      config_.logs_sink == SinkType::kBoth) {
+    if (default_logger_) default_logger_->Log(level, msg);
+    if (config_.logs_sink == SinkType::kDefault) {
+      return;
+    }
   }
 
   utils::encoding::TskvParser parser{msg};
@@ -118,7 +121,15 @@ void Logger::Log(logging::Level level, std::string_view msg) {
   }
 }
 
-void Logger::Trace(logging::Level, std::string_view msg) {
+void Logger::Trace(logging::Level level, std::string_view msg) {
+  if (config_.tracing_sink == SinkType::kDefault ||
+      config_.tracing_sink == SinkType::kBoth) {
+    if (default_logger_) default_logger_->Trace(level, msg);
+    if (config_.tracing_sink == SinkType::kDefault) {
+      return;
+    }
+  }
+
   utils::encoding::TskvParser parser{msg};
 
   ::opentelemetry::proto::trace::v1::Span span;
@@ -216,8 +227,12 @@ void Logger::SendingLoop(Queue::Consumer& consumer, LogClient& log_client,
           action);
     } while (consumer.Pop(action, deadline));
 
-    if (!def_logger_) DoLog(log_request, log_client);
-    DoTrace(trace_request, trace_client);
+    if (config_.logs_sink == SinkType::kBoth ||
+        config_.logs_sink == SinkType::kOtlp)
+      DoLog(log_request, log_client);
+    if (config_.tracing_sink == SinkType::kBoth ||
+        config_.tracing_sink == SinkType::kOtlp)
+      DoTrace(trace_request, trace_client);
   }
 }
 
