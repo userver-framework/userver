@@ -45,23 +45,23 @@ const Query kSetConfigQuery{fmt::format("SELECT set_config($1, $2, $3) as {}",
 const std::string kBadCachedPlanErrorMessage =
     "cached plan must not change result type";
 
-bool IsBorder(char c) {
+bool IsWordBorder(char c) {
   return !std::isalnum(static_cast<unsigned char>(c)) && c != '"' && c != '_' &&
          c != '-';
 }
 
-// retuns first word; if it is "with" returns all words before "as"
+// retuns the first word; if it is "with" returns all words before "as"
 std::string_view FindQueryShortInfo(std::string_view str) {
-  auto start = std::find_if_not(str.begin(), str.end(), IsBorder);
-  auto end = std::find_if(start, str.end(), IsBorder);
+  auto start = std::find_if_not(str.begin(), str.end(), IsWordBorder);
+  auto end = std::find_if(start, str.end(), IsWordBorder);
   if (end - start == 4 &&
       std::equal(start, end, "with", [](unsigned char a, unsigned char b) {
         return std::tolower(a) == std::tolower(b);
       })) {
     auto after_with = end;
     while (after_with != str.end()) {
-      after_with = std::find_if_not(after_with, str.end(), IsBorder);
-      auto next_word_end = std::find_if(after_with, str.end(), IsBorder);
+      after_with = std::find_if_not(after_with, str.end(), IsWordBorder);
+      auto next_word_end = std::find_if(after_with, str.end(), IsWordBorder);
       if (next_word_end - after_with == 2 &&
           std::equal(after_with, next_word_end, "as",
                      [](unsigned char a, unsigned char b) {
@@ -494,7 +494,8 @@ Connection::StatementId ConnectionImpl::PortalBind(
   TimeoutDuration network_timeout = ExecuteTimeout(statement_cmd_ctl);
   auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(network_timeout);
   SetStatementTimeout(std::move(statement_cmd_ctl));
-  tracing::Span span{scopes::kBind + ":" + portal_name};
+  tracing::Span span{scopes::kBind + ":" +
+                     std::string(FindQueryShortInfo(statement))};
   conn_wrapper_.FillSpanTags(span, {network_timeout, GetStatementTimeout()});
   span.AddTag(tracing::kDatabaseStatement, statement);
   CheckDeadlineReached(deadline);
@@ -525,7 +526,8 @@ ResultSet ConnectionImpl::PortalExecute(
   UASSERT_MSG(prepared_info,
               "Portal execute uses statement id that is absent in prepared "
               "statements");
-  tracing::Span span{scopes::kExec + ":" + portal_name};
+  tracing::Span span{scopes::kExec + ":" +
+                     std::string(FindQueryShortInfo(prepared_info->statement))};
   conn_wrapper_.FillSpanTags(span, {network_timeout, GetStatementTimeout()});
   span.AddTag(tracing::kDatabaseStatement, prepared_info->statement);
   if (deadline.IsReached()) {
