@@ -29,10 +29,6 @@ def health_check(redis_standalone_port):
     return health_check
 
 @pytest.fixture(scope='session')
-def logger_plugin(pytestconfig):
-    return pytestconfig.pluginmanager.getplugin('testsuite_logger')
-
-@pytest.fixture(scope='session')
 async def redis_standalone_run_command(redis_standalone_port):
     return [
                 'redis-server',
@@ -44,13 +40,11 @@ async def redis_standalone_run_command(redis_standalone_port):
 @pytest.fixture(scope='session')
 async def redis_standalone(
     health_check,
-    logger_plugin,
     redis_standalone_run_command
 ):
 
     async with service_daemon.start(
             args=redis_standalone_run_command,
-            logger_plugin=logger_plugin,
             health_check=health_check,
             subprocess_options={'stderr': subprocess.PIPE, 'bufsize': 0}
     ) as scope:
