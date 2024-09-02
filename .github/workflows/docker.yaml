@@ -63,7 +63,7 @@ jobs:
         runs-on: ubuntu-latest
         name: '${{ matrix.info }}'
         steps:
-          - uses: actions/checkout@v2
+          - uses: actions/checkout@v4
 
           - name: Install packages
             run: |
