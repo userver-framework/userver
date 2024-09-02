@@ -19,8 +19,8 @@ namespace otlp {
 
 enum class SinkType { kBoth, kDefault, kOtlp };
 
-SinkType Parse(const userver::yaml_config::YamlConfig& value,
-               userver::formats::parse::To<SinkType>);
+SinkType Parse(const yaml_config::YamlConfig& value,
+               formats::parse::To<SinkType>);
 
 struct LoggerConfig {
   size_t max_queue_size{10000};

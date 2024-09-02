@@ -27,8 +27,8 @@ constexpr std::string_view kServiceName = "service.name";
 const std::string kTimestampFormat = "%Y-%m-%dT%H:%M:%E*S";
 }  // namespace
 
-SinkType Parse(const userver::yaml_config::YamlConfig& value,
-               userver::formats::parse::To<SinkType>) {
+SinkType Parse(const yaml_config::YamlConfig& value,
+               formats::parse::To<SinkType>) {
   auto destination = value.As<std::string>("otlp");
   if (destination == "both") {
     return SinkType::kBoth;
