@@ -58,8 +58,15 @@ class Future final {
   Future& operator=(const Future&) = delete;
   Future& operator=(Future&&) noexcept = default;
 
-  /// Returns whether this Future holds a valid state.
+  /// @brief Returns whether this Future holds a valid state.
   bool valid() const noexcept;
+
+  /// @brief Returns whether the value is available.
+  /// @warning If value is set and task is being canceled or if Promise has been
+  /// destroyed without setting a value, returns true.
+  /// @throw std::future_error if Future holds no state or if the value has
+  /// already been retrieved.
+  bool is_ready() const;
 
   /// @brief Waits for value availability and retrieves it.
   /// @throw WaitInterruptedException if the current task has been cancelled in
@@ -183,6 +190,12 @@ class Promise<void> final {
 template <typename T>
 bool Future<T>::valid() const noexcept {
   return !!state_;
+}
+
+template <typename T>
+bool Future<T>::is_ready() const {
+  CheckValid();
+  return state_->IsReady();
 }
 
 template <typename T>
