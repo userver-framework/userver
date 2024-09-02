@@ -223,6 +223,7 @@ class UserverConan(ConanFile):
             'USERVER_FEATURE_TESTSUITE'
         ] = self.options.with_utest
         tool_ch.variables['USERVER_FEATURE_KAFKA'] = self.options.with_kafka
+        tool_ch.variables['USERVER_FEATURE_OTLP'] = self.options.with_otlp
         tool_ch.generate()
 
         CMakeDeps(self).generate()
