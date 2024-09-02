@@ -4,7 +4,7 @@ COPY scripts/docs/en/deps/ubuntu-22.04.md /userver_tmp/
 COPY scripts/docker/setup-base-ubuntu-22.04-env.sh /userver_tmp/
 
 COPY scripts/grpc/requirements-3.txt                    /userver_tmp/requirements/grpc-userver.txt
-#COPY scripts/chaotic/requirements.txt                  /userver_tmp/requirements/chaotic.txt
+COPY scripts/chaotic/requirements.txt                   /userver_tmp/requirements/chaotic.txt
 #COPY testsuite/requirements-ydb.txt                    /userver_tmp/requirements/ydb.txt
 COPY testsuite/requirements-grpc-3.txt                  /userver_tmp/requirements/grpc.txt
 COPY testsuite/requirements-mongo.txt                   /userver_tmp/requirements/mongo.txt
@@ -25,9 +25,7 @@ RUN ( \
   && git clone --depth 1 -b 1.50.0 https://github.com/googleapis/api-common-protos.git \
   && rm -rf /app/api-common-protos/.git \
   && rm -rf /userver_tmp \
-)
-RUN ( \
-  cd /app \
+  && cd /app \
   && git clone --depth 1 -b v1.3.2 https://github.com/open-telemetry/opentelemetry-proto \
   && rm -rf /app/opentelemetry-proto/.git \
 )
