@@ -39,6 +39,7 @@ class UserverConan(ConanFile):
         'with_rabbitmq': [True, False],
         'with_utest': [True, False],
         'with_kafka': [True, False],
+        'with_otlp': [True, False],
         'namespace': ['ANY'],
         'namespace_begin': ['ANY'],
         'namespace_end': ['ANY'],
@@ -58,6 +59,7 @@ class UserverConan(ConanFile):
         'with_rabbitmq': True,
         'with_utest': True,
         'with_kafka': True,
+        'with_otlp': True,
         'namespace': 'userver',
         'namespace_begin': 'namespace userver {',
         'namespace_end': '}',
@@ -390,6 +392,9 @@ class UserverConan(ConanFile):
 
         if self.options.with_kafka:
             copy_component('kafka')
+        
+        if self.options.with_otlp:
+            copy_component('otlp')
 
     @property
     def _userver_components(self):
@@ -643,6 +648,17 @@ class UserverConan(ConanFile):
                     },
                 ],
             )
+
+        if self.options.with_otlp:
+            userver_components.extend(
+                [
+                    {
+                        'target': 'otlp',
+                        'lib': 'otlp',
+                        'requires': ['core']
+                    }
+                ],
+            )
         return userver_components
 
     def package_info(self):
@@ -676,6 +692,8 @@ class UserverConan(ConanFile):
                     )
                 else:
                     self.cpp_info.components[conan_component].libs = [lib_name]
+                if cmake_component == 'otlp':
+                    self.cpp_info.components[conan_component].libs.append(get_lib_name('otlp-proto'))
                 if cmake_component == 'universal':
                     self.cpp_info.components[
                         cmake_component
