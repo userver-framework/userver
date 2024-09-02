@@ -18,8 +18,10 @@ USERVER_NAMESPACE_BEGIN
 namespace otlp {
 
 enum class SinkType { kBoth, kDefault, kOtlp };
+
 SinkType Parse(const userver::yaml_config::YamlConfig& value,
                userver::formats::parse::To<SinkType>);
+
 struct LoggerConfig {
   size_t max_queue_size{10000};
   std::chrono::milliseconds max_batch_delay{};

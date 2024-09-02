@@ -74,7 +74,7 @@ LoggerComponent::LoggerComponent(const components::ComponentConfig& config,
   } else {
     try {
       default_logger = logging_component.GetLogger("default");
-    } catch (const std::exception&) {
+    } catch (const std::runtime_error&) {
       default_logger = nullptr;
     }
     if (!default_logger) {
