@@ -52,6 +52,7 @@ class ResponseBase {
 
   void SetData(std::string data);
   const std::string& GetData() const { return data_; }
+  std::string&& MoveData() { return std::move(data_); }
 
   virtual bool IsBodyStreamed() const = 0;
   virtual bool WaitForHeadersEnd() = 0;

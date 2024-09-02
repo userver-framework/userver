@@ -2,12 +2,14 @@
 
 #include <nghttp2/nghttp2.h>
 
+#include <server/http/http2_writer.hpp>
+#include <server/http/http_request_constructor.hpp>
 #include <server/net/stats.hpp>
 #include <server/request/request_parser.hpp>
+#include <userver/engine/io/socket.hpp>
 
 #include <userver/server/request/request_config.hpp>
-
-#include "http_request_constructor.hpp"
+#include <userver/utils/small_string.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -17,7 +19,13 @@ inline constexpr std::string_view kSwitchingProtocolResponse{
     "HTTP/1.1 101 Switching Protocols\r\nConnection: Upgrade\r\nUpgrade: "
     "h2c\r\n\r\n"};
 
+// nghttp2_session_upgrade2 opens the stream with id=1 and we must use it.
+// See docs:
+// https://nghttp2.org/documentation/nghttp2_session_upgrade2.html#nghttp2-session-upgrade2
+inline constexpr std::size_t kStreamIdAfterUpgradeResponse = 1;
 inline constexpr std::size_t kDefaultMaxConcurrentStreams = 100;
+// So ussualy the standart frame size is 16384 bytes
+inline constexpr std::size_t kDefaultStringBufferSize = 1 << 14;
 
 class HttpRequestParser;
 
@@ -34,8 +42,12 @@ class Http2Session final : public request::RequestParser {
                request::ResponseDataAccounter& data_accounter,
                StreamId stream_id_, engine::io::Sockaddr remote_address);
 
+    bool CheckUrlComplete();
+
+    bool url_complete{false};
     HttpRequestConstructor constructor;
     const StreamId stream_id;
+    std::optional<DataBufferSender> data_buffer_sender;
   };
 
   using Streams = std::unordered_map<StreamId, StreamData>;
@@ -44,7 +56,8 @@ class Http2Session final : public request::RequestParser {
                const request::HttpRequestConfig& request_config,
                OnNewRequestCb&& on_new_request_cb, net::ParserStats& stats,
                request::ResponseDataAccounter& data_accounter,
-               engine::io::Sockaddr remote_address);
+               engine::io::Sockaddr remote_address,
+               engine::io::RwBase* socket = nullptr);
 
   Http2Session(const Http2Session&) = delete;
   Http2Session(Http2Session&&) = delete;
@@ -78,12 +91,19 @@ class Http2Session final : public request::RequestParser {
   static long OnSend(nghttp2_session* session, const uint8_t* data,
                      size_t length, int flags, void* user_data);
 
-  void RegisterStreamData(StreamId stream_id);
-  void RemoveStreamData(StreamId stream_id);
+  int RegisterStreamData(StreamId stream_id);
+  int RemoveStreamData(StreamId stream_id);
+  int SubmitRstStream(StreamId stream_id);
+  void SubmitGoAway(std::uint32_t error_code, std::string_view msg);
   void SubmitRequest(std::shared_ptr<request::RequestBase>&& request);
   int FinalizeRequest(StreamData& stream_data);
+  std::size_t WriteResponseToSocket();
+
+  StreamData& GetStreamByIdChecked(StreamId stream_id);
 
  private:
+  friend class Http2ResponseWriter;
+
   using SessionPtr =
       std::unique_ptr<nghttp2_session,
                       std::function<decltype(nghttp2_session_del)>>;
@@ -94,13 +114,15 @@ class Http2Session final : public request::RequestParser {
 
   const HandlerInfoIndex& handler_info_index_;
   const HttpRequestConstructor::Config request_constructor_config_;
-
   OnNewRequestCb on_new_request_cb_;
+  request::ResponseDataAccounter& data_accounter_;
 
   net::ParserStats& stats_;
-  request::ResponseDataAccounter& data_accounter_;
   engine::io::Sockaddr remote_address_;
-  std::size_t remote_window_size_{0};
+  engine::io::RwBase* socket_;
+  bool is_goaway{false};
+  StreamId last_stream_id_{0};
+  utils::SmallString<kDefaultStringBufferSize> buffer_;
 };
 
 }  // namespace server::http

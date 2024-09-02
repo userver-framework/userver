@@ -104,10 +104,6 @@ net::ListenerConfig CreateConfig(
   return config;
 }
 
-const std::vector<USERVER_NAMESPACE::http::HttpVersion> protocols{
-    USERVER_NAMESPACE::http::HttpVersion::k11,
-    USERVER_NAMESPACE::http::HttpVersion::k2};
-
 // The param tells which http protocol to use.
 class ServerNetConnection
     : public testing::TestWithParam<USERVER_NAMESPACE::http::HttpVersion> {};

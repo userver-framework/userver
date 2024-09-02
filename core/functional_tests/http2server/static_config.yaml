@@ -59,4 +59,5 @@ components_manager:
             method: GET,POST,PUT,DELETE
             task_processor: main-task-processor
             throttling_enabled: false
+            max_request_size: 2097152 #  2Mib
 

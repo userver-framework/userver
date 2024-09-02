@@ -141,7 +141,7 @@ void Connection::ListenForRequests() noexcept {
         if (parser_ || TryDetectHttpVersion(http_version_buffer, req)) {
           res = parser_->Parse(req);
         } else {
-          // Wait next bytes to detect version
+          // Wait next bytes to detect the version
           res = true;
         }
       } else {  // Pure HTTP/1.1
@@ -307,24 +307,21 @@ void Connection::SendResponse(request::RequestBase& request) {
             static_cast<http::HttpRequestImpl&>(request).GetHeader(
                 USERVER_NAMESPACE::http::headers::k2::kHttp2SettingsHeader);
             !h.empty()) {
-          auto parser = MakeParser(USERVER_NAMESPACE::http::HttpVersion::k2);
-          UASSERT(dynamic_cast<http::Http2Session*>(parser.get()));
-          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-          auto parser2 = static_cast<http::Http2Session*>(parser.get());
-          parser2->UpgradeToHttp2(h);
-          // nghttp2_session_upgrade2 opens the stream with id=1 and we must use
-          // it. See docs:
-          // https://nghttp2.org/documentation/nghttp2_session_upgrade2.html#nghttp2-session-upgrade2
-          http_response.SetStreamId(1);
-
           const auto send = peer_socket_->WriteAll(
               http::kSwitchingProtocolResponse.data(),
               http::kSwitchingProtocolResponse.size(), engine::Deadline{});
           LOG_TRACE() << fmt::format("Write {} bytes, and wanted write {}",
                                      send,
                                      http::kSwitchingProtocolResponse.size());
-          http::WriteHttp2ResponseToSocket(*peer_socket_, http_response,
-                                           *parser2);
+
+          auto parser = MakeParser(USERVER_NAMESPACE::http::HttpVersion::k2);
+          UASSERT(dynamic_cast<http::Http2Session*>(parser.get()));
+          // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+          auto parser2 = static_cast<http::Http2Session*>(parser.get());
+          parser2->UpgradeToHttp2(h);
+          http_response.SetStreamId(http::kStreamIdAfterUpgradeResponse);
+
+          http::WriteHttp2ResponseToSocket(http_response, *parser2);
           parser_ = std::move(parser);
           // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
         } else if (static_cast<http::HttpRequestImpl&>(request)
@@ -335,8 +332,7 @@ void Connection::SendResponse(request::RequestBase& request) {
           auto parser2 =
               // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
               static_cast<http::Http2Session*>(parser_.get());
-          http::WriteHttp2ResponseToSocket(*peer_socket_, http_response,
-                                           *parser2);
+          http::WriteHttp2ResponseToSocket(http_response, *parser2);
         }
       } else {
         response.SendResponse(*peer_socket_);
@@ -381,7 +377,8 @@ std::unique_ptr<request::RequestParser> Connection::MakeParser(
   if (ver == USERVER_NAMESPACE::http::HttpVersion::k2) {
     return std::make_unique<http::Http2Session>(
         request_handler_.GetHandlerInfoIndex(), handler_defaults_config_,
-        on_req_cb, stats_->parser_stats, data_accounter_, remote_address_);
+        on_req_cb, stats_->parser_stats, data_accounter_, remote_address_,
+        peer_socket_.get());
   }
   return std::make_unique<http::HttpRequestParser>(
       request_handler_.GetHandlerInfoIndex(), handler_defaults_config_,

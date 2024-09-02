@@ -5,7 +5,6 @@
 #include <server/http/http2_session.hpp>
 #include <server/http/http_cached_date.hpp>
 #include <server/http/http_request_parser.hpp>
-#include <userver/engine/io/socket.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/http/predefined_header.hpp>
 #include <userver/logging/log.hpp>
@@ -27,39 +26,29 @@ bool IsBodyForbiddenForStatus(HttpStatus status) {
          (static_cast<int>(status) >= 100 && static_cast<int>(status) < 200);
 }
 
-ssize_t Nghttp2SendString(nghttp2_session*, int32_t, uint8_t*, std::size_t,
-                          uint32_t*, nghttp2_data_source*, void*);
-
-struct DataBufferSender final {
-  DataBufferSender(std::string_view data)
-      : data{reinterpret_cast<const uint8_t*>(data.data())}, size{data.size()} {
-    nghttp2_provider.read_callback = Nghttp2SendString;
-    nghttp2_provider.source.ptr = this;
-  }
-
-  nghttp2_data_provider nghttp2_provider{};
-
-  const uint8_t* data{nullptr};
-  const std::size_t size{0};
-  std::size_t pos{0};
-};
+}  // namespace
 
 // implements
 // https://nghttp2.org/documentation/types.html#c.nghttp2_data_source_read_callback
-ssize_t Nghttp2SendString(nghttp2_session*, int32_t, uint8_t* p,
+ssize_t Nghttp2SendString(nghttp2_session*, int32_t, uint8_t* output,
                           std::size_t want, uint32_t* flags,
                           nghttp2_data_source* source, void*) {
+  UASSERT(source->ptr);
   auto& data_to_send = *static_cast<DataBufferSender*>(source->ptr);
 
-  const std::size_t remaining = data_to_send.size - data_to_send.pos;
+  const std::size_t remaining =
+      data_to_send.data_.size() - data_to_send.sended_bytes_;
 
   // TODO: handle NGHTTP2_DATA_FLAG_NO_COPY and use OnSend callback
   if (remaining > want) {
-    std::memcpy(p, data_to_send.data + data_to_send.pos, want);
-    data_to_send.pos += want;
+    std::strncpy(reinterpret_cast<char*>(output),
+                 data_to_send.data_.data() + data_to_send.sended_bytes_, want);
+    data_to_send.sended_bytes_ += want;
     return want;
   }
-  std::memcpy(p, data_to_send.data + data_to_send.pos, remaining);
+  std::strncpy(reinterpret_cast<char*>(output),
+               data_to_send.data_.data() + data_to_send.sended_bytes_,
+               remaining);
   *flags = NGHTTP2_DATA_FLAG_NONE;
   *flags |= NGHTTP2_DATA_FLAG_EOF;
   return remaining;
@@ -89,11 +78,9 @@ nghttp2_nv UnsafeHeaderToNGHeader(std::string_view name, std::string_view value,
   return result;
 }
 
-}  // namespace
-
 class Http2HeaderWriter final {
  public:
-  // We must borrow key-value pairs until the `SendResponseToSocket` is called
+  // We must borrow key-value pairs until the `WriteToSocket` is called
   explicit Http2HeaderWriter(std::size_t nheaders) {
     values_.reserve(nheaders);
   }
@@ -129,16 +116,18 @@ class Http2HeaderWriter final {
 
 class Http2ResponseWriter final {
  public:
-  Http2ResponseWriter(HttpResponse& response, nghttp2_session* session)
-      : response_(response), session_{session} {}
+  Http2ResponseWriter(HttpResponse& response, Http2Session& session)
+      : http2_session_(session),
+        response_(response),
+        session_{session.GetNghttp2SessionPtr()} {}
 
-  void WriteHttpResponse(engine::io::RwBase& socket) {
+  void WriteHttpResponse() {
     auto headers = WriteHeaders();
     if (response_.IsBodyStreamed() && response_.GetData().empty()) {
-      WriteHttp2BodyStreamed(socket, headers);
+      WriteHttp2BodyStreamed(headers);
     } else {
       // e.g. a CustomHandlerException
-      WriteHttp2BodyNotstreamed(socket, headers);
+      WriteHttp2BodyNotstreamed(headers);
     }
   }
 
@@ -176,30 +165,11 @@ class Http2ResponseWriter final {
     return header_writer;
   }
 
-  std::size_t SendResponseToSocket(engine::io::RwBase& socket) {
-    USERVER_NAMESPACE::http::headers::HeadersString res{};
-    while (nghttp2_session_want_write(session_)) {
-      while (true) {
-        const std::uint8_t* data_ptr = nullptr;
-        const std::size_t data_length =
-            nghttp2_session_mem_send(session_, &data_ptr);
-        if (data_length <= 0) {
-          break;
-        }
-        const std::string_view a{reinterpret_cast<const char*>(data_ptr),
-                                 data_length};
-        res.append(a);
-      }
-    }
-    return socket.WriteAll(res.data(), res.size(), {});
-  }
-
-  void WriteHttp2BodyNotstreamed(engine::io::RwBase& socket,
-                                 Http2HeaderWriter& header_writer) {
+  void WriteHttp2BodyNotstreamed(Http2HeaderWriter& header_writer) {
     const bool is_body_forbidden = IsBodyForbiddenForStatus(response_.status_);
     const bool is_head_request =
         response_.request_.GetMethod() == HttpMethod::kHead;
-    const auto& data = response_.GetData();
+    auto data = response_.MoveData();
 
     if (!is_body_forbidden) {
       header_writer.AddKeyValue(
@@ -214,12 +184,14 @@ class Http2ResponseWriter final {
           << " which does not allow one, it will be dropped";
     }
 
-    DataBufferSender data_sender{data};
+    const std::uint32_t stream_id = response_.GetStreamId().value();
+    auto& stream = http2_session_.GetStreamByIdChecked(stream_id);
+    stream.data_buffer_sender.emplace(std::move(data));
+
     nghttp2_data_provider* provider{nullptr};
     if (!is_head_request && !is_body_forbidden) {
-      provider = &data_sender.nghttp2_provider;
+      provider = stream.data_buffer_sender.value().GetProvider();
     }
-    const std::uint32_t stream_id = response_.GetStreamId().value();
     const auto& nva = header_writer.GetNgHeaders();
     const int rv = nghttp2_submit_response(session_, stream_id, nva.data(),
                                            nva.size(), provider);
@@ -229,22 +201,22 @@ class Http2ResponseWriter final {
                       rv, nghttp2_strerror(rv))};
     }
 
-    const auto sent_bytes = SendResponseToSocket(socket);
+    const auto sent_bytes = http2_session_.WriteResponseToSocket();
     response_.SetSent(sent_bytes, std::chrono::steady_clock::now());
   }
 
-  void WriteHttp2BodyStreamed(engine::io::RwBase&, Http2HeaderWriter&) {
+  void WriteHttp2BodyStreamed(Http2HeaderWriter&) {
     UINVARIANT(false, "Not implemented for HTTP2.0");
   }
 
+  Http2Session& http2_session_;
   HttpResponse& response_;
   nghttp2_session* session_;
 };
 
-void WriteHttp2ResponseToSocket(engine::io::RwBase& socket,
-                                HttpResponse& response, Http2Session& parser) {
-  Http2ResponseWriter w{response, parser.GetNghttp2SessionPtr()};
-  w.WriteHttpResponse(socket);
+void WriteHttp2ResponseToSocket(HttpResponse& response, Http2Session& session) {
+  Http2ResponseWriter w{response, session};
+  w.WriteHttpResponse();
 }
 
 }  // namespace server::http
