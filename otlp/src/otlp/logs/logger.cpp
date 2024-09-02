@@ -29,7 +29,7 @@ const std::string kTimestampFormat = "%Y-%m-%dT%H:%M:%E*S";
 
 SinkType Parse(const userver::yaml_config::YamlConfig& value,
                userver::formats::parse::To<SinkType>) {
-  auto destination = value.As<std::string>();
+  auto destination = value.As<std::string>("otlp");
   if (destination == "both") {
     return SinkType::kBoth;
   }
