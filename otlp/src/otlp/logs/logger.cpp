@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include <userver/engine/async.hpp>
+#include <userver/formats/parse/common_containers.hpp>
 #include <userver/logging/impl/tag_writer.hpp>
 #include <userver/logging/logger.hpp>
 #include <userver/tracing/span.hpp>
@@ -12,6 +13,7 @@
 #include <userver/utils/encoding/tskv_parser_read.hpp>
 #include <userver/utils/overloaded.hpp>
 #include <userver/utils/text_light.hpp>
+#include <userver/yaml_config/yaml_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -24,6 +26,21 @@ constexpr std::string_view kServiceName = "service.name";
 
 const std::string kTimestampFormat = "%Y-%m-%dT%H:%M:%E*S";
 }  // namespace
+
+SinkType Parse(const userver::yaml_config::YamlConfig& value,
+               userver::formats::parse::To<SinkType>) {
+  auto destination = value.As<std::string>();
+  if (destination == "both") {
+    return SinkType::kBoth;
+  }
+  if (destination == "default") {
+    return SinkType::kDefault;
+  }
+  if (destination == "otlp") {
+    return SinkType::kOtlp;
+  }
+  throw std::runtime_error("OTLP logger: unknown sink type:" + destination);
+}
 
 Logger::Logger(
     opentelemetry::proto::collector::logs::v1::LogsServiceClient client,
@@ -228,11 +245,13 @@ void Logger::SendingLoop(Queue::Consumer& consumer, LogClient& log_client,
     } while (consumer.Pop(action, deadline));
 
     if (config_.logs_sink == SinkType::kBoth ||
-        config_.logs_sink == SinkType::kOtlp)
+        config_.logs_sink == SinkType::kOtlp) {
       DoLog(log_request, log_client);
+    }
     if (config_.tracing_sink == SinkType::kBoth ||
-        config_.tracing_sink == SinkType::kOtlp)
+        config_.tracing_sink == SinkType::kOtlp) {
       DoTrace(trace_request, trace_client);
+    }
   }
 }
 

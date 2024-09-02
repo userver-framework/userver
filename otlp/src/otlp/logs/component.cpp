@@ -22,18 +22,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace otlp {
 
-namespace {
-SinkType GetSinkTypeFromString(const std::string& destination) {
-  if (destination == "both") {
-    return SinkType::kBoth;
-  }
-  if (destination == "default") {
-    return SinkType::kDefault;
-  }
-  return SinkType::kOtlp;
-}
-}  // namespace
-
 LoggerComponent::LoggerComponent(const components::ComponentConfig& config,
                                  const components::ComponentContext& context)
     : old_logger_(logging::GetDefaultLogger()) {
@@ -64,14 +52,10 @@ LoggerComponent::LoggerComponent(const components::ComponentConfig& config,
   logger_config.attributes_mapping =
       config["attributes-mapping"]
           .As<std::unordered_map<std::string, std::string>>({});
-
-  if (config.HasMember("sinks")) {
-    auto sinks = config["sinks"];
-    auto logs_sink_str = sinks["logs"].As<std::string>("otlp");
-    logger_config.logs_sink = GetSinkTypeFromString(logs_sink_str);
-    auto tracing_sink_str = sinks["tracing"].As<std::string>("otlp");
-    logger_config.tracing_sink = GetSinkTypeFromString(tracing_sink_str);
-  }
+  logger_config.logs_sink =
+      config["sinks"]["logs"].As<SinkType>(SinkType::kOtlp);
+  logger_config.tracing_sink =
+      config["sinks"]["tracing"].As<SinkType>(SinkType::kOtlp);
 
   logger_ = std::make_shared<Logger>(std::move(client), std::move(trace_client),
                                      std::move(logger_config));
@@ -103,7 +87,7 @@ LoggerComponent::LoggerComponent(const components::ComponentConfig& config,
 
   UASSERT(dynamic_cast<logging::impl::MemLogger*>(&old_logger_));
 
-  logger_->setDefaultLogger(default_logger);
+  logger_->SetDefaultLogger(default_logger);
 
   logging::impl::SetDefaultLoggerRef(*logger_);
   old_logger_.ForwardTo(&*logger_);

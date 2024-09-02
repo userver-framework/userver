@@ -8,15 +8,18 @@
 
 #include <userver/concurrent/queue.hpp>
 #include <userver/engine/task/task.hpp>
+#include <userver/formats/yaml.hpp>
 #include <userver/logging/impl/log_stats.hpp>
 #include <userver/logging/impl/logger_base.hpp>
+#include <userver/yaml_config/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace otlp {
 
 enum class SinkType { kBoth, kDefault, kOtlp };
-
+SinkType Parse(const userver::yaml_config::YamlConfig& value,
+               userver::formats::parse::To<SinkType>);
 struct LoggerConfig {
   size_t max_queue_size{10000};
   std::chrono::milliseconds max_batch_delay{};
@@ -50,7 +53,7 @@ class Logger final : public logging::impl::LoggerBase {
 
   const logging::impl::LogStatistics& GetStatistics() const;
 
-  void setDefaultLogger(logging::LoggerPtr default_logger) {
+  void SetDefaultLogger(logging::LoggerPtr default_logger) {
     default_logger_ = default_logger;
   }
 
