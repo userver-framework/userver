@@ -11,7 +11,7 @@
 #include <userver/formats/yaml.hpp>
 #include <userver/logging/impl/log_stats.hpp>
 #include <userver/logging/impl/logger_base.hpp>
-#include <userver/yaml_config/fwd.hpp>
+#include <userver/yaml_config/yaml_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

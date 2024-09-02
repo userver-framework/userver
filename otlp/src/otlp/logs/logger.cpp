@@ -5,6 +5,7 @@
 
 #include <userver/engine/async.hpp>
 #include <userver/formats/parse/common_containers.hpp>
+#include <userver/formats/parse/to.hpp>
 #include <userver/logging/impl/tag_writer.hpp>
 #include <userver/logging/logger.hpp>
 #include <userver/tracing/span.hpp>
@@ -13,7 +14,6 @@
 #include <userver/utils/encoding/tskv_parser_read.hpp>
 #include <userver/utils/overloaded.hpp>
 #include <userver/utils/text_light.hpp>
-#include <userver/yaml_config/yaml_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
