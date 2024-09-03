@@ -32,7 +32,7 @@ class SubscribeSentinel : protected Sentinel {
       const std::shared_ptr<ThreadPools>& thread_pools,
       const secdist::RedisSettings& settings, std::string shard_group_name,
       dynamic_config::Source dynamic_config_source,
-      const std::string& client_name, bool is_cluster_mode,
+      const std::string& client_name, std::string sharding_strategy,
       const CommandControl& command_control,
       const testsuite::RedisControl& testsuite_redis_control);
   static std::shared_ptr<SubscribeSentinel> Create(
@@ -40,7 +40,7 @@ class SubscribeSentinel : protected Sentinel {
       const secdist::RedisSettings& settings, std::string shard_group_name,
       dynamic_config::Source dynamic_config_source,
       const std::string& client_name, ReadyChangeCallback ready_callback,
-      bool is_cluster_mode, const CommandControl& command_control,
+      std::string sharding_strategy, const CommandControl& command_control,
       const testsuite::RedisControl& testsuite_redis_control);
 
   SubscriptionToken Subscribe(

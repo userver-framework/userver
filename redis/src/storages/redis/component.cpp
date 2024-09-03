@@ -247,14 +247,12 @@ void Redis::Connect(const ComponentConfig& config,
   for (const auto& redis_group : subscribe_redis_groups) {
     auto settings = GetSecdistSettings(secdist_component, redis_group);
 
-    bool is_cluster_mode = USERVER_NAMESPACE::redis::IsClusterStrategy(
-        redis_group.sharding_strategy);
     redis::CommandControl cc{};
     cc.allow_reads_from_master = redis_group.allow_reads_from_master;
 
     auto sentinel = redis::SubscribeSentinel::Create(
         thread_pools_, settings, redis_group.config_name, config_source,
-        redis_group.db, is_cluster_mode, cc, testsuite_redis_control);
+        redis_group.db, redis_group.sharding_strategy, cc, testsuite_redis_control);
     if (sentinel)
       subscribe_clients_.emplace(
           redis_group.db,
@@ -416,6 +414,7 @@ properties:
                     enum:
                       - RedisCluster
                       - KeyShardTaximeterCrc32
+                      - RedisStandalone
                 allow_reads_from_master:
                     type: boolean
                     description: allows subscriptions to master instance to distribute load

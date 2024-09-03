@@ -86,7 +86,7 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
     const std::shared_ptr<ThreadPools>& thread_pools,
     const secdist::RedisSettings& settings, std::string shard_group_name,
     dynamic_config::Source dynamic_config_source,
-    const std::string& client_name, bool is_cluster_mode,
+    const std::string& client_name, std::string sharding_strategy,
     const CommandControl& command_control,
     const testsuite::RedisControl& testsuite_redis_control) {
   auto ready_callback = [](size_t shard, const std::string& shard_name,
@@ -99,7 +99,7 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
   // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
   return Create(thread_pools, settings, std::move(shard_group_name),
                 dynamic_config_source, client_name, std::move(ready_callback),
-                is_cluster_mode, command_control, testsuite_redis_control);
+                std::move(sharding_strategy), command_control, testsuite_redis_control);
 }
 
 std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
@@ -107,7 +107,7 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
     const secdist::RedisSettings& settings, std::string shard_group_name,
     dynamic_config::Source dynamic_config_source,
     const std::string& client_name, ReadyChangeCallback ready_callback,
-    bool is_cluster_mode, const CommandControl& command_control,
+    std::string sharding_strategy, const CommandControl& command_control,
     const testsuite::RedisControl& testsuite_redis_control) {
   const auto& password = settings.password;
 
@@ -116,6 +116,8 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
   for (const std::string& shard : shards)
     LOG_DEBUG() << "shard:  name = " << shard;
 
+  auto is_cluster_mode = USERVER_NAMESPACE::redis::IsClusterStrategy(sharding_strategy);
+  redis::KeyShardFactory keysShardFactory{sharding_strategy};
   std::vector<ConnectionInfo> conns;
   conns.reserve(settings.sentinels.size());
   LOG_DEBUG() << "sentinels.size() = " << settings.sentinels.size();
@@ -135,7 +137,7 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
       thread_pools, shards, conns, std::move(shard_group_name),
       dynamic_config_source, client_name, password, settings.secure_connection,
       std::move(ready_callback),
-      (is_cluster_mode ? nullptr : std::make_unique<KeyShardZero>()),
+      (is_cluster_mode ? nullptr : keysShardFactory(shards.size())),
       is_cluster_mode, command_control, testsuite_redis_control);
   subscribe_sentinel->Start();
   return subscribe_sentinel;
