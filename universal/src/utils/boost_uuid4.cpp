@@ -101,19 +101,14 @@ boost::uuids::uuid FromChars(const char* begin, const char* end) {
   return u;
 }
 
-compiler::ThreadLocal local_uuid_generator = [] {
-  return WithDefaultRandom([](RandomBase& rng) {
-    return boost::uuids::basic_random_generator<RandomBase>(rng);
-  });
-};
-
 }  // namespace
 
 namespace generators {
 
 boost::uuids::uuid GenerateBoostUuid() {
-  auto generator = local_uuid_generator.Use();
-  return (*generator)();
+  auto local_gen = impl::UseLocalRandomImpl();
+  boost::uuids::basic_random_generator generator{*local_gen};
+  return generator();
 }
 
 }  // namespace generators
