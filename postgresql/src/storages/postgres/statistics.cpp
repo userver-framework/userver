@@ -81,6 +81,7 @@ void DumpMetric(USERVER_NAMESPACE::utils::statistics::Writer& writer,
                 const ClusterStatistics& value) {
   constexpr std::string_view kPostgresqlClusterHostType =
       "postgresql_cluster_host_type";
+  writer["connlimit-mode-auto-enabled"] = value.connlimit_mode_auto_on;
   writer.ValueWithLabels(value.master, {kPostgresqlClusterHostType, "master"});
   writer.ValueWithLabels(value.sync_slave,
                          {kPostgresqlClusterHostType, "sync_slave"});

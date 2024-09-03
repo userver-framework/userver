@@ -237,6 +237,8 @@ struct InstanceStatsDescriptor {
 
 /// @brief Cluster statistics storage
 struct ClusterStatistics {
+  /// Connlimit mode auto is on
+  bool connlimit_mode_auto_on{false};
   /// Master instance statistics
   InstanceStatsDescriptor master;
   /// Sync slave instance statistics

@@ -115,7 +115,10 @@ ClusterImpl::ClusterImpl(DsnList dsns, clients::dns::Resolver* resolver,
   // Do not use IsConnlimitModeAuto() here because we don't care about
   // the current dynamic config value
   if (cluster_settings.connlimit_mode == ConnlimitMode::kAuto) {
+    connlimit_mode_auto_enabled_ = true;
     connlimit_watchdog_.Start();
+  } else {
+    connlimit_mode_auto_enabled_ = false;
   }
 }
 
@@ -123,6 +126,8 @@ ClusterImpl::~ClusterImpl() { connlimit_watchdog_.Stop(); }
 
 ClusterStatisticsPtr ClusterImpl::GetStatistics() const {
   auto cluster_stats = std::make_unique<ClusterStatistics>();
+
+  cluster_stats->connlimit_mode_auto_on = connlimit_mode_auto_enabled_.load();
 
   const auto& dsns = topology_->GetDsnList();
   std::vector<int8_t> is_host_pool_seen(dsns.size(), 0);
@@ -360,14 +365,20 @@ void ClusterImpl::OnConnlimitChanged() {
   SetPoolSettings(cluster_settings->pool_settings);
 }
 
-bool ClusterImpl::IsConnlimitModeAuto(const ClusterSettings& settings) const {
-  if (settings.connlimit_mode == ConnlimitMode::kManual) return false;
+bool ClusterImpl::IsConnlimitModeAuto(const ClusterSettings& settings) {
+  bool on = true;
+  if (settings.connlimit_mode == ConnlimitMode::kManual) {
+    on = false;
+  }
 
   auto snapshot = config_source_.GetSnapshot();
   // NOLINTNEXTLINE(readability-simplify-boolean-expr)
-  if (!snapshot[kConnlimitModeAutoEnabled]) return false;
+  if (!snapshot[kConnlimitModeAutoEnabled]) {
+    on = false;
+  }
 
-  return true;
+  connlimit_mode_auto_enabled_ = on;
+  return on;
 }
 
 void ClusterImpl::SetStatementMetricsSettings(

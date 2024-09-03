@@ -79,7 +79,7 @@ class ClusterImpl {
  private:
   void OnConnlimitChanged();
 
-  bool IsConnlimitModeAuto(const ClusterSettings& settings) const;
+  bool IsConnlimitModeAuto(const ClusterSettings& settings);
 
   using ConnectionPoolPtr = std::shared_ptr<ConnectionPool>;
 
@@ -93,6 +93,7 @@ class ClusterImpl {
   std::atomic<uint32_t> rr_host_idx_;
   dynamic_config::Source config_source_;
   ConnlimitWatchdog connlimit_watchdog_;
+  std::atomic<bool> connlimit_mode_auto_enabled_;
 };
 
 }  // namespace storages::postgres::detail
