@@ -4,6 +4,8 @@
 #include <iostream>
 
 #include <userver/engine/async.hpp>
+#include <userver/formats/parse/common_containers.hpp>
+#include <userver/formats/parse/to.hpp>
 #include <userver/logging/impl/tag_writer.hpp>
 #include <userver/logging/logger.hpp>
 #include <userver/tracing/span.hpp>
@@ -24,6 +26,21 @@ constexpr std::string_view kServiceName = "service.name";
 
 const std::string kTimestampFormat = "%Y-%m-%dT%H:%M:%E*S";
 }  // namespace
+
+SinkType Parse(const yaml_config::YamlConfig& value,
+               formats::parse::To<SinkType>) {
+  auto destination = value.As<std::string>("otlp");
+  if (destination == "both") {
+    return SinkType::kBoth;
+  }
+  if (destination == "default") {
+    return SinkType::kDefault;
+  }
+  if (destination == "otlp") {
+    return SinkType::kOtlp;
+  }
+  throw std::runtime_error("OTLP logger: unknown sink type:" + destination);
+}
 
 Logger::Logger(
     opentelemetry::proto::collector::logs::v1::LogsServiceClient client,
@@ -64,6 +81,14 @@ bool Logger::DoShouldLog(logging::Level level) const noexcept {
 }
 
 void Logger::Log(logging::Level level, std::string_view msg) {
+  if (config_.logs_sink == SinkType::kDefault ||
+      config_.logs_sink == SinkType::kBoth) {
+    if (default_logger_) default_logger_->Log(level, msg);
+    if (config_.logs_sink == SinkType::kDefault) {
+      return;
+    }
+  }
+
   utils::encoding::TskvParser parser{msg};
 
   ::opentelemetry::proto::logs::v1::LogRecord log_record;
@@ -113,7 +138,15 @@ void Logger::Log(logging::Level level, std::string_view msg) {
   }
 }
 
-void Logger::Trace(logging::Level, std::string_view msg) {
+void Logger::Trace(logging::Level level, std::string_view msg) {
+  if (config_.tracing_sink == SinkType::kDefault ||
+      config_.tracing_sink == SinkType::kBoth) {
+    if (default_logger_) default_logger_->Trace(level, msg);
+    if (config_.tracing_sink == SinkType::kDefault) {
+      return;
+    }
+  }
+
   utils::encoding::TskvParser parser{msg};
 
   ::opentelemetry::proto::trace::v1::Span span;
@@ -211,8 +244,14 @@ void Logger::SendingLoop(Queue::Consumer& consumer, LogClient& log_client,
           action);
     } while (consumer.Pop(action, deadline));
 
-    DoLog(log_request, log_client);
-    DoTrace(trace_request, trace_client);
+    if (config_.logs_sink == SinkType::kBoth ||
+        config_.logs_sink == SinkType::kOtlp) {
+      DoLog(log_request, log_client);
+    }
+    if (config_.tracing_sink == SinkType::kBoth ||
+        config_.tracing_sink == SinkType::kOtlp) {
+      DoTrace(trace_request, trace_client);
+    }
   }
 }
 

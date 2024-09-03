@@ -1,5 +1,7 @@
 #include <userver/otlp/logs/component.hpp>
 
+#include <string>
+
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
 #include <userver/components/statistics_storage.hpp>
@@ -51,18 +53,42 @@ LoggerComponent::LoggerComponent(const components::ComponentConfig& config,
   logger_config.attributes_mapping =
       config["attributes-mapping"]
           .As<std::unordered_map<std::string, std::string>>({});
+  logger_config.logs_sink =
+      config["sinks"]["logs"].As<SinkType>(SinkType::kOtlp);
+  logger_config.tracing_sink =
+      config["sinks"]["tracing"].As<SinkType>(SinkType::kOtlp);
+
   logger_ = std::make_shared<Logger>(std::move(client), std::move(trace_client),
                                      std::move(logger_config));
-
   // We must init after the default logger is initialized
   auto& logging_component = context.FindComponent<components::Logging>();
-  if (logging_component.GetLoggerOptional("default")) {
-    throw std::runtime_error(
-        "You have registered both 'otlp-logger' component and 'default' logger "
-        "in 'logging' component. Either disable default logger or otlp "
-        "logger.");
+  logging::LoggerPtr default_logger{};
+  if (logger_config.logs_sink == SinkType::kOtlp &&
+      logger_config.tracing_sink == SinkType::kOtlp) {
+    if (logging_component.GetLoggerOptional("default")) {
+      throw std::runtime_error(
+          "You've registered both the 'otlp-logger' component and the "
+          "'default' logger in 'logging' component, but have opted to "
+          "send both logs and traces using oltp. Either disable default "
+          "logger or otlp logger.");
+    }
+  } else {
+    try {
+      default_logger = logging_component.GetLogger("default");
+    } catch (const std::runtime_error&) {
+      default_logger = nullptr;
+    }
+    if (!default_logger) {
+      throw std::runtime_error(
+          "You've opted to use the 'default' logger, but it's not registered "
+          "in 'loggers' of the 'logging' component. Please register it, or "
+          "your logs and/or traces won't be saved.");
+    }
   }
+
   UASSERT(dynamic_cast<logging::impl::MemLogger*>(&old_logger_));
+
+  logger_->SetDefaultLogger(default_logger);
 
   logging::impl::SetDefaultLoggerRef(*logger_);
   old_logger_.ForwardTo(&*logger_);
@@ -111,6 +137,21 @@ properties:
     service-name:
         type: string
         description: service name
+    sinks:
+        type: object
+        description: sinks to send logs/traces to
+        additionalProperties: false
+        properties:
+            logs:
+                type: string
+                enum: [otlp, default, both]
+                description: logs sink
+                defaultDescription: otlp
+            tracing:
+                type: string
+                enum: [otlp, default, both]
+                description: tracing sink
+                defaultDescription: otlp
     attributes-mapping:
         type: object
         description: rename rules for OTLP attributes
