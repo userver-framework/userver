@@ -37,7 +37,6 @@ async def _validate_pubsub(redis_db, service_client, msg, redis_type):
 
 @pytest.mark.parametrize('db_name', ['sentinel', 'sentinel-with-master'])
 async def test_happy_path_sentinel(service_client, redis_store, db_name):
-
     msg = 'sentinel_message'
     assert await _validate_pubsub(redis_store, service_client, msg, db_name)
 
