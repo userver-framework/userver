@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
-#include <userver/chaotic/object.hpp>
+#include <userver/formats/json/value.hpp>
 
 #include <userver/chaotic/type_bundle_hpp.hpp>
 

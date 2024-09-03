@@ -4,7 +4,6 @@
 
 #include <optional>
 #include <string>
-#include <userver/chaotic/object.hpp>
 
 #include <userver/chaotic/type_bundle_hpp.hpp>
 

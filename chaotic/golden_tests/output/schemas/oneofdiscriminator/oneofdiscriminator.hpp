@@ -5,8 +5,8 @@
 #include <cstdint>
 #include <optional>
 #include <string>
-#include <userver/chaotic/object.hpp>
 #include <userver/chaotic/oneof_with_discriminator.hpp>
+#include <userver/formats/json/value.hpp>
 #include <variant>
 
 #include <userver/chaotic/type_bundle_hpp.hpp>

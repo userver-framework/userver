@@ -1,9 +1,6 @@
 #include "{{ pair_header }}.hpp"
 
 #include <userver/chaotic/type_bundle_cpp.hpp>
-{% for file in definition_includes(types.values()) %}
-    #include <{{ file }}>
-{%- endfor %}
 
 #include "{{ pair_header }}_parsers.ipp"
 

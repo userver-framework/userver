@@ -1,6 +1,7 @@
 #include <userver/utest/assert_macros.hpp>
 
 #include <userver/formats/json/inline.hpp>
+#include <userver/formats/json/value_builder.hpp>
 
 #include <schemas/custom_cpp_type.hpp>
 

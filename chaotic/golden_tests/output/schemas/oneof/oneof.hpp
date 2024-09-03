@@ -5,7 +5,6 @@
 #include <cstdint>
 #include <optional>
 #include <string>
-#include <userver/chaotic/object.hpp>
 #include <userver/formats/parse/variant.hpp>
 #include <variant>
 

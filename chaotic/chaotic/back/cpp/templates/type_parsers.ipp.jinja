@@ -1,6 +1,9 @@
 #pragma once
 
 #include "{{ pair_header }}.hpp"
+{% for file in definition_includes(types.values()) %}
+    #include <{{ file }}>
+{%- endfor %}
 
 
 {% macro generate_global_struct_field_definition(name, type) %}

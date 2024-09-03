@@ -761,15 +761,12 @@ class CppStruct(CppType):
 
         if self.extra_type:
             includes.append('string')
-
-            # for ExtractAdditionalProperties()
-            includes.append('userver/chaotic/object.hpp')
             if isinstance(self.extra_type, CppType):
                 extra_container = self.extra_container()
                 includes += self.get_include_by_cpp_type(extra_container)
                 includes.extend(self.extra_type.declaration_includes())
-        elif self.strict_parsing:
-            includes.append('userver/chaotic/object.hpp')
+            else:
+                includes.append('userver/formats/json/value.hpp')
 
         if self._is_default_dict():
             includes.append('userver/utils/default_dict.hpp')
@@ -782,6 +779,10 @@ class CppStruct(CppType):
             'userver/chaotic/primitive.hpp',
             'userver/chaotic/with_type.hpp',
         ]
+        if self.extra_type or self.strict_parsing:
+            # for ExtractAdditionalProperties/ValidateNoAdditionalProperties
+            includes.append('userver/chaotic/object.hpp')
+
         if self.extra_type:
             # for kPropertiesNames
             includes.append('userver/utils/trivial_map.hpp')

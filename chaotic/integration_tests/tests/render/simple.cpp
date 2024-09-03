@@ -8,6 +8,7 @@
 #include <userver/chaotic/primitive.hpp>
 #include <userver/chaotic/validators.hpp>
 #include <userver/formats/json/value.hpp>
+#include <userver/formats/json/value_builder.hpp>
 #include <userver/formats/parse/to.hpp>
 #include <userver/formats/serialize/variant.hpp>
 

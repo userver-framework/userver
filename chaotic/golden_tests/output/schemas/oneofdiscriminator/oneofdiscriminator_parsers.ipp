@@ -2,6 +2,15 @@
 
 #include "oneofdiscriminator.hpp"
 
+#include <userver/chaotic/object.hpp>
+#include <userver/chaotic/primitive.hpp>
+#include <userver/chaotic/validators.hpp>
+#include <userver/chaotic/with_type.hpp>
+#include <userver/formats/json/serialize_variant.hpp>
+#include <userver/formats/parse/common_containers.hpp>
+#include <userver/formats/serialize/common_containers.hpp>
+#include <userver/utils/trivial_map.hpp>
+
 namespace ns {
 
 static constexpr USERVER_NAMESPACE::utils::TrivialSet kns__A_PropertiesNames =
