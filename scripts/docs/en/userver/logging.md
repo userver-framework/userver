@@ -116,13 +116,13 @@ After that, you can get a logger in the code like this:
 ```cpp
 auto& logging_component =
       context.FindComponent<::components::Logging>();
-  my_logger = logging_component.GetLogger("my_logger_name");
+logging::LoggerPtr my_logger = logging_component.GetLogger("my_logger_name");
 ```
 
 To write to such a logger, it is convenient to use `LOG_XXX_TO`, for example:
 
 ```cpp
-LOG_INFO_TO(my_logger) << "Look, I am a new logger!";
+LOG_INFO_TO(*my_logger) << "Look, I am a new logger!";
 ```
 
 Note: do not forget to configure the logrotate for your new log file!
@@ -146,13 +146,13 @@ When processing a request, you can create a `tracking::Span` object that measure
 Example log `tracing::Span span("cache_invalidate")`:
 
 ```
-tskv	timestamp=2018-12-04T14:00:35.303132	timezone=+03:00	level=INFO	module=~Impl ( userver/src/tracing/span.cpp:76 ) 	task_id=140572868354752	coro_id=140579682340544	text=	trace_id=672a081c8004409ca79d5cc05cb5e580	span_id=12ff00c63bcc46599741bab62506881c	parent_id=7a7c1c6999094d2a8e3d22bc6ecf5d70	stopwatch_name=cache_invalidate	start_timestamp=1543921235.301035	total_time=2.08675	span_ref_type=child	stopwatch_units=ms
+tskv  timestamp=2018-12-04T14:00:35.303132  timezone=+03:00 level=INFO  module=~Impl ( userver/src/tracing/span.cpp:76 )  task_id=140572868354752 coro_id=140579682340544 text= trace_id=672a081c8004409ca79d5cc05cb5e580 span_id=12ff00c63bcc46599741bab62506881c  parent_id=7a7c1c6999094d2a8e3d22bc6ecf5d70  stopwatch_name=cache_invalidate start_timestamp=1543921235.301035 total_time=2.08675  span_ref_type=child stopwatch_units=ms
 ```
 
 Log record example for some `POST /v1/upload`  handle:
 
 ```
-tskv	timestamp=2020-08-13T15:30:52.507493	level=INFO	module=~Impl ( userver/core/src/tracing/span.cpp:139 ) 	task_id=7F110B765400	thread_id=0x00007F115BDEE700	text=	stopwatch_name=http/handler-v1_upload-post	total_time=36.393694	span_ref_type=child	stopwatch_units=ms	start_timestamp=1597321852.471086	meta_type=/v1/upload	_type=response	method=POST	body={"status":"ok"}	uri=/v1/upload?provider_id=driver-metrics	http_handle_request_time=36.277501	http_serialize_response_data_time=0.003394	tags_cache_mapping_time=0.018781	find_service_time=21.702876	http_parse_request_data_time=0.053233	http_check_auth_time=0.029809	http_check_ratelimit_time=0.000118	entities_cache_mapping_time=0.01037	register_request_time=0.819509	log_to_yt_time=0.047565	save_request_result_time=1.523389	upload_queries_time=5.179371	commit_time=4.11817	link=48e0029fc25e460880529b9d300967df	parent_link=b1377a1b20384fe292fd77cb96b30121	source_service=driver-metrics	entity_type=udid	merge_policy=append	provider_name=driver-metrics	tags_count_append=3	meta_code=200	trace_id=2f6bf12265934260876a236c373b37dc	span_id=8f828566189db0d0	parent_id=fdae1985431a6a57
+tskv  timestamp=2020-08-13T15:30:52.507493  level=INFO  module=~Impl ( userver/core/src/tracing/span.cpp:139 )  task_id=7F110B765400  thread_id=0x00007F115BDEE700  text= stopwatch_name=http/handler-v1_upload-post  total_time=36.393694  span_ref_type=child stopwatch_units=ms  start_timestamp=1597321852.471086 meta_type=/v1/upload  _type=response  method=POST body={"status":"ok"}  uri=/v1/upload?provider_id=driver-metrics http_handle_request_time=36.277501  http_serialize_response_data_time=0.003394  tags_cache_mapping_time=0.018781  find_service_time=21.702876 http_parse_request_data_time=0.053233 http_check_auth_time=0.029809 http_check_ratelimit_time=0.000118  entities_cache_mapping_time=0.01037 register_request_time=0.819509  log_to_yt_time=0.047565 save_request_result_time=1.523389 upload_queries_time=5.179371  commit_time=4.11817 link=48e0029fc25e460880529b9d300967df parent_link=b1377a1b20384fe292fd77cb96b30121  source_service=driver-metrics entity_type=udid  merge_policy=append provider_name=driver-metrics  tags_count_append=3 meta_code=200 trace_id=2f6bf12265934260876a236c373b37dc span_id=8f828566189db0d0  parent_id=fdae1985431a6a57
 ```
 
 `tracing::Span` can only be created on stack. Currently, the ability to create `tracing::Span` as a member of a class whose objects can be passed between tasks is not supported.
@@ -256,7 +256,55 @@ It means the logger is successfully initialized and is ready to process the logs
 If somethings goes wrong (e.g. OTLP collector agent is not available), you'll see errors in stderr.
 The service buffers not-yet-sent logs and traces in memory, but drops them on overflow.
 
-----------
+## Separate Sinks for Logs and Tracing
+
+In certain environments, such as Kubernetes, applications typically write logs to stdout/stderr, while traces are sent efficiently through the 'push' model (via OTLP transport). Kubernetes stores the container's stdout/stderr in files on nodes, making logs available for log collectors using the 'pull' model. This approach ensures that logs remain accessible even if the application fails, capturing the most critical information.
+
+To configure separate sinks for logs and traces, use the optional 'sinks' block in the 'otlp-logger' configuration (see the full schema in otlp::LoggerComponent::GetStaticConfigSchema):
+
+```yaml
+otlp-logger:
+    endpoint: $otlp-endpoint
+    service-name: $service-name
+    log-level: info    
+    sinks:
+      logs: default | otlp | both
+      tracing: default | otlp | both
+```
+
+If the 'sinks' block is not present in the 'otlp-logger' configuration, both logs and traces use the OTLP transport and are delivered to an OpenTelemetry-compatible collector by a background task in userver.
+
+In the 'sinks' block, you can choose the following options for each stream:
+
+- `otlp`: OTLP exporter
+- `default`: _default_ logger from the **logging** component
+- `both`: _default_ logger and OTLP exporter
+
+If you choose `otlp` for both streams, ensure that **logging.loggers** is empty:
+
+```yaml
+logging:
+    fs-task-processor: fs-task-processor
+    loggers: {}
+```
+
+Otherwise, add the _default_ logger in the **logging** component's **loggers** field:
+
+```yaml
+logging:
+    fs-task-processor: fs-task-processor
+    loggers: 
+        default:
+            file_path: $log-location 
+            level: info
+            overflow_behavior: discard
+        my_rabbit_logger: # you can use additional loggers
+            file_path: $log-location                     
+            level: error
+            overflow_behavior: discard               
+```
+
+**Note:** If you have additional loggers configured, they will function as usual, even if you're using the default logger for tracing only. But you can't redirect them to OTLP exporter.
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
 ⇦ @ref scripts/docs/en/userver/chaotic.md | @ref scripts/docs/en/userver/task_processors_guide.md ⇨
