@@ -268,8 +268,8 @@ otlp-logger:
     service-name: $service-name
     log-level: info    
     sinks:
-      logs:    default | otlp | both
-      tracing: default | otlp | both
+        logs: default | otlp | both
+        tracing: default | otlp | both
 ```
 
 If the 'sinks' block is not present in the 'otlp-logger' configuration, both logs and traces use the OTLP transport and are delivered to an OpenTelemetry-compatible collector by a background task in userver.
