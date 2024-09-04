@@ -281,6 +281,13 @@ void LogHelper::PutRange(const T& range) {
   using std::begin;
   using std::end;
 
+  static_assert(!std::is_same_v<meta::RangeValueType<T>, char>,
+                "You should either manually convert type to 'std::string_view' "
+                "or provide 'operator<<' specialization for your type: "
+                "'logging::LogHelper& operator<<(logging::LogHelper& lh, const "
+                "T& value)' "
+                "or make your type convertible to 'std::string_view'");
+
   constexpr std::string_view kSeparator = ", ";
   *this << '[';
 
