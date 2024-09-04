@@ -10,11 +10,11 @@ USERVER_NAMESPACE_BEGIN
 namespace kafka::impl {
 
 struct Secret final {
-  using Password = utils::NonLoggable<class PasswordTag, std::string>;
+  using SecretType = utils::NonLoggable<class SecretTag, std::string>;
 
   std::string brokers;
-  std::string username;
-  Password password;
+  SecretType username;
+  SecretType password;
 };
 
 class BrokerSecrets final {

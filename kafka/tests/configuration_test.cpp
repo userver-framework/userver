@@ -18,29 +18,6 @@ using namespace std::chrono_literals;
 
 class ConfigurationTest : public KafkaCluster {};
 
-std::string GetConfOption(const kafka::impl::ConfHolder& conf,
-                          const char* option) {
-  UINVARIANT(conf.GetHandle(), "Null conf");
-
-  std::size_t result_size{0};
-  const auto get_size_status =
-      rd_kafka_conf_get(conf.GetHandle(), option, nullptr, &result_size);
-  UINVARIANT(RD_KAFKA_CONF_OK == get_size_status,
-             fmt::format("Failed to retrieve configuration option {}", option));
-  UINVARIANT(
-      result_size > 0,
-      fmt::format("Got size=0 while retrieving config option {}", option));
-
-  std::string result_data(result_size, '\0');
-  const auto get_result_status = rd_kafka_conf_get(
-      conf.GetHandle(), option, result_data.data(), &result_size);
-  UINVARIANT(RD_KAFKA_CONF_OK == get_result_status,
-             fmt::format("Failed to retrieve configuration option {}", option));
-
-  result_data.resize(result_data.size() - 1);
-  return result_data;
-}
-
 }  // namespace
 
 UTEST_F(ConfigurationTest, Producer) {
@@ -48,20 +25,19 @@ UTEST_F(ConfigurationTest, Producer) {
   UEXPECT_NO_THROW(
       configuration.emplace(MakeProducerConfiguration("kafka-producer")));
 
-  const auto conf = std::move(*configuration).Release();
   const kafka::impl::ProducerConfiguration default_producer{};
   EXPECT_EQ(
-      GetConfOption(conf, "topic.metadata.refresh.interval.ms"),
+      configuration->GetOption("topic.metadata.refresh.interval.ms"),
       std::to_string(
           default_producer.common.topic_metadata_refresh_interval.count()));
-  EXPECT_EQ(GetConfOption(conf, "metadata.max.age.ms"),
+  EXPECT_EQ(configuration->GetOption("metadata.max.age.ms"),
             std::to_string(default_producer.common.metadata_max_age.count()));
-  EXPECT_EQ(GetConfOption(conf, "security.protocol"), "plaintext");
-  EXPECT_EQ(GetConfOption(conf, "delivery.timeout.ms"),
+  EXPECT_EQ(configuration->GetOption("security.protocol"), "plaintext");
+  EXPECT_EQ(configuration->GetOption("delivery.timeout.ms"),
             std::to_string(default_producer.delivery_timeout.count()));
-  EXPECT_EQ(GetConfOption(conf, "queue.buffering.max.ms"),
+  EXPECT_EQ(configuration->GetOption("queue.buffering.max.ms"),
             std::to_string(default_producer.queue_buffering_max.count()));
-  EXPECT_EQ(GetConfOption(conf, "enable.idempotence"),
+  EXPECT_EQ(configuration->GetOption("enable.idempotence"),
             default_producer.enable_idempotence ? "true" : "false");
 }
 
@@ -72,46 +48,63 @@ UTEST_F(ConfigurationTest, ProducerNonDefault) {
   producer_configuration.delivery_timeout = 37ms;
   producer_configuration.queue_buffering_max = 7ms;
   producer_configuration.enable_idempotence = true;
+  producer_configuration.rd_kafka_options["session.timeout.ms"] = "3600000";
 
   std::optional<kafka::impl::Configuration> configuration;
   UEXPECT_NO_THROW(configuration.emplace(
       MakeProducerConfiguration("kafka-producer", producer_configuration)));
 
-  const auto conf = std::move(*configuration).Release();
   const kafka::impl::ProducerConfiguration default_producer{};
-  EXPECT_EQ(GetConfOption(conf, "topic.metadata.refresh.interval.ms"), "10");
-  EXPECT_EQ(GetConfOption(conf, "metadata.max.age.ms"), "30");
-  EXPECT_EQ(GetConfOption(conf, "security.protocol"), "plaintext");
-  EXPECT_EQ(GetConfOption(conf, "delivery.timeout.ms"), "37");
-  EXPECT_EQ(GetConfOption(conf, "queue.buffering.max.ms"), "7");
-  EXPECT_EQ(GetConfOption(conf, "enable.idempotence"), "true");
+  EXPECT_EQ(configuration->GetOption("topic.metadata.refresh.interval.ms"),
+            "10");
+  EXPECT_EQ(configuration->GetOption("metadata.max.age.ms"), "30");
+  EXPECT_EQ(configuration->GetOption("security.protocol"), "plaintext");
+  EXPECT_EQ(configuration->GetOption("delivery.timeout.ms"), "37");
+  EXPECT_EQ(configuration->GetOption("queue.buffering.max.ms"), "7");
+  EXPECT_EQ(configuration->GetOption("enable.idempotence"), "true");
+  EXPECT_EQ(configuration->GetOption("session.timeout.ms"), "3600000");
 }
 
 UTEST_F(ConfigurationTest, Consumer) {
+  std::optional<kafka::impl::Configuration> configuration;
+  UEXPECT_NO_THROW(
+      configuration.emplace(MakeConsumerConfiguration("kafka-consumer")));
+
+  const kafka::impl::ConsumerConfiguration default_consumer{};
+  EXPECT_EQ(
+      configuration->GetOption("topic.metadata.refresh.interval.ms"),
+      std::to_string(
+          default_consumer.common.topic_metadata_refresh_interval.count()));
+  EXPECT_EQ(configuration->GetOption("metadata.max.age.ms"),
+            std::to_string(default_consumer.common.metadata_max_age.count()));
+  EXPECT_EQ(configuration->GetOption("security.protocol"), "plaintext");
+  EXPECT_EQ(configuration->GetOption("group.id"), "test-group");
+  EXPECT_EQ(configuration->GetOption("auto.offset.reset"),
+            default_consumer.auto_offset_reset);
+  EXPECT_EQ(configuration->GetOption("enable.auto.commit"),
+            default_consumer.enable_auto_commit ? "true" : "false");
+}
+
+UTEST_F(ConfigurationTest, ConsumerNonDefault) {
   kafka::impl::ConsumerConfiguration consumer_configuration{};
   consumer_configuration.common.topic_metadata_refresh_interval = 10ms;
   consumer_configuration.common.metadata_max_age = 30ms;
   consumer_configuration.auto_offset_reset = "largest";
   consumer_configuration.enable_auto_commit = true;
+  consumer_configuration.rd_kafka_options["socket.keepalive.enable"] = "true";
 
   std::optional<kafka::impl::Configuration> configuration;
-  UEXPECT_NO_THROW(
-      configuration.emplace(MakeConsumerConfiguration("kafka-consumer")));
+  UEXPECT_NO_THROW(configuration.emplace(
+      MakeConsumerConfiguration("kafka-consumer", consumer_configuration)));
 
-  const auto conf = std::move(*configuration).Release();
-  const kafka::impl::ConsumerConfiguration default_consumer{};
-  EXPECT_EQ(
-      GetConfOption(conf, "topic.metadata.refresh.interval.ms"),
-      std::to_string(
-          default_consumer.common.topic_metadata_refresh_interval.count()));
-  EXPECT_EQ(GetConfOption(conf, "metadata.max.age.ms"),
-            std::to_string(default_consumer.common.metadata_max_age.count()));
-  EXPECT_EQ(GetConfOption(conf, "security.protocol"), "plaintext");
-  EXPECT_EQ(GetConfOption(conf, "group.id"), "test-group");
-  EXPECT_EQ(GetConfOption(conf, "auto.offset.reset"),
-            default_consumer.auto_offset_reset);
-  EXPECT_EQ(GetConfOption(conf, "enable.auto.commit"),
-            default_consumer.enable_auto_commit ? "true" : "false");
+  EXPECT_EQ(configuration->GetOption("topic.metadata.refresh.interval.ms"),
+            "10");
+  EXPECT_EQ(configuration->GetOption("metadata.max.age.ms"), "30");
+  EXPECT_EQ(configuration->GetOption("security.protocol"), "plaintext");
+  EXPECT_EQ(configuration->GetOption("group.id"), "test-group");
+  EXPECT_EQ(configuration->GetOption("auto.offset.reset"), "largest");
+  EXPECT_EQ(configuration->GetOption("enable.auto.commit"), "true");
+  EXPECT_EQ(configuration->GetOption("socket.keepalive.enable"), "true");
 }
 
 UTEST_F(ConfigurationTest, ProducerSecure) {
@@ -122,20 +115,18 @@ UTEST_F(ConfigurationTest, ProducerSecure) {
           /*ssl_ca_location=*/"probe"};
 
   kafka::impl::Secret secrets;
-  secrets.username = "username";
-  secrets.password = kafka::impl::Secret::Password{"password"};
+  secrets.username = kafka::impl::Secret::SecretType{"username"};
+  secrets.password = kafka::impl::Secret::SecretType{"password"};
 
   std::optional<kafka::impl::Configuration> configuration;
   UEXPECT_NO_THROW(configuration.emplace(MakeProducerConfiguration(
       "kafka-producer", producer_configuration, secrets)));
 
-  const auto conf = std::move(*configuration).Release();
-  const kafka::impl::SecurityConfiguration::SaslSsl default_sasl_ssl{};
-  EXPECT_EQ(GetConfOption(conf, "security.protocol"), "sasl_ssl");
-  EXPECT_EQ(GetConfOption(conf, "sasl.mechanism"), "SCRAM-SHA-512");
-  EXPECT_EQ(GetConfOption(conf, "sasl.username"), "username");
-  EXPECT_EQ(GetConfOption(conf, "sasl.password"), "password");
-  EXPECT_EQ(GetConfOption(conf, "ssl.ca.location"), "probe");
+  EXPECT_EQ(configuration->GetOption("security.protocol"), "sasl_ssl");
+  EXPECT_EQ(configuration->GetOption("sasl.mechanism"), "SCRAM-SHA-512");
+  EXPECT_EQ(configuration->GetOption("sasl.username"), "username");
+  EXPECT_EQ(configuration->GetOption("sasl.password"), "password");
+  EXPECT_EQ(configuration->GetOption("ssl.ca.location"), "probe");
 }
 
 UTEST_F(ConfigurationTest, ConsumerSecure) {
@@ -146,20 +137,18 @@ UTEST_F(ConfigurationTest, ConsumerSecure) {
           /*ssl_ca_location=*/"/etc/ssl/cert.ca"};
 
   kafka::impl::Secret secrets;
-  secrets.username = "username";
-  secrets.password = kafka::impl::Secret::Password{"password"};
+  secrets.username = kafka::impl::Secret::SecretType{"username"};
+  secrets.password = kafka::impl::Secret::SecretType{"password"};
 
   std::optional<kafka::impl::Configuration> configuration;
   UEXPECT_NO_THROW(configuration.emplace(MakeConsumerConfiguration(
       "kafka-consumer", consumer_configuration, secrets)));
 
-  const auto conf = std::move(*configuration).Release();
-  const kafka::impl::SecurityConfiguration::SaslSsl default_sasl_ssl{};
-  EXPECT_EQ(GetConfOption(conf, "security.protocol"), "sasl_ssl");
-  EXPECT_EQ(GetConfOption(conf, "sasl.mechanism"), "SCRAM-SHA-512");
-  EXPECT_EQ(GetConfOption(conf, "sasl.username"), "username");
-  EXPECT_EQ(GetConfOption(conf, "sasl.password"), "password");
-  EXPECT_EQ(GetConfOption(conf, "ssl.ca.location"), "/etc/ssl/cert.ca");
+  EXPECT_EQ(configuration->GetOption("security.protocol"), "sasl_ssl");
+  EXPECT_EQ(configuration->GetOption("sasl.mechanism"), "SCRAM-SHA-512");
+  EXPECT_EQ(configuration->GetOption("sasl.username"), "username");
+  EXPECT_EQ(configuration->GetOption("sasl.password"), "password");
+  EXPECT_EQ(configuration->GetOption("ssl.ca.location"), "/etc/ssl/cert.ca");
 }
 
 UTEST_F(ConfigurationTest, IncorrectComponentName) {
@@ -181,8 +170,7 @@ UTEST_F(ConfigurationTest, ConsumerResolveGroupId) {
   UEXPECT_NO_THROW(configuration.emplace(
       MakeConsumerConfiguration("kafka-consumer", consumer_configuration)));
 
-  const auto conf = std::move(*configuration).Release();
-  EXPECT_EQ(GetConfOption(conf, "group.id"), "test-group-pod-example-com");
+  EXPECT_EQ(configuration->GetOption("group.id"), "test-group-pod-example-com");
 }
 
 USERVER_NAMESPACE_END

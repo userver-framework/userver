@@ -94,6 +94,17 @@ properties:
             Must be set if `security_protocol` equals `SASL_SSL`.
             If set to `probe`, CA certificates are probed from the default certificates paths
         defaultDescription: none
+    rd_kafka_custom_options:
+        type: object
+        description: |
+            a map of arbitrary `librdkafka` library configuration options.
+            Full list of options is available by link: https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md.
+            Note: This options is not guaranteed to be supported in userver-kafka, use it at your own risk
+        properties: {}
+        additionalProperties:
+            type: string
+            description: librdkafka option value
+        defaultDescription: '{}'
 )");
 }
 

@@ -11,8 +11,8 @@ namespace kafka::impl {
 
 Secret Parse(const formats::json::Value& doc, formats::parse::To<Secret>) {
   Secret secret{doc["brokers"].As<std::string>(),
-                doc["username"].As<std::string>(),
-                doc["password"].As<Secret::Password>()};
+                doc["username"].As<Secret::SecretType>(),
+                doc["password"].As<Secret::SecretType>()};
 
   return secret;
 }

@@ -3,6 +3,7 @@
 #include <chrono>
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <variant>
 
 #include <librdkafka/rdkafka.h>
@@ -10,6 +11,7 @@
 #include <userver/formats/parse/to.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
+#include <kafka/impl/broker_secrets.hpp>
 #include <kafka/impl/holders.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -34,6 +36,10 @@ struct SecurityConfiguration final {
   SecurityProtocol security_protocol{};
 };
 
+/// Arbitrary options for `librdkafka` library
+/// @see https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md
+using RdKafkaOptions = std::unordered_map<std::string, std::string>;
+
 struct ConsumerConfiguration final {
   CommonConfiguration common{};
   SecurityConfiguration security{};
@@ -42,6 +48,8 @@ struct ConsumerConfiguration final {
   std::string auto_offset_reset{"smallest"};
   bool enable_auto_commit{false};
   std::optional<std::string> env_pod_name{};
+
+  RdKafkaOptions rd_kafka_options;
 };
 
 struct ProducerConfiguration final {
@@ -51,6 +59,8 @@ struct ProducerConfiguration final {
   std::chrono::milliseconds delivery_timeout{3000};
   std::chrono::milliseconds queue_buffering_max{10};
   bool enable_idempotence{false};
+
+  RdKafkaOptions rd_kafka_options;
 };
 
 CommonConfiguration Parse(const yaml_config::YamlConfig& config,
@@ -90,6 +100,8 @@ class Configuration final {
 
   const std::string& GetName() const;
 
+  std::string GetOption(const char* option) const;
+
   /// @brief Releases stored conf to be passed as a
   /// parameter of `rd_kafka_new` function that takes ownership on
   /// configuration.
@@ -101,11 +113,18 @@ class Configuration final {
   void SetSecurity(const SecurityConfiguration& security,
                    const Secret& secrets);
 
+  void SetRdKafka(const RdKafkaOptions& rd_kafka_options);
+
   void SetConsumer(const ConsumerConfiguration& config);
   void SetProducer(const ProducerConfiguration& config);
 
-  void SetOption(const char* option, const char* value);
+  template <class T>
+  void SetOption(const char* option, const char* value, T to_print);
+
   void SetOption(const char* option, const std::string& value);
+  void SetOption(const char* option, std::chrono::milliseconds value);
+  void SetOption(const char* option, bool value);
+  void SetOption(const char* option, const Secret::SecretType& value);
 
  private:
   std::string name_;

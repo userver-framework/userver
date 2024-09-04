@@ -142,6 +142,17 @@ properties:
             metadata cache max age.
             Recommended value is 3 times `topic_metadata_refresh_interval`
         defaultDescription: 15m
+    rd_kafka_custom_options:
+        type: object
+        description: |
+            a map of arbitrary `librdkafka` library configuration options.
+            Full list of options is available by link: https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md.
+            Note: This options is not guaranteed to be supported in userver-kafka, use it at your own risk
+        properties: {}
+        additionalProperties:
+            type: string
+            description: librdkafka option value
+        defaultDescription: '{}'
 )");
 }
 

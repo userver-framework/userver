@@ -41,7 +41,7 @@ class Consumer;
 /// group_id                           | consumer group id | --
 /// topics                             | list of topics consumer subscribes | --
 /// enable_auto_commit                 | whether to automatically and periodically commit offsets | false
-/// auto_offset_reset                  | action to take when there is no initial offset in offset store | --
+/// auto_offset_reset                  | action to take when there is no initial offset in offset store | smallest
 /// max_batch_size                     | maximum batch size for one callback call | --
 /// env_pod_name                       | environment variable to substitute `{pod_name}` substring in `group_id` | none
 /// security_protocol                  | protocol used to communicate with brokers | --
@@ -49,6 +49,7 @@ class Consumer;
 /// ssl_ca_location                    | File or directory path to CA certificate(s) for verifying the broker's key | 5m
 /// topic_metadata_refresh_interval    | period of time at which topic and broker metadata is refreshed | 15m
 /// metadata_max_age                   | metadata cache max age | none
+/// rd_kafka_custom_options            | a map of librdkafka library additional options | '{}'
 
 // clang-format on
 
