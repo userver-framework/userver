@@ -166,16 +166,20 @@ class CaptureControl:
     async def _handle_client(self, reader, writer):
         logger.debug('logcapture client connected')
 
-        async def log_reader():
+        async def log_reader(capture: CapturedLogs):
             with contextlib.closing(writer):
                 async for line in reader:
-                    if self._capture:
-                        row = tskv.parse_line(line.decode('utf-8'))
-                        await self._capture.publish(row)
+                    row = tskv.parse_line(line.decode('utf-8'))
+                    await capture.publish(row)
+            await writer.wait_closed()
 
-        self._tasks.append(asyncio.create_task(log_reader()))
-        async with self._client_cond:
-            self._client_cond.notify_all()
+        if not self._capture:
+            writer.close()
+            await writer.wait_closed()
+        else:
+            self._tasks.append(asyncio.create_task(log_reader(self._capture)))
+            async with self._client_cond:
+                self._client_cond.notify_all()
 
 
 def pytest_addoption(parser):
