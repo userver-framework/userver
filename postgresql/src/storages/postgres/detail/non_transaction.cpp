@@ -34,9 +34,18 @@ ResultSet NonTransaction::DoExecute(const Query& query,
         fmt::format("pg_ntrx_execute::{}", query.GetName().value()),
         formats::json::Value(), [](const formats::json::Value& data) {
           if (data["inject_failure"].As<bool>()) {
+            auto type = data["failure_type"].As<std::string>();
             LOG_WARNING() << "Failing statement "
-                             "due to Testpoint response";
-            throw std::runtime_error{"Statement failed"};
+                             "due to Testpoint response with "
+                          << type;
+            if (type == "Error")
+              throw Error("Statement error");
+            else if (type == "RuntimeError")
+              throw RuntimeError("Runtime statement error");
+            else if (type == "LogicError")
+              throw LogicError("Logic statement error");
+            else if (type == "ConnectionError")
+              throw ConnectionError{"Statement connection failed"};
           }
         });
   }
