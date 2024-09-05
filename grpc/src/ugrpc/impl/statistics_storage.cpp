@@ -114,10 +114,7 @@ void StatisticsStorage::ExtendStatistics(utils::statistics::Writer& writer) {
     }
   }
 
-  // Just writing grpc.server.total metrics for now
-  if (domain_ == StatisticsDomain::kServer) {
-    writer["total"] = total;
-  }
+  writer["total"] = total;
 }
 
 std::uint64_t StatisticsStorage::GetStartedRequests() const {

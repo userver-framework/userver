@@ -32,6 +32,40 @@ grpc.client.by-destination.timings: grpc_destination=samples.api.GreeterService/
 grpc.client.by-destination.timings: grpc_destination=samples.api.GreeterService/SayHello, grpc_destination_full=greeter/samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService, percentile=p99	GAUGE
 grpc.client.by-destination.timings: grpc_destination=samples.api.GreeterService/SayHello, grpc_destination_full=greeter/samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService, percentile=p99_6	GAUGE
 grpc.client.by-destination.timings: grpc_destination=samples.api.GreeterService/SayHello, grpc_destination_full=greeter/samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService, percentile=p99_9	GAUGE
+grpc.client.total.abandoned-error:	RATE
+grpc.client.total.active:	GAUGE
+grpc.client.total.cancelled-by-deadline-propagation:	RATE
+grpc.client.total.cancelled:	RATE
+grpc.client.total.deadline-propagated:	RATE
+grpc.client.total.eps:	RATE
+grpc.client.total.network-error:	RATE
+grpc.client.total.rps:	RATE
+grpc.client.total.status: grpc_code=ABORTED	RATE
+grpc.client.total.status: grpc_code=ALREADY_EXISTS	RATE
+grpc.client.total.status: grpc_code=CANCELLED	RATE
+grpc.client.total.status: grpc_code=DATA_LOSS	RATE
+grpc.client.total.status: grpc_code=DEADLINE_EXCEEDED	RATE
+grpc.client.total.status: grpc_code=FAILED_PRECONDITION	RATE
+grpc.client.total.status: grpc_code=INTERNAL	RATE
+grpc.client.total.status: grpc_code=INVALID_ARGUMENT	RATE
+grpc.client.total.status: grpc_code=NOT_FOUND	RATE
+grpc.client.total.status: grpc_code=OK	RATE
+grpc.client.total.status: grpc_code=OUT_OF_RANGE	RATE
+grpc.client.total.status: grpc_code=PERMISSION_DENIED	RATE
+grpc.client.total.status: grpc_code=RESOURCE_EXHAUSTED	RATE
+grpc.client.total.status: grpc_code=UNAUTHENTICATED	RATE
+grpc.client.total.status: grpc_code=UNAVAILABLE	RATE
+grpc.client.total.status: grpc_code=UNIMPLEMENTED	RATE
+grpc.client.total.status: grpc_code=UNKNOWN	RATE
+grpc.client.total.timings: percentile=p0	GAUGE
+grpc.client.total.timings: percentile=p100	GAUGE
+grpc.client.total.timings: percentile=p50	GAUGE
+grpc.client.total.timings: percentile=p90	GAUGE
+grpc.client.total.timings: percentile=p95	GAUGE
+grpc.client.total.timings: percentile=p98	GAUGE
+grpc.client.total.timings: percentile=p99	GAUGE
+grpc.client.total.timings: percentile=p99_6	GAUGE
+grpc.client.total.timings: percentile=p99_9	GAUGE
 grpc.server.by-destination.abandoned-error: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE
 grpc.server.by-destination.active: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	GAUGE
 grpc.server.by-destination.cancelled-by-deadline-propagation: grpc_destination=samples.api.GreeterService/SayHello, grpc_method=SayHello, grpc_service=samples.api.GreeterService	RATE
