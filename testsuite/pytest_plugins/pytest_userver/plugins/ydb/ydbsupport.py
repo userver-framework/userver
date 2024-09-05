@@ -135,6 +135,9 @@ def ydb_migration_dir(service_source_dir) -> pathlib.Path:
     return service_source_dir / 'ydb' / 'migrations'
 
 
+YDB_MIGRATION_TABLE = 'goose_db_version'
+
+
 def _ydb_migrate(ydb_service_settings, ydb_migration_dir, goose_binary_path):
     if not ydb_migration_dir.exists():
         return
@@ -148,6 +151,8 @@ def _ydb_migrate(ydb_service_settings, ydb_migration_dir, goose_binary_path):
         str(goose_binary_path),
         '-dir',
         str(ydb_migration_dir),
+        '-table',
+        YDB_MIGRATION_TABLE,
         'ydb',
         (
             f'grpc://{host}:{port}/local?go_query_mode=scripting&'
@@ -203,6 +208,8 @@ def _ydb_fetch_table_names(ydb_service_settings, ydb_cli) -> List[str]:
             if ' table ' not in line:
                 continue
             if '.sys' in line:
+                continue
+            if YDB_MIGRATION_TABLE in line:
                 continue
             path = line.split('│')[6].strip()
             tables.append(path)
