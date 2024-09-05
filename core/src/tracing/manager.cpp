@@ -39,6 +39,9 @@ struct OTelTracingHeadersInheritedData final {
 engine::TaskInheritedVariable<OTelTracingHeadersInheritedData>
     kOTelTracingHeadersInheritedData;
 
+/// @see TracingHeadersInheritedData for details on the contents.
+engine::TaskInheritedVariable<std::string> kB3TracingSampledInheritedData;
+
 bool B3TryFillSpanBuilderFromRequest(const server::http::HttpRequest& request,
                                      tracing::SpanBuilder& span_builder) {
   namespace b3 = http::headers::b3;
@@ -48,6 +51,7 @@ bool B3TryFillSpanBuilderFromRequest(const server::http::HttpRequest& request,
   }
 
   const auto& sampled = request.GetHeader(b3::kSampled);
+  kB3TracingSampledInheritedData.Set(sampled);
   if (sampled.empty()) {
     return false;
   }
@@ -65,9 +69,9 @@ void B3FillWithTracingContext(const tracing::Span& span, T& target) {
   target.SetHeader(b3::kSpanId, span.GetSpanId());
   target.SetHeader(b3::kParentSpanId, span.GetParentId());
 
-  const auto& sampled = server::request::GetTaskInheritedHeader(b3::kSampled);
-  if (!sampled.empty()) {
-    target.SetHeader(b3::kSampled, sampled);
+  const auto* sampled = kB3TracingSampledInheritedData.GetOptional();
+  if (sampled && !sampled->empty()) {
+    target.SetHeader(b3::kSampled, *sampled);
   } else {
     target.SetHeader(b3::kSampled, "1");
   }

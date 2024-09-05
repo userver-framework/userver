@@ -7,6 +7,10 @@
 #include <string>
 #include <string_view>
 
+#include <boost/range/iterator_range.hpp>
+
+#include <userver/http/header_map.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace http::headers {
@@ -18,6 +22,8 @@ class HttpRequestImpl;
 }  // namespace server::http
 
 namespace server::request {
+
+using HeadersToPropagate = USERVER_NAMESPACE::http::headers::HeaderMap;
 
 /// @brief Get a header from server::http::HttpRequest that is handled by the
 /// current task hierarchy.
@@ -36,6 +42,13 @@ bool HasTaskInheritedHeader(std::string_view header_name);
 /// @overload
 bool HasTaskInheritedHeader(
     const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name);
+
+/// @brief Get a headers that is handled by the current task hierarchy.
+boost::iterator_range<HeadersToPropagate::const_iterator>
+GetTaskInheritedHeaders();
+
+/// @brief Set a headers that is handled by the current task hierarchy.
+void SetTaskInheritedHeaders(HeadersToPropagate headers);
 
 /// @brief Get a query parameter from server::http::HttpRequest that is handled
 /// by the current task hierarchy.

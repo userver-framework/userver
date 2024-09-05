@@ -5,7 +5,7 @@
 #include <userver/clients/http/plugins/headers_propagator/plugin.hpp>
 #include <userver/components/component_config.hpp>
 #include <userver/server/http/http_request.hpp>
-#include <userver/server/request/task_inherited_headers.hpp>
+#include <userver/server/request/task_inherited_request.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN

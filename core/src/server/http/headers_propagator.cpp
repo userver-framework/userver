@@ -1,6 +1,6 @@
 #include <userver/clients/http/plugins/headers_propagator/plugin.hpp>
 
-#include <userver/server/request/task_inherited_headers.hpp>
+#include <userver/server/request/task_inherited_request.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
