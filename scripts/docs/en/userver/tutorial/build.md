@@ -265,17 +265,6 @@ target_link_libraries(${PROJECT_NAME} userver::grpc)
 
 See @ref tutorial_services for minimal usage examples of various userver libraries.
 
-@anchor ubuntu_24_04
-### Ubuntu 24.04 (Noble Numbat)
-
-\b Dependencies: @ref scripts/docs/en/deps/ubuntu-24.04.md "third_party/userver/scripts/docs/en/deps/ubuntu-24.04.md"
-
-Dependencies could be installed via:
-  ```
-  bash
-  sudo apt install --allow-downgrades -y $(cat third_party/userver/scripts/docs/en/deps/ubuntu-24.04.md | tr '\n' ' ')
-  ```
-
 @anchor ubuntu_22_04
 ### Ubuntu 22.04 (Jammy Jellyfish)
 
