@@ -60,12 +60,10 @@ AuthType Parse(const yaml_config::YamlConfig& value,
 ClientFactoryConfig Parse(const yaml_config::YamlConfig& value,
                           formats::parse::To<ClientFactoryConfig>) {
   ClientFactoryConfig config;
-  config.auth_type = value["auth-type"].As<AuthType>(AuthType::kInsecure);
 
+  config.auth_type = value["auth-type"].As<AuthType>(AuthType::kInsecure);
   config.channel_args =
       MakeChannelArgs(value["channel-args"], value["default-service-config"]);
-  config.native_log_level =
-      value["native-log-level"].As<logging::Level>(config.native_log_level);
   config.channel_count =
       value["channel-count"].As<std::size_t>(config.channel_count);
 
@@ -93,7 +91,7 @@ ClientFactorySettings MakeFactorySettings(
       creds,
       client_creds,
       config.channel_args,
-      config.native_log_level,
+      logging::Level::kError,
       config.channel_count,
   };
 }

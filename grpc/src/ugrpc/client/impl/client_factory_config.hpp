@@ -19,10 +19,6 @@ struct ClientFactoryConfig final {
   /// @see https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
   grpc::ChannelArguments channel_args{};
 
-  /// The logging level override for the internal grpcpp library. Must be either
-  /// `kDebug`, `kInfo` or `kError`.
-  logging::Level native_log_level{logging::Level::kError};
-
   /// Number of underlying channels that will be created for every client
   /// in this factory.
   std::size_t channel_count{1};

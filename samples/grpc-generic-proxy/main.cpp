@@ -10,6 +10,7 @@
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/ugrpc/client/client_factory_component.hpp>
+#include <userver/ugrpc/client/common_component.hpp>
 #include <userver/ugrpc/client/generic.hpp>
 #include <userver/ugrpc/client/middlewares/deadline_propagation/component.hpp>
 #include <userver/ugrpc/client/middlewares/log/component.hpp>
@@ -33,6 +34,7 @@ int main(int argc, char* argv[]) {
           .Append<clients::dns::Component>()
           .Append<server::handlers::TestsControl>()
           // gRPC client setup
+          .Append<ugrpc::client::CommonComponent>()
           .Append<ugrpc::client::ClientFactoryComponent>()
           .Append<ugrpc::client::middlewares::deadline_propagation::Component>()
           .Append<ugrpc::client::middlewares::log::Component>()

@@ -1,7 +1,5 @@
 #include <userver/ugrpc/impl/statistics_storage.hpp>
 
-#include <tuple>
-
 #include <fmt/format.h>
 #include <boost/functional/hash.hpp>
 #include <boost/pfr/ops_fields.hpp>

@@ -89,6 +89,7 @@ class ServiceBase {
   bool middlewares_change_allowed_{true};
   testsuite::GrpcControl testsuite_;
   std::optional<std::string> endpoint_;
+  ugrpc::impl::StatisticsStorage client_statistics_storage_;
   std::optional<client::ClientFactory> client_factory_;
 };
 

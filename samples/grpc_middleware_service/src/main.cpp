@@ -1,20 +1,22 @@
-#include "client/view.hpp"
-#include "http_handlers/say-hello/view.hpp"
-#include "middlewares/client/component.hpp"
-#include "middlewares/server/component.hpp"
-#include "service/view.hpp"
-
 #include <userver/utest/using_namespace_userver.hpp>
 
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
+#include <userver/ugrpc/client/common_component.hpp>
 #include <userver/utils/daemon_run.hpp>
+
+#include <client/view.hpp>
+#include <http_handlers/say-hello/view.hpp>
+#include <middlewares/client/component.hpp>
+#include <middlewares/server/component.hpp>
+#include <service/view.hpp>
 
 /// [gRPC middleware sample - components registration]
 int main(int argc, char* argv[]) {
   const auto component_list =
       components::MinimalServerComponentList()
           .Append<components::TestsuiteSupport>()
+          .Append<ugrpc::client::CommonComponent>()
           .Append<ugrpc::client::ClientFactoryComponent>()
           .Append<ugrpc::server::ServerComponent>()
           .Append<samples::grpc::auth::GreeterClient>()

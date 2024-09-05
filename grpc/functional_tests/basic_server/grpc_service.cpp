@@ -11,11 +11,12 @@
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/server/middlewares/headers_propagator.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
-#include <userver/ugrpc/server/middlewares/headers_propagator/component.hpp>
 #include <userver/utils/daemon_run.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <userver/ugrpc/client/client_factory_component.hpp>
+#include <userver/ugrpc/client/common_component.hpp>
+#include <userver/ugrpc/server/middlewares/headers_propagator/component.hpp>
 #include <userver/ugrpc/server/server_component.hpp>
 #include <userver/ugrpc/server/service_component_base.hpp>
 
@@ -88,6 +89,7 @@ int main(int argc, char* argv[]) {
   const auto component_list =
       components::MinimalServerComponentList()
           .Append<components::TestsuiteSupport>()
+          .Append<ugrpc::client::CommonComponent>()
           .Append<ugrpc::client::ClientFactoryComponent>()
           .Append<ugrpc::server::ServerComponent>()
           .Append<samples::GreeterServiceComponent>()

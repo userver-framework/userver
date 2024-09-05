@@ -4,6 +4,9 @@
 /// @brief @copybrief ugrpc::client::ClientFactory
 
 #include <cstddef>
+#include <memory>
+#include <string>
+#include <unordered_map>
 
 #include <grpcpp/completion_queue.h>
 #include <grpcpp/security/credentials.h>
@@ -14,15 +17,17 @@
 #include <userver/logging/level.hpp>
 #include <userver/storages/secdist/secdist.hpp>
 #include <userver/testsuite/grpc_control.hpp>
-#include <userver/utils/statistics/fwd.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
 #include <userver/ugrpc/client/impl/channel_cache.hpp>
 #include <userver/ugrpc/client/impl/client_data.hpp>
 #include <userver/ugrpc/client/middlewares/base.hpp>
-#include <userver/ugrpc/impl/statistics_storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace ugrpc::impl {
+class StatisticsStorage;
+}  // namespace ugrpc::impl
 
 namespace ugrpc::client {
 
@@ -52,21 +57,39 @@ struct ClientFactorySettings final {
 
 /// @ingroup userver_clients
 ///
-/// @brief Creates gRPC clients. Has a minimal built-in channel cache:
+/// @brief Creates gRPC clients.
+///
+/// Typically obtained from ugrpc::client::ClientFactoryComponent.
+/// In tests and benchmarks, obtained from ugrpc::tests::ServiceBase and
+/// friends.
+///
+/// Has a minimal built-in channel cache:
 /// as long as a channel to the same endpoint is used somewhere, the same
 /// channel is given out.
 class ClientFactory final {
  public:
-  ClientFactory(ClientFactorySettings&& settings,
-                engine::TaskProcessor& channel_task_processor,
-                MiddlewareFactories mws, grpc::CompletionQueue& queue,
-                utils::statistics::Storage& statistics_storage,
-                testsuite::GrpcControl& testsuite_grpc,
-                dynamic_config::Source source);
-
+  /// @brief Make a client of the specified code-generated type.
+  ///
+  /// @tparam Client the type of the code-generated usrv grpc client.
+  /// @param client_name the name of the client, for diagnostics, credentials
+  /// and middlewares.
+  /// @param endpoint the URI to connect to, e.g. `http://my.domain.com:8080`.
+  /// Should not include any HTTP path, just schema, domain name and port. Unix
+  /// sockets are also supported. For details, see:
+  /// https://grpc.github.io/grpc/cpp/md_doc_naming.html
   template <typename Client>
   Client MakeClient(const std::string& client_name,
                     const std::string& endpoint);
+
+  /// @cond
+  // For internal use only.
+  ClientFactory(ClientFactorySettings&& settings,
+                engine::TaskProcessor& channel_task_processor,
+                MiddlewareFactories mws, grpc::CompletionQueue& queue,
+                ugrpc::impl::StatisticsStorage& statistics_storage,
+                testsuite::GrpcControl& testsuite_grpc,
+                dynamic_config::Source source);
+  /// @endcond
 
  private:
   impl::ChannelCache::Token GetChannel(const std::string& client_name,
@@ -76,9 +99,8 @@ class ClientFactory final {
   MiddlewareFactories mws_;
   grpc::CompletionQueue& queue_;
   impl::ChannelCache channel_cache_;
-  std::unordered_map<std::string, std::unique_ptr<impl::ChannelCache>>
-      client_channel_cache_;
-  ugrpc::impl::StatisticsStorage client_statistics_storage_;
+  std::unordered_map<std::string, impl::ChannelCache> client_channel_cache_;
+  ugrpc::impl::StatisticsStorage& client_statistics_storage_;
   const dynamic_config::Source config_source_;
   testsuite::GrpcControl& testsuite_grpc_;
 };

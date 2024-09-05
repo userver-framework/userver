@@ -7,19 +7,18 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/utest/log_capture_fixture.hpp>
 
 #include <ugrpc/client/impl/client_configs.hpp>
 #include <userver/ugrpc/client/client_factory.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/client/queue_holder.hpp>
 #include <userver/ugrpc/server/server.hpp>
+#include <userver/ugrpc/tests/standalone_client.hpp>
 
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
 #include <userver/ugrpc/tests/service_fixtures.hpp>
-
-#include <userver/logging/impl/logger_base.hpp>
-#include <userver/utest/log_capture_fixture.hpp>
 
 using namespace std::chrono_literals;
 
@@ -226,21 +225,10 @@ UTEST_F_MT(GrpcServerEcho, DestroyServerDuringRequest, 2) {
 }
 
 UTEST(GrpcServer, DeadlineAffectsWaitForReady) {
-  utils::statistics::Storage statistics_storage;
-  dynamic_config::StorageMock config_storage{
-      dynamic_config::MakeDefaultStorage({})};
-  ugrpc::client::QueueHolder client_queue;
-  const std::string endpoint = "[::1]:1234";
-
-  testsuite::GrpcControl ts({}, false);
-  ugrpc::client::MiddlewareFactories mws;
-  ugrpc::client::ClientFactory client_factory(
-      ugrpc::client::ClientFactorySettings{},
-      engine::current_task::GetTaskProcessor(), mws, client_queue.GetQueue(),
-      statistics_storage, ts, config_storage.GetSource());
+  ugrpc::tests::StandaloneClientFactory client_factory;
 
   auto client = client_factory.MakeClient<sample::ugrpc::UnitTestServiceClient>(
-      "test", endpoint);
+      ugrpc::tests::MakeIpv6Endpoint(ugrpc::tests::GetFreeIpv6Port()));
 
   auto context = std::make_unique<grpc::ClientContext>();
   context->set_deadline(engine::Deadline::FromDuration(100ms));

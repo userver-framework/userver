@@ -18,7 +18,9 @@ ServiceBase::ServiceBase(server::ServerConfig&& server_config)
     : config_storage_(dynamic_config::MakeDefaultStorage({})),
       server_(std::move(server_config), statistics_storage_,
               config_storage_.GetSource()),
-      testsuite_({}, false) {}
+      testsuite_({}, false),
+      client_statistics_storage_(statistics_storage_,
+                                 ugrpc::impl::StatisticsDomain::kClient) {}
 
 ServiceBase::~ServiceBase() = default;
 
@@ -43,11 +45,11 @@ void ServiceBase::StartServer(
   middlewares_change_allowed_ = false;
   server_.Start();
   endpoint_ = fmt::format("[::1]:{}", server_.GetPort());
-  client_factory_.emplace(std::move(client_factory_settings),
-                          engine::current_task::GetTaskProcessor(),
-                          client_middleware_factories_,
-                          server_.GetCompletionQueue(), statistics_storage_,
-                          testsuite_, config_storage_.GetSource());
+  client_factory_.emplace(
+      std::move(client_factory_settings),
+      engine::current_task::GetTaskProcessor(), client_middleware_factories_,
+      server_.GetCompletionQueue(), client_statistics_storage_, testsuite_,
+      config_storage_.GetSource());
 }
 
 void ServiceBase::StopServer() noexcept {

@@ -37,8 +37,10 @@ components_manager:
             throttling_enabled: false
 
         # gRPC client setup (ClientFactoryComponent and SimpleClientComponent)
+        grpc-client-common:
+            blocking-task-processor: grpc-blocking-task-processor
+
         grpc-client-factory:
-            task-processor: grpc-blocking-task-processor
             middlewares:
               - grpc-client-logging
               - grpc-client-deadline-propagation

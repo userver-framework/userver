@@ -14,15 +14,17 @@
 #include <userver/ugrpc/client/client_factory.hpp>
 #include <userver/ugrpc/client/impl/client_data.hpp>
 #include <userver/ugrpc/client/queue_holder.hpp>
+#include <userver/ugrpc/tests/service_fixtures.hpp>
 
 #include <tests/unit_test_client.usrv.pb.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-UTEST(GrpcClient, DefaultServiceConfig) {
-  utils::statistics::Storage statistics_storage;
+namespace {
 
-  const std::string service_config{R"json(
+class GrpcClientWithServiceConfig : public ugrpc::tests::ServiceFixtureBase {
+ protected:
+  static constexpr std::string_view kServiceConfig = R"json(
   {
     "methodConfig": [
       {
@@ -40,28 +42,26 @@ UTEST(GrpcClient, DefaultServiceConfig) {
       }
     ]
   }
-  )json"};
+  )json";
 
-  // Sanity-check. It is harder to understand errors inside grpc-core,
-  // so check for json-ness here
-  ASSERT_NO_THROW(formats::json::FromString(service_config));
+  GrpcClientWithServiceConfig() {
+    // Sanity-check. It is harder to understand errors inside grpc-core,
+    // so check for json-ness here
+    UEXPECT_NO_THROW(formats::json::FromString(kServiceConfig));
 
-  ugrpc::client::ClientFactorySettings settings;
-  settings.channel_args.SetServiceConfigJSON(
-      ugrpc::impl::ToGrpcString(service_config));
+    ugrpc::client::ClientFactorySettings settings;
+    settings.channel_args.SetServiceConfigJSON(grpc::string{kServiceConfig});
 
-  ugrpc::client::QueueHolder client_queue;
-  dynamic_config::StorageMock config_storage;
+    StartServer(std::move(settings));
+  }
 
-  testsuite::GrpcControl ts({}, false);
-  ugrpc::client::MiddlewareFactories mws;
-  ugrpc::client::ClientFactory client_factory(
-      std::move(settings), engine::current_task::GetTaskProcessor(), mws,
-      client_queue.GetQueue(), statistics_storage, ts,
-      config_storage.GetSource());
-  const std::string endpoint{"[::]:50051"};
-  auto client = client_factory.MakeClient<sample::ugrpc::UnitTestServiceClient>(
-      "test", endpoint);
+  ~GrpcClientWithServiceConfig() override { StopServer(); }
+};
+
+}  // namespace
+
+UTEST_F(GrpcClientWithServiceConfig, DefaultServiceConfig) {
+  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
 
   auto& data = ugrpc::client::impl::GetClientData(client);
 
@@ -78,7 +78,7 @@ UTEST(GrpcClient, DefaultServiceConfig) {
   // test that service_config was passed to gRPC Core
   auto& token = data.GetChannelToken();
   for (std::size_t i = 0; i < token.GetChannelCount(); ++i) {
-    ASSERT_EQ(service_config, ugrpc::impl::ToString(
+    ASSERT_EQ(kServiceConfig, ugrpc::impl::ToString(
                                   token.GetChannel(i)->GetServiceConfigJSON()));
   }
 }

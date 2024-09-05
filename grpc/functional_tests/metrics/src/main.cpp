@@ -7,6 +7,7 @@
 #include <userver/utils/daemon_run.hpp>
 
 #include <userver/ugrpc/client/client_factory_component.hpp>
+#include <userver/ugrpc/client/common_component.hpp>
 #include <userver/ugrpc/client/middlewares/baggage/component.hpp>
 #include <userver/ugrpc/client/middlewares/deadline_propagation/component.hpp>
 #include <userver/ugrpc/client/middlewares/log/component.hpp>
@@ -30,6 +31,7 @@ int main(int argc, const char* const argv[]) {
           .Append<ugrpc::client::middlewares::baggage::Component>()
           .Append<ugrpc::client::middlewares::log::Component>()
           .Append<ugrpc::client::middlewares::deadline_propagation::Component>()
+          .Append<ugrpc::client::CommonComponent>()
           .Append<ugrpc::client::ClientFactoryComponent>()
           .Append<functional_tests::GreeterClient>()
           .Append<functional_tests::GreeterServiceComponent>();

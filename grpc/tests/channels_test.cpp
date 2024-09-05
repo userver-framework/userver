@@ -13,6 +13,8 @@
 #include <userver/ugrpc/client/client_factory.hpp>
 #include <userver/ugrpc/client/queue_holder.hpp>
 #include <userver/ugrpc/server/server.hpp>
+#include <userver/ugrpc/tests/service.hpp>
+#include <userver/ugrpc/tests/standalone_client.hpp>
 
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
@@ -45,33 +47,21 @@ struct GrpcChannels : public ::testing::TestWithParam<std::size_t> {};
 UTEST_P_MT(GrpcChannels, TryWaitForConnected, 2) {
   constexpr auto kSmallTimeout = 100ms;
   constexpr auto kServerStartDelay = 100ms;
-  utils::statistics::Storage statistics_storage;
-  dynamic_config::StorageMock config_storage{
-      dynamic_config::MakeDefaultStorage({})};
 
-  const auto addr = engine::io::Sockaddr::MakeLoopbackAddress();
-  engine::io::Socket sock{addr.Domain(), engine::io::SocketType::kStream};
-  sock.Bind(addr);
-  const auto port = sock.Getsockname().Port();
+  const auto port = ugrpc::tests::GetFreeIpv6Port();
 
   auto client_task = engine::AsyncNoSpan([&] {
     ugrpc::client::ClientFactorySettings settings;
     settings.channel_args.SetInt("grpc.testing.fixed_reconnect_backoff_ms",
                                  100);
     settings.channel_count = GetParam();
-    ugrpc::client::QueueHolder client_queue;
 
-    testsuite::GrpcControl ts({}, false);
-    ugrpc::client::MiddlewareFactories mws;
-    ugrpc::client::ClientFactory client_factory(
-        std::move(settings), engine::current_task::GetTaskProcessor(), mws,
-        client_queue.GetQueue(), statistics_storage, ts,
-        config_storage.GetSource());
+    ugrpc::tests::StandaloneClientFactory client_factory{std::move(settings)};
 
-    const auto endpoint = fmt::format("[::1]:{}", port);
+    const auto endpoint = ugrpc::tests::MakeIpv6Endpoint(port);
     auto client =
         client_factory.MakeClient<sample::ugrpc::UnitTestServiceClient>(
-            "test", endpoint);
+            endpoint);
 
     // TryWaitForConnected should wait for the server to start and return 'true'
     EXPECT_TRUE(ugrpc::client::TryWaitForConnected(
@@ -93,14 +83,10 @@ UTEST_P_MT(GrpcChannels, TryWaitForConnected, 2) {
   // Make sure that TryWaitForConnected starts while the server is down
   engine::SleepFor(kServerStartDelay);
 
-  UnitTestServiceSimple service;
-  ugrpc::server::Server server(MakeServerConfig(port), statistics_storage,
-                               config_storage.GetSource());
-  server.AddService(service, {engine::current_task::GetTaskProcessor(),
-                              ugrpc::server::Middlewares{}});
-  server.Start();
-  client_task.Get();
-  server.Stop();
+  const ugrpc::tests::Service<UnitTestServiceSimple> service{
+      MakeServerConfig(port)};
+
+  UEXPECT_NO_THROW(client_task.Get());
 }
 
 INSTANTIATE_UTEST_SUITE_P(Basic, GrpcChannels,
