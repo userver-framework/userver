@@ -68,10 +68,10 @@ async def _grpc_session_channel(grpc_service_endpoint):
 
 @pytest.fixture
 async def grpc_channel(
-        grpc_service_endpoint,
-        grpc_service_deps,
-        grpc_service_timeout,
-        _grpc_session_channel,
+    grpc_service_endpoint,
+    grpc_service_deps,
+    grpc_service_timeout,
+    _grpc_session_channel,
 ):
     """
     Returns the gRPC channel configured by the parameters from the
@@ -81,8 +81,7 @@ async def grpc_channel(
     """
     try:
         await asyncio.wait_for(
-            _grpc_session_channel.channel_ready(),
-            timeout=grpc_service_timeout,
+            _grpc_session_channel.channel_ready(), timeout=grpc_service_timeout,
         )
     except asyncio.TimeoutError:
         raise RuntimeError(

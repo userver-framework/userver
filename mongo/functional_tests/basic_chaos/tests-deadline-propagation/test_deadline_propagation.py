@@ -27,7 +27,7 @@ async def test_works(service_client, put_foo_value, dynamic_config):
     logs = [
         log
         for log in capture.select()
-        if log['text'].startswith('exception in \'handler-key-value\'')
+        if log['text'].startswith("exception in 'handler-key-value'")
     ]
     assert len(logs) == 1
     text = logs[0]['text']

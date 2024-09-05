@@ -32,8 +32,7 @@ def prepare_service_config(grpc_server_port):
 def pytest_configure(config):
     sys.path.append(
         str(
-            pathlib.Path(config.rootdir)
-            / 'grpc/handlers/proto/healthchecking',
+            pathlib.Path(config.rootdir) / 'grpc/handlers/proto/healthchecking',
         ),
     )
 

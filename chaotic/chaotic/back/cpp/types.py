@@ -455,8 +455,8 @@ class CppRef(CppType):
             )
         else:
             if not self.cpp_name or (
-                    self.orig_cpp_type.cpp_user_name()
-                    != self.orig_cpp_type.cpp_global_name()
+                self.orig_cpp_type.cpp_user_name()
+                != self.orig_cpp_type.cpp_global_name()
             ):
                 # x-usrv-cpp-type
                 return self.orig_cpp_type.cpp_user_name()
@@ -699,9 +699,9 @@ class CppStruct(CppType):
             return False
         default = self.fields.get('__default__')
         if (
-                default
-                and isinstance(self.extra_type, CppType)
-                and default.schema.is_isomorphic(self.extra_type)
+            default
+            and isinstance(self.extra_type, CppType)
+            and default.schema.is_isomorphic(self.extra_type)
         ):
             return True
         return False
@@ -738,8 +738,8 @@ class CppStruct(CppType):
     def subtypes(self) -> List[CppType]:
         types = [field.schema for field in self.fields.values()]
         if (
-                isinstance(self.extra_type, CppType)
-                and not self._is_default_dict()
+            isinstance(self.extra_type, CppType)
+            and not self._is_default_dict()
         ):
             types.append(self.extra_type)
         return types
@@ -907,9 +907,9 @@ class CppStructAllOf(CppType):
         includes = []
         if self.user_cpp_type:
             includes += self.get_include_by_cpp_type(self.user_cpp_type)
-        includes += flatten(
-            [item.declaration_includes() for item in self.parents],
-        )
+        includes += flatten([
+            item.declaration_includes() for item in self.parents
+        ])
         return includes
 
     def definition_includes(self) -> List[str]:
@@ -994,14 +994,14 @@ class CppVariantWithDiscriminator(CppType):
         includes = ['variant', 'userver/chaotic/oneof_with_discriminator.hpp']
         if self.user_cpp_type:
             includes += self.get_include_by_cpp_type(self.user_cpp_type)
-        return includes + flatten(
-            [item.declaration_includes() for item in self.variants.values()],
-        )
+        return includes + flatten([
+            item.declaration_includes() for item in self.variants.values()
+        ])
 
     def definition_includes(self) -> List[str]:
-        return ['userver/formats/json/serialize_variant.hpp'] + flatten(
-            [item.definition_includes() for item in self.variants.values()],
-        )
+        return ['userver/formats/json/serialize_variant.hpp'] + flatten([
+            item.definition_includes() for item in self.variants.values()
+        ])
 
     def parser_type(self, ns: str, name: str) -> str:
         variants_list = []

@@ -51,7 +51,7 @@ def kafka_producer():
             self.producer = Producer(common.get_kafka_conf())
 
         async def produce(
-                self, topic, key, value, partition, callback=_callback,
+            self, topic, key, value, partition, callback=_callback,
         ) -> None:
             self.producer.produce(
                 topic,

@@ -100,9 +100,11 @@ def test_int_min_max(simple_gen):
 
 
 def test_int_min_max_exclusive(simple_gen):
-    types = simple_gen(
-        {'type': 'integer', 'exclusiveMinimum': 1, 'exclusiveMaximum': 10},
-    )
+    types = simple_gen({
+        'type': 'integer',
+        'exclusiveMinimum': 1,
+        'exclusiveMaximum': 10,
+    })
     assert types == {
         '/definitions/type': CppPrimitiveType(
             raw_cpp_type=type_name.TypeName('int'),
@@ -117,13 +119,11 @@ def test_int_min_max_exclusive(simple_gen):
 
 
 def test_int_min_max_exclusive_false(simple_gen):
-    types = simple_gen(
-        {
-            'type': 'integer',
-            'exclusiveMinimum': False,
-            'exclusiveMaximum': False,
-        },
-    )
+    types = simple_gen({
+        'type': 'integer',
+        'exclusiveMinimum': False,
+        'exclusiveMaximum': False,
+    })
     assert types == {
         '/definitions/type': CppPrimitiveType(
             raw_cpp_type=type_name.TypeName('int'),
@@ -136,15 +136,13 @@ def test_int_min_max_exclusive_false(simple_gen):
 
 
 def test_int_min_max_exclusive_legacy(simple_gen):
-    types = simple_gen(
-        {
-            'type': 'integer',
-            'exclusiveMinimum': True,
-            'minimum': 2,
-            'exclusiveMaximum': True,
-            'maximum': 10,
-        },
-    )
+    types = simple_gen({
+        'type': 'integer',
+        'exclusiveMinimum': True,
+        'minimum': 2,
+        'exclusiveMaximum': True,
+        'maximum': 10,
+    })
     assert types == {
         '/definitions/type': CppPrimitiveType(
             raw_cpp_type=type_name.TypeName('int'),

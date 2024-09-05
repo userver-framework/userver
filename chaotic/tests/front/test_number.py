@@ -31,9 +31,11 @@ def test_number_minmax(simple_parse):
 
 
 def test_number_minmax_exclusive(simple_parse):
-    parsed = simple_parse(
-        {'type': 'number', 'exclusiveMinimum': 1, 'exclusiveMaximum': 2.2},
-    )
+    parsed = simple_parse({
+        'type': 'number',
+        'exclusiveMinimum': 1,
+        'exclusiveMaximum': 2.2,
+    })
     assert parsed.schemas == {
         'vfull#/definitions/type': Number(
             exclusiveMinimum=1, exclusiveMaximum=2.2,
@@ -58,9 +60,11 @@ def test_integer_min_max(simple_parse):
 
 
 def test_integer_minmax_exclusive(simple_parse):
-    parsed = simple_parse(
-        {'type': 'integer', 'exclusiveMinimum': 1, 'exclusiveMaximum': 10},
-    )
+    parsed = simple_parse({
+        'type': 'integer',
+        'exclusiveMinimum': 1,
+        'exclusiveMaximum': 10,
+    })
     assert parsed.schemas == {
         'vfull#/definitions/type': Integer(
             exclusiveMinimum=1, exclusiveMaximum=10,

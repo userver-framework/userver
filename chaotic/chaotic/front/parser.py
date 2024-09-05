@@ -33,11 +33,7 @@ class ParserError(error.BaseError):
 
 class SchemaParser:
     def __init__(
-            self,
-            *,
-            config: ParserConfig,
-            full_filepath: str,
-            full_vfilepath: str,
+        self, *, config: ParserConfig, full_filepath: str, full_vfilepath: str,
     ) -> None:
         self._config = config
         # Full filepath on real filesystem
@@ -118,7 +114,7 @@ class SchemaParser:
         return self._parse_oneof_w_discriminator(variants, input__)
 
     def _parse_oneof_i(
-            self, variant: dict, discriminator_property: str,
+        self, variant: dict, discriminator_property: str,
     ) -> types.Ref:
         type_ = self._parse_schema(variant)
         if not isinstance(type_, types.Ref):
@@ -144,7 +140,7 @@ class SchemaParser:
         return type_
 
     def _parse_oneof_disc_mapping(
-            self, user_mapping: dict, variables: List[types.Ref],
+        self, user_mapping: dict, variables: List[types.Ref],
     ) -> List[List[str]]:
         idx_mapping = collections.defaultdict(list)
         with self._path_enter('discriminator/mapping') as _:
@@ -169,7 +165,7 @@ class SchemaParser:
         return mapping
 
     def _parse_oneof_w_discriminator(
-            self, variants: list, input_: dict,
+        self, variants: list, input_: dict,
     ) -> types.OneOfWithDiscriminator:
         with self._path_enter('discriminator') as _:
             types.OneOfDiscriminatorRaw(**input_['discriminator'])

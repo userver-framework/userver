@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 @pytest.fixture
 def modified_service_client(
-        service_client, service_port, for_client_gate_port,
+    service_client, service_port, for_client_gate_port,
 ):
     client = service_client._client
     client._base_url = client._base_url.replace(

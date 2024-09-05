@@ -68,10 +68,7 @@ class _ChangelogEntry:
 
     @classmethod
     def new(
-            cls,
-            *,
-            previous: typing.Optional['_ChangelogEntry'],
-            timestamp: str,
+        cls, *, previous: typing.Optional['_ChangelogEntry'], timestamp: str,
     ):
         if previous:
             prev_state = previous.state
@@ -139,10 +136,10 @@ class _Changelog:
         return self.commited_entries[-1]
 
     def get_updated_since(
-            self,
-            values: ConfigDict,
-            updated_since: str,
-            ids: typing.Optional[typing.List[str]] = None,
+        self,
+        values: ConfigDict,
+        updated_since: str,
+        ids: typing.Optional[typing.List[str]] = None,
     ) -> Updates:
         entry = self.commit()
         values, removed = self._get_updated_since(values, updated_since)
@@ -154,7 +151,7 @@ class _Changelog:
         )
 
     def _get_updated_since(
-            self, values: ConfigDict, updated_since: str,
+        self, values: ConfigDict, updated_since: str,
     ) -> typing.Tuple[ConfigDict, typing.List[str]]:
         if not updated_since:
             return values, []
@@ -226,13 +223,13 @@ class DynamicConfig:
     """Simple dynamic config backend."""
 
     def __init__(
-            self,
-            *,
-            initial_values: ConfigDict,
-            defaults: typing.Optional[ConfigDict],
-            config_cache_components: typing.Iterable[str],
-            cache_invalidation_state: caches.InvalidationState,
-            changelog: _Changelog,
+        self,
+        *,
+        initial_values: ConfigDict,
+        defaults: typing.Optional[ConfigDict],
+        config_cache_components: typing.Iterable[str],
+        cache_invalidation_state: caches.InvalidationState,
+        changelog: _Changelog,
     ):
         self._values = initial_values.copy()
         # Defaults are only there for convenience, to allow accessing them
@@ -294,7 +291,7 @@ class DynamicConfig:
 
     @contextlib.contextmanager
     def modify_many(
-            self, *keys: typing.Tuple[str, ...],
+        self, *keys: typing.Tuple[str, ...],
     ) -> typing.Tuple[typing.Any, ...]:
         values = tuple(self.get(key) for key in keys)
         yield values
@@ -308,15 +305,15 @@ class DynamicConfig:
 
 @pytest.fixture
 def dynamic_config(
-        request,
-        search_path,
-        object_substitute,
-        cache_invalidation_state,
-        _dynamic_config_defaults_storage,
-        config_service_defaults,
-        dynamic_config_changelog,
-        _dynconf_load_json_cached,
-        dynconf_cache_names,
+    request,
+    search_path,
+    object_substitute,
+    cache_invalidation_state,
+    _dynamic_config_defaults_storage,
+    config_service_defaults,
+    dynamic_config_changelog,
+    _dynconf_load_json_cached,
+    dynconf_cache_names,
 ) -> DynamicConfig:
     """
     Fixture that allows to control dynamic config values used by the service.
@@ -406,7 +403,7 @@ def dynamic_config_fallback_patch() -> ConfigDict:
 
 @pytest.fixture(scope='session')
 def config_service_defaults(
-        config_fallback_path, dynamic_config_fallback_patch,
+    config_fallback_path, dynamic_config_fallback_patch,
 ) -> ConfigDict:
     """
     Fixture that returns default values for dynamic config. You may override
@@ -562,9 +559,9 @@ def dynamic_config_changelog() -> _Changelog:
 
 @pytest.fixture
 def mock_configs_service(
-        mockserver,
-        dynamic_config: DynamicConfig,
-        dynamic_config_changelog: _Changelog,
+    mockserver,
+    dynamic_config: DynamicConfig,
+    dynamic_config_changelog: _Changelog,
 ) -> None:
     """
     Adds a mockserver handler that forwards dynamic_config to service's
@@ -620,7 +617,7 @@ _CHECK_CONFIG_ERROR = (
 # Should be invoked after _dynamic_config_defaults_storage is filled.
 @pytest.fixture
 def _check_config_marks(
-        request, _dynamic_config_defaults_storage,
+    request, _dynamic_config_defaults_storage,
 ) -> typing.Callable[[], None]:
     def check():
         config_defaults = _dynamic_config_defaults_storage.snapshot

@@ -15,23 +15,19 @@ def test_int_array(simple_parse):
 
 
 def test_full_array(simple_parse):
-    simple_parse(
-        {
-            'type': 'array',
-            'minItems': 1,
-            'maxItems': 3,
-            'items': {'type': 'integer'},
-        },
-    )
+    simple_parse({
+        'type': 'array',
+        'minItems': 1,
+        'maxItems': 3,
+        'items': {'type': 'integer'},
+    })
 
 
 def test_int_array_array_array(simple_parse):
-    simple_parse(
-        {
+    simple_parse({
+        'type': 'array',
+        'items': {
             'type': 'array',
-            'items': {
-                'type': 'array',
-                'items': {'type': 'array', 'items': {'type': 'integer'}},
-            },
+            'items': {'type': 'array', 'items': {'type': 'integer'}},
         },
-    )
+    })

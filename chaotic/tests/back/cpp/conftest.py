@@ -13,9 +13,7 @@ def simple_gen(simple_parse, clean):
     def func(input_: dict):
         schemas = simple_parse(input_)
         gen = Generator(
-            config=GeneratorConfig(
-                namespaces={'vfull': ''}, include_dirs=None,
-            ),
+            config=GeneratorConfig(namespaces={'vfull': ''}, include_dirs=None),
         )
         types = gen.generate_types(schemas)
         return clean(types)

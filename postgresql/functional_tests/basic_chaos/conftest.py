@@ -91,7 +91,7 @@ async def _gate_ready(service_client, _gate_started):
     autouse=True, params=[0, 1], ids=['pipeline_disabled', 'pipeline_enabled'],
 )
 async def pipeline_mode(request, service_client, dynamic_config):
-    dynamic_config.set_values(
-        {'POSTGRES_CONNECTION_PIPELINE_EXPERIMENT': request.param},
-    )
+    dynamic_config.set_values({
+        'POSTGRES_CONNECTION_PIPELINE_EXPERIMENT': request.param,
+    })
     await service_client.update_server_state()

@@ -24,7 +24,7 @@ async def test_grpc_client_mock_say_hello(service_client, mock_grpc_greeter):
 
 # /// [grpc client test response stream]
 async def test_grpc_client_mock_say_hello_response_stream(
-        service_client, mock_grpc_greeter,
+    service_client, mock_grpc_greeter,
 ):
     @mock_grpc_greeter('SayHelloResponseStream')
     async def _mock_say_hello_response_stream(request, context):
@@ -55,7 +55,7 @@ Hello, Python!!!!!
 
 # /// [grpc client test request stream]
 async def test_grpc_client_mock_say_hello_request_stream(
-        service_client, mock_grpc_greeter,
+    service_client, mock_grpc_greeter,
 ):
     @mock_grpc_greeter('SayHelloRequestStream')
     async def _mock_say_hello_request_stream(request_iterator, context):
@@ -78,7 +78,7 @@ async def test_grpc_client_mock_say_hello_request_stream(
 
 # /// [grpc client test streams]
 async def test_grpc_client_mock_say_hello_streams(
-        service_client, mock_grpc_greeter,
+    service_client, mock_grpc_greeter,
 ):
     @mock_grpc_greeter('SayHelloStreams')
     async def _mock_say_hello_streams(request_iterator, context):

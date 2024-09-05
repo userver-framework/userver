@@ -16,10 +16,10 @@ DP_DEADLINE_EXPIRED = 'X-YaTaxi-Deadline-Expired'
 @pytest.fixture(name='call')
 def _call(service_client):
     async def _call(
-            htype: str = 'common',
-            data: typing.Any = None,
-            timeout: float = DEFAULT_TIMEOUT,
-            headers: typing.Optional[typing.Dict[str, str]] = None,
+        htype: str = 'common',
+        data: typing.Any = None,
+        timeout: float = DEFAULT_TIMEOUT,
+        headers: typing.Optional[typing.Dict[str, str]] = None,
     ) -> http.ClientResponse:
         if not data:
             data = DEFAULT_DATA
@@ -55,7 +55,7 @@ async def _handler_metrics(monitor_client):
 
 
 async def test_deadline_expired(
-        call, testpoint, service_client, handler_metrics,
+    call, testpoint, service_client, handler_metrics,
 ):
     @testpoint('testpoint_request')
     async def test(_data):
