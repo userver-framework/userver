@@ -116,13 +116,13 @@ After that, you can get a logger in the code like this:
 ```cpp
 auto& logging_component =
       context.FindComponent<::components::Logging>();
-  my_logger = logging_component.GetLogger("my_logger_name");
+logging::LoggerPtr my_logger = logging_component.GetLogger("my_logger_name");
 ```
 
 To write to such a logger, it is convenient to use `LOG_XXX_TO`, for example:
 
 ```cpp
-LOG_INFO_TO(my_logger) << "Look, I am a new logger!";
+LOG_INFO_TO(*my_logger) << "Look, I am a new logger!";
 ```
 
 Note: do not forget to configure the logrotate for your new log file!
@@ -255,6 +255,52 @@ It means the logger is successfully initialized and is ready to process the logs
 
 If somethings goes wrong (e.g. OTLP collector agent is not available), you'll see errors in stderr.
 The service buffers not-yet-sent logs and traces in memory, but drops them on overflow.
+
+### Separate Sinks for Logs and Tracing
+
+In certain environments, such as Kubernetes, applications typically write logs to stdout/stderr, while traces are sent efficiently through the 'push' model (via OTLP transport). Kubernetes stores the container's stdout/stderr in files on nodes, making logs available for log collectors using the 'pull' model. This approach ensures that logs remain accessible even if the application fails, capturing the most critical information.
+
+To configure separate sinks for logs and traces, use the optional 'sinks' block in the 'otlp-logger' configuration:
+
+```yaml
+otlp-logger:
+    endpoint: $otlp-endpoint
+    service-name: $service-name
+    log-level: info    
+    sinks:
+        logs: default | otlp | both
+        tracing: default | otlp | both
+```
+
+If the 'sinks' block is not present in the 'otlp-logger' configuration, both logs and traces use the OTLP transport and are delivered to an OpenTelemetry-compatible collector by a background task in userver.
+
+In the `sinks` block, you can set a value for each stream. See: `otlp::LoggerComponent`.
+
+If you choose `otlp` for both streams, ensure that `logging.loggers` is empty:
+
+```yaml
+logging:
+    fs-task-processor: fs-task-processor
+    loggers: {}
+```
+
+Otherwise, add the _default_ logger in the `logging` component's `loggers` field:
+
+```yaml
+logging:
+    fs-task-processor: fs-task-processor
+    loggers: 
+        default:
+            file_path: $log-location 
+            level: info
+            overflow_behavior: discard
+        my_rabbit_logger: # you can use additional loggers
+            file_path: $log-location                     
+            level: error
+            overflow_behavior: discard               
+```
+
+**Note:** If you have additional loggers configured, they will function as usual, even if you're using the default logger for tracing only. But you can't redirect them to OTLP exporter.
 
 ----------
 

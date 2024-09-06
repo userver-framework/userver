@@ -31,6 +31,14 @@ class Logger;
 /// max-batch-delay | Maximum batch delay | 100ms
 /// service-name | Service name | unknown_service
 /// attributes | Extra attributes for OTLP, object of key/value strings | -
+/// sinks | List of sinks | -
+/// sinks.logs | sink for logs (default|otlp|both) | otlp
+/// sinks.tracing | sink for tracing (default|otlp|both) | otlp
+///
+/// Possible sink values:
+/// * `otlp`: OTLP exporter
+/// * `default`: _default_ logger from the `logging` component
+/// * `both`: _default_ logger and OTLP exporter
 
 // clang-format on
 class LoggerComponent final : public components::RawComponentBase {
