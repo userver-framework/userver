@@ -8,9 +8,11 @@ def _is_redis_metrics(line: str) -> bool:
     # skip metrics related to service commands
     # since we cannot force them to appear
     if (
-        'redis' not in line
-        or any(('redis_command=' + cmd) in line for cmd in SERVICE_COMMANDS)
-        or 'redis_instance_type=slaves' in line
+            'redis' not in line
+            or any(
+                ('redis_command=' + cmd) in line for cmd in SERVICE_COMMANDS
+            )
+            or 'redis_instance_type=slaves' in line
     ):
         return False
     return True

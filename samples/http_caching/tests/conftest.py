@@ -13,9 +13,9 @@ USERVER_CONFIG_HOOKS = ['userver_config_translations']
 def userver_config_translations(mockserver_info):
     def do_patch(config_yaml, config_vars):
         components = config_yaml['components_manager']['components']
-        components['cache-http-translations']['translations-url'] = (
-            mockserver_info.url('v1/translations')
-        )
+        components['cache-http-translations'][
+            'translations-url'
+        ] = mockserver_info.url('v1/translations')
 
     return do_patch
     # /// [patch configs]

@@ -30,7 +30,7 @@ def mongodb_settings():
 
 @pytest.fixture(scope='session')
 async def _gate_started(
-    loop, mongo_connection_info: connection.ConnectionInfo,
+        loop, mongo_connection_info: connection.ConnectionInfo,
 ):
     gate_config = chaos.GateRoute(
         name='mongo proxy',

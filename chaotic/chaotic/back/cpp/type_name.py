@@ -39,9 +39,9 @@ class TypeName:
         namespaces = ns.split('::')
         components = self._components
         while (
-            namespaces
-            and namespaces[0] == components[0]
-            and len(components) > 1
+                namespaces
+                and namespaces[0] == components[0]
+                and len(components) > 1
         ):
             namespaces = namespaces[1:]
             components = components[1:]

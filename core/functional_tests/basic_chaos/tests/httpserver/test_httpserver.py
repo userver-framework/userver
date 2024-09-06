@@ -42,11 +42,11 @@ class ErrorType(enum.Enum):
 @pytest.fixture(name='call')
 def _call(modified_service_client, gate):
     async def _call(
-        htype: str = 'common',
-        data: typing.Any = None,
-        timeout: float = DEFAULT_TIMEOUT,
-        testsuite_skip_prepare: bool = False,
-        headers: typing.Optional[typing.Dict[str, str]] = None,
+            htype: str = 'common',
+            data: typing.Any = None,
+            timeout: float = DEFAULT_TIMEOUT,
+            testsuite_skip_prepare: bool = False,
+            headers: typing.Optional[typing.Dict[str, str]] = None,
     ) -> typing.Union[http.ClientResponse, ErrorType]:
         try:
             if not data:
@@ -250,7 +250,7 @@ async def _handler_metrics(monitor_client, gate):
 
 
 async def test_deadline_immediately_expired(
-    call, gate, testpoint, service_client, handler_metrics,
+        call, gate, testpoint, service_client, handler_metrics,
 ):
     @testpoint('testpoint_request')
     async def test(_data):

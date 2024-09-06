@@ -78,19 +78,19 @@ def auto_client_deps(request) -> None:
 
 @pytest.fixture
 async def service_client(
-    ensure_daemon_started,
-    service_daemon,
-    dynamic_config,
-    mock_configs_service,
-    cleanup_userver_dumps,
-    userver_client_cleanup,
-    _testsuite_client_config: client.TestsuiteClientConfig,
-    _service_client_base,
-    _service_client_testsuite,
-    # User defined client deps must be last in order to use
-    # fixtures defined above.
-    extra_client_deps,
-    auto_client_deps,
+        ensure_daemon_started,
+        service_daemon,
+        dynamic_config,
+        mock_configs_service,
+        cleanup_userver_dumps,
+        userver_client_cleanup,
+        _testsuite_client_config: client.TestsuiteClientConfig,
+        _service_client_base,
+        _service_client_testsuite,
+        # User defined client deps must be last in order to use
+        # fixtures defined above.
+        extra_client_deps,
+        auto_client_deps,
 ) -> client.Client:
     """
     Main fixture that provides access to userver based service.
@@ -113,11 +113,11 @@ async def service_client(
 
 @pytest.fixture
 def userver_client_cleanup(
-    request,
-    _userver_logging_plugin,
-    _dynamic_config_defaults_storage,
-    _check_config_marks,
-    dynamic_config,
+        request,
+        _userver_logging_plugin,
+        _dynamic_config_defaults_storage,
+        _check_config_marks,
+        dynamic_config,
 ) -> typing.Callable[[client.Client], typing.AsyncGenerator]:
     """
     Contains the pre-test and post-test setup that depends
@@ -189,11 +189,11 @@ async def websocket_client(service_client, service_port):
 
 @pytest.fixture
 def monitor_client(
-    service_client,
-    service_client_options,
-    mockserver,
-    monitor_baseurl: str,
-    _testsuite_client_config: client.TestsuiteClientConfig,
+        service_client,
+        service_client_options,
+        mockserver,
+        monitor_baseurl: str,
+        _testsuite_client_config: client.TestsuiteClientConfig,
 ) -> client.ClientMonitor:
     """
     Main fixture that provides access to userver monitor listener.
@@ -229,16 +229,16 @@ async def _service_client_base(service_baseurl, service_client_options):
 
 @pytest.fixture
 def _service_client_testsuite(
-    service_baseurl,
-    service_client_options,
-    mocked_time,
-    userver_cache_control,
-    userver_log_capture,
-    testpoint,
-    testpoint_control,
-    cache_invalidation_state,
-    service_periodic_tasks_state,
-    _testsuite_client_config: client.TestsuiteClientConfig,
+        service_baseurl,
+        service_client_options,
+        mocked_time,
+        userver_cache_control,
+        userver_log_capture,
+        testpoint,
+        testpoint_control,
+        cache_invalidation_state,
+        service_periodic_tasks_state,
+        _testsuite_client_config: client.TestsuiteClientConfig,
 ) -> typing.Callable[[DaemonInstance], client.Client]:
     def create_client(daemon):
         aiohttp_client = client.AiohttpClient(
@@ -291,7 +291,7 @@ def service_periodic_tasks_state() -> client.PeriodicTasksState:
 
 @pytest.fixture(scope='session')
 def _testsuite_client_config(
-    pytestconfig, service_config,
+        pytestconfig, service_config,
 ) -> client.TestsuiteClientConfig:
     components = service_config['components_manager']['components']
 

@@ -54,7 +54,7 @@ class UserviceRunner:
 
 @pytest.mark.servicetest
 def test_service_default(
-    service_client, service_baseurl, monitor_baseurl,
+        service_client, service_baseurl, monitor_baseurl,
 ) -> None:
     """
     This is default service runner testcase. Feel free to override it

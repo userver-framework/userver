@@ -9,7 +9,7 @@ from chaotic.compilers import dynamic_config
 
 
 def parse_variable_content(
-    content: Any, varname: str = 'var',
+        content: Any, varname: str = 'var',
 ) -> types.CppType:
     compiler = dynamic_config.CompilerBase()
     with tempfile.NamedTemporaryFile(mode='w+', encoding='utf-8') as ofile:
@@ -56,49 +56,53 @@ def test_sort():
 
 
 def test_indirect():
-    parse_variable_content({
-        'schema': {
-            '$ref': '#/definitions/Obj',
-            'definitions': {
-                'Obj': {
-                    'type': 'object',
-                    'additionalProperties': False,
-                    'properties': {
-                        'left': {
-                            '$ref': '#/definitions/Obj',
-                            'x-usrv-cpp-indirect': True,
-                        },
-                        'right': {
-                            '$ref': '#/definitions/Obj',
-                            'x-usrv-cpp-indirect': True,
+    parse_variable_content(
+        {
+            'schema': {
+                '$ref': '#/definitions/Obj',
+                'definitions': {
+                    'Obj': {
+                        'type': 'object',
+                        'additionalProperties': False,
+                        'properties': {
+                            'left': {
+                                '$ref': '#/definitions/Obj',
+                                'x-usrv-cpp-indirect': True,
+                            },
+                            'right': {
+                                '$ref': '#/definitions/Obj',
+                                'x-usrv-cpp-indirect': True,
+                            },
                         },
                     },
                 },
             },
+            'default': 1,
         },
-        'default': 1,
-    })
+    )
 
 
 def test_strong_typedef_dependencies():
     try:
-        parse_variable_content({
-            'schema': {'type': 'string', 'x-usrv-cpp-typedef-tag': 'xxx'},
-        })
+        parse_variable_content(
+            {'schema': {'type': 'string', 'x-usrv-cpp-typedef-tag': 'xxx'}},
+        )
         assert False
     except error.BaseError as exc:
         assert 'Include file "userver/chaotic/io/xxx.hpp" not found' in exc.msg
 
 
 def test_default_isomorphic():
-    var = parse_variable_content({
-        'schema': {
-            'type': 'object',
-            'additionalProperties': {'type': 'string'},
-            'properties': {'__default__': {'type': 'string'}},
+    var = parse_variable_content(
+        {
+            'schema': {
+                'type': 'object',
+                'additionalProperties': {'type': 'string'},
+                'properties': {'__default__': {'type': 'string'}},
+            },
+            'default': {},
         },
-        'default': {},
-    })
+    )
     assert isinstance(var, types.CppStruct)
     assert (
         var.cpp_user_name()

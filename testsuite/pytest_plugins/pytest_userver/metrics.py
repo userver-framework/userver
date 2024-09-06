@@ -194,11 +194,11 @@ class MetricsSnapshot:
         return self._values.values()
 
     def value_at(
-        self,
-        path: str,
-        labels: typing.Optional[typing.Dict] = None,
-        *,
-        default: typing.Optional[MetricValue] = None,
+            self,
+            path: str,
+            labels: typing.Optional[typing.Dict] = None,
+            *,
+            default: typing.Optional[MetricValue] = None,
     ) -> MetricValue:
         """
         Returns a single metric value at specified path. If a dict of labels
@@ -233,7 +233,9 @@ class MetricsSnapshot:
         return next(iter(entry)).value
 
     def metrics_at(
-        self, path: str, require_labels: typing.Optional[typing.Dict] = None,
+            self,
+            path: str,
+            require_labels: typing.Optional[typing.Dict] = None,
     ) -> typing.List[Metric]:
         """
         Metrics path must exactly equal the given `path`.
@@ -273,17 +275,19 @@ class MetricsSnapshot:
             return list(entry)
 
     def has_metrics_at(
-        self, path: str, require_labels: typing.Optional[typing.Dict] = None,
+            self,
+            path: str,
+            require_labels: typing.Optional[typing.Dict] = None,
     ) -> bool:
         # metrics_with_labels returns list, and pythonic way to check if list
         # is empty is like this:
         return bool(self.metrics_at(path, require_labels))
 
     def assert_equals(
-        self,
-        other: typing.Mapping[str, typing.Set[Metric]],
-        *,
-        ignore_zeros: bool = False,
+            self,
+            other: typing.Mapping[str, typing.Set[Metric]],
+            *,
+            ignore_zeros: bool = False,
     ) -> None:
         """
         Compares the snapshot with a dict of metrics or with
@@ -312,10 +316,12 @@ class MetricsSnapshot:
                     '{}: {} {} {}'.format(
                         path,
                         # labels in form (key=value)
-                        ','.join([
-                            '({}={})'.format(k, v)
-                            for k, v in _get_labels_tuple(metric)
-                        ]),
+                        ','.join(
+                            [
+                                '({}={})'.format(k, v)
+                                for k, v in _get_labels_tuple(metric)
+                            ],
+                        ),
                         metric._type.value,
                         metric.value,
                     ),
@@ -426,7 +432,7 @@ def _flatten_snapshot(values, ignore_zeros: bool) -> _FlattenedSnapshot:
 
 
 def _diff_metric_snapshots(
-    lhs: _FlattenedSnapshot, rhs: _FlattenedSnapshot, ignore_zeros: bool,
+        lhs: _FlattenedSnapshot, rhs: _FlattenedSnapshot, ignore_zeros: bool,
 ) -> str:
     def extra_metrics_message(extra, base):
         return [

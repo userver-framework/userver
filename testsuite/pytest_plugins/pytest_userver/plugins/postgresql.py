@@ -34,7 +34,7 @@ class RegisteredNtrx:
         self._testpoint = testpoint
 
     def _enable_failure(
-        self, name: str, failure_type: RegisteredNtrxFailureType,
+            self, name: str, failure_type: RegisteredNtrxFailureType,
     ) -> None:
         self._registered_ntrx[name] = failure_type
 
@@ -57,9 +57,9 @@ class RegisteredNtrx:
 
     @contextmanager
     def mock_failure(
-        self,
-        name: str,
-        failure_type: RegisteredNtrxFailureType = RegisteredNtrxFailureType.Error,
+            self,
+            name: str,
+            failure_type: RegisteredNtrxFailureType = RegisteredNtrxFailureType.Error,
     ):
         self._enable_failure(name, failure_type)
         try:
@@ -125,7 +125,7 @@ def userver_pg_config(pgsql_local):
 
 @pytest.fixture
 def userver_pg_trx(
-    testpoint,
+        testpoint,
 ) -> typing.Generator[sql.RegisteredTrx, None, None]:
     """
     The fixture maintains transaction fault injection state using

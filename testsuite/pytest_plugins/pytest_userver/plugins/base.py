@@ -130,7 +130,7 @@ def monitor_port(pytestconfig, _original_service_config) -> int:
 
 
 def _get_port(
-    original_service_config, listener_name, port_fixture, option_name,
+        original_service_config, listener_name, port_fixture, option_name,
 ) -> int:
     config_yaml = original_service_config.config_yaml
     config_vars = original_service_config.config_vars

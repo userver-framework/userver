@@ -36,7 +36,7 @@ async def _say_hello(grpc_client, gate):
     ],
 )
 async def test_tracing_metadata(
-    grpc_client, service_client, gate, metadata, logs,
+        grpc_client, service_client, gate, metadata, logs,
 ):
     request = greeter_pb2.GreetingRequest(name='Python')
     async with service_client.capture_logs() as capture:
@@ -52,7 +52,7 @@ async def _say_hello_response_stream(grpc_client, gate):
     request = greeter_pb2.GreetingRequest(name='Python')
     reference = '!'
     async for response in grpc_client.SayHelloResponseStream(
-        request, wait_for_ready=True,
+            request, wait_for_ready=True,
     ):
         assert response.greeting == f'Hello, Python{reference}'
         reference += '!'
@@ -79,7 +79,8 @@ async def _say_hello_request_stream(grpc_client, gate):
 async def _say_hello_streams(grpc_client, gate):
     reference = ''
     async for response in grpc_client.SayHelloStreams(
-        _prepare_requests(['Python', '!', '!', '!'], 1), wait_for_ready=True,
+            _prepare_requests(['Python', '!', '!', '!'], 1),
+            wait_for_ready=True,
     ):
         assert response.greeting == f'Hello, Python{reference}'
         reference += '!'
@@ -103,27 +104,27 @@ async def _say_hello_indept_streams(grpc_client, gate):
 
     index = 0
     async for response in grpc_client.SayHelloIndependentStreams(
-        _prepare_requests(
-            [
-                'If',
-                ' ',
-                'this',
-                ' ',
-                'message',
-                ' ',
-                'has',
-                ' ',
-                'arrived,',
-                ' ',
-                'then',
-                ' ',
-                'everything',
-                ' ',
-                'works',
-            ],
-            0.1,
-        ),
-        wait_for_ready=True,
+            _prepare_requests(
+                [
+                    'If',
+                    ' ',
+                    'this',
+                    ' ',
+                    'message',
+                    ' ',
+                    'has',
+                    ' ',
+                    'arrived,',
+                    ' ',
+                    'then',
+                    ' ',
+                    'everything',
+                    ' ',
+                    'works',
+                ],
+                0.1,
+            ),
+            wait_for_ready=True,
     ):
         assert response.greeting == expected_responses[index]
         index += 1

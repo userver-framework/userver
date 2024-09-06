@@ -79,7 +79,7 @@ def test_extra_fields(simple_parse):
         assert False
     except ParserError as exc:
         assert exc.infile_path == '/definitions/type'
-        assert exc.msg == "Unknown field(s) ['field']"
+        assert exc.msg == 'Unknown field(s) [\'field\']'
 
 
 def test_sibling_file():
@@ -143,27 +143,29 @@ def test_forward_reference():
         enum=None,
         format=None,
     )
-    assert parsed_schemas.schemas == collections.OrderedDict({
-        'vfull#/definitions/type2': var,
-        'vfull#/definitions/type1': Ref(
-            ref='vfull#/definitions/type2',
-            schema=var,
-            indirect=False,
-            self_ref=False,
-        ),
-        'vfull#/definitions/type4': Ref(
-            ref='vfull#/definitions/type2',
-            schema=var,
-            indirect=False,
-            self_ref=False,
-        ),
-        'vfull#/definitions/type3': Ref(
-            ref='vfull#/definitions/type4',
-            schema=var,
-            indirect=False,
-            self_ref=False,
-        ),
-    })
+    assert parsed_schemas.schemas == collections.OrderedDict(
+        {
+            'vfull#/definitions/type2': var,
+            'vfull#/definitions/type1': Ref(
+                ref='vfull#/definitions/type2',
+                schema=var,
+                indirect=False,
+                self_ref=False,
+            ),
+            'vfull#/definitions/type4': Ref(
+                ref='vfull#/definitions/type2',
+                schema=var,
+                indirect=False,
+                self_ref=False,
+            ),
+            'vfull#/definitions/type3': Ref(
+                ref='vfull#/definitions/type4',
+                schema=var,
+                indirect=False,
+                self_ref=False,
+            ),
+        },
+    )
 
 
 def test_cycle():

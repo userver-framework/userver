@@ -237,12 +237,12 @@ def ydb_cli() -> pathlib.Path:
 
 @pytest.fixture(scope='session')
 def _ydb_prepare(
-    _ydb_client,
-    _ydb_service_schemas,
-    ydb_service_settings,
-    _ydb_state,
-    ydb_migration_dir,
-    goose_binary_path,
+        _ydb_client,
+        _ydb_service_schemas,
+        ydb_service_settings,
+        _ydb_state,
+        ydb_migration_dir,
+        goose_binary_path,
 ):
     if _ydb_service_schemas and ydb_migration_dir.exists():
         raise Exception(
@@ -276,14 +276,14 @@ def _ydb_tables(_ydb_state, _ydb_prepare, ydb_service_settings, ydb_cli):
 
 @pytest.fixture
 def _ydb_init(
-    request,
-    _ydb_client,
-    _ydb_state,
-    ydb_service_settings,
-    _ydb_prepare,
-    _ydb_tables,
-    _ydb_client_pool,
-    load,
+        request,
+        _ydb_client,
+        _ydb_state,
+        ydb_service_settings,
+        _ydb_prepare,
+        _ydb_tables,
+        _ydb_client_pool,
+        load,
 ):
     def ydb_mark_queries(files=(), queries=()):
         result_queries = []
@@ -298,7 +298,7 @@ def _ydb_init(
 
     if _ydb_tables:
         with concurrent.futures.ThreadPoolExecutor(
-            max_workers=len(_ydb_tables),
+                max_workers=len(_ydb_tables),
         ) as executer:
             executer.map(drop_table, _ydb_tables)
 

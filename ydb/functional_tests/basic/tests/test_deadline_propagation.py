@@ -15,7 +15,7 @@ QUERY_NAMES = ('Begin', 'upsert-row', 'Commit')
 
 
 def assert_deadline_timeout(
-    capture, *, query_names=QUERY_NAMES, expect_dp_enabled: bool = True,
+        capture, *, query_names=QUERY_NAMES, expect_dp_enabled: bool = True,
 ):
     for query in query_names:
         logs = capture.select(stopwatch_name='ydb_query', query_name=query)

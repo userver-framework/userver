@@ -6,7 +6,7 @@ import pytest
 async def test_postgres(service_client):
     response = await service_client.get('/v1/hello')
     assert response.status == 401
-    assert response.text == "Empty 'Authorization' header"
+    assert response.text == 'Empty \'Authorization\' header'
 
     response = await service_client.get(
         '/v1/hello', headers={'Authorization': 'Bearer THE_USER_TOKEN'},

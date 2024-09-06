@@ -40,10 +40,10 @@ def _metrics_setup_once_flag() -> list:
 
 @pytest.fixture
 async def force_metrics_to_appear(
-    service_client,
-    mocked_time,
-    _metrics_setup_once_flag,
-    force_mocked_time_for_metrics,
+        service_client,
+        mocked_time,
+        _metrics_setup_once_flag,
+        force_mocked_time_for_metrics,
 ):
     if _metrics_setup_once_flag:
         return

@@ -29,10 +29,10 @@ class ServiceSettings:
 
 
 def create_ydb_service(
-    service_name: str,
-    working_dir: str,
-    settings: typing.Optional[ServiceSettings] = None,
-    env: typing.Optional[typing.Dict[str, str]] = None,
+        service_name: str,
+        working_dir: str,
+        settings: typing.Optional[ServiceSettings] = None,
+        env: typing.Optional[typing.Dict[str, str]] = None,
 ):
     if settings is None:
         settings = get_service_settings()

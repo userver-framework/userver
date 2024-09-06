@@ -2,7 +2,7 @@ import os
 
 
 async def test_metrics_has_reopening_error(
-    monitor_client, service_config_yaml,
+        monitor_client, service_config_yaml,
 ):
     assert await monitor_client.fired_alerts() == []
 

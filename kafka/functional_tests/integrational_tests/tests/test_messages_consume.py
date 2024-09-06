@@ -8,7 +8,7 @@ TOPIC2 = 'test-topic-consume-2'
 
 
 async def test_consume_one_message_one_topic(
-    service_client, testpoint, kafka_producer,
+        service_client, testpoint, kafka_producer,
 ):
     @testpoint('tp_kafka-consumer')
     def received_messages_func(_data):
@@ -29,7 +29,7 @@ async def test_consume_one_message_one_topic(
 
 
 async def test_consume_many_messages_many_topics(
-    service_client, testpoint, kafka_producer,
+        service_client, testpoint, kafka_producer,
 ):
     @testpoint('tp_kafka-consumer')
     def received_messages_func(_data):

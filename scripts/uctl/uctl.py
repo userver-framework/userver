@@ -22,12 +22,12 @@ class Client:
         self.read_config_yaml(self.args.config)
 
     def client_send(
-        self,
-        path: str,
-        method: str,
-        params: typing.Optional[typing.Dict[str, str]] = None,
-        headers: typing.Optional[typing.Dict[str, str]] = None,
-        body: typing.Optional[str] = None,
+            self,
+            path: str,
+            method: str,
+            params: typing.Optional[typing.Dict[str, str]] = None,
+            headers: typing.Optional[typing.Dict[str, str]] = None,
+            body: typing.Optional[str] = None,
     ) -> str:
         call = getattr(requests, method)
         response = call(
@@ -105,28 +105,30 @@ class Client:
         print(data)
 
     def access_top(self) -> None:
-        logger_path = self.config_yaml_read([
-            'components_manager',
-            'components',
-            'logging',
-            'loggers',
-            'default',
-            'file_path',
-        ])
+        logger_path = self.config_yaml_read(
+            [
+                'components_manager',
+                'components',
+                'logging',
+                'loggers',
+                'default',
+                'file_path',
+            ],
+        )
 
-        subprocess.check_call([
-            'access-top',
-            '--service_log_filepath',
-            logger_path,
-        ])
+        subprocess.check_call(
+            ['access-top', '--service_log_filepath', logger_path],
+        )
 
     def get_config_fields(self) -> None:
-        filename = self.config_yaml_read([
-            'components_manager',
-            'components',
-            'dynamic-config',
-            'fs-cache-path',
-        ])
+        filename = self.config_yaml_read(
+            [
+                'components_manager',
+                'components',
+                'dynamic-config',
+                'fs-cache-path',
+            ],
+        )
 
         content = ''
         with open(filename, 'r') as f:
@@ -204,19 +206,21 @@ class Client:
             return data[path[0] + '#fallback']
 
     def read_monitor_url(self) -> str:
-        port = self.config_yaml_read([
-            'components_manager',
-            'components',
-            'server',
-            'listener-monitor',
-            'port',
-        ])
+        port = self.config_yaml_read(
+            [
+                'components_manager',
+                'components',
+                'server',
+                'listener-monitor',
+                'port',
+            ],
+        )
         return f'http://localhost:{port}'
 
     def check_config_override_supported(self) -> None:
         if (
-            'dynamic-config-overrider'
-            not in self.config_yaml['components_manager']['components']
+                'dynamic-config-overrider'
+                not in self.config_yaml['components_manager']['components']
         ):
             raise RuntimeError(
                 'Service does not support dynamic config overriding',

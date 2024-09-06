@@ -55,15 +55,15 @@ class HumanLogs:
     )
 
     def __init__(
-        self,
-        highlights,
-        ignores,
-        skip_modules,
-        skip_field_patterns,
-        filename,
-        no_file_stores,
-        verbosity,
-        require_fields,
+            self,
+            highlights,
+            ignores,
+            skip_modules,
+            skip_field_patterns,
+            filename,
+            no_file_stores,
+            verbosity,
+            require_fields,
     ):
         self.i = 0
         self.highlights = highlights

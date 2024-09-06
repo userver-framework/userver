@@ -30,9 +30,9 @@ class LogFile:
         return pos
 
     def readlines(
-        self,
-        eof_handler: typing.Optional[typing.Callable[[], bool]] = None,
-        limit_position: bool = False,
+            self,
+            eof_handler: typing.Optional[typing.Callable[[], bool]] = None,
+            limit_position: bool = False,
     ):
         if limit_position:
             max_position = self.path.stat().st_size
@@ -40,7 +40,7 @@ class LogFile:
             max_position = None
         first_skipped = False
         for line, position in _raw_line_reader(
-            self.path, self.position, eof_handler=eof_handler,
+                self.path, self.position, eof_handler=eof_handler,
         ):
             # userver does not give any gurantees about log file encoding
             line = line.decode(encoding='utf-8', errors='backslashreplace')
@@ -170,7 +170,7 @@ class UserverLoggingPlugin:
 
 @pytest.fixture(scope='session')
 def service_logfile_path(
-    pytestconfig, service_tmpdir: pathlib.Path,
+        pytestconfig, service_tmpdir: pathlib.Path,
 ) -> typing.Optional[pathlib.Path]:
     """
     Holds optional service logfile path. You may want to override this
@@ -186,8 +186,8 @@ def service_logfile_path(
 
 @pytest.fixture(scope='session')
 def _service_logfile_path(
-    userver_register_logfile,
-    service_logfile_path: typing.Optional[pathlib.Path],
+        userver_register_logfile,
+        service_logfile_path: typing.Optional[pathlib.Path],
 ) -> typing.Optional[pathlib.Path]:
     if not service_logfile_path:
         return None
@@ -219,7 +219,7 @@ def userver_register_logfile(_userver_logging_plugin: UserverLoggingPlugin):
             fp.truncate()
 
     def register_logfile(
-        path: pathlib.Path, *, title: str, truncate: bool = False,
+            path: pathlib.Path, *, title: str, truncate: bool = False,
     ) -> None:
         if truncate:
             do_truncate(path)
@@ -282,9 +282,9 @@ def _should_enable_color(pytestconfig) -> bool:
 
 
 def _raw_line_reader(
-    path: pathlib.Path,
-    position: int = 0,
-    eof_handler: typing.Optional[typing.Callable[[], bool]] = None,
+        path: pathlib.Path,
+        position: int = 0,
+        eof_handler: typing.Optional[typing.Callable[[], bool]] = None,
 ) -> int:
     with path.open('rb') as fp:
         position = fp.seek(position)

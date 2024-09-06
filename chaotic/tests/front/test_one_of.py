@@ -86,21 +86,25 @@ def test_of_none(simple_parse):
 def test_wo_discriminator_1(simple_parse):
     parsed = simple_parse({'oneOf': [{'type': 'integer'}]})
     assert parsed.schemas == {
-        'vfull#/definitions/type': OneOfWithoutDiscriminator(oneOf=[Integer()]),
+        'vfull#/definitions/type': OneOfWithoutDiscriminator(
+            oneOf=[Integer()],
+        ),
     }
 
 
 def test_wo_discriminator_2(simple_parse):
-    parsed = simple_parse({
-        'oneOf': [
-            {'type': 'integer'},
-            {
-                'type': 'object',
-                'properties': {},
-                'additionalProperties': False,
-            },
-        ],
-    })
+    parsed = simple_parse(
+        {
+            'oneOf': [
+                {'type': 'integer'},
+                {
+                    'type': 'object',
+                    'properties': {},
+                    'additionalProperties': False,
+                },
+            ],
+        },
+    )
     assert parsed.schemas == {
         'vfull#/definitions/type': OneOfWithoutDiscriminator(
             oneOf=[
@@ -113,17 +117,19 @@ def test_wo_discriminator_2(simple_parse):
 
 def test_wd_no_ref_or_object(simple_parse):
     try:
-        simple_parse({
-            'oneOf': [
-                {'type': 'integer'},
-                {
-                    'type': 'object',
-                    'properties': {},
-                    'additionalProperties': False,
-                },
-            ],
-            'discriminator': {'propertyName': 'foo'},
-        })
+        simple_parse(
+            {
+                'oneOf': [
+                    {'type': 'integer'},
+                    {
+                        'type': 'object',
+                        'properties': {},
+                        'additionalProperties': False,
+                    },
+                ],
+                'discriminator': {'propertyName': 'foo'},
+            },
+        )
         assert False
     except ParserError as exc:
         assert exc.infile_path == '/definitions/type/oneOf/0'
@@ -132,16 +138,18 @@ def test_wd_no_ref_or_object(simple_parse):
 
 def test_wd_wrong_property(simple_parse):
     try:
-        simple_parse({
-            'oneOf': [
-                {
-                    'type': 'object',
-                    'properties': {},
-                    'additionalProperties': False,
-                },
-            ],
-            'discriminator': {'propertyName': 'foo'},
-        })
+        simple_parse(
+            {
+                'oneOf': [
+                    {
+                        'type': 'object',
+                        'properties': {},
+                        'additionalProperties': False,
+                    },
+                ],
+                'discriminator': {'propertyName': 'foo'},
+            },
+        )
         assert False
     except ParserError as exc:
         assert exc.infile_path == '/definitions/type/oneOf/0'
@@ -150,14 +158,16 @@ def test_wd_wrong_property(simple_parse):
 
 def test_wd_wrong_property2(parse_after_refs):
     try:
-        parse_after_refs({
-            'oneOf': [
-                {'$ref': '#/definitions/type1'},
-                {'$ref': '#/definitions/type2'},
-                {'$ref': '#/definitions/wrong_type'},
-            ],
-            'discriminator': {'propertyName': 'foo'},
-        })
+        parse_after_refs(
+            {
+                'oneOf': [
+                    {'$ref': '#/definitions/type1'},
+                    {'$ref': '#/definitions/type2'},
+                    {'$ref': '#/definitions/wrong_type'},
+                ],
+                'discriminator': {'propertyName': 'foo'},
+            },
+        )
         assert False
     except ParserError as exc:
         assert exc.infile_path == '/definitions/type/oneOf/2'
@@ -166,10 +176,12 @@ def test_wd_wrong_property2(parse_after_refs):
 
 def test_wd_wrong_type(parse_after_refs):
     try:
-        parse_after_refs({
-            'oneOf': [{'$ref': '#/definitions/type_int'}],
-            'discriminator': {'propertyName': 'foo'},
-        })
+        parse_after_refs(
+            {
+                'oneOf': [{'$ref': '#/definitions/type_int'}],
+                'discriminator': {'propertyName': 'foo'},
+            },
+        )
         assert False
     except ParserError as exc:
         assert exc.infile_path == '/definitions/type/oneOf/0'
@@ -177,13 +189,15 @@ def test_wd_wrong_type(parse_after_refs):
 
 
 def test_wd_ok(parse_after_refs):
-    schema = parse_after_refs({
-        'oneOf': [
-            {'$ref': '#/definitions/type1'},
-            {'$ref': '#/definitions/type2'},
-        ],
-        'discriminator': {'propertyName': 'foo'},
-    })
+    schema = parse_after_refs(
+        {
+            'oneOf': [
+                {'$ref': '#/definitions/type1'},
+                {'$ref': '#/definitions/type2'},
+            ],
+            'discriminator': {'propertyName': 'foo'},
+        },
+    )
     assert schema == {
         **REFS,
         'vfull#/definitions/type': OneOfWithDiscriminator(
@@ -206,19 +220,21 @@ def test_wd_ok(parse_after_refs):
 
 
 def test_wd_ok_with_mapping(parse_after_refs):
-    schema = parse_after_refs({
-        'oneOf': [
-            {'$ref': '#/definitions/type1'},
-            {'$ref': '#/definitions/type2'},
-        ],
-        'discriminator': {
-            'propertyName': 'foo',
-            'mapping': {
-                't1': '#/definitions/type1',
-                't2': '#/definitions/type2',
+    schema = parse_after_refs(
+        {
+            'oneOf': [
+                {'$ref': '#/definitions/type1'},
+                {'$ref': '#/definitions/type2'},
+            ],
+            'discriminator': {
+                'propertyName': 'foo',
+                'mapping': {
+                    't1': '#/definitions/type1',
+                    't2': '#/definitions/type2',
+                },
             },
         },
-    })
+    )
     assert schema == {
         **REFS,
         'vfull#/definitions/type': OneOfWithDiscriminator(
@@ -242,16 +258,18 @@ def test_wd_ok_with_mapping(parse_after_refs):
 
 def test_wd_ok_with_mapping_missing_ref(parse_after_refs):
     try:
-        parse_after_refs({
-            'oneOf': [
-                {'$ref': '#/definitions/type1'},
-                {'$ref': '#/definitions/type2'},
-            ],
-            'discriminator': {
-                'propertyName': 'foo',
-                'mapping': {'t2': '#/definitions/type2'},
+        parse_after_refs(
+            {
+                'oneOf': [
+                    {'$ref': '#/definitions/type1'},
+                    {'$ref': '#/definitions/type2'},
+                ],
+                'discriminator': {
+                    'propertyName': 'foo',
+                    'mapping': {'t2': '#/definitions/type2'},
+                },
             },
-        })
+        )
         assert False
     except ParserError as exc:
         assert exc.infile_path == '/definitions/type/discriminator/mapping'
@@ -260,40 +278,44 @@ def test_wd_ok_with_mapping_missing_ref(parse_after_refs):
 
 def test_wd_ok_with_mapping_invalid_ref(parse_after_refs):
     try:
-        parse_after_refs({
-            'oneOf': [
-                {'$ref': '#/definitions/type1'},
-                {'$ref': '#/definitions/type2'},
-            ],
-            'discriminator': {
-                'propertyName': 'foo',
-                'mapping': {
-                    't1': '#/definitions/wrong',
-                    't3': '#/definitions/type1',
-                    't2': '#/definitions/type2',
+        parse_after_refs(
+            {
+                'oneOf': [
+                    {'$ref': '#/definitions/type1'},
+                    {'$ref': '#/definitions/type2'},
+                ],
+                'discriminator': {
+                    'propertyName': 'foo',
+                    'mapping': {
+                        't1': '#/definitions/wrong',
+                        't3': '#/definitions/type1',
+                        't2': '#/definitions/type2',
+                    },
                 },
             },
-        })
+        )
         assert False
     except ParserError as exc:
         assert exc.infile_path == '/definitions/type/discriminator/mapping'
         assert exc.msg == (
-            "$ref(s) outside of oneOf: ['vfull#/definitions/wrong']"
+            '$ref(s) outside of oneOf: [\'vfull#/definitions/wrong\']'
         )
 
 
 def test_wd_invalidtype_mapping_value(parse_after_refs):
     try:
-        parse_after_refs({
-            'oneOf': [
-                {'$ref': '#/definitions/type1'},
-                {'$ref': '#/definitions/type2'},
-            ],
-            'discriminator': {
-                'propertyName': 'foo',
-                'mapping': {'t1': 1, 't2': '#/definitions/type2'},
+        parse_after_refs(
+            {
+                'oneOf': [
+                    {'$ref': '#/definitions/type1'},
+                    {'$ref': '#/definitions/type2'},
+                ],
+                'discriminator': {
+                    'propertyName': 'foo',
+                    'mapping': {'t1': 1, 't2': '#/definitions/type2'},
+                },
             },
-        })
+        )
         assert False
     except ParserError as exc:
         assert exc.infile_path == '/definitions/type/discriminator/mapping/t1'
@@ -302,16 +324,18 @@ def test_wd_invalidtype_mapping_value(parse_after_refs):
 
 def test_wd_extra_field(simple_parse):
     try:
-        simple_parse({
-            'oneOf': [
-                {
-                    'type': 'object',
-                    'properties': {},
-                    'additionalProperties': False,
-                },
-            ],
-            'discriminator': {'foo': 1, 'propertyName': 'foo'},
-        })
+        simple_parse(
+            {
+                'oneOf': [
+                    {
+                        'type': 'object',
+                        'properties': {},
+                        'additionalProperties': False,
+                    },
+                ],
+                'discriminator': {'foo': 1, 'propertyName': 'foo'},
+            },
+        )
         assert False
     except ParserError as exc:
         assert exc.infile_path == '/definitions/type/discriminator/foo'

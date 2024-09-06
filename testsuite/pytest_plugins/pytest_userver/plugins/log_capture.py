@@ -123,7 +123,10 @@ class CaptureControl:
 
     @compat.asynccontextmanager
     async def start_capture(
-        self, *, log_level: typing.Optional[str] = None, timeout: float = 10.0,
+            self,
+            *,
+            log_level: typing.Optional[str] = None,
+            timeout: float = 10.0,
     ):
         if self._capture:
             yield self._capture
@@ -216,10 +219,12 @@ def _userver_log_capture_socket(pytestconfig):
 
 @pytest.fixture(scope='session')
 async def _userver_capture_server(
-    _userver_capture_control: CaptureControl, _userver_log_capture_socket, loop,
+        _userver_capture_control: CaptureControl,
+        _userver_log_capture_socket,
+        loop,
 ):
     async with _userver_capture_control.start_server(
-        sock=_userver_log_capture_socket, loop=loop,
+            sock=_userver_log_capture_socket, loop=loop,
     ) as server:
         yield server
 

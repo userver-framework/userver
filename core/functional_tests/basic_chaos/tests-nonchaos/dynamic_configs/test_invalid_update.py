@@ -16,7 +16,7 @@ async def test_ok(service_client, monitor_client):
 CONFIG_PATTERN = (
     'Failed to parse dynamic config. '
     '[a-zA-Z0-9_:]*formats::json::TypeMismatchException while parsing '
-    "dynamic config values. Error at path 'HTTP_CLIENT_CONNECTION_POOL_SIZE': "
+    'dynamic config values. Error at path \'HTTP_CLIENT_CONNECTION_POOL_SIZE\': '
     'Wrong type. Expected: uintValue, actual: stringValue'
 )
 
@@ -47,7 +47,7 @@ def _fix_config(service_client, dynamic_config):
 
 
 async def test_invalid_config_alerts(
-    service_client, monitor_client, break_config, fix_config,
+        service_client, monitor_client, break_config, fix_config,
 ):
     # Discard possible effects of the previous tests.
     # `fired_alerts` does not call `update_server_state` by default.
@@ -64,7 +64,7 @@ async def test_invalid_config_alerts(
 
 @pytest.mark.now('2019-01-01T12:00:00+0000')
 async def test_alert_active_after_1_year(
-    service_client, monitor_client, mocked_time, break_config, fix_config,
+        service_client, monitor_client, mocked_time, break_config, fix_config,
 ):
     # Discard possible effects of the previous tests.
     # `fired_alerts` does not call `update_server_state` by default.
@@ -90,7 +90,7 @@ ERROR_RATE_METRIC = 'dynamic-config.parse-errors'
 
 
 async def test_invalid_config_stats(
-    service_client, monitor_client, break_config, fix_config,
+        service_client, monitor_client, break_config, fix_config,
 ):
     # Discard possible effects of the previous tests.
     # `monitor_client.metrics` does not call `update_server_state` by default.

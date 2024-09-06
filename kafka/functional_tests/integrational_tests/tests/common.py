@@ -1,5 +1,5 @@
 def generate_messages_to_consume(
-    topics: list[str], cnt: int,
+        topics: list[str], cnt: int,
 ) -> dict[str, list[dict[str, str]]]:
     messages: dict[str, list[dict[str, str]]] = {}
     for topic in topics:

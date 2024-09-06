@@ -71,7 +71,7 @@ async def test_empty_yandex_tracing_headers(service_client, mockserver):
 
 
 async def test_b3_tracing_headers(
-    service_client, mockserver, assert_ids_in_file,
+        service_client, mockserver, assert_ids_in_file,
 ):
     @mockserver.json_handler('/test-service/echo-no-body')
     async def _handler(request):
@@ -88,7 +88,7 @@ async def test_b3_tracing_headers(
 
 
 async def test_otel_tracing_headers(
-    service_client, mockserver, assert_ids_in_file,
+        service_client, mockserver, assert_ids_in_file,
 ):
     @mockserver.json_handler('/test-service/echo-no-body')
     async def _handler(request):
@@ -120,7 +120,7 @@ async def test_otel_tracing_headers(
 
 
 async def test_taxi_tracing_headers(
-    service_client, mockserver, assert_ids_in_file,
+        service_client, mockserver, assert_ids_in_file,
 ):
     @mockserver.json_handler('/test-service/echo-no-body')
     async def _handler(request):
@@ -169,7 +169,7 @@ async def test_taxi_tracing_headers_min(service_client, mockserver):
 
 
 async def test_yandex_tracing_headers(
-    service_client, mockserver, assert_ids_in_file,
+        service_client, mockserver, assert_ids_in_file,
 ):
     @mockserver.json_handler('/test-service/echo-no-body')
     async def _handler(request):

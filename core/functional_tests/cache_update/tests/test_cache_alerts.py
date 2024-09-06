@@ -6,7 +6,7 @@ def assert_alerts(alerts, exp_seconds):
         {
             'id': 'cache_update_error',
             'message': (
-                "cache 'alert-cache' hasn't been updated"
+                'cache \'alert-cache\' hasn\'t been updated'
                 + f' for {exp_seconds} times'
             ),
         },
@@ -26,14 +26,14 @@ async def invalidate_caches(service_client, update_type):
 
 
 async def wait_to_fire(
-    service_client, monitor_client, failure_count, update_interval,
+        service_client, monitor_client, failure_count, update_interval,
 ):
     for _ in range(failure_count):
         await invalidate_caches(service_client, 'incremental')
 
 
 async def test_cache_update(
-    service_client, monitor_client, dynamic_config, service_config_yaml,
+        service_client, monitor_client, dynamic_config, service_config_yaml,
 ):
     await service_client.update_server_state()
     alert_cache = service_config_yaml['components_manager']['components'][

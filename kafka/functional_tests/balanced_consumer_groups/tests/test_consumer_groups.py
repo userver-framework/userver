@@ -62,7 +62,7 @@ async def test_partitions_share(service_client, testpoint, kafka_producer):
 
 
 async def test_rebalance_after_one_consumer_stopped(
-    service_client, testpoint, kafka_producer,
+        service_client, testpoint, kafka_producer,
 ):
     @testpoint('tp_kafka-consumer-first')
     def first_consumer_received(_data):
@@ -137,7 +137,7 @@ async def test_rebalance_after_one_consumer_stopped(
 
 
 async def test_rebalance_after_second_consumer_came_after_subscription(
-    service_client, testpoint, kafka_producer,
+        service_client, testpoint, kafka_producer,
 ):
     @testpoint('tp_kafka-consumer-first')
     def first_consumer_received(_data):
@@ -213,7 +213,7 @@ async def test_rebalance_after_second_consumer_came_after_subscription(
 
 @pytest.mark.parametrize('exchange_order', ['stop_start', 'start_stop'])
 async def test_rebalance_full_partitions_exchange(
-    service_client, testpoint, kafka_producer, exchange_order,
+        service_client, testpoint, kafka_producer, exchange_order,
 ):
     @testpoint('tp_kafka-consumer-first')
     def first_consumer_received(_data):

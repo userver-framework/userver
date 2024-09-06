@@ -47,9 +47,9 @@ def _callback(err, msg):
 def kafka_producer():
     class Wrapper:
         def __init__(self):
-            self.producer = confluent_kafka.Producer({
-                'bootstrap.servers': os.getenv('KAFKA_RECIPE_BROKER_LIST'),
-            })
+            self.producer = confluent_kafka.Producer(
+                {'bootstrap.servers': os.getenv('KAFKA_RECIPE_BROKER_LIST')},
+            )
 
         async def produce(self, topic, key, value, callback=_callback):
             self.producer.produce(

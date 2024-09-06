@@ -124,17 +124,17 @@ class Schema(Base):
             del self.x_properties[name]
 
     def get_x_property_str(
-        self, name: str, default: _OptionalStr = None,
+            self, name: str, default: _OptionalStr = None,
     ) -> _OptionalStr:
         return self._get_x_property_typed(name, default, str, 'string')
 
     def get_x_property_bool(
-        self, name: str, default: _OptionalBool = None,
+            self, name: str, default: _OptionalBool = None,
     ) -> _OptionalBool:
         return self._get_x_property_typed(name, default, bool, 'boolean')
 
     def _get_x_property_typed(
-        self, name: str, default: Any, type_: type, type_str: str,
+            self, name: str, default: Any, type_: type, type_str: str,
     ) -> Any:
         value = self.x_properties.get(name, default)
         if value is None:

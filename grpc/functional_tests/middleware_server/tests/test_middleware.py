@@ -21,7 +21,7 @@ async def test_say_hello_response_stream(grpc_client):
     request = greeter_protos.GreetingRequest(name='C++')
     r = '!'
     async for response in grpc_client.SayHelloResponseStream(
-        request, wait_for_ready=True,
+            request, wait_for_ready=True,
     ):
         assert (
             response.greeting
@@ -53,7 +53,8 @@ async def test_say_hello_streams(grpc_client):
     start = f'Python{MD_ONE_REQ}{MD_TWO_REQ}'
     end = f'{MD_TWO_RES}{MD_ONE_RES}'
     async for response in grpc_client.SayHelloStreams(
-        _prepare_requests(['Python', '!', '!', '!'], 1), wait_for_ready=True,
+            _prepare_requests(['Python', '!', '!', '!'], 1),
+            wait_for_ready=True,
     ):
         assert response.greeting == f'Hello, {start}{end}'
         start += f'!{MD_ONE_REQ}{MD_TWO_REQ}'
