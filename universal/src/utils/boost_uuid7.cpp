@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <limits>
+#include <stdexcept>
 
 #include <boost/random/uniform_int.hpp>
 #include <boost/random/variate_generator.hpp>
@@ -36,7 +37,7 @@ class UuidV7Generator {
         // In order to protect from rollover we will increment
         // timestamp ahead of the actual time.
         // See section `Counter Rollover Handling`
-        // https://datatracker.ietf.org/doc/html/draft-ietf-uuidrev-rfc4122bis-09#monotonicity_counters
+        // https://datatracker.ietf.org/doc/html/rfc9562#monotonicity_counters
 
         sequence_counter_ = 0;
         ++previous_timestamp_;
@@ -66,7 +67,7 @@ class UuidV7Generator {
       // Keep most significant bit of a counter initialized as zero
       // for guarding against counter rollover.
       // See section `Fixed-Length Dedicated Counter Seeding`
-      // https://datatracker.ietf.org/doc/html/draft-ietf-uuidrev-rfc4122bis-09#monotonicity_counters
+      // https://datatracker.ietf.org/doc/html/rfc9562#monotonicity_counters
       uuid.data[6] &= 0xF7;
 
       sequence_counter_ =
@@ -136,6 +137,25 @@ compiler::ThreadLocal local_uuid_v7_generator = [] {
 boost::uuids::uuid utils::generators::GenerateBoostUuidV7() {
   auto generator = local_uuid_v7_generator.Use();
   return (*generator)();
+}
+
+std::chrono::system_clock::time_point utils::ExtractTimestampFromUuidV7(
+    boost::uuids::uuid uuid) {
+  if ((uuid.data[6] & 0xF0) != 0x70) {
+    throw std::runtime_error{"timestamp can be extracted only from uuid v7"};
+  }
+
+  const auto timestamp = std::chrono::milliseconds(
+      (static_cast<std::int64_t>(uuid.data[0]) << 40) +
+      (static_cast<std::int64_t>(uuid.data[1]) << 32) +
+      (static_cast<std::int64_t>(uuid.data[2]) << 24) +
+      (static_cast<std::int64_t>(uuid.data[3]) << 16) +
+      (static_cast<std::int64_t>(uuid.data[4]) << 8) +
+      static_cast<std::int64_t>(uuid.data[5]));
+
+  return std::chrono::system_clock::time_point(
+      std::chrono::duration_cast<
+          std::chrono::system_clock::time_point::duration>(timestamp));
 }
 
 USERVER_NAMESPACE_END
