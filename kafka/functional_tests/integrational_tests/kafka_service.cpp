@@ -25,8 +25,8 @@
 #include <userver/storages/secdist/component.hpp>
 #include <userver/storages/secdist/provider_component.hpp>
 
-#include <userver/kafka/components/consumer_component.hpp>
-#include <userver/kafka/components/producer_component.hpp>
+#include <userver/kafka/consumer_component.hpp>
+#include <userver/kafka/producer_component.hpp>
 
 #include <userver/testsuite/testsuite_support.hpp>
 

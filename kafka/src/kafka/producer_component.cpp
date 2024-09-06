@@ -1,4 +1,4 @@
-#include <userver/kafka/components/producer_component.hpp>
+#include <userver/kafka/producer_component.hpp>
 
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
