@@ -51,8 +51,6 @@ components_manager:
         kafka-producer-first:
             delivery_timeout: 3000ms
             queue_buffering_max: 100ms
-            poll_timeout: 10ms
-            send_retries_count: 5
             enable_idempotence: true
             security_protocol: PLAINTEXT
             rd_kafka_custom_options:
@@ -63,6 +61,12 @@ components_manager:
             delivery_timeout: 3000ms
             queue_buffering_max: 100ms
             enable_idempotence: true
+            queue_buffering_max_messages: 100
+            queue_buffering_max_kbytes: 1
+            message_max_bytes: 100500
+            message_send_max_retries: 3
+            retry_backoff: 5ms
+            retry_backoff_max: 100ms
             security_protocol: PLAINTEXT
 
         testsuite-support:

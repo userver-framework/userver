@@ -83,7 +83,7 @@ std::string ResolveGroupId(const ConsumerConfiguration& configuration) {
   return group_id;
 }
 
-void LogCallback([[maybe_unused]] const rd_kafka_t* kafka_entity, int log_level,
+void LogCallback([[maybe_unused]] const rd_kafka_t* kafka_client, int log_level,
                  const char* facility, const char* message) {
   LOG(convertRdKafkaLogLevelToLoggingLevel(log_level))
       << logging::LogExtra{{{"kafka_callback", "log_callback"},
@@ -176,6 +176,23 @@ ProducerConfiguration Parse(const yaml_config::YamlConfig& config,
           producer.queue_buffering_max);
   producer.enable_idempotence =
       config["enable_idempotence"].As<bool>(producer.enable_idempotence);
+  producer.queue_buffering_max_messages =
+      config["queue_buffering_max_messages"].As<std::uint32_t>(
+          producer.queue_buffering_max_messages);
+  producer.queue_buffering_max_kbytes =
+      config["queue_buffering_max_kbytes"].As<std::uint32_t>(
+          producer.queue_buffering_max_kbytes);
+  producer.message_max_bytes =
+      config["message_max_bytes"].As<std::uint32_t>(producer.message_max_bytes);
+  producer.message_send_max_retries =
+      config["message_send_max_retries"].As<std::uint32_t>(
+          producer.message_send_max_retries);
+  producer.retry_backoff =
+      config["retry_backoff"].As<std::chrono::milliseconds>(
+          producer.retry_backoff);
+  producer.retry_backoff_max =
+      config["retry_backoff_max"].As<std::chrono::milliseconds>(
+          producer.retry_backoff_max);
 
   return producer;
 }
@@ -251,7 +268,7 @@ void Configuration::SetSecurity(const SecurityConfiguration& security,
       [this, &secrets](const SecurityConfiguration::SaslSsl& sasl_ssl) {
         LOG_INFO() << "Using SASL_SSL security protocol";
 
-        SetOption("security.protocol", std::string{"SASL_SSL"});
+        SetOption("security.protocol", "SASL_SSL");
         SetOption("sasl.mechanism", sasl_ssl.security_mechanism);
         SetOption("sasl.username", secrets.username);
         SetOption("sasl.password", secrets.password);
@@ -278,14 +295,27 @@ void Configuration::SetConsumer(const ConsumerConfiguration& configuration) {
                             group_id);
 
   SetOption("group.id", group_id);
-  SetOption("enable.auto.commit", configuration.enable_auto_commit);
+  SetOption("enable.auto.commit",
+            configuration.enable_auto_commit ? "true" : "false");
   SetOption("auto.offset.reset", configuration.auto_offset_reset);
 }
 
 void Configuration::SetProducer(const ProducerConfiguration& configuration) {
   SetOption("delivery.timeout.ms", configuration.delivery_timeout);
   SetOption("queue.buffering.max.ms", configuration.queue_buffering_max);
-  SetOption("enable.idempotence", configuration.enable_idempotence);
+  SetOption("enable.idempotence",
+            configuration.enable_idempotence ? "true" : "false");
+  SetOption("queue.buffering.max.messages",
+            configuration.queue_buffering_max_messages);
+  SetOption("queue.buffering.max.kbytes",
+            configuration.queue_buffering_max_kbytes);
+  SetOption("message.max.bytes", configuration.message_max_bytes);
+  SetOption("message.send.max.retries", configuration.message_send_max_retries);
+  SetOption("retry.backoff.ms", configuration.retry_backoff);
+  SetOption("retry.backoff.max.ms", configuration.retry_backoff_max);
+  rd_kafka_conf_set_events(conf_.GetHandle(), RD_KAFKA_EVENT_LOG |
+                                                  RD_KAFKA_EVENT_ERROR |
+                                                  RD_KAFKA_EVENT_DR);
 }
 
 template <class T>
@@ -317,8 +347,8 @@ void Configuration::SetOption(const char* option,
             fmt::format("{}ms", value.count()));
 }
 
-void Configuration::SetOption(const char* option, bool value) {
-  SetOption(option, value ? "true" : "false", value);
+void Configuration::SetOption(const char* option, std::uint32_t value) {
+  SetOption(option, std::to_string(value).c_str(), value);
 }
 
 void Configuration::SetOption(const char* option,

@@ -30,6 +30,7 @@ class HolderBase final {
   std::unique_ptr<T, DeleterType<T>> ptr_;
 };
 
+using EventHolder = HolderBase<rd_kafka_event_t, &rd_kafka_event_destroy>;
 using QueueHolder = HolderBase<rd_kafka_queue_t, &rd_kafka_queue_destroy>;
 using MessageHolder = HolderBase<rd_kafka_message_t, &rd_kafka_message_destroy>;
 using TopicPartitionsListHolder =
@@ -58,18 +59,21 @@ class ConfHolder final {
   HolderBase<rd_kafka_conf_t, &rd_kafka_conf_destroy> conf_;
 };
 
-class KafkaHolder final {
+template <rd_kafka_type_t client_type>
+class KafkaClientHolder final {
  public:
-  KafkaHolder(ConfHolder conf, rd_kafka_type_t type);
+  KafkaClientHolder(ConfHolder conf);
 
   rd_kafka_t* GetHandle() const noexcept;
+  rd_kafka_queue_t* GetQueue() const noexcept;
 
  private:
   HolderBase<rd_kafka_t, &rd_kafka_destroy> handle_;
+  QueueHolder queue_;
 };
 
-using ConsumerHolder = KafkaHolder;
-using ProducerHolder = KafkaHolder;
+using ConsumerHolder = KafkaClientHolder<RD_KAFKA_CONSUMER>;
+using ProducerHolder = KafkaClientHolder<RD_KAFKA_PRODUCER>;
 
 }  // namespace kafka::impl
 

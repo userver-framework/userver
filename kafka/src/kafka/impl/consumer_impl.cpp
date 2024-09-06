@@ -267,7 +267,7 @@ ConsumerImpl::ConsumerImpl(Configuration&& configuration)
 ConsumerImpl::~ConsumerImpl() = default;
 
 void ConsumerImpl::Subscribe(const std::vector<std::string>& topics) {
-  consumer_.emplace(conf_, RD_KAFKA_CONSUMER);
+  consumer_.emplace(conf_);
   /// @note makes available to call `rd_kafka_consumer_poll`
   rd_kafka_poll_set_consumer(consumer_->GetHandle());
 

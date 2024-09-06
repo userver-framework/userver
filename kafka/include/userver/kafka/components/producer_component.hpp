@@ -29,16 +29,20 @@ namespace kafka {
 /// @snippet kafka/functional_tests/integrational_tests/tests/conftest.py  Kafka service sample - secdist
 ///
 /// ## Static options:
-/// Name                     | Description                                      | Default value
-/// ------------------------ | ------------------------------------------------ | ---------------
-/// delivery_timeout         | time a produced message waits for successful delivery | --
-/// queue_buffering_max      | delay to wait for messages to be transmitted to broker | --
-/// enable_idempotence       | whether to make producer idempotent | false
-/// poll_timeout             | time producer waits for new delivery events | 10ms
-/// send_retries_count       | how many times producer retries transient delivery errors | 5
-/// security_protocol        | protocol used to communicate with brokers | --
-/// sasl_mechanisms          | SASL mechanism to use for authentication | none
-/// ssl_ca_location          | file or directory path to CA certificate(s) for verifying the broker's key | none
+/// Name                         | Description                                      | Default value
+/// ---------------------------- | ------------------------------------------------ | ---------------
+/// delivery_timeout             | time a produced message waits for successful delivery | --
+/// queue_buffering_max          | delay to wait for messages to be transmitted to broker | --
+/// enable_idempotence           | whether to make producer idempotent | false
+/// queue_buffering_max_messages | maximum number of messages waiting for delivery | 100000
+/// queue_buffering_max_kbytes   | maximum size of messages waiting for delivery | 1048576
+/// message_max_bytes            | maximum size of message | 1000000
+/// message_send_max_retries     | maximum number of send request retries until `delivery_timeout` reached | 2147483647
+/// retry_backoff                | backoff time before retrying send request, exponentially increases after each retry | 100
+/// retry_backoff_max            | backoff upper bound | 1000
+/// security_protocol            | protocol used to communicate with brokers | --
+/// sasl_mechanisms              | SASL mechanism to use for authentication | none
+/// ssl_ca_location              | file or directory path to CA certificate(s) for verifying the broker's key | none
 /// rd_kafka_custom_options  | a map of librdkafka library additional options | '{}'
 
 // clang-format on

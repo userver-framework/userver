@@ -67,21 +67,18 @@ kafka::impl::Configuration KafkaCluster::MakeConsumerConfiguration(
 }
 
 kafka::Producer KafkaCluster::MakeProducer(
-    const std::string& name, kafka::impl::ProducerConfiguration configuration,
-    kafka::ProducerExecutionParams params) {
+    const std::string& name, kafka::impl::ProducerConfiguration configuration) {
   return kafka::Producer{name, engine::current_task::GetTaskProcessor(),
-                         configuration, MakeSecrets(bootstrap_servers_),
-                         std::move(params)};
+                         configuration, MakeSecrets(bootstrap_servers_)};
 };
 
 std::deque<kafka::Producer> KafkaCluster::MakeProducers(
     std::size_t count, std::function<std::string(std::size_t)> nameGenerator,
-    kafka::impl::ProducerConfiguration configuration,
-    kafka::ProducerExecutionParams params) {
+    kafka::impl::ProducerConfiguration configuration) {
   std::deque<kafka::Producer> producers;
   for (std::size_t i{0}; i < count; ++i) {
     producers.emplace_back(utils::LazyPrvalue(
-        [&] { return MakeProducer(nameGenerator(i), configuration, params); }));
+        [&] { return MakeProducer(nameGenerator(i), configuration); }));
   }
 
   return producers;

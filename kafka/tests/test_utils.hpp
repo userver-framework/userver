@@ -46,13 +46,11 @@ class KafkaCluster : public ::testing::Test {
 
   kafka::Producer MakeProducer(
       const std::string& name,
-      kafka::impl::ProducerConfiguration configuration = {},
-      kafka::ProducerExecutionParams params = {});
+      kafka::impl::ProducerConfiguration configuration = {});
 
   std::deque<kafka::Producer> MakeProducers(
       std::size_t count, std::function<std::string(std::size_t)> nameGenerator,
-      kafka::impl::ProducerConfiguration configuration = {},
-      kafka::ProducerExecutionParams params = {});
+      kafka::impl::ProducerConfiguration configuration = {});
 
   void SendMessages(const std::vector<Message>& messages);
 

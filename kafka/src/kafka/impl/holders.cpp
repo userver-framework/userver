@@ -23,24 +23,25 @@ void ConfHolder::ForgetUnderlyingConf() {
   [[maybe_unused]] auto _ = conf_.ptr_.release();
 }
 
-KafkaHolder::KafkaHolder(ConfHolder conf, rd_kafka_type_t type)
-    : handle_([conf = std::move(conf), type]() mutable {
+template <rd_kafka_type_t client_type>
+KafkaClientHolder<client_type>::KafkaClientHolder(ConfHolder conf)
+    : handle_([conf = std::move(conf)]() mutable {
         ErrorBuffer err_buf;
 
         HolderBase<rd_kafka_t, &rd_kafka_destroy> holder{rd_kafka_new(
-            type, conf.GetHandle(), err_buf.data(), err_buf.size())};
+            client_type, conf.GetHandle(), err_buf.data(), err_buf.size())};
         if (!holder) {
           /// @note `librdkafka` takes ownership on conf iff
           /// `rd_kafka_new` succeeds
 
-          const auto type_str = [type] {
-            switch (type) {
+          const auto type_str = [] {
+            switch (client_type) {
               case RD_KAFKA_CONSUMER:
                 return "consumer";
               case RD_KAFKA_PRODUCER:
                 return "producer";
             }
-            UINVARIANT(false, "Unexpected rd_kafka_type");
+            UINVARIANT(false, "Unexpected rd_kafka_type value");
           }();
 
           PrintErrorAndThrow(fmt::format("create {}", type_str), err_buf);
@@ -49,11 +50,29 @@ KafkaHolder::KafkaHolder(ConfHolder conf, rd_kafka_type_t type)
         conf.ForgetUnderlyingConf();
 
         return holder;
+      }()),
+      queue_([this] {
+        switch (client_type) {
+          case RD_KAFKA_CONSUMER:
+            return rd_kafka_queue_get_consumer(GetHandle());
+          case RD_KAFKA_PRODUCER:
+            return rd_kafka_queue_get_main(GetHandle());
+        }
+        UINVARIANT(false, "Unexpected rd_kafka_type value");
       }()) {}
 
-rd_kafka_t* KafkaHolder::GetHandle() const noexcept {
+template <rd_kafka_type_t client_type>
+rd_kafka_t* KafkaClientHolder<client_type>::GetHandle() const noexcept {
   return handle_.GetHandle();
 }
+
+template <rd_kafka_type_t client_type>
+rd_kafka_queue_t* KafkaClientHolder<client_type>::GetQueue() const noexcept {
+  return queue_.GetHandle();
+}
+
+template class KafkaClientHolder<RD_KAFKA_CONSUMER>;
+template class KafkaClientHolder<RD_KAFKA_PRODUCER>;
 
 }  // namespace kafka::impl
 

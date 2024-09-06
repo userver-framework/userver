@@ -59,6 +59,12 @@ struct ProducerConfiguration final {
   std::chrono::milliseconds delivery_timeout{3000};
   std::chrono::milliseconds queue_buffering_max{10};
   bool enable_idempotence{false};
+  std::uint32_t queue_buffering_max_messages{100000};
+  std::uint32_t queue_buffering_max_kbytes{1048576};  // 1 GiB
+  std::uint32_t message_max_bytes{1000000};           // ~ 1 MiB
+  std::uint32_t message_send_max_retries{2147483647};
+  std::chrono::milliseconds retry_backoff{100};
+  std::chrono::milliseconds retry_backoff_max{1000};
 
   RdKafkaOptions rd_kafka_options;
 };
@@ -123,7 +129,7 @@ class Configuration final {
 
   void SetOption(const char* option, const std::string& value);
   void SetOption(const char* option, std::chrono::milliseconds value);
-  void SetOption(const char* option, bool value);
+  void SetOption(const char* option, std::uint32_t value);
   void SetOption(const char* option, const Secret::SecretType& value);
 
  private:

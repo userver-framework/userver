@@ -18,23 +18,13 @@ ProducerComponent::ProducerComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
     : components::ComponentBase(config, context),
-      producer_(
-          config.Name(), context.GetTaskProcessor("producer-task-processor"),
-          config.As<impl::ProducerConfiguration>(),
-          context.FindComponent<components::Secdist>()
-              .Get()
-              .Get<impl::BrokerSecrets>()
-              .GetSecretByComponentName(config.Name()),
-          [&config] {
-            ProducerExecutionParams params{};
-            params.poll_timeout =
-                config["poll_timeout"].As<std::chrono::milliseconds>(
-                    params.poll_timeout);
-            params.send_retries = config["send_retries_count"].As<std::size_t>(
-                params.send_retries);
-
-            return params;
-          }()) {
+      producer_(config.Name(),
+                context.GetTaskProcessor("producer-task-processor"),
+                config.As<impl::ProducerConfiguration>(),
+                context.FindComponent<components::Secdist>()
+                    .Get()
+                    .Get<impl::BrokerSecrets>()
+                    .GetSecretByComponentName(config.Name())) {
   auto& storage =
       context.FindComponent<components::StatisticsStorage>().GetStorage();
 
@@ -64,14 +54,45 @@ properties:
         type: boolean
         description: whether to make producer idempotent
         defaultDescription: false
-    poll_timeout:
-        type: string
-        description: time producer waits for new delivery events
-        defaultDescription: 10ms
-    send_retries_count:
+    queue_buffering_max_messages:
         type: integer
-        description: how many times producer retries transient delivery errors
-        defaultDescription: 5
+        description: |
+             maximum number of messages allowed on the producer queue. In other
+             words, maximum number of simultaneously send requests waiting for delivery
+        minimum: 0
+        maximum: 2147483647
+        defaultDescription: 100000
+    queue_buffering_max_kbytes:
+        type: integer
+        description: |
+            maximum total message size sum allowed on the producer queue. Has
+            higher priority than `queue_buffering_max_messages`, i.e. if this limit is
+            exceeded no more send requests are accepted regardless to the number of messages
+        minimum: 1
+        maximum: 2147483647
+        defaultDescription: 1048576
+    message_max_bytes:
+        type: integer
+        description: one message maximum size
+        minimum: 1000
+        maximum: 1000000000
+        defaultDescription: 1000000
+    message_send_max_retries:
+        type: integer
+        description: maximum number of send request retries until `delivery_timeout` reached
+        defaultDescription: 2147483647
+    retry_backoff:
+        type: string
+        description: |
+            the backoff time before retrying a producer send request.
+            It will be backed off exponentially until number of retries is exhausted
+            and bounded by `retry_backoff_max`.
+            The backoff must feet in [1ms; 300000ms]
+        defaultDescription: 100ms
+    retry_backoff_max:
+        type: string
+        description: backoff upper bound. The backoff must feet in [1ms; 300000ms]
+        defaultDescription: 1000ms
     security_protocol:
         type: string
         description: protocol used to communicate with brokers

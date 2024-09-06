@@ -39,6 +39,18 @@ UTEST_F(ConfigurationTest, Producer) {
             std::to_string(default_producer.queue_buffering_max.count()));
   EXPECT_EQ(configuration->GetOption("enable.idempotence"),
             default_producer.enable_idempotence ? "true" : "false");
+  EXPECT_EQ(configuration->GetOption("queue.buffering.max.messages"),
+            std::to_string(default_producer.queue_buffering_max_messages));
+  EXPECT_EQ(configuration->GetOption("queue.buffering.max.kbytes"),
+            std::to_string(default_producer.queue_buffering_max_kbytes));
+  EXPECT_EQ(configuration->GetOption("message.max.bytes"),
+            std::to_string(default_producer.message_max_bytes));
+  EXPECT_EQ(configuration->GetOption("message.send.max.retries"),
+            std::to_string(default_producer.message_send_max_retries));
+  EXPECT_EQ(configuration->GetOption("retry.backoff.ms"),
+            std::to_string(default_producer.retry_backoff.count()));
+  EXPECT_EQ(configuration->GetOption("retry.backoff.max.ms"),
+            std::to_string(default_producer.retry_backoff_max.count()));
 }
 
 UTEST_F(ConfigurationTest, ProducerNonDefault) {
@@ -48,13 +60,18 @@ UTEST_F(ConfigurationTest, ProducerNonDefault) {
   producer_configuration.delivery_timeout = 37ms;
   producer_configuration.queue_buffering_max = 7ms;
   producer_configuration.enable_idempotence = true;
+  producer_configuration.queue_buffering_max_messages = 33;
+  producer_configuration.queue_buffering_max_kbytes = 55;
+  producer_configuration.message_max_bytes = 3333;
+  producer_configuration.message_send_max_retries = 3;
+  producer_configuration.retry_backoff = 200ms;
+  producer_configuration.retry_backoff_max = 2000ms;
   producer_configuration.rd_kafka_options["session.timeout.ms"] = "3600000";
 
   std::optional<kafka::impl::Configuration> configuration;
   UEXPECT_NO_THROW(configuration.emplace(
       MakeProducerConfiguration("kafka-producer", producer_configuration)));
 
-  const kafka::impl::ProducerConfiguration default_producer{};
   EXPECT_EQ(configuration->GetOption("topic.metadata.refresh.interval.ms"),
             "10");
   EXPECT_EQ(configuration->GetOption("metadata.max.age.ms"), "30");
@@ -62,6 +79,12 @@ UTEST_F(ConfigurationTest, ProducerNonDefault) {
   EXPECT_EQ(configuration->GetOption("delivery.timeout.ms"), "37");
   EXPECT_EQ(configuration->GetOption("queue.buffering.max.ms"), "7");
   EXPECT_EQ(configuration->GetOption("enable.idempotence"), "true");
+  EXPECT_EQ(configuration->GetOption("queue.buffering.max.messages"), "33");
+  EXPECT_EQ(configuration->GetOption("queue.buffering.max.kbytes"), "55");
+  EXPECT_EQ(configuration->GetOption("message.max.bytes"), "3333");
+  EXPECT_EQ(configuration->GetOption("message.send.max.retries"), "3");
+  EXPECT_EQ(configuration->GetOption("retry.backoff.ms"), "200");
+  EXPECT_EQ(configuration->GetOption("retry.backoff.max.ms"), "2000");
   EXPECT_EQ(configuration->GetOption("session.timeout.ms"), "3600000");
 }
 

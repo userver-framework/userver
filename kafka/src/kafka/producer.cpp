@@ -14,71 +14,71 @@ USERVER_NAMESPACE_BEGIN
 
 namespace kafka {
 
+namespace {
+
+void SendToTestPoint(std::string_view component_name,
+                     std::string_view topic_name, std::string_view key,
+                     std::string_view message,
+                     std::optional<std::uint32_t> partition) {
+  // Testpoint server does not accept non-utf8 data
+  TESTPOINT(fmt::format("tp_{}", component_name), [&] {
+    formats::json::ValueBuilder builder;
+    builder["topic"] = topic_name;
+    builder["key"] = key;
+    if (utils::text::IsUtf8(message)) {
+      builder["message"] = message;
+    }
+    if (partition.has_value()) {
+      builder["partition"] = partition.value();
+    }
+    return builder.ExtractValue();
+  }());
+}
+
+[[noreturn]] void ThrowSendError(const impl::DeliveryResult& delivery_result) {
+  const auto error = delivery_result.GetMessageError();
+  UASSERT(error != RD_KAFKA_RESP_ERR_NO_ERROR);
+
+  switch (error) {
+    case RD_KAFKA_RESP_ERR__MSG_TIMED_OUT:
+      throw DeliveryTimeoutException{};
+    case RD_KAFKA_RESP_ERR__QUEUE_FULL:
+      throw QueueFullException{};
+    case RD_KAFKA_RESP_ERR_MSG_SIZE_TOO_LARGE:
+      throw MessageTooLargeException{};
+    case RD_KAFKA_RESP_ERR__UNKNOWN_TOPIC:
+      throw kafka::UnknownTopicException{};
+    case RD_KAFKA_RESP_ERR__UNKNOWN_PARTITION:
+      throw kafka::UnknownPartitionException{};
+    default:
+      throw kafka::SendException{rd_kafka_err2str(error)};
+  }
+
+  UASSERT(false);
+}
+
+}  // namespace
+
 Producer::Producer(const std::string& name,
                    engine::TaskProcessor& producer_task_processor,
                    const impl::ProducerConfiguration& configuration,
-                   const impl::Secret& secrets, ProducerExecutionParams params)
-    : component_name_(name),
+                   const impl::Secret& secrets)
+    : name_(name),
       producer_task_processor_(producer_task_processor),
-      poll_timeout_(params.poll_timeout),
-      send_retries_(params.send_retries),
-      configuration_(std::make_unique<impl::Configuration>(name, configuration,
-                                                           secrets)) {}
+      producer_(impl::Configuration{name, configuration, secrets}) {}
 
 Producer::~Producer() {
-  LOG_INFO() << "Producer poll task is requested to cancel";
-  if (poll_task_.IsValid()) {
-    poll_task_.SyncCancel();
-  }
-
   utils::Async(producer_task_processor_, "producer_shutdown", [this] {
-    producer_.reset();
+    std::move(*producer_).WaitUntilAllMessagesDelivered();
   }).Get();
-}
-
-void Producer::InitProducerAndStartPollingIfFirstSend() const {
-  if (first_send_.load()) {
-    static engine::Mutex init_lock;
-    std::lock_guard lock{init_lock};
-
-    if (producer_ == nullptr) {
-      producer_ =
-          std::make_unique<impl::ProducerImpl>(std::move(*configuration_));
-
-      poll_task_ =
-          utils::Async(producer_task_processor_, "producer_polling", [this] {
-            ExtendCurrentSpan();
-
-            LOG_INFO() << "Producer started polling";
-
-            while (!engine::current_task::ShouldCancel()) {
-              producer_->Poll(poll_timeout_);
-            }
-          });
-
-      first_send_.store(false);
-    }
-  }
-
-  UINVARIANT(!first_send_.load() && producer_,
-             "Unsynchronized producer configuration");
-
-  VerifyNotFinished();
 }
 
 void Producer::Send(const std::string& topic_name, std::string_view key,
                     std::string_view message,
                     std::optional<std::uint32_t> partition) const {
-  InitProducerAndStartPollingIfFirstSend();
-
   utils::Async(producer_task_processor_, "producer_send",
                [this, &topic_name, key, message, partition] {
-                 ExtendCurrentSpan();
-
-                 producer_->Send(topic_name, key, message, partition,
-                                 send_retries_);
-
-                 SendToTestPoint(topic_name, key, message);
+                 SendImpl(topic_name, key, message, partition);
                })
       .Get();
 }
@@ -86,50 +86,29 @@ void Producer::Send(const std::string& topic_name, std::string_view key,
 engine::TaskWithResult<void> Producer::SendAsync(
     std::string topic_name, std::string key, std::string message,
     std::optional<std::uint32_t> partition) const {
-  InitProducerAndStartPollingIfFirstSend();
-
   return utils::Async(
       producer_task_processor_, "producer_send_async",
       [this, topic_name = std::move(topic_name), key = std::move(key),
-       message = std::move(message), partition] {
-        ExtendCurrentSpan();
-
-        producer_->Send(topic_name, key, message, partition, send_retries_);
-
-        SendToTestPoint(topic_name, key, message);
-      });
+       message = std::move(message),
+       partition] { SendImpl(topic_name, key, message, partition); });
 }
 
 void Producer::DumpMetric(utils::statistics::Writer& writer) const {
-  if (!first_send_.load()) {
-    impl::DumpMetric(writer, producer_->GetStats());
+  impl::DumpMetric(writer, producer_->GetStats());
+}
+
+void Producer::SendImpl(const std::string& topic_name, std::string_view key,
+                        std::string_view message,
+                        std::optional<std::uint32_t> partition) const {
+  tracing::Span::CurrentSpan().AddTag("kafka_producer", name_);
+
+  const impl::DeliveryResult delivery_result =
+      producer_->Send(topic_name, key, message, partition);
+  if (!delivery_result.IsSuccess()) {
+    ThrowSendError(delivery_result);
   }
-}
 
-void Producer::VerifyNotFinished() const {
-  if (!poll_task_.IsValid() || poll_task_.IsFinished()) {
-    throw std::runtime_error{
-        "Polling task is invalid or finished, message is not sent"};
-  }
-}
-
-void Producer::SendToTestPoint(std::string_view topic_name,
-                               std::string_view key,
-                               std::string_view message) const {
-  // Testpoint server does not accept non-utf8 data
-  TESTPOINT(fmt::format("tp_{}", component_name_), [&] {
-    formats::json::ValueBuilder builder;
-    builder["topic"] = topic_name;
-    builder["key"] = key;
-    if (utils::text::IsUtf8(message)) {
-      builder["message"] = message;
-    }
-    return builder.ExtractValue();
-  }());
-}
-
-void Producer::ExtendCurrentSpan() const {
-  tracing::Span::CurrentSpan().AddTag("kafka_producer", component_name_);
+  SendToTestPoint(name_, topic_name, key, message, partition);
 }
 
 }  // namespace kafka

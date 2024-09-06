@@ -1,11 +1,11 @@
 #pragma once
 
-#include <chrono>
 #include <cstdint>
 
-#include <userver/engine/task/task.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/engine/task/task_with_result.hpp>
+#include <userver/kafka/exceptions.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -22,26 +22,6 @@ struct Secret;
 
 }  // namespace impl
 
-/// @brief Parameters `Producer` uses in runtime.
-/// The struct is used only for documentation purposes, `Producer` can be
-/// created through `ProducerComponent`.
-struct ProducerExecutionParams final {
-  /// @brief Time producer waits for new delivery events.
-  std::chrono::milliseconds poll_timeout{10};
-
-  /// @brief How many times `Produce::Send*` retries when delivery
-  /// failures. Retries take place only when errors are transient.
-  ///
-  /// @remark `librdkafka` already has a retry mechanism. Moreover, user-retried
-  /// requests may lead to messages reordering or duplication. Nevertheless, the
-  /// library retries a small list of delivery errors (such as message
-  /// guaranteed timeouts), including errors those are not retried by
-  /// `librdkafka` and errors that may occur when the Kafka cluster or topic
-  /// have just been created (for instance, in tests)
-  /// @see impl/producer_impl.cpp for the list of errors retryable by library
-  std::size_t send_retries{5};
-};
-
 /// @ingroup userver_clients
 ///
 /// @brief Apache Kafka Producer Client.
@@ -54,28 +34,23 @@ struct ProducerExecutionParams final {
 /// Implementation does not block on any send to Kafka and asynchronously
 /// waits for each message to be delivered.
 ///
-/// `Producer` periodically polls the metadata about delivered messages
-/// from Kafka Broker, blocking for some time, in separate task processor.
-///
 /// `Producer` maintains the per topic statistics including the broker
 /// connection errors.
 ///
-/// @remark Destructor may block for no more than a couple of seconds to ensure
-/// all sent messages are properly delivered
+/// @remark Destructor may wait for no more than a 2 x `delivery_timeout` to
+/// ensure all sent messages are properly delivered
 ///
 /// @see https://docs.confluent.io/platform/current/clients/producer.html
 class Producer final {
  public:
   /// @brief Creates the Kafka Producer.
   ///
-  /// @param producer_task_processor where producer polls for delivery reports
-  /// and creates tasks for message delivery scheduling.
-  /// Currently, producer_task_processor **must contain at least 2
-  /// threads for each producer**
+  /// @param producer_task_processor where producer creates tasks for message
+  /// delivery scheduling and waiting.
   Producer(const std::string& name,
            engine::TaskProcessor& producer_task_processor,
            const impl::ProducerConfiguration& configuration,
-           const impl::Secret& secrets, ProducerExecutionParams params);
+           const impl::Secret& secrets);
 
   /// @brief Waits until all messages are sent for a certain timeout and destroy
   /// the inner producer.
@@ -95,19 +70,17 @@ class Producer final {
   /// No payload data is copied. Method holds the data until message is
   /// delivered.
   ///
-  /// thread-safe and can be called from any number of threads
+  /// Thread-safe and can be called from any number of threads
   /// simultaneously.
-  ///
-  /// `Producer::Send` call may take at most
-  /// `delivery_timeout` x `send_retries_count` milliseconds.
   ///
   /// If `partition` not passed, partition is chosen by internal
   /// Kafka partitioner.
   ///
   /// @warning if `enable_idempotence` option is enabled, do not use both
   /// explicit partitions and Kafka-chosen ones
-  /// @throws std::runtime_error if message is not delivery and acked by Kafka
-  /// Broker
+  ///
+  /// @throws `SendException` and its descendants if message is not delivered
+  /// and acked by Kafka Broker
   void Send(const std::string& topic_name, std::string_view key,
             std::string_view message,
             std::optional<std::uint32_t> partition = std::nullopt) const;
@@ -129,29 +102,17 @@ class Producer final {
   void DumpMetric(utils::statistics::Writer& writer) const;
 
  private:
-  void InitProducerAndStartPollingIfFirstSend() const;
-
-  void VerifyNotFinished() const;
-
-  /// @note for testsuite
-  void SendToTestPoint(std::string_view topic_name, std::string_view key,
-                       std::string_view message) const;
-
-  /// @brief Adds consumer name to current span.
-  void ExtendCurrentSpan() const;
+  void SendImpl(const std::string& topic_name, std::string_view key,
+                std::string_view message,
+                std::optional<std::uint32_t> partition) const;
 
  private:
-  const std::string component_name_;
+  const std::string name_;
   engine::TaskProcessor& producer_task_processor_;
 
-  const std::chrono::milliseconds poll_timeout_{};
-  const std::size_t send_retries_{};
-
-  mutable std::atomic<bool> first_send_{true};
-  mutable std::unique_ptr<impl::Configuration> configuration_;
-  mutable std::unique_ptr<impl::ProducerImpl>
-      producer_;                    // mutable to be created on first send
-  mutable engine::Task poll_task_;  // mutable to be created on first send
+  static constexpr std::size_t kImplSize{944};
+  static constexpr std::size_t kImplAlign{16};
+  utils::FastPimpl<impl::ProducerImpl, kImplSize, kImplAlign> producer_;
 };
 
 }  // namespace kafka

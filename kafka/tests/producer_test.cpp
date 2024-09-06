@@ -7,9 +7,9 @@
 
 #include <userver/concurrent/variable.hpp>
 #include <userver/engine/wait_all_checked.hpp>
-#include <userver/logging/log.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/async.hpp>
+#include <userver/utils/fixed_array.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -19,34 +19,130 @@ class ProducerTest : public KafkaCluster {};
 
 }  // namespace
 
-UTEST_F_MT(ProducerTest, OneProducerOneSendSync, 2) {
+UTEST_F(ProducerTest, OneProducerOneSendSync) {
   auto producer = MakeProducer("kafka-producer");
   UEXPECT_NO_THROW(producer.Send(GenerateTopic(), "test-key", "test-msg"));
 }
 
-UTEST_F_MT(ProducerTest, OneProducerOneSendAsync, 2) {
+UTEST_F(ProducerTest, OneProducerOneSendAsync) {
   auto producer = MakeProducer("kafka-producer");
   auto task = producer.SendAsync(GenerateTopic(), "test-key", "test-msg");
   UEXPECT_NO_THROW(task.Get());
 }
 
-UTEST_F_MT(ProducerTest, OneProducerManySendSync, 2) {
-  auto producer = MakeProducer("kafka-producer");
+UTEST_F(ProducerTest, BrokenConfiguration) {
+  kafka::impl::ProducerConfiguration producer_configuration{};
+  producer_configuration.delivery_timeout = std::chrono::milliseconds{1};
+  producer_configuration.queue_buffering_max = std::chrono::milliseconds{7};
 
+  UEXPECT_THROW(MakeProducer("kafka-producer", producer_configuration),
+                std::runtime_error);
+}
+
+UTEST_F(ProducerTest, TooLargeMessage) {
+  constexpr std::uint32_t kMessageMaxBytes{3000};
+
+  kafka::impl::ProducerConfiguration producer_configuration{};
+  producer_configuration.message_max_bytes = kMessageMaxBytes;
+  producer_configuration.rd_kafka_options["debug"] = "all";
+
+  auto producer = MakeProducer("kafka-producer", producer_configuration);
+  UEXPECT_NO_THROW(
+      producer.Send(GenerateTopic(), "small-key", "small-message"));
+
+  const std::string big_key(kMessageMaxBytes, 'k');
+  const std::string big_message(kMessageMaxBytes, 'm');
+  UEXPECT_THROW(producer.Send(GenerateTopic(), big_key, big_message),
+                kafka::MessageTooLargeException);
+}
+
+UTEST_F(ProducerTest, UnknownPartition) {
+  auto producer = MakeProducer("kafka-producer");
+  UEXPECT_THROW(producer.Send(GenerateTopic(), "test-key", "test-msg",
+                              /*partition=*/100500),
+                kafka::UnknownPartitionException);
+}
+
+UTEST_F(ProducerTest, FullQueue) {
+  constexpr std::uint32_t kMaxQueueMessages{7};
+
+  kafka::impl::ProducerConfiguration producer_configuration{};
+  producer_configuration.delivery_timeout = std::chrono::seconds{6};
+  producer_configuration.queue_buffering_max = std::chrono::seconds{3};
+  producer_configuration.queue_buffering_max_messages = kMaxQueueMessages;
+
+  auto producer = MakeProducer("kafka-producer", producer_configuration);
+  const std::string topic = GenerateTopic();
+
+  std::vector<engine::TaskWithResult<void>> results;
+  results.reserve(kMaxQueueMessages);
+  for (std::uint32_t send{0}; send < kMaxQueueMessages; ++send) {
+    results.emplace_back(producer.SendAsync(topic,
+                                            fmt::format("test-key-{}", send),
+                                            fmt::format("test-msg-{}", send)));
+  }
+  UEXPECT_THROW(
+      producer.Send(topic, fmt::format("test-key-{}", kMaxQueueMessages),
+                    fmt::format("test-msg-{}", kMaxQueueMessages)),
+      kafka::QueueFullException);
+
+  UEXPECT_NO_THROW(engine::WaitAllChecked(results));
+}
+
+UTEST_F(ProducerTest, SendCancel) {
+  kafka::impl::ProducerConfiguration producer_configuration{};
+  producer_configuration.delivery_timeout = std::chrono::seconds{6};
+  producer_configuration.queue_buffering_max = std::chrono::seconds{3};
+
+  auto producer = MakeProducer("kafka-producer", producer_configuration);
+
+  auto send_task = producer.SendAsync(GenerateTopic(), "test-key", "test-msg");
+  send_task.RequestCancel();
+  UEXPECT_NO_THROW(send_task.Wait());
+}
+
+UTEST_F(ProducerTest, WaitingForMessageDelivery) {
   constexpr std::size_t kSendCount{100};
 
+  kafka::impl::ProducerConfiguration producer_configuration{};
+  producer_configuration.delivery_timeout = std::chrono::milliseconds{1500};
+  producer_configuration.queue_buffering_max = std::chrono::milliseconds{1000};
+
+  auto producer = std::make_unique<kafka::Producer>(
+      utils::LazyPrvalue([this] { return MakeProducer("kafka-producer"); }));
+
+  auto send_tasks = utils::GenerateFixedArray(
+      kSendCount, [&producer, topic = GenerateTopic()](std::size_t i) {
+        return producer->SendAsync(topic, fmt::format("test-key-{}", i),
+                                   fmt::format("test-msg-{}", i));
+      });
+  /// queue_buffering_max is set to 1 seconds, therefore SendAsyncs waits for
+  /// at least 1 second, so `producer.reset()` are invoked faster than
+  /// SendAsyncs deliver the message.
+  auto destroy_task = engine::AsyncNoSpan(
+      [producer = std::move(producer)]() mutable { producer.reset(); });
+
+  UEXPECT_NO_THROW(destroy_task.Get());
+  UEXPECT_NO_THROW(engine::WaitAllChecked(send_tasks));
+}
+
+UTEST_F(ProducerTest, OneProducerManySendSync) {
+  constexpr std::size_t kSendCount{100};
+
+  auto producer = MakeProducer("kafka-producer");
   const auto topic = GenerateTopic();
+
   for (std::size_t send{0}; send < kSendCount; ++send) {
     UEXPECT_NO_THROW(producer.Send(topic, fmt::format("test-key-{}", send),
-                                   fmt::format("test-msg-{}", send)));
+                                   fmt::format("test-msg-{}", send)))
+        << send;
   }
 }
 
-UTEST_F_MT(ProducerTest, OneProducerManySendAsync, 2) {
-  auto producer = MakeProducer("kafka-producer");
-
+UTEST_F(ProducerTest, OneProducerManySendAsync) {
   constexpr std::size_t kSendCount{100};
 
+  auto producer = MakeProducer("kafka-producer");
   const auto topic = GenerateTopic();
 
   std::vector<engine::TaskWithResult<void>> results;
@@ -60,36 +156,61 @@ UTEST_F_MT(ProducerTest, OneProducerManySendAsync, 2) {
   UEXPECT_NO_THROW(engine::WaitAllChecked(results));
 }
 
-UTEST_F_MT(ProducerTest, ManyProducersManySendSync, 1 + 4) {
+UTEST_F(ProducerTest, ManyProducersManySendSync) {
   constexpr std::size_t kProducerCount{4};
+  constexpr std::size_t kSendCount{100};
+  constexpr std::size_t kTopicCount{kSendCount / 10};
+
+  kafka::impl::ProducerConfiguration producer_configuration{};
+  producer_configuration.queue_buffering_max = std::chrono::seconds{0};
   const std::deque<kafka::Producer> producers = MakeProducers(
       kProducerCount,
-      [](std::size_t i) { return fmt::format("kafka-producer-{}", i); });
-
-  constexpr std::size_t kSendCount{300};
-  constexpr std::size_t kTopicCount{kSendCount / 10};
+      [](std::size_t i) { return fmt::format("kafka-producer-{}", i); },
+      producer_configuration);
   const std::vector<std::string> topics = GenerateTopics(kTopicCount);
 
   for (std::size_t send{0}; send < kSendCount; ++send) {
     const auto& topic = topics.at(send % kTopicCount);
     auto& producer = producers.at(send % kProducerCount);
     UEXPECT_NO_THROW(producer.Send(topic, fmt::format("test-key-{}", send),
-                                   fmt::format("test-msg-{}", send)));
+                                   fmt::format("test-msg-{}", send)))
+        << send;
   }
 }
 
-UTEST_F_MT(ProducerTest, ManyProducersManySendAsync, 4 + 4) {
-  constexpr std::size_t kProducerCount{4};
+UTEST_F(ProducerTest, ManyProducersManySendAsyncSingleThread) {
+  constexpr std::size_t kProducerCount{10};
+  constexpr std::size_t kSendCount{1000};
 
   const std::deque<kafka::Producer> producers = MakeProducers(
       kProducerCount,
       [](std::size_t i) { return fmt::format("kafka-producer-{}", i); });
+  const std::string topic = GenerateTopic();
 
+  std::vector<engine::TaskWithResult<void>> results;
+  results.reserve(kSendCount);
+  for (std::size_t send{0}; send < kSendCount; ++send) {
+    auto& producer = producers.at(send % kProducerCount);
+    results.emplace_back(producer.SendAsync(topic,
+                                            fmt::format("test-key-{}", send),
+                                            fmt::format("test-msg-{}", send)));
+  }
+
+  UEXPECT_NO_THROW(engine::WaitAllChecked(results));
+}
+
+UTEST_F_MT(ProducerTest, ManyProducersManySendAsync, 4 + 4) {
+  constexpr std::size_t kProducerCount{4};
   constexpr std::size_t kSendCount{300};
   constexpr std::size_t kTopicCount{kSendCount / 10};
+
+  const std::deque<kafka::Producer> producers = MakeProducers(
+      kProducerCount,
+      [](std::size_t i) { return fmt::format("kafka-producer-{}", i); });
   const std::vector<std::string> topics = GenerateTopics(kTopicCount);
 
   std::vector<engine::TaskWithResult<void>> results;
+  results.reserve(kSendCount);
   for (std::size_t send{0}; send < kSendCount; ++send) {
     const auto& topic = topics.at(send % kTopicCount);
     auto& producer = producers.at(send % kProducerCount);
@@ -110,9 +231,9 @@ UTEST_F_MT(ProducerTest, OneProducerManySendSyncMt, 1 + 4) {
 
   std::vector<engine::TaskWithResult<void>> results;
   results.reserve(kSendCount);
-  for (std::size_t send{0}; send < kSendCount; ++send) {
+  for (std::size_t send{0}; send + 1 < GetThreadCount(); ++send) {
     results.emplace_back(
-        utils::Async("producer_test_send_send",
+        utils::Async(fmt::format("producer_test_send_sync_{}", send),
                      [send, &producer, &topic = topics.at(send % kTopicCount)] {
                        producer.Send(topic, fmt::format("test-key-{}", send),
                                      fmt::format("test-msg-{}", send));
@@ -125,16 +246,17 @@ UTEST_F_MT(ProducerTest, OneProducerManySendSyncMt, 1 + 4) {
 UTEST_F_MT(ProducerTest, OneProducerManySendAsyncMt, 1 + 4) {
   auto producer = MakeProducer("kafka-producer");
 
-  constexpr std::size_t kSendCount{100};
+  constexpr std::size_t kSendCount{1000};
   constexpr std::size_t kTopicCount{4};
   constexpr std::size_t kSendPerTask{kSendCount / kTopicCount};
   const std::vector<std::string> topics = GenerateTopics(kTopicCount);
 
   std::vector<engine::TaskWithResult<void>> parallel_tasks;
   concurrent::Variable<std::vector<engine::TaskWithResult<void>>> results;
-  for (std::size_t group{0}; group < kTopicCount; ++group) {
+  for (std::size_t group{0}; group + 1 < GetThreadCount(); ++group) {
     parallel_tasks.emplace_back(utils::Async(
-        "producer_test_send_async", [&producer, &results, &topics] {
+        fmt::format("producer_test_send_async_{}", group),
+        [&producer, &results, &topics] {
           for (std::size_t send{0}; send < kSendPerTask; ++send) {
             auto task = producer.SendAsync(topics.at(send % topics.size()),
                                            fmt::format("test-key-{}", send),
