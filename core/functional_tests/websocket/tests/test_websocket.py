@@ -69,8 +69,8 @@ async def test_too_big(websocket_client):
 
 async def test_origin(service_client, service_port):
     async with websockets.connect(
-            f'ws://localhost:{service_port}/chat',
-            extra_headers={'Origin': 'localhost'},
+        f'ws://localhost:{service_port}/chat',
+        extra_headers={'Origin': 'localhost'},
     ) as chat:
         response = await chat.recv()
         assert response == 'localhost'

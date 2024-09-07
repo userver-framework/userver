@@ -48,7 +48,7 @@ async def test_get_settings_from_static_config(service_client):
 
 
 async def test_get_settings_from_dynamic_config(
-        service_client, dynamic_config,
+    service_client, dynamic_config,
 ):
     async with service_client.capture_logs() as capture:
         operation_settings = {
@@ -60,9 +60,9 @@ async def test_get_settings_from_dynamic_config(
                 'get-session-timeout-ms': 5002,
             },
         }
-        dynamic_config.set_values(
-            {'YDB_QUERIES_COMMAND_CONTROL': operation_settings},
-        )
+        dynamic_config.set_values({
+            'YDB_QUERIES_COMMAND_CONTROL': operation_settings,
+        })
         await service_client.update_server_state()
 
         response = await service_client.post(

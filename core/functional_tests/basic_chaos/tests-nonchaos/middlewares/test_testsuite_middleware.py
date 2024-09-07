@@ -17,7 +17,7 @@ async def test_testsuite_middleware(service_client):
     assert len(logs) == 2
     assert (
         logs[0]['text']
-        == 'exception in \'handler-chaos-httpserver-with-exception\' handler: some runtime error (std::runtime_error)'
+        == "exception in 'handler-chaos-httpserver-with-exception' handler: some runtime error (std::runtime_error)"
     )
 
     assert json.loads(logs[1]['body']) == testsuite_response

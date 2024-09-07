@@ -172,13 +172,13 @@ def format_pp(input_: str, *, binary: str) -> str:
 
 class OneToOneFileRenderer:
     def __init__(
-            self,
-            *,
-            relative_to: str,
-            vfilepath_to_relfilepath: Dict[str, str],
-            clang_format_bin: str,
-            parse_extra_formats: bool = False,
-            generate_serializer: bool = False,
+        self,
+        *,
+        relative_to: str,
+        vfilepath_to_relfilepath: Dict[str, str],
+        clang_format_bin: str,
+        parse_extra_formats: bool = False,
+        generate_serializer: bool = False,
     ) -> None:
         self._relative_to = relative_to
         self._vfilepath_to_relfilepath_map = vfilepath_to_relfilepath
@@ -195,14 +195,14 @@ class OneToOneFileRenderer:
         return self._vfilepath_to_relfilepath_map[vfilepath]
 
     def extract_external_includes(
-            self,
-            types_cpp: Dict[str, cpp_types.CppType],
-            ignore_filepath_wo_ext: str,
+        self,
+        types_cpp: Dict[str, cpp_types.CppType],
+        ignore_filepath_wo_ext: str,
     ) -> List[str]:
         result = set()
 
         def visitor(
-                schema: types.Schema, _parent: Optional[types.Schema],
+            schema: types.Schema, _parent: Optional[types.Schema],
         ) -> None:
             if not isinstance(schema, types.Ref):
                 return
@@ -229,10 +229,10 @@ class OneToOneFileRenderer:
             return filepath_wo_ext + '.hpp'
 
     def render(
-            self,
-            types: Dict[str, cpp_types.CppType],
-            local_pair_header=True,
-            pair_header: Optional[str] = None,
+        self,
+        types: Dict[str, cpp_types.CppType],
+        local_pair_header=True,
+        pair_header: Optional[str] = None,
     ) -> List[CppOutput]:
         files: Dict[str, Dict[str, cpp_types.CppType]] = (
             collections.defaultdict(dict)

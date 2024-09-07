@@ -121,7 +121,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def generate_cpp_name_func(
-        name_map: List[NameMapItem], erase_prefix: str,
+    name_map: List[NameMapItem], erase_prefix: str,
 ) -> Callable:
     def cpp_name_func(schema_name: str) -> str:
         for item in name_map:
@@ -173,7 +173,7 @@ def traverse_dfs(path: str, data: Any):
 
 
 def extract_schemas_to_scan(
-        inp: dict, name_map: List[NameMapItem],
+    inp: dict, name_map: List[NameMapItem],
 ) -> Dict[str, Any]:
     schemas = []
 
@@ -196,11 +196,11 @@ def extract_schemas_to_scan(
 
 
 def read_schemas(
-        erase_path_prefix: str,
-        filepaths: List[str],
-        name_map,
-        file_map,
-        dependencies: List[types.ResolvedSchemas] = [],
+    erase_path_prefix: str,
+    filepaths: List[str],
+    name_map,
+    file_map,
+    dependencies: List[types.ResolvedSchemas] = [],
 ) -> types.ResolvedSchemas:
     config = front_parser.ParserConfig(erase_prefix=erase_path_prefix)
     rr = ref_resolver.RefResolver()
@@ -217,7 +217,7 @@ def read_schemas(
             config=config, full_filepath=fname, full_vfilepath=vfilepath,
         )
         for path, obj in rr.sort_json_types(
-                scan_objects, erase_path_prefix,
+            scan_objects, erase_path_prefix,
         ).items():
             parser.parse_schema(path.rstrip('/'), obj)
         schemas.append(parser.parsed_schemas())

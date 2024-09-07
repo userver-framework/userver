@@ -15,14 +15,14 @@ async def test_http2_ping(http2_client):
 
 
 async def test_big_body(http2_client):
-    s = 'x' * 2 ** 22  # request - 4Mib. limit - 2Mib
+    s = 'x' * 2**22  # request - 4Mib. limit - 2Mib
     r = await http2_client.get(
         DEFAULT_PATH, params={'type': 'echo-body'}, data=s,
     )
     assert 413 == r.status_code
     assert 'too large request' == r.text
 
-    s = 'x' * 2 ** 20  # request - 1Mib. limit - 2Mib
+    s = 'x' * 2**20  # request - 1Mib. limit - 2Mib
     r = await http2_client.get(
         DEFAULT_PATH, params={'type': 'echo-body'}, data=s,
     )
@@ -70,7 +70,7 @@ async def _request(client, req_per_client, count=1):
 
 
 async def test_concurrent_requests(
-        http2_client, service_client, monitor_client,
+    http2_client, service_client, monitor_client,
 ):
     current_streams = await _get_metric(monitor_client, 'streams-count')
     clients_count = 10
@@ -93,12 +93,12 @@ async def test_concurrent_requests(
 
 
 async def test_concurrent_requests_with_big_body(
-        http2_client, service_client, monitor_client,
+    http2_client, service_client, monitor_client,
 ):
     current_streams = await _get_metric(monitor_client, 'streams-count')
     clients_count = 5
     req_per_client = 10
-    count = int((2 ** 20) / 128)  # 1Mib / size(uuid)
+    count = int((2**20) / 128)  # 1Mib / size(uuid)
     tasks = [
         _request(http2_client, req_per_client, count)
         for _ in range(clients_count)

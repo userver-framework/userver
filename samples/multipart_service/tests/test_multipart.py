@@ -28,4 +28,4 @@ async def test_ok(service_client, load_binary):
 async def test_bad_content_type(service_client):
     response = await service_client.post('/v1/multipart', data='{}')
     assert response.status == 400
-    assert response.content == b'Expected \'multipart/form-data\' content type'
+    assert response.content == b"Expected 'multipart/form-data' content type"

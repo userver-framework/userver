@@ -99,12 +99,12 @@ class CacheControlRequest:
 
 class CacheControl:
     def __init__(
-            self,
-            *,
-            enabled: bool,
-            context: typing.Dict,
-            fixtures: typing.List[str],
-            caches_disabled: typing.Set[str],
+        self,
+        *,
+        enabled: bool,
+        context: typing.Dict,
+        fixtures: typing.List[str],
+        caches_disabled: typing.Set[str],
     ):
         self._enabled = enabled
         self._context = context
@@ -112,7 +112,7 @@ class CacheControl:
         self._caches_disabled = caches_disabled
 
     def query_caches(
-            self, cache_names: typing.Optional[typing.List[str]],
+        self, cache_names: typing.Optional[typing.List[str]],
     ) -> typing.Tuple[
         typing.Dict, typing.List[typing.Tuple[str, CacheControlAction]],
     ]:
@@ -170,7 +170,7 @@ def _userver_cache_control_context() -> typing.Dict:
 
 @pytest.fixture
 def _userver_cache_fixtures(
-        pytestconfig, request,
+    pytestconfig, request,
 ) -> typing.Dict[str, typing.Callable]:
     plugin: UserverCachePlugin = pytestconfig.pluginmanager.get_plugin(
         'userver_cache',
@@ -183,7 +183,7 @@ def _userver_cache_fixtures(
 
 @pytest.fixture
 def userver_cache_control(
-        _userver_cache_control_context, _userver_cache_fixtures, request,
+    _userver_cache_control_context, _userver_cache_fixtures, request,
 ) -> typing.Callable[[DaemonInstance], CacheControl]:
     """Userver cache control handler.
 
@@ -215,7 +215,7 @@ def userver_cache_control(
     caches_disabled = set()
 
     def userver_cache_control_disabled(
-            caches: typing.Sequence[str] = None, *, reason: str,
+        caches: typing.Sequence[str] = None, *, reason: str,
     ):
         if caches is not None:
             caches_disabled.update(caches)

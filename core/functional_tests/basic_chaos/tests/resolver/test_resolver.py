@@ -20,10 +20,10 @@ class CheckQuery(enum.Enum):
 @pytest.fixture(name='call')
 def _call(service_client, gen_domain_name, dns_mock_stats):
     async def _call(
-            resolve: typing.Optional[str] = None,
-            htype: str = 'resolve',
-            check_query: CheckQuery = CheckQuery.NO_CHECK,
-            **args,
+        resolve: typing.Optional[str] = None,
+        htype: str = 'resolve',
+        check_query: CheckQuery = CheckQuery.NO_CHECK,
+        **args,
     ):
         if not resolve:
             resolve = gen_domain_name()

@@ -24,7 +24,7 @@ def make_conn(cert=True):
 async def test_cert_ok(service_client, service_port):
     async with aiohttp.ClientSession(connector=make_conn()) as session:
         async with session.get(
-                f'https://localhost:{service_port}/hello',
+            f'https://localhost:{service_port}/hello',
         ) as response:
             assert response.status == 200
             assert 'text/plain' in response.headers['Content-Type']
@@ -35,10 +35,10 @@ async def test_cert_ok(service_client, service_port):
 async def test_no_cert(service_client, service_port):
     try:
         async with aiohttp.ClientSession(
-                connector=make_conn(cert=False),
+            connector=make_conn(cert=False),
         ) as session:
             async with session.get(
-                    f'https://localhost:{service_port}/hello',
+                f'https://localhost:{service_port}/hello',
             ) as _:
                 assert False
     except aiohttp.client_exceptions.ClientOSError:
@@ -61,10 +61,10 @@ def make_conn_invalid():
 async def test_invalid_cert(service_client, service_port):
     try:
         async with aiohttp.ClientSession(
-                connector=make_conn_invalid(),
+            connector=make_conn_invalid(),
         ) as session:
             async with session.get(
-                    f'https://localhost:{service_port}/hello',
+                f'https://localhost:{service_port}/hello',
             ) as _:
                 assert False
     except aiohttp.client_exceptions.ClientOSError:

@@ -1,9 +1,9 @@
 async def _check_metrics(
-        monitor_client,
-        account_ok,
-        account_fail,
-        approx_token_count,
-        max_token_count,
+    monitor_client,
+    account_ok,
+    account_fail,
+    approx_token_count,
+    max_token_count,
 ):
     metrics = await monitor_client.metrics(prefix='ydb.retry_budget')
     assert len(metrics) == 4
@@ -99,7 +99,7 @@ async def test_retry_budget(dynamic_config, service_client, monitor_client):
 
 
 async def test_retry_budget_success_limit(
-        dynamic_config, service_client, monitor_client,
+    dynamic_config, service_client, monitor_client,
 ):
     approx_token_count = await _get_current_metric(
         monitor_client, 'approx_token_count',

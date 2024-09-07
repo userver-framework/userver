@@ -14,7 +14,7 @@ MESSAGE_TO_FAIL = 'please-start-failing'
 
 
 async def test_rebalance_after_failure(
-        service_client, testpoint, kafka_producer,
+    service_client, testpoint, kafka_producer,
 ):
     @testpoint('tp_kafka-consumer-first')
     def first_consumer_received(_data):
@@ -101,7 +101,7 @@ async def test_rebalance_after_failure(
 
 
 async def test_message_reprocessed_after_failure(
-        service_client, testpoint, kafka_producer,
+    service_client, testpoint, kafka_producer,
 ):
     @testpoint('tp_kafka-consumer-second')
     def second_consumer_received(_data):
