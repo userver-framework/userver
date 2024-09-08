@@ -3220,6 +3220,7 @@
   "scripts/docs/en/deps/ubuntu-20.04.md":"taxi/uservices/userver/scripts/docs/en/deps/ubuntu-20.04.md",
   "scripts/docs/en/deps/ubuntu-21.10.md":"taxi/uservices/userver/scripts/docs/en/deps/ubuntu-21.10.md",
   "scripts/docs/en/deps/ubuntu-22.04.md":"taxi/uservices/userver/scripts/docs/en/deps/ubuntu-22.04.md",
+  "scripts/docs/en/deps/ubuntu-24.04.md":"taxi/uservices/userver/scripts/docs/en/deps/ubuntu-24.04.md",
   "scripts/docs/en/index.md":"taxi/uservices/userver/scripts/docs/en/index.md",
   "scripts/docs/en/landing.md":"taxi/uservices/userver/scripts/docs/en/landing.md",
   "scripts/docs/en/schemas/dynamic_configs.md":"taxi/uservices/userver/scripts/docs/en/schemas/dynamic_configs.md",

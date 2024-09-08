@@ -47,7 +47,8 @@ class UuidV7Generator {
       current_timestamp = previous_timestamp_;
 
       // Fill var and rand_b with random data
-      GenerateRandomBlock(utils::span<std::uint8_t>(uuid.data).subspan(8));
+      GenerateRandomBlock(
+          utils::span<std::uint8_t>(uuid.begin(), uuid.end()).subspan(8));
 
       // Fill rand_a and rand_b with counter data
 
@@ -62,7 +63,8 @@ class UuidV7Generator {
                      static_cast<std::uint8_t>(sequence_counter_ << 4);
     } else {
       // fill ver, rand_a, var and rand_b with random data
-      GenerateRandomBlock(utils::span<std::uint8_t>(uuid.data).subspan(6));
+      GenerateRandomBlock(
+          utils::span<std::uint8_t>(uuid.begin(), uuid.end()).subspan(6));
 
       // Keep most significant bit of a counter initialized as zero
       // for guarding against counter rollover.
