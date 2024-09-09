@@ -2582,6 +2582,7 @@
   "postgresql/src/storages/postgres/tests/portal_pgtest.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/tests/portal_pgtest.cpp",
   "postgresql/src/storages/postgres/tests/query_params_test.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/tests/query_params_test.cpp",
   "postgresql/src/storages/postgres/tests/query_queue_pgtest.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/tests/query_queue_pgtest.cpp",
+  "postgresql/src/storages/postgres/tests/query_short_info_test.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/tests/query_short_info_test.cpp",
   "postgresql/src/storages/postgres/tests/range_types_pgtest.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/tests/range_types_pgtest.cpp",
   "postgresql/src/storages/postgres/tests/result_set_pgtest.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/tests/result_set_pgtest.cpp",
   "postgresql/src/storages/postgres/tests/string_pgtest.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/tests/string_pgtest.cpp",

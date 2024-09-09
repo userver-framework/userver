@@ -576,6 +576,35 @@ class CaseFirstIndexer final {
   std::size_t index_ = 0;
 };
 
+template <typename First>
+class CaseFirstIndexerICase final {
+ public:
+  constexpr explicit CaseFirstIndexerICase(First search_value) noexcept
+      : state_(search_value) {}
+
+  constexpr CaseFirstIndexerICase& Case(First first) noexcept {
+    if (!state_.IsFound() && state_.GetKey().size() == first.size() &&
+        impl::ICaseEqualLowercase(first, state_.GetKey())) {
+      state_.SetValue(index_);
+    }
+    ++index_;
+    return *this;
+  }
+
+  template <typename T, typename U = void>
+  constexpr CaseFirstIndexerICase& Type() {
+    return *this;
+  }
+
+  [[nodiscard]] constexpr std::optional<std::size_t> Extract() && noexcept {
+    return state_.Extract();
+  }
+
+ private:
+  SearchState<First, std::size_t> state_;
+  std::size_t index_ = 0;
+};
+
 }  // namespace impl
 
 /// @ingroup userver_universal userver_containers
@@ -856,6 +885,13 @@ class TrivialSet final {
   /// value.
   constexpr std::optional<std::size_t> GetIndex(First value) const {
     return func_([value]() { return impl::CaseFirstIndexer{value}; }).Extract();
+  }
+
+  /// Returns index of the case insensitive value in Case parameters or
+  /// std::nullopt if no such value.
+  constexpr std::optional<std::size_t> GetIndexICase(First value) const {
+    return func_([value]() { return impl::CaseFirstIndexerICase{value}; })
+        .Extract();
   }
 
  private:

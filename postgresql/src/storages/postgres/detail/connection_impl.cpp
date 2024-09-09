@@ -1,7 +1,10 @@
+#include <cctype>
 #include <storages/postgres/detail/connection_impl.hpp>
 
 #include <boost/functional/hash.hpp>
 
+#include <string>
+#include <string_view>
 #include <userver/error_injection/hook.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/testsuite/testpoint.hpp>
@@ -12,6 +15,7 @@
 #include <userver/utils/rand.hpp>
 #include <userver/utils/scope_guard.hpp>
 #include <userver/utils/text_light.hpp>
+#include <userver/utils/trivial_map.hpp>
 #include <userver/utils/uuid4.hpp>
 
 #include <storages/postgres/detail/tracing_tags.hpp>
@@ -41,6 +45,11 @@ const Query kSetConfigQuery{fmt::format("SELECT set_config($1, $2, $3) as {}",
 // we hope lc_messages is en_US, we don't control it anyway
 const std::string kBadCachedPlanErrorMessage =
     "cached plan must not change result type";
+
+bool IsWordBorder(char c) {
+  return !std::isalnum(static_cast<unsigned char>(c)) && c != '"' && c != '_' &&
+         c != '-';
+}
 
 std::size_t QueryHash(const std::string& statement,
                       const QueryParameters& params) {
@@ -166,6 +175,28 @@ void CheckQueryParameters(const std::string& statement,
 }
 
 }  // namespace
+
+// retuns the first word; if it is "with" returns all words before "as"
+std::string FindQueryShortInfo(std::string_view prefix, std::string_view str) {
+  const std::size_t max_search_depth = std::min(std::size_t{128}, str.size());
+  const auto end_it = str.begin() + max_search_depth;
+
+  const auto start = std::find_if_not(str.begin(), end_it, IsWordBorder);
+  const auto end = std::find_if(start, end_it, IsWordBorder);
+  const std::string_view command{start, static_cast<std::size_t>(end - start)};
+
+  static constexpr std::string_view kCommands[] = {
+      "select", "insert", "update", "with",     "create",
+      "alter",  "begin",  "commit", "rollback",
+  };
+  static constexpr auto kKnownCommands =
+      USERVER_NAMESPACE::utils::MakeTrivialSet<kCommands>();
+  if (const auto match = kKnownCommands.GetIndexICase(command); match) {
+    return fmt::format("{}:{}", prefix, kCommands[*match]);
+  }
+
+  return std::string{prefix};
+}
 
 struct ConnectionImpl::ResetTransactionCommandControl {
   ConnectionImpl& connection;
@@ -457,8 +488,7 @@ Connection::StatementId ConnectionImpl::PortalBind(
   TimeoutDuration network_timeout = ExecuteTimeout(statement_cmd_ctl);
   auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(network_timeout);
   SetStatementTimeout(std::move(statement_cmd_ctl));
-
-  tracing::Span span{scopes::kQuery};
+  tracing::Span span{FindQueryShortInfo(scopes::kBind, statement)};
   conn_wrapper_.FillSpanTags(span, {network_timeout, GetStatementTimeout()});
   span.AddTag(tracing::kDatabaseStatement, statement);
   CheckDeadlineReached(deadline);
@@ -489,8 +519,8 @@ ResultSet ConnectionImpl::PortalExecute(
   UASSERT_MSG(prepared_info,
               "Portal execute uses statement id that is absent in prepared "
               "statements");
-
-  tracing::Span span{scopes::kQuery};
+  tracing::Span span{
+      FindQueryShortInfo(scopes::kExec, prepared_info->statement)};
   conn_wrapper_.FillSpanTags(span, {network_timeout, GetStatementTimeout()});
   span.AddTag(tracing::kDatabaseStatement, prepared_info->statement);
   if (deadline.IsReached()) {
@@ -639,7 +669,7 @@ void ConnectionImpl::CheckDeadlineReached(const engine::Deadline& deadline) {
 
 tracing::Span ConnectionImpl::MakeQuerySpan(const Query& query,
                                             const CommandControl& cc) const {
-  tracing::Span span{scopes::kQuery};
+  tracing::Span span{FindQueryShortInfo(scopes::kQuery, query.Statement())};
   conn_wrapper_.FillSpanTags(span, cc);
   query.FillSpanTags(span);
   return span;
@@ -870,7 +900,7 @@ const ConnectionImpl::PreparedStatementInfo& ConnectionImpl::PrepareStatement(
 
   const auto& statement = query.Statement();
 
-  tracing::Span span{scopes::kQuery};
+  tracing::Span span{FindQueryShortInfo(scopes::kPrepare, query.Statement())};
   conn_wrapper_.FillSpanTags(span, {timeout, GetStatementTimeout()});
   span.AddTag(tracing::kDatabaseStatement, statement);
 
