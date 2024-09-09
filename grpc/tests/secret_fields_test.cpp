@@ -4,7 +4,7 @@
 #include <ugrpc/server/middlewares/log/middleware.hpp>
 #include <userver/ugrpc/tests/service_fixtures.hpp>
 #include <userver/utest/log_capture_fixture.hpp>
-#include <userver/utils/text_light.hpp>
+#include <userver/utils/flags.hpp>
 
 #include <tests/secret_fields_client.usrv.pb.hpp>
 #include <tests/secret_fields_service.usrv.pb.hpp>
@@ -35,20 +35,35 @@ class Messenger final : public sample::ugrpc::MessengerBase {
   }
 };
 
-class SecretFieldsServiceFixture : public ugrpc::tests::ServiceFixtureBase {
+enum class MiddlewareFlag {
+  kNone = 0,
+  kClientLog = 1 << 0,
+  kServerLog = 1 << 1,
+};
+
+using MiddlewareFlags = utils::Flags<MiddlewareFlag>;
+
+class SecretFieldsServiceFixture
+    : public ugrpc::tests::ServiceFixtureBase,
+      public testing::WithParamInterface<MiddlewareFlags> {
  protected:
   SecretFieldsServiceFixture() {
-    ugrpc::server::middlewares::log::Settings server_log_settings;
-    server_log_settings.msg_log_level = logging::Level::kInfo;
-    SetServerMiddlewares(
-        {std::make_shared<ugrpc::server::middlewares::log::Middleware>(
-            server_log_settings)});
+    if (GetParam() & MiddlewareFlag::kServerLog) {
+      ugrpc::server::middlewares::log::Settings server_log_settings;
+      server_log_settings.msg_log_level = logging::Level::kInfo;
+      SetServerMiddlewares(
+          {std::make_shared<ugrpc::server::middlewares::log::Middleware>(
+              server_log_settings)});
+    }
 
-    ugrpc::client::middlewares::log::Settings client_log_settings;
-    client_log_settings.msg_log_level = logging::Level::kInfo;
-    SetClientMiddlewareFactories(
-        {std::make_shared<ugrpc::client::middlewares::log::MiddlewareFactory>(
-            client_log_settings)});
+    if (GetParam() & MiddlewareFlag::kClientLog) {
+      ugrpc::client::middlewares::log::Settings client_log_settings;
+      client_log_settings.log_level = logging::Level::kInfo;
+      client_log_settings.msg_log_level = logging::Level::kInfo;
+      SetClientMiddlewareFactories(
+          {std::make_shared<ugrpc::client::middlewares::log::MiddlewareFactory>(
+              client_log_settings)});
+    }
 
     RegisterService(service_);
     StartServer();
@@ -71,7 +86,7 @@ bool ContainInLog(const utest::LogCaptureLogger& log_capture,
 
 }  // namespace
 
-UTEST_F(SecretFieldsTest, MiddlewaresHideSecrets) {
+UTEST_P(SecretFieldsTest, MiddlewaresHideSecrets) {
   const auto client = MakeClient<sample::ugrpc::MessengerClient>();
 
   sample::ugrpc::SendRequest request;
@@ -86,6 +101,9 @@ UTEST_F(SecretFieldsTest, MiddlewaresHideSecrets) {
   EXPECT_EQ(kResponseText, response.reply().text());
   EXPECT_EQ(kToken, response.token());
 
+  // Ensure that server logs get written.
+  GetServer().StopServing();
+
   const auto logs_contain = [&log_capture =
                                  GetLogCapture()](std::string_view needle) {
     return ContainInLog(log_capture, needle);
@@ -94,13 +112,18 @@ UTEST_F(SecretFieldsTest, MiddlewaresHideSecrets) {
   const auto all_logs = GetLogCapture().GetAll();
 
   EXPECT_TRUE(logs_contain(kLogin)) << all_logs;
-  EXPECT_FALSE(logs_contain(kPassword));
-  EXPECT_FALSE(logs_contain(kSecretCode));
-  EXPECT_TRUE(logs_contain(kDest));
-  EXPECT_TRUE(logs_contain(kRequestText));
+  EXPECT_FALSE(logs_contain(kPassword)) << all_logs;
+  EXPECT_FALSE(logs_contain(kSecretCode)) << all_logs;
+  EXPECT_TRUE(logs_contain(kDest)) << all_logs;
+  EXPECT_TRUE(logs_contain(kRequestText)) << all_logs;
 
-  EXPECT_TRUE(logs_contain(kResponseText));
-  EXPECT_FALSE(logs_contain(kToken));
+  EXPECT_TRUE(logs_contain(kResponseText)) << all_logs;
+  EXPECT_FALSE(logs_contain(kToken)) << all_logs;
 }
+
+INSTANTIATE_UTEST_SUITE_P(
+    /*no prefix*/, SecretFieldsTest,
+    testing::Values(MiddlewareFlags{MiddlewareFlag::kClientLog},
+                    MiddlewareFlags{MiddlewareFlag::kServerLog}));
 
 USERVER_NAMESPACE_END
