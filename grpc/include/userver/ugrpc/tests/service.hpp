@@ -83,6 +83,7 @@ class ServiceBase {
 
   utils::statistics::Storage statistics_storage_;
   dynamic_config::StorageMock config_storage_;
+  std::optional<std::string> unix_socket_path_;
   server::Server server_;
   server::Middlewares server_middlewares_;
   client::MiddlewareFactories client_middleware_factories_;
