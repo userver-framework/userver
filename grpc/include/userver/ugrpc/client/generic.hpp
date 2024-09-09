@@ -40,7 +40,7 @@ struct GenericOptions {
 /// @brief Allows to talk to gRPC services (generic and normal) using dynamic
 /// method names.
 ///
-/// Created using @ref ClientFactory::MakeClient.
+/// Created using @ref ugrpc::client::ClientFactory::MakeClient.
 ///
 /// `call_name` must be in the format `full.path.to.TheService/MethodName`.
 /// Note that unlike in base grpc++, there must be no initial `/` character.

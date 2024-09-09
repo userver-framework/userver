@@ -98,7 +98,6 @@ See the full example at:
 * @ref samples/json2yaml/json2yaml.cpp
 * @ref samples/json2yaml/json2yaml_test.cpp
 * @ref samples/json2yaml/CMakeLists.txt
-* @ref samples/json2yaml/requirements.txt
 * @ref samples/json2yaml/tests/conftest.py
 * @ref samples/json2yaml/tests/test_basic.py
 
