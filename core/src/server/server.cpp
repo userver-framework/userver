@@ -366,14 +366,13 @@ void Server::WriteMonitorData(utils::statistics::Writer& writer) const {
     auto http2_request_stats = request_stats["http2"];
     http2_request_stats["streams-count"] =
         server_stats.parser_stats.streams_count;
-    http2_request_stats["streams-parse_error"] =
+    http2_request_stats["streams-parse-error"] =
         server_stats.parser_stats.streams_parse_error;
     http2_request_stats["streams-close"] =
         server_stats.parser_stats.streams_close;
     http2_request_stats["reset-streams"] =
         server_stats.parser_stats.reset_streams;
-    http2_request_stats["goaway-streams"] =
-        server_stats.parser_stats.goaway_streams;
+    http2_request_stats["goaway"] = server_stats.parser_stats.goaway;
   }
 }
 

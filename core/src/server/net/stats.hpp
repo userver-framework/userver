@@ -13,11 +13,11 @@ USERVER_NAMESPACE_BEGIN
 namespace server::net {
 
 struct Http2Stats {
-  utils::statistics::StripedRateCounter streams_count_{0};
-  utils::statistics::StripedRateCounter streams_parse_error_{0};
-  utils::statistics::StripedRateCounter streams_close_{0};
-  utils::statistics::StripedRateCounter reset_streams_{0};
-  utils::statistics::StripedRateCounter goaway_streams_{0};
+  utils::statistics::StripedRateCounter streams_count{0};
+  utils::statistics::StripedRateCounter streams_parse_error{0};
+  utils::statistics::StripedRateCounter streams_close{0};
+  utils::statistics::StripedRateCounter reset_streams{0};
+  utils::statistics::StripedRateCounter goaway{0};
 };
 
 struct ParserStats {
@@ -30,12 +30,11 @@ struct ParserStatsAggregation final {
 
   explicit ParserStatsAggregation(const ParserStats& stats)
       : parsing_request_count{stats.parsing_request_count.NonNegativeRead()},
-        streams_count(stats.http2_stats.streams_count_.Load().value),
-        streams_parse_error(
-            stats.http2_stats.streams_parse_error_.Load().value),
-        streams_close(stats.http2_stats.streams_close_.Load().value),
-        reset_streams(stats.http2_stats.reset_streams_.Load().value),
-        goaway_streams(stats.http2_stats.goaway_streams_.Load().value) {}
+        streams_count(stats.http2_stats.streams_count.Load().value),
+        streams_parse_error(stats.http2_stats.streams_parse_error.Load().value),
+        streams_close(stats.http2_stats.streams_close.Load().value),
+        reset_streams(stats.http2_stats.reset_streams.Load().value),
+        goaway(stats.http2_stats.goaway.Load().value) {}
 
   ParserStatsAggregation& operator+=(const ParserStatsAggregation& other) {
     parsing_request_count += other.parsing_request_count;
@@ -43,7 +42,7 @@ struct ParserStatsAggregation final {
     streams_parse_error += other.streams_parse_error;
     streams_close += other.streams_close;
     reset_streams += other.reset_streams;
-    goaway_streams += other.goaway_streams;
+    goaway += other.goaway;
 
     return *this;
   }
@@ -54,7 +53,7 @@ struct ParserStatsAggregation final {
   std::size_t streams_parse_error{0};
   std::size_t streams_close{0};
   std::size_t reset_streams{0};
-  std::size_t goaway_streams{0};
+  std::size_t goaway{0};
 };
 
 struct Stats {

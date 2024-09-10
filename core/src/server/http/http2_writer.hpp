@@ -2,9 +2,6 @@
 
 #include <nghttp2/nghttp2.h>
 
-#include <userver/logging/log.hpp>
-#include <userver/server/http/http_response.hpp>
-
 #include <string>
 
 USERVER_NAMESPACE_BEGIN
@@ -16,16 +13,8 @@ ssize_t Nghttp2SendString(nghttp2_session*, int32_t, uint8_t*, std::size_t,
 
 class DataBufferSender final {
  public:
-  DataBufferSender(std::string&& data) : data_(std::move(data)) {
-    nghttp2_provider_.read_callback = Nghttp2SendString;
-    nghttp2_provider_.source.ptr = this;
-  }
-
-  DataBufferSender(DataBufferSender&& o) noexcept
-      : data_(std::move(o.data_)), sended_bytes_(o.sended_bytes_) {
-    nghttp2_provider_.source.ptr = this;
-    nghttp2_provider_.read_callback = Nghttp2SendString;
-  }
+  DataBufferSender(std::string&& data);
+  DataBufferSender(DataBufferSender&& o) noexcept;
 
   DataBufferSender(const DataBufferSender&) = delete;
   DataBufferSender& operator=(const DataBufferSender&) = delete;
@@ -44,6 +33,7 @@ class DataBufferSender final {
 };
 
 class Http2Session;
+class HttpResponse;
 
 void WriteHttp2ResponseToSocket(HttpResponse& response, Http2Session& parser);
 

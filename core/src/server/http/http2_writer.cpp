@@ -5,6 +5,7 @@
 #include <server/http/http2_session.hpp>
 #include <server/http/http_cached_date.hpp>
 #include <server/http/http_request_parser.hpp>
+
 #include <userver/http/common_headers.hpp>
 #include <userver/http/predefined_header.hpp>
 #include <userver/logging/log.hpp>
@@ -27,6 +28,18 @@ bool IsBodyForbiddenForStatus(HttpStatus status) {
 }
 
 }  // namespace
+
+DataBufferSender::DataBufferSender(std::string&& data)
+    : data_(std::move(data)) {
+  nghttp2_provider_.read_callback = Nghttp2SendString;
+  nghttp2_provider_.source.ptr = this;
+}
+
+DataBufferSender::DataBufferSender(DataBufferSender&& o) noexcept
+    : data_(std::move(o.data_)), sended_bytes_(o.sended_bytes_) {
+  nghttp2_provider_.source.ptr = this;
+  nghttp2_provider_.read_callback = Nghttp2SendString;
+}
 
 // implements
 // https://nghttp2.org/documentation/types.html#c.nghttp2_data_source_read_callback
@@ -117,9 +130,7 @@ class Http2HeaderWriter final {
 class Http2ResponseWriter final {
  public:
   Http2ResponseWriter(HttpResponse& response, Http2Session& session)
-      : http2_session_(session),
-        response_(response),
-        session_{session.GetNghttp2SessionPtr()} {}
+      : http2_session_(session), response_(response) {}
 
   void WriteHttpResponse() {
     auto headers = WriteHeaders();
@@ -185,7 +196,7 @@ class Http2ResponseWriter final {
     }
 
     const std::uint32_t stream_id = response_.GetStreamId().value();
-    auto& stream = http2_session_.GetStreamByIdChecked(stream_id);
+    auto& stream = http2_session_.GetStreamChecked(stream_id);
     stream.data_buffer_sender.emplace(std::move(data));
 
     nghttp2_data_provider* provider{nullptr};
@@ -193,8 +204,9 @@ class Http2ResponseWriter final {
       provider = stream.data_buffer_sender.value().GetProvider();
     }
     const auto& nva = header_writer.GetNgHeaders();
-    const int rv = nghttp2_submit_response(session_, stream_id, nva.data(),
-                                           nva.size(), provider);
+    const int rv =
+        nghttp2_submit_response(http2_session_.GetNghttp2SessionPtr(),
+                                stream_id, nva.data(), nva.size(), provider);
     if (rv != 0) {
       throw std::runtime_error{
           fmt::format("Fail to submit the response with err id = {}. Err: {}",
@@ -211,7 +223,6 @@ class Http2ResponseWriter final {
 
   Http2Session& http2_session_;
   HttpResponse& response_;
-  nghttp2_session* session_;
 };
 
 void WriteHttp2ResponseToSocket(HttpResponse& response, Http2Session& session) {

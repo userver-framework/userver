@@ -1,13 +1,14 @@
 #pragma once
 
 #include <nghttp2/nghttp2.h>
+#include <boost/pool/object_pool.hpp>
 
 #include <server/http/http2_writer.hpp>
 #include <server/http/http_request_constructor.hpp>
 #include <server/net/stats.hpp>
 #include <server/request/request_parser.hpp>
-#include <userver/engine/io/socket.hpp>
 
+#include <userver/engine/io/socket.hpp>
 #include <userver/server/request/request_config.hpp>
 #include <userver/utils/small_string.hpp>
 
@@ -23,9 +24,25 @@ inline constexpr std::string_view kSwitchingProtocolResponse{
 // See docs:
 // https://nghttp2.org/documentation/nghttp2_session_upgrade2.html#nghttp2-session-upgrade2
 inline constexpr std::size_t kStreamIdAfterUpgradeResponse = 1;
-inline constexpr std::size_t kDefaultMaxConcurrentStreams = 100;
 // So ussualy the standart frame size is 16384 bytes
 inline constexpr std::size_t kDefaultStringBufferSize = 1 << 14;
+inline constexpr std::size_t kDefaultMaxConcurrentStreams = 100;
+
+struct Stream final {
+  using StreamId = std::int32_t;
+
+  Stream(HttpRequestConstructor::Config config,
+         const HandlerInfoIndex& handler_info_index,
+         request::ResponseDataAccounter& data_accounter,
+         engine::io::Sockaddr remote_address, StreamId id);
+
+  bool CheckUrlComplete();
+
+  bool url_complete{false};
+  HttpRequestConstructor constructor;
+  const StreamId id;
+  std::optional<DataBufferSender> data_buffer_sender;
+};
 
 class HttpRequestParser;
 
@@ -33,24 +50,6 @@ class Http2Session final : public request::RequestParser {
  public:
   using OnNewRequestCb =
       std::function<void(std::shared_ptr<request::RequestBase>&&)>;
-
-  using StreamId = std::int32_t;
-
-  struct StreamData final {
-    StreamData(HttpRequestConstructor::Config config,
-               const HandlerInfoIndex& handler_info_index,
-               request::ResponseDataAccounter& data_accounter,
-               StreamId stream_id_, engine::io::Sockaddr remote_address);
-
-    bool CheckUrlComplete();
-
-    bool url_complete{false};
-    HttpRequestConstructor constructor;
-    const StreamId stream_id;
-    std::optional<DataBufferSender> data_buffer_sender;
-  };
-
-  using Streams = std::unordered_map<StreamId, StreamData>;
 
   Http2Session(const HandlerInfoIndex& handler_info_index,
                const request::HttpRequestConfig& request_config,
@@ -91,15 +90,15 @@ class Http2Session final : public request::RequestParser {
   static long OnSend(nghttp2_session* session, const uint8_t* data,
                      size_t length, int flags, void* user_data);
 
-  int RegisterStreamData(StreamId stream_id);
-  int RemoveStreamData(StreamId stream_id);
-  int SubmitRstStream(StreamId stream_id);
-  void SubmitGoAway(std::uint32_t error_code, std::string_view msg);
-  void SubmitRequest(std::shared_ptr<request::RequestBase>&& request);
-  int FinalizeRequest(StreamData& stream_data);
-  std::size_t WriteResponseToSocket();
+  void RegisterStream(Stream::StreamId id);
+  void RemoveStream(Stream& id);
+  Stream& GetStreamChecked(Stream::StreamId id);
 
-  StreamData& GetStreamByIdChecked(StreamId stream_id);
+  void SubmitRstStream(Stream::StreamId stream_id);
+
+  void FinalizeRequest(Stream& stream);
+  std::size_t WriteResponseToSocket();
+  bool ConnectionIsOk();
 
  private:
   friend class Http2ResponseWriter;
@@ -109,8 +108,7 @@ class Http2Session final : public request::RequestParser {
                       std::function<decltype(nghttp2_session_del)>>;
 
   SessionPtr session_{nullptr};
-  Streams streams_;
-  std::size_t max_concurrent_streams_{kDefaultMaxConcurrentStreams};
+  boost::object_pool<Stream> streams_pool_;
 
   const HandlerInfoIndex& handler_info_index_;
   const HttpRequestConstructor::Config request_constructor_config_;
@@ -120,9 +118,6 @@ class Http2Session final : public request::RequestParser {
   net::ParserStats& stats_;
   engine::io::Sockaddr remote_address_;
   engine::io::RwBase* socket_;
-  bool is_goaway{false};
-  StreamId last_stream_id_{0};
-  utils::SmallString<kDefaultStringBufferSize> buffer_;
 };
 
 }  // namespace server::http
