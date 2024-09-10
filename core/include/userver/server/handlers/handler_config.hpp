@@ -32,6 +32,7 @@ struct HandlerConfig {
   std::string method;
   request::HttpRequestConfig request_config{};
   size_t request_body_size_log_limit{0};
+  size_t request_headers_size_log_limit{0};
   size_t response_data_size_log_limit{0};
   std::optional<auth::HandlerAuthConfig> auth;
   UrlTrailingSlashOption url_trailing_slash{UrlTrailingSlashOption::kDefault};

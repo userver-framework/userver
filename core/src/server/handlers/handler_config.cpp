@@ -77,6 +77,9 @@ HandlerConfig ParseHandlerConfigsWithDefaults(
   config.request_body_size_log_limit =
       value["request_body_size_log_limit"].As<size_t>(
           kLogRequestDataSizeDefaultLimit);
+  config.request_headers_size_log_limit =
+      value["request_headers_size_log_limit"].As<size_t>(
+          kLogRequestDataSizeDefaultLimit);
   config.response_data_size_log_limit =
       value["response_data_size_log_limit"].As<size_t>(
           kLogRequestDataSizeDefaultLimit);

@@ -1,6 +1,7 @@
 #include <server/handlers/http_server_settings.hpp>
 
 #include <userver/formats/json/value.hpp>
+#include <userver/formats/parse/common_containers.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -12,6 +13,10 @@ const dynamic_config::Key<bool> kLogRequest{"USERVER_LOG_REQUEST", true};
 
 const dynamic_config::Key<bool> kLogRequestHeaders{
     "USERVER_LOG_REQUEST_HEADERS", false};
+
+const dynamic_config::Key<HeadersWhitelist> kLogRequestHeaderWhitelist{
+    "USERVER_LOG_REQUEST_HEADERS_WHITELIST",
+    dynamic_config::DefaultAsJsonString{"[]"}};
 
 const dynamic_config::Key<bool> kCancelHandleRequestByDeadline{
     "USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE", false};

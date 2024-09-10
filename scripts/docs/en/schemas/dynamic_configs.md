@@ -1231,6 +1231,8 @@ Used by components::Server.
 
 Controls whether the logging of HTTP headers in handlers is performed.
 
+@note To ensure safety, all header values will be output as `***` unless specified in @ref USERVER_LOG_REQUEST_HEADERS_WHITELIST.
+
 ```
 yaml
 schema:
@@ -1243,6 +1245,26 @@ false
 ```
 
 Used by components::Server.
+
+@anchor USERVER_LOG_REQUEST_HEADERS_WHITELIST
+## USERVER_LOG_REQUEST_HEADERS_WHITELIST
+
+If the @ref USERVER_LOG_REQUEST_HEADERS option is enabled, you can control which HTTP headers are logged, including their values. Header is suitable if it exactly matches one of the values in the whitelist. Any headers that are not on the whitelist will have their values replaced with *** in the logs.
+
+```
+yaml
+schema:
+    type: array
+    items:
+        type: string
+```
+
+**Example:**
+```
+["User-Agent", "Accept-Encoding"]
+```
+
+Used by server::handlers::HttpHandlerBase.
 
 @anchor USERVER_LRU_CACHES
 ## USERVER_LRU_CACHES

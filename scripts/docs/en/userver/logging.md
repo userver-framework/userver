@@ -52,7 +52,7 @@ See @ref scripts/docs/en/userver/log_level_running_service.md for more info.
 
 ### Limit log length of the requests and responses
 
-For per-handle limiting of the request body or response data logging you can use the `request_body_size_log_limit` and `response_data_size_log_limit` static options of the handler (see server::handlers::HandlerBase). Or you could override the server::handlers::HttpHandlerBase::GetRequestBodyForLogging and server::handlers::HttpHandlerBase::GetResponseDataForLogging functions.
+For per-handle limiting of the request body or response data logging you can use the `request_body_size_log_limit` and `request_headers_size_log_limit` and `response_data_size_log_limit` static options of the handler (see server::handlers::HandlerBase). Or you could override the server::handlers::HttpHandlerBase::GetRequestBodyForLogging and server::handlers::HttpHandlerBase::GetResponseDataForLogging functions.
 
 ### Limiting the log frequency
 

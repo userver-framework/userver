@@ -34,6 +34,7 @@ namespace server::handlers {
 /// url_trailing_slash | 'both' to treat URLs with and without a trailing slash as equal, 'strict-match' otherwise | 'both'
 /// max_requests_in_flight | integer to limit max pending requests to this handler | <no limit>
 /// request_body_size_log_limit | trim request to this size before logging | 512
+/// request_headers_size_log_limit | limit on the total length of logged headers | 512
 /// response_data_size_log_limit | trim responses to this size before logging | 512
 /// max_requests_per_second | integer to limit RPS to this handler | <no limit>
 /// decompress_request | allow decompression of the requests | true

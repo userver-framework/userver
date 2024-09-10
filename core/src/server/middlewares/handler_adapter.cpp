@@ -12,6 +12,7 @@
 #include <userver/server/http/http_request.hpp>
 #include <userver/server/request/request_context.hpp>
 #include <userver/tracing/tags.hpp>
+#include <userver/utils/log.hpp>
 #include <userver/utils/scope_guard.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -27,23 +28,54 @@ const std::string kTracingUri = "uri";
 const std::string kUserAgentTag = "useragent";
 const std::string kAcceptLanguageTag = "acceptlang";
 
-std::string GetHeadersLogString(const http::HttpRequest& request) {
+std::string GetHeadersLogString(
+    const http::HttpRequest& request,
+    const handlers::HeadersWhitelist& headers_whitelist,
+    size_t response_data_size_log_limit) {
   formats::json::StringBuilder sb{};
-  WriteToStream(request.GetHeaders(), sb);
+  {
+    const formats::json::StringBuilder::ObjectGuard guard{sb};
+
+    auto write_header = [&](std::string_view header_name,
+                            std::string_view header_value) {
+      if (sb.GetStringView().size() + header_name.size() +
+              header_value.size() <=
+          response_data_size_log_limit) {
+        sb.Key(header_name);
+        sb.WriteString(header_value);
+      }
+    };
+
+    // First, output the visible headers
+    for (const auto& [header_name, header_value] : request.GetHeaders()) {
+      if (headers_whitelist.find(header_name) != headers_whitelist.end()) {
+        write_header(header_name, header_value);
+      }
+    }
+
+    for (const auto& [header_name, header_value] : request.GetHeaders()) {
+      if (headers_whitelist.find(header_name) == headers_whitelist.end()) {
+        write_header(header_name, "***");
+      }
+    }
+  }
   return sb.GetString();
 }
 
 // Separate function to avoid heavy computations when the result is not going
 // to be logged
-logging::LogExtra LogRequestExtra(bool need_log_request_headers,
-                                  const http::HttpRequest& http_request,
-                                  std::string_view meta_type,
-                                  const std::string& body_to_log,
-                                  std::uint64_t body_length) {
+logging::LogExtra LogRequestExtra(
+    bool need_log_request_headers, const http::HttpRequest& http_request,
+    std::string_view meta_type, const std::string& body_to_log,
+    std::uint64_t body_length,
+    const handlers::HeadersWhitelist& headers_whitelist,
+    size_t request_headers_size_log_limit) {
   logging::LogExtra log_extra;
 
   if (need_log_request_headers) {
-    log_extra.Extend("request_headers", GetHeadersLogString(http_request));
+    log_extra.Extend("request_headers",
+                     GetHeadersLogString(http_request, headers_whitelist,
+                                         request_headers_size_log_limit));
   }
   log_extra.Extend(tracing::kHttpMetaType, std::string{meta_type});
   log_extra.Extend(tracing::kType, kTracingTypeRequest);
@@ -109,14 +141,20 @@ void HandlerAdapter::LogRequest(const http::HttpRequest& request,
   if (config_snapshot[handlers::kLogRequest]) {
     const bool need_log_request_headers =
         config_snapshot[handlers::kLogRequestHeaders];
+
+    const auto& header_whitelist =
+        config_snapshot[handlers::kLogRequestHeaderWhitelist];
+
     LOG_INFO() << "start handling"
-               << LogRequestExtra(need_log_request_headers, request,
-                                  misc::CutTrailingSlash(
-                                      request.GetRequestPath(),
-                                      handler_.GetConfig().url_trailing_slash),
-                                  handler_.GetRequestBodyForLoggingChecked(
-                                      request, context, request.RequestBody()),
-                                  request.RequestBody().length());
+               << LogRequestExtra(
+                      need_log_request_headers, request,
+                      misc::CutTrailingSlash(
+                          request.GetRequestPath(),
+                          handler_.GetConfig().url_trailing_slash),
+                      handler_.GetRequestBodyForLoggingChecked(
+                          request, context, request.RequestBody()),
+                      request.RequestBody().length(), header_whitelist,
+                      handler_.GetConfig().request_headers_size_log_limit);
   }
 }
 

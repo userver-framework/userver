@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <unordered_set>
 
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/server/http/http_status.hpp>
@@ -9,9 +10,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {
 
+using HeadersWhitelist = std::unordered_set<std::string>;
+
 extern const dynamic_config::Key<bool> kLogRequest;
 
 extern const dynamic_config::Key<bool> kLogRequestHeaders;
+
+extern const dynamic_config::Key<HeadersWhitelist> kLogRequestHeaderWhitelist;
 
 extern const dynamic_config::Key<bool> kCancelHandleRequestByDeadline;
 
