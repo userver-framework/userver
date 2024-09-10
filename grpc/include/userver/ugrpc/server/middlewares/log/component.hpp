@@ -23,7 +23,12 @@ struct Settings;
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// log-level | log level for msg logging | debug
+/// msg-log-level | gRPC message body logging level | debug
 /// msg-size-log-limit | max message size to log, the rest will be truncated | 512
+///
+/// ## Static configuration example:
+///
+/// @snippet grpc/functional_tests/basic_chaos/static_config.yaml Sample grpc server logging middleware component config
 
 // clang-format on
 

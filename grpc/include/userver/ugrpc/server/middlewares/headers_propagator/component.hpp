@@ -8,12 +8,22 @@
 
 USERVER_NAMESPACE_BEGIN
 
-/// Server baggae middleware
+/// Server headers_propagator middleware
 namespace ugrpc::server::middlewares::headers_propagator {
+
+// clang-format off
 
 /// @ingroup userver_components userver_base_classes
 ///
 /// @brief Component for gRPC server headers_propagator
+///
+/// ## Static options:
+/// Name | Description | Default value
+/// ---- | ----------- | -------------
+/// headers | array of metadata fields (headers) to propagate | empty
+
+// clang-format on
+
 class Component final : public MiddlewareComponentBase {
  public:
   /// @ingroup userver_component_names

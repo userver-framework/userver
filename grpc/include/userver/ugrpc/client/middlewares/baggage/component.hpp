@@ -10,9 +10,20 @@ USERVER_NAMESPACE_BEGIN
 /// Client baggage middleware
 namespace ugrpc::client::middlewares::baggage {
 
+// clang-format off
+
 /// @ingroup userver_components
 ///
 /// @brief Component for gRPC client baggage
+///
+/// The component does **not** have any options for service config.
+///
+/// ## Static configuration example:
+///
+/// @snippet grpc/functional_tests/basic_chaos/static_config.yaml Sample grpc client baggage middleware component config
+
+// clang-format on
+
 class Component final : public MiddlewareComponentBase {
  public:
   /// @ingroup userver_component_names

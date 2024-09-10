@@ -84,6 +84,28 @@ SSL has to be disabled in tests, because it
 requires the server to have a public domain name, which it does not in tests.
 In testsuite, SSL in gRPC clients is disabled automatically.
 
+### Client middlewares
+
+Client behaviour can be modified with a middleware. Middleware code is executed before or after the client code. 
+Middlewares to use are indicated in static config in the defining component. For example:
+
+```
+# yaml
+components_manager:
+    components:
+        grpc-client-factory:
+            middlewares:
+              - grpc-client-logging
+              - grpc-client-deadline-propagation 
+```
+
+#### List of standard client middlewares
+
+ 1. `grpc-client-logging` with component ugrpc::client::middlewares::log::Component - logs requests and responces.
+ 2. `grpc-client-deadline-propagation` with component ugrpc::client::middlewares::deadline_propagation::Component - activates 
+ @ref scripts/docs/en/userver/deadline_propagation.md.
+ 3. `grpc-client-baggage` with component ugrpc::client::middlewares::baggage::Component - passes request baggage to subrequests.
+ 
 ## gRPC services
 
 ### Service creation
@@ -128,7 +150,7 @@ By default, gRPC server uses `grpc::InsecureServerCredentials`. To pass a custom
       `<grpcpp/security/server_credentials.h>` for available credentials
     * SSL credentials are `grpc::SslServerCredentials`
 
-### Middlewares
+### Server middlewares
 
 The gRPC server can be extended by middlewares.
 Middleware is called on each incoming (for service) or outgoing (for client) RPC request.
@@ -168,6 +190,15 @@ components_manager:
 Use ugrpc::server::MiddlewareBase and ugrpc::client::MiddlewareBase to implement
 new middlewares.
 
+#### List of standard server middlewares:
+
+  1. `grpc-server-logging` with component ugrpc::server::middlewares::log::Component - logs requests.
+  2. `grpc-server-deadline-propagation` with component ugrpc::server::middlewares::deadline_propagation::Component - activates 
+  @ref scripts/docs/en/userver/deadline_propagation.md.
+  3. `grpc-server-congestion-control` with component ugrpc::server::middlewares::congestion_control::Component - limits requests.
+  See Congestion Control section of @ref scripts/docs/en/userver/tutorial/production_service.md.
+  4. `grpc-server-baggage` with component ugrpc::server::middlewares::baggage::Component - passes request baggage to subrequests.
+  5. `grpc-server-headers-propagator` with component ugrpc::server::middlewares::headers_propagator::Component - propagates headers.
 
 @anchor grpc_generic_api
 ## Generic API

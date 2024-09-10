@@ -19,16 +19,25 @@ components_manager:
                   - grpc-server-logging
                   - grpc-server-baggage
                   - grpc-server-congestion-control
-
+# /// [Sample grpc server logging middleware component config]
         grpc-server-logging:
             msg-size-log-limit: 10
+# /// [Sample grpc server logging middleware component config]
 
+# /// [Sample grpc server deadline propagation middleware component config]
         grpc-server-deadline-propagation:
+            # Nothing
+# /// [Sample grpc server deadline propagation middleware component config]
 
+# /// [Sample grpc server baggage middleware component config]
         grpc-server-baggage:
+            # Nothing
+# /// [Sample grpc server baggage middleware component config]
 
+# /// [Sample grpc server congestion control middleware component config]
         grpc-server-congestion-control:
-
+            # Nothing
+# /// [Sample grpc server congestion control middleware component config]
         greeter-service:
             greeting-prefix: Hello
 
@@ -70,9 +79,22 @@ components_manager:
             testpoint-timeout: 10s
             throttling_enabled: false
 
+# /// [Sample grpc client logging middleware component config]
         grpc-client-logging:
+            log-level: debug
+            msg-size-log-limit: 512
+# /// [Sample grpc client logging middleware component config]
+
+# /// [Sample grpc client deadline propagation middleware component config]        
         grpc-client-deadline-propagation:
+            # Nothing
+# /// [Sample grpc client deadline propagation middleware component config]
+
+# /// [Sample grpc client baggage middleware component config]
         grpc-client-baggage:
+            # Nothing
+# /// [Sample grpc client baggage middleware component config]
+
 
     default_task_processor: main-task-processor
 
