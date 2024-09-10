@@ -75,6 +75,12 @@ UTEST_F(GrpcStatistics, LongRequest) {
 }
 
 UTEST_F(GrpcStatistics, StatsBeforeGet) {
+  // In this test, we ensure that stats are accounted for even if we don't call
+  // future.Get(). Consider a situation where such futures are stockpiled
+  // somewhere, and the task awaits something else (more responses?) before
+  // calling Get. In this case, metrics should still be written as soon as
+  // the response is actually received on the network.
+
   utils::datetime::MockNowSet({});
 
   auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
@@ -84,12 +90,36 @@ UTEST_F(GrpcStatistics, StatsBeforeGet) {
 
   auto call = client.SayHello(out);
   auto future = call.FinishAsync(res);
-  engine::SleepFor(std::chrono::milliseconds{100});
+
+  const std::string kMetricsPath = "grpc.client.by-destination";
+  const std::vector<utils::statistics::Label> kMetricsLabels{
+      {"grpc_destination", "sample.ugrpc.UnitTestService/SayHello"},
+  };
+
+  // Here we intend to wait until the client finishes processing the request and
+  // updates the metrics asynchronously without actually calling Get. Pretty
+  // much the only guaranteed way to await this is to wait until the metrics
+  // arrive.
+  const auto test_deadline =
+      engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+  while (true) {
+    if (test_deadline.IsReached()) {
+      FAIL() << "Client failed to set metrics until max test time";
+    }
+
+    if (GetStatistics(kMetricsPath, kMetricsLabels)
+            .SingleMetric("rps")
+            .AsRate() >= utils::statistics::Rate{1}) {
+      break;
+    }
+
+    engine::SleepFor(std::chrono::milliseconds{1});
+  }
+
+  // So that RecentPeriod "timings" metric makes the current epoch readable.
   utils::datetime::MockSleep(6s);
 
-  const auto stats = GetStatistics(
-      "grpc.client.by-destination",
-      {{"grpc_destination", "sample.ugrpc.UnitTestService/SayHello"}});
+  const auto stats = GetStatistics(kMetricsPath, kMetricsLabels);
 
   // check status
   EXPECT_EQ(stats.SingleMetric("status", {{"grpc_code", "INVALID_ARGUMENT"}})
@@ -104,7 +134,6 @@ UTEST_F(GrpcStatistics, StatsBeforeGet) {
   EXPECT_LT(timing, 100);
 
   UEXPECT_THROW(future.Get(), ugrpc::client::InvalidArgumentError);
-  GetServer().StopServing();
 }
 
 UTEST_F_MT(GrpcStatistics, Multithreaded, 2) {
