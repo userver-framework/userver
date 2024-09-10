@@ -174,6 +174,11 @@ void CheckQueryParameters(const std::string& statement,
   }
 }
 
+constexpr std::string_view kCommands[] = {
+    "select", "insert", "update", "with",     "create",
+    "alter",  "begin",  "commit", "rollback",
+};
+
 }  // namespace
 
 // retuns the first word; if it is "with" returns all words before "as"
@@ -185,11 +190,7 @@ std::string FindQueryShortInfo(std::string_view prefix, std::string_view str) {
   const auto end = std::find_if(start, end_it, IsWordBorder);
   const std::string_view command{start, static_cast<std::size_t>(end - start)};
 
-  static constexpr std::string_view kCommands[] = {
-      "select", "insert", "update", "with",     "create",
-      "alter",  "begin",  "commit", "rollback",
-  };
-  static constexpr auto kKnownCommands =
+  constexpr auto kKnownCommands =
       USERVER_NAMESPACE::utils::MakeTrivialSet<kCommands>();
   if (const auto match = kKnownCommands.GetIndexICase(command); match) {
     return fmt::format("{}:{}", prefix, kCommands[*match]);
