@@ -93,16 +93,15 @@ UTEST_F(GrpcClientCancel, UnaryCall) {
 
     sample::ugrpc::GreetingRequest out;
     out.set_name("userver");
-    auto call = client.SayHello(out, PrepareClientContext());
-
-    sample::ugrpc::GreetingResponse in;
-    UEXPECT_THROW(in = call.Finish(), ugrpc::client::RpcCancelledError);
+    UEXPECT_THROW((void)client.SayHello(out, PrepareClientContext()),
+                  ugrpc::client::RpcCancelledError);
   }
 
   const auto stats = GetStatistics(
       "grpc.client.by-destination",
       {{"grpc_destination", "sample.ugrpc.UnitTestService/SayHello"}});
-  ExpectCancelledStats(stats);
+  EXPECT_EQ(stats.SingleMetricOptional("cancelled"), std::nullopt);
+  EXPECT_EQ(stats.SingleMetricOptional("rps"), std::nullopt);
 }
 
 UTEST_F(GrpcClientCancel, AsyncUnaryRPC) {
@@ -112,18 +111,15 @@ UTEST_F(GrpcClientCancel, AsyncUnaryRPC) {
 
     sample::ugrpc::GreetingRequest out;
     out.set_name("userver");
-    auto call = client.SayHello(out, PrepareClientContext());
-
-    sample::ugrpc::GreetingResponse in;
-    auto future = call.FinishAsync(in);
-    EXPECT_EQ(future.Get(engine::Deadline::FromDuration(60s)),
-              engine::FutureStatus::kCancelled);
+    UEXPECT_THROW((void)client.SayHello(out, PrepareClientContext()),
+                  ugrpc::client::RpcCancelledError);
   }
 
   const auto stats = GetStatistics(
       "grpc.client.by-destination",
       {{"grpc_destination", "sample.ugrpc.UnitTestService/SayHello"}});
-  ExpectCancelledStats(stats);
+  EXPECT_EQ(stats.SingleMetricOptional("cancelled"), std::nullopt);
+  EXPECT_EQ(stats.SingleMetricOptional("rps"), std::nullopt);
 }
 
 UTEST_F(GrpcClientCancel, UnaryFinish) {
@@ -183,7 +179,8 @@ UTEST_F(GrpcClientCancel, InputStreamCall) {
   const auto stats = GetStatistics(
       "grpc.client.by-destination",
       {{"grpc_destination", "sample.ugrpc.UnitTestService/ReadMany"}});
-  ExpectCancelledStats(stats);
+  EXPECT_EQ(stats.SingleMetricOptional("cancelled"), std::nullopt);
+  EXPECT_EQ(stats.SingleMetricOptional("rps"), std::nullopt);
 }
 
 UTEST_F(GrpcClientCancel, OutputStreamCall) {
@@ -198,7 +195,8 @@ UTEST_F(GrpcClientCancel, OutputStreamCall) {
   const auto stats = GetStatistics(
       "grpc.client.by-destination",
       {{"grpc_destination", "sample.ugrpc.UnitTestService/WriteMany"}});
-  ExpectCancelledStats(stats);
+  EXPECT_EQ(stats.SingleMetricOptional("cancelled"), std::nullopt);
+  EXPECT_EQ(stats.SingleMetricOptional("rps"), std::nullopt);
 }
 
 UTEST_F(GrpcClientCancel, OutputStreamWrite) {
@@ -254,7 +252,8 @@ UTEST_F(GrpcClientCancel, BidirectionalStreamCall) {
   const auto stats = GetStatistics(
       "grpc.client.by-destination",
       {{"grpc_destination", "sample.ugrpc.UnitTestService/Chat"}});
-  ExpectCancelledStats(stats);
+  EXPECT_EQ(stats.SingleMetricOptional("cancelled"), std::nullopt);
+  EXPECT_EQ(stats.SingleMetricOptional("rps"), std::nullopt);
 }
 
 UTEST_F(GrpcClientCancel, BidirectionalStreamRead) {

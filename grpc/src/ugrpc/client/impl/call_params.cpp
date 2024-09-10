@@ -1,5 +1,6 @@
 #include <userver/ugrpc/client/impl/call_params.hpp>
 
+#include <userver/engine/task/cancel.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/utils/algo.hpp>
 
@@ -31,6 +32,9 @@ CallParams CreateCallParams(const ClientData& client_data,
   const auto method_name =
       call_name.substr(metadata.service_full_name.size() + 1);
 
+  if (engine::current_task::ShouldCancel())
+    throw RpcCancelledError(call_name, "RPC construction");
+
   const auto& config = client_data.GetConfigSnapshot();
 
   // User qos goes first
@@ -59,6 +63,9 @@ CallParams CreateGenericCallParams(
   if (metrics_call_name) {
     CheckValidCallName(*metrics_call_name);
   }
+
+  if (engine::current_task::ShouldCancel())
+    throw RpcCancelledError(call_name, "RPC construction");
 
   // User qos goes first
   ApplyQos(*client_context, qos, client_data.GetTestsuiteControl());
