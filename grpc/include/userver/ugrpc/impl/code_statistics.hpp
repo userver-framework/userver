@@ -45,9 +45,7 @@ class CodeStatistics::Snapshot final {
 
   Snapshot& operator+=(const Snapshot& other);
 
-  void DumpMetric(utils::statistics::Writer& writer, const Snapshot& snapshot);
-
-  CodeStatisticsSummary DumpMetricHelper(
+  CodeStatisticsSummary DumpMetricAndGetSummary(
       utils::statistics::Writer& writer) const;
 
  private:

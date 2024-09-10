@@ -66,13 +66,13 @@ void DumpMetric(utils::statistics::Writer& writer,
 
   writer["timings"] = stats.timings;
 
-  utils::statistics::Rate total_requests{0};
-  utils::statistics::Rate error_requests{0};
+  utils::statistics::Rate total_requests{};
+  utils::statistics::Rate error_requests{};
 
   {
-    auto cnt = stats.status_codes.DumpMetricHelper(writer);
-    total_requests += cnt.total_requests;
-    error_requests += cnt.error_requests;
+    const auto summary = stats.status_codes.DumpMetricAndGetSummary(writer);
+    total_requests += summary.total_requests;
+    error_requests += summary.error_requests;
   }
 
   const auto network_errors_value = stats.network_errors;

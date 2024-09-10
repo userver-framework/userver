@@ -58,7 +58,7 @@ class RealCallNameGenericService final
   void Handle(Call& call) override {
     call.SetMetricsCallName(call.GetCallName());
     call.FinishWithError(grpc::Status{grpc::StatusCode::UNAUTHENTICATED,
-                                      "To avoid message parsing buerocracy"});
+                                      "To avoid message parsing bureaucracy"});
   }
 };
 
@@ -77,7 +77,7 @@ UTEST_F(RealCallNameGenericServiceTest, MetricsRealUnsafe) {
   UEXPECT_THROW_MSG(PerformGenericUnaryCall(
                         MakeClient<sample::ugrpc::UnitTestServiceClient>()),
                     ugrpc::client::UnauthenticatedError,
-                    "To avoid message parsing buerocracy");
+                    "To avoid message parsing bureaucracy");
 
   // Server writes metrics after Finish, after the client might have returned
   // from Finish.
@@ -91,11 +91,9 @@ UTEST_F(RealCallNameGenericServiceTest, MetricsRealUnsafe) {
             {"grpc_method", "SayHello"},
             {"grpc_destination", "sample.ugrpc.UnitTestService/SayHello"},
         });
-    UEXPECT_NO_THROW(
-        EXPECT_EQ(
-            stats.SingleMetric("status", {{"grpc_code", "UNAUTHENTICATED"}}),
-            utils::statistics::Rate{1})
-        << testing::PrintToString(stats))
+    EXPECT_EQ(stats.SingleMetricOptional("status",
+                                         {{"grpc_code", "UNAUTHENTICATED"}}),
+              utils::statistics::Rate{1})
         << testing::PrintToString(stats);
   }
 
@@ -107,11 +105,7 @@ UTEST_F(RealCallNameGenericServiceTest, MetricsRealUnsafe) {
                           {"grpc_method", "Generic"},
                           {"grpc_destination", "Generic/Generic"},
                       });
-    UEXPECT_NO_THROW(
-        EXPECT_EQ(
-            stats.SingleMetric("status", {{"grpc_code", "UNAUTHENTICATED"}}),
-            utils::statistics::Rate{0})
-        << testing::PrintToString(stats))
+    EXPECT_EQ(stats.SingleMetricOptional("rps"), utils::statistics::Rate{0})
         << testing::PrintToString(stats);
   }
 }
@@ -129,10 +123,8 @@ UTEST_F(GenericServiceTest, MetricsDefaultCallNameIsFake) {
                                        {"grpc_method", "Generic"},
                                        {"grpc_destination", "Generic/Generic"},
                                    });
-  UEXPECT_NO_THROW(
-      EXPECT_EQ(stats.SingleMetric("status", {{"grpc_code", "OK"}}),
-                utils::statistics::Rate{1})
-      << testing::PrintToString(stats))
+  EXPECT_EQ(stats.SingleMetricOptional("status", {{"grpc_code", "OK"}}),
+            utils::statistics::Rate{1})
       << testing::PrintToString(stats);
 }
 

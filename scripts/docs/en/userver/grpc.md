@@ -246,7 +246,9 @@ These are the metrics provided for each gRPC method:
 
 * `timings.1min` — time from RPC start to finish (`utils::statistics::Percentile`)
 * `status` with label `grpc_code=STATUS_CODE_NAME` — RPCs that finished
-  with specified status codes, one metric per gRPC status
+  with specified status codes, one metric per gRPC status. Zero `status`
+  metrics are omitted, except for `OK` and `UNKNOWN` metrics, which are always
+  written.
 * Metrics for RPCs that finished abruptly without a status:
    * `cancelled` — RPCs that were interrupted due to task cancellation.
      (Not to be confused with RPCs finished with `CANCELLED` status.)

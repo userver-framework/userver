@@ -30,11 +30,21 @@ bool IsServerError(grpc::StatusCode status) {
   }
 }
 
+bool IsZeroWritten(grpc::StatusCode status) {
+  switch (status) {
+    case grpc::StatusCode::OK:
+    case grpc::StatusCode::UNKNOWN:
+      return true;
+    default:
+      return false;
+  }
+}
+
 }  // namespace
 
 void CodeStatistics::Account(grpc::StatusCode code) noexcept {
-  if (static_cast<std::size_t>(code) < CodeStatistics::kCodesCount) {
-    codes_[static_cast<std::size_t>(code)]++;
+  if (static_cast<std::size_t>(code) < kCodesCount) {
+    ++codes_[static_cast<std::size_t>(code)];
   } else {
     LOG_ERROR() << "Invalid grpc::StatusCode " << utils::UnderlyingValue(code);
   }
@@ -54,26 +64,24 @@ CodeStatistics::Snapshot& CodeStatistics::Snapshot::operator+=(
   return *this;
 }
 
-CodeStatisticsSummary CodeStatistics::Snapshot::DumpMetricHelper(
+CodeStatisticsSummary CodeStatistics::Snapshot::DumpMetricAndGetSummary(
     utils::statistics::Writer& writer) const {
-  auto status = writer["status"];
+  auto status_writer = writer["status"];
+  CodeStatisticsSummary summary{};
 
-  CodeStatisticsSummary cnt{};
   for (const auto& [idx, count] : utils::enumerate(codes_)) {
     const auto code = static_cast<grpc::StatusCode>(idx);
-    cnt.total_requests += count;
-    if (IsServerError(code)) cnt.error_requests += count;
-    status.ValueWithLabels(count, {"grpc_code", ugrpc::ToString(code)});
+    summary.total_requests += count;
+    if (IsServerError(code)) summary.error_requests += count;
+
+    if (count || IsZeroWritten(code)) {
+      status_writer.ValueWithLabels(count,
+                                    {"grpc_code", ugrpc::ToString(code)});
+    }
   }
-  return cnt;
-}
 
-void DumpMetric(utils::statistics::Writer& writer,
-                const CodeStatistics::Snapshot& snapshot) {
-  snapshot.DumpMetricHelper(writer);
+  return summary;
 }
-
-static_assert(utils::statistics::kHasWriterSupport<CodeStatistics::Snapshot>);
 
 }  // namespace ugrpc::impl
 

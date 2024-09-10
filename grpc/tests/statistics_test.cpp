@@ -50,25 +50,19 @@ UTEST_F(GrpcStatistics, LongRequest) {
         fmt::format("grpc.{}.by-destination", domain),
         {{"grpc_destination", "sample.ugrpc.UnitTestService/SayHello"}});
 
-    const auto get_status_code_count_legacy = [&](const std::string& code) {
-      return stats.SingleMetric("status", {{"grpc_code", code}}).AsRate();
-    };
     const auto get_status_code_count = [&](const std::string& code) {
-      return stats.SingleMetric("status", {{"grpc_code", code}}).AsRate();
+      const auto metric_optional =
+          stats.SingleMetricOptional("status", {{"grpc_code", code}});
+      return metric_optional ? std::make_optional(metric_optional->AsRate())
+                             : std::nullopt;
     };
+
     EXPECT_EQ(get_status_code_count("OK"), 0);
     EXPECT_EQ(get_status_code_count("INVALID_ARGUMENT"), 1);
-    EXPECT_EQ(get_status_code_count("ALREADY_EXISTS"), 0);
+    // Because there have been no RPCs with that status.
+    EXPECT_EQ(get_status_code_count("ALREADY_EXISTS"), std::nullopt);
     EXPECT_EQ(stats.SingleMetric("rps").AsRate(), 1);
     EXPECT_EQ(stats.SingleMetric("eps").AsRate(), 0);
-    EXPECT_EQ(stats.SingleMetric("network-error").AsRate(), 0);
-    EXPECT_EQ(stats.SingleMetric("abandoned-error").AsRate(), 0);
-
-    // check that legacy stats is still collected
-    EXPECT_EQ(get_status_code_count_legacy("OK"), 0);
-    EXPECT_EQ(get_status_code_count_legacy("INVALID_ARGUMENT"), 1);
-    EXPECT_EQ(get_status_code_count_legacy("ALREADY_EXISTS"), 0);
-    EXPECT_EQ(stats.SingleMetric("rps").AsRate(), 1);
     EXPECT_EQ(stats.SingleMetric("network-error").AsRate(), 0);
     EXPECT_EQ(stats.SingleMetric("abandoned-error").AsRate(), 0);
   }
@@ -171,14 +165,24 @@ UTEST_F_MT(GrpcStatistics, Multithreaded, 2) {
         "grpc_destination", "sample.ugrpc.UnitTestService/Chat"};
 
     const auto get_status_code_count = [&](const auto& label, auto code) {
-      return status.SingleMetric("", {label, {"grpc_code", code}}).AsRate();
+      const auto metric_optional =
+          status.SingleMetricOptional("", {label, {"grpc_code", code}});
+      return metric_optional ? std::make_optional(metric_optional->AsRate())
+                             : std::nullopt;
     };
 
     EXPECT_EQ(get_status_code_count(say_hello_label, "INVALID_ARGUMENT"),
               kIterations);
-    EXPECT_EQ(get_status_code_count(say_hello_label, "UNIMPLEMENTED"), 0);
-    EXPECT_EQ(get_status_code_count(chat_label, "INVALID_ARGUMENT"), 0);
+    EXPECT_EQ(get_status_code_count(say_hello_label, "OK"), 0);
+    // Because there have been no RPCs with that status.
+    EXPECT_EQ(get_status_code_count(say_hello_label, "UNIMPLEMENTED"),
+              std::nullopt);
+
     EXPECT_EQ(get_status_code_count(chat_label, "UNIMPLEMENTED"), kIterations);
+    EXPECT_EQ(get_status_code_count(chat_label, "OK"), 0);
+    // Because there have been no RPCs with that status.
+    EXPECT_EQ(get_status_code_count(chat_label, "INVALID_ARGUMENT"),
+              std::nullopt);
   }
 }
 

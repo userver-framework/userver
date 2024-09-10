@@ -83,10 +83,8 @@ UTEST_F(GenericClientTest, MetricsRealUnsafe) {
       {{"grpc_method", "SayHello"},
        {"grpc_service", "sample.ugrpc.UnitTestService"},
        {"grpc_destination", "sample.ugrpc.UnitTestService/SayHello"}});
-  UEXPECT_NO_THROW(
-      EXPECT_EQ(stats.SingleMetric("status", {{"grpc_code", "OK"}}),
-                utils::statistics::Rate{1})
-      << testing::PrintToString(stats))
+  EXPECT_EQ(stats.SingleMetricOptional("status", {{"grpc_code", "OK"}}),
+            utils::statistics::Rate{1})
       << testing::PrintToString(stats);
 }
 
@@ -97,10 +95,8 @@ UTEST_F(GenericClientTest, MetricsDefaultCallNameIsFake) {
                                    {{"grpc_method", "Generic"},
                                     {"grpc_service", "Generic"},
                                     {"grpc_destination", "Generic/Generic"}});
-  UEXPECT_NO_THROW(
-      EXPECT_EQ(stats.SingleMetric("status", {{"grpc_code", "OK"}}),
-                utils::statistics::Rate{1})
-      << testing::PrintToString(stats))
+  EXPECT_EQ(stats.SingleMetricOptional("status", {{"grpc_code", "OK"}}),
+            utils::statistics::Rate{1})
       << testing::PrintToString(stats);
 }
 
