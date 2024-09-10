@@ -1,5 +1,7 @@
 #include <userver/storages/postgres/io/chrono.hpp>
 
+#include <userver/dump/common.hpp>
+#include <userver/dump/operations.hpp>
 #include <userver/logging/log_helper.hpp>
 #include <userver/storages/postgres/io/type_mapping.hpp>
 #include <userver/utils/datetime.hpp>
@@ -50,10 +52,26 @@ const bool kReference = detail::ForceReference(
 }  // namespace
 }  // namespace io
 
+void Write(dump::Writer& writer, const TimePointTz& value) {
+  writer.Write(value.GetUnderlying());
+}
+
+TimePointTz Read(dump::Reader& reader, dump::To<TimePointTz>) {
+  return TimePointTz{reader.Read<TimePointTz::UnderlyingType>()};
+}
+
+void Write(dump::Writer& writer, const TimePointWithoutTz& value) {
+  writer.Write(value.GetUnderlying());
+}
+
+TimePointWithoutTz Read(dump::Reader& reader, dump::To<TimePointWithoutTz>) {
+  return TimePointWithoutTz{reader.Read<TimePointWithoutTz::UnderlyingType>()};
+}
+
 namespace {
 
 // 01.01.2000 00:00:00 @ UTC, PostgreSQL epoch
-const std::time_t kPgEpochTime = 946684800;
+constexpr std::time_t kPgEpochTime = 946684800;
 const auto kPgEpoch = std::chrono::system_clock::from_time_t(kPgEpochTime);
 
 }  // namespace

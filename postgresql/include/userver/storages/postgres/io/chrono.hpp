@@ -9,7 +9,7 @@
 #include <iosfwd>
 #include <limits>
 
-#include <userver/logging/log_helper_fwd.hpp>
+#include <userver/dump/fwd.hpp>
 #include <userver/storages/postgres/io/buffer_io.hpp>
 #include <userver/storages/postgres/io/buffer_io_base.hpp>
 #include <userver/storages/postgres/io/interval.hpp>
@@ -322,6 +322,21 @@ struct CppToSystemPg<std::chrono::duration<Rep, Period>>
     : PredefinedOid<PredefinedOids::kInterval> {};
 
 }  // namespace io
+
+/// @brief @ref scripts/docs/en/userver/cache_dumps.md "Cache dumps" support
+/// for storages::postgres::TimePointTz.
+/// @{
+void Write(dump::Writer& writer, const TimePointTz& value);
+TimePointTz Read(dump::Reader& reader, dump::To<TimePointTz>);
+/// @}
+
+/// @brief @ref scripts/docs/en/userver/cache_dumps.md "Cache dumps" support
+/// for storages::postgres::TimePointWithoutTz.
+/// @{
+void Write(dump::Writer& writer, const TimePointWithoutTz& value);
+TimePointWithoutTz Read(dump::Reader& reader, dump::To<TimePointWithoutTz>);
+/// @}
+
 }  // namespace storages::postgres
 
 USERVER_NAMESPACE_END
