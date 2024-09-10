@@ -13,13 +13,15 @@ namespace ugrpc::tests {
 
 StandaloneClientFactory::StandaloneClientFactory(
     client::ClientFactorySettings&& client_factory_settings)
-    : client_factory_{std::move(client_factory_settings),
-                      engine::current_task::GetTaskProcessor(),
-                      client::MiddlewareFactories{},
-                      client_queue_.GetQueue(),
-                      client_statistics_storage_,
-                      testsuite_control_,
-                      config_storage_.GetSource()} {}
+    : client_factory_{
+          std::move(client_factory_settings),
+          engine::current_task::GetTaskProcessor(),
+          client::MiddlewareFactories{},
+          completion_queues_,
+          client_statistics_storage_,
+          testsuite_control_,
+          config_storage_.GetSource(),
+      } {}
 
 std::uint16_t GetFreeIpv6Port() {
   engine::io::Socket socket{engine::io::AddrDomain::kInet6,

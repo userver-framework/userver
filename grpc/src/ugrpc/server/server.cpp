@@ -23,7 +23,7 @@
 #include <ugrpc/server/impl/parse_config.hpp>
 #include <userver/ugrpc/impl/deadline_timepoint.hpp>
 #include <userver/ugrpc/impl/statistics_storage.hpp>
-#include <userver/ugrpc/server/impl/queue_holder.hpp>
+#include <userver/ugrpc/server/impl/completion_queue_pool.hpp>
 #include <userver/ugrpc/server/impl/service_worker.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -87,7 +87,7 @@ class Server::Impl final {
 
   void WithServerBuilder(SetupHook setup);
 
-  grpc::CompletionQueue& GetCompletionQueue() noexcept;
+  ugrpc::impl::CompletionQueuePoolBase& GetCompletionQueues() noexcept;
 
   void Start();
 
@@ -120,7 +120,7 @@ class Server::Impl final {
   std::optional<int> port_;
   std::vector<std::unique_ptr<impl::ServiceWorker>> service_workers_;
   std::vector<impl::GenericServiceWorker> generic_service_workers_;
-  std::optional<impl::QueueHolder> queue_;
+  std::optional<impl::CompletionQueuePool> completion_queues_;
   std::unique_ptr<grpc::Server> server_;
   mutable engine::Mutex configuration_mutex_;
 
@@ -148,8 +148,7 @@ Server::Impl::Impl(ServerConfig&& config,
   }
   server_builder_.emplace();
   ApplyChannelArgs(*server_builder_, config);
-  queue_.emplace(static_cast<std::size_t>(config.completion_queue_num),
-                 std::ref(*server_builder_));
+  completion_queues_.emplace(config.completion_queue_num, *server_builder_);
 
   if (config.unix_socket_path) AddListeningUnixSocket(*config.unix_socket_path);
 
@@ -198,7 +197,7 @@ void Server::Impl::AddListeningUnixSocket(std::string_view path) {
 impl::ServiceSettings Server::Impl::MakeServiceSettings(
     ServiceConfig&& config) {
   return impl::ServiceSettings{
-      *queue_,
+      completion_queues_.value(),  //
       config.task_processor,
       statistics_storage_,
       std::move(config.middlewares),
@@ -241,10 +240,11 @@ void Server::Impl::WithServerBuilder(SetupHook setup) {
   setup(*server_builder_);
 }
 
-grpc::CompletionQueue& Server::Impl::GetCompletionQueue() noexcept {
-  UASSERT(state_ == State::kConfiguration || state_ == State::kActive);
-  // TODO: https://st.yandex-team.ru/TAXICOMMON-7612
-  return *queue_->GetQueues().queues[0];
+ugrpc::impl::CompletionQueuePoolBase&
+Server::Impl::GetCompletionQueues() noexcept {
+  UASSERT(state_ == State::kConfiguration || state_ == State::kActive ||
+          state_ == State::kServingStopped);
+  return completion_queues_.value();
 }
 
 void Server::Impl::Start() {
@@ -282,7 +282,7 @@ void Server::Impl::Stop() noexcept {
   }
   service_workers_.clear();
   generic_service_workers_.clear();
-  queue_.reset();
+  completion_queues_.reset();
   server_.reset();
 
   state_ = State::kStopped;
@@ -359,8 +359,9 @@ void Server::WithServerBuilder(SetupHook setup) {
   impl_->WithServerBuilder(setup);
 }
 
-grpc::CompletionQueue& Server::GetCompletionQueue() noexcept {
-  return impl_->GetCompletionQueue();
+ugrpc::impl::CompletionQueuePoolBase& Server::GetCompletionQueues(
+    utils::impl::InternalTag) {
+  return impl_->GetCompletionQueues();
 }
 
 void Server::Start() { return impl_->Start(); }

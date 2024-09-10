@@ -15,15 +15,21 @@ namespace ugrpc::client {
 
 namespace {
 
-grpc::CompletionQueue& FindOrEmplaceQueue(
-    std::optional<QueueHolder>& holder,
+constexpr std::size_t kDefaultCompletionQueueCount = 1;
+
+ugrpc::impl::CompletionQueuePoolBase& FindOrEmplaceCompletionQueues(
+    std::optional<impl::CompletionQueuePool>& holder, std::size_t queue_count,
     const components::ComponentContext& context) {
   if (auto* const server =
           context.FindComponentOptional<server::ServerComponent>()) {
-    return server->GetServer().GetCompletionQueue();
+    UINVARIANT(queue_count == kDefaultCompletionQueueCount,
+               "grpc-client-common.completion-queue-count option is "
+               "meaningless and should not be specified if the service has a "
+               "grpc-server. Use grpc-server.completion-queue-count instead");
+    return server->GetServer().GetCompletionQueues(utils::impl::InternalTag{});
   }
-  holder.emplace();
-  return holder->GetQueue();
+  holder.emplace(queue_count);
+  return *holder;
 }
 
 }  // namespace
@@ -33,7 +39,11 @@ CommonComponent::CommonComponent(const components::ComponentConfig& config,
     : ComponentBase(config, context),
       blocking_task_processor_(context.GetTaskProcessor(
           config["blocking-task-processor"].As<std::string>())),
-      queue_(FindOrEmplaceQueue(queue_holder_, context)),
+      completion_queues_(FindOrEmplaceCompletionQueues(
+          client_completion_queues_,
+          config["completion-queue-count"].As<std::size_t>(
+              kDefaultCompletionQueueCount),
+          context)),
       client_statistics_storage_(
           context.FindComponent<components::StatisticsStorage>().GetStorage(),
           ugrpc::impl::StatisticsDomain::kClient) {
@@ -61,6 +71,12 @@ properties:
           - debug
           - info
           - error
+    completion-queue-count:
+        type: integer
+        description: |
+            completion queue count to create. Should be ~2 times less than worker
+            threads for best RPS.
+        minimum: 1
 )");
 }
 

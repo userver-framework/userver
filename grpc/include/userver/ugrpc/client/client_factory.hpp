@@ -17,6 +17,7 @@
 #include <userver/logging/level.hpp>
 #include <userver/storages/secdist/secdist.hpp>
 #include <userver/testsuite/grpc_control.hpp>
+#include <userver/utils/impl/internal_tag.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
 #include <userver/ugrpc/client/impl/channel_cache.hpp>
@@ -27,6 +28,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::impl {
 class StatisticsStorage;
+class CompletionQueuePoolBase;
 }  // namespace ugrpc::impl
 
 namespace ugrpc::client {
@@ -85,7 +87,8 @@ class ClientFactory final {
   // For internal use only.
   ClientFactory(ClientFactorySettings&& settings,
                 engine::TaskProcessor& channel_task_processor,
-                MiddlewareFactories mws, grpc::CompletionQueue& queue,
+                MiddlewareFactories mws,
+                ugrpc::impl::CompletionQueuePoolBase& queue,
                 ugrpc::impl::StatisticsStorage& statistics_storage,
                 testsuite::GrpcControl& testsuite_grpc,
                 dynamic_config::Source source);
@@ -97,7 +100,7 @@ class ClientFactory final {
 
   engine::TaskProcessor& channel_task_processor_;
   MiddlewareFactories mws_;
-  grpc::CompletionQueue& queue_;
+  ugrpc::impl::CompletionQueuePoolBase& completion_queues_;
   impl::ChannelCache channel_cache_;
   std::unordered_map<std::string, impl::ChannelCache> client_channel_cache_;
   ugrpc::impl::StatisticsStorage& client_statistics_storage_;
@@ -112,7 +115,7 @@ Client ClientFactory::MakeClient(const std::string& client_name,
       client_name,
       endpoint,
       impl::InstantiateMiddlewares(mws_, client_name),
-      queue_,
+      completion_queues_,
       client_statistics_storage_,
       GetChannel(client_name, endpoint),
       config_source_,

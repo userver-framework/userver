@@ -3,7 +3,6 @@
 /// @file userver/ugrpc/tests/standalone_client.hpp
 /// @brief @copybrief ugrpc::tests::StandaloneClientFactory
 
-#include <cstddef>
 #include <string>
 
 #include <userver/dynamic_config/test_helpers.hpp>
@@ -12,7 +11,7 @@
 
 #include <userver/testsuite/grpc_control.hpp>
 #include <userver/ugrpc/client/client_factory.hpp>
-#include <userver/ugrpc/client/queue_holder.hpp>
+#include <userver/ugrpc/client/impl/completion_queue_pool.hpp>
 #include <userver/ugrpc/impl/statistics_storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -49,7 +48,7 @@ class StandaloneClientFactory final {
       statistics_storage_, ugrpc::impl::StatisticsDomain::kClient};
   dynamic_config::StorageMock config_storage_{
       dynamic_config::MakeDefaultStorage({})};
-  client::QueueHolder client_queue_;
+  client::impl::CompletionQueuePool completion_queues_{1};
   testsuite::GrpcControl testsuite_control_{{}, false};
   client::ClientFactory client_factory_;
 };

@@ -56,7 +56,7 @@ template <typename Client>
     engine::TaskProcessor& blocking_task_processor) {
   return impl::TryWaitForConnected(
       impl::GetClientData(client).GetChannelToken(),
-      impl::GetClientData(client).GetQueue(), deadline,
+      impl::GetClientData(client).NextQueue(), deadline,
       blocking_task_processor);
 }
 

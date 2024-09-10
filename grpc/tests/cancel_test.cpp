@@ -9,10 +9,10 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/utest/log_capture_fixture.hpp>
 
+#include <../include/userver/ugrpc/client/impl/completion_queue_pool.hpp>
 #include <ugrpc/client/impl/client_configs.hpp>
 #include <userver/ugrpc/client/client_factory.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
-#include <userver/ugrpc/client/queue_holder.hpp>
 #include <userver/ugrpc/server/server.hpp>
 #include <userver/ugrpc/tests/standalone_client.hpp>
 

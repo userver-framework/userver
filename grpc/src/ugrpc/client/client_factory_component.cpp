@@ -60,7 +60,7 @@ ClientFactoryComponent::ClientFactoryComponent(
   factory_.emplace(MakeFactorySettings(std::move(factory_config), secdist),
                    processor_component.blocking_task_processor_,
                    std::move(middlewares),  //
-                   processor_component.queue_,
+                   processor_component.completion_queues_,
                    processor_component.client_statistics_storage_,
                    testsuite_grpc,  //
                    config_source);

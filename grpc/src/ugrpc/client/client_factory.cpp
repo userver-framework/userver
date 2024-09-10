@@ -1,33 +1,24 @@
 #include <userver/ugrpc/client/client_factory.hpp>
 
-#include <optional>
-#include <stdexcept>
-
-#include <fmt/format.h>
-
 #include <userver/engine/async.hpp>
-#include <userver/logging/level_serialization.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
-#include <ugrpc/client/impl/client_factory_config.hpp>
 #include <ugrpc/impl/logging.hpp>
-#include <ugrpc/impl/to_string.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
 
-ClientFactory::ClientFactory(ClientFactorySettings&& settings,
-                             engine::TaskProcessor& channel_task_processor,
-                             MiddlewareFactories mws,
-                             grpc::CompletionQueue& queue,
-                             ugrpc::impl::StatisticsStorage& statistics_storage,
-                             testsuite::GrpcControl& testsuite_grpc,
-                             dynamic_config::Source source)
+ClientFactory::ClientFactory(
+    ClientFactorySettings&& settings,
+    engine::TaskProcessor& channel_task_processor, MiddlewareFactories mws,
+    ugrpc::impl::CompletionQueuePoolBase& completion_queues,
+    ugrpc::impl::StatisticsStorage& statistics_storage,
+    testsuite::GrpcControl& testsuite_grpc, dynamic_config::Source source)
     : channel_task_processor_(channel_task_processor),
       mws_(mws),
-      queue_(queue),
+      completion_queues_(completion_queues),
       channel_cache_(testsuite_grpc.IsTlsEnabled()
                          ? settings.credentials
                          : grpc::InsecureChannelCredentials(),

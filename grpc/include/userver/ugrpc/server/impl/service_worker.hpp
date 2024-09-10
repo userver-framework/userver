@@ -16,7 +16,7 @@
 
 #include <userver/ugrpc/impl/static_metadata.hpp>
 #include <userver/ugrpc/impl/statistics_storage.hpp>
-#include <userver/ugrpc/server/impl/queue_holder.hpp>
+#include <userver/ugrpc/server/impl/completion_queue_pool.hpp>
 #include <userver/ugrpc/server/middlewares/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -25,7 +25,7 @@ namespace ugrpc::server::impl {
 
 /// Config for a `ServiceWorker`, provided by `ugrpc::server::Server`
 struct ServiceSettings final {
-  QueueHolder& queue;
+  CompletionQueuePool& completion_queues;
   engine::TaskProcessor& task_processor;
   ugrpc::impl::StatisticsStorage& statistics_storage;
   Middlewares middlewares;

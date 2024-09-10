@@ -97,7 +97,8 @@ ServerConfig ParseServerConfig(const yaml_config::YamlConfig& value,
   config.unix_socket_path =
       value["unix-socket-path"].As<std::optional<std::string>>();
   config.port = value["port"].As<std::optional<int>>();
-  config.completion_queue_num = value["completion-queue-count"].As<int>(2);
+  config.completion_queue_num =
+      value["completion-queue-count"].As<std::size_t>(2);
   config.channel_args =
       value["channel-args"].As<decltype(config.channel_args)>({});
   config.native_log_level =

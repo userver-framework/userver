@@ -42,7 +42,7 @@ CallParams CreateCallParams(const ClientData& client_data,
 
   return CallParams{
       client_data.GetClientName(),  //
-      client_data.GetQueue(),
+      client_data.NextQueue(),
       client_data.GetConfigSnapshot(),
       {ugrpc::impl::MaybeOwnedString::Ref{}, call_name},
       std::move(client_context),
@@ -65,7 +65,7 @@ CallParams CreateGenericCallParams(
 
   return CallParams{
       client_data.GetClientName(),  //
-      client_data.GetQueue(),
+      client_data.NextQueue(),
       client_data.GetConfigSnapshot(),
       ugrpc::impl::MaybeOwnedString{std::string{call_name}},
       std::move(client_context),

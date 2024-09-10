@@ -15,12 +15,12 @@
 #include <userver/ugrpc/impl/static_metadata.hpp>
 #include <userver/ugrpc/impl/statistics.hpp>
 #include <userver/utils/fixed_array.hpp>
-#include <userver/utils/rand.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::impl {
 class StatisticsStorage;
+class CompletionQueuePoolBase;
 }  // namespace ugrpc::impl
 
 namespace ugrpc::client::impl {
@@ -29,14 +29,16 @@ struct ClientParams final {
   std::string client_name;
   std::string endpoint;
   Middlewares mws;
-  grpc::CompletionQueue& queue;
+  ugrpc::impl::CompletionQueuePoolBase& completion_queues;
   ugrpc::impl::StatisticsStorage& statistics_storage;
   impl::ChannelCache::Token channel_token;
   const dynamic_config::Source config_source;
   testsuite::GrpcControl& testsuite_grpc;
 };
 
-struct GenericClientTag final {};
+struct GenericClientTag final {
+  explicit GenericClientTag() = default;
+};
 
 /// A helper class for generated gRPC clients
 class ClientData final {
@@ -68,11 +70,10 @@ class ClientData final {
 
   template <typename Service>
   Stub<Service>& NextStub() const {
-    return *static_cast<Stub<Service>*>(
-        stubs_[utils::RandRange(stubs_.size())].get());
+    return *static_cast<Stub<Service>*>(NextStubPtr().get());
   }
 
-  grpc::CompletionQueue& GetQueue() const { return params_.queue; }
+  grpc::CompletionQueue& NextQueue() const;
 
   dynamic_config::Snapshot GetConfigSnapshot() const {
     return params_.config_source.GetSnapshot();
@@ -114,6 +115,8 @@ class ClientData final {
           &StubDeleter<Service>);
     });
   }
+
+  const StubPtr& NextStubPtr() const;
 
   ugrpc::impl::ServiceStatistics& GetServiceStatistics();
 

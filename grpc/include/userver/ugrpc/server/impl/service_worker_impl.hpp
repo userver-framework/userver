@@ -118,7 +118,7 @@ class CallData final {
 
     context_.AsyncNotifyWhenDone(notify_when_done.GetTag());
 
-    auto& queue = method_data_.service_data.settings.queue.GetQueue(
+    auto& queue = method_data_.service_data.settings.completion_queues.GetQueue(
         method_data_.queue_id);
 
     // the request for an incoming RPC must be performed synchronously
@@ -239,7 +239,8 @@ template <typename GrpcppService, typename Service, typename... ServiceMethods>
 void StartServing(ServiceData<GrpcppService>& service_data, Service& service,
                   ServiceMethods... service_methods) {
   for (std::size_t queue_id = 0;
-       queue_id < service_data.settings.queue.GetSize(); ++queue_id) {
+       queue_id < service_data.settings.completion_queues.GetSize();
+       ++queue_id) {
     std::size_t method_id = 0;
     (CallData<GrpcppService, CallTraits<ServiceMethods>>::ListenAsync(
          {service_data, queue_id, method_id++, service, service_methods}),

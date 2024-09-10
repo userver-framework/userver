@@ -16,6 +16,7 @@
 #include <userver/logging/null_logger.hpp>
 #include <userver/server/congestion_control/sensor.hpp>
 #include <userver/utils/function_ref.hpp>
+#include <userver/utils/impl/internal_tag.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
@@ -24,6 +25,10 @@
 #include <userver/ugrpc/server/service_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace ugrpc::impl {
+class CompletionQueuePoolBase;
+}  // namespace ugrpc::impl
 
 namespace ugrpc::server {
 
@@ -42,7 +47,7 @@ struct ServerConfig final {
 
   /// Number of completion queues to create. Should be ~2 times less than number
   /// of worker threads for best RPS.
-  int completion_queue_num{2};
+  std::size_t completion_queue_num{2};
 
   /// Optional grpc-core channel args
   /// @see https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
@@ -92,12 +97,6 @@ class Server final
   /// @note The ServerBuilder must not be stored and used outside of `setup`.
   void WithServerBuilder(SetupHook setup);
 
-  /// @returns the completion queue for clients
-  /// @note All RPCs are cancelled on 'Stop'. If you need to perform requests
-  /// after the server has been closed, create an ugrpc::client::QueueHolder -
-  /// usually no more than one instance per program.
-  grpc::CompletionQueue& GetCompletionQueue() noexcept;
-
   /// @brief Start accepting requests
   /// @note Must be called at most once after all the services are registered
   void Start();
@@ -117,7 +116,14 @@ class Server final
   /// Stop must still be called. StopServing is also useful for testing.
   void StopServing() noexcept;
 
+  /// @cond
+  // For internal use only.
   std::uint64_t GetTotalRequests() const override;
+
+  // For internal use only.
+  ugrpc::impl::CompletionQueuePoolBase& GetCompletionQueues(
+      utils::impl::InternalTag);
+  /// @endcond
 
  private:
   class Impl;

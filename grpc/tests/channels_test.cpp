@@ -10,8 +10,8 @@
 #include <userver/utest/utest.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
+#include <../include/userver/ugrpc/client/impl/completion_queue_pool.hpp>
 #include <userver/ugrpc/client/client_factory.hpp>
-#include <userver/ugrpc/client/queue_holder.hpp>
 #include <userver/ugrpc/server/server.hpp>
 #include <userver/ugrpc/tests/service.hpp>
 #include <userver/ugrpc/tests/standalone_client.hpp>

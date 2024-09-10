@@ -53,8 +53,8 @@ void ServiceBase::StartServer(
   client_factory_.emplace(
       std::move(client_factory_settings),
       engine::current_task::GetTaskProcessor(), client_middleware_factories_,
-      server_.GetCompletionQueue(), client_statistics_storage_, testsuite_,
-      config_storage_.GetSource());
+      server_.GetCompletionQueues(utils::impl::InternalTag{}),
+      client_statistics_storage_, testsuite_, config_storage_.GetSource());
 }
 
 void ServiceBase::StopServer() noexcept {

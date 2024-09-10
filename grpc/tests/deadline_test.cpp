@@ -12,12 +12,12 @@
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/utils/algo.hpp>
 
+#include <../include/userver/ugrpc/client/impl/completion_queue_pool.hpp>
 #include <ugrpc/client/impl/client_configs.hpp>
 #include <ugrpc/client/middlewares/deadline_propagation/middleware.hpp>
 #include <ugrpc/server/impl/server_configs.hpp>
 #include <ugrpc/server/middlewares/deadline_propagation/middleware.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
-#include <userver/ugrpc/client/queue_holder.hpp>
 
 #include <tests/deadline_helpers.hpp>
 #include <tests/unit_test_client.usrv.pb.hpp>

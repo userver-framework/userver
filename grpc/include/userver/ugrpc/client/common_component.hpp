@@ -5,12 +5,11 @@
 
 #include <optional>
 
-#include <grpcpp/completion_queue.h>
-
 #include <userver/components/component_base.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 
-#include <userver/ugrpc/client/queue_holder.hpp>
+#include <userver/ugrpc/client/impl/completion_queue_pool.hpp>
+#include <userver/ugrpc/impl/completion_queue_pool_base.hpp>
 #include <userver/ugrpc/impl/statistics_storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -50,8 +49,8 @@ class CommonComponent final : public components::ComponentBase {
   friend class ClientFactoryComponent;
 
   engine::TaskProcessor& blocking_task_processor_;
-  std::optional<QueueHolder> queue_holder_;
-  grpc::CompletionQueue& queue_;
+  std::optional<impl::CompletionQueuePool> client_completion_queues_;
+  ugrpc::impl::CompletionQueuePoolBase& completion_queues_;
   ugrpc::impl::StatisticsStorage client_statistics_storage_;
 };
 

@@ -10,6 +10,7 @@
 #include <userver/utils/algo.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 
+#include <../include/userver/ugrpc/client/impl/completion_queue_pool.hpp>
 #include <ugrpc/client/impl/client_configs.hpp>
 #include <ugrpc/client/middlewares/baggage/middleware.hpp>
 #include <ugrpc/impl/rpc_metadata.hpp>
@@ -17,7 +18,6 @@
 #include <ugrpc/server/impl/server_configs.hpp>
 #include <ugrpc/server/middlewares/baggage/middleware.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
-#include <userver/ugrpc/client/queue_holder.hpp>
 
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
