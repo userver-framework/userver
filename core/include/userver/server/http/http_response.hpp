@@ -22,6 +22,15 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
 
+// RFC 9110 states that in case of missing Content-Type it may be assumed to be
+// application/octet-stream.
+//
+// text/plain was our first guess, but we should provide an encoding with that
+// type, which we do not know for sure. "application/octet-stream" has no
+// charset https://www.iana.org/assignments/media-types/application/octet-stream
+inline constexpr std::string_view kDefaultContentType =
+    "application/octet-stream";
+
 class Http2ResponseWriter;
 
 namespace impl {

@@ -19,8 +19,6 @@ namespace server::http {
 
 namespace {
 
-constexpr std::string_view kDefaultContentTypeString = "application/json";
-
 bool IsBodyForbiddenForStatus(HttpStatus status) {
   return status == HttpStatus::kNoContent ||
          status == HttpStatus::kNotModified ||
@@ -160,7 +158,7 @@ class Http2ResponseWriter final {
     }
     if (headers.find(USERVER_NAMESPACE::http::headers::kContentType) == end) {
       header_writer.AddKeyValue(USERVER_NAMESPACE::http::headers::kContentType,
-                                kDefaultContentTypeString);
+                                kDefaultContentType);
     }
     for (const auto& [key, value] : headers) {
       if (key ==
