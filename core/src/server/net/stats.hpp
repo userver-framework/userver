@@ -6,18 +6,18 @@
 #include <vector>
 
 #include <userver/concurrent/striped_counter.hpp>
-#include <userver/utils/statistics/striped_rate_counter.hpp>
+#include <userver/utils/statistics/rate_counter.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace server::net {
 
 struct Http2Stats {
-  utils::statistics::StripedRateCounter streams_count{0};
-  utils::statistics::StripedRateCounter streams_parse_error{0};
-  utils::statistics::StripedRateCounter streams_close{0};
-  utils::statistics::StripedRateCounter reset_streams{0};
-  utils::statistics::StripedRateCounter goaway{0};
+  utils::statistics::RateCounter streams_count{0};
+  utils::statistics::RateCounter streams_parse_error{0};
+  utils::statistics::RateCounter streams_close{0};
+  utils::statistics::RateCounter reset_streams{0};
+  utils::statistics::RateCounter goaway{0};
 };
 
 struct ParserStats {
@@ -30,11 +30,11 @@ struct ParserStatsAggregation final {
 
   explicit ParserStatsAggregation(const ParserStats& stats)
       : parsing_request_count{stats.parsing_request_count.NonNegativeRead()},
-        streams_count(stats.http2_stats.streams_count.Load().value),
-        streams_parse_error(stats.http2_stats.streams_parse_error.Load().value),
-        streams_close(stats.http2_stats.streams_close.Load().value),
-        reset_streams(stats.http2_stats.reset_streams.Load().value),
-        goaway(stats.http2_stats.goaway.Load().value) {}
+        streams_count(stats.http2_stats.streams_count.Load()),
+        streams_parse_error(stats.http2_stats.streams_parse_error.Load()),
+        streams_close(stats.http2_stats.streams_close.Load()),
+        reset_streams(stats.http2_stats.reset_streams.Load()),
+        goaway(stats.http2_stats.goaway.Load()) {}
 
   ParserStatsAggregation& operator+=(const ParserStatsAggregation& other) {
     parsing_request_count += other.parsing_request_count;
@@ -49,11 +49,11 @@ struct ParserStatsAggregation final {
 
   std::size_t parsing_request_count{0};
   // HTTP/2.0
-  std::size_t streams_count{0};
-  std::size_t streams_parse_error{0};
-  std::size_t streams_close{0};
-  std::size_t reset_streams{0};
-  std::size_t goaway{0};
+  utils::statistics::Rate streams_count{0};
+  utils::statistics::Rate streams_parse_error{0};
+  utils::statistics::Rate streams_close{0};
+  utils::statistics::Rate reset_streams{0};
+  utils::statistics::Rate goaway{0};
 };
 
 struct Stats {

@@ -55,6 +55,11 @@ class RateCounter final {
     val_.fetch_add(arg.value, order);
   }
 
+  void AddAsSingleProducer(Rate arg) noexcept {
+    val_.store(val_.load(std::memory_order_relaxed) + arg.value,
+               std::memory_order_relaxed);
+  }
+
   RateCounter& operator++() noexcept {
     val_.fetch_add(1, std::memory_order_relaxed);
     return *this;

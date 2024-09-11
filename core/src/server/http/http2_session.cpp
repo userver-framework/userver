@@ -31,6 +31,10 @@ Http2Session& GetParser(void* user_data) {
   return *static_cast<Http2Session*>(user_data);
 }
 
+void IncStat(utils::statistics::RateCounter& stat) {
+  stat.AddAsSingleProducer(utils::statistics::Rate{1});
+}
+
 }  // namespace
 
 Stream::Stream(HttpRequestConstructor::Config config,
@@ -114,20 +118,20 @@ int Http2Session::OnFrameRecv(nghttp2_session* session,
         try {
           stream.constructor.AppendHeaderField("", 0);
         } catch (const std::exception& e) {
-          ++parser.stats_.http2_stats.streams_parse_error;
+          IncStat(parser.stats_.http2_stats.streams_parse_error);
           LOG_LIMITED_WARNING() << "can't append header field: " << e;
         }
         parser.FinalizeRequest(stream);
       }
     } break;
     case NGHTTP2_RST_STREAM: {
-      ++parser.stats_.http2_stats.reset_streams;
+      IncStat(parser.stats_.http2_stats.reset_streams);
     } break;
     case NGHTTP2_PING: {
       nghttp2_submit_ping(parser.session_.get(), NGHTTP2_FLAG_NONE, nullptr);
     } break;
     case NGHTTP2_GOAWAY: {
-      ++parser.stats_.http2_stats.goaway;
+      IncStat(parser.stats_.http2_stats.goaway);
     } break;
   }
   return 0;
@@ -159,7 +163,7 @@ int Http2Session::OnHeader(nghttp2_session*, const nghttp2_frame* frame,
       stream.CheckUrlComplete();
     } catch (const std::exception& e) {
       LOG_LIMITED_WARNING() << "can't append url: " << e;
-      ++parser.stats_.http2_stats.streams_parse_error;
+      IncStat(parser.stats_.http2_stats.streams_parse_error);
     }
   } else {
     try {
@@ -167,7 +171,7 @@ int Http2Session::OnHeader(nghttp2_session*, const nghttp2_frame* frame,
       ctor.AppendHeaderValue(hvalue.data(), hvalue.size());
     } catch (const std::exception& e) {
       LOG_LIMITED_WARNING() << "can't append header field: " << e;
-      ++parser.stats_.http2_stats.streams_parse_error;
+      IncStat(parser.stats_.http2_stats.streams_parse_error);
     }
   }
   return 0;
@@ -178,7 +182,7 @@ int Http2Session::OnStreamClose(nghttp2_session*, int32_t id,
   auto& parser = GetParser(user_data);
   parser.RemoveStream(parser.GetStreamChecked(id));
 
-  ++parser.stats_.http2_stats.streams_close;
+  IncStat(parser.stats_.http2_stats.streams_close);
   LOG_LIMITED_TRACE() << fmt::format("The stream {} was closed with code {}",
                                      id, error_code);
 
@@ -247,7 +251,7 @@ void Http2Session::RegisterStream(Stream::StreamId id) {
   }
 
   stats_.parsing_request_count.Add(1);
-  ++stats_.http2_stats.streams_count;
+  IncStat(stats_.http2_stats.streams_count);
 
   guard_destroy.Release();
 }
@@ -274,7 +278,7 @@ Stream& Http2Session::GetStreamChecked(Stream::StreamId id) {
 }
 
 void Http2Session::SubmitRstStream(Stream::StreamId id) {
-  ++stats_.http2_stats.reset_streams;
+  IncStat(stats_.http2_stats.reset_streams);
   UASSERT(id != 0);
   const auto res = nghttp2_submit_rst_stream(session_.get(), NGHTTP2_FLAG_NONE,
                                              id, NGHTTP2_INTERNAL_ERROR);
@@ -311,7 +315,7 @@ void Http2Session::UpgradeToHttp2(std::string_view client_magic) {
 
 void Http2Session::FinalizeRequest(Stream& stream) {
   if (!stream.CheckUrlComplete()) {
-    ++stats_.http2_stats.streams_parse_error;
+    IncStat(stats_.http2_stats.streams_parse_error);
     SubmitRstStream(stream.id);
     RemoveStream(stream);
     return;
@@ -320,7 +324,7 @@ void Http2Session::FinalizeRequest(Stream& stream) {
   if (auto request = stream.constructor.Finalize()) {
     on_new_request_cb_(std::move(request));
   } else {
-    ++stats_.http2_stats.streams_parse_error;
+    IncStat(stats_.http2_stats.streams_parse_error);
     SubmitRstStream(stream.id);
     RemoveStream(stream);
   }
