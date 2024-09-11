@@ -206,6 +206,13 @@ const CompositeTypeDescription& UserTypes::GetCompositeDescription(
   if (auto f = composite_types_.find(oid); f != composite_types_.end()) {
     return f->second;
   }
+
+  // try base type, if it is a domain
+  auto base = FindDomainBaseOid(oid);
+  if (auto f = composite_types_.find(base); f != composite_types_.end()) {
+    return f->second;
+  }
+
   throw UserTypeError{
       "Composite type description for oid " + std::to_string(oid) +
       " not found. Forgot a migration or rolled it after service started?"};

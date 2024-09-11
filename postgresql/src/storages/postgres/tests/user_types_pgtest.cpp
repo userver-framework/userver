@@ -50,6 +50,32 @@ CREATE DOMAIN __pgtest.dom AS integer
 -- /// [User domain type postgres]
 )~";
 
+const std::string kCreateTypedADomainType = R"~(
+CREATE TYPE __pgtest.a_base AS (x INTEGER)
+)~";
+
+constexpr pg::DBTypeName kTypedDomainAName = "__pgtest.dom_a";
+const std::string kCreateTypedADomain = R"~(
+  CREATE DOMAIN __pgtest.dom_a AS __pgtest.a_base
+)~";
+
+const std::string kCreateTypedBDomainType = R"~(
+CREATE TYPE __pgtest.b_base AS (y __pgtest.dom_a)
+)~";
+
+constexpr pg::DBTypeName kTypedDomainBName = "__pgtest.dom_b";
+const std::string kCreateTypedBDomain = R"~(
+  CREATE DOMAIN __pgtest.dom_b AS __pgtest.b_base
+)~";
+
+const std::string kCreateTypedCDomainType = R"~(
+CREATE TYPE __pgtest.c_base AS (z __pgtest.dom_b)
+)~";
+
+const std::string kCreateTypedCDomain = R"~(
+  CREATE DOMAIN __pgtest.dom_c AS __pgtest.c_base
+)~";
+
 constexpr pg::DBTypeName kRangeOverDomainName = "__pgtest.my_range";
 const std::string kCreateRangeOverDomain = R"~(
 -- /// [User domainrange type postgres]
@@ -60,6 +86,33 @@ CREATE TYPE __pgtest.my_range AS RANGE (
 )~";
 
 }  // namespace
+
+struct ABase {
+  pg::Integer x;
+};
+
+template <>
+struct storages::postgres::io::CppToUserPg<ABase> {
+  static constexpr DBTypeName postgres_name = "__pgtest.a_base";
+};
+
+struct BBase {
+  ABase y;
+};
+
+template <>
+struct storages::postgres::io::CppToUserPg<BBase> {
+  static constexpr DBTypeName postgres_name = "__pgtest.b_base";
+};
+
+struct CBase {
+  BBase z;
+};
+
+template <>
+struct storages::postgres::io::CppToUserPg<CBase> {
+  static constexpr DBTypeName postgres_name = "__pgtest.c_base";
+};
 
 /*! [User composite type cpp] */
 namespace pgtest {
@@ -161,6 +214,12 @@ UTEST_P(PostgreConnection, LoadUserTypes) {
       << "Successfully create a range type";
   UEXPECT_NO_THROW(GetConn()->Execute(kCreateADomain))
       << "Successfully create a domain";
+  UEXPECT_NO_THROW(GetConn()->Execute(kCreateTypedADomainType));
+  UEXPECT_NO_THROW(GetConn()->Execute(kCreateTypedADomain));
+  UEXPECT_NO_THROW(GetConn()->Execute(kCreateTypedBDomainType));
+  UEXPECT_NO_THROW(GetConn()->Execute(kCreateTypedBDomain));
+  UEXPECT_NO_THROW(GetConn()->Execute(kCreateTypedCDomainType));
+  UEXPECT_NO_THROW(GetConn()->Execute(kCreateTypedCDomain));
   UEXPECT_NO_THROW(GetConn()->Execute(kCreateRangeOverDomain));
 
   UEXPECT_NO_THROW(GetConn()->ReloadUserTypes()) << "Reload user types";
@@ -194,6 +253,26 @@ UTEST_P(PostgreConnection, LoadUserTypes) {
     auto res = connection->Execute("SELECT 5::__pgtest.dom");
     EXPECT_EQ(res[0][0].As<int>(), 5);
     /// [User domain type cpp usage]
+  }
+  {
+    auto domain_oid = user_types.FindOid(kTypedDomainAName);
+    auto base_oid = user_types.FindBaseOid(kTypedDomainAName);
+    EXPECT_NE(0, domain_oid);
+    EXPECT_NE(0, base_oid);
+
+    domain_oid = user_types.FindOid(kTypedDomainBName);
+    base_oid = user_types.FindBaseOid(kTypedDomainBName);
+    EXPECT_NE(0, domain_oid);
+    EXPECT_NE(0, base_oid);
+
+    auto& connection = GetConn();
+    auto res =
+        connection->Execute("SELECT $1::__pgtest.dom_b", BBase{ABase{5}});
+    EXPECT_EQ(res[0][0].As<BBase>().y.x, 5);
+
+    res = connection->Execute("SELECT $1::__pgtest.dom_c",
+                              CBase{BBase{ABase{2}}});
+    EXPECT_EQ(res[0][0].As<CBase>().z.y.x, 2);
   }
   {
     auto& connection = GetConn();
