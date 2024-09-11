@@ -34,7 +34,7 @@ def grpc_service_port(service_config) -> int:
 
 
 @pytest.fixture(scope='session')
-def grpc_service_endpoint(grpc_service_port) -> str:
+def grpc_service_endpoint(service_config, grpc_service_port) -> str:
     """
     Returns the gRPC endpoint of the service.
 
@@ -43,7 +43,15 @@ def grpc_service_endpoint(grpc_service_port) -> str:
 
     @ingroup userver_testsuite_fixtures
     """
-    return f'localhost:{grpc_service_port}'
+    components = service_config['components_manager']['components']
+    if 'grpc-server' not in components:
+        raise RuntimeError('No grpc-server component')
+    grpc_server_unix_socket = components['grpc-server'].get('unix-socket-path')
+    return (
+        f'unix:{grpc_server_unix_socket}'
+        if grpc_server_unix_socket is not None
+        else f'localhost:{grpc_service_port}'
+    )
 
 
 @pytest.fixture(scope='session')
