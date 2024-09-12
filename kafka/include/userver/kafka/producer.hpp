@@ -31,29 +31,33 @@ struct Secret;
 ///
 /// ## Important implementation details
 ///
-/// Implementation does not block on any send to Kafka and asynchronously
-/// waits for each message to be delivered.
+/// Message send tasks handling other messages' delivery reports, suspending
+/// their execution while no events exist.
+/// This makes message production parallel and leads to high Producer
+/// scalability.
 ///
-/// `Producer` maintains the per topic statistics including the broker
+/// Producer maintains per topic statistics including the broker
 /// connection errors.
 ///
 /// @remark Destructor may wait for no more than a 2 x `delivery_timeout` to
-/// ensure all sent messages are properly delivered
+/// ensure all sent messages are properly delivered.
 ///
 /// @see https://docs.confluent.io/platform/current/clients/producer.html
 class Producer final {
  public:
   /// @brief Creates the Kafka Producer.
   ///
-  /// @param producer_task_processor where producer creates tasks for message
-  /// delivery scheduling and waiting.
+  /// @param producer_task_processor is task processor where producer creates
+  /// tasks for message delivery scheduling and waiting.
   Producer(const std::string& name,
            engine::TaskProcessor& producer_task_processor,
            const impl::ProducerConfiguration& configuration,
            const impl::Secret& secrets);
 
-  /// @brief Waits until all messages are sent for a certain timeout and destroy
-  /// the inner producer.
+  /// @brief Waits until all messages are sent for at most 2 x
+  /// `delivery_timeout` and destroys the producer.
+  ///
+  /// @remark In a basic producer use cases, the destructor returns immediately.
   ~Producer();
 
   Producer(const Producer&) = delete;
@@ -71,33 +75,39 @@ class Producer final {
   /// delivered.
   ///
   /// Thread-safe and can be called from any number of threads
-  /// simultaneously.
+  /// concurrently.
   ///
   /// If `partition` not passed, partition is chosen by internal
   /// Kafka partitioner.
   ///
   /// @warning if `enable_idempotence` option is enabled, do not use both
-  /// explicit partitions and Kafka-chosen ones
+  /// explicit partitions and Kafka-chosen ones.
   ///
-  /// @throws `SendException` and its descendants if message is not delivered
-  /// and acked by Kafka Broker
+  /// @throws SendException and its descendants if message is not delivered
+  /// and acked by Kafka Broker in configured timeout.
+  ///
+  /// @note Use SendException::IsRetryable method to understand whether there is
+  /// a sense to retry the message sending.
+  /// @snippet kafka/tests/producer_test.cpp Producer retryable error
   void Send(const std::string& topic_name, std::string_view key,
             std::string_view message,
             std::optional<std::uint32_t> partition = std::nullopt) const;
 
-  /// @brief Same as `Producer::Send`, but returns the task which can be
-  /// used to wait the message delivery.
+  /// @brief Same as Producer::Send, but returns the task which can be
+  /// used to wait the message delivery manually.
   ///
   /// @warning If user schedules a batch of send requests with
-  /// `Producer::SendAsync`, some send
+  /// Producer::SendAsync, some send
   /// requests may be retried by the library (for instance, in case of network
   /// blink). Though, the order messages are written to partition may differ
   /// from the order messages are initially sent
+  /// @snippet kafka/tests/producer_test.cpp Producer batch send async
   [[nodiscard]] engine::TaskWithResult<void> SendAsync(
       std::string topic_name, std::string key, std::string message,
       std::optional<std::uint32_t> partition = std::nullopt) const;
 
-  /// @brief Dumps per topic messages produce statistics.
+  /// @brief Dumps per topic messages produce statistics. No expected to be
+  /// called manually.
   /// @see impl/stats.hpp
   void DumpMetric(utils::statistics::Writer& writer) const;
 

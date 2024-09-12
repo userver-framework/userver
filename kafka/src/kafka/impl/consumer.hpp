@@ -16,9 +16,9 @@ class ConsumerImpl;
 struct ConsumerConfiguration;
 struct Secret;
 
-/// @brief Parameters `Consumer` uses in runtime.
-/// The struct is used only for documentation purposes, `Consumer` can be
-/// created through `ConsumerComponent`.
+/// @brief Parameters Consumer uses in runtime.
+/// The struct is used only for documentation purposes, Consumer can be
+/// created through ConsumerComponent.
 struct ConsumerExecutionParams final {
   /// @brief stands for max polled message batches size
   std::size_t max_batch_size{1};
@@ -31,11 +31,11 @@ class Consumer final {
  public:
   /// @brief Creates the Kafka Consumer.
   ///
-  /// @note No messages processing starts. Use `ConsumerScope::Start` to launch
+  /// @note No messages processing starts. Use ConsumerScope::Start to launch
   /// the messages processing loop
   ///
   /// @param topics stands for topics list that consumer subscribes to
-  /// after `ConsumerScope::Start` called
+  /// after ConsumerScope::Start called
   /// @param consumer_task_processor -- task processor for message batches
   /// polling
   /// All callbacks are invoked in `main_task_processor`
@@ -46,7 +46,7 @@ class Consumer final {
            const Secret& secrets, ConsumerExecutionParams params);
 
   /// @brief Cancels the consumer polling task and stop the underlying consumer.
-  /// @see `ConsumerScope::Stop` for stopping process understanding
+  /// @see ConsumerScope::Stop for stopping process understanding
   ~Consumer();
 
   Consumer(Consumer&&) noexcept = delete;
@@ -66,11 +66,11 @@ class Consumer final {
   /// periodically polls the message batches.
   void StartMessageProcessing(ConsumerScope::Callback callback);
 
-  /// @brief Calls `poll_task_.SyncCancel()`
+  /// @brief Calls `poll_task_.SyncCancel()` and waits until consumer stopped.
   void Stop() noexcept;
 
   /// @brief Schedules the commitment task.
-  /// @see `ConsumerScope::AsyncCommit` for better commitment process
+  /// @see ConsumerScope::AsyncCommit for better commitment process
   /// understanding
   void AsyncCommit();
 

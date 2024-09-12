@@ -6,8 +6,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace kafka {
 
-/// @brief Base exception thrown by `Producer::Send` and `Producer::SendAsync`
-/// on delivery errors.
+/// @brief Base exception thrown by Producer::Send and Producer::SendAsync
+/// on send or delivery errors.
 class SendException : public std::runtime_error {
  public:
   using std::runtime_error::runtime_error;

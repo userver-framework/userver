@@ -332,7 +332,7 @@ void ProducerImpl::WaitUntilDeliveryReported(
       waiters_.PopWaiter(waiter);
 
       /// it is possible that EventCallback waked up current waiter after
-      /// `engine::WaitAny` and before `PopWaiter` (equivalent to
+      /// engine::WaitAny and before `PopWaiter` (equivalent to
       /// event.IsReady() == true).
       /// Therefore, so that the awakening does not turn out to be useless, we
       /// try to process the events again.

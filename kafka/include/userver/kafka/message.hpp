@@ -16,8 +16,7 @@ class ConsumerImpl;
 
 }  // namespace impl
 
-/// @brief RAII wrapper for polled message data.
-/// @note All `Message` instances must be destroyed before `Consumer` stop
+/// @brief Wrapper for polled message data access.
 class Message final {
   struct Data;
   using DataStorage = utils::FastPimpl<Data, 16 + 32 + 16, 8>;

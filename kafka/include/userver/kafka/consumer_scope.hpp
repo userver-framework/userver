@@ -22,7 +22,7 @@ class Consumer;
 /// and proper lifetime management.
 ///
 /// Its main purpose is to stop the message polling in user
-/// component (that holds `ConsumerScope`) destructor, because `ConsumerScope::Callback`
+/// component (that holds ConsumerScope) destructor, because ConsumerScope::Callback
 /// often captures `this` pointer on user component.
 ///
 /// Common usage:
@@ -31,7 +31,7 @@ class Consumer;
 ///
 /// ## Important implementation details
 ///
-/// `ConsumerScope` holds reference to `impl::Consumer` that actually
+/// ConsumerScope holds reference to `impl::Consumer` that actually
 /// represents the Apache Kafka Balanced Consumer.
 ///
 /// It exposes the API for asynchronous message batches processing that is
@@ -40,10 +40,10 @@ class Consumer;
 /// Consumer periodically polls the message batches from the
 /// subscribed topics partitions and invokes processing callback on each batch.
 ///
-/// Also, Consumer maintains the per topic statistics including the broker
+/// Also, Consumer maintains per topic statistics including the broker
 /// connection errors.
 ///
-/// @note Each `ConsumerScope` instance is not thread-safe. To speed up the topic
+/// @note Each ConsumerScope instance is not thread-safe. To speed up the topic
 /// messages processing, create more consumers with the same `group_id`.
 ///
 /// @see https://docs.confluent.io/platform/current/clients/consumer.html for
@@ -51,8 +51,9 @@ class Consumer;
 /// @see
 /// https://docs.confluent.io/platform/current/clients/librdkafka/html/md_INTRODUCTION.html#autotoc_md62
 /// for understanding of balanced consumer groups
-/// @warning `ConsumerScope::Start` and `ConsumerScope::Stop` maybe called multiple
-/// times, but only in "start-stop" order and **NOT** concurrently
+///
+/// @warning ConsumerScope::Start and ConsumerScope::Stop maybe called multiple
+/// times, but only in "start-stop" order and **NOT** concurrently.
 ///
 /// @note Must be placed as one of the last fields in the consumer component.
 /// Make sure to add a comment before the field:
@@ -65,10 +66,10 @@ class Consumer;
 
 class ConsumerScope final {
  public:
-  /// @brief Callback that invokes on each polled message batch.
+  /// @brief Callback that is invoked on each polled message batch.
   /// @warning If callback throws, it called over and over again with the batch
   /// with the same messages, until successful invocation.
-  /// Though, user should consider idempotent message processing mechanism
+  /// Though, user should consider idempotent message processing mechanism.
   using Callback = std::function<void(MessageBatchView)>;
 
   /// @brief Stops the consumer (if not yet stopped).
@@ -92,10 +93,11 @@ class ConsumerScope final {
   /// actions in that destructor prevent the callback from functioning
   /// correctly.
   ///
-  /// After `Stop` call, subscribed topics partitions are distributed
-  /// between other consumers with the same `group_id`.
+  /// After ConsumerScope::Stop call, subscribed topics partitions are
+  /// distributed between other consumers with the same `group_id`.
   ///
-  /// @warning Blocks until all `kafka::Message` destroyed.
+  /// @warning Blocks until all kafka::Message destroyed (e.g. consumer cannot
+  /// be stopped until user-callback is executing).
   void Stop() noexcept;
 
   /// @brief Schedules the current assignment offsets commitment task.
