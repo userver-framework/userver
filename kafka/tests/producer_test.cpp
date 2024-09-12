@@ -268,17 +268,20 @@ UTEST_F_MT(ProducerTest, OneProducerManySendSyncMt, 1 + 4) {
 
   constexpr std::size_t kSendCount{100};
   constexpr std::size_t kTopicCount{4};
+  constexpr std::size_t kSendPerTask{kSendCount / kTopicCount};
   const std::vector<std::string> topics = GenerateTopics(kTopicCount);
 
   std::vector<engine::TaskWithResult<void>> results;
-  results.reserve(kSendCount);
-  for (std::size_t send{0}; send + 1 < GetThreadCount(); ++send) {
-    results.emplace_back(
-        utils::Async(fmt::format("producer_test_send_sync_{}", send),
-                     [send, &producer, &topic = topics.at(send % kTopicCount)] {
-                       producer.Send(topic, fmt::format("test-key-{}", send),
-                                     fmt::format("test-msg-{}", send));
-                     }));
+  results.reserve(GetThreadCount());
+  for (std::size_t group{0}; group + 1 < GetThreadCount(); ++group) {
+    results.emplace_back(utils::Async(
+        fmt::format("producer_test_send_sync_{}", group), [&producer, &topics] {
+          for (std::size_t send{0}; send < kSendPerTask; ++send) {
+            producer.Send(topics.at(send % topics.size()),
+                          fmt::format("test-key-{}", send),
+                          fmt::format("test-msg-{}", send));
+          }
+        }));
   }
 
   UEXPECT_NO_THROW(engine::WaitAllChecked(results));
@@ -293,6 +296,7 @@ UTEST_F_MT(ProducerTest, OneProducerManySendAsyncMt, 1 + 4) {
   const std::vector<std::string> topics = GenerateTopics(kTopicCount);
 
   std::vector<engine::TaskWithResult<void>> parallel_tasks;
+  parallel_tasks.reserve(GetThreadCount());
   concurrent::Variable<std::vector<engine::TaskWithResult<void>>> results;
   for (std::size_t group{0}; group + 1 < GetThreadCount(); ++group) {
     parallel_tasks.emplace_back(utils::Async(

@@ -1,13 +1,16 @@
 #include "test_utils.hpp"
 
 #include <algorithm>
+#include <cstdint>
 #include <unordered_set>
 #include <vector>
 
 #include <gmock/gmock.h>
 
 #include <userver/engine/single_use_event.hpp>
+#include <userver/engine/sleep.hpp>
 #include <userver/utils/async.hpp>
+#include <userver/utils/fixed_array.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -51,7 +54,16 @@ std::vector<Message> ReceiveMessages(kafka::impl::Consumer& consumer,
 
 }  // namespace
 
-UTEST_F_MT(ConsumerTest, OneConsumerSmallTopics, 2) {
+UTEST_F(ConsumerTest, BrokenConfiguration) {
+  kafka::impl::ConsumerConfiguration consumer_configuration{};
+  consumer_configuration.max_callback_duration = std::chrono::milliseconds{10};
+  consumer_configuration.rd_kafka_options["session.timeout.ms"] = "10000";
+
+  UEXPECT_THROW(MakeConsumer("kafka-consumer", {}, consumer_configuration),
+                std::runtime_error);
+}
+
+UTEST_F(ConsumerTest, OneConsumerSmallTopics) {
   const auto topic1 = GenerateTopic();
   const auto topic2 = GenerateTopic();
 
@@ -71,7 +83,7 @@ UTEST_F_MT(ConsumerTest, OneConsumerSmallTopics, 2) {
               ::testing::UnorderedElementsAreArray(kTestMessages));
 }
 
-UTEST_F_MT(ConsumerTest, OneConsumerLargeTopics, 2) {
+UTEST_F(ConsumerTest, OneConsumerLargeTopics) {
   constexpr std::size_t kMessagesCount{2 * 2 * kNumPartitionsLargeTopic};
 
   std::vector<Message> kTestMessages{kMessagesCount};
@@ -93,7 +105,7 @@ UTEST_F_MT(ConsumerTest, OneConsumerLargeTopics, 2) {
               ::testing::UnorderedElementsAreArray(kTestMessages));
 }
 
-UTEST_F_MT(ConsumerTest, ManyConsumersLargeTopics, 3) {
+UTEST_F(ConsumerTest, ManyConsumersLargeTopics) {
   constexpr std::size_t kMessagesCount{2 * 2 * kNumPartitionsLargeTopic};
 
   std::vector<Message> kTestMessages{kMessagesCount};
@@ -130,7 +142,7 @@ UTEST_F_MT(ConsumerTest, ManyConsumersLargeTopics, 3) {
               ::testing::UnorderedElementsAreArray(kTestMessages));
 }
 
-UTEST_F_MT(ConsumerTest, OneConsumerPartitionDistribution, 2) {
+UTEST_F(ConsumerTest, OneConsumerPartitionDistribution) {
   const std::vector<Message> kTestMessages{
       Message{kLargeTopic1, "key", "msg-1", /*partition=*/std::nullopt},
       Message{kLargeTopic1, "key", "msg-2", /*partition=*/std::nullopt},
@@ -151,7 +163,7 @@ UTEST_F_MT(ConsumerTest, OneConsumerPartitionDistribution, 2) {
   EXPECT_EQ(partitions.size(), 1ull);
 }
 
-UTEST_F_MT(ConsumerTest, OneConsumerRereadAfterCommit, 2) {
+UTEST_F(ConsumerTest, OneConsumerRereadAfterCommit) {
   const auto topic = GenerateTopic();
   const std::vector<Message> kTestMessages{
       Message{topic, "key-1", "msg-1", /*partition=*/std::nullopt},
@@ -159,20 +171,47 @@ UTEST_F_MT(ConsumerTest, OneConsumerRereadAfterCommit, 2) {
       Message{topic, "key-3", "msg-3", /*partition=*/std::nullopt}};
   SendMessages(kTestMessages);
 
-  std::vector<Message> received_first;
-  std::vector<Message> received_second;
-  {
-    auto consumer = MakeConsumer("kafka-consumer", /*topics=*/{topic});
-    received_first =
-        ReceiveMessages(consumer, kTestMessages.size(), /*commit=*/false);
-  }
-  {
-    auto consumer = MakeConsumer("kafka-consumer", /*topics=*/{topic});
-    received_second =
-        ReceiveMessages(consumer, kTestMessages.size(), /*commit=*/true);
-  }
+  auto consumer = MakeConsumer("kafka-consumer", /*topics=*/{topic});
+  const auto received_first =
+      ReceiveMessages(consumer, kTestMessages.size(), /*commit=*/false);
+  const auto received_second =
+      ReceiveMessages(consumer, kTestMessages.size(), /*commit=*/true);
 
   EXPECT_EQ(received_first, received_second);
+}
+
+UTEST_F(ConsumerTest, LargeBatch) {
+  constexpr std::size_t kMessagesCount{20};
+
+  const auto topic = GenerateTopic();
+  const auto messages =
+      utils::GenerateFixedArray(kMessagesCount, [&topic](std::size_t i) {
+        return Message{topic, fmt::format("key-{}", i),
+                       fmt::format("msg-{}", i), std::nullopt};
+      });
+  SendMessages(messages);
+
+  auto consumer = MakeConsumer(
+      "kafka-consumer", {topic}, kafka::impl::ConsumerConfiguration{},
+      kafka::impl::ConsumerExecutionParams{
+          /*max_batch_size=*/100,
+          /*poll_timeout=*/utest::kMaxTestWaitTime / 2});
+  auto consumer_scope = consumer.MakeConsumerScope();
+
+  std::atomic<std::uint32_t> consumed{0};
+  std::atomic<std::uint32_t> callback_calls{0};
+  engine::SingleUseEvent consumed_event;
+  consumer_scope.Start([&](kafka::MessageBatchView batch) {
+    callback_calls.fetch_add(1);
+    consumed.fetch_add(batch.size());
+
+    if (consumed.load() == kMessagesCount) {
+      consumed_event.Send();
+    }
+  });
+
+  UEXPECT_NO_THROW(consumed_event.Wait());
+  EXPECT_LT(callback_calls.load(), kMessagesCount) << callback_calls.load();
 }
 
 USERVER_NAMESPACE_END

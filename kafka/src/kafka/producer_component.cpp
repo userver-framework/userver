@@ -87,11 +87,13 @@ properties:
             the backoff time before retrying a producer send request.
             It will be backed off exponentially until number of retries is exhausted
             and bounded by `retry_backoff_max`.
-            The backoff must feet in [1ms; 300000ms]
+            The backoff must fit in [1ms; 300000ms]
         defaultDescription: 100ms
     retry_backoff_max:
         type: string
-        description: backoff upper bound. The backoff must feet in [1ms; 300000ms]
+        description: |
+            backoff upper bound.
+            The backoff must fit in [1ms; 300000ms]
         defaultDescription: 1000ms
     security_protocol:
         type: string

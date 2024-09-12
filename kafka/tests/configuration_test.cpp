@@ -104,8 +104,7 @@ UTEST_F(ConfigurationTest, Consumer) {
   EXPECT_EQ(configuration->GetOption("group.id"), "test-group");
   EXPECT_EQ(configuration->GetOption("auto.offset.reset"),
             default_consumer.auto_offset_reset);
-  EXPECT_EQ(configuration->GetOption("enable.auto.commit"),
-            default_consumer.enable_auto_commit ? "true" : "false");
+  EXPECT_EQ(configuration->GetOption("enable.auto.commit"), "false");
 }
 
 UTEST_F(ConfigurationTest, ConsumerNonDefault) {
@@ -113,7 +112,6 @@ UTEST_F(ConfigurationTest, ConsumerNonDefault) {
   consumer_configuration.common.topic_metadata_refresh_interval = 10ms;
   consumer_configuration.common.metadata_max_age = 30ms;
   consumer_configuration.auto_offset_reset = "largest";
-  consumer_configuration.enable_auto_commit = true;
   consumer_configuration.rd_kafka_options["socket.keepalive.enable"] = "true";
 
   std::optional<kafka::impl::Configuration> configuration;
@@ -126,7 +124,6 @@ UTEST_F(ConfigurationTest, ConsumerNonDefault) {
   EXPECT_EQ(configuration->GetOption("security.protocol"), "plaintext");
   EXPECT_EQ(configuration->GetOption("group.id"), "test-group");
   EXPECT_EQ(configuration->GetOption("auto.offset.reset"), "largest");
-  EXPECT_EQ(configuration->GetOption("enable.auto.commit"), "true");
   EXPECT_EQ(configuration->GetOption("socket.keepalive.enable"), "true");
 }
 

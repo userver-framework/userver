@@ -14,7 +14,6 @@
 #include <userver/yaml_config/yaml_config.hpp>
 
 #include <kafka/impl/error_buffer.hpp>
-#include <kafka/impl/log_level.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -83,14 +82,6 @@ std::string ResolveGroupId(const ConsumerConfiguration& configuration) {
   return group_id;
 }
 
-void LogCallback([[maybe_unused]] const rd_kafka_t* kafka_client, int log_level,
-                 const char* facility, const char* message) {
-  LOG(convertRdKafkaLogLevelToLoggingLevel(log_level))
-      << logging::LogExtra{{{"kafka_callback", "log_callback"},
-                            {"facility", facility}}}
-      << message;
-}
-
 }  // namespace
 
 CommonConfiguration Parse(const yaml_config::YamlConfig& config,
@@ -152,8 +143,9 @@ ConsumerConfiguration Parse(const yaml_config::YamlConfig& config,
   consumer.group_id = config["group_id"].As<std::string>();
   consumer.auto_offset_reset =
       config["auto_offset_reset"].As<std::string>(consumer.auto_offset_reset);
-  consumer.enable_auto_commit =
-      config["enable_auto_commit"].As<bool>(consumer.enable_auto_commit);
+  consumer.max_callback_duration =
+      config["max_callback_duration"].As<std::chrono::milliseconds>(
+          consumer.max_callback_duration);
   if (config.HasMember(kEnvPodNameField)) {
     consumer.env_pod_name = config[kEnvPodNameField].As<std::string>();
   }
@@ -252,8 +244,6 @@ void Configuration::SetCommon(const CommonConfiguration& common) {
             std::to_string(common.topic_metadata_refresh_interval.count()));
   SetOption("metadata.max.age.ms",
             std::to_string(common.metadata_max_age.count()));
-
-  rd_kafka_conf_set_log_cb(conf_.GetHandle(), &LogCallback);
 }
 
 void Configuration::SetSecurity(const SecurityConfiguration& security,
@@ -295,9 +285,13 @@ void Configuration::SetConsumer(const ConsumerConfiguration& configuration) {
                             group_id);
 
   SetOption("group.id", group_id);
-  SetOption("enable.auto.commit",
-            configuration.enable_auto_commit ? "true" : "false");
+  SetOption("enable.auto.commit", "false");
   SetOption("auto.offset.reset", configuration.auto_offset_reset);
+  SetOption("max.poll.interval.ms", configuration.max_callback_duration);
+  rd_kafka_conf_set_events(conf_.GetHandle(),
+                           RD_KAFKA_EVENT_LOG | RD_KAFKA_EVENT_ERROR |
+                               RD_KAFKA_EVENT_OFFSET_COMMIT |
+                               RD_KAFKA_EVENT_REBALANCE | RD_KAFKA_EVENT_FETCH);
 }
 
 void Configuration::SetProducer(const ProducerConfiguration& configuration) {

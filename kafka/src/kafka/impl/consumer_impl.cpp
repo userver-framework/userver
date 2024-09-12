@@ -7,10 +7,11 @@
 #include <userver/logging/log.hpp>
 #include <userver/testsuite/testpoint.hpp>
 #include <userver/tracing/span.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/span.hpp>
 
 #include <kafka/impl/configuration.hpp>
-#include <kafka/impl/error_buffer.hpp>
+#include <kafka/impl/log_level.hpp>
 #include <kafka/impl/stats.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -31,19 +32,40 @@ std::optional<std::chrono::milliseconds> RetrieveTimestamp(
   return std::chrono::milliseconds{timestamp};
 }
 
+std::string ToString(rd_kafka_event_type_t event_type) {
+  switch (event_type) {
+    case RD_KAFKA_EVENT_LOG:
+      return "LOG";
+    case RD_KAFKA_EVENT_ERROR:
+      return "ERROR";
+    case RD_KAFKA_EVENT_REBALANCE:
+      return "REBALANCE";
+    case RD_KAFKA_EVENT_OFFSET_COMMIT:
+      return "OFFSET_COMMIT";
+    case RD_KAFKA_EVENT_FETCH:
+      return "FETCH";
+    default:
+      return "UNEXPECTED_EVENT";
+  }
+}
+
+bool IsMessageEvent(const impl::EventHolder& event) {
+  return rd_kafka_event_type(event.GetHandle()) == RD_KAFKA_EVENT_FETCH;
+}
+
 }  // namespace
 
-struct Message::Data final {
-  Data(impl::MessageHolder message_holder)
+struct Message::MessageData final {
+  MessageData(impl::MessageHolder message_holder)
       : message(std::move(message_holder)),
         topic(rd_kafka_topic_name(message->rkt)),
         timestamp(RetrieveTimestamp(message)) {}
 
-  Data(Data&& other) = default;
+  MessageData(MessageData&& other) noexcept = default;
 
   impl::MessageHolder message;
 
-  const std::string topic;
+  std::string topic;
   std::optional<std::chrono::milliseconds> timestamp;
 };
 
@@ -75,37 +97,18 @@ int Message::GetPartition() const { return data_->message->partition; }
 
 std::int64_t Message::GetOffset() const { return data_->message->offset; }
 
-Message::Message(Message::DataStorage data) : data_(std::move(data)) {}
+Message::Message(impl::MessageHolder&& message) : data_(std::move(message)) {}
 
 namespace impl {
 
 namespace {
 
-void ErrorCallbackProxy(rd_kafka_t* consumer, int error_code,
-                        const char* reason, void* opaque_ptr) {
-  UASSERT(consumer);
+void EventCallbackProxy([[maybe_unused]] rd_kafka_t* kafka_client,
+                        void* opaque_ptr) {
+  UASSERT(kafka_client);
   UASSERT(opaque_ptr);
 
-  static_cast<ConsumerImpl*>(opaque_ptr)->ErrorCallback(error_code, reason);
-}
-
-void RebalanceCallbackProxy(rd_kafka_t* consumer, rd_kafka_resp_err_t err,
-                            rd_kafka_topic_partition_list_t* partitions,
-                            void* opaque_ptr) {
-  UASSERT(consumer);
-  UASSERT(opaque_ptr);
-
-  static_cast<ConsumerImpl*>(opaque_ptr)->RebalanceCallback(err, partitions);
-}
-
-void OffsetCommitCallback(rd_kafka_t* consumer, rd_kafka_resp_err_t err,
-                          rd_kafka_topic_partition_list_t* committed_offsets,
-                          void* opaque_ptr) {
-  UASSERT(consumer);
-  UASSERT(opaque_ptr);
-
-  static_cast<ConsumerImpl*>(opaque_ptr)
-      ->OffsetCommitCallbackProxy(err, committed_offsets);
+  static_cast<ConsumerImpl*>(opaque_ptr)->EventCallback();
 }
 
 void PrintTopicPartitionsList(
@@ -123,7 +126,7 @@ void PrintTopicPartitionsList(
         topic_partition.offset == RD_KAFKA_OFFSET_INVALID) {
       /// @note `librdkafka` does not sets offsets for partitions that were
       /// not committed in the current in the current commit
-      LOG_INFO() << "Skipping partition " << topic_partition.partition;
+      LOG_DEBUG() << "Skipping partition " << topic_partition.partition;
       continue;
     }
 
@@ -154,7 +157,7 @@ void ConsumerImpl::AssignPartitions(
                            partition.partition, partition.topic);
       });
 
-  const auto assign_err = rd_kafka_assign(consumer_->GetHandle(), partitions);
+  const auto assign_err = rd_kafka_assign(consumer_.GetHandle(), partitions);
   if (assign_err != RD_KAFKA_RESP_ERR_NO_ERROR) {
     LOG_ERROR() << fmt::format("Failed to assign partitions: {}",
                                rd_kafka_err2str(assign_err));
@@ -174,7 +177,7 @@ void ConsumerImpl::RevokePartitions(
                            partition.partition, partition.topic);
       });
 
-  const auto revokation_err = rd_kafka_assign(consumer_->GetHandle(), nullptr);
+  const auto revokation_err = rd_kafka_assign(consumer_.GetHandle(), nullptr);
   if (revokation_err != RD_KAFKA_RESP_ERR_NO_ERROR) {
     LOG_ERROR() << fmt::format("Failed to revoke partitions: {}",
                                rd_kafka_err2str(revokation_err));
@@ -184,40 +187,48 @@ void ConsumerImpl::RevokePartitions(
   LOG_INFO() << "Successfully revoked partitions";
 }
 
-void ConsumerImpl::ErrorCallback(int error_code, const char* reason) {
+void ConsumerImpl::ErrorCallback(rd_kafka_resp_err_t error, const char* reason,
+                                 bool is_fatal) {
   tracing::Span span{"error_callback"};
   span.AddTag("kafka_callback", "error_callback");
 
-  LOG_ERROR() << fmt::format(
-      "Error {} occurred because of '{}': {}", error_code, reason,
-      rd_kafka_err2str(static_cast<rd_kafka_resp_err_t>(error_code)));
+  LOG(is_fatal ? logging::Level::kCritical : logging::Level::kError)
+      << fmt::format("Error {} occurred because of '{}': {}", error, reason,
+                     rd_kafka_err2str(error));
 
-  if (error_code == RD_KAFKA_RESP_ERR__RESOLVE ||
-      error_code == RD_KAFKA_RESP_ERR__TRANSPORT ||
-      error_code == RD_KAFKA_RESP_ERR__AUTHENTICATION ||
-      error_code == RD_KAFKA_RESP_ERR__ALL_BROKERS_DOWN) {
+  if (error == RD_KAFKA_RESP_ERR__RESOLVE ||
+      error == RD_KAFKA_RESP_ERR__TRANSPORT ||
+      error == RD_KAFKA_RESP_ERR__AUTHENTICATION ||
+      error == RD_KAFKA_RESP_ERR__ALL_BROKERS_DOWN) {
     ++stats_.connections_error;
   }
 }
 
+void ConsumerImpl::LogCallback(const char* facility, const char* message,
+                               int log_level) {
+  LOG(convertRdKafkaLogLevelToLoggingLevel(log_level))
+      << logging::LogExtra{{{"kafka_callback", "log_callback"},
+                            {"facility", facility}}}
+      << message;
+}
+
 void ConsumerImpl::RebalanceCallback(
-    rd_kafka_resp_err_t err, rd_kafka_topic_partition_list_t* partitions) {
+    rd_kafka_resp_err_t err,
+    const rd_kafka_topic_partition_list_t* partitions) {
   tracing::Span span{"rebalance_callback"};
   span.AddTag("kafka_callback", "rebalance_callback");
 
-  LOG_INFO() << fmt::format(
-      "Consumer group rebalanced ('{}' protocol)",
-      rd_kafka_rebalance_protocol(consumer_->GetHandle()));
+  LOG_INFO() << fmt::format("Consumer group rebalanced ('{}' protocol)",
+                            rd_kafka_rebalance_protocol(consumer_.GetHandle()));
 
   switch (err) {
     case RD_KAFKA_RESP_ERR__ASSIGN_PARTITIONS:
       AssignPartitions(partitions);
-      CallTestpoints(partitions,
-                     fmt::format("tp_{}_subscribed", component_name_));
+      CallTestpoints(partitions, fmt::format("tp_{}_subscribed", name_));
       break;
     case RD_KAFKA_RESP_ERR__REVOKE_PARTITIONS:
       RevokePartitions(partitions);
-      CallTestpoints(partitions, fmt::format("tp_{}_revoked", component_name_));
+      CallTestpoints(partitions, fmt::format("tp_{}_revoked", name_));
       break;
     default:
       LOG_ERROR() << fmt::format("Failed when rebalancing: {}",
@@ -226,9 +237,9 @@ void ConsumerImpl::RebalanceCallback(
   }
 }
 
-void ConsumerImpl::OffsetCommitCallbackProxy(
+void ConsumerImpl::OffsetCommitCallback(
     rd_kafka_resp_err_t err,
-    rd_kafka_topic_partition_list_t* committed_offsets) {
+    const rd_kafka_topic_partition_list_t* committed_offsets) {
   tracing::Span span{"offset_commit_callback"};
   span.AddTag("kafka_callback", "offset_commit_callback");
 
@@ -250,26 +261,17 @@ void ConsumerImpl::OffsetCommitCallbackProxy(
       /*skip_invalid_offsets=*/true);
 }
 
-ConsumerImpl::ConsumerImpl(Configuration&& configuration)
-    : component_name_(configuration.GetName()),
-      conf_([this, configuration = std::move(configuration)]() mutable {
-        ConfHolder conf = std::move(configuration).Release();
-        rd_kafka_conf_set_opaque(conf.GetHandle(), this);
-        rd_kafka_conf_set_error_cb(conf.GetHandle(), &ErrorCallbackProxy);
-        rd_kafka_conf_set_rebalance_cb(conf.GetHandle(),
-                                       &RebalanceCallbackProxy);
-        rd_kafka_conf_set_offset_commit_cb(conf.GetHandle(),
-                                           &OffsetCommitCallback);
+ConsumerImpl::ConsumerImpl(const std::string& name, const ConfHolder& conf,
+                           const std::vector<std::string>& topics, Stats& stats)
+    : name_(name), stats_(stats), consumer_(conf) {
+  StartConsuming(topics);
+}
 
-        return conf;
-      }()) {}
+const Stats& ConsumerImpl::GetStats() const { return stats_; }
 
-ConsumerImpl::~ConsumerImpl() = default;
-
-void ConsumerImpl::Subscribe(const std::vector<std::string>& topics) {
-  consumer_.emplace(conf_);
-  /// @note makes available to call `rd_kafka_consumer_poll`
-  rd_kafka_poll_set_consumer(consumer_->GetHandle());
+void ConsumerImpl::StartConsuming(const std::vector<std::string>& topics) {
+  rd_kafka_queue_cb_event_enable(consumer_.GetQueue(), &EventCallbackProxy,
+                                 this);
 
   TopicPartitionsListHolder topic_partitions_list{
       rd_kafka_topic_partition_list_new(topics.size())};
@@ -281,61 +283,100 @@ void ConsumerImpl::Subscribe(const std::vector<std::string>& topics) {
   LOG_INFO() << fmt::format("Consumer is subscribing to topics: [{}]",
                             fmt::join(topics, ", "));
 
-  rd_kafka_subscribe(consumer_->GetHandle(), topic_partitions_list.GetHandle());
+  rd_kafka_subscribe(consumer_.GetHandle(), topic_partitions_list.GetHandle());
 }
 
-void ConsumerImpl::LeaveGroup() {
-  const rd_kafka_resp_err_t err =
-      rd_kafka_consumer_close(consumer_->GetHandle());
-  if (err != RD_KAFKA_RESP_ERR_NO_ERROR) {
-    LOG_ERROR() << fmt::format("Failed to properly close consumer: {}",
-                               rd_kafka_err2str(err));
+void ConsumerImpl::StopConsuming() {
+  // disable EventCallback
+  rd_kafka_queue_cb_event_enable(consumer_.GetQueue(), nullptr, nullptr);
+
+  utils::FastScopeGuard destroy_consumer_guard{
+      [this]() noexcept { consumer_.reset(); }};
+
+  ErrorHolder error{rd_kafka_consumer_close_queue(consumer_.GetHandle(),
+                                                  consumer_.GetQueue())};
+  if (error) {
+    LOG_ERROR() << fmt::format(
+        "Failed to properly close consumer: {}",
+        rd_kafka_err2str(rd_kafka_error_code(error.GetHandle())));
+    return;
   }
-  consumer_.reset();
-}
 
-void ConsumerImpl::Resubscribe(const std::vector<std::string>& topics) {
-  LeaveGroup();
-  LOG_INFO() << "Leaved group";
-  Subscribe(topics);
-  LOG_INFO() << "Joined group";
+  while (!rd_kafka_consumer_closed(consumer_.GetHandle())) {
+    if (const EventHolder event = PollEvent()) {
+      DispatchEvent(event);
+    }
+  }
 }
 
 void ConsumerImpl::Commit() {
-  rd_kafka_commit(consumer_->GetHandle(), nullptr, /*async=*/0);
+  rd_kafka_commit(consumer_.GetHandle(), nullptr, /*async=*/0);
 }
 
 void ConsumerImpl::AsyncCommit() {
-  rd_kafka_commit(consumer_->GetHandle(), nullptr, /*async=*/1);
+  rd_kafka_commit(consumer_.GetHandle(), nullptr, /*async=*/1);
 }
 
-std::optional<Message> ConsumerImpl::PollMessage(engine::Deadline deadline) {
-  if (deadline.IsReached()) {
-    return std::nullopt;
+EventHolder ConsumerImpl::PollEvent() {
+  return EventHolder{
+      rd_kafka_queue_poll(consumer_.GetQueue(), /*timeout_ms=*/0)};
+}
+
+void ConsumerImpl::DispatchEvent(const EventHolder& event_holder) {
+  UASSERT(event_holder);
+
+  auto* event = event_holder.GetHandle();
+  switch (rd_kafka_event_type(event)) {
+    case RD_KAFKA_EVENT_REBALANCE: {
+      RebalanceCallback(rd_kafka_event_error(event),
+                        rd_kafka_event_topic_partition_list(event));
+    } break;
+    case RD_KAFKA_EVENT_OFFSET_COMMIT: {
+      OffsetCommitCallback(rd_kafka_event_error(event),
+                           rd_kafka_event_topic_partition_list(event));
+    } break;
+    case RD_KAFKA_EVENT_ERROR:
+      ErrorCallback(rd_kafka_event_error(event),
+                    rd_kafka_event_error_string(event),
+                    rd_kafka_event_error_is_fatal(event));
+      break;
+    case RD_KAFKA_EVENT_LOG: {
+      const char* facility{nullptr};
+      const char* message{nullptr};
+      int log_level{};
+      rd_kafka_event_log(event, &facility, &message, &log_level);
+      LogCallback(facility, message, log_level);
+    } break;
   }
+}
 
-  const auto poll_timeout{std::chrono::duration_cast<std::chrono::milliseconds>(
-      deadline.TimeLeft())};
+void ConsumerImpl::EventCallback() {
+  /// The callback is called from internal librdkafka thread, i.e. not in
+  /// coroutine environment, therefore not all synchronization
+  /// primitives can be used in the callback body.
 
-  LOG_DEBUG() << fmt::format("Polling message for {}ms", poll_timeout.count());
+  LOG_INFO()
+      << "Consumer events queue became non-empty. Waking up message poller";
+  queue_became_non_empty_event_.Send();
+}
 
-  MessageHolder message{rd_kafka_consumer_poll(
-      consumer_->GetHandle(), static_cast<int>(poll_timeout.count()))};
+std::optional<Message> ConsumerImpl::TakeEventMessage(
+    EventHolder&& event_holder) {
+  UASSERT(IsMessageEvent(event_holder));
+  UASSERT(rd_kafka_event_message_count(event_holder.GetHandle()) == 1);
 
-  if (!message) {
-    return std::nullopt;
-  }
+  MessageHolder message{std::move(event_holder)};
   if (message->err != RD_KAFKA_RESP_ERR_NO_ERROR) {
-    LOG_WARNING() << fmt::format("Consumed message with error: {}",
+    LOG_WARNING() << fmt::format("Polled messages contains an error: {}",
                                  rd_kafka_err2str(message->err));
+
     return std::nullopt;
   }
-
-  Message polled_message{Message::DataStorage{std::move(message)}};
+  Message polled_message{std::move(message)};
 
   AccountPolledMessageStat(polled_message);
 
-  LOG_INFO() << fmt::format(
+  LOG_DEBUG() << fmt::format(
       "Message from kafka topic '{}' received by key '{}' with "
       "partition {} by offset {}",
       polled_message.GetTopic(), polled_message.GetKey(),
@@ -344,10 +385,50 @@ std::optional<Message> ConsumerImpl::PollMessage(engine::Deadline deadline) {
   return polled_message;
 }
 
+std::optional<Message> ConsumerImpl::PollMessage(engine::Deadline deadline) {
+  bool just_waked_up{false};
+
+  while (!deadline.IsReached() || std::exchange(just_waked_up, false)) {
+    const auto time_left_ms =
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            deadline.TimeLeft())
+            .count();
+    LOG_DEBUG() << fmt::format("Polling message for {}ms", time_left_ms);
+
+    if (EventHolder event = PollEvent()) {
+      LOG_DEBUG() << fmt::format(
+          "Polled {} event", ToString(rd_kafka_event_type(event.GetHandle())));
+
+      if (IsMessageEvent(event)) {
+        return TakeEventMessage(std::move(event));
+      } else {
+        DispatchEvent(event);
+      }
+    } else {
+      LOG_DEBUG() << fmt::format(
+          "No sufficient messages are available, suspending consumer execution "
+          "for at most {}ms",
+          time_left_ms);
+
+      if (!queue_became_non_empty_event_.WaitForEventUntil(deadline)) {
+        LOG_DEBUG() << fmt::format(
+            "No messages still available after {}ms (or polling task was "
+            "canceled)",
+            time_left_ms);
+
+        return std::nullopt;
+      }
+      LOG_DEBUG() << "New events are available, poll them immediately";
+      just_waked_up = true;
+    }
+  }
+
+  return std::nullopt;
+}
+
 ConsumerImpl::MessageBatch ConsumerImpl::PollBatch(std::size_t max_batch_size,
                                                    engine::Deadline deadline) {
   MessageBatch batch;
-
   while (batch.size() < max_batch_size) {
     auto message = PollMessage(deadline);
     if (!message.has_value()) {
@@ -362,8 +443,6 @@ ConsumerImpl::MessageBatch ConsumerImpl::PollBatch(std::size_t max_batch_size,
 
   return batch;
 }
-
-const Stats& ConsumerImpl::GetStats() const { return stats_; }
 
 std::shared_ptr<TopicStats> ConsumerImpl::GetTopicStats(
     const std::string& topic) {

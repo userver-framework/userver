@@ -24,7 +24,7 @@ components_manager:
               - test-topic
             auto_offset_reset: smallest
             max_batch_size: 1
-            enable_auto_commit: false
+            restart_after_failure_delay: 1s
             security_protocol: PLAINTEXT
 
         kafka-consumer-second: *kafka_consumer

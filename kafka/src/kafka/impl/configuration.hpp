@@ -46,8 +46,8 @@ struct ConsumerConfiguration final {
 
   std::string group_id;
   std::string auto_offset_reset{"smallest"};
-  bool enable_auto_commit{false};
   std::optional<std::string> env_pod_name{};
+  std::chrono::milliseconds max_callback_duration{300000};
 
   RdKafkaOptions rd_kafka_options;
 };

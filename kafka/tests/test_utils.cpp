@@ -84,7 +84,7 @@ std::deque<kafka::Producer> KafkaCluster::MakeProducers(
   return producers;
 }
 
-void KafkaCluster::SendMessages(const std::vector<Message>& messages) {
+void KafkaCluster::SendMessages(utils::span<const Message> messages) {
   kafka::Producer producer = MakeProducer("kafka-producer");
 
   std::vector<engine::TaskWithResult<void>> results;

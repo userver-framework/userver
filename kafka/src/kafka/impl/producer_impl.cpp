@@ -10,7 +10,6 @@
 #include <userver/utils/trivial_map.hpp>
 
 #include <kafka/impl/configuration.hpp>
-#include <kafka/impl/error_buffer.hpp>
 #include <kafka/impl/log_level.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -234,11 +233,11 @@ void ProducerImpl::DispatchEvent(const EventHolder& event_holder) const {
         DeliveryReportCallback(message);
       }
     } break;
-    case RD_KAFKA_EVENT_ERROR:
+    case RD_KAFKA_EVENT_ERROR: {
       ErrorCallback(rd_kafka_event_error(event),
                     rd_kafka_event_error_string(event),
                     rd_kafka_event_error_is_fatal(event));
-      break;
+    } break;
     case RD_KAFKA_EVENT_LOG: {
       const char* facility{nullptr};
       const char* message{nullptr};
@@ -358,7 +357,8 @@ void ProducerImpl::EventCallback() {
   /// coroutine environment, therefore not all synchronization
   /// primitives can be used in the callback body.
 
-  LOG_INFO() << "Waking up event waiter";
+  LOG_INFO()
+      << "Producer events queue became non-empty. Waking up event waiter";
   waiters_.PopAndWakeupOne();
 }
 

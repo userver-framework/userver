@@ -6,6 +6,7 @@
 
 #include <userver/kafka/producer.hpp>
 #include <userver/utest/utest.hpp>
+#include <userver/utils/span.hpp>
 
 #include <kafka/impl/broker_secrets.hpp>
 #include <kafka/impl/configuration.hpp>
@@ -52,7 +53,7 @@ class KafkaCluster : public ::testing::Test {
       std::size_t count, std::function<std::string(std::size_t)> nameGenerator,
       kafka::impl::ProducerConfiguration configuration = {});
 
-  void SendMessages(const std::vector<Message>& messages);
+  void SendMessages(utils::span<const Message> messages);
 
   kafka::impl::Consumer MakeConsumer(
       const std::string& name,

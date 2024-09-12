@@ -1,11 +1,15 @@
 #pragma once
 
 #include <chrono>
+#include <memory>
 
 #include <userver/engine/task/task.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/kafka/consumer_scope.hpp>
 #include <userver/utils/statistics/writer.hpp>
+
+#include <kafka/impl/holders.hpp>
+#include <kafka/impl/stats.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -20,11 +24,26 @@ struct Secret;
 /// The struct is used only for documentation purposes, Consumer can be
 /// created through ConsumerComponent.
 struct ConsumerExecutionParams final {
-  /// @brief stands for max polled message batches size
+  /// @brief Number of new messages consumer is waiting before calling the
+  /// callback.
+  /// Maximum number of messages to consume in `poll_timeout` milliseconds.
   std::size_t max_batch_size{1};
 
-  /// @brief timeout for one message batch polling loop
-  std::chrono::milliseconds poll_timeout{500};
+  /// @brief Amount of time consumer is waiting for new messages before calling
+  /// the callback.
+  /// Maximum time to consume `max_batch_size` messages.
+  std::chrono::milliseconds poll_timeout{1000};
+
+  /// @brief User callback max duration.
+  /// If user callback duration exceeded the `max_callback_duration` consumer is
+  /// kicked from its groups and stops working for indefinite time.
+  /// @warning On each group membership change, all consumers stop and
+  /// start again, so try not to exceed max callback duration.
+  std::chrono::milliseconds max_callback_duration{300000};
+
+  /// @brief Time consumer suspends execution after user-callback exception.
+  /// @note After consumer restart, all uncommitted messages come again.
+  std::chrono::milliseconds restart_after_failure_delay{10000};
 };
 
 class Consumer final {
@@ -77,19 +96,23 @@ class Consumer final {
   /// @brief Adds consumer name to current span.
   void ExtendCurrentSpan() const;
 
+  /// @brief Subscribes for configured topics and starts polling loop.
+  void RunConsuming(ConsumerScope::Callback callback);
+
  private:
   std::atomic<bool> processing_{false};
+  Stats stats_;
 
-  const std::string component_name_;
-
+  const std::string name_;
   const std::vector<std::string> topics_;
-  const std::size_t max_batch_size_{};
-  const std::chrono::milliseconds poll_timeout_{};
+  const ConsumerExecutionParams execution_params;
 
   engine::TaskProcessor& consumer_task_processor_;
   engine::TaskProcessor& main_task_processor_;
 
+  ConfHolder conf_;
   std::unique_ptr<ConsumerImpl> consumer_;
+
   engine::Task poll_task_;
 };
 

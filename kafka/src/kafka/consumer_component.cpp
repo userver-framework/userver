@@ -18,23 +18,32 @@ ConsumerComponent::ConsumerComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
     : components::ComponentBase(config, context),
-      consumer_(config.Name(), config["topics"].As<std::vector<std::string>>(),
-                context.GetTaskProcessor("consumer-task-processor"),
-                context.GetTaskProcessor("main-task-processor"),
-                config.As<impl::ConsumerConfiguration>(),
-                context.FindComponent<components::Secdist>()
-                    .Get()
-                    .Get<impl::BrokerSecrets>()
-                    .GetSecretByComponentName(config.Name()),
-                [&config] {
-                  impl::ConsumerExecutionParams params{};
-                  params.max_batch_size = config["max_batch_size"].As<size_t>();
-                  params.poll_timeout =
-                      config["poll_timeout"].As<std::chrono::milliseconds>(
-                          params.poll_timeout);
+      consumer_(
+          config.Name(), config["topics"].As<std::vector<std::string>>(),
+          context.GetTaskProcessor("consumer-task-processor"),
+          context.GetTaskProcessor("main-task-processor"),
+          config.As<impl::ConsumerConfiguration>(),
+          context.FindComponent<components::Secdist>()
+              .Get()
+              .Get<impl::BrokerSecrets>()
+              .GetSecretByComponentName(config.Name()),
+          [&config] {
+            impl::ConsumerExecutionParams params{};
+            params.max_batch_size =
+                config["max_batch_size"].As<std::size_t>(params.max_batch_size);
+            params.poll_timeout =
+                config["poll_timeout"].As<std::chrono::milliseconds>(
+                    params.poll_timeout);
+            params.max_callback_duration =
+                config["max_callback_duration"].As<std::chrono::milliseconds>(
+                    params.max_callback_duration);
+            params.restart_after_failure_delay =
+                config["restart_after_failure_delay"]
+                    .As<std::chrono::milliseconds>(
+                        params.restart_after_failure_delay);
 
-                  return params;
-                }()) {
+            return params;
+          }()) {
   auto& storage =
       context.FindComponent<components::StatisticsStorage>().GetStorage();
 
@@ -62,26 +71,30 @@ properties:
             consumer group id.
             Topic partition evenly distributed
             between consumers with the same `group_id`
-    env_pod_name:
-        type: string
-        description: |
-            if defined and `group_id` value contains
-            `{pod_name}` substring, the substring
-            is replaced with the value of the environment
-            variable `env_pod_name`
-        defaultDescription: none
     topics:
         type: array
         description: list of topics consumer subscribes
         items:
             type: string
             description: topic name
-    enable_auto_commit:
-        type: boolean
+    max_batch_size:
+        type: integer
+        description: maximum number of messages consumer waits for new messages before calling a callback
+        defaultDescription: 1
+    poll_timeout:
+        type: string
+        description: maximum amount of time consumer waits for new messages before calling a callback
+        defaultDescription: 1s
+    max_callback_duration:
+        type: string
         description: |
-            whether to automatically and periodically commit offsets.
-            Note: manual automatic and manual commits is mutual exclsive
-        defaultDescription: false
+            duration user callback must fit not to be kicked from the consumer group.
+            The duration must fit in [1ms; 86400000ms]
+        defaultDescription: 5m
+    restart_after_failure_delay:
+        type: string
+        description: backoff consumer waits until restart after user-callback exception.
+        defaultDescription: 10s
     auto_offset_reset:
         type: string
         description: |
@@ -103,9 +116,14 @@ properties:
           - latest
           - end
           - error
-    max_batch_size:
-        type: integer
-        description: maximum batch size for one callback call
+    env_pod_name:
+        type: string
+        description: |
+            if defined and `group_id` value contains
+            `{pod_name}` substring, the substring
+            is replaced with the value of the environment
+            variable `env_pod_name`
+        defaultDescription: none
     security_protocol:
         type: string
         description: protocol used to communicate with brokers

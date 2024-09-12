@@ -38,11 +38,13 @@ class Consumer;
 /// ## Static options:
 /// Name                               | Description                                      | Default value
 /// ---------------------------------- | ------------------------------------------------ | ---------------
-/// group_id                           | consumer group id | --
+/// group_id                           | consumer group id (name) | --
 /// topics                             | list of topics consumer subscribes | --
-/// enable_auto_commit                 | whether to automatically and periodically commit offsets | false
+/// max_batch_size                     | maximum number of messages consumer waits for new message before calling a callback | 1
+/// poll_timeout                       | maximum amount of time consumer waits for messages for new messages before calling a callback | 1s
+/// max_callback_duration              | duration user callback must fit not to be kicked from the consumer group | 5m
+/// restart_after_failure_delay        | time consumer suspends execution if user-callback fails | 10s
 /// auto_offset_reset                  | action to take when there is no initial offset in offset store | smallest
-/// max_batch_size                     | maximum batch size for one callback call | --
 /// env_pod_name                       | environment variable to substitute `{pod_name}` substring in `group_id` | none
 /// security_protocol                  | protocol used to communicate with brokers | --
 /// sasl_mechanisms                    | SASL mechanism to use for authentication | none

@@ -13,18 +13,20 @@ namespace kafka {
 namespace impl {
 
 class ConsumerImpl;
+class MessageHolder;
 
 }  // namespace impl
 
 /// @brief Wrapper for polled message data access.
 class Message final {
-  struct Data;
-  using DataStorage = utils::FastPimpl<Data, 16 + 32 + 16, 8>;
-
  public:
   ~Message();
 
-  Message(Message&&) = default;
+  Message(Message&&) noexcept = default;
+  Message& operator=(Message&&) noexcept = delete;
+
+  Message(const Message&) = delete;
+  Message& operator=(const Message&) = delete;
 
   const std::string& GetTopic() const;
   std::string_view GetKey() const;
@@ -36,7 +38,10 @@ class Message final {
  private:
   friend class impl::ConsumerImpl;
 
-  explicit Message(DataStorage data);
+  explicit Message(impl::MessageHolder&& message);
+
+  struct MessageData;
+  using DataStorage = utils::FastPimpl<MessageData, 72, 8>;
 
   DataStorage data_;
 };

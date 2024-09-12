@@ -24,15 +24,17 @@ class HolderBase final {
 
   explicit operator bool() const noexcept { return ptr_ != nullptr; }
 
+  void reset() { ptr_.reset(); };
+
  private:
   friend class ConfHolder;
 
   std::unique_ptr<T, DeleterType<T>> ptr_;
 };
 
+using ErrorHolder = HolderBase<rd_kafka_error_t, &rd_kafka_error_destroy>;
 using EventHolder = HolderBase<rd_kafka_event_t, &rd_kafka_event_destroy>;
 using QueueHolder = HolderBase<rd_kafka_queue_t, &rd_kafka_queue_destroy>;
-using MessageHolder = HolderBase<rd_kafka_message_t, &rd_kafka_message_destroy>;
 using TopicPartitionsListHolder =
     HolderBase<rd_kafka_topic_partition_list_t,
                &rd_kafka_topic_partition_list_destroy>;
@@ -62,10 +64,12 @@ class ConfHolder final {
 template <rd_kafka_type_t client_type>
 class KafkaClientHolder final {
  public:
-  KafkaClientHolder(ConfHolder conf);
+  explicit KafkaClientHolder(ConfHolder conf);
 
   rd_kafka_t* GetHandle() const noexcept;
   rd_kafka_queue_t* GetQueue() const noexcept;
+
+  void reset();
 
  private:
   HolderBase<rd_kafka_t, &rd_kafka_destroy> handle_;
@@ -74,6 +78,23 @@ class KafkaClientHolder final {
 
 using ConsumerHolder = KafkaClientHolder<RD_KAFKA_CONSUMER>;
 using ProducerHolder = KafkaClientHolder<RD_KAFKA_PRODUCER>;
+
+/// When using `librdkafka` events API, it is only possible to obtain message
+/// data as a reference to event's field. So, for message data to live, its
+/// container (event) must live too.
+class MessageHolder {
+ public:
+  explicit MessageHolder(EventHolder&& event);
+
+  MessageHolder(MessageHolder&& other) noexcept;
+
+  const rd_kafka_message_t* GetHandle() const noexcept { return message_; }
+  const rd_kafka_message_t* operator->() const noexcept { return message_; }
+
+ private:
+  EventHolder event_;
+  const rd_kafka_message_t* message_;
+};
 
 }  // namespace kafka::impl
 

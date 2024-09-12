@@ -82,6 +82,9 @@ class ConsumerScope final {
   /// process.
   /// @note If `callback` throws an exception, entire message batch (also
   /// with successfully processed messages) come again, until callback succeeds
+  /// @warning Each callback duration must not exceed the
+  /// `max_callback_duration` time. Otherwise, consumer may stop consuming the
+  /// message for unpredictable amount of time.
   void Start(Callback callback);
 
   /// @brief Revokes all topic partition consumer was subscribed on. Also closes
@@ -101,18 +104,14 @@ class ConsumerScope final {
   void Stop() noexcept;
 
   /// @brief Schedules the current assignment offsets commitment task.
-  /// Intended to be called after each message batch processing cycle.
+  /// Intended to be called after each message batch processing cycle (but not
+  /// necessarily).
   ///
   /// @warning Commit does not ensure that messages do not come again --
   /// they do not come again also without the commit within the same process.
   /// Commit, indeed, restricts other consumers in consumers group from reading
   /// messages already processed (committed) by the current consumer if current
   /// has stopped and leaved the group
-  ///
-  /// @note Instead of calling `AsyncCommit` manually, consider setting
-  /// `enable_auto_commit: true` in the static config. But read Kafka
-  /// documentation carefully before to understand what auto commitment
-  /// mechanism actually mean
   void AsyncCommit();
 
  private:

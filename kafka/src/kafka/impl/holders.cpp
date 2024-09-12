@@ -1,5 +1,7 @@
 #include <kafka/impl/holders.hpp>
 
+#include <utility>
+
 #include <fmt/format.h>
 
 #include <userver/utils/assert.hpp>
@@ -49,6 +51,11 @@ KafkaClientHolder<client_type>::KafkaClientHolder(ConfHolder conf)
 
         conf.ForgetUnderlyingConf();
 
+        if (client_type == RD_KAFKA_CONSUMER) {
+          /// Redirects main queue to consumer's queue.
+          rd_kafka_poll_set_consumer(holder.GetHandle());
+        }
+
         return holder;
       }()),
       queue_([this] {
@@ -71,8 +78,22 @@ rd_kafka_queue_t* KafkaClientHolder<client_type>::GetQueue() const noexcept {
   return queue_.GetHandle();
 }
 
+template <rd_kafka_type_t client_type>
+void KafkaClientHolder<client_type>::reset() {
+  queue_.reset();
+  handle_.reset();
+}
+
 template class KafkaClientHolder<RD_KAFKA_CONSUMER>;
 template class KafkaClientHolder<RD_KAFKA_PRODUCER>;
+
+MessageHolder::MessageHolder(EventHolder&& event)
+    : event_(std::move(event)),
+      message_(rd_kafka_event_message_next(event_.GetHandle())) {}
+
+MessageHolder::MessageHolder(MessageHolder&& other) noexcept
+    : event_(std::move(other.event_)),
+      message_(std::exchange(other.message_, nullptr)) {}
 
 }  // namespace kafka::impl
 

@@ -39,7 +39,6 @@ components_manager:
             auto_offset_reset: smallest
             max_batch_size: 10
             env_pod_name: HOSTNAME
-            enable_auto_commit: false
             security_protocol: PLAINTEXT
             rd_kafka_custom_options:
                 session.timeout.ms: 77000

@@ -273,7 +273,7 @@ void HandlerKafkaConsumer::DumpCurrentConsumed(
 
         ss << fmt::format("Topic '{}' messages:", topic);
         for (const auto& message : messages) {
-          ss << fmt::format("Message: {}", message);
+          ss << fmt::format("Message: {} ", message);
         }
 
         return ss.str();
