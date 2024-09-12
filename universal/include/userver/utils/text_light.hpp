@@ -23,7 +23,8 @@ std::string Trim(std::string&& str);
 ///
 /// @snippet utils/text_light_test.cpp  SplitMultiple
 std::vector<std::string> Split(std::string_view str,
-                               std::string_view separators);
+                               std::string_view separators,
+                               bool is_compress_adjacent_separators = true);
 
 /// Split string by separators and return a non-owning container of chunks.
 ///

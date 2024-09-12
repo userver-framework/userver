@@ -25,12 +25,17 @@ std::string Trim(std::string&& str) {
   return std::move(str);
 }
 
-std::vector<std::string> Split(std::string_view str, std::string_view sep) {
+std::vector<std::string> Split(std::string_view str, std::string_view sep,
+                               bool is_compress_adjacent_separators) {
+  const auto boost_token_compress_mode = is_compress_adjacent_separators
+                                             ? boost::token_compress_on
+                                             : boost::token_compress_off;
+
   std::vector<std::string> result;
   // FP, m_Size does not change
   // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
   boost::algorithm::split(result, str, boost::algorithm::is_any_of(sep),
-                          boost::token_compress_on);
+                          boost_token_compress_mode);
   return result;
 }
 

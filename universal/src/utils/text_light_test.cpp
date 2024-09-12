@@ -195,6 +195,15 @@ TEST(Text, SplitMultiple) {
     EXPECT_EQ(tokens[1], "0");
     EXPECT_EQ(tokens[2], "");
   }
+  {
+    std::string input = "1;;2";
+    auto tokens = utils::text::Split(input, ";",
+                                     /*is_compress_adjacent_separators=*/false);
+    ASSERT_EQ(tokens.size(), 3);
+    EXPECT_EQ(tokens[0], "1");
+    EXPECT_EQ(tokens[1], "");
+    EXPECT_EQ(tokens[2], "2");
+  }
 }
 
 TEST(TestIsAscii, IsAscii) {
