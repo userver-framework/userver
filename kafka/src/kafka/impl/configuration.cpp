@@ -95,7 +95,7 @@ CommonConfiguration Parse(const yaml_config::YamlConfig& config,
           common.metadata_max_age);
 
   return common;
-};
+}
 
 SecurityConfiguration Parse(const yaml_config::YamlConfig& config,
                             formats::parse::To<SecurityConfiguration>) {
