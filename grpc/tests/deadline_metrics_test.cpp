@@ -90,41 +90,51 @@ class DeadlineStatsTests
         {{ugrpc::client::impl::kEnforceClientTaskDeadline, false}});
   }
 
-  void ValidateServerStatistic(const std::string& path, size_t expected) {
+  utils::statistics::Rate GetServerStatistic(const std::string& path) {
     const auto statistics = GetStatistics(
         "grpc.server.by-destination",
         {{"grpc_destination", "sample.ugrpc.UnitTestService/SayHello"}});
 
-    EXPECT_EQ(statistics.SingleMetric(path).AsRate(), expected);
+    return statistics.SingleMetric(path).AsRate();
   }
 
-  void ValidateClientStatistic(const std::string& path, size_t expected) {
+  utils::statistics::Rate GetClientStatistic(const std::string& path) {
     const auto statistics = GetStatistics(
         "grpc.client.by-destination",
         {{"grpc_destination", "sample.ugrpc.UnitTestService/SayHello"}});
 
-    EXPECT_EQ(statistics.SingleMetric(path).AsRate(), expected);
+    return statistics.SingleMetric(path).AsRate();
   }
 };
 
 }  // namespace
 
 UTEST_F(DeadlineStatsTests, ServerDeadlineUpdated) {
-  constexpr std::size_t kExpected{3};
+  constexpr std::size_t kRequestCount{3};
 
   // Requests with deadline
-  EXPECT_TRUE(ExecuteRequest(true));
-  EXPECT_TRUE(ExecuteRequest(true));
-  EXPECT_TRUE(ExecuteRequest(true));
+  for (std::size_t i = 0; i < kRequestCount; ++i) {
+    EXPECT_TRUE(ExecuteRequest(true));
+  }
 
-  ValidateServerStatistic(kDeadlinePropagated, kExpected);
+  // Make sure that server metrics are written
+  GetServer().StopServing();
+
+  EXPECT_EQ(GetServerStatistic(kDeadlinePropagated), kRequestCount);
+}
+
+UTEST_F(DeadlineStatsTests, ServerDeadlineNotUpdatedWithoutDeadline) {
+  constexpr std::size_t kRequestCount{3};
 
   // Requests without deadline, default deadline is used
-  EXPECT_TRUE(ExecuteRequest(false));
-  EXPECT_TRUE(ExecuteRequest(false));
-  EXPECT_TRUE(ExecuteRequest(false));
+  for (std::size_t i = 0; i < kRequestCount; ++i) {
+    EXPECT_TRUE(ExecuteRequest(false));
+  }
 
-  ValidateServerStatistic(kDeadlinePropagated, kExpected);
+  // Make sure that server metrics are written
+  GetServer().StopServing();
+
+  EXPECT_EQ(GetServerStatistic(kDeadlinePropagated), 0);
 }
 
 UTEST_F(DeadlineStatsTests, ClientDeadlineUpdated) {
@@ -141,7 +151,7 @@ UTEST_F(DeadlineStatsTests, ClientDeadlineUpdated) {
   EXPECT_TRUE(ExecuteRequest(true));
 
   expected_value += 3;
-  ValidateClientStatistic(kDeadlinePropagated, expected_value);
+  EXPECT_EQ(GetClientStatistic(kDeadlinePropagated), expected_value);
 
   // Requests without deadline
   // TaskInheritedData will be set as deadline
@@ -150,7 +160,7 @@ UTEST_F(DeadlineStatsTests, ClientDeadlineUpdated) {
   EXPECT_TRUE(ExecuteRequest(false));
 
   expected_value += 3;
-  ValidateClientStatistic(kDeadlinePropagated, expected_value);
+  EXPECT_EQ(GetClientStatistic(kDeadlinePropagated), expected_value);
 }
 
 UTEST_F(DeadlineStatsTests, ClientDeadlineNotUpdated) {
@@ -165,7 +175,7 @@ UTEST_F(DeadlineStatsTests, ClientDeadlineNotUpdated) {
   EXPECT_TRUE(ExecuteRequest(true));
   EXPECT_TRUE(ExecuteRequest(true));
 
-  ValidateClientStatistic(kDeadlinePropagated, kExpected);
+  EXPECT_EQ(GetClientStatistic(kDeadlinePropagated), kExpected);
 
   // Disable deadline propagation for the following tests
   const server::request::DeadlinePropagationBlocker dp_blocker;
@@ -175,14 +185,14 @@ UTEST_F(DeadlineStatsTests, ClientDeadlineNotUpdated) {
   EXPECT_TRUE(ExecuteRequest(true));
   EXPECT_TRUE(ExecuteRequest(true));
 
-  ValidateClientStatistic(kDeadlinePropagated, kExpected);
+  EXPECT_EQ(GetClientStatistic(kDeadlinePropagated), kExpected);
 
   // Requests without deadline
   EXPECT_TRUE(ExecuteRequest(false));
   EXPECT_TRUE(ExecuteRequest(false));
   EXPECT_TRUE(ExecuteRequest(false));
 
-  ValidateClientStatistic(kDeadlinePropagated, kExpected);
+  EXPECT_EQ(GetClientStatistic(kDeadlinePropagated), kExpected);
 }
 
 UTEST_F(DeadlineStatsTests, ClientDeadlineCancelled) {
@@ -197,7 +207,7 @@ UTEST_F(DeadlineStatsTests, ClientDeadlineCancelled) {
   // Requests with deadline
   EXPECT_FALSE(ExecuteRequest(true));
 
-  ValidateClientStatistic(kCancelledByDp, kExpected);
+  EXPECT_EQ(GetClientStatistic(kCancelledByDp), kExpected);
 }
 
 UTEST_F(DeadlineStatsTests, ClientDeadlineCancelledNotByDp) {
@@ -212,7 +222,7 @@ UTEST_F(DeadlineStatsTests, ClientDeadlineCancelledNotByDp) {
   // Requests with deadline
   EXPECT_FALSE(ExecuteRequest(true));
 
-  ValidateClientStatistic(kCancelledByDp, kExpected);
+  EXPECT_EQ(GetClientStatistic(kCancelledByDp), kExpected);
 }
 
 UTEST_F(DeadlineStatsTests, DisabledClientDeadlineUpdated) {
@@ -235,7 +245,7 @@ UTEST_F(DeadlineStatsTests, DisabledClientDeadlineUpdated) {
   EXPECT_TRUE(ExecuteRequest(false));
   EXPECT_TRUE(ExecuteRequest(false));
 
-  ValidateClientStatistic(kDeadlinePropagated, kExpected);
+  EXPECT_EQ(GetClientStatistic(kDeadlinePropagated), kExpected);
 }
 
 UTEST_F(DeadlineStatsTests, DisabledClientDeadlineCancelled) {
@@ -251,7 +261,7 @@ UTEST_F(DeadlineStatsTests, DisabledClientDeadlineCancelled) {
   // Failed by deadline. But not due to deadline propagation
   EXPECT_FALSE(ExecuteRequest(true));
 
-  ValidateClientStatistic(kCancelledByDp, kExpected);
+  EXPECT_EQ(GetClientStatistic(kCancelledByDp), kExpected);
 }
 
 USERVER_NAMESPACE_END
