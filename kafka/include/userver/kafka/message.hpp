@@ -22,7 +22,7 @@ class Message final {
  public:
   ~Message();
 
-  Message(Message&&) noexcept = default;
+  Message(Message&&) noexcept;
   Message& operator=(Message&&) noexcept = delete;
 
   Message(const Message&) = delete;

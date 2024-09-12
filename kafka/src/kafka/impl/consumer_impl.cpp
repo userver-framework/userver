@@ -56,7 +56,7 @@ bool IsMessageEvent(const impl::EventHolder& event) {
 }  // namespace
 
 struct Message::MessageData final {
-  MessageData(impl::MessageHolder message_holder)
+  explicit MessageData(impl::MessageHolder message_holder)
       : message(std::move(message_holder)),
         topic(rd_kafka_topic_name(message->rkt)),
         timestamp(RetrieveTimestamp(message)) {}
@@ -68,6 +68,10 @@ struct Message::MessageData final {
   std::string topic;
   std::optional<std::chrono::milliseconds> timestamp;
 };
+
+Message::Message(impl::MessageHolder&& message) : data_(std::move(message)) {}
+
+Message::Message(Message&&) noexcept = default;
 
 Message::~Message() = default;
 
@@ -96,8 +100,6 @@ std::optional<std::chrono::milliseconds> Message::GetTimestamp() const {
 int Message::GetPartition() const { return data_->message->partition; }
 
 std::int64_t Message::GetOffset() const { return data_->message->offset; }
-
-Message::Message(impl::MessageHolder&& message) : data_(std::move(message)) {}
 
 namespace impl {
 
