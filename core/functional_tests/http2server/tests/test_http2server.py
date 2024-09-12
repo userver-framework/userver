@@ -30,7 +30,7 @@ DEFAULT_HEADERS = [
 
 
 async def test_http2_ping(http2_client):
-    r = await http2_client.get('/ping')
+    r = await http2_client.get('/ping', timeout=1)
     assert 200 == r.status_code
     assert '' == r.text
 
@@ -49,6 +49,17 @@ async def test_big_body(http2_client):
     )
     assert 200 == r.status_code
     assert s == r.text
+
+
+async def test_body_different_size(http2_client):
+    s = ''
+    for _ in range(1026):
+        r = await http2_client.get(
+            DEFAULT_PATH, params={'type': 'echo-body'}, data=s,
+        )
+        assert 200 == r.status_code
+        assert s == r.text
+        s += 'x'
 
 
 async def test_json_body(http2_client):

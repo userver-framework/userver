@@ -27,41 +27,36 @@ bool IsBodyForbiddenForStatus(HttpStatus status) {
 
 }  // namespace
 
-DataBufferSender::DataBufferSender(std::string&& data)
-    : data_(std::move(data)) {
-  nghttp2_provider_.read_callback = Nghttp2SendString;
-  nghttp2_provider_.source.ptr = this;
+DataBufferSender::DataBufferSender(std::string&& data) : data(std::move(data)) {
+  nghttp2_provider.read_callback = NgHttp2ReadCallback;
+  nghttp2_provider.source.ptr = this;
 }
 
 DataBufferSender::DataBufferSender(DataBufferSender&& o) noexcept
-    : data_(std::move(o.data_)), sended_bytes_(o.sended_bytes_) {
-  nghttp2_provider_.source.ptr = this;
-  nghttp2_provider_.read_callback = Nghttp2SendString;
+    : data(std::move(o.data)), sended_bytes(o.sended_bytes) {
+  nghttp2_provider.source.ptr = this;
+  nghttp2_provider.read_callback = NgHttp2ReadCallback;
 }
 
 // implements
 // https://nghttp2.org/documentation/types.html#c.nghttp2_data_source_read_callback
-ssize_t Nghttp2SendString(nghttp2_session*, int32_t, uint8_t* output,
-                          std::size_t want, uint32_t* flags,
-                          nghttp2_data_source* source, void*) {
+ssize_t NgHttp2ReadCallback(nghttp2_session*, int32_t, uint8_t*,
+                            std::size_t max_len, uint32_t* flags,
+                            nghttp2_data_source* source, void*) {
+  UASSERT(source);
   UASSERT(source->ptr);
-  auto& data_to_send = *static_cast<DataBufferSender*>(source->ptr);
+  auto& sender = *static_cast<DataBufferSender*>(source->ptr);
 
-  const std::size_t remaining =
-      data_to_send.data_.size() - data_to_send.sended_bytes_;
+  std::size_t remaining = sender.data.size() - sender.sended_bytes;
 
-  // TODO: handle NGHTTP2_DATA_FLAG_NO_COPY and use OnSend callback
-  if (remaining > want) {
-    std::strncpy(reinterpret_cast<char*>(output),
-                 data_to_send.data_.data() + data_to_send.sended_bytes_, want);
-    data_to_send.sended_bytes_ += want;
-    return want;
-  }
-  std::strncpy(reinterpret_cast<char*>(output),
-               data_to_send.data_.data() + data_to_send.sended_bytes_,
-               remaining);
+  remaining = std::min(remaining, max_len);
+
   *flags = NGHTTP2_DATA_FLAG_NONE;
-  *flags |= NGHTTP2_DATA_FLAG_EOF;
+  UASSERT(sender.sended_bytes + remaining <= sender.data.size());
+  if (sender.sended_bytes + remaining == sender.data.size()) {
+    *flags |= NGHTTP2_DATA_FLAG_EOF;
+  }
+  *flags |= NGHTTP2_DATA_FLAG_NO_COPY;
   return remaining;
 }
 
@@ -101,10 +96,12 @@ class Http2HeaderWriter final {
     values_.push_back(std::move(value));
     UASSERT(ptr == values_.data());
     ng_headers_.push_back(UnsafeHeaderToNGHeader(key, values_.back(), false));
+    bytes_ += (key.size() + value.size());
   }
 
   void AddKeyValue(std::string_view key, std::string_view value) {
     ng_headers_.push_back(UnsafeHeaderToNGHeader(key, value, false));
+    bytes_ += (key.size() + value.size());
   }
 
   void AddCookie(const Cookie& cookie) {
@@ -116,13 +113,19 @@ class Http2HeaderWriter final {
     UASSERT(ptr == values_.data());
     ng_headers_.push_back(UnsafeHeaderToNGHeader(
         USERVER_NAMESPACE::http::headers::kSetCookie, values_.back(), false));
+    const std::string_view key = USERVER_NAMESPACE::http::headers::kSetCookie;
+    bytes_ += (key.size() + val.size());
   }
+
+  // A dirty size before HPACK
+  std::size_t GetSize() const { return bytes_; }
 
   std::vector<nghttp2_nv>& GetNgHeaders() { return ng_headers_; }
 
  private:
   std::vector<std::string> values_;
   std::vector<nghttp2_nv> ng_headers_;
+  std::size_t bytes_{0};
 };
 
 class Http2ResponseWriter final {
@@ -196,10 +199,12 @@ class Http2ResponseWriter final {
     const std::uint32_t stream_id = response_.GetStreamId().value();
     auto& stream = http2_session_.GetStreamChecked(stream_id);
     stream.data_buffer_sender.emplace(std::move(data));
+    std::size_t bytes = header_writer.GetSize();
 
     nghttp2_data_provider* provider{nullptr};
     if (!is_head_request && !is_body_forbidden) {
-      provider = stream.data_buffer_sender.value().GetProvider();
+      provider = &stream.data_buffer_sender.value().nghttp2_provider;
+      bytes += stream.data_buffer_sender->data.size();
     }
     const auto& nva = header_writer.GetNgHeaders();
     const int rv =
@@ -211,8 +216,8 @@ class Http2ResponseWriter final {
                       rv, nghttp2_strerror(rv))};
     }
 
-    const auto sent_bytes = http2_session_.WriteResponseToSocket();
-    response_.SetSent(sent_bytes, std::chrono::steady_clock::now());
+    nghttp2_session_send(http2_session_.GetNghttp2SessionPtr());
+    response_.SetSent(bytes, std::chrono::steady_clock::now());
   }
 
   void WriteHttp2BodyStreamed(Http2HeaderWriter&) {

@@ -90,6 +90,10 @@ class Http2Session final : public request::RequestParser {
   static long OnSend(nghttp2_session* session, const uint8_t* data,
                      size_t length, int flags, void* user_data);
 
+  static int OnDataFrameSend(nghttp2_session* session, nghttp2_frame* frame,
+                             const uint8_t* framehd, size_t length,
+                             nghttp2_data_source* source, void* user_data);
+
   void RegisterStream(Stream::StreamId id);
   void RemoveStream(Stream& id);
   Stream& GetStreamChecked(Stream::StreamId id);
@@ -97,7 +101,6 @@ class Http2Session final : public request::RequestParser {
   void SubmitRstStream(Stream::StreamId stream_id);
 
   void FinalizeRequest(Stream& stream);
-  std::size_t WriteResponseToSocket();
   bool ConnectionIsOk();
 
  private:

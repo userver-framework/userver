@@ -14,6 +14,7 @@ namespace server::http {
 namespace {
 
 constexpr std::size_t kSettingsSize = 2;
+constexpr std::size_t kFrameHeaderSize = 9;
 
 constexpr nghttp2_settings_entry kDefaultSettings[kSettingsSize] = {
     {NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS, kDefaultMaxConcurrentStreams},
@@ -33,6 +34,10 @@ Http2Session& GetParser(void* user_data) {
 
 void IncStat(utils::statistics::RateCounter& stat) {
   stat.AddAsSingleProducer(utils::statistics::Rate{1});
+}
+
+std::string_view ToStringView(const std::uint8_t* data, std::size_t size) {
+  return {reinterpret_cast<const char*>(data), size};
 }
 
 }  // namespace
@@ -82,6 +87,7 @@ Http2Session::Http2Session(const HandlerInfoIndex& handler_info_index,
       [&callbacks]() noexcept { nghttp2_session_callbacks_del(callbacks); }};
 
   nghttp2_session_callbacks_set_send_callback(callbacks, OnSend);
+  nghttp2_session_callbacks_set_send_data_callback(callbacks, OnDataFrameSend);
   nghttp2_session_callbacks_set_on_frame_recv_callback(callbacks, OnFrameRecv);
   nghttp2_session_callbacks_set_on_stream_close_callback(callbacks,
                                                          OnStreamClose);
@@ -149,8 +155,8 @@ int Http2Session::OnHeader(nghttp2_session*, const nghttp2_frame* frame,
   }
   UASSERT(name);
   UASSERT(value);
-  const std::string_view hname(reinterpret_cast<const char*>(name), namelen);
-  const std::string_view hvalue(reinterpret_cast<const char*>(value), valuelen);
+  const std::string_view hname{ToStringView(name, namelen)};
+  const std::string_view hvalue{ToStringView(value, valuelen)};
 
   auto& parser = GetParser(user_data);
   auto& stream = parser.GetStreamChecked(frame->hd.stream_id);
@@ -227,6 +233,32 @@ long Http2Session::OnSend(nghttp2_session* session, const uint8_t* data,
   return NGHTTP2_ERR_WOULDBLOCK;
 }
 
+int Http2Session::OnDataFrameSend(nghttp2_session* session,
+                                  nghttp2_frame* frame, const uint8_t* framehd,
+                                  size_t length, nghttp2_data_source* source,
+                                  void* user_data) {
+  UASSERT(session);
+  UASSERT(frame);
+  UASSERT(framehd);
+  UASSERT(source);
+  UASSERT(source->ptr);
+  UASSERT(frame->data.padlen == 0);
+
+  auto& parser = GetParser(user_data);
+  UASSERT(parser.socket_);
+
+  auto& sender = *static_cast<DataBufferSender*>(source->ptr);
+  const auto& data = sender.data;
+  const std::string_view frame_header{ToStringView(framehd, kFrameHeaderSize)};
+  const std::string_view frame_data{data.data() + sender.sended_bytes, length};
+  [[maybe_unused]] const auto send =
+      parser.socket_->WriteAll({{frame_header.data(), frame_header.size()},
+                                {frame_data.data(), frame_data.size()}},
+                               {});
+  sender.sended_bytes += length;
+  return 0;
+}
+
 void Http2Session::RegisterStream(Stream::StreamId id) {
   auto* stream_ptr = streams_pool_.malloc();
   if (stream_ptr == nullptr) {
@@ -299,7 +331,8 @@ bool Http2Session::Parse(std::string_view req) {
     return false;
   }
   if (socket_ != nullptr) {
-    WriteResponseToSocket();
+    const auto res = nghttp2_session_send(session_.get());
+    ThrowIfErr(res, "Error while nghttp2_session_send");
   }
   return ConnectionIsOk();
 }
@@ -330,42 +363,9 @@ void Http2Session::FinalizeRequest(Stream& stream) {
   }
 }
 
-std::size_t Http2Session::WriteResponseToSocket() {
-  using IoData = engine::io::IoData;
-  utils::SmallString<kDefaultStringBufferSize> buffer;
-  std::size_t total_size = 0;
-  while (nghttp2_session_want_write(session_.get())) {
-    while (true) {
-      const std::uint8_t* data = nullptr;
-      const std::size_t len = nghttp2_session_mem_send(session_.get(), &data);
-      if (len <= 0) {
-        break;
-      }
-      const std::string_view buf{reinterpret_cast<const char*>(data), len};
-      if (buffer.size() + buf.size() > kDefaultStringBufferSize) {
-        total_size += socket_->WriteAll({IoData{buffer.data(), buffer.size()},
-                                         IoData{buf.data(), buf.size()}},
-                                        {});
-        buffer.clear();
-      } else {
-        buffer.append(buf);
-      }
-    }
-  }
-  if (!buffer.empty()) {
-    total_size += socket_->WriteAll(buffer.data(), buffer.size(), {});
-    buffer.clear();
-  }
-  LOG_LIMITED_TRACE() << fmt::format("Send {} bytes to the socket", total_size);
-  return total_size;
-}
-
 bool Http2Session::ConnectionIsOk() {
-  if (nghttp2_session_want_read(session_.get()) == 0 &&
-      nghttp2_session_want_write(session_.get()) == 0) {
-    return false;
-  }
-  return true;
+  return nghttp2_session_want_read(session_.get()) != 0 ||
+         nghttp2_session_want_write(session_.get()) != 0;
 }
 
 }  // namespace server::http
