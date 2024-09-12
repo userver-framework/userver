@@ -8,6 +8,7 @@
 #include <server/http/http2_writer.hpp>
 #include <server/http/http_request_parser.hpp>
 #include <server/http/request_handler_base.hpp>
+#include <server/net/listener_config.hpp>
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/exception.hpp>
@@ -16,7 +17,6 @@
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/wait_any.hpp>
 #include <userver/http/common_headers.hpp>
-#include <userver/http/http_version.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/server/request/request_config.hpp>
 #include <userver/utils/assert.hpp>
@@ -87,7 +87,7 @@ void Connection::Shutdown() noexcept {
 void Connection::ListenForRequests() noexcept {
   using HttpVersion = USERVER_NAMESPACE::http::HttpVersion;
   try {
-    if (GetHttpVersion() != HttpVersion::k2) {
+    if (config_.http_version != HttpVersion::k2) {
       parser_ = MakeParser(HttpVersion::k11);
     }
 
@@ -137,7 +137,7 @@ void Connection::ListenForRequests() noexcept {
       bool should_stop_accepting_requests = false;
       bool res = false;
       const std::string_view req{pending_data_.data(), pending_data_size_};
-      if (GetHttpVersion() == HttpVersion::k2) {
+      if (config_.http_version == HttpVersion::k2) {
         if (parser_ || TryDetectHttpVersion(http_version_buffer, req)) {
           res = parser_->Parse(req);
         } else {
@@ -296,7 +296,7 @@ void Connection::SendResponse(request::RequestBase& request) {
   if (is_response_chain_valid_ && peer_socket_) {
     try {
       // Might be a stream reading or a fully constructed response
-      if (GetHttpVersion() == USERVER_NAMESPACE::http::HttpVersion::k2) {
+      if (config_.http_version == USERVER_NAMESPACE::http::HttpVersion::k2) {
         // TODO: There is only one inheritor of the request::ResponseBase
         UASSERT(dynamic_cast<http::HttpResponse*>(&response));
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
@@ -363,11 +363,6 @@ void Connection::SendResponse(request::RequestBase& request) {
 
 std::string Connection::Getpeername() const { return peer_name_; }
 
-USERVER_NAMESPACE::http::HttpVersion Connection::GetHttpVersion() const
-    noexcept {
-  return handler_defaults_config_.http_version;
-}
-
 std::unique_ptr<request::RequestParser> Connection::MakeParser(
     USERVER_NAMESPACE::http::HttpVersion ver) {
   const auto on_req_cb = [&pending_requests_ =
@@ -377,8 +372,8 @@ std::unique_ptr<request::RequestParser> Connection::MakeParser(
   if (ver == USERVER_NAMESPACE::http::HttpVersion::k2) {
     return std::make_unique<http::Http2Session>(
         request_handler_.GetHandlerInfoIndex(), handler_defaults_config_,
-        on_req_cb, stats_->parser_stats, data_accounter_, remote_address_,
-        peer_socket_.get());
+        config_.http2_session_config, on_req_cb, stats_->parser_stats,
+        data_accounter_, remote_address_, peer_socket_.get());
   }
   return std::make_unique<http::HttpRequestParser>(
       request_handler_.GetHandlerInfoIndex(), handler_defaults_config_,

@@ -34,10 +34,6 @@ HttpRequestConfig Parse(const yaml_config::YamlConfig& value,
       value["deadline_expired_status_code"].As<http::HttpStatus>(
           conf.deadline_expired_status_code);
 
-  conf.http_version =
-      value["http_version"].As<USERVER_NAMESPACE::http::HttpVersion>(
-          conf.http_version);
-
   return conf;
 }
 

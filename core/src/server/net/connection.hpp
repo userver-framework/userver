@@ -19,6 +19,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::net {
 
+struct Http2SessionConfig;
+
 class Connection final {
  public:
   enum class Type { kRequest, kMonitor };
@@ -50,7 +52,6 @@ class Connection final {
   std::string Getpeername() const;
 
   bool ReadSome();
-  USERVER_NAMESPACE::http::HttpVersion GetHttpVersion() const noexcept;
   std::unique_ptr<request::RequestParser> MakeParser(
       USERVER_NAMESPACE::http::HttpVersion ver);
   bool TryDetectHttpVersion(std::string& buffer, std::string_view req);

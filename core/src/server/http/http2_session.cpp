@@ -1,6 +1,7 @@
 #include <server/http/http2_session.hpp>
 
 #include <server/http/http_request_parser.hpp>
+#include <server/net/connection_config.hpp>
 
 #include <userver/crypto/base64.hpp>
 #include <userver/engine/io/socket.hpp>
@@ -13,12 +14,7 @@ namespace server::http {
 
 namespace {
 
-constexpr std::size_t kSettingsSize = 2;
 constexpr std::size_t kFrameHeaderSize = 9;
-
-constexpr nghttp2_settings_entry kDefaultSettings[kSettingsSize] = {
-    {NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS, kDefaultMaxConcurrentStreams},
-    {NGHTTP2_SETTINGS_MAX_FRAME_SIZE, kDefaultStringBufferSize}};
 
 void ThrowIfErr(int error_code, std::string_view msg) {
   if (error_code != 0) {
@@ -66,12 +62,14 @@ bool Stream::CheckUrlComplete() {
 
 Http2Session::Http2Session(const HandlerInfoIndex& handler_info_index,
                            const request::HttpRequestConfig& request_config,
+                           const net::Http2SessionConfig& config,
                            OnNewRequestCb&& on_new_request_cb,
                            net::ParserStats& stats,
                            request::ResponseDataAccounter& data_accounter,
                            engine::io::Sockaddr remote_address,
                            engine::io::RwBase* socket)
-    : streams_pool_(kDefaultMaxConcurrentStreams),
+    : config_(config),
+      streams_pool_(config_.max_concurrent_streams),
       handler_info_index_(handler_info_index),
       request_constructor_config_(request_config),
       on_new_request_cb_(std::move(on_new_request_cb)),
@@ -103,8 +101,16 @@ Http2Session::Http2Session(const HandlerInfoIndex& handler_info_index,
   UASSERT(session);
   session_ = SessionPtr(session, nghttp2_session_del);
 
+  std::array<nghttp2_settings_entry, 3> settings{
+      nghttp2_settings_entry{NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS,
+                             config.max_concurrent_streams},
+      nghttp2_settings_entry{NGHTTP2_SETTINGS_MAX_FRAME_SIZE,
+                             config.max_frame_size},
+      nghttp2_settings_entry{NGHTTP2_SETTINGS_INITIAL_WINDOW_SIZE,
+                             config.initial_window_size}};
+
   auto rv = nghttp2_submit_settings(session_.get(), NGHTTP2_FLAG_NONE,
-                                    kDefaultSettings, kSettingsSize);
+                                    settings.data(), settings.size());
   ThrowIfErr(rv, "Error when submit settings");
   rv = nghttp2_session_send(session_.get());
   ThrowIfErr(rv, "Error when session send");

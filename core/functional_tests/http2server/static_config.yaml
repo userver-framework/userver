@@ -14,8 +14,12 @@ components_manager:
             listener:
                 port: 8080
                 task_processor: main-task-processor
-                handler-defaults:
-                    http_version: '2'
+                connection:
+                    http-version: '2'
+                    http2-session:
+                        max_concurrent_streams: 100
+                        max_frame_size: 16384
+                        initial_window_size: 65536
             listener-monitor:
                 port: 8081
                 task_processor: main-task-processor

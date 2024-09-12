@@ -10,6 +10,7 @@
 
 #include <server/http/http2_session.hpp>
 #include <server/http/http_request_parser.hpp>
+#include <server/net/connection_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -29,14 +30,14 @@ inline std::shared_ptr<request::RequestParser> CreateTestParser(
       /*.decompress_request = */ false,
       /* set_tracing_headers = */ true,
       /* deadline_propagation_enabled = */ true,
-      /* deadline_expired_status_code = */ http::HttpStatus{498},
-      /* http_version = */ http_version};
+      /* deadline_expired_status_code = */ http::HttpStatus{498}};
   static server::net::ParserStats test_stats;
   static server::request::ResponseDataAccounter test_accounter;
+  static const server::net::Http2SessionConfig http2_config;
   if (http_version == USERVER_NAMESPACE::http::HttpVersion::k2) {
     return std::make_shared<server::http::Http2Session>(
-        kTestHandlerInfoIndex, kTestRequestConfig, std::move(cb), test_stats,
-        test_accounter, engine::io::Sockaddr{});
+        kTestHandlerInfoIndex, kTestRequestConfig, http2_config, std::move(cb),
+        test_stats, test_accounter, engine::io::Sockaddr{});
   } else {
     return std::make_shared<server::http::HttpRequestParser>(
         kTestHandlerInfoIndex, kTestRequestConfig, std::move(cb), test_stats,

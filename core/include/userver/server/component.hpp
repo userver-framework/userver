@@ -73,11 +73,14 @@ namespace components {
 /// handler-defaults.set_tracing_headers | whether to set http tracing headers (X-YaTraceId, X-YaSpanId, X-RequestId) | true
 /// handler-defaults.deadline_propagation_enabled | when `false`, disables HTTP handler deadline propagation | true
 /// handler-defaults.deadline_expired_status_code | the HTTP status code to return if the request deadline expires | 498
-/// handler-defaults.http_version | the HTTP protocol version | '1.1'
 /// connection.in_buffer_size | size of the buffer to preallocate for request receive: bigger values use more RAM and less CPU | 32 * 1024
 /// connection.requests_queue_size_threshold | drop requests from handlers that allow throttling if there's more pending requests than allowed by this value | 100
 /// connection.keepalive_timeout | timeout in seconds to drop connection if there's not data received from it | 600
 /// connection.stream_close_check_delay | delay in microseconds of the start of stream close check routine; do not set if not sure what it is doing | 20ms
+/// connection.http-version | the HTTP protocol version | '1.1'
+/// connection.http2-session.max_concurrent_streams | max number of concurrent open streams | 100
+/// connection.http2-session.max_frame_size | max size of the HTTP/2.0 frame | 16384
+/// connection.http2-session.initial_window_size | the initial window size of the server | 65536
 /// shards | how many concurrent tasks harvest data from a single socket; do not set if not sure what it is doing | -
 /// middleware-pipeline-builder | name of a component to build a server-wide middleware pipeline | default-server-middleware-pipeline-builder
 ///

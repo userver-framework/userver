@@ -14,6 +14,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace server::net {
+struct Http2SessionConfig;
+}
+
 namespace server::http {
 
 inline constexpr std::string_view kSwitchingProtocolResponse{
@@ -26,7 +30,6 @@ inline constexpr std::string_view kSwitchingProtocolResponse{
 inline constexpr std::size_t kStreamIdAfterUpgradeResponse = 1;
 // So ussualy the standart frame size is 16384 bytes
 inline constexpr std::size_t kDefaultStringBufferSize = 1 << 14;
-inline constexpr std::size_t kDefaultMaxConcurrentStreams = 100;
 
 struct Stream final {
   using StreamId = std::int32_t;
@@ -53,6 +56,7 @@ class Http2Session final : public request::RequestParser {
 
   Http2Session(const HandlerInfoIndex& handler_info_index,
                const request::HttpRequestConfig& request_config,
+               const net::Http2SessionConfig& config,
                OnNewRequestCb&& on_new_request_cb, net::ParserStats& stats,
                request::ResponseDataAccounter& data_accounter,
                engine::io::Sockaddr remote_address,
@@ -109,6 +113,8 @@ class Http2Session final : public request::RequestParser {
   using SessionPtr =
       std::unique_ptr<nghttp2_session,
                       std::function<decltype(nghttp2_session_del)>>;
+
+  const net::Http2SessionConfig& config_;
 
   SessionPtr session_{nullptr};
   boost::object_pool<Stream> streams_pool_;

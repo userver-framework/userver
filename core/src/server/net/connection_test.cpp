@@ -100,7 +100,7 @@ net::ListenerConfig CreateConfig(
         USERVER_NAMESPACE::http::HttpVersion::k11) {
   net::ListenerConfig config;
   config.handler_defaults = server::request::HttpRequestConfig{};
-  config.handler_defaults.http_version = http_ver;
+  config.connection_config.http_version = http_ver;
   return config;
 }
 

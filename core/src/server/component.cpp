@@ -167,12 +167,6 @@ properties:
                         defaultDescription: 498
                         minimum: 400
                         maximum: 599
-                    http_version:
-                        type: string
-                        description: HTTP protocol version - 1.1 or 2
-                        enum:
-                          - 1.1
-                          - 2
 
             connection:
                 type: object
@@ -195,6 +189,29 @@ properties:
                         type: integer
                         description: delay in microseconds of the start of abort check routine
                         defaultDescription: 20ms
+                    http-version:
+                        type: string
+                        description: HTTP protocol version - 1.1 or 2
+                        enum:
+                          - 1.1
+                          - 2
+                    http2-session:
+                        type: object
+                        description: settings of the HTTP/2.0 session
+                        additionalProperties: false
+                        properties:
+                            max_concurrent_streams:
+                                type: integer
+                                description: max number of concurrent open streams
+                                defaultDescription: 100
+                            max_frame_size:
+                                type: integer
+                                description: max size of the HTTP/2.0 frame
+                                defaultDescription: 16384
+                            initial_window_size:
+                                type: integer
+                                description: the initial window size of the server
+                                defaultDescription: 65536
             shards:
                 type: integer
                 description: how many concurrent tasks harvest data from a single socket; do not set if not sure what it is doing

@@ -20,8 +20,6 @@ struct HttpRequestConfig {
   bool set_tracing_headers = true;
   bool deadline_propagation_enabled = true;
   http::HttpStatus deadline_expired_status_code = http::HttpStatus{498};
-  USERVER_NAMESPACE::http::HttpVersion http_version =
-      USERVER_NAMESPACE::http::HttpVersion::k11;
 };
 
 HttpRequestConfig Parse(const yaml_config::YamlConfig& value,
