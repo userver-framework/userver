@@ -85,6 +85,8 @@ class TransactionImpl final : public Transaction {
 
   RequestDbsize Dbsize(size_t shard) override;
 
+  RequestDecr Decr(std::string key) override;
+
   RequestDel Del(std::string key) override;
 
   RequestDel Del(std::vector<std::string> keys) override;

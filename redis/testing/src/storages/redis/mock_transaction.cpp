@@ -130,6 +130,11 @@ RequestDbsize MockTransaction::Dbsize(size_t shard) {
   return AddSubrequest(impl_->Dbsize(shard));
 }
 
+RequestDecr MockTransaction::Decr(std::string key) {
+  UpdateShard(key);
+  return AddSubrequest(impl_->Decr(std::move(key)));
+}
+
 RequestDel MockTransaction::Del(std::string key) {
   UpdateShard(key);
   return AddSubrequest(impl_->Del(std::move(key)));

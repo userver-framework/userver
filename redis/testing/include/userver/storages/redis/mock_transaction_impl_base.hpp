@@ -20,6 +20,8 @@ class MockTransactionImplBase {
                              std::vector<std::string> src_keys);
   virtual RequestDbsize Dbsize(size_t shard);
 
+  virtual RequestDecr Decr(std::string key);
+
   virtual RequestDel Del(std::string key);
 
   virtual RequestDel Del(std::vector<std::string> keys);

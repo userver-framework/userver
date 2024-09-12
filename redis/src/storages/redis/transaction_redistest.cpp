@@ -199,6 +199,16 @@ UTEST_F(RedisClientTransactionTest, Dbsize) {
   EXPECT_EQ(Get(client->Dbsize(0)), 0);
 }
 
+UTEST_F(RedisClientTransactionTest, Decr) {
+  auto& client = GetTransactionClient();
+
+  Get(client->Set("key", "10"));
+  Get(client->Decr("key"));
+  auto result = Get(client->Get("key"));
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "9");
+}
+
 UTEST_F(RedisClientTransactionTest, Del) {
   auto& client = GetTransactionClient();
   Get(client->Set("key1", "Hello"));

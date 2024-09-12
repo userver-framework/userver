@@ -78,6 +78,11 @@ RequestDbsize TransactionImpl::Dbsize(size_t shard) {
   return AddCmd<RequestDbsize>("dbsize", false);
 }
 
+RequestDecr TransactionImpl::Decr(std::string key) {
+  UpdateShard(key);
+  return AddCmd<RequestDecr>("decr", true, std::move(key));
+}
+
 RequestDel TransactionImpl::Del(std::string key) {
   UpdateShard(key);
   return AddCmd<RequestDel>("del", true, std::move(key));

@@ -153,6 +153,7 @@ class ScanRequest final {
 using RequestAppend = Request<size_t>;
 using RequestBitop = Request<size_t>;
 using RequestDbsize = Request<size_t>;
+using RequestDecr = Request<int64_t>;
 using RequestDel = Request<size_t>;
 using RequestUnlink = Request<size_t>;
 using RequestEvalCommon = Request<ReplyData>;

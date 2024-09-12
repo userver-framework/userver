@@ -23,6 +23,7 @@ const std::string_view kCommandTypes[] = {
     "bitop",
     "cluster",
     "dbsize",
+    "decr",
     "del",
     "eval",
     "evalsha",

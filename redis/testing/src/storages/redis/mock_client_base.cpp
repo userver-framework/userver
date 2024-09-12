@@ -69,6 +69,12 @@ RequestDbsize MockClientBase::Dbsize(
   return RequestDbsize{nullptr};
 }
 
+RequestDecr MockClientBase::Decr(std::string /*key*/,
+                                 const CommandControl& /*command_control*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestDecr{nullptr};
+}
+
 RequestDel MockClientBase::Del(std::string /*key*/,
                                const CommandControl& /*command_control*/) {
   UASSERT_MSG(false, "redis method not mocked");

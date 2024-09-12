@@ -43,6 +43,10 @@ class GMockClient : public MockClientBase {
               (size_t shard, const CommandControl& command_control),
               (override));
 
+  MOCK_METHOD(RequestDecr, Decr,
+              (std::string key, const CommandControl& command_control),
+              (override));
+
   MOCK_METHOD(RequestDel, Del,
               (std::string key, const CommandControl& command_control),
               (override));

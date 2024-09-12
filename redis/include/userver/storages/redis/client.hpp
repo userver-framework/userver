@@ -70,6 +70,9 @@ class Client {
   virtual RequestDbsize Dbsize(size_t shard,
                                const CommandControl& command_control) = 0;
 
+  virtual RequestDecr Decr(std::string key,
+                           const CommandControl& command_control) = 0;
+
   virtual RequestDel Del(std::string key,
                          const CommandControl& command_control) = 0;
 

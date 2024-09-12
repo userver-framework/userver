@@ -118,6 +118,14 @@ RequestDbsize ClientImpl::Dbsize(size_t shard,
       CmdArgs{"dbsize"}, shard, false, GetCommandControl(command_control)));
 }
 
+RequestDecr ClientImpl::Decr(std::string key,
+                             const CommandControl& command_control) {
+  auto shard = ShardByKey(key, command_control);
+  return CreateRequest<RequestDecr>(
+      MakeRequest(CmdArgs{"decr", std::move(key)}, shard, true,
+                  GetCommandControl(command_control)));
+}
+
 RequestDel ClientImpl::Del(std::string key,
                            const CommandControl& command_control) {
   auto shard = ShardByKey(key, command_control);

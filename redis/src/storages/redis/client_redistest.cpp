@@ -225,6 +225,16 @@ UTEST_F(RedisClientTest, Del) {
   EXPECT_EQ(client->Del(std::vector<std::string>{"key1", "key2"}, {}).Get(), 2);
 }
 
+UTEST_F(RedisClientTest, Decr) {
+  auto client = GetClient();
+
+  client->Set("key", "10", {}).Get();
+  client->Decr("key", {}).Get();
+  auto result = client->Get("key", {}).Get();
+  EXPECT_TRUE(result.has_value());
+  EXPECT_EQ(result.value(), "9");
+}
+
 UTEST_F(RedisClientTest, Eval) {
   auto client = GetClient();
 

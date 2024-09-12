@@ -26,6 +26,11 @@ RequestDbsize MockTransactionImplBase::Dbsize(size_t /*shard*/) {
   return RequestDbsize{nullptr};
 }
 
+RequestDecr MockTransactionImplBase::Decr(std::string /*key*/) {
+  UASSERT_MSG(false, "redis method not mocked");
+  return RequestDecr{nullptr};
+}
+
 RequestDel MockTransactionImplBase::Del(std::string /*key*/) {
   UASSERT_MSG(false, "redis method not mocked");
   return RequestDel{nullptr};

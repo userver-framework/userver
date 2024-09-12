@@ -49,6 +49,8 @@ class Transaction {
 
   virtual RequestDbsize Dbsize(size_t shard) = 0;
 
+  virtual RequestDecr Decr(std::string key) = 0;
+
   virtual RequestDel Del(std::string key) = 0;
 
   virtual RequestDel Del(std::vector<std::string> keys) = 0;

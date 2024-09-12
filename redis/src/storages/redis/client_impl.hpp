@@ -69,6 +69,9 @@ class ClientImpl final : public Client,
   RequestDbsize Dbsize(size_t shard,
                        const CommandControl& command_control) override;
 
+  RequestDecr Decr(std::string key,
+                   const CommandControl& command_control) override;
+
   RequestDel Del(std::string key,
                  const CommandControl& command_control) override;
 
