@@ -69,6 +69,10 @@ struct Message::MessageData final {
   std::optional<std::chrono::milliseconds> timestamp;
 };
 
+Message::Message(impl::MessageHolder&& message) : data_(std::move(message)) {}
+
+Message::Message(Message&&) noexcept = default;
+
 Message::~Message() = default;
 
 const std::string& Message::GetTopic() const { return data_->topic; }
@@ -96,8 +100,6 @@ std::optional<std::chrono::milliseconds> Message::GetTimestamp() const {
 int Message::GetPartition() const { return data_->message->partition; }
 
 std::int64_t Message::GetOffset() const { return data_->message->offset; }
-
-Message::Message(impl::MessageHolder&& message) : data_(std::move(message)) {}
 
 namespace impl {
 
