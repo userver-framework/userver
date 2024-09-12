@@ -7,9 +7,14 @@ Make gRPC requests to the service.
 # pylint: disable=no-member
 # pylint: disable=redefined-outer-name
 import asyncio
+from typing import Awaitable
+from typing import Callable
+from typing import Optional
 
 import grpc
 import pytest
+
+from pytest_userver import client
 
 DEFAULT_TIMEOUT = 15.0
 
@@ -68,9 +73,33 @@ def grpc_service_timeout(pytestconfig) -> float:
     return float(pytestconfig.option.service_timeout) or DEFAULT_TIMEOUT
 
 
+@pytest.fixture
+def grpc_client_prepare(
+    service_client, _testsuite_client_config: client.TestsuiteClientConfig,
+) -> Callable[[grpc.aio.ClientCallDetails], Awaitable[None]]:
+    """
+    Returns the function that will be called in before each gRPC request,
+    client-side.
+
+    @ingroup userver_testsuite_fixtures
+    """
+
+    async def prepare(
+        _client_call_details: grpc.aio.ClientCallDetails, /,
+    ) -> None:
+        if isinstance(service_client, client.AiohttpClient):
+            await service_client.update_server_state()
+
+    return prepare
+
+
 @pytest.fixture(scope='session')
-async def _grpc_session_channel(grpc_service_endpoint):
-    async with grpc.aio.insecure_channel(grpc_service_endpoint) as channel:
+async def _grpc_session_channel(
+    grpc_service_endpoint, _grpc_channel_interceptor,
+):
+    async with grpc.aio.insecure_channel(
+        grpc_service_endpoint, interceptors=[_grpc_channel_interceptor],
+    ) as channel:
         yield channel
 
 
@@ -80,6 +109,8 @@ async def grpc_channel(
     grpc_service_deps,
     grpc_service_timeout,
     _grpc_session_channel,
+    _grpc_channel_interceptor,
+    grpc_client_prepare,
 ):
     """
     Returns the gRPC channel configured by the parameters from the
@@ -87,6 +118,7 @@ async def grpc_channel(
 
     @ingroup userver_testsuite_fixtures
     """
+    _grpc_channel_interceptor.prepare_func = grpc_client_prepare
     try:
         await asyncio.wait_for(
             _grpc_session_channel.channel_ready(), timeout=grpc_service_timeout,
@@ -124,3 +156,46 @@ def userver_config_grpc_mockserver(grpc_mockserver_endpoint):
                 config_vars[name] = grpc_mockserver_endpoint
 
     return patch_config
+
+
+# Taken from
+# https://github.com/grpc/grpc/blob/master/examples/python/interceptors/headers/generic_client_interceptor.py
+class _GenericClientInterceptor(
+    grpc.aio.UnaryUnaryClientInterceptor,
+    grpc.aio.UnaryStreamClientInterceptor,
+    grpc.aio.StreamUnaryClientInterceptor,
+    grpc.aio.StreamStreamClientInterceptor,
+):
+    def __init__(self):
+        self.prepare_func: Optional[
+            Callable[[grpc.aio.ClientCallDetails], Awaitable[None]]
+        ] = None
+
+    async def intercept_unary_unary(
+        self, continuation, client_call_details, request,
+    ):
+        await self.prepare_func(client_call_details)
+        return await continuation(client_call_details, request)
+
+    async def intercept_unary_stream(
+        self, continuation, client_call_details, request,
+    ):
+        await self.prepare_func(client_call_details)
+        return await continuation(client_call_details, next(request))
+
+    async def intercept_stream_unary(
+        self, continuation, client_call_details, request_iterator,
+    ):
+        await self.prepare_func(client_call_details)
+        return await continuation(client_call_details, request_iterator)
+
+    async def intercept_stream_stream(
+        self, continuation, client_call_details, request_iterator,
+    ):
+        await self.prepare_func(client_call_details)
+        return await continuation(client_call_details, request_iterator)
+
+
+@pytest.fixture(scope='session')
+def _grpc_channel_interceptor() -> _GenericClientInterceptor:
+    return _GenericClientInterceptor()

@@ -11,9 +11,6 @@ async def test_basic(grpc_client, mock_grpc_greeter, service_client):
             greeting=f'Hello, {request.name} from mockserver!',
         )
 
-    # TODO(TAXICOMMON-8865) make it implicit, like when calling HTTP handlers
-    await service_client.update_server_state()
-
     request = greeter_protos.GreetingRequest(name='Python')
     response = await grpc_client.SayHello(request)
     assert mock_say_hello.times_called == 1
@@ -35,9 +32,6 @@ async def test_request_metadata(
             raise ValueError('Proxy failed to add custom metadata')
 
         return greeter_protos.GreetingResponse(greeting='Hi!')
-
-    # TODO(TAXICOMMON-8865) make it implicit, like when calling HTTP handlers
-    await service_client.update_server_state()
 
     request = greeter_protos.GreetingRequest(name='Python')
     response = await grpc_client.SayHello(
@@ -61,9 +55,6 @@ async def test_trailing_response_metadata(
         ))
         return greeter_protos.GreetingResponse(greeting='Hi!')
 
-    # TODO(TAXICOMMON-8865) make it implicit, like when calling HTTP handlers
-    await service_client.update_server_state()
-
     request = greeter_protos.GreetingRequest(name='Python')
     call = grpc_client.SayHello(request)
     response = await call
@@ -82,9 +73,6 @@ async def test_error(grpc_client, mock_grpc_greeter, service_client):
             ('response-meta-key', 'response-meta-value'),
         ))
         return greeter_protos.GreetingResponse()
-
-    # TODO(TAXICOMMON-8865) make it implicit, like when calling HTTP handlers
-    await service_client.update_server_state()
 
     request = greeter_protos.GreetingRequest(name='Python')
     call = grpc_client.SayHello(request)
