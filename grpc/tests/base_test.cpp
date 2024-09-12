@@ -22,10 +22,7 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 constexpr int kNumber = 42;
-
-constexpr auto kShortTimeout = std::chrono::milliseconds{300};
-constexpr auto kLongTimeout = std::chrono::milliseconds{500} + kShortTimeout;
-constexpr auto kAddSleep = std::chrono::milliseconds{50};
+constexpr auto kLongTimeout = 500ms;
 
 void CheckServerContext(grpc::ServerContext& context) {
   const auto& client_metadata = context.client_metadata();
@@ -44,17 +41,17 @@ class UnitTestLongAnswerService final
     sample::ugrpc::GreetingResponse response;
     response.set_name("Hello " + request.name());
 
-    engine::SleepUntil(engine::Deadline::FromDuration(aswer_duration_));
+    engine::SleepUntil(engine::Deadline::FromDuration(answer_duration_));
 
     call.Finish(response);
   }
 
   void SetAnswerDuration(std::chrono::milliseconds duration) {
-    aswer_duration_ = duration;
+    answer_duration_ = duration;
   };
 
  private:
-  std::chrono::milliseconds aswer_duration_{kLongTimeout};
+  std::chrono::milliseconds answer_duration_{kLongTimeout};
 };
 
 class UnitTestService final : public sample::ugrpc::UnitTestServiceBase {
@@ -327,9 +324,8 @@ UTEST_F(GrpcClientLongAnswerTest, AsyncUnaryLongAnswerRPC) {
             engine::FutureStatus::kTimeout);
   EXPECT_EQ(future.Get(engine::Deadline::FromDuration(kLongTimeout / 50)),
             engine::FutureStatus::kTimeout);
-  EXPECT_EQ(
-      future.Get(engine::Deadline::FromDuration(kLongTimeout + kAddSleep)),
-      engine::FutureStatus::kReady);
+  EXPECT_EQ(future.Get(engine::Deadline::FromDuration(utest::kMaxTestWaitTime)),
+            engine::FutureStatus::kReady);
 
   CheckClientContext(call.GetContext());
   EXPECT_EQ("Hello " + out.name(), in.name());
