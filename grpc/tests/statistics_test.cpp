@@ -125,7 +125,7 @@ UTEST_F(GrpcStatistics, StatsBeforeGet) {
   // check timings
   auto timing = stats.SingleMetric("timings", {{"percentile", "p100"}}).AsInt();
   EXPECT_GE(timing, 20);
-  EXPECT_LT(timing, 100);
+  EXPECT_LT(timing, std::chrono::milliseconds{utest::kMaxTestWaitTime}.count());
 
   UEXPECT_THROW(future.Get(), ugrpc::client::InvalidArgumentError);
 }
