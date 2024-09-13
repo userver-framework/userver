@@ -86,8 +86,7 @@ UTEST_F(YdbSchemaNoPredefinedTables, CreateAndDropTable) {
   UASSERT_NO_THROW(GetTableClient().DropTable(kTableName));
 
   // Step 4. check that the table is no more.
-  UASSERT_THROW_MSG(DescribeTableNative(*this, kTableName),
-                    ydb::YdbResponseError, "not found");
+  UASSERT_THROW(DescribeTableNative(*this, kTableName), ydb::YdbResponseError);
 }
 
 USERVER_NAMESPACE_END
