@@ -8,8 +8,8 @@
 
 #include <userver/dynamic_config/snapshot.hpp>
 
+#include <userver/ugrpc/client/client_qos.hpp>
 #include <userver/ugrpc/client/impl/client_data.hpp>
-#include <userver/ugrpc/client/impl/client_qos.hpp>
 #include <userver/ugrpc/client/middlewares/fwd.hpp>
 #include <userver/ugrpc/client/qos.hpp>
 #include <userver/ugrpc/impl/maybe_owned_string.hpp>
