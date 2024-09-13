@@ -24,6 +24,8 @@ int main(int argc, char* argv[]) {
           .Append<chaos::HttpClientHandler>()
           .Append<chaos::StreamHandler>()
           .Append<chaos::HttpServerHandler>()
+          .Append<chaos::HttpServerHandler>(
+              "handler-chaos-httpserver-parse-body-args")
           .Append<chaos::ResolverHandler>()
           .Append<chaos::HttpServerWithExceptionHandler>()
           .Append<components::LoggingConfigurator>()

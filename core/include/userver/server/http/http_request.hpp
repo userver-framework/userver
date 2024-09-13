@@ -227,7 +227,9 @@ class HttpRequest final {
   /// Equivalent to this->GetHttpResponse().SetStatus(status).
   void SetResponseStatus(HttpStatus status) const;
 
-  /// @return true if the body of the request was compressed
+  /// @return true if the body of the request is still compressed. In other
+  /// words returns true if the static option `decompress_request` of a handler
+  /// was set to `false` and this is a compressed request.
   bool IsBodyCompressed() const;
 
   /// @cond

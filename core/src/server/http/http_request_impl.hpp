@@ -163,6 +163,9 @@ class HttpRequestImpl final : public request::RequestBase {
   HttpRequest::HeadersMap headers_;
   HttpRequest::CookiesMap cookies_;
   bool is_final_{false};
+#ifndef NDEBUG
+  mutable bool args_referenced_{false};
+#endif
   UpgradeCallback upgrade_websocket_cb_;
 
   mutable HttpResponse response_;
