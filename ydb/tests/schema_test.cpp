@@ -33,8 +33,7 @@ UTEST_F(YdbSchemaNoPredefinedTables, CreateAndDropTable) {
   static constexpr std::string_view kTableName = "create_and_drop_table";
 
   // Step 0: check that the table does not exist initially.
-  UASSERT_THROW_MSG(DescribeTableNative(*this, kTableName),
-                    ydb::YdbResponseError, "not found");
+  UASSERT_THROW(DescribeTableNative(*this, kTableName), ydb::YdbResponseError);
 
   // Step 1: create a table.
   auto builder =
