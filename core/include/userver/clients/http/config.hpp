@@ -13,10 +13,6 @@ namespace tracing {
 class TracingManagerBase;
 }  // namespace tracing
 
-namespace clients::http::plugins::headers_propagator {
-class HeadersPropagator;
-}  // namespace clients::http::plugins::headers_propagator
-
 namespace clients::http {
 
 struct DeadlinePropagationConfig {
@@ -37,8 +33,6 @@ struct ClientSettings final {
   size_t io_threads{8};
   DeadlinePropagationConfig deadline_propagation{};
   const tracing::TracingManagerBase* tracing_manager{nullptr};
-  const clients::http::plugins::headers_propagator::HeadersPropagator*
-      headers_propagator{nullptr};
   CancellationPolicy cancellation_policy{CancellationPolicy::kCancel};
 };
 

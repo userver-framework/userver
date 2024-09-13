@@ -29,10 +29,6 @@ namespace tracing {
 class TracingManagerBase;
 }  // namespace tracing
 
-namespace clients::http::plugins::headers_propagator {
-class HeadersPropagator;
-}  // namespace clients::http::plugins::headers_propagator
-
 namespace curl {
 class easy;
 class multi;
@@ -178,8 +174,6 @@ class Client final {
 
   clients::dns::Resolver* resolver_{nullptr};
   utils::NotNull<const tracing::TracingManagerBase*> tracing_manager_;
-  const clients::http::plugins::headers_propagator::HeadersPropagator*
-      headers_propagator_{nullptr};
   impl::PluginPipeline plugin_pipeline_;
 };
 

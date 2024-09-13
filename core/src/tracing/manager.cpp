@@ -3,7 +3,6 @@
 #include <userver/engine/task/inherited_variable.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/server/http/http_request.hpp>
-#include <userver/server/request/task_inherited_request.hpp>
 #include <userver/tracing/opentelemetry.hpp>
 #include <userver/utils/trivial_map.hpp>
 
@@ -219,9 +218,8 @@ bool TryFillSpanBuilderFromRequest(Format format,
   UINVARIANT(false, "Unexpected format of tracing headers");
 }
 
-void FillRequestWithTracingContext(
-    Format format, const tracing::Span& span,
-    clients::http::RequestTracingEditor request) {
+void FillRequestWithTracingContext(Format format, const tracing::Span& span,
+                                   clients::http::PluginRequest request) {
   switch (format) {
     case Format::kYandexTaxi:
       YandexTaxiFillWithTracingContext(span, request);
@@ -283,8 +281,7 @@ bool GenericTracingManager::TryFillSpanBuilderFromRequest(
 }
 
 void GenericTracingManager::FillRequestWithTracingContext(
-    const tracing::Span& span,
-    clients::http::RequestTracingEditor request) const {
+    const tracing::Span& span, clients::http::PluginRequest request) const {
   for (auto format : kAllFormatsOrdered) {
     if (new_request_ & format) {
       tracing::FillRequestWithTracingContext(format, span, request);

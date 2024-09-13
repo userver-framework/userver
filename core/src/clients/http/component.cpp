@@ -34,11 +34,6 @@ clients::http::ClientSettings GetClientSettings(
   auto& tracing_locator =
       context.FindComponent<tracing::DefaultTracingManagerLocator>();
   settings.tracing_manager = &tracing_locator.GetTracingManager();
-  auto* propagator_component = context.FindComponentOptional<
-      server::middlewares::HeadersPropagatorFactory>();
-  if (propagator_component) {
-    settings.headers_propagator = &propagator_component->Get();
-  }
   settings.cancellation_policy =
       component_config["cancellation-policy"]
           .As<clients::http::CancellationPolicy>(

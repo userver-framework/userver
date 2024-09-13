@@ -17,7 +17,6 @@
 #include <userver/baggage/baggage.hpp>
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/clients/http/connect_to.hpp>
-#include <userver/clients/http/plugins/headers_propagator/plugin.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/async.hpp>
@@ -1031,11 +1030,8 @@ void RequestState::StartNewSpan(utils::impl::SourceLocation location) {
   span_storage_.emplace(std::string{kTracingClientName}, location);
   auto& span = span_storage_->Get();
 
-  auto request_editable_instance = GetEditableTracingInstance();
+  auto request_editable_instance = GetEditableRequestInstance();
 
-  if (headers_propagator_) {
-    headers_propagator_->PropagateHeaders(request_editable_instance);
-  }
   tracing_manager_->FillRequestWithTracingContext(span,
                                                   request_editable_instance);
   plugin_pipeline_.HookCreateSpan(*this);
@@ -1084,14 +1080,8 @@ void RequestState::SetTracingManager(const tracing::TracingManagerBase& m) {
   tracing_manager_ = m;
 }
 
-void RequestState::SetHeadersPropagator(
-    const clients::http::plugins::headers_propagator::HeadersPropagator*
-        propagator) {
-  headers_propagator_ = propagator;
-}
-
-RequestTracingEditor RequestState::GetEditableTracingInstance() {
-  return RequestTracingEditor(easy());
+PluginRequest RequestState::GetEditableRequestInstance() {
+  return PluginRequest(*this);
 }
 
 }  // namespace clients::http

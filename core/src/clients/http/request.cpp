@@ -646,12 +646,6 @@ Request Request::SetTracingManager(
   return std::move(this->SetTracingManager(tracing_manager));
 }
 
-void Request::SetHeadersPropagator(
-    const clients::http::plugins::headers_propagator::HeadersPropagator*
-        headers_propagator) & {
-  pimpl_->SetHeadersPropagator(headers_propagator);
-}
-
 const std::string& Request::GetUrl() const& {
   return pimpl_->easy().get_original_url();
 }
