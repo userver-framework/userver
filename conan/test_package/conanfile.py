@@ -64,7 +64,7 @@ class TestPackageConan(ConanFile):
             bin_path = os.path.join(
                 self.cpp.build.bindirs[0],
                 'hello_service',
-                'runtests-testsuite-conan-samples-hello_service',
+                'runtests-conan-samples-hello_service',
             )
             command = ' '
             folder = os.path.join(self.source_folder, 'hello_service')
