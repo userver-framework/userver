@@ -7,7 +7,6 @@ from pytest_userver import chaos
 
 import utils
 
-
 DATA_TRANSMISSION_DELAY = 1
 BYTES_PER_SECOND_LIMIT = 10
 CONNECTION_TIME_LIMIT = 0.4

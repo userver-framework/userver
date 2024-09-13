@@ -14,7 +14,6 @@ from testsuite.utils import url_util
 
 from ..utils import net
 
-
 logger_testsuite = logging.getLogger(__name__)
 
 

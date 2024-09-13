@@ -2,7 +2,6 @@ import datetime
 
 import pytest
 
-
 _BASE_TIME_SEC = 100
 _RECENT_PERIOD_WAIT_INTERVAL_SEC = 6
 _DEFAULT_NOW = datetime.datetime.utcfromtimestamp(_BASE_TIME_SEC)

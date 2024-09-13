@@ -2,7 +2,6 @@ import asyncio
 
 import redis
 
-
 # Some messages may be lost (it's a Redis limitation)
 REDIS_PORT = 6379
 REQUESTS_RETRIES = 42

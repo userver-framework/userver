@@ -1,6 +1,5 @@
 import os
 
-
 CONSUME_BASE_ROUTE = '/consume'
 CONSUMERS = ['kafka-consumer-first', 'kafka-consumer-second']
 TOPIC = 'test-topic'

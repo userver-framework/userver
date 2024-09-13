@@ -3,13 +3,9 @@ import json
 import logging
 import os
 
-
+import common
 from confluent_kafka import Producer
 import pytest
-
-
-import common
-
 
 pytest_plugins = ['pytest_userver.plugins.core']
 

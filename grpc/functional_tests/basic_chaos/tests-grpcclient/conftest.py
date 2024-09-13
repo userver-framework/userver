@@ -5,9 +5,9 @@ import logging
 import grpc
 import pytest
 from pytest_userver import chaos
-import samples.greeter_pb2_grpc as greeter_pb2_grpc  # noqa: E402, E501
-
 from service import GreeterService
+
+import samples.greeter_pb2_grpc as greeter_pb2_grpc  # noqa: E402, E501
 
 logger = logging.getLogger(__name__)
 

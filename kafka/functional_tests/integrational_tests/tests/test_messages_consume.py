@@ -1,7 +1,7 @@
 from common import generate_messages_to_consume
+
 from utils import consume
 from utils import consume_topic_messages
-
 
 TOPIC1 = 'test-topic-consume-1'
 TOPIC2 = 'test-topic-consume-2'

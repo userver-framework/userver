@@ -3,6 +3,7 @@ import logging
 
 import grpc
 import pytest
+
 import samples.greeter_pb2 as greeter_pb2  # noqa: E402, E501
 
 logger = logging.getLogger(__name__)

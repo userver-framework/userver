@@ -10,7 +10,6 @@ import uuid
 import pytest
 from pytest_userver import chaos  # pylint: disable=import-error
 
-
 _NOTICEABLE_DELAY = 0.5
 
 

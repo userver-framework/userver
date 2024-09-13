@@ -16,7 +16,6 @@ from testsuite.utils import compat
 
 from pytest_userver import client
 
-
 logger = logging.getLogger(__name__)
 
 

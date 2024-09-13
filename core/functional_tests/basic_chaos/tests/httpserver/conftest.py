@@ -4,7 +4,6 @@ import logging
 import pytest
 from pytest_userver import chaos
 
-
 logger = logging.getLogger(__name__)
 
 

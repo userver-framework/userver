@@ -3,7 +3,6 @@ import typing
 
 import pytest
 
-
 SUCCESS_IPV4 = '77.88.55.55:0'
 SUCCESS_IPV6 = '[2a02:6b8:a::a]:0'
 SUCCESS_RESOLVE = f'{SUCCESS_IPV6}, {SUCCESS_IPV4}'

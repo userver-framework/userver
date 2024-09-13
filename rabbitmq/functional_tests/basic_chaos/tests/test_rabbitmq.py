@@ -2,7 +2,6 @@ import asyncio
 
 import pytest
 
-
 MESSAGES = ['a', 'b', 'c']
 
 

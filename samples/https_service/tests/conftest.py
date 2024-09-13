@@ -2,7 +2,6 @@ import pathlib
 
 import pytest
 
-
 # /// [registration]
 pytest_plugins = ['pytest_userver.plugins.core']
 # /// [registration]

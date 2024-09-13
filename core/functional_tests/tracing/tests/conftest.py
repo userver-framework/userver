@@ -2,7 +2,6 @@ import asyncio
 
 import pytest
 
-
 pytest_plugins = ['pytest_userver.plugins.core']
 
 USERVER_CONFIG_HOOKS = ['config_echo_url']

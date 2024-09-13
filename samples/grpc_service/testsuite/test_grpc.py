@@ -1,6 +1,7 @@
 import sys
 
 import pytest
+
 import samples.greeter_pb2 as greeter_protos  # noqa: E402, E501
 
 

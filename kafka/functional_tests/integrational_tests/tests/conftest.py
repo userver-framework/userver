@@ -2,10 +2,8 @@ import json
 import logging
 import os
 
-
 import confluent_kafka
 import pytest
-
 
 pytest_plugins = ['pytest_userver.plugins.core']
 

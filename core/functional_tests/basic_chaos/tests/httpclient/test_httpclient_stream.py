@@ -1,6 +1,5 @@
 import pytest
 
-
 MULTIPLE_CHUNKS_BODY_SIZE = 1000000
 
 

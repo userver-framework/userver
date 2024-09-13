@@ -1,12 +1,10 @@
 from typing import Awaitable
 
-
 from utils import clear_topics
 from utils import make_producer_request_body
 from utils import produce
 from utils import produce_async
 from utils import produce_batch
-
 
 TOPIC = 'test-topic-send'
 
