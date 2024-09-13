@@ -4,8 +4,11 @@
 
 function(add_google_tests target)
     _userver_setup_environment_validate_impl()
-    add_test(NAME ${target} COMMAND ${target}
-        --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${target}.xml
+    add_test(
+        NAME "${target}"
+        COMMAND
+        "${target}"
+        "--gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${target}.xml"
     )
 endfunction()
 
@@ -17,7 +20,10 @@ function(add_google_benchmark_tests target)
     # that the executable doesn't crash or hang.
     set(BENCHMARK_MIN_TIME 0)
 
-    add_test(NAME ${target} COMMAND ${target}
+    add_test(
+        NAME "${target}"
+        COMMAND
+        "${target}"
         --benchmark_min_time=${BENCHMARK_MIN_TIME}
         --benchmark_color=no
     )

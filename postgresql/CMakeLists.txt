@@ -96,7 +96,7 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   )
   add_test(NAME ${PROJECT_NAME}-benchmark COMMAND env
       POSTGRES_DSN_BENCH=postgresql://testsuite@localhost:15433/postgres
-      ${CMAKE_BINARY_DIR}/testsuite/env
+      "${CMAKE_BINARY_DIR}/testsuite/env"
       --databases=postgresql
       run --
       $<TARGET_FILE:${PROJECT_NAME}-benchmark>
@@ -112,11 +112,11 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   target_link_libraries(${PROJECT_NAME}-pgtest userver-utest ${PROJECT_NAME})
   add_test(NAME ${PROJECT_NAME}-pgtest COMMAND env
       POSTGRES_TEST_DSN=postgresql://testsuite@localhost:15433/postgres
-      ${CMAKE_BINARY_DIR}/testsuite/env
+      "${CMAKE_BINARY_DIR}/testsuite/env"
       --databases=postgresql
       run --
       $<TARGET_FILE:${PROJECT_NAME}-pgtest>
-      --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}-pgtest.xml
+      "--gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}-pgtest.xml"
   )
 
   add_subdirectory(functional_tests)

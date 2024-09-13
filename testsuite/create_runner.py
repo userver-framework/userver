@@ -15,8 +15,10 @@ TESTSUITE_PYTEST_ARGS = {pytest_args}
 
 def testsuite_runner():
     args = [
+        # Put path to test sources as the first argument to work around pytest issue #12802
+        sys.argv[-1],
         *TESTSUITE_PYTEST_ARGS,
-        *sys.argv[1:],
+        *sys.argv[1:-1],
     ]
     sys.path.extend(TESTSUITE_PYTHONPATH)
     os.environ['PATH'] = os.path.dirname('{python}') + ':' + os.environ['PATH']

@@ -63,18 +63,19 @@ function(userver_target_generate_chaotic TARGET)
   foreach(PARSE_SCHEMA ${PARSE_SCHEMAS})
     file(RELATIVE_PATH SCHEMA "${PARSE_RELATIVE_TO}" "${PARSE_SCHEMA}")
 
-    string(REGEX REPLACE "^(.*)\\.([^.]*)\$" "\\1" SCHEMA ${SCHEMA})
-    set(SCHEMA ${PARSE_OUTPUT_DIR}/${SCHEMA}.cpp)
+    string(REGEX REPLACE "^(.*)\\.([^.]*)\$" "\\1" SCHEMA "${SCHEMA}")
+    set(SCHEMA "${PARSE_OUTPUT_DIR}/${SCHEMA}.cpp")
 
-    list(APPEND SCHEMAS ${SCHEMA})
+    list(APPEND SCHEMAS "${SCHEMA}")
   endforeach()
 
   add_custom_command(
       OUTPUT
           ${SCHEMAS}
       COMMAND
-          env USERVER_PYTHON=${USERVER_CHAOTIC_PYTHON_BINARY}
-          ${CHAOTIC_BIN}
+          env
+          "USERVER_PYTHON=${USERVER_CHAOTIC_PYTHON_BINARY}"
+          "${CHAOTIC_BIN}"
           ${CHAOTIC_EXTRA_ARGS}
           ${PARSE_ARGS}
           -o "${PARSE_OUTPUT_DIR}"
@@ -83,11 +84,11 @@ function(userver_target_generate_chaotic TARGET)
       DEPENDS
           ${PARSE_SCHEMAS}
       WORKING_DIRECTORY
-          ${CMAKE_CURRENT_SOURCE_DIR}
+          "${CMAKE_CURRENT_SOURCE_DIR}"
       VERBATIM
   )
-  add_library(${TARGET} ${SCHEMAS})
-  target_link_libraries(${TARGET} userver::chaotic)
-  target_include_directories(${TARGET} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
-  target_include_directories(${TARGET} PUBLIC "${PARSE_OUTPUT_DIR}")
+  add_library("${TARGET}" ${SCHEMAS})
+  target_link_libraries("${TARGET}" userver::chaotic)
+  target_include_directories("${TARGET}" PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
+  target_include_directories("${TARGET}" PUBLIC "${PARSE_OUTPUT_DIR}")
 endfunction()
