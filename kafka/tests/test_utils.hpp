@@ -19,9 +19,9 @@ struct Message {
   std::string key;
   std::string payload;
   std::optional<std::uint32_t> partition;
-
-  bool operator==(const Message& other) const = default;
 };
+
+bool operator==(const Message& lhs, const Message& rhs);
 
 std::ostream& operator<<(std::ostream&, const Message&);
 
