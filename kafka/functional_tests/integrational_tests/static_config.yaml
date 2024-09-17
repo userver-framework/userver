@@ -30,7 +30,6 @@ components_manager:
         # yaml
         kafka-consumer:
             group_id: test-group
-            client_id: test-client
             topics:
               - test-topic-send
               - test-topic-consume-1
@@ -49,7 +48,6 @@ components_manager:
         # /// [Kafka service sample - producer static config]
         # yaml
         kafka-producer-first:
-            client_id: test-client
             delivery_timeout: 3000ms
             queue_buffering_max: 100ms
             enable_idempotence: true
@@ -59,6 +57,7 @@ components_manager:
         # /// [Kafka service sample - producer static config]
 
         kafka-producer-second:
+            client_id: test-client
             delivery_timeout: 3000ms
             queue_buffering_max: 100ms
             enable_idempotence: true
