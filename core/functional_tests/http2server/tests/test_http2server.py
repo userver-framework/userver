@@ -194,9 +194,9 @@ async def test_settings_and_ping(service_client, loop, service_port):
         h2.settings.SettingCodes.MAX_CONCURRENT_STREAMS: max_streams,
     })
 
-    events = await _send_and_recive(loop, sock, conn)
-
-    assert 3 == len(events)
+    events = []
+    while len(events) != 3:
+        events += await _send_and_recive(loop, sock, conn)
     e = events[0]
     assert isinstance(e, h2.events.RemoteSettingsChanged)
     assert MAX_CONCURRENT_STREAMS == e.changed_settings[3].new_value
@@ -208,9 +208,9 @@ async def test_settings_and_ping(service_client, loop, service_port):
     ping_data = '12345678'.encode()
     conn.ping(ping_data)
 
-    events = await _send_and_recive(loop, sock, conn)
-
-    assert 2 == len(events)
+    events = []
+    while len(events) != 2:
+        events += await _send_and_recive(loop, sock, conn)
     assert isinstance(events[0], h2.events.PingAckReceived)
     assert ping_data == events[0].ping_data
     assert isinstance(events[1], h2.events.PingReceived)
@@ -226,9 +226,9 @@ async def _create_connection(loop, service_port):
     conn = h2.connection.H2Connection()
     conn.initiate_connection()
 
-    events = await _send_and_recive(loop, sock, conn)
-
-    assert 2 == len(events)
+    events = []
+    while len(events) != 2:
+        events += await _send_and_recive(loop, sock, conn)
     assert isinstance(events[0], h2.events.RemoteSettingsChanged)
     assert MAX_CONCURRENT_STREAMS == events[0].changed_settings[3].new_value
     assert DEFAULT_FRAME_SIZE == events[0].changed_settings[5].new_value
@@ -327,15 +327,14 @@ async def test_many_in_flight(
         conn.end_stream(stream_id)
         await loop.sock_sendall(sock, conn.data_to_send())
 
-    response_count = 0
+    events = []
     expected_frames_count = (
         MAX_CONCURRENT_STREAMS * 3
     )  # 1 response =  (ResponseReceived, DataReceived, StreamEnded)
-    while response_count != expected_frames_count:
+    while len(events) != expected_frames_count:
         receive = sock.recv(RECEIVE_SIZE)
-        events = conn.receive_data(receive)
-        response_count += len(events)
-        _assert_responses(events)
+        events += conn.receive_data(receive)
+    _assert_responses(events)
 
     # The second spike
     ids = []
@@ -350,17 +349,21 @@ async def test_many_in_flight(
         conn.end_stream(stream_id)
         await loop.sock_sendall(sock, conn.data_to_send())
 
-    response_count = 0
-    while response_count != expected_frames_count:
+    events = []
+    while len(events) != expected_frames_count:
         receive = sock.recv(RECEIVE_SIZE)
-        events = conn.receive_data(receive)
-        response_count += len(events)
-        _assert_responses(events)
+        events += conn.receive_data(receive)
+    _assert_responses(events)
 
     sock.close()
 
 
-async def test_limit_concurrent_streams(service_client, loop, service_port):
+async def test_limit_concurrent_streams(
+    service_client, loop, service_port, monitor_client,
+):
+    streams_count = await _get_metric(monitor_client, 'streams-count')
+    streams_close = await _get_metric(monitor_client, 'streams-close')
+
     (sock, conn) = await _create_connection(loop, service_port)
 
     # open the maximum number of streams
@@ -369,13 +372,20 @@ async def test_limit_concurrent_streams(service_client, loop, service_port):
         conn.send_headers(stream_id, DEFAULT_HEADERS, end_stream=False)
         await loop.sock_sendall(sock, conn.data_to_send())
 
+    await service_client.update_server_state()
+
+    assert streams_count + MAX_CONCURRENT_STREAMS == await _get_metric(
+        monitor_client, 'streams-count',
+    )
+    assert streams_close == await _get_metric(monitor_client, 'streams-close')
+
+    # Go over the limit of strems count. The GOAWAY frame is expected
     stream_id = 203
     payload = b''.join(_encode_header(k, v) for k, v in DEFAULT_HEADERS)
     begin_stream_frame = _create_frame(
         HEADERS_FRAME, EMPTY_FLAGS, stream_id, payload,
     )
 
-    # Go over the limit of strems count. The GOAWAY frame is expected
     await loop.sock_sendall(sock, begin_stream_frame)
     receive = sock.recv(RECEIVE_SIZE)
 
@@ -391,8 +401,9 @@ async def test_stream_already_closed(service_client, loop, service_port):
     stream_id = conn.get_next_available_stream_id()
     conn.send_headers(stream_id, DEFAULT_HEADERS)
     conn.end_stream(stream_id)
-    events = await _send_and_recive(loop, sock, conn)
-    assert 3 == len(events)
+    events = []
+    while len(events) != 3:
+        events += await _send_and_recive(loop, sock, conn)
 
     payload = b''.join(_encode_header(k, v) for k, v in DEFAULT_HEADERS)
     double_stream = _create_frame(
