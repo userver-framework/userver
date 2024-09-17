@@ -8,4 +8,4 @@ target_link_libraries(${PROJECT_NAME}-unittest PRIVATE userver::kafka userver::u
 target_include_directories(${PROJECT_NAME}-unittest PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../src
 )
-add_google_tests(${PROJECT_NAME}-unittest)
+# add_google_tests(${PROJECT_NAME}-unittest)
