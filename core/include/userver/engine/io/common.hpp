@@ -34,7 +34,7 @@ class ReadableBase {
   [[nodiscard]] virtual bool WaitReadable(Deadline) = 0;
 
   /// Receives up to len (including zero) bytes from the stream.
-  /// @returns filled-in optional on data presense (e.g. 0, 1, 2... bytes)
+  /// @returns filled-in optional on data presence (e.g. 0, 1, 2... bytes)
   ///  empty optional otherwise
   [[nodiscard]] virtual std::optional<size_t> ReadNoblock(void* buf,
                                                           size_t len) {

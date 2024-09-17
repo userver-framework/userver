@@ -26,7 +26,7 @@ namespace ugrpc::server {
 /// The API is mainly intended for proxies, where the request-response body is
 /// passed unchanged, with settings taken solely from the RPC metadata.
 /// In cases where the code needs to operate on the actual messages,
-/// serialization of requests and responses is left as an excercise to the user.
+/// serialization of requests and responses is left as an exercise to the user.
 ///
 /// Middlewares are customizable and are applied as usual, except that no
 /// message hooks are called, meaning that there won't be any logs of messages

@@ -181,7 +181,6 @@ constexpr std::string_view kCommands[] = {
 
 }  // namespace
 
-// retuns the first word; if it is "with" returns all words before "as"
 std::string FindQueryShortInfo(std::string_view prefix, std::string_view str) {
   const std::size_t max_search_depth = std::min(std::size_t{128}, str.size());
   const auto end_it = str.begin() + max_search_depth;

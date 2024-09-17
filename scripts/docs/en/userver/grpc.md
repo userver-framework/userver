@@ -101,7 +101,7 @@ components_manager:
 
 #### List of standard client middlewares
 
- 1. `grpc-client-logging` with component ugrpc::client::middlewares::log::Component - logs requests and responces.
+ 1. `grpc-client-logging` with component ugrpc::client::middlewares::log::Component - logs requests and responses.
  2. `grpc-client-deadline-propagation` with component ugrpc::client::middlewares::deadline_propagation::Component - activates 
  @ref scripts/docs/en/userver/deadline_propagation.md.
  3. `grpc-client-baggage` with component ugrpc::client::middlewares::baggage::Component - passes request baggage to subrequests.

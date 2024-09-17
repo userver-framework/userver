@@ -177,7 +177,7 @@ async def test_http1_broken_bytes(service_client, loop, service_port):
     sock.close()
 
 
-async def _send_and_recive(loop, sock, conn):
+async def _send_and_receive(loop, sock, conn):
     await loop.sock_sendall(sock, conn.data_to_send())
     receive = sock.recv(RECEIVE_SIZE)
     return conn.receive_data(receive)
@@ -196,7 +196,7 @@ async def test_settings_and_ping(service_client, loop, service_port):
 
     events = []
     while len(events) != 3:
-        events += await _send_and_recive(loop, sock, conn)
+        events += await _send_and_receive(loop, sock, conn)
     e = events[0]
     assert isinstance(e, h2.events.RemoteSettingsChanged)
     assert MAX_CONCURRENT_STREAMS == e.changed_settings[3].new_value
@@ -210,7 +210,7 @@ async def test_settings_and_ping(service_client, loop, service_port):
 
     events = []
     while len(events) != 2:
-        events += await _send_and_recive(loop, sock, conn)
+        events += await _send_and_receive(loop, sock, conn)
     assert isinstance(events[0], h2.events.PingAckReceived)
     assert ping_data == events[0].ping_data
     assert isinstance(events[1], h2.events.PingReceived)
@@ -228,7 +228,7 @@ async def _create_connection(loop, service_port):
 
     events = []
     while len(events) != 2:
-        events += await _send_and_recive(loop, sock, conn)
+        events += await _send_and_receive(loop, sock, conn)
     assert isinstance(events[0], h2.events.RemoteSettingsChanged)
     assert MAX_CONCURRENT_STREAMS == events[0].changed_settings[3].new_value
     assert DEFAULT_FRAME_SIZE == events[0].changed_settings[5].new_value
@@ -239,7 +239,7 @@ async def _create_connection(loop, service_port):
 
 def _create_frame(frame_type, flags, stream_id, payload):
     header = (
-        struct.pack('>I', len(payload))[1:]  # lenght 3 bytes
+        struct.pack('>I', len(payload))[1:]  # length 3 bytes
         + struct.pack('B', frame_type)  # type 1 byte
         + struct.pack('B', flags)  # flags 1 byte
         + struct.pack('>I', stream_id & 0x7FFFFFFF)  # stream_id 4 bytes
@@ -403,7 +403,7 @@ async def test_stream_already_closed(service_client, loop, service_port):
     conn.end_stream(stream_id)
     events = []
     while len(events) != 3:
-        events += await _send_and_recive(loop, sock, conn)
+        events += await _send_and_receive(loop, sock, conn)
 
     payload = b''.join(_encode_header(k, v) for k, v in DEFAULT_HEADERS)
     double_stream = _create_frame(

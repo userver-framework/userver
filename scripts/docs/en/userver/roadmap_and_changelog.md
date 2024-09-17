@@ -29,6 +29,67 @@ Changelog news also go to the
 
 ## Changelog
 
+### Release v2.4
+
+* Added @ref USERVER_LOG_REQUEST_HEADERS_WHITELIST to control the HTTP headers
+  to log.
+* OpenTelemetry protocol (OTLP) now can optionally do only logging or only
+  tracing. Thanks to [TertiumOrganum1](https://github.com/TertiumOrganum1) for
+  the PR!
+* The framework now accepts OTLP headers for tracing by default and puts those
+  headers for new requests. 
+* PostgreSQL span names are now a little bit more informative. Thanks to
+  [TertiumOrganum1](https://github.com/TertiumOrganum1) for the PR!
+
+* Optimizations:
+  * HTTP/2 server implementation now does not copy data to send, saving CPU
+    and RAM.
+  * HTTP/2 now relies on open-addressing unordered map from nghttp2, leading to
+    faster stream lookup.
+  * Kafka consumer now does not block a task processor thread, allowing
+    multiple consumers to share the same OS thread. Consume cycle now can be
+    treated as an asynchronous non-blocking event loop.
+  * Kafka producer delivery acknowledgments processing is now done in parallel,
+    leading to better scalability. Also it does not block the OS thread when
+    waiting for new delivery acknowledgments.
+  * Internals of all the Sockets became smaller in size, saving some RAM.
+
+* gRPC:
+  * gRPC in testsuite now automatically calls
+    @ref pytest_userver.client.Client.update_server_state update_server_state.
+    The behavior now matches HTTP.
+  * gRPC server now supports unix-sockets via `unix-socket-path` static config
+    option.
+  * gRPC clients now log requests/responses via the
+    ugrpc::client::middlewares::log::Component middleware. Improved gRPC
+    client and server metrics.
+  * New component ugrpc::client::CommonComponent with common options for all the
+    gRPC clients.
+
+* Build, Install and CI:
+  * OTLP build is now supported in Conan. Thanks to
+    [Amina Ramazanova](https://github.com/konataa) for the PR!
+  * Chaotic now exposes less headers, leading to faster build times.
+  * Fixed compilation on modern Boost.UUID. Thanks to
+    [Alexander Botev](https://github.com/MrSteelRat) for the PR!
+  * Added `dependabot` to CI and updated the dependencies. Thanks to
+    [Dzmitry Ivaniuk](https://github.com/idzm) for the PR!
+  * Added missing `#include`. Thanks to [Nikita](https://github.com/rtkid-nik)
+    for the PR!
+  * Removed outdated defines in the core. Thanks to
+    [Sergey Kazmin](https://github.com/yerseg) for the PR!
+  * Install now does not put third party headers into the top level include
+    directory. Multiple unused files are now not installed.
+  * Started the work to enable builds in directories with whitespace in names.
+
+* Documentation:
+  * More docs for gRPC middlewares at @ref scripts/docs/en/userver/grpc.md
+    and @ref scripts/docs/en/userver/tutorial/grpc_middleware_service.md.
+  * More docs for otlp::LoggerComponent. Thanks to
+    [TertiumOrganum1](https://github.com/TertiumOrganum1) for the PR!
+  * Set proper `Content-Type` in samples.
+
+
 ### Release v2.3
 
 * Initial HTTP 2.0 server support is now implemented. Use

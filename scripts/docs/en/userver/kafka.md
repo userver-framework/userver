@@ -19,15 +19,19 @@ in separate task processor.
 - Metrics;
 
 ## Producer Features
-- 🚀 Parallel cooperative messages delivery reports processing (in comparison with all librdkafka-based Kafka clients, the performance of which rests on a single thread);
-- 🚀 No blocking waits in implementation (message senders suspend their coroutines execution until delivery reports occured);
+- 🚀 Parallel cooperative messages delivery reports processing (in comparison
+  with all librdkafka-based Kafka clients, the performance of which rests on a
+  single thread);
+- 🚀 No blocking waits in implementation (message senders suspend their
+  coroutines execution until delivery reports occurred);
 - Synchronous and asynchronous non-blocking interfaces for producing messages;
 - Automatic retries of transient errors;
 - Support of idempotent producer (exactly-once semantics);
 - Sending message to concrete topic's partition;
 
 ## Consumer Features
-- 🚀 No blocking waits in implementation (message poller suspends the coroutine until new events occured);
+- 🚀 No blocking waits in implementation (message poller suspends the coroutine
+  until new events occurred);
 - Callback interface for handling message batches polled from subscribed topics;
 - Balanced consumer groups support;
 - Automatic rollback to last committed message when batch processing failed;
@@ -35,7 +39,8 @@ in separate task processor.
 
 ## Planned Enhancements
 - ✅ Transfer from raw polling with timeouts to events processing,
-making the message polling non-blocking and leading to better library scalability;
+  making the message polling non-blocking and leading to better library
+  scalability;
 - testsuite Kafka support in OSS;
 - Support of different compression codecs (GZIP, LZ4, ZSTD, etc..);
 - Support more SASL authentication mechanisms (GSSAPI, OAUTHBEARER);

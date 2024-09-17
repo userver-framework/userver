@@ -77,7 +77,7 @@ void DoExec(const std::string& command, const std::vector<std::string>& args,
   }
 }
 
-EnvironmentVariables ApplyEnviromentUpdate(
+EnvironmentVariables ApplyEnvironmentUpdate(
     std::optional<EnvironmentVariables>&& env,
     std::optional<EnvironmentVariablesUpdate>&& env_update) {
   if (env) {
@@ -105,7 +105,7 @@ ProcessStarter::ProcessStarter(TaskProcessor& task_processor)
 ChildProcess ProcessStarter::Exec(const std::string& command,
                                   const std::vector<std::string>& args,
                                   ExecOptions&& options) {
-  EnvironmentVariables env = ApplyEnviromentUpdate(
+  EnvironmentVariables env = ApplyEnvironmentUpdate(
       std::move(options.env), std::move(options.env_update));
 
   if (options.use_path && command.find('/') != std::string::npos &&
