@@ -74,7 +74,7 @@ properties:
     client_id:
         type: string
         description: An id string to pass to the server when making requests
-        defaultDescription: ''
+        defaultDescription: userver
     topics:
         type: array
         description: list of topics consumer subscribes

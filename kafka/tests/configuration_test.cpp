@@ -26,7 +26,7 @@ UTEST_F(ConfigurationTest, Producer) {
       configuration.emplace(MakeProducerConfiguration("kafka-producer")));
 
   const kafka::impl::ProducerConfiguration default_producer{};
-  EXPECT_TRUE(configuration->GetOption("client.id").empty());
+  EXPECT_EQ(configuration->GetOption("client.id"), default_producer.common.client_id);
   EXPECT_EQ(
       configuration->GetOption("topic.metadata.refresh.interval.ms"),
       std::to_string(
@@ -97,7 +97,7 @@ UTEST_F(ConfigurationTest, Consumer) {
       configuration.emplace(MakeConsumerConfiguration("kafka-consumer")));
 
   const kafka::impl::ConsumerConfiguration default_consumer{};
-  EXPECT_TRUE(configuration->GetOption("client.id").empty());
+  EXPECT_EQ(configuration->GetOption("client.id"), default_consumer.common.client_id);
   EXPECT_EQ(
       configuration->GetOption("topic.metadata.refresh.interval.ms"),
       std::to_string(

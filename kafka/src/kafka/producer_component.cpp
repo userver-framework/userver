@@ -47,7 +47,7 @@ properties:
     client_id:
         type: string
         description: An id string to pass to the server when making requests
-        defaultDescription: ''
+        defaultDescription: userver
     delivery_timeout:
         type: string
         description: time a produced message waits for successful delivery

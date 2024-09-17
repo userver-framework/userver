@@ -39,7 +39,7 @@ class Consumer;
 /// Name                               | Description                                      | Default value
 /// ---------------------------------- | ------------------------------------------------ | ---------------
 /// group_id                           | consumer group id (name) | --
-/// client_id                          | An id string to pass to the server when making requests | --
+/// client_id                          | An id string to pass to the server when making requests | userver
 /// topics                             | list of topics consumer subscribes | --
 /// max_batch_size                     | maximum number of messages consumer waits for new message before calling a callback | 1
 /// poll_timeout                       | maximum amount of time consumer waits for messages for new messages before calling a callback | 1s

@@ -23,7 +23,7 @@ struct Secret;
 struct CommonConfiguration final {
   std::chrono::milliseconds topic_metadata_refresh_interval{300000};
   std::chrono::milliseconds metadata_max_age{900000};
-  std::string client_id;
+  std::string client_id{"userver"};
 };
 
 struct SecurityConfiguration final {
