@@ -27,6 +27,11 @@ kafka::impl::Secret MakeSecrets(std::string_view bootstrap_servers) {
 
 }  // namespace
 
+bool operator==(const Message& lhs, const Message& rhs) {
+  return lhs.topic == rhs.topic && lhs.key == rhs.key &&
+         lhs.payload == rhs.payload && lhs.partition == rhs.partition;
+}
+
 std::ostream& operator<<(std::ostream& out, const Message& message) {
   return out << fmt::format(
              "Message{{topic: '{}', key: '{}', payload: '{}', partition: "

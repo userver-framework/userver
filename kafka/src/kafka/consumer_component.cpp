@@ -71,6 +71,10 @@ properties:
             consumer group id.
             Topic partition evenly distributed
             between consumers with the same `group_id`
+    client_id:
+        type: string
+        description: An id string to pass to the server when making requests
+        defaultDescription: userver
     topics:
         type: array
         description: list of topics consumer subscribes
