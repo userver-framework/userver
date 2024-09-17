@@ -28,8 +28,9 @@ kafka::impl::Secret MakeSecrets(std::string_view bootstrap_servers) {
 }  // namespace
 
 bool operator==(const Message& lhs, const Message& rhs){
-    return std::tie(lhs.topic, lhs.key, lhs.payload, lhs.partition) ==
-           std::tie(rhs.topic, rhs.key, rhs.payload, rhs.partition)}
+  return std::tie(lhs.topic, lhs.key, lhs.payload, lhs.partition) ==
+         std::tie(rhs.topic, rhs.key, rhs.payload, rhs.partition);
+}
 
 std::ostream& operator<<(std::ostream& out, const Message& message) {
   return out << fmt::format(
