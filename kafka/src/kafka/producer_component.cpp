@@ -46,7 +46,10 @@ additionalProperties: false
 properties:
     client_id:
         type: string
-        description: An id string to pass to the server when making requests
+        description: |
+            Client identifier.
+            May be an arbitrary string.
+            Optional, but you should set this property on each instance because it enables you to more easily correlate requests on the broker with the client instance which made it, which can be helpful in debugging and troubleshooting scenarios.
         defaultDescription: userver
     delivery_timeout:
         type: string
