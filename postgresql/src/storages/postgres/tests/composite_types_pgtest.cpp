@@ -1,6 +1,8 @@
 #include <storages/postgres/tests/util_pgtest.hpp>
 #include <userver/storages/postgres/io/composite_types.hpp>
 
+#include <userver/storages/postgres/io/bitstring.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace pg = storages::postgres;
@@ -174,6 +176,11 @@ struct WithUnorderedSet {
   bool operator==(const WithUnorderedSet& rhs) const { return s == rhs.s; }
 };
 
+struct User {
+  int id{};
+  std::bitset<4> status{};
+};
+
 }  // namespace pgtest
 
 /*! [User type mapping] */
@@ -232,6 +239,11 @@ struct CppToUserPg<pgtest::FooBarWithSomeFieldsDropped> {
 template <>
 struct CppToUserPg<pgtest::WithUnorderedSet> {
   static constexpr DBTypeName postgres_name = "__pgtest.with_array";
+};
+
+template <>
+struct CppToUserPg<pgtest::User> {
+  static constexpr DBTypeName postgres_name = "__pgtest.user";
 };
 
 }  // namespace storages::postgres::io
@@ -701,6 +713,70 @@ UTEST_P(PostgreConnection, CompositeTypeParseExceptionReadability) {
           compiler::GetTypeName<pgtest::FooBar>(),
           compiler::GetTypeName<pgtest::FooBar>()));
   UEXPECT_NO_THROW(res[0][0].As<std::string>());
+
+  UEXPECT_NO_THROW(
+      res = GetConn()->Execute("select $1.i, $1.s", pgtest::FooBar{}));
+  ASSERT_FALSE(res.IsEmpty());
+  UEXPECT_NO_THROW(res[0][1].As<std::string>());
+
+  // Table name used as a type name:
+  {
+    UEXPECT_NO_THROW(GetConn()->Execute(R"~(
+      CREATE TABLE __pgtest.user (
+        id int NOT NULL,
+        status bit(4) DEFAULT '0001'::"bit" NOT NULL
+      )
+    )~"));
+
+    const auto searchQuery = storages::Query(R"(
+      SELECT id, status
+      FROM __pgtest.user
+      WHERE id = $1.id and status = $1.status;
+    )");
+
+    UEXPECT_THROW_MSG(
+        GetConn()->Execute(searchQuery, pgtest::User{1, 2}),
+        storages::postgres::UserTypeError,
+        fmt::format(
+            "Type '__pgtest.user' was not created in database and "
+            "because of that the '{}' could not be serialized. Forgot a "
+            "migration or rolled it after the service started?",
+            compiler::GetTypeName<pgtest::User>()));
+  }
+
+  // Type is now created:
+  {
+    UEXPECT_NO_THROW(GetConn()->Execute("DROP TABLE __pgtest.user"));
+    UEXPECT_NO_THROW(GetConn()->Execute(R"~(
+      CREATE TYPE __pgtest.user as (
+        id int,
+        status bit  -- `bit(4)` is ignored here and the actual type is varbit
+      )
+    )~"));
+
+    UEXPECT_NO_THROW(res = GetConn()->Execute(R"~(
+      CREATE TABLE __pgtest.user_table (
+        id int NOT NULL,
+        status bit(4) DEFAULT '0001'::"bit" NOT NULL
+      )
+    )~"));
+
+    const auto searchQuery = storages::Query(R"(
+      SELECT id, status
+      FROM __pgtest.user_table
+      WHERE id = $1.id and status = $1.status;
+    )");
+
+    // Auto reload doesn't work for outgoing types
+    UASSERT_NO_THROW(GetConn()->ReloadUserTypes());
+
+    UEXPECT_THROW_MSG(
+        GetConn()->Execute(searchQuery, pgtest::User{1, 2}),
+        storages::postgres::UserTypeError,
+        "Type mismatch for '__pgtest.user' field 'status'. In database the "
+        "type is 'bit' (oid: 1560), user supplied type is 'varbit' (oid: "
+        "1562)");
+  }
 }
 
 }  // namespace

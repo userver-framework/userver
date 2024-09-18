@@ -215,7 +215,7 @@ const CompositeTypeDescription& UserTypes::GetCompositeDescription(
 
   throw UserTypeError{
       "Composite type description for oid " + std::to_string(oid) +
-      " not found. Forgot a migration or rolled it after service started?"};
+      " not found. Forgot a migration or rolled it after the service started?"};
 }
 
 const DBTypeDescription* UserTypes::GetTypeDescription(Oid oid) const {
