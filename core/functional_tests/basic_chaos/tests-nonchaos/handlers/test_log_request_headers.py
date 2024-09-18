@@ -9,7 +9,7 @@ default_testsuite_headers = [
 ]
 
 
-async def get_log_requst_headers(
+async def get_log_request_headers(
     service_client, dynamic_config, headers, headers_whitelist,
 ):
     dynamic_config.set(
@@ -39,13 +39,13 @@ async def get_log_requst_headers(
 
 
 async def test_headers(service_client, dynamic_config):
-    assert await get_log_requst_headers(
+    assert await get_log_request_headers(
         service_client,
         dynamic_config,
         headers={'secret_header': 'secret'},
         headers_whitelist=[],
     ) == {'secret_header': '***'}
-    assert await get_log_requst_headers(
+    assert await get_log_request_headers(
         service_client,
         dynamic_config,
         headers={'legal_header': 'userver best framework'},
