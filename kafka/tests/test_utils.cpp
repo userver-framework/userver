@@ -1,6 +1,7 @@
 #include "test_utils.hpp"
 
 #include <algorithm>
+#include <tuple>
 
 #include <fmt/format.h>
 
@@ -27,13 +28,9 @@ kafka::impl::Secret MakeSecrets(std::string_view bootstrap_servers) {
 
 }  // namespace
 
-std::ostream& operator<<(std::ostream& out, const Message& message) {
-  return out << fmt::format(
-             "Message{{topic: '{}', key: '{}', payload: '{}', partition: "
-             "'{}'}}",
-             message.topic, message.key, message.payload,
-             message.partition ? std::to_string(message.partition.value())
-                               : "<no partition>");
+bool operator==(const Message& lhs, const Message& rhs) {
+  return std::tie(lhs.topic, lhs.key, lhs.payload, lhs.partition) ==
+         std::tie(rhs.topic, rhs.key, rhs.payload, rhs.partition);
 }
 
 KafkaCluster::KafkaCluster() : bootstrap_servers_(FetchBrokerList()) {}

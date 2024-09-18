@@ -51,4 +51,5 @@ _userver_directory_install(COMPONENT kafka FILES
 
 if (USERVER_IS_THE_ROOT_PROJECT)
   add_subdirectory(functional_tests)
+  add_subdirectory(tests)
 endif()

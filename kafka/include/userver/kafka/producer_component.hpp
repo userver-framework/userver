@@ -31,6 +31,7 @@ namespace kafka {
 /// ## Static options:
 /// Name                         | Description                                      | Default value
 /// ---------------------------- | ------------------------------------------------ | ---------------
+/// client_id                    | Client identifier. May be an arbitrary string | userver
 /// delivery_timeout             | time a produced message waits for successful delivery | --
 /// queue_buffering_max          | delay to wait for messages to be transmitted to broker | --
 /// enable_idempotence           | whether to make producer idempotent | false

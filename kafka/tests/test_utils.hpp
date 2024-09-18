@@ -1,7 +1,6 @@
 #pragma once
 
 #include <deque>
-#include <iostream>
 #include <vector>
 
 #include <userver/kafka/producer.hpp>
@@ -19,11 +18,9 @@ struct Message {
   std::string key;
   std::string payload;
   std::optional<std::uint32_t> partition;
-
-  bool operator==(const Message& other) const = default;
 };
 
-std::ostream& operator<<(std::ostream&, const Message&);
+bool operator==(const Message& lhs, const Message& rhs);
 
 class KafkaCluster : public ::testing::Test {
  public:

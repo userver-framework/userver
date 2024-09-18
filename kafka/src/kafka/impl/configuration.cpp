@@ -93,6 +93,7 @@ CommonConfiguration Parse(const yaml_config::YamlConfig& config,
   common.metadata_max_age =
       config["metadata_max_age"].As<std::chrono::milliseconds>(
           common.metadata_max_age);
+  common.client_id = config["client_id"].As<std::string>(common.client_id);
 
   return common;
 }
@@ -244,6 +245,7 @@ void Configuration::SetCommon(const CommonConfiguration& common) {
             std::to_string(common.topic_metadata_refresh_interval.count()));
   SetOption("metadata.max.age.ms",
             std::to_string(common.metadata_max_age.count()));
+  SetOption("client.id", common.client_id);
 }
 
 void Configuration::SetSecurity(const SecurityConfiguration& security,
