@@ -40,6 +40,10 @@ Changelog news also go to the
   headers for new requests. 
 * PostgreSQL span names are now a little bit more informative. Thanks to
   [TertiumOrganum1](https://github.com/TertiumOrganum1) for the PR!
+* Kafka now has a `client.id` static option. Many thanks to
+  [Nikolay Pervushin](https://github.com/Greenvi4) for the PR.
+* PostgreSQL type errors become more informative. Thanks to
+  [farmovit](https://github.com/farmovit) for the report!
 
 * Optimizations:
   * HTTP/2 server implementation now does not copy data to send, saving CPU
