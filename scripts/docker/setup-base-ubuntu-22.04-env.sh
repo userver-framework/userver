@@ -127,6 +127,8 @@ apt clean all
 AMQP_VERSION=${AMQP_VERSION:=v4.3.18}
 CLICKHOUSE_VERSION=${CLICKHOUSE_VERSION:=v2.3.0}
 ROCKSDB_VERSION=${ROCKSDB_VERSION:=v8.11.3}
+KAFKA_VERSION=${KAFKA_VERSION:=3.8.0}
+SCALA_VERSION=${SCALA_VERSION:=2.13}
 
 # Installing amqp/rabbitmq client libraries from sources
 git clone --depth 1 -b ${AMQP_VERSION} https://github.com/CopernicaMarketingSoftware/AMQP-CPP.git amqp-cpp
@@ -144,6 +146,15 @@ git clone --depth 1 -b ${ROCKSDB_VERSION} https://github.com/facebook/rocksdb
   cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release -DROCKSDB_BUILD_SHARED=OFF -DWITH_TESTS=OFF -DWITH_BENCHMARK_TOOLS=OFF -DWITH_TOOLS=OFF -DUSE_RTTI=ON .. && make -j $(nproc) && make install)
 (cd rocksdb && mkdir build-debug && cd build-debug && \
   cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug -DROCKSDB_BUILD_SHARED=OFF -DWITH_TESTS=OFF -DWITH_BENCHMARK_TOOLS=OFF -DWITH_TOOLS=OFF  -DUSE_RTTI=ON .. && make -j $(nproc) && make install)
+
+# Install Kafka
+sudo apt-get install -y default-jre
+curl https://dlcdn.apache.org/kafka/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz -o kafka.tgz
+sudo mkdir -p /etc/kafka
+sudo tar xf kafka.tgz --directory=/etc/kafka
+cd /etc/kafka
+sudo cp -r kafka_${SCALA_VERSION}-${KAFKA_VERSION}/* ./
+sudo rm -rf kafka_${SCALA_VERSION}-${KAFKA_VERSION}
 
 # Set UTC timezone
 TZ=Etc/UTC
