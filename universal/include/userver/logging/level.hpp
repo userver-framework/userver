@@ -17,10 +17,11 @@ enum class Level : std::uint8_t {
   kTrace = 0,
   kDebug = 1,
   kInfo = 2,
-  kWarning = 3,
-  kError = 4,
-  kCritical = 5,
-  kNone = 6
+  kAudit = 3,
+  kWarning = 4,
+  kError = 5,
+  kCritical = 6,
+  kNone = 7
 };
 
 inline constexpr auto kLevelMax = static_cast<int>(Level::kNone);

@@ -31,7 +31,7 @@ def get_userver_version(self) -> str:
 
 class UserverConan(ConanFile):
     name = 'userver'
-    version = '2.2.3'
+    version = '2.2.4'
     description = 'The C++ Asynchronous Framework'
     topics = ('framework', 'coroutines', 'asynchronous')
     url = 'https://github.com/userver-framework/userver'
@@ -122,14 +122,14 @@ class UserverConan(ConanFile):
         self.requires('spdlog/1.10.1.12', transitive_headers=True)
         self.requires('yaml-cpp/0.7.0', transitive_headers=True)
         self.requires('zlib/1.3', transitive_headers=True)
-        self.requires('abseil/20230125.3', transitive_headers=True, transitive_libs=True)
+        self.requires('abseil/20240116.2', transitive_headers=True, transitive_libs=True)
         self.requires('zstd/1.5.5')
 
         if self.options.with_jemalloc:
             self.requires('jemalloc/5.3.0')
         if self.options.with_grpc:
             self.requires(
-                'grpc/1.48.4', transitive_headers=True, transitive_libs=True,
+                'grpc/1.65.0', transitive_headers=True, transitive_libs=True,
             )
             self.requires(
                 'googleapis/cci.20230501',
@@ -141,7 +141,7 @@ class UserverConan(ConanFile):
                 transitive_headers=True,
                 transitive_libs=True,
             )
-            self.requires('protobuf/3.21.12', force=True)
+            self.requires('protobuf/5.27.0', force=True)
         if self.options.with_postgresql:
             self.requires('libpq/14.5')
         if self.options.with_mongodb:
@@ -158,7 +158,7 @@ class UserverConan(ConanFile):
         if self.options.with_clickhouse:
             self.requires('clickhouse-cpp/2.4.0')
             self.requires(
-                'abseil/20230125.3',
+                'abseil/20240116.2',
                 transitive_headers=True,
                 transitive_libs=True,
             )
@@ -220,7 +220,7 @@ class UserverConan(ConanFile):
         tool_ch.variables['USERVER_FEATURE_UTEST'] = self.options.with_utest
         tool_ch.variables[
             'USERVER_FEATURE_TESTSUITE'
-        ] = self.options.with_utest
+        ] = False
 
         if self.options.use_lld:
             tool_ch.variables['USERVER_USE_LD'] = 'lld'

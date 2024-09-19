@@ -207,6 +207,11 @@ struct EntryStorage final {
 #define USERVER_IMPL_LOGS_INFO_ERASER(X) X
 #endif
 
+#ifndef USERVER_IMPL_LOGS_AUDIT_ERASER
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define USERVER_IMPL_LOGS_AUDIT_ERASER(X) X
+#endif
+
 #ifndef USERVER_IMPL_LOGS_WARNING_ERASER
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define USERVER_IMPL_LOGS_WARNING_ERASER(X) X
@@ -274,9 +279,15 @@ struct EntryStorage final {
   USERVER_IMPL_LOGS_INFO_ERASER(LOG(USERVER_NAMESPACE::logging::Level::kInfo))
 
 /// @brief Evaluates a message and logs it to the default logger if its level is
+/// below or equal to logging::Level::kAudit
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define LOG_AUDIT() \
+  USERVER_IMPL_LOGS_AUDIT_ERASER(LOG(USERVER_NAMESPACE::logging::Level::kAudit))
+
+/// @brief Evaluates a message and logs it to the default logger if its level is
 /// below or equal to logging::Level::kWarning
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define LOG_WARNING()               \
+#define LOG_WARNING() \
   USERVER_IMPL_LOGS_WARNING_ERASER( \
       LOG(USERVER_NAMESPACE::logging::Level::kWarning))
 
@@ -313,6 +324,13 @@ struct EntryStorage final {
 #define LOG_INFO_TO(logger)      \
   USERVER_IMPL_LOGS_INFO_ERASER( \
       LOG_TO(logger, USERVER_NAMESPACE::logging::Level::kInfo))
+
+/// @brief Evaluates a message and logs it to the `logger` if its level is below
+/// or equal to logging::Level::kAudit
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define LOG_AUDIT_TO(logger)      \
+  USERVER_IMPL_LOGS_AUDIT_ERASER( \
+      LOG_TO(logger, USERVER_NAMESPACE::logging::Level::kAudit))
 
 /// @brief Evaluates a message and logs it to the `logger` if its level is below
 /// or equal to logging::Level::kWarning
@@ -386,6 +404,14 @@ struct EntryStorage final {
 
 /// @brief Evaluates a message and logs it to the default logger if the log
 /// message does not occur too often and default logger level is below or equal
+/// to logging::Level::kAudit.
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define LOG_LIMITED_AUDIT()       \
+  USERVER_IMPL_LOGS_AUDIT_ERASER( \
+      LOG_LIMITED(USERVER_NAMESPACE::logging::Level::kAudit))
+
+/// @brief Evaluates a message and logs it to the default logger if the log
+/// message does not occur too often and default logger level is below or equal
 /// to logging::Level::kWarning.
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define LOG_LIMITED_WARNING()       \
@@ -432,6 +458,14 @@ struct EntryStorage final {
 #define LOG_LIMITED_INFO_TO(logger) \
   USERVER_IMPL_LOGS_INFO_ERASER(    \
       LOG_LIMITED_TO(logger, USERVER_NAMESPACE::logging::Level::kInfo))
+
+/// @brief Evaluates a message and logs it to the `logger` if the log message
+/// does not occur too often and `logger` level is below or equal to
+/// logging::Level::kAudit
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define LOG_LIMITED_AUDIT_TO(logger) \
+  USERVER_IMPL_LOGS_AUDIT_ERASER(    \
+      LOG_LIMITED_TO(logger, USERVER_NAMESPACE::logging::Level::kAudit))
 
 /// @brief Evaluates a message and logs it to the `logger` if the log message
 /// does not occur too often and `logger` level is below or equal to
