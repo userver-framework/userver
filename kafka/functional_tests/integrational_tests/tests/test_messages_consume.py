@@ -39,7 +39,7 @@ async def test_consume_many_messages_many_topics(
 
     topics = [TOPIC1, TOPIC2]
     messages: dict[str, list[dict[str, str]]] = generate_messages_to_consume(
-        topics=topics, cnt=5,
+        topics=topics, cnt=15,
     )
 
     for topic in topics:
