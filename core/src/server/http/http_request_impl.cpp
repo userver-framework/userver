@@ -104,6 +104,9 @@ const engine::io::Sockaddr& HttpRequestImpl::GetRemoteAddress() const {
 }
 
 const std::string& HttpRequestImpl::GetArg(std::string_view arg_name) const {
+#ifndef NDEBUG
+  args_referenced_ = true;
+#endif
   const auto* ptr =
       utils::impl::FindTransparentOrNullptr(request_args_, arg_name);
   if (!ptr) return kEmptyString;
@@ -112,6 +115,9 @@ const std::string& HttpRequestImpl::GetArg(std::string_view arg_name) const {
 
 const std::vector<std::string>& HttpRequestImpl::GetArgVector(
     std::string_view arg_name) const {
+#ifndef NDEBUG
+  args_referenced_ = true;
+#endif
   const auto* ptr =
       utils::impl::FindTransparentOrNullptr(request_args_, arg_name);
   if (!ptr) return kEmptyVector;
@@ -264,9 +270,13 @@ void HttpRequestImpl::SetRequestBody(std::string body) {
 }
 
 void HttpRequestImpl::ParseArgsFromBody() {
+#ifndef NDEBUG
   UASSERT_MSG(
-      request_args_.empty(),
-      "References to arguments could be invalidated by ParseArgsFromBody()");
+      !args_referenced_,
+      "References to arguments could be invalidated by ParseArgsFromBody(). "
+      "Avoid calling GetArg()/GetArgVector() before ParseArgsFromBody()");
+#endif
+
   USERVER_NAMESPACE::http::parser::ParseAndConsumeArgs(
       request_body_, [this](std::string&& key, std::string&& value) {
         request_args_[std::move(key)].push_back(std::move(value));

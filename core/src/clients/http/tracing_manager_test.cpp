@@ -20,8 +20,7 @@ class MockTracingManager : public tracing::TracingManagerBase {
   }
 
   void FillRequestWithTracingContext(
-      const tracing::Span&,
-      clients::http::RequestTracingEditor) const override {
+      const tracing::Span&, clients::http::PluginRequest) const override {
     ++fill_request_counter_;
   }
 

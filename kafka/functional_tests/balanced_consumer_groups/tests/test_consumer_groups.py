@@ -1,15 +1,12 @@
 import logging
 
-
-import pytest
-
-
 from common import CONSUMERS
 from common import get_consumed_messages
 from common import parse_message_keys
 from common import start_consumers
 from common import stop_consumers
 from common import TOPIC
+import pytest
 
 
 async def test_partitions_share(service_client, testpoint, kafka_producer):

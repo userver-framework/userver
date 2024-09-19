@@ -30,4 +30,8 @@ class Component final : public plugin::ComponentBase {
 
 }  // namespace clients::http::plugins::yandex_tracing
 
+template <>
+inline constexpr bool components::kHasValidate<
+    clients::http::plugins::yandex_tracing::Component> = true;
+
 USERVER_NAMESPACE_END

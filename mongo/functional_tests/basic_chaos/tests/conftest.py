@@ -3,7 +3,6 @@ from pytest_userver import chaos
 
 from testsuite.databases.mongo import connection
 
-
 pytest_plugins = ['pytest_userver.plugins.mongo']
 
 MONGO_COLLECTIONS = {

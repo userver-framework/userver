@@ -1,10 +1,10 @@
 from common import generate_messages_to_consume
+
 from utils import consume
 from utils import consume_topic_messages
 from utils import make_producer_request_body
 from utils import produce
 from utils import produce_batch
-
 
 TOPIC1 = 'test-topic-consume-produced-1'
 TOPIC2 = 'test-topic-consume-produced-2'

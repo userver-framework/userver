@@ -13,7 +13,6 @@ import typing
 import pytest
 import yaml
 
-
 # flake8: noqa E266
 ## Fixtures and functions in USERVER_CONFIG_HOOKS used to change the
 ## static config or config_vars.yaml.

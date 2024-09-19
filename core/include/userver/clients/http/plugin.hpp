@@ -24,7 +24,7 @@ class PluginRequest final {
   explicit PluginRequest(RequestState& state);
   /// @endcond
 
-  void SetHeader(std::string_view name, std::string value);
+  void SetHeader(std::string_view name, std::string_view value);
 
   void AddQueryParams(std::string_view params);
 

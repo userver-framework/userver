@@ -1,7 +1,6 @@
 import logging
 from typing import Awaitable
 
-
 CONSUME_BASE_ROUTE = '/consume'
 PRODUCE_ROUTE = '/produce'
 

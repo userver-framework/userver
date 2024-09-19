@@ -3,7 +3,7 @@
 /// @file userver/tracing/manager.hpp
 /// @brief @copybrief tracing::TracingManagerBase
 
-#include <userver/clients/http/request_tracing_editor.hpp>
+#include <userver/clients/http/plugin.hpp>
 #include <userver/clients/http/response.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/span_builder.hpp>
@@ -38,7 +38,7 @@ class TracingManagerBase {
 
   /// Fill new client requests with tracing information
   virtual void FillRequestWithTracingContext(
-      const Span& span, clients::http::RequestTracingEditor request) const = 0;
+      const Span& span, clients::http::PluginRequest request) const = 0;
 
   /// Fill response with tracing information
   virtual void FillResponseWithTracingContext(
@@ -83,7 +83,7 @@ bool TryFillSpanBuilderFromRequest(Format format,
                                    SpanBuilder& span_builder);
 
 void FillRequestWithTracingContext(Format format, const tracing::Span& span,
-                                   clients::http::RequestTracingEditor request);
+                                   clients::http::PluginRequest request);
 
 void FillResponseWithTracingContext(Format format, const Span& span,
                                     server::http::HttpResponse& response);
@@ -103,7 +103,7 @@ class GenericTracingManager final : public TracingManagerBase {
 
   void FillRequestWithTracingContext(
       const tracing::Span& span,
-      clients::http::RequestTracingEditor request) const override;
+      clients::http::PluginRequest request) const override;
 
   void FillResponseWithTracingContext(
       const Span& span, server::http::HttpResponse& response) const override;

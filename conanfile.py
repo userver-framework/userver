@@ -11,7 +11,6 @@ from conan.tools.cmake import CMakeToolchain
 from conan.tools.files import copy
 from conan.tools.files import load
 
-
 required_conan_version = '>=1.51.0, <2.0.0'  # pylint: disable=invalid-name
 
 

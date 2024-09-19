@@ -27,7 +27,7 @@ userver_venv_setup(
 
 add_test(
   NAME "${PROJECT_NAME}-pytest"
-  COMMAND ${json2yaml_venv} -m pytest
+  COMMAND "${json2yaml_venv}" -m pytest
     "--test-binary=${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}"
     "-c /dev/null"  # Do not search for pytest.ini
   WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"

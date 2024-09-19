@@ -11,7 +11,6 @@ import pytest
 
 from pytest_userver import sql
 
-
 pytest_plugins = [
     'testsuite.databases.pgsql.pytest_plugin',
     'pytest_userver.plugins.core',

@@ -5,7 +5,6 @@ import typing
 
 import pytest
 
-
 try:
     import yatest.common.runtime
 

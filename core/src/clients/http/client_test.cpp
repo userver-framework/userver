@@ -11,7 +11,6 @@
 #include <engine/task/task_processor.hpp>
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/clients/http/connect_to.hpp>
-#include <userver/clients/http/request_tracing_editor.hpp>
 #include <userver/clients/http/streamed_response.hpp>
 #include <userver/concurrent/queue.hpp>
 #include <userver/crypto/certificate.hpp>

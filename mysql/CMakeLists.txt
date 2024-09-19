@@ -59,9 +59,9 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   set(UNIT_TESTS_PATH ${CMAKE_CURRENT_BINARY_DIR}/unit_tests.sh)
   set(TESTS_BINARY_PATH ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-mysqltest)
   set(TESTS_ARGS --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}-mysqltest.xml)
-  execute_process(COMMAND cp ${TESTS_TEMPLATE_PATH} ${UNIT_TESTS_PATH})
-  execute_process(COMMAND sed -i "s%__BINARY__%${TESTS_BINARY_PATH}%" ${UNIT_TESTS_PATH})
-  execute_process(COMMAND sed -i "s%__ARGS__%${TESTS_ARGS}%" ${UNIT_TESTS_PATH})
+  execute_process(COMMAND cp "${TESTS_TEMPLATE_PATH}" "${UNIT_TESTS_PATH}")
+  execute_process(COMMAND sed -i "s%__BINARY__%${TESTS_BINARY_PATH}%" "${UNIT_TESTS_PATH}")
+  execute_process(COMMAND sed -i "s%__ARGS__%${TESTS_ARGS}%" "${UNIT_TESTS_PATH}")
   add_test(${PROJECT_NAME}_mysqltest
     env
       ${CMAKE_BINARY_DIR}/testsuite/env

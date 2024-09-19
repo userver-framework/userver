@@ -5,7 +5,6 @@ import sys
 import healthchecking.healthchecking_pb2_grpc as healthchecking_pb2_grpc
 import pytest
 
-
 pytest_plugins = ['pytest_userver.plugins.grpc']
 
 USERVER_CONFIG_HOOKS = ['prepare_service_config']

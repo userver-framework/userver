@@ -22,10 +22,10 @@ void Middleware::Handle(MiddlewareCallContext& context) const {
     if (!header_value) {
       continue;
     }
-    headers_to_propagate.emplace(header_name,
-                                 ugrpc::impl::ToString(*header_value));
+    headers_to_propagate.emplace_back(header_name,
+                                      ugrpc::impl::ToString(*header_value));
   }
-  USERVER_NAMESPACE::server::request::SetTaskInheritedHeaders(
+  USERVER_NAMESPACE::server::request::SetPropagatedHeaders(
       headers_to_propagate);
   context.Next();
 }

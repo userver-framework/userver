@@ -39,6 +39,8 @@ components_manager:
 
         http-client:
             fs-task-processor: main-task-processor
+            plugins:
+              - headers-propagator
 
         dns-client:
             fs-task-processor: fs-task-processor
@@ -48,6 +50,8 @@ components_manager:
 
         grpc-server-headers-propagator:
             headers: ["custom-header-1", "custom-header-2"]
+
+        http-client-plugin-headers-propagator: {}
 
         server:
             listener:

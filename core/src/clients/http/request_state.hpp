@@ -12,7 +12,6 @@
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/form.hpp>
 #include <userver/clients/http/plugin.hpp>
-#include <userver/clients/http/request_tracing_editor.hpp>
 #include <userver/clients/http/response_future.hpp>
 #include <userver/concurrent/queue.hpp>
 #include <userver/crypto/certificate.hpp>
@@ -132,10 +131,8 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   void SetEasyTimeout(std::chrono::milliseconds timeout);
 
   void SetTracingManager(const tracing::TracingManagerBase&);
-  void SetHeadersPropagator(
-      const clients::http::plugins::headers_propagator::HeadersPropagator*);
 
-  RequestTracingEditor GetEditableTracingInstance();
+  PluginRequest GetEditableRequestInstance();
 
  private:
   /// final callback that calls user callback and set value in promise
@@ -216,8 +213,6 @@ class RequestState : public std::enable_shared_from_this<RequestState> {
   bool deadline_expired_{false};
 
   utils::NotNull<const tracing::TracingManagerBase*> tracing_manager_;
-  const clients::http::plugins::headers_propagator::HeadersPropagator*
-      headers_propagator_{nullptr};
   /// struct for reties
   struct {
     /// maximum number of retries

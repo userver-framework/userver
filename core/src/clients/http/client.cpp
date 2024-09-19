@@ -54,7 +54,6 @@ Client::Client(ClientSettings settings,
       user_agent_(utils::GetUserverIdentifier()),
       connect_rate_limiter_(std::make_shared<curl::ConnectRateLimiter>()),
       tracing_manager_(GetTracingManager(settings)),
-      headers_propagator_(settings.headers_propagator),
       plugin_pipeline_(std::move(plugin_pipeline)) {
   const auto io_threads = settings.io_threads;
   const auto& thread_name_prefix = settings.thread_name_prefix;
@@ -149,8 +148,6 @@ Request Client::CreateRequest() {
   }
   auto urls = allowed_urls_extra_.Read();
   request.SetAllowedUrlsExtra(*urls);
-
-  request.SetHeadersPropagator(headers_propagator_);
 
   if (user_agent_) {
     request.user_agent(*user_agent_);

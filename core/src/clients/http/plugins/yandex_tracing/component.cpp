@@ -1,6 +1,7 @@
 #include <userver/clients/http/plugins/yandex_tracing/component.hpp>
 
 #include <clients/http/plugins/yandex_tracing/plugin.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -47,6 +47,18 @@ class HttpServerHandler final : public server::handlers::HttpHandlerBase {
     }
 
     if (type == "echo") {
+      UASSERT_MSG(!request.IsBodyCompressed(),
+                  "Body was not decompressed by userver");
+      return request.RequestBody();
+    }
+
+    if (type == "echo-and-check-args") {
+      UASSERT_MSG(!request.IsBodyCompressed(),
+                  "Body was not decompressed by userver");
+      if (request.GetArg("srv") != "mt-dev")
+        throw std::runtime_error("Failed arg 'srv'");
+      if (request.GetArg("lang") != "en-ru")
+        throw std::runtime_error("Failed arg 'lang'");
       return request.RequestBody();
     }
 

@@ -1,7 +1,6 @@
 # /// [pytest]
 import subprocess
 
-
 _EXPECTED_OUTPUT = """key:
   nested-key:
     - 1

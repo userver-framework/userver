@@ -1,6 +1,7 @@
 #include <userver/ugrpc/client/qos.hpp>
 
 #include <grpcpp/client_context.h>
+#include <boost/pfr/ops_fields.hpp>
 
 #include <userver/formats/json/serialize_duration.hpp>
 #include <userver/formats/json/value.hpp>
@@ -12,6 +13,10 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
+
+bool operator==(const Qos& lhs, const Qos& rhs) noexcept {
+  return boost::pfr::eq_fields(lhs, rhs);
+}
 
 Qos Parse(const formats::json::Value& value, formats::parse::To<Qos>) {
   Qos result;
@@ -30,6 +35,8 @@ formats::json::Value Serialize(const Qos& qos,
   return result.ExtractValue();
 }
 
+namespace impl {
+
 void ApplyQos(grpc::ClientContext& context, const Qos& qos,
               const testsuite::GrpcControl& testsuite_control) {
   if (!qos.timeout) return;
@@ -40,6 +47,8 @@ void ApplyQos(grpc::ClientContext& context, const Qos& qos,
     context.set_deadline(now + testsuite_control.MakeTimeout(*qos.timeout));
   }
 }
+
+}  // namespace impl
 
 }  // namespace ugrpc::client
 

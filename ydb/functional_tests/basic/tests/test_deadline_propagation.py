@@ -1,6 +1,5 @@
 import pytest
 
-
 DP_TIMEOUT_MS = 'X-YaTaxi-Client-TimeoutMs'
 TIMEOUT = '100000'
 

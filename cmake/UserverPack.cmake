@@ -39,7 +39,9 @@ endif()
 
 if (DEPENDENCIES_FILE)
   execute_process(
-      COMMAND bash -c "cat ${USERVER_ROOT_DIR}/scripts/docs/en/deps/${DEPENDENCIES_FILE} | tr '\\n' ' ' | sed 's/ \\(.\\)/, \\1/g'"
+      COMMAND cat "${USERVER_ROOT_DIR}/scripts/docs/en/deps/${DEPENDENCIES_FILE}"
+      COMMAND tr "\n" " "
+      COMMAND sed "s/ \\(.\\)/, \\1/g"
       OUTPUT_VARIABLE CPACK_DEBIAN_PACKAGE_DEPENDS
   )
 else()

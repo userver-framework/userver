@@ -2,7 +2,6 @@ import pytest
 
 from testsuite import utils
 
-
 # /// [patch configs]
 pytest_plugins = ['pytest_userver.plugins.core']
 

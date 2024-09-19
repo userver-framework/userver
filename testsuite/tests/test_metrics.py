@@ -5,7 +5,6 @@ import pytest
 from pytest_userver import metrics  # pylint: disable=import-error
 import pytest_userver.client
 
-
 _ETHALON_METRICS = {
     'tcp-echo.bytes.read': {metrics.Metric(labels={}, value=334)},
     'tcp-echo.sockets.opened': {metrics.Metric(labels={}, value=1)},

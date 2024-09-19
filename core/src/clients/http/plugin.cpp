@@ -10,8 +10,10 @@ namespace clients::http {
 
 PluginRequest::PluginRequest(RequestState& state) : state_(state) {}
 
-void PluginRequest::SetHeader(std::string_view name, std::string value) {
-  state_.easy().add_header(name, value);
+void PluginRequest::SetHeader(std::string_view name, std::string_view value) {
+  state_.easy().add_header(name, value,
+                           curl::easy::EmptyHeaderAction::kDoNotSend,
+                           curl::easy::DuplicateHeaderAction::kReplace);
 }
 
 void PluginRequest::AddQueryParams(std::string_view params) {

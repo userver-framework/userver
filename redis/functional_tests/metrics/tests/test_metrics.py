@@ -1,6 +1,5 @@
 import re
 
-
 SERVICE_COMMANDS = ('sentinel', 'cluster', 'info', 'ping')
 
 

@@ -4,10 +4,6 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace clients::http::plugins::headers_propagator {
-class HeadersPropagator;
-}  // namespace clients::http::plugins::headers_propagator
-
 namespace server::middlewares {
 
 class HeadersPropagator final : public HttpMiddlewareBase {
@@ -29,8 +25,6 @@ class HeadersPropagatorFactory final : public HttpMiddlewareFactoryBase {
   HeadersPropagatorFactory(const components::ComponentConfig&,
                            const components::ComponentContext&);
 
-  clients::http::plugins::headers_propagator::HeadersPropagator& Get();
-
   static yaml_config::Schema GetStaticConfigSchema();
 
  private:
@@ -39,8 +33,6 @@ class HeadersPropagatorFactory final : public HttpMiddlewareFactoryBase {
       yaml_config::YamlConfig middleware_config) const override;
 
   std::vector<std::string> headers_;
-  std::unique_ptr<clients::http::plugins::headers_propagator::HeadersPropagator>
-      propagator_;
 };
 
 }  // namespace server::middlewares

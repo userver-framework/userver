@@ -5,7 +5,6 @@ import pytest_asyncio
 
 import taxi.integration_testing as it
 
-
 pytest_plugins = [
     'testsuite.pytest_plugin',
     'pytest_userver.plugins.caches',

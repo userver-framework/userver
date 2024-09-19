@@ -1,13 +1,7 @@
-import json
-import logging
-
-
 import pytest
 
 
 pytest_plugins = ['pytest_userver.plugins.kafka']
-
-logger = logging.getLogger(__name__)
 
 
 # /// [Kafka service sample - secdist]

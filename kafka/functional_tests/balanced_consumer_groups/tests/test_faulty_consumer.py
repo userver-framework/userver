@@ -1,6 +1,5 @@
 import logging
 
-
 from common import CONSUMERS
 from common import get_consumed_messages
 from common import make_non_faulty
@@ -8,7 +7,6 @@ from common import parse_message_keys
 from common import start_consumers
 from common import stop_consumers
 from common import TOPIC
-
 
 MESSAGE_TO_FAIL = 'please-start-failing'
 

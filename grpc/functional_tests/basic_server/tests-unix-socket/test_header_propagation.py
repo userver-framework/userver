@@ -1,6 +1,5 @@
 from samples import greeter_pb2
 
-
 HEADERS_TO_PROPAGATE = ['custom-header-1', 'custom-header-2']
 HEADERS_NOT_TO_PROPAGATE = [
     'custom-header-1-non-prop',
