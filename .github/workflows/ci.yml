@@ -116,6 +116,8 @@ jobs:
                 cd /etc/kafka
                 sudo cp -r kafka_2.13-3.8.0/* ./
                 sudo rm -rf kafka_2.13-3.8.0
+                ls -lha
+                cd -
 
                 sudo apt update
                 sudo apt install --allow-downgrades -y clickhouse-common-static redis-server postgresql $(cat scripts/docs/en/deps/${{matrix.os}}.md | tr '\n' ' ')
