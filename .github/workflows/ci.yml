@@ -113,11 +113,10 @@ jobs:
                 curl https://dlcdn.apache.org/kafka/3.8.0/kafka_2.13-3.8.0.tgz -o kafka.tgz
                 sudo mkdir -p /etc/kafka
                 sudo tar xf kafka.tgz --directory=/etc/kafka
-                cd /etc/kafka
-                sudo cp -r kafka_2.13-3.8.0/* ./
-                sudo rm -rf kafka_2.13-3.8.0
-                ls -lha
-                cd -
+                sudo cp -r /etc/kafka/kafka_2.13-3.8.0/* /etc/kafka/
+                sudo rm -rf /etc/kafka/kafka_2.13-3.8.0
+                echo "Kafka installed!"
+                ls -lha /etc/kafka
 
                 sudo apt update
                 sudo apt install --allow-downgrades -y clickhouse-common-static redis-server postgresql $(cat scripts/docs/en/deps/${{matrix.os}}.md | tr '\n' ' ')
