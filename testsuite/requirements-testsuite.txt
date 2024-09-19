@@ -1,1 +1,2 @@
-yandex-taxi-testsuite[] ~= 0.2.0
+# yandex-taxi-testsuite[] ~= 0.2.0
+/home/fdr400/tmp/yandex-taxi-testsuite[]
