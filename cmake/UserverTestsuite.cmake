@@ -114,6 +114,10 @@ function(userver_testsuite_requirements)
     list(APPEND testsuite_modules rabbitmq)
   endif()
 
+  if(USERVER_FEATURE_KAFKA OR TARGET userver::kafka)
+    list(APPEND testsuite_modules kafka)
+  endif()
+
   if(USERVER_FEATURE_MYSQL OR TARGET userver::mysql)
     list(APPEND testsuite_modules mysql)
   endif()
@@ -446,7 +450,7 @@ endfunction()
 # add utest, test runs in testsuite env
 function(userver_add_utest)
   set(options)
-  set(oneValueArgs NAME)
+  set(oneValueArgs NAME TEST_ENV)
   set(multiValueArgs DATABASES)
 
   cmake_parse_arguments(
@@ -468,6 +472,11 @@ function(userver_add_utest)
     $<TARGET_FILE:${ARG_NAME}>
     --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${ARG_NAME}.xml
   )
+  if(ARG_TEST_ENV)
+    set_tests_properties("${ARG_NAME}"
+        PROPERTIES ENVIRONMENT "${ARG_TEST_ENV}"
+    )
+  endif()
 endfunction()
 
 _userver_prepare_testsuite()
