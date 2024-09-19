@@ -71,6 +71,13 @@ properties:
             consumer group id.
             Topic partition evenly distributed
             between consumers with the same `group_id`
+    client_id:
+        type: string
+        description: |
+            Client identifier.
+            May be an arbitrary string.
+            Optional, but you should set this property on each instance because it enables you to more easily correlate requests on the broker with the client instance which made it, which can be helpful in debugging and troubleshooting scenarios.
+        defaultDescription: userver
     topics:
         type: array
         description: list of topics consumer subscribes

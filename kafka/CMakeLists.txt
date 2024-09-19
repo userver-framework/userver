@@ -68,4 +68,5 @@ if (USERVER_IS_THE_ROOT_PROJECT)
     TEST_ENV "TESTSUITE_KAFKA_CUSTOM_TOPICS=large-topic-1:4,large-topic-2:4"
   )
   add_subdirectory(functional_tests)
+  add_subdirectory(tests)
 endif()

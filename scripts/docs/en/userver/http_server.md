@@ -60,6 +60,30 @@ components_manager:
 
 @snippet core/functional_tests/basic_chaos/httpclient_handlers.hpp HandleStreamRequest
 
+
+### HTTP version
+
+The HTTP server in userver supports versions `1.1` and `2.0`. The default version is `1.1`.
+You can enable version `2.0` in the static config such as:
+```
+# yaml
+components_manager:
+    components:
+        # ... other components
+        server:
+            listener:
+                port: 8080
+                task_processor: main-task-processor
+                connection:
+                    http-version: '2' # enum `1.1` or `2`
+                    http2-session:
+                        max_concurrent_streams: 100
+                        max_frame_size: 16384
+                        initial_window_size: 65536
+```
+You can set some options specific to `HTTP/2.0` in the `http2-session` section. See docs for these options in components::Server
+
+
 ## Components
 
 * @ref components::Server "Server"

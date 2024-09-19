@@ -26,6 +26,8 @@ UTEST_F(ConfigurationTest, Producer) {
       configuration.emplace(MakeProducerConfiguration("kafka-producer")));
 
   const kafka::impl::ProducerConfiguration default_producer{};
+  EXPECT_EQ(configuration->GetOption("client.id"),
+            default_producer.common.client_id);
   EXPECT_EQ(
       configuration->GetOption("topic.metadata.refresh.interval.ms"),
       std::to_string(
@@ -57,6 +59,7 @@ UTEST_F(ConfigurationTest, ProducerNonDefault) {
   kafka::impl::ProducerConfiguration producer_configuration{};
   producer_configuration.common.topic_metadata_refresh_interval = 10ms;
   producer_configuration.common.metadata_max_age = 30ms;
+  producer_configuration.common.client_id = "test-client";
   producer_configuration.delivery_timeout = 37ms;
   producer_configuration.queue_buffering_max = 7ms;
   producer_configuration.enable_idempotence = true;
@@ -72,6 +75,7 @@ UTEST_F(ConfigurationTest, ProducerNonDefault) {
   UEXPECT_NO_THROW(configuration.emplace(
       MakeProducerConfiguration("kafka-producer", producer_configuration)));
 
+  EXPECT_EQ(configuration->GetOption("client.id"), "test-client");
   EXPECT_EQ(configuration->GetOption("topic.metadata.refresh.interval.ms"),
             "10");
   EXPECT_EQ(configuration->GetOption("metadata.max.age.ms"), "30");
@@ -94,6 +98,8 @@ UTEST_F(ConfigurationTest, Consumer) {
       configuration.emplace(MakeConsumerConfiguration("kafka-consumer")));
 
   const kafka::impl::ConsumerConfiguration default_consumer{};
+  EXPECT_EQ(configuration->GetOption("client.id"),
+            default_consumer.common.client_id);
   EXPECT_EQ(
       configuration->GetOption("topic.metadata.refresh.interval.ms"),
       std::to_string(
@@ -111,6 +117,7 @@ UTEST_F(ConfigurationTest, ConsumerNonDefault) {
   kafka::impl::ConsumerConfiguration consumer_configuration{};
   consumer_configuration.common.topic_metadata_refresh_interval = 10ms;
   consumer_configuration.common.metadata_max_age = 30ms;
+  consumer_configuration.common.client_id = "test-client";
   consumer_configuration.auto_offset_reset = "largest";
   consumer_configuration.rd_kafka_options["socket.keepalive.enable"] = "true";
 
@@ -120,6 +127,7 @@ UTEST_F(ConfigurationTest, ConsumerNonDefault) {
 
   EXPECT_EQ(configuration->GetOption("topic.metadata.refresh.interval.ms"),
             "10");
+  EXPECT_EQ(configuration->GetOption("client.id"), "test-client");
   EXPECT_EQ(configuration->GetOption("metadata.max.age.ms"), "30");
   EXPECT_EQ(configuration->GetOption("security.protocol"), "plaintext");
   EXPECT_EQ(configuration->GetOption("group.id"), "test-group");

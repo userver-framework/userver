@@ -68,7 +68,7 @@ TEST(UUIDv7, MonoticTimestamp) {
               utils::ExtractTimestampFromUuidV7(uuids[i + 1]))
         << "uuids[" << i << "]=" << uuids[i]
         << " timestamp should be less than uuids[" << i + 1
-        << "]=" << uuids[i + 1] << " timestmap";
+        << "]=" << uuids[i + 1] << " timestamp";
   }
 }
 

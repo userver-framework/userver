@@ -38,6 +38,7 @@ class Consumer;
 /// ## Static options:
 /// Name                               | Description                                      | Default value
 /// ---------------------------------- | ------------------------------------------------ | ---------------
+/// client_id                          | Client identifier. May be an arbitrary string | userver
 /// group_id                           | consumer group id (name) | --
 /// topics                             | list of topics consumer subscribes | --
 /// max_batch_size                     | maximum number of messages consumer waits for new message before calling a callback | 1
@@ -48,9 +49,9 @@ class Consumer;
 /// env_pod_name                       | environment variable to substitute `{pod_name}` substring in `group_id` | none
 /// security_protocol                  | protocol used to communicate with brokers | --
 /// sasl_mechanisms                    | SASL mechanism to use for authentication | none
-/// ssl_ca_location                    | File or directory path to CA certificate(s) for verifying the broker's key | 5m
-/// topic_metadata_refresh_interval    | period of time at which topic and broker metadata is refreshed | 15m
-/// metadata_max_age                   | metadata cache max age | none
+/// ssl_ca_location                    | File or directory path to CA certificate(s) for verifying the broker's key | none
+/// topic_metadata_refresh_interval    | period of time at which topic and broker metadata is refreshed | 5m
+/// metadata_max_age                   | metadata cache max age | 15
 /// rd_kafka_custom_options            | a map of librdkafka library additional options | '{}'
 
 // clang-format on

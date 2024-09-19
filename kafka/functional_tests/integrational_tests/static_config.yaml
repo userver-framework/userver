@@ -57,6 +57,7 @@ components_manager:
         # /// [Kafka service sample - producer static config]
 
         kafka-producer-second:
+            client_id: test-client
             delivery_timeout: 3000ms
             queue_buffering_max: 100ms
             enable_idempotence: true

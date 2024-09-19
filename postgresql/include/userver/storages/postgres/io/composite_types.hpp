@@ -87,8 +87,17 @@ struct CompositeBinaryFormatter : BufferFormatterBase<T> {
 
   template <typename Buffer>
   void operator()(const UserTypes& types, Buffer& buffer) const {
-    const auto& type_desc =
-        types.GetCompositeDescription(PgMapping::GetOid(types));
+    const auto oid = PgMapping::GetOid(types);
+    if (!oid) {
+      auto msg = "Type '" + kPgUserTypeName<T>.ToString() +
+                 "' was not created in database and because of that the '" +
+                 compiler::GetTypeName<T>() +
+                 "' could not be serialized. Forgot a migration or rolled it "
+                 "after the service started?";
+      throw UserTypeError(std::move(msg));
+    }
+
+    const auto& type_desc = types.GetCompositeDescription(oid);
     if (type_desc.Size() != size) {
       throw CompositeSizeMismatch{type_desc.Size(), size,
                                   compiler::GetTypeName<T>()};

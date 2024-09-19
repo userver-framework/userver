@@ -1,6 +1,7 @@
 #include "utils_kafkatest.hpp"
 
 #include <algorithm>
+#include <tuple>
 
 #include <fmt/format.h>
 
@@ -47,6 +48,11 @@ kafka::impl::Secret MakeSecrets(std::string_view bootstrap_servers) {
 }
 
 }  // namespace
+
+bool operator==(const Message& lhs, const Message& rhs) {
+  return std::tie(lhs.topic, lhs.key, lhs.payload, lhs.partition) ==
+         std::tie(rhs.topic, rhs.key, rhs.payload, rhs.partition);
+}
 
 KafkaCluster::KafkaCluster() : bootstrap_servers_(FetchBrokerList()) {}
 

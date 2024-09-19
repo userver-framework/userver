@@ -44,6 +44,13 @@ type: object
 description: Kafka producer component
 additionalProperties: false
 properties:
+    client_id:
+        type: string
+        description: |
+            Client identifier.
+            May be an arbitrary string.
+            Optional, but you should set this property on each instance because it enables you to more easily correlate requests on the broker with the client instance which made it, which can be helpful in debugging and troubleshooting scenarios.
+        defaultDescription: userver
     delivery_timeout:
         type: string
         description: time a produced message waits for successful delivery

@@ -58,7 +58,7 @@ namespace reference_siphash_implementation {
       perform a text transformation in some temporary buffer, which is costly.
    4. Remove debugging code.
    5. Modified the original test.c file to be a stand-alone function testing
-      the function in the new form (returing an uint64_t) using just the
+      the function in the new form (returning an uint64_t) using just the
       relevant test vector.
 
    ----------------------------------------------------------------------------

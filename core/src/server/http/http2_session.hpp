@@ -28,7 +28,7 @@ inline constexpr std::string_view kSwitchingProtocolResponse{
 // See docs:
 // https://nghttp2.org/documentation/nghttp2_session_upgrade2.html#nghttp2-session-upgrade2
 inline constexpr std::size_t kStreamIdAfterUpgradeResponse = 1;
-// So ussualy the standart frame size is 16384 bytes
+// So usually the standard frame size is 16384 bytes
 inline constexpr std::size_t kDefaultStringBufferSize = 1 << 14;
 
 struct Stream final {

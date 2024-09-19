@@ -1,10 +1,149 @@
 #include <userver/storages/postgres/exceptions.hpp>
 
+#include <userver/utils/trivial_map.hpp>
+
 USERVER_NAMESPACE_BEGIN
+
+namespace {
+
+// clang-format off
+//
+// Done via:
+// * Download
+// https://raw.githubusercontent.com/postgres/postgres/master/src/include/catalog/pg_type.dat
+// * replace `\n ` with ' '
+// * sed -n "s/{ oid => '\([0-9]*\)'.*typname => '\([a-z_0-9]*\)'.*/.Case(\1, \"\2\")/p" pgtypes.txt
+//
+// clang-format on
+constexpr utils::TrivialBiMap kOidToReadableName = [](auto selector) {
+  return selector()
+      .Case(16, "bool")
+      .Case(17, "bytea")
+      .Case(18, "char")
+      .Case(19, "name")
+      .Case(20, "int8")
+      .Case(21, "int2")
+      .Case(22, "int2vector")
+      .Case(23, "int4")
+      .Case(24, "regproc")
+      .Case(25, "text")
+      .Case(26, "oid")
+      .Case(27, "tid")
+      .Case(28, "xid")
+      .Case(29, "cid")
+      .Case(30, "oidvector")
+      .Case(71, "pg_type")
+      .Case(75, "pg_attribute")
+      .Case(81, "pg_proc")
+      .Case(83, "pg_class")
+      .Case(114, "json")
+      .Case(142, "xml")
+      .Case(194, "pg_node_tree")
+      .Case(3361, "pg_ndistinct")
+      .Case(3402, "pg_dependencies")
+      .Case(5017, "pg_mcv_list")
+      .Case(32, "pg_ddl_command")
+      .Case(5069, "xid8")
+      .Case(600, "point")
+      .Case(601, "lseg")
+      .Case(602, "path")
+      .Case(603, "box")
+      .Case(604, "polygon")
+      .Case(628, "line")
+      .Case(700, "float4")
+      .Case(701, "float8")
+      .Case(705, "unknown")
+      .Case(718, "circle")
+      .Case(790, "money")
+      .Case(829, "macaddr")
+      .Case(869, "inet")
+      .Case(650, "cidr")
+      .Case(774, "macaddr8")
+      .Case(1033, "aclitem")
+      .Case(1042, "bpchar")
+      .Case(1043, "varchar")
+      .Case(1082, "date")
+      .Case(1083, "time")
+      .Case(1114, "timestamp")
+      .Case(1184, "timestamptz")
+      .Case(1186, "interval")
+      .Case(1266, "timetz")
+      .Case(1560, "bit")
+      .Case(1562, "varbit")
+      .Case(1700, "numeric")
+      .Case(1790, "refcursor")
+      .Case(2202, "regprocedure")
+      .Case(2203, "regoper")
+      .Case(2204, "regoperator")
+      .Case(2205, "regclass")
+      .Case(4191, "regcollation")
+      .Case(2206, "regtype")
+      .Case(4096, "regrole")
+      .Case(4089, "regnamespace")
+      .Case(2950, "uuid")
+      .Case(3220, "pg_lsn")
+      .Case(3614, "tsvector")
+      .Case(3642, "gtsvector")
+      .Case(3615, "tsquery")
+      .Case(3734, "regconfig")
+      .Case(3769, "regdictionary")
+      .Case(3802, "jsonb")
+      .Case(4072, "jsonpath")
+      .Case(2970, "txid_snapshot")
+      .Case(5038, "pg_snapshot")
+      .Case(3904, "int4range")
+      .Case(3906, "numrange")
+      .Case(3908, "tsrange")
+      .Case(3910, "tstzrange")
+      .Case(3912, "daterange")
+      .Case(3926, "int8range")
+      .Case(4451, "int4multirange")
+      .Case(4532, "nummultirange")
+      .Case(4533, "tsmultirange")
+      .Case(4534, "tstzmultirange")
+      .Case(4535, "datemultirange")
+      .Case(4536, "int8multirange")
+      .Case(2249, "record")
+      .Case(2287, "_record")
+      .Case(2275, "cstring")
+      .Case(2276, "any")
+      .Case(2277, "anyarray")
+      .Case(2278, "void")
+      .Case(2279, "trigger")
+      .Case(3838, "event_trigger")
+      .Case(2280, "language_handler")
+      .Case(2281, "internal")
+      .Case(2283, "anyelement")
+      .Case(2776, "anynonarray")
+      .Case(3500, "anyenum")
+      .Case(3115, "fdw_handler")
+      .Case(325, "index_am_handler")
+      .Case(3310, "tsm_handler")
+      .Case(269, "table_am_handler")
+      .Case(3831, "anyrange")
+      .Case(5077, "anycompatible")
+      .Case(5078, "anycompatiblearray")
+      .Case(5079, "anycompatiblenonarray")
+      .Case(5080, "anycompatiblerange")
+      .Case(4537, "anymultirange")
+      .Case(4538, "anycompatiblemultirange")
+      .Case(4600, "pg_brin_bloom_summary")
+      .Case(4601, "pg_brin_minmax_multi_summary");
+};
+
+}  // anonymous namespace
 
 namespace storages::postgres {
 
 namespace {
+
+std::string OidPrettyPrint(Oid oid) {
+  const auto name = kOidToReadableName.TryFind(oid);
+  if (name) {
+    return fmt::format("is '{}' (oid: {})", *name, oid);
+  }
+  return fmt::format("oid is {}", oid);
+}
 
 std::string GetInvalidParserCategoryMessage(std::string_view type,
                                             io::BufferCategory parser,
@@ -153,9 +292,10 @@ CompositeMemberTypeMismatch::CompositeMemberTypeMismatch(
     std::string_view pg_type_schema, std::string_view pg_type_name,
     std::string_view field_name, Oid pg_oid, Oid user_oid)
     : UserTypeError(fmt::format(
-          "Type mismatch for {}.{} field {}. In database the type "
-          "oid is {}, user supplied type oid is {}",
-          pg_type_schema, pg_type_name, field_name, pg_oid, user_oid)) {}
+          "Type mismatch for '{}.{}' field '{}'. In database the type "
+          "{}, user supplied type {}",
+          pg_type_schema, pg_type_name, field_name, OidPrettyPrint(pg_oid),
+          OidPrettyPrint(user_oid))) {}
 
 DimensionMismatch::DimensionMismatch()
     : ArrayError("Array dimensions don't match dimensions of C++ type") {}

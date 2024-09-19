@@ -2073,6 +2073,7 @@
   "kafka/src/kafka/impl/stats.hpp":"taxi/uservices/userver/kafka/src/kafka/impl/stats.hpp",
   "kafka/src/kafka/producer.cpp":"taxi/uservices/userver/kafka/src/kafka/producer.cpp",
   "kafka/src/kafka/producer_component.cpp":"taxi/uservices/userver/kafka/src/kafka/producer_component.cpp",
+  "kafka/tests/CMakeLists.txt":"taxi/uservices/userver/kafka/tests/CMakeLists.txt",
   "kafka/tests/configuration_test.cpp":"taxi/uservices/userver/kafka/tests/configuration_test.cpp",
   "kafka/tests/consumer_test.cpp":"taxi/uservices/userver/kafka/tests/consumer_test.cpp",
   "kafka/tests/producer_test.cpp":"taxi/uservices/userver/kafka/tests/producer_test.cpp",
