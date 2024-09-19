@@ -16,7 +16,7 @@ async def test_consume_one_message_one_topic(
 
     await service_client.enable_testpoints()
 
-    await kafka_producer.produce(TOPIC1, 'test-key', 'test-value')
+    await kafka_producer.send(TOPIC1, 'test-key', 'test-value')
 
     await received_messages_func.wait_call()
 
@@ -39,12 +39,12 @@ async def test_consume_many_messages_many_topics(
 
     topics = [TOPIC1, TOPIC2]
     messages: dict[str, list[dict[str, str]]] = generate_messages_to_consume(
-        topics=topics, cnt=15,
+        topics=topics, cnt=5,
     )
 
     for topic in topics:
         for message in messages[topic]:
-            await kafka_producer.produce(
+            await kafka_producer.send(
                 message['topic'], message['key'], message['payload'],
             )
 

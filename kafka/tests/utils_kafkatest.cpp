@@ -1,4 +1,4 @@
-#include "test_utils.hpp"
+#include "utils_kafkatest.hpp"
 
 #include <algorithm>
 
@@ -12,10 +12,15 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
+constexpr const char* kTestsuiteKafkaServerPort = "TESTSUITE_KAFKA_SERVER_PORT";
+constexpr const char* kDefaultKafkaServerPort = "9099";
+
 std::string FetchBrokerList() {
   const auto env = engine::subprocess::GetCurrentEnvironmentVariablesPtr();
-
-  return env->GetValue("KAFKA_RECIPE_BROKER_LIST");
+  if (const auto* port = env->GetValueOptional(kTestsuiteKafkaServerPort)) {
+    return fmt::format("localhost:{}", *port);
+  }
+  return fmt::format("localhost:{}", kDefaultKafkaServerPort);
 }
 
 kafka::impl::Secret MakeSecrets(std::string_view bootstrap_servers) {
@@ -26,15 +31,6 @@ kafka::impl::Secret MakeSecrets(std::string_view bootstrap_servers) {
 }
 
 }  // namespace
-
-std::ostream& operator<<(std::ostream& out, const Message& message) {
-  return out << fmt::format(
-             "Message{{topic: '{}', key: '{}', payload: '{}', partition: "
-             "'{}'}}",
-             message.topic, message.key, message.payload,
-             message.partition ? std::to_string(message.partition.value())
-                               : "<no partition>");
-}
 
 KafkaCluster::KafkaCluster() : bootstrap_servers_(FetchBrokerList()) {}
 

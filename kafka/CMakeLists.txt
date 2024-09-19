@@ -1,9 +1,16 @@
 project(userver-kafka CXX)
 
 file(GLOB_RECURSE SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/include/*pp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/*pp
-)
+  ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
+
+file(GLOB_RECURSE KAFKA_TEST_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/*_kafkatest.cpp)
+list(REMOVE_ITEM SOURCES ${KAFKA_TEST_SOURCES})
+
+file(GLOB_RECURSE KAFKA_FUNCTIONAL_TEST_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/functional_tests/*)
+list(REMOVE_ITEM SOURCES ${KAFKA_FUNCTIONAL_TEST_SOURCES})
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
@@ -50,5 +57,15 @@ _userver_directory_install(COMPONENT kafka FILES
 )
 
 if (USERVER_IS_THE_ROOT_PROJECT)
+  add_executable(${PROJECT_NAME}-kafkatest ${KAFKA_TEST_SOURCES})
+  target_include_directories(${PROJECT_NAME}-kafkatest PRIVATE
+    $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
+  )
+  target_link_libraries(${PROJECT_NAME}-kafkatest PRIVATE userver::kafka userver::utest)
+  userver_add_utest(
+    NAME ${PROJECT_NAME}-kafkatest
+    DATABASES kafka
+    TEST_ENV "TESTSUITE_KAFKA_CUSTOM_TOPICS=large-topic-1:4,large-topic-2:4"
+  )
   add_subdirectory(functional_tests)
 endif()
