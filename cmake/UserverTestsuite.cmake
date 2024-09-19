@@ -462,7 +462,7 @@ function(userver_testsuite_add_simple)
       ${ARG_PYTEST_ARGS}
       REQUIREMENTS ${ARG_REQUIREMENTS}
       PYTHONPATH ${ARG_PYTHONPATH}
-      TEST_ENV ${TEST_ENV}
+      TEST_ENV ${ARG_TEST_ENV}
   )
 endfunction()
 
