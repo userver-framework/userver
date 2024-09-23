@@ -54,6 +54,11 @@ class SpanLogger {
 Middleware::Middleware(const Settings& settings) : settings_(settings) {}
 
 void Middleware::PreStartCall(MiddlewareCallContext& context) const {
+  auto& span = context.GetSpan();
+  span.SetLocalLogLevel(settings_.log_level);
+
+  span.AddTag("meta_type", std::string{context.GetCallName()});
+
   if (!IsSingleRequest(context.GetCallKind())) {
     SpanLogger{context.GetSpan(), settings_.log_level}.Log(
         "gRPC request stream started",
