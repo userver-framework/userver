@@ -54,8 +54,12 @@ std::vector<std::string> Pool::ListCollectionNames() const {
 }
 
 void DumpMetric(utils::statistics::Writer& writer, const Pool& pool) {
-  stats::DumpMetric(writer, pool.impl_->GetStatistics(),
-                    pool.impl_->GetStatsVerbosity());
+  const auto verbosity = pool.impl_->GetStatsVerbosity();
+  if (verbosity == StatsVerbosity::kNone) {
+    return;
+  }
+
+  stats::DumpMetric(writer, pool.impl_->GetStatistics(), verbosity);
   if (auto pool_metrics = writer["pool"]) {
     pool_metrics["current-size"] = pool.impl_->SizeApprox();
     pool_metrics["current-in-use"] = pool.impl_->InUseApprox();

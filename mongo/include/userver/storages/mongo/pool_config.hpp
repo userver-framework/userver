@@ -18,6 +18,7 @@ namespace storages::mongo {
 enum class StatsVerbosity {
   kTerse,  ///< Only pool stats and read/write overalls by collection
   kFull,   ///< Stats with separate metrics per operation type and label
+  kNone,   ///< No stats at all
 };
 
 /// @brief Mongo connection pool options
