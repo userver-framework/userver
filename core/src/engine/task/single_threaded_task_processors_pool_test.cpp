@@ -4,6 +4,7 @@
 #include <userver/utils/async.hpp>
 #include <userver/utils/strong_typedef.hpp>
 
+#include <algorithm>
 #include <array>
 #include <thread>
 

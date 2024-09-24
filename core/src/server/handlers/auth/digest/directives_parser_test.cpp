@@ -1,4 +1,4 @@
-#include <exception>
+#include <algorithm>
 #include <string_view>
 
 #include <gtest/gtest.h>
