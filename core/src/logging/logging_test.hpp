@@ -1,6 +1,7 @@
 #pragma once
 
-#include <ostream>
+#include <algorithm>
+#include <sstream>
 
 #include <fmt/format.h>
 #include <gtest/gtest.h>

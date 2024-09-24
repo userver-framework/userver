@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include <userver/utest/utest.hpp>
 
 #include <userver/formats/json/serialize.hpp>

@@ -1,5 +1,6 @@
 #include <gtest/gtest-typed-test.h>
 
+#include <algorithm>
 #include <unordered_set>
 
 USERVER_NAMESPACE_BEGIN

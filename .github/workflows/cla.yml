@@ -12,7 +12,7 @@ jobs:
           - name: "CLA Assistant"
             if: startsWith(github.event.comment.body, 'I hereby agree to the terms
                 of the CLA available at') || github.event_name == 'pull_request_target'
-            uses: cla-assistant/github-action@v2.5.1
+            uses: cla-assistant/github-action@v2.6.0
             env:
                 GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                 PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
