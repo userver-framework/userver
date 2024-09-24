@@ -4,15 +4,29 @@ Plugin that imports the required fixtures to start the broker.
 
 import json
 import logging
+import os
 
 
 import pytest
+
+from testsuite.databases.kafka.classes import BootstrapServers
 
 
 pytest_plugins = [
     "testsuite.databases.kafka.pytest_plugin",
     "pytest_userver.plugins.core",
 ]
+
+
+@pytest.fixture(scope="session")
+def bootstrap_servers() -> BootstrapServers:
+    """Used for internal testing"""
+
+    brokers_list = os.getenv("KAFKA_RECIPE_BROKER_LIST")
+    if brokers_list:
+        return brokers_list.split(",")
+
+    return []
 
 
 @pytest.fixture(scope="session")
