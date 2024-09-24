@@ -40,7 +40,8 @@ constexpr utils::TrivialBiMap kDriverImplMapping([](auto selector) {
 constexpr utils::TrivialBiMap kStatsVerbosityMapping([](auto selector) {
   return selector()
       .Case(StatsVerbosity::kTerse, "terse")
-      .Case(StatsVerbosity::kFull, "full");
+      .Case(StatsVerbosity::kFull, "full")
+      .Case(StatsVerbosity::kNone, "none");
 });
 
 template <typename ConfigType>

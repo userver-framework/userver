@@ -179,6 +179,7 @@ properties:
         enum:
           - terse
           - full
+          - none
     dns_resolver:
         type: string
         description: server hostname resolver type (getaddrinfo or async)
