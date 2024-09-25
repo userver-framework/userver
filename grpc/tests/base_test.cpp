@@ -285,6 +285,7 @@ UTEST_F(GrpcClientTest, BidirectionalStreamWriteAndCheck) {
 
   for (auto i = 0; i < 42; ++i) {
     out.set_number(i);
+    // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
     UEXPECT_NO_THROW(bs.WriteAndCheck(out));
     EXPECT_TRUE(bs.Read(in));
     EXPECT_EQ(in.number(), i + 1);

@@ -7,8 +7,6 @@
 #include <userver/components/component_base.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/concurrent/variable.hpp>
-#include <userver/dynamic_config/snapshot.hpp>
-#include <userver/dynamic_config/source.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/single_consumer_event.hpp>

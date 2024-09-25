@@ -19,8 +19,8 @@ namespace {
 // Placeholders for: field name, type class (composite, enum etc), schema, type
 // name and oid
 constexpr std::string_view kKnownTypeErrorMessageTemplate =
-    "PostgreSQL result set field `{}` {} type {}.{} oid {} doesn't have a "
-    "binary parser. There is no C++ type mapped to this database type, "
+    "PostgreSQL result set field '{}' of a {} type '{}.{}' (oid: {}) doesn't "
+    "have a binary parser. There is no C++ type mapped to this database type, "
     "probably you forgot to declare cpp to pg mapping. For more information "
     "see 'Mapping a C++ type to PostgreSQL user type'. Another reason that "
     "can cause such an error is that you modified the mapping to use other "
@@ -28,10 +28,10 @@ constexpr std::string_view kKnownTypeErrorMessageTemplate =
 
 // Placeholders for: field name and oid
 constexpr std::string_view kUnknownTypeErrorMessageTemplate =
-    "PostgreSQL result set field `{}` type with oid {} was NOT loaded from "
+    "PostgreSQL result set field '{}' has oid {} which was NOT loaded from "
     "database. The type was not loaded due to a migration script creating "
-    "the type and probably altering a table was run while service up, the only "
-    "way to fix this is to restart the service.";
+    "the type and probably altering a table was run while the service is up, "
+    "the only way to fix this is to restart the service.";
 
 }  // namespace
 
@@ -53,7 +53,7 @@ void RowDescription::CheckBinaryFormat(const UserTypes& types) const {
         message = fmt::format(kUnknownTypeErrorMessageTemplate,
                               res_->GetFieldName(i), oid);
       }
-      throw NoBinaryParser{message};
+      throw NoBinaryParser{std::move(message)};
     }
   }
 }

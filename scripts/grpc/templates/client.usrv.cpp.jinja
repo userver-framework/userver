@@ -32,9 +32,6 @@ const USERVER_NAMESPACE::dynamic_config::Key<USERVER_NAMESPACE::ugrpc::client::C
 #endif
     },
 };
-#else
-constexpr const auto& k{{service.name}}ClientQosConfig =
-    USERVER_NAMESPACE::ugrpc::client::impl::kNoClientQos;
 #endif
 {% endfor %}
 
@@ -42,8 +39,14 @@ constexpr const auto& k{{service.name}}ClientQosConfig =
 {% for service in proto.services %}
 
 {{service.name}}Client::{{service.name}}Client(
-    USERVER_NAMESPACE::ugrpc::client::impl::ClientParams&& client_params)
-    : impl_(std::move(client_params), GetMetadata(),
+    USERVER_NAMESPACE::ugrpc::client::impl::ClientDependencies&& dependencies)
+    : impl_(std::move(dependencies), GetMetadata(),
+{% set client_qos = 'GRPC_CLIENT_QOS_' + proto.package_prefix.replace('.', '_') + service.name + 'Client' %}
+#ifdef {{ client_qos }}
+            &k{{service.name}}ClientQosConfig,
+#else
+            nullptr,
+#endif
             std::in_place_type<{{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}>) {
     }
   {% for method in service.method %}
@@ -60,7 +63,7 @@ constexpr const auto& k{{service.name}}ClientQosConfig =
       auto& stub = impl_.NextStub<{{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}>();
       return {
         USERVER_NAMESPACE::ugrpc::client::impl::CreateCallParams(
-          impl_, {{method_id}}, std::move(context), k{{service.name}}ClientQosConfig, qos
+          impl_, {{method_id}}, std::move(context), qos
         ),
         [&stub](auto&&... args) { return stub.PrepareAsync{{method.name}}(std::forward<decltype(args)>(args)...); },
         {% if method.client_streaming %}

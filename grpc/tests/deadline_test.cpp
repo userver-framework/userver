@@ -12,15 +12,18 @@
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/utils/algo.hpp>
 
-#include <../include/userver/ugrpc/client/impl/completion_queue_pool.hpp>
 #include <ugrpc/client/impl/client_configs.hpp>
 #include <ugrpc/client/middlewares/deadline_propagation/middleware.hpp>
 #include <ugrpc/server/impl/server_configs.hpp>
 #include <ugrpc/server/middlewares/deadline_propagation/middleware.hpp>
+#include <userver/ugrpc/client/client_qos.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
+#include <userver/ugrpc/client/impl/completion_queue_pool.hpp>
 
 #include <tests/deadline_helpers.hpp>
+#include <tests/timed_out_service.hpp>
 #include <tests/unit_test_client.usrv.pb.hpp>
+#include <tests/unit_test_client_qos.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
 #include <userver/ugrpc/tests/service_fixtures.hpp>
 
@@ -45,93 +48,8 @@ void CheckSuccessWrite(Call& call, Request& request, const char* message) {
   EXPECT_TRUE(res);
 }
 
-constexpr const char* kRequests[] = {
-    "First userver",   //
-    "Second userver",  //
-    "Third userver"    //
-};
-
-constexpr const char* kResponses[] = {
-    "One First userver",   //
-    "Two Second userver",  //
-    "Three Third userver"  //
-};
-
-class UnitTestDeadlinePropagationService final
-    : public sample::ugrpc::UnitTestServiceBase {
- public:
-  void SayHello(SayHelloCall& call,
-                sample::ugrpc::GreetingRequest&& request) override {
-    sample::ugrpc::GreetingResponse response;
-    response.set_name("Hello " + request.name());
-
-    tests::WaitUntilRpcDeadline(call);
-
-    call.Finish(response);
-  }
-
-  void ReadMany(ReadManyCall& call,
-                ::sample::ugrpc::StreamGreetingRequest&& request) override {
-    sample::ugrpc::StreamGreetingResponse response;
-    response.set_name("One " + request.name());
-    // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
-    call.Write(response);
-    response.set_name("Two " + request.name());
-    // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
-    call.Write(response);
-    response.set_name("Three " + request.name());
-    // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
-    call.Write(response);
-
-    tests::WaitUntilRpcDeadline(call);
-    call.Finish();
-  }
-
-  void WriteMany(WriteManyCall& call) override {
-    sample::ugrpc::StreamGreetingRequest request;
-    std::size_t reads{0};
-
-    while (call.Read(request)) {
-      ASSERT_LT(reads, std::size(kRequests));
-      EXPECT_EQ(request.name(), kRequests[reads]);
-      ++reads;
-    }
-
-    sample::ugrpc::StreamGreetingResponse response;
-    response.set_name("Hello " + request.name());
-
-    tests::WaitUntilRpcDeadline(call);
-
-    call.Finish(response);
-  }
-
-  void Chat(ChatCall& call) override {
-    std::vector<sample::ugrpc::StreamGreetingRequest> requests(3);
-
-    sample::ugrpc::StreamGreetingResponse response;
-
-    for (auto& it : requests) {
-      if (!call.Read(it)) {
-        // It is deadline from client side
-        return;
-      }
-    }
-
-    response.set_name("One " + requests[0].name());
-    UEXPECT_NO_THROW(call.Write(response));
-    response.set_name("Two " + requests[1].name());
-    UEXPECT_NO_THROW(call.Write(response));
-
-    tests::WaitUntilRpcDeadline(call);
-
-    response.set_name("Three " + requests[0].name());
-    UEXPECT_THROW(call.WriteAndFinish(response),
-                  ugrpc::server::RpcInterruptedError);
-  }
-};
-
 class GrpcDeadlinePropagation
-    : public ugrpc::tests::ServiceFixture<UnitTestDeadlinePropagationService> {
+    : public ugrpc::tests::ServiceFixture<tests::TimedOutUnitTestService> {
  public:
   using ClientType = sample::ugrpc::UnitTestServiceClient;
 
@@ -230,12 +148,12 @@ UTEST_F(GrpcDeadlinePropagation, TestClientWriteManyWriteAndCheck) {
 
   sample::ugrpc::StreamGreetingResponse response;
 
-  CheckSuccessWrite(call, request, "First userver");
-  CheckSuccessWrite(call, request, "Second userver");
+  CheckSuccessWrite(call, request, tests::kRequests[0]);
+  CheckSuccessWrite(call, request, tests::kRequests[1]);
 
   WaitClientDeadline();
 
-  request.set_name("Third userver");
+  request.set_name(tests::kRequests[2]);
   UEXPECT_THROW(call.WriteAndCheck(request),
                 ugrpc::client::DeadlineExceededError);
 }
@@ -247,9 +165,9 @@ UTEST_F(GrpcDeadlinePropagation, TestClientWriteManyFinish) {
 
   sample::ugrpc::StreamGreetingResponse response;
 
-  CheckSuccessWrite(call, request, "First userver");
-  CheckSuccessWrite(call, request, "Second userver");
-  CheckSuccessWrite(call, request, "Third userver");
+  CheckSuccessWrite(call, request, tests::kRequests[0]);
+  CheckSuccessWrite(call, request, tests::kRequests[1]);
+  CheckSuccessWrite(call, request, tests::kRequests[2]);
 
   UEXPECT_THROW(response = call.Finish(), ugrpc::client::DeadlineExceededError);
 }
@@ -284,13 +202,13 @@ UTEST_F(GrpcDeadlinePropagation, TestClientChatRead) {
   bool res = false;
 
   for (size_t i = 0; i < requests.size(); ++i) {
-    CheckSuccessWrite(call, requests[i], kRequests[i]);
+    CheckSuccessWrite(call, requests[i], tests::kRequests[i]);
   }
 
   ASSERT_TRUE(call.WritesDone());
 
-  CheckSuccessRead(call, response, kResponses[0]);
-  CheckSuccessRead(call, response, kResponses[1]);
+  CheckSuccessRead(call, response, "One request1");
+  CheckSuccessRead(call, response, "Two request2");
 
   UEXPECT_THROW(res = call.Read(response),
                 ugrpc::client::DeadlineExceededError);
@@ -304,13 +222,13 @@ UTEST_F(GrpcDeadlinePropagation, TestClientChatReadAsync) {
   auto call = Client().Chat(std::move(context));
 
   for (size_t i = 0; i < requests.size(); ++i) {
-    CheckSuccessWrite(call, requests[i], kRequests[i]);
+    CheckSuccessWrite(call, requests[i], tests::kRequests[i]);
   }
 
   ASSERT_TRUE(call.WritesDone());
 
-  CheckSuccessRead(call, response, kResponses[0]);
-  CheckSuccessRead(call, response, kResponses[1]);
+  CheckSuccessRead(call, response, "One request1");
+  CheckSuccessRead(call, response, "Two request2");
 
   auto future = call.ReadAsync(response);
   UEXPECT_THROW(future.Get(), ugrpc::client::DeadlineExceededError);

@@ -776,6 +776,41 @@ UTEST_P(PostgreConnection, CompositeTypeParseExceptionReadability) {
         "Type mismatch for '__pgtest.user' field 'status'. In database the "
         "type is 'bit' (oid: 1560), user supplied type is 'varbit' (oid: "
         "1562)");
+
+    UEXPECT_NO_THROW(res = GetConn()->Execute(R"~(
+      CREATE TABLE __pgtest.user_table_type (
+        x __pgtest.user NOT NULL
+      )
+    )~"));
+
+    UEXPECT_THROW_MSG(
+        GetConn()->Execute("INSERT INTO __pgtest.user_table_type(x) VALUES($1)",
+                           pgtest::User{1, 2}),
+        storages::postgres::UserTypeError,
+        "Type mismatch for '__pgtest.user' field 'status'. In database the "
+        "type is 'bit' (oid: 1560), user supplied type is 'varbit' (oid: "
+        "1562)");
+
+    UEXPECT_THROW_MSG(GetConn()->Execute("SELECT $1::__pgtest.user", 1),
+                      storages::postgres::AccessRuleViolation,
+                      "cannot cast type integer to __pgtest.");
+  }
+  {
+    UEXPECT_NO_THROW(
+        GetConn()->Execute("create type __pgtest.no_cpp_type as (f int)"));
+
+    UEXPECT_THROW_MSG(
+        GetConn()->Execute("create type __pgtest.no_cpp_type as (f int)"),
+        storages::postgres::AccessRuleViolation, "already exists");
+
+    UEXPECT_THROW_MSG(GetConn()->Execute("SELECT $1::__pgtest.no_cpp_type", 1),
+                      storages::postgres::AccessRuleViolation,
+                      "cannot cast type integer to __pgtest.");
+    UEXPECT_THROW_MSG(
+        GetConn()->Execute("SELECT ROW($1)::__pgtest.no_cpp_type", 1),
+        storages::postgres::NoBinaryParser,
+        "PostgreSQL result set field 'row' of a composite type "
+        "'__pgtest.no_cpp_type' (oid: ");
   }
 }
 

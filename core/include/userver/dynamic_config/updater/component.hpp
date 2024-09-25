@@ -15,7 +15,6 @@
 #include <userver/components/component_fwd.hpp>
 #include <userver/concurrent/variable.hpp>
 #include <userver/dynamic_config/client/client.hpp>
-#include <userver/dynamic_config/snapshot.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/updater/additional_keys_token.hpp>
 #include <userver/dynamic_config/updates_sink/component.hpp>

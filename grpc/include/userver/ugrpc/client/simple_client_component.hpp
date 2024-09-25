@@ -3,10 +3,10 @@
 /// @file userver/ugrpc/client/simple_client_component.hpp
 /// @brief @copybrief ugrpc::client::SimpleClientComponent
 
-#include <userver/components/component_config.hpp>
-#include <userver/components/component_context.hpp>
+#include <userver/components/component_base.hpp>
 
-#include <userver/ugrpc/client/client_factory_component.hpp>
+#include <userver/ugrpc/client/client_factory.hpp>
+#include <userver/ugrpc/client/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -19,6 +19,15 @@ class SimpleClientComponentAny : public components::ComponentBase {
   using components::ComponentBase::ComponentBase;
 
   static yaml_config::Schema GetStaticConfigSchema();
+
+ protected:
+  static ClientFactory& FindFactory(
+      const components::ComponentConfig& config,
+      const components::ComponentContext& context);
+
+  static ClientSettings MakeClientSettings(
+      const components::ComponentConfig& config,
+      const dynamic_config::Key<ClientQos>* client_qos);
 };
 
 }  // namespace impl
@@ -62,19 +71,23 @@ class SimpleClientComponentAny : public components::ComponentBase {
 // clang-format on
 
 template <typename Client>
-class SimpleClientComponent final : public impl::SimpleClientComponentAny {
+class SimpleClientComponent : public impl::SimpleClientComponentAny {
  public:
+  /// Main component's constructor.
   SimpleClientComponent(const components::ComponentConfig& config,
                         const components::ComponentContext& context)
       : SimpleClientComponentAny(config, context),
-        client_(context
-                    .FindComponent<ClientFactoryComponent>(
-                        config["factory-component"].As<std::string>(
-                            ClientFactoryComponent::kName))
-                    .GetFactory()
-                    .MakeClient<Client>(
-                        config["client-name"].As<std::string>(config.Name()),
-                        config["endpoint"].As<std::string>())) {}
+        client_(FindFactory(config, context)
+                    .MakeClient<Client>(MakeClientSettings(config, nullptr))) {}
+
+  /// To use a ClientQos config,
+  SimpleClientComponent(const components::ComponentConfig& config,
+                        const components::ComponentContext& context,
+                        const dynamic_config::Key<ClientQos>& client_qos)
+      : SimpleClientComponentAny(config, context),
+        client_(
+            FindFactory(config, context)
+                .MakeClient<Client>(MakeClientSettings(config, &client_qos))) {}
 
   /// @@brief Get gRPC service client
   Client& GetClient() { return client_; }

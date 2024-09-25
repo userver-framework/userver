@@ -54,7 +54,7 @@ class ServiceBase {
   /// @returns a client for the specified gRPC service, connected to the server.
   template <typename Client>
   Client MakeClient() {
-    return client_factory_->MakeClient<Client>("test", *endpoint_);
+    return GetClientFactory().MakeClient<Client>("test", *endpoint_);
   }
 
   /// @returns the stored @ref server::Server for advanced tweaking.
@@ -77,6 +77,14 @@ class ServiceBase {
 
   /// @returns the statistics storage used by the server and clients.
   utils::statistics::Storage& GetStatisticsStorage();
+
+  /// @cond
+  // For internal use only.
+  client::ClientFactory& GetClientFactory();
+
+  // For internal use only.
+  std::string GetEndpoint() const;
+  /// @endcond
 
  private:
   server::ServiceConfig MakeServiceConfig();
