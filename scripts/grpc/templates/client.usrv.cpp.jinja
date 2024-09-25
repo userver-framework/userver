@@ -18,21 +18,6 @@ constexpr std::string_view k{{service.name}}MethodNames[] = {
   "{{proto.package_prefix}}{{service.name}}/{{method.name}}",
   {% endfor %}
 };
-
-{% set client_qos = 'GRPC_CLIENT_QOS_' + proto.package_prefix.replace('.', '_') + service.name + 'Client' %}
-{% set client_qos_default = 'GRPC_CLIENT_QOS_DEFAULT_' + proto.package_prefix.replace('.', '_') + service.name + 'Client' %}
-#ifdef {{ client_qos }}
-const USERVER_NAMESPACE::dynamic_config::Key<USERVER_NAMESPACE::ugrpc::client::ClientQos> k{{service.name}}ClientQosConfig{
-    {{ client_qos }},
-    USERVER_NAMESPACE::dynamic_config::DefaultAsJsonString{
-#ifdef {{ client_qos_default }}
-        {{ client_qos_default }}
-#else
-        R"({"__default__": {}})"
-#endif
-    },
-};
-#endif
 {% endfor %}
 
 }  // namespace
@@ -41,12 +26,6 @@ const USERVER_NAMESPACE::dynamic_config::Key<USERVER_NAMESPACE::ugrpc::client::C
 {{service.name}}Client::{{service.name}}Client(
     USERVER_NAMESPACE::ugrpc::client::impl::ClientDependencies&& dependencies)
     : impl_(std::move(dependencies), GetMetadata(),
-{% set client_qos = 'GRPC_CLIENT_QOS_' + proto.package_prefix.replace('.', '_') + service.name + 'Client' %}
-#ifdef {{ client_qos }}
-            &k{{service.name}}ClientQosConfig,
-#else
-            nullptr,
-#endif
             std::in_place_type<{{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}>) {
     }
   {% for method in service.method %}

@@ -32,9 +32,7 @@ const ugrpc::impl::StaticServiceMetadata& ClientData::GetMetadata() const {
 }
 
 const dynamic_config::Key<ClientQos>* ClientData::GetClientQos() const {
-  if (dependencies_.qos) return dependencies_.qos;
-  if (legacy_builtin_qos_) return legacy_builtin_qos_;
-  return nullptr;
+  return dependencies_.qos;
 }
 
 const ClientData::StubPtr& ClientData::NextStubPtr() const {

@@ -54,11 +54,9 @@ class ClientData final {
   template <typename Service>
   ClientData(ClientDependencies&& dependencies,
              ugrpc::impl::StaticServiceMetadata metadata,
-             const dynamic_config::Key<ClientQos>* legacy_builtin_qos,
              std::in_place_type_t<Service>)
       : dependencies_(std::move(dependencies)),
         metadata_(metadata),
-        legacy_builtin_qos_(legacy_builtin_qos),
         service_statistics_(&GetServiceStatistics()),
         stubs_(MakeStubs<Service>(dependencies_.channel_token)) {}
 
@@ -130,7 +128,6 @@ class ClientData final {
 
   ClientDependencies dependencies_;
   std::optional<ugrpc::impl::StaticServiceMetadata> metadata_{std::nullopt};
-  const dynamic_config::Key<ClientQos>* legacy_builtin_qos_{nullptr};
   ugrpc::impl::ServiceStatistics* service_statistics_{nullptr};
   utils::FixedArray<StubPtr> stubs_;
 };
