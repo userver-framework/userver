@@ -30,15 +30,6 @@ jobs:
                         -DUSERVER_NAMESPACE_END="}}"
                         -DUSERVER_PG_SERVER_INCLUDE_DIR=/usr/include/postgresql/15/server
                         -DUSERVER_PG_SERVER_LIBRARY_DIR=/usr/lib/postgresql/15/lib
-                        -DUSERVER_FEATURE_GRPC=1 \
-                        -DUSERVER_FEATURE_MYSQL=0
-                        -DUSERVER_FEATURE_MONGODB=0
-                        -DUSERVER_FEATURE_POSTGRESQL=1
-                        -DUSERVER_FEATURE_REDIS=0
-                        -DUSERVER_FEATURE_KAFKA=1
-                        -DUSERVER_FEATURE_RABBITMQ=0
-                        -DUSERVER_FEATURE_ROCKS=0
-                        -DUSERVER_FEATURE_YDB=0
                     os: ubuntu-22.04
                     info: clang-14 + debug + sanitize addr+ub
                     tests-flags: ''
@@ -80,6 +71,12 @@ jobs:
                 restore-keys: |
                     ${{matrix.os}} ${{matrix.info}} ccache-dir ${{github.ref}} run-'
                     ${{matrix.os}} ${{matrix.info}} ccache-
+
+          - name: Setup ramdrive for testsuites
+            run: |
+                sudo mkdir -p "/mnt/ramdisk/$USER"
+                sudo chmod 777 "/mnt/ramdisk/$USER"
+                sudo mount -t tmpfs -o size=2048M tmpfs "/mnt/ramdisk/$USER"
 
           - name: Free disk space
             run: |
@@ -179,20 +176,6 @@ jobs:
                 cd build_debug
                 make -j$(nproc)
 
-          - name: Run tests (kafka)
-            run: |
-                # Kafka is slow on topics' creation
-                sudo mkdir -p "/mnt/ramdisk/$USER"
-                sudo chmod 777 "/mnt/ramdisk/$USER"
-
-                cd build_debug
-                mkdir kafka || :
-                cd kafka
-                ctest -V
-
-                sudo rm -rf "/mnt/ramdisk/$USER"
-
-
           - name: Run tests (universal)
             run: |
                 echo "UBSAN_OPTIONS=${UBSAN_OPTIONS} ASAN_OPTIONS=${ASAN_OPTIONS}"
@@ -203,6 +186,13 @@ jobs:
             run: |
                 cd build_debug
                 ./core/userver-core-unittest ${{matrix.tests-flags}}
+
+          - name: Run tests (kafka)
+            run: |
+                cd build_debug
+                mkdir kafka || :
+                cd kafka
+                ctest -V
 
           - name: Run tests (clickhouse)
             run: |
