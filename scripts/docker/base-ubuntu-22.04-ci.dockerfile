@@ -7,7 +7,7 @@ FROM ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest
 # * install testing tools
 RUN \
   mkdir -p /place/berkanavt/ && \
-  mkdir -p /ramdrive && mkdir -p /mnt && ln -s /ramdrive /mnt/ramdisk && \
+  mkdir -p /ramdrive/user && mkdir -p /mnt && ln -s /ramdrive /mnt/ramdisk && \
   apt update && \
   PORTO_WORKAROUND="fuse dupload libuv1 libuv1-dev openssh-client"; \
   DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
