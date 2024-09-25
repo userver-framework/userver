@@ -3,8 +3,6 @@
 #include <userver/components/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/dynamic_config/client/component.hpp>
-#include <userver/dynamic_config/snapshot.hpp>
-#include <userver/dynamic_config/source.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/updater/component.hpp>
 #include <userver/engine/sleep.hpp>
