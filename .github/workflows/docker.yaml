@@ -91,14 +91,6 @@ jobs:
             run: docker-compose -f .github/docker-compose.yml run --rm ${{ matrix.image
                 }} bash -c 'ccache -M 2.0GB && ccache -s'
 
-          - name: Ls ramdrive
-            run: docker-compose -f .github/docker-compose.yml run --rm ${{ matrix.image
-                }} bash -c 'ls -lha /mnt/ramdisk/'
-
-          - name: Create ram drive
-            run: docker-compose -f .github/docker-compose.yml run --rm ${{ matrix.image
-                }} bash -c 'sudo mkdir -p /mnt/ramdisk/$USER'
-
           - name: CMake
             run: >-
                 docker-compose -f .github/docker-compose.yml

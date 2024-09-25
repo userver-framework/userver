@@ -183,6 +183,7 @@ jobs:
             run: |
                 # Kafka is slow on topics' creation
                 sudo mkdir -p "/mnt/ramdisk/$USER"
+                sudo chmod 777 "/mnt/ramdisk/$USER"
 
                 cd build_debug
                 mkdir kafka || :
