@@ -56,7 +56,7 @@ namespace storages::postgres {
  *     - InvalidObjectName
  *     - InvalidAuthorizationSpecification
  *     - SyntaxError
- *     - AccessRuleViolation (TODO Decide if this is actually a runtime error)
+ *     - AccessRuleViolation
  *   - ServerRuntimeError
  *     - TriggeredActionException
  *     - LocatorException
