@@ -93,6 +93,18 @@ void ServiceBase::SetClientMiddlewareFactories(
   client_middleware_factories_ = std::move(middleware_factories);
 }
 
+client::ClientFactory& ServiceBase::GetClientFactory() {
+  UINVARIANT(client_factory_,
+             "Server is not either not yet started, or already stopped");
+  return *client_factory_;
+}
+
+std::string ServiceBase::GetEndpoint() const {
+  UINVARIANT(endpoint_,
+             "Server is not either not yet started, or already stopped");
+  return *endpoint_;
+}
+
 server::Middlewares GetDefaultServerMiddlewares() {
   return {std::make_shared<
       server::middlewares::deadline_propagation::Middleware>()};

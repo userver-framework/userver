@@ -2,7 +2,6 @@
 
 #include <userver/engine/async.hpp>
 #include <userver/utils/algo.hpp>
-#include <userver/yaml_config/yaml_config.hpp>
 
 #include <ugrpc/impl/logging.hpp>
 
@@ -53,6 +52,24 @@ impl::ChannelCache::Token ClientFactory::GetChannel(
                return channel_cache_.Get(endpoint);
              })
       .Get();
+}
+
+impl::ClientDependencies ClientFactory::MakeClientDependencies(
+    ClientSettings&& settings) {
+  UINVARIANT(!settings.client_name.empty(), "Client name is empty");
+  UINVARIANT(!settings.endpoint.empty(), "Client endpoint is empty");
+
+  return impl::ClientDependencies{
+      settings.client_name,
+      settings.endpoint,
+      impl::InstantiateMiddlewares(mws_, settings.client_name),
+      completion_queues_,
+      client_statistics_storage_,
+      GetChannel(settings.client_name, settings.endpoint),
+      config_source_,
+      testsuite_grpc_,
+      settings.client_qos,
+  };
 }
 
 }  // namespace ugrpc::client

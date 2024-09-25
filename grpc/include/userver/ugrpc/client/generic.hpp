@@ -76,7 +76,7 @@ class GenericClient final {
 
   /// @cond
   // For internal use only.
-  explicit GenericClient(impl::ClientParams&&);
+  explicit GenericClient(impl::ClientDependencies&&);
   /// @endcond
 
  private:

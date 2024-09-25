@@ -8,7 +8,6 @@
 
 #include <userver/dynamic_config/snapshot.hpp>
 
-#include <userver/ugrpc/client/client_qos.hpp>
 #include <userver/ugrpc/client/impl/client_data.hpp>
 #include <userver/ugrpc/client/middlewares/fwd.hpp>
 #include <userver/ugrpc/client/qos.hpp>
@@ -32,7 +31,6 @@ struct CallParams {
 CallParams CreateCallParams(const ClientData& client_data,
                             std::size_t method_id,
                             std::unique_ptr<grpc::ClientContext> client_context,
-                            const dynamic_config::Key<ClientQos>& client_qos,
                             const Qos& qos);
 
 CallParams CreateGenericCallParams(

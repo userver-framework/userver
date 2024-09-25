@@ -1,5 +1,6 @@
 #include <userver/ugrpc/client/impl/client_data.hpp>
 
+#include <userver/ugrpc/client/client_qos.hpp>
 #include <userver/ugrpc/client/impl/completion_queue_pool.hpp>
 #include <userver/ugrpc/impl/statistics_storage.hpp>
 #include <userver/utils/assert.hpp>
@@ -10,7 +11,7 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::client::impl {
 
 grpc::CompletionQueue& ClientData::NextQueue() const {
-  return params_.completion_queues.NextQueue();
+  return dependencies_.completion_queues.NextQueue();
 }
 
 ugrpc::impl::MethodStatistics& ClientData::GetStatistics(
@@ -21,8 +22,8 @@ ugrpc::impl::MethodStatistics& ClientData::GetStatistics(
 
 ugrpc::impl::MethodStatistics& ClientData::GetGenericStatistics(
     std::string_view call_name) const {
-  return params_.statistics_storage.GetGenericStatistics(call_name,
-                                                         params_.client_name);
+  return dependencies_.statistics_storage.GetGenericStatistics(
+      call_name, dependencies_.client_name);
 }
 
 const ugrpc::impl::StaticServiceMetadata& ClientData::GetMetadata() const {
@@ -30,13 +31,19 @@ const ugrpc::impl::StaticServiceMetadata& ClientData::GetMetadata() const {
   return *metadata_;
 }
 
+const dynamic_config::Key<ClientQos>* ClientData::GetClientQos() const {
+  if (dependencies_.qos) return dependencies_.qos;
+  if (legacy_builtin_qos_) return legacy_builtin_qos_;
+  return nullptr;
+}
+
 const ClientData::StubPtr& ClientData::NextStubPtr() const {
   return stubs_[utils::RandRange(stubs_.size())];
 }
 
 ugrpc::impl::ServiceStatistics& ClientData::GetServiceStatistics() {
-  return params_.statistics_storage.GetServiceStatistics(GetMetadata(),
-                                                         params_.client_name);
+  return dependencies_.statistics_storage.GetServiceStatistics(
+      GetMetadata(), dependencies_.client_name);
 }
 
 }  // namespace ugrpc::client::impl

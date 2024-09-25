@@ -6,15 +6,9 @@
 #include <chrono>
 #include <optional>
 
-#include <grpcpp/client_context.h>
-
 #include <userver/formats/json_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
-
-namespace testsuite {
-class GrpcControl;
-}
 
 namespace ugrpc::client {
 
@@ -43,13 +37,6 @@ Qos Parse(const formats::json::Value& value, formats::parse::To<Qos>);
 
 formats::json::Value Serialize(const Qos& qos,
                                formats::serialize::To<formats::json::Value>);
-
-namespace impl {
-
-void ApplyQos(grpc::ClientContext& context, const Qos& qos,
-              const testsuite::GrpcControl& testsuite_control);
-
-}  // namespace impl
 
 }  // namespace ugrpc::client
 

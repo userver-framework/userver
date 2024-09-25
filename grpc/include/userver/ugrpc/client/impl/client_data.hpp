@@ -10,6 +10,7 @@
 
 #include <userver/dynamic_config/source.hpp>
 #include <userver/testsuite/grpc_control.hpp>
+#include <userver/ugrpc/client/fwd.hpp>
 #include <userver/ugrpc/client/impl/channel_cache.hpp>
 #include <userver/ugrpc/client/middlewares/fwd.hpp>
 #include <userver/ugrpc/impl/static_metadata.hpp>
@@ -25,7 +26,8 @@ class CompletionQueuePoolBase;
 
 namespace ugrpc::client::impl {
 
-struct ClientParams final {
+/// Contains all non-code-generated dependencies for creating a gRPC client
+struct ClientDependencies final {
   std::string client_name;
   std::string endpoint;
   Middlewares mws;
@@ -34,13 +36,14 @@ struct ClientParams final {
   impl::ChannelCache::Token channel_token;
   const dynamic_config::Source config_source;
   testsuite::GrpcControl& testsuite_grpc;
+  const dynamic_config::Key<ClientQos>* qos{nullptr};
 };
 
 struct GenericClientTag final {
   explicit GenericClientTag() = default;
 };
 
-/// A helper class for generated gRPC clients
+/// The internal state of generated gRPC clients
 class ClientData final {
  public:
   template <typename Service>
@@ -49,18 +52,21 @@ class ClientData final {
   ClientData() = delete;
 
   template <typename Service>
-  ClientData(ClientParams&& params, ugrpc::impl::StaticServiceMetadata metadata,
+  ClientData(ClientDependencies&& dependencies,
+             ugrpc::impl::StaticServiceMetadata metadata,
+             const dynamic_config::Key<ClientQos>* legacy_builtin_qos,
              std::in_place_type_t<Service>)
-      : params_(std::move(params)),
+      : dependencies_(std::move(dependencies)),
         metadata_(metadata),
+        legacy_builtin_qos_(legacy_builtin_qos),
         service_statistics_(&GetServiceStatistics()),
-        stubs_(MakeStubs<Service>(params_.channel_token)) {}
+        stubs_(MakeStubs<Service>(dependencies_.channel_token)) {}
 
   template <typename Service>
-  ClientData(ClientParams&& params, GenericClientTag,
+  ClientData(ClientDependencies&& dependencies, GenericClientTag,
              std::in_place_type_t<Service>)
-      : params_(std::move(params)),
-        stubs_(MakeStubs<Service>(params_.channel_token)) {}
+      : dependencies_(std::move(dependencies)),
+        stubs_(MakeStubs<Service>(dependencies_.channel_token)) {}
 
   ClientData(ClientData&&) noexcept = default;
   ClientData& operator=(ClientData&&) = delete;
@@ -76,7 +82,7 @@ class ClientData final {
   grpc::CompletionQueue& NextQueue() const;
 
   dynamic_config::Snapshot GetConfigSnapshot() const {
-    return params_.config_source.GetSnapshot();
+    return dependencies_.config_source.GetSnapshot();
   }
 
   ugrpc::impl::MethodStatistics& GetStatistics(std::size_t method_id) const;
@@ -84,17 +90,19 @@ class ClientData final {
   ugrpc::impl::MethodStatistics& GetGenericStatistics(
       std::string_view call_name) const;
 
-  ChannelCache::Token& GetChannelToken() { return params_.channel_token; }
+  ChannelCache::Token& GetChannelToken() { return dependencies_.channel_token; }
 
-  std::string_view GetClientName() const { return params_.client_name; }
+  std::string_view GetClientName() const { return dependencies_.client_name; }
 
-  const Middlewares& GetMiddlewares() const { return params_.mws; }
+  const Middlewares& GetMiddlewares() const { return dependencies_.mws; }
 
   const ugrpc::impl::StaticServiceMetadata& GetMetadata() const;
 
   const testsuite::GrpcControl& GetTestsuiteControl() const {
-    return params_.testsuite_grpc;
+    return dependencies_.testsuite_grpc;
   }
+
+  const dynamic_config::Key<ClientQos>* GetClientQos() const;
 
  private:
   using StubDeleterType = void (*)(void*);
@@ -120,8 +128,9 @@ class ClientData final {
 
   ugrpc::impl::ServiceStatistics& GetServiceStatistics();
 
-  ClientParams params_;
+  ClientDependencies dependencies_;
   std::optional<ugrpc::impl::StaticServiceMetadata> metadata_{std::nullopt};
+  const dynamic_config::Key<ClientQos>* legacy_builtin_qos_{nullptr};
   ugrpc::impl::ServiceStatistics* service_statistics_{nullptr};
   utils::FixedArray<StubPtr> stubs_;
 };
