@@ -83,7 +83,9 @@ jobs:
           - name: Setup ramdrive for testsuites
             run: |
                 sudo ls -lha /mnt
-                echo "user: $USER"
+                echo "$USER"
+                sudo mkdir -p "/mnt/ramdisk/$USER"
+                sudo rm -rf "/mnt/ramdisk/$USER"
 
           - name: Install packages
             run: |
@@ -181,6 +183,18 @@ jobs:
                 cd build_debug
                 ./universal/userver-universal-unittest ${{matrix.tests-flags}}
 
+          - name: Run tests (kafka)
+            run: |
+                # Kafka is slow on topics' creation
+                sudo mkdir -p "/mnt/ramdisk/$USER"
+
+                cd build_debug
+                mkdir kafka || :
+                cd kafka
+                ctest -V
+
+                sudo rm -rf "/mnt/ramdisk/$USER"
+
           - name: Run tests (core)
             run: |
                 cd build_debug
@@ -198,13 +212,6 @@ jobs:
                 cd build_debug
                 mkdir rabbitmq || :
                 cd rabbitmq
-                ctest -V
-
-          - name: Run tests (kafka)
-            run: |
-                cd build_debug
-                mkdir kafka || :
-                cd kafka
                 ctest -V
 
           - name: Run tests (mysql)
