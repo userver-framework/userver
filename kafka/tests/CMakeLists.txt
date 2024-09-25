@@ -14,5 +14,5 @@ target_include_directories(${PROJECT_NAME}
 userver_add_utest(
   NAME ${PROJECT_NAME}
   DATABASES kafka
-  TEST_ENV "TESTSUITE_KAFKA_CUSTOM_TOPICS=large-topic-1:4,large-topic-2:4"
+  TEST_ENV "TESTSUITE_KAFKA_CUSTOM_TOPICS=large-topic-1:4,large-topic-2:4" "TESTSUITE_KAFKA_SERVER_PORT=8088"
 )

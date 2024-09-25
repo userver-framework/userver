@@ -22,7 +22,8 @@ constexpr const char* kRecipeKafkaBrokersList{"KAFKA_RECIPE_BROKER_LIST"};
 std::string FetchBrokerList() {
   const auto env = engine::subprocess::GetCurrentEnvironmentVariablesPtr();
 
-  if (const auto* brokers_list = env->GetValueOptional(kRecipeKafkaBrokersList)) {
+  if (const auto* brokers_list =
+          env->GetValueOptional(kRecipeKafkaBrokersList)) {
     return *brokers_list;
   }
 

@@ -80,6 +80,11 @@ jobs:
                     /usr/local/share/powershell /usr/share/swift /usr/local/.ghcup || true
                 df -h
 
+          - name: Setup ramdrive for testsuites
+            run: |
+                sudo ls -lha /mnt
+                echo "user: $USER"
+
           - name: Install packages
             run: |
                 # Instructions from https://clickhouse.com/docs/en/getting-started/install/

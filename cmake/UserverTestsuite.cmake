@@ -265,7 +265,7 @@ function(userver_testsuite_add)
   )
   if(ARG_TEST_ENV)
     set_tests_properties("${testsuite_test_name}"
-        PROPERTIES ENVIRONMENT ${ARG_TEST_ENV}
+        PROPERTIES ENVIRONMENT "${ARG_TEST_ENV}"
     )
   endif()
 
@@ -469,8 +469,8 @@ endfunction()
 # add utest, test runs in testsuite env
 function(userver_add_utest)
   set(options)
-  set(oneValueArgs NAME TEST_ENV)
-  set(multiValueArgs DATABASES)
+  set(oneValueArgs NAME)
+  set(multiValueArgs DATABASES TEST_ENV)
 
   cmake_parse_arguments(
       ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
