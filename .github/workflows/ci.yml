@@ -72,6 +72,12 @@ jobs:
                     ${{matrix.os}} ${{matrix.info}} ccache-dir ${{github.ref}} run-'
                     ${{matrix.os}} ${{matrix.info}} ccache-
 
+          - name: Setup ramdrive for testsuites
+            run: |
+                sudo mkdir -p "/mnt/ramdisk/$USER"
+                sudo chmod 777 "/mnt/ramdisk/$USER"
+                sudo mount -t tmpfs -o size=2048M tmpfs "/mnt/ramdisk/$USER"
+
           - name: Free disk space
             run: |
                 df -h
