@@ -30,6 +30,15 @@ jobs:
                         -DUSERVER_NAMESPACE_END="}}"
                         -DUSERVER_PG_SERVER_INCLUDE_DIR=/usr/include/postgresql/15/server
                         -DUSERVER_PG_SERVER_LIBRARY_DIR=/usr/lib/postgresql/15/lib
+                        -DUSERVER_FEATURE_GRPC=1 \
+                        -DUSERVER_FEATURE_MYSQL=0
+                        -DUSERVER_FEATURE_MONGODB=0
+                        -DUSERVER_FEATURE_POSTGRESQL=1
+                        -DUSERVER_FEATURE_REDIS=0
+                        -DUSERVER_FEATURE_KAFKA=1
+                        -DUSERVER_FEATURE_RABBITMQ=0
+                        -DUSERVER_FEATURE_ROCKS=0
+                        -DUSERVER_FEATURE_YDB=0
                     os: ubuntu-22.04
                     info: clang-14 + debug + sanitize addr+ub
                     tests-flags: ''
@@ -79,13 +88,6 @@ jobs:
                 sudo rm -rf /usr/share/dotnet /usr/local/lib/android /usr/lib/php* /opt/ghc \
                     /usr/local/share/powershell /usr/share/swift /usr/local/.ghcup || true
                 df -h
-
-          - name: Setup ramdrive for testsuites
-            run: |
-                sudo ls -lha /mnt
-                echo "$USER"
-                sudo mkdir -p "/mnt/ramdisk/$USER"
-                sudo rm -rf "/mnt/ramdisk/$USER"
 
           - name: Install packages
             run: |
@@ -177,12 +179,6 @@ jobs:
                 cd build_debug
                 make -j$(nproc)
 
-          - name: Run tests (universal)
-            run: |
-                echo "UBSAN_OPTIONS=${UBSAN_OPTIONS} ASAN_OPTIONS=${ASAN_OPTIONS}"
-                cd build_debug
-                ./universal/userver-universal-unittest ${{matrix.tests-flags}}
-
           - name: Run tests (kafka)
             run: |
                 # Kafka is slow on topics' creation
@@ -194,6 +190,13 @@ jobs:
                 ctest -V
 
                 sudo rm -rf "/mnt/ramdisk/$USER"
+
+
+          - name: Run tests (universal)
+            run: |
+                echo "UBSAN_OPTIONS=${UBSAN_OPTIONS} ASAN_OPTIONS=${ASAN_OPTIONS}"
+                cd build_debug
+                ./universal/userver-universal-unittest ${{matrix.tests-flags}}
 
           - name: Run tests (core)
             run: |
