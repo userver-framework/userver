@@ -19,8 +19,8 @@ userver_venv_setup(
 
 function(userver_chaos_testsuite_add)
   set(options)
-  set(oneValueArgs TESTS_DIRECTORY ENV)
-  set(multiValueArgs PYTHONPATH)
+  set(oneValueArgs TESTS_DIRECTORY)
+  set(multiValueArgs PYTHONPATH ENV)
   cmake_parse_arguments(
       ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 

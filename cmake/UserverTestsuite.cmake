@@ -261,7 +261,7 @@ function(userver_testsuite_add)
   )
   if(ARG_TEST_ENV)
     set_tests_properties("${testsuite_test_name}"
-        PROPERTIES ENVIRONMENT ${ARG_TEST_ENV}
+        PROPERTIES ENVIRONMENT "${ARG_TEST_ENV}"
     )
   endif()
 
@@ -466,7 +466,7 @@ endfunction()
 function(userver_add_utest)
   set(options)
   set(oneValueArgs NAME)
-  set(multiValueArgs DATABASES)
+  set(multiValueArgs DATABASES TEST_ENV)
 
   cmake_parse_arguments(
       ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
@@ -487,6 +487,11 @@ function(userver_add_utest)
     $<TARGET_FILE:${ARG_NAME}>
     "--gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${ARG_NAME}.xml"
   )
+  if(ARG_TEST_ENV)
+    set_tests_properties("${ARG_NAME}"
+        PROPERTIES ENVIRONMENT "${ARG_TEST_ENV}"
+    )
+  endif()
 endfunction()
 
 _userver_prepare_testsuite()
