@@ -18,8 +18,8 @@ namespace {
 
 class ConsumerTest : public KafkaCluster {};
 
-const std::string kLargeTopic1{"large-topic-1"};
-const std::string kLargeTopic2{"large-topic-2"};
+const std::string kLargeTopic1{"lt-1"};
+const std::string kLargeTopic2{"lt-2"};
 
 constexpr std::size_t kNumPartitionsLargeTopic{4};
 

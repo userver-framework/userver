@@ -58,7 +58,7 @@ bool operator==(const Message& lhs, const Message& rhs) {
 KafkaCluster::KafkaCluster() : bootstrap_servers_(FetchBrokerList()) {}
 
 std::string KafkaCluster::GenerateTopic() {
-  return fmt::format("test-topic-{}", topics_count_.fetch_add(1));
+  return fmt::format("tt-{}", topics_count_.fetch_add(1));
 }
 
 std::vector<std::string> KafkaCluster::GenerateTopics(std::size_t count) {
