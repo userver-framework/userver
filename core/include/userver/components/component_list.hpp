@@ -20,17 +20,18 @@ class Manager;
 namespace impl {
 
 template <class T>
-auto NameRegistrationFromComponentType() -> decltype(std::string{T::kName}) {
-  return std::string{T::kName};
+auto NameRegistrationFromComponentType()
+    -> decltype(std::string_view{T::kName}) {
+  return std::string_view{T::kName};
 }
 
 template <class T, class... Args>
 auto NameRegistrationFromComponentType(Args...) {
   static_assert(!sizeof(T),
                 "Component does not have a 'kName' member convertible to "
-                "std::string. You have to explicitly specify the name: "
+                "std::string_view. You have to explicitly specify the name: "
                 "component_list.Append<T>(name).");
-  return std::string{};
+  return std::string_view{};
 }
 
 using ComponentBaseFactory =
@@ -138,7 +139,7 @@ class ComponentList final {
 
   /// Appends a component with a provided component name.
   template <typename Component>
-  ComponentList& Append(std::string name) &;
+  ComponentList& Append(std::string_view name) &;
 
   /// Merges components from `other` into `*this`.
   ComponentList& AppendComponentList(ComponentList&& other) &;
@@ -176,9 +177,9 @@ ComponentList& ComponentList::Append() & {
 }
 
 template <typename Component>
-ComponentList& ComponentList::Append(std::string name) & {
+ComponentList& ComponentList::Append(std::string_view name) & {
   using Adder = impl::ComponentAdder<Component>;
-  auto adder = std::make_unique<const Adder>(std::move(name));
+  auto adder = std::make_unique<const Adder>(std::string{name});
   return Append(std::move(adder));
 }
 
