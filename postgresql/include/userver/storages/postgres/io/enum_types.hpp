@@ -56,6 +56,10 @@ struct EnumMappingBase {
   using EnumeratorList = const std::initializer_list<Enumerator>;
 };
 
+/// An enumerators type that uses `Parse` and `ToString` functions for
+/// convertions.
+struct Codegen {};
+
 namespace detail {
 
 template <typename Enum, typename Enable = USERVER_NAMESPACE::utils::void_t<>>
@@ -158,6 +162,20 @@ class EnumerationMap<Enum, const USERVER_NAMESPACE::utils::TrivialBiMap<Func>> {
     auto literal = enumerators.TryFind(enumerator);
     if (literal.has_value()) return *literal;
     throw InvalidEnumerationValue{enumerator};
+  }
+};
+
+template <typename Enum>
+class EnumerationMap<Enum, const Codegen> {
+  using EnumType = Enum;
+  using MappingType = CppToUserPg<EnumType>;
+
+ public:
+  static EnumType GetEnumerator(std::string_view literal) {
+    return Parse(literal, formats::parse::To<Enum>{});
+  }
+  static std::string GetLiteral(EnumType enumerator) {
+    return ToString(enumerator);
   }
 };
 
