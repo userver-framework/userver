@@ -1,4 +1,4 @@
-#include "test_utils.hpp"
+#include "utils_kafkatest.hpp"
 
 #include <algorithm>
 #include <tuple>
@@ -13,10 +13,32 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
+constexpr const char* kTestsuiteKafkaServerHost{"TESTSUITE_KAFKA_SERVER_HOST"};
+constexpr const char* kDefaultKafkaServerHost{"localhost"};
+constexpr const char* kTestsuiteKafkaServerPort{"TESTSUITE_KAFKA_SERVER_PORT"};
+constexpr const char* kDefaultKafkaServerPort{"9099"};
+constexpr const char* kRecipeKafkaBrokersList{"KAFKA_RECIPE_BROKER_LIST"};
+
 std::string FetchBrokerList() {
   const auto env = engine::subprocess::GetCurrentEnvironmentVariablesPtr();
 
-  return env->GetValue("KAFKA_RECIPE_BROKER_LIST");
+  if (const auto* brokers_list =
+          env->GetValueOptional(kRecipeKafkaBrokersList)) {
+    return *brokers_list;
+  }
+
+  std::string server_host{kDefaultKafkaServerHost};
+  std::string server_port{kDefaultKafkaServerPort};
+
+  const auto* host = env->GetValueOptional(kTestsuiteKafkaServerHost);
+  if (host) {
+    server_port = *host;
+  }
+  const auto* port = env->GetValueOptional(kTestsuiteKafkaServerPort);
+  if (port) {
+    server_port = *port;
+  }
+  return fmt::format("{}:{}", server_host, server_port);
 }
 
 kafka::impl::Secret MakeSecrets(std::string_view bootstrap_servers) {
@@ -36,7 +58,7 @@ bool operator==(const Message& lhs, const Message& rhs) {
 KafkaCluster::KafkaCluster() : bootstrap_servers_(FetchBrokerList()) {}
 
 std::string KafkaCluster::GenerateTopic() {
-  return fmt::format("test-topic-{}", topics_count_.fetch_add(1));
+  return fmt::format("tt-{}", topics_count_.fetch_add(1));
 }
 
 std::vector<std::string> KafkaCluster::GenerateTopics(std::size_t count) {

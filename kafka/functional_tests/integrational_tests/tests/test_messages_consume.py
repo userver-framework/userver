@@ -1,3 +1,6 @@
+from typing import Dict
+from typing import List
+
 from common import generate_messages_to_consume
 
 from utils import consume
@@ -16,7 +19,7 @@ async def test_consume_one_message_one_topic(
 
     await service_client.enable_testpoints()
 
-    await kafka_producer.produce(TOPIC1, 'test-key', 'test-value')
+    await kafka_producer.send(TOPIC1, 'test-key', 'test-value')
 
     await received_messages_func.wait_call()
 
@@ -38,13 +41,13 @@ async def test_consume_many_messages_many_topics(
     await service_client.enable_testpoints()
 
     topics = [TOPIC1, TOPIC2]
-    messages: dict[str, list[dict[str, str]]] = generate_messages_to_consume(
+    messages: Dict[str, List[Dict[str, str]]] = generate_messages_to_consume(
         topics=topics, cnt=15,
     )
 
     for topic in topics:
         for message in messages[topic]:
-            await kafka_producer.produce(
+            await kafka_producer.send(
                 message['topic'], message['key'], message['payload'],
             )
 

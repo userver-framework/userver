@@ -49,8 +49,8 @@ async def test_rebalance_after_failure(
     await first_consumer_subscribed.wait_call()
     await second_consumer_subscribed.wait_call()
 
-    await kafka_producer.produce(TOPIC, 'key-1', 'message-1', 0)
-    await kafka_producer.produce(TOPIC, 'key-2', 'message-2', 1)
+    await kafka_producer.send(TOPIC, 'key-1', 'message-1', 0)
+    await kafka_producer.send(TOPIC, 'key-2', 'message-2', 1)
 
     await first_consumer_received.wait_call()
     await second_consumer_received.wait_call()
@@ -70,7 +70,7 @@ async def test_rebalance_after_failure(
         f'Second consumer was subscribed to {second_consumer_partition} partition',
     )
 
-    await kafka_producer.produce(
+    await kafka_producer.send(
         TOPIC, 'key-3', MESSAGE_TO_FAIL, second_consumer_partition,
     )
     await second_consumer_polled.wait_call()
@@ -82,7 +82,7 @@ async def test_rebalance_after_failure(
     await first_consumer_subscribed.wait_call()
     await first_consumer_subscribed.wait_call()
 
-    await kafka_producer.produce(
+    await kafka_producer.send(
         TOPIC, 'key-4', 'message-4', second_consumer_partition,
     )
     await first_consumer_received.wait_call()
@@ -124,8 +124,8 @@ async def test_message_reprocessed_after_failure(
     await second_consumer_subscribed.wait_call()
     await second_consumer_subscribed.wait_call()
 
-    await kafka_producer.produce(TOPIC, 'key-1', 'message-1', 0)
-    await kafka_producer.produce(TOPIC, 'key-2', 'message-2', 1)
+    await kafka_producer.send(TOPIC, 'key-1', 'message-1', 0)
+    await kafka_producer.send(TOPIC, 'key-2', 'message-2', 1)
 
     await second_consumer_received.wait_call()
     await second_consumer_received.wait_call()
@@ -135,7 +135,7 @@ async def test_message_reprocessed_after_failure(
     )
     assert len(second_consumer_messages) == 2
 
-    await kafka_producer.produce(TOPIC, 'key-3', MESSAGE_TO_FAIL, 0)
+    await kafka_producer.send(TOPIC, 'key-3', MESSAGE_TO_FAIL, 0)
     await second_consumer_polled.wait_call()
     await second_consumer_failed.wait_call()
 

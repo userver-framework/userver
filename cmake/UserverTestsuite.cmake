@@ -114,6 +114,10 @@ function(userver_testsuite_requirements)
     list(APPEND testsuite_modules rabbitmq)
   endif()
 
+  if(USERVER_FEATURE_KAFKA OR TARGET userver::kafka)
+    list(APPEND testsuite_modules kafka)
+  endif()
+
   if(USERVER_FEATURE_MYSQL OR TARGET userver::mysql)
     list(APPEND testsuite_modules mysql)
   endif()

@@ -195,8 +195,8 @@ void ConsumerImpl::ErrorCallback(rd_kafka_resp_err_t error, const char* reason,
   span.AddTag("kafka_callback", "error_callback");
 
   LOG(is_fatal ? logging::Level::kCritical : logging::Level::kError)
-      << fmt::format("Error {} occurred because of '{}': {}", error, reason,
-                     rd_kafka_err2str(error));
+      << fmt::format("Error {} occurred because of '{}': {}",
+                     static_cast<int>(error), reason, rd_kafka_err2str(error));
 
   if (error == RD_KAFKA_RESP_ERR__RESOLVE ||
       error == RD_KAFKA_RESP_ERR__TRANSPORT ||

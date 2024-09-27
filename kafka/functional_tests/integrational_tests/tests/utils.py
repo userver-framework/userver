@@ -1,5 +1,7 @@
 import logging
 from typing import Awaitable
+from typing import Dict
+from typing import List
 
 CONSUME_BASE_ROUTE = '/consume'
 PRODUCE_ROUTE = '/produce'
@@ -13,7 +15,7 @@ def _producer_num_to_name(producer_num: int) -> str:
 
 def make_producer_request_body(
     producer_num: int, topic: str, key: str, message: str,
-) -> dict[str, str]:
+) -> Dict[str, str]:
     return {
         'producer': _producer_num_to_name(producer_num),
         'topic': topic,
@@ -44,7 +46,7 @@ async def produce(
 
 
 async def produce_batch(
-    service_client, requests: list[dict[str, str]],
+    service_client, requests: List[Dict[str, str]],
 ) -> Awaitable[None]:
     response = await service_client.post(PRODUCE_ROUTE, json=requests)
 
@@ -55,7 +57,7 @@ async def produce_batch(
 
 async def consume(
     service_client, topic: str,
-) -> dict[str, list[dict[str, str]]]:
+) -> Dict[str, List[Dict[str, str]]]:
     response = await service_client.post(f'{CONSUME_BASE_ROUTE}/{topic}')
 
     assert response.status_code == 200
@@ -64,7 +66,7 @@ async def consume(
 
 
 async def consume_topic_messages(
-    service_client, topic: str, messages: list[dict[str, str]],
+    service_client, topic: str, messages: List[Dict[str, str]],
 ) -> Awaitable[None]:
     consumed = await consume(service_client, topic)
 

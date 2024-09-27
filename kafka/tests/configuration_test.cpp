@@ -1,4 +1,4 @@
-#include "test_utils.hpp"
+#include "utils_kafkatest.hpp"
 
 #include <optional>
 
