@@ -102,6 +102,11 @@ if (USERVER_FEATURE_RABBITMQ)
   add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-rabbitmq_service)
 endif()
 
+if (USERVER_FEATURE_KAFKA)
+  add_subdirectory(kafka_service)
+  add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-kafka_service)
+endif()
+
 if (USERVER_FEATURE_MYSQL)
   add_subdirectory(mysql_service)
   add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-mysql_service)
