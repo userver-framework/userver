@@ -86,8 +86,6 @@ LoggerComponent::LoggerComponent(const components::ComponentConfig& config,
     }
   }
 
-  UASSERT(dynamic_cast<logging::impl::MemLogger*>(&old_logger_));
-
   logger_->SetDefaultLogger(default_logger);
 
   logging::impl::SetDefaultLoggerRef(*logger_);
