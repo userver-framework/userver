@@ -36,11 +36,11 @@ timestamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%
 with open(printers_script, "r") as script:
     bytecode = compile(script.read(), printers_script, "exec")
     marshalized = f"{marshal.dumps(bytecode)}"
-    string_len = 60
-    marshalized = "\n" + "\n".join(
-        marshalized[i : i + string_len]
-        for i in range(0, len(marshalized) - string_len, string_len)
-    )
+    # string_len = 60
+    # marshalized = "\n" + "\n".join(
+    #     marshalized[i : i + string_len]
+    #     for i in range(0, len(marshalized) - string_len, string_len)
+    # )
     print(marshalized)
     new_script = f"import marshal\nexec(marshal.loads({marshalized}))".split("\n")
 

@@ -1,4 +1,4 @@
-from pretty_printers.formats.json import rapidjson_constants as constants
+from pretty_printers.formats.json import rapidjson_constants as Constants
 
 
 def rj_get_pointer(ptr, rj_type):
@@ -8,7 +8,7 @@ def rj_get_pointer(ptr, rj_type):
     # @see RAPIDJSON_48BITPOINTER_OPTIMIZATION,
     #      RAPIDJSON_GETPOINTER,
     #      RAPIDJSON_UINT64_C2 at rapidjson/rapidjson.h
-    newptr = int(ptr) & constants.RJ_UINT64_C2
+    newptr = int(ptr) & Constants.RJ_UINT64_C2
     # just check rj_type is known or throw
     gdb.lookup_type(rj_type)
     return gdb.parse_and_eval(f"({rj_type}*){newptr}\n")
@@ -31,7 +31,7 @@ class RJObjectType(RJBaseType):
         sep = ""
         members = rj_get_pointer(
             data["members"],
-            constants.RJ_GENERIC_MEMBER,
+            Constants.RJ_GENERIC_MEMBER,
         )
         for n in range(sz):
             member = members[n]
@@ -60,7 +60,7 @@ class RJArrayType(RJBaseType):
 
         elements = rj_get_pointer(
             data["elements"],
-            constants.RJ_GENERIC_VALUE,
+            Constants.RJ_GENERIC_VALUE,
         )
         res = "["
         sep = ""
@@ -81,15 +81,15 @@ class RJNumberType(RJBaseType):
 
     def to_string(self):
         data = self._val["data_"]["n"]
-        if self._is(constants.RJFlag_kNumberIntFlag):
+        if self._is(Constants.RJFlag_kNumberIntFlag):
             return data["i"]["i"]
-        if self._is(constants.RJFlag_kNumberUintFlag):
+        if self._is(Constants.RJFlag_kNumberUintFlag):
             return data["u"]["u"]
-        if self._is(constants.RJFlag_kNumberInt64Flag):
+        if self._is(Constants.RJFlag_kNumberInt64Flag):
             return data["i64"]
-        if self._is(constants.RJFlag_kNumberUint64Flag):
+        if self._is(Constants.RJFlag_kNumberUint64Flag):
             return data["u64"]
-        if self._is(constants.RJFlag_kNumberDoubleFlag):
+        if self._is(Constants.RJFlag_kNumberDoubleFlag):
             return data["d"]
         return data
 
@@ -97,7 +97,7 @@ class RJNumberType(RJBaseType):
 class RJStringType(RJBaseType):
     def to_string(self):
         data = self._val["data_"]
-        if (self._flags & constants.RJFlag_kShortStringFlag) != 0:
+        if (self._flags & Constants.RJFlag_kShortStringFlag) != 0:
             # FIXME: support other architectures
             # @see definition of LenPos in rapidjson/document.h
             return '"{0}"'.format(data["ss"]["str"].string())
@@ -106,11 +106,11 @@ class RJStringType(RJBaseType):
 
 class RJBoolType(RJBaseType):
     def to_string(self):
-        if (self._flags & constants.RJFlag_kBoolFlag) == 0:
+        if (self._flags & Constants.RJFlag_kBoolFlag) == 0:
             return "<bad-bool>"
-        if self._flags == constants.RJFlag_kFalseFlag:
+        if self._flags == Constants.RJFlag_kFalseFlag:
             return "false"
-        if self._flags == constants.RJFlag_kTrueFlag:
+        if self._flags == Constants.RJFlag_kTrueFlag:
             return "true"
         return self._val
 
@@ -121,18 +121,18 @@ class RJNullType(RJBaseType):
 
 
 def rj_get_type(flags):
-    if flags == constants.RJFlag_kArrayFlag:
+    if flags == Constants.RJFlag_kArrayFlag:
         return RJArrayType
-    if flags == constants.RJFlag_kObjectFlag:
+    if flags == Constants.RJFlag_kObjectFlag:
         return RJObjectType
 
-    if (flags & constants.RJFlag_kNumberFlag) == constants.RJFlag_kNumberFlag:
+    if (flags & Constants.RJFlag_kNumberFlag) == Constants.RJFlag_kNumberFlag:
         return RJNumberType
-    if (flags & constants.RJFlag_kStringFlag) == constants.RJFlag_kStringFlag:
+    if (flags & Constants.RJFlag_kStringFlag) == Constants.RJFlag_kStringFlag:
         return RJStringType
-    if (flags & constants.RJFlag_kBoolFlag) == constants.RJFlag_kBoolFlag:
+    if (flags & Constants.RJFlag_kBoolFlag) == Constants.RJFlag_kBoolFlag:
         return RJBoolType
-    if flags == constants.RJFlag_kNullFlag:
+    if flags == Constants.RJFlag_kNullFlag:
         return RJNullType
 
     raise Exception(
