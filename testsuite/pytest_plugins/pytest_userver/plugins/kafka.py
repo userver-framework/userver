@@ -17,8 +17,8 @@ pytest_plugins = [
 
 
 @pytest.fixture(scope='session')
-def bootstrap_servers() -> BootstrapServers:
-    """Used for internal testing"""
+def _patched_bootstrap_servers_internal() -> BootstrapServers:
+    """Used for internal testing purposes"""
 
     brokers_list = os.getenv('KAFKA_RECIPE_BROKER_LIST')
     if brokers_list:
@@ -29,6 +29,12 @@ def bootstrap_servers() -> BootstrapServers:
 
 @pytest.fixture(scope='session')
 def kafka_secdist(_bootstrap_servers, service_config) -> str:
+    """
+    Automatically generates secdist config from user static config.
+    _bootstrap_servers is testsuite's fixture that determines current
+    bootstrap servers list depends on Kafka testsuite plugin's settings.
+    """
+
     single_setting = {
         'brokers': _bootstrap_servers,
         'username': '',

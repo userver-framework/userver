@@ -8,8 +8,8 @@ pytest_plugins = ['pytest_userver.plugins.kafka']
 
 
 @pytest.fixture(scope='session')
-def kafka_local(bootstrap_servers):
-    return bootstrap_servers
+def kafka_local(_patched_bootstrap_servers_internal):
+    return _patched_bootstrap_servers_internal
 
 
 @pytest.fixture(scope='session')

@@ -1,0 +1,72 @@
+components_manager:
+    task_processors:              # Task processor is an executor for coroutine tasks
+        main-task-processor:      # Make a task processor for CPU-bound coroutine tasks.
+            worker_threads: 4     # Process tasks in 4 threads.
+        fs-task-processor:        # Make a separate task processor for filesystem bound tasks.
+            worker_threads: 4
+        consumer-task-processor:  # Task processor for listenting messages from topics
+            thread_name: consumer
+            worker_threads: 1     # Threads are shared between all consumers in program
+        producer-task-processor:  # Task processor for handling message delivery reports
+            thread_name: producer
+            worker_threads: 4     # Threads are shared between all producers in program
+    default_task_processor: main-task-processor # Task processor in which components start.
+
+    components:                   # Configuring components that were registered via component_list
+        producer-handler:
+            path: /produce                      # Registering handler by URL '/produce'.
+            method: POST                        # POST requests only.
+            task_processor: main-task-processor # Run it on CPU bound task processor
+
+        consumer-handler:
+
+        # /// [Kafka service sample - consumer static config]
+        # yaml
+        kafka-consumer:                  # Kafka consumer component name must start with kafka-consumer
+            group_id: test-group         # Consumers group current consumer will join on start
+            topics:                      # List of topics consumer starts to listen
+              - test-topic-1
+              - test-topic-2
+            auto_offset_reset: smallest  # Strategy for reading topics without committed offsets
+            max_batch_size: 5            # Number of messages consumers waits until user-callback is called
+            security_protocol: PLAINTEXT # Broker connection settings
+        # /// [Kafka service sample - consumer static config]
+
+        # /// [Kafka service sample - producer static config]
+        # yaml
+        kafka-producer:                   # Kafka producer component name must start with kafka-consumer
+            delivery_timeout: 10s         # Timeout for message delivery
+            queue_buffering_max: 100ms    # Time, producer waits before sending a message
+            enable_idempotence: true      # Whether to enable idempotence mode
+            security_protocol: PLAINTEXT  # Broker connection settings
+        # /// [Kafka service sample - producer static config]
+
+        http-client:
+            fs-task-processor: main-task-processor
+
+        testsuite-support:
+        tests-control:
+            method: POST
+            path: /tests/{action}
+            task_processor: main-task-processor
+
+        secdist: {}                                      # Component that stores configuration of hosts and passwords
+        default-secdist-provider:                        # Component that loads configuration of hosts and passwords
+            config: /etc/kafka_service/secure_data.json  # Values are supposed to be stored in this file
+            missing-ok: true                             # ... but if the file is missing it is still ok
+            environment-secrets-key: SECDIST_CONFIG      # ... values will be loaded from this environment value
+
+        server:
+            listener:                               # Configuring the main listening socket...
+                port: 8187                          # ...to listen on this port and...
+                task_processor: main-task-processor # ...process incoming requests on this task processor.
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: "@stderr"
+                    level: debug
+                    overflow_behavior: discard     # Drop logs if the system is too busy to write them down.
+
+        dns-client:
+            fs-task-processor: fs-task-processor

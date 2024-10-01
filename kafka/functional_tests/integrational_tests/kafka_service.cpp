@@ -183,7 +183,6 @@ bool IsCorrectRequest(const formats::json::Value& request_json) {
 
 }  // namespace
 
-/// [Kafka service sample - consumer usage]
 HandlerKafkaConsumer::HandlerKafkaConsumer(
     const components::ComponentConfig& config,
     const components::ComponentContext& context)
@@ -196,7 +195,6 @@ HandlerKafkaConsumer::HandlerKafkaConsumer(
     consumer_.AsyncCommit();
   });
 }
-/// [Kafka service sample - consumer usage]
 
 formats::json::Value HandlerKafkaConsumer::HandleRequestJsonThrow(
     const server::http::HttpRequest& request,

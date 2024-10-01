@@ -26,8 +26,6 @@ components_manager:
             task_processor: main-task-processor
             method: POST
 
-        # /// [Kafka service sample - consumer static config]
-        # yaml
         kafka-consumer:
             group_id: test-group
             topics:
@@ -43,10 +41,7 @@ components_manager:
             rd_kafka_custom_options:
                 session.timeout.ms: 77000
                 fetch.wait.max.ms: 1000
-        # /// [Kafka service sample - consumer static config]
 
-        # /// [Kafka service sample - producer static config]
-        # yaml
         kafka-producer-first:
             delivery_timeout: 3000ms
             queue_buffering_max: 100ms
@@ -54,7 +49,6 @@ components_manager:
             security_protocol: PLAINTEXT
             rd_kafka_custom_options:
                 enable.gapless.guarantee: true
-        # /// [Kafka service sample - producer static config]
 
         kafka-producer-second:
             client_id: test-client

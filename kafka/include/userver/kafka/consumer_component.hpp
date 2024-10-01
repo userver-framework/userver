@@ -26,14 +26,14 @@ class Consumer;
 ///
 /// ## Static configuration example:
 ///
-/// @snippet kafka/functional_tests/integrational_tests/static_config.yaml  Kafka service sample - consumer static config
+/// @snippet samples/kafka_service/static_config.yaml  Kafka service sample - consumer static config
 ///
 /// ## Secdist format
 ///
 /// A Kafka alias in secdist is described as a JSON object
 /// `kafka_settings`, containing credentials of Kafka brokers.
 ///
-/// @snippet kafka/functional_tests/integrational_tests/tests/conftest.py  Kafka service sample - secdist
+/// @snippet samples/kafka_service/testsuite/conftest.py  Kafka service sample - secdist
 ///
 /// ## Static options:
 /// Name                               | Description                                      | Default value

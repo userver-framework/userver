@@ -27,7 +27,7 @@ class Consumer;
 ///
 /// Common usage:
 ///
-/// @snippet kafka/functional_tests/integrational_tests/kafka_service.cpp  Kafka service sample - consumer usage
+/// @snippet samples/kafka_service/main.cpp  Kafka service sample - consumer usage
 ///
 /// ## Important implementation details
 ///
