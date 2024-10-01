@@ -99,7 +99,7 @@ def rj_get_pointer(ptr, rj_type):
 
 
 class RJBaseType:
-    def __init__(self, val, flags):
+    def __init__(self, val: gdb.Value, flags: gdb.Value):
         self.val = val
         self.flags = flags
 
@@ -113,24 +113,21 @@ class RJObjectType(RJBaseType):
             data["members"],
             Constants.RJ_GENERIC_MEMBER,
         )
+        if self.size:
+            self.children = self.children_impl
 
-    def children(self):
-        try:
-            for i in range(self.size):
-                member = self.members[i]
-                name, value = member["name"], member["value"]
-                name_flags = name["data_"]["f"]["flags"]
-                tname = rj_get_type(name_flags)
-                pname = tname(name, name_flags)
-                yield (pname.to_string(), value)
-        except Exception as e:
-            traceback.print_exc()
-    
-    # def display_hint(self):
-    #     return "map"
+    def children_impl(self):
+        for i in range(self.size):
+            member = self.members[i]
+            name, value = member["name"], member["value"]
+            yield (f"[{i * 2}]", name)
+            yield (f"[{i * 2 + 1}]", value)
+
+    def display_hint(self):
+        return "map"
 
     def to_string(self):
-        return "object"
+        return f"object of size {self.size}"
 
 
 class RJArrayType(RJBaseType):
@@ -145,17 +142,13 @@ class RJArrayType(RJBaseType):
 
     def children(self):
         for i in range(self.size):
-            elem = self.elements[i]
-            # value_flags = elem["data_"]["f"]["flags"]
-            # tvalue = rj_get_type(value_flags)
-            # pvalue = tvalue(elem, value_flags)
-            yield (f"[{i}]", elem)
+            yield (f"[{i}]", self.elements[i])
 
     def display_hint(self):
         return "array"
 
     def to_string(self):
-        return "array"
+        return f"array of size {self.size}"
 
 
 class RJNumberType(RJBaseType):
@@ -165,17 +158,17 @@ class RJNumberType(RJBaseType):
     def to_string(self):
         data = self.val["data_"]["n"]
         if self._is(Constants.RJFlag_kNumberIntFlag):
-            res =  data["i"]["i"]
+            res = data["i"]["i"]
         elif self._is(Constants.RJFlag_kNumberUintFlag):
-            res =  data["u"]["u"]
+            res = data["u"]["u"]
         elif self._is(Constants.RJFlag_kNumberInt64Flag):
-            res =  data["i64"]
+            res = data["i64"]
         elif self._is(Constants.RJFlag_kNumberUint64Flag):
-            res =  data["u64"]
+            res = data["u64"]
         elif self._is(Constants.RJFlag_kNumberDoubleFlag):
-            res =  data["d"]
+            res = data["d"]
         else:
-            res =  data
+            res = data
         return str(res)
 
 
@@ -188,8 +181,8 @@ class RJStringType(RJBaseType):
         if (self.flags & Constants.RJFlag_kShortStringFlag) != 0:
             # FIXME: support other architectures
             # @see definition of LenPos in rapidjson/document.h
-            return '"{0}"'.format(data["ss"]["str"].string())
-        return '"{0}"'.format(data["s"]["str"].string())
+            return data["ss"]["str"].string()
+        return data["s"]["str"].string()
 
 
 class RJBoolType(RJBaseType):
@@ -213,7 +206,6 @@ def rj_get_type(flags):
         return RJArrayType
     if flags == Constants.RJFlag_kObjectFlag:
         return RJObjectType
-
     if (flags & Constants.RJFlag_kNumberFlag) == Constants.RJFlag_kNumberFlag:
         return RJNumberType
     if (flags & Constants.RJFlag_kStringFlag) == Constants.RJFlag_kStringFlag:
@@ -222,49 +214,37 @@ def rj_get_type(flags):
         return RJBoolType
     if flags == Constants.RJFlag_kNullFlag:
         return RJNullType
-
     raise Exception(
         f"Unsupported rapidjson flag assigning to type: {flags}",
     )
 
-import traceback
 
 class RapidJsonValue:
     "Print rapidjson::Value"
+
     def __init__(self, val: gdb.Value):
         flags = val["data_"]["f"]["flags"]
         data_type = rj_get_type(flags)
         self.data = data_type(val, flags)
+        if hasattr(self.data, "to_string"):
+            self.to_string = self.data.to_string
+        if hasattr(self.data, "display_hint"):
+            self.display_hint = self.data.display_hint
+        if hasattr(self.data, "children"):
+            self.children = self.data.children
 
-    def to_string(self):
-        return self.data.to_string()
-
-    def display_hint(self):
-        try:
-            return self.data.display_hint()
-        except AttributeError:
-            return None
-    
-    def children(self):
-        try:
-            return self.data.children()
-        except AttributeError:
-            return iter(())
 
 class FormatsJsonValue:
     "Print formats::json::Value"
 
     def __init__(self, val: gdb.Value):
         self.value = val["value_ptr_"]
-        
+
     def to_string(self):
         return "formats::json::Value"
-    
+
     def children(self):
-        yield ("value", self.value.dereference())
-        
-    # def display_hint(self):
-        # return "map"
+        yield ("value", self.value.dereference() if self.value else None)
 
 
 def register_json_printers(pp_collection: gdb.printing.RegexpCollectionPrettyPrinter):
@@ -284,16 +264,3 @@ if __name__ == "__main__":
     pp = gdb.printing.RegexpCollectionPrettyPrinter("userver")
     register_json_printers(pp)
     gdb.printing.register_pretty_printer(gdb.current_objfile(), pp)
-
-# (
-#     {
-#         "a": [1, {}],
-#         "b": [True, False],
-#         "c": {"internal": {"subkey": 2}},
-#         "i": -1,
-#         "u": 1,
-#         "i64": -18446744073709551614,
-#         "u64": 18446744073709551614,
-#         "d": 0.4,
-#     }
-# )
