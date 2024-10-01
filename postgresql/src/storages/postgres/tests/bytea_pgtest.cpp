@@ -28,6 +28,8 @@ const pg::UserTypes types;
 
 const std::string kFooBar = "foo\0bar"s;
 
+using TestByteaWrapper = pg::ByteaWrapper<std::vector<unsigned char>>;
+
 TEST(PostgreIO, Bytea) {
   {
     pg::test::Buffer buffer;
@@ -159,6 +161,23 @@ UTEST_P(PostgreConnection, ByteaRoundTripTypes) {
     EXPECT_EQ(received, bin_str);
     /// [bytea_vector]
   }
+}
+
+UTEST_P(PostgreConnection, ByteaWrapperRowType) {
+  CheckConnection(GetConn());
+
+  const auto res = GetConn()->Execute("select 'foobar'::bytea");
+  const auto parsed = [&res]() {
+    if constexpr (tt::kIsRowType<TestByteaWrapper>) {
+      return res.AsContainer<std::vector<TestByteaWrapper>>(pg::kRowTag);
+    }
+    return res.AsContainer<std::vector<TestByteaWrapper>>();
+  }();
+
+  EXPECT_EQ(parsed.size(), 1);
+
+  const std::vector<unsigned char> kExpected{'f', 'o', 'o', 'b', 'a', 'r'};
+  EXPECT_EQ(parsed.front().bytes, kExpected);
 }
 
 }  // namespace

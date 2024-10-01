@@ -91,6 +91,8 @@ template <typename ByteContainer>
 struct ByteaWrapper {
   using BytesType = std::decay_t<ByteContainer>;
 
+  constexpr static bool kIsPostgresBuildInTypeWrapper = true;
+
   static_assert(
       io::traits::kIsByteaCompatible<BytesType>,
       "This C++ type cannot be used with PostgreSQL `bytea` data type");

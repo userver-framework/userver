@@ -78,6 +78,23 @@ namespace detail {
 
 struct ForDeserializationTag;
 
+template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
+struct IsPostgresBuildInTypeWrapper : std::false_type {};
+
+template <typename T>
+struct IsPostgresBuildInTypeWrapper<
+    T, USERVER_NAMESPACE::utils::void_t<
+           decltype(T::kIsPostgresBuildInTypeWrapper)>>
+    : std::integral_constant<const bool, T::kIsPostgresBuildInTypeWrapper> {
+  static_assert(
+      std::is_same_v<decltype(T::kIsPostgresBuildInTypeWrapper), const bool>,
+      "kIsPostgresBuildInTypeWrapper must be bool");
+};
+
+template <typename T>
+inline constexpr bool kIsPostgresBuildInTypeWrapper =
+    IsPostgresBuildInTypeWrapper<T>::value;
+
 template <typename T>
 constexpr bool DetectIsSuitableRowType() {
   using type = std::remove_cv_t<T>;
@@ -86,7 +103,8 @@ constexpr bool DetectIsSuitableRowType() {
              type, detail::ForDeserializationTag> &&
          !std::is_polymorphic_v<type> && !std::is_union_v<type> &&
          !postgres::detail::kIsInStdNamespace<type> &&
-         !postgres::detail::kIsInBoostNamespace<type>;
+         !postgres::detail::kIsInBoostNamespace<type> &&
+         !detail::kIsPostgresBuildInTypeWrapper<type>;
 }
 
 }  // namespace detail
