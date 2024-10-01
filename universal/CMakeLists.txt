@@ -288,6 +288,11 @@ target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
   ${USERVER_THIRD_PARTY_DIRS}/rapidjson/include
 )
 
+include(${USERVER_ROOT_DIR}/cmake/GenGdbPrinters.cmake)
+gen_gdb_printers(${PROJECT_NAME} "formats/json/printers")
+# gen_gdb_printers(${PROJECT_NAME} "formats/yaml/printers")
+# gen_gdb_printers(${PROJECT_NAME} "utils/fast_pimpl/printers")
+
 _userver_directory_install(COMPONENT universal
   DIRECTORY
     ${CMAKE_CURRENT_SOURCE_DIR}/include
