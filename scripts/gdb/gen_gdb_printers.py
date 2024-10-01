@@ -10,8 +10,8 @@ import marshal
 import zlib
 import base64
 
-if len(sys.argv) < 3 or len(sys.argv) > 5:
-    print(f"{sys.argv[0]} <output.h> <input.py> [protection_macro [disabling_macro]]")
+if len(sys.argv) != 3:
+    print(f"{sys.argv[0]} <output.h> <input.py>")
     sys.exit(1)
 
 printers_header = sys.argv[1]
@@ -20,9 +20,7 @@ protection_macro = (
     printers_header.lstrip("/").replace("/", "_").replace(".", "_").upper()
 )
 
-
 timestamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
-
 
 # Grab the entire script
 with open(printers_script, "r") as script:
@@ -42,7 +40,8 @@ top_matter = f'''
 #pragma once
 
 // NOLINTBEGIN
-#if defined(__ELF__)
+#ifndef NDEBUG
+#ifdef __ELF__
 
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -52,7 +51,7 @@ top_matter = f'''
 __asm__(".pushsection \\".debug_gdb_scripts\\", \\"MS\\",@progbits,1\\n"
         ".ascii \\"\\\\4gdb.inlined-script.{protection_macro}\\\\n\\"\\n"'''
 
-bottom_matter = f'''
+bottom_matter = f"""
         ".byte 0\\n"
         ".popsection\\n");
 
@@ -60,8 +59,9 @@ bottom_matter = f'''
 #pragma clang diagnostic pop
 #endif
 
-#endif // defined(__ELF__)
-// NOLINTEND'''
+#endif // __ELF__
+#endif // NDEBUG
+// NOLINTEND"""
 
 # Write the inline asm header
 with open(printers_header, "wt") as header:
@@ -72,6 +72,6 @@ with open(printers_header, "wt") as header:
             for line in new_script
         ),
         bottom_matter,
-        sep='\n',
+        sep="\n",
         file=header,
     )
