@@ -1,10 +1,4 @@
-#!/usr/bin/python
-# Copyright 2024 Braden Ganetsky and Niall Douglas
-# Distributed under the Boost Software License, Version 1.0.
-# https://www.boost.org/LICENSE_1_0.txt
-
-import os, sys
-import datetime
+import sys
 import json
 import marshal
 import zlib
@@ -20,8 +14,6 @@ protection_macro = (
     printers_header.lstrip("/").replace("/", "_").replace(".", "_").upper()
 )
 
-timestamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
-
 # Grab the entire script
 with open(printers_script, "r") as script:
     bytecode = compile(script.read(), printers_script, "exec")
@@ -36,11 +28,10 @@ new_script = f"import marshal, zlib, base64\nexec(marshal.loads(zlib.decompress(
 )
 
 top_matter = f'''
-// Auto-generated on {timestamp}. DO NOT EDIT.
+// Auto-generated. DO NOT EDIT.
 #pragma once
 
 // NOLINTBEGIN
-#ifndef NDEBUG
 #ifdef __ELF__
 
 #ifdef __clang__
@@ -60,7 +51,6 @@ bottom_matter = f"""
 #endif
 
 #endif // __ELF__
-#endif // NDEBUG
 // NOLINTEND"""
 
 # Write the inline asm header

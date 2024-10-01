@@ -32,4 +32,20 @@ function(gen_gdb_printers TARGET STRUCTURE)
   
   # Add the build directory to the target's include directories
   target_include_directories(${TARGET} PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+
+  # Add a custom target to update the .gdbinit file
+  set(GDB_INIT_FILE "$ENV{HOME}/.gdbinit")
+  set(GDB_SAFE_PATH_RECORD "add-auto-load-safe-path ${CMAKE_BINARY_DIR}")
+  set(GDB_INIT_STAMP ${CMAKE_BINARY_DIR}/gdbinit_stamp)
+
+  add_custom_command(
+    OUTPUT ${GDB_INIT_STAMP}
+    COMMAND grep -cx ${GDB_SAFE_PATH_RECORD} ${GDB_INIT_FILE} > /dev/null || echo ${GDB_SAFE_PATH_RECORD} >> ${GDB_INIT_FILE}
+    COMMAND ${CMAKE_COMMAND} -E touch ${GDB_INIT_STAMP}
+    COMMENT "Updating ${GDB_INIT_FILE}"
+    VERBATIM
+  )
+
+  add_custom_target(CONFIGURE_GDBINIT ALL DEPENDS ${GDB_INIT_STAMP})
+  add_dependencies(${TARGET} CONFIGURE_GDBINIT)
 endfunction()
