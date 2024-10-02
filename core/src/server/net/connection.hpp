@@ -44,6 +44,7 @@ class Connection final {
 
   void ListenForRequests() noexcept;
   void ProcessRequest(std::shared_ptr<request::RequestBase>&& request_ptr);
+  bool WaitOnSocket(engine::Deadline deadline);
 
   engine::TaskWithResult<void> HandleQueueItem(
       const std::shared_ptr<request::RequestBase>& request) noexcept;
@@ -63,6 +64,7 @@ class Connection final {
   const std::shared_ptr<Stats> stats_;
   request::ResponseDataAccounter& data_accounter_;
   std::unique_ptr<request::RequestParser> parser_{nullptr};
+  bool is_http2_parser_{false};
 
   using RequestBasePtr = std::shared_ptr<request::RequestBase>;
   std::vector<RequestBasePtr> pending_requests_;

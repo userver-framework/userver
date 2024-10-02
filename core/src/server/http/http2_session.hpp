@@ -3,14 +3,15 @@
 #include <nghttp2/nghttp2.h>
 #include <boost/pool/object_pool.hpp>
 
+#include <server/http/http2_stream.hpp>
 #include <server/http/http2_writer.hpp>
 #include <server/http/http_request_constructor.hpp>
 #include <server/net/stats.hpp>
 #include <server/request/request_parser.hpp>
 
 #include <userver/engine/io/socket.hpp>
+#include <userver/engine/single_consumer_event.hpp>
 #include <userver/server/request/request_config.hpp>
-#include <userver/utils/small_string.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -28,24 +29,6 @@ inline constexpr std::string_view kSwitchingProtocolResponse{
 // See docs:
 // https://nghttp2.org/documentation/nghttp2_session_upgrade2.html#nghttp2-session-upgrade2
 inline constexpr std::size_t kStreamIdAfterUpgradeResponse = 1;
-// So usually the standard frame size is 16384 bytes
-inline constexpr std::size_t kDefaultStringBufferSize = 1 << 14;
-
-struct Stream final {
-  using StreamId = std::int32_t;
-
-  Stream(HttpRequestConstructor::Config config,
-         const HandlerInfoIndex& handler_info_index,
-         request::ResponseDataAccounter& data_accounter,
-         engine::io::Sockaddr remote_address, StreamId id);
-
-  bool CheckUrlComplete();
-
-  bool url_complete{false};
-  HttpRequestConstructor constructor;
-  const StreamId id;
-  std::optional<DataBufferSender> data_buffer_sender;
-};
 
 class HttpRequestParser;
 
@@ -73,19 +56,25 @@ class Http2Session final : public request::RequestParser {
 
   void UpgradeToHttp2(std::string_view client_magic);
 
+  engine::SingleConsumerEvent& GetStreamingEvent();
+
+  void WriteWhileWant();
+  void HandleStreamingEvents();
+
  private:
   static int OnFrameRecv(nghttp2_session* session, const nghttp2_frame* frame,
                          void* user_data);
 
-  static int OnHeader(nghttp2_session* session, const nghttp2_frame* frame,
-                      const uint8_t* name, size_t namelen, const uint8_t* value,
-                      size_t valuelen, uint8_t flags, void* user_data);
-
-  static int OnStreamClose(nghttp2_session* session, int32_t stream_id,
-                           uint32_t error_code, void* user_data);
+  static int OnDataFrameSend(nghttp2_session* session, nghttp2_frame* frame,
+                             const uint8_t* framehd, size_t length,
+                             nghttp2_data_source* source, void* user_data);
 
   static int OnBeginHeaders(nghttp2_session* session,
                             const nghttp2_frame* frame, void* user_data);
+
+  static int OnHeader(nghttp2_session* session, const nghttp2_frame* frame,
+                      const uint8_t* name, size_t namelen, const uint8_t* value,
+                      size_t valuelen, uint8_t flags, void* user_data);
 
   static int OnDataChunkRecv(nghttp2_session* session, uint8_t flags,
                              int32_t stream_id, const uint8_t* data, size_t len,
@@ -94,9 +83,8 @@ class Http2Session final : public request::RequestParser {
   static long OnSend(nghttp2_session* session, const uint8_t* data,
                      size_t length, int flags, void* user_data);
 
-  static int OnDataFrameSend(nghttp2_session* session, nghttp2_frame* frame,
-                             const uint8_t* framehd, size_t length,
-                             nghttp2_data_source* source, void* user_data);
+  static int OnStreamClose(nghttp2_session* session, int32_t stream_id,
+                           uint32_t error_code, void* user_data);
 
   void RegisterStream(Stream::StreamId id);
   void RemoveStream(Stream& id);
@@ -127,6 +115,10 @@ class Http2Session final : public request::RequestParser {
   net::ParserStats& stats_;
   engine::io::Sockaddr remote_address_;
   engine::io::RwBase* socket_;
+
+  std::shared_ptr<impl::Http2StreamEventQueue> streaming_queue_{nullptr};
+  engine::SingleConsumerEvent streaming_event_;
+  impl::Http2StreamEventQueue::Consumer streaming_consumer_;
 };
 
 }  // namespace server::http

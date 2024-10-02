@@ -8,10 +8,43 @@
 #include <string>
 #include <unordered_map>
 
+#include <userver/concurrent/queue.hpp>
 #include <userver/concurrent/striped_counter.hpp>
+#include <userver/engine/single_consumer_event.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+/// @cond
+// TODO: server internals. remove from a public interface
+namespace server::http::impl {
+
+struct Http2StreamEvent {
+  std::int32_t stream_id{-1};
+  std::string body_part{};
+  bool is_end{false};
+};
+
+// The order is fifo in the context of a single producer. So we are tolerant to
+// reordering between producers
+using Http2StreamEventQueue = concurrent::NonFifoMpscQueue<Http2StreamEvent>;
+
+class Http2StreamEventProducer final {
+ public:
+  Http2StreamEventProducer(Http2StreamEventQueue& queue,
+                           engine::SingleConsumerEvent& event);
+
+  void PushEvent(Http2StreamEvent event, engine::Deadline deadline = {});
+
+  void CloseStream(std::int32_t id);
+
+ private:
+  Http2StreamEventQueue::Producer producer_;
+  engine::SingleConsumerEvent& event_;
+};
+
+}  // namespace server::http::impl
+/// @endcond
 
 namespace engine::io {
 class RwBase;
@@ -52,14 +85,14 @@ class ResponseBase {
 
   void SetData(std::string data);
   const std::string& GetData() const { return data_; }
-  std::string&& MoveData() { return std::move(data_); }
+  std::string&& ExtractData() { return std::move(data_); }
 
   virtual bool IsBodyStreamed() const = 0;
   virtual bool WaitForHeadersEnd() = 0;
   virtual void SetHeadersEnd() = 0;
 
   /// @cond
-  // TODO: server internals. remove from public interface
+  // TODO: server internals. remove from a public interface
   void SetReady();
   void SetReady(std::chrono::steady_clock::time_point now);
   virtual void SetSendFailed(
@@ -73,13 +106,17 @@ class ResponseBase {
     return ready_time_;
   }
   std::chrono::steady_clock::time_point SentTime() const { return sent_time_; }
-  std::optional<std::uint32_t> GetStreamId() const { return stream_id_; }
-  void SetStreamId(std::uint32_t stream_id);
   virtual void SendResponse(engine::io::RwBase& socket) = 0;
 
   virtual void SetStatusServiceUnavailable() = 0;
   virtual void SetStatusOk() = 0;
   virtual void SetStatusNotFound() = 0;
+
+  // HTTP/2.0 only
+  void SetStreamId(std::int32_t stream_id);
+  std::optional<std::int32_t> GetStreamId() const { return stream_id_; }
+  void SetStreamProdicer(http::impl::Http2StreamEventProducer&& producer);
+  http::impl::Http2StreamEventProducer GetStreamProducer();
   /// @endcond
 
  protected:
@@ -115,7 +152,8 @@ class ResponseBase {
   size_t bytes_sent_ = 0;
   bool is_ready_ = false;
   bool is_sent_ = false;
-  std::optional<std::uint32_t> stream_id_;
+  std::optional<std::int32_t> stream_id_;
+  std::optional<http::impl::Http2StreamEventProducer> producer_{};
 };
 
 }  // namespace server::request

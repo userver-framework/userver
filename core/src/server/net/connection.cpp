@@ -98,40 +98,9 @@ void Connection::ListenForRequests() noexcept {
       auto deadline = engine::Deadline::FromDuration(config_.keepalive_timeout);
 
       if (pending_data_size_ == 0) {
-        bool is_readable = true;
-        // If we didn't fill the buffer in the previous loop iteration we almost
-        // certainly will hit EWOULDBLOCK on the subsequent recv syscall from
-        // peer_socket_.RecvSome, which will fall back to event-loop waiting
-        // for socket to become readable, and then issue another recv syscall,
-        // effectively doing
-        // 1. recv (returns -1)
-        // 2. notify event-loop about read interest
-        // 3. recv (return some data)
-        //
-        // So instead we just do 2. and 3., shaving off a whole recv syscall
-        if (pending_data_size_ != pending_data_.size()) {
-          is_readable = peer_socket_->WaitReadable(deadline);
-        }
-
-        pending_data_size_ =
-            is_readable ? peer_socket_->ReadSome(pending_data_.data(),
-                                                 pending_data_.size(), deadline)
-                        : 0;
-        if (!pending_data_size_) {
-          LOG_TRACE() << "Peer " << Getpeername() << " on fd " << Fd()
-                      << " closed connection or the connection timed out";
-
-          // RFC7230 does not specify rules for connections half-closed from
-          // client side. However, section 6 tells us that in most cases
-          // connections are closed after sending/receiving the last response.
-          // See also: https://github.com/httpwg/http-core/issues/22
-          //
-          // It is faster (and probably more efficient) for us to cancel
-          // currently processing and pending requests.
+        if (!WaitOnSocket(deadline)) {
           return;
         }
-        LOG_TRACE() << "Received " << pending_data_size_ << " byte(s) from "
-                    << Getpeername() << " on fd " << Fd();
       }
 
       bool should_stop_accepting_requests = false;
@@ -141,7 +110,7 @@ void Connection::ListenForRequests() noexcept {
         if (parser_ || TryDetectHttpVersion(http_version_buffer, req)) {
           res = parser_->Parse(req);
         } else {
-          // Wait next bytes to detect the version
+          // We have to wait next bytes to detect the version
           res = true;
         }
       } else {  // Pure HTTP/1.1
@@ -181,6 +150,67 @@ void Connection::ListenForRequests() noexcept {
     LOG_ERROR() << "Error while receiving from peer " << Getpeername()
                 << " on fd " << Fd() << ": " << ex;
   }
+}
+
+bool Connection::WaitOnSocket(engine::Deadline deadline) {
+  bool is_readable = true;
+  if (pending_data_size_ != pending_data_.size()) {
+    if (is_http2_parser_) {
+      UASSERT(dynamic_cast<http::Http2Session*>(parser_.get()));
+      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+      auto* session = static_cast<http::Http2Session*>(parser_.get());
+      auto& streaming_event = session->GetStreamingEvent();
+      while (true) {
+        auto notified_event = engine::CriticalAsyncNoSpan([&streaming_event] {
+          [[maybe_unused]] const auto res = streaming_event.WaitForEvent();
+        });
+        const auto indx = engine::WaitAnyUntil(
+            deadline, peer_socket_->GetReadableBase(), notified_event);
+        if (!indx) {
+          return false;
+        }
+        const auto index = indx.value();
+        if (index == 1) {
+          session->HandleStreamingEvents();
+        } else {
+          UASSERT(index == 0);
+          break;
+        }
+      }
+    } else {
+      // If we didn't fill the buffer in the previous loop iteration we almost
+      // certainly will hit EWOULDBLOCK on the subsequent recv syscall from
+      // peer_socket_.RecvSome, which will fall back to event-loop waiting
+      // for socket to become readable, and then issue another recv syscall,
+      // effectively doing
+      // 1. recv (returns -1)
+      // 2. notify event-loop about read interest
+      // 3. recv (return some data)
+      //
+      // So instead we just do 2. and 3., shaving off a whole recv syscall
+      is_readable = peer_socket_->WaitReadable(deadline);
+    }
+  }
+  pending_data_size_ =
+      is_readable ? peer_socket_->ReadSome(pending_data_.data(),
+                                           pending_data_.size(), deadline)
+                  : 0;
+  if (!pending_data_size_) {
+    LOG_TRACE() << "Peer " << Getpeername() << " on fd " << Fd()
+                << " closed connection or the connection timed out";
+
+    // RFC7230 does not specify rules for connections half-closed from
+    // client side. However, section 6 tells us that in most cases
+    // connections are closed after sending/receiving the last response.
+    // See also: https://github.com/httpwg/http-core/issues/22
+    //
+    // It is faster (and probably more efficient) for us to cancel
+    // currently processing and pending requests.
+    return false;
+  }
+  LOG_TRACE() << "Received " << pending_data_size_ << " byte(s) from "
+              << Getpeername() << " on fd " << Fd();
+  return true;
 }
 
 void Connection::ProcessRequest(
@@ -317,11 +347,11 @@ void Connection::SendResponse(request::RequestBase& request) {
           auto parser = MakeParser(USERVER_NAMESPACE::http::HttpVersion::k2);
           UASSERT(dynamic_cast<http::Http2Session*>(parser.get()));
           // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-          auto parser2 = static_cast<http::Http2Session*>(parser.get());
-          parser2->UpgradeToHttp2(h);
+          auto http2_session = static_cast<http::Http2Session*>(parser.get());
+          http2_session->UpgradeToHttp2(h);
           http_response.SetStreamId(http::kStreamIdAfterUpgradeResponse);
 
-          http::WriteHttp2ResponseToSocket(http_response, *parser2);
+          http::WriteHttp2ResponseToSocket(http_response, *http2_session);
           parser_ = std::move(parser);
           // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
         } else if (static_cast<http::HttpRequestImpl&>(request)
@@ -329,10 +359,10 @@ void Connection::SendResponse(request::RequestBase& request) {
           response.SendResponse(*peer_socket_);
         } else {
           UASSERT(dynamic_cast<http::Http2Session*>(parser_.get()));
-          auto parser2 =
+          auto http2_session =
               // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
               static_cast<http::Http2Session*>(parser_.get());
-          http::WriteHttp2ResponseToSocket(http_response, *parser2);
+          http::WriteHttp2ResponseToSocket(http_response, *http2_session);
         }
       } else {
         response.SendResponse(*peer_socket_);
@@ -389,8 +419,12 @@ bool Connection::TryDetectHttpVersion(std::string& buffer,
   buffer.append(req.substr(
       0, std::min(kPrefaceBegin.size() - buffer.size(), req.size())));
   if (buffer.size() > 1) {
-    parser_ = (buffer == kPrefaceBegin) ? MakeParser(HttpVersion::k2)
-                                        : MakeParser(HttpVersion::k11);
+    if (buffer == kPrefaceBegin) {
+      parser_ = MakeParser(HttpVersion::k2);
+      is_http2_parser_ = true;
+    } else {
+      parser_ = MakeParser(HttpVersion::k11);
+    }
     UASSERT(parser_);
     if (!first_piece.empty()) {
       parser_->Parse(first_piece);

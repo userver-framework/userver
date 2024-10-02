@@ -15,6 +15,7 @@
 #include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/datetime/wall_coarse_clock.hpp>
+#include <userver/utils/overloaded.hpp>
 #include <userver/utils/small_string.hpp>
 
 #include <server/http/http_cached_date.hpp>
@@ -398,7 +399,7 @@ std::size_t HttpResponse::SetBodyStreamed(
       socket.WriteAll(terminating_chunk.data(), terminating_chunk.size(), {});
 
   // TODO: exceptions?
-  body_stream_producer_.reset();
+  body_stream_producer_.emplace<std::monostate>();
   body_stream_.reset();
 
   return sent_bytes;
@@ -418,22 +419,36 @@ void SetThrottleReason(http::HttpResponse& http_response,
 }
 
 void HttpResponse::SetStreamBody() {
-  UASSERT(!body_stream_);
-
-  const auto body_queue = Queue::Create();
-  body_stream_.emplace(body_queue->GetConsumer());
-  body_stream_producer_.emplace(body_queue->GetProducer());
+  UASSERT(body_stream_producer_.index() == 0);
+  if (GetStreamId().has_value()) {
+    body_stream_producer_.emplace<impl::Http2StreamEventProducer>(
+        GetStreamProducer());
+  } else {
+    UASSERT(!body_stream_);
+    const auto body_queue = Queue::Create();
+    body_stream_.emplace(body_queue->GetConsumer());
+    body_stream_producer_.emplace<Queue::Producer>(body_queue->GetProducer());
+  }
+  is_stream_body_ = true;
 }
 
-bool HttpResponse::IsBodyStreamed() const { return body_stream_.has_value(); }
+bool HttpResponse::IsBodyStreamed() const { return is_stream_body_; }
 
-HttpResponse::Queue::Producer HttpResponse::GetBodyProducer() {
-  UASSERT(IsBodyStreamed());
-  UASSERT_MSG(body_stream_producer_, "GetBodyProducer() is called twice");
+HttpResponse::Producer HttpResponse::GetBodyProducer() {
+  Producer res{};
+  std::visit(utils::Overloaded{
+                 [&res](Queue::Producer& p) mutable { res = std::move(p); },
+                 [&res](impl::Http2StreamEventProducer& p) mutable {
+                   res.emplace<impl::Http2StreamEventProducer>(std::move(p));
+                 },
+                 [](const std::monostate) mutable {
+                   UINVARIANT(false, "GetBodyProducer() is called twice");
+                 },
 
-  auto producer = std::move(*body_stream_producer_);
-  body_stream_producer_.reset();  // don't leave engaged moved-from state
-  return producer;
+             },
+             body_stream_producer_);
+  body_stream_producer_.emplace<std::monostate>();
+  return res;
 }
 
 }  // namespace server::http

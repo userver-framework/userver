@@ -139,7 +139,9 @@ class HttpRequestImpl final : public request::RequestBase {
 
   void SetHttpHandlerStatistics(handlers::HttpRequestStatistics&);
 
-  void SetResponseStreamId(std::uint32_t);
+  // HTTP/2.0 only
+  void SetResponseStreamId(std::int32_t);
+  void SetStreamProducer(impl::Http2StreamEventProducer&& producer);
 
   friend class HttpRequestConstructor;
 

@@ -55,7 +55,9 @@ class HttpRequestConstructor final : public request::RequestConstructor {
 
   void SetIsFinal(bool is_final);
 
-  void SetResponseStreamId(std::uint32_t);
+  // HTTP/2.0 only:
+  void SetStreamProducer(impl::Http2StreamEventProducer&& producer);
+  void SetResponseStreamId(std::int32_t stream_id);
 
   std::shared_ptr<request::RequestBase> Finalize() override;
 

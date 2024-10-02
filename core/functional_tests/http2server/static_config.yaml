@@ -31,6 +31,20 @@ components_manager:
                     level: error
                     overflow_behavior: discard
 
+        dynamic-config:
+            updates-enabled: true
+        dynamic-config-client-updater:
+            config-settings: false
+            first-update-fail-ok: true
+            full-update-interval: 1m
+            update-interval: 1s
+        dynamic-config-client:
+            config-url: $config-server-url
+            http-retries: 5
+            http-timeout: 20s
+            service-name: testsuite-support
+
+
         http-client:
             fs-task-processor: fs-task-processor
             user-agent: $server-name
@@ -64,4 +78,5 @@ components_manager:
             task_processor: main-task-processor
             throttling_enabled: false
             max_request_size: 2097152 #  2Mib
+            response-body-stream: true
 

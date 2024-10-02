@@ -38,28 +38,6 @@ std::string_view ToStringView(const std::uint8_t* data, std::size_t size) {
 
 }  // namespace
 
-Stream::Stream(HttpRequestConstructor::Config config,
-               const HandlerInfoIndex& handler_info_index,
-               request::ResponseDataAccounter& data_accounter,
-               engine::io::Sockaddr remote_address, StreamId id)
-    : constructor(config, handler_info_index, data_accounter, remote_address),
-      id(id) {
-  constructor.SetHttpMajor(2);
-  constructor.SetHttpMinor(0);
-}
-
-bool Stream::CheckUrlComplete() {
-  if (url_complete) return true;
-  url_complete = true;
-  try {
-    constructor.ParseUrl();
-  } catch (const std::exception& e) {
-    LOG_LIMITED_WARNING() << "Can't parse a url: " << e;
-    return false;
-  }
-  return true;
-}
-
 Http2Session::Http2Session(const HandlerInfoIndex& handler_info_index,
                            const request::HttpRequestConfig& request_config,
                            const net::Http2SessionConfig& config,
@@ -76,7 +54,12 @@ Http2Session::Http2Session(const HandlerInfoIndex& handler_info_index,
       data_accounter_(data_accounter),
       stats_(stats),
       remote_address_(remote_address),
-      socket_(socket) {
+      socket_(socket),
+      streaming_queue_(impl::Http2StreamEventQueue::Create()),
+      streaming_consumer_(streaming_queue_->GetConsumer()) {
+  UASSERT(streaming_queue_);
+  UASSERT(streaming_event_.IsAutoReset());
+
   nghttp2_session_callbacks* callbacks{nullptr};
   UINVARIANT(nghttp2_session_callbacks_new(&callbacks) == 0,
              "Failed to init callbacks for HTTP/2.0");
@@ -128,7 +111,7 @@ int Http2Session::OnFrameRecv(nghttp2_session* session,
       if (frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
         auto& stream = parser.GetStreamChecked(frame->hd.stream_id);
         try {
-          stream.constructor.AppendHeaderField("", 0);
+          stream.RequestConstructor().AppendHeaderField("", 0);
         } catch (const std::exception& e) {
           IncStat(parser.stats_.http2_stats.streams_parse_error);
           LOG_LIMITED_WARNING() << "can't append header field: " << e;
@@ -166,7 +149,7 @@ int Http2Session::OnHeader(nghttp2_session*, const nghttp2_frame* frame,
 
   auto& parser = GetParser(user_data);
   auto& stream = parser.GetStreamChecked(frame->hd.stream_id);
-  auto& ctor = stream.constructor;
+  auto& ctor = stream.RequestConstructor();
   if (hname == USERVER_NAMESPACE::http::headers::k2::kMethod) {
     ctor.SetMethod(HttpMethodFromString(hvalue));
   } else if (hname == USERVER_NAMESPACE::http::headers::k2::kPath) {
@@ -221,7 +204,8 @@ int Http2Session::OnDataChunkRecv(nghttp2_session*, uint8_t, int32_t id,
   auto& parser = GetParser(user_data);
   auto& stream = parser.GetStreamChecked(id);
   try {
-    stream.constructor.AppendBody(reinterpret_cast<const char*>(data), len);
+    stream.RequestConstructor().AppendBody(reinterpret_cast<const char*>(data),
+                                           len);
   } catch (const std::exception& e) {
     LOG_LIMITED_WARNING() << "can't append body: " << e;
   }
@@ -239,11 +223,10 @@ long Http2Session::OnSend(nghttp2_session* session, const uint8_t* data,
   return NGHTTP2_ERR_WOULDBLOCK;
 }
 
-int Http2Session::OnDataFrameSend(nghttp2_session* session,
-                                  nghttp2_frame* frame, const uint8_t* framehd,
-                                  size_t length, nghttp2_data_source* source,
+int Http2Session::OnDataFrameSend(nghttp2_session*, nghttp2_frame* frame,
+                                  const uint8_t* framehd, size_t max_len,
+                                  nghttp2_data_source* source,
                                   void* user_data) {
-  UASSERT(session);
   UASSERT(frame);
   UASSERT(framehd);
   UASSERT(source);
@@ -252,16 +235,14 @@ int Http2Session::OnDataFrameSend(nghttp2_session* session,
 
   auto& parser = GetParser(user_data);
   UASSERT(parser.socket_);
+  auto& stream = *static_cast<Stream*>(source->ptr);
 
-  auto& sender = *static_cast<DataBufferSender*>(source->ptr);
-  const auto& data = sender.data;
-  const std::string_view frame_header{ToStringView(framehd, kFrameHeaderSize)};
-  const std::string_view frame_data{data.data() + sender.sended_bytes, length};
-  [[maybe_unused]] const auto send =
-      parser.socket_->WriteAll({{frame_header.data(), frame_header.size()},
-                                {frame_data.data(), frame_data.size()}},
-                               {});
-  sender.sended_bytes += length;
+  const auto frame_header{ToStringView(framehd, kFrameHeaderSize)};
+  // TODO: doesn't work with TLS?!
+  UASSERT(dynamic_cast<engine::io::Socket*>(parser.socket_));
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+  stream.Send(*static_cast<engine::io::Socket*>(parser.socket_), frame_header,
+              max_len);
   return 0;
 }
 
@@ -296,12 +277,12 @@ void Http2Session::RegisterStream(Stream::StreamId id) {
 
 void Http2Session::RemoveStream(Stream& stream) {
   UASSERT(streams_pool_.is_from(&stream));
-  const auto id = stream.id;
+  const auto id = stream.Id();
   streams_pool_.destroy(&stream);
 
   const int res =
       nghttp2_session_set_stream_user_data(session_.get(), id, nullptr);
-  // assert because stream exists on the previous step
+  // assert because the stream exists on the previous step
   UASSERT(res == 0);
   stats_.parsing_request_count.Subtract(1);
 }
@@ -337,8 +318,7 @@ bool Http2Session::Parse(std::string_view req) {
     return false;
   }
   if (socket_ != nullptr) {
-    const auto res = nghttp2_session_send(session_.get());
-    ThrowIfErr(res, "Error while nghttp2_session_send");
+    WriteWhileWant();
   }
   return ConnectionIsOk();
 }
@@ -355,16 +335,18 @@ void Http2Session::UpgradeToHttp2(std::string_view client_magic) {
 void Http2Session::FinalizeRequest(Stream& stream) {
   if (!stream.CheckUrlComplete()) {
     IncStat(stats_.http2_stats.streams_parse_error);
-    SubmitRstStream(stream.id);
+    SubmitRstStream(stream.Id());
     RemoveStream(stream);
     return;
   }
-  stream.constructor.SetResponseStreamId(stream.id);
-  if (auto request = stream.constructor.Finalize()) {
+  stream.RequestConstructor().SetResponseStreamId(stream.Id());
+  stream.RequestConstructor().SetStreamProducer(
+      impl::Http2StreamEventProducer{*streaming_queue_, streaming_event_});
+  if (auto request = stream.RequestConstructor().Finalize()) {
     on_new_request_cb_(std::move(request));
   } else {
     IncStat(stats_.http2_stats.streams_parse_error);
-    SubmitRstStream(stream.id);
+    SubmitRstStream(stream.Id());
     RemoveStream(stream);
   }
 }
@@ -372,6 +354,35 @@ void Http2Session::FinalizeRequest(Stream& stream) {
 bool Http2Session::ConnectionIsOk() {
   return nghttp2_session_want_read(session_.get()) != 0 ||
          nghttp2_session_want_write(session_.get()) != 0;
+}
+
+void Http2Session::WriteWhileWant() {
+  auto* session = session_.get();
+  while (nghttp2_session_want_write(session)) {
+    const auto res = nghttp2_session_send(session);
+    ThrowIfErr(res, "Error while nghttp2_session_send");
+  }
+}
+
+engine::SingleConsumerEvent& Http2Session::GetStreamingEvent() {
+  return streaming_event_;
+}
+
+void Http2Session::HandleStreamingEvents() {
+  impl::Http2StreamEvent event;
+  while (streaming_consumer_.PopNoblock(event)) {
+    UASSERT(event.stream_id != -1);
+    auto& stream = GetStreamChecked(event.stream_id);
+    if (stream.IsDeferred()) {
+      const auto res = nghttp2_session_resume_data(session_.get(), stream.Id());
+      ThrowIfErr(res, "Error while resume_data");
+      stream.SetDeferred(false);
+    }
+    stream.PushChunk(std::move(event.body_part));
+    stream.SetEnd(event.is_end);
+    event = {};
+  }
+  WriteWhileWant();
 }
 
 }  // namespace server::http

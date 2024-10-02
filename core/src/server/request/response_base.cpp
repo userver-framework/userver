@@ -4,6 +4,25 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace server::http::impl {
+
+Http2StreamEventProducer::Http2StreamEventProducer(
+    Http2StreamEventQueue& queue, engine::SingleConsumerEvent& event)
+    : producer_(queue.GetProducer()), event_(event) {}
+
+void Http2StreamEventProducer::PushEvent(Http2StreamEvent event,
+                                         engine::Deadline deadline) {
+  const auto res = producer_.Push(std::move(event), deadline);
+  UASSERT(res);
+  event_.Send();
+}
+
+void Http2StreamEventProducer::CloseStream(std::int32_t id) {
+  PushEvent({id, "", /*is_end=*/true});
+}
+
+}  // namespace server::http::impl
+
 namespace server::request {
 
 namespace {
@@ -89,9 +108,20 @@ void ResponseBase::SetSent(std::size_t bytes_sent,
   guard_.reset();
 }
 
-void ResponseBase::SetStreamId(std::uint32_t stream_id) {
+void ResponseBase::SetStreamId(std::int32_t stream_id) {
   UASSERT(!stream_id_.has_value());
   stream_id_.emplace(stream_id);
+}
+
+void ResponseBase::SetStreamProdicer(
+    http::impl::Http2StreamEventProducer&& producer) {
+  UASSERT(!producer_.has_value());
+  producer_.emplace(std::move(producer));
+}
+
+http::impl::Http2StreamEventProducer ResponseBase::GetStreamProducer() {
+  UASSERT(producer_);
+  return std::move(producer_.value());
 }
 
 }  // namespace server::request

@@ -348,8 +348,13 @@ void HttpRequestImpl::SetHttpHandlerStatistics(
   request_statistics_ = &stats;
 }
 
-void HttpRequestImpl::SetResponseStreamId(std::uint32_t stream_id) {
+void HttpRequestImpl::SetResponseStreamId(std::int32_t stream_id) {
   response_.SetStreamId(stream_id);
+}
+
+void HttpRequestImpl::SetStreamProducer(
+    impl::Http2StreamEventProducer&& producer) {
+  response_.SetStreamProdicer(std::move(producer));
 }
 
 void HttpRequestImpl::WriteAccessLogs(

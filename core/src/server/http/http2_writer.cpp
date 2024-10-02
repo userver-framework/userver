@@ -4,7 +4,6 @@
 
 #include <server/http/http2_session.hpp>
 #include <server/http/http_cached_date.hpp>
-#include <server/http/http_request_parser.hpp>
 
 #include <userver/http/common_headers.hpp>
 #include <userver/http/predefined_header.hpp>
@@ -27,38 +26,7 @@ bool IsBodyForbiddenForStatus(HttpStatus status) {
 
 }  // namespace
 
-DataBufferSender::DataBufferSender(std::string&& data) : data(std::move(data)) {
-  nghttp2_provider.read_callback = NgHttp2ReadCallback;
-  nghttp2_provider.source.ptr = this;
-}
-
-DataBufferSender::DataBufferSender(DataBufferSender&& o) noexcept
-    : data(std::move(o.data)), sended_bytes(o.sended_bytes) {
-  nghttp2_provider.source.ptr = this;
-  nghttp2_provider.read_callback = NgHttp2ReadCallback;
-}
-
-// implements
-// https://nghttp2.org/documentation/types.html#c.nghttp2_data_source_read_callback
-ssize_t NgHttp2ReadCallback(nghttp2_session*, int32_t, uint8_t*,
-                            std::size_t max_len, uint32_t* flags,
-                            nghttp2_data_source* source, void*) {
-  UASSERT(source);
-  UASSERT(source->ptr);
-  auto& sender = *static_cast<DataBufferSender*>(source->ptr);
-
-  std::size_t remaining = sender.data.size() - sender.sended_bytes;
-
-  remaining = std::min(remaining, max_len);
-
-  *flags = NGHTTP2_DATA_FLAG_NONE;
-  UASSERT(sender.sended_bytes + remaining <= sender.data.size());
-  if (sender.sended_bytes + remaining == sender.data.size()) {
-    *flags |= NGHTTP2_DATA_FLAG_EOF;
-  }
-  *flags |= NGHTTP2_DATA_FLAG_NO_COPY;
-  return remaining;
-}
+///////////////////////////////////////////////////////////////////////////////////
 
 nghttp2_nv UnsafeHeaderToNGHeader(std::string_view name, std::string_view value,
                                   const bool sensitive) {
@@ -86,7 +54,7 @@ nghttp2_nv UnsafeHeaderToNGHeader(std::string_view name, std::string_view value,
 
 class Http2HeaderWriter final {
  public:
-  // We must borrow key-value pairs until the `WriteToSocket` is called
+  // We must borrow key-value pairs until the `WriteHttpResponse` is called
   explicit Http2HeaderWriter(std::size_t nheaders) {
     values_.reserve(nheaders);
   }
@@ -131,20 +99,52 @@ class Http2HeaderWriter final {
 class Http2ResponseWriter final {
  public:
   Http2ResponseWriter(HttpResponse& response, Http2Session& session)
-      : http2_session_(session), response_(response) {}
+      : response_(response), http2_session_(session) {}
 
   void WriteHttpResponse() {
-    auto headers = WriteHeaders();
-    if (response_.IsBodyStreamed() && response_.GetData().empty()) {
-      WriteHttp2BodyStreamed(headers);
-    } else {
-      // e.g. a CustomHandlerException
-      WriteHttp2BodyNotstreamed(headers);
+    auto data = response_.ExtractData();
+
+    auto headers = GetHeaders();
+    const bool is_body_forbidden = IsBodyForbiddenForStatus(response_.status_);
+
+    if (is_body_forbidden && !data.empty()) {
+      LOG_LIMITED_WARNING()
+          << "Non-empty body provided for response with HTTP2 code "
+          << static_cast<int>(response_.status_)
+          << " which does not allow one, it will be dropped";
     }
+
+    const auto stream_id = response_.GetStreamId().value();
+    auto& stream = http2_session_.GetStreamChecked(stream_id);
+    stream.SetStreaming(response_.IsBodyStreamed() && data.empty());
+
+    std::size_t bytes = headers.GetSize();
+    nghttp2_data_provider* provider{nullptr};
+    if (response_.request_.GetMethod() != HttpMethod::kHead &&
+        !is_body_forbidden) {
+      if (!stream.IsStreaming()) {
+        bytes += data.size();
+        stream.PushChunk(std::move(data));
+      }
+      provider = stream.GetNativeProvider();
+    }
+
+    const auto& nva = headers.GetNgHeaders();
+    const int rv =
+        nghttp2_submit_response(http2_session_.GetNghttp2SessionPtr(),
+                                stream_id, nva.data(), nva.size(), provider);
+    if (rv != 0) {
+      throw std::runtime_error{
+          fmt::format("Fail to submit the response with err id = {}. Err: {}",
+                      rv, nghttp2_strerror(rv))};
+    }
+
+    http2_session_.WriteWhileWant();
+    response_.SetSent(bytes, std::chrono::steady_clock::now());
   }
 
  private:
-  Http2HeaderWriter WriteHeaders() {
+  Http2HeaderWriter GetHeaders() const {
     // Preallocate space for all headers
     Http2HeaderWriter header_writer{response_.headers_.size() +
                                     response_.cookies_.size() + 3};
@@ -163,9 +163,10 @@ class Http2ResponseWriter final {
       header_writer.AddKeyValue(USERVER_NAMESPACE::http::headers::kContentType,
                                 kDefaultContentType);
     }
+    std::string_view content_lenght_header{
+        USERVER_NAMESPACE::http::headers::kContentLength};
     for (const auto& [key, value] : headers) {
-      if (key ==
-          std::string{USERVER_NAMESPACE::http::headers::kContentLength}) {
+      if (key == content_lenght_header) {
         continue;
       }
       header_writer.AddKeyValue(key, value);
@@ -177,55 +178,9 @@ class Http2ResponseWriter final {
     return header_writer;
   }
 
-  void WriteHttp2BodyNotstreamed(Http2HeaderWriter& header_writer) {
-    const bool is_body_forbidden = IsBodyForbiddenForStatus(response_.status_);
-    const bool is_head_request =
-        response_.request_.GetMethod() == HttpMethod::kHead;
-    auto data = response_.MoveData();
-
-    if (!is_body_forbidden) {
-      header_writer.AddKeyValue(
-          USERVER_NAMESPACE::http::headers::kContentLength,
-          fmt::to_string(data.size()));
-    }
-
-    if (is_body_forbidden && !data.empty()) {
-      LOG_LIMITED_WARNING()
-          << "Non-empty body provided for response with HTTP2 code "
-          << static_cast<int>(response_.status_)
-          << " which does not allow one, it will be dropped";
-    }
-
-    const std::uint32_t stream_id = response_.GetStreamId().value();
-    auto& stream = http2_session_.GetStreamChecked(stream_id);
-    stream.data_buffer_sender.emplace(std::move(data));
-    std::size_t bytes = header_writer.GetSize();
-
-    nghttp2_data_provider* provider{nullptr};
-    if (!is_head_request && !is_body_forbidden) {
-      provider = &stream.data_buffer_sender.value().nghttp2_provider;
-      bytes += stream.data_buffer_sender->data.size();
-    }
-    const auto& nva = header_writer.GetNgHeaders();
-    const int rv =
-        nghttp2_submit_response(http2_session_.GetNghttp2SessionPtr(),
-                                stream_id, nva.data(), nva.size(), provider);
-    if (rv != 0) {
-      throw std::runtime_error{
-          fmt::format("Fail to submit the response with err id = {}. Err: {}",
-                      rv, nghttp2_strerror(rv))};
-    }
-
-    nghttp2_session_send(http2_session_.GetNghttp2SessionPtr());
-    response_.SetSent(bytes, std::chrono::steady_clock::now());
-  }
-
-  void WriteHttp2BodyStreamed(Http2HeaderWriter&) {
-    UINVARIANT(false, "Not implemented for HTTP2.0");
-  }
-
-  Http2Session& http2_session_;
+ private:
   HttpResponse& response_;
+  Http2Session& http2_session_;
 };
 
 void WriteHttp2ResponseToSocket(HttpResponse& response, Http2Session& session) {

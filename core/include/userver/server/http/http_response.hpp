@@ -6,6 +6,7 @@
 #include <chrono>
 #include <string>
 #include <unordered_map>
+#include <variant>
 
 #include <userver/concurrent/queue.hpp>
 #include <userver/engine/single_consumer_event.hpp>
@@ -146,11 +147,13 @@ class HttpResponse final : public request::ResponseBase {
   void SetHeadersEnd() override;
 
   using Queue = concurrent::StringStreamQueue;
+  using Producer = std::variant<std::monostate, Queue::Producer,
+                                impl::Http2StreamEventProducer>;
 
   void SetStreamBody();
   bool IsBodyStreamed() const override;
   // Can be called only once
-  Queue::Producer GetBodyProducer();
+  Producer GetBodyProducer();
 
  private:
   friend class Http2ResponseWriter;
@@ -173,7 +176,8 @@ class HttpResponse final : public request::ResponseBase {
   engine::SingleConsumerEvent headers_end_{
       engine::SingleConsumerEvent::NoAutoReset()};
   std::optional<Queue::Consumer> body_stream_;
-  std::optional<Queue::Producer> body_stream_producer_;
+  Producer body_stream_producer_;
+  bool is_stream_body_{false};
 };
 
 void SetThrottleReason(http::HttpResponse& http_response,

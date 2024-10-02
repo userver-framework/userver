@@ -177,8 +177,13 @@ void HttpRequestConstructor::SetIsFinal(bool is_final) {
   request_->is_final_ = is_final;
 }
 
-void HttpRequestConstructor::SetResponseStreamId(std::uint32_t stream_id) {
+void HttpRequestConstructor::SetResponseStreamId(std::int32_t stream_id) {
   request_->SetResponseStreamId(stream_id);
+}
+
+void HttpRequestConstructor::SetStreamProducer(
+    impl::Http2StreamEventProducer&& producer) {
+  request_->SetStreamProducer(std::move(producer));
 }
 
 std::shared_ptr<request::RequestBase> HttpRequestConstructor::Finalize() {
