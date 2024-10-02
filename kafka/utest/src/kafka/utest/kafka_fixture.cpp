@@ -1,4 +1,4 @@
-#include "utils_kafkatest.hpp"
+#include <userver/kafka/utest/kafka_fixture.hpp>
 
 #include <algorithm>
 #include <tuple>
@@ -10,6 +10,8 @@
 #include <userver/utils/lazy_prvalue.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace kafka::utest {
 
 namespace {
 
@@ -32,7 +34,7 @@ std::string FetchBrokerList() {
 
   const auto* host = env->GetValueOptional(kTestsuiteKafkaServerHost);
   if (host) {
-    server_port = *host;
+    server_host = *host;
   }
   const auto* port = env->GetValueOptional(kTestsuiteKafkaServerPort);
   if (port) {
@@ -68,33 +70,31 @@ std::vector<std::string> KafkaCluster::GenerateTopics(std::size_t count) {
   return topics;
 }
 
-kafka::impl::Configuration KafkaCluster::MakeProducerConfiguration(
-    const std::string& name, kafka::impl::ProducerConfiguration configuration,
-    kafka::impl::Secret secrets) {
-  return kafka::impl::Configuration{name, configuration,
-                                    AddBootstrapServers(secrets)};
+impl::Configuration KafkaCluster::MakeProducerConfiguration(
+    const std::string& name, impl::ProducerConfiguration configuration,
+    impl::Secret secrets) {
+  return impl::Configuration{name, configuration, AddBootstrapServers(secrets)};
 }
 
-kafka::impl::Configuration KafkaCluster::MakeConsumerConfiguration(
-    const std::string& name, kafka::impl::ConsumerConfiguration configuration,
-    kafka::impl::Secret secrets) {
+impl::Configuration KafkaCluster::MakeConsumerConfiguration(
+    const std::string& name, impl::ConsumerConfiguration configuration,
+    impl::Secret secrets) {
   if (configuration.group_id.empty()) {
     configuration.group_id = "test-group";
   }
-  return kafka::impl::Configuration{name, configuration,
-                                    AddBootstrapServers(secrets)};
+  return impl::Configuration{name, configuration, AddBootstrapServers(secrets)};
 }
 
-kafka::Producer KafkaCluster::MakeProducer(
-    const std::string& name, kafka::impl::ProducerConfiguration configuration) {
-  return kafka::Producer{name, engine::current_task::GetTaskProcessor(),
-                         configuration, MakeSecrets(bootstrap_servers_)};
+Producer KafkaCluster::MakeProducer(const std::string& name,
+                                    impl::ProducerConfiguration configuration) {
+  return Producer{name, engine::current_task::GetTaskProcessor(), configuration,
+                  MakeSecrets(bootstrap_servers_)};
 };
 
-std::deque<kafka::Producer> KafkaCluster::MakeProducers(
+std::deque<Producer> KafkaCluster::MakeProducers(
     std::size_t count, std::function<std::string(std::size_t)> nameGenerator,
-    kafka::impl::ProducerConfiguration configuration) {
-  std::deque<kafka::Producer> producers;
+    impl::ProducerConfiguration configuration) {
+  std::deque<Producer> producers;
   for (std::size_t i{0}; i < count; ++i) {
     producers.emplace_back(utils::LazyPrvalue(
         [&] { return MakeProducer(nameGenerator(i), configuration); }));
@@ -104,7 +104,7 @@ std::deque<kafka::Producer> KafkaCluster::MakeProducers(
 }
 
 void KafkaCluster::SendMessages(utils::span<const Message> messages) {
-  kafka::Producer producer = MakeProducer("kafka-producer");
+  Producer producer = MakeProducer("kafka-producer");
 
   std::vector<engine::TaskWithResult<void>> results;
   results.reserve(messages.size());
@@ -116,27 +116,28 @@ void KafkaCluster::SendMessages(utils::span<const Message> messages) {
   engine::WaitAllChecked(results);
 }
 
-kafka::impl::Consumer KafkaCluster::MakeConsumer(
+impl::Consumer KafkaCluster::MakeConsumer(
     const std::string& name, const std::vector<std::string>& topics,
-    kafka::impl::ConsumerConfiguration configuration,
-    kafka::impl::ConsumerExecutionParams params) {
+    impl::ConsumerConfiguration configuration,
+    impl::ConsumerExecutionParams params) {
   if (configuration.group_id.empty()) {
     configuration.group_id = "test-group";
   }
-  return kafka::impl::Consumer{name,
-                               topics,
-                               engine::current_task::GetTaskProcessor(),
-                               engine::current_task::GetTaskProcessor(),
-                               configuration,
-                               MakeSecrets(bootstrap_servers_),
-                               std::move(params)};
+  return impl::Consumer{name,
+                        topics,
+                        engine::current_task::GetTaskProcessor(),
+                        engine::current_task::GetTaskProcessor(),
+                        configuration,
+                        MakeSecrets(bootstrap_servers_),
+                        std::move(params)};
 };
 
-kafka::impl::Secret KafkaCluster::AddBootstrapServers(
-    kafka::impl::Secret secrets) const {
+impl::Secret KafkaCluster::AddBootstrapServers(impl::Secret secrets) const {
   secrets.brokers = bootstrap_servers_;
 
   return secrets;
 }
+
+}  // namespace kafka::utest
 
 USERVER_NAMESPACE_END

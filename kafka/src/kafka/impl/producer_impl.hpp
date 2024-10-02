@@ -6,12 +6,12 @@
 
 #include <librdkafka/rdkafka.h>
 
+#include <userver/kafka/impl/stats.hpp>
 #include <userver/utils/periodic_task.hpp>
 
 #include <kafka/impl/concurrent_event_waiter.hpp>
 #include <kafka/impl/delivery_waiter.hpp>
-#include <kafka/impl/holders.hpp>
-#include <kafka/impl/stats.hpp>
+#include <kafka/impl/holders_aliases.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

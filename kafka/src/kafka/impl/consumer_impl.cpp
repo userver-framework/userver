@@ -4,15 +4,16 @@
 
 #include <fmt/format.h>
 
+#include <userver/kafka/impl/configuration.hpp>
+#include <userver/kafka/impl/stats.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/testsuite/testpoint.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/span.hpp>
 
-#include <kafka/impl/configuration.hpp>
+#include <kafka/impl/holders_aliases.hpp>
 #include <kafka/impl/log_level.hpp>
-#include <kafka/impl/stats.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -367,7 +368,7 @@ std::optional<Message> ConsumerImpl::TakeEventMessage(
   UASSERT(IsMessageEvent(event_holder));
   UASSERT(rd_kafka_event_message_count(event_holder.GetHandle()) == 1);
 
-  MessageHolder message{std::move(event_holder)};
+  MessageHolder message{event_holder.release()};
   if (message->err != RD_KAFKA_RESP_ERR_NO_ERROR) {
     LOG_WARNING() << fmt::format("Polled messages contains an error: {}",
                                  rd_kafka_err2str(message->err));

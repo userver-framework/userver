@@ -1,9 +1,9 @@
-#include <kafka/impl/broker_secrets.hpp>
+#include <userver/kafka/impl/broker_secrets.hpp>
+
+#include <fmt/format.h>
 
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/logging/log.hpp>
-
-#include <fmt/format.h>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -6,10 +6,7 @@ file(GLOB_RECURSE KAFKA_TEST_SOURCES
 
 add_executable(${PROJECT_NAME} ${KAFKA_TEST_SOURCES})
 target_link_libraries(${PROJECT_NAME}
-  PRIVATE userver::kafka userver::utest
-)
-target_include_directories(${PROJECT_NAME}
-  PRIVATE $<TARGET_PROPERTY:userver::kafka,INCLUDE_DIRECTORIES>
+  PRIVATE userver::kafka-utest
 )
 userver_add_utest(
   NAME ${PROJECT_NAME}

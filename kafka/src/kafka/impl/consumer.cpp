@@ -1,17 +1,19 @@
-#include <kafka/impl/consumer.hpp>
+#include <userver/kafka/impl/consumer.hpp>
 
 #include <string_view>
 
+#include <fmt/format.h>
+
 #include <userver/engine/sleep.hpp>
 #include <userver/formats/json/value_builder.hpp>
+#include <userver/kafka/impl/configuration.hpp>
+#include <userver/kafka/impl/stats.hpp>
 #include <userver/testsuite/testpoint.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/scope_guard.hpp>
 
-#include <kafka/impl/configuration.hpp>
 #include <kafka/impl/consumer_impl.hpp>
-#include <kafka/impl/stats.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

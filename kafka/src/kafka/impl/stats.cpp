@@ -1,4 +1,4 @@
-#include <kafka/impl/stats.hpp>
+#include <userver/kafka/impl/stats.hpp>
 
 #include <string_view>
 

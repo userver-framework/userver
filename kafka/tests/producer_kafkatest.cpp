@@ -1,4 +1,4 @@
-#include "utils_kafkatest.hpp"
+#include <userver/kafka/utest/kafka_fixture.hpp>
 
 #include <deque>
 #include <vector>
@@ -16,7 +16,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-class ProducerTest : public KafkaCluster {};
+class ProducerTest : public kafka::utest::KafkaCluster {};
 
 }  // namespace
 

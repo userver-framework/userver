@@ -6,10 +6,9 @@
 #include <userver/engine/task/task.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/kafka/consumer_scope.hpp>
+#include <userver/kafka/impl/holders.hpp>
+#include <userver/kafka/impl/stats.hpp>
 #include <userver/utils/statistics/writer.hpp>
-
-#include <kafka/impl/holders.hpp>
-#include <kafka/impl/stats.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

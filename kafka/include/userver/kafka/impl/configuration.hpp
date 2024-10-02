@@ -6,13 +6,10 @@
 #include <unordered_map>
 #include <variant>
 
-#include <librdkafka/rdkafka.h>
-
 #include <userver/formats/parse/to.hpp>
+#include <userver/kafka/impl/broker_secrets.hpp>
+#include <userver/kafka/impl/holders.hpp>
 #include <userver/yaml_config/fwd.hpp>
-
-#include <kafka/impl/broker_secrets.hpp>
-#include <kafka/impl/holders.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

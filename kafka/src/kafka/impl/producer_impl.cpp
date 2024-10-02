@@ -6,10 +6,10 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/wait_any.hpp>
+#include <userver/kafka/impl/configuration.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/trivial_map.hpp>
 
-#include <kafka/impl/configuration.hpp>
 #include <kafka/impl/log_level.hpp>
 
 USERVER_NAMESPACE_BEGIN

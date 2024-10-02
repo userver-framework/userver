@@ -3,12 +3,11 @@
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
 #include <userver/components/statistics_storage.hpp>
+#include <userver/kafka/impl/broker_secrets.hpp>
+#include <userver/kafka/impl/configuration.hpp>
+#include <userver/kafka/impl/consumer.hpp>
 #include <userver/storages/secdist/component.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
-
-#include <kafka/impl/broker_secrets.hpp>
-#include <kafka/impl/configuration.hpp>
-#include <kafka/impl/consumer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

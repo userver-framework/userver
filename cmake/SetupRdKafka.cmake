@@ -4,15 +4,16 @@ option(USERVER_DOWNLOAD_PACKAGE_KAFKA "Download and setup librdkafka if no librd
 
 set(USERVER_KAFKA_VERSION "2.4.0")
 
-if (NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
-  if (USERVER_DOWNLOAD_PACKAGE_KAFKA)
+find_package(OpenSSL COMPONENTS SSL Crypto REQUIRED)
+
+if(NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
+  if(USERVER_DOWNLOAD_PACKAGE_KAFKA)
     find_package(RdKafka QUIET)
   else()
     find_package(RdKafka REQUIRED)
   endif()
 
-  if (RdKafka_FOUND)
-    message(STATUS "RdKafka target found! No download required")
+  if(RdKafka_FOUND)
     return()
   endif()
 endif()

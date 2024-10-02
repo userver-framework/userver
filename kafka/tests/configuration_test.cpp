@@ -1,14 +1,10 @@
-#include "utils_kafkatest.hpp"
+#include <userver/kafka/utest/kafka_fixture.hpp>
 
 #include <optional>
 
 #include <gmock/gmock.h>
-#include <librdkafka/rdkafka.h>
 
 #include <userver/engine/subprocess/environment_variables.hpp>
-
-#include <kafka/impl/broker_secrets.hpp>
-#include <kafka/impl/configuration.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -16,7 +12,7 @@ namespace {
 
 using namespace std::chrono_literals;
 
-class ConfigurationTest : public KafkaCluster {};
+class ConfigurationTest : public kafka::utest::KafkaCluster {};
 
 }  // namespace
 

@@ -7,9 +7,10 @@
 
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/single_consumer_event.hpp>
+#include <userver/kafka/impl/holders.hpp>
 #include <userver/kafka/message.hpp>
 
-#include <kafka/impl/holders.hpp>
+#include <kafka/impl/holders_aliases.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

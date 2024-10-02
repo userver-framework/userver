@@ -1,6 +1,6 @@
 #include <userver/kafka/consumer_scope.hpp>
 
-#include <kafka/impl/consumer.hpp>
+#include <userver/kafka/impl/consumer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

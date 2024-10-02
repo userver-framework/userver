@@ -1,10 +1,12 @@
-#include <kafka/impl/configuration.hpp>
+#include <userver/kafka/impl/configuration.hpp>
 
 #include <array>
 #include <string_view>
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
+
+#include <librdkafka/rdkafka.h>
 
 #include <userver/engine/subprocess/environment_variables.hpp>
 #include <userver/logging/log.hpp>

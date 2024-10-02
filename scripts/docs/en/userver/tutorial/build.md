@@ -165,6 +165,7 @@ userver is split into multiple CMake libraries.
 | `userver::redis`           | `USERVER_FEATURE_REDIS`                          | `redis`               | @ref scripts/docs/en/userver/redis.md              |
 | `userver::clickhouse`      | `USERVER_FEATURE_CLICKHOUSE`                     | `clickhouse`          | @ref clickhouse_driver                             |
 | `userver::kafka`           | `USERVER_FEATURE_KAFKA`                          | `kafka`               | @ref scripts/docs/en/userver/kafka.md              |
+| `userver::kafka-utest`     | `USERVER_FEATURE_KAFKA` + `USERVER_FEATURE_UTEST` | `kafka`               | @ref scripts/docs/en/userver/kafka.md              |
 | `userver::rabbitmq`        | `USERVER_FEATURE_RABBITMQ`                       | `rabbitmq`            | @ref rabbitmq_driver                               |
 | `userver::mysql`           | `USERVER_FEATURE_MYSQL`                          | `mysql`               | @ref scripts/docs/en/userver/mysql/mysql_driver.md |
 | `userver::rocks`           | `USERVER_FEATURE_ROCKS`                          | `rocks`               | TODO                                               |

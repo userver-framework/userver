@@ -4,8 +4,13 @@ file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
 
+file(GLOB_RECURSE KAFKA_LIB_UTEST_SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/utest/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/utest/*.hpp)
+list(REMOVE_ITEM SOURCES ${KAFKA_LIB_UTEST_SOURCES})
+
 file(GLOB_RECURSE KAFKA_TEST_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/*test.cpp)
+  ${CMAKE_CURRENT_SOURCE_DIR}/tests/*test.cpp)
 list(REMOVE_ITEM SOURCES ${KAFKA_TEST_SOURCES})
 
 file(GLOB_RECURSE KAFKA_FUNCTIONAL_TEST_SOURCES
@@ -24,37 +29,37 @@ endif()
 
 target_compile_options(${PROJECT_NAME} PRIVATE "-Wno-ignored-qualifiers")
 target_link_libraries(${PROJECT_NAME}
-  PUBLIC
-  userver::core
-  PRIVATE
-  rdkafka
+  PUBLIC userver::core
+  PRIVATE rdkafka
 )
-
-target_include_directories(
-  ${PROJECT_NAME}
+target_include_directories(${PROJECT_NAME}
   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
 if(KAFKA_CPM)
   message(STATUS "Linking wrapper ${CMAKE_CURRENT_SOURCE_DIR}/wrapper/include")
-  target_include_directories(
-    ${PROJECT_NAME}
+  target_include_directories(${PROJECT_NAME}
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/wrapper/include
   )
 endif()
 
 _userver_directory_install(COMPONENT kafka
-  DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
+  DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include"
+  DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/.."
 )
 _userver_install_targets(COMPONENT kafka TARGETS ${PROJECT_NAME})
 
-_userver_directory_install(COMPONENT kafka FILES
+_userver_directory_install(COMPONENT kafka
+  FILES
   "${USERVER_ROOT_DIR}/cmake/install/userver-kafka-config.cmake"
   "${USERVER_ROOT_DIR}/cmake/modules/FindRdKafka.cmake"
   DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
 )
+
+if(USERVER_FEATURE_UTEST)
+  add_subdirectory(utest)
+endif()
 
 if(USERVER_IS_THE_ROOT_PROJECT)
   add_subdirectory(functional_tests)
