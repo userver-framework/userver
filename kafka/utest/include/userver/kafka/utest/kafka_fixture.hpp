@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <deque>
 #include <vector>
 
@@ -14,6 +15,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace kafka::utest {
 
+/// @brief Message owning data wrapper for unit tests.
 struct Message {
   std::string topic;
   std::string key;
@@ -23,8 +25,38 @@ struct Message {
 
 bool operator==(const Message& lhs, const Message& rhs);
 
+/// @brief Helper for Kafka unit testing.
+///
+/// KafkaCluster is useful for
+/// - inline producer, consumer and their configuration creation;
+/// - generation of unique topic names;
+/// - sending and receiving batched of messages in sync form;
+///
+/// KafkaCluster expects that topic names used in test are already exist in
+/// Kafka broker or auto-created on produce to it.
+///
+/// It is recommended to create all topics before tests started, because
+/// topic creation leads to disk IO operation and maybe too slow in tests'
+/// runtime.
+///
+/// If one run tests with Kafka testsuite plugin, use
+/// `TESTSUITE_KAFKA_CUSTOM_TOPICS` environment variable to create topics before
+/// tests started.
+///
+/// @note KafkaCluster determines the broker's connection string
+/// based on `TESTSUITE_KAFKA_SERVER_HOST` (by default `localhost`) and
+/// `TESTSUITE_KAFKA_SERVER_PORT` (by default `9099`) environment variables.
+///
+/// @see https://yandex.github.io/yandex-taxi-testsuite/kafka
 class KafkaCluster : public ::testing::Test {
  public:
+  /// Kafka broker has some cold start issues on its. To stabilize tests
+  /// KafkaCluster patches producer's default delivery timeout.
+  /// To use custom delivery timeout in test, pass `configuration` argument to
+  /// MakeProducer.
+  static constexpr const std::chrono::milliseconds kDefaultTestProducerTimeout{
+      USERVER_NAMESPACE::utest::kMaxTestWaitTime / 2};
+
   KafkaCluster();
 
   ~KafkaCluster() override = default;
@@ -50,11 +82,14 @@ class KafkaCluster : public ::testing::Test {
 
   void SendMessages(utils::span<const Message> messages);
 
-  impl::Consumer MakeConsumer(
-      const std::string& name,
-      const std::vector<std::string>& topics = {"test-topic"},
-      impl::ConsumerConfiguration configuration = {},
-      impl::ConsumerExecutionParams params = {});
+  impl::Consumer MakeConsumer(const std::string& name,
+                              const std::vector<std::string>& topics,
+                              impl::ConsumerConfiguration configuration = {},
+                              impl::ConsumerExecutionParams params = {});
+
+  std::vector<Message> ReceiveMessages(impl::Consumer& consumer,
+                                       std::size_t expected_messages_count,
+                                       bool commit_after_receive = true);
 
  private:
   impl::Secret AddBootstrapServers(impl::Secret secrets) const;

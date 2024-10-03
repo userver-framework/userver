@@ -5,10 +5,9 @@
 #include <unordered_set>
 #include <vector>
 
-#include <gmock/gmock.h>
+#include <gmock/gmock-matchers.h>
 
 #include <userver/engine/single_use_event.hpp>
-#include <userver/engine/sleep.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/fixed_array.hpp>
 
@@ -22,35 +21,6 @@ const std::string kLargeTopic1{"lt-1"};
 const std::string kLargeTopic2{"lt-2"};
 
 constexpr std::size_t kNumPartitionsLargeTopic{4};
-
-std::vector<kafka::utest::Message> ReceiveMessages(
-    kafka::impl::Consumer& consumer, std::size_t expected_messages_count,
-    bool commit = true) {
-  std::vector<kafka::utest::Message> received_messages;
-
-  engine::SingleUseEvent event;
-  auto consumer_scope = consumer.MakeConsumerScope();
-  consumer_scope.Start([&received_messages, expected_messages_count, &event,
-                        &consumer_scope,
-                        commit](kafka::MessageBatchView messages) {
-    for (const auto& message : messages) {
-      received_messages.push_back(kafka::utest::Message{
-          message.GetTopic(), std::string{message.GetKey()},
-          std::string{message.GetPayload()}, message.GetPartition()});
-    }
-    if (commit) {
-      consumer_scope.AsyncCommit();
-    }
-
-    if (received_messages.size() == expected_messages_count) {
-      event.Send();
-    }
-  });
-
-  event.Wait();
-
-  return received_messages;
-}
 
 }  // namespace
 
@@ -180,10 +150,10 @@ UTEST_F(ConsumerTest, OneConsumerRereadAfterCommit) {
   SendMessages(kTestMessages);
 
   auto consumer = MakeConsumer("kafka-consumer", /*topics=*/{topic});
-  const auto received_first =
-      ReceiveMessages(consumer, kTestMessages.size(), /*commit=*/false);
-  const auto received_second =
-      ReceiveMessages(consumer, kTestMessages.size(), /*commit=*/true);
+  const auto received_first = ReceiveMessages(consumer, kTestMessages.size(),
+                                              /*commit_after_receive=*/false);
+  const auto received_second = ReceiveMessages(consumer, kTestMessages.size(),
+                                               /*commit_after_receive*/ true);
 
   EXPECT_EQ(received_first, received_second);
 }

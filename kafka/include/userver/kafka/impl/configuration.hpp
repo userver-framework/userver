@@ -78,9 +78,6 @@ ProducerConfiguration Parse(const yaml_config::YamlConfig& config,
 
 /// @brief Wrapper for `librdkafka` `rd_kafka_conf_t`. Used as proxy between
 /// userver YAML configs and `librdkafka` configuration classes.
-/// @see impl/configuration.cpp
-/// @see components/consumer_component.cpp
-/// @see components/producer_component.cpp
 /// @see https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md
 class Configuration final {
  public:

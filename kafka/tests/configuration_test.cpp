@@ -2,8 +2,6 @@
 
 #include <optional>
 
-#include <gmock/gmock.h>
-
 #include <userver/engine/subprocess/environment_variables.hpp>
 
 USERVER_NAMESPACE_BEGIN

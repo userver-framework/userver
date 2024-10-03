@@ -5,6 +5,7 @@
 
 #include <fmt/format.h>
 
+#include <userver/engine/single_use_event.hpp>
 #include <userver/engine/subprocess/environment_variables.hpp>
 #include <userver/engine/wait_all_checked.hpp>
 #include <userver/utils/lazy_prvalue.hpp>
@@ -31,7 +32,6 @@ std::string FetchBrokerList() {
 
   std::string server_host{kDefaultKafkaServerHost};
   std::string server_port{kDefaultKafkaServerPort};
-
   const auto* host = env->GetValueOptional(kTestsuiteKafkaServerHost);
   if (host) {
     server_host = *host;
@@ -43,11 +43,23 @@ std::string FetchBrokerList() {
   return fmt::format("{}:{}", server_host, server_port);
 }
 
-kafka::impl::Secret MakeSecrets(std::string_view bootstrap_servers) {
-  kafka::impl::Secret secrets{};
+impl::Secret MakeSecrets(std::string_view bootstrap_servers) {
+  impl::Secret secrets{};
   secrets.brokers = bootstrap_servers;
 
   return secrets;
+}
+
+impl::ProducerConfiguration PatchDeliveryTimeout(
+    impl::ProducerConfiguration&& configuration) {
+  static const impl::ProducerConfiguration kDefaultProducerConfiguration{};
+
+  if (configuration.delivery_timeout ==
+      kDefaultProducerConfiguration.delivery_timeout) {
+    configuration.delivery_timeout = KafkaCluster::kDefaultTestProducerTimeout;
+  }
+
+  return configuration;
 }
 
 }  // namespace
@@ -87,7 +99,8 @@ impl::Configuration KafkaCluster::MakeConsumerConfiguration(
 
 Producer KafkaCluster::MakeProducer(const std::string& name,
                                     impl::ProducerConfiguration configuration) {
-  return Producer{name, engine::current_task::GetTaskProcessor(), configuration,
+  return Producer{name, engine::current_task::GetTaskProcessor(),
+                  PatchDeliveryTimeout(std::move(configuration)),
                   MakeSecrets(bootstrap_servers_)};
 };
 
@@ -131,6 +144,35 @@ impl::Consumer KafkaCluster::MakeConsumer(
                         MakeSecrets(bootstrap_servers_),
                         std::move(params)};
 };
+
+std::vector<Message> KafkaCluster::ReceiveMessages(
+    impl::Consumer& consumer, std::size_t expected_messages_count,
+    bool commit_after_receive) {
+  std::vector<Message> received_messages;
+
+  engine::SingleUseEvent event;
+  auto consumer_scope = consumer.MakeConsumerScope();
+  consumer_scope.Start(
+      [&received_messages, expected_messages_count, &event, &consumer_scope,
+       commit = commit_after_receive](MessageBatchView messages) {
+        for (const auto& message : messages) {
+          received_messages.push_back(Message{
+              message.GetTopic(), std::string{message.GetKey()},
+              std::string{message.GetPayload()}, message.GetPartition()});
+        }
+        if (commit) {
+          consumer_scope.AsyncCommit();
+        }
+
+        if (received_messages.size() == expected_messages_count) {
+          event.Send();
+        }
+      });
+
+  event.Wait();
+
+  return received_messages;
+}
 
 impl::Secret KafkaCluster::AddBootstrapServers(impl::Secret secrets) const {
   secrets.brokers = bootstrap_servers_;
