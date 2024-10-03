@@ -152,6 +152,8 @@ at startup.
 
 ### Congestion Control
 
+See @ref scripts/docs/en/userver/congestion_control.md.
+
 congestion_control::Component limits the active requests count. In case of overload it responds with HTTP 429 codes to some requests, allowing your service to properly process handle the rest.
 
 All the significant parts of the component are configured by dynamic config options @ref USERVER_RPS_CCONTROL and @ref USERVER_RPS_CCONTROL_ENABLED 
