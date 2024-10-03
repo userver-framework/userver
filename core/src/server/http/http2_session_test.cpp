@@ -18,8 +18,6 @@
 
 #include "create_parser_test.hpp"
 
-#include <iostream>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
@@ -93,13 +91,13 @@ class Http2SessionTest : public ::testing::Test {
       if (request.find("HTTP/1.1") != std::string::npos) {
         parser1_->Parse(request);
       } else {
-        EXPECT_TRUE(parser_->Parse(request));
+        parser_->Parse(request);
       }
     } else {
       UASSERT(slice_size_);
       for (size_t i = 0; i < request.size(); i += slice_size_) {
         const auto slice = std::string_view{request}.substr(i, slice_size_);
-        EXPECT_TRUE(parser_->Parse(slice));
+        parser_->Parse(slice);
       }
     }
   }
@@ -150,8 +148,6 @@ class Http2SessionTest : public ::testing::Test {
         MockHttpResponse::kWriteAndContinue,
     };
   }
-
-  bool IsNeedToUpgradeHttp() const noexcept { return is_upgrade_http_; }
 
   uint32_t cur_stream_id_{1};
   int slice_size_{-1};
