@@ -109,7 +109,7 @@ int Http2Session::OnFrameRecv(nghttp2_session* session,
     case NGHTTP2_DATA:
     case NGHTTP2_HEADERS: {
       if (frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
-        auto& stream = parser.GetStreamChecked(frame->hd.stream_id);
+        auto& stream = parser.GetStreamChecked(Stream::Id{frame->hd.stream_id});
         try {
           stream.RequestConstructor().AppendHeaderField("", 0);
         } catch (const std::exception& e) {
@@ -148,7 +148,7 @@ int Http2Session::OnHeader(nghttp2_session*, const nghttp2_frame* frame,
   const std::string_view hvalue{ToStringView(value, valuelen)};
 
   auto& parser = GetParser(user_data);
-  auto& stream = parser.GetStreamChecked(frame->hd.stream_id);
+  auto& stream = parser.GetStreamChecked(Stream::Id{frame->hd.stream_id});
   auto& ctor = stream.RequestConstructor();
   if (hname == USERVER_NAMESPACE::http::headers::k2::kMethod) {
     ctor.SetMethod(HttpMethodFromString(hvalue));
@@ -175,7 +175,7 @@ int Http2Session::OnHeader(nghttp2_session*, const nghttp2_frame* frame,
 int Http2Session::OnStreamClose(nghttp2_session*, int32_t id,
                                 uint32_t error_code, void* user_data) {
   auto& parser = GetParser(user_data);
-  parser.RemoveStream(parser.GetStreamChecked(id));
+  parser.RemoveStream(parser.GetStreamChecked(Stream::Id{id}));
 
   IncStat(parser.stats_.http2_stats.streams_close);
   LOG_LIMITED_TRACE() << fmt::format("The stream {} was closed with code {}",
@@ -193,7 +193,7 @@ int Http2Session::OnBeginHeaders(nghttp2_session*, const nghttp2_frame* frame,
   }
 
   auto& parser = GetParser(user_data);
-  parser.RegisterStream(frame->hd.stream_id);
+  parser.RegisterStream(Stream::Id{frame->hd.stream_id});
 
   return 0;
 }
@@ -202,7 +202,7 @@ int Http2Session::OnDataChunkRecv(nghttp2_session*, uint8_t, int32_t id,
                                   const uint8_t* data, size_t len,
                                   void* user_data) {
   auto& parser = GetParser(user_data);
-  auto& stream = parser.GetStreamChecked(id);
+  auto& stream = parser.GetStreamChecked(Stream::Id{id});
   try {
     stream.RequestConstructor().AppendBody(reinterpret_cast<const char*>(data),
                                            len);
@@ -246,7 +246,7 @@ int Http2Session::OnDataFrameSend(nghttp2_session*, nghttp2_frame* frame,
   return 0;
 }
 
-void Http2Session::RegisterStream(Stream::StreamId id) {
+void Http2Session::RegisterStream(Stream::Id id) {
   auto* stream_ptr = streams_pool_.malloc();
   if (stream_ptr == nullptr) {
     SubmitRstStream(id);
@@ -262,8 +262,8 @@ void Http2Session::RegisterStream(Stream::StreamId id) {
   utils::FastScopeGuard guard_destroy{
       [this, stream_ptr]() noexcept { streams_pool_.destroy(stream_ptr); }};
 
-  const int res =
-      nghttp2_session_set_stream_user_data(session_.get(), id, &*stream_ptr);
+  const int res = nghttp2_session_set_stream_user_data(
+      session_.get(), static_cast<std::int32_t>(id), &*stream_ptr);
   if (res != 0) {
     throw std::runtime_error{fmt::format("Cannot to set stream user data: {}",
                                          nghttp2_strerror(res))};
@@ -277,30 +277,31 @@ void Http2Session::RegisterStream(Stream::StreamId id) {
 
 void Http2Session::RemoveStream(Stream& stream) {
   UASSERT(streams_pool_.is_from(&stream));
-  const auto id = stream.Id();
+  const auto id = stream.GetId();
   streams_pool_.destroy(&stream);
 
-  const int res =
-      nghttp2_session_set_stream_user_data(session_.get(), id, nullptr);
+  const int res = nghttp2_session_set_stream_user_data(
+      session_.get(), static_cast<std::int32_t>(id), nullptr);
   // assert because the stream exists on the previous step
   UASSERT(res == 0);
   stats_.parsing_request_count.Subtract(1);
 }
 
-Stream& Http2Session::GetStreamChecked(Stream::StreamId id) {
-  auto* stream = static_cast<Stream*>(
-      nghttp2_session_get_stream_user_data(session_.get(), id));
+Stream& Http2Session::GetStreamChecked(Stream::Id id) {
+  auto* stream = static_cast<Stream*>(nghttp2_session_get_stream_user_data(
+      session_.get(), static_cast<std::int32_t>(id)));
   if (stream == nullptr) {
     throw std::runtime_error{fmt::format("The stream {} does not exist", id)};
   }
   return *stream;
 }
 
-void Http2Session::SubmitRstStream(Stream::StreamId id) {
+void Http2Session::SubmitRstStream(Stream::Id id) {
   IncStat(stats_.http2_stats.reset_streams);
-  UASSERT(id != 0);
+  UASSERT(id != Stream::Id{0});
   const auto res = nghttp2_submit_rst_stream(session_.get(), NGHTTP2_FLAG_NONE,
-                                             id, NGHTTP2_INTERNAL_ERROR);
+                                             static_cast<std::int32_t>(id),
+                                             NGHTTP2_INTERNAL_ERROR);
   UASSERT(res == 0);
 }
 
@@ -335,18 +336,19 @@ void Http2Session::UpgradeToHttp2(std::string_view client_magic) {
 void Http2Session::FinalizeRequest(Stream& stream) {
   if (!stream.CheckUrlComplete()) {
     IncStat(stats_.http2_stats.streams_parse_error);
-    SubmitRstStream(stream.Id());
+    SubmitRstStream(stream.GetId());
     RemoveStream(stream);
     return;
   }
-  stream.RequestConstructor().SetResponseStreamId(stream.Id());
+  stream.RequestConstructor().SetResponseStreamId(
+      static_cast<std::int32_t>(stream.GetId()));
   stream.RequestConstructor().SetStreamProducer(
       impl::Http2StreamEventProducer{*streaming_queue_, streaming_event_});
   if (auto request = stream.RequestConstructor().Finalize()) {
     on_new_request_cb_(std::move(request));
   } else {
     IncStat(stats_.http2_stats.streams_parse_error);
-    SubmitRstStream(stream.Id());
+    SubmitRstStream(stream.GetId());
     RemoveStream(stream);
   }
 }
@@ -372,9 +374,10 @@ void Http2Session::HandleStreamingEvents() {
   impl::Http2StreamEvent event;
   while (streaming_consumer_.PopNoblock(event)) {
     UASSERT(event.stream_id != -1);
-    auto& stream = GetStreamChecked(event.stream_id);
+    auto& stream = GetStreamChecked(Stream::Id{event.stream_id});
     if (stream.IsDeferred()) {
-      const auto res = nghttp2_session_resume_data(session_.get(), stream.Id());
+      const auto res = nghttp2_session_resume_data(
+          session_.get(), static_cast<std::int32_t>(stream.GetId()));
       ThrowIfErr(res, "Error while resume_data");
       stream.SetDeferred(false);
     }

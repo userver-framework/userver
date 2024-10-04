@@ -28,7 +28,7 @@ inline constexpr std::string_view kSwitchingProtocolResponse{
 // nghttp2_session_upgrade2 opens the stream with id=1 and we must use it.
 // See docs:
 // https://nghttp2.org/documentation/nghttp2_session_upgrade2.html#nghttp2-session-upgrade2
-inline constexpr std::size_t kStreamIdAfterUpgradeResponse = 1;
+inline constexpr Stream::Id kStreamIdAfterUpgradeResponse{1};
 
 class HttpRequestParser;
 
@@ -86,11 +86,11 @@ class Http2Session final : public request::RequestParser {
   static int OnStreamClose(nghttp2_session* session, int32_t stream_id,
                            uint32_t error_code, void* user_data);
 
-  void RegisterStream(Stream::StreamId id);
+  void RegisterStream(Stream::Id id);
   void RemoveStream(Stream& id);
-  Stream& GetStreamChecked(Stream::StreamId id);
+  Stream& GetStreamChecked(Stream::Id id);
 
-  void SubmitRstStream(Stream::StreamId stream_id);
+  void SubmitRstStream(Stream::Id stream_id);
 
   void FinalizeRequest(Stream& stream);
   bool ConnectionIsOk();

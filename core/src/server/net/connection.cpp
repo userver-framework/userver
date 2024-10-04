@@ -349,7 +349,8 @@ void Connection::SendResponse(request::RequestBase& request) {
           // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
           auto http2_session = static_cast<http::Http2Session*>(parser.get());
           http2_session->UpgradeToHttp2(h);
-          http_response.SetStreamId(http::kStreamIdAfterUpgradeResponse);
+          http_response.SetStreamId(
+              static_cast<std::int32_t>(http::kStreamIdAfterUpgradeResponse));
 
           http::WriteHttp2ResponseToSocket(http_response, *http2_session);
           parser_ = std::move(parser);

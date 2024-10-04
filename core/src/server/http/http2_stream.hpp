@@ -5,6 +5,8 @@
 
 #include <server/http/http_request_constructor.hpp>
 
+#include <userver/utils/strong_typedef.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::io {
@@ -15,19 +17,19 @@ namespace server::http {
 
 class Stream final {
  public:
-  using StreamId = std::int32_t;
+  using Id = utils::StrongTypedef<struct IdTag, std::int32_t>;
 
   Stream(HttpRequestConstructor::Config config,
          const HandlerInfoIndex& handler_info_index,
          request::ResponseDataAccounter& data_accounter,
-         engine::io::Sockaddr remote_address, StreamId id);
+         engine::io::Sockaddr remote_address, Id id);
 
   Stream(const Stream&) = delete;
   Stream(Stream&&) = delete;
   Stream& operator=(const Stream&) = delete;
   Stream& operator=(Stream&&) = delete;
 
-  StreamId Id() const;
+  Id GetId() const;
   HttpRequestConstructor& RequestConstructor();
   bool IsDeferred() const;
   void SetDeferred(bool deferred);
@@ -45,7 +47,7 @@ class Stream final {
  private:
   bool url_complete_{false};
   HttpRequestConstructor constructor_;
-  const StreamId id_;
+  const Id id_;
   // Body sending
   nghttp2_data_provider nghttp2_provider_{};
   boost::container::small_vector<std::string, 16> chunks_{};

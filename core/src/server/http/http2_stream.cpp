@@ -29,7 +29,7 @@ ssize_t NgHttp2ReadCallback(nghttp2_session*, int32_t, uint8_t*,
 Stream::Stream(HttpRequestConstructor::Config config,
                const HandlerInfoIndex& handler_info_index,
                request::ResponseDataAccounter& data_accounter,
-               engine::io::Sockaddr remote_address, StreamId id)
+               engine::io::Sockaddr remote_address, Id id)
     : constructor_(config, handler_info_index, data_accounter, remote_address),
       id_(id) {
   constructor_.SetHttpMajor(2);
@@ -38,7 +38,7 @@ Stream::Stream(HttpRequestConstructor::Config config,
   nghttp2_provider_.source.ptr = this;
 }
 
-Stream::StreamId Stream::Id() const { return id_; }
+Stream::Id Stream::GetId() const { return id_; }
 
 HttpRequestConstructor& Stream::RequestConstructor() { return constructor_; }
 

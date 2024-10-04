@@ -1,6 +1,7 @@
 #include <server/http/http2_writer.hpp>
 
 #include <fmt/format.h>
+#include <boost/container/small_vector.hpp>
 
 #include <server/http/http2_session.hpp>
 #include <server/http/http_cached_date.hpp>
@@ -54,6 +55,8 @@ nghttp2_nv UnsafeHeaderToNGHeader(std::string_view name, std::string_view value,
 
 class Http2HeaderWriter final {
  public:
+  using HeadersVector = boost::container::small_vector<nghttp2_nv, 16>;
+
   // We must borrow key-value pairs until the `WriteHttpResponse` is called
   explicit Http2HeaderWriter(std::size_t nheaders) {
     values_.reserve(nheaders);
@@ -88,11 +91,11 @@ class Http2HeaderWriter final {
   // A dirty size before HPACK
   std::size_t GetSize() const { return bytes_; }
 
-  std::vector<nghttp2_nv>& GetNgHeaders() { return ng_headers_; }
+  HeadersVector& GetNgHeaders() { return ng_headers_; }
 
  private:
-  std::vector<std::string> values_;
-  std::vector<nghttp2_nv> ng_headers_;
+  boost::container::small_vector<std::string, 16> values_;
+  HeadersVector ng_headers_;
   std::size_t bytes_{0};
 };
 
@@ -115,7 +118,7 @@ class Http2ResponseWriter final {
     }
 
     const auto stream_id = response_.GetStreamId().value();
-    auto& stream = http2_session_.GetStreamChecked(stream_id);
+    auto& stream = http2_session_.GetStreamChecked(Stream::Id{stream_id});
     stream.SetStreaming(response_.IsBodyStreamed() && data.empty());
 
     std::size_t bytes = headers.GetSize();
