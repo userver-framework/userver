@@ -51,6 +51,23 @@ inline void AddNonAtomic(std::atomic<std::uint64_t>& to, std::uint64_t x) {
   to.store(to.load(std::memory_order_relaxed) + x, std::memory_order_relaxed);
 }
 
+inline void AddNonAtomic(std::atomic<double>& to, std::uint64_t x) {
+  to.store(to.load(std::memory_order_relaxed) + x, std::memory_order_relaxed);
+}
+
+inline void AddAtomic(std::atomic<double>& to, double x) {
+#if __cplusplus >= 202002L
+  to += x;
+#else
+  double expected = to.load();
+  double desired = expected + x;
+  while (!to.compare_exchange_weak(expected, desired, std::memory_order_release,
+                                   std::memory_order_relaxed)) {
+    desired = expected + x;
+  }
+#endif
+}
+
 inline bool IsBoundPositive(double x) noexcept {
   return std::isnormal(x) && x > 0;
 }
@@ -105,6 +122,7 @@ class MutableView final {
   void Assign(HistogramView other) const noexcept {
     buckets_[0].upper_bound.size = other.GetBucketCount();
     buckets_[0].counter.store(other.GetValueAtInf(), std::memory_order_relaxed);
+    buckets_[0].sum.store(other.GetSumAtInf(), std::memory_order_relaxed);
     boost::copy(Access::Buckets(other), Access::Buckets(*this).begin());
   }
 
@@ -115,13 +133,16 @@ class MutableView final {
         boost::upper_bound(bounds_view, value, std::less_equal<>{});
     auto& bucket = (iter == bounds_view.end()) ? buckets_[0] : *iter.base();
     bucket.counter.fetch_add(count, std::memory_order_relaxed);
+    AddAtomic(bucket.sum, value * count);
   }
 
   // Atomic
   void Reset() const noexcept {
     buckets_[0].counter.store(0, std::memory_order_relaxed);
+    buckets_[0].sum.store(0.0, std::memory_order_relaxed);
     for (auto& bucket : Access::Buckets(*this)) {
       bucket.counter.store(0, std::memory_order_relaxed);
+      bucket.sum.store(0.0, std::memory_order_relaxed);
     }
   }
 
@@ -131,6 +152,8 @@ class MutableView final {
         boost::range::includes(Access::Bounds(other), Access::Bounds(*this)),
         "Buckets can be merged, but not added during Histogram conversion.");
     AddNonAtomic(buckets_[0].counter, other.GetValueAtInf());
+    AddNonAtomic(buckets_[0].sum, other.GetSumAtInf());
+
     const auto self_bounds = Access::Bounds(*this);
     auto current_self_bound = self_bounds.begin();
     for (const auto& other_bucket : Access::Buckets(other)) {
@@ -142,6 +165,7 @@ class MutableView final {
                               ? buckets_[0]
                               : *current_self_bound.base();
       AddNonAtomic(self_bucket.counter, other_bucket.counter);
+      AddNonAtomic(self_bucket.sum, other_bucket.sum);
     }
   }
 

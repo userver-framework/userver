@@ -31,6 +31,7 @@ struct Bucket final {
 
   BoundOrSize upper_bound{0.0};
   std::atomic<std::uint64_t> counter{0};
+  std::atomic<double> sum{0.0};
 };
 
 void CopyBounds(Bucket* bucket_array, utils::span<const double> upper_bounds);

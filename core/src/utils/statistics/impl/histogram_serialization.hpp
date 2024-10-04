@@ -14,6 +14,7 @@ Value Serialize(HistogramView value, formats::serialize::To<Value>) {
   result["bounds"] = impl::histogram::Access::Bounds(value);
   result["buckets"] = impl::histogram::Access::Values(value);
   result["inf"] = value.GetValueAtInf();
+  result["sum"] = value.GetTotalSum();
   return result.ExtractValue();
 }
 
@@ -26,6 +27,8 @@ void WriteToStream(HistogramView value, StringBuilder& sw) {
   WriteToStream(impl::histogram::Access::Values(value), sw);
   sw.Key("inf");
   WriteToStream(value.GetValueAtInf(), sw);
+  sw.Key("sum");
+  WriteToStream(value.GetTotalSum(), sw);
 }
 
 }  // namespace utils::statistics

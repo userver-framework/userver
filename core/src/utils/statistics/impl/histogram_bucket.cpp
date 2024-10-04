@@ -8,13 +8,16 @@ namespace utils::statistics::impl::histogram {
 
 Bucket::Bucket(const Bucket& other) noexcept
     : upper_bound(other.upper_bound),
-      counter(other.counter.load(std::memory_order_relaxed)) {}
+      counter(other.counter.load(std::memory_order_relaxed)),
+      sum(other.sum.load(std::memory_order_relaxed)) {}
 
 Bucket& Bucket::operator=(const Bucket& other) noexcept {
   if (this == &other) return *this;
   upper_bound = other.upper_bound;
   counter.store(other.counter.load(std::memory_order_relaxed),
                 std::memory_order_relaxed);
+  sum.store(other.sum.load(std::memory_order_relaxed),
+            std::memory_order_relaxed);
   return *this;
 }
 
