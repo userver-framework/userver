@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <chrono>
 #include <deque>
 #include <vector>
@@ -15,6 +16,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace kafka::utest {
 
+/// @ingroup userver_utest
+///
 /// @brief Message owning data wrapper for unit tests.
 struct Message {
   std::string topic;
@@ -25,6 +28,8 @@ struct Message {
 
 bool operator==(const Message& lhs, const Message& rhs);
 
+/// @ingroup userver_utest
+///
 /// @brief Helper for Kafka unit testing.
 ///
 /// KafkaCluster is useful for
@@ -80,6 +85,7 @@ class KafkaCluster : public ::testing::Test {
       std::size_t count, std::function<std::string(std::size_t)> nameGenerator,
       impl::ProducerConfiguration configuration = {});
 
+  /// @brief Creates temporary producer and send messages span.
   void SendMessages(utils::span<const Message> messages);
 
   impl::Consumer MakeConsumer(const std::string& name,
@@ -87,9 +93,12 @@ class KafkaCluster : public ::testing::Test {
                               impl::ConsumerConfiguration configuration = {},
                               impl::ConsumerExecutionParams params = {});
 
-  std::vector<Message> ReceiveMessages(impl::Consumer& consumer,
-                                       std::size_t expected_messages_count,
-                                       bool commit_after_receive = true);
+  /// @brief Starts consumer, waits until `expected_message_count` messages are
+  /// consumed, calls `user_callback` if set, stops consumer.
+  std::vector<Message> ReceiveMessages(
+      impl::Consumer& consumer, std::size_t expected_messages_count,
+      bool commit_after_receive = true,
+      std::optional<std::function<void(MessageBatchView)>> user_callback = {});
 
  private:
   impl::Secret AddBootstrapServers(impl::Secret secrets) const;

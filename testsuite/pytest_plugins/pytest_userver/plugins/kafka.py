@@ -31,8 +31,12 @@ def _patched_bootstrap_servers_internal() -> BootstrapServers:
 def kafka_secdist(_bootstrap_servers, service_config) -> str:
     """
     Automatically generates secdist config from user static config.
-    _bootstrap_servers is testsuite's fixture that determines current
+    `_bootstrap_servers` is testsuite's fixture that determines current
     bootstrap servers list depends on Kafka testsuite plugin's settings.
+
+    @snippet samples/kafka_service/testsuite/conftest.py  Kafka service sample - secdist
+
+    @ingroup userver_testsuite_fixtures
     """
 
     single_setting = {

@@ -16,7 +16,7 @@ CMAKE_RELEASE_FLAGS += -DCMAKE_BUILD_TYPE=Release $(CMAKE_COMMON_FLAGS)
 .PHONY: all
 all: test-debug test-release
 
-# Requires doxygen 1.9.8+
+# Requires doxygen 1.10.0+
 .PHONY: docs
 docs:
 	@rm -rf docs/*

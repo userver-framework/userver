@@ -14,6 +14,7 @@ enum class SendStatus {
   kErrorNonRetryable,
 };
 
+/// @brief Example message data.
 struct RequestMessage {
   std::string topic;
   std::string key;

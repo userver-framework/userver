@@ -41,13 +41,18 @@ in separate task processor.
 - ✅ Transfer from raw polling with timeouts to events processing,
   making the message polling non-blocking and leading to better library
   scalability;
-- testsuite Kafka support in OSS;
+- ✅ testsuite Kafka support in OSS;
 - Support of different compression codecs (GZIP, LZ4, ZSTD, etc..);
 - Support more SASL authentication mechanisms (GSSAPI, OAUTHBEARER);
+
+# Unit and functional testing
+- @ref scripts/docs/en/userver/tutorial/kafka_service.md shows how to test userver services with Kafka consumers and producers;
+- kafka::utest::KafkaCluster may be used for convenient unit testing with local consumers and producers instances;
 
 ## More information
 - For configuration see kafka::ProducerComponent and kafka::ConsumerComponent;
 - For understanding of interfaces see kafka::Producer and kafka::ConsumerScope;
+- Also kafka::impl::Consumer and kafka::impl::Configuration are well documented and may be useful;
 
 ----------
 

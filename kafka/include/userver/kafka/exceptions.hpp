@@ -12,6 +12,10 @@ class SendException : public std::runtime_error {
  public:
   using std::runtime_error::runtime_error;
 
+  /// @brief Returns whether it makes sense to retry failed send.
+  ///
+  /// @see
+  /// https://docs.confluent.io/platform/current/clients/librdkafka/html/md_INTRODUCTION.html#autotoc_md8
   bool IsRetryable() const noexcept;
 
  protected:

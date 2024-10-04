@@ -11,7 +11,7 @@ developer to call service handlers and test their result.
 
 Supported features:
 
-* Database startup (Mongo, Postgresql, Clickhouse, ...)
+* Database startup (Mongo, Postgresql, Clickhouse, Kafka, ...)
 * Per-test database state
 * Service startup
 * Mocksever to mock external service handlers

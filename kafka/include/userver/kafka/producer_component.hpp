@@ -50,13 +50,17 @@ namespace kafka {
 
 class ProducerComponent final : public components::ComponentBase {
  public:
-  static constexpr std::string_view kName = "kafka-producer";
+  /// @ingroup userver_component_names
+  /// @brief The default name of kafka::ProducerComponent component
+  static constexpr std::string_view kName{"kafka-producer"};
 
   ProducerComponent(const components::ComponentConfig& config,
                     const components::ComponentContext& context);
   ~ProducerComponent() override;
 
-  Producer& GetProducer();
+  /// @brief Returns a producer instance reference.
+  /// @see kafka::Producer
+  const Producer& GetProducer();
 
   static yaml_config::Schema GetStaticConfigSchema();
 

@@ -58,12 +58,16 @@ class Consumer;
 
 class ConsumerComponent final : public components::ComponentBase {
  public:
-  static constexpr std::string_view kName = "kafka-consumer";
+  /// @ingroup userver_component_names
+  /// @brief The default name of kafka::ConsumerComponent component
+  static constexpr std::string_view kName{"kafka-consumer"};
 
   ConsumerComponent(const components::ComponentConfig& config,
                     const components::ComponentContext& context);
   ~ConsumerComponent() override;
 
+  /// @brief Returns consumer instance.
+  /// @see kafka::ConsumerScope
   ConsumerScope GetConsumer();
 
   static yaml_config::Schema GetStaticConfigSchema();

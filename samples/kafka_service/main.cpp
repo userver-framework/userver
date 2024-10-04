@@ -17,6 +17,7 @@
 #include <consumer_handler.hpp>
 #include <producer_handler.hpp>
 
+/// [Kafka service sample - main]
 int main(int argc, char* argv[]) {
   const auto components_list =
       components::MinimalServerComponentList()
@@ -33,3 +34,4 @@ int main(int argc, char* argv[]) {
 
   return utils::DaemonMain(argc, argv, components_list);
 }
+/// [Kafka service sample - main]

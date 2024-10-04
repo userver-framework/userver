@@ -131,7 +131,7 @@ class HandlerKafkaProducers final
       const server::http::HttpRequest& request) const;
 
  private:
-  std::unordered_map<std::string, kafka::Producer&> producer_by_topic_;
+  std::unordered_map<std::string, const kafka::Producer&> producer_by_topic_;
 };
 
 }  // namespace functional_tests

@@ -42,12 +42,15 @@ bool IsCorrectRequest(const formats::json::Value& request_json) {
 
 }  // namespace
 
+/// [Kafka service sample - producer component find]
 ProducerHandler::ProducerHandler(const components::ComponentConfig& config,
                                  const components::ComponentContext& context)
     : server::handlers::HttpHandlerJsonBase{config, context},
       producer_{
           context.FindComponent<kafka::ProducerComponent>().GetProducer()} {}
+/// [Kafka service sample - producer component find]
 
+/// [Kafka service sample - producer handler implementation]
 formats::json::Value ProducerHandler::HandleRequestJsonThrow(
     const server::http::HttpRequest& request,
     const formats::json::Value& request_json,
@@ -71,5 +74,6 @@ formats::json::Value ProducerHandler::HandleRequestJsonThrow(
   }
   UINVARIANT(false, "Unknown produce status");
 }
+/// [Kafka service sample - producer handler implementation]
 
 }  // namespace kafka_sample

@@ -88,7 +88,7 @@ class Producer final {
   ///
   /// @note Use SendException::IsRetryable method to understand whether there is
   /// a sense to retry the message sending.
-  /// @snippet kafka/tests/producer_test.cpp Producer retryable error
+  /// @snippet kafka/tests/producer_kafkatest.cpp Producer retryable error
   void Send(const std::string& topic_name, std::string_view key,
             std::string_view message,
             std::optional<std::uint32_t> partition = std::nullopt) const;
@@ -101,14 +101,14 @@ class Producer final {
   /// requests may be retried by the library (for instance, in case of network
   /// blink). Though, the order messages are written to partition may differ
   /// from the order messages are initially sent
-  /// @snippet kafka/tests/producer_test.cpp Producer batch send async
+  /// @snippet kafka/tests/producer_kafkatest.cpp Producer batch send async
   [[nodiscard]] engine::TaskWithResult<void> SendAsync(
       std::string topic_name, std::string key, std::string message,
       std::optional<std::uint32_t> partition = std::nullopt) const;
 
   /// @brief Dumps per topic messages produce statistics. No expected to be
   /// called manually.
-  /// @see impl/stats.hpp
+  /// @see kafka/impl/stats.hpp
   void DumpMetric(utils::statistics::Writer& writer) const;
 
  private:

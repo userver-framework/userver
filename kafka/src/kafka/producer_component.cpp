@@ -35,7 +35,7 @@ ProducerComponent::ProducerComponent(
 
 ProducerComponent::~ProducerComponent() { statistics_holder_.Unregister(); }
 
-Producer& ProducerComponent::GetProducer() { return producer_; }
+const Producer& ProducerComponent::GetProducer() { return producer_; }
 
 yaml_config::Schema ProducerComponent::GetStaticConfigSchema() {
   return yaml_config::MergeSchemas<components::ComponentBase>(R"(

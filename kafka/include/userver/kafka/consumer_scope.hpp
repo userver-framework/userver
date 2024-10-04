@@ -27,11 +27,11 @@ class Consumer;
 ///
 /// Common usage:
 ///
-/// @snippet samples/kafka_service/main.cpp  Kafka service sample - consumer usage
+/// @snippet samples/kafka_service/src/consumer_handler.cpp  Kafka service sample - consumer usage
 ///
 /// ## Important implementation details
 ///
-/// ConsumerScope holds reference to `impl::Consumer` that actually
+/// ConsumerScope holds reference to kafka::impl::Consumer that actually
 /// represents the Apache Kafka Balanced Consumer.
 ///
 /// It exposes the API for asynchronous message batches processing that is

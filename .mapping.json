@@ -3310,6 +3310,7 @@
   "scripts/docs/en/userver/tutorial/hello_service.md":"taxi/uservices/userver/scripts/docs/en/userver/tutorial/hello_service.md",
   "scripts/docs/en/userver/tutorial/http_caching.md":"taxi/uservices/userver/scripts/docs/en/userver/tutorial/http_caching.md",
   "scripts/docs/en/userver/tutorial/json_to_yaml.md":"taxi/uservices/userver/scripts/docs/en/userver/tutorial/json_to_yaml.md",
+  "scripts/docs/en/userver/tutorial/kafka_service.md":"taxi/uservices/userver/scripts/docs/en/userver/tutorial/kafka_service.md",
   "scripts/docs/en/userver/tutorial/mongo_service.md":"taxi/uservices/userver/scripts/docs/en/userver/tutorial/mongo_service.md",
   "scripts/docs/en/userver/tutorial/multipart_service.md":"taxi/uservices/userver/scripts/docs/en/userver/tutorial/multipart_service.md",
   "scripts/docs/en/userver/tutorial/postgres_service.md":"taxi/uservices/userver/scripts/docs/en/userver/tutorial/postgres_service.md",

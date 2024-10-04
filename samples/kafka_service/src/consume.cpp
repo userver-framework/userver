@@ -5,6 +5,7 @@
 
 namespace kafka_sample {
 
+/// [Kafka service sample - consume]
 void Consume(kafka::MessageBatchView messages) {
   for (const auto& message : messages) {
     if (!message.GetTimestamp().has_value()) {
@@ -19,5 +20,6 @@ void Consume(kafka::MessageBatchView messages) {
     }());
   }
 }
+/// [Kafka service sample - consume]
 
 }  // namespace kafka_sample

@@ -4,6 +4,7 @@
 
 namespace kafka_sample {
 
+/// [Kafka service sample - produce]
 SendStatus Produce(const kafka::Producer& producer,
                    const RequestMessage& message) {
   try {
@@ -14,5 +15,6 @@ SendStatus Produce(const kafka::Producer& producer,
                             : SendStatus::kErrorNonRetryable;
   }
 }
+/// [Kafka service sample - produce]
 
 }  // namespace kafka_sample

@@ -48,6 +48,7 @@ are available at the
 * @ref scripts/docs/en/userver/tutorial/postgres_service.md
 * @ref scripts/docs/en/userver/tutorial/mongo_service.md
 * @ref scripts/docs/en/userver/tutorial/redis_service.md
+* @ref scripts/docs/en/userver/tutorial/kafka_service.md
 * @ref scripts/docs/en/userver/tutorial/auth_postgres.md
 * @ref scripts/docs/en/userver/tutorial/digest_auth_postgres.md
 * @ref scripts/docs/en/userver/tutorial/websocket_service.md
