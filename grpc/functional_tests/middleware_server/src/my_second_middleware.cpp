@@ -4,7 +4,7 @@ namespace functional_tests {
 
 void MySecondMiddleware::CallRequestHook(
     const ugrpc::server::MiddlewareCallContext&,
-    grpc::protobuf::Message& request) {
+    google::protobuf::Message& request) {
   auto* message = dynamic_cast<samples::api::GreetingRequest*>(&request);
   auto name = message->name();
   name += " Two";
@@ -13,7 +13,7 @@ void MySecondMiddleware::CallRequestHook(
 
 void MySecondMiddleware::CallResponseHook(
     const ugrpc::server::MiddlewareCallContext&,
-    grpc::protobuf::Message& response) {
+    google::protobuf::Message& response) {
   auto* message = dynamic_cast<samples::api::GreetingResponse*>(&response);
   auto str = message->greeting();
   str += " EndTwo";

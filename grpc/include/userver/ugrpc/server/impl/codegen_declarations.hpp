@@ -7,6 +7,8 @@
 
 #include <memory>
 
+#include <grpcpp/impl/codegen/proto_utils.h>
+
 #include <userver/ugrpc/server/impl/service_worker.hpp>
 #include <userver/ugrpc/server/rpc.hpp>
 #include <userver/ugrpc/server/service_base.hpp>

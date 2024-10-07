@@ -1,16 +1,18 @@
 #pragma once
 
-/// @file userver/ugrpc/server/middlewares/middleware_base.hpp
+/// @file userver/ugrpc/server/middlewares/base.hpp
 /// @brief @copybrief ugrpc::server::MiddlewareBase
 
 #include <memory>
-#include <vector>
+#include <optional>
+
+#include <google/protobuf/message.h>
 
 #include <userver/components/component_base.hpp>
 #include <userver/utils/function_ref.hpp>
 
+#include <userver/ugrpc/server/call.hpp>
 #include <userver/ugrpc/server/middlewares/fwd.hpp>
-#include <userver/ugrpc/server/rpc.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

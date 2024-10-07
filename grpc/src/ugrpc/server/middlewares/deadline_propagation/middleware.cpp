@@ -3,6 +3,7 @@
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/server/handlers/impl/deadline_propagation_config.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
+#include <userver/ugrpc/impl/deadline_timepoint.hpp>
 
 #include <ugrpc/impl/internal_tag.hpp>
 #include <ugrpc/server/impl/server_configs.hpp>

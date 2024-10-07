@@ -1,6 +1,7 @@
-#include <userver/ugrpc/server/rpc.hpp>
+#include <ugrpc/server/impl/format_log_message.hpp>
 
-#include <userver/utils/text.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/text_light.hpp>
 
 #include <benchmark/benchmark.h>
 

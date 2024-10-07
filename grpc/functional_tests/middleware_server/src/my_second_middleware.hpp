@@ -12,10 +12,10 @@ class MySecondMiddleware final : public ugrpc::server::MiddlewareBase {
   explicit MySecondMiddleware() = default;
 
   void CallRequestHook(const ugrpc::server::MiddlewareCallContext& context,
-                       grpc::protobuf::Message& request) override;
+                       google::protobuf::Message& request) override;
 
   void CallResponseHook(const ugrpc::server::MiddlewareCallContext& context,
-                        grpc::protobuf::Message& response) override;
+                        google::protobuf::Message& response) override;
 
   void Handle(ugrpc::server::MiddlewareCallContext& context) const override;
 };
