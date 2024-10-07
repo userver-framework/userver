@@ -96,6 +96,10 @@ const char* MsgForStatus(ConnStatusType status) {
     case CONNECTION_CHECK_STANDBY:
       return "PQstatus: Checking if server is in standby mode";
 #endif
+#if PG_VERSION_NUM >= 170000
+    case CONNECTION_ALLOCATED:
+      return "PQstatus: Waiting for connection attempt to be started";
+#endif
   }
 
   UINVARIANT(false, "Unhandled ConnStatusType");
@@ -765,6 +769,12 @@ ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
       break;
     case PGRES_PIPELINE_SYNC:
       PGCW_LOG_TRACE() << "Successful completion of all commands in a pipeline";
+      break;
+#endif
+#if PG_VERSION_NUM >= 170000
+    case PGRES_TUPLES_CHUNK:
+      PGCW_LOG_LIMITED_WARNING() << "Got chunk of tuples from larger resultset";
+      CloseWithError(ConnectionError{"Got chunk of tuples from larger resultset"});
       break;
 #endif
   }
