@@ -773,8 +773,10 @@ ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
 #endif
 #if PG_VERSION_NUM >= 170000
     case PGRES_TUPLES_CHUNK:
-      PGCW_LOG_LIMITED_WARNING() << "Got chunk of tuples from larger resultset";
-      CloseWithError(ConnectionError{"Got chunk of tuples from larger resultset"});
+      PGCW_LOG_LIMITED_WARNING()
+          << "Got a chunk of tuples from the larger resultset";
+      CloseWithError(
+          ConnectionError{"Got a chunk of tuples from the larger resultset"});
       break;
 #endif
   }
