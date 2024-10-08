@@ -65,7 +65,7 @@ On errors, exceptions from userver/ugrpc/client/exceptions.hpp are thrown. It is
 
 ### TLS / SSL
 
-May be enabled via
+May be enabled for gRPC client via:
 
 ```
 # yaml
@@ -83,6 +83,21 @@ Available values are:
 SSL has to be disabled in tests, because it
 requires the server to have a public domain name, which it does not in tests.
 In testsuite, SSL in gRPC clients is disabled automatically.
+
+TLS for gRPC server may be enabled via:
+
+```
+# yaml
+components_manager:
+    components:
+        grpc-server:
+            tls:
+                key: /path/to/private.key
+                cert: /path/to/cert.crt
+                # remove if you don't force client cert verification
+                ca: /path/to/ca.crt
+```
+
 
 ### Client middlewares
 

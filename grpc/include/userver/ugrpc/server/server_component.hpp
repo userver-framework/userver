@@ -34,6 +34,9 @@ struct ServiceDefaults;
 /// native-log-level | min log level for the native gRPC library | 'error'
 /// enable-channelz | initialize service with runtime info about gRPC connections | false
 /// service-defaults | default config values for gRPC services, see config schema | {}
+/// tls.cert | path to file with server TLS certificate | -
+/// tls.key | path to file with secret key from server TLS certificate | -
+/// tls.ca | path to TLS client CA certificate | -
 ///
 /// @see https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
 

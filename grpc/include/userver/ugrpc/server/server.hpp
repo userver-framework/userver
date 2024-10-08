@@ -34,6 +34,17 @@ namespace ugrpc::server {
 
 class GenericServiceBase;
 
+struct TlsConfig {
+  // Certificate Authority, for client auth
+  std::optional<std::string> ca;
+
+  // Server certificate private key
+  std::optional<std::string> key;
+
+  // Server certificate
+  std::optional<std::string> cert;
+};
+
 /// Settings relating to the whole gRPC server
 struct ServerConfig final {
   /// The port to listen to. If `0`, a free port will be picked automatically.
@@ -62,6 +73,9 @@ struct ServerConfig final {
 
   /// 'access-tskv.log' logger
   logging::LoggerPtr access_tskv_logger{logging::MakeNullLogger()};
+
+  /// TLS settings
+  TlsConfig tls;
 };
 
 /// @brief Manages the gRPC server

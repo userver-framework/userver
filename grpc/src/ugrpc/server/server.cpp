@@ -107,11 +107,15 @@ class Server::Impl final {
     kStopped,
   };
 
+  static std::shared_ptr<grpc::ServerCredentials> BuildCredentials(
+      const TlsConfig& config);
+
   impl::ServiceSettings MakeServiceSettings(ServiceConfig&& config);
 
-  void AddListeningPort(int port);
+  void AddListeningPort(int port, const TlsConfig& tls_config);
 
-  void AddListeningUnixSocket(std::string_view path);
+  void AddListeningUnixSocket(std::string_view path,
+                              const TlsConfig& tls_config);
 
   void DoStart();
 
@@ -150,9 +154,10 @@ Server::Impl::Impl(ServerConfig&& config,
   ApplyChannelArgs(*server_builder_, config);
   completion_queues_.emplace(config.completion_queue_num, *server_builder_);
 
-  if (config.unix_socket_path) AddListeningUnixSocket(*config.unix_socket_path);
+  if (config.unix_socket_path)
+    AddListeningUnixSocket(*config.unix_socket_path, config.tls);
 
-  if (config.port) AddListeningPort(*config.port);
+  if (config.port) AddListeningPort(*config.port, config.tls);
 }
 
 Server::Impl::~Impl() {
@@ -164,7 +169,7 @@ Server::Impl::~Impl() {
   }
 }
 
-void Server::Impl::AddListeningPort(int port) {
+void Server::Impl::AddListeningPort(int port, const TlsConfig& tls_config) {
   std::lock_guard lock(configuration_mutex_);
   UASSERT(state_ == State::kConfiguration);
 
@@ -175,10 +180,11 @@ void Server::Impl::AddListeningPort(int port) {
 
   const auto uri = fmt::format("[::]:{}", port);
   server_builder_->AddListeningPort(ugrpc::impl::ToGrpcString(uri),
-                                    grpc::InsecureServerCredentials(), &*port_);
+                                    BuildCredentials(tls_config), &*port_);
 }
 
-void Server::Impl::AddListeningUnixSocket(std::string_view path) {
+void Server::Impl::AddListeningUnixSocket(std::string_view path,
+                                          const TlsConfig& tls_config) {
   std::lock_guard lock(configuration_mutex_);
   UASSERT(state_ == State::kConfiguration);
 
@@ -191,7 +197,7 @@ void Server::Impl::AddListeningUnixSocket(std::string_view path) {
 
   const auto uri = fmt::format("unix:{}", path);
   server_builder_->AddListeningPort(ugrpc::impl::ToGrpcString(uri),
-                                    grpc::InsecureServerCredentials());
+                                    BuildCredentials(tls_config));
 }
 
 impl::ServiceSettings Server::Impl::MakeServiceSettings(
@@ -302,6 +308,28 @@ void Server::Impl::StopServing() noexcept {
 
 std::uint64_t Server::Impl::GetTotalRequests() const {
   return statistics_storage_.GetStartedRequests();
+}
+
+std::shared_ptr<grpc::ServerCredentials> Server::Impl::BuildCredentials(
+    const TlsConfig& tls_config) {
+  if (tls_config.cert) {
+    grpc::SslServerCredentialsOptions ssl_opts(
+        tls_config.ca.has_value()
+            ? GRPC_SSL_REQUEST_AND_REQUIRE_CLIENT_CERTIFICATE_AND_VERIFY
+            : GRPC_SSL_DONT_REQUEST_CLIENT_CERTIFICATE);
+    if (tls_config.ca) {
+      ssl_opts.pem_root_certs = tls_config.ca.value();
+    }
+    ssl_opts.pem_key_cert_pairs.push_back(
+        grpc::SslServerCredentialsOptions::PemKeyCertPair{
+            tls_config.key.value_or(""),
+            grpc::string(tls_config.cert.value()),
+        });
+
+    return grpc::SslServerCredentials(ssl_opts);
+  }
+
+  return grpc::InsecureServerCredentials();
 }
 
 void Server::Impl::DoStart() {

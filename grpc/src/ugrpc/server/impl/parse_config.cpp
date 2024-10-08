@@ -2,9 +2,11 @@
 
 #include <boost/range/adaptor/transformed.hpp>
 
+#include <userver/fs/blocking/read.hpp>
 #include <userver/logging/component.hpp>
 #include <userver/logging/level_serialization.hpp>
 #include <userver/logging/null_logger.hpp>
+#include <userver/storages/secdist/component.hpp>
 #include <userver/utils/algo.hpp>
 
 #include <userver/ugrpc/server/middlewares/base.hpp>
@@ -104,6 +106,24 @@ ServerConfig ParseServerConfig(const yaml_config::YamlConfig& value,
   config.native_log_level =
       value["native-log-level"].As<logging::Level>(logging::Level::kError);
   config.enable_channelz = value["enable-channelz"].As<bool>(false);
+
+  const auto ca = value["tls"]["ca"].As<std::optional<std::string>>();
+  if (ca) {
+    config.tls.ca = fs::blocking::ReadFileContents(ca.value());
+  }
+  const auto cert = value["tls"]["cert"].As<std::optional<std::string>>();
+  if (cert) {
+    config.tls.cert = fs::blocking::ReadFileContents(cert.value());
+  }
+  const auto key = value["tls"]["key"].As<std::optional<std::string>>();
+  if (key) {
+    config.tls.key = fs::blocking::ReadFileContents(key.value());
+  }
+
+  if (config.tls.key && !config.tls.cert) {
+    throw std::runtime_error(
+        "'tls.cert' cannot be missing if 'tls.key' is set");
+  }
 
   const auto logger_name = value["access-tskv-logger"];
   if (!logger_name.IsMissing()) {

@@ -94,7 +94,7 @@ def grpc_client_prepare(
 
 
 @pytest.fixture(scope='session')
-async def _grpc_session_channel(
+async def grpc_session_channel(
     grpc_service_endpoint, _grpc_channel_interceptor,
 ):
     async with grpc.aio.insecure_channel(
@@ -108,7 +108,7 @@ async def grpc_channel(
     grpc_service_endpoint,
     grpc_service_deps,
     grpc_service_timeout,
-    _grpc_session_channel,
+    grpc_session_channel,
     _grpc_channel_interceptor,
     grpc_client_prepare,
 ):
@@ -121,14 +121,14 @@ async def grpc_channel(
     _grpc_channel_interceptor.prepare_func = grpc_client_prepare
     try:
         await asyncio.wait_for(
-            _grpc_session_channel.channel_ready(), timeout=grpc_service_timeout,
+            grpc_session_channel.channel_ready(), timeout=grpc_service_timeout,
         )
     except asyncio.TimeoutError:
         raise RuntimeError(
             f'Failed to connect to remote gRPC server by '
             f'address {grpc_service_endpoint}',
         )
-    return _grpc_session_channel
+    return grpc_session_channel
 
 
 @pytest.fixture

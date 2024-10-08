@@ -80,6 +80,20 @@ properties:
     enable-channelz:
         type: boolean
         description: enable channelz
+    tls:
+        type: object
+        additionalProperties: false
+        description: TLS settings
+        properties:
+            ca:
+                type: string
+                description: path to TLS client CA certificate
+            key:
+                type: string
+                description: path to TLS certificate key
+            cert:
+                type: string
+                description: path to TLS certificate
     service-defaults:
         type: object
         description: omitted options for service components will default to the corresponding option from here
