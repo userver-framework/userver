@@ -207,12 +207,12 @@ void CacheUpdateTrait::Impl::StartPeriodicUpdates(
       } catch (const std::exception& e) {
         if (dump_time &&
             config->first_update_mode != FirstUpdateMode::kRequired) {
-          LOG_ERROR() << "Failed to update cache " << name_
-                      << " after loading a cache dump, going on with the "
-                         "contents loaded from the dump";
+          LOG_WARNING() << "Failed to update cache " << name_
+                        << " after loading a cache dump, going on with the "
+                           "contents loaded from the dump";
         } else if (static_config_.allow_first_update_failure) {
-          LOG_ERROR() << "Failed to update cache " << name_
-                      << " for the first time, leaving it empty";
+          LOG_WARNING() << "Failed to update cache " << name_
+                        << " for the first time, leaving it empty";
         } else {
           LOG_ERROR() << "Failed to update cache " << name_
                       << " for the first time";
