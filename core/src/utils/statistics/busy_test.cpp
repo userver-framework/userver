@@ -25,10 +25,79 @@ TEST(Busy, Busy100) {
 
   EXPECT_FLOAT_EQ(0, storage.GetCurrentLoad());
 
-  auto id = storage.StartWork();
+  storage.StartWork();
   MockSleep(std::chrono::seconds(10));
   EXPECT_FLOAT_EQ(1, storage.GetCurrentLoad());
-  storage.StopWork(id);
+  storage.StopWork();
+
+  EXPECT_FLOAT_EQ(1, storage.GetCurrentLoad());
+}
+
+TEST(Busy, Sample) {
+  MockNowSet(tp_start);
+
+  auto some_heavy_task_that_takes_1s = []() {
+    MockSleep(std::chrono::seconds(1));
+    return true;
+  };
+
+  auto some_heavy_task_that_takes_3s = []() {
+    MockSleep(std::chrono::seconds(3));
+  };
+
+  auto sleep_for_more_than_5s = []() { MockSleep(std::chrono::seconds(10)); };
+
+  using namespace std::literals::chrono_literals;
+  /// [busy sample]
+  utils::statistics::BusyStorage storage(1s, 5s);
+  EXPECT_FLOAT_EQ(0, storage.GetCurrentLoad());
+
+  {
+    utils::statistics::BusyMarker scope{storage};
+    if (some_heavy_task_that_takes_1s()) {
+      some_heavy_task_that_takes_3s();
+      // 4 seconds out of 5 were consumed -> 80%
+      EXPECT_FLOAT_EQ(0.8, storage.GetCurrentLoad());
+    }
+  }
+  EXPECT_LE(0.2, storage.GetCurrentLoad());
+
+  sleep_for_more_than_5s();
+  // No workload measured in last 5 seconds
+  EXPECT_FLOAT_EQ(0, storage.GetCurrentLoad());
+  /// [busy sample]
+
+  {
+    utils::statistics::BusyMarker scope0{storage};
+    std::optional<utils::statistics::BusyMarker> scope1{storage};
+    utils::statistics::BusyMarker scope2{storage};
+    std::optional<utils::statistics::BusyMarker> scope3{storage};
+    utils::statistics::BusyMarker scope4{storage};
+    utils::statistics::BusyMarker scope5{storage};
+    some_heavy_task_that_takes_1s();
+    scope3.reset();
+    scope1.reset();
+    EXPECT_LE(0.2, storage.GetCurrentLoad());
+  }
+  EXPECT_LE(0.2, storage.GetCurrentLoad());
+}
+
+TEST(Busy, Busy100Recursive) {
+  MockNowSet(tp_start);
+
+  utils::statistics::BusyStorage storage(std::chrono::seconds(1),
+                                         std::chrono::seconds(5));
+
+  EXPECT_FLOAT_EQ(0, storage.GetCurrentLoad());
+
+  storage.StartWork();
+  storage.StartWork();
+  MockSleep(std::chrono::seconds(10));
+  EXPECT_FLOAT_EQ(1, storage.GetCurrentLoad());
+  storage.StopWork();
+
+  EXPECT_FLOAT_EQ(1, storage.GetCurrentLoad());
+  storage.StopWork();
 
   EXPECT_FLOAT_EQ(1, storage.GetCurrentLoad());
 }
@@ -42,9 +111,9 @@ TEST(Busy, Busy100Cycle) {
   EXPECT_FLOAT_EQ(0, storage.GetCurrentLoad());
 
   for (int i = 0; i < 100; i++) {
-    auto id = storage.StartWork();
+    storage.StartWork();
     MockSleep(std::chrono::milliseconds(200));
-    storage.StopWork(id);
+    storage.StopWork();
   }
 
   EXPECT_FLOAT_EQ(1, storage.GetCurrentLoad());
@@ -58,13 +127,13 @@ TEST(Busy, Single) {
 
   EXPECT_FLOAT_EQ(0, storage.GetCurrentLoad());
 
-  auto id = storage.StartWork();
+  storage.StartWork();
   EXPECT_FLOAT_EQ(0, storage.GetCurrentLoad());
 
   MockSleep(std::chrono::seconds(1));
   EXPECT_FLOAT_EQ(0.2, storage.GetCurrentLoad());
 
-  storage.StopWork(id);
+  storage.StopWork();
   EXPECT_FLOAT_EQ(0.2, storage.GetCurrentLoad());
 
   for (size_t i = 0; i < 5; i++) {
@@ -82,7 +151,7 @@ TEST(Busy, TooBusy) {
   utils::statistics::BusyStorage storage(std::chrono::seconds(1),
                                          std::chrono::seconds(5));
 
-  auto id = storage.StartWork();
+  storage.StartWork();
   EXPECT_GE(1, storage.GetCurrentLoad());
 
   for (int i = 0; i < 10; i++) {
@@ -98,7 +167,7 @@ TEST(Busy, TooBusy) {
   EXPECT_FLOAT_EQ(1, storage.GetCurrentLoad());
 
   MockSleep(std::chrono::milliseconds(100));
-  storage.StopWork(id);
+  storage.StopWork();
   EXPECT_FLOAT_EQ(1, storage.GetCurrentLoad());
 
   for (int i = 0; i < 5; i++) {
@@ -108,63 +177,6 @@ TEST(Busy, TooBusy) {
 
   MockSleep(std::chrono::seconds(1));
   EXPECT_FLOAT_EQ(0, storage.GetCurrentLoad());
-}
-
-TEST(Busy, Reentrant) {
-  MockNowSet(tp_start);
-  utils::statistics::BusyStorage storage(std::chrono::seconds(1),
-                                         std::chrono::seconds(5), 2);
-  {
-    auto id1 = storage.StartWork();
-    auto id2 = storage.StartWork();
-    MockSleep(std::chrono::seconds(1));
-    storage.StopWork(id1);
-    storage.StopWork(id2);
-    MockSleep(std::chrono::seconds(1));
-  }
-  EXPECT_FLOAT_EQ(1.0 / 10, storage.GetCurrentLoad());
-}
-
-TEST(Busy, TwoThreads) {
-  MockNowSet(tp_start);
-  utils::statistics::BusyStorage storage(std::chrono::seconds(1),
-                                         std::chrono::seconds(5), 2);
-
-  std::mutex m;
-  std::condition_variable cv;
-  bool should_stop = false;
-  bool is_initialized[2] = {false, false};
-  {
-    auto cb = [&storage, &m, &cv, &should_stop, &is_initialized](size_t idx) {
-      std::unique_lock<std::mutex> lock(m);
-      utils::statistics::BusyMarker marker(storage);
-
-      is_initialized[idx] = true;
-      cv.notify_all();
-
-      ASSERT_TRUE(cv.wait_for(lock, utest::kMaxTestWaitTime,
-                              [&should_stop]() { return should_stop; }));
-    };
-
-    std::future<void> f[2];
-    for (size_t i = 0; i < 2; i++) {
-      f[i] = std::async(std::launch::async, [&cb, i] { return cb(i); });
-
-      std::unique_lock<std::mutex> lock(m);
-      ASSERT_TRUE(
-          cv.wait_for(lock, utest::kMaxTestWaitTime,
-                      [&is_initialized, i] { return is_initialized[i]; }));
-    }
-
-    MockSleep(std::chrono::seconds(1));
-    {
-      std::unique_lock<std::mutex> lock(m);
-      should_stop = true;
-      cv.notify_all();
-    }
-    for (auto& fut : f) fut.get();
-  }
-  EXPECT_FLOAT_EQ(1.0 / 5, storage.GetCurrentLoad());
 }
 
 USERVER_NAMESPACE_END
