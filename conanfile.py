@@ -621,13 +621,22 @@ class UserverConan(ConanFile):
                 },
             ])
         if self.options.with_kafka:
-            userver_components.extend([
-                {
-                    'target': 'kafka',
-                    'lib': 'kafka',
-                    'requires': ['core'] + librdkafka(),
-                },
-            ])
+            userver_components.extend(
+                [
+                    {
+                        "target": "kafka",
+                        "lib": "kafka",
+                        "requires": (
+                            ["core"]
+                            + librdkafka()
+                            + cyrussasl()
+                            + curl()
+                            + zlib()
+                            + openssl()
+                        ),
+                    },
+                ]
+            )
 
         if self.options.with_otlp:
             userver_components.extend([
