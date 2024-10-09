@@ -51,7 +51,7 @@ class UserverConan(ConanFile):
         'lto': False,
         'with_jemalloc': True,
         'with_mongodb': True,
-        'with_postgresql': False,
+        'with_postgresql': True,
         'with_postgresql_extra': False,
         'with_redis': True,
         'with_grpc': True,
