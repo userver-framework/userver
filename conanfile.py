@@ -26,7 +26,6 @@ class UserverConan(ConanFile):
 
     settings = 'os', 'arch', 'compiler', 'build_type'
     options = {
-        'shared': [True, False],
         'fPIC': [True, False],
         'lto': [True, False],
         'with_jemalloc': [True, False],
@@ -46,7 +45,6 @@ class UserverConan(ConanFile):
     }
 
     default_options = {
-        'shared': False,
         'fPIC': True,
         'lto': False,
         'with_jemalloc': True,
