@@ -1,0 +1,14 @@
+components:
+    schemas:
+        Enum:
+            type: object
+            additionalProperties: false
+            properties:
+                foo:
+                    type: integer
+                    enum: [ 0, 1, 2, 3, 5]
+                    x-enum-varnames:
+                      - Inner
+                      - Left
+                      - Right
+                      - Outer

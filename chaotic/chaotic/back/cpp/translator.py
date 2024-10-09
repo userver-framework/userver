@@ -265,7 +265,7 @@ class Generator:
 
             enum_names = []
 
-            if hasattr(schema, 'x_properties') and 'x-enum-varnames' in schema.x_properties:
+            if 'x-enum-varnames' in schema.x_properties:
                 enum_names = schema.x_properties['x-enum-varnames']
 
             emum_items: List[cpp_types.CppIntEnumItem] = []
@@ -277,8 +277,8 @@ class Generator:
                     result.extend([part.capitalize() for part in SPLIT_WORDS_RE.findall(word)])
                 return ''.join(result)
 
-            for i in range(len(schema.enum)):
-                raw_name = str(schema.enum[i])
+            for i, val in enumerate(schema.enum):
+                raw_name = str(val)
                 if i < len(enum_names):
                     raw_name = enum_names[i]
                 emum_items.append(cpp_types.CppIntEnumItem(value=schema.enum[i],
