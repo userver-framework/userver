@@ -60,6 +60,10 @@ class TestPackageConan(ConanFile):
                 self.cpp.build.bindirs[0], 'PackageTest_universal',
             )
             self.run(bin_path, env='conanrun')
+            bin_path = os.path.join(
+                self.cpp.build.bindirs[0], 'PackageTest_kafka',
+            )
+            self.run(bin_path, env='conanrun')
 
             bin_path = os.path.join(
                 self.cpp.build.bindirs[0],
