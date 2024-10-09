@@ -170,9 +170,6 @@ class UserverConan(ConanFile):
                 transitive_libs=True,
             )
         if self.options.with_kafka:
-            self.requires('openssl/1.1.1s')
-            self.requires('zlib/1.2.13')
-            self.requires('libcurl/7.86.0')
             self.requires('cyrus-sasl/2.1.27')
             self.requires('librdkafka/2.4.0')
 
