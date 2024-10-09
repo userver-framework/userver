@@ -239,6 +239,7 @@ function(userver_testsuite_add)
     --
     "--build-dir=${CMAKE_CURRENT_BINARY_DIR}"
     "--service-logs-file=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/service.log"
+    "--basetemp=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary"
     ${ARG_PYTEST_ARGS}
     RESULT_VARIABLE STATUS
   )

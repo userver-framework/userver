@@ -166,7 +166,9 @@ def service_tmpdir(service_binary, tmp_path_factory):
 
     @ingroup userver_testsuite_fixtures
     """
-    return tmp_path_factory.mktemp(pathlib.Path(service_binary).name)
+    return tmp_path_factory.mktemp(
+        pathlib.Path(service_binary).name, numbered=False,
+    )
 
 
 @pytest.fixture(scope='session')
