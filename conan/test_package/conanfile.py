@@ -28,33 +28,41 @@ class TestPackageConan(ConanFile):
                 self.cpp.build.bindirs[0], 'PackageTest_core',
             )
             self.run(bin_path, env='conanrun')
-            bin_path = os.path.join(
-                self.cpp.build.bindirs[0], 'PackageTest_utest',
-            )
-            self.run(bin_path, env='conanrun')
-            bin_path = os.path.join(
-                self.cpp.build.bindirs[0], 'PackageTest_grpc',
-            )
-            self.run(bin_path, env='conanrun')
-            bin_path = os.path.join(
-                self.cpp.build.bindirs[0], 'PackageTest_mongo',
-            )
-            self.run(bin_path, env='conanrun')
-            bin_path = os.path.join(
-                self.cpp.build.bindirs[0], 'PackageTest_postgresql',
-            )
-            self.run(bin_path, env='conanrun')
-            bin_path = os.path.join(
-                self.cpp.build.bindirs[0], 'PackageTest_rabbitmq',
-            )
-            self.run(bin_path, env='conanrun')
-            bin_path = os.path.join(
-                self.cpp.build.bindirs[0], 'PackageTest_redis',
-            )
-            self.run(bin_path, env='conanrun')
-            bin_path = os.path.join(
-                self.cpp.build.bindirs[0], 'PackageTest_clickhouse',
-            )
+
+            if self.dependencies[self.tested_reference_str].options.with_utest:
+                bin_path = os.path.join(
+                    self.cpp.build.bindirs[0], 'PackageTest_utest',
+                )
+            if self.dependencies[self.tested_reference_str].options.with_grpc:
+                self.run(bin_path, env='conanrun')
+                bin_path = os.path.join(
+                    self.cpp.build.bindirs[0], 'PackageTest_grpc',
+                )
+            if self.dependencies[self.tested_reference_str].options.with_mongodb:
+                self.run(bin_path, env='conanrun')
+                bin_path = os.path.join(
+                    self.cpp.build.bindirs[0], 'PackageTest_mongo',
+                )
+            if self.dependencies[self.tested_reference_str].options.with_postgresql:
+                self.run(bin_path, env='conanrun')
+                bin_path = os.path.join(
+                    self.cpp.build.bindirs[0], 'PackageTest_postgresql',
+                )
+            if self.dependencies[self.tested_reference_str].options.with_rabbitmq:
+                self.run(bin_path, env='conanrun')
+                bin_path = os.path.join(
+                    self.cpp.build.bindirs[0], 'PackageTest_rabbitmq',
+                )
+            if self.dependencies[self.tested_reference_str].options.with_redis:
+                self.run(bin_path, env='conanrun')
+                bin_path = os.path.join(
+                    self.cpp.build.bindirs[0], 'PackageTest_redis',
+                )
+            if self.dependencies[self.tested_reference_str].options.with_clickhouse:
+                self.run(bin_path, env='conanrun')
+                bin_path = os.path.join(
+                    self.cpp.build.bindirs[0], 'PackageTest_clickhouse',
+                )
             self.run(bin_path, env='conanrun')
             bin_path = os.path.join(
                 self.cpp.build.bindirs[0], 'PackageTest_universal',
