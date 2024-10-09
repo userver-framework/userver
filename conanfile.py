@@ -628,11 +628,11 @@ class UserverConan(ConanFile):
                         "lib": "kafka",
                         "requires": (
                             ["core"]
-                            + librdkafka()
                             + cyrussasl()
                             + curl()
                             + zlib()
                             + openssl()
+                            + librdkafka()
                         ),
                     },
                 ]
