@@ -38,7 +38,8 @@ class GeneratorState:
 
 
 NON_NAME_SYMBOL_RE = re.compile('[^_0-9a-zA-Z]')
-
+SPLIT_RE = re.compile(r'[a-zA-Z0-9]+')
+SPLIT_WORDS_RE = re.compile(r'[A-Z]+(?=[A-Z][a-z0-9])|[A-Z][a-z0-9]+|[a-z0-9]+|[A-Z]+')
 
 class FormatChooser:
     def __init__(self, types: List[cpp_types.CppType]) -> None:
@@ -262,13 +263,35 @@ class Generator:
             assert schema.format is None
             assert user_cpp_type is None
 
+            enum_names = []
+
+            if hasattr(schema, 'x_properties') and 'x-enum-varnames' in schema.x_properties:
+                enum_names = schema.x_properties['x-enum-varnames']
+
+            emum_items: List[cpp_types.CppIntEnumItem] = []
+
+            def to_camel_case(text: str) -> str:
+                words = SPLIT_RE.findall(text)
+                result = []
+                for word in words:
+                    result.extend([part.capitalize() for part in SPLIT_WORDS_RE.findall(word)])
+                return ''.join(result)
+
+            for i in range(len(schema.enum)):
+                raw_name = str(schema.enum[i])
+                if i < len(enum_names):
+                    raw_name = enum_names[i]
+                emum_items.append(cpp_types.CppIntEnumItem(value=schema.enum[i],
+                                                         raw_name=raw_name,
+                                                         cpp_name=to_camel_case(raw_name), ))
+
             return cpp_types.CppIntEnum(
                 json_schema=schema,
                 nullable=schema.nullable,
                 raw_cpp_type=name,
                 user_cpp_type=None,
                 name=name.in_global_scope(),
-                enums=schema.enum,
+                enums=emum_items,
             )
 
         if schema.format is None:
