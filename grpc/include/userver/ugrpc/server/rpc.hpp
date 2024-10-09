@@ -297,9 +297,11 @@ void UnaryCall<Response>::Finish(Response&& response) {
 template <typename Response>
 void UnaryCall<Response>::Finish(Response& response) {
   UINVARIANT(!is_finished_, "'Finish' called on a finished call");
-  is_finished_ = true;
-
   ApplyResponseHook(&response);
+
+  // It is important to set is_finished_ after ApplyResponseHook.
+  // Otherwise, there would be no way to call FinishWithError there.
+  is_finished_ = true;
 
   LogFinish(grpc::Status::OK);
   impl::Finish(stream_, response, grpc::Status::OK, GetCallName());
@@ -359,12 +361,14 @@ template <typename Request, typename Response>
 void InputStream<Request, Response>::Finish(Response& response) {
   UINVARIANT(state_ != State::kFinished,
              "'Finish' called on a finished stream");
+  ApplyResponseHook(&response);
+
+  // It is important to set the state_ after ApplyResponseHook.
+  // Otherwise, there would be no way to call FinishWithError there.
   state_ = State::kFinished;
 
   const auto& status = grpc::Status::OK;
   LogFinish(status);
-
-  ApplyResponseHook(&response);
 
   impl::Finish(stream_, response, status, GetCallName());
   GetStatistics().OnExplicitFinish(status.error_code());
@@ -411,6 +415,7 @@ void OutputStream<Response>::Write(Response&& response) {
 template <typename Response>
 void OutputStream<Response>::Write(Response& response) {
   UINVARIANT(state_ != State::kFinished, "'Write' called on a finished stream");
+  ApplyResponseHook(&response);
 
   // For some reason, gRPC requires explicit 'SendInitialMetadata' in output
   // streams
@@ -419,8 +424,6 @@ void OutputStream<Response>::Write(Response& response) {
   // Don't buffer writes, otherwise in an event subscription scenario, events
   // may never actually be delivered
   grpc::WriteOptions write_options{};
-
-  ApplyResponseHook(&response);
 
   impl::Write(stream_, response, write_options, GetCallName());
 }
@@ -458,6 +461,10 @@ template <typename Response>
 void OutputStream<Response>::WriteAndFinish(Response& response) {
   UINVARIANT(state_ != State::kFinished,
              "'WriteAndFinish' called on a finished stream");
+  ApplyResponseHook(&response);
+
+  // It is important to set the state_ after ApplyResponseHook.
+  // Otherwise, there would be no way to call FinishWithError there.
   state_ = State::kFinished;
 
   // Don't buffer writes, otherwise in an event subscription scenario, events
@@ -466,8 +473,6 @@ void OutputStream<Response>::WriteAndFinish(Response& response) {
 
   const auto& status = grpc::Status::OK;
   LogFinish(status);
-
-  ApplyResponseHook(&response);
 
   impl::WriteAndFinish(stream_, response, write_options, status, GetCallName());
   GetStatistics().OnExplicitFinish(grpc::StatusCode::OK);
@@ -518,13 +523,12 @@ void BidirectionalStream<Request, Response>::Write(Response&& response) {
 template <typename Request, typename Response>
 void BidirectionalStream<Request, Response>::Write(Response& response) {
   UINVARIANT(!is_finished_, "'Write' called on a finished stream");
-
-  // Don't buffer writes, optimize for ping-pong-style interaction
-  grpc::WriteOptions write_options{};
-
   if constexpr (std::is_base_of_v<google::protobuf::Message, Response>) {
     ApplyResponseHook(&response);
   }
+
+  // Don't buffer writes, optimize for ping-pong-style interaction
+  grpc::WriteOptions write_options{};
 
   try {
     impl::Write(stream_, response, write_options, GetCallName());
@@ -568,6 +572,12 @@ template <typename Request, typename Response>
 void BidirectionalStream<Request, Response>::WriteAndFinish(
     Response& response) {
   UINVARIANT(!is_finished_, "'WriteAndFinish' called on a finished stream");
+  if constexpr (std::is_base_of_v<google::protobuf::Message, Response>) {
+    ApplyResponseHook(&response);
+  }
+
+  // It is important to set is_finished_ after ApplyResponseHook.
+  // Otherwise, there would be no way to call FinishWithError there.
   is_finished_ = true;
 
   // Don't buffer writes, optimize for ping-pong-style interaction
@@ -575,10 +585,6 @@ void BidirectionalStream<Request, Response>::WriteAndFinish(
 
   const auto& status = grpc::Status::OK;
   LogFinish(status);
-
-  if constexpr (std::is_base_of_v<google::protobuf::Message, Response>) {
-    ApplyResponseHook(&response);
-  }
 
   impl::WriteAndFinish(stream_, response, write_options, status, GetCallName());
   GetStatistics().OnExplicitFinish(status.error_code());

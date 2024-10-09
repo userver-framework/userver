@@ -5,6 +5,7 @@
 #include <userver/logging/impl/logger_base.hpp>
 #include <userver/logging/logger.hpp>
 #include <userver/ugrpc/impl/statistics_storage.hpp>
+#include <userver/ugrpc/server/impl/exceptions.hpp>
 #include <userver/ugrpc/server/middlewares/base.hpp>
 #include <userver/utils/algo.hpp>
 
@@ -50,6 +51,7 @@ void CallAnyBase::ApplyRequestHook(google::protobuf::Message* request) {
   if (request) {
     for (const auto& middleware : params_.middlewares) {
       middleware->CallRequestHook(*middleware_call_context_, *request);
+      if (IsFinished()) throw impl::MiddlewareRpcInterruptionError();
     }
   }
 }
@@ -60,6 +62,7 @@ void CallAnyBase::ApplyResponseHook(google::protobuf::Message* response) {
     for (const auto& middleware :
          boost::adaptors::reverse(params_.middlewares)) {
       middleware->CallResponseHook(*middleware_call_context_, *response);
+      if (IsFinished()) throw impl::MiddlewareRpcInterruptionError();
     }
   }
 }

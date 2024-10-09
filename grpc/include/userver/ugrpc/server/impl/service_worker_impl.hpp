@@ -1,10 +1,8 @@
 #pragma once
 
-#include <chrono>
 #include <exception>
 #include <functional>
 #include <optional>
-#include <string>
 #include <string_view>
 #include <type_traits>
 #include <utility>
@@ -32,6 +30,7 @@
 #include <userver/ugrpc/server/impl/call_params.hpp>
 #include <userver/ugrpc/server/impl/call_traits.hpp>
 #include <userver/ugrpc/server/impl/error_code.hpp>
+#include <userver/ugrpc/server/impl/exceptions.hpp>
 #include <userver/ugrpc/server/impl/service_worker.hpp>
 #include <userver/ugrpc/server/middlewares/base.hpp>
 #include <userver/ugrpc/server/rpc.hpp>
@@ -212,6 +211,10 @@ class CallData final {
           initial_request);
       responder.RunMiddlewarePipeline(utils::impl::InternalTag{},
                                       middleware_context);
+    } catch (const BaseInternalRpcError&) {
+      // The status has already been reported by user code with FinishWithError.
+      // The exception is required to rollback the call stack of the handler.
+      // Thus, we should just ignore the error.
     } catch (
         const USERVER_NAMESPACE::server::handlers::CustomHandlerException& ex) {
       ReportCustomError(ex, responder, span_->Get());

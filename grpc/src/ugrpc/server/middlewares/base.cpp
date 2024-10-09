@@ -1,5 +1,7 @@
 #include <userver/ugrpc/server/middlewares/base.hpp>
 
+#include <userver/ugrpc/server/impl/exceptions.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
@@ -25,6 +27,7 @@ void MiddlewareCallContext::Next() {
     // It is important for non-stream calls
     if (request_) {
       (*middleware_)->CallRequestHook(*this, *request_);
+      if (call_.IsFinished()) throw impl::MiddlewareRpcInterruptionError();
     }
     ++middleware_;
   }
