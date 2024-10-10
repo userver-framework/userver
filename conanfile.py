@@ -170,6 +170,7 @@ class UserverConan(ConanFile):
                 transitive_libs=True,
             )
         if self.options.with_kafka:
+            self.requires('cyrus-sasl/2.1.27')
             self.requires('librdkafka/2.4.0')
 
     def validate(self):
@@ -625,7 +626,14 @@ class UserverConan(ConanFile):
                 {
                     'target': 'kafka',
                     'lib': 'kafka',
-                    'requires': ['core'] + librdkafka(),
+                    'requires': (
+                        ['core']
+                        + cyrussasl()
+                        + curl()
+                        + zlib()
+                        + openssl()
+                        + librdkafka()
+                    ),
                 },
             ])
 

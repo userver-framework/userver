@@ -20,9 +20,10 @@ list(REMOVE_ITEM SOURCES ${KAFKA_FUNCTIONAL_TEST_SOURCES})
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
 if(USERVER_CONAN)
+  find_package(OpenSSL COMPONENTS SSL Crypto REQUIRED)
+  find_package(CURL REQUIRED)
+  find_package(libz REQUIRED)
   find_package(RdKafka REQUIRED)
-  set_target_properties(RdKafka::rdkafka++ PROPERTIES IMPORTED_GLOBAL TRUE)
-  add_library(rdkafka ALIAS RdKafka::rdkafka++)
 else()
   include(SetupRdKafka)
 endif()
@@ -30,15 +31,21 @@ endif()
 target_compile_options(${PROJECT_NAME} PRIVATE "-Wno-ignored-qualifiers")
 target_link_libraries(${PROJECT_NAME}
   PUBLIC userver::core
-  PRIVATE rdkafka
 )
 target_include_directories(${PROJECT_NAME}
   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
+target_link_libraries(${PROJECT_NAME}
+  PRIVATE "${RdKafka_LIBRARIES}" sasl2 z CURL::libcurl OpenSSL::SSL OpenSSL::Crypto
+)
+
+target_include_directories(${PROJECT_NAME}
+  PRIVATE "${RdKafka_INCLUDE_DIRS}"
+)
 
 if(KAFKA_CPM)
-  message(STATUS "Linking wrapper ${CMAKE_CURRENT_SOURCE_DIR}/wrapper/include")
+  message(STATUS "Including from wrapper ${CMAKE_CURRENT_SOURCE_DIR}/wrapper/include")
   target_include_directories(${PROJECT_NAME}
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/wrapper/include
   )

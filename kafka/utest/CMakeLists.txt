@@ -7,7 +7,6 @@ file(GLOB_RECURSE KAFKA_LIB_UTEST_SOURCES
 add_library(${PROJECT_NAME} STATIC ${KAFKA_LIB_UTEST_SOURCES})
 target_link_libraries(${PROJECT_NAME}
     PUBLIC userver::kafka userver::utest
-    PRIVATE rdkafka
 )
 target_include_directories(${PROJECT_NAME}
     PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
