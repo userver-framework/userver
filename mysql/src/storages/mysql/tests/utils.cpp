@@ -1,11 +1,18 @@
-#include "utils_mysqltest.hpp"
+#include <userver/storages/mysql/tests/utils.hpp>
+
+#include <stdlib.h>
+
+#include <cstdlib>
 
 #include <fmt/format.h>
 
 #include <userver/components/component_config.hpp>
+#include <userver/engine/subprocess/process_starter.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/formats/json.hpp>
 #include <userver/formats/yaml.hpp>
+#include <userver/fs/blocking/read.hpp>
+#include <userver/fs/blocking/temp_file.hpp>
 #include <userver/utils/from_string.hpp>
 
 #include <storages/mysql/impl/connection.hpp>
@@ -18,8 +25,44 @@ namespace storages::mysql::tests {
 namespace {
 
 constexpr const char* kTestsuiteMysqlPort = "TESTSUITE_MYSQL_PORT";
-constexpr std::uint32_t kDefaultTestsuiteMysqlPort =
-    13307;  // 3306;  // 13307; // 3306;
+constexpr std::uint32_t kDefaultTestsuiteMysqlPort = 13307;
+
+void DoCreateTestDatabase(std::uint32_t port) {
+  // TODO provide an in-framework API for MySQL database creation.
+
+  // engine::subprocess::ProcessStarter is not available here, because
+  // the default ev loop is disabled due to death-tests.
+  // Also, we want to avoid having a dependency on Boost.Process.
+
+  // There definitely won't be any shell injection here, trust me.
+  // Also, this hack is run in tests only.
+  // NOLINTNEXTLINE(cert-env33-c,concurrency-mt-unsafe)
+  const auto status = std::system(
+      fmt::format(
+          R"(mysql -u root -h 127.0.0.1 -P {} -e "CREATE DATABASE IF NOT EXISTS userver_mysql_test")",
+          port)
+          .c_str());
+
+  if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
+    throw std::runtime_error("Failed to create test database");
+  }
+}
+
+std::uint32_t GetTestDatabasePort() {
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
+  if (const char* port_string = std::getenv("TESTSUITE_MYSQL_PORT")) {
+    return utils::FromString<std::uint32_t>(port_string);
+  }
+  return kDefaultTestsuiteMysqlPort;
+}
+
+void CreateTestDatabase() {
+  static bool created = false;
+  if (!created) {
+    DoCreateTestDatabase(GetTestDatabasePort());
+    created = true;
+  }
+}
 
 std::string GenerateTableName() {
   auto uuid = utils::generators::GenerateUuid();
@@ -36,16 +79,19 @@ std::string GenerateTableName() {
 }
 
 std::shared_ptr<Cluster> CreateCluster(clients::dns::Resolver& resolver) {
-  const auto secdist_json =
-      formats::json::FromString(fmt::format(R"(
-{{
-  "port": {},
-  "hosts": ["localhost"],
-  "database": "userver_mysql_test",
-  "user": "root",
-  "password": ""
-}})",
-                                            GetMysqlPort()));
+  CreateTestDatabase();
+
+  formats::json::ValueBuilder secdist_json_builder =
+      formats::json::FromString(R"(
+    {
+      "hosts": ["localhost"],
+      "database": "userver_mysql_test",
+      "user": "root",
+      "password": ""
+    }
+  )");
+  secdist_json_builder["port"] = GetMysqlPort();
+  const auto secdist_json = secdist_json_builder.ExtractValue();
   const auto settings = secdist_json.As<settings::MysqlSettings>();
 
   const components::ComponentConfig config{

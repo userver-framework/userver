@@ -1,5 +1,5 @@
+#include <userver/storages/mysql/tests/utils.hpp>
 #include <userver/utest/utest.hpp>
-#include "../utils_mysqltest.hpp"
 
 #include <sys/resource.h>
 

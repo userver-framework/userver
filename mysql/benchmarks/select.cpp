@@ -1,5 +1,5 @@
 #include <benchmark/benchmark.h>
-#include "../utils_mysqltest.hpp"
+#include <userver/storages/mysql/tests/utils.hpp>
 
 #include <userver/engine/run_standalone.hpp>
 

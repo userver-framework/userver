@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/storages/mysql/tests/utils.hpp
+/// @brief Utilities for testing logic working with MySQL.
+
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/utils/uuid4.hpp>
