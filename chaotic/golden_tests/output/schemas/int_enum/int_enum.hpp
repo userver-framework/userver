@@ -3,7 +3,6 @@
 #include "int_enum_fwd.hpp"
 
 #include <optional>
-#include <string>
 
 #include <userver/chaotic/type_bundle_hpp.hpp>
 
@@ -11,15 +10,19 @@ namespace ns {
 
 struct Enum {
   enum class Foo {
-    kOne,
-    kTwo,
-    kThree,
+    kInner = 0,  // Inner
+    kLeft = 1,   // Left
+    kRight = 2,  // Right
+    kOuter = 3,  // Outer
+    k5 = 5,      // 5
   };
 
   static constexpr Foo kFooValues[] = {
-      Foo::kOne,
-      Foo::kTwo,
-      Foo::kThree,
+      Foo::kInner,
+      Foo::kLeft,
+      Foo::kRight,
+      Foo::kOuter,
+      Foo::k5,
   };
 
   std::optional<ns::Enum::Foo> foo{};
@@ -51,12 +54,6 @@ Enum::Foo Parse(USERVER_NAMESPACE::yaml_config::Value json,
 Enum Parse(USERVER_NAMESPACE::yaml_config::Value json,
            USERVER_NAMESPACE::formats::parse::To<ns::Enum>);
 
-Enum::Foo FromString(std::string_view value,
-                     USERVER_NAMESPACE::formats::parse::To<ns::Enum::Foo>);
-
-Enum::Foo Parse(std::string_view value,
-                USERVER_NAMESPACE::formats::parse::To<ns::Enum::Foo>);
-
 USERVER_NAMESPACE::formats::json::Value Serialize(
     const ns::Enum::Foo& value, USERVER_NAMESPACE::formats::serialize::To<
                                     USERVER_NAMESPACE::formats::json::Value>);
@@ -64,7 +61,5 @@ USERVER_NAMESPACE::formats::json::Value Serialize(
 USERVER_NAMESPACE::formats::json::Value Serialize(
     const ns::Enum& value, USERVER_NAMESPACE::formats::serialize::To<
                                USERVER_NAMESPACE::formats::json::Value>);
-
-std::string ToString(ns::Enum::Foo value);
 
 }  // namespace ns
