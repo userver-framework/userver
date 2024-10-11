@@ -12,6 +12,7 @@
 #include <userver/ugrpc/server/call.hpp>
 #include <userver/ugrpc/server/exceptions.hpp>
 #include <userver/ugrpc/server/impl/async_methods.hpp>
+#include <userver/ugrpc/server/stream.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -71,12 +72,12 @@ class UnaryCall final : public CallAnyBase {
 /// If any method throws, further methods must not be called on the same stream,
 /// except for `GetContext`.
 template <typename Request, typename Response>
-class InputStream final : public CallAnyBase {
+class InputStream final : public CallAnyBase, public Reader<Request> {
  public:
   /// @brief Await and read the next incoming message
   /// @param request where to put the request on success
   /// @returns `true` on success, `false` on end-of-input
-  [[nodiscard]] bool Read(Request& request);
+  bool Read(Request& request) override;
 
   /// @brief Complete the RPC successfully
   ///
@@ -108,7 +109,7 @@ class InputStream final : public CallAnyBase {
 
   InputStream(InputStream&&) = delete;
   InputStream& operator=(InputStream&&) = delete;
-  ~InputStream();
+  ~InputStream() override;
 
   bool IsFinished() const override;
 
@@ -128,17 +129,17 @@ class InputStream final : public CallAnyBase {
 /// If any method throws, further methods must not be called on the same stream,
 /// except for `GetContext`.
 template <typename Response>
-class OutputStream final : public CallAnyBase {
+class OutputStream final : public CallAnyBase, public Writer<Response> {
  public:
   /// @brief Write the next outgoing message
   /// @param response the next message to write
   /// @throws ugrpc::server::RpcError on an RPC error
-  void Write(Response& response);
+  void Write(Response& response) override;
 
   /// @brief Write the next outgoing message
   /// @param response the next message to write
   /// @throws ugrpc::server::RpcError on an RPC error
-  void Write(Response&& response);
+  void Write(Response&& response) override;
 
   /// @brief Complete the RPC successfully
   ///
@@ -181,7 +182,7 @@ class OutputStream final : public CallAnyBase {
 
   OutputStream(OutputStream&&) = delete;
   OutputStream& operator=(OutputStream&&) = delete;
-  ~OutputStream();
+  ~OutputStream() override;
 
   bool IsFinished() const override;
 
@@ -205,23 +206,24 @@ class OutputStream final : public CallAnyBase {
 /// If any method throws, further methods must not be called on the same stream,
 /// except for `GetContext`.
 template <typename Request, typename Response>
-class BidirectionalStream : public CallAnyBase {
+class BidirectionalStream : public CallAnyBase,
+                            public ReaderWriter<Request, Response> {
  public:
   /// @brief Await and read the next incoming message
   /// @param request where to put the request on success
   /// @returns `true` on success, `false` on end-of-input
   /// @throws ugrpc::server::RpcError on an RPC error
-  [[nodiscard]] bool Read(Request& request);
+  bool Read(Request& request) override;
 
   /// @brief Write the next outgoing message
   /// @param response the next message to write
   /// @throws ugrpc::server::RpcError on an RPC error
-  void Write(Response& response);
+  void Write(Response& response) override;
 
   /// @brief Write the next outgoing message
   /// @param response the next message to write
   /// @throws ugrpc::server::RpcError on an RPC error
-  void Write(Response&& response);
+  void Write(Response&& response) override;
 
   /// @brief Complete the RPC successfully
   ///
@@ -264,7 +266,7 @@ class BidirectionalStream : public CallAnyBase {
 
   BidirectionalStream(const BidirectionalStream&) = delete;
   BidirectionalStream(BidirectionalStream&&) = delete;
-  ~BidirectionalStream();
+  ~BidirectionalStream() override;
 
   bool IsFinished() const override;
 

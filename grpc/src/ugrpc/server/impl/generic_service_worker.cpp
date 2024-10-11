@@ -19,6 +19,11 @@ constexpr std::string_view kGenericServiceNameFake = "Generic";
 constexpr ugrpc::impl::StaticServiceMetadata kGenericMetadataFake{
     kGenericServiceNameFake, kGenericMethodFullNamesFake};
 
+auto Dispatch(
+    void (GenericServiceBase::*service_method)(GenericServiceBase::Call&)) {
+  return service_method;
+}
+
 }  // namespace
 
 template <>
@@ -88,7 +93,7 @@ grpc::AsyncGenericService& GenericServiceWorker::GetService() {
 
 void GenericServiceWorker::Start() {
   impl::StartServing(impl_->service_data, impl_->service,
-                     &GenericServiceBase::Handle);
+                     Dispatch(&GenericServiceBase::Handle));
 }
 
 }  // namespace ugrpc::server::impl

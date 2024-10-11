@@ -18,23 +18,80 @@ constexpr std::string_view k{{service.name}}MethodNames[] = {
   "{{proto.package_prefix}}{{service.name}}/{{method.name}}",
   {% endfor %}
 };
+
 {% endfor %}
-
 }  // namespace
-{% for service in proto.services %}
-{% for method in service.method %}
-{% set method_id = loop.index0 %}
 
-void {{service.name}}Base::{{method.name}}(
-    {% if method.client_streaming %}
-    {{method.name}}Call& call) {
-    {% else %}
-    {{method.name}}Call& call,
-    [[maybe_unused]] {{ method.input_type | grpc_to_cpp_name }}&& request) {
-    {% endif %}
+{% for service in proto.services %}
+
+{% for method in service.method %}
+{% if method.client_streaming and method.server_streaming %}
+
+grpc::Status {{service.name}}Base::{{method.name}}([[maybe_unused]] CallContext& context,
+                                                   [[maybe_unused]] {{method.name}}ReaderWriter& stream) {
   UASSERT_MSG(false, "Called not implemented {{proto.package_prefix}}{{service.name}}/{{method.name}}");
-  call.FinishWithError(USERVER_NAMESPACE::ugrpc::server::impl::kUnimplementedStatus);
+  return USERVER_NAMESPACE::ugrpc::server::impl::kUnimplementedStatus;
 }
+
+// Legacy
+void {{service.name}}Base::{{method.name}}({{method.name}}Call& call) {
+  CallContext context{call};
+  grpc::Status status = {{method.name}}(context, call);
+  USERVER_NAMESPACE::ugrpc::server::impl::Finish(call, status);
+}
+
+{% elif method.client_streaming %}
+
+{{service.name}}Base::{{method.name}}Result {{service.name}}Base::{{method.name}}(
+    [[maybe_unused]] CallContext& context,
+    [[maybe_unused]] {{method.name}}Reader& reader) {
+  UASSERT_MSG(false, "Called not implemented {{proto.package_prefix}}{{service.name}}/{{method.name}}");
+  return USERVER_NAMESPACE::ugrpc::server::impl::kUnimplementedStatus;
+}
+
+// Legacy
+void {{service.name}}Base::{{method.name}}({{method.name}}Call& call) {
+  CallContext context{call};
+  auto result = {{method.name}}(context, call);
+  USERVER_NAMESPACE::ugrpc::server::impl::Finish(call, std::move(result));
+}
+
+{% elif method.server_streaming %}
+
+grpc::Status {{service.name}}Base::{{method.name}}(
+    [[maybe_unused]] CallContext& context,
+    [[maybe_unused]] {{ method.input_type | grpc_to_cpp_name }}&& request,
+    [[maybe_unused]] {{method.name}}Writer& writer) {
+  UASSERT_MSG(false, "Called not implemented {{proto.package_prefix}}{{service.name}}/{{method.name}}");
+  return USERVER_NAMESPACE::ugrpc::server::impl::kUnimplementedStatus;
+}
+
+// Legacy
+void {{service.name}}Base::{{method.name}}({{method.name}}Call& call,
+                                           {{ method.input_type | grpc_to_cpp_name }}&& request) {
+  CallContext context{call};
+  grpc::Status status = {{method.name}}(context, std::move(request), call);
+  USERVER_NAMESPACE::ugrpc::server::impl::Finish(call, status);
+}
+
+{% else %}
+
+{{service.name}}Base::{{method.name}}Result {{service.name}}Base::{{method.name}}(
+    [[maybe_unused]] CallContext& context,
+    [[maybe_unused]] {{ method.input_type | grpc_to_cpp_name }}&& request) {
+  UASSERT_MSG(false, "Called not implemented {{proto.package_prefix}}{{service.name}}/{{method.name}}");
+  return USERVER_NAMESPACE::ugrpc::server::impl::kUnimplementedStatus;
+}
+
+// Legacy
+void {{service.name}}Base::{{method.name}}({{method.name}}Call& call,
+                                           {{ method.input_type | grpc_to_cpp_name }}&& request) {
+  CallContext context{call};
+  auto result = {{method.name}}(context, std::move(request));
+  USERVER_NAMESPACE::ugrpc::server::impl::Finish(call, std::move(result));
+}
+
+{% endif %}
 {% endfor %}
 
 std::unique_ptr<USERVER_NAMESPACE::ugrpc::server::impl::ServiceWorker>
@@ -44,8 +101,11 @@ std::unique_ptr<USERVER_NAMESPACE::ugrpc::server::impl::ServiceWorker>
       {{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}>(
       std::move(settings), k{{service.name}}MethodNames, *this,
       {% for method in service.method %}
-      &{{service.name}}Base::{{method.name}}{{ "," if not loop.last else ");" }}
+      USERVER_NAMESPACE::ugrpc::server::impl::Dispatch(
+          &{{service.name}}Base::{{method.name}}){{ "," if not loop.last else ");" }}
       {% endfor %}
 }
+
 {% endfor %}
+
 {% endcall %} {# utils.optional_namespace #}

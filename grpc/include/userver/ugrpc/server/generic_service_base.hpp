@@ -5,8 +5,12 @@
 
 #include <grpcpp/support/byte_buffer.h>
 
-#include <userver/ugrpc/server/rpc.hpp>
+#include <userver/ugrpc/server/call_context.hpp>
 #include <userver/ugrpc/server/service_component_base.hpp>
+#include <userver/ugrpc/server/stream.hpp>
+
+// use by legacy
+#include <userver/ugrpc/server/rpc.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -61,7 +65,9 @@ class GenericServiceBase {
   /// The disadvantage is that such services are not unit-testable.
   using Component = impl::ServiceComponentBase<GenericServiceBase>;
 
-  using Call = BidirectionalStream<grpc::ByteBuffer, grpc::ByteBuffer>;
+  using GenericCallContext = ugrpc::server::GenericCallContext;
+  using GenericReaderWriter =
+      ugrpc::server::ReaderWriter<grpc::ByteBuffer, grpc::ByteBuffer>;
 
   GenericServiceBase(GenericServiceBase&&) = delete;
   GenericServiceBase& operator=(GenericServiceBase&&) = delete;
@@ -74,7 +80,15 @@ class GenericServiceBase {
   /// @note The implementation of the method should call `Finish` or
   /// `FinishWithError`, otherwise the server will respond with an "internal
   /// server error" status.
-  virtual void Handle(Call& call) = 0;
+  virtual grpc::Status Handle(GenericCallContext& context,
+                              GenericReaderWriter& stream);
+
+  // Legacy
+  using Call = BidirectionalStream<grpc::ByteBuffer, grpc::ByteBuffer>;
+  [[deprecated(
+      "Use 'grpc::Status Handle(GenericCallContext&, "
+      "GenericReaderWriter&)'")]] virtual void
+  Handle(Call& call);
 
  protected:
   GenericServiceBase() = default;
