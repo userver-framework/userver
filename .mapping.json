@@ -3299,6 +3299,7 @@
   "scripts/docs/en/userver/os_signals.md":"taxi/uservices/userver/scripts/docs/en/userver/os_signals.md",
   "scripts/docs/en/userver/periodics.md":"taxi/uservices/userver/scripts/docs/en/userver/periodics.md",
   "scripts/docs/en/userver/pg_connlimit_mode_auto.md":"taxi/uservices/userver/scripts/docs/en/userver/pg_connlimit_mode_auto.md",
+  "scripts/docs/en/userver/pg_types.md":"taxi/uservices/userver/scripts/docs/en/userver/pg_types.md",
   "scripts/docs/en/userver/pg_user_types.md":"taxi/uservices/userver/scripts/docs/en/userver/pg_user_types.md",
   "scripts/docs/en/userver/profile_context_switches.md":"taxi/uservices/userver/scripts/docs/en/userver/profile_context_switches.md",
   "scripts/docs/en/userver/publications.md":"taxi/uservices/userver/scripts/docs/en/userver/publications.md",

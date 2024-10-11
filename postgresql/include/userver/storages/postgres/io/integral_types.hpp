@@ -66,7 +66,10 @@ struct IntegralBinaryParser : BufferParserBase<T> {
         this->value = IntegralBySizeParser<8>::ParseBuffer(buf);
         break;
       default:
-        throw InvalidInputBufferSize{buf.length, "for an integral value type"};
+        throw InvalidInputBufferSize{
+            buf.length,
+            "for an integral value type (expecting size 2, 4, or 8). Not an "
+            "integer was returned from query."};
     }
   }
 };

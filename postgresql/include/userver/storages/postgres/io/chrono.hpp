@@ -30,11 +30,11 @@ using ClockType = std::chrono::system_clock;
 using TimePoint = ClockType::time_point;
 using IntervalType = std::chrono::microseconds;
 
-/// @brief Corresponds to TIMESTAMP WITH TIME ZONE (value in absolute time (no
-/// TZ offset)). Time zones are applied automatically.
+/// @brief Corresponds to TIMESTAMP WITH TIME ZONE database type.
 ///
-/// @warning It's important that no conversion to TIMESTAMP WITHOUT TIME ZONE is
-/// performed on the DB side, see @ref pg_timestamp
+/// @warning Make sure that no unwanted
+/// `TIMESTAMP` <> `TIMESTAMP WITHOUT TIME ZONE` conversions are performed on
+/// the DB side, see @ref pg_timestamp.
 ///
 /// @see @ref Now
 struct TimePointTz final
@@ -52,11 +52,11 @@ logging::LogHelper& operator<<(logging::LogHelper&, TimePointTz);
 /// @brief gtest logging support for TimePointTz.
 std::ostream& operator<<(std::ostream&, TimePointTz);
 
-/// @brief Corresponds to TIMESTAMP WITHOUT TIME ZONE (value in absolute time
-/// (no TZ offset)).
+/// @brief Corresponds to TIMESTAMP WITHOUT TIME ZONE database type.
 ///
-/// @warning It's important that no conversion to TIMESTAMP WITH TIME ZONE is
-/// performed on the DB side, see @ref pg_timestamp
+/// @warning Make sure that no unwanted
+/// `TIMESTAMP` <> `TIMESTAMP WITHOUT TIME ZONE` conversions are performed on
+/// the DB side, see @ref pg_timestamp.
 ///
 /// @see @ref NowWithoutTz
 struct TimePointWithoutTz final
@@ -97,51 +97,6 @@ inline constexpr TimePoint kTimestampPositiveInfinity = TimePoint::max();
 /// is earlier than all other time points
 /// https://www.postgresql.org/docs/current/datatype-datetime.html#DATATYPE-DATETIME-SPECIAL-TABLE
 inline constexpr TimePoint kTimestampNegativeInfinity = TimePoint::min();
-
-/**
- * @page pg_timestamp uPg timestamp support
- *
- * The driver provides mapping from C++ std::chrono::time_point template type to
- * Postgres timestamp (without time zone) data type.
- *
- * To read/write timestamp with time zone Postgres data type a TimePointTz
- * helper type is provided.
- *
- * Postgres internal timestamp resolution is microseconds.
- *
- * **Example:**
- *
- * @code
- * namespace pg = storages::postgres;
- *
- * pg::Transaction trx = ...;
- *
- * auto now = std::chrono::system_clock::now();
- * // Send as TIMESTAMP WITH TIME ZONE
- * res = trx.Execute("select $1", pg::TimePointTz{now});
- * // Send as TIMESTAMP WITHOUT TIME ZONE
- * auto res = trx.Execute("select $1", pg::TimePointWithoutTz{now});
- * // For reading, there is no difference between these time types
- * res[0].To(now);
- * @endcode
- *
- * ## How not to get skewed times in the database
- *
- * Postgres has two types corresponding to absolute time
- * (a.k.a. global time; Unix time; NOT local time):
- *   * `TIMESTAMP WITH TIME ZONE`
- *   * `TIMESTAMP`
- *
- * An unfortunate design decision on the Postgres side is that it allows
- * implicit conversion between them, and it applies an offset to the time point
- * when doing so, depending on the timezone of the Postgres database.
- *
- * Because of this you MUST ensure that you always use the correct type:
- *   * storages::postgres::TimePointTz for `TIMESTAMP WITH TIME ZONE`;
- *   * storages::postgres::TimePointWithoutTz for `TIMESTAMP`.
- *
- * Otherwise, you'll get skewed times in database!
- */
 
 namespace io {
 

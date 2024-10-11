@@ -113,7 +113,7 @@ are available at the
 * @ref pg_transactions
 * @ref pg_run_queries
 * @ref pg_process_results
-* @ref pg_types
+* @ref scripts/docs/en/userver/pg_types.md
 * @ref pg_user_row_types
 * @ref pg_errors
 * @ref pg_topology

@@ -95,6 +95,111 @@ TEST(PostgreIO, ChronoTz) {
   EXPECT_TRUE(EqualToMicroseconds(now.GetUnderlying(), tgt.GetUnderlying()));
 }
 
+UTEST_P(PostgreConnection, ChronoTzSample) {
+  CheckConnection(GetConn());
+  auto& connection = GetConn();
+
+  /// [tz sample]
+  namespace pg = storages::postgres;
+
+  // Postgres only supports microsecond resolution
+  const auto now = std::chrono::time_point_cast<std::chrono::microseconds>(
+      std::chrono::system_clock::now());
+
+  connection->Execute(R"(
+    CREATE TABLE tz_sample(
+      with_tz     TIMESTAMP WITH    TIME ZONE,
+      without_tz  TIMESTAMP WITHOUT TIME ZONE
+    )
+  )");
+
+  // No conversion performed
+  constexpr auto kInsertQuery = R"(
+    INSERT INTO tz_sample(with_tz, without_tz) VALUES($1, $2)
+    RETURNING with_tz, without_tz
+  )";
+  const auto res = connection->Execute(kInsertQuery, pg::TimePointTz{now},
+                                       pg::TimePointWithoutTz{now});
+
+  // Both values contain the correct time point
+  EXPECT_EQ(res[0][0].As<pg::TimePointTz>().GetUnderlying(), now);
+  EXPECT_EQ(res[0][1].As<pg::TimePointWithoutTz>().GetUnderlying(), now);
+  /// [tz sample]
+
+  // Repeating above checks with more diagnostics
+  EXPECT_EQ(std::chrono::time_point_cast<std::chrono::microseconds>(
+                res[0][0].As<pg::TimePointTz>().GetUnderlying())
+                .time_since_epoch()
+                .count(),
+            now.time_since_epoch().count());
+  EXPECT_EQ(std::chrono::time_point_cast<std::chrono::microseconds>(
+                res[0][1].As<pg::TimePointWithoutTz>().GetUnderlying())
+                .time_since_epoch()
+                .count(),
+            now.time_since_epoch().count());
+
+  connection->Execute("DROP TABLE tz_sample");
+}
+
+template <class AsType, class T>
+auto ToSeconds(const T& res) {
+  const auto underlying = res[0].template As<AsType>().GetUnderlying();
+  const auto epoch = underlying.time_since_epoch();
+  return std::chrono::duration_cast<std::chrono::seconds>(epoch).count();
+}
+
+UTEST_P(PostgreConnection, ChronoTzConversions) {
+  CheckConnection(GetConn());
+  auto& connection = GetConn();
+
+  /// [tz skewed]
+  namespace pg = storages::postgres;
+  const auto tz_offset_res =
+      connection->Execute("select extract(timezone from now())::integer");
+  const auto tz_offset = std::chrono::seconds{tz_offset_res[0].As<int>()};
+
+  const auto now = std::chrono::time_point_cast<std::chrono::microseconds>(
+      std::chrono::system_clock::now());
+  connection->Execute(R"(
+    CREATE TABLE tz_conversion_sample(
+      with_tz    TIMESTAMP WITH    TIME ZONE,
+      without_tz TIMESTAMP WITHOUT TIME ZONE
+    )
+  )");
+
+  constexpr auto kInsertQuery = R"(
+    INSERT INTO tz_conversion_sample(with_tz, without_tz) VALUES($1, $2)
+    RETURNING with_tz, without_tz
+  )";
+  // ERROR! Types missmatch and are implicitly converted:
+  // * TimePointWithoutTz is converted on the DB side and TZ substracted.
+  // * TimePointTz is converted on the DB side and TZ added.
+  const auto res = connection->Execute(
+      kInsertQuery, pg::TimePointWithoutTz{now}, pg::TimePointTz{now});
+
+  // Both values were skewed
+  using time_point = std::chrono::system_clock::time_point;
+  EXPECT_EQ(res[0][0].As<time_point>() + tz_offset, now);
+  EXPECT_EQ(res[0][1].As<time_point>() - tz_offset, now);
+  /// [tz skewed]
+
+  // Repeating above checks with more diagnostics
+  EXPECT_EQ(std::chrono::time_point_cast<std::chrono::microseconds>(
+                res[0][0].As<time_point>() + tz_offset)
+                .time_since_epoch()
+                .count(),
+            now.time_since_epoch().count())
+      << "Offset is " << tz_offset.count();
+  EXPECT_EQ(std::chrono::time_point_cast<std::chrono::microseconds>(
+                res[0][1].As<time_point>() - tz_offset)
+                .time_since_epoch()
+                .count(),
+            now.time_since_epoch().count())
+      << "Offset is " << tz_offset.count();
+
+  connection->Execute("DROP TABLE tz_conversion_sample");
+}
+
 // RAII class to set TZ environment variable. Not for use with threads.
 class TemporaryTZ {
  public:

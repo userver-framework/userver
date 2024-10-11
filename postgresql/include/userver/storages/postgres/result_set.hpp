@@ -73,8 +73,9 @@ namespace storages::postgres {
 /// @par Extracting field's data to variables
 ///
 /// A Field object provides an interface to convert underlying buffer to a
-/// C++ variable of supported type. Please see @ref pg_types for more
-/// information on supported types.
+/// C++ variable of supported type. Please see
+/// @ref scripts/docs/en/userver/pg_types.md for more information on supported
+/// types.
 ///
 /// Functions Field::As and Field::To can throw an exception if the field
 /// value is `null`. Their Field::Coalesce counterparts instead set the result
@@ -181,7 +182,7 @@ namespace storages::postgres {
 /// ----------
 ///
 /// @htmlonly <div class="bottom-nav"> @endhtmlonly
-/// ⇦ @ref pg_run_queries | @ref pg_types ⇨
+/// ⇦ @ref pg_run_queries | @ref scripts/docs/en/userver/pg_types.md ⇨
 /// @htmlonly </div> @endhtmlonly
 
 struct FieldDescription {

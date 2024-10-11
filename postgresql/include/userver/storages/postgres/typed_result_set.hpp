@@ -39,7 +39,8 @@ namespace storages::postgres {
 ///   - non-aggregate class with some augmentation.
 ///
 /// Data members of the tuple or the classes must be supported by the driver.
-/// For more information on supported data types please see @ref pg_types
+/// For more information on supported data types please see
+/// @ref scripts/docs/en/userver/pg_types.md.
 ///
 /// @par std::tuple.
 ///
@@ -143,7 +144,7 @@ namespace storages::postgres {
 /// ----------
 ///
 /// @htmlonly <div class="bottom-nav"> @endhtmlonly
-/// ⇦ @ref pg_types | @ref pg_errors ⇨
+/// ⇦ @ref scripts/docs/en/userver/pg_types.md | @ref pg_errors ⇨
 /// @htmlonly </div> @endhtmlonly
 
 template <typename T, typename ExtractionTag>
