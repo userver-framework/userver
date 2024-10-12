@@ -15,15 +15,18 @@ class GreeterServiceComponent final
                           const components::ComponentContext& context)
       : samples::api::GreeterServiceBase::Component(config, context) {}
 
-  void SayHello(SayHelloCall& call,
-                samples::api::GreetingRequest&& request) final;
+  SayHelloResult SayHello(CallContext& context,
+                          samples::api::GreetingRequest&& request) final;
 
-  void SayHelloResponseStream(SayHelloResponseStreamCall& call,
-                              samples::api::GreetingRequest&& request) final;
+  SayHelloResponseStreamResult SayHelloResponseStream(
+      CallContext& context, samples::api::GreetingRequest&& request,
+      SayHelloResponseStreamWriter& writer) final;
 
-  void SayHelloRequestStream(SayHelloRequestStreamCall& call) final;
+  SayHelloRequestStreamResult SayHelloRequestStream(
+      CallContext& context, SayHelloRequestStreamReader& reader) final;
 
-  void SayHelloStreams(SayHelloStreamsCall& call) final;
+  SayHelloStreamsResult SayHelloStreams(
+      CallContext& context, SayHelloStreamsReaderWriter& stream) final;
 
   static yaml_config::Schema GetStaticConfigSchema();
 };

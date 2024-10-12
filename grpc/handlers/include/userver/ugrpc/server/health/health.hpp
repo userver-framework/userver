@@ -13,8 +13,8 @@ class HealthHandler final : public grpc::health::v1::HealthBase {
  public:
   explicit HealthHandler(const components::ComponentContext& context);
 
-  void Check(CheckCall& call,
-             ::grpc::health::v1::HealthCheckRequest&& request) override;
+  CheckResult Check(CallContext& context,
+                    ::grpc::health::v1::HealthCheckRequest&& request) override;
 
  private:
   const components::State components_;

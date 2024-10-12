@@ -17,14 +17,18 @@ class GreeterService final : public api::GreeterServiceBase {
  public:
   explicit GreeterService(std::string prefix);
 
-  void SayHello(SayHelloCall& call, api::GreetingRequest&& request) override;
+  SayHelloResult SayHello(CallContext& context,
+                          api::GreetingRequest&& request) override;
 
-  void SayHelloResponseStream(SayHelloResponseStreamCall& call,
-                              api::GreetingRequest&& request) override;
+  SayHelloResponseStreamResult SayHelloResponseStream(
+      CallContext& context, api::GreetingRequest&& request,
+      SayHelloResponseStreamWriter& writer) override;
 
-  void SayHelloRequestStream(SayHelloRequestStreamCall& call) override;
+  SayHelloRequestStreamResult SayHelloRequestStream(
+      CallContext& context, SayHelloRequestStreamReader& reader) override;
 
-  void SayHelloStreams(SayHelloStreamsCall& call) override;
+  SayHelloStreamsResult SayHelloStreams(
+      CallContext& context, SayHelloStreamsReaderWriter& stream) override;
 
  private:
   const std::string prefix_;

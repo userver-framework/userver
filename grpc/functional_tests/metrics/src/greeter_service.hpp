@@ -20,24 +20,24 @@ class GreeterServiceComponent final
       : samples::api::GreeterServiceBase::Component(config, context),
         client_(context.FindComponent<GreeterClient>()) {}
 
-  void SayHello(SayHelloCall& call,
-                samples::api::GreetingRequest&& request) override;
+  inline SayHelloResult SayHello(
+      CallContext& context, samples::api::GreetingRequest&& request) override;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+  inline static yaml_config::Schema GetStaticConfigSchema();
 
  private:
   GreeterClient& client_;
 };
 
-inline void GreeterServiceComponent::SayHello(
-    SayHelloCall& call, samples::api::GreetingRequest&& request) {
+GreeterServiceComponent::SayHelloResult GreeterServiceComponent::SayHello(
+    CallContext& /*context*/, samples::api::GreetingRequest&& request) {
   samples::api::GreetingResponse response;
   const auto greeting = client_.SayHello(request.name());
   response.set_greeting("FWD: " + greeting);
-  call.Finish(response);
+  return response;
 }
 
-inline yaml_config::Schema GreeterServiceComponent::GetStaticConfigSchema() {
+yaml_config::Schema GreeterServiceComponent::GetStaticConfigSchema() {
   return yaml_config::MergeSchemas<ugrpc::server::ServiceComponentBase>(R"(
 type: object
 description: gRPC sample greater service component

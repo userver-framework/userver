@@ -16,7 +16,8 @@ class ProxyService final : public ugrpc::server::GenericServiceBase::Component {
   ProxyService(const components::ComponentConfig& config,
                const components::ComponentContext& context);
 
-  void Handle(Call& call) override;
+  GenericResult Handle(GenericCallContext& context,
+                       GenericReaderWriter& stream) override;
 
  private:
   ugrpc::client::GenericClient& client_;

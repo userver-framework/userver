@@ -37,10 +37,11 @@ class GreeterServiceComponent final
         http_client_(
             context.FindComponent<components::HttpClient>().GetHttpClient()) {}
 
-  void SayHello(SayHelloCall& call, api::GreetingRequest&& request) override;
+  SayHelloResult SayHello(CallContext& context,
+                          api::GreetingRequest&& request) override;
 
-  void CallEchoNobody(CallEchoNobodyCall& call,
-                      api::GreetingRequest&& request) override;
+  CallEchoNobodyResult CallEchoNobody(CallContext& context,
+                                      api::GreetingRequest&& request) override;
 
   static yaml_config::Schema GetStaticConfigSchema();
 
@@ -49,17 +50,16 @@ class GreeterServiceComponent final
   clients::http::Client& http_client_;
 };
 
-void GreeterServiceComponent::SayHello(
-    api::GreeterServiceBase::SayHelloCall& call,
-    api::GreetingRequest&& request) {
+GreeterServiceComponent::SayHelloResult GreeterServiceComponent::SayHello(
+    CallContext& /*context*/, api::GreetingRequest&& request) {
   api::GreetingResponse response;
   response.set_greeting(fmt::format("Hello, {}!", request.name()));
-  call.Finish(response);
+  return response;
 }
 
-void GreeterServiceComponent::CallEchoNobody(
-    api::GreeterServiceBase::CallEchoNobodyCall& call,
-    samples::api::GreetingRequest&&) {
+GreeterServiceComponent::CallEchoNobodyResult
+GreeterServiceComponent::CallEchoNobody(CallContext& /*context*/,
+                                        api::GreetingRequest&& /*request*/) {
   api::GreetingResponse response;
   response.set_greeting("Call Echo Nobody");
   auto http_response = http_client_.CreateRequest()
@@ -68,7 +68,7 @@ void GreeterServiceComponent::CallEchoNobody(
                            .timeout(std::chrono::seconds{5})
                            .perform();
   http_response->raise_for_status();
-  call.Finish(response);
+  return response;
 }
 
 yaml_config::Schema GreeterServiceComponent::GetStaticConfigSchema() {

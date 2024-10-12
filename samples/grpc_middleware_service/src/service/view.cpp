@@ -11,13 +11,12 @@ GreeterServiceComponent::GreeterServiceComponent(
     : api::GreeterServiceBase::Component(config, context),
       prefix_(config["greeting-prefix"].As<std::string>()) {}
 
-void GreeterServiceComponent::SayHello(
-    api::GreeterServiceBase::SayHelloCall& call,
-    api::GreetingRequest&& request) {
+GreeterServiceComponent::SayHelloResult GreeterServiceComponent::SayHello(
+    CallContext& /*context*/, api::GreetingRequest&& request) {
   api::GreetingResponse response;
   response.set_greeting(fmt::format("{}, {}!", prefix_, request.name()));
 
-  call.Finish(response);
+  return response;
 }
 
 yaml_config::Schema GreeterServiceComponent::GetStaticConfigSchema() {

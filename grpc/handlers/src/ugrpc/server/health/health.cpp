@@ -9,14 +9,16 @@ namespace ugrpc::server {
 HealthHandler::HealthHandler(const components::ComponentContext& context)
     : components_(context) {}
 
-void HealthHandler::Check(CheckCall& call,
-                          ::grpc::health::v1::HealthCheckRequest&&) {
+HealthHandler::CheckResult HealthHandler::Check(
+    [[maybe_unused]] CallContext& context,
+    ::grpc::health::v1::HealthCheckRequest&&) {
   ::grpc::health::v1::HealthCheckResponse response;
-  if (components_.IsAnyComponentInFatalState())
+  if (components_.IsAnyComponentInFatalState()) {
     response.set_status(::grpc::health::v1::HealthCheckResponse::NOT_SERVING);
-  else
+  } else {
     response.set_status(::grpc::health::v1::HealthCheckResponse::SERVING);
-  call.Finish(response);
+  }
+  return response;
 }
 
 }  // namespace ugrpc::server

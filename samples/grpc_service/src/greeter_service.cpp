@@ -24,63 +24,63 @@ GreeterService::GreeterService(std::string prefix)
     : prefix_(std::move(prefix)) {}
 
 /// [server RPC handling]
-void GreeterService::SayHello(api::GreeterServiceBase::SayHelloCall& call,
-                              api::GreetingRequest&& request) {
+GreeterService::SayHelloResult GreeterService::SayHello(
+    CallContext& /*context*/, api::GreetingRequest&& request) {
   // Authentication checking could have gone here.
   // Or even better, use a global gRPC authentication middleware.
 
   api::GreetingResponse response;
   response.set_greeting(fmt::format("{}, {}!", prefix_, request.name()));
 
-  // Complete the RPC by sending the response. The service should complete
-  // each request by calling `Finish` or `FinishWithError`, otherwise the
-  // client will receive an Internal Error (500) response.
-  call.Finish(response);
+  // Complete the RPC by returning the response.
+  return response;
 }
 /// [server RPC handling]
 
 /// [server RPC handling response_stream]
-void GreeterService::SayHelloResponseStream(
-    api::GreeterServiceBase::SayHelloResponseStreamCall& call,
-    api::GreetingRequest&& request) {
+GreeterService::SayHelloResponseStreamResult
+GreeterService::SayHelloResponseStream(CallContext& /*context*/,
+                                       api::GreetingRequest&& request,
+                                       SayHelloResponseStreamWriter& writer) {
   std::string message = fmt::format("{}, {}", prefix_, request.name());
   api::GreetingResponse response;
   constexpr auto kCountSend = 5;
   for (auto i = 0; i < kCountSend; ++i) {
     message.push_back('!');
     response.set_greeting(grpc::string(message));
-    call.Write(response);
+    writer.Write(response);
   }
-  call.Finish();
+  return grpc::Status::OK;
 }
 /// [server RPC handling response_stream]
 
 /// [server RPC handling request_stream]
-void GreeterService::SayHelloRequestStream(
-    api::GreeterServiceBase::SayHelloRequestStreamCall& call) {
+GreeterService::SayHelloRequestStreamResult
+GreeterService::SayHelloRequestStream(CallContext& /*context*/,
+                                      SayHelloRequestStreamReader& reader) {
   std::string message{};
   api::GreetingRequest request;
-  while (call.Read(request)) {
+  while (reader.Read(request)) {
     message.append(request.name());
   }
   api::GreetingResponse response;
   response.set_greeting(fmt::format("{}, {}", prefix_, message));
-  call.Finish(response);
+  return response;
 }
 /// [server RPC handling request_stream]
 
 /// [server RPC handling streams]
-void GreeterService::SayHelloStreams(
-    api::GreeterServiceBase::SayHelloStreamsCall& call) {
+GreeterService::SayHelloStreamsResult GreeterService::SayHelloStreams(
+    CallContext& /*context*/, SayHelloStreamsReaderWriter& stream) {
   std::string message;
   api::GreetingRequest request;
   api::GreetingResponse response;
-  while (call.Read(request)) {
+  while (stream.Read(request)) {
     message.append(request.name());
     response.set_greeting(fmt::format("{}, {}", prefix_, message));
-    call.Write(response);
+    stream.Write(response);
   }
-  call.Finish();
+  return grpc::Status::OK;
 }
 /// [server RPC handling streams]
 

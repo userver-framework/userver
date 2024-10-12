@@ -40,8 +40,8 @@ class Service : public ugrpc::tests::ServiceBase {
 class LogService final
     : public opentelemetry::proto::collector::logs::v1::LogsServiceBase {
  public:
-  void Export(
-      ExportCall& call,
+  ExportResult Export(
+      CallContext& /*context*/,
       ::opentelemetry::proto::collector::logs::v1::ExportLogsServiceRequest&&
           request) override {
     // Don't emit new traces to avoid recursive traces/logs
@@ -55,7 +55,8 @@ class LogService final
       }
     }
 
-    call.Finish({});
+    return ::opentelemetry::proto::collector::logs::v1::
+        ExportLogsServiceResponse{};
   }
 
   // no sync as there is only a single grpc client
@@ -65,8 +66,8 @@ class LogService final
 class TraceService final
     : public opentelemetry::proto::collector::trace::v1::TraceServiceBase {
  public:
-  void Export(
-      ExportCall& call,
+  ExportResult Export(
+      CallContext& /*context*/,
       ::opentelemetry::proto::collector::trace::v1::ExportTraceServiceRequest&&
           request) override {
     // Don't emit new traces to avoid recursive traces/logs
@@ -80,7 +81,8 @@ class TraceService final
       }
     }
 
-    call.Finish({});
+    return ::opentelemetry::proto::collector::trace::v1::
+        ExportTraceServiceResponse{};
   }
 
   // no sync as there is only a single grpc client

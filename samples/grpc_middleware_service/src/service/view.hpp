@@ -17,7 +17,8 @@ class GreeterServiceComponent final
   GreeterServiceComponent(const components::ComponentConfig& config,
                           const components::ComponentContext& context);
 
-  void SayHello(SayHelloCall& call, api::GreetingRequest&& request) override;
+  SayHelloResult SayHello(CallContext& context,
+                          api::GreetingRequest&& request) override;
 
   static yaml_config::Schema GetStaticConfigSchema();
 
