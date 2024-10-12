@@ -60,6 +60,11 @@ if (TARGET userver::clickhouse)
     target_link_libraries(${PROJECT_NAME}_clickhouse ${PROJECT_NAME}_objs userver::clickhouse)
 endif()
 
+if (TARGET userver::kafka)
+    add_executable(${PROJECT_NAME}_kafka test_kafka.cpp)
+    target_link_libraries(${PROJECT_NAME}_kafka ${PROJECT_NAME}_objs userver::kafka)
+endif()
+
 add_executable(${PROJECT_NAME}_universal test_universal.cpp)
 target_link_libraries(${PROJECT_NAME}_universal ${PROJECT_NAME}_objs userver::core userver::universal)
 
