@@ -137,8 +137,9 @@ class UserverConan(ConanFile):
             self.requires('protobuf/3.21.12', force=True)
         if self.options.with_postgresql:
             self.requires('libpq/14.5')
-        if self.options.with_mongodb:
+        if (self.options.with_mongodb or self.options.with_kafka):
             self.requires('cyrus-sasl/2.1.27', force=True)
+        if self.options.with_mongodb:
             self.requires(
                 'mongo-c-driver/1.27.6',
                 transitive_headers=True,
@@ -165,7 +166,6 @@ class UserverConan(ConanFile):
                 transitive_libs=True,
             )
         if self.options.with_kafka:
-            self.requires('cyrus-sasl/2.1.27')
             self.requires('librdkafka/2.4.0')
 
     def validate(self):
