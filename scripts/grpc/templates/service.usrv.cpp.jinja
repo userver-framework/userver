@@ -27,8 +27,9 @@ constexpr std::string_view k{{service.name}}MethodNames[] = {
 {% for method in service.method %}
 {% if method.client_streaming and method.server_streaming %}
 
-grpc::Status {{service.name}}Base::{{method.name}}([[maybe_unused]] CallContext& context,
-                                                   [[maybe_unused]] {{method.name}}ReaderWriter& stream) {
+{{service.name}}Base::{{method.name}}Result {{service.name}}Base::{{method.name}}(
+    [[maybe_unused]] CallContext& context,
+    [[maybe_unused]] {{method.name}}ReaderWriter& stream) {
   UASSERT_MSG(false, "Called not implemented {{proto.package_prefix}}{{service.name}}/{{method.name}}");
   return USERVER_NAMESPACE::ugrpc::server::impl::kUnimplementedStatus;
 }
@@ -36,8 +37,8 @@ grpc::Status {{service.name}}Base::{{method.name}}([[maybe_unused]] CallContext&
 // Legacy
 void {{service.name}}Base::{{method.name}}({{method.name}}Call& call) {
   CallContext context{call};
-  grpc::Status status = {{method.name}}(context, call);
-  USERVER_NAMESPACE::ugrpc::server::impl::Finish(call, status);
+  auto result = {{method.name}}(context, call);
+  USERVER_NAMESPACE::ugrpc::server::impl::Finish(call, std::move(result));
 }
 
 {% elif method.client_streaming %}
@@ -58,7 +59,7 @@ void {{service.name}}Base::{{method.name}}({{method.name}}Call& call) {
 
 {% elif method.server_streaming %}
 
-grpc::Status {{service.name}}Base::{{method.name}}(
+{{service.name}}Base::{{method.name}}Result {{service.name}}Base::{{method.name}}(
     [[maybe_unused]] CallContext& context,
     [[maybe_unused]] {{ method.input_type | grpc_to_cpp_name }}&& request,
     [[maybe_unused]] {{method.name}}Writer& writer) {
@@ -70,8 +71,8 @@ grpc::Status {{service.name}}Base::{{method.name}}(
 void {{service.name}}Base::{{method.name}}({{method.name}}Call& call,
                                            {{ method.input_type | grpc_to_cpp_name }}&& request) {
   CallContext context{call};
-  grpc::Status status = {{method.name}}(context, std::move(request), call);
-  USERVER_NAMESPACE::ugrpc::server::impl::Finish(call, status);
+  auto result = {{method.name}}(context, std::move(request), call);
+  USERVER_NAMESPACE::ugrpc::server::impl::Finish(call, std::move(result));
 }
 
 {% else %}

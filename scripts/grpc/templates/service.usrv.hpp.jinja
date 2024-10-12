@@ -17,24 +17,27 @@ class {{service.name}}Base
  public:
   using Component = USERVER_NAMESPACE::ugrpc::server::impl::ServiceComponentBase<
       {{service.name}}Base>;
-  using CallContext = USERVER_NAMESPACE::ugrpc::server::CallContext;
 
   {% for method in service.method %}
   {% if method.client_streaming and method.server_streaming %}
 
   using {{method.name}}ReaderWriter = USERVER_NAMESPACE::ugrpc::server::ReaderWriter<
       {{ method.input_type | grpc_to_cpp_name }}, {{ method.output_type | grpc_to_cpp_name }}>;
-  virtual grpc::Status {{method.name}}(CallContext& context, {{method.name}}ReaderWriter& stream);
+  using {{method.name}}Result = USERVER_NAMESPACE::ugrpc::server::StreamingResult<
+      {{ method.output_type | grpc_to_cpp_name }}>;
+  virtual {{method.name}}Result {{method.name}}(CallContext& context, {{method.name}}ReaderWriter& stream);
   // Legacy
   using {{method.name}}Call = USERVER_NAMESPACE::ugrpc::server::BidirectionalStream<
       {{ method.input_type | grpc_to_cpp_name }}, {{ method.output_type | grpc_to_cpp_name }}>;
-  [[deprecated("Use 'grpc::Status {{method.name}}(CallContext& context, {{method.name}}ReaderWriter& stream)'")]]
+  [[deprecated("Use '{{method.name}}Result {{method.name}}(CallContext& context, {{method.name}}ReaderWriter& stream)'")]]
   virtual void {{method.name}}({{method.name}}Call& call);
 
   {% elif method.client_streaming %}
 
-  using {{method.name}}Reader = USERVER_NAMESPACE::ugrpc::server::Reader<{{ method.input_type | grpc_to_cpp_name }}>;
-  using {{method.name}}Result = USERVER_NAMESPACE::ugrpc::server::Result<{{ method.output_type | grpc_to_cpp_name }}>;
+  using {{method.name}}Reader = USERVER_NAMESPACE::ugrpc::server::Reader<
+      {{ method.input_type | grpc_to_cpp_name }}>;
+  using {{method.name}}Result = USERVER_NAMESPACE::ugrpc::server::Result<
+      {{ method.output_type | grpc_to_cpp_name }}>;
   virtual {{method.name}}Result {{method.name}}(CallContext& context, {{method.name}}Reader& reader);
   // Legacy
   using {{method.name}}Call = USERVER_NAMESPACE::ugrpc::server::InputStream<
@@ -44,18 +47,22 @@ class {{service.name}}Base
 
   {% elif method.server_streaming %}
 
-  using {{method.name}}Writer = USERVER_NAMESPACE::ugrpc::server::Writer<{{ method.output_type | grpc_to_cpp_name }}>;
-  virtual grpc::Status {{method.name}}(CallContext& context,
-                                       {{ method.input_type | grpc_to_cpp_name }}&& request,
-                                       {{method.name}}Writer& writer);
+  using {{method.name}}Writer = USERVER_NAMESPACE::ugrpc::server::Writer<
+      {{ method.output_type | grpc_to_cpp_name }}>;
+  using {{method.name}}Result = USERVER_NAMESPACE::ugrpc::server::StreamingResult<
+      {{ method.output_type | grpc_to_cpp_name }}>;
+  virtual {{method.name}}Result {{method.name}}(CallContext& context,
+                                                {{ method.input_type | grpc_to_cpp_name }}&& request,
+                                                {{method.name}}Writer& writer);
   // Legacy
   using {{method.name}}Call = USERVER_NAMESPACE::ugrpc::server::OutputStream<{{ method.output_type | grpc_to_cpp_name }}>;
-  [[deprecated("Use 'grpc::Status {{method.name}}(CallContext& context, {{ method.input_type | grpc_to_cpp_name }}&& request, {{method.name}}Writer& writer)'")]]
+  [[deprecated("Use '{{method.name}}Result {{method.name}}(CallContext& context, {{ method.input_type | grpc_to_cpp_name }}&& request, {{method.name}}Writer& writer)'")]]
   virtual void {{method.name}}({{method.name}}Call& call, {{ method.input_type | grpc_to_cpp_name }}&& request);
 
   {% else %}
 
-  using {{method.name}}Result = USERVER_NAMESPACE::ugrpc::server::Result<{{ method.output_type | grpc_to_cpp_name }}>;
+  using {{method.name}}Result = USERVER_NAMESPACE::ugrpc::server::Result<
+      {{ method.output_type | grpc_to_cpp_name }}>;
   virtual {{method.name}}Result {{method.name}}(CallContext& context, {{ method.input_type | grpc_to_cpp_name }}&& request);
   // Legacy
   using {{method.name}}Call = USERVER_NAMESPACE::ugrpc::server::UnaryCall<{{ method.output_type | grpc_to_cpp_name }}>;

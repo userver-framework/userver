@@ -8,8 +8,8 @@ namespace ugrpc::server {
 
 GenericServiceBase::~GenericServiceBase() = default;
 
-grpc::Status GenericServiceBase::Handle(GenericCallContext& /*context*/,
-                                        GenericReaderWriter& /*stream*/) {
+GenericServiceBase::GenericResult GenericServiceBase::Handle(
+    GenericCallContext& /*context*/, GenericReaderWriter& /*stream*/) {
   UASSERT_MSG(
       false,
       "Called not implemented GenericServiceBase/Handle(GenericCallContext&, "
@@ -19,8 +19,8 @@ grpc::Status GenericServiceBase::Handle(GenericCallContext& /*context*/,
 
 void GenericServiceBase::Handle(Call& call) {
   GenericCallContext context{call};
-  grpc::Status status = Handle(context, call);
-  impl::Finish(call, status);
+  auto result = Handle(context, call);
+  impl::Finish(call, std::move(result));
 }
 
 }  // namespace ugrpc::server

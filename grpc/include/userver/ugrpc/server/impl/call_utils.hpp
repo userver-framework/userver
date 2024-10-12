@@ -24,6 +24,15 @@ void Finish(Call& call, ugrpc::server::Result<Response>&& result) {
   }
 }
 
+template <typename Call, typename Response>
+void Finish(Call& call, ugrpc::server::StreamingResult<Response>&& result) {
+  if (result.HasLastResponse()) {
+    call.WriteAndFinish(std::move(result).ExtractLastResponse());
+  } else {
+    Finish(call, result.GetStatus());
+  }
+}
+
 }  // namespace ugrpc::server::impl
 
 USERVER_NAMESPACE_END
