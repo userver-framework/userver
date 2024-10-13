@@ -16,6 +16,8 @@ target_link_libraries(${PROJECT_NAME}_objs PUBLIC userver::core userver::univers
 add_executable(${PROJECT_NAME}_core test_core.cpp)
 target_link_libraries(${PROJECT_NAME}_core ${PROJECT_NAME}_objs)
 
+add_executable(${PROJECT_NAME}_universal test_universal.cpp)
+target_link_libraries(${PROJECT_NAME}_universal ${PROJECT_NAME}_objs userver::core userver::universal)
 
 if (TARGET userver::utest)
     add_executable(${PROJECT_NAME}_utest test_utest.cpp)
@@ -64,8 +66,5 @@ if (TARGET userver::kafka)
     add_executable(${PROJECT_NAME}_kafka test_kafka.cpp)
     target_link_libraries(${PROJECT_NAME}_kafka ${PROJECT_NAME}_objs userver::kafka)
 endif()
-
-add_executable(${PROJECT_NAME}_universal test_universal.cpp)
-target_link_libraries(${PROJECT_NAME}_universal ${PROJECT_NAME}_objs userver::core userver::universal)
 
 add_subdirectory(hello_service)

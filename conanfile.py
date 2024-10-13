@@ -21,7 +21,7 @@ class UserverConan(ConanFile):
     url = 'https://github.com/userver-framework/userver'
     homepage = 'https://userver.tech/'
     license = 'Apache-2.0'
-    package_type = "static-library"
+    package_type = 'static-library'
     exports_sources = '*'
 
     settings = 'os', 'arch', 'compiler', 'build_type'
@@ -169,8 +169,8 @@ class UserverConan(ConanFile):
             self.requires('librdkafka/2.4.0')
 
     def validate(self):
-        if self.settings.os == "Windows":
-            raise ConanInvalidConfiguration("userver can't be built on Windows")
+        if self.settings.os == 'Windows':
+            raise ConanInvalidConfiguration('userver cannot be built on Windows')
 
         if (
             self.options.with_mongodb
