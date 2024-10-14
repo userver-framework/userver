@@ -6,6 +6,14 @@
 #include <concurrent/impl/rseq.hpp>
 #include <concurrent/impl/striped_array.hpp>
 
+// rseq_addv was renamed into rseq_load_add_store__ptr, provide compatibility
+// with the older versions
+#if defined(__has_include)
+#if __has_include(<rseq/rseq-x86.h>)
+#define rseq_load_add_store__ptr rseq_addv
+#endif
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace concurrent {
@@ -35,8 +43,9 @@ void StripedCounter::Add(std::uintptr_t value) noexcept {
     return;
   }
 
-  const auto ret = rseq_addv(RSEQ_MO_RELAXED, RSEQ_PERCPU_CPU_ID,
-                             &impl_->counters[cpu_id], value, cpu_id);
+  const auto ret =
+      rseq_load_add_store__ptr(RSEQ_MO_RELAXED, RSEQ_PERCPU_CPU_ID,
+                               &impl_->counters[cpu_id], value, cpu_id);
   if (rseq_likely(!ret)) return;
 
   impl_->fallback.fetch_add(value, std::memory_order_relaxed);
