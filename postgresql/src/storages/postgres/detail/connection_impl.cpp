@@ -242,7 +242,7 @@ ConnectionImpl::ConnectionImpl(
 #endif
 
   if (IsOmitDescribeInExecuteEnabled()) {
-    LOG_INFO() << "Userver experiment pg-omit-describe-in-execute is enabled";
+    LOG_DEBUG() << "Userver experiment pg-omit-describe-in-execute is enabled";
   }
 }
 
