@@ -97,7 +97,7 @@ _userver_prepare_grpc()
 
 function(userver_generate_grpc_files)
   set(options)
-  set(one_value_args CPP_FILES CPP_USRV_FILES GENERATED_INCLUDES SOURCE_PATH)
+  set(one_value_args CPP_FILES CPP_USRV_FILES GENERATED_INCLUDES SOURCE_PATH OUTPUT_PATH)
   set(multi_value_args PROTOS INCLUDE_DIRECTORIES)
   cmake_parse_arguments(GEN_RPC "${options}" "${one_value_args}" "${multi_value_args}" ${ARGN})
 
@@ -127,7 +127,12 @@ function(userver_generate_grpc_files)
     endforeach()
   endif()
 
-  set(GENERATED_PROTO_DIR ${CMAKE_CURRENT_BINARY_DIR}/proto)
+  if (GEN_RPC_OUTPUT_PATH)
+    set(GENERATED_PROTO_DIR ${GEN_RPC_OUTPUT_PATH})
+  else()
+    set(GENERATED_PROTO_DIR ${CMAKE_CURRENT_BINARY_DIR}/proto)
+  endif()
+  
   get_filename_component(GENERATED_PROTO_DIR "${GENERATED_PROTO_DIR}" REALPATH BASE_DIR "/")
 
   if(NOT "${GEN_RPC_SOURCE_PATH}" STREQUAL "")
@@ -285,7 +290,7 @@ endfunction()
 
 function(userver_add_grpc_library NAME)
   set(options)
-  set(one_value_args SOURCE_PATH)
+  set(one_value_args SOURCE_PATH OUTPUT_PATH)
   set(multi_value_args PROTOS INCLUDE_DIRECTORIES)
   cmake_parse_arguments(RPC_LIB "${options}" "${one_value_args}" "${multi_value_args}" ${ARGN})
 
@@ -293,6 +298,7 @@ function(userver_add_grpc_library NAME)
       PROTOS ${RPC_LIB_PROTOS}
       INCLUDE_DIRECTORIES ${RPC_LIB_INCLUDE_DIRECTORIES}
       SOURCE_PATH ${RPC_LIB_SOURCE_PATH}
+      OUTPUT_PATH ${PRC_LIB_OUTPUT_PATH}
       GENERATED_INCLUDES include_paths
       CPP_FILES generated_sources
       CPP_USRV_FILES generated_usrv_sources
