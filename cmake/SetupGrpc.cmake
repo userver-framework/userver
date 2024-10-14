@@ -93,7 +93,6 @@ CPMAddPackage(
 set(gRPC_VERSION "${CPM_PACKAGE_gRPC_VERSION}")
 set(PROTO_GRPC_CPP_PLUGIN $<TARGET_FILE:grpc_cpp_plugin>)
 set(PROTO_GRPC_PYTHON_PLUGIN $<TARGET_FILE:grpc_python_plugin>)
-set(PROTOBUF_PROTOC $<TARGET_FILE:protoc>)
 write_package_stub(gRPC)
 if (NOT TARGET "gRPC::grpc++")
     add_library(gRPC::grpc++ ALIAS grpc++)
