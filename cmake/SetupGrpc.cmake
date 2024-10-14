@@ -18,8 +18,6 @@ macro(try_find_cmake_grpc)
     # Use the found CMake-enabled gRPC package
     get_target_property(PROTO_GRPC_CPP_PLUGIN gRPC::grpc_cpp_plugin LOCATION)
     get_target_property(PROTO_GRPC_PYTHON_PLUGIN gRPC::grpc_python_plugin LOCATION)
-    set(PROTOBUF_PROTOC "${Protobuf_PROTOC_EXECUTABLE}")
-    set(GENERATE_PROTOS_AT_CONFIGURE_DEFAULT ON)
   endif()
 endmacro()
 
@@ -42,8 +40,6 @@ macro(try_find_system_grpc)
 
     find_program(PROTO_GRPC_CPP_PLUGIN grpc_cpp_plugin)
     find_program(PROTO_GRPC_PYTHON_PLUGIN grpc_python_plugin)
-    set(PROTOBUF_PROTOC "${Protobuf_PROTOC_EXECUTABLE}")
-    set(GENERATE_PROTOS_AT_CONFIGURE_DEFAULT ON)
   endif()
 endmacro()
 

@@ -24,9 +24,15 @@ function(_userver_set_protobuf_version_category)
   endif()
 endfunction()
 
+function(_userver_set_protobuf_variables)
+  set(PROTOBUF_PROTOC "${Protobuf_PROTOC_EXECUTABLE}" PARENT_SCOPE)
+  set(GENERATE_PROTOS_AT_CONFIGURE_DEFAULT ON PARENT_SCOPE)
+endfunction()
+
 if(USERVER_CONAN)
   find_package(Protobuf REQUIRED)
   _userver_set_protobuf_version_category()
+  _userver_set_protobuf_variables()
   return()
 endif()
 
@@ -47,8 +53,12 @@ if(NOT USERVER_FORCE_DOWNLOAD_PROTOBUF)
     endif()
   endif()
 
+  message(WARNING "find_protobuf")
   if(Protobuf_FOUND)
     _userver_set_protobuf_version_category()
+
+  message(WARNING "found_protobuf")
+    _userver_set_protobuf_variables()
     return()
   endif()
 endif()
@@ -78,3 +88,4 @@ set_target_properties(libprotoc PROPERTIES
 write_package_stub(Protobuf)
 mark_targets_as_system("${Protobuf_SOURCE_DIR}")
 _userver_set_protobuf_version_category()
+_userver_set_protobuf_variables()
