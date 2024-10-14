@@ -127,7 +127,7 @@ function(userver_generate_grpc_files)
 
   if (NOT "${GEN_RPC_OUTPUT_PATH}" STREQUAL "")
     if(NOT IS_ABSOLUTE ${GEN_RPC_OUTPUT_PATH})
-      message(SEND_ERROR "SOURCE_PATH='${GEN_RPC_OUTPUT_PATH}' is a relative path, which is unsupported.")
+      message(SEND_ERROR "OUTPUT_PATH='${GEN_RPC_OUTPUT_PATH}' is a relative path, which is unsupported.")
     endif()
     set(GENERATED_PROTO_DIR "${GEN_RPC_OUTPUT_PATH}")
   else()
