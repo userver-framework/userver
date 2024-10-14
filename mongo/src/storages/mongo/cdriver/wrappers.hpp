@@ -26,13 +26,6 @@ struct BulkOperationDeleter {
 using BulkOperationPtr =
     std::unique_ptr<mongoc_bulk_operation_t, BulkOperationDeleter>;
 
-struct ClientDeleter {
-  void operator()(mongoc_client_t* client) const noexcept {
-    mongoc_client_destroy(client);
-  }
-};
-using UnboundClientPtr = std::unique_ptr<mongoc_client_t, ClientDeleter>;
-
 struct CollectionDeleter {
   void operator()(mongoc_collection_t* collection) const noexcept {
     mongoc_collection_destroy(collection);

@@ -167,6 +167,20 @@ void HandleCancellations(
   }
 }
 
+void command_succeeded(const mongoc_apm_command_succeeded_t* event) {
+  auto* stats = reinterpret_cast<CDriverPoolImpl::ConnEventStats*>(
+      mongoc_apm_command_succeeded_get_context(event));
+  UASSERT(stats);
+  ++stats->sucess.value;
+}
+
+void command_failed(const mongoc_apm_command_failed_t* event) {
+  auto* stats = reinterpret_cast<CDriverPoolImpl::ConnEventStats*>(
+      mongoc_apm_command_failed_get_context(event));
+  UASSERT(stats);
+  ++stats->failed.value;
+}
+
 }  // namespace
 
 CDriverPoolImpl::CDriverPoolImpl(std::string id, const std::string& uri_string,
@@ -224,10 +238,6 @@ CDriverPoolImpl::CDriverPoolImpl(std::string id, const std::string& uri_string,
 CDriverPoolImpl::~CDriverPoolImpl() {
   tracing::Span span("mongo_destroy");
   maintenance_task_.Stop();
-
-  const ClientDeleter deleter;
-  mongoc_client_t* client = nullptr;
-  while (queue_.pop(client)) deleter(client);
 }
 
 size_t CDriverPoolImpl::InUseApprox() const {
@@ -267,12 +277,12 @@ void CDriverPoolImpl::Ping() {
   span.AddTag(tracing::kDatabaseInstance, kPingDatabase);
 
   // Do not mess with error stats
-  auto client = Acquire();
+  auto conn = Acquire();
 
   MongoError error;
   stats::OperationStopwatch ping_sw(GetStatistics().pool->ping, "ping");
   const bson_t* native_cmd_bson_ptr = kPingCommand.GetBson().get();
-  if (!mongoc_client_command_simple(client.get(), kPingDatabase,
+  if (!mongoc_client_command_simple(conn.get(), kPingDatabase,
                                     native_cmd_bson_ptr, kPingReadPrefs.Get(),
                                     nullptr, error.GetNative())) {
     ping_sw.AccountError(error.GetKind());
@@ -284,10 +294,10 @@ void CDriverPoolImpl::Ping() {
 
 CDriverPoolImpl::BoundClientPtr CDriverPoolImpl::Acquire() {
   const stats::ConnectionWaitStopwatch conn_wait_sw(GetStatistics().pool);
-  return {Pop(), ClientPusher(this)};
+  return BoundClientPtr{Pop(), this};
 }
 
-mongoc_client_t* CDriverPoolImpl::Pop() {
+CDriverPoolImpl::ConnPtr CDriverPoolImpl::Pop() {
   stats::ConnectionThrottleStopwatch queue_sw(GetStatistics().pool);
 
   auto queue_deadline = engine::Deadline::FromDuration(queue_timeout_);
@@ -306,61 +316,63 @@ mongoc_client_t* CDriverPoolImpl::Pop() {
         << MakeQueueDeadlineMessage(inherited_timeout);
   }
 
-  auto* client = TryGetIdle();
-  if (!client) {
+  auto conn = TryGetIdle();
+  if (!conn) {
     const engine::SemaphoreLock connecting_lock(connecting_semaphore_,
                                                 queue_deadline);
     queue_sw.Stop();
 
     // retry getting idle connection after the wait
-    client = TryGetIdle();
-    if (!client) {
+    conn = TryGetIdle();
+    if (!conn) {
       if (!connecting_lock) {
         ++GetStatistics().pool->overload;
         throw PoolOverloadException("Mongo pool '")
             << Id() << "' has too many establishing connections. "
             << MakeQueueDeadlineMessage(inherited_timeout);
       }
-      client = Create();
+      conn = Create();
     }
   }
 
-  UASSERT(client);
+  UASSERT(conn);
   in_use_lock.Release();
-  return client;
+  return conn;
 }
 
-void CDriverPoolImpl::Push(mongoc_client_t* client) noexcept {
-  UASSERT(client);
+void CDriverPoolImpl::Push(ConnPtr conn) noexcept {
+  UASSERT(conn);
   if (SizeApprox() > MaxSize()) {
     /*
      * We might get many connections, and after that make the max_size lower
      * (e.g. due to congestion control). In this case extra connections must be
      * dropped.
      */
-    Drop(client);
-    client = nullptr;
+    Drop(std::move(conn));
+    UASSERT(!conn);
   }
-  if (client && !queue_.bounded_push(client)) Drop(client);
+  if (conn && !queue_.enqueue(std::move(conn))) {
+    --size_;
+    ++GetStatistics().pool->closed;
+  }
 
   in_use_semaphore_.unlock_shared();
 }
 
-void CDriverPoolImpl::Drop(mongoc_client_t* client) noexcept {
-  if (!client) return;
+void CDriverPoolImpl::Drop(ConnPtr conn) noexcept {
+  if (!conn) return;
 
-  ClientDeleter()(client);
   --size_;
   ++GetStatistics().pool->closed;
 }
 
-mongoc_client_t* CDriverPoolImpl::TryGetIdle() {
-  mongoc_client_t* client = nullptr;
-  if (queue_.pop(client)) return client;
+CDriverPoolImpl::ConnPtr CDriverPoolImpl::TryGetIdle() {
+  ConnPtr conn{};
+  if (queue_.try_dequeue(conn)) return conn;
   return nullptr;
 }
 
-mongoc_client_t* CDriverPoolImpl::Create() {
+CDriverPoolImpl::ConnPtr CDriverPoolImpl::Create() {
   // "admin" is an internal mongodb database and always exists/accessible
   static const char* kPingDatabase = "admin";
   static const auto kPingCommand = formats::bson::MakeDoc("ping", 1);
@@ -368,12 +380,24 @@ mongoc_client_t* CDriverPoolImpl::Create() {
 
   LOG_DEBUG() << "Creating mongo connection";
 
-  UnboundClientPtr client(mongoc_client_new_from_uri(uri_.get()));
-  mongoc_client_set_error_api(client.get(), MONGOC_ERROR_API_VERSION_2);
-  mongoc_client_set_stream_initiator(client.get(), &MakeAsyncStream,
+  ConnPtr conn =
+      std::make_unique<Connection>(mongoc_client_new_from_uri(uri_.get()));
+
+  // Set command monitoring events to get command durations.
+  {
+    mongoc_apm_callbacks_t* cbs = mongoc_apm_callbacks_new();
+    mongoc_apm_set_command_succeeded_cb(cbs, command_succeeded);
+    mongoc_apm_set_command_failed_cb(cbs, command_failed);
+    BSON_ASSERT(mongoc_client_set_apm_callbacks(conn->GetNativePtr(), cbs,
+                                                conn->GetStatsPtr()));
+    mongoc_apm_callbacks_destroy(cbs);
+  }
+
+  mongoc_client_set_error_api(conn->GetNativePtr(), MONGOC_ERROR_API_VERSION_2);
+  mongoc_client_set_stream_initiator(conn->GetNativePtr(), &MakeAsyncStream,
                                      &init_data_);
 #if MONGOC_CHECK_VERSION(1, 26, 0)
-  mongoc_client_set_usleep_impl(client.get(), &MongocCoroFrieldlyUsleep,
+  mongoc_client_set_usleep_impl(conn->GetNativePtr(), &MongocCoroFrieldlyUsleep,
                                 nullptr);
 #else
   LOG_LIMITED_WARNING() << "Cannot use coro-friendly usleep in mongo driver, "
@@ -381,7 +405,7 @@ mongoc_client_t* CDriverPoolImpl::Create() {
 #endif
 
   if (!app_name_.empty()) {
-    mongoc_client_set_appname(client.get(), app_name_.c_str());
+    mongoc_client_set_appname(conn->GetNativePtr(), app_name_.c_str());
   }
 
   // force topology refresh
@@ -389,7 +413,7 @@ mongoc_client_t* CDriverPoolImpl::Create() {
   MongoError error;
   stats::OperationStopwatch ping_sw(GetStatistics().pool->ping, "ping");
   const bson_t* native_cmd_bson_ptr = kPingCommand.GetBson().get();
-  if (!mongoc_client_command_simple(client.get(), kPingDatabase,
+  if (!mongoc_client_command_simple(conn->GetNativePtr(), kPingDatabase,
                                     native_cmd_bson_ptr, kPingReadPrefs.Get(),
                                     nullptr, error.GetNative())) {
     ping_sw.AccountError(error.GetKind());
@@ -399,7 +423,7 @@ mongoc_client_t* CDriverPoolImpl::Create() {
   ++size_;
   ping_sw.AccountSuccess();
   ++GetStatistics().pool->created;
-  return client.release();
+  return conn;
 }
 
 void CDriverPoolImpl::DoMaintenance() {

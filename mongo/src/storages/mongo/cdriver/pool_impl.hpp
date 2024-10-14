@@ -3,7 +3,7 @@
 #include <chrono>
 
 #include <mongoc/mongoc.h>
-#include <boost/lockfree/queue.hpp>
+#include <moodycamel/concurrentqueue.h>
 
 #include <storages/mongo/cdriver/async_stream.hpp>
 #include <storages/mongo/cdriver/wrappers.hpp>
@@ -22,24 +22,87 @@ namespace storages::mongo::impl::cdriver {
 
 class CDriverPoolImpl final : public PoolImpl {
  public:
-  class ClientPusher {
-   public:
-    explicit ClientPusher(CDriverPoolImpl* pool) noexcept : pool_(pool) {
-      UASSERT(pool_);
+  struct ConnEventStats final {
+    utils::statistics::Rate sucess{0};
+    utils::statistics::Rate failed{0};
+
+    bool operator==(const ConnEventStats& o) const {
+      return sucess == o.sucess && failed == o.failed;
     }
+  };
+
+  struct ClientDeleter final {
     void operator()(mongoc_client_t* client) const noexcept {
-      pool_->Push(client);
+      if (client) {
+        mongoc_client_destroy(client);
+      }
+    }
+  };
+
+  class Connection final {
+   public:
+    explicit Connection(mongoc_client_t* client) : client_(client) {
+      UASSERT(client_);
     }
 
+    Connection(Connection&& other) = delete;
+    Connection(const Connection&) = delete;
+    Connection& operator=(const Connection&) = delete;
+    Connection& operator=(const Connection&&) = delete;
+
+    mongoc_client_t* GetNativePtr() { return client_.get(); }
+
+    ConnEventStats* GetStatsPtr() { return &stats_; }
+
    private:
+    ConnEventStats stats_{};
+    std::unique_ptr<mongoc_client_t, ClientDeleter> client_{nullptr};
+  };
+
+  using ConnPtr = std::unique_ptr<Connection>;
+
+  class BoundClientPtr final {
+   public:
+    explicit BoundClientPtr(ConnPtr ptr, CDriverPoolImpl* pool) noexcept
+        : ptr_(std::move(ptr)), pool_(pool) {
+      UASSERT(pool_);
+      UASSERT(ptr_);
+    }
+
+    BoundClientPtr(BoundClientPtr&& o) noexcept = default;
+
+    BoundClientPtr(const BoundClientPtr&) = delete;
+    BoundClientPtr& operator=(const BoundClientPtr&) = delete;
+    BoundClientPtr& operator=(const BoundClientPtr&&) = delete;
+
+    explicit operator bool() { return !!ptr_; }
+
+    ConnEventStats GetEventStats() {
+      UASSERT(ptr_);
+      return *ptr_->GetStatsPtr();
+    }
+
+    void reset() {
+      UASSERT(ptr_);
+      pool_->Push(std::move(ptr_));
+    }
+
+    ~BoundClientPtr() {
+      if (ptr_) pool_->Push(std::move(ptr_));
+    }
+
+    mongoc_client_t* get() { return ptr_->GetNativePtr(); }
+
+   private:
+    ConnPtr ptr_;
     CDriverPoolImpl* pool_;
   };
-  using BoundClientPtr = std::unique_ptr<mongoc_client_t, ClientPusher>;
 
   CDriverPoolImpl(std::string id, const std::string& uri_string,
                   const PoolConfig& config,
                   clients::dns::Resolver* dns_resolver,
                   dynamic_config::Source config_source);
+
   ~CDriverPoolImpl() override;
 
   const std::string& DefaultDatabaseName() const override;
@@ -57,12 +120,12 @@ class CDriverPoolImpl final : public PoolImpl {
   void SetPoolSettings(const PoolSettings& pool_settings) override;
 
  private:
-  mongoc_client_t* Pop();
-  void Push(mongoc_client_t*) noexcept;
-  void Drop(mongoc_client_t*) noexcept;
+  ConnPtr Pop();
+  void Push(ConnPtr) noexcept;
+  void Drop(ConnPtr) noexcept;
 
-  mongoc_client_t* TryGetIdle();
-  mongoc_client_t* Create();
+  ConnPtr TryGetIdle();
+  ConnPtr Create();
 
   void DoMaintenance();
 
@@ -77,7 +140,7 @@ class CDriverPoolImpl final : public PoolImpl {
   std::atomic<size_t> size_;
   engine::Semaphore in_use_semaphore_;
   engine::Semaphore connecting_semaphore_;
-  boost::lockfree::queue<mongoc_client_t*> queue_;
+  moodycamel::ConcurrentQueue<ConnPtr> queue_;
   utils::PeriodicTask maintenance_task_;
 };
 
