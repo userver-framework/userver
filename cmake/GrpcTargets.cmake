@@ -131,7 +131,7 @@ function(userver_generate_grpc_files)
     endif()
     set(GENERATED_PROTO_DIR "${GEN_RPC_OUTPUT_PATH}")
   else()
-    set(GENERATED_PROTO_DIR ${CMAKE_CURRENT_BINARY_DIR}/proto)
+    set(GENERATED_PROTO_DIR "${CMAKE_CURRENT_BINARY_DIR}/proto")
   endif()
   
   get_filename_component(GENERATED_PROTO_DIR "${GENERATED_PROTO_DIR}" REALPATH BASE_DIR "/")
