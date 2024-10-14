@@ -126,7 +126,7 @@ function(userver_generate_grpc_files)
   endif()
 
   if (NOT "${GEN_RPC_OUTPUT_PATH}" STREQUAL "")
-    if(NOT IS_ABSOLUTE ${GEN_RPC_OUTPUT_PATH})
+    if(NOT IS_ABSOLUTE "${GEN_RPC_OUTPUT_PATH}")
       message(SEND_ERROR "OUTPUT_PATH='${GEN_RPC_OUTPUT_PATH}' is a relative path, which is unsupported.")
     endif()
     set(GENERATED_PROTO_DIR "${GEN_RPC_OUTPUT_PATH}")
@@ -137,7 +137,7 @@ function(userver_generate_grpc_files)
   get_filename_component(GENERATED_PROTO_DIR "${GENERATED_PROTO_DIR}" REALPATH BASE_DIR "/")
 
   if(NOT "${GEN_RPC_SOURCE_PATH}" STREQUAL "")
-    if(NOT IS_ABSOLUTE ${GEN_RPC_SOURCE_PATH})
+    if(NOT IS_ABSOLUTE "${GEN_RPC_SOURCE_PATH}")
       message(SEND_ERROR "SOURCE_PATH='${GEN_RPC_SOURCE_PATH}' is a relative path, which is unsupported.")
     endif()
     set(root_path "${GEN_RPC_SOURCE_PATH}")
@@ -298,8 +298,8 @@ function(userver_add_grpc_library NAME)
   userver_generate_grpc_files(
       PROTOS ${RPC_LIB_PROTOS}
       INCLUDE_DIRECTORIES ${RPC_LIB_INCLUDE_DIRECTORIES}
-      SOURCE_PATH ${RPC_LIB_SOURCE_PATH}
-      OUTPUT_PATH ${PRC_LIB_OUTPUT_PATH}
+      SOURCE_PATH "${RPC_LIB_SOURCE_PATH}"
+      OUTPUT_PATH "${PRC_LIB_OUTPUT_PATH}"
       GENERATED_INCLUDES include_paths
       CPP_FILES generated_sources
       CPP_USRV_FILES generated_usrv_sources
