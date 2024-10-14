@@ -109,7 +109,8 @@ class UserverConan(ConanFile):
             ),
         )
 
-        self.version = content.strip()  # pylint: disable=attribute-defined-outside-init
+        hotfix_version = 1
+        self.version = content.strip() + f".{hotfix_version}"  # pylint: disable=attribute-defined-outside-init
 
     def layout(self):
         cmake_layout(self)
