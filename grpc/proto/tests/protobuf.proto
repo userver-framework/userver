@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package sample.ugrpc;
+
+import "google/protobuf/struct.proto";
+
+// A message with fields of many different types
+message MessageWithDifferentTypes {
+
+    // Nested message
+    message NestedMessage {
+        string required_string = 1;
+        optional string optional_string = 2;
+
+        uint32 required_int = 3;
+        optional uint32 optional_int = 4;
+    }
+
+    // Strings
+    string required_string = 1;
+    optional string optional_string = 2;
+
+    // Integers
+    uint32 required_int = 3;
+    optional uint32 optional_int = 4;
+
+    // Nested messages
+    NestedMessage required_nested = 5;
+    optional NestedMessage optional_nested = 6;
+
+    // Recursive messages
+    MessageWithDifferentTypes required_recursive = 7;
+    optional MessageWithDifferentTypes optional_recursive = 8;
+
+    // Repeated primitive
+    repeated string repeated_primitive = 9;
+
+    // Repeated message
+    repeated NestedMessage repeated_message = 10;
+
+    // Map of primitives
+    map<string, string> primitives_map = 11;
+
+    // Map of messages
+    map<string, NestedMessage> nested_map = 12;
+
+    // Oneof
+    oneof oneof_value {
+        string oneof_string = 13;
+        uint32 oneof_int = 14;
+        NestedMessage oneof_nested = 15;
+    }
+
+    // Google type
+    google.protobuf.Value google_value = 16;
+}

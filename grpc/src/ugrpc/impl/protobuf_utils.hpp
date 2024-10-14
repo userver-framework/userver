@@ -1,3 +1,5 @@
+#pragma once
+
 #include <userver/field_options.pb.h>
 
 USERVER_NAMESPACE_BEGIN
