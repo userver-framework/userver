@@ -299,7 +299,7 @@ function(userver_add_grpc_library NAME)
       PROTOS ${RPC_LIB_PROTOS}
       INCLUDE_DIRECTORIES ${RPC_LIB_INCLUDE_DIRECTORIES}
       SOURCE_PATH "${RPC_LIB_SOURCE_PATH}"
-      OUTPUT_PATH "${PRC_LIB_OUTPUT_PATH}"
+      OUTPUT_PATH "${RRC_LIB_OUTPUT_PATH}"
       GENERATED_INCLUDES include_paths
       CPP_FILES generated_sources
       CPP_USRV_FILES generated_usrv_sources
