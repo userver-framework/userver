@@ -85,6 +85,5 @@ set_target_properties(libprotoc PROPERTIES
 write_package_stub(Protobuf)
 mark_targets_as_system("${Protobuf_SOURCE_DIR}")
 _userver_set_protobuf_version_category()
-_userver_set_protobuf_variables()
 set(PROTOBUF_PROTOC $<TARGET_FILE:protoc>)
 set(GENERATE_PROTOS_AT_CONFIGURE_DEFAULT OFF)
