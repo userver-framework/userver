@@ -53,11 +53,8 @@ if(NOT USERVER_FORCE_DOWNLOAD_PROTOBUF)
     endif()
   endif()
 
-  message(WARNING "find_protobuf")
   if(Protobuf_FOUND)
     _userver_set_protobuf_version_category()
-
-  message(WARNING "found_protobuf")
     _userver_set_protobuf_variables()
     return()
   endif()
