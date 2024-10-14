@@ -235,7 +235,13 @@ void DoRun(const PathOrConfig& config,
     } else if (signum == SIGUSR1 || signum == SIGUSR2) {
       LOG_INFO() << "Signal caught: " << utils::strsignal(signum);
       manager->OnSignal(signum);
-    } else {
+    }
+    #ifdef __APPLE__
+    else if(signum == -1){
+      LOG_WARNING() << "sigwait false positive, ingnoring... ";
+    }
+    #endif
+    else {
       LOG_WARNING() << "Got unexpected signal: " << signum << " ("
                     << utils::strsignal(signum) << ')';
       UASSERT_MSG(false, "unexpected signal");

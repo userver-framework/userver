@@ -24,7 +24,12 @@ SignalCatcher::~SignalCatcher() noexcept(false) {
 int SignalCatcher::Catch() {
   int signum = -1;
   utils::CheckSyscall(sigwait(&sigset_, &signum), "waiting for signal");
+  //https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man2/sigwait.2.html
+  //on mac os sigwait sometime returns 0 value(success) and signum -1
+  //looks like a bug
+  #ifndef __APPLE__
   UASSERT(signum != -1);
+  #endif
   return signum;
 }
 
