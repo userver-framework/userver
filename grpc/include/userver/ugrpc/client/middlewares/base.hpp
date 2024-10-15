@@ -59,30 +59,32 @@ class MiddlewareBase {
   virtual ~MiddlewareBase();
 
   MiddlewareBase(const MiddlewareBase&) = delete;
+  MiddlewareBase(MiddlewareBase&&) = delete;
 
   MiddlewareBase& operator=(const MiddlewareBase&) = delete;
   MiddlewareBase& operator=(MiddlewareBase&&) = delete;
 
-  // default implemented methods
-
-  /// called before `StartCall`
+  /// @brief This function is called before rpc, on each rpc. It does nothing by
+  /// default
   virtual void PreStartCall(MiddlewareCallContext&) const;
 
-  /// called after Finish
-  /// @note could be not called if `Finish` was not called (eg deadline or
-  /// network problem)
-  /// @see @ref RpcInterruptedError
-  virtual void PostFinish(MiddlewareCallContext&, const grpc::Status&) const;
-
-  /// called before send message
-  /// @note not called for `GenericClient` messages
+  /// @brief This function is called before sending message, on each request. It
+  /// does nothing by default
+  /// @note  Not called for `GenericClient` messages
   virtual void PreSendMessage(MiddlewareCallContext&,
                               const google::protobuf::Message&) const;
 
-  /// called after receive message
-  /// @note not called for `GenericClient` messages
+  /// @brief This function is called after receiving message, on each response.
+  /// It does nothing by default
+  /// @note  Not called for `GenericClient` messages
   virtual void PostRecvMessage(MiddlewareCallContext&,
                                const google::protobuf::Message&) const;
+
+  /// @brief This function is called after rpc, on each rpc. It does nothing by
+  /// default
+  /// @note Could be not called in case of deadline or network problem
+  /// @see @ref RpcInterruptedError
+  virtual void PostFinish(MiddlewareCallContext&, const grpc::Status&) const;
 
  protected:
   MiddlewareBase();
