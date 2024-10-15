@@ -28,6 +28,7 @@ jobs:
                         -DUSERVER_NAMESPACE_BEGIN="namespace userver_ns { inline namespace
                         v1 {"
                         -DUSERVER_NAMESPACE_END="}}"
+                        -DUSERVER_FEATURE_KAFKA=0
                         -DUSERVER_PG_SERVER_INCLUDE_DIR=/usr/include/postgresql/16/server
                         -DUSERVER_PG_SERVER_LIBRARY_DIR=/usr/lib/postgresql/16/lib
                     os: ubuntu-24.04
@@ -117,27 +118,29 @@ jobs:
                 #    | tee /etc/apt/sources.list.d/mariadb.list
                 echo "deb [arch=amd64,arm64,ppc64el signed-by=/usr/share/keyrings/mariadb.gpg] https://mirror.kumi.systems/mariadb/repo/10.11/ubuntu $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/mariadb.list
 
-                # Adding librdkafka confluent repositories as in https://docs.confluent.io/platform/current/installation/installing_cp/deb-ubuntu.html#get-the-software
-                gpg_retrieve_keyserver() {
-                  GNUPGHOME=$(mktemp -d)
-                  GNUPGHOME="$GNUPGHOME" gpg --no-default-keyring --keyring "/usr/share/keyrings/$2.gpg" --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys $1
-                  rm -rf "$GNUPGHOME"
-                  chmod a+r "/usr/share/keyrings/$2.gpg"
-                }
-                gpg_retrieve_keyserver 8B1DA6120C2BF624 confluent
-                printf "\
-                deb [arch=amd64 signed-by=/usr/share/keyrings/confluent.gpg] https://packages.confluent.io/deb/7.6 stable main\n\
-                deb [signed-by=/usr/share/keyrings/confluent.gpg] https://packages.confluent.io/clients/deb $(lsb_release -cs) main\n" \
-                  | sudo tee /etc/apt/sources.list.d/confluent.list
+                if [ "${{matrix.os}}" != "ubuntu-24.04" ]; then
+                  # Adding librdkafka confluent repositories as in https://docs.confluent.io/platform/current/installation/installing_cp/deb-ubuntu.html#get-the-software
+                  gpg_retrieve_keyserver() {
+                    GNUPGHOME=$(mktemp -d)
+                    GNUPGHOME="$GNUPGHOME" gpg --no-default-keyring --keyring "/usr/share/keyrings/$2.gpg" --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys $1
+                    rm -rf "$GNUPGHOME"
+                    chmod a+r "/usr/share/keyrings/$2.gpg"
+                  }
+                  gpg_retrieve_keyserver 8B1DA6120C2BF624 confluent
+                  printf "\
+                  deb [arch=amd64 signed-by=/usr/share/keyrings/confluent.gpg] https://packages.confluent.io/deb/7.6 stable main\n\
+                  deb [signed-by=/usr/share/keyrings/confluent.gpg] https://packages.confluent.io/clients/deb $(lsb_release -cs) main\n" \
+                    | sudo tee /etc/apt/sources.list.d/confluent.list
 
-                # Install Kafka
-                sudo apt install -y default-jre
-                curl https://dlcdn.apache.org/kafka/3.8.0/kafka_2.13-3.8.0.tgz -o kafka.tgz
-                sudo mkdir -p /etc/kafka
-                sudo tar xf kafka.tgz --directory=/etc/kafka
-                sudo cp -r /etc/kafka/kafka_2.13-3.8.0/* /etc/kafka/
-                sudo rm -rf /etc/kafka/kafka_2.13-3.8.0
-                ls -lha /etc/kafka
+                  # Install Kafka
+                  sudo apt install -y default-jre
+                  curl https://dlcdn.apache.org/kafka/3.8.0/kafka_2.13-3.8.0.tgz -o kafka.tgz
+                  sudo mkdir -p /etc/kafka
+                  sudo tar xf kafka.tgz --directory=/etc/kafka
+                  sudo cp -r /etc/kafka/kafka_2.13-3.8.0/* /etc/kafka/
+                  sudo rm -rf /etc/kafka/kafka_2.13-3.8.0
+                  ls -lha /etc/kafka
+                fi
 
                 sudo apt update
                 sudo apt install --allow-downgrades -y clickhouse-common-static redis-server postgresql $(cat scripts/docs/en/deps/${{matrix.os}}.md | tr '\n' ' ')
