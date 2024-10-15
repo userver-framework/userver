@@ -31,3 +31,17 @@ struct std::hash<USERVER_NAMESPACE::components::impl::ComponentNameFromInfo> {
     return std::hash<std::string_view>{}(v.StringViewName());
   }
 };
+
+// fmt::format support
+template <>
+struct fmt::formatter<
+    USERVER_NAMESPACE::components::impl::ComponentNameFromInfo, char>
+    : fmt::formatter<std::string_view, char> {
+  template <typename FormatContext>
+  auto format(
+      const USERVER_NAMESPACE::components::impl::ComponentNameFromInfo& v,
+      FormatContext& ctx) USERVER_FMT_CONST {
+    return fmt::formatter<std::string_view, char>{}.format(v.StringViewName(),
+                                                           ctx);
+  }
+};
