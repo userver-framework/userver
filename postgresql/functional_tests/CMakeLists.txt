@@ -10,3 +10,6 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-connlimit-max)
 
 add_subdirectory(metrics)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-metrics)
+
+add_subdirectory(cache_order_by)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-cache-order-by)
