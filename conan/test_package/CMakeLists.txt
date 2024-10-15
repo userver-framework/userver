@@ -1,10 +1,8 @@
 cmake_minimum_required(VERSION 3.1)
 project(PackageTest CXX)
 
-set(CMAKE_CXX_STANDARD 17)
-
 find_package(userver REQUIRED)
-find_package (Python COMPONENTS Interpreter Development)
+find_package(Python COMPONENTS Interpreter Development)
 
 add_library(${PROJECT_NAME}_objs OBJECT
     hello.hpp
