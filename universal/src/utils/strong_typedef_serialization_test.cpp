@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <gtest/gtest.h>
 #include <boost/optional.hpp>
 #include <boost/optional/optional_io.hpp>

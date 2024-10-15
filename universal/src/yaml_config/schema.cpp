@@ -3,6 +3,8 @@
 #include <boost/range/adaptor/transformed.hpp>
 #include <boost/range/algorithm/count.hpp>
 
+#include <fmt/ranges.h>
+
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/serialize/common_containers.hpp>
 #include <userver/formats/yaml/serialize.hpp>

@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <boost/filesystem.hpp>
 
 #include <userver/fs/blocking/file_descriptor.hpp>

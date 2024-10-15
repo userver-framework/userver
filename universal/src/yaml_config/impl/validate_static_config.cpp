@@ -1,6 +1,7 @@
 #include <userver/yaml_config/impl/validate_static_config.hpp>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <boost/range/adaptors.hpp>
 
 #include <userver/formats/yaml/serialize.hpp>

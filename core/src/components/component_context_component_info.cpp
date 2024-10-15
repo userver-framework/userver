@@ -1,5 +1,8 @@
 #include "component_context_component_info.hpp"
 
+#include <fmt/format.h>
+#include <fmt/ranges.h>
+
 #include <userver/components/component_context.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/tracing/tracer.hpp>

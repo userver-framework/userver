@@ -8,6 +8,7 @@
 #include <cryptopp/osrng.h>
 #include <fmt/chrono.h>
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <openssl/ssl.h>
 #include <openssl/x509.h>
 #include <boost/range/adaptor/map.hpp>
