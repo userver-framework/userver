@@ -16,6 +16,7 @@
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/string_builder_fwd.hpp>
 #include <userver/formats/parse/common.hpp>
+#include <gdb_helpers/formats/json/printers.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
