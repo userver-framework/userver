@@ -33,9 +33,6 @@ components_manager:
             task_processor: main-task-processor  # Run it on CPU bound task processor
 
         secdist:
-            provider: default-secdist-provider
-
-        default-secdist-provider:
             config: /etc/https_service/secure_data.json
             missing-ok: false
               # environment-secrets-key: SECDIST_CONFIG

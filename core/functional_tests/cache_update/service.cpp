@@ -10,8 +10,6 @@
 #include <userver/dump/common_containers.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/handlers/ping.hpp>
-#include <userver/storages/secdist/component.hpp>
-#include <userver/storages/secdist/provider_component.hpp>
 #include <userver/tracing/manager_component.hpp>
 #include <userver/utils/daemon_run.hpp>
 

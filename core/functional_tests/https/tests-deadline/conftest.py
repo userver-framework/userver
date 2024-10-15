@@ -14,7 +14,7 @@ def userver_config_secdist(userver_config_http_client, service_source_dir):
         tls['cert'] = str(service_source_dir / 'cert.crt')
         tls['private-key'] = str(service_source_dir / 'private_key.key')
 
-        components['default-secdist-provider']['config'] = str(
+        components['secdist']['config'] = str(
             service_source_dir / 'secdist.json',
         )
 

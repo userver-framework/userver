@@ -11,7 +11,6 @@
 #include <userver/server/handlers/http_handler_json_base.hpp>
 #include <userver/storages/clickhouse.hpp>
 #include <userver/storages/secdist/component.hpp>
-#include <userver/storages/secdist/provider_component.hpp>
 #include <userver/utils/boost_uuid4.hpp>
 #include <userver/utils/daemon_run.hpp>
 
@@ -214,7 +213,6 @@ int main(int argc, char* argv[]) {
           .Append<chaos::KeyValue>()
           .Append<chaos::UuidsHandler>()
           .Append<components::Secdist>()
-          .Append<components::DefaultSecdistProvider>()
           .Append<clients::dns::Component>()
           .Append<components::ClickHouse>("clickhouse-database");
 

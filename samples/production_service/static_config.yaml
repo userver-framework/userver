@@ -108,8 +108,6 @@ components_manager:
         # /// [Production service sample - static config secdist]
         # yaml
         secdist:
-            provider: default-secdist-provider
-        default-secdist-provider:
             config: $secdist-path
         # /// [Production service sample - static config secdist]
 

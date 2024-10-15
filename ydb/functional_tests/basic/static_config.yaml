@@ -24,8 +24,7 @@ components_manager:
                     file_path: '@stderr'
                     level: debug
                     overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
-        secdist: {}
-        default-secdist-provider:
+        secdist:
             config: secure_data.json
 
         dynamic-config:

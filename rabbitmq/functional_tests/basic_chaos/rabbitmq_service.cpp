@@ -11,7 +11,6 @@
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/storages/secdist/component.hpp>
-#include <userver/storages/secdist/provider_component.hpp>
 #include <userver/testsuite/testpoint.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/daemon_run.hpp>
@@ -235,7 +234,6 @@ int main(int argc, char* argv[]) {
                                   //
                                   .Append<clients::dns::Component>()
                                   .Append<components::Secdist>()
-                                  .Append<components::DefaultSecdistProvider>()
                                   //
                                   .Append<server::handlers::TestsControl>()
                                   .Append<components::TestsuiteSupport>()

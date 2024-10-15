@@ -18,7 +18,6 @@
 #include <userver/storages/redis/component.hpp>
 #include <userver/storages/redis/subscribe_client.hpp>
 #include <userver/storages/secdist/component.hpp>
-#include <userver/storages/secdist/provider_component.hpp>
 #include <userver/utils/daemon_run.hpp>
 
 namespace chaos {
@@ -133,7 +132,6 @@ int main(int argc, char* argv[]) {
           .Append<server::handlers::ServerMonitor>()
           .Append<chaos::KeyValue>()
           .Append<components::Secdist>()
-          .Append<components::DefaultSecdistProvider>()
           .Append<components::Redis>("key-value-database")
           .Append<components::TestsuiteSupport>()
           .Append<components::HttpClient>()

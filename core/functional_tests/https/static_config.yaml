@@ -65,9 +65,6 @@ components_manager:
             task_processor: main-task-processor
 
         secdist:
-            provider: default-secdist-provider
-
-        default-secdist-provider:
             config: secdist.json
             missing-ok: false
 

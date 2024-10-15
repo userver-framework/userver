@@ -8,7 +8,6 @@
 #include <userver/dump/common_containers.hpp>
 #include <userver/server/handlers/ping.hpp>
 #include <userver/storages/secdist/component.hpp>
-#include <userver/storages/secdist/provider_component.hpp>
 #include <userver/tracing/manager_component.hpp>
 #include <userver/utils/daemon_run.hpp>
 
@@ -18,7 +17,6 @@ int main(int argc, const char* const argv[]) {
           .AppendComponentList(components::CommonComponentList())
           .AppendComponentList(components::CommonServerComponentList())
           .Append<components::Secdist>()
-          .Append<components::DefaultSecdistProvider>()
           .Append<server::handlers::Ping>();
   return utils::DaemonMain(argc, argv, component_list);
 }

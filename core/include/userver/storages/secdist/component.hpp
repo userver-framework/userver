@@ -5,8 +5,7 @@
 
 #include <string>
 
-#include <userver/components/component_base.hpp>
-#include <userver/storages/secdist/secdist.hpp>
+#include <userver/storages/secdist/component_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -15,12 +14,9 @@ namespace components {
 
 /// @ingroup userver_components
 ///
-/// @brief Component that stores security related data (keys, passwords, ...).
+/// @brief Default implementation of components::SecdistComponentBase.
 ///
 /// The component must be configured in service config.
-///
-/// Secdist requires a provider storages::secdist::SecdistProvider
-/// You can implement your own or use components::DefaultSecdistProvider
 ///
 /// ## Static configuration example:
 ///
@@ -29,7 +25,6 @@ namespace components {
 /// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// provider | optional secdist provider component name | 'default-secdist-provider'
 /// config | path to the config file with data | ''
 /// format | config format, either `json` or `yaml` | 'json'
 /// missing-ok | do not terminate components load if no file found by the config option | false
@@ -39,7 +34,7 @@ namespace components {
 
 // clang-format on
 
-class Secdist final : public ComponentBase {
+class Secdist final : public SecdistComponentBase {
  public:
   /// @ingroup userver_component_names
   /// @brief The default name of components::Secdist
@@ -47,16 +42,7 @@ class Secdist final : public ComponentBase {
 
   Secdist(const ComponentConfig&, const ComponentContext&);
 
-  const storages::secdist::SecdistConfig& Get() const;
-
-  rcu::ReadablePtr<storages::secdist::SecdistConfig> GetSnapshot() const;
-
-  storages::secdist::Secdist& GetStorage();
-
   static yaml_config::Schema GetStaticConfigSchema();
-
- private:
-  storages::secdist::Secdist secdist_;
 };
 
 template <>

@@ -17,8 +17,7 @@ components_manager:
             queue_timeout: 10s
             use_secure_connection: false
 
-        secdist: {}
-        default-secdist-provider:
+        secdist:
             config: /etc/clickhouse_basic_chaos/secure_data.json
             missing-ok: true
             environment-secrets-key: SECDIST_CONFIG

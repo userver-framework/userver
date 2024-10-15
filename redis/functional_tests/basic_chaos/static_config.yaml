@@ -48,9 +48,7 @@ components_manager:
         dns-client:
             fs-task-processor: fs-task-processor
 
-        secdist: {}
-
-        default-secdist-provider:
+        secdist:
             config: /etc/redis_service/secure_data.json
             missing-ok: true
             environment-secrets-key: SECDIST_CONFIG
