@@ -19,10 +19,10 @@ class Query final {
   using Name = utils::StrongTypedef<struct NameTag, std::string>;
 
   /// @brief Query constructor
-  Query(const char* statement, std::optional<Name> name = std::nullopt);
+  Query(const char* statement);
 
   /// @brief Query constructor
-  Query(std::string statement, std::optional<Name> name = std::nullopt);
+  Query(std::string statement);
 
   /// @brief Get query statement
   const std::string& GetStatement() const;

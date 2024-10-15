@@ -1,9 +1,7 @@
 #pragma once
 
-/// @file userver/cache/base_postgres_cache.hpp
-/// @brief @copybrief components::PostgreCache
-
-#include <userver/cache/base_postgres_cache_fwd.hpp>
+/// @file userver/cache/mysql/cache.hpp
+/// @brief @copybrief components::MySqlCache
 
 #include <chrono>
 #include <map>
@@ -18,10 +16,6 @@
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
 
-#include <userver/storages/postgres/cluster.hpp>
-#include <userver/storages/postgres/component.hpp>
-#include <userver/storages/postgres/io/chrono.hpp>
-
 #include <userver/compiler/demangle.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/tracing/span.hpp>
@@ -30,6 +24,9 @@
 #include <userver/utils/meta.hpp>
 #include <userver/utils/void_t.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
+#include <userver/storages/mysql/cluster.hpp>
+#include <userver/storages/mysql/component.hpp>
+#include "userver/storages/mysql/dates.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -37,9 +34,9 @@ namespace components {
 
 // clang-format off
 
-/// @page pg_cache Caching Component for PostgreSQL
+/// @page Caching Component for MySQL
 ///
-/// A typical components::PostgreCache usage consists of trait definition:
+/// A typical components::MySqlCache usage consists of trait definition:
 ///
 /// @snippet cache/postgres_cache_test.cpp Pg Cache Policy Trivial
 ///
@@ -52,7 +49,7 @@ namespace components {
 ///
 /// @section pg_cc_configuration Configuration
 ///
-/// components::PostgreCache static configuration file should have a PostgreSQL
+/// components::MySqlCache static configuration file should have a PostgreSQL
 /// component name specified in `pgcomponent` configuration parameter.
 ///
 /// Optionally the operation timeouts for cache loading can be specified.
@@ -69,7 +66,7 @@ namespace components {
 ///
 /// @section pg_cc_cache_policy Cache policy
 ///
-/// Cache policy is the template argument of components::PostgreCache component.
+/// Cache policy is the template argument of components::MySqlCache component.
 /// Please see the following code snippet for documentation.
 ///
 /// @snippet cache/postgres_cache_test.cpp Pg Cache Policy Example
@@ -113,7 +110,7 @@ namespace components {
 
 // clang-format on
 
-namespace pg_cache::detail {
+namespace mysql_cache::detail {
 
 template <typename T>
 using ValueType = typename T::ValueType;
@@ -127,11 +124,11 @@ inline constexpr bool kHasRawValueType = meta::kIsDetected<RawValueTypeImpl, T>;
 template <typename T>
 using RawValueType = meta::DetectedOr<ValueType<T>, RawValueTypeImpl, T>;
 
-template <typename PostgreCachePolicy>
-auto ExtractValue(RawValueType<PostgreCachePolicy>&& raw) {
-  if constexpr (kHasRawValueType<PostgreCachePolicy>) {
+template <typename MySqlCachePolicy>
+auto ExtractValue(RawValueType<MySqlCachePolicy>&& raw) {
+  if constexpr (kHasRawValueType<MySqlCachePolicy>) {
     return Convert(std::move(raw),
-                   formats::parse::To<ValueType<PostgreCachePolicy>>());
+                   formats::parse::To<ValueType<MySqlCachePolicy>>());
   } else {
     return std::move(raw);
   }
@@ -265,31 +262,18 @@ inline constexpr bool kHasUpdatedFieldType =
     meta::kIsDetected<UpdatedFieldTypeImpl, T>;
 template <typename T>
 using UpdatedFieldType =
-    meta::DetectedOr<storages::postgres::TimePointTz, UpdatedFieldTypeImpl, T>;
+    meta::DetectedOr<storages::mysql::DateTime, UpdatedFieldTypeImpl, T>;
 
 template <typename T>
 constexpr bool CheckUpdatedFieldType() {
   if constexpr (kHasUpdatedFieldType<T>) {
-#if USERVER_POSTGRES_ENABLE_LEGACY_TIMESTAMP
-    static_assert(std::is_same_v<typename T::UpdatedFieldType,
-                                 storages::postgres::TimePointTz> ||
-                      std::is_same_v<typename T::UpdatedFieldType,
-                                     storages::postgres::TimePointWithoutTz> ||
-                      std::is_same_v<typename T::UpdatedFieldType,
-                                     storages::postgres::TimePoint> ||
-                      kHasCustomUpdated<T>,
-                  "Invalid UpdatedFieldType, must be either TimePointTz or "
-                  "TimePointWithoutTz"
-                  "or (legacy) system_clock::time_point");
-#else
-    static_assert(std::is_same_v<typename T::UpdatedFieldType,
-                                 storages::postgres::TimePointTz> ||
-                      std::is_same_v<typename T::UpdatedFieldType,
-                                     storages::postgres::TimePointWithoutTz> ||
-                      kHasCustomUpdated<T>,
-                  "Invalid UpdatedFieldType, must be either TimePointTz or "
-                  "TimePointWithoutTz");
-#endif
+    static_assert(
+        std::is_same_v<typename T::UpdatedFieldType,
+                       storages::mysql::DateTime> ||
+            std::is_same_v<typename T::UpdatedFieldType,
+                           storages::mysql::DateTime> ||
+            kHasCustomUpdated<T>,
+        "Invalid UpdatedFieldType, must be either TimePointTz or TimePoint");
   } else {
     static_assert(!kWantIncrementalUpdates<T>,
                   "UpdatedFieldType must be explicitly specified when using "
@@ -300,14 +284,14 @@ constexpr bool CheckUpdatedFieldType() {
 
 // Cluster host type policy
 template <typename T>
-using HasClusterHostTypeImpl = decltype(T::kClusterHostType);
+using HasClusterHostTypeImpl = decltype(T::ClusterHostType);
 
 template <typename T>
-constexpr storages::postgres::ClusterHostTypeFlags ClusterHostType() {
+constexpr storages::mysql::ClusterHostType ClusterHostType() {
   if constexpr (meta::kIsDetected<HasClusterHostTypeImpl, T>) {
-    return T::kClusterHostType;
+    return T::ClusterHostType;
   } else {
-    return storages::postgres::ClusterHostType::kSlave;
+    return storages::mysql::ClusterHostType::kPrimary;
   }
 }
 
@@ -324,50 +308,52 @@ constexpr bool MayReturnNull() {
   }
 }
 
-template <typename PostgreCachePolicy>
+template <typename MySqlCachePolicy>
 struct PolicyChecker {
   // Static assertions for cache traits
   static_assert(
-      kHasName<PostgreCachePolicy>,
+      kHasName<MySqlCachePolicy>,
       "The PosgreSQL cache policy must contain a static member `kName`");
   static_assert(
-      kHasValueType<PostgreCachePolicy>,
+      kHasValueType<MySqlCachePolicy>,
       "The PosgreSQL cache policy must define a type alias `ValueType`");
   static_assert(
-      kHasKeyMember<PostgreCachePolicy>,
+      kHasKeyMember<MySqlCachePolicy>,
       "The PostgreSQL cache policy must contain a static member `kKeyMember` "
       "with a pointer to a data or a function member with the object's key");
-  static_assert(kHasQuery<PostgreCachePolicy> ||
-                    kHasGetQuery<PostgreCachePolicy>,
+  static_assert(kHasQuery<MySqlCachePolicy> ||
+                    kHasGetQuery<MySqlCachePolicy>,
                 "The PosgreSQL cache policy must contain a static data member "
                 "`kQuery` with a select statement or a static member function "
                 "`GetQuery` returning the query");
-  static_assert(!(kHasQuery<PostgreCachePolicy> &&
-                  kHasGetQuery<PostgreCachePolicy>),
+  static_assert(!(kHasQuery<MySqlCachePolicy> &&
+                  kHasGetQuery<MySqlCachePolicy>),
                 "The PosgreSQL cache policy must define `kQuery` or "
                 "`GetQuery`, not both");
   static_assert(
-      kHasUpdatedField<PostgreCachePolicy>,
+      kHasUpdatedField<MySqlCachePolicy>,
       "The PosgreSQL cache policy must contain a static member "
       "`kUpdatedField`. If you don't want to use incremental updates, "
       "please set its value to `nullptr`");
-  static_assert(CheckUpdatedFieldType<PostgreCachePolicy>());
+  static_assert(CheckUpdatedFieldType<MySqlCachePolicy>());
 
-  static_assert(ClusterHostType<PostgreCachePolicy>() &
+  /*
+  static_assert(ClusterHostType<MySqlCachePolicy>() &
                     storages::postgres::kClusterHostRolesMask,
                 "Cluster host role must be specified for caching component, "
                 "please be more specific");
+  */
 
-  static storages::postgres::Query GetQuery() {
-    if constexpr (kHasGetQuery<PostgreCachePolicy>) {
-      return PostgreCachePolicy::GetQuery();
+  static storages::mysql::Query GetQuery() {
+    if constexpr (kHasGetQuery<MySqlCachePolicy>) {
+      return MySqlCachePolicy::GetQuery();
     } else {
-      return PostgreCachePolicy::kQuery;
+      return MySqlCachePolicy::kQuery;
     }
   }
 
   using BaseType =
-      CachingComponentBase<DataCacheContainerType<PostgreCachePolicy>>;
+      CachingComponentBase<DataCacheContainerType<MySqlCachePolicy>>;
 };
 
 inline constexpr std::chrono::minutes kDefaultFullUpdateTimeout{1};
@@ -381,36 +367,36 @@ inline constexpr std::string_view kFetchStage = "fetch";
 inline constexpr std::string_view kParseStage = "parse";
 
 inline constexpr std::size_t kDefaultChunkSize = 1000;
-}  // namespace pg_cache::detail
+}  // namespace mysql_cache::detail
 
 /// @ingroup userver_components
 ///
 /// @brief Caching component for PostgreSQL. See @ref pg_cache.
 ///
 /// @see @ref pg_cache, @ref scripts/docs/en/userver/caches.md
-template <typename PostgreCachePolicy>
-class PostgreCache final
-    : public pg_cache::detail::PolicyChecker<PostgreCachePolicy>::BaseType {
+template <typename MySqlCachePolicy>
+class MySqlCache final
+    : public mysql_cache::detail::PolicyChecker<MySqlCachePolicy>::BaseType {
  public:
   // Type aliases
-  using PolicyType = PostgreCachePolicy;
-  using ValueType = pg_cache::detail::ValueType<PolicyType>;
-  using RawValueType = pg_cache::detail::RawValueType<PolicyType>;
-  using DataType = pg_cache::detail::DataCacheContainerType<PolicyType>;
-  using PolicyCheckerType = pg_cache::detail::PolicyChecker<PostgreCachePolicy>;
+  using PolicyType = MySqlCachePolicy;
+  using ValueType = mysql_cache::detail::ValueType<PolicyType>;
+  using RawValueType = mysql_cache::detail::RawValueType<PolicyType>;
+  using DataType = mysql_cache::detail::DataCacheContainerType<PolicyType>;
+  using PolicyCheckerType = mysql_cache::detail::PolicyChecker<MySqlCachePolicy>;
   using UpdatedFieldType =
-      pg_cache::detail::UpdatedFieldType<PostgreCachePolicy>;
+      mysql_cache::detail::UpdatedFieldType<MySqlCachePolicy>;
   using BaseType = typename PolicyCheckerType::BaseType;
 
   // Calculated constants
   constexpr static bool kIncrementalUpdates =
-      pg_cache::detail::kWantIncrementalUpdates<PolicyType>;
+      mysql_cache::detail::kWantIncrementalUpdates<PolicyType>;
   constexpr static auto kClusterHostTypeFlags =
-      pg_cache::detail::ClusterHostType<PolicyType>();
+      mysql_cache::detail::ClusterHostType<PolicyType>();
   constexpr static auto kName = PolicyType::kName;
 
-  PostgreCache(const ComponentConfig&, const ComponentContext&);
-  ~PostgreCache() override;
+  MySqlCache(const ComponentConfig&, const ComponentContext&);
+  ~MySqlCache() override;
 
   static yaml_config::Schema GetStaticConfigSchema();
 
@@ -429,16 +415,17 @@ class PostgreCache final
   bool MayReturnNull() const override;
 
   CachedData GetDataSnapshot(cache::UpdateType type, tracing::ScopeTime& scope);
-  void CacheResults(storages::postgres::ResultSet res, CachedData& data_cache,
+  void CacheResults(std::vector<ValueType> res, CachedData& data_cache,
                     cache::UpdateStatisticsScope& stats_scope,
                     tracing::ScopeTime& scope);
 
-  static storages::postgres::Query GetAllQuery();
-  static storages::postgres::Query GetDeltaQuery();
+  static storages::mysql::Query GetAllQuery();
+  static storages::mysql::Query GetDeltaQuery();
 
   std::chrono::milliseconds ParseCorrection(const ComponentConfig& config);
 
-  std::vector<storages::postgres::ClusterPtr> clusters_;
+  //std::vector<storages::postgres::ClusterPtr> clusters_;
+  std::vector<std::shared_ptr<storages::mysql::Cluster>> clusters_;
 
   const std::chrono::system_clock::duration correction_;
   const std::chrono::milliseconds full_update_timeout_;
@@ -448,27 +435,28 @@ class PostgreCache final
   std::size_t cpu_relax_iterations_copy_{0};
 };
 
-template <typename PostgreCachePolicy>
-inline constexpr bool kHasValidate<PostgreCache<PostgreCachePolicy>> = true;
+template <typename MySqlCachePolicy>
+inline constexpr bool kHasValidate<MySqlCache<MySqlCachePolicy>> = true;
 
-template <typename PostgreCachePolicy>
-PostgreCache<PostgreCachePolicy>::PostgreCache(const ComponentConfig& config,
+template <typename MySqlCachePolicy>
+MySqlCache<MySqlCachePolicy>::MySqlCache(const ComponentConfig& config,
                                                const ComponentContext& context)
     : BaseType{config, context},
       correction_{ParseCorrection(config)},
       full_update_timeout_{
           config["full-update-op-timeout"].As<std::chrono::milliseconds>(
-              pg_cache::detail::kDefaultFullUpdateTimeout)},
+              mysql_cache::detail::kDefaultFullUpdateTimeout)},
       incremental_update_timeout_{
           config["incremental-update-op-timeout"].As<std::chrono::milliseconds>(
-              pg_cache::detail::kDefaultIncrementalUpdateTimeout)},
+              mysql_cache::detail::kDefaultIncrementalUpdateTimeout)},
       chunk_size_{config["chunk-size"].As<size_t>(
-          pg_cache::detail::kDefaultChunkSize)} {
+          mysql_cache::detail::kDefaultChunkSize)} {
+  /* TODO
   UINVARIANT(
       !chunk_size_ || storages::postgres::Portal::IsSupportedByDriver(),
       "Either set 'chunk-size' to 0, or enable PostgreSQL portals by building "
       "the framework with CMake option USERVER_FEATURE_PATCH_LIBPQ set to ON.");
-
+  */
   if (this->GetAllowedUpdateTypes() ==
           cache::AllowedUpdateTypes::kFullAndIncremental &&
       !kIncrementalUpdates) {
@@ -485,66 +473,64 @@ PostgreCache<PostgreCachePolicy>::PostgreCache(const ComponentConfig& config,
   }
 
   const auto pg_alias = config["pgcomponent"].As<std::string>("");
+  /* TODO
   if (pg_alias.empty()) {
     throw storages::postgres::InvalidConfig{
         "No `pgcomponent` entry in configuration"};
   }
-  auto& pg_cluster_comp = context.FindComponent<components::Postgres>(pg_alias);
-  const auto shard_count = pg_cluster_comp.GetShardCount();
+  */
+  auto& pg_cluster_comp = context.FindComponent<userver::storages::mysql::Component>(pg_alias);
+  const auto shard_count = 1;
   clusters_.resize(shard_count);
   for (size_t i = 0; i < shard_count; ++i) {
-    clusters_[i] = pg_cluster_comp.GetClusterForShard(i);
+    clusters_[i] = pg_cluster_comp.GetCluster();
   }
 
   LOG_INFO() << "Cache " << kName << " full update query `"
-             << GetAllQuery().Statement() << "` incremental update query `"
-             << GetDeltaQuery().Statement() << "`";
+             << GetAllQuery().GetStatement() << "` incremental update query `"
+             << GetDeltaQuery().GetStatement() << "`";
 
   this->StartPeriodicUpdates();
 }
 
-template <typename PostgreCachePolicy>
-PostgreCache<PostgreCachePolicy>::~PostgreCache() {
+template <typename MySqlCachePolicy>
+MySqlCache<MySqlCachePolicy>::~MySqlCache() {
   this->StopPeriodicUpdates();
 }
 
-template <typename PostgreCachePolicy>
-storages::postgres::Query PostgreCache<PostgreCachePolicy>::GetAllQuery() {
-  storages::postgres::Query query = PolicyCheckerType::GetQuery();
-  if constexpr (pg_cache::detail::kHasWhere<PostgreCachePolicy>) {
-    return {fmt::format("{} where {}", query.Statement(),
-                        PostgreCachePolicy::kWhere),
-            query.GetName()};
+template <typename MySqlCachePolicy>
+storages::mysql::Query MySqlCache<MySqlCachePolicy>::GetAllQuery() {
+  storages::mysql::Query query = PolicyCheckerType::GetQuery();
+  if constexpr (mysql_cache::detail::kHasWhere<MySqlCachePolicy>) {
+    return {fmt::format("{} where {}", query.GetStatement(),
+                        MySqlCachePolicy::kWhere)};
   } else {
     return query;
   }
 }
 
-template <typename PostgreCachePolicy>
-storages::postgres::Query PostgreCache<PostgreCachePolicy>::GetDeltaQuery() {
+template <typename MySqlCachePolicy>
+storages::mysql::Query MySqlCache<MySqlCachePolicy>::GetDeltaQuery() {
   if constexpr (kIncrementalUpdates) {
-    storages::postgres::Query query = PolicyCheckerType::GetQuery();
-
-    if constexpr (pg_cache::detail::kHasWhere<PostgreCachePolicy>) {
+    storages::mysql::Query query = PolicyCheckerType::GetQuery();
+    if constexpr (mysql_cache::detail::kHasWhere<MySqlCachePolicy>) {
       return {
-          fmt::format("{} where ({}) and {} >= $1", query.Statement(),
-                      PostgreCachePolicy::kWhere, PolicyType::kUpdatedField),
-          query.GetName()};
+          fmt::format("{} where ({}) and {} >= $1", query.GetStatement(),
+                      MySqlCachePolicy::kWhere, PolicyType::kUpdatedField)};
     } else {
-      return {fmt::format("{} where {} >= $1", query.Statement(),
-                          PolicyType::kUpdatedField),
-              query.GetName()};
+      return {fmt::format("{} where {} >= $1", query.GetStatement(),
+                          PolicyType::kUpdatedField)};
     }
   } else {
     return GetAllQuery();
   }
 }
 
-template <typename PostgreCachePolicy>
-std::chrono::milliseconds PostgreCache<PostgreCachePolicy>::ParseCorrection(
+template <typename MySqlCachePolicy>
+std::chrono::milliseconds MySqlCache<MySqlCachePolicy>::ParseCorrection(
     const ComponentConfig& config) {
   static constexpr std::string_view kUpdateCorrection = "update-correction";
-  if (pg_cache::detail::kHasCustomUpdated<PostgreCachePolicy> ||
+  if (mysql_cache::detail::kHasCustomUpdated<MySqlCachePolicy> ||
       this->GetAllowedUpdateTypes() == cache::AllowedUpdateTypes::kOnlyFull) {
     return config[kUpdateCorrection].As<std::chrono::milliseconds>(0);
   } else {
@@ -552,92 +538,81 @@ std::chrono::milliseconds PostgreCache<PostgreCachePolicy>::ParseCorrection(
   }
 }
 
-template <typename PostgreCachePolicy>
-typename PostgreCache<PostgreCachePolicy>::UpdatedFieldType
-PostgreCache<PostgreCachePolicy>::GetLastUpdated(
+template <typename MySqlCachePolicy>
+typename MySqlCache<MySqlCachePolicy>::UpdatedFieldType
+MySqlCache<MySqlCachePolicy>::GetLastUpdated(
     [[maybe_unused]] std::chrono::system_clock::time_point last_update,
     const DataType& cache) const {
-  if constexpr (pg_cache::detail::kHasCustomUpdated<PostgreCachePolicy>) {
-    return PostgreCachePolicy::GetLastKnownUpdated(cache);
+  if constexpr (mysql_cache::detail::kHasCustomUpdated<MySqlCachePolicy>) {
+    return MySqlCachePolicy::GetLastKnownUpdated(cache);
   } else {
     return UpdatedFieldType{last_update - correction_};
   }
 }
 
-template <typename PostgreCachePolicy>
-void PostgreCache<PostgreCachePolicy>::Update(
+template <typename MySqlCachePolicy>
+void MySqlCache<MySqlCachePolicy>::Update(
     cache::UpdateType type,
-    const std::chrono::system_clock::time_point& last_update,
+    const std::chrono::system_clock::time_point& /*last_update*/,
     const std::chrono::system_clock::time_point& /*now*/,
     cache::UpdateStatisticsScope& stats_scope) {
-  namespace pg = storages::postgres;
   if constexpr (!kIncrementalUpdates) {
     type = cache::UpdateType::kFull;
   }
   const auto query =
       (type == cache::UpdateType::kFull) ? GetAllQuery() : GetDeltaQuery();
+  /* todo
   const std::chrono::milliseconds timeout = (type == cache::UpdateType::kFull)
                                                 ? full_update_timeout_
                                                 : incremental_update_timeout_;
-
+  */
   // COPY current cached data
   auto scope = tracing::Span::CurrentSpan().CreateScopeTime(
-      std::string{pg_cache::detail::kCopyStage});
+      std::string{mysql_cache::detail::kCopyStage});
   auto data_cache = GetDataSnapshot(type, scope);
   [[maybe_unused]] const auto old_size = data_cache->size();
 
-  scope.Reset(std::string{pg_cache::detail::kFetchStage});
+  scope.Reset(std::string{mysql_cache::detail::kFetchStage});
 
   size_t changes = 0;
   // Iterate clusters
-  for (auto& cluster : clusters_) {
+  // TODO
+  for (const std::shared_ptr<storages::mysql::Cluster>& cluster : clusters_) {
     if (chunk_size_ > 0) {
-      auto trx = cluster->Begin(
-          kClusterHostTypeFlags, pg::Transaction::RO,
-          pg::CommandControl{timeout, pg_cache::detail::kStatementTimeoutOff});
+      /*auto trx = cluster->Begin(kClusterHostTypeFlags);
       auto portal =
           trx.MakePortal(query, GetLastUpdated(last_update, *data_cache));
       while (portal) {
-        scope.Reset(std::string{pg_cache::detail::kFetchStage});
+        scope.Reset(std::string{mysql_cache::detail::kFetchStage});
         auto res = portal.Fetch(chunk_size_);
         stats_scope.IncreaseDocumentsReadCount(res.Size());
 
-        scope.Reset(std::string{pg_cache::detail::kParseStage});
+        scope.Reset(std::string{mysql_cache::detail::kParseStage});
         CacheResults(res, data_cache, stats_scope, scope);
         changes += res.Size();
       }
-      trx.Commit();
+      trx.Commit();*/
     } else {
-      bool has_parameter = query.Statement().find('$') != std::string::npos;
-      auto res = has_parameter
-                     ? cluster->Execute(
-                           kClusterHostTypeFlags,
-                           pg::CommandControl{
-                               timeout, pg_cache::detail::kStatementTimeoutOff},
-                           query, GetLastUpdated(last_update, *data_cache))
-                     : cluster->Execute(
-                           kClusterHostTypeFlags,
-                           pg::CommandControl{
-                               timeout, pg_cache::detail::kStatementTimeoutOff},
-                           query);
-      stats_scope.IncreaseDocumentsReadCount(res.Size());
+      //bool has_parameter = query.GetStatement().find('$') != std::string::npos;
+      auto resultValues = cluster->Execute(userver::storages::mysql::ClusterHostType::kPrimary, query.GetStatement()).AsVector<ValueType>();
+      stats_scope.IncreaseDocumentsReadCount(resultValues.size());
 
-      scope.Reset(std::string{pg_cache::detail::kParseStage});
-      CacheResults(res, data_cache, stats_scope, scope);
-      changes += res.Size();
+      scope.Reset(std::string{mysql_cache::detail::kParseStage});
+      CacheResults(resultValues, data_cache, stats_scope, scope);
+      changes += resultValues.size();
     }
   }
 
   scope.Reset();
 
-  if constexpr (pg_cache::detail::kIsContainerCopiedByElement<DataType>) {
+  if constexpr (mysql_cache::detail::kIsContainerCopiedByElement<DataType>) {
     if (old_size > 0) {
       const auto elapsed_copy =
-          scope.ElapsedTotal(std::string{pg_cache::detail::kCopyStage});
-      if (elapsed_copy > pg_cache::detail::kCpuRelaxThreshold) {
+          scope.ElapsedTotal(std::string{mysql_cache::detail::kCopyStage});
+      if (elapsed_copy > mysql_cache::detail::kCpuRelaxThreshold) {
         cpu_relax_iterations_copy_ = static_cast<std::size_t>(
             static_cast<double>(old_size) /
-            (elapsed_copy / pg_cache::detail::kCpuRelaxInterval));
+            (elapsed_copy / mysql_cache::detail::kCpuRelaxInterval));
         LOG_TRACE() << "Elapsed time for copying " << kName << " "
                     << elapsed_copy.count() << " for " << changes
                     << " data items is over threshold. Will relax CPU every "
@@ -648,11 +623,11 @@ void PostgreCache<PostgreCachePolicy>::Update(
 
   if (changes > 0) {
     const auto elapsed_parse =
-        scope.ElapsedTotal(std::string{pg_cache::detail::kParseStage});
-    if (elapsed_parse > pg_cache::detail::kCpuRelaxThreshold) {
+        scope.ElapsedTotal(std::string{mysql_cache::detail::kParseStage});
+    if (elapsed_parse > mysql_cache::detail::kCpuRelaxThreshold) {
       cpu_relax_iterations_parse_ = static_cast<std::size_t>(
           static_cast<double>(changes) /
-          (elapsed_parse / pg_cache::detail::kCpuRelaxInterval));
+          (elapsed_parse / mysql_cache::detail::kCpuRelaxInterval));
       LOG_TRACE() << "Elapsed time for parsing " << kName << " "
                   << elapsed_parse.count() << " for " << changes
                   << " data items is over threshold. Will relax CPU every "
@@ -662,31 +637,31 @@ void PostgreCache<PostgreCachePolicy>::Update(
   if (changes > 0 || type == cache::UpdateType::kFull) {
     // Set current cache
     stats_scope.Finish(data_cache->size());
-    pg_cache::detail::OnWritesDone(*data_cache);
+    mysql_cache::detail::OnWritesDone(*data_cache);
     this->Set(std::move(data_cache));
   } else {
     stats_scope.FinishNoChanges();
   }
 }
 
-template <typename PostgreCachePolicy>
-bool PostgreCache<PostgreCachePolicy>::MayReturnNull() const {
-  return pg_cache::detail::MayReturnNull<PolicyType>();
+template <typename MySqlCachePolicy>
+bool MySqlCache<MySqlCachePolicy>::MayReturnNull() const {
+  return mysql_cache::detail::MayReturnNull<PolicyType>();
 }
 
-template <typename PostgreCachePolicy>
-void PostgreCache<PostgreCachePolicy>::CacheResults(
-    storages::postgres::ResultSet res, CachedData& data_cache,
+template <typename MySqlCachePolicy>
+void MySqlCache<MySqlCachePolicy>::CacheResults(
+    std::vector<ValueType> res, CachedData& data_cache,
     cache::UpdateStatisticsScope& stats_scope, tracing::ScopeTime& scope) {
-  auto values = res.AsSetOf<RawValueType>(storages::postgres::kRowTag);
+  auto values = res;
   utils::CpuRelax relax{cpu_relax_iterations_parse_, &scope};
   for (auto p = values.begin(); p != values.end(); ++p) {
     relax.Relax();
     try {
-      using pg_cache::detail::CacheInsertOrAssign;
+      using mysql_cache::detail::CacheInsertOrAssign;
       CacheInsertOrAssign(
-          *data_cache, pg_cache::detail::ExtractValue<PostgreCachePolicy>(*p),
-          PostgreCachePolicy::kKeyMember);
+          *data_cache, *p,
+          MySqlCachePolicy::kKeyMember);
     } catch (const std::exception& e) {
       stats_scope.IncreaseDocumentsParseFailures(1);
       LOG_ERROR() << "Error parsing data row in cache '" << kName << "' to '"
@@ -695,14 +670,14 @@ void PostgreCache<PostgreCachePolicy>::CacheResults(
   }
 }
 
-template <typename PostgreCachePolicy>
-typename PostgreCache<PostgreCachePolicy>::CachedData
-PostgreCache<PostgreCachePolicy>::GetDataSnapshot(cache::UpdateType type,
+template <typename MySqlCachePolicy>
+typename MySqlCache<MySqlCachePolicy>::CachedData
+MySqlCache<MySqlCachePolicy>::GetDataSnapshot(cache::UpdateType type,
                                                   tracing::ScopeTime& scope) {
   if (type == cache::UpdateType::kIncremental) {
     auto data = this->Get();
     if (data) {
-      return pg_cache::detail::CopyContainer(*data, cpu_relax_iterations_copy_,
+      return mysql_cache::detail::CopyContainer(*data, cpu_relax_iterations_copy_,
                                              scope);
     }
   }
@@ -711,27 +686,51 @@ PostgreCache<PostgreCachePolicy>::GetDataSnapshot(cache::UpdateType type,
 
 namespace impl {
 
-std::string GetPostgreCacheSchema();
-
 }  // namespace impl
 
-template <typename PostgreCachePolicy>
-yaml_config::Schema PostgreCache<PostgreCachePolicy>::GetStaticConfigSchema() {
+template <typename MySqlCachePolicy>
+yaml_config::Schema MySqlCache<MySqlCachePolicy>::GetStaticConfigSchema() {
   using ParentType =
-      typename pg_cache::detail::PolicyChecker<PostgreCachePolicy>::BaseType;
-  return yaml_config::MergeSchemas<ParentType>(impl::GetPostgreCacheSchema());
+      typename mysql_cache::detail::PolicyChecker<MySqlCachePolicy>::BaseType;
+  const static std::string schema = R"(
+type: object
+description: Caching component for MySQL derived from components::CachingComponentBase.
+additionalProperties: false
+properties:
+    full-update-op-timeout:
+        type: string
+        description: timeout for a full update
+        defaultDescription: 1m
+    incremental-update-op-timeout:
+        type: string
+        description: timeout for an incremental update
+        defaultDescription: 1s
+    update-correction:
+        type: string
+        description: incremental update window adjustment
+        defaultDescription: 0 for caches with defined GetLastKnownUpdated
+    chunk-size:
+        type: integer
+        description: number of rows to request from PostgreSQL, 0 to fetch all rows in one request
+        defaultDescription: 1000
+    pgcomponent:
+        type: string
+        description: PostgreSQL component name
+        defaultDescription: ""
+)";
+  return yaml_config::MergeSchemas<ParentType>(schema);
 }
 
 }  // namespace components
 
+namespace utils::impl::projected_set {
 
-//namespace utils::impl::projected_set {
-//
-//template <typename Set, typename Value, typename KeyMember>
-//void CacheInsertOrAssign(Set& set, Value&& value,
-//                         const KeyMember& /*key_member*/) {
-//  DoInsert(set, std::forward<Value>(value));
-//}
-//
-//}  // namespace utils::impl::projected_set
+template <typename Set, typename Value, typename KeyMember>
+void CacheInsertOrAssign(Set& set, Value&& value,
+                         const KeyMember& /*key_member*/) {
+  DoInsert(set, std::forward<Value>(value));
+}
+
+}  // namespace utils::impl::projected_set
+
 USERVER_NAMESPACE_END
