@@ -11,10 +11,10 @@ add_library(${PROJECT_NAME}_objs OBJECT
     hello.hpp
     hello.cpp
 )
-target_link_libraries(${PROJECT_NAME}_objs PUBLIC userver::core userver::universal)
+target_link_libraries(${PROJECT_NAME}_objs PRIVATE userver::core)
 
 add_executable(${PROJECT_NAME}_core test_core.cpp)
-target_link_libraries(${PROJECT_NAME}_core ${PROJECT_NAME}_objs)
+target_link_libraries(${PROJECT_NAME}_core ${PROJECT_NAME}_objs userver::core)
 
 add_executable(${PROJECT_NAME}_universal test_universal.cpp)
 target_link_libraries(${PROJECT_NAME}_universal ${PROJECT_NAME}_objs userver::universal)
