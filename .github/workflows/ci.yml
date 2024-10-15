@@ -19,6 +19,22 @@ jobs:
             matrix:
                 include:
                   - cmake-flags: >-
+                        -DCMAKE_CXX_COMPILER=clang++-18
+                        -DCMAKE_C_COMPILER=clang-18
+                        -DUSERVER_SANITIZE="ub addr"
+                        -DCMAKE_BUILD_TYPE=Debug
+                        -DUSERVER_NO_WERROR=OFF
+                        -DUSERVER_NAMESPACE=userver_ns
+                        -DUSERVER_NAMESPACE_BEGIN="namespace userver_ns { inline namespace
+                        v1 {"
+                        -DUSERVER_NAMESPACE_END="}}"
+                        -DUSERVER_PG_SERVER_INCLUDE_DIR=/usr/include/postgresql/16/server
+                        -DUSERVER_PG_SERVER_LIBRARY_DIR=/usr/lib/postgresql/16/lib
+                    os: ubuntu-24.04
+                    info: clang-18 + debug + sanitize addr+ub
+                    tests-flags: ''
+
+                  - cmake-flags: >-
                         -DCMAKE_CXX_COMPILER=clang++-14
                         -DCMAKE_C_COMPILER=clang-14
                         -DUSERVER_SANITIZE="ub addr"
