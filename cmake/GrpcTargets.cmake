@@ -33,6 +33,7 @@ function(_userver_prepare_grpc)
   set_property(GLOBAL PROPERTY userver_grpc_cpp_plugin "${PROTO_GRPC_CPP_PLUGIN}")
   set_property(GLOBAL PROPERTY userver_grpc_python_plugin "${PROTO_GRPC_PYTHON_PLUGIN}")
   set_property(GLOBAL PROPERTY userver_protobuf_protoc "${PROTOBUF_PROTOC}")
+  set_property(GLOBAL PROPERTY userver_protobuf_version "${Protobuf_VERSION}")
   set(generate_protos_at_configure_description
       "Run protoc at CMake Configure time instead of the more traditional build time. "
       "This avoids IDE errors before the first build, but requires re-running CMake "
@@ -66,7 +67,10 @@ function(_userver_prepare_grpc)
     message(FATAL_ERROR "Invalid Protobuf package")
   endif()
 
-  if (NOT gRPC_VERSION)
+  if(NOT Protobuf_VERSION)
+    message(FATAL_ERROR "Invalid Protobuf package")
+  endif()
+  if(NOT gRPC_VERSION)
     message(FATAL_ERROR "Invalid gRPC package")
   endif()
   if(NOT PROTOBUF_PROTOC)
@@ -106,6 +110,7 @@ function(userver_generate_grpc_files)
   get_property(PROTO_GRPC_PYTHON_PLUGIN GLOBAL PROPERTY userver_grpc_python_plugin)
   get_property(PROTOBUF_PROTOC GLOBAL PROPERTY userver_protobuf_protoc)
   get_property(USERVER_PROTOBUF_IMPORT_DIR GLOBAL PROPERTY userver_protobuf_import_dir)
+  get_property(Protobuf_VERSION GLOBAL PROPERTY userver_protobuf_version)
   set(PROTO_GRPC_USRV_PLUGIN "${USERVER_GRPC_SCRIPTS_PATH}/protoc_usrv_plugin.sh")
 
   if(GEN_RPC_INCLUDE_DIRECTORIES)
@@ -159,8 +164,11 @@ function(userver_generate_grpc_files)
       "--plugin=protoc-gen-grpc=${PROTO_GRPC_CPP_PLUGIN}"
       "--plugin=protoc-gen-usrv=${PROTO_GRPC_USRV_PLUGIN}"
       "--plugin=protoc-gen-grpc_python=${PROTO_GRPC_PYTHON_PLUGIN}"
-      "--experimental_allow_proto3_optional"
   )
+  if(Protobuf_VERSION VERSION_GREATER_EQUAL "3.12.0" AND
+      Protobuf_VERSION VERSION_LESS "3.15.0")
+    list(APPEND protoc_flags "--experimental_allow_proto3_optional")
+  endif()
 
   set(proto_abs_paths)
   set(proto_rel_paths)
