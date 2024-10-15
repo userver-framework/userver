@@ -5,6 +5,7 @@
 #include <bson/bson.h>
 #include <fmt/chrono.h>
 #include <fmt/format.h>
+#include <mongoc/mongoc.h>
 
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/engine/sleep.hpp>
@@ -167,18 +168,119 @@ void HandleCancellations(
   }
 }
 
-void command_succeeded(const mongoc_apm_command_succeeded_t* event) {
-  auto* stats = reinterpret_cast<CDriverPoolImpl::ConnEventStats*>(
-      mongoc_apm_command_succeeded_get_context(event));
-  UASSERT(stats);
-  ++stats->sucess.value;
+stats::ConnStats& GetStats(void* stats_ptr) {
+  UASSERT(stats_ptr);
+  return *reinterpret_cast<stats::ConnStats*>(stats_ptr);
 }
 
-void command_failed(const mongoc_apm_command_failed_t* event) {
-  auto* stats = reinterpret_cast<CDriverPoolImpl::ConnEventStats*>(
-      mongoc_apm_command_failed_get_context(event));
-  UASSERT(stats);
-  ++stats->failed.value;
+void CommandSuccessed(const mongoc_apm_command_succeeded_t* event) {
+  auto& stats = GetStats(mongoc_apm_command_succeeded_get_context(event));
+  stats.event_stats_.sucess += utils::statistics::Rate{1};
+}
+
+void CommandFailed(const mongoc_apm_command_failed_t* event) {
+  auto& stats = GetStats(mongoc_apm_command_failed_get_context(event));
+  stats.event_stats_.failed += utils::statistics::Rate{1};
+}
+
+void HearbeatStarted(const mongoc_apm_server_heartbeat_started_t* event) {
+  auto& stats =
+      GetStats(mongoc_apm_server_heartbeat_started_get_context(event));
+  ++stats.apm_stats_->heartbeats.start;
+  LOG_LIMITED_DEBUG()
+      << mongoc_apm_server_heartbeat_started_get_host(event)->host_and_port
+      << " heartbeat started";
+}
+
+void HeartbeatSuccess(const mongoc_apm_server_heartbeat_succeeded_t* event) {
+  auto& stats =
+      GetStats(mongoc_apm_server_heartbeat_succeeded_get_context(event));
+  ++stats.apm_stats_->heartbeats.success;
+  LOG_LIMITED_DEBUG()
+      << mongoc_apm_server_heartbeat_succeeded_get_host(event)->host_and_port
+      << " heartbeat succeeded";
+}
+
+void HearbeatFailed(const mongoc_apm_server_heartbeat_failed_t* event) {
+  auto& stats = GetStats(mongoc_apm_server_heartbeat_failed_get_context(event));
+  ++stats.apm_stats_->heartbeats.failed;
+  LOG_LIMITED_WARNING()
+      << mongoc_apm_server_heartbeat_failed_get_host(event)->host_and_port
+      << " heartbeat failed";
+}
+
+std::string CreateTopologyChangeMessage(
+    const mongoc_apm_topology_changed_t* event) {
+  const mongoc_topology_description_t* prev_td =
+      mongoc_apm_topology_changed_get_previous_description(event);
+  const mongoc_topology_description_t* new_td =
+      mongoc_apm_topology_changed_get_new_description(event);
+  std::size_t nprev_server_desc{0};
+  mongoc_server_description_t** prev_sds =
+      mongoc_topology_description_get_servers(prev_td, &nprev_server_desc);
+  std::size_t nnew_server_desc{0};
+  mongoc_server_description_t** new_sds =
+      mongoc_topology_description_get_servers(new_td, &nnew_server_desc);
+
+  std::string topology_msg{fmt::format(
+      "Topology changed: {} -> {}", mongoc_topology_description_type(prev_td),
+      mongoc_topology_description_type(new_td))};
+
+  if (nprev_server_desc > 0) {
+    topology_msg.append("\nPrevious servers:\n");
+    for (std::size_t i = 0; i < nprev_server_desc; ++i) {
+      auto server_name = fmt::format(
+          "{} {},", mongoc_server_description_type(prev_sds[i]),
+          mongoc_server_description_host(prev_sds[i])->host_and_port);
+      topology_msg.append(fmt::to_string(server_name));
+    }
+  }
+
+  if (nnew_server_desc > 0) {
+    topology_msg.append("\nNew servers:\n");
+    for (std::size_t i = 0; i < nnew_server_desc; ++i) {
+      auto server_name = fmt::format(
+          "{} {},", mongoc_server_description_type(new_sds[i]),
+          mongoc_server_description_host(new_sds[i])->host_and_port);
+      topology_msg.append(fmt::to_string(server_name));
+    }
+  }
+
+  mongoc_read_prefs_t* prefs = mongoc_read_prefs_new(MONGOC_READ_SECONDARY);
+
+  if (mongoc_topology_description_has_readable_server(new_td, prefs)) {
+    topology_msg.append("\nSecondary AVAILABLE\n");
+  } else {
+    topology_msg.append("\nSecondary UNAVAILABLE\n");
+  }
+
+  if (mongoc_topology_description_has_writable_server(new_td)) {
+    topology_msg.append("Primary AVAILABLE");
+  } else {
+    topology_msg.append("Primary UNAVAILABLE");
+  }
+
+  mongoc_read_prefs_destroy(prefs);
+  mongoc_server_descriptions_destroy_all(prev_sds, nprev_server_desc);
+  mongoc_server_descriptions_destroy_all(new_sds, nnew_server_desc);
+
+  return topology_msg;
+}
+
+void TopologyChanged(const mongoc_apm_topology_changed_t* event) {
+  auto& stats = GetStats(mongoc_apm_topology_changed_get_context(event));
+  ++stats.apm_stats_->topology.changed;
+
+  LOG_INFO() << CreateTopologyChangeMessage(event);
+}
+
+void TopologyOpening(const mongoc_apm_topology_opening_t*) {
+  LOG_DEBUG() << "The driver initializes a mongoc_topology_description_t";
+}
+
+void TopologyClosed(const mongoc_apm_topology_closed_t*) {
+  LOG_DEBUG()
+      << "The driver stops monitoring a server topology and destroys it";
 }
 
 }  // namespace
@@ -253,6 +355,10 @@ size_t CDriverPoolImpl::InUseApprox() const {
 size_t CDriverPoolImpl::SizeApprox() const { return size_.load(); }
 
 size_t CDriverPoolImpl::MaxSize() const { return max_size_.load(); }
+
+const stats::ApmStats& CDriverPoolImpl::GetApmStats() const {
+  return apm_stats_;
+}
 
 void CDriverPoolImpl::SetMaxSize(size_t max_size) { max_size_ = max_size; }
 
@@ -380,14 +486,20 @@ CDriverPoolImpl::ConnPtr CDriverPoolImpl::Create() {
 
   LOG_DEBUG() << "Creating mongo connection";
 
-  ConnPtr conn =
-      std::make_unique<Connection>(mongoc_client_new_from_uri(uri_.get()));
+  ConnPtr conn = std::make_unique<Connection>(
+      mongoc_client_new_from_uri(uri_.get()), &apm_stats_);
 
   // Set command monitoring events to get command durations.
   {
     mongoc_apm_callbacks_t* cbs = mongoc_apm_callbacks_new();
-    mongoc_apm_set_command_succeeded_cb(cbs, command_succeeded);
-    mongoc_apm_set_command_failed_cb(cbs, command_failed);
+    mongoc_apm_set_command_succeeded_cb(cbs, CommandSuccessed);
+    mongoc_apm_set_command_failed_cb(cbs, CommandFailed);
+    mongoc_apm_set_server_heartbeat_started_cb(cbs, HearbeatStarted);
+    mongoc_apm_set_server_heartbeat_succeeded_cb(cbs, HeartbeatSuccess);
+    mongoc_apm_set_server_heartbeat_failed_cb(cbs, HearbeatFailed);
+    mongoc_apm_set_topology_changed_cb(cbs, TopologyChanged);
+    mongoc_apm_set_topology_opening_cb(cbs, TopologyOpening);
+    mongoc_apm_set_topology_closed_cb(cbs, TopologyClosed);
     BSON_ASSERT(mongoc_client_set_apm_callbacks(conn->GetNativePtr(), cbs,
                                                 conn->GetStatsPtr()));
     mongoc_apm_callbacks_destroy(cbs);

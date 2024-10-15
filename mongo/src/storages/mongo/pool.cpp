@@ -65,6 +65,13 @@ void DumpMetric(utils::statistics::Writer& writer, const Pool& pool) {
     pool_metrics["current-in-use"] = pool.impl_->InUseApprox();
     pool_metrics["max-size"] = pool.impl_->MaxSize();
   }
+  if (auto apm_metrics = writer["pool"]["apm"]) {
+    const auto& apm = pool.impl_->GetApmStats();
+    apm_metrics["topology-changed"] = apm.topology.changed;
+    apm_metrics["heartbeats-start"] = apm.heartbeats.start;
+    apm_metrics["heartbeats-success"] = apm.heartbeats.success;
+    apm_metrics["heartbeats-failed"] = apm.heartbeats.failed;
+  }
 }
 
 void Pool::SetPoolSettings(const PoolSettings& pool_settings) {

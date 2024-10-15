@@ -102,7 +102,7 @@ struct CollectionStatistics final {
   rcu::RcuMap<OperationKey, OperationStatisticsItem> items;
 };
 
-struct PoolConnectStatistics {
+struct PoolConnectStatistics final {
   PoolConnectStatistics();
 
   Counter requested;
@@ -116,7 +116,38 @@ struct PoolConnectStatistics {
   AggregatedTimingsPercentile queue_wait_timings_agg;
 };
 
-struct PoolStatistics {
+struct TopologyStatistics final {
+  Counter changed;
+};
+
+struct HeartbeatsStatistics final {
+  Counter success;
+  Counter failed;
+  Counter start;
+};
+
+// See
+// https://mongoc.org/libmongoc/current/application-performance-monitoring.html
+struct ApmStats final {
+  TopologyStatistics topology;
+  HeartbeatsStatistics heartbeats;
+};
+
+struct EventStats final {
+  Rate sucess;
+  Rate failed;
+
+  bool operator==(const EventStats& o) const {
+    return sucess == o.sucess && failed == o.failed;
+  }
+};
+
+struct ConnStats final {
+  EventStats event_stats_;  // per-connection
+  ApmStats* apm_stats_{nullptr};
+};
+
+struct PoolStatistics final {
   PoolStatistics() : pool(utils::MakeSharedRef<PoolConnectStatistics>()) {}
 
   utils::SharedRef<PoolConnectStatistics> pool;
@@ -124,7 +155,7 @@ struct PoolStatistics {
   congestion_control::v2::Stats congestion_control;
 };
 
-class OperationStopwatch {
+class OperationStopwatch final {
  public:
   explicit OperationStopwatch(std::shared_ptr<OperationStatisticsItem>);
   OperationStopwatch(std::shared_ptr<OperationStatisticsItem>,
@@ -145,7 +176,7 @@ class OperationStopwatch {
   tracing::ScopeTime scope_time_;
 };
 
-class ConnectionWaitStopwatch {
+class ConnectionWaitStopwatch final {
  public:
   explicit ConnectionWaitStopwatch(std::shared_ptr<PoolConnectStatistics>);
   ~ConnectionWaitStopwatch();
@@ -158,7 +189,7 @@ class ConnectionWaitStopwatch {
   tracing::ScopeTime scope_time_;
 };
 
-class ConnectionThrottleStopwatch {
+class ConnectionThrottleStopwatch final {
  public:
   explicit ConnectionThrottleStopwatch(std::shared_ptr<PoolConnectStatistics>);
   ~ConnectionThrottleStopwatch();

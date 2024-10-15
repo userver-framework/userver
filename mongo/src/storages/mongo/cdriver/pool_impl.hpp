@@ -22,15 +22,6 @@ namespace storages::mongo::impl::cdriver {
 
 class CDriverPoolImpl final : public PoolImpl {
  public:
-  struct ConnEventStats final {
-    utils::statistics::Rate sucess{0};
-    utils::statistics::Rate failed{0};
-
-    bool operator==(const ConnEventStats& o) const {
-      return sucess == o.sucess && failed == o.failed;
-    }
-  };
-
   struct ClientDeleter final {
     void operator()(mongoc_client_t* client) const noexcept {
       if (client) {
@@ -41,8 +32,11 @@ class CDriverPoolImpl final : public PoolImpl {
 
   class Connection final {
    public:
-    explicit Connection(mongoc_client_t* client) : client_(client) {
+    Connection(mongoc_client_t* client, stats::ApmStats* apm_stats)
+        : client_(client) {
       UASSERT(client_);
+      UASSERT(apm_stats);
+      stats_.apm_stats_ = apm_stats;
     }
 
     Connection(Connection&& other) = delete;
@@ -52,10 +46,10 @@ class CDriverPoolImpl final : public PoolImpl {
 
     mongoc_client_t* GetNativePtr() { return client_.get(); }
 
-    ConnEventStats* GetStatsPtr() { return &stats_; }
+    stats::ConnStats* GetStatsPtr() { return &stats_; }
 
    private:
-    ConnEventStats stats_{};
+    stats::ConnStats stats_;
     std::unique_ptr<mongoc_client_t, ClientDeleter> client_{nullptr};
   };
 
@@ -77,9 +71,9 @@ class CDriverPoolImpl final : public PoolImpl {
 
     explicit operator bool() { return !!ptr_; }
 
-    ConnEventStats GetEventStats() {
+    stats::EventStats GetEventStatsSnapshot() {
       UASSERT(ptr_);
-      return *ptr_->GetStatsPtr();
+      return ptr_->GetStatsPtr()->event_stats_;
     }
 
     void reset() {
@@ -112,6 +106,7 @@ class CDriverPoolImpl final : public PoolImpl {
   size_t InUseApprox() const override;
   size_t SizeApprox() const override;
   size_t MaxSize() const override;
+  const stats::ApmStats& GetApmStats() const override;
   void SetMaxSize(size_t max_size) override;
 
   /// @throws CancelledException, PoolOverloadException
@@ -141,6 +136,8 @@ class CDriverPoolImpl final : public PoolImpl {
   engine::Semaphore in_use_semaphore_;
   engine::Semaphore connecting_semaphore_;
   moodycamel::ConcurrentQueue<ConnPtr> queue_;
+  // ApmStats must be after the queue_
+  stats::ApmStats apm_stats_;
   utils::PeriodicTask maintenance_task_;
 };
 

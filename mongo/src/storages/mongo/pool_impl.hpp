@@ -36,6 +36,7 @@ class PoolImpl {
   virtual size_t InUseApprox() const = 0;
   virtual size_t SizeApprox() const = 0;
   virtual size_t MaxSize() const = 0;
+  virtual const stats::ApmStats& GetApmStats() const = 0;
   virtual void SetMaxSize(size_t max_size) = 0;
 
   virtual void SetPoolSettings(const PoolSettings& pool_settings) = 0;

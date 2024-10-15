@@ -54,7 +54,7 @@ void CDriverCursorImpl::Next() {
   }
 
   UASSERT(client_ && cursor_);
-  const auto before_stats = client_.GetEventStats();
+  const auto before_stats = client_.GetEventStatsSnapshot();
   stats::OperationStopwatch cursor_next_sw(find_stats_, "find");
 
   const bson_t* current_bson = nullptr;
@@ -66,7 +66,7 @@ void CDriverCursorImpl::Next() {
       break;
     }
   }
-  if (before_stats == client_.GetEventStats()) {
+  if (before_stats == client_.GetEventStatsSnapshot()) {
     cursor_next_sw.Discard();
   } else if (!error) {
     cursor_next_sw.AccountSuccess();
