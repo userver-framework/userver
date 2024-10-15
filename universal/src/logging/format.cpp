@@ -25,8 +25,8 @@ Format FormatFromString(std::string_view format_str) {
 
   UINVARIANT(
       false,
-      fmt::format("Unknown logging format '{}' (must be one of 'tskv', 'ltsv')",
-                  format_str));
+      fmt::format("Unknown logging format '{}' (must be one of 'tskv', 'ltsv', "
+                  "'raw')", format_str));
 }
 
 }  // namespace logging
