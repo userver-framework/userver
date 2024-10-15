@@ -3,7 +3,7 @@ import os
 import re
 
 from conan import ConanFile
-from conan import errors
+from conan.errors import ConanInvalidConfiguration
 from conan.tools.cmake import CMake
 from conan.tools.cmake import cmake_layout
 from conan.tools.cmake import CMakeDeps
@@ -11,7 +11,7 @@ from conan.tools.cmake import CMakeToolchain
 from conan.tools.files import copy
 from conan.tools.files import load
 
-required_conan_version = '>=1.51.0, <2.0.0'  # pylint: disable=invalid-name
+required_conan_version = '>=2.8.0'  # pylint: disable=invalid-name
 
 
 class UserverConan(ConanFile):
@@ -21,11 +21,11 @@ class UserverConan(ConanFile):
     url = 'https://github.com/userver-framework/userver'
     homepage = 'https://userver.tech/'
     license = 'Apache-2.0'
+    package_type = 'static-library'
     exports_sources = '*'
 
     settings = 'os', 'arch', 'compiler', 'build_type'
     options = {
-        'shared': [True, False],
         'fPIC': [True, False],
         'lto': [True, False],
         'with_jemalloc': [True, False],
@@ -45,7 +45,6 @@ class UserverConan(ConanFile):
     }
 
     default_options = {
-        'shared': False,
         'fPIC': True,
         'lto': False,
         'with_jemalloc': True,
@@ -100,10 +99,6 @@ class UserverConan(ConanFile):
     def _build_subfolder(self):
         return os.path.join(self.build_folder)
 
-    def configure(self):
-        if self.options.shared:
-            del self.options.fPIC
-
     def layout(self):
         cmake_layout(self)
 
@@ -142,8 +137,9 @@ class UserverConan(ConanFile):
             self.requires('protobuf/3.21.12', force=True)
         if self.options.with_postgresql:
             self.requires('libpq/14.5')
+        if self.options.with_mongodb or self.options.with_kafka:
+            self.requires('cyrus-sasl/2.1.27', force=True)
         if self.options.with_mongodb:
-            self.requires('cyrus-sasl/2.1.27')
             self.requires(
                 'mongo-c-driver/1.27.6',
                 transitive_headers=True,
@@ -170,16 +166,20 @@ class UserverConan(ConanFile):
                 transitive_libs=True,
             )
         if self.options.with_kafka:
-            self.requires('cyrus-sasl/2.1.27')
             self.requires('librdkafka/2.4.0')
 
     def validate(self):
+        if self.settings.os == 'Windows':
+            raise ConanInvalidConfiguration(
+                'userver cannot be built on Windows',
+            )
+
         if (
             self.options.with_mongodb
             and self.dependencies['mongo-c-driver'].options.with_sasl
             != 'cyrus'
         ):
-            raise errors.ConanInvalidConfiguration(
+            raise ConanInvalidConfiguration(
                 f'{self.ref} requires mongo-c-driver with_sasl cyrus',
             )
 
@@ -707,7 +707,7 @@ class UserverConan(ConanFile):
         add_components(self._userver_components)
 
         with open(
-            os.path.join(self._cmake_subfolder, 'CallSetupEnv.cmake'), 'a+',
+            os.path.join(self._cmake_subfolder, 'CallSetupEnv.cmake'), 'w',
         ) as cmake_file:
             cmake_file.write('userver_setup_environment()')
 
