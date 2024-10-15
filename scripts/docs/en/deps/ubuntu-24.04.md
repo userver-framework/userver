@@ -50,7 +50,7 @@ libzstd-dev
 libssh2-1-dev
 netbase
 ninja-build
-postgresql-server-dev-all
+postgresql-server-dev-16
 protobuf-compiler-grpc
 python3-dev
 python3-jinja2
