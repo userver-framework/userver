@@ -513,11 +513,20 @@ def camel_case(string: str, no_lower_casing: bool = False) -> str:
 class EnumItemName(str):
     pass
 
+@dataclasses.dataclass
+class CppIntEnumItem:
+    value: int
+    raw_name: str
+    cpp_name: str
+
+    def definition_includes(self) -> List[str]:
+        return ['fmt/format.h']
+
 
 @dataclasses.dataclass
 class CppIntEnum(CppType):
     name: str
-    enums: List[int]
+    enums: List[CppIntEnumItem]
 
     __hash__ = CppType.__hash__
 

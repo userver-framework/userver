@@ -35,7 +35,7 @@
             [](auto selector) {
             return selector().template Type<{{ type.cpp_global_name() }}, int>()
                 {%- for item in type.enums %}
-                    .Case({{ type.cpp_global_name() }}::k{{ item }}, {{ item }})
+                    .Case({{ type.cpp_global_name() }}::k{{ item.cpp_name }}, {{ item.value }})
                 {%- endfor -%}
                 ;
         };

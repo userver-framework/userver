@@ -44,14 +44,14 @@
     {% elif type.get_py_type() == 'CppIntEnum' %}
         enum class {{ type.cpp_local_name() }} {
         {%- for item in type.enums %}
-            k{{ item }} = {{ item }},
-        {%- endfor -%}
+            k{{ item.cpp_name }} = {{ item.value }}, // {{ item.raw_name }}
+        {%- endfor %}
         };
 
         static constexpr {{ type.cpp_local_name() }} k{{ type.cpp_local_name() }}Values [] = {
         {%- for item in type.enums %}
-            {{ type.cpp_local_name() }}::k{{ item }},
-        {%- endfor -%}
+            {{ type.cpp_local_name() }}::k{{ item.cpp_name }},
+        {%- endfor %}
         };
     {% elif type.get_py_type() == 'CppStringEnum' %}
         enum class {{ type.cpp_local_name() }} {
