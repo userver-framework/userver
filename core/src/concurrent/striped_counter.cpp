@@ -6,14 +6,6 @@
 #include <concurrent/impl/rseq.hpp>
 #include <concurrent/impl/striped_array.hpp>
 
-// rseq_addv was renamed into rseq_load_add_store__ptr, provide compatibility
-// with the older versions
-#if defined(__has_include)
-#if __has_include(<rseq/rseq-x86.h>)
-#define rseq_load_add_store__ptr rseq_addv
-#endif
-#endif
-
 USERVER_NAMESPACE_BEGIN
 
 namespace concurrent {
