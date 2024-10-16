@@ -47,6 +47,25 @@ std::uint64_t HistogramView::GetTotalCount() const noexcept {
   return total;
 }
 
+double HistogramView::GetSumAt(std::size_t index) const {
+  UASSERT(index < GetBucketCount());
+  return buckets_[index + 1].sum.load(std::memory_order_relaxed);
+}
+
+double HistogramView::GetSumAtInf() const noexcept {
+  UASSERT(buckets_);
+  return buckets_[0].sum.load(std::memory_order_relaxed);
+}
+
+double HistogramView::GetTotalSum() const noexcept {
+  const auto bucket_count = GetBucketCount();
+  auto total = GetSumAtInf();
+  for (std::size_t i = 0; i < bucket_count; ++i) {
+    total += GetSumAt(i);
+  }
+  return total;
+}
+
 void DumpMetric(Writer& writer, HistogramView histogram) { writer = histogram; }
 
 bool operator==(HistogramView lhs, HistogramView rhs) noexcept {
