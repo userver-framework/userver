@@ -54,6 +54,7 @@ class UserverConan(ConanFile):
         'with_rabbitmq': [True, False],
         'with_utest': [True, False],
         'use_lld': [True, False],
+        'use_asan': [True, False],
         'namespace': ['ANY'],
         'namespace_begin': ['ANY'],
         'namespace_end': ['ANY'],
@@ -73,6 +74,7 @@ class UserverConan(ConanFile):
         'with_rabbitmq': False,
         'with_utest': True,
         'use_lld': True,
+        'use_asan': False,
         'namespace': 'userver',
         'namespace_begin': 'namespace userver {',
         'namespace_end': '}',
@@ -221,6 +223,9 @@ class UserverConan(ConanFile):
         tool_ch.variables[
             'USERVER_FEATURE_TESTSUITE'
         ] = False
+        
+        if self.options.use_asan:
+            tool_ch.variables['USERVER_SANITIZE'] = 'ub addr'
 
         if self.options.use_lld:
             tool_ch.variables['USERVER_USE_LD'] = 'lld'
