@@ -32,12 +32,18 @@ list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES} ${BENCH_SOURCES} ${INTERNAL_SOURCE
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
+if (WIN32)
+  set(userver_boost_stacktrace_component stacktrace_windbg)
+else()
+  set(userver_boost_stacktrace_component stacktrace_basic)
+endif()
+
 find_package(Boost REQUIRED
     COMPONENTS
     program_options
     filesystem
     regex
-    stacktrace_basic
+    ${userver_boost_stacktrace_component}
     OPTIONAL_COMPONENTS
     stacktrace_backtrace
 )
@@ -78,9 +84,15 @@ endif()
 add_library(userver-internal-compile-options INTERFACE)
 userver_target_require_dwcas(userver-internal-compile-options INTERFACE)
 target_compile_features(userver-internal-compile-options INTERFACE cxx_std_17)
-target_compile_options(userver-internal-compile-options INTERFACE
-  "-Wall" "-Wextra" "-Wpedantic"
-)
+if (MSVC)
+  target_compile_options(userver-internal-compile-options INTERFACE
+    "/W4" "/sdl"
+  )
+else()
+  target_compile_options(userver-internal-compile-options INTERFACE
+    "-Wall" "-Wextra" "-Wpedantic"
+  )
+endif()
 
 include(UserverCxxCompileOptionsIfSupported)
 userver_target_cxx_compile_options_if_supported(userver-internal-compile-options INTERFACE
