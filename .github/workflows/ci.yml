@@ -29,8 +29,6 @@ jobs:
                         v1 {"
                         -DUSERVER_NAMESPACE_END="}}"
                         -DUSERVER_FEATURE_KAFKA=0
-                        -DUSERVER_PG_SERVER_INCLUDE_DIR=/usr/include/postgresql/16/server
-                        -DUSERVER_PG_SERVER_LIBRARY_DIR=/usr/lib/postgresql/16/lib
                     os: ubuntu-24.04
                     info: clang-18 + debug + sanitize addr+ub
                     tests-flags: ''
@@ -45,8 +43,6 @@ jobs:
                         -DUSERVER_NAMESPACE_BEGIN="namespace userver_ns { inline namespace
                         v1 {"
                         -DUSERVER_NAMESPACE_END="}}"
-                        -DUSERVER_PG_SERVER_INCLUDE_DIR=/usr/include/postgresql/15/server
-                        -DUSERVER_PG_SERVER_LIBRARY_DIR=/usr/lib/postgresql/15/lib
                     os: ubuntu-22.04
                     info: clang-14 + debug + sanitize addr+ub
                     tests-flags: ''
