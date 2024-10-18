@@ -145,6 +145,18 @@ UTEST(StatisticsHistogram, Reset) {
   EXPECT_EQ(histogram.GetView(), zero_histogram.GetView());
 }
 
+UTEST(StatisticsHistogram, Sum) {
+  utils::statistics::Histogram histogram{Bounds()};
+  AccountSome(histogram);
+
+  EXPECT_EQ(histogram.GetView().GetSumAt(0), 1.2);
+  EXPECT_EQ(histogram.GetView().GetSumAt(1), 1.8);
+  EXPECT_EQ(histogram.GetView().GetSumAt(2), 10 + 30 * 4);
+  EXPECT_EQ(histogram.GetView().GetSumAt(3), 0.0);
+  EXPECT_EQ(histogram.GetView().GetSumAtInf(), 100);
+  EXPECT_EQ(histogram.GetView().GetTotalSum(), 1.2 + 1.8 + 10 + 30 * 4 + 100);
+}
+
 UTEST(StatisticsHistogram, ZeroBuckets) {
   utils::statistics::Histogram histogram{std::vector<double>{}};
   EXPECT_EQ(histogram.GetView().GetBucketCount(), 0);
@@ -283,7 +295,8 @@ UTEST_F(StatisticsHistogramFormat, JsonFormat) {
       "value": {
         "bounds": [1.5, 5.0, 42.0, 60.0],
         "buckets": [1, 1, 5, 0],
-        "inf": 1
+        "inf": 1,
+        "sum":233.0
       },
       "labels": {},
       "type": "HIST_RATE"
@@ -306,6 +319,7 @@ test_bucket{le="42"} 7
 test_bucket{le="60"} 7
 test_bucket{le="+Inf"} 8
 test_count{} 8
+test_sum{} 233
 )";
   EXPECT_EQ(utils::statistics::ToPrometheusFormat(GetStorage()), expected);
 }
@@ -318,6 +332,7 @@ test_bucket{le="42"} 7
 test_bucket{le="60"} 7
 test_bucket{le="+Inf"} 8
 test_count{} 8
+test_sum{} 233
 )";
   EXPECT_EQ(utils::statistics::ToPrometheusFormatUntyped(GetStorage()),
             expected);
@@ -340,6 +355,7 @@ test_bucket{le="42",custom_label_1="1",custom_label_2="2"} 7
 test_bucket{le="60",custom_label_1="1",custom_label_2="2"} 7
 test_bucket{le="+Inf",custom_label_1="1",custom_label_2="2"} 8
 test_count{custom_label_1="1",custom_label_2="2"} 8
+test_sum{custom_label_1="1",custom_label_2="2"} 233
 )";
   EXPECT_EQ(utils::statistics::ToPrometheusFormat(storage), expected);
 }
@@ -364,7 +380,8 @@ UTEST_F(StatisticsHistogramFormat, SolomonFormat) {
       "hist": {
         "bounds": [1.5, 5.0, 42.0, 60.0],
         "buckets": [1, 1, 5, 0],
-        "inf": 1
+        "inf": 1,
+        "sum": 233.0
       },
       "type": "HIST_RATE"
     }

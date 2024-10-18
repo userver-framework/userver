@@ -154,6 +154,7 @@ void Histogram::Account(double value, std::uint64_t count) noexcept {
       pre_bucket_index + 1 > bucket_count_ ? 0 : pre_bucket_index + 1;
   auto& bucket = buckets_[bucket_index];
   bucket.counter.fetch_add(count, std::memory_order_relaxed);
+  impl::histogram::AddAtomic(bucket.sum, value * count);
 }
 
 void ResetMetric(Histogram& histogram) noexcept {
