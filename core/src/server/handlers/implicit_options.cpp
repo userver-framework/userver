@@ -1,6 +1,7 @@
 #include <userver/server/handlers/implicit_options.hpp>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 
 #include <server/handlers/auth/auth_checker.hpp>
 #include <server/http/handler_info_index.hpp>

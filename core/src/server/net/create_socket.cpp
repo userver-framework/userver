@@ -3,6 +3,7 @@
 #include <string>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <boost/filesystem/operations.hpp>
 
 #include <userver/engine/io/socket.hpp>

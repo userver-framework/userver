@@ -3,6 +3,7 @@
 #include <chrono>
 #include <stdexcept>
 
+#include <fmt/ranges.h>
 #include <logging/config.hpp>
 #include <logging/impl/tcp_socket_sink.hpp>
 #include <logging/tp_logger.hpp>
