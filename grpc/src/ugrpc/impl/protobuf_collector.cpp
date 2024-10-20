@@ -15,29 +15,27 @@ namespace ugrpc::impl {
 namespace {
 
 std::unordered_set<std::string>& GetGeneratedMessagesImpl() {
-  static std::unordered_set<std::string> messages;
-  return messages;
+    static std::unordered_set<std::string> messages;
+    return messages;
 }
 
 }  // namespace
 
 void RegisterMessageTypes(std::initializer_list<std::string> type_names) {
-  utils::impl::AssertStaticRegistrationAllowed(
-      "Calling ugrpc::impl::RegisterMessageTypes()");
-  GetGeneratedMessagesImpl().merge(std::unordered_set<std::string>(type_names));
+    utils::impl::AssertStaticRegistrationAllowed("Calling ugrpc::impl::RegisterMessageTypes()");
+    GetGeneratedMessagesImpl().merge(std::unordered_set<std::string>(type_names));
 }
 
 DescriptorList GetGeneratedMessages() {
-  utils::impl::AssertStaticRegistrationFinished();
+    utils::impl::AssertStaticRegistrationFinished();
 
-  DescriptorList result;
-  for (const std::string& service_name : GetGeneratedMessagesImpl()) {
-    const google::protobuf::Descriptor* descriptor =
-        ugrpc::FindGeneratedMessage(service_name);
-    UINVARIANT(descriptor, "descriptor is nullptr");
-    result.push_back(descriptor);
-  }
-  return result;
+    DescriptorList result;
+    for (const std::string& service_name : GetGeneratedMessagesImpl()) {
+        const google::protobuf::Descriptor* descriptor = ugrpc::FindGeneratedMessage(service_name);
+        UINVARIANT(descriptor, "descriptor is nullptr");
+        result.push_back(descriptor);
+    }
+    return result;
 }
 
 }  // namespace ugrpc::impl

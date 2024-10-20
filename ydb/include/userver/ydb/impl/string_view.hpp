@@ -6,8 +6,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ydb::impl {
 
-using StringView = std::invoke_result_t<decltype(&NMonitoring::MetricTypeToStr),
-                                        NMonitoring::EMetricType>;
+using StringView = std::invoke_result_t<decltype(&NMonitoring::MetricTypeToStr), NMonitoring::EMetricType>;
 
 }  // namespace ydb::impl
 

@@ -8,16 +8,15 @@ namespace sample::grpc::auth::server {
 
 /// [gRPC middleware sample - Middleware component declaration]
 class Component final : public ugrpc::server::MiddlewareComponentBase {
- public:
-  static constexpr std::string_view kName = "grpc-auth-server";
+public:
+    static constexpr std::string_view kName = "grpc-auth-server";
 
-  Component(const components::ComponentConfig&,
-            const components::ComponentContext&);
+    Component(const components::ComponentConfig&, const components::ComponentContext&);
 
-  std::shared_ptr<ugrpc::server::MiddlewareBase> GetMiddleware() override;
+    std::shared_ptr<ugrpc::server::MiddlewareBase> GetMiddleware() override;
 
- private:
-  std::shared_ptr<ugrpc::server::MiddlewareBase> middleware_;
+private:
+    std::shared_ptr<ugrpc::server::MiddlewareBase> middleware_;
 };
 /// [gRPC middleware sample - Middleware component declaration]
 

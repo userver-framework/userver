@@ -13,30 +13,30 @@ namespace server::handlers::auth::digest {
 /// realm, nonce directives are mandatory
 /// domain, opaque, stale, algorithm, qop, auth-param directives are optional
 struct ContextFromServer {
-  std::string realm;
-  std::string nonce;
-  std::string algorithm;
-  bool stale{false};
-  std::string authparam;
-  std::string qop;
-  std::string opaque;
+    std::string realm;
+    std::string nonce;
+    std::string algorithm;
+    bool stale{false};
+    std::string authparam;
+    std::string qop;
+    std::string opaque;
 };
 
 /// Authorization header from client request
 /// username, realm, nonce, digest-uri directives response are mandatory
 /// algorithm, cnonce, opaque, qop, nc, auth-param directives are optional
 struct ContextFromClient {
-  std::string username;
-  std::string realm;
-  std::string nonce;
-  std::string uri;
-  std::string response;
-  std::string algorithm;
-  std::string cnonce;
-  std::string opaque;
-  std::string qop;
-  std::string nc;
-  std::string authparam;
+    std::string username;
+    std::string realm;
+    std::string nonce;
+    std::string uri;
+    std::string response;
+    std::string algorithm;
+    std::string cnonce;
+    std::string opaque;
+    std::string qop;
+    std::string nc;
+    std::string authparam;
 };
 
 /// Max number of directives in Authorization header.

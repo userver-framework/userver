@@ -20,7 +20,8 @@ namespace {
 
 /// [key]
 const dynamic_config::Key<tracing::NoLogSpans> kNoLogSpans{
-    "USERVER_NO_LOG_SPANS", dynamic_config::DefaultAsJsonString{R"(
+    "USERVER_NO_LOG_SPANS",
+    dynamic_config::DefaultAsJsonString{R"(
   {
     "names": [],
     "prefixes": []
@@ -29,7 +30,8 @@ const dynamic_config::Key<tracing::NoLogSpans> kNoLogSpans{
 /// [key]
 
 const dynamic_config::Key<logging::DynamicDebugConfig> kDynamicDebugConfig{
-    "USERVER_LOG_DYNAMIC_DEBUG", dynamic_config::DefaultAsJsonString{R"(
+    "USERVER_LOG_DYNAMIC_DEBUG",
+    dynamic_config::DefaultAsJsonString{R"(
   {
     "force-disabled": [],
     "force-enabled": []
@@ -38,66 +40,58 @@ const dynamic_config::Key<logging::DynamicDebugConfig> kDynamicDebugConfig{
 
 }  // namespace
 
-LoggingConfigurator::LoggingConfigurator(const ComponentConfig& config,
-                                         const ComponentContext& context) {
-  logging::impl::SetLogLimitedEnable(
-      config["limited-logging-enable"].As<bool>());
-  logging::impl::SetLogLimitedInterval(
-      config["limited-logging-interval"].As<std::chrono::milliseconds>());
+LoggingConfigurator::LoggingConfigurator(const ComponentConfig& config, const ComponentContext& context) {
+    logging::impl::SetLogLimitedEnable(config["limited-logging-enable"].As<bool>());
+    logging::impl::SetLogLimitedInterval(config["limited-logging-interval"].As<std::chrono::milliseconds>());
 
-  config_subscription_ =
-      context.FindComponent<components::DynamicConfig>()
-          .GetSource()
-          .UpdateAndListen(this, kName, &LoggingConfigurator::OnConfigUpdate);
+    config_subscription_ = context.FindComponent<components::DynamicConfig>().GetSource().UpdateAndListen(
+        this, kName, &LoggingConfigurator::OnConfigUpdate
+    );
 }
 
-LoggingConfigurator::~LoggingConfigurator() {
-  config_subscription_.Unsubscribe();
-}
+LoggingConfigurator::~LoggingConfigurator() { config_subscription_.Unsubscribe(); }
 
-void LoggingConfigurator::OnConfigUpdate(
-    const dynamic_config::Snapshot& config) {
-  (void)this;  // silence clang-tidy
-  tracing::Tracer::SetNoLogSpans(tracing::NoLogSpans{config[kNoLogSpans]});
+void LoggingConfigurator::OnConfigUpdate(const dynamic_config::Snapshot& config) {
+    (void)this;  // silence clang-tidy
+    tracing::Tracer::SetNoLogSpans(tracing::NoLogSpans{config[kNoLogSpans]});
 
-  try {
-    const auto& dd = config[kDynamicDebugConfig];
-    auto old_dd = dynamic_debug_.Read();
-    if (!(*old_dd == dd)) {
-      auto lock = dynamic_debug_.StartWrite();
-      *lock = dd;
+    try {
+        const auto& dd = config[kDynamicDebugConfig];
+        auto old_dd = dynamic_debug_.Read();
+        if (!(*old_dd == dd)) {
+            auto lock = dynamic_debug_.StartWrite();
+            *lock = dd;
 
-      /* There is a race between multiple AddDynamicDebugLog(), thus some logs
-       * may be logged or not logged by mistake. This is on purpose as logging
-       * locking would be too slow and heavy.
-       */
+            /* There is a race between multiple AddDynamicDebugLog(), thus some logs
+             * may be logged or not logged by mistake. This is on purpose as logging
+             * locking would be too slow and heavy.
+             */
 
-      // Flush
-      logging::RemoveDynamicDebugLog("", logging::kAnyLine);
+            // Flush
+            logging::RemoveDynamicDebugLog("", logging::kAnyLine);
 
-      for (const auto& [location, level] : dd.force_disabled) {
-        const auto [path, line] = logging::SplitLocation(location);
-        logging::EntryState state;
-        state.force_disabled_level_plus_one =
-            logging::GetForceDisabledLevelPlusOne(level);
-        AddDynamicDebugLog(path, line, state);
-      }
-      for (const auto& [location, level] : dd.force_enabled) {
-        const auto [path, line] = logging::SplitLocation(location);
-        logging::EntryState state;
-        state.force_enabled_level = level;
-        AddDynamicDebugLog(path, line, state);
-      }
+            for (const auto& [location, level] : dd.force_disabled) {
+                const auto [path, line] = logging::SplitLocation(location);
+                logging::EntryState state;
+                state.force_disabled_level_plus_one = logging::GetForceDisabledLevelPlusOne(level);
+                AddDynamicDebugLog(path, line, state);
+            }
+            for (const auto& [location, level] : dd.force_enabled) {
+                const auto [path, line] = logging::SplitLocation(location);
+                logging::EntryState state;
+                state.force_enabled_level = level;
+                AddDynamicDebugLog(path, line, state);
+            }
 
-      lock.Commit();
+            lock.Commit();
+        }
+    } catch (const std::exception& e) {
+        LOG_ERROR() << "Failed to set dynamic debug logs from config: " << e;
     }
-  } catch (const std::exception& e) {
-    LOG_ERROR() << "Failed to set dynamic debug logs from config: " << e;
-  }
 }
 
 yaml_config::Schema LoggingConfigurator::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<RawComponentBase>(R"(
+    return yaml_config::MergeSchemas<RawComponentBase>(R"(
 type: object
 description: Helper component to configure logging
 additionalProperties: false

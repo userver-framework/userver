@@ -17,271 +17,251 @@ USERVER_NAMESPACE_BEGIN
 namespace redis {
 
 class ReplyData final {
- public:
-  using Array = std::vector<ReplyData>;
+public:
+    using Array = std::vector<ReplyData>;
 
-  enum class Type {
-    kNoReply,
-    kString,
-    kArray,
-    kInteger,
-    kNil,
-    kStatus,
-    kError,
-  };
-
-  class KeyValues final {
-   public:
-    class KeyValue final {
-     public:
-      KeyValue(const Array& array, size_t index)
-          : array_(array), index_(index) {}
-
-      std::string Key() const { return array_[index_ * 2].GetString(); }
-      std::string Value() const { return array_[index_ * 2 + 1].GetString(); }
-
-     private:
-      const Array& array_;
-      size_t index_;
+    enum class Type {
+        kNoReply,
+        kString,
+        kArray,
+        kInteger,
+        kNil,
+        kStatus,
+        kError,
     };
 
-    class KeyValueIt final {
-     public:
-      KeyValueIt(const Array& array, size_t index)
-          : array_(array), index_(index) {}
-      KeyValueIt& operator++() {
-        ++index_;
-        return *this;
-      }
-      bool operator!=(const KeyValueIt& r) const { return index_ != r.index_; }
-      KeyValue operator*() const { return {array_, index_}; }
+    class KeyValues final {
+    public:
+        class KeyValue final {
+        public:
+            KeyValue(const Array& array, size_t index) : array_(array), index_(index) {}
 
-     private:
-      const Array& array_;
-      size_t index_;
+            std::string Key() const { return array_[index_ * 2].GetString(); }
+            std::string Value() const { return array_[index_ * 2 + 1].GetString(); }
+
+        private:
+            const Array& array_;
+            size_t index_;
+        };
+
+        class KeyValueIt final {
+        public:
+            KeyValueIt(const Array& array, size_t index) : array_(array), index_(index) {}
+            KeyValueIt& operator++() {
+                ++index_;
+                return *this;
+            }
+            bool operator!=(const KeyValueIt& r) const { return index_ != r.index_; }
+            KeyValue operator*() const { return {array_, index_}; }
+
+        private:
+            const Array& array_;
+            size_t index_;
+        };
+
+        explicit KeyValues(const Array& array) : array_(array) {}
+
+        KeyValueIt begin() const { return {array_, 0}; }
+        KeyValueIt end() const { return {array_, size()}; }
+
+        size_t size() const { return array_.size() / 2; }
+
+    private:
+        const Array& array_;
     };
 
-    explicit KeyValues(const Array& array) : array_(array) {}
+    class MovableKeyValues final {
+    public:
+        class MovableKeyValue final {
+        public:
+            MovableKeyValue(ReplyData& key_data, ReplyData& value_data)
+                : key_data_(key_data), value_data_(value_data) {}
 
-    KeyValueIt begin() const { return {array_, 0}; }
-    KeyValueIt end() const { return {array_, size()}; }
+            std::string& Key() { return key_data_.GetString(); }
+            std::string& Value() { return value_data_.GetString(); }
 
-    size_t size() const { return array_.size() / 2; }
+        private:
+            ReplyData& key_data_;
+            ReplyData& value_data_;
+        };
 
-   private:
-    const Array& array_;
-  };
+        class MovableKeyValueIt final {
+        public:
+            MovableKeyValueIt(Array& array, size_t index) : array_(array), index_(index) {}
+            MovableKeyValueIt& operator++() {
+                ++index_;
+                return *this;
+            }
+            bool operator!=(const MovableKeyValueIt& r) const { return index_ != r.index_; }
+            MovableKeyValue operator*() { return {array_[index_ * 2], array_[index_ * 2 + 1]}; }
 
-  class MovableKeyValues final {
-   public:
-    class MovableKeyValue final {
-     public:
-      MovableKeyValue(ReplyData& key_data, ReplyData& value_data)
-          : key_data_(key_data), value_data_(value_data) {}
+        private:
+            Array& array_;
+            size_t index_;
+        };
 
-      std::string& Key() { return key_data_.GetString(); }
-      std::string& Value() { return value_data_.GetString(); }
+        explicit MovableKeyValues(Array& array) : array_(array) {}
 
-     private:
-      ReplyData& key_data_;
-      ReplyData& value_data_;
+        MovableKeyValueIt begin() const { return {array_, 0}; }
+        MovableKeyValueIt end() const { return {array_, size()}; }
+
+        size_t size() const { return array_.size() / 2; }
+
+    private:
+        Array& array_;
     };
 
-    class MovableKeyValueIt final {
-     public:
-      MovableKeyValueIt(Array& array, size_t index)
-          : array_(array), index_(index) {}
-      MovableKeyValueIt& operator++() {
-        ++index_;
-        return *this;
-      }
-      bool operator!=(const MovableKeyValueIt& r) const {
-        return index_ != r.index_;
-      }
-      MovableKeyValue operator*() {
-        return {array_[index_ * 2], array_[index_ * 2 + 1]};
-      }
+    MovableKeyValues GetMovableKeyValues();
 
-     private:
-      Array& array_;
-      size_t index_;
-    };
+    ReplyData(const redisReply* reply);
+    ReplyData(Array&& array);
+    ReplyData(std::string s);
+    ReplyData(int value);
+    static ReplyData CreateError(std::string&& error_msg);
+    static ReplyData CreateStatus(std::string&& status_msg);
+    static ReplyData CreateNil();
 
-    explicit MovableKeyValues(Array& array) : array_(array) {}
+    explicit operator bool() const { return type_ != Type::kNoReply; }
 
-    MovableKeyValueIt begin() const { return {array_, 0}; }
-    MovableKeyValueIt end() const { return {array_, size()}; }
+    Type GetType() const { return type_; }
+    std::string GetTypeString() const;
 
-    size_t size() const { return array_.size() / 2; }
+    inline bool IsString() const { return type_ == Type::kString; }
+    inline bool IsArray() const { return type_ == Type::kArray; }
+    inline bool IsInt() const { return type_ == Type::kInteger; }
+    inline bool IsNil() const { return type_ == Type::kNil; }
+    inline bool IsStatus() const { return type_ == Type::kStatus; }
+    inline bool IsError() const { return type_ == Type::kError; }
+    bool IsUnusableInstanceError() const;
+    bool IsReadonlyError() const;
+    bool IsUnknownCommandError() const;
 
-   private:
-    Array& array_;
-  };
+    bool IsErrorMoved() const { return IsError() && !string_.compare(0, 6, "MOVED "); }
 
-  MovableKeyValues GetMovableKeyValues();
+    bool IsErrorAsk() const { return IsError() && !string_.compare(0, 4, "ASK "); }
 
-  ReplyData(const redisReply* reply);
-  ReplyData(Array&& array);
-  ReplyData(std::string s);
-  ReplyData(int value);
-  static ReplyData CreateError(std::string&& error_msg);
-  static ReplyData CreateStatus(std::string&& status_msg);
-  static ReplyData CreateNil();
+    bool IsErrorClusterdown() const { return IsError() && !string_.compare(0, 12, "CLUSTERDOWN "); }
 
-  explicit operator bool() const { return type_ != Type::kNoReply; }
+    const std::string& GetString() const {
+        UASSERT(IsString());
+        return string_;
+    }
 
-  Type GetType() const { return type_; }
-  std::string GetTypeString() const;
+    std::string& GetString() {
+        UASSERT(IsString());
+        return string_;
+    }
 
-  inline bool IsString() const { return type_ == Type::kString; }
-  inline bool IsArray() const { return type_ == Type::kArray; }
-  inline bool IsInt() const { return type_ == Type::kInteger; }
-  inline bool IsNil() const { return type_ == Type::kNil; }
-  inline bool IsStatus() const { return type_ == Type::kStatus; }
-  inline bool IsError() const { return type_ == Type::kError; }
-  bool IsUnusableInstanceError() const;
-  bool IsReadonlyError() const;
-  bool IsUnknownCommandError() const;
+    const Array& GetArray() const {
+        UASSERT(IsArray());
+        return array_;
+    }
 
-  bool IsErrorMoved() const {
-    return IsError() && !string_.compare(0, 6, "MOVED ");
-  }
+    Array& GetArray() {
+        UASSERT(IsArray());
+        return array_;
+    }
 
-  bool IsErrorAsk() const {
-    return IsError() && !string_.compare(0, 4, "ASK ");
-  }
+    int64_t GetInt() const {
+        UASSERT(IsInt());
+        return integer_;
+    }
 
-  bool IsErrorClusterdown() const {
-    return IsError() && !string_.compare(0, 12, "CLUSTERDOWN ");
-  }
+    const std::string& GetStatus() const {
+        UASSERT(IsStatus());
+        return string_;
+    }
 
-  const std::string& GetString() const {
-    UASSERT(IsString());
-    return string_;
-  }
+    std::string& GetStatus() {
+        UASSERT(IsStatus());
+        return string_;
+    }
 
-  std::string& GetString() {
-    UASSERT(IsString());
-    return string_;
-  }
+    const std::string& GetError() const {
+        UASSERT(IsError());
+        return string_;
+    }
 
-  const Array& GetArray() const {
-    UASSERT(IsArray());
-    return array_;
-  }
+    std::string& GetError() {
+        UASSERT(IsError());
+        return string_;
+    }
 
-  Array& GetArray() {
-    UASSERT(IsArray());
-    return array_;
-  }
+    const ReplyData& operator[](size_t idx) const {
+        UASSERT(IsArray());
+        return array_.at(idx);
+    }
 
-  int64_t GetInt() const {
-    UASSERT(IsInt());
-    return integer_;
-  }
+    ReplyData& operator[](size_t idx) {
+        UASSERT(IsArray());
+        return array_.at(idx);
+    }
 
-  const std::string& GetStatus() const {
-    UASSERT(IsStatus());
-    return string_;
-  }
+    size_t GetSize() const;
 
-  std::string& GetStatus() {
-    UASSERT(IsStatus());
-    return string_;
-  }
+    std::string ToDebugString() const;
+    KeyValues GetKeyValues() const;
+    static std::string TypeToString(Type type);
 
-  const std::string& GetError() const {
-    UASSERT(IsError());
-    return string_;
-  }
+    void ExpectType(ReplyData::Type type, const std::string& request_description = {}) const;
 
-  std::string& GetError() {
-    UASSERT(IsError());
-    return string_;
-  }
+    void ExpectString(const std::string& request_description = {}) const;
+    void ExpectArray(const std::string& request_description = {}) const;
+    void ExpectInt(const std::string& request_description = {}) const;
+    void ExpectNil(const std::string& request_description = {}) const;
+    void ExpectStatus(const std::string& request_description = {}) const;
+    void ExpectStatusEqualTo(const std::string& expected_status_str, const std::string& request_description = {}) const;
+    void ExpectError(const std::string& request_description = {}) const;
 
-  const ReplyData& operator[](size_t idx) const {
-    UASSERT(IsArray());
-    return array_.at(idx);
-  }
+private:
+    ReplyData() = default;
 
-  ReplyData& operator[](size_t idx) {
-    UASSERT(IsArray());
-    return array_.at(idx);
-  }
+    [[noreturn]] void ThrowUnexpectedReplyType(ReplyData::Type expected, const std::string& request_description) const;
 
-  size_t GetSize() const;
+    Type type_ = Type::kNoReply;
 
-  std::string ToDebugString() const;
-  KeyValues GetKeyValues() const;
-  static std::string TypeToString(Type type);
-
-  void ExpectType(ReplyData::Type type,
-                  const std::string& request_description = {}) const;
-
-  void ExpectString(const std::string& request_description = {}) const;
-  void ExpectArray(const std::string& request_description = {}) const;
-  void ExpectInt(const std::string& request_description = {}) const;
-  void ExpectNil(const std::string& request_description = {}) const;
-  void ExpectStatus(const std::string& request_description = {}) const;
-  void ExpectStatusEqualTo(const std::string& expected_status_str,
-                           const std::string& request_description = {}) const;
-  void ExpectError(const std::string& request_description = {}) const;
-
- private:
-  ReplyData() = default;
-
-  [[noreturn]] void ThrowUnexpectedReplyType(
-      ReplyData::Type expected, const std::string& request_description) const;
-
-  Type type_ = Type::kNoReply;
-
-  int64_t integer_{};
-  Array array_;
-  std::string string_;
+    int64_t integer_{};
+    Array array_;
+    std::string string_;
 };
 
 class Reply final {
- public:
-  Reply(std::string cmd, redisReply* redis_reply, ReplyStatus status);
-  Reply(std::string cmd, redisReply* redis_reply, ReplyStatus status,
-        std::string status_string);
-  Reply(std::string cmd, ReplyData&& data);
+public:
+    Reply(std::string cmd, redisReply* redis_reply, ReplyStatus status);
+    Reply(std::string cmd, redisReply* redis_reply, ReplyStatus status, std::string status_string);
+    Reply(std::string cmd, ReplyData&& data);
 
-  std::string server;
-  ServerId server_id;
-  std::string cmd;
-  ReplyData data;
-  ReplyStatus status;
-  std::string status_string;
-  double time = 0.0;
-  logging::LogExtra log_extra;
+    std::string server;
+    ServerId server_id;
+    std::string cmd;
+    ReplyData data;
+    ReplyStatus status;
+    std::string status_string;
+    double time = 0.0;
+    logging::LogExtra log_extra;
 
-  operator bool() const { return IsOk(); }
+    operator bool() const { return IsOk(); }
 
-  bool IsOk() const;
-  bool IsLoggableError() const;
-  bool IsUnusableInstanceError() const;
-  bool IsReadonlyError() const;
-  bool IsUnknownCommandError() const;
-  const logging::LogExtra& GetLogExtra() const;
-  void FillSpanTags(tracing::Span& span) const;
+    bool IsOk() const;
+    bool IsLoggableError() const;
+    bool IsUnusableInstanceError() const;
+    bool IsReadonlyError() const;
+    bool IsUnknownCommandError() const;
+    const logging::LogExtra& GetLogExtra() const;
+    void FillSpanTags(tracing::Span& span) const;
 
-  void ExpectIsOk(const std::string& request_description = {}) const;
-  void ExpectType(ReplyData::Type type,
-                  const std::string& request_description = {}) const;
+    void ExpectIsOk(const std::string& request_description = {}) const;
+    void ExpectType(ReplyData::Type type, const std::string& request_description = {}) const;
 
-  void ExpectString(const std::string& request_description = {}) const;
-  void ExpectArray(const std::string& request_description = {}) const;
-  void ExpectInt(const std::string& request_description = {}) const;
-  void ExpectNil(const std::string& request_description = {}) const;
-  void ExpectStatus(const std::string& request_description = {}) const;
-  void ExpectStatusEqualTo(const std::string& expected_status_str,
-                           const std::string& request_description = {}) const;
-  void ExpectError(const std::string& request_description = {}) const;
+    void ExpectString(const std::string& request_description = {}) const;
+    void ExpectArray(const std::string& request_description = {}) const;
+    void ExpectInt(const std::string& request_description = {}) const;
+    void ExpectNil(const std::string& request_description = {}) const;
+    void ExpectStatus(const std::string& request_description = {}) const;
+    void ExpectStatusEqualTo(const std::string& expected_status_str, const std::string& request_description = {}) const;
+    void ExpectError(const std::string& request_description = {}) const;
 
-  const std::string& GetRequestDescription(
-      const std::string& request_description) const;
+    const std::string& GetRequestDescription(const std::string& request_description) const;
 };
 
 }  // namespace redis

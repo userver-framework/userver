@@ -22,73 +22,67 @@ namespace {
 class DeadlinePropagation : public MongoPoolFixture {};
 
 server::request::TaskInheritedData MakeRequestData(engine::Deadline deadline) {
-  return {{}, "dummy-method", {}, deadline};
+    return {{}, "dummy-method", {}, deadline};
 }
 
 }  // namespace
 
 UTEST_F(DeadlinePropagation, PoolOverload) {
-  auto pool_config = MakeTestPoolConfig();
-  pool_config.pool_settings.initial_size = 1;
-  pool_config.pool_settings.idle_limit = 1;
-  pool_config.pool_settings.max_size = 1;
-  pool_config.queue_timeout = 10ms;
-  auto pool = MakePool({}, pool_config);
+    auto pool_config = MakeTestPoolConfig();
+    pool_config.pool_settings.initial_size = 1;
+    pool_config.pool_settings.idle_limit = 1;
+    pool_config.pool_settings.max_size = 1;
+    pool_config.queue_timeout = 10ms;
+    auto pool = MakePool({}, pool_config);
 
-  auto coll = pool.GetCollection("pool_overload");
+    auto coll = pool.GetCollection("pool_overload");
 
-  UASSERT_NO_THROW(coll.InsertOne(bson::MakeDoc("_id", 1, "foo", 42)));
+    UASSERT_NO_THROW(coll.InsertOne(bson::MakeDoc("_id", 1, "foo", 42)));
 
-  // Cursor holds the only available connection.
-  auto cursor = coll.Find(bson::MakeDoc("foo", 42));
+    // Cursor holds the only available connection.
+    auto cursor = coll.Find(bson::MakeDoc("foo", 42));
 
-  const auto deadline = engine::Deadline::FromDuration(5s);
-  UEXPECT_THROW(coll.InsertOne(bson::MakeDoc("_id", 2)),
-                mongo::PoolOverloadException);
-  EXPECT_FALSE(deadline.IsReached());
+    const auto deadline = engine::Deadline::FromDuration(5s);
+    UEXPECT_THROW(coll.InsertOne(bson::MakeDoc("_id", 2)), mongo::PoolOverloadException);
+    EXPECT_FALSE(deadline.IsReached());
 }
 
 UTEST_F(DeadlinePropagation, PoolOverloadDeadlinePropagation) {
-  auto pool_config = MakeTestPoolConfig();
-  pool_config.pool_settings.initial_size = 1;
-  pool_config.pool_settings.idle_limit = 1;
-  pool_config.pool_settings.max_size = 1;
-  pool_config.queue_timeout = utest::kMaxTestWaitTime;
-  auto pool = MakePool({}, pool_config);
+    auto pool_config = MakeTestPoolConfig();
+    pool_config.pool_settings.initial_size = 1;
+    pool_config.pool_settings.idle_limit = 1;
+    pool_config.pool_settings.max_size = 1;
+    pool_config.queue_timeout = utest::kMaxTestWaitTime;
+    auto pool = MakePool({}, pool_config);
 
-  auto coll = pool.GetCollection("dp");
+    auto coll = pool.GetCollection("dp");
 
-  UASSERT_NO_THROW(coll.InsertOne(bson::MakeDoc("_id", 1, "foo", 42)));
+    UASSERT_NO_THROW(coll.InsertOne(bson::MakeDoc("_id", 1, "foo", 42)));
 
-  // Cursor holds the only available connection.
-  auto cursor = coll.Find(bson::MakeDoc("foo", 42));
+    // Cursor holds the only available connection.
+    auto cursor = coll.Find(bson::MakeDoc("foo", 42));
 
-  server::request::kTaskInheritedData.Set(
-      MakeRequestData(engine::Deadline::FromDuration(500ms)));
+    server::request::kTaskInheritedData.Set(MakeRequestData(engine::Deadline::FromDuration(500ms)));
 
-  const auto deadline = engine::Deadline::FromDuration(5s);
-  UEXPECT_THROW(coll.InsertOne(bson::MakeDoc("_id", 2)),
-                mongo::PoolOverloadException);
-  EXPECT_FALSE(deadline.IsReached());
+    const auto deadline = engine::Deadline::FromDuration(5s);
+    UEXPECT_THROW(coll.InsertOne(bson::MakeDoc("_id", 2)), mongo::PoolOverloadException);
+    EXPECT_FALSE(deadline.IsReached());
 }
 
 UTEST_F(DeadlinePropagation, CancelledByDeadline) {
-  auto coll = GetDefaultPool().GetCollection("dp");
+    auto coll = GetDefaultPool().GetCollection("dp");
 
-  server::request::kTaskInheritedData.Set(
-      MakeRequestData(engine::Deadline::FromDuration(-1s)));
+    server::request::kTaskInheritedData.Set(MakeRequestData(engine::Deadline::FromDuration(-1s)));
 
-  UEXPECT_THROW(coll.InsertOne(bson::MakeDoc("_id", 2)),
-                mongo::CancelledException);
+    UEXPECT_THROW(coll.InsertOne(bson::MakeDoc("_id", 2)), mongo::CancelledException);
 }
 
 UTEST_F(DeadlinePropagation, AlreadyCancelled) {
-  auto coll = GetDefaultPool().GetCollection("dp");
+    auto coll = GetDefaultPool().GetCollection("dp");
 
-  engine::current_task::GetCancellationToken().RequestCancel();
+    engine::current_task::GetCancellationToken().RequestCancel();
 
-  UEXPECT_THROW(coll.InsertOne(bson::MakeDoc("_id", 2)),
-                mongo::CancelledException);
+    UEXPECT_THROW(coll.InsertOne(bson::MakeDoc("_id", 2)), mongo::CancelledException);
 }
 
 USERVER_NAMESPACE_END

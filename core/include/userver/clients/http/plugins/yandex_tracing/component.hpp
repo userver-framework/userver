@@ -11,27 +11,25 @@ namespace clients::http::plugins::yandex_tracing {
 class Plugin;
 
 class Component final : public plugin::ComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of
-  /// clients::http::plugins::yandex_tracing::Component component
-  static constexpr std::string_view kName = "http-client-plugin-yandex-tracing";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of
+    /// clients::http::plugins::yandex_tracing::Component component
+    static constexpr std::string_view kName = "http-client-plugin-yandex-tracing";
 
-  Component(const components::ComponentConfig&,
-            const components::ComponentContext&);
+    Component(const components::ComponentConfig&, const components::ComponentContext&);
 
-  ~Component() override;
+    ~Component() override;
 
-  http::Plugin& GetPlugin() override;
+    http::Plugin& GetPlugin() override;
 
- private:
-  std::unique_ptr<yandex_tracing::Plugin> plugin_;
+private:
+    std::unique_ptr<yandex_tracing::Plugin> plugin_;
 };
 
 }  // namespace clients::http::plugins::yandex_tracing
 
 template <>
-inline constexpr bool components::kHasValidate<
-    clients::http::plugins::yandex_tracing::Component> = true;
+inline constexpr bool components::kHasValidate<clients::http::plugins::yandex_tracing::Component> = true;
 
 USERVER_NAMESPACE_END

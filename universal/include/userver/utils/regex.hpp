@@ -17,65 +17,59 @@ class match_results;
 ///
 /// @brief Small alias for boost::regex / std::regex without huge includes
 class regex final {
- public:
-  regex();
-  explicit regex(std::string_view pattern);
+public:
+    regex();
+    explicit regex(std::string_view pattern);
 
-  ~regex();
+    ~regex();
 
-  regex(const regex&);
-  regex(regex&&) noexcept;
+    regex(const regex&);
+    regex(regex&&) noexcept;
 
-  regex& operator=(const regex&);
-  regex& operator=(regex&&) noexcept;
+    regex& operator=(const regex&);
+    regex& operator=(regex&&) noexcept;
 
-  bool operator==(const regex&) const;
+    bool operator==(const regex&) const;
 
-  std::string str() const;
+    std::string str() const;
 
- private:
-  struct Impl;
-  utils::FastPimpl<Impl, 16, 8> impl_;
+private:
+    struct Impl;
+    utils::FastPimpl<Impl, 16, 8> impl_;
 
-  friend class match_results;
-  friend bool regex_match(std::string_view str, const regex& pattern);
-  friend bool regex_match(std::string_view str, match_results& m,
-                          const regex& pattern);
-  friend bool regex_search(std::string_view str, const regex& pattern);
-  friend bool regex_search(std::string_view str, match_results& m,
-                           const regex& pattern);
-  friend std::string regex_replace(std::string_view str, const regex& pattern,
-                                   std::string_view repl);
+    friend class match_results;
+    friend bool regex_match(std::string_view str, const regex& pattern);
+    friend bool regex_match(std::string_view str, match_results& m, const regex& pattern);
+    friend bool regex_search(std::string_view str, const regex& pattern);
+    friend bool regex_search(std::string_view str, match_results& m, const regex& pattern);
+    friend std::string regex_replace(std::string_view str, const regex& pattern, std::string_view repl);
 };
 
 /// @ingroup userver_universal userver_containers
 ///
 /// @brief Small alias for boost::smatch / std::regex without huge includes
 class match_results final {
- public:
-  match_results();
+public:
+    match_results();
 
-  ~match_results();
+    ~match_results();
 
-  match_results(const match_results&);
+    match_results(const match_results&);
 
-  match_results& operator=(const match_results&);
+    match_results& operator=(const match_results&);
 
-  std::size_t size() const;
-  std::string_view operator[](int sub) const;
+    std::size_t size() const;
+    std::string_view operator[](int sub) const;
 
- private:
-  struct Impl;
-  utils::FastPimpl<Impl, 80, 8> impl_;
+private:
+    struct Impl;
+    utils::FastPimpl<Impl, 80, 8> impl_;
 
-  friend bool regex_match(std::string_view str, const regex& pattern);
-  friend bool regex_match(std::string_view str, match_results& m,
-                          const regex& pattern);
-  friend bool regex_search(std::string_view str, const regex& pattern);
-  friend bool regex_search(std::string_view str, match_results& m,
-                           const regex& pattern);
-  friend std::string regex_replace(std::string_view str, const regex& pattern,
-                                   std::string_view repl);
+    friend bool regex_match(std::string_view str, const regex& pattern);
+    friend bool regex_match(std::string_view str, match_results& m, const regex& pattern);
+    friend bool regex_search(std::string_view str, const regex& pattern);
+    friend bool regex_search(std::string_view str, match_results& m, const regex& pattern);
+    friend std::string regex_replace(std::string_view str, const regex& pattern, std::string_view repl);
 };
 
 /// @brief Determines whether the regular expression matches the entire target
@@ -96,8 +90,7 @@ bool regex_search(std::string_view str, const regex& pattern);
 
 /// @brief Create a new string where all regular expression matches replaced
 /// with repl
-std::string regex_replace(std::string_view str, const regex& pattern,
-                          std::string_view repl);
+std::string regex_replace(std::string_view str, const regex& pattern, std::string_view repl);
 
 }  // namespace utils
 

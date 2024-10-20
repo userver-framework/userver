@@ -19,24 +19,29 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::client::impl {
 
 struct CallParams {
-  std::string_view client_name;
-  grpc::CompletionQueue& queue;
-  dynamic_config::Snapshot config;
-  ugrpc::impl::MaybeOwnedString call_name;
-  std::unique_ptr<grpc::ClientContext> context;
-  ugrpc::impl::MethodStatistics& statistics;
-  const Middlewares& mws;
+    std::string_view client_name;
+    grpc::CompletionQueue& queue;
+    dynamic_config::Snapshot config;
+    ugrpc::impl::MaybeOwnedString call_name;
+    std::unique_ptr<grpc::ClientContext> context;
+    ugrpc::impl::MethodStatistics& statistics;
+    const Middlewares& mws;
 };
 
-CallParams CreateCallParams(const ClientData& client_data,
-                            std::size_t method_id,
-                            std::unique_ptr<grpc::ClientContext> client_context,
-                            const Qos& qos);
+CallParams CreateCallParams(
+    const ClientData& client_data,
+    std::size_t method_id,
+    std::unique_ptr<grpc::ClientContext> client_context,
+    const Qos& qos
+);
 
 CallParams CreateGenericCallParams(
-    const ClientData& client_data, std::string_view call_name,
-    std::unique_ptr<grpc::ClientContext> client_context, const Qos& qos,
-    std::optional<std::string_view> metrics_call_name);
+    const ClientData& client_data,
+    std::string_view call_name,
+    std::unique_ptr<grpc::ClientContext> client_context,
+    const Qos& qos,
+    std::optional<std::string_view> metrics_call_name
+);
 
 }  // namespace ugrpc::client::impl
 

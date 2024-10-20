@@ -12,13 +12,13 @@ namespace storages::clickhouse::io::columns {
 
 /// @brief Represents ClickHouse UInt8 Column
 class Int8Column final : public ClickhouseColumn<Int8Column> {
- public:
-  using cpp_type = std::int8_t;
-  using container_type = std::vector<cpp_type>;
+public:
+    using cpp_type = std::int8_t;
+    using container_type = std::vector<cpp_type>;
 
-  Int8Column(ColumnRef column);
+    Int8Column(ColumnRef column);
 
-  static ColumnRef Serialize(const container_type& from);
+    static ColumnRef Serialize(const container_type& from);
 };
 
 }  // namespace storages::clickhouse::io::columns

@@ -24,41 +24,41 @@ namespace utest {
 /// ## Example usage:
 /// @snippet testing_test.cpp  Sample SimpleServer usage
 class SimpleServer final {
- public:
-  struct Response {
-    enum Commands {
-      kWriteAndClose,
-      kTryReadMore,
-      kWriteAndContinue,
+public:
+    struct Response {
+        enum Commands {
+            kWriteAndClose,
+            kTryReadMore,
+            kWriteAndContinue,
+        };
+
+        std::string data_to_send{};
+        Commands command{kWriteAndClose};
     };
 
-    std::string data_to_send{};
-    Commands command{kWriteAndClose};
-  };
+    using Request = std::string;
+    using OnRequest = std::function<Response(const Request&)>;
 
-  using Request = std::string;
-  using OnRequest = std::function<Response(const Request&)>;
+    using Port = unsigned short;
+    enum Protocol { kTcpIpV4, kTcpIpV6 };
 
-  using Port = unsigned short;
-  enum Protocol { kTcpIpV4, kTcpIpV6 };
+    SimpleServer(OnRequest callback, Protocol protocol = kTcpIpV4);
+    ~SimpleServer();
 
-  SimpleServer(OnRequest callback, Protocol protocol = kTcpIpV4);
-  ~SimpleServer();
+    Port GetPort() const;
 
-  Port GetPort() const;
+    enum class Schema {
+        kHttp,
+        kHttps,
+    };
 
-  enum class Schema {
-    kHttp,
-    kHttps,
-  };
+    std::string GetBaseUrl(Schema type = Schema::kHttp) const;
 
-  std::string GetBaseUrl(Schema type = Schema::kHttp) const;
+    std::uint64_t GetConnectionsOpenedCount() const;
 
-  std::uint64_t GetConnectionsOpenedCount() const;
-
- private:
-  class Impl;
-  const std::unique_ptr<Impl> pimpl_;
+private:
+    class Impl;
+    const std::unique_ptr<Impl> pimpl_;
 };
 
 }  // namespace utest

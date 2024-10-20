@@ -9,22 +9,21 @@ namespace engine::impl {
 class TaskContext;
 
 class TaskContextHolder final {
- public:
-  TaskContextHolder() noexcept = default;
+public:
+    TaskContextHolder() noexcept = default;
 
-  explicit TaskContextHolder(
-      boost::intrusive_ptr<TaskContext>&& context) noexcept;
+    explicit TaskContextHolder(boost::intrusive_ptr<TaskContext>&& context) noexcept;
 
-  static TaskContextHolder Adopt(TaskContext& context) noexcept;
+    static TaskContextHolder Adopt(TaskContext& context) noexcept;
 
-  TaskContextHolder(TaskContextHolder&&) noexcept = default;
-  TaskContextHolder& operator=(TaskContextHolder&&) = delete;
-  ~TaskContextHolder();
+    TaskContextHolder(TaskContextHolder&&) noexcept = default;
+    TaskContextHolder& operator=(TaskContextHolder&&) = delete;
+    ~TaskContextHolder();
 
-  boost::intrusive_ptr<TaskContext>&& Extract() && noexcept;
+    boost::intrusive_ptr<TaskContext>&& Extract() && noexcept;
 
- private:
-  boost::intrusive_ptr<TaskContext> context_;
+private:
+    boost::intrusive_ptr<TaskContext> context_;
 };
 
 }  // namespace engine::impl

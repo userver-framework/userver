@@ -11,22 +11,22 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::subprocess {
 
 class ChildProcessImpl {
- public:
-  ChildProcessImpl(int pid, Future<ChildProcessStatus>&& status_future);
+public:
+    ChildProcessImpl(int pid, Future<ChildProcessStatus>&& status_future);
 
-  int GetPid() const { return pid_; }
+    int GetPid() const { return pid_; }
 
-  void WaitNonCancellable();
+    void WaitNonCancellable();
 
-  [[nodiscard]] bool WaitUntil(Deadline deadline);
+    [[nodiscard]] bool WaitUntil(Deadline deadline);
 
-  ChildProcessStatus Get();
+    ChildProcessStatus Get();
 
-  void SendSignal(int signum);
+    void SendSignal(int signum);
 
- private:
-  int pid_;
-  Future<ChildProcessStatus> status_future_;
+private:
+    int pid_;
+    Future<ChildProcessStatus> status_future_;
 };
 
 }  // namespace engine::subprocess

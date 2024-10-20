@@ -40,23 +40,23 @@ namespace components {
 // clang-format on
 
 class Secdist final : public ComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of components::Secdist
-  static constexpr std::string_view kName = "secdist";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of components::Secdist
+    static constexpr std::string_view kName = "secdist";
 
-  Secdist(const ComponentConfig&, const ComponentContext&);
+    Secdist(const ComponentConfig&, const ComponentContext&);
 
-  const storages::secdist::SecdistConfig& Get() const;
+    const storages::secdist::SecdistConfig& Get() const;
 
-  rcu::ReadablePtr<storages::secdist::SecdistConfig> GetSnapshot() const;
+    rcu::ReadablePtr<storages::secdist::SecdistConfig> GetSnapshot() const;
 
-  storages::secdist::Secdist& GetStorage();
+    storages::secdist::Secdist& GetStorage();
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  storages::secdist::Secdist secdist_;
+private:
+    storages::secdist::Secdist secdist_;
 };
 
 template <>

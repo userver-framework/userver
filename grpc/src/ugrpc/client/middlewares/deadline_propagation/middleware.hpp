@@ -8,19 +8,18 @@ namespace ugrpc::client::middlewares::deadline_propagation {
 
 /// @brief middleware for RPC handler logging settings
 class Middleware final : public MiddlewareBase {
- public:
-  explicit Middleware() = default;
+public:
+    explicit Middleware() = default;
 
-  void PreStartCall(MiddlewareCallContext& context) const override;
+    void PreStartCall(MiddlewareCallContext& context) const override;
 };
 
 /// @cond
 class MiddlewareFactory final : public MiddlewareFactoryBase {
- public:
-  explicit MiddlewareFactory() = default;
+public:
+    explicit MiddlewareFactory() = default;
 
-  std::shared_ptr<const MiddlewareBase> GetMiddleware(
-      std::string_view client_name) const override;
+    std::shared_ptr<const MiddlewareBase> GetMiddleware(std::string_view client_name) const override;
 };
 /// @endcond
 

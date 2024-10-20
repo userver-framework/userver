@@ -8,8 +8,8 @@ namespace storages::postgres::io::detail {
 
 /// All digits packed in a single integer value, if the size of int64 is enough
 struct IntegralRepresentation {
-  std::int64_t value;
-  int fractional_digit_count;
+    std::int64_t value;
+    int fractional_digit_count;
 };
 
 /// A helper function to read PostgreSQL binary buffer containing a

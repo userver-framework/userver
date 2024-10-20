@@ -23,27 +23,24 @@ class Pool;
 namespace topology {
 
 class TopologyBase {
- public:
-  virtual ~TopologyBase();
+public:
+    virtual ~TopologyBase();
 
-  static std::unique_ptr<TopologyBase> Create(
-      clients::dns::Resolver& resolver,
-      const std::vector<settings::PoolSettings>& pools_settings);
+    static std::unique_ptr<TopologyBase>
+    Create(clients::dns::Resolver& resolver, const std::vector<settings::PoolSettings>& pools_settings);
 
-  Pool& SelectPool(ClusterHostType host_type) const;
+    Pool& SelectPool(ClusterHostType host_type) const;
 
-  void WriteStatistics(utils::statistics::Writer& writer) const;
+    void WriteStatistics(utils::statistics::Writer& writer) const;
 
- protected:
-  explicit TopologyBase(
-      clients::dns::Resolver& resolver,
-      const std::vector<settings::PoolSettings>& pools_settings);
+protected:
+    explicit TopologyBase(clients::dns::Resolver& resolver, const std::vector<settings::PoolSettings>& pools_settings);
 
-  virtual Pool& GetPrimary() const = 0;
-  virtual Pool& GetSecondary() const = 0;
+    virtual Pool& GetPrimary() const = 0;
+    virtual Pool& GetSecondary() const = 0;
 
-  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
-  std::vector<std::shared_ptr<Pool>> pools_;
+    // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
+    std::vector<std::shared_ptr<Pool>> pools_;
 };
 }  // namespace topology
 }  // namespace infra

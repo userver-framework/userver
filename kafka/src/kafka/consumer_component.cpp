@@ -15,51 +15,44 @@ namespace kafka {
 
 ConsumerComponent::ConsumerComponent(
     const components::ComponentConfig& config,
-    const components::ComponentContext& context)
+    const components::ComponentContext& context
+)
     : components::ComponentBase(config, context),
       consumer_(
-          config.Name(), config["topics"].As<std::vector<std::string>>(),
+          config.Name(),
+          config["topics"].As<std::vector<std::string>>(),
           context.GetTaskProcessor("consumer-task-processor"),
           context.GetTaskProcessor("main-task-processor"),
           config.As<impl::ConsumerConfiguration>(),
-          context.FindComponent<components::Secdist>()
-              .Get()
-              .Get<impl::BrokerSecrets>()
-              .GetSecretByComponentName(config.Name()),
+          context.FindComponent<components::Secdist>().Get().Get<impl::BrokerSecrets>().GetSecretByComponentName(
+              config.Name()
+          ),
           [&config] {
-            impl::ConsumerExecutionParams params{};
-            params.max_batch_size =
-                config["max_batch_size"].As<std::size_t>(params.max_batch_size);
-            params.poll_timeout =
-                config["poll_timeout"].As<std::chrono::milliseconds>(
-                    params.poll_timeout);
-            params.max_callback_duration =
-                config["max_callback_duration"].As<std::chrono::milliseconds>(
-                    params.max_callback_duration);
-            params.restart_after_failure_delay =
-                config["restart_after_failure_delay"]
-                    .As<std::chrono::milliseconds>(
-                        params.restart_after_failure_delay);
+              impl::ConsumerExecutionParams params{};
+              params.max_batch_size = config["max_batch_size"].As<std::size_t>(params.max_batch_size);
+              params.poll_timeout = config["poll_timeout"].As<std::chrono::milliseconds>(params.poll_timeout);
+              params.max_callback_duration =
+                  config["max_callback_duration"].As<std::chrono::milliseconds>(params.max_callback_duration);
+              params.restart_after_failure_delay =
+                  config["restart_after_failure_delay"].As<std::chrono::milliseconds>(params.restart_after_failure_delay
+                  );
 
-            return params;
-          }()) {
-  auto& storage =
-      context.FindComponent<components::StatisticsStorage>().GetStorage();
+              return params;
+          }()
+      ) {
+    auto& storage = context.FindComponent<components::StatisticsStorage>().GetStorage();
 
-  statistics_holder_ = storage.RegisterWriter(
-      config.Name(), [this](utils::statistics::Writer& writer) {
+    statistics_holder_ = storage.RegisterWriter(config.Name(), [this](utils::statistics::Writer& writer) {
         consumer_->DumpMetric(writer);
-      });
+    });
 }
 
 ConsumerComponent::~ConsumerComponent() { statistics_holder_.Unregister(); }
 
-ConsumerScope ConsumerComponent::GetConsumer() {
-  return consumer_->MakeConsumerScope();
-}
+ConsumerScope ConsumerComponent::GetConsumer() { return consumer_->MakeConsumerScope(); }
 
 yaml_config::Schema ConsumerComponent::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<components::ComponentBase>(R"(
+    return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: Kafka consumer component
 additionalProperties: false

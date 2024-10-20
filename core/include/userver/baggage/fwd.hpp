@@ -14,7 +14,6 @@ class Baggage;
 class BaggageEntry;
 class BaggageEntryProperty;
 
-using BaggageProperties =
-    std::vector<std::pair<std::string, std::optional<std::string>>>;
+using BaggageProperties = std::vector<std::pair<std::string, std::optional<std::string>>>;
 
 }  // namespace baggage

@@ -12,14 +12,13 @@
 
 namespace kafka_sample {
 
-RequestMessage Parse(const formats::json::Value& doc,
-                     formats::parse::To<RequestMessage>) {
-  RequestMessage request_message;
-  request_message.topic = doc["topic"].As<std::string>();
-  request_message.key = doc["key"].As<std::string>();
-  request_message.payload = doc["payload"].As<std::string>();
+RequestMessage Parse(const formats::json::Value& doc, formats::parse::To<RequestMessage>) {
+    RequestMessage request_message;
+    request_message.topic = doc["topic"].As<std::string>();
+    request_message.key = doc["key"].As<std::string>();
+    request_message.payload = doc["payload"].As<std::string>();
 
-  return request_message;
+    return request_message;
 }
 
 namespace {
@@ -35,44 +34,42 @@ constexpr std::string_view kErrorMembersNotSet = R"(
 )";
 
 bool IsCorrectRequest(const formats::json::Value& request_json) {
-  return request_json.HasMember(kReqPayloadFieldName) &&
-         request_json.HasMember(kReqTopicFieldName) &&
-         request_json.HasMember(kReqKeyFieldName);
+    return request_json.HasMember(kReqPayloadFieldName) && request_json.HasMember(kReqTopicFieldName) &&
+           request_json.HasMember(kReqKeyFieldName);
 }
 
 }  // namespace
 
 /// [Kafka service sample - producer component find]
-ProducerHandler::ProducerHandler(const components::ComponentConfig& config,
-                                 const components::ComponentContext& context)
+ProducerHandler::ProducerHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
     : server::handlers::HttpHandlerJsonBase{config, context},
-      producer_{
-          context.FindComponent<kafka::ProducerComponent>().GetProducer()} {}
+      producer_{context.FindComponent<kafka::ProducerComponent>().GetProducer()} {}
 /// [Kafka service sample - producer component find]
 
 /// [Kafka service sample - producer handler implementation]
 formats::json::Value ProducerHandler::HandleRequestJsonThrow(
     const server::http::HttpRequest& request,
     const formats::json::Value& request_json,
-    server::request::RequestContext& /*context*/) const {
-  if (!IsCorrectRequest(request_json)) {
-    request.SetResponseStatus(server::http::HttpStatus::kBadRequest);
+    server::request::RequestContext& /*context*/
+) const {
+    if (!IsCorrectRequest(request_json)) {
+        request.SetResponseStatus(server::http::HttpStatus::kBadRequest);
 
-    return formats::json::FromString(kErrorMembersNotSet);
-  }
+        return formats::json::FromString(kErrorMembersNotSet);
+    }
 
-  const auto message = request_json.As<RequestMessage>();
-  switch (Produce(producer_, message)) {
-    case SendStatus::kSuccess:
-      return formats::json::MakeObject("message", "Message send successfully");
-    case SendStatus::kErrorRetryable:
-      request.SetResponseStatus(server::http::HttpStatus::TooManyRequests);
-      return formats::json::MakeObject("error", "Retry later");
-    case SendStatus::kErrorNonRetryable:
-      request.SetResponseStatus(server::http::HttpStatus::kBadRequest);
-      return formats::json::MakeObject("error", "Bad request");
-  }
-  UINVARIANT(false, "Unknown produce status");
+    const auto message = request_json.As<RequestMessage>();
+    switch (Produce(producer_, message)) {
+        case SendStatus::kSuccess:
+            return formats::json::MakeObject("message", "Message send successfully");
+        case SendStatus::kErrorRetryable:
+            request.SetResponseStatus(server::http::HttpStatus::TooManyRequests);
+            return formats::json::MakeObject("error", "Retry later");
+        case SendStatus::kErrorNonRetryable:
+            request.SetResponseStatus(server::http::HttpStatus::kBadRequest);
+            return formats::json::MakeObject("error", "Bad request");
+    }
+    UINVARIANT(false, "Unknown produce status");
 }
 /// [Kafka service sample - producer handler implementation]
 

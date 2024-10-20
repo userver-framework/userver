@@ -6,7 +6,7 @@
 #include <userver/components/common_component_list.hpp>
 #include <userver/components/run.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>  // for fs::blocking::TempDirectory
-#include <userver/fs/blocking/write.hpp>  // for fs::blocking::RewriteFileContents
+#include <userver/fs/blocking/write.hpp>           // for fs::blocking::RewriteFileContents
 #include <userver/internal/net/net_listener.hpp>
 #include <userver/logging/impl/mem_logger.hpp>
 #include <userver/server/handlers/ping.hpp>
@@ -227,134 +227,165 @@ components_manager:
 config_vars: )";
 
 struct ServicePorts final {
-  std::uint16_t server_port{0};
-  std::uint16_t monitor_port{0};
+    std::uint16_t server_port{0};
+    std::uint16_t monitor_port{0};
 };
 
 ServicePorts FindFreePorts() {
-  ServicePorts ports;
-  engine::RunStandalone([&ports] {
-    const internal::net::TcpListener listener1;
-    const internal::net::TcpListener listener2;
-    ports = {listener1.Port(), listener2.Port()};
-  });
-  return ports;
+    ServicePorts ports;
+    engine::RunStandalone([&ports] {
+        const internal::net::TcpListener listener1;
+        const internal::net::TcpListener listener2;
+        ports = {listener1.Port(), listener2.Port()};
+    });
+    return ports;
 }
 
 class CommonServerComponentList : public ComponentList {
- protected:
-  CommonServerComponentList() {
-    fs::blocking::RewriteFileContents(
-        GetDynamicConfigCachePath(),
-        formats::json::ToString(
-            dynamic_config::impl::GetDefaultDocsMap().AsJson()));
-  }
+protected:
+    CommonServerComponentList() {
+        fs::blocking::RewriteFileContents(
+            GetDynamicConfigCachePath(), formats::json::ToString(dynamic_config::impl::GetDefaultDocsMap().AsJson())
+        );
+    }
 
-  std::string GetDynamicConfigCachePath() const {
-    return temp_root_.GetPath() + "/config_cache.json";
-  }
+    std::string GetDynamicConfigCachePath() const { return temp_root_.GetPath() + "/config_cache.json"; }
 
-  std::string GetConfigVarsPath() const {
-    return temp_root_.GetPath() + "/config_vars.json";
-  }
+    std::string GetConfigVarsPath() const { return temp_root_.GetPath() + "/config_vars.json"; }
 
-  std::string GetDumpsRoot() const { return temp_root_.GetPath(); }
+    std::string GetDumpsRoot() const { return temp_root_.GetPath(); }
 
-  std::string GetLogsPath() const { return temp_root_.GetPath() + "/logs.txt"; }
+    std::string GetLogsPath() const { return temp_root_.GetPath() + "/logs.txt"; }
 
-  ServicePorts GetPorts() const { return ports_; }
+    ServicePorts GetPorts() const { return ports_; }
 
- private:
-  const fs::blocking::TempDirectory temp_root_{
-      fs::blocking::TempDirectory::Create()};
-  const ServicePorts ports_ = FindFreePorts();
+private:
+    const fs::blocking::TempDirectory temp_root_{fs::blocking::TempDirectory::Create()};
+    const ServicePorts ports_ = FindFreePorts();
 };
 
 }  // namespace
 
 TEST_F(CommonServerComponentList, Smoke) {
-  fs::blocking::RewriteFileContents(
-      GetConfigVarsPath(),
-      fmt::format(kConfigVarsTemplate, GetDumpsRoot(),
-                  GetDynamicConfigCachePath(), "warning", "'@null'", "discard",
-                  GetPorts().server_port, GetPorts().monitor_port));
+    fs::blocking::RewriteFileContents(
+        GetConfigVarsPath(),
+        fmt::format(
+            kConfigVarsTemplate,
+            GetDumpsRoot(),
+            GetDynamicConfigCachePath(),
+            "warning",
+            "'@null'",
+            "discard",
+            GetPorts().server_port,
+            GetPorts().monitor_port
+        )
+    );
 
-  components::RunOnce(
-      components::InMemoryConfig{std::string{kStaticConfig} +
-                                 GetConfigVarsPath()},
-      components::CommonComponentList()
-          .AppendComponentList(components::CommonServerComponentList())
-          .Append<server::handlers::Ping>());
+    components::RunOnce(
+        components::InMemoryConfig{std::string{kStaticConfig} + GetConfigVarsPath()},
+        components::CommonComponentList()
+            .AppendComponentList(components::CommonServerComponentList())
+            .Append<server::handlers::Ping>()
+    );
 }
 
 TEST_F(CommonServerComponentList, Logger) {
-  auto& old_logger = logging::GetDefaultLogger();
-  logging::impl::SetDefaultLoggerRef(logging::impl::MemLogger::GetMemLogger());
+    auto& old_logger = logging::GetDefaultLogger();
+    logging::impl::SetDefaultLoggerRef(logging::impl::MemLogger::GetMemLogger());
 
-  fs::blocking::RewriteFileContents(
-      GetConfigVarsPath(),
-      fmt::format(kConfigVarsTemplate, GetDumpsRoot(),
-                  GetDynamicConfigCachePath(), "warning", "'@null'", "discard",
-                  GetPorts().server_port, GetPorts().monitor_port));
+    fs::blocking::RewriteFileContents(
+        GetConfigVarsPath(),
+        fmt::format(
+            kConfigVarsTemplate,
+            GetDumpsRoot(),
+            GetDynamicConfigCachePath(),
+            "warning",
+            "'@null'",
+            "discard",
+            GetPorts().server_port,
+            GetPorts().monitor_port
+        )
+    );
 
-  components::RunOnce(
-      components::InMemoryConfig{std::string{kStaticConfig} +
-                                 GetConfigVarsPath()},
-      components::CommonComponentList()
-          .AppendComponentList(components::CommonServerComponentList())
-          .Append<server::handlers::Ping>());
+    components::RunOnce(
+        components::InMemoryConfig{std::string{kStaticConfig} + GetConfigVarsPath()},
+        components::CommonComponentList()
+            .AppendComponentList(components::CommonServerComponentList())
+            .Append<server::handlers::Ping>()
+    );
 
-  logging::SetDefaultLoggerLevel(logging::Level::kInfo);
-  LOG_CRITICAL() << "some text";
+    logging::SetDefaultLoggerLevel(logging::Level::kInfo);
+    LOG_CRITICAL() << "some text";
 
-  logging::impl::SetDefaultLoggerRef(old_logger);
+    logging::impl::SetDefaultLoggerRef(old_logger);
 }
 
 TEST_F(CommonServerComponentList, TraceLogging) {
-  fs::blocking::RewriteFileContents(
-      GetConfigVarsPath(),
-      fmt::format(kConfigVarsTemplate, GetDumpsRoot(),
-                  GetDynamicConfigCachePath(), "trace", GetLogsPath(),
-                  "discard", GetPorts().server_port, GetPorts().monitor_port));
+    fs::blocking::RewriteFileContents(
+        GetConfigVarsPath(),
+        fmt::format(
+            kConfigVarsTemplate,
+            GetDumpsRoot(),
+            GetDynamicConfigCachePath(),
+            "trace",
+            GetLogsPath(),
+            "discard",
+            GetPorts().server_port,
+            GetPorts().monitor_port
+        )
+    );
 
-  components::RunOnce(
-      components::InMemoryConfig{std::string{kStaticConfig} +
-                                 GetConfigVarsPath()},
-      components::CommonComponentList()
-          .AppendComponentList(components::CommonServerComponentList())
-          .Append<server::handlers::Ping>());
+    components::RunOnce(
+        components::InMemoryConfig{std::string{kStaticConfig} + GetConfigVarsPath()},
+        components::CommonComponentList()
+            .AppendComponentList(components::CommonServerComponentList())
+            .Append<server::handlers::Ping>()
+    );
 }
 
 TEST_F(CommonServerComponentList, NullLogging) {
-  fs::blocking::RewriteFileContents(
-      GetConfigVarsPath(),
-      fmt::format(kConfigVarsTemplate, GetDumpsRoot(),
-                  GetDynamicConfigCachePath(), "trace", "'@null'", "discard",
-                  GetPorts().server_port, GetPorts().monitor_port));
+    fs::blocking::RewriteFileContents(
+        GetConfigVarsPath(),
+        fmt::format(
+            kConfigVarsTemplate,
+            GetDumpsRoot(),
+            GetDynamicConfigCachePath(),
+            "trace",
+            "'@null'",
+            "discard",
+            GetPorts().server_port,
+            GetPorts().monitor_port
+        )
+    );
 
-  components::RunOnce(
-      components::InMemoryConfig{std::string{kStaticConfig} +
-                                 GetConfigVarsPath()},
-      components::CommonComponentList()
-          .AppendComponentList(components::CommonServerComponentList())
-          .Append<server::handlers::Ping>());
+    components::RunOnce(
+        components::InMemoryConfig{std::string{kStaticConfig} + GetConfigVarsPath()},
+        components::CommonComponentList()
+            .AppendComponentList(components::CommonServerComponentList())
+            .Append<server::handlers::Ping>()
+    );
 }
 
 TEST_F(CommonServerComponentList, BlockingDefaultLogger) {
-  fs::blocking::RewriteFileContents(
-      GetConfigVarsPath(),
-      fmt::format(kConfigVarsTemplate, GetDumpsRoot(),
-                  GetDynamicConfigCachePath(), "warning", "'@null'", "block",
-                  GetPorts().server_port, GetPorts().monitor_port));
+    fs::blocking::RewriteFileContents(
+        GetConfigVarsPath(),
+        fmt::format(
+            kConfigVarsTemplate,
+            GetDumpsRoot(),
+            GetDynamicConfigCachePath(),
+            "warning",
+            "'@null'",
+            "block",
+            GetPorts().server_port,
+            GetPorts().monitor_port
+        )
+    );
 
-  const components::InMemoryConfig config{std::string{kStaticConfig} +
-                                          GetConfigVarsPath()};
-  const auto component_list =
-      components::CommonComponentList()
-          .AppendComponentList(components::CommonServerComponentList())
-          .Append<server::handlers::Ping>();
-  UEXPECT_THROW_MSG(components::RunOnce(config, component_list), std::exception,
-                    "efault logger");
+    const components::InMemoryConfig config{std::string{kStaticConfig} + GetConfigVarsPath()};
+    const auto component_list = components::CommonComponentList()
+                                    .AppendComponentList(components::CommonServerComponentList())
+                                    .Append<server::handlers::Ping>();
+    UEXPECT_THROW_MSG(components::RunOnce(config, component_list), std::exception, "efault logger");
 }
 
 USERVER_NAMESPACE_END

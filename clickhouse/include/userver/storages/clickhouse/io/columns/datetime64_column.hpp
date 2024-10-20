@@ -21,24 +21,22 @@ namespace storages::clickhouse::io::columns {
 template <size_t Precision, typename T>
 class DateTime64Column;
 
-template <size_t Precision, typename Rep, typename Period,
-          template <typename, typename> typename Duration>
+template <size_t Precision, typename Rep, typename Period, template <typename, typename> typename Duration>
 class DateTime64Column<Precision, Duration<Rep, Period>>
-    : public ClickhouseColumn<
-          DateTime64Column<Precision, Duration<Rep, Period>>> {
- public:
-  using cpp_type = std::chrono::system_clock::time_point;
-  using container_type = std::vector<cpp_type>;
+    : public ClickhouseColumn<DateTime64Column<Precision, Duration<Rep, Period>>> {
+public:
+    using cpp_type = std::chrono::system_clock::time_point;
+    using container_type = std::vector<cpp_type>;
 
-  struct Tag final {
-    static constexpr size_t kPrecision = Precision;
-    using time_resolution = Duration<Rep, Period>;
-  };
-  using time_resolution = typename Tag::time_resolution;
+    struct Tag final {
+        static constexpr size_t kPrecision = Precision;
+        using time_resolution = Duration<Rep, Period>;
+    };
+    using time_resolution = typename Tag::time_resolution;
 
-  DateTime64Column(ColumnRef column);
+    DateTime64Column(ColumnRef column);
 
-  static ColumnRef Serialize(const container_type& from);
+    static ColumnRef Serialize(const container_type& from);
 };
 
 /// @brief Represents ClickHouse DateTime64(3) column

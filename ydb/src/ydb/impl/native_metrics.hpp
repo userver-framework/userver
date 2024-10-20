@@ -8,8 +8,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
 
-void DumpMetric(Writer& writer,
-                const NMonitoring::IMetricSupplier& metric_supplier);
+void DumpMetric(Writer& writer, const NMonitoring::IMetricSupplier& metric_supplier);
 
 }  // namespace utils::statistics
 

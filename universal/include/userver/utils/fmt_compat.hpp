@@ -9,7 +9,7 @@ namespace fmt {
 
 template <typename S>
 const S& runtime(const S& s) {
-  return s;
+    return s;
 }
 
 }  // namespace fmt

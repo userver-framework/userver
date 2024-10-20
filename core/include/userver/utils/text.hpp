@@ -15,16 +15,13 @@ namespace utils::text {
 inline const std::string kEnLocale{"en_US.UTF-8"};
 
 /// Return number formatted with specified locale
-std::string Format(double value, const std::string& locale, int ndigits = 0,
-                   bool is_fixed = true);
+std::string Format(double value, const std::string& locale, int ndigits = 0, bool is_fixed = true);
 
 /// Transform letters to lower case
-std::string ToLower(std::string_view str,
-                    const std::string& locale = kEnLocale);
+std::string ToLower(std::string_view str, const std::string& locale = kEnLocale);
 
 /// Transform letters to upper case
-std::string ToUpper(std::string_view str,
-                    const std::string& locale = kEnLocale);
+std::string ToUpper(std::string_view str, const std::string& locale = kEnLocale);
 
 /// Capitalizes the first letter of the str
 std::string Capitalize(std::string_view str, const std::string& locale);

@@ -33,22 +33,21 @@ struct Settings;
 // clang-format on
 
 class Component final : public MiddlewareComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of ugrpc::server::middlewares::log::Component
-  static constexpr std::string_view kName = "grpc-server-logging";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of ugrpc::server::middlewares::log::Component
+    static constexpr std::string_view kName = "grpc-server-logging";
 
-  Component(const components::ComponentConfig& config,
-            const components::ComponentContext& context);
+    Component(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-  ~Component() override;
+    ~Component() override;
 
-  std::shared_ptr<MiddlewareBase> GetMiddleware() override;
+    std::shared_ptr<MiddlewareBase> GetMiddleware() override;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  const utils::Box<Settings> settings_;
+private:
+    const utils::Box<Settings> settings_;
 };
 
 }  // namespace ugrpc::server::middlewares::log

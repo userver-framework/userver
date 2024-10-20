@@ -60,63 +60,61 @@ class Driver;
 // clang-format on
 
 class YdbComponent final : public components::ComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of ydb::YdbComponent component
-  static constexpr std::string_view kName = "ydb";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of ydb::YdbComponent component
+    static constexpr std::string_view kName = "ydb";
 
-  YdbComponent(const components::ComponentConfig&,
-               const components::ComponentContext&);
+    YdbComponent(const components::ComponentConfig&, const components::ComponentContext&);
 
-  ~YdbComponent();
+    ~YdbComponent();
 
-  /// Get table client
-  /// @param dbname database name from static config key
-  std::shared_ptr<TableClient> GetTableClient(const std::string& dbname) const;
+    /// Get table client
+    /// @param dbname database name from static config key
+    std::shared_ptr<TableClient> GetTableClient(const std::string& dbname) const;
 
-  /// Get topic client
-  /// @param dbname database name from static config key
-  std::shared_ptr<TopicClient> GetTopicClient(const std::string& dbname) const;
+    /// Get topic client
+    /// @param dbname database name from static config key
+    std::shared_ptr<TopicClient> GetTopicClient(const std::string& dbname) const;
 
-  /// Get coordination client
-  /// @param dbname database name from static config key
-  std::shared_ptr<CoordinationClient> GetCoordinationClient(
-      const std::string& dbname) const;
+    /// Get coordination client
+    /// @param dbname database name from static config key
+    std::shared_ptr<CoordinationClient> GetCoordinationClient(const std::string& dbname) const;
 
-  /// Get native driver
-  /// @param dbname database name from static config key
-  /// @warning Use with care! Facilities from
-  /// `<core/include/userver/drivers/subscribable_futures.hpp>` can help with
-  /// non-blocking wait operations.
-  const NYdb::TDriver& GetNativeDriver(const std::string& dbname) const;
+    /// Get native driver
+    /// @param dbname database name from static config key
+    /// @warning Use with care! Facilities from
+    /// `<core/include/userver/drivers/subscribable_futures.hpp>` can help with
+    /// non-blocking wait operations.
+    const NYdb::TDriver& GetNativeDriver(const std::string& dbname) const;
 
-  /// Get database path
-  /// @param dbname database name from static config key
-  const std::string& GetDatabasePath(const std::string& dbname) const;
+    /// Get database path
+    /// @param dbname database name from static config key
+    const std::string& GetDatabasePath(const std::string& dbname) const;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  struct DatabaseUtils;
+private:
+    struct DatabaseUtils;
 
-  struct Database {
-    std::shared_ptr<impl::Driver> driver;
-    std::shared_ptr<TableClient> table_client;
-    std::shared_ptr<TopicClient> topic_client;
-    std::shared_ptr<CoordinationClient> coordination_client;
-  };
+    struct Database {
+        std::shared_ptr<impl::Driver> driver;
+        std::shared_ptr<TableClient> table_client;
+        std::shared_ptr<TopicClient> topic_client;
+        std::shared_ptr<CoordinationClient> coordination_client;
+    };
 
-  void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
-  void WriteStatistics(utils::statistics::Writer& writer) const;
-  const Database& FindDatabase(const std::string& dbname) const;
+    void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
+    void WriteStatistics(utils::statistics::Writer& writer) const;
+    const Database& FindDatabase(const std::string& dbname) const;
 
-  std::unordered_map<std::string, Database> databases_;
+    std::unordered_map<std::string, Database> databases_;
 
-  dynamic_config::Source config_;
+    dynamic_config::Source config_;
 
-  // These fields must be the last ones
-  concurrent::AsyncEventSubscriberScope config_subscription_;
-  utils::statistics::Entry statistic_holder_;
+    // These fields must be the last ones
+    concurrent::AsyncEventSubscriberScope config_subscription_;
+    utils::statistics::Entry statistic_holder_;
 };
 
 }  // namespace ydb

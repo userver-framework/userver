@@ -14,11 +14,15 @@ namespace server::handlers::auth {
 
 std::vector<AuthCheckerBasePtr> CreateAuthCheckers(
     const components::ComponentContext& component_context,
-    const HandlerConfig& config, const AuthCheckerSettings& settings);
+    const HandlerConfig& config,
+    const AuthCheckerSettings& settings
+);
 
-void CheckAuth(const std::vector<AuthCheckerBasePtr>& auth_checkers,
-               const http::HttpRequest& http_request,
-               request::RequestContext& context);
+void CheckAuth(
+    const std::vector<AuthCheckerBasePtr>& auth_checkers,
+    const http::HttpRequest& http_request,
+    request::RequestContext& context
+);
 
 }  // namespace server::handlers::auth
 

@@ -10,97 +10,88 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 TEST(Datetime, Stringtime) {
-  /// [Stringtime example]
-  const auto tp = utils::datetime::Stringtime("2014-03-17T02:47:07+0000");
-  EXPECT_EQ(utils::datetime::Stringtime("2014-03-17T02:47:07+0000"), tp);
-  /// [Stringtime example]
+    /// [Stringtime example]
+    const auto tp = utils::datetime::Stringtime("2014-03-17T02:47:07+0000");
+    EXPECT_EQ(utils::datetime::Stringtime("2014-03-17T02:47:07+0000"), tp);
+    /// [Stringtime example]
 }
 
 TEST(Datetime, OptionalStringtime) {
-  /// [OptionalStringtime example]
-  const auto tp = utils::datetime::Stringtime("2014-03-17T02:47:07+0000");
-  EXPECT_EQ(
-      utils::datetime::OptionalStringtime("2014-03-17T02:47:07+0000").value(),
-      tp);
-  /// [OptionalStringtime example]
+    /// [OptionalStringtime example]
+    const auto tp = utils::datetime::Stringtime("2014-03-17T02:47:07+0000");
+    EXPECT_EQ(utils::datetime::OptionalStringtime("2014-03-17T02:47:07+0000").value(), tp);
+    /// [OptionalStringtime example]
 }
 
 TEST(Datetime, Timestring) {
-  /// [Timestring example]
-  const auto tp = utils::datetime::Stringtime("2014-03-17T02:47:07+0000");
-  EXPECT_EQ(utils::datetime::Timestring(tp), "2014-03-17T02:47:07+0000");
-  /// [Timestring example]
+    /// [Timestring example]
+    const auto tp = utils::datetime::Stringtime("2014-03-17T02:47:07+0000");
+    EXPECT_EQ(utils::datetime::Timestring(tp), "2014-03-17T02:47:07+0000");
+    /// [Timestring example]
 }
 
 TEST(Datetime, TimestringCTime) {
-  /// [Timestring C time example]
-  const auto tp = utils::datetime::Stringtime("2014-03-17T02:47:07+0000");
-  const auto c_time = utils::datetime::Timestamp(tp);
-  EXPECT_EQ(utils::datetime::Timestring(c_time), "2014-03-17T02:47:07+0000");
-  EXPECT_EQ(utils::datetime::TimestampToString(c_time),
-            "2014-03-17T02:47:07+0000");
-  /// [Timestring C time example]
+    /// [Timestring C time example]
+    const auto tp = utils::datetime::Stringtime("2014-03-17T02:47:07+0000");
+    const auto c_time = utils::datetime::Timestamp(tp);
+    EXPECT_EQ(utils::datetime::Timestring(c_time), "2014-03-17T02:47:07+0000");
+    EXPECT_EQ(utils::datetime::TimestampToString(c_time), "2014-03-17T02:47:07+0000");
+    /// [Timestring C time example]
 }
 
 TEST(Datetime, GuessStringtime) {
-  /// [GuessStringtime example]
-  const auto tp = utils::datetime::Stringtime("2014-03-17T02:47:07+0000");
-  EXPECT_EQ(utils::datetime::GuessStringtime("2014-03-17T02:47:07+0000", "UTC"),
-            tp);
-  /// [GuessStringtime example]
+    /// [GuessStringtime example]
+    const auto tp = utils::datetime::Stringtime("2014-03-17T02:47:07+0000");
+    EXPECT_EQ(utils::datetime::GuessStringtime("2014-03-17T02:47:07+0000", "UTC"), tp);
+    /// [GuessStringtime example]
 }
 
 TEST(Datetime, Localize) {
-  /// [Localize example]
-  const auto tp = utils::datetime::Stringtime("2014-03-17T02:47:07+0000");
-  const auto localize =
-      utils::datetime::Localize(tp, utils::datetime::kDefaultDriverTimezone);
-  const auto unlocalize = utils::datetime::Unlocalize(
-      localize, utils::datetime::kDefaultDriverTimezone);
-  EXPECT_EQ(utils::datetime::TimestampToString(unlocalize),
-            "2014-03-17T02:47:07+0000");
-  /// [Localize example]
+    /// [Localize example]
+    const auto tp = utils::datetime::Stringtime("2014-03-17T02:47:07+0000");
+    const auto localize = utils::datetime::Localize(tp, utils::datetime::kDefaultDriverTimezone);
+    const auto unlocalize = utils::datetime::Unlocalize(localize, utils::datetime::kDefaultDriverTimezone);
+    EXPECT_EQ(utils::datetime::TimestampToString(unlocalize), "2014-03-17T02:47:07+0000");
+    /// [Localize example]
 }
 
 TEST(Datetime, TimePointToTicks) {
-  /// [TimePointToTicks example]
-  const auto tp = utils::datetime::FromStringSaturating(
-      "2014-03-17 02:47:07.333304", "%Y-%m-%d %H:%M:%E*S");
-  const auto ticks = utils::datetime::TimePointToTicks(tp);
-  EXPECT_EQ((int64_t)635306212273333040, ticks);
-  EXPECT_EQ(utils::datetime::TicksToTimePoint(ticks), tp);
-  /// [TimePointToTicks example]
+    /// [TimePointToTicks example]
+    const auto tp = utils::datetime::FromStringSaturating("2014-03-17 02:47:07.333304", "%Y-%m-%d %H:%M:%E*S");
+    const auto ticks = utils::datetime::TimePointToTicks(tp);
+    EXPECT_EQ((int64_t)635306212273333040, ticks);
+    EXPECT_EQ(utils::datetime::TicksToTimePoint(ticks), tp);
+    /// [TimePointToTicks example]
 }
 
 TEST(Datetime, kDefaultDriverTimezone) {
-  /// [kDefaultDriverTimezone]
-  const auto tp = utils::datetime::Stringtime(
-      "2014-03-17T02:47:07+00:00", utils::datetime::kDefaultDriverTimezone,
-      utils::datetime::kRfc3339Format);
-  EXPECT_EQ(utils::datetime::Stringtime("2014-03-17T02:47:07+0000"), tp);
-  /// [kDefaultDriverTimezone]
+    /// [kDefaultDriverTimezone]
+    const auto tp = utils::datetime::Stringtime(
+        "2014-03-17T02:47:07+00:00", utils::datetime::kDefaultDriverTimezone, utils::datetime::kRfc3339Format
+    );
+    EXPECT_EQ(utils::datetime::Stringtime("2014-03-17T02:47:07+0000"), tp);
+    /// [kDefaultDriverTimezone]
 }
 
 TEST(Datetime, kDefaultTimezone) {
-  /// [kDefaultTimezone]
-  const auto tp = utils::datetime::Stringtime("2014-03-17T02:47:07+00:00",
-                                              utils::datetime::kDefaultTimezone,
-                                              utils::datetime::kRfc3339Format);
-  EXPECT_EQ(utils::datetime::Stringtime("2014-03-17T02:47:07+0000"), tp);
-  /// [kDefaultTimezone]
+    /// [kDefaultTimezone]
+    const auto tp = utils::datetime::Stringtime(
+        "2014-03-17T02:47:07+00:00", utils::datetime::kDefaultTimezone, utils::datetime::kRfc3339Format
+    );
+    EXPECT_EQ(utils::datetime::Stringtime("2014-03-17T02:47:07+0000"), tp);
+    /// [kDefaultTimezone]
 }
 
 TEST(Datetime, kIncorrectDatetimeFormat) {
-  /// [kIncorrectDatetimeFormat]
-  EXPECT_FALSE(utils::datetime::OptionalStringtime("20140317T02:47:07+0000")
-                   .has_value());
-  /// [kIncorrectDatetimeFormat]
+    /// [kIncorrectDatetimeFormat]
+    EXPECT_FALSE(utils::datetime::OptionalStringtime("20140317T02:47:07+0000").has_value());
+    /// [kIncorrectDatetimeFormat]
 }
 
 TEST(Datetime, kEmptyDatetime) {
-  /// [kEmptyDatetime]
-  EXPECT_FALSE(utils::datetime::OptionalStringtime("").has_value());
-  /// [kEmptyDatetime]
+    /// [kEmptyDatetime]
+    EXPECT_FALSE(utils::datetime::OptionalStringtime("").has_value());
+    /// [kEmptyDatetime]
 }
 
 }  // namespace

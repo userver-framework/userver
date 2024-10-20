@@ -18,12 +18,12 @@ class TaskContext;
 
 /// Task cancellation reason
 enum class TaskCancellationReason {
-  kNone,         ///< Not cancelled
-  kUserRequest,  ///< User request
-  kDeadline,     ///< Deadline
-  kOverload,     ///< Task processor overload
-  kAbandoned,    ///< Task destructor is called before the payload finished
-  kShutdown,     ///< Task processor shutdown
+    kNone,         ///< Not cancelled
+    kUserRequest,  ///< User request
+    kDeadline,     ///< Deadline
+    kOverload,     ///< Task processor overload
+    kAbandoned,    ///< Task destructor is called before the payload finished
+    kShutdown,     ///< Task processor shutdown
 };
 
 class Task;
@@ -71,18 +71,18 @@ TaskCancellationToken GetCancellationToken();
 /// Blocks cancellation for specific scopes, e.g. destructors.
 /// Recursive, i.e. can be instantiated multiple times in a given call stack.
 class TaskCancellationBlocker final {
- public:
-  TaskCancellationBlocker();
-  ~TaskCancellationBlocker();
+public:
+    TaskCancellationBlocker();
+    ~TaskCancellationBlocker();
 
-  TaskCancellationBlocker(const TaskCancellationBlocker&) = delete;
-  TaskCancellationBlocker(TaskCancellationBlocker&&) = delete;
-  TaskCancellationBlocker& operator=(const TaskCancellationBlocker&) = delete;
-  TaskCancellationBlocker& operator=(TaskCancellationBlocker&&) = delete;
+    TaskCancellationBlocker(const TaskCancellationBlocker&) = delete;
+    TaskCancellationBlocker(TaskCancellationBlocker&&) = delete;
+    TaskCancellationBlocker& operator=(const TaskCancellationBlocker&) = delete;
+    TaskCancellationBlocker& operator=(TaskCancellationBlocker&&) = delete;
 
- private:
-  impl::TaskContext& context_;
-  const bool was_allowed_;
+private:
+    impl::TaskContext& context_;
+    const bool was_allowed_;
 };
 
 /// Returns a string representation of a cancellation reason
@@ -97,33 +97,33 @@ std::string_view ToString(TaskCancellationReason reason) noexcept;
 ///
 /// General rule: whenever possible, prefer using engine::Task object instead.
 class TaskCancellationToken final {
- public:
-  /// Creates an invalid TaskCancellationToken
-  TaskCancellationToken() noexcept;
+public:
+    /// Creates an invalid TaskCancellationToken
+    TaskCancellationToken() noexcept;
 
-  /// Creates a TaskCancellationToken associated with a task. The task must be
-  /// valid.
-  explicit TaskCancellationToken(Task& task);
+    /// Creates a TaskCancellationToken associated with a task. The task must be
+    /// valid.
+    explicit TaskCancellationToken(Task& task);
 
-  TaskCancellationToken(const TaskCancellationToken&) noexcept;
-  TaskCancellationToken(TaskCancellationToken&&) noexcept;
-  TaskCancellationToken& operator=(const TaskCancellationToken&) noexcept;
-  TaskCancellationToken& operator=(TaskCancellationToken&&) noexcept;
-  ~TaskCancellationToken();
+    TaskCancellationToken(const TaskCancellationToken&) noexcept;
+    TaskCancellationToken(TaskCancellationToken&&) noexcept;
+    TaskCancellationToken& operator=(const TaskCancellationToken&) noexcept;
+    TaskCancellationToken& operator=(TaskCancellationToken&&) noexcept;
+    ~TaskCancellationToken();
 
-  /// @see engine::Task::RequestCancel
-  /// This method should not be called on invalid TaskCancellationToken
-  void RequestCancel();
+    /// @see engine::Task::RequestCancel
+    /// This method should not be called on invalid TaskCancellationToken
+    void RequestCancel();
 
-  /// True if this token is associated with a task
-  bool IsValid() const noexcept;
+    /// True if this token is associated with a task
+    bool IsValid() const noexcept;
 
- private:
-  friend TaskCancellationToken current_task::GetCancellationToken();
+private:
+    friend TaskCancellationToken current_task::GetCancellationToken();
 
-  explicit TaskCancellationToken(impl::TaskContext& context) noexcept;
+    explicit TaskCancellationToken(impl::TaskContext& context) noexcept;
 
-  boost::intrusive_ptr<impl::TaskContext> context_;
+    boost::intrusive_ptr<impl::TaskContext> context_;
 };
 
 }  // namespace engine

@@ -22,68 +22,59 @@
 namespace samples::clickhouse {
 
 struct Result {
-  std::vector<std::string> values;
+    std::vector<std::string> values;
 };
 
 class HandlerDb final : public server::handlers::HttpHandlerBase {
- public:
-  static constexpr std::string_view kName = "handler-db";
+public:
+    static constexpr std::string_view kName = "handler-db";
 
-  HandlerDb(const components::ComponentConfig& config,
-            const components::ComponentContext& context);
+    HandlerDb(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-  std::string HandleRequestThrow(
-      const server::http::HttpRequest& request,
-      server::request::RequestContext& context) const override;
+    std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext& context)
+        const override;
 
- private:
-  storages::clickhouse::ClusterPtr clickhouse_;
+private:
+    storages::clickhouse::ClusterPtr clickhouse_;
 };
 
-HandlerDb::HandlerDb(const components::ComponentConfig& config,
-                     const components::ComponentContext& context)
+HandlerDb::HandlerDb(const components::ComponentConfig& config, const components::ComponentContext& context)
     : server::handlers::HttpHandlerBase{config, context},
-      clickhouse_{
-          context.FindComponent<components::ClickHouse>("clickhouse-database")
-              .GetCluster()} {}
+      clickhouse_{context.FindComponent<components::ClickHouse>("clickhouse-database").GetCluster()} {}
 
-std::string HandlerDb::HandleRequestThrow(
-    const server::http::HttpRequest& request,
-    server::request::RequestContext&) const {
-  const auto& limit = request.GetArg("limit");
-  // FP?: pfr magic
-  // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.UndefReturn)
-  if (limit.empty()) {
-    throw server::handlers::ClientError(
-        server::handlers::ExternalBody{"No 'limit' query argument"});
-  }
+std::string HandlerDb::HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
+    const {
+    const auto& limit = request.GetArg("limit");
+    // FP?: pfr magic
+    // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.UndefReturn)
+    if (limit.empty()) {
+        throw server::handlers::ClientError(server::handlers::ExternalBody{"No 'limit' query argument"});
+    }
 
-  const storages::clickhouse::Query query{
-      "SELECT toString(c.number) FROM system.numbers c LIMIT toInt32({})"};
-  const auto result = clickhouse_->Execute(query, limit).As<Result>();
-  request.GetHttpResponse().SetContentType(http::content_type::kTextPlain);
-  return fmt::to_string(fmt::join(result.values, ""));
+    const storages::clickhouse::Query query{"SELECT toString(c.number) FROM system.numbers c LIMIT toInt32({})"};
+    const auto result = clickhouse_->Execute(query, limit).As<Result>();
+    request.GetHttpResponse().SetContentType(http::content_type::kTextPlain);
+    return fmt::to_string(fmt::join(result.values, ""));
 }
 
 }  // namespace samples::clickhouse
 
 int main(int argc, char* argv[]) {
-  const auto components_list =
-      components::MinimalServerComponentList()
-          .Append<samples::clickhouse::HandlerDb>()
-          .Append<components::ClickHouse>("clickhouse-database")
-          .Append<clients::dns::Component>()
-          .Append<components::Secdist>()
-          .Append<components::DefaultSecdistProvider>();
+    const auto components_list = components::MinimalServerComponentList()
+                                     .Append<samples::clickhouse::HandlerDb>()
+                                     .Append<components::ClickHouse>("clickhouse-database")
+                                     .Append<clients::dns::Component>()
+                                     .Append<components::Secdist>()
+                                     .Append<components::DefaultSecdistProvider>();
 
-  return utils::DaemonMain(argc, argv, components_list);
+    return utils::DaemonMain(argc, argv, components_list);
 }
 
 USERVER_NAMESPACE_BEGIN
 
 template <>
 struct storages::clickhouse::io::CppToClickhouse<samples::clickhouse::Result> {
-  using mapped_type = std::tuple<columns::StringColumn>;
+    using mapped_type = std::tuple<columns::StringColumn>;
 };
 
 USERVER_NAMESPACE_END

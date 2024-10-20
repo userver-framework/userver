@@ -16,16 +16,14 @@ std::atomic<SteadyTimePoint> steady_clock_now{{}};
 }  // namespace
 
 void UpdateGlobalTime() {
-  // 'relaxed' reason: it is the user's job to ensure that their
-  // UpdateGlobalTime call is ordered-before their GetGlobalTime calls.
-  system_clock_now.store(utils::datetime::Now(), std::memory_order_relaxed);
-  steady_clock_now.store(utils::datetime::SteadyNow(),
-                         std::memory_order_relaxed);
+    // 'relaxed' reason: it is the user's job to ensure that their
+    // UpdateGlobalTime call is ordered-before their GetGlobalTime calls.
+    system_clock_now.store(utils::datetime::Now(), std::memory_order_relaxed);
+    steady_clock_now.store(utils::datetime::SteadyNow(), std::memory_order_relaxed);
 }
 
 SystemAndSteadyTimePoints GetGlobalTime() {
-  return {system_clock_now.load(std::memory_order_relaxed),
-          steady_clock_now.load(std::memory_order_relaxed)};
+    return {system_clock_now.load(std::memory_order_relaxed), steady_clock_now.load(std::memory_order_relaxed)};
 }
 
 }  // namespace utils::impl

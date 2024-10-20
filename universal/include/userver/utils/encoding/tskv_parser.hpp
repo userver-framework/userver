@@ -33,48 +33,48 @@ namespace utils::encoding {
 ///
 /// For a simpler way to read TSKV records, see utils::encoding::TskvReadRecord.
 class TskvParser final {
- public:
-  /// The status is returned once the record is complete. We ignore invalid
-  /// escaping, not reporting it as an error, trying to push through.
-  /// `nullopt` status means we should keep reading the current TSKV record.
-  enum class [[nodiscard]] RecordStatus {
-    kReachedEnd,  ///< successfully read the whole record
-    kIncomplete,  ///< the record ends abruptly, the service is probably
-                  ///< still writing the record
-  };
+public:
+    /// The status is returned once the record is complete. We ignore invalid
+    /// escaping, not reporting it as an error, trying to push through.
+    /// `nullopt` status means we should keep reading the current TSKV record.
+    enum class [[nodiscard]] RecordStatus {
+        kReachedEnd,  ///< successfully read the whole record
+        kIncomplete,  ///< the record ends abruptly, the service is probably
+                      ///< still writing the record
+    };
 
-  explicit TskvParser(std::string_view in) noexcept;
+    explicit TskvParser(std::string_view in) noexcept;
 
-  /// @brief Skips the current record or optional invalid junk until it finds
-  /// the start of the a valid record.
-  /// @returns pointer to the start of the next record if there is one,
-  /// `nullptr` otherwise
-  /// @note `tskv\n` records are currently not supported
-  const char* SkipToRecordBegin() noexcept;
+    /// @brief Skips the current record or optional invalid junk until it finds
+    /// the start of the a valid record.
+    /// @returns pointer to the start of the next record if there is one,
+    /// `nullptr` otherwise
+    /// @note `tskv\n` records are currently not supported
+    const char* SkipToRecordBegin() noexcept;
 
-  /// @brief Skips to the end of the current record, which might not be the same
-  /// as the start of the next valid record.
-  /// @note RecordStatus::kReachedEnd SHOULD
-  /// not have been returned for the current record, otherwise the behavior is
-  /// unspecified.
-  /// @note `tskv\n` records are currently not supported
-  RecordStatus SkipToRecordEnd() noexcept;
+    /// @brief Skips to the end of the current record, which might not be the same
+    /// as the start of the next valid record.
+    /// @note RecordStatus::kReachedEnd SHOULD
+    /// not have been returned for the current record, otherwise the behavior is
+    /// unspecified.
+    /// @note `tskv\n` records are currently not supported
+    RecordStatus SkipToRecordEnd() noexcept;
 
-  /// @brief Parses the key, replacing `result` with it.
-  /// @throws std::bad_alloc only if `std::string` allocation throws
-  /// @note RecordStatus::kReachedEnd is returned specifically
-  /// on a trailing `\t\n` sequence
-  std::optional<RecordStatus> ReadKey(std::string& result);
+    /// @brief Parses the key, replacing `result` with it.
+    /// @throws std::bad_alloc only if `std::string` allocation throws
+    /// @note RecordStatus::kReachedEnd is returned specifically
+    /// on a trailing `\t\n` sequence
+    std::optional<RecordStatus> ReadKey(std::string& result);
 
-  /// @brief Parses the value, replacing `result` with it.
-  /// @throws std::bad_alloc only if `std::string` allocation throws
-  std::optional<RecordStatus> ReadValue(std::string& result);
+    /// @brief Parses the value, replacing `result` with it.
+    /// @throws std::bad_alloc only if `std::string` allocation throws
+    std::optional<RecordStatus> ReadValue(std::string& result);
 
-  /// @returns pointer to the data that will be read by the next operation
-  const char* GetStreamPosition() const noexcept;
+    /// @returns pointer to the data that will be read by the next operation
+    const char* GetStreamPosition() const noexcept;
 
- private:
-  std::string_view in_;
+private:
+    std::string_view in_;
 };
 
 }  // namespace utils::encoding

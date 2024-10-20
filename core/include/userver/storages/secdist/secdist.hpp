@@ -32,20 +32,20 @@ namespace detail {
 
 template <typename T>
 class SecdistModule final {
- public:
-  static const T& Get(const SecdistConfig& config);
-  static std::any Factory(const formats::json::Value& data) { return T(data); }
+public:
+    static const T& Get(const SecdistConfig& config);
+    static std::any Factory(const formats::json::Value& data) { return T(data); }
 
- private:
-  static std::size_t index_;
+private:
+    static std::size_t index_;
 };
 
 }  // namespace detail
 
 /// Secdist file format
 enum class SecdistFormat {
-  kJson,
-  kYaml,
+    kJson,
+    kYaml,
 };
 
 // clang-format off
@@ -76,37 +76,35 @@ enum class SecdistFormat {
 
 // clang-format on
 class SecdistConfig final {
- public:
-  struct Settings {
-    SecdistProvider* provider{nullptr};
-    std::chrono::milliseconds update_period{std::chrono::milliseconds::zero()};
-  };
+public:
+    struct Settings {
+        SecdistProvider* provider{nullptr};
+        std::chrono::milliseconds update_period{std::chrono::milliseconds::zero()};
+    };
 
-  SecdistConfig();
-  explicit SecdistConfig(const Settings& settings);
+    SecdistConfig();
+    explicit SecdistConfig(const Settings& settings);
 
-  template <typename T>
-  static std::size_t Register(
-      std::function<std::any(const formats::json::Value&)>&& factory) {
-    return Register(std::move(factory));
-  }
+    template <typename T>
+    static std::size_t Register(std::function<std::any(const formats::json::Value&)>&& factory) {
+        return Register(std::move(factory));
+    }
 
-  template <typename T>
-  const T& Get() const {
-    return detail::SecdistModule<T>::Get(*this);
-  }
+    template <typename T>
+    const T& Get() const {
+        return detail::SecdistModule<T>::Get(*this);
+    }
 
- private:
-  void Init(const formats::json::Value& doc);
+private:
+    void Init(const formats::json::Value& doc);
 
-  static std::size_t Register(
-      std::function<std::any(const formats::json::Value&)>&& factory);
-  const std::any& Get(const std::type_index& type, std::size_t index) const;
+    static std::size_t Register(std::function<std::any(const formats::json::Value&)>&& factory);
+    const std::any& Get(const std::type_index& type, std::size_t index) const;
 
-  template <typename T>
-  friend class detail::SecdistModule;
+    template <typename T>
+    friend class detail::SecdistModule;
 
-  std::vector<std::any> configs_;
+    std::vector<std::any> configs_;
 };
 
 /// @ingroup userver_clients
@@ -114,58 +112,60 @@ class SecdistConfig final {
 /// @brief Client to retrieve credentials from the components::Secdist and to
 /// subscribe to their updates.
 class Secdist final {
- public:
-  explicit Secdist(SecdistConfig::Settings settings);
-  ~Secdist();
+public:
+    explicit Secdist(SecdistConfig::Settings settings);
+    ~Secdist();
 
-  /// Returns secdist data loaded on service start.
-  /// Does not support secdist updating during service work.
-  const storages::secdist::SecdistConfig& Get() const;
+    /// Returns secdist data loaded on service start.
+    /// Does not support secdist updating during service work.
+    const storages::secdist::SecdistConfig& Get() const;
 
-  /// Returns fresh secdist data (from last update).
-  /// Supports secdist updating during service work.
-  rcu::ReadablePtr<storages::secdist::SecdistConfig> GetSnapshot() const;
+    /// Returns fresh secdist data (from last update).
+    /// Supports secdist updating during service work.
+    rcu::ReadablePtr<storages::secdist::SecdistConfig> GetSnapshot() const;
 
-  /// Subscribes to secdist updates using a member function, named
-  /// `OnSecdistUpdate` by convention. Also immediately invokes the function
-  /// with the current secdist data.
-  template <typename Class>
-  concurrent::AsyncEventSubscriberScope UpdateAndListen(
-      Class* obj, std::string_view name,
-      void (Class::*func)(const storages::secdist::SecdistConfig& secdist));
+    /// Subscribes to secdist updates using a member function, named
+    /// `OnSecdistUpdate` by convention. Also immediately invokes the function
+    /// with the current secdist data.
+    template <typename Class>
+    concurrent::AsyncEventSubscriberScope UpdateAndListen(
+        Class* obj,
+        std::string_view name,
+        void (Class::*func)(const storages::secdist::SecdistConfig& secdist)
+    );
 
-  bool IsPeriodicUpdateEnabled() const;
+    bool IsPeriodicUpdateEnabled() const;
 
- private:
-  using EventSource = concurrent::AsyncEventSource<const SecdistConfig&>;
+private:
+    using EventSource = concurrent::AsyncEventSource<const SecdistConfig&>;
 
-  concurrent::AsyncEventSubscriberScope DoUpdateAndListen(
-      concurrent::FunctionId id, std::string_view name,
-      EventSource::Function&& func);
+    concurrent::AsyncEventSubscriberScope
+    DoUpdateAndListen(concurrent::FunctionId id, std::string_view name, EventSource::Function&& func);
 
-  class Impl;
-  utils::FastPimpl<Impl, 1280, 16> impl_;
+    class Impl;
+    utils::FastPimpl<Impl, 1280, 16> impl_;
 };
 
 template <typename Class>
 concurrent::AsyncEventSubscriberScope Secdist::UpdateAndListen(
-    Class* obj, std::string_view name,
-    void (Class::*func)(const storages::secdist::SecdistConfig& secdist)) {
-  return DoUpdateAndListen(
-      concurrent::FunctionId(obj), name,
-      [obj, func](const SecdistConfig& config) { (obj->*func)(config); });
+    Class* obj,
+    std::string_view name,
+    void (Class::*func)(const storages::secdist::SecdistConfig& secdist)
+) {
+    return DoUpdateAndListen(concurrent::FunctionId(obj), name, [obj, func](const SecdistConfig& config) {
+        (obj->*func)(config);
+    });
 }
 
 namespace detail {
 
 template <typename T>
 const T& SecdistModule<T>::Get(const SecdistConfig& config) {
-  return std::any_cast<const T&>(config.Get(typeid(T), index_));
+    return std::any_cast<const T&>(config.Get(typeid(T), index_));
 }
 
 template <typename T>
-std::size_t SecdistModule<T>::index_ =
-    SecdistConfig::Register<T>(&SecdistModule<T>::Factory);
+std::size_t SecdistModule<T>::index_ = SecdistConfig::Register<T>(&SecdistModule<T>::Factory);
 
 }  // namespace detail
 

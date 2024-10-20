@@ -13,43 +13,43 @@ class TagWriter;
 
 /// Base logger class
 class LoggerBase {
- public:
-  LoggerBase() = delete;
-  LoggerBase(const LoggerBase&) = delete;
-  LoggerBase(LoggerBase&&) = delete;
-  LoggerBase& operator=(const LoggerBase&) = delete;
-  LoggerBase& operator=(LoggerBase&&) = delete;
+public:
+    LoggerBase() = delete;
+    LoggerBase(const LoggerBase&) = delete;
+    LoggerBase(LoggerBase&&) = delete;
+    LoggerBase& operator=(const LoggerBase&) = delete;
+    LoggerBase& operator=(LoggerBase&&) = delete;
 
-  explicit LoggerBase(Format format) noexcept;
+    explicit LoggerBase(Format format) noexcept;
 
-  virtual ~LoggerBase();
+    virtual ~LoggerBase();
 
-  virtual void Log(Level level, std::string_view msg) = 0;
+    virtual void Log(Level level, std::string_view msg) = 0;
 
-  virtual void Trace(Level level, std::string_view msg);
+    virtual void Trace(Level level, std::string_view msg);
 
-  virtual void Flush();
+    virtual void Flush();
 
-  virtual void PrependCommonTags(TagWriter writer) const;
+    virtual void PrependCommonTags(TagWriter writer) const;
 
-  Format GetFormat() const noexcept;
+    Format GetFormat() const noexcept;
 
-  virtual void SetLevel(Level level);
-  Level GetLevel() const noexcept;
-  bool ShouldLog(Level level) const noexcept;
+    virtual void SetLevel(Level level);
+    Level GetLevel() const noexcept;
+    bool ShouldLog(Level level) const noexcept;
 
-  void SetFlushOn(Level level);
-  bool ShouldFlush(Level level) const;
+    void SetFlushOn(Level level);
+    bool ShouldFlush(Level level) const;
 
-  virtual void ForwardTo(LoggerBase* logger_to);
+    virtual void ForwardTo(LoggerBase* logger_to);
 
- protected:
-  virtual bool DoShouldLog(Level level) const noexcept;
+protected:
+    virtual bool DoShouldLog(Level level) const noexcept;
 
- private:
-  const Format format_;
-  std::atomic<Level> level_{Level::kNone};
-  std::atomic<Level> flush_level_{Level::kWarning};
+private:
+    const Format format_;
+    std::atomic<Level> level_{Level::kNone};
+    std::atomic<Level> flush_level_{Level::kWarning};
 };
 
 bool ShouldLogNoSpan(const LoggerBase& logger, Level level) noexcept;

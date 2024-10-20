@@ -25,23 +25,23 @@
 #include <components/topic_reader.hpp>
 
 int main(int argc, char* argv[]) {
-  auto component_list = ::components::MinimalServerComponentList()
-                            .Append<components::TestsuiteSupport>()
-                            .Append<server::handlers::TestsControl>()
-                            .Append<components::DynamicConfigClient>()
-                            .Append<components::DynamicConfigClientUpdater>()
-                            .Append<components::HttpClient>()
-                            .Append<clients::dns::Component>()
-                            .Append<components::DefaultSecdistProvider>()
-                            .Append<components::Secdist>()
-                            .Append<sample::BsonReadingHandler>()
-                            .Append<sample::BsonUpsertingHandler>()
-                            .Append<sample::SelectRowsHandler>()
-                            .Append<sample::Upsert2RowsHandler>()
-                            .Append<sample::UpsertRowHandler>()
-                            .Append<sample::UpsertRowsHandler>()
-                            .Append<sample::TopicReaderComponent>()
-                            .Append<ydb::YdbComponent>();
+    auto component_list = ::components::MinimalServerComponentList()
+                              .Append<components::TestsuiteSupport>()
+                              .Append<server::handlers::TestsControl>()
+                              .Append<components::DynamicConfigClient>()
+                              .Append<components::DynamicConfigClientUpdater>()
+                              .Append<components::HttpClient>()
+                              .Append<clients::dns::Component>()
+                              .Append<components::DefaultSecdistProvider>()
+                              .Append<components::Secdist>()
+                              .Append<sample::BsonReadingHandler>()
+                              .Append<sample::BsonUpsertingHandler>()
+                              .Append<sample::SelectRowsHandler>()
+                              .Append<sample::Upsert2RowsHandler>()
+                              .Append<sample::UpsertRowHandler>()
+                              .Append<sample::UpsertRowsHandler>()
+                              .Append<sample::TopicReaderComponent>()
+                              .Append<ydb::YdbComponent>();
 
-  return ::utils::DaemonMain(argc, argv, component_list);
+    return ::utils::DaemonMain(argc, argv, component_list);
 }

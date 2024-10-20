@@ -9,8 +9,8 @@
 namespace some_namespace {
 
 struct MyStruct {
-  std::int16_t some_field;
-  std::string some_other_field;
+    std::int16_t some_field;
+    std::string some_other_field;
 };
 
 }  // namespace some_namespace

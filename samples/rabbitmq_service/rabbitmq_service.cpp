@@ -23,44 +23,40 @@
 namespace samples::amqp {
 
 class MyRabbitProducer final : public components::LoggableComponentBase {
- public:
-  static constexpr std::string_view kName{"my-producer"};
+public:
+    static constexpr std::string_view kName{"my-producer"};
 
-  MyRabbitProducer(const components::ComponentConfig& config,
-                   const components::ComponentContext& context)
-      : components::LoggableComponentBase{config, context},
-        client_{context
-                    .FindComponent<components::RabbitMQ>(
-                        config["rabbit_name"].As<std::string>())
-                    .GetClient()} {
-    const auto setup_deadline =
-        engine::Deadline::FromDuration(std::chrono::seconds{2});
+    MyRabbitProducer(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : components::LoggableComponentBase{config, context},
+          client_{context.FindComponent<components::RabbitMQ>(config["rabbit_name"].As<std::string>()).GetClient()} {
+        const auto setup_deadline = engine::Deadline::FromDuration(std::chrono::seconds{2});
 
-    auto admin_channel = client_->GetAdminChannel(setup_deadline);
-    admin_channel.DeclareExchange(exchange_, urabbitmq::Exchange::Type::kFanOut,
-                                  setup_deadline);
-    admin_channel.DeclareQueue(queue_, setup_deadline);
-    admin_channel.BindQueue(exchange_, queue_, routing_key_, setup_deadline);
-  }
+        auto admin_channel = client_->GetAdminChannel(setup_deadline);
+        admin_channel.DeclareExchange(exchange_, urabbitmq::Exchange::Type::kFanOut, setup_deadline);
+        admin_channel.DeclareQueue(queue_, setup_deadline);
+        admin_channel.BindQueue(exchange_, queue_, routing_key_, setup_deadline);
+    }
 
-  ~MyRabbitProducer() override {
-    auto admin_channel = client_->GetAdminChannel(
-        engine::Deadline::FromDuration(std::chrono::seconds{1}));
+    ~MyRabbitProducer() override {
+        auto admin_channel = client_->GetAdminChannel(engine::Deadline::FromDuration(std::chrono::seconds{1}));
 
-    const auto teardown_deadline =
-        engine::Deadline::FromDuration(std::chrono::seconds{2});
-    admin_channel.RemoveQueue(queue_, teardown_deadline);
-    admin_channel.RemoveExchange(exchange_, teardown_deadline);
-  }
+        const auto teardown_deadline = engine::Deadline::FromDuration(std::chrono::seconds{2});
+        admin_channel.RemoveQueue(queue_, teardown_deadline);
+        admin_channel.RemoveExchange(exchange_, teardown_deadline);
+    }
 
-  void Publish(const std::string& message) {
-    client_->PublishReliable(
-        exchange_, routing_key_, message, urabbitmq::MessageType::kTransient,
-        engine::Deadline::FromDuration(std::chrono::seconds{2}));
-  }
+    void Publish(const std::string& message) {
+        client_->PublishReliable(
+            exchange_,
+            routing_key_,
+            message,
+            urabbitmq::MessageType::kTransient,
+            engine::Deadline::FromDuration(std::chrono::seconds{2})
+        );
+    }
 
-  static yaml_config::Schema GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+    static yaml_config::Schema GetStaticConfigSchema() {
+        return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
 type: object
 description: My RabbitMQ producer component
 additionalProperties: false
@@ -69,104 +65,99 @@ properties:
         type: string
         description: name of RabbitMQ client component
     )");
-  }
+    }
 
- private:
-  const urabbitmq::Exchange exchange_{"sample-exchange"};
-  const urabbitmq::Queue queue_{"sample-queue"};
-  const std::string routing_key_ = "sample-routing-key";
+private:
+    const urabbitmq::Exchange exchange_{"sample-exchange"};
+    const urabbitmq::Queue queue_{"sample-queue"};
+    const std::string routing_key_ = "sample-routing-key";
 
-  std::shared_ptr<urabbitmq::Client> client_;
+    std::shared_ptr<urabbitmq::Client> client_;
 };
 
 class MyRabbitConsumer final : public urabbitmq::ConsumerComponentBase {
- public:
-  static constexpr std::string_view kName{"my-consumer"};
+public:
+    static constexpr std::string_view kName{"my-consumer"};
 
-  MyRabbitConsumer(const components::ComponentConfig& config,
-                   const components::ComponentContext& context)
-      : urabbitmq::ConsumerComponentBase{config, context} {}
+    MyRabbitConsumer(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : urabbitmq::ConsumerComponentBase{config, context} {}
 
-  std::vector<int> GetConsumedMessages() {
-    auto storage = storage_.Lock();
+    std::vector<int> GetConsumedMessages() {
+        auto storage = storage_.Lock();
 
-    auto messages = *storage;
-    // We sort messages here because `Process` might run in parallel
-    // and ordering is not guaranteed.
-    std::sort(messages.begin(), messages.end());
+        auto messages = *storage;
+        // We sort messages here because `Process` might run in parallel
+        // and ordering is not guaranteed.
+        std::sort(messages.begin(), messages.end());
 
-    return messages;
-  }
+        return messages;
+    }
 
- protected:
-  void Process(std::string message) override {
-    const auto as_integer = std::stoi(message);
+protected:
+    void Process(std::string message) override {
+        const auto as_integer = std::stoi(message);
 
-    auto storage = storage_.Lock();
-    storage->push_back(as_integer);
+        auto storage = storage_.Lock();
+        storage->push_back(as_integer);
 
-    TESTPOINT("message_consumed", {});
-  }
+        TESTPOINT("message_consumed", {});
+    }
 
- private:
-  concurrent::Variable<std::vector<int>> storage_;
+private:
+    concurrent::Variable<std::vector<int>> storage_;
 };
 
 class RequestHandler final : public server::handlers::HttpHandlerJsonBase {
- public:
-  static constexpr std::string_view kName = "my-http-handler";
+public:
+    static constexpr std::string_view kName = "my-http-handler";
 
-  RequestHandler(const components::ComponentConfig& config,
-                 const components::ComponentContext& context)
-      : server::handlers::HttpHandlerJsonBase{config, context},
-        my_producer_{context.FindComponent<MyRabbitProducer>()},
-        my_consumer_{context.FindComponent<MyRabbitConsumer>()} {}
+    RequestHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : server::handlers::HttpHandlerJsonBase{config, context},
+          my_producer_{context.FindComponent<MyRabbitProducer>()},
+          my_consumer_{context.FindComponent<MyRabbitConsumer>()} {}
 
-  ~RequestHandler() override = default;
+    ~RequestHandler() override = default;
 
-  formats::json::Value HandleRequestJsonThrow(
-      const server::http::HttpRequest& request,
-      const formats::json::Value& request_json,
-      server::request::RequestContext&) const override {
-    request.GetHttpResponse().SetContentType(
-        http::content_type::kApplicationJson);
-    if (request.GetMethod() == server::http::HttpMethod::kGet) {
-      formats::json::ValueBuilder builder{formats::json::Type::kObject};
-      builder["messages"] = my_consumer_.GetConsumedMessages();
+    formats::json::Value
+    HandleRequestJsonThrow(const server::http::HttpRequest& request, const formats::json::Value& request_json, server::request::RequestContext&)
+        const override {
+        request.GetHttpResponse().SetContentType(http::content_type::kApplicationJson);
+        if (request.GetMethod() == server::http::HttpMethod::kGet) {
+            formats::json::ValueBuilder builder{formats::json::Type::kObject};
+            builder["messages"] = my_consumer_.GetConsumedMessages();
 
-      return builder.ExtractValue();
-    } else {
-      if (!request_json.HasMember("message")) {
-        request.SetResponseStatus(server::http::HttpStatus::kBadRequest);
-        return formats::json::FromString(
-            R"("{"error": "missing required field "message""}")");
-      }
+            return builder.ExtractValue();
+        } else {
+            if (!request_json.HasMember("message")) {
+                request.SetResponseStatus(server::http::HttpStatus::kBadRequest);
+                return formats::json::FromString(R"("{"error": "missing required field "message""}")");
+            }
 
-      my_producer_.Publish(request_json["message"].As<std::string>());
+            my_producer_.Publish(request_json["message"].As<std::string>());
 
-      return {};
+            return {};
+        }
     }
-  }
 
- private:
-  MyRabbitProducer& my_producer_;
-  MyRabbitConsumer& my_consumer_;
+private:
+    MyRabbitProducer& my_producer_;
+    MyRabbitConsumer& my_consumer_;
 };
 
 }  // namespace samples::amqp
 
 int main(int argc, char* argv[]) {
-  const auto components_list = components::MinimalServerComponentList()
-                                   .Append<components::RabbitMQ>("my-rabbit")
-                                   .Append<samples::amqp::MyRabbitProducer>()
-                                   .Append<samples::amqp::MyRabbitConsumer>()
-                                   .Append<samples::amqp::RequestHandler>()
-                                   .Append<clients::dns::Component>()
-                                   .Append<components::Secdist>()
-                                   .Append<components::DefaultSecdistProvider>()
-                                   .Append<components::TestsuiteSupport>()
-                                   .Append<server::handlers::TestsControl>()
-                                   .Append<components::HttpClient>();
+    const auto components_list = components::MinimalServerComponentList()
+                                     .Append<components::RabbitMQ>("my-rabbit")
+                                     .Append<samples::amqp::MyRabbitProducer>()
+                                     .Append<samples::amqp::MyRabbitConsumer>()
+                                     .Append<samples::amqp::RequestHandler>()
+                                     .Append<clients::dns::Component>()
+                                     .Append<components::Secdist>()
+                                     .Append<components::DefaultSecdistProvider>()
+                                     .Append<components::TestsuiteSupport>()
+                                     .Append<server::handlers::TestsControl>()
+                                     .Append<components::HttpClient>();
 
-  return utils::DaemonMain(argc, argv, components_list);
+    return utils::DaemonMain(argc, argv, components_list);
 }

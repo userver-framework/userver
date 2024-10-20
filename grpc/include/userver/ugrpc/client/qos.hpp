@@ -16,7 +16,7 @@ namespace ugrpc::client {
 /// @ref ugrpc::client::ClientQos. Can also be passed to ugrpc client methods
 /// manually.
 struct Qos final {
-  // clang-format off
+    // clang-format off
   /// @brief An upper bound on the deadline applied to the entire RPC.
   /// If `std::nullopt`, no static deadline is applied, which is reasonable
   /// for streaming RPCs.
@@ -27,16 +27,15 @@ struct Qos final {
   /// @note The problem of "dead servers" is typically solved using
   /// [keepalive pings](https://github.com/grpc/grpc/blob/master/doc/keepalive.md),
   /// not using timeouts.
-  // clang-format on
-  std::optional<std::chrono::milliseconds> timeout;
+    // clang-format on
+    std::optional<std::chrono::milliseconds> timeout;
 };
 
 bool operator==(const Qos& lhs, const Qos& rhs) noexcept;
 
 Qos Parse(const formats::json::Value& value, formats::parse::To<Qos>);
 
-formats::json::Value Serialize(const Qos& qos,
-                               formats::serialize::To<formats::json::Value>);
+formats::json::Value Serialize(const Qos& qos, formats::serialize::To<formats::json::Value>);
 
 }  // namespace ugrpc::client
 

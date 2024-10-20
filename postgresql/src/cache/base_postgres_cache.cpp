@@ -7,7 +7,7 @@ USERVER_NAMESPACE_BEGIN
 namespace components::impl {
 
 std::string GetPostgreCacheSchema() {
-  return R"(
+    return R"(
 type: object
 description: Caching component for PostgreSQL derived from components::CachingComponentBase.
 additionalProperties: false

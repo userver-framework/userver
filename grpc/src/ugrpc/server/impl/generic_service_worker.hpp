@@ -14,20 +14,20 @@ class GenericServiceBase;
 namespace ugrpc::server::impl {
 
 class GenericServiceWorker final {
- public:
-  GenericServiceWorker(GenericServiceBase& service, ServiceSettings&& settings);
+public:
+    GenericServiceWorker(GenericServiceBase& service, ServiceSettings&& settings);
 
-  GenericServiceWorker(GenericServiceWorker&&) noexcept;
-  GenericServiceWorker& operator=(GenericServiceWorker&&) noexcept;
-  ~GenericServiceWorker();
+    GenericServiceWorker(GenericServiceWorker&&) noexcept;
+    GenericServiceWorker& operator=(GenericServiceWorker&&) noexcept;
+    ~GenericServiceWorker();
 
-  grpc::AsyncGenericService& GetService();
+    grpc::AsyncGenericService& GetService();
 
-  void Start();
+    void Start();
 
- private:
-  struct Impl;
-  utils::Box<Impl> impl_;
+private:
+    struct Impl;
+    utils::Box<Impl> impl_;
 };
 
 }  // namespace ugrpc::server::impl

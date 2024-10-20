@@ -15,21 +15,21 @@ namespace components {
 
 /// State of the component
 enum class ComponentHealth {
-  /// component is alive and fine
-  kOk,
-  /// component in fallback state, but the service keeps working
-  kFallback,
-  /// component is sick, service can not work without it
-  kFatal,
+    /// component is alive and fine
+    kOk,
+    /// component in fallback state, but the service keeps working
+    kFallback,
+    /// component is sick, service can not work without it
+    kFatal,
 };
 
 /// Whether the static config for the component must always be present, or can
 /// be missing
 enum class ConfigFileMode {
-  /// component must be setup in config
-  kRequired,
-  /// component must be not setup in config
-  kNotRequired
+    /// component must be setup in config
+    kRequired,
+    /// component must be not setup in config
+    kNotRequired
 };
 
 /// @brief The base class for all components. Don't use it for application
@@ -37,26 +37,24 @@ enum class ConfigFileMode {
 ///
 /// Only inherited directly by some of the built-in userver components.
 class RawComponentBase {
- public:
-  RawComponentBase() = default;
+public:
+    RawComponentBase() = default;
 
-  RawComponentBase(RawComponentBase&&) = delete;
+    RawComponentBase(RawComponentBase&&) = delete;
 
-  RawComponentBase(const RawComponentBase&) = delete;
+    RawComponentBase(const RawComponentBase&) = delete;
 
-  virtual ~RawComponentBase();
+    virtual ~RawComponentBase();
 
-  virtual ComponentHealth GetComponentHealth() const {
-    return ComponentHealth::kOk;
-  }
+    virtual ComponentHealth GetComponentHealth() const { return ComponentHealth::kOk; }
 
-  virtual void OnLoadingCancelled() {}
+    virtual void OnLoadingCancelled() {}
 
-  virtual void OnAllComponentsLoaded() {}
+    virtual void OnAllComponentsLoaded() {}
 
-  virtual void OnAllComponentsAreStopping() {}
+    virtual void OnAllComponentsAreStopping() {}
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 };
 
 /// Specialize it for typename Component to validate static config against

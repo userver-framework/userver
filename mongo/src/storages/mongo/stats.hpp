@@ -21,187 +21,183 @@ namespace storages::mongo::stats {
 
 using Rate = utils::statistics::Rate;
 using Counter = utils::statistics::RateCounter;
-using TimingsPercentile =
-    utils::statistics::Percentile</*buckets =*/1000, uint32_t,
-                                  /*extra_buckets=*/780,
-                                  /*extra_bucket_size=*/50>;
-using AggregatedTimingsPercentile =
-    utils::statistics::RecentPeriod<TimingsPercentile, TimingsPercentile>;
+using TimingsPercentile = utils::statistics::Percentile<
+    /*buckets =*/1000,
+    uint32_t,
+    /*extra_buckets=*/780,
+    /*extra_bucket_size=*/50>;
+using AggregatedTimingsPercentile = utils::statistics::RecentPeriod<TimingsPercentile, TimingsPercentile>;
 
 enum class ErrorType : std::size_t {
-  kSuccess,
+    kSuccess,
 
-  kNetwork,
-  kClusterUnavailable,
-  kBadServerVersion,
-  kAuthFailure,
-  kBadQueryArgument,
-  kDuplicateKey,
-  kWriteConcern,
-  kServer,
-  kOther,
+    kNetwork,
+    kClusterUnavailable,
+    kBadServerVersion,
+    kAuthFailure,
+    kBadQueryArgument,
+    kDuplicateKey,
+    kWriteConcern,
+    kServer,
+    kOther,
 
-  kCancelled,
-  kPoolOverload,
+    kCancelled,
+    kPoolOverload,
 
-  kErrorTypesCount
+    kErrorTypesCount
 };
 
-inline constexpr auto kErrorTypesCount =
-    static_cast<std::size_t>(ErrorType::kErrorTypesCount);
+inline constexpr auto kErrorTypesCount = static_cast<std::size_t>(ErrorType::kErrorTypesCount);
 
 struct OperationStatisticsItem final {
-  void Account(ErrorType) noexcept;
+    void Account(ErrorType) noexcept;
 
-  void Reset();
+    void Reset();
 
-  Rate GetCounter(ErrorType) const noexcept;
+    Rate GetCounter(ErrorType) const noexcept;
 
-  Rate GetTotalQueries() const noexcept;
+    Rate GetTotalQueries() const noexcept;
 
-  std::array<Counter, kErrorTypesCount> counters;
-  Counter timings_sum{0};
-  AggregatedTimingsPercentile timings;
+    std::array<Counter, kErrorTypesCount> counters;
+    Counter timings_sum{0};
+    AggregatedTimingsPercentile timings;
 };
 
 std::string_view ToString(ErrorType type);
 
 enum class OpType {
-  kInvalid,
+    kInvalid,
 
-  kReadMin,
-  kCount = kReadMin,
-  kCountApprox,
-  kFind,
-  kAggregate,
+    kReadMin,
+    kCount = kReadMin,
+    kCountApprox,
+    kFind,
+    kAggregate,
 
-  kWriteMin,
-  kInsertOne = kWriteMin,
-  kInsertMany,
-  kReplaceOne,
-  kUpdateOne,
-  kUpdateMany,
-  kDeleteOne,
-  kDeleteMany,
-  kFindAndModify,
-  kFindAndRemove,
-  kBulk,
-  kDrop,
+    kWriteMin,
+    kInsertOne = kWriteMin,
+    kInsertMany,
+    kReplaceOne,
+    kUpdateOne,
+    kUpdateMany,
+    kDeleteOne,
+    kDeleteMany,
+    kFindAndModify,
+    kFindAndRemove,
+    kBulk,
+    kDrop,
 };
 
 std::string_view ToString(OpType type);
 
 struct OperationKey final {
-  bool operator==(const OperationKey& other) const noexcept;
+    bool operator==(const OperationKey& other) const noexcept;
 
-  // We might want to add an optional user-provided label here in the future.
-  OpType op_type{OpType::kInvalid};
+    // We might want to add an optional user-provided label here in the future.
+    OpType op_type{OpType::kInvalid};
 };
 
 struct CollectionStatistics final {
-  rcu::RcuMap<OperationKey, OperationStatisticsItem> items;
+    rcu::RcuMap<OperationKey, OperationStatisticsItem> items;
 };
 
 struct PoolConnectStatistics final {
-  PoolConnectStatistics();
+    PoolConnectStatistics();
 
-  Counter requested;
-  Counter created;
-  Counter closed;
-  Counter overload;
+    Counter requested;
+    Counter created;
+    Counter closed;
+    Counter overload;
 
-  utils::SharedRef<OperationStatisticsItem> ping;
+    utils::SharedRef<OperationStatisticsItem> ping;
 
-  AggregatedTimingsPercentile request_timings_agg;
-  AggregatedTimingsPercentile queue_wait_timings_agg;
+    AggregatedTimingsPercentile request_timings_agg;
+    AggregatedTimingsPercentile queue_wait_timings_agg;
 };
 
 struct TopologyStatistics final {
-  Counter changed;
+    Counter changed;
 };
 
 struct HeartbeatsStatistics final {
-  Counter success;
-  Counter failed;
-  Counter start;
+    Counter success;
+    Counter failed;
+    Counter start;
 };
 
 // See
 // https://mongoc.org/libmongoc/current/application-performance-monitoring.html
 struct ApmStats final {
-  TopologyStatistics topology;
-  HeartbeatsStatistics heartbeats;
+    TopologyStatistics topology;
+    HeartbeatsStatistics heartbeats;
 };
 
 struct EventStats final {
-  Rate sucess;
-  Rate failed;
+    Rate sucess;
+    Rate failed;
 
-  bool operator==(const EventStats& o) const {
-    return sucess == o.sucess && failed == o.failed;
-  }
+    bool operator==(const EventStats& o) const { return sucess == o.sucess && failed == o.failed; }
 };
 
 struct ConnStats final {
-  EventStats event_stats_;  // per-connection
-  ApmStats* apm_stats_{nullptr};
+    EventStats event_stats_;  // per-connection
+    ApmStats* apm_stats_{nullptr};
 };
 
 struct PoolStatistics final {
-  PoolStatistics() : pool(utils::MakeSharedRef<PoolConnectStatistics>()) {}
+    PoolStatistics() : pool(utils::MakeSharedRef<PoolConnectStatistics>()) {}
 
-  utils::SharedRef<PoolConnectStatistics> pool;
-  rcu::RcuMap<std::string, CollectionStatistics> collections;
-  congestion_control::v2::Stats congestion_control;
+    utils::SharedRef<PoolConnectStatistics> pool;
+    rcu::RcuMap<std::string, CollectionStatistics> collections;
+    congestion_control::v2::Stats congestion_control;
 };
 
 class OperationStopwatch final {
- public:
-  explicit OperationStopwatch(std::shared_ptr<OperationStatisticsItem>);
-  OperationStopwatch(std::shared_ptr<OperationStatisticsItem>,
-                     std::string&& label);
+public:
+    explicit OperationStopwatch(std::shared_ptr<OperationStatisticsItem>);
+    OperationStopwatch(std::shared_ptr<OperationStatisticsItem>, std::string&& label);
 
-  OperationStopwatch(const OperationStopwatch&) = delete;
-  OperationStopwatch(OperationStopwatch&&) noexcept = default;
-  ~OperationStopwatch();
+    OperationStopwatch(const OperationStopwatch&) = delete;
+    OperationStopwatch(OperationStopwatch&&) noexcept = default;
+    ~OperationStopwatch();
 
-  void AccountSuccess();
-  void AccountError(MongoError::Kind);
-  void Discard();
+    void AccountSuccess();
+    void AccountError(MongoError::Kind);
+    void Discard();
 
- private:
-  void Account(ErrorType) noexcept;
+private:
+    void Account(ErrorType) noexcept;
 
-  std::shared_ptr<OperationStatisticsItem> stats_item_;
-  tracing::ScopeTime scope_time_;
+    std::shared_ptr<OperationStatisticsItem> stats_item_;
+    tracing::ScopeTime scope_time_;
 };
 
 class ConnectionWaitStopwatch final {
- public:
-  explicit ConnectionWaitStopwatch(std::shared_ptr<PoolConnectStatistics>);
-  ~ConnectionWaitStopwatch();
+public:
+    explicit ConnectionWaitStopwatch(std::shared_ptr<PoolConnectStatistics>);
+    ~ConnectionWaitStopwatch();
 
-  ConnectionWaitStopwatch(const ConnectionWaitStopwatch&) = delete;
-  ConnectionWaitStopwatch(ConnectionWaitStopwatch&&) noexcept = default;
+    ConnectionWaitStopwatch(const ConnectionWaitStopwatch&) = delete;
+    ConnectionWaitStopwatch(ConnectionWaitStopwatch&&) noexcept = default;
 
- private:
-  std::shared_ptr<PoolConnectStatistics> stats_ptr_;
-  tracing::ScopeTime scope_time_;
+private:
+    std::shared_ptr<PoolConnectStatistics> stats_ptr_;
+    tracing::ScopeTime scope_time_;
 };
 
 class ConnectionThrottleStopwatch final {
- public:
-  explicit ConnectionThrottleStopwatch(std::shared_ptr<PoolConnectStatistics>);
-  ~ConnectionThrottleStopwatch();
+public:
+    explicit ConnectionThrottleStopwatch(std::shared_ptr<PoolConnectStatistics>);
+    ~ConnectionThrottleStopwatch();
 
-  ConnectionThrottleStopwatch(const ConnectionThrottleStopwatch&) = delete;
-  ConnectionThrottleStopwatch(ConnectionThrottleStopwatch&&) noexcept = default;
+    ConnectionThrottleStopwatch(const ConnectionThrottleStopwatch&) = delete;
+    ConnectionThrottleStopwatch(ConnectionThrottleStopwatch&&) noexcept = default;
 
-  void Stop() noexcept;
+    void Stop() noexcept;
 
- private:
-  std::shared_ptr<PoolConnectStatistics> stats_ptr_;
-  tracing::ScopeTime scope_time_;
+private:
+    std::shared_ptr<PoolConnectStatistics> stats_ptr_;
+    tracing::ScopeTime scope_time_;
 };
 
 }  // namespace storages::mongo::stats
@@ -210,6 +206,5 @@ USERVER_NAMESPACE_END
 
 template <>
 struct std::hash<USERVER_NAMESPACE::storages::mongo::stats::OperationKey> {
-  std::size_t operator()(
-      USERVER_NAMESPACE::storages::mongo::stats::OperationKey value) const;
+    std::size_t operator()(USERVER_NAMESPACE::storages::mongo::stats::OperationKey value) const;
 };

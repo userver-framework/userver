@@ -36,45 +36,42 @@ components_manager:
 )";
 
 components::ComponentList MakeNoLoggingComponentList() {
-  return components::ComponentList()
-      // Pretty much the only component that does not require Logging.
-      .Append<os_signals::ProcessorComponent>();
+    return components::ComponentList()
+        // Pretty much the only component that does not require Logging.
+        .Append<os_signals::ProcessorComponent>();
 }
 
 }  // namespace
 
 TEST_F(ComponentList, NoLogging) {
-  UEXPECT_THROW_MSG(
-      components::RunOnce(
-          components::InMemoryConfig{std::string{kNoLoggingConfig}},
-          MakeNoLoggingComponentList()),
-      std::exception,
-      "Error while parsing configs from in-memory config. Details: No "
-      "component config found for 'logging', which is a required component");
+    UEXPECT_THROW_MSG(
+        components::RunOnce(components::InMemoryConfig{std::string{kNoLoggingConfig}}, MakeNoLoggingComponentList()),
+        std::exception,
+        "Error while parsing configs from in-memory config. Details: No "
+        "component config found for 'logging', which is a required component"
+    );
 }
 
 namespace {
 
 class TwoLoggersComponent final : public components::ComponentBase {
- public:
-  static constexpr std::string_view kName = "two-loggers";
+public:
+    static constexpr std::string_view kName = "two-loggers";
 
-  TwoLoggersComponent(const components::ComponentConfig& config,
-                      const components::ComponentContext& context)
-      : components::ComponentBase(config, context),
-        custom_logger_(
-            context.FindComponent<components::Logging>().GetLogger("custom")) {
-    LOG_INFO() << "constructor default";
-    LOG_INFO_TO(custom_logger_) << "constructor custom";
-  }
+    TwoLoggersComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : components::ComponentBase(config, context),
+          custom_logger_(context.FindComponent<components::Logging>().GetLogger("custom")) {
+        LOG_INFO() << "constructor default";
+        LOG_INFO_TO(custom_logger_) << "constructor custom";
+    }
 
-  ~TwoLoggersComponent() override {
-    LOG_INFO() << "destructor default";
-    LOG_INFO_TO(custom_logger_) << "destructor custom";
-  }
+    ~TwoLoggersComponent() override {
+        LOG_INFO() << "destructor default";
+        LOG_INFO_TO(custom_logger_) << "destructor custom";
+    }
 
- private:
-  logging::LoggerPtr custom_logger_;
+private:
+    logging::LoggerPtr custom_logger_;
 };
 
 constexpr std::string_view kTwoLoggersConfig = R"(
@@ -109,46 +106,49 @@ custom-logger-path: {1}
 )";
 
 components::ComponentList MakeTwoLoggersComponentList() {
-  return components::ComponentList()
-      .Append<os_signals::ProcessorComponent>()
-      .Append<components::Logging>()
-      .Append<components::Tracer>()
-      .Append<TwoLoggersComponent>()
-      .Append<alerts::StorageComponent>();
+    return components::ComponentList()
+        .Append<os_signals::ProcessorComponent>()
+        .Append<components::Logging>()
+        .Append<components::Tracer>()
+        .Append<TwoLoggersComponent>()
+        .Append<alerts::StorageComponent>();
 }
 
 }  // namespace
 
 TEST_F(ComponentList, CustomLogger) {
-  const auto temp_root = fs::blocking::TempDirectory::Create();
-  const auto default_logger_path = temp_root.GetPath() + "/log.txt";
-  const auto custom_logger_path = temp_root.GetPath() + "/custom_log.txt";
-  const auto config_path = temp_root.GetPath() + "/config.yaml";
-  const auto config_vars_path = temp_root.GetPath() + "/config_vars.yaml";
+    const auto temp_root = fs::blocking::TempDirectory::Create();
+    const auto default_logger_path = temp_root.GetPath() + "/log.txt";
+    const auto custom_logger_path = temp_root.GetPath() + "/custom_log.txt";
+    const auto config_path = temp_root.GetPath() + "/config.yaml";
+    const auto config_vars_path = temp_root.GetPath() + "/config_vars.yaml";
 
-  fs::blocking::RewriteFileContents(config_path, kTwoLoggersConfig);
+    fs::blocking::RewriteFileContents(config_path, kTwoLoggersConfig);
 
-  fs::blocking::RewriteFileContents(
-      config_vars_path, fmt::format(kTwoLoggersConfigVars, default_logger_path,
-                                    custom_logger_path));
+    fs::blocking::RewriteFileContents(
+        config_vars_path, fmt::format(kTwoLoggersConfigVars, default_logger_path, custom_logger_path)
+    );
 
-  UASSERT_NO_THROW(components::RunOnce(config_path, config_vars_path,
-                                       std::nullopt,
-                                       MakeTwoLoggersComponentList()));
+    UASSERT_NO_THROW(components::RunOnce(config_path, config_vars_path, std::nullopt, MakeTwoLoggersComponentList()));
 
-  const auto default_log = fs::blocking::ReadFileContents(default_logger_path);
-  const auto custom_log = fs::blocking::ReadFileContents(custom_logger_path);
+    const auto default_log = fs::blocking::ReadFileContents(default_logger_path);
+    const auto custom_log = fs::blocking::ReadFileContents(custom_logger_path);
 
-  EXPECT_THAT(default_log, testing::HasSubstr(fmt::format(
-                               "Parsed configs from file '{}' "
-                               "using config_vars from cmdline in file '{}'",
-                               config_path, config_vars_path)));
+    EXPECT_THAT(
+        default_log,
+        testing::HasSubstr(fmt::format(
+            "Parsed configs from file '{}' "
+            "using config_vars from cmdline in file '{}'",
+            config_path,
+            config_vars_path
+        ))
+    );
 
-  EXPECT_THAT(default_log, testing::HasSubstr("constructor default"));
-  EXPECT_THAT(default_log, testing::HasSubstr("destructor default"));
+    EXPECT_THAT(default_log, testing::HasSubstr("constructor default"));
+    EXPECT_THAT(default_log, testing::HasSubstr("destructor default"));
 
-  EXPECT_THAT(custom_log, testing::HasSubstr("constructor custom"));
-  EXPECT_THAT(custom_log, testing::HasSubstr("destructor custom"));
+    EXPECT_THAT(custom_log, testing::HasSubstr("constructor custom"));
+    EXPECT_THAT(custom_log, testing::HasSubstr("destructor custom"));
 }
 
 USERVER_NAMESPACE_END

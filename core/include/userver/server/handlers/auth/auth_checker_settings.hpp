@@ -11,17 +11,15 @@ USERVER_NAMESPACE_BEGIN
 namespace server::handlers::auth {
 
 class AuthCheckerSettings final {
- public:
-  explicit AuthCheckerSettings(const formats::json::Value& doc);
+public:
+    explicit AuthCheckerSettings(const formats::json::Value& doc);
 
-  const std::optional<ApiKeysMap>& GetApiKeysMap() const {
-    return apikeys_map_;
-  }
+    const std::optional<ApiKeysMap>& GetApiKeysMap() const { return apikeys_map_; }
 
- private:
-  void ParseApikeys(const formats::json::Value& apikeys_map);
+private:
+    void ParseApikeys(const formats::json::Value& apikeys_map);
 
-  std::optional<ApiKeysMap> apikeys_map_;
+    std::optional<ApiKeysMap> apikeys_map_;
 };
 
 }  // namespace server::handlers::auth

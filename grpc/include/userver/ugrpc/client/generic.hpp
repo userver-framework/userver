@@ -18,21 +18,21 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::client {
 
 struct GenericOptions {
-  /// Client QOS for this call. Note that there is no QOS dynamic config by
-  /// default, so unless a timeout is specified here, only the deadline
-  /// propagation mechanism will affect the gRPC deadline.
-  Qos qos{};
+    /// Client QOS for this call. Note that there is no QOS dynamic config by
+    /// default, so unless a timeout is specified here, only the deadline
+    /// propagation mechanism will affect the gRPC deadline.
+    Qos qos{};
 
-  /// If non-`nullopt`, metrics are accounted for specified fake call name.
-  /// If `nullopt`, writes a set of metrics per real call name.
-  /// If the microservice serves as a proxy and has untrusted clients, it is
-  /// a good idea to have this option set to non-`nullopt` to avoid
-  /// the situations where an upstream client can spam various RPCs with
-  /// non-existent names, which leads to this microservice spamming RPCs
-  /// with non-existent names, which leads to creating storage for infinite
-  /// metrics and causes OOM.
-  /// The default is to specify `"Generic/Generic"` fake call name.
-  std::optional<std::string_view> metrics_call_name{"Generic/Generic"};
+    /// If non-`nullopt`, metrics are accounted for specified fake call name.
+    /// If `nullopt`, writes a set of metrics per real call name.
+    /// If the microservice serves as a proxy and has untrusted clients, it is
+    /// a good idea to have this option set to non-`nullopt` to avoid
+    /// the situations where an upstream client can spam various RPCs with
+    /// non-existent names, which leads to this microservice spamming RPCs
+    /// with non-existent names, which leads to creating storage for infinite
+    /// metrics and causes OOM.
+    /// The default is to specify `"Generic/Generic"` fake call name.
+    std::optional<std::string_view> metrics_call_name{"Generic/Generic"};
 };
 
 /// @ingroup userver_clients
@@ -63,27 +63,28 @@ struct GenericOptions {
 ///
 /// For a more complete sample, see @ref grpc_generic_api.
 class GenericClient final {
- public:
-  GenericClient(GenericClient&&) noexcept = default;
-  GenericClient& operator=(GenericClient&&) noexcept = delete;
+public:
+    GenericClient(GenericClient&&) noexcept = default;
+    GenericClient& operator=(GenericClient&&) noexcept = delete;
 
-  /// Initiate a `single request -> single response` RPC with the given name.
-  client::UnaryCall<grpc::ByteBuffer> UnaryCall(
-      std::string_view call_name, const grpc::ByteBuffer& request,
-      std::unique_ptr<grpc::ClientContext> context =
-          std::make_unique<grpc::ClientContext>(),
-      const GenericOptions& options = {}) const;
+    /// Initiate a `single request -> single response` RPC with the given name.
+    client::UnaryCall<grpc::ByteBuffer> UnaryCall(
+        std::string_view call_name,
+        const grpc::ByteBuffer& request,
+        std::unique_ptr<grpc::ClientContext> context = std::make_unique<grpc::ClientContext>(),
+        const GenericOptions& options = {}
+    ) const;
 
-  /// @cond
-  // For internal use only.
-  explicit GenericClient(impl::ClientDependencies&&);
-  /// @endcond
+    /// @cond
+    // For internal use only.
+    explicit GenericClient(impl::ClientDependencies&&);
+    /// @endcond
 
- private:
-  template <typename Client>
-  friend impl::ClientData& impl::GetClientData(Client& client);
+private:
+    template <typename Client>
+    friend impl::ClientData& impl::GetClientData(Client& client);
 
-  impl::ClientData impl_;
+    impl::ClientData impl_;
 };
 
 }  // namespace ugrpc::client

@@ -7,8 +7,8 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::server::middlewares::deadline_propagation {
 
 class Middleware final : public MiddlewareBase {
- public:
-  void Handle(MiddlewareCallContext& context) const override;
+public:
+    void Handle(MiddlewareCallContext& context) const override;
 };
 
 }  // namespace ugrpc::server::middlewares::deadline_propagation

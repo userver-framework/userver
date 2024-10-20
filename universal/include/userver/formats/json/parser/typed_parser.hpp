@@ -11,35 +11,34 @@ namespace formats::json::parser {
 
 template <typename T>
 class Subscriber {
- public:
-  virtual ~Subscriber() = default;
+public:
+    virtual ~Subscriber() = default;
 
-  virtual void OnSend(T&&) = 0;
+    virtual void OnSend(T&&) = 0;
 };
 
 template <typename T>
 class SubscriberSink final : public Subscriber<T> {
- public:
-  SubscriberSink(T& data) : data_(data) {}
+public:
+    SubscriberSink(T& data) : data_(data) {}
 
-  void OnSend(T&& value) override { data_ = std::move(value); }
+    void OnSend(T&& value) override { data_ = std::move(value); }
 
- private:
-  T& data_;
+private:
+    T& data_;
 };
 
 template <typename T>
-class SubscriberSinkOptional final : public Subscriber<T>,
-                                     public Subscriber<std::optional<T>> {
- public:
-  SubscriberSinkOptional(std::optional<T>& data) : data_(data) {}
+class SubscriberSinkOptional final : public Subscriber<T>, public Subscriber<std::optional<T>> {
+public:
+    SubscriberSinkOptional(std::optional<T>& data) : data_(data) {}
 
-  void OnSend(T&& value) override { data_ = std::move(value); }
+    void OnSend(T&& value) override { data_ = std::move(value); }
 
-  void OnSend(std::optional<T>&& value) override { data_ = std::move(value); }
+    void OnSend(std::optional<T>&& value) override { data_ = std::move(value); }
 
- private:
-  std::optional<T>& data_;
+private:
+    std::optional<T>& data_;
 };
 
 /// @brief Main base class for SAX parsers
@@ -128,45 +127,45 @@ class SubscriberSinkOptional final : public Subscriber<T>,
 ///
 template <typename T>
 class TypedParser : public BaseParser {
- public:
-  void Subscribe(Subscriber<T>& subscriber) { subscriber_ = &subscriber; }
+public:
+    void Subscribe(Subscriber<T>& subscriber) { subscriber_ = &subscriber; }
 
-  using ResultType = T;
+    using ResultType = T;
 
-  /// Resets parser's internal state.
-  /// It should not call Reset() of subparsers (if any).
-  /// Subparsers' Reset() should be called just before pushing it onto the
-  /// stack.
-  virtual void Reset() {}
+    /// Resets parser's internal state.
+    /// It should not call Reset() of subparsers (if any).
+    /// Subparsers' Reset() should be called just before pushing it onto the
+    /// stack.
+    virtual void Reset() {}
 
-  /// Returns an actual parser.
-  /// It is commonly used in PushParser() to identify typed parser
-  /// of a proxy parser.
-  TypedParser<T>& GetParser() { return *this; }
+    /// Returns an actual parser.
+    /// It is commonly used in PushParser() to identify typed parser
+    /// of a proxy parser.
+    TypedParser<T>& GetParser() { return *this; }
 
- protected:
-  void SetResult(T&& value) {
-    parser_state_->PopMe(*this);
-    if (subscriber_) subscriber_->OnSend(std::move(value));
-  }
+protected:
+    void SetResult(T&& value) {
+        parser_state_->PopMe(*this);
+        if (subscriber_) subscriber_->OnSend(std::move(value));
+    }
 
- private:
-  Subscriber<T>* subscriber_{nullptr};
+private:
+    Subscriber<T>* subscriber_{nullptr};
 };
 
 template <typename T, typename Parser>
 T ParseToType(std::string_view input) {
-  T result{};
-  Parser parser;
-  parser.Reset();
-  SubscriberSink<T> sink(result);
-  parser.Subscribe(sink);
+    T result{};
+    Parser parser;
+    parser.Reset();
+    SubscriberSink<T> sink(result);
+    parser.Subscribe(sink);
 
-  ParserState state;
-  state.PushParser(parser);
-  state.ProcessInput(input);
+    ParserState state;
+    state.PushParser(parser);
+    state.ProcessInput(input);
 
-  return result;
+    return result;
 }
 
 }  // namespace formats::json::parser

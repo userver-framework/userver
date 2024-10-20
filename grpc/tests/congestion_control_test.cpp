@@ -14,46 +14,46 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 class UnitTestService final : public sample::ugrpc::UnitTestServiceBase {
- public:
-  void SayHello(SayHelloCall& call,
-                sample::ugrpc::GreetingRequest&& request) override {
-    sample::ugrpc::GreetingResponse response;
-    response.set_name("Hello " + request.name());
-    call.Finish(response);
-  }
+public:
+    void SayHello(SayHelloCall& call, sample::ugrpc::GreetingRequest&& request) override {
+        sample::ugrpc::GreetingResponse response;
+        response.set_name("Hello " + request.name());
+        call.Finish(response);
+    }
 };
 
 class CongestionControlTest : public ugrpc::tests::ServiceFixtureBase {
- protected:
-  CongestionControlTest() {
-    auto congestion_control_middleware = std::make_shared<
-        ugrpc::server::middlewares::congestion_control::Middleware>();
-    congestion_control_middleware->SetLimit(0);
-    SetServerMiddlewares({congestion_control_middleware});
+protected:
+    CongestionControlTest() {
+        auto congestion_control_middleware =
+            std::make_shared<ugrpc::server::middlewares::congestion_control::Middleware>();
+        congestion_control_middleware->SetLimit(0);
+        SetServerMiddlewares({congestion_control_middleware});
 
-    RegisterService(service_);
-    StartServer();
-  }
+        RegisterService(service_);
+        StartServer();
+    }
 
- private:
-  UnitTestService service_;
+private:
+    UnitTestService service_;
 };
 
 }  // namespace
 
 UTEST_F(CongestionControlTest, Basic) {
-  const auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
+    const auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
 
-  sample::ugrpc::GreetingRequest out;
-  out.set_name("userver");
-  auto call = client.SayHello(out);
+    sample::ugrpc::GreetingRequest out;
+    out.set_name("userver");
+    auto call = client.SayHello(out);
 
-  UEXPECT_THROW(call.Finish(), ugrpc::client::ResourceExhaustedError);
+    UEXPECT_THROW(call.Finish(), ugrpc::client::ResourceExhaustedError);
 
-  const auto& metadata = call.GetContext().GetServerInitialMetadata();
-  ASSERT_EQ(
-      ugrpc::impl::kCongestionControlRatelimitReason,
-      utils::FindOrDefault(metadata, ugrpc::impl::kXYaTaxiRatelimitReason));
+    const auto& metadata = call.GetContext().GetServerInitialMetadata();
+    ASSERT_EQ(
+        ugrpc::impl::kCongestionControlRatelimitReason,
+        utils::FindOrDefault(metadata, ugrpc::impl::kXYaTaxiRatelimitReason)
+    );
 }
 
 USERVER_NAMESPACE_END

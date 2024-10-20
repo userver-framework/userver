@@ -13,16 +13,15 @@ using NativeType = clickhouse::impl::clickhouse_cpp::ColumnString;
 }
 
 StringColumn::StringColumn(ColumnRef column)
-    : ClickhouseColumn{impl::GetTypedColumn<StringColumn, NativeType>(column)} {
-}
+    : ClickhouseColumn{impl::GetTypedColumn<StringColumn, NativeType>(column)} {}
 
 template <>
 StringColumn::cpp_type ColumnIterator<StringColumn>::DataHolder::Get() const {
-  return std::string{impl::NativeGetAt<NativeType>(column_, ind_)};
+    return std::string{impl::NativeGetAt<NativeType>(column_, ind_)};
 }
 
 ColumnRef StringColumn::Serialize(const container_type& from) {
-  return std::make_shared<clickhouse::impl::clickhouse_cpp::ColumnString>(from);
+    return std::make_shared<clickhouse::impl::clickhouse_cpp::ColumnString>(from);
 }
 
 }  // namespace storages::clickhouse::io::columns

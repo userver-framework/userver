@@ -7,7 +7,7 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::impl {
 
 inline auto GetFieldOptions(const google::protobuf::FieldDescriptor& field) {
-  return field.options().GetExtension(userver::field);
+    return field.options().GetExtension(userver::field);
 }
 
 void TrimSecrets(google::protobuf::Message& message);

@@ -40,128 +40,133 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::postgres::detail {
 
 class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
-  class EmplaceEnabler;
+    class EmplaceEnabler;
 
- public:
-  ConnectionPool(
-      EmplaceEnabler, Dsn dsn, clients::dns::Resolver* resolver,
-      engine::TaskProcessor& bg_task_processor, const std::string& db_name,
-      const PoolSettings& settings, const ConnectionSettings& conn_settings,
-      const StatementMetricsSettings& statement_metrics_settings,
-      const DefaultCommandControls& default_cmd_ctls,
-      const testsuite::PostgresControl& testsuite_pg_ctl,
-      error_injection::Settings ei_settings,
-      const congestion_control::v2::LinearController::StaticConfig& cc_config,
-      dynamic_config::Source config_source);
+public:
+    ConnectionPool(
+        EmplaceEnabler,
+        Dsn dsn,
+        clients::dns::Resolver* resolver,
+        engine::TaskProcessor& bg_task_processor,
+        const std::string& db_name,
+        const PoolSettings& settings,
+        const ConnectionSettings& conn_settings,
+        const StatementMetricsSettings& statement_metrics_settings,
+        const DefaultCommandControls& default_cmd_ctls,
+        const testsuite::PostgresControl& testsuite_pg_ctl,
+        error_injection::Settings ei_settings,
+        const congestion_control::v2::LinearController::StaticConfig& cc_config,
+        dynamic_config::Source config_source
+    );
 
-  ~ConnectionPool();
+    ~ConnectionPool();
 
-  static std::shared_ptr<ConnectionPool> Create(
-      Dsn dsn, clients::dns::Resolver* resolver,
-      engine::TaskProcessor& bg_task_processor, const std::string& db_name,
-      const InitMode& init_mode, const PoolSettings& pool_settings,
-      const ConnectionSettings& conn_settings,
-      const StatementMetricsSettings& statement_metrics_settings,
-      const DefaultCommandControls& default_cmd_ctls,
-      const testsuite::PostgresControl& testsuite_pg_ctl,
-      error_injection::Settings ei_settings,
-      const congestion_control::v2::LinearController::StaticConfig& cc_config,
-      dynamic_config::Source config_source);
+    static std::shared_ptr<ConnectionPool> Create(
+        Dsn dsn,
+        clients::dns::Resolver* resolver,
+        engine::TaskProcessor& bg_task_processor,
+        const std::string& db_name,
+        const InitMode& init_mode,
+        const PoolSettings& pool_settings,
+        const ConnectionSettings& conn_settings,
+        const StatementMetricsSettings& statement_metrics_settings,
+        const DefaultCommandControls& default_cmd_ctls,
+        const testsuite::PostgresControl& testsuite_pg_ctl,
+        error_injection::Settings ei_settings,
+        const congestion_control::v2::LinearController::StaticConfig& cc_config,
+        dynamic_config::Source config_source
+    );
 
-  [[nodiscard]] ConnectionPtr Acquire(engine::Deadline);
-  void Release(Connection* connection);
+    [[nodiscard]] ConnectionPtr Acquire(engine::Deadline);
+    void Release(Connection* connection);
 
-  const InstanceStatistics& GetStatistics() const;
-  [[nodiscard]] Transaction Begin(const TransactionOptions& options,
-                                  OptionalCommandControl trx_cmd_ctl = {});
+    const InstanceStatistics& GetStatistics() const;
+    [[nodiscard]] Transaction Begin(const TransactionOptions& options, OptionalCommandControl trx_cmd_ctl = {});
 
-  [[nodiscard]] NonTransaction Start(OptionalCommandControl cmd_ctl = {});
+    [[nodiscard]] NonTransaction Start(OptionalCommandControl cmd_ctl = {});
 
-  NotifyScope Listen(std::string_view channel,
-                     OptionalCommandControl cmd_ctl = {});
+    NotifyScope Listen(std::string_view channel, OptionalCommandControl cmd_ctl = {});
 
-  CommandControl GetDefaultCommandControl() const;
+    CommandControl GetDefaultCommandControl() const;
 
-  void SetSettings(const PoolSettings& settings);
+    void SetSettings(const PoolSettings& settings);
 
-  void SetConnectionSettings(const ConnectionSettings& settings);
+    void SetConnectionSettings(const ConnectionSettings& settings);
 
-  void SetStatementMetricsSettings(const StatementMetricsSettings& settings);
+    void SetStatementMetricsSettings(const StatementMetricsSettings& settings);
 
-  const detail::StatementStatsStorage& GetStatementStatsStorage() const {
-    return sts_;
-  }
+    const detail::StatementStatsStorage& GetStatementStatsStorage() const { return sts_; }
 
-  void SetMaxConnectionsCc(std::size_t max_connections);
+    void SetMaxConnectionsCc(std::size_t max_connections);
 
-  dynamic_config::Source GetConfigSource() const;
+    dynamic_config::Source GetConfigSource() const;
 
- private:
-  using SizeGuard = postgres::SizeGuard<std::atomic<size_t>>;
+private:
+    using SizeGuard = postgres::SizeGuard<std::atomic<size_t>>;
 
-  void Init(InitMode mode);
+    void Init(InitMode mode);
 
-  TimeoutDuration GetExecuteTimeout(OptionalCommandControl) const;
+    TimeoutDuration GetExecuteTimeout(OptionalCommandControl) const;
 
-  [[nodiscard]] engine::TaskWithResult<bool> Connect(engine::SemaphoreLock);
-  bool DoConnect(engine::SemaphoreLock);
+    [[nodiscard]] engine::TaskWithResult<bool> Connect(engine::SemaphoreLock);
+    bool DoConnect(engine::SemaphoreLock);
 
-  void TryCreateConnectionAsync();
-  void CheckMinPoolSizeUnderflow();
+    void TryCreateConnectionAsync();
+    void CheckMinPoolSizeUnderflow();
 
-  void Push(Connection* connection);
-  Connection* Pop(engine::Deadline);
+    void Push(Connection* connection);
+    Connection* Pop(engine::Deadline);
 
-  void Clear();
+    void Clear();
 
-  void CleanupConnection(Connection* connection);
-  void DeleteConnection(Connection* connection);
-  void DeleteBrokenConnection(Connection* connection);
-  void DropExpiredConnection(Connection* connection);
-  void DropOutdatedConnection(Connection* connection);
+    void CleanupConnection(Connection* connection);
+    void DeleteConnection(Connection* connection);
+    void DeleteBrokenConnection(Connection* connection);
+    void DropExpiredConnection(Connection* connection);
+    void DropOutdatedConnection(Connection* connection);
 
-  void AccountConnectionStats(Connection::Statistics stats);
+    void AccountConnectionStats(Connection::Statistics stats);
 
-  Connection* AcquireImmediate();
-  void MaintainConnections();
-  void StartMaintainTask();
-  void StopMaintainTask();
-  void StopConnectTasks();
+    Connection* AcquireImmediate();
+    void MaintainConnections();
+    void StartMaintainTask();
+    void StopMaintainTask();
+    void StopConnectTasks();
 
-  void CheckUserTypes();
+    void CheckUserTypes();
 
-  using RecentCounter = USERVER_NAMESPACE::utils::statistics::RecentPeriod<
-      USERVER_NAMESPACE::utils::statistics::RelaxedCounter<size_t>, size_t>;
+    using RecentCounter = USERVER_NAMESPACE::utils::statistics::
+        RecentPeriod<USERVER_NAMESPACE::utils::statistics::RelaxedCounter<size_t>, size_t>;
 
-  mutable InstanceStatistics stats_;
-  Dsn dsn_;
-  clients::dns::Resolver* resolver_;
-  std::string db_name_;
-  rcu::Variable<PoolSettings> settings_;
-  rcu::Variable<ConnectionSettings> conn_settings_;
-  engine::TaskProcessor& bg_task_processor_;
-  concurrent::BackgroundTaskStorageCore connect_task_storage_;
-  concurrent::BackgroundTaskStorageCore close_task_storage_;
-  USERVER_NAMESPACE::utils::PeriodicTask ping_task_;
-  engine::Mutex wait_mutex_;
-  engine::ConditionVariable conn_available_;
-  boost::lockfree::queue<Connection*> queue_;
-  engine::Semaphore size_semaphore_;
-  engine::Semaphore connecting_semaphore_;
-  std::atomic<size_t> wait_count_;
-  DefaultCommandControls default_cmd_ctls_;
-  testsuite::PostgresControl testsuite_pg_ctl_;
-  const error_injection::Settings ei_settings_;
-  RecentCounter recent_conn_errors_;
-  USERVER_NAMESPACE::utils::TokenBucket cancel_limit_;
-  detail::StatementStatsStorage sts_;
-  dynamic_config::Source config_source_;
+    mutable InstanceStatistics stats_;
+    Dsn dsn_;
+    clients::dns::Resolver* resolver_;
+    std::string db_name_;
+    rcu::Variable<PoolSettings> settings_;
+    rcu::Variable<ConnectionSettings> conn_settings_;
+    engine::TaskProcessor& bg_task_processor_;
+    concurrent::BackgroundTaskStorageCore connect_task_storage_;
+    concurrent::BackgroundTaskStorageCore close_task_storage_;
+    USERVER_NAMESPACE::utils::PeriodicTask ping_task_;
+    engine::Mutex wait_mutex_;
+    engine::ConditionVariable conn_available_;
+    boost::lockfree::queue<Connection*> queue_;
+    engine::Semaphore size_semaphore_;
+    engine::Semaphore connecting_semaphore_;
+    std::atomic<size_t> wait_count_;
+    DefaultCommandControls default_cmd_ctls_;
+    testsuite::PostgresControl testsuite_pg_ctl_;
+    const error_injection::Settings ei_settings_;
+    RecentCounter recent_conn_errors_;
+    USERVER_NAMESPACE::utils::TokenBucket cancel_limit_;
+    detail::StatementStatsStorage sts_;
+    dynamic_config::Source config_source_;
 
-  // Congestion control stuff
-  cc::Sensor cc_sensor_;
-  cc::Limiter cc_limiter_;
-  congestion_control::v2::LinearController cc_controller_;
-  std::atomic<std::size_t> cc_max_connections_{0};
+    // Congestion control stuff
+    cc::Sensor cc_sensor_;
+    cc::Limiter cc_limiter_;
+    congestion_control::v2::LinearController cc_controller_;
+    std::atomic<std::size_t> cc_max_connections_{0};
 };
 
 }  // namespace storages::postgres::detail

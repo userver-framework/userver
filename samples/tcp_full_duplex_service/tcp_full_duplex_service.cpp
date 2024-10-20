@@ -22,17 +22,16 @@ namespace samples::tcp::echo {
 struct Stats;
 
 class Echo final : public components::TcpAcceptorBase {
- public:
-  static constexpr std::string_view kName = "tcp-echo";
+public:
+    static constexpr std::string_view kName = "tcp-echo";
 
-  // Component is valid after construction and is able to accept requests
-  Echo(const components::ComponentConfig& config,
-       const components::ComponentContext& context);
+    // Component is valid after construction and is able to accept requests
+    Echo(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-  void ProcessSocket(engine::io::Socket&& sock) override;
+    void ProcessSocket(engine::io::Socket&& sock) override;
 
- private:
-  Stats& stats_;
+private:
+    Stats& stats_;
 };
 
 }  // namespace samples::tcp::echo
@@ -43,9 +42,9 @@ namespace samples::tcp::echo {
 
 /// [TCP sample - Stats definition]
 struct Stats {
-  std::atomic<std::uint64_t> opened_sockets{0};
-  std::atomic<std::uint64_t> closed_sockets{0};
-  std::atomic<std::uint64_t> bytes_read{0};
+    std::atomic<std::uint64_t> opened_sockets{0};
+    std::atomic<std::uint64_t> closed_sockets{0};
+    std::atomic<std::uint64_t> bytes_read{0};
 };
 /// [TCP sample - Stats definition]
 
@@ -53,25 +52,22 @@ struct Stats {
 const utils::statistics::MetricTag<Stats> kTcpEchoTag{"tcp-echo"};
 
 void DumpMetric(utils::statistics::Writer& writer, const Stats& stats) {
-  writer["sockets"]["opened"] = stats.opened_sockets;
-  writer["sockets"]["closed"] = stats.closed_sockets;
-  writer["bytes"]["read"] = stats.bytes_read;
+    writer["sockets"]["opened"] = stats.opened_sockets;
+    writer["sockets"]["closed"] = stats.closed_sockets;
+    writer["bytes"]["read"] = stats.bytes_read;
 }
 
 void ResetMetric(Stats& stats) {
-  stats.opened_sockets = 0;
-  stats.closed_sockets = 0;
-  stats.bytes_read = 0;
+    stats.opened_sockets = 0;
+    stats.closed_sockets = 0;
+    stats.bytes_read = 0;
 }
 /// [TCP sample - Stats tag]
 
 /// [TCP sample - constructor]
-Echo::Echo(const components::ComponentConfig& config,
-           const components::ComponentContext& context)
+Echo::Echo(const components::ComponentConfig& config, const components::ComponentContext& context)
     : TcpAcceptorBase(config, context),
-      stats_(context.FindComponent<components::StatisticsStorage>()
-                 .GetMetricsStorage()
-                 ->GetMetric(kTcpEchoTag)) {}
+      stats_(context.FindComponent<components::StatisticsStorage>().GetMetricsStorage()->GetMetric(kTcpEchoTag)) {}
 /// [TCP sample - constructor]
 
 /// [TCP sample - SendRecv]
@@ -80,30 +76,30 @@ namespace {
 using Queue = concurrent::SpscQueue<std::string>;
 
 void DoSend(engine::io::Socket& sock, Queue::Consumer consumer) {
-  std::string data;
-  while (consumer.Pop(data)) {
-    const auto sent_bytes = sock.SendAll(data.data(), data.size(), {});
-    if (sent_bytes != data.size()) {
-      LOG_INFO() << "Failed to send all the data";
-      return;
+    std::string data;
+    while (consumer.Pop(data)) {
+        const auto sent_bytes = sock.SendAll(data.data(), data.size(), {});
+        if (sent_bytes != data.size()) {
+            LOG_INFO() << "Failed to send all the data";
+            return;
+        }
     }
-  }
 }
 
 void DoRecv(engine::io::Socket& sock, Queue::Producer producer, Stats& stats) {
-  std::array<char, 1024> buf;  // NOLINT(cppcoreguidelines-pro-type-member-init)
-  while (!engine::current_task::ShouldCancel()) {
-    const auto read_bytes = sock.ReadSome(buf.data(), buf.size(), {});
-    if (!read_bytes) {
-      LOG_INFO() << "Failed to read data";
-      return;
-    }
+    std::array<char, 1024> buf;  // NOLINT(cppcoreguidelines-pro-type-member-init)
+    while (!engine::current_task::ShouldCancel()) {
+        const auto read_bytes = sock.ReadSome(buf.data(), buf.size(), {});
+        if (!read_bytes) {
+            LOG_INFO() << "Failed to read data";
+            return;
+        }
 
-    stats.bytes_read += read_bytes;
-    if (!producer.Push({buf.data(), read_bytes})) {
-      return;
+        stats.bytes_read += read_bytes;
+        if (!producer.Push({buf.data(), read_bytes})) {
+            return;
+        }
     }
-  }
 }
 
 }  // anonymous namespace
@@ -111,22 +107,21 @@ void DoRecv(engine::io::Socket& sock, Queue::Producer producer, Stats& stats) {
 
 /// [TCP sample - ProcessSocket]
 void Echo::ProcessSocket(engine::io::Socket&& sock) {
-  const auto sock_num = ++stats_.opened_sockets;
+    const auto sock_num = ++stats_.opened_sockets;
 
-  tracing::Span span{fmt::format("sock_{}", sock_num)};
-  span.AddTag("fd", std::to_string(sock.Fd()));
+    tracing::Span span{fmt::format("sock_{}", sock_num)};
+    span.AddTag("fd", std::to_string(sock.Fd()));
 
-  utils::FastScopeGuard guard{[this]() noexcept {
-    LOG_INFO() << "Closing socket";
-    ++stats_.closed_sockets;
-  }};
+    utils::FastScopeGuard guard{[this]() noexcept {
+        LOG_INFO() << "Closing socket";
+        ++stats_.closed_sockets;
+    }};
 
-  auto queue = Queue::Create();
+    auto queue = Queue::Create();
 
-  auto send_task =
-      utils::Async("send", DoSend, std::ref(sock), queue->GetConsumer());
+    auto send_task = utils::Async("send", DoSend, std::ref(sock), queue->GetConsumer());
 
-  DoRecv(sock, queue->GetProducer(), stats_);
+    DoRecv(sock, queue->GetProducer(), stats_);
 }
 /// [TCP sample - ProcessSocket]
 
@@ -134,15 +129,15 @@ void Echo::ProcessSocket(engine::io::Socket&& sock) {
 
 /// [TCP sample - main]
 int main(int argc, const char* const argv[]) {
-  const auto component_list = components::MinimalServerComponentList()
-                                  .Append<server::handlers::ServerMonitor>()
-                                  .Append<samples::tcp::echo::Echo>()
-                                  // Testuite components:
-                                  .Append<server::handlers::TestsControl>()
-                                  .Append<components::TestsuiteSupport>()
-                                  .Append<clients::dns::Component>()
-                                  .Append<components::HttpClient>();
+    const auto component_list = components::MinimalServerComponentList()
+                                    .Append<server::handlers::ServerMonitor>()
+                                    .Append<samples::tcp::echo::Echo>()
+                                    // Testuite components:
+                                    .Append<server::handlers::TestsControl>()
+                                    .Append<components::TestsuiteSupport>()
+                                    .Append<clients::dns::Component>()
+                                    .Append<components::HttpClient>();
 
-  return utils::DaemonMain(argc, argv, component_list);
+    return utils::DaemonMain(argc, argv, component_list);
 }
 /// [TCP sample - main]

@@ -34,183 +34,164 @@ namespace {
 constexpr auto kStatisticsName = "postgresql";
 
 storages::postgres::ConnlimitMode ParseConnlimitMode(const std::string& value) {
-  if (value == "manual") return storages::postgres::ConnlimitMode::kManual;
-  if (value == "auto") return storages::postgres::ConnlimitMode::kAuto;
+    if (value == "manual") return storages::postgres::ConnlimitMode::kManual;
+    if (value == "auto") return storages::postgres::ConnlimitMode::kAuto;
 
-  UINVARIANT(false, "Unknown connlimit mode: " + value);
+    UINVARIANT(false, "Unknown connlimit mode: " + value);
 }
 
 }  // namespace
 
-Postgres::Postgres(const ComponentConfig& config,
-                   const ComponentContext& context)
+Postgres::Postgres(const ComponentConfig& config, const ComponentContext& context)
     : ComponentBase(config, context),
       name_{config.Name()},
       database_{std::make_shared<storages::postgres::Database>()} {
-  storages::postgres::LogRegisteredTypesOnce();
+    storages::postgres::LogRegisteredTypesOnce();
 
-  namespace pg = storages::postgres;
+    namespace pg = storages::postgres;
 
-  auto config_source = context.FindComponent<DynamicConfig>().GetSource();
-  const auto initial_config = config_source.GetSnapshot();
-  const auto& pg_config = initial_config[storages::postgres::kConfig];
+    auto config_source = context.FindComponent<DynamicConfig>().GetSource();
+    const auto initial_config = config_source.GetSnapshot();
+    const auto& pg_config = initial_config[storages::postgres::kConfig];
 
-  const auto dbalias = config["dbalias"].As<std::string>("");
+    const auto dbalias = config["dbalias"].As<std::string>("");
 
-  std::vector<pg::DsnList> cluster_desc;
-  if (dbalias.empty()) {
-    const pg::Dsn dsn{config["dbconnection"].As<std::string>()};
-    const auto options = pg::OptionsFromDsn(dsn);
-    db_name_ = options.dbname;
-    cluster_desc.push_back(pg::SplitByHost(dsn));
-  } else {
-    try {
-      auto& secdist = context.FindComponent<Secdist>();
-      cluster_desc = secdist.Get()
-                         .Get<pg::secdist::PostgresSettings>()
-                         .GetShardedClusterDescription(dbalias);
-      db_name_ = dbalias;
-    } catch (const storages::secdist::SecdistError& ex) {
-      LOG_ERROR() << "Failed to load Postgres config for dbalias " << dbalias
-                  << ": " << ex;
-      throw;
+    std::vector<pg::DsnList> cluster_desc;
+    if (dbalias.empty()) {
+        const pg::Dsn dsn{config["dbconnection"].As<std::string>()};
+        const auto options = pg::OptionsFromDsn(dsn);
+        db_name_ = options.dbname;
+        cluster_desc.push_back(pg::SplitByHost(dsn));
+    } else {
+        try {
+            auto& secdist = context.FindComponent<Secdist>();
+            cluster_desc = secdist.Get().Get<pg::secdist::PostgresSettings>().GetShardedClusterDescription(dbalias);
+            db_name_ = dbalias;
+        } catch (const storages::secdist::SecdistError& ex) {
+            LOG_ERROR() << "Failed to load Postgres config for dbalias " << dbalias << ": " << ex;
+            throw;
+        }
     }
-  }
 
-  const auto monitoring_dbalias =
-      config["monitoring-dbalias"].As<std::string>("");
-  if (!monitoring_dbalias.empty()) {
-    db_name_ = monitoring_dbalias;
-  }
+    const auto monitoring_dbalias = config["monitoring-dbalias"].As<std::string>("");
+    if (!monitoring_dbalias.empty()) {
+        db_name_ = monitoring_dbalias;
+    }
 
-  initial_settings_.init_mode = config["sync-start"].As<bool>(true)
-                                    ? storages::postgres::InitMode::kSync
-                                    : storages::postgres::InitMode::kAsync;
-  initial_settings_.db_name = db_name_;
-  initial_settings_.connlimit_mode =
-      ParseConnlimitMode(config["connlimit_mode"].As<std::string>("auto"));
+    initial_settings_.init_mode = config["sync-start"].As<bool>(true) ? storages::postgres::InitMode::kSync
+                                                                      : storages::postgres::InitMode::kAsync;
+    initial_settings_.db_name = db_name_;
+    initial_settings_.connlimit_mode = ParseConnlimitMode(config["connlimit_mode"].As<std::string>("auto"));
 
-  initial_settings_.topology_settings.max_replication_lag =
-      config["max_replication_lag"].As<std::chrono::milliseconds>(
-          storages::postgres::kDefaultMaxReplicationLag);
+    initial_settings_.topology_settings.max_replication_lag =
+        config["max_replication_lag"].As<std::chrono::milliseconds>(storages::postgres::kDefaultMaxReplicationLag);
 
-  initial_settings_.pool_settings =
-      pg_config.pool_settings.GetOptional(name_).value_or(
-          config.As<storages::postgres::PoolSettings>());
-  initial_settings_.conn_settings =
-      pg_config.connection_settings.GetOptional(name_).value_or(
-          config.As<storages::postgres::ConnectionSettings>());
-  initial_settings_.conn_settings.pipeline_mode =
-      initial_config[storages::postgres::kPipelineModeKey];
-  initial_settings_.conn_settings.omit_describe_mode =
-      initial_config[storages::postgres::kOmitDescribeInExecuteModeKey];
-  initial_settings_.statement_metrics_settings =
-      pg_config.statement_metrics_settings.GetOptional(name_).value_or(
-          config.As<storages::postgres::StatementMetricsSettings>());
+    initial_settings_.pool_settings =
+        pg_config.pool_settings.GetOptional(name_).value_or(config.As<storages::postgres::PoolSettings>());
+    initial_settings_.conn_settings =
+        pg_config.connection_settings.GetOptional(name_).value_or(config.As<storages::postgres::ConnectionSettings>());
+    initial_settings_.conn_settings.pipeline_mode = initial_config[storages::postgres::kPipelineModeKey];
+    initial_settings_.conn_settings.omit_describe_mode =
+        initial_config[storages::postgres::kOmitDescribeInExecuteModeKey];
+    initial_settings_.statement_metrics_settings = pg_config.statement_metrics_settings.GetOptional(name_).value_or(
+        config.As<storages::postgres::StatementMetricsSettings>()
+    );
 
-  const auto task_processor_name =
-      config["blocking_task_processor"].As<std::string>();
-  auto* bg_task_processor = &context.GetTaskProcessor(task_processor_name);
+    const auto task_processor_name = config["blocking_task_processor"].As<std::string>();
+    auto* bg_task_processor = &context.GetTaskProcessor(task_processor_name);
 
-  error_injection::Settings ei_settings;
-  auto ei_settings_opt =
-      config["error-injection"].As<std::optional<error_injection::Settings>>();
-  if (ei_settings_opt) ei_settings = *ei_settings_opt;
+    error_injection::Settings ei_settings;
+    auto ei_settings_opt = config["error-injection"].As<std::optional<error_injection::Settings>>();
+    if (ei_settings_opt) ei_settings = *ei_settings_opt;
 
-  auto& statistics_storage =
-      context.FindComponent<components::StatisticsStorage>().GetStorage();
-  statistics_holder_ = statistics_storage.RegisterWriter(
-      kStatisticsName, [this](utils::statistics::Writer& writer) {
+    auto& statistics_storage = context.FindComponent<components::StatisticsStorage>().GetStorage();
+    statistics_holder_ = statistics_storage.RegisterWriter(kStatisticsName, [this](utils::statistics::Writer& writer) {
         return ExtendStatistics(writer);
-      });
+    });
 
-  // Start all clusters here
-  LOG_DEBUG() << "Start " << cluster_desc.size() << " shards for " << db_name_;
+    // Start all clusters here
+    LOG_DEBUG() << "Start " << cluster_desc.size() << " shards for " << db_name_;
 
-  const auto& testsuite_pg_ctl =
-      context.FindComponent<components::TestsuiteSupport>()
-          .GetPostgresControl();
-  auto& testsuite_tasks = testsuite::GetTestsuiteTasks(context);
+    const auto& testsuite_pg_ctl = context.FindComponent<components::TestsuiteSupport>().GetPostgresControl();
+    auto& testsuite_tasks = testsuite::GetTestsuiteTasks(context);
 
-  auto* resolver = clients::dns::GetResolverPtr(config, context);
+    auto* resolver = clients::dns::GetResolverPtr(config, context);
 
-  int shard_number = 0;
-  for (auto& dsns : cluster_desc) {
-    auto cluster = std::make_shared<pg::Cluster>(
-        std::move(dsns), resolver, *bg_task_processor, initial_settings_,
-        storages::postgres::DefaultCommandControls{
-            pg_config.default_command_control,
-            pg_config.handlers_command_control,
-            pg_config.queries_command_control},
-        testsuite_pg_ctl, ei_settings, testsuite_tasks, config_source,
-        shard_number++);
-    database_->clusters_.push_back(cluster);
-  }
+    int shard_number = 0;
+    for (auto& dsns : cluster_desc) {
+        auto cluster = std::make_shared<pg::Cluster>(
+            std::move(dsns),
+            resolver,
+            *bg_task_processor,
+            initial_settings_,
+            storages::postgres::DefaultCommandControls{
+                pg_config.default_command_control,
+                pg_config.handlers_command_control,
+                pg_config.queries_command_control},
+            testsuite_pg_ctl,
+            ei_settings,
+            testsuite_tasks,
+            config_source,
+            shard_number++
+        );
+        database_->clusters_.push_back(cluster);
+    }
 
-  config_subscription_ = config_source.UpdateAndListen(
-      this, "postgres", &Postgres::OnConfigUpdate);
+    config_subscription_ = config_source.UpdateAndListen(this, "postgres", &Postgres::OnConfigUpdate);
 
-  LOG_DEBUG() << "Component ready";
+    LOG_DEBUG() << "Component ready";
 }
 
 Postgres::~Postgres() {
-  statistics_holder_.Unregister();
-  config_subscription_.Unsubscribe();
+    statistics_holder_.Unregister();
+    config_subscription_.Unsubscribe();
 }
 
-storages::postgres::ClusterPtr Postgres::GetCluster() const {
-  return database_->GetCluster();
-}
+storages::postgres::ClusterPtr Postgres::GetCluster() const { return database_->GetCluster(); }
 
-storages::postgres::ClusterPtr Postgres::GetClusterForShard(
-    size_t shard) const {
-  return database_->GetClusterForShard(shard);
+storages::postgres::ClusterPtr Postgres::GetClusterForShard(size_t shard) const {
+    return database_->GetClusterForShard(shard);
 }
 
 size_t Postgres::GetShardCount() const { return database_->GetShardCount(); }
 
 void Postgres::ExtendStatistics(utils::statistics::Writer& writer) {
-  for (const auto& [i, cluster] : utils::enumerate(database_->clusters_)) {
-    if (cluster) {
-      const auto shard_name = "shard_" + std::to_string(i);
-      writer.ValueWithLabels(*cluster->GetStatistics(),
-                             {{"postgresql_database", db_name_},
-                              {"postgresql_database_shard", shard_name}});
+    for (const auto& [i, cluster] : utils::enumerate(database_->clusters_)) {
+        if (cluster) {
+            const auto shard_name = "shard_" + std::to_string(i);
+            writer.ValueWithLabels(
+                *cluster->GetStatistics(),
+                {{"postgresql_database", db_name_}, {"postgresql_database_shard", shard_name}}
+            );
+        }
     }
-  }
 }
 
 void Postgres::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
-  const auto& pg_config = cfg[storages::postgres::kConfig];
-  const auto pool_settings =
-      pg_config.pool_settings.GetOptional(name_).value_or(
-          initial_settings_.pool_settings);
-  const auto topology_settings =
-      pg_config.topology_settings.GetOptional(name_).value_or(
-          initial_settings_.topology_settings);
-  auto connection_settings =
-      pg_config.connection_settings.GetOptional(name_).value_or(
-          initial_settings_.conn_settings);
-  connection_settings.pipeline_mode = cfg[storages::postgres::kPipelineModeKey];
-  connection_settings.omit_describe_mode =
-      cfg[storages::postgres::kOmitDescribeInExecuteModeKey];
-  const auto statement_metrics_settings =
-      pg_config.statement_metrics_settings.GetOptional(name_).value_or(
-          initial_settings_.statement_metrics_settings);
+    const auto& pg_config = cfg[storages::postgres::kConfig];
+    const auto pool_settings = pg_config.pool_settings.GetOptional(name_).value_or(initial_settings_.pool_settings);
+    const auto topology_settings =
+        pg_config.topology_settings.GetOptional(name_).value_or(initial_settings_.topology_settings);
+    auto connection_settings =
+        pg_config.connection_settings.GetOptional(name_).value_or(initial_settings_.conn_settings);
+    connection_settings.pipeline_mode = cfg[storages::postgres::kPipelineModeKey];
+    connection_settings.omit_describe_mode = cfg[storages::postgres::kOmitDescribeInExecuteModeKey];
+    const auto statement_metrics_settings =
+        pg_config.statement_metrics_settings.GetOptional(name_).value_or(initial_settings_.statement_metrics_settings);
 
-  for (const auto& cluster : database_->clusters_) {
-    cluster->ApplyGlobalCommandControlUpdate(pg_config.default_command_control);
-    cluster->SetHandlersCommandControl(pg_config.handlers_command_control);
-    cluster->SetQueriesCommandControl(pg_config.queries_command_control);
-    cluster->SetPoolSettings(pool_settings);
-    cluster->SetTopologySettings(topology_settings);
-    cluster->SetConnectionSettings(connection_settings);
-    cluster->SetStatementMetricsSettings(statement_metrics_settings);
-  }
+    for (const auto& cluster : database_->clusters_) {
+        cluster->ApplyGlobalCommandControlUpdate(pg_config.default_command_control);
+        cluster->SetHandlersCommandControl(pg_config.handlers_command_control);
+        cluster->SetQueriesCommandControl(pg_config.queries_command_control);
+        cluster->SetPoolSettings(pool_settings);
+        cluster->SetTopologySettings(topology_settings);
+        cluster->SetConnectionSettings(connection_settings);
+        cluster->SetStatementMetricsSettings(statement_metrics_settings);
+    }
 }
 
 yaml_config::Schema Postgres::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<ComponentBase>(R"(
+    return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: PosgreSQL client component
 additionalProperties: false

@@ -16,27 +16,29 @@ USERVER_NAMESPACE_BEGIN
 namespace server::net {
 
 class ListenerImpl final {
- public:
-  ListenerImpl(engine::TaskProcessor& task_processor,
-               std::shared_ptr<EndpointInfo> endpoint_info,
-               request::ResponseDataAccounter& data_accounter);
-  ~ListenerImpl();
+public:
+    ListenerImpl(
+        engine::TaskProcessor& task_processor,
+        std::shared_ptr<EndpointInfo> endpoint_info,
+        request::ResponseDataAccounter& data_accounter
+    );
+    ~ListenerImpl();
 
-  StatsAggregation GetStats() const;
+    StatsAggregation GetStats() const;
 
- private:
-  void AcceptConnection(engine::io::Socket& request_socket);
-  void ProcessConnection(engine::io::Socket peer_socket);
+private:
+    void AcceptConnection(engine::io::Socket& request_socket);
+    void ProcessConnection(engine::io::Socket peer_socket);
 
-  engine::TaskProcessor& task_processor_;
-  std::shared_ptr<EndpointInfo> endpoint_info_;
+    engine::TaskProcessor& task_processor_;
+    std::shared_ptr<EndpointInfo> endpoint_info_;
 
-  std::shared_ptr<Stats> stats_;
-  request::ResponseDataAccounter& data_accounter_;
+    std::shared_ptr<Stats> stats_;
+    request::ResponseDataAccounter& data_accounter_;
 
-  concurrent::BackgroundTaskStorageCore connections_;
+    concurrent::BackgroundTaskStorageCore connections_;
 
-  engine::TaskWithResult<void> socket_listener_task_;
+    engine::TaskWithResult<void> socket_listener_task_;
 };
 
 }  // namespace server::net

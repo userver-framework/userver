@@ -18,20 +18,20 @@ USERVER_NAMESPACE_BEGIN
 namespace components {
 
 ComponentList CommonComponentList() {
-  return components::ComponentList()
-      .AppendComponentList(components::MinimalComponentList())
+    return components::ComponentList()
+        .AppendComponentList(components::MinimalComponentList())
 
-      .Append<components::LoggingConfigurator>()
-      .Append<components::DumpConfigurator>()
-      .Append<components::TestsuiteSupport>()
-      .Append<components::SystemStatisticsCollector>()
-      .Append<components::HttpClient>()
-      .Append<components::HttpClient>("http-client-statistics")
-      .Append<clients::dns::Component>()
-      .Append<components::DynamicConfigClient>()
-      .Append<components::DynamicConfigClientUpdater>()
+        .Append<components::LoggingConfigurator>()
+        .Append<components::DumpConfigurator>()
+        .Append<components::TestsuiteSupport>()
+        .Append<components::SystemStatisticsCollector>()
+        .Append<components::HttpClient>()
+        .Append<components::HttpClient>("http-client-statistics")
+        .Append<clients::dns::Component>()
+        .Append<components::DynamicConfigClient>()
+        .Append<components::DynamicConfigClientUpdater>()
 
-      .Append<engine::TaskProcessorsLoadMonitor>();
+        .Append<engine::TaskProcessorsLoadMonitor>();
 }
 
 }  // namespace components

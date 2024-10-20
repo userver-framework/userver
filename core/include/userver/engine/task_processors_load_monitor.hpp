@@ -26,32 +26,28 @@ namespace engine {
 /// task-processor | name of the TaskProcessor to run monitoring on | default monitoring task processor
 // clang-format on
 class TaskProcessorsLoadMonitor final : public components::ComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of engine::TaskProcessorsLoadMonitor
-  static constexpr std::string_view kName{"task-processors-load-monitor"};
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of engine::TaskProcessorsLoadMonitor
+    static constexpr std::string_view kName{"task-processors-load-monitor"};
 
-  TaskProcessorsLoadMonitor(const components::ComponentConfig& config,
-                            const components::ComponentContext& context);
+    TaskProcessorsLoadMonitor(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-  ~TaskProcessorsLoadMonitor() override;
+    ~TaskProcessorsLoadMonitor() override;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  class Impl;
-  std::unique_ptr<Impl> impl_;
+private:
+    class Impl;
+    std::unique_ptr<Impl> impl_;
 };
 
 }  // namespace engine
 
 template <>
-inline constexpr bool
-    components::kHasValidate<engine::TaskProcessorsLoadMonitor> = true;
+inline constexpr bool components::kHasValidate<engine::TaskProcessorsLoadMonitor> = true;
 
 template <>
-inline constexpr auto
-    components::kConfigFileMode<engine::TaskProcessorsLoadMonitor> =
-        ConfigFileMode::kNotRequired;
+inline constexpr auto components::kConfigFileMode<engine::TaskProcessorsLoadMonitor> = ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

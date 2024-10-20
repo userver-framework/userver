@@ -8,12 +8,12 @@
 #include <userver/engine/run_standalone.hpp>
 
 void HelloBenchmark(benchmark::State& state) {
-  engine::RunStandalone([&] {
-    for (auto _ : state) {
-      auto result = samples::hello::SayHelloTo("userver");
-      benchmark::DoNotOptimize(result);
-    }
-  });
+    engine::RunStandalone([&] {
+        for (auto _ : state) {
+            auto result = samples::hello::SayHelloTo("userver");
+            benchmark::DoNotOptimize(result);
+        }
+    });
 }
 
 BENCHMARK(HelloBenchmark);

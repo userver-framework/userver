@@ -16,8 +16,7 @@ namespace testsuite {
 /// @brief Returns true if testpoints are available in runtime.
 bool AreTestpointsAvailable() noexcept;
 
-using TestpointCallback =
-    utils::function_ref<void(const formats::json::Value&)>;
+using TestpointCallback = utils::function_ref<void(const formats::json::Value&)>;
 
 }  // namespace testsuite
 
@@ -25,14 +24,14 @@ namespace testsuite::impl {
 
 bool IsTestpointEnabled(std::string_view name) noexcept;
 
-void ExecuteTestpointCoro(std::string_view name,
-                          const formats::json::Value& json,
-                          TestpointCallback callback);
+void ExecuteTestpointCoro(std::string_view name, const formats::json::Value& json, TestpointCallback callback);
 
-void ExecuteTestpointBlocking(std::string_view name,
-                              const formats::json::Value& json,
-                              TestpointCallback callback,
-                              engine::TaskProcessor& task_processor);
+void ExecuteTestpointBlocking(
+    std::string_view name,
+    const formats::json::Value& json,
+    TestpointCallback callback,
+    engine::TaskProcessor& task_processor
+);
 
 void DoNothing(const formats::json::Value&) noexcept;
 
@@ -57,21 +56,16 @@ USERVER_NAMESPACE_END
 
 // clang-format on
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define TESTPOINT_CALLBACK(name, json, callback)                            \
-  do {                                                                      \
-    if (__builtin_expect(                                                   \
-            !USERVER_NAMESPACE::testsuite::AreTestpointsAvailable(), true)) \
-      break;                                                                \
-                                                                            \
-    /* cold testing path: */                                                \
-    const auto& userver_impl_tp_name = name;                                \
-    if (!USERVER_NAMESPACE::testsuite::impl::IsTestpointEnabled(            \
-            userver_impl_tp_name))                                          \
-      break;                                                                \
-                                                                            \
-    USERVER_NAMESPACE::testsuite::impl::ExecuteTestpointCoro(               \
-        userver_impl_tp_name, json, callback);                              \
-  } while (false)
+#define TESTPOINT_CALLBACK(name, json, callback)                                                        \
+    do {                                                                                                \
+        if (__builtin_expect(!USERVER_NAMESPACE::testsuite::AreTestpointsAvailable(), true)) break;     \
+                                                                                                        \
+        /* cold testing path: */                                                                        \
+        const auto& userver_impl_tp_name = name;                                                        \
+        if (!USERVER_NAMESPACE::testsuite::impl::IsTestpointEnabled(userver_impl_tp_name)) break;       \
+                                                                                                        \
+        USERVER_NAMESPACE::testsuite::impl::ExecuteTestpointCoro(userver_impl_tp_name, json, callback); \
+    } while (false)
 
 // clang-format off
 
@@ -89,8 +83,7 @@ USERVER_NAMESPACE_END
 
 // clang-format on
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define TESTPOINT(name, json) \
-  TESTPOINT_CALLBACK(name, json, USERVER_NAMESPACE::testsuite::impl::DoNothing)
+#define TESTPOINT(name, json) TESTPOINT_CALLBACK(name, json, USERVER_NAMESPACE::testsuite::impl::DoNothing)
 
 /// @brief Same as `TESTPOINT_CALLBACK` but must be called outside of
 /// coroutine (e.g. from std::thread routine).
@@ -100,21 +93,18 @@ USERVER_NAMESPACE_END
 ///
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define TESTPOINT_CALLBACK_NONCORO(name, json, task_processor, callback)    \
-  do {                                                                      \
-    if (__builtin_expect(                                                   \
-            !USERVER_NAMESPACE::testsuite::AreTestpointsAvailable(), true)) \
-      break;                                                                \
-                                                                            \
-    /* cold testing path: */                                                \
-    const auto& userver_impl_tp_name = name;                                \
-    if (!USERVER_NAMESPACE::testsuite::impl::IsTestpointEnabled(            \
-            userver_impl_tp_name))                                          \
-      break;                                                                \
-                                                                            \
-    USERVER_NAMESPACE::testsuite::impl::ExecuteTestpointBlocking(           \
-        userver_impl_tp_name, json, callback, task_processor);              \
-  } while (false)
+#define TESTPOINT_CALLBACK_NONCORO(name, json, task_processor, callback)                            \
+    do {                                                                                            \
+        if (__builtin_expect(!USERVER_NAMESPACE::testsuite::AreTestpointsAvailable(), true)) break; \
+                                                                                                    \
+        /* cold testing path: */                                                                    \
+        const auto& userver_impl_tp_name = name;                                                    \
+        if (!USERVER_NAMESPACE::testsuite::impl::IsTestpointEnabled(userver_impl_tp_name)) break;   \
+                                                                                                    \
+        USERVER_NAMESPACE::testsuite::impl::ExecuteTestpointBlocking(                               \
+            userver_impl_tp_name, json, callback, task_processor                                    \
+        );                                                                                          \
+    } while (false)
 
 /// @brief Same as `TESTPOINT` but must be called outside of
 /// coroutine (e.g. from std::thread routine).
@@ -124,6 +114,5 @@ USERVER_NAMESPACE_END
 ///
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define TESTPOINT_NONCORO(name, json, task_processor)    \
-  TESTPOINT_CALLBACK_NONCORO(name, json, task_processor, \
-                             USERVER_NAMESPACE::testsuite::impl::DoNothing)
+#define TESTPOINT_NONCORO(name, json, task_processor) \
+    TESTPOINT_CALLBACK_NONCORO(name, json, task_processor, USERVER_NAMESPACE::testsuite::impl::DoNothing)

@@ -4,13 +4,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::datetime {
 
-Date Convert(const std::string& value, chaotic::convert::To<Date>) {
-  return DateFromRFC3339String(value);
-}
+Date Convert(const std::string& value, chaotic::convert::To<Date>) { return DateFromRFC3339String(value); }
 
-std::string Convert(const Date& value, chaotic::convert::To<std::string>) {
-  return ToString(value);
-}
+std::string Convert(const Date& value, chaotic::convert::To<std::string>) { return ToString(value); }
 
 }  // namespace utils::datetime
 

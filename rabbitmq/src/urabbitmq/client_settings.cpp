@@ -24,130 +24,113 @@ namespace urabbitmq {
 namespace {
 
 std::vector<std::string> ParseHosts(const formats::json::Value& secdist_doc) {
-  const auto hosts_json = secdist_doc["hosts"];
-  auto hosts = hosts_json.As<std::vector<std::string>>();
+    const auto hosts_json = secdist_doc["hosts"];
+    auto hosts = hosts_json.As<std::vector<std::string>>();
 
-  UINVARIANT(!hosts.empty(), "Empty list of hosts in clickhouse secdist");
-  const auto unique_count =
-      std::unordered_set<std::string>{hosts.begin(), hosts.end()}.size();
+    UINVARIANT(!hosts.empty(), "Empty list of hosts in clickhouse secdist");
+    const auto unique_count = std::unordered_set<std::string>{hosts.begin(), hosts.end()}.size();
 
-  UINVARIANT(unique_count == hosts.size(),
-             "Hosts are not unique in clickhouse secdist");
+    UINVARIANT(unique_count == hosts.size(), "Hosts are not unique in clickhouse secdist");
 
-  return hosts;
+    return hosts;
 }
 
 }  // namespace
 
-AuthSettings Parse(const formats::json::Value& doc,
-                   formats::parse::To<AuthSettings>) {
-  AuthSettings auth;
-  auth.login = doc["login"].As<std::string>();
-  auth.password = doc["password"].As<std::string>();
-  auth.vhost = doc["vhost"].As<std::string>();
+AuthSettings Parse(const formats::json::Value& doc, formats::parse::To<AuthSettings>) {
+    AuthSettings auth;
+    auth.login = doc["login"].As<std::string>();
+    auth.password = doc["password"].As<std::string>();
+    auth.vhost = doc["vhost"].As<std::string>();
 
-  TlsSettings tls_settings;
-  const auto& client_cert_path = doc["tls"]["client-cert-path"];
-  const auto& client_key_path = doc["tls"]["client-key-path"];
-  if (client_cert_path.IsMissing() != client_key_path.IsMissing()) {
-    throw std::runtime_error(
-        "Either set both tls.client-cert-path and "
-        "tls.client-key-path options or none of "
-        "them");
-  }
-  if (!client_cert_path.IsMissing()) {
-    ClientCertSettings client_cert_settings;
+    TlsSettings tls_settings;
+    const auto& client_cert_path = doc["tls"]["client-cert-path"];
+    const auto& client_key_path = doc["tls"]["client-key-path"];
+    if (client_cert_path.IsMissing() != client_key_path.IsMissing()) {
+        throw std::runtime_error(
+            "Either set both tls.client-cert-path and "
+            "tls.client-key-path options or none of "
+            "them"
+        );
+    }
+    if (!client_cert_path.IsMissing()) {
+        ClientCertSettings client_cert_settings;
 
-    const auto& client_cert_contents =
-        fs::blocking::ReadFileContents(client_cert_path.As<std::string>());
-    client_cert_settings.cert =
-        crypto::Certificate::LoadFromString(client_cert_contents);
+        const auto& client_cert_contents = fs::blocking::ReadFileContents(client_cert_path.As<std::string>());
+        client_cert_settings.cert = crypto::Certificate::LoadFromString(client_cert_contents);
 
-    const auto& client_key_contents =
-        fs::blocking::ReadFileContents(client_key_path.As<std::string>());
-    client_cert_settings.key =
-        crypto::PrivateKey::LoadFromString(client_key_contents);
+        const auto& client_key_contents = fs::blocking::ReadFileContents(client_key_path.As<std::string>());
+        client_cert_settings.key = crypto::PrivateKey::LoadFromString(client_key_contents);
 
-    tls_settings.client_cert_settings = std::move(client_cert_settings);
-  }
+        tls_settings.client_cert_settings = std::move(client_cert_settings);
+    }
 
-  const auto& ca_cert_paths =
-      doc["tls"]["ca-paths"].As<std::vector<std::string>>({});
-  for (const auto& ca_cert_path : ca_cert_paths) {
-    const auto& ca_cert_contents = fs::blocking::ReadFileContents(ca_cert_path);
-    tls_settings.ca_certs.push_back(
-        crypto::Certificate::LoadFromString(ca_cert_contents));
-  }
+    const auto& ca_cert_paths = doc["tls"]["ca-paths"].As<std::vector<std::string>>({});
+    for (const auto& ca_cert_path : ca_cert_paths) {
+        const auto& ca_cert_contents = fs::blocking::ReadFileContents(ca_cert_path);
+        tls_settings.ca_certs.push_back(crypto::Certificate::LoadFromString(ca_cert_contents));
+    }
 
-  tls_settings.verify_host =
-      doc["tls"]["verify_host"].As<bool>(tls_settings.verify_host);
+    tls_settings.verify_host = doc["tls"]["verify_host"].As<bool>(tls_settings.verify_host);
 
-  if (tls_settings.client_cert_settings || !tls_settings.ca_certs.empty() ||
-      !tls_settings.verify_host) {
-    auth.tls_settings = std::move(tls_settings);
-  }
+    if (tls_settings.client_cert_settings || !tls_settings.ca_certs.empty() || !tls_settings.verify_host) {
+        auth.tls_settings = std::move(tls_settings);
+    }
 
-  return auth;
+    return auth;
 }
 
-RabbitEndpoints Parse(const formats::json::Value& doc,
-                      formats::parse::To<RabbitEndpoints>) {
-  auto port = doc["port"].As<uint16_t>();
-  auto hosts = ParseHosts(doc);
+RabbitEndpoints Parse(const formats::json::Value& doc, formats::parse::To<RabbitEndpoints>) {
+    auto port = doc["port"].As<uint16_t>();
+    auto hosts = ParseHosts(doc);
 
-  RabbitEndpoints result;
-  result.endpoints.reserve(hosts.size());
-  for (auto& host : hosts) {
-    result.endpoints.push_back({std::move(host), port});
-  }
-  result.auth = doc.As<AuthSettings>();
+    RabbitEndpoints result;
+    result.endpoints.reserve(hosts.size());
+    for (auto& host : hosts) {
+        result.endpoints.push_back({std::move(host), port});
+    }
+    result.auth = doc.As<AuthSettings>();
 
-  return result;
+    return result;
 }
 
-PoolSettings Parse(const yaml_config::YamlConfig& config,
-                   formats::parse::To<PoolSettings>) {
-  PoolSettings result{};
-  result.min_pool_size =
-      config["min_pool_size"].As<size_t>(result.min_pool_size);
-  result.max_pool_size =
-      config["max_pool_size"].As<size_t>(result.max_pool_size);
-  result.max_in_flight_requests = config["max_in_flight_requests"].As<size_t>(
-      result.max_in_flight_requests);
+PoolSettings Parse(const yaml_config::YamlConfig& config, formats::parse::To<PoolSettings>) {
+    PoolSettings result{};
+    result.min_pool_size = config["min_pool_size"].As<size_t>(result.min_pool_size);
+    result.max_pool_size = config["max_pool_size"].As<size_t>(result.max_pool_size);
+    result.max_in_flight_requests = config["max_in_flight_requests"].As<size_t>(result.max_in_flight_requests);
 
-  UINVARIANT(result.min_pool_size <= result.max_pool_size,
-             "max_pool_size is less than min_pool_size");
-  UINVARIANT(result.max_pool_size > 0, "max_pool_size is set to zero");
+    UINVARIANT(result.min_pool_size <= result.max_pool_size, "max_pool_size is less than min_pool_size");
+    UINVARIANT(result.max_pool_size > 0, "max_pool_size is set to zero");
 
-  return result;
+    return result;
 }
 
 ClientSettings::ClientSettings() = default;
 
-ClientSettings::ClientSettings(const components::ComponentConfig& config,
-                               const RabbitEndpoints& rabbit_endpoints)
+ClientSettings::ClientSettings(const components::ComponentConfig& config, const RabbitEndpoints& rabbit_endpoints)
     : pool_settings{config.As<PoolSettings>()},
       endpoints{rabbit_endpoints},
       use_secure_connection{config["use_secure_connection"].As<bool>(true)} {}
 
 RabbitEndpointsMulti::RabbitEndpointsMulti(const formats::json::Value& doc) {
-  const auto rabbitmq_settings = doc["rabbitmq_settings"];
-  storages::secdist::CheckIsObject(rabbitmq_settings, "rabbitmq_settings");
+    const auto rabbitmq_settings = doc["rabbitmq_settings"];
+    storages::secdist::CheckIsObject(rabbitmq_settings, "rabbitmq_settings");
 
-  endpoints_ =
-      rabbitmq_settings.As<std::unordered_map<std::string, RabbitEndpoints>>();
+    endpoints_ = rabbitmq_settings.As<std::unordered_map<std::string, RabbitEndpoints>>();
 }
 
-const RabbitEndpoints& RabbitEndpointsMulti::Get(
-    const std::string& name) const {
-  const auto it = endpoints_.find(name);
-  if (it == endpoints_.end()) {
-    throw std::runtime_error{fmt::format(
-        "RMQ broken '{}' is not found in secdist. Available endpoints: [{}]",
-        name, fmt::join(endpoints_ | boost::adaptors::map_keys, ", "))};
-  }
+const RabbitEndpoints& RabbitEndpointsMulti::Get(const std::string& name) const {
+    const auto it = endpoints_.find(name);
+    if (it == endpoints_.end()) {
+        throw std::runtime_error{fmt::format(
+            "RMQ broken '{}' is not found in secdist. Available endpoints: [{}]",
+            name,
+            fmt::join(endpoints_ | boost::adaptors::map_keys, ", ")
+        )};
+    }
 
-  return it->second;
+    return it->second;
 }
 
 }  // namespace urabbitmq
