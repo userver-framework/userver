@@ -57,6 +57,8 @@ class Cursor {
 
   bool HasMore() const;
   explicit operator bool() const { return HasMore(); }
+  uint32_t GetBatchSize() const;
+  void SetBatchSize(uint32_t);
 
   Iterator begin();
   Iterator end();
