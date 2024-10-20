@@ -1,0 +1,130 @@
+# This is an example of docker-compose.yml file that supports Redis cluster.
+# We've yet to succeed setting up Redis Cluster for testsuite, this is a toy
+# semi-production configuration.
+
+version: "3.8"
+
+services:
+  redis-node-1:
+    image: redis:bookworm
+    ports:
+      - '7000'
+    networks:
+      - redis
+    hostname: redis-node-1
+    volumes:
+      - ./redis:/redis
+    command: redis-server /redis/redis.conf --port 7000
+
+  redis-node-2:
+    image: redis:bookworm
+    ports:
+      - '7001'
+    networks:
+      - redis
+    hostname: redis-node-2
+    volumes:
+      - ./redis:/redis
+    command: redis-server /redis/redis.conf --port 7001
+
+  redis-node-3:
+    image: redis:bookworm
+    ports:
+      - '7002'
+    networks:
+      - redis
+    hostname: redis-node-3
+    volumes:
+      - ./redis:/redis
+    command: redis-server /redis/redis.conf --port 7002
+
+  redis-node-4:
+    image: redis:bookworm
+    ports:
+      - '7003'
+    networks:
+      - redis
+    hostname: redis-node-4
+    volumes:
+      - ./redis:/redis
+    command: redis-server /redis/redis.conf --port 7003
+
+  redis-node-5:
+    image: redis:bookworm
+    ports:
+      - '7004'
+    networks:
+      - redis
+    hostname: redis-node-5
+    volumes:
+      - ./redis:/redis
+    command: redis-server /redis/redis.conf --port 7004
+
+  redis-node-6:
+    image: redis:bookworm
+    ports:
+      - '7005'
+    networks:
+      - redis
+    hostname: redis-node-6
+    volumes:
+      - ./redis:/redis
+    command: redis-server /redis/redis.conf --port 7005
+
+  redis-cluster-creator:
+    image: redis:bookworm
+    networks:
+      - redis
+    command: redis-cli -p 7000 --cluster create redis-node-1:7000 redis-node-2:7001 redis-node-3:7002 redis-node-4:7003 redis-node-5:7004 redis-node-6:7005 --cluster-replicas 1 --cluster-yes
+    depends_on:
+      - redis-node-1
+      - redis-node-2
+      - redis-node-3
+      - redis-node-4
+      - redis-node-5
+      - redis-node-6
+
+  sessions_management_service-container:
+    image: ghcr.io/userver-framework/ubuntu-22.04-userver-base-ci:latest
+    privileged: true
+    environment:
+      - PREFIX=${PREFIX:-~/.local}
+      - CC
+      - CCACHE_DIR=/sessions_management_service/.ccache
+      - CCACHE_HASHDIR
+      - CCACHE_NOHASHDIR
+      - CCACHE_PREFIX
+      - CCACHE_SIZE
+      - CMAKE_OPTS
+      - CORES_DIR=/cores
+      - CXX
+      - MAKE_OPTS
+      - CMAKE_COMMON_FLAGS
+    volumes:
+      - .:/sessions_management_service:rw
+      - ./third_party/userver/tools/docker:/tools:ro
+    ports:
+      - '8080:8080'
+      - '8081:8081'
+    working_dir: /sessions_management_service
+    entrypoint:
+      - /tools/run_as_user.sh
+    depends_on:
+      - redis-cluster-creator
+    networks:
+      - redis
+      - dockerbridge
+
+networks:
+  redis:
+    driver: bridge
+  dockerbridge:
+    enable_ipv6: true
+    driver: bridge
+    driver_opts:
+      com.docker.network.enable_ipv6: "true"
+    ipam:
+      driver: default
+      config:
+        - subnet: 2001:3984:3989::/64
+          gateway: 2001:3984:3989::1
