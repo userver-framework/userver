@@ -2,6 +2,8 @@
 
 #include <fmt/format.h>
 
+#include <rocksdb/utilities/checkpoint.h>
+
 #include <userver/storages/rocks/exception.hpp>
 #include <userver/utils/async.hpp>
 
@@ -56,6 +58,22 @@ void Client::CheckStatus(rocksdb::Status status, std::string_view method_name) {
         method_name, status.ToString());
   }
 }
+
+Client Client::MakeSnapshot(const std::string& checkpoint_path) {
+  return engine::AsyncNoSpan(blocking_task_processor_, [this, checkpoint_path] {
+    rocksdb::Checkpoint* checkpoint{};
+    rocksdb::Status status = rocksdb::Checkpoint::Create(db_.get(), &checkpoint);
+
+    std::unique_ptr<rocksdb::Checkpoint> checkpoint_smart_ptr(checkpoint);
+    CheckStatus(status, "Create Checkpoint");
+
+    status = checkpoint_smart_ptr->CreateCheckpoint(checkpoint_path);
+
+    CheckStatus(status, "Bind Checkpoint to the path");
+    return Client(checkpoint_path, blocking_task_processor_);
+  }).Get();
+}
+
 }  // namespace storages::rocks
 
 USERVER_NAMESPACE_END
