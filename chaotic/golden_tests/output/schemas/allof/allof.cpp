@@ -63,11 +63,11 @@ AllOf Parse(USERVER_NAMESPACE::formats::json::Value json, USERVER_NAMESPACE::for
     return Parse<USERVER_NAMESPACE::formats::json::Value>(json, to);
 }
 
-/* Parse(USERVER_NAMESPACE::formats::yaml::Value, To<ns::AllOf>) was not
- * generated: ns::AllOf::Foo__P0 has JSON-specific field "extra" */
+/* Parse(USERVER_NAMESPACE::formats::yaml::Value, To<ns::AllOf>) was not generated: ns::AllOf::Foo__P0 has JSON-specific
+ * field "extra" */
 
-/* Parse(USERVER_NAMESPACE::yaml_config::Value, To<ns::AllOf>) was not
- * generated: ns::AllOf::Foo__P0 has JSON-specific field "extra" */
+/* Parse(USERVER_NAMESPACE::yaml_config::Value, To<ns::AllOf>) was not generated: ns::AllOf::Foo__P0 has JSON-specific
+ * field "extra" */
 
 USERVER_NAMESPACE::formats::json::Value
 Serialize([[maybe_unused]] const ns::AllOf::Foo__P0& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>) {

@@ -93,9 +93,8 @@ size_t PipeWriter::WriteAll(const void* buf, size_t len, Deadline deadline) {
     auto& dir = fd_control_->Write();
     impl::Direction::SingleUserGuard guard(dir);
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-    return dir.PerformIo(
-        guard, &::write, const_cast<void*>(buf), len, impl::TransferMode::kWhole, deadline, "WriteAll to pipe"
-    );
+    void* nonconst_buf = const_cast<void*>(buf);
+    return dir.PerformIo(guard, &::write, nonconst_buf, len, impl::TransferMode::kWhole, deadline, "WriteAll to pipe");
 }
 
 int PipeWriter::Fd() const { return fd_control_ ? fd_control_->Fd() : kInvalidFd; }

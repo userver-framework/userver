@@ -590,10 +590,9 @@ size_t TlsWrapper::RecvAll(void* buf, size_t len, Deadline deadline) {
 
 size_t TlsWrapper::SendAll(const void* buf, size_t len, Deadline deadline) {
     impl_->CheckAlive();
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
     return impl_->PerformSslIo(
         &SSL_write_ex,
-        const_cast<void*>(buf),
+        const_cast<void*>(buf),  // NOLINT(cppcoreguidelines-pro-type-const-cast)
         len,
         impl::TransferMode::kWhole,
         InterruptAction::kFail,

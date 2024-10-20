@@ -307,11 +307,10 @@ size_t Socket::SendAll(const struct iovec* list, std::size_t list_size, Deadline
     auto& dir = fd_control_->Write();
     dir.ResetReady();
     impl::Direction::SingleUserGuard guard(dir);
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
     return dir.PerformIoV(
         guard,
         &writev,
-        const_cast<struct iovec*>(list),
+        const_cast<struct iovec*>(list),  // NOLINT(cppcoreguidelines-pro-type-const-cast)
         list_size,
         impl::TransferMode::kWhole,
         deadline,
@@ -327,9 +326,15 @@ size_t Socket::SendAll(const void* buf, size_t len, Deadline deadline) {
     auto& dir = fd_control_->Write();
     dir.ResetReady();
     impl::Direction::SingleUserGuard guard(dir);
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
     return dir.PerformIo(
-        guard, &SendWrapper, const_cast<void*>(buf), len, impl::TransferMode::kWhole, deadline, "SendAll to ", peername_
+        guard,
+        &SendWrapper,
+        const_cast<void*>(buf),  // NOLINT(cppcoreguidelines-pro-type-const-cast)
+        len,
+        impl::TransferMode::kWhole,
+        deadline,
+        "SendAll to ",
+        peername_
     );
 }
 
@@ -365,11 +370,10 @@ size_t Socket::SendAllTo(const Sockaddr& dest_addr, const void* buf, size_t len,
     auto& dir = fd_control_->Write();
     dir.ResetReady();
     impl::Direction::SingleUserGuard guard(dir);
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
     return dir.PerformIo(
         guard,
         SendToWrapper{dest_addr},
-        const_cast<void*>(buf),
+        const_cast<void*>(buf),  // NOLINT(cppcoreguidelines-pro-type-const-cast)
         len,
         impl::TransferMode::kWhole,
         deadline,

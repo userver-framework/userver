@@ -20,11 +20,9 @@ A Parse(USERVER_NAMESPACE::formats::json::Value json, USERVER_NAMESPACE::formats
     return Parse<USERVER_NAMESPACE::formats::json::Value>(json, to);
 }
 
-/* Parse(USERVER_NAMESPACE::formats::yaml::Value, To<ns::A>) was not generated:
- * ns::A has JSON-specific field "extra" */
+/* Parse(USERVER_NAMESPACE::formats::yaml::Value, To<ns::A>) was not generated: ns::A has JSON-specific field "extra" */
 
-/* Parse(USERVER_NAMESPACE::yaml_config::Value, To<ns::A>) was not generated:
- * ns::A has JSON-specific field "extra" */
+/* Parse(USERVER_NAMESPACE::yaml_config::Value, To<ns::A>) was not generated: ns::A has JSON-specific field "extra" */
 
 USERVER_NAMESPACE::formats::json::Value
 Serialize([[maybe_unused]] const ns::A& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>) {
@@ -55,11 +53,9 @@ B Parse(USERVER_NAMESPACE::formats::json::Value json, USERVER_NAMESPACE::formats
     return Parse<USERVER_NAMESPACE::formats::json::Value>(json, to);
 }
 
-/* Parse(USERVER_NAMESPACE::formats::yaml::Value, To<ns::B>) was not generated:
- * ns::B has JSON-specific field "extra" */
+/* Parse(USERVER_NAMESPACE::formats::yaml::Value, To<ns::B>) was not generated: ns::B has JSON-specific field "extra" */
 
-/* Parse(USERVER_NAMESPACE::yaml_config::Value, To<ns::B>) was not generated:
- * ns::B has JSON-specific field "extra" */
+/* Parse(USERVER_NAMESPACE::yaml_config::Value, To<ns::B>) was not generated: ns::B has JSON-specific field "extra" */
 
 USERVER_NAMESPACE::formats::json::Value
 Serialize([[maybe_unused]] const ns::B& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>) {
@@ -90,12 +86,11 @@ Parse(USERVER_NAMESPACE::formats::json::Value json, USERVER_NAMESPACE::formats::
     return Parse<USERVER_NAMESPACE::formats::json::Value>(json, to);
 }
 
-/* Parse(USERVER_NAMESPACE::formats::yaml::Value, To<ns::OneOfDiscriminator>)
- * was not generated: ns::OneOfDiscriminator::Foo has JSON-specific field
- * "extra" */
+/* Parse(USERVER_NAMESPACE::formats::yaml::Value, To<ns::OneOfDiscriminator>) was not generated:
+ * ns::OneOfDiscriminator::Foo has JSON-specific field "extra" */
 
-/* Parse(USERVER_NAMESPACE::yaml_config::Value, To<ns::OneOfDiscriminator>) was
- * not generated: ns::OneOfDiscriminator::Foo has JSON-specific field "extra" */
+/* Parse(USERVER_NAMESPACE::yaml_config::Value, To<ns::OneOfDiscriminator>) was not generated:
+ * ns::OneOfDiscriminator::Foo has JSON-specific field "extra" */
 
 USERVER_NAMESPACE::formats::json::Value
 Serialize([[maybe_unused]] const ns::OneOfDiscriminator& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>) {
