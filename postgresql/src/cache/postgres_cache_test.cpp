@@ -98,6 +98,11 @@ struct PostgresExamplePolicy {
   //
   // Required: no
   static constexpr bool kMayReturnNull = false;
+
+  // Order by clause of the query.
+  //
+  // Required: no
+  static constexpr const char* kOrderBy = "updated asc";
 };
 
 }  // namespace example
