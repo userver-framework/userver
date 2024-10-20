@@ -15,7 +15,6 @@
 #include <userver/storages/clickhouse/query.hpp>
 
 #include <userver/storages/secdist/component.hpp>
-#include <userver/storages/secdist/provider_component.hpp>
 
 #include <userver/utils/daemon_run.hpp>
 #include "userver/clients/http/component.hpp"
@@ -116,8 +115,7 @@ int main(int argc, char* argv[]) {
           .Append<components::TestsuiteSupport>()
           .Append<server::handlers::TestsControl>()
           .Append<clients::dns::Component>()
-          .Append<components::Secdist>()
-          .Append<components::DefaultSecdistProvider>();
+          .Append<components::Secdist>();
 
   return utils::DaemonMain(argc, argv, components_list);
 }

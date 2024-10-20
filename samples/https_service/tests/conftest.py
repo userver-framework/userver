@@ -19,7 +19,7 @@ def prepare_service_config():
         tls['cert'] = str(SERVICE_SOURCE_DIR / 'cert.crt')
         tls['private-key'] = str(SERVICE_SOURCE_DIR / 'private_key.key')
 
-        components['default-secdist-provider']['config'] = str(
+        components['secdist']['config'] = str(
             SERVICE_SOURCE_DIR / 'secdist.json',
         )
 

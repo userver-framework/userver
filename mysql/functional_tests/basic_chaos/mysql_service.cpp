@@ -6,7 +6,6 @@
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/storages/mysql.hpp>
 #include <userver/storages/secdist/component.hpp>
-#include <userver/storages/secdist/provider_component.hpp>
 #include <userver/utils/daemon_run.hpp>
 
 namespace chaos {
@@ -99,7 +98,6 @@ int main(int argc, char* argv[]) {
       components::MinimalServerComponentList()
           .Append<chaos::KeyValue>()
           .Append<components::Secdist>()
-          .Append<components::DefaultSecdistProvider>()
           .Append<clients::dns::Component>()
           .Append<storages::mysql::Component>("key-value-db");
 

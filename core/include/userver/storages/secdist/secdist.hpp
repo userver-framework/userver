@@ -18,7 +18,7 @@
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/rcu/rcu.hpp>
-#include <userver/storages/secdist/provider.hpp>
+#include <userver/storages/secdist/provider_base.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -78,7 +78,7 @@ enum class SecdistFormat {
 class SecdistConfig final {
  public:
   struct Settings {
-    SecdistProvider* provider{nullptr};
+    std::unique_ptr<SecdistProviderBase> provider{nullptr};
     std::chrono::milliseconds update_period{std::chrono::milliseconds::zero()};
   };
 
