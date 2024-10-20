@@ -3,6 +3,7 @@
 #include <optional>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <boost/intrusive/list.hpp>
 
 #include <userver/cache/cache_config.hpp>

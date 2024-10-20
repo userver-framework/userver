@@ -1,6 +1,7 @@
 #include <userver/server/handlers/auth/digest/exception.hpp>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 
 USERVER_NAMESPACE_BEGIN
 

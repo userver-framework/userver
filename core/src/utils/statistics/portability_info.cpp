@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 
 #include <userver/formats/json.hpp>
 #include <userver/formats/json/serialize.hpp>

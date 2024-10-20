@@ -9,6 +9,7 @@
 
 #include <fmt/core.h>
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 
 #include <userver/crypto/algorithm.hpp>
 #include <userver/crypto/hash.hpp>

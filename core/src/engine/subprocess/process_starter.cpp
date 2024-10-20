@@ -10,6 +10,7 @@
 #include <iostream>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <boost/range/adaptor/transformed.hpp>
 
 #include <engine/ev/child_process_map.hpp>

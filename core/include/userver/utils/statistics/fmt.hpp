@@ -11,6 +11,7 @@
 #include <variant>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 
 #include <userver/utils/fmt_compat.hpp>
 #include <userver/utils/overloaded.hpp>
