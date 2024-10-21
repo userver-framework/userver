@@ -21,9 +21,9 @@ jobs:
                 -DUSERVER_SANITIZE="ub addr"
                 -DCMAKE_BUILD_TYPE=Debug
                 -DUSERVER_NO_WERROR=OFF
-                -DUSERVER_NAMESPACE=userver_ns
-                -DUSERVER_NAMESPACE_BEGIN="namespace userver_ns {"
-                -DUSERVER_NAMESPACE_END="}"
+                -DUSERVER_CHECK_PACKAGE_VERSIONS=0
+                -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
+                -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0
 
         steps:
           - uses: actions/checkout@v4
