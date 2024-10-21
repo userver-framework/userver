@@ -52,6 +52,7 @@ jobs:
 
           - name: Install packages
             run: |
+                brew update
                 brew install $(cat scripts/docs/en/deps/macos.md)
 
           - name: Run cmake
