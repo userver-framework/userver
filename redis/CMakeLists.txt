@@ -15,16 +15,18 @@ userver_module(redis
 
 # for libev
 set_source_files_properties(
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/redis/impl/redis.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/redis/impl/sentinel_impl.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/redis/impl/subscription_rebalance_scheduler.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/redis/impl/ev_thread/thread.cpp
-    PROPERTIES COMPILE_FLAGS -fno-strict-aliasing
-)
-target_compile_options (${PROJECT_NAME} PRIVATE -Wno-old-style-cast)
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/redis/impl/redis.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/redis/impl/sentinel_impl.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/redis/impl/subscription_rebalance_scheduler.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/redis/impl/ev_thread/thread.cpp
+  PROPERTIES COMPILE_FLAGS -fno-strict-aliasing)
+target_compile_options(${PROJECT_NAME} PRIVATE -Wno-old-style-cast)
 
-option(USERVER_FEATURE_REDIS_HI_MALLOC "Provide 'hi_malloc(unsigned long)' function to workaround https://bugs.launchpad.net/ubuntu/+source/hiredis/+bug/1888025" OFF)
-if (USERVER_FEATURE_REDIS_HI_MALLOC)
+option(
+  USERVER_FEATURE_REDIS_HI_MALLOC
+  "Provide 'hi_malloc(unsigned long)' function to workaround https://bugs.launchpad.net/ubuntu/+source/hiredis/+bug/1888025"
+  OFF)
+if(USERVER_FEATURE_REDIS_HI_MALLOC)
   set_source_files_properties(
       ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/redis/impl/hi_malloc.cpp
       PROPERTIES COMPILE_FLAGS -DUSERVER_FEATURE_REDIS_HI_MALLOC=1

@@ -2,15 +2,14 @@ project(userver-postgresql CXX)
 
 option(USERVER_FEATURE_PATCH_LIBPQ "Apply patches to the libpq (add portals support)" ON)
 add_library(userver-libpq INTERFACE)
-if (USERVER_FEATURE_PATCH_LIBPQ)
+if(USERVER_FEATURE_PATCH_LIBPQ)
   add_subdirectory(pq-extra)
   target_link_libraries(userver-libpq INTERFACE userver-pq-extra)
 else()
   set_source_files_properties(
     ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/postgres/detail/pg_connection_wrapper.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/postgres/portal.cpp
-    PROPERTIES COMPILE_FLAGS -DUSERVER_NO_LIBPQ_PATCHES=1
-  )
+    PROPERTIES COMPILE_FLAGS -DUSERVER_NO_LIBPQ_PATCHES=1)
 
   if(USERVER_CONAN)
     find_package(PostgreSQL REQUIRED)

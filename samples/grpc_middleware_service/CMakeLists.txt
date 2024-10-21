@@ -1,7 +1,10 @@
 cmake_minimum_required(VERSION 3.14)
 project(userver-samples-grpc_middleware_service CXX)
 
-find_package(userver COMPONENTS grpc REQUIRED)
+find_package(
+  userver
+  COMPONENTS grpc
+  REQUIRED)
 
 add_executable(${PROJECT_NAME} main.cpp
                                src/client/view.cpp

@@ -1,6 +1,6 @@
 project(userver-mongo CXX)
 
-if (USERVER_CONAN)
+if(USERVER_CONAN)
   find_package(mongoc-1.0 REQUIRED)
 else()
   include(SetupMongoDeps)

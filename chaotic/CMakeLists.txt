@@ -9,21 +9,20 @@ userver_module(chaotic
 
 if(USERVER_BUILD_TESTS)
   userver_venv_setup(
-      NAME userver-chaotic-tests
-      PYTHON_OUTPUT_VAR USERVER_CHAOTIC_PYTEST_PYTHON_BINARY
-      REQUIREMENTS
-          "${USERVER_ROOT_DIR}/scripts/chaotic/requirements.txt"
-          "${USERVER_ROOT_DIR}/testsuite/requirements.txt"
-      UNIQUE
-  )
+    NAME
+    userver-chaotic-tests
+    PYTHON_OUTPUT_VAR
+    USERVER_CHAOTIC_PYTEST_PYTHON_BINARY
+    REQUIREMENTS
+    "${USERVER_ROOT_DIR}/scripts/chaotic/requirements.txt"
+    "${USERVER_ROOT_DIR}/testsuite/requirements.txt"
+    UNIQUE)
   add_test(
-      NAME chaotic-tests-pytest
-      COMMAND
+    NAME chaotic-tests-pytest
+    COMMAND
       env "PYTHONPATH=${CMAKE_CURRENT_SOURCE_DIR}"
-      "${USERVER_CHAOTIC_PYTEST_PYTHON_BINARY}" -m pytest
-      -vvs
-      "${CMAKE_CURRENT_SOURCE_DIR}/tests"
-  )
+      "${USERVER_CHAOTIC_PYTEST_PYTHON_BINARY}" -m pytest -vvs
+      "${CMAKE_CURRENT_SOURCE_DIR}/tests")
 
   add_subdirectory(integration_tests)
   add_subdirectory(golden_tests)
