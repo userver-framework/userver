@@ -153,6 +153,14 @@ function(userver_venv_setup)
   endif()
 
   if(should_run_pip)
+    execute_process(
+        COMMAND
+        "${venv_bin_dir}/python3" -m pip install -U wheel
+        RESULT_VARIABLE status
+    )
+    if(status)
+      message(FATAL_ERROR "Failed to install wheel")
+    endif()
     message(STATUS "Installing requirements:")
     foreach(requirement IN LISTS ARG_REQUIREMENTS)
       message(STATUS "  ${requirement}")
