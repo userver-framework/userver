@@ -31,12 +31,10 @@ jobs:
             with:
                 fetch-depth: 0
 
-          - name: Use XCode 15.4
-            run: |
-                sudo xcode-select -s /Applications/Xcode_15.4.app
-                which c++
-                c++ --version
-                env
+          - name: Setup Cpp (C++ / C)
+            uses: aminya/setup-cpp@v0.44.0
+            with:
+                compiler: llvm
 
           - name: Cache Homebrew Packages
             id: cache-homebrew-packages
