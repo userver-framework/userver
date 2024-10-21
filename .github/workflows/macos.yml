@@ -24,7 +24,6 @@ jobs:
                 -DUSERVER_NAMESPACE=userver_ns
                 -DUSERVER_NAMESPACE_BEGIN="namespace userver_ns {"
                 -DUSERVER_NAMESPACE_END="}"
-                -DUSERVER_FEATURE_POSTGRESQL=0
 
         steps:
           - uses: actions/checkout@v4
