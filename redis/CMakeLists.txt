@@ -1,39 +1,28 @@
 project(userver-redis CXX)
 
-file(GLOB_RECURSE SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp
-)
-
 file(GLOB_RECURSE UTESTLIB_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/testing/src/*.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/testing/src/*.hpp
 )
-list(REMOVE_ITEM SOURCES ${UTESTLIB_SOURCES})
-
-file(GLOB_RECURSE UNIT_TEST_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/*_test.cpp
-)
-list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES})
 
 file(GLOB_RECURSE REDIS_TEST_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/*_redistest.cpp
 )
-list(REMOVE_ITEM SOURCES ${REDIS_TEST_SOURCES})
 
-file(GLOB_RECURSE REDIS_BENCH_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/benchmark/*.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/benchmark/*.hpp
+userver_module(redis
+    SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
+    IGNORE_SOURCES
+	      ${UTESTLIB_SOURCES}
+    LINK_LIBRARIES
+        userver-core
+
+    UTEST_LINK_LIBRARIES
+        ${PROJECT_NAME}-utest
+    DBTEST_SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/*_redistest.cpp
+    DBTEST_DATABASES
+        redis redis-cluster
 )
-
-file(GLOB_RECURSE REDIS_FUNCTIONAL_TEST_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/functional_tests/*.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/functional_tests/*.hpp
-)
-list(REMOVE_ITEM SOURCES ${REDIS_FUNCTIONAL_TEST_SOURCES})
-
-add_library(${PROJECT_NAME} STATIC ${SOURCES})
-set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
 # for libev
 set_source_files_properties(
@@ -58,7 +47,6 @@ if(USERVER_FEATURE_REDIS_TLS)
   add_compile_definitions(USERVER_FEATURE_REDIS_TLS=1)
 endif()
 
-target_link_libraries(${PROJECT_NAME} PUBLIC userver-core)
 if (USERVER_CONAN)
   find_package(hiredis REQUIRED)
   target_link_libraries(${PROJECT_NAME} PUBLIC hiredis::hiredis)
@@ -70,29 +58,14 @@ endif()
 if (USERVER_FEATURE_REDIS_TLS)
   target_link_libraries(${PROJECT_NAME} PUBLIC hiredis_ssl)
 endif()
-target_include_directories(
-  ${PROJECT_NAME}
-  PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/src
-)
 target_include_directories (${PROJECT_NAME} PRIVATE
     $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
 )
-_userver_directory_install(COMPONENT redis
-  DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
-)
-_userver_install_targets(COMPONENT redis TARGETS ${PROJECT_NAME})
 
 _userver_directory_install(COMPONENT redis FILES
-    "${USERVER_ROOT_DIR}/cmake/install/userver-redis-config.cmake"
 	  "${USERVER_ROOT_DIR}/cmake/modules/FindHiredis.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
 )
-
-
 
 # Helper library for testing user code with redis. Provides mock_client_base.hpp
 # and other helper headers
@@ -118,55 +91,5 @@ if (USERVER_FEATURE_UTEST)
 endif()
 
 if (USERVER_IS_THE_ROOT_PROJECT)
-  add_executable(${PROJECT_NAME}-unittest ${UNIT_TEST_SOURCES})
-  target_link_libraries(${PROJECT_NAME}-unittest
-    userver-utest
-    ${PROJECT_NAME}-utest
-    ${PROJECT_NAME}
-  )
-  target_include_directories(
-    ${PROJECT_NAME}-unittest
-    PUBLIC
-      ${CMAKE_CURRENT_SOURCE_DIR}/include
-    PRIVATE
-      ${CMAKE_CURRENT_SOURCE_DIR}/src
-  )
-  target_include_directories (${PROJECT_NAME}-unittest PRIVATE
-    $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
-  )
-  add_google_tests(${PROJECT_NAME}-unittest)
-
-  add_executable(${PROJECT_NAME}-redistest ${REDIS_TEST_SOURCES})
-  target_include_directories (${PROJECT_NAME}-redistest PRIVATE
-      $<TARGET_PROPERTY:userver-redis,INCLUDE_DIRECTORIES>
-  )
-  target_link_libraries(${PROJECT_NAME}-redistest userver-utest ${PROJECT_NAME})
-  add_test(${PROJECT_NAME}-redistest
-    env
-      ${CMAKE_BINARY_DIR}/testsuite/env
-      --databases=redis,redis-cluster
-      run --
-      ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-redistest
-      --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_redistest.xml
-  )
-
-  add_executable(${PROJECT_NAME}-benchmark ${REDIS_BENCH_SOURCES})
-  target_link_libraries(${PROJECT_NAME}-benchmark
-    userver-ubench
-    ${PROJECT_NAME}
-  )
-  target_include_directories(${PROJECT_NAME}-benchmark PRIVATE
-    $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
-  )
-  add_test(${PROJECT_NAME}-benchmark
-    env
-      ${CMAKE_BINARY_DIR}/testsuite/env
-      --databases=redis
-      run --
-      ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-benchmark
-      --benchmark_min_time=0
-      --benchmark_color=no
-  )
-
   add_subdirectory(functional_tests)
 endif()
