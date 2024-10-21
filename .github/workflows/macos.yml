@@ -59,8 +59,8 @@ jobs:
                 mkdir build_debug
                 cd build_debug
 
-                export LDFLAGS="-L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/llvm/lib/c++"
-                export CPPFLAGS="-I/opt/homebrew/opt/llvm/include"
+                export CC="/opt/homebrew/opt/llvm/lib/cc"
+                export CXX="/opt/homebrew/opt/llvm/lib/c++"
 
                 cmake $CMAKE_FLAGS ..
 
