@@ -52,7 +52,7 @@ jobs:
             run: |
                 brew update
                 brew install $(cat scripts/docs/en/deps/macos.md)
-                brew link postgresql
+                brew link postgresql@16
 
           - name: Run cmake
             run: |
