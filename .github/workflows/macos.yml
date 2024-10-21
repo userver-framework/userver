@@ -21,7 +21,6 @@ jobs:
                 -DUSERVER_SANITIZE="ub addr"
                 -DCMAKE_BUILD_TYPE=Debug
                 -DUSERVER_NO_WERROR=OFF
-                -DUSERVER_CHECK_PACKAGE_VERSIONS=0
                 -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
                 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0
 
