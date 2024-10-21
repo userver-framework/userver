@@ -156,6 +156,10 @@ jobs:
                   sudo apt install --allow-downgrades -y g++-8
                 fi
 
+                if [ "${{matrix.os}}" = "ubuntu-20.04" ]; then
+                  sudo apt update
+                  sudo apt install --upgrade libprotobuf>=3.12.4
+                fi
 
           - name: Install RabbitMQ packages
             run: |
