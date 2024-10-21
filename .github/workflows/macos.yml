@@ -55,9 +55,9 @@ jobs:
                 brew install $(cat scripts/docs/en/deps/macos.md)
                 set -x
                 brew --prefix
-                ls $(brew --prefix)/var/postgresql || :
+                ls $(brew --prefix)/var/postgresql@16 || :
                 env
-                ls /usr/local/opt/postgresql@15/bin || :
+                ls /usr/local/opt/postgresql@16/bin || :
                 ls /opt/homebrew/bin || :
 
           - name: Run cmake
