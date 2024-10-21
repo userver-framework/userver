@@ -240,6 +240,7 @@ def _service_client_testsuite(
     cache_invalidation_state,
     service_periodic_tasks_state,
     _testsuite_client_config: client.TestsuiteClientConfig,
+    asyncexc_check,
 ) -> typing.Callable[[DaemonInstance], client.Client]:
     def create_client(daemon):
         aiohttp_client = client.AiohttpClient(
@@ -252,6 +253,7 @@ def _service_client_testsuite(
             mocked_time=mocked_time,
             cache_invalidation_state=cache_invalidation_state,
             cache_control=userver_cache_control(daemon),
+            asyncexc_check=asyncexc_check,
             **service_client_options,
         )
         return client.Client(aiohttp_client)
