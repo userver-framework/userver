@@ -1,0 +1,63 @@
+name: CI
+
+'on':
+    pull_request:
+    push:
+        branches:
+          - master
+          - develop
+          - feature/**
+
+env:
+    UBSAN_OPTIONS: print_stacktrace=1
+    ASAN_OPTIONS: detect_odr_violation=2
+
+jobs:
+    macos:
+        name: MacOS
+        runs-on: macos-latest
+        env:
+            CMAKE_FLAGS: >-
+                -DUSERVER_SANITIZE="ub addr"
+                -DCMAKE_BUILD_TYPE=Debug
+                -DUSERVER_NO_WERROR=OFF
+                -DUSERVER_NAMESPACE=userver_ns
+                -DUSERVER_NAMESPACE_BEGIN="namespace userver_ns {"
+                -DUSERVER_NAMESPACE_END="}"
+                -DUSERVER_FEATURE_KAFKA=0
+
+        steps:
+          - uses: actions/checkout@v4
+            with:
+                fetch-depth: 0
+
+          - name: Setup Cpp (C++ / C)
+            uses: aminya/setup-cpp@v0.44.0
+            with:
+                compiler: llvm
+
+          - name: Cache Homebrew Packages
+            id: cache-homebrew-packages
+            uses: actions/cache@v3
+            env:
+                cache-name: homebrew-packages
+            with:
+                path: $(brew --prefix)
+                key: |
+                    macos-${{ env.cache-name }}-${{ hashFiles('.config/brew/Brewfile') }}
+
+          - name: Install packages
+            run: |
+                brew install $(cat scripts/docs/en/deps/macos.md)
+
+          - name: Run cmake
+            run: |
+                mkdir build_debug
+                cd build_debug
+                cmake $CMAKE_FLAGS ..
+
+          - name: Compile
+            run: |
+                pwd
+                cd build_debug
+                make -j$(nproc) -k
