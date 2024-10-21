@@ -26,10 +26,6 @@ jobs:
                 -DUSERVER_NAMESPACE_END="}"
                 -DUSERVER_FEATURE_KAFKA=0
 
-        defaults:
-            run:
-                shell: bash
-
         steps:
           - uses: actions/checkout@v4
             with:
