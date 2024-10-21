@@ -1,0 +1,31 @@
+name: CI
+
+'on':
+    pull_request:
+    push:
+        branches:
+          - master
+          - develop
+          - feature/**
+
+env:
+    UBSAN_OPTIONS: print_stacktrace=1
+    ASAN_OPTIONS: detect_odr_violation=2
+
+jobs:
+    macos:
+        runs-on: macos-13
+
+        steps:
+          - uses: actions/checkout@v4
+            with:
+                fetch-depth: 0
+
+          - name: Free disk space
+            run: |
+                df -h
+                # TODO
+
+          - name: Install packages
+            run: |
+                brew install $(cat scripts/docs/en/deps/macos.md)
