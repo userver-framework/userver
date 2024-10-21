@@ -5,7 +5,7 @@ function(gen_gdb_printers TARGET STRUCTURE)
   set (PRINTER_PYTHON_SCRIPT ${USERVER_ROOT_DIR}/scripts/gdb/pretty_printers/${STRUCTURE}/printers.py)
   
   # Set the output header file path in the build directory
-  set (OUTPUT_HEADER ${CMAKE_CURRENT_BINARY_DIR}/gdb_autogen/${STRUCTURE}/printers.hpp)
+  set (OUTPUT_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/include/userver/${STRUCTURE}/gdb_autogen/printers.hpp)
 
   # Create the output directory if it doesn't exist
   get_filename_component(OUTPUT_HEADER_DIR ${OUTPUT_HEADER} DIRECTORY)
@@ -29,16 +29,20 @@ function(gen_gdb_printers TARGET STRUCTURE)
 
   # Add the generated header to the target's sources
   target_sources(${TARGET} PRIVATE ${OUTPUT_HEADER})
-
-  target_include_directories(${TARGET} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
   
+  target_compile_definitions(${TARGET} PUBLIC USERVER_EMBEDDED_GDB_PRINTERS)
+
   # Add a custom target to update the .gdbinit file
+  set(GDB_INIT_FILE "$ENV{HOME}/.gdbinit")
+  set(GDB_SAFE_PATH_RECORD "add-auto-load-safe-path ${CMAKE_BINARY_DIR}")
   set(GDB_INIT_STAMP ${CMAKE_BINARY_DIR}/gdbinit_stamp)
 
   add_custom_command(
     OUTPUT ${GDB_INIT_STAMP}
-    COMMAND ${Python3_EXECUTABLE} ${USERVER_ROOT_DIR}/scripts/gdb/update_gdbinit.py ${GDB_INIT_STAMP} ${CMAKE_BINARY_DIR}
+    COMMAND grep -cx ${GDB_SAFE_PATH_RECORD} ${GDB_INIT_FILE} > /dev/null || echo ${GDB_SAFE_PATH_RECORD} >> ${GDB_INIT_FILE}
+    COMMAND ${CMAKE_COMMAND} -E touch ${GDB_INIT_STAMP}
     COMMENT "Updating ${GDB_INIT_FILE}"
+    VERBATIM
   )
 
   add_custom_target(CONFIGURE_GDBINIT ALL DEPENDS ${GDB_INIT_STAMP})

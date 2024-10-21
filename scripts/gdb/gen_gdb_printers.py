@@ -39,6 +39,7 @@ top_matter = f'''
 
 // NOLINTBEGIN
 // clang-format off
+#ifdef USERVER_EMBEDDED_GDB_PRINTERS
 #ifdef __ELF__
 
 #ifdef __clang__
@@ -59,6 +60,7 @@ bottom_matter = f"""
 #endif
 
 #endif  // __ELF__
+#endif  // USERVER_EMBEDDED_GDB_PRINTERS
 // NOLINTEND
 // clang-format on"""
 

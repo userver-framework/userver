@@ -122,8 +122,6 @@ class RJObjectType(RJBaseType):
         )
         if self.size:
             self.children = self.children_impl
-        else:
-            self.to_string = lambda: r'{}'
 
     def children_impl(self):
         for i in range(self.size):
@@ -135,6 +133,9 @@ class RJObjectType(RJBaseType):
     def display_hint(self):
         return 'map'
 
+    def to_string(self):
+        return f'object of size {self.size}'
+
 
 class RJArrayType(RJBaseType):
     def __init__(self, val, flags):
@@ -144,17 +145,16 @@ class RJArrayType(RJBaseType):
         self.elements = rj_get_pointer(
             data['elements'], Constants.RJ_GENERIC_VALUE,
         )
-        if self.size:
-            self.children = self.children_impl
-        if not self.size:
-            self.to_string = lambda: r'[]'
 
-    def children_impl(self):
+    def children(self):
         for i in range(self.size):
             yield (f'[{i}]', self.elements[i])
 
     def display_hint(self):
         return 'array'
+
+    def to_string(self):
+        return f'array of size {self.size}'
 
 
 class RJNumberType(RJBaseType):
