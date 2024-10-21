@@ -31,10 +31,14 @@ jobs:
             with:
                 fetch-depth: 0
 
-          - name: Setup Cpp (C++ / C)
-            uses: aminya/setup-cpp@v0.44.0
-            with:
-                compiler: llvm
+                # - name: Setup Cpp (C++ / C)
+                #   uses: aminya/setup-cpp@v0.44.0
+                #   with:
+                #       compiler: llvm
+
+          - name: export SDKROOT
+            run: |
+                export SDKROOT="`xcrun --show-sdk-path`"
 
           - name: Cache Homebrew Packages
             id: cache-homebrew-packages
