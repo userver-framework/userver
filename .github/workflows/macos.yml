@@ -22,8 +22,7 @@ jobs:
                         -DCMAKE_BUILD_TYPE=Debug
                         -DUSERVER_NO_WERROR=OFF
                         -DUSERVER_NAMESPACE=userver_ns
-                        -DUSERVER_NAMESPACE_BEGIN="namespace userver_ns { inline namespace
-                        v1 {"
+                        -DUSERVER_NAMESPACE_BEGIN="namespace userver_ns { inline namespace v1 {"
                         -DUSERVER_NAMESPACE_END="}}"
                         -DUSERVER_FEATURE_KAFKA=0
                         -DUSERVER_PG_SERVER_INCLUDE_DIR=/usr/include/postgresql/16/server
@@ -38,9 +37,9 @@ jobs:
             with:
                 fetch-depth: 0
 
-          - name: Use XCode 15.4
+          - name: Install LLVM-18
             run: |
-                sudo xcode-select -s /Applications/Xcode_15.4.app
+                brew install llvm@18
 
           - name: Cache Homebrew Packages
             id: cache-homebrew-packages
@@ -59,6 +58,10 @@ jobs:
             run: |
                 mkdir build_debug
                 cd build_debug
+
+                export LDFLAGS="-L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/llvm/lib/c++"
+                export CPPFLAGS="-I/opt/homebrew/opt/llvm/include"
+
                 cmake $CMAKE_FLAGS ..
 
           - name: Compile
