@@ -21,19 +21,14 @@ jobs:
             with:
                 fetch-depth: 0
 
-          - name: Free disk space
-            run: |
-                df -h
-                # TODO
-                #
           - name: Cache Homebrew Packages
-                id: cache-homebrew-packages
-                uses: actions/cache@v3
-                env:
-                  cache-name: homebrew-packages
-                with:
-                  path: $(brew --prefix)
-                  key: macos-${{ env.cache-name }}-${{ hashFiles('.config/brew/Brewfile') }}
+            id: cache-homebrew-packages
+            uses: actions/cache@v3
+j           env:
+              cache-name: homebrew-packages
+            with:
+              path: $(brew --prefix)
+              key: macos-${{ env.cache-name }}-${{ hashFiles('.config/brew/Brewfile') }}
 
           - name: Install packages
             run: |
