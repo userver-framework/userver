@@ -3423,6 +3423,7 @@
   "scripts/gdb/pretty_printers/formats/json/__init__.py":"taxi/uservices/userver/scripts/gdb/pretty_printers/formats/json/__init__.py",
   "scripts/gdb/pretty_printers/formats/json/printers.py":"taxi/uservices/userver/scripts/gdb/pretty_printers/formats/json/printers.py",
   "scripts/gdb/pretty_printers/formats/yaml/__init__.py":"taxi/uservices/userver/scripts/gdb/pretty_printers/formats/yaml/__init__.py",
+  "scripts/gdb/update_gdbinit.py":"taxi/uservices/userver/scripts/gdb/update_gdbinit.py",
   "scripts/grpc/__init__.py":"taxi/uservices/userver/scripts/grpc/__init__.py",
   "scripts/grpc/generator.py":"taxi/uservices/userver/scripts/grpc/generator.py",
   "scripts/grpc/protoc_usrv_plugin.sh":"taxi/uservices/userver/scripts/grpc/protoc_usrv_plugin.sh",
