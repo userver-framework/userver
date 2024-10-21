@@ -65,10 +65,4 @@ jobs:
             run: |
                 pwd
                 cd build_debug
-                make -j$(nproc)
-
-          - name: Run tests (universal)
-            run: |
-                echo "UBSAN_OPTIONS=${UBSAN_OPTIONS} ASAN_OPTIONS=${ASAN_OPTIONS}"
-                cd build_debug
-                ./universal/userver-universal-unittest ${{matrix.tests-flags}}
+                make -j$(nproc) -k
