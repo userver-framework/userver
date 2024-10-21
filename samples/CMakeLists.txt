@@ -3,7 +3,7 @@ project(userver-samples CXX)
 add_custom_target(${PROJECT_NAME})
 
 # Imitate an installed userver in samples.
-file(WRITE "${CMAKE_BINARY_DIR}/package_stubs/userverConfig.cmake")
+file(WRITE "${CMAKE_BINARY_DIR}/package_stubs/userverConfig.cmake" )
 
 add_subdirectory(config_service)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-config_service)
@@ -11,17 +11,17 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-config_service)
 add_subdirectory(testsuite-support)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-testsuite-support)
 
-if (USERVER_FEATURE_CHAOTIC)
+if(USERVER_FEATURE_CHAOTIC)
   add_subdirectory(chaotic_service)
   add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-chaotic_service)
 endif()
 
-if (USERVER_FEATURE_OTLP)
+if(USERVER_FEATURE_OTLP)
   add_subdirectory(otlp_service)
   add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-otlp_service)
 endif()
 
-if (USERVER_FEATURE_GRPC)
+if(USERVER_FEATURE_GRPC)
   add_subdirectory(grpc-generic-proxy)
   add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-grpc-generic-proxy)
 
@@ -56,7 +56,7 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-tcp_service)
 add_subdirectory(tcp_full_duplex_service)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-tcp_full_duplex_service)
 
-if (USERVER_FEATURE_MONGODB)
+if(USERVER_FEATURE_MONGODB)
   add_subdirectory(http_caching)
   add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-http_caching)
 
@@ -67,7 +67,7 @@ if (USERVER_FEATURE_MONGODB)
   add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-mongo-support)
 endif()
 
-if (USERVER_FEATURE_POSTGRESQL)
+if(USERVER_FEATURE_POSTGRESQL)
   add_subdirectory(postgres_service)
   add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-postgres_service)
 
@@ -87,36 +87,36 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-production_service)
 add_subdirectory(static_service)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-static_service)
 
-if (USERVER_FEATURE_REDIS)
+if(USERVER_FEATURE_REDIS)
   add_subdirectory(redis_service)
   add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-redis_service)
 endif()
 
-if (USERVER_FEATURE_CLICKHOUSE)
+if(USERVER_FEATURE_CLICKHOUSE)
   add_subdirectory(clickhouse_service)
   add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-clickhouse_service)
 endif()
 
-if (USERVER_FEATURE_RABBITMQ)
+if(USERVER_FEATURE_RABBITMQ)
   add_subdirectory(rabbitmq_service)
   add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-rabbitmq_service)
 endif()
 
-if (USERVER_FEATURE_KAFKA)
+if(USERVER_FEATURE_KAFKA)
   add_subdirectory(kafka_service)
   add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-kafka_service)
 endif()
 
-if (USERVER_FEATURE_MYSQL)
+if(USERVER_FEATURE_MYSQL)
   add_subdirectory(mysql_service)
   add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-mysql_service)
 endif()
 
-if (USERVER_FEATURE_YDB AND USERVER_FEATURE_MONGODB)
+if(USERVER_FEATURE_YDB AND USERVER_FEATURE_MONGODB)
   add_subdirectory(ydb_service)
   add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-ydb_service)
 endif()
 
-# Clean up fake userver installation above to avoid messing
-# with find_package(userver) in the parent project.
+# Clean up fake userver installation above to avoid messing with
+# find_package(userver) in the parent project.
 file(REMOVE "${CMAKE_BINARY_DIR}/package_stubs/userverConfig.cmake")

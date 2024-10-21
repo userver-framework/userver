@@ -1,6 +1,6 @@
 project(userver-mongo CXX)
 
-if (USERVER_CONAN)
+if(USERVER_CONAN)
   find_package(mongoc-1.0 REQUIRED)
   set_target_properties(mongo::bson_static PROPERTIES IMPORTED_GLOBAL TRUE)
   set_target_properties(mongo::mongoc_static PROPERTIES IMPORTED_GLOBAL TRUE)
@@ -12,94 +12,83 @@ else()
   find_package(mongoc REQUIRED)
 endif()
 
-file(GLOB_RECURSE SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
+file(GLOB_RECURSE SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
+     ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
 
-file(GLOB_RECURSE UNIT_TEST_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/*_test.cpp
-)
+file(GLOB_RECURSE UNIT_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*_test.cpp)
 list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES})
 
 file(GLOB_RECURSE MONGO_TEST_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/*_mongotest.cpp
-)
+     ${CMAKE_CURRENT_SOURCE_DIR}/*_mongotest.cpp)
 list(REMOVE_ITEM SOURCES ${MONGO_TEST_SOURCES})
 
 file(GLOB_RECURSE MONGO_FUNCTIONAL_TEST_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/functional_tests/*.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/functional_tests/*.hpp
-)
+     ${CMAKE_CURRENT_SOURCE_DIR}/functional_tests/*.cpp
+     ${CMAKE_CURRENT_SOURCE_DIR}/functional_tests/*.hpp)
 list(REMOVE_ITEM SOURCES ${MONGO_FUNCTIONAL_TEST_SOURCES})
 
-file(GLOB_RECURSE BENCH_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/*_benchmark.cpp
-)
-list (REMOVE_ITEM SOURCES ${BENCH_SOURCES})
+file(GLOB_RECURSE BENCH_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*_benchmark.cpp)
+list(REMOVE_ITEM SOURCES ${BENCH_SOURCES})
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
-target_link_libraries(${PROJECT_NAME}
-  PUBLIC
-    userver-core
-    bson
-  PRIVATE
-    mongoc
-)
+target_link_libraries(
+  ${PROJECT_NAME}
+  PUBLIC userver-core bson
+  PRIVATE mongoc)
 target_include_directories(
   ${PROJECT_NAME}
-  PUBLIC
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/src
-)
+  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-_userver_directory_install(COMPONENT mongo
-  DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
-)
+_userver_directory_install(
+  COMPONENT mongo DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include DESTINATION
+  ${CMAKE_INSTALL_INCLUDEDIR}/..)
 _userver_install_targets(COMPONENT mongo TARGETS ${PROJECT_NAME})
 
-_userver_directory_install(COMPONENT mongo FILES
-    "${USERVER_ROOT_DIR}/cmake/install/userver-mongo-config.cmake"
-    "${USERVER_ROOT_DIR}/cmake/modules/Findmongoc.cmake"
-    "${USERVER_ROOT_DIR}/cmake/modules/Findbson.cmake"
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
-)
+_userver_directory_install(
+  COMPONENT
+  mongo
+  FILES
+  "${USERVER_ROOT_DIR}/cmake/install/userver-mongo-config.cmake"
+  "${USERVER_ROOT_DIR}/cmake/modules/Findmongoc.cmake"
+  "${USERVER_ROOT_DIR}/cmake/modules/Findbson.cmake"
+  DESTINATION
+  ${CMAKE_INSTALL_LIBDIR}/cmake/userver)
 
-if (USERVER_IS_THE_ROOT_PROJECT)
+if(USERVER_IS_THE_ROOT_PROJECT)
   add_executable(${PROJECT_NAME}-unittest ${UNIT_TEST_SOURCES})
-  target_include_directories (${PROJECT_NAME}-unittest PRIVATE
-    $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>
-  )
+  target_include_directories(
+    ${PROJECT_NAME}-unittest
+    PRIVATE $<TARGET_PROPERTY:userver-core,INCLUDE_DIRECTORIES>)
   target_link_libraries(${PROJECT_NAME}-unittest userver-utest ${PROJECT_NAME})
 
   target_compile_definitions(${PROJECT_NAME}-unittest
-      PUBLIC
-        -DUSERVER_FEATURE_NO_PATCHED_BSON=1
-  )
+                             PUBLIC -DUSERVER_FEATURE_NO_PATCHED_BSON=1)
 
   add_google_tests(${PROJECT_NAME}-unittest)
 
   add_executable(${PROJECT_NAME}-benchmark ${BENCH_SOURCES})
-  target_link_libraries(${PROJECT_NAME}-benchmark PUBLIC userver-ubench ${PROJECT_NAME})
+  target_link_libraries(${PROJECT_NAME}-benchmark PUBLIC userver-ubench
+                                                         ${PROJECT_NAME})
   add_google_benchmark_tests(${PROJECT_NAME}-benchmark)
 
   add_executable(${PROJECT_NAME}-mongotest ${MONGO_TEST_SOURCES})
-  target_include_directories(${PROJECT_NAME}-mongotest PRIVATE
-    $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
-  )
+  target_include_directories(
+    ${PROJECT_NAME}-mongotest
+    PRIVATE $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>)
   target_link_libraries(${PROJECT_NAME}-mongotest userver-utest ${PROJECT_NAME})
-  add_test(NAME ${PROJECT_NAME}-mongotest COMMAND env
-    "${CMAKE_BINARY_DIR}/testsuite/env"
-    --databases=mongo
-    run --
-    $<TARGET_FILE:${PROJECT_NAME}-mongotest>
-    "--gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_mongotest.xml"
+  add_test(
+    NAME ${PROJECT_NAME}-mongotest
+    COMMAND
+      env "${CMAKE_BINARY_DIR}/testsuite/env" --databases=mongo run --
+      $<TARGET_FILE:${PROJECT_NAME}-mongotest>
+      "--gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_mongotest.xml"
   )
 
   # Tests that use IsCollectionWriteConcernTimeout require multi-instance mongo
-  set_property(TEST ${PROJECT_NAME}-mongotest PROPERTY ENVIRONMENT "TESTSUITE_MONGO_RS_INSTANCE_COUNT=5")
+  set_property(TEST ${PROJECT_NAME}-mongotest
+               PROPERTY ENVIRONMENT "TESTSUITE_MONGO_RS_INSTANCE_COUNT=5")
 
   add_subdirectory(functional_tests)
 endif()
