@@ -29,3 +29,21 @@ jobs:
           - name: Install packages
             run: |
                 brew install $(cat scripts/docs/en/deps/macos.md)
+
+          - name: Run cmake
+            run: |
+                mkdir build_debug
+                cd build_debug
+                cmake ..
+
+          - name: Compile
+            run: |
+                pwd
+                cd build_debug
+                make -j$(nproc)
+
+          - name: Run tests (universal)
+            run: |
+                echo "UBSAN_OPTIONS=${UBSAN_OPTIONS} ASAN_OPTIONS=${ASAN_OPTIONS}"
+                cd build_debug
+                ./universal/userver-universal-unittest ${{matrix.tests-flags}}
