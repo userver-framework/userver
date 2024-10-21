@@ -639,8 +639,8 @@ void PostgreCache<PostgreCachePolicy>::Update(
     }
     if (changes > 0 || type == cache::UpdateType::kFull) {
         // Set current cache
-        stats_scope.Finish(data_cache->size());
         pg_cache::detail::OnWritesDone(*data_cache);
+        stats_scope.Finish(data_cache->size());
         this->Set(std::move(data_cache));
     } else {
         stats_scope.FinishNoChanges();
