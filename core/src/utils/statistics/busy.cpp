@@ -1,12 +1,9 @@
 #include <userver/utils/statistics/busy.hpp>
 
 #include <optional>
+#include <thread>
 #include <vector>
 
-#include <boost/lockfree/queue.hpp>
-
-#include <userver/compiler/thread_local.hpp>
-#include <userver/logging/log.hpp>
 #include <userver/utils/datetime.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -14,177 +11,108 @@ USERVER_NAMESPACE_BEGIN
 namespace utils::statistics {
 
 using Timer = utils::datetime::SteadyClock;
+using Duration = BusyStorage::Duration;
 
 struct BusyCounter {
-  std::atomic<Duration> value{};
+    std::atomic<Duration> value{Duration{}};
 
-  void Reset() { value = Duration(0); }
+    void Reset() { value = Duration(0); }
 };
 
 class BusyResult {
- public:
-  void Add(const BusyCounter& v, Duration this_epoch_duration,
-           Duration before_this_epoch_duration) {
-    const auto max_value = this_epoch_duration + before_this_epoch_duration;
-    const auto value = std::min(v.value.load(), max_value);
-    result_ += value;
-    total_ = std::max(total_, max_value);
-  }
+public:
+    void Add(const BusyCounter& v, Duration this_epoch_duration, Duration before_this_epoch_duration) {
+        const auto max_value = this_epoch_duration + before_this_epoch_duration;
+        const auto value = std::min(v.value.load(), max_value);
+        result_ += value;
+        total_ = std::max(total_, max_value);
+    }
 
-  [[nodiscard]] Duration Get() const { return std::min(result_, total_); }
-  [[nodiscard]] Duration Total() const { return total_; }
+    [[nodiscard]] Duration Get() const { return std::min(result_, total_); }
+    [[nodiscard]] Duration Total() const { return total_; }
 
- private:
-  Duration result_{};
-  Duration total_{};
+private:
+    Duration result_{};
+    Duration total_{};
 };
-
-namespace {
-constexpr BusyStorage::WorkerId kInvalidWorkerId{-1UL};
-}
 
 struct BusyStorage::Impl {
-  Impl(Duration epoch_duration, Duration history_period, size_t max_workers);
+    Impl(Duration epoch_duration, Duration history_period) : recent_period(epoch_duration, history_period) {}
 
-  mutable RecentPeriod<BusyCounter, BusyResult, Timer> recent_period;
-  std::vector<std::optional<Timer::time_point>> start_work{std::nullopt};
-  boost::lockfree::queue<WorkerId> free_worker_ids;
+    RecentPeriod<BusyCounter, BusyResult, Timer> recent_period;
+    std::atomic<Timer::time_point> start_work{Timer::time_point{}};
+    std::atomic<std::size_t> refcount{0};
+
+#ifndef NDEBUG
+    std::atomic<std::thread::id> thread_id{};
+#endif
 };
 
-BusyStorage::Impl::Impl(Duration epoch_duration, Duration history_period,
-                        size_t max_workers)
-    : recent_period(epoch_duration, history_period), free_worker_ids(1) {
-  start_work.resize(max_workers);
-  free_worker_ids.reserve(max_workers);
+BusyStorage::BusyStorage(Duration epoch_duration, Duration history_period)
+    : pimpl(std::make_unique<Impl>(epoch_duration, history_period)) {}
 
-  for (size_t i = 0; i < max_workers; i++) free_worker_ids.push(i);
-}
-
-BusyStorage::BusyStorage(Duration epoch_duration, Duration history_period,
-                         size_t max_workers)
-    // FP(?): Possible leak in boost.lockfree
-    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
-    : pimpl(new Impl(epoch_duration, history_period, max_workers)) {}
-
-BusyStorage::~BusyStorage() = default;
+BusyStorage::~BusyStorage() { UASSERT_MSG(!IsAlreadyStarted(), "BusyStorage was not stopped before destruction"); }
 
 double BusyStorage::GetCurrentLoad() const {
-  pimpl->recent_period.UpdateEpochIfOld();
+    pimpl->recent_period.UpdateEpochIfOld();
 
-  const auto max_workers = pimpl->start_work.size();
-  std::vector<Duration> current_worker_load_duration(max_workers);
+    const Duration current_load_duration = GetNotCommittedLoad();
 
-  for (size_t i = 0; i < max_workers; i++)
-    current_worker_load_duration[i] = GetNotCommittedLoad(i);
-
-  /*
-   * StopWork() might change recent_period while we're reading recent_period and
-   * start_work[]. We're OK if we read recent_period, start_work[] while nobody
-   * does StopWork() committing large Duration (StartWork() doesn't
-   * significantly affect the result, so it is OK to simply ignore).
-   */
-  while (true) {
-    const auto result =
-        pimpl->recent_period.GetStatsForPeriod(Timer::duration::min(), true);
-    const auto load_duration = result.Get();
+    const auto result = pimpl->recent_period.GetStatsForPeriod(Timer::duration::min(), true);
     auto duration = result.Total();
     if (duration.count() == 0) duration = pimpl->recent_period.GetMaxDuration();
 
-    if (!UpdateCurrentWorkerLoad(current_worker_load_duration)) {
-      auto final_load_duration = load_duration;
-      for (const auto load_duration_it : current_worker_load_duration) {
-        final_load_duration += std::min(load_duration_it, duration);
-      }
-      return static_cast<double>(final_load_duration.count()) /
-             duration.count() / max_workers;
-    }
-  }
+    auto load_duration = result.Get() + std::min(current_load_duration, duration);
+    return static_cast<double>(load_duration.count()) / duration.count();
 }
 
-bool BusyStorage::UpdateCurrentWorkerLoad(std::vector<Duration>& load) const {
-  const auto size = load.size();
-  for (size_t i = 0; i < size; i++) {
-    if (load[i] > GetNotCommittedLoad(i)) {
-      /* WorkerId i has just committed its work, we have to re-read
-       * recent_period */
-      load[i] = Duration();
-      return true;
+bool BusyStorage::IsAlreadyStarted() const noexcept { return pimpl->refcount.load() != 0; }
+
+void BusyStorage::StartWork() {
+    if (++pimpl->refcount != 1) {
+#ifndef NDEBUG
+        UASSERT_MSG(
+            pimpl->thread_id.load() == std::this_thread::get_id(),
+            "BusyStorage should be started and stopped at the same thread"
+        );
+#endif
+        return;
+    }
+
+#ifndef NDEBUG
+    pimpl->thread_id = std::this_thread::get_id();
+#endif
+
+    pimpl->start_work = utils::datetime::SteadyNow();
+}
+
+void BusyStorage::StopWork() noexcept {
+    const auto refcount_snapshot = pimpl->refcount--;
+    UASSERT_MSG(refcount_snapshot != 0, "Stop was called more times than start");
+    if (refcount_snapshot != 1) {
+#ifndef NDEBUG
+        UASSERT_MSG(
+            pimpl->thread_id.load() == std::this_thread::get_id(),
+            "BusyStorage should be started and stopped at the same thread"
+        );
+#endif
+        return;
+    }
+
+    auto not_committed_load = GetNotCommittedLoad();
+    auto& value = pimpl->recent_period.GetCurrentCounter().value;
+    value = value.load() + not_committed_load;
+
+    pimpl->start_work = Timer::time_point{};
+}
+
+Duration BusyStorage::GetNotCommittedLoad() const noexcept {
+    const auto start_work = pimpl->start_work.load();
+    if (start_work == Timer::time_point{}) {
+        return Duration(0);
     } else {
-      /* Either nobody committed anything or committed only a very small
-       * Duration which is less than (now() - time of the first
-       * GetNotCommittedLoad(i)).
-       */
+        return utils::datetime::SteadyNow() - start_work;
     }
-  }
-
-  return false;
-}
-
-namespace {
-
-using BusyStorageList = std::vector<const BusyStorage*>;
-
-compiler::ThreadLocal busy_storage_list = [] { return BusyStorageList{}; };
-
-}  // namespace
-
-bool BusyStorage::IsAlreadyStarted() const {
-  auto storages = busy_storage_list.Use();
-  return std::find(storages->begin(), storages->end(), this) != storages->end();
-}
-
-BusyStorage::WorkerId BusyStorage::StartWork() {
-  auto worker_id = kInvalidWorkerId;
-  if (!IsAlreadyStarted()) worker_id = PopWorkerId();
-  if (worker_id != kInvalidWorkerId) {
-    pimpl->start_work[worker_id] = utils::datetime::SteadyNow();
-  }
-
-  return worker_id;
-}
-
-void BusyStorage::StopWork(WorkerId worker_id) {
-  if (worker_id == kInvalidWorkerId) return;
-
-  auto not_committed_load = GetNotCommittedLoad(worker_id);
-  auto& value = pimpl->recent_period.GetCurrentCounter().value;
-  value = value.load() + not_committed_load;
-  pimpl->start_work[worker_id] = std::nullopt;
-
-  auto storages = busy_storage_list.Use();
-  const auto* busy_storage_back = storages->back();
-  if (busy_storage_back != this) {
-    LOG_ERROR()
-        << "StopWork() found wrong BusyStorage on this_thread's "
-           "this_thread_busy_storages stack top! StartWork() and StopWork() "
-           "was called from different threads, which is wrong. "
-           "Current load of this BusyStorage is now broken and must not be "
-           "trusted.";
-  } else {
-    storages->pop_back();
-    pimpl->free_worker_ids.push(worker_id);
-  }
-}
-
-BusyStorage::WorkerId BusyStorage::PopWorkerId() {
-  WorkerId id{kInvalidWorkerId};
-  if (!pimpl->free_worker_ids.pop(id)) {
-    LOG_ERROR() << "Failed to obtain worker_id, load statistics is accounted "
-                   "with some error";
-  } else {
-    auto storages = busy_storage_list.Use();
-    storages->push_back(this);
-  }
-  return id;
-}
-
-Duration BusyStorage::GetNotCommittedLoad(WorkerId worker_id) const {
-  const auto start_work = pimpl->start_work[worker_id];
-  if (!start_work) {
-    return Duration(0);
-  } else {
-    return utils::datetime::SteadyNow() - *start_work;
-  }
 }
 
 }  // namespace utils::statistics

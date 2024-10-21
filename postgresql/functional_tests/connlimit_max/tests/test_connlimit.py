@@ -1,6 +1,5 @@
 import pytest
 
-
 TESTSUITE_MAX_CONNECTIONS = 100 - 5
 STATIC_MAX_CONNECTIONS = 15
 
@@ -49,7 +48,7 @@ async def test_second_client(monitor_client, service_client, pgsql):
     cursor = pgsql['key_value'].cursor()
     cursor.execute(
         'INSERT INTO u_clients (hostname, updated, max_connections) '
-        'VALUES (\'xxx\', NOW(), 3)',
+        "VALUES ('xxx', NOW(), 3)",
     )
     assert (
         await get_max_connections(monitor_client) == TESTSUITE_MAX_CONNECTIONS

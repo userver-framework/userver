@@ -3,7 +3,7 @@
 #include <chrono>
 
 #include <mongoc/mongoc.h>
-#include <boost/lockfree/queue.hpp>
+#include <moodycamel/concurrentqueue.h>
 
 #include <storages/mongo/cdriver/async_stream.hpp>
 #include <storages/mongo/cdriver/wrappers.hpp>
@@ -21,64 +21,125 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::mongo::impl::cdriver {
 
 class CDriverPoolImpl final : public PoolImpl {
- public:
-  class ClientPusher {
-   public:
-    explicit ClientPusher(CDriverPoolImpl* pool) noexcept : pool_(pool) {
-      UASSERT(pool_);
-    }
-    void operator()(mongoc_client_t* client) const noexcept {
-      pool_->Push(client);
-    }
+public:
+    struct ClientDeleter final {
+        void operator()(mongoc_client_t* client) const noexcept {
+            if (client) {
+                mongoc_client_destroy(client);
+            }
+        }
+    };
 
-   private:
-    CDriverPoolImpl* pool_;
-  };
-  using BoundClientPtr = std::unique_ptr<mongoc_client_t, ClientPusher>;
+    class Connection final {
+    public:
+        Connection(mongoc_client_t* client, stats::ApmStats* apm_stats) : client_(client) {
+            UASSERT(client_);
+            UASSERT(apm_stats);
+            stats_.apm_stats_ = apm_stats;
+        }
 
-  CDriverPoolImpl(std::string id, const std::string& uri_string,
-                  const PoolConfig& config,
-                  clients::dns::Resolver* dns_resolver,
-                  dynamic_config::Source config_source);
-  ~CDriverPoolImpl() override;
+        Connection(Connection&& other) = delete;
+        Connection(const Connection&) = delete;
+        Connection& operator=(const Connection&) = delete;
+        Connection& operator=(const Connection&&) = delete;
 
-  const std::string& DefaultDatabaseName() const override;
+        mongoc_client_t* GetNativePtr() { return client_.get(); }
 
-  void Ping() override;
+        stats::ConnStats* GetStatsPtr() { return &stats_; }
 
-  size_t InUseApprox() const override;
-  size_t SizeApprox() const override;
-  size_t MaxSize() const override;
-  void SetMaxSize(size_t max_size) override;
+    private:
+        stats::ConnStats stats_;
+        std::unique_ptr<mongoc_client_t, ClientDeleter> client_{nullptr};
+    };
 
-  /// @throws CancelledException, PoolOverloadException
-  BoundClientPtr Acquire();
+    using ConnPtr = std::unique_ptr<Connection>;
 
-  void SetPoolSettings(const PoolSettings& pool_settings) override;
+    class BoundClientPtr final {
+    public:
+        explicit BoundClientPtr(ConnPtr ptr, CDriverPoolImpl* pool) noexcept : ptr_(std::move(ptr)), pool_(pool) {
+            UASSERT(pool_);
+            UASSERT(ptr_);
+        }
 
- private:
-  mongoc_client_t* Pop();
-  void Push(mongoc_client_t*) noexcept;
-  void Drop(mongoc_client_t*) noexcept;
+        BoundClientPtr(BoundClientPtr&& o) noexcept = default;
 
-  mongoc_client_t* TryGetIdle();
-  mongoc_client_t* Create();
+        BoundClientPtr(const BoundClientPtr&) = delete;
+        BoundClientPtr& operator=(const BoundClientPtr&) = delete;
+        BoundClientPtr& operator=(const BoundClientPtr&&) = delete;
 
-  void DoMaintenance();
+        explicit operator bool() { return !!ptr_; }
 
-  const std::string app_name_;
-  std::string default_database_;
-  UriPtr uri_;
-  AsyncStreamInitiatorData init_data_;
+        stats::EventStats GetEventStatsSnapshot() {
+            UASSERT(ptr_);
+            return ptr_->GetStatsPtr()->event_stats_;
+        }
 
-  std::atomic<size_t> max_size_;
-  std::atomic<size_t> idle_limit_;
-  const std::chrono::milliseconds queue_timeout_;
-  std::atomic<size_t> size_;
-  engine::Semaphore in_use_semaphore_;
-  engine::Semaphore connecting_semaphore_;
-  boost::lockfree::queue<mongoc_client_t*> queue_;
-  utils::PeriodicTask maintenance_task_;
+        void reset() {
+            UASSERT(ptr_);
+            pool_->Push(std::move(ptr_));
+        }
+
+        ~BoundClientPtr() {
+            if (ptr_) pool_->Push(std::move(ptr_));
+        }
+
+        mongoc_client_t* get() { return ptr_->GetNativePtr(); }
+
+    private:
+        ConnPtr ptr_;
+        CDriverPoolImpl* pool_;
+    };
+
+    CDriverPoolImpl(
+        std::string id,
+        const std::string& uri_string,
+        const PoolConfig& config,
+        clients::dns::Resolver* dns_resolver,
+        dynamic_config::Source config_source
+    );
+
+    ~CDriverPoolImpl() override;
+
+    const std::string& DefaultDatabaseName() const override;
+
+    void Ping() override;
+
+    size_t InUseApprox() const override;
+    size_t SizeApprox() const override;
+    size_t MaxSize() const override;
+    const stats::ApmStats& GetApmStats() const override;
+    void SetMaxSize(size_t max_size) override;
+
+    /// @throws CancelledException, PoolOverloadException
+    BoundClientPtr Acquire();
+
+    void SetPoolSettings(const PoolSettings& pool_settings) override;
+
+private:
+    ConnPtr Pop();
+    void Push(ConnPtr) noexcept;
+    void Drop(ConnPtr) noexcept;
+
+    ConnPtr TryGetIdle();
+    ConnPtr Create();
+
+    void DoMaintenance();
+
+    const std::string app_name_;
+    std::string default_database_;
+    UriPtr uri_;
+    AsyncStreamInitiatorData init_data_;
+
+    std::atomic<size_t> max_size_;
+    std::atomic<size_t> idle_limit_;
+    const std::chrono::milliseconds queue_timeout_;
+    std::atomic<size_t> size_;
+    engine::Semaphore in_use_semaphore_;
+    engine::Semaphore connecting_semaphore_;
+    moodycamel::ConcurrentQueue<ConnPtr> queue_;
+    // ApmStats must be after the queue_
+    stats::ApmStats apm_stats_;
+    utils::PeriodicTask maintenance_task_;
 };
 
 }  // namespace storages::mongo::impl::cdriver

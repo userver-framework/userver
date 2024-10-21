@@ -9,13 +9,13 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::mysql::impl::metadata {
 
 struct ServerInfo final {
-  enum class Type { kMySQL, kMariaDB, kUnknown };
+    enum class Type { kMySQL, kMariaDB, kUnknown };
 
-  std::string server_type_str;
-  SemVer server_version{0};
-  Type server_type{Type::kUnknown};
+    std::string server_type_str;
+    SemVer server_version{0};
+    Type server_type{Type::kUnknown};
 
-  static ServerInfo Get(MYSQL& mysql);
+    static ServerInfo Get(MYSQL& mysql);
 };
 
 }  // namespace storages::mysql::impl::metadata

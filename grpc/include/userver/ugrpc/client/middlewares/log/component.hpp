@@ -24,26 +24,29 @@ struct Settings;
 /// ---- | ----------- | -------------
 /// log-level | log level for msg logging | debug
 /// msg-size-log-limit | max message size to log, the rest will be truncated | 512
+///
+/// ## Static configuration example:
+///
+/// @snippet grpc/functional_tests/basic_chaos/static_config.yaml Sample grpc client logging middleware component config
 
 // clang-format on
 
 class Component final : public MiddlewareComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of ugrpc::client::middlewares::log::Component
-  static constexpr std::string_view kName = "grpc-client-logging";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of ugrpc::client::middlewares::log::Component
+    static constexpr std::string_view kName = "grpc-client-logging";
 
-  Component(const components::ComponentConfig& config,
-            const components::ComponentContext& context);
+    Component(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-  ~Component() override;
+    ~Component() override;
 
-  std::shared_ptr<const MiddlewareFactoryBase> GetMiddlewareFactory() override;
+    std::shared_ptr<const MiddlewareFactoryBase> GetMiddlewareFactory() override;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  const utils::Box<Settings> settings_;
+private:
+    const utils::Box<Settings> settings_;
 };
 
 }  // namespace ugrpc::client::middlewares::log

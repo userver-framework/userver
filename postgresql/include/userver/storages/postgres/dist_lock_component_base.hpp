@@ -72,64 +72,65 @@ namespace storages::postgres {
 // clang-format on
 
 class DistLockComponentBase : public components::ComponentBase {
- public:
-  DistLockComponentBase(const components::ComponentConfig&,
-                        const components::ComponentContext&);
+public:
+    DistLockComponentBase(const components::ComponentConfig&, const components::ComponentContext&);
 
-  ~DistLockComponentBase() override;
+    ~DistLockComponentBase() override;
 
-  dist_lock::DistLockedWorker& GetWorker();
+    dist_lock::DistLockedWorker& GetWorker();
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    bool OwnsLock() const noexcept;
 
- protected:
-  /// Override this function with anything that must be done under the pg lock.
-  ///
-  /// ## Example implementation
-  ///
-  /// ```cpp
-  /// void MyDistLockComponent::DoWork()
-  /// {
-  ///     while (!engine::ShouldCancel())
-  ///     {
-  ///         // Start a new trace_id
-  ///         auto span = tracing::Span::MakeRootSpan("my-dist-lock");
-  ///
-  ///         // If Foo() or other function in DoWork() throws an exception,
-  ///         // DoWork() will be restarted in `restart-delay` seconds.
-  ///         Foo();
-  ///
-  ///         // Check for cancellation after cpu-intensive Foo().
-  ///         // You must check for cancellation at least every `lock-ttl`
-  ///         // seconds to have time to notice lock prolongation failure.
-  ///         if (engine::ShouldCancel()) break;
-  ///
-  ///         Bar();
-  ///     }
-  /// }
-  /// ```
-  ///
-  /// @note `DoWork` must honour task cancellation and stop ASAP when
-  /// it is cancelled, otherwise brain split is possible (IOW, two different
-  /// users do work assuming both of them hold the lock, which is not true).
-  virtual void DoWork() = 0;
+    static yaml_config::Schema GetStaticConfigSchema();
 
-  /// Override this function to provide custom testsuite handler.
-  virtual void DoWorkTestsuite() { DoWork(); }
+protected:
+    /// Override this function with anything that must be done under the pg lock.
+    ///
+    /// ## Example implementation
+    ///
+    /// ```cpp
+    /// void MyDistLockComponent::DoWork()
+    /// {
+    ///     while (!engine::ShouldCancel())
+    ///     {
+    ///         // Start a new trace_id
+    ///         auto span = tracing::Span::MakeRootSpan("my-dist-lock");
+    ///
+    ///         // If Foo() or other function in DoWork() throws an exception,
+    ///         // DoWork() will be restarted in `restart-delay` seconds.
+    ///         Foo();
+    ///
+    ///         // Check for cancellation after cpu-intensive Foo().
+    ///         // You must check for cancellation at least every `lock-ttl`
+    ///         // seconds to have time to notice lock prolongation failure.
+    ///         if (engine::ShouldCancel()) break;
+    ///
+    ///         Bar();
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// @note `DoWork` must honour task cancellation and stop ASAP when
+    /// it is cancelled, otherwise brain split is possible (IOW, two different
+    /// users do work assuming both of them hold the lock, which is not true).
+    virtual void DoWork() = 0;
 
-  /// Must be called in ctr
-  void AutostartDistLock();
+    /// Override this function to provide custom testsuite handler.
+    virtual void DoWorkTestsuite() { DoWork(); }
 
-  /// Must be called in dtr
-  void StopDistLock();
+    /// Must be called in ctr
+    void AutostartDistLock();
 
- private:
-  std::unique_ptr<dist_lock::DistLockedWorker> worker_;
-  bool autostart_;
-  bool testsuite_enabled_{false};
+    /// Must be called in dtr
+    void StopDistLock();
 
-  // Subscriptions must be the last fields.
-  USERVER_NAMESPACE::utils::statistics::Entry statistics_holder_;
+private:
+    std::unique_ptr<dist_lock::DistLockedWorker> worker_;
+    bool autostart_;
+    bool testsuite_enabled_{false};
+
+    // Subscriptions must be the last fields.
+    USERVER_NAMESPACE::utils::statistics::Entry statistics_holder_;
 };
 
 }  // namespace storages::postgres

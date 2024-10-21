@@ -24,44 +24,44 @@ class ConnectionPtr;
 ///
 /// Usually retrieved from `Client`
 class AdminChannel final : IAdminInterface {
- public:
-  AdminChannel(ConnectionPtr&& channel);
-  ~AdminChannel();
+public:
+    AdminChannel(ConnectionPtr&& channel);
+    ~AdminChannel();
 
-  AdminChannel(AdminChannel&& other) noexcept;
+    AdminChannel(AdminChannel&& other) noexcept;
 
-  void DeclareExchange(const Exchange& exchange, Exchange::Type type,
-                       utils::Flags<Exchange::Flags> flags,
-                       engine::Deadline deadline) override;
+    void DeclareExchange(
+        const Exchange& exchange,
+        Exchange::Type type,
+        utils::Flags<Exchange::Flags> flags,
+        engine::Deadline deadline
+    ) override;
 
-  void DeclareExchange(const Exchange& exchange, Exchange::Type type,
-                       engine::Deadline deadline) override {
-    DeclareExchange(exchange, type, {}, deadline);
-  }
+    void DeclareExchange(const Exchange& exchange, Exchange::Type type, engine::Deadline deadline) override {
+        DeclareExchange(exchange, type, {}, deadline);
+    }
 
-  void DeclareExchange(const Exchange& exchange,
-                       engine::Deadline deadline) override {
-    DeclareExchange(exchange, Exchange::Type::kFanOut, {}, deadline);
-  }
+    void DeclareExchange(const Exchange& exchange, engine::Deadline deadline) override {
+        DeclareExchange(exchange, Exchange::Type::kFanOut, {}, deadline);
+    }
 
-  void DeclareQueue(const Queue& queue, utils::Flags<Queue::Flags> flags,
-                    engine::Deadline deadline) override;
+    void DeclareQueue(const Queue& queue, utils::Flags<Queue::Flags> flags, engine::Deadline deadline) override;
 
-  void DeclareQueue(const Queue& queue, engine::Deadline deadline) override {
-    DeclareQueue(queue, {}, deadline);
-  }
+    void DeclareQueue(const Queue& queue, engine::Deadline deadline) override { DeclareQueue(queue, {}, deadline); }
 
-  void BindQueue(const Exchange& exchange, const Queue& queue,
-                 const std::string& routing_key,
-                 engine::Deadline deadline) override;
+    void BindQueue(
+        const Exchange& exchange,
+        const Queue& queue,
+        const std::string& routing_key,
+        engine::Deadline deadline
+    ) override;
 
-  void RemoveExchange(const Exchange& exchange,
-                      engine::Deadline deadline) override;
+    void RemoveExchange(const Exchange& exchange, engine::Deadline deadline) override;
 
-  void RemoveQueue(const Queue& queue, engine::Deadline deadline) override;
+    void RemoveQueue(const Queue& queue, engine::Deadline deadline) override;
 
- private:
-  utils::FastPimpl<ConnectionPtr, 32, 8> impl_;
+private:
+    utils::FastPimpl<ConnectionPtr, 32, 8> impl_;
 };
 
 }  // namespace urabbitmq

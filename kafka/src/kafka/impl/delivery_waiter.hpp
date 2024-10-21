@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cstdint>
-
 #include <librdkafka/rdkafka.h>
 
 #include <userver/engine/future.hpp>
@@ -10,46 +8,36 @@ USERVER_NAMESPACE_BEGIN
 
 namespace kafka::impl {
 
-class DeliveryResult {
- public:
-  DeliveryResult(
-      rd_kafka_resp_err_t message_error,
-      std::optional<rd_kafka_msg_status_t> message_status = std::nullopt);
+class DeliveryResult final {
+public:
+    DeliveryResult(
+        rd_kafka_resp_err_t message_error,
+        std::optional<rd_kafka_msg_status_t> message_status = std::nullopt
+    );
 
-  /// @note Message delivery may timeout due to timeout fired when request to
-  /// broker was in-flight. In that case, message status is
-  /// `RD_KAFKA_MSG_STATUS_POSSIBLY_PERSISTED`. It is not safe to retry such
-  /// messages, because of reordering and duplication possibility
-  /// @see
-  /// https://docs.confluent.io/platform/current/clients/librdkafka/html/md_INTRODUCTION.html#autotoc_md21
-  bool IsRetryable() const;
+    DeliveryResult(DeliveryResult&&) noexcept = default;
 
-  bool IsSuccess() const;
+    bool IsSuccess() const;
 
- private:
-  const rd_kafka_resp_err_t message_error_;
-  const std::optional<rd_kafka_msg_status_t> message_status_;
+    rd_kafka_resp_err_t GetMessageError() const;
+
+private:
+    rd_kafka_resp_err_t message_error_;
+    std::optional<rd_kafka_msg_status_t> message_status_;
 };
 
 /// @brief State for waiting delivery callback invoked after producer send
 /// called
-class DeliveryWaiter {
- public:
-  DeliveryWaiter(std::uint32_t current_retry, std::uint32_t max_retries);
+class DeliveryWaiter final {
+public:
+    DeliveryWaiter() = default;
 
-  engine::Future<DeliveryResult> GetFuture();
+    engine::Future<DeliveryResult> GetFuture();
 
-  bool FirstSend() const;
+    void SetDeliveryResult(DeliveryResult delivery_result);
 
-  bool LastRetry() const;
-
-  void SetDeliveryResult(DeliveryResult delivery_result);
-
- private:
-  const std::uint32_t current_retry_;
-  const std::uint32_t max_retries_;
-
-  engine::Promise<DeliveryResult> wait_handle_;
+private:
+    engine::Promise<DeliveryResult> wait_handle_;
 };
 
 }  // namespace kafka::impl

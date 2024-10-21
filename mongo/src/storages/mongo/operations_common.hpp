@@ -11,8 +11,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::impl {
 
-formats::bson::impl::BsonBuilder& EnsureBuilder(
-    std::optional<formats::bson::impl::BsonBuilder>&);
+formats::bson::impl::BsonBuilder& EnsureBuilder(std::optional<formats::bson::impl::BsonBuilder>&);
 
 const bson_t* GetNative(const std::optional<formats::bson::impl::BsonBuilder>&);
 

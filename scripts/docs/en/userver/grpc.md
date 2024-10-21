@@ -65,7 +65,7 @@ On errors, exceptions from userver/ugrpc/client/exceptions.hpp are thrown. It is
 
 ### TLS / SSL
 
-May be enabled via
+May be enabled for gRPC client via:
 
 ```
 # yaml
@@ -84,6 +84,43 @@ SSL has to be disabled in tests, because it
 requires the server to have a public domain name, which it does not in tests.
 In testsuite, SSL in gRPC clients is disabled automatically.
 
+TLS for gRPC server may be enabled via:
+
+```
+# yaml
+components_manager:
+    components:
+        grpc-server:
+            tls:
+                key: /path/to/private.key
+                cert: /path/to/cert.crt
+                # remove if you don't force client cert verification
+                ca: /path/to/ca.crt
+```
+
+
+### Client middlewares
+
+Client behaviour can be modified with a middleware. Middleware code is executed before or after the client code. 
+Middlewares to use are indicated in static config in the defining component. For example:
+
+```
+# yaml
+components_manager:
+    components:
+        grpc-client-factory:
+            middlewares:
+              - grpc-client-logging
+              - grpc-client-deadline-propagation 
+```
+
+#### List of standard client middlewares
+
+ 1. `grpc-client-logging` with component ugrpc::client::middlewares::log::Component - logs requests and responses.
+ 2. `grpc-client-deadline-propagation` with component ugrpc::client::middlewares::deadline_propagation::Component - activates 
+ @ref scripts/docs/en/userver/deadline_propagation.md.
+ 3. `grpc-client-baggage` with component ugrpc::client::middlewares::baggage::Component - passes request baggage to subrequests.
+ 
 ## gRPC services
 
 ### Service creation
@@ -128,7 +165,7 @@ By default, gRPC server uses `grpc::InsecureServerCredentials`. To pass a custom
       `<grpcpp/security/server_credentials.h>` for available credentials
     * SSL credentials are `grpc::SslServerCredentials`
 
-### Middlewares
+### Server middlewares
 
 The gRPC server can be extended by middlewares.
 Middleware is called on each incoming (for service) or outgoing (for client) RPC request.
@@ -168,6 +205,85 @@ components_manager:
 Use ugrpc::server::MiddlewareBase and ugrpc::client::MiddlewareBase to implement
 new middlewares.
 
+#### List of standard server middlewares:
+
+  1. `grpc-server-logging` with component ugrpc::server::middlewares::log::Component - logs requests.
+  2. `grpc-server-deadline-propagation` with component ugrpc::server::middlewares::deadline_propagation::Component - activates 
+  @ref scripts/docs/en/userver/deadline_propagation.md.
+  3. `grpc-server-congestion-control` with component ugrpc::server::middlewares::congestion_control::Component - limits requests.
+  See Congestion Control section of @ref scripts/docs/en/userver/tutorial/production_service.md.
+  4. `grpc-server-baggage` with component ugrpc::server::middlewares::baggage::Component - passes request baggage to subrequests.
+  5. `grpc-server-headers-propagator` with component ugrpc::server::middlewares::headers_propagator::Component - propagates headers.
+
+## gRPC Logs
+
+Each gRPC call generates a span ( `tracing::Span` ) containing tags which are inherited by all child logs. 
+
+Additionally, if logging is activated, a separate log is generated for every gRPC request-response in `grpc-server-logging` and `grpc-client-logging` middlewares.
+
+gRPC logs are listed below.
+
+### Client log tags
+
+Middleware component name          | Key                    | Value
+---------------------------------- |----------------------- | ------------------------
+builtin                            | `error`                | error flag, `true`
+builtin                            | `grpc_code`            | error code  `grpc::StatusCode`, [list](https://grpc.github.io/grpc/core/md_doc_statuscodes.html) 
+builtin                            | `error_msg`            | error message
+`grpc-client-logging`              | `meta_type`            | call name
+`grpc-client-logging`              | `grpc_type`            | `request` or `response`
+`grpc-client-logging`              | `body`                 | logged message body
+`grpc-client-deadline-propagation` | `deadline_updated`     | error flag, `true`
+`grpc-client-deadline-propagation` | `timeout_ms`           | amount of time before request deadline
+
+### Server log tags
+
+Middleware component name          | Key         | Value
+---------------------------------- |------------ | --------------------------
+builtin                            | `error`     | error flag `true`
+builtin                            | `error_msg` | error message
+`grpc-server-logging`              | `meta_type` | call name
+`grpc-server-logging`              | `body`      | logged message body
+`grpc-server-logging`              | `type`      | `request` or `response`
+`grpc-server-logging`              | `grpc_type` | `request` or `response`
+`grpc-server-deadline-propagation` | `received_deadline_ms` | deadline
+`grpc-server-deadline-propagation` | `cancelled_by_deadline` | `true` or `false`
+`grpc-server-congestion-control`   | `limit` | rate limit when request is throttled (tokens per second)
+`grpc-server-congestion-control`   | `service/method` | method name when request is throttled
+`grpc-server-baggage`              | `Got baggage header: ` | baggage header
+
+### Hiding fields in request-response logs
+
+The gRPC driver provides log fields hiding in request-response logs. You need to do the following:
+
+1) Add [userver/field_options.proto](https://github.com/userver-framework/userver/blob/develop/grpc/proto/userver/field_options.proto) to your service. Generate a library from this proto file and link against it in your `CMakeLists.txt`.
+
+2) Import userver/field_options.proto in your proto file.
+
+3) Use `[(userver.field).secret = true]` opposite to the filds that you want to hide. In the following example the fields `password` and `secret_code` will be hidden in the logs:
+
+```proto
+message Creds {
+  string login = 1;
+  string password = 2 [(userver.field).secret = true];
+  string secret_code = 3 [(userver.field).secret = true];
+}
+```
+
+### grpc-core logs
+
+grpc-core is a lower level library, its logs are forwarded to the userver default logger. In this process only error level logs get through from grpc-core to the userver default logger if the default settings are used. However, the default settings can be overriden and more verbose logging can be achieved. 
+
+To do this you need to change the value of `native-log-level` in the static config file in the components `grpc-client-common` and `grpc-server`:
+
+```
+grpc-server:
+    native-log-level: debug
+```
+
+There are 3 possible logging levels: `error`, `info`, `debug`.
+If logging level is set in several components then the most verbose logging level is used.
+
 
 @anchor grpc_generic_api
 ## Generic API
@@ -184,12 +300,12 @@ See details in:
 
 Full example showing the usage of both:
 
-* @ref samples/grpc-generic-proxy/src/proxy_service.hpp
-* @ref samples/grpc-generic-proxy/src/proxy_service.cpp
-* @ref samples/grpc-generic-proxy/main.cpp
-* @ref samples/grpc-generic-proxy/static_config.yaml
-* @ref samples/grpc-generic-proxy/config_vars.yaml
-* @ref samples/grpc-generic-proxy/CMakeLists.txt
+* @ref grpc-generic-proxy/src/proxy_service.hpp
+* @ref grpc-generic-proxy/src/proxy_service.cpp
+* @ref grpc-generic-proxy/main.cpp
+* @ref grpc-generic-proxy/static_config.yaml
+* @ref grpc-generic-proxy/config_vars.yaml
+* @ref grpc-generic-proxy/CMakeLists.txt
 
 Based on:
 
@@ -215,7 +331,9 @@ These are the metrics provided for each gRPC method:
 
 * `timings.1min` — time from RPC start to finish (`utils::statistics::Percentile`)
 * `status` with label `grpc_code=STATUS_CODE_NAME` — RPCs that finished
-  with specified status codes, one metric per gRPC status
+  with specified status codes, one metric per gRPC status. Zero `status`
+  metrics are omitted, except for `OK` and `UNKNOWN` metrics, which are always
+  written.
 * Metrics for RPCs that finished abruptly without a status:
    * `cancelled` — RPCs that were interrupted due to task cancellation.
      (Not to be confused with RPCs finished with `CANCELLED` status.)

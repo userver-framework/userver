@@ -1,6 +1,5 @@
 import asyncio
 
-
 FAILOVER_DEADLINE_SEC = 30  # maximum time allowed to finish failover
 
 

@@ -5,12 +5,12 @@
 USERVER_NAMESPACE_BEGIN
 
 class RedisClientTest : public BaseRedisClientTest {
- public:
-  void SetUp() override {
-    BaseRedisClientTest::SetUp();
+public:
+    void SetUp() override {
+        BaseRedisClientTest::SetUp();
 
-    GetSentinel()->MakeRequest({"flushdb"}, "none", true).Get();
-  }
+        GetSentinel()->MakeRequest({"flushdb"}, "none", true).Get();
+    }
 };
 
 USERVER_NAMESPACE_END

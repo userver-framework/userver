@@ -16,35 +16,35 @@ class Http2Client:
         await self.client.aclose()
 
     async def get(
-            self, path, params={}, headers={}, data=None, json={}, timeout=5.0,
+        self, path, params={}, headers={}, data=None, json={}, timeout=5.0,
     ) -> httpx.Response:
         return await self._request(
             'GET', path, params, headers, data, json, timeout,
         )
 
     async def post(
-            self, path, params={}, headers={}, data=None, json={}, timeout=5.0,
+        self, path, params={}, headers={}, data=None, json={}, timeout=5.0,
     ) -> httpx.Response:
         return await self._request(
             'POST', path, params, headers, data, json, timeout,
         )
 
     async def put(
-            self, path, params={}, headers={}, data=None, json={}, timeout=5.0,
+        self, path, params={}, headers={}, data=None, json={}, timeout=5.0,
     ) -> httpx.Response:
         return await self._request(
             'PUT', path, params, headers, data, json, timeout,
         )
 
     async def delete(
-            self, path, params={}, headers={}, data=None, json={}, timeout=5.0,
+        self, path, params={}, headers={}, data=None, json={}, timeout=5.0,
     ) -> httpx.Response:
         return await self._request(
             'DELETE', path, params, headers, data, json, timeout,
         )
 
     async def _request(
-            self, method, path, params, headers, data, json, timeout,
+        self, method, path, params, headers, data, json, timeout,
     ) -> httpx.Response:
         req = self.client.build_request(
             method,

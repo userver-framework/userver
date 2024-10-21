@@ -91,11 +91,11 @@ if (USERVER_IS_THE_ROOT_PROJECT)
   )
   target_link_libraries(${PROJECT_NAME}-mongotest userver-utest ${PROJECT_NAME})
   add_test(NAME ${PROJECT_NAME}-mongotest COMMAND env
-    ${CMAKE_BINARY_DIR}/testsuite/env
+    "${CMAKE_BINARY_DIR}/testsuite/env"
     --databases=mongo
     run --
     $<TARGET_FILE:${PROJECT_NAME}-mongotest>
-    --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_mongotest.xml
+    "--gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}_mongotest.xml"
   )
 
   # Tests that use IsCollectionWriteConcernTimeout require multi-instance mongo

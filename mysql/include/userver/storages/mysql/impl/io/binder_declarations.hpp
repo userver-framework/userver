@@ -8,28 +8,25 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::mysql::impl::io {
 
 template <typename T>
-void BindInput(mysql::impl::InputBindingsFwd& binds, std::size_t pos,
-               const T& field) {
-  using SteadyClock = std::chrono::steady_clock;
-  static_assert(!std::is_same_v<SteadyClock::time_point, T> &&
-                    !std::is_same_v<std::optional<SteadyClock::time_point>, T>,
-                "Don't store steady_clock times in the database, use "
-                "system_clock instead");
+void BindInput(mysql::impl::InputBindingsFwd& binds, std::size_t pos, const T& field) {
+    using SteadyClock = std::chrono::steady_clock;
+    static_assert(
+        !std::is_same_v<SteadyClock::time_point, T> && !std::is_same_v<std::optional<SteadyClock::time_point>, T>,
+        "Don't store steady_clock times in the database, use "
+        "system_clock instead"
+    );
 
-  storages::mysql::impl::io::FreestandingBind(binds, pos,
-                                              ExplicitCRef<T>{field});
+    storages::mysql::impl::io::FreestandingBind(binds, pos, ExplicitCRef<T>{field});
 }
 
 template <typename T>
-void BindOutput(mysql::impl::OutputBindingsFwd& binds, std::size_t pos,
-                T& field) {
-  static_assert(
-      !std::is_same_v<std::string_view, T> &&
-          !std::is_same_v<std::optional<std::string_view>, T>,
-      "Don't use std::string_view in output params, since it's not-owning");
+void BindOutput(mysql::impl::OutputBindingsFwd& binds, std::size_t pos, T& field) {
+    static_assert(
+        !std::is_same_v<std::string_view, T> && !std::is_same_v<std::optional<std::string_view>, T>,
+        "Don't use std::string_view in output params, since it's not-owning"
+    );
 
-  storages::mysql::impl::io::FreestandingBind(binds, pos,
-                                              ExplicitRef<T>{field});
+    storages::mysql::impl::io::FreestandingBind(binds, pos, ExplicitRef<T>{field});
 }
 
 }  // namespace storages::mysql::impl::io

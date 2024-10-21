@@ -45,17 +45,15 @@ std::string ToStableString(formats::json::Value&& doc);
 
 /// @see formats::json::ToPrettyString
 struct PrettyFormat final {
-  char indent_char{' '};
-  std::size_t indent_char_count{2};
+    char indent_char{' '};
+    std::size_t indent_char_count{2};
 };
 
 /// Serialize JSON to a string, using `\n` and indents for objects and arrays.
-std::string ToPrettyString(const formats::json::Value& doc,
-                           PrettyFormat format = {});
+std::string ToPrettyString(const formats::json::Value& doc, PrettyFormat format = {});
 
 /// Log JSON
-logging::LogHelper& operator<<(logging::LogHelper&,
-                               const formats::json::Value&);
+logging::LogHelper& operator<<(logging::LogHelper&, const formats::json::Value&);
 
 /// Blocking operations that should not be used on main task processor after
 /// startup
@@ -67,17 +65,17 @@ formats::json::Value FromFile(const std::string& path);
 namespace impl {
 
 class StringBuffer final {
- public:
-  explicit StringBuffer(const formats::json::Value& value);
-  ~StringBuffer();
+public:
+    explicit StringBuffer(const formats::json::Value& value);
+    ~StringBuffer();
 
-  std::string_view GetStringView() const;
+    std::string_view GetStringView() const;
 
- private:
-  struct Impl;
-  static constexpr std::size_t kSize = 48;
-  static constexpr std::size_t kAlignment = 8;
-  utils::FastPimpl<Impl, kSize, kAlignment> pimpl_;
+private:
+    struct Impl;
+    static constexpr std::size_t kSize = 48;
+    static constexpr std::size_t kAlignment = 8;
+    utils::FastPimpl<Impl, kSize, kAlignment> pimpl_;
 };
 
 }  // namespace impl
@@ -87,17 +85,13 @@ class StringBuffer final {
 USERVER_NAMESPACE_END
 
 template <>
-struct fmt::formatter<USERVER_NAMESPACE::formats::json::Value>
-    : fmt::formatter<std::string_view> {
-  constexpr static auto parse(format_parse_context& ctx)
-      -> decltype(ctx.begin()) {
-    return ctx.begin();
-  }
+struct fmt::formatter<USERVER_NAMESPACE::formats::json::Value> : fmt::formatter<std::string_view> {
+    constexpr static auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
-  template <typename FormatContext>
-  auto format(const USERVER_NAMESPACE::formats::json::Value& value,
-              FormatContext& ctx) USERVER_FMT_CONST->decltype(ctx.out()) {
-    const USERVER_NAMESPACE::formats::json::impl::StringBuffer buffer(value);
-    return formatter<string_view>::format(buffer.GetStringView(), ctx);
-  }
+    template <typename FormatContext>
+    auto format(const USERVER_NAMESPACE::formats::json::Value& value, FormatContext& ctx)
+        USERVER_FMT_CONST->decltype(ctx.out()) {
+        const USERVER_NAMESPACE::formats::json::impl::StringBuffer buffer(value);
+        return formatter<string_view>::format(buffer.GetStringView(), ctx);
+    }
 };

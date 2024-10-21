@@ -9,20 +9,18 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
 
-TaskContextHolder::TaskContextHolder(
-    boost::intrusive_ptr<TaskContext>&& context) noexcept
+TaskContextHolder::TaskContextHolder(boost::intrusive_ptr<TaskContext>&& context) noexcept
     : context_(std::move(context)) {}
 
 TaskContextHolder TaskContextHolder::Adopt(TaskContext& context) noexcept {
-  return TaskContextHolder(
-      boost::intrusive_ptr<TaskContext>{&context, /*add_ref=*/false});
+    return TaskContextHolder(boost::intrusive_ptr<TaskContext>{&context, /*add_ref=*/false});
 }
 
 TaskContextHolder::~TaskContextHolder() = default;
 
 boost::intrusive_ptr<TaskContext>&& TaskContextHolder::Extract() && noexcept {
-  UASSERT(context_);
-  return std::move(context_);
+    UASSERT(context_);
+    return std::move(context_);
 }
 
 }  // namespace engine::impl

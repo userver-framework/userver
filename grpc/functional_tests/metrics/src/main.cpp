@@ -7,6 +7,7 @@
 #include <userver/utils/daemon_run.hpp>
 
 #include <userver/ugrpc/client/client_factory_component.hpp>
+#include <userver/ugrpc/client/common_component.hpp>
 #include <userver/ugrpc/client/middlewares/baggage/component.hpp>
 #include <userver/ugrpc/client/middlewares/deadline_propagation/component.hpp>
 #include <userver/ugrpc/client/middlewares/log/component.hpp>
@@ -19,20 +20,20 @@
 #include "greeter_service.hpp"
 
 int main(int argc, const char* const argv[]) {
-  const auto component_list =
-      components::MinimalServerComponentList()
-          .Append<server::handlers::ServerMonitor>()
-          .Append<components::TestsuiteSupport>()
-          .Append<ugrpc::server::ServerComponent>()
-          .Append<ugrpc::server::middlewares::log::Component>()
-          .Append<ugrpc::server::middlewares::deadline_propagation::Component>()
-          .Append<ugrpc::server::middlewares::baggage::Component>()
-          .Append<ugrpc::client::middlewares::baggage::Component>()
-          .Append<ugrpc::client::middlewares::log::Component>()
-          .Append<ugrpc::client::middlewares::deadline_propagation::Component>()
-          .Append<ugrpc::client::ClientFactoryComponent>()
-          .Append<functional_tests::GreeterClient>()
-          .Append<functional_tests::GreeterServiceComponent>();
+    const auto component_list = components::MinimalServerComponentList()
+                                    .Append<server::handlers::ServerMonitor>()
+                                    .Append<components::TestsuiteSupport>()
+                                    .Append<ugrpc::server::ServerComponent>()
+                                    .Append<ugrpc::server::middlewares::log::Component>()
+                                    .Append<ugrpc::server::middlewares::deadline_propagation::Component>()
+                                    .Append<ugrpc::server::middlewares::baggage::Component>()
+                                    .Append<ugrpc::client::middlewares::baggage::Component>()
+                                    .Append<ugrpc::client::middlewares::log::Component>()
+                                    .Append<ugrpc::client::middlewares::deadline_propagation::Component>()
+                                    .Append<ugrpc::client::CommonComponent>()
+                                    .Append<ugrpc::client::ClientFactoryComponent>()
+                                    .Append<functional_tests::GreeterClient>()
+                                    .Append<functional_tests::GreeterServiceComponent>();
 
-  return utils::DaemonMain(argc, argv, component_list);
+    return utils::DaemonMain(argc, argv, component_list);
 }

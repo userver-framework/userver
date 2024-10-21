@@ -5,8 +5,13 @@
 
 #include <grpcpp/support/byte_buffer.h>
 
-#include <userver/ugrpc/server/rpc.hpp>
+#include <userver/ugrpc/server/call_context.hpp>
+#include <userver/ugrpc/server/result.hpp>
 #include <userver/ugrpc/server/service_component_base.hpp>
+#include <userver/ugrpc/server/stream.hpp>
+
+// use by legacy
+#include <userver/ugrpc/server/rpc.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -26,7 +31,7 @@ namespace ugrpc::server {
 /// The API is mainly intended for proxies, where the request-response body is
 /// passed unchanged, with settings taken solely from the RPC metadata.
 /// In cases where the code needs to operate on the actual messages,
-/// serialization of requests and responses is left as an excercise to the user.
+/// serialization of requests and responses is left as an exercise to the user.
 ///
 /// Middlewares are customizable and are applied as usual, except that no
 /// message hooks are called, meaning that there won't be any logs of messages
@@ -55,29 +60,40 @@ namespace ugrpc::server {
 ///
 /// For a more complete sample, see @ref grpc_generic_api.
 class GenericServiceBase {
- public:
-  /// Inherits from both @ref GenericServiceBase and @ref ServiceComponentBase.
-  /// Allows to implement the service directly in a component.
-  /// The disadvantage is that such services are not unit-testable.
-  using Component = impl::ServiceComponentBase<GenericServiceBase>;
+public:
+    /// Inherits from both @ref GenericServiceBase and @ref ServiceComponentBase.
+    /// Allows to implement the service directly in a component.
+    /// The disadvantage is that such services are not unit-testable.
+    using Component = impl::ServiceComponentBase<GenericServiceBase>;
 
-  using Call = BidirectionalStream<grpc::ByteBuffer, grpc::ByteBuffer>;
+    using GenericCallContext = ugrpc::server::GenericCallContext;
 
-  GenericServiceBase(GenericServiceBase&&) = delete;
-  GenericServiceBase& operator=(GenericServiceBase&&) = delete;
-  virtual ~GenericServiceBase();
+    using GenericReaderWriter = ugrpc::server::ReaderWriter<grpc::ByteBuffer, grpc::ByteBuffer>;
+    using GenericResult = ugrpc::server::StreamingResult<grpc::ByteBuffer>;
 
-  /// @brief Override this method in the derived class to handle all RPCs.
-  /// RPC name can be obtained through @ref CallAnyBase::GetCallName.
-  /// @note RPCs of all kinds (including unary RPCs) are represented using
-  /// BidirectionalStream API.
-  /// @note The implementation of the method should call `Finish` or
-  /// `FinishWithError`, otherwise the server will respond with an "internal
-  /// server error" status.
-  virtual void Handle(Call& call) = 0;
+    GenericServiceBase(GenericServiceBase&&) = delete;
+    GenericServiceBase& operator=(GenericServiceBase&&) = delete;
+    virtual ~GenericServiceBase();
 
- protected:
-  GenericServiceBase() = default;
+    /// @brief Override this method in the derived class to handle all RPCs.
+    /// RPC name can be obtained through @ref CallAnyBase::GetCallName.
+    /// @note RPCs of all kinds (including unary RPCs) are represented using
+    /// BidirectionalStream API.
+    /// @note The implementation of the method should call `Finish` or
+    /// `FinishWithError`, otherwise the server will respond with an "internal
+    /// server error" status.
+    virtual GenericResult Handle(GenericCallContext& context, GenericReaderWriter& stream);
+
+    // Legacy
+    using Call = BidirectionalStream<grpc::ByteBuffer, grpc::ByteBuffer>;
+    [[deprecated(
+        "Use 'grpc::Status Handle(GenericCallContext&, "
+        "GenericReaderWriter&)'"
+    )]] virtual void
+    Handle(Call& call);
+
+protected:
+    GenericServiceBase() = default;
 };
 
 }  // namespace ugrpc::server

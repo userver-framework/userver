@@ -11,41 +11,41 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::ev {
 
 class EventLoop final {
- public:
-  enum class EvLoopType : bool {
-    kNewLoop,
-    kDefaultLoop,
-  };
+public:
+    enum class EvLoopType : bool {
+        kNewLoop,
+        kDefaultLoop,
+    };
 
-  explicit EventLoop(EvLoopType ev_loop_mode);
+    explicit EventLoop(EvLoopType ev_loop_mode);
 
-  ~EventLoop();
+    ~EventLoop();
 
-  struct ev_loop* GetEvLoop() const noexcept { return loop_; }
+    struct ev_loop* GetEvLoop() const noexcept { return loop_; }
 
-  void RunOnce() noexcept;
+    void RunOnce() noexcept;
 
-  // Callbacks passed to RunInEvLoopAsync() are serialized.
-  // All callbacks are guaranteed to execute.
-  void RunInEvLoopAsync(AsyncPayloadBase& payload) noexcept;
+    // Callbacks passed to RunInEvLoopAsync() are serialized.
+    // All callbacks are guaranteed to execute.
+    void RunInEvLoopAsync(AsyncPayloadBase& payload) noexcept;
 
-  bool DebugIsSameOsThread() noexcept;
+    bool DebugIsSameOsThread() noexcept;
 
- private:
-  void AssertSameOsThread() noexcept;
+private:
+    void AssertSameOsThread() noexcept;
 
-  void Start();
+    void Start();
 
-  static void ChildWatcher(struct ev_loop*, ev_child* w, int) noexcept;
-  static void ChildWatcherImpl(ev_child* w);
+    static void ChildWatcher(struct ev_loop*, ev_child* w, int) noexcept;
+    static void ChildWatcherImpl(ev_child* w);
 
-  struct ev_loop* loop_{nullptr};
-  ev_child watch_child_{};
+    struct ev_loop* loop_{nullptr};
+    ev_child watch_child_{};
 
-  const EvLoopType ev_loop_mode_;
+    const EvLoopType ev_loop_mode_;
 
 #ifndef NDEBUG
-  std::thread::id os_thread_id_{};
+    std::thread::id os_thread_id_{};
 #endif
 };
 

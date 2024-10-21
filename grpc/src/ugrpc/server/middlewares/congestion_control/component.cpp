@@ -11,27 +11,22 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::middlewares::congestion_control {
 
-Component::Component(const components::ComponentConfig& config,
-                     const components::ComponentContext& context)
-    : MiddlewareComponentBase(config, context),
-      middleware_(std::make_shared<Middleware>()) {
-  auto& cc_component =
-      context.FindComponent<USERVER_NAMESPACE::congestion_control::Component>();
+Component::Component(const components::ComponentConfig& config, const components::ComponentContext& context)
+    : MiddlewareComponentBase(config, context), middleware_(std::make_shared<Middleware>()) {
+    auto& cc_component = context.FindComponent<USERVER_NAMESPACE::congestion_control::Component>();
 
-  auto& server_limiter = cc_component.GetServerLimiter();
-  server_limiter.RegisterLimitee(*middleware_);
+    auto& server_limiter = cc_component.GetServerLimiter();
+    server_limiter.RegisterLimitee(*middleware_);
 
-  auto& server = context.FindComponent<ServerComponent>().GetServer();
-  auto& server_sensor = cc_component.GetServerSensor();
-  server_sensor.RegisterRequestsSource(server);
+    auto& server = context.FindComponent<ServerComponent>().GetServer();
+    auto& server_sensor = cc_component.GetServerSensor();
+    server_sensor.RegisterRequestsSource(server);
 }
 
-std::shared_ptr<MiddlewareBase> Component::GetMiddleware() {
-  return middleware_;
-}
+std::shared_ptr<MiddlewareBase> Component::GetMiddleware() { return middleware_; }
 
 yaml_config::Schema Component::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<MiddlewareComponentBase>(R"(
+    return yaml_config::MergeSchemas<MiddlewareComponentBase>(R"(
 type: object
 description: gRPC service congestion control middleware component
 additionalProperties: false

@@ -8,15 +8,15 @@
 namespace dummy {
 
 void Write(dump::Writer& writer, const SampleType& value) {
-  writer.Write(value.foo);
-  writer.Write(value.bar);
+    writer.Write(value.foo);
+    writer.Write(value.bar);
 }
 
 SampleType Read(dump::Reader& reader, dump::To<SampleType>) {
-  SampleType value;
-  value.foo = reader.Read<std::vector<std::string>>();
-  value.bar = reader.Read<std::int64_t>();
-  return value;
+    SampleType value;
+    value.foo = reader.Read<std::vector<std::string>>();
+    value.bar = reader.Read<std::int64_t>();
+    return value;
 }
 
 }  // namespace dummy

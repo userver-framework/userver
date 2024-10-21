@@ -25,11 +25,10 @@ namespace storages::clickhouse {
 /// connection (no further reuse will take place),
 /// otherwise the connection is returned to the pool.
 struct CommandControl final {
-  /// Overall timeout for a command being executed.
-  std::chrono::milliseconds execute;
+    /// Overall timeout for a command being executed.
+    std::chrono::milliseconds execute;
 
-  explicit constexpr CommandControl(std::chrono::milliseconds execute)
-      : execute{execute} {}
+    explicit constexpr CommandControl(std::chrono::milliseconds execute) : execute{execute} {}
 };
 
 /// @brief storages::clickhouse::CommandControl that may not be set.

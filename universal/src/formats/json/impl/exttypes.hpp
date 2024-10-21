@@ -11,15 +11,15 @@ USERVER_NAMESPACE_BEGIN
 
 namespace formats::json::impl {
 enum Type {
-  nullValue = rapidjson::kNullType,
-  objectValue = rapidjson::kObjectType,
-  arrayValue = rapidjson::kArrayType,
-  stringValue = rapidjson::kStringType,
-  booleanValue = 1000,  // make sure we don't declare overlapping values
-  intValue,
-  uintValue,
-  realValue,
-  errorValue
+    nullValue = rapidjson::kNullType,
+    objectValue = rapidjson::kObjectType,
+    arrayValue = rapidjson::kArrayType,
+    stringValue = rapidjson::kStringType,
+    booleanValue = 1000,  // make sure we don't declare overlapping values
+    intValue,
+    uintValue,
+    realValue,
+    errorValue
 };
 
 Type GetExtendedType(const Value& val);

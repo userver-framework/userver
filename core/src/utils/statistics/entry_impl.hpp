@@ -8,8 +8,8 @@ USERVER_NAMESPACE_BEGIN
 namespace utils::statistics {
 
 struct Entry::Impl final {
-  Storage* storage{nullptr};
-  impl::StorageIterator iterator{};
+    Storage* storage{nullptr};
+    impl::StorageIterator iterator{};
 };
 
 }  // namespace utils::statistics

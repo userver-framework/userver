@@ -26,8 +26,6 @@ components_manager:
             task_processor: main-task-processor
             method: POST
 
-        # /// [Kafka service sample - consumer static config]
-        # yaml
         kafka-consumer:
             group_id: test-group
             topics:
@@ -39,25 +37,30 @@ components_manager:
             auto_offset_reset: smallest
             max_batch_size: 10
             env_pod_name: HOSTNAME
-            enable_auto_commit: false
             security_protocol: PLAINTEXT
-        # /// [Kafka service sample - consumer static config]
+            rd_kafka_custom_options:
+                session.timeout.ms: 77000
+                fetch.wait.max.ms: 1000
 
-        # /// [Kafka service sample - producer static config]
-        # yaml
         kafka-producer-first:
             delivery_timeout: 3000ms
             queue_buffering_max: 100ms
-            poll_timeout: 10ms
-            send_retries_count: 5
             enable_idempotence: true
             security_protocol: PLAINTEXT
-        # /// [Kafka service sample - producer static config]
+            rd_kafka_custom_options:
+                enable.gapless.guarantee: true
 
         kafka-producer-second:
+            client_id: test-client
             delivery_timeout: 3000ms
             queue_buffering_max: 100ms
             enable_idempotence: true
+            queue_buffering_max_messages: 100
+            queue_buffering_max_kbytes: 1
+            message_max_bytes: 100500
+            message_send_max_retries: 3
+            retry_backoff: 5ms
+            retry_backoff_max: 100ms
             security_protocol: PLAINTEXT
 
         testsuite-support:

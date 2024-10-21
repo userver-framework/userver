@@ -8,16 +8,14 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::middlewares::congestion_control {
 
-class Middleware final
-    : public MiddlewareBase,
-      public USERVER_NAMESPACE::server::congestion_control::Limitee {
- public:
-  void Handle(MiddlewareCallContext& context) const override;
+class Middleware final : public MiddlewareBase, public USERVER_NAMESPACE::server::congestion_control::Limitee {
+public:
+    void Handle(MiddlewareCallContext& context) const override;
 
-  void SetLimit(std::optional<size_t> new_limit) override;
+    void SetLimit(std::optional<size_t> new_limit) override;
 
- private:
-  mutable utils::TokenBucket rate_limit_{utils::TokenBucket::MakeUnbounded()};
+private:
+    mutable utils::TokenBucket rate_limit_{utils::TokenBucket::MakeUnbounded()};
 };
 
 }  // namespace ugrpc::server::middlewares::congestion_control

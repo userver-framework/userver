@@ -3,9 +3,9 @@ import re
 
 def _is_postgresql_metrics(line: str) -> bool:
     if (
-            'key-value-pg-cache' not in line
-            and 'postgresql' not in line
-            and 'distlock' not in line
+        'key-value-pg-cache' not in line
+        and 'postgresql' not in line
+        and 'distlock' not in line
     ):
         return False
     return True

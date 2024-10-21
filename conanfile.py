@@ -3,7 +3,7 @@ import os
 import re
 
 from conan import ConanFile
-from conan import errors
+from conan.errors import ConanInvalidConfiguration
 from conan.tools.cmake import CMake
 from conan.tools.cmake import cmake_layout
 from conan.tools.cmake import CMakeDeps
@@ -11,8 +11,7 @@ from conan.tools.cmake import CMakeToolchain
 from conan.tools.files import copy
 from conan.tools.files import load
 
-
-required_conan_version = '>=1.51.0, <2.0.0'  # pylint: disable=invalid-name
+required_conan_version = '>=2.8.0'  # pylint: disable=invalid-name
 
 
 class UserverConan(ConanFile):
@@ -22,11 +21,11 @@ class UserverConan(ConanFile):
     url = 'https://github.com/userver-framework/userver'
     homepage = 'https://userver.tech/'
     license = 'Apache-2.0'
+    package_type = 'static-library'
     exports_sources = '*'
 
     settings = 'os', 'arch', 'compiler', 'build_type'
     options = {
-        'shared': [True, False],
         'fPIC': [True, False],
         'lto': [True, False],
         'with_jemalloc': [True, False],
@@ -39,13 +38,13 @@ class UserverConan(ConanFile):
         'with_rabbitmq': [True, False],
         'with_utest': [True, False],
         'with_kafka': [True, False],
+        'with_otlp': [True, False],
         'namespace': ['ANY'],
         'namespace_begin': ['ANY'],
         'namespace_end': ['ANY'],
     }
 
     default_options = {
-        'shared': False,
         'fPIC': True,
         'lto': False,
         'with_jemalloc': True,
@@ -58,6 +57,7 @@ class UserverConan(ConanFile):
         'with_rabbitmq': True,
         'with_utest': True,
         'with_kafka': True,
+        'with_otlp': True,
         'namespace': 'userver',
         'namespace_begin': 'namespace userver {',
         'namespace_end': '}',
@@ -99,10 +99,6 @@ class UserverConan(ConanFile):
     def _build_subfolder(self):
         return os.path.join(self.build_folder)
 
-    def configure(self):
-        if self.options.shared:
-            del self.options.fPIC
-
     def layout(self):
         cmake_layout(self)
 
@@ -141,10 +137,11 @@ class UserverConan(ConanFile):
             self.requires('protobuf/3.21.12', force=True)
         if self.options.with_postgresql:
             self.requires('libpq/14.5')
+        if self.options.with_mongodb or self.options.with_kafka:
+            self.requires('cyrus-sasl/2.1.27', force=True)
         if self.options.with_mongodb:
-            self.requires('cyrus-sasl/2.1.27')
             self.requires(
-                'mongo-c-driver/1.22.0',
+                'mongo-c-driver/1.27.6',
                 transitive_headers=True,
                 transitive_libs=True,
             )
@@ -172,12 +169,17 @@ class UserverConan(ConanFile):
             self.requires('librdkafka/2.4.0')
 
     def validate(self):
+        if self.settings.os == 'Windows':
+            raise ConanInvalidConfiguration(
+                'userver cannot be built on Windows',
+            )
+
         if (
-                self.options.with_mongodb
-                and self.dependencies['mongo-c-driver'].options.with_sasl
-                != 'cyrus'
+            self.options.with_mongodb
+            and self.dependencies['mongo-c-driver'].options.with_sasl
+            != 'cyrus'
         ):
-            raise errors.ConanInvalidConfiguration(
+            raise ConanInvalidConfiguration(
                 f'{self.ref} requires mongo-c-driver with_sasl cyrus',
             )
 
@@ -190,37 +192,38 @@ class UserverConan(ConanFile):
         tool_ch.variables['USERVER_DOWNLOAD_PACKAGES'] = True
         tool_ch.variables['USERVER_FEATURE_DWCAS'] = True
         tool_ch.variables['USERVER_NAMESPACE'] = self.options.namespace
-        tool_ch.variables[
-            'USERVER_NAMESPACE_BEGIN'
-        ] = self.options.namespace_begin
+        tool_ch.variables['USERVER_NAMESPACE_BEGIN'] = (
+            self.options.namespace_begin
+        )
         tool_ch.variables['USERVER_NAMESPACE_END'] = self.options.namespace_end
 
         tool_ch.variables['USERVER_LTO'] = self.options.lto
-        tool_ch.variables[
-            'USERVER_FEATURE_JEMALLOC'
-        ] = self.options.with_jemalloc
-        tool_ch.variables[
-            'USERVER_FEATURE_MONGODB'
-        ] = self.options.with_mongodb
-        tool_ch.variables[
-            'USERVER_FEATURE_POSTGRESQL'
-        ] = self.options.with_postgresql
-        tool_ch.variables[
-            'USERVER_FEATURE_PATCH_LIBPQ'
-        ] = self.options.with_postgresql_extra
+        tool_ch.variables['USERVER_FEATURE_JEMALLOC'] = (
+            self.options.with_jemalloc
+        )
+        tool_ch.variables['USERVER_FEATURE_MONGODB'] = (
+            self.options.with_mongodb
+        )
+        tool_ch.variables['USERVER_FEATURE_POSTGRESQL'] = (
+            self.options.with_postgresql
+        )
+        tool_ch.variables['USERVER_FEATURE_PATCH_LIBPQ'] = (
+            self.options.with_postgresql_extra
+        )
         tool_ch.variables['USERVER_FEATURE_REDIS'] = self.options.with_redis
         tool_ch.variables['USERVER_FEATURE_GRPC'] = self.options.with_grpc
-        tool_ch.variables[
-            'USERVER_FEATURE_CLICKHOUSE'
-        ] = self.options.with_clickhouse
-        tool_ch.variables[
-            'USERVER_FEATURE_RABBITMQ'
-        ] = self.options.with_rabbitmq
+        tool_ch.variables['USERVER_FEATURE_CLICKHOUSE'] = (
+            self.options.with_clickhouse
+        )
+        tool_ch.variables['USERVER_FEATURE_RABBITMQ'] = (
+            self.options.with_rabbitmq
+        )
         tool_ch.variables['USERVER_FEATURE_UTEST'] = self.options.with_utest
-        tool_ch.variables[
-            'USERVER_FEATURE_TESTSUITE'
-        ] = self.options.with_utest
+        tool_ch.variables['USERVER_FEATURE_TESTSUITE'] = (
+            self.options.with_utest
+        )
         tool_ch.variables['USERVER_FEATURE_KAFKA'] = self.options.with_kafka
+        tool_ch.variables['USERVER_FEATURE_OTLP'] = self.options.with_otlp
         tool_ch.generate()
 
         CMakeDeps(self).generate()
@@ -286,10 +289,10 @@ class UserverConan(ConanFile):
         copy_component('core')
         copy_component('universal')
         for cmake_file in (
-                'UserverSetupEnvironment',
-                'SetupLinker',
-                'SetupLTO',
-                'UserverVenv',
+            'UserverSetupEnvironment',
+            'SetupLinker',
+            'SetupLTO',
+            'UserverVenv',
         ):
             copy(
                 self,
@@ -319,10 +322,8 @@ class UserverConan(ConanFile):
             )
 
             with open(
-                    os.path.join(
-                        self.package_folder, 'cmake', 'GrpcConan.cmake',
-                    ),
-                    'a+',
+                os.path.join(self.package_folder, 'cmake', 'GrpcConan.cmake'),
+                'a+',
             ) as grpc_file:
                 grpc_file.write('\nset(USERVER_CONAN TRUE)')
         if self.options.with_utest:
@@ -390,6 +391,9 @@ class UserverConan(ConanFile):
 
         if self.options.with_kafka:
             copy_component('kafka')
+
+        if self.options.with_otlp:
+            copy_component('otlp')
 
     @property
     def _userver_components(self):
@@ -517,136 +521,129 @@ class UserverConan(ConanFile):
                 ),
             },
         ]
-        userver_components.extend(
-            [
-                {
-                    'target': 'universal',
-                    'lib': 'universal',
-                    'requires': (
-                        fmt()
-                        + cctz()
-                        + boost()
-                        + concurrentqueue()
-                        + yaml()
-                        + cryptopp()
-                        + jemalloc()
-                        + openssl()
-                        + zstd()
-                    ),
-                },
-            ],
-        )
+        userver_components.extend([
+            {
+                'target': 'universal',
+                'lib': 'universal',
+                'requires': (
+                    fmt()
+                    + cctz()
+                    + boost()
+                    + concurrentqueue()
+                    + yaml()
+                    + cryptopp()
+                    + jemalloc()
+                    + openssl()
+                    + zstd()
+                ),
+            },
+        ])
 
         if self.options.with_grpc:
-            userver_components.extend(
-                [
-                    {
-                        'target': 'grpc',
-                        'lib': 'grpc',
-                        'requires': (
-                            ['core']
-                            + grpc()
-                            + protobuf()
-                            + googleapis()
-                            + grpcproto()
-                        ),
-                    },
-                    {
-                        'target': 'grpc-handlers',
-                        'lib': 'grpc-handlers',
-                        'requires': ['core'] + grpc(),
-                    },
-                    {
-                        'target': 'grpc-handlers-proto',
-                        'lib': 'grpc-handlers-proto',
-                        'requires': ['core'] + grpc(),
-                    },
-                    {
-                        'target': 'api-common-protos',
-                        'lib': 'api-common-protos',
-                        'requires': ['grpc'],
-                    },
-                ],
-            )
+            userver_components.extend([
+                {
+                    'target': 'grpc',
+                    'lib': 'grpc',
+                    'requires': (
+                        ['core']
+                        + grpc()
+                        + protobuf()
+                        + googleapis()
+                        + grpcproto()
+                    ),
+                },
+                {
+                    'target': 'grpc-handlers',
+                    'lib': 'grpc-handlers',
+                    'requires': ['core'] + grpc(),
+                },
+                {
+                    'target': 'grpc-handlers-proto',
+                    'lib': 'grpc-handlers-proto',
+                    'requires': ['core'] + grpc(),
+                },
+                {
+                    'target': 'api-common-protos',
+                    'lib': 'api-common-protos',
+                    'requires': ['grpc'],
+                },
+            ])
         if self.options.with_utest:
-            userver_components.extend(
-                [
-                    {
-                        'target': 'utest',
-                        'lib': 'utest',
-                        'requires': ['core'] + gtest(),
-                    },
-                    {
-                        'target': 'ubench',
-                        'lib': 'ubench',
-                        'requires': ['core'] + benchmark(),
-                    },
-                ],
-            )
+            userver_components.extend([
+                {
+                    'target': 'utest',
+                    'lib': 'utest',
+                    'requires': ['core'] + gtest(),
+                },
+                {
+                    'target': 'ubench',
+                    'lib': 'ubench',
+                    'requires': ['core'] + benchmark(),
+                },
+            ])
         if self.options.with_postgresql:
-            userver_components.extend(
-                [
-                    {
-                        'target': 'postgresql',
-                        'lib': 'postgresql',
-                        'requires': ['core'] + postgresql(),
-                    },
-                ],
-            )
+            userver_components.extend([
+                {
+                    'target': 'postgresql',
+                    'lib': 'postgresql',
+                    'requires': ['core'] + postgresql(),
+                },
+            ])
         if self.options.with_mongodb:
-            userver_components.extend(
-                [
-                    {
-                        'target': 'mongo',
-                        'lib': 'mongo',
-                        'requires': ['core'] + mongo() + cyrussasl(),
-                    },
-                ],
-            )
+            userver_components.extend([
+                {
+                    'target': 'mongo',
+                    'lib': 'mongo',
+                    'requires': ['core'] + mongo() + cyrussasl(),
+                },
+            ])
         if self.options.with_redis:
-            userver_components.extend(
-                [
-                    {
-                        'target': 'redis',
-                        'lib': 'redis',
-                        'requires': ['core'] + hiredis(),
-                    },
-                ],
-            )
+            userver_components.extend([
+                {
+                    'target': 'redis',
+                    'lib': 'redis',
+                    'requires': ['core'] + hiredis(),
+                },
+            ])
         if self.options.with_rabbitmq:
-            userver_components.extend(
-                [
-                    {
-                        'target': 'rabbitmq',
-                        'lib': 'rabbitmq',
-                        'requires': ['core'] + amqpcpp(),
-                    },
-                ],
-            )
+            userver_components.extend([
+                {
+                    'target': 'rabbitmq',
+                    'lib': 'rabbitmq',
+                    'requires': ['core'] + amqpcpp(),
+                },
+            ])
         if self.options.with_clickhouse:
-            userver_components.extend(
-                [
-                    {
-                        'target': 'clickhouse',
-                        'lib': 'clickhouse',
-                        'requires': ['core'] + clickhouse(),
-                    },
-                ],
-            )
+            userver_components.extend([
+                {
+                    'target': 'clickhouse',
+                    'lib': 'clickhouse',
+                    'requires': ['core'] + clickhouse(),
+                },
+            ])
         if self.options.with_kafka:
-            userver_components.extend(
-                [
-                    {
-                        'target': 'kafka',
-                        'lib': 'kafka',
-                        'requires': ['core'] + librdkafka(),
-                    },
-                ],
-            )
+            userver_components.extend([
+                {
+                    'target': 'kafka',
+                    'lib': 'kafka',
+                    'requires': (
+                        ['core']
+                        + cyrussasl()
+                        + curl()
+                        + zlib()
+                        + openssl()
+                        + librdkafka()
+                    ),
+                },
+            ])
+
+        if self.options.with_otlp:
+            userver_components.extend([
+                {'target': 'otlp', 'lib': 'otlp', 'requires': ['core']},
+            ])
         return userver_components
 
     def package_info(self):
-
         debug = (
             'd'
             if self.settings.build_type == 'Debug'
@@ -676,6 +673,10 @@ class UserverConan(ConanFile):
                     )
                 else:
                     self.cpp_info.components[conan_component].libs = [lib_name]
+                if cmake_component == 'otlp':
+                    self.cpp_info.components[conan_component].libs.append(
+                        get_lib_name('otlp-proto'),
+                    )
                 if cmake_component == 'universal':
                     self.cpp_info.components[
                         cmake_component
@@ -706,8 +707,7 @@ class UserverConan(ConanFile):
         add_components(self._userver_components)
 
         with open(
-                os.path.join(self._cmake_subfolder, 'CallSetupEnv.cmake'),
-                'a+',
+            os.path.join(self._cmake_subfolder, 'CallSetupEnv.cmake'), 'w',
         ) as cmake_file:
             cmake_file.write('userver_setup_environment()')
 

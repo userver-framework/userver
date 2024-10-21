@@ -16,28 +16,25 @@ namespace ugrpc::server::middlewares::log {
 inline const utils::AnyStorageDataTag<StorageContext, bool> kIsFirstRequest;
 
 struct Settings final {
-  std::size_t max_msg_size{512};
-  logging::Level msg_log_level{logging::Level::kDebug};
-  std::optional<logging::Level> local_log_level{};
+    std::size_t max_msg_size{512};
+    logging::Level msg_log_level{logging::Level::kDebug};
+    std::optional<logging::Level> local_log_level{};
 };
 
-Settings Parse(const yaml_config::YamlConfig& config,
-               formats::parse::To<Settings>);
+Settings Parse(const yaml_config::YamlConfig& config, formats::parse::To<Settings>);
 
 class Middleware final : public MiddlewareBase {
- public:
-  explicit Middleware(const Settings& settings);
+public:
+    explicit Middleware(const Settings& settings);
 
-  void Handle(MiddlewareCallContext& context) const override;
+    void Handle(MiddlewareCallContext& context) const override;
 
-  void CallRequestHook(const MiddlewareCallContext& context,
-                       google::protobuf::Message& request) override;
+    void CallRequestHook(const MiddlewareCallContext& context, google::protobuf::Message& request) override;
 
-  void CallResponseHook(const MiddlewareCallContext& context,
-                        google::protobuf::Message& response) override;
+    void CallResponseHook(const MiddlewareCallContext& context, google::protobuf::Message& response) override;
 
- private:
-  Settings settings_;
+private:
+    Settings settings_;
 };
 
 }  // namespace ugrpc::server::middlewares::log

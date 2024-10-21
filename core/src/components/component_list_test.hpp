@@ -17,18 +17,15 @@ namespace tests {
 namespace impl {
 
 class DefaultLoggerGuardTest {
- public:
-  DefaultLoggerGuardTest() noexcept
-      : logger_prev_(logging::GetDefaultLogger()),
-        log_level_scope_(logging::GetLoggerLevel(logger_prev_)) {}
+public:
+    DefaultLoggerGuardTest() noexcept
+        : logger_prev_(logging::GetDefaultLogger()), log_level_scope_(logging::GetLoggerLevel(logger_prev_)) {}
 
-  ~DefaultLoggerGuardTest() {
-    logging::impl::SetDefaultLoggerRef(logger_prev_);
-  }
+    ~DefaultLoggerGuardTest() { logging::impl::SetDefaultLoggerRef(logger_prev_); }
 
- private:
-  logging::LoggerRef logger_prev_;
-  logging::DefaultLoggerLevelScope log_level_scope_;
+private:
+    logging::LoggerRef logger_prev_;
+    logging::DefaultLoggerLevelScope log_level_scope_;
 };
 
 }  // namespace impl
@@ -55,23 +52,23 @@ components_manager:
 config_vars: )";
 
 struct TracingGuard final {
-  TracingGuard() : tracer(tracing::Tracer::GetTracer()) {}
+    TracingGuard() : tracer(tracing::Tracer::GetTracer()) {}
 
-  ~TracingGuard() {
-    if (tracing::Tracer::GetTracer() != tracer) {
-      engine::RunStandalone([&] { tracing::Tracer::SetTracer(tracer); });
+    ~TracingGuard() {
+        if (tracing::Tracer::GetTracer() != tracer) {
+            engine::RunStandalone([&] { tracing::Tracer::SetTracer(tracer); });
+        }
     }
-  }
 
-  const logging::LoggerPtr opentracing_logger;
-  const tracing::TracerPtr tracer;
+    const logging::LoggerPtr opentracing_logger;
+    const tracing::TracerPtr tracer;
 };
 
 }  // namespace tests
 
 class ComponentList : public ::testing::Test {
-  tests::impl::DefaultLoggerGuardTest default_logger_guard_;
-  tests::TracingGuard tracing_guard_;
+    tests::impl::DefaultLoggerGuardTest default_logger_guard_;
+    tests::TracingGuard tracing_guard_;
 };
 
 USERVER_NAMESPACE_END

@@ -7,7 +7,6 @@ from pytest_userver import chaos
 
 import utils
 
-
 DATA_TRANSMISSION_DELAY = 1
 BYTES_PER_SECOND_LIMIT = 10
 CONNECTION_TIME_LIMIT = 0.4
@@ -300,7 +299,7 @@ async def test_network_limit_bytes(service_client, gate):
 
 
 async def _intercept_server_terminated(
-        loop, socket_from: socket.socket, socket_to: socket.socket,
+    loop, socket_from: socket.socket, socket_to: socket.socket,
 ) -> None:
     error_msg = (
         b'E\x00\x00\x00tSFATAL\x00VFATAL\x00C57P01\x00'
@@ -349,7 +348,7 @@ async def test_close_with_error(service_client, gate, testpoint):
     },
 )
 async def test_prepared_statement_already_exists(
-        service_client, gate, testpoint,
+    service_client, gate, testpoint,
 ):
     first = {1: True}
 

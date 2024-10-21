@@ -6,14 +6,20 @@ components_manager:
             fs-task-processor: fs-task-processor
             loggers: {}
 
+        # Contains machinery common to all gRPC clients
+        grpc-client-common:
+            # The TaskProcessor for blocking connection initiation
+            blocking-task-processor: grpc-blocking-task-processor
+
         # Creates gRPC clients
         grpc-client-factory:
-            # The TaskProcessor for blocking connection initiation
-            task-processor: grpc-blocking-task-processor
-
             # Optional channel parameters for gRPC Core
             # https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
             channel-args: {}
+            # The list of gRPC client middleware components to use.
+            # Ensure that there is no logging middleware, otherwise it will
+            # cause infinite recursion: handling logs will trigger more logs.
+            middlewares: []
 
 # /// [otlp logger]
         otlp-logger:

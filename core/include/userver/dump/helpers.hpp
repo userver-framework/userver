@@ -10,8 +10,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace dump {
 
-using TimePoint = std::chrono::time_point<std::chrono::system_clock,
-                                          std::chrono::microseconds>;
+using TimePoint = std::chrono::time_point<std::chrono::system_clock, std::chrono::microseconds>;
 
 [[noreturn]] void ThrowDumpUnimplemented(const std::string& name);
 

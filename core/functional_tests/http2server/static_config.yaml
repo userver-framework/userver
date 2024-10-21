@@ -14,8 +14,12 @@ components_manager:
             listener:
                 port: 8080
                 task_processor: main-task-processor
-                handler-defaults:
-                    http_version: '2'
+                connection:
+                    http-version: '2'
+                    http2-session:
+                        max_concurrent_streams: 100
+                        max_frame_size: 16384
+                        initial_window_size: 65536
             listener-monitor:
                 port: 8081
                 task_processor: main-task-processor
@@ -26,6 +30,20 @@ components_manager:
                     file_path: '@stderr'
                     level: error
                     overflow_behavior: discard
+
+        dynamic-config:
+            updates-enabled: true
+        dynamic-config-client-updater:
+            config-settings: false
+            first-update-fail-ok: true
+            full-update-interval: 1m
+            update-interval: 1s
+        dynamic-config-client:
+            config-url: $config-server-url
+            http-retries: 5
+            http-timeout: 20s
+            service-name: testsuite-support
+
 
         http-client:
             fs-task-processor: fs-task-processor
@@ -59,4 +77,6 @@ components_manager:
             method: GET,POST,PUT,DELETE
             task_processor: main-task-processor
             throttling_enabled: false
+            max_request_size: 2097152 #  2Mib
+            response-body-stream: true
 

@@ -21,56 +21,47 @@ static constexpr std::string_view kSeparator = ", ";
 static constexpr size_t kResolverTimeoutSecs = 15;
 
 class ResolverHandler final : public server::handlers::HttpHandlerBase {
- public:
-  static constexpr std::string_view kName = "handler-chaos-dns-resolver";
+public:
+    static constexpr std::string_view kName = "handler-chaos-dns-resolver";
 
-  ResolverHandler(const components::ComponentConfig& config,
-                  const components::ComponentContext& context)
-      : HttpHandlerBase(config, context),
-        resolver_{engine::current_task::GetTaskProcessor(), [&config] {
-                    clients::dns::ResolverConfig resolver_config;
-                    resolver_config.network_custom_servers =
-                        config["dns-servers"].As<std::vector<std::string>>();
-                    resolver_config.file_path =
-                        config["hosts-file"].As<std::string>();
-                    resolver_config.file_update_interval =
-                        std::chrono::seconds{kResolverTimeoutSecs};
-                    resolver_config.network_timeout =
-                        std::chrono::seconds{kResolverTimeoutSecs};
-                    resolver_config.network_attempts = 1;
-                    resolver_config.cache_max_reply_ttl = std::chrono::seconds{
-                        config["cache-max-ttl"].As<int64_t>()};
-                    resolver_config.cache_failure_ttl = std::chrono::seconds{
-                        config["cache-failure-ttl"].As<int64_t>()};
-                    resolver_config.cache_ways = 1;
-                    resolver_config.cache_size_per_way =
-                        config["cache-size-per-way"].As<int64_t>();
-                    return resolver_config;
-                  }()} {}
+    ResolverHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : HttpHandlerBase(config, context),
+          resolver_{engine::current_task::GetTaskProcessor(), [&config] {
+                        clients::dns::ResolverConfig resolver_config;
+                        resolver_config.network_custom_servers = config["dns-servers"].As<std::vector<std::string>>();
+                        resolver_config.file_path = config["hosts-file"].As<std::string>();
+                        resolver_config.file_update_interval = std::chrono::seconds{kResolverTimeoutSecs};
+                        resolver_config.network_timeout = std::chrono::seconds{kResolverTimeoutSecs};
+                        resolver_config.network_attempts = 1;
+                        resolver_config.cache_max_reply_ttl =
+                            std::chrono::seconds{config["cache-max-ttl"].As<int64_t>()};
+                        resolver_config.cache_failure_ttl =
+                            std::chrono::seconds{config["cache-failure-ttl"].As<int64_t>()};
+                        resolver_config.cache_ways = 1;
+                        resolver_config.cache_size_per_way = config["cache-size-per-way"].As<int64_t>();
+                        return resolver_config;
+                    }()} {}
 
-  std::string HandleRequestThrow(
-      const server::http::HttpRequest& request,
-      server::request::RequestContext&) const override {
-    const auto& type = request.GetArg("type");
-    const auto& timeout = request.GetArg("timeout");
-    const std::chrono::seconds timeout_secs{
-        timeout.empty() ? kResolverTimeoutSecs : std::stoi(timeout)};
-    const auto& to_resolve = request.GetArg("host_to_resolve");
-    if (type == "resolve") {
-      auto res = resolver_.Resolve(
-          to_resolve, engine::Deadline::FromDuration(timeout_secs));
-      return fmt::to_string(fmt::join(res, kSeparator));
-    } else if (type == "flush") {
-      resolver_.FlushNetworkCache(to_resolve);
-      return "flushed";
+    std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
+        const override {
+        const auto& type = request.GetArg("type");
+        const auto& timeout = request.GetArg("timeout");
+        const std::chrono::seconds timeout_secs{timeout.empty() ? kResolverTimeoutSecs : std::stoi(timeout)};
+        const auto& to_resolve = request.GetArg("host_to_resolve");
+        if (type == "resolve") {
+            auto res = resolver_.Resolve(to_resolve, engine::Deadline::FromDuration(timeout_secs));
+            return fmt::to_string(fmt::join(res, kSeparator));
+        } else if (type == "flush") {
+            resolver_.FlushNetworkCache(to_resolve);
+            return "flushed";
+        }
+
+        UASSERT(false);
+        return {};
     }
 
-    UASSERT(false);
-    return {};
-  }
-
-  static yaml_config::Schema GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<server::handlers::HttpHandlerBase>(R"(
+    static yaml_config::Schema GetStaticConfigSchema() {
+        return yaml_config::MergeSchemas<server::handlers::HttpHandlerBase>(R"(
     type: object
     description: Handler for clients::dns::Resolver testing
     additionalProperties: false
@@ -97,10 +88,10 @@ class ResolverHandler final : public server::handlers::HttpHandlerBase {
           description: size of cache for hosts
           defaultDescription: 1000
   )");
-  }
+    }
 
- private:
-  mutable clients::dns::Resolver resolver_;
+private:
+    mutable clients::dns::Resolver resolver_;
 };
 
 }  // namespace chaos

@@ -9,31 +9,25 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::middlewares::log {
 
-Settings Parse(const yaml_config::YamlConfig& config,
-               formats::parse::To<Settings>) {
-  Settings settings;
-  settings.max_msg_size =
-      config["msg-size-log-limit"].As<std::size_t>(settings.max_msg_size);
-  settings.log_level =
-      config["log-level"].As<logging::Level>(settings.log_level);
-  settings.log_level =
-      config["msg-log-level"].As<logging::Level>(settings.msg_log_level);
-  return settings;
+Settings Parse(const yaml_config::YamlConfig& config, formats::parse::To<Settings>) {
+    Settings settings;
+    settings.max_msg_size = config["msg-size-log-limit"].As<std::size_t>(settings.max_msg_size);
+    settings.log_level = config["log-level"].As<logging::Level>(settings.log_level);
+    settings.log_level = config["msg-log-level"].As<logging::Level>(settings.msg_log_level);
+    return settings;
 }
 
-Component::Component(const components::ComponentConfig& config,
-                     const components::ComponentContext& context)
-    : MiddlewareComponentBase(config, context),
-      settings_(config.As<Settings>()) {}
+Component::Component(const components::ComponentConfig& config, const components::ComponentContext& context)
+    : MiddlewareComponentBase(config, context), settings_(config.As<Settings>()) {}
 
 std::shared_ptr<const MiddlewareFactoryBase> Component::GetMiddlewareFactory() {
-  return std::make_shared<MiddlewareFactory>(*settings_);
+    return std::make_shared<MiddlewareFactory>(*settings_);
 }
 
 Component::~Component() = default;
 
 yaml_config::Schema Component::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<MiddlewareComponentBase>(R"(
+    return yaml_config::MergeSchemas<MiddlewareComponentBase>(R"(
 type: object
 description: gRPC service logger component
 additionalProperties: false

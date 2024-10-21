@@ -14,19 +14,18 @@ USERVER_NAMESPACE_BEGIN
 namespace clients::dns {
 
 class FileResolver {
- public:
-  FileResolver(engine::TaskProcessor& fs_task_processor, std::string path,
-               std::chrono::milliseconds update_interval);
+public:
+    FileResolver(engine::TaskProcessor& fs_task_processor, std::string path, std::chrono::milliseconds update_interval);
 
-  AddrVector Resolve(const std::string& name) const;
+    AddrVector Resolve(const std::string& name) const;
 
-  void ReloadHosts();
+    void ReloadHosts();
 
- private:
-  engine::TaskProcessor& fs_task_processor_;
-  const std::string path_;
-  rcu::Variable<std::unordered_map<std::string, AddrVector>> hosts_;
-  utils::PeriodicTask update_task_;
+private:
+    engine::TaskProcessor& fs_task_processor_;
+    const std::string path_;
+    rcu::Variable<std::unordered_map<std::string, AddrVector>> hosts_;
+    utils::PeriodicTask update_task_;
 };
 
 }  // namespace clients::dns

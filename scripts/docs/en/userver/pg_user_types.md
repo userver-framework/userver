@@ -5,7 +5,8 @@ user-povided database types.
 
 For a basic information on querying data see @ref pg_run_queries and
 @ref pg_process_results. A list of supported fundamental PostgreSQL types
-and their mappings to C++ types is available at @ref pg_types.
+and their mappings to C++ types is available at
+@ref scripts/docs/en/userver/pg_types.md.
 
 In PosgtgreSQL database the following kinds of user types are available:
   - @ref pg_composite_types "composite (row) types"
@@ -14,7 +15,6 @@ In PosgtgreSQL database the following kinds of user types are available:
   - @ref pg_user_types "domains"
 
 
-@anchor pg_user_types
 ## Mapping a C++ type to PostgreSQL domain user type
 
 Domains are essentially some database data types with database constraints
@@ -142,7 +142,7 @@ The type could be used in code in the following way:
 @snippet storages/postgres/tests/user_types_pgtest.cpp User domainrange type usage
 
 
-### Time Range and Other Widely Used Types
+### Time Range and Other Widely Used Types in PostgreSQL
 
 If you need a range of PostgreSQL `float` type or `time` type (actually any
 type mapped to C++ type that is highly likely used by other developers),

@@ -1,15 +1,23 @@
 #pragma once
 
 #include <nghttp2/nghttp2.h>
+#include <boost/pool/object_pool.hpp>
 
+#include <server/http/http2_stream.hpp>
+#include <server/http/http2_writer.hpp>
+#include <server/http/http_request_constructor.hpp>
 #include <server/net/stats.hpp>
 #include <server/request/request_parser.hpp>
 
+#include <userver/engine/io/socket.hpp>
+#include <userver/engine/single_consumer_event.hpp>
 #include <userver/server/request/request_config.hpp>
 
-#include "http_request_constructor.hpp"
-
 USERVER_NAMESPACE_BEGIN
+
+namespace server::net {
+struct Http2SessionConfig;
+}
 
 namespace server::http {
 
@@ -17,90 +25,113 @@ inline constexpr std::string_view kSwitchingProtocolResponse{
     "HTTP/1.1 101 Switching Protocols\r\nConnection: Upgrade\r\nUpgrade: "
     "h2c\r\n\r\n"};
 
-inline constexpr std::size_t kDefaultMaxConcurrentStreams = 100;
+// nghttp2_session_upgrade2 opens the stream with id=1 and we must use it.
+// See docs:
+// https://nghttp2.org/documentation/nghttp2_session_upgrade2.html#nghttp2-session-upgrade2
+inline constexpr Stream::Id kStreamIdAfterUpgradeResponse{1};
 
 class HttpRequestParser;
 
 class Http2Session final : public request::RequestParser {
- public:
-  using OnNewRequestCb =
-      std::function<void(std::shared_ptr<request::RequestBase>&&)>;
+public:
+    using OnNewRequestCb = std::function<void(std::shared_ptr<request::RequestBase>&&)>;
 
-  using StreamId = std::int32_t;
+    Http2Session(
+        const HandlerInfoIndex& handler_info_index,
+        const request::HttpRequestConfig& request_config,
+        const net::Http2SessionConfig& config,
+        OnNewRequestCb&& on_new_request_cb,
+        net::ParserStats& stats,
+        request::ResponseDataAccounter& data_accounter,
+        engine::io::Sockaddr remote_address,
+        engine::io::RwBase* socket = nullptr
+    );
 
-  struct StreamData final {
-    StreamData(HttpRequestConstructor::Config config,
-               const HandlerInfoIndex& handler_info_index,
-               request::ResponseDataAccounter& data_accounter,
-               StreamId stream_id_, engine::io::Sockaddr remote_address);
+    Http2Session(const Http2Session&) = delete;
+    Http2Session(Http2Session&&) = delete;
+    Http2Session& operator=(const Http2Session&) = delete;
+    Http2Session& operator=(Http2Session&&) = delete;
 
-    HttpRequestConstructor constructor;
-    const StreamId stream_id;
-  };
+    bool Parse(std::string_view req) override;
 
-  using Streams = std::unordered_map<StreamId, StreamData>;
+    nghttp2_session* GetNghttp2SessionPtr() { return session_.get(); }
 
-  Http2Session(const HandlerInfoIndex& handler_info_index,
-               const request::HttpRequestConfig& request_config,
-               OnNewRequestCb&& on_new_request_cb, net::ParserStats& stats,
-               request::ResponseDataAccounter& data_accounter,
-               engine::io::Sockaddr remote_address);
+    void UpgradeToHttp2(std::string_view client_magic);
 
-  Http2Session(const Http2Session&) = delete;
-  Http2Session(Http2Session&&) = delete;
-  Http2Session& operator=(const Http2Session&) = delete;
-  Http2Session& operator=(Http2Session&&) = delete;
+    engine::SingleConsumerEvent& GetStreamingEvent();
 
-  bool Parse(std::string_view req) override;
+    void WriteWhileWant();
+    void HandleStreamingEvents();
 
-  nghttp2_session* GetNghttp2SessionPtr() { return session_.get(); }
+private:
+    static int OnFrameRecv(nghttp2_session* session, const nghttp2_frame* frame, void* user_data);
 
-  void UpgradeToHttp2(std::string_view client_magic);
+    static int OnDataFrameSend(
+        nghttp2_session* session,
+        nghttp2_frame* frame,
+        const uint8_t* framehd,
+        size_t length,
+        nghttp2_data_source* source,
+        void* user_data
+    );
 
- private:
-  static int OnFrameRecv(nghttp2_session* session, const nghttp2_frame* frame,
-                         void* user_data);
+    static int OnBeginHeaders(nghttp2_session* session, const nghttp2_frame* frame, void* user_data);
 
-  static int OnHeader(nghttp2_session* session, const nghttp2_frame* frame,
-                      const uint8_t* name, size_t namelen, const uint8_t* value,
-                      size_t valuelen, uint8_t flags, void* user_data);
+    static int OnHeader(
+        nghttp2_session* session,
+        const nghttp2_frame* frame,
+        const uint8_t* name,
+        size_t namelen,
+        const uint8_t* value,
+        size_t valuelen,
+        uint8_t flags,
+        void* user_data
+    );
 
-  static int OnStreamClose(nghttp2_session* session, int32_t stream_id,
-                           uint32_t error_code, void* user_data);
+    static int OnDataChunkRecv(
+        nghttp2_session* session,
+        uint8_t flags,
+        int32_t stream_id,
+        const uint8_t* data,
+        size_t len,
+        void* user_data
+    );
 
-  static int OnBeginHeaders(nghttp2_session* session,
-                            const nghttp2_frame* frame, void* user_data);
+    static long OnSend(nghttp2_session* session, const uint8_t* data, size_t length, int flags, void* user_data);
 
-  static int OnDataChunkRecv(nghttp2_session* session, uint8_t flags,
-                             int32_t stream_id, const uint8_t* data, size_t len,
-                             void* user_data);
+    static int OnStreamClose(nghttp2_session* session, int32_t stream_id, uint32_t error_code, void* user_data);
 
-  static long OnSend(nghttp2_session* session, const uint8_t* data,
-                     size_t length, int flags, void* user_data);
+    void RegisterStream(Stream::Id id);
+    void RemoveStream(Stream& id);
+    Stream& GetStreamChecked(Stream::Id id);
 
-  void RegisterStreamData(StreamId stream_id);
-  void RemoveStreamData(StreamId stream_id);
-  void SubmitRequest(std::shared_ptr<request::RequestBase>&& request);
-  int FinalizeRequest(StreamData& stream_data);
+    void SubmitRstStream(Stream::Id stream_id);
 
- private:
-  using SessionPtr =
-      std::unique_ptr<nghttp2_session,
-                      std::function<decltype(nghttp2_session_del)>>;
+    void FinalizeRequest(Stream& stream);
+    bool ConnectionIsOk();
 
-  SessionPtr session_{nullptr};
-  Streams streams_;
-  std::size_t max_concurrent_streams_{kDefaultMaxConcurrentStreams};
+private:
+    friend class Http2ResponseWriter;
 
-  const HandlerInfoIndex& handler_info_index_;
-  const HttpRequestConstructor::Config request_constructor_config_;
+    using SessionPtr = std::unique_ptr<nghttp2_session, std::function<decltype(nghttp2_session_del)>>;
 
-  OnNewRequestCb on_new_request_cb_;
+    const net::Http2SessionConfig& config_;
 
-  net::ParserStats& stats_;
-  request::ResponseDataAccounter& data_accounter_;
-  engine::io::Sockaddr remote_address_;
-  std::size_t remote_window_size_{0};
+    SessionPtr session_{nullptr};
+    boost::object_pool<Stream> streams_pool_;
+
+    const HandlerInfoIndex& handler_info_index_;
+    const HttpRequestConstructor::Config request_constructor_config_;
+    OnNewRequestCb on_new_request_cb_;
+    request::ResponseDataAccounter& data_accounter_;
+
+    net::ParserStats& stats_;
+    engine::io::Sockaddr remote_address_;
+    engine::io::RwBase* socket_;
+
+    std::shared_ptr<impl::Http2StreamEventQueue> streaming_queue_{nullptr};
+    engine::SingleConsumerEvent streaming_event_;
+    impl::Http2StreamEventQueue::Consumer streaming_consumer_;
 };
 
 }  // namespace server::http

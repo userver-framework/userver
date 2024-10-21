@@ -4,11 +4,11 @@
 #include <gtest/gtest.h>
 
 TEST(Json2Yaml, Basic) {
-  namespace formats = USERVER_NAMESPACE::formats;
+    namespace formats = USERVER_NAMESPACE::formats;
 
-  auto json = formats::json::FromString(R"({"key": 42})");
-  auto yaml = json.ConvertTo<formats::yaml::Value>();
+    auto json = formats::json::FromString(R"({"key": 42})");
+    auto yaml = json.ConvertTo<formats::yaml::Value>();
 
-  EXPECT_EQ(yaml["key"].As<int>(), 42);
+    EXPECT_EQ(yaml["key"].As<int>(), 42);
 }
 /// [json2yaml - unittest]

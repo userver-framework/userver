@@ -33,49 +33,45 @@ class GenericServiceBase;
 // clang-format on
 
 class ServiceComponentBase : public components::ComponentBase {
- public:
-  ServiceComponentBase(const components::ComponentConfig& config,
-                       const components::ComponentContext& context);
+public:
+    ServiceComponentBase(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- protected:
-  /// Derived classes must store the actual service class in a field and call
-  /// RegisterService with it
-  void RegisterService(ServiceBase& service);
+protected:
+    /// Derived classes must store the actual service class in a field and call
+    /// RegisterService with it
+    void RegisterService(ServiceBase& service);
 
-  /// @overload
-  void RegisterService(GenericServiceBase& service);
+    /// @overload
+    void RegisterService(GenericServiceBase& service);
 
- private:
-  ServerComponent& server_;
-  ServiceConfig config_;
-  std::atomic<bool> registered_{false};
+private:
+    ServerComponent& server_;
+    ServiceConfig config_;
+    std::atomic<bool> registered_{false};
 };
 
 namespace impl {
 
 template <typename ServiceInterface>
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
-class ServiceComponentBase : public server::ServiceComponentBase,
-                             public ServiceInterface {
-  static_assert(std::is_base_of_v<ServiceBase, ServiceInterface> ||
-                std::is_base_of_v<GenericServiceBase, ServiceInterface>);
+class ServiceComponentBase : public server::ServiceComponentBase, public ServiceInterface {
+    static_assert(std::is_base_of_v<ServiceBase, ServiceInterface> || std::is_base_of_v<GenericServiceBase, ServiceInterface>);
 
- public:
-  ServiceComponentBase(const components::ComponentConfig& config,
-                       const components::ComponentContext& context)
-      : server::ServiceComponentBase(config, context), ServiceInterface() {
-    // At this point the derived class that implements ServiceInterface is not
-    // constructed yet. We rely on the implementation detail that the methods of
-    // ServiceInterface are never called right after RegisterService. Unless
-    // Server starts during the construction of this component (which is an
-    // error anyway), we should be fine.
-    RegisterService(*this);
-  }
+public:
+    ServiceComponentBase(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : server::ServiceComponentBase(config, context), ServiceInterface() {
+        // At this point the derived class that implements ServiceInterface is not
+        // constructed yet. We rely on the implementation detail that the methods of
+        // ServiceInterface are never called right after RegisterService. Unless
+        // Server starts during the construction of this component (which is an
+        // error anyway), we should be fine.
+        RegisterService(*this);
+    }
 
- private:
-  using server::ServiceComponentBase::RegisterService;
+private:
+    using server::ServiceComponentBase::RegisterService;
 };
 
 }  // namespace impl

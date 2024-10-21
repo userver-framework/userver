@@ -20,8 +20,7 @@ namespace fs {
 /// @param path directory to create
 /// @throws std::runtime_error if there was an error while
 /// creating directories
-void CreateDirectories(engine::TaskProcessor& async_tp, std::string_view path,
-                       boost::filesystem::perms perms);
+void CreateDirectories(engine::TaskProcessor& async_tp, std::string_view path, boost::filesystem::perms perms);
 
 void CreateDirectories(engine::TaskProcessor& async_tp, std::string_view path);
 /// @}
@@ -33,16 +32,14 @@ void CreateDirectories(engine::TaskProcessor& async_tp, std::string_view path);
 /// @param path file to rewrite
 /// @param contents new file contents
 /// @throws std::runtime_error if failed to overwrite
-void RewriteFileContents(engine::TaskProcessor& async_tp,
-                         const std::string& path, std::string_view contents);
+void RewriteFileContents(engine::TaskProcessor& async_tp, const std::string& path, std::string_view contents);
 
 /// @brief Renames existing file
 /// @param async_tp TaskProcessor for synchronous waiting
 /// @param source path to move from
 /// @param destination path to move to
 /// @throws std::runtime_error
-void Rename(engine::TaskProcessor& async_tp, const std::string& source,
-            const std::string& destination);
+void Rename(engine::TaskProcessor& async_tp, const std::string& source, const std::string& destination);
 
 /// @brief Rewrite file contents atomically
 /// Write contents to temporary file in the same directory,
@@ -55,18 +52,19 @@ void Rename(engine::TaskProcessor& async_tp, const std::string& source,
 /// @param contents new file contents
 /// @param perms new file permissions
 /// @throws std::runtime_error
-void RewriteFileContentsAtomically(engine::TaskProcessor& async_tp,
-                                   const std::string& path,
-                                   std::string_view contents,
-                                   boost::filesystem::perms perms);
+void RewriteFileContentsAtomically(
+    engine::TaskProcessor& async_tp,
+    const std::string& path,
+    std::string_view contents,
+    boost::filesystem::perms perms
+);
 
 /// @brief Change file mode
 /// @param async_tp TaskProcessor for synchronous waiting
 /// @param path file path to chmod
 /// @param perms new file permissions
 /// @throws std::runtime_error
-void Chmod(engine::TaskProcessor& async_tp, const std::string& path,
-           boost::filesystem::perms perms);
+void Chmod(engine::TaskProcessor& async_tp, const std::string& path, boost::filesystem::perms perms);
 
 /// @brief Remove existing file
 /// @param async_tp TaskProcessor for synchronous waiting

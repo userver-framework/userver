@@ -21,31 +21,30 @@ namespace yaml_config {
 struct Schema;
 
 enum class FieldType {
-  kBool,
-  kInteger,
-  kNumber,
-  kString,
-  kArray,
-  kObject,
+    kBool,
+    kInteger,
+    kNumber,
+    kString,
+    kArray,
+    kObject,
 };
 
 std::string ToString(FieldType type);
 
 class SchemaPtr final {
- public:
-  explicit SchemaPtr(Schema&& schema);
+public:
+    explicit SchemaPtr(Schema&& schema);
 
-  const Schema& operator*() const { return *schema_; }
-  Schema& operator*() { return *schema_; }
+    const Schema& operator*() const { return *schema_; }
+    Schema& operator*() { return *schema_; }
 
-  const Schema* operator->() const { return schema_.get(); }
+    const Schema* operator->() const { return schema_.get(); }
 
- private:
-  std::unique_ptr<Schema> schema_;
+private:
+    std::unique_ptr<Schema> schema_;
 };
 
-formats::yaml::Value Serialize(const SchemaPtr& schema,
-                               formats::serialize::To<formats::yaml::Value>);
+formats::yaml::Value Serialize(const SchemaPtr& schema, formats::serialize::To<formats::yaml::Value>);
 
 /// @ingroup userver_universal
 ///
@@ -53,29 +52,28 @@ formats::yaml::Value Serialize(const SchemaPtr& schema,
 ///
 /// @see @ref static-configs-validation "Static configs validation"
 struct Schema final {
-  void UpdateDescription(std::string new_description);
+    void UpdateDescription(std::string new_description);
 
-  static Schema EmptyObject();
+    static Schema EmptyObject();
 
-  std::string path;
+    std::string path;
 
-  FieldType type{};
-  std::string description;
-  std::optional<std::string> default_description;
-  std::optional<std::variant<bool, SchemaPtr>> additional_properties;
-  std::optional<std::unordered_map<std::string, SchemaPtr>> properties;
-  std::optional<SchemaPtr> items;
-  std::optional<std::unordered_set<std::string>> enum_values;
-  std::optional<double> minimum;
-  std::optional<double> maximum;
-  std::optional<size_t> min_items;
-  std::optional<size_t> max_items;
+    FieldType type{};
+    std::string description;
+    std::optional<std::string> default_description;
+    std::optional<std::variant<bool, SchemaPtr>> additional_properties;
+    std::optional<std::unordered_map<std::string, SchemaPtr>> properties;
+    std::optional<SchemaPtr> items;
+    std::optional<std::unordered_set<std::string>> enum_values;
+    std::optional<double> minimum;
+    std::optional<double> maximum;
+    std::optional<size_t> min_items;
+    std::optional<size_t> max_items;
 };
 
 Schema Parse(const formats::yaml::Value& schema, formats::parse::To<Schema>);
 
-formats::yaml::Value Serialize(const Schema& schema,
-                               formats::serialize::To<formats::yaml::Value>);
+formats::yaml::Value Serialize(const Schema& schema, formats::serialize::To<formats::yaml::Value>);
 
 namespace impl {
 

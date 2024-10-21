@@ -17,29 +17,28 @@ namespace ydb::impl {
 Driver::Driver(std::string dbname, impl::DriverSettings settings)
     : dbname_(std::move(dbname)),
       dbpath_(settings.database),
-      native_metrics_(std::make_unique<NMonitoring::TMetricRegistry>(
-          NMonitoring::TLabels{})),
+      native_metrics_(std::make_unique<NMonitoring::TMetricRegistry>(NMonitoring::TLabels{})),
       retry_budget_(utils::RetryBudgetSettings{}) {
-  NYdb::TDriverConfig driver_config;
-  driver_config.SetEndpoint(settings.endpoint.data())
-      .SetDatabase(settings.database.data())
-      .SetBalancingPolicy(settings.prefer_local_dc
-                              ? NYdb::EBalancingPolicy::UsePreferableLocation
-                              : NYdb::EBalancingPolicy::UseAllNodes);
+    NYdb::TDriverConfig driver_config;
+    driver_config.SetEndpoint(settings.endpoint.data())
+        .SetDatabase(settings.database.data())
+        .SetBalancingPolicy(
+            settings.prefer_local_dc ? NYdb::EBalancingPolicy::UsePreferableLocation
+                                     : NYdb::EBalancingPolicy::UseAllNodes
+        );
 
-  if (settings.credentials_provider_factory) {
-    driver_config.SetCredentialsProviderFactory(
-        settings.credentials_provider_factory);
-  } else if (settings.oauth_token.has_value()) {
-    driver_config.SetAuthToken(settings.oauth_token->data());
-  } else if (settings.iam_jwt_params.has_value()) {
-    driver_config.UseSecureConnection().SetCredentialsProviderFactory(
-        NYdb::CreateIamJwtParamsCredentialsProviderFactory(
-            {.JwtContent = settings.iam_jwt_params->data()}));
-  }
+    if (settings.credentials_provider_factory) {
+        driver_config.SetCredentialsProviderFactory(settings.credentials_provider_factory);
+    } else if (settings.oauth_token.has_value()) {
+        driver_config.SetAuthToken(settings.oauth_token->data());
+    } else if (settings.iam_jwt_params.has_value()) {
+        driver_config.UseSecureConnection().SetCredentialsProviderFactory(
+            NYdb::CreateIamJwtParamsCredentialsProviderFactory({.JwtContent = settings.iam_jwt_params->data()})
+        );
+    }
 
-  driver_ = std::make_unique<NYdb::TDriver>(driver_config);
-  NSolomonStatExtension::AddMetricRegistry(*driver_, native_metrics_.get());
+    driver_ = std::make_unique<NYdb::TDriver>(driver_config);
+    NSolomonStatExtension::AddMetricRegistry(*driver_, native_metrics_.get());
 }
 
 Driver::~Driver() { driver_->Stop(true); }
@@ -53,14 +52,13 @@ const std::string& Driver::GetDbPath() const { return dbpath_; }
 utils::RetryBudget& Driver::GetRetryBudget() { return retry_budget_; }
 
 void DumpMetric(utils::statistics::Writer& writer, const Driver& driver) {
-  writer["native"] = *driver.native_metrics_;
-  writer["retry_budget"] = driver.retry_budget_;
+    writer["native"] = *driver.native_metrics_;
+    writer["retry_budget"] = driver.retry_budget_;
 }
 
 std::string JoinPath(std::string_view database_path, std::string_view path) {
-  UASSERT(!utils::text::EndsWith(database_path, "/"));
-  return utils::StrCat(database_path,
-                       (utils::text::StartsWith(path, "/") ? "" : "/"), path);
+    UASSERT(!utils::text::EndsWith(database_path, "/"));
+    return utils::StrCat(database_path, (utils::text::StartsWith(path, "/") ? "" : "/"), path);
 }
 
 }  // namespace ydb::impl

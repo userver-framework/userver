@@ -7,8 +7,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace yaml_config::impl {
 
-void Validate(const yaml_config::YamlConfig& static_config,
-              const Schema& schema);
+void Validate(const yaml_config::YamlConfig& static_config, const Schema& schema);
 
 }  // namespace yaml_config::impl
 

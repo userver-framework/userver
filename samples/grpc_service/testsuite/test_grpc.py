@@ -1,6 +1,7 @@
 import sys
 
 import pytest
+
 import samples.greeter_pb2 as greeter_protos  # noqa: E402, E501
 
 
@@ -14,6 +15,7 @@ async def test_grpc_client_mock_say_hello(service_client, mock_grpc_greeter):
 
     response = await service_client.post('/hello?case=say_hello', data='tests')
     assert response.status == 200
+    assert 'text/plain' in response.headers['Content-Type']
     assert response.text == 'Hello, tests from mockserver!'
     assert _mock_say_hello.times_called == 1
 
@@ -23,7 +25,7 @@ async def test_grpc_client_mock_say_hello(service_client, mock_grpc_greeter):
 
 # /// [grpc client test response stream]
 async def test_grpc_client_mock_say_hello_response_stream(
-        service_client, mock_grpc_greeter,
+    service_client, mock_grpc_greeter,
 ):
     @mock_grpc_greeter('SayHelloResponseStream')
     async def _mock_say_hello_response_stream(request, context):
@@ -36,6 +38,7 @@ async def test_grpc_client_mock_say_hello_response_stream(
         '/hello?case=say_hello_response_stream', data='Python',
     )
     assert response.status == 200
+    assert 'text/plain' in response.headers['Content-Type']
     assert (
         response.text
         == """Hello, Python!
@@ -53,7 +56,7 @@ Hello, Python!!!!!
 
 # /// [grpc client test request stream]
 async def test_grpc_client_mock_say_hello_request_stream(
-        service_client, mock_grpc_greeter,
+    service_client, mock_grpc_greeter,
 ):
     @mock_grpc_greeter('SayHelloRequestStream')
     async def _mock_say_hello_request_stream(request_iterator, context):
@@ -66,6 +69,7 @@ async def test_grpc_client_mock_say_hello_request_stream(
         '/hello?case=say_hello_request_stream', data='Python\n!\n!\n!',
     )
     assert response.status == 200
+    assert 'text/plain' in response.headers['Content-Type']
     assert response.text == 'Hello, Python!!!'
     assert _mock_say_hello_request_stream.times_called == 1
 
@@ -75,7 +79,7 @@ async def test_grpc_client_mock_say_hello_request_stream(
 
 # /// [grpc client test streams]
 async def test_grpc_client_mock_say_hello_streams(
-        service_client, mock_grpc_greeter,
+    service_client, mock_grpc_greeter,
 ):
     @mock_grpc_greeter('SayHelloStreams')
     async def _mock_say_hello_streams(request_iterator, context):
@@ -88,6 +92,7 @@ async def test_grpc_client_mock_say_hello_streams(
         '/hello?case=say_hello_streams', data='Python\n!\n!\n!',
     )
     assert response.status == 200
+    assert 'text/plain' in response.headers['Content-Type']
     assert (
         response.text
         == """Hello, Python

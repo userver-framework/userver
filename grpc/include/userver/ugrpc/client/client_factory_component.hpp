@@ -6,11 +6,12 @@
 #include <userver/components/component_base.hpp>
 
 #include <userver/ugrpc/client/client_factory.hpp>
-#include <userver/ugrpc/client/queue_holder.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
+
+// clang-format off
 
 /// @ingroup userver_components
 ///
@@ -18,6 +19,8 @@ namespace ugrpc::client {
 ///
 /// Multiple ClientFactoryComponent instances may be created if different
 /// parameters are required for different clients.
+///
+/// Requires ugrpc::client::CommonComponent.
 ///
 /// ## Authentication
 /// Authentication is controlled by `auth-type` static config field.
@@ -33,9 +36,7 @@ namespace ugrpc::client {
 /// service config should be distributed via the name resolution process.
 /// We allow setting default service_config: pass desired JSON literal
 /// to `default-service-config` parameter
-
-// clang-format off
-
+///
 /// ## Static options:
 /// The default component name for static config is `"grpc-client-factory"`.
 ///
@@ -43,39 +44,34 @@ namespace ugrpc::client {
 /// ---- | ----------- | -------------
 /// task-processor | the task processor for blocking channel creation | -
 /// channel-args | a map of channel arguments, see gRPC Core docs | {}
-/// native-log-level | min log level for the native gRPC library | 'error'
 /// auth-type | authentication method, see above | -
 /// default-service-config | default service config, see above | -
 /// channel-count | Number of underlying grpc::Channel objects | 1
-/// middlewares | middlewares names to use | []
-///
+/// middlewares | middlewares names to use | -
 ///
 /// @see https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
 
 // clang-format on
 
 class ClientFactoryComponent final : public components::ComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of ugrpc::client::middlewares::log::Component
-  static constexpr std::string_view kName = "grpc-client-factory";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of ugrpc::client::middlewares::log::Component
+    static constexpr std::string_view kName = "grpc-client-factory";
 
-  ClientFactoryComponent(const components::ComponentConfig& config,
-                         const components::ComponentContext& context);
+    ClientFactoryComponent(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-  ClientFactory& GetFactory();
+    ClientFactory& GetFactory();
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  std::optional<QueueHolder> queue_;
-  std::optional<ClientFactory> factory_;
+private:
+    std::optional<ClientFactory> factory_;
 };
 
 }  // namespace ugrpc::client
 
 template <>
-inline constexpr bool
-    components::kHasValidate<ugrpc::client::ClientFactoryComponent> = true;
+inline constexpr bool components::kHasValidate<ugrpc::client::ClientFactoryComponent> = true;
 
 USERVER_NAMESPACE_END

@@ -16,30 +16,28 @@ namespace ydb {
 enum class TransactionMode { kSerializableRW, kOnlineRO, kStaleRO };
 
 struct OperationSettings final {
-  std::optional<std::uint32_t> retries{std::nullopt};
+    std::optional<std::uint32_t> retries{std::nullopt};
 
-  // https://docs.yandex-team.ru/ydb-tech/best_practices/timeouts#operational
-  std::chrono::milliseconds operation_timeout_ms{0};
-  std::chrono::milliseconds cancel_after_ms{0};
-  std::chrono::milliseconds client_timeout_ms{0};
-  std::optional<TransactionMode> tx_mode{std::nullopt};
-  std::chrono::milliseconds get_session_timeout_ms{0};
+    // https://docs.yandex-team.ru/ydb-tech/best_practices/timeouts#operational
+    std::chrono::milliseconds operation_timeout_ms{0};
+    std::chrono::milliseconds cancel_after_ms{0};
+    std::chrono::milliseconds client_timeout_ms{0};
+    std::optional<TransactionMode> tx_mode{std::nullopt};
+    std::chrono::milliseconds get_session_timeout_ms{0};
 
-  std::string trace_id{};
+    std::string trace_id{};
 };
 
 struct QuerySettings final {
-  std::optional<bool> keep_in_query_cache{std::nullopt};
-  std::optional<NYdb::NTable::ECollectQueryStatsMode> collect_query_stats{
-      std::nullopt};
+    std::optional<bool> keep_in_query_cache{std::nullopt};
+    std::optional<NYdb::NTable::ECollectQueryStatsMode> collect_query_stats{std::nullopt};
 };
 
 }  // namespace ydb
 
 namespace formats::parse {
 
-ydb::OperationSettings Parse(const yaml_config::YamlConfig& config,
-                             To<ydb::OperationSettings>);
+ydb::OperationSettings Parse(const yaml_config::YamlConfig& config, To<ydb::OperationSettings>);
 
 }  // namespace formats::parse
 

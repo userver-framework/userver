@@ -24,40 +24,37 @@ struct SnapshotData;
 
 /// @brief Thrown by statistics::Snapshot queries on unexpected metrics states.
 class MetricQueryError final : public std::runtime_error {
- public:
-  using std::runtime_error::runtime_error;
+public:
+    using std::runtime_error::runtime_error;
 };
 
 /// @brief A snapshot of metrics from utils::statistics::Storage.
 class Snapshot final {
- public:
-  /// @brief Create a new snapshot of metrics with paths starting with @a prefix
-  /// and labels containing @a require_labels.
-  /// @throws std::exception if a metric writer throws.
-  explicit Snapshot(const Storage& storage, std::string prefix = {},
-                    std::vector<Label> require_labels = {});
+public:
+    /// @brief Create a new snapshot of metrics with paths starting with @a prefix
+    /// and labels containing @a require_labels.
+    /// @throws std::exception if a metric writer throws.
+    explicit Snapshot(const Storage& storage, std::string prefix = {}, std::vector<Label> require_labels = {});
 
-  Snapshot(const Snapshot& other) = default;
-  Snapshot(Snapshot&& other) noexcept = default;
+    Snapshot(const Snapshot& other) = default;
+    Snapshot(Snapshot&& other) noexcept = default;
 
-  /// @brief Find a single metric by the given filter.
-  /// @param path The path of the target metric. `prefix` specified in the
-  /// constructor is prepended to the path.
-  /// @param require_labels Labels that the target metric should have.
-  /// @returns The value of the single found metric.
-  /// @throws MetricQueryError if none or multiple metrics are found.
-  MetricValue SingleMetric(std::string path,
-                           std::vector<Label> require_labels = {}) const;
+    /// @brief Find a single metric by the given filter.
+    /// @param path The path of the target metric. `prefix` specified in the
+    /// constructor is prepended to the path.
+    /// @param require_labels Labels that the target metric should have.
+    /// @returns The value of the single found metric.
+    /// @throws MetricQueryError if none or multiple metrics are found.
+    MetricValue SingleMetric(std::string path, std::vector<Label> require_labels = {}) const;
 
-  /// @overload
-  std::optional<MetricValue> SingleMetricOptional(
-      std::string path, std::vector<Label> require_labels = {}) const;
+    /// @overload
+    std::optional<MetricValue> SingleMetricOptional(std::string path, std::vector<Label> require_labels = {}) const;
 
- private:
-  friend void PrintTo(const Snapshot& data, std::ostream*);
+private:
+    friend void PrintTo(const Snapshot& data, std::ostream*);
 
-  Request request_;
-  utils::SharedRef<const impl::SnapshotData> data_;
+    Request request_;
+    utils::SharedRef<const impl::SnapshotData> data_;
 };
 
 /// @brief Support for gtest diagnostics for utils::statistics::Snapshot.

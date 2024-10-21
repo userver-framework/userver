@@ -8,6 +8,11 @@ message FieldOptions {
   bool secret = 1;
 }
 
+// https://github.com/protocolbuffers/protobuf/blob/main/docs/options.md
+//
+// Project: userver
+// Website: https://userver.tech/
+// Extensions: 1240-1249
 extend google.protobuf.FieldOptions {
-  userver.FieldOptions field = 90132;
+  userver.FieldOptions field = 1240;
 }

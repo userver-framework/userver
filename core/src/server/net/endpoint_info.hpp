@@ -11,15 +11,15 @@ USERVER_NAMESPACE_BEGIN
 namespace server::net {
 
 struct EndpointInfo {
-  EndpointInfo(const ListenerConfig&, http::HttpRequestHandler&);
+    EndpointInfo(const ListenerConfig&, http::HttpRequestHandler&);
 
-  std::string GetDescription() const;
+    std::string GetDescription() const;
 
-  const ListenerConfig& listener_config;
-  http::HttpRequestHandler& request_handler;
-  Connection::Type connection_type{Connection::Type::kRequest};
+    const ListenerConfig& listener_config;
+    http::HttpRequestHandler& request_handler;
+    Connection::Type connection_type{Connection::Type::kRequest};
 
-  std::atomic<size_t> connection_count{0};
+    std::atomic<size_t> connection_count{0};
 };
 
 }  // namespace server::net

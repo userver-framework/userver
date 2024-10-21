@@ -24,8 +24,6 @@ function(_userver_prepare_grpc)
     find_package(gRPC REQUIRED)
     get_target_property(PROTO_GRPC_CPP_PLUGIN gRPC::grpc_cpp_plugin LOCATION)
     get_target_property(PROTO_GRPC_PYTHON_PLUGIN gRPC::grpc_python_plugin LOCATION)
-    set(PROTOBUF_PROTOC "${Protobuf_PROTOC_EXECUTABLE}")
-    set(GENERATE_PROTOS_AT_CONFIGURE_DEFAULT ON)
   else()
     include("${CMAKE_CURRENT_LIST_DIR}/SetupGrpc.cmake")
   endif()
@@ -33,6 +31,7 @@ function(_userver_prepare_grpc)
   set_property(GLOBAL PROPERTY userver_grpc_cpp_plugin "${PROTO_GRPC_CPP_PLUGIN}")
   set_property(GLOBAL PROPERTY userver_grpc_python_plugin "${PROTO_GRPC_PYTHON_PLUGIN}")
   set_property(GLOBAL PROPERTY userver_protobuf_protoc "${PROTOBUF_PROTOC}")
+  set_property(GLOBAL PROPERTY userver_protobuf_version "${Protobuf_VERSION}")
   set(generate_protos_at_configure_description
       "Run protoc at CMake Configure time instead of the more traditional build time. "
       "This avoids IDE errors before the first build, but requires re-running CMake "
@@ -66,7 +65,10 @@ function(_userver_prepare_grpc)
     message(FATAL_ERROR "Invalid Protobuf package")
   endif()
 
-  if (NOT gRPC_VERSION)
+  if(NOT Protobuf_VERSION)
+    message(FATAL_ERROR "Invalid Protobuf package")
+  endif()
+  if(NOT gRPC_VERSION)
     message(FATAL_ERROR "Invalid gRPC package")
   endif()
   if(NOT PROTOBUF_PROTOC)
@@ -97,7 +99,7 @@ _userver_prepare_grpc()
 
 function(userver_generate_grpc_files)
   set(options)
-  set(one_value_args CPP_FILES CPP_USRV_FILES GENERATED_INCLUDES SOURCE_PATH)
+  set(one_value_args CPP_FILES CPP_USRV_FILES GENERATED_INCLUDES SOURCE_PATH OUTPUT_PATH)
   set(multi_value_args PROTOS INCLUDE_DIRECTORIES)
   cmake_parse_arguments(GEN_RPC "${options}" "${one_value_args}" "${multi_value_args}" ${ARGN})
 
@@ -106,6 +108,7 @@ function(userver_generate_grpc_files)
   get_property(PROTO_GRPC_PYTHON_PLUGIN GLOBAL PROPERTY userver_grpc_python_plugin)
   get_property(PROTOBUF_PROTOC GLOBAL PROPERTY userver_protobuf_protoc)
   get_property(USERVER_PROTOBUF_IMPORT_DIR GLOBAL PROPERTY userver_protobuf_import_dir)
+  get_property(Protobuf_VERSION GLOBAL PROPERTY userver_protobuf_version)
   set(PROTO_GRPC_USRV_PLUGIN "${USERVER_GRPC_SCRIPTS_PATH}/protoc_usrv_plugin.sh")
 
   if(GEN_RPC_INCLUDE_DIRECTORIES)
@@ -127,11 +130,19 @@ function(userver_generate_grpc_files)
     endforeach()
   endif()
 
-  set(GENERATED_PROTO_DIR ${CMAKE_CURRENT_BINARY_DIR}/proto)
+  if (NOT "${GEN_RPC_OUTPUT_PATH}" STREQUAL "")
+    if(NOT IS_ABSOLUTE "${GEN_RPC_OUTPUT_PATH}")
+      message(SEND_ERROR "OUTPUT_PATH='${GEN_RPC_OUTPUT_PATH}' is a relative path, which is unsupported.")
+    endif()
+    set(GENERATED_PROTO_DIR "${GEN_RPC_OUTPUT_PATH}")
+  else()
+    set(GENERATED_PROTO_DIR "${CMAKE_CURRENT_BINARY_DIR}/proto")
+  endif()
+  
   get_filename_component(GENERATED_PROTO_DIR "${GENERATED_PROTO_DIR}" REALPATH BASE_DIR "/")
 
   if(NOT "${GEN_RPC_SOURCE_PATH}" STREQUAL "")
-    if(NOT IS_ABSOLUTE ${GEN_RPC_SOURCE_PATH})
+    if(NOT IS_ABSOLUTE "${GEN_RPC_SOURCE_PATH}")
       message(SEND_ERROR "SOURCE_PATH='${GEN_RPC_SOURCE_PATH}' is a relative path, which is unsupported.")
     endif()
     set(root_path "${GEN_RPC_SOURCE_PATH}")
@@ -160,6 +171,10 @@ function(userver_generate_grpc_files)
       "--plugin=protoc-gen-usrv=${PROTO_GRPC_USRV_PLUGIN}"
       "--plugin=protoc-gen-grpc_python=${PROTO_GRPC_PYTHON_PLUGIN}"
   )
+  if(Protobuf_VERSION VERSION_GREATER_EQUAL "3.12.0" AND
+      Protobuf_VERSION VERSION_LESS "3.15.0")
+    list(APPEND protoc_flags "--experimental_allow_proto3_optional")
+  endif()
 
   set(proto_abs_paths)
   set(proto_rel_paths)
@@ -285,14 +300,15 @@ endfunction()
 
 function(userver_add_grpc_library NAME)
   set(options)
-  set(one_value_args SOURCE_PATH)
+  set(one_value_args SOURCE_PATH OUTPUT_PATH)
   set(multi_value_args PROTOS INCLUDE_DIRECTORIES)
   cmake_parse_arguments(RPC_LIB "${options}" "${one_value_args}" "${multi_value_args}" ${ARGN})
 
   userver_generate_grpc_files(
       PROTOS ${RPC_LIB_PROTOS}
       INCLUDE_DIRECTORIES ${RPC_LIB_INCLUDE_DIRECTORIES}
-      SOURCE_PATH ${RPC_LIB_SOURCE_PATH}
+      SOURCE_PATH "${RPC_LIB_SOURCE_PATH}"
+      OUTPUT_PATH "${RPC_LIB_OUTPUT_PATH}"
       GENERATED_INCLUDES include_paths
       CPP_FILES generated_sources
       CPP_USRV_FILES generated_usrv_sources

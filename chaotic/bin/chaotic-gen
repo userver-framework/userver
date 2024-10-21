@@ -9,4 +9,4 @@ if ! [ -e $CHAOTIC_DIR/chaotic/main.py ]; then
 fi
 
 export PYTHONPATH=$CHAOTIC_DIR
-exec ${USERVER_PYTHON} $CHAOTIC_DIR/chaotic/main.py "$@"
+exec "$USERVER_PYTHON" "$CHAOTIC_DIR/chaotic/main.py" "$@"

@@ -17,48 +17,43 @@ namespace storages::clickhouse::impl {
 
 namespace {
 
-tracing::Span PrepareExecutionSpan(const std::string& scope,
-                                   const std::string& db_instance) {
-  tracing::Span span{scope};
-  span.AddTag(tracing::kDatabaseInstance, db_instance);
+tracing::Span PrepareExecutionSpan(const std::string& scope, const std::string& db_instance) {
+    tracing::Span span{scope};
+    span.AddTag(tracing::kDatabaseInstance, db_instance);
 
-  return span;
+    return span;
 }
 
 }  // namespace
 
 Pool::Pool(clients::dns::Resolver& resolver, PoolSettings&& settings)
     : impl_{std::make_shared<impl::PoolImpl>(resolver, std::move(settings))} {
-  impl_->StartMaintenance();
+    impl_->StartMaintenance();
 }
 
 Pool::~Pool() = default;
 
-ExecutionResult Pool::Execute(OptionalCommandControl optional_cc,
-                              const Query& query) const {
-  auto conn_ptr = impl_->Acquire();
+ExecutionResult Pool::Execute(OptionalCommandControl optional_cc, const Query& query) const {
+    auto conn_ptr = impl_->Acquire();
 
-  auto span = PrepareExecutionSpan(impl::scopes::kQuery, impl_->GetHostName());
-  query.FillSpanTags(span);
+    auto span = PrepareExecutionSpan(impl::scopes::kQuery, impl_->GetHostName());
+    query.FillSpanTags(span);
 
-  const auto timer = impl_->GetExecuteTimer();
-  return conn_ptr->Execute(optional_cc, query);
+    const auto timer = impl_->GetExecuteTimer();
+    return conn_ptr->Execute(optional_cc, query);
 }
 
-void Pool::Insert(OptionalCommandControl optional_cc,
-                  const InsertionRequest& request) const {
-  auto conn_ptr = impl_->Acquire();
+void Pool::Insert(OptionalCommandControl optional_cc, const InsertionRequest& request) const {
+    auto conn_ptr = impl_->Acquire();
 
-  auto span = PrepareExecutionSpan(impl::scopes::kInsert, impl_->GetHostName());
+    auto span = PrepareExecutionSpan(impl::scopes::kInsert, impl_->GetHostName());
 
-  const auto timer = impl_->GetInsertTimer();
-  conn_ptr->Insert(optional_cc, request);
+    const auto timer = impl_->GetInsertTimer();
+    conn_ptr->Insert(optional_cc, request);
 }
 
-void Pool::WriteStatistics(
-    USERVER_NAMESPACE::utils::statistics::Writer& writer) const {
-  writer.ValueWithLabels(impl_->GetStatistics(),
-                         {{"clickhouse_instance", impl_->GetHostName()}});
+void Pool::WriteStatistics(USERVER_NAMESPACE::utils::statistics::Writer& writer) const {
+    writer.ValueWithLabels(impl_->GetStatistics(), {{"clickhouse_instance", impl_->GetHostName()}});
 }
 
 bool Pool::IsAvailable() const { return impl_->IsAvailable(); }

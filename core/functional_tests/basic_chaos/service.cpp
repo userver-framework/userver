@@ -19,24 +19,24 @@
 #include "resolver_handlers.hpp"
 
 int main(int argc, char* argv[]) {
-  const auto component_list =
-      components::MinimalServerComponentList()
-          .Append<chaos::HttpClientHandler>()
-          .Append<chaos::StreamHandler>()
-          .Append<chaos::HttpServerHandler>()
-          .Append<chaos::ResolverHandler>()
-          .Append<chaos::HttpServerWithExceptionHandler>()
-          .Append<components::LoggingConfigurator>()
-          .Append<components::HttpClient>()
-          .Append<components::TestsuiteSupport>()
-          .Append<server::handlers::TestsControl>()
-          .Append<server::handlers::ServerMonitor>()
-          .Append<server::handlers::Ping>()
-          .Append<clients::dns::Component>()
-          .Append<alerts::Handler>()
-          .Append<components::DynamicConfigClient>()
-          .Append<components::DynamicConfigClientUpdater>()
-          .Append<server::handlers::OnLogRotate>();
+    const auto component_list = components::MinimalServerComponentList()
+                                    .Append<chaos::HttpClientHandler>()
+                                    .Append<chaos::StreamHandler>()
+                                    .Append<chaos::HttpServerHandler>()
+                                    .Append<chaos::HttpServerHandler>("handler-chaos-httpserver-parse-body-args")
+                                    .Append<chaos::ResolverHandler>()
+                                    .Append<chaos::HttpServerWithExceptionHandler>()
+                                    .Append<components::LoggingConfigurator>()
+                                    .Append<components::HttpClient>()
+                                    .Append<components::TestsuiteSupport>()
+                                    .Append<server::handlers::TestsControl>()
+                                    .Append<server::handlers::ServerMonitor>()
+                                    .Append<server::handlers::Ping>()
+                                    .Append<clients::dns::Component>()
+                                    .Append<alerts::Handler>()
+                                    .Append<components::DynamicConfigClient>()
+                                    .Append<components::DynamicConfigClientUpdater>()
+                                    .Append<server::handlers::OnLogRotate>();
 
-  return utils::DaemonMain(argc, argv, component_list);
+    return utils::DaemonMain(argc, argv, component_list);
 }

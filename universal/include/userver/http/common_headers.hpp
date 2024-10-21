@@ -87,8 +87,7 @@ inline constexpr PredefinedHeader kLocation{"Location"};
 inline constexpr PredefinedHeader kRetryAfter{"Retry-After"};
 inline constexpr PredefinedHeader kVary{"Vary"};
 inline constexpr PredefinedHeader kWarning{"Warning"};
-inline constexpr PredefinedHeader kAccessControlAllowHeaders{
-    "Access-Control-Allow-Headers"};
+inline constexpr PredefinedHeader kAccessControlAllowHeaders{"Access-Control-Allow-Headers"};
 /// @}
 
 /// @name Validator Header Fields
@@ -136,8 +135,7 @@ inline constexpr PredefinedHeader kXYaTraceId{"X-YaTraceId"};
 inline constexpr PredefinedHeader kXYaSpanId{"X-YaSpanId"};
 inline constexpr PredefinedHeader kXRequestId{"X-RequestId"};
 inline constexpr PredefinedHeader kXBackendServer{"X-Backend-Server"};
-inline constexpr PredefinedHeader kXTaxiEnvoyProxyDstVhost{
-    "X-Taxi-EnvoyProxy-DstVhost"};
+inline constexpr PredefinedHeader kXTaxiEnvoyProxyDstVhost{"X-Taxi-EnvoyProxy-DstVhost"};
 
 /// B3 tracing Headers
 namespace b3 {
@@ -170,27 +168,18 @@ inline constexpr PredefinedHeader kXRemoteIp{"X-Remote-IP"};
 
 /// @name Generic Yandex/MLU headers
 /// @{
-inline constexpr PredefinedHeader kXYaTaxiAllowAuthRequest{
-    "X-YaTaxi-Allow-Auth-Request"};
-inline constexpr PredefinedHeader kXYaTaxiAllowAuthResponse{
-    "X-YaTaxi-Allow-Auth-Response"};
-inline constexpr PredefinedHeader kXYaTaxiServerHostname{
-    "X-YaTaxi-Server-Hostname"};
-inline constexpr PredefinedHeader kXYaTaxiClientTimeoutMs{
-    "X-YaTaxi-Client-TimeoutMs"};
-inline constexpr PredefinedHeader kXYaTaxiDeadlineExpired{
-    "X-YaTaxi-Deadline-Expired"};
-inline constexpr PredefinedHeader kXYaTaxiRatelimitedBy{
-    "X-YaTaxi-Ratelimited-By"};
-inline constexpr PredefinedHeader kXYaTaxiRatelimitReason{
-    "X-YaTaxi-Ratelimit-Reason"};
+inline constexpr PredefinedHeader kXYaTaxiAllowAuthRequest{"X-YaTaxi-Allow-Auth-Request"};
+inline constexpr PredefinedHeader kXYaTaxiAllowAuthResponse{"X-YaTaxi-Allow-Auth-Response"};
+inline constexpr PredefinedHeader kXYaTaxiServerHostname{"X-YaTaxi-Server-Hostname"};
+inline constexpr PredefinedHeader kXYaTaxiClientTimeoutMs{"X-YaTaxi-Client-TimeoutMs"};
+inline constexpr PredefinedHeader kXYaTaxiDeadlineExpired{"X-YaTaxi-Deadline-Expired"};
+inline constexpr PredefinedHeader kXYaTaxiRatelimitedBy{"X-YaTaxi-Ratelimited-By"};
+inline constexpr PredefinedHeader kXYaTaxiRatelimitReason{"X-YaTaxi-Ratelimit-Reason"};
 
 namespace ratelimit_reason {
 inline constexpr std::string_view kCC{"congestion-control"};
-inline constexpr std::string_view kMaxResponseSizeInFlight{
-    "max-response-size-in-flight"};
-inline constexpr std::string_view kMaxPendingResponses{
-    "too-many-pending-responses"};
+inline constexpr std::string_view kMaxResponseSizeInFlight{"max-response-size-in-flight"};
+inline constexpr std::string_view kMaxPendingResponses{"too-many-pending-responses"};
 inline constexpr std::string_view kGlobal{"global-ratelimit"};
 inline constexpr std::string_view kInFlight{"max-requests-in-flight"};
 }  // namespace ratelimit_reason

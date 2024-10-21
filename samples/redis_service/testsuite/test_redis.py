@@ -5,11 +5,13 @@ async def test_redis(service_client):
 
     response = await service_client.post('/v1/key-value?key=hello&value=world')
     assert response.status == 201
-    assert response.content == b'world'
+    assert 'text/plain' in response.headers['Content-Type']
+    assert response.text == 'world'
 
     response = await service_client.request('GET', '/v1/key-value?key=hello')
     assert response.status == 200
-    assert response.content == b'world'
+    assert 'text/plain' in response.headers['Content-Type']
+    assert response.text == 'world'
     # /// [Functional test]
 
     response = await service_client.request(
@@ -19,13 +21,15 @@ async def test_redis(service_client):
 
     response = await service_client.request('GET', '/v1/key-value?key=hello')
     assert response.status == 200
-    assert response.content == b'world'  # Still the same
+    assert 'text/plain' in response.headers['Content-Type']
+    assert response.text == 'world'  # Still the same
 
     response = await service_client.request(
         'DELETE', '/v1/key-value?key=hello',
     )
     assert response.status == 200
-    assert response.content == b'1'
+    assert 'text/plain' in response.headers['Content-Type']
+    assert response.text == '1'
 
     response = await service_client.request('GET', '/v1/key-value?key=hello')
     assert response.status == 404  # Not Found
@@ -39,7 +43,8 @@ async def test_evalsha(service_client):
         f'/v1/script?command=evalsha&key=hello&hash={hash_id}',
     )
     assert response.status == 200
-    assert response.content == b'NOSCRIPT'
+    assert 'text/plain' in response.headers['Content-Type']
+    assert response.text == 'NOSCRIPT'
 
     response = await service_client.post(
         f'/v1/script?command=scriptload&key=hello&script={script}',
@@ -51,4 +56,5 @@ async def test_evalsha(service_client):
         f'/v1/script?command=evalsha&key=hello&hash={hash_id}',
     )
     assert response.status == 200
-    assert response.content == b'42'
+    assert 'text/plain' in response.headers['Content-Type']
+    assert response.text == '42'

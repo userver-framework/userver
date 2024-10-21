@@ -15,27 +15,27 @@ class TaskContext;
 }  // namespace impl
 
 class TaskQueue final {
- public:
-  explicit TaskQueue(const TaskProcessorConfig& config);
+public:
+    explicit TaskQueue(const TaskProcessorConfig& config);
 
-  void Push(boost::intrusive_ptr<impl::TaskContext>&& context);
+    void Push(boost::intrusive_ptr<impl::TaskContext>&& context);
 
-  // Returns nullptr as a stop signal
-  boost::intrusive_ptr<impl::TaskContext> PopBlocking();
+    // Returns nullptr as a stop signal
+    boost::intrusive_ptr<impl::TaskContext> PopBlocking();
 
-  void StopProcessing();
+    void StopProcessing();
 
-  std::size_t GetSizeApproximate() const noexcept;
+    std::size_t GetSizeApproximate() const noexcept;
 
-  void PrepareWorker(std::size_t index);
+    void PrepareWorker(std::size_t index);
 
- private:
-  void DoPush(impl::TaskContext* context);
+private:
+    void DoPush(impl::TaskContext* context);
 
-  impl::TaskContext* DoPopBlocking(moodycamel::ConsumerToken& token);
+    impl::TaskContext* DoPopBlocking(moodycamel::ConsumerToken& token);
 
-  moodycamel::ConcurrentQueue<impl::TaskContext*> queue_;
-  moodycamel::LightweightSemaphore queue_semaphore_;
+    moodycamel::ConcurrentQueue<impl::TaskContext*> queue_;
+    moodycamel::LightweightSemaphore queue_semaphore_;
 };
 
 }  // namespace engine

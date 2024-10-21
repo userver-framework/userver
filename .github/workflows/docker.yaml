@@ -63,14 +63,14 @@ jobs:
         runs-on: ubuntu-latest
         name: '${{ matrix.info }}'
         steps:
-          - uses: actions/checkout@v2
+          - uses: actions/checkout@v4
 
           - name: Install packages
             run: |
                 sudo apt install -y docker-compose
 
           - name: Reuse ccache directory
-            uses: actions/cache@v2
+            uses: actions/cache@v4
             with:
                 path: .ccache
                 key: 'ccache-dir-${{ matrix.id }}_${{github.ref}}_run-${{github.run_number}}'

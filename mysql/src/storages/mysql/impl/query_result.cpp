@@ -12,22 +12,20 @@ QueryResult::QueryResult(QueryResult&& other) noexcept = default;
 
 QueryResult::~QueryResult() = default;
 
-void QueryResult::AppendRow(QueryResultRow&& row) {
-  rows_.push_back(std::move(row));
-}
+void QueryResult::AppendRow(QueryResultRow&& row) { rows_.push_back(std::move(row)); }
 
 std::size_t QueryResult::RowsCount() const { return rows_.size(); }
 
 const QueryResultRow& QueryResult::GetRow(std::size_t ind) const {
-  UASSERT(ind < RowsCount());
+    UASSERT(ind < RowsCount());
 
-  return rows_[ind];
+    return rows_[ind];
 }
 
 QueryResultRow& QueryResult::GetRow(std::size_t ind) {
-  UASSERT(ind < RowsCount());
+    UASSERT(ind < RowsCount());
 
-  return rows_[ind];
+    return rows_[ind];
 }
 
 }  // namespace storages::mysql::impl

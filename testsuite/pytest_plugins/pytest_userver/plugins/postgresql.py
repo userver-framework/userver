@@ -4,12 +4,12 @@ and adjusts the PostgreSQL "dbconnection" static config value.
 """
 
 from contextlib import contextmanager
+from enum import Enum
 import typing
 
 import pytest
 
 from pytest_userver import sql
-
 
 pytest_plugins = [
     'testsuite.databases.pgsql.pytest_plugin',
@@ -20,28 +20,47 @@ pytest_plugins = [
 USERVER_CONFIG_HOOKS = ['userver_pg_config']
 
 
+class RegisteredNtrxFailureType(Enum):
+    Error = 1
+    LogicError = 2
+    RuntimeError = 3
+    ConnectionError = 4
+
+
 class RegisteredNtrx:
     def __init__(self, testpoint):
-        self._registered_ntrx = set()
+        self._registered_ntrx = dict()
         self._testpoint = testpoint
 
-    def _enable_failure(self, name: str) -> None:
-        self._registered_ntrx.add(name)
+    def _enable_failure(
+        self, name: str, failure_type: RegisteredNtrxFailureType,
+    ) -> None:
+        self._registered_ntrx[name] = failure_type
 
         @self._testpoint(f'pg_ntrx_execute::{name}')
         def _failure_tp(data):
-            return {'inject_failure': self.is_failure_enabled(name)}
+            return {
+                'inject_failure': self.is_failure_enabled(name),
+                'failure_type': self._get_failure_type(name).name,
+            }
 
     def _disable_failure(self, name: str) -> None:
         if self.is_failure_enabled(name):
-            self._registered_ntrx.remove(name)
+            del self._registered_ntrx[name]
+
+    def _get_failure_type(self, name: str) -> RegisteredNtrxFailureType:
+        return self._registered_ntrx[name]
 
     def is_failure_enabled(self, name: str) -> bool:
         return name in self._registered_ntrx
 
     @contextmanager
-    def mock_failure(self, name: str):
-        self._enable_failure(name)
+    def mock_failure(
+        self,
+        name: str,
+        failure_type: RegisteredNtrxFailureType = RegisteredNtrxFailureType.Error,
+    ):
+        self._enable_failure(name, failure_type)
         try:
             yield
         finally:
@@ -105,7 +124,7 @@ def userver_pg_config(pgsql_local):
 
 @pytest.fixture
 def userver_pg_trx(
-        testpoint,
+    testpoint,
 ) -> typing.Generator[sql.RegisteredTrx, None, None]:
     """
     The fixture maintains transaction fault injection state using

@@ -10,6 +10,10 @@ PEERDIR(
     taxi/uservices/userver/grpc/proto/tests
 )
 
+ADDINCL(
+    taxi/uservices/userver/grpc/src
+)
+
 USRV_ALL_SRCS()
 
 END()

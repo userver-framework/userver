@@ -19,45 +19,44 @@ struct UdpListener;
 namespace utest {
 
 class DnsServerMock final {
- public:
-  enum class RecordType {
-    kInvalid = 0,
-    kA = 1,
-    kAAAA = 28,
-    kCname = 5,
-  };
+public:
+    enum class RecordType {
+        kInvalid = 0,
+        kA = 1,
+        kAAAA = 28,
+        kCname = 5,
+    };
 
-  struct DnsQuery {
-    RecordType type{RecordType::kInvalid};
-    std::string name;
-  };
+    struct DnsQuery {
+        RecordType type{RecordType::kInvalid};
+        std::string name;
+    };
 
-  struct DnsAnswer {
-    using AnswerData =
-        std::variant<std::monostate, engine::io::Sockaddr, std::string>;
+    struct DnsAnswer {
+        using AnswerData = std::variant<std::monostate, engine::io::Sockaddr, std::string>;
 
-    RecordType type{RecordType::kInvalid};
-    AnswerData data;
-    int ttl{0};
-  };
+        RecordType type{RecordType::kInvalid};
+        AnswerData data;
+        int ttl{0};
+    };
 
-  using DnsAnswerVector = std::vector<DnsAnswer>;
+    using DnsAnswerVector = std::vector<DnsAnswer>;
 
-  struct NoAnswer : std::exception {};
+    struct NoAnswer : std::exception {};
 
-  // throwing an exception will cause SERVFAIL
-  using DnsHandler = std::function<DnsAnswerVector(const DnsQuery&)>;
+    // throwing an exception will cause SERVFAIL
+    using DnsHandler = std::function<DnsAnswerVector(const DnsQuery&)>;
 
-  explicit DnsServerMock(DnsHandler);
+    explicit DnsServerMock(DnsHandler);
 
-  std::string GetServerAddress() const;
+    std::string GetServerAddress() const;
 
- private:
-  void ProcessRequests();
+private:
+    void ProcessRequests();
 
-  std::shared_ptr<internal::net::UdpListener> listener_;
-  DnsHandler handler_;
-  engine::Task receiver_task_;
+    std::shared_ptr<internal::net::UdpListener> listener_;
+    DnsHandler handler_;
+    engine::Task receiver_task_;
 };
 
 }  // namespace utest

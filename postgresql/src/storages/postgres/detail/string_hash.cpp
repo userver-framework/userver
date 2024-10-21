@@ -7,9 +7,9 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::postgres::utils {
 
 std::size_t StrHash(const char* str, std::size_t len) {
-  auto seed = len;
-  boost::hash_range(seed, str, str + len);
-  return seed;
+    auto seed = len;
+    boost::hash_range(seed, str, str + len);
+    return seed;
 }
 
 }  // namespace storages::postgres::utils

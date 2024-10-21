@@ -19,29 +19,40 @@ in separate task processor.
 - Metrics;
 
 ## Producer Features
+- 🚀 Parallel cooperative messages delivery reports processing (in comparison
+  with all librdkafka-based Kafka clients, the performance of which rests on a
+  single thread);
+- 🚀 No blocking waits in implementation (message senders suspend their
+  coroutines execution until delivery reports occurred);
 - Synchronous and asynchronous non-blocking interfaces for producing messages;
-- Automatic periodic message polling of message delivery reports;
 - Automatic retries of transient errors;
 - Support of idempotent producer (exactly-once semantics);
 - Sending message to concrete topic's partition;
 
 ## Consumer Features
+- 🚀 No blocking waits in implementation (message poller suspends the coroutine
+  until new events occurred);
 - Callback interface for handling message batches polled from subscribed topics;
 - Balanced consumer groups support;
 - Automatic rollback to last committed message when batch processing failed;
 - Partition offsets asynchronous commit;
 
 ## Planned Enhancements
-- Transfer from raw polling with timeouts to events processing,
-making the message polling non-blocking and leading to better library scalability;
-- on_error callback for Consumer for convenient error processing;
-- testsuite Kafka support in OSS;
+- ✅ Transfer from raw polling with timeouts to events processing,
+  making the message polling non-blocking and leading to better library
+  scalability;
+- ✅ testsuite Kafka support in OSS;
 - Support of different compression codecs (GZIP, LZ4, ZSTD, etc..);
 - Support more SASL authentication mechanisms (GSSAPI, OAUTHBEARER);
+
+# Unit and functional testing
+- @ref scripts/docs/en/userver/tutorial/kafka_service.md shows how to test userver services with Kafka consumers and producers;
+- kafka::utest::KafkaCluster may be used for convenient unit testing with local consumers and producers instances;
 
 ## More information
 - For configuration see kafka::ProducerComponent and kafka::ConsumerComponent;
 - For understanding of interfaces see kafka::Producer and kafka::ConsumerScope;
+- Also kafka::impl::Consumer and kafka::impl::Configuration are well documented and may be useful;
 
 ----------
 

@@ -49,7 +49,7 @@ function(_userver_prepare_testsuite)
       REQUIREMENTS ${requirements_files}
       UNIQUE
       )
-    configure_file(${USERVER_TESTSUITE_DIR}/env.in ${CMAKE_BINARY_DIR}/testsuite/env @ONLY)
+    configure_file("${USERVER_TESTSUITE_DIR}/env.in" "${CMAKE_BINARY_DIR}/testsuite/env" @ONLY)
   endif()
 endfunction()
 
@@ -114,6 +114,10 @@ function(userver_testsuite_requirements)
     list(APPEND testsuite_modules rabbitmq)
   endif()
 
+  if(USERVER_FEATURE_KAFKA OR TARGET userver::kafka)
+    list(APPEND testsuite_modules kafka)
+  endif()
+
   if(USERVER_FEATURE_MYSQL OR TARGET userver::mysql)
     list(APPEND testsuite_modules mysql)
   endif()
@@ -150,6 +154,7 @@ endfunction()
 function(userver_testsuite_add)
   set(oneValueArgs
       SERVICE_TARGET
+      TEST_SUFFIX
       WORKING_DIRECTORY
       PYTHON_BINARY
       PRETTY_LOGS
@@ -158,6 +163,7 @@ function(userver_testsuite_add)
       PYTEST_ARGS
       REQUIREMENTS
       PYTHONPATH
+      TEST_ENV
   )
   cmake_parse_arguments(
     ARG "${options}" "${oneValueArgs}" "${multiValueArgs}"  ${ARGN})
@@ -181,10 +187,15 @@ function(userver_testsuite_add)
     set(ARG_PRETTY_LOGS ON)
   endif()
 
-  set(TESTSUITE_TARGET "testsuite-${ARG_SERVICE_TARGET}")
+  if (NOT ARG_TEST_SUFFIX)
+    set(service_target_with_suffix "${ARG_SERVICE_TARGET}")
+  else()
+    set(service_target_with_suffix "${ARG_SERVICE_TARGET}-${ARG_TEST_SUFFIX}")
+  endif()
+  set(testsuite_test_name "testsuite-${service_target_with_suffix}")
 
   if (NOT USERVER_FEATURE_TESTSUITE)
-    message(STATUS "Testsuite target ${TESTSUITE_TARGET} is disabled")
+    message(STATUS "Testsuite test ${testsuite_test_name} is disabled")
     return()
   endif()
 
@@ -198,7 +209,7 @@ function(userver_testsuite_add)
     userver_testsuite_requirements(REQUIREMENTS_FILES_VAR requirements_files)
     list(APPEND requirements_files ${ARG_REQUIREMENTS})
     userver_venv_setup(
-        NAME "${TESTSUITE_TARGET}"
+        NAME "${testsuite_test_name}"
         REQUIREMENTS ${requirements_files}
         PYTHON_OUTPUT_VAR python_binary
     )
@@ -216,8 +227,8 @@ function(userver_testsuite_add)
     message(FATAL_ERROR "No python binary given.")
   endif()
 
-  set(TESTSUITE_RUNNER "${CMAKE_CURRENT_BINARY_DIR}/runtests-${TESTSUITE_TARGET}")
-  list(APPEND ARG_PYTHONPATH ${USERVER_TESTSUITE_DIR}/pytest_plugins)
+  set(TESTSUITE_RUNNER "${CMAKE_CURRENT_BINARY_DIR}/runtests-${service_target_with_suffix}")
+  list(APPEND ARG_PYTHONPATH "${USERVER_TESTSUITE_DIR}/pytest_plugins")
 
   execute_process(
     COMMAND
@@ -228,6 +239,7 @@ function(userver_testsuite_add)
     --
     "--build-dir=${CMAKE_CURRENT_BINARY_DIR}"
     "--service-logs-file=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/service.log"
+    "--basetemp=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary"
     ${ARG_PYTEST_ARGS}
     RESULT_VARIABLE STATUS
   )
@@ -240,29 +252,40 @@ function(userver_testsuite_add)
       set(PRETTY_LOGS_MODE "--service-logs-pretty")
   endif()
 
+  # Pre-collect command in a list to support spaces in paths
+  set(testsuite_test_command)
+  list(APPEND testsuite_test_command "${python_binary}")
+  list(APPEND testsuite_test_command "${TESTSUITE_RUNNER}")
+  list(APPEND testsuite_test_command ${PRETTY_LOGS_MODE})
+  list(APPEND testsuite_test_command -vv)
+  list(APPEND testsuite_test_command "${ARG_WORKING_DIRECTORY}")
   # Without WORKING_DIRECTORY the `add_test` prints better diagnostic info
   add_test(
-      NAME "${TESTSUITE_TARGET}"
-      COMMAND
-      "${TESTSUITE_RUNNER}"
-      ${PRETTY_LOGS_MODE}
-      -vv
-      "${ARG_WORKING_DIRECTORY}"
+      NAME "${testsuite_test_name}"
+      COMMAND ${testsuite_test_command}
   )
+  if(ARG_TEST_ENV)
+    set_tests_properties("${testsuite_test_name}"
+        PROPERTIES ENVIRONMENT "${ARG_TEST_ENV}"
+    )
+  endif()
 
+  # Pre-collect command in a list to support spaces in paths
+  set(testsuite_start_command)
+  list(APPEND testsuite_start_command "${python_binary}")
+  list(APPEND testsuite_start_command "${TESTSUITE_RUNNER}")
+  list(APPEND testsuite_start_command ${PRETTY_LOGS_MODE})
+  list(APPEND testsuite_start_command --service-runner-mode)
+  list(APPEND testsuite_start_command -vvs)
+  list(APPEND testsuite_start_command "${ARG_WORKING_DIRECTORY}")
   add_custom_target(
-      "start-${ARG_SERVICE_TARGET}"
-      COMMAND
-      "${TESTSUITE_RUNNER}"
-      ${PRETTY_LOGS_MODE}
-      --service-runner-mode
-      -vvs
-      "${ARG_WORKING_DIRECTORY}"
-      DEPENDS
-      "${TESTSUITE_RUNNER}"
-      "${ARG_SERVICE_TARGET}"
+      "start-${service_target_with_suffix}"
+      COMMAND ${testsuite_start_command}
+      DEPENDS "${TESTSUITE_RUNNER}"
+      VERBATIM
       USES_TERMINAL
   )
+  add_dependencies("start-${service_target_with_suffix}" "${ARG_SERVICE_TARGET}")
 endfunction()
 
 # Tries to search service files in some standard places.
@@ -276,6 +299,7 @@ endfunction()
 function(userver_testsuite_add_simple)
   set(oneValueArgs
       SERVICE_TARGET
+      TEST_SUFFIX
       WORKING_DIRECTORY
       PYTHON_BINARY
       PRETTY_LOGS
@@ -283,12 +307,12 @@ function(userver_testsuite_add_simple)
       CONFIG_VARS_PATH
       DYNAMIC_CONFIG_FALLBACK_PATH
       SECDIST_PATH
-      TEST_ENV
   )
   set(multiValueArgs
       PYTEST_ARGS
       REQUIREMENTS
       PYTHONPATH
+      TEST_ENV
   )
   cmake_parse_arguments(
       ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
@@ -322,11 +346,15 @@ function(userver_testsuite_add_simple)
   endif()
 
   if(NOT ARG_SERVICE_TARGET)
-    if(tests_relative_path STREQUAL "." OR tests_relative_path STREQUAL "tests")
-      set(ARG_SERVICE_TARGET "${PROJECT_NAME}")
-    else()
-      set(ARG_SERVICE_TARGET "${PROJECT_NAME}-${tests_relative_path}")
-    endif()
+    set(ARG_SERVICE_TARGET "${PROJECT_NAME}")
+  endif()
+  if(NOT ARG_TEST_SUFFIX)
+    set(ARG_TEST_SUFFIX "${tests_relative_path}")
+  endif()
+  if("${ARG_TEST_SUFFIX}" STREQUAL "." OR
+      "${ARG_TEST_SUFFIX}" STREQUAL "tests" OR
+      "${ARG_TEST_SUFFIX}" STREQUAL "testsuite")
+    set(ARG_TEST_SUFFIX "")
   endif()
 
   if(ARG_CONFIG_PATH)
@@ -423,6 +451,7 @@ function(userver_testsuite_add_simple)
 
   userver_testsuite_add(
       SERVICE_TARGET "${ARG_SERVICE_TARGET}"
+      TEST_SUFFIX "${ARG_TEST_SUFFIX}"
       WORKING_DIRECTORY "${ARG_WORKING_DIRECTORY}"
       PYTHON_BINARY "${ARG_PYTHON_BINARY}"
       PRETTY_LOGS "${ARG_PRETTY_LOGS}"
@@ -434,20 +463,15 @@ function(userver_testsuite_add_simple)
       ${ARG_PYTEST_ARGS}
       REQUIREMENTS ${ARG_REQUIREMENTS}
       PYTHONPATH ${ARG_PYTHONPATH}
+      TEST_ENV ${ARG_TEST_ENV}
   )
-
-  if(ARG_TEST_ENV)
-    set_tests_properties("testsuite-${ARG_SERVICE_TARGET}"
-        PROPERTIES ENVIRONMENT ${ARG_TEST_ENV}
-    )
-  endif()
 endfunction()
 
 # add utest, test runs in testsuite env
 function(userver_add_utest)
   set(options)
   set(oneValueArgs NAME)
-  set(multiValueArgs DATABASES)
+  set(multiValueArgs DATABASES TEST_ENV)
 
   cmake_parse_arguments(
       ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
@@ -463,11 +487,16 @@ function(userver_add_utest)
   endif()
 
   add_test(NAME "${ARG_NAME}" COMMAND
-    ${CMAKE_BINARY_DIR}/testsuite/env
+    "${CMAKE_BINARY_DIR}/testsuite/env"
     ${additional_args} run --
     $<TARGET_FILE:${ARG_NAME}>
-    --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${ARG_NAME}.xml
+    "--gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${ARG_NAME}.xml"
   )
+  if(ARG_TEST_ENV)
+    set_tests_properties("${ARG_NAME}"
+        PROPERTIES ENVIRONMENT "${ARG_TEST_ENV}"
+    )
+  endif()
 endfunction()
 
 _userver_prepare_testsuite()

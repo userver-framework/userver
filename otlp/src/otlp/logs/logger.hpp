@@ -8,74 +8,77 @@
 
 #include <userver/concurrent/queue.hpp>
 #include <userver/engine/task/task.hpp>
+#include <userver/formats/yaml.hpp>
 #include <userver/logging/impl/log_stats.hpp>
 #include <userver/logging/impl/logger_base.hpp>
+#include <userver/yaml_config/yaml_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace otlp {
 
-struct LoggerConfig {
-  size_t max_queue_size{10000};
-  std::chrono::milliseconds max_batch_delay{};
+enum class SinkType { kBoth, kDefault, kOtlp };
 
-  std::string service_name;
-  std::unordered_map<std::string, std::string> extra_attributes;
-  std::unordered_map<std::string, std::string> attributes_mapping;
-  logging::Level log_level{logging::Level::kInfo};
+SinkType Parse(const yaml_config::YamlConfig& value, formats::parse::To<SinkType>);
+
+struct LoggerConfig {
+    size_t max_queue_size{10000};
+    std::chrono::milliseconds max_batch_delay{};
+    SinkType logs_sink{SinkType::kOtlp};
+    SinkType tracing_sink{SinkType::kOtlp};
+    std::string service_name;
+    std::unordered_map<std::string, std::string> extra_attributes;
+    std::unordered_map<std::string, std::string> attributes_mapping;
+    logging::Level log_level{logging::Level::kInfo};
 };
 
 class Logger final : public logging::impl::LoggerBase {
- public:
-  using LogClient =
-      opentelemetry::proto::collector::logs::v1::LogsServiceClient;
-  using TraceClient =
-      opentelemetry::proto::collector::trace::v1::TraceServiceClient;
+public:
+    using LogClient = opentelemetry::proto::collector::logs::v1::LogsServiceClient;
+    using TraceClient = opentelemetry::proto::collector::trace::v1::TraceServiceClient;
 
-  explicit Logger(LogClient client, TraceClient trace_client,
-                  LoggerConfig&& config);
+    explicit Logger(LogClient client, TraceClient trace_client, LoggerConfig&& config);
 
-  ~Logger() override;
+    ~Logger() override;
 
-  void Log(logging::Level level, std::string_view msg) override;
+    void Log(logging::Level level, std::string_view msg) override;
 
-  void Trace(logging::Level level, std::string_view msg) override;
+    void Trace(logging::Level level, std::string_view msg) override;
 
-  void PrependCommonTags(logging::impl::TagWriter writer) const override;
+    void PrependCommonTags(logging::impl::TagWriter writer) const override;
 
-  void Stop() noexcept;
+    void Stop() noexcept;
 
-  const logging::impl::LogStatistics& GetStatistics() const;
+    const logging::impl::LogStatistics& GetStatistics() const;
 
- protected:
-  bool DoShouldLog(logging::Level level) const noexcept override;
+    void SetDefaultLogger(logging::LoggerPtr default_logger) { default_logger_ = default_logger; }
 
- private:
-  using Action = std::variant<::opentelemetry::proto::logs::v1::LogRecord,
-                              ::opentelemetry::proto::trace::v1::Span>;
-  using Queue = concurrent::NonFifoMpscQueue<Action>;
+protected:
+    bool DoShouldLog(logging::Level level) const noexcept override;
 
-  void SendingLoop(Queue::Consumer& consumer, LogClient& log_client,
-                   TraceClient& trace_client);
+private:
+    using Action = std::variant<::opentelemetry::proto::logs::v1::LogRecord, ::opentelemetry::proto::trace::v1::Span>;
+    using Queue = concurrent::NonFifoMpscQueue<Action>;
 
-  void FillAttributes(::opentelemetry::proto::resource::v1::Resource& resource);
+    void SendingLoop(Queue::Consumer& consumer, LogClient& log_client, TraceClient& trace_client);
 
-  void DoLog(
-      const opentelemetry::proto::collector::logs::v1::ExportLogsServiceRequest&
-          request,
-      LogClient& client);
+    void FillAttributes(::opentelemetry::proto::resource::v1::Resource& resource);
 
-  void DoTrace(const opentelemetry::proto::collector::trace::v1::
-                   ExportTraceServiceRequest& request,
-               TraceClient& trace_client);
+    void DoLog(const opentelemetry::proto::collector::logs::v1::ExportLogsServiceRequest& request, LogClient& client);
 
-  std::string_view MapAttribute(std::string_view attr) const;
+    void DoTrace(
+        const opentelemetry::proto::collector::trace::v1::ExportTraceServiceRequest& request,
+        TraceClient& trace_client
+    );
 
-  logging::impl::LogStatistics stats_;
-  const LoggerConfig config_;
-  std::shared_ptr<Queue> queue_;
-  Queue::MultiProducer queue_producer_;
-  engine::Task sender_task_;  // Must be the last member
+    std::string_view MapAttribute(std::string_view attr) const;
+
+    logging::impl::LogStatistics stats_;
+    const LoggerConfig config_;
+    std::shared_ptr<Queue> queue_;
+    Queue::MultiProducer queue_producer_;
+    logging::LoggerPtr default_logger_{};
+    engine::Task sender_task_;  // Must be the last member
 };
 
 }  // namespace otlp

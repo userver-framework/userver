@@ -27,18 +27,17 @@ namespace storages::rocks {
 // clang-format on
 
 class Component : public components::ComponentBase {
- public:
-  Component(const components::ComponentConfig&,
-            const components::ComponentContext&);
+public:
+    Component(const components::ComponentConfig&, const components::ComponentContext&);
 
-  ~Component() = default;
+    ~Component() = default;
 
-  storages::rocks::ClientPtr MakeClient();
+    storages::rocks::ClientPtr MakeClient();
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  storages::rocks::ClientPtr client_ptr_;
+private:
+    storages::rocks::ClientPtr client_ptr_;
 };
 
 }  // namespace storages::rocks

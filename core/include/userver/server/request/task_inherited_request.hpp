@@ -7,6 +7,11 @@
 #include <string>
 #include <string_view>
 
+#include <boost/container/small_vector.hpp>
+#include <boost/range/iterator_range.hpp>
+
+#include <userver/http/header_map.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace http::headers {
@@ -19,23 +24,36 @@ class HttpRequestImpl;
 
 namespace server::request {
 
+struct Header {
+    std::string_view name;
+    std::string value;
+
+    Header(std::string_view name, std::string value) : name(name), value(std::move(value)) {}
+};
+
+using HeadersToPropagate = boost::container::small_vector<Header, 10>;
+
 /// @brief Get a header from server::http::HttpRequest that is handled by the
 /// current task hierarchy.
 /// @return Header value or an empty string, if none such
-const std::string& GetTaskInheritedHeader(std::string_view header_name);
+const std::string& GetPropagatedHeader(std::string_view header_name);
 
 /// @overload
-const std::string& GetTaskInheritedHeader(
-    const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name);
+const std::string& GetPropagatedHeader(const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name);
 
 /// @brief Checks whether specified header exists in server::http::HttpRequest
 /// that is handled by the current task hierarchy.
 /// @return `true` if the header exists, `false` otherwise
-bool HasTaskInheritedHeader(std::string_view header_name);
+bool HasPropagatedHeader(std::string_view header_name);
 
 /// @overload
-bool HasTaskInheritedHeader(
-    const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name);
+bool HasPropagatedHeader(const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name);
+
+/// @brief Get a headers that is handled by the current task hierarchy.
+boost::iterator_range<HeadersToPropagate::const_iterator> GetPropagatedHeaders();
+
+/// @brief Set a headers that is handled by the current task hierarchy.
+void SetPropagatedHeaders(HeadersToPropagate headers);
 
 /// @brief Get a query parameter from server::http::HttpRequest that is handled
 /// by the current task hierarchy.

@@ -13,7 +13,6 @@ import typing
 import pytest
 import yaml
 
-
 # flake8: noqa E266
 ## Fixtures and functions in USERVER_CONFIG_HOOKS used to change the
 ## static config or config_vars.yaml.
@@ -167,12 +166,14 @@ def service_tmpdir(service_binary, tmp_path_factory):
 
     @ingroup userver_testsuite_fixtures
     """
-    return tmp_path_factory.mktemp(pathlib.Path(service_binary).name)
+    return tmp_path_factory.mktemp(
+        pathlib.Path(service_binary).name, numbered=False,
+    )
 
 
 @pytest.fixture(scope='session')
 def service_config_path_temp(
-        service_tmpdir, service_config, service_config_yaml,
+    service_tmpdir, service_config, service_config_yaml,
 ) -> pathlib.Path:
     """
     Dumps the contents of the service_config_yaml into a static config for
@@ -262,7 +263,7 @@ def _substitute_values(config, service_config_vars: dict, service_env) -> None:
 
 @pytest.fixture(scope='session')
 def service_config(
-        service_config_yaml, service_config_vars, service_env,
+    service_config_yaml, service_config_vars, service_env,
 ) -> dict:
     """
     Returns the static config values after the USERVER_CONFIG_HOOKS were
@@ -279,7 +280,7 @@ def service_config(
 
 @pytest.fixture(scope='session')
 def _original_service_config(
-        service_config_path, service_config_vars_path,
+    service_config_path, service_config_vars_path,
 ) -> _UserverConfig:
     config_vars: dict
     config_yaml: dict
@@ -298,7 +299,7 @@ def _original_service_config(
 
 @pytest.fixture(scope='session')
 def _service_config_hooked(
-        pytestconfig, request, service_tmpdir, _original_service_config,
+    pytestconfig, request, service_tmpdir, _original_service_config,
 ) -> _UserverConfig:
     config_yaml = copy.deepcopy(_original_service_config.config_yaml)
     config_vars = copy.deepcopy(_original_service_config.config_vars)
@@ -370,7 +371,7 @@ def allowed_url_prefixes_extra() -> typing.List[str]:
 
 @pytest.fixture(scope='session')
 def userver_config_http_client(
-        mockserver_info, mockserver_ssl_info, allowed_url_prefixes_extra,
+    mockserver_info, mockserver_ssl_info, allowed_url_prefixes_extra,
 ):
     """
     Returns a function that adjusts the static configuration file for testsuite.
@@ -382,7 +383,7 @@ def userver_config_http_client(
     def patch_config(config, config_vars):
         components: dict = config['components_manager']['components']
         if not {'http-client', 'testsuite-support'}.issubset(
-                components.keys(),
+            components.keys(),
         ):
             return
         http_client = components['http-client'] or {}
@@ -515,9 +516,9 @@ def userver_config_testsuite(pytestconfig, mockserver_info):
         if not service_runner:
             _disable_cache_periodic_update(testsuite_support)
         testsuite_support['testsuite-tasks-enabled'] = not service_runner
-        testsuite_support[
-            'testsuite-periodic-dumps-enabled'
-        ] = '$userver-dumps-periodic'
+        testsuite_support['testsuite-periodic-dumps-enabled'] = (
+            '$userver-dumps-periodic'
+        )
         components['testsuite-support'] = testsuite_support
 
         config_vars['testsuite-enabled'] = True
@@ -563,7 +564,7 @@ def userver_config_secdist(service_secdist_path):
 
 @pytest.fixture(scope='session')
 def userver_config_testsuite_middleware(
-        userver_testsuite_middleware_enabled: bool,
+    userver_testsuite_middleware_enabled: bool,
 ):
     def patch_config(config_yaml, config_vars):
         if not userver_testsuite_middleware_enabled:

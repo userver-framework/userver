@@ -118,42 +118,41 @@ false,true,"line",-1812281629.0818615]
 )";
 
 struct Param {
-  explicit Param(std::string test_name, std::string_view json)
-      : test_name(test_name) {
-    if (json.empty()) {
-      to_cast = formats::json::Value();
-    } else {
-      to_cast = formats::json::FromString(json);
+    explicit Param(std::string test_name, std::string_view json) : test_name(test_name) {
+        if (json.empty()) {
+            to_cast = formats::json::Value();
+        } else {
+            to_cast = formats::json::FromString(json);
+        }
     }
-  }
 
-  std::string test_name;
-  formats::json::Value to_cast;
+    std::string test_name;
+    formats::json::Value to_cast;
 };
 
 const std::vector<Param> TestParams() {
-  return {
-      Param("empty", kEmpty),
-      Param("int", kInt),
-      Param("double", kDouble),
-      Param("bool", kBool),
-      Param("string", kString),
-      Param("simple_object", kSimpleObject),
-      Param("nested_object", kNestedObject),
-      Param("object_with_array", kObjectWithArray),
-      Param("object_with_nested_array", kObjectWithNestedArray),
-      Param("object_with_object_with_array", kObjectWithObjectWithArray),
-      Param("empty_array", kEmptyArray),
-      Param("simple_array", kSimpleArray),
-      Param("objects_array", kObjectsArray),
-      Param("nested_array", kNestedArray),
-      Param("nested_array_of_objects", kNestedArrayOfObjects),
-      Param("nested_nested_array", kNestedNestedArray),
-      Param("random1", kRandom1),
-      Param("random2", kRandom2),
-      Param("random3", kRandom3),
-      Param("random4", kRandom4),
-  };
+    return {
+        Param("empty", kEmpty),
+        Param("int", kInt),
+        Param("double", kDouble),
+        Param("bool", kBool),
+        Param("string", kString),
+        Param("simple_object", kSimpleObject),
+        Param("nested_object", kNestedObject),
+        Param("object_with_array", kObjectWithArray),
+        Param("object_with_nested_array", kObjectWithNestedArray),
+        Param("object_with_object_with_array", kObjectWithObjectWithArray),
+        Param("empty_array", kEmptyArray),
+        Param("simple_array", kSimpleArray),
+        Param("objects_array", kObjectsArray),
+        Param("nested_array", kNestedArray),
+        Param("nested_array_of_objects", kNestedArrayOfObjects),
+        Param("nested_nested_array", kNestedNestedArray),
+        Param("random1", kRandom1),
+        Param("random2", kRandom2),
+        Param("random3", kRandom3),
+        Param("random4", kRandom4),
+    };
 }
 
 }  // namespace
@@ -161,17 +160,18 @@ const std::vector<Param> TestParams() {
 class SerializationTest : public testing::TestWithParam<Param> {};
 
 TEST_P(SerializationTest, JsonTest) {
-  auto param = GetParam();
+    auto param = GetParam();
 
-  auto proto_struct = formats::parse::Parse(
-      param.to_cast, formats::parse::To<google::protobuf::Value>{});
-  auto result = formats::serialize::Serialize(
-      proto_struct, formats::serialize::To<formats::json::Value>{});
-  EXPECT_EQ(param.to_cast, result);
+    auto proto_struct = formats::parse::Parse(param.to_cast, formats::parse::To<google::protobuf::Value>{});
+    auto result = formats::serialize::Serialize(proto_struct, formats::serialize::To<formats::json::Value>{});
+    EXPECT_EQ(param.to_cast, result);
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    /*no prefix*/, SerializationTest, testing::ValuesIn(TestParams()),
-    utest::PrintTestName());
+    /*no prefix*/,
+    SerializationTest,
+    testing::ValuesIn(TestParams()),
+    utest::PrintTestName()
+);
 
 USERVER_NAMESPACE_END

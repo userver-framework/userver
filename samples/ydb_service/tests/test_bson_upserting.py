@@ -1,6 +1,5 @@
 import bson
 
-
 DATA = {'value': b'\x00\x01\x02\x03'}
 
 SQL_REQUEST = """

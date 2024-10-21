@@ -7,7 +7,6 @@ import re
 
 import pytest
 
-
 pytest_plugins = [
     'testsuite.databases.mongo.pytest_plugin',
     'pytest_userver.plugins.core',

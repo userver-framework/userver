@@ -66,29 +66,27 @@ class Manager;
 
 // clang-format on
 class ManagerControllerComponent final : public RawComponentBase {
- public:
-  ManagerControllerComponent(const components::ComponentConfig& config,
-                             const components::ComponentContext& context);
+public:
+    ManagerControllerComponent(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-  ~ManagerControllerComponent() override;
+    ~ManagerControllerComponent() override;
 
-  /// @ingroup userver_component_names
-  /// @brief The default name of components::ManagerControllerComponent
-  static constexpr std::string_view kName = "manager-controller";
+    /// @ingroup userver_component_names
+    /// @brief The default name of components::ManagerControllerComponent
+    static constexpr std::string_view kName = "manager-controller";
 
- private:
-  void WriteStatistics(utils::statistics::Writer& writer);
+private:
+    void WriteStatistics(utils::statistics::Writer& writer);
 
-  void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
+    void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
 
-  const components::Manager& components_manager_;
-  utils::statistics::Entry statistics_holder_;
-  concurrent::AsyncEventSubscriberScope config_subscription_;
+    const components::Manager& components_manager_;
+    utils::statistics::Entry statistics_holder_;
+    concurrent::AsyncEventSubscriberScope config_subscription_;
 };
 
 template <>
-inline constexpr auto kConfigFileMode<ManagerControllerComponent> =
-    ConfigFileMode::kNotRequired;
+inline constexpr auto kConfigFileMode<ManagerControllerComponent> = ConfigFileMode::kNotRequired;
 
 }  // namespace components
 

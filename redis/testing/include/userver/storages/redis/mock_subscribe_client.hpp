@@ -18,25 +18,34 @@ namespace storages::redis {
 /// see GMock documentation on how to use this class. (Hint: GMock is
 /// really powerful)
 class MockSubscribeClient : public SubscribeClient {
- public:
-  ~MockSubscribeClient() override = default;
-  MOCK_METHOD(SubscriptionToken, Subscribe,
-              (std::string channel,
-               SubscriptionToken::OnMessageCb on_message_cb,
-               const USERVER_NAMESPACE::redis::CommandControl& command_control),
-              (override));
-  MOCK_METHOD(SubscriptionToken, Ssubscribe,
-              (std::string channel,
-               SubscriptionToken::OnMessageCb on_message_cb,
-               const USERVER_NAMESPACE::redis::CommandControl& command_control),
-              (override));
-  MOCK_METHOD(SubscriptionToken, Psubscribe,
-              (std::string pattern,
-               SubscriptionToken::OnPmessageCb on_pmessage_cb,
-               const USERVER_NAMESPACE::redis::CommandControl& command_control),
-              (override));
-  MOCK_METHOD(size_t, ShardsCount, (), (const, override));
-  MOCK_METHOD(bool, IsInClusterMode, (), (const, override));
+public:
+    ~MockSubscribeClient() override = default;
+    MOCK_METHOD(
+        SubscriptionToken,
+        Subscribe,
+        (std::string channel,
+         SubscriptionToken::OnMessageCb on_message_cb,
+         const USERVER_NAMESPACE::redis::CommandControl& command_control),
+        (override)
+    );
+    MOCK_METHOD(
+        SubscriptionToken,
+        Ssubscribe,
+        (std::string channel,
+         SubscriptionToken::OnMessageCb on_message_cb,
+         const USERVER_NAMESPACE::redis::CommandControl& command_control),
+        (override)
+    );
+    MOCK_METHOD(
+        SubscriptionToken,
+        Psubscribe,
+        (std::string pattern,
+         SubscriptionToken::OnPmessageCb on_pmessage_cb,
+         const USERVER_NAMESPACE::redis::CommandControl& command_control),
+        (override)
+    );
+    MOCK_METHOD(size_t, ShardsCount, (), (const, override));
+    MOCK_METHOD(bool, IsInClusterMode, (), (const, override));
 };
 
 /// @brief Mocked storages::redis::SubscriptionToken.
@@ -46,12 +55,12 @@ class MockSubscribeClient : public SubscribeClient {
 /// how to use this class
 /// @snippet storages/redis/test/subscribe_client_mock_test.cpp SbTknExmpl1
 class MockSubscriptionTokenImpl : public impl::SubscriptionTokenImplBase {
- public:
-  ~MockSubscriptionTokenImpl() override = default;
+public:
+    ~MockSubscriptionTokenImpl() override = default;
 
-  MOCK_METHOD(void, SetMaxQueueLength, (size_t length), (override));
+    MOCK_METHOD(void, SetMaxQueueLength, (size_t length), (override));
 
-  MOCK_METHOD(void, Unsubscribe, (), (override));
+    MOCK_METHOD(void, Unsubscribe, (), (override));
 };
 
 }  // namespace storages::redis

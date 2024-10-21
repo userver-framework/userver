@@ -9,21 +9,20 @@ namespace {
 using ShieldedByte = concurrent::impl::InterferenceShield<char>;
 
 struct TwoShields {
-  ShieldedByte a;
-  ShieldedByte b;
+    ShieldedByte a;
+    ShieldedByte b;
 };
 
 // NOLINTNEXTLINE(clang-analyzer-optin.performance.Padding)
 struct Interleaved {
-  ShieldedByte a;
-  char b{};
-  char c{};
-  ShieldedByte d;
-  char e{};
+    ShieldedByte a;
+    char b{};
+    char c{};
+    ShieldedByte d;
+    char e{};
 };
 
-constexpr std::size_t kDesiredAlignment =
-    concurrent::impl::kDestructiveInterferenceSize;
+constexpr std::size_t kDesiredAlignment = concurrent::impl::kDestructiveInterferenceSize;
 
 }  // namespace
 

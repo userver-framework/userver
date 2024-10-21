@@ -4,10 +4,10 @@
 #include <json2yaml.hpp>
 
 int main() {
-  namespace formats = USERVER_NAMESPACE::formats;
+    namespace formats = USERVER_NAMESPACE::formats;
 
-  auto json = formats::json::FromStream(std::cin);
-  formats::yaml::Serialize(json.ConvertTo<formats::yaml::Value>(), std::cout);
-  std::cout << std::endl;
+    auto json = formats::json::FromStream(std::cin);
+    formats::yaml::Serialize(json.ConvertTo<formats::yaml::Value>(), std::cout);
+    std::cout << std::endl;
 }
 /// [json2yaml - main]

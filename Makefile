@@ -1,5 +1,5 @@
 CMAKE_COMMON_FLAGS ?= -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-CMAKE_DEBUG_FLAGS ?= -DUSERVER_SANITIZE=addr;ub
+CMAKE_DEBUG_FLAGS ?= '-DUSERVER_SANITIZE=addr;ub'
 CMAKE_RELEASE_FLAGS ?=
 KERNEL := $(shell uname -s)
 NPROCS ?= $(shell nproc)
@@ -16,7 +16,7 @@ CMAKE_RELEASE_FLAGS += -DCMAKE_BUILD_TYPE=Release $(CMAKE_COMMON_FLAGS)
 .PHONY: all
 all: test-debug test-release
 
-# Requires doxygen 1.9.8+
+# Requires doxygen 1.10.0+
 .PHONY: docs
 docs:
 	@rm -rf docs/*

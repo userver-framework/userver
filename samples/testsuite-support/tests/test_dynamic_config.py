@@ -1,6 +1,5 @@
 import pytest
 
-
 TEST_CONFIG = 'MEANING_OF_LIFE'
 DEFAULT_VALUE = 42
 CUSTOM_VALUE = 1337
@@ -10,6 +9,7 @@ SPECIAL_VALUE = 9001
 async def get_service_config_value(service_client):
     response = await service_client.get('/dynamic-config')
     assert response.status == 200
+    assert 'text/plain' in response.headers['Content-Type']
     return int(response.text)
 
 

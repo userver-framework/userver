@@ -23,26 +23,31 @@ class ConnectionStatistics;
 }
 
 class Connection final {
- public:
-  Connection(clients::dns::Resolver& resolver, const EndpointInfo& endpoint,
-             const AuthSettings& auth_settings, size_t max_in_flight_requests,
-             bool secure, statistics::ConnectionStatistics& stats,
-             engine::Deadline deadline);
-  ~Connection();
+public:
+    Connection(
+        clients::dns::Resolver& resolver,
+        const EndpointInfo& endpoint,
+        const AuthSettings& auth_settings,
+        size_t max_in_flight_requests,
+        bool secure,
+        statistics::ConnectionStatistics& stats,
+        engine::Deadline deadline
+    );
+    ~Connection();
 
-  impl::AmqpChannel& GetChannel();
-  impl::AmqpReliableChannel& GetReliableChannel();
+    impl::AmqpChannel& GetChannel();
+    impl::AmqpReliableChannel& GetReliableChannel();
 
-  bool IsBroken() const;
+    bool IsBroken() const;
 
-  void EnsureUsable() const;
+    void EnsureUsable() const;
 
- private:
-  impl::AmqpConnectionHandler handler_;
-  impl::AmqpConnection connection_;
+private:
+    impl::AmqpConnectionHandler handler_;
+    impl::AmqpConnection connection_;
 
-  impl::AmqpChannel channel_;
-  impl::AmqpReliableChannel reliable_channel_;
+    impl::AmqpChannel channel_;
+    impl::AmqpReliableChannel reliable_channel_;
 };
 
 }  // namespace urabbitmq

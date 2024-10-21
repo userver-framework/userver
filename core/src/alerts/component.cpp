@@ -6,8 +6,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace alerts {
 
-StorageComponent::StorageComponent(const components::ComponentConfig&,
-                                   const components::ComponentContext&) {}
+StorageComponent::StorageComponent(const components::ComponentConfig&, const components::ComponentContext&) {}
 
 Storage& StorageComponent::GetStorage() const { return storage_; }
 

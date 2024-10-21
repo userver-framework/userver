@@ -17,30 +17,23 @@ namespace ydb {
 namespace {
 
 template <typename Builder>
-void WriteInsertRow(NYdb::TValueBuilderBase<Builder>& builder,
-                    const InsertRow& value) {
-  builder.BeginStruct();
-  for (const InsertColumn& column : value) {
-    builder.AddMember(impl::ToString(column.name));
-    std::visit(
-        [&builder](const auto& alternative) { Write(builder, alternative); },
-        column.value);
-  }
-  builder.EndStruct();
+void WriteInsertRow(NYdb::TValueBuilderBase<Builder>& builder, const InsertRow& value) {
+    builder.BeginStruct();
+    for (const InsertColumn& column : value) {
+        builder.AddMember(impl::ToString(column.name));
+        std::visit([&builder](const auto& alternative) { Write(builder, alternative); }, column.value);
+    }
+    builder.EndStruct();
 }
 
 }  // namespace
 
-void ValueTraits<InsertRow>::Write(
-    NYdb::TValueBuilderBase<NYdb::TValueBuilder>& builder,
-    const InsertRow& value) {
-  WriteInsertRow(builder, value);
+void ValueTraits<InsertRow>::Write(NYdb::TValueBuilderBase<NYdb::TValueBuilder>& builder, const InsertRow& value) {
+    WriteInsertRow(builder, value);
 }
 
-void ValueTraits<InsertRow>::Write(
-    NYdb::TValueBuilderBase<NYdb::TParamValueBuilder>& builder,
-    const InsertRow& value) {
-  WriteInsertRow(builder, value);
+void ValueTraits<InsertRow>::Write(NYdb::TValueBuilderBase<NYdb::TParamValueBuilder>& builder, const InsertRow& value) {
+    WriteInsertRow(builder, value);
 }
 
 }  // namespace ydb

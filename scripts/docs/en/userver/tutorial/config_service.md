@@ -8,7 +8,7 @@ Make sure that you can compile and run core tests and read a basic example @ref 
 
 An ability to change service behavior at runtime without restarting the service is priceless! We have that ability, it is called dynamic configs and it allows you:
 
-* to control logging (@ref USERVER_NO_LOG_SPANS, @ref USERVER_LOG_REQUEST, @ref USERVER_LOG_REQUEST_HEADERS)
+* to control logging (@ref USERVER_NO_LOG_SPANS, @ref USERVER_LOG_REQUEST, @ref USERVER_LOG_REQUEST_HEADERS, @ref USERVER_LOG_REQUEST_HEADERS_WHITELIST)
 * to control RPS and deal with high loads (@ref HTTP_CLIENT_CONNECT_THROTTLE, @ref USERVER_RPS_CCONTROL, @ref USERVER_TASK_PROCESSOR_QOS)
 * to dynamically switch from one HTTP proxy to another or turn off proxying (@ref USERVER_HTTP_PROXY)
 * to write your own runtime dynamic configs:

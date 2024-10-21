@@ -123,10 +123,7 @@ class CaptureControl:
 
     @compat.asynccontextmanager
     async def start_capture(
-            self,
-            *,
-            log_level: typing.Optional[str] = None,
-            timeout: float = 10.0,
+        self, *, log_level: typing.Optional[str] = None, timeout: float = 10.0,
     ):
         if self._capture:
             yield self._capture
@@ -166,16 +163,20 @@ class CaptureControl:
     async def _handle_client(self, reader, writer):
         logger.debug('logcapture client connected')
 
-        async def log_reader():
+        async def log_reader(capture: CapturedLogs):
             with contextlib.closing(writer):
                 async for line in reader:
-                    if self._capture:
-                        row = tskv.parse_line(line.decode('utf-8'))
-                        await self._capture.publish(row)
+                    row = tskv.parse_line(line.decode('utf-8'))
+                    await capture.publish(row)
+            await writer.wait_closed()
 
-        self._tasks.append(asyncio.create_task(log_reader()))
-        async with self._client_cond:
-            self._client_cond.notify_all()
+        if not self._capture:
+            writer.close()
+            await writer.wait_closed()
+        else:
+            self._tasks.append(asyncio.create_task(log_reader(self._capture)))
+            async with self._client_cond:
+                self._client_cond.notify_all()
 
 
 def pytest_addoption(parser):
@@ -215,12 +216,10 @@ def _userver_log_capture_socket(pytestconfig):
 
 @pytest.fixture(scope='session')
 async def _userver_capture_server(
-        _userver_capture_control: CaptureControl,
-        _userver_log_capture_socket,
-        loop,
+    _userver_capture_control: CaptureControl, _userver_log_capture_socket, loop,
 ):
     async with _userver_capture_control.start_server(
-            sock=_userver_log_capture_socket, loop=loop,
+        sock=_userver_log_capture_socket, loop=loop,
     ) as server:
         yield server
 

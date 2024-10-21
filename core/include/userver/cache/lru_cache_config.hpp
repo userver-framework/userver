@@ -15,43 +15,39 @@ USERVER_NAMESPACE_BEGIN
 namespace cache {
 
 enum class BackgroundUpdateMode {
-  kEnabled,
-  kDisabled,
+    kEnabled,
+    kDisabled,
 };
 
 struct LruCacheConfig final {
-  explicit LruCacheConfig(const yaml_config::YamlConfig& config);
-  explicit LruCacheConfig(const components::ComponentConfig& config);
+    explicit LruCacheConfig(const yaml_config::YamlConfig& config);
+    explicit LruCacheConfig(const components::ComponentConfig& config);
 
-  explicit LruCacheConfig(const formats::json::Value& value);
+    explicit LruCacheConfig(const formats::json::Value& value);
 
-  std::size_t GetWaySize(std::size_t ways) const;
+    std::size_t GetWaySize(std::size_t ways) const;
 
-  std::size_t size;
-  std::chrono::milliseconds lifetime;
-  BackgroundUpdateMode background_update;
+    std::size_t size;
+    std::chrono::milliseconds lifetime;
+    BackgroundUpdateMode background_update;
 };
 
-LruCacheConfig Parse(const formats::json::Value& value,
-                     formats::parse::To<LruCacheConfig>);
+LruCacheConfig Parse(const formats::json::Value& value, formats::parse::To<LruCacheConfig>);
 
 struct LruCacheConfigStatic final {
-  explicit LruCacheConfigStatic(const yaml_config::YamlConfig& config);
-  explicit LruCacheConfigStatic(const components::ComponentConfig& config);
+    explicit LruCacheConfigStatic(const yaml_config::YamlConfig& config);
+    explicit LruCacheConfigStatic(const components::ComponentConfig& config);
 
-  std::size_t GetWaySize() const;
+    std::size_t GetWaySize() const;
 
-  LruCacheConfig config;
-  std::size_t ways;
-  bool use_dynamic_config;
+    LruCacheConfig config;
+    std::size_t ways;
+    bool use_dynamic_config;
 };
 
-extern const dynamic_config::Key<
-    std::unordered_map<std::string, LruCacheConfig>>
-    kLruCacheConfigSet;
+extern const dynamic_config::Key<std::unordered_map<std::string, LruCacheConfig>> kLruCacheConfigSet;
 
-std::optional<LruCacheConfig> GetLruConfig(
-    const dynamic_config::Snapshot& config, const std::string& cache_name);
+std::optional<LruCacheConfig> GetLruConfig(const dynamic_config::Snapshot& config, const std::string& cache_name);
 
 }  // namespace cache
 

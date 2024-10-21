@@ -12,61 +12,50 @@ namespace components {
 namespace {
 
 std::string ReadStageName(const std::string& filepath) {
-  using formats::json::blocking::FromFile;
-  try {
-    return FromFile(filepath)["env_name"].As<std::string>();
-  } catch (const std::exception& exception) {
-    LOG_ERROR() << "Error during config service client initialization. "
-                << "Got error while reading stage name from file: " << filepath
-                << ", error: " << exception;
-    throw;
-  }
+    using formats::json::blocking::FromFile;
+    try {
+        return FromFile(filepath)["env_name"].As<std::string>();
+    } catch (const std::exception& exception) {
+        LOG_ERROR() << "Error during config service client initialization. "
+                    << "Got error while reading stage name from file: " << filepath << ", error: " << exception;
+        throw;
+    }
 }
 
 }  // namespace
 
-DynamicConfigClient::DynamicConfigClient(const ComponentConfig& config,
-                                         const ComponentContext& context)
+DynamicConfigClient::DynamicConfigClient(const ComponentConfig& config, const ComponentContext& context)
     : ComponentBase(config, context) {
-  dynamic_config::ClientConfig client_config;
-  client_config.service_name = config["service-name"].As<std::string>();
-  client_config.get_configs_overrides_for_service =
-      config["get-configs-overrides-for-service"].As<bool>(true);
-  client_config.append_path_to_url =
-      config["append-path-to-url"].As<bool>(true);
-  client_config.timeout =
-      utils::StringToDuration(config["http-timeout"].As<std::string>());
-  client_config.retries = config["http-retries"].As<int>();
-  auto stage_filepath =
-      config["configs-stage-filepath"].As<std::optional<std::string>>();
-  if (stage_filepath && !stage_filepath->empty()) {
-    client_config.stage_name = ReadStageName(*stage_filepath);
-  } else {
-    auto stage_name = config["configs-stage"].As<std::optional<std::string>>();
-    if (stage_name && !stage_name->empty()) {
-      client_config.stage_name = *stage_name;
+    dynamic_config::ClientConfig client_config;
+    client_config.service_name = config["service-name"].As<std::string>();
+    client_config.get_configs_overrides_for_service = config["get-configs-overrides-for-service"].As<bool>(true);
+    client_config.append_path_to_url = config["append-path-to-url"].As<bool>(true);
+    client_config.timeout = utils::StringToDuration(config["http-timeout"].As<std::string>());
+    client_config.retries = config["http-retries"].As<int>();
+    auto stage_filepath = config["configs-stage-filepath"].As<std::optional<std::string>>();
+    if (stage_filepath && !stage_filepath->empty()) {
+        client_config.stage_name = ReadStageName(*stage_filepath);
+    } else {
+        auto stage_name = config["configs-stage"].As<std::optional<std::string>>();
+        if (stage_name && !stage_name->empty()) {
+            client_config.stage_name = *stage_name;
+        }
     }
-  }
-  client_config.config_url = config["config-url"].As<std::string>();
-  client_config.fallback_to_no_proxy =
-      config["fallback-to-no-proxy"].As<bool>(true);
+    client_config.config_url = config["config-url"].As<std::string>();
+    client_config.fallback_to_no_proxy = config["fallback-to-no-proxy"].As<bool>(true);
 
-  if (!client_config.stage_name.empty() &&
-      client_config.get_configs_overrides_for_service) {
-    throw std::logic_error(
-        "Cannot get overrides for both stage and service yet");
-  }
+    if (!client_config.stage_name.empty() && client_config.get_configs_overrides_for_service) {
+        throw std::logic_error("Cannot get overrides for both stage and service yet");
+    }
 
-  config_client_ = std::make_unique<dynamic_config::Client>(
-      context.FindComponent<HttpClient>().GetHttpClient(), client_config);
+    config_client_ =
+        std::make_unique<dynamic_config::Client>(context.FindComponent<HttpClient>().GetHttpClient(), client_config);
 }
 
-dynamic_config::Client& DynamicConfigClient::GetClient() const {
-  return *config_client_;
-}
+dynamic_config::Client& DynamicConfigClient::GetClient() const { return *config_client_; }
 
 yaml_config::Schema DynamicConfigClient::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<ComponentBase>(R"(
+    return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: Component that starts a clients::dynamic_config::Client client.
 additionalProperties: false

@@ -12,97 +12,102 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::tests {
 
-namespace {
-
-using ClientLogMiddlewareFactory = client::middlewares::log::MiddlewareFactory;
-using ClientLogMiddlewareSettings = client::middlewares::log::Settings;
-
-using ClientDpMiddlewareFactory =
-    client::middlewares::deadline_propagation::MiddlewareFactory;
-
-using ServerDpMiddleware =
-    server::middlewares::deadline_propagation::Middleware;
-
-}  // namespace
-
 ServiceBase::ServiceBase() : ServiceBase(server::ServerConfig{}) {}
 
 ServiceBase::ServiceBase(server::ServerConfig&& server_config)
     : config_storage_(dynamic_config::MakeDefaultStorage({})),
-      server_(std::move(server_config), statistics_storage_,
-              config_storage_.GetSource()),
-      server_middlewares_({std::make_shared<ServerDpMiddleware>()}),
-      middleware_factories_({std::make_shared<ClientLogMiddlewareFactory>(
-                                 ClientLogMiddlewareSettings{}),
-                             std::make_shared<ClientDpMiddlewareFactory>()}),
-      testsuite_({}, false) {}
+      unix_socket_path_(server_config.unix_socket_path),
+      server_(std::move(server_config), statistics_storage_, config_storage_.GetSource()),
+      testsuite_({}, false),
+      client_statistics_storage_(statistics_storage_, ugrpc::impl::StatisticsDomain::kClient) {}
 
 ServiceBase::~ServiceBase() = default;
 
-void ServiceBase::RegisterService(server::ServiceBase& service) {
-  adding_middlewares_allowed_ = false;
-  server_.AddService(service, MakeServiceConfig());
-}
+void ServiceBase::RegisterService(server::ServiceBase& service) { server_.AddService(service, MakeServiceConfig()); }
 
 void ServiceBase::RegisterService(server::GenericServiceBase& service) {
-  adding_middlewares_allowed_ = false;
-  server_.AddService(service, MakeServiceConfig());
+    server_.AddService(service, MakeServiceConfig());
 }
 
 server::ServiceConfig ServiceBase::MakeServiceConfig() {
-  return server::ServiceConfig{
-      engine::current_task::GetTaskProcessor(),
-      server_middlewares_,
-  };
+    middlewares_change_allowed_ = false;
+    return server::ServiceConfig{
+        engine::current_task::GetTaskProcessor(),
+        server_middlewares_,
+    };
 }
 
-void ServiceBase::StartServer(
-    client::ClientFactorySettings&& client_factory_settings) {
-  adding_middlewares_allowed_ = false;
-  server_.Start();
-  endpoint_ = fmt::format("[::1]:{}", server_.GetPort());
-  client_factory_.emplace(std::move(client_factory_settings),
-                          engine::current_task::GetTaskProcessor(),
-                          middleware_factories_, server_.GetCompletionQueue(),
-                          statistics_storage_, testsuite_,
-                          config_storage_.GetSource());
+void ServiceBase::StartServer(client::ClientFactorySettings&& client_factory_settings) {
+    middlewares_change_allowed_ = false;
+    server_.Start();
+    if (unix_socket_path_) {
+        endpoint_ = fmt::format("unix:{}", *unix_socket_path_);
+    } else {
+        endpoint_ = fmt::format("localhost:{}", server_.GetPort());
+    }
+    client_factory_.emplace(
+        std::move(client_factory_settings),
+        engine::current_task::GetTaskProcessor(),
+        client_middleware_factories_,
+        server_.GetCompletionQueues(utils::impl::InternalTag{}),
+        client_statistics_storage_,
+        testsuite_,
+        config_storage_.GetSource()
+    );
 }
 
 void ServiceBase::StopServer() noexcept {
-  client_factory_.reset();
-  endpoint_.reset();
-  server_.Stop();
+    client_factory_.reset();
+    endpoint_.reset();
+    server_.Stop();
 }
 
-void ServiceBase::ExtendDynamicConfig(
-    const std::vector<dynamic_config::KeyValue>& overrides) {
-  config_storage_.Extend(overrides);
+void ServiceBase::ExtendDynamicConfig(const std::vector<dynamic_config::KeyValue>& overrides) {
+    config_storage_.Extend(overrides);
 }
 
-utils::statistics::Storage& ServiceBase::GetStatisticsStorage() {
-  return statistics_storage_;
-}
+utils::statistics::Storage& ServiceBase::GetStatisticsStorage() { return statistics_storage_; }
 
 server::Server& ServiceBase::GetServer() noexcept { return server_; }
 
-dynamic_config::Source ServiceBase::GetConfigSource() const {
-  return config_storage_.GetSource();
+dynamic_config::Source ServiceBase::GetConfigSource() const { return config_storage_.GetSource(); }
+
+void ServiceBase::SetServerMiddlewares(server::Middlewares middlewares) {
+    UINVARIANT(
+        middlewares_change_allowed_,
+        "Set server middlewares after RegisterService call "
+        "is not allowed"
+    );
+    server_middlewares_ = std::move(middlewares);
 }
 
-void ServiceBase::AddServerMiddleware(
-    std::shared_ptr<server::MiddlewareBase> middleware) {
-  UINVARIANT(adding_middlewares_allowed_,
-             "Adding server middlewares after the first RegisterService call "
-             "is disallowed");
-  server_middlewares_.push_back(std::move(middleware));
+void ServiceBase::SetClientMiddlewareFactories(client::MiddlewareFactories middleware_factories) {
+    UINVARIANT(
+        middlewares_change_allowed_,
+        "Set client middleware factories after StartServer call "
+        "is not allowed"
+    );
+    client_middleware_factories_ = std::move(middleware_factories);
 }
 
-void ServiceBase::AddClientMiddleware(
-    std::shared_ptr<const client::MiddlewareFactoryBase> middleware_factory) {
-  UINVARIANT(adding_middlewares_allowed_,
-             "Adding client middlewares after the StartServer call "
-             "is disallowed");
-  middleware_factories_.push_back(std::move(middleware_factory));
+client::ClientFactory& ServiceBase::GetClientFactory() {
+    UINVARIANT(client_factory_, "Server is not either not yet started, or already stopped");
+    return *client_factory_;
+}
+
+std::string ServiceBase::GetEndpoint() const {
+    UINVARIANT(endpoint_, "Server is not either not yet started, or already stopped");
+    return *endpoint_;
+}
+
+server::Middlewares GetDefaultServerMiddlewares() {
+    return {std::make_shared<server::middlewares::deadline_propagation::Middleware>()};
+}
+
+client::MiddlewareFactories GetDefaultClientMiddlewareFactories() {
+    return {
+        std::make_shared<client::middlewares::log::MiddlewareFactory>(client::middlewares::log::Settings{}),
+        std::make_shared<client::middlewares::deadline_propagation::MiddlewareFactory>()};
 }
 
 }  // namespace ugrpc::tests

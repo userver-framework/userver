@@ -5,9 +5,9 @@ import logging
 import grpc
 import pytest
 from pytest_userver import chaos
-import samples.greeter_pb2_grpc as greeter_pb2_grpc  # noqa: E402, E501
-
 from service import GreeterService
+
+import samples.greeter_pb2_grpc as greeter_pb2_grpc  # noqa: E402, E501
 
 logger = logging.getLogger(__name__)
 
@@ -52,9 +52,9 @@ def grpc_service_port_local(_gate_started) -> int:
 def prepare_service_config(grpc_service_port_local):
     def patch_config(config, config_vars):
         components = config['components_manager']['components']
-        components['greeter-client'][
-            'endpoint'
-        ] = f'[::]:{grpc_service_port_local}'
+        components['greeter-client']['endpoint'] = (
+            f'[::]:{grpc_service_port_local}'
+        )
 
     return patch_config
 
@@ -96,7 +96,7 @@ async def server_run(grpc_client_port):
 @pytest.fixture(scope='session')
 async def _grpc_session_ch(server_run, grpc_service_port_local):
     async with grpc.aio.insecure_channel(
-            f'[::1]:{grpc_service_port_local}',
+        f'[::1]:{grpc_service_port_local}',
     ) as channel:
         yield channel
 

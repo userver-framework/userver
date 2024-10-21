@@ -15,11 +15,9 @@ namespace tracing {
 
 /// @brief Base component for implementing TracingManager component
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
-class TracingManagerComponentBase : public components::ComponentBase,
-                                    public TracingManagerBase {
- public:
-  TracingManagerComponentBase(const components::ComponentConfig&,
-                              const components::ComponentContext&);
+class TracingManagerComponentBase : public components::ComponentBase, public TracingManagerBase {
+public:
+    TracingManagerComponentBase(const components::ComponentConfig&, const components::ComponentContext&);
 };
 
 // clang-format off
@@ -47,37 +45,33 @@ class TracingManagerComponentBase : public components::ComponentBase,
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// component-name | name of the component, that implements TracingManagerComponentBase | <use tracing::GenericTracingManager with below settings>
-/// incoming-format | Array of incoming tracing formats supported by tracing::FormatFromString | ['taxi']
-/// new-requests-format | Send tracing data in those formats supported by tracing::FormatFromString | ['taxi']
+/// incoming-format | Array of incoming tracing formats supported by tracing::FormatFromString | ['opentelemetry', 'taxi']
+/// new-requests-format | Send tracing data in those formats supported by tracing::FormatFromString | ['opentelemetry', 'taxi']
 ///
 // clang-format on
 class DefaultTracingManagerLocator final : public components::ComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of tracing::DefaultTracingManagerLocator
-  static constexpr std::string_view kName = "tracing-manager-locator";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of tracing::DefaultTracingManagerLocator
+    static constexpr std::string_view kName = "tracing-manager-locator";
 
-  DefaultTracingManagerLocator(const components::ComponentConfig&,
-                               const components::ComponentContext&);
+    DefaultTracingManagerLocator(const components::ComponentConfig&, const components::ComponentContext&);
 
-  const TracingManagerBase& GetTracingManager() const;
+    const TracingManagerBase& GetTracingManager() const;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  GenericTracingManager default_manager_;
-  const TracingManagerBase& tracing_manager_;
+private:
+    GenericTracingManager default_manager_;
+    const TracingManagerBase& tracing_manager_;
 };
 
 }  // namespace tracing
 
 template <>
-inline constexpr bool
-    components::kHasValidate<tracing::DefaultTracingManagerLocator> = true;
+inline constexpr bool components::kHasValidate<tracing::DefaultTracingManagerLocator> = true;
 
 template <>
-inline constexpr auto
-    components::kConfigFileMode<tracing::DefaultTracingManagerLocator> =
-        ConfigFileMode::kNotRequired;
+inline constexpr auto components::kConfigFileMode<tracing::DefaultTracingManagerLocator> = ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

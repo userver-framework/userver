@@ -7,78 +7,68 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::ev {
 
-ThreadControlBase::ThreadControlBase(Thread& thread) noexcept
-    : thread_{thread} {}
+ThreadControlBase::ThreadControlBase(Thread& thread) noexcept : thread_{thread} {}
 
-struct ev_loop* ThreadControlBase::GetEvLoop() const noexcept {
-  return thread_.GetEvLoop();
+struct ev_loop* ThreadControlBase::GetEvLoop() const noexcept { return thread_.GetEvLoop(); }
+
+void ThreadControlBase::RunPayloadInEvLoopAsync(AsyncPayloadBase& payload) noexcept {
+    thread_.RunInEvLoopAsync(payload);
 }
 
-void ThreadControlBase::RunPayloadInEvLoopAsync(
-    AsyncPayloadBase& payload) noexcept {
-  thread_.RunInEvLoopAsync(payload);
+void ThreadControlBase::RunPayloadInEvLoopDeferred(AsyncPayloadBase& payload, Deadline deadline) noexcept {
+    thread_.RunInEvLoopDeferred(payload, deadline);
 }
 
-void ThreadControlBase::RunPayloadInEvLoopDeferred(AsyncPayloadBase& payload,
-                                                   Deadline deadline) noexcept {
-  thread_.RunInEvLoopDeferred(payload, deadline);
-}
-
-bool ThreadControlBase::IsInEvThread() const noexcept {
-  return thread_.IsInEvThread();
-}
+bool ThreadControlBase::IsInEvThread() const noexcept { return thread_.IsInEvThread(); }
 
 // NOLINTNEXTLINE(readability-make-member-function-const)
 void ThreadControlBase::DoStart(ev_timer& w) noexcept {
-  UASSERT(IsInEvThread());
-  ev_now_update(GetEvLoop());
-  ev_timer_start(GetEvLoop(), &w);
+    UASSERT(IsInEvThread());
+    ev_now_update(GetEvLoop());
+    ev_timer_start(GetEvLoop(), &w);
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const)
 void ThreadControlBase::DoStop(ev_timer& w) noexcept {
-  UASSERT(IsInEvThread());
-  ev_timer_stop(GetEvLoop(), &w);
+    UASSERT(IsInEvThread());
+    ev_timer_stop(GetEvLoop(), &w);
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const)
 void ThreadControlBase::DoAgain(ev_timer& w) noexcept {
-  UASSERT(IsInEvThread());
-  ev_now_update(GetEvLoop());
-  ev_timer_again(GetEvLoop(), &w);
+    UASSERT(IsInEvThread());
+    ev_now_update(GetEvLoop());
+    ev_timer_again(GetEvLoop(), &w);
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const)
 void ThreadControlBase::DoStart(ev_async& w) noexcept {
-  UASSERT(IsInEvThread());
-  ev_async_start(GetEvLoop(), &w);
+    UASSERT(IsInEvThread());
+    ev_async_start(GetEvLoop(), &w);
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const)
 void ThreadControlBase::DoStop(ev_async& w) noexcept {
-  UASSERT(IsInEvThread());
-  ev_async_stop(GetEvLoop(), &w);
+    UASSERT(IsInEvThread());
+    ev_async_stop(GetEvLoop(), &w);
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const)
-void ThreadControlBase::DoSend(ev_async& w) noexcept {
-  ev_async_send(GetEvLoop(), &w);
-}
+void ThreadControlBase::DoSend(ev_async& w) noexcept { ev_async_send(GetEvLoop(), &w); }
 
 // NOLINTNEXTLINE(readability-make-member-function-const)
 void ThreadControlBase::DoStart(ev_io& w) noexcept {
-  UASSERT(IsInEvThread());
-  ev_io_start(GetEvLoop(), &w);
+    UASSERT(IsInEvThread());
+    ev_io_start(GetEvLoop(), &w);
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const)
 void ThreadControlBase::DoStop(ev_io& w) noexcept {
-  UASSERT(IsInEvThread());
-  ev_io_stop(GetEvLoop(), &w);
+    UASSERT(IsInEvThread());
+    ev_io_stop(GetEvLoop(), &w);
 }
 
-TimerThreadControl::TimerThreadControl(Thread& thread) noexcept
-    : ThreadControlBase{thread} {}
+TimerThreadControl::TimerThreadControl(Thread& thread) noexcept : ThreadControlBase{thread} {}
 
 // NOLINTNEXTLINE(readability-make-member-function-const)
 void TimerThreadControl::Start(ev_timer& w) noexcept { DoStart(w); }
@@ -89,8 +79,7 @@ void TimerThreadControl::Stop(ev_timer& w) noexcept { DoStop(w); }
 // NOLINTNEXTLINE(readability-make-member-function-const)
 void TimerThreadControl::Again(ev_timer& w) noexcept { DoAgain(w); }
 
-ThreadControl::ThreadControl(Thread& thread) noexcept
-    : ThreadControlBase{thread} {}
+ThreadControl::ThreadControl(Thread& thread) noexcept : ThreadControlBase{thread} {}
 
 // NOLINTNEXTLINE(readability-make-member-function-const)
 void ThreadControl::Start(ev_timer& w) noexcept { DoStart(w); }

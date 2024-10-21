@@ -10,26 +10,22 @@ namespace logging {
 namespace {
 
 class NullLogger final : public impl::LoggerBase {
- public:
-  NullLogger() noexcept : LoggerBase(Format::kRaw) {
-    LoggerBase::SetLevel(Level::kNone);
-  }
+public:
+    NullLogger() noexcept : LoggerBase(Format::kRaw) { LoggerBase::SetLevel(Level::kNone); }
 
-  void SetLevel(Level) override {}  // do nothing
-  void Log(Level, std::string_view) override {}
-  void Flush() override {}
+    void SetLevel(Level) override {}  // do nothing
+    void Log(Level, std::string_view) override {}
+    void Flush() override {}
 };
 
 }  // namespace
 
 LoggerRef GetNullLogger() noexcept {
-  static NullLogger null_logger{};
-  return null_logger;
+    static NullLogger null_logger{};
+    return null_logger;
 }
 
-LoggerPtr MakeNullLogger() {
-  return LoggerPtr(std::shared_ptr<void>{}, &logging::GetNullLogger());
-}
+LoggerPtr MakeNullLogger() { return LoggerPtr(std::shared_ptr<void>{}, &logging::GetNullLogger()); }
 
 }  // namespace logging
 

@@ -6,6 +6,7 @@
 #include <userver/congestion_control/component.hpp>
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
+#include <userver/ugrpc/client/common_component.hpp>
 #include <userver/ugrpc/client/middlewares/baggage/component.hpp>
 #include <userver/ugrpc/client/middlewares/deadline_propagation/component.hpp>
 #include <userver/ugrpc/client/middlewares/log/component.hpp>
@@ -20,24 +21,24 @@
 #include "service.hpp"
 
 int main(int argc, char* argv[]) {
-  const auto component_list =
-      components::MinimalServerComponentList()
-          .Append<components::TestsuiteSupport>()
-          .Append<ugrpc::server::ServerComponent>()
-          .Append<ugrpc::server::middlewares::baggage::Component>()
-          .Append<ugrpc::server::middlewares::log::Component>()
-          .Append<ugrpc::server::middlewares::deadline_propagation::Component>()
-          .Append<ugrpc::server::middlewares::congestion_control::Component>()
-          .Append<ugrpc::client::middlewares::baggage::Component>()
-          .Append<ugrpc::client::middlewares::log::Component>()
-          .Append<ugrpc::client::middlewares::deadline_propagation::Component>()
-          .Append<ugrpc::client::ClientFactoryComponent>()
-          .Append<server::handlers::TestsControl>()
-          .Append<components::HttpClient>()
-          .Append<clients::dns::Component>()
-          .Append<congestion_control::Component>()
-          .Append<samples::GreeterServiceComponent>()
-          .Append<samples::GreeterClient>()
-          .Append<samples::GreeterHttpHandler>();
-  return utils::DaemonMain(argc, argv, component_list);
+    const auto component_list = components::MinimalServerComponentList()
+                                    .Append<components::TestsuiteSupport>()
+                                    .Append<ugrpc::server::ServerComponent>()
+                                    .Append<ugrpc::server::middlewares::baggage::Component>()
+                                    .Append<ugrpc::server::middlewares::log::Component>()
+                                    .Append<ugrpc::server::middlewares::deadline_propagation::Component>()
+                                    .Append<ugrpc::server::middlewares::congestion_control::Component>()
+                                    .Append<ugrpc::client::middlewares::baggage::Component>()
+                                    .Append<ugrpc::client::middlewares::log::Component>()
+                                    .Append<ugrpc::client::middlewares::deadline_propagation::Component>()
+                                    .Append<ugrpc::client::CommonComponent>()
+                                    .Append<ugrpc::client::ClientFactoryComponent>()
+                                    .Append<server::handlers::TestsControl>()
+                                    .Append<components::HttpClient>()
+                                    .Append<clients::dns::Component>()
+                                    .Append<congestion_control::Component>()
+                                    .Append<samples::GreeterServiceComponent>()
+                                    .Append<samples::GreeterClient>()
+                                    .Append<samples::GreeterHttpHandler>();
+    return utils::DaemonMain(argc, argv, component_list);
 }

@@ -27,8 +27,8 @@ void GenerateRandomBlock(utils::span<char> buffer);
 /// @overload
 template <typename T>
 void GenerateRandomBlock(utils::span<T> buffer) {
-  static_assert(std::is_trivially_copyable_v<T>);
-  impl::GenerateRandomBlock(utils::as_writable_bytes(buffer));
+    static_assert(std::is_trivially_copyable_v<T>);
+    impl::GenerateRandomBlock(utils::as_writable_bytes(buffer));
 }
 
 /// @overload

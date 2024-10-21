@@ -11,18 +11,20 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
 
-static_assert(std::is_trivially_copy_constructible_v<Rate>,
-              "Rate is widely used in engine internals. It should be trivially "
-              "copy constructible to be returned in CPU registers.");
+static_assert(
+    std::is_trivially_copy_constructible_v<Rate>,
+    "Rate is widely used in engine internals. It should be trivially "
+    "copy constructible to be returned in CPU registers."
+);
 
 UTEST(Rate, Basic) {
-  EXPECT_EQ(Rate{5}, Rate{2} + Rate{3});
+    EXPECT_EQ(Rate{5}, Rate{2} + Rate{3});
 
-  {
-    Rate test1{5};
-    test1 += Rate{10};
-    EXPECT_EQ(Rate{15}, test1);
-  }
+    {
+        Rate test1{5};
+        test1 += Rate{10};
+        EXPECT_EQ(Rate{15}, test1);
+    }
 }
 
 UTEST(Rate, Fmt) { EXPECT_EQ("10", fmt::format("{}", Rate{10})); }

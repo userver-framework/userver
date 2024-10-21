@@ -15,6 +15,7 @@ async def test_mongo(service_client):
 
     response = await service_client.get('/v1/translations')
     assert response.status_code == 200
+    assert 'application/json' in response.headers['Content-Type']
     assert response.json()['content'] == {
         'hello': {'en': 'hello', 'ru': 'Привет'},
         'welcome': {'ru': 'Добро пожаловать', 'en': 'Welcome'},

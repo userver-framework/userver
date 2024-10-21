@@ -23,41 +23,38 @@ namespace samples {
 // Note that we have both service and client to that service in the same
 // microservice. Ignore that, it's just for the sake of example.
 class GreeterClient final {
- public:
-  explicit GreeterClient(api::GreeterServiceClient&& raw_client);
+public:
+    explicit GreeterClient(api::GreeterServiceClient&& raw_client);
 
-  std::string SayHello(std::string name) const;
+    std::string SayHello(std::string name) const;
 
-  std::vector<std::string> SayHelloResponseStream(std::string name) const;
+    std::vector<std::string> SayHelloResponseStream(std::string name) const;
 
-  std::string SayHelloRequestStream(
-      const std::vector<std::string_view>& names) const;
+    std::string SayHelloRequestStream(const std::vector<std::string_view>& names) const;
 
-  std::vector<std::string> SayHelloStreams(
-      const std::vector<std::string_view>& names) const;
+    std::vector<std::string> SayHelloStreams(const std::vector<std::string_view>& names) const;
 
- private:
-  static std::unique_ptr<grpc::ClientContext> MakeClientContext();
+private:
+    static std::unique_ptr<grpc::ClientContext> MakeClientContext();
 
-  api::GreeterServiceClient raw_client_;
+    api::GreeterServiceClient raw_client_;
 };
 /// [client]
 
 /// [component]
 class GreeterClientComponent final : public components::ComponentBase {
- public:
-  static constexpr std::string_view kName = "greeter-client";
+public:
+    static constexpr std::string_view kName = "greeter-client";
 
-  GreeterClientComponent(const components::ComponentConfig& config,
-                         const components::ComponentContext& context);
+    GreeterClientComponent(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-  const GreeterClient& GetClient() const;
+    const GreeterClient& GetClient() const;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  ugrpc::client::ClientFactory& client_factory_;
-  GreeterClient client_;
+private:
+    ugrpc::client::ClientFactory& client_factory_;
+    GreeterClient client_;
 };
 /// [component]
 

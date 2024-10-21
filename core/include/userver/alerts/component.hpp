@@ -28,18 +28,17 @@ namespace alerts {
 
 // clang-format on
 class StorageComponent final : public components::RawComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of alert::StorageComponent component
-  static constexpr std::string_view kName = "alerts-storage";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of alert::StorageComponent component
+    static constexpr std::string_view kName = "alerts-storage";
 
-  StorageComponent(const components::ComponentConfig& config,
-                   const components::ComponentContext& context);
+    StorageComponent(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-  Storage& GetStorage() const;
+    Storage& GetStorage() const;
 
- private:
-  mutable Storage storage_;
+private:
+    mutable Storage storage_;
 };
 
 }  // namespace alerts
@@ -48,7 +47,6 @@ template <>
 inline constexpr bool components::kHasValidate<alerts::StorageComponent> = true;
 
 template <>
-inline constexpr auto components::kConfigFileMode<alerts::StorageComponent> =
-    ConfigFileMode::kNotRequired;
+inline constexpr auto components::kConfigFileMode<alerts::StorageComponent> = ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

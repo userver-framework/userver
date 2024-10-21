@@ -22,60 +22,53 @@
 namespace chaos {
 
 class KeyValue final : public server::handlers::HttpHandlerBase {
- public:
-  static constexpr std::string_view kName = "handler-redis";
+public:
+    static constexpr std::string_view kName = "handler-redis";
 
-  KeyValue(const components::ComponentConfig& config,
-           const components::ComponentContext& context);
+    KeyValue(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-  std::string HandleRequestThrow(
-      const server::http::HttpRequest& request,
-      server::request::RequestContext&) const override;
+    std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
+        const override;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  std::string GetValue(std::string_view key,
-                       const server::http::HttpRequest& request) const;
-  std::string PostValue(std::string_view key,
-                        const server::http::HttpRequest& request) const;
-  std::string DeleteValue(std::string_view key) const;
+private:
+    std::string GetValue(std::string_view key, const server::http::HttpRequest& request) const;
+    std::string PostValue(std::string_view key, const server::http::HttpRequest& request) const;
+    std::string DeleteValue(std::string_view key) const;
 
-  storages::redis::ClientPtr redis_client_;
-  storages::redis::CommandControl redis_cc_;
+    storages::redis::ClientPtr redis_client_;
+    storages::redis::CommandControl redis_cc_;
 };
 
-KeyValue::KeyValue(const components::ComponentConfig& config,
-                   const components::ComponentContext& context)
+KeyValue::KeyValue(const components::ComponentConfig& config, const components::ComponentContext& context)
     : server::handlers::HttpHandlerBase(config, context),
       redis_client_{
-          context.FindComponent<components::Redis>("key-value-database")
-              .GetClient(config["db"].As<std::string>())} {}
+          context.FindComponent<components::Redis>("key-value-database").GetClient(config["db"].As<std::string>())} {}
 
-std::string KeyValue::HandleRequestThrow(
-    const server::http::HttpRequest& request,
-    server::request::RequestContext& /*context*/) const {
-  const auto& key = request.GetArg("key");
-  if (key.empty()) {
-    throw server::handlers::ClientError(
-        server::handlers::ExternalBody{"No 'key' query argument"});
-  }
+std::string
+KeyValue::HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext& /*context*/)
+    const {
+    const auto& key = request.GetArg("key");
+    if (key.empty()) {
+        throw server::handlers::ClientError(server::handlers::ExternalBody{"No 'key' query argument"});
+    }
 
-  switch (request.GetMethod()) {
-    case server::http::HttpMethod::kGet:
-      return GetValue(key, request);
-    case server::http::HttpMethod::kPost:
-      return PostValue(key, request);
-    case server::http::HttpMethod::kDelete:
-      return DeleteValue(key);
-    default:
-      throw server::handlers::ClientError(server::handlers::ExternalBody{
-          fmt::format("Unsupported method {}", request.GetMethod())});
-  }
+    switch (request.GetMethod()) {
+        case server::http::HttpMethod::kGet:
+            return GetValue(key, request);
+        case server::http::HttpMethod::kPost:
+            return PostValue(key, request);
+        case server::http::HttpMethod::kDelete:
+            return DeleteValue(key);
+        default:
+            throw server::handlers::ClientError(server::handlers::ExternalBody{
+                fmt::format("Unsupported method {}", request.GetMethod())});
+    }
 }
 
 yaml_config::Schema KeyValue::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<HandlerBase>(R"(
+    return yaml_config::MergeSchemas<HandlerBase>(R"(
 type: object
 description: KeyValue handler schema
 additionalProperties: false
@@ -86,48 +79,44 @@ properties:
 )");
 }
 
-std::string KeyValue::GetValue(std::string_view key,
-                               const server::http::HttpRequest& request) const {
-  const auto result = redis_client_->Get(std::string{key}, redis_cc_).Get();
-  if (!result) {
-    request.SetResponseStatus(server::http::HttpStatus::kNotFound);
-    return {};
-  }
-  return *result;
+std::string KeyValue::GetValue(std::string_view key, const server::http::HttpRequest& request) const {
+    const auto result = redis_client_->Get(std::string{key}, redis_cc_).Get();
+    if (!result) {
+        request.SetResponseStatus(server::http::HttpStatus::kNotFound);
+        return {};
+    }
+    return *result;
 }
 
-std::string KeyValue::PostValue(
-    std::string_view key, const server::http::HttpRequest& request) const {
-  const auto& value = request.GetArg("value");
-  const auto result =
-      redis_client_->SetIfNotExist(std::string{key}, value, redis_cc_).Get();
-  if (!result) {
-    request.SetResponseStatus(server::http::HttpStatus::kConflict);
-    return {};
-  }
+std::string KeyValue::PostValue(std::string_view key, const server::http::HttpRequest& request) const {
+    const auto& value = request.GetArg("value");
+    const auto result = redis_client_->SetIfNotExist(std::string{key}, value, redis_cc_).Get();
+    if (!result) {
+        request.SetResponseStatus(server::http::HttpStatus::kConflict);
+        return {};
+    }
 
-  request.SetResponseStatus(server::http::HttpStatus::kCreated);
-  return std::string{value};
+    request.SetResponseStatus(server::http::HttpStatus::kCreated);
+    return std::string{value};
 }
 
 std::string KeyValue::DeleteValue(std::string_view key) const {
-  const auto result = redis_client_->Del(std::string{key}, redis_cc_).Get();
-  return std::to_string(result);
+    const auto result = redis_client_->Del(std::string{key}, redis_cc_).Get();
+    return std::to_string(result);
 }
 
 }  // namespace chaos
 
 int main(int argc, char* argv[]) {
-  const auto component_list =
-      components::MinimalServerComponentList()
-          .Append<chaos::KeyValue>("handler-cluster")
-          .Append<chaos::KeyValue>("handler-sentinel")
-          .Append<components::HttpClient>()
-          .Append<components::Secdist>()
-          .Append<components::DefaultSecdistProvider>()
-          .Append<components::Redis>("key-value-database")
-          .Append<components::TestsuiteSupport>()
-          .Append<server::handlers::TestsControl>()
-          .Append<clients::dns::Component>();
-  return utils::DaemonMain(argc, argv, component_list);
+    const auto component_list = components::MinimalServerComponentList()
+                                    .Append<chaos::KeyValue>("handler-cluster")
+                                    .Append<chaos::KeyValue>("handler-sentinel")
+                                    .Append<components::HttpClient>()
+                                    .Append<components::Secdist>()
+                                    .Append<components::DefaultSecdistProvider>()
+                                    .Append<components::Redis>("key-value-database")
+                                    .Append<components::TestsuiteSupport>()
+                                    .Append<server::handlers::TestsControl>()
+                                    .Append<clients::dns::Component>();
+    return utils::DaemonMain(argc, argv, component_list);
 }

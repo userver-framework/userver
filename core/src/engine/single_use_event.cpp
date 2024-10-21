@@ -18,72 +18,75 @@ SingleUseEvent::SingleUseEvent() noexcept {}
 SingleUseEvent::~SingleUseEvent() = default;
 
 void SingleUseEvent::Wait() {
-  switch (WaitUntil(Deadline{})) {
-    case FutureStatus::kReady:
-      break;
-    case FutureStatus::kTimeout:
-      UASSERT_MSG(false,
-                  "Timeout is not expected here due to unreachable "
-                  "Deadline at Sleep");
+    switch (WaitUntil(Deadline{})) {
+        case FutureStatus::kReady:
+            break;
+        case FutureStatus::kTimeout:
+            UASSERT_MSG(
+                false,
+                "Timeout is not expected here due to unreachable "
+                "Deadline at Sleep"
+            );
 #ifdef NDEBUG
-      [[fallthrough]];
+            [[fallthrough]];
 #endif
-    case FutureStatus::kCancelled:
-      throw WaitInterruptedException(current_task::CancellationReason());
-  }
+        case FutureStatus::kCancelled:
+            throw WaitInterruptedException(current_task::CancellationReason());
+    }
 }
 
 FutureStatus SingleUseEvent::WaitUntil(Deadline deadline) {
-  impl::TaskContext& current = current_task::GetCurrentTaskContext();
-  impl::FutureWaitStrategy wait_strategy{*this, current};
-  const auto wakeup_source = current.Sleep(wait_strategy, deadline);
+    impl::TaskContext& current = current_task::GetCurrentTaskContext();
+    impl::FutureWaitStrategy wait_strategy{*this, current};
+    const auto wakeup_source = current.Sleep(wait_strategy, deadline);
 
-  // There are no spurious wakeups, because the event is single-use: if a task
-  // has ever been notified by this SingleUseEvent, then the task will find
-  // the SingleUseEvent ready once it wakes up.
-  if (wakeup_source == impl::TaskContext::WakeupSource::kWaitList) {
-    UASSERT(waiters_->IsSignaled());
-  }
-  return impl::ToFutureStatus(wakeup_source);
+    // There are no spurious wakeups, because the event is single-use: if a task
+    // has ever been notified by this SingleUseEvent, then the task will find
+    // the SingleUseEvent ready once it wakes up.
+    if (wakeup_source == impl::TaskContext::WakeupSource::kWaitList) {
+        UASSERT(waiters_->IsSignaled());
+    }
+    return impl::ToFutureStatus(wakeup_source);
 }
 
 void SingleUseEvent::WaitNonCancellable() noexcept {
-  const TaskCancellationBlocker cancellation_blocker;
+    const TaskCancellationBlocker cancellation_blocker;
 
-  switch (WaitUntil(Deadline{})) {
-    case FutureStatus::kReady:
-      break;
-    case FutureStatus::kTimeout:
-      UASSERT_MSG(false,
-                  "Timeout is not expected here due to unreachable "
-                  "Deadline at Sleep");
-      break;
-    case FutureStatus::kCancelled:
-      UASSERT_MSG(false,
-                  "Cancellation should have been blocked "
-                  "by TaskCancellationBlocker");
-      break;
-  }
+    switch (WaitUntil(Deadline{})) {
+        case FutureStatus::kReady:
+            break;
+        case FutureStatus::kTimeout:
+            UASSERT_MSG(
+                false,
+                "Timeout is not expected here due to unreachable "
+                "Deadline at Sleep"
+            );
+            break;
+        case FutureStatus::kCancelled:
+            UASSERT_MSG(
+                false,
+                "Cancellation should have been blocked "
+                "by TaskCancellationBlocker"
+            );
+            break;
+    }
 }
 
 void SingleUseEvent::Send() noexcept {
-  UASSERT_MSG(!waiters_->IsSignaled(),
-              "Multiple producers detected for the same SingleUseEvent");
-  waiters_->SetSignalAndWakeupOne();
+    UASSERT_MSG(!waiters_->IsSignaled(), "Multiple producers detected for the same SingleUseEvent");
+    waiters_->SetSignalAndWakeupOne();
 }
 
 bool SingleUseEvent::IsReady() const noexcept { return waiters_->IsSignaled(); }
 
 impl::EarlyWakeup SingleUseEvent::TryAppendWaiter(impl::TaskContext& waiter) {
-  return impl::EarlyWakeup{waiters_->GetSignalOrAppend(&waiter)};
+    return impl::EarlyWakeup{waiters_->GetSignalOrAppend(&waiter)};
 }
 
-void SingleUseEvent::RemoveWaiter(impl::TaskContext& waiter) noexcept {
-  waiters_->Remove(waiter);
-}
+void SingleUseEvent::RemoveWaiter(impl::TaskContext& waiter) noexcept { waiters_->Remove(waiter); }
 
 void SingleUseEvent::RethrowErrorResult() const {
-  // TODO support failure states in SingleUseEvent, for WaitAllChecked?
+    // TODO support failure states in SingleUseEvent, for WaitAllChecked?
 }
 
 void SingleUseEvent::AfterWait() noexcept {}

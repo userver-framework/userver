@@ -40,38 +40,41 @@ namespace storages::redis {
 /// @note a good GMock-based mock for this class can be found here:
 /// userver/storages/redis/mock_subscribe_client.hpp
 class SubscribeClient {
- public:
-  virtual ~SubscribeClient();
+public:
+    virtual ~SubscribeClient();
 
-  virtual SubscriptionToken Subscribe(
-      std::string channel, SubscriptionToken::OnMessageCb on_message_cb,
-      const USERVER_NAMESPACE::redis::CommandControl& command_control) = 0;
+    virtual SubscriptionToken Subscribe(
+        std::string channel,
+        SubscriptionToken::OnMessageCb on_message_cb,
+        const USERVER_NAMESPACE::redis::CommandControl& command_control
+    ) = 0;
 
-  SubscriptionToken Subscribe(std::string channel,
-                              SubscriptionToken::OnMessageCb on_message_cb) {
-    return Subscribe(std::move(channel), std::move(on_message_cb), {});
-  }
+    SubscriptionToken Subscribe(std::string channel, SubscriptionToken::OnMessageCb on_message_cb) {
+        return Subscribe(std::move(channel), std::move(on_message_cb), {});
+    }
 
-  virtual SubscriptionToken Psubscribe(
-      std::string pattern, SubscriptionToken::OnPmessageCb on_pmessage_cb,
-      const USERVER_NAMESPACE::redis::CommandControl& command_control) = 0;
+    virtual SubscriptionToken Psubscribe(
+        std::string pattern,
+        SubscriptionToken::OnPmessageCb on_pmessage_cb,
+        const USERVER_NAMESPACE::redis::CommandControl& command_control
+    ) = 0;
 
-  virtual size_t ShardsCount() const = 0;
-  virtual bool IsInClusterMode() const = 0;
+    virtual size_t ShardsCount() const = 0;
+    virtual bool IsInClusterMode() const = 0;
 
-  SubscriptionToken Psubscribe(std::string pattern,
-                               SubscriptionToken::OnPmessageCb on_pmessage_cb) {
-    return Psubscribe(std::move(pattern), std::move(on_pmessage_cb), {});
-  }
+    SubscriptionToken Psubscribe(std::string pattern, SubscriptionToken::OnPmessageCb on_pmessage_cb) {
+        return Psubscribe(std::move(pattern), std::move(on_pmessage_cb), {});
+    }
 
-  virtual SubscriptionToken Ssubscribe(
-      std::string channel, SubscriptionToken::OnMessageCb on_message_cb,
-      const USERVER_NAMESPACE::redis::CommandControl& command_control) = 0;
+    virtual SubscriptionToken Ssubscribe(
+        std::string channel,
+        SubscriptionToken::OnMessageCb on_message_cb,
+        const USERVER_NAMESPACE::redis::CommandControl& command_control
+    ) = 0;
 
-  SubscriptionToken Ssubscribe(std::string channel,
-                               SubscriptionToken::OnMessageCb on_message_cb) {
-    return Ssubscribe(std::move(channel), std::move(on_message_cb), {});
-  }
+    SubscriptionToken Ssubscribe(std::string channel, SubscriptionToken::OnMessageCb on_message_cb) {
+        return Ssubscribe(std::move(channel), std::move(on_message_cb), {});
+    }
 };
 
 }  // namespace storages::redis

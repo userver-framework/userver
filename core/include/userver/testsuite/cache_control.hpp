@@ -52,91 +52,95 @@ class CacheResetRegistration;
 ///
 /// All methods are coro-safe.
 class CacheControl final {
- public:
-  /// @brief Reset all the registered caches.
-  ///
-  /// @a update_type is used by caches derived from
-  /// @a component::CachingComponentBase.
-  void ResetAllCaches(
-      cache::UpdateType update_type,
-      const std::unordered_set<std::string>& force_incremental_names,
-      const std::unordered_set<std::string>& exclude_names);
+public:
+    /// @brief Reset all the registered caches.
+    ///
+    /// @a update_type is used by caches derived from
+    /// @a component::CachingComponentBase.
+    void ResetAllCaches(
+        cache::UpdateType update_type,
+        const std::unordered_set<std::string>& force_incremental_names,
+        const std::unordered_set<std::string>& exclude_names
+    );
 
-  /// @brief Reset caches with the specified @a names.
-  ///
-  /// @a update_type is used by caches derived from
-  /// @a component::CachingComponentBase.
-  void ResetCaches(
-      cache::UpdateType update_type,
-      std::unordered_set<std::string> reset_only_names,
-      const std::unordered_set<std::string>& force_incremental_names);
+    /// @brief Reset caches with the specified @a names.
+    ///
+    /// @a update_type is used by caches derived from
+    /// @a component::CachingComponentBase.
+    void ResetCaches(
+        cache::UpdateType update_type,
+        std::unordered_set<std::string> reset_only_names,
+        const std::unordered_set<std::string>& force_incremental_names
+    );
 
-  CacheControl(CacheControl&&) = delete;
-  CacheControl& operator=(CacheControl&&) = delete;
+    CacheControl(CacheControl&&) = delete;
+    CacheControl& operator=(CacheControl&&) = delete;
 
-  /// @cond
-  // For internal use only.
-  struct UnitTests {
-    explicit UnitTests() = default;
-  };
+    /// @cond
+    // For internal use only.
+    struct UnitTests {
+        explicit UnitTests() = default;
+    };
 
-  enum class ExecPolicy {
-    kSequential,
-    kConcurrent,
-  };
+    enum class ExecPolicy {
+        kSequential,
+        kConcurrent,
+    };
 
-  CacheControl(impl::PeriodicUpdatesMode, UnitTests);
-  CacheControl(impl::PeriodicUpdatesMode, ExecPolicy, components::State);
-  ~CacheControl();
+    CacheControl(impl::PeriodicUpdatesMode, UnitTests);
+    CacheControl(impl::PeriodicUpdatesMode, ExecPolicy, components::State);
+    ~CacheControl();
 
-  // For internal use only.
-  bool IsPeriodicUpdateEnabled(const cache::Config& cache_config,
-                               const std::string& cache_name) const;
+    // For internal use only.
+    bool IsPeriodicUpdateEnabled(const cache::Config& cache_config, const std::string& cache_name) const;
 
-  // For internal use only.
-  CacheResetRegistration RegisterPeriodicCache(cache::CacheUpdateTrait& cache);
+    // For internal use only.
+    CacheResetRegistration RegisterPeriodicCache(cache::CacheUpdateTrait& cache);
 
-  // For internal use only. Use testsuite::RegisterCache instead
-  template <typename Component>
-  CacheResetRegistration RegisterCache(Component* self, std::string_view name,
-                                       void (Component::*reset_method)());
+    // For internal use only. Use testsuite::RegisterCache instead
+    template <typename Component>
+    CacheResetRegistration RegisterCache(Component* self, std::string_view name, void (Component::*reset_method)());
 
-  struct CacheInfo final {
-    std::string name;
-    std::function<void(cache::UpdateType)> reset;
-    bool needs_span{true};
-  };
-  struct CacheInfoNode;
-  using CacheInfoIterator = CacheInfoNode*;
+    struct CacheInfo final {
+        std::string name;
+        std::function<void(cache::UpdateType)> reset;
+        bool needs_span{true};
+    };
+    struct CacheInfoNode;
+    using CacheInfoIterator = CacheInfoNode*;
 
-  // For internal use only.
-  CacheInfoIterator DoRegisterCache(CacheInfo&& info);
-  /// @endcond
- private:
-  friend class CacheResetRegistration;
+    // For internal use only.
+    CacheInfoIterator DoRegisterCache(CacheInfo&& info);
+    /// @endcond
+private:
+    friend class CacheResetRegistration;
 
-  class CacheResetJob;
+    class CacheResetJob;
 
-  void DoResetCaches(
-      cache::UpdateType update_type,
-      std::unordered_set<std::string>* reset_only_names,
-      const std::unordered_set<std::string>& force_incremental_names,
-      const std::unordered_set<std::string>* exclude_names);
+    void DoResetCaches(
+        cache::UpdateType update_type,
+        std::unordered_set<std::string>* reset_only_names,
+        const std::unordered_set<std::string>& force_incremental_names,
+        const std::unordered_set<std::string>* exclude_names
+    );
 
-  void DoResetCachesConcurrently(
-      cache::UpdateType update_type,
-      std::unordered_set<std::string>* reset_only_names,
-      const std::unordered_set<std::string>& force_incremental_names,
-      const std::unordered_set<std::string>* exclude_names);
+    void DoResetCachesConcurrently(
+        cache::UpdateType update_type,
+        std::unordered_set<std::string>* reset_only_names,
+        const std::unordered_set<std::string>& force_incremental_names,
+        const std::unordered_set<std::string>* exclude_names
+    );
 
-  void UnregisterCache(CacheInfoIterator) noexcept;
+    void UnregisterCache(CacheInfoIterator) noexcept;
 
-  static void DoResetSingleCache(
-      const CacheInfo& info, cache::UpdateType update_type,
-      const std::unordered_set<std::string>& force_incremental_names);
+    static void DoResetSingleCache(
+        const CacheInfo& info,
+        cache::UpdateType update_type,
+        const std::unordered_set<std::string>& force_incremental_names
+    );
 
-  struct Impl;
-  std::unique_ptr<Impl> impl_;
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
 };
 
 /// @brief RAII helper for testsuite registration. Must be kept alive to keep
@@ -145,25 +149,25 @@ class CacheControl final {
 /// the component's fields.
 /// @see testsuite::CacheControl
 class [[nodiscard]] CacheResetRegistration final {
- public:
-  CacheResetRegistration() noexcept;
+public:
+    CacheResetRegistration() noexcept;
 
-  CacheResetRegistration(CacheResetRegistration&&) noexcept;
-  CacheResetRegistration& operator=(CacheResetRegistration&&) noexcept;
-  ~CacheResetRegistration();
+    CacheResetRegistration(CacheResetRegistration&&) noexcept;
+    CacheResetRegistration& operator=(CacheResetRegistration&&) noexcept;
+    ~CacheResetRegistration();
 
-  /// Unregister the cache component explicitly.
-  /// `Unregister` is called in the destructor automatically.
-  void Unregister() noexcept;
+    /// Unregister the cache component explicitly.
+    /// `Unregister` is called in the destructor automatically.
+    void Unregister() noexcept;
 
-  /// @cond
-  // For internal use only.
-  CacheResetRegistration(CacheControl&, CacheControl::CacheInfoIterator);
-  /// @endcond
+    /// @cond
+    // For internal use only.
+    CacheResetRegistration(CacheControl&, CacheControl::CacheInfoIterator);
+    /// @endcond
 
- private:
-  CacheControl* cache_control_{nullptr};
-  CacheControl::CacheInfoIterator cache_info_iterator_{};
+private:
+    CacheControl* cache_control_{nullptr};
+    CacheControl::CacheInfoIterator cache_info_iterator_{};
 };
 
 /// The method for acquiring testsuite::CacheControl in the component system.
@@ -180,30 +184,30 @@ CacheControl& FindCacheControl(const components::ComponentContext& context);
 template <typename Component>
 CacheResetRegistration RegisterCache(
     const components::ComponentConfig& config,
-    const components::ComponentContext& context, Component* self,
-    void (Component::*reset_method)()) {
-  auto& cc = testsuite::FindCacheControl(context);
-  return cc.RegisterCache(self, components::GetCurrentComponentName(config),
-                          reset_method);
+    const components::ComponentContext& context,
+    Component* self,
+    void (Component::*reset_method)()
+) {
+    auto& cc = testsuite::FindCacheControl(context);
+    return cc.RegisterCache(self, components::GetCurrentComponentName(config), reset_method);
 }
 
 template <typename Component>
-CacheResetRegistration CacheControl::RegisterCache(
-    Component* self, std::string_view name, void (Component::*reset_method)()) {
-  static_assert(std::is_base_of_v<components::RawComponentBase, Component>,
-                "CacheControl can only be used with components");
-  UASSERT(self);
-  UASSERT(reset_method);
+CacheResetRegistration
+CacheControl::RegisterCache(Component* self, std::string_view name, void (Component::*reset_method)()) {
+    static_assert(
+        std::is_base_of_v<components::RawComponentBase, Component>, "CacheControl can only be used with components"
+    );
+    UASSERT(self);
+    UASSERT(reset_method);
 
-  CacheInfo info;
-  info.name = std::string{name};
-  info.reset = [self, reset_method]([[maybe_unused]] cache::UpdateType) {
-    (self->*reset_method)();
-  };
-  info.needs_span = true;
+    CacheInfo info;
+    info.name = std::string{name};
+    info.reset = [self, reset_method]([[maybe_unused]] cache::UpdateType) { (self->*reset_method)(); };
+    info.needs_span = true;
 
-  auto iter = DoRegisterCache(std::move(info));
-  return CacheResetRegistration(*this, std::move(iter));
+    auto iter = DoRegisterCache(std::move(info));
+    return CacheResetRegistration(*this, std::move(iter));
 }
 
 }  // namespace testsuite

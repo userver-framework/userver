@@ -13,33 +13,37 @@ namespace kafka {
 namespace impl {
 
 class ConsumerImpl;
+class MessageHolder;
 
 }  // namespace impl
 
-/// @brief RAII wrapper for polled message data.
-/// @note All `Message` instances must be destroyed before `Consumer` stop
+/// @brief Wrapper for polled message data access.
 class Message final {
-  struct Data;
-  using DataStorage = utils::FastPimpl<Data, 16 + 32 + 16, 8>;
+public:
+    ~Message();
 
- public:
-  ~Message();
+    Message(Message&&) noexcept;
+    Message& operator=(Message&&) noexcept = delete;
 
-  Message(Message&&) = default;
+    Message(const Message&) = delete;
+    Message& operator=(const Message&) = delete;
 
-  const std::string& GetTopic() const;
-  std::string_view GetKey() const;
-  std::string_view GetPayload() const;
-  std::optional<std::chrono::milliseconds> GetTimestamp() const;
-  int GetPartition() const;
-  std::int64_t GetOffset() const;
+    const std::string& GetTopic() const;
+    std::string_view GetKey() const;
+    std::string_view GetPayload() const;
+    std::optional<std::chrono::milliseconds> GetTimestamp() const;
+    int GetPartition() const;
+    std::int64_t GetOffset() const;
 
- private:
-  friend class impl::ConsumerImpl;
+private:
+    friend class impl::ConsumerImpl;
 
-  explicit Message(DataStorage data);
+    explicit Message(impl::MessageHolder&& message);
 
-  DataStorage data_;
+    struct MessageData;
+    using DataStorage = utils::FastPimpl<MessageData, 72, 8>;
+
+    DataStorage data_;
 };
 
 using MessageBatchView = utils::span<const Message>;

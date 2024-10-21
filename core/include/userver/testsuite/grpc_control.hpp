@@ -9,19 +9,18 @@ USERVER_NAMESPACE_BEGIN
 namespace testsuite {
 
 class GrpcControl {
- public:
-  GrpcControl() = default;
+public:
+    GrpcControl() = default;
 
-  GrpcControl(std::chrono::milliseconds timeout, bool is_tls_enabled);
+    GrpcControl(std::chrono::milliseconds timeout, bool is_tls_enabled);
 
-  std::chrono::milliseconds MakeTimeout(
-      std::chrono::milliseconds duration) const;
+    std::chrono::milliseconds MakeTimeout(std::chrono::milliseconds duration) const;
 
-  bool IsTlsEnabled() const;
+    bool IsTlsEnabled() const;
 
- private:
-  std::chrono::milliseconds timeout_{};
-  bool is_tls_enabled_{false};
+private:
+    std::chrono::milliseconds timeout_{};
+    bool is_tls_enabled_{false};
 };
 
 }  // namespace testsuite

@@ -22,99 +22,96 @@ using Data = std::unordered_map<int, int>;
 class HandlerCacheState;
 
 class AlertCache final : public components::CachingComponentBase<Data> {
- public:
-  static constexpr std::string_view kName = "alert-cache";
+public:
+    static constexpr std::string_view kName = "alert-cache";
 
-  AlertCache(const components::ComponentConfig& config,
-             const components::ComponentContext& context)
-      : CachingComponentBase(config, context) {
-    CacheUpdateTrait::StartPeriodicUpdates();
-  }
-
-  ~AlertCache() override { CacheUpdateTrait::StopPeriodicUpdates(); }
-
-  void Update(cache::UpdateType type,
-              const std::chrono::system_clock::time_point& /*last_update*/,
-              const std::chrono::system_clock::time_point& /*now*/,
-              cache::UpdateStatisticsScope& stats_scope) override {
-    if (type == cache::UpdateType::kIncremental) {
-      stats_scope.FinishWithError();
-    } else {
-      stats_scope.FinishNoChanges();
+    AlertCache(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : CachingComponentBase(config, context) {
+        CacheUpdateTrait::StartPeriodicUpdates();
     }
-  }
+
+    ~AlertCache() override { CacheUpdateTrait::StopPeriodicUpdates(); }
+
+    void Update(
+        cache::UpdateType type,
+        const std::chrono::system_clock::time_point& /*last_update*/,
+        const std::chrono::system_clock::time_point& /*now*/,
+        cache::UpdateStatisticsScope& stats_scope
+    ) override {
+        if (type == cache::UpdateType::kIncremental) {
+            stats_scope.FinishWithError();
+        } else {
+            stats_scope.FinishNoChanges();
+        }
+    }
 };
 
 class CacheSample final : public components::CachingComponentBase<Data> {
- public:
-  friend HandlerCacheState;
+public:
+    friend HandlerCacheState;
 
-  static constexpr std::string_view kName = "sample-cache";
+    static constexpr std::string_view kName = "sample-cache";
 
-  CacheSample(const components::ComponentConfig& config,
-              const components::ComponentContext& context)
-      : CachingComponentBase(config, context) {
-    CacheUpdateTrait::StartPeriodicUpdates();
-  }
-
-  ~CacheSample() override { CacheUpdateTrait::StopPeriodicUpdates(); }
-
-  void Update(cache::UpdateType /*type*/,
-              const std::chrono::system_clock::time_point& /*last_update*/,
-              const std::chrono::system_clock::time_point& /*now*/,
-              cache::UpdateStatisticsScope& stats_scope) override {
-    static std::atomic<bool> set_empty{false};
-
-    if (set_empty.exchange(true)) {
-      try {
-        Set(Data{});
-      } catch (const cache::EmptyDataError& e) {
-        LOG_INFO() << "Trying to install the empty cache";
-        Set(Data{{42, 42}});
-      }
-    } else {
-      Set(Data{{1, 1}});
+    CacheSample(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : CachingComponentBase(config, context) {
+        CacheUpdateTrait::StartPeriodicUpdates();
     }
-    stats_scope.Finish(1);
-  }
+
+    ~CacheSample() override { CacheUpdateTrait::StopPeriodicUpdates(); }
+
+    void Update(
+        cache::UpdateType /*type*/,
+        const std::chrono::system_clock::time_point& /*last_update*/,
+        const std::chrono::system_clock::time_point& /*now*/,
+        cache::UpdateStatisticsScope& stats_scope
+    ) override {
+        static std::atomic<bool> set_empty{false};
+
+        if (set_empty.exchange(true)) {
+            try {
+                Set(Data{});
+            } catch (const cache::EmptyDataError& e) {
+                LOG_INFO() << "Trying to install the empty cache";
+                Set(Data{{42, 42}});
+            }
+        } else {
+            Set(Data{{1, 1}});
+        }
+        stats_scope.Finish(1);
+    }
 };
 
 class HandlerCacheState final : public server::handlers::HttpHandlerBase {
- public:
-  static constexpr std::string_view kName = "handler-cache-state";
+public:
+    static constexpr std::string_view kName = "handler-cache-state";
 
-  HandlerCacheState(const components::ComponentConfig& config,
-                    const components::ComponentContext& context)
-      : server::handlers::HttpHandlerBase(config, context),
-        cache_(context.FindComponent<CacheSample>()) {}
-  std::string HandleRequestThrow(
-      const server::http::HttpRequest&,
-      server::request::RequestContext&) const override {
-    cache_.UpdateSyncDebug(cache::UpdateType::kIncremental);
-    cache_.UpdateSyncDebug(cache::UpdateType::kIncremental);
+    HandlerCacheState(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : server::handlers::HttpHandlerBase(config, context), cache_(context.FindComponent<CacheSample>()) {}
+    std::string HandleRequestThrow(const server::http::HttpRequest&, server::request::RequestContext&) const override {
+        cache_.UpdateSyncDebug(cache::UpdateType::kIncremental);
+        cache_.UpdateSyncDebug(cache::UpdateType::kIncremental);
 
-    auto data = cache_.Get();
-    if (*data == Data{{42, 42}}) {
-      return "Magic numbers";
-    }
-    return "Not magic numbers";
-  };
+        auto data = cache_.Get();
+        if (*data == Data{{42, 42}}) {
+            return "Magic numbers";
+        }
+        return "Not magic numbers";
+    };
 
- private:
-  CacheSample& cache_;
+private:
+    CacheSample& cache_;
 };
 
 }  // namespace functional_tests
 
 int main(int argc, const char* const argv[]) {
-  const auto component_list =
-      components::ComponentList()
-          .AppendComponentList(components::CommonComponentList())
-          .AppendComponentList(components::CommonServerComponentList())
-          .Append<functional_tests::CacheSample>()
-          .Append<functional_tests::HandlerCacheState>()
-          .Append<functional_tests::AlertCache>()
-          .Append<alerts::Handler>()
-          .Append<server::handlers::Ping>();
-  return utils::DaemonMain(argc, argv, component_list);
+    const auto component_list = components::ComponentList()
+                                    .AppendComponentList(components::CommonComponentList())
+                                    .AppendComponentList(components::CommonServerComponentList())
+                                    .Append<functional_tests::CacheSample>()
+                                    .Append<functional_tests::HandlerCacheState>()
+                                    .Append<functional_tests::AlertCache>()
+                                    .Append<alerts::Handler>()
+                                    .Append<server::handlers::Ping>();
+    return utils::DaemonMain(argc, argv, component_list);
 }

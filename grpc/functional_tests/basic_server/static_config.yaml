@@ -10,10 +10,15 @@ components_manager:
                     level: debug
                     overflow_behavior: discard
 
+        # Contains machinery common to all gRPC clients
+        grpc-client-common:
+            # The TaskProcessor for blocking connection initiation
+            blocking-task-processor: grpc-blocking-task-processor
+
         # Creates gRPC clients
         grpc-client-factory:
-            # The TaskProcessor for blocking connection initiation
-            task-processor: grpc-blocking-task-processor
+            # The list of gRPC client middleware components to use
+            middlewares: []
 
             # Optional channel parameters for gRPC Core
             # https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
@@ -34,6 +39,8 @@ components_manager:
 
         http-client:
             fs-task-processor: main-task-processor
+            plugins:
+              - headers-propagator
 
         dns-client:
             fs-task-processor: fs-task-processor
@@ -43,6 +50,8 @@ components_manager:
 
         grpc-server-headers-propagator:
             headers: ["custom-header-1", "custom-header-2"]
+
+        http-client-plugin-headers-propagator: {}
 
         server:
             listener:

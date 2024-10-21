@@ -26,19 +26,19 @@ namespace storages::clickhouse::io::columns {
 // clang-format on
 template <typename ColumnType>
 class ClickhouseColumn {
- public:
-  using iterator = ColumnIterator<ColumnType>;
+public:
+    using iterator = ColumnIterator<ColumnType>;
 
-  ClickhouseColumn(ColumnRef column) : column_{std::move(column)} {}
+    ClickhouseColumn(ColumnRef column) : column_{std::move(column)} {}
 
-  iterator begin() const { return iterator{column_}; }
+    iterator begin() const { return iterator{column_}; }
 
-  iterator end() const { return iterator::End(column_); }
+    iterator end() const { return iterator::End(column_); }
 
-  size_t Size() const { return GetColumnSize(column_); }
+    size_t Size() const { return GetColumnSize(column_); }
 
- private:
-  ColumnRef column_;
+private:
+    ColumnRef column_;
 };
 
 }  // namespace storages::clickhouse::io::columns

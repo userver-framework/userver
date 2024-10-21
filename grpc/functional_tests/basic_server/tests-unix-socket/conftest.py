@@ -1,6 +1,8 @@
 import pathlib
+import tempfile
 
 import pytest
+
 import samples.greeter_pb2_grpc as greeter_services  # noqa: E402, E501
 
 pytest_plugins = ['pytest_userver.plugins.grpc']
@@ -21,7 +23,8 @@ def config_echo_url(mockserver_info):
 
 @pytest.fixture(scope='session')
 def unix_socket_path(tmp_path_factory) -> pathlib.Path:
-    return tmp_path_factory.mktemp('socket_dir') / 's'
+    with tempfile.TemporaryDirectory(prefix='userver-grpc-socket-') as name:
+        yield pathlib.Path(name) / 's'
 
 
 @pytest.fixture(scope='session')

@@ -14,11 +14,7 @@ namespace formats::serialize {
 
 template <typename Value, typename... Types>
 Value Serialize(const std::variant<Types...>& value, To<Value>) {
-  return std::visit(
-      [](const auto& item) {
-        return typename Value::Builder(item).ExtractValue();
-      },
-      value);
+    return std::visit([](const auto& item) { return typename Value::Builder(item).ExtractValue(); }, value);
 }
 
 }  // namespace formats::serialize

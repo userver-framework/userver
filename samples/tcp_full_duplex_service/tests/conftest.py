@@ -2,7 +2,6 @@
 import pytest
 from pytest_userver.utils import net
 
-
 pytest_plugins = ['pytest_userver.plugins.core']
 
 
@@ -16,7 +15,7 @@ def _tcp_service_port(service_config) -> int:
 
 @pytest.fixture(scope='session')
 def service_non_http_health_checks(
-        service_config, tcp_service_port,
+    service_config, tcp_service_port,
 ) -> net.HealthChecks:
     checks = net.get_health_checks_info(service_config)
     checks.tcp.append(net.HostPort(host='localhost', port=tcp_service_port))

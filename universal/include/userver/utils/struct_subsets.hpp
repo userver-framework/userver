@@ -20,18 +20,17 @@ namespace utils::impl {
 struct RequireSemicolon;
 
 struct NonMovable final {
-  constexpr explicit NonMovable(InternalTag) noexcept {}
+    constexpr explicit NonMovable(InternalTag) noexcept {}
 };
 
 template <typename T>
-constexpr auto IsDefinedAndAggregate()
-    -> decltype(static_cast<void>(sizeof(T)), false) {
-  return std::is_aggregate_v<T>;
+constexpr auto IsDefinedAndAggregate() -> decltype(static_cast<void>(sizeof(T)), false) {
+    return std::is_aggregate_v<T>;
 }
 
 template <typename /*T*/, typename... Args>
 constexpr auto IsDefinedAndAggregate(Args...) -> bool {
-  return false;
+    return false;
 }
 
 }  // namespace utils::impl
@@ -41,27 +40,26 @@ USERVER_NAMESPACE_END
 /// @cond
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_IMPL_STRUCT_MAP(r, data, elem) \
-  std::forward<OtherDeps>(other).elem,
+#define USERVER_IMPL_STRUCT_MAP(r, data, elem) std::forward<OtherDeps>(other).elem,
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_IMPL_MAKE_FROM_SUPERSET(Self, ...)                             \
-  template <typename OtherDeps>                                                \
-  static Self MakeFromSupersetImpl(                                            \
-      OtherDeps&& other, USERVER_NAMESPACE::utils::impl::InternalTag) {        \
-    return {BOOST_PP_SEQ_FOR_EACH(USERVER_IMPL_STRUCT_MAP, BOOST_PP_EMPTY(),   \
-                                  USERVER_IMPL_VARIADIC_TO_SEQ(__VA_ARGS__))}; \
-  }
+#define USERVER_IMPL_MAKE_FROM_SUPERSET(Self, ...)                                                     \
+    template <typename OtherDeps>                                                                      \
+    static Self MakeFromSupersetImpl(OtherDeps&& other, USERVER_NAMESPACE::utils::impl::InternalTag) { \
+        return {BOOST_PP_SEQ_FOR_EACH(                                                                 \
+            USERVER_IMPL_STRUCT_MAP, BOOST_PP_EMPTY(), USERVER_IMPL_VARIADIC_TO_SEQ(__VA_ARGS__)       \
+        )};                                                                                            \
+    }
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define USERVER_IMPL_STRUCT_SUBSET_MAP(r, data, elem) \
-  /* NOLINTNEXTLINE(bugprone-macro-parentheses) */    \
-  decltype(data::elem) elem;
+    /* NOLINTNEXTLINE(bugprone-macro-parentheses) */  \
+    decltype(data::elem) elem;
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define USERVER_IMPL_STRUCT_SUBSET_REF_MAP(r, data, elem) \
-  /* NOLINTNEXTLINE(bugprone-macro-parentheses) */        \
-  std::add_const_t<decltype(data::elem)>& elem;
+    /* NOLINTNEXTLINE(bugprone-macro-parentheses) */      \
+    std::add_const_t<decltype(data::elem)>& elem;
 
 /// @endcond
 
@@ -71,28 +69,22 @@ USERVER_NAMESPACE_END
 ///
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_ALLOW_CONVERSIONS_TO_SUBSET()                                  \
-  template <                                                                   \
-      typename Other,                                                          \
-      std::enable_if_t<                                                        \
-          USERVER_NAMESPACE::utils::impl::IsDefinedAndAggregate<Other>(), int> \
-          Enable = 0>                                                          \
-  /*implicit*/ operator Other() const& {                                       \
-    return Other::MakeFromSupersetImpl(                                        \
-        *this, USERVER_NAMESPACE::utils::impl::InternalTag{});                 \
-  }                                                                            \
-                                                                               \
-  template <                                                                   \
-      typename Other,                                                          \
-      std::enable_if_t<                                                        \
-          USERVER_NAMESPACE::utils::impl::IsDefinedAndAggregate<Other>(), int> \
-          Enable = 0>                                                          \
-  /*implicit*/ operator Other()&& {                                            \
-    return Other::MakeFromSupersetImpl(                                        \
-        std::move(*this), USERVER_NAMESPACE::utils::impl::InternalTag{});      \
-  }                                                                            \
-                                                                               \
-  friend struct USERVER_NAMESPACE::utils::impl::RequireSemicolon
+#define USERVER_ALLOW_CONVERSIONS_TO_SUBSET()                                                                \
+    template <                                                                                               \
+        typename Other,                                                                                      \
+        std::enable_if_t<USERVER_NAMESPACE::utils::impl::IsDefinedAndAggregate<Other>(), int> Enable = 0>    \
+    /*implicit*/ operator Other() const& {                                                                   \
+        return Other::MakeFromSupersetImpl(*this, USERVER_NAMESPACE::utils::impl::InternalTag{});            \
+    }                                                                                                        \
+                                                                                                             \
+    template <                                                                                               \
+        typename Other,                                                                                      \
+        std::enable_if_t<USERVER_NAMESPACE::utils::impl::IsDefinedAndAggregate<Other>(), int> Enable = 0>    \
+    /*implicit*/ operator Other()&& {                                                                        \
+        return Other::MakeFromSupersetImpl(std::move(*this), USERVER_NAMESPACE::utils::impl::InternalTag{}); \
+    }                                                                                                        \
+                                                                                                             \
+    friend struct USERVER_NAMESPACE::utils::impl::RequireSemicolon
 
 /// @brief Defines a struct containing a subset of data members
 /// from @a OriginalDependencies.
@@ -114,15 +106,18 @@ USERVER_NAMESPACE_END
 ///
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_DEFINE_STRUCT_SUBSET(SubsetStruct, OriginalStruct, ...)   \
-  struct SubsetStruct {                                                   \
-    BOOST_PP_SEQ_FOR_EACH(USERVER_IMPL_STRUCT_SUBSET_MAP, OriginalStruct, \
-                          USERVER_IMPL_VARIADIC_TO_SEQ(__VA_ARGS__))      \
-                                                                          \
-    USERVER_IMPL_MAKE_FROM_SUPERSET(SubsetStruct, __VA_ARGS__)            \
-                                                                          \
-    USERVER_ALLOW_CONVERSIONS_TO_SUBSET();                                \
-  }
+#define USERVER_DEFINE_STRUCT_SUBSET(SubsetStruct, OriginalStruct, ...) \
+    struct SubsetStruct {                                               \
+        BOOST_PP_SEQ_FOR_EACH(                                          \
+            USERVER_IMPL_STRUCT_SUBSET_MAP,                             \
+            OriginalStruct,                                             \
+            USERVER_IMPL_VARIADIC_TO_SEQ(__VA_ARGS__)                   \
+        )                                                               \
+                                                                        \
+        USERVER_IMPL_MAKE_FROM_SUPERSET(SubsetStruct, __VA_ARGS__)      \
+                                                                        \
+        USERVER_ALLOW_CONVERSIONS_TO_SUBSET();                          \
+    }
 
 /// @brief Defines a struct containing a subset of data members
 /// from @a OriginalDependencies. Appends `const&` to types of all non-reference
@@ -150,16 +145,18 @@ USERVER_NAMESPACE_END
 ///
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_DEFINE_STRUCT_SUBSET_REF(SubsetStructRef, OriginalStruct, ...) \
-  struct SubsetStructRef {                                                     \
-    BOOST_PP_SEQ_FOR_EACH(USERVER_IMPL_STRUCT_SUBSET_REF_MAP, OriginalStruct,  \
-                          USERVER_IMPL_VARIADIC_TO_SEQ(__VA_ARGS__))           \
-                                                                               \
-    /* Protects against copying into async functions */                        \
-    USERVER_NAMESPACE::utils::impl::NonMovable _impl_non_movable{              \
-        USERVER_NAMESPACE::utils::impl::InternalTag{}};                        \
-                                                                               \
-    USERVER_IMPL_MAKE_FROM_SUPERSET(SubsetStructRef, __VA_ARGS__)              \
-                                                                               \
-    USERVER_ALLOW_CONVERSIONS_TO_SUBSET();                                     \
-  }
+#define USERVER_DEFINE_STRUCT_SUBSET_REF(SubsetStructRef, OriginalStruct, ...)                                       \
+    struct SubsetStructRef {                                                                                         \
+        BOOST_PP_SEQ_FOR_EACH(                                                                                       \
+            USERVER_IMPL_STRUCT_SUBSET_REF_MAP,                                                                      \
+            OriginalStruct,                                                                                          \
+            USERVER_IMPL_VARIADIC_TO_SEQ(__VA_ARGS__)                                                                \
+        )                                                                                                            \
+                                                                                                                     \
+        /* Protects against copying into async functions */                                                          \
+        USERVER_NAMESPACE::utils::impl::NonMovable _impl_non_movable{USERVER_NAMESPACE::utils::impl::InternalTag{}}; \
+                                                                                                                     \
+        USERVER_IMPL_MAKE_FROM_SUPERSET(SubsetStructRef, __VA_ARGS__)                                                \
+                                                                                                                     \
+        USERVER_ALLOW_CONVERSIONS_TO_SUBSET();                                                                       \
+    }

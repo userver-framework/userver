@@ -14,17 +14,11 @@ def test_of_none(simple_parse):
 
 # stupid, but valid
 def test_1_empty(simple_parse):
-    parsed = simple_parse(
-        {
-            'allOf': [
-                {
-                    'type': 'object',
-                    'properties': {},
-                    'additionalProperties': False,
-                },
-            ],
-        },
-    )
+    parsed = simple_parse({
+        'allOf': [
+            {'type': 'object', 'properties': {}, 'additionalProperties': False},
+        ],
+    })
     assert parsed.schemas == {
         'vfull#/definitions/type': AllOf(
             allOf=[SchemaObject(properties={}, additionalProperties=False)],
@@ -33,22 +27,20 @@ def test_1_empty(simple_parse):
 
 
 def test_2_empty(simple_parse):
-    parsed = simple_parse(
-        {
-            'allOf': [
-                {
-                    'type': 'object',
-                    'properties': {},
-                    'additionalProperties': False,
-                },
-                {
-                    'type': 'object',
-                    'properties': {},
-                    'additionalProperties': False,
-                },
-            ],
-        },
-    )
+    parsed = simple_parse({
+        'allOf': [
+            {
+                'type': 'object',
+                'properties': {},
+                'additionalProperties': False,
+            },
+            {
+                'type': 'object',
+                'properties': {},
+                'additionalProperties': False,
+            },
+        ],
+    })
     assert parsed.schemas == {
         'vfull#/definitions/type': AllOf(
             allOf=[

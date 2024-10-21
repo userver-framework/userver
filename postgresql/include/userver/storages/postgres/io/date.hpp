@@ -37,44 +37,43 @@ namespace io {
 /// @brief Binary formatter for utils::datetime::Date
 template <>
 struct BufferFormatter<Date> {
-  const Date value;
+    const Date value;
 
-  explicit BufferFormatter(Date value) : value{value} {}
+    explicit BufferFormatter(Date value) : value{value} {}
 
-  template <typename Buffer>
-  void operator()(const UserTypes& types, Buffer& buffer) {
-    static const auto kPgEpoch = PostgresEpochDate();
-    if (value == kDatePositiveInfinity) {
-      WriteBuffer(types, buffer, std::numeric_limits<Integer>::max());
-    } else if (value == kDateNegativeInfinity) {
-      WriteBuffer(types, buffer, std::numeric_limits<Integer>::min());
-    } else {
-      auto pg_days = static_cast<Integer>(
-          (value.GetSysDays() - kPgEpoch.GetSysDays()).count());
-      WriteBuffer(types, buffer, pg_days);
+    template <typename Buffer>
+    void operator()(const UserTypes& types, Buffer& buffer) {
+        static const auto kPgEpoch = PostgresEpochDate();
+        if (value == kDatePositiveInfinity) {
+            WriteBuffer(types, buffer, std::numeric_limits<Integer>::max());
+        } else if (value == kDateNegativeInfinity) {
+            WriteBuffer(types, buffer, std::numeric_limits<Integer>::min());
+        } else {
+            auto pg_days = static_cast<Integer>((value.GetSysDays() - kPgEpoch.GetSysDays()).count());
+            WriteBuffer(types, buffer, pg_days);
+        }
     }
-  }
 };
 
 /// @brief Binary parser for utils::datetime::Date
 template <>
 struct BufferParser<Date> : detail::BufferParserBase<Date> {
-  using BaseType = detail::BufferParserBase<Date>;
+    using BaseType = detail::BufferParserBase<Date>;
 
-  using BaseType::BaseType;
+    using BaseType::BaseType;
 
-  void operator()(const FieldBuffer& buffer) {
-    static const auto kPgEpoch = PostgresEpochDate();
-    Integer pg_days{0};
-    ReadBuffer(buffer, pg_days);
-    if (pg_days == std::numeric_limits<Integer>::max()) {
-      this->value = kDatePositiveInfinity;
-    } else if (pg_days == std::numeric_limits<Integer>::min()) {
-      this->value = kDateNegativeInfinity;
-    } else {
-      this->value = kPgEpoch.GetSysDays() + Date::Days{pg_days};
+    void operator()(const FieldBuffer& buffer) {
+        static const auto kPgEpoch = PostgresEpochDate();
+        Integer pg_days{0};
+        ReadBuffer(buffer, pg_days);
+        if (pg_days == std::numeric_limits<Integer>::max()) {
+            this->value = kDatePositiveInfinity;
+        } else if (pg_days == std::numeric_limits<Integer>::min()) {
+            this->value = kDateNegativeInfinity;
+        } else {
+            this->value = kPgEpoch.GetSysDays() + Date::Days{pg_days};
+        }
     }
-  }
 };
 
 template <>

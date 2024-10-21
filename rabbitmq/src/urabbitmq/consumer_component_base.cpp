@@ -13,54 +13,52 @@ USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 
-ConsumerSettings Parse(const yaml_config::YamlConfig& config,
-                       formats::parse::To<ConsumerSettings>) {
-  ConsumerSettings settings;
-  settings.queue = Queue{config["queue"].As<std::string>()};
-  settings.prefetch_count = config["prefetch_count"].As<uint16_t>();
+ConsumerSettings Parse(const yaml_config::YamlConfig& config, formats::parse::To<ConsumerSettings>) {
+    ConsumerSettings settings;
+    settings.queue = Queue{config["queue"].As<std::string>()};
+    settings.prefetch_count = config["prefetch_count"].As<uint16_t>();
 
-  UINVARIANT(settings.prefetch_count > 0, "prefetch_count is set to zero");
+    UINVARIANT(settings.prefetch_count > 0, "prefetch_count is set to zero");
 
-  return settings;
+    return settings;
 }
 
 class ConsumerComponentBase::Impl final : public ConsumerBase {
- public:
-  Impl(std::shared_ptr<Client>&& client, const ConsumerSettings& settings)
-      : ConsumerBase{std::move(client), settings} {}
+public:
+    Impl(std::shared_ptr<Client>&& client, const ConsumerSettings& settings)
+        : ConsumerBase{std::move(client), settings} {}
 
-  ~Impl() override = default;
+    ~Impl() override = default;
 
-  void Start(ConsumerComponentBase* parent) {
-    parent_ = parent;
-    ConsumerBase::Start();
-  }
+    void Start(ConsumerComponentBase* parent) {
+        parent_ = parent;
+        ConsumerBase::Start();
+    }
 
- protected:
-  void Process(ConsumedMessage msg) override {
-    UASSERT(parent_ != nullptr);
-    parent_->Process(std::move(msg));
-  }
+protected:
+    void Process(ConsumedMessage msg) override {
+        UASSERT(parent_ != nullptr);
+        parent_->Process(std::move(msg));
+    }
 
-  void Process(std::string msg) override {
-    UASSERT(parent_ != nullptr);
-    parent_->Process(std::move(msg));
-  }
+    void Process(std::string msg) override {
+        UASSERT(parent_ != nullptr);
+        parent_->Process(std::move(msg));
+    }
 
- private:
-  ConsumerComponentBase* parent_{nullptr};
+private:
+    ConsumerComponentBase* parent_{nullptr};
 };
 
 ConsumerComponentBase::ConsumerComponentBase(
     const components::ComponentConfig& config,
-    const components::ComponentContext& context)
+    const components::ComponentContext& context
+)
     : components::ComponentBase{config, context},
       impl_{std::make_unique<Impl>(
-          context
-              .FindComponent<components::RabbitMQ>(
-                  config["rabbit_name"].As<std::string>())
-              .GetClient(),
-          config.As<ConsumerSettings>())} {}
+          context.FindComponent<components::RabbitMQ>(config["rabbit_name"].As<std::string>()).GetClient(),
+          config.As<ConsumerSettings>()
+      )} {}
 
 ConsumerComponentBase::~ConsumerComponentBase() = default;
 
@@ -69,7 +67,7 @@ void ConsumerComponentBase::OnAllComponentsLoaded() { impl_->Start(this); }
 void ConsumerComponentBase::OnAllComponentsAreStopping() { impl_->Stop(); }
 
 yaml_config::Schema ConsumerComponentBase::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<components::ComponentBase>(R"(
+    return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: RabbitMQ consumer component
 additionalProperties: false

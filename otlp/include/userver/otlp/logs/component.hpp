@@ -31,23 +31,30 @@ class Logger;
 /// max-batch-delay | Maximum batch delay | 100ms
 /// service-name | Service name | unknown_service
 /// attributes | Extra attributes for OTLP, object of key/value strings | -
+/// sinks | List of sinks | -
+/// sinks.logs | sink for logs (default|otlp|both) | otlp
+/// sinks.tracing | sink for tracing (default|otlp|both) | otlp
+///
+/// Possible sink values:
+/// * `otlp`: OTLP exporter
+/// * `default`: _default_ logger from the `logging` component
+/// * `both`: _default_ logger and OTLP exporter
 
 // clang-format on
 class LoggerComponent final : public components::RawComponentBase {
- public:
-  static constexpr std::string_view kName = "otlp-logger";
+public:
+    static constexpr std::string_view kName = "otlp-logger";
 
-  LoggerComponent(const components::ComponentConfig&,
-                  const components::ComponentContext&);
+    LoggerComponent(const components::ComponentConfig&, const components::ComponentContext&);
 
-  ~LoggerComponent();
+    ~LoggerComponent();
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  std::shared_ptr<Logger> logger_;
-  logging::LoggerRef old_logger_;
-  utils::statistics::Entry statistics_holder_;
+private:
+    std::shared_ptr<Logger> logger_;
+    logging::LoggerRef old_logger_;
+    utils::statistics::Entry statistics_holder_;
 };
 
 }  // namespace otlp

@@ -1,20 +1,16 @@
 project(userver-mysql CXX)
 
 file(GLOB_RECURSE SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
-
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp"
+)
 file(GLOB_RECURSE MYSQL_TEST_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/*_mysqltest.cpp
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.hpp"
 )
-list(REMOVE_ITEM SOURCES ${MYSQL_TEST_SOURCES})
-
 file(GLOB_RECURSE MYSQL_BENCH_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/*_mysqlbench.cpp
-)
-list(REMOVE_ITEM SOURCES ${MYSQL_BENCH_SOURCES})
-list(APPEND MYSQL_BENCH_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/tests/utils_mysqltest.cpp
+    "${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/*.hpp"
 )
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
@@ -25,58 +21,46 @@ endif()
 
 find_package(libmariadb REQUIRED)
 
-target_link_libraries(${PROJECT_NAME}
-  PUBLIC
-    userver-core
-)
+target_link_libraries(${PROJECT_NAME} PUBLIC userver-core)
 target_include_directories(
-  ${PROJECT_NAME}
-  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${PROJECT_NAME}
+    PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )
 
 _userver_directory_install(COMPONENT mysql
-  DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
+    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
 )
 _userver_install_targets(COMPONENT mysql TARGETS ${PROJECT_NAME})
 
 _userver_directory_install(COMPONENT mysql FILES
     "${USERVER_ROOT_DIR}/cmake/install/userver-mysql-config.cmake"
     "${USERVER_ROOT_DIR}/cmake/modules/Findlibmariadb.cmake"
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver"
 )
 
 if (USERVER_IS_THE_ROOT_PROJECT)
   add_executable(${PROJECT_NAME}-mysqltest ${MYSQL_TEST_SOURCES})
   target_include_directories(${PROJECT_NAME}-mysqltest PRIVATE
-    $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
+      $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
   )
-  target_link_libraries(${PROJECT_NAME}-mysqltest userver-utest ${PROJECT_NAME}
-          mariadb
-    )
-  set(TESTS_TEMPLATE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/tests/tests_runner.sh)
-  set(UNIT_TESTS_PATH ${CMAKE_CURRENT_BINARY_DIR}/unit_tests.sh)
-  set(TESTS_BINARY_PATH ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-mysqltest)
-  set(TESTS_ARGS --gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${PROJECT_NAME}-mysqltest.xml)
-  execute_process(COMMAND cp ${TESTS_TEMPLATE_PATH} ${UNIT_TESTS_PATH})
-  execute_process(COMMAND sed -i "s%__BINARY__%${TESTS_BINARY_PATH}%" ${UNIT_TESTS_PATH})
-  execute_process(COMMAND sed -i "s%__ARGS__%${TESTS_ARGS}%" ${UNIT_TESTS_PATH})
-  add_test(${PROJECT_NAME}_mysqltest
-    env
-      ${CMAKE_BINARY_DIR}/testsuite/env
-      --databases=mysql
-      run --
-      ${UNIT_TESTS_PATH}
+  target_link_libraries(${PROJECT_NAME}-mysqltest PRIVATE
+      userver-utest
+      ${PROJECT_NAME}
+      mariadb
   )
+  userver_add_utest(NAME ${PROJECT_NAME}-mysqltest DATABASES mysql)
 
   add_executable(${PROJECT_NAME}-benchmark ${MYSQL_BENCH_SOURCES})
   target_include_directories(${PROJECT_NAME}-benchmark PRIVATE
-    $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
+      $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
   )
-  target_link_libraries(${PROJECT_NAME}-benchmark PRIVATE userver-ubench ${PROJECT_NAME}
-          mariadb
-    )
+  target_link_libraries(${PROJECT_NAME}-benchmark PRIVATE
+      userver-ubench
+      ${PROJECT_NAME}
+      mariadb
+  )
 
   add_subdirectory(functional_tests)
 endif()

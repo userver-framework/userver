@@ -5,8 +5,8 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::postgres::detail {
 
 enum class DefaultCommandControlSource {
-  kGlobalConfig,
-  kUser,
+    kGlobalConfig,
+    kUser,
 };
 
 }  // namespace storages::postgres::detail

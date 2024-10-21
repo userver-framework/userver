@@ -14,18 +14,23 @@ namespace pg = storages::postgres;
 class Standalone : public PostgreSQLBase {};
 
 UTEST_F(Standalone, Smoke) {
-  pg::detail::topology::Standalone sa(
-      GetTaskProcessor(), GetDsnListFromEnv(), nullptr,
-      pg::TopologySettings{utest::kMaxTestWaitTime}, pg::ConnectionSettings{},
-      GetTestCmdCtls(), testsuite::PostgresControl{},
-      error_injection::Settings{});
+    pg::detail::topology::Standalone sa(
+        GetTaskProcessor(),
+        GetDsnListFromEnv(),
+        nullptr,
+        pg::TopologySettings{utest::kMaxTestWaitTime},
+        pg::ConnectionSettings{},
+        GetTestCmdCtls(),
+        testsuite::PostgresControl{},
+        error_injection::Settings{}
+    );
 
-  auto hosts = sa.GetDsnIndicesByType();
-  EXPECT_EQ(1, hosts->count(pg::ClusterHostType::kMaster));
-  EXPECT_EQ(0, hosts->count(pg::ClusterHostType::kSlave));
+    auto hosts = sa.GetDsnIndicesByType();
+    EXPECT_EQ(1, hosts->count(pg::ClusterHostType::kMaster));
+    EXPECT_EQ(0, hosts->count(pg::ClusterHostType::kSlave));
 
-  auto alive = sa.GetAliveDsnIndices();
-  EXPECT_EQ(1, alive->size());
+    auto alive = sa.GetAliveDsnIndices();
+    EXPECT_EQ(1, alive->size());
 }
 
 USERVER_NAMESPACE_END

@@ -6,13 +6,13 @@ extern "C" {
 __attribute__((section("cxa"))) abi::__cxa_eh_globals*
 // NOLINTNEXTLINE(hicpp-use-noexcept,modernize-use-noexcept)
 __cxa_get_globals() throw() {
-  return engine::impl::GetGlobals();
+    return engine::impl::GetGlobals();
 }
 
 __attribute__((section("cxa"))) abi::__cxa_eh_globals*
 // NOLINTNEXTLINE(hicpp-use-noexcept,modernize-use-noexcept)
 __cxa_get_globals_fast() throw() {
-  return engine::impl::GetGlobals();
+    return engine::impl::GetGlobals();
 }
 
 }  // extern "C"

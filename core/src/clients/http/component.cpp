@@ -27,35 +27,26 @@ namespace {
 constexpr size_t kDestinationMetricsAutoMaxSizeDefault = 100;
 constexpr std::string_view kHttpClientPluginPrefix = "http-client-plugin-";
 
-clients::http::ClientSettings GetClientSettings(
-    const ComponentConfig& component_config, const ComponentContext& context) {
-  clients::http::ClientSettings settings;
-  settings = component_config.As<clients::http::ClientSettings>();
-  auto& tracing_locator =
-      context.FindComponent<tracing::DefaultTracingManagerLocator>();
-  settings.tracing_manager = &tracing_locator.GetTracingManager();
-  auto* propagator_component = context.FindComponentOptional<
-      server::middlewares::HeadersPropagatorFactory>();
-  if (propagator_component) {
-    settings.headers_propagator = &propagator_component->Get();
-  }
-  settings.cancellation_policy =
-      component_config["cancellation-policy"]
-          .As<clients::http::CancellationPolicy>(
-              clients::http::CancellationPolicy::kCancel);
-  return settings;
+clients::http::ClientSettings
+GetClientSettings(const ComponentConfig& component_config, const ComponentContext& context) {
+    clients::http::ClientSettings settings;
+    settings = component_config.As<clients::http::ClientSettings>();
+    auto& tracing_locator = context.FindComponent<tracing::DefaultTracingManagerLocator>();
+    settings.tracing_manager = &tracing_locator.GetTracingManager();
+    settings.cancellation_policy = component_config["cancellation-policy"].As<clients::http::CancellationPolicy>(
+        clients::http::CancellationPolicy::kCancel
+    );
+    return settings;
 }
 
 void ValidateCurlVersion() {
-  const auto curr_ver = std::make_tuple(
-      LIBCURL_VERSION_MAJOR, LIBCURL_VERSION_MINOR, LIBCURL_VERSION_PATCH);
-  if (std::make_tuple(7, 88, 0) <= curr_ver &&
-      std::make_tuple(8, 1, 2) >= curr_ver) {
-    // See TAXICOMMON-7844
-    throw std::runtime_error("Unsupported libcurl " LIBCURL_VERSION
-                             ", versions from 7.88.0 to 8.1.2 are known to "
-                             "crash on HTTP/2 requests");
-  }
+    const auto curr_ver = std::make_tuple(LIBCURL_VERSION_MAJOR, LIBCURL_VERSION_MINOR, LIBCURL_VERSION_PATCH);
+    if (std::make_tuple(7, 88, 0) <= curr_ver && std::make_tuple(8, 1, 2) >= curr_ver) {
+        // See TAXICOMMON-7844
+        throw std::runtime_error("Unsupported libcurl " LIBCURL_VERSION
+                                 ", versions from 7.88.0 to 8.1.2 are known to "
+                                 "crash on HTTP/2 requests");
+    }
 }
 
 /// [docs map config sample]
@@ -84,109 +75,91 @@ const dynamic_config::Key kClientConfig{
 
 }  // namespace
 
-HttpClient::HttpClient(const ComponentConfig& component_config,
-                       const ComponentContext& context)
+HttpClient::HttpClient(const ComponentConfig& component_config, const ComponentContext& context)
     : ComponentBase(component_config, context),
-      disable_pool_stats_(
-          component_config["pool-statistics-disable"].As<bool>(false)),
+      disable_pool_stats_(component_config["pool-statistics-disable"].As<bool>(false)),
       http_client_(
           GetClientSettings(component_config, context),
-          context.GetTaskProcessor(
-              component_config["fs-task-processor"].As<std::string>()),
-          FindPlugins(component_config["plugins"].As<std::vector<std::string>>(
-                          std::vector<std::string>()),
-                      context)) {
-  ValidateCurlVersion();
+          context.GetTaskProcessor(component_config["fs-task-processor"].As<std::string>()),
+          FindPlugins(component_config["plugins"].As<std::vector<std::string>>(std::vector<std::string>()), context)
+      ) {
+    ValidateCurlVersion();
 
-  http_client_.SetDestinationMetricsAutoMaxSize(
-      component_config["destination-metrics-auto-max-size"].As<size_t>(
-          kDestinationMetricsAutoMaxSizeDefault));
+    http_client_.SetDestinationMetricsAutoMaxSize(
+        component_config["destination-metrics-auto-max-size"].As<size_t>(kDestinationMetricsAutoMaxSizeDefault)
+    );
 
-  http_client_.SetDnsResolver(
-      clients::dns::GetResolverPtr(component_config, context));
+    http_client_.SetDnsResolver(clients::dns::GetResolverPtr(component_config, context));
 
-  auto user_agent =
-      component_config["user-agent"].As<std::optional<std::string>>();
-  if (user_agent) {
-    if (!user_agent->empty()) {
-      http_client_.ResetUserAgent(std::move(*user_agent));
+    auto user_agent = component_config["user-agent"].As<std::optional<std::string>>();
+    if (user_agent) {
+        if (!user_agent->empty()) {
+            http_client_.ResetUserAgent(std::move(*user_agent));
+        } else {
+            http_client_.ResetUserAgent({});  // no user agent
+        }
     } else {
-      http_client_.ResetUserAgent({});  // no user agent
+        // Leaving the default one
     }
-  } else {
-    // Leaving the default one
-  }
 
-  auto testsuite_enabled =
-      component_config["testsuite-enabled"].As<bool>(false);
-  if (testsuite_enabled) {
-    const auto& timeout = component_config["testsuite-timeout"]
-                              .As<std::optional<std::chrono::milliseconds>>();
-    auto prefixes = component_config["testsuite-allowed-url-prefixes"]
-                        .As<std::vector<std::string>>({});
-    http_client_.SetTestsuiteConfig({prefixes, timeout});
+    auto testsuite_enabled = component_config["testsuite-enabled"].As<bool>(false);
+    if (testsuite_enabled) {
+        const auto& timeout = component_config["testsuite-timeout"].As<std::optional<std::chrono::milliseconds>>();
+        auto prefixes = component_config["testsuite-allowed-url-prefixes"].As<std::vector<std::string>>({});
+        http_client_.SetTestsuiteConfig({prefixes, timeout});
 
-    auto& testsuite = context.FindComponent<components::TestsuiteSupport>();
-    testsuite.GetHttpAllowedUrlsExtra().RegisterHttpClient(http_client_);
-  }
+        auto& testsuite = context.FindComponent<components::TestsuiteSupport>();
+        testsuite.GetHttpAllowedUrlsExtra().RegisterHttpClient(http_client_);
+    }
 
-  clients::http::impl::Config bootstrap_config;
-  bootstrap_config.proxy =
-      component_config["bootstrap-http-proxy"].As<std::string>({});
-  http_client_.SetConfig(bootstrap_config);
+    clients::http::impl::Config bootstrap_config;
+    bootstrap_config.proxy = component_config["bootstrap-http-proxy"].As<std::string>({});
+    http_client_.SetConfig(bootstrap_config);
 
-  auto& config_component = context.FindComponent<components::DynamicConfig>();
-  subscriber_scope_ =
-      components::DynamicConfig::NoblockSubscriber{config_component}
-          .GetEventSource()
-          .AddListener(this, kName, &HttpClient::OnConfigUpdate);
+    auto& config_component = context.FindComponent<components::DynamicConfig>();
+    subscriber_scope_ = components::DynamicConfig::NoblockSubscriber{config_component}.GetEventSource().AddListener(
+        this, kName, &HttpClient::OnConfigUpdate
+    );
 
-  const auto thread_name_prefix =
-      component_config["thread-name-prefix"].As<std::string>("");
-  auto stats_name =
-      "httpclient" +
-      (thread_name_prefix.empty() ? "" : ("-" + thread_name_prefix));
-  auto& storage =
-      context.FindComponent<components::StatisticsStorage>().GetStorage();
-  statistics_holder_ = storage.RegisterWriter(
-      std::move(stats_name), [this](utils::statistics::Writer& writer) {
+    const auto thread_name_prefix = component_config["thread-name-prefix"].As<std::string>("");
+    auto stats_name = "httpclient" + (thread_name_prefix.empty() ? "" : ("-" + thread_name_prefix));
+    auto& storage = context.FindComponent<components::StatisticsStorage>().GetStorage();
+    statistics_holder_ = storage.RegisterWriter(std::move(stats_name), [this](utils::statistics::Writer& writer) {
         return WriteStatistics(writer);
-      });
+    });
 }
 
-std::vector<utils::NotNull<clients::http::Plugin*>> HttpClient::FindPlugins(
-    const std::vector<std::string>& names,
-    const components::ComponentContext& context) {
-  std::vector<utils::NotNull<clients::http::Plugin*>> plugins;
-  for (const auto& name : names) {
-    auto& component =
-        context.FindComponent<clients::http::plugin::ComponentBase>(
-            std::string{kHttpClientPluginPrefix} + name);
-    plugins.emplace_back(&component.GetPlugin());
-  }
-  return plugins;
+std::vector<utils::NotNull<clients::http::Plugin*>>
+HttpClient::FindPlugins(const std::vector<std::string>& names, const components::ComponentContext& context) {
+    std::vector<utils::NotNull<clients::http::Plugin*>> plugins;
+    for (const auto& name : names) {
+        auto& component =
+            context.FindComponent<clients::http::plugin::ComponentBase>(std::string{kHttpClientPluginPrefix} + name);
+        plugins.emplace_back(&component.GetPlugin());
+    }
+    return plugins;
 }
 
 HttpClient::~HttpClient() {
-  subscriber_scope_.Unsubscribe();
-  statistics_holder_.Unregister();
+    subscriber_scope_.Unsubscribe();
+    statistics_holder_.Unregister();
 }
 
 clients::http::Client& HttpClient::GetHttpClient() { return http_client_; }
 
 void HttpClient::OnConfigUpdate(const dynamic_config::Snapshot& config) {
-  http_client_.SetConfig(config[kClientConfig]);
+    http_client_.SetConfig(config[kClientConfig]);
 }
 
 void HttpClient::WriteStatistics(utils::statistics::Writer& writer) {
-  if (!disable_pool_stats_) {
-    DumpMetric(writer, http_client_.GetPoolStatistics());
-  }
-  DumpMetric(writer, http_client_.GetDestinationStatistics());
+    if (!disable_pool_stats_) {
+        DumpMetric(writer, http_client_.GetPoolStatistics());
+    }
+    DumpMetric(writer, http_client_.GetDestinationStatistics());
 }
 
 yaml_config::Schema HttpClient::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<ComponentBase>(R"(
+    return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: Component that manages clients::http::Client.
 additionalProperties: false

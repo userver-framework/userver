@@ -8,23 +8,21 @@ namespace sample::grpc::auth::client {
 
 /// [gRPC middleware sample - Middleware and MiddlewareFactory declaration]
 class Middleware final : public ugrpc::client::MiddlewareBase {
- public:
-  explicit Middleware();
+public:
+    explicit Middleware();
 
-  ~Middleware() override;
+    ~Middleware() override;
 
-  void PreStartCall(
-      ugrpc::client::MiddlewareCallContext& context) const override;
+    void PreStartCall(ugrpc::client::MiddlewareCallContext& context) const override;
 };
 
 class MiddlewareFactory final : public ugrpc::client::MiddlewareFactoryBase {
- public:
-  explicit MiddlewareFactory(const components::ComponentContext& context);
+public:
+    explicit MiddlewareFactory(const components::ComponentContext& context);
 
-  ~MiddlewareFactory() override;
+    ~MiddlewareFactory() override;
 
-  std::shared_ptr<const ugrpc::client::MiddlewareBase> GetMiddleware(
-      std::string_view) const override;
+    std::shared_ptr<const ugrpc::client::MiddlewareBase> GetMiddleware(std::string_view) const override;
 };
 /// [gRPC middleware sample - Middleware and MiddlewareFactory declaration]
 

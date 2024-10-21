@@ -3,7 +3,6 @@ import typing
 
 import pytest
 
-
 SUCCESS_IPV4 = '77.88.55.55:0'
 SUCCESS_IPV6 = '[2a02:6b8:a::a]:0'
 SUCCESS_RESOLVE = f'{SUCCESS_IPV6}, {SUCCESS_IPV4}'
@@ -20,10 +19,10 @@ class CheckQuery(enum.Enum):
 @pytest.fixture(name='call')
 def _call(service_client, gen_domain_name, dns_mock_stats):
     async def _call(
-            resolve: typing.Optional[str] = None,
-            htype: str = 'resolve',
-            check_query: CheckQuery = CheckQuery.NO_CHECK,
-            **args,
+        resolve: typing.Optional[str] = None,
+        htype: str = 'resolve',
+        check_query: CheckQuery = CheckQuery.NO_CHECK,
+        **args,
     ):
         if not resolve:
             resolve = gen_domain_name()

@@ -42,11 +42,13 @@ class ErrorType(enum.Enum):
 @pytest.fixture(name='call')
 def _call(modified_service_client, gate):
     async def _call(
-            htype: str = 'common',
-            data: typing.Any = None,
-            timeout: float = DEFAULT_TIMEOUT,
-            testsuite_skip_prepare: bool = False,
-            headers: typing.Optional[typing.Dict[str, str]] = None,
+        htype: str = 'common',
+        data: typing.Any = None,
+        timeout: float = DEFAULT_TIMEOUT,
+        testsuite_skip_prepare: bool = False,
+        headers: typing.Optional[typing.Dict[str, str]] = None,
+        args: typing.Dict[str, str] = {},
+        url: str = '/chaos/httpserver',
     ) -> typing.Union[http.ClientResponse, ErrorType]:
         try:
             if not data:
@@ -54,10 +56,10 @@ def _call(modified_service_client, gate):
             if headers is None:
                 headers = HEADERS
             return await modified_service_client.get(
-                '/chaos/httpserver',
+                url,
                 headers=headers,
                 timeout=timeout,
-                params={'type': htype},
+                params={'type': htype, **args},
                 data=data,
                 testsuite_skip_prepare=testsuite_skip_prepare,
             )
@@ -104,6 +106,29 @@ async def test_ok(call):
     assert response.text == 'OK!'
 
 
+async def test_ok_args(call):
+    response = await call(
+        htype='echo-and-check-args',
+        data='abcd',
+        testsuite_skip_prepare=True,
+        args={'srv': 'mt-dev', 'lang': 'en-ru'},
+    )
+    assert response.status == 200
+    assert response.text == 'abcd'
+
+
+async def test_ok_body_args(call):
+    response = await call(
+        htype='echo-and-check-args',
+        data='lang=en-ru',
+        testsuite_skip_prepare=True,
+        args={'srv': 'mt-dev'},
+        url='/chaos/httpserver-parse-body-args',
+    )
+    assert response.status == 200
+    assert response.text == 'lang=en-ru'
+
+
 async def test_ok_compressed_gzip(call):
     response = await call(
         htype='echo',
@@ -115,6 +140,31 @@ async def test_ok_compressed_gzip(call):
     assert response.text == 'abcd'
 
 
+async def test_ok_compressed_gzip_args(call):
+    response = await call(
+        htype='echo-and-check-args',
+        headers={'content-encoding': 'gzip'},
+        data=gzip.compress('abcd'.encode()),
+        testsuite_skip_prepare=True,
+        args={'srv': 'mt-dev', 'lang': 'en-ru'},
+    )
+    assert response.status == 200
+    assert response.text == 'abcd'
+
+
+async def test_ok_compressed_gzip_body_args(call):
+    response = await call(
+        htype='echo-and-check-args',
+        headers={'content-encoding': 'gzip'},
+        data=gzip.compress('lang=en-ru'.encode()),
+        testsuite_skip_prepare=True,
+        args={'srv': 'mt-dev'},
+        url='/chaos/httpserver-parse-body-args',
+    )
+    assert response.status == 200
+    assert response.text == 'lang=en-ru'
+
+
 async def test_ok_compressed_zstd(call):
     response = await call(
         htype='echo',
@@ -124,6 +174,31 @@ async def test_ok_compressed_zstd(call):
     )
     assert response.status == 200
     assert response.text == 'abcdefgh'
+
+
+async def test_ok_compressed_zstd_args(call):
+    response = await call(
+        htype='echo-and-check-args',
+        headers={'content-encoding': 'zstd'},
+        data=zstd.compress('abcdefgh'.encode()),
+        testsuite_skip_prepare=True,
+        args={'srv': 'mt-dev', 'lang': 'en-ru'},
+    )
+    assert response.status == 200
+    assert response.text == 'abcdefgh'
+
+
+async def test_ok_compressed_zstd_body_args(call):
+    response = await call(
+        htype='echo-and-check-args',
+        headers={'content-encoding': 'zstd'},
+        data=zstd.compress('lang=en-ru'.encode()),
+        testsuite_skip_prepare=True,
+        args={'srv': 'mt-dev'},
+        url='/chaos/httpserver-parse-body-args',
+    )
+    assert response.status == 200
+    assert response.text == 'lang=en-ru'
 
 
 async def test_stop_accepting(call, gate, check_restore):
@@ -250,7 +325,7 @@ async def _handler_metrics(monitor_client, gate):
 
 
 async def test_deadline_immediately_expired(
-        call, gate, testpoint, service_client, handler_metrics,
+    call, gate, testpoint, service_client, handler_metrics,
 ):
     @testpoint('testpoint_request')
     async def test(_data):

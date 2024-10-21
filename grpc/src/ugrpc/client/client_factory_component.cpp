@@ -2,15 +2,13 @@
 
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
-#include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/storages/secdist/component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <ugrpc/client/impl/client_factory_config.hpp>
-#include <userver/ugrpc/server/middlewares/fwd.hpp>
-#include <userver/ugrpc/server/server_component.hpp>
+#include <userver/ugrpc/client/common_component.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -18,68 +16,61 @@ namespace ugrpc::client {
 
 namespace {
 
-const storages::secdist::SecdistConfig* GetSecdist(
-    const components::ComponentContext& context) {
-  const auto* component = context.FindComponentOptional<components::Secdist>();
-  if (component) {
-    return &component->Get();
-  } else {
+const storages::secdist::SecdistConfig* GetSecdist(const components::ComponentContext& context) {
+    if (const auto* const component = context.FindComponentOptional<components::Secdist>()) {
+        return &component->Get();
+    }
     return nullptr;
-  }
+}
+
+MiddlewareFactories
+FindMiddlewareFactories(const std::vector<std::string>& names, const components::ComponentContext& context) {
+    MiddlewareFactories mws;
+    for (const auto& name : names) {
+        auto& component = context.FindComponent<MiddlewareComponentBase>(name);
+        mws.push_back(component.GetMiddlewareFactory());
+    }
+    return mws;
 }
 
 }  // namespace
 
 ClientFactoryComponent::ClientFactoryComponent(
     const components::ComponentConfig& config,
-    const components::ComponentContext& context)
+    const components::ComponentContext& context
+)
     : ComponentBase(config, context) {
-  auto& task_processor =
-      context.GetTaskProcessor(config["task-processor"].As<std::string>());
+    auto& processor_component = context.FindComponent<CommonComponent>();
 
-  grpc::CompletionQueue* queue = nullptr;
-  if (auto* const server =
-          context.FindComponentOptional<ugrpc::server::ServerComponent>()) {
-    queue = &server->GetServer().GetCompletionQueue();
-  } else {
-    queue_.emplace();
-    queue = &queue_->GetQueue();
-  }
+    const auto config_source = context.FindComponent<components::DynamicConfig>().GetSource();
 
-  auto& statistics_storage =
-      context.FindComponent<components::StatisticsStorage>().GetStorage();
-  const auto config_source =
-      context.FindComponent<components::DynamicConfig>().GetSource();
+    auto& testsuite_grpc = context.FindComponent<components::TestsuiteSupport>().GetGrpcControl();
 
-  auto& testsuite_grpc =
-      context.FindComponent<components::TestsuiteSupport>().GetGrpcControl();
+    auto middlewares = FindMiddlewareFactories(config["middlewares"].As<std::vector<std::string>>(), context);
 
-  MiddlewareFactories mws;
-  auto middleware_names =
-      config["middlewares"].As<std::vector<std::string>>({});
-  for (const auto& name : middleware_names) {
-    auto& component = context.FindComponent<MiddlewareComponentBase>(name);
-    mws.push_back(component.GetMiddlewareFactory());
-  }
-  auto factory_config = config.As<impl::ClientFactoryConfig>();
+    auto factory_config = config.As<impl::ClientFactoryConfig>();
 
-  const auto* secdist = GetSecdist(context);
-  factory_.emplace(MakeFactorySettings(std::move(factory_config), secdist),
-                   task_processor, mws, *queue, statistics_storage,
-                   testsuite_grpc, config_source);
+    const auto* secdist = GetSecdist(context);
+
+    factory_.emplace(
+        MakeFactorySettings(std::move(factory_config), secdist),
+        processor_component.blocking_task_processor_,
+        std::move(middlewares),  //
+        processor_component.completion_queues_,
+        processor_component.client_statistics_storage_,
+        testsuite_grpc,  //
+        config_source
+    );
 }
 
 ClientFactory& ClientFactoryComponent::GetFactory() { return *factory_; }
 
 yaml_config::Schema ClientFactoryComponent::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<components::ComponentBase>(R"(
+    return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: Provides a ClientFactory in the component system
 additionalProperties: false
 properties:
-    task-processor:
-        type: string
-        description: the task processor for blocking channel creation
     channel-args:
         type: object
         description: a map of channel arguments, see gRPC Core docs
@@ -88,14 +79,6 @@ properties:
             type: string
             description: value of channel argument, must be string or integer
         properties: {}
-    native-log-level:
-        type: string
-        description: min log level for the native gRPC library
-        defaultDescription: error
-        enum:
-          - debug
-          - info
-          - error
     auth-type:
         type: string
         description: an optional authentication method

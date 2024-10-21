@@ -1,7 +1,9 @@
 #pragma once
 
+/// @file userver/utils/statistics/busy.hpp
+/// @brief @copybrief utils::statistics::BusyMarker
+
 #include <memory>
-#include <vector>
 
 #include <userver/utils/statistics/recentperiod.hpp>
 
@@ -9,58 +11,55 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
 
-using Duration = std::chrono::steady_clock::duration;
-
-/* Storage of how much time we've spent in work recently, in %.
- * 'max_workers' limits number of threads working at the same time. */
+/// Measure how much time we've spent in work recently in percents that
+/// supports recirsive starts. Use
+/// utils::statistics::BusyMarker for RAII time measures.
+///
+/// @snippet utils/statistics/busy_test.cpp  busy sample
 class BusyStorage final {
- public:
-  BusyStorage(Duration epoch_duration, Duration history_period,
-              size_t max_workers = 1);
+public:
+    using Duration = std::chrono::steady_clock::duration;
 
-  ~BusyStorage();
+    BusyStorage(Duration epoch_duration, Duration history_period);
 
-  double GetCurrentLoad() const;
+    ~BusyStorage();
 
-  using WorkerId = size_t;
+    /// Safe to read concurrently with calling StartWork() and StopWork()
+    double GetCurrentLoad() const;
 
-  WorkerId StartWork();
+    /// Starts the time measure, if it was not already started
+    void StartWork();
 
-  void StopWork(WorkerId worker_id);
+    /// Stops the time measure if the count of StopWork() invocations matches the
+    /// StartWork() invocations count.
+    void StopWork() noexcept;
 
- private:
-  WorkerId PopWorkerId();
+    /// Returns true if the time measure is active
+    bool IsAlreadyStarted() const noexcept;
 
-  Duration GetNotCommittedLoad(WorkerId worker_id) const;
+private:
+    Duration GetNotCommittedLoad() const noexcept;
 
-  bool IsAlreadyStarted() const;
-
-  bool UpdateCurrentWorkerLoad(std::vector<Duration>& load) const;
-
-  struct Impl;
-  std::unique_ptr<Impl> pimpl;
-
-  friend class BusyMarker;
+    struct Impl;
+    std::unique_ptr<Impl> pimpl;
 };
 
-/* A RAII-style guard to account code block execution time in BusyStorage.
- * It is reentrant, IOW you may create BusyMarker inside of another BusyMarker
- * and work time is accounted correctly (based on the outer BusyMarker
- * lifetime).
- */
+/// @brief A RAII-style guard to account code block execution time in
+/// utils::statistics::BusyStorage. Aware of recursive invokations in the same
+/// thread.
+///
+/// @snippet utils/statistics/busy_test.cpp  busy sample
 class BusyMarker final {
- public:
-  BusyMarker(BusyStorage& storage)
-      : storage_(storage), worker_id_(storage.StartWork()) {}
+public:
+    BusyMarker(BusyStorage& storage) : storage_(storage) { storage_.StartWork(); }
 
-  BusyMarker(const BusyMarker&) = delete;
-  BusyMarker& operator=(const BusyMarker&) = delete;
+    BusyMarker(const BusyMarker&) = delete;
+    BusyMarker& operator=(const BusyMarker&) = delete;
 
-  ~BusyMarker() { storage_.StopWork(worker_id_); }
+    ~BusyMarker() { storage_.StopWork(); }
 
- private:
-  BusyStorage& storage_;
-  BusyStorage::WorkerId worker_id_;
+private:
+    BusyStorage& storage_;
 };
 
 }  // namespace utils::statistics

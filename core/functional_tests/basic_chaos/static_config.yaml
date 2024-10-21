@@ -17,6 +17,12 @@ components_manager:
             task_processor: main-task-processor
             method: GET,DELETE,POST
 
+        handler-chaos-httpserver-parse-body-args:
+            path: /chaos/httpserver-parse-body-args
+            parse_args_from_body: true
+            task_processor: main-task-processor
+            method: GET,DELETE,POST
+
         handler-chaos-httpserver-with-exception:
             path: /chaos/httpserver-with-exception
             task_processor: main-task-processor

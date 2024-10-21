@@ -4,7 +4,6 @@ import typing
 import pytest
 from pytest_userver import chaos
 
-
 pytest_plugins = ['pytest_userver.plugins.rabbitmq']
 
 

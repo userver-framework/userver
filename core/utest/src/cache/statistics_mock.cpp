@@ -4,8 +4,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace cache {
 
-UpdateStatisticsScopeMock::UpdateStatisticsScopeMock(UpdateType type)
-    : scope_(stats_, type) {}
+UpdateStatisticsScopeMock::UpdateStatisticsScopeMock(UpdateType type) : scope_(stats_, type) {}
 
 UpdateStatisticsScope& UpdateStatisticsScopeMock::GetScope() { return scope_; }
 

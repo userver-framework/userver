@@ -18,21 +18,21 @@ class RedisLocalImpl;
 ///
 /// Provide access to localhost Redis
 class RedisLocal {
- public:
-  RedisLocal();
-  ~RedisLocal();
+public:
+    RedisLocal();
+    ~RedisLocal();
 
-  /// Get client
-  ClientPtr GetClient() const;
+    /// Get client
+    ClientPtr GetClient() const;
 
-  /// Get subscribe client
-  SubscribeClientPtr GetSubscribeClient() const;
+    /// Get subscribe client
+    SubscribeClientPtr GetSubscribeClient() const;
 
-  /// call `flushdb` command
-  void FlushDb();
+    /// call `flushdb` command
+    void FlushDb();
 
- private:
-  std::unique_ptr<impl::RedisLocalImpl> impl_;
+private:
+    std::unique_ptr<impl::RedisLocalImpl> impl_;
 };
 
 }  // namespace storages::redis::utest

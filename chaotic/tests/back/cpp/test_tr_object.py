@@ -10,9 +10,11 @@ from chaotic.back.cpp.types import CppStructPrimitiveField
 
 
 def test_empty(simple_gen):
-    schemas = simple_gen(
-        {'type': 'object', 'properties': {}, 'additionalProperties': False},
-    )
+    schemas = simple_gen({
+        'type': 'object',
+        'properties': {},
+        'additionalProperties': False,
+    })
     assert schemas == {
         '/definitions/type': CppStruct(
             raw_cpp_type=type_name.TypeName('/definitions/type'),
@@ -25,13 +27,11 @@ def test_empty(simple_gen):
 
 
 def test_additional_properties_simple(simple_gen):
-    schemas = simple_gen(
-        {
-            'type': 'object',
-            'properties': {},
-            'additionalProperties': {'type': 'integer'},
-        },
-    )
+    schemas = simple_gen({
+        'type': 'object',
+        'properties': {},
+        'additionalProperties': {'type': 'integer'},
+    })
     assert schemas == {
         '/definitions/type': CppStruct(
             raw_cpp_type=type_name.TypeName('/definitions/type'),
@@ -54,13 +54,11 @@ def test_additional_properties_simple(simple_gen):
 
 @pytest.mark.skip(reason='see comment in translator.py: _gen_field()')
 def test_field_external(simple_gen):
-    schemas = simple_gen(
-        {
-            'type': 'object',
-            'properties': {'field': {'type': 'integer'}},
-            'additionalProperties': False,
-        },
-    )
+    schemas = simple_gen({
+        'type': 'object',
+        'properties': {'field': {'type': 'integer'}},
+        'additionalProperties': False,
+    })
     assert schemas == {
         '/definitions/type': CppStruct(
             raw_cpp_type=type_name.TypeName('/definitions/type'),
@@ -82,13 +80,11 @@ def test_field_external(simple_gen):
 
 
 def test_field_with_default(simple_gen):
-    schemas = simple_gen(
-        {
-            'type': 'object',
-            'properties': {'field': {'type': 'integer', 'default': 1}},
-            'additionalProperties': False,
-        },
-    )
+    schemas = simple_gen({
+        'type': 'object',
+        'properties': {'field': {'type': 'integer', 'default': 1}},
+        'additionalProperties': False,
+    })
     assert schemas == {
         '/definitions/type': CppStruct(
             raw_cpp_type=type_name.TypeName('/definitions/type'),
@@ -117,13 +113,11 @@ def test_field_with_default(simple_gen):
 
 
 def test_field_inplace(simple_gen):
-    schemas = simple_gen(
-        {
-            'type': 'object',
-            'properties': {'field': {'type': 'integer', 'minimum': 1}},
-            'additionalProperties': False,
-        },
-    )
+    schemas = simple_gen({
+        'type': 'object',
+        'properties': {'field': {'type': 'integer', 'minimum': 1}},
+        'additionalProperties': False,
+    })
     assert schemas == {
         '/definitions/type': CppStruct(
             raw_cpp_type=type_name.TypeName('/definitions/type'),
@@ -153,19 +147,17 @@ def test_field_inplace(simple_gen):
 
 
 def test_field_is_struct(simple_gen):
-    schemas = simple_gen(
-        {
-            'type': 'object',
-            'properties': {
-                'field': {
-                    'type': 'object',
-                    'properties': {},
-                    'additionalProperties': False,
-                },
+    schemas = simple_gen({
+        'type': 'object',
+        'properties': {
+            'field': {
+                'type': 'object',
+                'properties': {},
+                'additionalProperties': False,
             },
-            'additionalProperties': False,
         },
-    )
+        'additionalProperties': False,
+    })
     assert schemas == {
         '/definitions/type': CppStruct(
             raw_cpp_type=type_name.TypeName('/definitions/type'),
@@ -193,14 +185,12 @@ def test_field_is_struct(simple_gen):
 
 
 def test_field_required(simple_gen):
-    schemas = simple_gen(
-        {
-            'type': 'object',
-            'properties': {'field': {'type': 'integer', 'minimum': 1}},
-            'required': ['field'],
-            'additionalProperties': False,
-        },
-    )
+    schemas = simple_gen({
+        'type': 'object',
+        'properties': {'field': {'type': 'integer', 'minimum': 1}},
+        'required': ['field'],
+        'additionalProperties': False,
+    })
     assert schemas == {
         '/definitions/type': CppStruct(
             raw_cpp_type=type_name.TypeName('/definitions/type'),
@@ -231,14 +221,12 @@ def test_field_required(simple_gen):
 
 def test_extra_member_nonboolean(simple_gen):
     try:
-        simple_gen(
-            {
-                'type': 'object',
-                'properties': {},
-                'x-taxi-cpp-extra-member': False,
-                'additionalProperties': {'type': 'integer'},
-            },
-        )
+        simple_gen({
+            'type': 'object',
+            'properties': {},
+            'x-taxi-cpp-extra-member': False,
+            'additionalProperties': {'type': 'integer'},
+        })
         assert False
     except error.BaseError as exc:
         assert exc.msg == (

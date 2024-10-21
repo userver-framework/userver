@@ -54,23 +54,23 @@ namespace components {
 // clang-format on
 
 class RabbitMQ final : public ComponentBase {
- public:
-  /// Component constructor
-  RabbitMQ(const ComponentConfig& config, const ComponentContext& context);
-  /// Component destructor
-  ~RabbitMQ() override;
+public:
+    /// Component constructor
+    RabbitMQ(const ComponentConfig& config, const ComponentContext& context);
+    /// Component destructor
+    ~RabbitMQ() override;
 
-  /// Cluster accessor
-  std::shared_ptr<urabbitmq::Client> GetClient() const;
+    /// Cluster accessor
+    std::shared_ptr<urabbitmq::Client> GetClient() const;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  clients::dns::Component& dns_;
-  std::shared_ptr<urabbitmq::Client> client_;
+private:
+    clients::dns::Component& dns_;
+    std::shared_ptr<urabbitmq::Client> client_;
 
-  // Must be the last field
-  utils::statistics::Entry statistics_holder_;
+    // Must be the last field
+    utils::statistics::Entry statistics_holder_;
 };
 
 template <>

@@ -22,26 +22,26 @@
 #include "testpoint.hpp"
 
 int main(int argc, char* argv[]) {
-  const auto component_list =
-      // userver components
-      components::MinimalServerComponentList()
-          .Append<clients::dns::Component>()
-          .Append<components::HttpClient>()
-          .Append<congestion_control::Component>()
-          .Append<server::handlers::Ping>()
-          .Append<server::handlers::ServerMonitor>()
-          /// [testsuite - register components]
-          .Append<components::TestsuiteSupport>()
-          .Append<server::handlers::TestsControl>()
-          .Append<components::DynamicConfigClient>()
-          .Append<components::DynamicConfigClientUpdater>()
-          /// [testsuite - register components]
-          // Project local components
-          .Append<tests::handlers::DynamicConfig>()
-          .Append<tests::handlers::LogCapture>()
-          .Append<tests::handlers::Metrics>()
-          .Append<tests::handlers::Now>()
-          .Append<tests::handlers::TasksSample>()
-          .Append<tests::handlers::Testpoint>();
-  return utils::DaemonMain(argc, argv, component_list);
+    const auto component_list =
+        // userver components
+        components::MinimalServerComponentList()
+            .Append<clients::dns::Component>()
+            .Append<components::HttpClient>()
+            .Append<congestion_control::Component>()
+            .Append<server::handlers::Ping>()
+            .Append<server::handlers::ServerMonitor>()
+            /// [testsuite - register components]
+            .Append<components::TestsuiteSupport>()
+            .Append<server::handlers::TestsControl>()
+            .Append<components::DynamicConfigClient>()
+            .Append<components::DynamicConfigClientUpdater>()
+            /// [testsuite - register components]
+            // Project local components
+            .Append<tests::handlers::DynamicConfig>()
+            .Append<tests::handlers::LogCapture>()
+            .Append<tests::handlers::Metrics>()
+            .Append<tests::handlers::Now>()
+            .Append<tests::handlers::TasksSample>()
+            .Append<tests::handlers::Testpoint>();
+    return utils::DaemonMain(argc, argv, component_list);
 }

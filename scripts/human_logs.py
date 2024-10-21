@@ -5,6 +5,7 @@ import itertools
 import re
 import sys
 
+
 # Info about colors https://misc.flogisoft.com/bash/tip_colors_and_formatting
 class Colors:
     BLACK = '\033[30m'
@@ -54,15 +55,15 @@ class HumanLogs:
     )
 
     def __init__(
-            self,
-            highlights,
-            ignores,
-            skip_modules,
-            skip_field_patterns,
-            filename,
-            no_file_stores,
-            verbosity,
-            require_fields,
+        self,
+        highlights,
+        ignores,
+        skip_modules,
+        skip_field_patterns,
+        filename,
+        no_file_stores,
+        verbosity,
+        require_fields,
     ):
         self.i = 0
         self.highlights = highlights
@@ -202,7 +203,6 @@ class HumanLogs:
 
     def process_file(self, input_file):
         try:
-
             for line in iter(input_file.readline, ''):
                 if self.full_logs is not None:
                     self.full_logs.write(line)

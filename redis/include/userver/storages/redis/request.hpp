@@ -22,137 +22,129 @@ class RequestScanData;
 
 template <typename Result, typename ReplyType = Result>
 class [[nodiscard]] Request final {
- public:
-  using Reply = ReplyType;
+public:
+    using Reply = ReplyType;
 
-  explicit Request(std::unique_ptr<RequestDataBase<ReplyType>>&& impl)
-      : impl_(std::move(impl)) {}
+    explicit Request(std::unique_ptr<RequestDataBase<ReplyType>>&& impl) : impl_(std::move(impl)) {}
 
-  void Wait() { impl_->Wait(); }
+    void Wait() { impl_->Wait(); }
 
-  void IgnoreResult() const {}
+    void IgnoreResult() const {}
 
-  ReplyType Get(const std::string& request_description = {}) {
-    return impl_->Get(request_description);
-  }
+    ReplyType Get(const std::string& request_description = {}) { return impl_->Get(request_description); }
 
-  /// @cond
-  /// Internal helper for WaitAny/WaitAll
-  engine::impl::ContextAccessor* TryGetContextAccessor() noexcept {
-    return impl_->TryGetContextAccessor();
-  }
-  /// @endcond
+    /// @cond
+    /// Internal helper for WaitAny/WaitAll
+    engine::impl::ContextAccessor* TryGetContextAccessor() noexcept { return impl_->TryGetContextAccessor(); }
+    /// @endcond
 
-  template <typename T1, typename T2>
-  friend class RequestEval;
+    template <typename T1, typename T2>
+    friend class RequestEval;
 
-  template <typename T1, typename T2>
-  friend class RequestEvalSha;
+    template <typename T1, typename T2>
+    friend class RequestEvalSha;
 
-  template <ScanTag scan_tag>
-  friend class RequestScanData;
+    template <ScanTag scan_tag>
+    friend class RequestScanData;
 
- private:
-  ReplyPtr GetRaw() { return impl_->GetRaw(); }
+private:
+    ReplyPtr GetRaw() { return impl_->GetRaw(); }
 
-  std::unique_ptr<RequestDataBase<ReplyType>> impl_;
+    std::unique_ptr<RequestDataBase<ReplyType>> impl_;
 };
 
 template <ScanTag scan_tag>
 class ScanRequest final {
- public:
-  using ReplyElem = typename ScanReplyElem<scan_tag>::type;
+public:
+    using ReplyElem = typename ScanReplyElem<scan_tag>::type;
 
-  explicit ScanRequest(std::unique_ptr<RequestScanDataBase<scan_tag>>&& impl)
-      : impl_(std::move(impl)) {}
+    explicit ScanRequest(std::unique_ptr<RequestScanDataBase<scan_tag>>&& impl) : impl_(std::move(impl)) {}
 
-  template <typename T = std::vector<ReplyElem>>
-  T GetAll(std::string request_description) {
-    SetRequestDescription(std::move(request_description));
-    return GetAll<T>();
-  }
-
-  template <typename T = std::vector<ReplyElem>>
-  T GetAll() {
-    return T{begin(), end()};
-  }
-
-  void SetRequestDescription(std::string request_description) {
-    impl_->SetRequestDescription(std::move(request_description));
-  }
-
-  class Iterator {
-   public:
-    using iterator_category = std::input_iterator_tag;
-    using difference_type = ptrdiff_t;
-    using value_type = ReplyElem;
-    using reference = value_type&;
-    using pointer = value_type*;
-
-    explicit Iterator(ScanRequest* stream) : stream_(stream) {
-      if (stream_ && !stream_->HasMore()) stream_ = nullptr;
+    template <typename T = std::vector<ReplyElem>>
+    T GetAll(std::string request_description) {
+        SetRequestDescription(std::move(request_description));
+        return GetAll<T>();
     }
 
-    class ReplyElemHolder {
-     public:
-      ReplyElemHolder(value_type reply_elem)
-          : reply_elem_(std::move(reply_elem)) {}
+    template <typename T = std::vector<ReplyElem>>
+    T GetAll() {
+        return T{begin(), end()};
+    }
 
-      value_type& operator*() { return reply_elem_; }
+    void SetRequestDescription(std::string request_description) {
+        impl_->SetRequestDescription(std::move(request_description));
+    }
 
-     private:
-      value_type reply_elem_;
+    class Iterator {
+    public:
+        using iterator_category = std::input_iterator_tag;
+        using difference_type = ptrdiff_t;
+        using value_type = ReplyElem;
+        using reference = value_type&;
+        using pointer = value_type*;
+
+        explicit Iterator(ScanRequest* stream) : stream_(stream) {
+            if (stream_ && !stream_->HasMore()) stream_ = nullptr;
+        }
+
+        class ReplyElemHolder {
+        public:
+            ReplyElemHolder(value_type reply_elem) : reply_elem_(std::move(reply_elem)) {}
+
+            value_type& operator*() { return reply_elem_; }
+
+        private:
+            value_type reply_elem_;
+        };
+
+        ReplyElemHolder operator++(int) {
+            ReplyElemHolder old_value(stream_->Current());
+            ++*this;
+            return old_value;
+        }
+
+        Iterator& operator++() {
+            stream_->Get();
+            if (!stream_->HasMore()) stream_ = nullptr;
+            return *this;
+        }
+
+        reference operator*() { return stream_->Current(); }
+
+        pointer operator->() { return &**this; }
+
+        bool operator==(const Iterator& rhs) const { return stream_ == rhs.stream_; }
+
+        bool operator!=(const Iterator& rhs) const { return !(*this == rhs); }
+
+    private:
+        ScanRequest* stream_;
     };
 
-    ReplyElemHolder operator++(int) {
-      ReplyElemHolder old_value(stream_->Current());
-      ++*this;
-      return old_value;
-    }
+    Iterator begin() { return Iterator(this); }
+    Iterator end() { return Iterator(nullptr); }
 
-    Iterator& operator++() {
-      stream_->Get();
-      if (!stream_->HasMore()) stream_ = nullptr;
-      return *this;
-    }
+    class GetAfterEofException : public USERVER_NAMESPACE::redis::Exception {
+    public:
+        using USERVER_NAMESPACE::redis::Exception::Exception;
+    };
 
-    reference operator*() { return stream_->Current(); }
+private:
+    ReplyElem& Current() { return impl_->Current(); }
 
-    pointer operator->() { return &**this; }
+    ReplyElem Get() { return impl_->Get(); }
 
-    bool operator==(const Iterator& rhs) const {
-      return stream_ == rhs.stream_;
-    }
+    bool HasMore() { return !impl_->Eof(); }
 
-    bool operator!=(const Iterator& rhs) const { return !(*this == rhs); }
+    friend class Iterator;
 
-   private:
-    ScanRequest* stream_;
-  };
-
-  Iterator begin() { return Iterator(this); }
-  Iterator end() { return Iterator(nullptr); }
-
-  class GetAfterEofException : public USERVER_NAMESPACE::redis::Exception {
-   public:
-    using USERVER_NAMESPACE::redis::Exception::Exception;
-  };
-
- private:
-  ReplyElem& Current() { return impl_->Current(); }
-
-  ReplyElem Get() { return impl_->Get(); }
-
-  bool HasMore() { return !impl_->Eof(); }
-
-  friend class Iterator;
-
-  std::unique_ptr<RequestScanDataBase<scan_tag>> impl_;
+    std::unique_ptr<RequestScanDataBase<scan_tag>> impl_;
 };
 
 using RequestAppend = Request<size_t>;
 using RequestBitop = Request<size_t>;
 using RequestDbsize = Request<size_t>;
+using RequestDecr = Request<int64_t>;
 using RequestDel = Request<size_t>;
 using RequestUnlink = Request<size_t>;
 using RequestEvalCommon = Request<ReplyData>;

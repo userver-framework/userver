@@ -1,7 +1,6 @@
 # /// [Functional test]
-import pytest
-
 import auth_utils
+import pytest
 
 
 @pytest.mark.pgsql('auth', files=['test_data.sql'])

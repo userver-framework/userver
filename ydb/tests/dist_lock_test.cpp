@@ -19,146 +19,141 @@ constexpr std::string_view kCoordinationNode = "test_dist_locks";
 constexpr std::string_view kSemaphoreName = "test-semaphore";
 
 class YdbDistLockFixture : public ydb::ClientFixtureBase {
- protected:
-  void SetUp() override { CreateCoordinationNode(kCoordinationNode); }
+protected:
+    void SetUp() override { CreateCoordinationNode(kCoordinationNode); }
 
-  void TearDown() override { DropCoordinationNode(kCoordinationNode); }
+    void TearDown() override { DropCoordinationNode(kCoordinationNode); }
 
-  void CreateCoordinationNode(std::string_view coordination_node) {
-    UASSERT_NO_THROW(GetCoordinationClient().CreateNode(coordination_node, {}));
-  }
+    void CreateCoordinationNode(std::string_view coordination_node) {
+        UASSERT_NO_THROW(GetCoordinationClient().CreateNode(coordination_node, {}));
+    }
 
-  void DropCoordinationNode(std::string_view coordination_node) {
-    UASSERT_NO_THROW(GetCoordinationClient().DropNode(coordination_node));
-  }
+    void DropCoordinationNode(std::string_view coordination_node) {
+        UASSERT_NO_THROW(GetCoordinationClient().DropNode(coordination_node));
+    }
 
-  auto StartSession(std::string_view coordination_node) {
-    return GetCoordinationClient().StartSession(coordination_node, {});
-  }
+    auto StartSession(std::string_view coordination_node) {
+        return GetCoordinationClient().StartSession(coordination_node, {});
+    }
 
-  auto CreateDistLockedWorker(ydb::DistLockedWorker::Callback callback) {
-    return ydb::DistLockedWorker{
-        engine::current_task::GetTaskProcessor(),
-        GetCoordinationClientPtr(),
-        std::string{kCoordinationNode},
-        std::string{kSemaphoreName},
-        ydb::DistLockSettings{},
-        std::move(callback),
-    };
-  }
+    auto CreateDistLockedWorker(ydb::DistLockedWorker::Callback callback) {
+        return ydb::DistLockedWorker{
+            engine::current_task::GetTaskProcessor(),
+            GetCoordinationClientPtr(),
+            std::string{kCoordinationNode},
+            std::string{kSemaphoreName},
+            ydb::DistLockSettings{},
+            std::move(callback),
+        };
+    }
 };
 
 }  // namespace
 
 UTEST_F(YdbDistLockFixture, Work) {
-  auto session = StartSession(kCoordinationNode);
-  session.CreateSemaphore(kSemaphoreName,
-                          ydb::impl::dist_lock::kSemaphoreLimit);
+    auto session = StartSession(kCoordinationNode);
+    session.CreateSemaphore(kSemaphoreName, ydb::impl::dist_lock::kSemaphoreLimit);
 
-  engine::SingleConsumerEvent event;
+    engine::SingleConsumerEvent event;
 
-  ydb::DistLockedWorker worker = CreateDistLockedWorker([&event, &worker] {
-    EXPECT_TRUE(worker.OwnsLock());
-    event.Send();
-  });
+    ydb::DistLockedWorker worker = CreateDistLockedWorker([&event, &worker] {
+        EXPECT_TRUE(worker.OwnsLock());
+        event.Send();
+    });
 
-  EXPECT_FALSE(worker.OwnsLock());
+    EXPECT_FALSE(worker.OwnsLock());
 
-  UASSERT_NO_THROW(worker.Start());
+    UASSERT_NO_THROW(worker.Start());
 
-  ASSERT_TRUE(event.WaitForEventFor(utest::kMaxTestWaitTime));
+    ASSERT_TRUE(event.WaitForEventFor(utest::kMaxTestWaitTime));
 
-  UASSERT_NO_THROW(worker.Stop());
+    UASSERT_NO_THROW(worker.Stop());
 
-  EXPECT_FALSE(worker.OwnsLock());
+    EXPECT_FALSE(worker.OwnsLock());
 
-  session.DeleteSemaphore(kSemaphoreName);
+    session.DeleteSemaphore(kSemaphoreName);
 }
 
 UTEST_F(YdbDistLockFixture, WorkUntilCancellation) {
-  auto session = StartSession(kCoordinationNode);
-  session.CreateSemaphore(kSemaphoreName,
-                          ydb::impl::dist_lock::kSemaphoreLimit);
+    auto session = StartSession(kCoordinationNode);
+    session.CreateSemaphore(kSemaphoreName, ydb::impl::dist_lock::kSemaphoreLimit);
 
-  engine::SingleConsumerEvent event;
+    engine::SingleConsumerEvent event;
 
-  ydb::DistLockedWorker worker = CreateDistLockedWorker([&event, &worker] {
+    ydb::DistLockedWorker worker = CreateDistLockedWorker([&event, &worker] {
+        EXPECT_TRUE(worker.OwnsLock());
+        event.Send();
+
+        while (!engine::current_task::ShouldCancel()) {
+            // Imitating a typical while-not-should-cancel loop in DoWork.
+            engine::InterruptibleSleepFor(std::chrono::milliseconds{10});
+        }
+    });
+
+    EXPECT_FALSE(worker.OwnsLock());
+
+    UASSERT_NO_THROW(worker.Start());
+    ASSERT_TRUE(event.WaitForEventFor(utest::kMaxTestWaitTime));
+
     EXPECT_TRUE(worker.OwnsLock());
-    event.Send();
+    engine::SleepFor(std::chrono::milliseconds{100});
+    EXPECT_TRUE(worker.OwnsLock());
 
-    while (!engine::current_task::ShouldCancel()) {
-      // Imitating a typical while-not-should-cancel loop in DoWork.
-      engine::InterruptibleSleepFor(std::chrono::milliseconds{10});
-    }
-  });
+    UASSERT_NO_THROW(worker.Stop());
+    EXPECT_FALSE(worker.OwnsLock());
 
-  EXPECT_FALSE(worker.OwnsLock());
-
-  UASSERT_NO_THROW(worker.Start());
-  ASSERT_TRUE(event.WaitForEventFor(utest::kMaxTestWaitTime));
-
-  EXPECT_TRUE(worker.OwnsLock());
-  engine::SleepFor(std::chrono::milliseconds{100});
-  EXPECT_TRUE(worker.OwnsLock());
-
-  UASSERT_NO_THROW(worker.Stop());
-  EXPECT_FALSE(worker.OwnsLock());
-
-  session.DeleteSemaphore(kSemaphoreName);
+    session.DeleteSemaphore(kSemaphoreName);
 }
 
 UTEST_F(YdbDistLockFixture, Lock) {
-  auto session = StartSession(kCoordinationNode);
-  session.CreateSemaphore(kSemaphoreName,
-                          ydb::impl::dist_lock::kSemaphoreLimit);
+    auto session = StartSession(kCoordinationNode);
+    session.CreateSemaphore(kSemaphoreName, ydb::impl::dist_lock::kSemaphoreLimit);
 
-  session.AcquireSemaphore(
-      kSemaphoreName, NYdb::NCoordination::TAcquireSemaphoreSettings{}.Count(
-                          ydb::impl::dist_lock::kSemaphoreLimit));
+    session.AcquireSemaphore(
+        kSemaphoreName, NYdb::NCoordination::TAcquireSemaphoreSettings{}.Count(ydb::impl::dist_lock::kSemaphoreLimit)
+    );
 
-  engine::SingleConsumerEvent event;
+    engine::SingleConsumerEvent event;
 
-  auto worker = CreateDistLockedWorker([&event] { event.Send(); });
+    auto worker = CreateDistLockedWorker([&event] { event.Send(); });
 
-  UASSERT_NO_THROW(worker.Start());
+    UASSERT_NO_THROW(worker.Start());
 
-  ASSERT_FALSE(event.WaitForEventFor(kInactiveCheckTime));
+    ASSERT_FALSE(event.WaitForEventFor(kInactiveCheckTime));
 
-  session.ReleaseSemaphore(kSemaphoreName);
+    session.ReleaseSemaphore(kSemaphoreName);
 
-  ASSERT_TRUE(event.WaitForEventFor(utest::kMaxTestWaitTime));
+    ASSERT_TRUE(event.WaitForEventFor(utest::kMaxTestWaitTime));
 
-  UASSERT_NO_THROW(worker.Stop());
+    UASSERT_NO_THROW(worker.Stop());
 
-  session.DeleteSemaphore(kSemaphoreName);
+    session.DeleteSemaphore(kSemaphoreName);
 }
 
 UTEST_F(YdbDistLockFixture, SessionDestroy) {
-  std::optional<ydb::CoordinationSession> session =
-      StartSession(kCoordinationNode);
-  session->CreateSemaphore(kSemaphoreName,
-                           ydb::impl::dist_lock::kSemaphoreLimit);
+    std::optional<ydb::CoordinationSession> session = StartSession(kCoordinationNode);
+    session->CreateSemaphore(kSemaphoreName, ydb::impl::dist_lock::kSemaphoreLimit);
 
-  session->AcquireSemaphore(
-      kSemaphoreName, NYdb::NCoordination::TAcquireSemaphoreSettings{}.Count(
-                          ydb::impl::dist_lock::kSemaphoreLimit));
+    session->AcquireSemaphore(
+        kSemaphoreName, NYdb::NCoordination::TAcquireSemaphoreSettings{}.Count(ydb::impl::dist_lock::kSemaphoreLimit)
+    );
 
-  engine::SingleConsumerEvent event;
+    engine::SingleConsumerEvent event;
 
-  auto worker = CreateDistLockedWorker([&event] { event.Send(); });
+    auto worker = CreateDistLockedWorker([&event] { event.Send(); });
 
-  UASSERT_NO_THROW(worker.Start());
+    UASSERT_NO_THROW(worker.Start());
 
-  ASSERT_FALSE(event.WaitForEventFor(kInactiveCheckTime));
+    ASSERT_FALSE(event.WaitForEventFor(kInactiveCheckTime));
 
-  /// destroy session
-  session.reset();
+    /// destroy session
+    session.reset();
 
-  ASSERT_TRUE(event.WaitForEventFor(utest::kMaxTestWaitTime));
+    ASSERT_TRUE(event.WaitForEventFor(utest::kMaxTestWaitTime));
 
-  UASSERT_NO_THROW(worker.Stop());
+    UASSERT_NO_THROW(worker.Stop());
 
-  StartSession(kCoordinationNode).DeleteSemaphore(kSemaphoreName);
+    StartSession(kCoordinationNode).DeleteSemaphore(kSemaphoreName);
 }
 
 USERVER_NAMESPACE_END

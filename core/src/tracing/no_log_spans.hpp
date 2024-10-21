@@ -15,8 +15,8 @@ class Value;
 namespace tracing {
 
 struct NoLogSpans {
-  boost::container::flat_set<std::string> prefixes;
-  boost::container::flat_set<std::string> names;
+    boost::container::flat_set<std::string> prefixes;
+    boost::container::flat_set<std::string> names;
 };
 
 NoLogSpans Parse(const formats::json::Value&, formats::parse::To<NoLogSpans>);
