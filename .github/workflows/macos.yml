@@ -28,7 +28,7 @@ jobs:
 
           - name: Install packages
             run: |
-                brew install $(cat scripts/docs/en/deps/macos.md)
+                brew install $(cat scripts/docs/en/deps/macos.md | grep -v kafka)
 
           - name: Run cmake
             run: |
