@@ -56,6 +56,7 @@ jobs:
                 set -x
                 brew --prefix
                 ls $(brew --prefix)/var/postgresql@16 || :
+                ls $(brew --prefix)/bin || :
                 env
                 ls /usr/local/opt/postgresql@16/bin || :
                 ls /opt/homebrew/bin || :
