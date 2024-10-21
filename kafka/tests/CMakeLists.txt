@@ -1,16 +1,15 @@
 project(userver-kafka-kafkatest)
 
-file(GLOB_RECURSE KAFKA_TEST_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
+file(GLOB_RECURSE KAFKA_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
+     ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
 
 add_executable(${PROJECT_NAME} ${KAFKA_TEST_SOURCES})
-target_link_libraries(${PROJECT_NAME}
-  PRIVATE userver::kafka-utest
-)
+target_link_libraries(${PROJECT_NAME} PRIVATE userver::kafka-utest)
 userver_add_utest(
-  NAME ${PROJECT_NAME}
-  DATABASES kafka
+  NAME
+  ${PROJECT_NAME}
+  DATABASES
+  kafka
   TEST_ENV
   "TESTSUITE_KAFKA_SERVER_START_TIMEOUT=120.0"
   "TESTSUITE_KAFKA_SERVER_HOST=[::1]"
