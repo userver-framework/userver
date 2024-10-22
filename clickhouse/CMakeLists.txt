@@ -3,6 +3,8 @@ project(userver-clickhouse CXX)
 userver_module(clickhouse
   SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}
 
+  UTEST_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/*_test.cpp
   DBTEST_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/*_chtest.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/storages/tests/utils_test.cpp

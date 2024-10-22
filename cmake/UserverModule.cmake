@@ -39,7 +39,6 @@ function(userver_module MODULE)
       ${ARG_DBTEST_SOURCES}
   )
   list(REMOVE_ITEM SOURCES ${DBTEST_SOURCES})
-  list(REMOVE_ITEM UNIT_TEST_SOURCES ${DBTEST_SOURCES})
 
   add_library(userver-${MODULE} STATIC ${SOURCES})
   set_target_properties(userver-${MODULE} PROPERTIES LINKER_LANGUAGE CXX)
