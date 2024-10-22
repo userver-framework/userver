@@ -9,14 +9,12 @@ userver_module(mysql
   LINK_LIBRARIES_PRIVATE
     mariadb
 
-  UTEST_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/noexisting/*.cpp
   UBENCH_LINK_LIBRARIES
     mariadb
   UTEST_LINK_LIBRARIES
     mariadb
   DBTEST_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/mysqltests/*.cpp
   DBTEST_DATABASES
     mysql
 )
