@@ -167,7 +167,7 @@ jobs:
                   export PATH=$PATH:$(pwd)
                   sudo ldconfig
 
-                  curl -LO $PB_REL/download/v25.1/protoc-25.1-linux-x86_64.zip
+                  curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v25.1/protoc-25.1-linux-x86_64.zip
                   unzip protoc-25.1-linux-x86_64.zip -d $HOME/.local
                   export PATH="$PATH:$HOME/.local/bin"
                 fi
