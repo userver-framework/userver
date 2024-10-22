@@ -4,4 +4,3 @@ websockets >= 11.0.3
 # https://github.com/pytest-dev/pytest-asyncio/issues/706
 pytest_asyncio >= 0.21.2, < 0.22.0
 zstd >= 1.5.5.0
-wheel >= 0.37.1
