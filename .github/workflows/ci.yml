@@ -161,7 +161,7 @@ jobs:
                   tar xvzf v3.21.12.tar.gz
                   cd protobuf-3.21.12/cmake
                   mkdir build && cd build
-                  cmake ..
+                  cmake -Dprotobuf_BUILD_TESTS=OFF ..
                   make -j$(nproc)
                   sudo make install
                   export PATH=$PATH:$(pwd)
