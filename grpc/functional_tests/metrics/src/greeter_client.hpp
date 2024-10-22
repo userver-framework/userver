@@ -12,32 +12,30 @@
 namespace functional_tests {
 
 class GreeterClient final : public components::ComponentBase {
- public:
-  static constexpr std::string_view kName = "greeter-client";
+public:
+    static constexpr std::string_view kName = "greeter-client";
 
-  GreeterClient(const components::ComponentConfig& config,
-                const components::ComponentContext& context)
-      : ComponentBase(config, context),
-        client_factory_(
-            context.FindComponent<ugrpc::client::ClientFactoryComponent>()
-                .GetFactory()),
-        client_(client_factory_.MakeClient<samples::api::GreeterServiceClient>(
-            // The name of the microservice we are talking to, for diagnostics.
-            "greeter",
-            // The service endpoint (URI).
-            config["endpoint"].As<std::string>())) {}
+    GreeterClient(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : ComponentBase(config, context),
+          client_factory_(context.FindComponent<ugrpc::client::ClientFactoryComponent>().GetFactory()),
+          client_(client_factory_.MakeClient<samples::api::GreeterServiceClient>(
+              // The name of the microservice we are talking to, for diagnostics.
+              "greeter",
+              // The service endpoint (URI).
+              config["endpoint"].As<std::string>()
+          )) {}
 
-  std::string SayHello(std::string name);
+    std::string SayHello(std::string name);
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  ugrpc::client::ClientFactory& client_factory_;
-  samples::api::GreeterServiceClient client_;
+private:
+    ugrpc::client::ClientFactory& client_factory_;
+    samples::api::GreeterServiceClient client_;
 };
 
 inline yaml_config::Schema GreeterClient::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<components::ComponentBase>(R"(
+    return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: >
     a user-defined wrapper around api::GreeterServiceClient that provides
@@ -53,16 +51,16 @@ properties:
 }
 
 inline std::string GreeterClient::SayHello(std::string name) {
-  samples::api::GreetingRequest request;
-  request.set_name(std::move(name));
+    samples::api::GreetingRequest request;
+    request.set_name(std::move(name));
 
-  auto context = std::make_unique<grpc::ClientContext>();
+    auto context = std::make_unique<grpc::ClientContext>();
 
-  auto stream = client_.SayHello(request, std::move(context));
+    auto stream = client_.SayHello(request, std::move(context));
 
-  samples::api::GreetingResponse response = stream.Finish();
+    samples::api::GreetingResponse response = stream.Finish();
 
-  return std::move(*response.mutable_greeting());
+    return std::move(*response.mutable_greeting());
 }
 
 }  // namespace functional_tests

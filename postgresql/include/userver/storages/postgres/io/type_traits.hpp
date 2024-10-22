@@ -41,9 +41,7 @@ inline constexpr bool kIsMappedToArray = IsMappedToArray<T>::value;
 
 /// @brief Detect if the C++ type is mapped to a Postgres type.
 template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
-struct IsMappedToPg
-    : BoolConstant<kIsMappedToUserType<T> || kIsMappedToSystemType<T> ||
-                   kIsMappedToArray<T>> {};
+struct IsMappedToPg : BoolConstant<kIsMappedToUserType<T> || kIsMappedToSystemType<T> || kIsMappedToArray<T>> {};
 template <typename T>
 inline constexpr bool kIsMappedToPg = IsMappedToPg<T>::value;
 
@@ -61,18 +59,18 @@ struct HasOutputOperator : std::false_type {};
 
 template <typename T>
 struct HasOutputOperator<
-    T, USERVER_NAMESPACE::utils::void_t<decltype(std::declval<std::ostream&>()
-                                                 << std::declval<T&>())>>
-    : std::true_type {};
+    T,
+    USERVER_NAMESPACE::utils::void_t<decltype(std::declval<std::ostream&>() << std::declval<T&>())>> : std::true_type {
+};
 
 template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
 struct HasInputOperator : std::false_type {};
 
 template <typename T>
 struct HasInputOperator<
-    T, USERVER_NAMESPACE::utils::void_t<
-           decltype(std::declval<std::istream&>() >> std::declval<T&>())>>
-    : std::true_type {};
+    T,
+    USERVER_NAMESPACE::utils::void_t<decltype(std::declval<std::istream&>() >> std::declval<T&>())>> : std::true_type {
+};
 //@}
 
 //@{
@@ -107,21 +105,20 @@ namespace detail {
 
 template <typename T>
 struct FinalElementImpl {
-  using type = T;
+    using type = T;
 };
 
 template <typename T>
 struct ContainerFinalElementImpl {
-  using type = typename ContainerFinalElement<typename T::value_type>::type;
+    using type = typename ContainerFinalElement<typename T::value_type>::type;
 };
 
 }  // namespace detail
 
 template <typename T>
 struct ContainerFinalElement
-    : std::conditional_t<kIsCompatibleContainer<T>,
-                         detail::ContainerFinalElementImpl<T>,
-                         detail::FinalElementImpl<T>> {};
+    : std::conditional_t<kIsCompatibleContainer<T>, detail::ContainerFinalElementImpl<T>, detail::FinalElementImpl<T>> {
+};
 
 template <typename T>
 using ContainerFinaleElementType = typename ContainerFinalElement<T>::type;
@@ -133,12 +130,11 @@ namespace detail {
 
 template <typename Container>
 constexpr bool EnableContainerMapping() {
-  if constexpr (!traits::kIsCompatibleContainer<Container>) {
-    return false;
-  } else {
-    return traits::kIsMappedToPg<
-        typename traits::ContainerFinalElement<Container>::type>;
-  }
+    if constexpr (!traits::kIsCompatibleContainer<Container>) {
+        return false;
+    } else {
+        return traits::kIsMappedToPg<typename traits::ContainerFinalElement<Container>::type>;
+    }
 }
 
 }  // namespace detail
@@ -151,9 +147,8 @@ struct IsMappedToArray : BoolConstant<detail::EnableContainerMapping<T>()> {};
 template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
 struct CanReserve : std::false_type {};
 template <typename T>
-struct CanReserve<
-    T, USERVER_NAMESPACE::utils::void_t<decltype(std::declval<T>().reserve(
-           std::declval<std::size_t>()))>> : std::true_type {};
+struct CanReserve<T, USERVER_NAMESPACE::utils::void_t<decltype(std::declval<T>().reserve(std::declval<std::size_t>()))>>
+    : std::true_type {};
 template <typename T>
 inline constexpr bool kCanReserve = CanReserve<T>::value;
 
@@ -161,9 +156,8 @@ template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
 struct CanResize : std::false_type {};
 
 template <typename T>
-struct CanResize<
-    T, USERVER_NAMESPACE::utils::void_t<decltype(std::declval<T>().resize(
-           std::declval<std::size_t>()))>> : std::true_type {};
+struct CanResize<T, USERVER_NAMESPACE::utils::void_t<decltype(std::declval<T>().resize(std::declval<std::size_t>()))>>
+    : std::true_type {};
 template <typename T>
 inline constexpr bool kCanResize = CanResize<T>::value;
 
@@ -171,15 +165,13 @@ template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
 struct CanClear : std::false_type {};
 
 template <typename T>
-struct CanClear<
-    T, USERVER_NAMESPACE::utils::void_t<decltype(std::declval<T>().clear())>>
-    : std::true_type {};
+struct CanClear<T, USERVER_NAMESPACE::utils::void_t<decltype(std::declval<T>().clear())>> : std::true_type {};
 template <typename T>
 inline constexpr bool kCanClear = CanClear<T>::value;
 
 template <typename T>
 auto Inserter(T& container) {
-  return meta::Inserter(container);
+    return meta::Inserter(container);
 }
 //@}
 
@@ -188,7 +180,7 @@ struct RemoveTupleReferences;
 
 template <typename... T>
 struct RemoveTupleReferences<std::tuple<T...>> {
-  using type = std::tuple<std::remove_reference_t<T>...>;
+    using type = std::tuple<std::remove_reference_t<T>...>;
 };
 
 template <typename T>
@@ -201,23 +193,20 @@ struct AddTupleConstRef;
 
 template <typename... T>
 struct AddTupleConstRef<std::tuple<T...>> {
-  using type = std::tuple<
-      std::add_const_t<std::add_lvalue_reference_t<std::decay_t<T>>>...>;
+    using type = std::tuple<std::add_const_t<std::add_lvalue_reference_t<std::decay_t<T>>>...>;
 };
 
 template <typename Tuple>
 struct TupleHasParsers;
 
 template <typename... T>
-struct TupleHasParsers<std::tuple<T...>>
-    : std::bool_constant<(HasParser<std::decay_t<T>>::value && ...)> {};
+struct TupleHasParsers<std::tuple<T...>> : std::bool_constant<(HasParser<std::decay_t<T>>::value && ...)> {};
 
 template <typename Tuple>
 struct TupleHasFormatters;
 
 template <typename... T>
-struct TupleHasFormatters<std::tuple<T...>>
-    : std::bool_constant<(HasFormatter<std::decay_t<T>>::value && ...)> {};
+struct TupleHasFormatters<std::tuple<T...>> : std::bool_constant<(HasFormatter<std::decay_t<T>>::value && ...)> {};
 
 //@}
 

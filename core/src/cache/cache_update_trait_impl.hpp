@@ -33,113 +33,111 @@ struct CacheDependencies;
 class CacheUpdateTrait;
 
 class CacheUpdateTrait::Impl final {
- public:
-  explicit Impl(CacheDependencies&& dependencies, CacheUpdateTrait& self);
+public:
+    explicit Impl(CacheDependencies&& dependencies, CacheUpdateTrait& self);
 
-  ~Impl();
+    ~Impl();
 
-  void InvalidateAsync(UpdateType update_type);
+    void InvalidateAsync(UpdateType update_type);
 
-  void UpdateSyncDebug(UpdateType update_type);
+    void UpdateSyncDebug(UpdateType update_type);
 
-  const std::string& Name() const;
+    const std::string& Name() const;
 
-  AllowedUpdateTypes GetAllowedUpdateTypes() const;
+    AllowedUpdateTypes GetAllowedUpdateTypes() const;
 
-  void StartPeriodicUpdates(utils::Flags<CacheUpdateTrait::Flag> flags = {});
+    void StartPeriodicUpdates(utils::Flags<CacheUpdateTrait::Flag> flags = {});
 
-  void StopPeriodicUpdates();
+    void StopPeriodicUpdates();
 
-  void AssertPeriodicUpdateStarted();
+    void AssertPeriodicUpdateStarted();
 
-  void AssertPeriodicUpdateStopped();
+    void AssertPeriodicUpdateStopped();
 
-  void OnCacheModified();
+    void OnCacheModified();
 
-  bool HasPreAssignCheck() const;
+    bool HasPreAssignCheck() const;
 
-  bool IsSafeDataLifetime() const;
+    bool IsSafeDataLifetime() const;
 
-  void SetDataSizeStatistic(std::size_t size) noexcept;
+    void SetDataSizeStatistic(std::size_t size) noexcept;
 
-  rcu::ReadablePtr<Config> GetConfig() const;
+    rcu::ReadablePtr<Config> GetConfig() const;
 
-  engine::TaskProcessor& GetCacheTaskProcessor() const;
+    engine::TaskProcessor& GetCacheTaskProcessor() const;
 
- private:
-  class DumpableEntityProxy final : public dump::DumpableEntity {
-   public:
-    explicit DumpableEntityProxy(CacheUpdateTrait& cache);
+private:
+    class DumpableEntityProxy final : public dump::DumpableEntity {
+    public:
+        explicit DumpableEntityProxy(CacheUpdateTrait& cache);
 
-    void GetAndWrite(dump::Writer& writer) const override;
+        void GetAndWrite(dump::Writer& writer) const override;
 
-    void ReadAndSet(dump::Reader& reader) override;
+        void ReadAndSet(dump::Reader& reader) override;
 
-   private:
-    CacheUpdateTrait& cache_;
-  };
+    private:
+        CacheUpdateTrait& cache_;
+    };
 
-  enum class FirstUpdateInvalidation { kNo, kYes, kFinished };
+    enum class FirstUpdateInvalidation { kNo, kYes, kFinished };
 
-  void DoInvalidateAsync();
+    void DoInvalidateAsync();
 
-  UpdateType NextUpdateType(const Config& config);
+    UpdateType NextUpdateType(const Config& config);
 
-  void DoPeriodicUpdate();
+    void DoPeriodicUpdate();
 
-  void OnUpdateFailure(const Config& config);
+    void OnUpdateFailure(const Config& config);
 
-  void OnUpdateSkipped();
+    void OnUpdateSkipped();
 
-  // Throws if `Update` throws
-  void DoUpdate(UpdateType type, const Config& config);
-  void CheckUpdateState(impl::UpdateState update_state,
-                        std::string_view update_type_str);
+    // Throws if `Update` throws
+    void DoUpdate(UpdateType type, const Config& config);
+    void CheckUpdateState(impl::UpdateState update_state, std::string_view update_type_str);
 
-  utils::PeriodicTask::Settings GetPeriodicTaskSettings(const Config& config);
+    utils::PeriodicTask::Settings GetPeriodicTaskSettings(const Config& config);
 
-  void OnConfigUpdate(const dynamic_config::Snapshot& config);
+    void OnConfigUpdate(const dynamic_config::Snapshot& config);
 
-  // Over-aligned members go first
-  utils::PeriodicTask update_task_;
-  utils::PeriodicTask cleanup_task_;
-  std::optional<dump::Dumper> dumper_;
+    // Over-aligned members go first
+    utils::PeriodicTask update_task_;
+    utils::PeriodicTask cleanup_task_;
+    std::optional<dump::Dumper> dumper_;
 
-  CacheUpdateTrait& customized_trait_;
-  impl::Statistics statistics_;
-  const Config static_config_;
-  rcu::Variable<Config> config_;
-  testsuite::CacheControl& cache_control_;
-  alerts::Storage& alerts_storage_;
-  const std::string name_;
-  const std::string update_task_name_;
-  engine::TaskProcessor& task_processor_;
-  const bool periodic_update_enabled_;
-  std::atomic<bool> is_running_{false};
-  bool first_update_attempted_{false};
-  std::atomic<bool> cache_modified_{false};
-  utils::Flags<utils::PeriodicTask::Flags> periodic_task_flags_;
-  dump::TimePoint last_update_;
-  std::chrono::steady_clock::time_point last_full_update_;
-  std::optional<std::chrono::milliseconds> generated_full_update_jitter_;
-  engine::Mutex update_mutex_;
-  DumpableEntityProxy dumpable_;
-  std::uint64_t failed_updates_counter_{0};
-  std::atomic<FirstUpdateInvalidation> first_update_invalidation_{
-      FirstUpdateInvalidation::kNo};
+    CacheUpdateTrait& customized_trait_;
+    impl::Statistics statistics_;
+    const Config static_config_;
+    rcu::Variable<Config> config_;
+    testsuite::CacheControl& cache_control_;
+    alerts::Storage& alerts_storage_;
+    const std::string name_;
+    const std::string update_task_name_;
+    engine::TaskProcessor& task_processor_;
+    const bool periodic_update_enabled_;
+    std::atomic<bool> is_running_{false};
+    bool first_update_attempted_{false};
+    std::atomic<bool> cache_modified_{false};
+    utils::Flags<utils::PeriodicTask::Flags> periodic_task_flags_;
+    dump::TimePoint last_update_;
+    std::chrono::steady_clock::time_point last_full_update_;
+    std::optional<std::chrono::milliseconds> generated_full_update_jitter_;
+    engine::Mutex update_mutex_;
+    DumpableEntityProxy dumpable_;
+    std::uint64_t failed_updates_counter_{0};
+    std::atomic<FirstUpdateInvalidation> first_update_invalidation_{FirstUpdateInvalidation::kNo};
 
-  // `dump_first_update_type_` has the highest priority.
-  // This means that if `dump_first_update_type_` is equal to `kIncremental` and
-  // `force_full_update_` is true, the `kIncremental` update will be performed.
-  std::optional<UpdateType> dump_first_update_type_;
-  std::atomic<bool> force_full_update_{false};
+    // `dump_first_update_type_` has the highest priority.
+    // This means that if `dump_first_update_type_` is equal to `kIncremental` and
+    // `force_full_update_` is true, the `kIncremental` update will be performed.
+    std::optional<UpdateType> dump_first_update_type_;
+    std::atomic<bool> force_full_update_{false};
 
-  // Subscriptions must be the last fields. They need to be destroyed first to
-  // ensure that callbacks don't use fields above after their destruction.
-  utils::statistics::Entry statistics_holder_;
-  concurrent::AsyncEventSubscriberScope config_subscription_;
-  testsuite::CacheResetRegistration cache_reset_registration_;
-  // See the comment above before adding new fields.
+    // Subscriptions must be the last fields. They need to be destroyed first to
+    // ensure that callbacks don't use fields above after their destruction.
+    utils::statistics::Entry statistics_holder_;
+    concurrent::AsyncEventSubscriberScope config_subscription_;
+    testsuite::CacheResetRegistration cache_reset_registration_;
+    // See the comment above before adding new fields.
 };
 
 }  // namespace cache

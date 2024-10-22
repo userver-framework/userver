@@ -26,10 +26,10 @@ namespace dump {
 /// @see @ref scripts/docs/en/userver/cache_dumps.md
 template <typename T>
 void WriteJson(Writer& writer, const T& contents) {
-  formats::json::StringBuilder sb;
-  WriteToStream(contents, sb);
-  WriteStringViewUnsafe(writer, sb.GetString());
-  WriteStringViewUnsafe(writer, "\n");
+    formats::json::StringBuilder sb;
+    WriteToStream(contents, sb);
+    WriteStringViewUnsafe(writer, sb.GetString());
+    WriteStringViewUnsafe(writer, "\n");
 }
 
 /// @brief Convenience function to use in
@@ -39,8 +39,7 @@ void WriteJson(Writer& writer, const T& contents) {
 /// @see @ref scripts/docs/en/userver/cache_dumps.md
 template <typename T>
 std::unique_ptr<const T> ReadJson(Reader& reader) {
-  return std::make_unique<const T>(
-      formats::json::FromString(ReadEntire(reader)).As<T>());
+    return std::make_unique<const T>(formats::json::FromString(ReadEntire(reader)).As<T>());
 }
 
 }  // namespace dump

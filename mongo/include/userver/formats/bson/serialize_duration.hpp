@@ -15,9 +15,8 @@ namespace formats::serialize {
 // Declare Serialize() as static as multiple translation units might declare
 // different implementations of std::chrono::duration<> serializations.
 template <class Rep, class Period>
-static bson::Value Serialize(std::chrono::duration<Rep, Period> duration,
-                             To<formats::bson::Value>) {
-  return bson::ValueBuilder(duration.count()).ExtractValue();
+static bson::Value Serialize(std::chrono::duration<Rep, Period> duration, To<formats::bson::Value>) {
+    return bson::ValueBuilder(duration.count()).ExtractValue();
 }
 
 }  // namespace formats::serialize

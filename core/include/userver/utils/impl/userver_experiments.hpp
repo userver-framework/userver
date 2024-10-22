@@ -12,51 +12,49 @@ USERVER_NAMESPACE_BEGIN
 namespace utils::impl {
 
 class UserverExperiment final {
- public:
-  // Setting 'userver_experiments_force_enabled: true' in the static config
-  // root results in batch-enabling the experiments created with
-  // 'force_enabling_allowed = true'.
-  explicit UserverExperiment(std::string name,
-                             bool force_enabling_allowed = false);
+public:
+    // Setting 'userver_experiments_force_enabled: true' in the static config
+    // root results in batch-enabling the experiments created with
+    // 'force_enabling_allowed = true'.
+    explicit UserverExperiment(std::string name, bool force_enabling_allowed = false);
 
-  UserverExperiment(UserverExperiment&&) = delete;
-  UserverExperiment& operator=(UserverExperiment&&) = delete;
+    UserverExperiment(UserverExperiment&&) = delete;
+    UserverExperiment& operator=(UserverExperiment&&) = delete;
 
-  bool IsEnabled() const noexcept { return enabled_; }
-  bool IsForceEnablingAllowed() const { return force_enabling_allowed_; }
-  const std::string& GetName() const { return name_; }
+    bool IsEnabled() const noexcept { return enabled_; }
+    bool IsForceEnablingAllowed() const { return force_enabling_allowed_; }
+    const std::string& GetName() const { return name_; }
 
- private:
-  friend struct UserverExperimentSetter;
+private:
+    friend struct UserverExperimentSetter;
 
-  std::string name_;
-  bool enabled_{false};
-  bool force_enabling_allowed_{false};
+    std::string name_;
+    bool enabled_{false};
+    bool force_enabling_allowed_{false};
 };
 
 class InvalidUserverExperiments final : public std::runtime_error {
-  using std::runtime_error::runtime_error;
+    using std::runtime_error::runtime_error;
 };
 
 using UserverExperimentSet = std::unordered_set<std::string>;
 
 /// Reverts all changes to experiments in the destructor
 class UserverExperimentsScope final {
- public:
-  UserverExperimentsScope();
+public:
+    UserverExperimentsScope();
 
-  UserverExperimentsScope(UserverExperimentsScope&&) = delete;
-  UserverExperimentsScope& operator=(UserverExperimentsScope&&) = delete;
-  ~UserverExperimentsScope();
+    UserverExperimentsScope(UserverExperimentsScope&&) = delete;
+    UserverExperimentsScope& operator=(UserverExperimentsScope&&) = delete;
+    ~UserverExperimentsScope();
 
-  void Set(UserverExperiment& experiment, bool value) noexcept;
+    void Set(UserverExperiment& experiment, bool value) noexcept;
 
-  /// @throws InvalidUserverExperiments on name mismatch
-  void EnableOnly(const UserverExperimentSet& enabled_experiments,
-                  bool force_enable = false);
+    /// @throws InvalidUserverExperiments on name mismatch
+    void EnableOnly(const UserverExperimentSet& enabled_experiments, bool force_enable = false);
 
- private:
-  const std::vector<utils::NotNull<UserverExperiment*>> old_enabled_;
+private:
+    const std::vector<utils::NotNull<UserverExperiment*>> old_enabled_;
 };
 
 extern UserverExperiment kCoroutineStackUsageMonitorExperiment;

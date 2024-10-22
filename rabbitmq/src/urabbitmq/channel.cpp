@@ -13,35 +13,36 @@ Channel::~Channel() = default;
 
 Channel::Channel(Channel&& other) noexcept = default;
 
-void Channel::Publish(const Exchange& exchange, const std::string& routing_key,
-                      const std::string& message, MessageType type,
-                      engine::Deadline deadline) {
-  ConnectionHelper::Publish(*impl_, exchange, routing_key, message, type,
-                            deadline);
+void Channel::Publish(
+    const Exchange& exchange,
+    const std::string& routing_key,
+    const std::string& message,
+    MessageType type,
+    engine::Deadline deadline
+) {
+    ConnectionHelper::Publish(*impl_, exchange, routing_key, message, type, deadline);
 }
 
-std::string Channel::Get(const Queue& queue, utils::Flags<Queue::Flags> flags,
-                         engine::Deadline deadline) {
-  std::string message{};
-  ConnectionHelper::Get(*impl_, queue, flags, message, deadline).Wait(deadline);
-  return message;
+std::string Channel::Get(const Queue& queue, utils::Flags<Queue::Flags> flags, engine::Deadline deadline) {
+    std::string message{};
+    ConnectionHelper::Get(*impl_, queue, flags, message, deadline).Wait(deadline);
+    return message;
 }
 
-ReliableChannel::ReliableChannel(ConnectionPtr&& channel)
-    : impl_{std::move(channel)} {}
+ReliableChannel::ReliableChannel(ConnectionPtr&& channel) : impl_{std::move(channel)} {}
 
 ReliableChannel::~ReliableChannel() = default;
 
 ReliableChannel::ReliableChannel(ReliableChannel&& other) noexcept = default;
 
-void ReliableChannel::PublishReliable(const Exchange& exchange,
-                                      const std::string& routing_key,
-                                      const std::string& message,
-                                      MessageType type,
-                                      engine::Deadline deadline) {
-  ConnectionHelper::PublishReliable(*impl_, exchange, routing_key, message,
-                                    type, deadline)
-      .Wait(deadline);
+void ReliableChannel::PublishReliable(
+    const Exchange& exchange,
+    const std::string& routing_key,
+    const std::string& message,
+    MessageType type,
+    engine::Deadline deadline
+) {
+    ConnectionHelper::PublishReliable(*impl_, exchange, routing_key, message, type, deadline).Wait(deadline);
 }
 
 }  // namespace urabbitmq

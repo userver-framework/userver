@@ -13,31 +13,30 @@ namespace ugrpc::impl {
 
 namespace {
 
-void ProcessQueue(grpc::CompletionQueue& queue,
-                  engine::SingleUseEvent& completion) noexcept {
-  utils::SetCurrentThreadName("grpc-queue");
+void ProcessQueue(grpc::CompletionQueue& queue, engine::SingleUseEvent& completion) noexcept {
+    utils::SetCurrentThreadName("grpc-queue");
 
-  void* tag = nullptr;
-  bool ok = false;
+    void* tag = nullptr;
+    bool ok = false;
 
-  while (queue.Next(&tag, &ok)) {
-    auto* call = static_cast<EventBase*>(tag);
-    UASSERT(call != nullptr);
-    call->Notify(ok);
-  }
+    while (queue.Next(&tag, &ok)) {
+        auto* call = static_cast<EventBase*>(tag);
+        UASSERT(call != nullptr);
+        call->Notify(ok);
+    }
 
-  completion.Send();
+    completion.Send();
 }
 
 }  // namespace
 
 QueueRunner::QueueRunner(grpc::CompletionQueue& queue) : queue_(queue) {
-  std::thread([this] { ProcessQueue(queue_, completion_); }).detach();
+    std::thread([this] { ProcessQueue(queue_, completion_); }).detach();
 }
 
 QueueRunner::~QueueRunner() {
-  queue_.Shutdown();
-  completion_.WaitNonCancellable();
+    queue_.Shutdown();
+    completion_.WaitNonCancellable();
 }
 
 }  // namespace ugrpc::impl

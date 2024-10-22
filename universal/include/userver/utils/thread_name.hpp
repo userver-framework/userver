@@ -43,20 +43,20 @@ void SetCurrentThreadName(std::string_view name);
 /// @note There is a chance of failure during thread name update on scope exit.
 /// No errors will be reported in this case.
 class CurrentThreadNameGuard {
- public:
-  /// @brief Set the name of the current thread in the current scope
-  /// @param name temporary thread name
-  /// @throws std::system_error on error
-  CurrentThreadNameGuard(std::string_view name);
-  ~CurrentThreadNameGuard();
+public:
+    /// @brief Set the name of the current thread in the current scope
+    /// @param name temporary thread name
+    /// @throws std::system_error on error
+    CurrentThreadNameGuard(std::string_view name);
+    ~CurrentThreadNameGuard();
 
-  CurrentThreadNameGuard(const CurrentThreadNameGuard&) = delete;
-  CurrentThreadNameGuard(CurrentThreadNameGuard&&) noexcept = delete;
-  CurrentThreadNameGuard& operator=(const CurrentThreadNameGuard&) = delete;
-  CurrentThreadNameGuard& operator=(CurrentThreadNameGuard&&) noexcept = delete;
+    CurrentThreadNameGuard(const CurrentThreadNameGuard&) = delete;
+    CurrentThreadNameGuard(CurrentThreadNameGuard&&) noexcept = delete;
+    CurrentThreadNameGuard& operator=(const CurrentThreadNameGuard&) = delete;
+    CurrentThreadNameGuard& operator=(CurrentThreadNameGuard&&) noexcept = delete;
 
- private:
-  std::string prev_name_;
+private:
+    std::string prev_name_;
 };
 
 }  // namespace utils

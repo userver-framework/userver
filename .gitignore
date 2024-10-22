@@ -12,7 +12,6 @@
 /build*/
 /cmake-build-*/
 /docs/
-/third_party/
 CMakeLists.txt.user
 compile_commands.json
 tags

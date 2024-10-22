@@ -40,20 +40,20 @@ namespace components {
 
 // clang-format on
 class DynamicConfigClient : public ComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of components::DynamicConfigClient
-  static constexpr std::string_view kName = "dynamic-config-client";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of components::DynamicConfigClient
+    static constexpr std::string_view kName = "dynamic-config-client";
 
-  DynamicConfigClient(const ComponentConfig&, const ComponentContext&);
-  ~DynamicConfigClient() override = default;
+    DynamicConfigClient(const ComponentConfig&, const ComponentContext&);
+    ~DynamicConfigClient() override = default;
 
-  [[nodiscard]] dynamic_config::Client& GetClient() const;
+    [[nodiscard]] dynamic_config::Client& GetClient() const;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  std::unique_ptr<dynamic_config::Client> config_client_;
+private:
+    std::unique_ptr<dynamic_config::Client> config_client_;
 };
 
 template <>

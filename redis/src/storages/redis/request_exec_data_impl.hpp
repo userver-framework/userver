@@ -7,26 +7,26 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
 
-class RequestExecDataImpl final : public RequestDataImplBase,
-                                  public RequestDataBase<void> {
- public:
-  RequestExecDataImpl(
-      USERVER_NAMESPACE::redis::Request&& request,
-      std::vector<TransactionImpl::ResultPromise>&& result_promises);
+class RequestExecDataImpl final : public RequestDataImplBase, public RequestDataBase<void> {
+public:
+    RequestExecDataImpl(
+        USERVER_NAMESPACE::redis::Request&& request,
+        std::vector<TransactionImpl::ResultPromise>&& result_promises
+    );
 
-  void Wait() override;
+    void Wait() override;
 
-  void Get(const std::string& request_description) override;
+    void Get(const std::string& request_description) override;
 
-  ReplyPtr GetRaw() override { return GetReply(); }
+    ReplyPtr GetRaw() override { return GetReply(); }
 
-  engine::impl::ContextAccessor* TryGetContextAccessor() noexcept override {
-    UASSERT_MSG(false, "Not implemented");
-    return nullptr;
-  }
+    engine::impl::ContextAccessor* TryGetContextAccessor() noexcept override {
+        UASSERT_MSG(false, "Not implemented");
+        return nullptr;
+    }
 
- private:
-  std::vector<TransactionImpl::ResultPromise> result_promises_;
+private:
+    std::vector<TransactionImpl::ResultPromise> result_promises_;
 };
 
 }  // namespace storages::redis

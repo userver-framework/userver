@@ -17,40 +17,35 @@ namespace storages::mysql {
 namespace {
 
 std::shared_ptr<storages::mysql::Cluster> CreateCluster(
-    clients::dns::Resolver& resolver, const components::ComponentConfig& config,
-    const components::ComponentContext& context) {
-  const auto& secdist = context.FindComponent<components::Secdist>().Get();
-  const auto& settings_multi =
-      secdist.Get<storages::mysql::settings::MysqlSettingsMulti>();
-  const auto& settings =
-      settings_multi.Get(storages::mysql::settings::GetSecdistAlias(config));
+    clients::dns::Resolver& resolver,
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context
+) {
+    const auto& secdist = context.FindComponent<components::Secdist>().Get();
+    const auto& settings_multi = secdist.Get<storages::mysql::settings::MysqlSettingsMulti>();
+    const auto& settings = settings_multi.Get(storages::mysql::settings::GetSecdistAlias(config));
 
-  return std::make_shared<storages::mysql::Cluster>(resolver, settings, config);
+    return std::make_shared<storages::mysql::Cluster>(resolver, settings, config);
 }
 
 }  // namespace
 
-Component::Component(const components::ComponentConfig& config,
-                     const components::ComponentContext& context)
+Component::Component(const components::ComponentConfig& config, const components::ComponentContext& context)
     : ComponentBase{config, context},
       dns_{context.FindComponent<clients::dns::Component>()},
       cluster_{CreateCluster(dns_.GetResolver(), config, context)} {
-  auto& statistics_storage =
-      context.FindComponent<components::StatisticsStorage>();
-  statistics_holder_ = statistics_storage.GetStorage().RegisterWriter(
-      "mysql", [this](utils::statistics::Writer& writer) {
-        cluster_->WriteStatistics(writer);
-      });
+    auto& statistics_storage = context.FindComponent<components::StatisticsStorage>();
+    statistics_holder_ = statistics_storage.GetStorage().RegisterWriter(
+        "mysql", [this](utils::statistics::Writer& writer) { cluster_->WriteStatistics(writer); }
+    );
 }
 
 Component::~Component() { statistics_holder_.Unregister(); }
 
-std::shared_ptr<storages::mysql::Cluster> Component::GetCluster() const {
-  return cluster_;
-}
+std::shared_ptr<storages::mysql::Cluster> Component::GetCluster() const { return cluster_; }
 
 yaml_config::Schema Component::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<ComponentBase>(R"(
+    return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: MySQL client component
 additionalProperties: false

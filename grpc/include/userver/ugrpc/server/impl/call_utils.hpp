@@ -8,29 +8,29 @@ namespace ugrpc::server::impl {
 
 template <typename Call>
 void Finish(Call& call, const grpc::Status& status) {
-  if (status.ok()) {
-    call.Finish();
-  } else {
-    call.FinishWithError(status);
-  }
+    if (status.ok()) {
+        call.Finish();
+    } else {
+        call.FinishWithError(status);
+    }
 }
 
 template <typename Call, typename Response>
 void Finish(Call& call, ugrpc::server::Result<Response>&& result) {
-  if (result.IsSuccess()) {
-    call.Finish(std::move(result).ExtractResponse());
-  } else {
-    call.FinishWithError(result.GetErrorStatus());
-  }
+    if (result.IsSuccess()) {
+        call.Finish(std::move(result).ExtractResponse());
+    } else {
+        call.FinishWithError(result.GetErrorStatus());
+    }
 }
 
 template <typename Call, typename Response>
 void Finish(Call& call, ugrpc::server::StreamingResult<Response>&& result) {
-  if (result.HasLastResponse()) {
-    call.WriteAndFinish(std::move(result).ExtractLastResponse());
-  } else {
-    Finish(call, result.GetStatus());
-  }
+    if (result.HasLastResponse()) {
+        call.WriteAndFinish(std::move(result).ExtractLastResponse());
+    } else {
+        Finish(call, result.GetStatus());
+    }
 }
 
 }  // namespace ugrpc::server::impl

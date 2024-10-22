@@ -20,68 +20,68 @@ USERVER_NAMESPACE_BEGIN
 namespace curl {
 
 class string_list {
- public:
-  string_list() = default;
-  string_list(const string_list&) = delete;
-  string_list(string_list&&) = delete;
-  string_list& operator=(const string_list&) = delete;
-  string_list& operator=(string_list&&) = delete;
+public:
+    string_list() = default;
+    string_list(const string_list&) = delete;
+    string_list(string_list&&) = delete;
+    string_list& operator=(const string_list&) = delete;
+    string_list& operator=(string_list&&) = delete;
 
-  inline native::curl_slist* native_handle() {
-    return list_elements_.empty() ? nullptr : &list_elements_.front().list_node;
-  }
-
-  inline const native::curl_slist* native_handle() const {
-    return list_elements_.empty() ? nullptr : &list_elements_.front().list_node;
-  }
-
-  void add(std::string str);
-  void clear() noexcept;
-
-  template <typename Pred>
-  std::optional<std::string_view> FindIf(const Pred& pred) const {
-    for (const auto& list_elem : list_elements_) {
-      const auto& value = list_elem.value;
-      if (pred(value)) return value;
+    inline native::curl_slist* native_handle() {
+        return list_elements_.empty() ? nullptr : &list_elements_.front().list_node;
     }
-    return std::nullopt;
-  }
 
-  template <typename Pred>
-  bool ReplaceFirstIf(const Pred& pred, std::string&& new_value) {
-    for (auto& list_elem : list_elements_) {
-      const auto& value = list_elem.value;
-      if (pred(value)) {
-        ReplaceValue(list_elem, std::move(new_value));
-        return true;
-      }
+    inline const native::curl_slist* native_handle() const {
+        return list_elements_.empty() ? nullptr : &list_elements_.front().list_node;
     }
-    return false;
-  }
 
-  template <typename Pred>
-  bool ReplaceFirstIf(const Pred& pred, const char* new_value) {
-    for (auto& list_elem : list_elements_) {
-      const auto& value = list_elem.value;
-      if (pred(value)) {
-        ReplaceValue(list_elem, std::string{new_value});
-        return true;
-      }
+    void add(std::string str);
+    void clear() noexcept;
+
+    template <typename Pred>
+    std::optional<std::string_view> FindIf(const Pred& pred) const {
+        for (const auto& list_elem : list_elements_) {
+            const auto& value = list_elem.value;
+            if (pred(value)) return value;
+        }
+        return std::nullopt;
     }
-    return false;
-  }
 
- private:
-  struct Elem {
-    explicit Elem(std::string new_value);
+    template <typename Pred>
+    bool ReplaceFirstIf(const Pred& pred, std::string&& new_value) {
+        for (auto& list_elem : list_elements_) {
+            const auto& value = list_elem.value;
+            if (pred(value)) {
+                ReplaceValue(list_elem, std::move(new_value));
+                return true;
+            }
+        }
+        return false;
+    }
 
-    std::string value{};
-    native::curl_slist list_node{};
-  };
+    template <typename Pred>
+    bool ReplaceFirstIf(const Pred& pred, const char* new_value) {
+        for (auto& list_elem : list_elements_) {
+            const auto& value = list_elem.value;
+            if (pred(value)) {
+                ReplaceValue(list_elem, std::string{new_value});
+                return true;
+            }
+        }
+        return false;
+    }
 
-  static void ReplaceValue(Elem& list_elem, std::string&& new_value);
+private:
+    struct Elem {
+        explicit Elem(std::string new_value);
 
-  std::deque<Elem> list_elements_;
+        std::string value{};
+        native::curl_slist list_node{};
+    };
+
+    static void ReplaceValue(Elem& list_elem, std::string&& new_value);
+
+    std::deque<Elem> list_elements_;
 };
 
 }  // namespace curl

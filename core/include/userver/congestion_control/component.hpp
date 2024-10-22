@@ -39,38 +39,36 @@ namespace congestion_control {
 // clang-format on
 
 class Component final : public components::ComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of congestion_control::Component component
-  static constexpr std::string_view kName = "congestion-control";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of congestion_control::Component component
+    static constexpr std::string_view kName = "congestion-control";
 
-  Component(const components::ComponentConfig&,
-            const components::ComponentContext&);
+    Component(const components::ComponentConfig&, const components::ComponentContext&);
 
-  ~Component() override;
+    ~Component() override;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
-  server::congestion_control::Limiter& GetServerLimiter();
-  server::congestion_control::Sensor& GetServerSensor();
+    server::congestion_control::Limiter& GetServerLimiter();
+    server::congestion_control::Sensor& GetServerSensor();
 
- private:
-  void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
+private:
+    void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
 
-  void OnAllComponentsLoaded() override;
+    void OnAllComponentsLoaded() override;
 
-  void OnAllComponentsAreStopping() override;
+    void OnAllComponentsAreStopping() override;
 
-  void ExtendWriter(utils::statistics::Writer& writer);
+    void ExtendWriter(utils::statistics::Writer& writer);
 
-  struct Impl;
-  utils::FastPimpl<Impl, 704, 16> pimpl_;
+    struct Impl;
+    utils::FastPimpl<Impl, 704, 16> pimpl_;
 };
 
 }  // namespace congestion_control
 
 template <>
-inline constexpr bool components::kHasValidate<congestion_control::Component> =
-    true;
+inline constexpr bool components::kHasValidate<congestion_control::Component> = true;
 
 USERVER_NAMESPACE_END

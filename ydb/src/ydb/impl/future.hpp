@@ -19,64 +19,65 @@ void HandleOnceRetry(utils::RetryBudget& retry_budget, NYdb::EStatus status);
 
 template <typename T>
 void WaitForFuture(const NThreading::TFuture<T>& future) {
-  if (engine::FutureStatus::kReady !=
-      drivers::TryWaitForSubscribableFuture(future, engine::Deadline{})) {
-    throw OperationCancelledError();
-  }
+    if (engine::FutureStatus::kReady != drivers::TryWaitForSubscribableFuture(future, engine::Deadline{})) {
+        throw OperationCancelledError();
+    }
 }
 
 template <typename T>
 T GetFutureValue(NThreading::TFuture<T>&& future) {
-  static_assert(!std::is_base_of_v<NYdb::TStatus, T>,
-                "for T derived from NYdb::TStatus use GetFutureValueUnchecked");
-  impl::WaitForFuture(future);
-  if constexpr (std::is_void_v<T>) {
-    future.GetValue();
-  } else {
-    return future.ExtractValue();
-  }
+    static_assert(!std::is_base_of_v<NYdb::TStatus, T>, "for T derived from NYdb::TStatus use GetFutureValueUnchecked");
+    impl::WaitForFuture(future);
+    if constexpr (std::is_void_v<T>) {
+        future.GetValue();
+    } else {
+        return future.ExtractValue();
+    }
 }
 
 template <typename T>
 T GetFutureValueUnchecked(NThreading::TFuture<T>&& future) {
-  impl::WaitForFuture(future);
-  return future.ExtractValue();
+    impl::WaitForFuture(future);
+    return future.ExtractValue();
 }
 
 template <typename T>
-T GetFutureValueChecked(NThreading::TFuture<T>&& future,
-                        std::string_view operation_name,
-                        RequestContext& request_context) {
-  auto status = impl::GetFutureValueUnchecked(std::move(future));
-  if (!status.IsSuccess()) {
-    request_context.HandleError(status);
-    throw YdbResponseError{operation_name, std::move(status)};
-  }
-  return status;
+T GetFutureValueChecked(
+    NThreading::TFuture<T>&& future,
+    std::string_view operation_name,
+    RequestContext& request_context
+) {
+    auto status = impl::GetFutureValueUnchecked(std::move(future));
+    if (!status.IsSuccess()) {
+        request_context.HandleError(status);
+        throw YdbResponseError{operation_name, std::move(status)};
+    }
+    return status;
 }
 
 template <typename T>
-T GetFutureValueChecked(NThreading::TFuture<T>&& future,
-                        std::string_view operation_name) {
-  auto status = impl::GetFutureValueUnchecked(std::move(future));
-  if (!status.IsSuccess()) {
-    throw YdbResponseError{operation_name, std::move(status)};
-  }
-  return status;
+T GetFutureValueChecked(NThreading::TFuture<T>&& future, std::string_view operation_name) {
+    auto status = impl::GetFutureValueUnchecked(std::move(future));
+    if (!status.IsSuccess()) {
+        throw YdbResponseError{operation_name, std::move(status)};
+    }
+    return status;
 }
 
 template <typename T>
-T GetFutureValueChecked(NThreading::TFuture<T>&& future,
-                        std::string_view operation_name,
-                        utils::RetryBudget& retry_budget,
-                        RequestContext& request_context) {
-  auto status = GetFutureValueUnchecked(std::move(future));
-  HandleOnceRetry(retry_budget, status.GetStatus());
-  if (!status.IsSuccess()) {
-    request_context.HandleError(status);
-    throw YdbResponseError{operation_name, std::move(status)};
-  }
-  return status;
+T GetFutureValueChecked(
+    NThreading::TFuture<T>&& future,
+    std::string_view operation_name,
+    utils::RetryBudget& retry_budget,
+    RequestContext& request_context
+) {
+    auto status = GetFutureValueUnchecked(std::move(future));
+    HandleOnceRetry(retry_budget, status.GetStatus());
+    if (!status.IsSuccess()) {
+        request_context.HandleError(status);
+        throw YdbResponseError{operation_name, std::move(status)};
+    }
+    return status;
 }
 
 }  // namespace ydb::impl

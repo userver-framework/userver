@@ -32,24 +32,21 @@ namespace server::handlers {
 // clang-format on
 
 class Jemalloc final : public HttpHandlerBase {
- public:
-  Jemalloc(const components::ComponentConfig&,
-           const components::ComponentContext&);
+public:
+    Jemalloc(const components::ComponentConfig&, const components::ComponentContext&);
 
-  /// @ingroup userver_component_names
-  /// @brief The default name of server::handlers::Jemalloc
-  static constexpr std::string_view kName = "handler-jemalloc";
+    /// @ingroup userver_component_names
+    /// @brief The default name of server::handlers::Jemalloc
+    static constexpr std::string_view kName = "handler-jemalloc";
 
-  std::string HandleRequestThrow(const http::HttpRequest&,
-                                 request::RequestContext&) const override;
+    std::string HandleRequestThrow(const http::HttpRequest&, request::RequestContext&) const override;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 };
 
 }  // namespace server::handlers
 
 template <>
-inline constexpr bool components::kHasValidate<server::handlers::Jemalloc> =
-    true;
+inline constexpr bool components::kHasValidate<server::handlers::Jemalloc> = true;
 
 USERVER_NAMESPACE_END

@@ -10,13 +10,12 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::ev {
 
 struct ThreadPoolConfig {
-  std::size_t threads = 2;
-  std::string thread_name = "event-worker";
-  bool ev_default_loop_disabled = false;
+    std::size_t threads = 2;
+    std::string thread_name = "event-worker";
+    bool ev_default_loop_disabled = false;
 };
 
-ThreadPoolConfig Parse(const yaml_config::YamlConfig& value,
-                       formats::parse::To<ThreadPoolConfig>);
+ThreadPoolConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<ThreadPoolConfig>);
 
 }  // namespace engine::ev
 

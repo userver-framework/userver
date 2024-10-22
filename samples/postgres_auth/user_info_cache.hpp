@@ -13,28 +13,28 @@
 namespace samples::pg {
 
 struct UserDbInfo {
-  server::auth::UserAuthInfo::Ticket token;
-  std::int64_t user_id;
-  std::vector<std::string> scopes;
-  std::string name;
+    server::auth::UserAuthInfo::Ticket token;
+    std::int64_t user_id;
+    std::vector<std::string> scopes;
+    std::string name;
 };
 
 struct AuthCachePolicy {
-  static constexpr std::string_view kName = "auth-pg-cache";
+    static constexpr std::string_view kName = "auth-pg-cache";
 
-  using ValueType = UserDbInfo;
-  static constexpr auto kKeyMember = &UserDbInfo::token;
-  static constexpr const char* kQuery =
-      "SELECT token, user_id, scopes, name FROM auth_schema.tokens";
-  static constexpr const char* kUpdatedField = "updated";
-  using UpdatedFieldType = storages::postgres::TimePointTz;
+    using ValueType = UserDbInfo;
+    static constexpr auto kKeyMember = &UserDbInfo::token;
+    static constexpr const char* kQuery = "SELECT token, user_id, scopes, name FROM auth_schema.tokens";
+    static constexpr const char* kUpdatedField = "updated";
+    using UpdatedFieldType = storages::postgres::TimePointTz;
 
-  // Using crypto::algorithm::StringsEqualConstTimeComparator to avoid timing
-  // attack at find(token).
-  using CacheContainer =
-      std::unordered_map<server::auth::UserAuthInfo::Ticket, UserDbInfo,
-                         std::hash<server::auth::UserAuthInfo::Ticket>,
-                         crypto::algorithm::StringsEqualConstTimeComparator>;
+    // Using crypto::algorithm::StringsEqualConstTimeComparator to avoid timing
+    // attack at find(token).
+    using CacheContainer = std::unordered_map<
+        server::auth::UserAuthInfo::Ticket,
+        UserDbInfo,
+        std::hash<server::auth::UserAuthInfo::Ticket>,
+        crypto::algorithm::StringsEqualConstTimeComparator>;
 };
 
 using AuthCache = components::PostgreCache<AuthCachePolicy>;

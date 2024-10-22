@@ -11,24 +11,22 @@ USERVER_NAMESPACE_BEGIN
 namespace components {
 
 class ComponentConfig final : public yaml_config::YamlConfig {
- public:
-  /// Creates an empty config
-  explicit ComponentConfig(std::string name);
+public:
+    /// Creates an empty config
+    explicit ComponentConfig(std::string name);
 
-  ComponentConfig(yaml_config::YamlConfig value);
+    ComponentConfig(yaml_config::YamlConfig value);
 
-  const std::string& Name() const;
-  void SetName(std::string name);
+    const std::string& Name() const;
+    void SetName(std::string name);
 
- private:
-  std::string name_;
+private:
+    std::string name_;
 };
 
-ComponentConfig Parse(const yaml_config::YamlConfig& value,
-                      formats::parse::To<ComponentConfig>);
+ComponentConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<ComponentConfig>);
 
-using ComponentConfigMap =
-    std::unordered_map<std::string, const ComponentConfig&>;
+using ComponentConfigMap = std::unordered_map<std::string, const ComponentConfig&>;
 
 }  // namespace components
 

@@ -13,26 +13,25 @@ namespace ugrpc::impl {
 class QueueRunner;
 
 class CompletionQueuePoolBase {
- public:
-  CompletionQueuePoolBase(CompletionQueuePoolBase&&) = delete;
-  CompletionQueuePoolBase& operator=(CompletionQueuePoolBase&&) = delete;
+public:
+    CompletionQueuePoolBase(CompletionQueuePoolBase&&) = delete;
+    CompletionQueuePoolBase& operator=(CompletionQueuePoolBase&&) = delete;
 
-  std::size_t GetSize() const { return queues_.size(); }
+    std::size_t GetSize() const { return queues_.size(); }
 
-  grpc::CompletionQueue& GetQueue(std::size_t idx) { return *queues_[idx]; }
+    grpc::CompletionQueue& GetQueue(std::size_t idx) { return *queues_[idx]; }
 
-  grpc::CompletionQueue& NextQueue();
+    grpc::CompletionQueue& NextQueue();
 
- protected:
-  explicit CompletionQueuePoolBase(
-      utils::FixedArray<std::unique_ptr<grpc::CompletionQueue>> queues);
+protected:
+    explicit CompletionQueuePoolBase(utils::FixedArray<std::unique_ptr<grpc::CompletionQueue>> queues);
 
-  // protected to prevent destruction via pointer to base.
-  ~CompletionQueuePoolBase();
+    // protected to prevent destruction via pointer to base.
+    ~CompletionQueuePoolBase();
 
- private:
-  utils::FixedArray<std::unique_ptr<grpc::CompletionQueue>> queues_;
-  utils::FixedArray<QueueRunner> queue_runners_;
+private:
+    utils::FixedArray<std::unique_ptr<grpc::CompletionQueue>> queues_;
+    utils::FixedArray<QueueRunner> queue_runners_;
 };
 
 }  // namespace ugrpc::impl

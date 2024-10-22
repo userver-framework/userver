@@ -17,22 +17,22 @@ namespace congestion_control {
 /// @note It spawns a separate non-coroutine thread to be more simple and
 /// robust.
 class Watchdog final {
- public:
-  Watchdog();
+public:
+    Watchdog();
 
-  ~Watchdog();
+    ~Watchdog();
 
-  void Register(ControllerInfo ci);
+    void Register(ControllerInfo ci);
 
-  void Stop();
+    void Stop();
 
- private:
-  void Check();
+private:
+    void Check();
 
-  concurrent::Variable<std::vector<ControllerInfo>, std::mutex> cis_;
-  std::atomic<bool> should_stop_;
-  engine::TaskProcessor& tp_;
-  std::thread thread_;
+    concurrent::Variable<std::vector<ControllerInfo>, std::mutex> cis_;
+    std::atomic<bool> should_stop_;
+    engine::TaskProcessor& tp_;
+    std::thread thread_;
 };
 
 }  // namespace congestion_control

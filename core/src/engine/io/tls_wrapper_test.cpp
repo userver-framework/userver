@@ -140,550 +140,578 @@ constexpr auto kShortTimeout = std::chrono::milliseconds{10};
 }  // namespace
 
 UTEST(TlsWrapper, InitListSmall) {
-  const std::string kStringA(16, 'a');
-  const std::string kStringB(32, 'b');
-  const std::string kStringC(16, 'c');
-  const std::string kStringD(64, 'd');
-  const engine::io::IoData kDataA{kStringA.data(), kStringA.size()};
-  const engine::io::IoData kDataB{kStringB.data(), kStringB.size()};
-  const engine::io::IoData kDataC{kStringC.data(), kStringC.size()};
-  const engine::io::IoData kDataD{kStringD.data(), kStringD.size()};
-  const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+    const std::string kStringA(16, 'a');
+    const std::string kStringB(32, 'b');
+    const std::string kStringC(16, 'c');
+    const std::string kStringD(64, 'd');
+    const engine::io::IoData kDataA{kStringA.data(), kStringA.size()};
+    const engine::io::IoData kDataB{kStringB.data(), kStringB.size()};
+    const engine::io::IoData kDataC{kStringC.data(), kStringC.size()};
+    const engine::io::IoData kDataD{kStringD.data(), kStringD.size()};
+    const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
-  TcpListener tcp_listener;
-  auto [server, client] = tcp_listener.MakeSocketPair(deadline);
+    TcpListener tcp_listener;
+    auto [server, client] = tcp_listener.MakeSocketPair(deadline);
 
-  auto server_task = utils::Async(
-      "tls-server",
-      [deadline, kDataA, kDataB, kDataC, kDataD](auto&& server) {
-        auto tls_server = io::TlsWrapper::StartTlsServer(
-            std::forward<decltype(server)>(server),
-            crypto::Certificate::LoadFromString(cert),
-            crypto::PrivateKey::LoadFromString(key), deadline);
-        if (tls_server.WriteAll({kDataA, kDataB, kDataC, kDataD}, deadline) !=
-            kDataA.len + kDataB.len + kDataC.len + kDataD.len) {
-          throw std::runtime_error("Couldn't send data");
-        }
-      },
-      std::move(server));
+    auto server_task = utils::Async(
+        "tls-server",
+        [deadline, kDataA, kDataB, kDataC, kDataD](auto&& server) {
+            auto tls_server = io::TlsWrapper::StartTlsServer(
+                std::forward<decltype(server)>(server),
+                crypto::Certificate::LoadFromString(cert),
+                crypto::PrivateKey::LoadFromString(key),
+                deadline
+            );
+            if (tls_server.WriteAll({kDataA, kDataB, kDataC, kDataD}, deadline) !=
+                kDataA.len + kDataB.len + kDataC.len + kDataD.len) {
+                throw std::runtime_error("Couldn't send data");
+            }
+        },
+        std::move(server)
+    );
 
-  auto tls_client =
-      io::TlsWrapper::StartTlsClient(std::move(client), {}, deadline);
-  std::vector<char> buffer(kDataA.len + kDataB.len + kDataC.len + kDataD.len);
-  const auto bytes_rcvd =
-      tls_client.RecvAll(buffer.data(), buffer.size(), deadline);
+    auto tls_client = io::TlsWrapper::StartTlsClient(std::move(client), {}, deadline);
+    std::vector<char> buffer(kDataA.len + kDataB.len + kDataC.len + kDataD.len);
+    const auto bytes_rcvd = tls_client.RecvAll(buffer.data(), buffer.size(), deadline);
 
-  server_task.Get();
-  std::string result(buffer.data(), bytes_rcvd);
-  EXPECT_EQ(result, kStringA + kStringB + kStringC + kStringD);
+    server_task.Get();
+    std::string result(buffer.data(), bytes_rcvd);
+    EXPECT_EQ(result, kStringA + kStringB + kStringC + kStringD);
 }
 
 UTEST(TlsWrapper, InitListLarge) {
-  const std::string kStringA(2'048, 'a');
-  const std::string kStringB(2'048, 'b');
-  const std::string kStringC(4'096, 'c');
-  const std::string kStringD(8'192, 'd');
-  const engine::io::IoData kDataA{kStringA.data(), kStringA.size()};
-  const engine::io::IoData kDataB{kStringB.data(), kStringB.size()};
-  const engine::io::IoData kDataC{kStringC.data(), kStringC.size()};
-  const engine::io::IoData kDataD{kStringD.data(), kStringD.size()};
-  const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+    const std::string kStringA(2'048, 'a');
+    const std::string kStringB(2'048, 'b');
+    const std::string kStringC(4'096, 'c');
+    const std::string kStringD(8'192, 'd');
+    const engine::io::IoData kDataA{kStringA.data(), kStringA.size()};
+    const engine::io::IoData kDataB{kStringB.data(), kStringB.size()};
+    const engine::io::IoData kDataC{kStringC.data(), kStringC.size()};
+    const engine::io::IoData kDataD{kStringD.data(), kStringD.size()};
+    const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
-  TcpListener tcp_listener;
-  auto [server, client] = tcp_listener.MakeSocketPair(deadline);
+    TcpListener tcp_listener;
+    auto [server, client] = tcp_listener.MakeSocketPair(deadline);
 
-  auto server_task = utils::Async(
-      "tls-server",
-      [deadline, kDataA, kDataB, kDataC, kDataD](auto&& server) {
-        auto tls_server = io::TlsWrapper::StartTlsServer(
-            std::forward<decltype(server)>(server),
-            crypto::Certificate::LoadFromString(cert),
-            crypto::PrivateKey::LoadFromString(key), deadline);
-        if (tls_server.WriteAll({kDataA, kDataB, kDataC, kDataD}, deadline) !=
-            kDataA.len + kDataB.len + kDataC.len + kDataD.len) {
-          throw std::runtime_error("Couldn't send data");
-        }
-      },
-      std::move(server));
+    auto server_task = utils::Async(
+        "tls-server",
+        [deadline, kDataA, kDataB, kDataC, kDataD](auto&& server) {
+            auto tls_server = io::TlsWrapper::StartTlsServer(
+                std::forward<decltype(server)>(server),
+                crypto::Certificate::LoadFromString(cert),
+                crypto::PrivateKey::LoadFromString(key),
+                deadline
+            );
+            if (tls_server.WriteAll({kDataA, kDataB, kDataC, kDataD}, deadline) !=
+                kDataA.len + kDataB.len + kDataC.len + kDataD.len) {
+                throw std::runtime_error("Couldn't send data");
+            }
+        },
+        std::move(server)
+    );
 
-  auto tls_client =
-      io::TlsWrapper::StartTlsClient(std::move(client), {}, deadline);
-  std::vector<char> buffer(kDataA.len + kDataB.len + kDataC.len + kDataD.len);
-  const auto bytes_rcvd =
-      tls_client.RecvAll(buffer.data(), buffer.size(), deadline);
+    auto tls_client = io::TlsWrapper::StartTlsClient(std::move(client), {}, deadline);
+    std::vector<char> buffer(kDataA.len + kDataB.len + kDataC.len + kDataD.len);
+    const auto bytes_rcvd = tls_client.RecvAll(buffer.data(), buffer.size(), deadline);
 
-  server_task.Get();
-  std::string result(buffer.data(), bytes_rcvd);
-  EXPECT_EQ(result, kStringA + kStringB + kStringC + kStringD);
+    server_task.Get();
+    std::string result(buffer.data(), bytes_rcvd);
+    EXPECT_EQ(result, kStringA + kStringB + kStringC + kStringD);
 }
 
 UTEST(TlsWrapper, InitListSmallThenLarge) {
-  const std::string kStringSmall(512, 'a');
-  const std::string kStringLarge(32'768, 'b');
-  const engine::io::IoData kDataSmall{kStringSmall.data(), kStringSmall.size()};
-  const engine::io::IoData kDataLarge{kStringLarge.data(), kStringLarge.size()};
-  const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+    const std::string kStringSmall(512, 'a');
+    const std::string kStringLarge(32'768, 'b');
+    const engine::io::IoData kDataSmall{kStringSmall.data(), kStringSmall.size()};
+    const engine::io::IoData kDataLarge{kStringLarge.data(), kStringLarge.size()};
+    const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
-  TcpListener tcp_listener;
-  auto [server, client] = tcp_listener.MakeSocketPair(deadline);
+    TcpListener tcp_listener;
+    auto [server, client] = tcp_listener.MakeSocketPair(deadline);
 
-  auto server_task = utils::Async(
-      "tls-server",
-      [deadline, kDataSmall, kDataLarge](auto&& server) {
-        auto tls_server = io::TlsWrapper::StartTlsServer(
-            std::forward<decltype(server)>(server),
-            crypto::Certificate::LoadFromString(cert),
-            crypto::PrivateKey::LoadFromString(key), deadline);
-        if (tls_server.WriteAll(
-                {kDataSmall, kDataSmall, kDataSmall, kDataSmall, kDataLarge},
-                deadline) != kDataSmall.len * 4 + kDataLarge.len) {
-          throw std::runtime_error("Couldn't send data");
-        }
-      },
-      std::move(server));
+    auto server_task = utils::Async(
+        "tls-server",
+        [deadline, kDataSmall, kDataLarge](auto&& server) {
+            auto tls_server = io::TlsWrapper::StartTlsServer(
+                std::forward<decltype(server)>(server),
+                crypto::Certificate::LoadFromString(cert),
+                crypto::PrivateKey::LoadFromString(key),
+                deadline
+            );
+            if (tls_server.WriteAll({kDataSmall, kDataSmall, kDataSmall, kDataSmall, kDataLarge}, deadline) !=
+                kDataSmall.len * 4 + kDataLarge.len) {
+                throw std::runtime_error("Couldn't send data");
+            }
+        },
+        std::move(server)
+    );
 
-  auto tls_client =
-      io::TlsWrapper::StartTlsClient(std::move(client), {}, deadline);
-  std::vector<char> buffer(kDataSmall.len * 4 + kDataLarge.len);
-  auto bytes_rcvd = tls_client.RecvAll(buffer.data(), buffer.size(), deadline);
+    auto tls_client = io::TlsWrapper::StartTlsClient(std::move(client), {}, deadline);
+    std::vector<char> buffer(kDataSmall.len * 4 + kDataLarge.len);
+    auto bytes_rcvd = tls_client.RecvAll(buffer.data(), buffer.size(), deadline);
 
-  server_task.Get();
-  std::string result(buffer.data(), bytes_rcvd);
-  EXPECT_EQ(result, kStringSmall + kStringSmall + kStringSmall + kStringSmall +
-                        kStringLarge);
+    server_task.Get();
+    std::string result(buffer.data(), bytes_rcvd);
+    EXPECT_EQ(result, kStringSmall + kStringSmall + kStringSmall + kStringSmall + kStringLarge);
 }
 
 UTEST_MT(TlsWrapper, Smoke, 2) {
-  const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+    const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
-  TcpListener tcp_listener;
-  auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
+    TcpListener tcp_listener;
+    auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
 
-  auto server_task = engine::AsyncNoSpan(
-      [test_deadline](auto&& server) {
-        try {
-          auto tls_server = io::TlsWrapper::StartTlsServer(
-              std::forward<decltype(server)>(server),
-              crypto::Certificate::LoadFromString(cert),
-              crypto::PrivateKey::LoadFromString(key), test_deadline);
-          EXPECT_EQ(1, tls_server.SendAll("1", 1, test_deadline));
-          char c = 0;
-          EXPECT_EQ(1, tls_server.RecvSome(&c, 1, test_deadline));
-          EXPECT_EQ('2', c);
-
-          auto raw_server = tls_server.StopTls(test_deadline);
-          EXPECT_EQ(1, raw_server.SendAll("3", 1, test_deadline));
-          EXPECT_EQ(1, raw_server.RecvSome(&c, 1, test_deadline));
-          EXPECT_EQ('4', c);
-        } catch (const std::exception& e) {
-          LOG_ERROR() << e;
-          FAIL() << e.what();
-        }
-      },
-      std::move(server));
-
-  auto tls_client =
-      io::TlsWrapper::StartTlsClient(std::move(client), {}, test_deadline);
-  char c = 0;
-  EXPECT_EQ(1, tls_client.RecvSome(&c, 1, test_deadline));
-  EXPECT_EQ('1', c);
-  EXPECT_EQ(1, tls_client.SendAll("2", 1, test_deadline));
-  auto raw_client = tls_client.StopTls(test_deadline);
-  EXPECT_EQ(1, raw_client.RecvSome(&c, 1, test_deadline));
-  EXPECT_EQ('3', c);
-  EXPECT_EQ(1, raw_client.SendAll("4", 1, test_deadline));
-
-  server_task.Get();
-}
-
-UTEST_MT(TlsWrapper, DocTest, 2) {
-  static constexpr std::string_view kData = "hello world";
-  const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
-
-  /// [TLS wrapper usage]
-  TcpListener tcp_listener;
-  auto [server, client] = tcp_listener.MakeSocketPair(deadline);
-
-  auto server_task = utils::Async(
-      "tls-server",
-      [deadline](auto&& server) {
-        auto tls_server = io::TlsWrapper::StartTlsServer(
-            std::forward<decltype(server)>(server),
-            crypto::Certificate::LoadFromString(cert),
-            crypto::PrivateKey::LoadFromString(key), deadline);
-        if (tls_server.SendAll(kData.data(), kData.size(), deadline) !=
-            kData.size()) {
-          throw std::runtime_error("Couldn't send data");
-        }
-      },
-      std::move(server));
-
-  auto tls_client =
-      io::TlsWrapper::StartTlsClient(std::move(client), {}, deadline);
-  std::vector<char> buffer(kData.size());
-  const auto bytes_rcvd =
-      tls_client.RecvAll(buffer.data(), buffer.size(), deadline);
-  /// [TLS wrapper usage]
-
-  server_task.Get();
-  std::string_view result(buffer.data(), bytes_rcvd);
-  EXPECT_EQ(result, kData.substr(0, result.size()));
-}
-
-UTEST(TlsWrapper, Move) {
-  const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
-
-  TcpListener tcp_listener;
-  auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
-
-  auto server_task = engine::AsyncNoSpan(
-      [test_deadline](auto&& server) {
-        try {
-          auto tls_server = io::TlsWrapper::StartTlsServer(
-              std::forward<decltype(server)>(server),
-              crypto::Certificate::LoadFromString(cert),
-              crypto::PrivateKey::LoadFromString(key), test_deadline);
-          engine::AsyncNoSpan(
-              [test_deadline](auto&& tls_server) {
+    auto server_task = engine::AsyncNoSpan(
+        [test_deadline](auto&& server) {
+            try {
+                auto tls_server = io::TlsWrapper::StartTlsServer(
+                    std::forward<decltype(server)>(server),
+                    crypto::Certificate::LoadFromString(cert),
+                    crypto::PrivateKey::LoadFromString(key),
+                    test_deadline
+                );
                 EXPECT_EQ(1, tls_server.SendAll("1", 1, test_deadline));
                 char c = 0;
                 EXPECT_EQ(1, tls_server.RecvSome(&c, 1, test_deadline));
                 EXPECT_EQ('2', c);
-              },
-              std::move(tls_server))
-              .Get();
-        } catch (const std::exception& e) {
-          LOG_ERROR() << e;
-          FAIL() << e.what();
-        }
-      },
-      std::move(server));
 
-  auto tls_client =
-      io::TlsWrapper::StartTlsClient(std::move(client), {}, test_deadline);
+                auto raw_server = tls_server.StopTls(test_deadline);
+                EXPECT_EQ(1, raw_server.SendAll("3", 1, test_deadline));
+                EXPECT_EQ(1, raw_server.RecvSome(&c, 1, test_deadline));
+                EXPECT_EQ('4', c);
+            } catch (const std::exception& e) {
+                LOG_ERROR() << e;
+                FAIL() << e.what();
+            }
+        },
+        std::move(server)
+    );
 
-  engine::AsyncNoSpan(
-      [test_deadline](auto&& tls_client) {
-        char c = 0;
-        EXPECT_EQ(1, tls_client.RecvSome(&c, 1, test_deadline));
-        EXPECT_EQ('1', c);
-        EXPECT_EQ(1, tls_client.SendAll("2", 1, test_deadline));
-      },
-      std::move(tls_client))
-      .Get();
+    auto tls_client = io::TlsWrapper::StartTlsClient(std::move(client), {}, test_deadline);
+    char c = 0;
+    EXPECT_EQ(1, tls_client.RecvSome(&c, 1, test_deadline));
+    EXPECT_EQ('1', c);
+    EXPECT_EQ(1, tls_client.SendAll("2", 1, test_deadline));
+    auto raw_client = tls_client.StopTls(test_deadline);
+    EXPECT_EQ(1, raw_client.RecvSome(&c, 1, test_deadline));
+    EXPECT_EQ('3', c);
+    EXPECT_EQ(1, raw_client.SendAll("4", 1, test_deadline));
 
-  server_task.Get();
+    server_task.Get();
+}
+
+UTEST_MT(TlsWrapper, DocTest, 2) {
+    static constexpr std::string_view kData = "hello world";
+    const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+
+    /// [TLS wrapper usage]
+    TcpListener tcp_listener;
+    auto [server, client] = tcp_listener.MakeSocketPair(deadline);
+
+    auto server_task = utils::Async(
+        "tls-server",
+        [deadline](auto&& server) {
+            auto tls_server = io::TlsWrapper::StartTlsServer(
+                std::forward<decltype(server)>(server),
+                crypto::Certificate::LoadFromString(cert),
+                crypto::PrivateKey::LoadFromString(key),
+                deadline
+            );
+            if (tls_server.SendAll(kData.data(), kData.size(), deadline) != kData.size()) {
+                throw std::runtime_error("Couldn't send data");
+            }
+        },
+        std::move(server)
+    );
+
+    auto tls_client = io::TlsWrapper::StartTlsClient(std::move(client), {}, deadline);
+    std::vector<char> buffer(kData.size());
+    const auto bytes_rcvd = tls_client.RecvAll(buffer.data(), buffer.size(), deadline);
+    /// [TLS wrapper usage]
+
+    server_task.Get();
+    std::string_view result(buffer.data(), bytes_rcvd);
+    EXPECT_EQ(result, kData.substr(0, result.size()));
+}
+
+UTEST(TlsWrapper, Move) {
+    const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+
+    TcpListener tcp_listener;
+    auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
+
+    auto server_task = engine::AsyncNoSpan(
+        [test_deadline](auto&& server) {
+            try {
+                auto tls_server = io::TlsWrapper::StartTlsServer(
+                    std::forward<decltype(server)>(server),
+                    crypto::Certificate::LoadFromString(cert),
+                    crypto::PrivateKey::LoadFromString(key),
+                    test_deadline
+                );
+                engine::AsyncNoSpan(
+                    [test_deadline](auto&& tls_server) {
+                        EXPECT_EQ(1, tls_server.SendAll("1", 1, test_deadline));
+                        char c = 0;
+                        EXPECT_EQ(1, tls_server.RecvSome(&c, 1, test_deadline));
+                        EXPECT_EQ('2', c);
+                    },
+                    std::move(tls_server)
+                )
+                    .Get();
+            } catch (const std::exception& e) {
+                LOG_ERROR() << e;
+                FAIL() << e.what();
+            }
+        },
+        std::move(server)
+    );
+
+    auto tls_client = io::TlsWrapper::StartTlsClient(std::move(client), {}, test_deadline);
+
+    engine::AsyncNoSpan(
+        [test_deadline](auto&& tls_client) {
+            char c = 0;
+            EXPECT_EQ(1, tls_client.RecvSome(&c, 1, test_deadline));
+            EXPECT_EQ('1', c);
+            EXPECT_EQ(1, tls_client.SendAll("2", 1, test_deadline));
+        },
+        std::move(tls_client)
+    )
+        .Get();
+
+    server_task.Get();
 }
 
 UTEST(TlsWrapper, ConnectTimeout) {
-  const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+    const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
-  TcpListener tcp_listener;
-  auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
-  EXPECT_THROW(
-      static_cast<void>(io::TlsWrapper::StartTlsClient(
-          std::move(client), {}, Deadline::FromDuration(kShortTimeout))),
-      io::IoTimeout);
-  EXPECT_THROW(static_cast<void>(io::TlsWrapper::StartTlsServer(
-                   std::move(server), crypto::Certificate::LoadFromString(cert),
-                   crypto::PrivateKey::LoadFromString(key),
-                   Deadline::FromDuration(kShortTimeout))),
-               io::IoException);
+    TcpListener tcp_listener;
+    auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
+    EXPECT_THROW(
+        static_cast<void>(io::TlsWrapper::StartTlsClient(std::move(client), {}, Deadline::FromDuration(kShortTimeout))),
+        io::IoTimeout
+    );
+    EXPECT_THROW(
+        static_cast<void>(io::TlsWrapper::StartTlsServer(
+            std::move(server),
+            crypto::Certificate::LoadFromString(cert),
+            crypto::PrivateKey::LoadFromString(key),
+            Deadline::FromDuration(kShortTimeout)
+        )),
+        io::IoException
+    );
 }
 
 UTEST_MT(TlsWrapper, IoTimeout, 2) {
-  const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+    const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
-  TcpListener tcp_listener;
-  auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
+    TcpListener tcp_listener;
+    auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
 
-  engine::SingleConsumerEvent timeout_happened;
-  auto server_task = engine::AsyncNoSpan(
-      [test_deadline, &timeout_happened](auto&& server) {
-        auto tls_server = io::TlsWrapper::StartTlsServer(
-            std::forward<decltype(server)>(server),
-            crypto::Certificate::LoadFromString(cert),
-            crypto::PrivateKey::LoadFromString(key), test_deadline);
-        char c = 0;
-        UEXPECT_THROW(static_cast<void>(tls_server.RecvSome(
-                          &c, 1, Deadline::FromDuration(kShortTimeout))),
-                      io::IoTimeout);
-        timeout_happened.Send();
-    // OpenSSL 1.0 always breaks the channel here. Please update.
+    engine::SingleConsumerEvent timeout_happened;
+    auto server_task = engine::AsyncNoSpan(
+        [test_deadline, &timeout_happened](auto&& server) {
+            auto tls_server = io::TlsWrapper::StartTlsServer(
+                std::forward<decltype(server)>(server),
+                crypto::Certificate::LoadFromString(cert),
+                crypto::PrivateKey::LoadFromString(key),
+                test_deadline
+            );
+            char c = 0;
+            UEXPECT_THROW(
+                static_cast<void>(tls_server.RecvSome(&c, 1, Deadline::FromDuration(kShortTimeout))), io::IoTimeout
+            );
+            timeout_happened.Send();
+        // OpenSSL 1.0 always breaks the channel here. Please update.
 #if OPENSSL_VERSION_NUMBER >= 0x010100000L
-        EXPECT_EQ(1, tls_server.RecvSome(&c, 1, test_deadline));
-        EXPECT_EQ('1', c);
+            EXPECT_EQ(1, tls_server.RecvSome(&c, 1, test_deadline));
+            EXPECT_EQ('1', c);
 #endif
-      },
-      std::move(server));
+        },
+        std::move(server)
+    );
 
-  auto tls_client =
-      io::TlsWrapper::StartTlsClient(std::move(client), {}, test_deadline);
-  ASSERT_TRUE(timeout_happened.WaitForEventUntil(test_deadline));
-  // see above
+    auto tls_client = io::TlsWrapper::StartTlsClient(std::move(client), {}, test_deadline);
+    ASSERT_TRUE(timeout_happened.WaitForEventUntil(test_deadline));
+    // see above
 #if OPENSSL_VERSION_NUMBER >= 0x010100000L
-  EXPECT_EQ(1, tls_client.SendAll("1", 1, test_deadline));
+    EXPECT_EQ(1, tls_client.SendAll("1", 1, test_deadline));
 #endif
-  server_task.Get();
+    server_task.Get();
 }
 
 UTEST(TlsWrapper, Cancel) {
-  const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+    const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
-  TcpListener tcp_listener;
-  auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
+    TcpListener tcp_listener;
+    auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
 
-  auto server_task = engine::AsyncNoSpan(
-      [test_deadline](auto&& server) {
-        auto tls_server = io::TlsWrapper::StartTlsServer(
-            std::forward<decltype(server)>(server),
-            crypto::Certificate::LoadFromString(cert),
-            crypto::PrivateKey::LoadFromString(key), test_deadline);
-        char c = 0;
-        UEXPECT_THROW(
-            static_cast<void>(tls_server.RecvSome(&c, 1, test_deadline)),
-            io::IoInterrupted);
-      },
-      std::move(server));
+    auto server_task = engine::AsyncNoSpan(
+        [test_deadline](auto&& server) {
+            auto tls_server = io::TlsWrapper::StartTlsServer(
+                std::forward<decltype(server)>(server),
+                crypto::Certificate::LoadFromString(cert),
+                crypto::PrivateKey::LoadFromString(key),
+                test_deadline
+            );
+            char c = 0;
+            UEXPECT_THROW(static_cast<void>(tls_server.RecvSome(&c, 1, test_deadline)), io::IoInterrupted);
+        },
+        std::move(server)
+    );
 
-  auto tls_client =
-      io::TlsWrapper::StartTlsClient(std::move(client), {}, test_deadline);
+    auto tls_client = io::TlsWrapper::StartTlsClient(std::move(client), {}, test_deadline);
 
-  engine::Yield();
-  server_task.SyncCancel();
+    engine::Yield();
+    server_task.SyncCancel();
 }
 
 UTEST_MT(TlsWrapper, CertKeyMismatch, 2) {
-  const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+    const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
-  TcpListener tcp_listener;
-  auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
+    TcpListener tcp_listener;
+    auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
 
-  auto server_task = engine::AsyncNoSpan(
-      [test_deadline](auto&& server) {
-        UEXPECT_THROW(
-            static_cast<void>(io::TlsWrapper::StartTlsServer(
-                std::forward<decltype(server)>(server),
-                crypto::Certificate::LoadFromString(cert),
-                crypto::PrivateKey::LoadFromString(other_key), test_deadline)),
-            io::TlsException);
-      },
-      std::move(server));
+    auto server_task = engine::AsyncNoSpan(
+        [test_deadline](auto&& server) {
+            UEXPECT_THROW(
+                static_cast<void>(io::TlsWrapper::StartTlsServer(
+                    std::forward<decltype(server)>(server),
+                    crypto::Certificate::LoadFromString(cert),
+                    crypto::PrivateKey::LoadFromString(other_key),
+                    test_deadline
+                )),
+                io::TlsException
+            );
+        },
+        std::move(server)
+    );
 
-  EXPECT_THROW(static_cast<void>(io::TlsWrapper::StartTlsClient(
-                   std::move(client), {}, test_deadline)),
-               io::IoException);
-  server_task.Get();
+    EXPECT_THROW(
+        static_cast<void>(io::TlsWrapper::StartTlsClient(std::move(client), {}, test_deadline)), io::IoException
+    );
+    server_task.Get();
 }
 
 UTEST_MT(TlsWrapper, NonTlsClient, 2) {
-  const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+    const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
-  TcpListener tcp_listener;
-  auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
+    TcpListener tcp_listener;
+    auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
 
-  auto server_task = engine::AsyncNoSpan(
-      [test_deadline](auto&& server) {
-        UEXPECT_THROW(
-            static_cast<void>(io::TlsWrapper::StartTlsServer(
-                std::forward<decltype(server)>(server),
-                crypto::Certificate::LoadFromString(cert),
-                crypto::PrivateKey::LoadFromString(other_key), test_deadline)),
-            io::TlsException);
-      },
-      std::move(server));
+    auto server_task = engine::AsyncNoSpan(
+        [test_deadline](auto&& server) {
+            UEXPECT_THROW(
+                static_cast<void>(io::TlsWrapper::StartTlsServer(
+                    std::forward<decltype(server)>(server),
+                    crypto::Certificate::LoadFromString(cert),
+                    crypto::PrivateKey::LoadFromString(other_key),
+                    test_deadline
+                )),
+                io::TlsException
+            );
+        },
+        std::move(server)
+    );
 
-  EXPECT_EQ(5, client.SendAll("hello", 5, test_deadline));
-  server_task.Get();
+    EXPECT_EQ(5, client.SendAll("hello", 5, test_deadline));
+    server_task.Get();
 }
 
 UTEST_MT(TlsWrapper, NonTlsServer, 2) {
-  const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+    const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
-  TcpListener tcp_listener;
-  auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
+    TcpListener tcp_listener;
+    auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
 
-  auto server_task = engine::AsyncNoSpan(
-      [test_deadline](auto&& server) {
-        EXPECT_EQ(5, server.SendAll("hello", 5, test_deadline));
-      },
-      std::move(server));
+    auto server_task = engine::AsyncNoSpan(
+        [test_deadline](auto&& server) { EXPECT_EQ(5, server.SendAll("hello", 5, test_deadline)); }, std::move(server)
+    );
 
-  EXPECT_THROW(static_cast<void>(io::TlsWrapper::StartTlsClient(
-                   std::move(client), {}, test_deadline)),
-               io::IoException);
-  server_task.Get();
+    EXPECT_THROW(
+        static_cast<void>(io::TlsWrapper::StartTlsClient(std::move(client), {}, test_deadline)), io::IoException
+    );
+    server_task.Get();
 }
 
 UTEST_MT(TlsWrapper, DoubleSmoke, 4) {
-  const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+    const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
-  TcpListener tcp_listener;
-  auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
-  auto [other_server, other_client] =
-      tcp_listener.MakeSocketPair(test_deadline);
+    TcpListener tcp_listener;
+    auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
+    auto [other_server, other_client] = tcp_listener.MakeSocketPair(test_deadline);
 
-  auto server_task = engine::AsyncNoSpan(
-      [test_deadline](auto&& server) {
-        auto tls_server = io::TlsWrapper::StartTlsServer(
-            std::forward<decltype(server)>(server),
-            crypto::Certificate::LoadFromString(cert),
-            crypto::PrivateKey::LoadFromString(key), test_deadline);
-        EXPECT_EQ(1, tls_server.SendAll("1", 1, test_deadline));
-        char c = 0;
-        EXPECT_EQ(1, tls_server.RecvSome(&c, 1, test_deadline));
-        EXPECT_EQ('2', c);
+    auto server_task = engine::AsyncNoSpan(
+        [test_deadline](auto&& server) {
+            auto tls_server = io::TlsWrapper::StartTlsServer(
+                std::forward<decltype(server)>(server),
+                crypto::Certificate::LoadFromString(cert),
+                crypto::PrivateKey::LoadFromString(key),
+                test_deadline
+            );
+            EXPECT_EQ(1, tls_server.SendAll("1", 1, test_deadline));
+            char c = 0;
+            EXPECT_EQ(1, tls_server.RecvSome(&c, 1, test_deadline));
+            EXPECT_EQ('2', c);
 
-        auto raw_server = tls_server.StopTls(test_deadline);
-        EXPECT_EQ(1, raw_server.SendAll("3", 1, test_deadline));
-        EXPECT_EQ(1, raw_server.RecvSome(&c, 1, test_deadline));
-        EXPECT_EQ('4', c);
-      },
-      std::move(server));
+            auto raw_server = tls_server.StopTls(test_deadline);
+            EXPECT_EQ(1, raw_server.SendAll("3", 1, test_deadline));
+            EXPECT_EQ(1, raw_server.RecvSome(&c, 1, test_deadline));
+            EXPECT_EQ('4', c);
+        },
+        std::move(server)
+    );
 
-  auto other_server_task = engine::AsyncNoSpan(
-      [test_deadline](auto&& server) {
-        auto tls_server = io::TlsWrapper::StartTlsServer(
-            std::forward<decltype(server)>(server),
-            crypto::Certificate::LoadFromString(other_cert),
-            crypto::PrivateKey::LoadFromString(other_key), test_deadline);
-        EXPECT_EQ(1, tls_server.SendAll("5", 1, test_deadline));
-        char c = 0;
-        EXPECT_EQ(1, tls_server.RecvSome(&c, 1, test_deadline));
-        EXPECT_EQ('6', c);
+    auto other_server_task = engine::AsyncNoSpan(
+        [test_deadline](auto&& server) {
+            auto tls_server = io::TlsWrapper::StartTlsServer(
+                std::forward<decltype(server)>(server),
+                crypto::Certificate::LoadFromString(other_cert),
+                crypto::PrivateKey::LoadFromString(other_key),
+                test_deadline
+            );
+            EXPECT_EQ(1, tls_server.SendAll("5", 1, test_deadline));
+            char c = 0;
+            EXPECT_EQ(1, tls_server.RecvSome(&c, 1, test_deadline));
+            EXPECT_EQ('6', c);
 
-        auto raw_server = tls_server.StopTls(test_deadline);
-        EXPECT_EQ(1, raw_server.SendAll("7", 1, test_deadline));
-        EXPECT_EQ(1, raw_server.RecvSome(&c, 1, test_deadline));
-        EXPECT_EQ('8', c);
-      },
-      std::move(other_server));
+            auto raw_server = tls_server.StopTls(test_deadline);
+            EXPECT_EQ(1, raw_server.SendAll("7", 1, test_deadline));
+            EXPECT_EQ(1, raw_server.RecvSome(&c, 1, test_deadline));
+            EXPECT_EQ('8', c);
+        },
+        std::move(other_server)
+    );
 
-  auto other_client_task = engine::AsyncNoSpan(
-      [test_deadline](auto&& client) {
-        auto tls_client = io::TlsWrapper::StartTlsClient(
-            std::forward<decltype(client)>(client), {}, test_deadline);
-        char c = 0;
-        EXPECT_EQ(1, tls_client.RecvSome(&c, 1, test_deadline));
-        EXPECT_EQ('5', c);
-        EXPECT_EQ(1, tls_client.SendAll("6", 1, test_deadline));
-        auto raw_client = tls_client.StopTls(test_deadline);
-        EXPECT_EQ(1, raw_client.RecvSome(&c, 1, test_deadline));
-        EXPECT_EQ('7', c);
-        EXPECT_EQ(1, raw_client.SendAll("8", 1, test_deadline));
-      },
-      std::move(other_client));
+    auto other_client_task = engine::AsyncNoSpan(
+        [test_deadline](auto&& client) {
+            auto tls_client = io::TlsWrapper::StartTlsClient(std::forward<decltype(client)>(client), {}, test_deadline);
+            char c = 0;
+            EXPECT_EQ(1, tls_client.RecvSome(&c, 1, test_deadline));
+            EXPECT_EQ('5', c);
+            EXPECT_EQ(1, tls_client.SendAll("6", 1, test_deadline));
+            auto raw_client = tls_client.StopTls(test_deadline);
+            EXPECT_EQ(1, raw_client.RecvSome(&c, 1, test_deadline));
+            EXPECT_EQ('7', c);
+            EXPECT_EQ(1, raw_client.SendAll("8", 1, test_deadline));
+        },
+        std::move(other_client)
+    );
 
-  auto tls_client =
-      io::TlsWrapper::StartTlsClient(std::move(client), {}, test_deadline);
-  char c = 0;
-  EXPECT_EQ(1, tls_client.RecvSome(&c, 1, test_deadline));
-  EXPECT_EQ('1', c);
-  EXPECT_EQ(1, tls_client.SendAll("2", 1, test_deadline));
-  auto raw_client = tls_client.StopTls(test_deadline);
-  EXPECT_EQ(1, raw_client.RecvSome(&c, 1, test_deadline));
-  EXPECT_EQ('3', c);
-  EXPECT_EQ(1, raw_client.SendAll("4", 1, test_deadline));
+    auto tls_client = io::TlsWrapper::StartTlsClient(std::move(client), {}, test_deadline);
+    char c = 0;
+    EXPECT_EQ(1, tls_client.RecvSome(&c, 1, test_deadline));
+    EXPECT_EQ('1', c);
+    EXPECT_EQ(1, tls_client.SendAll("2", 1, test_deadline));
+    auto raw_client = tls_client.StopTls(test_deadline);
+    EXPECT_EQ(1, raw_client.RecvSome(&c, 1, test_deadline));
+    EXPECT_EQ('3', c);
+    EXPECT_EQ(1, raw_client.SendAll("4", 1, test_deadline));
 
-  server_task.Get();
-  other_server_task.Get();
-  other_client_task.Get();
+    server_task.Get();
+    other_server_task.Get();
+    other_client_task.Get();
 }
 
 UTEST(TlsWrapper, InvalidSocket) {
-  const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+    const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
-  UEXPECT_THROW(
-      static_cast<void>(io::TlsWrapper::StartTlsClient({}, {}, test_deadline)),
-      io::TlsException);
-  UEXPECT_THROW(static_cast<void>(io::TlsWrapper::StartTlsServer(
-                    {}, crypto::Certificate::LoadFromString(cert),
-                    crypto::PrivateKey::LoadFromString(key), test_deadline)),
-                io::TlsException);
+    UEXPECT_THROW(static_cast<void>(io::TlsWrapper::StartTlsClient({}, {}, test_deadline)), io::TlsException);
+    UEXPECT_THROW(
+        static_cast<void>(io::TlsWrapper::StartTlsServer(
+            {}, crypto::Certificate::LoadFromString(cert), crypto::PrivateKey::LoadFromString(key), test_deadline
+        )),
+        io::TlsException
+    );
 }
 
 UTEST(TlsWrapper, PeerShutdown) {
-  const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+    const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
-  TcpListener tcp_listener;
-  auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
+    TcpListener tcp_listener;
+    auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
 
-  auto server_task = engine::AsyncNoSpan(
-      [test_deadline](auto&& server) {
-        try {
-          auto tls_server = io::TlsWrapper::StartTlsServer(
-              std::forward<decltype(server)>(server),
-              crypto::Certificate::LoadFromString(cert),
-              crypto::PrivateKey::LoadFromString(key), test_deadline);
-          char c = 0;
-          // Get a non-fatal error on the channel
-          EXPECT_THROW(
-              [[maybe_unused]] const auto ret = tls_server.RecvAll(
-                  &c, 1,
-                  engine::Deadline::FromDuration(std::chrono::milliseconds{1})),
-              io::IoTimeout);
-          ASSERT_EQ(1, tls_server.SendAll(&c, 1, test_deadline));
-          EXPECT_EQ(0, tls_server.RecvSome(&c, 1, test_deadline));
-        } catch (const std::exception& e) {
-          LOG_ERROR() << e;
-          FAIL() << e.what();
-        }
-      },
-      std::move(server));
+    auto server_task = engine::AsyncNoSpan(
+        [test_deadline](auto&& server) {
+            try {
+                auto tls_server = io::TlsWrapper::StartTlsServer(
+                    std::forward<decltype(server)>(server),
+                    crypto::Certificate::LoadFromString(cert),
+                    crypto::PrivateKey::LoadFromString(key),
+                    test_deadline
+                );
+                char c = 0;
+                // Get a non-fatal error on the channel
+                EXPECT_THROW(
+                    [[maybe_unused]] const auto ret =
+                        tls_server.RecvAll(&c, 1, engine::Deadline::FromDuration(std::chrono::milliseconds{1})),
+                    io::IoTimeout
+                );
+                ASSERT_EQ(1, tls_server.SendAll(&c, 1, test_deadline));
+                EXPECT_EQ(0, tls_server.RecvSome(&c, 1, test_deadline));
+            } catch (const std::exception& e) {
+                LOG_ERROR() << e;
+                FAIL() << e.what();
+            }
+        },
+        std::move(server)
+    );
 
-  {
-    auto tls_client =
-        io::TlsWrapper::StartTlsClient(std::move(client), {}, test_deadline);
-    char c = 0;
-    ASSERT_EQ(1, tls_client.RecvAll(&c, 1, test_deadline));
-    // destroy the wrapper causing an unidirectional shutdown
-  }
+    {
+        auto tls_client = io::TlsWrapper::StartTlsClient(std::move(client), {}, test_deadline);
+        char c = 0;
+        ASSERT_EQ(1, tls_client.RecvAll(&c, 1, test_deadline));
+        // destroy the wrapper causing an unidirectional shutdown
+    }
 
-  server_task.Get();
+    server_task.Get();
 }
 
 UTEST(TlsWrapper, PeerDisconnect) {
-  const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+    const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
-  TcpListener tcp_listener;
-  auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
+    TcpListener tcp_listener;
+    auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
 
-  auto server_task = engine::AsyncNoSpan(
-      [test_deadline](auto&& server) {
-        try {
-          auto tls_server = io::TlsWrapper::StartTlsServer(
-              std::forward<decltype(server)>(server),
-              crypto::Certificate::LoadFromString(cert),
-              crypto::PrivateKey::LoadFromString(key), test_deadline);
-          char c = 0;
-          // Get a non-fatal error on the channel
-          EXPECT_THROW(
-              [[maybe_unused]] const auto ret = tls_server.RecvAll(
-                  &c, 1,
-                  engine::Deadline::FromDuration(std::chrono::milliseconds{1})),
-              io::IoTimeout);
-          ASSERT_EQ(1, tls_server.SendAll(&c, 1, test_deadline));
-          EXPECT_THROW([[maybe_unused]] const auto ret =
-                           tls_server.RecvAll(&c, 1, test_deadline),
-                       io::TlsException);
-        } catch (const std::exception& e) {
-          LOG_ERROR() << e;
-          FAIL() << e.what();
-        }
-      },
-      std::move(server));
+    auto server_task = engine::AsyncNoSpan(
+        [test_deadline](auto&& server) {
+            try {
+                auto tls_server = io::TlsWrapper::StartTlsServer(
+                    std::forward<decltype(server)>(server),
+                    crypto::Certificate::LoadFromString(cert),
+                    crypto::PrivateKey::LoadFromString(key),
+                    test_deadline
+                );
+                char c = 0;
+                // Get a non-fatal error on the channel
+                EXPECT_THROW(
+                    [[maybe_unused]] const auto ret =
+                        tls_server.RecvAll(&c, 1, engine::Deadline::FromDuration(std::chrono::milliseconds{1})),
+                    io::IoTimeout
+                );
+                ASSERT_EQ(1, tls_server.SendAll(&c, 1, test_deadline));
+                EXPECT_THROW(
+                    [[maybe_unused]] const auto ret = tls_server.RecvAll(&c, 1, test_deadline), io::TlsException
+                );
+            } catch (const std::exception& e) {
+                LOG_ERROR() << e;
+                FAIL() << e.what();
+            }
+        },
+        std::move(server)
+    );
 
-  {
-    const auto client_fd = client.Fd();
-    auto tls_client =
-        io::TlsWrapper::StartTlsClient(std::move(client), {}, test_deadline);
-    char c = 0;
-    ASSERT_EQ(1, tls_client.RecvAll(&c, 1, test_deadline));
-    // disconnect the underlying socket without shutting down the channel
-    ::shutdown(client_fd, SHUT_RDWR);
-  }
+    {
+        const auto client_fd = client.Fd();
+        auto tls_client = io::TlsWrapper::StartTlsClient(std::move(client), {}, test_deadline);
+        char c = 0;
+        ASSERT_EQ(1, tls_client.RecvAll(&c, 1, test_deadline));
+        // disconnect the underlying socket without shutting down the channel
+        ::shutdown(client_fd, SHUT_RDWR);
+    }
 
-  server_task.Get();
+    server_task.Get();
 }
 
 USERVER_NAMESPACE_END

@@ -11,8 +11,7 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 #ifdef USERVER_IMPL_EXPECTED_USERVER_SOURCE_ROOT
-constexpr std::string_view kExpectedUserverSourceRoot =
-    USERVER_IMPL_EXPECTED_USERVER_SOURCE_ROOT;
+constexpr std::string_view kExpectedUserverSourceRoot = USERVER_IMPL_EXPECTED_USERVER_SOURCE_ROOT;
 #else
 constexpr std::string_view kExpectedUserverSourceRoot = "userver/";
 #endif
@@ -20,9 +19,10 @@ constexpr std::string_view kExpectedUserverSourceRoot = "userver/";
 }  // namespace
 
 TEST(LogFilepath, UserverCroppedCorrectly) {
-  EXPECT_EQ(std::string{USERVER_FILEPATH},
-            utils::StrCat(kExpectedUserverSourceRoot,
-                          "universal/src/logging/log_filepath_test.cpp"));
+    EXPECT_EQ(
+        std::string{USERVER_FILEPATH},
+        utils::StrCat(kExpectedUserverSourceRoot, "universal/src/logging/log_filepath_test.cpp")
+    );
 }
 
 USERVER_NAMESPACE_END

@@ -150,232 +150,223 @@ namespace components {
 
 template <typename T>
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
-class CachingComponentBase : public ComponentBase,
-                             protected cache::CacheUpdateTrait {
- public:
-  CachingComponentBase(const ComponentConfig& config, const ComponentContext&);
-  ~CachingComponentBase() override;
+class CachingComponentBase : public ComponentBase, protected cache::CacheUpdateTrait {
+public:
+    CachingComponentBase(const ComponentConfig& config, const ComponentContext&);
+    ~CachingComponentBase() override;
 
-  using cache::CacheUpdateTrait::Name;
+    using cache::CacheUpdateTrait::Name;
 
-  using cache::CacheUpdateTrait::InvalidateAsync;
+    using cache::CacheUpdateTrait::InvalidateAsync;
 
-  using DataType = T;
+    using DataType = T;
 
-  /// @return cache contents. May be `nullptr` if and only if @ref MayReturnNull
-  /// returns `true`.
-  /// @throws cache::EmptyCacheError if the contents are `nullptr`, and
-  /// @ref MayReturnNull returns `false` (which is the default behavior).
-  utils::SharedReadablePtr<T> Get() const;
+    /// @return cache contents. May be `nullptr` if and only if @ref MayReturnNull
+    /// returns `true`.
+    /// @throws cache::EmptyCacheError if the contents are `nullptr`, and
+    /// @ref MayReturnNull returns `false` (which is the default behavior).
+    utils::SharedReadablePtr<T> Get() const;
 
-  /// @return cache contents. May be nullptr regardless of MayReturnNull().
-  utils::SharedReadablePtr<T> GetUnsafe() const;
+    /// @return cache contents. May be nullptr regardless of MayReturnNull().
+    utils::SharedReadablePtr<T> GetUnsafe() const;
 
-  /// Subscribes to cache updates using a member function. Also immediately
-  /// invokes the function with the current cache contents.
-  template <class Class>
-  concurrent::AsyncEventSubscriberScope UpdateAndListen(
-      Class* obj, std::string name,
-      void (Class::*func)(const std::shared_ptr<const T>&));
+    /// Subscribes to cache updates using a member function. Also immediately
+    /// invokes the function with the current cache contents.
+    template <class Class>
+    concurrent::AsyncEventSubscriberScope
+    UpdateAndListen(Class* obj, std::string name, void (Class::*func)(const std::shared_ptr<const T>&));
 
-  concurrent::AsyncEventChannel<const std::shared_ptr<const T>&>&
-  GetEventChannel();
+    concurrent::AsyncEventChannel<const std::shared_ptr<const T>&>& GetEventChannel();
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- protected:
-  /// Sets the new value of cache. As a result the Get() member function starts
-  /// returning the value passed into this function after the Update() finishes.
-  ///
-  /// @warning Do not forget to update cache::UpdateStatisticsScope, otherwise
-  /// the behavior is undefined.
-  void Set(std::unique_ptr<const T> value_ptr);
+protected:
+    /// Sets the new value of cache. As a result the Get() member function starts
+    /// returning the value passed into this function after the Update() finishes.
+    ///
+    /// @warning Do not forget to update cache::UpdateStatisticsScope, otherwise
+    /// the behavior is undefined.
+    void Set(std::unique_ptr<const T> value_ptr);
 
-  /// @overload
-  void Set(T&& value);
+    /// @overload
+    void Set(T&& value);
 
-  /// @overload Set()
-  template <typename... Args>
-  void Emplace(Args&&... args);
+    /// @overload Set()
+    template <typename... Args>
+    void Emplace(Args&&... args);
 
-  /// Clears the content of the cache by string a default constructed T.
-  void Clear();
+    /// Clears the content of the cache by string a default constructed T.
+    void Clear();
 
-  /// Whether @ref Get is expected to return `nullptr`.
-  virtual bool MayReturnNull() const;
+    /// Whether @ref Get is expected to return `nullptr`.
+    virtual bool MayReturnNull() const;
 
-  /// @{
-  /// Override to use custom serialization for cache dumps
-  virtual void WriteContents(dump::Writer& writer, const T& contents) const;
+    /// @{
+    /// Override to use custom serialization for cache dumps
+    virtual void WriteContents(dump::Writer& writer, const T& contents) const;
 
-  virtual std::unique_ptr<const T> ReadContents(dump::Reader& reader) const;
-  /// @}
+    virtual std::unique_ptr<const T> ReadContents(dump::Reader& reader) const;
+    /// @}
 
-  /// @brief If the option has-pre-assign-check is set true in static config,
-  /// this function is called before assigning the new value to the cache
-  /// @note old_value_ptr and new_value_ptr can be nullptr.
-  virtual void PreAssignCheck(const T* old_value_ptr,
-                              const T* new_value_ptr) const;
+    /// @brief If the option has-pre-assign-check is set true in static config,
+    /// this function is called before assigning the new value to the cache
+    /// @note old_value_ptr and new_value_ptr can be nullptr.
+    virtual void PreAssignCheck(const T* old_value_ptr, const T* new_value_ptr) const;
 
- private:
-  void OnAllComponentsLoaded() final;
+private:
+    void OnAllComponentsLoaded() final;
 
-  void Cleanup() final;
+    void Cleanup() final;
 
-  void MarkAsExpired() final;
+    void MarkAsExpired() final;
 
-  void GetAndWrite(dump::Writer& writer) const final;
-  void ReadAndSet(dump::Reader& reader) final;
+    void GetAndWrite(dump::Writer& writer) const final;
+    void ReadAndSet(dump::Reader& reader) final;
 
-  std::shared_ptr<const T> TransformNewValue(
-      std::unique_ptr<const T> new_value);
+    std::shared_ptr<const T> TransformNewValue(std::unique_ptr<const T> new_value);
 
-  rcu::Variable<std::shared_ptr<const T>> cache_;
-  concurrent::AsyncEventChannel<const std::shared_ptr<const T>&> event_channel_;
-  utils::impl::WaitTokenStorage wait_token_storage_;
+    rcu::Variable<std::shared_ptr<const T>> cache_;
+    concurrent::AsyncEventChannel<const std::shared_ptr<const T>&> event_channel_;
+    utils::impl::WaitTokenStorage wait_token_storage_;
 };
 
 template <typename T>
-CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config,
-                                              const ComponentContext& context)
+CachingComponentBase<T>::CachingComponentBase(const ComponentConfig& config, const ComponentContext& context)
     : ComponentBase(config, context),
       cache::CacheUpdateTrait(config, context),
-      event_channel_(components::GetCurrentComponentName(config),
-                     [this](auto& function) {
-                       const auto ptr = cache_.ReadCopy();
-                       if (ptr) function(ptr);
-                     }) {
-  const auto initial_config = GetConfig();
+      event_channel_(components::GetCurrentComponentName(config), [this](auto& function) {
+          const auto ptr = cache_.ReadCopy();
+          if (ptr) function(ptr);
+      }) {
+    const auto initial_config = GetConfig();
 }
 
 template <typename T>
 CachingComponentBase<T>::~CachingComponentBase() {
-  // Avoid a deadlock in WaitForAllTokens
-  cache_.Assign(nullptr);
-  // We must wait for destruction of all instances of T to finish, otherwise
-  // it's UB if T's destructor accesses dependent components
-  wait_token_storage_.WaitForAllTokens();
+    // Avoid a deadlock in WaitForAllTokens
+    cache_.Assign(nullptr);
+    // We must wait for destruction of all instances of T to finish, otherwise
+    // it's UB if T's destructor accesses dependent components
+    wait_token_storage_.WaitForAllTokens();
 }
 
 template <typename T>
 utils::SharedReadablePtr<T> CachingComponentBase<T>::Get() const {
-  auto ptr = GetUnsafe();
-  if (!ptr && !MayReturnNull()) {
-    throw cache::EmptyCacheError(Name());
-  }
-  return ptr;
+    auto ptr = GetUnsafe();
+    if (!ptr && !MayReturnNull()) {
+        throw cache::EmptyCacheError(Name());
+    }
+    return ptr;
 }
 
 template <typename T>
 template <typename Class>
 concurrent::AsyncEventSubscriberScope CachingComponentBase<T>::UpdateAndListen(
-    Class* obj, std::string name,
-    void (Class::*func)(const std::shared_ptr<const T>&)) {
-  return event_channel_.DoUpdateAndListen(obj, std::move(name), func, [&] {
-    auto ptr = Get();  // TODO: extra ref
-    (obj->*func)(ptr);
-  });
+    Class* obj,
+    std::string name,
+    void (Class::*func)(const std::shared_ptr<const T>&)
+) {
+    return event_channel_.DoUpdateAndListen(obj, std::move(name), func, [&] {
+        auto ptr = Get();  // TODO: extra ref
+        (obj->*func)(ptr);
+    });
 }
 
 template <typename T>
-concurrent::AsyncEventChannel<const std::shared_ptr<const T>&>&
-CachingComponentBase<T>::GetEventChannel() {
-  return event_channel_;
+concurrent::AsyncEventChannel<const std::shared_ptr<const T>&>& CachingComponentBase<T>::GetEventChannel() {
+    return event_channel_;
 }
 
 template <typename T>
 utils::SharedReadablePtr<T> CachingComponentBase<T>::GetUnsafe() const {
-  return utils::SharedReadablePtr<T>(cache_.ReadCopy());
+    return utils::SharedReadablePtr<T>(cache_.ReadCopy());
 }
 
 template <typename T>
 void CachingComponentBase<T>::Set(std::unique_ptr<const T> value_ptr) {
-  const std::shared_ptr<const T> new_value =
-      TransformNewValue(std::move(value_ptr));
+    const std::shared_ptr<const T> new_value = TransformNewValue(std::move(value_ptr));
 
-  if (HasPreAssignCheck()) {
-    auto old_value = cache_.Read();
-    PreAssignCheck(old_value->get(), new_value.get());
-  }
+    if (HasPreAssignCheck()) {
+        auto old_value = cache_.Read();
+        PreAssignCheck(old_value->get(), new_value.get());
+    }
 
-  cache_.Assign(new_value);
-  event_channel_.SendEvent(new_value);
-  OnCacheModified();
+    cache_.Assign(new_value);
+    event_channel_.SendEvent(new_value);
+    OnCacheModified();
 }
 
 template <typename T>
 void CachingComponentBase<T>::Set(T&& value) {
-  Emplace(std::move(value));
+    Emplace(std::move(value));
 }
 
 template <typename T>
 template <typename... Args>
 void CachingComponentBase<T>::Emplace(Args&&... args) {
-  Set(std::make_unique<T>(std::forward<Args>(args)...));
+    Set(std::make_unique<T>(std::forward<Args>(args)...));
 }
 
 template <typename T>
 void CachingComponentBase<T>::Clear() {
-  cache_.Assign(std::make_unique<const T>());
+    cache_.Assign(std::make_unique<const T>());
 }
 
 template <typename T>
 bool CachingComponentBase<T>::MayReturnNull() const {
-  return false;
+    return false;
 }
 
 template <typename T>
 void CachingComponentBase<T>::GetAndWrite(dump::Writer& writer) const {
-  const auto contents = GetUnsafe();
-  if (!contents) throw cache::EmptyCacheError(Name());
-  WriteContents(writer, *contents);
+    const auto contents = GetUnsafe();
+    if (!contents) throw cache::EmptyCacheError(Name());
+    WriteContents(writer, *contents);
 }
 
 template <typename T>
 void CachingComponentBase<T>::ReadAndSet(dump::Reader& reader) {
-  auto data = ReadContents(reader);
-  if constexpr (meta::kIsSizable<T>) {
-    if (data) {
-      SetDataSizeStatistic(std::size(*data));
+    auto data = ReadContents(reader);
+    if constexpr (meta::kIsSizable<T>) {
+        if (data) {
+            SetDataSizeStatistic(std::size(*data));
+        }
     }
-  }
-  Set(std::move(data));
+    Set(std::move(data));
 }
 
 template <typename T>
-void CachingComponentBase<T>::WriteContents(dump::Writer& writer,
-                                            const T& contents) const {
-  if constexpr (dump::kIsDumpable<T>) {
-    writer.Write(contents);
-  } else {
-    dump::ThrowDumpUnimplemented(Name());
-  }
+void CachingComponentBase<T>::WriteContents(dump::Writer& writer, const T& contents) const {
+    if constexpr (dump::kIsDumpable<T>) {
+        writer.Write(contents);
+    } else {
+        dump::ThrowDumpUnimplemented(Name());
+    }
 }
 
 template <typename T>
-std::unique_ptr<const T> CachingComponentBase<T>::ReadContents(
-    dump::Reader& reader) const {
-  if constexpr (dump::kIsDumpable<T>) {
-    // To avoid an extra move and avoid including common_containers.hpp
-    return std::unique_ptr<const T>{new T(reader.Read<T>())};
-  } else {
-    dump::ThrowDumpUnimplemented(Name());
-  }
+std::unique_ptr<const T> CachingComponentBase<T>::ReadContents(dump::Reader& reader) const {
+    if constexpr (dump::kIsDumpable<T>) {
+        // To avoid an extra move and avoid including common_containers.hpp
+        return std::unique_ptr<const T>{new T(reader.Read<T>())};
+    } else {
+        dump::ThrowDumpUnimplemented(Name());
+    }
 }
 
 template <typename T>
 void CachingComponentBase<T>::OnAllComponentsLoaded() {
-  AssertPeriodicUpdateStarted();
+    AssertPeriodicUpdateStarted();
 }
 
 template <typename T>
 void CachingComponentBase<T>::Cleanup() {
-  cache_.Cleanup();
+    cache_.Cleanup();
 }
 
 template <typename T>
 void CachingComponentBase<T>::MarkAsExpired() {
-  Set(std::unique_ptr<const T>{});
+    Set(std::unique_ptr<const T>{});
 }
 
 namespace impl {
@@ -384,61 +375,56 @@ yaml_config::Schema GetCachingComponentBaseSchema();
 
 template <typename T, typename Deleter>
 auto MakeAsyncDeleter(engine::TaskProcessor& task_processor, Deleter deleter) {
-  return [&task_processor,
-          deleter = std::move(deleter)](const T* raw_ptr) mutable {
-    std::unique_ptr<const T, Deleter> ptr(raw_ptr, std::move(deleter));
+    return [&task_processor, deleter = std::move(deleter)](const T* raw_ptr) mutable {
+        std::unique_ptr<const T, Deleter> ptr(raw_ptr, std::move(deleter));
 
-    engine::CriticalAsyncNoSpan(task_processor, [ptr =
-                                                     std::move(ptr)]() mutable {
-    }).Detach();
-  };
+        engine::CriticalAsyncNoSpan(task_processor, [ptr = std::move(ptr)]() mutable {}).Detach();
+    };
 }
 
 }  // namespace impl
 
 template <typename T>
 yaml_config::Schema CachingComponentBase<T>::GetStaticConfigSchema() {
-  return impl::GetCachingComponentBaseSchema();
+    return impl::GetCachingComponentBaseSchema();
 }
 
 template <typename T>
-void CachingComponentBase<T>::PreAssignCheck(
-    const T*, [[maybe_unused]] const T* new_value_ptr) const {
-  UINVARIANT(
-      meta::kIsSizable<T>,
-      fmt::format("{} type does not support std::size(), add implementation of "
-                  "the method size() for this type or "
-                  "override cache::CachingComponentBase::PreAssignCheck.",
-                  compiler::GetTypeName<T>()));
+void CachingComponentBase<T>::PreAssignCheck(const T*, [[maybe_unused]] const T* new_value_ptr) const {
+    UINVARIANT(
+        meta::kIsSizable<T>,
+        fmt::format(
+            "{} type does not support std::size(), add implementation of "
+            "the method size() for this type or "
+            "override cache::CachingComponentBase::PreAssignCheck.",
+            compiler::GetTypeName<T>()
+        )
+    );
 
-  if constexpr (meta::kIsSizable<T>) {
-    if (!new_value_ptr || std::size(*new_value_ptr) == 0) {
-      throw cache::EmptyDataError(Name());
+    if constexpr (meta::kIsSizable<T>) {
+        if (!new_value_ptr || std::size(*new_value_ptr) == 0) {
+            throw cache::EmptyDataError(Name());
+        }
     }
-  }
 }
 
 template <typename T>
-std::shared_ptr<const T> CachingComponentBase<T>::TransformNewValue(
-    std::unique_ptr<const T> new_value) {
-  // Kill garbage asynchronously as T::~T() might be very slow
-  if (IsSafeDataLifetime()) {
-    // Use token only if `safe-data-lifetime` is true
-    auto deleter_with_token =
-        [token = wait_token_storage_.GetToken()](const T* raw_ptr) {
-          // Make sure *raw_ptr is deleted before token is destroyed
-          std::default_delete<const T>{}(raw_ptr);
+std::shared_ptr<const T> CachingComponentBase<T>::TransformNewValue(std::unique_ptr<const T> new_value) {
+    // Kill garbage asynchronously as T::~T() might be very slow
+    if (IsSafeDataLifetime()) {
+        // Use token only if `safe-data-lifetime` is true
+        auto deleter_with_token = [token = wait_token_storage_.GetToken()](const T* raw_ptr) {
+            // Make sure *raw_ptr is deleted before token is destroyed
+            std::default_delete<const T>{}(raw_ptr);
         };
-    return std::shared_ptr<const T>(
-        new_value.release(),
-        impl::MakeAsyncDeleter<T>(GetCacheTaskProcessor(),
-                                  std::move(deleter_with_token)));
-  } else {
-    return std::shared_ptr<const T>(
-        new_value.release(),
-        impl::MakeAsyncDeleter<T>(GetCacheTaskProcessor(),
-                                  std::default_delete<const T>{}));
-  }
+        return std::shared_ptr<const T>(
+            new_value.release(), impl::MakeAsyncDeleter<T>(GetCacheTaskProcessor(), std::move(deleter_with_token))
+        );
+    } else {
+        return std::shared_ptr<const T>(
+            new_value.release(), impl::MakeAsyncDeleter<T>(GetCacheTaskProcessor(), std::default_delete<const T>{})
+        );
+    }
 }
 
 }  // namespace components

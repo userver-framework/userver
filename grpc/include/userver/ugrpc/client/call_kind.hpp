@@ -6,10 +6,10 @@ namespace ugrpc::client {
 
 /// @brief RPCs kinds
 enum class CallKind {
-  kUnaryCall,
-  kInputStream,
-  kOutputStream,
-  kBidirectionalStream,
+    kUnaryCall,
+    kInputStream,
+    kOutputStream,
+    kBidirectionalStream,
 };
 
 }  // namespace ugrpc::client

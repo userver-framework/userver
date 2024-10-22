@@ -15,19 +15,17 @@ namespace ugrpc::client {
 namespace impl {
 
 class SimpleClientComponentAny : public components::ComponentBase {
- public:
-  using components::ComponentBase::ComponentBase;
+public:
+    using components::ComponentBase::ComponentBase;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- protected:
-  static ClientFactory& FindFactory(
-      const components::ComponentConfig& config,
-      const components::ComponentContext& context);
+protected:
+    static ClientFactory&
+    FindFactory(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-  static ClientSettings MakeClientSettings(
-      const components::ComponentConfig& config,
-      const dynamic_config::Key<ClientQos>* client_qos);
+    static ClientSettings
+    MakeClientSettings(const components::ComponentConfig& config, const dynamic_config::Key<ClientQos>* client_qos);
 };
 
 }  // namespace impl
@@ -72,28 +70,26 @@ class SimpleClientComponentAny : public components::ComponentBase {
 
 template <typename Client>
 class SimpleClientComponent : public impl::SimpleClientComponentAny {
- public:
-  /// Main component's constructor.
-  SimpleClientComponent(const components::ComponentConfig& config,
-                        const components::ComponentContext& context)
-      : SimpleClientComponentAny(config, context),
-        client_(FindFactory(config, context)
-                    .MakeClient<Client>(MakeClientSettings(config, nullptr))) {}
+public:
+    /// Main component's constructor.
+    SimpleClientComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : SimpleClientComponentAny(config, context),
+          client_(FindFactory(config, context).MakeClient<Client>(MakeClientSettings(config, nullptr))) {}
 
-  /// To use a ClientQos config,
-  SimpleClientComponent(const components::ComponentConfig& config,
-                        const components::ComponentContext& context,
-                        const dynamic_config::Key<ClientQos>& client_qos)
-      : SimpleClientComponentAny(config, context),
-        client_(
-            FindFactory(config, context)
-                .MakeClient<Client>(MakeClientSettings(config, &client_qos))) {}
+    /// To use a ClientQos config,
+    SimpleClientComponent(
+        const components::ComponentConfig& config,
+        const components::ComponentContext& context,
+        const dynamic_config::Key<ClientQos>& client_qos
+    )
+        : SimpleClientComponentAny(config, context),
+          client_(FindFactory(config, context).MakeClient<Client>(MakeClientSettings(config, &client_qos))) {}
 
-  /// @@brief Get gRPC service client
-  Client& GetClient() { return client_; }
+    /// @@brief Get gRPC service client
+    Client& GetClient() { return client_; }
 
- private:
-  Client client_;
+private:
+    Client client_;
 };
 
 }  // namespace ugrpc::client
@@ -101,8 +97,7 @@ class SimpleClientComponent : public impl::SimpleClientComponentAny {
 namespace components {
 
 template <typename Client>
-inline constexpr bool
-    kHasValidate<ugrpc::client::SimpleClientComponent<Client>> = true;
+inline constexpr bool kHasValidate<ugrpc::client::SimpleClientComponent<Client>> = true;
 
 }  // namespace components
 

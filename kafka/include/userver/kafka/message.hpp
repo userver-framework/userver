@@ -19,31 +19,31 @@ class MessageHolder;
 
 /// @brief Wrapper for polled message data access.
 class Message final {
- public:
-  ~Message();
+public:
+    ~Message();
 
-  Message(Message&&) noexcept;
-  Message& operator=(Message&&) noexcept = delete;
+    Message(Message&&) noexcept;
+    Message& operator=(Message&&) noexcept = delete;
 
-  Message(const Message&) = delete;
-  Message& operator=(const Message&) = delete;
+    Message(const Message&) = delete;
+    Message& operator=(const Message&) = delete;
 
-  const std::string& GetTopic() const;
-  std::string_view GetKey() const;
-  std::string_view GetPayload() const;
-  std::optional<std::chrono::milliseconds> GetTimestamp() const;
-  int GetPartition() const;
-  std::int64_t GetOffset() const;
+    const std::string& GetTopic() const;
+    std::string_view GetKey() const;
+    std::string_view GetPayload() const;
+    std::optional<std::chrono::milliseconds> GetTimestamp() const;
+    int GetPartition() const;
+    std::int64_t GetOffset() const;
 
- private:
-  friend class impl::ConsumerImpl;
+private:
+    friend class impl::ConsumerImpl;
 
-  explicit Message(impl::MessageHolder&& message);
+    explicit Message(impl::MessageHolder&& message);
 
-  struct MessageData;
-  using DataStorage = utils::FastPimpl<MessageData, 72, 8>;
+    struct MessageData;
+    using DataStorage = utils::FastPimpl<MessageData, 72, 8>;
 
-  DataStorage data_;
+    DataStorage data_;
 };
 
 using MessageBatchView = utils::span<const Message>;

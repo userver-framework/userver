@@ -8,15 +8,14 @@ namespace ugrpc::client::middlewares::baggage {
 
 /// @brief middleware for gRPC client baggage
 class Middleware final : public MiddlewareBase {
- public:
-  void PreStartCall(MiddlewareCallContext& context) const override;
+public:
+    void PreStartCall(MiddlewareCallContext& context) const override;
 };
 ///
 
 class MiddlewareFactory final : public MiddlewareFactoryBase {
- public:
-  std::shared_ptr<const MiddlewareBase> GetMiddleware(
-      std::string_view client_name) const override;
+public:
+    std::shared_ptr<const MiddlewareBase> GetMiddleware(std::string_view client_name) const override;
 };
 
 }  // namespace ugrpc::client::middlewares::baggage

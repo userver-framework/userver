@@ -35,40 +35,36 @@ inline constexpr int kSigUsr2 = 31;
 ///
 /// @see @ref scripts/docs/en/userver/os_signals.md
 class Processor final {
- public:
-  explicit Processor(engine::TaskProcessor& task_processor);
+public:
+    explicit Processor(engine::TaskProcessor& task_processor);
 
-  /// Listen for a specific signal `signum`. See the other overload for
-  /// subscription to both signals.
-  template <class Class>
-  Subscriber AddListener(Class* obj, std::string_view name, int signum,
-                         void (Class::*func)()) {
-    auto execute = [obj, func, signum](int sig) {
-      if (sig == signum) {
-        (obj->*func)();
-      }
-    };
+    /// Listen for a specific signal `signum`. See the other overload for
+    /// subscription to both signals.
+    template <class Class>
+    Subscriber AddListener(Class* obj, std::string_view name, int signum, void (Class::*func)()) {
+        auto execute = [obj, func, signum](int sig) {
+            if (sig == signum) {
+                (obj->*func)();
+            }
+        };
 
-    return channel_.AddListener(concurrent::FunctionId(obj), name,
-                                std::move(execute));
-  }
+        return channel_.AddListener(concurrent::FunctionId(obj), name, std::move(execute));
+    }
 
-  /// Listen for all the OS signals.
-  template <class Class>
-  Subscriber AddListener(Class* obj, std::string_view name,
-                         void (Class::*func)(int /*signum*/)) {
-    auto execute = [obj, func](int sig) { (obj->*func)(sig); };
-    return channel_.AddListener(concurrent::FunctionId(obj), name,
-                                std::move(execute));
-  }
+    /// Listen for all the OS signals.
+    template <class Class>
+    Subscriber AddListener(Class* obj, std::string_view name, void (Class::*func)(int /*signum*/)) {
+        auto execute = [obj, func](int sig) { (obj->*func)(sig); };
+        return channel_.AddListener(concurrent::FunctionId(obj), name, std::move(execute));
+    }
 
-  /// @cond
-  // For internal use
-  void Notify(int signum, utils::impl::InternalTag);
-  /// @endcond
- private:
-  concurrent::AsyncEventChannel<int> channel_;
-  engine::TaskProcessor& task_processor_;
+    /// @cond
+    // For internal use
+    void Notify(int signum, utils::impl::InternalTag);
+    /// @endcond
+private:
+    concurrent::AsyncEventChannel<int> channel_;
+    engine::TaskProcessor& task_processor_;
 };
 
 }  // namespace os_signals

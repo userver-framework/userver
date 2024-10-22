@@ -13,14 +13,13 @@ class Logging;
 namespace testsuite::impl::actions {
 
 class LogFlush final : public BaseTestsuiteAction {
- public:
-  explicit LogFlush(const components::ComponentContext& component_context);
+public:
+    explicit LogFlush(const components::ComponentContext& component_context);
 
-  formats::json::Value Perform(
-      const formats::json::Value& request_body) const override;
+    formats::json::Value Perform(const formats::json::Value& request_body) const override;
 
- private:
-  components::Logging& logging_component_;
+private:
+    components::Logging& logging_component_;
 };
 
 }  // namespace testsuite::impl::actions

@@ -52,24 +52,23 @@ namespace storages::mysql {
 ///
 // clang-format on
 class Component final : public components::ComponentBase {
- public:
-  /// Component constructor
-  Component(const components::ComponentConfig& config,
-            const components::ComponentContext& context);
+public:
+    /// Component constructor
+    Component(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-  /// Component destructor
-  ~Component() override;
+    /// Component destructor
+    ~Component() override;
 
-  /// Cluster accessor
-  std::shared_ptr<storages::mysql::Cluster> GetCluster() const;
+    /// Cluster accessor
+    std::shared_ptr<storages::mysql::Cluster> GetCluster() const;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  clients::dns::Component& dns_;
+private:
+    clients::dns::Component& dns_;
 
-  const std::shared_ptr<storages::mysql::Cluster> cluster_;
-  utils::statistics::Entry statistics_holder_;
+    const std::shared_ptr<storages::mysql::Cluster> cluster_;
+    utils::statistics::Entry statistics_holder_;
 };
 
 }  // namespace storages::mysql

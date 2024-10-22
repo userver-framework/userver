@@ -10,20 +10,23 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {
 
-HandlerBase::HandlerBase(const components::ComponentConfig& config,
-                         const components::ComponentContext& context,
-                         bool is_monitor)
+HandlerBase::HandlerBase(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context,
+    bool is_monitor
+)
     : ComponentBase(config, context),
       is_monitor_(config["monitor-handler"].As<bool>(is_monitor)),
       config_(ParseHandlerConfigsWithDefaults(
           config,
           context.FindComponent<components::Server>().GetServer().GetConfig(),
-          is_monitor_)) {}
+          is_monitor_
+      )) {}
 
 const HandlerConfig& HandlerBase::GetConfig() const { return config_; }
 
 yaml_config::Schema HandlerBase::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<ComponentBase>(R"(
+    return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: Base class for the HTTP request handlers.
 additionalProperties: false

@@ -18,20 +18,19 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 std::string MakeStringOfDeepObject(std::size_t depth) {
-  std::string str;
-  str.reserve(depth * 6 + 1);
-  for (std::size_t i = 0; i < depth; ++i) {
-    str += R"({"a":)";
-  }
-  str += "1";
-  for (std::size_t i = 0; i < depth; ++i) {
-    str += "}";
-  }
-  return str;
+    std::string str;
+    str.reserve(depth * 6 + 1);
+    for (std::size_t i = 0; i < depth; ++i) {
+        str += R"({"a":)";
+    }
+    str += "1";
+    for (std::size_t i = 0; i < depth; ++i) {
+        str += "}";
+    }
+    return str;
 }
 
-constexpr std::string_view str_small_json =
-    R"({"c":1,"b":{"b":{"b":1,"a":1}},"a":1})";
+constexpr std::string_view str_small_json = R"({"c":1,"b":{"b":{"b":1,"a":1}},"a":1})";
 
 constexpr std::string_view str_middle_json =
     R"({"widget": {
@@ -1135,44 +1134,44 @@ constexpr std::string_view str_deep_width_json = R"({
 
 // json with approximately 6 nodes
 void SmallJson(benchmark::State& state) {
-  for ([[maybe_unused]] auto _ : state) {
-    auto json = formats::json::FromString(str_small_json);
-    benchmark::DoNotOptimize(json);
-  }
+    for ([[maybe_unused]] auto _ : state) {
+        auto json = formats::json::FromString(str_small_json);
+        benchmark::DoNotOptimize(json);
+    }
 }
 
 // json consists of 3 objects each of which consists of approximately 5 children
 // nodes
 void MiddleJson(benchmark::State& state) {
-  for ([[maybe_unused]] auto _ : state) {
-    auto json = formats::json::FromString(str_middle_json);
-    benchmark::DoNotOptimize(json);
-  }
+    for ([[maybe_unused]] auto _ : state) {
+        auto json = formats::json::FromString(str_middle_json);
+        benchmark::DoNotOptimize(json);
+    }
 }
 
 // json consists of one object of 40 nodes and several objects each of which
 // consists of approximately 7 children nodes
 void WidthJson(benchmark::State& state) {
-  for ([[maybe_unused]] auto _ : state) {
-    auto json = formats::json::FromString(str_width_json);
-    benchmark::DoNotOptimize(json);
-  }
+    for ([[maybe_unused]] auto _ : state) {
+        auto json = formats::json::FromString(str_width_json);
+        benchmark::DoNotOptimize(json);
+    }
 }
 
 // json consists of 500 levels each of which is a key and a value
 void DeepJson(benchmark::State& state) {
-  for ([[maybe_unused]] auto _ : state) {
-    auto json = formats::json::FromString(str_deep_json);
-    benchmark::DoNotOptimize(json);
-  }
+    for ([[maybe_unused]] auto _ : state) {
+        auto json = formats::json::FromString(str_deep_json);
+        benchmark::DoNotOptimize(json);
+    }
 }
 
 // json consists of 800 nodes and approximately 9 depth levels
 void DeepWidthJson(benchmark::State& state) {
-  for ([[maybe_unused]] auto _ : state) {
-    auto json = formats::json::FromString(str_deep_width_json);
-    benchmark::DoNotOptimize(json);
-  }
+    for ([[maybe_unused]] auto _ : state) {
+        auto json = formats::json::FromString(str_deep_width_json);
+        benchmark::DoNotOptimize(json);
+    }
 }
 
 BENCHMARK(SmallJson);
@@ -1188,74 +1187,67 @@ BENCHMARK(DeepWidthJson);
 namespace {
 
 struct InnerObject final {
-  std::variant<int, bool, std::vector<std::string>, std::string> value;
+    std::variant<int, bool, std::vector<std::string>, std::string> value;
 };
 
-formats::json::Value Serialize(const InnerObject& value,
-                               formats::serialize::To<formats::json::Value>) {
-  formats::json::ValueBuilder builder{};
-  builder["value"] = value.value;
-  return builder.ExtractValue();
+formats::json::Value Serialize(const InnerObject& value, formats::serialize::To<formats::json::Value>) {
+    formats::json::ValueBuilder builder{};
+    builder["value"] = value.value;
+    return builder.ExtractValue();
 }
 
-InnerObject Parse(const formats::json::Value& value,
-                  formats::parse::To<InnerObject>) {
-  return {value["value"].As<decltype(InnerObject::value)>()};
+InnerObject Parse(const formats::json::Value& value, formats::parse::To<InnerObject>) {
+    return {value["value"].As<decltype(InnerObject::value)>()};
 }
 
 struct OuterObject final {
-  InnerObject obj;
+    InnerObject obj;
 };
 
-formats::json::Value Serialize(const OuterObject& value,
-                               formats::serialize::To<formats::json::Value>) {
-  formats::json::ValueBuilder builder{};
-  builder["obj"] = value.obj;
-  return builder.ExtractValue();
+formats::json::Value Serialize(const OuterObject& value, formats::serialize::To<formats::json::Value>) {
+    formats::json::ValueBuilder builder{};
+    builder["obj"] = value.obj;
+    return builder.ExtractValue();
 }
 
-OuterObject Parse(const formats::json::Value& value,
-                  formats::parse::To<OuterObject>) {
-  return {value["obj"].As<InnerObject>()};
+OuterObject Parse(const formats::json::Value& value, formats::parse::To<OuterObject>) {
+    return {value["obj"].As<InnerObject>()};
 }
 
 struct PairOfArrays final {
-  using Array = std::vector<OuterObject>;
+    using Array = std::vector<OuterObject>;
 
-  Array first;
-  Array second;
+    Array first;
+    Array second;
 };
 
-formats::json::Value Serialize(const PairOfArrays& value,
-                               formats::serialize::To<formats::json::Value>) {
-  formats::json::ValueBuilder builder{};
-  builder["first"] = value.first;
-  builder["second"] = value.second;
-  return builder.ExtractValue();
+formats::json::Value Serialize(const PairOfArrays& value, formats::serialize::To<formats::json::Value>) {
+    formats::json::ValueBuilder builder{};
+    builder["first"] = value.first;
+    builder["second"] = value.second;
+    return builder.ExtractValue();
 }
 
-PairOfArrays Parse(const formats::json::Value& value,
-                   formats::parse::To<PairOfArrays>) {
-  return {value["first"].As<PairOfArrays::Array>(),
-          value["second"].As<PairOfArrays::Array>()};
+PairOfArrays Parse(const formats::json::Value& value, formats::parse::To<PairOfArrays>) {
+    return {value["first"].As<PairOfArrays::Array>(), value["second"].As<PairOfArrays::Array>()};
 }
 
 }  // namespace
 
 void JsonArrayToVariantParseBenchmark(benchmark::State& state) {
-  const std::size_t data_size = state.range(0);
+    const std::size_t data_size = state.range(0);
 
-  PairOfArrays::Array array{};
-  array.reserve(data_size);
-  for (std::size_t i = 0; i < data_size; ++i) {
-    array.push_back(OuterObject{InnerObject{"some_string"}});
-  }
-  const PairOfArrays data{array, array};
-  const auto json_data = formats::json::ValueBuilder{data}.ExtractValue();
+    PairOfArrays::Array array{};
+    array.reserve(data_size);
+    for (std::size_t i = 0; i < data_size; ++i) {
+        array.push_back(OuterObject{InnerObject{"some_string"}});
+    }
+    const PairOfArrays data{array, array};
+    const auto json_data = formats::json::ValueBuilder{data}.ExtractValue();
 
-  for ([[maybe_unused]] auto _ : state) {
-    benchmark::DoNotOptimize(json_data.As<PairOfArrays>());
-  }
+    for ([[maybe_unused]] auto _ : state) {
+        benchmark::DoNotOptimize(json_data.As<PairOfArrays>());
+    }
 }
 BENCHMARK(JsonArrayToVariantParseBenchmark)->Range(16, 4096);
 

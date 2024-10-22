@@ -12,39 +12,40 @@ namespace ugrpc::server::impl {
 
 template <typename Service>
 class AsyncService final : public Service::Service {
- public:
-  explicit AsyncService(std::size_t method_count) {
-    // Mark all methods as implemented
-    for (std::size_t i = 0; i < method_count; ++i) {
-      this->MarkMethodAsync(i);
+public:
+    explicit AsyncService(std::size_t method_count) {
+        // Mark all methods as implemented
+        for (std::size_t i = 0; i < method_count; ++i) {
+            this->MarkMethodAsync(i);
+        }
     }
-  }
 
-  template <typename CallTraits>
-  void Prepare(int method_id, grpc::ServerContext& context,
-               typename CallTraits::InitialRequest& initial_request,
-               typename CallTraits::RawCall& stream,
-               grpc::CompletionQueue& call_cq,
-               grpc::ServerCompletionQueue& notification_cq, void* tag) {
-    constexpr auto kCallCategory = CallTraits::kCallCategory;
+    template <typename CallTraits>
+    void Prepare(
+        int method_id,
+        grpc::ServerContext& context,
+        typename CallTraits::InitialRequest& initial_request,
+        typename CallTraits::RawCall& stream,
+        grpc::CompletionQueue& call_cq,
+        grpc::ServerCompletionQueue& notification_cq,
+        void* tag
+    ) {
+        constexpr auto kCallCategory = CallTraits::kCallCategory;
 
-    if constexpr (kCallCategory == CallCategory::kUnary) {
-      this->RequestAsyncUnary(method_id, &context, &initial_request, &stream,
-                              &call_cq, &notification_cq, tag);
-    } else if constexpr (kCallCategory == CallCategory::kInputStream) {
-      this->RequestAsyncClientStreaming(method_id, &context, &stream, &call_cq,
-                                        &notification_cq, tag);
-    } else if constexpr (kCallCategory == CallCategory::kOutputStream) {
-      this->RequestAsyncServerStreaming(method_id, &context, &initial_request,
-                                        &stream, &call_cq, &notification_cq,
-                                        tag);
-    } else if constexpr (kCallCategory == CallCategory::kBidirectionalStream) {
-      this->RequestAsyncBidiStreaming(method_id, &context, &stream, &call_cq,
-                                      &notification_cq, tag);
-    } else {
-      static_assert(!sizeof(CallTraits), "Invalid kCallCategory");
+        if constexpr (kCallCategory == CallCategory::kUnary) {
+            this->RequestAsyncUnary(method_id, &context, &initial_request, &stream, &call_cq, &notification_cq, tag);
+        } else if constexpr (kCallCategory == CallCategory::kInputStream) {
+            this->RequestAsyncClientStreaming(method_id, &context, &stream, &call_cq, &notification_cq, tag);
+        } else if constexpr (kCallCategory == CallCategory::kOutputStream) {
+            this->RequestAsyncServerStreaming(
+                method_id, &context, &initial_request, &stream, &call_cq, &notification_cq, tag
+            );
+        } else if constexpr (kCallCategory == CallCategory::kBidirectionalStream) {
+            this->RequestAsyncBidiStreaming(method_id, &context, &stream, &call_cq, &notification_cq, tag);
+        } else {
+            static_assert(!sizeof(CallTraits), "Invalid kCallCategory");
+        }
     }
-  }
 };
 
 }  // namespace ugrpc::server::impl

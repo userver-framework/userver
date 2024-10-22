@@ -22,13 +22,13 @@ bool GlobalEnableStacktrace(bool enable);
 /// RAII-wrapper for `GlobalEnableStacktrace`. Should be used to temporarily
 /// enable stacktraces after `GlobalEnableStacktrace(false)`.
 class StacktraceGuard {
- public:
-  explicit StacktraceGuard(bool enabled);
+public:
+    explicit StacktraceGuard(bool enabled);
 
-  ~StacktraceGuard();
+    ~StacktraceGuard();
 
- private:
-  const bool old_;
+private:
+    const bool old_;
 };
 
 }  // namespace logging::stacktrace_cache

@@ -31,16 +31,16 @@ namespace ydb {
 // clang-format on
 
 class CredentialsProviderComponent : public components::ComponentBase {
- public:
-  using components::ComponentBase::ComponentBase;
+public:
+    using components::ComponentBase::ComponentBase;
 
-  /// @brief Create credentials provider factory
-  ///
-  /// @param credentials credentials config (`databases.<dbname>.credentials`
-  /// from `ydb::YdbComponent` component config)
-  virtual std::shared_ptr<NYdb::ICredentialsProviderFactory>
-  CreateCredentialsProviderFactory(
-      const yaml_config::YamlConfig& credentials) const = 0;
+    /// @brief Create credentials provider factory
+    ///
+    /// @param credentials credentials config (`databases.<dbname>.credentials`
+    /// from `ydb::YdbComponent` component config)
+    virtual std::shared_ptr<NYdb::ICredentialsProviderFactory> CreateCredentialsProviderFactory(
+        const yaml_config::YamlConfig& credentials
+    ) const = 0;
 };
 
 }  // namespace ydb

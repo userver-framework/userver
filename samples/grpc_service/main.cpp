@@ -13,21 +13,20 @@
 
 /// [main]
 int main(int argc, char* argv[]) {
-  const auto component_list =
-      components::MinimalServerComponentList()
-          .Append<components::TestsuiteSupport>()
-          // Contains machinery common to all gRPC clients
-          .Append<ugrpc::client::CommonComponent>()
-          // Default client factory. You can create multiple instances of this
-          // component using `.Append<T>("name")` if different gRPC clients
-          // require different credentials or different grpc-core options.
-          .Append<ugrpc::client::ClientFactoryComponent>()
-          // All gRPC services are registered in this component.
-          .Append<ugrpc::server::ServerComponent>()
-          // Custom components:
-          .Append<samples::GreeterClientComponent>()
-          .Append<samples::GreeterServiceComponent>()
-          .Append<samples::CallGreeterClientTestHandler>();
-  return utils::DaemonMain(argc, argv, component_list);
+    const auto component_list = components::MinimalServerComponentList()
+                                    .Append<components::TestsuiteSupport>()
+                                    // Contains machinery common to all gRPC clients
+                                    .Append<ugrpc::client::CommonComponent>()
+                                    // Default client factory. You can create multiple instances of this
+                                    // component using `.Append<T>("name")` if different gRPC clients
+                                    // require different credentials or different grpc-core options.
+                                    .Append<ugrpc::client::ClientFactoryComponent>()
+                                    // All gRPC services are registered in this component.
+                                    .Append<ugrpc::server::ServerComponent>()
+                                    // Custom components:
+                                    .Append<samples::GreeterClientComponent>()
+                                    .Append<samples::GreeterServiceComponent>()
+                                    .Append<samples::CallGreeterClientTestHandler>();
+    return utils::DaemonMain(argc, argv, component_list);
 }
 /// [main]

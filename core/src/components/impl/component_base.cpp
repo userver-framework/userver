@@ -12,7 +12,7 @@ namespace components {
 RawComponentBase::~RawComponentBase() = default;
 
 yaml_config::Schema RawComponentBase::GetStaticConfigSchema() {
-  return yaml_config::impl::SchemaFromString(R"(
+    return yaml_config::impl::SchemaFromString(R"(
 type: object
 description: base component. Don't use it for application components, use ComponentBase instead
 additionalProperties: false

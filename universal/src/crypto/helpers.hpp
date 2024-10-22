@@ -17,36 +17,36 @@ namespace crypto {
 std::string FormatSslError(std::string message);
 
 class EvpMdCtx {
- public:
-  EvpMdCtx();
-  ~EvpMdCtx();
+public:
+    EvpMdCtx();
+    ~EvpMdCtx();
 
-  EvpMdCtx(const EvpMdCtx&) = delete;
-  EvpMdCtx(EvpMdCtx&&) noexcept;
+    EvpMdCtx(const EvpMdCtx&) = delete;
+    EvpMdCtx(EvpMdCtx&&) noexcept;
 
-  EVP_MD_CTX* Get() { return ctx_; }
+    EVP_MD_CTX* Get() { return ctx_; }
 
- private:
-  EVP_MD_CTX* ctx_;
+private:
+    EVP_MD_CTX* ctx_;
 };
 
 constexpr size_t GetDigestLength(DigestSize digest_size) {
-  size_t bits = 0;
-  switch (digest_size) {
-    case DigestSize::k160:
-      bits = 160;
-      break;
-    case DigestSize::k256:
-      bits = 256;
-      break;
-    case DigestSize::k384:
-      bits = 384;
-      break;
-    case DigestSize::k512:
-      bits = 512;
-      break;
-  }
-  return (bits + CHAR_BIT - 1) / CHAR_BIT;
+    size_t bits = 0;
+    switch (digest_size) {
+        case DigestSize::k160:
+            bits = 160;
+            break;
+        case DigestSize::k256:
+            bits = 256;
+            break;
+        case DigestSize::k384:
+            bits = 384;
+            break;
+        case DigestSize::k512:
+            bits = 512;
+            break;
+    }
+    return (bits + CHAR_BIT - 1) / CHAR_BIT;
 }
 
 decltype(&crypto::hash::HmacSha256) GetHmacFuncByEnum(DigestSize bits);
@@ -59,8 +59,7 @@ std::string EnumValueToString(DigestSize bits);
 
 bool IsMatchingKeyCurve(EVP_PKEY*, DigestSize bits);
 
-std::unique_ptr<::BIO, decltype(&::BIO_free_all)> MakeBioString(
-    std::string_view str);
+std::unique_ptr<::BIO, decltype(&::BIO_free_all)> MakeBioString(std::string_view str);
 
 std::unique_ptr<::BIO, decltype(&::BIO_free_all)> MakeBioMemoryBuffer();
 std::unique_ptr<::BIO, decltype(&::BIO_free_all)> MakeBioSecureMemoryBuffer();

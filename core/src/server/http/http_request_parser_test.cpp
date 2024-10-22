@@ -9,8 +9,7 @@ namespace {
 
 constexpr std::string_view kHttpRequestSmall = "GET / HTTP/1.1\r\n\r\n";
 
-constexpr std::string_view kHttpRequestOriginUrl =
-    "GET /foo/bar?query1=value1&query2=value2 HTTP/1.1\r\n\r\n";
+constexpr std::string_view kHttpRequestOriginUrl = "GET /foo/bar?query1=value1&query2=value2 HTTP/1.1\r\n\r\n";
 
 constexpr std::string_view kHttpRequestAbsoluteUrl =
     "GET http://www.example.org/pub/WWW/TheProject.html HTTP/1.1\r\n\r\n";
@@ -39,84 +38,73 @@ constexpr std::string_view kHttpRequestBodySimple =
 }  // namespace
 
 UTEST(HttpRequestParserParser, Small) {
-  bool parsed = false;
-  auto parser = server::CreateTestParser(
-      [&parsed](std::shared_ptr<server::request::RequestBase>&& request) {
+    bool parsed = false;
+    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::request::RequestBase>&& request) {
         parsed = true;
         auto& http_request_impl =
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
             static_cast<server::http::HttpRequestImpl&>(*request);
 
-        EXPECT_EQ(http_request_impl.GetMethod(),
-                  server::http::HttpMethod::kGet);
+        EXPECT_EQ(http_request_impl.GetMethod(), server::http::HttpMethod::kGet);
 
         EXPECT_EQ(http_request_impl.GetUrl(), "/");
 
         EXPECT_EQ(http_request_impl.GetHttpMajor(), 1);
         EXPECT_EQ(http_request_impl.GetHttpMinor(), 1);
-      });
+    });
 
-  parser->Parse(kHttpRequestSmall);
-  EXPECT_EQ(parsed, true);
+    parser->Parse(kHttpRequestSmall);
+    EXPECT_EQ(parsed, true);
 }
 
 UTEST(HttpRequestParserParser, OriginUrl) {
-  bool parsed = false;
-  auto parser = server::CreateTestParser(
-      [&parsed](std::shared_ptr<server::request::RequestBase>&& request) {
+    bool parsed = false;
+    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::request::RequestBase>&& request) {
         parsed = true;
         auto& http_request_impl =
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
             static_cast<server::http::HttpRequestImpl&>(*request);
 
-        EXPECT_EQ(http_request_impl.GetMethod(),
-                  server::http::HttpMethod::kGet);
+        EXPECT_EQ(http_request_impl.GetMethod(), server::http::HttpMethod::kGet);
 
-        EXPECT_EQ(http_request_impl.GetUrl(),
-                  "/foo/bar?query1=value1&query2=value2");
+        EXPECT_EQ(http_request_impl.GetUrl(), "/foo/bar?query1=value1&query2=value2");
         EXPECT_EQ(http_request_impl.GetRequestPath(), "/foo/bar");
         EXPECT_EQ(http_request_impl.ArgCount(), 2);
         EXPECT_EQ(http_request_impl.GetArg("query1"), "value1");
         EXPECT_EQ(http_request_impl.GetArg("query2"), "value2");
-      });
+    });
 
-  parser->Parse(kHttpRequestOriginUrl);
-  EXPECT_EQ(parsed, true);
+    parser->Parse(kHttpRequestOriginUrl);
+    EXPECT_EQ(parsed, true);
 }
 
 UTEST(HttpRequestParserParser, AbsoluteUrl) {
-  bool parsed = false;
-  auto parser = server::CreateTestParser(
-      [&parsed](std::shared_ptr<server::request::RequestBase>&& request) {
+    bool parsed = false;
+    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::request::RequestBase>&& request) {
         parsed = true;
         auto& http_request_impl =
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
             static_cast<server::http::HttpRequestImpl&>(*request);
 
-        EXPECT_EQ(http_request_impl.GetMethod(),
-                  server::http::HttpMethod::kGet);
+        EXPECT_EQ(http_request_impl.GetMethod(), server::http::HttpMethod::kGet);
 
-        EXPECT_EQ(http_request_impl.GetUrl(),
-                  "http://www.example.org/pub/WWW/TheProject.html");
-        EXPECT_EQ(http_request_impl.GetRequestPath(),
-                  "/pub/WWW/TheProject.html");
-      });
+        EXPECT_EQ(http_request_impl.GetUrl(), "http://www.example.org/pub/WWW/TheProject.html");
+        EXPECT_EQ(http_request_impl.GetRequestPath(), "/pub/WWW/TheProject.html");
+    });
 
-  parser->Parse(kHttpRequestAbsoluteUrl);
-  EXPECT_EQ(parsed, true);
+    parser->Parse(kHttpRequestAbsoluteUrl);
+    EXPECT_EQ(parsed, true);
 }
 
 UTEST(HttpRequestParserParser, HeadersSimple) {
-  bool parsed = false;
-  auto parser = server::CreateTestParser(
-      [&parsed](std::shared_ptr<server::request::RequestBase>&& request) {
+    bool parsed = false;
+    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::request::RequestBase>&& request) {
         parsed = true;
         auto& http_request_impl =
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
             static_cast<server::http::HttpRequestImpl&>(*request);
 
-        EXPECT_EQ(http_request_impl.GetMethod(),
-                  server::http::HttpMethod::kGet);
+        EXPECT_EQ(http_request_impl.GetMethod(), server::http::HttpMethod::kGet);
 
         EXPECT_EQ(http_request_impl.HeaderCount(), 2);
         EXPECT_EQ(http_request_impl.HasHeader("host"), true);
@@ -124,23 +112,21 @@ UTEST(HttpRequestParserParser, HeadersSimple) {
 
         EXPECT_EQ(http_request_impl.HasHeader("user-agent"), true);
         EXPECT_EQ(http_request_impl.GetHeader("user-agent"), "curl/7.58.0");
-      });
+    });
 
-  parser->Parse(kHttpRequestHeadersSimple);
-  EXPECT_EQ(parsed, true);
+    parser->Parse(kHttpRequestHeadersSimple);
+    EXPECT_EQ(parsed, true);
 }
 
 UTEST(HttpRequestParserParser, HeadersNoSpaces) {
-  bool parsed = false;
-  auto parser = server::CreateTestParser(
-      [&parsed](std::shared_ptr<server::request::RequestBase>&& request) {
+    bool parsed = false;
+    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::request::RequestBase>&& request) {
         parsed = true;
         auto& http_request_impl =
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
             static_cast<server::http::HttpRequestImpl&>(*request);
 
-        EXPECT_EQ(http_request_impl.GetMethod(),
-                  server::http::HttpMethod::kGet);
+        EXPECT_EQ(http_request_impl.GetMethod(), server::http::HttpMethod::kGet);
 
         EXPECT_EQ(http_request_impl.HeaderCount(), 2);
         EXPECT_EQ(http_request_impl.HasHeader("host"), true);
@@ -148,23 +134,21 @@ UTEST(HttpRequestParserParser, HeadersNoSpaces) {
 
         EXPECT_EQ(http_request_impl.HasHeader("user-agent"), true);
         EXPECT_EQ(http_request_impl.GetHeader("user-agent"), "curl/7.58.0");
-      });
+    });
 
-  parser->Parse(kHttpRequestHeadersNoSpaces);
-  EXPECT_EQ(parsed, true);
+    parser->Parse(kHttpRequestHeadersNoSpaces);
+    EXPECT_EQ(parsed, true);
 }
 
 UTEST(HttpRequestParserParser, HeadersCaseInsensitive) {
-  bool parsed = false;
-  auto parser = server::CreateTestParser(
-      [&parsed](std::shared_ptr<server::request::RequestBase>&& request) {
+    bool parsed = false;
+    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::request::RequestBase>&& request) {
         parsed = true;
         auto& http_request_impl =
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
             static_cast<server::http::HttpRequestImpl&>(*request);
 
-        EXPECT_EQ(http_request_impl.GetMethod(),
-                  server::http::HttpMethod::kGet);
+        EXPECT_EQ(http_request_impl.GetMethod(), server::http::HttpMethod::kGet);
 
         EXPECT_EQ(http_request_impl.HeaderCount(), 2);
         EXPECT_EQ(http_request_impl.HasHeader("host"), true);
@@ -172,23 +156,21 @@ UTEST(HttpRequestParserParser, HeadersCaseInsensitive) {
 
         EXPECT_EQ(http_request_impl.HasHeader("user-agent"), true);
         EXPECT_EQ(http_request_impl.GetHeader("user-agent"), "curl/7.58.0");
-      });
+    });
 
-  parser->Parse(kHttpRequestHeadersCaseInsensitive);
-  EXPECT_EQ(parsed, true);
+    parser->Parse(kHttpRequestHeadersCaseInsensitive);
+    EXPECT_EQ(parsed, true);
 }
 
 UTEST(HttpRequestParserParser, HeaderValues) {
-  bool parsed = false;
-  auto parser = server::CreateTestParser(
-      [&parsed](std::shared_ptr<server::request::RequestBase>&& request) {
+    bool parsed = false;
+    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::request::RequestBase>&& request) {
         parsed = true;
         auto& http_request_impl =
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
             static_cast<server::http::HttpRequestImpl&>(*request);
 
-        EXPECT_EQ(http_request_impl.GetMethod(),
-                  server::http::HttpMethod::kGet);
+        EXPECT_EQ(http_request_impl.GetMethod(), server::http::HttpMethod::kGet);
 
         EXPECT_EQ(http_request_impl.HeaderCount(), 2);
         EXPECT_EQ(http_request_impl.HasHeader("host"), true);
@@ -196,37 +178,34 @@ UTEST(HttpRequestParserParser, HeaderValues) {
 
         EXPECT_EQ(http_request_impl.HasHeader("user-agent"), true);
         EXPECT_EQ(http_request_impl.GetHeader("user-agent"), "[-]{~},/");
-      });
+    });
 
-  parser->Parse(kHttpRequestHeaderValues);
-  EXPECT_EQ(parsed, true);
+    parser->Parse(kHttpRequestHeaderValues);
+    EXPECT_EQ(parsed, true);
 }
 
 UTEST(HttpRequestParserParser, BodySimple) {
-  bool parsed = false;
-  auto parser = server::CreateTestParser(
-      [&parsed](std::shared_ptr<server::request::RequestBase>&& request) {
+    bool parsed = false;
+    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::request::RequestBase>&& request) {
         parsed = true;
         auto& http_request_impl =
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
             static_cast<server::http::HttpRequestImpl&>(*request);
 
-        EXPECT_EQ(http_request_impl.GetMethod(),
-                  server::http::HttpMethod::kGet);
+        EXPECT_EQ(http_request_impl.GetMethod(), server::http::HttpMethod::kGet);
 
         EXPECT_EQ(http_request_impl.RequestBody(), "body");
-      });
+    });
 
-  parser->Parse(kHttpRequestBodySimple);
-  EXPECT_EQ(parsed, true);
+    parser->Parse(kHttpRequestBodySimple);
+    EXPECT_EQ(parsed, true);
 }
 
 // bad requests
 
 namespace {
 
-constexpr std::string_view kHttpRequestMethodWrongCase =
-    "GeT / HTTP/1.1\r\n\r\n";
+constexpr std::string_view kHttpRequestMethodWrongCase = "GeT / HTTP/1.1\r\n\r\n";
 
 constexpr std::string_view kHttpRequestNoURL = "GET  HTTP/1.1\r\n\r\n";
 
@@ -240,59 +219,51 @@ constexpr std::string_view kHttpRequestBodyContentLengthTooLong =
 }  // namespace
 
 UTEST(HttpRequestParserParser, MethodWrongCase) {
-  bool parsed = false;
-  auto parser = server::CreateTestParser(
-      [&parsed](std::shared_ptr<server::request::RequestBase>&& request) {
+    bool parsed = false;
+    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::request::RequestBase>&& request) {
         parsed = true;
         auto& http_request_impl =
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
             static_cast<server::http::HttpRequestImpl&>(*request);
 
-        EXPECT_EQ(http_request_impl.GetMethod(),
-                  server::http::HttpMethod::kUnknown);
-      });
+        EXPECT_EQ(http_request_impl.GetMethod(), server::http::HttpMethod::kUnknown);
+    });
 
-  parser->Parse(kHttpRequestMethodWrongCase);
-  EXPECT_EQ(parsed, true);
+    parser->Parse(kHttpRequestMethodWrongCase);
+    EXPECT_EQ(parsed, true);
 }
 
 UTEST(HttpRequestParserParser, NoURL) {
-  bool parsed = false;
-  auto parser = server::CreateTestParser(
-      [&parsed](std::shared_ptr<server::request::RequestBase>&& request) {
+    bool parsed = false;
+    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::request::RequestBase>&& request) {
         parsed = true;
         auto& http_request_impl =
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
             static_cast<server::http::HttpRequestImpl&>(*request);
 
-        EXPECT_EQ(http_request_impl.GetMethod(),
-                  server::http::HttpMethod::kUnknown);
-      });
+        EXPECT_EQ(http_request_impl.GetMethod(), server::http::HttpMethod::kUnknown);
+    });
 
-  parser->Parse(kHttpRequestNoURL);
-  EXPECT_EQ(parsed, true);
+    parser->Parse(kHttpRequestNoURL);
+    EXPECT_EQ(parsed, true);
 }
 
 UTEST(HttpRequestParserParser, AbsentCRLF) {
-  bool parsed = false;
-  auto parser = server::CreateTestParser(
-      [&parsed](std::shared_ptr<server::request::RequestBase>&&) {
-        parsed = true;
-      });
+    bool parsed = false;
+    auto parser =
+        server::CreateTestParser([&parsed](std::shared_ptr<server::request::RequestBase>&&) { parsed = true; });
 
-  parser->Parse(kHttpRequestAbsentCRLF);
-  EXPECT_EQ(parsed, false);
+    parser->Parse(kHttpRequestAbsentCRLF);
+    EXPECT_EQ(parsed, false);
 }
 
 UTEST(HttpRequestParserParser, BodyContentLengthTooLong) {
-  bool parsed = false;
-  auto parser = server::CreateTestParser(
-      [&parsed](std::shared_ptr<server::request::RequestBase>&&) {
-        parsed = true;
-      });
+    bool parsed = false;
+    auto parser =
+        server::CreateTestParser([&parsed](std::shared_ptr<server::request::RequestBase>&&) { parsed = true; });
 
-  parser->Parse(kHttpRequestBodyContentLengthTooLong);
-  EXPECT_EQ(parsed, false);
+    parser->Parse(kHttpRequestBodyContentLengthTooLong);
+    EXPECT_EQ(parsed, false);
 }
 
 USERVER_NAMESPACE_END

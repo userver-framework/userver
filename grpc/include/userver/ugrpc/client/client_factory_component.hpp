@@ -54,26 +54,24 @@ namespace ugrpc::client {
 // clang-format on
 
 class ClientFactoryComponent final : public components::ComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of ugrpc::client::middlewares::log::Component
-  static constexpr std::string_view kName = "grpc-client-factory";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of ugrpc::client::middlewares::log::Component
+    static constexpr std::string_view kName = "grpc-client-factory";
 
-  ClientFactoryComponent(const components::ComponentConfig& config,
-                         const components::ComponentContext& context);
+    ClientFactoryComponent(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-  ClientFactory& GetFactory();
+    ClientFactory& GetFactory();
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  std::optional<ClientFactory> factory_;
+private:
+    std::optional<ClientFactory> factory_;
 };
 
 }  // namespace ugrpc::client
 
 template <>
-inline constexpr bool
-    components::kHasValidate<ugrpc::client::ClientFactoryComponent> = true;
+inline constexpr bool components::kHasValidate<ugrpc::client::ClientFactoryComponent> = true;
 
 USERVER_NAMESPACE_END

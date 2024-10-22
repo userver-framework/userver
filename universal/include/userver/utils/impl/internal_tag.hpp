@@ -11,7 +11,7 @@ namespace utils::impl {
 // 2. calling the function outside of userver may break your code up to UB;
 // 3. compilation of your service may break after a patch-level userver update.
 struct InternalTag final {
-  constexpr explicit InternalTag() noexcept = default;
+    constexpr explicit InternalTag() noexcept = default;
 };
 
 }  // namespace utils::impl

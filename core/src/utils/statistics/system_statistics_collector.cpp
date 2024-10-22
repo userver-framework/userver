@@ -10,38 +10,30 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
-SystemStatisticsCollector::SystemStatisticsCollector(
-    const ComponentConfig& config, const ComponentContext& context)
+SystemStatisticsCollector::SystemStatisticsCollector(const ComponentConfig& config, const ComponentContext& context)
     : ComponentBase(config, context),
       with_nginx_(config["with-nginx"].As<bool>(false)),
-      fs_task_processor_(context.GetTaskProcessor(
-          config["fs-task-processor"].As<std::string>())) {
-  statistics_holder_ =
-      context.FindComponent<components::StatisticsStorage>()
-          .GetStorage()
-          .RegisterWriter("", [this](utils::statistics::Writer& writer) {
-            ExtendStatistics(writer);
-          });
+      fs_task_processor_(context.GetTaskProcessor(config["fs-task-processor"].As<std::string>())) {
+    statistics_holder_ = context.FindComponent<components::StatisticsStorage>().GetStorage().RegisterWriter(
+        "", [this](utils::statistics::Writer& writer) { ExtendStatistics(writer); }
+    );
 }
 
-SystemStatisticsCollector::~SystemStatisticsCollector() {
-  statistics_holder_.Unregister();
-}
+SystemStatisticsCollector::~SystemStatisticsCollector() { statistics_holder_.Unregister(); }
 
-void SystemStatisticsCollector::ExtendStatistics(
-    utils::statistics::Writer& writer) {
-  engine::CriticalAsyncNoSpan(fs_task_processor_, [&] {
-    DumpMetric(writer, utils::statistics::impl::GetSelfSystemStatistics());
-    if (with_nginx_) {
-      writer.ValueWithLabels(
-          utils::statistics::impl::GetSystemStatisticsByExeName("nginx"),
-          {"application", "nginx"});
-    }
-  }).Get();
+void SystemStatisticsCollector::ExtendStatistics(utils::statistics::Writer& writer) {
+    engine::CriticalAsyncNoSpan(fs_task_processor_, [&] {
+        DumpMetric(writer, utils::statistics::impl::GetSelfSystemStatistics());
+        if (with_nginx_) {
+            writer.ValueWithLabels(
+                utils::statistics::impl::GetSystemStatisticsByExeName("nginx"), {"application", "nginx"}
+            );
+        }
+    }).Get();
 }
 
 yaml_config::Schema SystemStatisticsCollector::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<ComponentBase>(R"(
+    return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: Component for system resource usage statistics collection.
 additionalProperties: false

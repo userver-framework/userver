@@ -6,8 +6,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace redis {
 
-const dynamic_config::Key<int> kDeadlinePropagationVersion{
-    "REDIS_DEADLINE_PROPAGATION_VERSION", 1};
+const dynamic_config::Key<int> kDeadlinePropagationVersion{"REDIS_DEADLINE_PROPAGATION_VERSION", 1};
 
 }  // namespace redis
 

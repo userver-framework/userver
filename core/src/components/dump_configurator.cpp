@@ -7,15 +7,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
-DumpConfigurator::DumpConfigurator(const ComponentConfig& config,
-                                   const ComponentContext& context)
-    : ComponentBase(config, context),
-      dump_root_(config["dump-root"].As<std::string>()) {}
+DumpConfigurator::DumpConfigurator(const ComponentConfig& config, const ComponentContext& context)
+    : ComponentBase(config, context), dump_root_(config["dump-root"].As<std::string>()) {}
 
 const std::string& DumpConfigurator::GetDumpRoot() const { return dump_root_; }
 
 yaml_config::Schema DumpConfigurator::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<ComponentBase>(R"(
+    return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: Helper component that manages common configuration for userver dumps.
 additionalProperties: false

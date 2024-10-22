@@ -13,27 +13,29 @@ USERVER_NAMESPACE_BEGIN
 namespace server::net {
 
 class Listener final {
- public:
-  Listener(std::shared_ptr<EndpointInfo> endpoint_info,
-           engine::TaskProcessor& task_processor,
-           request::ResponseDataAccounter& data_accounter);
-  ~Listener();
+public:
+    Listener(
+        std::shared_ptr<EndpointInfo> endpoint_info,
+        engine::TaskProcessor& task_processor,
+        request::ResponseDataAccounter& data_accounter
+    );
+    ~Listener();
 
-  Listener(const Listener&) = delete;
-  Listener(Listener&&) noexcept = default;
-  Listener& operator=(const Listener&) = delete;
-  Listener& operator=(Listener&&) = default;
+    Listener(const Listener&) = delete;
+    Listener(Listener&&) noexcept = default;
+    Listener& operator=(const Listener&) = delete;
+    Listener& operator=(Listener&&) = default;
 
-  void Start();
+    void Start();
 
-  StatsAggregation GetStats() const;
+    StatsAggregation GetStats() const;
 
- private:
-  engine::TaskProcessor* task_processor_;
-  std::shared_ptr<EndpointInfo> endpoint_info_;
-  request::ResponseDataAccounter* data_accounter_;
+private:
+    engine::TaskProcessor* task_processor_;
+    std::shared_ptr<EndpointInfo> endpoint_info_;
+    request::ResponseDataAccounter* data_accounter_;
 
-  std::unique_ptr<ListenerImpl> impl_;
+    std::unique_ptr<ListenerImpl> impl_;
 };
 
 }  // namespace server::net

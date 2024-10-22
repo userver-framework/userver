@@ -7,8 +7,8 @@ USERVER_NAMESPACE_BEGIN
 namespace utils::statistics::impl::solomon {
 
 // These labels are always applied and cannot be set by user
-inline constexpr std::array<std::string_view, 6> kReservedLabelNames = {
-    "project", "cluster", "service", "host", "group", "sensor"};
+inline constexpr std::array<std::string_view, 6> kReservedLabelNames =
+    {"project", "cluster", "service", "host", "group", "sensor"};
 
 // https://solomon.yandex-team.ru/docs/concepts/data-model#limits
 // "application" is in commonLabels and can be overridden (nginx system metrics)

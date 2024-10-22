@@ -1,3 +1,15 @@
-BasedOnStyle: google
+BasedOnStyle: Google
 DerivePointerAlignment: false
 IncludeBlocks: Preserve
+AttributeMacros: ["noexcept"]
+IndentRequires: false
+ColumnLimit: 120
+IndentWidth: 4
+TabWidth: 4
+AccessModifierOffset: -4
+BinPackParameters: false
+BinPackArguments: false
+AllowAllParametersOfDeclarationOnNextLine: false
+AlignAfterOpenBracket: BlockIndent
+AlwaysBreakAfterDefinitionReturnType: None
+PenaltyReturnTypeOnItsOwnLine: 200

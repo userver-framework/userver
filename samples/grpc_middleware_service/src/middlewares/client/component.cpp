@@ -8,14 +8,9 @@
 
 namespace sample::grpc::auth::client {
 
-Component::Component(const components::ComponentConfig& config,
-                     const components::ComponentContext& context)
-    : MiddlewareComponentBase(config, context),
-      factory_(std::make_shared<MiddlewareFactory>(context)) {}
+Component::Component(const components::ComponentConfig& config, const components::ComponentContext& context)
+    : MiddlewareComponentBase(config, context), factory_(std::make_shared<MiddlewareFactory>(context)) {}
 
-std::shared_ptr<const ugrpc::client::MiddlewareFactoryBase>
-Component::GetMiddlewareFactory() {
-  return factory_;
-}
+std::shared_ptr<const ugrpc::client::MiddlewareFactoryBase> Component::GetMiddlewareFactory() { return factory_; }
 
 }  // namespace sample::grpc::auth::client

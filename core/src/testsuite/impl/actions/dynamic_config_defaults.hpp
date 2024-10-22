@@ -10,15 +10,13 @@ USERVER_NAMESPACE_BEGIN
 namespace testsuite::impl::actions {
 
 class DynamicConfigDefaults final : public BaseTestsuiteAction {
- public:
-  explicit DynamicConfigDefaults(
-      const components::ComponentContext& component_context);
+public:
+    explicit DynamicConfigDefaults(const components::ComponentContext& component_context);
 
-  formats::json::Value Perform(
-      const formats::json::Value& request_body) const override;
+    formats::json::Value Perform(const formats::json::Value& request_body) const override;
 
- private:
-  const dynamic_config::DocsMap& defaults_;
+private:
+    const dynamic_config::DocsMap& defaults_;
 };
 
 }  // namespace testsuite::impl::actions

@@ -19,54 +19,72 @@ class ConnectionPtr;
 // in client case we pass temporary in methods, so connection could be released
 // back to pool without waiting for the response
 class ConnectionHelper final {
- public:
-  [[nodiscard]] static impl::ResponseAwaiter DeclareExchange(
-      const ConnectionPtr& connection, const Exchange& exchange,
-      Exchange::Type type, utils::Flags<Exchange::Flags> flags,
-      engine::Deadline deadline);
+public:
+    [[nodiscard]] static impl::ResponseAwaiter DeclareExchange(
+        const ConnectionPtr& connection,
+        const Exchange& exchange,
+        Exchange::Type type,
+        utils::Flags<Exchange::Flags> flags,
+        engine::Deadline deadline
+    );
 
-  [[nodiscard]] static impl::ResponseAwaiter DeclareQueue(
-      const ConnectionPtr& connection, const Queue& queue,
-      utils::Flags<Queue::Flags> flags, engine::Deadline deadline);
+    [[nodiscard]] static impl::ResponseAwaiter DeclareQueue(
+        const ConnectionPtr& connection,
+        const Queue& queue,
+        utils::Flags<Queue::Flags> flags,
+        engine::Deadline deadline
+    );
 
-  [[nodiscard]] static impl::ResponseAwaiter BindQueue(
-      const ConnectionPtr& connection, const Exchange& exchange,
-      const Queue& queue, const std::string& routing_key,
-      engine::Deadline deadline);
+    [[nodiscard]] static impl::ResponseAwaiter BindQueue(
+        const ConnectionPtr& connection,
+        const Exchange& exchange,
+        const Queue& queue,
+        const std::string& routing_key,
+        engine::Deadline deadline
+    );
 
-  [[nodiscard]] static impl::ResponseAwaiter RemoveExchange(
-      const ConnectionPtr& connection, const Exchange& exchange,
-      engine::Deadline deadline);
+    [[nodiscard]] static impl::ResponseAwaiter
+    RemoveExchange(const ConnectionPtr& connection, const Exchange& exchange, engine::Deadline deadline);
 
-  [[nodiscard]] static impl::ResponseAwaiter RemoveQueue(
-      const ConnectionPtr& connection, const Queue& queue,
-      engine::Deadline deadline);
+    [[nodiscard]] static impl::ResponseAwaiter
+    RemoveQueue(const ConnectionPtr& connection, const Queue& queue, engine::Deadline deadline);
 
-  [[nodiscard]] static impl::ResponseAwaiter Get(
-      const ConnectionPtr& connection, const Queue& queue,
-      utils::Flags<Queue::Flags> flags, std::string& message,
-      engine::Deadline deadline);
+    [[nodiscard]] static impl::ResponseAwaiter Get(
+        const ConnectionPtr& connection,
+        const Queue& queue,
+        utils::Flags<Queue::Flags> flags,
+        std::string& message,
+        engine::Deadline deadline
+    );
 
-  static void Publish(const ConnectionPtr& connection, const Exchange& exchange,
-                      const std::string& routing_key,
-                      const std::string& message, MessageType type,
-                      engine::Deadline deadline);
+    static void Publish(
+        const ConnectionPtr& connection,
+        const Exchange& exchange,
+        const std::string& routing_key,
+        const std::string& message,
+        MessageType type,
+        engine::Deadline deadline
+    );
 
-  [[nodiscard]] static impl::ResponseAwaiter PublishReliable(
-      const ConnectionPtr& connection, const Exchange& exchange,
-      const std::string& routing_key, const std::string& message,
-      MessageType type, engine::Deadline deadline);
+    [[nodiscard]] static impl::ResponseAwaiter PublishReliable(
+        const ConnectionPtr& connection,
+        const Exchange& exchange,
+        const std::string& routing_key,
+        const std::string& message,
+        MessageType type,
+        engine::Deadline deadline
+    );
 
- private:
-  template <typename Func>
-  static impl::ResponseAwaiter WithSpan(const char* name, Func&& fn) {
-    tracing::Span span{name};
+private:
+    template <typename Func>
+    static impl::ResponseAwaiter WithSpan(const char* name, Func&& fn) {
+        tracing::Span span{name};
 
-    auto awaiter = fn();
-    awaiter.SetSpan(std::move(span));
+        auto awaiter = fn();
+        awaiter.SetSpan(std::move(span));
 
-    return awaiter;
-  }
+        return awaiter;
+    }
 };
 
 }  // namespace urabbitmq

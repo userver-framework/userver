@@ -10,14 +10,13 @@ USERVER_NAMESPACE_BEGIN
 namespace testsuite::impl::actions {
 
 class ResetMetrics final : public BaseTestsuiteAction {
- public:
-  explicit ResetMetrics(const components::ComponentContext& component_context);
+public:
+    explicit ResetMetrics(const components::ComponentContext& component_context);
 
-  formats::json::Value Perform(
-      const formats::json::Value& request_body) const override;
+    formats::json::Value Perform(const formats::json::Value& request_body) const override;
 
- private:
-  utils::statistics::MetricsStoragePtr metrics_storage_;
+private:
+    utils::statistics::MetricsStoragePtr metrics_storage_;
 };
 
 }  // namespace testsuite::impl::actions

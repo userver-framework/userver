@@ -57,29 +57,28 @@ class Consumer;
 // clang-format on
 
 class ConsumerComponent final : public components::ComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of kafka::ConsumerComponent component
-  static constexpr std::string_view kName{"kafka-consumer"};
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of kafka::ConsumerComponent component
+    static constexpr std::string_view kName{"kafka-consumer"};
 
-  ConsumerComponent(const components::ComponentConfig& config,
-                    const components::ComponentContext& context);
-  ~ConsumerComponent() override;
+    ConsumerComponent(const components::ComponentConfig& config, const components::ComponentContext& context);
+    ~ConsumerComponent() override;
 
-  /// @brief Returns consumer instance.
-  /// @see kafka::ConsumerScope
-  ConsumerScope GetConsumer();
+    /// @brief Returns consumer instance.
+    /// @see kafka::ConsumerScope
+    ConsumerScope GetConsumer();
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  static constexpr std::size_t kImplSize = 2480;
-  static constexpr std::size_t kImplAlign = 16;
-  utils::FastPimpl<impl::Consumer, kImplSize, kImplAlign> consumer_;
+private:
+    static constexpr std::size_t kImplSize = 2480;
+    static constexpr std::size_t kImplAlign = 16;
+    utils::FastPimpl<impl::Consumer, kImplSize, kImplAlign> consumer_;
 
-  /// @note Subscriptions must be the last fields! Add new fields above this
-  /// comment.
-  utils::statistics::Entry statistics_holder_;
+    /// @note Subscriptions must be the last fields! Add new fields above this
+    /// comment.
+    utils::statistics::Entry statistics_holder_;
 };
 
 }  // namespace kafka

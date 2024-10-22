@@ -18,27 +18,27 @@ namespace concurrent::impl {
 // - such an update must not be missed and must take effect after the queue
 //   is "unblocked"
 class SemaphoreCapacityControl final {
- public:
-  using Counter = engine::Semaphore::Counter;
-  static constexpr Counter kOverrideDisabled = -1;
+public:
+    using Counter = engine::Semaphore::Counter;
+    static constexpr Counter kOverrideDisabled = -1;
 
-  explicit SemaphoreCapacityControl(engine::CancellableSemaphore& semaphore);
+    explicit SemaphoreCapacityControl(engine::CancellableSemaphore& semaphore);
 
-  // These methods may be called concurrently from N threads.
-  void SetCapacity(Counter capacity);
-  Counter GetCapacity() const noexcept;
+    // These methods may be called concurrently from N threads.
+    void SetCapacity(Counter capacity);
+    Counter GetCapacity() const noexcept;
 
-  // These methods may be called from 1 thread at a time, potentially
-  // concurrently with *Capacity.
-  void SetCapacityOverride(Counter capacity);
-  void RemoveCapacityOverride();
+    // These methods may be called from 1 thread at a time, potentially
+    // concurrently with *Capacity.
+    void SetCapacityOverride(Counter capacity);
+    void RemoveCapacityOverride();
 
- private:
-  void UpdateSemaphoreCapacity() const;
+private:
+    void UpdateSemaphoreCapacity() const;
 
-  engine::CancellableSemaphore& semaphore_;
-  std::atomic<Counter> capacity_requested_;
-  std::atomic<Counter> capacity_override_{kOverrideDisabled};
+    engine::CancellableSemaphore& semaphore_;
+    std::atomic<Counter> capacity_requested_;
+    std::atomic<Counter> capacity_override_{kOverrideDisabled};
 };
 
 }  // namespace concurrent::impl

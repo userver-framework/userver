@@ -3,26 +3,45 @@ syntax = "proto3";
 package sample.ugrpc;
 
 import "google/protobuf/struct.proto";
+import "google/protobuf/descriptor.proto";
+
+message FieldOptions {
+    bool selected = 1;
+}
+
+message MessageOptions {
+    bool selected = 1;
+}
+  
+extend google.protobuf.FieldOptions {
+    FieldOptions field = 35784;
+}
+
+extend google.protobuf.MessageOptions {
+    MessageOptions message = 35785;
+}
 
 // A message with fields of many different types
 message MessageWithDifferentTypes {
 
     // Nested message
     message NestedMessage {
-        string required_string = 1;
+        option (sample.ugrpc.message).selected = true;
+
+        string required_string = 1 [(sample.ugrpc.field).selected = true];
         optional string optional_string = 2;
 
-        uint32 required_int = 3;
+        uint32 required_int = 3 [(sample.ugrpc.field).selected = true];
         optional uint32 optional_int = 4;
     }
 
     // Strings
     string required_string = 1;
-    optional string optional_string = 2;
+    optional string optional_string = 2 [(sample.ugrpc.field).selected = true];
 
     // Integers
     uint32 required_int = 3;
-    optional uint32 optional_int = 4;
+    optional uint32 optional_int = 4 [(sample.ugrpc.field).selected = true];
 
     // Nested messages
     NestedMessage required_nested = 5;
@@ -36,7 +55,7 @@ message MessageWithDifferentTypes {
     repeated string repeated_primitive = 9;
 
     // Repeated message
-    repeated NestedMessage repeated_message = 10;
+    repeated NestedMessage repeated_message = 10 [(sample.ugrpc.field).selected = true];
 
     // Map of primitives
     map<string, string> primitives_map = 11;
@@ -53,4 +72,102 @@ message MessageWithDifferentTypes {
 
     // Google type
     google.protobuf.Value google_value = 16;
+
+    // Weird map key (not an integer or string)
+    map<bool, NestedMessage> weird_map = 17;
+} 
+
+/*
+Component 1:
+          -> E
+         |
+A (+) -> B  <----->  C (+)
+         |           |
+          -> D (+) <-
+*/
+
+message Msg1A {
+    option (sample.ugrpc.message).selected = true;
+
+    string value1 = 1 [(sample.ugrpc.field).selected = true];
+    string value2 = 2 [(sample.ugrpc.field).selected = true];
+    Msg1B nested = 3;
+};
+
+message Msg1B {
+    Msg1C recursive_1 = 1;
+    Msg1C recursive_2 = 2;
+    Msg1D nested_secret_1 = 3;
+    Msg1D nested_secret_2 = 4;
+    Msg1D nested_secret_3 = 5;
+    Msg1E nested_nosecret_1 = 6;
+    Msg1E nested_nosecret_2 = 7;
+    Msg1E nested_nosecret_3 = 8;
+};
+
+message Msg1C {
+    option (sample.ugrpc.message).selected = true;
+
+    Msg1B recursive_1 = 1;
+    Msg1B recursive_2 = 2;
+    string value = 3 [(sample.ugrpc.field).selected = true];
+    Msg1D nested = 4;
+};
+
+message Msg1D {
+    option (sample.ugrpc.message).selected = true;
+
+    string value = 1 [(sample.ugrpc.field).selected = true];
+};
+
+message Msg1E {
+    string value = 1;
+};
+
+/*
+Component 2:
+A (+)
+*/
+
+message Msg2A {
+    option (sample.ugrpc.message).selected = true;
+
+    string value1 = 1 [(sample.ugrpc.field).selected = true];
+    uint32 value2 = 2;
+    bool value3 = 3 [(sample.ugrpc.field).selected = true];
+}
+
+/*
+Component 3:
+A -> B
+*/
+
+message Msg3A {
+    string value = 1;
+    Msg3B nested = 2;
+}
+
+message Msg3B {
+    string value = 1;
+}
+
+/*
+Component 4:
+A -> B (+) -> C -> A -> ...
+*/
+
+message Msg4A {
+    Msg4B nested = 1;
+}
+
+message Msg4B {
+    option (sample.ugrpc.message).selected = true;
+
+    string value = 1 [(sample.ugrpc.field).selected = true];
+    Msg4C nested = 2;
+}
+
+message Msg4C {
+    Msg4A nested_1 = 1;
+    Msg4A nested_2 = 2;
 }

@@ -4,9 +4,9 @@
 #define _RSEQ_ABI_H
 
 /*
- * rseq/rseq-abi.h
+ * rseq/abi.h
  *
- * Restartable sequences system call API
+ * Restartable sequences system call ABI
  */
 
 #include <linux/types.h>

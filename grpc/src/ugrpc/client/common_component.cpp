@@ -18,44 +18,45 @@ namespace {
 constexpr std::size_t kDefaultCompletionQueueCount = 1;
 
 ugrpc::impl::CompletionQueuePoolBase& FindOrEmplaceCompletionQueues(
-    std::optional<impl::CompletionQueuePool>& holder, std::size_t queue_count,
-    const components::ComponentContext& context) {
-  if (auto* const server =
-          context.FindComponentOptional<server::ServerComponent>()) {
-    UINVARIANT(queue_count == kDefaultCompletionQueueCount,
-               "grpc-client-common.completion-queue-count option is "
-               "meaningless and should not be specified if the service has a "
-               "grpc-server. Use grpc-server.completion-queue-count instead");
-    return server->GetServer().GetCompletionQueues(utils::impl::InternalTag{});
-  }
-  holder.emplace(queue_count);
-  return *holder;
+    std::optional<impl::CompletionQueuePool>& holder,
+    std::size_t queue_count,
+    const components::ComponentContext& context
+) {
+    if (auto* const server = context.FindComponentOptional<server::ServerComponent>()) {
+        UINVARIANT(
+            queue_count == kDefaultCompletionQueueCount,
+            "grpc-client-common.completion-queue-count option is "
+            "meaningless and should not be specified if the service has a "
+            "grpc-server. Use grpc-server.completion-queue-count instead"
+        );
+        return server->GetServer().GetCompletionQueues(utils::impl::InternalTag{});
+    }
+    holder.emplace(queue_count);
+    return *holder;
 }
 
 }  // namespace
 
-CommonComponent::CommonComponent(const components::ComponentConfig& config,
-                                 const components::ComponentContext& context)
+CommonComponent::CommonComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
     : ComponentBase(config, context),
-      blocking_task_processor_(context.GetTaskProcessor(
-          config["blocking-task-processor"].As<std::string>())),
+      blocking_task_processor_(context.GetTaskProcessor(config["blocking-task-processor"].As<std::string>())),
       completion_queues_(FindOrEmplaceCompletionQueues(
           client_completion_queues_,
-          config["completion-queue-count"].As<std::size_t>(
-              kDefaultCompletionQueueCount),
-          context)),
+          config["completion-queue-count"].As<std::size_t>(kDefaultCompletionQueueCount),
+          context
+      )),
       client_statistics_storage_(
           context.FindComponent<components::StatisticsStorage>().GetStorage(),
-          ugrpc::impl::StatisticsDomain::kClient) {
-  ugrpc::impl::SetupNativeLogging();
-  ugrpc::impl::UpdateNativeLogLevel(
-      config["native-log-level"].As<logging::Level>(logging::Level::kError));
+          ugrpc::impl::StatisticsDomain::kClient
+      ) {
+    ugrpc::impl::SetupNativeLogging();
+    ugrpc::impl::UpdateNativeLogLevel(config["native-log-level"].As<logging::Level>(logging::Level::kError));
 }
 
 CommonComponent::~CommonComponent() = default;
 
 yaml_config::Schema CommonComponent::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<components::ComponentBase>(R"(
+    return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: Provides a ClientFactory in the component system
 additionalProperties: false

@@ -65,61 +65,61 @@ class Consumer;
 // clang-format on
 
 class ConsumerScope final {
- public:
-  /// @brief Callback that is invoked on each polled message batch.
-  /// @warning If callback throws, it called over and over again with the batch
-  /// with the same messages, until successful invocation.
-  /// Though, user should consider idempotent message processing mechanism.
-  using Callback = std::function<void(MessageBatchView)>;
+public:
+    /// @brief Callback that is invoked on each polled message batch.
+    /// @warning If callback throws, it called over and over again with the batch
+    /// with the same messages, until successful invocation.
+    /// Though, user should consider idempotent message processing mechanism.
+    using Callback = std::function<void(MessageBatchView)>;
 
-  /// @brief Stops the consumer (if not yet stopped).
-  ~ConsumerScope();
+    /// @brief Stops the consumer (if not yet stopped).
+    ~ConsumerScope();
 
-  ConsumerScope(ConsumerScope&&) noexcept = delete;
-  ConsumerScope& operator=(ConsumerScope&&) noexcept = delete;
+    ConsumerScope(ConsumerScope&&) noexcept = delete;
+    ConsumerScope& operator=(ConsumerScope&&) noexcept = delete;
 
-  /// @brief Subscribes for configured topics and starts the consumer polling
-  /// process.
-  /// @note If `callback` throws an exception, entire message batch (also
-  /// with successfully processed messages) come again, until callback succeeds
-  /// @warning Each callback duration must not exceed the
-  /// `max_callback_duration` time. Otherwise, consumer may stop consuming the
-  /// message for unpredictable amount of time.
-  void Start(Callback callback);
+    /// @brief Subscribes for configured topics and starts the consumer polling
+    /// process.
+    /// @note If `callback` throws an exception, entire message batch (also
+    /// with successfully processed messages) come again, until callback succeeds
+    /// @warning Each callback duration must not exceed the
+    /// `max_callback_duration` time. Otherwise, consumer may stop consuming the
+    /// message for unpredictable amount of time.
+    void Start(Callback callback);
 
-  /// @brief Revokes all topic partition consumer was subscribed on. Also closes
-  /// the consumer, leaving the consumer balanced group.
-  ///
-  /// Called in the destructor of ConsumerScope automatically.
-  ///
-  /// Can be called in the beginning of your destructor if some other
-  /// actions in that destructor prevent the callback from functioning
-  /// correctly.
-  ///
-  /// After ConsumerScope::Stop call, subscribed topics partitions are
-  /// distributed between other consumers with the same `group_id`.
-  ///
-  /// @warning Blocks until all kafka::Message destroyed (e.g. consumer cannot
-  /// be stopped until user-callback is executing).
-  void Stop() noexcept;
+    /// @brief Revokes all topic partition consumer was subscribed on. Also closes
+    /// the consumer, leaving the consumer balanced group.
+    ///
+    /// Called in the destructor of ConsumerScope automatically.
+    ///
+    /// Can be called in the beginning of your destructor if some other
+    /// actions in that destructor prevent the callback from functioning
+    /// correctly.
+    ///
+    /// After ConsumerScope::Stop call, subscribed topics partitions are
+    /// distributed between other consumers with the same `group_id`.
+    ///
+    /// @warning Blocks until all kafka::Message destroyed (e.g. consumer cannot
+    /// be stopped until user-callback is executing).
+    void Stop() noexcept;
 
-  /// @brief Schedules the current assignment offsets commitment task.
-  /// Intended to be called after each message batch processing cycle (but not
-  /// necessarily).
-  ///
-  /// @warning Commit does not ensure that messages do not come again --
-  /// they do not come again also without the commit within the same process.
-  /// Commit, indeed, restricts other consumers in consumers group from reading
-  /// messages already processed (committed) by the current consumer if current
-  /// has stopped and leaved the group
-  void AsyncCommit();
+    /// @brief Schedules the current assignment offsets commitment task.
+    /// Intended to be called after each message batch processing cycle (but not
+    /// necessarily).
+    ///
+    /// @warning Commit does not ensure that messages do not come again --
+    /// they do not come again also without the commit within the same process.
+    /// Commit, indeed, restricts other consumers in consumers group from reading
+    /// messages already processed (committed) by the current consumer if current
+    /// has stopped and leaved the group
+    void AsyncCommit();
 
- private:
-  friend class impl::Consumer;
+private:
+    friend class impl::Consumer;
 
-  explicit ConsumerScope(impl::Consumer& consumer) noexcept;
+    explicit ConsumerScope(impl::Consumer& consumer) noexcept;
 
-  impl::Consumer& consumer_;
+    impl::Consumer& consumer_;
 };
 
 }  // namespace kafka

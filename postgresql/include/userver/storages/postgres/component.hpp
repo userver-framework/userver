@@ -139,49 +139,49 @@ namespace components {
 // clang-format on
 
 class Postgres : public ComponentBase {
- public:
-  /// Default shard number
-  static constexpr size_t kDefaultShardNumber = 0;
-  /// Default command control
-  static constexpr storages::postgres::CommandControl kDefaultCommandControl{
-      std::chrono::milliseconds{500},  // network timeout
-      std::chrono::milliseconds{250}   // statement timeout
-  };
+public:
+    /// Default shard number
+    static constexpr size_t kDefaultShardNumber = 0;
+    /// Default command control
+    static constexpr storages::postgres::CommandControl kDefaultCommandControl{
+        std::chrono::milliseconds{500},  // network timeout
+        std::chrono::milliseconds{250}   // statement timeout
+    };
 
-  /// Component constructor
-  Postgres(const ComponentConfig&, const ComponentContext&);
-  /// Component destructor
-  ~Postgres() override;
+    /// Component constructor
+    Postgres(const ComponentConfig&, const ComponentContext&);
+    /// Component destructor
+    ~Postgres() override;
 
-  /// Cluster accessor for default shard number
-  storages::postgres::ClusterPtr GetCluster() const;
+    /// Cluster accessor for default shard number
+    storages::postgres::ClusterPtr GetCluster() const;
 
-  /// Cluster accessor for specific shard number
-  storages::postgres::ClusterPtr GetClusterForShard(size_t shard) const;
+    /// Cluster accessor for specific shard number
+    storages::postgres::ClusterPtr GetClusterForShard(size_t shard) const;
 
-  /// Get total shard count
-  size_t GetShardCount() const;
+    /// Get total shard count
+    size_t GetShardCount() const;
 
-  /// Get database object
-  storages::postgres::DatabasePtr GetDatabase() const { return database_; }
+    /// Get database object
+    storages::postgres::DatabasePtr GetDatabase() const { return database_; }
 
-  /// Reports statistics for PostgreSQL driver
-  void ExtendStatistics(utils::statistics::Writer& writer);
+    /// Reports statistics for PostgreSQL driver
+    void ExtendStatistics(utils::statistics::Writer& writer);
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
+private:
+    void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
 
-  std::string name_;
-  std::string db_name_;
-  storages::postgres::ClusterSettings initial_settings_;
-  storages::postgres::DatabasePtr database_;
+    std::string name_;
+    std::string db_name_;
+    storages::postgres::ClusterSettings initial_settings_;
+    storages::postgres::DatabasePtr database_;
 
-  // Subscriptions must be the last fields, because the fields above are used
-  // from callbacks.
-  concurrent::AsyncEventSubscriberScope config_subscription_;
-  utils::statistics::Entry statistics_holder_;
+    // Subscriptions must be the last fields, because the fields above are used
+    // from callbacks.
+    concurrent::AsyncEventSubscriberScope config_subscription_;
+    utils::statistics::Entry statistics_holder_;
 };
 
 template <>

@@ -39,35 +39,37 @@ namespace components {
 
 // clang-format on
 class TcpAcceptorBase : public ComponentBase {
- public:
-  TcpAcceptorBase(const ComponentConfig&, const ComponentContext&);
-  ~TcpAcceptorBase() override;
+public:
+    TcpAcceptorBase(const ComponentConfig&, const ComponentContext&);
+    ~TcpAcceptorBase() override;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- protected:
-  /// Override this function to process incoming sockets.
-  ///
-  /// @warning The function is called concurrently from multiple threads on
-  /// each new socket.
-  virtual void ProcessSocket(engine::io::Socket&& sock) = 0;
+protected:
+    /// Override this function to process incoming sockets.
+    ///
+    /// @warning The function is called concurrently from multiple threads on
+    /// each new socket.
+    virtual void ProcessSocket(engine::io::Socket&& sock) = 0;
 
- private:
-  TcpAcceptorBase(const ComponentConfig& config,
-                  const ComponentContext& context,
-                  const server::net::ListenerConfig& acceptor_config);
+private:
+    TcpAcceptorBase(
+        const ComponentConfig& config,
+        const ComponentContext& context,
+        const server::net::ListenerConfig& acceptor_config
+    );
 
-  void KeepAccepting();
+    void KeepAccepting();
 
-  void OnAllComponentsLoaded() final;
-  void OnAllComponentsAreStopping() final;
+    void OnAllComponentsLoaded() final;
+    void OnAllComponentsAreStopping() final;
 
-  const bool no_delay_;
-  engine::TaskProcessor& acceptor_task_processor_;
-  engine::TaskProcessor& sockets_task_processor_;
-  concurrent::BackgroundTaskStorageCore tasks_;
-  engine::io::Socket listen_sock_;
-  engine::Task acceptor_;
+    const bool no_delay_;
+    engine::TaskProcessor& acceptor_task_processor_;
+    engine::TaskProcessor& sockets_task_processor_;
+    concurrent::BackgroundTaskStorageCore tasks_;
+    engine::io::Socket listen_sock_;
+    engine::Task acceptor_;
 };
 
 }  // namespace components

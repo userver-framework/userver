@@ -8,32 +8,32 @@ USERVER_NAMESPACE_BEGIN
 namespace engine {
 
 class ConsumersState {
- public:
-  struct State {
-    std::uint32_t sleeping_count;
-    std::uint32_t stealing_count;
-  };
+public:
+    struct State {
+        std::uint32_t sleeping_count;
+        std::uint32_t stealing_count;
+    };
 
-  ConsumersState() = default;
+    ConsumersState() = default;
 
-  ConsumersState(const ConsumersState& other);
+    ConsumersState(const ConsumersState& other);
 
-  ConsumersState& operator=(const ConsumersState& other);
+    ConsumersState& operator=(const ConsumersState& other);
 
-  bool TryIncrementStealersCount(const ConsumersState& old) noexcept;
+    bool TryIncrementStealersCount(const ConsumersState& old) noexcept;
 
-  State DerementStealersCount() noexcept;
+    State DerementStealersCount() noexcept;
 
-  State Get() noexcept;
+    State Get() noexcept;
 
-  void IncrementSleepingCount() noexcept;
+    void IncrementSleepingCount() noexcept;
 
-  void DecrementSleepingCount() noexcept;
+    void DecrementSleepingCount() noexcept;
 
- private:
-  State CreateState(std::uint64_t data);
+private:
+    State CreateState(std::uint64_t data);
 
-  std::atomic<std::uint64_t> state_{0};
+    std::atomic<std::uint64_t> state_{0};
 };
 
 }  // namespace engine

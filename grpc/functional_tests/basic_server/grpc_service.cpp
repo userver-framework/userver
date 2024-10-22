@@ -25,54 +25,45 @@
 
 namespace samples {
 
-class GreeterServiceComponent final
-    : public api::GreeterServiceBase::Component {
- public:
-  static constexpr std::string_view kName = "greeter-service";
+class GreeterServiceComponent final : public api::GreeterServiceBase::Component {
+public:
+    static constexpr std::string_view kName = "greeter-service";
 
-  GreeterServiceComponent(const components::ComponentConfig& config,
-                          const components::ComponentContext& context)
-      : api::GreeterServiceBase::Component(config, context),
-        echo_url_{config["echo-url"].As<std::string>()},
-        http_client_(
-            context.FindComponent<components::HttpClient>().GetHttpClient()) {}
+    GreeterServiceComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : api::GreeterServiceBase::Component(config, context),
+          echo_url_{config["echo-url"].As<std::string>()},
+          http_client_(context.FindComponent<components::HttpClient>().GetHttpClient()) {}
 
-  SayHelloResult SayHello(CallContext& context,
-                          api::GreetingRequest&& request) override;
+    SayHelloResult SayHello(CallContext& context, api::GreetingRequest&& request) override;
 
-  CallEchoNobodyResult CallEchoNobody(CallContext& context,
-                                      api::GreetingRequest&& request) override;
+    CallEchoNobodyResult CallEchoNobody(CallContext& context, api::GreetingRequest&& request) override;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  const std::string echo_url_;
-  clients::http::Client& http_client_;
+private:
+    const std::string echo_url_;
+    clients::http::Client& http_client_;
 };
 
-GreeterServiceComponent::SayHelloResult GreeterServiceComponent::SayHello(
-    CallContext& /*context*/, api::GreetingRequest&& request) {
-  api::GreetingResponse response;
-  response.set_greeting(fmt::format("Hello, {}!", request.name()));
-  return response;
+GreeterServiceComponent::SayHelloResult
+GreeterServiceComponent::SayHello(CallContext& /*context*/, api::GreetingRequest&& request) {
+    api::GreetingResponse response;
+    response.set_greeting(fmt::format("Hello, {}!", request.name()));
+    return response;
 }
 
 GreeterServiceComponent::CallEchoNobodyResult
-GreeterServiceComponent::CallEchoNobody(CallContext& /*context*/,
-                                        api::GreetingRequest&& /*request*/) {
-  api::GreetingResponse response;
-  response.set_greeting("Call Echo Nobody");
-  auto http_response = http_client_.CreateRequest()
-                           .get(echo_url_)
-                           .retry(1)
-                           .timeout(std::chrono::seconds{5})
-                           .perform();
-  http_response->raise_for_status();
-  return response;
+GreeterServiceComponent::CallEchoNobody(CallContext& /*context*/, api::GreetingRequest&& /*request*/) {
+    api::GreetingResponse response;
+    response.set_greeting("Call Echo Nobody");
+    auto http_response =
+        http_client_.CreateRequest().get(echo_url_).retry(1).timeout(std::chrono::seconds{5}).perform();
+    http_response->raise_for_status();
+    return response;
 }
 
 yaml_config::Schema GreeterServiceComponent::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<api::GreeterServiceBase::Component>(R"(
+    return yaml_config::MergeSchemas<api::GreeterServiceBase::Component>(R"(
   type: object
   description: HTTP echo without body component
   additionalProperties: false
@@ -86,17 +77,16 @@ yaml_config::Schema GreeterServiceComponent::GetStaticConfigSchema() {
 }  // namespace samples
 
 int main(int argc, char* argv[]) {
-  const auto component_list =
-      components::MinimalServerComponentList()
-          .Append<components::TestsuiteSupport>()
-          .Append<ugrpc::client::CommonComponent>()
-          .Append<ugrpc::client::ClientFactoryComponent>()
-          .Append<ugrpc::server::ServerComponent>()
-          .Append<samples::GreeterServiceComponent>()
-          .Append<clients::dns::Component>()
-          .Append<server::middlewares::HeadersPropagatorFactory>()
-          .Append<ugrpc::server::middlewares::headers_propagator::Component>()
-          .Append<clients::http::plugins::headers_propagator::Component>()
-          .Append<components::HttpClient>();
-  return utils::DaemonMain(argc, argv, component_list);
+    const auto component_list = components::MinimalServerComponentList()
+                                    .Append<components::TestsuiteSupport>()
+                                    .Append<ugrpc::client::CommonComponent>()
+                                    .Append<ugrpc::client::ClientFactoryComponent>()
+                                    .Append<ugrpc::server::ServerComponent>()
+                                    .Append<samples::GreeterServiceComponent>()
+                                    .Append<clients::dns::Component>()
+                                    .Append<server::middlewares::HeadersPropagatorFactory>()
+                                    .Append<ugrpc::server::middlewares::headers_propagator::Component>()
+                                    .Append<clients::http::plugins::headers_propagator::Component>()
+                                    .Append<components::HttpClient>();
+    return utils::DaemonMain(argc, argv, component_list);
 }

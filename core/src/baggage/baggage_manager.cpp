@@ -13,32 +13,29 @@ namespace baggage {
 
 namespace {
 
-std::unordered_set<std::string> ChooseCurrentAllowedKeys(
-    const Baggage* current_baggage,
-    const dynamic_config::Source& config_source) {
-  if (current_baggage != nullptr) {
-    return current_baggage->GetAllowedKeys();
-  }
-  const auto snapshot = config_source.GetSnapshot();
-  const auto& baggage_settings = snapshot[kBaggageSettings];
-  return baggage_settings.allowed_keys;
+std::unordered_set<std::string>
+ChooseCurrentAllowedKeys(const Baggage* current_baggage, const dynamic_config::Source& config_source) {
+    if (current_baggage != nullptr) {
+        return current_baggage->GetAllowedKeys();
+    }
+    const auto snapshot = config_source.GetSnapshot();
+    const auto& baggage_settings = snapshot[kBaggageSettings];
+    return baggage_settings.allowed_keys;
 }
 
 }  // namespace
 
 BaggageManagerComponent::BaggageManagerComponent(
     const components::ComponentConfig& config,
-    const components::ComponentContext& context)
+    const components::ComponentContext& context
+)
     : components::ComponentBase(config, context),
-      baggage_manager_(
-          context.FindComponent<components::DynamicConfig>().GetSource()) {}
+      baggage_manager_(context.FindComponent<components::DynamicConfig>().GetSource()) {}
 
-BaggageManager& BaggageManagerComponent::GetManager() {
-  return baggage_manager_;
-}
+BaggageManager& BaggageManagerComponent::GetManager() { return baggage_manager_; }
 
 yaml_config::Schema BaggageManagerComponent::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<ComponentBase>(R"(
+    return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: Component for interaction with Baggage header.
 additionalProperties: false
@@ -46,47 +43,37 @@ properties: {}
 )");
 }
 
-BaggageManager::BaggageManager(const dynamic_config::Source& config_source)
-    : config_source_(config_source) {}
+BaggageManager::BaggageManager(const dynamic_config::Source& config_source) : config_source_(config_source) {}
 
 /// @brief Returns if baggage is enabled
-bool BaggageManager::IsEnabled() const {
-  return config_source_.GetCopy(kBaggageEnabled);
+bool BaggageManager::IsEnabled() const { return config_source_.GetCopy(kBaggageEnabled); }
+
+void BaggageManager::AddEntry(std::string key, std::string value, BaggageProperties properties) const {
+    if (!IsEnabled()) {
+        return;
+    }
+    const auto* current_baggage = TryGetBaggage();
+
+    auto baggage = current_baggage ? std::move(*current_baggage)
+                                   : Baggage("", ChooseCurrentAllowedKeys(current_baggage, config_source_));
+
+    baggage.AddEntry(std::move(key), std::move(value), std::move(properties));
+    kInheritedBaggage.Set(std::move(baggage));
 }
 
-void BaggageManager::AddEntry(std::string key, std::string value,
-                              BaggageProperties properties) const {
-  if (!IsEnabled()) {
-    return;
-  }
-  const auto* current_baggage = TryGetBaggage();
-
-  auto baggage = current_baggage
-                     ? std::move(*current_baggage)
-                     : Baggage("", ChooseCurrentAllowedKeys(current_baggage,
-                                                            config_source_));
-
-  baggage.AddEntry(std::move(key), std::move(value), std::move(properties));
-  kInheritedBaggage.Set(std::move(baggage));
-}
-
-const Baggage* BaggageManager::TryGetBaggage() {
-  return kInheritedBaggage.GetOptional();
-}
+const Baggage* BaggageManager::TryGetBaggage() { return kInheritedBaggage.GetOptional(); }
 
 void BaggageManager::SetBaggage(std::string header) const {
-  if (!IsEnabled()) {
-    return;
-  }
-  const auto* current_baggage = TryGetBaggage();
-  auto current_allowed_keys =
-      ChooseCurrentAllowedKeys(current_baggage, config_source_);
+    if (!IsEnabled()) {
+        return;
+    }
+    const auto* current_baggage = TryGetBaggage();
+    auto current_allowed_keys = ChooseCurrentAllowedKeys(current_baggage, config_source_);
 
-  auto baggage =
-      TryMakeBaggage(std::move(header), std::move(current_allowed_keys));
-  if (baggage) {
-    kInheritedBaggage.Set(std::move(*baggage));
-  }
+    auto baggage = TryMakeBaggage(std::move(header), std::move(current_allowed_keys));
+    if (baggage) {
+        kInheritedBaggage.Set(std::move(*baggage));
+    }
 }
 
 void BaggageManager::ResetBaggage() { kInheritedBaggage.Erase(); }

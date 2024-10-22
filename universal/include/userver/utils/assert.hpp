@@ -10,12 +10,15 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::impl {
 
-[[noreturn]] void UASSERT_failed(std::string_view expr, const char* file,
-                                 unsigned int line, const char* function,
-                                 std::string_view msg) noexcept;
+[[noreturn]] void UASSERT_failed(
+    std::string_view expr,
+    const char* file,
+    unsigned int line,
+    const char* function,
+    std::string_view msg
+) noexcept;
 
-[[noreturn]] void LogAndThrowInvariantError(std::string_view condition,
-                                            std::string_view message);
+[[noreturn]] void LogAndThrowInvariantError(std::string_view condition, std::string_view message);
 
 #ifdef NDEBUG
 inline constexpr bool kEnableAssert = false;
@@ -36,16 +39,15 @@ USERVER_NAMESPACE_END
 ///
 /// @hideinitializer
 // NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
-#define UASSERT_MSG(expr, msg)                           \
-  do {                                                   \
-    if (USERVER_NAMESPACE::utils::impl::kEnableAssert) { \
-      if (expr) {                                        \
-      } else {                                           \
-        USERVER_NAMESPACE::utils::impl::UASSERT_failed(  \
-            #expr, __FILE__, __LINE__, __func__, msg);   \
-      }                                                  \
-    }                                                    \
-  } while (0)
+#define UASSERT_MSG(expr, msg)                                                                            \
+    do {                                                                                                  \
+        if (USERVER_NAMESPACE::utils::impl::kEnableAssert) {                                              \
+            if (expr) {                                                                                   \
+            } else {                                                                                      \
+                USERVER_NAMESPACE::utils::impl::UASSERT_failed(#expr, __FILE__, __LINE__, __func__, msg); \
+            }                                                                                             \
+        }                                                                                                 \
+    } while (0)
 
 /// @brief Assertion macro that aborts execution in DEBUG builds and does
 /// nothing in release builds
@@ -58,16 +60,14 @@ USERVER_NAMESPACE_END
 ///
 /// @hideinitializer
 // NOLINTNEXTLINE (cppcoreguidelines-macro-usage)
-#define UINVARIANT(condition, message)                                        \
-  do {                                                                        \
-    if (condition) {                                                          \
-    } else {                                                                  \
-      if constexpr (USERVER_NAMESPACE::utils::impl::kEnableAssert) {          \
-        USERVER_NAMESPACE::utils::impl::UASSERT_failed(                       \
-            #condition, __FILE__, __LINE__, __func__, message);               \
-      } else {                                                                \
-        USERVER_NAMESPACE::utils::impl::LogAndThrowInvariantError(#condition, \
-                                                                  message);   \
-      }                                                                       \
-    }                                                                         \
-  } while (0)
+#define UINVARIANT(condition, message)                                                                             \
+    do {                                                                                                           \
+        if (condition) {                                                                                           \
+        } else {                                                                                                   \
+            if constexpr (USERVER_NAMESPACE::utils::impl::kEnableAssert) {                                         \
+                USERVER_NAMESPACE::utils::impl::UASSERT_failed(#condition, __FILE__, __LINE__, __func__, message); \
+            } else {                                                                                               \
+                USERVER_NAMESPACE::utils::impl::LogAndThrowInvariantError(#condition, message);                    \
+            }                                                                                                      \
+        }                                                                                                          \
+    } while (0)

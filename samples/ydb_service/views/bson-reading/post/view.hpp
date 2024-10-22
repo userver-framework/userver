@@ -8,21 +8,18 @@
 namespace sample {
 
 class BsonReadingHandler final : public server::handlers::HttpHandlerBase {
- public:
-  static constexpr std::string_view kName = "handler-bson-reading";
+public:
+    static constexpr std::string_view kName = "handler-bson-reading";
 
-  BsonReadingHandler(const components::ComponentConfig& config,
-                     const components::ComponentContext& context)
-      : HttpHandlerBase(config, context),
-        ydb_client_(context.FindComponent<ydb::YdbComponent>().GetTableClient(
-            "sampledb")) {}
+    BsonReadingHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : HttpHandlerBase(config, context),
+          ydb_client_(context.FindComponent<ydb::YdbComponent>().GetTableClient("sampledb")) {}
 
-  std::string HandleRequestThrow(
-      const server::http::HttpRequest& request,
-      server::request::RequestContext& context) const override;
+    std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext& context)
+        const override;
 
- private:
-  std::shared_ptr<ydb::TableClient> ydb_client_;
+private:
+    std::shared_ptr<ydb::TableClient> ydb_client_;
 };
 
 }  // namespace sample

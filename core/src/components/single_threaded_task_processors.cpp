@@ -9,12 +9,13 @@ USERVER_NAMESPACE_BEGIN
 namespace components {
 
 SingleThreadedTaskProcessors::SingleThreadedTaskProcessors(
-    const ComponentConfig& config, const ComponentContext& context)
-    : ComponentBase(config, context),
-      pool_(config.As<engine::TaskProcessorConfig>()) {}
+    const ComponentConfig& config,
+    const ComponentContext& context
+)
+    : ComponentBase(config, context), pool_(config.As<engine::TaskProcessorConfig>()) {}
 
 yaml_config::Schema SingleThreadedTaskProcessors::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<ComponentBase>(R"(
+    return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: single-threaded-task-processors config
 additionalProperties: false

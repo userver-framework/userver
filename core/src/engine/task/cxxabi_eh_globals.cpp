@@ -17,17 +17,17 @@ namespace engine::impl {
 
 // NOLINTNEXTLINE(hicpp-use-noexcept,modernize-use-noexcept)
 abi::__cxa_eh_globals* GetGlobals() throw() {
-  USERVER_IMPL_CONSTINIT thread_local EhGlobals tls_globals;
-  auto* globals = &tls_globals;
+    USERVER_IMPL_CONSTINIT thread_local EhGlobals tls_globals;
+    auto* globals = &tls_globals;
 
-  auto* context = current_task::GetCurrentTaskContextUnchecked();
-  if (context) globals = context->GetEhGlobals();
+    auto* context = current_task::GetCurrentTaskContextUnchecked();
+    if (context) globals = context->GetEhGlobals();
 
-  return reinterpret_cast<abi::__cxa_eh_globals*>(globals);
+    return reinterpret_cast<abi::__cxa_eh_globals*>(globals);
 }
 
 void ExchangeEhGlobals(EhGlobals&) noexcept {
-  // We process all requests ourselves already, no need to do anything
+    // We process all requests ourselves already, no need to do anything
 }
 
 }  // namespace engine::impl
@@ -53,12 +53,12 @@ extern "C" __cxxabiv1::__cxa_eh_globals* __cxa_get_globals();
 namespace engine::impl {
 
 void ExchangeEhGlobals(EhGlobals& replacement) noexcept {
-  auto* current = __cxa_get_globals();
+    auto* current = __cxa_get_globals();
 
-  EhGlobals buf;
-  std::memcpy(&buf, current, sizeof(EhGlobals));
-  std::memcpy(current, &replacement, sizeof(EhGlobals));
-  std::memcpy(&replacement, &buf, sizeof(EhGlobals));
+    EhGlobals buf;
+    std::memcpy(&buf, current, sizeof(EhGlobals));
+    std::memcpy(current, &replacement, sizeof(EhGlobals));
+    std::memcpy(&replacement, &buf, sizeof(EhGlobals));
 }
 
 }  // namespace engine::impl

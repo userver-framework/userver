@@ -7,12 +7,11 @@ USERVER_NAMESPACE_BEGIN
 
 namespace http {
 
-HttpVersion Parse(const yaml_config::YamlConfig& value,
-                  formats::parse::To<HttpVersion>) {
-  static constexpr utils::TrivialBiMap kMap([](auto selector) {
-    return selector().Case(HttpVersion::k2, "2").Case(HttpVersion::k11, "1.1");
-  });
-  return utils::ParseFromValueString(value, kMap);
+HttpVersion Parse(const yaml_config::YamlConfig& value, formats::parse::To<HttpVersion>) {
+    static constexpr utils::TrivialBiMap kMap([](auto selector) {
+        return selector().Case(HttpVersion::k2, "2").Case(HttpVersion::k11, "1.1");
+    });
+    return utils::ParseFromValueString(value, kMap);
 }
 
 }  // namespace http

@@ -65,65 +65,60 @@ namespace components {
 
 // clang-format on
 class DynamicConfig final : public DynamicConfigUpdatesSinkBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of components::DynamicConfig
-  static constexpr std::string_view kName = "dynamic-config";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of components::DynamicConfig
+    static constexpr std::string_view kName = "dynamic-config";
 
-  class NoblockSubscriber;
+    class NoblockSubscriber;
 
-  DynamicConfig(const ComponentConfig&, const ComponentContext&);
-  ~DynamicConfig() override;
+    DynamicConfig(const ComponentConfig&, const ComponentContext&);
+    ~DynamicConfig() override;
 
-  /// Use `dynamic_config::Source` to get up-to-date config values, or to do
-  /// something special on config updates
-  dynamic_config::Source GetSource();
+    /// Use `dynamic_config::Source` to get up-to-date config values, or to do
+    /// something special on config updates
+    dynamic_config::Source GetSource();
 
-  /// Get config defaults with overrides applied. Useful in the implementation
-  /// of custom config clients. Most code does not need to deal with these
-  const dynamic_config::DocsMap& GetDefaultDocsMap() const;
+    /// Get config defaults with overrides applied. Useful in the implementation
+    /// of custom config clients. Most code does not need to deal with these
+    const dynamic_config::DocsMap& GetDefaultDocsMap() const;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  ComponentHealth GetComponentHealth() const override;
-  void OnLoadingCancelled() override;
+private:
+    ComponentHealth GetComponentHealth() const override;
+    void OnLoadingCancelled() override;
 
-  void SetConfig(std::string_view updater,
-                 dynamic_config::DocsMap&& value) override;
+    void SetConfig(std::string_view updater, dynamic_config::DocsMap&& value) override;
 
-  void SetConfig(std::string_view updater,
-                 const dynamic_config::DocsMap& value) override;
+    void SetConfig(std::string_view updater, const dynamic_config::DocsMap& value) override;
 
-  void NotifyLoadingFailed(std::string_view updater,
-                           std::string_view error) override;
+    void NotifyLoadingFailed(std::string_view updater, std::string_view error) override;
 
-  class Impl;
-  std::unique_ptr<Impl> impl_;
+    class Impl;
+    std::unique_ptr<Impl> impl_;
 };
 
 /// @brief Allows to subscribe to `DynamicConfig` updates without waiting for
 /// the first update to complete. Primarily intended for internal use.
 class DynamicConfig::NoblockSubscriber final {
- public:
-  explicit NoblockSubscriber(DynamicConfig& config_component) noexcept;
+public:
+    explicit NoblockSubscriber(DynamicConfig& config_component) noexcept;
 
-  NoblockSubscriber(NoblockSubscriber&&) = delete;
-  NoblockSubscriber& operator=(NoblockSubscriber&&) = delete;
+    NoblockSubscriber(NoblockSubscriber&&) = delete;
+    NoblockSubscriber& operator=(NoblockSubscriber&&) = delete;
 
-  concurrent::AsyncEventSource<const dynamic_config::Snapshot&>&
-  GetEventSource() noexcept;
+    concurrent::AsyncEventSource<const dynamic_config::Snapshot&>& GetEventSource() noexcept;
 
- private:
-  DynamicConfig& config_component_;
+private:
+    DynamicConfig& config_component_;
 };
 
 template <>
 inline constexpr bool kHasValidate<DynamicConfig> = true;
 
 template <>
-inline constexpr auto kConfigFileMode<DynamicConfig> =
-    ConfigFileMode::kNotRequired;
+inline constexpr auto kConfigFileMode<DynamicConfig> = ConfigFileMode::kNotRequired;
 
 }  // namespace components
 

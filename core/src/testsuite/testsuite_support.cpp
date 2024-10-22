@@ -11,81 +11,65 @@ namespace components {
 
 namespace {
 
-testsuite::impl::PeriodicUpdatesMode ParsePeriodicUpdatesMode(
-    const std::optional<bool>& config_value) {
-  using Mode = testsuite::impl::PeriodicUpdatesMode;
-  if (!config_value.has_value()) return Mode::kDefault;
-  return *config_value ? Mode::kEnabled : Mode::kDisabled;
+testsuite::impl::PeriodicUpdatesMode ParsePeriodicUpdatesMode(const std::optional<bool>& config_value) {
+    using Mode = testsuite::impl::PeriodicUpdatesMode;
+    if (!config_value.has_value()) return Mode::kDefault;
+    return *config_value ? Mode::kEnabled : Mode::kDisabled;
 }
 
-testsuite::DumpControl ParseDumpControl(
-    const components::ComponentConfig& config) {
-  using PeriodicsMode = testsuite::DumpControl::PeriodicsMode;
-  const auto periodics_mode =
-      config["testsuite-periodic-dumps-enabled"].As<bool>(true)
-          ? PeriodicsMode::kEnabled
-          : PeriodicsMode::kDisabled;
-  return testsuite::DumpControl{periodics_mode};
+testsuite::DumpControl ParseDumpControl(const components::ComponentConfig& config) {
+    using PeriodicsMode = testsuite::DumpControl::PeriodicsMode;
+    const auto periodics_mode =
+        config["testsuite-periodic-dumps-enabled"].As<bool>(true) ? PeriodicsMode::kEnabled : PeriodicsMode::kDisabled;
+    return testsuite::DumpControl{periodics_mode};
 }
 
-testsuite::PostgresControl ParsePostgresControl(
-    const components::ComponentConfig& config,
-    std::chrono::milliseconds increased_timeout) {
-  return {
-      config["testsuite-pg-execute-timeout"].As<std::chrono::milliseconds>(
-          increased_timeout),
-      config["testsuite-pg-statement-timeout"].As<std::chrono::milliseconds>(
-          increased_timeout),
-      config["testsuite-pg-readonly-master-expected"].As<bool>(false)
-          ? testsuite::PostgresControl::ReadonlyMaster::kExpected
-          : testsuite::PostgresControl::ReadonlyMaster::kNotExpected};
+testsuite::PostgresControl
+ParsePostgresControl(const components::ComponentConfig& config, std::chrono::milliseconds increased_timeout) {
+    return {
+        config["testsuite-pg-execute-timeout"].As<std::chrono::milliseconds>(increased_timeout),
+        config["testsuite-pg-statement-timeout"].As<std::chrono::milliseconds>(increased_timeout),
+        config["testsuite-pg-readonly-master-expected"].As<bool>(false)
+            ? testsuite::PostgresControl::ReadonlyMaster::kExpected
+            : testsuite::PostgresControl::ReadonlyMaster::kNotExpected};
 }
 
-testsuite::RedisControl ParseRedisControl(
-    const components::ComponentConfig& config,
-    std::chrono::milliseconds increased_timeout) {
-  return testsuite::RedisControl{
-      config["testsuite-redis-timeout-connect"].As<std::chrono::milliseconds>(
-          0),
-      config["testsuite-redis-timeout-single"].As<std::chrono::milliseconds>(
-          increased_timeout),
-      config["testsuite-redis-timeout-all"].As<std::chrono::milliseconds>(
-          increased_timeout),
-  };
+testsuite::RedisControl
+ParseRedisControl(const components::ComponentConfig& config, std::chrono::milliseconds increased_timeout) {
+    return testsuite::RedisControl{
+        config["testsuite-redis-timeout-connect"].As<std::chrono::milliseconds>(0),
+        config["testsuite-redis-timeout-single"].As<std::chrono::milliseconds>(increased_timeout),
+        config["testsuite-redis-timeout-all"].As<std::chrono::milliseconds>(increased_timeout),
+    };
 }
 
-std::unique_ptr<testsuite::TestsuiteTasks> ParseTestsuiteTasks(
-    const components::ComponentConfig& config) {
-  const bool is_enabled = config["testsuite-tasks-enabled"].As<bool>(false);
-  return std::make_unique<testsuite::TestsuiteTasks>(is_enabled);
+std::unique_ptr<testsuite::TestsuiteTasks> ParseTestsuiteTasks(const components::ComponentConfig& config) {
+    const bool is_enabled = config["testsuite-tasks-enabled"].As<bool>(false);
+    return std::make_unique<testsuite::TestsuiteTasks>(is_enabled);
 }
 
-testsuite::GrpcControl ParseGrpcControl(
-    const components::ComponentConfig& config,
-    std::chrono::milliseconds increased_timeout) {
-  const bool is_tls_enabled =
-      config["testsuite-grpc-is-tls-enabled"].As<bool>(true);
-  const std::chrono::milliseconds timeout{
-      config["testsuite-grpc-client-timeout-ms"]
-          .As<std::chrono::milliseconds::rep>(increased_timeout.count())};
-  return testsuite::GrpcControl(timeout, is_tls_enabled);
+testsuite::GrpcControl
+ParseGrpcControl(const components::ComponentConfig& config, std::chrono::milliseconds increased_timeout) {
+    const bool is_tls_enabled = config["testsuite-grpc-is-tls-enabled"].As<bool>(true);
+    const std::chrono::milliseconds timeout{
+        config["testsuite-grpc-client-timeout-ms"].As<std::chrono::milliseconds::rep>(increased_timeout.count())};
+    return testsuite::GrpcControl(timeout, is_tls_enabled);
 }
 
 }  // namespace
 
-TestsuiteSupport::TestsuiteSupport(const components::ComponentConfig& config,
-                                   const components::ComponentContext& context)
-    : increased_timeout_(
-          config["testsuite-increased-timeout"].As<std::chrono::milliseconds>(
-              0)),
+TestsuiteSupport::TestsuiteSupport(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context
+)
+    : increased_timeout_(config["testsuite-increased-timeout"].As<std::chrono::milliseconds>(0)),
       cache_control_(
-          ParsePeriodicUpdatesMode(config["testsuite-periodic-update-enabled"]
-                                       .As<std::optional<bool>>()),
-          config["cache-update-execution"].As<std::string>("concurrent") ==
-                  "concurrent"
+          ParsePeriodicUpdatesMode(config["testsuite-periodic-update-enabled"].As<std::optional<bool>>()),
+          config["cache-update-execution"].As<std::string>("concurrent") == "concurrent"
               ? testsuite::CacheControl::ExecPolicy::kConcurrent
               : testsuite::CacheControl::ExecPolicy::kSequential,
-          components::State{context}),
+          components::State{context}
+      ),
       dump_control_(ParseDumpControl(config)),
       postgres_control_(ParsePostgresControl(config, GetIncreasedTimeout())),
       redis_control_(ParseRedisControl(config, GetIncreasedTimeout())),
@@ -94,49 +78,31 @@ TestsuiteSupport::TestsuiteSupport(const components::ComponentConfig& config,
 
 TestsuiteSupport::~TestsuiteSupport() = default;
 
-testsuite::CacheControl& TestsuiteSupport::GetCacheControl() {
-  return cache_control_;
-}
+testsuite::CacheControl& TestsuiteSupport::GetCacheControl() { return cache_control_; }
 
-testsuite::DumpControl& TestsuiteSupport::GetDumpControl() {
-  return dump_control_;
-}
+testsuite::DumpControl& TestsuiteSupport::GetDumpControl() { return dump_control_; }
 
-testsuite::PeriodicTaskControl& TestsuiteSupport::GetPeriodicTaskControl() {
-  return periodic_task_control_;
-}
+testsuite::PeriodicTaskControl& TestsuiteSupport::GetPeriodicTaskControl() { return periodic_task_control_; }
 
-testsuite::TestpointControl& TestsuiteSupport::GetTestpointControl() {
-  return testpoint_control_;
-}
+testsuite::TestpointControl& TestsuiteSupport::GetTestpointControl() { return testpoint_control_; }
 
-const testsuite::PostgresControl& TestsuiteSupport::GetPostgresControl() {
-  return postgres_control_;
-}
+const testsuite::PostgresControl& TestsuiteSupport::GetPostgresControl() { return postgres_control_; }
 
-const testsuite::RedisControl& TestsuiteSupport::GetRedisControl() {
-  return redis_control_;
-}
+const testsuite::RedisControl& TestsuiteSupport::GetRedisControl() { return redis_control_; }
 
-testsuite::TestsuiteTasks& TestsuiteSupport::GetTestsuiteTasks() {
-  return *testsuite_tasks_;
-}
+testsuite::TestsuiteTasks& TestsuiteSupport::GetTestsuiteTasks() { return *testsuite_tasks_; }
 
-testsuite::HttpAllowedUrlsExtra& TestsuiteSupport::GetHttpAllowedUrlsExtra() {
-  return http_allowed_urls_extra_;
-}
+testsuite::HttpAllowedUrlsExtra& TestsuiteSupport::GetHttpAllowedUrlsExtra() { return http_allowed_urls_extra_; }
 
-testsuite::GrpcControl& TestsuiteSupport::GetGrpcControl() {
-  return grpc_control_;
-}
+testsuite::GrpcControl& TestsuiteSupport::GetGrpcControl() { return grpc_control_; }
 
 std::chrono::milliseconds  //
 TestsuiteSupport::GetIncreasedTimeout() const noexcept {
-  return increased_timeout_;
+    return increased_timeout_;
 }
 
 yaml_config::Schema TestsuiteSupport::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<RawComponentBase>(R"(
+    return yaml_config::MergeSchemas<RawComponentBase>(R"(
 type: object
 description: Testsuite support component
 additionalProperties: false
@@ -197,9 +163,7 @@ properties:
 )");
 }
 
-void TestsuiteSupport::OnAllComponentsAreStopping() {
-  testsuite_tasks_->CheckNoRunningTasks();
-}
+void TestsuiteSupport::OnAllComponentsAreStopping() { testsuite_tasks_->CheckNoRunningTasks(); }
 
 }  // namespace components
 

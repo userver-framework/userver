@@ -62,32 +62,27 @@ namespace server::handlers {
 
 // clang-format on
 class TestsControl final : public HttpHandlerJsonBase {
- public:
-  TestsControl(const components::ComponentConfig& config,
-               const components::ComponentContext& component_context);
-  ~TestsControl() override;
+public:
+    TestsControl(const components::ComponentConfig& config, const components::ComponentContext& component_context);
+    ~TestsControl() override;
 
-  /// @ingroup userver_component_names
-  /// @brief The default name of server::handlers::TestsControl
-  static constexpr std::string_view kName = "tests-control";
+    /// @ingroup userver_component_names
+    /// @brief The default name of server::handlers::TestsControl
+    static constexpr std::string_view kName = "tests-control";
 
-  formats::json::Value HandleRequestJsonThrow(
-      const http::HttpRequest& request,
-      const formats::json::Value& request_body,
-      request::RequestContext& context) const override;
+    formats::json::Value HandleRequestJsonThrow(
+        const http::HttpRequest& request,
+        const formats::json::Value& request_body,
+        request::RequestContext& context
+    ) const override;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  formats::json::Value PerformAction(
-      const std::string& action_name,
-      const formats::json::Value& request_body) const;
+private:
+    formats::json::Value PerformAction(const std::string& action_name, const formats::json::Value& request_body) const;
 
-  std::unique_ptr<testsuite::TestpointClientBase> testpoint_client_;
-  std::unordered_map<
-      std::string,
-      std::unique_ptr<testsuite::impl::actions::BaseTestsuiteAction>>
-      actions_;
+    std::unique_ptr<testsuite::TestpointClientBase> testpoint_client_;
+    std::unordered_map<std::string, std::unique_ptr<testsuite::impl::actions::BaseTestsuiteAction>> actions_;
 };
 
 }  // namespace server::handlers

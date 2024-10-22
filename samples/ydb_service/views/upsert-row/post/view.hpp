@@ -5,15 +5,16 @@
 namespace sample {
 
 class UpsertRowHandler final : public BaseHandler {
- public:
-  static constexpr std::string_view kName = "handler-upsert-row";
+public:
+    static constexpr std::string_view kName = "handler-upsert-row";
 
-  using BaseHandler::BaseHandler;
+    using BaseHandler::BaseHandler;
 
-  formats::json::Value HandleRequestJsonThrow(
-      const server::http::HttpRequest& request,
-      const formats::json::Value& request_json,
-      server::request::RequestContext& context) const override;
+    formats::json::Value HandleRequestJsonThrow(
+        const server::http::HttpRequest& request,
+        const formats::json::Value& request_json,
+        server::request::RequestContext& context
+    ) const override;
 };
 
 }  // namespace sample

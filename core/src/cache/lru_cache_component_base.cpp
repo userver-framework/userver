@@ -14,35 +14,37 @@ USERVER_NAMESPACE_BEGIN
 namespace cache::impl {
 
 utils::statistics::Entry RegisterOnStatisticsStorage(
-    const components::ComponentContext& context, const std::string& name,
-    std::function<void(utils::statistics::Writer&)> func) {
-  return context.FindComponent<components::StatisticsStorage>()
-      .GetStorage()
-      .RegisterWriter("cache", std::move(func), {{"cache_name", name}});
+    const components::ComponentContext& context,
+    const std::string& name,
+    std::function<void(utils::statistics::Writer&)> func
+) {
+    return context.FindComponent<components::StatisticsStorage>().GetStorage().RegisterWriter(
+        "cache", std::move(func), {{"cache_name", name}}
+    );
 }
 
-dynamic_config::Source FindDynamicConfigSource(
-    const components::ComponentContext& context) {
-  return context.FindComponent<components::DynamicConfig>().GetSource();
+dynamic_config::Source FindDynamicConfigSource(const components::ComponentContext& context) {
+    return context.FindComponent<components::DynamicConfig>().GetSource();
 }
 
 bool IsDumpSupportEnabled(const components::ComponentConfig& config) {
-  const bool dump_support_enabled = config.HasMember(dump::kDump);
-  if (dump_support_enabled) {
-    const auto min_interval = config[dump::kDump][dump::kMinDumpInterval];
-    if (min_interval.IsMissing()) {
-      throw std::runtime_error(fmt::format(
-          "Missing static config field '{}'. Please fill it in explicitly. A "
-          "low value (e.g. the default '0') will typically result in too "
-          "frequent dump writes of the LRU cache.",
-          min_interval.GetPath()));
+    const bool dump_support_enabled = config.HasMember(dump::kDump);
+    if (dump_support_enabled) {
+        const auto min_interval = config[dump::kDump][dump::kMinDumpInterval];
+        if (min_interval.IsMissing()) {
+            throw std::runtime_error(fmt::format(
+                "Missing static config field '{}'. Please fill it in explicitly. A "
+                "low value (e.g. the default '0') will typically result in too "
+                "frequent dump writes of the LRU cache.",
+                min_interval.GetPath()
+            ));
+        }
     }
-  }
-  return dump_support_enabled;
+    return dump_support_enabled;
 }
 
 yaml_config::Schema GetLruCacheComponentBaseSchema() {
-  return yaml_config::MergeSchemas<dump::Dumper>(R"(
+    return yaml_config::MergeSchemas<dump::Dumper>(R"(
 type: object
 description: Base class for LRU-cache components
 additionalProperties: false

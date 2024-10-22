@@ -45,49 +45,49 @@ namespace impl {
 
 template <typename Container>
 auto GetAllResultsFromContainer(Container& tasks) {
-  using Result = decltype(std::begin(tasks)->Get());
+    using Result = decltype(std::begin(tasks)->Get());
 
-  if constexpr (std::is_void_v<Result>) {
-    for (auto& task : tasks) {
-      task.Get();
+    if constexpr (std::is_void_v<Result>) {
+        for (auto& task : tasks) {
+            task.Get();
+        }
+        return;
+    } else {
+        std::vector<Result> results;
+        results.reserve(std::size(tasks));
+        for (auto& task : tasks) {
+            results.push_back(task.Get());
+        }
+        return results;
     }
-    return;
-  } else {
-    std::vector<Result> results;
-    results.reserve(std::size(tasks));
-    for (auto& task : tasks) {
-      results.push_back(task.Get());
-    }
-    return results;
-  }
 }
 
 template <typename... Tasks>
 auto GetAllResultsFromTasks(Tasks&... tasks) {
-  using Result = decltype((void(), ..., tasks.Get()));
+    using Result = decltype((void(), ..., tasks.Get()));
 
-  if constexpr (std::is_void_v<Result>) {
-    static_assert((true && ... && std::is_void_v<decltype(tasks.Get())>));
-    (tasks.Get(), ...);
-    return;
-  } else {
-    std::vector<Result> results;
-    results.reserve(sizeof...(tasks));
-    (results.push_back(tasks.Get()), ...);
-    return results;
-  }
+    if constexpr (std::is_void_v<Result>) {
+        static_assert((true && ... && std::is_void_v<decltype(tasks.Get())>));
+        (tasks.Get(), ...);
+        return;
+    } else {
+        std::vector<Result> results;
+        results.reserve(sizeof...(tasks));
+        (results.push_back(tasks.Get()), ...);
+        return results;
+    }
 }
 
 }  // namespace impl
 
 template <typename... Tasks>
 auto GetAll(Tasks&... tasks) {
-  engine::WaitAllChecked(tasks...);
-  if constexpr (meta::impl::IsSingleRange<Tasks...>()) {
-    return impl::GetAllResultsFromContainer(tasks...);
-  } else {
-    return impl::GetAllResultsFromTasks(tasks...);
-  }
+    engine::WaitAllChecked(tasks...);
+    if constexpr (meta::impl::IsSingleRange<Tasks...>()) {
+        return impl::GetAllResultsFromContainer(tasks...);
+    } else {
+        return impl::GetAllResultsFromTasks(tasks...);
+    }
 }
 
 }  // namespace engine
