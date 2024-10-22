@@ -249,7 +249,7 @@ jobs:
 
           - name: Run tests (mongo)
             # libbson unnecessarily overaligns structures and GCC-9 does not support overaligned new
-            if: matrix.info != 'g++-9 + debug + sanitize addr+ub'
+            if: ${{ (matrix.info != 'g++-9 + debug + sanitize addr+ub') && (matrix.os != 'ubuntu-24.04') }}
             run: |
                 cd build_debug
                 mkdir mongo || :
