@@ -157,9 +157,9 @@ jobs:
                 fi
 
                 if [ "${{matrix.os}}" = "ubuntu-20.04" ]; then
-                  curl -OL https://github.com/protocolbuffers/protobuf/releases/download/v3.12.4/protobuf-cpp-3.12.4.tar.gz
-                  tar xvzf protobuf-cpp-3.12.4.tar.gz
-                  cd protobuf-3.12.4/cmake
+                  curl -OL https://github.com/protocolbuffers/protobuf/archive/refs/tags/v3.21.12.tar.gz
+                  tar xvzf protobuf-3.21.12.tar.gz
+                  cd protobuf-3.21.12/cmake
                   mkdir build && cd build
                   cmake ..
                   make -j$(nproc)
