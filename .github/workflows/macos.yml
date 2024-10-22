@@ -40,6 +40,7 @@ jobs:
                 export SDKROOT="`xcrun --show-sdk-path`"
                 brew update
                 brew install $(cat scripts/docs/en/deps/macos.md)
+                brew install clang-format
                 brew link postgresql@16
 
           - name: Run cmake
