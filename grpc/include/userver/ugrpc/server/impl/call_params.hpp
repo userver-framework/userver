@@ -23,16 +23,16 @@ class StatisticsStorage;
 namespace ugrpc::server::impl {
 
 struct CallParams {
-  grpc::ServerContext& context;
-  const std::string_view call_name;
-  const std::string_view service_name;
-  const std::string_view method_name;
-  ugrpc::impl::RpcStatisticsScope& statistics;
-  ugrpc::impl::StatisticsStorage& statistics_storage;
-  logging::LoggerRef access_tskv_logger;
-  tracing::Span& call_span;
-  utils::AnyStorage<StorageContext>& storage_context;
-  const Middlewares& middlewares;
+    grpc::ServerContext& context;
+    const std::string_view call_name;
+    const std::string_view service_name;
+    const std::string_view method_name;
+    ugrpc::impl::RpcStatisticsScope& statistics;
+    ugrpc::impl::StatisticsStorage& statistics_storage;
+    logging::LoggerRef access_tskv_logger;
+    tracing::Span& call_span;
+    utils::AnyStorage<StorageContext>& storage_context;
+    const Middlewares& middlewares;
 };
 
 }  // namespace ugrpc::server::impl

@@ -182,200 +182,219 @@ UtDIEU4gcJRnxv0O5w/XZA==
 -----END PRIVATE KEY-----)"};
 
 enum class TestFlags {
-  kNone = 0,
-  kSkipDigestOps = 1,
+    kNone = 0,
+    kSkipDigestOps = 1,
 };
 
 template <typename DsaSigner, typename DsaVerifier>
-void TestDsaSignature(DsaSigner signer, DsaVerifier verifier,
-                      DsaVerifier bad_verifier, std::string_view message,
-                      std::string_view digest, std::string_view bad_digest,
-                      utils::Flags<TestFlags> flags = {}) {
-  const auto sig = signer.Sign({message});
-  const auto bad_sig = signer.Sign({"bad ", message});
+void TestDsaSignature(
+    DsaSigner signer,
+    DsaVerifier verifier,
+    DsaVerifier bad_verifier,
+    std::string_view message,
+    std::string_view digest,
+    std::string_view bad_digest,
+    utils::Flags<TestFlags> flags = {}
+) {
+    const auto sig = signer.Sign({message});
+    const auto bad_sig = signer.Sign({"bad ", message});
 
-  EXPECT_NO_THROW(verifier.Verify({message}, sig));
-  EXPECT_THROW(verifier.Verify({message}, {}), crypto::VerificationError);
-  EXPECT_THROW(verifier.Verify({"not ", message}, sig),
-               crypto::VerificationError);
-  EXPECT_THROW(verifier.Verify({message}, bad_sig), crypto::VerificationError);
+    EXPECT_NO_THROW(verifier.Verify({message}, sig));
+    EXPECT_THROW(verifier.Verify({message}, {}), crypto::VerificationError);
+    EXPECT_THROW(verifier.Verify({"not ", message}, sig), crypto::VerificationError);
+    EXPECT_THROW(verifier.Verify({message}, bad_sig), crypto::VerificationError);
 
-  EXPECT_THROW(bad_verifier.Verify({message}, sig), crypto::VerificationError);
+    EXPECT_THROW(bad_verifier.Verify({message}, sig), crypto::VerificationError);
 
-  if (!(flags & TestFlags::kSkipDigestOps)) {
-    const auto md_sig = signer.SignDigest(utils::encoding::FromHex(digest));
-    EXPECT_THROW(signer.SignDigest(digest), crypto::SignError);
-    EXPECT_THROW(signer.SignDigest(utils::encoding::FromHex(bad_digest)),
-                 crypto::SignError);
-    EXPECT_NO_THROW(verifier.Verify({message}, md_sig));
-    EXPECT_NO_THROW(
-        verifier.VerifyDigest(utils::encoding::FromHex(digest), md_sig));
+    if (!(flags & TestFlags::kSkipDigestOps)) {
+        const auto md_sig = signer.SignDigest(utils::encoding::FromHex(digest));
+        EXPECT_THROW(signer.SignDigest(digest), crypto::SignError);
+        EXPECT_THROW(signer.SignDigest(utils::encoding::FromHex(bad_digest)), crypto::SignError);
+        EXPECT_NO_THROW(verifier.Verify({message}, md_sig));
+        EXPECT_NO_THROW(verifier.VerifyDigest(utils::encoding::FromHex(digest), md_sig));
 
-    EXPECT_NO_THROW(
-        verifier.VerifyDigest(utils::encoding::FromHex(digest), sig));
-    EXPECT_THROW(verifier.VerifyDigest(utils::encoding::FromHex(digest), {}),
-                 crypto::VerificationError);
-    EXPECT_THROW(
-        verifier.VerifyDigest(utils::encoding::FromHex(digest), bad_sig),
-        crypto::VerificationError);
-    EXPECT_THROW(verifier.VerifyDigest(digest, sig), crypto::VerificationError);
-    EXPECT_THROW(
-        verifier.VerifyDigest(utils::encoding::FromHex(bad_digest), sig),
-        crypto::VerificationError);
-    EXPECT_THROW(bad_verifier.Verify({message}, md_sig),
-                 crypto::VerificationError);
-    EXPECT_THROW(
-        bad_verifier.VerifyDigest(utils::encoding::FromHex(digest), sig),
-        crypto::VerificationError);
-  }
+        EXPECT_NO_THROW(verifier.VerifyDigest(utils::encoding::FromHex(digest), sig));
+        EXPECT_THROW(verifier.VerifyDigest(utils::encoding::FromHex(digest), {}), crypto::VerificationError);
+        EXPECT_THROW(verifier.VerifyDigest(utils::encoding::FromHex(digest), bad_sig), crypto::VerificationError);
+        EXPECT_THROW(verifier.VerifyDigest(digest, sig), crypto::VerificationError);
+        EXPECT_THROW(verifier.VerifyDigest(utils::encoding::FromHex(bad_digest), sig), crypto::VerificationError);
+        EXPECT_THROW(bad_verifier.Verify({message}, md_sig), crypto::VerificationError);
+        EXPECT_THROW(bad_verifier.VerifyDigest(utils::encoding::FromHex(digest), sig), crypto::VerificationError);
+    }
 }
 
 }  // namespace
 
 TEST(Crypto, SignatureNone) {
-  EXPECT_TRUE(crypto::SignerNone{}.Sign({"test"}).empty());
-  EXPECT_NO_THROW(crypto::VerifierNone{}.Verify({"test"}, {}));
-  EXPECT_THROW(crypto::VerifierNone{}.Verify({"test"}, "test"),
-               crypto::VerificationError);
+    EXPECT_TRUE(crypto::SignerNone{}.Sign({"test"}).empty());
+    EXPECT_NO_THROW(crypto::VerifierNone{}.Verify({"test"}, {}));
+    EXPECT_THROW(crypto::VerifierNone{}.Verify({"test"}, "test"), crypto::VerificationError);
 }
 
 TEST(Crypto, SignatureHs1) {
-  crypto::SignerHs1 signer("secret");
-  auto sig = signer.Sign({"test"});
-  auto bad_sig = signer.Sign({"bad test"});
-  EXPECT_EQ("1aa349585ed7ecbd3b9c486a30067e395ca4b356",
-            utils::encoding::ToHex(sig));
+    crypto::SignerHs1 signer("secret");
+    auto sig = signer.Sign({"test"});
+    auto bad_sig = signer.Sign({"bad test"});
+    EXPECT_EQ("1aa349585ed7ecbd3b9c486a30067e395ca4b356", utils::encoding::ToHex(sig));
 
-  crypto::VerifierHs1 verifier("secret");
-  EXPECT_NO_THROW(verifier.Verify({"test"}, sig));
-  EXPECT_THROW(verifier.Verify({"test"}, {}), crypto::VerificationError);
-  EXPECT_THROW(verifier.Verify({"not test"}, sig), crypto::VerificationError);
-  EXPECT_THROW(verifier.Verify({"test"}, bad_sig), crypto::VerificationError);
+    crypto::VerifierHs1 verifier("secret");
+    EXPECT_NO_THROW(verifier.Verify({"test"}, sig));
+    EXPECT_THROW(verifier.Verify({"test"}, {}), crypto::VerificationError);
+    EXPECT_THROW(verifier.Verify({"not test"}, sig), crypto::VerificationError);
+    EXPECT_THROW(verifier.Verify({"test"}, bad_sig), crypto::VerificationError);
 }
 
 TEST(Crypto, SignatureHs256) {
-  crypto::SignerHs256 signer("secret");
-  auto sig = signer.Sign({"test"});
-  auto bad_sig = signer.Sign({"bad test"});
-  EXPECT_EQ("0329a06b62cd16b33eb6792be8c60b158d89a2ee3a876fce9a881ebb488c0914",
-            utils::encoding::ToHex(sig));
+    crypto::SignerHs256 signer("secret");
+    auto sig = signer.Sign({"test"});
+    auto bad_sig = signer.Sign({"bad test"});
+    EXPECT_EQ("0329a06b62cd16b33eb6792be8c60b158d89a2ee3a876fce9a881ebb488c0914", utils::encoding::ToHex(sig));
 
-  crypto::VerifierHs256 verifier("secret");
-  EXPECT_NO_THROW(verifier.Verify({"test"}, sig));
-  EXPECT_THROW(verifier.Verify({"test"}, {}), crypto::VerificationError);
-  EXPECT_THROW(verifier.Verify({"not test"}, sig), crypto::VerificationError);
-  EXPECT_THROW(verifier.Verify({"test"}, bad_sig), crypto::VerificationError);
+    crypto::VerifierHs256 verifier("secret");
+    EXPECT_NO_THROW(verifier.Verify({"test"}, sig));
+    EXPECT_THROW(verifier.Verify({"test"}, {}), crypto::VerificationError);
+    EXPECT_THROW(verifier.Verify({"not test"}, sig), crypto::VerificationError);
+    EXPECT_THROW(verifier.Verify({"test"}, bad_sig), crypto::VerificationError);
 }
 
 TEST(Crypto, SignatureCMSSignVerify) {
-  using Signer = crypto::CmsSigner;
-  using SFlags = Signer::Flags;
+    using Signer = crypto::CmsSigner;
+    using SFlags = Signer::Flags;
 
-  using Verifier = crypto::CmsVerifier;
-  using VFlags = Verifier::Flags;
+    using Verifier = crypto::CmsVerifier;
+    using VFlags = Verifier::Flags;
 
-  const Signer signer{crypto::Certificate::LoadFromString(kSomeCert),
-                      crypto::PrivateKey::LoadFromString(kSomePrivKey)};
-  const Verifier verifier{crypto::Certificate::LoadFromString(kSomeCert)};
+    const Signer signer{
+        crypto::Certificate::LoadFromString(kSomeCert), crypto::PrivateKey::LoadFromString(kSomePrivKey)};
+    const Verifier verifier{crypto::Certificate::LoadFromString(kSomeCert)};
 
-  const auto sign_and_verify = [signer, verifier](Signer::OutForm out_form,
-                                                  Verifier::InForm in_form) {
-    const auto signed_data = signer.Sign(
-        {"test data"}, {SFlags::kNoCerts, SFlags::kBinary, SFlags::kText},
-        out_form);
-    verifier.Verify({signed_data}, {VFlags::kNoSignerCertVerify}, in_form);
-  };
-  EXPECT_NO_THROW(
-      sign_and_verify(Signer::OutForm::kSMime, Verifier::InForm::kSMime));
-  EXPECT_NO_THROW(
-      sign_and_verify(Signer::OutForm::kPem, Verifier::InForm::kPem));
-  EXPECT_NO_THROW(
-      sign_and_verify(Signer::OutForm::kDer, Verifier::InForm::kDer));
+    const auto sign_and_verify = [signer, verifier](Signer::OutForm out_form, Verifier::InForm in_form) {
+        const auto signed_data =
+            signer.Sign({"test data"}, {SFlags::kNoCerts, SFlags::kBinary, SFlags::kText}, out_form);
+        verifier.Verify({signed_data}, {VFlags::kNoSignerCertVerify}, in_form);
+    };
+    EXPECT_NO_THROW(sign_and_verify(Signer::OutForm::kSMime, Verifier::InForm::kSMime));
+    EXPECT_NO_THROW(sign_and_verify(Signer::OutForm::kPem, Verifier::InForm::kPem));
+    EXPECT_NO_THROW(sign_and_verify(Signer::OutForm::kDer, Verifier::InForm::kDer));
 }
 
 TEST(Crypto, SignatureCMSVerify) {
-  const crypto::CmsVerifier verifier{
-      crypto::Certificate::LoadFromString(kSomeCert)};
+    const crypto::CmsVerifier verifier{crypto::Certificate::LoadFromString(kSomeCert)};
 
-  constexpr std::string_view signed_data_base64{
-      "MIICsQYJKoZIhvcNAQcCoIICojCCAp4CAQExDTALBglghkgBZQMEAgEwGQYJKoZIhvcNAQcB"
-      "oAwECnRlc3QgZGF0YQoxggJtMIICaQIBATBdMEUxCzAJBgNVBAYTAkFVMRMwEQYDVQQIDApT"
-      "b21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQCFCQY6okVZGIQ"
-      "dXAzLT+"
-      "PIhmey9h4MAsGCWCGSAFlAwQCAaCB5DAYBgkqhkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSq"
-      "GSIb3DQEJBTEPFw0yMzAzMTMxODI2MzFaMC8GCSqGSIb3DQEJBDEiBCAMFeiD3uhbsvNUCkf"
-      "sWPYXolRxF/"
-      "kJZBe6VCImgCn1ATB5BgkqhkiG9w0BCQ8xbDBqMAsGCWCGSAFlAwQBKjALBglghkgBZQMEAR"
-      "YwCwYJYIZIAWUDBAECMAoGCCqGSIb3DQMHMA4GCCqGSIb3DQMCAgIAgDANBggqhkiG9w0DAg"
-      "IBQDAHBgUrDgMCBzANBggqhkiG9w0DAgIBKDANBgkqhkiG9w0BAQEFAASCAQBfb+"
-      "zJc7SGX83b5cIgsVly/x6ryCMtqgp158LIx8SEBEsdcufxIbcoFHLJNM/"
-      "jJz6at142Fm+6FOihP8D+tzWMGxqdS8IJaCb8pJe0aOwhHeiwMrzM9+"
-      "JrHEt5mJKw9wONi12ykHNnfZB5aOyqSbQK3HxoGGXrh1Hryq2h0m5DcdV+"
-      "bpgPRI6wObUCzijWnQ3XeIzEHxYUsB4rh1V6E9aQu5hoMSee+f56f2PNgZBnpYcSKOIho38/"
-      "3pVtOqn49Y+p2Jq+"
-      "jT0dbrCHghRYp2oLvn1NLfzDIFp8SQQPGGywHkzOrBCl1KHCS9puDKR53oNef8s+"
-      "nUytFyYNUslSbMqW"};
-  const auto signed_data = crypto::base64::Base64Decode(signed_data_base64);
+    constexpr std::string_view signed_data_base64{
+        "MIICsQYJKoZIhvcNAQcCoIICojCCAp4CAQExDTALBglghkgBZQMEAgEwGQYJKoZIhvcNAQcB"
+        "oAwECnRlc3QgZGF0YQoxggJtMIICaQIBATBdMEUxCzAJBgNVBAYTAkFVMRMwEQYDVQQIDApT"
+        "b21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQCFCQY6okVZGIQ"
+        "dXAzLT+"
+        "PIhmey9h4MAsGCWCGSAFlAwQCAaCB5DAYBgkqhkiG9w0BCQMxCwYJKoZIhvcNAQcBMBwGCSq"
+        "GSIb3DQEJBTEPFw0yMzAzMTMxODI2MzFaMC8GCSqGSIb3DQEJBDEiBCAMFeiD3uhbsvNUCkf"
+        "sWPYXolRxF/"
+        "kJZBe6VCImgCn1ATB5BgkqhkiG9w0BCQ8xbDBqMAsGCWCGSAFlAwQBKjALBglghkgBZQMEAR"
+        "YwCwYJYIZIAWUDBAECMAoGCCqGSIb3DQMHMA4GCCqGSIb3DQMCAgIAgDANBggqhkiG9w0DAg"
+        "IBQDAHBgUrDgMCBzANBggqhkiG9w0DAgIBKDANBgkqhkiG9w0BAQEFAASCAQBfb+"
+        "zJc7SGX83b5cIgsVly/x6ryCMtqgp158LIx8SEBEsdcufxIbcoFHLJNM/"
+        "jJz6at142Fm+6FOihP8D+tzWMGxqdS8IJaCb8pJe0aOwhHeiwMrzM9+"
+        "JrHEt5mJKw9wONi12ykHNnfZB5aOyqSbQK3HxoGGXrh1Hryq2h0m5DcdV+"
+        "bpgPRI6wObUCzijWnQ3XeIzEHxYUsB4rh1V6E9aQu5hoMSee+f56f2PNgZBnpYcSKOIho38/"
+        "3pVtOqn49Y+p2Jq+"
+        "jT0dbrCHghRYp2oLvn1NLfzDIFp8SQQPGGywHkzOrBCl1KHCS9puDKR53oNef8s+"
+        "nUytFyYNUslSbMqW"};
+    const auto signed_data = crypto::base64::Base64Decode(signed_data_base64);
 
-  EXPECT_NO_THROW(verifier.Verify(
-      {signed_data}, {crypto::CmsVerifier::Flags::kNoSignerCertVerify},
-      crypto::CmsVerifier::InForm::kDer));
+    EXPECT_NO_THROW(verifier.Verify(
+        {signed_data}, {crypto::CmsVerifier::Flags::kNoSignerCertVerify}, crypto::CmsVerifier::InForm::kDer
+    ));
 }
 
 TEST(Crypto, SignatureRs1) {
-  TestDsaSignature(crypto::weak::SignerRs1{rsa512_priv_key},
-                   crypto::weak::VerifierRs1{rsa512_pub_key},
-                   crypto::weak::VerifierRs1{rsa512_pub_key_invalid}, "test",
-                   crypto::hash::Sha1("test"), crypto::hash::Sha256("test"));
+    TestDsaSignature(
+        crypto::weak::SignerRs1{rsa512_priv_key},
+        crypto::weak::VerifierRs1{rsa512_pub_key},
+        crypto::weak::VerifierRs1{rsa512_pub_key_invalid},
+        "test",
+        crypto::hash::Sha1("test"),
+        crypto::hash::Sha256("test")
+    );
 }
 
 TEST(Crypto, SignatureRs256) {
-  TestDsaSignature(crypto::SignerRs256{rsa512_priv_key},
-                   crypto::VerifierRs256{rsa512_pub_key},
-                   crypto::VerifierRs256{rsa512_pub_key_invalid}, "test",
-                   crypto::hash::Sha256("test"), crypto::hash::Sha512("test"));
+    TestDsaSignature(
+        crypto::SignerRs256{rsa512_priv_key},
+        crypto::VerifierRs256{rsa512_pub_key},
+        crypto::VerifierRs256{rsa512_pub_key_invalid},
+        "test",
+        crypto::hash::Sha256("test"),
+        crypto::hash::Sha512("test")
+    );
 }
 
 TEST(Crypto, SignatureRs512) {
-  TestDsaSignature(crypto::SignerRs512{rsa2048_priv_key},
-                   crypto::VerifierRs512{rsa2048_pub_key},
-                   crypto::VerifierRs512{rsa2048_pub_key_invalid}, "test",
-                   crypto::hash::Sha512("test"), crypto::hash::Sha384("test"));
+    TestDsaSignature(
+        crypto::SignerRs512{rsa2048_priv_key},
+        crypto::VerifierRs512{rsa2048_pub_key},
+        crypto::VerifierRs512{rsa2048_pub_key_invalid},
+        "test",
+        crypto::hash::Sha512("test"),
+        crypto::hash::Sha384("test")
+    );
 }
 
 TEST(Crypto, SignatureEs256) {
-  TestDsaSignature(crypto::SignerEs256{ecdsa256v1_priv_key},
-                   crypto::VerifierEs256{ecdsa256v1_pub_key},
-                   crypto::VerifierEs256{ecdsa256v1_pub_key_invalid}, "test",
-                   crypto::hash::Sha256("test"), crypto::hash::Sha512("test"));
+    TestDsaSignature(
+        crypto::SignerEs256{ecdsa256v1_priv_key},
+        crypto::VerifierEs256{ecdsa256v1_pub_key},
+        crypto::VerifierEs256{ecdsa256v1_pub_key_invalid},
+        "test",
+        crypto::hash::Sha256("test"),
+        crypto::hash::Sha512("test")
+    );
 }
 
 TEST(Crypto, SignatureEs512) {
-  TestDsaSignature(crypto::SignerEs512{ecdsa521p1_priv_key},
-                   crypto::VerifierEs512{ecdsa521p1_pub_key},
-                   crypto::VerifierEs512{ecdsa521p1_pub_key_invalid}, "test",
-                   crypto::hash::Sha512("test"), crypto::hash::Sha384("test"));
+    TestDsaSignature(
+        crypto::SignerEs512{ecdsa521p1_priv_key},
+        crypto::VerifierEs512{ecdsa521p1_pub_key},
+        crypto::VerifierEs512{ecdsa521p1_pub_key_invalid},
+        "test",
+        crypto::hash::Sha512("test"),
+        crypto::hash::Sha384("test")
+    );
 }
 
 TEST(Crypto, SignaturePs1) {
-  TestDsaSignature(crypto::weak::SignerPs1{rsa512_priv_key},
-                   crypto::weak::VerifierPs1{rsa512_pub_key},
-                   crypto::weak::VerifierPs1{rsa512_pub_key_invalid}, "test",
-                   {}, {}, TestFlags::kSkipDigestOps);
+    TestDsaSignature(
+        crypto::weak::SignerPs1{rsa512_priv_key},
+        crypto::weak::VerifierPs1{rsa512_pub_key},
+        crypto::weak::VerifierPs1{rsa512_pub_key_invalid},
+        "test",
+        {},
+        {},
+        TestFlags::kSkipDigestOps
+    );
 }
 
 TEST(Crypto, SignaturePs256) {
-  TestDsaSignature(crypto::SignerPs256{rsa512_priv_key},
-                   crypto::VerifierPs256{rsa512_pub_key},
-                   crypto::VerifierPs256{rsa512_pub_key_invalid}, "test", {},
-                   {}, TestFlags::kSkipDigestOps);
+    TestDsaSignature(
+        crypto::SignerPs256{rsa512_priv_key},
+        crypto::VerifierPs256{rsa512_pub_key},
+        crypto::VerifierPs256{rsa512_pub_key_invalid},
+        "test",
+        {},
+        {},
+        TestFlags::kSkipDigestOps
+    );
 }
 
 TEST(Crypto, SignaturePs512) {
-  TestDsaSignature(crypto::SignerPs512{rsa2048_priv_key},
-                   crypto::VerifierPs512{rsa2048_pub_key},
-                   crypto::VerifierPs512{rsa2048_pub_key_invalid}, "test", {},
-                   {}, TestFlags::kSkipDigestOps);
+    TestDsaSignature(
+        crypto::SignerPs512{rsa2048_priv_key},
+        crypto::VerifierPs512{rsa2048_pub_key},
+        crypto::VerifierPs512{rsa2048_pub_key_invalid},
+        "test",
+        {},
+        {},
+        TestFlags::kSkipDigestOps
+    );
 }
 
 USERVER_NAMESPACE_END

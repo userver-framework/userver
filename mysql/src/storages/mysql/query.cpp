@@ -4,8 +4,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql {
 
-Query::Query(const char* statement, std::optional<Name> name)
-    : statement_{statement}, name_{std::move(name)} {}
+Query::Query(const char* statement, std::optional<Name> name) : statement_{statement}, name_{std::move(name)} {}
 
 Query::Query(std::string statement, std::optional<Name> name)
     : statement_{std::move(statement)}, name_{std::move(name)} {}

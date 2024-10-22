@@ -15,13 +15,11 @@ namespace utils::encoding {
 namespace impl {
 
 struct TskvParserKvStorage {
-  std::string key{};
-  std::string value{};
+    std::string key{};
+    std::string value{};
 };
 
-inline compiler::ThreadLocal tskv_parser_kv_storage = [] {
-  return TskvParserKvStorage{};
-};
+inline compiler::ThreadLocal tskv_parser_kv_storage = [] { return TskvParserKvStorage{}; };
 
 }  // namespace impl
 
@@ -37,31 +35,29 @@ inline compiler::ThreadLocal tskv_parser_kv_storage = [] {
 /// Usage example:
 /// @snippet utils/encoding/tskv_parser_test.cpp  sample
 template <typename TagConsumer>
-TskvParser::RecordStatus TskvReadRecord(TskvParser& parser,
-                                        TagConsumer consumer) {
-  using RecordStatus = TskvParser::RecordStatus;
+TskvParser::RecordStatus TskvReadRecord(TskvParser& parser, TagConsumer consumer) {
+    using RecordStatus = TskvParser::RecordStatus;
 
-  auto kv_storage = impl::tskv_parser_kv_storage.Use();
+    auto kv_storage = impl::tskv_parser_kv_storage.Use();
 
-  while (true) {
-    if (const auto key_status = parser.ReadKey(kv_storage->key)) {
-      return *key_status;
-    }
+    while (true) {
+        if (const auto key_status = parser.ReadKey(kv_storage->key)) {
+            return *key_status;
+        }
 
-    const auto value_status = parser.ReadValue(kv_storage->value);
-    if (value_status == RecordStatus::kIncomplete) {
-      return RecordStatus::kIncomplete;
-    }
+        const auto value_status = parser.ReadValue(kv_storage->value);
+        if (value_status == RecordStatus::kIncomplete) {
+            return RecordStatus::kIncomplete;
+        }
 
-    const bool record_ok = consumer(std::as_const(kv_storage->key),
-                                    std::as_const(kv_storage->value));
-    if (value_status == RecordStatus::kReachedEnd) {
-      return RecordStatus::kReachedEnd;
+        const bool record_ok = consumer(std::as_const(kv_storage->key), std::as_const(kv_storage->value));
+        if (value_status == RecordStatus::kReachedEnd) {
+            return RecordStatus::kReachedEnd;
+        }
+        if (!record_ok) {
+            return parser.SkipToRecordEnd();
+        }
     }
-    if (!record_ok) {
-      return parser.SkipToRecordEnd();
-    }
-  }
 }
 
 }  // namespace utils::encoding

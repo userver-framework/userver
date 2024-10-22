@@ -10,15 +10,13 @@ USERVER_NAMESPACE_BEGIN
 namespace testsuite::impl::actions {
 
 class MetricsPortability final : public BaseTestsuiteAction {
- public:
-  explicit MetricsPortability(
-      const components::ComponentContext& component_context);
+public:
+    explicit MetricsPortability(const components::ComponentContext& component_context);
 
-  formats::json::Value Perform(
-      const formats::json::Value& request_body) const override;
+    formats::json::Value Perform(const formats::json::Value& request_body) const override;
 
- private:
-  utils::statistics::Storage& statistics_storage_;
+private:
+    utils::statistics::Storage& statistics_storage_;
 };
 
 }  // namespace testsuite::impl::actions

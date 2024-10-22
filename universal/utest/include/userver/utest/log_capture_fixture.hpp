@@ -34,37 +34,36 @@ class ToStringLogger;
 /// @see @ref utest::LogCaptureLogger
 /// @see @ref utest::LogCaptureFixture
 class LogRecord final {
- public:
-  /// @returns decoded text of the log record
-  /// @throws if no 'text' tag in the log
-  const std::string& GetText() const;
+public:
+    /// @returns decoded text of the log record
+    /// @throws if no 'text' tag in the log
+    const std::string& GetText() const;
 
-  /// @returns decoded value of the tag in the log record
-  /// @throws if no such tag in the log
-  const std::string& GetTag(std::string_view key) const;
+    /// @returns decoded value of the tag in the log record
+    /// @throws if no such tag in the log
+    const std::string& GetTag(std::string_view key) const;
 
-  /// @returns decoded value of the tag in the log record, or `std::nullopt`
-  std::optional<std::string> GetTagOptional(std::string_view key) const;
+    /// @returns decoded value of the tag in the log record, or `std::nullopt`
+    std::optional<std::string> GetTagOptional(std::string_view key) const;
 
-  /// @returns decoded value of the tag in the log record, or `nullptr`
-  const std::string* GetTagOrNullptr(std::string_view key) const;
+    /// @returns decoded value of the tag in the log record, or `nullptr`
+    const std::string* GetTagOrNullptr(std::string_view key) const;
 
-  /// @returns serialized log record
-  const std::string& GetLogRaw() const;
+    /// @returns serialized log record
+    const std::string& GetLogRaw() const;
 
-  /// @returns the log level of the record
-  logging::Level GetLevel() const;
+    /// @returns the log level of the record
+    logging::Level GetLevel() const;
 
-  /// @cond
-  // For internal use only.
-  LogRecord(utils::impl::InternalTag, logging::Level level,
-            std::string&& log_raw);
-  /// @endcond
+    /// @cond
+    // For internal use only.
+    LogRecord(utils::impl::InternalTag, logging::Level level, std::string&& log_raw);
+    /// @endcond
 
- private:
-  logging::Level level_;
-  std::string log_raw_;
-  std::vector<std::pair<std::string, std::string>> tags_;
+private:
+    logging::Level level_;
+    std::string log_raw_;
+    std::vector<std::pair<std::string, std::string>> tags_;
 };
 
 std::ostream& operator<<(std::ostream&, const LogRecord& data);
@@ -73,57 +72,57 @@ std::ostream& operator<<(std::ostream&, const std::vector<LogRecord>& data);
 
 /// Thrown by @ref GetSingleLog.
 class NotSingleLogError final : public std::runtime_error {
- public:
-  using std::runtime_error::runtime_error;
+public:
+    using std::runtime_error::runtime_error;
 };
 
 /// @returns the only log record from `log`.
 /// @throws NotSingleLogError if there are zero or multiple log records.
-LogRecord GetSingleLog(utils::span<const LogRecord> log,
-                       const utils::impl::SourceLocation& source_location =
-                           utils::impl::SourceLocation::Current());
+LogRecord GetSingleLog(
+    utils::span<const LogRecord> log,
+    const utils::impl::SourceLocation& source_location = utils::impl::SourceLocation::Current()
+);
 
 /// @brief A mocked logger that stores the log records in memory.
 /// @see @ref utest::LogCaptureFixture
 class LogCaptureLogger final {
- public:
-  explicit LogCaptureLogger(logging::Format format = logging::Format::kRaw);
+public:
+    explicit LogCaptureLogger(logging::Format format = logging::Format::kRaw);
 
-  /// @returns the mocked logger.
-  logging::LoggerPtr GetLogger() const;
+    /// @returns the mocked logger.
+    logging::LoggerPtr GetLogger() const;
 
-  /// @returns all collected logs.
-  /// @see @ref GetSingleLog
-  std::vector<LogRecord> GetAll() const;
+    /// @returns all collected logs.
+    /// @see @ref GetSingleLog
+    std::vector<LogRecord> GetAll() const;
 
-  /// @returns logs filtered by (optional) text substring and (optional) tags
-  /// substrings.
-  /// @see @ref GetSingleLog
-  std::vector<LogRecord> Filter(
-      std::string_view text_substring,
-      utils::span<const std::pair<std::string_view, std::string_view>>
-          tag_substrings = {}) const;
+    /// @returns logs filtered by (optional) text substring and (optional) tags
+    /// substrings.
+    /// @see @ref GetSingleLog
+    std::vector<LogRecord> Filter(
+        std::string_view text_substring,
+        utils::span<const std::pair<std::string_view, std::string_view>> tag_substrings = {}
+    ) const;
 
-  /// @returns logs filtered by an arbitrary predicate.
-  /// @see @ref GetSingleLog
-  std::vector<LogRecord> Filter(
-      utils::function_ref<bool(const LogRecord&)> predicate) const;
+    /// @returns logs filtered by an arbitrary predicate.
+    /// @see @ref GetSingleLog
+    std::vector<LogRecord> Filter(utils::function_ref<bool(const LogRecord&)> predicate) const;
 
-  /// @brief Discards the collected logs.
-  void Clear() noexcept;
+    /// @brief Discards the collected logs.
+    void Clear() noexcept;
 
-  /// @brief Logs @a value as-if using `LOG_*`, then extracts the log text.
-  template <typename T>
-  std::string ToStringViaLogging(const T& value) {
-    Clear();
-    LOG_CRITICAL() << value;
-    auto text = GetSingleLog(GetAll()).GetText();
-    Clear();
-    return text;
-  }
+    /// @brief Logs @a value as-if using `LOG_*`, then extracts the log text.
+    template <typename T>
+    std::string ToStringViaLogging(const T& value) {
+        Clear();
+        LOG_CRITICAL() << value;
+        auto text = GetSingleLog(GetAll()).GetText();
+        Clear();
+        return text;
+    }
 
- private:
-  utils::SharedRef<impl::ToStringLogger> logger_;
+private:
+    utils::SharedRef<impl::ToStringLogger> logger_;
 };
 
 /// @brief Fixture that allows to capture and extract log written into the
@@ -131,15 +130,13 @@ class LogCaptureLogger final {
 /// @see @ref utest::LogCaptureLogger
 template <typename Base = ::testing::Test>
 class LogCaptureFixture : public DefaultLoggerFixture<Base> {
- protected:
-  LogCaptureFixture() {
-    DefaultLoggerFixture<Base>::SetDefaultLogger(logger_.GetLogger());
-  }
+protected:
+    LogCaptureFixture() { DefaultLoggerFixture<Base>::SetDefaultLogger(logger_.GetLogger()); }
 
-  LogCaptureLogger& GetLogCapture() { return logger_; }
+    LogCaptureLogger& GetLogCapture() { return logger_; }
 
- private:
-  LogCaptureLogger logger_;
+private:
+    LogCaptureLogger logger_;
 };
 
 }  // namespace utest

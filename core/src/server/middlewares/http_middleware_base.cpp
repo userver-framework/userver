@@ -12,25 +12,26 @@ HttpMiddlewareBase::HttpMiddlewareBase() = default;
 
 HttpMiddlewareBase::~HttpMiddlewareBase() = default;
 
-void HttpMiddlewareBase::Next(http::HttpRequest& request,
-                              request::RequestContext& context) const {
-  UASSERT(next_);
-  next_->HandleRequest(request, context);
+void HttpMiddlewareBase::Next(http::HttpRequest& request, request::RequestContext& context) const {
+    UASSERT(next_);
+    next_->HandleRequest(request, context);
 }
 
 HttpMiddlewareFactoryBase::HttpMiddlewareFactoryBase(
     const components::ComponentConfig& config,
-    const components::ComponentContext& context)
+    const components::ComponentContext& context
+)
     : components::ComponentBase{config, context} {}
 
 std::unique_ptr<HttpMiddlewareBase> HttpMiddlewareFactoryBase::CreateChecked(
     const handlers::HttpHandlerBase& handler,
-    yaml_config::YamlConfig middleware_config) const {
-  if (!middleware_config.IsMissing()) {
-    yaml_config::impl::Validate(middleware_config, GetMiddlewareConfigSchema());
-  }
+    yaml_config::YamlConfig middleware_config
+) const {
+    if (!middleware_config.IsMissing()) {
+        yaml_config::impl::Validate(middleware_config, GetMiddlewareConfigSchema());
+    }
 
-  return Create(handler, std::move(middleware_config));
+    return Create(handler, std::move(middleware_config));
 }
 
 }  // namespace server::middlewares

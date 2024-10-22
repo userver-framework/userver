@@ -11,43 +11,40 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
 
-formats::json::Value Serialize(const std::vector<Label>& labels,
-                               formats::serialize::To<formats::json::Value>);
+formats::json::Value Serialize(const std::vector<Label>& labels, formats::serialize::To<formats::json::Value>);
 
 struct Warning {
-  std::string error_message;
-  std::string path;
-  std::vector<Label> labels;
+    std::string error_message;
+    std::string path;
+    std::vector<Label> labels;
 };
 
-formats::json::Value Serialize(const Warning& entry,
-                               formats::serialize::To<formats::json::Value>);
+formats::json::Value Serialize(const Warning& entry, formats::serialize::To<formats::json::Value>);
 
 enum class WarningCode {
-  kInf,
-  kNan,
-  kHistogramBucketsCount,
+    kInf,
+    kNan,
+    kHistogramBucketsCount,
 
-  kLabelsCount,
+    kLabelsCount,
 
-  kReservedLabelApplication,
-  kReservedLabelCluster,
-  kReservedLabelGroup,
-  kReservedLabelHost,
-  kReservedLabelProject,
-  kReservedLabelSensor,
-  kReservedLabelService,
+    kReservedLabelApplication,
+    kReservedLabelCluster,
+    kReservedLabelGroup,
+    kReservedLabelHost,
+    kReservedLabelProject,
+    kReservedLabelSensor,
+    kReservedLabelService,
 
-  kLabelNameLength,
-  kLabelValueLength,
-  kPathLength,
-  kLabelNameMismatch,
+    kLabelNameLength,
+    kLabelValueLength,
+    kPathLength,
+    kLabelNameMismatch,
 };
 
 std::string_view ToString(WarningCode code);
 
-using PortabilityWarnings =
-    std::unordered_map<WarningCode, std::vector<Warning>>;
+using PortabilityWarnings = std::unordered_map<WarningCode, std::vector<Warning>>;
 
 /// JSON serialization for the PortabilityInfo in the following format:
 /// @code
@@ -72,14 +69,12 @@ using PortabilityWarnings =
 ///   ]
 /// }
 /// @endcode
-formats::json::Value Serialize(const PortabilityWarnings& info,
-                               formats::serialize::To<formats::json::Value>);
+formats::json::Value Serialize(const PortabilityWarnings& info, formats::serialize::To<formats::json::Value>);
 
 /// Output portability info for `statistics`.
 /// @see @ref scripts/docs/en/userver/functional_testing.md
-PortabilityWarnings GetPortabilityWarnings(
-    const utils::statistics::Storage& statistics,
-    const utils::statistics::Request& request);
+PortabilityWarnings
+GetPortabilityWarnings(const utils::statistics::Storage& statistics, const utils::statistics::Request& request);
 
 }  // namespace utils::statistics
 

@@ -11,20 +11,21 @@ USERVER_NAMESPACE_BEGIN
 namespace logging::impl {
 
 enum class LogExtraStacktraceFlags {
-  kNone = 0,
-  kNoCache = 1,
-  kFrozen = (kNoCache << 1),
+    kNone = 0,
+    kNoCache = 1,
+    kFrozen = (kNoCache << 1),
 };
 
 /// @brief Extends the `log_extra` without checking if it should
 void ExtendLogExtraWithStacktrace(
-    LogExtra& log_extra, const boost::stacktrace::stacktrace&,
-    utils::Flags<LogExtraStacktraceFlags> = {}) noexcept;
+    LogExtra& log_extra,
+    const boost::stacktrace::stacktrace&,
+    utils::Flags<LogExtraStacktraceFlags> = {}
+) noexcept;
 
 /// @brief Extends the `log_extra` without checking if it should
 /// by current stack inside the function call
-void ExtendLogExtraWithStacktrace(
-    LogExtra& log_extra, utils::Flags<LogExtraStacktraceFlags> = {}) noexcept;
+void ExtendLogExtraWithStacktrace(LogExtra& log_extra, utils::Flags<LogExtraStacktraceFlags> = {}) noexcept;
 
 /// @brief Checks if Debug level logging is enabled since
 /// logging stacktrace is slow

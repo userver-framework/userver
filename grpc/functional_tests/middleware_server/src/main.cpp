@@ -15,15 +15,14 @@
 #include "service.hpp"
 
 int main(int argc, const char* const argv[]) {
-  const auto component_list =
-      components::MinimalServerComponentList()
-          .Append<server::handlers::ServerMonitor>()
-          .Append<components::TestsuiteSupport>()
-          .Append<ugrpc::server::ServerComponent>()
-          .Append<ugrpc::server::middlewares::log::Component>()
-          .Append<functional_tests::MyMiddlewareComponent>()
-          .Append<functional_tests::MySecondMiddlewareComponent>()
-          .Append<functional_tests::GreeterServiceComponent>();
+    const auto component_list = components::MinimalServerComponentList()
+                                    .Append<server::handlers::ServerMonitor>()
+                                    .Append<components::TestsuiteSupport>()
+                                    .Append<ugrpc::server::ServerComponent>()
+                                    .Append<ugrpc::server::middlewares::log::Component>()
+                                    .Append<functional_tests::MyMiddlewareComponent>()
+                                    .Append<functional_tests::MySecondMiddlewareComponent>()
+                                    .Append<functional_tests::GreeterServiceComponent>();
 
-  return utils::DaemonMain(argc, argv, component_list);
+    return utils::DaemonMain(argc, argv, component_list);
 }

@@ -23,8 +23,8 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 class GrpcClientWithServiceConfig : public ugrpc::tests::ServiceFixtureBase {
- protected:
-  static constexpr std::string_view kServiceConfig = R"json(
+protected:
+    static constexpr std::string_view kServiceConfig = R"json(
   {
     "methodConfig": [
       {
@@ -44,43 +44,42 @@ class GrpcClientWithServiceConfig : public ugrpc::tests::ServiceFixtureBase {
   }
   )json";
 
-  GrpcClientWithServiceConfig() {
-    // Sanity-check. It is harder to understand errors inside grpc-core,
-    // so check for json-ness here
-    UEXPECT_NO_THROW(formats::json::FromString(kServiceConfig));
+    GrpcClientWithServiceConfig() {
+        // Sanity-check. It is harder to understand errors inside grpc-core,
+        // so check for json-ness here
+        UEXPECT_NO_THROW(formats::json::FromString(kServiceConfig));
 
-    ugrpc::client::ClientFactorySettings settings;
-    settings.channel_args.SetServiceConfigJSON(grpc::string{kServiceConfig});
+        ugrpc::client::ClientFactorySettings settings;
+        settings.channel_args.SetServiceConfigJSON(grpc::string{kServiceConfig});
 
-    StartServer(std::move(settings));
-  }
+        StartServer(std::move(settings));
+    }
 
-  ~GrpcClientWithServiceConfig() override { StopServer(); }
+    ~GrpcClientWithServiceConfig() override { StopServer(); }
 };
 
 }  // namespace
 
 UTEST_F(GrpcClientWithServiceConfig, DefaultServiceConfig) {
-  auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
+    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
 
-  auto& data = ugrpc::client::impl::GetClientData(client);
+    auto& data = ugrpc::client::impl::GetClientData(client);
 
-  // This is a very important moment. THe default service_config is applied not
-  // upon creation, but when the name resolution process returns no service
-  // config from DNS. We need to trigger the name resolution, and the easiest
-  // way is to attempt to connect. TryWaitForConnected does exactly that.
-  // It doesn't matter whether we connect or not - we only need the name
-  // resolution process to execute.
-  std::ignore = ugrpc::client::TryWaitForConnected(
-      client, engine::Deadline::FromDuration(std::chrono::milliseconds{50}),
-      engine::current_task::GetTaskProcessor());
+    // This is a very important moment. THe default service_config is applied not
+    // upon creation, but when the name resolution process returns no service
+    // config from DNS. We need to trigger the name resolution, and the easiest
+    // way is to attempt to connect. TryWaitForConnected does exactly that.
+    // It doesn't matter whether we connect or not - we only need the name
+    // resolution process to execute.
+    std::ignore = ugrpc::client::TryWaitForConnected(
+        client, engine::Deadline::FromDuration(std::chrono::milliseconds{50}), engine::current_task::GetTaskProcessor()
+    );
 
-  // test that service_config was passed to gRPC Core
-  auto& token = data.GetChannelToken();
-  for (std::size_t i = 0; i < token.GetChannelCount(); ++i) {
-    ASSERT_EQ(kServiceConfig, ugrpc::impl::ToString(
-                                  token.GetChannel(i)->GetServiceConfigJSON()));
-  }
+    // test that service_config was passed to gRPC Core
+    auto& token = data.GetChannelToken();
+    for (std::size_t i = 0; i < token.GetChannelCount(); ++i) {
+        ASSERT_EQ(kServiceConfig, ugrpc::impl::ToString(token.GetChannel(i)->GetServiceConfigJSON()));
+    }
 }
 
 USERVER_NAMESPACE_END

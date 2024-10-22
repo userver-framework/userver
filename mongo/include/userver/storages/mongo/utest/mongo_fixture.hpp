@@ -19,8 +19,8 @@ namespace storages::mongo::utest {
 /// see example: userver/samples/mongo_service/unittests
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class MongoTest : public ::testing::Test, public MongoLocal {
- public:
-  MongoTest() { GetPool()->DropDatabase(); }
+public:
+    MongoTest() { GetPool()->DropDatabase(); }
 };
 
 }  // namespace storages::mongo::utest

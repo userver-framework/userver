@@ -12,13 +12,13 @@ namespace storages::clickhouse::io::columns {
 
 /// @brief Represents Clickhouse UInt16 column
 class UInt16Column final : public ClickhouseColumn<UInt16Column> {
- public:
-  using cpp_type = uint16_t;
-  using container_type = std::vector<cpp_type>;
+public:
+    using cpp_type = uint16_t;
+    using container_type = std::vector<cpp_type>;
 
-  UInt16Column(ColumnRef column);
+    UInt16Column(ColumnRef column);
 
-  static ColumnRef Serialize(const container_type& from);
+    static ColumnRef Serialize(const container_type& from);
 };
 
 }  // namespace storages::clickhouse::io::columns

@@ -25,21 +25,20 @@ namespace ugrpc::server::middlewares::headers_propagator {
 // clang-format on
 
 class Component final : public MiddlewareComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of
-  /// ugrpc::server::middlewares::headers_propagator::Component
-  static constexpr std::string_view kName = "grpc-server-headers-propagator";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of
+    /// ugrpc::server::middlewares::headers_propagator::Component
+    static constexpr std::string_view kName = "grpc-server-headers-propagator";
 
-  Component(const components::ComponentConfig& config,
-            const components::ComponentContext& context);
+    Component(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-  std::shared_ptr<MiddlewareBase> GetMiddleware() override;
+    std::shared_ptr<MiddlewareBase> GetMiddleware() override;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  const std::vector<std::string> headers_;
+private:
+    const std::vector<std::string> headers_;
 };
 
 }  // namespace ugrpc::server::middlewares::headers_propagator

@@ -10,8 +10,7 @@ class HttpRequestImpl;
 
 namespace server::request {
 
-inline engine::TaskInheritedVariable<std::shared_ptr<http::HttpRequestImpl>>
-    kTaskInheritedRequest;
+inline engine::TaskInheritedVariable<std::shared_ptr<http::HttpRequestImpl>> kTaskInheritedRequest;
 
 }  // namespace server::request
 

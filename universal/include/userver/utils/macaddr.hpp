@@ -19,31 +19,26 @@ namespace utils {
 /// @brief Base class for Macaddr/Macaddr8
 template <std::size_t N>
 class MacaddrBase final {
-  static_assert(N == 6 || N == 8, "Address can only be 6 or 8 bytes size");
+    static_assert(N == 6 || N == 8, "Address can only be 6 or 8 bytes size");
 
- public:
-  using OctetsType = std::array<unsigned char, N>;
+public:
+    using OctetsType = std::array<unsigned char, N>;
 
-  MacaddrBase() = default;
+    MacaddrBase() = default;
 
-  explicit MacaddrBase(const OctetsType& macaddr) noexcept
-      : macaddr_(macaddr) {}
+    explicit MacaddrBase(const OctetsType& macaddr) noexcept : macaddr_(macaddr) {}
 
-  /// @brief Get octets of MAC-address
-  const OctetsType& GetOctets() const noexcept { return macaddr_; }
+    /// @brief Get octets of MAC-address
+    const OctetsType& GetOctets() const noexcept { return macaddr_; }
 
-  friend bool operator==(const MacaddrBase<N>& a,
-                         const MacaddrBase<N>& b) noexcept {
-    return a.GetOctets() == b.GetOctets();
-  }
+    friend bool operator==(const MacaddrBase<N>& a, const MacaddrBase<N>& b) noexcept {
+        return a.GetOctets() == b.GetOctets();
+    }
 
-  friend bool operator!=(const MacaddrBase<N>& a,
-                         const MacaddrBase<N>& b) noexcept {
-    return !(a == b);
-  }
+    friend bool operator!=(const MacaddrBase<N>& a, const MacaddrBase<N>& b) noexcept { return !(a == b); }
 
- private:
-  OctetsType macaddr_ = {0};
+private:
+    OctetsType macaddr_ = {0};
 };
 
 /// @ingroup userver_containers

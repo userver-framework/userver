@@ -29,38 +29,30 @@ constexpr auto kAddSleep = std::chrono::milliseconds{100};
 const std::string kGrpcMethod = "grpc_method";
 
 inline std::unique_ptr<grpc::ClientContext> GetContext(bool need_deadline) {
-  auto context = std::make_unique<grpc::ClientContext>();
-  if (need_deadline) {
-    context->set_deadline(engine::Deadline::FromDuration(kLongTimeout));
-  }
-  return context;
+    auto context = std::make_unique<grpc::ClientContext>();
+    if (need_deadline) {
+        context->set_deadline(engine::Deadline::FromDuration(kLongTimeout));
+    }
+    return context;
 }
 
-inline void InitTaskInheritedDeadline(
-    const engine::Deadline deadline =
-        engine::Deadline::FromDuration(kShortTimeout)) {
-  server::request::kTaskInheritedData.Set(
-      {{}, kGrpcMethod, std::chrono::steady_clock::now(), deadline});
+inline void InitTaskInheritedDeadline(const engine::Deadline deadline = engine::Deadline::FromDuration(kShortTimeout)) {
+    server::request::kTaskInheritedData.Set({{}, kGrpcMethod, std::chrono::steady_clock::now(), deadline});
 }
 
-inline void WaitUntilRpcDeadlineService() {
-  engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
-}
+inline void WaitUntilRpcDeadlineService() { engine::InterruptibleSleepFor(utest::kMaxTestWaitTime); }
 
 inline void WaitUntilRpcDeadlineClient(engine::Deadline deadline) {
-  engine::SleepUntil(deadline);
-  // kAddSleep is needed, because otherwise the background timer from grpc-core
-  // might not manage to cancel the ClientContext in time.
-  engine::SleepFor(kAddSleep);
+    engine::SleepUntil(deadline);
+    // kAddSleep is needed, because otherwise the background timer from grpc-core
+    // might not manage to cancel the ClientContext in time.
+    engine::SleepFor(kAddSleep);
 }
 
-inline void WaitUntilRpcDeadline(ugrpc::server::CallAnyBase& /*call*/) {
-  WaitUntilRpcDeadlineService();
-}
+inline void WaitUntilRpcDeadline(ugrpc::server::CallAnyBase& /*call*/) { WaitUntilRpcDeadlineService(); }
 
 inline void WaitUntilRpcDeadline(ugrpc::client::CallAnyBase& call) {
-  WaitUntilRpcDeadlineClient(
-      engine::Deadline::FromTimePoint(call.GetContext().deadline()));
+    WaitUntilRpcDeadlineClient(engine::Deadline::FromTimePoint(call.GetContext().deadline()));
 }
 
 }  // namespace tests

@@ -42,7 +42,7 @@ namespace curl::native {
 }  // namespace curl::native
 
 inline void throw_error(std::error_code ec, const char* s) {
-  if (ec) throw std::system_error(ec, s);
+    if (ec) throw std::system_error(ec, s);
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)

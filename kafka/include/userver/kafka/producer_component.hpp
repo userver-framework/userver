@@ -49,27 +49,26 @@ namespace kafka {
 // clang-format on
 
 class ProducerComponent final : public components::ComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of kafka::ProducerComponent component
-  static constexpr std::string_view kName{"kafka-producer"};
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of kafka::ProducerComponent component
+    static constexpr std::string_view kName{"kafka-producer"};
 
-  ProducerComponent(const components::ComponentConfig& config,
-                    const components::ComponentContext& context);
-  ~ProducerComponent() override;
+    ProducerComponent(const components::ComponentConfig& config, const components::ComponentContext& context);
+    ~ProducerComponent() override;
 
-  /// @brief Returns a producer instance reference.
-  /// @see kafka::Producer
-  const Producer& GetProducer();
+    /// @brief Returns a producer instance reference.
+    /// @see kafka::Producer
+    const Producer& GetProducer();
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  Producer producer_;
+private:
+    Producer producer_;
 
-  /// @note Subscriptions must be the last fields! Add new fields above this
-  /// comment.
-  utils::statistics::Entry statistics_holder_;
+    /// @note Subscriptions must be the last fields! Add new fields above this
+    /// comment.
+    utils::statistics::Entry statistics_holder_;
 };
 
 }  // namespace kafka

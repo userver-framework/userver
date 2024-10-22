@@ -33,22 +33,23 @@ class ComponentInfo;
 class ComponentContextImpl;
 
 using ComponentFactory =
-    std::function<std::unique_ptr<components::RawComponentBase>(
-        const components::ComponentContext&)>;
+    std::function<std::unique_ptr<components::RawComponentBase>(const components::ComponentContext&)>;
 
 template <class T>
 constexpr auto NameFromComponentType() -> decltype(std::string_view{T::kName}) {
-  return T::kName;
+    return T::kName;
 }
 
 template <class T, class... Args>
 constexpr auto NameFromComponentType(Args...) {
-  static_assert(!sizeof(T),
-                "Component does not have a 'kName' member convertible to "
-                "std::string_view. You have to explicitly specify the name: "
-                "context.FindComponent<T>(name) or "
-                "context.FindComponentOptional<T>(name).");
-  return std::string_view{};
+    static_assert(
+        !sizeof(T),
+        "Component does not have a 'kName' member convertible to "
+        "std::string_view. You have to explicitly specify the name: "
+        "context.FindComponent<T>(name) or "
+        "context.FindComponentOptional<T>(name)."
+    );
+    return std::string_view{};
 }
 
 }  // namespace impl
@@ -56,9 +57,9 @@ constexpr auto NameFromComponentType(Args...) {
 /// @brief Exception that is thrown from
 /// components::ComponentContext::FindComponent() if a component load failed.
 class ComponentsLoadCancelledException : public std::runtime_error {
- public:
-  ComponentsLoadCancelledException();
-  explicit ComponentsLoadCancelledException(const std::string& message);
+public:
+    ComponentsLoadCancelledException();
+    explicit ComponentsLoadCancelledException(const std::string& message);
 };
 
 /// @brief Class to retrieve other components.
@@ -71,128 +72,125 @@ class ComponentsLoadCancelledException : public std::runtime_error {
 ///
 /// @see @ref userver_components
 class ComponentContext final {
- public:
-  /// @brief Finds a component of type T with specified name (if any) and
-  /// returns the component after it was initialized.
-  ///
-  /// Can only be called from other component's constructor in a task where
-  /// that constructor was called.
-  /// May block and asynchronously wait for the creation of the requested
-  /// component.
-  /// @throw ComponentsLoadCancelledException if components loading was
-  /// cancelled due to errors in the creation of other component.
-  /// @throw std::runtime_error if component missing in `component_list` was
-  /// requested.
-  template <typename T>
-  T& FindComponent() const {
-    return FindComponent<T>(impl::NameFromComponentType<T>());
-  }
-
-  /// @overload T& FindComponent()
-  template <typename T>
-  T& FindComponent(std::string_view name) const {
-    if (!Contains(name)) {
-      ThrowNonRegisteredComponent(name, compiler::GetTypeName<T>());
+public:
+    /// @brief Finds a component of type T with specified name (if any) and
+    /// returns the component after it was initialized.
+    ///
+    /// Can only be called from other component's constructor in a task where
+    /// that constructor was called.
+    /// May block and asynchronously wait for the creation of the requested
+    /// component.
+    /// @throw ComponentsLoadCancelledException if components loading was
+    /// cancelled due to errors in the creation of other component.
+    /// @throw std::runtime_error if component missing in `component_list` was
+    /// requested.
+    template <typename T>
+    T& FindComponent() const {
+        return FindComponent<T>(impl::NameFromComponentType<T>());
     }
 
-    auto* component_base = DoFindComponent(name);
-    T* ptr = dynamic_cast<T*>(component_base);
-    if (!ptr) {
-      ThrowComponentTypeMismatch(name, compiler::GetTypeName<T>(),
-                                 component_base);
+    /// @overload T& FindComponent()
+    template <typename T>
+    T& FindComponent(std::string_view name) const {
+        if (!Contains(name)) {
+            ThrowNonRegisteredComponent(name, compiler::GetTypeName<T>());
+        }
+
+        auto* component_base = DoFindComponent(name);
+        T* ptr = dynamic_cast<T*>(component_base);
+        if (!ptr) {
+            ThrowComponentTypeMismatch(name, compiler::GetTypeName<T>(), component_base);
+        }
+
+        return *ptr;
     }
 
-    return *ptr;
-  }
-
-  template <typename T>
-  T& FindComponent(std::string_view /*name*/ = {}) {
-    return ReportMisuse<T>();
-  }
-
-  /// @brief If there's no component with specified type and name return
-  /// nullptr; otherwise behaves as FindComponent().
-  template <typename T>
-  T* FindComponentOptional() const {
-    return FindComponentOptional<T>(impl::NameFromComponentType<T>());
-  }
-
-  /// @overload T* FindComponentOptional()
-  template <typename T>
-  T* FindComponentOptional(std::string_view name) const {
-    if (!Contains(name)) {
-      return nullptr;
+    template <typename T>
+    T& FindComponent(std::string_view /*name*/ = {}) {
+        return ReportMisuse<T>();
     }
-    return dynamic_cast<T*>(DoFindComponent(name));
-  }
 
-  template <typename T>
-  T& FindComponentOptional(std::string_view /*name*/ = {}) {
-    return ReportMisuse<T>();
-  }
+    /// @brief If there's no component with specified type and name return
+    /// nullptr; otherwise behaves as FindComponent().
+    template <typename T>
+    T* FindComponentOptional() const {
+        return FindComponentOptional<T>(impl::NameFromComponentType<T>());
+    }
 
-  /// @brief Returns an engine::TaskProcessor with the specified name.
-  engine::TaskProcessor& GetTaskProcessor(const std::string& name) const;
+    /// @overload T* FindComponentOptional()
+    template <typename T>
+    T* FindComponentOptional(std::string_view name) const {
+        if (!Contains(name)) {
+            return nullptr;
+        }
+        return dynamic_cast<T*>(DoFindComponent(name));
+    }
 
-  template <typename T>
-  engine::TaskProcessor& GetTaskProcessor(const T&) {
-    return ReportMisuse<T>();
-  }
+    template <typename T>
+    T& FindComponentOptional(std::string_view /*name*/ = {}) {
+        return ReportMisuse<T>();
+    }
 
-  const Manager& GetManager() const;
+    /// @brief Returns an engine::TaskProcessor with the specified name.
+    engine::TaskProcessor& GetTaskProcessor(const std::string& name) const;
 
- private:
-  /// @returns true if there is a component with the specified name and it
-  /// could be found via FindComponent()
-  bool Contains(std::string_view name) const noexcept;
+    template <typename T>
+    engine::TaskProcessor& GetTaskProcessor(const T&) {
+        return ReportMisuse<T>();
+    }
 
-  template <typename T>
-  bool Contains(const T&) {
-    return ReportMisuse<T>();
-  }
+    const Manager& GetManager() const;
 
-  template <class T>
-  decltype(auto) ReportMisuse() {
-    static_assert(!sizeof(T),
-                  "components::ComponentContext should be accepted by "
-                  "a constant reference, i.e. "
-                  "`MyComponent(const components::ComponentConfig& config, "
-                  "const components::ComponentContext& context)`");
-    return 0;
-  }
+private:
+    /// @returns true if there is a component with the specified name and it
+    /// could be found via FindComponent()
+    bool Contains(std::string_view name) const noexcept;
 
-  friend class Manager;
-  friend class State;
+    template <typename T>
+    bool Contains(const T&) {
+        return ReportMisuse<T>();
+    }
 
-  ComponentContext() noexcept;
+    template <class T>
+    decltype(auto) ReportMisuse() {
+        static_assert(
+            !sizeof(T),
+            "components::ComponentContext should be accepted by "
+            "a constant reference, i.e. "
+            "`MyComponent(const components::ComponentConfig& config, "
+            "const components::ComponentContext& context)`"
+        );
+        return 0;
+    }
 
-  void Emplace(const Manager& manager,
-               std::vector<std::string>&& loading_component_names);
+    friend class Manager;
+    friend class State;
 
-  void Reset() noexcept;
+    ComponentContext() noexcept;
 
-  ~ComponentContext();
+    void Emplace(const Manager& manager, std::vector<std::string>&& loading_component_names);
 
-  RawComponentBase* AddComponent(std::string_view name,
-                                 const impl::ComponentFactory& factory);
+    void Reset() noexcept;
 
-  void OnAllComponentsLoaded();
+    ~ComponentContext();
 
-  void OnAllComponentsAreStopping();
+    RawComponentBase* AddComponent(std::string_view name, const impl::ComponentFactory& factory);
 
-  void ClearComponents();
+    void OnAllComponentsLoaded();
 
-  void CancelComponentsLoad();
+    void OnAllComponentsAreStopping();
 
-  [[noreturn]] void ThrowNonRegisteredComponent(std::string_view name,
-                                                std::string_view type) const;
-  [[noreturn]] void ThrowComponentTypeMismatch(
-      std::string_view name, std::string_view type,
-      RawComponentBase* component) const;
+    void ClearComponents();
 
-  RawComponentBase* DoFindComponent(std::string_view name) const;
+    void CancelComponentsLoad();
 
-  std::unique_ptr<impl::ComponentContextImpl> impl_;
+    [[noreturn]] void ThrowNonRegisteredComponent(std::string_view name, std::string_view type) const;
+    [[noreturn]] void
+    ThrowComponentTypeMismatch(std::string_view name, std::string_view type, RawComponentBase* component) const;
+
+    RawComponentBase* DoFindComponent(std::string_view name) const;
+
+    std::unique_ptr<impl::ComponentContextImpl> impl_;
 };
 
 }  // namespace components

@@ -21,30 +21,29 @@ namespace baggage {
 ///
 /// Usually retrieved from baggage::BaggageManagerComponent.
 class BaggageManager final {
- public:
-  explicit BaggageManager(const dynamic_config::Source& config_source);
+public:
+    explicit BaggageManager(const dynamic_config::Source& config_source);
 
-  /// @brief Returns if baggage is enabled
-  bool IsEnabled() const;
+    /// @brief Returns if baggage is enabled
+    bool IsEnabled() const;
 
-  /// @brief Add entry to baggage header.
-  /// @throws BaggageException If key, value or properties
-  /// don't match with requirements or if allowed_keys
-  /// don't contain selected key
-  void AddEntry(std::string key, std::string value,
-                BaggageProperties properties) const;
+    /// @brief Add entry to baggage header.
+    /// @throws BaggageException If key, value or properties
+    /// don't match with requirements or if allowed_keys
+    /// don't contain selected key
+    void AddEntry(std::string key, std::string value, BaggageProperties properties) const;
 
-  /// @brief Get const pointer to baggage value from task inherited variable
-  static const Baggage* TryGetBaggage();
+    /// @brief Get const pointer to baggage value from task inherited variable
+    static const Baggage* TryGetBaggage();
 
-  /// @brief Set new baggage value to task inherited variable
-  void SetBaggage(std::string header) const;
+    /// @brief Set new baggage value to task inherited variable
+    void SetBaggage(std::string header) const;
 
-  /// @brief Delete header from task inherited variable
-  static void ResetBaggage();
+    /// @brief Delete header from task inherited variable
+    static void ResetBaggage();
 
- private:
-  dynamic_config::Source config_source_;
+private:
+    dynamic_config::Source config_source_;
 };
 
 /// @ingroup userver_components
@@ -54,20 +53,19 @@ class BaggageManager final {
 /// ## Static options:
 /// Inherits options from components::ComponentBase.
 class BaggageManagerComponent final : public components::ComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of baggage::BaggageManagerComponent
-  static constexpr std::string_view kName = "baggage-manager";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of baggage::BaggageManagerComponent
+    static constexpr std::string_view kName = "baggage-manager";
 
-  BaggageManagerComponent(const components::ComponentConfig& config,
-                          const components::ComponentContext& context);
+    BaggageManagerComponent(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-  BaggageManager& GetManager();
+    BaggageManager& GetManager();
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  BaggageManager baggage_manager_;
+private:
+    BaggageManager baggage_manager_;
 };
 
 }  // namespace baggage

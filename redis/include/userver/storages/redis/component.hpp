@@ -125,54 +125,49 @@ namespace components {
 
 // clang-format on
 class Redis : public ComponentBase {
- public:
-  Redis(const ComponentConfig& config,
-        const ComponentContext& component_context);
+public:
+    Redis(const ComponentConfig& config, const ComponentContext& component_context);
 
-  ~Redis() override;
+    ~Redis() override;
 
-  /// @ingroup userver_component_names
-  /// @brief The default name of components::Redis
-  static constexpr std::string_view kName = "redis";
+    /// @ingroup userver_component_names
+    /// @brief The default name of components::Redis
+    static constexpr std::string_view kName = "redis";
 
-  std::shared_ptr<storages::redis::Client> GetClient(
-      const std::string& name,
-      USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected = {}) const;
-  [[deprecated("use GetClient()")]] std::shared_ptr<redis::Sentinel> Client(
-      const std::string& name) const;
-  std::shared_ptr<storages::redis::SubscribeClient> GetSubscribeClient(
-      const std::string& name,
-      USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected = {}) const;
+    std::shared_ptr<storages::redis::Client>
+    GetClient(const std::string& name, USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected = {}) const;
+    [[deprecated("use GetClient()")]] std::shared_ptr<redis::Sentinel> Client(const std::string& name) const;
+    std::shared_ptr<storages::redis::SubscribeClient>
+    GetSubscribeClient(const std::string& name, USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected = {}) const;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
+private:
+    void OnConfigUpdate(const dynamic_config::Snapshot& cfg);
 
-  void Connect(const ComponentConfig& config,
-               const ComponentContext& component_context,
-               const testsuite::RedisControl& testsuite_redis_control);
+    void Connect(
+        const ComponentConfig& config,
+        const ComponentContext& component_context,
+        const testsuite::RedisControl& testsuite_redis_control
+    );
 
-  void WriteStatistics(utils::statistics::Writer& writer);
-  void WriteStatisticsPubsub(utils::statistics::Writer& writer);
+    void WriteStatistics(utils::statistics::Writer& writer);
+    void WriteStatisticsPubsub(utils::statistics::Writer& writer);
 
-  std::shared_ptr<redis::ThreadPools> thread_pools_;
-  std::unordered_map<std::string, std::shared_ptr<redis::Sentinel>> sentinels_;
-  std::unordered_map<std::string, std::shared_ptr<storages::redis::Client>>
-      clients_;
-  std::unordered_map<std::string,
-                     std::shared_ptr<storages::redis::SubscribeClientImpl>>
-      subscribe_clients_;
+    std::shared_ptr<redis::ThreadPools> thread_pools_;
+    std::unordered_map<std::string, std::shared_ptr<redis::Sentinel>> sentinels_;
+    std::unordered_map<std::string, std::shared_ptr<storages::redis::Client>> clients_;
+    std::unordered_map<std::string, std::shared_ptr<storages::redis::SubscribeClientImpl>> subscribe_clients_;
 
-  dynamic_config::Source config_;
-  concurrent::AsyncEventSubscriberScope config_subscription_;
+    dynamic_config::Source config_;
+    concurrent::AsyncEventSubscriberScope config_subscription_;
 
-  utils::statistics::Entry statistics_holder_;
-  utils::statistics::Entry subscribe_statistics_holder_;
+    utils::statistics::Entry statistics_holder_;
+    utils::statistics::Entry subscribe_statistics_holder_;
 
-  redis::MetricsSettings::StaticSettings static_metrics_settings_;
-  rcu::Variable<redis::MetricsSettings> metrics_settings_;
-  rcu::Variable<redis::PubsubMetricsSettings> pubsub_metrics_settings_;
+    redis::MetricsSettings::StaticSettings static_metrics_settings_;
+    rcu::Variable<redis::MetricsSettings> metrics_settings_;
+    rcu::Variable<redis::PubsubMetricsSettings> pubsub_metrics_settings_;
 };
 
 template <>

@@ -10,65 +10,63 @@ USERVER_NAMESPACE_BEGIN
 namespace components {
 
 namespace {
-const storages::secdist::SecdistConfig& GetSecdist(
-    const components::ComponentContext& component_context) {
-  auto* component =
-      component_context.FindComponentOptional<components::Secdist>();
-  if (component) return component->Get();
+const storages::secdist::SecdistConfig& GetSecdist(const components::ComponentContext& component_context) {
+    auto* component = component_context.FindComponentOptional<components::Secdist>();
+    if (component) return component->Get();
 
-  static storages::secdist::SecdistConfig kEmpty;
-  return kEmpty;
+    static storages::secdist::SecdistConfig kEmpty;
+    return kEmpty;
 }
 }  // namespace
 
-Server::Server(const components::ComponentConfig& component_config,
-               const components::ComponentContext& component_context)
+Server::Server(
+    const components::ComponentConfig& component_config,
+    const components::ComponentContext& component_context
+)
     : ComponentBase(component_config, component_context),
       server_(std::make_unique<server::Server>(
           component_config.As<server::ServerConfig>(),
-          GetSecdist(component_context), component_context)) {
-  auto& statistics_storage =
-      component_context.FindComponent<StatisticsStorage>().GetStorage();
-  server_statistics_holder_ = statistics_storage.RegisterWriter(
-      "server",
-      [this](utils::statistics::Writer& writer) { WriteStatistics(writer); });
-  handler_statistics_holder_ = statistics_storage.RegisterWriter(
-      "http.handler.total", [this](utils::statistics::Writer& writer) {
-        return server_->WriteTotalHandlerStatistics(writer);
-      });
+          GetSecdist(component_context),
+          component_context
+      )) {
+    auto& statistics_storage = component_context.FindComponent<StatisticsStorage>().GetStorage();
+    server_statistics_holder_ = statistics_storage.RegisterWriter("server", [this](utils::statistics::Writer& writer) {
+        WriteStatistics(writer);
+    });
+    handler_statistics_holder_ =
+        statistics_storage.RegisterWriter("http.handler.total", [this](utils::statistics::Writer& writer) {
+            return server_->WriteTotalHandlerStatistics(writer);
+        });
 }
 
 Server::~Server() {
-  server_statistics_holder_.Unregister();
-  handler_statistics_holder_.Unregister();
+    server_statistics_holder_.Unregister();
+    handler_statistics_holder_.Unregister();
 }
 
 void Server::OnAllComponentsLoaded() { server_->Start(); }
 
 void Server::OnAllComponentsAreStopping() {
-  /* components::Server has to stop all Listeners before unloading components
-   * as handlers have no ability to call smth like RemoveHandler() from
-   * server::Server. Without such server stop before unloading a new request may
-   * use a handler while the handler is destroying.
-   */
-  server_->Stop();
+    /* components::Server has to stop all Listeners before unloading components
+     * as handlers have no ability to call smth like RemoveHandler() from
+     * server::Server. Without such server stop before unloading a new request may
+     * use a handler while the handler is destroying.
+     */
+    server_->Stop();
 }
 
 const server::Server& Server::GetServer() const { return *server_; }
 
 server::Server& Server::GetServer() { return *server_; }
 
-void Server::AddHandler(const server::handlers::HttpHandlerBase& handler,
-                        engine::TaskProcessor& task_processor) {
-  server_->AddHandler(handler, task_processor);
+void Server::AddHandler(const server::handlers::HttpHandlerBase& handler, engine::TaskProcessor& task_processor) {
+    server_->AddHandler(handler, task_processor);
 }
 
-void Server::WriteStatistics(utils::statistics::Writer& writer) {
-  server_->WriteMonitorData(writer);
-}
+void Server::WriteStatistics(utils::statistics::Writer& writer) { server_->WriteMonitorData(writer); }
 
 yaml_config::Schema Server::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<ComponentBase>(R"(
+    return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: server schema
 additionalProperties: false

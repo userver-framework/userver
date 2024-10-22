@@ -10,20 +10,19 @@ namespace engine::impl {
 class TaskContext;
 
 class TaskProcessorPools final {
- public:
-  using CoroPool = coro::Pool;
+public:
+    using CoroPool = coro::Pool;
 
-  TaskProcessorPools(coro::PoolConfig coro_pool_config,
-                     ev::ThreadPoolConfig ev_pool_config);
+    TaskProcessorPools(coro::PoolConfig coro_pool_config, ev::ThreadPoolConfig ev_pool_config);
 
-  ~TaskProcessorPools();
+    ~TaskProcessorPools();
 
-  CoroPool& GetCoroPool() { return coro_pool_; }
-  ev::ThreadPool& EventThreadPool() { return event_thread_pool_; }
+    CoroPool& GetCoroPool() { return coro_pool_; }
+    ev::ThreadPool& EventThreadPool() { return event_thread_pool_; }
 
- private:
-  CoroPool coro_pool_;
-  ev::ThreadPool event_thread_pool_;
+private:
+    CoroPool coro_pool_;
+    ev::ThreadPool event_thread_pool_;
 };
 
 }  // namespace engine::impl

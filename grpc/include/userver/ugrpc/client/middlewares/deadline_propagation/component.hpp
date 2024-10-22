@@ -29,18 +29,17 @@ namespace ugrpc::client::middlewares::deadline_propagation {
 // clang-format on
 
 class Component final : public MiddlewareComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of
-  /// ugrpc::client::middlewares::deadline_propagation::Component
-  static constexpr std::string_view kName = "grpc-client-deadline-propagation";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of
+    /// ugrpc::client::middlewares::deadline_propagation::Component
+    static constexpr std::string_view kName = "grpc-client-deadline-propagation";
 
-  Component(const components::ComponentConfig& config,
-            const components::ComponentContext& context);
+    Component(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-  std::shared_ptr<const MiddlewareFactoryBase> GetMiddlewareFactory() override;
+    std::shared_ptr<const MiddlewareFactoryBase> GetMiddlewareFactory() override;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 };
 
 }  // namespace ugrpc::client::middlewares::deadline_propagation

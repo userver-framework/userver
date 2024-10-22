@@ -10,41 +10,44 @@
 USERVER_NAMESPACE_BEGIN
 
 class YdbSmallTableTest : public ydb::ClientFixtureBase {
- protected:
-  void CreateTable(std::string_view table_name, bool fill_table) {
-    DoCreateTable(
-        table_name,
-        NYdb::NTable::TTableBuilder()
-            .AddNullableColumn("key", NYdb::EPrimitiveType::String)
-            .AddNullableColumn("value_str", NYdb::EPrimitiveType::String)
-            .AddNullableColumn("value_int", NYdb::EPrimitiveType::Int32)
-            .SetPrimaryKeyColumn("key")
-            .AddAsyncSecondaryIndex("value_idx", "value_int")
-            .Build());
+protected:
+    void CreateTable(std::string_view table_name, bool fill_table) {
+        DoCreateTable(
+            table_name,
+            NYdb::NTable::TTableBuilder()
+                .AddNullableColumn("key", NYdb::EPrimitiveType::String)
+                .AddNullableColumn("value_str", NYdb::EPrimitiveType::String)
+                .AddNullableColumn("value_int", NYdb::EPrimitiveType::Int32)
+                .SetPrimaryKeyColumn("key")
+                .AddAsyncSecondaryIndex("value_idx", "value_int")
+                .Build()
+        );
 
-    if (fill_table) {
-      const ydb::Query fill_query{
-          fmt::format(R"(
+        if (fill_table) {
+            const ydb::Query fill_query{
+                fmt::format(
+                    R"(
             UPSERT INTO {} (key, value_str, value_int)
             VALUES ("key1", "value1", 1), ("key2", "value2", 2), ("key3", "value3", 3);
           )",
-                      table_name),
-          ydb::Query::Name{fmt::format("FillTable/{}", table_name)},
-      };
-      GetTableClient().ExecuteDataQuery(fill_query);
+                    table_name
+                ),
+                ydb::Query::Name{fmt::format("FillTable/{}", table_name)},
+            };
+            GetTableClient().ExecuteDataQuery(fill_query);
+        }
     }
-  }
 };
 
 /// [struct sample]
 namespace tests {
 
 struct RowValue {
-  static constexpr ydb::StructMemberNames kYdbMemberNames{};
+    static constexpr ydb::StructMemberNames kYdbMemberNames{};
 
-  std::string key;
-  std::string value_str;
-  std::int32_t value_int;
+    std::string key;
+    std::string value_str;
+    std::int32_t value_int;
 };
 
 }  // namespace tests
@@ -57,39 +60,39 @@ inline const std::vector<tests::RowValue> kPreFilledRows = {
 };
 
 template <typename T>
-void AssertNullableColumn(ydb::Row& row, std::string_view column_name,
-                          const T& expected,
-                          const utils::impl::SourceLocation& location =
-                              utils::impl::SourceLocation::Current()) {
-  using ExpectedType = std::decay_t<decltype(expected)>;
-  using RowType =
-      std::conditional_t<std::is_convertible_v<ExpectedType, std::string_view>,
-                         std::string, ExpectedType>;
-  UEXPECT_NO_THROW(
-      EXPECT_EQ(row.Get<std::optional<RowType>>(column_name), expected)
-      << ToString(location))
-      << ToString(location);
+void AssertNullableColumn(
+    ydb::Row& row,
+    std::string_view column_name,
+    const T& expected,
+    const utils::impl::SourceLocation& location = utils::impl::SourceLocation::Current()
+) {
+    using ExpectedType = std::decay_t<decltype(expected)>;
+    using RowType =
+        std::conditional_t<std::is_convertible_v<ExpectedType, std::string_view>, std::string, ExpectedType>;
+    UEXPECT_NO_THROW(EXPECT_EQ(row.Get<std::optional<RowType>>(column_name), expected) << ToString(location))
+        << ToString(location);
 }
 
-inline void AssertIsPreFilledRow(ydb::Row row, std::size_t index,
-                                 const utils::impl::SourceLocation& location =
-                                     utils::impl::SourceLocation::Current()) {
-  AssertNullableColumn(row, "key", kPreFilledRows[index - 1].key, location);
-  AssertNullableColumn(row, "value_str", kPreFilledRows[index - 1].value_str,
-                       location);
+inline void AssertIsPreFilledRow(
+    ydb::Row row,
+    std::size_t index,
+    const utils::impl::SourceLocation& location = utils::impl::SourceLocation::Current()
+) {
+    AssertNullableColumn(row, "key", kPreFilledRows[index - 1].key, location);
+    AssertNullableColumn(row, "value_str", kPreFilledRows[index - 1].value_str, location);
 }
 
-inline auto AssertArePreFilledRows(ydb::Cursor cursor,
-                                   std::vector<std::size_t> indexes,
-                                   const utils::impl::SourceLocation& location =
-                                       utils::impl::SourceLocation::Current()) {
-  ASSERT_THAT(cursor, testing::SizeIs(indexes.size()))
-      << "expected " << indexes.size() << " rows in cursor at "
-      << ToString(location);
+inline auto AssertArePreFilledRows(
+    ydb::Cursor cursor,
+    std::vector<std::size_t> indexes,
+    const utils::impl::SourceLocation& location = utils::impl::SourceLocation::Current()
+) {
+    ASSERT_THAT(cursor, testing::SizeIs(indexes.size()))
+        << "expected " << indexes.size() << " rows in cursor at " << ToString(location);
 
-  for (auto [pos, row] : utils::enumerate(cursor)) {
-    AssertIsPreFilledRow(std::move(row), indexes[pos], location);
-  }
+    for (auto [pos, row] : utils::enumerate(cursor)) {
+        AssertIsPreFilledRow(std::move(row), indexes[pos], location);
+    }
 }
 
 inline const ydb::Query kSelectAllRows{R"(

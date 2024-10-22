@@ -7,20 +7,20 @@ USERVER_NAMESPACE_BEGIN
 namespace utils::impl {
 
 class DisableCoreDumps final {
- public:
-  DisableCoreDumps();
+public:
+    DisableCoreDumps();
 
-  DisableCoreDumps(DisableCoreDumps&&) = delete;
-  DisableCoreDumps& operator=(DisableCoreDumps&&) = delete;
-  ~DisableCoreDumps();
+    DisableCoreDumps(DisableCoreDumps&&) = delete;
+    DisableCoreDumps& operator=(DisableCoreDumps&&) = delete;
+    ~DisableCoreDumps();
 
-  bool IsValid() const noexcept;
-  void Invalidate() noexcept;
+    bool IsValid() const noexcept;
+    void Invalidate() noexcept;
 
- private:
-  class Impl;
+private:
+    class Impl;
 
-  std::unique_ptr<Impl> impl_;
+    std::unique_ptr<Impl> impl_;
 };
 
 }  // namespace utils::impl

@@ -21,19 +21,19 @@ namespace storages::postgres {
 
 /// Object for accessing PostgreSQL database instance (sharded or not)
 class Database {
- public:
-  /// Cluster accessor for default shard number
-  ClusterPtr GetCluster() const;
+public:
+    /// Cluster accessor for default shard number
+    ClusterPtr GetCluster() const;
 
-  /// Cluster accessor for specific shard number
-  ClusterPtr GetClusterForShard(size_t shard) const;
+    /// Cluster accessor for specific shard number
+    ClusterPtr GetClusterForShard(size_t shard) const;
 
-  /// Get total shard count
-  size_t GetShardCount() const { return clusters_.size(); }
+    /// Get total shard count
+    size_t GetShardCount() const { return clusters_.size(); }
 
- private:
-  friend class components::Postgres;
-  std::vector<storages::postgres::ClusterPtr> clusters_;
+private:
+    friend class components::Postgres;
+    std::vector<storages::postgres::ClusterPtr> clusters_;
 };
 
 }  // namespace storages::postgres

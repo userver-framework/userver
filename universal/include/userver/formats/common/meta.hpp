@@ -25,12 +25,10 @@ template <typename Value, typename T>
 using HasParse = decltype(Parse(std::declval<const Value&>(), parse::To<T>{}));
 
 template <typename Value, typename T>
-using HasSerialize =
-    decltype(Serialize(std::declval<const T&>(), serialize::To<Value>{}));
+using HasSerialize = decltype(Serialize(std::declval<const T&>(), serialize::To<Value>{}));
 
 template <typename Value, typename T>
-using HasConvert =
-    decltype(Convert(std::declval<const Value&>(), parse::To<T>{}));
+using HasConvert = decltype(Convert(std::declval<const Value&>(), parse::To<T>{}));
 
 template <typename Value>
 using IsFormatValue = typename Value::ParseException;
@@ -49,8 +47,7 @@ constexpr inline bool kHasConvert = meta::kIsDetected<HasConvert, Value, T>;
 /// Used in `Parse` overloads that are templated on `Value`, avoids clashing
 /// with `Parse` from string
 template <class Value>
-constexpr inline bool kIsFormatValue =
-    meta::kIsDetected<impl::IsFormatValue, Value>;
+constexpr inline bool kIsFormatValue = meta::kIsDetected<impl::IsFormatValue, Value>;
 
 // Unwraps a transient type - tag types, for which ADL-found `Parse` returns
 // another type, not the type specified in `formats::parse::To`. For example,

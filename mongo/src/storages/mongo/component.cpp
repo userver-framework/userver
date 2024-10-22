@@ -21,63 +21,63 @@ namespace {
 const std::string kStandardMongoPrefix = "mongo-";
 
 auto ParsePoolConfig(const ComponentConfig& config) {
-  auto pool_config = config.As<storages::mongo::PoolConfig>();
-  pool_config.Validate(config.Name());
-  return pool_config;
+    auto pool_config = config.As<storages::mongo::PoolConfig>();
+    pool_config.Validate(config.Name());
+    return pool_config;
 }
 
 }  // namespace
 
-Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
-    : ComponentBase(config, context) {
-  auto dbalias = config["dbalias"].As<std::string>("");
+Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context) : ComponentBase(config, context) {
+    auto dbalias = config["dbalias"].As<std::string>("");
 
-  std::string connection_string;
-  if (!dbalias.empty()) {
-    connection_string = storages::mongo::secdist::GetSecdistConnectionString(
-        context.FindComponent<Secdist>().GetStorage(), dbalias);
-  } else {
-    connection_string = config["dbconnection"].As<std::string>();
-  }
+    std::string connection_string;
+    if (!dbalias.empty()) {
+        connection_string = storages::mongo::secdist::GetSecdistConnectionString(
+            context.FindComponent<Secdist>().GetStorage(), dbalias
+        );
+    } else {
+        connection_string = config["dbconnection"].As<std::string>();
+    }
 
-  auto* dns_resolver = clients::dns::GetResolverPtr(config, context);
+    auto* dns_resolver = clients::dns::GetResolverPtr(config, context);
 
-  const auto pool_config = ParsePoolConfig(config);
-  auto config_source = context.FindComponent<DynamicConfig>().GetSource();
+    const auto pool_config = ParsePoolConfig(config);
+    auto config_source = context.FindComponent<DynamicConfig>().GetSource();
 
-  pool_ = std::make_shared<storages::mongo::Pool>(
-      config.Name(), connection_string, pool_config, dns_resolver,
-      config_source);
+    pool_ = std::make_shared<storages::mongo::Pool>(
+        config.Name(), connection_string, pool_config, dns_resolver, config_source
+    );
 
-  pool_->Start();
+    pool_->Start();
 
-  auto& statistics_storage =
-      context.FindComponent<components::StatisticsStorage>();
+    auto& statistics_storage = context.FindComponent<components::StatisticsStorage>();
 
-  auto section_name = config.Name();
-  if (boost::algorithm::starts_with(section_name, kStandardMongoPrefix) &&
-      section_name.size() != kStandardMongoPrefix.size()) {
-    section_name = section_name.substr(kStandardMongoPrefix.size());
-  }
-  statistics_holder_ = statistics_storage.GetStorage().RegisterWriter(
-      "mongo",
-      [this](utils::statistics::Writer& writer) {
-        UASSERT(pool_);
-        writer = *pool_;
-      },
-      {{"mongo_database", section_name}});
+    auto section_name = config.Name();
+    if (boost::algorithm::starts_with(section_name, kStandardMongoPrefix) &&
+        section_name.size() != kStandardMongoPrefix.size()) {
+        section_name = section_name.substr(kStandardMongoPrefix.size());
+    }
+    statistics_holder_ = statistics_storage.GetStorage().RegisterWriter(
+        "mongo",
+        [this](utils::statistics::Writer& writer) {
+            UASSERT(pool_);
+            writer = *pool_;
+        },
+        {{"mongo_database", section_name}}
+    );
 }
 
 Mongo::~Mongo() {
-  pool_->Stop();
+    pool_->Stop();
 
-  statistics_holder_.Unregister();
+    statistics_holder_.Unregister();
 }
 
 storages::mongo::PoolPtr Mongo::GetPool() const { return pool_; }
 
 yaml_config::Schema Mongo::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<MultiMongo>(R"(
+    return yaml_config::MergeSchemas<MultiMongo>(R"(
 type: object
 description: MongoDB client component
 additionalProperties: false
@@ -95,40 +95,33 @@ properties:
 )");
 }
 
-MultiMongo::MultiMongo(const ComponentConfig& config,
-                       const ComponentContext& context)
+MultiMongo::MultiMongo(const ComponentConfig& config, const ComponentContext& context)
     : ComponentBase(config, context),
-      multi_mongo_(config.Name(), context.FindComponent<Secdist>().GetStorage(),
-                   ParsePoolConfig(config),
-                   clients::dns::GetResolverPtr(config, context),
-                   context.FindComponent<DynamicConfig>().GetSource()) {
-  auto& statistics_storage =
-      context.FindComponent<components::StatisticsStorage>();
-  statistics_holder_ = statistics_storage.GetStorage().RegisterWriter(
-      multi_mongo_.GetName(),
-      [this](utils::statistics::Writer& writer) { writer = multi_mongo_; });
+      multi_mongo_(
+          config.Name(),
+          context.FindComponent<Secdist>().GetStorage(),
+          ParsePoolConfig(config),
+          clients::dns::GetResolverPtr(config, context),
+          context.FindComponent<DynamicConfig>().GetSource()
+      ) {
+    auto& statistics_storage = context.FindComponent<components::StatisticsStorage>();
+    statistics_holder_ = statistics_storage.GetStorage().RegisterWriter(
+        multi_mongo_.GetName(), [this](utils::statistics::Writer& writer) { writer = multi_mongo_; }
+    );
 }
 
 MultiMongo::~MultiMongo() { statistics_holder_.Unregister(); }
 
-storages::mongo::PoolPtr MultiMongo::GetPool(const std::string& dbalias) const {
-  return multi_mongo_.GetPool(dbalias);
-}
+storages::mongo::PoolPtr MultiMongo::GetPool(const std::string& dbalias) const { return multi_mongo_.GetPool(dbalias); }
 
-void MultiMongo::AddPool(std::string dbalias) {
-  multi_mongo_.AddPool(std::move(dbalias));
-}
+void MultiMongo::AddPool(std::string dbalias) { multi_mongo_.AddPool(std::move(dbalias)); }
 
-bool MultiMongo::RemovePool(const std::string& dbalias) {
-  return multi_mongo_.RemovePool(dbalias);
-}
+bool MultiMongo::RemovePool(const std::string& dbalias) { return multi_mongo_.RemovePool(dbalias); }
 
-storages::mongo::MultiMongo::PoolSet MultiMongo::NewPoolSet() {
-  return multi_mongo_.NewPoolSet();
-}
+storages::mongo::MultiMongo::PoolSet MultiMongo::NewPoolSet() { return multi_mongo_.NewPoolSet(); }
 
 yaml_config::Schema MultiMongo::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<ComponentBase>(R"(
+    return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: Dynamically configurable MongoDB client component
 additionalProperties: false

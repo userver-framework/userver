@@ -12,15 +12,13 @@ USERVER_NAMESPACE_BEGIN
 namespace chaotic::convert {
 
 template <typename T>
-std::enable_if_t<std::is_integral_v<T>, T> Convert(const std::uint64_t& value,
-                                                   To<T>) {
-  return utils::numeric_cast<T>(value);
+std::enable_if_t<std::is_integral_v<T>, T> Convert(const std::uint64_t& value, To<T>) {
+    return utils::numeric_cast<T>(value);
 }
 
 template <typename T>
-std::enable_if_t<std::is_integral_v<T>, std::uint64_t> Convert(
-    const T& value, To<std::uint64_t>) {
-  return utils::numeric_cast<std::uint64_t>(value);
+std::enable_if_t<std::is_integral_v<T>, std::uint64_t> Convert(const T& value, To<std::uint64_t>) {
+    return utils::numeric_cast<std::uint64_t>(value);
 }
 
 }  // namespace chaotic::convert

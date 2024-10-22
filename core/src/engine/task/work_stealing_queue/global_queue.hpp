@@ -17,56 +17,53 @@ class TaskContext;
 }  // namespace impl
 
 class GlobalQueue final {
- public:
-  struct Token {
-   private:
-    friend GlobalQueue;
-    Token(moodycamel::ConsumerToken&& moodycamel_token, const std::size_t index)
-        : index_(index), moodycamel_token_(std::move(moodycamel_token)) {}
+public:
+    struct Token {
+    private:
+        friend GlobalQueue;
+        Token(moodycamel::ConsumerToken&& moodycamel_token, const std::size_t index)
+            : index_(index), moodycamel_token_(std::move(moodycamel_token)) {}
 
-    const std::size_t index_;
-    moodycamel::ConsumerToken moodycamel_token_;
-  };
+        const std::size_t index_;
+        moodycamel::ConsumerToken moodycamel_token_;
+    };
 
-  explicit GlobalQueue(std::size_t consumers_count);
+    explicit GlobalQueue(std::size_t consumers_count);
 
-  std::size_t GetSizeApproximateDelayed() const noexcept { return size_; }
+    std::size_t GetSizeApproximateDelayed() const noexcept { return size_; }
 
-  std::size_t GetSizeApproximate() const noexcept {
-    return queue_.size_approx();
-  }
+    std::size_t GetSizeApproximate() const noexcept { return queue_.size_approx(); }
 
-  void Push(impl::TaskContext* ctx);
+    void Push(impl::TaskContext* ctx);
 
-  void PushBulk(const utils::span<impl::TaskContext*> buffer);
+    void PushBulk(const utils::span<impl::TaskContext*> buffer);
 
-  void Push(Token& token, impl::TaskContext* ctx);
+    void Push(Token& token, impl::TaskContext* ctx);
 
-  void PushBulk(Token& token, const utils::span<impl::TaskContext*> buffer);
+    void PushBulk(Token& token, const utils::span<impl::TaskContext*> buffer);
 
-  impl::TaskContext* TryPop(Token& token);
+    impl::TaskContext* TryPop(Token& token);
 
-  std::size_t PopBulk(Token& token, utils::span<impl::TaskContext*> buffer);
+    std::size_t PopBulk(Token& token, utils::span<impl::TaskContext*> buffer);
 
-  Token CreateConsumerToken();
+    Token CreateConsumerToken();
 
- private:
-  void DoPush(const std::size_t index,
-              const utils::span<impl::TaskContext*> buffer);
+private:
+    void DoPush(const std::size_t index, const utils::span<impl::TaskContext*> buffer);
 
-  std::int64_t GetCountersSum() const noexcept;
+    std::int64_t GetCountersSum() const noexcept;
 
-  std::int64_t GetCountersSumAndUpdateSize();
+    std::int64_t GetCountersSumAndUpdateSize();
 
-  void UpdateSize(std::optional<std::size_t> size);
+    void UpdateSize(std::optional<std::size_t> size);
 
-  std::size_t GetRandomIndex();
+    std::size_t GetRandomIndex();
 
-  const std::size_t consumers_count_;
-  moodycamel::ConcurrentQueue<impl::TaskContext*> queue_;
-  utils::FixedArray<std::atomic<std::int64_t>> shared_counters_;
-  std::atomic<std::size_t> token_order_{0};
-  std::atomic<std::size_t> size_{0};
+    const std::size_t consumers_count_;
+    moodycamel::ConcurrentQueue<impl::TaskContext*> queue_;
+    utils::FixedArray<std::atomic<std::int64_t>> shared_counters_;
+    std::atomic<std::size_t> token_order_{0};
+    std::atomic<std::size_t> size_{0};
 };
 
 }  // namespace engine

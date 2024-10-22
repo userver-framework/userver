@@ -11,15 +11,13 @@ USERVER_NAMESPACE_BEGIN
 namespace components {
 
 struct ManagerControllerDynamicConfig {
-  static ManagerControllerDynamicConfig Parse(
-      const dynamic_config::DocsMap& docs_map);
+    static ManagerControllerDynamicConfig Parse(const dynamic_config::DocsMap& docs_map);
 
-  engine::TaskProcessorSettings default_settings;
-  std::unordered_map<std::string, engine::TaskProcessorSettings> settings;
+    engine::TaskProcessorSettings default_settings;
+    std::unordered_map<std::string, engine::TaskProcessorSettings> settings;
 };
 
-extern const dynamic_config::Key<ManagerControllerDynamicConfig>
-    kManagerControllerDynamicConfig;
+extern const dynamic_config::Key<ManagerControllerDynamicConfig> kManagerControllerDynamicConfig;
 
 }  // namespace components
 

@@ -10,19 +10,18 @@ namespace chaotic {
 
 template <typename T>
 struct Ref {
-  const utils::Box<formats::common::ParseType<formats::json::Value, T>>& value;
+    const utils::Box<formats::common::ParseType<formats::json::Value, T>>& value;
 };
 
 template <typename Value, typename T>
-utils::Box<formats::common::ParseType<Value, T>> Parse(
-    const Value& value, formats::parse::To<Ref<T>>) {
-  auto result = value.template As<T>();
-  return result;
+utils::Box<formats::common::ParseType<Value, T>> Parse(const Value& value, formats::parse::To<Ref<T>>) {
+    auto result = value.template As<T>();
+    return result;
 }
 
 template <typename Value, typename T>
 Value Serialize(const Ref<T>& ps, formats::serialize::To<Value>) {
-  return typename Value::Builder{T{*ps.value}}.ExtractValue();
+    return typename Value::Builder{T{*ps.value}}.ExtractValue();
 }
 
 }  // namespace chaotic

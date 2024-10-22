@@ -12,116 +12,111 @@
 #include <userver/utest/using_namespace_userver.hpp>
 
 struct HandshakeData {
-  std::string origin;
+    std::string origin;
 };
 
 class WebsocketsHandler final : public server::websocket::WebsocketHandlerBase {
- public:
-  static constexpr std::string_view kName = "websocket-handler";
+public:
+    static constexpr std::string_view kName = "websocket-handler";
 
-  using WebsocketHandlerBase::WebsocketHandlerBase;
+    using WebsocketHandlerBase::WebsocketHandlerBase;
 
-  bool HandleHandshake(
-      const server::http::HttpRequest& request, server::http::HttpResponse&,
-      server::request::RequestContext& context) const override {
-    context.SetUserData(HandshakeData{request.GetHeader("Origin")});
-    return true;
-  }
-
-  void Handle(server::websocket::WebSocketConnection& chat,
-              server::request::RequestContext& context) const override {
-    const auto& origin = context.GetUserData<HandshakeData>().origin;
-    if (!origin.empty()) {
-      chat.Send({origin, {}, true});
+    bool HandleHandshake(
+        const server::http::HttpRequest& request,
+        server::http::HttpResponse&,
+        server::request::RequestContext& context
+    ) const override {
+        context.SetUserData(HandshakeData{request.GetHeader("Origin")});
+        return true;
     }
 
-    server::websocket::Message message;
-    while (!engine::current_task::ShouldCancel()) {
-      chat.Recv(message);
+    void Handle(server::websocket::WebSocketConnection& chat, server::request::RequestContext& context) const override {
+        const auto& origin = context.GetUserData<HandshakeData>().origin;
+        if (!origin.empty()) {
+            chat.Send({origin, {}, true});
+        }
 
-      if (message.close_status) break;
-
-      if (message.data == "close") {
-        chat.Close(server::websocket::CloseStatus::kGoingAway);
-        break;
-      }
-
-      chat.Send(std::move(message));
-    }
-    if (message.close_status) chat.Close(*message.close_status);
-  }
-};
-
-class WebsocketsHandlerAlt final
-    : public server::websocket::WebsocketHandlerBase {
- public:
-  static constexpr std::string_view kName = "websocket-handler-alt";
-
-  using WebsocketHandlerBase::WebsocketHandlerBase;
-
-  void Handle(server::websocket::WebSocketConnection& chat,
-              server::request::RequestContext&) const override {
-    server::websocket::Message message;
-    while (!engine::current_task::ShouldCancel()) {
-      const bool msgIsReceived = chat.TryRecv(message);
-      if (msgIsReceived) {
-        if (message.close_status) break;
-        chat.Send(std::move(message));
-      } else {
-        // we could've sent yet another server::websocket::Message
-        // e.g. chat.SendBinary(server::websocket::Message{ "blah", {}, true });
-      }
-    }
-    if (message.close_status) chat.Close(*message.close_status);
-  }
-};
-
-class WebsocketsFullDuplexHandler final
-    : public server::websocket::WebsocketHandlerBase {
- public:
-  static constexpr std::string_view kName = "websocket-duplex-handler";
-
-  using WebsocketHandlerBase::WebsocketHandlerBase;
-
-  void Handle(server::websocket::WebSocketConnection& chat,
-              server::request::RequestContext&) const override {
-    // Some sync data
-    auto queue = concurrent::SpscQueue<std::string>::Create();
-
-    auto reader =
-        utils::Async("reader", [&chat, producer = queue->GetProducer()] {
-          server::websocket::Message message;
-          while (!engine::current_task::ShouldCancel()) {
+        server::websocket::Message message;
+        while (!engine::current_task::ShouldCancel()) {
             chat.Recv(message);
+
             if (message.close_status) break;
-            [[maybe_unused]] auto ret = producer.Push(std::move(message.data));
-          }
+
+            if (message.data == "close") {
+                chat.Close(server::websocket::CloseStatus::kGoingAway);
+                break;
+            }
+
+            chat.Send(std::move(message));
+        }
+        if (message.close_status) chat.Close(*message.close_status);
+    }
+};
+
+class WebsocketsHandlerAlt final : public server::websocket::WebsocketHandlerBase {
+public:
+    static constexpr std::string_view kName = "websocket-handler-alt";
+
+    using WebsocketHandlerBase::WebsocketHandlerBase;
+
+    void Handle(server::websocket::WebSocketConnection& chat, server::request::RequestContext&) const override {
+        server::websocket::Message message;
+        while (!engine::current_task::ShouldCancel()) {
+            const bool msgIsReceived = chat.TryRecv(message);
+            if (msgIsReceived) {
+                if (message.close_status) break;
+                chat.Send(std::move(message));
+            } else {
+                // we could've sent yet another server::websocket::Message
+                // e.g. chat.SendBinary(server::websocket::Message{ "blah", {}, true });
+            }
+        }
+        if (message.close_status) chat.Close(*message.close_status);
+    }
+};
+
+class WebsocketsFullDuplexHandler final : public server::websocket::WebsocketHandlerBase {
+public:
+    static constexpr std::string_view kName = "websocket-duplex-handler";
+
+    using WebsocketHandlerBase::WebsocketHandlerBase;
+
+    void Handle(server::websocket::WebSocketConnection& chat, server::request::RequestContext&) const override {
+        // Some sync data
+        auto queue = concurrent::SpscQueue<std::string>::Create();
+
+        auto reader = utils::Async("reader", [&chat, producer = queue->GetProducer()] {
+            server::websocket::Message message;
+            while (!engine::current_task::ShouldCancel()) {
+                chat.Recv(message);
+                if (message.close_status) break;
+                [[maybe_unused]] auto ret = producer.Push(std::move(message.data));
+            }
         });
 
-    auto writer =
-        utils::Async("writer", [&chat, consumer = queue->GetConsumer()] {
-          while (!engine::current_task::ShouldCancel()) {
-            std::string msg;
-            if (!consumer.Pop(msg)) break;
-            chat.SendBinary(msg);
-          }
+        auto writer = utils::Async("writer", [&chat, consumer = queue->GetConsumer()] {
+            while (!engine::current_task::ShouldCancel()) {
+                std::string msg;
+                if (!consumer.Pop(msg)) break;
+                chat.SendBinary(msg);
+            }
         });
 
-    queue.reset();
+        queue.reset();
 
-    reader.Get();
-    writer.Get();
-  }
+        reader.Get();
+        writer.Get();
+    }
 };
 
 int main(int argc, char* argv[]) {
-  const auto component_list = components::MinimalServerComponentList()
-                                  .Append<WebsocketsHandler>()
-                                  .Append<WebsocketsHandlerAlt>()
-                                  .Append<WebsocketsFullDuplexHandler>()
-                                  .Append<clients::dns::Component>()
-                                  .Append<components::HttpClient>()
-                                  .Append<components::TestsuiteSupport>()
-                                  .Append<server::handlers::TestsControl>();
-  return utils::DaemonMain(argc, argv, component_list);
+    const auto component_list = components::MinimalServerComponentList()
+                                    .Append<WebsocketsHandler>()
+                                    .Append<WebsocketsHandlerAlt>()
+                                    .Append<WebsocketsFullDuplexHandler>()
+                                    .Append<clients::dns::Component>()
+                                    .Append<components::HttpClient>()
+                                    .Append<components::TestsuiteSupport>()
+                                    .Append<server::handlers::TestsControl>();
+    return utils::DaemonMain(argc, argv, component_list);
 }

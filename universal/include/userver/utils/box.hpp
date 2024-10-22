@@ -19,17 +19,15 @@ namespace utils {
 namespace impl {
 
 template <typename Self, typename... Args>
-inline constexpr bool kArgsAreNotSelf =
-    ((sizeof...(Args) > 1) || ... || !std::is_same_v<std::decay_t<Args>, Self>);
+inline constexpr bool kArgsAreNotSelf = ((sizeof...(Args) > 1) || ... || !std::is_same_v<std::decay_t<Args>, Self>);
 
-template <bool Condition, template <typename...> typename Trait,
-          typename... Args>
+template <bool Condition, template <typename...> typename Trait, typename... Args>
 constexpr bool ConjunctionWithTrait() noexcept {
-  if constexpr (Condition) {
-    return Trait<Args...>::value;
-  } else {
-    return false;
-  }
+    if constexpr (Condition) {
+        return Trait<Args...>::value;
+    } else {
+        return false;
+    }
 }
 
 }  // namespace impl
@@ -54,135 +52,146 @@ constexpr bool ConjunctionWithTrait() noexcept {
 /// @snippet utils/box_test.cpp  sample
 template <typename T>
 class Box {
- public:
-  /// Allocate a default-constructed value.
-  // Would like to use SFINAE here, but std::optional<Box> requests tests for
-  // default construction eagerly, which errors out for a forward-declared T.
-  Box() : data_(std::make_unique<T>()) {}
+public:
+    /// Allocate a default-constructed value.
+    // Would like to use SFINAE here, but std::optional<Box> requests tests for
+    // default construction eagerly, which errors out for a forward-declared T.
+    Box() : data_(std::make_unique<T>()) {}
 
-  /// Allocate a `T`, copying or moving @a arg.
-  template <typename U = T,
-            std::enable_if_t<impl::ConjunctionWithTrait<
-                                 // Protection against hiding special
-                                 // constructors.
-                                 impl::kArgsAreNotSelf<Box, U>,
-                                 // Only allow the implicit conversion to Box<T>
-                                 // if U is implicitly convertible to T. Also,
-                                 // support SFINAE.
-                                 std::is_convertible, U&&, T>(),
-                             int> = 0>
-  /*implicit*/ Box(U&& arg)
-      : data_(std::make_unique<T>(std::forward<U>(arg))) {}
+    /// Allocate a `T`, copying or moving @a arg.
+    template <
+        typename U = T,
+        std::enable_if_t<
+            impl::ConjunctionWithTrait<
+                // Protection against hiding special
+                // constructors.
+                impl::kArgsAreNotSelf<Box, U>,
+                // Only allow the implicit conversion to Box<T>
+                // if U is implicitly convertible to T. Also,
+                // support SFINAE.
+                std::is_convertible,
+                U&&,
+                T>(),
+            int> = 0>
+    /*implicit*/ Box(U&& arg) : data_(std::make_unique<T>(std::forward<U>(arg))) {}
 
-  /// Allocate the value, emplacing it with the given @a args.
-  template <typename... Args,
-            std::enable_if_t<impl::ConjunctionWithTrait<
-                                 // Protection against hiding special
-                                 // constructors.
-                                 impl::kArgsAreNotSelf<Box, Args...>,
-                                 // Support SFINAE.
-                                 std::is_constructible, T, Args&&...>(),
-                             int> = 0>
-  explicit Box(Args&&... args)
-      : data_(std::make_unique<T>(std::forward<Args>(args)...)) {}
+    /// Allocate the value, emplacing it with the given @a args.
+    template <
+        typename... Args,
+        std::enable_if_t<
+            impl::ConjunctionWithTrait<
+                // Protection against hiding special
+                // constructors.
+                impl::kArgsAreNotSelf<Box, Args...>,
+                // Support SFINAE.
+                std::is_constructible,
+                T,
+                Args&&...>(),
+            int> = 0>
+    explicit Box(Args&&... args) : data_(std::make_unique<T>(std::forward<Args>(args)...)) {}
 
-  /// Allocate the value as constructed by the given @a factory.
-  /// Allows to save an extra move of the contained value.
-  template <typename Factory>
-  static Box MakeWithFactory(Factory&& factory) {
-    return Box(EmplaceFactory{}, std::forward<Factory>(factory));
-  }
-
-  Box(Box&& other) noexcept = default;
-  Box& operator=(Box&& other) noexcept = default;
-
-  Box(const Box& other) : data_(std::make_unique<T>(*other)) {}
-
-  Box& operator=(const Box& other) {
-    *this = Box{other};
-    return *this;
-  }
-
-  /// Assigns-through to the contained value.
-  template <typename U = T,
-            std::enable_if_t<impl::ConjunctionWithTrait<  //
-                                 impl::ConjunctionWithTrait<
-                                     // Protection against hiding
-                                     // special constructors.
-                                     impl::kArgsAreNotSelf<Box, U>,
-                                     // Support SFINAE.
-                                     std::is_constructible, T, U>(),
-                                 std::is_assignable, T&, U>(),
-                             int> = 0>
-  Box& operator=(U&& other) {
-    if (data_) {
-      *data_ = std::forward<U>(other);
-    } else {
-      data_ = std::make_unique<T>(std::forward<U>(other));
+    /// Allocate the value as constructed by the given @a factory.
+    /// Allows to save an extra move of the contained value.
+    template <typename Factory>
+    static Box MakeWithFactory(Factory&& factory) {
+        return Box(EmplaceFactory{}, std::forward<Factory>(factory));
     }
-    return *this;
-  }
 
-  // Box is always engaged, unless moved-from. Just call *box.
-  /*implicit*/ operator bool() const = delete;
+    Box(Box&& other) noexcept = default;
+    Box& operator=(Box&& other) noexcept = default;
 
-  T* operator->() noexcept { return Get(); }
-  const T* operator->() const noexcept { return Get(); }
+    Box(const Box& other) : data_(std::make_unique<T>(*other)) {}
 
-  T& operator*() noexcept { return *Get(); }
-  const T& operator*() const noexcept { return *Get(); }
+    Box& operator=(const Box& other) {
+        *this = Box{other};
+        return *this;
+    }
 
-  bool operator==(const Box& other) const { return **this == *other; }
+    /// Assigns-through to the contained value.
+    template <
+        typename U = T,
+        std::enable_if_t<
+            impl::ConjunctionWithTrait<  //
+                impl::ConjunctionWithTrait<
+                    // Protection against hiding
+                    // special constructors.
+                    impl::kArgsAreNotSelf<Box, U>,
+                    // Support SFINAE.
+                    std::is_constructible,
+                    T,
+                    U>(),
+                std::is_assignable,
+                T&,
+                U>(),
+            int> = 0>
+    Box& operator=(U&& other) {
+        if (data_) {
+            *data_ = std::forward<U>(other);
+        } else {
+            data_ = std::make_unique<T>(std::forward<U>(other));
+        }
+        return *this;
+    }
 
-  bool operator!=(const Box& other) const { return **this != *other; }
+    // Box is always engaged, unless moved-from. Just call *box.
+    /*implicit*/ operator bool() const = delete;
 
-  bool operator<(const Box& other) const { return **this < *other; }
+    T* operator->() noexcept { return Get(); }
+    const T* operator->() const noexcept { return Get(); }
 
-  bool operator>(const Box& other) const { return **this > *other; }
+    T& operator*() noexcept { return *Get(); }
+    const T& operator*() const noexcept { return *Get(); }
 
-  bool operator<=(const Box& other) const { return **this <= *other; }
+    bool operator==(const Box& other) const { return **this == *other; }
 
-  bool operator>=(const Box& other) const { return **this >= *other; }
+    bool operator!=(const Box& other) const { return **this != *other; }
 
- private:
-  struct EmplaceFactory final {};
+    bool operator<(const Box& other) const { return **this < *other; }
 
-  template <typename Factory>
-  explicit Box(EmplaceFactory, Factory&& factory)
-      : data_(new T(std::forward<Factory>(factory)())) {}
+    bool operator>(const Box& other) const { return **this > *other; }
 
-  T* Get() noexcept {
-    UASSERT_MSG(data_, "Accessing a moved-from Box");
-    return data_.get();
-  }
+    bool operator<=(const Box& other) const { return **this <= *other; }
 
-  const T* Get() const noexcept {
-    UASSERT_MSG(data_, "Accessing a moved-from Box");
-    return data_.get();
-  }
+    bool operator>=(const Box& other) const { return **this >= *other; }
 
-  std::unique_ptr<T> data_;
+private:
+    struct EmplaceFactory final {};
+
+    template <typename Factory>
+    explicit Box(EmplaceFactory, Factory&& factory) : data_(new T(std::forward<Factory>(factory)())) {}
+
+    T* Get() noexcept {
+        UASSERT_MSG(data_, "Accessing a moved-from Box");
+        return data_.get();
+    }
+
+    const T* Get() const noexcept {
+        UASSERT_MSG(data_, "Accessing a moved-from Box");
+        return data_.get();
+    }
+
+    std::unique_ptr<T> data_;
 };
 
 template <typename Value, typename T>
 Box<T> Parse(const Value& value, formats::parse::To<Box<T>>) {
-  return Box<T>::MakeWithFactory([&value] { return value.template As<T>(); });
+    return Box<T>::MakeWithFactory([&value] { return value.template As<T>(); });
 }
 
 template <typename Value, typename T>
 Value Serialize(const Box<T>& value, formats::serialize::To<Value>) {
-  return Serialize(*value, formats::serialize::To<Value>{});
+    return Serialize(*value, formats::serialize::To<Value>{});
 }
 
 template <typename StringBuilder, typename T>
 void WriteToStream(const Box<T>& value, StringBuilder& sw) {
-  WriteToStream(*value, sw);
+    WriteToStream(*value, sw);
 }
 
 template <typename T>
 logging::LogHelper& operator<<(logging::LogHelper& lh, const Box<T>& box) {
-  lh << *box;
-  return lh;
+    lh << *box;
+    return lh;
 }
 
 }  // namespace utils

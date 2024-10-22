@@ -61,24 +61,21 @@ namespace server::handlers {
 
 // clang-format on
 class DynamicDebugLog final : public HttpHandlerBase {
- public:
-  DynamicDebugLog(const components::ComponentConfig& config,
-                  const components::ComponentContext& component_context);
+public:
+    DynamicDebugLog(const components::ComponentConfig& config, const components::ComponentContext& component_context);
 
-  /// @ingroup userver_component_names
-  /// @brief The default name of server::handlers::DynamicDebugLog
-  static constexpr std::string_view kName = "handler-dynamic-debug-log";
+    /// @ingroup userver_component_names
+    /// @brief The default name of server::handlers::DynamicDebugLog
+    static constexpr std::string_view kName = "handler-dynamic-debug-log";
 
-  std::string HandleRequestThrow(const http::HttpRequest& request,
-                                 request::RequestContext&) const override;
+    std::string HandleRequestThrow(const http::HttpRequest& request, request::RequestContext&) const override;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 };
 
 }  // namespace server::handlers
 
 template <>
-inline constexpr bool
-    components::kHasValidate<server::handlers::DynamicDebugLog> = true;
+inline constexpr bool components::kHasValidate<server::handlers::DynamicDebugLog> = true;
 
 USERVER_NAMESPACE_END

@@ -14,16 +14,16 @@ namespace ugrpc::server {
 /// If any method throws, further methods must not be called on the same stream.
 template <class Request>
 class Reader {
- public:
-  /// @cond
-  virtual ~Reader() = default;
-  /// @endcond
+public:
+    /// @cond
+    virtual ~Reader() = default;
+    /// @endcond
 
-  /// @brief Await and read the next incoming message
-  /// @param request where to put the request on success
-  /// @returns `true` on success, `false` on end-of-input
-  /// @throws ugrpc::server::RpcError on an RPC error
-  [[nodiscard]] virtual bool Read(Request& request) = 0;
+    /// @brief Await and read the next incoming message
+    /// @param request where to put the request on success
+    /// @returns `true` on success, `false` on end-of-input
+    /// @throws ugrpc::server::RpcError on an RPC error
+    [[nodiscard]] virtual bool Read(Request& request) = 0;
 };
 
 /// @brief Interface to write server's responses.
@@ -33,20 +33,20 @@ class Reader {
 /// If any method throws, further methods must not be called on the same stream.
 template <class Response>
 class Writer {
- public:
-  /// @cond
-  virtual ~Writer() = default;
-  /// @endcond
+public:
+    /// @cond
+    virtual ~Writer() = default;
+    /// @endcond
 
-  /// @brief Write the next outgoing message
-  /// @param response the next message to write
-  /// @throws ugrpc::server::RpcError on an RPC error
-  virtual void Write(Response& response) = 0;
+    /// @brief Write the next outgoing message
+    /// @param response the next message to write
+    /// @throws ugrpc::server::RpcError on an RPC error
+    virtual void Write(Response& response) = 0;
 
-  /// @brief Write the next outgoing message
-  /// @param response the next message to write
-  /// @throws ugrpc::server::RpcError on an RPC error
-  virtual void Write(Response&& response) = 0;
+    /// @brief Write the next outgoing message
+    /// @param response the next message to write
+    /// @throws ugrpc::server::RpcError on an RPC error
+    virtual void Write(Response&& response) = 0;
 };
 
 /// @brief Interface to both read and write messages.

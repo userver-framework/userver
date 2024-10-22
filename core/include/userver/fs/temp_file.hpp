@@ -23,42 +23,39 @@ namespace fs {
 /// @note The newly created file is immediately opened with read-write
 /// permissions. The file descriptor can be accessed using `File`.
 class TempFile final {
- public:
-  /// @brief Create the file at the default path for temporary files
-  /// @throws std::runtime_error
-  static TempFile Create(engine::TaskProcessor& fs_task_processor);
+public:
+    /// @brief Create the file at the default path for temporary files
+    /// @throws std::runtime_error
+    static TempFile Create(engine::TaskProcessor& fs_task_processor);
 
-  /// @brief Create the file at the specified path
-  /// @param parent_path The directory where the temporary file will be created
-  /// @param name_prefix File name prefix, a random string will be added
-  /// after the prefix
-  /// @throws std::runtime_error
-  static TempFile Create(std::string_view parent_path,
-                         std::string_view name_prefix,
-                         engine::TaskProcessor& fs_task_processor);
+    /// @brief Create the file at the specified path
+    /// @param parent_path The directory where the temporary file will be created
+    /// @param name_prefix File name prefix, a random string will be added
+    /// after the prefix
+    /// @throws std::runtime_error
+    static TempFile
+    Create(std::string_view parent_path, std::string_view name_prefix, engine::TaskProcessor& fs_task_processor);
 
-  TempFile() = delete;
-  TempFile(TempFile&& other) noexcept = default;
-  TempFile& operator=(TempFile&& other) noexcept = default;
-  ~TempFile();
+    TempFile() = delete;
+    TempFile(TempFile&& other) noexcept = default;
+    TempFile& operator=(TempFile&& other) noexcept = default;
+    ~TempFile();
 
-  /// Take ownership of an existing file
-  static TempFile Adopt(std::string path,
-                        engine::TaskProcessor& fs_task_processor);
+    /// Take ownership of an existing file
+    static TempFile Adopt(std::string path, engine::TaskProcessor& fs_task_processor);
 
-  /// The file path
-  const std::string& GetPath() const;
+    /// The file path
+    const std::string& GetPath() const;
 
-  /// @brief Remove the file early
-  /// @throws std::runtime_error
-  void Remove() &&;
+    /// @brief Remove the file early
+    /// @throws std::runtime_error
+    void Remove() &&;
 
- private:
-  TempFile(engine::TaskProcessor& fs_task_processor,
-           fs::blocking::TempFile temp_file);
+private:
+    TempFile(engine::TaskProcessor& fs_task_processor, fs::blocking::TempFile temp_file);
 
-  utils::NotNull<engine::TaskProcessor*> fs_task_processor_;
-  fs::blocking::TempFile temp_file_;
+    utils::NotNull<engine::TaskProcessor*> fs_task_processor_;
+    fs::blocking::TempFile temp_file_;
 };
 
 }  // namespace fs

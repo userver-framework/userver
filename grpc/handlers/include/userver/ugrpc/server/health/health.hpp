@@ -10,14 +10,13 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::server {
 
 class HealthHandler final : public grpc::health::v1::HealthBase {
- public:
-  explicit HealthHandler(const components::ComponentContext& context);
+public:
+    explicit HealthHandler(const components::ComponentContext& context);
 
-  CheckResult Check(CallContext& context,
-                    ::grpc::health::v1::HealthCheckRequest&& request) override;
+    CheckResult Check(CallContext& context, ::grpc::health::v1::HealthCheckRequest&& request) override;
 
- private:
-  const components::State components_;
+private:
+    const components::State components_;
 };
 
 }  // namespace ugrpc::server

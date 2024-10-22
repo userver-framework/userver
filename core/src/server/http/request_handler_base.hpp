@@ -12,16 +12,15 @@ USERVER_NAMESPACE_BEGIN
 namespace server::http {
 
 class RequestHandlerBase {
- public:
-  virtual ~RequestHandlerBase() noexcept;
+public:
+    virtual ~RequestHandlerBase() noexcept;
 
-  virtual engine::TaskWithResult<void> StartRequestTask(
-      std::shared_ptr<request::RequestBase> request) const = 0;
+    virtual engine::TaskWithResult<void> StartRequestTask(std::shared_ptr<request::RequestBase> request) const = 0;
 
-  virtual const HandlerInfoIndex& GetHandlerInfoIndex() const = 0;
+    virtual const HandlerInfoIndex& GetHandlerInfoIndex() const = 0;
 
-  virtual const logging::LoggerPtr& LoggerAccess() const noexcept = 0;
-  virtual const logging::LoggerPtr& LoggerAccessTskv() const noexcept = 0;
+    virtual const logging::LoggerPtr& LoggerAccess() const noexcept = 0;
+    virtual const logging::LoggerPtr& LoggerAccessTskv() const noexcept = 0;
 };
 
 }  // namespace server::http

@@ -22,27 +22,27 @@
 #include <userver/utils/strong_typedef.hpp>
 
 class UserPasswords {
- public:
-  using Password = utils::NonLoggable<class PasswordTag, std::string>;
+public:
+    using Password = utils::NonLoggable<class PasswordTag, std::string>;
 
-  UserPasswords(const formats::json::Value& doc)
-      : user_passwords_(doc["user-passwords"].As<std::optional<Storage>>()) {}
+    UserPasswords(const formats::json::Value& doc)
+        : user_passwords_(doc["user-passwords"].As<std::optional<Storage>>()) {}
 
-  bool IsMatching(const std::string& user, const Password& password) const {
-    if (!user_passwords_.has_value()) {
-      throw std::runtime_error(
-          "User passwords storage is missing. Field 'user-passwords' was "
-          "missing in json.");
+    bool IsMatching(const std::string& user, const Password& password) const {
+        if (!user_passwords_.has_value()) {
+            throw std::runtime_error(
+                "User passwords storage is missing. Field 'user-passwords' was "
+                "missing in json."
+            );
+        }
+
+        const auto* ptr = utils::FindOrNullptr(user_passwords_.value(), user);
+        return ptr && crypto::algorithm::AreStringsEqualConstTime(ptr->GetUnderlying(), password.GetUnderlying());
     }
 
-    const auto* ptr = utils::FindOrNullptr(user_passwords_.value(), user);
-    return ptr && crypto::algorithm::AreStringsEqualConstTime(
-                      ptr->GetUnderlying(), password.GetUnderlying());
-  }
-
- private:
-  using Storage = std::unordered_map<std::string, Password>;
-  std::optional<Storage> user_passwords_;
+private:
+    using Storage = std::unordered_map<std::string, Password>;
+    std::optional<Storage> user_passwords_;
 };
 /// [UserPasswords]
 
@@ -70,64 +70,61 @@ const std::string kSecdistYaml =
 }  // namespace
 
 TEST(SecdistConfig, Sample) {
-  auto temp_file = fs::blocking::TempFile::Create();
-  fs::blocking::RewriteFileContents(temp_file.GetPath(), kSecdistJson);
+    auto temp_file = fs::blocking::TempFile::Create();
+    fs::blocking::RewriteFileContents(temp_file.GetPath(), kSecdistJson);
 
-  storages::secdist::DefaultLoader provider{
-      {temp_file.GetPath(), storages::secdist::SecdistFormat::kJson, false,
-       std::nullopt}};
-  storages::secdist::SecdistConfig secdist_config{{&provider}};
-  /// [Secdist Usage Sample - SecdistConfig]
-  const auto& user_passwords = secdist_config.Get<UserPasswords>();
+    storages::secdist::DefaultLoader provider{
+        {temp_file.GetPath(), storages::secdist::SecdistFormat::kJson, false, std::nullopt}};
+    storages::secdist::SecdistConfig secdist_config{{&provider}};
+    /// [Secdist Usage Sample - SecdistConfig]
+    const auto& user_passwords = secdist_config.Get<UserPasswords>();
 
-  const auto password = UserPasswords::Password{"password"};
-  EXPECT_TRUE(user_passwords.IsMatching("username", password));
-  EXPECT_FALSE(user_passwords.IsMatching("username2", password));
-  /// [Secdist Usage Sample - SecdistConfig]
+    const auto password = UserPasswords::Password{"password"};
+    EXPECT_TRUE(user_passwords.IsMatching("username", password));
+    EXPECT_FALSE(user_passwords.IsMatching("username2", password));
+    /// [Secdist Usage Sample - SecdistConfig]
 }
 
 TEST(SecdistYamlConfig, Sample) {
-  auto temp_file = fs::blocking::TempFile::Create();
-  fs::blocking::RewriteFileContents(temp_file.GetPath(), kSecdistYaml);
+    auto temp_file = fs::blocking::TempFile::Create();
+    fs::blocking::RewriteFileContents(temp_file.GetPath(), kSecdistYaml);
 
-  storages::secdist::DefaultLoader provider{
-      {temp_file.GetPath(), storages::secdist::SecdistFormat::kYaml, false,
-       std::nullopt}};
-  storages::secdist::SecdistConfig secdist_config{{&provider}};
+    storages::secdist::DefaultLoader provider{
+        {temp_file.GetPath(), storages::secdist::SecdistFormat::kYaml, false, std::nullopt}};
+    storages::secdist::SecdistConfig secdist_config{{&provider}};
 
-  const auto& user_passwords = secdist_config.Get<UserPasswords>();
+    const auto& user_passwords = secdist_config.Get<UserPasswords>();
 
-  const auto password = UserPasswords::Password{"drowssap"};
-  const auto another_password = UserPasswords::Password{"drowssap rehtona"};
-  EXPECT_TRUE(user_passwords.IsMatching("username", password));
-  EXPECT_FALSE(user_passwords.IsMatching("username2", password));
-  EXPECT_TRUE(user_passwords.IsMatching("another username", another_password));
+    const auto password = UserPasswords::Password{"drowssap"};
+    const auto another_password = UserPasswords::Password{"drowssap rehtona"};
+    EXPECT_TRUE(user_passwords.IsMatching("username", password));
+    EXPECT_FALSE(user_passwords.IsMatching("username2", password));
+    EXPECT_TRUE(user_passwords.IsMatching("another username", another_password));
 }
 
 UTEST(SecdistConfig, EnvironmentVariable) {
-  static const std::string kVarName = "SECRET";
+    static const std::string kVarName = "SECRET";
 
-  // NOLINTNEXTLINE(concurrency-mt-unsafe)
-  ASSERT_EQ(setenv(kVarName.c_str(), kSecdistJson.c_str(), 1), 0);
-  engine::subprocess::UpdateCurrentEnvironmentVariables();
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    ASSERT_EQ(setenv(kVarName.c_str(), kSecdistJson.c_str(), 1), 0);
+    engine::subprocess::UpdateCurrentEnvironmentVariables();
 
-  storages::secdist::DefaultLoader provider{
-      {"", storages::secdist::SecdistFormat::kJson, false, kVarName}};
-  storages::secdist::SecdistConfig secdist_config{{&provider}};
+    storages::secdist::DefaultLoader provider{{"", storages::secdist::SecdistFormat::kJson, false, kVarName}};
+    storages::secdist::SecdistConfig secdist_config{{&provider}};
 
-  const auto& user_passwords = secdist_config.Get<UserPasswords>();
+    const auto& user_passwords = secdist_config.Get<UserPasswords>();
 
-  const auto password = UserPasswords::Password{"password"};
-  EXPECT_TRUE(user_passwords.IsMatching("username", password));
-  EXPECT_FALSE(user_passwords.IsMatching("username2", password));
-  // NOLINTNEXTLINE(concurrency-mt-unsafe)
-  ASSERT_EQ(unsetenv(kVarName.c_str()), 0);
+    const auto password = UserPasswords::Password{"password"};
+    EXPECT_TRUE(user_passwords.IsMatching("username", password));
+    EXPECT_FALSE(user_passwords.IsMatching("username2", password));
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    ASSERT_EQ(unsetenv(kVarName.c_str()), 0);
 
-  engine::subprocess::UpdateCurrentEnvironmentVariables();
+    engine::subprocess::UpdateCurrentEnvironmentVariables();
 }
 
 UTEST(SecdistConfig, FileAndEnvironmentVariable) {
-  const std::string kSecdistFileJson = R"~(
+    const std::string kSecdistFileJson = R"~(
   {
       "user-passwords": {
           "username": "password_old",
@@ -136,7 +133,7 @@ UTEST(SecdistConfig, FileAndEnvironmentVariable) {
   }
   )~";
 
-  const std::string kSecdistEnvVarJson = R"~(
+    const std::string kSecdistEnvVarJson = R"~(
   {
       "user-passwords": {
           "username": "password_updated",
@@ -145,55 +142,53 @@ UTEST(SecdistConfig, FileAndEnvironmentVariable) {
   }
   )~";
 
-  auto temp_file = fs::blocking::TempFile::Create();
-  fs::blocking::RewriteFileContents(temp_file.GetPath(), kSecdistFileJson);
+    auto temp_file = fs::blocking::TempFile::Create();
+    fs::blocking::RewriteFileContents(temp_file.GetPath(), kSecdistFileJson);
 
-  static const std::string kVarName = "SECRET";
+    static const std::string kVarName = "SECRET";
 
-  // NOLINTNEXTLINE(concurrency-mt-unsafe)
-  ASSERT_EQ(setenv(kVarName.c_str(), kSecdistEnvVarJson.c_str(), 1), 0);
-  engine::subprocess::UpdateCurrentEnvironmentVariables();
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    ASSERT_EQ(setenv(kVarName.c_str(), kSecdistEnvVarJson.c_str(), 1), 0);
+    engine::subprocess::UpdateCurrentEnvironmentVariables();
 
-  storages::secdist::DefaultLoader provider{
-      {temp_file.GetPath(), storages::secdist::SecdistFormat::kJson, false,
-       kVarName}};
-  storages::secdist::SecdistConfig secdist_config{{&provider}};
+    storages::secdist::DefaultLoader provider{
+        {temp_file.GetPath(), storages::secdist::SecdistFormat::kJson, false, kVarName}};
+    storages::secdist::SecdistConfig secdist_config{{&provider}};
 
-  const auto& user_passwords = secdist_config.Get<UserPasswords>();
+    const auto& user_passwords = secdist_config.Get<UserPasswords>();
 
-  const auto password = UserPasswords::Password{"password_updated"};
-  const auto another_password = UserPasswords::Password{"another password"};
-  const auto password_xyz = UserPasswords::Password{"xyz"};
-  EXPECT_TRUE(user_passwords.IsMatching("username", password));
-  EXPECT_FALSE(user_passwords.IsMatching("username2", password));
-  EXPECT_TRUE(user_passwords.IsMatching("username_new", password_xyz));
-  EXPECT_TRUE(user_passwords.IsMatching("another username", another_password));
+    const auto password = UserPasswords::Password{"password_updated"};
+    const auto another_password = UserPasswords::Password{"another password"};
+    const auto password_xyz = UserPasswords::Password{"xyz"};
+    EXPECT_TRUE(user_passwords.IsMatching("username", password));
+    EXPECT_FALSE(user_passwords.IsMatching("username2", password));
+    EXPECT_TRUE(user_passwords.IsMatching("username_new", password_xyz));
+    EXPECT_TRUE(user_passwords.IsMatching("another username", another_password));
 
-  // NOLINTNEXTLINE(concurrency-mt-unsafe)
-  ASSERT_EQ(unsetenv(kVarName.c_str()), 0);
-  engine::subprocess::UpdateCurrentEnvironmentVariables();
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    ASSERT_EQ(unsetenv(kVarName.c_str()), 0);
+    engine::subprocess::UpdateCurrentEnvironmentVariables();
 }
 
 UTEST(Secdist, WithoutUpdates) {
-  auto temp_file = fs::blocking::TempFile::Create();
-  fs::blocking::RewriteFileContents(temp_file.GetPath(), kSecdistJson);
+    auto temp_file = fs::blocking::TempFile::Create();
+    fs::blocking::RewriteFileContents(temp_file.GetPath(), kSecdistJson);
 
-  storages::secdist::DefaultLoader provider{
-      {temp_file.GetPath(), storages::secdist::SecdistFormat::kJson, false,
-       std::nullopt}};
-  storages::secdist::Secdist secdist{{&provider}};
+    storages::secdist::DefaultLoader provider{
+        {temp_file.GetPath(), storages::secdist::SecdistFormat::kJson, false, std::nullopt}};
+    storages::secdist::Secdist secdist{{&provider}};
 
-  const auto& secdist_config = secdist.Get();
+    const auto& secdist_config = secdist.Get();
 
-  const auto& user_passwords = secdist_config.Get<UserPasswords>();
+    const auto& user_passwords = secdist_config.Get<UserPasswords>();
 
-  const auto password = UserPasswords::Password{"password"};
-  EXPECT_TRUE(user_passwords.IsMatching("username", password));
-  EXPECT_FALSE(user_passwords.IsMatching("username2", password));
+    const auto password = UserPasswords::Password{"password"};
+    EXPECT_TRUE(user_passwords.IsMatching("username", password));
+    EXPECT_FALSE(user_passwords.IsMatching("username2", password));
 }
 
 UTEST(Secdist, DynamicUpdate) {
-  const std::string kSecdistInitJson = R"~(
+    const std::string kSecdistInitJson = R"~(
   {
       "user-passwords": {
           "username": "password_old",
@@ -202,7 +197,7 @@ UTEST(Secdist, DynamicUpdate) {
   }
   )~";
 
-  const std::string kSecdistUpdateJson = R"~(
+    const std::string kSecdistUpdateJson = R"~(
   {
       "user-passwords": {
           "username": "password_updated",
@@ -211,80 +206,78 @@ UTEST(Secdist, DynamicUpdate) {
   }
   )~";
 
-  struct SecdistConfigStorage {
-    void OnSecdistUpdate(
-        const storages::secdist::SecdistConfig& secdist_config_update) {
-      if (updates_counter == 1) {
-        // prevents test flaps
-        while (!file_updated.load()) {
-          engine::SleepFor(std::chrono::milliseconds(1));
-        }
-      }
+    struct SecdistConfigStorage {
+        void OnSecdistUpdate(const storages::secdist::SecdistConfig& secdist_config_update) {
+            if (updates_counter == 1) {
+                // prevents test flaps
+                while (!file_updated.load()) {
+                    engine::SleepFor(std::chrono::milliseconds(1));
+                }
+            }
 
-      if (updates_counter < 2) secdist_config = secdist_config_update;
-      updates_counter++;
+            if (updates_counter < 2) secdist_config = secdist_config_update;
+            updates_counter++;
+        };
+
+        storages::secdist::SecdistConfig secdist_config;
+        std::atomic<int> updates_counter{0};
+        std::atomic<bool> file_updated{false};
     };
 
-    storages::secdist::SecdistConfig secdist_config;
-    std::atomic<int> updates_counter{0};
-    std::atomic<bool> file_updated{false};
-  };
+    SecdistConfigStorage storage;
 
-  SecdistConfigStorage storage;
+    auto temp_file = fs::blocking::TempFile::Create();
+    fs::blocking::RewriteFileContents(temp_file.GetPath(), kSecdistInitJson);
 
-  auto temp_file = fs::blocking::TempFile::Create();
-  fs::blocking::RewriteFileContents(temp_file.GetPath(), kSecdistInitJson);
+    storages::secdist::DefaultLoader provider{
+        {temp_file.GetPath(),
+         storages::secdist::SecdistFormat::kJson,
+         false,
+         std::nullopt,
+         &engine::current_task::GetTaskProcessor()}};
+    storages::secdist::Secdist secdist{{&provider, std::chrono::milliseconds(100)}};
 
-  storages::secdist::DefaultLoader provider{
-      {temp_file.GetPath(), storages::secdist::SecdistFormat::kJson, false,
-       std::nullopt, &engine::current_task::GetTaskProcessor()}};
-  storages::secdist::Secdist secdist{
-      {&provider, std::chrono::milliseconds(100)}};
+    auto subscriber = secdist.UpdateAndListen(&storage, "test/update_secdist", &SecdistConfigStorage::OnSecdistUpdate);
+    EXPECT_EQ(storage.updates_counter.load(), 1);
+    const auto& secdist_config = secdist.Get();
 
-  auto subscriber = secdist.UpdateAndListen(
-      &storage, "test/update_secdist", &SecdistConfigStorage::OnSecdistUpdate);
-  EXPECT_EQ(storage.updates_counter.load(), 1);
-  const auto& secdist_config = secdist.Get();
+    const auto& user_passwords = secdist_config.Get<UserPasswords>();
 
-  const auto& user_passwords = secdist_config.Get<UserPasswords>();
+    const auto password_old = UserPasswords::Password{"password_old"};
+    const auto password_updated = UserPasswords::Password{"password_updated"};
+    const auto another_password = UserPasswords::Password{"another password"};
+    const auto password_xyz = UserPasswords::Password{"xyz"};
 
-  const auto password_old = UserPasswords::Password{"password_old"};
-  const auto password_updated = UserPasswords::Password{"password_updated"};
-  const auto another_password = UserPasswords::Password{"another password"};
-  const auto password_xyz = UserPasswords::Password{"xyz"};
+    auto check_user_passwords = [&](const UserPasswords& user_passwords) {
+        EXPECT_TRUE(user_passwords.IsMatching("username", password_old));
+        EXPECT_FALSE(user_passwords.IsMatching("username2", password_old));
+        EXPECT_FALSE(user_passwords.IsMatching("username_new", password_xyz));
+        EXPECT_TRUE(user_passwords.IsMatching("another username", another_password));
+    };
 
-  auto check_user_passwords = [&](const UserPasswords& user_passwords) {
-    EXPECT_TRUE(user_passwords.IsMatching("username", password_old));
-    EXPECT_FALSE(user_passwords.IsMatching("username2", password_old));
-    EXPECT_FALSE(user_passwords.IsMatching("username_new", password_xyz));
-    EXPECT_TRUE(
-        user_passwords.IsMatching("another username", another_password));
-  };
+    check_user_passwords(user_passwords);
 
-  check_user_passwords(user_passwords);
+    {
+        auto snapshot = secdist.GetSnapshot();
+        const auto& dynamic_secdist_config = *snapshot;
 
-  {
-    auto snapshot = secdist.GetSnapshot();
-    const auto& dynamic_secdist_config = *snapshot;
+        check_user_passwords(dynamic_secdist_config.Get<UserPasswords>());
+    }
 
-    check_user_passwords(dynamic_secdist_config.Get<UserPasswords>());
-  }
+    fs::blocking::RewriteFileContents(temp_file.GetPath(), kSecdistUpdateJson);
+    ASSERT_EQ(storage.updates_counter.load(), 1);
+    storage.file_updated = true;
+    while (storage.updates_counter.load() < 2) {
+        engine::SleepFor(std::chrono::milliseconds(1));
+    }
+    const auto& current_secdist = storage.secdist_config;
+    const auto& updated_user_passwords = current_secdist.Get<UserPasswords>();
 
-  fs::blocking::RewriteFileContents(temp_file.GetPath(), kSecdistUpdateJson);
-  ASSERT_EQ(storage.updates_counter.load(), 1);
-  storage.file_updated = true;
-  while (storage.updates_counter.load() < 2) {
-    engine::SleepFor(std::chrono::milliseconds(1));
-  }
-  const auto& current_secdist = storage.secdist_config;
-  const auto& updated_user_passwords = current_secdist.Get<UserPasswords>();
+    EXPECT_TRUE(updated_user_passwords.IsMatching("username", password_updated));
+    EXPECT_TRUE(updated_user_passwords.IsMatching("username_new", password_xyz));
+    EXPECT_FALSE(updated_user_passwords.IsMatching("another username", another_password));
 
-  EXPECT_TRUE(updated_user_passwords.IsMatching("username", password_updated));
-  EXPECT_TRUE(updated_user_passwords.IsMatching("username_new", password_xyz));
-  EXPECT_FALSE(
-      updated_user_passwords.IsMatching("another username", another_password));
-
-  subscriber.Unsubscribe();
+    subscriber.Unsubscribe();
 }
 
 USERVER_NAMESPACE_END

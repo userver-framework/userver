@@ -17,31 +17,31 @@ namespace utils::statistics {
 ///
 /// @snippet utils/statistics/busy_test.cpp  busy sample
 class BusyStorage final {
- public:
-  using Duration = std::chrono::steady_clock::duration;
+public:
+    using Duration = std::chrono::steady_clock::duration;
 
-  BusyStorage(Duration epoch_duration, Duration history_period);
+    BusyStorage(Duration epoch_duration, Duration history_period);
 
-  ~BusyStorage();
+    ~BusyStorage();
 
-  /// Safe to read concurrently with calling StartWork() and StopWork()
-  double GetCurrentLoad() const;
+    /// Safe to read concurrently with calling StartWork() and StopWork()
+    double GetCurrentLoad() const;
 
-  /// Starts the time measure, if it was not already started
-  void StartWork();
+    /// Starts the time measure, if it was not already started
+    void StartWork();
 
-  /// Stops the time measure if the count of StopWork() invocations matches the
-  /// StartWork() invocations count.
-  void StopWork() noexcept;
+    /// Stops the time measure if the count of StopWork() invocations matches the
+    /// StartWork() invocations count.
+    void StopWork() noexcept;
 
-  /// Returns true if the time measure is active
-  bool IsAlreadyStarted() const noexcept;
+    /// Returns true if the time measure is active
+    bool IsAlreadyStarted() const noexcept;
 
- private:
-  Duration GetNotCommittedLoad() const noexcept;
+private:
+    Duration GetNotCommittedLoad() const noexcept;
 
-  struct Impl;
-  std::unique_ptr<Impl> pimpl;
+    struct Impl;
+    std::unique_ptr<Impl> pimpl;
 };
 
 /// @brief A RAII-style guard to account code block execution time in
@@ -50,16 +50,16 @@ class BusyStorage final {
 ///
 /// @snippet utils/statistics/busy_test.cpp  busy sample
 class BusyMarker final {
- public:
-  BusyMarker(BusyStorage& storage) : storage_(storage) { storage_.StartWork(); }
+public:
+    BusyMarker(BusyStorage& storage) : storage_(storage) { storage_.StartWork(); }
 
-  BusyMarker(const BusyMarker&) = delete;
-  BusyMarker& operator=(const BusyMarker&) = delete;
+    BusyMarker(const BusyMarker&) = delete;
+    BusyMarker& operator=(const BusyMarker&) = delete;
 
-  ~BusyMarker() { storage_.StopWork(); }
+    ~BusyMarker() { storage_.StopWork(); }
 
- private:
-  BusyStorage& storage_;
+private:
+    BusyStorage& storage_;
 };
 
 }  // namespace utils::statistics

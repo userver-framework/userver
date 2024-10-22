@@ -9,22 +9,21 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::mysql::infra::topology {
 
 class FixedPrimary final : public TopologyBase {
- public:
-  FixedPrimary(clients::dns::Resolver& resolver,
-               const std::vector<settings::PoolSettings>& settings);
-  ~FixedPrimary() final;
+public:
+    FixedPrimary(clients::dns::Resolver& resolver, const std::vector<settings::PoolSettings>& settings);
+    ~FixedPrimary() final;
 
- private:
-  Pool& GetPrimary() const final;
-  Pool& GetSecondary() const final;
+private:
+    Pool& GetPrimary() const final;
+    Pool& GetSecondary() const final;
 
-  Pool& InitializePrimaryPoolReference();
-  std::vector<Pool*> InitializeSecondariesVector();
+    Pool& InitializePrimaryPoolReference();
+    std::vector<Pool*> InitializeSecondariesVector();
 
-  Pool& primary_;
-  std::vector<Pool*> secondaries_;
+    Pool& primary_;
+    std::vector<Pool*> secondaries_;
 
-  mutable std::atomic<std::size_t> secondary_index_{0};
+    mutable std::atomic<std::size_t> secondary_index_{0};
 };
 
 }  // namespace storages::mysql::infra::topology

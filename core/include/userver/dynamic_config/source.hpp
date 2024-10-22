@@ -19,31 +19,29 @@ namespace dynamic_config {
 /// to access the config variable.
 template <typename VariableType>
 class VariableSnapshotPtr final {
- public:
-  VariableSnapshotPtr(VariableSnapshotPtr&&) = delete;
-  VariableSnapshotPtr& operator=(VariableSnapshotPtr&&) = delete;
+public:
+    VariableSnapshotPtr(VariableSnapshotPtr&&) = delete;
+    VariableSnapshotPtr& operator=(VariableSnapshotPtr&&) = delete;
 
-  const VariableType& operator*() const& { return *variable_; }
-  const VariableType& operator*() && { ReportMisuse(); }
+    const VariableType& operator*() const& { return *variable_; }
+    const VariableType& operator*() && { ReportMisuse(); }
 
-  const VariableType* operator->() const& { return variable_; }
-  const VariableType* operator->() && { ReportMisuse(); }
+    const VariableType* operator->() const& { return variable_; }
+    const VariableType* operator->() && { ReportMisuse(); }
 
- private:
-  [[noreturn]] static void ReportMisuse() {
-    static_assert(!sizeof(VariableType),
-                  "keep the pointer before using, please");
-  }
+private:
+    [[noreturn]] static void ReportMisuse() {
+        static_assert(!sizeof(VariableType), "keep the pointer before using, please");
+    }
 
-  explicit VariableSnapshotPtr(Snapshot&& snapshot,
-                               const Key<VariableType>& key)
-      : snapshot_(std::move(snapshot)), variable_(&snapshot_[key]) {}
+    explicit VariableSnapshotPtr(Snapshot&& snapshot, const Key<VariableType>& key)
+        : snapshot_(std::move(snapshot)), variable_(&snapshot_[key]) {}
 
-  // for the constructor
-  friend class Source;
+    // for the constructor
+    friend class Source;
 
-  Snapshot snapshot_;
-  const VariableType* variable_;
+    Snapshot snapshot_;
+    const VariableType* variable_;
 };
 
 /// @brief Helper class for subscribing to dynamic-config updates with a custom
@@ -54,8 +52,8 @@ class VariableSnapshotPtr final {
 /// @param previous `dynamic_config::Snapshot` of the previous config or
 /// `std::nullopt` if this update event is the first for the subscriber.
 struct Diff final {
-  std::optional<Snapshot> previous;
-  Snapshot current;
+    std::optional<Snapshot> previous;
+    Snapshot current;
 };
 
 // clang-format off
@@ -74,62 +72,60 @@ struct Diff final {
 
 // clang-format on
 class Source final {
- public:
-  using SnapshotEventSource = concurrent::AsyncEventSource<const Snapshot&>;
-  using DiffEventSource = concurrent::AsyncEventSource<const Diff&>;
+public:
+    using SnapshotEventSource = concurrent::AsyncEventSource<const Snapshot&>;
+    using DiffEventSource = concurrent::AsyncEventSource<const Diff&>;
 
-  /// For internal use only. Obtain using components::DynamicConfig or
-  /// dynamic_config::StorageMock instead.
-  explicit Source(impl::StorageData& storage);
+    /// For internal use only. Obtain using components::DynamicConfig or
+    /// dynamic_config::StorageMock instead.
+    explicit Source(impl::StorageData& storage);
 
-  // trivially copyable
-  Source(const Source&) = default;
-  Source(Source&&) = default;
-  Source& operator=(const Source&) = default;
-  Source& operator=(Source&&) = default;
+    // trivially copyable
+    Source(const Source&) = default;
+    Source(Source&&) = default;
+    Source& operator=(const Source&) = default;
+    Source& operator=(Source&&) = default;
 
-  Snapshot GetSnapshot() const;
+    Snapshot GetSnapshot() const;
 
-  template <typename VariableType>
-  VariableSnapshotPtr<VariableType> GetSnapshot(
-      const Key<VariableType>& key) const {
-    return VariableSnapshotPtr{GetSnapshot(), key};
-  }
+    template <typename VariableType>
+    VariableSnapshotPtr<VariableType> GetSnapshot(const Key<VariableType>& key) const {
+        return VariableSnapshotPtr{GetSnapshot(), key};
+    }
 
-  template <typename VariableType>
-  VariableType GetCopy(const Key<VariableType>& key) const {
-    const auto snapshot = GetSnapshot();
-    return snapshot[key];
-  }
+    template <typename VariableType>
+    VariableType GetCopy(const Key<VariableType>& key) const {
+        const auto snapshot = GetSnapshot();
+        return snapshot[key];
+    }
 
-  /// Subscribes to dynamic-config updates using a member function. Also
-  /// immediately invokes the function with the current config snapshot (this
-  /// invocation will be executed synchronously).
-  ///
-  /// @note Callbacks occur in full accordance with
-  /// `components::DynamicConfigClientUpdater` options.
-  ///
-  /// @param obj the subscriber, which is the owner of the listener method, and
-  /// is also used as the unique identifier of the subscription
-  /// @param name the name of the subscriber, for diagnostic purposes
-  /// @param func the listener method, named `OnConfigUpdate` by convention.
-  /// @returns a `concurrent::AsyncEventSubscriberScope` controlling the
-  /// subscription, which should be stored as a member in the subscriber;
-  /// `Unsubscribe` should be called explicitly
-  ///
-  /// @see based on concurrent::AsyncEventSource engine
-  template <typename Class>
-  concurrent::AsyncEventSubscriberScope UpdateAndListen(
-      Class* obj, std::string_view name,
-      void (Class::*func)(const dynamic_config::Snapshot& config)) {
-    return DoUpdateAndListen(
-        concurrent::FunctionId(obj), name,
-        [obj, func](const dynamic_config::Snapshot& config) {
-          (obj->*func)(config);
-        });
-  }
+    /// Subscribes to dynamic-config updates using a member function. Also
+    /// immediately invokes the function with the current config snapshot (this
+    /// invocation will be executed synchronously).
+    ///
+    /// @note Callbacks occur in full accordance with
+    /// `components::DynamicConfigClientUpdater` options.
+    ///
+    /// @param obj the subscriber, which is the owner of the listener method, and
+    /// is also used as the unique identifier of the subscription
+    /// @param name the name of the subscriber, for diagnostic purposes
+    /// @param func the listener method, named `OnConfigUpdate` by convention.
+    /// @returns a `concurrent::AsyncEventSubscriberScope` controlling the
+    /// subscription, which should be stored as a member in the subscriber;
+    /// `Unsubscribe` should be called explicitly
+    ///
+    /// @see based on concurrent::AsyncEventSource engine
+    template <typename Class>
+    concurrent::AsyncEventSubscriberScope
+    UpdateAndListen(Class* obj, std::string_view name, void (Class::*func)(const dynamic_config::Snapshot& config)) {
+        return DoUpdateAndListen(
+            concurrent::FunctionId(obj),
+            name,
+            [obj, func](const dynamic_config::Snapshot& config) { (obj->*func)(config); }
+        );
+    }
 
-  // clang-format off
+    // clang-format off
 
   /// @brief Subscribes to dynamic-config updates with information about the
   /// current and previous states.
@@ -161,78 +157,76 @@ class Source final {
   ///
   /// @see dynamic_config::Diff
 
-  // clang-format on
-  template <typename Class>
-  concurrent::AsyncEventSubscriberScope UpdateAndListen(
-      Class* obj, std::string_view name,
-      void (Class::*func)(const dynamic_config::Diff& diff)) {
-    return DoUpdateAndListen(
-        concurrent::FunctionId(obj), name,
-        [obj, func](const dynamic_config::Diff& diff) { (obj->*func)(diff); });
-  }
+    // clang-format on
+    template <typename Class>
+    concurrent::AsyncEventSubscriberScope
+    UpdateAndListen(Class* obj, std::string_view name, void (Class::*func)(const dynamic_config::Diff& diff)) {
+        return DoUpdateAndListen(concurrent::FunctionId(obj), name, [obj, func](const dynamic_config::Diff& diff) {
+            (obj->*func)(diff);
+        });
+    }
 
-  /// @brief Subscribes to updates of a subset of all configs.
-  ///
-  /// Subscribes to dynamic-config updates using a member function, named
-  /// `OnConfigUpdate` by convention. The function will be invoked if at least
-  /// one of the configs has been changed since the previous invocation. So at
-  /// the first time immediately invokes the function with the current config
-  /// snapshot (this invocation will be executed synchronously).
-  ///
-  /// @note Сallbacks occur only if one of the passed config is changed. This is
-  /// true under any components::DynamicConfigClientUpdater options.
-  ///
-  /// @warning To use this function, configs must have the `operator==`.
-  ///
-  /// @param obj the subscriber, which is the owner of the listener method, and
-  /// is also used as the unique identifier of the subscription
-  /// @param name the name of the subscriber, for diagnostic purposes
-  /// @param func the listener method, named `OnConfigUpdate` by convention.
-  /// @param keys config objects, specializations of `dynamic_config::Key`.
-  /// @returns a `concurrent::AsyncEventSubscriberScope` controlling the
-  /// subscription, which should be stored as a member in the subscriber;
-  /// `Unsubscribe` should be called explicitly
-  ///
-  /// @see based on concurrent::AsyncEventSource engine
-  template <typename Class, typename... Keys>
-  concurrent::AsyncEventSubscriberScope UpdateAndListen(
-      Class* obj, std::string_view name,
-      void (Class::*func)(const dynamic_config::Snapshot& config),
-      const Keys&... keys) {
-    auto wrapper = [obj, func, &keys...](const Diff& diff) {
-      if (!HasChanged(diff, keys...)) return;
-      (obj->*func)(diff.current);
-    };
-    return DoUpdateAndListen(concurrent::FunctionId(obj), name,
-                             std::move(wrapper));
-  }
+    /// @brief Subscribes to updates of a subset of all configs.
+    ///
+    /// Subscribes to dynamic-config updates using a member function, named
+    /// `OnConfigUpdate` by convention. The function will be invoked if at least
+    /// one of the configs has been changed since the previous invocation. So at
+    /// the first time immediately invokes the function with the current config
+    /// snapshot (this invocation will be executed synchronously).
+    ///
+    /// @note Сallbacks occur only if one of the passed config is changed. This is
+    /// true under any components::DynamicConfigClientUpdater options.
+    ///
+    /// @warning To use this function, configs must have the `operator==`.
+    ///
+    /// @param obj the subscriber, which is the owner of the listener method, and
+    /// is also used as the unique identifier of the subscription
+    /// @param name the name of the subscriber, for diagnostic purposes
+    /// @param func the listener method, named `OnConfigUpdate` by convention.
+    /// @param keys config objects, specializations of `dynamic_config::Key`.
+    /// @returns a `concurrent::AsyncEventSubscriberScope` controlling the
+    /// subscription, which should be stored as a member in the subscriber;
+    /// `Unsubscribe` should be called explicitly
+    ///
+    /// @see based on concurrent::AsyncEventSource engine
+    template <typename Class, typename... Keys>
+    concurrent::AsyncEventSubscriberScope UpdateAndListen(
+        Class* obj,
+        std::string_view name,
+        void (Class::*func)(const dynamic_config::Snapshot& config),
+        const Keys&... keys
+    ) {
+        auto wrapper = [obj, func, &keys...](const Diff& diff) {
+            if (!HasChanged(diff, keys...)) return;
+            (obj->*func)(diff.current);
+        };
+        return DoUpdateAndListen(concurrent::FunctionId(obj), name, std::move(wrapper));
+    }
 
-  SnapshotEventSource& GetEventChannel();
+    SnapshotEventSource& GetEventChannel();
 
- private:
-  template <typename... Keys>
-  static bool HasChanged(const Diff& diff, const Keys&... keys) {
-    if (!diff.previous) return true;
+private:
+    template <typename... Keys>
+    static bool HasChanged(const Diff& diff, const Keys&... keys) {
+        if (!diff.previous) return true;
 
-    const auto& previous = *diff.previous;
-    const auto& current = diff.current;
+        const auto& previous = *diff.previous;
+        const auto& current = diff.current;
 
-    UASSERT(!current.GetData().IsEmpty());
-    UASSERT(!previous.GetData().IsEmpty());
+        UASSERT(!current.GetData().IsEmpty());
+        UASSERT(!previous.GetData().IsEmpty());
 
-    const bool is_equal = (true && ... && (previous[keys] == current[keys]));
-    return !is_equal;
-  }
+        const bool is_equal = (true && ... && (previous[keys] == current[keys]));
+        return !is_equal;
+    }
 
-  concurrent::AsyncEventSubscriberScope DoUpdateAndListen(
-      concurrent::FunctionId id, std::string_view name,
-      SnapshotEventSource::Function&& func);
+    concurrent::AsyncEventSubscriberScope
+    DoUpdateAndListen(concurrent::FunctionId id, std::string_view name, SnapshotEventSource::Function&& func);
 
-  concurrent::AsyncEventSubscriberScope DoUpdateAndListen(
-      concurrent::FunctionId id, std::string_view name,
-      DiffEventSource::Function&& func);
+    concurrent::AsyncEventSubscriberScope
+    DoUpdateAndListen(concurrent::FunctionId id, std::string_view name, DiffEventSource::Function&& func);
 
-  impl::StorageData* storage_;
+    impl::StorageData* storage_;
 };
 
 }  // namespace dynamic_config

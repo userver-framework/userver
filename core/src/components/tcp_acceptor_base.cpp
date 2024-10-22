@@ -17,22 +17,19 @@ namespace {
 
 using server::net::ListenerConfig;
 
-std::string SocketsTaskProcessorName(const ComponentConfig& config,
-                                     const ListenerConfig& acceptor_config) {
-  return config["sockets_task_processor"].As<std::string>(
-      acceptor_config.task_processor);
+std::string SocketsTaskProcessorName(const ComponentConfig& config, const ListenerConfig& acceptor_config) {
+    return config["sockets_task_processor"].As<std::string>(acceptor_config.task_processor);
 }
 
 }  // namespace
 
-TcpAcceptorBase::TcpAcceptorBase(const ComponentConfig& config,
-                                 const ComponentContext& context)
+TcpAcceptorBase::TcpAcceptorBase(const ComponentConfig& config, const ComponentContext& context)
     : TcpAcceptorBase(config, context, config.As<ListenerConfig>()) {}
 
 TcpAcceptorBase::~TcpAcceptorBase() = default;
 
 yaml_config::Schema TcpAcceptorBase::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<ComponentBase>(R"(
+    return yaml_config::MergeSchemas<ComponentBase>(R"(
 # yaml
 type: object
 description: |
@@ -65,45 +62,45 @@ properties:
 )");
 }
 
-TcpAcceptorBase::TcpAcceptorBase(const ComponentConfig& config,
-                                 const ComponentContext& context,
-                                 const ListenerConfig& acceptor_config)
+TcpAcceptorBase::TcpAcceptorBase(
+    const ComponentConfig& config,
+    const ComponentContext& context,
+    const ListenerConfig& acceptor_config
+)
     : ComponentBase(config, context),
       no_delay_(config["no_delay"].As<bool>(true)),
-      acceptor_task_processor_(
-          context.GetTaskProcessor(acceptor_config.task_processor)),
-      sockets_task_processor_(context.GetTaskProcessor(
-          SocketsTaskProcessorName(config, acceptor_config))),
+      acceptor_task_processor_(context.GetTaskProcessor(acceptor_config.task_processor)),
+      sockets_task_processor_(context.GetTaskProcessor(SocketsTaskProcessorName(config, acceptor_config))),
       listen_sock_(server::net::CreateSocket(acceptor_config)) {}
 
 void TcpAcceptorBase::KeepAccepting() {
-  while (!engine::current_task::ShouldCancel()) {
-    engine::io::Socket sock = listen_sock_.Accept({});
+    while (!engine::current_task::ShouldCancel()) {
+        engine::io::Socket sock = listen_sock_.Accept({});
 
-    tasks_.Detach(engine::AsyncNoSpan(
-        sockets_task_processor_,
-        [this](engine::io::Socket&& sock) {
-          if (no_delay_) {
-            sock.SetOption(IPPROTO_TCP, TCP_NODELAY, 1);
-          }
-          ProcessSocket(std::move(sock));
-        },
-        std::move(sock)));
-  }
+        tasks_.Detach(engine::AsyncNoSpan(
+            sockets_task_processor_,
+            [this](engine::io::Socket&& sock) {
+                if (no_delay_) {
+                    sock.SetOption(IPPROTO_TCP, TCP_NODELAY, 1);
+                }
+                ProcessSocket(std::move(sock));
+            },
+            std::move(sock)
+        ));
+    }
 }
 
 void TcpAcceptorBase::OnAllComponentsLoaded() {
-  // Start handling after the derived object was fully constructed
+    // Start handling after the derived object was fully constructed
 
-  // NOLINTNEXTLINE(cppcoreguidelines-slicing)
-  acceptor_ = engine::AsyncNoSpan(acceptor_task_processor_,
-                                  &TcpAcceptorBase::KeepAccepting, this);
+    // NOLINTNEXTLINE(cppcoreguidelines-slicing)
+    acceptor_ = engine::AsyncNoSpan(acceptor_task_processor_, &TcpAcceptorBase::KeepAccepting, this);
 }
 
 void TcpAcceptorBase::OnAllComponentsAreStopping() {
-  acceptor_ = {};  // Cancel and wait for finish
-  listen_sock_.Close();
-  tasks_.CancelAndWait();
+    acceptor_ = {};  // Cancel and wait for finish
+    listen_sock_.Close();
+    tasks_.CancelAndWait();
 }
 
 }  // namespace components

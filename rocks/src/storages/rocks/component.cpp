@@ -9,18 +9,17 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::rocks {
 
-Component::Component(const components::ComponentConfig& config,
-                     const components::ComponentContext& context)
+Component::Component(const components::ComponentConfig& config, const components::ComponentContext& context)
     : ComponentBase(config, context),
       client_ptr_(std::make_shared<storages::rocks::Client>(
           config["db-path"].As<std::string>(),
-          context.GetTaskProcessor(
-              config["task-processor"].As<std::string>()))) {}
+          context.GetTaskProcessor(config["task-processor"].As<std::string>())
+      )) {}
 
 storages::rocks::ClientPtr Component::MakeClient() { return client_ptr_; }
 
 yaml_config::Schema Component::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<ComponentBase>(R"(
+    return yaml_config::MergeSchemas<ComponentBase>(R"(
 type: object
 description: Rocks client component
 additionalProperties: false

@@ -9,16 +9,15 @@
 namespace samples::hello {
 
 class HelloHandler final : public server::handlers::HttpHandlerBase {
- public:
-  // `kName` is used as the component name in static config
-  static constexpr std::string_view kName = "handler-hello-sample";
+public:
+    // `kName` is used as the component name in static config
+    static constexpr std::string_view kName = "handler-hello-sample";
 
-  // Component is valid after construction and is able to accept requests
-  using HttpHandlerBase::HttpHandlerBase;
+    // Component is valid after construction and is able to accept requests
+    using HttpHandlerBase::HttpHandlerBase;
 
-  std::string HandleRequestThrow(
-      const server::http::HttpRequest& request,
-      server::request::RequestContext&) const override;
+    std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
+        const override;
 };
 
 }  // namespace samples::hello

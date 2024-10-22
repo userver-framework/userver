@@ -8,8 +8,8 @@ namespace ugrpc::client::impl {
 
 /// @brief Manages a gRPC completion queue, usable only in clients
 class CompletionQueuePool final : public ugrpc::impl::CompletionQueuePoolBase {
- public:
-  explicit CompletionQueuePool(std::size_t queue_count);
+public:
+    explicit CompletionQueuePool(std::size_t queue_count);
 };
 
 }  // namespace ugrpc::client::impl

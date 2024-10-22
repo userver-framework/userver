@@ -24,12 +24,12 @@ namespace {
 // was called), then the conversion failed.
 template <class T>
 struct IsConvertibleChecker {
-  bool& convertible;
+    bool& convertible;
 
-  operator T() const {
-    convertible = false;
-    return {};
-  }
+    operator T() const {
+        convertible = false;
+        return {};
+    }
 };
 
 auto MakeMissingNode() { return YAML::Node{}[0]; }
@@ -38,8 +38,8 @@ auto MakeMissingNode() { return YAML::Node{}[0]; }
 // types, leaving the interpretation of quotes and tags to the user.
 // https://github.com/jbeder/yaml-cpp/issues/261
 bool IsExplicitlyTypedString(const YAML::Node& node) noexcept {
-  UASSERT(node);
-  return node.Tag() == "!" || node.Tag() == "tag:yaml.org,2002:str";
+    UASSERT(node);
+    return node.Tag() == "!" || node.Tag() == "tag:yaml.org,2002:str";
 }
 
 }  // namespace
@@ -52,17 +52,17 @@ Value::Value(const Value&) = default;
 
 // NOLINTNEXTLINE(performance-noexcept-move-constructor)
 Value& Value::operator=(Value&& other) {
-  value_pimpl_->reset(*other.value_pimpl_);
-  path_ = std::move(other.path_);
-  return *this;
+    value_pimpl_->reset(*other.value_pimpl_);
+    path_ = std::move(other.path_);
+    return *this;
 }
 
 Value& Value::operator=(const Value& other) {
-  if (this == &other) return *this;
+    if (this == &other) return *this;
 
-  value_pimpl_->reset(*other.value_pimpl_);
-  path_ = other.path_;
-  return *this;
+    value_pimpl_->reset(*other.value_pimpl_);
+    path_ = other.path_;
+    return *this;
 }
 
 Value::~Value() = default;
@@ -70,74 +70,63 @@ Value::~Value() = default;
 Value::Value(const YAML::Node& root) noexcept : value_pimpl_(root) {}
 
 Value::Value(Value&& other, std::string path_prefix)
-    : value_pimpl_(std::move(other.value_pimpl_)),
-      path_(Path::WithPrefix(std::move(path_prefix))) {
-  if (!other.path_.IsRoot()) {
-    throw PathPrefixException(other.path_.ToStringView(), path_.ToStringView());
-  }
+    : value_pimpl_(std::move(other.value_pimpl_)), path_(Path::WithPrefix(std::move(path_prefix))) {
+    if (!other.path_.IsRoot()) {
+        throw PathPrefixException(other.path_.ToStringView(), path_.ToStringView());
+    }
 }
 
-Value::Value(EmplaceEnabler, const YAML::Node& value,
-             const formats::yaml::Path& path, std::string_view key)
+Value::Value(EmplaceEnabler, const YAML::Node& value, const formats::yaml::Path& path, std::string_view key)
     : value_pimpl_(value), path_(path.MakeChildPath(key)) {}
 
-Value::Value(EmplaceEnabler, const YAML::Node& value,
-             const formats::yaml::Path& path, size_t index)
+Value::Value(EmplaceEnabler, const YAML::Node& value, const formats::yaml::Path& path, size_t index)
     : value_pimpl_(value), path_(path.MakeChildPath(index)) {}
 
-Value Value::MakeNonRoot(const YAML::Node& value,
-                         const formats::yaml::Path& path,
-                         std::string_view key) {
-  return {EmplaceEnabler{}, value, path, key};
+Value Value::MakeNonRoot(const YAML::Node& value, const formats::yaml::Path& path, std::string_view key) {
+    return {EmplaceEnabler{}, value, path, key};
 }
 
-Value Value::MakeNonRoot(const YAML::Node& value,
-                         const formats::yaml::Path& path, size_t index) {
-  return {EmplaceEnabler{}, value, path, index};
+Value Value::MakeNonRoot(const YAML::Node& value, const formats::yaml::Path& path, size_t index) {
+    return {EmplaceEnabler{}, value, path, index};
 }
 
 Value Value::operator[](std::string_view key) const {
-  if (!IsMissing()) {
-    CheckObjectOrNull();
-    return MakeNonRoot((*value_pimpl_)[key], path_, key);
-  }
-  return MakeNonRoot(MakeMissingNode(), path_, key);
+    if (!IsMissing()) {
+        CheckObjectOrNull();
+        return MakeNonRoot((*value_pimpl_)[key], path_, key);
+    }
+    return MakeNonRoot(MakeMissingNode(), path_, key);
 }
 
 Value Value::operator[](std::size_t index) const {
-  if (!IsMissing()) {
-    CheckInBounds(index);
-    return MakeNonRoot((*value_pimpl_)[index], path_, index);
-  }
-  return MakeNonRoot(MakeMissingNode(), path_, index);
+    if (!IsMissing()) {
+        CheckInBounds(index);
+        return MakeNonRoot((*value_pimpl_)[index], path_, index);
+    }
+    return MakeNonRoot(MakeMissingNode(), path_, index);
 }
 
 Value::const_iterator Value::begin() const {
-  CheckObjectOrArrayOrNull();
-  return {value_pimpl_->begin(), value_pimpl_->IsSequence() ? 0 : -1, path_};
+    CheckObjectOrArrayOrNull();
+    return {value_pimpl_->begin(), value_pimpl_->IsSequence() ? 0 : -1, path_};
 }
 
 Value::const_iterator Value::end() const {
-  CheckObjectOrArrayOrNull();
-  return {
-      value_pimpl_->end(),
-      value_pimpl_->IsSequence() ? static_cast<int>(value_pimpl_->size()) : -1,
-      path_};
+    CheckObjectOrArrayOrNull();
+    return {value_pimpl_->end(), value_pimpl_->IsSequence() ? static_cast<int>(value_pimpl_->size()) : -1, path_};
 }
 
 bool Value::IsEmpty() const {
-  CheckObjectOrArrayOrNull();
-  return value_pimpl_->begin() == value_pimpl_->end();
+    CheckObjectOrArrayOrNull();
+    return value_pimpl_->begin() == value_pimpl_->end();
 }
 
 std::size_t Value::GetSize() const {
-  CheckObjectOrArrayOrNull();
-  return value_pimpl_->size();
+    CheckObjectOrArrayOrNull();
+    return value_pimpl_->size();
 }
 
-bool Value::operator==(const Value& other) const {
-  return GetNative().Scalar() == other.GetNative().Scalar();
-}
+bool Value::operator==(const Value& other) const { return GetNative().Scalar() == other.GetNative().Scalar(); }
 
 bool Value::operator!=(const Value& other) const { return !(*this == other); }
 
@@ -145,83 +134,57 @@ bool Value::IsMissing() const { return !*value_pimpl_; }
 
 template <class T>
 bool Value::IsConvertibleToArithmetic() const {
-  if (IsMissing()) {
-    return false;
-  }
+    if (IsMissing()) {
+        return false;
+    }
 
-  bool ok = true;
-  value_pimpl_->as<T>(IsConvertibleChecker<T>{ok});
-  return ok && !IsExplicitlyTypedString(*value_pimpl_);
+    bool ok = true;
+    value_pimpl_->as<T>(IsConvertibleChecker<T>{ok});
+    return ok && !IsExplicitlyTypedString(*value_pimpl_);
 }
 
 template <class T>
 T Value::ValueAsArithmetic() const {
-  CheckNotMissing();
+    CheckNotMissing();
 
-  bool ok = true;
-  auto res = value_pimpl_->as<T>(IsConvertibleChecker<T>{ok});
-  if (!ok || IsExplicitlyTypedString(*value_pimpl_)) {
-    throw TypeMismatchException(*value_pimpl_, compiler::GetTypeName<T>(),
-                                path_.ToStringView());
-  }
-  return res;
+    bool ok = true;
+    auto res = value_pimpl_->as<T>(IsConvertibleChecker<T>{ok});
+    if (!ok || IsExplicitlyTypedString(*value_pimpl_)) {
+        throw TypeMismatchException(*value_pimpl_, compiler::GetTypeName<T>(), path_.ToStringView());
+    }
+    return res;
 }
 
 bool Value::IsNull() const noexcept {
-  return !IsMissing() && value_pimpl_->IsNull() &&
-         !IsExplicitlyTypedString(*value_pimpl_);
+    return !IsMissing() && value_pimpl_->IsNull() && !IsExplicitlyTypedString(*value_pimpl_);
 }
-bool Value::IsBool() const noexcept {
-  return IsConvertibleToArithmetic<bool>();
-}
-bool Value::IsInt() const noexcept {
-  return IsConvertibleToArithmetic<int32_t>();
-}
-bool Value::IsInt64() const noexcept {
-  return IsConvertibleToArithmetic<long long>();
-}
-bool Value::IsUInt64() const noexcept {
-  return IsConvertibleToArithmetic<unsigned long long>();
-}
-bool Value::IsDouble() const noexcept {
-  return IsConvertibleToArithmetic<double>();
-}
-bool Value::IsString() const noexcept {
-  return !IsMissing() && value_pimpl_->IsScalar();
-}
-bool Value::IsArray() const noexcept {
-  return !IsMissing() && value_pimpl_->IsSequence();
-}
-bool Value::IsObject() const noexcept {
-  return !IsMissing() && value_pimpl_->IsMap();
-}
+bool Value::IsBool() const noexcept { return IsConvertibleToArithmetic<bool>(); }
+bool Value::IsInt() const noexcept { return IsConvertibleToArithmetic<int32_t>(); }
+bool Value::IsInt64() const noexcept { return IsConvertibleToArithmetic<long long>(); }
+bool Value::IsUInt64() const noexcept { return IsConvertibleToArithmetic<unsigned long long>(); }
+bool Value::IsDouble() const noexcept { return IsConvertibleToArithmetic<double>(); }
+bool Value::IsString() const noexcept { return !IsMissing() && value_pimpl_->IsScalar(); }
+bool Value::IsArray() const noexcept { return !IsMissing() && value_pimpl_->IsSequence(); }
+bool Value::IsObject() const noexcept { return !IsMissing() && value_pimpl_->IsMap(); }
 
-bool Parse(const Value& value, parse::To<bool>) {
-  return value.ValueAsArithmetic<bool>();
-}
+bool Parse(const Value& value, parse::To<bool>) { return value.ValueAsArithmetic<bool>(); }
 
-int64_t Parse(const Value& value, parse::To<int64_t>) {
-  return value.ValueAsArithmetic<int64_t>();
-}
+int64_t Parse(const Value& value, parse::To<int64_t>) { return value.ValueAsArithmetic<int64_t>(); }
 
-uint64_t Parse(const Value& value, parse::To<uint64_t>) {
-  return value.ValueAsArithmetic<uint64_t>();
-}
+uint64_t Parse(const Value& value, parse::To<uint64_t>) { return value.ValueAsArithmetic<uint64_t>(); }
 
-double Parse(const Value& value, parse::To<double>) {
-  return value.ValueAsArithmetic<double>();
-}
+double Parse(const Value& value, parse::To<double>) { return value.ValueAsArithmetic<double>(); }
 
 std::string Parse(const Value& value, parse::To<std::string>) {
-  value.CheckNotMissing();
-  value.CheckString();
-  return value.value_pimpl_->Scalar();
+    value.CheckNotMissing();
+    value.CheckString();
+    return value.value_pimpl_->Scalar();
 }
 
 bool Value::HasMember(std::string_view key) const {
-  if (IsMissing()) return false;
-  CheckObjectOrNull();
-  return static_cast<bool>((*value_pimpl_)[key]);
+    if (IsMissing()) return false;
+    CheckObjectOrNull();
+    return static_cast<bool>((*value_pimpl_)[key]);
 }
 
 std::string Value::GetPath() const { return path_.ToString(); }
@@ -230,122 +193,106 @@ namespace {
 
 template <class T>
 auto GetMark(const T& value) -> decltype(value.Mark()) {
-  return value.Mark();
+    return value.Mark();
 }
 
 template <class T, class... None>
 auto GetMark(const T&, None&&...) {
-  // Fallback for old versions of yaml-cpp that have
-  // no Mark() member function.
-  struct FakeMark {
-    int line{0};
-    int column{0};
-  };
-  return FakeMark{};
+    // Fallback for old versions of yaml-cpp that have
+    // no Mark() member function.
+    struct FakeMark {
+        int line{0};
+        int column{0};
+    };
+    return FakeMark{};
 }
 
 }  // namespace
 
-int Value::GetColumn() const {
-  return IsMissing() ? -1 : GetMark(GetNative()).column;
-}
+int Value::GetColumn() const { return IsMissing() ? -1 : GetMark(GetNative()).column; }
 
-int Value::GetLine() const {
-  return IsMissing() ? -1 : GetMark(GetNative()).line;
-}
+int Value::GetLine() const { return IsMissing() ? -1 : GetMark(GetNative()).line; }
 
 std::string_view Value::GetTag() const { return GetNative().Tag(); }
 
 Value Value::Clone() const {
-  Value v;
-  *v.value_pimpl_ = YAML::Clone(GetNative());
-  return v;
+    Value v;
+    *v.value_pimpl_ = YAML::Clone(GetNative());
+    return v;
 }
 
 bool Value::IsRoot() const noexcept { return path_.IsRoot(); }
 
-bool Value::DebugIsReferencingSameMemory(const Value& other) const {
-  return value_pimpl_->is(*other.value_pimpl_);
-}
+bool Value::DebugIsReferencingSameMemory(const Value& other) const { return value_pimpl_->is(*other.value_pimpl_); }
 
 const YAML::Node& Value::GetNative() const {
-  CheckNotMissing();
-  return *value_pimpl_;
+    CheckNotMissing();
+    return *value_pimpl_;
 }
 
 YAML::Node& Value::GetNative() {
-  CheckNotMissing();
-  return *value_pimpl_;
+    CheckNotMissing();
+    return *value_pimpl_;
 }
 
 // convert internal yaml type to implementation-specific type that
 // distinguishes between scalar and object
-int Value::GetExtendedType() const {
-  return impl::GetExtendedType(GetNative());
-}
+int Value::GetExtendedType() const { return impl::GetExtendedType(GetNative()); }
 
 void Value::CheckNotMissing() const {
-  if (IsMissing()) {
-    throw MemberMissingException(path_.ToStringView());
-  }
+    if (IsMissing()) {
+        throw MemberMissingException(path_.ToStringView());
+    }
 }
 
 void Value::CheckArray() const {
-  if (!IsArray()) {
-    throw TypeMismatchException(GetExtendedType(), impl::arrayValue,
-                                path_.ToStringView());
-  }
+    if (!IsArray()) {
+        throw TypeMismatchException(GetExtendedType(), impl::arrayValue, path_.ToStringView());
+    }
 }
 
 void Value::CheckArrayOrNull() const {
-  if (!IsArray() && !IsNull()) {
-    throw TypeMismatchException(GetExtendedType(), impl::arrayValue,
-                                path_.ToStringView());
-  }
+    if (!IsArray() && !IsNull()) {
+        throw TypeMismatchException(GetExtendedType(), impl::arrayValue, path_.ToStringView());
+    }
 }
 
 void Value::CheckObjectOrNull() const {
-  if (!IsObject() && !IsNull()) {
-    throw TypeMismatchException(GetExtendedType(), impl::objectValue,
-                                path_.ToStringView());
-  }
+    if (!IsObject() && !IsNull()) {
+        throw TypeMismatchException(GetExtendedType(), impl::objectValue, path_.ToStringView());
+    }
 }
 
 void Value::CheckObject() const {
-  if (!IsObject()) {
-    throw TypeMismatchException(GetExtendedType(), impl::objectValue,
-                                path_.ToStringView());
-  }
+    if (!IsObject()) {
+        throw TypeMismatchException(GetExtendedType(), impl::objectValue, path_.ToStringView());
+    }
 }
 
 void Value::CheckString() const {
-  if (!IsString()) {
-    throw TypeMismatchException(GetExtendedType(), impl::scalarValue,
-                                path_.ToStringView());
-  }
+    if (!IsString()) {
+        throw TypeMismatchException(GetExtendedType(), impl::scalarValue, path_.ToStringView());
+    }
 }
 
 void Value::CheckObjectOrArrayOrNull() const {
-  if (!IsObject() && !IsArray() && !IsNull()) {
-    throw TypeMismatchException(GetExtendedType(), impl::arrayValue,
-                                path_.ToStringView());
-  }
+    if (!IsObject() && !IsArray() && !IsNull()) {
+        throw TypeMismatchException(GetExtendedType(), impl::arrayValue, path_.ToStringView());
+    }
 }
 
 void Value::CheckInBounds(std::size_t index) const {
-  CheckArrayOrNull();
-  if (!(*value_pimpl_)[index]) {
-    throw OutOfBoundsException(index, GetSize(), path_.ToStringView());
-  }
+    CheckArrayOrNull();
+    if (!(*value_pimpl_)[index]) {
+        throw OutOfBoundsException(index, GetSize(), path_.ToStringView());
+    }
 }
 
 }  // namespace formats::yaml
 
 namespace formats::literals {
 
-yaml::Value operator"" _yaml(const char* str, size_t len) {
-  return yaml::FromString(std::string(str, len));
-}
+yaml::Value operator"" _yaml(const char* str, size_t len) { return yaml::FromString(std::string(str, len)); }
 
 }  // namespace formats::literals
 

@@ -9,11 +9,11 @@ USERVER_NAMESPACE_BEGIN
 namespace server::request {
 
 class RequestConstructor {
- public:
-  RequestConstructor() = default;
-  virtual ~RequestConstructor() = default;
+public:
+    RequestConstructor() = default;
+    virtual ~RequestConstructor() = default;
 
-  virtual std::shared_ptr<RequestBase> Finalize() = 0;
+    virtual std::shared_ptr<RequestBase> Finalize() = 0;
 };
 
 }  // namespace server::request

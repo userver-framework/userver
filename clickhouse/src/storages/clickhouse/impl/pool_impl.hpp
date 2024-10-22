@@ -25,65 +25,64 @@ class Connection;
 class ConnectionPtr;
 
 class PoolAvailabilityMonitor {
- public:
-  using Clock = USERVER_NAMESPACE::utils::datetime::SteadyCoarseClock;
-  using TimePoint = Clock::time_point;
+public:
+    using Clock = USERVER_NAMESPACE::utils::datetime::SteadyCoarseClock;
+    using TimePoint = Clock::time_point;
 
-  bool IsAvailable() const;
+    bool IsAvailable() const;
 
-  void AccountSuccess() noexcept;
-  void AccountFailure() noexcept;
+    void AccountSuccess() noexcept;
+    void AccountFailure() noexcept;
 
- private:
-  std::atomic<TimePoint> last_successful_communication_{TimePoint{}};
-  std::atomic<TimePoint> last_unsuccessful_communication_{TimePoint{}};
+private:
+    std::atomic<TimePoint> last_successful_communication_{TimePoint{}};
+    std::atomic<TimePoint> last_unsuccessful_communication_{TimePoint{}};
 
-  static_assert(std::atomic<TimePoint>::is_always_lock_free);
+    static_assert(std::atomic<TimePoint>::is_always_lock_free);
 };
 
-class PoolImpl final
-    : public drivers::impl::ConnectionPoolBase<Connection, PoolImpl> {
- public:
-  PoolImpl(clients::dns::Resolver&, PoolSettings&& settings);
-  ~PoolImpl();
+class PoolImpl final : public drivers::impl::ConnectionPoolBase<Connection, PoolImpl> {
+public:
+    PoolImpl(clients::dns::Resolver&, PoolSettings&& settings);
+    ~PoolImpl();
 
-  bool IsAvailable() const;
+    bool IsAvailable() const;
 
-  ConnectionPtr Acquire();
-  void Release(Connection*);
+    ConnectionPtr Acquire();
+    void Release(Connection*);
 
-  stats::PoolStatistics& GetStatistics() noexcept;
+    stats::PoolStatistics& GetStatistics() noexcept;
 
-  const std::string& GetHostName() const;
+    const std::string& GetHostName() const;
 
-  void StartMaintenance();
+    void StartMaintenance();
 
-  stats::StatementTimer GetInsertTimer();
-  stats::StatementTimer GetExecuteTimer();
+    stats::StatementTimer GetInsertTimer();
+    stats::StatementTimer GetExecuteTimer();
 
- private:
-  friend class drivers::impl::ConnectionPoolBase<Connection, PoolImpl>;
+private:
+    friend class drivers::impl::ConnectionPoolBase<Connection, PoolImpl>;
 
-  void AccountConnectionAcquired();
-  void AccountConnectionReleased();
-  void AccountConnectionCreated();
-  void AccountConnectionDestroyed() noexcept;
-  void AccountOverload();
+    void AccountConnectionAcquired();
+    void AccountConnectionReleased();
+    void AccountConnectionCreated();
+    void AccountConnectionDestroyed() noexcept;
+    void AccountOverload();
 
-  ConnectionUniquePtr DoCreateConnection(engine::Deadline deadline);
+    ConnectionUniquePtr DoCreateConnection(engine::Deadline deadline);
 
-  void StopMaintenance();
-  void MaintainConnections();
+    void StopMaintenance();
+    void MaintainConnections();
 
-  struct MaintenanceConnectionDeleter;
+    struct MaintenanceConnectionDeleter;
 
-  clients::dns::Resolver& resolver_;
-  const PoolSettings pool_settings_;
+    clients::dns::Resolver& resolver_;
+    const PoolSettings pool_settings_;
 
-  stats::PoolStatistics statistics_{};
+    stats::PoolStatistics statistics_{};
 
-  PoolAvailabilityMonitor availability_monitor_{};
-  USERVER_NAMESPACE::utils::PeriodicTask maintenance_task_;
+    PoolAvailabilityMonitor availability_monitor_{};
+    USERVER_NAMESPACE::utils::PeriodicTask maintenance_task_;
 };
 
 }  // namespace storages::clickhouse::impl

@@ -59,7 +59,8 @@ namespace utils::statistics {
 std::string ToSolomonFormat(
     const utils::statistics::Storage& statistics,
     const std::unordered_map<std::string, std::string>& common_labels,
-    const utils::statistics::Request& statistics_request = {});
+    const utils::statistics::Request& statistics_request = {}
+);
 
 }  // namespace utils::statistics
 

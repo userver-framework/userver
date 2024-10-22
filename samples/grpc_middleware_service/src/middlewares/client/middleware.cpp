@@ -7,26 +7,22 @@
 namespace sample::grpc::auth::client {
 
 /// [gRPC middleware sample - Middleware and MiddlewareFactory implementation]
-void ApplyCredentials(::grpc::ClientContext& context) {
-  context.AddMetadata(kKey, kCredentials);
-}
+void ApplyCredentials(::grpc::ClientContext& context) { context.AddMetadata(kKey, kCredentials); }
 
 Middleware::Middleware() = default;
 
 Middleware::~Middleware() = default;
 
-void Middleware::PreStartCall(
-    ugrpc::client::MiddlewareCallContext& context) const {
-  ApplyCredentials(context.GetContext());
+void Middleware::PreStartCall(ugrpc::client::MiddlewareCallContext& context) const {
+    ApplyCredentials(context.GetContext());
 }
 
 MiddlewareFactory::MiddlewareFactory(const components::ComponentContext&) {}
 
 MiddlewareFactory::~MiddlewareFactory() = default;
 
-std::shared_ptr<const Middleware::MiddlewareBase>
-MiddlewareFactory::GetMiddleware(std::string_view) const {
-  return std::make_shared<Middleware>();
+std::shared_ptr<const Middleware::MiddlewareBase> MiddlewareFactory::GetMiddleware(std::string_view) const {
+    return std::make_shared<Middleware>();
 }
 /// [gRPC middleware sample - Middleware and MiddlewareFactory implementation]
 

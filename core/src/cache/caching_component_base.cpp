@@ -8,7 +8,7 @@ USERVER_NAMESPACE_BEGIN
 namespace components::impl {
 
 yaml_config::Schema GetCachingComponentBaseSchema() {
-  return yaml_config::MergeSchemas<dump::Dumper>(R"(
+    return yaml_config::MergeSchemas<dump::Dumper>(R"(
 type: object
 description: Base class for caching components
 additionalProperties: false

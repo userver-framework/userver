@@ -89,35 +89,33 @@ namespace components {
 // clang-format on
 
 class Server final : public ComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of components::Server component
-  static constexpr std::string_view kName = "server";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of components::Server component
+    static constexpr std::string_view kName = "server";
 
-  Server(const components::ComponentConfig& component_config,
-         const components::ComponentContext& component_context);
+    Server(const components::ComponentConfig& component_config, const components::ComponentContext& component_context);
 
-  ~Server() override;
+    ~Server() override;
 
-  void OnAllComponentsLoaded() override;
+    void OnAllComponentsLoaded() override;
 
-  void OnAllComponentsAreStopping() override;
+    void OnAllComponentsAreStopping() override;
 
-  const server::Server& GetServer() const;
+    const server::Server& GetServer() const;
 
-  server::Server& GetServer();
+    server::Server& GetServer();
 
-  void AddHandler(const server::handlers::HttpHandlerBase& handler,
-                  engine::TaskProcessor& task_processor);
+    void AddHandler(const server::handlers::HttpHandlerBase& handler, engine::TaskProcessor& task_processor);
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  void WriteStatistics(utils::statistics::Writer& writer);
+private:
+    void WriteStatistics(utils::statistics::Writer& writer);
 
-  std::unique_ptr<server::Server> server_;
-  utils::statistics::Entry server_statistics_holder_;
-  utils::statistics::Entry handler_statistics_holder_;
+    std::unique_ptr<server::Server> server_;
+    utils::statistics::Entry server_statistics_holder_;
+    utils::statistics::Entry handler_statistics_holder_;
 };
 
 template <>

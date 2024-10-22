@@ -33,9 +33,8 @@ namespace utils::statistics {
 ///   ]
 /// }
 /// @endcode
-std::string ToJsonFormat(
-    const utils::statistics::Storage& statistics,
-    const utils::statistics::Request& statistics_request = {});
+std::string
+ToJsonFormat(const utils::statistics::Storage& statistics, const utils::statistics::Request& statistics_request = {});
 
 }  // namespace utils::statistics
 

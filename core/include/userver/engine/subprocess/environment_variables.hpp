@@ -14,26 +14,26 @@ namespace engine::subprocess {
 
 /// Iterable environment variables wrapper to update values.
 class EnvironmentVariablesUpdate {
- public:
-  using Map = std::unordered_map<std::string, std::string>;
+public:
+    using Map = std::unordered_map<std::string, std::string>;
 
-  /// Constructs a wrapper from a map.
-  explicit EnvironmentVariablesUpdate(Map vars) : vars_(std::move(vars)) {}
+    /// Constructs a wrapper from a map.
+    explicit EnvironmentVariablesUpdate(Map vars) : vars_(std::move(vars)) {}
 
-  /// Returns a non const iterator to the beginning.
-  auto begin() { return vars_.begin(); }
+    /// Returns a non const iterator to the beginning.
+    auto begin() { return vars_.begin(); }
 
-  /// Returns a non const iterator to the ending.
-  auto end() { return vars_.end(); }
+    /// Returns a non const iterator to the ending.
+    auto end() { return vars_.end(); }
 
-  /// Returns a const iterator to the beginning.
-  auto begin() const { return vars_.begin(); }
+    /// Returns a const iterator to the beginning.
+    auto begin() const { return vars_.begin(); }
 
-  /// Returns a const iterator to the ending.
-  auto end() const { return vars_.end(); }
+    /// Returns a const iterator to the ending.
+    auto end() const { return vars_.end(); }
 
- private:
-  Map vars_;
+private:
+    Map vars_;
 };
 
 /// @brief Environment variables representation.
@@ -42,55 +42,55 @@ class EnvironmentVariablesUpdate {
 /// Changing an instance does not change current environment
 /// variables of the process.
 class EnvironmentVariables {
- public:
-  using Map = EnvironmentVariablesUpdate::Map;
+public:
+    using Map = EnvironmentVariablesUpdate::Map;
 
-  /// @brief Constructs an instance from pairs: key, value taken from the map.
-  explicit EnvironmentVariables(Map vars);
+    /// @brief Constructs an instance from pairs: key, value taken from the map.
+    explicit EnvironmentVariables(Map vars);
 
-  EnvironmentVariables(const EnvironmentVariables&) = default;
-  EnvironmentVariables& operator=(const EnvironmentVariables&) = default;
-  EnvironmentVariables(EnvironmentVariables&&) noexcept = default;
-  EnvironmentVariables& operator=(EnvironmentVariables&&) noexcept = default;
+    EnvironmentVariables(const EnvironmentVariables&) = default;
+    EnvironmentVariables& operator=(const EnvironmentVariables&) = default;
+    EnvironmentVariables(EnvironmentVariables&&) noexcept = default;
+    EnvironmentVariables& operator=(EnvironmentVariables&&) noexcept = default;
 
-  /// @brief Updates variable.
-  /// @note If variable does not exist then it is added.
-  EnvironmentVariables& UpdateWith(EnvironmentVariablesUpdate update);
+    /// @brief Updates variable.
+    /// @note If variable does not exist then it is added.
+    EnvironmentVariables& UpdateWith(EnvironmentVariablesUpdate update);
 
-  /// @brief Returns the value of the variable.
-  /// @warning Throws std::runtime_error if there is no variable.
-  const std::string& GetValue(const std::string& variable_name) const;
+    /// @brief Returns the value of the variable.
+    /// @warning Throws std::runtime_error if there is no variable.
+    const std::string& GetValue(const std::string& variable_name) const;
 
-  /// Returns the pointer to the value of the variable or
-  /// nullptr if there is no variable.
-  const std::string* GetValueOptional(const std::string& variable_name) const;
+    /// Returns the pointer to the value of the variable or
+    /// nullptr if there is no variable.
+    const std::string* GetValueOptional(const std::string& variable_name) const;
 
-  /// Sets the value of the variable.
-  void SetValue(std::string variable_name, std::string value);
+    /// Sets the value of the variable.
+    void SetValue(std::string variable_name, std::string value);
 
-  /// Returns the reference to the value.
-  std::string& operator[](const std::string& variable_name);
+    /// Returns the reference to the value.
+    std::string& operator[](const std::string& variable_name);
 
-  /// Compares equal if thee map of environment variables are equal.
-  bool operator==(const EnvironmentVariables& rhs) const;
+    /// Compares equal if thee map of environment variables are equal.
+    bool operator==(const EnvironmentVariables& rhs) const;
 
-  /// Checks whether the container is empty.
-  auto empty() const { return vars_.empty(); }
+    /// Checks whether the container is empty.
+    auto empty() const { return vars_.empty(); }
 
-  /// Returns the number of elements.
-  auto size() const { return vars_.size(); }
+    /// Returns the number of elements.
+    auto size() const { return vars_.size(); }
 
-  using const_iterator = Map::const_iterator;
-  using iterator = const_iterator;
+    using const_iterator = Map::const_iterator;
+    using iterator = const_iterator;
 
-  /// Returns a const iterator to the beginning.
-  auto begin() const { return vars_.begin(); }
+    /// Returns a const iterator to the beginning.
+    auto begin() const { return vars_.begin(); }
 
-  /// Returns a const iterator to the ending.
-  auto end() const { return vars_.end(); }
+    /// Returns a const iterator to the ending.
+    auto end() const { return vars_.end(); }
 
- private:
-  Map vars_;
+private:
+    Map vars_;
 };
 
 /// Returns copy of the environment variables of the current process.
@@ -106,18 +106,20 @@ void UpdateCurrentEnvironmentVariables();
 
 /// Overwrite modes
 enum class Overwrite {
-  kAllowed,    ///< Overwrites or creates the environment variable
-  kForbidden,  ///< Creates new environment variable, else throws
-               ///< std::runtime_error
-  kIgnored     ///< Does not overwrite the environment variable if the variable
-               ///< exists
+    kAllowed,    ///< Overwrites or creates the environment variable
+    kForbidden,  ///< Creates new environment variable, else throws
+                 ///< std::runtime_error
+    kIgnored     ///< Does not overwrite the environment variable if the variable
+                 ///< exists
 };
 
 /// @brief Sets the environment variable with the specified overwrite type.
 /// @warning Not thread-safe.
-void SetEnvironmentVariable(const std::string& variable_name,
-                            const std::string& value,
-                            Overwrite overwrite = Overwrite::kForbidden);
+void SetEnvironmentVariable(
+    const std::string& variable_name,
+    const std::string& value,
+    Overwrite overwrite = Overwrite::kForbidden
+);
 
 /// @brief Unsets the environment variable.
 /// @warning Not thread-safe.
@@ -126,12 +128,12 @@ void UnsetEnvironmentVariable(const std::string& variable_name);
 /// @brief RAII idiom guard of environment variables.
 /// @warning The constructor and destructor are not thread-safe.
 class EnvironmentVariablesScope {
- public:
-  EnvironmentVariablesScope();
-  ~EnvironmentVariablesScope();
+public:
+    EnvironmentVariablesScope();
+    ~EnvironmentVariablesScope();
 
- private:
-  rcu::ReadablePtr<EnvironmentVariables> old_env_;
+private:
+    rcu::ReadablePtr<EnvironmentVariables> old_env_;
 };
 
 }  // namespace engine::subprocess

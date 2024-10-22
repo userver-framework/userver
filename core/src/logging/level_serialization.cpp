@@ -8,11 +8,11 @@ USERVER_NAMESPACE_BEGIN
 namespace logging {
 
 Level Parse(const yaml_config::YamlConfig& value, formats::parse::To<Level>) {
-  return logging::LevelFromString(value.As<std::string>());
+    return logging::LevelFromString(value.As<std::string>());
 }
 
 Level Parse(const formats::json::Value& value, formats::parse::To<Level>) {
-  return logging::LevelFromString(value.As<std::string>());
+    return logging::LevelFromString(value.As<std::string>());
 }
 
 }  // namespace logging

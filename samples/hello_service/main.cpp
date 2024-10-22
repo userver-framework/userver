@@ -8,8 +8,7 @@
 #include <hello_handler.hpp>
 
 int main(int argc, char* argv[]) {
-  auto component_list = components::MinimalServerComponentList()
-                            .Append<samples::hello::HelloHandler>();
+    auto component_list = components::MinimalServerComponentList().Append<samples::hello::HelloHandler>();
 
-  return utils::DaemonMain(argc, argv, component_list);
+    return utils::DaemonMain(argc, argv, component_list);
 }

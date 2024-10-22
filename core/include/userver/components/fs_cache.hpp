@@ -28,18 +28,17 @@ namespace components {
 // clang-format on
 
 class FsCache final : public components::ComponentBase {
- public:
-  using Client = fs::FsCacheClient;
+public:
+    using Client = fs::FsCacheClient;
 
-  FsCache(const components::ComponentConfig& config,
-          const components::ComponentContext& context);
+    FsCache(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
-  const Client& GetClient() const;
+    const Client& GetClient() const;
 
- private:
-  Client client_;
+private:
+    Client client_;
 };
 
 template <>

@@ -22,25 +22,22 @@ namespace os_signals {
 ///
 /// @see @ref scripts/docs/en/userver/os_signals.md
 class ProcessorComponent final : public components::RawComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of os_signals::ProcessorComponent
-  static constexpr std::string_view kName = "os-signal-processor";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of os_signals::ProcessorComponent
+    static constexpr std::string_view kName = "os-signal-processor";
 
-  ProcessorComponent(const components::ComponentConfig& config,
-                     const components::ComponentContext& context);
+    ProcessorComponent(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-  os_signals::Processor& Get();
+    os_signals::Processor& Get();
 
- private:
-  os_signals::Processor manager_;
+private:
+    os_signals::Processor manager_;
 };
 
 }  // namespace os_signals
 
 template <>
-inline constexpr auto
-    components::kConfigFileMode<os_signals::ProcessorComponent> =
-        ConfigFileMode::kNotRequired;
+inline constexpr auto components::kConfigFileMode<os_signals::ProcessorComponent> = ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

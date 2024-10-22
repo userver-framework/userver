@@ -36,29 +36,30 @@ namespace server::handlers::auth::digest {
 // clang-format on
 
 class AuthCheckerSettingsComponent : public components::ComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of
-  /// server::handlers::auth::digest::AuthCheckerSettingsComponent
-  static constexpr std::string_view kName = "auth-digest-checker-settings";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of
+    /// server::handlers::auth::digest::AuthCheckerSettingsComponent
+    static constexpr std::string_view kName = "auth-digest-checker-settings";
 
-  AuthCheckerSettingsComponent(const components::ComponentConfig& config,
-                               const components::ComponentContext& context);
+    AuthCheckerSettingsComponent(
+        const components::ComponentConfig& config,
+        const components::ComponentContext& context
+    );
 
-  ~AuthCheckerSettingsComponent() override;
+    ~AuthCheckerSettingsComponent() override;
 
-  const AuthCheckerSettings& GetSettings() const;
+    const AuthCheckerSettings& GetSettings() const;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  AuthCheckerSettings settings_;
+private:
+    AuthCheckerSettings settings_;
 };
 
 }  // namespace server::handlers::auth::digest
 
 template <>
-inline constexpr bool components::kHasValidate<
-    server::handlers::auth::digest::AuthCheckerSettingsComponent> = true;
+inline constexpr bool components::kHasValidate<server::handlers::auth::digest::AuthCheckerSettingsComponent> = true;
 
 USERVER_NAMESPACE_END

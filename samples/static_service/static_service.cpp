@@ -7,10 +7,9 @@
 
 /// [Static service sample - main]
 int main(int argc, char* argv[]) {
-  const auto component_list =
-      components::MinimalServerComponentList()
-          .Append<components::FsCache>("fs-cache-main")
-          .Append<server::handlers::HttpHandlerStatic>();
-  return utils::DaemonMain(argc, argv, component_list);
+    const auto component_list = components::MinimalServerComponentList()
+                                    .Append<components::FsCache>("fs-cache-main")
+                                    .Append<server::handlers::HttpHandlerStatic>();
+    return utils::DaemonMain(argc, argv, component_list);
 }
 /// [Static service sample - main]

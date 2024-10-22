@@ -12,22 +12,22 @@ class ConnectionPtr;
 class StatementStatsStorage;
 
 class StatementStats final {
- public:
-  StatementStats(const Query& query, const ConnectionPtr& conn);
+public:
+    StatementStats(const Query& query, const ConnectionPtr& conn);
 
-  void AccountStatementExecution();
-  void AccountStatementError();
+    void AccountStatementExecution();
+    void AccountStatementError();
 
- private:
-  void AccountImpl(StatementStatsStorage::ExecutionResult execution_result);
+private:
+    void AccountImpl(StatementStatsStorage::ExecutionResult execution_result);
 
-  static SteadyClock::time_point Now();
+    static SteadyClock::time_point Now();
 
- private:
-  const Query& query_;
-  const StatementStatsStorage* sts_;
+private:
+    const Query& query_;
+    const StatementStatsStorage* sts_;
 
-  const SteadyClock::time_point start_;
+    const SteadyClock::time_point start_;
 };
 
 }  // namespace storages::postgres::detail

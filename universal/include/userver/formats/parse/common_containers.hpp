@@ -29,115 +29,102 @@ namespace impl {
 
 template <typename T, class Value>
 inline T AsExtractor(const Value& value) {
-  return value.template As<T>();
+    return value.template As<T>();
 }
 
 template <typename T, class Value>
 inline T ConvertToExtractor(const Value& value) {
-  return value.template ConvertTo<T>();
+    return value.template ConvertTo<T>();
 }
 
 template <typename ArrayType, class Value, typename ExtractFunc>
 ArrayType ParseArray(const Value& value, ExtractFunc&& extract_func) {
-  value.CheckArrayOrNull();
-  ArrayType response;
-  auto inserter = std::inserter(response, response.end());
+    value.CheckArrayOrNull();
+    ArrayType response;
+    auto inserter = std::inserter(response, response.end());
 
-  for (const auto& subitem : value) {
-    *inserter = extract_func(subitem);
-    ++inserter;
-  }
+    for (const auto& subitem : value) {
+        *inserter = extract_func(subitem);
+        ++inserter;
+    }
 
-  return response;
+    return response;
 }
 
 template <typename ObjectType, class Value, typename ExtractFunc>
 ObjectType ParseObject(const Value& value, ExtractFunc&& extract_func) {
-  value.CheckObjectOrNull();
-  ObjectType result;
+    value.CheckObjectOrNull();
+    ObjectType result;
 
-  for (auto it = value.begin(); it != value.end(); ++it) {
-    result.emplace(it.GetName(), extract_func(*it));
-  }
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        result.emplace(it.GetName(), extract_func(*it));
+    }
 
-  return result;
+    return result;
 }
 
 }  // namespace impl
 
 template <typename T, typename Value>
-std::enable_if_t<common::kIsFormatValue<Value> && meta::kIsRange<T> &&
-                     !meta::kIsMap<T> &&
-                     !std::is_same_v<T, boost::uuids::uuid> &&
-                     !std::is_convertible_v<
-                         T&, utils::impl::strong_typedef::StrongTypedefTag&>,
-                 T>
+std::enable_if_t<
+    common::kIsFormatValue<Value> && meta::kIsRange<T> && !meta::kIsMap<T> && !std::is_same_v<T, boost::uuids::uuid> &&
+        !std::is_convertible_v<T&, utils::impl::strong_typedef::StrongTypedefTag&>,
+    T>
 Parse(const Value& value, To<T>) {
-  return impl::ParseArray<T>(
-      value, &impl::AsExtractor<meta::RangeValueType<T>, Value>);
+    return impl::ParseArray<T>(value, &impl::AsExtractor<meta::RangeValueType<T>, Value>);
 }
 
 template <typename T, typename Value>
-std::enable_if_t<common::kIsFormatValue<Value> && meta::kIsMap<T>, T> Parse(
-    const Value& value, To<T>) {
-  return impl::ParseObject<T>(
-      value, &impl::AsExtractor<typename T::mapped_type, Value>);
+std::enable_if_t<common::kIsFormatValue<Value> && meta::kIsMap<T>, T> Parse(const Value& value, To<T>) {
+    return impl::ParseObject<T>(value, &impl::AsExtractor<typename T::mapped_type, Value>);
 }
 
 template <typename T, typename Value>
-std::optional<decltype(Parse(std::declval<Value>(), To<T>{}))> Parse(
-    const Value& value, To<std::optional<T>>) {
-  if (value.IsMissing() || value.IsNull()) {
-    return std::nullopt;
-  }
-  return value.template As<T>();
+std::optional<decltype(Parse(std::declval<Value>(), To<T>{}))> Parse(const Value& value, To<std::optional<T>>) {
+    if (value.IsMissing() || value.IsNull()) {
+        return std::nullopt;
+    }
+    return value.template As<T>();
 }
 
 template <class Value>
-std::optional<std::nullptr_t> Parse(const Value&,
-                                    To<std::optional<std::nullptr_t>>) {
-  static_assert(!sizeof(Value),
-                "optional<nullptr_t> is forbidden, check IsNull() instead");
-  return nullptr;
+std::optional<std::nullptr_t> Parse(const Value&, To<std::optional<std::nullptr_t>>) {
+    static_assert(!sizeof(Value), "optional<nullptr_t> is forbidden, check IsNull() instead");
+    return nullptr;
 }
 
 template <typename T, typename Value>
-std::enable_if_t<meta::kIsRange<T> && !meta::kIsMap<T> &&
-                     !std::is_same_v<T, boost::uuids::uuid> &&
-                     !std::is_convertible_v<
-                         T&, utils::impl::strong_typedef::StrongTypedefTag&>,
-                 T>
+std::enable_if_t<
+    meta::kIsRange<T> && !meta::kIsMap<T> && !std::is_same_v<T, boost::uuids::uuid> &&
+        !std::is_convertible_v<T&, utils::impl::strong_typedef::StrongTypedefTag&>,
+    T>
 Convert(const Value& value, To<T>) {
-  if (value.IsMissing()) {
-    return {};
-  }
-  return impl::ParseArray<T>(
-      value, &impl::ConvertToExtractor<meta::RangeValueType<T>, Value>);
+    if (value.IsMissing()) {
+        return {};
+    }
+    return impl::ParseArray<T>(value, &impl::ConvertToExtractor<meta::RangeValueType<T>, Value>);
 }
 
 template <typename T, typename Value>
 std::enable_if_t<meta::kIsMap<T>, T> Convert(const Value& value, To<T>) {
-  if (value.IsMissing()) {
-    return {};
-  }
-  return impl::ParseObject<T>(
-      value, &impl::ConvertToExtractor<typename T::mapped_type, Value>);
+    if (value.IsMissing()) {
+        return {};
+    }
+    return impl::ParseObject<T>(value, &impl::ConvertToExtractor<typename T::mapped_type, Value>);
 }
 
 template <typename T, typename Value>
 std::optional<T> Convert(const Value& value, To<std::optional<T>>) {
-  if (value.IsMissing() || value.IsNull()) {
-    return std::nullopt;
-  }
-  return value.template ConvertTo<T>();
+    if (value.IsMissing() || value.IsNull()) {
+        return std::nullopt;
+    }
+    return value.template ConvertTo<T>();
 }
 
 template <class Value>
-std::optional<std::nullptr_t> Convert(const Value&,
-                                      To<std::optional<std::nullptr_t>>) {
-  static_assert(!sizeof(Value),
-                "optional<nullptr_t> is forbidden, check IsNull() instead");
-  return nullptr;
+std::optional<std::nullptr_t> Convert(const Value&, To<std::optional<std::nullptr_t>>) {
+    static_assert(!sizeof(Value), "optional<nullptr_t> is forbidden, check IsNull() instead");
+    return nullptr;
 }
 
 }  // namespace formats::parse

@@ -28,21 +28,20 @@ class Middleware;
 // clang-format on
 
 class Component final : public MiddlewareComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of
-  /// ugrpc::server::middlewares::congestion_control::Component
-  static constexpr std::string_view kName = "grpc-server-congestion-control";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of
+    /// ugrpc::server::middlewares::congestion_control::Component
+    static constexpr std::string_view kName = "grpc-server-congestion-control";
 
-  Component(const components::ComponentConfig& config,
-            const components::ComponentContext& context);
+    Component(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-  std::shared_ptr<MiddlewareBase> GetMiddleware() override;
+    std::shared_ptr<MiddlewareBase> GetMiddleware() override;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  std::shared_ptr<Middleware> middleware_;
+private:
+    std::shared_ptr<Middleware> middleware_;
 };
 
 }  // namespace ugrpc::server::middlewares::congestion_control

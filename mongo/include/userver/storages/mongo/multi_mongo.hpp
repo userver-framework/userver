@@ -17,86 +17,88 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::mongo {
 
 class MultiMongo {
-  using PoolMap = std::unordered_map<std::string, storages::mongo::PoolPtr>;
+    using PoolMap = std::unordered_map<std::string, storages::mongo::PoolPtr>;
 
- public:
-  /// Database set builder
-  class PoolSet {
-   public:
-    explicit PoolSet(MultiMongo&);
+public:
+    /// Database set builder
+    class PoolSet {
+    public:
+        explicit PoolSet(MultiMongo&);
 
-    PoolSet(const PoolSet&);
-    PoolSet(PoolSet&&) noexcept;
-    PoolSet& operator=(const PoolSet&);
-    PoolSet& operator=(PoolSet&&) noexcept;
+        PoolSet(const PoolSet&);
+        PoolSet(PoolSet&&) noexcept;
+        PoolSet& operator=(const PoolSet&);
+        PoolSet& operator=(PoolSet&&) noexcept;
 
-    /// Adds all currently enabled databases to the set
-    void AddExistingPools();
+        /// Adds all currently enabled databases to the set
+        void AddExistingPools();
 
-    /// @brief Adds a database to the set by its name
+        /// @brief Adds a database to the set by its name
+        /// @param dbalias name of the database in secdist config
+        void AddPool(std::string dbalias);
+
+        /// @brief Removes the database with the specified name from the set
+        /// @param dbalias name of the database passed to AddPool
+        /// @returns whether the database was in the set
+        bool RemovePool(const std::string& dbalias);
+
+        /// @brief Replaces the working database set
+        void Activate();
+
+    private:
+        MultiMongo* target_{nullptr};
+        std::shared_ptr<PoolMap> pool_map_ptr_;
+    };
+
+    /// @cond
+    MultiMongo(
+        std::string name,
+        const storages::secdist::Secdist& secdist,
+        storages::mongo::PoolConfig pool_config,
+        clients::dns::Resolver* dns_resolver,
+        dynamic_config::Source config_source
+    );
+    /// @endcond
+
+    /// @brief Client pool accessor
+    /// @param dbalias name previously passed to `AddPool`
+    /// @throws PoolNotFoundException if no such database is enabled
+    storages::mongo::PoolPtr GetPool(const std::string& dbalias) const;
+
+    /// @brief Adds a database to the working set by its name.
+    /// Equivalent to
+    /// `NewPoolSet()`-`AddExistingPools()`-`AddPool(dbalias)`-`Activate()`
     /// @param dbalias name of the database in secdist config
     void AddPool(std::string dbalias);
 
-    /// @brief Removes the database with the specified name from the set
+    /// @brief Removes the database with the specified name from the working set.
+    /// Equivalent to
+    /// `NewPoolSet()`-`AddExistingPools()`-`RemovePool(dbalias)`-`Activate()`
     /// @param dbalias name of the database passed to AddPool
-    /// @returns whether the database was in the set
+    /// @returns whether the database was in the working set
     bool RemovePool(const std::string& dbalias);
 
-    /// @brief Replaces the working database set
-    void Activate();
+    /// Creates an empty database set bound to the current MultiMongo instance
+    PoolSet NewPoolSet();
 
-   private:
-    MultiMongo* target_{nullptr};
-    std::shared_ptr<PoolMap> pool_map_ptr_;
-  };
+    /// Writes statistics
+    friend void DumpMetric(utils::statistics::Writer& writer, const MultiMongo& multi_mongo);
 
-  /// @cond
-  MultiMongo(std::string name, const storages::secdist::Secdist& secdist,
-             storages::mongo::PoolConfig pool_config,
-             clients::dns::Resolver* dns_resolver,
-             dynamic_config::Source config_source);
-  /// @endcond
+    const std::string& GetName() const { return name_; }
 
-  /// @brief Client pool accessor
-  /// @param dbalias name previously passed to `AddPool`
-  /// @throws PoolNotFoundException if no such database is enabled
-  storages::mongo::PoolPtr GetPool(const std::string& dbalias) const;
+private:
+    void OnConfigUpdate(const dynamic_config::Snapshot& config);
 
-  /// @brief Adds a database to the working set by its name.
-  /// Equivalent to
-  /// `NewPoolSet()`-`AddExistingPools()`-`AddPool(dbalias)`-`Activate()`
-  /// @param dbalias name of the database in secdist config
-  void AddPool(std::string dbalias);
+    storages::mongo::PoolPtr FindPool(const std::string& dbalias) const;
 
-  /// @brief Removes the database with the specified name from the working set.
-  /// Equivalent to
-  /// `NewPoolSet()`-`AddExistingPools()`-`RemovePool(dbalias)`-`Activate()`
-  /// @param dbalias name of the database passed to AddPool
-  /// @returns whether the database was in the working set
-  bool RemovePool(const std::string& dbalias);
-
-  /// Creates an empty database set bound to the current MultiMongo instance
-  PoolSet NewPoolSet();
-
-  /// Writes statistics
-  friend void DumpMetric(utils::statistics::Writer& writer,
-                         const MultiMongo& multi_mongo);
-
-  const std::string& GetName() const { return name_; }
-
- private:
-  void OnConfigUpdate(const dynamic_config::Snapshot& config);
-
-  storages::mongo::PoolPtr FindPool(const std::string& dbalias) const;
-
-  const std::string name_;
-  const storages::secdist::Secdist& secdist_;
-  dynamic_config::Source config_source_;
-  const storages::mongo::PoolConfig pool_config_;
-  clients::dns::Resolver* dns_resolver_;
-  rcu::Variable<PoolMap> pool_map_;
-  // config_subscriber_ must be the last field.
-  concurrent::AsyncEventSubscriberScope config_subscriber_;
+    const std::string name_;
+    const storages::secdist::Secdist& secdist_;
+    dynamic_config::Source config_source_;
+    const storages::mongo::PoolConfig pool_config_;
+    clients::dns::Resolver* dns_resolver_;
+    rcu::Variable<PoolMap> pool_map_;
+    // config_subscriber_ must be the last field.
+    concurrent::AsyncEventSubscriberScope config_subscriber_;
 };
 
 }  // namespace storages::mongo

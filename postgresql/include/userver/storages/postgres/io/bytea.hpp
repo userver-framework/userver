@@ -29,8 +29,7 @@ struct IsByteaCompatible<std::string_view> : std::true_type {};
 template <typename... VectorArgs>
 struct IsByteaCompatible<std::vector<char, VectorArgs...>> : std::true_type {};
 template <typename... VectorArgs>
-struct IsByteaCompatible<std::vector<unsigned char, VectorArgs...>>
-    : std::true_type {};
+struct IsByteaCompatible<std::vector<unsigned char, VectorArgs...>> : std::true_type {};
 
 template <typename T>
 inline constexpr bool kIsByteaCompatible = IsByteaCompatible<T>::value;
@@ -44,15 +43,15 @@ namespace detail {
 
 template <typename ByteContainerRef>
 struct ByteaRefWrapper {
-  static_assert(std::is_reference<ByteContainerRef>::value,
-                "The container must be passed by reference");
+    static_assert(std::is_reference<ByteContainerRef>::value, "The container must be passed by reference");
 
-  using BytesType = std::decay_t<ByteContainerRef>;
-  static_assert(
-      io::traits::kIsByteaCompatible<BytesType>,
-      "This C++ type cannot be used with PostgreSQL `bytea` data type");
+    using BytesType = std::decay_t<ByteContainerRef>;
+    static_assert(
+        io::traits::kIsByteaCompatible<BytesType>,
+        "This C++ type cannot be used with PostgreSQL `bytea` data type"
+    );
 
-  ByteContainerRef bytes;
+    ByteContainerRef bytes;
 };
 
 }  // namespace detail
@@ -67,9 +66,8 @@ struct ByteaRefWrapper {
 // clang-format on
 
 template <typename ByteContainer>
-detail::ByteaRefWrapper<const ByteContainer&> Bytea(
-    const ByteContainer& bytes) {
-  return {bytes};
+detail::ByteaRefWrapper<const ByteContainer&> Bytea(const ByteContainer& bytes) {
+    return {bytes};
 }
 
 // clang-format off
@@ -83,21 +81,22 @@ detail::ByteaRefWrapper<const ByteContainer&> Bytea(
 
 template <typename ByteContainer>
 detail::ByteaRefWrapper<ByteContainer&> Bytea(ByteContainer& bytes) {
-  return {bytes};
+    return {bytes};
 }
 
 /// Wrapper for binary data container
 template <typename ByteContainer>
 struct ByteaWrapper {
-  using BytesType = std::decay_t<ByteContainer>;
+    using BytesType = std::decay_t<ByteContainer>;
 
-  constexpr static bool kIsPostgresBuildInTypeWrapper = true;
+    constexpr static bool kIsPostgresBuildInTypeWrapper = true;
 
-  static_assert(
-      io::traits::kIsByteaCompatible<BytesType>,
-      "This C++ type cannot be used with PostgreSQL `bytea` data type");
+    static_assert(
+        io::traits::kIsByteaCompatible<BytesType>,
+        "This C++ type cannot be used with PostgreSQL `bytea` data type"
+    );
 
-  ByteContainer bytes;
+    ByteContainer bytes;
 };
 
 namespace io {
@@ -106,55 +105,43 @@ template <typename ByteContainer>
 struct BufferParser<
     postgres::detail::ByteaRefWrapper<ByteContainer>,
     traits::EnableIfByteaCompatible<std::decay_t<ByteContainer>>>
-    : detail::BufferParserBase<
-          postgres::detail::ByteaRefWrapper<ByteContainer>&&> {
-  using BaseType = detail::BufferParserBase<
-      postgres::detail::ByteaRefWrapper<ByteContainer>&&>;
-  using BaseType::BaseType;
-  using ByteaType = postgres::detail::ByteaRefWrapper<ByteContainer>;
+    : detail::BufferParserBase<postgres::detail::ByteaRefWrapper<ByteContainer>&&> {
+    using BaseType = detail::BufferParserBase<postgres::detail::ByteaRefWrapper<ByteContainer>&&>;
+    using BaseType::BaseType;
+    using ByteaType = postgres::detail::ByteaRefWrapper<ByteContainer>;
 
-  void operator()(const FieldBuffer& buffer) {
-    if constexpr (std::is_same<typename ByteaType::BytesType,
-                               std::string_view>{}) {
-      this->value.bytes = std::string_view{
-          reinterpret_cast<const char*>(buffer.buffer), buffer.length};
-    } else {
-      this->value.bytes.resize(buffer.length);
-      std::copy(buffer.buffer, buffer.buffer + buffer.length,
-                this->value.bytes.begin());
+    void operator()(const FieldBuffer& buffer) {
+        if constexpr (std::is_same<typename ByteaType::BytesType, std::string_view>{}) {
+            this->value.bytes = std::string_view{reinterpret_cast<const char*>(buffer.buffer), buffer.length};
+        } else {
+            this->value.bytes.resize(buffer.length);
+            std::copy(buffer.buffer, buffer.buffer + buffer.length, this->value.bytes.begin());
+        }
     }
-  }
 };
 
 template <typename ByteContainer>
-struct BufferParser<
-    postgres::ByteaWrapper<ByteContainer>,
-    traits::EnableIfByteaCompatible<std::decay_t<ByteContainer>>>
+struct BufferParser<postgres::ByteaWrapper<ByteContainer>, traits::EnableIfByteaCompatible<std::decay_t<ByteContainer>>>
     : detail::BufferParserBase<postgres::ByteaWrapper<ByteContainer>> {
-  using BaseType =
-      detail::BufferParserBase<postgres::ByteaWrapper<ByteContainer>>;
-  using BaseType::BaseType;
+    using BaseType = detail::BufferParserBase<postgres::ByteaWrapper<ByteContainer>>;
+    using BaseType::BaseType;
 
-  void operator()(const FieldBuffer& buffer) {
-    ReadBuffer(buffer, Bytea(this->value.bytes));
-  }
+    void operator()(const FieldBuffer& buffer) { ReadBuffer(buffer, Bytea(this->value.bytes)); }
 };
 
 template <typename ByteContainer>
 struct BufferFormatter<
     postgres::detail::ByteaRefWrapper<ByteContainer>,
     traits::EnableIfByteaCompatible<std::decay_t<ByteContainer>>>
-    : detail::BufferFormatterBase<
-          postgres::detail::ByteaRefWrapper<ByteContainer>> {
-  using BaseType = detail::BufferFormatterBase<
-      postgres::detail::ByteaRefWrapper<ByteContainer>>;
-  using BaseType::BaseType;
+    : detail::BufferFormatterBase<postgres::detail::ByteaRefWrapper<ByteContainer>> {
+    using BaseType = detail::BufferFormatterBase<postgres::detail::ByteaRefWrapper<ByteContainer>>;
+    using BaseType::BaseType;
 
-  template <typename Buffer>
-  void operator()(const UserTypes&, Buffer& buf) const {
-    buf.reserve(buf.size() + this->value.bytes.size());
-    buf.insert(buf.end(), this->value.bytes.begin(), this->value.bytes.end());
-  }
+    template <typename Buffer>
+    void operator()(const UserTypes&, Buffer& buf) const {
+        buf.reserve(buf.size() + this->value.bytes.size());
+        buf.insert(buf.end(), this->value.bytes.begin(), this->value.bytes.end());
+    }
 };
 
 template <typename ByteContainer>
@@ -162,22 +149,19 @@ struct BufferFormatter<
     postgres::ByteaWrapper<ByteContainer>,
     traits::EnableIfByteaCompatible<std::decay_t<ByteContainer>>>
     : detail::BufferFormatterBase<postgres::ByteaWrapper<ByteContainer>> {
-  using BaseType =
-      detail::BufferFormatterBase<postgres::ByteaWrapper<ByteContainer>>;
-  using BaseType::BaseType;
+    using BaseType = detail::BufferFormatterBase<postgres::ByteaWrapper<ByteContainer>>;
+    using BaseType::BaseType;
 
-  template <typename Buffer>
-  void operator()(const UserTypes& types, Buffer& buffer) const {
-    WriteBuffer(types, buffer, Bytea(this->value.bytes));
-  }
+    template <typename Buffer>
+    void operator()(const UserTypes& types, Buffer& buffer) const {
+        WriteBuffer(types, buffer, Bytea(this->value.bytes));
+    }
 };
 
 template <typename ByteContainer>
-struct CppToSystemPg<postgres::detail::ByteaRefWrapper<ByteContainer>>
-    : PredefinedOid<PredefinedOids::kBytea> {};
+struct CppToSystemPg<postgres::detail::ByteaRefWrapper<ByteContainer>> : PredefinedOid<PredefinedOids::kBytea> {};
 template <typename ByteContainer>
-struct CppToSystemPg<postgres::ByteaWrapper<ByteContainer>>
-    : PredefinedOid<PredefinedOids::kBytea> {};
+struct CppToSystemPg<postgres::ByteaWrapper<ByteContainer>> : PredefinedOid<PredefinedOids::kBytea> {};
 
 }  // namespace io
 }  // namespace storages::postgres

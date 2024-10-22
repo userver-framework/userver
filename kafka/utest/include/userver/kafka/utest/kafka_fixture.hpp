@@ -20,10 +20,10 @@ namespace kafka::utest {
 ///
 /// @brief Message owning data wrapper for unit tests.
 struct Message {
-  std::string topic;
-  std::string key;
-  std::string payload;
-  std::optional<std::uint32_t> partition;
+    std::string topic;
+    std::string key;
+    std::string payload;
+    std::optional<std::uint32_t> partition;
 };
 
 bool operator==(const Message& lhs, const Message& rhs);
@@ -54,59 +54,68 @@ bool operator==(const Message& lhs, const Message& rhs);
 ///
 /// @see https://yandex.github.io/yandex-taxi-testsuite/kafka
 class KafkaCluster : public ::testing::Test {
- public:
-  /// Kafka broker has some cold start issues on its. To stabilize tests
-  /// KafkaCluster patches producer's default delivery timeout.
-  /// To use custom delivery timeout in test, pass `configuration` argument to
-  /// MakeProducer.
-  static constexpr const std::chrono::milliseconds kDefaultTestProducerTimeout{
-      USERVER_NAMESPACE::utest::kMaxTestWaitTime / 2};
+public:
+    /// Kafka broker has some cold start issues on its. To stabilize tests
+    /// KafkaCluster patches producer's default delivery timeout.
+    /// To use custom delivery timeout in test, pass `configuration` argument to
+    /// MakeProducer.
+    static constexpr const std::chrono::milliseconds kDefaultTestProducerTimeout{
+        USERVER_NAMESPACE::utest::kMaxTestWaitTime / 2};
 
-  KafkaCluster();
+    KafkaCluster();
 
-  ~KafkaCluster() override = default;
+    ~KafkaCluster() override = default;
 
-  std::string GenerateTopic();
+    std::string GenerateTopic();
 
-  std::vector<std::string> GenerateTopics(std::size_t count);
+    std::vector<std::string> GenerateTopics(std::size_t count);
 
-  impl::Configuration MakeProducerConfiguration(
-      const std::string& name, impl::ProducerConfiguration configuration = {},
-      impl::Secret secrets = {});
+    impl::Configuration MakeProducerConfiguration(
+        const std::string& name,
+        impl::ProducerConfiguration configuration = {},
+        impl::Secret secrets = {}
+    );
 
-  impl::Configuration MakeConsumerConfiguration(
-      const std::string& name, impl::ConsumerConfiguration configuration = {},
-      impl::Secret secrets = {});
+    impl::Configuration MakeConsumerConfiguration(
+        const std::string& name,
+        impl::ConsumerConfiguration configuration = {},
+        impl::Secret secrets = {}
+    );
 
-  Producer MakeProducer(const std::string& name,
-                        impl::ProducerConfiguration configuration = {});
+    Producer MakeProducer(const std::string& name, impl::ProducerConfiguration configuration = {});
 
-  std::deque<Producer> MakeProducers(
-      std::size_t count, std::function<std::string(std::size_t)> nameGenerator,
-      impl::ProducerConfiguration configuration = {});
+    std::deque<Producer> MakeProducers(
+        std::size_t count,
+        std::function<std::string(std::size_t)> nameGenerator,
+        impl::ProducerConfiguration configuration = {}
+    );
 
-  /// @brief Creates temporary producer and send messages span.
-  void SendMessages(utils::span<const Message> messages);
+    /// @brief Creates temporary producer and send messages span.
+    void SendMessages(utils::span<const Message> messages);
 
-  impl::Consumer MakeConsumer(const std::string& name,
-                              const std::vector<std::string>& topics,
-                              impl::ConsumerConfiguration configuration = {},
-                              impl::ConsumerExecutionParams params = {});
+    impl::Consumer MakeConsumer(
+        const std::string& name,
+        const std::vector<std::string>& topics,
+        impl::ConsumerConfiguration configuration = {},
+        impl::ConsumerExecutionParams params = {}
+    );
 
-  /// @brief Starts consumer, waits until `expected_message_count` messages are
-  /// consumed, calls `user_callback` if set, stops consumer.
-  std::vector<Message> ReceiveMessages(
-      impl::Consumer& consumer, std::size_t expected_messages_count,
-      bool commit_after_receive = true,
-      std::optional<std::function<void(MessageBatchView)>> user_callback = {});
+    /// @brief Starts consumer, waits until `expected_message_count` messages are
+    /// consumed, calls `user_callback` if set, stops consumer.
+    std::vector<Message> ReceiveMessages(
+        impl::Consumer& consumer,
+        std::size_t expected_messages_count,
+        bool commit_after_receive = true,
+        std::optional<std::function<void(MessageBatchView)>> user_callback = {}
+    );
 
- private:
-  impl::Secret AddBootstrapServers(impl::Secret secrets) const;
+private:
+    impl::Secret AddBootstrapServers(impl::Secret secrets) const;
 
- private:
-  std::atomic<std::size_t> topics_count_{0};
+private:
+    std::atomic<std::size_t> topics_count_{0};
 
-  const std::string bootstrap_servers_;
+    const std::string bootstrap_servers_;
 };
 
 }  // namespace kafka::utest

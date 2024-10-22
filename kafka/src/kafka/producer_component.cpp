@@ -15,22 +15,22 @@ namespace kafka {
 
 ProducerComponent::ProducerComponent(
     const components::ComponentConfig& config,
-    const components::ComponentContext& context)
+    const components::ComponentContext& context
+)
     : components::ComponentBase(config, context),
-      producer_(config.Name(),
-                context.GetTaskProcessor("producer-task-processor"),
-                config.As<impl::ProducerConfiguration>(),
-                context.FindComponent<components::Secdist>()
-                    .Get()
-                    .Get<impl::BrokerSecrets>()
-                    .GetSecretByComponentName(config.Name())) {
-  auto& storage =
-      context.FindComponent<components::StatisticsStorage>().GetStorage();
+      producer_(
+          config.Name(),
+          context.GetTaskProcessor("producer-task-processor"),
+          config.As<impl::ProducerConfiguration>(),
+          context.FindComponent<components::Secdist>().Get().Get<impl::BrokerSecrets>().GetSecretByComponentName(
+              config.Name()
+          )
+      ) {
+    auto& storage = context.FindComponent<components::StatisticsStorage>().GetStorage();
 
-  statistics_holder_ = storage.RegisterWriter(
-      config.Name(), [this](utils::statistics::Writer& writer) {
+    statistics_holder_ = storage.RegisterWriter(config.Name(), [this](utils::statistics::Writer& writer) {
         producer_.DumpMetric(writer);
-      });
+    });
 }
 
 ProducerComponent::~ProducerComponent() { statistics_holder_.Unregister(); }
@@ -38,7 +38,7 @@ ProducerComponent::~ProducerComponent() { statistics_holder_.Unregister(); }
 const Producer& ProducerComponent::GetProducer() { return producer_; }
 
 yaml_config::Schema ProducerComponent::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<components::ComponentBase>(R"(
+    return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: Kafka producer component
 additionalProperties: false

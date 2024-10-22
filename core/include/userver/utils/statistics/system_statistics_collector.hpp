@@ -36,22 +36,22 @@ namespace components {
 // clang-format on
 
 class SystemStatisticsCollector final : public ComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of components::SystemStatisticsCollector
-  static constexpr std::string_view kName = "system-statistics-collector";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of components::SystemStatisticsCollector
+    static constexpr std::string_view kName = "system-statistics-collector";
 
-  SystemStatisticsCollector(const ComponentConfig&, const ComponentContext&);
-  ~SystemStatisticsCollector() override;
+    SystemStatisticsCollector(const ComponentConfig&, const ComponentContext&);
+    ~SystemStatisticsCollector() override;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  void ExtendStatistics(utils::statistics::Writer& writer);
+private:
+    void ExtendStatistics(utils::statistics::Writer& writer);
 
-  const bool with_nginx_;
-  engine::TaskProcessor& fs_task_processor_;
-  utils::statistics::Entry statistics_holder_;
+    const bool with_nginx_;
+    engine::TaskProcessor& fs_task_processor_;
+    utils::statistics::Entry statistics_holder_;
 };
 
 template <>

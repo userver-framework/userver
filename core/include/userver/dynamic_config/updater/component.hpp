@@ -71,64 +71,58 @@ namespace components {
 /// @snippet components/common_component_list_test.cpp  Sample dynamic config client updater component config
 
 // clang-format on
-class DynamicConfigClientUpdater final
-    : public CachingComponentBase<dynamic_config::DocsMap> {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of components::DynamicConfigClientUpdater
-  static constexpr std::string_view kName = "dynamic-config-client-updater";
+class DynamicConfigClientUpdater final : public CachingComponentBase<dynamic_config::DocsMap> {
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of components::DynamicConfigClientUpdater
+    static constexpr std::string_view kName = "dynamic-config-client-updater";
 
-  DynamicConfigClientUpdater(const ComponentConfig&, const ComponentContext&);
+    DynamicConfigClientUpdater(const ComponentConfig&, const ComponentContext&);
 
-  ~DynamicConfigClientUpdater() override;
+    ~DynamicConfigClientUpdater() override;
 
-  // After calling this method, `Get()` will return a dynamic_config containing
-  // the specified keys while the token that this method returned is alive.
-  dynamic_config::AdditionalKeysToken SetAdditionalKeys(
-      std::vector<std::string> keys);
+    // After calling this method, `Get()` will return a dynamic_config containing
+    // the specified keys while the token that this method returned is alive.
+    dynamic_config::AdditionalKeysToken SetAdditionalKeys(std::vector<std::string> keys);
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  void Update(cache::UpdateType update_type,
-              const std::chrono::system_clock::time_point& last_update,
-              const std::chrono::system_clock::time_point& now,
-              cache::UpdateStatisticsScope&) override;
+private:
+    void
+    Update(cache::UpdateType update_type, const std::chrono::system_clock::time_point& last_update, const std::chrono::system_clock::time_point& now, cache::UpdateStatisticsScope&)
+        override;
 
-  void UpdateFull(const std::vector<std::string>& docs_map_keys,
-                  cache::UpdateStatisticsScope&);
+    void UpdateFull(const std::vector<std::string>& docs_map_keys, cache::UpdateStatisticsScope&);
 
-  void UpdateIncremental(const std::vector<std::string>& docs_map_keys,
-                         cache::UpdateStatisticsScope&);
+    void UpdateIncremental(const std::vector<std::string>& docs_map_keys, cache::UpdateStatisticsScope&);
 
-  dynamic_config::DocsMap MergeDocsMap(const dynamic_config::DocsMap& current,
-                                       dynamic_config::DocsMap&& update,
-                                       const std::vector<std::string>& removed);
-  void StoreIfEnabled(const dynamic_config::DocsMap& value);
+    dynamic_config::DocsMap MergeDocsMap(
+        const dynamic_config::DocsMap& current,
+        dynamic_config::DocsMap&& update,
+        const std::vector<std::string>& removed
+    );
+    void StoreIfEnabled(const dynamic_config::DocsMap& value);
 
-  using DocsMapKeys = utils::impl::TransparentSet<std::string>;
-  using AdditionalDocsMapKeys =
-      std::unordered_set<std::shared_ptr<std::vector<std::string>>>;
+    using DocsMapKeys = utils::impl::TransparentSet<std::string>;
+    using AdditionalDocsMapKeys = std::unordered_set<std::shared_ptr<std::vector<std::string>>>;
 
-  std::vector<std::string> GetDocsMapKeysToFetch(
-      AdditionalDocsMapKeys& additional_docs_map_keys);
+    std::vector<std::string> GetDocsMapKeysToFetch(AdditionalDocsMapKeys& additional_docs_map_keys);
 
-  void UpdateAdditionalKeys(const std::vector<std::string>& keys);
+    void UpdateAdditionalKeys(const std::vector<std::string>& keys);
 
-  bool IsDuplicate(cache::UpdateType update_type,
-                   const dynamic_config::DocsMap& new_value) const;
+    bool IsDuplicate(cache::UpdateType update_type, const dynamic_config::DocsMap& new_value) const;
 
-  DynamicConfigUpdatesSinkBase& updates_sink_;
-  const bool load_only_my_values_;
-  const bool store_enabled_;
-  const std::optional<cache::AllowedUpdateTypes> deduplicate_update_types_;
-  dynamic_config::Client& config_client_;
+    DynamicConfigUpdatesSinkBase& updates_sink_;
+    const bool load_only_my_values_;
+    const bool store_enabled_;
+    const std::optional<cache::AllowedUpdateTypes> deduplicate_update_types_;
+    dynamic_config::Client& config_client_;
 
-  dynamic_config::Client::Timestamp server_timestamp_;
-  // for atomic updates of cached data
-  engine::Mutex update_config_mutex_;
-  DocsMapKeys docs_map_keys_;
-  concurrent::Variable<AdditionalDocsMapKeys> additional_docs_map_keys_;
+    dynamic_config::Client::Timestamp server_timestamp_;
+    // for atomic updates of cached data
+    engine::Mutex update_config_mutex_;
+    DocsMapKeys docs_map_keys_;
+    concurrent::Variable<AdditionalDocsMapKeys> additional_docs_map_keys_;
 };
 
 template <>

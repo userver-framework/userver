@@ -10,28 +10,24 @@ namespace storages::redis {
 
 template <typename ScriptResult, typename ReplyType = ScriptResult>
 class [[nodiscard]] RequestEval final {
- public:
-  explicit RequestEval(RequestEvalCommon&& request)
-      : request_(std::move(request)) {}
+public:
+    explicit RequestEval(RequestEvalCommon&& request) : request_(std::move(request)) {}
 
-  void Wait() { request_.Wait(); }
+    void Wait() { request_.Wait(); }
 
-  void IgnoreResult() const { request_.IgnoreResult(); }
+    void IgnoreResult() const { request_.IgnoreResult(); }
 
-  ReplyType Get(const std::string& request_description = {}) {
-    return ParseReply<ScriptResult, ReplyType>(request_.GetRaw(),
-                                               request_description);
-  }
+    ReplyType Get(const std::string& request_description = {}) {
+        return ParseReply<ScriptResult, ReplyType>(request_.GetRaw(), request_description);
+    }
 
-  /// @cond
-  /// Internal helper for WaitAny/WaitAll
-  engine::impl::ContextAccessor* TryGetContextAccessor() noexcept {
-    return request_.TryGetContextAccessor();
-  }
-  /// @endcond
+    /// @cond
+    /// Internal helper for WaitAny/WaitAll
+    engine::impl::ContextAccessor* TryGetContextAccessor() noexcept { return request_.TryGetContextAccessor(); }
+    /// @endcond
 
- private:
-  RequestEvalCommon request_;
+private:
+    RequestEvalCommon request_;
 };
 
 }  // namespace storages::redis

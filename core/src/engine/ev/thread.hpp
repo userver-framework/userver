@@ -23,68 +23,67 @@ namespace engine::ev {
 inline constexpr std::chrono::microseconds kMinDurationToDefer{19500};
 
 class Thread final {
- public:
-  struct UseDefaultEvLoop {};
-  static constexpr UseDefaultEvLoop kUseDefaultEvLoop{};
+public:
+    struct UseDefaultEvLoop {};
+    static constexpr UseDefaultEvLoop kUseDefaultEvLoop{};
 
-  explicit Thread(const std::string& thread_name);
-  Thread(const std::string& thread_name, UseDefaultEvLoop);
+    explicit Thread(const std::string& thread_name);
+    Thread(const std::string& thread_name, UseDefaultEvLoop);
 
-  ~Thread();
+    ~Thread();
 
-  struct ev_loop* GetEvLoop() const { return event_loop_.GetEvLoop(); }
+    struct ev_loop* GetEvLoop() const { return event_loop_.GetEvLoop(); }
 
-  // Callbacks passed to RunInEvLoopAsync() are serialized.
-  // All callbacks are guaranteed to execute.
-  void RunInEvLoopAsync(AsyncPayloadBase& payload) noexcept;
+    // Callbacks passed to RunInEvLoopAsync() are serialized.
+    // All callbacks are guaranteed to execute.
+    void RunInEvLoopAsync(AsyncPayloadBase& payload) noexcept;
 
-  // Callbacks passed to RunInEvLoopDeferred() are serialized.
-  // Same as RunInEvLoopAsync but doesn't force the wakeup of ev-loop, adding
-  // delay up to ~1ms.
-  void RunInEvLoopDeferred(AsyncPayloadBase& payload,
-                           Deadline deadline) noexcept;
+    // Callbacks passed to RunInEvLoopDeferred() are serialized.
+    // Same as RunInEvLoopAsync but doesn't force the wakeup of ev-loop, adding
+    // delay up to ~1ms.
+    void RunInEvLoopDeferred(AsyncPayloadBase& payload, Deadline deadline) noexcept;
 
-  bool IsInEvThread() const;
+    bool IsInEvThread() const;
 
-  std::uint8_t GetCurrentLoadPercent() const;
-  const std::string& GetName() const;
+    std::uint8_t GetCurrentLoadPercent() const;
+    const std::string& GetName() const;
 
- private:
-  Thread(const std::string& thread_name, EventLoop::EvLoopType ev_loop_type);
+private:
+    Thread(const std::string& thread_name, EventLoop::EvLoopType ev_loop_type);
 
-  void RegisterInEvLoop(AsyncPayloadBase& payload);
+    void RegisterInEvLoop(AsyncPayloadBase& payload);
 
-  void Start();
+    void Start();
 
-  void StopEventLoop();
-  void RunEvLoop();
+    void StopEventLoop();
+    void RunEvLoop();
 
-  static void UpdateLoopWatcher(struct ev_loop*, ev_async* w, int) noexcept;
-  static void UpdateTimersWatcher(struct ev_loop*, ev_timer* w, int) noexcept;
-  void UpdateLoopWatcherImpl();
-  static void BreakLoopWatcher(struct ev_loop*, ev_async* w, int) noexcept;
-  void BreakLoopWatcherImpl();
+    static void UpdateLoopWatcher(struct ev_loop*, ev_async* w, int) noexcept;
+    static void UpdateTimersWatcher(struct ev_loop*, ev_timer* w, int) noexcept;
+    void UpdateLoopWatcherImpl();
+    static void BreakLoopWatcher(struct ev_loop*, ev_async* w, int) noexcept;
+    void BreakLoopWatcherImpl();
 
-  static void Acquire(struct ev_loop* loop) noexcept;
-  static void Release(struct ev_loop* loop) noexcept;
-  void AcquireImpl() noexcept;
-  void ReleaseImpl() noexcept;
+    static void Acquire(struct ev_loop* loop) noexcept;
+    static void Release(struct ev_loop* loop) noexcept;
+    void AcquireImpl() noexcept;
+    void ReleaseImpl() noexcept;
 
-  concurrent::impl::IntrusiveMpscQueue<AsyncPayloadBase> func_queue_{};
+    concurrent::impl::IntrusiveMpscQueue<AsyncPayloadBase> func_queue_{};
 
-  EventLoop event_loop_;
+    EventLoop event_loop_;
 
-  std::thread thread_{};
-  std::mutex loop_mutex_{};
-  std::unique_lock<std::mutex> lock_{loop_mutex_, std::defer_lock};
+    std::thread thread_{};
+    std::mutex loop_mutex_{};
+    std::unique_lock<std::mutex> lock_{loop_mutex_, std::defer_lock};
 
-  ev_timer defer_timer_{};
-  ev_async watch_update_{};
-  ev_async watch_break_{};
+    ev_timer defer_timer_{};
+    ev_async watch_update_{};
+    ev_async watch_break_{};
 
-  const std::string name_;
-  utils::statistics::ThreadCpuStatsStorage cpu_stats_storage_;
-  bool is_running_{false};
+    const std::string name_;
+    utils::statistics::ThreadCpuStatsStorage cpu_stats_storage_;
+    bool is_running_{false};
 };
 
 }  // namespace engine::ev

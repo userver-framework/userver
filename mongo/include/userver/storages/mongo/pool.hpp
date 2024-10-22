@@ -33,49 +33,53 @@ class PoolImpl;
 ///
 /// @snippet storages/mongo/collection_mongotest.hpp  Sample Mongo usage
 class Pool {
- public:
-  /// @cond
+public:
+    /// @cond
 
-  /// Client pool constructor, for internal use only
-  /// @param id pool identification string
-  /// @param uri database connection string
-  /// @param pool_config static config
-  /// @param dns_resolver asynchronous resolver or `nullptr`
-  /// @param config_source dynamic config
-  Pool(std::string id, const std::string& uri, const PoolConfig& pool_config,
-       clients::dns::Resolver* dns_resolver,
-       dynamic_config::Source config_source);
+    /// Client pool constructor, for internal use only
+    /// @param id pool identification string
+    /// @param uri database connection string
+    /// @param pool_config static config
+    /// @param dns_resolver asynchronous resolver or `nullptr`
+    /// @param config_source dynamic config
+    Pool(
+        std::string id,
+        const std::string& uri,
+        const PoolConfig& pool_config,
+        clients::dns::Resolver* dns_resolver,
+        dynamic_config::Source config_source
+    );
 
-  ~Pool();
+    ~Pool();
 
-  void Start();
+    void Start();
 
-  void Stop();
-  /// @endcond
+    void Stop();
+    /// @endcond
 
-  /// Checks whether a collection exists
-  bool HasCollection(const std::string& name) const;
+    /// Checks whether a collection exists
+    bool HasCollection(const std::string& name) const;
 
-  /// Returns a handle for the specified collection
-  Collection GetCollection(std::string name) const;
+    /// Returns a handle for the specified collection
+    Collection GetCollection(std::string name) const;
 
-  /// Drops the associated database if it exists. New modifications of
-  /// collections will attempt to re-create the database automatically.
-  void DropDatabase();
+    /// Drops the associated database if it exists. New modifications of
+    /// collections will attempt to re-create the database automatically.
+    void DropDatabase();
 
-  /// Get a list of all the collection names in the associated database
-  std::vector<std::string> ListCollectionNames() const;
+    /// Get a list of all the collection names in the associated database
+    std::vector<std::string> ListCollectionNames() const;
 
-  void Ping();
+    void Ping();
 
-  /// Writes pool statistics
-  friend void DumpMetric(utils::statistics::Writer& writer, const Pool& pool);
+    /// Writes pool statistics
+    friend void DumpMetric(utils::statistics::Writer& writer, const Pool& pool);
 
-  /// Sets new dynamic pool settings
-  void SetPoolSettings(const PoolSettings& pool_settings);
+    /// Sets new dynamic pool settings
+    void SetPoolSettings(const PoolSettings& pool_settings);
 
- private:
-  std::shared_ptr<impl::PoolImpl> impl_;
+private:
+    std::shared_ptr<impl::PoolImpl> impl_;
 };
 
 using PoolPtr = std::shared_ptr<Pool>;

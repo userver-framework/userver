@@ -7,20 +7,20 @@ namespace samples::grpc::auth {
 
 GreeterServiceComponent::GreeterServiceComponent(
     const components::ComponentConfig& config,
-    const components::ComponentContext& context)
-    : api::GreeterServiceBase::Component(config, context),
-      prefix_(config["greeting-prefix"].As<std::string>()) {}
+    const components::ComponentContext& context
+)
+    : api::GreeterServiceBase::Component(config, context), prefix_(config["greeting-prefix"].As<std::string>()) {}
 
-GreeterServiceComponent::SayHelloResult GreeterServiceComponent::SayHello(
-    CallContext& /*context*/, api::GreetingRequest&& request) {
-  api::GreetingResponse response;
-  response.set_greeting(fmt::format("{}, {}!", prefix_, request.name()));
+GreeterServiceComponent::SayHelloResult
+GreeterServiceComponent::SayHello(CallContext& /*context*/, api::GreetingRequest&& request) {
+    api::GreetingResponse response;
+    response.set_greeting(fmt::format("{}, {}!", prefix_, request.name()));
 
-  return response;
+    return response;
 }
 
 yaml_config::Schema GreeterServiceComponent::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<ugrpc::server::ServiceComponentBase>(R"(
+    return yaml_config::MergeSchemas<ugrpc::server::ServiceComponentBase>(R"(
 type: object
 description: gRPC sample greater service component
 additionalProperties: false

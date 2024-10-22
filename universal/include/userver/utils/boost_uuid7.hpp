@@ -36,8 +36,7 @@ boost::uuids::uuid GenerateBoostUuidV7();
 /// - implementation may move timestamp forward in order to ensure monotonicity
 /// of generated uuids
 ///
-std::chrono::system_clock::time_point ExtractTimestampFromUuidV7(
-    boost::uuids::uuid uuid);
+std::chrono::system_clock::time_point ExtractTimestampFromUuidV7(boost::uuids::uuid uuid);
 
 }  // namespace utils
 

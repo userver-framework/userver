@@ -26,42 +26,40 @@ namespace utils {
 /// handler's exception, if thrown, will be silenced and written into log to
 /// avoid std::terminate
 class ScopeGuard final {
- public:
-  using Callback = std::function<void()>;
+public:
+    using Callback = std::function<void()>;
 
-  explicit ScopeGuard(Callback callback)
-      : callback_(std::move(callback)),
-        exceptions_on_enter_(std::uncaught_exceptions()) {}
+    explicit ScopeGuard(Callback callback)
+        : callback_(std::move(callback)), exceptions_on_enter_(std::uncaught_exceptions()) {}
 
-  ScopeGuard(const ScopeGuard&) = delete;
-  ScopeGuard(ScopeGuard&&) = delete;
+    ScopeGuard(const ScopeGuard&) = delete;
+    ScopeGuard(ScopeGuard&&) = delete;
 
-  ScopeGuard& operator=(const ScopeGuard&) = delete;
-  ScopeGuard& operator=(ScopeGuard&&) = delete;
+    ScopeGuard& operator=(const ScopeGuard&) = delete;
+    ScopeGuard& operator=(ScopeGuard&&) = delete;
 
-  ~ScopeGuard() noexcept(false) {
-    if (!callback_) return;
+    ~ScopeGuard() noexcept(false) {
+        if (!callback_) return;
 
-    if (std::uncaught_exceptions() != exceptions_on_enter_) {
-      // keep all exceptions inside the destructor to avoid std::terminate
-      try {
-        callback_();
-      } catch (const std::exception& e) {
-        UASSERT_MSG(false, "exception is thrown during stack unwinding");
-        LOG_ERROR() << "Exception is thrown during stack unwinding - ignoring: "
-                    << e;
-      }
-    } else {
-      // safe to throw
-      callback_();
+        if (std::uncaught_exceptions() != exceptions_on_enter_) {
+            // keep all exceptions inside the destructor to avoid std::terminate
+            try {
+                callback_();
+            } catch (const std::exception& e) {
+                UASSERT_MSG(false, "exception is thrown during stack unwinding");
+                LOG_ERROR() << "Exception is thrown during stack unwinding - ignoring: " << e;
+            }
+        } else {
+            // safe to throw
+            callback_();
+        }
     }
-  }
 
-  void Release() noexcept { callback_ = {}; }
+    void Release() noexcept { callback_ = {}; }
 
- private:
-  Callback callback_;
-  const int exceptions_on_enter_;
+private:
+    Callback callback_;
+    const int exceptions_on_enter_;
 };
 
 }  // namespace utils

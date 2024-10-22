@@ -21,80 +21,68 @@ namespace detail {
 
 /// Internal structure for representing PostgreSQL interval type
 struct Interval {
-  using DurationType = std::chrono::microseconds;
+    using DurationType = std::chrono::microseconds;
 
-  Integer months = 0;
-  Integer days = 0;
-  Bigint microseconds = 0;
+    Integer months = 0;
+    Integer days = 0;
+    Bigint microseconds = 0;
 
-  constexpr Interval() = default;
-  constexpr Interval(Integer months, Integer days, Bigint microseconds)
-      : months{months}, days{days}, microseconds{microseconds} {}
-  constexpr explicit Interval(DurationType ms) : microseconds{ms.count()} {}
+    constexpr Interval() = default;
+    constexpr Interval(Integer months, Integer days, Bigint microseconds)
+        : months{months}, days{days}, microseconds{microseconds} {}
+    constexpr explicit Interval(DurationType ms) : microseconds{ms.count()} {}
 
-  constexpr bool operator==(const Interval& rhs) const {
-    return months == rhs.months && days == rhs.days &&
-           microseconds == rhs.microseconds;
-  }
-  constexpr bool operator!=(const Interval& rhs) const {
-    return !(*this == rhs);
-  }
+    constexpr bool operator==(const Interval& rhs) const {
+        return months == rhs.months && days == rhs.days && microseconds == rhs.microseconds;
+    }
+    constexpr bool operator!=(const Interval& rhs) const { return !(*this == rhs); }
 
-  constexpr DurationType GetDuration() const {
-    if (months != 0) throw UnsupportedInterval{};
-    return std::chrono::duration_cast<DurationType>(
-        std::chrono::microseconds{microseconds} +
-        std::chrono::hours{days * 24});
-  }
+    constexpr DurationType GetDuration() const {
+        if (months != 0) throw UnsupportedInterval{};
+        return std::chrono::duration_cast<DurationType>(
+            std::chrono::microseconds{microseconds} + std::chrono::hours{days * 24}
+        );
+    }
 };
 
 }  // namespace detail
 
 template <>
-struct BufferParser<detail::Interval>
-    : detail::BufferParserBase<detail::Interval> {
-  using BaseType = detail::BufferParserBase<detail::Interval>;
-  using ValueType = typename BaseType::ValueType;
+struct BufferParser<detail::Interval> : detail::BufferParserBase<detail::Interval> {
+    using BaseType = detail::BufferParserBase<detail::Interval>;
+    using ValueType = typename BaseType::ValueType;
 
-  using BaseType::BaseType;
+    using BaseType::BaseType;
 
-  void operator()(const FieldBuffer& buffer) {
-    ValueType tmp;
-    std::size_t offset = 0;
-    io::ReadBuffer(buffer.GetSubBuffer(offset, sizeof(Bigint),
-                                       BufferCategory::kPlainBuffer),
-                   tmp.microseconds);
-    offset += sizeof(Bigint);
-    io::ReadBuffer(buffer.GetSubBuffer(offset, sizeof(Integer),
-                                       BufferCategory::kPlainBuffer),
-                   tmp.days);
-    offset += sizeof(Integer);
-    io::ReadBuffer(buffer.GetSubBuffer(offset, sizeof(Integer),
-                                       BufferCategory::kPlainBuffer),
-                   tmp.months);
+    void operator()(const FieldBuffer& buffer) {
+        ValueType tmp;
+        std::size_t offset = 0;
+        io::ReadBuffer(buffer.GetSubBuffer(offset, sizeof(Bigint), BufferCategory::kPlainBuffer), tmp.microseconds);
+        offset += sizeof(Bigint);
+        io::ReadBuffer(buffer.GetSubBuffer(offset, sizeof(Integer), BufferCategory::kPlainBuffer), tmp.days);
+        offset += sizeof(Integer);
+        io::ReadBuffer(buffer.GetSubBuffer(offset, sizeof(Integer), BufferCategory::kPlainBuffer), tmp.months);
 
-    std::swap(this->value, tmp);
-  }
+        std::swap(this->value, tmp);
+    }
 };
 
 template <>
-struct BufferFormatter<detail::Interval>
-    : detail::BufferFormatterBase<detail::Interval> {
-  using BaseType = detail::BufferFormatterBase<detail::Interval>;
+struct BufferFormatter<detail::Interval> : detail::BufferFormatterBase<detail::Interval> {
+    using BaseType = detail::BufferFormatterBase<detail::Interval>;
 
-  using BaseType::BaseType;
+    using BaseType::BaseType;
 
-  template <typename Buffer>
-  void operator()(const UserTypes& types, Buffer& buffer) const {
-    io::WriteBuffer(types, buffer, this->value.microseconds);
-    io::WriteBuffer(types, buffer, this->value.days);
-    io::WriteBuffer(types, buffer, this->value.months);
-  }
+    template <typename Buffer>
+    void operator()(const UserTypes& types, Buffer& buffer) const {
+        io::WriteBuffer(types, buffer, this->value.microseconds);
+        io::WriteBuffer(types, buffer, this->value.days);
+        io::WriteBuffer(types, buffer, this->value.months);
+    }
 };
 
 template <>
-struct CppToSystemPg<detail::Interval>
-    : PredefinedOid<PredefinedOids::kInterval> {};
+struct CppToSystemPg<detail::Interval> : PredefinedOid<PredefinedOids::kInterval> {};
 
 }  // namespace storages::postgres::io
 

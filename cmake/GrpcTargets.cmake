@@ -24,8 +24,6 @@ function(_userver_prepare_grpc)
     find_package(gRPC REQUIRED)
     get_target_property(PROTO_GRPC_CPP_PLUGIN gRPC::grpc_cpp_plugin LOCATION)
     get_target_property(PROTO_GRPC_PYTHON_PLUGIN gRPC::grpc_python_plugin LOCATION)
-    set(PROTOBUF_PROTOC "${Protobuf_PROTOC_EXECUTABLE}")
-    set(GENERATE_PROTOS_AT_CONFIGURE_DEFAULT ON)
   else()
     include("${CMAKE_CURRENT_LIST_DIR}/SetupGrpc.cmake")
   endif()
@@ -101,7 +99,7 @@ _userver_prepare_grpc()
 
 function(userver_generate_grpc_files)
   set(options)
-  set(one_value_args CPP_FILES CPP_USRV_FILES GENERATED_INCLUDES SOURCE_PATH)
+  set(one_value_args CPP_FILES CPP_USRV_FILES GENERATED_INCLUDES SOURCE_PATH OUTPUT_PATH)
   set(multi_value_args PROTOS INCLUDE_DIRECTORIES)
   cmake_parse_arguments(GEN_RPC "${options}" "${one_value_args}" "${multi_value_args}" ${ARGN})
 
@@ -132,11 +130,19 @@ function(userver_generate_grpc_files)
     endforeach()
   endif()
 
-  set(GENERATED_PROTO_DIR ${CMAKE_CURRENT_BINARY_DIR}/proto)
+  if (NOT "${GEN_RPC_OUTPUT_PATH}" STREQUAL "")
+    if(NOT IS_ABSOLUTE "${GEN_RPC_OUTPUT_PATH}")
+      message(SEND_ERROR "OUTPUT_PATH='${GEN_RPC_OUTPUT_PATH}' is a relative path, which is unsupported.")
+    endif()
+    set(GENERATED_PROTO_DIR "${GEN_RPC_OUTPUT_PATH}")
+  else()
+    set(GENERATED_PROTO_DIR "${CMAKE_CURRENT_BINARY_DIR}/proto")
+  endif()
+  
   get_filename_component(GENERATED_PROTO_DIR "${GENERATED_PROTO_DIR}" REALPATH BASE_DIR "/")
 
   if(NOT "${GEN_RPC_SOURCE_PATH}" STREQUAL "")
-    if(NOT IS_ABSOLUTE ${GEN_RPC_SOURCE_PATH})
+    if(NOT IS_ABSOLUTE "${GEN_RPC_SOURCE_PATH}")
       message(SEND_ERROR "SOURCE_PATH='${GEN_RPC_SOURCE_PATH}' is a relative path, which is unsupported.")
     endif()
     set(root_path "${GEN_RPC_SOURCE_PATH}")
@@ -294,14 +300,15 @@ endfunction()
 
 function(userver_add_grpc_library NAME)
   set(options)
-  set(one_value_args SOURCE_PATH)
+  set(one_value_args SOURCE_PATH OUTPUT_PATH)
   set(multi_value_args PROTOS INCLUDE_DIRECTORIES)
   cmake_parse_arguments(RPC_LIB "${options}" "${one_value_args}" "${multi_value_args}" ${ARGN})
 
   userver_generate_grpc_files(
       PROTOS ${RPC_LIB_PROTOS}
       INCLUDE_DIRECTORIES ${RPC_LIB_INCLUDE_DIRECTORIES}
-      SOURCE_PATH ${RPC_LIB_SOURCE_PATH}
+      SOURCE_PATH "${RPC_LIB_SOURCE_PATH}"
+      OUTPUT_PATH "${RPC_LIB_OUTPUT_PATH}"
       GENERATED_INCLUDES include_paths
       CPP_FILES generated_sources
       CPP_USRV_FILES generated_usrv_sources

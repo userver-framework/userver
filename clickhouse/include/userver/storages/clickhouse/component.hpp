@@ -55,22 +55,22 @@ namespace components {
 // clang-format on
 
 class ClickHouse : public ComponentBase {
- public:
-  /// Component constructor
-  ClickHouse(const ComponentConfig&, const ComponentContext&);
-  /// Component destructor
-  ~ClickHouse() override;
+public:
+    /// Component constructor
+    ClickHouse(const ComponentConfig&, const ComponentContext&);
+    /// Component destructor
+    ~ClickHouse() override;
 
-  /// Cluster accessor
-  std::shared_ptr<storages::clickhouse::Cluster> GetCluster() const;
+    /// Cluster accessor
+    std::shared_ptr<storages::clickhouse::Cluster> GetCluster() const;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  clients::dns::Component& dns_;
+private:
+    clients::dns::Component& dns_;
 
-  std::shared_ptr<storages::clickhouse::Cluster> cluster_;
-  utils::statistics::Entry statistics_holder_;
+    std::shared_ptr<storages::clickhouse::Cluster> cluster_;
+    utils::statistics::Entry statistics_holder_;
 };
 
 template <>

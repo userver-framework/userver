@@ -16,84 +16,74 @@ constexpr std::string_view kGenericMethodFullNamesFake[] = {
     "Generic/Generic",
 };
 constexpr std::string_view kGenericServiceNameFake = "Generic";
-constexpr ugrpc::impl::StaticServiceMetadata kGenericMetadataFake{
-    kGenericServiceNameFake, kGenericMethodFullNamesFake};
+constexpr ugrpc::impl::StaticServiceMetadata kGenericMetadataFake{kGenericServiceNameFake, kGenericMethodFullNamesFake};
 
-auto Dispatch(
-    void (GenericServiceBase::*service_method)(GenericServiceBase::Call&)) {
-  return service_method;
-}
+auto Dispatch(void (GenericServiceBase::*service_method)(GenericServiceBase::Call&)) { return service_method; }
 
 }  // namespace
 
 template <>
-struct CallTraits<void (GenericServiceBase::*)(GenericServiceBase::Call&)>
-    final {
-  using ServiceBase = GenericServiceBase;
-  using Request = grpc::ByteBuffer;
-  using Response = grpc::ByteBuffer;
-  using RawCall = impl::RawReaderWriter<Request, Response>;
-  using InitialRequest = NoInitialRequest;
-  using Call = BidirectionalStream<Request, Response>;
-  using ContextType = grpc::GenericServerContext;
-  using ServiceMethod = void (ServiceBase::*)(Call&);
-  static constexpr auto kCallCategory = CallCategory::kGeneric;
+struct CallTraits<void (GenericServiceBase::*)(GenericServiceBase::Call&)> final {
+    using ServiceBase = GenericServiceBase;
+    using Request = grpc::ByteBuffer;
+    using Response = grpc::ByteBuffer;
+    using RawCall = impl::RawReaderWriter<Request, Response>;
+    using InitialRequest = NoInitialRequest;
+    using Call = BidirectionalStream<Request, Response>;
+    using ContextType = grpc::GenericServerContext;
+    using ServiceMethod = void (ServiceBase::*)(Call&);
+    static constexpr auto kCallCategory = CallCategory::kGeneric;
 };
 
 struct GenericServiceTag final {};
 
 template <>
 class AsyncService<GenericServiceTag> final {
- public:
-  explicit AsyncService(std::size_t method_count) {
-    UASSERT(method_count == 1);
-  }
+public:
+    explicit AsyncService(std::size_t method_count) { UASSERT(method_count == 1); }
 
-  template <typename CallTraits>
-  void Prepare(int method_id, grpc::GenericServerContext& context,
-               typename CallTraits::InitialRequest& /*initial_request*/,
-               typename CallTraits::RawCall& stream,
-               grpc::CompletionQueue& call_cq,
-               grpc::ServerCompletionQueue& notification_cq, void* tag) {
-    static_assert(CallTraits::kCallCategory == CallCategory::kGeneric);
-    UASSERT(method_id == 0);
-    service_.RequestCall(&context, &stream, &call_cq, &notification_cq, tag);
-  }
+    template <typename CallTraits>
+    void Prepare(
+        int method_id,
+        grpc::GenericServerContext& context,
+        typename CallTraits::InitialRequest& /*initial_request*/,
+        typename CallTraits::RawCall& stream,
+        grpc::CompletionQueue& call_cq,
+        grpc::ServerCompletionQueue& notification_cq,
+        void* tag
+    ) {
+        static_assert(CallTraits::kCallCategory == CallCategory::kGeneric);
+        UASSERT(method_id == 0);
+        service_.RequestCall(&context, &stream, &call_cq, &notification_cq, tag);
+    }
 
-  grpc::AsyncGenericService& GetService() { return service_; }
+    grpc::AsyncGenericService& GetService() { return service_; }
 
- private:
-  grpc::AsyncGenericService service_;
+private:
+    grpc::AsyncGenericService service_;
 };
 
 struct GenericServiceWorker::Impl {
-  Impl(GenericServiceBase& service, ServiceSettings&& settings)
-      : service(service),
-        service_data(std::move(settings), kGenericMetadataFake) {}
+    Impl(GenericServiceBase& service, ServiceSettings&& settings)
+        : service(service), service_data(std::move(settings), kGenericMetadataFake) {}
 
-  GenericServiceBase& service;
-  ServiceData<GenericServiceTag> service_data;
+    GenericServiceBase& service;
+    ServiceData<GenericServiceTag> service_data;
 };
 
-GenericServiceWorker::GenericServiceWorker(GenericServiceBase& service,
-                                           ServiceSettings&& settings)
+GenericServiceWorker::GenericServiceWorker(GenericServiceBase& service, ServiceSettings&& settings)
     : impl_(service, std::move(settings)) {}
 
-GenericServiceWorker::GenericServiceWorker(GenericServiceWorker&&) noexcept =
-    default;
+GenericServiceWorker::GenericServiceWorker(GenericServiceWorker&&) noexcept = default;
 
-GenericServiceWorker& GenericServiceWorker::operator=(
-    GenericServiceWorker&&) noexcept = default;
+GenericServiceWorker& GenericServiceWorker::operator=(GenericServiceWorker&&) noexcept = default;
 
 GenericServiceWorker::~GenericServiceWorker() = default;
 
-grpc::AsyncGenericService& GenericServiceWorker::GetService() {
-  return impl_->service_data.async_service.GetService();
-}
+grpc::AsyncGenericService& GenericServiceWorker::GetService() { return impl_->service_data.async_service.GetService(); }
 
 void GenericServiceWorker::Start() {
-  impl::StartServing(impl_->service_data, impl_->service,
-                     Dispatch(&GenericServiceBase::Handle));
+    impl::StartServing(impl_->service_data, impl_->service, Dispatch(&GenericServiceBase::Handle));
 }
 
 }  // namespace ugrpc::server::impl
