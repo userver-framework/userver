@@ -50,6 +50,8 @@ jobs:
                 path: $(brew --prefix)
                 key: |
                     macos-homebrew-${{ hashFiles('.github/brew-formulae') }}-${{ hashFiles('scripts/docs/en/deps/macos.md') }}
+                restore-keys:
+                    macos-homebrew-
 
           - name: Install brew packages
             run: |
