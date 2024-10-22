@@ -31,6 +31,12 @@ properties:
     msg-size-log-limit:
         type: string
         description: max message size to log, the rest will be truncated
+    trim-secrets:
+        type: boolean
+        description: |
+            trim the secrets from logs as marked by the protobuf option.
+            you should set this to false if the responses contain
+            optional fields and you are using protobuf prior to 3.13
 )");
 }
 

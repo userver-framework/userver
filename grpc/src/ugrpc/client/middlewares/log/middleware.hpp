@@ -18,6 +18,9 @@ struct Settings {
 
     /// gRPC logging level
     logging::Level log_level{logging::Level::kDebug};
+
+    /// Whether to trim the fields marked as secret from the message
+    bool trim_secrets{true};
 };
 
 /// @brief middleware for RPC handler logging settings

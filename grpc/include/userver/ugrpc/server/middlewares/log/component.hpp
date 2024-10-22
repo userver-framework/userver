@@ -25,6 +25,11 @@ struct Settings;
 /// log-level | log level for msg logging | debug
 /// msg-log-level | gRPC message body logging level | debug
 /// msg-size-log-limit | max message size to log, the rest will be truncated | 512
+/// trim-secrets | trim the secrets from logs as marked by the protobuf option | true (*)
+///
+/// @warning * Trimming secrets causes a segmentation fault for messages that contain
+/// optional fields in protobuf versions prior to 3.13. You should set trim-secrets to false
+/// if this is the case for you. See https://github.com/protocolbuffers/protobuf/issues/7801
 ///
 /// ## Static configuration example:
 ///
