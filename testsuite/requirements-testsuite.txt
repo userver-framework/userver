@@ -1,1 +1,2 @@
+wheel
 yandex-taxi-testsuite[] >= 0.2.3
