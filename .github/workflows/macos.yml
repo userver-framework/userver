@@ -35,27 +35,11 @@ jobs:
             with:
                 fetch-depth: 0
 
-          - name: export SDKROOT
-            run: |
-                export SDKROOT="`xcrun --show-sdk-path`"
-
-          - name: Update brew
-            run: |
-                brew update
-                cat "$(brew --repository)/Library/Taps/homebrew/homebrew-core/Formula/foo.rb" > .github/brew-formulae
-
-          - name: Cache Homebrew Packages
-            uses: actions/cache@v3
-            with:
-                path: $(brew --prefix)
-                key: |
-                    macos-homebrew-${{ hashFiles('.github/brew-formulae') }}-${{ hashFiles('scripts/docs/en/deps/macos.md') }}
-                restore-keys:
-                    macos-homebrew-
-
           - name: Install brew packages
             run: |
-                HOMEBREW_NO_AUTO_UPDATE=1 brew install $(cat scripts/docs/en/deps/macos.md)
+                export SDKROOT="`xcrun --show-sdk-path`"
+                brew update
+                brew install $(cat scripts/docs/en/deps/macos.md)
                 brew link postgresql@16
 
           - name: Run cmake
@@ -67,4 +51,9 @@ jobs:
           - name: Compile
             run: |
                 cd build_debug
-                make -j$(nproc) -k
+                make -j$(nproc)
+
+          - name: Test
+            run: |
+                cd build_debug
+                ctest -V
