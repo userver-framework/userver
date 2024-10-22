@@ -35,29 +35,25 @@ jobs:
             with:
                 fetch-depth: 0
 
-                # - name: Setup Cpp (C++ / C)
-                #   uses: aminya/setup-cpp@v0.44.0
-                #   with:
-                #       compiler: llvm
-
           - name: export SDKROOT
             run: |
                 export SDKROOT="`xcrun --show-sdk-path`"
 
+          - name: Update brew
+            run: |
+                brew update
+                cat "$(brew --repository)/Library/Taps/homebrew/homebrew-core/Formula/foo.rb" > .github/brew-formulae
+
           - name: Cache Homebrew Packages
-            id: cache-homebrew-packages
             uses: actions/cache@v3
-            env:
-                cache-name: homebrew-packages
             with:
                 path: $(brew --prefix)
                 key: |
-                    macos-${{ env.cache-name }}-${{ hashFiles('.config/brew/Brewfile') }}
+                    macos-homebrew-${{ hashFiles('.github/brew-formulae') }}-${{ hashFiles('scripts/docs/en/deps/macos.md') }}
 
-          - name: Install packages
+          - name: Install brew packages
             run: |
-                brew update
-                brew install $(cat scripts/docs/en/deps/macos.md)
+                HOMEBREW_NO_AUTO_UPDATE=1 brew install $(cat scripts/docs/en/deps/macos.md)
                 brew link postgresql@16
 
           - name: Run cmake
@@ -68,6 +64,5 @@ jobs:
 
           - name: Compile
             run: |
-                pwd
                 cd build_debug
                 make -j$(nproc) -k
