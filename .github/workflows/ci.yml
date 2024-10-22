@@ -145,8 +145,6 @@ jobs:
                 sudo apt update
                 sudo apt install --allow-downgrades -y clickhouse-common-static redis-server postgresql $(cat scripts/docs/en/deps/${{matrix.os}}.md | tr '\n' ' ')
 
-                pip3 install wheel
-
                 if [ "${{matrix.os}}" = "ubuntu-22.04" ]; then
                   # GH Ubuntu image has libpq version 15+ from pg's repo that is API incompatible with postgresql-14.
                   sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 7FCC7D46ACCC4CF8
