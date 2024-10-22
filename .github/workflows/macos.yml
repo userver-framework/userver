@@ -52,7 +52,7 @@ jobs:
           - name: Compile
             run: |
                 cd build_debug
-                make -j$(nproc)
+                make -j$(nproc) -k
 
           - name: Test
             run: |
