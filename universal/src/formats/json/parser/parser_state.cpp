@@ -92,8 +92,9 @@ void ParserState::ProcessInput(std::string_view sw) {
             ParserHandler handler(*stack.back().parser);
 
             pos = is.Tell();
-            reader.IterativeParseNext<rapidjson::kParseDefaultFlags>(is, handler);
-
+            static constexpr auto kParseFlags =
+                static_cast<rapidjson::ParseFlag>(rapidjson::kParseDefaultFlags | rapidjson::kParseFullPrecisionFlag);
+            reader.IterativeParseNext<kParseFlags>(is, handler);
             if (reader.HasParseError()) {
                 throw ParseError{
                     reader.GetErrorOffset(),

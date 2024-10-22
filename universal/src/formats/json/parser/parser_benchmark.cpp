@@ -199,8 +199,45 @@ void JsonParseValueDomLotsOfMissingKeys(benchmark::State& state) {
         benchmark::DoNotOptimize(json.As<Data>());
     }
 }
-BENCHMARK(JsonParseValueDomLotsOfMissingKeys)->RangeMultiplier(2)->Range(1 << 7, 1 << 14);
 
 }  // namespace
+
+BENCHMARK(JsonParseValueDomLotsOfMissingKeys)->RangeMultiplier(2)->Range(1 << 7, 1 << 14);
+
+namespace {
+
+std::string BuildArrayOfNumbers(std::size_t size) {
+    const std::string number = "56.411117000000004";
+    std::string result = "[";
+    for (std::size_t i = 0; i < size; ++i) {
+        if (i != 0) result += ", ";
+        result += number;
+    }
+    result += "]";
+    return result;
+}
+
+}  // namespace
+
+void JsonParseNumbersDom(benchmark::State& state) {
+    const auto input = BuildArrayOfNumbers(state.range(0));
+    for ([[maybe_unused]] auto _ : state) {
+        const auto res = formats::json::FromString(input).As<std::vector<double>>();
+        benchmark::DoNotOptimize(res);
+    }
+}
+BENCHMARK(JsonParseNumbersDom)->RangeMultiplier(2)->Range(1, 16);
+
+void JsonParseNumbersSax(benchmark::State& state) {
+    const auto input = BuildArrayOfNumbers(state.range(0));
+    formats::json::parser::DoubleParser item_parser;
+    formats::json::parser::ArrayParser<double, formats::json::parser::DoubleParser> parser{item_parser};
+
+    for ([[maybe_unused]] auto _ : state) {
+        const auto res = formats::json::parser::impl::ParseSingle(parser, input);
+        benchmark::DoNotOptimize(res);
+    }
+}
+BENCHMARK(JsonParseNumbersSax)->RangeMultiplier(2)->Range(1, 16);
 
 USERVER_NAMESPACE_END

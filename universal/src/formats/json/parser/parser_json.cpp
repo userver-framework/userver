@@ -14,7 +14,7 @@ namespace {
 }  // namespace
 
 struct JsonValueParser::Impl {
-    impl::Document raw_value_{&g_allocator};
+    json::impl::Document raw_value_{&g_allocator};
     size_t level_{0};
 
     ~Impl() {
@@ -96,7 +96,7 @@ void JsonValueParser::MaybePopSelf() {
         auto generator = [](const auto&) { return true; };
         impl_->raw_value_.Populate(generator);
 
-        this->SetResult(Value{impl::VersionedValuePtr::Create(std::move(impl_->raw_value_))});
+        this->SetResult(Value{json::impl::VersionedValuePtr::Create(std::move(impl_->raw_value_))});
     }
 }
 

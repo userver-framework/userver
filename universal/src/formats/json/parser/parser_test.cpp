@@ -76,6 +76,12 @@ TEST(JsonStringParser, Double) {
     );
 }
 
+TEST(JsonStringParser, DoublePrecision) {
+    static_assert(56.411117000000004 != 56.411117);
+    constexpr auto kPreciseDoubleString = "56.411117000000004";
+    EXPECT_EQ(fmt::to_string(fjp::ParseToType<double, fjp::DoubleParser>(kPreciseDoubleString)), kPreciseDoubleString);
+}
+
 TEST(JsonStringParser, Int64Overflow) {
     std::string input{std::to_string(-1ULL)};
 
