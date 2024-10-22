@@ -157,8 +157,14 @@ jobs:
                 fi
 
                 if [ "${{matrix.os}}" = "ubuntu-20.04" ]; then
-                  sudo apt update
-                  sudo apt install --upgrade libprotobuf-dev>=3.12.4
+                  git clone --recurse-submodules -b v3.12.4 --depth 1 --shallow-submodules https://github.com/grpc/grpc
+                  cd grpc
+                  mkdir -p cmake/build
+                  pushd cmake/build
+                  cmake -DgRPC_INSTALL=ON -DgRPC_BUILD_TESTS=OFF -DCMAKE_INSTALL_PREFIX=$MY_INSTALL_DIR ../..
+                  make -j 4
+                  make install
+                  popd
                 fi
 
           - name: Install RabbitMQ packages
