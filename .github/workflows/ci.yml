@@ -164,6 +164,7 @@ jobs:
                   cmake ..
                   make -j$(nproc)
                   sudo make install
+                  export PATH=$PATH:$(pwd)
                   sudo ldconfig
                 fi
 
