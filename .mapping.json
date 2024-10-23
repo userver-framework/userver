@@ -2501,6 +2501,8 @@
   "postgresql/include/userver/storages/postgres/statistics.hpp":"taxi/uservices/userver/postgresql/include/userver/storages/postgres/statistics.hpp",
   "postgresql/include/userver/storages/postgres/transaction.hpp":"taxi/uservices/userver/postgresql/include/userver/storages/postgres/transaction.hpp",
   "postgresql/include/userver/storages/postgres/typed_result_set.hpp":"taxi/uservices/userver/postgresql/include/userver/storages/postgres/typed_result_set.hpp",
+  "postgresql/libpq-version-generator/CMakeLists.txt":"taxi/uservices/userver/postgresql/libpq-version-generator/CMakeLists.txt",
+  "postgresql/libpq-version-generator/main.cpp":"taxi/uservices/userver/postgresql/libpq-version-generator/main.cpp",
   "postgresql/library.yaml":"taxi/uservices/userver/postgresql/library.yaml",
   "postgresql/pq-extra/CMakeLists.txt":"taxi/uservices/userver/postgresql/pq-extra/CMakeLists.txt",
   "postgresql/pq-extra/check_main.c":"taxi/uservices/userver/postgresql/pq-extra/check_main.c",
