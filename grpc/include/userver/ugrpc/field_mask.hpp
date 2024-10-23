@@ -116,7 +116,7 @@ public:
 private:
     void ToGoogleMaskImpl(std::vector<std::string>& stack, google::protobuf::FieldMask& out) const;
 
-    utils::FastPimpl<utils::impl::TransparentMap<std::string, FieldMask, utils::StrCaseHash>, 88, 8> children_;
+    utils::FastPimpl<utils::impl::TransparentMap<std::string, FieldMask, utils::StrCaseHash>, 96, 8> children_;
     bool is_leaf_{false};
 };
 
