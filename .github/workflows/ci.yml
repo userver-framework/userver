@@ -157,14 +157,14 @@ jobs:
                 fi
 
                 if [ "${{matrix.os}}" = "ubuntu-20.04" ]; then
-                  curl -OL https://github.com/protocolbuffers/protobuf/archive/refs/tags/v3.21.12.tar.gz
-                  tar xvzf v3.21.12.tar.gz
-                  cd protobuf-3.21.12/cmake
-                  mkdir build && cd build
-                  cmake -Dprotobuf_BUILD_TESTS=OFF ..
-                  make -j$(nproc)
-                  sudo make install
-                  sudo ldconfig
+                  git clone --recurse-submodules -b v1.66.0 --depth 1 --shallow-submodules https://github.com/grpc/grpc new_grpc
+                  cd new_grpc
+                  mkdir -p cmake/build
+                  pushd cmake/build
+                  cmake -DgRPC_INSTALL=ON -DgRPC_BUILD_TESTS=OFF -DCMAKE_INSTALL_PREFIX=$MY_INSTALL_DIR ../..
+                  make -j 4
+                  make install
+                  popd
                 fi
 
           - name: Install RabbitMQ packages
