@@ -738,6 +738,7 @@ class AiohttpClient(service_client.AiohttpClient):
         periodic_tasks_state: typing.Optional[PeriodicTasksState] = None,
         allow_all_caches_invalidation: bool = True,
         cache_control: typing.Optional[caches.CacheControl] = None,
+        asyncexc_check=None,
         **kwargs,
     ):
         super().__init__(base_url, span_id_header=span_id_header, **kwargs)
@@ -754,6 +755,7 @@ class AiohttpClient(service_client.AiohttpClient):
         )
         self._api_coverage_report = api_coverage_report
         self._allow_all_caches_invalidation = allow_all_caches_invalidation
+        self._asyncexc_check = asyncexc_check
 
     async def run_periodic_task(self, name):
         response = await self._testsuite_action('run_periodic_task', name=name)
@@ -1026,6 +1028,10 @@ class AiohttpClient(service_client.AiohttpClient):
         testsuite_skip_prepare: bool = False,
         **kwargs,
     ) -> aiohttp.ClientResponse:
+        if self._asyncexc_check:
+            # Check for pending background exceptions before call.
+            self._asyncexc_check()
+
         if not testsuite_skip_prepare:
             await self._prepare()
 
@@ -1036,6 +1042,10 @@ class AiohttpClient(service_client.AiohttpClient):
             self._api_coverage_report.update_usage_stat(
                 path, http_method, response.status, response.content_type,
             )
+
+        if self._asyncexc_check:
+            # Check for pending background exceptions after call.
+            self._asyncexc_check()
 
         return response
 

@@ -19,6 +19,7 @@ struct Settings final {
     std::size_t max_msg_size{512};
     logging::Level msg_log_level{logging::Level::kDebug};
     std::optional<logging::Level> local_log_level{};
+    bool trim_secrets{true};
 };
 
 Settings Parse(const yaml_config::YamlConfig& config, formats::parse::To<Settings>);

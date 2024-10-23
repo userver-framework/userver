@@ -2,8 +2,13 @@
 
 #include <initializer_list>
 #include <string>
+#include <vector>
 
-#include <userver/ugrpc/protobuf_visit.hpp>
+namespace google::protobuf {
+
+class Descriptor;
+
+}  // namespace google::protobuf
 
 USERVER_NAMESPACE_BEGIN
 
@@ -15,7 +20,7 @@ void RegisterMessageTypes(std::initializer_list<std::string> type_names);
 /// @brief Find all known messages
 ///
 /// @warning This is probably not an exhaustive list!
-DescriptorList GetGeneratedMessages();
+std::vector<const google::protobuf::Descriptor*> GetGeneratedMessages();
 
 }  // namespace ugrpc::impl
 

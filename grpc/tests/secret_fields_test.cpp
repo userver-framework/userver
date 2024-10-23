@@ -39,6 +39,7 @@ enum class MiddlewareFlag {
     kNone = 0,
     kClientLog = 1 << 0,
     kServerLog = 1 << 1,
+    kTrimSecretsFalse = 1 << 2,
 };
 
 using MiddlewareFlags = utils::Flags<MiddlewareFlag>;
@@ -50,6 +51,7 @@ protected:
         if (GetParam() & MiddlewareFlag::kServerLog) {
             ugrpc::server::middlewares::log::Settings server_log_settings;
             server_log_settings.msg_log_level = logging::Level::kInfo;
+            server_log_settings.trim_secrets = !(GetParam() & MiddlewareFlag::kTrimSecretsFalse);
             SetServerMiddlewares({std::make_shared<ugrpc::server::middlewares::log::Middleware>(server_log_settings)});
         }
 
@@ -57,6 +59,7 @@ protected:
             ugrpc::client::middlewares::log::Settings client_log_settings;
             client_log_settings.log_level = logging::Level::kInfo;
             client_log_settings.msg_log_level = logging::Level::kInfo;
+            client_log_settings.trim_secrets = !(GetParam() & MiddlewareFlag::kTrimSecretsFalse);
             SetClientMiddlewareFactories(
                 {std::make_shared<ugrpc::client::middlewares::log::MiddlewareFactory>(client_log_settings)}
             );
@@ -106,20 +109,36 @@ UTEST_P(SecretFieldsTest, MiddlewaresHideSecrets) {
 
     const auto all_logs = GetLogCapture().GetAll();
 
-    EXPECT_TRUE(logs_contain(kLogin)) << all_logs;
-    EXPECT_FALSE(logs_contain(kPassword)) << all_logs;
-    EXPECT_FALSE(logs_contain(kSecretCode)) << all_logs;
-    EXPECT_TRUE(logs_contain(kDest)) << all_logs;
-    EXPECT_TRUE(logs_contain(kRequestText)) << all_logs;
+    if (GetParam() & MiddlewareFlag::kTrimSecretsFalse) {
+        EXPECT_TRUE(logs_contain(kLogin)) << all_logs;
+        EXPECT_TRUE(logs_contain(kPassword)) << all_logs;
+        EXPECT_TRUE(logs_contain(kSecretCode)) << all_logs;
+        EXPECT_TRUE(logs_contain(kDest)) << all_logs;
+        EXPECT_TRUE(logs_contain(kRequestText)) << all_logs;
 
-    EXPECT_TRUE(logs_contain(kResponseText)) << all_logs;
-    EXPECT_FALSE(logs_contain(kToken)) << all_logs;
+        EXPECT_TRUE(logs_contain(kResponseText)) << all_logs;
+        EXPECT_TRUE(logs_contain(kToken)) << all_logs;
+    } else {
+        EXPECT_TRUE(logs_contain(kLogin)) << all_logs;
+        EXPECT_FALSE(logs_contain(kPassword)) << all_logs;
+        EXPECT_FALSE(logs_contain(kSecretCode)) << all_logs;
+        EXPECT_TRUE(logs_contain(kDest)) << all_logs;
+        EXPECT_TRUE(logs_contain(kRequestText)) << all_logs;
+
+        EXPECT_TRUE(logs_contain(kResponseText)) << all_logs;
+        EXPECT_FALSE(logs_contain(kToken)) << all_logs;
+    }
 }
 
 INSTANTIATE_UTEST_SUITE_P(
     /*no prefix*/,
     SecretFieldsTest,
-    testing::Values(MiddlewareFlags{MiddlewareFlag::kClientLog}, MiddlewareFlags{MiddlewareFlag::kServerLog})
+    testing::Values(
+        MiddlewareFlags{MiddlewareFlag::kClientLog},
+        MiddlewareFlags{MiddlewareFlag::kServerLog},
+        MiddlewareFlags{MiddlewareFlag::kClientLog} | MiddlewareFlags{MiddlewareFlag::kTrimSecretsFalse},
+        MiddlewareFlags{MiddlewareFlag::kServerLog} | MiddlewareFlags{MiddlewareFlag::kTrimSecretsFalse}
+    )
 );
 
 USERVER_NAMESPACE_END

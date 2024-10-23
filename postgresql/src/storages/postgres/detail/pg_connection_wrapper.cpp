@@ -14,6 +14,12 @@ auto PQXsendQueryPrepared(PGconn* conn, const char* stmtName, int nParams, const
 }
 #endif
 
+#ifdef ARCADIA_ROOT
+#define USERVER_LIBPQ_VERSION PG_VERSION_NUM
+#else
+#include <userver_libpq_version.hpp>  // Y_IGNORE
+#endif
+
 #include <userver/concurrent/background_task_storage.hpp>
 #include <userver/crypto/openssl.hpp>
 #include <userver/engine/task/cancel.hpp>
@@ -84,15 +90,15 @@ const char* MsgForStatus(ConnStatusType status) {
             return "PQstatus: Consuming remaining response messages on connection";
         case CONNECTION_GSS_STARTUP:
             return "PQstatus: Negotiating GSSAPI";
-#if PG_VERSION_NUM >= 130000
+#if USERVER_LIBPQ_VERSION >= 130000
         case CONNECTION_CHECK_TARGET:
             return "PQstatus: Checking target server properties";
 #endif
-#if PG_VERSION_NUM >= 140000
+#if USERVER_LIBPQ_VERSION >= 140000
         case CONNECTION_CHECK_STANDBY:
             return "PQstatus: Checking if server is in standby mode";
 #endif
-#if PG_VERSION_NUM >= 170000
+#if USERVER_LIBPQ_VERSION >= 170000
         case CONNECTION_ALLOCATED:
             return "PQstatus: Waiting for connection attempt to be started";
 #endif
@@ -704,7 +710,7 @@ ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
             msg.ThrowException();
             break;
         }
-#if PG_VERSION_NUM >= 140000
+#if USERVER_LIBPQ_VERSION >= 140000
         case PGRES_PIPELINE_ABORTED:
             PGCW_LOG_LIMITED_WARNING() << "Command failure in a pipeline";
             CloseWithError(ConnectionError{"Command failure in a pipeline"});
@@ -713,7 +719,7 @@ ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
             PGCW_LOG_TRACE() << "Successful completion of all commands in a pipeline";
             break;
 #endif
-#if PG_VERSION_NUM >= 170000
+#if USERVER_LIBPQ_VERSION >= 170000
         case PGRES_TUPLES_CHUNK:
             PGCW_LOG_LIMITED_WARNING() << "Got a chunk of tuples from the larger resultset";
             CloseWithError(ConnectionError{"Got a chunk of tuples from the larger resultset"});

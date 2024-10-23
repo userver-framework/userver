@@ -68,7 +68,7 @@ sample::ugrpc::MessageWithDifferentTypes ConstructMessage() {
     return message;
 }
 
-std::pair<const google::protobuf::Descriptor*, ugrpc::FieldsVisitor::FieldDescriptorSet>
+std::pair<const google::protobuf::Descriptor*, ugrpc::VisitorCompiler::FieldDescriptorSet>
 MakeDependency(std::string_view message, std::vector<std::string_view> fields) {
     std::unordered_set<const google::protobuf::FieldDescriptor*> field_desc;
     for (const std::string_view field : fields) {
@@ -77,7 +77,7 @@ MakeDependency(std::string_view message, std::vector<std::string_view> fields) {
     return {ugrpc::FindGeneratedMessage(message), std::move(field_desc)};
 }
 
-std::pair<const google::protobuf::Descriptor*, ugrpc::FieldsVisitor::FieldDescriptorSet>
+std::pair<const google::protobuf::Descriptor*, ugrpc::VisitorCompiler::FieldDescriptorSet>
 MakeDependency(std::string_view message, std::string_view fields_message, std::vector<std::string_view> fields) {
     std::unordered_set<const google::protobuf::FieldDescriptor*> field_desc;
     for (const std::string_view field : fields) {
@@ -87,7 +87,7 @@ MakeDependency(std::string_view message, std::string_view fields_message, std::v
 }
 
 std::unordered_map<std::string, std::unordered_set<std::string>> ToStrings(
-    const ugrpc::FieldsVisitor::Dependencies& dependencies
+    const ugrpc::VisitorCompiler::Dependencies& dependencies
 ) {
     std::unordered_map<std::string, std::unordered_set<std::string>> result;
     for (const auto& [msg, fields] : dependencies) {
@@ -98,7 +98,7 @@ std::unordered_map<std::string, std::unordered_set<std::string>> ToStrings(
     return result;
 }
 
-std::unordered_set<std::string> ToStrings(const ugrpc::FieldsVisitor::DescriptorSet& messages) {
+std::unordered_set<std::string> ToStrings(const ugrpc::VisitorCompiler::DescriptorSet& messages) {
     std::unordered_set<std::string> result;
     for (const auto& msg : messages) {
         result.insert(msg->full_name());
@@ -106,7 +106,7 @@ std::unordered_set<std::string> ToStrings(const ugrpc::FieldsVisitor::Descriptor
     return result;
 }
 
-std::unordered_set<std::string> ToStrings(const ugrpc::FieldsVisitor::FieldDescriptorSet& fields) {
+std::unordered_set<std::string> ToStrings(const ugrpc::VisitorCompiler::FieldDescriptorSet& fields) {
     std::unordered_set<std::string> result;
     for (const auto& field : fields) {
         result.insert(field->name());
@@ -120,21 +120,26 @@ std::unordered_set<T> ToSet(const std::vector<T>& vector) {
 }
 
 void MyExpectEq(
-    const ugrpc::FieldsVisitor::FieldDescriptorSet& val1,
-    const ugrpc::FieldsVisitor::FieldDescriptorSet& val2
+    const ugrpc::VisitorCompiler::FieldDescriptorSet& val1,
+    const ugrpc::VisitorCompiler::FieldDescriptorSet& val2
 ) {
     EXPECT_EQ(ToStrings(val1), ToStrings(val2));
     EXPECT_EQ(val1, val2);
 }
 
-void MyExpectEq(const ugrpc::FieldsVisitor::DescriptorSet& val1, const ugrpc::FieldsVisitor::DescriptorSet& val2) {
+void MyExpectEq(const ugrpc::VisitorCompiler::DescriptorSet& val1, const ugrpc::VisitorCompiler::DescriptorSet& val2) {
     EXPECT_EQ(ToStrings(val1), ToStrings(val2));
     EXPECT_EQ(val1, val2);
 }
 
-void MyExpectEq(const ugrpc::FieldsVisitor::Dependencies& val1, const ugrpc::FieldsVisitor::Dependencies& val2) {
+void MyExpectEq(const ugrpc::VisitorCompiler::Dependencies& val1, const ugrpc::VisitorCompiler::Dependencies& val2) {
     EXPECT_EQ(ToStrings(val1), ToStrings(val2));
     EXPECT_EQ(val1, val2);
+}
+
+void MyEq(const google::protobuf::Message& val1, const google::protobuf::Message& val2) {
+    EXPECT_EQ(std::string(val1.Utf8DebugString()), std::string(val2.Utf8DebugString()));
+    EXPECT_TRUE(google::protobuf::util::MessageDifferencer::Equals(val1, val2));
 }
 
 template <typename MapOrSet>
@@ -142,7 +147,7 @@ bool ContainsMessage(const MapOrSet& collection, std::string_view value) {
     return collection.find(ugrpc::FindGeneratedMessage(value)) != collection.end();
 }
 
-bool FieldSelector(const google::protobuf::Descriptor&, const google::protobuf::FieldDescriptor& field) {
+bool FieldSelector(const google::protobuf::FieldDescriptor& field) {
     return field.options().GetExtension(sample::ugrpc::field).selected();
 }
 
@@ -161,7 +166,7 @@ ugrpc::DescriptorList Get() {
         ugrpc::FindGeneratedMessage("sample.ugrpc.Msg1E")};
 }
 
-ugrpc::FieldsVisitor::Dependencies GetSelectedFields() {
+ugrpc::VisitorCompiler::Dependencies GetSelectedFields() {
     return {
         MakeDependency("sample.ugrpc.Msg1A", {"value1", "value2"}),
         MakeDependency("sample.ugrpc.Msg1C", {"value"}),
@@ -169,7 +174,7 @@ ugrpc::FieldsVisitor::Dependencies GetSelectedFields() {
     };
 }
 
-ugrpc::FieldsVisitor::DescriptorSet GetSelectedMessages() {
+ugrpc::VisitorCompiler::DescriptorSet GetSelectedMessages() {
     return {
         ugrpc::FindGeneratedMessage("sample.ugrpc.Msg1A"),
         ugrpc::FindGeneratedMessage("sample.ugrpc.Msg1C"),
@@ -177,7 +182,7 @@ ugrpc::FieldsVisitor::DescriptorSet GetSelectedMessages() {
     };
 }
 
-ugrpc::FieldsVisitor::Dependencies GetFieldsWithSelectedChildren() {
+ugrpc::VisitorCompiler::Dependencies GetFieldsWithSelectedChildren() {
     return {
         MakeDependency("sample.ugrpc.Msg1A", {"nested"}),
         MakeDependency(
@@ -194,19 +199,19 @@ namespace component2 {
 
 ugrpc::DescriptorList Get() { return {ugrpc::FindGeneratedMessage("sample.ugrpc.Msg2A")}; }
 
-ugrpc::FieldsVisitor::Dependencies GetSelectedFields() {
+ugrpc::VisitorCompiler::Dependencies GetSelectedFields() {
     return {
         MakeDependency("sample.ugrpc.Msg2A", {"value1", "value3"}),
     };
 }
 
-ugrpc::FieldsVisitor::DescriptorSet GetSelectedMessages() {
+ugrpc::VisitorCompiler::DescriptorSet GetSelectedMessages() {
     return {
         ugrpc::FindGeneratedMessage("sample.ugrpc.Msg2A"),
     };
 }
 
-ugrpc::FieldsVisitor::Dependencies GetFieldsWithSelectedChildren() { return {}; }
+ugrpc::VisitorCompiler::Dependencies GetFieldsWithSelectedChildren() { return {}; }
 
 }  // namespace component2
 
@@ -216,11 +221,11 @@ ugrpc::DescriptorList Get() {
     return {ugrpc::FindGeneratedMessage("sample.ugrpc.Msg3A"), ugrpc::FindGeneratedMessage("sample.ugrpc.Msg3B")};
 }
 
-ugrpc::FieldsVisitor::Dependencies GetSelectedFields() { return {}; }
+ugrpc::VisitorCompiler::Dependencies GetSelectedFields() { return {}; }
 
-ugrpc::FieldsVisitor::DescriptorSet GetSelectedMessages() { return {}; }
+ugrpc::VisitorCompiler::DescriptorSet GetSelectedMessages() { return {}; }
 
-ugrpc::FieldsVisitor::Dependencies GetFieldsWithSelectedChildren() { return {}; }
+ugrpc::VisitorCompiler::Dependencies GetFieldsWithSelectedChildren() { return {}; }
 
 }  // namespace component3
 
@@ -233,19 +238,19 @@ ugrpc::DescriptorList Get() {
         ugrpc::FindGeneratedMessage("sample.ugrpc.Msg4C")};
 }
 
-ugrpc::FieldsVisitor::Dependencies GetSelectedFields() {
+ugrpc::VisitorCompiler::Dependencies GetSelectedFields() {
     return {
         MakeDependency("sample.ugrpc.Msg4B", {"value"}),
     };
 }
 
-ugrpc::FieldsVisitor::DescriptorSet GetSelectedMessages() {
+ugrpc::VisitorCompiler::DescriptorSet GetSelectedMessages() {
     return {
         ugrpc::FindGeneratedMessage("sample.ugrpc.Msg4B"),
     };
 }
 
-ugrpc::FieldsVisitor::Dependencies GetFieldsWithSelectedChildren() {
+ugrpc::VisitorCompiler::Dependencies GetFieldsWithSelectedChildren() {
     return {
         MakeDependency("sample.ugrpc.Msg4A", {"nested"}),
         MakeDependency("sample.ugrpc.Msg4B", {"nested"}),
@@ -267,7 +272,7 @@ ugrpc::DescriptorList Get() {
         ugrpc::FindGeneratedMessage("google.protobuf.ListValue")};
 }
 
-ugrpc::FieldsVisitor::Dependencies GetSelectedFields() {
+ugrpc::VisitorCompiler::Dependencies GetSelectedFields() {
     return {
         MakeDependency(
             "sample.ugrpc.MessageWithDifferentTypes", {"optional_string", "optional_int", "repeated_message"}
@@ -276,13 +281,13 @@ ugrpc::FieldsVisitor::Dependencies GetSelectedFields() {
     };
 }
 
-ugrpc::FieldsVisitor::DescriptorSet GetSelectedMessages() {
+ugrpc::VisitorCompiler::DescriptorSet GetSelectedMessages() {
     return {
         ugrpc::FindGeneratedMessage("sample.ugrpc.MessageWithDifferentTypes.NestedMessage"),
     };
 }
 
-ugrpc::FieldsVisitor::Dependencies GetFieldsWithSelectedChildren() {
+ugrpc::VisitorCompiler::Dependencies GetFieldsWithSelectedChildren() {
     return {
         MakeDependency(
             "sample.ugrpc.MessageWithDifferentTypes",
@@ -309,9 +314,8 @@ TEST(VisitFields, TestEmptyMessage) {
     ugrpc::VisitFields(message, [&calls](google::protobuf::Message&, const google::protobuf::FieldDescriptor&) {
         ++calls;
     });
-    ASSERT_EQ(calls, 0);
-    ASSERT_TRUE(google::protobuf::util::MessageDifferencer::Equals(message, sample::ugrpc::MessageWithDifferentTypes())
-    );
+    EXPECT_EQ(calls, 0);
+    MyEq(message, sample::ugrpc::MessageWithDifferentTypes());
 }
 
 TEST(VisitFields, TestMessage) {
@@ -332,17 +336,16 @@ TEST(VisitFields, TestMessage) {
                                        1 +  // nested_map
                                        1 +  // oneof_int
                                        1;   // google_value
-    ASSERT_EQ(calls, expected_calls);
-    ASSERT_TRUE(google::protobuf::util::MessageDifferencer::Equals(message, ConstructMessage()));
+    EXPECT_EQ(calls, expected_calls);
+    MyEq(message, ConstructMessage());
 }
 
 TEST(VisitMessagesRecursive, TestEmptyMessage) {
     std::size_t calls = 0;
     sample::ugrpc::MessageWithDifferentTypes message;
     ugrpc::VisitMessagesRecursive(message, [&calls](google::protobuf::Message&) { ++calls; });
-    ASSERT_EQ(calls, 1);
-    ASSERT_TRUE(google::protobuf::util::MessageDifferencer::Equals(message, sample::ugrpc::MessageWithDifferentTypes())
-    );
+    EXPECT_EQ(calls, 1);
+    MyEq(message, sample::ugrpc::MessageWithDifferentTypes());
 }
 
 TEST(VisitMessagesRecursive, TestMessage) {
@@ -357,8 +360,8 @@ TEST(VisitMessagesRecursive, TestMessage) {
                                        2 +  // nested_map ({ key, value })
                                        2 +  // nested_map values
                                        1;   // google_value
-    ASSERT_EQ(calls, expected_calls);
-    ASSERT_TRUE(google::protobuf::util::MessageDifferencer::Equals(message, ConstructMessage()));
+    EXPECT_EQ(calls, expected_calls);
+    MyEq(message, ConstructMessage());
 }
 
 TEST(VisitFieldsRecursive, TestEmptyMessage) {
@@ -367,9 +370,8 @@ TEST(VisitFieldsRecursive, TestEmptyMessage) {
     ugrpc::VisitFieldsRecursive(
         message, [&calls](google::protobuf::Message&, const google::protobuf::FieldDescriptor&) { ++calls; }
     );
-    ASSERT_EQ(calls, 0);
-    ASSERT_TRUE(google::protobuf::util::MessageDifferencer::Equals(message, sample::ugrpc::MessageWithDifferentTypes())
-    );
+    EXPECT_EQ(calls, 0);
+    MyEq(message, sample::ugrpc::MessageWithDifferentTypes());
 }
 
 TEST(VisitFieldsRecursive, TestMessage) {
@@ -403,8 +405,8 @@ TEST(VisitFieldsRecursive, TestMessage) {
                                        1 +  // oneof_int
                                        1 +  // google_value
                                        1;   // google_value actual value
-    ASSERT_EQ(calls, expected_calls);
-    ASSERT_TRUE(google::protobuf::util::MessageDifferencer::Equals(message, ConstructMessage()));
+    EXPECT_EQ(calls, expected_calls);
+    MyEq(message, ConstructMessage());
 }
 
 TEST(GetFieldDescriptors, MessageWithDifferentTypes) {
@@ -708,13 +710,13 @@ TEST(FieldsVisitorConstructor, TestMultipleComponents) {
     for (const auto& msg : component3::Get()) messages.push_back(msg);
     for (const auto& msg : component4::Get()) messages.push_back(msg);
 
-    ugrpc::FieldsVisitor::Dependencies selected_fields;
+    ugrpc::VisitorCompiler::Dependencies selected_fields;
     selected_fields.merge(component1::GetSelectedFields());
     selected_fields.merge(component2::GetSelectedFields());
     selected_fields.merge(component3::GetSelectedFields());
     selected_fields.merge(component4::GetSelectedFields());
 
-    ugrpc::FieldsVisitor::Dependencies fields_with_selected_children;
+    ugrpc::VisitorCompiler::Dependencies fields_with_selected_children;
     fields_with_selected_children.merge(component1::GetFieldsWithSelectedChildren());
     fields_with_selected_children.merge(component2::GetFieldsWithSelectedChildren());
     fields_with_selected_children.merge(component3::GetFieldsWithSelectedChildren());
@@ -728,11 +730,12 @@ TEST(FieldsVisitorConstructor, TestMultipleComponents) {
 TEST(FieldsVisitorConstructor, TestAllMessageTypes) {
     ugrpc::FieldsVisitor visitor(FieldSelector);
 
-    const ugrpc::FieldsVisitor::Dependencies& sf = visitor.GetSelectedFields(utils::impl::InternalTag());
+    const ugrpc::VisitorCompiler::Dependencies& sf = visitor.GetSelectedFields(utils::impl::InternalTag());
     EXPECT_TRUE(ContainsMessage(sf, "sample.ugrpc.MessageWithDifferentTypes"));
     EXPECT_TRUE(ContainsMessage(sf, "sample.ugrpc.MessageWithDifferentTypes.NestedMessage"));
 
-    const ugrpc::FieldsVisitor::Dependencies& fwsc = visitor.GetFieldsWithSelectedChildren(utils::impl::InternalTag());
+    const ugrpc::VisitorCompiler::Dependencies& fwsc =
+        visitor.GetFieldsWithSelectedChildren(utils::impl::InternalTag());
     EXPECT_TRUE(ContainsMessage(fwsc, "sample.ugrpc.MessageWithDifferentTypes"));
     EXPECT_TRUE(ContainsMessage(fwsc, "sample.ugrpc.MessageWithDifferentTypes.NestedMapEntry"));
 }
@@ -742,9 +745,8 @@ TEST(FieldsVisitorVisit, TestEmptyMessage) {
     ugrpc::FieldsVisitor visitor(FieldSelector, ugrpc::DescriptorList{});
     sample::ugrpc::MessageWithDifferentTypes message;
     visitor.Visit(message, [&calls](google::protobuf::Message&, const google::protobuf::FieldDescriptor&) { ++calls; });
-    ASSERT_EQ(calls, 0);
-    ASSERT_TRUE(google::protobuf::util::MessageDifferencer::Equals(message, sample::ugrpc::MessageWithDifferentTypes())
-    );
+    EXPECT_EQ(calls, 0);
+    MyEq(message, sample::ugrpc::MessageWithDifferentTypes());
 }
 
 TEST(FieldsVisitorVisit, TestMessage) {
@@ -761,8 +763,8 @@ TEST(FieldsVisitorVisit, TestMessage) {
     const std::size_t expected_calls = 1 +  // optional_string
                                        1 +  // optional_int
                                        1;   // repeated_message
-    ASSERT_EQ(calls, expected_calls);
-    ASSERT_TRUE(google::protobuf::util::MessageDifferencer::Equals(message, ConstructMessage()));
+    EXPECT_EQ(calls, expected_calls);
+    MyEq(message, ConstructMessage());
 }
 
 TEST(FieldsVisitorVisitRecursive, TestEmptyMessage) {
@@ -772,9 +774,8 @@ TEST(FieldsVisitorVisitRecursive, TestEmptyMessage) {
     visitor.VisitRecursive(message, [&calls](google::protobuf::Message&, const google::protobuf::FieldDescriptor&) {
         ++calls;
     });
-    ASSERT_EQ(calls, 0);
-    ASSERT_TRUE(google::protobuf::util::MessageDifferencer::Equals(message, sample::ugrpc::MessageWithDifferentTypes())
-    );
+    EXPECT_EQ(calls, 0);
+    MyEq(message, sample::ugrpc::MessageWithDifferentTypes());
 }
 
 TEST(FieldsVisitorVisitRecursive, TestMessage) {
@@ -797,8 +798,32 @@ TEST(FieldsVisitorVisitRecursive, TestMessage) {
                                        1 +  // repeated_message
                                        2 +  // repeated_message required_string
                                        2;   // nested_map (values) required_string
-    ASSERT_EQ(calls, expected_calls);
-    ASSERT_TRUE(google::protobuf::util::MessageDifferencer::Equals(message, ConstructMessage()));
+    EXPECT_EQ(calls, expected_calls);
+    MyEq(message, ConstructMessage());
+}
+
+TEST(FieldsVisitorContainsSelected, TestMessage) {
+    ugrpc::FieldsVisitor visitor(FieldSelector, ugrpc::DescriptorList{});
+
+    EXPECT_TRUE(visitor.ContainsSelected(ugrpc::FindGeneratedMessage("sample.ugrpc.MessageWithDifferentTypes")));
+    EXPECT_TRUE(
+        visitor.ContainsSelected(ugrpc::FindGeneratedMessage("sample.ugrpc.MessageWithDifferentTypes.NestedMessage"))
+    );
+
+    EXPECT_TRUE(visitor.ContainsSelected(ugrpc::FindGeneratedMessage("sample.ugrpc.Msg1A")));
+    EXPECT_TRUE(visitor.ContainsSelected(ugrpc::FindGeneratedMessage("sample.ugrpc.Msg1B")));
+    EXPECT_TRUE(visitor.ContainsSelected(ugrpc::FindGeneratedMessage("sample.ugrpc.Msg1C")));
+    EXPECT_TRUE(visitor.ContainsSelected(ugrpc::FindGeneratedMessage("sample.ugrpc.Msg1D")));
+    EXPECT_FALSE(visitor.ContainsSelected(ugrpc::FindGeneratedMessage("sample.ugrpc.Msg1E")));
+
+    EXPECT_TRUE(visitor.ContainsSelected(ugrpc::FindGeneratedMessage("sample.ugrpc.Msg2A")));
+
+    EXPECT_FALSE(visitor.ContainsSelected(ugrpc::FindGeneratedMessage("sample.ugrpc.Msg3A")));
+    EXPECT_FALSE(visitor.ContainsSelected(ugrpc::FindGeneratedMessage("sample.ugrpc.Msg3B")));
+
+    EXPECT_TRUE(visitor.ContainsSelected(ugrpc::FindGeneratedMessage("sample.ugrpc.Msg4A")));
+    EXPECT_TRUE(visitor.ContainsSelected(ugrpc::FindGeneratedMessage("sample.ugrpc.Msg4B")));
+    EXPECT_TRUE(visitor.ContainsSelected(ugrpc::FindGeneratedMessage("sample.ugrpc.Msg4C")));
 }
 
 TEST(MessagesVisitorConstructor, TestComponent1) {
@@ -861,13 +886,13 @@ TEST(MessagesVisitorConstructor, TestMultipleComponents) {
     for (const auto& msg : component3::Get()) messages.push_back(msg);
     for (const auto& msg : component4::Get()) messages.push_back(msg);
 
-    ugrpc::MessagesVisitor::DescriptorSet selected_messages;
+    ugrpc::VisitorCompiler::DescriptorSet selected_messages;
     selected_messages.merge(component1::GetSelectedMessages());
     selected_messages.merge(component2::GetSelectedMessages());
     selected_messages.merge(component3::GetSelectedMessages());
     selected_messages.merge(component4::GetSelectedMessages());
 
-    ugrpc::MessagesVisitor::Dependencies fields_with_selected_children;
+    ugrpc::VisitorCompiler::Dependencies fields_with_selected_children;
     fields_with_selected_children.merge(component1::GetFieldsWithSelectedChildren());
     fields_with_selected_children.merge(component2::GetFieldsWithSelectedChildren());
     fields_with_selected_children.merge(component3::GetFieldsWithSelectedChildren());
@@ -881,10 +906,10 @@ TEST(MessagesVisitorConstructor, TestMultipleComponents) {
 TEST(MessagesVisitorConstructor, TestAllMessageTypes) {
     ugrpc::MessagesVisitor visitor(MessageSelector);
 
-    const ugrpc::MessagesVisitor::DescriptorSet& sm = visitor.GetSelectedMessages(utils::impl::InternalTag());
+    const ugrpc::VisitorCompiler::DescriptorSet& sm = visitor.GetSelectedMessages(utils::impl::InternalTag());
     EXPECT_TRUE(ContainsMessage(sm, "sample.ugrpc.MessageWithDifferentTypes.NestedMessage"));
 
-    const ugrpc::MessagesVisitor::Dependencies& fwsc =
+    const ugrpc::VisitorCompiler::Dependencies& fwsc =
         visitor.GetFieldsWithSelectedChildren(utils::impl::InternalTag());
     EXPECT_TRUE(ContainsMessage(fwsc, "sample.ugrpc.MessageWithDifferentTypes"));
     EXPECT_TRUE(ContainsMessage(fwsc, "sample.ugrpc.MessageWithDifferentTypes.NestedMapEntry"));
@@ -895,10 +920,8 @@ TEST(MessagesVisitorVisit, TestEmptyMessage) {
     ugrpc::MessagesVisitor visitor(MessageSelector, ugrpc::DescriptorList{});
     sample::ugrpc::MessageWithDifferentTypes::NestedMessage message;
     visitor.Visit(message, [&calls](google::protobuf::Message&) { ++calls; });
-    ASSERT_EQ(calls, 1);
-    ASSERT_TRUE(google::protobuf::util::MessageDifferencer::Equals(
-        message, sample::ugrpc::MessageWithDifferentTypes::NestedMessage()
-    ));
+    EXPECT_EQ(calls, 1);
+    MyEq(message, sample::ugrpc::MessageWithDifferentTypes::NestedMessage());
 }
 
 TEST(MessagesVisitorVisit, TestMessage) {
@@ -906,8 +929,8 @@ TEST(MessagesVisitorVisit, TestMessage) {
     auto message = ConstructMessage();
     ugrpc::MessagesVisitor visitor(MessageSelector, ugrpc::DescriptorList{});
     visitor.Visit(*message.mutable_required_nested(), [&calls](google::protobuf::Message&) { ++calls; });
-    ASSERT_EQ(calls, 1);
-    ASSERT_TRUE(google::protobuf::util::MessageDifferencer::Equals(message, ConstructMessage()));
+    EXPECT_EQ(calls, 1);
+    MyEq(message, ConstructMessage());
 }
 
 TEST(MessagesVisitorVisitRecursive, TestEmptyMessage) {
@@ -915,10 +938,8 @@ TEST(MessagesVisitorVisitRecursive, TestEmptyMessage) {
     ugrpc::MessagesVisitor visitor(MessageSelector, ugrpc::DescriptorList{});
     sample::ugrpc::MessageWithDifferentTypes::NestedMessage message;
     visitor.VisitRecursive(message, [&calls](google::protobuf::Message&) { ++calls; });
-    ASSERT_EQ(calls, 1);
-    ASSERT_TRUE(google::protobuf::util::MessageDifferencer::Equals(
-        message, sample::ugrpc::MessageWithDifferentTypes::NestedMessage()
-    ));
+    EXPECT_EQ(calls, 1);
+    MyEq(message, sample::ugrpc::MessageWithDifferentTypes::NestedMessage());
 }
 
 TEST(MessagesVisitorVisitRecursive, TestMessage) {
@@ -935,8 +956,32 @@ TEST(MessagesVisitorVisitRecursive, TestMessage) {
     const std::size_t expected_calls = 1 +  // required_nested
                                        2 +  // repeated_message
                                        2;   // nested_map values
-    ASSERT_EQ(calls, expected_calls);
-    ASSERT_TRUE(google::protobuf::util::MessageDifferencer::Equals(message, ConstructMessage()));
+    EXPECT_EQ(calls, expected_calls);
+    MyEq(message, ConstructMessage());
+}
+
+TEST(MessagesVisitorContainsSelected, TestMessage) {
+    ugrpc::MessagesVisitor visitor(MessageSelector, ugrpc::DescriptorList{});
+
+    EXPECT_TRUE(visitor.ContainsSelected(ugrpc::FindGeneratedMessage("sample.ugrpc.MessageWithDifferentTypes")));
+    EXPECT_TRUE(
+        visitor.ContainsSelected(ugrpc::FindGeneratedMessage("sample.ugrpc.MessageWithDifferentTypes.NestedMessage"))
+    );
+
+    EXPECT_TRUE(visitor.ContainsSelected(ugrpc::FindGeneratedMessage("sample.ugrpc.Msg1A")));
+    EXPECT_TRUE(visitor.ContainsSelected(ugrpc::FindGeneratedMessage("sample.ugrpc.Msg1B")));
+    EXPECT_TRUE(visitor.ContainsSelected(ugrpc::FindGeneratedMessage("sample.ugrpc.Msg1C")));
+    EXPECT_TRUE(visitor.ContainsSelected(ugrpc::FindGeneratedMessage("sample.ugrpc.Msg1D")));
+    EXPECT_FALSE(visitor.ContainsSelected(ugrpc::FindGeneratedMessage("sample.ugrpc.Msg1E")));
+
+    EXPECT_TRUE(visitor.ContainsSelected(ugrpc::FindGeneratedMessage("sample.ugrpc.Msg2A")));
+
+    EXPECT_FALSE(visitor.ContainsSelected(ugrpc::FindGeneratedMessage("sample.ugrpc.Msg3A")));
+    EXPECT_FALSE(visitor.ContainsSelected(ugrpc::FindGeneratedMessage("sample.ugrpc.Msg3B")));
+
+    EXPECT_TRUE(visitor.ContainsSelected(ugrpc::FindGeneratedMessage("sample.ugrpc.Msg4A")));
+    EXPECT_TRUE(visitor.ContainsSelected(ugrpc::FindGeneratedMessage("sample.ugrpc.Msg4B")));
+    EXPECT_TRUE(visitor.ContainsSelected(ugrpc::FindGeneratedMessage("sample.ugrpc.Msg4C")));
 }
 
 USERVER_NAMESPACE_END

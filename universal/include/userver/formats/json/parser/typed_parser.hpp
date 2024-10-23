@@ -153,12 +153,15 @@ private:
     Subscriber<T>* subscriber_{nullptr};
 };
 
-template <typename T, typename Parser>
-T ParseToType(std::string_view input) {
-    T result{};
-    Parser parser;
+namespace impl {
+
+template <typename Parser>
+typename Parser::ResultType ParseSingle(Parser& parser, std::string_view input) {
+    using ResultType = typename Parser::ResultType;
+    ResultType result{};
+
     parser.Reset();
-    SubscriberSink<T> sink(result);
+    SubscriberSink<ResultType> sink(result);
     parser.Subscribe(sink);
 
     ParserState state;
@@ -166,6 +169,14 @@ T ParseToType(std::string_view input) {
     state.ProcessInput(input);
 
     return result;
+}
+
+}  // namespace impl
+
+template <typename T, typename Parser>
+T ParseToType(std::string_view input) {
+    Parser parser;
+    return impl::ParseSingle(parser, input);
 }
 
 }  // namespace formats::json::parser

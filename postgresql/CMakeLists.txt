@@ -18,6 +18,23 @@ else()
   target_link_libraries(userver-libpq INTERFACE PostgreSQL::PostgreSQL)
 endif()
 
+# Versions of postgresql-server and libpq may diverge "in the wild",
+# and we'd like to still be able to build userver postgres in such environments.
+# When using APIs of libpq, we sometimes need its version as a macro to know
+# which features are available. PG_VERSION_NUM is not suitable, because it is
+# provided by postgresql-server, not by libpq. There is PQlibVersion function,
+# but no version macro in libpq itself. Workaround: run a simple program
+# at build time that calls PQlibVersion.
+add_subdirectory(libpq-version-generator)
+set(LIBPQ_VERSION_DIR "${CMAKE_CURRENT_BINARY_DIR}/libpq_version")
+add_custom_command(
+    OUTPUT "${LIBPQ_VERSION_DIR}/userver_libpq_version.hpp"
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${LIBPQ_VERSION_DIR}"
+    COMMAND $<TARGET_FILE:userver-impl-libpq-version-generator>
+    WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+    COMMENT "Running gRPC C++ protocol buffer compiler for ${root_path}"
+)
+
 file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
@@ -47,10 +64,12 @@ add_library(${PROJECT_NAME} STATIC ${SOURCES})
 
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
-target_include_directories(${PROJECT_NAME} PUBLIC
-	$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/src
+target_include_directories(${PROJECT_NAME}
+    PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    "${LIBPQ_VERSION_DIR}"
 )
 
 target_link_libraries(${PROJECT_NAME}
@@ -60,6 +79,8 @@ target_link_libraries(${PROJECT_NAME}
     userver-libpq
     Boost::regex
 )
+
+target_sources(${PROJECT_NAME} PRIVATE "${LIBPQ_VERSION_DIR}/userver_libpq_version.hpp")
 
 _userver_directory_install(COMPONENT postgres
   DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include
