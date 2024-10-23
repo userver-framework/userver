@@ -28,16 +28,6 @@ compiler::ThreadLocal kSecretVisitor = [] {
 
 }  // namespace
 
-#if GOOGLE_PROTOBUF_VERSION >= 3018000
-userver::FieldOptions GetFieldOptions(const google::protobuf::FieldDescriptor& field) {
-    return field.options().GetExtension(userver::field);
-}
-#else
-const userver::FieldOptions& GetFieldOptions(const google::protobuf::FieldDescriptor& field) {
-    return field.options().GetExtension(userver::field);
-}
-#endif
-
 bool IsMessage(const google::protobuf::FieldDescriptor& field) {
     return field.type() == google::protobuf::FieldDescriptor::TYPE_MESSAGE ||
            field.type() == google::protobuf::FieldDescriptor::TYPE_GROUP;
