@@ -14,6 +14,7 @@
 #include <formats/json/impl/exttypes.hpp>
 #include <formats/json/impl/json_tree.hpp>
 #include <formats/json/impl/types_impl.hpp>
+#include <gdb_autogen/formats/json/printers.hpp>
 #include <userver/formats/common/path.hpp>
 #include <userver/formats/json/impl/mutable_value_wrapper.hpp>
 
