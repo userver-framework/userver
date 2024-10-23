@@ -28,7 +28,7 @@ compiler::ThreadLocal kSecretVisitor = [] {
 
 }  // namespace
 
-userver::FieldOptions GetFieldOptions(const google::protobuf::FieldDescriptor& field) {
+const userver::FieldOptions& GetFieldOptions(const google::protobuf::FieldDescriptor& field) {
     return field.options().GetExtension(userver::field);
 }
 
