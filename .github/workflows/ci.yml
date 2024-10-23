@@ -157,14 +157,14 @@ jobs:
                 fi
 
                 if [ "${{matrix.os}}" = "ubuntu-20.04" ]; then
-                  git clone --recurse-submodules -b v1.66.0 --depth 1 --shallow-submodules https://github.com/grpc/grpc new_grpc
+                  git clone -b v1.60.0 https://github.com/grpc/grpc new_grpc
                   cd new_grpc
+                  git submodule update --init
                   mkdir -p cmake/build
-                  pushd cmake/build
-                  cmake -DgRPC_INSTALL=ON -DgRPC_BUILD_TESTS=OFF -DCMAKE_INSTALL_PREFIX=$MY_INSTALL_DIR ../..
+                  cd cmake/build
+                  cmake -DgRPC_INSTALL=ON -DgRPC_BUILD_TESTS=OFF ../..
                   make -j 4
                   make install
-                  popd
                 fi
 
           - name: Install RabbitMQ packages
