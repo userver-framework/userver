@@ -157,11 +157,8 @@ jobs:
                 fi
 
                 if [ "${{matrix.os}}" = "ubuntu-20.04" ]; then
-                  git clone -b v1.60.0 https://github.com/grpc/grpc new_grpc
-                  cd new_grpc
-                  git submodule update --init
-                  mkdir -p cmake/build
-                  cd cmake/build
+                  git clone --recursive -b v1.60.0 https://github.com/grpc/grpc new_grpc
+                  mkdir -p new_grpc/cmake/build && cd new_grpc/cmake/build
                   cmake -DgRPC_INSTALL=ON -DgRPC_BUILD_TESTS=OFF ../..
                   make -j 4
                   sudo make install
