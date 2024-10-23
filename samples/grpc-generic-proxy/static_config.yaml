@@ -60,10 +60,12 @@ components_manager:
                   - grpc-server-logging
                   - grpc-server-deadline-propagation
                   - grpc-server-congestion-control
+                  - grpc-server-field-mask-bin
 
         grpc-server-logging:
         grpc-server-deadline-propagation:
         grpc-server-congestion-control:
+        grpc-server-field-mask-bin:
 
         proxy-service:
 

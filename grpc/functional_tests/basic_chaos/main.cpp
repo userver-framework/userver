@@ -13,6 +13,7 @@
 #include <userver/ugrpc/server/middlewares/baggage/component.hpp>
 #include <userver/ugrpc/server/middlewares/congestion_control/component.hpp>
 #include <userver/ugrpc/server/middlewares/deadline_propagation/component.hpp>
+#include <userver/ugrpc/server/middlewares/field_mask_bin/component.hpp>
 #include <userver/ugrpc/server/middlewares/log/component.hpp>
 #include <userver/ugrpc/server/server_component.hpp>
 #include <userver/utils/daemon_run.hpp>
@@ -28,6 +29,7 @@ int main(int argc, char* argv[]) {
                                     .Append<ugrpc::server::middlewares::log::Component>()
                                     .Append<ugrpc::server::middlewares::deadline_propagation::Component>()
                                     .Append<ugrpc::server::middlewares::congestion_control::Component>()
+                                    .Append<ugrpc::server::middlewares::field_mask_bin::Component>()
                                     .Append<ugrpc::client::middlewares::baggage::Component>()
                                     .Append<ugrpc::client::middlewares::log::Component>()
                                     .Append<ugrpc::client::middlewares::deadline_propagation::Component>()

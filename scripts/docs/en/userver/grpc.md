@@ -214,6 +214,7 @@ new middlewares.
   See Congestion Control section of @ref scripts/docs/en/userver/tutorial/production_service.md.
   4. `grpc-server-baggage` with component ugrpc::server::middlewares::baggage::Component - passes request baggage to subrequests.
   5. `grpc-server-headers-propagator` with component ugrpc::server::middlewares::headers_propagator::Component - propagates headers.
+  6. `grpc-server-field-mask-bin` with component ugrpc::server::middlewares::field_mask_bin::Component - parses the field mask from the request metadata and trims the response accordingly.
 
 ## gRPC Logs
 
