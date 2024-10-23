@@ -29,6 +29,7 @@ jobs:
                 -DUSERVER_FEATURE_MYSQL=0
                 -DUSERVER_FEATURE_RABBITMQ=0
                 -DUSERVER_FEATURE_ROCKS=0
+                -DUSERVER_FEATURE_KAFKA=0
 
         steps:
           - uses: actions/checkout@v4
