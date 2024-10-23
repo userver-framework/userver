@@ -164,7 +164,7 @@ jobs:
                   cd cmake/build
                   cmake -DgRPC_INSTALL=ON -DgRPC_BUILD_TESTS=OFF ../..
                   make -j 4
-                  make install
+                  sudo make install
                 fi
 
           - name: Install RabbitMQ packages
