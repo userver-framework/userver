@@ -9,7 +9,11 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::impl {
 
+#if GOOGLE_PROTOBUF_VERSION >= 3018000
 userver::FieldOptions GetFieldOptions(const google::protobuf::FieldDescriptor& field);
+#else
+const userver::FieldOptions& GetFieldOptions(const google::protobuf::FieldDescriptor& field);
+#endif
 
 bool IsMessage(const google::protobuf::FieldDescriptor& field);
 
