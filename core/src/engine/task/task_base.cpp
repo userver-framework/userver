@@ -167,6 +167,14 @@ ev::ThreadControl& GetEventThread() { return GetTaskProcessor().EventThreadPool(
 
 }  // namespace current_task
 
+namespace impl {
+
+std::uint64_t GetCreatedTaskCount(TaskProcessor& task_processor) {
+    return task_processor.GetTaskCounter().GetCreatedTasks().value;
+}
+
+}  // namespace impl
+
 }  // namespace engine
 
 USERVER_NAMESPACE_END

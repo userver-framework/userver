@@ -10,13 +10,12 @@
 
 #include <fmt/format.h>
 #include <libpq-fe.h>
-#include <boost/algorithm/string/predicate.hpp>
-#include <boost/algorithm/string/split.hpp>
-#include <boost/regex.hpp>
 
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
+#include <userver/utils/regex.hpp>
+#include <userver/utils/text_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -28,9 +27,7 @@ const std::string kPostgreSQLDefaultHost = "localhost";
 const std::string kPostgreSQLDefaultPort = "5432";
 
 std::vector<std::string> SplitDsnValue(const std::string& value) {
-    std::vector<std::string> res;
-    boost::split(res, value, [](char c) { return c == ','; });
-    return res;
+    return USERVER_NAMESPACE::utils::text::Split(value, ",", /*is_compress_adjacent_separators=*/false);
 }
 
 std::string JoinDsnValues(const std::vector<std::string>& values) { return fmt::to_string(fmt::join(values, ",")); }
@@ -244,26 +241,24 @@ std::string DsnCutPassword(const Dsn& dsn) {
 std::string DsnMaskPassword(const Dsn& dsn) {
     static const std::string pg_url_start = "postgresql://";
     static const std::string replace = "${1}***$2";
-    if (boost::starts_with(dsn.GetUnderlying(), pg_url_start)) {
-        static const boost::regex url_re("^(postgresql://[^:]*:)[^@]+(@)");
-        static const boost::regex option_re("\\b(password=)[^&]+");
-        auto masked = boost::regex_replace(dsn.GetUnderlying(), url_re, replace);
-        masked = boost::regex_replace(masked, option_re, replace);
+    if (USERVER_NAMESPACE::utils::text::StartsWith(dsn.GetUnderlying(), pg_url_start)) {
+        static const USERVER_NAMESPACE::utils::regex url_re("^(postgresql://[^:]*:)[^@]+(@)");
+        static const USERVER_NAMESPACE::utils::regex option_re("\\b(password=)[^&]+");
+        auto masked = regex_replace(dsn.GetUnderlying(), url_re, replace);
+        masked = regex_replace(masked, option_re, replace);
         return masked;
     } else {
-        static const boost::regex option_re(
-            R"~(
-          (\bpassword\s*=\s*)             # option keyword
-          (?:                             # followed by
-            (?:'(?:(?:\\['\\])|[^'])+')   # a single-quoted value
-                                          # with escaped ' or \ symbols
-            |                             # or
-            \S+                           # a sequence without spaces
-          )
-        )~",
-            boost::regex_constants::mod_x
+        // (\bpassword\s*=\s*)            # option keyword
+        // (?:                            # followed by
+        //   (?:'(?:(?:\\['\\])|[^'])+')  # a single-quoted value
+        //                                # with escaped ' or \ symbols
+        //   |                            # or
+        //   \S+                          # a sequence without spaces
+        // )
+        static const USERVER_NAMESPACE::utils::regex option_re(
+            R"~((\bpassword\s*=\s*)(?:(?:'(?:(?:\\['\\])|[^'])+')|\S+))~"
         );
-        auto masked = boost::regex_replace(dsn.GetUnderlying(), option_re, replace);
+        auto masked = regex_replace(dsn.GetUnderlying(), option_re, replace);
         return masked;
     }
 }

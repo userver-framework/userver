@@ -42,7 +42,9 @@ void insert_retrieve(benchmark::State& state) {
         }
     });
 }
-BENCHMARK(insert_retrieve)->Range(1 << 10, 1 << 20)->RangeMultiplier(4);
+// TODO for manual runs you can the data range up to 1 << 20.
+//  CI times out for large requests sometimes.
+BENCHMARK(insert_retrieve)->Range(1 << 10, 1 << 10)->RangeMultiplier(4);
 
 void batch_insert(benchmark::State& state) {
     engine::TaskProcessorPoolsConfig config{};
@@ -96,7 +98,9 @@ void batch_insert(benchmark::State& state) {
         }
     });
 }
-BENCHMARK(batch_insert)->Range(1000, 100'000);
+// TODO for manual runs you can the data range up to 100'000.
+//  CI times out for large requests sometimes.
+BENCHMARK(batch_insert)->Range(1'000, 1'000);
 
 }  // namespace storages::mysql::benches
 

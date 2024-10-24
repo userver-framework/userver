@@ -1,24 +1,5 @@
 project(userver-kafka CXX)
 
-file(GLOB_RECURSE SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
-
-file(GLOB_RECURSE KAFKA_LIB_UTEST_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/utest/*.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/utest/*.hpp)
-list(REMOVE_ITEM SOURCES ${KAFKA_LIB_UTEST_SOURCES})
-
-file(GLOB_RECURSE KAFKA_TEST_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/tests/*test.cpp)
-list(REMOVE_ITEM SOURCES ${KAFKA_TEST_SOURCES})
-
-file(GLOB_RECURSE KAFKA_FUNCTIONAL_TEST_SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/functional_tests/*)
-list(REMOVE_ITEM SOURCES ${KAFKA_FUNCTIONAL_TEST_SOURCES})
-
-add_library(${PROJECT_NAME} STATIC ${SOURCES})
-
 if(USERVER_CONAN)
   find_package(OpenSSL COMPONENTS SSL Crypto REQUIRED)
   find_package(CURL REQUIRED)
@@ -28,40 +9,32 @@ else()
   include(SetupRdKafka)
 endif()
 
-target_compile_options(${PROJECT_NAME} PRIVATE "-Wno-ignored-qualifiers")
-target_link_libraries(${PROJECT_NAME}
-  PUBLIC userver::core
-)
-target_include_directories(${PROJECT_NAME}
-  PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
-)
-target_link_libraries(${PROJECT_NAME}
-  PRIVATE "${RdKafka_LIBRARIES}" sasl2 z CURL::libcurl OpenSSL::SSL OpenSSL::Crypto
+userver_module(kafka
+    SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
+    LINK_LIBRARIES_PRIVATE RdKafka sasl2 z libzstd CURL::libcurl OpenSSL::SSL OpenSSL::Crypto
+    DBTEST_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/tests"
+    DBTEST_LINK_LIBRARIES userver::kafka-utest
+    DBTEST_DATABASES kafka
+    DBTEST_ENV
+    "TESTSUITE_KAFKA_SERVER_START_TIMEOUT=120.0"
+    "TESTSUITE_KAFKA_SERVER_HOST=[::1]"
+    "TESTSUITE_KAFKA_SERVER_PORT=8099"
+    "TESTSUITE_KAFKA_CONTROLLER_PORT=8100"
+    "TESTSUITE_KAFKA_CUSTOM_TOPICS=lt-1:4,lt-2:4,tt-1:1,tt-2:1,tt-3:1,tt-4:1,tt-5:1,tt-6:1,tt-7:1,tt-8:1"
 )
 
-target_include_directories(${PROJECT_NAME}
-  PRIVATE "${RdKafka_INCLUDE_DIRS}"
-)
+target_compile_options(${PROJECT_NAME} PRIVATE "-Wno-ignored-qualifiers")
 
 if(KAFKA_CPM)
   message(STATUS "Including from wrapper ${CMAKE_CURRENT_SOURCE_DIR}/wrapper/include")
   target_include_directories(${PROJECT_NAME}
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/wrapper/include
+      PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/wrapper/include"
   )
 endif()
 
 _userver_directory_install(COMPONENT kafka
-  DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include"
-  DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/.."
-)
-_userver_install_targets(COMPONENT kafka TARGETS ${PROJECT_NAME})
-
-_userver_directory_install(COMPONENT kafka
-  FILES
-  "${USERVER_ROOT_DIR}/cmake/install/userver-kafka-config.cmake"
-  "${USERVER_ROOT_DIR}/cmake/modules/FindRdKafka.cmake"
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
+  FILES "${USERVER_ROOT_DIR}/cmake/modules/FindRdKafka.cmake"
+  DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver"
 )
 
 if(USERVER_FEATURE_UTEST)
@@ -70,5 +43,4 @@ endif()
 
 if(USERVER_IS_THE_ROOT_PROJECT)
   add_subdirectory(functional_tests)
-  add_subdirectory(tests)
 endif()

@@ -196,6 +196,13 @@ void TaskBase::WaitUntil(const std::chrono::time_point<Clock, Duration>& until) 
     WaitUntil(Deadline::FromTimePoint(until));
 }
 
+namespace impl {
+
+// For internal use only.
+std::uint64_t GetCreatedTaskCount(TaskProcessor&);
+
+}  // namespace impl
+
 }  // namespace engine
 
 USERVER_NAMESPACE_END
