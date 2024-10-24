@@ -3,6 +3,13 @@
 #include <cstddef>
 #include <string>
 
+namespace google::protobuf {
+
+class Message;
+class FieldDescriptor;
+
+}  // namespace google::protobuf
+
 namespace userver {
 
 class FieldOptions;
