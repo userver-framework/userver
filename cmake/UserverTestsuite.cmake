@@ -230,6 +230,7 @@ function(userver_testsuite_add)
   set(TESTSUITE_RUNNER "${CMAKE_CURRENT_BINARY_DIR}/runtests-${service_target_with_suffix}")
   list(APPEND ARG_PYTHONPATH "${USERVER_TESTSUITE_DIR}/pytest_plugins")
 
+  file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary)
   execute_process(
     COMMAND
     "${python_binary}" "${USERVER_TESTSUITE_DIR}/create_runner.py"

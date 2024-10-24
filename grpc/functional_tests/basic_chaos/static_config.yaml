@@ -38,6 +38,11 @@ components_manager:
         grpc-server-congestion-control:
             # Nothing
 # /// [Sample grpc server congestion control middleware component config]
+
+# /// [Sample grpc server field-mask-bin middleware component config]
+        grpc-server-field-mask-bin:
+            metadata-field-name: field-mask-bin
+# /// [Sample grpc server field-mask-bin middleware component config]
         greeter-service:
             greeting-prefix: Hello
 

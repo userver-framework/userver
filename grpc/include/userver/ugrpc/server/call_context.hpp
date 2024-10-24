@@ -5,6 +5,9 @@
 
 #include <grpcpp/server_context.h>
 
+#include <userver/ugrpc/server/storage_context.hpp>
+#include <userver/utils/any_storage.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
@@ -29,6 +32,30 @@ public:
 
     /// @brief Get name of called gRPC method
     std::string_view GetMethodName() const;
+
+    /// @brief Returns call context for storing per-call custom data
+    ///
+    /// The context can be used to pass data from server middleware to client
+    /// handler or from one middleware to another one.
+    ///
+    /// ## Example usage:
+    ///
+    /// In authentication middleware:
+    ///
+    /// @code
+    /// if (password_is_correct) {
+    ///   // Username is authenticated, set it in per-call storage context
+    ///   ctx.GetCall().GetStorageContext().Emplace(kAuthUsername, username);
+    /// }
+    /// @endcode
+    ///
+    /// In client handler:
+    ///
+    /// @code
+    /// const auto& username = context.GetStorageContext().Get(kAuthUsername);
+    /// auto msg = fmt::format("Hello, {}!", username);
+    /// @endcode
+    utils::AnyStorage<StorageContext>& GetStorageContext();
 
 protected:
     /// @cond

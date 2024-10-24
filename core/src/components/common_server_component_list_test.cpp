@@ -318,6 +318,10 @@ TEST_F(CommonServerComponentList, Logger) {
     LOG_CRITICAL() << "some text";
 
     logging::impl::SetDefaultLoggerRef(old_logger);
+
+    // To avoid "some text" log in the terminal.
+    logging::impl::MemLogger::GetMemLogger().ForwardTo(&old_logger);
+    logging::impl::MemLogger::GetMemLogger().ForwardTo(nullptr);
 }
 
 TEST_F(CommonServerComponentList, TraceLogging) {

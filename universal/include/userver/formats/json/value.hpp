@@ -10,7 +10,6 @@
 #include <userver/formats/common/items.hpp>
 #include <userver/formats/common/meta.hpp>
 #include <userver/formats/json/exception.hpp>
-#include <userver/formats/json/gdb_autogen/printers.hpp>
 #include <userver/formats/json/impl/types.hpp>
 #include <userver/formats/json/iterator.hpp>
 #include <userver/formats/json/schema.hpp>

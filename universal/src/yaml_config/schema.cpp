@@ -115,6 +115,23 @@ constexpr utils::TrivialBiMap kFieldTypes = [](auto selector) {
         .Case("array", FieldType::kArray);
 };
 
+auto TieSchema(const Schema& schema) {
+    return std::tie(
+        // `path` is ignored, because it serves a purely diagnostic purpose.
+        schema.type,
+        schema.description,
+        schema.default_description,
+        schema.additional_properties,
+        schema.properties,
+        schema.items,
+        schema.enum_values,
+        schema.minimum,
+        schema.maximum,
+        schema.min_items,
+        schema.max_items
+    );
+}
+
 }  // namespace
 
 std::string ToString(FieldType type) {
@@ -146,6 +163,25 @@ formats::yaml::Value Serialize(const SchemaPtr& schema, formats::serialize::To<f
 
 SchemaPtr::SchemaPtr(Schema&& schema) : schema_(std::make_unique<Schema>(std::move(schema))) {}
 
+SchemaPtr::SchemaPtr(const SchemaPtr& other) : SchemaPtr(Schema{*other}) {}
+
+SchemaPtr& SchemaPtr::operator=(const SchemaPtr& other) {
+    *this = SchemaPtr{other};
+    return *this;
+}
+
+const Schema& SchemaPtr::operator*() const {
+    UASSERT(schema_);
+    return *schema_;
+}
+
+Schema& SchemaPtr::operator*() {
+    UASSERT(schema_);
+    return *schema_;
+}
+
+bool SchemaPtr::operator==(const SchemaPtr& other) const { return *schema_ == *other.schema_; }
+
 std::variant<bool, SchemaPtr>
 Parse(const formats::yaml::Value& value, formats::parse::To<std::variant<bool, SchemaPtr>>) {
     if (value.IsBool()) {
@@ -169,8 +205,8 @@ Schema Parse(const formats::yaml::Value& schema, formats::parse::To<Schema>) {
     result.minimum = schema["minimum"].As<std::optional<double>>();
     result.maximum = schema["maximum"].As<std::optional<double>>();
 
-    result.min_items = schema["minItems"].As<std::optional<size_t>>();
-    result.max_items = schema["maxItems"].As<std::optional<size_t>>();
+    result.min_items = schema["minItems"].As<std::optional<std::size_t>>();
+    result.max_items = schema["maxItems"].As<std::optional<std::size_t>>();
 
     CheckFieldsNames(schema);
 
@@ -210,6 +246,8 @@ Schema Schema::EmptyObject() {
   description: TODO
 )");
 }
+
+bool Schema::operator==(const Schema& other) const { return TieSchema(*this) == TieSchema(other); }
 
 Schema impl::SchemaFromString(const std::string& yaml_string) {
     return formats::yaml::FromString(yaml_string).As<Schema>();
