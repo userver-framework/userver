@@ -7,7 +7,7 @@ _userver_module_begin(
 )
 
 _userver_module_find_include(
-    NAMES ev.h
+    NAMES ev.h libev/ev.h
 )
 
 _userver_module_find_library(
