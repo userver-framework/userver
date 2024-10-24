@@ -3,6 +3,8 @@
 #include <stdexcept>
 #include <vector>
 
+#include <fmt/ranges.h>
+
 #include <engine/ev/thread_pool.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>

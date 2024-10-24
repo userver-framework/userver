@@ -15,6 +15,7 @@
 #endif
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 
 #include <userver/logging/level.hpp>
 #include <userver/logging/log.hpp>

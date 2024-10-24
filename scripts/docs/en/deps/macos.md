@@ -19,7 +19,7 @@ protobuf
 openssl
 yaml-cpp
 librdkafka
-postgresql@14
+postgresql@16
 redis
 zlib
 amqp-cpp

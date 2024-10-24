@@ -1,0 +1,61 @@
+name: CI
+
+'on':
+    pull_request:
+    push:
+        branches:
+          - master
+          - develop
+          - feature/**
+
+env:
+    UBSAN_OPTIONS: print_stacktrace=1
+    ASAN_OPTIONS: detect_odr_violation=2
+
+jobs:
+    macos:
+        name: MacOS
+        runs-on: macos-latest
+        env:
+            CMAKE_FLAGS: >-
+                -DUSERVER_SANITIZE="ub addr"
+                -DCMAKE_BUILD_TYPE=Debug
+                -DUSERVER_NO_WERROR=OFF
+                -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
+                -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0
+                -DUSERVER_FEATURE_POSTGRESQL=0
+                -DUSERVER_FEATURE_GRPC=0
+                -DUSERVER_FEATURE_OTLP=0
+                -DUSERVER_FEATURE_MYSQL=0
+                -DUSERVER_FEATURE_RABBITMQ=0
+                -DUSERVER_FEATURE_ROCKS=0
+                -DUSERVER_FEATURE_KAFKA=0
+
+        steps:
+          - uses: actions/checkout@v4
+            with:
+                fetch-depth: 0
+
+          - name: Install brew packages
+            run: |
+                export SDKROOT="`xcrun --show-sdk-path`"
+                brew update
+                brew install $(cat scripts/docs/en/deps/macos.md)
+                brew install clang-format
+                brew link postgresql@16
+
+          - name: Run cmake
+            run: |
+                mkdir build_debug
+                cd build_debug
+                cmake $CMAKE_FLAGS ..
+
+          - name: Compile
+            run: |
+                cd build_debug
+                make -j$(nproc) -k
+
+          - name: Test
+            run: |
+                cd build_debug
+                ctest -V

@@ -3,6 +3,7 @@
 #include <chrono>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 
 #include <userver/kafka/impl/configuration.hpp>
 #include <userver/kafka/impl/stats.hpp>

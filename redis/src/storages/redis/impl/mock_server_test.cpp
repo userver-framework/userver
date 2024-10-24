@@ -4,6 +4,7 @@
 #include <thread>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <boost/algorithm/string.hpp>
 
 #include <userver/utest/assert_macros.hpp>
