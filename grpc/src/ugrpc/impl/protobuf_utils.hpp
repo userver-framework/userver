@@ -3,7 +3,11 @@
 #include <cstddef>
 #include <string>
 
-#include <userver/field_options.pb.h>
+namespace userver {
+
+class FieldOptions;
+
+}  // namespace userver
 
 USERVER_NAMESPACE_BEGIN
 
