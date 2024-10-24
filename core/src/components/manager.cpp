@@ -82,6 +82,10 @@ void ValidateConfigs(
         } catch (const std::exception& exception) {
             auto component_name = adder->GetComponentName();
             validation_errors += fmt::format("\n\t{}: {}", component_name, exception.what());
+            if (adder->GetStaticConfigSchema() == components::RawComponentBase::GetStaticConfigSchema()) {
+                validation_errors +=
+                    ". Please define GetStaticConfigSchema for this component to be able to configure it";
+            }
         }
     }
 
