@@ -9,9 +9,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::impl {
 
-inline auto GetFieldOptions(const google::protobuf::FieldDescriptor& field) {
-    return field.options().GetExtension(userver::field);
-}
+const userver::FieldOptions& GetFieldOptions(const google::protobuf::FieldDescriptor& field);
 
 bool IsMessage(const google::protobuf::FieldDescriptor& field);
 
