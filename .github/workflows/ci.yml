@@ -156,6 +156,10 @@ jobs:
                   sudo apt install --allow-downgrades -y g++-8
                 fi
 
+                if [ "${{matrix.os}}" = "ubuntu-20.04" ]; then
+                  git clone --recursive -b v1.60.0 https://github.com/grpc/grpc new_grpc
+                  sudo cmake --install -S new_grpc -B new_grpc/cmake/build
+                fi
 
           - name: Install RabbitMQ packages
             run: |
