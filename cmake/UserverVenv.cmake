@@ -162,6 +162,18 @@ function(userver_venv_setup)
         PREPEND "--requirement="
         OUTPUT_VARIABLE pip_requirements
     )
+
+    # psycopg2 implicitly requires 'wheel' to be already installed
+    execute_process(
+        COMMAND
+        "${venv_bin_dir}/python3" -m pip install
+        -U wheel
+        RESULT_VARIABLE status
+    )
+    if(status)
+        message(FATAL_ERROR "Failed to install venv requirements")
+    endif()
+
     execute_process(
         COMMAND
         "${venv_bin_dir}/python3" -m pip install
