@@ -160,7 +160,7 @@ jobs:
                   git clone --recursive -b v1.60.0 https://github.com/grpc/grpc new_grpc
                   cmake -S./new_grpc -B./new_grpc/build
                   cmake --build new_grpc/build -- -j4
-                  cmake --install new_grpc/build
+                  sudo cmake --install new_grpc/build
                 fi
 
           - name: Install RabbitMQ packages
