@@ -118,50 +118,55 @@ jobs:
                 #    | tee /etc/apt/sources.list.d/mariadb.list
                 echo "deb [arch=amd64,arm64,ppc64el signed-by=/usr/share/keyrings/mariadb.gpg] https://mirror.kumi.systems/mariadb/repo/10.11/ubuntu $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/mariadb.list
 
-                if [ "${{matrix.os}}" != "ubuntu-24.04" ]; then
-                  # Adding librdkafka confluent repositories as in https://docs.confluent.io/platform/current/installation/installing_cp/deb-ubuntu.html#get-the-software
-                  gpg_retrieve_keyserver() {
-                    GNUPGHOME=$(mktemp -d)
-                    GNUPGHOME="$GNUPGHOME" gpg --no-default-keyring --keyring "/usr/share/keyrings/$2.gpg" --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys $1
-                    rm -rf "$GNUPGHOME"
-                    chmod a+r "/usr/share/keyrings/$2.gpg"
-                  }
-                  gpg_retrieve_keyserver 8B1DA6120C2BF624 confluent
-                  printf "\
-                  deb [arch=amd64 signed-by=/usr/share/keyrings/confluent.gpg] https://packages.confluent.io/deb/7.6 stable main\n\
-                  deb [signed-by=/usr/share/keyrings/confluent.gpg] https://packages.confluent.io/clients/deb $(lsb_release -cs) main\n" \
-                    | sudo tee /etc/apt/sources.list.d/confluent.list
-
-                  # Install Kafka
-                  sudo apt install -y default-jre
-                  curl https://dlcdn.apache.org/kafka/3.8.0/kafka_2.13-3.8.0.tgz -o kafka.tgz
-                  sudo mkdir -p /etc/kafka
-                  sudo tar xf kafka.tgz --directory=/etc/kafka
-                  sudo cp -r /etc/kafka/kafka_2.13-3.8.0/* /etc/kafka/
-                  sudo rm -rf /etc/kafka/kafka_2.13-3.8.0
-                  ls -lha /etc/kafka
-                fi
-
                 sudo apt update
                 sudo apt install --allow-downgrades -y clickhouse-common-static redis-server postgresql $(cat scripts/docs/en/deps/${{matrix.os}}.md | tr '\n' ' ')
-                if [ "${{matrix.os}}" = "ubuntu-22.04" ]; then
+
+          - name: Install kafka
+            if: matrix.os != ubuntu-24.04
+            run: |
+                # Adding librdkafka confluent repositories as in https://docs.confluent.io/platform/current/installation/installing_cp/deb-ubuntu.html#get-the-software
+                gpg_retrieve_keyserver() {
+                  GNUPGHOME=$(mktemp -d)
+                  GNUPGHOME="$GNUPGHOME" gpg --no-default-keyring --keyring "/usr/share/keyrings/$2.gpg" --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys $1
+                  rm -rf "$GNUPGHOME"
+                  chmod a+r "/usr/share/keyrings/$2.gpg"
+                }
+                gpg_retrieve_keyserver 8B1DA6120C2BF624 confluent
+                printf "\
+                deb [arch=amd64 signed-by=/usr/share/keyrings/confluent.gpg] https://packages.confluent.io/deb/7.6 stable main\n\
+                deb [signed-by=/usr/share/keyrings/confluent.gpg] https://packages.confluent.io/clients/deb $(lsb_release -cs) main\n" \
+                  | sudo tee /etc/apt/sources.list.d/confluent.list
+
+                # Install Kafka
+                sudo apt install -y default-jre
+                curl https://dlcdn.apache.org/kafka/3.8.0/kafka_2.13-3.8.0.tgz -o kafka.tgz
+                sudo mkdir -p /etc/kafka
+                sudo tar xf kafka.tgz --directory=/etc/kafka
+                sudo cp -r /etc/kafka/kafka_2.13-3.8.0/* /etc/kafka/
+                sudo rm -rf /etc/kafka/kafka_2.13-3.8.0
+                ls -lha /etc/kafka
+
+          - name: Install Postgresql libraries
+            if: matrix.os == ubuntu-22.04
+            run: |
                   # GH Ubuntu image has libpq version 15+ from pg's repo that is API incompatible with postgresql-14.
                   sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 7FCC7D46ACCC4CF8
                   echo "deb https://apt-archive.postgresql.org/pub/repos/apt jammy-pgdg-archive main" | sudo tee /etc/apt/sources.list.d/pgdg.list
                   sudo apt update
                   sudo apt install -y postgresql-15 postgresql-client-15 postgresql-server-dev-15
-                fi
 
-                if [ "${{matrix.info}}" = "g++-8 + debug" ]; then
+          - name: Install g++8
+            if: matrix.info == "g++-8 + debug"
+            run: |
                   sudo apt install --allow-downgrades -y g++-8
-                fi
 
-                if [ "${{matrix.os}}" = "ubuntu-20.04" ]; then
+          - name: Upgrade GRPC
+            if: matrix.os == ubuntu-20.04
+            run: |
                   git clone --recursive -b v1.60.0 https://github.com/grpc/grpc new_grpc
                   cmake -S./new_grpc -B./new_grpc/build
                   cmake --build new_grpc/build -- -j4
                   sudo cmake --install new_grpc/build
-                fi
 
           - name: Install RabbitMQ packages
             run: |
