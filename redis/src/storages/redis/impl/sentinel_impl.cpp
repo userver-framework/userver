@@ -7,6 +7,7 @@
 #include <boost/crc.hpp>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 
 #include <hiredis/hiredis.h>
 

@@ -40,6 +40,7 @@ libmongoc-dev
 libnghttp2-dev
 libpq-dev
 libprotoc-dev
+libpugixml-dev
 libsnappy-dev
 libsasl2-dev
 libssl-dev

@@ -13,6 +13,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/log.hpp>
 
+#include <userver/field_options.pb.h>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::impl {
@@ -28,7 +30,7 @@ compiler::ThreadLocal kSecretVisitor = [] {
 
 }  // namespace
 
-userver::FieldOptions GetFieldOptions(const google::protobuf::FieldDescriptor& field) {
+const userver::FieldOptions& GetFieldOptions(const google::protobuf::FieldDescriptor& field) {
     return field.options().GetExtension(userver::field);
 }
 

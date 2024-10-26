@@ -180,7 +180,7 @@ Changelog news also go to the
   config of the service could refer to other files.
 * Added support of bit operations to Redis.
 * PostgreSQL driver now works with AWS Aurora.
-* Added quick start for beginners to @ref scripts/docs/en/userver/tutorial/build.md.
+* Added quick start for beginners to @ref scripts/docs/en/userver/build/build.md.
   Many thanks to [Fedor Alekseev](https://github.com/atlz253) for the PR.
 * Improved path to sources trimming for Conan builds. Many thanks to
   [Kirill](https://github.com/KVolodin) for the PR!
@@ -316,7 +316,7 @@ Binary Ubuntu 22.04 amd64 package could be found at
   * ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest - an image
     with only the build dependencies to build userver. Good for development of
     userver itself.
-  More info at @ref scripts/docs/en/userver/tutorial/build.md
+  More info at @ref scripts/docs/en/userver/build/build.md
 
 * All the service templates were moved to a new components naming with `::`
   (for example `userver::core`) and
@@ -640,9 +640,9 @@ Binary Ubuntu 22.04 amd64 package could be found at
   * New @ref scripts/docs/en/userver/dynamic_config.md page and related samples.
   * Samples were significantly simplified, more static configuration options
     now have good defaults and do not require explicit setup.
-  * @ref scripts/docs/en/userver/tutorial/build.md now contains information on
+  * @ref scripts/docs/en/userver/build/build.md now contains information on
     how to build service templates. Information on how to build the framework
-    tests was moved to scripts/docs/en/userver/tutorial/build_userver.md
+    tests was moved to scripts/docs/en/userver/build/userver.md
   * Documented the server::handlers::ImplicitOptions.
 
 
@@ -1353,7 +1353,7 @@ Detailed descriptions could be found below.
   [Evgeny Medvedev](https://github.com/kargatpwnz).
 * Docker support: [base image for development](https://github.com/userver-framework/docker-userver-build-base/pkgs/container/docker-userver-build-base),
   docker-compose.yaml for the userver with build and test targets.
-  See @ref scripts/docs/en/userver/tutorial/build.md
+  See @ref scripts/docs/en/userver/build/build.md
 * Docs improved: removed internal links; added
   @ref scripts/docs/en/userver/framework_comparison.md,
   @ref scripts/docs/en/userver/supported_platforms.md,

@@ -15,6 +15,7 @@
 #endif
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 
 #include <userver/logging/level.hpp>
 #include <userver/logging/log.hpp>
@@ -48,6 +49,7 @@ const std::string kSubscriberPingChannelName = "_ping_dummy_ch";
 
 // required for libhiredis < 1.0.0
 #ifndef REDIS_ERR_TIMEOUT
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define REDIS_ERR_TIMEOUT 6
 #endif
 

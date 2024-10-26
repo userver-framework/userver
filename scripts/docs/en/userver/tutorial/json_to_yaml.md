@@ -3,7 +3,7 @@
 ## Before you start
 
 Make sure that you can compile and run framework tests as described at
-@ref scripts/docs/en/userver/tutorial/build.md.
+@ref scripts/docs/en/userver/build/build.md.
 
 
 ## Step by step guide

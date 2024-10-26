@@ -7,6 +7,7 @@ set(USERVER_KAFKA_VERSION "2.4.0")
 find_package(OpenSSL COMPONENTS SSL Crypto REQUIRED)
 find_package(CURL REQUIRED)
 find_package(libz REQUIRED)
+find_package(libzstd REQUIRED)
 
 if(NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
   if(USERVER_DOWNLOAD_PACKAGE_KAFKA)
@@ -42,10 +43,6 @@ CPMAddPackage(
 
 set(KAFKA_CPM TRUE)
 
-set(RdKafka_LIBRARIES "${RdKafka_BINARY_DIR}/src/librdkafka.a")
-set(RdKafka_INCLUDE_DIRS "${RdKafka_SOURCE_DIR}/src")
-
-message(STATUS "RdKafka libraries: ${RdKafka_LIBRARIES}")
-message(STATUS "RdKafka include directories: ${RdKafka_INCLUDE_DIRS}")
-
 target_compile_options(rdkafka PRIVATE "-Wno-ignored-qualifiers")
+mark_targets_as_system("${RdKafka_SOURCE_DIR}")
+add_library(RdKafka ALIAS rdkafka)

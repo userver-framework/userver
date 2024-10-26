@@ -3,13 +3,24 @@
 #include <cstddef>
 #include <string>
 
-#include <userver/field_options.pb.h>
+namespace google::protobuf {
+
+class Message;
+class FieldDescriptor;
+
+}  // namespace google::protobuf
+
+namespace userver {
+
+class FieldOptions;
+
+}  // namespace userver
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::impl {
 
-userver::FieldOptions GetFieldOptions(const google::protobuf::FieldDescriptor& field);
+const userver::FieldOptions& GetFieldOptions(const google::protobuf::FieldDescriptor& field);
 
 bool IsMessage(const google::protobuf::FieldDescriptor& field);
 

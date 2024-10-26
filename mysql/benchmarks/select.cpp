@@ -27,7 +27,9 @@ void select(benchmark::State& state) {
     });
 }
 
-BENCHMARK(select)->Range(1, 256)->RangeMultiplier(2);
+// TODO for manual runs you can the data range up to 256.
+//  CI times out for large requests sometimes.
+BENCHMARK(select)->Range(1, 4)->RangeMultiplier(2);
 
 void select_many_small_columns(benchmark::State& state) {
     engine::TaskProcessorPoolsConfig config{};
@@ -80,7 +82,9 @@ void select_many_small_columns(benchmark::State& state) {
         }
     });
 }
-BENCHMARK(select_many_small_columns)->Range(1000, 100'000);
+// TODO for manual runs you can the data range up to 100'000.
+//  CI times out for large requests sometimes.
+BENCHMARK(select_many_small_columns)->Range(1'000, 1'000);
 
 }  // namespace storages::mysql::benches
 

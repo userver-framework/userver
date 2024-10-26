@@ -1,14 +1,19 @@
 ## Writing your first HTTP server
 
+
 ## Before you start
 
-Make sure that you can compile and run core tests as described at
-@ref scripts/docs/en/userver/tutorial/build.md.
-
-Note that there is a ready to use opensource
-[service template](https://github.com/userver-framework/service_template)
+@warning Note that you can start with a ready to use opensourse [service template](scripts/docs/en/userver/build/build.md)
 to ease the development of your userver based services. The template already has
 a preconfigured CI, build and install scripts, testsuite and unit-tests setups.
+
+@warning @ref service_templates "service template" is an implementation of an HTTP server application from this tutorial.
+You do not need to copy parts of code from this tutorial to @ref service_templates "service template" as it already has them.
+
+
+Make sure that you can compile and run core tests as described at
+@ref scripts/docs/en/userver/build/build.md.
+
 
 ## Step by step guide
 
@@ -166,7 +171,7 @@ See the full example at:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/faq.md | @ref scripts/docs/en/userver/tutorial/config_service.md ⇨
+⇦ @ref scripts/docs/en/userver/build/userver.md | @ref scripts/docs/en/userver/tutorial/config_service.md ⇨
 @htmlonly </div> @endhtmlonly
 
 

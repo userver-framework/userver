@@ -16,10 +16,11 @@ krb5
 nghttp2
 ninja
 protobuf
+pugixml
 openssl
 yaml-cpp
 librdkafka
-postgresql@14
+postgresql@16
 redis
 zlib
 amqp-cpp

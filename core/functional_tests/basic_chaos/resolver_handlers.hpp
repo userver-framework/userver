@@ -1,6 +1,7 @@
 #pragma once
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <userver/clients/dns/config.hpp>
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/clients/http/component.hpp>

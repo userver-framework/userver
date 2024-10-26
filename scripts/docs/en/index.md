@@ -27,11 +27,19 @@ are available at the
 * @ref scripts/docs/en/userver/intro.md
 * @ref scripts/docs/en/userver/framework_comparison.md
 * @ref scripts/docs/en/userver/supported_platforms.md
-* @ref scripts/docs/en/userver/tutorial/build.md
 * @ref scripts/docs/en/userver/deploy_env.md
 * @ref scripts/docs/en/userver/development/releases.md
 * @ref scripts/docs/en/userver/roadmap_and_changelog.md
 * @ref scripts/docs/en/userver/faq.md
+
+
+@anchor Install
+## Install
+
+* @ref scripts/docs/en/userver/build/build.md
+* @ref scripts/docs/en/userver/build/dependencies.md
+* @ref scripts/docs/en/userver/build/options.md
+* @ref scripts/docs/en/userver/build/userver.md
 
 
 @anchor tutorial_services
@@ -145,7 +153,6 @@ are available at the
 ## Opensource
 * @ref scripts/docs/en/userver/development/stability.md
 * @ref scripts/docs/en/userver/driver_guide.md
-* @ref scripts/docs/en/userver/tutorial/build_userver.md
 * @ref scripts/docs/en/userver/publications.md
 * @ref CONTRIBUTING.md
 * @ref SECURITY.md
