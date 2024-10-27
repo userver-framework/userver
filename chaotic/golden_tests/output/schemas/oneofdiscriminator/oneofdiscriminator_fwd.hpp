@@ -9,3 +9,4 @@ struct B;
 struct OneOfDiscriminator;
 
 }  // namespace ns
+
