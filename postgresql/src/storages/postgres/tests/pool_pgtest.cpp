@@ -6,7 +6,6 @@
 #include <userver/engine/mutex.hpp>
 #include <userver/engine/sleep.hpp>
 
-#include <engine/task/task_processor.hpp>
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/pool.hpp>
 #include <storages/postgres/postgres_config.hpp>
@@ -136,7 +135,7 @@ UTEST_P(PostgrePool, ConnectionPoolHighDemand) {
     pg::detail::ConnectionPtr conn(nullptr);
     UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline())) << "Obtained connection from pool";
 
-    const auto n_tasks = GetTaskProcessor().GetTaskCounter().GetCreatedTasks().value;
+    const auto n_tasks = engine::impl::GetCreatedTaskCount(engine::current_task::GetTaskProcessor());
 
     const auto n_acquire_tasks = 10;
     const auto n_pending_tasks = 2;
@@ -149,7 +148,10 @@ UTEST_P(PostgrePool, ConnectionPoolHighDemand) {
     engine::SleepFor(std::chrono::milliseconds{100});
     ts.CancelAndWait();
 
-    EXPECT_LE(GetTaskProcessor().GetTaskCounter().GetCreatedTasks().value, n_tasks + n_acquire_tasks + n_pending_tasks);
+    EXPECT_LE(
+        engine::impl::GetCreatedTaskCount(engine::current_task::GetTaskProcessor()),
+        n_tasks + n_acquire_tasks + n_pending_tasks
+    );
 
     CheckConnection(std::move(conn));
 }

@@ -88,5 +88,5 @@ help you to deal with the remaining parts.
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/development/stability.md | @ref scripts/docs/en/userver/tutorial/build_userver.md ⇨
+⇦ @ref scripts/docs/en/userver/development/stability.md | @ref scripts/docs/en/userver/build/userver.md ⇨
 @htmlonly </div> @endhtmlonly

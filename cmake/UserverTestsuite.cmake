@@ -230,6 +230,7 @@ function(userver_testsuite_add)
   set(TESTSUITE_RUNNER "${CMAKE_CURRENT_BINARY_DIR}/runtests-${service_target_with_suffix}")
   list(APPEND ARG_PYTHONPATH "${USERVER_TESTSUITE_DIR}/pytest_plugins")
 
+  file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary)
   execute_process(
     COMMAND
     "${python_binary}" "${USERVER_TESTSUITE_DIR}/create_runner.py"
@@ -469,9 +470,9 @@ endfunction()
 
 # add utest, test runs in testsuite env
 function(userver_add_utest)
-  set(options)
+  set(options DISABLE_GTEST_XML_OUTPUT)
   set(oneValueArgs NAME)
-  set(multiValueArgs DATABASES TEST_ENV)
+  set(multiValueArgs DATABASES TEST_ENV TEST_ARGS)
 
   cmake_parse_arguments(
       ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
@@ -484,19 +485,42 @@ function(userver_add_utest)
   if(ARG_DATABASES)
     list(JOIN ARG_DATABASES "," databases_value)
     list(APPEND additional_args "--databases=${databases_value}")
+  else()
+    list(APPEND additional_args "--databases=")
+  endif()
+
+  if(NOT ARG_DISABLE_GTEST_XML_OUTPUT)
+    list(APPEND ARG_TEST_ARGS "--gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${ARG_NAME}.xml")
   endif()
 
   add_test(NAME "${ARG_NAME}" COMMAND
-    "${CMAKE_BINARY_DIR}/testsuite/env"
-    ${additional_args} run --
-    $<TARGET_FILE:${ARG_NAME}>
-    "--gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${ARG_NAME}.xml"
+      "${CMAKE_BINARY_DIR}/testsuite/env"
+      ${additional_args} run --
+      $<TARGET_FILE:${ARG_NAME}>
+      ${ARG_TEST_ARGS}
   )
   if(ARG_TEST_ENV)
     set_tests_properties("${ARG_NAME}"
         PROPERTIES ENVIRONMENT "${ARG_TEST_ENV}"
     )
   endif()
+endfunction()
+
+function(userver_add_ubench_test)
+  set(options)
+  set(oneValueArgs NAME)
+  set(multiValueArgs DATABASES TEST_ENV)
+
+  cmake_parse_arguments(
+      ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+  userver_add_utest(
+      NAME "${ARG_NAME}"
+      DATABASES ${ARG_DATABASES}
+      TEST_ENV ${ARG_TEST_ENV}
+      TEST_ARGS --benchmark_min_time=0 --benchmark_color=no
+      DISABLE_GTEST_XML_OUTPUT ON
+  )
 endfunction()
 
 _userver_prepare_testsuite()

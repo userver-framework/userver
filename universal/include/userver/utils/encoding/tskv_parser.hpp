@@ -22,9 +22,9 @@ namespace utils::encoding {
 ///
 /// **Escaping**
 /// 1. `\n`, `\t`, `\\` in keys or values SHOULD be escaped as
-///    `"\\\n"`, `"\\\t"`, `"\\\\"`
+///    `"\\\n"`, `"\\\t"`, `"\\\\"` sequences
 /// 2. `=` SHOULD be escaped as `"\\="` in keys, MAY be escaped in values
-/// 3. `\r` and `\0` MAY be escaped as `"\\\r"`, `"\\\0"`
+/// 3. `\r` and `\0` MAY be escaped as `"\\\r"` and `"\\\0"` sequences
 ///
 /// **Parsing process**
 /// Initialize `TskvParser` with a caller-owned string that may contain a single

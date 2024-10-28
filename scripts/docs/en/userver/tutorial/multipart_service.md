@@ -3,7 +3,7 @@
 ## Before you start
 
 Make sure that you can compile and run core tests as described at
-@ref scripts/docs/en/userver/tutorial/build.md.
+@ref scripts/docs/en/userver/build/build.md.
 
 Take a look at the @ref scripts/docs/en/userver/tutorial/hello_service.md
 and make sure that you do realize the basic concepts.

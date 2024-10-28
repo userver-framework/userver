@@ -45,5 +45,5 @@ Telegram channels.
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/framework_comparison.md | @ref scripts/docs/en/userver/tutorial/build.md ⇨
+⇦ @ref scripts/docs/en/userver/framework_comparison.md | @ref scripts/docs/en/userver/build/build.md ⇨
 @htmlonly </div> @endhtmlonly

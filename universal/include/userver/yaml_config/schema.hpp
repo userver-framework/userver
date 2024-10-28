@@ -11,7 +11,6 @@
 #include <variant>
 #include <vector>
 
-#include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/yaml_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -35,10 +34,17 @@ class SchemaPtr final {
 public:
     explicit SchemaPtr(Schema&& schema);
 
-    const Schema& operator*() const { return *schema_; }
-    Schema& operator*() { return *schema_; }
+    SchemaPtr(SchemaPtr&&) noexcept = default;
+    SchemaPtr& operator=(SchemaPtr&&) noexcept = default;
+    SchemaPtr(const SchemaPtr&);
+    SchemaPtr& operator=(const SchemaPtr&);
 
-    const Schema* operator->() const { return schema_.get(); }
+    const Schema& operator*() const;
+    Schema& operator*();
+    const Schema* operator->() const { return &**this; }
+    Schema* operator->() { return &**this; }
+
+    bool operator==(const SchemaPtr&) const;
 
 private:
     std::unique_ptr<Schema> schema_;
@@ -56,6 +62,8 @@ struct Schema final {
 
     static Schema EmptyObject();
 
+    bool operator==(const Schema&) const;
+
     std::string path;
 
     FieldType type{};
@@ -67,8 +75,8 @@ struct Schema final {
     std::optional<std::unordered_set<std::string>> enum_values;
     std::optional<double> minimum;
     std::optional<double> maximum;
-    std::optional<size_t> min_items;
-    std::optional<size_t> max_items;
+    std::optional<std::size_t> min_items;
+    std::optional<std::size_t> max_items;
 };
 
 Schema Parse(const formats::yaml::Value& schema, formats::parse::To<Schema>);

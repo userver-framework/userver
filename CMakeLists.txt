@@ -136,6 +136,7 @@ include(cmake/UserverSetupEnvironment.cmake)
 userver_setup_environment()
 
 include(PrepareInstall)
+include(UserverModule)
 
 if(USERVER_INSTALL)
   include(GNUInstallDirs)
