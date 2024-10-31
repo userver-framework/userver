@@ -46,7 +46,7 @@ endif()
 if (TARGET userver::grpc)
     add_executable(${PROJECT_NAME}_grpc test_grpc.cpp)
     userver_add_grpc_library(${PROJECT_NAME}_proto PROTOS greeter.proto)
-    target_link_libraries(${PROJECT_NAME}_grpc ${PROJECT_NAME}_objs userver::grpc ${PROJECT_NAME}_proto)
+    target_link_libraries(${PROJECT_NAME}_grpc ${PROJECT_NAME}_objs userver::grpc userver::grpc-proto ${PROJECT_NAME}_proto)
 endif()
 
 if (TARGET userver::mongo)
