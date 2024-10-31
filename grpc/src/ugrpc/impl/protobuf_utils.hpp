@@ -10,17 +10,9 @@ class FieldDescriptor;
 
 }  // namespace google::protobuf
 
-namespace userver {
-
-class FieldOptions;
-
-}  // namespace userver
-
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::impl {
-
-const userver::FieldOptions& GetFieldOptions(const google::protobuf::FieldDescriptor& field);
 
 bool IsMessage(const google::protobuf::FieldDescriptor& field);
 
