@@ -21,6 +21,10 @@ namespace ugrpc::impl {
 
 namespace {
 
+const userver::FieldOptions& GetFieldOptions(const google::protobuf::FieldDescriptor& field) {
+    return field.options().GetExtension(userver::field);
+}
+
 compiler::ThreadLocal kSecretVisitor = [] {
     return ugrpc::FieldsVisitor(
         [](const google::protobuf::FieldDescriptor& field) { return GetFieldOptions(field).secret(); },
@@ -29,10 +33,6 @@ compiler::ThreadLocal kSecretVisitor = [] {
 };
 
 }  // namespace
-
-const userver::FieldOptions& GetFieldOptions(const google::protobuf::FieldDescriptor& field) {
-    return field.options().GetExtension(userver::field);
-}
 
 bool IsMessage(const google::protobuf::FieldDescriptor& field) {
     return field.type() == google::protobuf::FieldDescriptor::TYPE_MESSAGE ||
