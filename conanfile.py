@@ -543,10 +543,22 @@ class UserverConan(ConanFile):
         if self.options.with_grpc:
             userver_components.extend([
                 {
+                    'target': 'grpc-proto',
+                    'lib': 'grpc-proto',
+                    'requires': (
+                        ['core']
+                        + grpc()
+                        + protobuf()
+                        + googleapis()
+                        + grpcproto()
+                    ),
+                },
+                {
                     'target': 'grpc',
                     'lib': 'grpc',
                     'requires': (
                         ['core']
+                        + ['grpc-proto']
                         + grpc()
                         + protobuf()
                         + googleapis()
