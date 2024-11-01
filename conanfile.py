@@ -116,7 +116,7 @@ class UserverConan(ConanFile):
         self.requires('rapidjson/cci.20220822', transitive_headers=True)
         self.requires('yaml-cpp/0.7.0')
         self.requires('zlib/1.2.13')
-        self.requires('zstd/1.5.6')
+        self.requires('zstd/1.5.5')
 
         if self.options.with_jemalloc:
             self.requires('jemalloc/5.3.0')
