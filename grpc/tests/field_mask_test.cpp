@@ -125,15 +125,6 @@ google::protobuf::FieldMask MakeGoogleFieldMask(const std::vector<std::string>& 
     return field_mask;
 }
 
-sample::ugrpc::MessageWithDifferentTypes::NestedMessage* ConstructNestedMessagePtr() {
-    auto* message = new sample::ugrpc::MessageWithDifferentTypes::NestedMessage();
-    message->set_required_string("string1");
-    message->set_optional_string("string2");
-    message->set_required_int(123321);
-    message->set_optional_int(456654);
-    return message;
-}
-
 sample::ugrpc::MessageWithDifferentTypes::NestedMessage ConstructNestedMessage() {
     sample::ugrpc::MessageWithDifferentTypes::NestedMessage message;
     message.set_required_string("string1");
@@ -143,47 +134,47 @@ sample::ugrpc::MessageWithDifferentTypes::NestedMessage ConstructNestedMessage()
     return message;
 }
 
-sample::ugrpc::MessageWithDifferentTypes* ConstructMessage(bool with_recursive = true) {
-    auto* message = new sample::ugrpc::MessageWithDifferentTypes();
+sample::ugrpc::MessageWithDifferentTypes ConstructMessage(bool with_recursive = true) {
+    sample::ugrpc::MessageWithDifferentTypes message;
 
     // leave required_string empty
-    message->set_optional_string("string2");
+    message.set_optional_string("string2");
 
-    message->set_required_int(123321);
-    message->set_optional_int(456654);
+    message.set_required_int(123321);
+    message.set_optional_int(456654);
 
-    message->set_allocated_required_nested(ConstructNestedMessagePtr());
-    message->set_allocated_optional_nested(ConstructNestedMessagePtr());
+    *message.mutable_required_nested() = ConstructNestedMessage();
+    *message.mutable_optional_nested() = ConstructNestedMessage();
 
     if (with_recursive) {
-        message->set_allocated_required_recursive(ConstructMessage(false));
-        message->set_allocated_optional_recursive(ConstructMessage(false));
+        *message.mutable_required_recursive() = ConstructMessage(false);
+        *message.mutable_optional_recursive() = ConstructMessage(false);
     }
 
-    message->add_repeated_primitive("string1");
-    message->add_repeated_primitive("string2");
-    message->add_repeated_primitive("string3");
+    message.add_repeated_primitive("string1");
+    message.add_repeated_primitive("string2");
+    message.add_repeated_primitive("string3");
 
-    message->mutable_repeated_message()->Add(ConstructNestedMessage());
-    message->mutable_repeated_message()->Add(ConstructNestedMessage());
-    message->mutable_repeated_message()->Add(ConstructNestedMessage());
+    message.mutable_repeated_message()->Add(ConstructNestedMessage());
+    message.mutable_repeated_message()->Add(ConstructNestedMessage());
+    message.mutable_repeated_message()->Add(ConstructNestedMessage());
 
     // No key1
-    message->mutable_primitives_map()->insert({"key2", "value2"});
-    message->mutable_primitives_map()->insert({"key3", "value3"});
+    message.mutable_primitives_map()->insert({"key2", "value2"});
+    message.mutable_primitives_map()->insert({"key3", "value3"});
 
-    message->mutable_nested_map()->insert({"key1", ConstructNestedMessage()});
-    message->mutable_nested_map()->insert({"key2", ConstructNestedMessage()});
-    message->mutable_nested_map()->insert({"key3", ConstructNestedMessage()});
-    message->mutable_nested_map()->insert({"key1 value1", ConstructNestedMessage()});
+    message.mutable_nested_map()->insert({"key1", ConstructNestedMessage()});
+    message.mutable_nested_map()->insert({"key2", ConstructNestedMessage()});
+    message.mutable_nested_map()->insert({"key3", ConstructNestedMessage()});
+    message.mutable_nested_map()->insert({"key1 value1", ConstructNestedMessage()});
     // No key2.value2
-    message->mutable_nested_map()->insert({"key3.value3 field3", ConstructNestedMessage()});
+    message.mutable_nested_map()->insert({"key3.value3 field3", ConstructNestedMessage()});
 
     // leave oneof_string empty
-    message->set_oneof_int(789987);
+    message.set_oneof_int(789987);
     // leave oneof_nested empty
 
-    message->mutable_google_value()->set_string_value("string");
+    message.mutable_google_value()->set_string_value("string");
 
     return message;
 }
@@ -990,16 +981,14 @@ TEST(FieldMaskTrim, TrivialMessage) {
 
 DISABLE_IF_OLD_PROTOBUF_TEST(FieldMaskTrim, SimpleFieldMask) {
     auto message = ConstructMessage();
-    ugrpc::FieldMask(MakeGoogleFieldMask(kSimpleFieldMask)).Trim(*message);
-    Compare(*message, ConstructTrimmedSimple());
-    delete message;
+    ugrpc::FieldMask(MakeGoogleFieldMask(kSimpleFieldMask)).Trim(message);
+    Compare(message, ConstructTrimmedSimple());
 }
 
 DISABLE_IF_OLD_PROTOBUF_TEST(FieldMaskTrim, HardFieldMask) {
     auto message = ConstructMessage();
-    ugrpc::FieldMask(MakeGoogleFieldMask(kHardFieldMask)).Trim(*message);
-    Compare(*message, ConstructTrimmedHard());
-    delete message;
+    ugrpc::FieldMask(MakeGoogleFieldMask(kHardFieldMask)).Trim(message);
+    Compare(message, ConstructTrimmedHard());
 }
 
 TEST(FieldMaskGetMaskForField, NonExistingChild) {

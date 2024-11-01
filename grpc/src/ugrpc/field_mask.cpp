@@ -115,7 +115,7 @@ google::protobuf::FieldMask RawFromString(std::string_view string, FieldMask::En
 }
 
 std::string RawToString(const google::protobuf::FieldMask& field_mask, FieldMask::Encoding encoding) {
-    const auto comma_separated = google::protobuf::util::FieldMaskUtil::ToString(field_mask);
+    auto comma_separated = google::protobuf::util::FieldMaskUtil::ToString(field_mask);
     if (encoding == FieldMask::Encoding::kCommaSeparated) return comma_separated;
     UINVARIANT(encoding == FieldMask::Encoding::kWebSafeBase64, "Unknown encoding");
 
