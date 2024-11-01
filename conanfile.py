@@ -128,7 +128,7 @@ class UserverConan(ConanFile):
             )
         if self.options.with_grpc:
             self.requires(
-                'grpc/1.50.1', transitive_headers=True, transitive_libs=True,
+                'grpc/1.65.0', transitive_headers=True, transitive_libs=True,
             )
             self.requires(
                 'googleapis/cci.20230501',
