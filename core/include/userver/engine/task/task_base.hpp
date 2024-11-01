@@ -5,14 +5,12 @@
 
 #include <chrono>
 #include <memory>
-#include <string>
-
-#include <boost/smart_ptr/intrusive_ptr.hpp>
+#include <string_view>
 
 #include <userver/engine/deadline.hpp>
-#include <userver/engine/exception.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -81,7 +79,7 @@ public:
     /// Gets the task State
     State GetState() const;
 
-    static const std::string& GetStateName(State state);
+    static std::string_view GetStateName(State state);
 
     /// Returns whether the task finished execution
     bool IsFinished() const;
@@ -163,7 +161,8 @@ private:
     friend class impl::DetachedTasksSyncBlock;
     friend class TaskCancellationToken;
 
-    boost::intrusive_ptr<impl::TaskContext> context_;
+    struct Impl;
+    utils::FastPimpl<Impl, 8, 8> pimpl_;
 };
 
 /// @brief Namespace with functions to work with current task from within it

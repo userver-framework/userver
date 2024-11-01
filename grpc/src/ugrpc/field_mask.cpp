@@ -11,6 +11,11 @@
 #include <google/protobuf/message.h>
 #include <google/protobuf/port.h>
 #include <google/protobuf/reflection.h>
+#include <google/protobuf/stubs/common.h>
+#include <google/protobuf/stubs/port.h>
+#include <google/protobuf/stubs/strutil.h>
+#include <google/protobuf/util/field_mask_util.h>
+#include <grpcpp/support/config.h>
 
 #include <ugrpc/impl/protobuf_utils.hpp>
 #include <userver/ugrpc/protobuf_visit.hpp>
@@ -84,6 +89,41 @@ std::string GetMapKeyAsString(const google::protobuf::Message& entry) {
     }
 }
 
+google::protobuf::FieldMask RawFromString(std::string_view string, FieldMask::Encoding encoding) {
+    google::protobuf::FieldMask out;
+    ::grpc::string base64_tmp;
+    switch (encoding) {
+        case FieldMask::Encoding::kWebSafeBase64:
+#if GOOGLE_PROTOBUF_VERSION >= 3018000
+            google::protobuf::WebSafeBase64Unescape(string, &base64_tmp);
+#else
+            google::protobuf::WebSafeBase64Unescape(::grpc::string(string), &base64_tmp);
+#endif
+            string = base64_tmp;
+            [[fallthrough]];
+        case FieldMask::Encoding::kCommaSeparated:
+#if GOOGLE_PROTOBUF_VERSION >= 3022000
+            google::protobuf::util::FieldMaskUtil::FromString(string, &out);
+#else
+            google::protobuf::util::FieldMaskUtil::FromString(std::string(string), &out);
+#endif
+            break;
+        default:
+            UINVARIANT(false, "Unknown encoding");
+    }
+    return out;
+}
+
+std::string RawToString(const google::protobuf::FieldMask& field_mask, FieldMask::Encoding encoding) {
+    const auto comma_separated = google::protobuf::util::FieldMaskUtil::ToString(field_mask);
+    if (encoding == FieldMask::Encoding::kCommaSeparated) return comma_separated;
+    UINVARIANT(encoding == FieldMask::Encoding::kWebSafeBase64, "Unknown encoding");
+
+    ::grpc::string base64_encoded;
+    google::protobuf::WebSafeBase64Escape(comma_separated, &base64_encoded);
+    return base64_encoded;
+}
+
 }  // namespace
 
 FieldMask::FieldMask(const google::protobuf::FieldMask& field_mask) {
@@ -91,6 +131,12 @@ FieldMask::FieldMask(const google::protobuf::FieldMask& field_mask) {
         AddPath(path);
     }
 }
+
+FieldMask::FieldMask(std::string_view string, Encoding encoding) : FieldMask(RawFromString(string, encoding)) {}
+
+std::string FieldMask::ToString() const { return RawToString(ToRawMask(), Encoding::kCommaSeparated); }
+
+std::string FieldMask::ToWebSafeBase64() const { return RawToString(ToRawMask(), Encoding::kWebSafeBase64); }
 
 void FieldMask::AddPath(std::string_view path) {
     if (path.empty() || is_leaf_) {
@@ -103,29 +149,6 @@ void FieldMask::AddPath(std::string_view path) {
     Part root = GetRoot(path);
     const auto it = children_->emplace(std::move(root.part), FieldMask());
     it.first->second.AddPath(path.substr(root.used_symbols));
-}
-
-google::protobuf::FieldMask FieldMask::ToGoogleMask() const {
-    google::protobuf::FieldMask out;
-    std::vector<std::string> stack;
-    ToGoogleMaskImpl(stack, out);
-    return out;
-}
-
-void FieldMask::ToGoogleMaskImpl(std::vector<std::string>& stack, google::protobuf::FieldMask& out) const {
-    if (IsLeaf()) {
-        const std::string path = fmt::format("{}", fmt::join(stack, "."));
-        return out.add_paths(path);
-    }
-    for (const auto& [field_name, nested_mask] : *children_) {
-        if (field_name.find('.') == std::string::npos) {
-            stack.push_back(field_name);
-        } else {
-            stack.push_back(fmt::format("`{}`", field_name));
-        }
-        nested_mask.ToGoogleMaskImpl(stack, out);
-        stack.pop_back();
-    }
 }
 
 void FieldMask::CheckValidity(const google::protobuf::Descriptor* descriptor) const {
@@ -343,13 +366,46 @@ std::vector<std::string_view> FieldMask::GetFieldNamesList() const {
 }
 
 bool FieldMask::HasFieldName(std::string_view field) const {
-    return utils::impl::FindTransparent(*children_, field) != children_->end();
+    return IsLeaf() || utils::impl::FindTransparent(*children_, field) != children_->end();
 }
 
 utils::OptionalRef<const FieldMask> FieldMask::GetMaskForField(std::string_view field) const {
-    const auto it = utils::impl::FindTransparent(*children_, field);
-    if (it == children_->end()) return std::nullopt;
+    if (IsLeaf()) {
+        // Everything inside is included in the field mask
+        static const FieldMask kEmptyFieldMask;
+        return kEmptyFieldMask;
+    }
+    auto it = utils::impl::FindTransparent(*children_, field);
+    if (it == children_->end()) {
+        // '*' applies to all fields if there is no more specific rule
+        it = children_->find("*");
+        if (it == children_->end()) return std::nullopt;
+    }
     return it->second;
+}
+
+google::protobuf::FieldMask FieldMask::ToRawMask() const {
+    google::protobuf::FieldMask out;
+    std::vector<std::string> stack;
+    ToRawMaskImpl(stack, out);
+    return out;
+}
+
+void FieldMask::ToRawMaskImpl(std::vector<std::string>& stack, google::protobuf::FieldMask& out) const {
+    if (IsLeaf()) {
+        const std::string path = fmt::format("{}", fmt::join(stack, "."));
+        out.add_paths(path);
+        return;
+    }
+    for (const auto& [field_name, nested_mask] : *children_) {
+        if (field_name.find('.') == std::string::npos) {
+            stack.push_back(field_name);
+        } else {
+            stack.push_back(fmt::format("`{}`", field_name));
+        }
+        nested_mask.ToRawMaskImpl(stack, out);
+        stack.pop_back();
+    }
 }
 
 }  // namespace ugrpc

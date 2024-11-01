@@ -27,7 +27,7 @@ const std::string kPostgreSQLDefaultHost = "localhost";
 const std::string kPostgreSQLDefaultPort = "5432";
 
 std::vector<std::string> SplitDsnValue(const std::string& value) {
-    return USERVER_NAMESPACE::utils::text::Split(value, ",", /*is_compress_adjacent_separators=*/false);
+    return USERVER_NAMESPACE::utils::text::Split(value, ",", USERVER_NAMESPACE::utils::text::SplitFlags::kNone);
 }
 
 std::string JoinDsnValues(const std::vector<std::string>& values) { return fmt::to_string(fmt::join(values, ",")); }

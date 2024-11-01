@@ -149,6 +149,11 @@ are available at the
 * @ref scripts/docs/en/userver/redis.md
 * @ref clickhouse_driver
 
+## Libraries
+
+### S3 client
+* @ref scripts/docs/en/userver/libraries/s3api.md
+
 
 ## Opensource
 * @ref scripts/docs/en/userver/development/stability.md

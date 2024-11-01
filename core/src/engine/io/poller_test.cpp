@@ -3,8 +3,10 @@
 #include <sys/param.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <array>
 #include <cerrno>
+#include <iterator>
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>

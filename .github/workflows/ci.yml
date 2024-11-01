@@ -28,7 +28,6 @@ jobs:
                         -DUSERVER_NAMESPACE_BEGIN="namespace userver_ns { inline namespace
                         v1 {"
                         -DUSERVER_NAMESPACE_END="}}"
-                        -DUSERVER_FEATURE_KAFKA=0
                         -DUSERVER_PG_SERVER_INCLUDE_DIR=/usr/include/postgresql/16/server
                         -DUSERVER_PG_SERVER_LIBRARY_DIR=/usr/lib/postgresql/16/lib
                     os: ubuntu-24.04
@@ -55,6 +54,8 @@ jobs:
                         -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0
                         -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
                         -DUSERVER_NO_WERROR=1
+                        -DUSERVER_FORCE_DOWNLOAD_ABSEIL=0
+                        -DUSERVER_DOWNLOAD_PACKAGE_ABSEIL=0
                         -DCMAKE_BUILD_TYPE=Release
                     os: ubuntu-20.04
                     info: g++-9 + release
@@ -67,6 +68,8 @@ jobs:
                         -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0
                         -DUSERVER_FEATURE_REDIS_HI_MALLOC=1
                         -DUSERVER_NO_WERROR=1
+                        -DUSERVER_FORCE_DOWNLOAD_ABSEIL=0
+                        -DUSERVER_DOWNLOAD_PACKAGE_ABSEIL=0
                         -DCMAKE_BUILD_TYPE=Debug
                     os: ubuntu-20.04
                     info: g++-8 + debug
@@ -100,11 +103,50 @@ jobs:
                 df -h
                 # See https://stackoverflow.com/questions/75536771/github-runner-out-of-disk-space-after-building-docker-image
                 sudo rm -rf /usr/share/dotnet /usr/local/lib/android /usr/lib/php* /opt/ghc \
-                    /usr/local/share/powershell /usr/share/swift /usr/local/.ghcup || true
+                    /usr/local/share/powershell /usr/share/swift /usr/local/.ghcup \
+                    /opt/hostedtoolcache/CodeQL || true
+                sudo docker image prune --all --force
                 df -h
 
-          - name: Install packages
+          - name: Add confluentinc repositories
+            if: matrix.os != 'ubuntu-24.04'
             run: |
+                # Adding librdkafka confluent repositories as in https://docs.confluent.io/platform/current/installation/installing_cp/deb-ubuntu.html#get-the-software
+                gpg_retrieve_keyserver() {
+                  GNUPGHOME=$(mktemp -d)
+                  GNUPGHOME="$GNUPGHOME" gpg --no-default-keyring --keyring "/usr/share/keyrings/$2.gpg" --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys $1
+                  rm -rf "$GNUPGHOME"
+                  chmod a+r "/usr/share/keyrings/$2.gpg"
+                }
+                gpg_retrieve_keyserver 8B1DA6120C2BF624 confluent
+                printf "\
+                deb [arch=amd64 signed-by=/usr/share/keyrings/confluent.gpg] https://packages.confluent.io/deb/7.6 stable main\n\
+                deb [signed-by=/usr/share/keyrings/confluent.gpg] https://packages.confluent.io/clients/deb $(lsb_release -cs) main\n" \
+                  | sudo tee /etc/apt/sources.list.d/confluent.list
+
+          - name: Install clang-format
+            if: matrix.os == 'ubuntu-20.04'
+            run: |
+                sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+                sudo apt update
+                wget https://apt.llvm.org/llvm.sh
+                chmod +x llvm.sh
+                sudo ./llvm.sh 14
+                sudo apt install clang-format-14
+                sudo ln -sf /usr/bin/clang-format-14 /usr/bin/clang-format
+                clang-format --version
+
+          - name: Install grpc, protobuf and abseil
+            if: matrix.os == 'ubuntu-20.04'
+            run: |
+                git clone --recursive -b v1.45.0 https://github.com/grpc/grpc new_grpc
+                cmake -S./new_grpc -B./new_grpc/build -DABSL_PROPAGATE_CXX_STD=ON -DABSL_ENABLE_INSTALL=ON
+                cmake --build new_grpc/build -- -j$(nproc)
+                sudo cmake --install new_grpc/build
+
+          - name: Add missing repositories
+            run: |
+                sudo apt update
                 # Instructions from https://clickhouse.com/docs/en/getting-started/install/
                 sudo apt install -y apt-transport-https ca-certificates dirmngr
                 sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 8919F6BD2B48D754
@@ -118,50 +160,39 @@ jobs:
                 #    | tee /etc/apt/sources.list.d/mariadb.list
                 echo "deb [arch=amd64,arm64,ppc64el signed-by=/usr/share/keyrings/mariadb.gpg] https://mirror.kumi.systems/mariadb/repo/10.11/ubuntu $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/mariadb.list
 
-                if [ "${{matrix.os}}" != "ubuntu-24.04" ]; then
-                  # Adding librdkafka confluent repositories as in https://docs.confluent.io/platform/current/installation/installing_cp/deb-ubuntu.html#get-the-software
-                  gpg_retrieve_keyserver() {
-                    GNUPGHOME=$(mktemp -d)
-                    GNUPGHOME="$GNUPGHOME" gpg --no-default-keyring --keyring "/usr/share/keyrings/$2.gpg" --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys $1
-                    rm -rf "$GNUPGHOME"
-                    chmod a+r "/usr/share/keyrings/$2.gpg"
-                  }
-                  gpg_retrieve_keyserver 8B1DA6120C2BF624 confluent
-                  printf "\
-                  deb [arch=amd64 signed-by=/usr/share/keyrings/confluent.gpg] https://packages.confluent.io/deb/7.6 stable main\n\
-                  deb [signed-by=/usr/share/keyrings/confluent.gpg] https://packages.confluent.io/clients/deb $(lsb_release -cs) main\n" \
-                    | sudo tee /etc/apt/sources.list.d/confluent.list
+                # Adding mongodb repositories
+                wget -qO- https://pgp.mongodb.com/server-7.0.asc | sudo gpg --dearmor | sudo tee /usr/share/keyrings/mongodb-server-7.0.gpg >/dev/null
+                echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" \
+                      | sudo tee -a /etc/apt/sources.list.d/mongodb-org-7.0.list
+                # Mongo is not officially supported on Ubuntu 24.04, so install it from jammy
 
-                  # Install Kafka
-                  sudo apt install -y default-jre
-                  curl https://dlcdn.apache.org/kafka/3.8.0/kafka_2.13-3.8.0.tgz -o kafka.tgz
-                  sudo mkdir -p /etc/kafka
-                  sudo tar xf kafka.tgz --directory=/etc/kafka
-                  sudo cp -r /etc/kafka/kafka_2.13-3.8.0/* /etc/kafka/
-                  sudo rm -rf /etc/kafka/kafka_2.13-3.8.0
-                  ls -lha /etc/kafka
-                fi
+                # Install Kafka
+                sudo apt install -y default-jre
+                curl https://dlcdn.apache.org/kafka/3.8.0/kafka_2.13-3.8.0.tgz -o kafka.tgz
+                sudo mkdir -p /etc/kafka
+                sudo tar xf kafka.tgz --directory=/etc/kafka
+                sudo cp -r /etc/kafka/kafka_2.13-3.8.0/* /etc/kafka/
+                sudo rm -rf /etc/kafka/kafka_2.13-3.8.0
+                ls -lha /etc/kafka
 
+          - name: Install common deps
+            run: |
                 sudo apt update
                 sudo apt install --allow-downgrades -y clickhouse-common-static redis-server postgresql $(cat scripts/docs/en/deps/${{matrix.os}}.md | tr '\n' ' ')
-                if [ "${{matrix.os}}" = "ubuntu-22.04" ]; then
-                  # GH Ubuntu image has libpq version 15+ from pg's repo that is API incompatible with postgresql-14.
-                  sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 7FCC7D46ACCC4CF8
-                  echo "deb https://apt-archive.postgresql.org/pub/repos/apt jammy-pgdg-archive main" | sudo tee /etc/apt/sources.list.d/pgdg.list
-                  sudo apt update
-                  sudo apt install -y postgresql-15 postgresql-client-15 postgresql-server-dev-15
-                fi
 
-                if [ "${{matrix.info}}" = "g++-8 + debug" ]; then
-                  sudo apt install --allow-downgrades -y g++-8
-                fi
+          - name: Install postgres 15
+            if: matrix.os == 'ubuntu-22.04'
+            run: |
+                # GH Ubuntu image has libpq version 15+ from pg's repo that is API incompatible with postgresql-14.
+                sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 7FCC7D46ACCC4CF8
+                echo "deb https://apt-archive.postgresql.org/pub/repos/apt jammy-pgdg-archive main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+                sudo apt update
+                sudo apt install -y postgresql-15 postgresql-client-15 postgresql-server-dev-15
 
-                if [ "${{matrix.os}}" = "ubuntu-20.04" ]; then
-                  git clone --recursive -b v1.60.0 https://github.com/grpc/grpc new_grpc
-                  cmake -S./new_grpc -B./new_grpc/build
-                  cmake --build new_grpc/build -- -j4
-                  sudo cmake --install new_grpc/build
-                fi
+          - name: Install g++-8
+            if: matrix.info == 'g++-8 + debug'
+            run: |
+              sudo apt install --allow-downgrades -y g++-8
 
           - name: Install RabbitMQ packages
             run: |
@@ -233,14 +264,6 @@ jobs:
                 cd rabbitmq
                 ctest -V
 
-          - name: Run tests (mysql)
-            run: |
-                sudo apt install mariadb-server
-                cd build_debug
-                mkdir mysql || :
-                cd mysql
-                ctest -V
-
           - name: Run tests (postgresql)
             run: |
                 cd build_debug
@@ -257,6 +280,7 @@ jobs:
             # libbson unnecessarily overaligns structures and GCC-9 does not support overaligned new
             if: matrix.info != 'g++-9 + debug + sanitize addr+ub'
             run: |
+                sudo apt install mongodb-mongosh
                 cd build_debug
                 mkdir mongo || :
                 cd mongo
@@ -264,11 +288,21 @@ jobs:
                 # Mongo is not available on Ubuntu 22.04 from default repos
                 if [ "${{matrix.os}}" != "ubuntu-22.04" ]; then ctest -V -R userver-mongo-mongotest ; fi
 
+
           - name: Run tests (gRPC)
-            # TODO: Sanitizer detects bool with value other than 1 or 0
-            if: matrix.info != 'clang-14 + debug + sanitize addr+ub'
+            if: matrix.os != 'ubuntu-24.04'
             run: |
                 cd build_debug
                 mkdir grpc || :
                 cd grpc
+                ulimit -n 4096 && ctest -V
+
+          - name: Run tests (mysql)
+            # MySQL benchmarks do not work on new Ubuntu
+            if: matrix.os != 'ubuntu-24.04'
+            run: |
+                sudo apt install mariadb-server
+                cd build_debug
+                mkdir mysql || :
+                cd mysql
                 ctest -V

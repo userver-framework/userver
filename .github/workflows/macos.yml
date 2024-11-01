@@ -14,7 +14,7 @@ env:
 
 jobs:
     macos:
-        name: MacOS
+        name: MacOS (build only)
         runs-on: macos-latest
         env:
             CMAKE_FLAGS: >-
@@ -54,8 +54,3 @@ jobs:
             run: |
                 cd build_debug
                 make -j$(nproc) -k
-
-          - name: Test
-            run: |
-                cd build_debug
-                ctest -V

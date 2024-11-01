@@ -195,10 +195,18 @@ public:
 
     /// @brief Execute a statement with stored arguments and specified host
     /// selection rules.
+    ///
+    /// @warning Do NOT create a query string manually by embedding arguments!
+    /// It leads to vulnerabilities and bad performance. Either pass arguments
+    /// separately, or use storages::postgres::ParameterScope.
     ResultSet Execute(ClusterHostTypeFlags flags, const Query& query, const ParameterStore& store);
 
     /// @brief Execute a statement with stored arguments, specified host selection
     /// rules and command control settings.
+    ///
+    /// @warning Do NOT create a query string manually by embedding arguments!
+    /// It leads to vulnerabilities and bad performance. Either pass arguments
+    /// separately, or use storages::postgres::ParameterScope.
     ResultSet Execute(
         ClusterHostTypeFlags flags,
         OptionalCommandControl statement_cmd_ctl,

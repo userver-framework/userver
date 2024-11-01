@@ -12,23 +12,26 @@ namespace dist_lock::impl {
 bool GetTask(
     engine::TaskWithResult<void>& task,
     std::string_view name,
-    std::exception_ptr* exception_ptr,
-    utils::impl::SourceLocation location
+    std::string_view error_context,
+    std::exception_ptr* exception_ptr
 ) {
+    if (!task.IsValid()) {
+        return false;
+    }
+
+    const bool task_was_not_cancelled = (task.CancellationReason() == engine::TaskCancellationReason::kNone);
     try {
-        engine::TaskCancellationBlocker cancel_blocker;
-        if (task.IsValid()) {
-            task.Get();
-            return true;
-        }
+        const engine::TaskCancellationBlocker cancel_blocker{};
+        task.Get();
+        return true;
     } catch (const engine::TaskCancelledException& e) {
         // Do nothing
     } catch (const std::exception& e) {
-        if (logging::ShouldLog(logging::Level::kError)) {
-            logging::LogHelper lh{logging::GetDefaultLogger(), logging::Level::kError, location};
-            lh << "Unexpected exception on " << name << ".Get(): " << e;
+        const auto log_level = (task_was_not_cancelled ? logging::Level::kError : logging::Level::kWarning);
+        LOG(log_level) << "Unexpected exception on " << name << " task during " << error_context << ": " << e;
+        if (exception_ptr) {
+            *exception_ptr = std::current_exception();
         }
-        if (exception_ptr) *exception_ptr = std::current_exception();
     }
     return false;
 }

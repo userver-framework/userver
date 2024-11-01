@@ -86,14 +86,14 @@ void AsyncFlatCombiningQueue::WaitWhileEmpty(Consumer& consumer) noexcept {
     UASSERT(consumer.queue_ == this);
     Wait<&AsyncFlatCombiningQueue::TryStartWaitingWhileEmpty>();
     if (std::exchange(should_pop_notifier_node_, false)) {
-        [[maybe_unused]] const auto* const node = queue_.TryPop();
+        [[maybe_unused]] const auto* const node = queue_.TryPopBlocking();
         UASSERT(node == &while_empty_notifier_node_);
     }
 }
 
 AsyncFlatCombiningQueue::NodeBase* AsyncFlatCombiningQueue::DoTryPop() noexcept {
     while (true) {
-        auto* const node = queue_.TryPop();
+        auto* const node = queue_.TryPopBlocking();
         if (!node) return nullptr;
 
         if (node == &start_consuming_notifier_node_) {
@@ -161,9 +161,9 @@ bool AsyncFlatCombiningQueue::TryStartWaitingForConsumer() {
     if (prev == &consumer_node_) {
         // We are the consumer now.
         // Retrieve notifier_node_ to avoid a spurious wakeup later.
-        [[maybe_unused]] const auto* const node1 = queue_.TryPop();
+        [[maybe_unused]] const auto* const node1 = queue_.TryPopBlocking();
         UASSERT(node1 == &consumer_node_);
-        [[maybe_unused]] const auto* const node2 = queue_.TryPop();
+        [[maybe_unused]] const auto* const node2 = queue_.TryPopBlocking();
         UASSERT(node2 == &start_consuming_notifier_node_);
         return false;  // wakeup self
     } else {

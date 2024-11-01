@@ -104,34 +104,4 @@ std::vector<std::string> GreeterClient::SayHelloStreams(const std::vector<std::s
 }
 /// [client_streams]
 
-/// [component]
-GreeterClientComponent::GreeterClientComponent(
-    const components::ComponentConfig& config,
-    const components::ComponentContext& context
-)
-    : ComponentBase(config, context),
-      // ClientFactory is used to create gRPC clients
-      client_factory_(context.FindComponent<ugrpc::client::ClientFactoryComponent>().GetFactory()),
-      // The client needs a fixed endpoint
-      client_(client_factory_.MakeClient<api::GreeterServiceClient>("greeter", config["endpoint"].As<std::string>())) {}
-/// [component]
-
-const GreeterClient& GreeterClientComponent::GetClient() const { return client_; }
-
-yaml_config::Schema GreeterClientComponent::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<components::ComponentBase>(R"(
-type: object
-description: >
-    a user-defined wrapper around api::GreeterServiceClient that provides
-    a simplified interface.
-additionalProperties: false
-properties:
-    endpoint:
-        type: string
-        description: >
-            the service endpoint (URI). We talk to our own service,
-            which is kind of pointless, but works for an example
-)");
-}
-
 }  // namespace samples

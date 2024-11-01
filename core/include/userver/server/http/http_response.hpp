@@ -5,7 +5,6 @@
 
 #include <chrono>
 #include <string>
-#include <unordered_map>
 #include <variant>
 
 #include <userver/concurrent/queue.hpp>

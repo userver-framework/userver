@@ -294,7 +294,7 @@ public:
         });
     }
 
-    rcu::ReadablePtr<ClusterTopology, StdMutexRcuTraits> GetTopology() const { return topology_.Read(); }
+    rcu::ReadablePtr<ClusterTopology, rcu::BlockingRcuTraits> GetTopology() const { return topology_.Read(); }
 
     void SendUpdateClusterTopology() { update_topology_watch_.Send(); }
 
@@ -370,7 +370,7 @@ private:
     std::shared_ptr<Shard> sentinels_;
 
     std::atomic_size_t current_topology_version_{0};
-    rcu::Variable<ClusterTopology, StdMutexRcuTraits> topology_;
+    rcu::Variable<ClusterTopology, rcu::BlockingRcuTraits> topology_;
 
     /// Update cluster topology
     /// @{
@@ -418,7 +418,7 @@ private:
     concurrent::Variable<std::unordered_set<HostPort>, std::mutex> actual_nodes_;
     // work only from sentinel thread so no need to synchronize it
     std::unordered_map<HostPort, utils::datetime::SteadyCoarseClock::time_point> nodes_last_seen_time_;
-    rcu::RcuMap<std::string, std::string, StdMutexRcuMapTraits<std::string, std::string>> ip_by_fqdn_;
+    rcu::RcuMap<std::string, std::string, StdMutexRcuMapTraits<std::string>> ip_by_fqdn_;
 
     static std::atomic<size_t> cluster_slots_call_counter_;
 };

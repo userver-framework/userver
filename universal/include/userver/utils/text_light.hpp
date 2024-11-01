@@ -19,11 +19,19 @@ std::string Trim(const std::string& str);
 /// Trim string in-place.
 std::string Trim(std::string&& str);
 
+enum class SplitFlags {
+    kNone = 0,
+    kCompressAdjacentSeparators = 1 << 0,
+};
+
 /// Split string by separators
 ///
 /// @snippet utils/text_light_test.cpp  SplitMultiple
-std::vector<std::string>
-Split(std::string_view str, std::string_view separators, bool is_compress_adjacent_separators = true);
+std::vector<std::string> Split(
+    std::string_view str,
+    std::string_view separators,
+    SplitFlags split_flags = SplitFlags::kCompressAdjacentSeparators
+);
 
 /// Split string by separators and return a non-owning container of chunks.
 ///

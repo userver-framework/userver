@@ -2,7 +2,7 @@
 
 #include <atomic>
 
-#include <concurrent/impl/interference_shield.hpp>
+#include <userver/concurrent/impl/interference_shield.hpp>
 #include <userver/concurrent/impl/intrusive_hooks.hpp>
 #include <userver/utils/not_null.hpp>
 
@@ -51,10 +51,38 @@ public:
     // Returns the oldest pushed node, or `nullptr` if the queue is logically
     // empty. Momentarily spins if necessary for a concurrent Push to complete.
     // Can only be called from one thread at a time.
-    NodePtr TryPop() noexcept;
+    NodePtr TryPopBlocking() noexcept;
+
+    // Returns the oldest pushed not, or `nullptr` if the queue "seems to be"
+    // empty. Can only be called from one thread at a time.
+    // Unlike TryPopBlocking, never blocks, but this comes at a cost: it might
+    // not return an item that has been completely pushed (happens-before).
+    //
+    // The exact semantics of the ordering are as follows.
+    // Items are pushed in a flat-combining manner: if two items are being
+    // pushed concurrently, then one producer is randomly chosen to be
+    // responsible for pushing both items, and the other producer walks away,
+    // and for them the push operation is essentially pushed asynchronously.
+    //
+    // If the producers always notify the consumer after pushing,
+    // then TryPopWeak is enough: the consumer will be notified of all
+    // the pushed items by some of the producers.
+    //
+    // If for some items the consumer is not notified, and for some "urgent"
+    // items it is notified, then it's not a good idea to use TryPopWeak,
+    // because an "urgent" item may not yet be pushed completely
+    // upon the notification.
+    NodePtr TryPopWeak() noexcept;
 
 private:
+    enum class PopMode {
+        kRarelyBlocking,
+        kWeak,
+    };
+
     static std::atomic<NodePtr>& GetNext(NodeRef node) noexcept;
+
+    NodePtr DoTryPop(PopMode) noexcept;
 
     // This node is put into the queue when it would otherwise be empty.
     SinglyLinkedBaseHook stub_;
@@ -77,7 +105,9 @@ public:
 
     void Push(T& node) noexcept { impl_.Push(IntrusiveMpscQueueImpl::NodeRef{&node}); }
 
-    T* TryPop() noexcept { return static_cast<T*>(impl_.TryPop()); }
+    T* TryPopBlocking() noexcept { return static_cast<T*>(impl_.TryPopBlocking()); }
+
+    T* TryPopWeak() noexcept { return static_cast<T*>(impl_.TryPopWeak()); }
 
 private:
     IntrusiveMpscQueueImpl impl_;

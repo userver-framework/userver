@@ -18,26 +18,27 @@ ClientFactory::ClientFactory(
     testsuite::GrpcControl& testsuite_grpc,
     dynamic_config::Source source
 )
-    : channel_task_processor_(channel_task_processor),
+    : settings_(std::move(settings)),
+      channel_task_processor_(channel_task_processor),
       mws_(mws),
       completion_queues_(completion_queues),
       channel_cache_(
-          testsuite_grpc.IsTlsEnabled() ? settings.credentials : grpc::InsecureChannelCredentials(),
-          settings.channel_args,
-          settings.channel_count
+          testsuite_grpc.IsTlsEnabled() ? settings_.credentials : grpc::InsecureChannelCredentials(),
+          settings_.channel_args,
+          settings_.channel_count
       ),
       client_statistics_storage_(statistics_storage),
       config_source_(source),
       testsuite_grpc_(testsuite_grpc) {
     ugrpc::impl::SetupNativeLogging();
-    ugrpc::impl::UpdateNativeLogLevel(settings.native_log_level);
+    ugrpc::impl::UpdateNativeLogLevel(settings_.native_log_level);
 
-    for (auto& [client_name, creds] : settings.client_credentials) {
+    for (auto& [client_name, creds] : settings_.client_credentials) {
         client_channel_cache_.try_emplace(
             std::string{client_name},
             testsuite_grpc.IsTlsEnabled() ? creds : grpc::InsecureChannelCredentials(),
-            settings.channel_args,
-            settings.channel_count
+            settings_.channel_args,
+            settings_.channel_count
         );
     }
 }
@@ -71,6 +72,8 @@ impl::ClientDependencies ClientFactory::MakeClientDependencies(ClientSettings&& 
         config_source_,
         testsuite_grpc_,
         settings.client_qos,
+        settings_,
+        std::move(settings.dedicated_methods_config),
     };
 }
 

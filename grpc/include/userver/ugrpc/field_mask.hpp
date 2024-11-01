@@ -51,6 +51,17 @@ public:
     /// @brief Constructs the field-mask from a raw gRPC field-mask
     explicit FieldMask(const google::protobuf::FieldMask& field_mask);
 
+    enum class Encoding { kCommaSeparated = 0, kWebSafeBase64 = 1 };
+
+    /// @brief Constructs the field-mask from its string representation
+    FieldMask(std::string_view string, Encoding encoding);
+
+    /// @brief Constructs a human-readable string representation of the field-mask
+    std::string ToString() const;
+
+    /// @brief Constructs a string representation of the field-mask suitable to transfer over the Internet
+    std::string ToWebSafeBase64() const;
+
     /// @brief Adds a dot-separated path to the field mask.
     /// Backtick (`) is treated as a separation character according to AIP-161
     /// and may not appear in the path.
@@ -59,9 +70,6 @@ public:
     /// In this case, the state of the field mask is undefined.
     /// You must not continue using the instance after encountering the exception.
     void AddPath(std::string_view path);
-
-    /// @brief Converts the field-mask back to a google field-mask
-    google::protobuf::FieldMask ToGoogleMask() const;
 
     /// @brief Check if the field mask is valid for this message.
     ///
@@ -114,7 +122,9 @@ public:
     utils::OptionalRef<const FieldMask> GetMaskForField(std::string_view field) const;
 
 private:
-    void ToGoogleMaskImpl(std::vector<std::string>& stack, google::protobuf::FieldMask& out) const;
+    google::protobuf::FieldMask ToRawMask() const;
+
+    void ToRawMaskImpl(std::vector<std::string>& stack, google::protobuf::FieldMask& out) const;
 
     utils::FastPimpl<utils::impl::TransparentMap<std::string, FieldMask, utils::StrCaseHash>, 96, 8> children_;
     bool is_leaf_{false};

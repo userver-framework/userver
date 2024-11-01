@@ -13,10 +13,10 @@
 #include <ugrpc/client/impl/client_configs.hpp>
 #include <ugrpc/impl/rpc_metadata.hpp>
 #include <ugrpc/impl/status.hpp>
-#include <ugrpc/impl/to_string.hpp>
 #include <userver/tracing/opentelemetry.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/impl/deadline_timepoint.hpp>
+#include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/status_codes.hpp>
 
 USERVER_NAMESPACE_BEGIN

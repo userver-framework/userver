@@ -7,7 +7,7 @@
 #include <string>
 #include <string_view>
 
-#include <boost/filesystem/operations.hpp>
+#include <userver/utils/boost_filesystem_file_status.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -19,9 +19,9 @@
 #include <userver/storages/secdist/secdist.hpp>
 #include <userver/testsuite/grpc_control.hpp>
 
+#include <userver/ugrpc/client/client_factory_settings.hpp>
 #include <userver/ugrpc/client/fwd.hpp>
 #include <userver/ugrpc/client/impl/channel_cache.hpp>
-#include <userver/ugrpc/client/impl/client_data.hpp>
 #include <userver/ugrpc/client/middlewares/base.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -32,28 +32,6 @@ class CompletionQueuePoolBase;
 }  // namespace ugrpc::impl
 
 namespace ugrpc::client {
-
-/// Settings relating to the ClientFactory
-struct ClientFactorySettings final {
-    /// gRPC channel credentials, none by default
-    std::shared_ptr<grpc::ChannelCredentials> credentials{grpc::InsecureChannelCredentials()};
-
-    /// gRPC channel credentials by client_name. If not set, default `credentials`
-    /// is used instead.
-    std::unordered_map<std::string, std::shared_ptr<grpc::ChannelCredentials>> client_credentials{};
-
-    /// Optional grpc-core channel args
-    /// @see https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
-    grpc::ChannelArguments channel_args{};
-
-    /// The logging level override for the internal grpcpp library. Must be either
-    /// `kDebug`, `kInfo` or `kError`.
-    logging::Level native_log_level{logging::Level::kError};
-
-    /// Number of underlying channels that will be created for every client
-    /// in this factory.
-    std::size_t channel_count{1};
-};
 
 /// Settings relating to creation of a code-generated client
 struct ClientSettings final {
@@ -82,6 +60,10 @@ struct ClientSettings final {
     ///
     /// @snippet grpc/tests/tests/unit_test_client_qos.hpp  qos config key
     const dynamic_config::Key<ClientQos>* client_qos{nullptr};
+
+    /// **(Optional)**
+    /// Dedicated high-load methods that have separate channels
+    DedicatedMethodsConfig dedicated_methods_config{};
 };
 
 /// @ingroup userver_clients
@@ -126,6 +108,7 @@ private:
 
     impl::ClientDependencies MakeClientDependencies(ClientSettings&& settings);
 
+    ClientFactorySettings settings_;
     engine::TaskProcessor& channel_task_processor_;
     MiddlewareFactories mws_;
     ugrpc::impl::CompletionQueuePoolBase& completion_queues_;

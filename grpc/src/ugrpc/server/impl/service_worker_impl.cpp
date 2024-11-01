@@ -13,8 +13,8 @@
 #include <userver/utils/impl/userver_experiments.hpp>
 
 #include <ugrpc/impl/rpc_metadata.hpp>
-#include <ugrpc/impl/to_string.hpp>
 #include <ugrpc/server/impl/server_configs.hpp>
+#include <userver/ugrpc/impl/to_string.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

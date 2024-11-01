@@ -54,7 +54,7 @@ private:
     const std::string host_;
     const uint16_t port_;
     const Password password_;
-    rcu::Variable<std::shared_ptr<Redis>, StdMutexRcuTraits> redis_;
+    rcu::Variable<std::shared_ptr<Redis>, rcu::BlockingRcuTraits> redis_;
     engine::ev::PeriodicWatcher connection_check_timer_;
 };
 

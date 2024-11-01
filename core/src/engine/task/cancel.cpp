@@ -10,6 +10,7 @@
 #include <userver/utils/assert.hpp>
 
 #include <engine/task/coro_unwinder.hpp>
+#include <engine/task/task_base_impl.hpp>
 #include <engine/task/task_context.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -90,7 +91,7 @@ TaskCancellationToken::TaskCancellationToken() noexcept = default;
 
 TaskCancellationToken::TaskCancellationToken(impl::TaskContext& context) noexcept : context_(&context) {}
 
-TaskCancellationToken::TaskCancellationToken(Task& task) : context_(task.context_) { UASSERT(context_); }
+TaskCancellationToken::TaskCancellationToken(Task& task) : context_(task.pimpl_->context) { UASSERT(context_); }
 
 // clang-tidy insists on defaulting this,
 // gcc complains about exception-specification mismatch with '= default'

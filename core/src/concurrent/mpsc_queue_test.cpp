@@ -1,9 +1,10 @@
 #include <userver/concurrent/mpsc_queue.hpp>
 
-#include <userver/utils/async.hpp>
-#include "mp_queue_test.hpp"
-
 #include <userver/utest/utest.hpp>
+#include <userver/utils/async.hpp>
+#include <userver/utils/fixed_array.hpp>
+
+#include "mp_queue_test.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -152,6 +153,42 @@ UTEST_MT(MpscQueue, FifoTest, kProducersCount + 1) {
     consumer_task.Get();
 
     ASSERT_TRUE(std::all_of(consumed_messages.begin(), consumed_messages.end(), [](int item) { return (item == 1); }));
+}
+
+UTEST_MT(MpscQueue, ProducerRace, kProducersCount + 1) {
+    const auto test_deadline = engine::Deadline::FromDuration(std::chrono::milliseconds(100));
+    auto queue = concurrent::MpscQueue<std::size_t>::Create();
+
+    auto consumer = queue->GetConsumer();
+    auto producers = utils::GenerateFixedArray(kProducersCount, [&](std::size_t) { return queue->GetProducer(); });
+
+    while (!test_deadline.IsReached()) {
+        auto consumer_task = engine::AsyncNoSpan([&consumer] {
+            for (std::size_t i = 0; i < kProducersCount; ++i) {
+                std::size_t item{};
+                // If there queue is buggy (loses wakeups), then we'll eventually hang here until the deadline.
+                ASSERT_TRUE(consumer.Pop(item, engine::Deadline::FromDuration(utest::kMaxTestWaitTime)));
+            }
+        });
+
+        std::atomic<bool> go{false};
+
+        auto producer_tasks = utils::GenerateFixedArray(kProducersCount, [&](std::size_t i) {
+            return engine::AsyncNoSpan([&producers, &go, i] {
+                while (!go.load()) {
+                    // Busy loop
+                }
+                ASSERT_TRUE(producers[i].Push(std::size_t{i}));
+            });
+        });
+
+        go = true;
+
+        UASSERT_NO_THROW(consumer_task.Get());
+        for (auto& producer_task : producer_tasks) {
+            UASSERT_NO_THROW(producer_task.Get());
+        }
+    }
 }
 
 USERVER_NAMESPACE_END

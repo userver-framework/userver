@@ -56,7 +56,7 @@ for BUILD_TYPE in Debug Release; do
       ${ALL_FEATURES} \
       ${BUILD_OPTIONS:-""} \
       -GNinja
-  cmake --build ${BUILD_DIR}
+  cmake --build ${BUILD_DIR} -- -j$(nproc)
 done
 
 cpack -G DEB --config build_release/CPackConfig.cmake -D CPACK_INSTALL_CMAKE_PROJECTS="build_debug;userver;ALL;/;build_release;userver;ALL;/" ${PACKAGE_OPTIONS:-""}

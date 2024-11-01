@@ -14,10 +14,10 @@
 #include <ugrpc/client/impl/client_configs.hpp>
 #include <ugrpc/client/middlewares/baggage/middleware.hpp>
 #include <ugrpc/impl/rpc_metadata.hpp>
-#include <ugrpc/impl/to_string.hpp>
 #include <ugrpc/server/impl/server_configs.hpp>
 #include <ugrpc/server/middlewares/baggage/middleware.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
+#include <userver/ugrpc/impl/to_string.hpp>
 
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>

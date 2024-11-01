@@ -20,6 +20,7 @@ pugixml
 openssl
 yaml-cpp
 librdkafka
+rocksdb
 postgresql@16
 redis
 zlib

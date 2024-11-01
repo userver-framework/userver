@@ -4,10 +4,10 @@
 #include <userver/utils/algo.hpp>
 
 #include <ugrpc/impl/rpc_metadata.hpp>
-#include <ugrpc/impl/to_string.hpp>
 
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
+#include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/tests/service_fixtures.hpp>
 
 USERVER_NAMESPACE_BEGIN

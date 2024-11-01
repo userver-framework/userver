@@ -18,10 +18,15 @@ USERVER_NAMESPACE_BEGIN
 namespace rcu {
 
 namespace impl {
+
 template <typename RcuMapTraits>
-struct RcuTraitsFromRcuMapTraits {
+struct RcuTraitsFromRcuMapTraits : public DefaultRcuTraits {
     using MutexType = typename RcuMapTraits::MutexType;
+    using DeleterType = typename RcuMapTraits::DeleterType;
 };
+
+struct ShouldInheritFromDefaultRcuMapTraits {};
+
 }  // namespace impl
 
 /// Thrown on missing element access
@@ -37,11 +42,12 @@ public:
 /// type `Key`
 /// - `MutexType` is a writer's mutex type that has to be used to protect
 /// structure on update
-template <typename Key, typename Value>
-struct DefaultRcuMapTraits {
+template <typename Key>
+struct DefaultRcuMapTraits : public impl::ShouldInheritFromDefaultRcuMapTraits {
     using Hash = std::hash<Key>;
     using KeyEqual = std::equal_to<Key>;
     using MutexType = engine::Mutex;
+    using DeleterType = AsyncDeleter;
 };
 
 /// @brief Forward iterator for the rcu::RcuMap
@@ -49,6 +55,10 @@ struct DefaultRcuMapTraits {
 /// Use member functions of rcu::RcuMap to retrieve the iterator.
 template <typename Key, typename Value, typename IterValue, typename RcuMapTraits>
 class RcuMapIterator final {
+    static_assert(
+        std::is_base_of_v<impl::ShouldInheritFromDefaultRcuMapTraits, RcuMapTraits>,
+        "RcuMapTraits should inherit from rcu::DefaultRcuMapTraits"
+    );
     using Hash = typename RcuMapTraits::Hash;
     using KeyEqual = typename RcuMapTraits::KeyEqual;
     using MapType = std::unordered_map<Key, std::shared_ptr<Value>, Hash, KeyEqual>;

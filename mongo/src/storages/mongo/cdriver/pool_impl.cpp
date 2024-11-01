@@ -227,13 +227,21 @@ std::string CreateTopologyChangeMessage(const mongoc_apm_topology_changed_t* eve
 
     mongoc_read_prefs_t* prefs = mongoc_read_prefs_new(MONGOC_READ_SECONDARY);
 
+#if MONGOC_CHECK_VERSION(1, 17, 0)
     if (mongoc_topology_description_has_readable_server(new_td, prefs)) {
+#else
+    if (mongoc_topology_description_has_readable_server(const_cast<mongoc_topology_description_t*>(new_td), prefs)) {
+#endif
         topology_msg.append("\nSecondary AVAILABLE\n");
     } else {
         topology_msg.append("\nSecondary UNAVAILABLE\n");
     }
 
+#if MONGOC_CHECK_VERSION(1, 17, 0)
     if (mongoc_topology_description_has_writable_server(new_td)) {
+#else
+    if (mongoc_topology_description_has_writable_server(const_cast<mongoc_topology_description_t*>(new_td))) {
+#endif
         topology_msg.append("Primary AVAILABLE");
     } else {
         topology_msg.append("Primary UNAVAILABLE");

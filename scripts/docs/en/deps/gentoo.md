@@ -15,6 +15,7 @@ dev-libs/libfmt
 dev-libs/mongo-c-driver
 dev-libs/openssl
 dev-libs/re2
+dev-libs/pugixml
 dev-python/jinja
 dev-python/pip
 dev-python/voluptuous

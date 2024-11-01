@@ -12,7 +12,7 @@ class Message;
 
 USERVER_NAMESPACE_BEGIN
 
-namespace ugrpc::server::middlewares::field_mask_bin {
+namespace ugrpc::server::middlewares::field_mask {
 
 class Middleware final : public MiddlewareBase {
 public:
@@ -27,6 +27,6 @@ private:
     const std::string metadata_field_name_;
 };
 
-}  // namespace ugrpc::server::middlewares::field_mask_bin
+}  // namespace ugrpc::server::middlewares::field_mask
 
 USERVER_NAMESPACE_END

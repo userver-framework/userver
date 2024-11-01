@@ -1,7 +1,7 @@
 #pragma once
 
-/// @file userver/ugrpc/server/middlewares/field_mask_bin/component.hpp
-/// @brief @copybrief ugrpc::server::middlewares::field_mask_bin::Component
+/// @file userver/ugrpc/server/middlewares/field_mask/component.hpp
+/// @brief @copybrief ugrpc::server::middlewares::field_mask::Component
 
 #include <userver/ugrpc/server/middlewares/base.hpp>
 
@@ -17,25 +17,25 @@
 
 USERVER_NAMESPACE_BEGIN
 
-/// Server field-mask-bin metadata field middleware
-namespace ugrpc::server::middlewares::field_mask_bin {
+/// Server field-mask metadata field middleware
+namespace ugrpc::server::middlewares::field_mask {
 
-/// @see ugrpc::server::middlewares::field_mask_bin::Component
+/// @see ugrpc::server::middlewares::field_mask::Component
 inline const utils::AnyStorageDataTag<ugrpc::server::StorageContext, FieldMask> kFieldMaskStorageDataTag;
 
-/// @see ugrpc::server::middlewares::field_mask_bin::Component
-inline const std::string kDefaultMetadataFieldName = "field-mask-bin";
+/// @see ugrpc::server::middlewares::field_mask::Component
+inline const std::string kDefaultMetadataFieldName = "field-mask";
 
 // clang-format off
 
 /// @ingroup userver_components userver_base_classes
 ///
-/// @brief Component for gRPC server field-mask-bin parsing and trimming
+/// @brief Component for gRPC server field-mask parsing and trimming
 ///
 /// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// metadata-field-name | the metadata field name to read the mask from | field-mask-bin
+/// metadata-field-name | the metadata field name to read the mask from | field-mask
 ///
 /// @warning Masking messages that contain optional fields in protobuf prior to v3.13
 /// causes a segmentation fault. If this is the case for you, you should not use
@@ -43,7 +43,7 @@ inline const std::string kDefaultMetadataFieldName = "field-mask-bin";
 ///
 /// ## Static configuration example:
 ///
-/// @snippet grpc/functional_tests/basic_chaos/static_config.yaml Sample grpc server field-mask-bin middleware component config
+/// @snippet grpc/functional_tests/basic_chaos/static_config.yaml Sample grpc server field-mask middleware component config
 
 // clang-format on
 
@@ -51,8 +51,8 @@ class Component final : public MiddlewareComponentBase {
 public:
     /// @ingroup userver_component_names
     /// @brief The default name of
-    // ugrpc::server::middlewares::field_mask_bin::Component
-    static constexpr std::string_view kName = "grpc-server-field-mask-bin";
+    /// ugrpc::server::middlewares::field_mask::Component
+    static constexpr std::string_view kName = "grpc-server-field-mask";
 
     Component(const components::ComponentConfig& config, const components::ComponentContext& context);
 
@@ -64,6 +64,6 @@ private:
     std::string metadata_field_name_;
 };
 
-}  // namespace ugrpc::server::middlewares::field_mask_bin
+}  // namespace ugrpc::server::middlewares::field_mask
 
 USERVER_NAMESPACE_END

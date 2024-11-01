@@ -23,9 +23,9 @@ std::string Trim(std::string&& str) {
     return std::move(str);
 }
 
-std::vector<std::string> Split(std::string_view str, std::string_view sep, bool is_compress_adjacent_separators) {
+std::vector<std::string> Split(std::string_view str, std::string_view sep, SplitFlags split_flags) {
     const auto boost_token_compress_mode =
-        is_compress_adjacent_separators ? boost::token_compress_on : boost::token_compress_off;
+        split_flags == SplitFlags::kCompressAdjacentSeparators ? boost::token_compress_on : boost::token_compress_off;
 
     std::vector<std::string> result;
     // FP, m_Size does not change

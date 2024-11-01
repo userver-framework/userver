@@ -46,7 +46,7 @@ inline const bool k{{service.name}}TypesRegistration =
     std::unique_ptr<::grpc::ClientContext> context,
     const USERVER_NAMESPACE::ugrpc::client::Qos& qos
 ) const {
-      auto& stub = impl_.NextStub<{{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}>();
+      auto& stub = impl_.NextStubFromMethodId<{{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}>({{method_id}});
       return {
         USERVER_NAMESPACE::ugrpc::client::impl::CreateCallParams(
           impl_, {{method_id}}, std::move(context), qos

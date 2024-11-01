@@ -126,7 +126,7 @@ apt clean all
 # You could override those versions from command line
 AMQP_VERSION=${AMQP_VERSION:=v4.3.18}
 CLICKHOUSE_VERSION=${CLICKHOUSE_VERSION:=v2.3.0}
-ROCKSDB_VERSION=${ROCKSDB_VERSION:=v8.11.3}
+ROCKSDB_VERSION=${ROCKSDB_VERSION:=v8.9.1}
 
 # Installing amqp/rabbitmq client libraries from sources
 git clone --depth 1 -b ${AMQP_VERSION} https://github.com/CopernicaMarketingSoftware/AMQP-CPP.git amqp-cpp

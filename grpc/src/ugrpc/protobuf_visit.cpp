@@ -1,7 +1,5 @@
 #include <userver/ugrpc/protobuf_visit.hpp>
 
-#include <mutex>
-
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/port.h>
 #include <google/protobuf/reflection.h>

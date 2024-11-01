@@ -27,7 +27,7 @@ cmake --build . -j$(nproc)
 
 
 Alternatively you could use a docker container with all the building dependencies
-installed from @ref scripts/docs/en/userver/build/ependencies.md "build dependencies"
+installed from @ref scripts/docs/en/userver/build/dependencies.md "build dependencies"
 
 If you need to edit or make your own docker image with custom configuration, read about
 it at @ref scripts/docker/Readme.md.

@@ -6,7 +6,6 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <unordered_set>
 #include <vector>
 
 #include <userver/dynamic_config/source.hpp>

@@ -5,7 +5,7 @@
 #include <userver/yaml_config/yaml_config.hpp>
 
 #include <ugrpc/client/secdist.hpp>
-#include <ugrpc/impl/to_string.hpp>
+#include <userver/ugrpc/impl/to_string.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

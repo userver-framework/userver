@@ -3,9 +3,11 @@
 @anchor quick_start_for_beginners
 ## Quick start for beginners
 
-If you are new to userver it is a good idea to start with using the `service template` git repository to design your first userver-based service:
+If you are new to userver it is a good idea to start with using the `service template` git repository to design your first userver-based service.
 
-* https://github.com/userver-framework/service_template
+@warning @ref https://github.com/userver-framework/service_template.git "service_template" has no database. If you need a database please use other @ref service_templates "service templates".
+ 
+For a service without a database use https://github.com/userver-framework/service_template
 
 1\. Clone `service template` and userver repositories.
 
@@ -74,9 +76,11 @@ Hello, userver!
 
 There are prepared and ready to use service templates at the github:
 
-* https://github.com/userver-framework/service_template
-* https://github.com/userver-framework/pg_service_template
-* https://github.com/userver-framework/pg_grpc_service_template
+| Link                                                             | Contains         |
+| ---------------------------------------------------------------- | ---------------- |
+| https://github.com/userver-framework/service_template            |                  |
+| https://github.com/userver-framework/pg_service_template         | postgreSQL       |
+| https://github.com/userver-framework/pg_grpc_service_template    | postgreSQL, gRPC |
 
 Just use the template to make your own service:
 
@@ -163,7 +167,28 @@ then link to those libraries.
 You can install userver globally and then use it from anywhere with `find_package`.
 Make sure to use the same build mode as for your service, otherwise subtle linkage issues will arise.
 
+@anchor userver_install_debian_package
+### Build and install Debian package
+
+To build `libuserver-all-dev.deb` package run the following shell command:
+
+```shell
+docker run --rm -it --network ip6net -v $(pwd):/home/user -w /home/user/userver \
+   --entrypoint bash ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest ./scripts/docker/run_as_user.sh \
+   ./scripts/build_and_install_all.sh
+```
+
+And install the package with the following:
+
+```shell
+sudo dpkg -i ./libuserver-all-dev*.deb
+```
+
+
 ### Install with cmake --install
+
+@warning installing userver with cmake --install is NOT recommended due to update and uninstall issues.
+Please @ref userver_install_debian_package "build and install Debian package" instead.
 
 To install userver build it with `USERVER_INSTALL=ON` flags in `Debug` and `Release` modes:
 ```cmake
@@ -182,21 +207,6 @@ cmake --install build_debug/
 cmake --install build_release/
 ```
 
-### Build and install Debian package
-
-To build `libuserver-all-dev.deb` package run the following shell command:
-
-```shell
-docker run --rm -it --network ip6net -v $(pwd):/home/user -w /home/user/userver \
-   --entrypoint bash ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest ./scripts/docker/run_as_user.sh \
-   ./scripts/build_and_install_all.sh
-```
-
-And install the package with the following:
-
-```shell
-sudo dpkg -i ./libuserver-all-dev*.deb
-```
 
 ### Use userver in your projects
 

@@ -69,7 +69,7 @@ void DistLockedWorker::Stop() {
 
     std::lock_guard<engine::Mutex> lock(locker_task_mutex_);
     if (locker_task_.IsValid()) locker_task_.RequestCancel();
-    impl::GetTask(locker_task_, impl::LockerName(Name()));
+    impl::GetTask(locker_task_, impl::LockerName(Name()), "cancel and wait in DistLockedWorker::Stop()");
 
     LOG_INFO() << "Stopped DistLocked Worker " << Name();
 }

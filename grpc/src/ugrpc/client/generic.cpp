@@ -33,7 +33,7 @@ client::UnaryCall<grpc::ByteBuffer> GenericClient::UnaryCall(
     std::unique_ptr<grpc::ClientContext> context,
     const GenericOptions& generic_options
 ) const {
-    auto& stub = impl_.NextStub<GenericStubService>();
+    auto& stub = impl_.NextGenericStub<GenericStubService>();
     auto grpcpp_call_name = utils::StrCat<grpc::string>("/", call_name);
     return {
         impl::CreateGenericCallParams(

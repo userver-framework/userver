@@ -1,4 +1,4 @@
-#include <concurrent/impl/interference_shield.hpp>
+#include <userver/concurrent/impl/interference_shield.hpp>
 
 #include <cstddef>
 

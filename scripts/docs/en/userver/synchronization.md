@@ -84,8 +84,6 @@ In `concurrent::MpscQueue`, writers (one or more) can write data to the queue, a
 
 @snippet concurrent/mpsc_queue_test.cpp  Sample concurrent::MpscQueue usage
 
-(`concurrent::MpscQueue` only.) If the queue is supposed to pass data types `T` with a non-trivial destructor, then you need to use the queue `concurrent::MpscQueue<std::unique_ptr<T>>`.
-
 If the queue with unread data is destroyed, all unprocessed items will be released correctly.
 
 Use `concurrent::MpscQueue` by default.

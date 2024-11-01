@@ -12,17 +12,12 @@
 /// @ingroup userver_dump_read_write
 
 #include <cstddef>
-#include <map>
 #include <memory>
 #include <optional>
-#include <set>
 #include <type_traits>
 #include <typeinfo>
-#include <unordered_map>
-#include <unordered_set>
 #include <utility>
 #include <variant>
-#include <vector>
 
 #include <userver/utils/constexpr_indices.hpp>
 #include <userver/utils/lazy_prvalue.hpp>

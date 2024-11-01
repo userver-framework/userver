@@ -18,14 +18,14 @@ USERVER_NAMESPACE_BEGIN
 
 namespace redis {
 
-template <typename K, typename V>
-struct StdMutexRcuMapTraits : rcu::DefaultRcuMapTraits<K, V> {
+template <typename K>
+struct StdMutexRcuMapTraits : rcu::DefaultRcuMapTraits<K> {
     using MutexType = std::mutex;
+    using DeleterType = rcu::SyncDeleter;
 };
 
 class RedisConnectionHolder;
-using NodesStorage =
-    rcu::RcuMap<std::string, RedisConnectionHolder, StdMutexRcuMapTraits<std::string, RedisConnectionHolder>>;
+using NodesStorage = rcu::RcuMap<std::string, RedisConnectionHolder, StdMutexRcuMapTraits<std::string>>;
 
 class ClusterTopology {
 public:

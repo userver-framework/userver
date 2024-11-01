@@ -17,18 +17,6 @@ By adopting the CLA, you state the following:
 
 If you agree with these principles, please read and adopt our CLA. By providing us your contributions, you hereby declare that you have already read and adopt our CLA, and we may freely merge your contributions with our corresponding open source project and use it in further in accordance with terms and conditions of the CLA.
 
-## Provide contributions 
-
-If you have already adopted terms and conditions of the CLA, you are able to provide your contributions. When you submit your pull request, please add the following information into it:
-
-```
-I hereby agree to the terms of the CLA available at: [link].
-```
-
-Replace the bracketed text as follows:
-* [link] is the link to the current version of the CLA: https://yandex.ru/legal/cla/, https://yandex.ru/legal/cla/?lang=en (in English) or https://yandex.ru/legal/cla/?lang=ru (in Russian).
-
-It is enough to provide us such notification once. 
 
 ## Other questions
 

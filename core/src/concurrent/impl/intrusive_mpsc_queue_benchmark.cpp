@@ -7,7 +7,7 @@
 #include <boost/lockfree/queue.hpp>
 
 #include <compiler/relax_cpu.hpp>
-#include <concurrent/impl/intrusive_mpsc_queue.hpp>
+#include <userver/concurrent/impl/intrusive_mpsc_queue.hpp>
 #include <userver/utils/fixed_array.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -83,7 +83,7 @@ public:
     explicit IntrusiveMpscQueue(std::size_t /*producer_count*/) {}
 
     ~IntrusiveMpscQueue() {
-        while (auto* const node = queue_.TryPop()) {
+        while (auto* const node = queue_.TryPopBlocking()) {
             delete node;
         }
     }
@@ -91,7 +91,7 @@ public:
     void Produce(std::size_t /*producer_id*/) { queue_.Push(*new Node()); }
 
     bool TryConsume() {
-        auto* const node = queue_.TryPop();
+        auto* const node = queue_.TryPopBlocking();
         if (node) {
             benchmark::DoNotOptimize(node->foo);
             delete node;
@@ -229,7 +229,7 @@ void IntrusiveMpscQueueProduceConsumeNoAlloc(benchmark::State& state) {
         while (keep_running) {
             Node* node = nullptr;
             while (!node) {
-                node = queue1.TryPop();
+                node = queue1.TryPopBlocking();
             }
             queue2.Push(*node);
         }
@@ -238,7 +238,7 @@ void IntrusiveMpscQueueProduceConsumeNoAlloc(benchmark::State& state) {
     for ([[maybe_unused]] auto _ : state) {
         Node* node = nullptr;
         while (!node) {
-            node = queue2.TryPop();
+            node = queue2.TryPopBlocking();
         }
         queue1.Push(*node);
     }
@@ -274,7 +274,7 @@ void IntrusiveMpscQueueProduceConsumeNoContentionNoAlloc(benchmark::State& state
 
     for ([[maybe_unused]] auto _ : state) {
         queue.Push(node);
-        benchmark::DoNotOptimize(queue.TryPop());
+        benchmark::DoNotOptimize(queue.TryPopBlocking());
     }
 }
 

@@ -25,6 +25,15 @@ properties:
     factory-component:
         type: string
         description: ClientFactoryComponent name to use for client creation
+    dedicated-channel-counts:
+        type: object
+        description: a map of a rpc method in the channel count. Used for high-load methods
+        defaultDescription: '{}'
+        additionalProperties:
+            type: integer
+            description: a full path to service method, must be a string or integer
+            minimum: 1
+        properties: {}
 )");
 }
 
@@ -46,6 +55,8 @@ ClientSettings SimpleClientComponentAny::MakeClientSettings(
     client_settings.client_name = config["client-name"].As<std::string>(config.Name());
     client_settings.endpoint = config["endpoint"].As<std::string>();
     client_settings.client_qos = client_qos;
+    client_settings.dedicated_methods_config =
+        config["dedicated-channel-counts"].As<DedicatedMethodsConfig>(client_settings.dedicated_methods_config);
     return client_settings;
 }
 

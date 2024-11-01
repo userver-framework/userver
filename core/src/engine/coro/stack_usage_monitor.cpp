@@ -70,6 +70,11 @@ const void* GetCoroCbPtr(const boost::coroutines2::coroutine<impl::TaskContext*>
 
 #ifdef HAS_STACK_USAGE_MONITOR
 
+#if !defined(UFFD_USER_MODE_ONLY)
+// Old libc, new kernel
+#define UFFD_USER_MODE_ONLY 1
+#endif
+
 namespace {
 
 // SIGSTKFLT is defined, but not used by Linux.
@@ -131,7 +136,7 @@ struct StackUsageInfo final {
     std::uint16_t usage_pct{};
     // Binary representation of the stacktrace, populated by boost::stacktrace
     // (a bunch of RIPs, basically).
-    std::array<char, kMaxBinaryStacktraceSize> serialized_stacktrace{};
+    alignas(8) std::array<char, kMaxBinaryStacktraceSize> serialized_stacktrace{};
 
     // We might want to add some task_ids here to log them even for
     // below-the-threshold usage.
@@ -192,7 +197,6 @@ void StackUsageSignalHandler(int, siginfo_t*, void* context) noexcept {
 int CreateUserfaultFd() {
     // there is no wrapper for userfaultfd in glibc, hence 'syscall' usage below.
 
-#if defined(UFFD_USER_MODE_ONLY)
     const auto fd = ::syscall(__NR_userfaultfd, O_CLOEXEC | O_NONBLOCK | UFFD_USER_MODE_ONLY);
     if (fd == -1) {
         // UFFD_USER_MODE_ONLY is only available starting from 5.11 kernel,
@@ -201,8 +205,9 @@ int CreateUserfaultFd() {
         if (errno != EINVAL) {
             return -1;
         }
+    } else {
+        return fd;
     }
-#endif
 
     // Since 5.2 kernel this call could fail with EPERM in case of
     // "vm.unprivileged_userfaultfd" being set to false, but that we can't
@@ -218,10 +223,11 @@ void LogWarningWithErrno(
     const auto saved_errno = errno;
     const auto message_with_errno =
         fmt::format("{}, errno: {} ({})", message, saved_errno, utils::strerror(saved_errno));
+    UASSERT_MSG(false, message_with_errno);
     if (limited) {
-        LOG_LIMITED(level) << message;
+        LOG_LIMITED(level) << message_with_errno;
     } else {
-        LOG(level) << message;
+        LOG(level) << message_with_errno;
     }
 }
 

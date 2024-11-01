@@ -2,16 +2,14 @@ include_guard(GLOBAL)
 
 option(USERVER_DOWNLOAD_PACKAGE_ROCKS "Download and setup RocksDB if no RocksDB matching version was found" ${USERVER_DOWNLOAD_PACKAGES})
 
-set(USERVER_ROCKSDB_VERSION "8.11.3")
-
-if (NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
-  if (USERVER_DOWNLOAD_PACKAGE_ROCKS)
+if(NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
+  if(USERVER_DOWNLOAD_PACKAGE_ROCKS)
     find_package(RocksDB QUIET)
   else()
     find_package(RocksDB REQUIRED)
   endif()
 
-  if (TARGET RocksDB::rocksdb)
+  if(RocksDB_FOUND)
     return()
   endif()
 endif()
@@ -27,6 +25,14 @@ include(DownloadUsingCPM)
 CPMAddPackage(
   NAME rocksdb
   GITHUB_REPOSITORY facebook/rocksdb
-  GIT_TAG v${USERVER_ROCKSDB_VERSION}
+  GIT_TAG v8.11.3
+  OPTIONS
+  "ROCKSDB_BUILD_SHARED OFF"
+  "WITH_TESTS OFF"
+  "WITH_BENCHMARK_TOOLS OFF"
+  "WITH_TOOLS OFF"
+  "USE_RTTI ON"
 )
-add_library(RocksDB::rocksdb ALIAS rocksdb)
+
+mark_targets_as_system("${rocksdb_SOURCE_DIR}")
+write_package_stub(rocksdb)

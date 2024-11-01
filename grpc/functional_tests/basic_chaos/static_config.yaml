@@ -39,10 +39,10 @@ components_manager:
             # Nothing
 # /// [Sample grpc server congestion control middleware component config]
 
-# /// [Sample grpc server field-mask-bin middleware component config]
-        grpc-server-field-mask-bin:
-            metadata-field-name: field-mask-bin
-# /// [Sample grpc server field-mask-bin middleware component config]
+# /// [Sample grpc server field-mask middleware component config]
+        grpc-server-field-mask:
+            metadata-field-name: field-mask
+# /// [Sample grpc server field-mask middleware component config]
         greeter-service:
             greeting-prefix: Hello
 
@@ -56,6 +56,14 @@ components_manager:
             channel-args: {}
         greeter-client:
             endpoint: '[::]:8081'
+
+        greeter-client-component:
+            endpoint: '[::]:8081'
+            client-name: greeter-client
+            dedicated-channel-counts:
+                SayHello: 3
+                SayHelloRequestStream: 2
+            factory-component: grpc-client-factory
 
         # http server
         server:

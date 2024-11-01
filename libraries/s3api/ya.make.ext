@@ -1,0 +1,10 @@
+INCLUDE_ONCE()
+
+
+INCLUDE(${ARCADIA_ROOT}/taxi/uservices/userver/core/ya.make.ext)
+
+SET_APPEND(
+    CODEGEN_CONFIG_FILES
+    ${ARCADIA_ROOT}/taxi/uservices/userver/libraries/s3api/library.yaml
+)
+

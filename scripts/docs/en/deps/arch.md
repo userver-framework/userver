@@ -19,12 +19,14 @@ ninja
 openssl
 postgresql
 postgresql-libs
+pugixml
 python
 python-google-api-python-client
 python-jinja
 python-pip
 python-voluptuous
 python-yaml
+rocksdb
 yaml-cpp
 zlib
 makepkg|cctz

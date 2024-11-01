@@ -17,12 +17,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-template <typename Key, typename Value>
-struct RcuTraitsStdMutex : rcu::DefaultRcuMapTraits<Key, Value> {
+template <typename Key>
+struct RcuTraitsStdMutex : rcu::DefaultRcuMapTraits<Key> {
     using MutexType = std::mutex;
+    using DeleterType = rcu::SyncDeleter;
 };
 
-using StdMutexRcuMap = rcu::RcuMap<std::string, int, RcuTraitsStdMutex<std::string, int>>;
+using StdMutexRcuMap = rcu::RcuMap<std::string, int, RcuTraitsStdMutex<std::string>>;
 
 }  // namespace
 

@@ -7,8 +7,7 @@
 #include <limits>
 #include <memory>
 
-#include <boost/lockfree/queue.hpp>
-
+#include <userver/concurrent/impl/intrusive_mpsc_queue.hpp>
 #include <userver/concurrent/impl/semaphore_capacity_control.hpp>
 #include <userver/concurrent/queue_helpers.hpp>
 #include <userver/engine/deadline.hpp>
@@ -23,40 +22,11 @@ namespace concurrent {
 
 namespace impl {
 
-/// Helper template. Default implementation is straightforward.
 template <typename T>
-struct QueueHelper {
-    using LockFreeQueue = boost::lockfree::queue<T>;
+struct MpscQueueNode final : public SinglyLinkedBaseHook {
+    explicit MpscQueueNode(T&& value) : value(std::move(value)) {}
 
-    static void Push(LockFreeQueue& queue, T&& value) {
-        [[maybe_unused]] bool push_result = queue.push(std::move(value));
-        UASSERT(push_result);
-    }
-
-    [[nodiscard]] static bool Pop(LockFreeQueue& queue, T& value) { return queue.pop(value); }
-
-    static_assert(
-        std::is_trivially_destructible_v<T>,
-        "T has non-trivial destructor. Use "
-        "MpscQueue<std::unique_ptr<T>> instead of MpscQueue<T>"
-    );
-};
-
-/// This partial specialization allows to use std::unique_ptr with Queue.
-template <typename T>
-struct QueueHelper<std::unique_ptr<T>> {
-    using LockFreeQueue = boost::lockfree::queue<T*>;
-
-    static void Push(LockFreeQueue& queue, std::unique_ptr<T>&& value) {
-        QueueHelper<T*>::Push(queue, value.release());
-    }
-
-    [[nodiscard]] static bool Pop(LockFreeQueue& queue, std::unique_ptr<T>& value) {
-        T* ptr{nullptr};
-        if (!QueueHelper<T*>::Pop(queue, ptr)) return false;
-        value.reset(ptr);
-        return true;
-    }
+    T value;
 };
 
 }  // namespace impl
@@ -77,7 +47,7 @@ class MpscQueue final : public std::enable_shared_from_this<MpscQueue<T>> {
         explicit EmplaceEnabler() = default;
     };
 
-    using QueueHelper = impl::QueueHelper<T>;
+    using Node = impl::MpscQueueNode<T>;
 
     using ProducerToken = impl::NoToken;
     using ConsumerToken = impl::NoToken;
@@ -156,12 +126,10 @@ private:
     void MarkConsumerIsDead();
     void MarkProducerIsDead();
 
-    // Resolves to boost::lockfree::queue<T> except for std::unique_ptr<T>
-    // specialization. In that case, resolves to boost::lockfree::queue<T*>
-    typename QueueHelper::LockFreeQueue queue_{1};
-    engine::SingleConsumerEvent nonempty_event_;
+    impl::IntrusiveMpscQueue<Node> queue_{};
+    engine::SingleConsumerEvent nonempty_event_{};
     engine::CancellableSemaphore remaining_capacity_;
-    concurrent::impl::SemaphoreCapacityControl remaining_capacity_control_;
+    impl::SemaphoreCapacityControl remaining_capacity_control_;
     std::atomic<bool> consumer_is_created_{false};
     std::atomic<bool> consumer_is_created_and_dead_{false};
     std::atomic<bool> producer_is_created_and_dead_{false};
@@ -173,10 +141,9 @@ template <typename T>
 MpscQueue<T>::~MpscQueue() {
     UASSERT(consumer_is_created_and_dead_ || !consumer_is_created_);
     UASSERT(!producers_count_);
-    // Clear remaining items in queue. This will work for unique_ptr as well.
-    T value;
-    ConsumerToken temp_token{queue_};
-    while (PopNoblock(temp_token, value)) {
+    // Clear remaining items in queue.
+    while (const auto node = std::unique_ptr<Node>{queue_.TryPopBlocking()}) {
+        remaining_capacity_.unlock_shared();
     }
 }
 
@@ -234,7 +201,10 @@ bool MpscQueue<T>::DoPush(ProducerToken& /*unused*/, T&& value) {
         return false;
     }
 
-    QueueHelper::Push(queue_, std::move(value));
+    auto node = std::make_unique<Node>(std::move(value));
+    queue_.Push(*node);
+    (void)node.release();
+
     ++size_;
     nonempty_event_.Send();
 
@@ -261,7 +231,9 @@ bool MpscQueue<T>::PopNoblock(ConsumerToken& token, T& value) {
 
 template <typename T>
 bool MpscQueue<T>::DoPop(ConsumerToken& /*unused*/, T& value) {
-    if (QueueHelper::Pop(queue_, value)) {
+    if (const auto node = std::unique_ptr<Node>{queue_.TryPopWeak()}) {
+        value = std::move(node->value);
+
         --size_;
         remaining_capacity_.unlock_shared();
         nonempty_event_.Reset();

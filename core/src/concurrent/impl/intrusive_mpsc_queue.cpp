@@ -1,4 +1,4 @@
-#include <concurrent/impl/intrusive_mpsc_queue.hpp>
+#include <userver/concurrent/impl/intrusive_mpsc_queue.hpp>
 
 #include <compiler/relax_cpu.hpp>
 #include <userver/utils/assert.hpp>
@@ -53,7 +53,13 @@ bool IntrusiveMpscQueueImpl::PushIfEmpty(NodeRef node) noexcept {
     return false;
 }
 
-IntrusiveMpscQueueImpl::NodePtr IntrusiveMpscQueueImpl::TryPop() noexcept {
+IntrusiveMpscQueueImpl::NodePtr IntrusiveMpscQueueImpl::TryPopBlocking() noexcept {
+    return DoTryPop(PopMode::kRarelyBlocking);
+}
+
+IntrusiveMpscQueueImpl::NodePtr IntrusiveMpscQueueImpl::TryPopWeak() noexcept { return DoTryPop(PopMode::kWeak); }
+
+IntrusiveMpscQueueImpl::NodePtr IntrusiveMpscQueueImpl::DoTryPop(PopMode mode) noexcept {
     UASSERT_MSG(!is_consuming_.exchange(true), "Multiple concurrent consumers detected");
     const utils::FastScopeGuard guard([this]() noexcept {
         UASSERT_MSG(is_consuming_.exchange(false), "Multiple concurrent consumers detected");
@@ -64,6 +70,10 @@ IntrusiveMpscQueueImpl::NodePtr IntrusiveMpscQueueImpl::TryPop() noexcept {
 
     if (tail == &stub_) {
         if (next == nullptr) {
+            if (mode == PopMode::kWeak) {
+                return nullptr;
+            }
+
             // An addition to the base algorithm. We check if the queue is really
             // empty, or if a Push is in process. We do this because other nodes may
             // have already been pushed after the blocking node.
@@ -103,6 +113,10 @@ IntrusiveMpscQueueImpl::NodePtr IntrusiveMpscQueueImpl::TryPop() noexcept {
 
     // A node is actually being pushed after 'tail', 'tail.next' has just not been
     // corrected yet.
+    if (mode == PopMode::kWeak) {
+        return nullptr;
+    }
+
     next = BlockThreadUntilNotNull(GetNext(tail));
 
     tail_ = *next;

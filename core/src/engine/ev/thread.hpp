@@ -10,9 +10,9 @@
 
 #include <userver/engine/deadline.hpp>
 
-#include <concurrent/impl/intrusive_mpsc_queue.hpp>
 #include <engine/ev/async_payload_base.hpp>
 #include <engine/ev/event_loop.hpp>
+#include <userver/concurrent/impl/intrusive_mpsc_queue.hpp>
 #include <utils/statistics/thread_statistics.hpp>
 
 USERVER_NAMESPACE_BEGIN

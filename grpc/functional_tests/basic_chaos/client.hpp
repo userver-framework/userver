@@ -8,10 +8,17 @@
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <userver/ugrpc/client/client_factory_component.hpp>
+#include <userver/ugrpc/client/impl/client_data.hpp>
+#include <userver/ugrpc/client/simple_client_component.hpp>
 
 #include <samples/greeter_client.usrv.pb.hpp>
 
 namespace samples {
+
+using Client = api::GreeterServiceClient;
+
+// It is used only to test the count of dedicated channels
+using GreeterClientComponent = ugrpc::client::SimpleClientComponent<Client>;
 
 class GreeterClient final : public components::ComponentBase {
 public:
@@ -20,8 +27,16 @@ public:
     GreeterClient(const components::ComponentConfig& config, const components::ComponentContext& context)
         : ComponentBase(config, context),
           client_factory_(context.FindComponent<ugrpc::client::ClientFactoryComponent>().GetFactory()),
-          client_(client_factory_.MakeClient<api::GreeterServiceClient>("greeter", config["endpoint"].As<std::string>())
-          ) {}
+          client_(client_factory_.MakeClient<Client>("greeter", config["endpoint"].As<std::string>())) {
+        // Tests dedicated-channel-count from SimpleClientComponent
+        auto& client =
+            context.FindComponent<ugrpc::client::SimpleClientComponent<Client>>("greeter-client-component").GetClient();
+        UASSERT(ugrpc::client::impl::GetClientData(client).GetDedicatedChannelCount(0) == 3);
+        UASSERT(ugrpc::client::impl::GetClientData(client).GetDedicatedChannelCount(1) == 0);
+        UASSERT(ugrpc::client::impl::GetClientData(client).GetDedicatedChannelCount(2) == 2);
+        UASSERT(ugrpc::client::impl::GetClientData(client).GetDedicatedChannelCount(3) == 0);
+        UASSERT(ugrpc::client::impl::GetClientData(client).GetDedicatedChannelCount(4) == 0);
+    }
 
     inline std::string SayHello(std::string name, bool is_small_timeout);
 
@@ -39,7 +54,7 @@ private:
     inline static std::unique_ptr<grpc::ClientContext> CreateClientContext(bool is_small_timeout);
 
     ugrpc::client::ClientFactory& client_factory_;
-    api::GreeterServiceClient client_;
+    Client client_;
 };
 
 yaml_config::Schema GreeterClient::GetStaticConfigSchema() {

@@ -1,7 +1,7 @@
 #include "middleware.hpp"
 
-#include <ugrpc/impl/to_string.hpp>
 #include <userver/server/request/task_inherited_request.hpp>
+#include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/utils/algo.hpp>
 
 USERVER_NAMESPACE_BEGIN

@@ -129,6 +129,7 @@ option(USERVER_FEATURE_RABBITMQ "Provide asynchronous driver for RabbitMQ" "${US
 option(USERVER_FEATURE_MYSQL "Provide asynchronous driver for MariaDB/MySQL" "${USERVER_LIB_ENABLED_DEFAULT}")
 option(USERVER_FEATURE_ROCKS "Provide asynchronous driver for Rocks" "${USERVER_LIB_ENABLED_DEFAULT}")
 option(USERVER_FEATURE_YDB "Provide asynchronous driver for YDB" "${USERVER_YDB_DEFAULT}")
+option(USERVER_FEATURE_OTLP "Provide asynchronous OTLP exporters" "${USERVER_LIB_ENABLED_DEFAULT}")
 
 set(CMAKE_DEBUG_POSTFIX d)
 
@@ -156,8 +157,6 @@ set(USERVER_THIRD_PARTY_DIRS ${USERVER_ROOT_DIR}/third_party CACHE INTERNAL "")
 init_debian_depends()
 
 include(SetupGTest)
-
-option(USERVER_FEATURE_OTLP "Provide asynchronous OTLP exporters" "${USERVER_LIB_ENABLED_DEFAULT}")
 
 if (USERVER_FEATURE_GRPC)
   include(SetupProtobuf)
@@ -256,6 +255,8 @@ if (USERVER_FEATURE_YDB)
   list(APPEND USERVER_AVAILABLE_COMPONENTS ydb)
 endif()
 
+add_subdirectory(libraries)
+
 _userver_export_targets()
 _userver_make_install_config()
 
@@ -266,3 +267,5 @@ endif()
 if(USERVER_INSTALL)
   include(cmake/UserverPack.cmake)
 endif()
+
+_userver_print_features_list()

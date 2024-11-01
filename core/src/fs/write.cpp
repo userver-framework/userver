@@ -2,6 +2,8 @@
 
 #include <fmt/format.h>
 
+#include <boost/filesystem/operations.hpp>
+
 #include <userver/engine/async.hpp>
 #include <userver/fs/blocking/write.hpp>
 

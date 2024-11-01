@@ -8,7 +8,7 @@
 
 #include <userver/utils/assert.hpp>
 
-#include <ugrpc/impl/to_string.hpp>
+#include <userver/ugrpc/impl/to_string.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

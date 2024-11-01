@@ -26,6 +26,7 @@ userver is split into multiple CMake libraries.
 | `userver::rocks`           | `USERVER_FEATURE_ROCKS`                           | `rocks`               | TODO                                               |
 | `userver::ydb`             | `USERVER_FEATURE_YDB`                             | `ydb`                 | @ref scripts/docs/en/userver/ydb.md                |
 | `userver::otlp`            | `USERVER_FEATURE_OTLP`                            | `otlp`                | @ref opentelemetry "OpenTelemetry Protocol"        |
+| `userver::s3api            | `USERVER_FEATURE_S3API`                           | `s3api`               | @ref scripts/docs/en/userver/libraries/s3api.md    |
 
 Make sure to:
 

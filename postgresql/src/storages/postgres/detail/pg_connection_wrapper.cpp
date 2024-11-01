@@ -59,6 +59,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres::detail {
 
+std::string_view FindCommandName(std::string_view str);
+
 namespace {
 
 // TODO move to config
@@ -487,11 +489,22 @@ bool PGConnectionWrapper::TryConsumeInput(Deadline deadline, const PGresult* des
 
 void PGConnectionWrapper::ConsumeInput(Deadline deadline, const PGresult* description) {
     if (!TryConsumeInput(deadline, description)) {
-        if (engine::current_task::ShouldCancel()) {
-            throw ConnectionInterrupted("Task cancelled while consuming input");
+        std::string additional_info;
+        if (description) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+            const auto command_name = FindCommandName(PQcmdStatus(const_cast<PGresult*>(description)));
+            if (!command_name.empty()) {
+                additional_info = fmt::format(" for '{}' command", command_name);
+            }
         }
-        PGCW_LOG_LIMITED_WARNING() << "Timeout while consuming input from PostgreSQL connection socket";
-        throw ConnectionTimeoutError("Timed out while consuming input");
+
+        if (engine::current_task::ShouldCancel()) {
+            throw ConnectionInterrupted("Task cancelled while consuming input" + additional_info);
+        }
+
+        auto message = "Timeout while consuming input from PostgreSQL connection" + std::move(additional_info);
+        PGCW_LOG_LIMITED_WARNING() << message;
+        throw ConnectionTimeoutError(std::move(message));
     }
 }
 

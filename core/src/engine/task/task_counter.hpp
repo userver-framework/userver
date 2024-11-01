@@ -5,8 +5,8 @@
 
 #include <boost/range/adaptor/transformed.hpp>
 
-#include <concurrent/impl/interference_shield.hpp>
 #include <userver/concurrent/impl/asymmetric_fence.hpp>
+#include <userver/concurrent/impl/interference_shield.hpp>
 #include <userver/concurrent/impl/striped_read_indicator.hpp>
 #include <userver/concurrent/striped_counter.hpp>
 #include <userver/utils/fixed_array.hpp>

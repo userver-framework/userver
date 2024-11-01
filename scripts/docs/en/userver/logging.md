@@ -10,8 +10,9 @@ The userver framework addresses modern logging requirements and provides
 multiple facilities for efficient work with logs, including
 @ref scripts/docs/en/userver/log_level_running_service.md.
 
-Below are the intruductions to main developer logging facilities.
+Below are the introductions to main developer logging facilities.
 
+For information on controlling log level in unit tests see @ref scripts/docs/en/userver/testing.md
 
 ### Log level
 
@@ -300,7 +301,8 @@ logging:
             overflow_behavior: discard               
 ```
 
-**Note:** If you have additional loggers configured, they will function as usual, even if you're using the default logger for tracing only. But you can't redirect them to OTLP exporter.
+@note If you have additional loggers configured, they will function as usual, even if you're using the default
+      logger for tracing only. But you can't redirect them to OTLP exporter.
 
 ----------
 

@@ -33,10 +33,7 @@ Thread::Thread(const std::string& thread_name, UseDefaultEvLoop)
     : Thread(thread_name, EventLoop::EvLoopType::kDefaultLoop) {}
 
 Thread::Thread(const std::string& thread_name, EventLoop::EvLoopType ev_loop_type)
-    : event_loop_(ev_loop_type),
-      lock_(loop_mutex_, std::defer_lock),
-      name_{thread_name},
-      cpu_stats_storage_{kCpuStatsCollectInterval, kCpuStatsThrottle} {
+    : event_loop_(ev_loop_type), name_{thread_name}, cpu_stats_storage_{kCpuStatsCollectInterval, kCpuStatsThrottle} {
     UASSERT_MSG(kDeferredInterval > std::chrono::milliseconds{4}, "Timer events would happen too often");
     Start();
 }
@@ -123,7 +120,7 @@ void Thread::StopEventLoop() {
     ev_async_send(GetEvLoop(), &watch_break_);
     if (thread_.joinable()) thread_.join();
 
-    if (func_queue_.TryPop()) {
+    if (func_queue_.TryPopBlocking()) {
         utils::impl::AbortWithStacktrace("Some work was enqueued on a dead Thread");
     }
 }
@@ -155,7 +152,7 @@ void Thread::UpdateTimersWatcher(struct ev_loop* loop, ev_timer*, int) noexcept 
 }
 
 void Thread::UpdateLoopWatcherImpl() {
-    while (AsyncPayloadBase* payload = func_queue_.TryPop()) {
+    while (AsyncPayloadBase* payload = func_queue_.TryPopBlocking()) {
         LOG_TRACE() << "Thread::UpdateLoopWatcherImpl(), " << compiler::GetTypeName(typeid(*payload));
         try {
             payload->PerformAndRelease();
