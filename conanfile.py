@@ -136,6 +136,9 @@ class UserverConan(ConanFile):
             self.requires(
                 'grpc/1.54.3', transitive_headers=True, transitive_libs=True,
             )
+             self.requires(
+                'protobuf/3.21.12', transitive_headers=True, transitive_libs=True,
+            )
         if self.options.with_postgresql:
             self.requires('libpq/14.5')
         if self.options.with_mongodb or self.options.with_kafka:
