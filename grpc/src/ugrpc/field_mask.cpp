@@ -258,7 +258,7 @@ bool FieldMask::IsPathPartiallyIn(std::string_view path) const {
     if (path.empty() || IsLeaf()) return true;
     const Part root = GetRoot(path);
     const utils::OptionalRef<const ugrpc::FieldMask> child = GetMaskForField(root.part);
-    return child.has_value() ? child->IsPathFullyIn(path.substr(root.used_symbols)) : false;
+    return child.has_value() ? child->IsPathPartiallyIn(path.substr(root.used_symbols)) : false;
 }
 
 void FieldMask::Trim(google::protobuf::Message& message) const {
