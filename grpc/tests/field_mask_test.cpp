@@ -1019,8 +1019,8 @@ TEST(FieldMaskHasFieldName, MockFieldMask) {
     ugrpc::FieldMask mask(MakeGoogleFieldMask(kMockFieldMask));
     EXPECT_FALSE(mask.HasFieldName("something-weird"));
     EXPECT_TRUE(mask.HasFieldName("root1"));
-    EXPECT_TRUE(mask.GetMaskForField("root9").HasFieldName("*"));
-    EXPECT_TRUE(mask.GetMaskForField("root9").HasFieldName("some_key"));
+    EXPECT_TRUE(mask.GetMaskForField("root9")->HasFieldName("*"));
+    EXPECT_TRUE(mask.GetMaskForField("root9")->HasFieldName("some_key"));
 }
 
 TEST(FieldMaskHasFieldName, NonExistingChildOnLeaf) {
