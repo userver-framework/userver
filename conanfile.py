@@ -111,7 +111,7 @@ class UserverConan(ConanFile):
         self.requires('boost/1.86.0', transitive_headers=True)
         self.requires('c-ares/1.34.1')
         self.requires('cctz/2.4', transitive_headers=True)
-        self.requires('concurrentqueue/1.0.4', transitive_headers=True)
+        self.requires('concurrentqueue/1.0.3', transitive_headers=True)
         self.requires('cryptopp/8.9.0')
         self.requires('fmt/8.1.1', transitive_headers=True)
         self.requires('libnghttp2/1.61.0')
@@ -136,7 +136,7 @@ class UserverConan(ConanFile):
             self.requires(
                 'grpc/1.54.3', transitive_headers=True, transitive_libs=True,
             )
-             self.requires(
+            self.requires(
                 'protobuf/3.21.12', transitive_headers=True, transitive_libs=True,
             )
         if self.options.with_postgresql:
