@@ -62,6 +62,11 @@ class UserverConan(ConanFile):
         'namespace_begin': 'namespace userver {',
         'namespace_end': '}',
         'mongo-c-driver/*:with_sasl': 'cyrus',
+        'grpc/*:php_plugin': False,
+        'grpc/*:node_plugin': False,
+        'grpc/*:ruby_plugin': False,
+        'grpc/*:csharp_plugin': False,
+        'grpc/*:objective_c_plugin': False,
     }
 
     # scm = {
@@ -103,71 +108,61 @@ class UserverConan(ConanFile):
         cmake_layout(self)
 
     def requirements(self):
-        self.requires('boost/1.83.0', transitive_headers=True)
-        self.requires('c-ares/1.19.1')
-        self.requires('cctz/2.3', transitive_headers=True)
-        self.requires('concurrentqueue/1.0.3', transitive_headers=True)
-        self.requires('cryptopp/8.7.0')
+        self.requires('boost/1.86.0', transitive_headers=True)
+        self.requires('c-ares/1.34.1')
+        self.requires('cctz/2.4', transitive_headers=True)
+        self.requires('concurrentqueue/1.0.4', transitive_headers=True)
+        self.requires('cryptopp/8.9.0')
         self.requires('fmt/8.1.1', transitive_headers=True)
-        self.requires('libnghttp2/1.51.0')
-        self.requires('libcurl/7.86.0')
+        self.requires('libnghttp2/1.61.0')
+        self.requires('libcurl/8.10.1')
         self.requires('libev/4.33')
-        self.requires('openssl/3.3.1')
+        self.requires('openssl/3.2.2')
         self.requires('rapidjson/cci.20220822', transitive_headers=True)
-        self.requires('yaml-cpp/0.7.0')
+        self.requires('yaml-cpp/0.8.0')
         self.requires('zlib/1.3.1')
-        self.requires('zstd/1.5.6')
+        self.requires('zstd/1.5.5')
 
         if self.options.with_jemalloc:
             self.requires('jemalloc/5.3.0')
         if self.options.with_grpc or self.options.with_clickhouse:
             self.requires(
-                'abseil/20230125.3',
+                'abseil/20230802.1',
+                force=True,
                 transitive_headers=True,
                 transitive_libs=True,
             )
         if self.options.with_grpc:
             self.requires(
-                'grpc/1.48.4', transitive_headers=True, transitive_libs=True,
+                'grpc/1.54.3', transitive_headers=True, transitive_libs=True,
             )
-            self.requires(
-                'googleapis/cci.20230501',
-                transitive_headers=True,
-                transitive_libs=True,
-            )
-            self.requires(
-                'grpc-proto/cci.20220627',
-                transitive_headers=True,
-                transitive_libs=True,
-            )
-            self.requires('protobuf/3.21.12', force=True)
         if self.options.with_postgresql:
             self.requires('libpq/14.5')
         if self.options.with_mongodb or self.options.with_kafka:
-            self.requires('cyrus-sasl/2.1.27', force=True)
+            self.requires('cyrus-sasl/2.1.28', force=True)
         if self.options.with_mongodb:
             self.requires(
-                'mongo-c-driver/1.27.6',
+                'mongo-c-driver/1.28.0',
                 transitive_headers=True,
                 transitive_libs=True,
             )
         if self.options.with_redis:
-            self.requires('hiredis/1.0.2')
+            self.requires('hiredis/1.2.0')
         if self.options.with_rabbitmq:
-            self.requires('amqp-cpp/4.3.16')
+            self.requires('amqp-cpp/4.3.26')
         if self.options.with_clickhouse:
-            self.requires('clickhouse-cpp/2.4.0')
+            self.requires('clickhouse-cpp/2.5.1')
         if self.options.with_utest:
             self.requires(
-                'gtest/1.12.1', transitive_headers=True, transitive_libs=True,
+                'gtest/1.15.0', transitive_headers=True, transitive_libs=True,
             )
             self.requires(
-                'benchmark/1.6.2',
+                'benchmark/1.9.0',
                 transitive_headers=True,
                 transitive_libs=True,
             )
         if self.options.with_kafka:
-            self.requires('librdkafka/2.4.0')
+            self.requires('librdkafka/2.6.0')
 
     def validate(self):
         if self.settings.os == 'Windows':
@@ -275,6 +270,13 @@ class UserverConan(ConanFile):
             copy(
                 self,
                 pattern='*.a',
+                dst=os.path.join(self.package_folder, 'lib'),
+                src=os.path.join(self._build_subfolder, component),
+                keep_path=False,
+            )
+            copy(
+                self,
+                pattern='*.so',
                 dst=os.path.join(self.package_folder, 'lib'),
                 src=os.path.join(self._build_subfolder, component),
                 keep_path=False,
@@ -664,9 +666,6 @@ class UserverConan(ConanFile):
                 if cmake_component == 'grpc':
                     self.cpp_info.components[conan_component].libs.append(
                         get_lib_name('grpc-internal'),
-                    )
-                    self.cpp_info.components[conan_component].libs.append(
-                        get_lib_name('grpc-proto'),
                     )
                 else:
                     self.cpp_info.components[conan_component].libs = [lib_name]
