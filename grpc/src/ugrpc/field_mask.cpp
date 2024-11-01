@@ -296,7 +296,7 @@ void FieldMask::TrimNoValidate(google::protobuf::Message& message) const {
                 UINVARIANT(entry, "entry is nullptr");
 
                 const std::string key = GetMapKeyAsString(*entry);
-                const utils::OptionalRef<const ugrpc::FieldMask> value_mask_ref = GetMaskForField(key);
+                const utils::OptionalRef<const ugrpc::FieldMask> value_mask_ref = nested_mask.GetMaskForField(key);
 
                 if (!value_mask_ref.has_value()) {
                     // The map key is not in the field mask.
