@@ -147,8 +147,8 @@ sample::ugrpc::MessageWithDifferentTypes ConstructMessage(bool with_recursive = 
     *message.mutable_optional_nested() = ConstructNestedMessage();
 
     if (with_recursive) {
-        message->set_allocated_required_recursive(ConstructMessage(false));
-        message->set_allocated_optional_recursive(ConstructMessage(false));
+        *message.mutable_required_recursive() = ConstructMessage(false);
+        *message.mutable_optional_recursive() = ConstructMessage(false);
     }
 
     message.add_repeated_primitive("string1");
