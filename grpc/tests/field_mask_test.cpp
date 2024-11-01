@@ -147,8 +147,8 @@ sample::ugrpc::MessageWithDifferentTypes ConstructMessage(bool with_recursive = 
     *message.mutable_optional_nested() = ConstructNestedMessage();
 
     if (with_recursive) {
-        *message.mutable_required_recursive() = ConstructMessage(false);
-        *message.mutable_optional_recursive() = ConstructMessage(false);
+        message->set_allocated_required_recursive(ConstructMessage(false));
+        message->set_allocated_optional_recursive(ConstructMessage(false));
     }
 
     message.add_repeated_primitive("string1");
@@ -742,6 +742,9 @@ TEST(FieldMaskIsPathFullyIn, MockFieldMask) {
     EXPECT_TRUE(field_mask.IsPathFullyIn("root9.*.field.subfield2"));
     EXPECT_FALSE(field_mask.IsPathFullyIn("root9.*.field2.subfield1"));
     EXPECT_FALSE(field_mask.IsPathFullyIn("root9.*.field2.subfield2"));
+    EXPECT_FALSE(field_mask.IsPathFullyIn("root9.some_key"));
+    EXPECT_TRUE(field_mask.IsPathFullyIn("root9.some_key.field"));
+    EXPECT_TRUE(field_mask.IsPathFullyIn("root9.some_key.field.subfield1"));
 }
 
 TEST(FieldMaskIsPathFullyIn, EmptyMask) {
@@ -856,6 +859,9 @@ TEST(FieldMaskIsPathPartiallyIn, MockFieldMask) {
     EXPECT_TRUE(field_mask.IsPathPartiallyIn("root9.*.field.subfield2"));
     EXPECT_FALSE(field_mask.IsPathPartiallyIn("root9.*.field2.subfield1"));
     EXPECT_FALSE(field_mask.IsPathPartiallyIn("root9.*.field2.subfield2"));
+    EXPECT_TRUE(field_mask.IsPathPartiallyIn("root9.some_key"));
+    EXPECT_TRUE(field_mask.IsPathPartiallyIn("root9.some_key.field"));
+    EXPECT_TRUE(field_mask.IsPathPartiallyIn("root9.some_key.field.subfield1"));
 }
 
 TEST(FieldMaskIsPathPartiallyIn, EmptyMask) {
@@ -1013,6 +1019,8 @@ TEST(FieldMaskHasFieldName, MockFieldMask) {
     ugrpc::FieldMask mask(MakeGoogleFieldMask(kMockFieldMask));
     EXPECT_FALSE(mask.HasFieldName("something-weird"));
     EXPECT_TRUE(mask.HasFieldName("root1"));
+    EXPECT_TRUE(mask.GetMaskForField("root9").HasFieldName("*"));
+    EXPECT_TRUE(mask.GetMaskForField("root9").HasFieldName("some_key"));
 }
 
 TEST(FieldMaskHasFieldName, NonExistingChildOnLeaf) {
