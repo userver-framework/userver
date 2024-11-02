@@ -115,7 +115,7 @@ class UserverConan(ConanFile):
         self.requires('cryptopp/8.9.0')
         self.requires('fmt/8.1.1', transitive_headers=True)
         self.requires('libnghttp2/1.61.0')
-        self.requires('libcurl/7.68.0')
+        self.requires('libcurl/7.86.0')
         self.requires('libev/4.33')
         self.requires('openssl/3.3.2')
         self.requires('rapidjson/cci.20220822', transitive_headers=True)
@@ -306,9 +306,9 @@ class UserverConan(ConanFile):
             copy(
                 self,
                 pattern='*pb.h',
-                dst=os.path.join(self.package_folder, 'include', 'google'),
+                dst=os.path.join(self.package_folder, 'include'),
                 src=os.path.join(
-                    self._build_subfolder, 'grpc', 'proto', 'google',
+                    self._build_subfolder, 'grpc', 'proto',
                 ),
                 keep_path=True,
             )
