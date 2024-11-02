@@ -28,15 +28,16 @@ namespace {
 #define DISABLE_IF_OLD_PROTOBUF_TEST(test_suite, name) TEST(test_suite, DISABLED_##name)
 #endif
 
-const std::vector<std::string> kSmallFieldMask = {"abc.`def.gh`.qc gh", "value.field"};
+// The weird characters are important to test whether WebSafeBase64 actually works.
+const std::vector<std::string> kSmallFieldMask = {"abc.`def.gh`.qc gh+ûï¾", "value.field"};
 
 // These should be equivalent. Depends on the order of paths in the mask.
-const std::string kSmallFieldMaskCommaSeparatedString1 = "abc.`def.gh`.qc gh,value.field";
-const std::string kSmallFieldMaskCommaSeparatedString2 = "value.field,abc.`def.gh`.qc gh";
+const std::string kSmallFieldMaskCommaSeparatedString1 = "abc.`def.gh`.qc gh+ûï¾,value.field";
+const std::string kSmallFieldMaskCommaSeparatedString2 = "value.field,abc.`def.gh`.qc gh+ûï¾";
 
 // These should be equivalent. Depends on the order of paths in the mask.
-const std::string kSmallFieldMaskWebSafeBase64String1 = "YWJjLmBkZWYuZ2hgLnFjIGdoLHZhbHVlLmZpZWxk";
-const std::string kSmallFieldMaskWebSafeBase64String2 = "dmFsdWUuZmllbGQsYWJjLmBkZWYuZ2hgLnFjIGdo";
+const std::string kSmallFieldMaskWebSafeBase64String1 = "YWJjLmBkZWYuZ2hgLnFjIGdoK8O7w6_Cvix2YWx1ZS5maWVsZA==";
+const std::string kSmallFieldMaskWebSafeBase64String2 = "dmFsdWUuZmllbGQsYWJjLmBkZWYuZ2hgLnFjIGdoK8O7w6_Cvg==";
 
 void EnsureEqualToSmallMask(const ugrpc::FieldMask& field_mask) {
     EXPECT_FALSE(field_mask.IsLeaf());
@@ -48,9 +49,9 @@ void EnsureEqualToSmallMask(const ugrpc::FieldMask& field_mask) {
 
     const ugrpc::FieldMask& defgh = abc.GetMaskForField("def.gh").value();
     EXPECT_FALSE(defgh.IsLeaf());
-    EXPECT_THAT(defgh.GetFieldNames(), testing::UnorderedElementsAreArray({"qc gh"}));
+    EXPECT_THAT(defgh.GetFieldNames(), testing::UnorderedElementsAreArray({"qc gh+ûï¾"}));
 
-    const ugrpc::FieldMask& qcgh = defgh.GetMaskForField("qc gh").value();
+    const ugrpc::FieldMask& qcgh = defgh.GetMaskForField("qc gh+ûï¾").value();
     EXPECT_TRUE(qcgh.IsLeaf());
     EXPECT_THAT(qcgh.GetFieldNamesList(), testing::IsEmpty());
 
@@ -125,15 +126,6 @@ google::protobuf::FieldMask MakeGoogleFieldMask(const std::vector<std::string>& 
     return field_mask;
 }
 
-sample::ugrpc::MessageWithDifferentTypes::NestedMessage* ConstructNestedMessagePtr() {
-    auto* message = new sample::ugrpc::MessageWithDifferentTypes::NestedMessage();
-    message->set_required_string("string1");
-    message->set_optional_string("string2");
-    message->set_required_int(123321);
-    message->set_optional_int(456654);
-    return message;
-}
-
 sample::ugrpc::MessageWithDifferentTypes::NestedMessage ConstructNestedMessage() {
     sample::ugrpc::MessageWithDifferentTypes::NestedMessage message;
     message.set_required_string("string1");
@@ -143,47 +135,47 @@ sample::ugrpc::MessageWithDifferentTypes::NestedMessage ConstructNestedMessage()
     return message;
 }
 
-sample::ugrpc::MessageWithDifferentTypes* ConstructMessage(bool with_recursive = true) {
-    auto* message = new sample::ugrpc::MessageWithDifferentTypes();
+sample::ugrpc::MessageWithDifferentTypes ConstructMessage(bool with_recursive = true) {
+    sample::ugrpc::MessageWithDifferentTypes message;
 
     // leave required_string empty
-    message->set_optional_string("string2");
+    message.set_optional_string("string2");
 
-    message->set_required_int(123321);
-    message->set_optional_int(456654);
+    message.set_required_int(123321);
+    message.set_optional_int(456654);
 
-    message->set_allocated_required_nested(ConstructNestedMessagePtr());
-    message->set_allocated_optional_nested(ConstructNestedMessagePtr());
+    *message.mutable_required_nested() = ConstructNestedMessage();
+    *message.mutable_optional_nested() = ConstructNestedMessage();
 
     if (with_recursive) {
-        message->set_allocated_required_recursive(ConstructMessage(false));
-        message->set_allocated_optional_recursive(ConstructMessage(false));
+        *message.mutable_required_recursive() = ConstructMessage(false);
+        *message.mutable_optional_recursive() = ConstructMessage(false);
     }
 
-    message->add_repeated_primitive("string1");
-    message->add_repeated_primitive("string2");
-    message->add_repeated_primitive("string3");
+    message.add_repeated_primitive("string1");
+    message.add_repeated_primitive("string2");
+    message.add_repeated_primitive("string3");
 
-    message->mutable_repeated_message()->Add(ConstructNestedMessage());
-    message->mutable_repeated_message()->Add(ConstructNestedMessage());
-    message->mutable_repeated_message()->Add(ConstructNestedMessage());
+    message.mutable_repeated_message()->Add(ConstructNestedMessage());
+    message.mutable_repeated_message()->Add(ConstructNestedMessage());
+    message.mutable_repeated_message()->Add(ConstructNestedMessage());
 
     // No key1
-    message->mutable_primitives_map()->insert({"key2", "value2"});
-    message->mutable_primitives_map()->insert({"key3", "value3"});
+    message.mutable_primitives_map()->insert({"key2", "value2"});
+    message.mutable_primitives_map()->insert({"key3", "value3"});
 
-    message->mutable_nested_map()->insert({"key1", ConstructNestedMessage()});
-    message->mutable_nested_map()->insert({"key2", ConstructNestedMessage()});
-    message->mutable_nested_map()->insert({"key3", ConstructNestedMessage()});
-    message->mutable_nested_map()->insert({"key1 value1", ConstructNestedMessage()});
+    message.mutable_nested_map()->insert({"key1", ConstructNestedMessage()});
+    message.mutable_nested_map()->insert({"key2", ConstructNestedMessage()});
+    message.mutable_nested_map()->insert({"key3", ConstructNestedMessage()});
+    message.mutable_nested_map()->insert({"key1 value1", ConstructNestedMessage()});
     // No key2.value2
-    message->mutable_nested_map()->insert({"key3.value3 field3", ConstructNestedMessage()});
+    message.mutable_nested_map()->insert({"key3.value3 field3", ConstructNestedMessage()});
 
     // leave oneof_string empty
-    message->set_oneof_int(789987);
+    message.set_oneof_int(789987);
     // leave oneof_nested empty
 
-    message->mutable_google_value()->set_string_value("string");
+    message.mutable_google_value()->set_string_value("string");
 
     return message;
 }
@@ -751,6 +743,9 @@ TEST(FieldMaskIsPathFullyIn, MockFieldMask) {
     EXPECT_TRUE(field_mask.IsPathFullyIn("root9.*.field.subfield2"));
     EXPECT_FALSE(field_mask.IsPathFullyIn("root9.*.field2.subfield1"));
     EXPECT_FALSE(field_mask.IsPathFullyIn("root9.*.field2.subfield2"));
+    EXPECT_FALSE(field_mask.IsPathFullyIn("root9.some_key"));
+    EXPECT_TRUE(field_mask.IsPathFullyIn("root9.some_key.field"));
+    EXPECT_TRUE(field_mask.IsPathFullyIn("root9.some_key.field.subfield1"));
 }
 
 TEST(FieldMaskIsPathFullyIn, EmptyMask) {
@@ -865,6 +860,9 @@ TEST(FieldMaskIsPathPartiallyIn, MockFieldMask) {
     EXPECT_TRUE(field_mask.IsPathPartiallyIn("root9.*.field.subfield2"));
     EXPECT_FALSE(field_mask.IsPathPartiallyIn("root9.*.field2.subfield1"));
     EXPECT_FALSE(field_mask.IsPathPartiallyIn("root9.*.field2.subfield2"));
+    EXPECT_TRUE(field_mask.IsPathPartiallyIn("root9.some_key"));
+    EXPECT_TRUE(field_mask.IsPathPartiallyIn("root9.some_key.field"));
+    EXPECT_TRUE(field_mask.IsPathPartiallyIn("root9.some_key.field.subfield1"));
 }
 
 TEST(FieldMaskIsPathPartiallyIn, EmptyMask) {
@@ -990,16 +988,14 @@ TEST(FieldMaskTrim, TrivialMessage) {
 
 DISABLE_IF_OLD_PROTOBUF_TEST(FieldMaskTrim, SimpleFieldMask) {
     auto message = ConstructMessage();
-    ugrpc::FieldMask(MakeGoogleFieldMask(kSimpleFieldMask)).Trim(*message);
-    Compare(*message, ConstructTrimmedSimple());
-    delete message;
+    ugrpc::FieldMask(MakeGoogleFieldMask(kSimpleFieldMask)).Trim(message);
+    Compare(message, ConstructTrimmedSimple());
 }
 
 DISABLE_IF_OLD_PROTOBUF_TEST(FieldMaskTrim, HardFieldMask) {
     auto message = ConstructMessage();
-    ugrpc::FieldMask(MakeGoogleFieldMask(kHardFieldMask)).Trim(*message);
-    Compare(*message, ConstructTrimmedHard());
-    delete message;
+    ugrpc::FieldMask(MakeGoogleFieldMask(kHardFieldMask)).Trim(message);
+    Compare(message, ConstructTrimmedHard());
 }
 
 TEST(FieldMaskGetMaskForField, NonExistingChild) {
@@ -1024,6 +1020,8 @@ TEST(FieldMaskHasFieldName, MockFieldMask) {
     ugrpc::FieldMask mask(MakeGoogleFieldMask(kMockFieldMask));
     EXPECT_FALSE(mask.HasFieldName("something-weird"));
     EXPECT_TRUE(mask.HasFieldName("root1"));
+    EXPECT_TRUE(mask.GetMaskForField("root9")->HasFieldName("*"));
+    EXPECT_TRUE(mask.GetMaskForField("root9")->HasFieldName("some_key"));
 }
 
 TEST(FieldMaskHasFieldName, NonExistingChildOnLeaf) {

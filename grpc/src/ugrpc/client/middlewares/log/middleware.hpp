@@ -10,14 +10,14 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::client::middlewares::log {
 
 struct Settings {
+    /// gRPC logging level
+    logging::Level log_level{logging::Level::kDebug};
+
     /// Max gRPC message size, the rest will be truncated
     std::size_t max_msg_size{512};
 
     /// gRPC message body logging level
     logging::Level msg_log_level{logging::Level::kDebug};
-
-    /// gRPC logging level
-    logging::Level log_level{logging::Level::kDebug};
 
     /// Whether to trim the fields marked as secret from the message
     bool trim_secrets{true};

@@ -13,11 +13,11 @@
 #include <google/protobuf/reflection.h>
 #include <google/protobuf/stubs/common.h>
 #include <google/protobuf/stubs/port.h>
-#include <google/protobuf/stubs/strutil.h>
 #include <google/protobuf/util/field_mask_util.h>
 #include <grpcpp/support/config.h>
 
 #include <ugrpc/impl/protobuf_utils.hpp>
+#include <userver/crypto/base64.hpp>
 #include <userver/ugrpc/protobuf_visit.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/text_light.hpp>
@@ -91,14 +91,10 @@ std::string GetMapKeyAsString(const google::protobuf::Message& entry) {
 
 google::protobuf::FieldMask RawFromString(std::string_view string, FieldMask::Encoding encoding) {
     google::protobuf::FieldMask out;
-    ::grpc::string base64_tmp;
+    std::string base64_tmp;
     switch (encoding) {
         case FieldMask::Encoding::kWebSafeBase64:
-#if GOOGLE_PROTOBUF_VERSION >= 3018000
-            google::protobuf::WebSafeBase64Unescape(string, &base64_tmp);
-#else
-            google::protobuf::WebSafeBase64Unescape(::grpc::string(string), &base64_tmp);
-#endif
+            base64_tmp = crypto::base64::Base64UrlDecode(string);
             string = base64_tmp;
             [[fallthrough]];
         case FieldMask::Encoding::kCommaSeparated:
@@ -115,13 +111,10 @@ google::protobuf::FieldMask RawFromString(std::string_view string, FieldMask::En
 }
 
 std::string RawToString(const google::protobuf::FieldMask& field_mask, FieldMask::Encoding encoding) {
-    const auto comma_separated = google::protobuf::util::FieldMaskUtil::ToString(field_mask);
+    auto comma_separated = google::protobuf::util::FieldMaskUtil::ToString(field_mask);
     if (encoding == FieldMask::Encoding::kCommaSeparated) return comma_separated;
     UINVARIANT(encoding == FieldMask::Encoding::kWebSafeBase64, "Unknown encoding");
-
-    ::grpc::string base64_encoded;
-    google::protobuf::WebSafeBase64Escape(comma_separated, &base64_encoded);
-    return base64_encoded;
+    return crypto::base64::Base64UrlEncode(comma_separated, crypto::base64::Pad::kWith);
 }
 
 }  // namespace
@@ -250,17 +243,15 @@ void FieldMask::CheckValidity(const google::protobuf::Descriptor* descriptor) co
 bool FieldMask::IsPathFullyIn(std::string_view path) const {
     if (path.empty() || IsLeaf()) return IsLeaf();
     const Part root = GetRoot(path);
-    const auto it = utils::impl::FindTransparent(*children_, root.part);
-    if (it == children_->end()) return false;
-    return it->second.IsPathFullyIn(path.substr(root.used_symbols));
+    const utils::OptionalRef<const ugrpc::FieldMask> child = GetMaskForField(root.part);
+    return child.has_value() ? child->IsPathFullyIn(path.substr(root.used_symbols)) : false;
 }
 
 bool FieldMask::IsPathPartiallyIn(std::string_view path) const {
     if (path.empty() || IsLeaf()) return true;
     const Part root = GetRoot(path);
-    const auto it = utils::impl::FindTransparent(*children_, root.part);
-    if (it == children_->end()) return false;
-    return it->second.IsPathPartiallyIn(path.substr(root.used_symbols));
+    const utils::OptionalRef<const ugrpc::FieldMask> child = GetMaskForField(root.part);
+    return child.has_value() ? child->IsPathPartiallyIn(path.substr(root.used_symbols)) : false;
 }
 
 void FieldMask::Trim(google::protobuf::Message& message) const {
@@ -278,13 +269,13 @@ void FieldMask::TrimNoValidate(google::protobuf::Message& message) const {
     UINVARIANT(reflection, "reflection is nullptr");
 
     VisitFields(message, [&](google::protobuf::Message&, const google::protobuf::FieldDescriptor& field) {
-        const auto it = utils::impl::FindTransparent(*children_, field.name());
-        if (it == children_->end()) {
+        const utils::OptionalRef<const ugrpc::FieldMask> nested_mask_ref = GetMaskForField(field.name());
+        if (!nested_mask_ref.has_value()) {
             // The field is not in the field mask. Remove it.
             return reflection->ClearField(&message, &field);
         }
 
-        const FieldMask& nested_mask = it->second;
+        const FieldMask& nested_mask = nested_mask_ref.value();
         if (nested_mask.IsLeaf()) {
             // The field must not be masked
             return;
@@ -293,18 +284,14 @@ void FieldMask::TrimNoValidate(google::protobuf::Message& message) const {
         if (field.is_map()) {
             const google::protobuf::MutableRepeatedFieldRef<google::protobuf::Message> map =
                 reflection->GetMutableRepeatedFieldRef<google::protobuf::Message>(&message, &field);
-
-            const auto star_mask_it = nested_mask.children_->find("*");
             for (int i = 0; i < map.size(); ++i) {
                 google::protobuf::Message* entry = reflection->MutableRepeatedMessage(&message, &field, i);
                 UINVARIANT(entry, "entry is nullptr");
 
                 const std::string key = GetMapKeyAsString(*entry);
-                const auto value_mask_it = utils::impl::FindTransparent(*nested_mask.children_, key);
+                const utils::OptionalRef<const ugrpc::FieldMask> value_mask_ref = nested_mask.GetMaskForField(key);
 
-                const auto& actual_mask_it =
-                    value_mask_it != nested_mask.children_->end() ? value_mask_it : star_mask_it;
-                if (actual_mask_it == nested_mask.children_->end()) {
+                if (!value_mask_ref.has_value()) {
                     // The map key is not in the field mask.
                     // Remove the record by putting it to the back of the array.
                     //
@@ -315,8 +302,7 @@ void FieldMask::TrimNoValidate(google::protobuf::Message& message) const {
                     continue;
                 }
 
-                const FieldMask& actual_mask = actual_mask_it->second;
-                if (actual_mask.IsLeaf()) continue;
+                if (value_mask_ref->IsLeaf()) continue;
 
                 // The map key has a mask for the value
                 const google::protobuf::Descriptor* entry_desc = field.message_type();
@@ -331,7 +317,7 @@ void FieldMask::TrimNoValidate(google::protobuf::Message& message) const {
 
                 google::protobuf::Message* value_msg = entry_reflection->MutableMessage(entry, map_value);
                 UINVARIANT(value_msg, "value_msg is nullptr");
-                actual_mask.TrimNoValidate(*value_msg);
+                value_mask_ref->TrimNoValidate(*value_msg);
             }
         } else if (field.is_repeated()) {
             constexpr std::string_view kBadRepeatedMask = "A non-leaf field mask for an array can contain only *";
@@ -365,9 +351,7 @@ std::vector<std::string_view> FieldMask::GetFieldNamesList() const {
     return std::vector<std::string_view>(view.cbegin(), view.cend());
 }
 
-bool FieldMask::HasFieldName(std::string_view field) const {
-    return IsLeaf() || utils::impl::FindTransparent(*children_, field) != children_->end();
-}
+bool FieldMask::HasFieldName(std::string_view field) const { return GetMaskForField(field).has_value(); }
 
 utils::OptionalRef<const FieldMask> FieldMask::GetMaskForField(std::string_view field) const {
     if (IsLeaf()) {

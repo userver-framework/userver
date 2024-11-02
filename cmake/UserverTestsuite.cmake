@@ -520,7 +520,7 @@ function(userver_add_ubench_test)
     set(BENCHMARK_VERSION ${UserverGBench_VERSION})
   endif()
 
-  if(${BENCHMARK_VERSION} VERSION_LESS "1.8.0")
+  if(BENCHMARK_VERSION VERSION_LESS "1.8.0")
     set(BENCHMARK_MIN_TIME "0")
   else()
     set(BENCHMARK_MIN_TIME "0.0s")

@@ -2,7 +2,7 @@
 
 #include <userver/logging/log_extra.hpp>
 
-#include <ugrpc/impl/protobuf_utils.hpp>
+#include <ugrpc/impl/logging.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -14,16 +14,11 @@ bool IsSingleRequest(CallKind kind) { return CallKind::kUnaryCall == kind || Cal
 
 bool IsSingleResponse(CallKind kind) { return CallKind::kUnaryCall == kind || CallKind::kOutputStream == kind; }
 
-std::string ToLogString(const google::protobuf::Message& message, const Settings& settings) {
-    if (logging::ShouldLog(settings.msg_log_level)) {
-        if (settings.trim_secrets) {
-            return ugrpc::impl::ToLogString(message, settings.max_msg_size);
-        } else {
-            return ugrpc::impl::ToString(message, settings.max_msg_size);
-        }
-    } else {
-        return "hidden by log level";
-    }
+std::string GetMessageForLogging(const google::protobuf::Message& message, const Settings& settings) {
+    return ugrpc::impl::GetMessageForLogging(
+        message,
+        ugrpc::impl::MessageLoggingOptions{settings.msg_log_level, settings.max_msg_size, settings.trim_secrets}
+    );
 }
 
 class SpanLogger {
@@ -59,7 +54,7 @@ void Middleware::PreStartCall(MiddlewareCallContext& context) const {
 
 void Middleware::PreSendMessage(MiddlewareCallContext& context, const google::protobuf::Message& message) const {
     SpanLogger logger{context.GetSpan(), settings_.log_level};
-    logging::LogExtra extra{{"grpc_type", "request"}, {"body", ToLogString(message, settings_)}};
+    logging::LogExtra extra{{"grpc_type", "request"}, {"body", GetMessageForLogging(message, settings_)}};
     if (IsSingleRequest(context.GetCallKind())) {
         logger.Log("gRPC request", std::move(extra));
     } else {
@@ -69,7 +64,7 @@ void Middleware::PreSendMessage(MiddlewareCallContext& context, const google::pr
 
 void Middleware::PostRecvMessage(MiddlewareCallContext& context, const google::protobuf::Message& message) const {
     SpanLogger logger{context.GetSpan(), settings_.log_level};
-    logging::LogExtra extra{{"grpc_type", "response"}, {"body", ToLogString(message, settings_)}};
+    logging::LogExtra extra{{"grpc_type", "response"}, {"body", GetMessageForLogging(message, settings_)}};
     if (IsSingleResponse(context.GetCallKind())) {
         logger.Log("gRPC response", std::move(extra));
     } else {

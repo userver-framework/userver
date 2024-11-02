@@ -3,7 +3,7 @@
 #include <userver/engine/async.hpp>
 #include <userver/utils/algo.hpp>
 
-#include <ugrpc/impl/logging.hpp>
+#include <ugrpc/impl/grpc_native_logging.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

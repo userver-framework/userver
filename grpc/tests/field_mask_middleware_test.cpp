@@ -2,7 +2,6 @@
 
 #include <google/protobuf/empty.pb.h>
 #include <google/protobuf/field_mask.pb.h>
-#include <google/protobuf/stubs/strutil.h>
 #include <google/protobuf/util/field_mask_util.h>
 #include <google/protobuf/util/message_differencer.h>
 #include <grpcpp/client_context.h>
@@ -11,6 +10,7 @@
 #include <gtest/gtest.h>
 
 #include <ugrpc/server/middlewares/field_mask/middleware.hpp>
+#include <userver/crypto/base64.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/field_mask.hpp>
 #include <userver/ugrpc/tests/service_fixtures.hpp>
@@ -88,8 +88,7 @@ std::unique_ptr<::grpc::ClientContext> AddFieldMask(
 ) {
     ::grpc::string base64_encoded;
     const auto comma_separated = google::protobuf::util::FieldMaskUtil::ToString(field_mask);
-    google::protobuf::WebSafeBase64Escape(comma_separated, &base64_encoded);
-    context->AddMetadata("field-mask", base64_encoded);
+    context->AddMetadata("field-mask", crypto::base64::Base64UrlEncode(comma_separated));
     return context;
 }
 

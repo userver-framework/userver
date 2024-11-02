@@ -19,10 +19,12 @@ if (NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
     endif()
 endif()
 
+set(UserverGBench_VERSION "1.6.1")
+
 include(DownloadUsingCPM)
 CPMAddPackage(
     NAME benchmark
-    VERSION 1.6.1
+    VERSION ${UserverGBench_VERSION}
     GITHUB_REPOSITORY google/benchmark
     OPTIONS
     "BENCHMARK_ENABLE_TESTING OFF"
