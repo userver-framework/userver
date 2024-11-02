@@ -109,15 +109,15 @@ class UserverConan(ConanFile):
 
     def requirements(self):
         self.requires('boost/1.86.0', transitive_headers=True)
-        self.requires('c-ares/1.34.1')
+        self.requires('c-ares/1.33.1')
         self.requires('cctz/2.4', transitive_headers=True)
         self.requires('concurrentqueue/1.0.3', transitive_headers=True)
         self.requires('cryptopp/8.9.0')
         self.requires('fmt/8.1.1', transitive_headers=True)
         self.requires('libnghttp2/1.61.0')
-        self.requires('libcurl/8.10.1')
+        self.requires('libcurl/7.68.0')
         self.requires('libev/4.33')
-        self.requires('openssl/3.2.2')
+        self.requires('openssl/3.3.2')
         self.requires('rapidjson/cci.20220822', transitive_headers=True)
         self.requires('yaml-cpp/0.8.0')
         self.requires('zlib/1.3.1')
@@ -127,21 +127,15 @@ class UserverConan(ConanFile):
             self.requires('jemalloc/5.3.0')
         if self.options.with_grpc or self.options.with_clickhouse:
             self.requires(
-                'abseil/20230802.1',
+                'abseil/20240116.2',
                 force=True,
             )
         if self.options.with_grpc:
             self.requires(
-                'grpc/1.54.3', transitive_headers=True, transitive_libs=True,
+                'grpc/1.65.0', transitive_headers=True, transitive_libs=True,
             )
             self.requires(
-                'grpc-proto/cci.20220627', transitive_headers=True, transitive_libs=True,
-            )
-            self.requires(
-                'googleapis/cci.20230501', transitive_headers=True, transitive_libs=True,
-            )
-            self.requires(
-                'protobuf/3.21.12', transitive_headers=True, transitive_libs=True,
+                'protobuf/5.27.0, transitive_headers=True, transitive_libs=True,
             )
         if self.options.with_postgresql:
             self.requires('libpq/14.5')
@@ -311,6 +305,15 @@ class UserverConan(ConanFile):
             )
             copy(
                 self,
+                pattern='*pb.h',
+                dst=os.path.join(self.package_folder, 'include', 'google'),
+                src=os.path.join(
+                    self._build_subfolder, 'grpc', 'proto', 'google',
+                ),
+                keep_path=True,
+            )
+            copy(
+                self,
                 pattern='GrpcTargets.cmake',
                 dst=os.path.join(self.package_folder, 'cmake'),
                 src=os.path.join(self.source_folder, 'cmake'),
@@ -446,12 +449,6 @@ class UserverConan(ConanFile):
         def grpc():
             return ['grpc::grpc'] if self.options.with_grpc else []
 
-        def googleapis():
-            return ['googleapis::googleapis'] if self.options.with_grpc else []
-
-        def grpcproto():
-            return ['grpc-proto::grpc-proto'] if self.options.with_grpc else []
-
         def protobuf():
             return ['protobuf::protobuf'] if self.options.with_grpc else []
 
@@ -544,8 +541,6 @@ class UserverConan(ConanFile):
                         ['core']
                         + grpc()
                         + protobuf()
-                        + googleapis()
-                        + grpcproto()
                     ),
                 },
                 {
@@ -669,6 +664,9 @@ class UserverConan(ConanFile):
                     )
                     self.cpp_info.components[conan_component].libs.append(
                         get_lib_name('grpc-proto'),
+                    )
+                    self.cpp_info.components[conan_component].libs.append(
+                        get_lib_name('api-common-protos'),
                     )
                 else:
                     self.cpp_info.components[conan_component].libs = [lib_name]
