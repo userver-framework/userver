@@ -135,7 +135,7 @@ class UserverConan(ConanFile):
                 'grpc/1.65.0', transitive_headers=True, transitive_libs=True,
             )
             self.requires(
-                'protobuf/5.27.0, transitive_headers=True, transitive_libs=True,
+                'protobuf/5.27.0', transitive_headers=True, transitive_libs=True,
             )
         if self.options.with_postgresql:
             self.requires('libpq/14.5')
