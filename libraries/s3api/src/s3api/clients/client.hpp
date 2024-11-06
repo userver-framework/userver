@@ -72,6 +72,22 @@ public:
         const HeaderDataRequest& headers_request = HeaderDataRequest()
     ) const final;
 
+    std::optional<std::string> GetPartialObject(
+        std::string_view path,
+        std::string_view range,
+        std::optional<std::string> version = std::nullopt,
+        HeadersDataResponse* headers_data = nullptr,
+        const HeaderDataRequest& headers_request = HeaderDataRequest()
+    ) const final;
+
+    std::string TryGetPartialObject(
+        std::string_view path,
+        std::string_view range,
+        std::optional<std::string> version = std::nullopt,
+        HeadersDataResponse* headers_data = nullptr,
+        const HeaderDataRequest& headers_request = HeaderDataRequest()
+    ) const final;
+
     std::string CopyObject(
         std::string_view key_from,
         std::string_view bucket_to,

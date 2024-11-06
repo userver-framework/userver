@@ -67,6 +67,12 @@ const std::string kSecdistYaml =
     another username: drowssap rehtona
   )~";  /// [Secdist Usage Sample - yaml]
 
+const std::string kSecdistYamlConfig =
+    /** [Secdist Usage Sample - yaml_config] */ R"~(
+  user-passwords:
+    username#env: PASSWORD_ENV
+    another username: drowssap rehtona
+  )~";  /// [Secdist Usage Sample - yaml_config]
 }  // namespace
 
 TEST(SecdistConfig, Sample) {
@@ -100,6 +106,34 @@ TEST(SecdistYamlConfig, Sample) {
     EXPECT_TRUE(user_passwords.IsMatching("username", password));
     EXPECT_FALSE(user_passwords.IsMatching("username2", password));
     EXPECT_TRUE(user_passwords.IsMatching("another username", another_password));
+}
+
+UTEST(SecdistYamlConfigConfig, Sample) {
+    static const std::string kVarName = "PASSWORD_ENV";
+
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    ASSERT_EQ(setenv(kVarName.c_str(), "drowssap", 1), 0);
+    engine::subprocess::UpdateCurrentEnvironmentVariables();
+
+    auto temp_file = fs::blocking::TempFile::Create();
+    fs::blocking::RewriteFileContents(temp_file.GetPath(), kSecdistYamlConfig);
+
+    storages::secdist::DefaultLoader provider{
+        {temp_file.GetPath(), storages::secdist::SecdistFormat::kYamlConfig, false, std::nullopt}};
+    storages::secdist::SecdistConfig secdist_config{{&provider}};
+
+    const auto& user_passwords = secdist_config.Get<UserPasswords>();
+
+    const auto password = UserPasswords::Password{"drowssap"};
+    const auto another_password = UserPasswords::Password{"drowssap rehtona"};
+    EXPECT_TRUE(user_passwords.IsMatching("username", password));
+    EXPECT_FALSE(user_passwords.IsMatching("username2", password));
+    EXPECT_TRUE(user_passwords.IsMatching("another username", another_password));
+
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    ASSERT_EQ(unsetenv(kVarName.c_str()), 0);
+
+    engine::subprocess::UpdateCurrentEnvironmentVariables();
 }
 
 UTEST(SecdistConfig, EnvironmentVariable) {

@@ -1,6 +1,6 @@
 project(userver-grpc CXX)
 
-include(GrpcTargets)
+include(UserverGrpcTargets)
 
 add_library(${PROJECT_NAME}-deps INTERFACE)
 target_include_directories(${PROJECT_NAME}-deps INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
@@ -211,7 +211,7 @@ _userver_install_targets(COMPONENT grpc TARGETS ${PROJECT_NAME})
 _userver_directory_install(COMPONENT grpc FILES
     "${USERVER_ROOT_DIR}/cmake/SetupProtobuf.cmake"
     "${USERVER_ROOT_DIR}/cmake/SetupGrpc.cmake"
-    "${USERVER_ROOT_DIR}/cmake/GrpcTargets.cmake"
+    "${USERVER_ROOT_DIR}/cmake/UserverGrpcTargets.cmake"
     "${USERVER_ROOT_DIR}/cmake/install/userver-grpc-config.cmake"
     "${USERVER_ROOT_DIR}/cmake/modules/FindUserverGrpc.cmake"
     DIRECTORY

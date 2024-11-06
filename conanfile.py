@@ -311,7 +311,7 @@ class UserverConan(ConanFile):
             )
             copy(
                 self,
-                pattern='GrpcTargets.cmake',
+                pattern='UserverGrpcTargets.cmake',
                 dst=os.path.join(self.package_folder, 'cmake'),
                 src=os.path.join(self.source_folder, 'cmake'),
                 keep_path=True,
@@ -721,7 +721,7 @@ class UserverConan(ConanFile):
                 os.path.join(self._cmake_subfolder, 'GrpcConan.cmake'),
             )
             build_modules.append(
-                os.path.join(self._cmake_subfolder, 'GrpcTargets.cmake'),
+                os.path.join(self._cmake_subfolder, 'UserverGrpcTargets.cmake'),
             )
 
         self.cpp_info.set_property('cmake_build_modules', build_modules)

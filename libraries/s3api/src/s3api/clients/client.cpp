@@ -232,6 +232,40 @@ std::string ClientImpl::TryGetObject(
     return RequestApi(req, "get_object", headers_data, headers_request);
 }
 
+std::optional<std::string> ClientImpl::GetPartialObject(
+    std::string_view path,
+    std::string_view range,
+    std::optional<std::string> version,
+    HeadersDataResponse* headers_data,
+    const HeaderDataRequest& headers_request
+) const {
+    try {
+        return std::make_optional(TryGetPartialObject(path, range, std::move(version), headers_data, headers_request));
+    } catch (const clients::http::HttpException& e) {
+        if (e.code() == 404) {
+            LOG_INFO() << "Can't get object with path: " << path << ", object not found:" << e.what();
+        } else {
+            LOG_ERROR() << "Can't get object with path: " << path << ", unknown error:" << e.what();
+        }
+        return std::nullopt;
+    } catch (const std::exception& e) {
+        LOG_ERROR() << "Can't get object with path: " << path << ", unknown error:" << e.what();
+        return std::nullopt;
+    }
+}
+
+std::string ClientImpl::TryGetPartialObject(
+    std::string_view path,
+    std::string_view range,
+    std::optional<std::string> version,
+    HeadersDataResponse* headers_data,
+    const HeaderDataRequest& headers_request
+) const {
+    auto req = api_methods::GetObject(bucket_, path, std::move(version));
+    api_methods::SetRange(req, range);
+    return RequestApi(req, "get_object", headers_data, headers_request);
+}
+
 std::optional<ClientImpl::HeadersDataResponse>
 ClientImpl::GetObjectHead(std::string_view path, const HeaderDataRequest& headers_request) const {
     HeadersDataResponse headers_data;

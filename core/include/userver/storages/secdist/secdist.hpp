@@ -46,6 +46,7 @@ private:
 enum class SecdistFormat {
     kJson,
     kYaml,
+    kYamlConfig,
 };
 
 // clang-format off

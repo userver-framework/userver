@@ -88,7 +88,7 @@ userver_target_cxx_compile_options_if_supported(userver-internal-compile-options
 
   # -Wall and -Wextra do not enable these
   "-Wdisabled-optimization" "-Winvalid-pch" "-Wimplicit-fallthrough"
-  "-Wlogical-op" "-Wformat=2" "-Wno-error=deprecated-declarations"  
+  "-Wlogical-op" "-Wformat=2" "-Wno-error=deprecated-declarations"
 
   # This warning is unavoidable in generic code with templates
   "-Wno-useless-cast"
@@ -104,7 +104,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang"
   target_compile_options(userver-internal-compile-options INTERFACE "-Wno-range-loop-analysis")
 endif()
 
-# Trimming filename prefixes 
+# Trimming filename prefixes
 get_filename_component(BASE_PREFIX "${USERVER_ROOT_DIR}/../" ABSOLUTE)
 file(TO_NATIVE_PATH "${CMAKE_SOURCE_DIR}/" SRC_LOG_PATH_BASE)
 file(TO_NATIVE_PATH "${CMAKE_BINARY_DIR}/" BIN_LOG_PATH_BASE)
@@ -126,7 +126,8 @@ if (USERVER_COMPILER_HAS_MACRO_PREFIX_MAP)
     -fmacro-prefix-map=${BIN_LOG_PATH_BASE}=
     -fmacro-prefix-map=${BASE_PREFIX}=
   )
-  if (NOT SRC_LOG_PATH_BASE MATCHES "${BASE_PREFIX}.*" OR NOT "${USERVER_ROOT_DIR}" MATCHES [=[/userver$]=])
+  string(FIND "${SRC_LOG_PATH_BASE}" "${BASE_PREFIX}" _base_prefix_pos)
+  if (NOT _base_prefix_pos EQUAL 0 OR NOT "${USERVER_ROOT_DIR}" MATCHES [=[/userver$]=])
     target_compile_options(userver-internal-compile-options INTERFACE
       -fmacro-prefix-map=${SRC_LOG_PATH_BASE}=
     )
@@ -152,7 +153,7 @@ if (NOT USERVER_NO_WERROR)
   target_compile_options(userver-internal-compile-options INTERFACE "-Werror")
 endif()
 
-_userver_install_targets(COMPONENT universal 
+_userver_install_targets(COMPONENT universal
   TARGETS userver-internal-sanitize-options userver-internal-compile-options)
 
 # The library itself

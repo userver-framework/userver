@@ -2,6 +2,7 @@
 
 #include <fmt/format.h>
 
+#include <userver/http/common_headers.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/algo.hpp>
 
@@ -24,6 +25,19 @@ TEST(S3ApiMethods, CopyObject) {
     const std::string* copy_source = USERVER_NAMESPACE::utils::FindOrNullptr(request.headers, headers::kAmzCopySource);
     ASSERT_NE(copy_source, nullptr);
     EXPECT_EQ(*copy_source, fmt::format("/{}/{}", source_bucket, source_key));
+}
+
+TEST(S3ApiMethods, GetObjectWithRange) {
+    const std::string bucket = "bucket";
+    const std::string path = "path";
+    const std::optional<std::string_view> version = "version";
+    Request request = GetObject(bucket, path, version);
+    SetRange(request, "Range: bytes=0-100");
+    const std::string expected_value = "Range: bytes=0-100";
+    EXPECT_STREQ(
+        USERVER_NAMESPACE::utils::FindOrNullptr(request.headers, USERVER_NAMESPACE::http::headers::kRange)->c_str(),
+        expected_value.c_str()
+    );
 }
 
 }  // namespace s3api::api_methods

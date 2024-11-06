@@ -34,6 +34,8 @@ Request GetObjectHead(std::string_view bucket, std::string_view path);
 
 void SetRange(Request& req, size_t begin, size_t end);
 
+void SetRange(Request& req, std::string_view range);
+
 Request GetBuckets();
 
 Request ListBucketContents(

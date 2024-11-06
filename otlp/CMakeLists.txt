@@ -1,6 +1,6 @@
 project(userver-otlp CXX)
 
-include(GrpcTargets)
+include(UserverGrpcTargets)
 include(SetupOpentelemetryProto)
 
 userver_module(otlp

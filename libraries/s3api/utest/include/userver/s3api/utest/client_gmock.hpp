@@ -46,6 +46,28 @@ public:
     );
 
     MOCK_METHOD(
+        std::optional<std::string>,
+        GetPartialObject,
+        (std::string_view path,
+         std::string_view range,
+         std::optional<std::string> version,
+         HeadersDataResponse* headers_data,
+         const HeaderDataRequest& headers_request),
+        (const, override)
+    );
+
+    MOCK_METHOD(
+        std::string,
+        TryGetPartialObject,
+        (std::string_view path,
+         std::string_view range,
+         std::optional<std::string> version,
+         HeadersDataResponse* headers_data,
+         const HeaderDataRequest& headers_request),
+        (const, override)
+    );
+
+    MOCK_METHOD(
         std::string,
         CopyObject,
         (std::string_view key_from, std::string_view bucket_to, std::string_view key_to, const std::optional<Meta>& meta

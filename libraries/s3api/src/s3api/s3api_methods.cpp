@@ -68,6 +68,8 @@ void SetRange(Request& req, size_t begin, size_t end) {
         "bytes=" + std::to_string(begin) + '-' + std::to_string(end);
 }
 
+void SetRange(Request& req, std::string_view range) { req.headers[USERVER_NAMESPACE::http::headers::kRange] = range; }
+
 Request GetBuckets() { return Request{{}, "", "", "", clients::http::HttpMethod::kGet}; }
 
 Request ListBucketContents(

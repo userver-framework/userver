@@ -60,6 +60,14 @@ formats::json::Value DoLoadFromFile(const std::string& path, SecdistFormat forma
         } else if (format == SecdistFormat::kYaml) {
             const auto yaml_doc = formats::yaml::FromStream(stream);
             doc = yaml_doc.As<formats::json::Value>();
+        } else if (format == SecdistFormat::kYamlConfig) {
+            // yaml_config allows user to read from env variables and other useful
+            // features.
+            const auto yaml_doc = formats::yaml::FromStream(stream);
+            const auto yaml_cfg =
+                yaml_config::YamlConfig(yaml_doc, {}, yaml_config::YamlConfig::Mode::kEnvAndFileAllowed);
+            // finally, convert to JSON
+            doc = yaml_cfg.As<formats::json::Value>();
         }
     } catch (const std::exception& e) {
         if (missing_ok) {
@@ -147,6 +155,8 @@ storages::secdist::SecdistFormat FormatFromString(std::string_view str) {
         return storages::secdist::SecdistFormat::kJson;
     } else if (str == "yaml") {
         return storages::secdist::SecdistFormat::kYaml;
+    } else if (str == "yaml_config") {
+        return storages::secdist::SecdistFormat::kYamlConfig;
     }
 
     UINVARIANT(false, fmt::format("Unknown secdist format '{}' (must be one of 'json', 'yaml')", str));
