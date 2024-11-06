@@ -3,12 +3,12 @@
 #include <algorithm>
 #include <array>
 #include <cstring>
-#include <iostream>
 #include <map>
 #include <memory>
 #include <sstream>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <libpq-fe.h>
 
 #include <userver/clients/dns/resolver.hpp>

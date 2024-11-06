@@ -2,6 +2,7 @@
 
 #include <fmt/compile.h>
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <boost/container/small_vector.hpp>
 #include <boost/stacktrace/stacktrace.hpp>
 

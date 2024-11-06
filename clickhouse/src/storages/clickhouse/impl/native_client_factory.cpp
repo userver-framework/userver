@@ -17,6 +17,9 @@
 
 #include <storages/clickhouse/impl/tracing_tags.hpp>
 
+#include <fmt/format.h>
+#include <fmt/ranges.h>
+
 namespace clickhouse {
 // Not present before 2.5.0, but we don't use it anyway.
 struct Endpoint;

@@ -17,6 +17,9 @@
 
 #include <userver/cache/base_postgres_cache.hpp>
 
+#include <fmt/format.h>
+#include <fmt/ranges.h>
+
 namespace pg::metrics {
 
 struct KeyValue {

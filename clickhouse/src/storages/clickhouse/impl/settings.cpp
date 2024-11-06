@@ -11,6 +11,7 @@
 #include <boost/range/adaptor/map.hpp>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -19,6 +19,9 @@
 
 #include <userver/utils/daemon_run.hpp>
 
+#include <fmt/format.h>
+#include <fmt/ranges.h>
+
 namespace samples::clickhouse {
 
 struct Result {
