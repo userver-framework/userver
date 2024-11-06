@@ -27,7 +27,7 @@ namespace components {
 /// All the classes inherited from server::handlers::HttpHandlerBase and
 /// registered in components list bind to the components::Server component.
 ///
-/// ## Dynamic config
+/// ## components::Server Dynamic config
 /// * @ref USERVER_LOG_REQUEST
 /// * @ref USERVER_LOG_REQUEST_HEADERS
 /// * @ref USERVER_DEADLINE_PROPAGATION_ENABLED

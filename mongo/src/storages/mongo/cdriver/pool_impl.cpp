@@ -158,9 +158,9 @@ stats::ConnStats& GetStats(void* stats_ptr) {
     return *reinterpret_cast<stats::ConnStats*>(stats_ptr);
 }
 
-void CommandSuccessed(const mongoc_apm_command_succeeded_t* event) {
+void CommandSucceeded(const mongoc_apm_command_succeeded_t* event) {
     auto& stats = GetStats(mongoc_apm_command_succeeded_get_context(event));
-    stats.event_stats_.sucess += utils::statistics::Rate{1};
+    stats.event_stats_.success += utils::statistics::Rate{1};
 }
 
 void CommandFailed(const mongoc_apm_command_failed_t* event) {
@@ -168,7 +168,7 @@ void CommandFailed(const mongoc_apm_command_failed_t* event) {
     stats.event_stats_.failed += utils::statistics::Rate{1};
 }
 
-void HearbeatStarted(const mongoc_apm_server_heartbeat_started_t* event) {
+void HeartbeatStarted(const mongoc_apm_server_heartbeat_started_t* event) {
     auto& stats = GetStats(mongoc_apm_server_heartbeat_started_get_context(event));
     ++stats.apm_stats_->heartbeats.start;
     LOG_LIMITED_DEBUG() << mongoc_apm_server_heartbeat_started_get_host(event)->host_and_port << " heartbeat started";
@@ -181,7 +181,7 @@ void HeartbeatSuccess(const mongoc_apm_server_heartbeat_succeeded_t* event) {
                         << " heartbeat succeeded";
 }
 
-void HearbeatFailed(const mongoc_apm_server_heartbeat_failed_t* event) {
+void HeartbeatFailed(const mongoc_apm_server_heartbeat_failed_t* event) {
     auto& stats = GetStats(mongoc_apm_server_heartbeat_failed_get_context(event));
     ++stats.apm_stats_->heartbeats.failed;
     LOG_LIMITED_WARNING() << mongoc_apm_server_heartbeat_failed_get_host(event)->host_and_port << " heartbeat failed";
@@ -475,11 +475,11 @@ CDriverPoolImpl::ConnPtr CDriverPoolImpl::Create() {
     // Set command monitoring events to get command durations.
     {
         mongoc_apm_callbacks_t* cbs = mongoc_apm_callbacks_new();
-        mongoc_apm_set_command_succeeded_cb(cbs, CommandSuccessed);
+        mongoc_apm_set_command_succeeded_cb(cbs, CommandSucceeded);
         mongoc_apm_set_command_failed_cb(cbs, CommandFailed);
-        mongoc_apm_set_server_heartbeat_started_cb(cbs, HearbeatStarted);
+        mongoc_apm_set_server_heartbeat_started_cb(cbs, HeartbeatStarted);
         mongoc_apm_set_server_heartbeat_succeeded_cb(cbs, HeartbeatSuccess);
-        mongoc_apm_set_server_heartbeat_failed_cb(cbs, HearbeatFailed);
+        mongoc_apm_set_server_heartbeat_failed_cb(cbs, HeartbeatFailed);
         mongoc_apm_set_topology_changed_cb(cbs, TopologyChanged);
         mongoc_apm_set_topology_opening_cb(cbs, TopologyOpening);
         mongoc_apm_set_topology_closed_cb(cbs, TopologyClosed);

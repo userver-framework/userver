@@ -278,7 +278,7 @@ Alternatively see @ref userver_install
 @anchor userver_conan
 ## Conan
 
-@note conan must have version >= 1.51, but < 2.0
+@note conan must have version >= 2.8
 
 Thanks to Open-Source community we have Conan support.
 

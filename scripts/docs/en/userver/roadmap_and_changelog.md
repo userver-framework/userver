@@ -19,8 +19,12 @@ Changelog news also go to the
 * ✔️ Codegen parsers and serializers by JSON schema
 * ✔️ HTTP 2.0 server support
 * ✔️ Improve OpenTelemetry Protocol (OTLP) support.
-* 👨‍💻 Improve Kafka driver.
+* ✔️ Improve Kafka driver.
+* 👨‍💻 gRPC simplification and functionality improvement.
+* 👨‍💻 Logging format customization, including JSON logging.
+* 👨‍💻 Secdist simplification and functionality improvement.
 * 👨‍💻 Add retry budget or retry circuit breaker for clients.
+* Improved MacOS build support.
 * Add web interface to the [uservice-dynconf](https://github.com/userver-framework/uservice-dynconf)
 * Generate full-blown accessories for OpenAPI:
   * clients
@@ -28,6 +32,55 @@ Changelog news also go to the
 
 
 ## Changelog
+
+### Release v2.5
+
+* Added S3 API client s3api::Client. More docs to come soon. Many thanks to
+  [v-for-vandal](https://github.com/v-for-vandal) for the work!
+* Initial work towards embedding GDB pretty-printers to userver binaries.
+* Mongo now has the full functionality for diagnostics out-of-the box, without mongo-c library patches.
+* Simplified contributing by removing the annoying bot that checks for explicit agreement to CLA. Creating an issue or
+  sending a PR already means agreement with CLA. Added notes to PR and Issue creation to highlight that.
+* Basic support for HTTP/2 body streaming.
+* Kafka support in testsuite implemented. See Functional tests section at
+  @ref scripts/docs/en/userver/tutorial/kafka_service.md tutorial.
+
+* gRPC:
+  * Safe new interface for gRPC server handlers. **Old interface will be removed in next release.**
+  * Added support for TLS in gRPC.
+  * Added ugrpc::server::middlewares::field_mask::Component for masking and trimming messages. Many thanks to
+    [TTPO100AJIEX](https://github.com/TTPO100AJIEX) for the work!
+  * gRPC clients now allow configuring channels count for particular methods via `dedicated-channel-counts` static
+    config option.
+
+Optimizations:
+  * concurrent::MpscQueue was optimized, leading to x2-x3 better performance.
+  * rcu::Variable deleter now can be chosen at compile time, leading to smaller size of rcu::Variable if no asynchronous
+    deletion required.
+  * Multiple optimizations for gRPC logging and message visitations via ugrpc::VisitFieldsRecursive().  Many thanks to
+    [TTPO100AJIEX](https://github.com/TTPO100AJIEX) for the work!
+
+* Build:
+  * Added `userver_module()` CMake function to simplify configuration of new drivers that are being added to userver.
+  * Added missing `fmt/ranges.h` includes. Thanks to [Vasilii Kuziakin](https://github.com/Basiliuss) for the PR!
+  * Proper use of `PROTOBUF_PROTOC` in CMake. Thanks to [Nikita](https://github.com/rtkid-nik) for the PR!
+  * Added support for builds in paths that contain whitespaces and other special symbols.
+  * Added CI build tests for Ubuntu 24.04 and MacOS.
+  * Switched to Conan v2. Many thanks to [Anton](https://github.com/xakod) for the PR! Also use modern versions of
+    third party libraries in Conan.
+
+* Documentation and diagnostics:
+  * A whole new build dedicated section was added to the docs instead of the old "Configure, Build and Install" page.
+  * Improved schemes validation messages, including config validation messages because no schema is written.
+  * Disambiguated diagnostic messages for component system.
+  * Better log messages for the dist locks.
+  * Better docs for gRPC middlewares and gRPC logs at @ref scripts/docs/en/userver/grpc.md.
+  * Added topology and heartbeats logs and metrics for Mongo.
+  * Clarified docs on PostgreSQL data types with timezones. See @ref scripts/docs/en/userver/pg_types.md.
+  * Added @ref scripts/docs/en/userver/tutorial/kafka_service.md tutorial.
+  * @ref scripts/docs/en/userver/log_level_running_service.md, @ref scripts/docs/en/userver/congestion_control.md
+    documentation rewrite.
+
 
 ### Release v2.4
 

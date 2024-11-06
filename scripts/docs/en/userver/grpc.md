@@ -273,7 +273,9 @@ message Creds {
 
 ### grpc-core logs
 
-grpc-core is a lower level library, its logs are forwarded to the userver default logger. In this process only error level logs get through from grpc-core to the userver default logger if the default settings are used. However, the default settings can be overriden and more verbose logging can be achieved. 
+grpc-core is a lower level library, its logs are forwarded to the userver default logger. In this process only error
+level logs get through from grpc-core to the userver default logger if the default settings are used. However, the
+default settings can be overridden and more verbose logging can be achieved. 
 
 To do this you need to change the value of `native-log-level` in the static config file in the components `grpc-client-common` and `grpc-server`:
 

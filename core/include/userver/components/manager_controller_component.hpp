@@ -23,7 +23,7 @@ class Manager;
 /// @brief Component that prepares the engine internals and starts all the
 /// other components.
 ///
-/// ## Dynamic config
+/// ## ManagerControllerComponent Dynamic config
 /// * @ref USERVER_TASK_PROCESSOR_PROFILER_DEBUG
 /// * @ref USERVER_TASK_PROCESSOR_QOS
 ///

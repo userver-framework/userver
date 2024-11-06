@@ -19,7 +19,7 @@ namespace server::handlers {
 /// @brief Handler that returns HTTP 200 if file exist
 /// and returns file data with mapped content/type
 ///
-/// ## Dynamic config
+/// ## HttpHandlerStatic Dynamic config
 /// * @ref USERVER_FILES_CONTENT_TYPE_MAP
 ///
 /// \ref userver_http_handlers "Userver HTTP Handlers".

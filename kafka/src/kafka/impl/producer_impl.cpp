@@ -278,7 +278,7 @@ void ProducerImpl::WaitUntilDeliveryReported(engine::Future<DeliveryResult>& del
     /// handle events from producer's queue.
     ///
     /// Remark: events are created by `librdkafka` internal threads, so it is not
-    /// possible to atomically check queue emptyness and suspend the coroutine.
+    /// possible to atomically check queue emptiness and suspend the coroutine.
 
     while (!delivery_result.is_ready() && !engine::current_task::ShouldCancel()) {
         /// optimistic path. suppose that there are already some ready events from
@@ -291,17 +291,17 @@ void ProducerImpl::WaitUntilDeliveryReported(engine::Future<DeliveryResult>& del
 
         EventWaiter waiter;
         /// (N) notice that in any time after waiter is pushed into waiters list and
-        /// before it poped it may be waked up by EventCallback.
-        /// Consequently, after waiter is poped from the list, it must try to handle
+        /// before it popped it may be waked up by EventCallback.
+        /// Consequently, after waiter is popped from the list, it must try to handle
         /// the events if it was signaled (event `delivery_result` is ready).
         waiters_.PushWaiter(waiter);
 
-        /// If there are events, it is not neccessary to sleep.
+        /// If there are events, it is not necessary to sleep.
         if (HandleEvents("after waiter created, before sleep")) {
             waiters_.PopWaiter(waiter);
             if (waiter.event.IsReady()) {  // (N)
                 LOG_DEBUG() << "Waiter were signaled before sleeping!";
-                HandleEvents("after waiter poped, before sleep");
+                HandleEvents("after waiter popped, before sleep");
             }
             continue;
         }

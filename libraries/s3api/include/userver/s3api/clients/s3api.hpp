@@ -74,6 +74,8 @@ std::shared_ptr<S3Connection> MakeS3Connection(
     const ConnectionCfg& params
 );
 
+/// @ingroup userver_clients
+///
 /// Main interface for the S3 api
 class Client {
 public:

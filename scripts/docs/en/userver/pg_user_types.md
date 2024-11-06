@@ -1,7 +1,7 @@
 # uPg: PostgreSQL user type mappings
 
 This section describes advanced usage of PostgreSQL type system with custom
-user-povided database types.
+user-provided database types.
 
 For a basic information on querying data see @ref pg_run_queries and
 @ref pg_process_results. A list of supported fundamental PostgreSQL types

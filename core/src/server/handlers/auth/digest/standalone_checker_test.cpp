@@ -58,7 +58,7 @@ public:
     };
 
     StandAloneCheckerTest()
-        : default_loader({temp_file_provier.GetFilePath(), storages::secdist::SecdistFormat::kJson, true, std::nullopt}
+        : default_loader({temp_file_provider.GetFilePath(), storages::secdist::SecdistFormat::kJson, true, std::nullopt}
           ),
           secdist_config({&default_loader, std::chrono::milliseconds::zero()}),
           digest_settings_({
@@ -86,7 +86,7 @@ public:
         client_context_ = correct_client_context_;
     }
 
-    TempFileProvider temp_file_provier;
+    TempFileProvider temp_file_provider;
     storages::secdist::DefaultLoader default_loader;
     storages::secdist::SecdistConfig secdist_config;
 

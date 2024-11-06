@@ -20,7 +20,7 @@ namespace congestion_control {
 ///
 /// @brief Component to limit too active requests, also known as CC.
 ///
-/// ## Dynamic config
+/// ## congestion_control::Component Dynamic config
 /// * @ref USERVER_RPS_CCONTROL
 /// * @ref USERVER_RPS_CCONTROL_ENABLED
 ///

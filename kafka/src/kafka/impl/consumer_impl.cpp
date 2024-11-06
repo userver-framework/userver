@@ -165,9 +165,9 @@ void ConsumerImpl::RevokePartitions(const rd_kafka_topic_partition_list_t* parti
         return fmt::format("Partition {} of '{}' topic revoking", partition.partition, partition.topic);
     });
 
-    const auto revokation_err = rd_kafka_assign(consumer_.GetHandle(), nullptr);
-    if (revokation_err != RD_KAFKA_RESP_ERR_NO_ERROR) {
-        LOG_ERROR() << fmt::format("Failed to revoke partitions: {}", rd_kafka_err2str(revokation_err));
+    const auto revocation_err = rd_kafka_assign(consumer_.GetHandle(), nullptr);
+    if (revocation_err != RD_KAFKA_RESP_ERR_NO_ERROR) {
+        LOG_ERROR() << fmt::format("Failed to revoke partitions: {}", rd_kafka_err2str(revocation_err));
         return;
     }
 

@@ -9,6 +9,7 @@
 
 #include <userver/ugrpc/impl/deadline_timepoint.hpp>
 #include <userver/ugrpc/impl/internal_tag_fwd.hpp>
+#include <userver/ugrpc/impl/span.hpp>
 #include <userver/ugrpc/server/call.hpp>
 #include <userver/ugrpc/server/exceptions.hpp>
 #include <userver/ugrpc/server/impl/async_methods.hpp>

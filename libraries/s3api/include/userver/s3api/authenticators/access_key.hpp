@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/s3api/authenticators/access_key.hpp
-/// @brief Authenticator for using acess_key&secret_key for authentication
+/// @brief Authenticator for using `access_key` and `secret_key` for authentication
 
 #include <string>
 #include <unordered_map>

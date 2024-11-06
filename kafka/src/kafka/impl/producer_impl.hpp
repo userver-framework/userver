@@ -45,7 +45,7 @@ public:
     void EventCallback();
 
 private:
-    /// @brief Shedules the message delivery.
+    /// @brief Schedules the message delivery.
     /// @returns the future for delivery result, which must be awaited.
     [[nodiscard]] engine::Future<DeliveryResult> ScheduleMessageDelivery(
         const std::string& topic_name,
@@ -91,8 +91,7 @@ private:
     ConcurrentEventWaiters waiters_;
     ProducerHolder producer_;
 
-    /// If no messages are send, some errors may occure and we want to log them
-    /// anyway.
+    /// If no messages are send, some errors may occurred and we want to log them anyway.
     utils::PeriodicTask log_events_handler_;
 };
 

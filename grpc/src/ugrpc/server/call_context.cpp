@@ -16,6 +16,8 @@ std::string_view CallContext::GetServiceName() const { return GetCall().GetServi
 
 std::string_view CallContext::GetMethodName() const { return GetCall().GetMethodName(); }
 
+tracing::Span& CallContext::GetSpan() { return GetCall().GetSpan(); }
+
 utils::AnyStorage<StorageContext>& CallContext::GetStorageContext() { return GetCall().GetStorageContext(); }
 
 const CallAnyBase& CallContext::GetCall() const { return call_; }

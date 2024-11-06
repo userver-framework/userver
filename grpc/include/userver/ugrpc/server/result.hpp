@@ -8,6 +8,8 @@
 
 #include <grpcpp/support/status.h>
 
+#include <userver/utils/assert.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {

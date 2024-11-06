@@ -71,7 +71,7 @@ enum class UpdateType {
 ///
 /// Here, `dumper_name` is the name of the parent component.
 ///
-/// ## Dynamic config
+/// ## Dumper Dynamic config
 /// * @ref USERVER_DUMPS
 ///
 /// ## Static config

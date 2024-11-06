@@ -144,7 +144,7 @@ You may use @ref scripts/docs/en/userver/chaotic.md if you hesitate writing the 
 @anchor dynamic_config_parsing_trivial
 #### Trivial types
 
-JSON leafs can be parsed out of the box:
+JSON leaves can be parsed out of the box:
 
 | OpenAPI   | C++ type                                 |
 |-----------|------------------------------------------|

@@ -234,14 +234,14 @@ TEST_F(ComponentList, ValidationWithConfigVars) {
         )
     );
 
-    constexpr const char* kBadParam = "      non-described-in-schema-paramer: $default_log_path\n";
+    constexpr const char* kBadParam = "      non-described-in-schema-parameter: $default_log_path\n";
     const components::InMemoryConfig conf{std::string{kStaticConfig} + kBadParam + "config_vars: " + config_vars_path};
 
     UEXPECT_THROW_MSG(
         components::RunOnce(conf, components::CommonComponentList()),
         std::exception,
         "Error while validating static config against schema. Field "
-        "'components_manager.components.system-statistics-collector.non-described-in-schema-paramer' is not declared "
+        "'components_manager.components.system-statistics-collector.non-described-in-schema-parameter' is not declared "
         "in schema 'system-statistics-collector' (declared: load-enabled, with-nginx, fs-task-processor)"
     );
 }

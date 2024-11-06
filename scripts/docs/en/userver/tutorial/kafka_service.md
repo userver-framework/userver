@@ -57,7 +57,7 @@ Then, implement the server::handlers::HttpHandlerJsonBase method to define each 
 @snippet samples/kafka_service/src/producer_handler.cpp  Kafka service sample - producer handler implementation
 
 Here we:
-- Check incomming message correctness;
+- Check incoming message correctness;
 - Parse request to `kafka_sample::RequestMessage`;
 - Send message with `kafka_sample::Produce`
 - Dispatch returned result
@@ -207,7 +207,7 @@ use `UTEST_F` macros.
 
 @snippet samples/kafka_service/unittest/kafka_test.cpp  Kafka service sample - kafka utest include
 
-To test `kafka_sample::Produce` we can use such technic:
+To test `kafka_sample::Produce` we can use such technique:
 
 @snippet samples/kafka_service/unittest/kafka_test.cpp  Kafka service sample - producer unit test
 

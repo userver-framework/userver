@@ -45,7 +45,7 @@ private:
 };
 
 /// @brief A RAII-style guard to account code block execution time in
-/// utils::statistics::BusyStorage. Aware of recursive invokations in the same
+/// utils::statistics::BusyStorage. Aware of recursive invocations in the same
 /// thread.
 ///
 /// @snippet utils/statistics/busy_test.cpp  busy sample
