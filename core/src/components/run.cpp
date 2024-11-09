@@ -265,6 +265,8 @@ void RunOnce(const InMemoryConfig& config, const ComponentList& component_list) 
     DoRun(config, {}, {}, component_list, RunMode::kOnce);
 }
 
+void RequestStop() { kill(getpid(), SIGTERM); }
+
 namespace impl {
 
 std::string GetStaticConfigSchema(const ComponentList& component_list) {

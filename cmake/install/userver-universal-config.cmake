@@ -17,7 +17,7 @@ find_package(Boost REQUIRED COMPONENTS
 )
 find_package(Iconv REQUIRED)
 
-_userver_macos_set_default_dir(OPENSSL_ROOT_DIR brew;--prefix;openssl)
+_userver_macos_set_default_dir(OPENSSL_ROOT_DIR "brew;--prefix;openssl")
 find_package(OpenSSL REQUIRED)
 
 find_package(fmt "8.1.1" REQUIRED)

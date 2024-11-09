@@ -1,10 +1,10 @@
 include_guard(GLOBAL)
 
-_userver_macos_set_default_dir(USERVER_PG_INCLUDE_DIR pg_config;--includedir)
-_userver_macos_set_default_dir(USERVER_PG_LIBRARY_DIR pg_config;--libdir)
-_userver_macos_set_default_dir(USERVER_PG_SERVER_INCLUDE_DIR pg_config;--includedir-server)
-_userver_macos_set_default_dir(USERVER_PG_SERVER_LIBRARY_DIR pg_config;--pkglibdir)
-_userver_macos_set_default_dir(OPENSSL_ROOT_DIR brew;--prefix;openssl)
+_userver_macos_set_default_dir(USERVER_PG_INCLUDE_DIR "pg_config;--includedir")
+_userver_macos_set_default_dir(USERVER_PG_LIBRARY_DIR "pg_config;--libdir")
+_userver_macos_set_default_dir(USERVER_PG_SERVER_INCLUDE_DIR "pg_config;--includedir-server")
+_userver_macos_set_default_dir(USERVER_PG_SERVER_LIBRARY_DIR "pg_config;--pkglibdir")
+_userver_macos_set_default_dir(OPENSSL_ROOT_DIR "brew;--prefix;openssl")
 
 # We need libldap to statically link with libpq
 # There is no FindLdap.cmake and no package config files

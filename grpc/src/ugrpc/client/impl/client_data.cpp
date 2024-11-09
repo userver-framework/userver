@@ -1,6 +1,7 @@
 #include <userver/ugrpc/client/impl/client_data.hpp>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <grpcpp/create_channel.h>
 
 #include <userver/ugrpc/client/client_factory.hpp>

@@ -1,6 +1,13 @@
 option(USERVER_FEATURE_S3API "Build S3 api client library" "${USERVER_LIB_ENABLED_DEFAULT}")
+option(USERVER_FEATURE_GRPC_REFLECTION "Build grpc reflection library" "${USERVER_LIB_ENABLED_DEFAULT}")
 
 if (USERVER_FEATURE_S3API)
   add_subdirectory(s3api)
 endif()
 
+if (USERVER_FEATURE_GRPC_REFLECTION)
+  if (NOT USERVER_FEATURE_GRPC)
+    message(FATAL_ERROR "'USERVER_FEATURE_GRPC_REFLECTION' requires 'USERVER_FEATURE_GRPC=ON'")
+  endif()
+  add_subdirectory(grpc-reflection)
+endif()

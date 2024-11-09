@@ -125,6 +125,11 @@ components_manager:
             throttling_enabled: false
             url_trailing_slash: strict-match
 
+        handler-restart:
+            path: /restart
+            method: GET
+            task_processor: main-task-processor
+
     task_processors:
         main-task-processor:
             worker_threads: 4

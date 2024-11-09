@@ -113,7 +113,7 @@ void UpdateStatisticsScope::Finish(std::size_t total_documents_count) {
 
 void UpdateStatisticsScope::FinishNoChanges() {
     ++update_stats_.update_no_changes_count;
-    DoFinish(impl::UpdateState::kSuccess);
+    DoFinish(impl::UpdateState::kNoChanges);
 }
 
 void UpdateStatisticsScope::FinishWithError() {
@@ -136,8 +136,13 @@ void UpdateStatisticsScope::DoFinish(impl::UpdateState new_state) {
     if (state_ != impl::UpdateState::kNotFinished) return;
 
     const auto update_stop_time = utils::datetime::SteadyNow();
-    if (new_state == impl::UpdateState::kSuccess) {
-        update_stats_.last_successful_update_start_time = update_start_time_;
+    switch (new_state) {
+        case impl::UpdateState::kSuccess:
+        case impl::UpdateState::kNoChanges:
+            update_stats_.last_successful_update_start_time = update_start_time_;
+            break;
+        default:
+            break;
     }
     update_stats_.last_update_duration =
         std::chrono::duration_cast<std::chrono::milliseconds>(update_stop_time - update_start_time_);

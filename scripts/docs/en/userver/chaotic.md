@@ -135,13 +135,13 @@ Number supports the following validators:
 
 String type is mapped to different C++ types:
 
-| format                | C++ type                     |
-|-----------------------|------------------------------|
-| -                     | `std::string`                |
-| `uuid`                | `boost::uuids::uuid`         |
-| `date`                | `utils::datetime::Date`      |
-| `date-time`           | `utils::TimePointTz`         |
-| `date-time-iso-basic` | `utils::TimePointTzIsoBasic` |
+| format                | C++ type                               |
+|-----------------------|----------------------------------------|
+| -                     | `std::string`                          |
+| `uuid`                | `boost::uuids::uuid`                   |
+| `date`                | `utils::datetime::Date`                |
+| `date-time`           | `utils::datetime::TimePointTz`         |
+| `date-time-iso-basic` | `utils::datetime::TimePointTzIsoBasic` |
 
 String supports the following validators:
 * `minLength`
@@ -172,16 +172,17 @@ Required fields of C++ type `T` produce C++ fields with the same type `T`.
 Non-required fields of C++ type `T` produce C++ fields with type `std::optional<T>`.
 
 E.g. the following JSONSchema:
-```yaml
+```
+yaml
 type: object
 additionalProperties: false
 properties:
-  foo:
-    type: integer
-  bar:
-    type: string
+    foo:
+        type: integer
+    bar:
+        type: string
 required:
-- foo
+  - foo
 ```
 
 produces the following C++ structure:
@@ -247,7 +248,8 @@ but it can be never `nullptr`.
 
 Example:
 
-```yaml
+```
+yaml
 TreeNode:
     type: object
     additionalProperties: false

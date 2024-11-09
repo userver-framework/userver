@@ -1,5 +1,7 @@
 #include <userver/dynamic_config/updater/component.hpp>
 
+#include <fmt/format.h>
+
 #include <userver/cache/update_type.hpp>
 #include <userver/clients/http/component.hpp>
 #include <userver/components/component.hpp>
@@ -67,13 +69,26 @@ DynamicConfigClientUpdater::DynamicConfigClientUpdater(
       store_enabled_(component_config["store-enabled"].As<bool>(true)),
       deduplicate_update_types_(ParseDeduplicateUpdateTypes(component_config["deduplicate-update-types"])),
       config_client_(component_context.FindComponent<components::DynamicConfigClient>().GetClient()),
-      docs_map_keys_(utils::AsContainer<DocsMapKeys>(
-          component_context.FindComponent<components::DynamicConfig>().GetDefaultDocsMap().GetNames()
-      )) {
+      docs_map_defaults_(component_context.FindComponent<components::DynamicConfig>().GetDefaultDocsMap()),
+      docs_map_keys_(utils::AsContainer<DocsMapKeys>(docs_map_defaults_.GetNames())) {
     StartPeriodicUpdates();
 }
 
 DynamicConfigClientUpdater::~DynamicConfigClientUpdater() { StopPeriodicUpdates(); }
+
+void DynamicConfigClientUpdater::SetDisabledKillSwitchesToDefault(
+    dynamic_config::DocsMap& docs_map,
+    const std::vector<std::string>& kill_switches_disabled
+) {
+    for (const auto& kill_switch : kill_switches_disabled) {
+        if (!docs_map_defaults_.Has(kill_switch)) {
+            throw std::runtime_error(
+                fmt::format("Default value is not found for disabled kill-switch '{}'", kill_switch)
+            );
+        }
+        docs_map.Set(kill_switch, docs_map_defaults_.Get(kill_switch));
+    }
+}
 
 dynamic_config::DocsMap DynamicConfigClientUpdater::MergeDocsMap(
     const dynamic_config::DocsMap& current,
@@ -169,6 +184,7 @@ void DynamicConfigClientUpdater::UpdateFull(
 ) {
     auto reply = config_client_.FetchDocsMap(std::nullopt, docs_map_keys);
     auto& docs_map = reply.docs_map;
+    SetDisabledKillSwitchesToDefault(docs_map, reply.kill_switches_disabled);
 
     stats.IncreaseDocumentsReadCount(docs_map.Size());
 
@@ -200,6 +216,7 @@ void DynamicConfigClientUpdater::UpdateIncremental(
 ) {
     auto reply = config_client_.FetchDocsMap(server_timestamp_, docs_map_keys);
     auto& docs_map = reply.docs_map;
+    SetDisabledKillSwitchesToDefault(docs_map, reply.kill_switches_disabled);
 
     /* Timestamp can be compared lexicographically */
     if (reply.timestamp < server_timestamp_) {

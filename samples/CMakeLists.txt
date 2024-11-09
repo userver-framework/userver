@@ -117,6 +117,11 @@ if (USERVER_FEATURE_YDB AND USERVER_FEATURE_MONGODB)
   add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-ydb_service)
 endif()
 
+if (USERVER_FEATURE_S3API)
+  add_subdirectory(s3api)
+  add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-s3api)
+endif()
+
 # Clean up fake userver installation above to avoid messing
 # with find_package(userver) in the parent project.
 file(REMOVE "${CMAKE_BINARY_DIR}/package_stubs/userverConfig.cmake")

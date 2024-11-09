@@ -27,6 +27,7 @@ userver is split into multiple CMake libraries.
 | `userver::ydb`             | `USERVER_FEATURE_YDB`                             | `ydb`                 | @ref scripts/docs/en/userver/ydb.md                |
 | `userver::otlp`            | `USERVER_FEATURE_OTLP`                            | `otlp`                | @ref opentelemetry "OpenTelemetry Protocol"        |
 | `userver::s3api            | `USERVER_FEATURE_S3API`                           | `s3api`               | @ref scripts/docs/en/userver/libraries/s3api.md    |
+| `userver::grpc-reflection  | `USERVER_FEATURE_GRPC_REFLECTION`                 | `grpc-reflection`     | @ref scripts/docs/en/userver/libraries/grpc-reflection.md    |
 
 Make sure to:
 
@@ -60,6 +61,8 @@ The following CMake options are used by userver:
 | USERVER_FEATURE_ROCKS                  | Provide asynchronous driver for RocksDB                                                                         | ${USERVER_IS_THE_ROOT_PROJECT}                         |
 | USERVER_FEATURE_YDB                    | Provide asynchronous driver for YDB                                                                             | ${USERVER_IS_THE_ROOT_PROJECT} AND C++ standard >= 20  |
 | USERVER_FEATURE_OTLP                   | Provide Logger for OpenTelemetry protocol                                                                       | ${USERVER_IS_THE_ROOT_PROJECT}                         |
+| USERVER_FEATURE_GRPC_REFLECTION        | Provide reflection service for gRPC                                                                             | ${USERVER_IS_THE_ROOT_PROJECT}                         |
+| USERVER_FEATURE_S3API                  | Provide S3 client for gRPC                                                                                      | ${USERVER_IS_THE_ROOT_PROJECT}                         |
 | USERVER_FEATURE_UTEST                  | Provide 'utest' and 'ubench' for unit testing and benchmarking coroutines                                       | ${USERVER_FEATURE_CORE}                                |
 | USERVER_FEATURE_CRYPTOPP_BLAKE2        | Provide wrappers for blake2 algorithms of crypto++                                                              | ON                                                     |
 | USERVER_FEATURE_PATCH_LIBPQ            | Apply patches to the libpq (add portals support), requires libpq.a                                              | ON                                                     |

@@ -21,6 +21,7 @@ public:
         bool missing_ok{false};
         std::optional<std::string> environment_secrets_key;
         engine::TaskProcessor* blocking_task_processor{nullptr};
+        formats::json::Value inline_config;
     };
 
     explicit DefaultLoader(Settings settings);
@@ -46,7 +47,8 @@ namespace components {
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// config | path to the config file with data | ''
-/// format | config format, either `json` or `yaml` | 'json'
+/// inline | inline data | -
+/// format | config format, one of `json`, `yaml`, `yaml_config` | 'json'
 /// missing-ok | do not terminate components load if no file found by the config option | false
 /// environment-secrets-key | name of environment variable from which to load additional data | -
 /// blocking-task-processor | name of task processor for background blocking operations | --

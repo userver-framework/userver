@@ -30,7 +30,8 @@ TEST(LogExtra, DocsData) {
     /// [Example using LogExtra]
 
     /// [Example using stacktrace in log]
-    LOG_ERROR() << "Deadlock in ABC identified" << logging::LogExtra::Stacktrace();
+    // Outputs current stacktrace:
+    LOG_ERROR() << "Deadlock in ABC identified:" << logging::LogExtra::Stacktrace();
     /// [Example using stacktrace in log]
 
     // Check that logging LogExtra::Stacktrace and LogFlush don't require a

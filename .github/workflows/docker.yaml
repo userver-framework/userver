@@ -26,6 +26,7 @@ jobs:
                         -DUSERVER_FEATURE_KAFKA=0
                         -DUSERVER_FEATURE_RABBITMQ=0
                         -DUSERVER_FEATURE_ROCKS=0
+                        -DUSERVER_FEATURE_GRPC_REFLECTION=0
                         -DCMAKE_CXX_STANDARD=17
                     image: ubuntu-22.04-userver-base
                     info: ubuntu + clang + cxx17 + core

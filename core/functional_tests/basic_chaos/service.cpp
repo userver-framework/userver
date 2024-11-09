@@ -8,6 +8,7 @@
 #include <userver/dynamic_config/updater/component.hpp>
 #include <userver/server/handlers/on_log_rotate.hpp>
 #include <userver/server/handlers/ping.hpp>
+#include <userver/server/handlers/restart.hpp>
 #include <userver/server/handlers/server_monitor.hpp>
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/utest/using_namespace_userver.hpp>
@@ -32,6 +33,7 @@ int main(int argc, char* argv[]) {
                                     .Append<server::handlers::TestsControl>()
                                     .Append<server::handlers::ServerMonitor>()
                                     .Append<server::handlers::Ping>()
+                                    .Append<server::handlers::Restart>()
                                     .Append<clients::dns::Component>()
                                     .Append<alerts::Handler>()
                                     .Append<components::DynamicConfigClient>()

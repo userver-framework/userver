@@ -50,7 +50,6 @@ components_manager:
             path: /tests/{action}
             task_processor: main-task-processor
 
-        secdist: {}                                      # Component that stores configuration of hosts and passwords
         default-secdist-provider:                        # Component that loads configuration of hosts and passwords
             config: /etc/kafka_service/secure_data.json  # Values are supposed to be stored in this file
             missing-ok: true                             # ... but if the file is missing it is still ok

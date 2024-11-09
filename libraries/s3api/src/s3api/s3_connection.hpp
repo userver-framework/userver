@@ -34,26 +34,21 @@ public:
           http_client_(http_client),
           config_(params) {}
 
-    S3Connection(const S3Connection& other)
-        : std::enable_shared_from_this<S3Connection>(other),
-          api_url_(other.api_url_),
-          connection_type_(other.connection_type_),
-          http_client_(other.http_client_),
-          config_(other.config_) {}
+    S3Connection(const S3Connection& other) = default;
 
-    virtual ~S3Connection() = default;
+    ~S3Connection() = default;
 
-    virtual std::shared_ptr<clients::http::Response> RequestApi(Request& r, std::string_view method_name);
+    std::shared_ptr<clients::http::Response> RequestApi(Request& r, std::string_view method_name);
 
-    virtual std::shared_ptr<clients::http::Response> DoStartApiRequest(const Request& r) const;
+    std::shared_ptr<clients::http::Response> DoStartApiRequest(const Request& r) const;
 
-    virtual std::shared_ptr<clients::http::Response> StartApiRequest(const Request& r) const;
+    std::shared_ptr<clients::http::Response> StartApiRequest(const Request& r) const;
 
-    virtual std::string GetHost() const { return api_url_; }
+    std::string GetHost() const { return api_url_; }
 
     void UpdateConfig(ConnectionCfg&& config) { config_ = config; }
 
-protected:
+private:
     std::string GetUrl(const Request& r, S3ConnectionType connection_type) const;
 
     ConnectionCfg GetConfig() const { return config_; }
@@ -61,8 +56,6 @@ protected:
     const std::string api_url_;
     S3ConnectionType connection_type_;
     clients::http::Client& http_client_;
-
-private:
     ConnectionCfg config_;
 };
 

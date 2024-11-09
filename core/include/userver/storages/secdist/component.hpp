@@ -30,12 +30,7 @@ namespace components {
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
 /// provider | optional secdist provider component name | 'default-secdist-provider'
-/// config | path to the config file with data | ''
-/// format | config format, either `json` or `yaml` | 'json'
-/// missing-ok | do not terminate components load if no file found by the config option | false
-/// environment-secrets-key | name of environment variable from which to load additional data | -
 /// update-period | period between data updates in utils::StringToDuration() suitable format ('0s' for no updates) | 0s
-/// blocking-task-processor | name of task processor for background blocking operations | --
 
 // clang-format on
 
@@ -61,6 +56,9 @@ private:
 
 template <>
 inline constexpr bool kHasValidate<Secdist> = true;
+
+template <>
+inline constexpr auto kConfigFileMode<Secdist> = ConfigFileMode::kNotRequired;
 
 }  // namespace components
 

@@ -61,6 +61,7 @@ are available at the
 * @ref scripts/docs/en/userver/tutorial/digest_auth_postgres.md
 * @ref scripts/docs/en/userver/tutorial/websocket_service.md
 * @ref scripts/docs/en/userver/tutorial/multipart_service.md
+* @ref scripts/docs/en/userver/tutorial/s3api.md
 * @ref scripts/docs/en/userver/tutorial/json_to_yaml.md
 
 
@@ -154,6 +155,8 @@ are available at the
 ### S3 client
 * @ref scripts/docs/en/userver/libraries/s3api.md
 
+### grpc-reflection
+* @ref scripts/docs/en/userver/libraries/grpc-reflection.md
 
 ## Opensource
 * @ref scripts/docs/en/userver/development/stability.md

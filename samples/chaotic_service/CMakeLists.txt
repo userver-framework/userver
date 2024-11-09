@@ -19,6 +19,7 @@ target_include_directories(${PROJECT_NAME}_objs PUBLIC src)
 # /// [objects]
 
 # /// [chaotic]
+# cmake
 file(GLOB_RECURSE SCHEMAS ${CMAKE_CURRENT_SOURCE_DIR}/schemas/*.yaml)
 userver_target_generate_chaotic(${PROJECT_NAME}-chgen
     ARGS

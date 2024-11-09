@@ -104,7 +104,7 @@ See the full example at:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/tutorial/multipart_service.md | @ref scripts/docs/en/userver/component_system.md ⇨
+⇦ @ref scripts/docs/en/userver/tutorial/s3api.md | @ref scripts/docs/en/userver/component_system.md ⇨
 @htmlonly </div> @endhtmlonly
 
 

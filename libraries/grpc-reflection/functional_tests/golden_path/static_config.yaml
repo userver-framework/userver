@@ -1,0 +1,56 @@
+components_manager:
+    task_processors:
+        main-task-processor:
+            worker_threads: 8
+        fs-task-processor:
+            worker_threads: 4
+        grpc-blocking-task-processor:  # For blocking gRPC channel creation
+            worker_threads: 2
+            thread_name: grpc-worker
+    default_task_processor: main-task-processor
+
+    components:
+        grpc-reflection-service:
+        grpc-health:
+
+        testsuite-support:
+
+        # Common configuration for gRPC server
+        grpc-server:
+            # The single listening unix socket for incoming RPCs
+            unix-socket-path: '/tmp/my_socket'
+            completion-queue-count: 3
+            service-defaults:
+                task-processor: main-task-processor
+                middlewares: []
+
+
+
+        http-client:
+            fs-task-processor: main-task-processor
+
+        tests-control:
+            method: POST
+            path: /tests/{action}
+            skip-unregistered-testpoints: true
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            testpoint-url: $mockserver/testpoint
+            throttling_enabled: false
+
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: "@stderr"
+                    level: debug
+                    overflow_behavior: discard
+
+        dns-client:
+            fs-task-processor: fs-task-processor
+
+        server:
+            listener:
+                port: 8187
+                task_processor: main-task-processor
+

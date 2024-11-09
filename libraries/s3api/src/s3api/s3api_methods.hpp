@@ -9,9 +9,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace s3api {
-
-namespace api_methods {
+namespace s3api::api_methods {
 
 namespace headers {
 inline constexpr USERVER_NAMESPACE::http::headers::PredefinedHeader kAmzCopySource{"x-amz-copy-source"};
@@ -53,8 +51,7 @@ Request CopyObject(
     std::string_view dest_key,
     std::string_view content_type
 );
-}  // namespace api_methods
 
-}  // namespace s3api
+}  // namespace s3api::api_methods
 
 USERVER_NAMESPACE_END

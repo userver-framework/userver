@@ -395,7 +395,7 @@ std::vector<ObjectMeta> ClientImpl::ListBucketContentsParsed(std::string_view pa
     std::string marker = "";
     bool is_finished = false;
     while (!is_finished) {
-        auto response = ListBucketContents(path_prefix, kMaxS3Keys, marker);
+        auto response = ListBucketContents(path_prefix, kMaxS3Keys, marker, {});
         if (!response) {
             LOG_WARNING() << "Empty S3 bucket listing response for path prefix " << path_prefix;
             break;
