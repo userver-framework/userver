@@ -45,4 +45,7 @@ _userver_directory_install(COMPONENT sqlite FILES
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
 )
 
-# TODO: add test
+if (USERVER_IS_THE_ROOT_PROJECT)
+
+  add_subdirectory(functional_tests)
+endif()

@@ -5,6 +5,8 @@
 
 #include <userver/components/component_base.hpp>
 
+#include <userver/storages/sqlite/connection.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace components {
@@ -16,6 +18,8 @@ class SQLite : public ComponentBase {
   SQLite(const ComponentConfig&, const ComponentContext&);
   /// Component destructor
   ~SQLite() override = default;
+
+  storages::sqlite::ConnectionPtr GetConnection() const;
 
  private:
   std::string name_;

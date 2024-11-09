@@ -1,0 +1,34 @@
+# yaml
+components_manager:
+    components:
+        handler-key-value:
+            path: /basic/sqlite
+            task_processor: main-task-processor
+            method: GET,DELETE,POST
+
+        testsuite-support:
+
+        key-value-database:
+
+        server:
+            listener:
+                port: 8080
+                task_processor: main-task-processor
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+
+        dns-client:
+            fs-task-processor: fs-task-processor
+
+    task_processors:
+        main-task-processor:
+            worker_threads: 4
+        fs-task-processor:
+            worker_threads: 4
+
+    default_task_processor: main-task-processor
