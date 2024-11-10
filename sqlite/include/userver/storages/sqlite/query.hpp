@@ -5,11 +5,15 @@
 #include <optional>
 #include <string>
 
+#include <userver/storages/query.hpp>
+
 #include <userver/utils/strong_typedef.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
+
+// using Query = USERVER_NAMESPACE::storages::Query; for opentelemetry tracing
 
 class Query {
  public:

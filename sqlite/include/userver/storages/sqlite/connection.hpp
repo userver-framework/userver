@@ -10,11 +10,10 @@
 #include <userver/engine/deadline.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
-#include <userver/storages/sqlite/result_set.hpp>
-#include <userver/storages/sqlite/query.hpp>
-#include <userver/storages/sqlite/transaction.hpp>
 #include <userver/storages/sqlite/options.hpp>
-
+#include <userver/storages/sqlite/query.hpp>
+#include <userver/storages/sqlite/result_set.hpp>
+#include <userver/storages/sqlite/transaction.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -36,17 +35,37 @@ class Connection final {
   Connection() = default;
   /// @brief Connection constructor
   Connection(const settings::SQLiteSettings& settings,
-          const components::ComponentConfig& config);
+             const components::ComponentConfig& config);
   /// @brief Connection destructor
   ~Connection();
 
   template <typename... Args>
-  ResultSet Execute(const Query& query [[maybe_unused]], const Args&... args [[maybe_unused]]) {
-    return ResultSet{};
-  }
+  ResultSet Execute(const Query& query, const Args&... args) const;
 
-  Transaction Begin(std::string name, const TransactionOptions&);
+  template <typename... Args>
+  ResultSet Execute(OptionalCommandControl optional_cc, const Query& query,
+                    const Args&... args) const;
+
+  // TODO: need more diffrent Execute?
+
+  Transaction Begin(std::string name, const TransactionOptions&) const;
+
+  Transaction Begin(OptionalCommandControl command_control, std::string name,
+                    const TransactionOptions&) const;
 };
+
+template <typename... Args>
+ResultSet Connection::Execute(const Query& query, const Args&... args) const {
+  return Execute(std::nullopt, query, args...);
+}
+
+template <typename... Args>
+ResultSet Connection::Execute(OptionalCommandControl optional_cc
+                              [[maybe_unused]],
+                              const Query& query [[maybe_unused]],
+                              const Args&... args [[maybe_unused]]) const {
+  return ResultSet{};
+}
 
 }  // namespace storages::sqlite
 

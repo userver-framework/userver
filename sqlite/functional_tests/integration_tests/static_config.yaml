@@ -9,8 +9,8 @@ components_manager:
         testsuite-support:
 
         key-value-database:
-            # path: "path/to/kv.db"
-            # in_memory: false
+            path_to_db: "path/to/kv.db"
+            # path: "::memory"
 
         server:
             listener:

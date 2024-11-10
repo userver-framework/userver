@@ -7,6 +7,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
 
+Transaction::Transaction() = default;
+
+Transaction::Transaction(const Transaction& other) = default;
+
 Transaction::Transaction(Transaction&& other) noexcept = default;
 
 Transaction::~Transaction() {
@@ -17,17 +21,12 @@ Transaction::~Transaction() {
   }
 }
 
-void Transaction::Commit() {
+void Transaction::Commit() {}
 
-}
+void Transaction::Rollback() {}
 
-void Transaction::Rollback() {
-
-}
-
-ResultSet Transaction::DoExecute(
-    const Query& query [[maybe_unused]]) const {
-      return ResultSet{};
+ResultSet Transaction::DoExecute(const Query& query [[maybe_unused]]) const {
+  return ResultSet{};
 }
 
 }  // namespace storages::sqlite
