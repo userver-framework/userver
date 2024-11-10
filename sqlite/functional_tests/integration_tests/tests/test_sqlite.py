@@ -1,34 +1,55 @@
-SELECT_URL = '/basic/sqlite?key=foo'
-
-async def test_pg_fine(service_client):
-    response = await service_client.get(SELECT_URL)
+async def test_basic(service_client):
+    response = await service_client.delete('/basic/sqlite?key=hello')
     assert response.status == 200
 
-# # /// [Functional test]
-# async def test_hello_base(service_client):
-#     response = await service_client.get('/hello')
-#     assert response.status == 200
-#     assert 'text/plain' in response.headers['Content-Type']
-#     assert response.text == 'Hello, unknown user!\n'
-#     assert 'X-RequestId' not in response.headers.keys(), 'Unexpected header'
+    response = await service_client.post('/basic/sqlite?key=hello&value=world')
+    assert response.status == 201
+    assert 'text/plain' in response.headers['Content-Type']
+    assert response.text == 'world'
 
-#     response = await service_client.get('/hello', params={'name': 'userver'})
-#     assert response.status == 200
-#     assert 'text/plain' in response.headers['Content-Type']
-#     assert response.text == 'Hello, userver!\n'
-#     # /// [Functional test]
+    response = await service_client.get('/basic/sqlite?key=hello')
+    assert response.status == 200
+    assert 'text/plain' in response.headers['Content-Type']
+    assert response.text == 'world'
 
+    response = await service_client.delete('/basic/sqlite?key=hello')
+    assert response.status == 200
 
-# async def test_hello_head(service_client):
-#     response = await service_client.request('HEAD', '/hello')
-#     assert response.status == 200
-#     assert 'text/plain' in response.headers['Content-Type']
-#     assert response.text == ''
-#     assert 'X-RequestId' not in response.headers.keys(), 'Unexpected header'
+    response = await service_client.post('/basic/sqlite?key=hello&value=there')
+    assert response.status == 201
+    assert 'text/plain' in response.headers['Content-Type']
+    assert response.text == 'there'
 
+    response = await service_client.get('/basic/sqlite?key=hello')
+    assert response.status == 200
+    assert 'text/plain' in response.headers['Content-Type']
+    assert response.text == 'there'
 
-# async def test_wrong_method(service_client):
-#     response = await service_client.request('KEK', '/hello')
-#     assert response.status == 400
-#     assert response.text == 'bad request'
-#     assert 'X-YaRequestId' not in response.headers.keys(), 'Unexpected header'
+    response = await service_client.post('/basic/sqlite?key=hello&value=again')
+    assert response.status == 409
+    assert 'text/plain' in response.headers['Content-Type']
+    assert response.text == 'there'
+
+    response = await service_client.get('/basic/sqlite?key=missing')
+    assert response.status == 404
+
+async def test_trx_ok(service_client):
+    response = await service_client.post('/basic/sqlite?key=foo&value=bar')
+    assert response.status == 201
+    assert response.content == b'bar'
+
+    response = await service_client.get('/basic/sqlite?key=foo')
+    assert response.status == 200
+    assert response.content == b'bar'
+
+async def test_trx_fail(service_client):
+    response = await service_client.delete('/basic/sqlite?key=foo')
+    assert response.status == 200
+
+    # userver_pg_trx.enable_failure('sample_transaction_insert_key_value')
+
+    response = await service_client.post('/basic/sqlite?key=foo&value=bar')
+    assert response.status == 500
+
+    response = await service_client.get('/basic/sqlite?key=foo')
+    assert response.status == 404

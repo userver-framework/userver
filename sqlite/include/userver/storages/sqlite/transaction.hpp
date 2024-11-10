@@ -21,7 +21,7 @@ class Transaction final {
   Transaction(Transaction&& other) noexcept;
 
   template <typename... Args>
-  ResultSet Execute(const std::string& query, const Args&... args [[maybe_unused]]) const {
+  ResultSet Execute(const Query& query, const Args&... args [[maybe_unused]]) const {
     return DoExecute(query);
   }
 
@@ -30,7 +30,7 @@ class Transaction final {
   void Rollback();
 
  private:
-  ResultSet DoExecute(const std::string& query) const;
+  ResultSet DoExecute(const Query& query) const;
 };
 
 }  // namespace storages::sqlite

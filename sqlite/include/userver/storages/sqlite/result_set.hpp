@@ -3,7 +3,7 @@
 /// @file userver/storages/sqlite/result_set.hpp
 /// @brief Result accessors
 
-#include <utility>
+#include <cstddef>
 
 USERVER_NAMESPACE_BEGIN
 

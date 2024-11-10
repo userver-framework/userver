@@ -9,6 +9,8 @@ components_manager:
         testsuite-support:
 
         key-value-database:
+            # path: "path/to/kv.db"
+            # in_memory: false
 
         server:
             listener:
@@ -18,7 +20,7 @@ components_manager:
             fs-task-processor: fs-task-processor
             loggers:
                 default:
-                    file_path: '@stderr'
+                    file_path: "@stderr"
                     level: debug
                     overflow_behavior: discard
 

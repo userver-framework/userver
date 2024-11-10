@@ -11,24 +11,18 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
 
-/// @brief Query class, which driver executes.
 class Query {
  public:
-  /// @brief Strong typedef for query name, one can use named queries to get
-  /// better logging experience
   using Name = utils::StrongTypedef<struct NameTag, std::string>;
+  Query(const char* statement, std::optional<Name> = std::nullopt);
+  Query(std::string statement, std::optional<Name> = std::nullopt);
 
-  /// @brief Query constructor
-  Query(const char* statement);
-
-  /// @brief Query constructor
-  Query(std::string statement);
-
-  /// @brief Get query statement
   const std::string& GetStatement() const;
+  const std::optional<Name>& GetName() const;
 
  private:
   std::string statement_;
+  std::optional<Name> name_;
 };
 
 }  // namespace storages::sqlite

@@ -4,13 +4,15 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
 
-Query::Query(const char* statement)
-    : statement_{statement} {}
+Query::Query(const char* statement, std::optional<Query::Name> name)
+    : statement_{statement}, name_{std::move(name)} {}
 
-Query::Query(std::string statement)
-    : statement_{std::move(statement)} {}
+Query::Query(std::string statement, std::optional<Query::Name> name)
+    : statement_{std::move(statement)}, name_{std::move(name)} {}
 
 const std::string& Query::GetStatement() const { return statement_; }
+
+const std::optional<Query::Name>& Query::GetName() const { return name_; }
 
 }  // namespace storages::sqlite
 

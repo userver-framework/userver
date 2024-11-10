@@ -41,7 +41,7 @@ class Connection final {
   ~Connection();
 
   template <typename... Args>
-  ResultSet Execute(const std::string& query [[maybe_unused]], const Args&... args [[maybe_unused]]) {
+  ResultSet Execute(const Query& query [[maybe_unused]], const Args&... args [[maybe_unused]]) {
     return ResultSet{};
   }
 

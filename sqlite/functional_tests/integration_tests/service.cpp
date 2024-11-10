@@ -3,18 +3,18 @@
 #include <userver/utest/using_namespace_userver.hpp>
 
 #include <userver/clients/http/component.hpp>
+#include <userver/components/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/utils/daemon_run.hpp>
-#include <userver/components/component.hpp>
 #include "userver/clients/dns/component.hpp"
 
 #include <userver/storages/sqlite/component.hpp>
 #include <userver/storages/sqlite/connection.hpp>
+#include <userver/storages/sqlite/options.hpp>
 #include <userver/storages/sqlite/query.hpp>
 #include <userver/storages/sqlite/result_set.hpp>
 #include <userver/storages/sqlite/transaction.hpp>
-#include <userver/storages/sqlite/options.hpp>
 
 namespace functional_tests {
 
@@ -45,7 +45,13 @@ KeyValue::KeyValue(const components::ComponentConfig& config,
       sqlite_connection_(
           context.FindComponent<components::SQLite>("key-value-database")
               .GetConnection()) {
-  sqlite_connection_->Execute("CREATE TABLE IF NOT EXISTS key_value_table (key TEXT PRIMARY KEY, value TEXT)");
+  constexpr auto kCreateTable = R"~(
+    CREATE TABLE IF NOT EXISTS key_value_table (
+      key TEXT PRIMARY KEY,
+      value TEXT
+    )
+  )~";
+  sqlite_connection_->Execute(kCreateTable);
 }
 
 std::string KeyValue::HandleRequestThrow(
@@ -72,7 +78,8 @@ std::string KeyValue::HandleRequestThrow(
 
 std::string KeyValue::GetValue(std::string_view key,
                                const server::http::HttpRequest& request) const {
-  storages::sqlite::ResultSet res = sqlite_connection_->Execute("SELECT value FROM key_value_table WHERE key = ?", key);
+  storages::sqlite::ResultSet res = sqlite_connection_->Execute(
+      "SELECT value FROM key_value_table WHERE key = ?", key);
   if (res.IsEmpty()) {
     request.SetResponseStatus(server::http::HttpStatus::kNotFound);
     return {};
@@ -88,14 +95,17 @@ std::string KeyValue::PostValue(
   storages::sqlite::Transaction transaction =
       sqlite_connection_->Begin("sample_transaction_insert_key_value", {});
 
-  auto res = transaction.Execute("INSERT OR IGNORE INTO key_value_table (key, value) VALUES (?, ?)", key, value);
+  auto res = transaction.Execute(
+      "INSERT OR IGNORE INTO key_value_table (key, value) VALUES (?, ?)", key,
+      value);
   if (res.RowsAffected()) {
     transaction.Commit();
     request.SetResponseStatus(server::http::HttpStatus::kCreated);
     return std::string{value};
   }
 
-  res = transaction.Execute("SELECT value FROM key_value_table WHERE key = ?", key);
+  res = transaction.Execute("SELECT value FROM key_value_table WHERE key = ?",
+                            key);
   transaction.Rollback();
 
   auto result = res.AsSingleRow<std::string>();
@@ -107,8 +117,12 @@ std::string KeyValue::PostValue(
 }
 
 std::string KeyValue::DeleteValue(std::string_view key) const {
-  auto res =
-      sqlite_connection_->Execute("DELETE FROM key_value_table WHERE key = ?", key);
+  const storages::sqlite::Query kDeleteValue{
+      "DELETE FROM key_value_table WHERE key = ?",
+      storages::sqlite::Query::Name{"sample_delete_value"},
+  };
+
+  auto res = sqlite_connection_->Execute(kDeleteValue, key);
   return std::to_string(res.RowsAffected());
 }
 

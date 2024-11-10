@@ -1,6 +1,7 @@
 #include <userver/storages/sqlite/transaction.hpp>
 
 #include "userver/logging/log.hpp"
+#include "userver/storages/sqlite/query.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -25,7 +26,7 @@ void Transaction::Rollback() {
 }
 
 ResultSet Transaction::DoExecute(
-    const std::string& query [[maybe_unused]]) const {
+    const Query& query [[maybe_unused]]) const {
       return ResultSet{};
 }
 
