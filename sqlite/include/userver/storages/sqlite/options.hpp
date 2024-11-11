@@ -4,6 +4,7 @@
 /// @brief Options
 
 #include <optional>
+#include <string>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -36,6 +37,10 @@ struct ConnectionSettings {};
 struct CommandControl {};
 
 using OptionalCommandControl = std::optional<CommandControl>;
+
+struct SQLiteSettings {
+  std::string db_name;
+};
 
 }  // namespace storages::sqlite
 

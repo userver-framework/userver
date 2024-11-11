@@ -7,8 +7,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
 
-Connection::Connection(const settings::SQLiteSettings& settings
-                       [[maybe_unused]],
+Connection::Connection(const SQLiteSettings& settings [[maybe_unused]],
                        const components::ComponentConfig& config
                        [[maybe_unused]]) {}
 

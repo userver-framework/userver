@@ -19,10 +19,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
 
-namespace settings {
-struct SQLiteSettings;
-}
-
 class Connection;
 using ConnectionPtr = std::shared_ptr<Connection>;
 
@@ -34,7 +30,7 @@ class Connection final {
  public:
   Connection() = default;
   /// @brief Connection constructor
-  Connection(const settings::SQLiteSettings& settings,
+  Connection(const SQLiteSettings& settings,
              const components::ComponentConfig& config);
   /// @brief Connection destructor
   ~Connection();
