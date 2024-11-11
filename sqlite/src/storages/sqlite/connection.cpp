@@ -1,6 +1,7 @@
 #include <userver/storages/sqlite/connection.hpp>
 
 #include <optional>
+
 #include "userver/storages/sqlite/result_set.hpp"
 
 USERVER_NAMESPACE_BEGIN

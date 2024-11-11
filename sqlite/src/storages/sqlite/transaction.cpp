@@ -1,6 +1,7 @@
 #include <userver/storages/sqlite/transaction.hpp>
 
 #include "userver/logging/log.hpp"
+
 #include "userver/storages/sqlite/query.hpp"
 
 USERVER_NAMESPACE_BEGIN

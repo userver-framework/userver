@@ -6,7 +6,6 @@
 #include <string>
 
 #include <userver/storages/query.hpp>
-
 #include <userver/utils/strong_typedef.hpp>
 
 USERVER_NAMESPACE_BEGIN

@@ -5,7 +5,6 @@
 
 #include <memory>
 
-#include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/components/component_fwd.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/utils/statistics/writer.hpp>

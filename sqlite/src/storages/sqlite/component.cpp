@@ -2,14 +2,14 @@
 
 #include <memory>
 
-#include <userver/yaml_config/merge_schemas.hpp>
-#include <userver/yaml_config/schema.hpp>
-#include "userver/storages/sqlite/connection.hpp"
-
-#include <userver/components/component.hpp>
-
 #include <sqlite3.h>
 #include <sqlite3ext.h>
+
+#include <userver/components/component.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
+#include <userver/yaml_config/schema.hpp>
+
+#include "userver/storages/sqlite/connection.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
