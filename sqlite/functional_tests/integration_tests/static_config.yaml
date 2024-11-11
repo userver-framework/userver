@@ -4,13 +4,18 @@ components_manager:
         handler-key-value:
             path: /basic/sqlite
             task_processor: main-task-processor
+            method: GET,DELETE,POST,PUT
+
+        handler-batch:
+            path: /basic/sqlite/batch
+            task_processor: main-task-processor
             method: GET,DELETE,POST
 
         testsuite-support:
 
         key-value-database:
             path_to_db: "path/to/kv.db"
-            # path: "::memory"
+            # path_to_db: "::memory"
 
         server:
             listener:

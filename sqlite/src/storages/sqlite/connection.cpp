@@ -1,6 +1,7 @@
 #include <userver/storages/sqlite/connection.hpp>
 
 #include <optional>
+#include "userver/storages/sqlite/result_set.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -24,6 +25,14 @@ Transaction Connection::Begin(OptionalCommandControl command_control
                               const TransactionOptions& options
                               [[maybe_unused]]) const {
   return Transaction{};
+}
+
+ResultSet Connection::DoExecute(OptionalCommandControl command_control
+                                [[maybe_unused]],
+                                const Query& query [[maybe_unused]],
+                                std::optional<std::size_t> batch_size
+                                [[maybe_unused]]) const {
+  return ResultSet{};
 }
 
 }  // namespace storages::sqlite

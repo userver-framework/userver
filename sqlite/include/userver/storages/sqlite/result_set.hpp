@@ -6,12 +6,19 @@
 #include <cstddef>
 #include <limits>
 #include <optional>
+#include <vector>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
 
-class Row {};
+class Row {
+ public:
+  Row() = default;
+
+ private:
+  friend class ResultSet;
+};
 
 class ConstRowIterator {
  public:
@@ -81,6 +88,9 @@ class ResultSet {
   // template <typename T>
   // auto AsSetOf() const;
 
+  template <typename T>
+  std::vector<T> AsVector() const;
+
   template <typename Container>
   Container AsContainer() const;
 
@@ -99,6 +109,11 @@ auto ResultSet::AsSingleRow() const {
 template <typename T>
 std::optional<T> ResultSet::AsOptionalSingleRow() const {
   return IsEmpty() ? std::nullopt : std::optional<T>{AsSingleRow<T>()};
+}
+
+template <typename T>
+std::vector<T> ResultSet::AsVector() const {
+  return std::move(*this).AsContainer<std::vector<T>>();
 }
 
 template <typename Container>

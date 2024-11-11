@@ -46,12 +46,29 @@ class Connection final {
   ResultSet Execute(OptionalCommandControl optional_cc, const Query& query,
                     const Args&... args) const;
 
-  // TODO: need more diffrent Execute?
+  template <typename T>
+  ResultSet ExecuteDecompose(const Query& query,
+                             const T& row [[maybe_unused]]) const;
+
+  template <typename T>
+  ResultSet ExecuteDecompose(OptionalCommandControl optional_cc,
+                             const Query& query, const T& row) const;
+
+  template <typename Container>
+  ResultSet ExecuteBulk(const Query& query, const Container& params) const;
+
+  template <typename Container>
+  ResultSet ExecuteBulk(OptionalCommandControl optional_cc, const Query& query,
+                        const Container& params) const;
 
   Transaction Begin(std::string name, const TransactionOptions&) const;
 
-  Transaction Begin(OptionalCommandControl command_control, std::string name,
+  Transaction Begin(OptionalCommandControl optional_cc, std::string name,
                     const TransactionOptions&) const;
+
+ private:
+  ResultSet DoExecute(OptionalCommandControl optional_cc, const Query& query,
+                      std::optional<std::size_t> batch_size) const;
 };
 
 template <typename... Args>
@@ -62,9 +79,37 @@ ResultSet Connection::Execute(const Query& query, const Args&... args) const {
 template <typename... Args>
 ResultSet Connection::Execute(OptionalCommandControl optional_cc
                               [[maybe_unused]],
-                              const Query& query [[maybe_unused]],
+                              const Query& query,
                               const Args&... args [[maybe_unused]]) const {
-  return ResultSet{};
+  return DoExecute(optional_cc, query.GetStatement(), std::nullopt);
+}
+
+template <typename T>
+ResultSet Connection::ExecuteDecompose(const Query& query,
+                                       const T& row [[maybe_unused]]) const {
+  return DoExecute(std::nullopt, query.GetStatement(), std::nullopt);
+}
+
+template <typename T>
+ResultSet Connection::ExecuteDecompose(OptionalCommandControl optional_cc
+                                       [[maybe_unused]],
+                                       const Query& query,
+                                       const T& row [[maybe_unused]]) const {
+  return DoExecute(optional_cc, query.GetStatement(), std::nullopt);
+}
+
+template <typename Container>
+ResultSet Connection::ExecuteBulk(const Query& query,
+                                  const Container& params) const {
+  return ExecuteBulk(std::nullopt, query, params);
+}
+
+template <typename Container>
+ResultSet Connection::ExecuteBulk(OptionalCommandControl optional_cc,
+                                  const Query& query,
+                                  const Container& params
+                                  [[maybe_unused]]) const {
+  return DoExecute(optional_cc, query.GetStatement(), std::nullopt);
 }
 
 }  // namespace storages::sqlite

@@ -4,6 +4,10 @@ file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp
 )
+file(GLOB_RECURSE SQLITE_TEST_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.hpp
+)
 
 file(GLOB_RECURSE SQLITE_FUNCTIONAL_TEST_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/functional_tests/*
@@ -46,6 +50,15 @@ _userver_directory_install(COMPONENT sqlite FILES
 )
 
 if (USERVER_IS_THE_ROOT_PROJECT)
+  add_executable(${PROJECT_NAME}-unittest ${SQLITE_TEST_SOURCES})
+  target_include_directories(${PROJECT_NAME}-unittest PRIVATE
+      $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
+  )
+  target_link_libraries(${PROJECT_NAME}-unittest PRIVATE
+      userver-utest
+      ${PROJECT_NAME}
+  )
+  add_google_tests(${PROJECT_NAME}-unittest)
 
   add_subdirectory(functional_tests)
 endif()
