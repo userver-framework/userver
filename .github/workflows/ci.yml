@@ -310,3 +310,12 @@ jobs:
                 mkdir mysql || :
                 cd mysql
                 ctest -V
+        
+          - name: Install gdb
+            run: |
+                sudo apt install -y gdb
+
+          - name: Run tests (gdb)
+            run: |
+                cd build_debug/scripts/gdb/tests
+                ctest -V
