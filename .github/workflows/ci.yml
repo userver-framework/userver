@@ -202,6 +202,10 @@ jobs:
             run: |
                 ./scripts/rabbitmq/ubuntu_install_rabbitmq_server.sh
 
+          - name: Install gdb
+            run: |
+                sudo apt install -y gdb
+
           - name: Setup ccache
             run: |
                 ccache -M 2.0GB
@@ -310,10 +314,6 @@ jobs:
                 mkdir mysql || :
                 cd mysql
                 ctest -V
-        
-          - name: Install gdb
-            run: |
-                sudo apt install -y gdb
 
           - name: Run tests (gdb)
             run: |
