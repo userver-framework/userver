@@ -22,7 +22,7 @@ userver_module(clickhouse
 
 _userver_directory_install(COMPONENT clickhouse FILES
 	  "${USERVER_ROOT_DIR}/cmake/modules/Findclickhouse-cpp.cmake"
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/modules
 )
 
 if (USERVER_IS_THE_ROOT_PROJECT)

@@ -20,7 +20,7 @@ endif()
 
 _userver_directory_install(COMPONENT mysql FILES
     "${USERVER_ROOT_DIR}/cmake/modules/Findlibmariadb.cmake"
-    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver/modules"
 )
 
 if (USERVER_IS_THE_ROOT_PROJECT)

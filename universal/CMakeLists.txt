@@ -375,12 +375,6 @@ if (USERVER_IS_THE_ROOT_PROJECT)
 endif()
 
 _userver_directory_install(COMPONENT universal FILES
-    "${USERVER_ROOT_DIR}/cmake/modules/FindCryptoPP.cmake"
-    "${USERVER_ROOT_DIR}/cmake/modules/Findlibyamlcpp.cmake"
-    "${USERVER_ROOT_DIR}/cmake/modules/Findlibzstd.cmake"
-    "${USERVER_ROOT_DIR}/cmake/modules/Findcctz.cmake"
-    "${USERVER_ROOT_DIR}/cmake/modules/FindJemalloc.cmake"
-    "${USERVER_ROOT_DIR}/cmake/modules/FindUserverGBench.cmake"
     "${USERVER_ROOT_DIR}/cmake/ModuleHelpers.cmake"
     "${USERVER_ROOT_DIR}/cmake/SetupGTest.cmake"
     "${USERVER_ROOT_DIR}/cmake/SetupGBench.cmake"
@@ -397,4 +391,13 @@ _userver_directory_install(COMPONENT universal FILES
     "${USERVER_ROOT_DIR}/cmake/UserverVenv.cmake"
     "${USERVER_ROOT_DIR}/cmake/install/userver-universal-config.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
+)
+_userver_directory_install(COMPONENT universal FILES
+    "${USERVER_ROOT_DIR}/cmake/modules/FindCryptoPP.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findlibyamlcpp.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findlibzstd.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/Findcctz.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/FindJemalloc.cmake"
+    "${USERVER_ROOT_DIR}/cmake/modules/FindUserverGBench.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/modules
 )

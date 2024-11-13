@@ -29,19 +29,11 @@ function(_userver_setup_environment_impl)
   message(STATUS "C++ compiler: ${CMAKE_CXX_COMPILER}")
 
   cmake_policy(SET CMP0057 NEW)
-  if(NOT USERVER_CMAKE_DIR IN_LIST CMAKE_MODULE_PATH)
-    set(CMAKE_MODULE_PATH
-        ${CMAKE_MODULE_PATH}
-        "${USERVER_CMAKE_DIR}"
-        "${USERVER_CMAKE_DIR}/modules"
-        "${CMAKE_BINARY_DIR}"
-        PARENT_SCOPE
-    )
-    set(CMAKE_PREFIX_PATH
-        "${CMAKE_BINARY_DIR}/package_stubs"
-        ${CMAKE_PREFIX_PATH}
-        PARENT_SCOPE
-    )
+  if(NOT "${USERVER_CMAKE_DIR}/modules" IN_LIST CMAKE_MODULE_PATH)
+    set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${USERVER_CMAKE_DIR}/modules" PARENT_SCOPE)
+  endif()
+  if(NOT "${CMAKE_BINARY_DIR}/package_stubs" IN_LIST CMAKE_PREFIX_PATH)
+    set(CMAKE_PREFIX_PATH "${CMAKE_BINARY_DIR}/package_stubs" ${CMAKE_PREFIX_PATH} PARENT_SCOPE)
   endif()
 
   set(CMAKE_EXPORT_COMPILE_COMMANDS ON PARENT_SCOPE)

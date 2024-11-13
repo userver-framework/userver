@@ -141,7 +141,8 @@ option(USERVER_FEATURE_OTLP "Provide asynchronous OTLP exporters" "${USERVER_LIB
 
 set(CMAKE_DEBUG_POSTFIX d)
 
-include(cmake/UserverSetupEnvironment.cmake)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
+include(UserverSetupEnvironment)
 userver_setup_environment()
 
 include(PrepareInstall)

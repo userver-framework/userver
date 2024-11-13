@@ -10,7 +10,7 @@ userver_module(s3api
 
 _userver_directory_install(COMPONENT s3api FILES
     "${USERVER_ROOT_DIR}/cmake/modules/FindPugixml.cmake"
-    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver/modules"
 )
 
 if(USERVER_FEATURE_UTEST)

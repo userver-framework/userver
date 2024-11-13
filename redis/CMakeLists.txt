@@ -51,7 +51,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 _userver_directory_install(COMPONENT redis FILES
 	  "${USERVER_ROOT_DIR}/cmake/modules/FindHiredis.cmake"
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/modules
 )
 
 # Helper library for testing user code with redis. Provides mock_client_base.hpp

@@ -214,8 +214,16 @@ macro(_userver_module_end)
     return()
   endif()
 
+  get_property(USERVER_CMAKE_DIR GLOBAL PROPERTY userver_cmake_dir)
+  if(NOT USERVER_CMAKE_DIR)
+    message(
+        FATAL_ERROR
+        "userver_setup_environment() should be run before trying to use any Find* from userver"
+    )
+  endif()
+
   include(FindPackageHandleStandardArgs)
-  include(DetectVersion)
+  include("${USERVER_CMAKE_DIR}/DetectVersion.cmake")
 
   set(name "${ARG_NAME}")
   if(ARG_PACKAGE_NAME)
