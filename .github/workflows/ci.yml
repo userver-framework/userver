@@ -202,9 +202,9 @@ jobs:
             run: |
                 ./scripts/rabbitmq/ubuntu_install_rabbitmq_server.sh
 
-          - name: Install gdb
+          - name: Install gdb and pytest
             run: |
-                sudo apt install -y gdb
+                sudo apt install -y gdb python3-pytest
 
           - name: Setup ccache
             run: |
