@@ -21,3 +21,4 @@ protobuf-dev
 protoc
 python3
 python3-dev
+yaml-cpp-dev
