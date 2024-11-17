@@ -18,5 +18,6 @@ postgresql16-dev
 protobuf-c-compiler
 protobuf-c-dev
 protobuf-dev
+protoc
 python3
 python3-dev
