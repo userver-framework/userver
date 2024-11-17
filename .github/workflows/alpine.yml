@@ -49,6 +49,7 @@ jobs:
                     -DCMAKE_BUILD_TYPE=Debug \
                     -DUSERVER_NO_WERROR=OFF \
                     -DUSERVER_FEATURE_JEMALLOC=OFF \
+                    -DUSERVER_DOWNLOAD_PACKAGE_PROTOBUF=ON \
                     -DUSERVER_FEATURE_ROCKS=OFF \
                     -DUSERVER_FEATURE_MYSQL=OFF \
                     ..
