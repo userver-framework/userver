@@ -38,7 +38,7 @@ jobs:
             shell: alpine.sh --root {0}
             run: |
               cat /etc/alpine-release
-              apt add $(cat scripts/docs/en/deps/alpine.md)
+              apk add $(cat scripts/docs/en/deps/alpine.md)
 
           - name: Run cmake
             shell: alpine.sh --root {0}
