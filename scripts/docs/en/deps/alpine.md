@@ -22,3 +22,4 @@ protoc
 python3
 python3-dev
 yaml-cpp-dev
+lz4-dev
