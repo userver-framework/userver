@@ -46,7 +46,7 @@ async def test_primary_key_constraint(service_client):
     assert 'text/plain' in response.headers['Content-Type']
     assert response.text == 'there'
 
-    # Creating an entry with the same key fails with an error
+    # Creating a record with the same key fails with an error
     response = await service_client.post('/basic/sqlite?key=hello&value=again')
     assert response.status == 409
     assert 'text/plain' in response.headers['Content-Type']
