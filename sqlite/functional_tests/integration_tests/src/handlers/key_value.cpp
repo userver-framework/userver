@@ -101,7 +101,7 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
       request.SetResponseStatus(server::http::HttpStatus::kConflict);
     }
 
-    return res.AsSingleRow<std::string>();
+    return result;
   }
 
   std::string UpdateValue(std::string_view key,
@@ -116,13 +116,17 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
 
     auto res = sqlite_connection_->Execute(db::sql::kUpdateKeyValue.data(),
                                            value, key);
-
     if (res.RowsAffected()) {
       transaction.Commit();
       request.SetResponseStatus(server::http::HttpStatus::kCreated);
       return std::string{value};
     }
+
     res = transaction.Execute(db::sql::kSelectValueByKey.data(), key);
+    if (res.IsEmpty()) {
+      request.SetResponseStatus(server::http::HttpStatus::kNotFound);
+      return {};
+    }
     transaction.Rollback();
 
     auto result = res.AsSingleRow<std::string>();
@@ -130,7 +134,7 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
       request.SetResponseStatus(server::http::HttpStatus::kConflict);
     }
 
-    return res.AsSingleRow<std::string>();
+    return result;
   }
 
   std::string DeleteValue(std::string_view key) const {

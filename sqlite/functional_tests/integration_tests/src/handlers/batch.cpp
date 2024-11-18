@@ -19,6 +19,7 @@
 #include <userver/storages/sqlite/transaction.hpp>
 
 #include <db/sql.hpp>
+#include <vector>
 
 namespace functional_tests {
 
@@ -86,7 +87,23 @@ class BatchSelectInsert final : public server::handlers::HttpHandlerJsonBase {
                                            rows.back());
     }
 
-    return {};
+    auto records =
+        sqlite_connection_->Execute(db::sql::kSelectAllKeyValue.data());
+
+    std::vector<Row> result;
+    for (size_t i = 0; i < records.Size(); ++i) {
+      // TODO: Add conversion from sqlite::Row to user-defined structures
+      result.push_back(Row{});
+    }
+
+    std::sort(
+        result.begin(), result.end(),
+        [](const auto& lhs, const auto& rhs) { return lhs.key < rhs.key; });
+
+    formats::json::ValueBuilder builder{};
+    builder["values"] = result;
+
+    return builder.ExtractValue();
   }
 
   formats::json::Value GetValues() const {
