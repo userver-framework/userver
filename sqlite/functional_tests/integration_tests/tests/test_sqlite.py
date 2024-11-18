@@ -1,6 +1,6 @@
 import pytest
 
-# Basic test for executing simple queries (POST, GET, DELETE, UPDATE) to sqlite database
+# Executing simple queries pipeline (POST, GET, UPDATE, DELETE)
 async def test_basic_crud(service_client):
     # Checking that deleting a row with a certain key, even if there is no such key, the request will be processed correctly
     response = await service_client.delete('/basic/sqlite?key=hello')
@@ -38,8 +38,8 @@ async def test_basic_crud(service_client):
     response = await service_client.get('/basic/sqlite?key=hello')
     assert response.status == 404
 
-# A test checking that trying to insert a new record with an existing key will fail
-async def test_primary_key_contraint(service_client):
+# Try to insert a new record with an existing key and get a PRIMARY KEY Constraint error
+async def test_primary_key_constraint(service_client):
     # Succesful create a new record
     response = await service_client.post('/basic/sqlite?key=hello&value=there')
     assert response.status == 201
@@ -52,13 +52,13 @@ async def test_primary_key_contraint(service_client):
     assert 'text/plain' in response.headers['Content-Type']
     assert response.text == 'there'
 
-# A test that verifies that getting a record with an unknown key fails
+# Unsuccessful retrieval of a record with an unknown key
 async def test_get_unknown_key(service_client):
     # Request with unknown key
     response = await service_client.get('/basic/sqlite?key=unknown')
     assert response.status == 404
 
-# A test that verifies that updating a record with an unknown key fails
+# Unsuccessful record update with unknown key
 async def test_update_by_unknown_key(service_client):
     # Request with unknown key
     response = await service_client.put('/basic/sqlite?key=unknown&value=foo')
