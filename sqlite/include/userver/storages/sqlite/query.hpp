@@ -12,7 +12,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite {
 
-// using Query = USERVER_NAMESPACE::storages::Query; for opentelemetry tracing
+// using Query = USERVER_NAMESPACE::storages::Query; // for opentelemetry
+// tracing
 
 class Query {
  public:
