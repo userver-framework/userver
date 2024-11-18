@@ -24,6 +24,12 @@ namespace functional_tests {
 
 namespace {
 
+constexpr std::string_view kInsertKeyValueTransactionName =
+    "sample_transaction_insert_key_value";
+constexpr std::string_view kUpdateKeyValueTransactionName =
+    "sample_transaction_update_key_value";
+constexpr std::string_view kDeleteQueryName = "sample_delete_value";
+
 class KeyValue final : public server::handlers::HttpHandlerBase {
  public:
   static constexpr std::string_view kName = "handler-key-value";
@@ -78,7 +84,7 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
     const auto& value = request.GetArg("value");
 
     storages::sqlite::Transaction transaction =
-        sqlite_connection_->Begin("sample_transaction_insert_key_value", {});
+        sqlite_connection_->Begin(kInsertKeyValueTransactionName.data(), {});
 
     auto res = transaction.Execute(db::sql::kInsertKeyValue.data(), key, value);
     if (res.RowsAffected()) {
@@ -105,7 +111,7 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
     using storages::sqlite::TransactionOptions;
 
     storages::sqlite::Transaction transaction = sqlite_connection_->Begin(
-        "sample_transaction_update_key_value",
+        kUpdateKeyValueTransactionName.data(),
         TransactionOptions{TransactionOptions::Mode::kImmediate});
 
     auto res = sqlite_connection_->Execute(db::sql::kUpdateKeyValue.data(),
@@ -130,7 +136,7 @@ class KeyValue final : public server::handlers::HttpHandlerBase {
   std::string DeleteValue(std::string_view key) const {
     const storages::sqlite::Query kDeleteValue{
         db::sql::kDeleteKeyValue.data(),
-        storages::sqlite::Query::Name{"sample_delete_value"},
+        storages::sqlite::Query::Name{kDeleteQueryName},
     };
 
     auto res = sqlite_connection_->Execute(kDeleteValue, key);
