@@ -38,6 +38,8 @@ class SQLiteTransactionException : public SQLiteException {
   ~SQLiteTransactionException() override;
 };
 
+// TODO: Added SQLite exceptions
+
 }  // namespace storages::sqlite
 
 USERVER_NAMESPACE_END
