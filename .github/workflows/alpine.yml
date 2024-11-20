@@ -17,14 +17,9 @@ jobs:
     posix:
         strategy:
             fail-fast: false
-            matrix:
-                include:
-                  - cmake-flags: >-
-                    os: ubuntu-24.04
-                    info: Alpine Linux
 
         name: Alpine Linux
-        runs-on: ${{matrix.os}}
+        runs-on: ubuntu-24.04
 
         steps:
           - uses: actions/checkout@v4
