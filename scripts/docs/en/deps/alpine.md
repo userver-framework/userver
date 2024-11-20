@@ -1,6 +1,9 @@
 boost1.84-dev
 clang18
 cmake
+py3-jinja2
+py3-protobuf
+clang17-extra-tools
 curl-dev
 snappy-dev
 snappy-static
