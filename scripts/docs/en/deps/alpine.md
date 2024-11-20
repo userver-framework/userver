@@ -2,6 +2,10 @@ boost1.84-dev
 clang18
 cmake
 curl-dev
+snappy-dev
+snappy-static
+pugixml-dev
+gflags-dev
 git
 grpc-cpp
 grpc-dev
@@ -9,6 +13,8 @@ hiredis-dev
 jemalloc-dev
 krb5-dev
 libev-dev
+lz4-dev
+lz4-static
 make
 mongo-c-driver-dev
 nghttp2-dev
@@ -22,4 +28,3 @@ protoc
 python3
 python3-dev
 yaml-cpp-dev
-lz4-dev

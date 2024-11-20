@@ -50,8 +50,11 @@ jobs:
                     -DUSERVER_NO_WERROR=OFF \
                     -DUSERVER_FEATURE_JEMALLOC=OFF \
                     -DUSERVER_DOWNLOAD_PACKAGE_PROTOBUF=ON \
-                    -DUSERVER_FEATURE_ROCKS=OFF \
+                    -DUSERVER_FEATURE_GRPC=OFF \
+                    -DUSERVER_FEATURE_OTLP=OFF \
                     -DUSERVER_FEATURE_MYSQL=OFF \
+                    -DUSERVER_FEATURE_STACKTRACE=OFF \
+                    -DUSERVER_DISABLE_RSEQ_ACCELERATION=FF \
                     ..
 
           - name: Compile
