@@ -52,7 +52,7 @@ jobs:
                     -DUSERVER_DOWNLOAD_PACKAGE_PROTOBUF=ON \
                     -DUSERVER_FEATURE_MYSQL=OFF \
                     -DUSERVER_FEATURE_STACKTRACE=OFF \
-                    -DUSERVER_DISABLE_RSEQ_ACCELERATION=OFF \
+                    -DUSERVER_DISABLE_RSEQ_ACCELERATION=YES \
                     ..
 
           - name: Compile
