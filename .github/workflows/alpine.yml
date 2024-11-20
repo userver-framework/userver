@@ -21,9 +21,9 @@ jobs:
                 include:
                   - cmake-flags: >-
                     os: ubuntu-24.04
-                    info: Alpine linux
+                    info: Alpine Linux
 
-        name: '${{matrix.os}}: ${{matrix.info}}'
+        name: Alpine Linux
         runs-on: ${{matrix.os}}
 
         steps:
