@@ -46,11 +46,11 @@ jobs:
                     -DCMAKE_BUILD_TYPE=Debug \
                     -DUSERVER_SANITIZE="ub addr" \
                     -DUSERVER_NO_WERROR=OFF \
-                    -DUSERVER_BUILD_ALL_COMPONENTS=1
-                    -DUSERVER_BUILD_SAMPLES=1
-                    -DUSERVER_BUILD_TESTS=1
+                    -DUSERVER_BUILD_ALL_COMPONENTS=1 \
+                    -DUSERVER_BUILD_SAMPLES=1 \
+                    -DUSERVER_BUILD_TESTS=1 \
                     -DUSERVER_FEATURE_JEMALLOC=OFF \
-                    -DUSERVER_FEATURE_KAFKA=OFF
+                    -DUSERVER_FEATURE_KAFKA=OFF \
                     -DUSERVER_FEATURE_STACKTRACE=OFF \
                     -DUSERVER_DOWNLOAD_PACKAGE_PROTOBUF=ON \
                     -DUSERVER_DISABLE_RSEQ_ACCELERATION=YES \
