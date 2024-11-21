@@ -15,6 +15,7 @@ lz4-dev
 lz4-static
 make
 mariadb-dev
+mariadb-static
 mongo-c-driver-dev
 nghttp2-dev
 openldap-dev

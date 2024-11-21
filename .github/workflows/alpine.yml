@@ -36,7 +36,7 @@ jobs:
               apk add $(cat scripts/docs/en/deps/alpine.md)
 
           - name: Run cmake
-            shell: alpine.sh --root {0}
+            shell: alpine.sh {0}
             run: |
                 mkdir build_debug
                 cd build_debug
@@ -48,14 +48,20 @@ jobs:
                     -DUSERVER_BUILD_SAMPLES=1
                     -DUSERVER_BUILD_TESTS=1
                     -DUSERVER_FEATURE_JEMALLOC=OFF \
-                    -DUSERVER_DOWNLOAD_PACKAGE_PROTOBUF=ON \
+                    -DUSERVER_FEATURE_KAFKA=OFF
                     -DUSERVER_FEATURE_STACKTRACE=OFF \
+                    -DUSERVER_DOWNLOAD_PACKAGE_PROTOBUF=ON \
                     -DUSERVER_DISABLE_RSEQ_ACCELERATION=YES \
                     ..
 
           - name: Compile
-            shell: alpine.sh --root {0}
+            shell: alpine.sh {0}
             run: |
-                pwd
                 cd build_debug
                 make -j$(nproc)
+
+          - name: Run tests
+            shell: alpine.sh {0}
+            run: |
+                cd build_debug
+                ctest -V
