@@ -5,6 +5,7 @@ _userver_module_begin(
     FORMULA_NAMES mongo-c-driver
     RPM_NAMES mongo-c-driver-devel
     PACMAN_NAMES mongo-c-driver
+    PKG_CONFIG_NAMES libmongoc-1.0
 )
 
 _userver_module_find_include(
