@@ -33,3 +33,4 @@ python3-dev
 snappy-dev
 snappy-static
 yaml-cpp-dev
+compiler-rt
