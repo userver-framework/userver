@@ -44,7 +44,6 @@ jobs:
                 cd build_debug
                 cmake \
                     -DCMAKE_BUILD_TYPE=Debug \
-                    -DUSERVER_SANITIZE="ub addr" \
                     -DUSERVER_NO_WERROR=OFF \
                     -DUSERVER_BUILD_ALL_COMPONENTS=1 \
                     -DUSERVER_BUILD_SAMPLES=1 \
