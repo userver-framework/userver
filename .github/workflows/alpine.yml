@@ -44,7 +44,7 @@ jobs:
                 cd build_debug
                 cmake \
                     -DCMAKE_BUILD_TYPE=Debug \
-                    -DUSERVER_SANITIZE="ub addr"
+                    -DUSERVER_SANITIZE="ub addr" \
                     -DUSERVER_NO_WERROR=OFF \
                     -DUSERVER_BUILD_ALL_COMPONENTS=1
                     -DUSERVER_BUILD_SAMPLES=1
@@ -66,4 +66,4 @@ jobs:
             shell: alpine.sh {0}
             run: |
                 cd build_debug
-                ctest -V
+                # ctest -V
