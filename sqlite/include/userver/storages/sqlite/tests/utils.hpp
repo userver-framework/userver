@@ -3,11 +3,45 @@
 /// @file userver/storages/sqlite/tests/utils.hpp
 /// @brief Utilities for testing logic working with SQLite.
 
+#include <memory>
 #include <userver/storages/sqlite.hpp>
+
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::tests {
+
+// TODO: write a mock function or class to obtain the correct ResultSet from the
+// given data
+
+class SQLiteConnection {
+ public:
+  virtual ~SQLiteConnection() = default;
+  virtual ResultSet Execute() { return {}; }
+};
+
+class MockSQLiteConnection {
+ public:
+  MOCK_METHOD(ResultSet, Execute, (), ());
+};
+
+template <typename Connection>
+class SQLiteTestFixture : public ::testing::Test {
+ private:
+  std::shared_ptr<MockSQLiteConnection> mock_connection_;
+
+ protected:
+  SQLiteTestFixture()
+      : mock_connection_(std::make_shared<MockSQLiteConnection>()) {}
+
+  std::shared_ptr<MockSQLiteConnection> GetMockConnection() {
+    return mock_connection_;
+  }
+
+  ResultSet Execute() { return mock_connection_->Execute(); }
+};
 
 class ConnectionWrapper final {
  public:
