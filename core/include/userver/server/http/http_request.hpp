@@ -285,7 +285,7 @@ private:
     friend class HttpRequestHandler;
 
     struct Impl;
-    utils::FastPimpl<Impl, 1616, 16> pimpl_;
+    utils::FastPimpl<Impl, 1648, 16> pimpl_;
 };
 
 }  // namespace server::http
