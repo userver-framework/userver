@@ -65,4 +65,4 @@ jobs:
             shell: alpine.sh {0}
             run: |
                 cd build_debug
-                # ctest -V
+                ctest -V
