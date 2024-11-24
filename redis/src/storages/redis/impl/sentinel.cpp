@@ -108,7 +108,6 @@ Sentinel::Sentinel(
             impl_ = std::make_unique<StandaloneImpl>(
                 *sentinel_thread_control_,
                 thread_pools_->GetRedisThreadPool(),
-                *this,
                 conns.front(),
                 std::move(shard_group_name),
                 client_name, password,

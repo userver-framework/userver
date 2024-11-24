@@ -165,14 +165,12 @@ constexpr redis::RedisCreationSettings makeRedisCreationSettings() {
 StandaloneImpl::StandaloneImpl(
     const engine::ev::ThreadControl& sentinel_thread_control,
     const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
-    Sentinel& sentinel,
     ConnectionInfo conn, std::string shard_group_name,
     const std::string& client_name, const Password& password,
     ConnectionSecurity /*connection_security*/,
     ReadyChangeCallback ready_callback,
     dynamic_config::Source dynamic_config_source, ConnectionMode /*mode*/)
-    : sentinel_obj_(sentinel),
-      ev_thread_(sentinel_thread_control),
+    : ev_thread_(sentinel_thread_control),
       process_waiting_commands_timer_(
           std::make_unique<engine::ev::PeriodicWatcher>(
               ev_thread_, [this] { ProcessWaitingCommands(); },

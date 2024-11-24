@@ -25,7 +25,6 @@ class StandaloneImpl : public SentinelImplBase {
   StandaloneImpl(
       const engine::ev::ThreadControl& sentinel_thread_control,
       const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
-      Sentinel& sentinel,
       ConnectionInfo conn, std::string shard_group_name,
       const std::string& client_name, const Password& password,
       ConnectionSecurity connection_security,
@@ -79,7 +78,6 @@ class StandaloneImpl : public SentinelImplBase {
   void AsyncCommandFailed(const SentinelCommand& scommand);
   void EnqueueCommand(const SentinelCommand& command);
 
-  Sentinel& sentinel_obj_;
   engine::ev::ThreadControl ev_thread_;
 
   std::unique_ptr<engine::ev::PeriodicWatcher> process_waiting_commands_timer_;
