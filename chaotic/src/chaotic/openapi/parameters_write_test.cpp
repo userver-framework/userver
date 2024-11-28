@@ -39,7 +39,7 @@ UTEST(OpenapiParameters, Path) {
     static constexpr co::Name kName{"test"};
 
     ParameterSinkMock sink;
-    EXPECT_CALL(sink, SetPath(std::string_view{"test"}, std::string{"value"}));
+    EXPECT_CALL(sink, SetPath("test", std::string{"value"}));
 
     co::WriteParameter<co::TrivialParameter<co::In::kPath, kName, std::string>>("value", sink);
 }
