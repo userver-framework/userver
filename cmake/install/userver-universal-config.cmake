@@ -7,7 +7,7 @@ endif()
 include("${USERVER_CMAKE_DIR}/ModuleHelpers.cmake")
 
 find_package(Threads)
-find_package(Boost REQUIRED COMPONENTS
+find_package(Boost REQUIRED CONFIG COMPONENTS
     program_options
     filesystem
     regex

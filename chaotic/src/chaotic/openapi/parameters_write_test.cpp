@@ -26,142 +26,129 @@ public:
     MOCK_METHOD(void, SetMultiQuery, (std::string_view, std::vector<std::string>&&), (override));
 };
 
+static constexpr co::Name kTest{
+    "test",
+};
+
 UTEST(OpenapiParameters, Cookie) {
-    static constexpr co::Name kName{"test"};
-
     ParameterSinkMock sink;
-    EXPECT_CALL(sink, SetCookie("test", std::string{"value"}));
+    EXPECT_CALL(sink, SetCookie(std::string_view{"test"}, std::string{"value"}));
 
-    co::WriteParameter<co::TrivialParameter<co::In::kCookie, kName, std::string>>("value", sink);
+    co::WriteParameter<co::TrivialParameter<co::In::kCookie, kTest, std::string>>("value", sink);
 }
 
 UTEST(OpenapiParameters, Path) {
-    static constexpr co::Name kName{"test"};
-
     ParameterSinkMock sink;
     EXPECT_CALL(sink, SetPath("test", std::string{"value"}));
 
-    co::WriteParameter<co::TrivialParameter<co::In::kPath, kName, std::string>>("value", sink);
+    co::WriteParameter<co::TrivialParameter<co::In::kPath, kTest, std::string>>("value", sink);
 }
 
 UTEST(OpenapiParameters, Header) {
-    static constexpr co::Name kName{"test"};
-
     ParameterSinkMock sink;
-    EXPECT_CALL(sink, SetHeader("test", std::string{"value"}));
+    EXPECT_CALL(sink, SetHeader(std::string_view{"test"}, std::string{"value"}));
 
-    co::WriteParameter<co::TrivialParameter<co::In::kHeader, kName, std::string>>("value", sink);
+    co::WriteParameter<co::TrivialParameter<co::In::kHeader, kTest, std::string>>("value", sink);
 }
 
 UTEST(OpenapiParameters, Query) {
-    static constexpr co::Name kName{"test"};
-
     ParameterSinkMock sink;
-    EXPECT_CALL(sink, SetQuery("test", std::string{"value"}));
+    EXPECT_CALL(sink, SetQuery(std::string_view{"test"}, std::string{"value"}));
 
-    co::WriteParameter<co::TrivialParameter<co::In::kQuery, kName, std::string>>("value", sink);
+    co::WriteParameter<co::TrivialParameter<co::In::kQuery, kTest, std::string>>("value", sink);
 }
 
 UTEST(OpenapiParameters, QueryExplode) {
-    static constexpr co::Name kName{"test"};
-
     ParameterSinkMock sink;
-    EXPECT_CALL(sink, SetMultiQuery("test", (std::vector<std::string>{"foo", "bar"})));
+    EXPECT_CALL(sink, SetMultiQuery(std::string_view{"test"}, (std::vector<std::string>{"foo", "bar"})));
 
-    co::WriteParameter<co::ArrayParameter<co::In::kQueryExplode, kName, ',', std::string>>(
+    co::WriteParameter<co::ArrayParameter<co::In::kQueryExplode, kTest, ',', std::string>>(
         std::vector<std::string>{"foo", "bar"}, sink
     );
 }
 
 UTEST(OpenapiParameters, QueryExplodeInteger) {
-    static constexpr co::Name kName{"test"};
-
     ParameterSinkMock sink;
-    EXPECT_CALL(sink, SetMultiQuery("test", (std::vector<std::string>{"1", "2"})));
+    EXPECT_CALL(sink, SetMultiQuery(std::string_view{"test"}, (std::vector<std::string>{"1", "2"})));
 
-    co::WriteParameter<co::ArrayParameter<co::In::kQueryExplode, kName, ',', int>>(std::vector<int>{1, 2}, sink);
+    co::WriteParameter<co::ArrayParameter<co::In::kQueryExplode, kTest, ',', int>>(std::vector<int>{1, 2}, sink);
 }
 
 UTEST(OpenapiParameters, QueryExplodeUser) {
-    static constexpr co::Name kName{"test"};
-
     ParameterSinkMock sink;
-    EXPECT_CALL(sink, SetMultiQuery("test", (std::vector<std::string>{"1.2", "3.4"})));
+    EXPECT_CALL(sink, SetMultiQuery(std::string_view{"test"}, (std::vector<std::string>{"1.2", "3.4"})));
 
     using Decimal = decimal64::Decimal<10>;
-    co::WriteParameter<co::ArrayParameter<co::In::kQueryExplode, kName, ',', std::string, Decimal>>(
+    co::WriteParameter<co::ArrayParameter<co::In::kQueryExplode, kTest, ',', std::string, Decimal>>(
         std::vector<Decimal>{Decimal{"1.2"}, Decimal{"3.4"}}, sink
     );
 }
 
 UTEST(OpenapiParameters, CookieArray) {
-    static constexpr co::Name kName{"test"};
-
     ParameterSinkMock sink;
-    EXPECT_CALL(sink, SetCookie("test", std::string{"foo,bar"}));
+    EXPECT_CALL(sink, SetCookie(std::string_view{"test"}, std::string{"foo,bar"}));
 
-    co::WriteParameter<co::ArrayParameter<co::In::kCookie, kName, ',', std::string, std::string>>({"foo", "bar"}, sink);
+    co::WriteParameter<co::ArrayParameter<co::In::kCookie, kTest, ',', std::string, std::string>>({"foo", "bar"}, sink);
 }
 
 UTEST(OpenapiParameters, QueryArrayOfInteger) {
-    static constexpr co::Name kName{"test"};
-
     ParameterSinkMock sink;
-    EXPECT_CALL(sink, SetQuery("test", std::string{"1,2"}));
+    EXPECT_CALL(sink, SetQuery(std::string_view{"test"}, std::string{"1,2"}));
 
-    co::WriteParameter<co::ArrayParameter<co::In::kQuery, kName, ',', int>>({1, 2}, sink);
+    co::WriteParameter<co::ArrayParameter<co::In::kQuery, kTest, ',', int>>({1, 2}, sink);
 }
 
 UTEST(OpenapiParameters, QueryArrayOfUserTypes) {
-    static constexpr co::Name kName{"test"};
-
     ParameterSinkMock sink;
-    EXPECT_CALL(sink, SetQuery("test", std::string{"1.1,2.2"}));
+    EXPECT_CALL(sink, SetQuery(std::string_view{"test"}, std::string{"1.1,2.2"}));
 
     using Decimal = decimal64::Decimal<10>;
-    co::WriteParameter<co::ArrayParameter<co::In::kQuery, kName, ',', std::string, Decimal>>(
+    co::WriteParameter<co::ArrayParameter<co::In::kQuery, kTest, ',', std::string, Decimal>>(
         {Decimal{"1.1"}, Decimal{"2.2"}}, sink
     );
 }
 
 UTEST(OpenapiParameters, UserType) {
-    static constexpr co::Name kName{"test"};
-
     ParameterSinkMock sink;
-    EXPECT_CALL(sink, SetCookie("test", std::string{"1.1"}));
+    EXPECT_CALL(sink, SetCookie(std::string_view{"test"}, std::string{"1.1"}));
 
     using Decimal = decimal64::Decimal<10>;
-    co::WriteParameter<co::TrivialParameter<co::In::kCookie, kName, std::string, Decimal>>(Decimal{"1.1"}, sink);
+    co::WriteParameter<co::TrivialParameter<co::In::kCookie, kTest, std::string, Decimal>>(Decimal{"1.1"}, sink);
 }
 
 UTEST(OpenapiParameters, TypeBoolean) {
-    static constexpr co::Name kName{"test"};
-
     ParameterSinkMock sink;
-    EXPECT_CALL(sink, SetCookie("test", std::string{"true"}));
+    EXPECT_CALL(sink, SetCookie(std::string_view{"test"}, std::string{"true"}));
 
     bool bool_var = true;
-    co::WriteParameter<co::TrivialParameter<co::In::kCookie, kName, bool>>(bool_var, sink);
+    co::WriteParameter<co::TrivialParameter<co::In::kCookie, kTest, bool>>(bool_var, sink);
 }
 
 UTEST(OpenapiParameters, TypeDouble) {
-    static constexpr co::Name kName{"test"};
-
     ParameterSinkMock sink;
-    EXPECT_CALL(sink, SetCookie("test", std::string{"2.1"}));
+    EXPECT_CALL(sink, SetCookie(std::string_view{"test"}, std::string{"2.1"}));
 
     double double_var = 2.1;
-    co::WriteParameter<co::TrivialParameter<co::In::kCookie, kName, double>>(double_var, sink);
+    co::WriteParameter<co::TrivialParameter<co::In::kCookie, kTest, double>>(double_var, sink);
 }
 
 UTEST(OpenapiParameters, TypeInt) {
-    static constexpr co::Name kName{"test"};
-
     ParameterSinkMock sink;
-    EXPECT_CALL(sink, SetCookie("test", std::string{"1"}));
+    EXPECT_CALL(sink, SetCookie(std::string_view{"test"}, std::string{"1"}));
     int int_var = 1;
-    co::WriteParameter<co::TrivialParameter<co::In::kCookie, kName, int>>(int_var, sink);
+    co::WriteParameter<co::TrivialParameter<co::In::kCookie, kTest, int>>(int_var, sink);
 }
+
+static constexpr co::Name kName{
+    "name",
+};
+
+static constexpr co::Name kVar1{
+    "var1",
+};
+static constexpr co::Name kVar2{
+    "var2",
+};
 
 UTEST(OpenapiParameters, SinkHttpClient) {
     auto http_client_ptr = utest::CreateHttpClient();
@@ -182,18 +169,8 @@ UTEST(OpenapiParameters, SinkHttpClient) {
         return utest::HttpServerMock::HttpResponse{};
     });
 
-    static constexpr co::Name kName{
-        "name",
-    };
-
     co::ParameterSinkHttpClient sink(request, http_server.GetBaseUrl() + "/{name}");
 
-    static constexpr co::Name kVar1{
-        "var1",
-    };
-    static constexpr co::Name kVar2{
-        "var2",
-    };
     co::WriteParameter<co::ArrayParameter<co::In::kQueryExplode, kVar1, ',', std::string>>(
         std::vector<std::string>{"foo", "bar"}, sink
     );
@@ -210,15 +187,14 @@ UTEST(OpenapiParameters, SinkHttpClient) {
 
 UTEST(OpenapiParameters, InvalidPathVariable) {
     ParameterSinkMock sink;
-    static constexpr co::Name kName{"test"};
 
     EXPECT_THROW(
-        (co::WriteParameter<co::TrivialParameter<co::In::kPath, kName, std::string, std::string>>("foo?bar", sink)),
+        (co::WriteParameter<co::TrivialParameter<co::In::kPath, kTest, std::string, std::string>>("foo?bar", sink)),
         std::runtime_error
     );
 
     EXPECT_THROW(
-        (co::WriteParameter<co::TrivialParameter<co::In::kPath, kName, std::string, std::string>>("foo/bar", sink)),
+        (co::WriteParameter<co::TrivialParameter<co::In::kPath, kTest, std::string, std::string>>("foo/bar", sink)),
         std::runtime_error
     );
 }

@@ -19,16 +19,21 @@ public:
     LabelView() = default;
     LabelView(Label&& label) = delete;
     explicit LabelView(const Label& label) noexcept;
-    LabelView(std::string_view name, std::string_view value) noexcept : name_(name), value_(value) {}
+    constexpr LabelView(std::string_view name, std::string_view value) noexcept : name_(name), value_(value) {}
 
-    explicit operator bool() const { return !name_.empty(); }
+    template <class T, std::enable_if_t<std::is_arithmetic_v<T>>* = nullptr>
+    constexpr LabelView(std::string_view, T) {
+        static_assert(sizeof(T) && false, "Labels should not be arithmetic values, only strings!");
+    }
 
-    std::string_view Name() const { return name_; }
-    std::string_view Value() const { return value_; }
+    constexpr explicit operator bool() const { return !name_.empty(); }
+
+    constexpr std::string_view Name() const { return name_; }
+    constexpr std::string_view Value() const { return value_; }
 
 private:
-    std::string_view name_;
-    std::string_view value_;
+    std::string_view name_{};
+    std::string_view value_{};
 };
 
 bool operator<(const LabelView& x, const LabelView& y) noexcept;
@@ -40,6 +45,11 @@ public:
     Label() = default;
     explicit Label(LabelView view);
     Label(std::string name, std::string value);
+
+    template <class T, std::enable_if_t<std::is_arithmetic_v<T>>* = nullptr>
+    Label(std::string, T) {
+        static_assert(sizeof(T) && false, "Labels should not be arithmetic values, only strings!");
+    }
 
     explicit operator bool() const { return !name_.empty(); }
     explicit operator LabelView() const { return {name_, value_}; }

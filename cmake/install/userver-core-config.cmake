@@ -8,7 +8,7 @@ find_package(userver REQUIRED COMPONENTS
     universal
 )
 
-find_package(Boost REQUIRED COMPONENTS
+find_package(Boost REQUIRED CONFIG COMPONENTS
     locale
     iostreams
 )

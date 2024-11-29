@@ -1211,6 +1211,8 @@ schema:
                 type: string
 ```
 
+@warning Use @ref USERVER_NO_LOG_SPANS to disable Span logs.
+
 Used by components::LoggingConfigurator.
 
 
@@ -1350,6 +1352,8 @@ schema:
   ]
 }
 ```
+
+To disable specific log lines not related to spans use @ref USERVER_LOG_DYNAMIC_DEBUG.
 
 Used by components::LoggingConfigurator and all the logging facilities.
 
