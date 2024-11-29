@@ -6,9 +6,25 @@ USERVER_NAMESPACE_BEGIN
 
 namespace redis {
 
-ZaddOptions operator|(ZaddOptions::Exist exist, ZaddOptions::ReturnValue return_value) { return {exist, return_value}; }
+ZaddOptions operator|(ZaddOptions::Exist exist, ZaddOptions::ReturnValue return_value) {
+    return {exist, ZaddOptions::Compare::kNone, return_value};
+}
 
-ZaddOptions operator|(ZaddOptions::ReturnValue return_value, ZaddOptions::Exist exist) { return {exist, return_value}; }
+ZaddOptions operator|(ZaddOptions::Exist exist, ZaddOptions::Compare compare) { return {exist, compare}; }
+
+ZaddOptions operator|(ZaddOptions::Compare compare, ZaddOptions::Exist exist) { return {exist, compare}; }
+
+ZaddOptions operator|(ZaddOptions::Compare compare, ZaddOptions::ReturnValue return_value) {
+    return {ZaddOptions::Exist::kAddAlways, compare, return_value};
+}
+
+ZaddOptions operator|(ZaddOptions::ReturnValue return_value, ZaddOptions::Exist exist) {
+    return {exist, ZaddOptions::Compare::kNone, return_value};
+}
+
+ZaddOptions operator|(ZaddOptions::ReturnValue return_value, ZaddOptions::Compare compare) {
+    return {ZaddOptions::Exist::kAddAlways, compare, return_value};
+}
 
 void PutArg(CmdArgs::CmdArgsArray& args_, GeoaddArg arg) {
     args_.emplace_back(std::to_string(arg.lon));
@@ -101,6 +117,11 @@ void PutArg(CmdArgs::CmdArgsArray& args_, const ZaddOptions& arg) {
         args_.emplace_back("NX");
     else if (arg.exist == ZaddOptions::Exist::kAddIfExist)
         args_.emplace_back("XX");
+
+    if (arg.compare == ZaddOptions::Compare::kGreaterThan)
+        args_.emplace_back("GT");
+    else if (arg.compare == ZaddOptions::Compare::kLessThan)
+        args_.emplace_back("LT");
 
     if (arg.return_value == ZaddOptions::ReturnValue::kChangedCount) args_.emplace_back("CH");
 }

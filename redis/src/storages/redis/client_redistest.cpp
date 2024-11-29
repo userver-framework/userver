@@ -697,6 +697,40 @@ UTEST_F(RedisClientTest, Zadd) {
     EXPECT_FALSE(client->ZaddIncrExisting("zset", 1.1, "five", {}).Get().has_value());
 }
 
+UTEST_F(RedisClientTest, Zadd_gt_lt) {
+    Version since{6, 2, 0};
+    if (!CheckVersion(since)) GTEST_SKIP() << SkipMsgByVersion("Zadd gt/lt", since);
+
+    auto client = GetClient();
+
+    storages::redis::ZaddOptions options;
+    options.compare = storages::redis::ZaddOptions::Compare::kGreaterThan;
+    EXPECT_EQ(client->Zadd("zset_gt_lt", {{1., "one"}, {3., "two"}}, options, {}).Get(), 2);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "one", {}).Get(), 1);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "two", {}).Get(), 3);
+
+    EXPECT_EQ(client->Zadd("zset_gt_lt", {{3., "one"}, {1., "two"}}, options, {}).Get(), 0);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "one", {}).Get(), 3);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "two", {}).Get(), 3);
+
+    EXPECT_EQ(client->Zadd("zset_gt_lt", {{4., "one"}, {4., "two"}}, options, {}).Get(), 0);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "one", {}).Get(), 4);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "two", {}).Get(), 4);
+
+    options.compare = storages::redis::ZaddOptions::Compare::kLessThan;
+    EXPECT_EQ(client->Zadd("zset_gt_lt", {{3., "one"}, {5., "two"}}, options, {}).Get(), 0);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "one", {}).Get(), 3);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "two", {}).Get(), 4);
+
+    EXPECT_EQ(client->Zadd("zset_gt_lt", {{5., "one"}, {3., "two"}}, options, {}).Get(), 0);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "one", {}).Get(), 3);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "two", {}).Get(), 3);
+
+    EXPECT_EQ(client->Zadd("zset_gt_lt", {{1., "one"}, {1., "two"}}, options, {}).Get(), 0);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "one", {}).Get(), 1);
+    EXPECT_EQ(client->Zscore("zset_gt_lt", "two", {}).Get(), 1);
+}
+
 UTEST_F(RedisClientTest, Zcard) {
     auto client = GetClient();
 
