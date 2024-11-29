@@ -124,7 +124,6 @@ paths in the configuration files and starts the service.
 To start the service manually run
 `./samples/hello_service/userver-samples-hello_service -c </path/to/static_config.yaml>`.
 
-@note Without file path to `static_config.yaml` `userver-samples-hello_service` will look for a file with name `config_dev.yaml`
 @note CMake doesn't copy `static_config.yaml` and file from `samples` directory into build directory.
 
 Now you can send a request to your server from another terminal:

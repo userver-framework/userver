@@ -26,7 +26,7 @@ namespace detail {
 
 void JsonParser::operator()(const FieldBuffer& buffer) {
     if (buffer.length == 0) {
-        throw InvalidInputBufferSize{0, "for a json type"};
+        throw InvalidInputBufferSize{"Invalid buffer size 0 for a json type"};
     }
     const char* start = reinterpret_cast<const char*>(buffer.buffer);
     auto length = buffer.length;

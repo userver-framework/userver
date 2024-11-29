@@ -44,7 +44,7 @@ file(GLOB_RECURSE INTERNAL_SOURCES
 
 list (REMOVE_ITEM SOURCES ${INTERNAL_SOURCES})
 
-find_package(Boost REQUIRED COMPONENTS
+find_package(Boost REQUIRED CONFIG COMPONENTS
     program_options
     filesystem
     locale
@@ -148,7 +148,7 @@ if (USERVER_FEATURE_UBOOST_CORO)
         ${CMAKE_CURRENT_SOURCE_DIR}/uboost_coro/include
     )
 else()
-    find_package(Boost REQUIRED COMPONENTS
+    find_package(Boost REQUIRED CONFIG COMPONENTS
         context
         coroutine
     )

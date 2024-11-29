@@ -467,6 +467,11 @@ properties:
       minimum: 0
       description: maximum allowed replication lag. If equals 0 no replication 
       lag checks are performed
+    disabled_replicas:
+      type: array
+      description: List of manually disabled replicas (FQDNs).
+      items:
+        type: string
 required:
   - max_replication_lag_ms
 ```
@@ -475,7 +480,8 @@ required:
 ```json
 {
   "__default__": {
-    "max_replication_lag_ms": 60000
+    "max_replication_lag_ms": 60000,
+    "disabled_replicas": ["replica-01.example.com", "replica-02.example.com"]
   }
 }
 ```
@@ -1205,6 +1211,8 @@ schema:
                 type: string
 ```
 
+@warning Use @ref USERVER_NO_LOG_SPANS to disable Span logs.
+
 Used by components::LoggingConfigurator.
 
 
@@ -1344,6 +1352,8 @@ schema:
   ]
 }
 ```
+
+To disable specific log lines not related to spans use @ref USERVER_LOG_DYNAMIC_DEBUG.
 
 Used by components::LoggingConfigurator and all the logging facilities.
 

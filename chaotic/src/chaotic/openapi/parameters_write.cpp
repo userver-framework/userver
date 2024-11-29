@@ -9,17 +9,18 @@ namespace chaotic::openapi {
 ParameterSinkHttpClient::ParameterSinkHttpClient(clients::http::Request& request, std::string&& url_pattern)
     : url_pattern_(std::move(url_pattern)), request_(request) {}
 
-void ParameterSinkHttpClient::SetCookie(std::string_view name, std::string&& value) { cookies_.emplace(name, value); }
+void ParameterSinkHttpClient::SetCookie(std::string_view name, std::string&& value) {
+    cookies_.emplace(name, std::move(value));
+}
 
-void ParameterSinkHttpClient::SetHeader(std::string_view name, std::string&& value) { headers_.emplace(name, value); }
+void ParameterSinkHttpClient::SetHeader(std::string_view name, std::string&& value) {
+    headers_.emplace(name, std::move(value));
+}
 
 void ParameterSinkHttpClient::SetPath(Name& name, std::string&& value) {
     // Note: passing tmp value to fmt::arg() is OK and not a UAF
     // since fmt::dynamic_format_arg_store copies the data into itself.
-
-    // Note2: an ugly std::string{}.c_str() is needed because
-    // fmt::arg() wants char* :-(
-    path_vars_.push_back(fmt::arg(name, value));
+    path_vars_.push_back(fmt::arg(name, std::move(value)));
 }
 
 void ParameterSinkHttpClient::SetQuery(std::string_view name, std::string&& value) {
@@ -38,9 +39,13 @@ void ParameterSinkHttpClient::Flush() {
     request_.cookies(std::move(cookies_));
 }
 
-std::string ToRawParameter(std::string&& s) { return s; }
+std::string ToStrParameter(bool value) noexcept { return value ? "true" : "false"; }
 
-std::vector<std::string> ToRawParameter(std::vector<std::string>&& s) { return s; }
+std::string ToStrParameter(double value) noexcept { return fmt::to_string(value); }
+
+std::string ToStrParameter(std::string&& s) noexcept { return std::move(s); }
+
+std::vector<std::string> ToStrParameter(std::vector<std::string>&& s) noexcept { return std::move(s); }
 
 void ValidatePathVariableValue(std::string_view name, std::string_view value) {
     if (value.find('/') != std::string::npos || value.find('?') != std::string::npos) {

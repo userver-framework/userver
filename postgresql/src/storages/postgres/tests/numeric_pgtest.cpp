@@ -241,6 +241,20 @@ UTEST_P(PostgreConnection, DecimalStored) {
     EXPECT_EQ(decimal, expected);
 }
 
+UTEST_P(PostgreConnection, DecimalTypeParseExceptionReadability) {
+    {
+        auto result = GetConn()->Execute("SELECT 4.0::numeric");
+        EXPECT_EQ(result[0][0].GetTypeOid(), 1700);  // 1700 == numeric
+        UEXPECT_THROW_MSG(
+            result[0][0].As<double>(),
+            storages::postgres::InvalidInputBufferSize,
+            "Error while reading field #0 'numeric' "
+            "which database type is 'numeric' (oid: 1700) as a C++ type 'double'. Refer to the 'Supported data types' "
+            "in the documentation to make sure that the database type is actually representable as a C++ type "
+            "'double'. Error details: Buffer size 10 is invalid for a floating point value type"
+        );
+    }
+}
 }  // namespace
 
 USERVER_NAMESPACE_END

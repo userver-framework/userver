@@ -3,6 +3,12 @@
 
 #include <userver/storages/postgres/io/bitstring.hpp>
 
+// intentionally declared in global namespace
+struct PairForUnknownBufferCategoryExceptionReadabilityTest {
+    int x;
+    int y;
+};
+
 USERVER_NAMESPACE_BEGIN
 
 namespace pg = storages::postgres;
@@ -792,6 +798,67 @@ UTEST_P(PostgreConnection, CompositeTypeParseExceptionReadability) {
             "'__pgtest.no_cpp_type' (oid: "
         );
     }
+    {
+        UEXPECT_NO_THROW(GetConn()->Execute(R"~(
+          CREATE TABLE __pgtest.numeric_problem (
+                user_id serial NOT NULL PRIMARY KEY,
+                timestamp bigint,
+                balance_increment numeric,
+                description varchar(50)
+          )
+        )~"));
+        UEXPECT_NO_THROW(GetConn()->Execute(R"~(
+          INSERT INTO __pgtest.numeric_problem(user_id, timestamp, balance_increment, description)
+          VALUES ('1', 123, 2.0, 'nope'),
+                 ('42', 1234, 4.0, 'nope 2')
+        )~"));
+
+        UEXPECT_NO_THROW(GetConn()->Execute(R"~(
+            create or replace function the_function(
+              user_id_ varchar(50)
+            ) returns table(
+                time_stamp bigint,
+                balance_inc numeric,
+                description_ varchar(50)
+            ) as $$
+            begin
+             return query
+                   select timestamp, balance_increment, description
+                   from __pgtest.numeric_problem h
+                   where h.user_id = user_id_::integer
+                   order by h.timestamp;
+            end;
+            $$ language plpgsql;
+        )~"));
+
+        struct TransactionInfo final {
+            long long timestamp;
+            double balance_increment;
+            std::string description;
+        };
+
+        auto result = GetConn()->Execute("SELECT time_stamp, balance_inc, description_ FROM the_function('42')");
+        const auto set = result.AsSetOf<TransactionInfo>(storages::postgres::kRowTag);
+        UEXPECT_THROW_MSG(
+            set[0],
+            storages::postgres::InvalidInputBufferSize,
+            "Error while reading field #1 'balance_inc' "
+            "which database type is 'numeric' (oid: 1700) as a C++ type 'double'. Refer to the 'Supported data types' "
+            "in the documentation to make sure that the database type is actually representable as a C++ type "
+            "'double'. Error details: Buffer size 10 is invalid for a floating point value type"
+        );
+    }
+}
+
+UTEST_P(PostgreConnection, UnknownBufferCategoryExceptionReadability) {
+    auto result = GetConn()->Execute("SELECT ROW('fat & (rat | cat)'::tsquery, 1)");
+    UEXPECT_THROW_MSG(
+        result[0][0].As<PairForUnknownBufferCategoryExceptionReadabilityTest>(),
+        storages::postgres::UnknownBufferCategory,
+        "Database type is 'tsquery' (oid: 3615) and it is not representable as a C++ type 'int' within a C++ composite "
+        "'PairForUnknownBufferCategoryExceptionReadabilityTest'. Refer to the 'Supported data types' in the "
+        "documentation to find a propper C++ type."
+    );
 }
 
 }  // namespace

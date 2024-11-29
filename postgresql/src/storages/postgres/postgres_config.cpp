@@ -123,6 +123,7 @@ TopologySettings Parse(const formats::json::Value& config, formats::parse::To<To
 
     result.max_replication_lag =
         config["max_replication_lag_ms"].template As<std::chrono::milliseconds>(result.max_replication_lag);
+    result.disabled_replicas = config["disabled_replicas"].template As<decltype(result.disabled_replicas)>({});
 
     if (result.max_replication_lag < std::chrono::milliseconds{0})
         throw InvalidConfig{"max_replication_lag cannot be less than 0"};

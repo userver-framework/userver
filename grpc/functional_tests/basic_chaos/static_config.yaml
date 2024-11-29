@@ -21,7 +21,9 @@ components_manager:
                   - grpc-server-congestion-control
 # /// [Sample grpc server logging middleware component config]
         grpc-server-logging:
-            msg-size-log-limit: 10
+            log-level: info
+            msg-log-level: info
+            msg-size-log-limit: 512
 # /// [Sample grpc server logging middleware component config]
 
 # /// [Sample grpc server deadline propagation middleware component config]
@@ -94,7 +96,8 @@ components_manager:
 
 # /// [Sample grpc client logging middleware component config]
         grpc-client-logging:
-            log-level: debug
+            log-level: info
+            msg-log-level: info
             msg-size-log-limit: 512
 # /// [Sample grpc client logging middleware component config]
 

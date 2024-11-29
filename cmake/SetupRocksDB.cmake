@@ -25,7 +25,7 @@ include(DownloadUsingCPM)
 CPMAddPackage(
   NAME rocksdb
   GITHUB_REPOSITORY facebook/rocksdb
-  GIT_TAG v8.11.3
+  GIT_TAG v9.7.4
   OPTIONS
   "ROCKSDB_BUILD_SHARED OFF"
   "WITH_TESTS OFF"

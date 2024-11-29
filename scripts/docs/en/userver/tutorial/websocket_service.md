@@ -60,7 +60,6 @@ paths in the configuration files and starts the service.
 To start the service manually run
 `./samples/websocket_service/userver-samples-websocket_service -c </path/to/static_config.yaml>`.
 
-@note Without file path to `static_config.yaml` `userver-samples-websocket_service` will look for a file with name `config_dev.yaml`
 @note CMake doesn't copy `static_config.yaml` file from `samples` directory into build directory.
 
 Now you can send messages to your server from another terminal:

@@ -6,6 +6,7 @@ _userver_module_begin(
     RPM_NAMES hiredis-devel
     PACMAN_NAMES hiredis
     PKG_NAMES hiredis
+    PKG_CONFIG_NAMES hiredis
 )
 
 _userver_module_find_include(

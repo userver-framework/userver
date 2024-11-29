@@ -1,0 +1,68 @@
+name: Alpine Linux
+
+'on':
+    pull_request:
+    push:
+        branches:
+          - master
+          - develop
+          - feature/**
+
+env:
+    UBSAN_OPTIONS: print_stacktrace=1
+    ASAN_OPTIONS: detect_odr_violation=2
+    CXX: clang++-18
+
+jobs:
+    posix:
+        strategy:
+            fail-fast: false
+
+        name: Alpine Linux
+        runs-on: ubuntu-24.04
+
+        steps:
+          - uses: actions/checkout@v4
+            with:
+                fetch-depth: 0
+
+          - name: Setup latest Alpine Linux
+            uses: jirutka/setup-alpine@v1
+
+          - name: Run script inside Alpine chroot as root
+            shell: alpine.sh --root {0}
+            run: |
+                pwd
+                cat /etc/alpine-release
+                apk add $(cat scripts/docs/en/deps/alpine.md)
+
+          - name: Run cmake
+            shell: alpine.sh {0}
+            run: |
+                pwd
+                mkdir build_debug
+                cd build_debug
+                cmake \
+                    -DCMAKE_BUILD_TYPE=Debug \
+                    -DUSERVER_NO_WERROR=OFF \
+                    -DUSERVER_BUILD_ALL_COMPONENTS=1 \
+                    -DUSERVER_BUILD_SAMPLES=1 \
+                    -DUSERVER_BUILD_TESTS=1 \
+                    -DUSERVER_FEATURE_JEMALLOC=OFF \
+                    -DUSERVER_FEATURE_KAFKA=OFF \
+                    -DUSERVER_FEATURE_STACKTRACE=OFF \
+                    -DUSERVER_DOWNLOAD_PACKAGE_PROTOBUF=ON \
+                    -DUSERVER_DISABLE_RSEQ_ACCELERATION=YES \
+                    ..
+
+          - name: Compile
+            shell: alpine.sh {0}
+            run: |
+                cd build_debug
+                cmake --build . -j$(nproc)
+
+          - name: Run tests
+            shell: alpine.sh {0}
+            run: |
+                cd build_debug
+                ctest -V

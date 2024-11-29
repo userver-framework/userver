@@ -59,7 +59,8 @@ struct FloatingPointBinaryParser : BufferParserBase<T> {
                 this->value = FloatingPointBySizeParser<8>::ParseBuffer(buf);
                 break;
             default:
-                throw InvalidInputBufferSize{buf.length, "for a floating point value type"};
+                throw InvalidInputBufferSize{
+                    fmt::format("Buffer size {} is invalid for a floating point value type", buf.length)};
         }
     }
 };

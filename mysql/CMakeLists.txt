@@ -19,7 +19,9 @@ if (USERVER_MYSQL_ALLOW_BUGGY_LIBMARIADB)
 endif()
 if(USERVER_MYSQL_OLD_INCLUDE)
   target_compile_definitions(${PROJECT_NAME} PRIVATE -DUSERVER_MYSQL_OLD_INCLUDE=1)
-  target_compile_definitions(${PROJECT_NAME}-dbtest PRIVATE -DUSERVER_MYSQL_OLD_INCLUDE=1)
+  if(USERVER_BUILD_TESTS)
+    target_compile_definitions(${PROJECT_NAME}-dbtest PRIVATE -DUSERVER_MYSQL_OLD_INCLUDE=1)
+  endif()
 endif()
 
 _userver_directory_install(COMPONENT mysql FILES
