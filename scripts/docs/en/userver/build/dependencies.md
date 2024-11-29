@@ -142,7 +142,7 @@ CMAKE_COMMON_FLAGS += \
 \b Dependencies: @ref scripts/docs/en/deps/gentoo.md "third_party/userver/scripts/docs/en/deps/gentoo.md"
 
 Dependencies could be installed via:
-  
+
 ```bash
 sudo emerge --ask --update --oneshot $(cat scripts/docs/en/deps/gentoo.md | tr '\n' ' ')
 ```
@@ -152,6 +152,28 @@ sudo emerge --ask --update --oneshot $(cat scripts/docs/en/deps/gentoo.md | tr '
 ```cmake
 CMAKE_COMMON_FLAGS += \
     -DUSERVER_CHECK_PACKAGE_VERSIONS=0
+```
+
+
+### Alpine
+
+\b Dependencies: @ref scripts/docs/en/deps/alpine.md "third_party/userver/scripts/docs/en/deps/alpine.md"
+
+Dependencies could be installed via:
+
+```bash
+sudo apk add $(cat scripts/docs/en/deps/alpine.md)
+```
+
+\b Recommended \b Makefile.local:
+
+```cmake
+CMAKE_COMMON_FLAGS += \
+    -DUSERVER_FEATURE_JEMALLOC=OFF \
+    -DUSERVER_FEATURE_STACKTRACE=OFF \
+    -DUSERVER_FEATURE_KAFKA=OFF \
+    -DUSERVER_DOWNLOAD_PACKAGE_PROTOBUF=ON \
+    -DUSERVER_DISABLE_RSEQ_ACCELERATION=YES
 ```
 
 

@@ -22,6 +22,8 @@ class SpanBuilder;
 /// @brief Measures the execution time of the current code block, links it with
 /// the parent tracing::Spans and stores that info in the log.
 ///
+/// Logging of spans can be controled at runtime via @ref USERVER_NO_LOG_SPANS.
+///
 /// See @ref scripts/docs/en/userver/logging.md for usage examples and more
 /// descriptions.
 ///

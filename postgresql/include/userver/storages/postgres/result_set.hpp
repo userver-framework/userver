@@ -243,6 +243,7 @@ public:
 private:
     io::FieldBuffer GetBuffer() const;
     std::string_view Name() const;
+    Oid GetTypeOid() const;
     const io::TypeBufferCategory& GetTypeBufferCategories() const;
 
     template <typename T>
@@ -273,6 +274,18 @@ private:
         io::traits::CheckParser<ValueType>();
         try {
             io::ReadBuffer(buffer, std::forward<T>(val), GetTypeBufferCategories());
+        } catch (InvalidInputBufferSize& ex) {
+            // InvalidInputBufferSize is not descriptive. Enriching with OID information and C++ types info
+            ex.AddMsgPrefix(fmt::format(
+                "Error while reading field #{0} '{1}' which database type {2} as a C++ type '{3}'. Refer to "
+                "the 'Supported data types' in the documentation to make sure that the database type is actually "
+                "representable as a C++ type '{3}'. Error details: ",
+                field_index_,
+                Name(),
+                impl::OidPrettyPrint(GetTypeOid()),
+                compiler::GetTypeName<T>()
+            ));
+            throw;
         } catch (ResultSetError& ex) {
             ex.AddMsgSuffix(fmt::format(" (ResultSet error while reading field #{} name `{}`)", field_index_, Name()));
             throw;

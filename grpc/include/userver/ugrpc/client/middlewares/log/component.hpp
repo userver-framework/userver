@@ -19,10 +19,14 @@ struct Settings;
 ///
 /// @brief Component for gRPC client logging
 ///
+/// @warning Logs are currently written with log level `debug` by default, which typically means that they are not
+/// written in production. See details below.
+///
 /// ## Static options:
 /// Name | Description | Default value
 /// ---- | ----------- | -------------
-/// log-level | log level for msg logging | debug
+/// log-level | log level to use for `Span`, status code and the facts of sending requests receiving responses arriving | debug
+/// msg-log-level | log level to use for request and response messages themselves | debug
 /// msg-size-log-limit | max message size to log, the rest will be truncated | 512
 /// trim-secrets | trim the secrets from logs as marked by the protobuf option | true (*)
 ///
@@ -33,6 +37,8 @@ struct Settings;
 /// ## Static configuration example:
 ///
 /// @snippet grpc/functional_tests/basic_chaos/static_config.yaml Sample grpc client logging middleware component config
+///
+/// In this example, we enable logs for gRPC clients in production.
 
 // clang-format on
 

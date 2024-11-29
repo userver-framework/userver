@@ -38,7 +38,7 @@ const bool kReference = detail::ForceReference(
 
 void BufferParser<bool>::operator()(const FieldBuffer& buf) {
     if (buf.length != 1) {
-        throw InvalidInputBufferSize{buf.length, "for boolean type"};
+        throw InvalidInputBufferSize{fmt::format("Invalid buffer size {} for a boolean type", buf.length)};
     }
     value = *buf.buffer != 0;
 }

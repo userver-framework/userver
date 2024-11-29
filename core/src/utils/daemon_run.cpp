@@ -31,7 +31,7 @@ int DaemonMain(const int argc, const char* const argv[], const components::Compo
 
     po::variables_map vm;
     po::options_description desc("Allowed options");
-    std::string config_path = "config_dev.yaml";
+    std::string config_path;
     std::string config_vars_path;
     std::string config_vars_override_path;
 
@@ -40,7 +40,7 @@ int DaemonMain(const int argc, const char* const argv[], const components::Compo
     ("help,h", "produce this help message")
     ("print-config-schema", "print config.yaml YAML Schema")
     ("print-dynamic-config-defaults", "print JSON object with dynamic config defaults")
-    ("config,c", po::value(&config_path)->default_value(config_path), "path to server config")
+    ("config,c", po::value(&config_path)->required(), "path to server config")
     ("config_vars", po::value(&config_vars_path), "path to config_vars.yaml; if set, config_vars in config.yaml are ignored")
     ("config_vars_override", po::value(&config_vars_override_path), "path to an additional config_vars.yaml, which overrides vars of config_vars.yaml")
   ;

@@ -68,6 +68,8 @@ io::FieldBuffer FieldView::GetBuffer() const { return res_.GetFieldBuffer(row_in
 
 std::string_view FieldView::Name() const { return res_.GetFieldName(field_index_); }
 
+Oid FieldView::GetTypeOid() const { return res_.GetFieldTypeOid(field_index_); }
+
 const io::TypeBufferCategory& FieldView::GetTypeBufferCategories() const { return res_.GetTypeBufferCategories(); }
 
 //----------------------------------------------------------------------------

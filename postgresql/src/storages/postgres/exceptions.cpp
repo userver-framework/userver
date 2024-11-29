@@ -135,7 +135,7 @@ constexpr utils::TrivialBiMap kOidToReadableName = [](auto selector) {
 
 namespace storages::postgres {
 
-namespace {
+namespace impl {
 
 std::string OidPrettyPrint(Oid oid) {
     const auto name = kOidToReadableName.TryFind(oid);
@@ -144,6 +144,10 @@ std::string OidPrettyPrint(Oid oid) {
     }
     return fmt::format("oid is {}", oid);
 }
+
+}  // namespace impl
+
+namespace {
 
 std::string
 GetInvalidParserCategoryMessage(std::string_view type, io::BufferCategory parser, io::BufferCategory buffer) {
@@ -173,7 +177,7 @@ GetInvalidParserCategoryMessage(std::string_view type, io::BufferCategory parser
     return message;
 }
 
-}  // namespace
+}  // anonymous namespace
 
 ConnectionFailed::ConnectionFailed(const Dsn& dsn)
     : ConnectionError(fmt::format("{} Failed to connect to PostgreSQL server", DsnCutPassword(dsn))) {}
@@ -207,6 +211,8 @@ ResultSetError::ResultSetError(std::string msg) : LogicError::LogicError(msg), m
 
 void ResultSetError::AddMsgSuffix(std::string_view str) { msg_ += str; }
 
+void ResultSetError::AddMsgPrefix(std::string_view str) { msg_.insert(0, str); }
+
 const char* ResultSetError::what() const noexcept { return msg_.c_str(); }
 
 RowIndexOutOfBounds::RowIndexOutOfBounds(std::size_t index)
@@ -228,11 +234,27 @@ InvalidParserCategory::InvalidParserCategory(
     : ResultSetError(GetInvalidParserCategoryMessage(type, parser, buffer)) {}
 
 UnknownBufferCategory::UnknownBufferCategory(std::string_view context, Oid type_oid)
-    : ResultSetError(fmt::format("Query {} doesn't have a parser. Type oid is {}", context, type_oid)),
+    : ResultSetError(fmt::format(
+          "Query {} doesn't have a parser. Database type {} and it was not retrieved in C++ code as a corresponding "
+          "C++ type. Refer to the 'Supported data types' in the documentation to find a propper C++ type.",
+          context,
+          impl::OidPrettyPrint(type_oid)
+      )),
       type_oid{type_oid} {}
 
-InvalidInputBufferSize::InvalidInputBufferSize(std::size_t size, std::string_view message)
-    : ResultSetError(fmt::format("Buffer size {} is invalid: {}", size, message)) {}
+UnknownBufferCategory::UnknownBufferCategory(
+    Oid type_oid,
+    std::string_view cpp_field_type,
+    std::string_view cpp_composite_type
+)
+    : ResultSetError(fmt::format(
+          "Database type {} and it is not representable as a C++ type '{}' within a C++ composite '{}'. Refer to "
+          "the 'Supported data types' in the documentation to find a propper C++ type.",
+          impl::OidPrettyPrint(type_oid),
+          cpp_field_type,
+          cpp_composite_type
+      )),
+      type_oid{type_oid} {}
 
 InvalidBinaryBuffer::InvalidBinaryBuffer(const std::string& message)
     : ResultSetError("Invalid binary buffer: " + message) {}
@@ -290,8 +312,8 @@ CompositeMemberTypeMismatch::CompositeMemberTypeMismatch(
           pg_type_schema,
           pg_type_name,
           field_name,
-          OidPrettyPrint(pg_oid),
-          OidPrettyPrint(user_oid)
+          impl::OidPrettyPrint(pg_oid),
+          impl::OidPrettyPrint(user_oid)
       )) {}
 
 DimensionMismatch::DimensionMismatch() : ArrayError("Array dimensions don't match dimensions of C++ type") {}

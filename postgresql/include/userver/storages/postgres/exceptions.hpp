@@ -19,6 +19,14 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres {
 
+namespace impl {
+
+// Provides nice to read messages for pattern strings that end on 'type'. For example:
+// fmt::format("Unexpected database type {}", OidPrettyPrint(oid));
+std::string OidPrettyPrint(Oid oid);
+
+}  // namespace impl
+
 /**
  * @page pg_errors uPg: Postgres errors
  *
@@ -613,6 +621,7 @@ public:
     ResultSetError(std::string msg);
 
     void AddMsgSuffix(std::string_view str);
+    void AddMsgPrefix(std::string_view str);
 
     const char* what() const noexcept override;
 
@@ -675,6 +684,7 @@ public:
 class UnknownBufferCategory : public ResultSetError {
 public:
     UnknownBufferCategory(std::string_view context, Oid type_oid);
+    UnknownBufferCategory(Oid type_oid, std::string_view cpp_field_type, std::string_view cpp_composite_type);
 
     const Oid type_oid;
 };
@@ -687,8 +697,7 @@ class NoBinaryParser : public ResultSetError {
 /// @brief Buffer size is invalid for a fixed-size type.
 /// Can occur when a wrong field type is requested for reply.
 class InvalidInputBufferSize : public ResultSetError {
-public:
-    InvalidInputBufferSize(std::size_t size, std::string_view message);
+    using ResultSetError::ResultSetError;
 };
 
 /// @brief Binary buffer contains invalid data.

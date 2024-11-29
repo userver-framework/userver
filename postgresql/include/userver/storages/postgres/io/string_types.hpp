@@ -133,7 +133,7 @@ struct BufferParser<char> {
 
     void operator()(const FieldBuffer& buffer) {
         if (buffer.length != 1) {
-            throw InvalidInputBufferSize{buffer.length, "for type char"};
+            throw InvalidInputBufferSize{fmt::format("Buffer size {} is invalid for type char", buffer.length)};
         }
         value = *buffer.buffer;
     }

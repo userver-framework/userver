@@ -281,6 +281,8 @@ void* dlopen(const char* filename, int flags) {
     return reinterpret_cast<DlOpenSignature>(func)(filename, flags);
 }
 
+#ifdef LM_ID_BASE  // no dlmopen in musl
+
 #ifndef __clang__
 [[gnu::visibility("default")]] [[gnu::externally_visible]]
 #endif
@@ -295,6 +297,8 @@ void* dlmopen(Lmid_t lmid, const char *filename, int flags) {
 
     return reinterpret_cast<DlMOpenSignature>(func)(lmid, filename, flags);
 }
+
+#endif  // LM_ID_BASE
 
 #ifndef __clang__
 [[gnu::visibility("default")]] [[gnu::externally_visible]]

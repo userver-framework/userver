@@ -16,12 +16,24 @@
 #include <userver/yaml_config/yaml_config.hpp>
 
 #include <kafka/impl/error_buffer.hpp>
+#include <kafka/impl/log_level.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace kafka::impl {
 
 namespace {
+
+// Redirect librdkafka logs to userver logs.
+// https://docs.confluent.io/platform/current/clients/librdkafka/html/rdkafka_8h.html#a06ade2ca41f32eb82c6f7e3d4acbe19f
+void KafkaLogCallback(const rd_kafka_t*, int level, const char* facility, const char* message) noexcept {
+    try {
+        LOG(impl::convertRdKafkaLogLevelToLoggingLevel(level))
+            << logging::LogExtra{{{"facility", facility}}} << message;
+    } catch (const std::exception& e) {
+        UASSERT_MSG(false, e.what());
+    }
+}
 
 template <class SupportedList>
 bool IsSupportedOption(const SupportedList& supported_options, const std::string& configured_option) {
@@ -163,6 +175,8 @@ Configuration::Configuration(const std::string& name, const ConsumerConfiguratio
     : name_(name), conf_(rd_kafka_conf_new()) {
     VerifyComponentNamePrefix(name, "kafka-consumer");
 
+    rd_kafka_conf_set_log_cb(conf_.GetHandle(), KafkaLogCallback);
+
     SetCommon(configuration.common);
     SetSecurity(configuration.security, secrets);
     SetRdKafka(configuration.rd_kafka_options);
@@ -172,6 +186,8 @@ Configuration::Configuration(const std::string& name, const ConsumerConfiguratio
 Configuration::Configuration(const std::string& name, const ProducerConfiguration& configuration, const Secret& secrets)
     : name_(name), conf_(rd_kafka_conf_new()) {
     VerifyComponentNamePrefix(name, "kafka-producer");
+
+    rd_kafka_conf_set_log_cb(conf_.GetHandle(), KafkaLogCallback);
 
     SetCommon(configuration.common);
     SetSecurity(configuration.security, secrets);

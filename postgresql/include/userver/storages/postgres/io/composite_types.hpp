@@ -58,10 +58,12 @@ private:
         buffer.Read(field_type, BufferCategory::kPlainBuffer);
         auto elem_category = GetTypeBufferCategory(categories, field_type);
         if (elem_category == BufferCategory::kNoParser) {
-            throw LogicError{"Buffer category for oid " + std::to_string(field_type) + " is unknown"};
+            throw UnknownBufferCategory{
+                static_cast<Oid>(field_type), compiler::GetTypeName<U>(), compiler::GetTypeName<T>()};
         }
         buffer.ReadRaw(val, categories, elem_category);
     }
+
     template <typename Tuple, std::size_t... Indexes>
     void
     ReadTuple(FieldBuffer& buffer, const TypeBufferCategory& categories, Tuple&& tuple, std::index_sequence<Indexes...>)
