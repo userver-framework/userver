@@ -23,19 +23,21 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::mongo::options {
 
 /// @brief Read preference
-/// @see https://docs.mongodb.com/manual/reference/read-preference/
+/// @see https://github.com/mongodb/mongo-c-driver/blob/master/src/libmongoc/doc/mongoc_read_prefs_t.rst
 class ReadPreference {
 public:
     enum Mode {
-        /// read from primary, default mode
+        /// Default mode. All operations read from the current replica set primary.
         kPrimary,
-        /// read from secondary
+        /// All operations read from among the nearest secondary members of the replica set.
         kSecondary,
-        /// read from primary if available, fallback to secondary
+        /// In most situations, operations read from the primary but if it is unavailable, operations read from
+        /// secondary members.
         kPrimaryPreferred,
-        /// read from secondary if available, fallback to primary
+        /// In most situations, operations read from among the nearest secondary members, but if no secondaries are
+        /// available, operations read from the primary.
         kSecondaryPreferred,
-        /// read from any host with the lowest latency
+        /// Operations read from among the nearest members of the replica set, irrespective of the member's type.
         kNearest,
     };
 

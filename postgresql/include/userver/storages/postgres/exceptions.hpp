@@ -684,6 +684,7 @@ public:
 class UnknownBufferCategory : public ResultSetError {
 public:
     UnknownBufferCategory(std::string_view context, Oid type_oid);
+    UnknownBufferCategory(Oid type_oid, std::string_view cpp_field_type, std::string_view cpp_composite_type);
 
     const Oid type_oid;
 };

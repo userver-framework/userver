@@ -3,6 +3,12 @@
 
 #include <userver/storages/postgres/io/bitstring.hpp>
 
+// intentionally declared in global namespace
+struct PairForUnknownBufferCategoryExceptionReadabilityTest {
+    int x;
+    int y;
+};
+
 USERVER_NAMESPACE_BEGIN
 
 namespace pg = storages::postgres;
@@ -842,6 +848,17 @@ UTEST_P(PostgreConnection, CompositeTypeParseExceptionReadability) {
             "'double'. Error details: Buffer size 10 is invalid for a floating point value type"
         );
     }
+}
+
+UTEST_P(PostgreConnection, UnknownBufferCategoryExceptionReadability) {
+    auto result = GetConn()->Execute("SELECT ROW('fat & (rat | cat)'::tsquery, 1)");
+    UEXPECT_THROW_MSG(
+        result[0][0].As<PairForUnknownBufferCategoryExceptionReadabilityTest>(),
+        storages::postgres::UnknownBufferCategory,
+        "Database type is 'tsquery' (oid: 3615) and it is not representable as a C++ type 'int' within a C++ composite "
+        "'PairForUnknownBufferCategoryExceptionReadabilityTest'. Refer to the 'Supported data types' in the "
+        "documentation to find a propper C++ type."
+    );
 }
 
 }  // namespace

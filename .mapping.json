@@ -184,6 +184,7 @@
   "chaotic/src/chaotic/io/userver/utils/datetime/time_point_tz.cpp":"taxi/uservices/userver/chaotic/src/chaotic/io/userver/utils/datetime/time_point_tz.cpp",
   "chaotic/src/chaotic/io/userver/utils/datetime/time_point_tz_iso_basic.cpp":"taxi/uservices/userver/chaotic/src/chaotic/io/userver/utils/datetime/time_point_tz_iso_basic.cpp",
   "chaotic/src/chaotic/openapi/parameters.cpp":"taxi/uservices/userver/chaotic/src/chaotic/openapi/parameters.cpp",
+  "chaotic/src/chaotic/openapi/parameters_read.cpp":"taxi/uservices/userver/chaotic/src/chaotic/openapi/parameters_read.cpp",
   "chaotic/src/chaotic/openapi/parameters_read_test.cpp":"taxi/uservices/userver/chaotic/src/chaotic/openapi/parameters_read_test.cpp",
   "chaotic/src/chaotic/openapi/parameters_write.cpp":"taxi/uservices/userver/chaotic/src/chaotic/openapi/parameters_write.cpp",
   "chaotic/src/chaotic/openapi/parameters_write_test.cpp":"taxi/uservices/userver/chaotic/src/chaotic/openapi/parameters_write_test.cpp",

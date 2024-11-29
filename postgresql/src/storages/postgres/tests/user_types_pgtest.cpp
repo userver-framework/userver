@@ -355,6 +355,16 @@ UTEST_P(PostgreConnection, UserDefinedRange) {
     UEXPECT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";
 }
 
+UTEST_P(PostgreConnection, UnknownParserExceptionReadability) {
+    UEXPECT_THROW_MSG(
+        GetConn()->Execute("SELECT 'fat & (rat | cat)'::tsquery"),
+        storages::postgres::UnknownBufferCategory,
+        "Query result set field `tsquery` doesn't have a parser. Database type is 'tsquery' (oid: 3615) and it was not "
+        "retrieved in C++ code as a corresponding C++ type. Refer to the 'Supported data types' in the documentation "
+        "to find a propper C++ type."
+    );
+}
+
 }  // namespace
 
 USERVER_NAMESPACE_END

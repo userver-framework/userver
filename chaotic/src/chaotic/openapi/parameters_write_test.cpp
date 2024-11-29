@@ -2,6 +2,7 @@
 
 #include <gmock/gmock.h>
 
+#include <userver/chaotic/io/userver/decimal64/decimal.hpp>
 #include <userver/chaotic/openapi/parameters_write.hpp>
 #include <userver/clients/http/client.hpp>
 #include <userver/engine/run_in_coro.hpp>
@@ -67,12 +68,33 @@ UTEST(OpenapiParameters, QueryExplode) {
     ParameterSinkMock sink;
     EXPECT_CALL(sink, SetMultiQuery("test", (std::vector<std::string>{"foo", "bar"})));
 
-    co::WriteParameter<co::TrivialParameter<co::In::kQueryExplode, kName, std::vector<std::string>>>(
+    co::WriteParameter<co::ArrayParameter<co::In::kQueryExplode, kName, ',', std::string>>(
         std::vector<std::string>{"foo", "bar"}, sink
     );
 }
 
-UTEST(OpenapiParameters, QueryArray) {
+UTEST(OpenapiParameters, QueryExplodeInteger) {
+    static constexpr co::Name kName{"test"};
+
+    ParameterSinkMock sink;
+    EXPECT_CALL(sink, SetMultiQuery("test", (std::vector<std::string>{"1", "2"})));
+
+    co::WriteParameter<co::ArrayParameter<co::In::kQueryExplode, kName, ',', int>>(std::vector<int>{1, 2}, sink);
+}
+
+UTEST(OpenapiParameters, QueryExplodeUser) {
+    static constexpr co::Name kName{"test"};
+
+    ParameterSinkMock sink;
+    EXPECT_CALL(sink, SetMultiQuery("test", (std::vector<std::string>{"1.2", "3.4"})));
+
+    using Decimal = decimal64::Decimal<10>;
+    co::WriteParameter<co::ArrayParameter<co::In::kQueryExplode, kName, ',', std::string, Decimal>>(
+        std::vector<Decimal>{Decimal{"1.2"}, Decimal{"3.4"}}, sink
+    );
+}
+
+UTEST(OpenapiParameters, CookieArray) {
     static constexpr co::Name kName{"test"};
 
     ParameterSinkMock sink;
@@ -81,18 +103,64 @@ UTEST(OpenapiParameters, QueryArray) {
     co::WriteParameter<co::ArrayParameter<co::In::kCookie, kName, ',', std::string, std::string>>({"foo", "bar"}, sink);
 }
 
-enum class Enum {
-    kValue,
-};
-std::string ToString(Enum) { return "value"; }
+UTEST(OpenapiParameters, QueryArrayOfInteger) {
+    static constexpr co::Name kName{"test"};
+
+    ParameterSinkMock sink;
+    EXPECT_CALL(sink, SetQuery("test", std::string{"1,2"}));
+
+    co::WriteParameter<co::ArrayParameter<co::In::kQuery, kName, ',', int>>({1, 2}, sink);
+}
+
+UTEST(OpenapiParameters, QueryArrayOfUserTypes) {
+    static constexpr co::Name kName{"test"};
+
+    ParameterSinkMock sink;
+    EXPECT_CALL(sink, SetQuery("test", std::string{"1.1,2.2"}));
+
+    using Decimal = decimal64::Decimal<10>;
+    co::WriteParameter<co::ArrayParameter<co::In::kQuery, kName, ',', std::string, Decimal>>(
+        {Decimal{"1.1"}, Decimal{"2.2"}}, sink
+    );
+}
 
 UTEST(OpenapiParameters, UserType) {
     static constexpr co::Name kName{"test"};
 
     ParameterSinkMock sink;
-    EXPECT_CALL(sink, SetCookie("test", std::string{"value"}));
+    EXPECT_CALL(sink, SetCookie("test", std::string{"1.1"}));
 
-    co::WriteParameter<co::TrivialParameter<co::In::kCookie, kName, std::string, Enum>>(Enum::kValue, sink);
+    using Decimal = decimal64::Decimal<10>;
+    co::WriteParameter<co::TrivialParameter<co::In::kCookie, kName, std::string, Decimal>>(Decimal{"1.1"}, sink);
+}
+
+UTEST(OpenapiParameters, TypeBoolean) {
+    static constexpr co::Name kName{"test"};
+
+    ParameterSinkMock sink;
+    EXPECT_CALL(sink, SetCookie("test", std::string{"true"}));
+
+    bool bool_var = true;
+    co::WriteParameter<co::TrivialParameter<co::In::kCookie, kName, bool>>(bool_var, sink);
+}
+
+UTEST(OpenapiParameters, TypeDouble) {
+    static constexpr co::Name kName{"test"};
+
+    ParameterSinkMock sink;
+    EXPECT_CALL(sink, SetCookie("test", std::string{"2.1"}));
+
+    double double_var = 2.1;
+    co::WriteParameter<co::TrivialParameter<co::In::kCookie, kName, double>>(double_var, sink);
+}
+
+UTEST(OpenapiParameters, TypeInt) {
+    static constexpr co::Name kName{"test"};
+
+    ParameterSinkMock sink;
+    EXPECT_CALL(sink, SetCookie("test", std::string{"1"}));
+    int int_var = 1;
+    co::WriteParameter<co::TrivialParameter<co::In::kCookie, kName, int>>(int_var, sink);
 }
 
 UTEST(OpenapiParameters, SinkHttpClient) {
@@ -126,7 +194,7 @@ UTEST(OpenapiParameters, SinkHttpClient) {
     static constexpr co::Name kVar2{
         "var2",
     };
-    co::WriteParameter<co::TrivialParameter<co::In::kQueryExplode, kVar1, std::vector<std::string>>>(
+    co::WriteParameter<co::ArrayParameter<co::In::kQueryExplode, kVar1, ',', std::string>>(
         std::vector<std::string>{"foo", "bar"}, sink
     );
     co::WriteParameter<co::TrivialParameter<co::In::kQuery, kVar2, std::string>>("foo1", sink);

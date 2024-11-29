@@ -1,5 +1,6 @@
 #include <userver/utest/utest.hpp>
 
+#include <userver/chaotic/io/userver/decimal64/decimal.hpp>
 #include <userver/chaotic/openapi/parameters_read.hpp>
 #include <userver/server/http/http_request_builder.hpp>
 #include <userver/utils/algo.hpp>
@@ -20,7 +21,7 @@ UTEST(OpenapiParametersRead, SourceHttpRequest) {
 
     static constexpr co::Name kName{"foo"};
 
-    auto query_multi = co::ReadParameter<co::TrivialParameter<co::In::kQueryExplode, kName, std::string>>(source);
+    auto query_multi = co::ReadParameter<co::ArrayParameter<co::In::kQueryExplode, kName, ',', std::string>>(source);
     auto query = co::ReadParameter<co::TrivialParameter<co::In::kQuery, kName, std::string>>(source);
     auto path = co::ReadParameter<co::TrivialParameter<co::In::kPath, kName, std::string>>(source);
     auto header = co::ReadParameter<co::TrivialParameter<co::In::kHeader, kName, std::string>>(source);
@@ -31,6 +32,70 @@ UTEST(OpenapiParametersRead, SourceHttpRequest) {
     EXPECT_EQ(path, "path");
     EXPECT_EQ(header, "header");
     EXPECT_EQ(cookie, "cookie");
+}
+
+UTEST(OpenapiParametersRead, TypeBoolean) {
+    auto request = server::http::HttpRequestBuilder().AddRequestArg("foo", "true").Build();
+    static constexpr co::Name kName{"foo"};
+
+    bool foo{co::ReadParameter<co::TrivialParameter<co::In::kQuery, kName, bool>>(*request)};
+    EXPECT_EQ(foo, true);
+}
+
+UTEST(OpenapiParametersRead, TypeDouble) {
+    auto request = server::http::HttpRequestBuilder().AddRequestArg("foo", "12.2").Build();
+    static constexpr co::Name kName{"foo"};
+
+    double foo{co::ReadParameter<co::TrivialParameter<co::In::kQuery, kName, double>>(*request)};
+    EXPECT_EQ(foo, 12.2);
+}
+
+UTEST(OpenapiParametersRead, UserType) {
+    auto request = server::http::HttpRequestBuilder().AddRequestArg("foo", "12.2").Build();
+    static constexpr co::Name kName{"foo"};
+
+    using Decimal = decimal64::Decimal<10>;
+    Decimal foo{co::ReadParameter<co::TrivialParameter<co::In::kQuery, kName, std::string, Decimal>>(*request)};
+    EXPECT_EQ(foo, Decimal{"12.2"});
+}
+
+UTEST(OpenapiParametersRead, TypeInt) {
+    auto request = server::http::HttpRequestBuilder().AddRequestArg("foo", "12").Build();
+    static constexpr co::Name kName{"foo"};
+
+    int foo{co::ReadParameter<co::TrivialParameter<co::In::kQuery, kName, int>>(*request)};
+    EXPECT_EQ(foo, 12);
+}
+
+UTEST(OpenapiParametersRead, TypeArrayOfString) {
+    auto request = server::http::HttpRequestBuilder().AddRequestArg("foo", "bar,baz").Build();
+    static constexpr co::Name kName{"foo"};
+
+    std::vector<std::string> foo{
+        co::ReadParameter<co::ArrayParameter<co::In::kQuery, kName, ',', std::string>>(*request)};
+    EXPECT_EQ(foo, (std::vector<std::string>{"bar", "baz"}));
+}
+
+UTEST(OpenapiParametersRead, TypeArrayOfUser) {
+    auto request = server::http::HttpRequestBuilder().AddRequestArg("foo", "1.2,3.4").Build();
+    static constexpr co::Name kName{"foo"};
+
+    using Decimal = decimal64::Decimal<10>;
+    std::vector<Decimal> foo{
+        co::ReadParameter<co::ArrayParameter<co::In::kQuery, kName, ',', std::string, Decimal>>(*request)};
+    EXPECT_EQ(foo, (std::vector<Decimal>{Decimal{"1.2"}, Decimal{"3.4"}}));
+}
+
+UTEST(OpenapiParametersRead, TypeStringExplode) {
+    auto request = server::http::HttpRequestBuilder()
+                       .AddRequestArg("foo", "1")
+                       .AddRequestArg("foo", "2")
+                       .AddRequestArg("foo", "3")
+                       .Build();
+    static constexpr co::Name kName{"foo"};
+
+    std::vector<int> foo{co::ReadParameter<co::ArrayParameter<co::In::kQueryExplode, kName, ',', int>>(*request)};
+    EXPECT_EQ(foo, (std::vector{1, 2, 3}));
 }
 
 USERVER_NAMESPACE_END
