@@ -697,7 +697,7 @@ UTEST_F(RedisClientTest, Zadd) {
     EXPECT_FALSE(client->ZaddIncrExisting("zset", 1.1, "five", {}).Get().has_value());
 }
 
-UTEST_F(RedisClientTest, Zadd_gt_lt) {
+UTEST_F(RedisClientTest, ZaddGtLt) {
     Version since{6, 2, 0};
     if (!CheckVersion(since)) GTEST_SKIP() << SkipMsgByVersion("Zadd gt/lt", since);
 
