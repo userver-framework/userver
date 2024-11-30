@@ -39,6 +39,7 @@ include("${USERVER_CMAKE_DIR}/AddGoogleTests.cmake")
 include("${USERVER_CMAKE_DIR}/Sanitizers.cmake")
 include("${USERVER_CMAKE_DIR}/UserverSetupEnvironment.cmake")
 include("${USERVER_CMAKE_DIR}/UserverVenv.cmake")
+include("${USERVER_CMAKE_DIR}/UserverEmbedFile.cmake")
 
 userver_setup_environment()
 _userver_make_sanitize_blacklist()

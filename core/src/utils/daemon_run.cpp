@@ -90,6 +90,25 @@ int DaemonMain(const int argc, const char* const argv[], const components::Compo
     }
 }
 
+int DaemonMain(const components::InMemoryConfig& config, const components::ComponentList& components_list) {
+    utils::impl::FinishStaticRegistration();
+
+    try {
+        components::Run(config, components_list);
+        return 0;
+    } catch (const std::exception& ex) {
+        auto msg = fmt::format("Unhandled exception in components::Run: {}", ex.what());
+        std::cerr << msg << "\n";
+        return 1;
+    } catch (...) {
+        auto msg = fmt::format(
+            "Non-standard exception in components::Run: {}", boost::current_exception_diagnostic_information()
+        );
+        std::cerr << msg << '\n';
+        return 1;
+    }
+}
+
 }  // namespace utils
 
 USERVER_NAMESPACE_END
