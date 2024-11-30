@@ -17,14 +17,12 @@ public:
     // Component is valid after construction and is able to accept requests
     using HttpHandlerBase::HttpHandlerBase;
 
-    std::string HandleRequestThrow(const server::http::HttpRequest& req, server::request::RequestContext&)
-        const override;
+    std::string HandleRequest(server::http::HttpRequest& req, server::request::RequestContext&) const override;
 };
 /// [Multipart service sample - component]
 
 /// [Multipart service sample - HandleRequestThrow]
-std::string Multipart::HandleRequestThrow(const server::http::HttpRequest& req, server::request::RequestContext&)
-    const {
+std::string Multipart::HandleRequest(server::http::HttpRequest& req, server::request::RequestContext&) const {
     const auto content_type = http::ContentType(req.GetHeader(http::headers::kContentType));
     if (content_type != "multipart/form-data") {
         req.GetHttpResponse().SetStatus(server::http::HttpStatus::kBadRequest);

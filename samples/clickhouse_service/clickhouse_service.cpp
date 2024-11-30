@@ -34,7 +34,7 @@ public:
 
     HandlerDb(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-    std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext& context)
+    std::string HandleRequest(server::http::HttpRequest& request, server::request::RequestContext& context)
         const override;
 
 private:
@@ -45,8 +45,7 @@ HandlerDb::HandlerDb(const components::ComponentConfig& config, const components
     : server::handlers::HttpHandlerBase{config, context},
       clickhouse_{context.FindComponent<components::ClickHouse>("clickhouse-database").GetCluster()} {}
 
-std::string HandlerDb::HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
-    const {
+std::string HandlerDb::HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&) const {
     const auto& limit = request.GetArg("limit");
     // FP?: pfr magic
     // NOLINTNEXTLINE(clang-analyzer-core.uninitialized.UndefReturn)

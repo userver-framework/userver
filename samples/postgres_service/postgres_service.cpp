@@ -22,8 +22,7 @@ public:
 
     KeyValue(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-    std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
-        const override;
+    std::string HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&) const override;
 
 private:
     std::string GetValue(std::string_view key, const server::http::HttpRequest& request) const;
@@ -48,8 +47,7 @@ KeyValue::KeyValue(const components::ComponentConfig& config, const components::
 /// [Postgres service sample - component constructor]
 
 /// [Postgres service sample - HandleRequestThrow]
-std::string KeyValue::HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
-    const {
+std::string KeyValue::HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&) const {
     const auto& key = request.GetArg("key");
     if (key.empty()) {
         throw server::handlers::ClientError(server::handlers::ExternalBody{"No 'key' query argument"});

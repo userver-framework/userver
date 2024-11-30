@@ -18,8 +18,7 @@ public:
     Translations(const components::ComponentConfig& config, const components::ComponentContext& context)
         : HttpHandlerBase(config, context), pool_(context.FindComponent<components::Mongo>("mongo-tr").GetPool()) {}
 
-    std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
-        const override {
+    std::string HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&) const override {
         request.GetHttpResponse().SetContentType(http::content_type::kApplicationJson);
         if (request.GetMethod() == server::http::HttpMethod::kPatch) {
             InsertNew(request);

@@ -17,8 +17,8 @@ DynamicConfig::DynamicConfig(const components::ComponentConfig& config, const co
     : server::handlers::HttpHandlerBase(config, context),
       config_source_(context.FindComponent<components::DynamicConfig>().GetSource()) {}
 
-std::string DynamicConfig::HandleRequestThrow(
-    [[maybe_unused]] const server::http::HttpRequest& request,
+std::string DynamicConfig::HandleRequest(
+    [[maybe_unused]] server::http::HttpRequest& request,
     [[maybe_unused]] server::request::RequestContext& context
 ) const {
     request.GetHttpResponse().SetContentType(http::content_type::kTextPlain);

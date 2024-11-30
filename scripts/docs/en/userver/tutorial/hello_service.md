@@ -50,7 +50,7 @@ implementation details are hidden and the header is lightweight to include:
 HTTP handlers must derive from `server::handlers::HttpHandlerBase` and have a name, that
 is obtainable at compile time via `kName` variable and is obtainable at runtime via `HandlerName()`.
 
-The primary functionality of the handler should be located in `HandleRequestThrow` function.
+The primary functionality of the handler should be located in `HandleRequest` function.
 Return value of this function is the HTTP response body. If an exception `exc` derived from
 `server::handlers::CustomHandlerException` is thrown from the function then the
 HTTP response code will be set to `exc.GetCode()` and `exc.GetExternalErrorBody()`

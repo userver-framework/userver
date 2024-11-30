@@ -4,9 +4,9 @@
 
 namespace samples::hello {
 
-std::string HelloHandler::
-    HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext& /*request_context*/)
-        const {
+std::string
+HelloHandler::HandleRequest(server::http::HttpRequest& request, server::request::RequestContext& /*request_context*/)
+    const {
     // Setting Content-Type: text/plain in a microservice response ensures
     // the client interprets it as plain text, preventing misinterpretation or
     // errors. Without this header, the client might assume a different format,

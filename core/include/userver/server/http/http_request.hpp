@@ -207,6 +207,9 @@ public:
     /// @return HTTP body.
     const std::string& RequestBody() const;
 
+    /// @return moved out HTTP body. `this` is modified.
+    std::string ExtractRequestBody();
+
     /// @cond
     void SetRequestBody(std::string body);
     void ParseArgsFromBody();

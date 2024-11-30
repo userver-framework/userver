@@ -227,6 +227,8 @@ const HttpRequest::CookiesMap& HttpRequest::RequestCookies() const { return pimp
 
 const std::string& HttpRequest::RequestBody() const { return pimpl_->request_body_; }
 
+std::string HttpRequest::ExtractRequestBody() { return std::move(pimpl_->request_body_); }
+
 void HttpRequest::SetRequestBody(std::string body) { pimpl_->request_body_ = std::move(body); }
 
 void HttpRequest::ParseArgsFromBody() {
