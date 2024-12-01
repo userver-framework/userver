@@ -152,6 +152,9 @@ are available at the
 
 ## Libraries
 
+### Easy
+* @ref scripts/docs/en/userver/libraries/easy.md
+
 ### S3 client
 * @ref scripts/docs/en/userver/libraries/s3api.md
 

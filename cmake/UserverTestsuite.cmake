@@ -308,6 +308,7 @@ function(userver_testsuite_add_simple)
       CONFIG_VARS_PATH
       DYNAMIC_CONFIG_FALLBACK_PATH
       SECDIST_PATH
+      DUMP_CONFIG
   )
   set(multiValueArgs
       PYTEST_ARGS
@@ -358,9 +359,16 @@ function(userver_testsuite_add_simple)
     set(ARG_TEST_SUFFIX "")
   endif()
 
+  set(DUMP_CONFIG_OPTION "")
+  if (ARG_DUMP_CONFIG)
+    set(DUMP_CONFIG_OPTION "--dump-config")
+  endif()
+
   if(ARG_CONFIG_PATH)
     get_filename_component(config_path "${ARG_CONFIG_PATH}"
         REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+  elseif(ARG_DUMP_CONFIG)
+    set(config_path "${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/static_config.yaml")
   else()
     foreach(probable_config_path IN ITEMS
         "${CMAKE_CURRENT_SOURCE_DIR}/configs/static_config.yaml"
@@ -460,6 +468,7 @@ function(userver_testsuite_add_simple)
       "--service-config=${config_path}"
       "--service-source-dir=${CMAKE_CURRENT_SOURCE_DIR}"
       "--service-binary=${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}"
+      "${DUMP_CONFIG_OPTION}"
       ${pytest_additional_args}
       ${ARG_PYTEST_ARGS}
       REQUIREMENTS ${ARG_REQUIREMENTS}

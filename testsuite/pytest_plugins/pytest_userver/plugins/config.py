@@ -7,6 +7,7 @@ import copy
 import logging
 import os
 import pathlib
+import subprocess
 import types
 import typing
 
@@ -97,13 +98,18 @@ def pytest_addoption(parser) -> None:
         type=pathlib.Path,
         help='Path to dynamic config fallback file.',
     )
+    group.addoption(
+        '--dump-config',
+        action='store_true',
+        help='Dump config from binary before running tests',
+    )
 
 
 # @endcond
 
 
 @pytest.fixture(scope='session')
-def service_config_path(pytestconfig) -> pathlib.Path:
+def service_config_path(pytestconfig, service_binary) -> pathlib.Path:
     """
     Returns the path to service.yaml file set by command line
     `--service-config` option.
@@ -112,6 +118,12 @@ def service_config_path(pytestconfig) -> pathlib.Path:
 
     @ingroup userver_testsuite_fixtures
     """
+    if pytestconfig.option.dump_config:
+        subprocess.run([
+            service_binary,
+            '--dump-config',
+            pytestconfig.option.service_config,
+        ])
     return pytestconfig.option.service_config
 
 
