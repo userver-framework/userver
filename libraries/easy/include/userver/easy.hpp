@@ -31,6 +31,18 @@ public:
     virtual ~DependenciesBase();
 };
 
+template <class Dependencies>
+class DependenciesComponent : public DependenciesBase {
+public:
+    DependenciesComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : DependenciesBase(config, context), dependencies_(context) {}
+
+    Dependencies GetDependencies() const { return dependencies_; }
+
+private:
+    Dependencies dependencies_;
+};
+
 }  // namespace impl
 
 /// @brief easy::HttpWith like class with erased dependencies information that should be used only in dependency
@@ -103,10 +115,9 @@ private:
 ///
 /// @see @ref scripts/docs/en/userver/libraries/easy.md
 template <class... Dependency>
-class Dependencies final : public impl::DependenciesBase, public Dependency... {
+class Dependencies final : public Dependency... {
 public:
-    Dependencies(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : DependenciesBase{config, context}, Dependency{context}... {}
+    explicit Dependencies(const components::ComponentContext& context) : Dependency{context}... {}
 
     static void RegisterOn(HttpBase& app) { (Dependency::RegisterOn(app), ...); }
 };
@@ -115,11 +126,9 @@ public:
 /// applies schemas.
 ///
 /// @see @ref scripts/docs/en/userver/libraries/easy.md
-template <class Deps = Dependencies<>>
+template <class Dependency = Dependencies<>>
 class HttpWith final {
 public:
-    using Dependency = std::conditional_t<std::is_base_of_v<impl::DependenciesBase, Deps>, Deps, Dependencies<Deps>>;
-
     /// Helper class that can store any callback of the following signatures:
     ///
     /// * formats::json::Value(formats::json::Value, const Dependency&)
@@ -138,11 +147,14 @@ public:
         HttpBase::Callback Extract() && noexcept { return std::move(func_); }
 
     private:
+        static Dependency GetDependencies(const impl::DependenciesBase& deps) {
+            return static_cast<const DependenciesComponent&>(deps).GetDependencies();
+        };
         HttpBase::Callback func_;
     };
 
     HttpWith(int argc, const char* const argv[]) : impl_(argc, argv) {
-        impl_.TryAddComponent<Dependency>(Dependency::kName);
+        impl_.TryAddComponent<DependenciesComponent>(DependenciesComponent::kName);
     }
     ~HttpWith() { Dependency::RegisterOn(impl_); }
 
@@ -217,12 +229,13 @@ public:
     }
 
 private:
+    using DependenciesComponent = impl::DependenciesComponent<Dependency>;
     HttpBase impl_;
 };
 
-template <class Deps>
+template <class Dependency>
 template <class Function>
-HttpWith<Deps>::Callback::Callback(Function func) {
+HttpWith<Dependency>::Callback::Callback(Function func) {
     using server::http::HttpRequest;
 
     constexpr unsigned kMatches =
@@ -247,9 +260,7 @@ HttpWith<Deps>::Callback::Callback(Function func) {
     if constexpr (kMatches & 1) {
         func_ = [f = std::move(func)](const HttpRequest& req, const impl::DependenciesBase& deps) {
             req.GetHttpResponse().SetContentType(http::content_type::kApplicationJson);
-            return formats::json::ToString(
-                f(formats::json::FromString(req.RequestBody()), static_cast<const Dependency&>(deps))
-            );
+            return formats::json::ToString(f(formats::json::FromString(req.RequestBody()), GetDependencies(deps)));
         };
     } else if constexpr (kMatches & 2) {
         func_ = [f = std::move(func)](const HttpRequest& req, const impl::DependenciesBase&) {
@@ -259,11 +270,11 @@ HttpWith<Deps>::Callback::Callback(Function func) {
     } else if constexpr (kMatches & 4) {
         func_ = [f = std::move(func)](const HttpRequest& req, const impl::DependenciesBase& deps) {
             req.GetHttpResponse().SetContentType(http::content_type::kApplicationJson);
-            return formats::json::ToString(f(req, static_cast<const Dependency&>(deps)));
+            return formats::json::ToString(f(req, GetDependencies(deps)));
         };
     } else if constexpr (kMatches & 8) {
         func_ = [f = std::move(func)](const HttpRequest& req, const impl::DependenciesBase& deps) {
-            return f(req, static_cast<const Dependency&>(deps));
+            return f(req, GetDependencies(deps));
         };
     } else if constexpr (kMatches & 16) {
         func_ = [f = std::move(func)](const HttpRequest& req, const impl::DependenciesBase&) {
@@ -300,7 +311,8 @@ private:
 
 }  // namespace easy
 
-template <class... Components>
-inline constexpr auto components::kConfigFileMode<easy::Dependencies<Components...>> = ConfigFileMode::kNotRequired;
+template <class Dependencies>
+inline constexpr auto components::kConfigFileMode<easy::impl::DependenciesComponent<Dependencies>> =
+    ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

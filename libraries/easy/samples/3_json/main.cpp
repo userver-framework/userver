@@ -1,5 +1,4 @@
-// Note: this is for the purposes of samples only
-#include <userver/utest/using_namespace_userver.hpp>
+#include <userver/utest/using_namespace_userver.hpp>  // Note: this is for the purposes of samples only
 
 #include <userver/easy.hpp>
 #include "schemas/key_value.hpp"

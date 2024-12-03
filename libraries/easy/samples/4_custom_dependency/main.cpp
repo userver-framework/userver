@@ -1,5 +1,4 @@
-// Note: this is for the purposes of samples only
-#include <userver/utest/using_namespace_userver.hpp>
+#include <userver/utest/using_namespace_userver.hpp>  // Note: this is for the purposes of samples only
 
 #include <userver/easy.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>

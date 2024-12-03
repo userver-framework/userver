@@ -128,6 +128,27 @@ def service_config_path(pytestconfig, service_binary) -> pathlib.Path:
 
 
 @pytest.fixture(scope='session')
+def db_dump_schema_path(service_binary, service_tmpdir) -> pathlib.Path:
+    """
+    Runs the service binary with `--dump-db-schema` argument, dumps the 0_db_schema.sql file with database schema and
+    returns path to it.
+
+    Override this fixture to change the way to dump the database schema.
+
+    @ingroup userver_testsuite_fixtures
+
+    """
+    path = service_tmpdir.joinpath('schemas')
+    os.mkdir(path)
+    subprocess.run([
+        service_binary,
+        '--dump-db-schema',
+        path / '0_db_schema.sql',
+    ])
+    return path
+
+
+@pytest.fixture(scope='session')
 def service_config_vars_path(pytestconfig) -> typing.Optional[pathlib.Path]:
     """
     Returns the path to config_vars.yaml file set by command line
