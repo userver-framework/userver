@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS events_table (
 )
 )~";
 
+/// [ActionClient]
 class ActionClient : public components::ComponentBase {
 public:
     static constexpr std::string_view kName = "action-client";
@@ -43,13 +44,14 @@ private:
     const std::string service_url_;
     clients::http::Client& http_client_;
 };
+/// [ActionClient]
 
+/// [ActionDep]
 class ActionDep {
 public:
     explicit ActionDep(const components::ComponentContext& config) : component_{config.FindComponent<ActionClient>()} {}
     auto CreateActionRequest(std::string action) const { return component_.CreateHttpRequest(std::move(action)); }
 
-protected:
     static void RegisterOn(easy::HttpBase& app) {
         app.TryAddComponent<ActionClient>(ActionClient::kName, "service-url: http://some-service.example/v1/action");
         easy::HttpDep::RegisterOn(app);
@@ -58,7 +60,9 @@ protected:
 private:
     ActionClient& component_;
 };
+/// [ActionDep]
 
+/// [main]
 int main(int argc, char* argv[]) {
     using Deps = easy::Dependencies<ActionDep, easy::PgDep>;
 
@@ -73,3 +77,4 @@ int main(int argc, char* argv[]) {
             return deps.CreateActionRequest(action)->body();
         });
 }
+/// [main]

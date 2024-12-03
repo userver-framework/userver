@@ -1,4 +1,1 @@
-# /// [psql prepare]
-# Use only core plugin
-pytest_plugins = ['pytest_userver.plugins.core']
-# /// [psql prepare]
+pytest_plugins = ['pytest_userver.plugins.core']  # Use only the core plugin

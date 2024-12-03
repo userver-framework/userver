@@ -173,7 +173,12 @@ engine::impl::ContextAccessor* UnaryFuture::TryGetContextAccessor() noexcept {
     return finish.TryGetContextAccessor();
 }
 
-bool UnaryFuture::IsReady() const noexcept { return impl_.IsReady(); }
+bool UnaryFuture::IsReady() const noexcept {
+    auto* const data = impl_.GetData();
+    UINVARIANT(data, "IsReady should be called only before 'Get'");
+    auto& finish = data->GetFinishAsyncMethodInvocation();
+    return finish.IsReady();
+}
 
 grpc::ClientContext& CallAnyBase::GetContext() { return data_->GetContext(); }
 

@@ -1,4 +1,3 @@
-# /// [psql prepare]
 import os
 import subprocess
 
@@ -21,4 +20,3 @@ def schema_path(service_binary, service_tmpdir):
 def pgsql_local(schema_path, pgsql_local_create):
     databases = discover.find_schemas('admin', [schema_path])
     return pgsql_local_create(list(databases.values()))
-    # /// [psql prepare]

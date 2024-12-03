@@ -129,7 +129,7 @@ public:
     /// * formats::json::Value(const HttpRequest&)
     /// * std::string(const HttpRequest&)
     ///
-    /// If callback returns formats::json::Value then the deafult content type is set to `application/json`
+    /// If callback returns formats::json::Value then the default content type is set to `application/json`
     class Callback final {
     public:
         template <class Function>

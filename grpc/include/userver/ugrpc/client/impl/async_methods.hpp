@@ -172,12 +172,8 @@ public:
     FutureImpl(FutureImpl&&) noexcept;
     FutureImpl& operator=(FutureImpl&&) noexcept;
 
-    /// @brief Checks if the asynchronous call has completed
-    ///        Note, that once user gets result, IsReady should not be called
-    /// @return true if result ready
-    [[nodiscard]] bool IsReady() const noexcept;
+    RpcData* GetData() const noexcept;
 
-    RpcData* GetData() noexcept;
     void ClearData() noexcept;
 
 private:

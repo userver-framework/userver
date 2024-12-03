@@ -487,7 +487,10 @@ bool StreamReadFuture<RPC>::Get() {
 
 template <typename RPC>
 bool StreamReadFuture<RPC>::IsReady() const noexcept {
-    return impl_.IsReady();
+    auto* const data = impl_.GetData();
+    UINVARIANT(data, "IsReady should be called only before 'Get'");
+    auto& method = data->GetAsyncMethodInvocation();
+    return method.IsReady();
 }
 
 template <typename Response>

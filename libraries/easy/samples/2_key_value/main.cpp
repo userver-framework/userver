@@ -13,7 +13,6 @@ CREATE TABLE IF NOT EXISTS key_value_table (
 int main(int argc, char* argv[]) {
     easy::HttpWith<easy::PgDep>(argc, argv)
         .DbSchema(kSchema)
-        .DefaultContentType(http::content_type::kTextPlain)
         .Get(
             "/kv",
             [](const server::http::HttpRequest& req, const easy::PgDep& dep) {
@@ -25,13 +24,17 @@ int main(int argc, char* argv[]) {
                 return res[0][0].As<std::string>();
             }
         )
-        .Post("/kv", [](const server::http::HttpRequest& req, const auto& dep) {
-            dep.pg().Execute(
-                storages::postgres::ClusterHostType::kMaster,
-                "INSERT INTO key_value_table(key, value) VALUES($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2",
-                req.GetArg("key"),
-                req.GetArg("value")
-            );
-            return std::string{};
-        });
+        .Post(
+            "/kv",
+            [](const server::http::HttpRequest& req, const auto& dep) {
+                dep.pg().Execute(
+                    storages::postgres::ClusterHostType::kMaster,
+                    "INSERT INTO key_value_table(key, value) VALUES($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2",
+                    req.GetArg("key"),
+                    req.GetArg("value")
+                );
+                return std::string{};
+            }
+        )
+        .DefaultContentType(http::content_type::kTextPlain);
 }

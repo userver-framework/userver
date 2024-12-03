@@ -17,7 +17,8 @@ Find and link to userver module:
 
 ## Creating client in code
 
-We recomend wrapping your clients into some component. This way you can make sure that reference to http_client outlives S3 client. It can look, for example, like this:
+We recommend wrapping your clients into some component. This way you can make sure that reference to http_client
+outlives S3 client. It can look, for example, like this:
 
 @snippet samples/s3api/src/s3api_client.hpp s3_sample_component
 

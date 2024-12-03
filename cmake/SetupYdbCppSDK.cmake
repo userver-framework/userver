@@ -32,7 +32,7 @@ endif()
 
 CPMAddPackage(
   NAME ydb-cpp-sdk
-  GIT_TAG 240e2d9
+  GIT_TAG main
   GITHUB_REPOSITORY ydb-platform/ydb-cpp-sdk
   OPTIONS
   "Brotli_VERSION ${Brotli_VERSION}"

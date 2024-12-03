@@ -37,7 +37,7 @@ constexpr NYdb::EStatus kRetryableStatus = NYdb::EStatus::ABORTED;
 constexpr NYdb::EStatus kNonRetryableStatus = NYdb::EStatus::BAD_REQUEST;
 
 inline NThreading::TFuture<NYdb::TStatus> MakeStatusFuture(NYdb::EStatus status) {
-    return NThreading::MakeFuture<NYdb::TStatus>(NYdb::TStatus{status, NYql::TIssues()});
+    return NThreading::MakeFuture<NYdb::TStatus>(NYdb::TStatus{status, NYdb::NIssue::TIssues{}});
 }
 
 class TestOperationResults final : public NYdb::TStatus {
@@ -56,7 +56,7 @@ private:
 }  // namespace
 
 UTEST_F(RetryOperationFixture, HandleOfInheritorsOfTStatus) {
-    const TestOperationResults data{NYdb::TStatus{kSuccess, NYql::TIssues()}, "qwerty"};
+    const TestOperationResults data{NYdb::TStatus{kSuccess, NYdb::NIssue::TIssues{}}, "qwerty"};
     auto res = RetryOperationSync(
         /*retries=*/0,
         [&data](NYdb::NTable::TSession) {

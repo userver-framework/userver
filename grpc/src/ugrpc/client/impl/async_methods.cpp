@@ -85,13 +85,7 @@ FutureImpl& FutureImpl::operator=(FutureImpl&& other) noexcept {
     return *this;
 }
 
-bool FutureImpl::IsReady() const noexcept {
-    UINVARIANT(data_, "IsReady should be called only before 'Get'");
-    auto& method = data_->GetAsyncMethodInvocation();
-    return method.IsReady();
-}
-
-RpcData* FutureImpl::GetData() noexcept { return data_; }
+RpcData* FutureImpl::GetData() const noexcept { return data_; }
 
 void FutureImpl::ClearData() noexcept { data_ = nullptr; }
 

@@ -142,6 +142,9 @@ UTEST_F(GrpcClientTest, AsyncUnaryRPC) {
     auto call = std::move(call_for_move);      // test move operation
     auto future = std::move(future_for_move);  // test move operation
 
+    bool is_ready = false;
+    UEXPECT_NO_THROW(is_ready = future.IsReady());
+
     UEXPECT_NO_THROW(future.Get());
     CheckClientContext(call.GetContext());
     EXPECT_EQ("Hello " + out.name(), in.name());
