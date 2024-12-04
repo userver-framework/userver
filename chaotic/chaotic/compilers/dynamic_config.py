@@ -10,6 +10,7 @@ from typing import Tuple
 import jinja2
 import yaml
 
+from chaotic import cpp_format
 from chaotic.back.cpp import renderer
 from chaotic.back.cpp import translator
 from chaotic.back.cpp import types
@@ -323,13 +324,17 @@ class CompilerBase:
             os.path.join(
                 output_dir, f'include/taxi_config/variables/{name}.hpp',
             ),
-            renderer.format_pp(tpl.render(env), binary=get_clang_format_bin()),
+            cpp_format.format_pp(
+                tpl.render(env), binary=get_clang_format_bin(),
+            ),
         )
 
         tpl = self._jinja().get_template('variable.cpp.jinja')
         write_file(
             os.path.join(output_dir, f'src/taxi_config/variables/{name}.cpp'),
-            renderer.format_pp(tpl.render(env), binary=get_clang_format_bin()),
+            cpp_format.format_pp(
+                tpl.render(env), binary=get_clang_format_bin(),
+            ),
         )
 
     def generate_definition(

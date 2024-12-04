@@ -285,6 +285,7 @@ private:
                 impl::OidPrettyPrint(GetTypeOid()),
                 compiler::GetTypeName<T>()
             ));
+            UASSERT_MSG(false, ex.what());
             throw;
         } catch (ResultSetError& ex) {
             ex.AddMsgSuffix(fmt::format(" (ResultSet error while reading field #{} name `{}`)", field_index_, Name()));

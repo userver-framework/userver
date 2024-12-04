@@ -1,0 +1,15 @@
+#pragma once
+
+namespace {{ namespace }} {
+
+class Client {
+public:
+{% for op in operations %}
+    {# TODO: description #}
+    virtual {{ op.cpp_namespace() }}::Response {{ op.cpp_method_name() }}(
+        {# TODO: parameters #}
+    ) = 0;
+{% endfor %}
+};
+
+}

@@ -23,7 +23,7 @@ namespace easy {
 
 namespace {
 
-constexpr std::string_view kConfigBase = R"~(
+constexpr std::string_view kConfigBase = R"~(# yaml
 components_manager:
     task_processors:                  # Task processor is an executor for coroutine tasks
         main-task-processor:          # Make a task processor for CPU-bound coroutine tasks.
@@ -112,8 +112,8 @@ HttpBase::~HttpBase() {
 
     // clang-format off
     desc.add_options()
-      ("dump-config", po::value(&config_dump), "path to dump the server config")
-      ("dump-db-schema", po::value(&schema_dump), "path to dump the DB schema")
+      ("dump-config", po::value(&config_dump)->implicit_value(""), "path to dump the server config")
+      ("dump-db-schema", po::value(&schema_dump)->implicit_value(""), "path to dump the DB schema")
       ("config,c", po::value<std::string>(), "path to server config")
     ;
     // clang-format on
@@ -127,12 +127,21 @@ HttpBase::~HttpBase() {
     }
 
     if (vm.count("dump-config")) {
-        std::ofstream(config_dump) << static_config_;
+        if (config_dump.empty()) {
+            std::cout << static_config_ << std::endl;
+        } else {
+            std::ofstream(config_dump) << static_config_;
+        }
         return;
     }
 
     if (vm.count("dump-db-schema")) {
-        std::ofstream(schema_dump) << globals.db_schema;
+        if (schema_dump.empty()) {
+            std::cout << schema_dump << std::endl;
+        } else {
+            std::ofstream(schema_dump) << globals.db_schema;
+        }
+        return;
     }
 
     if (argc_ <= 1) {
@@ -178,7 +187,10 @@ void HttpBase::LogLevel(logging::Level level) { level_ = level; }
 
 PgDep::PgDep(const components::ComponentContext& context)
     : pg_cluster_(context.FindComponent<components::Postgres>("postgres").GetCluster()) {
-    pg_cluster_->Execute(storages::postgres::ClusterHostType::kMaster, HttpBase::GetDbSchema());
+    const auto& db_schema = HttpBase::GetDbSchema();
+    if (!db_schema.empty()) {
+        pg_cluster_->Execute(storages::postgres::ClusterHostType::kMaster, db_schema);
+    }
 }
 
 void PgDep::RegisterOn(HttpBase& app) {

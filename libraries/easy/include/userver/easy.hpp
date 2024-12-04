@@ -31,9 +31,22 @@ public:
     virtual ~DependenciesBase();
 };
 
+}  // namespace impl
+
+/// @ingroup userver_components
+///
+/// @brief Factory component for the dependencies from easy library.
+///
+/// This component can be registered in the component list and used by any client. For example:
+///
+/// @snippet libraries/easy/samples/6_pg_service_template_no_http_with/src/main.cpp  main
 template <class Dependencies>
-class DependenciesComponent : public DependenciesBase {
+class DependenciesComponent : public impl::DependenciesBase {
 public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of easy::DependenciesComponent
+    static constexpr std::string_view kName = "easy-dependencies";
+
     DependenciesComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
         : DependenciesBase(config, context), dependencies_(context) {}
 
@@ -42,8 +55,6 @@ public:
 private:
     Dependencies dependencies_;
 };
-
-}  // namespace impl
 
 /// @brief easy::HttpWith like class with erased dependencies information that should be used only in dependency
 /// registration functions; use easy::HttpWith if not making a new dependency class.
@@ -229,7 +240,7 @@ public:
     }
 
 private:
-    using DependenciesComponent = impl::DependenciesComponent<Dependency>;
+    using DependenciesComponent = easy::DependenciesComponent<Dependency>;
     HttpBase impl_;
 };
 
@@ -312,7 +323,7 @@ private:
 }  // namespace easy
 
 template <class Dependencies>
-inline constexpr auto components::kConfigFileMode<easy::impl::DependenciesComponent<Dependencies>> =
+inline constexpr auto components::kConfigFileMode<easy::DependenciesComponent<Dependencies>> =
     ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

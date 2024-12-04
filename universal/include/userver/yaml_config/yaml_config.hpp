@@ -58,7 +58,7 @@ using ParseException = formats::yaml::ParseException;
 /// Another example:
 /// @snippet universal/src/yaml_config/yaml_config_test.cpp  sample env fallback
 /// With YamlConfig::Mode::kEnvAllowed the result of
-/// `yaml["some_element"]["value"].As<int>()` is the value of `ENV_NAME`
+/// `yaml["some_element"]["some"].As<int>()` is the value of `ENV_NAME`
 /// environment variable if it exists; otherwise it is `5`.
 ///
 /// @note `#env`, `#file` and `#fallback` also work for keys inside

@@ -3,8 +3,8 @@
 **Quality:** @ref QUALITY_TIERS "Silver Tier".
 
 `Easy` is the userver library for easy prototyping. Service functionality is described in code in a
-short and declarative way. Static configs and database schema are applied
-automatically.
+short and declarative way. Static configs and database schema are embedded into the binary to simplify deployment
+and are applied automatically at service start.
 
 Migration of a service on easy library to a more functional
 [pg_service_template](https://github.com/userver-framework/pg_service_template)
@@ -40,6 +40,10 @@ The easy library works well with any callables, so feel free to move the logic o
 objects:
 
 @include libraries/easy/samples/1_hi/main.cpp
+
+@note Each callable for a route in the easy library actually creates and configures a component derived from
+      server::handlers::HttpHandlerBase. See @ref scripts/docs/en/userver/tutorial/hello_service.md for more insight on
+      what is going on under the hood of the easy library.
 
 
 ### `Key-Value storage` service with the easy library
@@ -114,6 +118,65 @@ See the full example, including tests:
 * @ref libraries/easy/samples/4_custom_dependency/testsuite/conftest.py
 * @ref libraries/easy/samples/4_custom_dependency/testsuite/test_basic.py
 
+
+### Migration from the easy library to a service template
+
+At some point a prototype service becomes a production ready solution. From that point usually more control over
+databases, configurations and deployment is required than the easy library provides. In that case, migration to
+an opensourse [service template](scripts/docs/en/userver/build/build.md) is recommended.
+
+Let's take a look, how a service from a previous example can be migrated to the
+[pg_service_template](https://github.com/userver-framework/pg_service_template).
+
+First of all, follow the instructions at [service template](scripts/docs/en/userver/build/build.md) to make a new
+service from a template.
+
+
+#### Migration of configs from the easy library to a service template
+
+To get the up to date static configs from the easy library, just build the service and run it with `--dump-config` and
+the binary will output the config to `STDOUT`. You can also provide a path to dump the static config, for example
+`./your_prototype --dump-config pg_service_template_based_service/configs/static_config.yaml`.
+
+If there's any `userver_testsuite_add_simple(DUMP_CONFIG True)` in a `CMakeLists.txt` then do not forget to remove
+`DUMP_CONFIG True` to stop the testsuite from taking the static configuration from the binary.
+
+
+#### Migration of database schema from the easy library to a service template
+
+To get the up to date database schemas from an easy library, just build the binary and run it with `--dump-db-schema`
+and the binary will output the database schema to `STDOUT`. You can also provide a path to dump the schema, for example
+`./your_prototype --dump-db-schema pg_service_template_based_service/postgresql/schemas/db_1.sql`.
+
+Another option is to take the schema from easy::HttpWith::DbSchema(). In any case, do not forget to remove the
+DbSchema call and do not forget to remove schema from source code. 
+
+If there's any `pgsql_local` customizations in testsuite tests, then remove `db_dump_schema_path` fixture usage
+and use the default version of the fixture from the service template. Note the `postgresql/data` directory in the
+service template, that is a good place to store tests data separately from the schema.
+
+
+#### Migration of code from the easy library to a service template
+
+You can keep using parts of the easy library in the service template for quite some time. Just move the code to new
+locations.
+
+As a result you should get something close to the following:
+* @ref libraries/easy/samples/5_pg_service_template/src/main.cpp
+* @ref libraries/easy/samples/5_pg_service_template/testsuite/conftest.py
+* @ref libraries/easy/samples/5_pg_service_template/testsuite/test_basic.py
+* @ref libraries/easy/samples/5_pg_service_template/configs/static_config.yaml
+* @ref libraries/easy/samples/5_pg_service_template/postgresql/schemas/db_1.sql
+
+After that, if you fell that easy::HttpWith gets in the way then you can remove it while still using 
+easy::Dependencies. For example the following code with easy::HttpWith:
+
+@snippet libraries/easy/samples/5_pg_service_template/src/main.cpp  main
+
+Becomes:
+
+@snippet libraries/easy/samples/6_pg_service_template_no_http_with/src/main.cpp  main
+
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
@@ -124,3 +187,9 @@ See the full example, including tests:
 @example libraries/easy/samples/4_custom_dependency/CMakeLists.txt
 @example libraries/easy/samples/4_custom_dependency/testsuite/conftest.py
 @example libraries/easy/samples/4_custom_dependency/testsuite/test_basic.py
+
+@example libraries/easy/samples/5_pg_service_template/src/main.cpp
+@example libraries/easy/samples/5_pg_service_template/testsuite/conftest.py
+@example libraries/easy/samples/5_pg_service_template/testsuite/test_basic.py
+@example libraries/easy/samples/5_pg_service_template/configs/static_config.yaml
+@example libraries/easy/samples/5_pg_service_template/postgresql/schemas/db_1.sql

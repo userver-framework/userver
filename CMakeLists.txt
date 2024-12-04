@@ -186,6 +186,7 @@ endif()
 
 if (USERVER_FEATURE_CHAOTIC)
   add_subdirectory(chaotic)
+  add_subdirectory(chaotic-openapi)
   list(APPEND USERVER_AVAILABLE_COMPONENTS chaotic)
 endif()
 

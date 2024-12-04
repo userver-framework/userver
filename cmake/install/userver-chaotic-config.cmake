@@ -5,7 +5,7 @@ if(userver_chaotic_FOUND)
 endif()
 
 find_package(userver REQUIRED COMPONENTS
-    core
+    universal
 )
 
 set_property(GLOBAL PROPERTY userver_chaotic_extra_args "-I ${CMAKE_CURRENT_LIST_DIR}/../../../include")

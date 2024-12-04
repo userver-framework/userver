@@ -143,12 +143,17 @@ int main(int argc, char* argv[]) {
     easy::HttpWith&lt;easy::PgDep&gt;(argc, argv)
         // Handles multiple HTTP requests to `/kv` URL concurrently
         .Get("/kv", [](formats::json::Value request_json, const easy::PgDep&amp; dep) {
-            auto key = request_json.As<schemas::KeyRequest>().key;  // parser is generated from schema
+            // JSON parser and serializer are generated from JSON schema by userver
+            auto key = request_json.As&lt;schemas::KeyRequest&gt;().key;
 
             // Asynchronous execution of the SQL query in transaction. Current thread
             // handles other requests while the response from the DB is being received:
             auto res = dep.pg().Execute(
-                storages::postgres::ClusterHostType::kSlave, "SELECT value FROM key_value_table WHERE key=$1", key
+                storages::postgres::ClusterHostType::kSlave,
+                // Query is converted into a prepared statement. Subsequent requests
+                // send only parameters in a binary form and meta information is
+                // discarded on the DB side, significantly saving network bandwith.
+                "SELECT value FROM key_value_table WHERE key=$1", key
             );
 
             schemas::KeyValue response{key, res[0][0].As&lt;std::string&gt;()};

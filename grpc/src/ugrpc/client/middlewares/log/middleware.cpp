@@ -44,6 +44,7 @@ void Middleware::PreStartCall(MiddlewareCallContext& context) const {
     span.SetLocalLogLevel(settings_.log_level);
 
     span.AddTag("meta_type", std::string{context.GetCallName()});
+    span.AddTag("type", "request");
 
     if (!IsSingleRequest(context.GetCallKind())) {
         SpanLogger{context.GetSpan(), settings_.log_level}.Log(

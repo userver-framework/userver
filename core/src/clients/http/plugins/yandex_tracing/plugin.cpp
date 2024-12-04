@@ -2,6 +2,7 @@
 
 #include <userver/clients/http/response.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/tracing/span.hpp>
 #include <userver/utils/algo.hpp>
 
 #include <userver/http/common_headers.hpp>
@@ -18,13 +19,15 @@ constexpr USERVER_NAMESPACE::http::headers::PredefinedHeader kYaTracingHeaders[]
 };
 
 const std::string kName = "yandex-tracing";
+const std::string kTypeTag = "type";
+const std::string kTypeRequest = "request";
 }  // namespace
 
 Plugin::Plugin() : http::Plugin(kName) {}
 
 void Plugin::HookPerformRequest(PluginRequest&) {}
 
-void Plugin::HookCreateSpan(PluginRequest&) {}
+void Plugin::HookCreateSpan(PluginRequest&, tracing::Span& span) { span.AddNonInheritableTag(kTypeTag, kTypeRequest); }
 
 void Plugin::HookOnCompleted(PluginRequest&, Response& response) {
     const auto& headers = response.headers();

@@ -2,17 +2,18 @@ import collections
 import dataclasses
 import os
 import pathlib
-import subprocess
-from typing import Any
 from typing import Dict
 from typing import List
-from typing import NoReturn
 from typing import Optional
 
 import jinja2
 
+from chaotic import cpp_format
+from chaotic import jinja_env
 from chaotic.back.cpp import types as cpp_types
 from chaotic.front import types
+
+PARENT_DIR = os.path.dirname(__file__)
 
 
 @dataclasses.dataclass
@@ -107,38 +108,11 @@ def cpp_struct_is_strict_parsing(struct: cpp_types.CppStruct) -> bool:
     return struct.strict_parsing and struct.extra_type is False
 
 
-def not_implemented(obj: Any = None) -> NoReturn:
-    raise Exception(repr(obj))
-
-
-def make_arcadia_loader() -> jinja2.FunctionLoader:
-    import library.python.resource as arc_resource
-
-    def arc_resource_loader(name: str) -> jinja2.BaseLoader:
-        return arc_resource.resfs_read(
-            f'taxi/uservices/userver/chaotic/chaotic/back/cpp/{name}',
-        ).decode('utf-8')
-
-    loader = jinja2.FunctionLoader(arc_resource_loader)  # type: ignore
-
-    # try to load something and drop the result
-    try:
-        arc_resource_loader('templates/type.hpp.jinja')
-    except Exception:
-        raise ImportError('resfs is not available')
-
-    return loader
-
-
 def make_env() -> jinja2.Environment:
-    loader: jinja2.BaseLoader
-    try:
-        loader = make_arcadia_loader()
-    except ImportError:
-        loader = jinja2.FileSystemLoader(PARENT_DIR)
-    env = jinja2.Environment(loader=loader)
+    env = jinja_env.make_env(
+        'chaotic/chaotic/back/cpp', os.path.join(PARENT_DIR),
+    )
 
-    env.globals['NOT_IMPLEMENTED'] = not_implemented
     env.globals['enumerate'] = enumerate
 
     env.globals['cpp_struct_is_strict_parsing'] = cpp_struct_is_strict_parsing
@@ -159,15 +133,7 @@ def make_env() -> jinja2.Environment:
     return env
 
 
-PARENT_DIR = os.path.dirname(__file__)
 JINJA_ENV = make_env()
-
-
-def format_pp(input_: str, *, binary: str) -> str:
-    if not binary:
-        return input_
-    output = subprocess.check_output([binary], input=input_, encoding='utf-8')
-    return output + '\n'
 
 
 class OneToOneFileRenderer:
@@ -281,19 +247,23 @@ class OneToOneFileRenderer:
 
             tpl = JINJA_ENV.get_template('templates/type_fwd.hpp.jinja')
             fwd_hpp = tpl.render(types=types_cpp)
-            fwd_hpp = format_pp(fwd_hpp, binary=self._clang_format_bin)
+            fwd_hpp = cpp_format.format_pp(
+                fwd_hpp, binary=self._clang_format_bin,
+            )
 
             tpl = JINJA_ENV.get_template('templates/type.hpp.jinja')
             hpp = tpl.render(**env)
-            hpp = format_pp(hpp, binary=self._clang_format_bin)
+            hpp = cpp_format.format_pp(hpp, binary=self._clang_format_bin)
 
             tpl = JINJA_ENV.get_template('templates/type_parsers.ipp.jinja')
             parsers_ipp = tpl.render(**env)
-            parsers_ipp = format_pp(parsers_ipp, binary=self._clang_format_bin)
+            parsers_ipp = cpp_format.format_pp(
+                parsers_ipp, binary=self._clang_format_bin,
+            )
 
             tpl = JINJA_ENV.get_template('templates/type.cpp.jinja')
             cpp = tpl.render(**env)
-            cpp = format_pp(cpp, binary=self._clang_format_bin)
+            cpp = cpp_format.format_pp(cpp, binary=self._clang_format_bin)
 
             output.append(
                 CppOutput(

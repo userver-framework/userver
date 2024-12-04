@@ -16,3 +16,9 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-json)
 
 add_subdirectory(4_custom_dependency)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-custom-dependency)
+
+add_subdirectory(5_pg_service_template)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-pg-service-template)
+
+add_subdirectory(6_pg_service_template_no_http_with)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-pg-service-template-no-http-with)

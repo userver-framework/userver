@@ -798,6 +798,17 @@ UTEST_P(PostgreConnection, CompositeTypeParseExceptionReadability) {
             "'__pgtest.no_cpp_type' (oid: "
         );
     }
+}
+
+// Following tests abort in debug
+#ifdef NDEBUG
+
+UTEST_P(PostgreConnection, InvalidInputBufferSizeExceptionReadability) {
+    CheckConnection(GetConn());
+    ASSERT_FALSE(GetConn()->IsReadOnly()) << "Expect a read-write connection";
+    UASSERT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";
+    UASSERT_NO_THROW(GetConn()->Execute(kCreateTestSchema)) << "Create schema";
+
     {
         UEXPECT_NO_THROW(GetConn()->Execute(R"~(
           CREATE TABLE __pgtest.numeric_problem (
@@ -860,6 +871,8 @@ UTEST_P(PostgreConnection, UnknownBufferCategoryExceptionReadability) {
         "documentation to find a propper C++ type."
     );
 }
+
+#endif
 
 }  // namespace
 

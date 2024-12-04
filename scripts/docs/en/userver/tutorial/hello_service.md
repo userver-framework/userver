@@ -14,6 +14,9 @@ You do not need to copy parts of code from this tutorial to @ref service_templat
 Make sure that you can compile and run core tests as described at
 @ref scripts/docs/en/userver/build/build.md.
 
+This sample provides some basic information on how to configure the service and how to setup testing. If you are eager
+to prototype and experiment, consider the @ref scripts/docs/en/userver/libraries/easy.md instead.
+
 
 ## Step by step guide
 
@@ -62,7 +65,9 @@ HTTP response code will be set to `500`.
 
 @include samples/hello_service/src/hello_handler.cpp
 
-@warning `Handle*` functions are invoked concurrently on the same instance of the handler class. Use @ref scripts/docs/en/userver/synchronization.md "synchronization primitives" or do not modify shared data in `Handle*`.
+@warning `Handle*` functions are invoked concurrently on the same instance of the handler class. Use
+         @ref scripts/docs/en/userver/synchronization.md "synchronization primitives" or do not modify shared data
+         in `Handle*`.
 
 
 ### Static config
